@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Car, Users, Route, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, Menu, X, LogOut, Settings, Bell, Briefcase, ClipboardList, History, UserCheck, Phone, Building2, ChevronsUpDown, Check, Truck, Shield, CheckSquare, Mail, Tag, MessageCircle, CreditCard, ScrollText, Upload, Search as SearchIcon, HeartPulse } from 'lucide-react';
+import { Home, Car, Users, Route, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, Menu, X, LogOut, Settings, Bell, Briefcase, ClipboardList, History, UserCheck, Phone, Building2, ChevronsUpDown, Check, Truck, Shield, CheckSquare, Mail, Tag, MessageCircle, CreditCard, ScrollText, Upload, Search as SearchIcon, HeartPulse, Download, Database } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -121,6 +121,9 @@ const superAdminExtra: NavItem[] = [
   { path: '/subscriptions', label: 'מנויים וחיוב', icon: CreditCard },
   { path: '/project-summary', label: 'דוח תוספות', icon: ScrollText },
   { path: '/completed-tasks', label: 'משימות פיתוח תוכנה', icon: CheckSquare },
+  { path: '/system-update/code', label: 'עדכון קוד', icon: Download },
+  { path: '/system-update/database', label: 'עדכון מסד נתונים', icon: Database },
+  { path: '/system-update/audit', label: 'יומן עדכונים', icon: ScrollText },
 ];
 
 export default function BottomNav() {

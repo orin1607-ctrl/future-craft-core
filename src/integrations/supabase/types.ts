@@ -1943,6 +1943,54 @@ export type Database = {
         }
         Relationships: []
       }
+      system_update_audit: {
+        Row: {
+          id: number
+          action: string
+          triggered_by: string | null
+          triggered_by_email: string | null
+          status: string
+          sha_before: string | null
+          sha_after: string | null
+          migrations_applied: string[] | null
+          log_excerpt: string | null
+          error: string | null
+          duration_ms: number | null
+          started_at: string
+          finished_at: string | null
+        }
+        Insert: {
+          id?: number
+          action: string
+          triggered_by?: string | null
+          triggered_by_email?: string | null
+          status: string
+          sha_before?: string | null
+          sha_after?: string | null
+          migrations_applied?: string[] | null
+          log_excerpt?: string | null
+          error?: string | null
+          duration_ms?: number | null
+          started_at?: string
+          finished_at?: string | null
+        }
+        Update: {
+          id?: number
+          action?: string
+          triggered_by?: string | null
+          triggered_by_email?: string | null
+          status?: string
+          sha_before?: string | null
+          sha_after?: string | null
+          migrations_applied?: string[] | null
+          log_excerpt?: string | null
+          error?: string | null
+          duration_ms?: number | null
+          started_at?: string
+          finished_at?: string | null
+        }
+        Relationships: []
+      }
       temporary_drivers: {
         Row: {
           company_name: string | null

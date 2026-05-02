@@ -65,6 +65,9 @@ import SignDeclaration from "@/pages/SignDeclaration";
 import ServiceOrderHistory from "@/pages/ServiceOrderHistory";
 import TakeDrivingExam from "@/pages/TakeDrivingExam";
 import Voice from "@/pages/Voice";
+import SystemUpdateCode from "@/pages/SystemUpdateCode";
+import SystemUpdateDatabase from "@/pages/SystemUpdateDatabase";
+import SystemUpdateAudit from "@/pages/SystemUpdateAudit";
 
 const queryClient = new QueryClient();
 
@@ -154,6 +157,9 @@ function AppRoutes() {
         <Route path="/take-exam" element={<TakeDrivingExam />} />
         <Route path="/driving-exam/:id" element={<TakeDrivingExam />} />
         <Route path="/voice" element={<Voice />} />
+        <Route path="/system-update/code" element={<SystemUpdateCode />} />
+        <Route path="/system-update/database" element={<SystemUpdateDatabase />} />
+        <Route path="/system-update/audit" element={<SystemUpdateAudit />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
