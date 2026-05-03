@@ -124,7 +124,11 @@ Deno.serve(async (req) => {
     .select("id")
     .single();
 
+  if (auditInsert.error) {
+    console.error("audit insert failed:", auditInsert.error);
+  }
   const auditId = auditInsert.data?.id;
+  const auditError = auditInsert.error?.message;
 
   let result: WebhookResult;
   try {
@@ -166,5 +170,5 @@ Deno.serve(async (req) => {
       .eq("id", auditId);
   }
 
-  return json({ ...result, audit_id: auditId });
+  return json({ ...result, audit_id: auditId, audit_error: auditError });
 });

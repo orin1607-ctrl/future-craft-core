@@ -26,3 +26,8 @@ CREATE POLICY "super_admin can view audit"
   ON public.system_update_audit
   FOR SELECT
   USING (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+
+-- Service role (used by the system-update edge function) needs explicit
+-- sequence + table grants; Supabase doesn't auto-grant sequences on new tables.
+GRANT USAGE, SELECT ON SEQUENCE public.system_update_audit_id_seq TO service_role, authenticated;
+GRANT INSERT, UPDATE, SELECT ON TABLE public.system_update_audit TO service_role;
