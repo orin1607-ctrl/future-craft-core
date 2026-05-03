@@ -1,14 +1,17 @@
 name: Sync from Miki repo
 
 # Mirrors Miki's main branch (websolutions-il/future-craft-core) into the
-# `miki-mirror` branch on this repo. NEVER touches main or production.
-# Naeem reviews miki-mirror, cherry-picks/merges into main, then promotes to
-# production for Yoni to deploy via the Super Admin UI.
+# `miki-mirror` branch on this repo as a squashed snapshot, stripping
+# .github/workflows/* (GITHUB_TOKEN can't write workflow files cross-branch,
+# and we don't want Miki's workflows running here anyway).
+#
+# main and production are NEVER touched. Naeem reviews miki-mirror, copies
+# wanted changes into production, and Yoni deploys via the Super Admin UI.
 
 on:
   schedule:
     - cron: '0 */6 * * *'   # every 6 hours
-  workflow_dispatch: {}      # also allow manual run from Actions tab
+  workflow_dispatch: {}
 
 jobs:
   mirror:
@@ -26,15 +29,35 @@ jobs:
           git remote add miki https://github.com/websolutions-il/future-craft-core.git
           git fetch miki main --no-tags
 
-      - name: Force-update miki-mirror branch to match Miki's main
+      - name: Build squashed snapshot of miki/main (workflows stripped)
         run: |
-          git push origin --force "miki/main:refs/heads/miki-mirror"
+          MIKI_SHA=$(git rev-parse miki/main)
+          MIKI_SHORT=$(git rev-parse --short miki/main)
+          MIKI_MSG=$(git log -1 --format=%s miki/main)
+
+          # Start from an empty branch, load miki/main's tree, drop workflows
+          git checkout --orphan miki-mirror-tmp
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          git read-tree miki/main
+          git rm -rf --cached .github/workflows >/dev/null 2>&1 || true
+
+          git -c user.name="sync-bot" \
+              -c user.email="sync-bot@users.noreply.github.com" \
+              commit -m "Mirror miki/main @ ${MIKI_SHORT} ($(date -u +%Y-%m-%dT%H:%M:%SZ))
+
+          Source commit: ${MIKI_SHA}
+          Subject: ${MIKI_MSG}"
+
+      - name: Force-push to miki-mirror branch
+        run: git push origin --force HEAD:refs/heads/miki-mirror
 
       - name: Summary
         run: |
           echo "### Mirrored Miki/main → miki-mirror" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Latest 5 commits on miki-mirror:" >> $GITHUB_STEP_SUMMARY
+          echo "Source: \`$(git rev-parse miki/main)\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Latest 5 Miki commits:" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           git log miki/main --oneline -5 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
