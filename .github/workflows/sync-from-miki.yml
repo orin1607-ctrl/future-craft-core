@@ -1,0 +1,40 @@
+name: Sync from Miki repo
+
+# Mirrors Miki's main branch (websolutions-il/future-craft-core) into the
+# `miki-mirror` branch on this repo. NEVER touches main or production.
+# Naeem reviews miki-mirror, cherry-picks/merges into main, then promotes to
+# production for Yoni to deploy via the Super Admin UI.
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 hours
+  workflow_dispatch: {}      # also allow manual run from Actions tab
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout (default branch)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add Miki remote and fetch
+        run: |
+          git remote add miki https://github.com/websolutions-il/future-craft-core.git
+          git fetch miki main --no-tags
+
+      - name: Force-update miki-mirror branch to match Miki's main
+        run: |
+          git push origin --force "miki/main:refs/heads/miki-mirror"
+
+      - name: Summary
+        run: |
+          echo "### Mirrored Miki/main → miki-mirror" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Latest 5 commits on miki-mirror:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          git log miki/main --oneline -5 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
