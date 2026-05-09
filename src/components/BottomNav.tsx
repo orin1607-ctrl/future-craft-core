@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Car, Users, Route, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, Menu, X, LogOut, Settings, Bell, Briefcase, ClipboardList, History, UserCheck, Phone, Building2, ChevronsUpDown, Check, Truck, Shield, CheckSquare, Mail, Tag, MessageCircle, CreditCard, ScrollText, Upload, Search as SearchIcon, HeartPulse, Download, Database } from 'lucide-react';
+import { Home, Car, Users, Route, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, Menu, X, LogOut, Settings, Bell, Briefcase, ClipboardList, History, UserCheck, Phone, Building2, ChevronsUpDown, Check, Truck, Shield, CheckSquare, Mail, Tag, MessageCircle, CreditCard, ScrollText, Upload, Search as SearchIcon, HeartPulse, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -44,6 +45,7 @@ const managerCategories = [
       { path: '/private-vehicle-inspection', label: 'בדיקה תלת/חצי', icon: CheckSquare },
       { path: '/vehicle-tasks', label: 'ליקויים', icon: AlertTriangle },
       { path: '/vehicle-import', label: 'יבוא רכבים', icon: Upload },
+      { path: '/driver-import', label: 'יבוא נהגים', icon: Upload },
       { path: '/vehicle-lookup', label: 'בדיקת רכב ממשלתי', icon: SearchIcon },
       { path: '/health-declaration', label: 'הצהרת בריאות', icon: HeartPulse },
       { path: '/driver-declarations', label: 'תצהירי נהגים', icon: FileText },
@@ -57,6 +59,7 @@ const managerCategories = [
       { path: '/service-orders', label: 'הזמנת שירות', icon: Briefcase },
       { path: '/routes', label: 'ניהול מסלולים', icon: Route },
       { path: '/work-orders', label: 'סידור עבודה', icon: ClipboardList },
+      { path: '/pickup-appointments', label: 'תיאומי איסוף', icon: Calendar },
       { path: '/towing', label: 'שינועים', icon: Truck },
       { path: '/vehicle-exchange', label: 'החלפת רכב', icon: RefreshCw },
       { path: '/accidents', label: 'דיווח תאונה', icon: AlertTriangle },

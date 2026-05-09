@@ -41,6 +41,7 @@ import VehicleInspections from "@/pages/VehicleInspections";
 import VehicleTasks from "@/pages/VehicleTasks";
 import HealthDeclaration from "@/pages/HealthDeclaration";
 import VehicleImport from "@/pages/VehicleImport";
+import DriverImport from "@/pages/DriverImport";
 import PrivateVehicleInspection from "@/pages/PrivateVehicleInspection";
 import VehicleLookup from "@/pages/VehicleLookup";
 import VehicleExchange from "@/pages/VehicleExchange";
@@ -68,6 +69,7 @@ import Voice from "@/pages/Voice";
 import SystemUpdateCode from "@/pages/SystemUpdateCode";
 import SystemUpdateDatabase from "@/pages/SystemUpdateDatabase";
 import SystemUpdateAudit from "@/pages/SystemUpdateAudit";
+import PickupAppointments from "@/pages/PickupAppointments";
 
 const queryClient = new QueryClient();
 
@@ -149,6 +151,7 @@ function AppRoutes() {
         <Route path="/vehicle-tasks" element={<VehicleTasks />} />
         <Route path="/health-declaration" element={<HealthDeclaration />} />
         <Route path="/vehicle-import" element={<VehicleImport />} />
+        <Route path="/driver-import" element={<DriverImport />} />
         <Route path="/private-vehicle-inspection" element={<PrivateVehicleInspection />} />
         <Route path="/vehicle-lookup" element={<VehicleLookup />} />
         <Route path="/vehicle-exchange" element={<VehicleExchange />} />
@@ -160,6 +163,7 @@ function AppRoutes() {
         <Route path="/system-update/code" element={<SystemUpdateCode />} />
         <Route path="/system-update/database" element={<SystemUpdateDatabase />} />
         <Route path="/system-update/audit" element={<SystemUpdateAudit />} />
+        <Route path="/pickup-appointments" element={<PickupAppointments />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

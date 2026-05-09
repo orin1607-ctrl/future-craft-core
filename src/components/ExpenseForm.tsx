@@ -45,7 +45,9 @@ export default function ExpenseForm({ onSubmit, onCancel }: ExpenseFormProps) {
   const [paymentMethod, setPaymentMethod] = useState<'credit' | 'cash' | 'fuel_card'>('credit');
   const [notes, setNotes] = useState('');
   const [receiptImage, setReceiptImage] = useState<FaultAttachment | null>(null);
+  const [extraFiles, setExtraFiles] = useState<FaultAttachment[]>([]);
   const cameraRef = useRef<HTMLInputElement>(null);
+  const extraFilesRef = useRef<HTMLInputElement>(null);
 
   // Auto-fill for drivers
   useEffect(() => {
@@ -243,6 +245,44 @@ export default function ExpenseForm({ onSubmit, onCancel }: ExpenseFormProps) {
             </div>
           )}
           <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleImageChange} className="hidden" />
+        </div>
+
+        {/* Extra Files */}
+        <div className="card-elevated">
+          <h2 className="text-lg font-bold mb-4 text-primary">קבצים נוספים <span className="text-sm font-normal text-muted-foreground">(אישורים, מסמכי מיגון וכו׳)</span></h2>
+          {extraFiles.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {extraFiles.map((f, i) => (
+                <div key={f.id} className="p-3 rounded-xl bg-muted space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm truncate flex-1">{f.name}</span>
+                    <button onClick={() => { URL.revokeObjectURL(f.url); setExtraFiles(prev => prev.filter((_, idx) => idx !== i)); }} className="p-1 text-destructive shrink-0">
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={(f as any).description || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setExtraFiles(prev => prev.map((file, idx) => idx === i ? { ...file, description: val } as any : file));
+                    }}
+                    placeholder="שם / תיאור הקובץ (לדוגמה: אישור מיגון)..."
+                    className="w-full p-2 text-sm rounded-lg border border-input bg-background focus:border-primary focus:outline-none"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          <button onClick={() => extraFilesRef.current?.click()} className="w-full py-3 rounded-xl border-2 border-dashed border-input text-muted-foreground hover:border-primary hover:text-primary transition-colors font-medium">
+            + הוסף קבצים נוספים
+          </button>
+          <input ref={extraFilesRef} type="file" multiple onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            const mapped = files.map(file => ({ id: crypto.randomUUID(), name: file.name, type: file.type, size: file.size, url: URL.createObjectURL(file), description: '' } as any));
+            setExtraFiles(prev => [...prev, ...mapped]);
+            e.target.value = '';
+          }} className="hidden" />
         </div>
 
         {/* Notes */}

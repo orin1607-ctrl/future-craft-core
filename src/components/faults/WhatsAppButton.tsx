@@ -120,7 +120,7 @@ export default function WhatsAppButton() {
     // No center configured
     return (
       <div
-        className="fixed bottom-24 left-4 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-white font-bold text-sm opacity-60 cursor-not-allowed"
+        className="fixed bottom-24 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-white font-bold text-sm opacity-60 cursor-not-allowed"
         style={{ backgroundColor: settings?.whatsapp_button_color || '#666' }}
       >
         <Phone size={22} />
@@ -138,7 +138,7 @@ export default function WhatsAppButton() {
 
       {/* Emergency Menu */}
       {open && (
-        <div className="fixed bottom-32 left-4 right-4 md:left-4 md:right-auto md:w-80 z-[70] bg-card rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in">
+        <div className="fixed bottom-44 left-4 right-4 md:right-6 md:left-auto md:w-80 z-[70] bg-card rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in">
           <div className="p-4 bg-destructive/10 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Phone size={20} className="text-destructive" />
@@ -172,7 +172,7 @@ export default function WhatsAppButton() {
       {/* Main Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-24 left-4 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-white font-bold text-sm transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-24 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-white font-bold text-sm transition-transform hover:scale-105 active:scale-95"
         style={{ backgroundColor: settings?.whatsapp_button_color || '#25D366' }}
       >
         {open ? <X size={22} /> : <Phone size={22} />}

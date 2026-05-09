@@ -1337,6 +1337,89 @@ export type Database = {
         }
         Relationships: []
       }
+      info_gap_history: {
+        Row: {
+          changed_by: string | null
+          changed_by_name: string | null
+          created_at: string
+          id: string
+          new_status: string
+          notes: string | null
+          old_status: string | null
+          tracking_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          id?: string
+          new_status: string
+          notes?: string | null
+          old_status?: string | null
+          tracking_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          id?: string
+          new_status?: string
+          notes?: string | null
+          old_status?: string | null
+          tracking_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "info_gap_history_tracking_id_fkey"
+            columns: ["tracking_id"]
+            isOneToOne: false
+            referencedRelation: "info_gap_tracking"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      info_gap_tracking: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          gap_key: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          gap_key: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          gap_key?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       inspection_items: {
         Row: {
           created_at: string | null
@@ -1402,6 +1485,78 @@ export type Database = {
           recipient_id?: string
           sender_id?: string
           sender_name?: string
+        }
+        Relationships: []
+      }
+      pickup_appointments: {
+        Row: {
+          call_log_id: string | null
+          company_name: string | null
+          conversation_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          driver_id: string | null
+          driver_name: string | null
+          driver_phone: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          scheduled_date: string | null
+          scheduled_time: string | null
+          source: string
+          status: string
+          updated_at: string
+          vehicle_id: string | null
+          vehicle_plate: string | null
+        }
+        Insert: {
+          call_log_id?: string | null
+          company_name?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          driver_id?: string | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_plate?: string | null
+        }
+        Update: {
+          call_log_id?: string | null
+          company_name?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          driver_id?: string | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_plate?: string | null
         }
         Relationships: []
       }
@@ -2578,6 +2733,7 @@ export type Database = {
         Row: {
           approval_status: string | null
           assigned_driver_id: string | null
+          code: string | null
           company_name: string | null
           comprehensive_insurance_doc_url: string | null
           comprehensive_insurance_expiry: string | null
@@ -2587,6 +2743,8 @@ export type Database = {
           has_loan: boolean | null
           has_no_claims: boolean | null
           id: string
+          insurance_agent: string | null
+          insurance_company: string | null
           insurance_cost: number | null
           insurance_doc_url: string | null
           insurance_expiry: string | null
@@ -2605,12 +2763,18 @@ export type Database = {
           monthly_loan_payment: number | null
           needs_transport: boolean | null
           next_service_date: string | null
+          next_service_km: number | null
+          nickname: string | null
           notes: string | null
           odometer: number | null
+          ownership_type: string | null
           planned_replacement_date: string | null
           status: string | null
           test_expiry: string | null
+          third_party_insurance_doc_url: string | null
+          third_party_insurance_expiry: string | null
           updated_at: string | null
+          vehicle_images: string | null
           vehicle_return_date: string | null
           vehicle_type: string | null
           year: number | null
@@ -2618,6 +2782,7 @@ export type Database = {
         Insert: {
           approval_status?: string | null
           assigned_driver_id?: string | null
+          code?: string | null
           company_name?: string | null
           comprehensive_insurance_doc_url?: string | null
           comprehensive_insurance_expiry?: string | null
@@ -2627,6 +2792,8 @@ export type Database = {
           has_loan?: boolean | null
           has_no_claims?: boolean | null
           id?: string
+          insurance_agent?: string | null
+          insurance_company?: string | null
           insurance_cost?: number | null
           insurance_doc_url?: string | null
           insurance_expiry?: string | null
@@ -2645,12 +2812,18 @@ export type Database = {
           monthly_loan_payment?: number | null
           needs_transport?: boolean | null
           next_service_date?: string | null
+          next_service_km?: number | null
+          nickname?: string | null
           notes?: string | null
           odometer?: number | null
+          ownership_type?: string | null
           planned_replacement_date?: string | null
           status?: string | null
           test_expiry?: string | null
+          third_party_insurance_doc_url?: string | null
+          third_party_insurance_expiry?: string | null
           updated_at?: string | null
+          vehicle_images?: string | null
           vehicle_return_date?: string | null
           vehicle_type?: string | null
           year?: number | null
@@ -2658,6 +2831,7 @@ export type Database = {
         Update: {
           approval_status?: string | null
           assigned_driver_id?: string | null
+          code?: string | null
           company_name?: string | null
           comprehensive_insurance_doc_url?: string | null
           comprehensive_insurance_expiry?: string | null
@@ -2667,6 +2841,8 @@ export type Database = {
           has_loan?: boolean | null
           has_no_claims?: boolean | null
           id?: string
+          insurance_agent?: string | null
+          insurance_company?: string | null
           insurance_cost?: number | null
           insurance_doc_url?: string | null
           insurance_expiry?: string | null
@@ -2685,12 +2861,18 @@ export type Database = {
           monthly_loan_payment?: number | null
           needs_transport?: boolean | null
           next_service_date?: string | null
+          next_service_km?: number | null
+          nickname?: string | null
           notes?: string | null
           odometer?: number | null
+          ownership_type?: string | null
           planned_replacement_date?: string | null
           status?: string | null
           test_expiry?: string | null
+          third_party_insurance_doc_url?: string | null
+          third_party_insurance_expiry?: string | null
           updated_at?: string | null
+          vehicle_images?: string | null
           vehicle_return_date?: string | null
           vehicle_type?: string | null
           year?: number | null

@@ -29,6 +29,7 @@ interface InspectionItemRow {
 interface VehicleBasic {
   id: string;
   license_plate: string;
+  internal_number: string;
   manufacturer: string;
   model: string;
 }
@@ -56,7 +57,7 @@ export default function VehicleInspections() {
     setLoading(true);
     const [iRes, vRes] = await Promise.all([
       applyCompanyScope(supabase.from('vehicle_inspections').select('*'), companyFilter).order('inspection_date', { ascending: false }),
-      applyCompanyScope(supabase.from('vehicles').select('id, license_plate, manufacturer, model'), companyFilter),
+      applyCompanyScope(supabase.from('vehicles').select('id, license_plate, internal_number, manufacturer, model'), companyFilter),
     ]);
     if (iRes.data) setInspections(iRes.data as InspectionRow[]);
     if (vRes.data) setVehicles(vRes.data as VehicleBasic[]);
@@ -65,9 +66,11 @@ export default function VehicleInspections() {
 
   useEffect(() => { loadData(); }, []);
 
-  const filtered = inspections.filter(i =>
-    !search || i.vehicle_plate?.includes(search) || i.inspector_name?.includes(search)
-  );
+  const filtered = inspections.filter(i => {
+    if (!search) return true;
+    const v = vehicles.find(x => x.id === i.vehicle_id);
+    return i.vehicle_plate?.includes(search) || i.inspector_name?.includes(search) || v?.internal_number?.includes(search);
+  });
 
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
@@ -76,7 +79,7 @@ export default function VehicleInspections() {
   }
 
   if (viewMode === 'detail' && selectedInspection) {
-    return <InspectionDetail inspection={selectedInspection} onBack={() => { setViewMode('list'); setSelectedInspection(null); }} />;
+    return <InspectionDetail inspection={selectedInspection} vehicles={vehicles} onBack={() => { setViewMode('list'); setSelectedInspection(null); }} />;
   }
 
   return (
@@ -87,7 +90,7 @@ export default function VehicleInspections() {
 
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לפי מספר רכב או בודק..."
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לפי מספר רכב, מספר פנימי או בודק..."
           className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none" />
       </div>
 
@@ -110,10 +113,12 @@ export default function VehicleInspections() {
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${i.overall_status === 'passed' ? 'bg-success/10' : 'bg-destructive/10'}`}>
                   {i.overall_status === 'passed' ? <CheckCircle2 size={28} className="text-success" /> : <AlertTriangle size={28} className="text-destructive" />}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xl font-bold">רכב {i.vehicle_plate}</p>
-                  <p className="text-muted-foreground">{new Date(i.inspection_date).toLocaleDateString('he-IL')} • {i.inspector_name || 'לא צוין'}</p>
-                </div>
+                {(() => { const v = vehicles.find(x => x.id === i.vehicle_id); return (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xl font-bold">רכב {i.vehicle_plate}{v?.internal_number ? ` | מס' פנימי ${v.internal_number}` : ''}</p>
+                    <p className="text-muted-foreground">{new Date(i.inspection_date).toLocaleDateString('he-IL')} • {i.inspector_name || 'לא צוין'}</p>
+                  </div>
+                ); })()}
                 <span className={`status-badge ${i.overall_status === 'passed' ? 'status-active' : 'status-inactive'}`}>
                   {i.overall_status === 'passed' ? 'תקין' : 'ליקויים'}
                 </span>
@@ -225,7 +230,7 @@ function InspectionForm({ vehicles, user, onDone, onBack }: {
           <label className="block text-lg font-medium mb-2">רכב *</label>
           <select value={vehicleId} onChange={e => setVehicleId(e.target.value)} className={inputClass}>
             <option value="">בחר רכב...</option>
-            {vehicles.map(v => <option key={v.id} value={v.id}>{v.license_plate} - {v.manufacturer} {v.model}</option>)}
+            {vehicles.map(v => <option key={v.id} value={v.id}>{v.license_plate}{v.internal_number ? ` | ${v.internal_number}` : ''} - {v.manufacturer} {v.model}</option>)}
           </select>
         </div>
 
@@ -287,7 +292,8 @@ function InspectionForm({ vehicles, user, onDone, onBack }: {
   );
 }
 
-function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; onBack: () => void }) {
+function InspectionDetail({ inspection, vehicles, onBack }: { inspection: InspectionRow; vehicles: VehicleBasic[]; onBack: () => void }) {
+  const vehicleInternal = vehicles.find(v => v.id === inspection.vehicle_id)?.internal_number;
   const [items, setItems] = useState<InspectionItemRow[]>([]);
 
   useEffect(() => {
@@ -303,7 +309,7 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
 
       <div className="card-elevated mb-4">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">ביקורת רכב {inspection.vehicle_plate}</h1>
+          <h1 className="text-2xl font-bold">ביקורת רכב {inspection.vehicle_plate}{vehicleInternal ? ` | מס' פנימי ${vehicleInternal}` : ''}</h1>
           <span className={`status-badge ${inspection.overall_status === 'passed' ? 'status-active' : 'status-inactive'}`}>
             {inspection.overall_status === 'passed' ? 'תקין' : 'ליקויים'}
           </span>

@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 interface VehicleBasic {
   id: string;
   license_plate: string;
+  internal_number: string;
   manufacturer: string;
   model: string;
 }
@@ -56,7 +57,7 @@ export default function PrivateVehicleInspection() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    applyCompanyScope(supabase.from('vehicles').select('id, license_plate, manufacturer, model'), companyFilter)
+    applyCompanyScope(supabase.from('vehicles').select('id, license_plate, internal_number, manufacturer, model'), companyFilter)
       .then(({ data }) => { if (data) setVehicles(data as VehicleBasic[]); });
   }, []);
 
@@ -130,7 +131,7 @@ export default function PrivateVehicleInspection() {
 
       <div className="flex items-center gap-3 mb-6">
         <ClipboardCheck size={28} className="text-primary" />
-        <h1 className="text-2xl font-bold">בדיקה תלת / חצי לרכב פרטי</h1>
+        <h1 className="text-2xl font-bold">בדיקה תלת / חצי לרכב פרטי{selectedVehicle?.internal_number ? ` | מס' פנימי ${selectedVehicle.internal_number}` : ''}</h1>
       </div>
 
       {/* Top Fields */}
@@ -139,7 +140,7 @@ export default function PrivateVehicleInspection() {
           <label className="block text-base font-medium mb-1.5">רכב מס׳ *</label>
           <select value={vehicleId} onChange={e => setVehicleId(e.target.value)} className={inputClass}>
             <option value="">בחר רכב...</option>
-            {vehicles.map(v => <option key={v.id} value={v.id}>{v.license_plate} - {v.manufacturer} {v.model}</option>)}
+            {vehicles.map(v => <option key={v.id} value={v.id}>{v.license_plate}{v.internal_number ? ` | ${v.internal_number}` : ''} - {v.manufacturer} {v.model}</option>)}
           </select>
         </div>
 

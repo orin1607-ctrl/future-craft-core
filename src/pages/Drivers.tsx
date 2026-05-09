@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Search, ArrowRight, Phone, Mail, Plus, Save, Edit2, X, Download, Upload, FileImage, Eye } from 'lucide-react';
+import { Users, Search, ArrowRight, Phone, Mail, Plus, Save, Edit2, X, Download, Upload, FileImage, Eye, AlertTriangle } from 'lucide-react';
 import DriverDeclaration from '@/components/DriverDeclaration';
 import DriverExamsTab from '@/components/driving-exam/DriverExamsTab';
 import { exportToCsv } from '@/utils/exportCsv';
@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+import InfoGapTracker from '@/components/InfoGapTracker';
 
 interface DriverRow {
   id: string;
@@ -87,6 +88,17 @@ export default function Drivers() {
               )}
             </div>
           </div>
+          {(() => {
+            const missing: string[] = [];
+            if (!d.license_number) missing.push('מספר רישיון');
+            if (!d.license_expiry) missing.push('תוקף רישיון');
+            else if (new Date(d.license_expiry) < new Date()) missing.push('רישיון פג תוקף');
+            if (!d.id_number) missing.push('תעודת זהות');
+            if (!d.phone) missing.push('טלפון');
+            if (!d.license_image_url) missing.push('צילום רישיון');
+            if ((d as any).exam_expiry && new Date((d as any).exam_expiry) < new Date()) missing.push('מבחן כשירות פג תוקף');
+            return <InfoGapTracker entityType="driver" entityId={d.id} companyName={(d as any).company_name || ''} gaps={missing} />;
+          })()}
           <div className="grid grid-cols-2 gap-4 text-lg">
             <div><span className="text-muted-foreground">טלפון:</span><p className="font-bold">{d.phone}</p></div>
             <div><span className="text-muted-foreground">אימייל:</span><p className="font-bold">{d.email || '—'}</p></div>

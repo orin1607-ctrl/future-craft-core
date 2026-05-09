@@ -179,10 +179,9 @@ function SuperAdminDashboard({ onEnterFleetMode }: { onEnterFleetMode: (company:
         .in('treatment_status', OPEN_TREATMENT_STATUSES)
         .or('service_category.ilike.%חירום%,description.ilike.%חירום%'),
       supabase
-        .from('service_orders')
-        .select('vehicle_plate')
-        .ilike('vendor_name', '%דליה%')
-        .in('treatment_status', OPEN_TREATMENT_STATUSES),
+        .from('vehicles')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'in_service'),
     ]);
 
     if (profilesRes.error || usersCountRes.error || emergencyRes.error || treatmentVehiclesRes.error) {
@@ -201,17 +200,11 @@ function SuperAdminDashboard({ onEnterFleetMode }: { onEnterFleetMode: (company:
         .filter((company): company is string => Boolean(company))
     );
 
-    const vehiclesInTreatment = new Set(
-      (treatmentVehiclesRes.data || [])
-        .map((row) => row.vehicle_plate?.trim())
-        .filter((plate): plate is string => Boolean(plate))
-    );
-
     setStats({
       companiesCount: companies.size,
       usersCount: usersCountRes.count || 0,
       emergencyOpenCount: emergencyRes.count || 0,
-      vehiclesInTreatmentCount: vehiclesInTreatment.size,
+      vehiclesInTreatmentCount: treatmentVehiclesRes.count || 0,
     });
 
     setLoading(false);

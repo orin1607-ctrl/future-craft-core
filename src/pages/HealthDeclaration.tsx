@@ -72,15 +72,46 @@ export default function HealthDeclaration() {
         <div className="space-y-3">
           {filtered.map(d => (
             <div key={d.id} className="card-elevated">
-              <div className="flex items-center gap-4">
+              <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <FileSignature size={24} className="text-primary" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-lg font-bold">{d.driver_name}</p>
-                  <p className="text-muted-foreground text-sm">ת.ז: {d.id_number} • {new Date(d.declaration_date).toLocaleDateString('he-IL')}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="text-lg font-bold">{d.driver_name}</p>
+                    {d.signature_url && <span className="text-success text-sm font-medium">✅ חתום</span>}
+                  </div>
+                  <p className="text-muted-foreground text-sm">ת.ז: {d.id_number || '—'} • רישיון: {d.license_number || '—'}</p>
+                  <p className="text-muted-foreground text-sm">תאריך: {new Date(d.declaration_date).toLocaleDateString('he-IL')}</p>
+
+                  <div className="mt-3 p-3 bg-muted/40 rounded-xl text-sm leading-relaxed space-y-1.5">
+                    <p className="font-bold text-foreground">תוכן ההצהרה:</p>
+                    <p>• אני מצהיר/ה כי לא חלה כל מגבלה במצב בריאותי המונעת ממני לנהוג, לרבות מגבלות במערכת העצבים, בעצמות, הראייה או השמיעה.</p>
+                    <p>• לא נפסלתי מלקבל רישיון נהיגה או מלהחזיק בו על-ידי בית המשפט, רשות הרישוי או קצין משטרה.</p>
+                    <p>• לא חל שינוי במצבי הבריאותי במשך חמש השנים האחרונות.</p>
+                    <p>• מתחייב/ת לא לנהוג תחת השפעת סמים או משקאות משכרים.</p>
+                    <p>• מתחייב/ת להודיע מיידית על כל שינוי במצב בריאותי או ברישיון הנהיגה.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                    {d.signature_url && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">חתימה</p>
+                        <a href={d.signature_url} target="_blank" rel="noopener noreferrer">
+                          <img src={d.signature_url} alt="חתימה" className="w-full max-h-32 object-contain bg-white rounded-xl border border-border" />
+                        </a>
+                      </div>
+                    )}
+                    {d.license_image_url && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">צילום רישיון נהיגה</p>
+                        <a href={d.license_image_url} target="_blank" rel="noopener noreferrer">
+                          <img src={d.license_image_url} alt="רישיון" className="w-full max-h-32 object-contain bg-white rounded-xl border border-border" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {d.signature_url && <span className="text-success text-sm font-medium">✅ חתום</span>}
               </div>
             </div>
           ))}
