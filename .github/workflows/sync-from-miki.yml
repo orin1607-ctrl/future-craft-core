@@ -1,15 +1,17 @@
 name: Sync from Miki repo
 
-# Auto-merges Miki's main branch (websolutions-il/future-craft-core) directly
-# into production, with file-level protections that preserve our manual-update
-# system. Yoni then sees the merged commits as pending updates in the Super
-# Admin "Update Code" page and approves them with one click.
+# Auto-merges Miki's main branch (websolutions-il/future-craft-core) into
+# Yoni's production branch with file-level protections that preserve our
+# manual-update system. Yoni then sees the merged commits as pending updates
+# in the Super Admin "Update Code" page and approves them with one click.
 #
-# Files PROTECTED from being deleted by Miki's diff:
+# Files PROTECTED from being deleted by Miki's diff (always restored from
+# pre-merge production state):
 #   - src/pages/SystemUpdate*.tsx
 #   - supabase/functions/system-update/
 #   - supabase/migrations/20260502120000_*.sql
 #   - .github/workflows/sync-from-miki.yml  (this file)
+#   - .gitattributes
 #   - .github/workflows/deploy.yml          (must stay deleted)
 #
 # Files MERGED with 'union' strategy (both sides' changes coexist) — see
@@ -18,18 +20,12 @@ name: Sync from Miki repo
 #   - src/components/BottomNav.tsx
 #   - src/integrations/supabase/types.ts
 #
-# Conflict policy for everything else: -X theirs — always prefer Miki's
-# latest version. Combined with the protected-file restore, this means
-# the merge will essentially never fail. Miki's code wins on every line
-# he touched; our protected files are then put back; everything else
-# stays as-is.
-#
-# A snapshot of Miki's main is also pushed to the miki-mirror branch as a
-# diagnostic / belt-and-suspenders backup.
+# Conflict policy for everything else: -X theirs (always prefer Miki's
+# latest version).
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # every 6 hours
+    - cron: '0 */6 * * *'
   workflow_dispatch: {}
   push:
     branches: [main]
@@ -53,42 +49,20 @@ jobs:
           git config user.name "sync-bot"
           git config user.email "sync-bot@users.noreply.github.com"
 
-      - name: Add Miki remote and fetch
+      - name: Add Miki remote and fetch main
         run: |
           git remote add miki https://github.com/websolutions-il/future-craft-core.git
           git fetch miki main --no-tags
 
-      # ----- 1. Mirror snapshot to miki-mirror (diagnostic, unchanged) -----
-      - name: Build squashed snapshot of miki/main (workflows stripped)
-        run: |
-          MIKI_SHA=$(git rev-parse miki/main)
-          MIKI_SHORT=$(git rev-parse --short miki/main)
-          MIKI_MSG=$(git log -1 --format=%s miki/main)
-
-          git checkout --orphan miki-mirror-tmp
-          git rm -rf --cached . >/dev/null 2>&1 || true
-          git read-tree miki/main
-          git rm -rf --cached .github/workflows >/dev/null 2>&1 || true
-
-          git commit -m "Mirror miki/main @ ${MIKI_SHORT} ($(date -u +%Y-%m-%dT%H:%M:%SZ))
-
-          Source commit: ${MIKI_SHA}
-          Subject: ${MIKI_MSG}"
-
-          git push origin --force HEAD:refs/heads/miki-mirror
-
-      # ----- 2. Auto-merge into production with file protections -----
-      - name: Switch back to production
-        run: |
-          git checkout production
-          git branch -D miki-mirror-tmp || true
-
-      - name: Check whether anything new from miki
-        id: check
+      - name: Diagnostic — current state
         run: |
           echo "Current ref:    $(git rev-parse HEAD)"
           echo "Current branch: $(git rev-parse --abbrev-ref HEAD)"
           echo "miki/main:      $(git rev-parse miki/main)"
+
+      - name: Check whether anything new from miki
+        id: check
+        run: |
           AHEAD=$(git rev-list --count HEAD..miki/main)
           echo "ahead=$AHEAD" >> $GITHUB_OUTPUT
           echo "Miki has $AHEAD commits not yet on production"
@@ -97,30 +71,45 @@ jobs:
             git log --oneline HEAD..miki/main | head -5
           fi
 
-      - name: Merge miki/main with .gitattributes union + -X theirs fallback
+      - name: Snapshot protected files before merge
+        if: steps.check.outputs.ahead != '0'
+        run: |
+          mkdir -p /tmp/protected
+          PROTECTED=(
+            "src/pages/SystemUpdateCode.tsx"
+            "src/pages/SystemUpdateDatabase.tsx"
+            "src/pages/SystemUpdateAudit.tsx"
+            "supabase/functions/system-update/index.ts"
+            "supabase/migrations/20260502120000_system_update_audit.sql"
+            ".github/workflows/sync-from-miki.yml"
+            ".gitattributes"
+          )
+          for f in "${PROTECTED[@]}"; do
+            if [ -f "$f" ]; then
+              mkdir -p "/tmp/protected/$(dirname "$f")"
+              cp -a "$f" "/tmp/protected/$f"
+              echo "snapshot: $f"
+            fi
+          done
+
+      - name: Merge miki/main with -X theirs (.gitattributes union for hot files)
         if: steps.check.outputs.ahead != '0'
         run: |
           set -e
-
-          # Strategy:
-          #   1. .gitattributes 'merge=union' handles App.tsx / BottomNav.tsx /
-          #      types.ts — both sides' lines preserved.
-          #   2. -X theirs handles every other conflicting line by taking
-          #      Miki's latest version (we'll restore our protected files
-          #      explicitly in the next step regardless).
-          #   3. If even -X theirs cannot resolve (extremely rare —
-          #      typically a binary or rename conflict), abort + fail loudly.
           if ! git merge miki/main --no-edit --no-ff -X theirs \
                 -m "auto-sync: merge miki/main (-X theirs)"; then
             echo "::error::merge failed even with -X theirs strategy"
+            git status
             git merge --abort || true
             exit 1
           fi
+          echo "Merge succeeded. New HEAD: $(git rev-parse HEAD)"
 
-          # Restore protected files (in case Miki's tree didn't have them and
-          # 'theirs' wins for missing-file cases would have removed them).
-          # If they're already correct, this is a no-op.
-          PROTECTED_FILES=(
+      - name: Restore protected files + delete deploy.yml
+        if: steps.check.outputs.ahead != '0'
+        run: |
+          set -e
+          PROTECTED=(
             "src/pages/SystemUpdateCode.tsx"
             "src/pages/SystemUpdateDatabase.tsx"
             "src/pages/SystemUpdateAudit.tsx"
@@ -130,26 +119,30 @@ jobs:
             ".gitattributes"
           )
           changed=false
-          for f in "${PROTECTED_FILES[@]}"; do
-            if [ -f "$f" ]; then continue; fi
-            # File missing after merge — restore it from production HEAD before merge
-            git checkout HEAD~1 -- "$f" 2>/dev/null || true
-            git add "$f"
-            changed=true
+          for f in "${PROTECTED[@]}"; do
+            if [ ! -f "/tmp/protected/$f" ]; then continue; fi
+            if [ ! -f "$f" ] || ! diff -q "/tmp/protected/$f" "$f" >/dev/null 2>&1; then
+              mkdir -p "$(dirname "$f")"
+              cp -a "/tmp/protected/$f" "$f"
+              git add "$f"
+              echo "restored: $f"
+              changed=true
+            fi
           done
-
-          # Ensure deploy.yml stays deleted (Miki may have re-introduced it)
           if [ -f .github/workflows/deploy.yml ]; then
             rm -f .github/workflows/deploy.yml
             git add .github/workflows/deploy.yml
+            echo "deleted deploy.yml"
             changed=true
           fi
-
           if [ "$changed" = "true" ]; then
             git commit --amend --no-edit
+            echo "amended merge with restored files"
+          else
+            echo "no protected files needed restoring"
           fi
 
-      - name: Push merged production
+      - name: Push production
         if: steps.check.outputs.ahead != '0'
         run: git push origin production
 
@@ -158,6 +151,6 @@ jobs:
         run: |
           echo "### Sync run summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "miki/main: \`$(git rev-parse miki/main)\`" >> $GITHUB_STEP_SUMMARY
-          echo "production: \`$(git rev-parse production 2>/dev/null || git rev-parse HEAD)\`" >> $GITHUB_STEP_SUMMARY
+          echo "miki/main:  \`$(git rev-parse miki/main)\`" >> $GITHUB_STEP_SUMMARY
+          echo "production: \`$(git rev-parse HEAD)\`" >> $GITHUB_STEP_SUMMARY
           echo "Commits brought in: ${{ steps.check.outputs.ahead }}" >> $GITHUB_STEP_SUMMARY
