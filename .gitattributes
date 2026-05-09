@@ -1,0 +1,7 @@
+# Merge strategy for files that BOTH Miki and Naeem add to.
+# 'union' concatenates both sides at conflict points instead of failing —
+# ideal for import lists, route lists, and nav entry lists where we just
+# want both sets of additions to coexist.
+src/App.tsx                          merge=union
+src/components/BottomNav.tsx         merge=union
+src/integrations/supabase/types.ts   merge=union
