@@ -86,9 +86,16 @@ jobs:
       - name: Check whether anything new from miki
         id: check
         run: |
+          echo "Current ref:    $(git rev-parse HEAD)"
+          echo "Current branch: $(git rev-parse --abbrev-ref HEAD)"
+          echo "miki/main:      $(git rev-parse miki/main)"
           AHEAD=$(git rev-list --count HEAD..miki/main)
           echo "ahead=$AHEAD" >> $GITHUB_OUTPUT
           echo "Miki has $AHEAD commits not yet on production"
+          if [ "$AHEAD" != "0" ]; then
+            echo "First few commits to merge:"
+            git log --oneline HEAD..miki/main | head -5
+          fi
 
       - name: Merge miki/main with .gitattributes union + -X theirs fallback
         if: steps.check.outputs.ahead != '0'
