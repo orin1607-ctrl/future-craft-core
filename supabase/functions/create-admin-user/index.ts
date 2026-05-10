@@ -279,10 +279,18 @@ Deno.serve(async (req) => {
     });
 
     if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      const msg = createError.message || '';
+      const isDuplicate = /already been registered|already exists|duplicate/i.test(msg);
+      return new Response(
+        JSON.stringify({
+          error: isDuplicate ? 'כתובת אימייל זו כבר רשומה במערכת' : msg,
+          code: isDuplicate ? 'email_exists' : undefined,
+        }),
+        {
+          status: isDuplicate ? 409 : 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     await supabaseAdmin.from('user_roles').delete().eq('user_id', userData.user.id);

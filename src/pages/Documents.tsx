@@ -49,6 +49,59 @@ interface DocMeta {
   model: string;
   original_name: string;
   created_at: string;
+  source?: 'metadata' | 'vehicle' | 'driver' | 'health' | 'expense';
+  source_table?: string;
+  source_id?: string;
+  source_field?: string;
+}
+
+// Aggregate docs that live as URL columns on other tables (vehicles/drivers/expenses/health)
+async function fetchAggregatedDocs(companyFilter: string | null): Promise<DocMeta[]> {
+  const out: DocMeta[] = [];
+
+  // Vehicles
+  let vq = supabase.from('vehicles').select('id, license_plate, manufacturer, model, company_name, license_doc_url, insurance_doc_url, comprehensive_insurance_doc_url, third_party_insurance_doc_url, updated_at');
+  if (companyFilter) vq = vq.eq('company_name', companyFilter);
+  const { data: vehicles } = await vq;
+  vehicles?.forEach((v: any) => {
+    const base = { company_name: v.company_name || '', vehicle_plate: v.license_plate || '', manufacturer: v.manufacturer || '', model: v.model || '', driver_name: '', created_at: v.updated_at, source: 'vehicle' as const, source_table: 'vehicles', source_id: v.id };
+    if (v.license_doc_url) out.push({ ...base, id: `v-lic-${v.id}`, file_path: v.license_doc_url, category: 'vehicle-license', original_name: `רישיון רכב ${v.license_plate || ''}`, source_field: 'license_doc_url' });
+    if (v.insurance_doc_url) out.push({ ...base, id: `v-ins-${v.id}`, file_path: v.insurance_doc_url, category: 'insurance', original_name: `ביטוח חובה ${v.license_plate || ''}`, source_field: 'insurance_doc_url' });
+    if (v.comprehensive_insurance_doc_url) out.push({ ...base, id: `v-comp-${v.id}`, file_path: v.comprehensive_insurance_doc_url, category: 'comprehensive', original_name: `ביטוח מקיף ${v.license_plate || ''}`, source_field: 'comprehensive_insurance_doc_url' });
+    if (v.third_party_insurance_doc_url) out.push({ ...base, id: `v-tp-${v.id}`, file_path: v.third_party_insurance_doc_url, category: 'comprehensive', original_name: `ביטוח צד ג' ${v.license_plate || ''}`, source_field: 'third_party_insurance_doc_url' });
+  });
+
+  // Drivers
+  let dq = supabase.from('drivers').select('id, full_name, company_name, license_image_url, updated_at');
+  if (companyFilter) dq = dq.eq('company_name', companyFilter);
+  const { data: drivers } = await dq;
+  drivers?.forEach((d: any) => {
+    if (d.license_image_url) out.push({ id: `d-lic-${d.id}`, file_path: d.license_image_url, category: 'driver-license', company_name: d.company_name || '', vehicle_plate: '', driver_name: d.full_name || '', manufacturer: '', model: '', original_name: `רישיון נהיגה ${d.full_name || ''}`, created_at: d.updated_at, source: 'driver', source_table: 'drivers', source_id: d.id, source_field: 'license_image_url' });
+  });
+
+  // Health declarations
+  let hq = supabase.from('driver_health_declarations').select('id, driver_name, company_name, license_image_url, created_at');
+  if (companyFilter) hq = hq.eq('company_name', companyFilter);
+  const { data: health } = await hq;
+  health?.forEach((h: any) => {
+    if (h.license_image_url) out.push({ id: `h-${h.id}`, file_path: h.license_image_url, category: 'health', company_name: h.company_name || '', vehicle_plate: '', driver_name: h.driver_name || '', manufacturer: '', model: '', original_name: `הצהרת בריאות ${h.driver_name || ''}`, created_at: h.created_at, source: 'health', source_table: 'driver_health_declarations', source_id: h.id, source_field: 'license_image_url' });
+  });
+
+  // Expenses
+  let eq2 = supabase.from('expenses').select('id, category, vehicle_plate, driver_name, company_name, image_url, created_at');
+  if (companyFilter) eq2 = eq2.eq('company_name', companyFilter);
+  const { data: expenses } = await eq2;
+  expenses?.forEach((e: any) => {
+    if (!e.image_url) return;
+    const cat = (e.category || '').toString();
+    let key: string = 'receipts';
+    if (cat.includes('דלק')) key = 'fuel';
+    else if (cat.includes('תיקון') || cat.includes('שמן') || cat.includes('צמיג')) key = 'maintenance';
+    else if (cat.includes('ספק')) key = 'vendors';
+    out.push({ id: `e-${e.id}`, file_path: e.image_url, category: key, company_name: e.company_name || '', vehicle_plate: e.vehicle_plate || '', driver_name: e.driver_name || '', manufacturer: '', model: '', original_name: `${cat || 'קבלה'} ${e.vehicle_plate || ''}`.trim(), created_at: e.created_at, source: 'expense', source_table: 'expenses', source_id: e.id, source_field: 'image_url' });
+  });
+
+  return out;
 }
 
 function getFileIcon(name: string) {
@@ -121,50 +174,61 @@ export default function Documents() {
     loadDriverData();
   }, [isDriver, user?.id, user?.email]);
 
-  // Load category counts from metadata table
+  // Load category counts (metadata + aggregated sources)
   const loadCounts = useCallback(async () => {
     let query = supabase.from('document_metadata').select('category');
     if (companyFilter) query = query.eq('company_name', companyFilter);
-    
-    // Driver: only see docs for their vehicle/name
     if (isDriver && driverVehicle) {
       query = query.or(`vehicle_plate.eq.${driverVehicle.license_plate},driver_name.eq.${driverProfile?.full_name || ''}`);
     }
-
     const { data } = await query;
     const counts: Record<string, number> = {};
     allCategories.forEach(c => { counts[c.key] = 0; });
-    data?.forEach(d => {
-      if (counts[d.category] !== undefined) counts[d.category]++;
+    data?.forEach(d => { if (counts[d.category] !== undefined) counts[d.category]++; });
+
+    const aggregated = await fetchAggregatedDocs(companyFilter || null);
+    aggregated.forEach(d => {
+      if (counts[d.category] === undefined) return;
+      if (isDriver) {
+        const cat = allCategories.find(c => c.key === d.category);
+        if (!cat) return;
+        if (cat.scope === 'vehicle' && d.vehicle_plate !== driverVehicle?.license_plate) return;
+        if (cat.scope === 'driver' && d.driver_name !== driverProfile?.full_name) return;
+        if (cat.scope === 'expense') return;
+      }
+      counts[d.category]++;
     });
     setCategoryCounts(counts);
   }, [companyFilter, isDriver, driverVehicle, driverProfile]);
 
   useEffect(() => { loadCounts(); }, [loadCounts]);
 
-  // Load docs for category
+  // Load docs for category (metadata + aggregated)
   const loadDocs = useCallback(async (cat: DocCategory) => {
     setLoadingFiles(true);
     let query = supabase.from('document_metadata').select('*').eq('category', cat.key).order('created_at', { ascending: false });
     if (companyFilter) query = query.eq('company_name', companyFilter);
 
-    // Driver: restrict to own vehicle/driver docs
     if (isDriver) {
-      if (cat.scope === 'vehicle' && driverVehicle) {
-        query = query.eq('vehicle_plate', driverVehicle.license_plate);
-      } else if (cat.scope === 'driver' && driverProfile) {
-        query = query.eq('driver_name', driverProfile.full_name);
-      } else if (cat.scope === 'expense') {
-        // drivers don't see expense docs
-        setDocs([]);
-        setLoadingFiles(false);
-        return;
-      }
+      if (cat.scope === 'vehicle' && driverVehicle) query = query.eq('vehicle_plate', driverVehicle.license_plate);
+      else if (cat.scope === 'driver' && driverProfile) query = query.eq('driver_name', driverProfile.full_name);
+      else if (cat.scope === 'expense') { setDocs([]); setLoadingFiles(false); return; }
     }
 
     const { data, error } = await query;
     if (error) toast.error('שגיאה בטעינת מסמכים');
-    else setDocs((data || []) as DocMeta[]);
+    const metadataDocs = ((data || []) as any[]).map(d => ({ ...d, source: 'metadata' as const })) as DocMeta[];
+
+    const aggregated = (await fetchAggregatedDocs(companyFilter || null)).filter(d => d.category === cat.key);
+    let aggFiltered = aggregated;
+    if (isDriver) {
+      if (cat.scope === 'vehicle' && driverVehicle) aggFiltered = aggregated.filter(d => d.vehicle_plate === driverVehicle.license_plate);
+      else if (cat.scope === 'driver' && driverProfile) aggFiltered = aggregated.filter(d => d.driver_name === driverProfile.full_name);
+      else if (cat.scope === 'expense') aggFiltered = [];
+    }
+
+    const merged = [...metadataDocs, ...aggFiltered].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+    setDocs(merged);
     setLoadingFiles(false);
   }, [companyFilter, isDriver, driverVehicle, driverProfile]);
 
@@ -220,8 +284,24 @@ export default function Documents() {
     e.target.value = '';
   };
 
+  const resolveUrl = (doc: DocMeta) => {
+    if (/^https?:\/\//i.test(doc.file_path)) return doc.file_path;
+    const { data } = supabase.storage.from('documents').getPublicUrl(doc.file_path);
+    return data.publicUrl;
+  };
+
   const handleDelete = async (doc: DocMeta) => {
     if (!confirm('למחוק מסמך זה?')) return;
+    if (doc.source && doc.source !== 'metadata') {
+      // Aggregated doc — clear the URL on the source row instead of deleting from storage
+      if (doc.source_table && doc.source_id && doc.source_field) {
+        const { error } = await supabase.from(doc.source_table as any).update({ [doc.source_field]: null }).eq('id', doc.source_id);
+        if (error) { toast.error('שגיאה במחיקה'); return; }
+        toast.success('נמחק');
+        if (selectedCategory) { loadDocs(selectedCategory); loadCounts(); }
+      }
+      return;
+    }
     const { error: storageErr } = await supabase.storage.from('documents').remove([doc.file_path]);
     if (storageErr) { toast.error('שגיאה במחיקה'); return; }
     await supabase.from('document_metadata').delete().eq('id', doc.id);
@@ -230,13 +310,11 @@ export default function Documents() {
   };
 
   const handleDownload = (doc: DocMeta) => {
-    const { data } = supabase.storage.from('documents').getPublicUrl(doc.file_path);
-    window.open(data.publicUrl, '_blank');
+    window.open(resolveUrl(doc), '_blank');
   };
 
   const handlePreview = (doc: DocMeta) => {
-    const { data } = supabase.storage.from('documents').getPublicUrl(doc.file_path);
-    setPreviewUrl(data.publicUrl);
+    setPreviewUrl(resolveUrl(doc));
   };
 
   // Apply filters
@@ -244,7 +322,7 @@ export default function Documents() {
     !searchQuery || d.original_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
   if (isManager && filterVehicle) filteredDocs = filteredDocs.filter(d => d.vehicle_plate?.includes(filterVehicle));
-  if (isManager && filterDriver) filteredDocs = filteredDocs.filter(d => d.driver_name?.includes(filterDriver));
+  if (isManager && filterDriver) filteredDocs = filteredDocs.filter(d => d.original_name?.toLowerCase().includes(filterDriver.toLowerCase()) || d.category?.toLowerCase().includes(filterDriver.toLowerCase()));
   if (isManager && filterCompany) filteredDocs = filteredDocs.filter(d => d.company_name?.includes(filterCompany));
   if (isManager && filterManufacturer) filteredDocs = filteredDocs.filter(d => d.manufacturer?.includes(filterManufacturer));
   if (isManager && filterModel) filteredDocs = filteredDocs.filter(d => d.model?.includes(filterModel));
@@ -326,8 +404,8 @@ export default function Documents() {
               <input value={filterVehicle} onChange={e => setFilterVehicle(e.target.value)} className={inputClass} placeholder="חיפוש לפי לוחית..." />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">שם נהג</label>
-              <input value={filterDriver} onChange={e => setFilterDriver(e.target.value)} className={inputClass} placeholder="שם נהג..." />
+              <label className="block text-sm font-medium mb-1">סוג המסמך</label>
+              <input value={filterDriver} onChange={e => setFilterDriver(e.target.value)} className={inputClass} placeholder="סוג מסמך..." />
             </div>
             {user?.role === 'super_admin' && (
               <div>
@@ -336,12 +414,12 @@ export default function Documents() {
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium mb-1">יצרן</label>
-              <input value={filterManufacturer} onChange={e => setFilterManufacturer(e.target.value)} className={inputClass} placeholder="יצרן..." />
+              <label className="block text-sm font-medium mb-1">{selectedCategory?.key === 'other' ? 'תאריך כולל שנה' : 'יצרן'}</label>
+              <input value={filterManufacturer} onChange={e => setFilterManufacturer(e.target.value)} className={inputClass} placeholder={selectedCategory?.key === 'other' ? 'dd/mm/yyyy' : 'יצרן...'} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">דגם</label>
-              <input value={filterModel} onChange={e => setFilterModel(e.target.value)} className={inputClass} placeholder="דגם..." />
+              <label className="block text-sm font-medium mb-1">{selectedCategory?.key === 'other' ? 'הערות' : 'דגם'}</label>
+              <input value={filterModel} onChange={e => setFilterModel(e.target.value)} className={inputClass} placeholder={selectedCategory?.key === 'other' ? 'הערות...' : 'דגם...'} />
             </div>
           </div>
           {activeFilterCount > 0 && (
@@ -363,16 +441,16 @@ export default function Documents() {
               <input value={uploadVehicle} onChange={e => setUploadVehicle(e.target.value)} className={inputClass} placeholder="לוחית רישוי" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">שם נהג</label>
-              <input value={uploadDriver} onChange={e => setUploadDriver(e.target.value)} className={inputClass} placeholder="שם הנהג" />
+              <label className="block text-sm font-medium mb-1">{selectedCategory?.key === 'other' ? 'סוג המסמך' : 'שם נהג'}</label>
+              <input value={uploadDriver} onChange={e => setUploadDriver(e.target.value)} className={inputClass} placeholder={selectedCategory?.key === 'other' ? 'סוג מסמך' : 'שם הנהג'} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">יצרן</label>
-              <input value={uploadManufacturer} onChange={e => setUploadManufacturer(e.target.value)} className={inputClass} placeholder="יצרן" />
+              <label className="block text-sm font-medium mb-1">{selectedCategory?.key === 'other' ? 'תאריך כולל שנה' : 'יצרן'}</label>
+              <input value={uploadManufacturer} onChange={e => setUploadManufacturer(e.target.value)} className={inputClass} placeholder={selectedCategory?.key === 'other' ? 'dd/mm/yyyy' : 'יצרן'} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">דגם</label>
-              <input value={uploadModel} onChange={e => setUploadModel(e.target.value)} className={inputClass} placeholder="דגם" />
+              <label className="block text-sm font-medium mb-1">{selectedCategory?.key === 'other' ? 'הערות' : 'דגם'}</label>
+              <input value={uploadModel} onChange={e => setUploadModel(e.target.value)} className={inputClass} placeholder={selectedCategory?.key === 'other' ? 'הערות' : 'דגם'} />
             </div>
           </div>
           <label className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold cursor-pointer hover:bg-primary/90 active:scale-95 transition-transform ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -395,9 +473,10 @@ export default function Documents() {
       ) : (
         <div className="space-y-2">
           {filteredDocs.map(doc => {
-            const ext = doc.original_name?.split('.').pop()?.toLowerCase();
-            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '');
-            const isPdf = ext === 'pdf';
+            const nameExt = doc.original_name?.split('.').pop()?.toLowerCase() || '';
+            const pathLower = (doc.file_path || '').toLowerCase();
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(nameExt) || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(pathLower);
+            const isPdf = nameExt === 'pdf' || /\.pdf(\?|$)/i.test(pathLower);
 
             return (
               <div key={doc.id} className="card-elevated flex items-center gap-3 p-3">
