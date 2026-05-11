@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth();
+  const { user, realUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -170,7 +170,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Backup section - super_admin only */}
-      {(user?.role === 'super_admin') && (
+      {(realUser?.role === 'super_admin' && user?.role === 'super_admin') && (
         <div className="card-elevated space-y-3">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">

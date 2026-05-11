@@ -19,6 +19,7 @@ interface CompanyAlertConfig {
   require_insurance_docs: boolean;
   require_no_claims: boolean;
   hidden_buttons: string[];
+  hide_driver_credentials: boolean;
 }
 
 interface ProfileCompany {
@@ -46,7 +47,7 @@ export default function AlertSettings() {
     // Load all company settings
     const { data: settingsData } = await supabase
       .from('company_settings')
-      .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons');
+      .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons, hide_driver_credentials');
     
     if (settingsData) setConfigs(settingsData as CompanyAlertConfig[]);
 
@@ -86,7 +87,7 @@ export default function AlertSettings() {
           const { data: inserted } = await supabase
             .from('company_settings')
             .insert(newSettings)
-            .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons');
+            .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons, hide_driver_credentials');
           
           if (inserted) {
             setConfigs(prev => [...prev, ...(inserted as CompanyAlertConfig[])]);
@@ -114,6 +115,7 @@ export default function AlertSettings() {
       require_insurance_docs: activeConfig.require_insurance_docs,
       require_no_claims: activeConfig.require_no_claims,
       hidden_buttons: activeConfig.hidden_buttons || [],
+      hide_driver_credentials: activeConfig.hide_driver_credentials,
     }).eq('id', activeConfig.id);
     setSaving(false);
     if (error) toast.error('שגיאה בשמירה');
@@ -334,6 +336,25 @@ export default function AlertSettings() {
                   />
                   <span className="text-base font-medium">חובת מילוי היסטוריית הדר תביעות</span>
                 </label>
+              </div>
+
+              {/* Driver Credentials Settings */}
+              <div className="border-t border-border pt-4 space-y-3">
+                <h3 className="font-bold text-lg">👤 הגדרות נהגים</h3>
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-muted cursor-pointer hover:bg-muted/80 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={activeConfig.hide_driver_credentials}
+                    onChange={e => updateConfig('hide_driver_credentials', e.target.checked)}
+                    className="rounded w-5 h-5 accent-primary"
+                  />
+                  <span className="text-base font-medium">הסתר סיסמה ומשתמש ביצירת נהג (יווצר אוטומטית)</span>
+                </label>
+                {activeConfig.hide_driver_credentials && (
+                  <p className="text-xs text-muted-foreground mr-8">
+                    משתמש: <code dir="ltr">{`{phone}@gmail.com`}</code> · סיסמה: <code dir="ltr">{`Passxyz+{phone}`}</code>
+                  </p>
+                )}
               </div>
 
               {/* Button Visibility Settings */}

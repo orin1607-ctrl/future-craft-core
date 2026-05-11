@@ -60,6 +60,7 @@ export default function Drivers() {
       <DriverForm
         driver={editingDriver}
         user={user}
+        targetCompany={editingDriver?.company_name || filterCompany || companyFilter || undefined}
         onDone={() => { setShowForm(false); setEditingDriver(null); loadDrivers(); }}
       />
     );
@@ -287,8 +288,10 @@ export default function Drivers() {
   );
 }
 
-function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: any; onDone: () => void }) {
+function DriverForm({ driver, user, targetCompany, onDone }: { driver: DriverRow | null; user: any; targetCompany?: string; onDone: () => void }) {
   const isEdit = !!driver;
+  const companyFilter = useCompanyFilter();
+  const effectiveCompany = driver?.company_name || targetCompany || companyFilter || user?.company_name || '';
   const [fullName, setFullName] = useState(driver?.full_name || '');
   const [idNumber, setIdNumber] = useState(driver?.id_number || '');
   const [phone, setPhone] = useState(driver?.phone || '');
@@ -304,6 +307,20 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
   const [licenseImageUrl, setLicenseImageUrl] = useState(driver?.license_image_url || '');
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [hideCreds, setHideCreds] = useState(false);
+
+  useEffect(() => {
+    if (isEdit || !effectiveCompany) { setHideCreds(false); return; }
+    supabase
+      .from('company_settings')
+      .select('hide_driver_credentials')
+      .eq('company_name', effectiveCompany)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) console.error('hide_driver_credentials fetch error', error);
+        setHideCreds(!!data?.hide_driver_credentials);
+      });
+  }, [effectiveCompany, isEdit]);
 
   const handleLicenseUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -321,8 +338,9 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
   };
 
   // For new drivers, email and password are required to create login credentials
+  // unless company has hide_driver_credentials enabled (auto-generated from phone)
   const isValid = fullName.trim().length > 0 && phone.trim().length > 0 && licenseNumber.trim().length > 0 && idNumber.trim().length > 0
-    && (isEdit || (email.trim().length > 0 && password.trim().length >= 6));
+    && (isEdit || hideCreds || (email.trim().length > 0 && password.trim().length >= 6));
   const inputClass = "w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
 
   const toggleLicense = (type: string) => {
@@ -348,7 +366,7 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
         status,
         notes,
         license_image_url: licenseImageUrl,
-        company_name: user?.company_name || '',
+        company_name: effectiveCompany,
       };
 
       const { error } = await supabase.from('drivers').update(payload).eq('id', driver!.id);
@@ -362,16 +380,20 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
       }
     } else {
       // Create new driver: use edge function to create auth user + profile + driver record
-      const effectiveEmail = email.trim() || `${phone.replace(/\D/g, '')}@placeholder.local`;
+      const phoneDigits = phone.replace(/\D/g, '');
+      const effectiveEmail = hideCreds
+        ? `${phoneDigits}@gmail.com`
+        : (email.trim() || `${phoneDigits}@placeholder.local`);
+      const effectivePassword = hideCreds ? `Passxyz+${phoneDigits}` : password;
 
       const { data, error } = await supabase.functions.invoke('create-admin-user', {
         body: {
           email: effectiveEmail,
-          password,
+          password: effectivePassword,
           full_name: fullName,
           phone,
           role: 'driver',
-          company_name: user?.company_name || '',
+          company_name: effectiveCompany,
           is_active: false, // Requires super_admin approval
         },
       });
@@ -422,7 +444,7 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
           <input value={idNumber} onChange={e => setIdNumber(e.target.value)} placeholder="תעודת זהות..." className={inputClass} />
         </div>
         {/* Login credentials - only for new drivers */}
-        {!isEdit && (
+        {!isEdit && !hideCreds && (
           <div className="p-4 rounded-xl border-2 border-primary/30 bg-primary/5 space-y-4">
             <p className="text-lg font-bold text-primary">פרטי התחברות לאפליקציה</p>
             <div className="grid grid-cols-2 gap-4">
