@@ -33,10 +33,14 @@ interface RouteRow {
   execution_date: string | null;
   route_vehicle_type: string;
   route_vehicle_type_custom: string;
+  department: string;
+  companion: string;
+  route_group: string;
   amount: number;
   vehicle_type_pricing: VehicleTypePricing[];
   valid_from: string | null;
   valid_to: string | null;
+  company_name?: string;
 }
 
 function isDatePassed(dateStr: string | null): boolean {
@@ -305,6 +309,9 @@ function RouteForm({ route, onDone, onBack, user }: { route: RouteRow | null; on
   const [executionDate, setExecutionDate] = useState(route?.execution_date || '');
   const [routeVehicleType, setRouteVehicleType] = useState(route?.route_vehicle_type || '');
   const [routeVehicleTypeCustom, setRouteVehicleTypeCustom] = useState(route?.route_vehicle_type_custom || '');
+  const [department, setDepartment] = useState(route?.department || '');
+  const [companion, setCompanion] = useState(route?.companion || '');
+  const [routeGroup, setRouteGroup] = useState(route?.route_group || '');
   const [amount, setAmount] = useState(route?.amount?.toString() || '');
   const [validFrom, setValidFrom] = useState(route?.valid_from || '');
   const [validTo, setValidTo] = useState(route?.valid_to || '');
@@ -314,6 +321,48 @@ function RouteForm({ route, onDone, onBack, user }: { route: RouteRow | null; on
       : []
   );
   const [loading, setLoading] = useState(false);
+
+  // Route options (departments / companions / groups)
+  type OptKind = 'department' | 'companion' | 'group';
+  const [options, setOptions] = useState<{ id: string; kind: string; code: string; label: string }[]>([]);
+  const [addOptKind, setAddOptKind] = useState<OptKind | null>(null);
+  const [newOptCode, setNewOptCode] = useState('');
+  const [newOptLabel, setNewOptLabel] = useState('');
+
+  const companyFilter = useCompanyFilter();
+  const effectiveCompany = route?.company_name || companyFilter || user?.company_name || '';
+
+  const loadOptions = () => {
+    applyCompanyScope(supabase.from('route_options').select('*'), companyFilter)
+      .order('code', { ascending: true })
+      .then(({ data }) => { if (data) setOptions(data as any); });
+  };
+  useEffect(() => { loadOptions(); }, [companyFilter]);
+
+  const optsByKind = (k: OptKind) => options.filter(o => o.kind === k);
+  const fmtOpt = (o: { code: string; label: string }) => `${o.code ? o.code + ' ' : ''}${o.label}`.trim();
+
+  const handleAddOption = async () => {
+    if (!addOptKind || !newOptLabel.trim()) { toast.error('הזן שם'); return; }
+    const { data, error } = await supabase.from('route_options').insert({
+      kind: addOptKind,
+      code: newOptCode.trim(),
+      label: newOptLabel.trim(),
+      company_name: effectiveCompany,
+      created_by: user?.id,
+    }).select().single();
+    if (error) { toast.error('שגיאה בהוספה'); console.error(error); return; }
+    const value = fmtOpt(data as any);
+    if (addOptKind === 'department') setDepartment(value);
+    if (addOptKind === 'companion') setCompanion(value);
+    if (addOptKind === 'group') setRouteGroup(value);
+    setOptions(prev => [...prev, data as any]);
+    setAddOptKind(null);
+    setNewOptCode('');
+    setNewOptLabel('');
+    toast.success('נוסף');
+  };
+
 
   const [drivers, setDrivers] = useState<{ full_name: string }[]>([]);
   const [vehicles, setVehicles] = useState<{ license_plate: string; manufacturer: string; model: string }[]>([]);
@@ -363,6 +412,7 @@ function RouteForm({ route, onDone, onBack, user }: { route: RouteRow | null; on
       vehicle_type_pricing: vehicleTypePricing,
       valid_from: validFrom || null,
       valid_to: validTo || null,
+      department, companion, route_group: routeGroup,
     };
     let error;
     if (isEdit) { ({ error } = await supabase.from('routes').update(payload).eq('id', route!.id)); }
@@ -385,6 +435,61 @@ function RouteForm({ route, onDone, onBack, user }: { route: RouteRow | null; on
           <div><label className="block text-lg font-medium mb-2">יעד *</label><input value={destination} onChange={e => setDestination(e.target.value)} className={inputClass} /></div>
         </div>
         <div><label className="block text-lg font-medium mb-2">תחנות ביניים (מופרדות בפסיק)</label><input value={stopsText} onChange={e => setStopsText(e.target.value)} placeholder="תחנה 1, תחנה 2..." className={inputClass} /></div>
+
+        {/* Department / Companion / Group */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {([
+            { kind: 'department' as OptKind, label: 'מחלקה', value: department, set: setDepartment },
+            { kind: 'companion' as OptKind, label: 'מלווה', value: companion, set: setCompanion },
+            { kind: 'group' as OptKind, label: 'קבוצה', value: routeGroup, set: setRouteGroup },
+          ]).map(f => (
+            <div key={f.kind}>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-lg font-medium">{f.label}</label>
+                <button type="button" onClick={() => { setAddOptKind(f.kind); setNewOptCode(''); setNewOptLabel(''); }}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-sm font-bold">
+                  <Plus size={14} /> הוסף {f.label}
+                </button>
+              </div>
+              <select value={f.value} onChange={e => f.set(e.target.value)} className={inputClass}>
+                <option value="">בחר...</option>
+                {optsByKind(f.kind).map(o => {
+                  const v = fmtOpt(o);
+                  return <option key={o.id} value={v}>{v}</option>;
+                })}
+                {f.value && !optsByKind(f.kind).some(o => fmtOpt(o) === f.value) && (
+                  <option value={f.value}>{f.value}</option>
+                )}
+              </select>
+            </div>
+          ))}
+        </div>
+
+        <Dialog open={!!addOptKind} onOpenChange={(o) => { if (!o) setAddOptKind(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                הוספת {addOptKind === 'department' ? 'מחלקה' : addOptKind === 'companion' ? 'מלווה' : 'קבוצה'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 mt-2">
+              <div>
+                <label className="block text-sm font-medium mb-1">מזהה פנימי</label>
+                <input value={newOptCode} onChange={e => setNewOptCode(e.target.value)} placeholder="למשל: 102"
+                  className="w-full p-3 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">שם</label>
+                <input value={newOptLabel} onChange={e => setNewOptLabel(e.target.value)} placeholder="למשל: הסעות"
+                  className="w-full p-3 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none" />
+              </div>
+              <button type="button" onClick={handleAddOption}
+                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold">
+                שמור
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Vehicle Type & Amount */}
         <div className="grid grid-cols-2 gap-4">

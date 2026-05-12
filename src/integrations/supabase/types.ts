@@ -1695,14 +1695,46 @@ export type Database = {
         }
         Relationships: []
       }
+      route_options: {
+        Row: {
+          code: string
+          company_name: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          label: string
+        }
+        Insert: {
+          code?: string
+          company_name?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          label?: string
+        }
+        Update: {
+          code?: string
+          company_name?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          label?: string
+        }
+        Relationships: []
+      }
       routes: {
         Row: {
           amount: number | null
+          companion: string | null
           company_name: string | null
           created_at: string | null
           created_by: string | null
           customer_name: string | null
           days_of_week: string[] | null
+          department: string | null
           destination: string | null
           distance_km: number | null
           driver_name: string | null
@@ -1712,6 +1744,7 @@ export type Database = {
           name: string
           notes: string | null
           origin: string | null
+          route_group: string | null
           route_number: string | null
           route_vehicle_type: string | null
           route_vehicle_type_custom: string | null
@@ -1727,11 +1760,13 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          companion?: string | null
           company_name?: string | null
           created_at?: string | null
           created_by?: string | null
           customer_name?: string | null
           days_of_week?: string[] | null
+          department?: string | null
           destination?: string | null
           distance_km?: number | null
           driver_name?: string | null
@@ -1741,6 +1776,7 @@ export type Database = {
           name?: string
           notes?: string | null
           origin?: string | null
+          route_group?: string | null
           route_number?: string | null
           route_vehicle_type?: string | null
           route_vehicle_type_custom?: string | null
@@ -1756,11 +1792,13 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          companion?: string | null
           company_name?: string | null
           created_at?: string | null
           created_by?: string | null
           customer_name?: string | null
           days_of_week?: string[] | null
+          department?: string | null
           destination?: string | null
           distance_km?: number | null
           driver_name?: string | null
@@ -1770,6 +1808,7 @@ export type Database = {
           name?: string
           notes?: string | null
           origin?: string | null
+          route_group?: string | null
           route_number?: string | null
           route_vehicle_type?: string | null
           route_vehicle_type_custom?: string | null
