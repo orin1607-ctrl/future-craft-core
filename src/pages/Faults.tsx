@@ -171,6 +171,8 @@ export default function Faults() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const [faults, setFaults] = useState<FaultRow[]>([]);
+  const [vehiclesMap, setVehiclesMap] = useState<Record<string, { id: string; internal_number: string }>>({});
+  const [vehiclesByPlate, setVehiclesByPlate] = useState<Record<string, { id: string; internal_number: string }>>({});
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterUrgency, setFilterUrgency] = useState('');
@@ -183,8 +185,21 @@ export default function Faults() {
 
   const loadFaults = async () => {
     setLoading(true);
-    const { data } = await applyCompanyScope(supabase.from('faults').select('*'), companyFilter).order('created_at', { ascending: false });
-    if (data) setFaults(data as FaultRow[]);
+    const [fRes, vRes] = await Promise.all([
+      applyCompanyScope(supabase.from('faults').select('*'), companyFilter).order('created_at', { ascending: false }),
+      applyCompanyScope(supabase.from('vehicles').select('id, license_plate, internal_number'), companyFilter),
+    ]);
+    if (fRes.data) setFaults(fRes.data as FaultRow[]);
+    if (vRes.data) {
+      const byId: Record<string, { id: string; internal_number: string }> = {};
+      const byPlate: Record<string, { id: string; internal_number: string }> = {};
+      (vRes.data as any[]).forEach(v => {
+        byId[v.id] = { id: v.id, internal_number: v.internal_number || '' };
+        if (v.license_plate) byPlate[v.license_plate] = { id: v.id, internal_number: v.internal_number || '' };
+      });
+      setVehiclesMap(byId);
+      setVehiclesByPlate(byPlate);
+    }
     setLoading(false);
   };
 
@@ -192,8 +207,12 @@ export default function Faults() {
 
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
+  const getInternal = (f: FaultRow) => ((f as any).vehicle_id && vehiclesMap[(f as any).vehicle_id]?.internal_number) || vehiclesByPlate[f.vehicle_plate]?.internal_number || '';
+  const getVehicleId = (f: FaultRow) => (f as any).vehicle_id || vehiclesByPlate[f.vehicle_plate]?.id || null;
+
   const filtered = faults.filter(f => {
-    const matchSearch = !search || f.driver_name?.includes(search) || f.vehicle_plate?.includes(search) || f.fault_type?.includes(search) || f.description?.includes(search) || f.serial_id?.includes(search);
+    const internal = getInternal(f);
+    const matchSearch = !search || f.driver_name?.includes(search) || f.vehicle_plate?.includes(search) || internal.includes(search) || f.fault_type?.includes(search) || f.description?.includes(search) || f.serial_id?.includes(search);
     const matchStatus = !filterStatus || f.status === filterStatus;
     const matchUrgency = !filterUrgency || f.urgency === filterUrgency;
     // Quick filter
@@ -275,9 +294,14 @@ export default function Faults() {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
                 <Car size={18} className="text-muted-foreground shrink-0" />
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">רכב</p>
-                  <p className="font-bold">{f.vehicle_plate || '—'}</p>
+                  <p className="font-bold">{f.vehicle_plate || '—'}{getInternal(f) ? ` | פנימי ${getInternal(f)}` : ''}</p>
+                  {getVehicleId(f) && (
+                    <button onClick={() => window.location.assign(`/vehicles?vehicleId=${getVehicleId(f)}`)} className="inline-flex items-center gap-1 text-primary hover:underline text-xs mt-1">
+                      <ExternalLink size={12} /> פתח כרטיס רכב
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
@@ -401,7 +425,7 @@ export default function Faults() {
     <div className="animate-fade-in space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="page-header !mb-0 flex items-center gap-3"><Wrench size={28} /> תקלות</h1>
+        <h1 className="page-header !mb-0 flex items-center gap-3"><Wrench size={28} /> מעקב רכב</h1>
         <div className="flex items-center gap-2">
           <button onClick={() => exportToCsv('faults', [
             { key: 'serial_id', label: 'מספר סידורי' },
@@ -468,13 +492,13 @@ export default function Faults() {
       {loading ? (
         <div className="text-center py-16">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">טוען תקלות...</p>
+          <p className="text-muted-foreground">טוען...</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 card-elevated">
           <Wrench size={56} className="mx-auto mb-4 text-muted-foreground opacity-30" />
-          <p className="text-xl font-bold">אין תקלות</p>
-          <p className="text-muted-foreground mt-2">לא נמצאו תקלות התואמות לחיפוש</p>
+          <p className="text-xl font-bold">אין רשומות</p>
+          <p className="text-muted-foreground mt-2">לא נמצאו רשומות התואמות לחיפוש</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -549,15 +573,15 @@ function FaultForm({ fault, onDone, onBack, user }: { fault: FaultRow | null; on
   const [imageUrls, setImageUrls] = useState<string[]>(parseImages(fault?.images || ''));
   const [loading, setLoading] = useState(false);
 
-  const [vehicles, setVehicles] = useState<{ license_plate: string; manufacturer: string; model: string }[]>([]);
+  const [vehicles, setVehicles] = useState<{ id: string; license_plate: string; manufacturer: string; model: string }[]>([]);
   const [drivers, setDrivers] = useState<{ full_name: string }[]>([]);
 
   useEffect(() => {
     Promise.all([
-      supabase.from('vehicles').select('license_plate, manufacturer, model'),
+      supabase.from('vehicles').select('id, license_plate, manufacturer, model'),
       supabase.from('drivers').select('full_name'),
     ]).then(([v, d]) => {
-      if (v.data) setVehicles(v.data);
+      if (v.data) setVehicles(v.data as any);
       if (d.data) setDrivers(d.data);
     });
   }, []);
@@ -568,8 +592,10 @@ function FaultForm({ fault, onDone, onBack, user }: { fault: FaultRow | null; on
   const handleSubmit = async () => {
     if (!isValid) return;
     setLoading(true);
-    const payload = {
+    const matchedVehicle = vehicles.find(v => v.license_plate === vehiclePlate);
+    const payload: any = {
       vehicle_plate: vehiclePlate,
+      vehicle_id: matchedVehicle?.id || null,
       driver_name: driverName,
       fault_type: faultType,
       description,

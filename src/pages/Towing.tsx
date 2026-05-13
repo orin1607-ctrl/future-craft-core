@@ -187,7 +187,7 @@ export default function Towing() {
                     <p className="text-lg font-bold">{item.vehicle_plate}</p>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2 py-0.5 rounded-lg ${item.source === 'fault' ? 'bg-warning/10 text-warning' : 'bg-primary/10 text-primary'}`}>
-                        {item.source === 'fault' ? 'תקלה' : 'הזמנת שירות'}
+                        {item.source === 'fault' ? 'תקלה' : 'שירותים ותחזוקה'}
                       </span>
                       <span className={`status-badge ${
                         item.towing_completed ? 'status-active' : item.towing_approved ? 'status-pending' : 'status-urgent'

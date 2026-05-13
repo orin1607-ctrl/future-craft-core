@@ -38,7 +38,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const ENTITY_LABELS: Record<string, string> = {
-  vehicle: 'רכב', driver: 'נהג', service_order: 'הזמנת שירות',
+  vehicle: 'רכב', driver: 'נהג', service_order: 'שירותים ותחזוקה',
   work_assignment: 'סידור עבודה', handover: 'חילופי רכב', insurance: 'ביטוח',
   test: 'טסט', license: 'רישיון',
 };

@@ -30,7 +30,7 @@ const categoryLabels: Record<AlertCategory, string> = {
   comprehensive_insurance: 'ביטוח מקיף',
   license: 'רישיון נהיגה',
   fault: 'תקלה דחופה',
-  service_order: 'הזמנת שירות',
+  service_order: 'שירותים ותחזוקה',
   work_assignment: 'סידור עבודה',
 };
 
@@ -92,7 +92,7 @@ const ACTION_LABELS: Record<string, string> = {
 
 const ENTITY_LABELS: Record<string, string> = {
   vehicle: 'רכב', driver: 'נהג', fault: 'תקלה', accident: 'תאונה',
-  work_assignment: 'סידור עבודה', service_order: 'הזמנת שירות',
+  work_assignment: 'סידור עבודה', service_order: 'שירותים ותחזוקה',
   approval_request: 'בקשת אישור', handover: 'חילופי רכב',
 };
 
@@ -136,24 +136,32 @@ export default function Alerts() {
 
     // 1. Vehicle expiries
     const { data: vehicles } = await applyCompanyScope(supabase.from('vehicles').select('*'), companyFilter);
+    const vehicleByPlate: Record<string, { id: string; internal_number: string }> = {};
+    const vehicleById: Record<string, { id: string; internal_number: string; license_plate: string }> = {};
     if (vehicles) {
+      for (const v of vehicles as any[]) {
+        if (v.license_plate) vehicleByPlate[v.license_plate] = { id: v.id, internal_number: v.internal_number || '' };
+        vehicleById[v.id] = { id: v.id, internal_number: v.internal_number || '', license_plate: v.license_plate || '' };
+      }
       for (const v of vehicles) {
         const plate = v.license_plate;
-        const label = `${v.manufacturer || ''} ${v.model || ''} - ${plate}`.trim();
+        const internal = (v as any).internal_number ? ` | פנימי ${(v as any).internal_number}` : '';
+        const label = `${v.manufacturer || ''} ${v.model || ''} - ${plate}${internal}`.trim();
+        const vehicleLink = `/vehicles?vehicleId=${v.id}`;
 
         const testDays = getDaysLeft(v.test_expiry);
         if (testDays !== null && testDays <= 30) {
-          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: '/vehicles' });
+          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: vehicleLink });
         }
 
         const insDays = getDaysLeft(v.insurance_expiry);
         if (insDays !== null && insDays <= 30) {
-          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: '/vehicles' });
+          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: vehicleLink });
         }
 
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
         if (compDays !== null && compDays <= 30) {
-          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: '/vehicles' });
+          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: vehicleLink });
         }
       }
     }
@@ -188,8 +196,11 @@ export default function Alerts() {
       companyFilter
     );
     if (faults) {
-      for (const f of faults) {
-        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link: '/faults' });
+      for (const f of faults as any[]) {
+        const v = f.vehicle_id ? vehicleById[f.vehicle_id] : (f.vehicle_plate ? vehicleByPlate[f.vehicle_plate] : null);
+        const internal = v?.internal_number ? ` | פנימי ${v.internal_number}` : '';
+        const link = v ? `/vehicles?vehicleId=${v.id}` : '/faults';
+        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'}${internal} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link });
       }
     }
 
@@ -203,16 +214,19 @@ export default function Alerts() {
         const daysSince = Math.floor((Date.now() - new Date(vt.created_at).getTime()) / (1000 * 60 * 60 * 24));
         const isOverdue = vt.follow_up_date && new Date(vt.follow_up_date) < new Date();
         const severity: AlertSeverity = isOverdue ? 'critical' : daysSince > 7 ? 'warning' : 'info';
+        const v = vt.vehicle_id ? vehicleById[vt.vehicle_id] : (vt.vehicle_plate ? vehicleByPlate[vt.vehicle_plate] : null);
+        const internal = v?.internal_number ? ` | פנימי ${v.internal_number}` : '';
+        const link = v ? `/vehicles?vehicleId=${v.id}` : '/vehicle-tasks';
         allAlerts.push({
           id: `defect-${vt.id}`,
           category: 'fault',
           severity,
           title: isOverdue ? `ליקוי באיחור: ${vt.title}` : `ליקוי פתוח: ${vt.title}`,
-          subtitle: `רכב ${vt.vehicle_plate || '—'} • ${daysSince} ימים`,
+          subtitle: `רכב ${vt.vehicle_plate || '—'}${internal} • ${daysSince} ימים`,
           daysLeft: vt.follow_up_date ? Math.floor((new Date(vt.follow_up_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null,
           date: vt.created_at?.split('T')[0] || null,
           meta: vt.description || undefined,
-          link: '/vehicle-tasks',
+          link,
         });
       }
     }
@@ -223,15 +237,17 @@ export default function Alerts() {
       companyFilter
     );
     if (serviceOrders) {
-      for (const so of serviceOrders) {
+      for (const so of serviceOrders as any[]) {
         const isUrgent = so.urgency === 'urgent' || so.urgency === 'critical';
         const severity: AlertSeverity = isUrgent ? 'critical' : so.treatment_status === 'new' ? 'warning' : 'info';
+        const v = so.vehicle_id ? vehicleById[so.vehicle_id] : (so.vehicle_plate ? vehicleByPlate[so.vehicle_plate] : null);
+        const internal = v?.internal_number ? ` | פנימי ${v.internal_number}` : '';
         allAlerts.push({
           id: `so-${so.id}`,
           category: 'service_order',
           severity,
-          title: isUrgent ? `הזמנת שירות דחופה` : `הזמנת שירות ${so.treatment_status === 'new' ? 'חדשה' : 'בטיפול'}`,
-          subtitle: `${so.vehicle_plate || 'ללא רכב'} • ${so.driver_name || 'ללא נהג'}`,
+          title: isUrgent ? `קריאת שירות ותחזוקה דחופה` : `שירותים ותחזוקה ${so.treatment_status === 'new' ? 'חדשה' : 'בטיפול'}`,
+          subtitle: `${so.vehicle_plate || 'ללא רכב'}${internal} • ${so.driver_name || 'ללא נהג'}`,
           daysLeft: null,
           date: so.created_at ? new Date(so.created_at).toISOString().split('T')[0] : null,
           meta: `${so.service_category || ''} ${so.description ? '- ' + so.description : ''}`.trim() || undefined,

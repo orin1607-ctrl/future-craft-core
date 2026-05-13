@@ -22,7 +22,7 @@ const typeConfig: Record<EventType, { label: string; icon: typeof Wrench; colorC
   fault: { label: 'תקלה', icon: Wrench, colorCls: 'bg-warning/10 text-warning' },
   accident: { label: 'תאונה', icon: AlertTriangle, colorCls: 'bg-destructive/10 text-destructive' },
   handover: { label: 'החלפת רכב', icon: RefreshCw, colorCls: 'bg-info/10 text-info' },
-  service: { label: 'הזמנת שירות', icon: Car, colorCls: 'bg-primary/10 text-primary' },
+  service: { label: 'שירותים ותחזוקה', icon: Car, colorCls: 'bg-primary/10 text-primary' },
   expense: { label: 'הוצאה', icon: FileText, colorCls: 'bg-accent/10 text-accent-foreground' },
 };
 

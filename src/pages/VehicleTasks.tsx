@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Search, CheckCircle2, Clock, Wrench, Car, CalendarDays, Shield, FileText, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, Search, CheckCircle2, Clock, Wrench, Car, CalendarDays, Shield, FileText, Trash2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
@@ -40,8 +41,11 @@ const getDaysSince = (dateStr: string) => {
 
 export default function VehicleTasks() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const companyFilter = useCompanyFilter();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [vehicleMap, setVehicleMap] = useState<Record<string, { id: string; internal_number: string }>>({});
+  const [vehicleByPlate, setVehicleByPlate] = useState<Record<string, { id: string; internal_number: string }>>({});
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('open');
   const [dateFilter, setDateFilter] = useState('');
@@ -55,17 +59,32 @@ export default function VehicleTasks() {
 
   const loadTasks = async () => {
     setLoading(true);
-    const { data } = await applyCompanyScope(
-      supabase.from('vehicle_tasks').select('*'), companyFilter
-    ).order('created_at', { ascending: false });
-    if (data) setTasks(data as TaskRow[]);
+    const [tRes, vRes] = await Promise.all([
+      applyCompanyScope(supabase.from('vehicle_tasks').select('*'), companyFilter).order('created_at', { ascending: false }),
+      applyCompanyScope(supabase.from('vehicles').select('id, license_plate, internal_number'), companyFilter),
+    ]);
+    if (tRes.data) setTasks(tRes.data as TaskRow[]);
+    if (vRes.data) {
+      const byId: Record<string, { id: string; internal_number: string }> = {};
+      const byPlate: Record<string, { id: string; internal_number: string }> = {};
+      (vRes.data as any[]).forEach(v => {
+        byId[v.id] = { id: v.id, internal_number: v.internal_number || '' };
+        if (v.license_plate) byPlate[v.license_plate] = { id: v.id, internal_number: v.internal_number || '' };
+      });
+      setVehicleMap(byId);
+      setVehicleByPlate(byPlate);
+    }
     setLoading(false);
   };
 
   useEffect(() => { loadTasks(); }, []);
 
+  const getInternal = (t: TaskRow) => (t.vehicle_id && vehicleMap[t.vehicle_id]?.internal_number) || vehicleByPlate[t.vehicle_plate]?.internal_number || '';
+  const getVehicleId = (t: TaskRow) => t.vehicle_id || vehicleByPlate[t.vehicle_plate]?.id || null;
+
   const filtered = tasks.filter(t => {
-    const matchSearch = !search || t.vehicle_plate?.includes(search) || t.title?.includes(search) || t.description?.includes(search);
+    const internal = getInternal(t);
+    const matchSearch = !search || t.vehicle_plate?.includes(search) || internal.includes(search) || t.title?.includes(search) || t.description?.includes(search);
     const matchStatus = statusFilter === 'all' || t.status === statusFilter;
     const matchFollowUp = !followUpOnly || t.requires_follow_up;
     
@@ -295,6 +314,14 @@ export default function VehicleTasks() {
                     <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground flex-wrap">
                       <Car size={14} />
                       <span className="font-medium">רכב {t.vehicle_plate}</span>
+                      {getInternal(t) && (
+                        <span className="font-medium text-primary">| פנימי {getInternal(t)}</span>
+                      )}
+                      {getVehicleId(t) && (
+                        <button onClick={() => navigate(`/vehicles?vehicleId=${getVehicleId(t)}`)} className="inline-flex items-center gap-1 text-primary hover:underline text-xs">
+                          <ExternalLink size={12} /> כרטיס רכב
+                        </button>
+                      )}
                       <span>•</span>
                       <span>{new Date(t.created_at).toLocaleDateString('he-IL')}</span>
                       {t.status !== 'resolved' && daysSinceCreated > 0 && (

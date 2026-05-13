@@ -63,9 +63,9 @@ const isOpenStatus = (status: string | null | undefined) =>
   OPEN_TREATMENT_STATUSES.includes(status || '');
 
 const driverActions = [
-  { label: 'דיווח תקלה', icon: Wrench, link: '/faults' },
+  { label: 'דיווח מעקב רכב', icon: Wrench, link: '/faults' },
   { label: 'דיווח תאונה', icon: AlertTriangle, link: '/accidents' },
-  { label: 'הזמנת שירות', icon: ClipboardList, link: '/service-orders' },
+  { label: 'שירותים ותחזוקה', icon: ClipboardList, link: '/service-orders' },
   { label: 'העלאת חשבונית דלק / הוצאה', icon: FileText, link: '/expenses' },
   { label: 'היסטוריית טיפולים לרכב', icon: Car, link: '/history' },
   { label: 'סידור עבודה שלי', icon: ClipboardList, link: '/driver-schedule' },
@@ -198,7 +198,7 @@ export default function DriverDashboard() {
       if (scopedOpenOrders.length > 0) {
         newAlerts.push({
           key: 'open_service_order',
-          title: 'הזמנת שירות פתוחה לרכב',
+          title: 'קריאת שירות ותחזוקה פתוחה לרכב',
           count: scopedOpenOrders.length,
           severity: 'info',
           link: '/service-orders',

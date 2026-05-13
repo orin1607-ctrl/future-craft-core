@@ -696,7 +696,7 @@ function FleetManagerDashboard({
   const fleetActions = useMemo(
     () => [
       { label: 'הצמדת נהג לרכב', icon: ArrowRightLeft, href: '/attach-car' },
-      { label: 'הזמנת שירותים / השוואת מחירים', icon: ClipboardList, href: '/service-orders' },
+      { label: 'שירותים ותחזוקה / השוואת מחירים', icon: ClipboardList, href: '/service-orders' },
       { label: 'דיווח תאונה', icon: AlertTriangle, href: '/accidents' },
       { label: 'היסטוריה – כל הרכבים בחברה', icon: Car, href: '/history' },
       { label: 'דוחות – של החברה בלבד', icon: BarChart3, href: '/reports' },

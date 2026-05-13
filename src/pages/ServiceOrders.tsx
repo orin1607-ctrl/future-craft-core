@@ -64,6 +64,7 @@ export default function ServiceOrders() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const [orders, setOrders] = useState<ServiceRow[]>([]);
+  const [vehiclesByPlate, setVehiclesByPlate] = useState<Record<string, { id: string; internal_number: string }>>({});
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editOrder, setEditOrder] = useState<ServiceRow | null>(null);
@@ -82,11 +83,16 @@ export default function ServiceOrders() {
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
   const loadOrders = async () => {
-    const { data } = await applyCompanyScope(
-      supabase.from('service_orders').select('*').order('created_at', { ascending: false }),
-      companyFilter
-    );
-    if (data) setOrders(data as unknown as ServiceRow[]);
+    const [oRes, vRes] = await Promise.all([
+      applyCompanyScope(supabase.from('service_orders').select('*').order('created_at', { ascending: false }), companyFilter),
+      applyCompanyScope(supabase.from('vehicles').select('id, license_plate, internal_number'), companyFilter),
+    ]);
+    if (oRes.data) setOrders(oRes.data as unknown as ServiceRow[]);
+    if (vRes.data) {
+      const map: Record<string, { id: string; internal_number: string }> = {};
+      (vRes.data as any[]).forEach(v => { if (v.license_plate) map[v.license_plate] = { id: v.id, internal_number: v.internal_number || '' }; });
+      setVehiclesByPlate(map);
+    }
   };
 
   useEffect(() => {
@@ -99,14 +105,15 @@ export default function ServiceOrders() {
   }, [companyFilter]);
 
   const filtered = orders.filter(o => {
+    const internal = vehiclesByPlate[o.vehicle_plate]?.internal_number || '';
     const matchSearch = !search ||
-      o.vehicle_plate?.includes(search) || o.service_category?.includes(search) ||
+      o.vehicle_plate?.includes(search) || internal.includes(search) || o.service_category?.includes(search) ||
       o.driver_name?.includes(search) || o.company_name?.includes(search) ||
       o.ordering_user?.includes(search) || o.reference_number?.includes(search);
     const matchStatus = !filterStatus || o.treatment_status === filterStatus;
     const matchName = !filterName || o.driver_name?.includes(filterName) || o.ordering_user?.includes(filterName);
     const matchCompany = !filterCompany || o.company_name?.includes(filterCompany);
-    const matchVehicle = !filterVehicle || o.vehicle_plate?.includes(filterVehicle);
+    const matchVehicle = !filterVehicle || o.vehicle_plate?.includes(filterVehicle) || internal.includes(filterVehicle);
     return matchSearch && matchStatus && matchName && matchCompany && matchVehicle;
   });
 
@@ -147,7 +154,7 @@ export default function ServiceOrders() {
         if (profiles?.[0]) {
           await supabase.from('driver_notifications').insert({
             user_id: profiles[0].id, type: 'service',
-            title: '📋 עדכון הזמנת שירות',
+            title: '📋 עדכון שירות ותחזוקה',
             message: `${selectedOrder.service_category} - רכב ${selectedOrder.vehicle_plate}: ${replyText || STATUS_CONFIG[replyStatus]?.text || ''}`,
             link: '/service-orders',
           });
@@ -270,7 +277,7 @@ export default function ServiceOrders() {
 
           {/* WhatsApp button */}
           {whatsappPhone && (
-            <a href={`https://wa.me/${whatsappPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`שלום, לגבי הזמנת שירות ${o.service_category} - רכב ${o.vehicle_plate}`)}`}
+            <a href={`https://wa.me/${whatsappPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`שלום, לגבי שירותים ותחזוקה ${o.service_category} - רכב ${o.vehicle_plate}`)}`}
               target="_blank" rel="noreferrer"
               className="block w-full py-3 rounded-xl bg-[#25D366] text-white font-bold text-center text-lg">
               💬 וואטסאפ למוקד
@@ -314,7 +321,7 @@ export default function ServiceOrders() {
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="page-header mb-0 flex items-center gap-3"><Briefcase size={28} /> הזמנות שירות</h1>
+        <h1 className="page-header mb-0 flex items-center gap-3"><Briefcase size={28} /> שירותים ותחזוקה</h1>
         <div className="flex items-center gap-2">
           <button onClick={() => exportToCsv('service_orders', [
             { key: 'vehicle_plate', label: 'מספר רכב' },
@@ -413,7 +420,7 @@ export default function ServiceOrders() {
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Briefcase size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-xl">אין הזמנות שירות</p>
+          <p className="text-xl">אין קריאות שירות ותחזוקה</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -503,15 +510,15 @@ function ServiceOrderForm({ onDone, user, editData }: { onDone: () => void; user
   const [imageUrl, setImageUrl] = useState(editData?.images || '');
   const [loading, setLoading] = useState(false);
 
-  const [dbVehicles, setDbVehicles] = useState<{ license_plate: string; manufacturer: string; model: string }[]>([]);
+  const [dbVehicles, setDbVehicles] = useState<{ id: string; license_plate: string; manufacturer: string; model: string }[]>([]);
   const [dbDrivers, setDbDrivers] = useState<{ full_name: string; phone: string }[]>([]);
 
   useEffect(() => {
     Promise.all([
-      supabase.from('vehicles').select('license_plate, manufacturer, model'),
+      supabase.from('vehicles').select('id, license_plate, manufacturer, model'),
       supabase.from('drivers').select('full_name, phone'),
     ]).then(([v, d]) => {
-      if (v.data) setDbVehicles(v.data);
+      if (v.data) setDbVehicles(v.data as any);
       if (d.data) setDbDrivers(d.data);
     });
   }, []);
@@ -528,9 +535,11 @@ function ServiceOrderForm({ onDone, user, editData }: { onDone: () => void; user
   const handleSubmit = async () => {
     if (!isValid) return;
     setLoading(true);
-    const payload = {
+    const matchedVehicle = dbVehicles.find(v => v.license_plate === vehiclePlate);
+    const payload: any = {
       service_category: serviceCategory === 'אחר' ? otherCategory || 'אחר' : serviceCategory,
       description, vehicle_plate: vehiclePlate,
+      vehicle_id: matchedVehicle?.id || null,
       driver_name: driverName, driver_phone: driverPhone,
       vendor_name: vendorName, vendor_phone: vendorPhone,
       service_date: serviceDate || null, service_time: serviceTime,
@@ -576,7 +585,7 @@ function ServiceOrderForm({ onDone, user, editData }: { onDone: () => void; user
       <button onClick={onDone} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
         <ArrowRight size={20} /> חזרה
       </button>
-      <h1 className="text-2xl font-bold mb-6">{editData ? 'עריכת הזמנה' : 'הזמנת שירות חדשה'}</h1>
+      <h1 className="text-2xl font-bold mb-6">{editData ? 'עריכת קריאה' : 'קריאת שירות ותחזוקה חדשה'}</h1>
       <div className="space-y-5">
         {/* Category */}
         <div>
@@ -699,7 +708,7 @@ function ServiceOrderForm({ onDone, user, editData }: { onDone: () => void; user
 
         <button onClick={handleSubmit} disabled={!isValid || loading}
           className={`w-full py-5 rounded-xl text-xl font-bold transition-colors ${isValid && !loading ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground cursor-not-allowed'}`}>
-          {loading ? 'שומר...' : editData ? '💾 עדכן הזמנה' : '📋 שלח הזמנת שירות'}
+          {loading ? 'שומר...' : editData ? '💾 עדכן קריאה' : '📋 שלח קריאה'}
         </button>
       </div>
     </div>

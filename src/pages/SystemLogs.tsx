@@ -27,7 +27,7 @@ const ACTION_LABELS: Record<string, string> = {
 
 const ENTITY_LABELS: Record<string, string> = {
   vehicle: 'רכב', driver: 'נהג', fault: 'תקלה', accident: 'תאונה',
-  work_assignment: 'סידור עבודה', service_order: 'הזמנת שירות',
+  work_assignment: 'סידור עבודה', service_order: 'שירותים ותחזוקה',
   approval_request: 'בקשת אישור', handover: 'חילופי רכב',
 };
 

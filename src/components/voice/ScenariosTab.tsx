@@ -32,7 +32,7 @@ interface Run {
 
 const TRIGGERS = [
   { key: 'fault_created', label: 'תקלה חדשה נפתחה', icon: AlertTriangle, color: 'text-destructive' },
-  { key: 'service_order_created', label: 'הזמנת שירות חדשה', icon: Wrench, color: 'text-primary' },
+  { key: 'service_order_created', label: 'קריאת שירות ותחזוקה חדשה', icon: Wrench, color: 'text-primary' },
   { key: 'service_completed', label: 'טיפול הושלם', icon: CheckCircle2, color: 'text-green-600' },
   { key: 'license_expiring', label: 'רישיון נהיגה עומד לפוג', icon: Calendar, color: 'text-amber-600' },
   { key: 'test_expiring', label: 'טסט עומד לפוג', icon: Calendar, color: 'text-amber-600' },
@@ -192,7 +192,7 @@ export default function ScenariosTab() {
               <Zap size={14} className="text-primary mt-0.5 shrink-0" />
               <div>
                 <div className="font-bold mb-1">איך זה עובד?</div>
-                <div className="text-muted-foreground">בכל פעם שטריגר נורה במערכת (תקלה חדשה, הזמנת שירות וכו'), המערכת תיצור משימת חיוג אוטומטית. תוכל לראות את התור בלשונית "היסטוריית הפעלות".</div>
+                <div className="text-muted-foreground">בכל פעם שטריגר נורה במערכת (תקלה חדשה, שירותים ותחזוקה וכו'), המערכת תיצור משימת חיוג אוטומטית. תוכל לראות את התור בלשונית "היסטוריית הפעלות".</div>
               </div>
             </div>
           </div>

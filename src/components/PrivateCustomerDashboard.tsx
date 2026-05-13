@@ -30,7 +30,7 @@ const serviceActions: ServiceAction[] = [
   },
   {
     label: 'הזמנת טיפול',
-    description: 'הזמנת שירות או תחזוקה לרכב',
+    description: 'שירותים ותחזוקה או תחזוקה לרכב',
     icon: Wrench,
     link: '/service-orders',
     color: 'bg-primary/10 text-primary border-primary/20',
@@ -152,7 +152,7 @@ export default function PrivateCustomerDashboard() {
         id: f.id, title: f.description || 'תקלה', status: f.status || 'new', date: f.created_at || '', type: 'fault',
       }));
       (ordersRes.data || []).forEach(o => activities.push({
-        id: o.id, title: o.description || 'הזמנת שירות', status: o.treatment_status || 'new', date: o.created_at || '', type: 'service',
+        id: o.id, title: o.description || 'שירותים ותחזוקה', status: o.treatment_status || 'new', date: o.created_at || '', type: 'service',
       }));
       activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setRecentActivities(activities.slice(0, 5));

@@ -235,7 +235,7 @@ export default function Reports() {
       rows.push([]);
     }
     if (showReport('service_orders') && filtered.serviceOrders.length > 0) {
-      rows.push(['--- הזמנות שירות ---']);
+      rows.push(['--- שירותים ותחזוקה ---']);
       rows.push(['תאריך', 'קטגוריה', 'תיאור', 'מספר רכב', 'מס\' פנימי', 'נהג', 'ספק', 'סטטוס']);
       filtered.serviceOrders.forEach(s => rows.push([
         s.service_date ? new Date(s.service_date).toLocaleDateString('he-IL') : '',
@@ -558,7 +558,7 @@ export default function Reports() {
             expanded={expandedReport === 'service_orders'}
             onToggle={() => toggleExpand('service_orders')}
             card={
-              <ReportCard title="דוח הזמנות שירות" icon={ShoppingCart} color="bg-primary/10 text-primary"
+              <ReportCard title="דוח שירותים ותחזוקה" icon={ShoppingCart} color="bg-primary/10 text-primary"
                 expanded={expandedReport === 'service_orders'}
                 stats={[
                   { label: 'חדשות', value: filtered.serviceOrders.filter(s => s.treatment_status === 'new').length.toString() },

@@ -55,8 +55,8 @@ const managerCategories = [
   {
     title: 'תפעול ושירות',
     items: [
-      { path: '/faults', label: 'תקלות', icon: Wrench },
-      { path: '/service-orders', label: 'הזמנת שירות', icon: Briefcase },
+      { path: '/faults', label: 'מעקב רכב', icon: Wrench },
+      { path: '/service-orders', label: 'שירותים ותחזוקה', icon: Briefcase },
       { path: '/routes', label: 'ניהול מסלולים', icon: Route },
       { path: '/work-orders', label: 'סידור עבודה', icon: ClipboardList },
       { path: '/pickup-appointments', label: 'תיאומי איסוף', icon: Calendar },

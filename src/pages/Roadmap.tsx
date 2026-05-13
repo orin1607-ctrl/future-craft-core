@@ -33,7 +33,7 @@ const roadmap: RoadmapPhase[] = [
       { name: 'דיווח ומעקב תקלות - עריכה וסטטוס', done: true },
       { name: 'דיווח תאונות - עריכה וסטטוס', done: true },
       { name: 'ניהול הוצאות - קטגוריות וסיכומים', done: true },
-      { name: 'הזמנות שירות', done: true },
+      { name: 'שירותים ותחזוקה', done: true },
       { name: 'טופס החלפת רכב עם GPS', done: true },
       { name: 'הצמדת רכב-נהג', done: true },
       { name: 'היסטוריה - ציר זמן מאוחד', done: true },

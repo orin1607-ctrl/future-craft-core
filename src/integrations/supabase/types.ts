@@ -1292,6 +1292,7 @@ export type Database = {
           towing_completed_at: string | null
           towing_required: boolean | null
           urgency: string | null
+          vehicle_id: string | null
           vehicle_plate: string | null
         }
         Insert: {
@@ -1314,6 +1315,7 @@ export type Database = {
           towing_completed_at?: string | null
           towing_required?: boolean | null
           urgency?: string | null
+          vehicle_id?: string | null
           vehicle_plate?: string | null
         }
         Update: {
@@ -1336,6 +1338,7 @@ export type Database = {
           towing_completed_at?: string | null
           towing_required?: boolean | null
           urgency?: string | null
+          vehicle_id?: string | null
           vehicle_plate?: string | null
         }
         Relationships: []
@@ -1873,6 +1876,9 @@ export type Database = {
           driver_phone: string | null
           id: string
           images: string | null
+          imported: boolean
+          imported_at: string | null
+          imported_source: string | null
           manager_approval: string | null
           manufacturer: string | null
           model: string | null
@@ -1889,6 +1895,7 @@ export type Database = {
           towing_time: string | null
           treatment_status: string | null
           urgency: string | null
+          vehicle_id: string | null
           vehicle_notes: string | null
           vehicle_plate: string | null
           vehicle_type: string | null
@@ -1905,6 +1912,9 @@ export type Database = {
           driver_phone?: string | null
           id?: string
           images?: string | null
+          imported?: boolean
+          imported_at?: string | null
+          imported_source?: string | null
           manager_approval?: string | null
           manufacturer?: string | null
           model?: string | null
@@ -1921,6 +1931,7 @@ export type Database = {
           towing_time?: string | null
           treatment_status?: string | null
           urgency?: string | null
+          vehicle_id?: string | null
           vehicle_notes?: string | null
           vehicle_plate?: string | null
           vehicle_type?: string | null
@@ -1937,6 +1948,9 @@ export type Database = {
           driver_phone?: string | null
           id?: string
           images?: string | null
+          imported?: boolean
+          imported_at?: string | null
+          imported_source?: string | null
           manager_approval?: string | null
           manufacturer?: string | null
           model?: string | null
@@ -1953,6 +1967,7 @@ export type Database = {
           towing_time?: string | null
           treatment_status?: string | null
           urgency?: string | null
+          vehicle_id?: string | null
           vehicle_notes?: string | null
           vehicle_plate?: string | null
           vehicle_type?: string | null

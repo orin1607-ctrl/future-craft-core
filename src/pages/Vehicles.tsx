@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Car, Search, Plus, ArrowRight, Edit2, Phone, Trash2, Truck, Download, PlusCircle, X, Loader2, AlertTriangle } from 'lucide-react';
 import { exportToCsv } from '@/utils/exportCsv';
 import { supabase } from '@/integrations/supabase/client';
@@ -131,6 +132,8 @@ export default function Vehicles() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [loading, setLoading] = useState(true);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const loadData = async () => {
     setLoading(true);
     const [vRes, dRes] = await Promise.all([
@@ -143,6 +146,18 @@ export default function Vehicles() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  // Auto-open vehicle from ?vehicleId= query param
+  useEffect(() => {
+    const vid = searchParams.get('vehicleId');
+    if (vid && vehicles.length > 0) {
+      const v = vehicles.find(x => x.id === vid);
+      if (v) {
+        setSelectedVehicle(v);
+        setViewMode('detail');
+      }
+    }
+  }, [searchParams, vehicles]);
 
   const getDriverName = (id: string | null) => {
     if (!id) return 'לא משויך';
