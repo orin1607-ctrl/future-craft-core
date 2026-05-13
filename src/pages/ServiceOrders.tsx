@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ImageUpload from '@/components/ImageUpload';
 import ServiceOrderChat from '@/components/service-orders/ServiceOrderChat';
+import ServiceOrderReferral from '@/components/service-orders/ServiceOrderReferral';
 
 interface ServiceRow {
   id: string;
@@ -250,6 +251,9 @@ export default function ServiceOrders() {
               <p className="font-bold text-primary">{o.manager_approval}</p>
             </div>
           )}
+
+          {/* Supplier work order */}
+          <ServiceOrderReferral serviceOrderId={o.id} companyName={o.company_name} isManager={isManager} />
 
           {/* Internal chat */}
           <ServiceOrderChat orderId={o.id} companyName={o.company_name} />

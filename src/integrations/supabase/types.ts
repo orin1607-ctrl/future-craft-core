@@ -1171,7 +1171,7 @@ export type Database = {
           completed: boolean | null
           completed_at: string | null
           created_at: string
-          fault_id: string
+          fault_id: string | null
           id: string
           notes: string | null
           provider_name: string
@@ -1179,6 +1179,7 @@ export type Database = {
           provider_type: string | null
           requested_by: string | null
           requested_by_name: string | null
+          service_order_id: string | null
           status: string
         }
         Insert: {
@@ -1189,7 +1190,7 @@ export type Database = {
           completed?: boolean | null
           completed_at?: string | null
           created_at?: string
-          fault_id: string
+          fault_id?: string | null
           id?: string
           notes?: string | null
           provider_name?: string
@@ -1197,6 +1198,7 @@ export type Database = {
           provider_type?: string | null
           requested_by?: string | null
           requested_by_name?: string | null
+          service_order_id?: string | null
           status?: string
         }
         Update: {
@@ -1207,7 +1209,7 @@ export type Database = {
           completed?: boolean | null
           completed_at?: string | null
           created_at?: string
-          fault_id?: string
+          fault_id?: string | null
           id?: string
           notes?: string | null
           provider_name?: string
@@ -1215,6 +1217,7 @@ export type Database = {
           provider_type?: string | null
           requested_by?: string | null
           requested_by_name?: string | null
+          service_order_id?: string | null
           status?: string
         }
         Relationships: [

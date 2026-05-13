@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History as HistoryIcon, Wrench, AlertTriangle, Car, FileText, RefreshCw, Filter, Search, ExternalLink } from 'lucide-react';
+import { History as HistoryIcon, Wrench, AlertTriangle, Car, FileText, RefreshCw, Filter, Search, ExternalLink, Upload } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 type EventType = 'fault' | 'accident' | 'handover' | 'service' | 'expense';
 
@@ -28,15 +32,89 @@ const typeConfig: Record<EventType, { label: string; icon: typeof Wrench; colorC
 
 export default function HistoryPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const [events, setEvents] = useState<HistoryEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<EventType | ''>('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importVehicleId, setImportVehicleId] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [vehicles, setVehicles] = useState<Array<{ id: string; license_plate: string; internal_number: string; company_name: string }>>([]);
 
   useEffect(() => {
     loadHistory();
+    loadVehicles();
   }, []);
+
+  const loadVehicles = async () => {
+    const { data } = await applyCompanyScope(supabase.from('vehicles').select('id, license_plate, internal_number, company_name'), companyFilter).order('license_plate');
+    if (data) setVehicles(data as any);
+  };
+
+  const handleImport = async () => {
+    if (!importFile || !importVehicleId) { toast.error('בחר רכב וקובץ'); return; }
+    const vehicle = vehicles.find(v => v.id === importVehicleId);
+    if (!vehicle) { toast.error('רכב לא נמצא'); return; }
+    setImporting(true);
+    try {
+      const buf = await importFile.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      if (rows.length === 0) { toast.error('הקובץ ריק'); setImporting(false); return; }
+
+      const pick = (row: any, keys: string[]) => {
+        for (const k of keys) {
+          for (const rk of Object.keys(row)) {
+            if (rk.toString().toLowerCase().trim() === k.toLowerCase()) return row[rk];
+          }
+        }
+        return '';
+      };
+
+      const records = rows.map(r => {
+        const dateRaw = pick(r, ['תאריך', 'date', 'Date']);
+        let dateIso = new Date().toISOString();
+        if (dateRaw instanceof Date) dateIso = dateRaw.toISOString();
+        else if (dateRaw) {
+          const d = new Date(dateRaw);
+          if (!isNaN(d.getTime())) dateIso = d.toISOString();
+        }
+        return {
+          service_category: String(pick(r, ['קטגוריה', 'category', 'סוג']) || 'שירות'),
+          description: String(pick(r, ['תיאור', 'description', 'פירוט']) || ''),
+          vendor_name: String(pick(r, ['ספק', 'vendor', 'מוסך']) || ''),
+          notes: String(pick(r, ['הערות', 'notes', 'amount', 'סכום']) || ''),
+          service_date: dateIso.slice(0, 10),
+          date_time: dateIso,
+          vehicle_plate: vehicle.license_plate,
+          vehicle_id: vehicle.id,
+          company_name: vehicle.company_name,
+          treatment_status: 'completed',
+          imported: true,
+          imported_source: importFile.name,
+          imported_at: new Date().toISOString(),
+          created_by: user?.id,
+        } as any;
+      });
+
+      const { error } = await (supabase.from('service_orders') as any).insert(records);
+      if (error) { toast.error('שגיאה בייבוא: ' + error.message); }
+      else {
+        toast.success(`יובאו ${records.length} רשומות`);
+        setImportOpen(false); setImportFile(null); setImportVehicleId('');
+        loadHistory();
+      }
+    } catch (e: any) {
+      toast.error('שגיאה בקריאת הקובץ');
+    } finally {
+      setImporting(false);
+    }
+  };
+
 
   const loadHistory = async () => {
     setLoading(true);
@@ -108,10 +186,15 @@ export default function HistoryPage() {
 
   return (
     <div className="animate-fade-in">
-      <h1 className="page-header flex items-center gap-3">
-        <HistoryIcon size={28} />
-        היסטוריה
-      </h1>
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="page-header flex items-center gap-3 mb-0">
+          <HistoryIcon size={28} />
+          היסטוריה
+        </h1>
+        <button onClick={() => setImportOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 text-primary font-bold text-sm">
+          <Upload size={16} /> ייבוא Excel
+        </button>
+      </div>
 
       {/* Search */}
       <div className="relative mb-4">
@@ -195,6 +278,40 @@ export default function HistoryPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader><DialogTitle>ייבוא היסטוריית טיפולים מ-Excel</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              עמודות מזוהות: תאריך, קטגוריה, תיאור, ספק, הערות.
+              הרשומות יישמרו תחת "שירותים ותחזוקה" וישויכו לרכב הנבחר.
+            </p>
+            <div>
+              <label className="text-sm font-bold mb-1 block">בחר רכב</label>
+              <select value={importVehicleId} onChange={e => setImportVehicleId(e.target.value)}
+                className="w-full p-3 rounded-xl border-2 border-input bg-background">
+                <option value="">-- בחר --</option>
+                {vehicles.map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.license_plate} {v.internal_number ? `(${v.internal_number})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-bold mb-1 block">קובץ Excel / CSV</label>
+              <input type="file" accept=".xlsx,.xls,.csv"
+                onChange={e => setImportFile(e.target.files?.[0] || null)}
+                className="w-full p-2 rounded-xl border-2 border-input bg-background text-sm" />
+            </div>
+            <button onClick={handleImport} disabled={importing || !importFile || !importVehicleId}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold disabled:opacity-50">
+              {importing ? 'מייבא...' : 'ייבא'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
