@@ -55,6 +55,7 @@ function isDatePassed(dateStr: string | null): boolean {
 const serviceTypes: Record<string, string> = { regular: 'קו קבוע', charter: 'שכר', school: 'הסעות תלמידים', tourism: 'תיירות', delivery: 'משלוחים', other: 'אחר' };
 const daysOptions = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 const vehicleTypeOptions = [
+  { value: 'all', label: 'כל סוגי הרכב' },
   { value: 'private', label: 'רכב פרטי' },
   { value: 'commercial', label: 'רכב מסחרי' },
   { value: 'taxi', label: 'מונית' },
@@ -62,6 +63,7 @@ const vehicleTypeOptions = [
   { value: 'van_14', label: 'רכב 14 מקומות' },
   { value: 'minibus', label: 'מיניבוס' },
   { value: 'bus', label: 'אוטובוס' },
+  { value: 'lift', label: 'מעלון' },
   { value: 'other', label: 'אחר' },
 ];
 
@@ -155,7 +157,8 @@ export default function RoutesPage() {
           </div>
           {r.vehicle_type_pricing?.length > 0 && (
             <div className="mt-4">
-              <h3 className="font-bold text-lg mb-2">תמחור לפי סוג רכב</h3>
+              <h3 className="font-bold text-lg mb-1">תמחור לפי סוג רכב</h3>
+              <p className="text-xs text-muted-foreground mb-2">המחירים האלה דורסים את סכום ברירת המחדל של המסלול</p>
               <div className="bg-muted rounded-xl p-3 space-y-2">
                 {r.vehicle_type_pricing.map((p, i) => (
                   <div key={i} className="flex items-center justify-between">
@@ -375,7 +378,7 @@ function RouteForm({ route, onDone, onBack, user }: { route: RouteRow | null; on
   }, []);
 
   const toggleDay = (day: string) => setSelectedDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
-  const isValid = name && origin && destination;
+  const isValid = (name || routeNumber) && origin && destination;
   const inputClass = "w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
 
   const addPricingRow = () => {
@@ -393,8 +396,9 @@ function RouteForm({ route, onDone, onBack, user }: { route: RouteRow | null; on
   const handleSubmit = async () => {
     if (!isValid) return;
     setLoading(true);
+    const finalName = name?.trim() || routeNumber?.trim() || '';
     const payload: any = {
-      name, origin, destination,
+      name: finalName, origin, destination,
       route_number: routeNumber,
       stops: stopsText ? stopsText.split(',').map(s => s.trim()) : [],
       distance_km: parseFloat(distanceKm) || 0,
@@ -427,7 +431,7 @@ function RouteForm({ route, onDone, onBack, user }: { route: RouteRow | null; on
       <h1 className="text-2xl font-bold mb-6">{isEdit ? 'עריכת מסלול' : 'מסלול חדש'}</h1>
       <div className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
-          <div><label className="block text-lg font-medium mb-2">שם מסלול *</label><input value={name} onChange={e => setName(e.target.value)} className={inputClass} /></div>
+          <div><label className="block text-lg font-medium mb-2">שם מסלול</label><input value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="אם ריק - יועתק מספר המסלול" /></div>
           <div><label className="block text-lg font-medium mb-2">מספר מסלול</label><input value={routeNumber} onChange={e => setRouteNumber(e.target.value)} className={inputClass} placeholder="לדוגמה: 101" /></div>
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -514,12 +518,13 @@ function RouteForm({ route, onDone, onBack, user }: { route: RouteRow | null; on
 
         {/* Vehicle Type Pricing */}
         <div className="border-2 border-input rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-1">
             <label className="text-lg font-medium">תמחור לפי סוג רכב</label>
             <button type="button" onClick={addPricingRow} className="flex items-center gap-1 px-3 py-2 rounded-xl bg-primary/10 text-primary text-sm font-bold min-h-[40px]">
               <Plus size={16} /> הוסף שורה
             </button>
           </div>
+          <p className="text-xs text-muted-foreground mb-3">⚠️ מחיר שמוגדר כאן דורס את "סכום למסלול" (ברירת המחדל) עבור אותו סוג רכב</p>
           {vehicleTypePricing.length === 0 && <p className="text-muted-foreground text-sm">לא הוגדר תמחור שונה לפי סוג רכב</p>}
           <div className="space-y-3">
             {vehicleTypePricing.map((p, i) => (
