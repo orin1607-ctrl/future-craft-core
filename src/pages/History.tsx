@@ -8,7 +8,7 @@ import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
-type EventType = 'fault' | 'accident' | 'handover' | 'service' | 'expense';
+type EventType = 'fault' | 'defect' | 'accident' | 'handover' | 'service' | 'supplier_order' | 'expense' | 'document' | 'inspection' | 'alert';
 
 interface HistoryEvent {
   id: string;
@@ -24,10 +24,15 @@ interface HistoryEvent {
 
 const typeConfig: Record<EventType, { label: string; icon: typeof Wrench; colorCls: string }> = {
   fault: { label: 'תקלה', icon: Wrench, colorCls: 'bg-warning/10 text-warning' },
+  defect: { label: 'ליקוי', icon: AlertTriangle, colorCls: 'bg-warning/10 text-warning' },
   accident: { label: 'תאונה', icon: AlertTriangle, colorCls: 'bg-destructive/10 text-destructive' },
   handover: { label: 'החלפת רכב', icon: RefreshCw, colorCls: 'bg-info/10 text-info' },
   service: { label: 'שירותים ותחזוקה', icon: Car, colorCls: 'bg-primary/10 text-primary' },
+  supplier_order: { label: 'הזמנת ספק', icon: Wrench, colorCls: 'bg-primary/10 text-primary' },
   expense: { label: 'הוצאה', icon: FileText, colorCls: 'bg-accent/10 text-accent-foreground' },
+  document: { label: 'מסמך', icon: FileText, colorCls: 'bg-muted text-foreground' },
+  inspection: { label: 'ביקורת רכב', icon: Car, colorCls: 'bg-info/10 text-info' },
+  alert: { label: 'התראה', icon: AlertTriangle, colorCls: 'bg-warning/10 text-warning' },
 };
 
 export default function HistoryPage() {
@@ -119,12 +124,17 @@ export default function HistoryPage() {
   const loadHistory = async () => {
     setLoading(true);
 
-    const [faultsRes, accidentsRes, handoversRes, servicesRes, expensesRes] = await Promise.all([
+    const [faultsRes, accidentsRes, handoversRes, servicesRes, expensesRes, tasksRes, inspectionsRes, referralsRes, alertsRes, docsRes] = await Promise.all([
       applyCompanyScope(supabase.from('faults').select('*'), companyFilter).order('created_at', { ascending: false }),
       applyCompanyScope(supabase.from('accidents').select('*'), companyFilter).order('created_at', { ascending: false }),
       applyCompanyScope(supabase.from('vehicle_handovers').select('*'), companyFilter).order('created_at', { ascending: false }),
       applyCompanyScope(supabase.from('service_orders').select('*'), companyFilter).order('created_at', { ascending: false }),
       applyCompanyScope(supabase.from('expenses').select('*'), companyFilter).order('created_at', { ascending: false }),
+      applyCompanyScope(supabase.from('vehicle_tasks').select('*'), companyFilter).order('created_at', { ascending: false }),
+      applyCompanyScope(supabase.from('vehicle_inspections').select('*'), companyFilter).order('created_at', { ascending: false }),
+      applyCompanyScope(supabase.from('fault_referrals').select('*, faults:fault_id(vehicle_plate), service_order:service_order_id(vehicle_plate)') as any, companyFilter).order('created_at', { ascending: false }),
+      applyCompanyScope(supabase.from('custom_alerts').select('*'), companyFilter).order('created_at', { ascending: false }),
+      applyCompanyScope(supabase.from('document_metadata').select('*'), companyFilter).order('created_at', { ascending: false }),
     ]);
 
     const all: HistoryEvent[] = [];
@@ -163,6 +173,45 @@ export default function HistoryPage() {
       title: e.category || 'הוצאה', description: `₪${(e.amount || 0).toLocaleString()} - ${e.vendor || ''}`,
       vehiclePlate: e.vehicle_plate || '', driverName: e.driver_name || '',
       status: '', meta: e.invoice_number,
+    }));
+
+    (tasksRes.data || []).forEach((t: any) => all.push({
+      id: t.id, type: 'defect', date: t.created_at,
+      title: t.title || 'ליקוי', description: t.description || '',
+      vehiclePlate: t.vehicle_plate || '', driverName: '',
+      status: t.status || 'open', meta: t.resolved_by_name,
+    }));
+
+    (inspectionsRes.data || []).forEach((i: any) => all.push({
+      id: i.id, type: 'inspection', date: i.inspection_date || i.created_at,
+      title: i.inspection_type === 'pre_trip' ? 'בדיקה לפני נסיעה' : 'ביקורת תקופתית',
+      description: i.notes || '',
+      vehiclePlate: i.vehicle_plate || '', driverName: i.inspector_name || '',
+      status: i.overall_status || '', meta: '',
+    }));
+
+    (referralsRes.data || []).forEach((r: any) => all.push({
+      id: r.id, type: 'supplier_order', date: r.created_at,
+      title: `הזמנת עבודה - ${r.provider_name || ''}`,
+      description: r.notes || '',
+      vehiclePlate: r.faults?.vehicle_plate || r.service_order?.vehicle_plate || '',
+      driverName: r.requested_by_name || '',
+      status: r.status || 'pending_approval', meta: r.provider_type,
+    }));
+
+    (alertsRes.data || []).forEach((a: any) => all.push({
+      id: a.id, type: 'alert', date: a.alert_date || a.created_at,
+      title: a.title || 'התראה', description: a.description || '',
+      vehiclePlate: '', driverName: '',
+      status: a.is_active ? 'active' : '', meta: a.alert_type,
+    }));
+
+    (docsRes.data || []).forEach((d: any) => all.push({
+      id: d.id, type: 'document', date: d.created_at,
+      title: d.original_name || d.category || 'מסמך',
+      description: d.category || '',
+      vehiclePlate: d.vehicle_plate || '', driverName: d.driver_name || '',
+      status: '', meta: '',
     }));
 
     all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -244,6 +293,8 @@ export default function HistoryPage() {
                       const routes: Record<EventType, string> = {
                         fault: '/faults', accident: '/accidents', handover: '/vehicle-handover',
                         service: '/service-orders', expense: '/expenses',
+                        defect: '/vehicle-tasks', inspection: '/vehicle-inspections',
+                        supplier_order: '/service-orders', alert: '/alerts', document: '/documents',
                       };
                       navigate(routes[ev.type]);
                     }} className="card-elevated mr-6 relative w-full text-right hover:shadow-lg hover:border-primary/30 transition-all cursor-pointer">

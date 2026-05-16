@@ -108,13 +108,13 @@ export default function ServiceOrders() {
   const filtered = orders.filter(o => {
     const internal = vehiclesByPlate[o.vehicle_plate]?.internal_number || '';
     const matchSearch = !search ||
-      o.vehicle_plate?.includes(search) || internal.includes(search) || o.service_category?.includes(search) ||
+      o.vehicle_plate?.includes(search) || (internal && internal === search.trim()) || o.service_category?.includes(search) ||
       o.driver_name?.includes(search) || o.company_name?.includes(search) ||
       o.ordering_user?.includes(search) || o.reference_number?.includes(search);
     const matchStatus = !filterStatus || o.treatment_status === filterStatus;
     const matchName = !filterName || o.driver_name?.includes(filterName) || o.ordering_user?.includes(filterName);
     const matchCompany = !filterCompany || o.company_name?.includes(filterCompany);
-    const matchVehicle = !filterVehicle || o.vehicle_plate?.includes(filterVehicle) || internal.includes(filterVehicle);
+    const matchVehicle = !filterVehicle || o.vehicle_plate?.includes(filterVehicle) || (internal && internal === filterVehicle.trim());
     return matchSearch && matchStatus && matchName && matchCompany && matchVehicle;
   });
 

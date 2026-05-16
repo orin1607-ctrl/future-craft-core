@@ -513,6 +513,7 @@ function FleetManagerDashboard({
         accidentsRes,
         serviceOrdersRes,
         expensesRes,
+        tasksRes,
       ] = await Promise.all([
         withCompanyScope(
           supabase
@@ -528,6 +529,7 @@ function FleetManagerDashboard({
             .select('id, service_category, treatment_status, service_date, vehicle_plate')
         ),
         withCompanyScope(supabase.from('expenses').select('id, amount').gte('date', monthStart)),
+        withCompanyScope(supabase.from('vehicle_tasks').select('id, status')),
       ]);
 
       if (
@@ -573,8 +575,10 @@ function FleetManagerDashboard({
         MAINTENANCE_STATUSES.includes(vehicle.status || '')
       ).length;
 
-      const openFaults = faults.filter((fault) => isOpenStatus(fault.status)).length;
+      const CLOSED_FAULT_STATUSES = ['closed', 'completed', 'resolved', 'cancelled', 'נסגרה', 'הושלמה', 'סגור'];
+      const openFaults = faults.filter((fault) => !CLOSED_FAULT_STATUSES.includes((fault.status || '').toLowerCase()) && !CLOSED_FAULT_STATUSES.includes(fault.status || '')).length;
       const openAccidents = accidents.filter((accident) => !isClosedAccident(accident.status)).length;
+      const openDefects = (tasksRes.data || []).filter((t: any) => ['open', 'in_progress', 'פתוח', 'בטיפול'].includes(t.status || 'open')).length;
 
       const expenseAmounts = expenses.map((item) => Number(item.amount) || 0).filter((value) => value > 0);
       const averageExpense = expenseAmounts.length
@@ -605,6 +609,7 @@ function FleetManagerDashboard({
         { key: 'inspection', label: 'ביקורת / טיפול מתקרב', count: inspectionDue, link: '/alerts' },
         { key: 'garage', label: 'רכב שנמצא כרגע במוסך', count: vehiclesInGarage, link: '/vehicles' },
         { key: 'faults', label: 'תקלות פתוחות', count: openFaults, link: '/faults' },
+        { key: 'defects', label: 'ליקויים פתוחים', count: openDefects, link: '/vehicle-tasks' },
         { key: 'accidents', label: 'תאונות פתוחות', count: openAccidents, link: '/accidents' },
         { key: 'expenses', label: 'הוצאות חריגות', count: unusualExpenses, link: '/expenses' },
       ]);

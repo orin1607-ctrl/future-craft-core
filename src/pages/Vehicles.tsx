@@ -167,7 +167,7 @@ export default function Vehicles() {
   const companies = [...new Set(vehicles.map(v => v.company_name).filter(Boolean))];
 
   const filtered = vehicles.filter(v => {
-    const matchSearch = !search || v.license_plate.includes(search) || v.manufacturer?.includes(search) || v.model?.includes(search) || v.internal_number?.includes(search);
+    const matchSearch = !search || v.license_plate.includes(search) || v.manufacturer?.includes(search) || v.model?.includes(search) || (v.internal_number && String(v.internal_number) === search.trim());
     // When "all" is selected, exclude archived vehicles; only show them when "archived" tab is active
     const matchStatus = statusFilter === 'all' ? v.status !== 'archived' : v.status === statusFilter;
     const matchCompany = !filterCompany || v.company_name === filterCompany;

@@ -69,7 +69,7 @@ export default function VehicleInspections() {
   const filtered = inspections.filter(i => {
     if (!search) return true;
     const v = vehicles.find(x => x.id === i.vehicle_id);
-    return i.vehicle_plate?.includes(search) || i.inspector_name?.includes(search) || v?.internal_number?.includes(search);
+    return i.vehicle_plate?.includes(search) || i.inspector_name?.includes(search) || (v?.internal_number && String(v.internal_number) === search.trim());
   });
 
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';

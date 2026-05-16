@@ -212,7 +212,7 @@ export default function Faults() {
 
   const filtered = faults.filter(f => {
     const internal = getInternal(f);
-    const matchSearch = !search || f.driver_name?.includes(search) || f.vehicle_plate?.includes(search) || internal.includes(search) || f.fault_type?.includes(search) || f.description?.includes(search) || f.serial_id?.includes(search);
+    const matchSearch = !search || f.driver_name?.includes(search) || f.vehicle_plate?.includes(search) || (internal && internal === search.trim()) || f.fault_type?.includes(search) || f.description?.includes(search) || f.serial_id?.includes(search);
     const matchStatus = !filterStatus || f.status === filterStatus;
     const matchUrgency = !filterUrgency || f.urgency === filterUrgency;
     // Quick filter

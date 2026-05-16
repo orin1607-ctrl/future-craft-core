@@ -84,7 +84,7 @@ export default function VehicleTasks() {
 
   const filtered = tasks.filter(t => {
     const internal = getInternal(t);
-    const matchSearch = !search || t.vehicle_plate?.includes(search) || internal.includes(search) || t.title?.includes(search) || t.description?.includes(search);
+    const matchSearch = !search || t.vehicle_plate?.includes(search) || (internal && internal === search.trim()) || t.title?.includes(search) || t.description?.includes(search);
     const matchStatus = statusFilter === 'all' || t.status === statusFilter;
     const matchFollowUp = !followUpOnly || t.requires_follow_up;
     
