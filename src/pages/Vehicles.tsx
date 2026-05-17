@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import CallCustomerButton from '@/components/voice/CallCustomerButton';
 import InfoGapTracker from '@/components/InfoGapTracker';
+import VehicleFilePanel from '@/components/VehicleFilePanel';
 
 interface GovVehicleData {
   mispar_rechev: number;
@@ -166,14 +167,17 @@ export default function Vehicles() {
 
   const companies = [...new Set(vehicles.map(v => v.company_name).filter(Boolean))];
 
+  const searchTerm = search.trim();
+  const isExactInternalNumberMatch = (v: VehicleRow) => Boolean(searchTerm && v.internal_number && String(v.internal_number).trim() === searchTerm);
+
   const filtered = vehicles.filter(v => {
-    const matchSearch = !search || v.license_plate.includes(search) || v.manufacturer?.includes(search) || v.model?.includes(search) || (v.internal_number && String(v.internal_number) === search.trim());
+    const matchSearch = !searchTerm || v.license_plate.includes(searchTerm) || v.manufacturer?.includes(searchTerm) || v.model?.includes(searchTerm) || isExactInternalNumberMatch(v);
     // When "all" is selected, exclude archived vehicles; only show them when "archived" tab is active
     const matchStatus = statusFilter === 'all' ? v.status !== 'archived' : v.status === statusFilter;
     const matchCompany = !filterCompany || v.company_name === filterCompany;
     const matchDriver = !filterDriver || v.assigned_driver_id === filterDriver;
     return matchSearch && matchStatus && matchCompany && matchDriver;
-  });
+  }).sort((a, b) => Number(isExactInternalNumberMatch(b)) - Number(isExactInternalNumberMatch(a)));
 
   const statusLabel = (s: string) => {
     switch (s) {
@@ -325,7 +329,17 @@ export default function Vehicles() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xl font-bold truncate">{v.manufacturer} {v.model}</p>
-                      <p className="text-muted-foreground text-lg truncate">{v.license_plate}{v.internal_number ? ` | ${v.internal_number}` : ''} • {v.year}</p>
+                      <p className="text-muted-foreground text-lg truncate" dir="rtl">
+                        {v.internal_number && (
+                          <>
+                            <span className="font-bold text-primary">מס' פנימי {v.internal_number}</span>
+                            <span className="mx-2">|</span>
+                          </>
+                        )}
+                        <span>{v.license_plate}</span>
+                        <span className="mx-2">•</span>
+                        <span>{v.year}</span>
+                      </p>
                       <p className="text-sm text-muted-foreground truncate">נהג: {getDriverName(v.assigned_driver_id)}</p>
                     </div>
                   </button>
@@ -615,6 +629,9 @@ function VehicleDetail({ vehicle: v, drivers, isManager, onBack, onEdit, onDelet
           <p className="text-muted-foreground">{v.notes}</p>
         </div>
       )}
+
+      {/* Vehicle File / History */}
+      <VehicleFilePanel vehicle={v as any} />
 
       {/* Archive / Delete */}
       {isManager && (

@@ -82,10 +82,10 @@ export default function VehicleTasks() {
   const getInternal = (t: TaskRow) => (t.vehicle_id && vehicleMap[t.vehicle_id]?.internal_number) || vehicleByPlate[t.vehicle_plate]?.internal_number || '';
   const getVehicleId = (t: TaskRow) => t.vehicle_id || vehicleByPlate[t.vehicle_plate]?.id || null;
 
-  const filtered = tasks.filter(t => {
+  const baseFiltered = tasks.filter(t => {
     const internal = getInternal(t);
     const matchSearch = !search || t.vehicle_plate?.includes(search) || (internal && internal === search.trim()) || t.title?.includes(search) || t.description?.includes(search);
-    const matchStatus = statusFilter === 'all' || t.status === statusFilter;
+    const matchStatus = statusFilter === 'all' || statusFilter === 'recent' || t.status === statusFilter;
     const matchFollowUp = !followUpOnly || t.requires_follow_up;
     
     // Date filtering
@@ -101,6 +101,8 @@ export default function VehicleTasks() {
     
     return matchSearch && matchStatus && matchFollowUp && matchDate;
   });
+
+  const filtered = statusFilter === 'recent' ? baseFiltered.slice(0, 10) : baseFiltered;
 
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
@@ -180,6 +182,7 @@ export default function VehicleTasks() {
 
   const statusCounts = {
     all: tasks.length,
+    recent: Math.min(10, tasks.length),
     open: tasks.filter(t => t.status === 'open').length,
     in_progress: tasks.filter(t => t.status === 'in_progress').length,
     resolved: tasks.filter(t => t.status === 'resolved').length,
@@ -220,6 +223,7 @@ export default function VehicleTasks() {
       <div className="flex gap-2 mb-3 flex-wrap">
         {([
           { key: 'all', label: 'הכל', emoji: '📋' },
+          { key: 'recent', label: 'אחרונות', emoji: '🕒' },
           { key: 'open', label: 'פתוחים', emoji: '🔴' },
           { key: 'in_progress', label: 'בטיפול', emoji: '🟡' },
           { key: 'resolved', label: 'טופלו', emoji: '🟢' },

@@ -30,6 +30,7 @@ import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 
 const OPEN_TREATMENT_STATUSES = ['new', 'open', 'in_progress', 'pending', 'חדש', 'פתוח', 'בטיפול'];
 const MAINTENANCE_STATUSES = ['maintenance', 'in_service', 'בתחזוקה', 'בטיפול'];
@@ -441,9 +442,16 @@ function FleetManagerDashboard({
 }) {
   const { user, impersonate } = useAuth();
   const isSuperAdminView = user?.role === 'super_admin' && isActingAsFleetManager;
+  const { selectedCompany: globalSelectedCompany, setSelectedCompany: setGlobalSelectedCompany } = useCompanyScope();
 
   const [loading, setLoading] = useState(true);
-  const [selectedCompany, setSelectedCompany] = useState(preselectedCompany || user?.company_name || '');
+  const [selectedCompany, setSelectedCompanyLocal] = useState(
+    preselectedCompany || (isSuperAdminView ? (globalSelectedCompany || '') : (user?.company_name || ''))
+  );
+  const setSelectedCompany = (name: string) => {
+    setSelectedCompanyLocal(name);
+    if (isSuperAdminView) setGlobalSelectedCompany(name || null);
+  };
   const [companyOptions, setCompanyOptions] = useState<{ name: string; businessId: string }[]>([]);
   const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
   const [showDriverPicker, setShowDriverPicker] = useState(false);
@@ -453,9 +461,17 @@ function FleetManagerDashboard({
   const [vehiclePreview, setVehiclePreview] = useState<FleetVehiclePreview[]>([]);
   const [alerts, setAlerts] = useState<FleetAlertRow[]>([]);
 
+  // Sync from global scope when it changes (super admin switching company elsewhere)
+  useEffect(() => {
+    if (isSuperAdminView && globalSelectedCompany && globalSelectedCompany !== selectedCompany) {
+      setSelectedCompanyLocal(globalSelectedCompany);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globalSelectedCompany, isSuperAdminView]);
+
   useEffect(() => {
     if (!isSuperAdminView) {
-      setSelectedCompany(user?.company_name || '');
+      setSelectedCompanyLocal(user?.company_name || '');
       return;
     }
 
