@@ -368,6 +368,17 @@ function ManualEventDialog({ open, onClose, vehicle, onSaved, userId }: {
   const [file, setFile] = useState<File | null>(null);
   const [createAlert, setCreateAlert] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [driversList, setDriversList] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    let q = supabase.from('drivers').select('full_name, company_name');
+    if (vehicle.company_name) q = q.eq('company_name', vehicle.company_name);
+    q.then(({ data }) => {
+      const names = Array.from(new Set((data || []).map((d: any) => d.full_name).filter(Boolean)));
+      setDriversList(names);
+    });
+  }, [open, vehicle.company_name]);
 
   function reset() {
     setType('service'); setDate(new Date().toISOString().slice(0, 10));
@@ -500,8 +511,11 @@ function ManualEventDialog({ open, onClose, vehicle, onSaved, userId }: {
             className="w-full p-2.5 rounded-xl border-2 border-input bg-background" rows={2} />
 
           <div className="grid grid-cols-2 gap-2">
-            <input value={driver} onChange={e => setDriver(e.target.value)} placeholder="נהג"
-              className="p-2.5 rounded-xl border-2 border-input bg-background" />
+            <select value={driver} onChange={e => setDriver(e.target.value)}
+              className="p-2.5 rounded-xl border-2 border-input bg-background">
+              <option value="">בחר נהג</option>
+              {driversList.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
             <input value={vendor} onChange={e => setVendor(e.target.value)} placeholder="ספק"
               className="p-2.5 rounded-xl border-2 border-input bg-background" />
             <input value={status} onChange={e => setStatus(e.target.value)} placeholder="סטטוס"
