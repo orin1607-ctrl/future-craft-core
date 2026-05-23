@@ -118,7 +118,7 @@ export default function VehicleCardCategories({ vehicle, onUpdated }: Props) {
   const addDepartment = async () => {
     if (!newDept.trim()) return;
     const { data, error } = await supabase.from('departments').insert({
-      company_name: v.company_name, name: newDept.trim(), created_by: profile?.id,
+      company_name: v.company_name, name: newDept.trim(), created_by: user?.id,
     }).select().single();
     if (error) { toast.error(error.message); return; }
     setDepartments((p) => [...p, data as any]);
