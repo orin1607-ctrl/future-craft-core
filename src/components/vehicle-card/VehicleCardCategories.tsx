@@ -74,7 +74,7 @@ function Section({ title, icon: Icon, children, value }: { title: string; icon: 
 }
 
 export default function VehicleCardCategories({ vehicle, onUpdated }: Props) {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [v, setV] = useState<VehicleAny>(vehicle);
   const [saving, setSaving] = useState(false);
