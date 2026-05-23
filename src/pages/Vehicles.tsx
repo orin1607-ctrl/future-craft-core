@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import CallCustomerButton from '@/components/voice/CallCustomerButton';
 import InfoGapTracker from '@/components/InfoGapTracker';
 import VehicleFilePanel from '@/components/VehicleFilePanel';
+import VehicleCardCategories from '@/components/vehicle-card/VehicleCardCategories';
 
 interface GovVehicleData {
   mispar_rechev: number;
@@ -630,8 +631,12 @@ function VehicleDetail({ vehicle: v, drivers, isManager, onBack, onEdit, onDelet
         </div>
       )}
 
+      {/* Extended 14-category card */}
+      <VehicleCardCategories vehicle={v as any} />
+
       {/* Vehicle File / History */}
       <VehicleFilePanel vehicle={v as any} />
+
 
       {/* Archive / Delete */}
       {isManager && (

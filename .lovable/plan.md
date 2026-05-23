@@ -1,43 +1,63 @@
-## סקירה
-שינוי שמות שני מודולים, איחוד הזמנת עבודה לספק בין תקלות ושירותים, חיפוש לפי מספר פנימי, ייבוא היסטוריה מ-Excel ושיפור מסכי התראות וליקויים.
+בוקר טוב מיקי 👋
 
-## שינויי מסד נתונים
-- הוספת עמודה `vehicle_id` לטבלת `faults` ול-`service_orders` (כדי לפתוח את כרטיס הרכב הנכון).
-- הוספת דגל `imported` ושדות `imported_source`, `imported_at` לטבלת `service_orders`.
-- מילוי `vehicle_id` מהרשומות הקיימות לפי `vehicle_plate + company_name`.
+זה שינוי גדול מאוד — מבנה של 14 קטגוריות עם עשרות שדות חדשים, כולל בלוקים דינמיים (ליסינג/מימון/שעבוד), שעבודים, מסלולי בעלות, ציוד ייעודי, התראות וייבוא. כדי לעשות את זה נכון בלי לשבור את הקיים, הנה תוכנית בשלבים.
 
-## שינויי קוד
+## מה כבר קיים בטבלת `vehicles`
+שדות בסיסיים (מספר רכב, מספר פנימי, יצרן, דגם, שנתון, ק"מ, סוג דלק, חברה, סטטוס, ביטוח בסיסי, טסט, תאריך רכישה/גריעה, מסמכי רישיון). חסרים רוב השדות החדשים.
 
-### 1. שינוי שמות מודולים
-- "הזמנת שירות / הזמנות שירות" → "שירותים ותחזוקה" בכל הקבצים: `BottomNav`, `Dashboard`, `DriverDashboard`, `Alerts`, `History`, `ServiceOrders`, `ServiceOrderHistory`, `Roadmap`, `Reports`, `EmailTemplates`, `ApprovalSettings`, `SystemLogs`, `useHiddenButtons`, `HelpButton`, `About`, `ProjectSummary`, `voice/ScenariosTab`, `PrivateCustomerDashboard`, `Towing`.
-- "תקלות" → "מעקב רכב" בכותרות של `Faults`, `BottomNav`, `useHiddenButtons`, `EmailTemplates`, `ProjectSummary`, `DriverDashboard`. שמות פנימיים בקוד (faults, fault_type) נשארים.
+## תכולה מוצעת
 
-### 2. הזמנת עבודה לספק משותפת
-- אין כפילות במסד. ב-Service Orders נוסיף לשונית/חלק "הזמנות עבודה לספק" שמושך מ-`work_orders` כשה-`fault_id` מקושר לתקלה של אותו רכב/הזמנה. אותה רשומה מוצגת בשני המסכים.
+### שלב 1 — סכימת DB (Migration גדולה אחת)
+הוספת עמודות ל-`vehicles`:
+- **פרטי רכב**: `vin`, `engine_number`, `vehicle_type`, `usage_type`, `segment`, `nickname`, `ownership_type`
+- **שיוך ומיקום**: `department`, `vehicle_manager`, `current_location`, `work_site`
+- **תאריכים**: `road_entry_date`, `sale_date`
+- **בעלות/מסלול**: `finance_track` (enum: operational_leasing/financial_leasing/loan/self_maintenance/service_maintenance/company_owned/private_owned/rental/other) + JSONB `finance_details` לכל סוג
+- **שעבוד**: `is_pledged` bool + JSONB `pledge_details`
+- **ביטוחים**: JSONB `insurances` (חובה/מקיף/צד ג׳ + כיסויים נוספים)
+- **תסקירים**: JSONB `inspections_certificates`
+- **ציוד ייעודי**: `equipment_type`, `horsepower`, `engine_volume`, `weight_tons`, `kva`, `engine_hours`, `equipment_serial`
+- **תחזוקה**: `maintenance_method`, JSONB `maintenance_details`, `next_service_km`, `next_service_hours`
+- **מקור ייבוא**: `import_source`, `import_file_name`, `import_date`, `imported_by`, `import_status`
 
-### 3. חיפוש לפי מספר פנימי
-- בכל מסך עם חיפוש לפי רכב נטען מיפוי `plate → internal_number` ונרחיב את `matchSearch` כך שיתפוס גם מספר פנימי. רלוונטי ל: `Faults`, `Alerts`, `ServiceOrders`, `ServiceOrderHistory`, `Accidents`, `Expenses`, `History`, `VehicleHandover`, `WorkOrders`, `VehicleTasks`.
+טבלה חדשה `departments` (מחלקות לפי חברה) לבחירה מתוך רשימה.
 
-### 4. ייבוא היסטוריה מ-Excel/CSV
-- במסך `History`: כפתור "ייבוא Excel". פותח דיאלוג עם קלט קובץ + בחירת רכב.
-- פרסור עם `xlsx` (כבר בפרויקט אם קיים, אחרת נוסיף). מיפוי עמודות חופשי (תאריך, קטגוריה, תיאור, ספק, סכום).
-- שמירה כ-`service_orders` עם `imported=true`, `treatment_status='completed'`, `vehicle_plate` מהבחירה.
-- תצוגה ב-History כבר מציגה service_orders → יופיעו אוטומטית בקטגוריית "שירותים ותחזוקה".
+### שלב 2 — UI: עמוד כרטיס רכב מחדש
+החלפת מבנה הטאבים ב-`Vehicles.tsx` (תצוגת VehicleDetail) ל-14 טאבים/אקורדיון:
+1. פרטי רכב (כולל תת-קטגוריות: עריכה, שיוך, תאריכים)
+2. בעלות, ליסינג ומימון (בלוקים דינמיים לפי `finance_track` + שעבוד מותנה)
+3. ביטוחים ורישיונות
+4. ציוד וכלים מיוחדים
+5. טיפולים ותחזוקה
+6. מסמכים וקבצים (מחובר ל-`document_metadata`)
+7. בדיקות רכב (מחובר ל-`vehicle_inspections`)
+8. תקלות ותיקונים (מחובר ל-`faults`)
+9. שירותי רכב (מחובר ל-`service_orders`)
+10. התראות (מחובר ל-`custom_alerts`)
+11. היסטוריה ומעקב (ה-VehicleFilePanel הקיים)
+12. מעקב רכב
+13. בקרה — 4 כפתורי מודולים (ביקורות/ליקויים/מעקב/התראות) עם סינון לפי vehicle_id
+14. מידע מערכת וייבוא
 
-### 5. התראות וליקויים – מספר פנימי + ניווט מדויק
-- ב-`Alerts` וב-`VehicleTasks`: ב-subtitle נציג גם מספר פנימי לצד מספר רכב.
-- ב-`Alerts`, התראות מסוג fault ו-defect ינווטו ל-`/vehicles?vehicleId=<id>` במקום `/faults`/`/vehicle-tasks`.
-- ב-`Vehicles`: קריאת `vehicleId` מ-querystring ופתיחה אוטומטית של ה-VehicleDetail המתאים.
-- בתוך מסך תקלות עצמו: בלחיצה על כרטיס תקלה (אם יש vehicle_id) – כפתור "פתח כרטיס רכב" שמנווט לאותו URL.
+### שלב 3 — כפתור השבת/הפעל
+טוגל בראש הכרטיס שמעדכן `status` בין active/inactive.
 
-## סדר ביצוע
-1. מיגרציית DB (vehicle_id + imported flags + backfill).
-2. שינויי שמות (רנדומלי לפי קובץ).
-3. תמיכה במספר פנימי בחיפושים + תצוגה.
-4. פתיחת רכב מ-Alerts + Vehicle ID ב-faults/service_orders חדשים.
-5. ייבוא Excel ב-History.
-6. הצגת work_orders של תקלה גם במסך שירותים.
+### שלב 4 — חיבור מחלקות
+Combobox במקום שדה חופשי, נשלף מטבלת `departments` של החברה הנוכחית.
 
-## הערות
-- שמות פנימיים בקוד (`/faults`, `/service-orders`, `service_order` event types) נשארים — רק תוויות תצוגה משתנות.
-- `imported` רק מסמן רשומות שיובאו ולא מפעיל טריגרים של התראות חדשות.
+## מה לא בתוך התוכנית הזו
+- **ייבוא רכבים בפועל** מאקסל/CSV — זה פיצ'ר נפרד גדול. אפשר לעשות בשלב הבא אחרי שהסכימה מוכנה.
+- **בדיקת סתירות לפני ייבוא** — חלק מפיצ'ר הייבוא.
+- **שינוי טבלאות `faults`/`service_orders`/`insurances`** — נשאיר אותן כמו שהן ונקשר אליהן מהכרטיס.
+
+## טכני
+- Migration אחת גדולה עם כל העמודות + טבלת `departments` + RLS.
+- פיצול ה-UI לקומפוננטות נפרדות תחת `src/components/vehicle-card/` (Category1.tsx … Category14.tsx) כדי שהקובץ הראשי לא יתפוצץ.
+- JSONB לבלוקים שיכולים להשתנות (ליסינג/מימון/ביטוחים) במקום עשרות עמודות שטוחות — יותר גמיש לייבוא.
+
+## שאלות לפני שמתחילים
+1. **טבלת `departments`**: ליצור חדשה? או שיש לך כבר רשימת מחלקות במקום אחר?
+2. **JSONB מול עמודות שטוחות**: לבלוקים כמו ליסינג/ביטוחים — JSONB גמיש יותר אבל פחות נוח לדוחות. מעדיף JSONB או שטוח?
+3. **גודל ביצוע**: לעשות הכל בפעם אחת (יקח זמן, צ׳אט ארוך), או לפצל לשלבים — קודם סכימה+קטגוריות 1-2, ואז להמשיך?
+
+אחרי שתאשר את התוכנית ותענה על השאלות — מתחיל לעבוד.
