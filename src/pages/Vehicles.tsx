@@ -631,8 +631,12 @@ function VehicleDetail({ vehicle: v, drivers, isManager, onBack, onEdit, onDelet
         </div>
       )}
 
+      {/* Extended 14-category card */}
+      <VehicleCardCategories vehicle={v as any} />
+
       {/* Vehicle File / History */}
       <VehicleFilePanel vehicle={v as any} />
+
 
       {/* Archive / Delete */}
       {isManager && (
