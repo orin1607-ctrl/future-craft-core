@@ -584,6 +584,36 @@ export type Database = {
         }
         Relationships: []
       }
+      departments: {
+        Row: {
+          company_name: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dev_tasks: {
         Row: {
           clarification: string | null
@@ -2752,43 +2782,83 @@ export type Database = {
           comprehensive_insurance_start: string | null
           created_at: string | null
           created_by: string | null
+          current_location: string | null
+          department: string | null
+          engine_hours: number | null
+          engine_number: string | null
+          engine_volume: number | null
+          equipment_details: string | null
+          equipment_serial: string | null
+          equipment_type: string | null
+          finance_details: Json | null
+          finance_track: string | null
           has_loan: boolean | null
           has_no_claims: boolean | null
+          horsepower: number | null
           id: string
+          import_buffer: string | null
+          import_category: string | null
+          import_date: string | null
+          import_file_name: string | null
+          import_source: string | null
+          import_status: string | null
+          imported_by: string | null
+          inspections_certificates: Json | null
           insurance_agent: string | null
           insurance_company: string | null
           insurance_cost: number | null
           insurance_doc_url: string | null
           insurance_expiry: string | null
           insurance_start: string | null
+          insurances: Json | null
           internal_number: string | null
           is_leasing: boolean | null
+          is_pledged: boolean | null
+          kva: number | null
           last_service_date: string | null
           leasing_end_date: string | null
           license_doc_url: string | null
           license_plate: string
+          loan_details: Json | null
           loan_end_date: string | null
+          maintenance_details: Json | null
+          maintenance_method: string | null
           management_type: string | null
           manufacturer: string | null
+          meter_type: string | null
+          meter_updated_at: string | null
           model: string | null
           monthly_leasing_cost: number | null
           monthly_loan_payment: number | null
           needs_transport: boolean | null
           next_service_date: string | null
+          next_service_hours: number | null
           next_service_km: number | null
           nickname: string | null
           notes: string | null
           odometer: number | null
           ownership_type: string | null
           planned_replacement_date: string | null
+          pledge_details: Json | null
+          road_entry_date: string | null
+          sale_date: string | null
+          segment: string | null
+          service_notes: string | null
+          service_status: string | null
+          service_type: string | null
           status: string | null
           test_expiry: string | null
           third_party_insurance_doc_url: string | null
           third_party_insurance_expiry: string | null
           updated_at: string | null
+          usage_type: string | null
           vehicle_images: string | null
+          vehicle_manager: string | null
           vehicle_return_date: string | null
           vehicle_type: string | null
+          vin: string | null
+          weight_tons: number | null
+          work_site: string | null
           year: number | null
         }
         Insert: {
@@ -2801,43 +2871,83 @@ export type Database = {
           comprehensive_insurance_start?: string | null
           created_at?: string | null
           created_by?: string | null
+          current_location?: string | null
+          department?: string | null
+          engine_hours?: number | null
+          engine_number?: string | null
+          engine_volume?: number | null
+          equipment_details?: string | null
+          equipment_serial?: string | null
+          equipment_type?: string | null
+          finance_details?: Json | null
+          finance_track?: string | null
           has_loan?: boolean | null
           has_no_claims?: boolean | null
+          horsepower?: number | null
           id?: string
+          import_buffer?: string | null
+          import_category?: string | null
+          import_date?: string | null
+          import_file_name?: string | null
+          import_source?: string | null
+          import_status?: string | null
+          imported_by?: string | null
+          inspections_certificates?: Json | null
           insurance_agent?: string | null
           insurance_company?: string | null
           insurance_cost?: number | null
           insurance_doc_url?: string | null
           insurance_expiry?: string | null
           insurance_start?: string | null
+          insurances?: Json | null
           internal_number?: string | null
           is_leasing?: boolean | null
+          is_pledged?: boolean | null
+          kva?: number | null
           last_service_date?: string | null
           leasing_end_date?: string | null
           license_doc_url?: string | null
           license_plate: string
+          loan_details?: Json | null
           loan_end_date?: string | null
+          maintenance_details?: Json | null
+          maintenance_method?: string | null
           management_type?: string | null
           manufacturer?: string | null
+          meter_type?: string | null
+          meter_updated_at?: string | null
           model?: string | null
           monthly_leasing_cost?: number | null
           monthly_loan_payment?: number | null
           needs_transport?: boolean | null
           next_service_date?: string | null
+          next_service_hours?: number | null
           next_service_km?: number | null
           nickname?: string | null
           notes?: string | null
           odometer?: number | null
           ownership_type?: string | null
           planned_replacement_date?: string | null
+          pledge_details?: Json | null
+          road_entry_date?: string | null
+          sale_date?: string | null
+          segment?: string | null
+          service_notes?: string | null
+          service_status?: string | null
+          service_type?: string | null
           status?: string | null
           test_expiry?: string | null
           third_party_insurance_doc_url?: string | null
           third_party_insurance_expiry?: string | null
           updated_at?: string | null
+          usage_type?: string | null
           vehicle_images?: string | null
+          vehicle_manager?: string | null
           vehicle_return_date?: string | null
           vehicle_type?: string | null
+          vin?: string | null
+          weight_tons?: number | null
+          work_site?: string | null
           year?: number | null
         }
         Update: {
@@ -2850,43 +2960,83 @@ export type Database = {
           comprehensive_insurance_start?: string | null
           created_at?: string | null
           created_by?: string | null
+          current_location?: string | null
+          department?: string | null
+          engine_hours?: number | null
+          engine_number?: string | null
+          engine_volume?: number | null
+          equipment_details?: string | null
+          equipment_serial?: string | null
+          equipment_type?: string | null
+          finance_details?: Json | null
+          finance_track?: string | null
           has_loan?: boolean | null
           has_no_claims?: boolean | null
+          horsepower?: number | null
           id?: string
+          import_buffer?: string | null
+          import_category?: string | null
+          import_date?: string | null
+          import_file_name?: string | null
+          import_source?: string | null
+          import_status?: string | null
+          imported_by?: string | null
+          inspections_certificates?: Json | null
           insurance_agent?: string | null
           insurance_company?: string | null
           insurance_cost?: number | null
           insurance_doc_url?: string | null
           insurance_expiry?: string | null
           insurance_start?: string | null
+          insurances?: Json | null
           internal_number?: string | null
           is_leasing?: boolean | null
+          is_pledged?: boolean | null
+          kva?: number | null
           last_service_date?: string | null
           leasing_end_date?: string | null
           license_doc_url?: string | null
           license_plate?: string
+          loan_details?: Json | null
           loan_end_date?: string | null
+          maintenance_details?: Json | null
+          maintenance_method?: string | null
           management_type?: string | null
           manufacturer?: string | null
+          meter_type?: string | null
+          meter_updated_at?: string | null
           model?: string | null
           monthly_leasing_cost?: number | null
           monthly_loan_payment?: number | null
           needs_transport?: boolean | null
           next_service_date?: string | null
+          next_service_hours?: number | null
           next_service_km?: number | null
           nickname?: string | null
           notes?: string | null
           odometer?: number | null
           ownership_type?: string | null
           planned_replacement_date?: string | null
+          pledge_details?: Json | null
+          road_entry_date?: string | null
+          sale_date?: string | null
+          segment?: string | null
+          service_notes?: string | null
+          service_status?: string | null
+          service_type?: string | null
           status?: string | null
           test_expiry?: string | null
           third_party_insurance_doc_url?: string | null
           third_party_insurance_expiry?: string | null
           updated_at?: string | null
+          usage_type?: string | null
           vehicle_images?: string | null
+          vehicle_manager?: string | null
           vehicle_return_date?: string | null
           vehicle_type?: string | null
+          vin?: string | null
+          weight_tons?: number | null
+          work_site?: string | null
           year?: number | null
         }
         Relationships: []
