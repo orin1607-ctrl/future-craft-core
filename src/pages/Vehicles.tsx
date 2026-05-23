@@ -1031,7 +1031,7 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
         ? 'הרכב נוסף וממתין לאישור מנהל על'
         : isEdit ? 'הרכב עודכן בהצלחה' : 'הרכב נוסף בהצלחה';
       toast.success(msg);
-      onDone();
+      onDone(vehicleId);
     }
   };
 
