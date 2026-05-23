@@ -719,7 +719,7 @@ type ManagementType = 'operational_leasing' | 'financial_leasing' | 'self_mainta
 function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
   vehicle: VehicleRow | null;
   drivers: DriverRow[];
-  onDone: () => void;
+  onDone: (savedId?: string) => void;
   onBack: () => void;
   user: any;
 }) {
