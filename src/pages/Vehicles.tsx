@@ -200,17 +200,25 @@ export default function Vehicles() {
   const handleViewDetail = (v: VehicleRow) => {
     setSelectedVehicle(v);
     setViewMode('detail');
+    setSearchParams({ vehicleId: v.id });
   };
 
   const handleBack = () => {
     setViewMode('list');
     setSelectedVehicle(null);
     setEditVehicle(null);
+    setSearchParams({});
   };
 
-  const handleFormDone = () => {
-    handleBack();
-    loadData();
+  const handleFormDone = async (savedId?: string) => {
+    await loadData();
+    if (savedId) {
+      setSearchParams({ vehicleId: savedId });
+      setViewMode('detail');
+      setEditVehicle(null);
+    } else {
+      handleBack();
+    }
   };
 
   const handleDelete = async (id: string) => {
