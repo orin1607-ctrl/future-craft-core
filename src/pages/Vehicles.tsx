@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import CallCustomerButton from '@/components/voice/CallCustomerButton';
 import InfoGapTracker from '@/components/InfoGapTracker';
 import VehicleFilePanel from '@/components/VehicleFilePanel';
+import VehicleCardCategories from '@/components/vehicle-card/VehicleCardCategories';
 
 interface GovVehicleData {
   mispar_rechev: number;
