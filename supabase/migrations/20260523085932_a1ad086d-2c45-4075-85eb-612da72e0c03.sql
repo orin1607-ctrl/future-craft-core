@@ -1,0 +1,55 @@
+-- Fix reversed/concatenated Hebrew values from PDF import
+UPDATE vehicles SET vehicle_type='ציוד הנדסי' WHERE company_name LIKE '%אברהמי%' AND vehicle_type='הנדסיציוד';
+UPDATE vehicles SET vehicle_type='ציוד תפעולי' WHERE company_name LIKE '%אברהמי%' AND vehicle_type='תפעוליציוד';
+UPDATE vehicles SET vehicle_type='טרקטור משא' WHERE company_name LIKE '%אברהמי%' AND vehicle_type='משאטרקטור';
+UPDATE vehicles SET vehicle_type='פרטי' WHERE company_name LIKE '%אברהמי%' AND vehicle_type='שימושידו פרטי';
+
+UPDATE vehicles SET department='ענף הרכב' WHERE company_name LIKE '%אברהמי%' AND department='הרכבענף';
+UPDATE vehicles SET department='פינת חי' WHERE company_name LIKE '%אברהמי%' AND department='חיפינת';
+UPDATE vehicles SET department='קיבוץ חצרים' WHERE company_name LIKE '%אברהמי%' AND department='חצריםקיבוץ';
+UPDATE vehicles SET department='פרטי נוסעים' WHERE company_name LIKE '%אברהמי%' AND department='נוסעיםפרטי';
+UPDATE vehicles SET department='חברי קיבוץ' WHERE company_name LIKE '%אברהמי%' AND department='קיבוץחברי';
+UPDATE vehicles SET department='גרור רכבים' WHERE company_name LIKE '%אברהמי%' AND department='רכביםגרור';
+UPDATE vehicles SET department='רמי גולד' WHERE company_name LIKE '%אברהמי%' AND department='גולדרמי';
+UPDATE vehicles SET department='וש למד' WHERE company_name LIKE '%אברהמי%' AND department='למדווש';
+
+UPDATE vehicles SET manufacturer='נגררי אשקלון' WHERE company_name LIKE '%אברהמי%' AND manufacturer='אשקלוןנגררי';
+UPDATE vehicles SET manufacturer='רמת דוד' WHERE company_name LIKE '%אברהמי%' AND manufacturer='דודרמת';
+UPDATE vehicles SET manufacturer='מזרעת חיטה' WHERE company_name LIKE '%אברהמי%' AND manufacturer='חיטהמזרעת';
+UPDATE vehicles SET manufacturer='ניו הולנד' WHERE company_name LIKE '%אברהמי%' AND manufacturer='הולנדניו';
+UPDATE vehicles SET manufacturer='כהן יוסף' WHERE company_name LIKE '%אברהמי%' AND manufacturer='יוסףכהן';
+UPDATE vehicles SET manufacturer='א.ג נגררים' WHERE company_name LIKE '%אברהמי%' AND manufacturer='נגרריםא.ג';
+UPDATE vehicles SET manufacturer='שובל נגררים' WHERE company_name LIKE '%אברהמי%' AND manufacturer='נגרריםשובל';
+UPDATE vehicles SET manufacturer='רכבי נועם' WHERE company_name LIKE '%אברהמי%' AND manufacturer='נועמרכבי';
+UPDATE vehicles SET manufacturer='אחים עלקלעי' WHERE company_name LIKE '%אברהמי%' AND manufacturer='עלקלעיאחים';
+UPDATE vehicles SET manufacturer='מזרעת תפו"א' WHERE company_name LIKE '%אברהמי%' AND manufacturer='תפו"אמזרעת';
+UPDATE vehicles SET manufacturer='אל אס מטרון' WHERE company_name LIKE '%אברהמי%' AND manufacturer='מטרוןאס אל';
+UPDATE vehicles SET manufacturer='אי אם טן' WHERE company_name LIKE '%אברהמי%' AND manufacturer='אםטן אי';
+UPDATE vehicles SET manufacturer='טויוטה' WHERE company_name LIKE '%אברהמי%' AND manufacturer='טויטה';
+UPDATE vehicles SET manufacturer='ג''ון דיר' WHERE company_name LIKE '%אברהמי%' AND manufacturer IN ('דירג׳ון','דירגון','דיר גון');
+UPDATE vehicles SET manufacturer='קיה' WHERE company_name LIKE '%אברהמי%' AND manufacturer='קאיה';
+
+UPDATE vehicles SET model='נגרר פתוח' WHERE company_name LIKE '%אברהמי%' AND model='פתוחנגרר';
+UPDATE vehicles SET model='במת הרמה' WHERE company_name LIKE '%אברהמי%' AND model='הרמהבמת';
+UPDATE vehicles SET model='ציוד תפעולי' WHERE company_name LIKE '%אברהמי%' AND model='תפעוליציוד';
+UPDATE vehicles SET model='טרקטור חקלאי' WHERE company_name LIKE '%אברהמי%' AND model='חקלאיטרקטור';
+UPDATE vehicles SET model='יעה אופני' WHERE company_name LIKE '%אברהמי%' AND model='אופנייעה';
+UPDATE vehicles SET model='מלגזת שריפה פנימית' WHERE company_name LIKE '%אברהמי%' AND model='שריפהמלגזה';
+UPDATE vehicles SET model='מחפרון אופני' WHERE company_name LIKE '%אברהמי%' AND model='אופנימחפרון';
+UPDATE vehicles SET model='יעה אופני זעיר' WHERE company_name LIKE '%אברהמי%' AND model='זעיראופני יעה';
+UPDATE vehicles SET model='מטאטא כביש' WHERE company_name LIKE '%אברהמי%' AND model='כביש מטאטא';
+UPDATE vehicles SET model='נגרר סגור' WHERE company_name LIKE '%אברהמי%' AND model='סגורנגרר';
+UPDATE vehicles SET model='קומביין תפו"א' WHERE company_name LIKE '%אברהמי%' AND model='תפו"אקומביין';
+UPDATE vehicles SET model='מכסחת דשא' WHERE company_name LIKE '%אברהמי%' AND model='דשאמכסחת';
+UPDATE vehicles SET model='מתקני קטיף' WHERE company_name LIKE '%אברהמי%' AND model='קטיףמתקני';
+UPDATE vehicles SET model='ללא רישיון' WHERE company_name LIKE '%אברהמי%' AND model='רישיוןללא';
+UPDATE vehicles SET model='טרקטור רגיל' WHERE company_name LIKE '%אברהמי%' AND model='רגילטרקטור';
+UPDATE vehicles SET model='טרקטור משא' WHERE company_name LIKE '%אברהמי%' AND model='משאטרקטור';
+UPDATE vehicles SET model='רכב זעיר' WHERE company_name LIKE '%אברהמי%' AND model='זעיררכב';
+UPDATE vehicles SET model='קורולה קרוס' WHERE company_name LIKE '%אברהמי%' AND model='קרוסקורולה';
+UPDATE vehicles SET model='ספייס סטאר' WHERE company_name LIKE '%אברהמי%' AND model='סטארספייס';
+UPDATE vehicles SET model='טיגו 8' WHERE company_name LIKE '%אברהמי%' AND model='8טיגו';
+UPDATE vehicles SET model='מאזדה 2' WHERE company_name LIKE '%אברהמי%' AND model='2מאזדה';
+UPDATE vehicles SET model='פורסטר' WHERE company_name LIKE '%אברהמי%' AND model='פורוסטר';
+UPDATE vehicles SET model='נגרר ספורט' WHERE company_name LIKE '%אברהמי%' AND model='ספורטנגרר';
+UPDATE vehicles SET model='גרור ציוד ספורט' WHERE company_name LIKE '%אברהמי%' AND model='ספורטציוד גרור';
