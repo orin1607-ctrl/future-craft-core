@@ -54,7 +54,7 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
           VITE_BASE_PATH: /future-craft-core/
         run: |
-          bun x vite build --base /future-craft-core/ --outDir dist
+          bun x vite build
           # SPA fallback so client-side routes work on GitHub Pages
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
