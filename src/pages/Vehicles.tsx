@@ -440,211 +440,39 @@ function VehicleDetail({ vehicle: v, drivers, isManager, onBack, onEdit, onDelet
 
   return (
     <div className="animate-fade-in">
-      <button onClick={onBack} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
-        <ArrowRight size={20} /> חזרה לרשימה
-      </button>
-
-      <div className="card-elevated mb-4">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">{v.manufacturer} {v.model}</h1>
-            <p className="text-lg text-muted-foreground mt-1">{v.license_plate} • {v.year || ''}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`status-badge ${sl.cls}`}>{sl.text}</span>
-            {isManager && (
-              <button onClick={() => onEdit(v)} className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                <Edit2 size={18} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {(() => {
-          const today = new Date();
-          const missing: string[] = [];
-          if (!v.license_doc_url) missing.push('רישיון רכב חסר');
-          if (!v.test_expiry) missing.push('תוקף טסט לא מעודכן');
-          else if (new Date(v.test_expiry) < today) missing.push('טסט פג תוקף');
-          if (!v.insurance_expiry) missing.push('ביטוח חובה חסר');
-          else if (new Date(v.insurance_expiry) < today) missing.push('ביטוח חובה פג תוקף');
-          if (!v.insurance_doc_url) missing.push('מסמך ביטוח חובה חסר');
-          if (showInsurance) {
-            if (!v.comprehensive_insurance_expiry) missing.push('ביטוח מקיף חסר');
-            else if (new Date(v.comprehensive_insurance_expiry) < today) missing.push('ביטוח מקיף פג תוקף');
-          }
-          return <InfoGapTracker entityType="vehicle" entityId={v.id} companyName={v.company_name || ''} gaps={missing} />;
-        })()}
-
-        <div className="grid grid-cols-2 gap-y-5 gap-x-4 text-lg">
-          <InfoField label="סוג רכב" value={v.vehicle_type || '—'} />
-          <InfoField label='ק"מ' value={`${(v.odometer || 0).toLocaleString()}`} />
-          <InfoField label="מספר פנימי" value={v.internal_number || '—'} />
-          <InfoField label="חברה" value={v.company_name || '—'} />
-          <InfoField label="נהג משויך" value={getDriverName(v.assigned_driver_id)} />
-          <InfoField label="סוג ניהול" value={
-            v.management_type === 'operational_leasing' ? 'ליסינג תפעולי' :
-            v.management_type === 'financial_leasing' ? 'ליסינג מימוני' :
-            v.management_type === 'self_maintained' ? 'תחזוקה עצמאית' : '—'
-          } />
-        </div>
-
-        {/* Management Type Details */}
-        {v.management_type === 'operational_leasing' && (
-          <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-            <h3 className="font-bold text-primary">🏢 ליסינג תפעולי</h3>
-            <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-              <InfoField label="עלות חודשית" value={v.monthly_leasing_cost ? `₪${v.monthly_leasing_cost.toLocaleString()}` : '—'} />
-              <InfoField label="מועד סיום ליסינג" value={v.leasing_end_date ? new Date(v.leasing_end_date).toLocaleDateString('he-IL') : '—'} />
-              <InfoField label="מועד החזרת הרכב" value={v.vehicle_return_date ? new Date(v.vehicle_return_date).toLocaleDateString('he-IL') : '—'} />
-            </div>
-          </div>
-        )}
-
-        {v.management_type === 'financial_leasing' && (
-          <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-            <h3 className="font-bold text-primary">💳 ליסינג מימוני</h3>
-            <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-              <InfoField label="החזר חודשי" value={v.monthly_loan_payment ? `₪${v.monthly_loan_payment.toLocaleString()}` : '—'} />
-              <InfoField label="תאריך סיום הלוואה" value={v.loan_end_date ? new Date(v.loan_end_date).toLocaleDateString('he-IL') : '—'} />
-              <InfoField label="מועד מתוכנן להחלפה" value={v.planned_replacement_date ? new Date(v.planned_replacement_date).toLocaleDateString('he-IL') : '—'} />
-            </div>
-          </div>
-        )}
-
-        {v.management_type === 'self_maintained' && (
-          <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-            <h3 className="font-bold text-primary">🔧 תחזוקה עצמאית</h3>
-            <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-              <InfoField label="הלוואה" value={v.has_loan ? 'כן' : 'אין'} />
-              {v.has_loan && (
-                <>
-                  <InfoField label="החזר חודשי" value={v.monthly_loan_payment ? `₪${v.monthly_loan_payment.toLocaleString()}` : '—'} />
-                  <InfoField label="תאריך סיום הלוואה" value={v.loan_end_date ? new Date(v.loan_end_date).toLocaleDateString('he-IL') : '—'} />
-                </>
-              )}
-              <InfoField label="מועד מתוכנן להחלפה" value={v.planned_replacement_date ? new Date(v.planned_replacement_date).toLocaleDateString('he-IL') : '—'} />
-            </div>
-          </div>
-        )}
-
-        {/* Driver quick actions */}
-        {driver && (
-          <div className="flex gap-2 mt-4">
-            {driver.phone && (
-              <a href={`tel:${driver.phone}`} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 text-primary font-medium text-sm">
-                <Phone size={16} /> {driver.phone}
-              </a>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Expiry Dates */}
-      <div className="card-elevated mb-4">
-        <h2 className="text-lg font-bold mb-4">תוקף מסמכים</h2>
-        <div className="space-y-3">
-          <ExpiryRow label="טסט" date={v.test_expiry} daysLeft={testDays} colorCls={expiryColor(testDays)} />
-          <ExpiryRow label="ביטוח חובה" date={v.insurance_expiry} daysLeft={insDays} colorCls={expiryColor(insDays)} />
-          <ExpiryRow label="ביטוח מקיף" date={v.comprehensive_insurance_expiry} daysLeft={compDays} colorCls={expiryColor(compDays)} />
-          {v.third_party_insurance_expiry && (() => {
-            const tpDays = daysUntil(v.third_party_insurance_expiry);
-            return <ExpiryRow label="ביטוח צד ג'" date={v.third_party_insurance_expiry} daysLeft={tpDays} colorCls={expiryColor(tpDays)} />;
-          })()}
-          {v.next_service_date && (() => {
-            const svcDays = daysUntil(v.next_service_date);
-            return <ExpiryRow label="טיפול הבא" date={v.next_service_date} daysLeft={svcDays} colorCls={expiryColor(svcDays)} />;
-          })()}
-        </div>
-        {(v.insurance_company || v.insurance_agent || v.next_service_km) && (
-          <div className="grid grid-cols-2 gap-y-3 gap-x-4 mt-4 pt-4 border-t border-border">
-            {v.insurance_company && <InfoField label="חברת ביטוח" value={v.insurance_company} />}
-            {v.insurance_agent && <InfoField label="סוכן ביטוח" value={v.insurance_agent} />}
-            {v.next_service_km && <InfoField label='ק"מ לטיפול הבא' value={v.next_service_km.toLocaleString()} />}
-          </div>
-        )}
-      </div>
-
-      {/* Insurance History */}
-      {showInsurance && insuranceHistory.length > 0 && (
-        <div className="card-elevated mb-4">
-          <h2 className="text-lg font-bold mb-4">📊 היסטוריית ביטוחים והדר תביעות</h2>
-          <div className="space-y-3">
-            {insuranceHistory.map((row, i) => (
-              <div key={i} className="border border-border rounded-xl p-3 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-lg">שנת {row.year}</span>
-                  <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${row.has_no_claims ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
-                    {row.has_no_claims ? '✅ הדר תביעות' : 'ללא הדר'}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <InfoField label="חברת ביטוח" value={row.insurer_name || '—'} />
-                  <InfoField label="ביטוח חובה" value={row.mandatory_insurance_cost ? `₪${row.mandatory_insurance_cost.toLocaleString()}` : '—'} />
-                  <InfoField label="ביטוח מקיף" value={row.comprehensive_insurance_cost ? `₪${row.comprehensive_insurance_cost.toLocaleString()}` : '—'} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Documents */}
-      <div className="card-elevated mb-4">
-        <h2 className="text-lg font-bold mb-4">מסמכים</h2>
-        <div className="space-y-2">
-          {v.license_doc_url && <DocLink label="רישיון רכב" url={v.license_doc_url} />}
-          {v.insurance_doc_url && <DocLink label="פוליסת ביטוח חובה" url={v.insurance_doc_url} />}
-          {v.comprehensive_insurance_doc_url && <DocLink label="פוליסת ביטוח מקיף" url={v.comprehensive_insurance_doc_url} />}
-          {v.third_party_insurance_doc_url && <DocLink label="פוליסת ביטוח צד ג'" url={v.third_party_insurance_doc_url} />}
-          {!v.license_doc_url && !v.insurance_doc_url && !v.comprehensive_insurance_doc_url && !v.third_party_insurance_doc_url && (
-            <p className="text-muted-foreground text-sm">אין מסמכים מצורפים</p>
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <button onClick={onBack} className="flex items-center gap-2 text-primary text-lg font-medium min-h-[48px]">
+          <ArrowRight size={20} /> חזרה לרשימה
+        </button>
+        <div className="flex items-center gap-2">
+          <span className={`status-badge ${sl.cls}`}>{sl.text}</span>
+          {isManager && (
+            <button onClick={() => onEdit(v)} className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors" title="עריכה">
+              <Edit2 size={18} />
+            </button>
           )}
         </div>
       </div>
 
-      {/* Vehicle Images */}
+      {/* Info-gap tracker (missing docs alerts) */}
       {(() => {
-        let imgs: string[] = [];
-        try { imgs = v.vehicle_images ? JSON.parse(v.vehicle_images) : []; } catch {}
-        if (!imgs.length) return null;
-        return (
-          <div className="card-elevated mb-4">
-            <h2 className="text-lg font-bold mb-4">📸 תמונות רכב / נזק</h2>
-            <div className="grid grid-cols-3 gap-2">
-              {imgs.map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                  <img src={url} alt={`רכב ${i+1}`} className="w-full h-24 object-cover rounded-lg border border-border" />
-                </a>
-              ))}
-            </div>
-          </div>
-        );
+        const today = new Date();
+        const missing: string[] = [];
+        if (!v.license_doc_url) missing.push('רישיון רכב חסר');
+        if (!v.test_expiry) missing.push('תוקף טסט לא מעודכן');
+        else if (new Date(v.test_expiry) < today) missing.push('טסט פג תוקף');
+        if (!v.insurance_expiry) missing.push('ביטוח חובה חסר');
+        else if (new Date(v.insurance_expiry) < today) missing.push('ביטוח חובה פג תוקף');
+        if (showInsurance) {
+          if (!v.comprehensive_insurance_expiry) missing.push('ביטוח מקיף חסר');
+          else if (new Date(v.comprehensive_insurance_expiry) < today) missing.push('ביטוח מקיף פג תוקף');
+        }
+        if (!missing.length) return null;
+        return <div className="mb-4"><InfoGapTracker entityType="vehicle" entityId={v.id} companyName={v.company_name || ''} gaps={missing} /></div>;
       })()}
 
-      {/* Transport */}
-      {v.needs_transport && (
-        <div className="card-elevated mb-4">
-          <div className="flex items-center gap-2 text-primary font-bold">
-            <Truck size={20} /> נדרש שינוע
-          </div>
-        </div>
-      )}
-
-      {/* Notes */}
-      {v.notes && (
-        <div className="card-elevated">
-          <h2 className="text-lg font-bold mb-2">הערות</h2>
-          <p className="text-muted-foreground">{v.notes}</p>
-        </div>
-      )}
-
-      {/* Extended 14-category card */}
+      {/* New unified vehicle card */}
       <VehicleCardCategories vehicle={v as any} />
-
-      {/* Vehicle File / History */}
-      <VehicleFilePanel vehicle={v as any} />
-
 
       {/* Archive / Delete */}
       {isManager && (
