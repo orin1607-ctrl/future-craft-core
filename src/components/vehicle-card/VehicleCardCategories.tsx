@@ -547,3 +547,148 @@ export default function VehicleCardCategories({ vehicle, onUpdated }: Props) {
     </div>
   );
 }
+
+// ===== Vehicle History Panel =====
+const EVENT_TYPES = [
+  { value: 'service', label: 'טיפול' },
+  { value: 'repair', label: 'תיקון' },
+  { value: 'fault', label: 'תקלה' },
+  { value: 'inspection', label: 'בדיקה / תסקיר' },
+  { value: 'ownership_transfer', label: 'העברת בעלות' },
+  { value: 'odometer', label: 'עדכון קילומטראז׳' },
+  { value: 'accident', label: 'תאונה' },
+  { value: 'insurance', label: 'ביטוח' },
+  { value: 'test', label: 'טסט' },
+  { value: 'note', label: 'הערה כללית' },
+];
+
+const EVENT_LABEL = (k: string) => EVENT_TYPES.find(e => e.value === k)?.label || k;
+
+function VehicleHistoryPanel({ vehicle }: { vehicle: VehicleAny }) {
+  const { user } = useAuth();
+  const [items, setItems] = useState<VehicleHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    event_type: 'service',
+    event_date: new Date().toISOString().slice(0, 16),
+    title: '',
+    description: '',
+    odometer: '',
+    cost: '',
+  });
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('vehicle_history')
+      .select('*')
+      .eq('vehicle_id', vehicle.id)
+      .order('event_date', { ascending: false });
+    setItems((data || []) as VehicleHistoryEntry[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { if (vehicle.id) load(); }, [vehicle.id]);
+
+  const addEvent = async () => {
+    if (!newEvent.title.trim()) { toast.error('יש להזין כותרת'); return; }
+    const { error } = await supabase.from('vehicle_history').insert({
+      vehicle_id: vehicle.id,
+      company_name: vehicle.company_name || '',
+      event_type: newEvent.event_type,
+      event_date: new Date(newEvent.event_date).toISOString(),
+      title: newEvent.title.trim(),
+      description: newEvent.description.trim(),
+      odometer: newEvent.odometer ? parseInt(newEvent.odometer) : null,
+      cost: newEvent.cost ? parseFloat(newEvent.cost) : null,
+      source: 'manual',
+      created_by: user?.id,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success('נוסף ✓');
+    setAdding(false);
+    setNewEvent({ event_type: 'service', event_date: new Date().toISOString().slice(0, 16), title: '', description: '', odometer: '', cost: '' });
+    load();
+  };
+
+  const removeEvent = async (id: string) => {
+    if (!confirm('למחוק את הרשומה?')) return;
+    const { error } = await supabase.from('vehicle_history').delete().eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    toast.success('נמחק');
+    load();
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2 flex-wrap">
+        <Button size="sm" onClick={() => setAdding(v => !v)}>
+          <Plus size={14} className="ml-1" /> הוסף רשומה
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => printVehicleReport(vehicle, items)}>
+          <FileDown size={14} className="ml-1" /> דו"ח מלא / PDF
+        </Button>
+      </div>
+
+      {adding && (
+        <div className="border border-border rounded-lg p-3 bg-muted/30 space-y-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <Field label="סוג אירוע">
+              <Select value={newEvent.event_type} onValueChange={(v) => setNewEvent(p => ({ ...p, event_type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {EVENT_TYPES.map(e => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="תאריך"><Input type="datetime-local" value={newEvent.event_date} onChange={(e) => setNewEvent(p => ({ ...p, event_date: e.target.value }))} /></Field>
+            <Field label='ק"מ'><Input type="number" value={newEvent.odometer} onChange={(e) => setNewEvent(p => ({ ...p, odometer: e.target.value }))} /></Field>
+            <Field label="כותרת"><Input value={newEvent.title} onChange={(e) => setNewEvent(p => ({ ...p, title: e.target.value }))} placeholder="לדוגמה: החלפת רפידות בלם" /></Field>
+            <Field label="עלות (₪)"><Input type="number" value={newEvent.cost} onChange={(e) => setNewEvent(p => ({ ...p, cost: e.target.value }))} /></Field>
+          </div>
+          <Field label="תיאור מלא"><Textarea rows={2} value={newEvent.description} onChange={(e) => setNewEvent(p => ({ ...p, description: e.target.value }))} placeholder="פרטים נוספים שיעניינו את בעל הרכב הבא..." /></Field>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={addEvent}>שמור</Button>
+            <Button size="sm" variant="outline" onClick={() => setAdding(false)}>ביטול</Button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-sm text-muted-foreground p-2">טוען...</div>
+      ) : items.length === 0 ? (
+        <div className="text-sm text-muted-foreground p-3 text-center border border-dashed border-border rounded-lg">
+          אין עדיין רשומות. כל טיפול / תיקון / הערה שתוסיף כאן יישמר לכרטיס הרכב ויופיע בדו"ח המלא לבעלים הבא.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map(h => (
+            <div key={h.id} className="border border-border rounded-lg p-3 bg-card">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{EVENT_LABEL(h.event_type)}</span>
+                    <span className="text-xs text-muted-foreground">{new Date(h.event_date).toLocaleString('he-IL')}</span>
+                    {h.source && h.source !== 'manual' && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{h.source === 'import' ? 'מיבוא' : h.source}</span>
+                    )}
+                  </div>
+                  <div className="font-semibold mt-1">{h.title}</div>
+                  {h.description && <div className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{h.description}</div>}
+                  <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                    {h.odometer != null && <span>ק"מ: {Number(h.odometer).toLocaleString('he-IL')}</span>}
+                    {h.cost != null && <span>עלות: ₪{Number(h.cost).toLocaleString('he-IL')}</span>}
+                  </div>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => removeEvent(h.id)} className="text-destructive">
+                  <Trash2 size={14} />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
