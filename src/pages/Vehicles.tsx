@@ -622,6 +622,8 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
   const [nextServiceDate, setNextServiceDate] = useState(vehicle?.next_service_date || '');
   const [needsTransport, setNeedsTransport] = useState(vehicle?.needs_transport || false);
   const [notes, setNotes] = useState(vehicle?.notes || '');
+  const [department, setDepartment] = useState((vehicle as any)?.department || '');
+  const [engineerReport, setEngineerReport] = useState((vehicle as any)?.inspections_certificates || '');
   const [loading, setLoading] = useState(false);
 
   // Management type
