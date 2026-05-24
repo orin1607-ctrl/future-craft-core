@@ -398,6 +398,13 @@ export default function Vehicles() {
           <Plus size={28} />
         </button>
       )}
+
+      <QuickCreateVehicleDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={handleCreated}
+        user={user}
+      />
     </div>
   );
 }
