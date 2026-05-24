@@ -192,9 +192,25 @@ export default function Vehicles() {
 
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
+  const [createOpen, setCreateOpen] = useState(false);
+
   const handleOpenForm = (vehicle?: VehicleRow) => {
-    setEditVehicle(vehicle || null);
-    setViewMode('form');
+    if (vehicle) {
+      // Editing → use the new sectioned card view (it has inline edit)
+      setSelectedVehicle(vehicle);
+      setViewMode('detail');
+      setSearchParams({ vehicleId: vehicle.id });
+      return;
+    }
+    // New vehicle → open the quick-create dialog, then jump to the sectioned card
+    setCreateOpen(true);
+  };
+
+  const handleCreated = async (newId: string) => {
+    setCreateOpen(false);
+    await loadData();
+    setSearchParams({ vehicleId: newId });
+    setViewMode('detail');
   };
 
   const handleViewDetail = (v: VehicleRow) => {
