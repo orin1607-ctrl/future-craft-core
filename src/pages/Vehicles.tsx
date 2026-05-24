@@ -815,6 +815,8 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
       insurance_company: insuranceCompany,
       insurance_agent: insuranceAgent,
       vehicle_images: JSON.stringify(vehicleImages),
+      department,
+      inspections_certificates: engineerReport,
     };
 
     let error;
