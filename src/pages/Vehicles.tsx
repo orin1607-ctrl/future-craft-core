@@ -1334,6 +1334,18 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
           </div>
         </div>
 
+        {/* Department */}
+        <div>
+          <label className="block text-lg font-medium mb-2">מחלקה / ענף</label>
+          <input type="text" value={department} onChange={e => setDepartment(e.target.value)} placeholder="לדוגמה: הנהלה, מכירות, שטח" className={inputClass} />
+        </div>
+
+        {/* Engineer report */}
+        <div>
+          <label className="block text-lg font-medium mb-2">תסקיר מהנדס</label>
+          <textarea value={engineerReport} onChange={e => setEngineerReport(e.target.value)} rows={2} placeholder="פרטי תסקיר מהנדס / ביקורת בטיחות..." className={`${inputClass} resize-none`} />
+        </div>
+
         {/* Notes */}
         <div>
           <label className="block text-lg font-medium mb-2">הערות</label>
