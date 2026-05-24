@@ -177,13 +177,72 @@ export default function VehicleImport() {
         odometer: 0,
       };
 
-      const { error } = await supabase.from('vehicles').insert(payload);
+      const { data: inserted, error } = await supabase.from('vehicles').insert(payload).select('id').single();
       if (error) {
         console.error('Import error for row', i + 2, row.license_plate, error);
         failed++;
         errors.push({ row: i + 2, license_plate: row.license_plate, reason: error.message || 'שגיאת הכנסה' });
       } else {
         success++;
+
+        // Build history entries from the imported note fields so the new
+        // owner / fleet manager can review the vehicle's past at a glance.
+        const events: any[] = [];
+        const baseDate = row.last_inspection_date || new Date().toISOString();
+        const common = {
+          vehicle_id: inserted!.id,
+          company_name: user?.company_name || '',
+          created_by: user?.id,
+          source: 'import',
+          event_date: baseDate,
+        };
+        events.push({
+          ...common,
+          event_type: 'import',
+          title: `יבוא רכב — ${row.license_plate}`,
+          description: `הרכב יובא למערכת מקובץ. מספר פנימי: ${row.internal_number || '—'}.`,
+          event_date: new Date().toISOString(),
+        });
+        if (row.last_inspection_date) {
+          events.push({
+            ...common,
+            event_type: 'inspection',
+            title: 'בדיקה / טיפול אחרון',
+            description: `בוצעה בדיקה / טיפול בתאריך ${row.last_inspection_date}.`,
+          });
+        }
+        if (row.engineer_report?.trim()) {
+          events.push({
+            ...common,
+            event_type: 'inspection',
+            title: 'תסקיר מהנדס',
+            description: row.engineer_report.trim(),
+          });
+        }
+        if (row.notes?.trim()) {
+          // Split notes by common separators so multi-entry notes become a timeline
+          const parts = row.notes.split(/\s*[|;]\s*|\n+/).map(s => s.trim()).filter(Boolean);
+          parts.forEach(p => {
+            const lower = p.toLowerCase();
+            let type = 'note';
+            if (/תיקון|repair/i.test(p)) type = 'repair';
+            else if (/תקלה|fault/i.test(p)) type = 'fault';
+            else if (/טיפול|service/i.test(p)) type = 'service';
+            else if (/בעלות|העברה|owner/i.test(p)) type = 'ownership_transfer';
+            else if (/תאונה|accident/i.test(p)) type = 'accident';
+            else if (/ק"מ|קילומטר|km/i.test(lower)) type = 'odometer';
+            events.push({
+              ...common,
+              event_type: type,
+              title: p.slice(0, 80),
+              description: p,
+            });
+          });
+        }
+
+        if (events.length > 0) {
+          await supabase.from('vehicle_history').insert(events);
+        }
       }
     }
 
