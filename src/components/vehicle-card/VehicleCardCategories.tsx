@@ -14,8 +14,9 @@ import {
 import {
   Car, FileText, Shield, Wrench, Settings, Folder, ClipboardCheck,
   AlertTriangle, Truck, Bell, History, Activity, LayoutGrid, Upload,
-  Power, Save, Plus, Link as LinkIcon,
+  Power, Save, Plus, Link as LinkIcon, FileDown, Trash2,
 } from 'lucide-react';
+import { printVehicleReport, type VehicleHistoryEntry } from '@/utils/printVehicleReport';
 
 type VehicleAny = Record<string, any>;
 
