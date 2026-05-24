@@ -192,9 +192,25 @@ export default function Vehicles() {
 
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
+  const [createOpen, setCreateOpen] = useState(false);
+
   const handleOpenForm = (vehicle?: VehicleRow) => {
-    setEditVehicle(vehicle || null);
-    setViewMode('form');
+    if (vehicle) {
+      // Editing → use the new sectioned card view (it has inline edit)
+      setSelectedVehicle(vehicle);
+      setViewMode('detail');
+      setSearchParams({ vehicleId: vehicle.id });
+      return;
+    }
+    // New vehicle → open the quick-create dialog, then jump to the sectioned card
+    setCreateOpen(true);
+  };
+
+  const handleCreated = async (newId: string) => {
+    setCreateOpen(false);
+    await loadData();
+    setSearchParams({ vehicleId: newId });
+    setViewMode('detail');
   };
 
   const handleViewDetail = (v: VehicleRow) => {
@@ -382,6 +398,13 @@ export default function Vehicles() {
           <Plus size={28} />
         </button>
       )}
+
+      <QuickCreateVehicleDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={handleCreated}
+        user={user}
+      />
     </div>
   );
 }
@@ -622,6 +645,8 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
   const [nextServiceDate, setNextServiceDate] = useState(vehicle?.next_service_date || '');
   const [needsTransport, setNeedsTransport] = useState(vehicle?.needs_transport || false);
   const [notes, setNotes] = useState(vehicle?.notes || '');
+  const [department, setDepartment] = useState((vehicle as any)?.department || '');
+  const [engineerReport, setEngineerReport] = useState((vehicle as any)?.inspections_certificates || '');
   const [loading, setLoading] = useState(false);
 
   // Management type
@@ -813,6 +838,8 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
       insurance_company: insuranceCompany,
       insurance_agent: insuranceAgent,
       vehicle_images: JSON.stringify(vehicleImages),
+      department,
+      inspections_certificates: engineerReport,
     };
 
     let error;
@@ -1330,6 +1357,18 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
           </div>
         </div>
 
+        {/* Department */}
+        <div>
+          <label className="block text-lg font-medium mb-2">מחלקה / ענף</label>
+          <input type="text" value={department} onChange={e => setDepartment(e.target.value)} placeholder="לדוגמה: הנהלה, מכירות, שטח" className={inputClass} />
+        </div>
+
+        {/* Engineer report */}
+        <div>
+          <label className="block text-lg font-medium mb-2">תסקיר מהנדס</label>
+          <textarea value={engineerReport} onChange={e => setEngineerReport(e.target.value)} rows={2} placeholder="פרטי תסקיר מהנדס / ביקורת בטיחות..." className={`${inputClass} resize-none`} />
+        </div>
+
         {/* Notes */}
         <div>
           <label className="block text-lg font-medium mb-2">הערות</label>
@@ -1428,4 +1467,105 @@ async function generateVehicleAlerts(plate: string, user: any, payload?: any) {
   } catch (e) {
     console.error('Alert generation error:', e);
   }
+}
+// === Quick Create Dialog — minimal entry, then jump to full sectioned card ===
+function QuickCreateVehicleDialog({ open, onClose, onCreated, user }: {
+  open: boolean;
+  onClose: () => void;
+  onCreated: (id: string) => void;
+  user: any;
+}) {
+  const [plate, setPlate] = useState('');
+  const [internalNumber, setInternalNumber] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [govLoading, setGovLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setPlate(''); setInternalNumber(''); }
+  }, [open]);
+
+  const lookupAndCreate = async () => {
+    if (!plate.trim()) { toast.error('יש להזין מספר רכב'); return; }
+    setSaving(true);
+    let prefill: any = {};
+    try {
+      setGovLoading(true);
+      const data = await fetchVehicleFromGov(plate);
+      setGovLoading(false);
+      if (data) {
+        prefill = {
+          manufacturer: data.tozeret_nm?.trim() || '',
+          model: (data.kinuy_mishari || data.degem_nm || '').trim(),
+          year: data.shnat_yitzur || null,
+          test_expiry: data.tokef_dt ? (new Date(data.tokef_dt).toISOString().split('T')[0]) : null,
+          engine_number: data.degem_manoa || '',
+          road_entry_date: data.moed_aliya_lakvish || null,
+        };
+      }
+    } catch { setGovLoading(false); }
+
+    const { data: settings } = await supabase
+      .from('company_settings')
+      .select('vehicle_approval_required')
+      .eq('company_name', user?.company_name || '')
+      .maybeSingle();
+    const approval_status = settings?.vehicle_approval_required ? 'pending_approval' : 'approved';
+
+    const { data: row, error } = await supabase.from('vehicles').insert({
+      license_plate: plate.trim(),
+      internal_number: internalNumber.trim() || null,
+      company_name: user?.company_name || '',
+      created_by: user?.id,
+      status: approval_status === 'pending_approval' ? 'out_of_service' : 'active',
+      approval_status,
+      management_type: 'operational_leasing',
+      odometer: 0,
+      ...prefill,
+    }).select('id').single();
+
+    setSaving(false);
+    if (error) { toast.error('שגיאה ביצירת רכב: ' + error.message); return; }
+    toast.success(approval_status === 'pending_approval' ? 'הרכב נוצר וממתין לאישור' : 'הרכב נוצר — השלם את הפרטים בכרטיס');
+    onCreated(row!.id);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="text-xl">רכב חדש</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          <p className="text-sm text-muted-foreground">
+            הזן מספר רכב כדי לפתוח כרטיס. כל יתר השדות — בעלות, ביטוחים, ציוד, טיפולים וכו׳ — ימולאו ישירות בכרטיס הרכב המלא.
+          </p>
+          <div>
+            <label className="block text-sm font-medium mb-1">מספר רכב *</label>
+            <input
+              autoFocus
+              value={plate}
+              onChange={e => setPlate(e.target.value)}
+              placeholder="123-45-678"
+              className="w-full p-3 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">מספר פנימי (לא חובה)</label>
+            <input
+              value={internalNumber}
+              onChange={e => setInternalNumber(e.target.value)}
+              placeholder="לדוגמה: 12"
+              className="w-full p-3 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={lookupAndCreate} disabled={saving || !plate.trim()} className="flex-1">
+              {saving ? (govLoading ? 'בודק במאגר משרד התחבורה...' : 'יוצר...') : 'צור ופתח כרטיס'}
+            </Button>
+            <Button variant="outline" onClick={onClose} disabled={saving}>ביטול</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

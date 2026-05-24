@@ -126,9 +126,10 @@ serve(async (req) => {
     const record = await fetchFromGov(plate);
 
     if (!record) {
+      // Return 200 with null so the client treats it as "no match" without throwing
       return new Response(
-        JSON.stringify({ error: "הרכב לא נמצא" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ data: null, raw: null, notFound: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

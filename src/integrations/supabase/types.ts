@@ -2662,6 +2662,51 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_history: {
+        Row: {
+          company_name: string
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          description: string
+          event_date: string
+          event_type: string
+          id: string
+          odometer: number | null
+          source: string | null
+          title: string
+          vehicle_id: string
+        }
+        Insert: {
+          company_name?: string
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          event_date?: string
+          event_type?: string
+          id?: string
+          odometer?: number | null
+          source?: string | null
+          title?: string
+          vehicle_id: string
+        }
+        Update: {
+          company_name?: string
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          event_date?: string
+          event_type?: string
+          id?: string
+          odometer?: number | null
+          source?: string | null
+          title?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
       vehicle_inspections: {
         Row: {
           company_name: string | null
