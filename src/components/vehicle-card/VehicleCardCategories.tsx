@@ -509,9 +509,9 @@ export default function VehicleCardCategories({ vehicle, onUpdated }: Props) {
           </Button>
         </Section>
 
-        {/* 11 - History (uses existing VehicleFilePanel mounted elsewhere) */}
+        {/* 11 - History */}
         <Section value="cat11" title="11. היסטוריה ומעקב" icon={History}>
-          <p className="text-sm text-muted-foreground">לתצוגת ההיסטוריה המלאה ראה "תיק רכב / היסטוריית רכב" שמתחת.</p>
+          <VehicleHistoryPanel vehicle={v} />
         </Section>
 
         {/* 12 - Vehicle tracking */}
