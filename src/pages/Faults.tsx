@@ -214,6 +214,7 @@ export default function Faults() {
   const getVehicleId = (f: FaultRow) => (f as any).vehicle_id || vehiclesByPlate[f.vehicle_plate]?.id || null;
 
   const filtered = faults.filter(f => {
+    if (vehicleFilterId && getVehicleId(f) !== vehicleFilterId) return false;
     const internal = getInternal(f);
     const matchSearch = !search || f.driver_name?.includes(search) || f.vehicle_plate?.includes(search) || (internal && internal === search.trim()) || f.fault_type?.includes(search) || f.description?.includes(search) || f.serial_id?.includes(search);
     const matchStatus = !filterStatus || f.status === filterStatus;
