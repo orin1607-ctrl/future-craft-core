@@ -108,6 +108,9 @@ export default function Alerts() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [alertFilter, setAlertFilter] = useState<AlertCategory | 'all'>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const vehicleFilterId = searchParams.get('vehicle');
+  const [vehicleFilterInfo, setVehicleFilterInfo] = useState<{ license_plate: string; internal_number: string } | null>(null);
 
   // Updates state
   const [logs, setLogs] = useState<LogEntry[]>([]);
