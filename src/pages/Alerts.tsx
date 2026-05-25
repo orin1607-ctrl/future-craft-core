@@ -264,6 +264,7 @@ export default function Alerts() {
           date: so.created_at ? new Date(so.created_at).toISOString().split('T')[0] : null,
           meta: `${so.service_category || ''} ${so.description ? '- ' + so.description : ''}`.trim() || undefined,
           link: '/service-orders',
+          vehicleId: v?.id || null,
         });
       }
     }
