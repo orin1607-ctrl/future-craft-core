@@ -366,6 +366,31 @@ export default function Alerts() {
       }
     }
 
+    // 6. Custom (manual) alerts created by the user
+    const { data: customAlerts } = await applyCompanyScope(
+      supabase.from('custom_alerts').select('*').eq('is_active', true),
+      companyFilter
+    );
+    if (customAlerts) {
+      for (const c of customAlerts as any[]) {
+        const triggerDate = c.next_trigger_at || c.alert_date;
+        const dd = getDaysLeft(triggerDate);
+        if (dd === null || dd > 30) continue;
+        allAlerts.push({
+          id: `custom-${c.id}`,
+          category: 'custom',
+          severity: getSeverity(dd),
+          title: c.title || 'התראה מותאמת',
+          subtitle: c.alert_type ? `סוג: ${c.alert_type}` : '',
+          daysLeft: dd,
+          date: triggerDate,
+          meta: c.description || undefined,
+          link: '/alert-settings',
+        });
+      }
+    }
+
+
     allAlerts.sort((a, b) => {
       const severityOrder: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
       const diff = severityOrder[a.severity] - severityOrder[b.severity];
