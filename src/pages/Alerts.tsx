@@ -136,6 +136,7 @@ export default function Alerts() {
 
   // Alerts state
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [reminders, setReminders] = useState<AlertItem[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [alertFilter, setAlertFilter] = useState<AlertCategory | 'all'>('all');
   const [searchParams, setSearchParams] = useSearchParams();
