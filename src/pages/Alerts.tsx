@@ -219,16 +219,17 @@ export default function Alerts() {
           allAlerts.push({ id: `svc-${v.id}`, category: 'service_due', severity: getSeverity(svcDays), title: (svcDays as number) <= 0 ? 'הגיע מועד טיפול תקופתי!' : 'מועד טיפול תקופתי מתקרב', subtitle: label, daysLeft: svcDays, date: v.next_service_date, link: vehicleLink, vehicleId: v.id });
         }
 
-        // Inspection certificates (JSONB { "<type>": { expiry: 'YYYY-MM-DD', ... } } or array)
+        // Inspection certificates (JSONB { "<type>": { expiry, ... } } legacy shape)
         const insp = v.inspections_certificates;
-        if (insp && typeof insp === 'object') {
-          const entries = Array.isArray(insp) ? insp : Object.entries(insp).map(([k, val]: [string, any]) => ({ type: k, ...(val || {}) }));
-          for (const e of entries as any[]) {
+        if (insp && typeof insp === 'object' && !Array.isArray(insp)) {
+          for (const [k, val] of Object.entries(insp)) {
+            if (!val || typeof val !== 'object') continue;
+            const e: any = val;
             const expiry = e?.expiry || e?.next_date || e?.valid_until;
             if (!expiry) continue;
             const dd = getDaysLeft(expiry);
             if (!withinWindow(dd)) continue;
-            allAlerts.push({ id: `insp-${v.id}-${e.type || Math.random()}`, category: 'inspection_due', severity: getSeverity(dd), title: (dd as number) <= 0 ? `תסקיר ${e.type || ''} פג!` : `תסקיר ${e.type || ''} עומד לפוג`, subtitle: label, daysLeft: dd, date: expiry, link: vehicleLink, vehicleId: v.id });
+            allAlerts.push({ id: `insp-${v.id}-${k}`, category: 'inspection_due', severity: getSeverity(dd), title: (dd as number) <= 0 ? `תסקיר ${k} פג!` : `תסקיר ${k} עומד לפוג`, subtitle: label, daysLeft: dd, date: expiry, link: vehicleLink, vehicleId: v.id });
           }
         }
 
