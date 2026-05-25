@@ -238,6 +238,7 @@ export default function Alerts() {
           date: vt.created_at?.split('T')[0] || null,
           meta: vt.description || undefined,
           link,
+          vehicleId: v?.id || null,
         });
       }
     }
