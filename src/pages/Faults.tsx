@@ -448,8 +448,18 @@ export default function Faults() {
         </div>
       </div>
 
+      {vehicleFilterId && vehiclesMap[vehicleFilterId] && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-primary/40 bg-primary/5 px-4 py-3">
+          <span className="text-base font-medium">מסונן לרכב <span className="font-bold">{vehiclesMap[vehicleFilterId].license_plate}</span>{vehiclesMap[vehicleFilterId].internal_number ? ` | מס' פנימי ${vehiclesMap[vehicleFilterId].internal_number}` : ''}</span>
+          <button onClick={() => { searchParams.delete('vehicle'); setSearchParams(searchParams); }} className="flex items-center gap-1 text-sm text-primary hover:underline">
+            <X size={16} /> נקה סינון
+          </button>
+        </div>
+      )}
+
       {/* Status Counters */}
       <StatusCounters faults={faults} onFilter={setQuickFilter} activeFilter={quickFilter} />
+
 
       {/* Search */}
       <div className="relative">
