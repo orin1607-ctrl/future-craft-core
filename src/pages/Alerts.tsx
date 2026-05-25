@@ -79,9 +79,25 @@ function getDaysLeft(dateStr: string | null): number | null {
 
 function getSeverity(daysLeft: number | null): AlertSeverity {
   if (daysLeft === null) return 'info';
-  if (daysLeft <= 0) return 'critical';
-  if (daysLeft <= 14) return 'warning';
+  if (daysLeft <= 1) return 'critical';
+  if (daysLeft <= 7) return 'warning';
   return 'info';
+}
+
+// Returns true only when the alert should appear — at exactly 30/7/1 days
+// or any time past expiry. Within the 30-day window we show all values
+// (matches user expectation of "active alert from 30 days before").
+function withinWindow(d: number | null): boolean {
+  return d !== null && d <= 30;
+}
+
+function milestoneLabel(d: number | null): string | null {
+  if (d === null) return null;
+  if (d <= 0) return 'פג תוקף';
+  if (d <= 1) return 'יום אחרון';
+  if (d <= 7) return 'שבוע אחרון';
+  if (d <= 30) return 'חודש לפני';
+  return null;
 }
 
 // ─── Updates (System Logs) Types ───
