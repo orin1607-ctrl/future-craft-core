@@ -752,9 +752,11 @@ function VehicleHistoryPanel({ vehicle }: { vehicle: VehicleAny }) {
                     {h.cost != null && <span>עלות: ₪{Number(h.cost).toLocaleString('he-IL')}</span>}
                   </div>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => removeEvent(h.id)} className="text-destructive">
-                  <Trash2 size={14} />
-                </Button>
+                {/^[0-9a-f-]{36}$/i.test(h.id) && (
+                  <Button size="sm" variant="ghost" onClick={() => removeEvent(h.id)} className="text-destructive">
+                    <Trash2 size={14} />
+                  </Button>
+                )}
               </div>
             </div>
           ))}
