@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Wrench, Search, AlertTriangle, Plus, ArrowRight, Edit2, Lock, Download, Car, User, Calendar, Hash, FileText, MessageSquare, Truck, ExternalLink, Activity, ChevronLeft, Filter } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Wrench, Search, AlertTriangle, Plus, ArrowRight, Edit2, Lock, Download, Car, User, Calendar, Hash, FileText, MessageSquare, Truck, ExternalLink, Activity, ChevronLeft, Filter, X } from 'lucide-react';
 import { exportToCsv } from '@/utils/exportCsv';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
