@@ -2909,6 +2909,7 @@ export type Database = {
           is_pledged: boolean | null
           kva: number | null
           last_service_date: string | null
+          last_test_date: string | null
           leasing_end_date: string | null
           license_doc_url: string | null
           license_plate: string
@@ -2941,6 +2942,7 @@ export type Database = {
           service_type: string | null
           status: string | null
           test_expiry: string | null
+          test_status: string | null
           third_party_insurance_doc_url: string | null
           third_party_insurance_expiry: string | null
           updated_at: string | null
@@ -2998,6 +3000,7 @@ export type Database = {
           is_pledged?: boolean | null
           kva?: number | null
           last_service_date?: string | null
+          last_test_date?: string | null
           leasing_end_date?: string | null
           license_doc_url?: string | null
           license_plate: string
@@ -3030,6 +3033,7 @@ export type Database = {
           service_type?: string | null
           status?: string | null
           test_expiry?: string | null
+          test_status?: string | null
           third_party_insurance_doc_url?: string | null
           third_party_insurance_expiry?: string | null
           updated_at?: string | null
@@ -3087,6 +3091,7 @@ export type Database = {
           is_pledged?: boolean | null
           kva?: number | null
           last_service_date?: string | null
+          last_test_date?: string | null
           leasing_end_date?: string | null
           license_doc_url?: string | null
           license_plate?: string
@@ -3119,6 +3124,7 @@ export type Database = {
           service_type?: string | null
           status?: string | null
           test_expiry?: string | null
+          test_status?: string | null
           third_party_insurance_doc_url?: string | null
           third_party_insurance_expiry?: string | null
           updated_at?: string | null

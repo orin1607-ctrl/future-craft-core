@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Wrench, Search, AlertTriangle, Plus, ArrowRight, Edit2, Lock, Download, Car, User, Calendar, Hash, FileText, MessageSquare, Truck, ExternalLink, Activity, ChevronLeft, Filter } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Wrench, Search, AlertTriangle, Plus, ArrowRight, Edit2, Lock, Download, Car, User, Calendar, Hash, FileText, MessageSquare, Truck, ExternalLink, Activity, ChevronLeft, Filter, X } from 'lucide-react';
 import { exportToCsv } from '@/utils/exportCsv';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -170,8 +171,9 @@ function StatusCounters({ faults, onFilter, activeFilter }: { faults: FaultRow[]
 export default function Faults() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [faults, setFaults] = useState<FaultRow[]>([]);
-  const [vehiclesMap, setVehiclesMap] = useState<Record<string, { id: string; internal_number: string }>>({});
+  const [vehiclesMap, setVehiclesMap] = useState<Record<string, { id: string; internal_number: string; license_plate?: string }>>({});
   const [vehiclesByPlate, setVehiclesByPlate] = useState<Record<string, { id: string; internal_number: string }>>({});
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -182,6 +184,7 @@ export default function Faults() {
   const [editFault, setEditFault] = useState<FaultRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const vehicleFilterId = searchParams.get('vehicle');
 
   const loadFaults = async () => {
     setLoading(true);
@@ -191,10 +194,10 @@ export default function Faults() {
     ]);
     if (fRes.data) setFaults(fRes.data as FaultRow[]);
     if (vRes.data) {
-      const byId: Record<string, { id: string; internal_number: string }> = {};
+      const byId: Record<string, { id: string; internal_number: string; license_plate?: string }> = {};
       const byPlate: Record<string, { id: string; internal_number: string }> = {};
       (vRes.data as any[]).forEach(v => {
-        byId[v.id] = { id: v.id, internal_number: v.internal_number || '' };
+        byId[v.id] = { id: v.id, internal_number: v.internal_number || '', license_plate: v.license_plate || '' };
         if (v.license_plate) byPlate[v.license_plate] = { id: v.id, internal_number: v.internal_number || '' };
       });
       setVehiclesMap(byId);
@@ -211,6 +214,7 @@ export default function Faults() {
   const getVehicleId = (f: FaultRow) => (f as any).vehicle_id || vehiclesByPlate[f.vehicle_plate]?.id || null;
 
   const filtered = faults.filter(f => {
+    if (vehicleFilterId && getVehicleId(f) !== vehicleFilterId) return false;
     const internal = getInternal(f);
     const matchSearch = !search || f.driver_name?.includes(search) || f.vehicle_plate?.includes(search) || (internal && internal === search.trim()) || f.fault_type?.includes(search) || f.description?.includes(search) || f.serial_id?.includes(search);
     const matchStatus = !filterStatus || f.status === filterStatus;
@@ -444,8 +448,18 @@ export default function Faults() {
         </div>
       </div>
 
+      {vehicleFilterId && vehiclesMap[vehicleFilterId] && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-primary/40 bg-primary/5 px-4 py-3">
+          <span className="text-base font-medium">מסונן לרכב <span className="font-bold">{vehiclesMap[vehicleFilterId].license_plate}</span>{vehiclesMap[vehicleFilterId].internal_number ? ` | מס' פנימי ${vehiclesMap[vehicleFilterId].internal_number}` : ''}</span>
+          <button onClick={() => { searchParams.delete('vehicle'); setSearchParams(searchParams); }} className="flex items-center gap-1 text-sm text-primary hover:underline">
+            <X size={16} /> נקה סינון
+          </button>
+        </div>
+      )}
+
       {/* Status Counters */}
       <StatusCounters faults={faults} onFilter={setQuickFilter} activeFilter={quickFilter} />
+
 
       {/* Search */}
       <div className="relative">

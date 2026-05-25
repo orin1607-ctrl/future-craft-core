@@ -1479,30 +1479,50 @@ function QuickCreateVehicleDialog({ open, onClose, onCreated, user }: {
   const [internalNumber, setInternalNumber] = useState('');
   const [saving, setSaving] = useState(false);
   const [govLoading, setGovLoading] = useState(false);
+  const [govData, setGovData] = useState<GovVehicleData | null>(null);
+  const [govChecked, setGovChecked] = useState(false);
 
   useEffect(() => {
-    if (!open) { setPlate(''); setInternalNumber(''); }
+    if (!open) {
+      setPlate(''); setInternalNumber('');
+      setGovData(null); setGovChecked(false);
+    }
   }, [open]);
 
-  const lookupAndCreate = async () => {
+  const handleGovLookup = async () => {
+    if (!plate.trim()) { toast.error('יש להזין מספר רכב'); return; }
+    setGovLoading(true);
+    setGovChecked(false);
+    try {
+      const data = await fetchVehicleFromGov(plate);
+      setGovData(data);
+      setGovChecked(true);
+      if (data) {
+        toast.success('נמצאו נתונים במשרד התחבורה');
+      } else {
+        toast.info('לא נמצאו נתונים — ניתן ליצור רכב ידנית');
+      }
+    } catch {
+      toast.error('שגיאה בחיבור למשרד התחבורה');
+    } finally {
+      setGovLoading(false);
+    }
+  };
+
+  const createVehicle = async () => {
     if (!plate.trim()) { toast.error('יש להזין מספר רכב'); return; }
     setSaving(true);
     let prefill: any = {};
-    try {
-      setGovLoading(true);
-      const data = await fetchVehicleFromGov(plate);
-      setGovLoading(false);
-      if (data) {
-        prefill = {
-          manufacturer: data.tozeret_nm?.trim() || '',
-          model: (data.kinuy_mishari || data.degem_nm || '').trim(),
-          year: data.shnat_yitzur || null,
-          test_expiry: data.tokef_dt ? (new Date(data.tokef_dt).toISOString().split('T')[0]) : null,
-          engine_number: data.degem_manoa || '',
-          road_entry_date: data.moed_aliya_lakvish || null,
-        };
-      }
-    } catch { setGovLoading(false); }
+    if (govData) {
+      prefill = {
+        manufacturer: govData.tozeret_nm?.trim() || '',
+        model: (govData.kinuy_mishari || govData.degem_nm || '').trim(),
+        year: govData.shnat_yitzur || null,
+        test_expiry: govData.tokef_dt ? (new Date(govData.tokef_dt).toISOString().split('T')[0]) : null,
+        engine_number: govData.degem_manoa || '',
+        road_entry_date: govData.moed_aliya_lakvish || null,
+      };
+    }
 
     const { data: settings } = await supabase
       .from('company_settings')
@@ -1537,14 +1557,14 @@ function QuickCreateVehicleDialog({ open, onClose, onCreated, user }: {
         </DialogHeader>
         <div className="space-y-4 mt-2">
           <p className="text-sm text-muted-foreground">
-            הזן מספר רכב כדי לפתוח כרטיס. כל יתר השדות — בעלות, ביטוחים, ציוד, טיפולים וכו׳ — ימולאו ישירות בכרטיס הרכב המלא.
+            הזן מספר רכב כדי לפתוח כרטיס. ניתן למשוך נתונים אוטומטית ממשרד התחבורה, ויתר השדות (ביטוחים, ציוד, טיפולים וכו׳) יושלמו בכרטיס הרכב המלא.
           </p>
           <div>
             <label className="block text-sm font-medium mb-1">מספר רכב *</label>
             <input
               autoFocus
               value={plate}
-              onChange={e => setPlate(e.target.value)}
+              onChange={e => { setPlate(e.target.value); setGovData(null); setGovChecked(false); }}
               placeholder="123-45-678"
               className="w-full p-3 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none"
             />
@@ -1558,9 +1578,42 @@ function QuickCreateVehicleDialog({ open, onClose, onCreated, user }: {
               className="w-full p-3 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none"
             />
           </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGovLookup}
+            disabled={govLoading || saving || !plate.trim()}
+            className="w-full"
+          >
+            {govLoading ? (
+              <><Loader2 className="w-4 h-4 ml-2 animate-spin" /> בודק במאגר משרד התחבורה...</>
+            ) : (
+              <>🔎 משוך נתונים ממשרד התחבורה</>
+            )}
+          </Button>
+
+          {govChecked && govData && (
+            <div className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm space-y-1">
+              <div className="font-semibold text-primary mb-1">נתונים שיועברו לכרטיס:</div>
+              {govData.tozeret_nm && <div>יצרן: <span className="font-medium">{govData.tozeret_nm}</span></div>}
+              {(govData.kinuy_mishari || govData.degem_nm) && <div>דגם: <span className="font-medium">{govData.kinuy_mishari || govData.degem_nm}</span></div>}
+              {govData.shnat_yitzur && <div>שנת ייצור: <span className="font-medium">{govData.shnat_yitzur}</span></div>}
+              {govData.tzeva_rechev && <div>צבע: <span className="font-medium">{govData.tzeva_rechev}</span></div>}
+              {govData.sug_delek_nm && <div>סוג דלק: <span className="font-medium">{govData.sug_delek_nm}</span></div>}
+              {govData.tokef_dt && <div>תוקף רישוי: <span className="font-medium">{new Date(govData.tokef_dt).toLocaleDateString('he-IL')}</span></div>}
+              {govData.degem_manoa && <div>דגם מנוע: <span className="font-medium">{govData.degem_manoa}</span></div>}
+            </div>
+          )}
+          {govChecked && !govData && (
+            <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+              לא נמצאו נתונים במאגר. ניתן להמשיך וליצור את הרכב ידנית.
+            </div>
+          )}
+
           <div className="flex gap-2 pt-2">
-            <Button onClick={lookupAndCreate} disabled={saving || !plate.trim()} className="flex-1">
-              {saving ? (govLoading ? 'בודק במאגר משרד התחבורה...' : 'יוצר...') : 'צור ופתח כרטיס'}
+            <Button onClick={createVehicle} disabled={saving || !plate.trim()} className="flex-1">
+              {saving ? 'יוצר...' : (govData ? 'אשר ופתח כרטיס' : 'צור ופתח כרטיס')}
             </Button>
             <Button variant="outline" onClick={onClose} disabled={saving}>ביטול</Button>
           </div>
