@@ -17,6 +17,7 @@ import {
   Power, Save, Plus, Link as LinkIcon, FileDown, Trash2,
 } from 'lucide-react';
 import { printVehicleReport, type VehicleHistoryEntry } from '@/utils/printVehicleReport';
+import VehicleDocumentsPanel from './VehicleDocumentsPanel';
 
 type VehicleAny = Record<string, any>;
 
