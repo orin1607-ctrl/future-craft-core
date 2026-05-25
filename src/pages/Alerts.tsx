@@ -3,14 +3,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
-import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, X } from 'lucide-react';
+import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, X, Banknote, Receipt, FileCheck2, Package, Bell as BellIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 
 // ─── Alerts Types ───
 type AlertSeverity = 'critical' | 'warning' | 'info';
-type AlertCategory = 'test' | 'insurance' | 'comprehensive_insurance' | 'license' | 'fault' | 'service_order' | 'work_assignment';
+type AlertCategory = 'test' | 'insurance' | 'comprehensive_insurance' | 'third_party_insurance' | 'license' | 'fault' | 'service_order' | 'work_assignment' | 'leasing' | 'loan' | 'service_due' | 'inspection_due' | 'equipment' | 'custom';
 
 interface AlertItem {
   id: string;
@@ -29,20 +29,34 @@ const categoryLabels: Record<AlertCategory, string> = {
   test: 'טסט',
   insurance: 'ביטוח חובה',
   comprehensive_insurance: 'ביטוח מקיף',
+  third_party_insurance: 'ביטוח צד ג׳',
   license: 'רישיון נהיגה',
   fault: 'תקלה דחופה',
   service_order: 'שירותים ותחזוקה',
   work_assignment: 'סידור עבודה',
+  leasing: 'ליסינג',
+  loan: 'הלוואה',
+  service_due: 'טיפול תקופתי',
+  inspection_due: 'תסקיר',
+  equipment: 'ציוד',
+  custom: 'התראה מותאמת',
 };
 
 const categoryIcons: Record<AlertCategory, typeof Car> = {
   test: Car,
   insurance: ShieldAlert,
   comprehensive_insurance: ShieldAlert,
+  third_party_insurance: ShieldAlert,
   license: IdCard,
   fault: Wrench,
   service_order: Briefcase,
   work_assignment: ClipboardList,
+  leasing: Banknote,
+  loan: Receipt,
+  service_due: Wrench,
+  inspection_due: FileCheck2,
+  equipment: Package,
+  custom: BellIcon,
 };
 
 const severityStyles: Record<AlertSeverity, string> = {
@@ -65,9 +79,25 @@ function getDaysLeft(dateStr: string | null): number | null {
 
 function getSeverity(daysLeft: number | null): AlertSeverity {
   if (daysLeft === null) return 'info';
-  if (daysLeft <= 0) return 'critical';
-  if (daysLeft <= 14) return 'warning';
+  if (daysLeft <= 1) return 'critical';
+  if (daysLeft <= 7) return 'warning';
   return 'info';
+}
+
+// Returns true only when the alert should appear — at exactly 30/7/1 days
+// or any time past expiry. Within the 30-day window we show all values
+// (matches user expectation of "active alert from 30 days before").
+function withinWindow(d: number | null): boolean {
+  return d !== null && d <= 30;
+}
+
+function milestoneLabel(d: number | null): string | null {
+  if (d === null) return null;
+  if (d <= 0) return 'פג תוקף';
+  if (d <= 1) return 'יום אחרון';
+  if (d <= 7) return 'שבוע אחרון';
+  if (d <= 30) return 'חודש לפני';
+  return null;
 }
 
 // ─── Updates (System Logs) Types ───
@@ -164,8 +194,53 @@ export default function Alerts() {
         }
 
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
-        if (compDays !== null && compDays <= 30) {
-          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: vehicleLink, vehicleId: v.id });
+        if (withinWindow(compDays)) {
+          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: (compDays as number) <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: vehicleLink, vehicleId: v.id });
+        }
+
+        const tpDays = getDaysLeft(v.third_party_insurance_expiry);
+        if (withinWindow(tpDays)) {
+          allAlerts.push({ id: `tp-${v.id}`, category: 'third_party_insurance', severity: getSeverity(tpDays), title: (tpDays as number) <= 0 ? 'ביטוח צד ג׳ פג!' : 'ביטוח צד ג׳ עומד לפוג', subtitle: label, daysLeft: tpDays, date: v.third_party_insurance_expiry, link: vehicleLink, vehicleId: v.id });
+        }
+
+        const leaseDays = getDaysLeft(v.leasing_end_date);
+        if (withinWindow(leaseDays)) {
+          allAlerts.push({ id: `lease-${v.id}`, category: 'leasing', severity: getSeverity(leaseDays), title: (leaseDays as number) <= 0 ? 'ליסינג הסתיים!' : 'סיום הסכם ליסינג קרב', subtitle: label, daysLeft: leaseDays, date: v.leasing_end_date, link: vehicleLink, vehicleId: v.id });
+        }
+
+        const loanDays = getDaysLeft(v.loan_end_date);
+        if (withinWindow(loanDays)) {
+          allAlerts.push({ id: `loan-${v.id}`, category: 'loan', severity: getSeverity(loanDays), title: (loanDays as number) <= 0 ? 'הלוואה הסתיימה!' : 'סיום הלוואה קרב', subtitle: label, daysLeft: loanDays, date: v.loan_end_date, link: vehicleLink, vehicleId: v.id });
+        }
+
+        const svcDays = getDaysLeft(v.next_service_date);
+        if (withinWindow(svcDays)) {
+          allAlerts.push({ id: `svc-${v.id}`, category: 'service_due', severity: getSeverity(svcDays), title: (svcDays as number) <= 0 ? 'הגיע מועד טיפול תקופתי!' : 'מועד טיפול תקופתי מתקרב', subtitle: label, daysLeft: svcDays, date: v.next_service_date, link: vehicleLink, vehicleId: v.id });
+        }
+
+        // Inspection certificates (JSONB { "<type>": { expiry: 'YYYY-MM-DD', ... } } or array)
+        const insp = v.inspections_certificates;
+        if (insp && typeof insp === 'object') {
+          const entries = Array.isArray(insp) ? insp : Object.entries(insp).map(([k, val]: [string, any]) => ({ type: k, ...(val || {}) }));
+          for (const e of entries as any[]) {
+            const expiry = e?.expiry || e?.next_date || e?.valid_until;
+            if (!expiry) continue;
+            const dd = getDaysLeft(expiry);
+            if (!withinWindow(dd)) continue;
+            allAlerts.push({ id: `insp-${v.id}-${e.type || Math.random()}`, category: 'inspection_due', severity: getSeverity(dd), title: (dd as number) <= 0 ? `תסקיר ${e.type || ''} פג!` : `תסקיר ${e.type || ''} עומד לפוג`, subtitle: label, daysLeft: dd, date: expiry, link: vehicleLink, vehicleId: v.id });
+          }
+        }
+
+        // Equipment expiry (best-effort from text field with "תוקף:" or date pattern)
+        const eqText: string | null = v.equipment_details || null;
+        if (eqText) {
+          const m = eqText.match(/(\d{4}-\d{2}-\d{2})/);
+          if (m) {
+            const dd = getDaysLeft(m[1]);
+            if (withinWindow(dd)) {
+              allAlerts.push({ id: `eq-${v.id}`, category: 'equipment', severity: getSeverity(dd), title: (dd as number) <= 0 ? 'תוקף ציוד פג!' : 'תוקף ציוד עומד לפוג', subtitle: `${label} • ${v.equipment_type || ''}`, daysLeft: dd, date: m[1], meta: eqText, link: vehicleLink, vehicleId: v.id });
+            }
+          }
         }
       }
     }
@@ -291,6 +366,31 @@ export default function Alerts() {
       }
     }
 
+    // 6. Custom (manual) alerts created by the user
+    const { data: customAlerts } = await applyCompanyScope(
+      supabase.from('custom_alerts').select('*').eq('is_active', true),
+      companyFilter
+    );
+    if (customAlerts) {
+      for (const c of customAlerts as any[]) {
+        const triggerDate = c.next_trigger_at || c.alert_date;
+        const dd = getDaysLeft(triggerDate);
+        if (dd === null || dd > 30) continue;
+        allAlerts.push({
+          id: `custom-${c.id}`,
+          category: 'custom',
+          severity: getSeverity(dd),
+          title: c.title || 'התראה מותאמת',
+          subtitle: c.alert_type ? `סוג: ${c.alert_type}` : '',
+          daysLeft: dd,
+          date: triggerDate,
+          meta: c.description || undefined,
+          link: '/alert-settings',
+        });
+      }
+    }
+
+
     allAlerts.sort((a, b) => {
       const severityOrder: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
       const diff = severityOrder[a.severity] - severityOrder[b.severity];
@@ -316,7 +416,7 @@ export default function Alerts() {
     critical: alerts.filter(a => a.severity === 'critical').length,
     warning: alerts.filter(a => a.severity === 'warning').length,
   };
-  const categories: (AlertCategory | 'all')[] = ['all', 'test', 'insurance', 'comprehensive_insurance', 'license', 'fault', 'service_order', 'work_assignment'];
+  const categories: (AlertCategory | 'all')[] = ['all', 'test', 'insurance', 'comprehensive_insurance', 'third_party_insurance', 'license', 'fault', 'service_order', 'work_assignment', 'leasing', 'loan', 'service_due', 'inspection_due', 'equipment', 'custom'];
 
   const filteredLogs = logs.filter(l => {
     if (logSearch && !l.user_name.includes(logSearch) && !l.details.includes(logSearch) && !l.vehicle_plate.includes(logSearch) && !l.entity_id.includes(logSearch)) return false;
@@ -331,6 +431,12 @@ export default function Alerts() {
       <h1 className="page-header flex items-center gap-3 !mb-0">
         <Bell size={28} />
         התראות ועדכונים
+        <button
+          onClick={() => navigate('/alert-settings')}
+          className="mr-auto text-sm font-medium bg-primary text-primary-foreground rounded-xl px-3 py-1.5 hover:opacity-90"
+        >
+          + התראה חדשה
+        </button>
       </h1>
 
       <Tabs defaultValue="alerts" dir="rtl">
@@ -423,6 +529,11 @@ export default function Alerts() {
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${severityBadge[alert.severity]}`}>
                             {categoryLabels[alert.category]}
                           </span>
+                          {milestoneLabel(alert.daysLeft) && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-background/60 border border-current">
+                              {milestoneLabel(alert.daysLeft)}
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm opacity-80 font-medium">{alert.subtitle}</p>
                         {alert.meta && <p className="text-sm opacity-60 mt-1 line-clamp-2">{alert.meta}</p>}
