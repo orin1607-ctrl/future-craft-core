@@ -2861,6 +2861,7 @@ export type Database = {
           is_pledged: boolean | null
           kva: number | null
           last_service_date: string | null
+          last_test_date: string | null
           leasing_end_date: string | null
           license_doc_url: string | null
           license_plate: string
@@ -2950,6 +2951,7 @@ export type Database = {
           is_pledged?: boolean | null
           kva?: number | null
           last_service_date?: string | null
+          last_test_date?: string | null
           leasing_end_date?: string | null
           license_doc_url?: string | null
           license_plate: string
@@ -3039,6 +3041,7 @@ export type Database = {
           is_pledged?: boolean | null
           kva?: number | null
           last_service_date?: string | null
+          last_test_date?: string | null
           leasing_end_date?: string | null
           license_doc_url?: string | null
           license_plate?: string
