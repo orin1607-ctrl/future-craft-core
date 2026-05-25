@@ -171,8 +171,9 @@ function StatusCounters({ faults, onFilter, activeFilter }: { faults: FaultRow[]
 export default function Faults() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [faults, setFaults] = useState<FaultRow[]>([]);
-  const [vehiclesMap, setVehiclesMap] = useState<Record<string, { id: string; internal_number: string }>>({});
+  const [vehiclesMap, setVehiclesMap] = useState<Record<string, { id: string; internal_number: string; license_plate?: string }>>({});
   const [vehiclesByPlate, setVehiclesByPlate] = useState<Record<string, { id: string; internal_number: string }>>({});
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -183,6 +184,7 @@ export default function Faults() {
   const [editFault, setEditFault] = useState<FaultRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const vehicleFilterId = searchParams.get('vehicle');
 
   const loadFaults = async () => {
     setLoading(true);
