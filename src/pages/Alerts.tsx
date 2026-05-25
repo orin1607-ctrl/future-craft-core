@@ -194,8 +194,53 @@ export default function Alerts() {
         }
 
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
-        if (compDays !== null && compDays <= 30) {
-          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: vehicleLink, vehicleId: v.id });
+        if (withinWindow(compDays)) {
+          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: (compDays as number) <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: vehicleLink, vehicleId: v.id });
+        }
+
+        const tpDays = getDaysLeft(v.third_party_insurance_expiry);
+        if (withinWindow(tpDays)) {
+          allAlerts.push({ id: `tp-${v.id}`, category: 'third_party_insurance', severity: getSeverity(tpDays), title: (tpDays as number) <= 0 ? 'ביטוח צד ג׳ פג!' : 'ביטוח צד ג׳ עומד לפוג', subtitle: label, daysLeft: tpDays, date: v.third_party_insurance_expiry, link: vehicleLink, vehicleId: v.id });
+        }
+
+        const leaseDays = getDaysLeft(v.leasing_end_date);
+        if (withinWindow(leaseDays)) {
+          allAlerts.push({ id: `lease-${v.id}`, category: 'leasing', severity: getSeverity(leaseDays), title: (leaseDays as number) <= 0 ? 'ליסינג הסתיים!' : 'סיום הסכם ליסינג קרב', subtitle: label, daysLeft: leaseDays, date: v.leasing_end_date, link: vehicleLink, vehicleId: v.id });
+        }
+
+        const loanDays = getDaysLeft(v.loan_end_date);
+        if (withinWindow(loanDays)) {
+          allAlerts.push({ id: `loan-${v.id}`, category: 'loan', severity: getSeverity(loanDays), title: (loanDays as number) <= 0 ? 'הלוואה הסתיימה!' : 'סיום הלוואה קרב', subtitle: label, daysLeft: loanDays, date: v.loan_end_date, link: vehicleLink, vehicleId: v.id });
+        }
+
+        const svcDays = getDaysLeft(v.next_service_date);
+        if (withinWindow(svcDays)) {
+          allAlerts.push({ id: `svc-${v.id}`, category: 'service_due', severity: getSeverity(svcDays), title: (svcDays as number) <= 0 ? 'הגיע מועד טיפול תקופתי!' : 'מועד טיפול תקופתי מתקרב', subtitle: label, daysLeft: svcDays, date: v.next_service_date, link: vehicleLink, vehicleId: v.id });
+        }
+
+        // Inspection certificates (JSONB { "<type>": { expiry: 'YYYY-MM-DD', ... } } or array)
+        const insp = v.inspections_certificates;
+        if (insp && typeof insp === 'object') {
+          const entries = Array.isArray(insp) ? insp : Object.entries(insp).map(([k, val]: [string, any]) => ({ type: k, ...(val || {}) }));
+          for (const e of entries as any[]) {
+            const expiry = e?.expiry || e?.next_date || e?.valid_until;
+            if (!expiry) continue;
+            const dd = getDaysLeft(expiry);
+            if (!withinWindow(dd)) continue;
+            allAlerts.push({ id: `insp-${v.id}-${e.type || Math.random()}`, category: 'inspection_due', severity: getSeverity(dd), title: (dd as number) <= 0 ? `תסקיר ${e.type || ''} פג!` : `תסקיר ${e.type || ''} עומד לפוג`, subtitle: label, daysLeft: dd, date: expiry, link: vehicleLink, vehicleId: v.id });
+          }
+        }
+
+        // Equipment expiry (best-effort from text field with "תוקף:" or date pattern)
+        const eqText: string | null = v.equipment_details || null;
+        if (eqText) {
+          const m = eqText.match(/(\d{4}-\d{2}-\d{2})/);
+          if (m) {
+            const dd = getDaysLeft(m[1]);
+            if (withinWindow(dd)) {
+              allAlerts.push({ id: `eq-${v.id}`, category: 'equipment', severity: getSeverity(dd), title: (dd as number) <= 0 ? 'תוקף ציוד פג!' : 'תוקף ציוד עומד לפוג', subtitle: `${label} • ${v.equipment_type || ''}`, daysLeft: dd, date: m[1], meta: eqText, link: vehicleLink, vehicleId: v.id });
+            }
+          }
         }
       }
     }
