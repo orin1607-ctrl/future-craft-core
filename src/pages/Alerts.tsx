@@ -416,7 +416,7 @@ export default function Alerts() {
     critical: alerts.filter(a => a.severity === 'critical').length,
     warning: alerts.filter(a => a.severity === 'warning').length,
   };
-  const categories: (AlertCategory | 'all')[] = ['all', 'test', 'insurance', 'comprehensive_insurance', 'license', 'fault', 'service_order', 'work_assignment'];
+  const categories: (AlertCategory | 'all')[] = ['all', 'test', 'insurance', 'comprehensive_insurance', 'third_party_insurance', 'license', 'fault', 'service_order', 'work_assignment', 'leasing', 'loan', 'service_due', 'inspection_due', 'equipment', 'custom'];
 
   const filteredLogs = logs.filter(l => {
     if (logSearch && !l.user_name.includes(logSearch) && !l.details.includes(logSearch) && !l.vehicle_plate.includes(logSearch) && !l.entity_id.includes(logSearch)) return false;
