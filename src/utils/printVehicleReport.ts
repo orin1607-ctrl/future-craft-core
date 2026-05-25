@@ -24,7 +24,7 @@ const EVENT_LABELS: Record<string, string> = {
   service: 'טיפול',
   repair: 'תיקון',
   fault: 'תקלה',
-  inspection: 'בדיקה',
+  inspection: 'בדיקה / תסקיר',
   ownership_transfer: 'העברת בעלות',
   odometer: 'עדכון קילומטראז׳',
   accident: 'תאונה',
@@ -32,6 +32,13 @@ const EVENT_LABELS: Record<string, string> = {
   import: 'יבוא',
   insurance: 'ביטוח',
   test: 'טסט',
+  alert: 'התראה',
+  document: 'מסמך',
+  status_change: 'שינוי סטטוס',
+  driver_assignment: 'שיוך נהג',
+  leasing: 'ליסינג',
+  loan: 'הלוואה',
+  pledge: 'שעבוד',
 };
 
 const SOURCE_LABELS: Record<string, string> = {
