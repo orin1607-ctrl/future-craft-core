@@ -610,6 +610,62 @@ export default function Alerts() {
           )}
         </TabsContent>
 
+        {/* ─── Reminders Tab ─── */}
+        <TabsContent value="reminders" className="space-y-3 mt-4">
+          {alertsLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+            </div>
+          ) : reminders.length === 0 ? (
+            <div className="card-elevated text-center py-16">
+              <CalendarClock className="mx-auto mb-4 text-muted-foreground opacity-50" size={48} />
+              <p className="text-xl font-bold text-foreground">אין תזכירים</p>
+              <p className="text-muted-foreground mt-2">לא הוזנו תאריכי תסקירים / ציוד / אביזרים בכרטיסי הרכב</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(vehicleFilterId ? reminders.filter(r => r.vehicleId === vehicleFilterId) : reminders).map(rem => (
+                <div key={rem.id}
+                  onClick={() => rem.link && navigate(rem.link)}
+                  className={`rounded-2xl border-2 p-5 transition-all hover:shadow-md cursor-pointer ${severityStyles[rem.severity]}`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`p-3 rounded-xl ${severityBadge[rem.severity]}`}>
+                      <CalendarClock size={22} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="font-bold text-lg">{rem.title}</h3>
+                        {milestoneLabel(rem.daysLeft) && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-background/60 border border-current">
+                            {milestoneLabel(rem.daysLeft)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm opacity-80 font-medium">{rem.subtitle}</p>
+                      <p className="text-xs mt-2 opacity-70 underline">לחץ לצפייה →</p>
+                    </div>
+                    <div className="text-left shrink-0">
+                      {rem.daysLeft !== null && (
+                        <div className="flex items-center gap-1.5">
+                          <Clock size={16} />
+                          <span className="font-bold text-lg">
+                            {rem.daysLeft <= 0 ? 'פג!' : `${rem.daysLeft} ימים`}
+                          </span>
+                        </div>
+                      )}
+                      {rem.date && (
+                        <p className="text-xs opacity-60 mt-1">
+                          {new Date(rem.date).toLocaleDateString('he-IL')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         {/* ─── Updates (System Logs) Tab ─── */}
         <TabsContent value="updates" className="space-y-4 mt-4">
           {!isSuperAdmin ? (
