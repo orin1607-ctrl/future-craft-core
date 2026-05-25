@@ -43,9 +43,11 @@ export default function VehicleTasks() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const companyFilter = useCompanyFilter();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
-  const [vehicleMap, setVehicleMap] = useState<Record<string, { id: string; internal_number: string }>>({});
+  const [vehicleMap, setVehicleMap] = useState<Record<string, { id: string; internal_number: string; license_plate?: string }>>({});
   const [vehicleByPlate, setVehicleByPlate] = useState<Record<string, { id: string; internal_number: string }>>({});
+  const vehicleFilterId = searchParams.get('vehicle');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('open');
   const [dateFilter, setDateFilter] = useState('');
