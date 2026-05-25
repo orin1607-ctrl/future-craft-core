@@ -194,10 +194,10 @@ export default function Faults() {
     ]);
     if (fRes.data) setFaults(fRes.data as FaultRow[]);
     if (vRes.data) {
-      const byId: Record<string, { id: string; internal_number: string }> = {};
+      const byId: Record<string, { id: string; internal_number: string; license_plate?: string }> = {};
       const byPlate: Record<string, { id: string; internal_number: string }> = {};
       (vRes.data as any[]).forEach(v => {
-        byId[v.id] = { id: v.id, internal_number: v.internal_number || '' };
+        byId[v.id] = { id: v.id, internal_number: v.internal_number || '', license_plate: v.license_plate || '' };
         if (v.license_plate) byPlate[v.license_plate] = { id: v.id, internal_number: v.internal_number || '' };
       });
       setVehiclesMap(byId);
