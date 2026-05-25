@@ -2894,6 +2894,7 @@ export type Database = {
           service_type: string | null
           status: string | null
           test_expiry: string | null
+          test_status: string | null
           third_party_insurance_doc_url: string | null
           third_party_insurance_expiry: string | null
           updated_at: string | null
@@ -2984,6 +2985,7 @@ export type Database = {
           service_type?: string | null
           status?: string | null
           test_expiry?: string | null
+          test_status?: string | null
           third_party_insurance_doc_url?: string | null
           third_party_insurance_expiry?: string | null
           updated_at?: string | null
@@ -3074,6 +3076,7 @@ export type Database = {
           service_type?: string | null
           status?: string | null
           test_expiry?: string | null
+          test_status?: string | null
           third_party_insurance_doc_url?: string | null
           third_party_insurance_expiry?: string | null
           updated_at?: string | null
