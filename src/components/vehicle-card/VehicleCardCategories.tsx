@@ -17,6 +17,7 @@ import {
   Power, Save, Plus, Link as LinkIcon, FileDown, Trash2,
 } from 'lucide-react';
 import { printVehicleReport, type VehicleHistoryEntry } from '@/utils/printVehicleReport';
+import VehicleDocumentsPanel from './VehicleDocumentsPanel';
 
 type VehicleAny = Record<string, any>;
 
@@ -475,10 +476,7 @@ export default function VehicleCardCategories({ vehicle, onUpdated }: Props) {
 
         {/* 6 - Documents */}
         <Section value="cat6" title="6. מסמכים וקבצים" icon={Folder}>
-          <p className="text-sm text-muted-foreground mb-2">לניהול מלא של מסמכים השתמש במסך המסמכים של הרכב.</p>
-          <Button variant="outline" onClick={() => navigate(`/documents?vehicle=${v.id}`)}>
-            <LinkIcon size={14} className="ml-1" /> פתח מסמכי רכב
-          </Button>
+          <VehicleDocumentsPanel vehicle={v} />
         </Section>
 
         {/* 7 - Inspections */}
