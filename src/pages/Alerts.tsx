@@ -431,6 +431,12 @@ export default function Alerts() {
       <h1 className="page-header flex items-center gap-3 !mb-0">
         <Bell size={28} />
         התראות ועדכונים
+        <button
+          onClick={() => navigate('/alert-settings')}
+          className="mr-auto text-sm font-medium bg-primary text-primary-foreground rounded-xl px-3 py-1.5 hover:opacity-90"
+        >
+          + התראה חדשה
+        </button>
       </h1>
 
       <Tabs defaultValue="alerts" dir="rtl">
