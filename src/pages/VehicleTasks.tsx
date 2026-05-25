@@ -85,6 +85,7 @@ export default function VehicleTasks() {
   const getVehicleId = (t: TaskRow) => t.vehicle_id || vehicleByPlate[t.vehicle_plate]?.id || null;
 
   const baseFiltered = tasks.filter(t => {
+    if (vehicleFilterId && getVehicleId(t) !== vehicleFilterId) return false;
     const internal = getInternal(t);
     const matchSearch = !search || t.vehicle_plate?.includes(search) || (internal && internal === search.trim()) || t.title?.includes(search) || t.description?.includes(search);
     const matchStatus = statusFilter === 'all' || statusFilter === 'recent' || t.status === statusFilter;
