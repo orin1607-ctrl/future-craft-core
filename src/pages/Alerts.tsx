@@ -523,6 +523,11 @@ export default function Alerts() {
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${severityBadge[alert.severity]}`}>
                             {categoryLabels[alert.category]}
                           </span>
+                          {milestoneLabel(alert.daysLeft) && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-background/60 border border-current">
+                              {milestoneLabel(alert.daysLeft)}
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm opacity-80 font-medium">{alert.subtitle}</p>
                         {alert.meta && <p className="text-sm opacity-60 mt-1 line-clamp-2">{alert.meta}</p>}
