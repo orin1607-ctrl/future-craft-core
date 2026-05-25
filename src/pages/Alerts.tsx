@@ -123,7 +123,7 @@ export default function Alerts() {
 
   useEffect(() => {
     if (user) loadAlerts();
-  }, [user, companyFilter]);
+  }, [user, companyFilter, vehicleFilterId]);
 
   useEffect(() => {
     if (isSuperAdmin) {
