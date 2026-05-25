@@ -211,7 +211,7 @@ export default function Alerts() {
         const v = f.vehicle_id ? vehicleById[f.vehicle_id] : (f.vehicle_plate ? vehicleByPlate[f.vehicle_plate] : null);
         const internal = v?.internal_number ? ` | פנימי ${v.internal_number}` : '';
         const link = v ? `/vehicles?vehicleId=${v.id}` : '/faults';
-        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'}${internal} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link });
+        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'}${internal} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link, vehicleId: v?.id || null });
       }
     }
 
