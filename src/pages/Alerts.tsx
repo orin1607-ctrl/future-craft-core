@@ -352,6 +352,14 @@ export default function Alerts() {
 
         {/* ─── Alerts Tab ─── */}
         <TabsContent value="alerts" className="space-y-4 mt-4">
+          {vehicleFilterInfo && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-primary/40 bg-primary/5 px-4 py-3">
+              <span className="text-base font-medium">מסונן לרכב <span className="font-bold">{vehicleFilterInfo.license_plate}</span>{vehicleFilterInfo.internal_number ? ` | מס' פנימי ${vehicleFilterInfo.internal_number}` : ''}</span>
+              <button onClick={() => { searchParams.delete('vehicle'); setSearchParams(searchParams); }} className="flex items-center gap-1 text-sm text-primary hover:underline">
+                <X size={16} /> נקה סינון
+              </button>
+            </div>
+          )}
           {/* Severity Counters */}
           <div className="flex items-center gap-3 flex-wrap">
             {alertCounts.critical > 0 && (
