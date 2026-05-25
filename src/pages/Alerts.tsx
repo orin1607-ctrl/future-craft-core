@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
-import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, X, Banknote, Receipt, FileCheck2, Package, Bell as BellIcon } from 'lucide-react';
+import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, X, Banknote, Receipt, FileCheck2, Package, Bell as BellIcon, CalendarClock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -136,6 +136,7 @@ export default function Alerts() {
 
   // Alerts state
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [reminders, setReminders] = useState<AlertItem[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [alertFilter, setAlertFilter] = useState<AlertCategory | 'all'>('all');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -218,16 +219,17 @@ export default function Alerts() {
           allAlerts.push({ id: `svc-${v.id}`, category: 'service_due', severity: getSeverity(svcDays), title: (svcDays as number) <= 0 ? 'הגיע מועד טיפול תקופתי!' : 'מועד טיפול תקופתי מתקרב', subtitle: label, daysLeft: svcDays, date: v.next_service_date, link: vehicleLink, vehicleId: v.id });
         }
 
-        // Inspection certificates (JSONB { "<type>": { expiry: 'YYYY-MM-DD', ... } } or array)
+        // Inspection certificates (JSONB { "<type>": { expiry, ... } } legacy shape)
         const insp = v.inspections_certificates;
-        if (insp && typeof insp === 'object') {
-          const entries = Array.isArray(insp) ? insp : Object.entries(insp).map(([k, val]: [string, any]) => ({ type: k, ...(val || {}) }));
-          for (const e of entries as any[]) {
+        if (insp && typeof insp === 'object' && !Array.isArray(insp)) {
+          for (const [k, val] of Object.entries(insp)) {
+            if (!val || typeof val !== 'object') continue;
+            const e: any = val;
             const expiry = e?.expiry || e?.next_date || e?.valid_until;
             if (!expiry) continue;
             const dd = getDaysLeft(expiry);
             if (!withinWindow(dd)) continue;
-            allAlerts.push({ id: `insp-${v.id}-${e.type || Math.random()}`, category: 'inspection_due', severity: getSeverity(dd), title: (dd as number) <= 0 ? `תסקיר ${e.type || ''} פג!` : `תסקיר ${e.type || ''} עומד לפוג`, subtitle: label, daysLeft: dd, date: expiry, link: vehicleLink, vehicleId: v.id });
+            allAlerts.push({ id: `insp-${v.id}-${k}`, category: 'inspection_due', severity: getSeverity(dd), title: (dd as number) <= 0 ? `תסקיר ${k} פג!` : `תסקיר ${k} עומד לפוג`, subtitle: label, daysLeft: dd, date: expiry, link: vehicleLink, vehicleId: v.id });
           }
         }
 
@@ -391,6 +393,43 @@ export default function Alerts() {
     }
 
 
+    // ── Reminders (תזכירים): all dated fields from inspections_certificates ──
+    const reminderItems: AlertItem[] = [];
+    const REMINDER_KEYS: { key: string; label: string }[] = [
+      { key: 'manager_cert_date', label: 'תסקיר מנהל - תאריך' },
+      { key: 'lift_cert_expiry', label: 'תסקיר הרמה - תוקף' },
+      { key: 'accessories_expiry', label: 'תוקף אביזרים' },
+      { key: 'special_equipment_expiry', label: 'תוקף ציוד ייעודי' },
+    ];
+    if (vehicles) {
+      for (const v of vehicles as any[]) {
+        const insp = v.inspections_certificates;
+        if (!insp || typeof insp !== 'object' || Array.isArray(insp)) continue;
+        const plate = v.license_plate;
+        const internal = v.internal_number ? ` | פנימי ${v.internal_number}` : '';
+        const subtitle = `${v.manufacturer || ''} ${v.model || ''} - ${plate}${internal}`.trim();
+        const vehicleLink = `/vehicles?vehicleId=${v.id}`;
+        for (const { key, label } of REMINDER_KEYS) {
+          const date = (insp as any)[key];
+          if (!date) continue;
+          const dd = getDaysLeft(date);
+          reminderItems.push({
+            id: `rem-${v.id}-${key}`,
+            category: 'inspection_due',
+            severity: getSeverity(dd),
+            title: label,
+            subtitle,
+            daysLeft: dd,
+            date,
+            link: vehicleLink,
+            vehicleId: v.id,
+          });
+        }
+      }
+    }
+    reminderItems.sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
+    setReminders(reminderItems);
+
     allAlerts.sort((a, b) => {
       const severityOrder: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
       const diff = severityOrder[a.severity] - severityOrder[b.severity];
@@ -440,13 +479,22 @@ export default function Alerts() {
       </h1>
 
       <Tabs defaultValue="alerts" dir="rtl">
-        <TabsList className="w-full grid grid-cols-2 h-12">
+        <TabsList className="w-full grid grid-cols-3 h-12">
           <TabsTrigger value="alerts" className="text-base font-bold gap-2">
             <Bell size={18} />
             התראות
             {alertCounts.all > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
                 {alertCounts.all}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="reminders" className="text-base font-bold gap-2">
+            <CalendarClock size={18} />
+            תזכירים
+            {reminders.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                {reminders.length}
               </span>
             )}
           </TabsTrigger>
@@ -558,6 +606,62 @@ export default function Alerts() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ─── Reminders Tab ─── */}
+        <TabsContent value="reminders" className="space-y-3 mt-4">
+          {alertsLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+            </div>
+          ) : reminders.length === 0 ? (
+            <div className="card-elevated text-center py-16">
+              <CalendarClock className="mx-auto mb-4 text-muted-foreground opacity-50" size={48} />
+              <p className="text-xl font-bold text-foreground">אין תזכירים</p>
+              <p className="text-muted-foreground mt-2">לא הוזנו תאריכי תסקירים / ציוד / אביזרים בכרטיסי הרכב</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(vehicleFilterId ? reminders.filter(r => r.vehicleId === vehicleFilterId) : reminders).map(rem => (
+                <div key={rem.id}
+                  onClick={() => rem.link && navigate(rem.link)}
+                  className={`rounded-2xl border-2 p-5 transition-all hover:shadow-md cursor-pointer ${severityStyles[rem.severity]}`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`p-3 rounded-xl ${severityBadge[rem.severity]}`}>
+                      <CalendarClock size={22} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="font-bold text-lg">{rem.title}</h3>
+                        {milestoneLabel(rem.daysLeft) && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-background/60 border border-current">
+                            {milestoneLabel(rem.daysLeft)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm opacity-80 font-medium">{rem.subtitle}</p>
+                      <p className="text-xs mt-2 opacity-70 underline">לחץ לצפייה →</p>
+                    </div>
+                    <div className="text-left shrink-0">
+                      {rem.daysLeft !== null && (
+                        <div className="flex items-center gap-1.5">
+                          <Clock size={16} />
+                          <span className="font-bold text-lg">
+                            {rem.daysLeft <= 0 ? 'פג!' : `${rem.daysLeft} ימים`}
+                          </span>
+                        </div>
+                      )}
+                      {rem.date && (
+                        <p className="text-xs opacity-60 mt-1">
+                          {new Date(rem.date).toLocaleDateString('he-IL')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </TabsContent>
