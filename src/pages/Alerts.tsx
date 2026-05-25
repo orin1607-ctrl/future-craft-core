@@ -22,6 +22,7 @@ interface AlertItem {
   date: string | null;
   meta?: string;
   link?: string;
+  vehicleId?: string | null;
 }
 
 const categoryLabels: Record<AlertCategory, string> = {
