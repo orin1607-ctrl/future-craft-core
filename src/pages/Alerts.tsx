@@ -3,14 +3,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
-import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, X } from 'lucide-react';
+import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, X, Banknote, Receipt, FileCheck2, Package, Bell as BellIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 
 // ─── Alerts Types ───
 type AlertSeverity = 'critical' | 'warning' | 'info';
-type AlertCategory = 'test' | 'insurance' | 'comprehensive_insurance' | 'license' | 'fault' | 'service_order' | 'work_assignment';
+type AlertCategory = 'test' | 'insurance' | 'comprehensive_insurance' | 'third_party_insurance' | 'license' | 'fault' | 'service_order' | 'work_assignment' | 'leasing' | 'loan' | 'service_due' | 'inspection_due' | 'equipment' | 'custom';
 
 interface AlertItem {
   id: string;
@@ -29,20 +29,34 @@ const categoryLabels: Record<AlertCategory, string> = {
   test: 'טסט',
   insurance: 'ביטוח חובה',
   comprehensive_insurance: 'ביטוח מקיף',
+  third_party_insurance: 'ביטוח צד ג׳',
   license: 'רישיון נהיגה',
   fault: 'תקלה דחופה',
   service_order: 'שירותים ותחזוקה',
   work_assignment: 'סידור עבודה',
+  leasing: 'ליסינג',
+  loan: 'הלוואה',
+  service_due: 'טיפול תקופתי',
+  inspection_due: 'תסקיר',
+  equipment: 'ציוד',
+  custom: 'התראה מותאמת',
 };
 
 const categoryIcons: Record<AlertCategory, typeof Car> = {
   test: Car,
   insurance: ShieldAlert,
   comprehensive_insurance: ShieldAlert,
+  third_party_insurance: ShieldAlert,
   license: IdCard,
   fault: Wrench,
   service_order: Briefcase,
   work_assignment: ClipboardList,
+  leasing: Banknote,
+  loan: Receipt,
+  service_due: Wrench,
+  inspection_due: FileCheck2,
+  equipment: Package,
+  custom: BellIcon,
 };
 
 const severityStyles: Record<AlertSeverity, string> = {
