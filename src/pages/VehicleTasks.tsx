@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Search, CheckCircle2, Clock, Wrench, Car, CalendarDays, Shield, FileText, Trash2, ExternalLink } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AlertTriangle, Search, CheckCircle2, Clock, Wrench, Car, CalendarDays, Shield, FileText, Trash2, ExternalLink, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
@@ -43,9 +43,11 @@ export default function VehicleTasks() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const companyFilter = useCompanyFilter();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
-  const [vehicleMap, setVehicleMap] = useState<Record<string, { id: string; internal_number: string }>>({});
+  const [vehicleMap, setVehicleMap] = useState<Record<string, { id: string; internal_number: string; license_plate?: string }>>({});
   const [vehicleByPlate, setVehicleByPlate] = useState<Record<string, { id: string; internal_number: string }>>({});
+  const vehicleFilterId = searchParams.get('vehicle');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('open');
   const [dateFilter, setDateFilter] = useState('');
@@ -65,10 +67,10 @@ export default function VehicleTasks() {
     ]);
     if (tRes.data) setTasks(tRes.data as TaskRow[]);
     if (vRes.data) {
-      const byId: Record<string, { id: string; internal_number: string }> = {};
+      const byId: Record<string, { id: string; internal_number: string; license_plate?: string }> = {};
       const byPlate: Record<string, { id: string; internal_number: string }> = {};
       (vRes.data as any[]).forEach(v => {
-        byId[v.id] = { id: v.id, internal_number: v.internal_number || '' };
+        byId[v.id] = { id: v.id, internal_number: v.internal_number || '', license_plate: v.license_plate || '' };
         if (v.license_plate) byPlate[v.license_plate] = { id: v.id, internal_number: v.internal_number || '' };
       });
       setVehicleMap(byId);
@@ -83,6 +85,7 @@ export default function VehicleTasks() {
   const getVehicleId = (t: TaskRow) => t.vehicle_id || vehicleByPlate[t.vehicle_plate]?.id || null;
 
   const baseFiltered = tasks.filter(t => {
+    if (vehicleFilterId && getVehicleId(t) !== vehicleFilterId) return false;
     const internal = getInternal(t);
     const matchSearch = !search || t.vehicle_plate?.includes(search) || (internal && internal === search.trim()) || t.title?.includes(search) || t.description?.includes(search);
     const matchStatus = statusFilter === 'all' || statusFilter === 'recent' || t.status === statusFilter;
@@ -200,6 +203,16 @@ export default function VehicleTasks() {
         <AlertTriangle size={28} /> ניהול ליקויים
       </h1>
       <p className="text-muted-foreground mb-4 -mt-2">ליקויים שנמצאו בביקורות רכב — מעקב וטיפול</p>
+
+      {vehicleFilterId && vehicleMap[vehicleFilterId] && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border-2 border-primary/40 bg-primary/5 px-4 py-3">
+          <span className="text-base font-medium">מסונן לרכב <span className="font-bold">{vehicleMap[vehicleFilterId].license_plate}</span>{vehicleMap[vehicleFilterId].internal_number ? ` | מס' פנימי ${vehicleMap[vehicleFilterId].internal_number}` : ''}</span>
+          <button onClick={() => { searchParams.delete('vehicle'); setSearchParams(searchParams); }} className="flex items-center gap-1 text-sm text-primary hover:underline">
+            <X size={16} /> נקה סינון
+          </button>
+        </div>
+      )}
+
 
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
-import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList } from 'lucide-react';
+import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, X } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -22,6 +22,7 @@ interface AlertItem {
   date: string | null;
   meta?: string;
   link?: string;
+  vehicleId?: string | null;
 }
 
 const categoryLabels: Record<AlertCategory, string> = {
@@ -107,6 +108,9 @@ export default function Alerts() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [alertFilter, setAlertFilter] = useState<AlertCategory | 'all'>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const vehicleFilterId = searchParams.get('vehicle');
+  const [vehicleFilterInfo, setVehicleFilterInfo] = useState<{ license_plate: string; internal_number: string } | null>(null);
 
   // Updates state
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -119,7 +123,7 @@ export default function Alerts() {
 
   useEffect(() => {
     if (user) loadAlerts();
-  }, [user, companyFilter]);
+  }, [user, companyFilter, vehicleFilterId]);
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -151,19 +155,26 @@ export default function Alerts() {
 
         const testDays = getDaysLeft(v.test_expiry);
         if (testDays !== null && testDays <= 30) {
-          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: vehicleLink });
+          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: vehicleLink, vehicleId: v.id });
         }
 
         const insDays = getDaysLeft(v.insurance_expiry);
         if (insDays !== null && insDays <= 30) {
-          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: vehicleLink });
+          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: vehicleLink, vehicleId: v.id });
         }
 
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
         if (compDays !== null && compDays <= 30) {
-          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: vehicleLink });
+          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: vehicleLink, vehicleId: v.id });
         }
       }
+    }
+
+    // Set vehicle filter info for banner
+    if (vehicleFilterId && vehicleById[vehicleFilterId]) {
+      setVehicleFilterInfo({ license_plate: vehicleById[vehicleFilterId].license_plate, internal_number: vehicleById[vehicleFilterId].internal_number });
+    } else {
+      setVehicleFilterInfo(null);
     }
 
     // 2. Driver license expiries
@@ -200,7 +211,7 @@ export default function Alerts() {
         const v = f.vehicle_id ? vehicleById[f.vehicle_id] : (f.vehicle_plate ? vehicleByPlate[f.vehicle_plate] : null);
         const internal = v?.internal_number ? ` | פנימי ${v.internal_number}` : '';
         const link = v ? `/vehicles?vehicleId=${v.id}` : '/faults';
-        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'}${internal} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link });
+        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'}${internal} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link, vehicleId: v?.id || null });
       }
     }
 
@@ -227,6 +238,7 @@ export default function Alerts() {
           date: vt.created_at?.split('T')[0] || null,
           meta: vt.description || undefined,
           link,
+          vehicleId: v?.id || null,
         });
       }
     }
@@ -252,6 +264,7 @@ export default function Alerts() {
           date: so.created_at ? new Date(so.created_at).toISOString().split('T')[0] : null,
           meta: `${so.service_category || ''} ${so.description ? '- ' + so.description : ''}`.trim() || undefined,
           link: '/service-orders',
+          vehicleId: v?.id || null,
         });
       }
     }
@@ -296,7 +309,8 @@ export default function Alerts() {
     setLogsLoading(false);
   };
 
-  const filteredAlerts = alertFilter === 'all' ? alerts : alerts.filter(a => a.category === alertFilter);
+  const vehicleScoped = vehicleFilterId ? alerts.filter(a => a.vehicleId === vehicleFilterId) : alerts;
+  const filteredAlerts = alertFilter === 'all' ? vehicleScoped : vehicleScoped.filter(a => a.category === alertFilter);
   const alertCounts = {
     all: alerts.length,
     critical: alerts.filter(a => a.severity === 'critical').length,
@@ -338,6 +352,14 @@ export default function Alerts() {
 
         {/* ─── Alerts Tab ─── */}
         <TabsContent value="alerts" className="space-y-4 mt-4">
+          {vehicleFilterInfo && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-primary/40 bg-primary/5 px-4 py-3">
+              <span className="text-base font-medium">מסונן לרכב <span className="font-bold">{vehicleFilterInfo.license_plate}</span>{vehicleFilterInfo.internal_number ? ` | מס' פנימי ${vehicleFilterInfo.internal_number}` : ''}</span>
+              <button onClick={() => { searchParams.delete('vehicle'); setSearchParams(searchParams); }} className="flex items-center gap-1 text-sm text-primary hover:underline">
+                <X size={16} /> נקה סינון
+              </button>
+            </div>
+          )}
           {/* Severity Counters */}
           <div className="flex items-center gap-3 flex-wrap">
             {alertCounts.critical > 0 && (

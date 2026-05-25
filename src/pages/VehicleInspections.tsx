@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ClipboardCheck, ArrowRight, Plus, Search, CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+
 
 interface InspectionRow {
   id: string;
@@ -45,9 +47,11 @@ type ViewMode = 'list' | 'form' | 'detail';
 export default function VehicleInspections() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [inspections, setInspections] = useState<InspectionRow[]>([]);
   const [vehicles, setVehicles] = useState<VehicleBasic[]>([]);
   const [search, setSearch] = useState('');
+  const [vehicleFilterId, setVehicleFilterId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedInspection, setSelectedInspection] = useState<InspectionRow | null>(null);
   const [inspectionItems, setInspectionItems] = useState<InspectionItemRow[]>([]);
@@ -66,7 +70,17 @@ export default function VehicleInspections() {
 
   useEffect(() => { loadData(); }, []);
 
+  // Auto-filter by ?vehicle=ID
+  useEffect(() => {
+    const vid = searchParams.get('vehicle');
+    setVehicleFilterId(vid);
+  }, [searchParams]);
+
+  const filterVehicle = vehicleFilterId ? vehicles.find(v => v.id === vehicleFilterId) : null;
+
+
   const filtered = inspections.filter(i => {
+    if (vehicleFilterId && i.vehicle_id !== vehicleFilterId && i.vehicle_plate !== filterVehicle?.license_plate) return false;
     if (!search) return true;
     const v = vehicles.find(x => x.id === i.vehicle_id);
     return i.vehicle_plate?.includes(search) || i.inspector_name?.includes(search) || (v?.internal_number && String(v.internal_number) === search.trim());
@@ -82,11 +96,22 @@ export default function VehicleInspections() {
     return <InspectionDetail inspection={selectedInspection} vehicles={vehicles} onBack={() => { setViewMode('list'); setSelectedInspection(null); }} />;
   }
 
+  const clearVehicleFilter = () => { searchParams.delete('vehicle'); setSearchParams(searchParams); };
+
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
         <h1 className="page-header !mb-0 flex items-center gap-3"><ClipboardCheck size={28} /> ביקורת רכב</h1>
       </div>
+
+      {filterVehicle && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border-2 border-primary/40 bg-primary/5 px-4 py-3">
+          <span className="text-base font-medium">מסונן לרכב <span className="font-bold">{filterVehicle.license_plate}</span>{filterVehicle.internal_number ? ` | מס' פנימי ${filterVehicle.internal_number}` : ''}</span>
+          <button onClick={clearVehicleFilter} className="flex items-center gap-1 text-sm text-primary hover:underline">
+            <X size={16} /> נקה סינון
+          </button>
+        </div>
+      )}
 
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
