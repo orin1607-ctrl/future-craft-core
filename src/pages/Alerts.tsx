@@ -309,7 +309,8 @@ export default function Alerts() {
     setLogsLoading(false);
   };
 
-  const filteredAlerts = alertFilter === 'all' ? alerts : alerts.filter(a => a.category === alertFilter);
+  const vehicleScoped = vehicleFilterId ? alerts.filter(a => a.vehicleId === vehicleFilterId) : alerts;
+  const filteredAlerts = alertFilter === 'all' ? vehicleScoped : vehicleScoped.filter(a => a.category === alertFilter);
   const alertCounts = {
     all: alerts.length,
     critical: alerts.filter(a => a.severity === 'critical').length,
