@@ -47,9 +47,11 @@ type ViewMode = 'list' | 'form' | 'detail';
 export default function VehicleInspections() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [inspections, setInspections] = useState<InspectionRow[]>([]);
   const [vehicles, setVehicles] = useState<VehicleBasic[]>([]);
   const [search, setSearch] = useState('');
+  const [vehicleFilterId, setVehicleFilterId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedInspection, setSelectedInspection] = useState<InspectionRow | null>(null);
   const [inspectionItems, setInspectionItems] = useState<InspectionItemRow[]>([]);
@@ -67,6 +69,15 @@ export default function VehicleInspections() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  // Auto-filter by ?vehicle=ID
+  useEffect(() => {
+    const vid = searchParams.get('vehicle');
+    setVehicleFilterId(vid);
+  }, [searchParams]);
+
+  const filterVehicle = vehicleFilterId ? vehicles.find(v => v.id === vehicleFilterId) : null;
+
 
   const filtered = inspections.filter(i => {
     if (!search) return true;
