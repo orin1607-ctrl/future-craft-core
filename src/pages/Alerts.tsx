@@ -479,13 +479,22 @@ export default function Alerts() {
       </h1>
 
       <Tabs defaultValue="alerts" dir="rtl">
-        <TabsList className="w-full grid grid-cols-2 h-12">
+        <TabsList className="w-full grid grid-cols-3 h-12">
           <TabsTrigger value="alerts" className="text-base font-bold gap-2">
             <Bell size={18} />
             התראות
             {alertCounts.all > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
                 {alertCounts.all}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="reminders" className="text-base font-bold gap-2">
+            <CalendarClock size={18} />
+            תזכירים
+            {reminders.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                {reminders.length}
               </span>
             )}
           </TabsTrigger>
