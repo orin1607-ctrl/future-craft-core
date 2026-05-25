@@ -578,12 +578,85 @@ function VehicleHistoryPanel({ vehicle }: { vehicle: VehicleAny }) {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('vehicle_history')
-      .select('*')
-      .eq('vehicle_id', vehicle.id)
-      .order('event_date', { ascending: false });
-    setItems((data || []) as VehicleHistoryEntry[]);
+    const plate = vehicle.license_plate || '';
+
+    const [hist, accidents, faults, services, inspections, insurances, docs, alerts] = await Promise.all([
+      supabase.from('vehicle_history').select('*').eq('vehicle_id', vehicle.id),
+      plate ? supabase.from('accidents').select('id, date, description, location, estimated_cost, status').eq('vehicle_plate', plate) : Promise.resolve({ data: [] as any[] }),
+      supabase.from('faults').select('id, date, description, fault_type, status, urgency, vehicle_plate, vehicle_id').or(`vehicle_id.eq.${vehicle.id}${plate ? `,vehicle_plate.eq.${plate}` : ''}`),
+      plate ? supabase.from('service_orders').select('id, date_time, service_date, service_category, description, treatment_status, odometer, vendor_name').eq('vehicle_plate', plate) : Promise.resolve({ data: [] as any[] }),
+      supabase.from('vehicle_inspections').select('id, inspection_date, inspection_type, overall_status, inspector_name, notes').eq('vehicle_id', vehicle.id),
+      supabase.from('vehicle_insurance_history').select('id, year, insurer_name, mandatory_insurance_cost, comprehensive_insurance_cost, has_no_claims, created_at').eq('vehicle_id', vehicle.id),
+      plate ? supabase.from('document_metadata').select('id, category, original_name, created_at').eq('vehicle_plate', plate) : Promise.resolve({ data: [] as any[] }),
+      plate ? supabase.from('custom_alerts').select('id, alert_type, title, description, alert_date').or(`description.ilike.%${plate}%,title.ilike.%${plate}%`) : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const merged: VehicleHistoryEntry[] = [];
+
+    (hist.data || []).forEach((h: any) => merged.push(h as VehicleHistoryEntry));
+
+    (accidents.data || []).forEach((a: any) => merged.push({
+      id: `acc-${a.id}`, event_type: 'accident', event_date: a.date,
+      title: `תאונה${a.location ? ' - ' + a.location : ''}`,
+      description: [a.description, a.status ? `סטטוס: ${a.status}` : ''].filter(Boolean).join('\n'),
+      cost: a.estimated_cost ?? null, odometer: null, source: 'system',
+    }));
+
+    (faults.data || []).forEach((f: any) => merged.push({
+      id: `flt-${f.id}`, event_type: 'fault', event_date: f.date,
+      title: `תקלה${f.fault_type ? ' - ' + f.fault_type : ''}${f.urgency ? ' (' + f.urgency + ')' : ''}`,
+      description: [f.description, f.status ? `סטטוס: ${f.status}` : ''].filter(Boolean).join('\n'),
+      cost: null, odometer: null, source: 'system',
+    }));
+
+    (services.data || []).forEach((s: any) => merged.push({
+      id: `svc-${s.id}`, event_type: 'service', event_date: s.service_date || s.date_time,
+      title: `${s.service_category || 'הזמנת שירות'}${s.vendor_name ? ' - ' + s.vendor_name : ''}`,
+      description: [s.description, s.treatment_status ? `סטטוס: ${s.treatment_status}` : ''].filter(Boolean).join('\n'),
+      cost: null, odometer: s.odometer ?? null, source: 'service_order',
+    }));
+
+    (inspections.data || []).forEach((i: any) => merged.push({
+      id: `ins-${i.id}`, event_type: 'inspection', event_date: i.inspection_date,
+      title: `${i.inspection_type || 'בדיקה / תסקיר'}${i.inspector_name ? ' - ' + i.inspector_name : ''}`,
+      description: [i.notes, i.overall_status ? `תוצאה: ${i.overall_status}` : ''].filter(Boolean).join('\n'),
+      cost: null, odometer: null, source: 'system',
+    }));
+
+    (insurances.data || []).forEach((ins: any) => merged.push({
+      id: `pol-${ins.id}`, event_type: 'insurance', event_date: ins.created_at,
+      title: `ביטוח ${ins.year || ''}${ins.insurer_name ? ' - ' + ins.insurer_name : ''}`,
+      description: [
+        ins.mandatory_insurance_cost ? `חובה: ₪${ins.mandatory_insurance_cost}` : '',
+        ins.comprehensive_insurance_cost ? `מקיף: ₪${ins.comprehensive_insurance_cost}` : '',
+        ins.has_no_claims ? 'ללא תביעות' : '',
+      ].filter(Boolean).join(' · '),
+      cost: (ins.mandatory_insurance_cost || 0) + (ins.comprehensive_insurance_cost || 0) || null,
+      odometer: null, source: 'system',
+    }));
+
+    const DOC_LBL: Record<string, string> = {
+      insurance: 'ביטוח חובה', comprehensive: 'ביטוח מקיף', third_party: 'ביטוח צד ג׳',
+      leasing: 'ליסינג', loan: 'הלוואה', pledge: 'שעבוד',
+      service: 'מסמך טיפול', inspection_report: 'תסקיר', 'vehicle-license': 'רישיון רכב',
+      test: 'טסט', general: 'מסמך כללי',
+    };
+    (docs.data || []).forEach((d: any) => merged.push({
+      id: `doc-${d.id}`, event_type: 'document', event_date: d.created_at,
+      title: `מסמך הועלה: ${DOC_LBL[d.category] || d.category}`,
+      description: d.original_name || '',
+      cost: null, odometer: null, source: 'system',
+    }));
+
+    (alerts.data || []).forEach((a: any) => merged.push({
+      id: `alt-${a.id}`, event_type: 'alert', event_date: a.alert_date,
+      title: `התראה: ${a.title || a.alert_type || ''}`,
+      description: a.description || '',
+      cost: null, odometer: null, source: 'system',
+    }));
+
+    merged.sort((a, b) => (b.event_date || '').localeCompare(a.event_date || ''));
+    setItems(merged);
     setLoading(false);
   };
 
