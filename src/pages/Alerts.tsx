@@ -393,6 +393,43 @@ export default function Alerts() {
     }
 
 
+    // ── Reminders (תזכירים): all dated fields from inspections_certificates ──
+    const reminderItems: AlertItem[] = [];
+    const REMINDER_KEYS: { key: string; label: string }[] = [
+      { key: 'manager_cert_date', label: 'תסקיר מנהל - תאריך' },
+      { key: 'lift_cert_expiry', label: 'תסקיר הרמה - תוקף' },
+      { key: 'accessories_expiry', label: 'תוקף אביזרים' },
+      { key: 'special_equipment_expiry', label: 'תוקף ציוד ייעודי' },
+    ];
+    if (vehicles) {
+      for (const v of vehicles as any[]) {
+        const insp = v.inspections_certificates;
+        if (!insp || typeof insp !== 'object' || Array.isArray(insp)) continue;
+        const plate = v.license_plate;
+        const internal = v.internal_number ? ` | פנימי ${v.internal_number}` : '';
+        const subtitle = `${v.manufacturer || ''} ${v.model || ''} - ${plate}${internal}`.trim();
+        const vehicleLink = `/vehicles?vehicleId=${v.id}`;
+        for (const { key, label } of REMINDER_KEYS) {
+          const date = (insp as any)[key];
+          if (!date) continue;
+          const dd = getDaysLeft(date);
+          reminderItems.push({
+            id: `rem-${v.id}-${key}`,
+            category: 'inspection_due',
+            severity: getSeverity(dd),
+            title: label,
+            subtitle,
+            daysLeft: dd,
+            date,
+            link: vehicleLink,
+            vehicleId: v.id,
+          });
+        }
+      }
+    }
+    reminderItems.sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
+    setReminders(reminderItems);
+
     allAlerts.sort((a, b) => {
       const severityOrder: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
       const diff = severityOrder[a.severity] - severityOrder[b.severity];
