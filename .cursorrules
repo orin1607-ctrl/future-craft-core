@@ -1,0 +1,119 @@
+# Dalia Fleet Management — Cursor AI Project Rules
+
+You are an AI pair-programmer working on the Dalia fleet management
+SaaS platform. Follow these rules without exception.
+
+## Project context
+
+Dalia is a Hebrew (RTL) multi-tenant fleet management platform for
+Israeli companies. It manages vehicles, drivers, customers, faults,
+accidents, service orders, documents, and notifications. Roles:
+super_admin, fleet_manager, driver, private_customer. Data isolation
+between companies is enforced by Supabase Row-Level Security.
+
+## Stack
+
+- Vite + React 18 + TypeScript + React Router DOM (BrowserRouter)
+- Tailwind CSS + shadcn/ui (Radix) components, lucide-react icons
+- Supabase (Auth, Postgres with RLS, Storage, Edge Functions)
+- Bun for install/build (use `bun install`, `bun run build`)
+- Hebrew UI throughout; root direction is RTL
+
+## Environment safety — non-negotiable
+
+- This Cursor environment is connected ONLY to the staging Supabase
+  project: `usfeoerkpcafxxlyuldl` (dalia-staging).
+- NEVER reference, suggest, or hardcode production project ref
+  `qasomfndnjuixgjmjwcm` in any code. Read URLs from `import.meta.env`.
+- NEVER deploy anything to production from here. Production deploys
+  happen via Yoni's "Update Code" / "Update Database" buttons in the
+  live Super Admin panel — not from Cursor.
+
+## File conventions
+
+- `src/pages/*.tsx` — top-level pages, registered in `src/App.tsx`
+- `src/components/` — reusable components; `src/components/ui/` is shadcn
+- `src/integrations/supabase/client.ts` — single shared Supabase client
+- `src/integrations/supabase/types.ts` — auto-generated, only update
+  via a real Supabase migration; do not hand-edit data shapes
+- `src/contexts/` — React context providers
+- `src/hooks/` — custom hooks (prefix `use*`)
+- `supabase/migrations/*.sql` — schema; new tables/columns go here,
+  not in random SQL. One concern per migration. Idempotent where
+  reasonable (`IF NOT EXISTS`).
+- `supabase/functions/<name>/index.ts` — Deno edge functions; secrets
+  via `Deno.env.get`, never hardcoded
+- `@/` is the path alias for `src/`
+
+## Coding standards
+
+- TypeScript strict (no `any` unless justified; prefer concrete types
+  from `Database` in `src/integrations/supabase/types.ts`).
+- Use the shared `supabase` client from `@/integrations/supabase/client`.
+- For role checks use `realUser?.role === 'super_admin' && !isImpersonating`
+  (security-critical paths), or `user?.role === 'super_admin'`
+  (UX-only checks). Match existing patterns in `Dashboard.tsx`.
+- Tailwind only — no inline styles unless absolutely necessary.
+- Components return `JSX.Element` with named exports for pages,
+  default export for shadcn components per existing pattern.
+- Hebrew strings live inline in the component (existing convention).
+  Don't introduce an i18n library unless asked.
+
+## Security rules
+
+- Never put secrets (API keys, service-role keys, DB passwords) in
+  source code. They live in `.env.local` (gitignored) for the frontend
+  and in Supabase Edge Function Secrets for backend.
+- Never commit `.env.local`. The `.env.example` template is the
+  contract; update it when new vars are added.
+- All new tables MUST enable RLS and have explicit policies. Reuse
+  the `has_role(auth.uid(), 'super_admin')` SQL helper.
+- For storage uploads, use signed URLs unless the bucket is explicitly
+  public.
+
+## Safe-change workflow
+
+Before making non-trivial changes (>20 lines, schema changes, or
+anything touching multiple files), run:
+
+```
+./scripts/dev-backup.sh "<short reason>"
+```
+
+This creates a timestamped local git branch you can return to. After
+you finish, push to the `dev` branch and open a PR to `production` —
+do NOT push directly to `production` from Cursor.
+
+## What you SHOULD do automatically
+
+- Read existing similar components/pages to match conventions before
+  writing new ones.
+- If asked to add a route, also update both the imports + the route
+  in `src/App.tsx` AND the nav entry in `src/components/BottomNav.tsx`
+  if it's user-facing.
+- When adding a Supabase table, write the migration first, apply to
+  staging via `bun x supabase db push --linked`, then update types.
+- Suggest mobile-responsive Tailwind classes by default (the app is
+  used heavily on phones).
+- Mention which file(s) you changed and why, briefly.
+
+## What you should NOT do
+
+- Push directly to `production` or `main` branch
+- Run `supabase db reset` (destroys data)
+- Hardcode any URL, key, or secret
+- Add new top-level dependencies without saying so first
+- Touch files in `.github/workflows/` without explicit instruction
+- Modify `src/integrations/supabase/types.ts` by hand (regenerate it)
+- Add `console.log` to committed code; remove debug logs before
+  finishing
+
+## Quick reference
+
+- Dev server: `bun run dev` (port 8080, accessible at LAN IP for
+  mobile testing — see `docs/MOBILE_PREVIEW.md`)
+- Build: `bun run build`
+- Lint: `bun run lint`
+- Type check: `bun x tsc --noEmit`
+- Apply migration to staging: `bun x supabase db push --linked`
+  (requires `supabase link --project-ref usfeoerkpcafxxlyuldl` once)
