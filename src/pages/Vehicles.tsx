@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Car, Search, Plus, ArrowRight, Edit2, Phone, Trash2, Truck, Download, PlusCircle, X, Loader2 } from 'lucide-react';
+import { useState, useEffect, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { Car, Search, Plus, ArrowRight, Edit2, Phone, Trash2, Truck, Download, PlusCircle, X, Loader2, Upload } from 'lucide-react';
+import { logVehicleEvent } from '@/lib/vehicleEventLog';
 import { exportToCsv } from '@/utils/exportCsv';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,51 +11,15 @@ import ImageUpload from '@/components/ImageUpload';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import CallCustomerButton from '@/components/voice/CallCustomerButton';
-
-interface GovVehicleData {
-  mispar_rechev: number;
-  tozeret_nm: string;
-  degem_nm: string;
-  kinuy_mishari: string;
-  shnat_yitzur: number;
-  tzeva_rechev: string;
-  sug_delek_nm: string;
-  misgeret: string;
-  baalut: string;
-  tokef_dt: string;
-  mivchan_acharon_dt: string;
-  zmig_kidmi: string;
-  zmig_ahori: string;
-  ramat_gimur: string;
-  degem_manoa: string;
-  moed_aliya_lakvish: string;
-}
-
-async function fetchVehicleFromGov(licensePlate: string): Promise<GovVehicleData | null> {
-  const cleanPlate = licensePlate.replace(/[-\s]/g, '');
-  if (!cleanPlate || cleanPlate.length < 5) return null;
-  
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-  const res = await fetch(
-    `${supabaseUrl}/functions/v1/vehicle-lookup?plate=${encodeURIComponent(cleanPlate)}`,
-    {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${anonKey}`,
-        'apikey': anonKey,
-      },
-    }
-  );
-
-  if (!res.ok) return null;
-  const json = await res.json();
-  if (json.raw) {
-    return json.raw as GovVehicleData;
-  }
-  return null;
-}
+import VehicleHub from '@/components/vehicles/VehicleHub';
+import VehicleAccordionSection from '@/components/vehicles/VehicleAccordionSection';
+import VehicleNewFormDalia from '@/components/vehicles/vehicleNewDalia/VehicleNewFormDalia';
+import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
+import {
+  fetchVehicleFromGov,
+  GovVehicleLookupError,
+  type GovVehicleData,
+} from '@/lib/govVehicleLookup';
 
 interface VehicleRow {
   id: string;
@@ -177,17 +143,46 @@ export default function Vehicles() {
     setEditVehicle(null);
   };
 
-  const handleFormDone = () => {
+  const handleFormDone = async (savedVehicleId?: string) => {
+    await loadData();
+    if (savedVehicleId) {
+      const { data } = await supabase.from('vehicles').select('*').eq('id', savedVehicleId).single();
+      if (data) {
+        setEditVehicle(null);
+        setSelectedVehicle(data as VehicleRow);
+        setViewMode('detail');
+        toast.success('הרכב נפתח בכרטיס החדש');
+        return;
+      }
+    }
     handleBack();
-    loadData();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('האם אתה בטוח שברצונך למחוק רכב זה?')) return;
+    const veh = vehicles.find((x) => x.id === id) || selectedVehicle;
+    const ids = veh ? `${veh.license_plate}${veh.internal_number ? ` · ${veh.internal_number}` : ''}` : '';
+    if (
+      !confirm(
+        `מחיקת רכב לצמיתות${ids ? `\n\n${ids}` : ''}\n\nפעולה זו נפרדת מארכיון ואינה ניתנת לביטול. להמשיך?`,
+      )
+    ) {
+      return;
+    }
     const { error } = await supabase.from('vehicles').delete().eq('id', id);
     if (error) {
       toast.error('שגיאה במחיקת הרכב');
     } else {
+      if (veh) {
+        await logVehicleEvent({
+          vehicleId: id,
+          vehiclePlate: veh.license_plate,
+          companyName: veh.company_name || user?.company_name || '',
+          action: 'מחיקת רכב',
+          details: `${veh.manufacturer} ${veh.model}${veh.internal_number ? ` · ${veh.internal_number}` : ''}`,
+          userId: user?.id,
+          userName: user?.full_name,
+        });
+      }
       toast.success('הרכב נמחק בהצלחה');
       handleFormDone();
     }
@@ -198,9 +193,27 @@ export default function Vehicles() {
     return <VehicleForm vehicle={editVehicle} drivers={drivers} onDone={handleFormDone} onBack={handleBack} user={user} />;
   }
 
-  // === DETAIL VIEW ===
+  const refreshSelectedVehicle = async () => {
+    if (!selectedVehicle) return;
+    const { data } = await supabase.from('vehicles').select('*').eq('id', selectedVehicle.id).single();
+    if (data) setSelectedVehicle(data as VehicleRow);
+    loadData();
+  };
+
+  // === DETAIL VIEW (Vehicle Hub) ===
   if (viewMode === 'detail' && selectedVehicle) {
-    return <VehicleDetail vehicle={selectedVehicle} drivers={drivers} isManager={isManager} onBack={handleBack} onEdit={handleOpenForm} onDelete={handleDelete} getDriverName={getDriverName} />;
+    return (
+      <VehicleHub
+        vehicle={selectedVehicle}
+        drivers={drivers}
+        isManager={isManager}
+        onBack={handleBack}
+        onEdit={handleOpenForm}
+        onDelete={handleDelete}
+        onRefresh={refreshSelectedVehicle}
+        getDriverName={getDriverName}
+      />
+    );
   }
 
   // === LIST VIEW ===
@@ -218,7 +231,15 @@ export default function Vehicles() {
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
         <h1 className="page-header !mb-0 flex items-center gap-3"><Car size={28} /> ניהול רכבים</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {isManager && (
+            <Link
+              to="/vehicle-import"
+              className="flex items-center gap-2 px-4 py-3 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-bold min-h-[48px] hover:bg-primary/10 transition-colors"
+            >
+              <Upload size={18} /> יבוא רכבים
+            </Link>
+          )}
           <button onClick={() => exportToCsv('vehicles', [
             { key: 'license_plate', label: 'מספר רכב' },
             { key: 'manufacturer', label: 'יצרן' },
@@ -337,270 +358,6 @@ export default function Vehicles() {
   );
 }
 
-// === Vehicle Detail Component ===
-function VehicleDetail({ vehicle: v, drivers, isManager, onBack, onEdit, onDelete, getDriverName }: {
-  vehicle: VehicleRow;
-  drivers: DriverRow[];
-  isManager: boolean;
-  onBack: () => void;
-  onEdit: (v: VehicleRow) => void;
-  onDelete: (id: string) => void;
-  getDriverName: (id: string | null) => string;
-}) {
-  const [insuranceHistory, setInsuranceHistory] = useState<InsuranceHistoryRow[]>([]);
-
-  const statusLabel = (s: string) => {
-    switch (s) {
-      case 'active': return { text: 'פעיל', cls: 'status-active' };
-      case 'in_service': return { text: 'בטיפול', cls: 'status-pending' };
-      case 'out_of_service': return { text: 'לא פעיל', cls: 'status-inactive' };
-      default: return { text: s || 'לא ידוע', cls: '' };
-    }
-  };
-
-  const sl = statusLabel(v.status);
-  const driver = drivers.find(d => d.id === v.assigned_driver_id);
-  const showInsurance = v.management_type === 'financial_leasing' || v.management_type === 'self_maintained';
-
-  const daysUntil = (dateStr: string | null) => {
-    if (!dateStr) return null;
-    return Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
-  };
-  const testDays = daysUntil(v.test_expiry);
-  const insDays = daysUntil(v.insurance_expiry);
-  const compDays = daysUntil(v.comprehensive_insurance_expiry);
-  const expiryColor = (days: number | null) => {
-    if (days === null) return '';
-    if (days <= 0) return 'text-destructive font-bold';
-    if (days <= 14) return 'text-warning font-bold';
-    return '';
-  };
-
-  useEffect(() => {
-    if (showInsurance) {
-      supabase
-        .from('vehicle_insurance_history')
-        .select('*')
-        .eq('vehicle_id', v.id)
-        .order('year', { ascending: false })
-        .then(({ data }) => {
-          if (data) setInsuranceHistory(data as InsuranceHistoryRow[]);
-        });
-    }
-  }, [v.id, showInsurance]);
-
-  return (
-    <div className="animate-fade-in">
-      <button onClick={onBack} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
-        <ArrowRight size={20} /> חזרה לרשימה
-      </button>
-
-      <div className="card-elevated mb-4">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">{v.manufacturer} {v.model}</h1>
-            <p className="text-lg text-muted-foreground mt-1">{v.license_plate} • {v.year || ''}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`status-badge ${sl.cls}`}>{sl.text}</span>
-            {isManager && (
-              <button onClick={() => onEdit(v)} className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                <Edit2 size={18} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-y-5 gap-x-4 text-lg">
-          <InfoField label="סוג רכב" value={v.vehicle_type || '—'} />
-          <InfoField label='ק"מ' value={`${(v.odometer || 0).toLocaleString()}`} />
-          <InfoField label="מספר פנימי" value={v.internal_number || '—'} />
-          <InfoField label="חברה" value={v.company_name || '—'} />
-          <InfoField label="נהג משויך" value={getDriverName(v.assigned_driver_id)} />
-          <InfoField label="סוג ניהול" value={
-            v.management_type === 'operational_leasing' ? 'ליסינג תפעולי' :
-            v.management_type === 'financial_leasing' ? 'ליסינג מימוני' :
-            v.management_type === 'self_maintained' ? 'תחזוקה עצמאית' : '—'
-          } />
-        </div>
-
-        {/* Management Type Details */}
-        {v.management_type === 'operational_leasing' && (
-          <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-            <h3 className="font-bold text-primary">🏢 ליסינג תפעולי</h3>
-            <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-              <InfoField label="עלות חודשית" value={v.monthly_leasing_cost ? `₪${v.monthly_leasing_cost.toLocaleString()}` : '—'} />
-              <InfoField label="מועד סיום ליסינג" value={v.leasing_end_date ? new Date(v.leasing_end_date).toLocaleDateString('he-IL') : '—'} />
-              <InfoField label="מועד החזרת הרכב" value={v.vehicle_return_date ? new Date(v.vehicle_return_date).toLocaleDateString('he-IL') : '—'} />
-            </div>
-          </div>
-        )}
-
-        {v.management_type === 'financial_leasing' && (
-          <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-            <h3 className="font-bold text-primary">💳 ליסינג מימוני</h3>
-            <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-              <InfoField label="החזר חודשי" value={v.monthly_loan_payment ? `₪${v.monthly_loan_payment.toLocaleString()}` : '—'} />
-              <InfoField label="תאריך סיום הלוואה" value={v.loan_end_date ? new Date(v.loan_end_date).toLocaleDateString('he-IL') : '—'} />
-              <InfoField label="מועד מתוכנן להחלפה" value={v.planned_replacement_date ? new Date(v.planned_replacement_date).toLocaleDateString('he-IL') : '—'} />
-            </div>
-          </div>
-        )}
-
-        {v.management_type === 'self_maintained' && (
-          <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-            <h3 className="font-bold text-primary">🔧 תחזוקה עצמאית</h3>
-            <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-              <InfoField label="הלוואה" value={v.has_loan ? 'כן' : 'אין'} />
-              {v.has_loan && (
-                <>
-                  <InfoField label="החזר חודשי" value={v.monthly_loan_payment ? `₪${v.monthly_loan_payment.toLocaleString()}` : '—'} />
-                  <InfoField label="תאריך סיום הלוואה" value={v.loan_end_date ? new Date(v.loan_end_date).toLocaleDateString('he-IL') : '—'} />
-                </>
-              )}
-              <InfoField label="מועד מתוכנן להחלפה" value={v.planned_replacement_date ? new Date(v.planned_replacement_date).toLocaleDateString('he-IL') : '—'} />
-            </div>
-          </div>
-        )}
-
-        {/* Driver quick actions */}
-        {driver && (
-          <div className="flex gap-2 mt-4">
-            {driver.phone && (
-              <a href={`tel:${driver.phone}`} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 text-primary font-medium text-sm">
-                <Phone size={16} /> {driver.phone}
-              </a>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Expiry Dates */}
-      <div className="card-elevated mb-4">
-        <h2 className="text-lg font-bold mb-4">תוקף מסמכים</h2>
-        <div className="space-y-3">
-          <ExpiryRow label="טסט" date={v.test_expiry} daysLeft={testDays} colorCls={expiryColor(testDays)} />
-          <ExpiryRow label="ביטוח חובה" date={v.insurance_expiry} daysLeft={insDays} colorCls={expiryColor(insDays)} />
-          <ExpiryRow label="ביטוח מקיף" date={v.comprehensive_insurance_expiry} daysLeft={compDays} colorCls={expiryColor(compDays)} />
-          {v.next_service_date && (() => {
-            const svcDays = daysUntil(v.next_service_date);
-            return <ExpiryRow label="טיפול הבא" date={v.next_service_date} daysLeft={svcDays} colorCls={expiryColor(svcDays)} />;
-          })()}
-        </div>
-      </div>
-
-      {/* Insurance History */}
-      {showInsurance && insuranceHistory.length > 0 && (
-        <div className="card-elevated mb-4">
-          <h2 className="text-lg font-bold mb-4">📊 היסטוריית ביטוחים והדר תביעות</h2>
-          <div className="space-y-3">
-            {insuranceHistory.map((row, i) => (
-              <div key={i} className="border border-border rounded-xl p-3 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-lg">שנת {row.year}</span>
-                  <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${row.has_no_claims ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
-                    {row.has_no_claims ? '✅ הדר תביעות' : 'ללא הדר'}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <InfoField label="חברת ביטוח" value={row.insurer_name || '—'} />
-                  <InfoField label="ביטוח חובה" value={row.mandatory_insurance_cost ? `₪${row.mandatory_insurance_cost.toLocaleString()}` : '—'} />
-                  <InfoField label="ביטוח מקיף" value={row.comprehensive_insurance_cost ? `₪${row.comprehensive_insurance_cost.toLocaleString()}` : '—'} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Documents */}
-      <div className="card-elevated mb-4">
-        <h2 className="text-lg font-bold mb-4">מסמכים</h2>
-        <div className="space-y-2">
-          {v.license_doc_url && <DocLink label="רישיון רכב" url={v.license_doc_url} />}
-          {v.insurance_doc_url && <DocLink label="פוליסת ביטוח חובה" url={v.insurance_doc_url} />}
-          {v.comprehensive_insurance_doc_url && <DocLink label="פוליסת ביטוח מקיף" url={v.comprehensive_insurance_doc_url} />}
-          {!v.license_doc_url && !v.insurance_doc_url && !v.comprehensive_insurance_doc_url && (
-            <p className="text-muted-foreground text-sm">אין מסמכים מצורפים</p>
-          )}
-        </div>
-      </div>
-
-      {/* Transport */}
-      {v.needs_transport && (
-        <div className="card-elevated mb-4">
-          <div className="flex items-center gap-2 text-primary font-bold">
-            <Truck size={20} /> נדרש שינוע
-          </div>
-        </div>
-      )}
-
-      {/* Notes */}
-      {v.notes && (
-        <div className="card-elevated">
-          <h2 className="text-lg font-bold mb-2">הערות</h2>
-          <p className="text-muted-foreground">{v.notes}</p>
-        </div>
-      )}
-
-      {/* Archive / Delete */}
-      {isManager && (
-        <div className="space-y-3 mt-4">
-          {v.status !== 'archived' && (
-            <button onClick={async () => {
-              await supabase.from('vehicles').update({ status: 'archived' }).eq('id', v.id);
-              toast.success('הרכב הועבר לארכיון');
-              onBack();
-            }} className="w-full py-4 rounded-xl border-2 border-warning/30 text-warning font-bold text-lg flex items-center justify-center gap-2 hover:bg-warning/5 transition-colors">
-              📦 העבר לארכיון
-            </button>
-          )}
-          <button onClick={() => onDelete(v.id)} className="w-full py-4 rounded-xl border-2 border-destructive/30 text-destructive font-bold text-lg flex items-center justify-center gap-2 hover:bg-destructive/5 transition-colors">
-            <Trash2 size={20} /> מחק רכב
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-function InfoField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <span className="text-muted-foreground text-sm">{label}</span>
-      <p className="font-bold">{value}</p>
-    </div>
-  );
-}
-
-function DocLink({ label, url }: { label: string; url: string }) {
-  return (
-    <a href={url} target="_blank" rel="noopener noreferrer"
-      className="flex items-center gap-2 py-2 px-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors text-sm font-medium text-primary">
-      📄 {label}
-    </a>
-  );
-}
-
-function ExpiryRow({ label, date, daysLeft, colorCls }: { label: string; date: string | null; daysLeft: number | null; colorCls: string }) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
-      <span className="font-medium">{label}</span>
-      {date ? (
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">{new Date(date).toLocaleDateString('he-IL')}</span>
-          <span className={`text-sm ${colorCls}`}>
-            {daysLeft !== null && (daysLeft <= 0 ? 'פג תוקף!' : `${daysLeft} ימים`)}
-          </span>
-        </div>
-      ) : (
-        <span className="text-sm text-muted-foreground">לא הוגדר</span>
-      )}
-    </div>
-  );
-}
-
 function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div className="flex flex-col gap-0.5">
@@ -610,15 +367,116 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
   );
 }
 
+function VehicleFormSection({
+  n,
+  title,
+  children,
+  defaultOpen = true,
+  saveLabel,
+  onSaveSection,
+  savingScope,
+}: {
+  n: number;
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  saveLabel?: string;
+  onSaveSection?: (section: VehicleFormSectionId) => void;
+  savingScope?: VehicleSaveScope | null;
+}) {
+  return (
+    <VehicleAccordionSection
+      title={`${n}. ${title}`}
+      defaultOpen={defaultOpen}
+      sectionId={`s${n}`}
+    >
+      {children}
+      {saveLabel && onSaveSection && (
+        <button
+          type="button"
+          onClick={() => onSaveSection(n as VehicleFormSectionId)}
+          disabled={!!savingScope}
+          className="w-full mt-4 py-3 rounded-xl text-sm font-bold border-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+        >
+          {savingScope === n ? 'שומר...' : saveLabel}
+        </button>
+      )}
+    </VehicleAccordionSection>
+  );
+}
+
+type VehicleFormSectionId = 1 | 2 | 3 | 4 | 5 | 6;
+type VehicleSaveScope = VehicleFormSectionId | 'full';
+
+const SECTION_SAVE_LABELS: Record<VehicleFormSectionId, string> = {
+  1: 'שמור פרטי רכב',
+  2: 'שמור בעלות ומימון',
+  3: 'שמור ביטוחים ורישיונות',
+  4: 'שמור ציוד וכלים מיוחדים',
+  5: 'שמור טיפולים ותחזוקה',
+  6: 'שמור מסמך',
+};
+
+const SECTION_FIELD_KEYS: Record<VehicleFormSectionId, readonly string[]> = {
+  1: [
+    'license_plate',
+    'internal_number',
+    'manufacturer',
+    'model',
+    'year',
+    'vehicle_type',
+    'status',
+    'odometer',
+    'assigned_driver_id',
+  ],
+  2: [
+    'management_type',
+    'monthly_leasing_cost',
+    'leasing_end_date',
+    'vehicle_return_date',
+    'monthly_loan_payment',
+    'loan_end_date',
+    'planned_replacement_date',
+    'has_loan',
+    'is_leasing',
+  ],
+  3: [
+    'test_expiry',
+    'insurance_start',
+    'insurance_expiry',
+    'comprehensive_insurance_start',
+    'comprehensive_insurance_expiry',
+  ],
+  4: [],
+  5: ['last_service_date', 'next_service_date', 'needs_transport', 'notes'],
+  6: ['license_doc_url', 'insurance_doc_url', 'comprehensive_insurance_doc_url'],
+};
+
 // === Vehicle Form (Add / Edit) ===
 type ManagementType = 'operational_leasing' | 'financial_leasing' | 'self_maintained';
 
-function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
+export function VehicleForm({
+  vehicle,
+  drivers,
+  onDone,
+  onBack,
+  user,
+  previewInitialStep,
+  previewMockGov,
+  previewMode,
+  previewOpenAllSections,
+}: {
   vehicle: VehicleRow | null;
   drivers: DriverRow[];
-  onDone: () => void;
+  onDone: (savedVehicleId?: string) => void;
   onBack: () => void;
   user: any;
+  /** תצוגת dev בלבד */
+  previewInitialStep?: 'intro' | 'full';
+  previewMockGov?: boolean;
+  previewMode?: boolean;
+  /** פותח את כל סעיפי האקורדיון (תצוגת dev / צילומים) */
+  previewOpenAllSections?: boolean;
 }) {
   const isEdit = !!vehicle;
   const [licensePlate, setLicensePlate] = useState(vehicle?.license_plate || '');
@@ -636,6 +494,60 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
   const [govData, setGovData] = useState<GovVehicleData | null>(null);
   const [govDialogOpen, setGovDialogOpen] = useState(false);
   const [govLoading, setGovLoading] = useState(false);
+  const [govDataApplied, setGovDataApplied] = useState(false);
+  const [formStep, setFormStep] = useState<'intro' | 'full'>(
+    isEdit ? 'full' : previewInitialStep || 'intro',
+  );
+
+  useEffect(() => {
+    if (!previewMockGov || isEdit) return;
+    setLicensePlate('12-345-67');
+    setInternalNumber('VH-099');
+    setManufacturer('טויוטה');
+    setModel('קורולה');
+    setYear('2022');
+    setVehicleType('רכב פרטי');
+    setVehicleTypeCustom('');
+    setTestExpiry('2026-08-15');
+    setGovDataApplied(true);
+    setFormStep('full');
+  }, [previewMockGov, isEdit]);
+
+  const showIntro = !isEdit && formStep === 'intro';
+  const showFullForm = isEdit || formStep === 'full';
+
+  const handleCancelFlow = async () => {
+    const hasDraft =
+      !isEdit &&
+      (licensePlate ||
+        internalNumber ||
+        manufacturer ||
+        model ||
+        govDataApplied ||
+        notes);
+    if (hasDraft && !confirm('ביטול פתיחת רכב — השינויים לא יישמרו. להמשיך?')) {
+      return;
+    }
+    if (!isEdit && !previewMode && licensePlate.replace(/[-\s]/g, '')) {
+      await logVehicleEvent({
+        vehiclePlate: licensePlate,
+        companyName: user?.company_name || '',
+        action: 'ביטול פתיחת רכב',
+        details: internalNumber ? `מספר פנימי: ${internalNumber}` : undefined,
+        userId: user?.id,
+        userName: user?.full_name,
+      });
+    }
+    onBack();
+  };
+
+  const goToFullForm = () => {
+    if (!licensePlate.replace(/[-\s]/g, '')) {
+      toast.error('יש להזין מספר רכב לפני המשך');
+      return;
+    }
+    setFormStep('full');
+  };
 
   const handleGovLookup = async () => {
     if (!licensePlate.replace(/[-\s]/g, '')) {
@@ -651,8 +563,10 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
       } else {
         toast.error('לא נמצא רכב עם מספר זה במאגר הממשלתי');
       }
-    } catch {
-      toast.error('שגיאה בחיפוש במאגר הממשלתי');
+    } catch (err) {
+      toast.error(
+        err instanceof GovVehicleLookupError ? err.message : 'שגיאה בחיפוש במאגר הממשלתי',
+      );
     }
     setGovLoading(false);
   };
@@ -662,7 +576,6 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
     if (govData.tozeret_nm) setManufacturer(govData.tozeret_nm.trim());
     if (govData.kinuy_mishari) setModel(govData.kinuy_mishari.trim());
     if (govData.degem_nm) {
-      // Use degem_nm as model if kinuy_mishari is empty
       if (!govData.kinuy_mishari) setModel(govData.degem_nm.trim());
     }
     if (govData.shnat_yitzur) setYear(govData.shnat_yitzur.toString());
@@ -671,9 +584,13 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
         const d = new Date(govData.tokef_dt);
         if (!isNaN(d.getTime())) setTestExpiry(d.toISOString().split('T')[0]);
         else setTestExpiry(govData.tokef_dt);
-      } catch { setTestExpiry(govData.tokef_dt); }
+      } catch {
+        setTestExpiry(govData.tokef_dt);
+      }
     }
+    setGovDataApplied(true);
     setGovDialogOpen(false);
+    if (!isEdit) setFormStep('full');
     toast.success('פרטי הרכב מולאו בהצלחה');
   };
   const [status, setStatus] = useState(vehicle?.status || 'active');
@@ -688,7 +605,8 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
   const [nextServiceDate, setNextServiceDate] = useState(vehicle?.next_service_date || '');
   const [needsTransport, setNeedsTransport] = useState(vehicle?.needs_transport || false);
   const [notes, setNotes] = useState(vehicle?.notes || '');
-  const [loading, setLoading] = useState(false);
+  const [draftVehicleId, setDraftVehicleId] = useState<string | null>(null);
+  const [savingScope, setSavingScope] = useState<VehicleSaveScope | null>(null);
 
   // Management type
   const [managementType, setManagementType] = useState<ManagementType>(
@@ -808,29 +726,22 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
   const allDocsFilled = isEdit || !insuranceDocsRequired || (licenseDocUrl && insuranceDocUrl && compInsDocUrl);
   const isValid = basicFieldsFilled && typeFieldsFilled && allDocsFilled;
 
+  const sectionOpen = (n: number) =>
+    previewOpenAllSections === true || (n === 1 && !isEdit) || (isEdit && n <= 2);
+
   const inputClass = "w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
 
-  const handleSubmit = async () => {
-    if (!isValid) {
-      toast.error('יש למלא את כל השדות ולצרף מסמכים');
-      return;
-    }
-    setLoading(true);
+  const documentContext = {
+    companyName: user?.company_name || '',
+    vehiclePlate: licensePlate,
+    manufacturer,
+    model,
+  };
 
-    // Check if company requires approval
-    let approvalStatus = 'approved';
-    if (!isEdit) {
-      const { data: settings } = await supabase
-        .from('company_settings')
-        .select('vehicle_approval_required')
-        .eq('company_name', user?.company_name || '')
-        .maybeSingle();
-      if (settings?.vehicle_approval_required) {
-        approvalStatus = 'pending_approval';
-      }
-    }
+  const effectiveVehicleId = vehicle?.id ?? draftVehicleId;
+  const hasPersistedVehicle = isEdit || !!draftVehicleId;
 
-    const payload: any = {
+  const buildPayload = (approvalStatus: string) => ({
       license_plate: licensePlate,
       internal_number: internalNumber,
       manufacturer,
@@ -862,54 +773,188 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
       has_loan: managementType === 'self_maintained' ? hasLoan : managementType === 'financial_leasing',
       is_leasing: managementType === 'operational_leasing' || managementType === 'financial_leasing',
       notes,
-    };
+  });
+
+  const pickSectionPayload = (section: VehicleFormSectionId, full: ReturnType<typeof buildPayload>) => {
+    const keys = SECTION_FIELD_KEYS[section];
+    return Object.fromEntries(keys.map((k) => [k, full[k as keyof typeof full]]));
+  };
+
+  const validateSection = (scope: VehicleSaveScope): boolean => {
+    if (scope === 'full') return isValid;
+    if (scope === 1) {
+      if (!licensePlate.replace(/[-\s]/g, '')) {
+        toast.error('יש להזין מספר רכב');
+        return false;
+      }
+      return true;
+    }
+    if (scope === 3 && !testExpiry) {
+      toast.error('יש להזין תוקף טסט');
+      return false;
+    }
+    if (scope === 6 && !isEdit && insuranceDocsRequired && !(licenseDocUrl && insuranceDocUrl && compInsDocUrl)) {
+      toast.error('יש לצרף את כל המסמכים הנדרשים');
+      return false;
+    }
+    if (scope !== 1 && scope !== 'full' && !hasPersistedVehicle) {
+      toast.error('יש לשמור קודם את פרטי הרכב');
+      return false;
+    }
+    return true;
+  };
+
+  const saveInsuranceHistory = async (vehicleId: string) => {
+    if (!showInsuranceSection || insuranceHistory.length === 0) return;
+    await supabase.from('vehicle_insurance_history').delete().eq('vehicle_id', vehicleId);
+    const historyPayload = insuranceHistory.map((row) => ({
+      vehicle_id: vehicleId,
+      year: row.year,
+      has_no_claims: row.has_no_claims,
+      insurer_name: row.insurer_name,
+      mandatory_insurance_cost: row.mandatory_insurance_cost,
+      comprehensive_insurance_cost: row.comprehensive_insurance_cost,
+      company_name: user?.company_name || '',
+    }));
+    await supabase.from('vehicle_insurance_history').insert(historyPayload);
+  };
+
+  const persistVehicle = async (scope: VehicleSaveScope) => {
+    if (scope === 'full' && !isValid) {
+      toast.error('יש למלא את כל השדות ולצרף מסמכים');
+      return;
+    }
+    if (!validateSection(scope)) return;
+    if (previewMode) {
+      toast.info('תצוגת פיתוח — שמירה דרך /vehicles עם התחברות');
+      return;
+    }
+    if (scope === 4) {
+      toast.success('אין שדות נוספים לשמירה בסעיף זה');
+      return;
+    }
+
+    setSavingScope(scope);
+    const wasDraftBeforeSave = hasPersistedVehicle;
+
+    let approvalStatus = vehicle?.approval_status || 'approved';
+    if (!isEdit && !wasDraftBeforeSave) {
+      const { data: settings } = await supabase
+        .from('company_settings')
+        .select('vehicle_approval_required')
+        .eq('company_name', user?.company_name || '')
+        .maybeSingle();
+      if (settings?.vehicle_approval_required) {
+        approvalStatus = 'pending_approval';
+      }
+    }
+
+    const fullPayload = buildPayload(approvalStatus);
+    const payload = scope === 'full' ? fullPayload : pickSectionPayload(scope, fullPayload);
 
     let error;
-    let vehicleId = vehicle?.id;
-    if (isEdit) {
-      ({ error } = await supabase.from('vehicles').update(payload).eq('id', vehicle!.id));
-    } else {
-      const res = await supabase.from('vehicles').insert({
-        ...payload,
-        company_name: user?.company_name || '',
-        created_by: user?.id,
-      }).select('id').single();
+    let vehicleId = effectiveVehicleId;
+
+    if (wasDraftBeforeSave && vehicleId) {
+      ({ error } = await supabase.from('vehicles').update(payload).eq('id', vehicleId));
+    } else if (scope === 1 || scope === 'full') {
+      const res = await supabase
+        .from('vehicles')
+        .insert({
+          ...(scope === 'full' ? fullPayload : payload),
+          company_name: user?.company_name || '',
+          created_by: user?.id,
+        })
+        .select('id')
+        .single();
       error = res.error;
-      vehicleId = res.data?.id;
-    }
-
-    // Save insurance history
-    if (!error && vehicleId && showInsuranceSection && insuranceHistory.length > 0) {
-      // Delete existing and re-insert
-      await supabase.from('vehicle_insurance_history').delete().eq('vehicle_id', vehicleId);
-      const historyPayload = insuranceHistory.map(row => ({
-        vehicle_id: vehicleId!,
-        year: row.year,
-        has_no_claims: row.has_no_claims,
-        insurer_name: row.insurer_name,
-        mandatory_insurance_cost: row.mandatory_insurance_cost,
-        comprehensive_insurance_cost: row.comprehensive_insurance_cost,
-        company_name: user?.company_name || '',
-      }));
-      await supabase.from('vehicle_insurance_history').insert(historyPayload);
-    }
-
-    // Generate alerts for expiring documents
-    if (!error && !isEdit) {
-      await generateVehicleAlerts(licensePlate, user, payload);
-    }
-
-    setLoading(false);
-    if (error) {
-      toast.error(isEdit ? 'שגיאה בעדכון הרכב' : 'שגיאה בהוספת הרכב');
-      console.error(error);
+      vehicleId = res.data?.id ?? null;
+      if (!error && vehicleId && !isEdit) {
+        setDraftVehicleId(vehicleId);
+      }
     } else {
-      const msg = approvalStatus === 'pending_approval'
-        ? 'הרכב נוסף וממתין לאישור מנהל על'
-        : isEdit ? 'הרכב עודכן בהצלחה' : 'הרכב נוסף בהצלחה';
-      toast.success(msg);
-      onDone();
+      setSavingScope(null);
+      toast.error('יש לשמור קודם את פרטי הרכב');
+      return;
     }
+
+    if (!error && vehicleId && (scope === 3 || scope === 'full')) {
+      await saveInsuranceHistory(vehicleId);
+    }
+
+    if (!error && scope === 'full' && !isEdit && !wasDraftBeforeSave) {
+      await generateVehicleAlerts(licensePlate, user, fullPayload);
+    }
+
+    setSavingScope(null);
+
+    if (error) {
+      toast.error(wasDraftBeforeSave ? 'שגיאה בעדכון הרכב' : 'שגיאה בהוספת הרכב');
+      console.error(error);
+      return;
+    }
+
+    if (scope === 'full') {
+      const msg =
+        approvalStatus === 'pending_approval'
+          ? 'הרכב נוסף וממתין לאישור מנהל'
+          : isEdit || wasDraftBeforeSave
+            ? 'הרכב עודכן בהצלחה'
+            : 'הרכב נוסף בהצלחה';
+      toast.success(msg);
+      if (!isEdit && vehicleId) {
+        await logVehicleEvent({
+          vehicleId,
+          vehiclePlate: licensePlate,
+          companyName: user?.company_name || '',
+          action: wasDraftBeforeSave ? 'עדכון רכב' : 'הוספת רכב',
+          details: `${manufacturer} ${model}`,
+          userId: user?.id,
+          userName: user?.full_name,
+        });
+        if (govDataApplied && !wasDraftBeforeSave) {
+          await logVehicleEvent({
+            vehicleId,
+            vehiclePlate: licensePlate,
+            companyName: user?.company_name || '',
+            action: 'משיכת נתונים ממשרד הרישוי',
+            details: 'מילוי אוטומטי בטופס לפני שמירה',
+            userId: user?.id,
+            userName: user?.full_name,
+          });
+        }
+        onDone(vehicleId);
+      } else {
+        if (isEdit && vehicleId) {
+          await logVehicleEvent({
+            vehicleId,
+            vehiclePlate: licensePlate,
+            companyName: user?.company_name || '',
+            action: 'עדכון רכב',
+            details: 'עריכה ב-VehicleForm',
+            userId: user?.id,
+            userName: user?.full_name,
+          });
+        }
+        onDone();
+      }
+      return;
+    }
+
+    toast.success(`${SECTION_SAVE_LABELS[scope]} — נשמר`);
+  };
+
+  const handleSubmit = () => {
+    void persistVehicle('full');
+  };
+
+  const handleSectionSave = (section: VehicleFormSectionId) => {
+    void persistVehicle(section);
+  };
+
+  const sectionSaveProps = {
+    onSaveSection: handleSectionSave,
+    savingScope,
   };
 
   const managementTypeLabels: Record<ManagementType, string> = {
@@ -918,32 +963,19 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
     self_maintained: 'תחזוקה עצמאית',
   };
 
-  return (
-    <div className="animate-fade-in">
-      <button onClick={onBack} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
-        <ArrowRight size={20} /> חזרה
-      </button>
-      <h1 className="text-2xl font-bold mb-6">{isEdit ? 'עריכת רכב' : 'הוספת רכב חדש'}</h1>
-      <div className="space-y-5">
-        {/* Basic info */}
-        <div>
-          <label className="block text-lg font-medium mb-2">מספר רכב (רישוי) *</label>
-          <div className="flex gap-2">
-            <input value={licensePlate} onChange={e => setLicensePlate(e.target.value)} placeholder="12-345-67" className={`${inputClass} flex-1`} dir="ltr" style={{ textAlign: 'right' }} />
-            <Button
-              type="button"
-              onClick={handleGovLookup}
-              disabled={govLoading}
-              variant="outline"
-              className="h-auto px-4 text-lg rounded-xl border-2 whitespace-nowrap"
-            >
-              {govLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5 ml-1" />}
-              שליפה
-            </Button>
-          </div>
-        </div>
+  const handleBackClick = () => {
+    if (isEdit) {
+      if (confirm('לצאת מעריכת הרכב? השינויים לא יישמרו.')) onBack();
+      return;
+    }
+    if (showIntro) {
+      handleCancelFlow();
+      return;
+    }
+    if (confirm('לחזור לשלב 1 (מספר רכב ורישוי)?')) setFormStep('intro');
+  };
 
-        {/* Gov Vehicle Data Dialog */}
+  const govDialog = (
         <Dialog open={govDialogOpen} onOpenChange={setGovDialogOpen}>
           <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto" dir="rtl">
             <DialogHeader>
@@ -981,10 +1013,107 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
             )}
           </DialogContent>
         </Dialog>
-        <div>
-          <label className="block text-lg font-medium mb-2">מספר פנימי</label>
-          <input value={internalNumber} onChange={e => setInternalNumber(e.target.value)} placeholder="מספר פנימי בארגון..." className={inputClass} />
+  );
+
+  const plateInternalFields = (
+    <>
+      <div>
+        <label className="block text-lg font-medium mb-2">מספר רכב (רישוי) *</label>
+        <div className="flex gap-2 flex-wrap">
+          <input
+            value={licensePlate}
+            onChange={(e) => setLicensePlate(e.target.value)}
+            placeholder="12-345-67"
+            className={`${inputClass} flex-1 min-w-[140px]`}
+            dir="ltr"
+            style={{ textAlign: 'right' }}
+          />
+          <Button
+            type="button"
+            onClick={handleGovLookup}
+            disabled={govLoading}
+            variant="outline"
+            className="h-auto px-4 text-lg rounded-xl border-2 whitespace-nowrap"
+          >
+            {govLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5 ml-1" />}
+            משרד הרישוי / התחבורה
+          </Button>
         </div>
+      </div>
+      <div>
+        <label className="block text-lg font-medium mb-2">מספר פנימי</label>
+        <input
+          value={internalNumber}
+          onChange={(e) => setInternalNumber(e.target.value)}
+          placeholder="מספר פנימי בארגון..."
+          className={inputClass}
+        />
+      </div>
+    </>
+  );
+
+  return (
+    <div className={`animate-fade-in ${showFullForm && !isEdit ? 'pb-8' : ''}`}>
+      {govDialog}
+
+      {showIntro && (
+        <>
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <button type="button" onClick={() => void handleCancelFlow()} className="flex items-center gap-2 text-primary text-lg font-medium min-h-[48px]">
+              <ArrowRight size={20} /> ביטול
+            </button>
+          </div>
+          <h1 className="text-2xl font-bold mb-2">הוספת רכב חדש</h1>
+          <div className="card-elevated p-4 mb-6 border-primary/30 bg-primary/5">
+            <p className="text-sm font-bold text-primary mb-1">שלב 1 — מספר רכב ורישוי</p>
+            <p className="text-sm text-muted-foreground">אחרי המשך — טופס פתיחת רכב חדש (תצוגת UI · כל השדות מקוד Claude).</p>
+          </div>
+          <div className="space-y-5 card-elevated p-4">
+          {plateInternalFields}
+          <Button type="button" onClick={goToFullForm} className="w-full py-5 text-xl font-bold">
+            המשך לטופס המלא →
+          </Button>
+          <Link
+            to="/vehicle-import"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-border font-bold text-primary"
+          >
+            <Upload size={18} /> יבוא רכבים
+          </Link>
+          <button type="button" onClick={() => void handleCancelFlow()} className="w-full py-3 text-destructive font-bold">
+            ביטול פתיחת רכב
+          </button>
+        </div>
+        </>
+      )}
+
+      {showFullForm && !isEdit && (
+        <VehicleNewFormDalia
+          initialPlate={licensePlate}
+          initialInternal={internalNumber}
+          initialGovData={govDataApplied && govData ? govData : null}
+          onBackToStep1={() => setFormStep('intro')}
+          onCancel={() => void handleCancelFlow()}
+          onGovFetched={(data) => {
+            setGovData(data);
+            setGovDataApplied(true);
+          }}
+          showPreviewBanner
+        />
+      )}
+
+      {showFullForm && isEdit && (
+      <div className="space-y-4">
+          <button type="button" onClick={handleBackClick} className="flex items-center gap-2 text-primary text-lg font-medium mb-2 min-h-[48px]">
+            <ArrowRight size={20} /> חזרה
+          </button>
+        <div className="card-elevated overflow-hidden">
+          <div className="p-3 border-b border-border bg-primary/5">
+            <p className="text-sm text-muted-foreground">
+                <>עריכת רכב — כל השדות</>
+            </p>
+          </div>
+        <VehicleFormSection n={1} title="פרטי רכב" defaultOpen={sectionOpen(1)} saveLabel={SECTION_SAVE_LABELS[1]} {...sectionSaveProps}>
+        {plateInternalFields}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-lg font-medium mb-2">יצרן</label>
@@ -1043,9 +1172,9 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
             {drivers.map(d => <option key={d.id} value={d.id}>{d.full_name}</option>)}
           </select>
         </div>
+        </VehicleFormSection>
 
-        {/* === Management Type Selection === */}
-        <div className="border-t border-border pt-5">
+        <VehicleFormSection n={2} title="בעלות, ליסינג ומימון" defaultOpen={sectionOpen(2)} saveLabel={SECTION_SAVE_LABELS[2]} {...sectionSaveProps}>
           <h2 className="text-xl font-bold mb-4">📋 סוג ניהול רכב</h2>
           <div className="grid grid-cols-1 gap-3">
             {(Object.keys(managementTypeLabels) as ManagementType[]).map(type => (
@@ -1064,7 +1193,6 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
               </button>
             ))}
           </div>
-        </div>
 
         {/* === Conditional Fields by Management Type === */}
         {managementType === 'operational_leasing' && (
@@ -1134,15 +1262,13 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
             </div>
           </div>
         )}
+        </VehicleFormSection>
 
-        {/* === Expiry & Insurance Section === */}
-        <div className="border-t border-border pt-5">
-          <h2 className="text-xl font-bold mb-4">📋 תוקף מסמכים</h2>
+        <VehicleFormSection n={3} title="ביטוחים ורישיונות" defaultOpen={sectionOpen(3)} saveLabel={SECTION_SAVE_LABELS[3]} {...sectionSaveProps}>
           <div>
             <label className="block text-lg font-medium mb-2">תוקף טסט (רישוי) *</label>
             <input type="date" value={testExpiry} onChange={e => setTestExpiry(e.target.value)} className={inputClass} />
           </div>
-        </div>
 
         {/* Insurance */}
         <div className="border border-border rounded-xl p-4 space-y-4">
@@ -1169,20 +1295,6 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
             <div>
               <label className="block text-sm font-medium mb-1">תאריך תוקף</label>
               <input type="date" value={compInsExpiry} onChange={e => setCompInsExpiry(e.target.value)} className={inputClass} />
-            </div>
-          </div>
-        </div>
-
-        <div className="border border-border rounded-xl p-4 space-y-4">
-          <h3 className="font-bold text-lg">🔧 טיפול</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">טיפול אחרון</label>
-              <input type="date" value={lastServiceDate} onChange={e => setLastServiceDate(e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">טיפול הבא</label>
-              <input type="date" value={nextServiceDate} onChange={e => setNextServiceDate(e.target.value)} className={inputClass} />
             </div>
           </div>
         </div>
@@ -1270,40 +1382,27 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
           </div>
         )}
 
-        {/* === Document Uploads === */}
-        <div className="border-t border-border pt-5">
-          <h2 className="text-xl font-bold mb-4">📎 מסמכים {!isEdit && insuranceDocsRequired && <span className="text-destructive text-sm">(חובה)</span>}</h2>
-          <div className="space-y-4">
-            <ImageUpload
-              label="צילום רישיון רכב"
-              required={!isEdit && insuranceDocsRequired}
-              imageUrl={licenseDocUrl || null}
-              onImageUploaded={(url) => setLicenseDocUrl(url || '')}
-              folder="vehicle-docs"
-              acceptPdf
-            />
-            <ImageUpload
-              label="פוליסת ביטוח חובה"
-              required={!isEdit && insuranceDocsRequired}
-              imageUrl={insuranceDocUrl || null}
-              onImageUploaded={(url) => setInsuranceDocUrl(url || '')}
-              folder="vehicle-docs"
-              acceptPdf
-            />
-            <ImageUpload
-              label="פוליסת ביטוח מקיף"
-              required={!isEdit && insuranceDocsRequired}
-              imageUrl={compInsDocUrl || null}
-              onImageUploaded={(url) => setCompInsDocUrl(url || '')}
-              folder="vehicle-docs"
-              acceptPdf
-            />
-          </div>
-        </div>
+        </VehicleFormSection>
 
-        {/* Transport */}
-        <div className="border-t border-border pt-5">
-          <h2 className="text-xl font-bold mb-4">🚛 שינוע</h2>
+        <VehicleFormSection n={4} title="ציוד וכלים מיוחדים" defaultOpen={sectionOpen(4)} saveLabel={SECTION_SAVE_LABELS[4]} {...sectionSaveProps}>
+          <p className="text-sm text-muted-foreground">
+            אין שדה ייעודי בטבלת vehicles. ציוד נוסף נרשם בהחלפות רכב (vehicle_exchanges.extra_equipment) — לאחר שמירת הרכב.
+          </p>
+        </VehicleFormSection>
+
+        <VehicleFormSection n={5} title="טיפולים ותחזוקה" defaultOpen={sectionOpen(5)} saveLabel={SECTION_SAVE_LABELS[5]} {...sectionSaveProps}>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">טיפול אחרון</label>
+              <input type="date" value={lastServiceDate} onChange={e => setLastServiceDate(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">טיפול הבא</label>
+              <input type="date" value={nextServiceDate} onChange={e => setNextServiceDate(e.target.value)} className={inputClass} />
+            </div>
+          </div>
+          <div className="pt-2">
+          <p className="font-bold text-lg mb-2">🚛 שינוע</p>
           <div className="flex gap-3">
             <button type="button" onClick={() => setNeedsTransport(false)}
               className={`flex-1 py-3 rounded-xl text-lg font-medium transition-colors ${!needsTransport ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
@@ -1314,12 +1413,48 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
               צריך שינוע
             </button>
           </div>
-        </div>
+          </div>
 
-        {/* Notes */}
         <div>
           <label className="block text-lg font-medium mb-2">הערות</label>
           <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="הערות..." className={`${inputClass} resize-none`} />
+        </div>
+        </VehicleFormSection>
+
+        <VehicleFormSection n={6} title="מסמכים וקבצים" defaultOpen={sectionOpen(6)} saveLabel={SECTION_SAVE_LABELS[6]} {...sectionSaveProps}>
+          <div className="space-y-4">
+            <ImageUpload
+              label="צילום רישיון רכב"
+              required={!isEdit && insuranceDocsRequired}
+              imageUrl={licenseDocUrl || null}
+              onImageUploaded={(url) => setLicenseDocUrl(url || '')}
+              folder="vehicle-docs"
+              acceptPdf
+              documentCategory="vehicle-license"
+              documentContext={documentContext}
+            />
+            <ImageUpload
+              label="פוליסת ביטוח חובה"
+              required={!isEdit && insuranceDocsRequired}
+              imageUrl={insuranceDocUrl || null}
+              onImageUploaded={(url) => setInsuranceDocUrl(url || '')}
+              folder="vehicle-docs"
+              acceptPdf
+              documentCategory="insurance"
+              documentContext={documentContext}
+            />
+            <ImageUpload
+              label="פוליסת ביטוח מקיף"
+              required={!isEdit && insuranceDocsRequired}
+              imageUrl={compInsDocUrl || null}
+              onImageUploaded={(url) => setCompInsDocUrl(url || '')}
+              folder="vehicle-docs"
+              acceptPdf
+              documentCategory="comprehensive"
+              documentContext={documentContext}
+            />
+          </div>
+        </VehicleFormSection>
         </div>
 
         {/* Validation summary */}
@@ -1333,11 +1468,20 @@ function VehicleForm({ vehicle, drivers, onDone, onBack, user }: {
           </div>
         )}
 
-        <button onClick={handleSubmit} disabled={!isValid || loading}
-          className={`w-full py-5 rounded-xl text-xl font-bold transition-colors ${isValid && !loading ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground cursor-not-allowed'}`}>
-          {loading ? 'שומר...' : isEdit ? '💾 עדכן רכב' : '💾 שמור רכב'}
+        <button onClick={handleSubmit} disabled={!isValid || !!savingScope}
+          className={`w-full py-5 rounded-xl text-xl font-bold transition-colors ${isValid && !savingScope ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground cursor-not-allowed'}`}>
+          {savingScope === 'full' ? 'שומר...' : isEdit ? '💾 עדכן רכב' : '💾 שמור רכב'}
         </button>
+        {!isEdit && (
+          <Link
+            to="/vehicle-import"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-border font-bold text-primary mt-2"
+          >
+            <Upload size={18} /> יבוא רכבים
+          </Link>
+        )}
       </div>
+      )}
     </div>
   );
 }

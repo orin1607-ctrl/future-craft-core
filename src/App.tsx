@@ -44,6 +44,13 @@ import VehicleImport from "@/pages/VehicleImport";
 import PrivateVehicleInspection from "@/pages/PrivateVehicleInspection";
 import VehicleLookup from "@/pages/VehicleLookup";
 import VehicleExchange from "@/pages/VehicleExchange";
+import DevVehicleHubPreview from "@/pages/DevVehicleHubPreview";
+import DevVehicleFlowsPreview from "@/pages/DevVehicleFlowsPreview";
+import DevVehicleNewFormPreview from "@/pages/DevVehicleNewFormPreview";
+import DevVehicleNewFormFullPreview from "@/pages/DevVehicleNewFormFullPreview";
+import DevVehicleNewStep2Vision from "@/pages/DevVehicleNewStep2Vision";
+import DevVehicleNewFormDalia from "@/pages/DevVehicleNewFormDalia";
+import DevVehicleFormLive from "@/pages/DevVehicleFormLive";
 
 // New pages
 import Companions from "@/pages/Companions";
@@ -86,6 +93,14 @@ function AppRoutes() {
   if (!isAuthenticated) {
     return (
       <Routes>
+        <Route path="/dev/vehicle-card" element={<DevVehicleHubPreview />} />
+        <Route path="/dev/vehicle-flows" element={<DevVehicleFlowsPreview />} />
+        <Route path="/dev/vehicle-new-form" element={<DevVehicleNewFormPreview />} />
+        <Route path="/dev/vehicle-new-form-full" element={<DevVehicleNewFormFullPreview />} />
+        <Route path="/dev/vehicle-new-step2-vision" element={<DevVehicleNewStep2Vision />} />
+        <Route path="/dev/vehicle-new-dalia" element={<DevVehicleNewFormDalia />} />
+        <Route path="/dev/vehicle-form-live" element={<DevVehicleFormLive />} />
+        <Route path="/dev/vehicle-form-live/full" element={<DevVehicleFormLive initialStep="full" mockGov openAllSections />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -99,6 +114,13 @@ function AppRoutes() {
 
   return (
     <Routes>
+      <Route path="/dev/vehicle-card" element={<DevVehicleHubPreview />} />
+      <Route path="/dev/vehicle-flows" element={<DevVehicleFlowsPreview />} />
+      <Route path="/dev/vehicle-new-form" element={<DevVehicleNewFormPreview />} />
+      <Route path="/dev/vehicle-new-form-full" element={<DevVehicleNewFormFullPreview />} />
+      <Route path="/dev/vehicle-new-step2-vision" element={<DevVehicleNewStep2Vision />} />
+      <Route path="/dev/vehicle-form-live" element={<DevVehicleFormLive />} />
+      <Route path="/dev/vehicle-form-live/full" element={<DevVehicleFormLive initialStep="full" mockGov openAllSections />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route element={<Layout />}>
