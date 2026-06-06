@@ -17,8 +17,7 @@ name: Deploy Staging to GitHub Pages
 on:
   workflow_dispatch: {}
   push:
-    branches: [production]
-
+    branches: [main]
 permissions:
   contents: read
   pages: write
