@@ -16,7 +16,6 @@ name: Deploy Staging to GitHub Pages
 
 on:
   workflow_dispatch: {}
-
 permissions:
   contents: read
   pages: write
@@ -36,7 +35,7 @@ jobs:
       - name: Checkout production branch
         uses: actions/checkout@v4
         with:
-          ref: production
+          ref: dev
           fetch-depth: 1
 
       - name: Setup Bun
