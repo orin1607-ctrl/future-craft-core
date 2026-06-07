@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -41,6 +43,7 @@ const getDaysSince = (dateStr: string) => {
 export default function VehicleTasks() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const { plate: contextPlate, locked, clearContext } = useVehicleUrlContext();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('open');
@@ -64,8 +67,12 @@ export default function VehicleTasks() {
 
   useEffect(() => { loadTasks(); }, []);
 
+  useEffect(() => {
+    if (contextPlate) setSearch(contextPlate);
+  }, [contextPlate]);
+
   const filtered = tasks.filter(t => {
-    const matchSearch = !search || t.vehicle_plate?.includes(search) || t.title?.includes(search) || t.description?.includes(search);
+    const matchSearch = !search || plateMatches(t.vehicle_plate, search) || t.title?.includes(search) || t.description?.includes(search);
     const matchStatus = statusFilter === 'all' || t.status === statusFilter;
     const matchFollowUp = !followUpOnly || t.requires_follow_up;
     
@@ -179,9 +186,14 @@ export default function VehicleTasks() {
       </h1>
       <p className="text-muted-foreground mb-4 -mt-2">ליקויים שנמצאו בביקורות רכב — מעקב וטיפול</p>
 
+      {locked && contextPlate && (
+        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={() => { clearContext(); setSearch(''); }} />
+      )}
+
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לפי מספר רכב, ליקוי או תיאור..."
+          disabled={locked && !!contextPlate}
           className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none" />
       </div>
 

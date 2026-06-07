@@ -18,6 +18,11 @@ import {
   mapGovDataToNewFormFields,
   type GovVehicleData,
 } from '@/lib/govVehicleLookup';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  collectDaliaFormValues,
+  persistDaliaVehicle,
+} from '@/lib/daliaVehiclePersist';
 
 export type DaliaDoc = {
   category: string;
@@ -57,6 +62,10 @@ export type VehicleNewFormDaliaProps = {
   /** אם כבר נמשכו נתונים בשלב 1 — ממלא את הטופס בכניסה */
   initialGovData?: GovVehicleData | null;
   showPreviewBanner?: boolean;
+  /** לאחר שמירה מוצלחת ל-Supabase — מזהה רכב */
+  onSaved?: (vehicleId: string) => void;
+  /** תצוגת dev בלבד — ללא שמירה ל-DB */
+  previewMode?: boolean;
 };
 
 export default function VehicleNewFormDalia(props: VehicleNewFormDaliaProps) {
@@ -87,13 +96,17 @@ function VehicleNewFormDaliaInner({
   onCancel,
   onGovFetched,
   showPreviewBanner = true,
+  onSaved,
+  previewMode = false,
 }: VehicleNewFormDaliaProps) {
-  const { getValue, setValue, setValues } = useDaliaFormValuesRequired();
+  const { user } = useAuth();
+  const { getValue, setValue, setValues, values } = useDaliaFormValuesRequired();
   const formRef = useRef<HTMLFormElement>(null);
   const [openSecs, setOpenSecs] = useState<Record<string, boolean>>({ sec1: true });
   const [activeStep, setActiveStep] = useState('1');
   const [route, setRoute] = useState('');
-  const [saveMsg, setSaveMsg] = useState('מוכן להזנת רכב חדש · תצוגת UI בלבד');
+  const [saveMsg, setSaveMsg] = useState('מוכן להזנת רכב חדש');
+  const [saving, setSaving] = useState(false);
   const [sectionSaved, setSectionSaved] = useState<Record<number, boolean>>({});
   const [docs, setDocs] = useState<DaliaDoc[]>([]);
   const [editingDocIndex, setEditingDocIndex] = useState<number | null>(null);
@@ -186,26 +199,53 @@ function VehicleNewFormDaliaInner({
   const saveSection = (n: number) => {
     setSectionSaved((p) => ({ ...p, [n]: true }));
     const label = SECTION_SAVE_LABELS[n] || `סעיף ${n}`;
-    setSaveMsg(`${label} — נשמר זמנית בתצוגה (לא ב-DB)`);
-    toast.info(`${label} — תצוגת UI בלבד, ללא שמירה ל-Supabase`);
+    setSaveMsg(`${label} — סומן; שמירה סופית בלחיצה על "שמור רכב"`);
+    toast.info(`${label} — יישמר עם שמירת הרכב המלאה`);
   };
 
-  const saveVehicle = () => {
-    const fd = new FormData(formRef.current!);
-    const plate = (fd.get('vehicle_plate') as string) || getValue('vehicle_plate');
-    if (!plate?.trim()) {
+  const saveVehicle = async () => {
+    if (previewMode) {
+      toast.info('תצוגת פיתוח — שמירה דרך /vehicles עם התחברות');
+      return;
+    }
+    if (!user) {
+      toast.error('יש להתחבר כדי לשמור רכב');
+      return;
+    }
+    const fd = formRef.current ? new FormData(formRef.current) : null;
+    const allValues = collectDaliaFormValues(values, fd);
+    const plate = (allValues.vehicle_plate || '').replace(/[-\s]/g, '');
+    if (!plate) {
       toast.error('חסר מספר רכב');
       goSec('sec1', '1');
       return;
     }
-    console.log('[VehicleNewFormDalia] UI preview collect', {
-      sections: sectionSaved,
-      docs,
-      departments: deptList,
-      createdAt: new Date().toISOString(),
-    });
-    setSaveMsg('הנתונים נאספו בתצוגה — חיבור ל-DB לאחר אישור');
-    toast.success('תצוגת UI בלבד — שמירה אמיתית תחובר לאחר אישור Supabase');
+    setSaving(true);
+    try {
+      const { id } = await persistDaliaVehicle({
+        allValues,
+        extras: {
+          docs,
+          departments: deptList,
+          route,
+          maintMethod,
+          sectionSaved,
+        },
+        user: {
+          id: user.id,
+          company_name: user.company_name,
+          full_name: user.full_name,
+        },
+      });
+      setSaveMsg(`הרכב ${plate} נשמר בהצלחה ב-dalia-staging`);
+      toast.success('הרכב נשמר בהצלחה');
+      onSaved?.(id);
+    } catch (err) {
+      console.error('[VehicleNewFormDalia] save', err);
+      toast.error('שגיאה בשמירת הרכב — ' + ((err as Error).message || 'נסה שוב'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const buildSummary = () => {
@@ -265,8 +305,10 @@ function VehicleNewFormDaliaInner({
     <div className="vehicle-new-dalia pb-28">
       {showPreviewBanner && (
         <div className="d-preview-banner">
-          <strong>תצוגת UI בלבד</strong> — כל השדות מקוד Claude נשארים. אין Migration · אין שמירה ל-Supabase · כרטיס
-          הרכב הקיים לא השתנה.
+          <strong>{previewMode ? 'תצוגת פיתוח' : 'פתיחת רכב חדש'}</strong>
+          {previewMode
+            ? ' — אין שמירה ל-Supabase'
+            : ' — שמירה ל-dalia-staging (vehicles + import_buffer)'}
         </div>
       )}
 
@@ -646,8 +688,8 @@ function VehicleNewFormDaliaInner({
                 <button type="button" className="d-btn" onClick={buildSummary}>
                   בדוק נתונים
                 </button>
-                <button type="button" className="d-btn primary" onClick={saveVehicle}>
-                  שמור רכב חדש
+                <button type="button" className="d-btn primary" onClick={() => void saveVehicle()} disabled={saving}>
+                  {saving ? 'שומר...' : 'שמור רכב חדש'}
                 </button>
               </div>
             </div>
@@ -660,8 +702,8 @@ function VehicleNewFormDaliaInner({
             <button type="button" className="d-btn" onClick={onCancel}>
               ביטול
             </button>
-            <button type="button" className="d-btn primary" onClick={saveVehicle}>
-              שמור רכב חדש
+            <button type="button" className="d-btn primary" onClick={() => void saveVehicle()} disabled={saving}>
+              {saving ? 'שומר...' : 'שמור רכב חדש'}
             </button>
           </div>
         </div>

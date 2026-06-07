@@ -7,6 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { useDriverVehicle } from '@/hooks/useDriverVehicle';
 import MultiImageUpload from '@/components/MultiImageUpload';
+import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
 
 interface AccidentRow {
   id: string;
@@ -34,8 +36,10 @@ type ViewMode = 'list' | 'detail' | 'form';
 export default function Accidents() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const { plate: contextPlate, action: contextAction, locked, clearContext } = useVehicleUrlContext();
   const [accidents, setAccidents] = useState<AccidentRow[]>([]);
   const [search, setSearch] = useState('');
+  const [initialVehiclePlate, setInitialVehiclePlate] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selected, setSelected] = useState<AccidentRow | null>(null);
@@ -51,10 +55,21 @@ export default function Accidents() {
 
   useEffect(() => { loadAccidents(); }, []);
 
+  useEffect(() => {
+    if (contextPlate) {
+      setSearch(contextPlate);
+      setInitialVehiclePlate(contextPlate);
+    }
+    if (contextAction === 'new') {
+      setEditItem(null);
+      setViewMode('form');
+    }
+  }, [contextPlate, contextAction]);
+
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
   const filtered = accidents.filter(a => {
-    const matchSearch = !search || a.driver_name?.includes(search) || a.vehicle_plate?.includes(search) || a.description?.includes(search);
+    const matchSearch = !search || a.driver_name?.includes(search) || plateMatches(a.vehicle_plate, search) || a.description?.includes(search);
     const matchStatus = !filterStatus || a.status === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -65,7 +80,7 @@ export default function Accidents() {
   };
 
   if (viewMode === 'form') {
-    return <AccidentForm accident={editItem} onDone={() => { setViewMode('list'); setEditItem(null); loadAccidents(); }} onBack={() => { setViewMode('list'); setEditItem(null); }} user={user} />;
+    return <AccidentForm accident={editItem} initialVehiclePlate={initialVehiclePlate} onDone={() => { setViewMode('list'); setEditItem(null); loadAccidents(); }} onBack={() => { setViewMode('list'); setEditItem(null); }} user={user} />;
   }
 
   if (viewMode === 'detail' && selected) {
@@ -196,9 +211,13 @@ export default function Accidents() {
           </button>
         </div>
       </div>
+      {locked && contextPlate && (
+        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={() => { clearContext(); setSearch(''); }} />
+      )}
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש..." className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש..." className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none"
+          disabled={locked && !!contextPlate} />
       </div>
       <div className="flex gap-2 mb-5 flex-wrap">
         {(['', 'open', 'in_progress', 'closed'] as const).map(key => (
@@ -244,11 +263,11 @@ export default function Accidents() {
   );
 }
 
-function AccidentForm({ accident, onDone, onBack, user }: { accident: AccidentRow | null; onDone: () => void; onBack: () => void; user: any }) {
+function AccidentForm({ accident, initialVehiclePlate = '', onDone, onBack, user }: { accident: AccidentRow | null; initialVehiclePlate?: string; onDone: () => void; onBack: () => void; user: any }) {
   const isEdit = !!accident;
   const { vehicle, isDriver } = useDriverVehicle();
   
-  const [vehiclePlate, setVehiclePlate] = useState(accident?.vehicle_plate || '');
+  const [vehiclePlate, setVehiclePlate] = useState(accident?.vehicle_plate || initialVehiclePlate);
   const [driverName, setDriverName] = useState(accident?.driver_name || user?.full_name || '');
   const [location, setLocation] = useState(accident?.location || '');
   const [description, setDescription] = useState(accident?.description || '');

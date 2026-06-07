@@ -1,0 +1,343 @@
+/**
+ * Dalia form → vehicles table persistence (dalia-staging).
+ * Maps direct columns + packs overflow into JSON/text columns.
+ */
+import { supabase } from '@/integrations/supabase/client';
+import { logVehicleEvent } from '@/lib/vehicleEventLog';
+import type { DaliaDoc } from '@/components/vehicles/vehicleNewDalia/VehicleNewFormDalia';
+
+export type DaliaPersistExtras = {
+  docs: DaliaDoc[];
+  departments: string[];
+  route: string;
+  maintMethod: string;
+  sectionSaved: Record<number, boolean>;
+};
+
+/** Direct form field → vehicles column */
+const DIRECT_COLUMN_MAP: Record<string, string> = {
+  vehicle_plate: 'license_plate',
+  internal_number: 'internal_number',
+  manufacturer: 'manufacturer',
+  model: 'model',
+  year: 'year',
+  vehicle_type: 'vehicle_type',
+  vehicle_nickname: 'nickname',
+  fuel_type: 'fuel_type',
+  vin: 'vin',
+  engine_number: 'engine_number',
+  ownership_type_text: 'ownership_type',
+  vehicle_segment: 'segment',
+  road_date: 'road_entry_date',
+  last_test: 'last_test_date',
+  next_test: 'test_expiry',
+  current_km: 'odometer',
+  department: 'department',
+  work_site: 'work_site',
+  usage_type: 'usage_type',
+  current_location: 'current_location',
+  vehicle_supervisor: 'vehicle_manager',
+  vehicle_status: 'status',
+  company: 'company_name',
+  last_service: 'last_service_date',
+  next_service: 'next_service_date',
+  next_service_km: 'next_service_km',
+  maintenance_method: 'maintenance_method',
+  service_type: 'service_type',
+  service_notes: 'service_notes',
+  inspection_date: 'last_inspection_date',
+  purchase_date: 'sale_date',
+  horse_power: 'horsepower',
+  engine_volume: 'engine_volume',
+  weight: 'weight_tons',
+  weight_ton: 'weight_tons',
+  kva: 'kva',
+  equipment_serial: 'equipment_serial',
+  meter_type: 'meter_type',
+  meter_update_date: 'meter_updated_at',
+  maintenance_engine_hours: 'engine_hours',
+  next_service_engine_hours: 'next_service_hours',
+  equipment_engine_hours: 'engine_hours',
+  dedicated_equipment: 'equipment_type',
+  dedicated_equipment_details: 'equipment_details',
+  special_type: 'equipment_type',
+  equipment_notes: 'equipment_details',
+  ownership_route: 'finance_track',
+  other_route_notes: 'finance_details',
+  maint_notes: 'maintenance_details',
+  test_status: 'test_status',
+  alert_status: 'service_status',
+  license_link: 'license_doc_url',
+  mandatory_insurance_start: 'insurance_start',
+  mandatory_insurance_end: 'insurance_expiry',
+  mandatory_insurance_doc_link: 'insurance_doc_url',
+  mandatory_insurance_cost: 'insurance_cost',
+  mandatory_insurance_company: 'insurance_company',
+  mandatory_insurance_agent: 'insurance_agent',
+  comprehensive_insurance_start: 'comprehensive_insurance_start',
+  comprehensive_insurance_end: 'comprehensive_insurance_expiry',
+  comprehensive_insurance_doc_link: 'comprehensive_insurance_doc_url',
+  op_monthly_cost: 'monthly_leasing_cost',
+  op_end: 'leasing_end_date',
+  fl_monthly_cost: 'monthly_loan_payment',
+  fl_end: 'loan_end_date',
+  rent_end: 'vehicle_return_date',
+  manager_reminder: 'manager_report',
+  lifting_reminder: 'lifting_report',
+  manager_reminder_date: 'next_inspection_date',
+  lifting_reminder_date: 'repeat_inspection_date',
+  dedicated_equipment_validity: 'special_equipment_expiry',
+  dedicated_equipment_validity_date: 'special_equipment_expiry',
+  accessories_validity: 'inspections_certificates',
+  accessories_validity_date: 'inspections_certificates',
+  location_assignment: 'work_site',
+  work_area: 'department',
+};
+
+const ROUTE_TO_MANAGEMENT: Record<string, string> = {
+  'ליסינג תפעולי': 'operational_leasing',
+  'ליסינג מימוני': 'financial_leasing',
+  'הלוואה / מימון': 'financial_leasing',
+  'תחזוקה עצמאית': 'self_maintained',
+  'שירות ותחזוקה': 'self_maintained',
+  'בעלות חברה': 'self_maintained',
+  'בעלות פרטית': 'self_maintained',
+  השכרה: 'operational_leasing',
+  אחר: 'self_maintained',
+};
+
+const STATUS_HE_TO_EN: Record<string, string> = {
+  פעיל: 'active',
+  'בטיפול': 'in_service',
+  'לא פעיל': 'out_of_service',
+  ארכיון: 'archived',
+};
+
+const NUMERIC_COLUMNS = new Set([
+  'year',
+  'odometer',
+  'next_service_km',
+  'horsepower',
+  'engine_volume',
+  'weight_tons',
+  'kva',
+  'engine_hours',
+  'next_service_hours',
+  'insurance_cost',
+  'monthly_leasing_cost',
+  'monthly_loan_payment',
+]);
+
+const DATE_COLUMNS = new Set([
+  'test_expiry',
+  'insurance_start',
+  'insurance_expiry',
+  'comprehensive_insurance_start',
+  'comprehensive_insurance_expiry',
+  'last_service_date',
+  'next_service_date',
+  'road_entry_date',
+  'last_test_date',
+  'last_inspection_date',
+  'next_inspection_date',
+  'repeat_inspection_date',
+  'sale_date',
+  'leasing_end_date',
+  'loan_end_date',
+  'vehicle_return_date',
+  'special_equipment_expiry',
+  'meter_updated_at',
+]);
+
+function normValue(column: string, raw: string): unknown {
+  const v = raw.trim();
+  if (!v) return null;
+  if (column === 'status') return STATUS_HE_TO_EN[v] || v;
+  if (NUMERIC_COLUMNS.has(column)) {
+    const n = parseFloat(v.replace(/,/g, ''));
+    return Number.isFinite(n) ? n : null;
+  }
+  if (DATE_COLUMNS.has(column)) return v;
+  return v;
+}
+
+/** Merge React context values + FormData (checkboxes, file names). */
+export function collectDaliaFormValues(
+  contextValues: Record<string, string>,
+  formData?: FormData | null,
+): Record<string, string> {
+  const out = { ...contextValues };
+  if (!formData) return out;
+  for (const [key, val] of formData.entries()) {
+    if (typeof val !== 'string') continue;
+    if (val !== '') out[key] = val;
+  }
+  for (const name of [
+    'coverage_glass',
+    'coverage_replacement',
+    'coverage_new_driver',
+    'coverage_licensing',
+    'coverage_roadside',
+    'coverage_lights',
+  ]) {
+    out[name] = formData.get(name) ? 'true' : 'false';
+  }
+  return out;
+}
+
+function pickPrefix(values: Record<string, string>, prefix: string) {
+  return Object.fromEntries(
+    Object.entries(values)
+      .filter(([k]) => k.startsWith(prefix))
+      .map(([k, v]) => [k.slice(prefix.length), v]),
+  );
+}
+
+function pickPrefixes(values: Record<string, string>, prefixes: string[]) {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(values)) {
+    if (prefixes.some((pre) => k.startsWith(pre))) out[k] = v;
+  }
+  return out;
+}
+
+export function buildVehiclePayloadFromDalia(
+  allValues: Record<string, string>,
+  extras: DaliaPersistExtras,
+  user: { id?: string; company_name?: string; full_name?: string },
+) {
+  const direct: Record<string, unknown> = {};
+  const overflow: Record<string, string> = {};
+
+  for (const [field, raw] of Object.entries(allValues)) {
+    if (raw === undefined || raw === '') continue;
+    const col = DIRECT_COLUMN_MAP[field];
+    if (col) {
+      const val = normValue(col, raw);
+      if (val !== null && val !== '') direct[col] = val;
+    } else {
+      overflow[field] = raw;
+    }
+  }
+
+  if (extras.route) {
+    direct.finance_track = extras.route;
+    const mgmt = ROUTE_TO_MANAGEMENT[extras.route];
+    if (mgmt) {
+      direct.management_type = mgmt;
+      direct.is_leasing = mgmt === 'operational_leasing' || mgmt === 'financial_leasing';
+      direct.has_loan = mgmt === 'financial_leasing' || mgmt === 'self_maintained';
+    }
+  }
+
+  if (extras.maintMethod) direct.maintenance_method = extras.maintMethod;
+
+  const plate = String(direct.license_plate || allValues.vehicle_plate || '').replace(/[-\s]/g, '');
+  if (!plate) throw new Error('חסר מספר רכב');
+
+  direct.license_plate = plate;
+  direct.company_name = user.company_name || String(direct.company_name || '');
+  direct.created_by = user.id || null;
+  direct.status = (direct.status as string) || 'active';
+  direct.approval_status = 'approved';
+  direct.odometer = direct.odometer ?? 0;
+
+  const insurancesJson = {
+    coverage: {
+      glass: allValues.coverage_glass === 'true',
+      replacement: allValues.coverage_replacement === 'true',
+      new_driver: allValues.coverage_new_driver === 'true',
+      licensing: allValues.coverage_licensing === 'true',
+      roadside: allValues.coverage_roadside === 'true',
+      lights: allValues.coverage_lights === 'true',
+      other: allValues.coverage_other || '',
+    },
+    mandatory: pickPrefix(allValues, 'mandatory_insurance_'),
+    comprehensive: pickPrefix(allValues, 'comprehensive_insurance_'),
+    third_party: pickPrefix(allValues, 'third_party_insurance_'),
+  };
+
+  const maintenanceJson = {
+    method: extras.maintMethod,
+    ...pickPrefix(allValues, 'maint_'),
+    ...pickPrefix(allValues, 'svc_'),
+  };
+
+  const financeJson = {
+    route: extras.route,
+    ...pickPrefix(allValues, 'op_'),
+    ...pickPrefix(allValues, 'fl_'),
+    ...pickPrefix(allValues, 'rent_'),
+    ...pickPrefix(allValues, 'other_'),
+    ...pickPrefix(allValues, 'company_'),
+    ...pickPrefix(allValues, 'private_'),
+    ...pickPrefixes(allValues, ['loan_', 'self_', 'company_', 'private_']),
+    pledge: pickPrefixes(allValues, [
+      'op_pledge_',
+      'fl_pledge_',
+      'loan_pledge_',
+      'self_pledge_',
+      'svc_pledge_',
+      'company_pledge_',
+      'private_pledge_',
+    ]),
+  };
+
+  const importBuffer = {
+    dalia_form: overflow,
+    departments: extras.departments,
+    docs: extras.docs,
+    section_saved: extras.sectionSaved,
+    assigned_driver_name: allValues.assigned_driver || '',
+    saved_at: new Date().toISOString(),
+    saved_by: user.full_name || '',
+  };
+
+  direct.insurances = JSON.stringify(insurancesJson);
+  direct.maintenance_details = JSON.stringify(maintenanceJson);
+  direct.finance_details = JSON.stringify(financeJson);
+  direct.import_buffer = JSON.stringify(importBuffer);
+  direct.import_source = 'dalia_form';
+  direct.import_status = 'saved';
+
+  return { payload: direct, overflow, plate };
+}
+
+export async function persistDaliaVehicle(params: {
+  allValues: Record<string, string>;
+  extras: DaliaPersistExtras;
+  user: { id?: string; company_name?: string; full_name?: string };
+  vehicleId?: string | null;
+}) {
+  const { payload, plate } = buildVehiclePayloadFromDalia(
+    params.allValues,
+    params.extras,
+    params.user,
+  );
+
+  let vehicleId = params.vehicleId || null;
+  let error;
+
+  if (vehicleId) {
+    ({ error } = await supabase.from('vehicles').update(payload).eq('id', vehicleId));
+  } else {
+    const res = await supabase.from('vehicles').insert(payload).select('id').single();
+    error = res.error;
+    vehicleId = res.data?.id ?? null;
+  }
+
+  if (error) throw error;
+  if (!vehicleId) throw new Error('לא התקבל מזהה רכב');
+
+  await logVehicleEvent({
+    vehicleId,
+    vehiclePlate: plate,
+    companyName: String(payload.company_name || ''),
+    action: params.vehicleId ? 'עדכון רכב (Dalia)' : 'הוספת רכב (Dalia)',
+    details: `${payload.manufacturer || ''} ${payload.model || ''}`.trim(),
+    userId: params.user.id,
+    userName: params.user.full_name,
+  });
+
+  return { id: vehicleId, payload };
+}

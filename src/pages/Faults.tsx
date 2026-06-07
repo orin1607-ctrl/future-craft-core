@@ -12,6 +12,8 @@ import FaultReferral from '@/components/faults/FaultReferral';
 import FaultTowing from '@/components/faults/FaultTowing';
 import WhatsAppButton from '@/components/faults/WhatsAppButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
 
 interface FaultRow {
   id: string;
@@ -170,8 +172,10 @@ function StatusCounters({ faults, onFilter, activeFilter }: { faults: FaultRow[]
 export default function Faults() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const { plate: contextPlate, action: contextAction, locked, clearContext } = useVehicleUrlContext();
   const [faults, setFaults] = useState<FaultRow[]>([]);
   const [search, setSearch] = useState('');
+  const [initialVehiclePlate, setInitialVehiclePlate] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterUrgency, setFilterUrgency] = useState('');
   const [quickFilter, setQuickFilter] = useState('');
@@ -190,10 +194,18 @@ export default function Faults() {
 
   useEffect(() => { loadFaults(); }, []);
 
+  useEffect(() => {
+    if (contextPlate) {
+      setSearch(contextPlate);
+      setInitialVehiclePlate(contextPlate);
+    }
+    if (contextAction === 'new') setViewMode('form');
+  }, [contextPlate, contextAction]);
+
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
   const filtered = faults.filter(f => {
-    const matchSearch = !search || f.driver_name?.includes(search) || f.vehicle_plate?.includes(search) || f.fault_type?.includes(search) || f.description?.includes(search) || f.serial_id?.includes(search);
+    const matchSearch = !search || f.driver_name?.includes(search) || plateMatches(f.vehicle_plate, search) || f.fault_type?.includes(search) || f.description?.includes(search) || f.serial_id?.includes(search);
     const matchStatus = !filterStatus || f.status === filterStatus;
     const matchUrgency = !filterUrgency || f.urgency === filterUrgency;
     // Quick filter
@@ -223,7 +235,7 @@ export default function Faults() {
   if (viewMode === 'form') {
     return (
       <>
-        <FaultForm fault={editFault} onDone={() => { setViewMode('list'); setEditFault(null); loadFaults(); }} onBack={() => { setViewMode('list'); setEditFault(null); }} user={user} />
+        <FaultForm fault={editFault} initialVehiclePlate={initialVehiclePlate} onDone={() => { setViewMode('list'); setEditFault(null); loadFaults(); }} onBack={() => { setViewMode('list'); setEditFault(null); }} user={user} />
         <WhatsAppButton />
       </>
     );
@@ -423,10 +435,15 @@ export default function Faults() {
       {/* Status Counters */}
       <StatusCounters faults={faults} onFilter={setQuickFilter} activeFilter={quickFilter} />
 
+      {locked && contextPlate && (
+        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={() => { clearContext(); setSearch(''); }} />
+      )}
+
       {/* Search */}
       <div className="relative">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לפי נהג, רכב, סוג, תיאור..."
+          disabled={locked && !!contextPlate}
           className="w-full pr-12 pl-12 p-4 text-lg rounded-2xl border-2 border-input bg-background focus:border-primary focus:outline-none transition-colors" />
         <button onClick={() => setShowFilters(!showFilters)} className={`absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors ${showFilters ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
           <Filter size={18} />
@@ -538,9 +555,9 @@ export default function Faults() {
   );
 }
 
-function FaultForm({ fault, onDone, onBack, user }: { fault: FaultRow | null; onDone: () => void; onBack: () => void; user: any }) {
+function FaultForm({ fault, initialVehiclePlate = '', onDone, onBack, user }: { fault: FaultRow | null; initialVehiclePlate?: string; onDone: () => void; onBack: () => void; user: any }) {
   const isEdit = !!fault;
-  const [vehiclePlate, setVehiclePlate] = useState(fault?.vehicle_plate || '');
+  const [vehiclePlate, setVehiclePlate] = useState(fault?.vehicle_plate || initialVehiclePlate);
   const [driverName, setDriverName] = useState(fault?.driver_name || '');
   const [faultType, setFaultType] = useState(fault?.fault_type || '');
   const [description, setDescription] = useState(fault?.description || '');

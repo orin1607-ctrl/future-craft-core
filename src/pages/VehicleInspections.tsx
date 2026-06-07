@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
 
 interface InspectionRow {
   id: string;
@@ -44,6 +46,7 @@ type ViewMode = 'list' | 'form' | 'detail';
 export default function VehicleInspections() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked, clearContext } = useVehicleUrlContext();
   const [inspections, setInspections] = useState<InspectionRow[]>([]);
   const [vehicles, setVehicles] = useState<VehicleBasic[]>([]);
   const [search, setSearch] = useState('');
@@ -51,6 +54,7 @@ export default function VehicleInspections() {
   const [selectedInspection, setSelectedInspection] = useState<InspectionRow | null>(null);
   const [inspectionItems, setInspectionItems] = useState<InspectionItemRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialVehicleId, setInitialVehicleId] = useState('');
 
   const loadData = async () => {
     setLoading(true);
@@ -65,14 +69,24 @@ export default function VehicleInspections() {
 
   useEffect(() => { loadData(); }, []);
 
+  useEffect(() => {
+    if (contextPlate) setSearch(contextPlate);
+    if (contextVehicleId) setInitialVehicleId(contextVehicleId);
+    else if (contextPlate && vehicles.length) {
+      const match = vehicles.find((v) => plateMatches(v.license_plate, contextPlate));
+      if (match) setInitialVehicleId(match.id);
+    }
+    if (contextAction === 'new') setViewMode('form');
+  }, [contextPlate, contextVehicleId, contextAction, vehicles]);
+
   const filtered = inspections.filter(i =>
-    !search || i.vehicle_plate?.includes(search) || i.inspector_name?.includes(search)
+    !search || plateMatches(i.vehicle_plate, search) || i.inspector_name?.includes(search)
   );
 
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
   if (viewMode === 'form') {
-    return <InspectionForm vehicles={vehicles} user={user} onDone={() => { setViewMode('list'); loadData(); }} onBack={() => setViewMode('list')} />;
+    return <InspectionForm vehicles={vehicles} user={user} initialVehicleId={initialVehicleId} onDone={() => { setViewMode('list'); loadData(); }} onBack={() => setViewMode('list')} />;
   }
 
   if (viewMode === 'detail' && selectedInspection) {
@@ -85,9 +99,14 @@ export default function VehicleInspections() {
         <h1 className="page-header !mb-0 flex items-center gap-3"><ClipboardCheck size={28} /> ביקורת רכב</h1>
       </div>
 
+      {locked && contextPlate && (
+        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={() => { clearContext(); setSearch(''); }} />
+      )}
+
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לפי מספר רכב או בודק..."
+          disabled={locked && !!contextPlate}
           className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none" />
       </div>
 
@@ -134,13 +153,14 @@ export default function VehicleInspections() {
   );
 }
 
-function InspectionForm({ vehicles, user, onDone, onBack }: {
+function InspectionForm({ vehicles, user, initialVehicleId = '', onDone, onBack }: {
   vehicles: VehicleBasic[];
   user: any;
+  initialVehicleId?: string;
   onDone: () => void;
   onBack: () => void;
 }) {
-  const [vehicleId, setVehicleId] = useState('');
+  const [vehicleId, setVehicleId] = useState(initialVehicleId);
   const [inspectionType, setInspectionType] = useState('semi_annual');
   const [inspectorName, setInspectorName] = useState(user?.full_name || '');
   const [notes, setNotes] = useState('');
@@ -148,6 +168,10 @@ function InspectionForm({ vehicles, user, onDone, onBack }: {
   const [items, setItems] = useState<InspectionItemRow[]>(
     DEFAULT_CHECKLIST.map(name => ({ item_name: name, status: 'ok', notes: '' }))
   );
+
+  useEffect(() => {
+    if (initialVehicleId) setVehicleId(initialVehicleId);
+  }, [initialVehicleId]);
 
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
 

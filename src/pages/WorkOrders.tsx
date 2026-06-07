@@ -14,6 +14,8 @@ import AssignmentChat from '@/components/work-assignments/AssignmentChat';
 import AssignmentStatusLog from '@/components/work-assignments/AssignmentStatusLog';
 import { ORDERED_STATUSES, STATUS_LABELS, STATUS_COLORS } from '@/components/work-assignments/statusConfig';
 import DriverWorkSchedule from '@/components/work-assignments/DriverWorkSchedule';
+import { useDriverUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
 
 interface Assignment {
   id: string;
@@ -60,6 +62,7 @@ export default function WorkOrders() {
 function ManagerWorkOrders() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const { driverId: contextDriverId, driverName: contextDriverName, locked, clearContext } = useDriverUrlContext();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -77,13 +80,20 @@ function ManagerWorkOrders() {
 
   useEffect(() => { loadData(); }, [companyFilter]);
 
+  useEffect(() => {
+    if (contextDriverName) setSearch(contextDriverName);
+  }, [contextDriverName]);
+
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
   const filtered = assignments.filter(a => {
+    const matchDriverContext = !locked
+      || (contextDriverId ? a.driver_id === contextDriverId : false)
+      || (contextDriverName ? a.driver_name === contextDriverName : false);
     const matchSearch = !search || a.title?.includes(search) || a.driver_name?.includes(search) || a.vehicle_plate?.includes(search) || a.customer_name?.includes(search);
     const matchStatus = !filterStatus || a.status === filterStatus;
     const matchDate = !filterDate || a.scheduled_date === filterDate;
-    return matchSearch && matchStatus && matchDate;
+    return matchDriverContext && matchSearch && matchStatus && matchDate;
   });
 
   const grouped: Record<string, Assignment[]> = {};
@@ -253,9 +263,17 @@ function ManagerWorkOrders() {
         )}
       </div>
 
+      {locked && (contextDriverName || contextDriverId) && (
+        <EntityContextBanner
+          label={contextDriverName ? `נהג ${contextDriverName}` : 'נהג'}
+          onClear={() => { clearContext(); setSearch(''); }}
+        />
+      )}
+
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש סידור עבודה, רכב או נהג..."
+          disabled={locked && !!contextDriverName}
           className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none" />
       </div>
 

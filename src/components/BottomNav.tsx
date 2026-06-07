@@ -16,83 +16,95 @@ interface NavItem {
   icon: any;
 }
 
-// New structured manager menu
+/** Sidebar IA — 8 top-level groups (navigation only; all routes unchanged) */
 const managerCategories = [
   {
-    title: 'בית',
+    title: 'דשבורד',
     items: [
       { path: '/dashboard', label: 'דשבורד', icon: Home },
-      { path: '/alerts', label: 'התראות', icon: Bell },
+      { path: '/promotions', label: 'מבצעים', icon: Tag },
+    ],
+  },
+  {
+    title: 'רכבים',
+    items: [
+      { path: '/vehicles', label: 'רשימת רכבים', icon: Car },
+      { path: '/vehicle-inspections', label: 'ביקורות רכב', icon: CheckSquare },
+      { path: '/private-vehicle-inspection', label: 'בדיקה תלת/חצי', icon: CheckSquare },
+      { path: '/vehicle-tasks', label: 'ליקויים', icon: AlertTriangle },
+      { path: '/vehicle-import', label: 'יבוא רכבים', icon: Upload },
+      { path: '/vehicle-lookup', label: 'בדיקת רכב ממשלתי', icon: SearchIcon },
+      { path: '/vehicle-exchange', label: 'החלפת רכב', icon: RefreshCw },
+    ],
+  },
+  {
+    title: 'נהגים',
+    items: [
+      { path: '/drivers', label: 'רשימת נהגים', icon: Users },
+      { path: '/health-declaration', label: 'הצהרת בריאות', icon: HeartPulse },
+      { path: '/driver-declarations', label: 'תצהירי נהגים', icon: FileText },
+      { path: '/companions', label: 'מלווים', icon: Users },
     ],
   },
   {
     title: 'לקוחות',
     items: [
       { path: '/customers', label: 'לקוחות שלי', icon: Users },
-      { path: '/attach-customer', label: 'הצמדת נהג ללקוח', icon: UserCheck },
       { path: '/customer-docs', label: 'מסמכי לקוח', icon: FileText },
     ],
   },
   {
-    title: 'ניהול צי רכב',
+    title: 'תפעול',
     items: [
-      { path: '/vehicles', label: 'רכבים', icon: Car },
-      { path: '/drivers', label: 'נהגים', icon: Users },
-      { path: '/companions', label: 'מלווים', icon: Users },
       { path: '/attach-car', label: 'הצמדת רכב לנהג', icon: UserCheck },
-      { path: '/vehicle-inspections', label: 'ביקורות רכב', icon: CheckSquare },
-      { path: '/private-vehicle-inspection', label: 'בדיקה תלת/חצי', icon: CheckSquare },
-      { path: '/vehicle-tasks', label: 'ליקויים', icon: AlertTriangle },
-      { path: '/vehicle-import', label: 'יבוא רכבים', icon: Upload },
-      { path: '/vehicle-lookup', label: 'בדיקת רכב ממשלתי', icon: SearchIcon },
-      { path: '/health-declaration', label: 'הצהרת בריאות', icon: HeartPulse },
-      { path: '/driver-declarations', label: 'תצהירי נהגים', icon: FileText },
-      { path: '/history', label: 'היסטוריית שינויים', icon: History },
-    ],
-  },
-  {
-    title: 'תפעול ושירות',
-    items: [
-      { path: '/faults', label: 'תקלות', icon: Wrench },
-      { path: '/service-orders', label: 'הזמנת שירות', icon: Briefcase },
+      { path: '/attach-customer', label: 'הצמדת נהג ללקוח', icon: UserCheck },
       { path: '/routes', label: 'ניהול מסלולים', icon: Route },
       { path: '/work-orders', label: 'סידור עבודה', icon: ClipboardList },
       { path: '/pickup-appointments', label: 'תיאומי איסוף', icon: Calendar },
+      { path: '/faults', label: 'תקלות', icon: Wrench },
+      { path: '/service-orders', label: 'הזמנת שירות', icon: Briefcase },
       { path: '/towing', label: 'שינועים', icon: Truck },
-      { path: '/vehicle-exchange', label: 'החלפת רכב', icon: RefreshCw },
       { path: '/accidents', label: 'דיווח תאונה', icon: AlertTriangle },
+      { path: '/history', label: 'היסטוריה', icon: History },
+      { path: '/emergency', label: 'מספרי חירום', icon: Phone },
+      { path: '/internal-chat', label: 'צ\'אט פנימי', icon: MessageCircle },
     ],
   },
   {
-    title: 'דוחות ובקרה',
+    title: 'התראות',
+    items: [{ path: '/alerts', label: 'התראות ועדכונים', icon: Bell }],
+  },
+  {
+    title: 'דוחות',
     items: [
       { path: '/reports', label: 'דוחות', icon: BarChart3 },
       { path: '/documents', label: 'מסמכים', icon: FileText },
     ],
   },
   {
-    title: 'מערכת והגדרות',
+    title: 'ניהול מערכת',
     items: [
+      { path: '/settings', label: 'הגדרות', icon: Settings },
+      { path: '/approval-settings', label: 'הגדרות אישורים', icon: CheckSquare },
+      { path: '/suppliers', label: 'ניהול ספקים', icon: Building2 },
       { path: '/user-management', label: 'ניהול משתמשים', icon: Users },
       { path: '/permissions', label: 'הרשאות', icon: Shield },
       { path: '/alert-settings', label: 'הגדרות חברות', icon: Building2 },
-      { path: '/approval-settings', label: 'הגדרות אישורים', icon: CheckSquare },
-      { path: '/suppliers', label: 'ניהול ספקים', icon: Building2 },
-      { path: '/emergency', label: 'מספרי חירום', icon: Phone },
       { path: '/emergency-settings', label: 'הגדרות חירום', icon: Phone },
       { path: '/email-templates', label: 'תבניות מייל', icon: Mail },
-      { path: '/alerts', label: 'התראות ועדכונים', icon: Bell },
-      { path: '/settings', label: 'הגדרות', icon: Settings },
+      { path: '/subscriptions', label: 'מנויים וחיוב', icon: CreditCard },
+      { path: '/project-summary', label: 'דוח תוספות', icon: ScrollText },
+      { path: '/completed-tasks', label: 'משימות פיתוח תוכנה', icon: CheckSquare },
     ],
   },
 ];
 
 // Manager mobile bottom nav
 const managerMobileNav: NavItem[] = [
-  { path: '/dashboard', label: 'בית', icon: Home },
+  { path: '/dashboard', label: 'דשבורד', icon: Home },
+  { path: '/vehicles', label: 'רכבים', icon: Car },
+  { path: '/drivers', label: 'נהגים', icon: Users },
   { path: '/alerts', label: 'התראות', icon: Bell },
-  { path: '/service-orders', label: 'שירותים', icon: Briefcase },
-  { path: '/settings', label: 'הגדרות', icon: Settings },
 ];
 
 // Driver mobile bottom nav
@@ -111,18 +123,7 @@ const privateCustomerMobileNav: NavItem[] = [
   { path: '/settings', label: 'הגדרות', icon: Settings },
 ];
 
-const allManagerItems = managerCategories.flatMap(c => c.items);
-
-// Extra items for all managers (promotions, chat, subscriptions)
-const extraItems: NavItem[] = [
-  { path: '/promotions', label: 'מבצעים', icon: Tag },
-  { path: '/internal-chat', label: 'צ\'אט פנימי', icon: MessageCircle },
-];
-const superAdminExtra: NavItem[] = [
-  { path: '/subscriptions', label: 'מנויים וחיוב', icon: CreditCard },
-  { path: '/project-summary', label: 'דוח תוספות', icon: ScrollText },
-  { path: '/completed-tasks', label: 'משימות פיתוח תוכנה', icon: CheckSquare },
-];
+const allManagerItems = managerCategories.flatMap((c) => c.items);
 
 export default function BottomNav() {
   const { user, logout } = useAuth();
@@ -133,13 +134,8 @@ export default function BottomNav() {
 
   const isDriver = user?.role === 'driver';
   const isPrivateCustomer = user?.role === 'private_customer';
-  const isSuperAdmin = user?.role === 'super_admin';
   const mobileNav = isDriver ? driverMobileNav : isPrivateCustomer ? privateCustomerMobileNav : managerMobileNav;
-  const allItemsForMobile = [
-    ...allManagerItems,
-    ...extraItems,
-    ...(isSuperAdmin ? superAdminExtra : []),
-  ].filter(item => !hiddenButtons.includes(item.path));
+  const allItemsForMobile = allManagerItems.filter((item) => !hiddenButtons.includes(item.path));
   const moreItems = (isDriver || isPrivateCustomer) ? [] : allItemsForMobile.filter(
     item => !managerMobileNav.some(m => m.path === item.path)
   );
@@ -196,7 +192,16 @@ export default function BottomNav() {
 export function DesktopSidebar() {
   const { user, logout } = useAuth();
   const { selectedCompany, setSelectedCompany, companyOptions } = useCompanyScope();
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({ 'בית': true, 'תפעול ושירות': true });
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
+    דשבורד: true,
+    רכבים: true,
+    נהגים: false,
+    לקוחות: false,
+    תפעול: false,
+    התראות: true,
+    דוחות: false,
+    'ניהול מערכת': false,
+  });
   const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
   const unreadCount = useUnreadNotifications();
   const hiddenButtons = useHiddenButtons();
@@ -288,8 +293,8 @@ export function DesktopSidebar() {
           ))
         ) : (
           <>
-            {managerCategories.map(cat => {
-              const visibleItems = cat.items.filter(item => !hiddenButtons.includes(item.path));
+            {managerCategories.map((cat) => {
+              const visibleItems = cat.items.filter((item) => !hiddenButtons.includes(item.path));
               if (visibleItems.length === 0) return null;
               return (
               <div key={cat.title} className="mb-0.5">
@@ -300,8 +305,8 @@ export function DesktopSidebar() {
                 </button>
                 {openCategories[cat.title] && (
                   <div>
-                    {visibleItems.map(item => (
-                      <NavLink key={item.path} to={item.path}
+                    {visibleItems.map((item) => (
+                      <NavLink key={`${cat.title}-${item.path}-${item.label}`} to={item.path}
                         className={({ isActive }) => `flex items-center gap-3 px-7 py-2.5 text-[15px] font-medium transition-colors ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
                         <item.icon size={18} /><span>{item.label}</span>
                       </NavLink>
@@ -311,22 +316,6 @@ export function DesktopSidebar() {
               </div>
               );
             })}
-
-            {/* Extra: Promotions, Chat */}
-            <div className="border-t border-primary-foreground/10 mt-2 pt-2">
-              {extraItems.filter(item => !hiddenButtons.includes(item.path)).map(item => (
-                <NavLink key={item.path} to={item.path}
-                  className={({ isActive }) => `flex items-center gap-3 px-7 py-2.5 text-[15px] font-medium transition-colors ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
-                  <item.icon size={18} /><span>{item.label}</span>
-                </NavLink>
-              ))}
-              {isSuperAdmin && superAdminExtra.map(item => (
-                <NavLink key={item.path} to={item.path}
-                  className={({ isActive }) => `flex items-center gap-3 px-7 py-2.5 text-[15px] font-medium transition-colors ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
-                  <item.icon size={18} /><span>{item.label}</span>
-                </NavLink>
-              ))}
-            </div>
           </>
         )}
       </nav>

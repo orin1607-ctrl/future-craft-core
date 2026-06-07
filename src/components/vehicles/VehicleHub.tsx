@@ -7,6 +7,7 @@ import {
   Phone,
   Trash2,
   ClipboardList,
+  ClipboardCheck,
   UserCheck,
   RefreshCw,
   StickyNote,
@@ -15,7 +16,11 @@ import {
   Car,
   Zap,
   History,
+  AlertTriangle,
+  Wrench,
+  Briefcase,
 } from 'lucide-react';
+import { buildVehicleContextUrl } from '@/lib/entityNavContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
@@ -200,6 +205,46 @@ export default function VehicleHub({
   const driver = drivers.find((d) => d.id === v.assigned_driver_id);
   const driverName = getDriverName(v.assigned_driver_id);
   const plateQ = encodeURIComponent(v.license_plate);
+
+  const vehicleScopedScreens = [
+    { label: 'ביקורת רכב', path: '/vehicle-inspections', icon: ClipboardCheck },
+    { label: 'בדיקת תלת / חצי', path: '/private-vehicle-inspection', icon: ClipboardCheck },
+    { label: 'ליקויים', path: '/vehicle-tasks', icon: AlertTriangle },
+    { label: 'הצמדת רכב לנהג', path: '/attach-car', icon: UserCheck },
+    { label: 'תקלות', path: '/faults', icon: Wrench },
+    { label: 'הזמנת שירות', path: '/service-orders', icon: Briefcase },
+    { label: 'דיווח תאונה', path: '/accidents', icon: AlertTriangle, action: 'new' as const },
+  ];
+
+  const vehicleScopedLinks = (
+    <div className="card-elevated p-4 mb-4">
+      <h2 className="font-bold text-base mb-3 flex items-center gap-2">
+        <ExternalLink size={18} /> מסכים מלאים — רכב זה בלבד
+      </h2>
+      <div className="grid grid-cols-2 gap-2">
+        {vehicleScopedScreens.map(({ label, path, icon: Icon, action }) => (
+          <Button
+            key={path + label}
+            type="button"
+            variant="outline"
+            className="h-auto min-h-[72px] py-3 flex flex-col gap-1.5 text-sm font-medium"
+            onClick={() =>
+              navigate(
+                buildVehicleContextUrl(path, {
+                  plate: v.license_plate,
+                  vehicleId: v.id,
+                  action,
+                }),
+              )
+            }
+          >
+            <Icon size={18} />
+            {label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
 
   const refreshHub = useCallback(() => {
     if (previewMode) {
@@ -698,6 +743,7 @@ export default function VehicleHub({
             }}
           />
           {mainNav}
+          {isManager && vehicleScopedLinks}
         </>
       )}
 
@@ -785,7 +831,9 @@ export default function VehicleHub({
       )}
 
       {mainSection === 'manage' && (
-        <div className="card-elevated p-4 space-y-3">
+        <div className="space-y-4">
+          {isManager && vehicleScopedLinks}
+          <div className="card-elevated p-4 space-y-3">
           <p className="text-sm text-muted-foreground mb-2">
             <VehiclePlateLine plate={v.license_plate} internal={v.internal_number} />
           </p>
@@ -794,14 +842,11 @@ export default function VehicleHub({
               <Button type="button" className="w-full" onClick={() => onEdit(v)}>
                 <ClipboardList size={18} className="ml-2" /> עריכת רכב (VehicleForm)
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => navigate(`/attach-car?plate=${plateQ}`)}>
+              <Button type="button" variant="outline" className="w-full" onClick={() => navigate(buildVehicleContextUrl('/attach-car', { plate: v.license_plate, vehicleId: v.id }))}>
                 <UserCheck size={18} className="ml-2" /> שינוי שיוך נהג
               </Button>
               <Button type="button" variant="outline" className="w-full" onClick={() => navigate(`/vehicle-exchange?plate=${plateQ}`)}>
                 <RefreshCw size={18} className="ml-2" /> החלפת רכב (מסך מלא)
-              </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => navigate(`/private-vehicle-inspection?plate=${plateQ}`)}>
-                בדיקה תלת/חצי שנתית
               </Button>
               {driver?.phone && (
                 <a href={`tel:${driver.phone}`} className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-border font-medium text-primary">
@@ -858,6 +903,7 @@ export default function VehicleHub({
               עריכה, סטטוס והערות — למנהל צי. העבר / ארכיון / מחק מוצגים למעלה (מושבתים ללא הרשאה).
             </p>
           )}
+          </div>
         </div>
       )}
 

@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ImageUpload from '@/components/ImageUpload';
 import ServiceOrderChat from '@/components/service-orders/ServiceOrderChat';
+import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
 
 interface ServiceRow {
   id: string;
@@ -63,6 +65,7 @@ export default function ServiceOrders() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const { plate: contextPlate, action: contextAction, locked, clearContext } = useVehicleUrlContext();
   const [orders, setOrders] = useState<ServiceRow[]>([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -71,6 +74,7 @@ export default function ServiceOrders() {
   const [filterName, setFilterName] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
   const [filterVehicle, setFilterVehicle] = useState('');
+  const [initialVehiclePlate, setInitialVehiclePlate] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<ServiceRow | null>(null);
   const [replyDialog, setReplyDialog] = useState(false);
@@ -98,15 +102,23 @@ export default function ServiceOrders() {
     }
   }, [companyFilter]);
 
+  useEffect(() => {
+    if (contextPlate) {
+      setFilterVehicle(contextPlate);
+      setInitialVehiclePlate(contextPlate);
+    }
+    if (contextAction === 'new') setShowForm(true);
+  }, [contextPlate, contextAction]);
+
   const filtered = orders.filter(o => {
     const matchSearch = !search ||
-      o.vehicle_plate?.includes(search) || o.service_category?.includes(search) ||
+      plateMatches(o.vehicle_plate, search) || o.service_category?.includes(search) ||
       o.driver_name?.includes(search) || o.company_name?.includes(search) ||
       o.ordering_user?.includes(search) || o.reference_number?.includes(search);
     const matchStatus = !filterStatus || o.treatment_status === filterStatus;
     const matchName = !filterName || o.driver_name?.includes(filterName) || o.ordering_user?.includes(filterName);
     const matchCompany = !filterCompany || o.company_name?.includes(filterCompany);
-    const matchVehicle = !filterVehicle || o.vehicle_plate?.includes(filterVehicle);
+    const matchVehicle = !filterVehicle || plateMatches(o.vehicle_plate, filterVehicle);
     return matchSearch && matchStatus && matchName && matchCompany && matchVehicle;
   });
 
@@ -173,7 +185,7 @@ export default function ServiceOrders() {
   };
 
   if (showForm || editOrder) {
-    return <ServiceOrderForm onDone={() => { setShowForm(false); setEditOrder(null); loadOrders(); }} user={user} editData={editOrder} />;
+    return <ServiceOrderForm onDone={() => { setShowForm(false); setEditOrder(null); loadOrders(); }} user={user} editData={editOrder} initialVehiclePlate={initialVehiclePlate} />;
   }
 
   if (selectedOrder) {
@@ -335,6 +347,10 @@ export default function ServiceOrders() {
         </div>
       </div>
 
+      {locked && contextPlate && (
+        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={() => { clearContext(); setFilterVehicle(''); }} />
+      )}
+
       {/* Dashboard stats - managers only */}
       {isManager && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
@@ -482,11 +498,11 @@ function InfoBox({ label, value }: { label: string; value: string }) {
 
 /* ======================== Form ======================== */
 
-function ServiceOrderForm({ onDone, user, editData }: { onDone: () => void; user: any; editData?: ServiceRow | null }) {
+function ServiceOrderForm({ onDone, user, editData, initialVehiclePlate = '' }: { onDone: () => void; user: any; editData?: ServiceRow | null; initialVehiclePlate?: string }) {
   const [serviceCategory, setServiceCategory] = useState(editData?.service_category || '');
   const [otherCategory, setOtherCategory] = useState('');
   const [description, setDescription] = useState(editData?.description || '');
-  const [vehiclePlate, setVehiclePlate] = useState(editData?.vehicle_plate || '');
+  const [vehiclePlate, setVehiclePlate] = useState(editData?.vehicle_plate || initialVehiclePlate);
   const [driverName, setDriverName] = useState(editData?.driver_name || '');
   const [driverPhone, setDriverPhone] = useState(editData?.driver_phone || '');
   const [vendorName, setVendorName] = useState(editData?.vendor_name || '');

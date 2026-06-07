@@ -1097,6 +1097,7 @@ export function VehicleForm({
             setGovData(data);
             setGovDataApplied(true);
           }}
+          onSaved={handleFormDone}
           showPreviewBanner
         />
       )}

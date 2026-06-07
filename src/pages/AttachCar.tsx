@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { plateMatches, useVehicleUrlContext, useDriverUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
 
 interface VehicleRow { id: string; license_plate: string; manufacturer: string; model: string; assigned_driver_id: string | null; }
 interface DriverRow { id: string; full_name: string; email: string; phone: string; }
@@ -16,6 +18,8 @@ interface VehicleCompanionRow { id: string; vehicle_id: string; companion_id: st
 export default function AttachCar() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const { plate: contextPlate, locked: vehicleLocked, clearContext: clearVehicleContext } = useVehicleUrlContext();
+  const { driverId: contextDriverId, driverName: contextDriverName, locked: driverLocked, clearContext: clearDriverContext } = useDriverUrlContext();
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -50,6 +54,14 @@ export default function AttachCar() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  const contextLabel = vehicleLocked && contextPlate
+    ? `רכב ${contextPlate}`
+    : driverLocked && contextDriverName
+      ? `נהג ${contextDriverName}`
+      : driverLocked && contextDriverId
+        ? `נהג`
+        : '';
 
   const handleAssign = async () => {
     if (!selectedVehicle || !selectedDriver) return;
@@ -165,6 +177,21 @@ export default function AttachCar() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    if (!vehicles.length && !drivers.length) return;
+    if (contextPlate && vehicles.length) {
+      const match = vehicles.find((v) => plateMatches(v.license_plate, contextPlate));
+      if (match) loadVehicleForEdit(match);
+    }
+    if (contextDriverId && drivers.length) {
+      const match = drivers.find((d) => d.id === contextDriverId);
+      if (match) {
+        setSelectedDriver(match.id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  }, [vehicles, drivers, contextPlate, contextDriverId]);
+
   const inputClass = "w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
 
   return (
@@ -173,6 +200,16 @@ export default function AttachCar() {
         <UserCheck size={28} />
         הצמדת רכב לנהג וללקוח
       </h1>
+
+      {contextLabel && (
+        <EntityContextBanner
+          label={contextLabel}
+          onClear={() => {
+            clearVehicleContext();
+            clearDriverContext();
+          }}
+        />
+      )}
 
       {/* Assignment Form */}
       <div className="card-elevated mb-6">

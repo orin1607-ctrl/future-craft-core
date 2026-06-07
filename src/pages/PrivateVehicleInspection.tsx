@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
 
 interface VehicleBasic {
   id: string;
@@ -44,6 +46,7 @@ export default function PrivateVehicleInspection() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const navigate = useNavigate();
+  const { plate: contextPlate, vehicleId: contextVehicleId, locked, clearContext } = useVehicleUrlContext();
 
   const [vehicles, setVehicles] = useState<VehicleBasic[]>([]);
   const [vehicleId, setVehicleId] = useState('');
@@ -59,6 +62,19 @@ export default function PrivateVehicleInspection() {
     applyCompanyScope(supabase.from('vehicles').select('id, license_plate, manufacturer, model'), companyFilter)
       .then(({ data }) => { if (data) setVehicles(data as VehicleBasic[]); });
   }, []);
+
+  useEffect(() => {
+    if (!vehicles.length) return;
+    if (contextVehicleId) {
+      const byId = vehicles.find((v) => v.id === contextVehicleId);
+      if (byId) setVehicleId(byId.id);
+      return;
+    }
+    if (contextPlate) {
+      const match = vehicles.find((v) => plateMatches(v.license_plate, contextPlate));
+      if (match) setVehicleId(match.id);
+    }
+  }, [vehicles, contextPlate, contextVehicleId]);
 
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
 
@@ -133,11 +149,20 @@ export default function PrivateVehicleInspection() {
         <h1 className="text-2xl font-bold">בדיקה תלת / חצי לרכב פרטי</h1>
       </div>
 
+      {locked && contextPlate && (
+        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={clearContext} />
+      )}
+
       {/* Top Fields */}
       <div className="space-y-4 mb-6">
         <div>
           <label className="block text-base font-medium mb-1.5">רכב מס׳ *</label>
-          <select value={vehicleId} onChange={e => setVehicleId(e.target.value)} className={inputClass}>
+          <select
+            value={vehicleId}
+            onChange={e => setVehicleId(e.target.value)}
+            disabled={locked && !!vehicleId}
+            className={inputClass}
+          >
             <option value="">בחר רכב...</option>
             {vehicles.map(v => <option key={v.id} value={v.id}>{v.license_plate} - {v.manufacturer} {v.model}</option>)}
           </select>

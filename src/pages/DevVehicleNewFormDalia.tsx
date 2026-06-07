@@ -23,6 +23,7 @@ export default function DevVehicleNewFormDalia() {
         onBackToStep1={() => window.history.back()}
         onCancel={() => window.history.back()}
         showPreviewBanner
+        previewMode
       />
     </div>
   );

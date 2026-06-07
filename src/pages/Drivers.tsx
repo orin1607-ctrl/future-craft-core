@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Users, Search, ArrowRight, Phone, Mail, Plus, Save, Edit2, X, Download, Upload, FileImage, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Search, ArrowRight, Phone, Mail, Plus, Save, Edit2, X, Download, Upload, FileImage, Eye, UserCheck, ClipboardList } from 'lucide-react';
+import { buildDriverContextUrl } from '@/lib/entityNavContext';
+import { Button } from '@/components/ui/button';
 import DriverDeclaration from '@/components/DriverDeclaration';
 import DriverExamsTab from '@/components/driving-exam/DriverExamsTab';
 import { exportToCsv } from '@/utils/exportCsv';
@@ -28,6 +31,7 @@ interface DriverRow {
 const licenseOptions = ['A', 'A1', 'A2', 'B', 'C', 'C1', 'D', 'D1', 'E'];
 
 export default function Drivers() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
@@ -117,6 +121,34 @@ export default function Drivers() {
             )}
           </div>
           {d.notes && <p className="mt-4 p-3 bg-muted rounded-xl text-muted-foreground">{d.notes}</p>}
+
+          {user?.role !== 'driver' && (
+            <div className="mt-6 pt-6 border-t border-border">
+              <h2 className="text-lg font-bold mb-3">פעולות לפי נהג זה</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-auto min-h-[56px] py-3 justify-start gap-2"
+                  onClick={() =>
+                    navigate(buildDriverContextUrl('/attach-customer', { driverId: d.id, driverName: d.full_name }))
+                  }
+                >
+                  <UserCheck size={18} /> הצמדת נהג ללקוח
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-auto min-h-[56px] py-3 justify-start gap-2"
+                  onClick={() =>
+                    navigate(buildDriverContextUrl('/work-orders', { driverId: d.id, driverName: d.full_name }))
+                  }
+                >
+                  <ClipboardList size={18} /> סידור עבודה
+                </Button>
+              </div>
+            </div>
+          )}
           
           {/* Driver Declaration */}
           <div className="mt-6 pt-6 border-t border-border">
