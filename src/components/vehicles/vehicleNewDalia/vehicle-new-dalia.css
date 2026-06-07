@@ -1,0 +1,356 @@
+/* תצוגת UI — פתיחת רכב חדש (מבנה Claude) · scoped */
+.vehicle-new-dalia {
+  --d-b: #161b22;
+  --d-b2: #1c2128;
+  --d-b3: #21262d;
+  --d-br: rgba(255, 255, 255, 0.08);
+  --d-acc: #2563eb;
+  --d-ok: #3fb950;
+  --d-warn: #d29922;
+  --d-danger: #f85149;
+  --d-mid: rgba(230, 237, 243, 0.65);
+  --d-lo: rgba(230, 237, 243, 0.38);
+  color: #e6edf3;
+  font-size: 14px;
+  direction: rtl;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.vehicle-new-dalia * {
+  box-sizing: border-box;
+}
+
+.vehicle-new-dalia .d-header {
+  background: var(--d-b);
+  border: 1px solid var(--d-br);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.vehicle-new-dalia .d-hrow {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vehicle-new-dalia .d-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.vehicle-new-dalia .d-sub {
+  font-size: 12px;
+  color: var(--d-lo);
+  margin-top: 2px;
+}
+
+.vehicle-new-dalia .d-steps {
+  display: flex;
+  overflow-x: auto;
+  border-top: 1px solid var(--d-br);
+}
+
+.vehicle-new-dalia .d-step {
+  white-space: nowrap;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--d-lo);
+  font-family: inherit;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+}
+
+.vehicle-new-dalia .d-step.active {
+  color: #fff;
+  border-bottom-color: var(--d-acc);
+  font-weight: 700;
+}
+
+.vehicle-new-dalia .d-preview-banner {
+  background: rgba(210, 153, 34, 0.15);
+  border: 1px solid rgba(210, 153, 34, 0.4);
+  color: #e3b341;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.vehicle-new-dalia .d-sec {
+  background: var(--d-b);
+  border: 1px solid var(--d-br);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.vehicle-new-dalia .d-sec-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  font-family: inherit;
+  text-align: right;
+  cursor: pointer;
+}
+
+.vehicle-new-dalia .d-sec-title {
+  flex: 1;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.vehicle-new-dalia .d-chev {
+  color: var(--d-lo);
+  transition: transform 0.2s;
+}
+
+.vehicle-new-dalia .d-sec.open .d-chev {
+  transform: rotate(180deg);
+}
+
+.vehicle-new-dalia .d-sec-body {
+  display: none;
+  padding: 14px 16px;
+  border-top: 1px solid var(--d-br);
+}
+
+.vehicle-new-dalia .d-sec.open .d-sec-body {
+  display: block;
+}
+
+.vehicle-new-dalia .d-block-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--d-mid);
+  margin: 14px 0 8px;
+}
+
+.vehicle-new-dalia .d-g2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+
+.vehicle-new-dalia .d-g3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px 12px;
+}
+
+.vehicle-new-dalia .d-full {
+  grid-column: 1 / -1;
+}
+
+.vehicle-new-dalia .d-fld label {
+  display: block;
+  color: var(--d-lo);
+  font-size: 11px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.vehicle-new-dalia .d-fld input,
+.vehicle-new-dalia .d-fld select,
+.vehicle-new-dalia .d-fld textarea {
+  width: 100%;
+  background: var(--d-b3);
+  border: 1px solid var(--d-br);
+  border-radius: 8px;
+  color: #fff;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.vehicle-new-dalia .d-fld input:focus,
+.vehicle-new-dalia .d-fld select:focus,
+.vehicle-new-dalia .d-fld textarea:focus {
+  border-color: rgba(37, 99, 235, 0.65);
+}
+
+.vehicle-new-dalia .d-fld textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.vehicle-new-dalia .d-required label::after {
+  content: ' *';
+  color: var(--d-warn);
+}
+
+.vehicle-new-dalia .d-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--d-br);
+  background: var(--d-b2);
+  color: var(--d-mid);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-family: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.vehicle-new-dalia .d-btn.primary {
+  background: var(--d-acc);
+  border-color: var(--d-acc);
+  color: #fff;
+}
+
+.vehicle-new-dalia .d-btn.danger {
+  color: var(--d-danger);
+  border-color: #f8514944;
+}
+
+.vehicle-new-dalia .d-btn.small {
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+.vehicle-new-dalia .d-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vehicle-new-dalia .d-row-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.vehicle-new-dalia .d-dynamic {
+  display: none;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--d-br);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.vehicle-new-dalia .d-dynamic.show {
+  display: block;
+}
+
+.vehicle-new-dalia .d-quick {
+  background: var(--d-b);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.vehicle-new-dalia .d-file-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.vehicle-new-dalia .d-file-wrap input[type='text'] {
+  flex: 1;
+}
+
+.vehicle-new-dalia .d-check-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+}
+
+.vehicle-new-dalia .d-check-grid label,
+.vehicle-new-dalia .d-inline-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--d-mid);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.vehicle-new-dalia .d-card {
+  border: 1px solid var(--d-br);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.vehicle-new-dalia .d-doc-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--d-br);
+  padding: 8px 0;
+}
+
+.vehicle-new-dalia .d-dept-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--d-b3);
+  border: 1px solid var(--d-br);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--d-mid);
+  margin: 3px 2px;
+}
+
+.vehicle-new-dalia .d-dept-tag button {
+  background: none;
+  border: none;
+  color: var(--d-lo);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 2px;
+}
+
+.vehicle-new-dalia .d-savebar {
+  position: sticky;
+  bottom: 0;
+  background: var(--d-b);
+  border: 1px solid var(--d-br);
+  border-radius: 10px;
+  margin-top: 16px;
+  z-index: 10;
+}
+
+.vehicle-new-dalia .d-savebar-inner {
+  padding: 10px 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.vehicle-new-dalia .d-save-msg {
+  flex: 1;
+  color: var(--d-lo);
+  font-size: 12px;
+  min-width: 120px;
+}
+
+@media (max-width: 620px) {
+  .vehicle-new-dalia .d-g2,
+  .vehicle-new-dalia .d-g3 {
+    grid-template-columns: 1fr;
+  }
+  .vehicle-new-dalia .d-check-grid {
+    grid-template-columns: 1fr;
+  }
+}
