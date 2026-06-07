@@ -1,43 +1,51 @@
 # Git Workflow
 
-The repository has three long-lived branches, each with a clear role.
-Nothing reaches the live system without manual approval.
+The repository has **two long-lived branches**, each with a clear role.
+Nothing reaches the live system without Yoni's two manual approvals.
 
 ## Branches
 
 | Branch | Role | Who pushes here |
 |---|---|---|
-| `main` | Default branch; mirrors the latest deployed code | Naeem (or future devs) via PR or sync |
-| `production` | What the live VPS deploys from | Naeem (or future devs) via PR — never directly |
-| `dev` | Day-to-day work in Cursor | Anyone working in Cursor |
+| `production` | **Default branch**. What the live VPS deploys from. | Updated via Pull Request from `dev`, merged by Yoni. |
+| `dev` | Day-to-day work in Cursor by you, Naeem, or any future developer | Anyone working in Cursor |
 
-## The flow
+There is no `main` branch (removed during the cleanup — `production` is the
+default). There is no `miki-mirror` branch (removed; no automatic flow from
+Miki's repository).
+
+## The two approval gates
 
 ```
- +--------+     1. work +--------+   2. PR review   +-------------+
- | Cursor | ----------> | dev    | ---------------> | production  |
- |  (you) |    & push   | branch |  (Naeem / Yoni)  | branch      |
- +--------+             +--------+                  +------+------+
-                                                           |
-                                                           | 3. Yoni clicks
-                                                           |   "Update Code"
-                                                           v
-                                                  +-----------------+
-                                                  | dalia-car.online|
-                                                  |   (live system) |
-                                                  +-----------------+
+ +--------+     1. work  +--------+   GATE 1: PR merge   +-------------+
+ | Cursor | -----------> | dev    | -------------------> | production  |
+ |  (you) |    & push    | branch | (Yoni reviews diff,  | branch      |
+ +--------+              +--------+   clicks Merge)      +------+------+
+                                                                |
+                                                                | GATE 2: Yoni
+                                                                | clicks "Update
+                                                                | Code" / "Update
+                                                                | Database" in
+                                                                | Super Admin
+                                                                v
+                                                       +-----------------+
+                                                       | dalia-car.online|
+                                                       |   (live system) |
+                                                       +-----------------+
 ```
+
+Both gates are required. The live system has no other path in.
 
 ## Day-to-day steps
 
-1. **Pull `dev` and branch off it** for any non-trivial work:
+1. **Pull `dev`** and branch off for any non-trivial work:
    ```bash
    git checkout dev
    git pull
    git checkout -b feature/<short-name>      # optional but recommended
    ```
 
-2. **Before a big change**, take a backup:
+2. **Before a big change**, take a safety backup:
    ```bash
    ./scripts/dev-backup.sh "what you're about to do"
    ```
@@ -58,45 +66,34 @@ Nothing reaches the live system without manual approval.
    git push origin dev
    ```
 
-6. **Open a Pull Request** on GitHub: from your feature branch (or
-   `dev`) into `production`. Add a short description: what changed,
-   why, how to test.
+6. **Update staging** so Yoni can review your changes live:
+   - Open the repo's **Actions** tab on GitHub
+   - Run the **"Deploy Staging to GitHub Pages"** workflow
+   - This builds the `dev` branch and publishes it to the staging URL
+   - The workflow is **manual-only** (no automatic deploys)
 
-7. **Review + merge** — Naeem reviews; once approved, merge to
-   `production`.
+7. **Test on staging** at:
+   `https://orin1607-ctrl.github.io/future-craft-core/`
 
-8. **Yoni clicks "Update Code"** in the live Super Admin panel to
-   deploy. If the change includes a migration, Yoni also clicks
-   "Update Database".
+   Log in with the same credentials you use on the live system. Staging
+   uses a separate Supabase project (`dalia-staging`); changes here
+   never reach the live database.
+
+8. **Open a Pull Request from `dev` into `production`** on GitHub.
+   This is **Gate 1**. Yoni reviews the exact code diff and merges when
+   satisfied.
+
+9. **Yoni clicks "Update Code"** (and "Update Database" if migrations
+   are included) in the live Super Admin panel at `dalia-car.online`.
+   This is **Gate 2**. Only this click puts the change in front of
+   customers.
 
 ## What never happens
 
-- Direct push to `production` from Cursor.
-- Direct push to `main` from Cursor.
-- Force-push to any shared branch.
-- Pushing `.env*` files, large binaries, or anything in
-  `.dev-backups/`.
+- Direct push to `production` from Cursor or from a developer machine.
+- Automatic deploys to live customers.
+- Any sync from Miki's repository into this one.
+- Any third deployment URL or alternative path.
 
-## What if you make a mistake
-
-- Made a wrong change but haven't committed? `git restore .`
-- Committed but haven't pushed? `git reset --soft HEAD~1` (keeps changes
-  staged) or `git reset --hard HEAD~1` (discards them).
-- Pushed something wrong to `dev`? Make a follow-up commit that
-  reverts it. Don't force-push.
-- Wiped work you needed? Look in `.dev-backups/log.txt` for backup
-  branches.
-
-## When you need to bring something from Miki's side
-
-Miki's environment is permanently disconnected from this workflow.
-There is no automatic sync. If Yoni asks for a specific feature/fix
-from Miki:
-
-1. The integrating developer (Naeem today) reviews Miki's repo
-2. Manually copies the wanted changes into a feature branch on this
-   repository
-3. Opens a PR into `dev` or `production` as appropriate
-4. Yoni reviews, then approves the merge and clicks "Update Code"
-
-Nothing flows automatically from Miki. Ever.
+The architecture is intentionally simple: two branches, two gates, one
+live system.

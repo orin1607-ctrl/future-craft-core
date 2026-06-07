@@ -13,7 +13,7 @@ holds private or exclusive control over any of them.
 | Component | Owner / Location |
 |---|---|
 | GitHub repository | `orin1607-ctrl/future-craft-core` — Yoni's GitHub account |
-| All branches (`production`, `main`, `dev`, future) | Inside Yoni's repository |
+| All branches (`production`, `dev`, future) | Inside Yoni's repository |
 | All workflows (`.github/workflows/*.yml`) | Inside Yoni's repository |
 | Production Supabase project (`qasomfndnjuixgjmjwcm` — dalia-new) | Yoni's Supabase organisation |
 | Staging Supabase project (`usfeoerkpcafxxlyuldl` — dalia-staging) | Yoni's Supabase organisation |
