@@ -217,4 +217,16 @@
   .big-action-btn {
     @apply flex flex-col items-center justify-center gap-3 p-6 rounded-2xl text-lg font-bold min-h-[120px] w-full transition-all active:scale-95 shadow-lg;
   }
+
+  .home-world-card {
+    @apply bg-card rounded-2xl border-2 border-border p-5 md:p-6 shadow-md transition-all active:scale-[0.98];
+  }
+
+  .home-world-card-icon {
+    @apply w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0;
+  }
+
+  .filter-input {
+    @apply w-full border-2 border-input rounded-xl px-3 py-2 text-sm bg-background focus:outline-none focus:border-primary;
+  }
 }

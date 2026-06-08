@@ -77,6 +77,9 @@ import ServiceOrderHistory from "@/pages/ServiceOrderHistory";
 import TakeDrivingExam from "@/pages/TakeDrivingExam";
 import Voice from "@/pages/Voice";
 import PickupAppointments from "@/pages/PickupAppointments";
+import VehicleTracking from "@/pages/VehicleTracking";
+import AdminHome from "@/pages/AdminHome";
+import FleetManagers from "@/pages/FleetManagers";
 
 const queryClient = new QueryClient();
 
@@ -139,6 +142,9 @@ function AppRoutes() {
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/vehicle-tracking" element={<VehicleTracking />} />
+        <Route path="/admin-home" element={<AdminHome />} />
+        <Route path="/fleet-managers" element={<FleetManagers />} />
         <Route path="/vehicles" element={<Vehicles />} />
         <Route path="/drivers" element={<Drivers />} />
         <Route path="/customers" element={<Customers />} />
