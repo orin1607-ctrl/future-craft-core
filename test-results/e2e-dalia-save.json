@@ -1,0 +1,12 @@
+{
+  "ok": false,
+  "project": "dalia-staging",
+  "steps": [
+    {
+      "name": "auth",
+      "ok": "skip",
+      "message": "Set TEST_EMAIL + TEST_PASSWORD for live insert/read E2E"
+    }
+  ],
+  "at": "2026-06-08T11:41:45.810Z"
+}

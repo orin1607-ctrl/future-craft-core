@@ -1,0 +1,17 @@
+{
+  "at": "2026-06-08T11:49:29.759Z",
+  "project": "dalia-staging",
+  "projectId": "usfeoerkpcafxxlyuldl",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "steps": [
+    {
+      "name": "auth",
+      "ok": "skip",
+      "message": "Set TEST_EMAIL + TEST_PASSWORD",
+      "at": "2026-06-08T11:49:29.761Z"
+    }
+  ],
+  "shots": [],
+  "dbProof": {},
+  "productionTouched": false
+}

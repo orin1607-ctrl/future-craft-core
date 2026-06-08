@@ -1,0 +1,11 @@
+{
+  "ok": false,
+  "steps": [
+    {
+      "name": "config",
+      "ok": false,
+      "message": "Set TEST_EMAIL and TEST_PASSWORD to run live integration test"
+    }
+  ],
+  "at": "2026-06-02T12:53:56.827Z"
+}

@@ -1,0 +1,23 @@
+{
+  "at": "2026-06-08T14:20:00.000Z",
+  "project": "dalia-staging",
+  "projectId": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "pushDone": false,
+  "migrationsApplied": false,
+  "formFieldsUnique": 102,
+  "formFieldsPersisted": 102,
+  "directColumnMapped": 63,
+  "jsonPacked": 38,
+  "tests": { "vitest": "7/7 pass", "build": "pass", "e2eLive": "SKIP no credentials" },
+  "migrationsPending": [
+    "supabase/migrations/20260608120000_vehicle_color_end_or_scrap.sql",
+    "supabase/migrations/20260608130000_documents_bucket_staging.sql"
+  ],
+  "tablesAffected": ["vehicles", "storage.buckets", "storage.objects", "document_metadata", "drivers"],
+  "screenshots": {
+    "hebrewFix": "docs/screenshots/hebrew-fix/",
+    "stagingProof": "docs/screenshots/staging-visual-proof/"
+  },
+  "reportMarkdown": "docs/dalia-staging-final-report.md"
+}
