@@ -28,7 +28,7 @@ const REQUIRED_TABLES = [
 
 const VEHICLE_COLUMNS = [
   'id',
-  'vehicle_plate',
+  'license_plate',
   'internal_number',
   'manufacturer',
   'model',

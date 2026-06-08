@@ -1,0 +1,16 @@
+{
+  "project": "usfeoerkpcafxxlyuldl",
+  "at": "2026-06-08T14:46:00.000Z",
+  "method": "supabase db query --linked",
+  "applied": [
+    "20260608120000_vehicle_color_end_or_scrap.sql",
+    "20260608130000_documents_bucket_staging.sql"
+  ],
+  "errors": [],
+  "productionTouched": false,
+  "verified": {
+    "vehicle_color_column": true,
+    "license_plate_probe": true,
+    "note": "audit-staging-schema vehicleCols.ok=true after migration"
+  }
+}

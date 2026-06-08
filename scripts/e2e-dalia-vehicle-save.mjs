@@ -7,7 +7,7 @@ import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
 function loadEnvFile() {
-  for (const name of ['.env.local', '.env']) {
+  for (const name of ['.env', '.env.local']) {
     const path = join(process.cwd(), name);
     if (!existsSync(path)) continue;
     const env = {};

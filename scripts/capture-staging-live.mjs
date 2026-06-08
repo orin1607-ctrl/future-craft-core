@@ -20,7 +20,7 @@ mkdirSync('test-results', { recursive: true });
 
 function loadEnv() {
   const env = {};
-  for (const name of ['.env.local', '.env']) {
+  for (const name of ['.env', '.env.local']) {
     const p = join(process.cwd(), name);
     if (!existsSync(p)) continue;
     for (const line of readFileSync(p, 'utf8').split('\n')) {
