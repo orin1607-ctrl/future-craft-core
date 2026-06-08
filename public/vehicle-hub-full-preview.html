@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>תצוגה מקדימה — כרטיס רכב (מבנה מאושר לבדיקה)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --background: hsl(210 20% 98%);
+      --foreground: hsl(220 40% 13%);
+      --card: hsl(0 0% 100%);
+      --border: hsl(214 20% 90%);
+      --primary: hsl(218 58% 27%);
+      --primary-fg: #fff;
+      --muted: hsl(210 20% 96%);
+      --muted-fg: hsl(215 16% 47%);
+      --success: hsl(142 55% 42%);
+      --warning: hsl(38 80% 50%);
+      --destructive: hsl(0 84% 60%);
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      font-size: 15px;
+      line-height: 1.45;
+      padding: 12px;
+      max-width: 720px;
+      margin: 0 auto;
+      padding-bottom: 48px;
+    }
+    .preview-banner {
+      background: var(--primary);
+      color: var(--primary-fg);
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      margin-bottom: 14px;
+      text-align: center;
+      font-weight: 600;
+    }
+    .preview-banner small { display: block; opacity: .9; margin-top: 6px; font-weight: 400; }
+    .back { color: var(--primary); font-weight: 600; margin-bottom: 12px; display: inline-flex; gap: 6px; border: none; background: none; font-family: inherit; font-size: 15px; cursor: pointer; }
+    .veh-title { margin-bottom: 14px; }
+    .veh-title h1 { font-size: 22px; font-weight: 800; }
+    .veh-title p { color: var(--muted-fg); font-size: 14px; margin-top: 4px; }
+    .card-elevated {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 14px rgba(0,0,0,.06);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .status-badge {
+      display: inline-flex;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-active { background: hsl(142 55% 42% / .15); color: var(--success); }
+    .status-pending { background: hsl(38 80% 50% / .15); color: var(--warning); }
+    .status-warn { background: hsl(0 84% 60% / .12); color: var(--destructive); }
+
+    /* דשבורד עליון */
+    .dash-title { font-size: 13px; font-weight: 700; color: var(--muted-fg); padding: 12px 14px 8px; text-transform: uppercase; letter-spacing: .5px; }
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      padding: 0 12px 12px;
+    }
+    @media (min-width: 520px) { .dash-grid { grid-template-columns: repeat(3, 1fr); } }
+    .dash-sec { grid-column: 1 / -1; font-size: 10px; font-weight: 700; color: var(--muted-fg); padding: 4px 2px; }
+    .dash-tile {
+      background: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      min-height: 64px;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: right;
+      width: 100%;
+    }
+    .dash-tile.warn { border-color: hsl(0 84% 60% / .35); background: hsl(0 84% 60% / .06); }
+    .dash-tile .lbl { font-size: 10px; color: var(--muted-fg); }
+    .dash-tile .val { font-size: 13px; font-weight: 700; margin-top: 4px; }
+    .dash-tile.warn .val { color: var(--destructive); }
+    .bottom-actions { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 12px; border-top: 2px solid var(--border); margin-top: 12px; }
+    @media (min-width: 520px) { .bottom-actions { grid-template-columns: repeat(3, 1fr); } }
+    .bottom-actions button { padding: 14px; border-radius: 10px; font-weight: 700; font-family: inherit; border: 2px solid var(--border); background: var(--card); cursor: pointer; }
+    .bottom-actions .imp { border-color: var(--primary); color: var(--primary); }
+    .bottom-actions .arc { border-color: hsl(38 80% 50% / .5); color: var(--warning); }
+    .bottom-actions .del { border-color: hsl(0 84% 60% / .5); color: var(--destructive); }
+    .dash-group {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: right;
+      cursor: pointer;
+      font-family: inherit;
+      width: 100%;
+      transition: border-color .15s;
+    }
+    .dash-group:hover { border-color: var(--primary); }
+    .dash-group.warn { border-color: hsl(0 84% 60% / .35); background: hsl(0 84% 60% / .04); }
+    .dash-group h3 { font-size: 15px; font-weight: 800; margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .dash-group .line { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; }
+    .dash-group .line .k { color: var(--muted-fg); }
+    .dash-group .line .v { font-weight: 700; }
+    .dash-group .line .v.bad { color: var(--destructive); }
+    .dash-group .foot { font-size: 10px; color: var(--primary); font-weight: 700; margin-top: 10px; }
+    .dash-hint { font-size: 11px; color: var(--muted-fg); padding: 0 14px 8px; }
+    .sheet-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100;
+      align-items: flex-end; justify-content: center;
+    }
+    .sheet-overlay.on { display: flex; }
+    .sheet {
+      background: var(--card); width: 100%; max-width: 720px; max-height: 85vh;
+      border-radius: 16px 16px 0 0; padding: 16px 18px 28px; overflow-y: auto;
+      box-shadow: 0 -8px 32px rgba(0,0,0,.12);
+    }
+    .sheet h3 { font-size: 18px; margin-bottom: 4px; }
+    .sheet .sub { font-size: 13px; color: var(--muted-fg); margin-bottom: 14px; }
+    .sheet .row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .sheet .row .k { color: var(--muted-fg); }
+    .sheet .card { background: var(--muted); border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid hsl(0 84% 60% / .25); }
+    .sheet .card strong { color: var(--destructive); }
+    .sheet .close-btn {
+      width: 100%; margin-top: 12px; padding: 12px; border-radius: var(--radius);
+      background: var(--primary); color: #fff; border: none; font-family: inherit; font-weight: 700; cursor: pointer;
+    }
+
+    /* 4 כפתורים ראשיים */
+    .main-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .main-nav button {
+      min-height: 76px;
+      border-radius: var(--radius);
+      border: 2px solid var(--border);
+      background: var(--card);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      color: var(--foreground);
+    }
+    .main-nav button.on {
+      border-color: var(--primary);
+      background: hsl(218 58% 27% / .08);
+      color: var(--primary);
+    }
+
+    .panel { display: none; }
+    .panel.on { display: block; }
+
+    /* אקורדיון פרטי רכב */
+    .acc-head {
+      width: 100%;
+      text-align: right;
+      padding: 14px 16px;
+      font-weight: 700;
+      font-size: 15px;
+      border: none;
+      background: var(--card);
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .acc-body { padding: 14px 16px; display: none; border-bottom: 1px solid var(--border); }
+    .acc-body.open { display: block; }
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+    .fld .l { font-size: 11px; color: var(--muted-fg); }
+    .fld .v { font-size: 14px; font-weight: 700; margin-top: 2px; }
+    .fld.full { grid-column: 1 / -1; }
+    .sub-box {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid hsl(218 58% 27% / .2);
+      background: hsl(218 58% 27% / .04);
+    }
+    .sub-box h4 { font-size: 14px; color: var(--primary); margin-bottom: 10px; }
+    table.mini { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 8px; }
+    table.mini th, table.mini td { padding: 8px; border-bottom: 1px solid var(--border); text-align: right; }
+    .doc-link { display: block; padding: 8px 12px; background: var(--muted); border-radius: 8px; margin-top: 6px; font-size: 13px; color: var(--primary); font-weight: 600; }
+    .note-box { font-size: 12px; color: var(--muted-fg); background: var(--muted); padding: 10px 12px; border-radius: 8px; margin-top: 10px; }
+
+    /* פעולות */
+    .btn-action-main {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+    .quick button {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+    .tabs button {
+      background: none; border: none; border-bottom: 2px solid transparent;
+      padding: 10px 11px; font-size: 12px; font-weight: 700; font-family: inherit;
+      white-space: nowrap; color: var(--muted-fg); cursor: pointer;
+    }
+    .tabs button.on { color: var(--primary); border-color: var(--primary); }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { text-align: right; padding: 8px; font-size: 11px; color: var(--muted-fg); border-bottom: 1px solid var(--border); }
+    .data-table td { padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+
+    /* היסטוריה */
+    .hist { padding: 14px 16px; }
+    .hist-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .hist-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); margin-top: 5px; flex-shrink: 0; }
+    .hist-meta { font-size: 12px; color: var(--muted-fg); margin-top: 3px; }
+    .hist-readonly { font-size: 11px; color: var(--muted-fg); margin-bottom: 10px; }
+
+    /* ניהול */
+    .manage { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .manage .m-btn {
+      width: 100%; padding: 14px; border-radius: var(--radius);
+      font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer;
+      border: 2px solid var(--border); background: var(--card);
+    }
+    .manage .m-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .manage .m-btn.danger { border-color: hsl(0 84% 60% / .4); color: var(--destructive); margin-top: 16px; }
+    .manage .m-btn.archive { border-color: hsl(38 80% 50% / .4); color: var(--warning); margin-top: 12px; }
+
+    .audit {
+      font-size: 11px;
+      color: var(--muted-fg);
+      padding: 12px;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      margin-top: 8px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .audit code { font-size: 10px; background: var(--muted); padding: 1px 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <div class="preview-banner">
+    תצוגה מקדימה לבדיקה בלבד — Future Craft (כחול־לבן)
+    <small>כרטיסים אדומים לחיצים לפירוט · React: <strong>/dev/vehicle-card</strong> · לא מחליף VehicleForm</small>
+  </div>
+
+  <button type="button" class="back">← חזרה לרשימת רכבים</button>
+
+  <div class="veh-title">
+    <h1>טויוטה קורולה</h1>
+    <p dir="ltr">123-45-678 · VH-042 · שנת 2022</p>
+  </div>
+
+  <!-- ═══ דשבורד עליון — רק הרכב הזה ═══ -->
+  <div class="card-elevated">
+    <div class="dash-title">דשבורד · <span dir="ltr">123-45-678 · VH-042</span></div>
+    <div class="dash-grid">
+      <p class="dash-sec">מאוגדים</p>
+      <button type="button" class="dash-tile warn" data-drill="insurance_licenses"><div class="lbl">ביטוחים ורישיונות</div><div class="val">יש לטפל</div></button>
+      <button type="button" class="dash-tile warn" data-drill="documents"><div class="lbl">מסמכים</div><div class="val">3 חסרים</div></button>
+      <button type="button" class="dash-tile warn" data-drill="gaps_alerts"><div class="lbl">חוסרים והתראות</div><div class="val">דורש טיפול</div></button>
+      <p class="dash-sec">מעקב שוטף</p>
+      <div class="dash-tile"><div class="lbl">סטטוס רכב</div><div class="val">פעיל</div></div>
+      <div class="dash-tile"><div class="lbl">טיפול הבא</div><div class="val">15/08/2025</div></div>
+      <div class="dash-tile"><div class="lbl">טיפול אחרון</div><div class="val">02/03/2025</div></div>
+      <div class="dash-tile"><div class="lbl">ק״מ</div><div class="val">87,420</div></div>
+      <div class="dash-tile"><div class="lbl">בדיקה חצי שנתית</div><div class="val">15/10/24</div></div>
+      <div class="dash-tile warn"><div class="lbl">בדיקה תלת שנתית</div><div class="val">נדרש</div></div>
+      <div class="dash-tile warn"><div class="lbl">התראות פתוחות</div><div class="val">3</div></div>
+      <div class="dash-tile warn"><div class="lbl">שינועים פתוחים</div><div class="val">כן</div></div>
+    </div>
+    <div class="bottom-actions">
+      <button type="button" class="imp">יבוא רכב</button>
+      <button type="button" class="arc">ארכיון רכב</button>
+      <button type="button" class="del">מחק רכב</button>
+    </div>
+  </div>
+
+  <!-- ═══ 4 כפתורים ראשיים ═══ -->
+  <div class="main-nav" id="mainNav">
+    <button type="button" class="on" data-panel="details">פרטי רכב<br><small style="font-weight:400;font-size:11px">סעיפים 1–5</small></button>
+    <button type="button" data-panel="actions">פעולות רכב<br><small style="font-weight:400;font-size:11px">סעיפים 6–14</small></button>
+    <button type="button" data-panel="history">היסטוריית רכב</button>
+    <button type="button" data-panel="manage">ניהול רכב</button>
+  </div>
+
+  <!-- ═══ פאנל 1: פרטי רכב — כל השדות המקוריים ═══ -->
+  <div class="panel on" id="panel-details">
+    <div class="card-elevated">
+      <p class="note-box" style="margin:12px">קריאה בלבד בתצוגה. עריכה מלאה דרך <strong>עריכת רכב</strong> — אותו <code>VehicleForm</code> עם אותם bindings ל-Supabase.</p>
+
+      <!-- 1. פרטי הרכב -->
+      <button type="button" class="acc-head" data-acc="acc1">1. פרטי הרכב <span>▼</span></button>
+      <div class="acc-body open" id="acc1">
+        <div class="field-grid">
+          <div class="fld"><div class="l">מספר רכב (רישוי) *</div><div class="v" dir="ltr">123-45-678</div></div>
+          <div class="fld"><div class="l">מספר פנימי</div><div class="v">VH-042</div></div>
+          <div class="fld"><div class="l">יצרן</div><div class="v">טויוטה</div></div>
+          <div class="fld"><div class="l">דגם</div><div class="v">קורולה</div></div>
+          <div class="fld"><div class="l">שנה</div><div class="v">2022</div></div>
+          <div class="fld"><div class="l">סוג רכב</div><div class="v">רכב פרטי</div></div>
+          <div class="fld"><div class="l">סטטוס</div><div class="v">פעיל</div></div>
+          <div class="fld"><div class="l">ק״מ נוכחי</div><div class="v">87,420</div></div>
+          <div class="fld"><div class="l">נהג משויך</div><div class="v">אבי כהן</div></div>
+          <div class="fld"><div class="l">חברה</div><div class="v">דליה לוגיסטיקה</div></div>
+          <div class="fld"><div class="l">סטטוס אישור</div><div class="v">מאושר</div></div>
+          <div class="fld full"><div class="l">שליפה ממאגר ממשלתי (בטופס עריכה)</div><div class="v" style="font-weight:400;font-size:13px">כפתור שליפה + דיאלוג: יצרן, דגם, שנתון, תוקף, בעלות, צמיגים, מס׳ שלדה…</div></div>
+        </div>
+      </div>
+
+      <!-- 2. בעלות / סוג ניהול -->
+      <button type="button" class="acc-head" data-acc="acc2">2. בעלות וסוג ניהול רכב <span>▼</span></button>
+      <div class="acc-body" id="acc2">
+        <div class="fld full" style="margin-bottom:10px"><div class="l">סוג ניהול</div><div class="v">ליסינג תפעולי</div></div>
+        <div class="sub-box">
+          <h4>פרטי ליסינג תפעולי (כש־management_type = operational_leasing)</h4>
+          <div class="field-grid">
+            <div class="fld"><div class="l">עלות חודשית (₪)</div><div class="v">4,200</div></div>
+            <div class="fld"><div class="l">מועד סיום הליסינג</div><div class="v">31/12/2026</div></div>
+            <div class="fld"><div class="l">מועד החזרת הרכב</div><div class="v">15/01/2027</div></div>
+            <div class="fld"><div class="l">is_leasing</div><div class="v">true</div></div>
+          </div>
+        </div>
+        <p class="note-box">גם: ליסינג מימוני · תחזוקה עצמאית — עם כל השדות: monthly_loan_payment, loan_end_date, planned_replacement_date, has_loan (ללא שינוי שמות ב-DB)</p>
+      </div>
+
+      <!-- 3. ביטוחים ורישיונות -->
+      <button type="button" class="acc-head" data-acc="acc3">3. ביטוחים ורישיונות <span>▼</span></button>
+      <div class="acc-body" id="acc3">
+        <div class="field-grid">
+          <div class="fld"><div class="l">תוקף טסט (רישוי) *</div><div class="v">10/04/2025</div></div>
+          <div class="fld"><div class="l">ביטוח חובה — התחלה</div><div class="v">01/01/2025</div></div>
+          <div class="fld"><div class="l">ביטוח חובה — תוקף</div><div class="v">30/06/2025</div></div>
+          <div class="fld"><div class="l">ביטוח מקיף — התחלה</div><div class="v">01/01/2025</div></div>
+          <div class="fld"><div class="l">ביטוח מקיף — תוקף</div><div class="v">30/06/2025</div></div>
+          <div class="fld"><div class="l">insurance_cost (שדה רכב)</div><div class="v">—</div></div>
+        </div>
+        <div class="sub-box" style="margin-top:14px">
+          <h4>היסטוריית ביטוחים והדר תביעות (vehicle_insurance_history)</h4>
+          <table class="mini">
+            <thead><tr><th>שנה</th><th>הדר תביעות</th><th>חברת ביטוח</th><th>עלות חובה</th><th>עלות מקיף</th></tr></thead>
+            <tbody>
+              <tr><td>2025</td><td>כן</td><td>הפניקס</td><td>₪2,400</td><td>₪5,100</td></tr>
+              <tr><td>2024</td><td>כן</td><td>מנורה</td><td>₪2,200</td><td>₪4,800</td></tr>
+            </tbody>
+          </table>
+          <p class="note-box">מוצג לליסינג מימוני / תחזוקה עצמאית — כמו ב-VehicleForm</p>
+        </div>
+      </div>
+
+      <!-- 4. ציוד וכלים מיוחדים -->
+      <button type="button" class="acc-head" data-acc="acc4">4. ציוד וכלים מיוחדים <span>▼</span></button>
+      <div class="acc-body" id="acc4">
+        <p class="note-box">בטבלת <code>vehicles</code> אין שדות ציוד ייעודיים. במערכת הקיימת: ציוד מופיע בהחלפת רכב (<code>vehicle_exchanges.extra_equipment</code>) וביקורות. בכרטיס רכב — מוצג כאן אם קיים נתון מקושר, בלי שדה חדש.</p>
+        <div class="field-grid" style="margin-top:10px">
+          <div class="fld full"><div class="l">ציוד / הערות מקושרות</div><div class="v" style="font-weight:400">— (אין רשומה להחלפה אחרונה)</div></div>
+        </div>
+      </div>
+
+      <!-- 5. טיפולים ותחזוקה -->
+      <button type="button" class="acc-head" data-acc="acc5">5. טיפולים ותחזוקה <span>▼</span></button>
+      <div class="acc-body" id="acc5">
+        <div class="field-grid">
+          <div class="fld"><div class="l">טיפול אחרון (last_service_date)</div><div class="v">02/03/2025</div></div>
+          <div class="fld"><div class="l">טיפול הבא (next_service_date)</div><div class="v">15/08/2025</div></div>
+        </div>
+      </div>
+
+      <!-- מסמכים — חלק מפרטי הרכב במערכת -->
+      <button type="button" class="acc-head" data-acc="acc6">מסמכים (רישיון · ביטוחים) <span>▼</span></button>
+      <div class="acc-body" id="acc6">
+        <span class="doc-link">צילום רישיון רכב — license_doc_url</span>
+        <span class="doc-link">פוליסת ביטוח חובה — insurance_doc_url</span>
+        <span class="doc-link">פוליסת ביטוח מקיף — comprehensive_insurance_doc_url</span>
+        <p class="note-box">העלאה בעריכה: ImageUpload · documentCategory: vehicle-license / insurance / comprehensive</p>
+      </div>
+
+      <!-- הערות ושינוע -->
+      <button type="button" class="acc-head" data-acc="acc7">הערות · שינוע · פרטים משלימים <span>▼</span></button>
+      <div class="acc-body" id="acc7">
+        <div class="field-grid">
+          <div class="fld full"><div class="l">נדרש שינוע (needs_transport)</div><div class="v">כן</div></div>
+          <div class="fld full"><div class="l">הערות (notes)</div><div class="v" style="font-weight:400">רכב בשימוש צפוף בצפון. לתאם טיפול מראש.</div></div>
+        </div>
+      </div>
+
+      <div class="audit">
+        <strong>רשימת שדות vehicles (ללא שינוי) — לבדיקת ייבוא:</strong><br>
+        license_plate, internal_number, manufacturer, model, year, vehicle_type, status, odometer,
+        assigned_driver_id, company_name, test_expiry, insurance_start, insurance_expiry,
+        comprehensive_insurance_start, comprehensive_insurance_expiry, last_service_date, next_service_date,
+        needs_transport, approval_status, license_doc_url, insurance_doc_url, comprehensive_insurance_doc_url,
+        management_type, monthly_leasing_cost, leasing_end_date, vehicle_return_date,
+        monthly_loan_payment, loan_end_date, planned_replacement_date, has_loan, is_leasing, insurance_cost, notes
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ פאנל 2: פעולות רכב 6–14 ═══ -->
+  <div class="panel" id="panel-actions">
+    <button type="button" class="btn-action-main">+ פתיחת פעולה לרכב</button>
+    <div class="quick">
+      <button>ליקוי</button><button>תקלה</button><button>טיפול</button><button>תאונה</button>
+      <button>בדיקה</button><button>התראה</button><button>שינוע</button><button>ספק</button>
+    </div>
+    <div class="card-elevated" style="padding:12px">
+      <p style="font-size:12px;color:var(--muted-fg);margin-bottom:8px">סעיפים 6–14 — תצוגות לפי טאב (מבנה חדש)</p>
+      <div class="tabs" id="actionTabs">
+        <button class="on">מעקב</button><button>ליקויים</button><button>שירות</button><button>תאונות</button>
+        <button>בדיקות</button><button>התראות</button><button>מסמכים</button><button>שינועים</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>פעולה</th><th>סוג</th><th>תאריך</th><th>סטטוס</th></tr></thead>
+        <tbody>
+          <tr><td>ליקוי בלמים</td><td>ליקוי</td><td>10/05/2025</td><td><span class="status-badge status-pending">פתוח</span></td></tr>
+          <tr><td>הזמנה למוסך יוני</td><td>שירות</td><td>12/05/2025</td><td><span class="status-badge status-pending">בטיפול</span></td></tr>
+        </tbody>
+      </table>
+      <p class="note-box" style="margin-top:12px">
+        פעולות: ליקוי · תקלה · טיפול · תאונה · בדיקה · שינוע · הזמנת שירות · מסמך פעולה · הערה · התראה · הזמנה לספק<br>
+        כל שמירה → מעקב + טאב רלוונטי + <strong>היסטוריה אוטומטית</strong>
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══ פאנל 3: היסטוריה (תוצאה בלבד) ═══ -->
+  <div class="panel" id="panel-history">
+    <div class="card-elevated hist">
+      <p class="hist-readonly">תצוגה בלבד — אין יצירת פעולות מכאן. כל פעולה שנשמרה מופיעה אוטומטית.</p>
+      <div class="hist-item"><div class="hist-dot"></div><div><strong>ליקוי בלמים – רפידות שחוקות</strong><div class="hist-meta">10/05/2025 · ליקוי · 123-45-678</div></div></div>
+      <div class="hist-item"><div class="hist-dot"></div><div><strong>הזמנה לספק: מוסך יוני (PO-250602-042)</strong><div class="hist-meta">12/05/2025 · שירות · מקושר לליקוי</div></div></div>
+      <div class="hist-item"><div class="hist-dot"></div><div><strong>בדיקה חצי שנתית – עבר</strong><div class="hist-meta">15/04/2025 · בדיקה</div></div></div>
+      <div class="hist-item"><div class="hist-dot"></div><div><strong>החלפת שמן מנוע</strong><div class="hist-meta">02/03/2025 · טיפול</div></div></div>
+    </div>
+  </div>
+
+  <!-- ═══ פאנל 4: ניהול ═══ -->
+  <div class="panel" id="panel-manage">
+    <div class="card-elevated manage">
+      <button type="button" class="m-btn primary">עריכת רכב (VehicleForm מלא)</button>
+      <button type="button" class="m-btn">שינוי שיוך נהג</button>
+      <button type="button" class="m-btn">העברת / החלפת רכב</button>
+      <button type="button" class="m-btn">בדיקה תלת/חצי שנתית</button>
+      <p style="font-size:13px;color:var(--muted-fg)">שינוי סטטוס: פעיל · בטיפול · לא פעיל</p>
+      <button type="button" class="m-btn archive">העבר לארכיון</button>
+      <button type="button" class="m-btn danger">מחק רכב</button>
+    </div>
+  </div>
+
+  <div class="sheet-overlay" id="sheetOverlay" aria-hidden="true">
+    <div class="sheet" role="dialog">
+      <h3 id="sheetTitle">פירוט</h3>
+      <p class="sub" id="sheetSub">123-45-678 · VH-042</p>
+      <div id="sheetBody"></div>
+      <button type="button" class="close-btn" id="sheetClose">סגור</button>
+    </div>
+  </div>
+
+  <script>
+    const DRILL = {
+      insurance_licenses: {
+        title: 'ביטוחים ורישיונות — פירוט',
+        html: `<div class="row"><span class="k">ביטוח חובה</span><span>30/06/2025 · בתוקף</span></div>
+          <div class="row"><span class="k">ביטוח מקיף</span><span>מסמך חסר</span></div>
+          <div class="row"><span class="k">טסט</span><span class="bad">פג תוקף</span></div>
+          <div class="row"><span class="k">רישיון</span><span>קובץ חסר</span></div>`
+      },
+      maintenance: {
+        title: 'תחזוקה וטיפולים',
+        html: `<div class="row"><span class="k">טיפול הבא</span><span>15/08/2025</span></div>
+          <div class="row"><span class="k">ק״מ</span><span>87,420</span></div>`
+      },
+      gaps_alerts: {
+        title: 'חוסרים והתראות',
+        html: `<div class="card"><strong>חוסר מסמכים</strong> — 3</div>
+          <div class="card"><strong>חוסר אחר</strong> — מפתח חסר (ניתן להוסיף ידנית)</div>
+          <p style="font-size:13px;margin-top:8px">במערכת: שדה הוספת חוסר + שמירה להיסטוריה</p>`
+      },
+      vehicle_status: {
+        title: 'סטטוס רכב',
+        html: `<div class="row"><span class="k">נהג</span><span>אבי כהן</span></div>
+          <div class="row"><span class="k">פנימי</span><span>VH-042</span></div>`
+      },
+      docs: {
+        title: 'חוסר מסמכים — פירוט',
+        html: `<div class="card"><strong>רישיון רכב</strong><br>סטטוס: חסר קובץ · העלה בעריכת רכב</div>
+          <div class="card"><strong>ביטוח מקיף — פוליסה</strong><br>סטטוס: חסר קובץ</div>
+          <div class="card"><strong>טסט (תוקף רישוי)</strong><br>סטטוס: פג תוקף · חדש טסט</div>`
+      },
+      transport: {
+        title: 'נדרש שינוע — פירוט',
+        html: `<div class="row"><span class="k">למה</span><span>רכב לא ניתן להפעלה — גרירה למוסך</span></div>
+          <div class="row"><span class="k">מאיפה</span><span>חניון מרכז · אבי כהן</span></div>
+          <div class="row"><span class="k">לאן</span><span>מוסך יוני, האריג 12 ת״א</span></div>
+          <div class="row"><span class="k">מי ביקש</span><span>מנהל צי — דני לוי</span></div>
+          <div class="row"><span class="k">סטטוס</span><span>ממתין לאישור</span></div>
+          <div class="row"><span class="k">תאריך יעד</span><span>05/06/2025 09:00</span></div>`
+      },
+      insurance: {
+        title: 'ביטוח — פירוט',
+        html: `<div class="card"><strong>ביטוח מקיף</strong><br>תוקף: 30/06/2025 · חברה: הפניקס · מסמך: לא<br>פעולה: העלה פוליסה</div>
+          <div class="card"><strong>ביטוח חובה</strong><br>תוקף: 30/06/2025 · מסמך: כן · מתקרב לפקיעה</div>`
+      },
+      issues: {
+        title: 'תקלה / ליקוי / שירות פתוח',
+        html: `<div class="card"><strong>תקלה: נורת מנוע</strong><br>נפתח: 28/05/2025 · אבי כהן · סטטוס: פתוח<br>פעולה: הזמנת שירות</div>
+          <div class="card"><strong>ליקוי: בלמים</strong><br>נפתח: 10/05/2025 · מנהל צי · בטיפול</div>
+          <div class="card"><strong>שירות: מוסך יוני</strong><br>12/05/2025 · ממתין לאישור</div>`
+      },
+      test: {
+        title: 'טסט ורישיון',
+        html: `<div class="row"><span class="k">תאריך טסט</span><span>10/04/2025</span></div>
+          <div class="row"><span class="k">סטטוס</span><span>פג תוקף</span></div>
+          <div class="row"><span class="k">קובץ רישיון</span><span>חסר</span></div>
+          <div class="row"><span class="k">פעולה</span><span>חדש טסט דחוף</span></div>`
+      },
+      manager: {
+        title: 'תזכורת מנהל',
+        html: `<div class="card"><strong>ממתין לאישור מנהל</strong><br>הרכב נוסף וממתין לאישור לפני הפעלה מלאה.</div>`
+      }
+    };
+    const overlay = document.getElementById('sheetOverlay');
+    const openSheet = (key) => {
+      const d = DRILL[key];
+      if (!d) return;
+      document.getElementById('sheetTitle').textContent = d.title;
+      document.getElementById('sheetBody').innerHTML = d.html;
+      overlay.classList.add('on');
+      overlay.setAttribute('aria-hidden', 'false');
+    };
+    document.querySelectorAll('[data-drill]').forEach(el => {
+      el.addEventListener('click', () => openSheet(el.dataset.drill));
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') openSheet(el.dataset.drill); });
+    });
+    document.getElementById('sheetClose').onclick = () => { overlay.classList.remove('on'); overlay.setAttribute('aria-hidden', 'true'); };
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('on'); });
+
+    document.getElementById('mainNav').addEventListener('click', e => {
+      const btn = e.target.closest('button[data-panel]');
+      if (!btn) return;
+      document.querySelectorAll('#mainNav button').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+      document.getElementById('panel-' + btn.dataset.panel).classList.add('on');
+    });
+
+    document.querySelectorAll('.acc-head').forEach(head => {
+      head.addEventListener('click', () => {
+        const id = head.dataset.acc;
+        const body = document.getElementById(id);
+        const open = body.classList.toggle('open');
+        head.querySelector('span').textContent = open ? '▲' : '▼';
+      });
+    });
+  </script>
+</body>
+</html>

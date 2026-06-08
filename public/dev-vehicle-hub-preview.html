@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>תצוגה מקדימה — כרטיס רכב</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Heebo, sans-serif; background: #f4f6f8; color: #0f172a; padding: 16px; }
+    .wrap { max-width: 480px; margin: 0 auto; }
+    .back { color: #2563eb; font-weight: 600; margin-bottom: 16px; font-size: 16px; }
+    .dashboard {
+      background: linear-gradient(135deg, #0f172a, #1e293b 55%, #0f172a);
+      color: #fff; border-radius: 16px; padding: 16px; margin-bottom: 16px;
+      border: 1px solid rgba(255,255,255,.1); box-shadow: 0 8px 24px rgba(15,23,42,.25);
+    }
+    .dashboard h1 { font-size: 22px; font-weight: 800; }
+    .sub { color: rgba(255,255,255,.75); font-size: 15px; margin-top: 4px; direction: ltr; text-align: right; }
+    .badge { background: #16a34a; color: #fff; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tile { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 10px; }
+    .tile.warn { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.35); }
+    .tile label { font-size: 11px; color: rgba(255,255,255,.65); display: block; margin-bottom: 4px; }
+    .tile span { font-size: 13px; font-weight: 700; }
+    .tile.warn span { color: #fecaca; }
+    .nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .nav button {
+      min-height: 72px; border-radius: 16px; border: 2px solid #e2e8f0; background: #fff;
+      font-weight: 700; font-size: 13px; color: #0f172a; cursor: default;
+    }
+    .nav button.active { border-color: #2563eb; background: rgba(37,99,235,.08); color: #2563eb; }
+    .note { text-align: center; font-size: 11px; color: #64748b; margin-top: 8px; }
+    @media (min-width: 900px) {
+      .wrap { max-width: 960px; }
+      .tiles { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="back">← חזרה לרשימה</div>
+    <div class="dashboard">
+      <div class="head">
+        <div>
+          <div style="font-size:12px;opacity:.65">כרטיס רכב</div>
+          <h1>טויוטה קורולה</h1>
+          <div class="sub">12-345-67 · INT-042</div>
+        </div>
+        <span class="badge">פעיל</span>
+      </div>
+      <div class="tiles">
+        <div class="tile"><label>נהג משויך</label><span>יוסי כהן</span></div>
+        <div class="tile"><label>ק"מ</label><span>84,320</span></div>
+        <div class="tile warn"><label>תוקף ביטוח</label><span>01/08/2026 (12 ימים)</span></div>
+        <div class="tile"><label>תוקף טסט</label><span>15/11/2026</span></div>
+        <div class="tile"><label>בדיקה חצי שנתית</label><span>03/01/2026</span></div>
+        <div class="tile"><label>בדיקה תלת/חצי שנתית</label><span>לא הוגדר</span></div>
+        <div class="tile"><label>טיפול הבא</label><span>20/07/2026</span></div>
+        <div class="tile warn"><label>התראות פתוחות</label><span>2</span></div>
+        <div class="tile warn"><label>חוסר מסמכים</label><span>1 חסרים</span></div>
+        <div class="tile"><label>תזכורות מנהלים</label><span>—</span></div>
+      </div>
+    </div>
+    <div class="nav">
+      <button class="active">🚗 פרטי רכב</button>
+      <button>⚡ פעולות לרכב</button>
+      <button>🕐 היסטוריית רכב</button>
+      <button>⚙️ ניהול רכב</button>
+    </div>
+    <p class="note">תצוגת פיתוח — מסך הבית של כרטיס הרכב (VehicleHub)</p>
+  </div>
+</body>
+</html>

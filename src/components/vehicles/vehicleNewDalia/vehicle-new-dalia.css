@@ -15,6 +15,12 @@
   direction: rtl;
   max-width: 760px;
   margin: 0 auto;
+  /* רקע מלא — מונע "מסך לבן" עם טקסט בהיר על רקע האפליקציה */
+  background: var(--d-b);
+  border: 1px solid var(--d-br);
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 240px;
 }
 
 .vehicle-new-dalia * {

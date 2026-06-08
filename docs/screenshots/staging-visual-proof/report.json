@@ -1,0 +1,20 @@
+{
+  "at": "2026-06-08T11:19:21.616Z",
+  "project": "dalia-staging",
+  "projectId": "usfeoerkpcafxxlyuldl",
+  "base": "http://localhost:8080",
+  "mode": "preview-ui",
+  "stagingEnv": false,
+  "shots": [
+    "01-new-vehicle-opening.png",
+    "02-edit-vehicle-dalia-form.png",
+    "03-vehicle-hub-home.png",
+    "04-vehicle-dalia-full-panel-all-sections.png",
+    "05-faults-scoped-from-vehicle.png",
+    "06-documents-scoped-from-vehicle.png",
+    "07-back-to-vehicle-card.png",
+    "08-save-reload-edit-hub-flow.png"
+  ],
+  "note": "Preview UI (same components as staging). For LIVE dalia-staging DB proof set TEST_EMAIL + TEST_PASSWORD in environment.",
+  "envWarning": "Use .env.local with usfeoerkpcafxxlyuldl for staging."
+}

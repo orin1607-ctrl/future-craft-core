@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
 
 interface VehicleBasic {
   id: string;
@@ -46,7 +47,7 @@ export default function PrivateVehicleInspection() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const navigate = useNavigate();
-  const { plate: contextPlate, vehicleId: contextVehicleId, locked, clearContext } = useVehicleUrlContext();
+  const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
 
   const [vehicles, setVehicles] = useState<VehicleBasic[]>([]);
   const [vehicleId, setVehicleId] = useState('');
@@ -149,8 +150,10 @@ export default function PrivateVehicleInspection() {
         <h1 className="text-2xl font-bold">בדיקה תלת / חצי לרכב פרטי</h1>
       </div>
 
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+
       {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={clearContext} />
+        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
       )}
 
       {/* Top Fields */}

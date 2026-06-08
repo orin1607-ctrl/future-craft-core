@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { plateMatches, useVehicleUrlContext, useDriverUrlContext } from '@/lib/entityNavContext';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface VehicleRow { id: string; license_plate: string; manufacturer: string; model: string; assigned_driver_id: string | null; }
 interface DriverRow { id: string; full_name: string; email: string; phone: string; }
@@ -18,7 +20,7 @@ interface VehicleCompanionRow { id: string; vehicle_id: string; companion_id: st
 export default function AttachCar() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
-  const { plate: contextPlate, locked: vehicleLocked, clearContext: clearVehicleContext } = useVehicleUrlContext();
+  const { plate: contextPlate, vehicleId: contextVehicleId, locked: vehicleLocked, clearContext: clearVehicleContext } = useVehicleUrlContext();
   const { driverId: contextDriverId, driverName: contextDriverName, locked: driverLocked, clearContext: clearDriverContext } = useDriverUrlContext();
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
@@ -192,6 +194,14 @@ export default function AttachCar() {
     }
   }, [vehicles, drivers, contextPlate, contextDriverId]);
 
+  const assignmentVehicles = vehicleLocked
+    ? vehicles.filter(v =>
+        contextVehicleId ? v.id === contextVehicleId
+        : contextPlate ? plateMatches(v.license_plate, contextPlate)
+        : true
+      )
+    : vehicles;
+
   const inputClass = "w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
 
   return (
@@ -201,10 +211,13 @@ export default function AttachCar() {
         הצמדת רכב לנהג וללקוח
       </h1>
 
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+
       {contextLabel && (
         <EntityContextBanner
           label={contextLabel}
-          onClear={() => {
+          strict={vehicleLocked}
+          onClear={vehicleLocked ? undefined : () => {
             clearVehicleContext();
             clearDriverContext();
           }}
@@ -312,9 +325,12 @@ export default function AttachCar() {
       </div>
 
       {/* Current Assignments */}
-      <h2 className="text-xl font-bold mb-4">הצמדות נוכחיות</h2>
+      {!vehicleLocked && <h2 className="text-xl font-bold mb-4">הצמדות נוכחיות</h2>}
+      {vehicleLocked && assignmentVehicles.length > 0 && (
+        <h2 className="text-xl font-bold mb-4">הצמדה נוכחית</h2>
+      )}
       <div className="space-y-3">
-        {vehicles.map(v => {
+        {assignmentVehicles.map(v => {
           const companionNames = getVehicleCompanionNames(v.id);
           return (
             <div key={v.id} className="card-elevated">
@@ -373,7 +389,13 @@ export default function AttachCar() {
         })}
       </div>
 
-      {vehicles.length === 0 && (
+      {vehicleLocked && assignmentVehicles.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <Car size={48} className="mx-auto mb-4 opacity-50" />
+          <p className="text-xl">{VEHICLE_EMPTY_LIST_MSG}</p>
+        </div>
+      )}
+      {!vehicleLocked && vehicles.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           <Car size={48} className="mx-auto mb-4 opacity-50" />
           <p className="text-xl">אין רכבים במערכת</p>

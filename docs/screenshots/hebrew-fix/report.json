@@ -1,0 +1,11 @@
+{
+  "at": "2026-06-08T11:18:48.879Z",
+  "base": "http://localhost:8080",
+  "mode": "localhost-preview",
+  "note": "Hebrew fix verification — no push/deploy. Same UI strings as /vehicles after login.",
+  "shots": [
+    "01-vehicles-list-hebrew.png",
+    "02-vehicle-hub-hebrew.png",
+    "03-vehicle-card-full-panel-hebrew.png"
+  ]
+}

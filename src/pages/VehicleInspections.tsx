@@ -6,6 +6,8 @@ import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface InspectionRow {
   id: string;
@@ -46,7 +48,7 @@ type ViewMode = 'list' | 'form' | 'detail';
 export default function VehicleInspections() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
-  const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked, clearContext } = useVehicleUrlContext();
+  const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked } = useVehicleUrlContext();
   const [inspections, setInspections] = useState<InspectionRow[]>([]);
   const [vehicles, setVehicles] = useState<VehicleBasic[]>([]);
   const [search, setSearch] = useState('');
@@ -99,8 +101,10 @@ export default function VehicleInspections() {
         <h1 className="page-header !mb-0 flex items-center gap-3"><ClipboardCheck size={28} /> ביקורת רכב</h1>
       </div>
 
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+
       {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={() => { clearContext(); setSearch(''); }} />
+        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
       )}
 
       <div className="relative mb-4">
@@ -118,7 +122,7 @@ export default function VehicleInspections() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <ClipboardCheck size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-xl">אין ביקורות</p>
+          <p className="text-xl">{locked && contextPlate ? VEHICLE_EMPTY_LIST_MSG : 'אין ביקורות'}</p>
         </div>
       ) : (
         <div className="space-y-3">

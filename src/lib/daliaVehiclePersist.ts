@@ -47,6 +47,8 @@ const DIRECT_COLUMN_MAP: Record<string, string> = {
   service_notes: 'service_notes',
   inspection_date: 'last_inspection_date',
   purchase_date: 'sale_date',
+  vehicle_color: 'vehicle_color',
+  end_or_scrap_date: 'end_or_scrap_date',
   horse_power: 'horsepower',
   engine_volume: 'engine_volume',
   weight: 'weight_tons',
@@ -64,7 +66,6 @@ const DIRECT_COLUMN_MAP: Record<string, string> = {
   equipment_notes: 'equipment_details',
   ownership_route: 'finance_track',
   other_route_notes: 'finance_details',
-  maint_notes: 'maintenance_details',
   test_status: 'test_status',
   alert_status: 'service_status',
   license_link: 'license_doc_url',
@@ -110,8 +111,26 @@ const STATUS_HE_TO_EN: Record<string, string> = {
   פעיל: 'active',
   'בטיפול': 'in_service',
   'לא פעיל': 'out_of_service',
+  מושבת: 'out_of_service',
+  'בבדיקה': 'in_service',
+  ממתין: 'active',
   ארכיון: 'archived',
 };
+
+export function formatVehiclePersistError(err: unknown): string {
+  const e = err as { message?: string; code?: string; details?: string };
+  const msg = e?.message || '';
+  if (e?.code === '23505' || msg.includes('duplicate') || msg.includes('unique')) {
+    return 'רכב עם מספר רישוי זה כבר קיים במערכת';
+  }
+  if (msg.includes('invalid input syntax')) {
+    return 'אחד השדות מכיל ערך לא תקין — בדוק תאריכים ומספרים';
+  }
+  if (msg.includes('JWT') || msg.includes('not authenticated')) {
+    return 'יש להתחבר מחדש לפני שמירה';
+  }
+  return msg || 'שגיאה לא ידועה בשמירה';
+}
 
 const NUMERIC_COLUMNS = new Set([
   'year',
@@ -142,6 +161,7 @@ const DATE_COLUMNS = new Set([
   'next_inspection_date',
   'repeat_inspection_date',
   'sale_date',
+  'end_or_scrap_date',
   'leasing_end_date',
   'loan_end_date',
   'vehicle_return_date',
@@ -152,7 +172,7 @@ const DATE_COLUMNS = new Set([
 function normValue(column: string, raw: string): unknown {
   const v = raw.trim();
   if (!v) return null;
-  if (column === 'status') return STATUS_HE_TO_EN[v] || v;
+  if (column === 'status') return STATUS_HE_TO_EN[v] || 'active';
   if (NUMERIC_COLUMNS.has(column)) {
     const n = parseFloat(v.replace(/,/g, ''));
     return Number.isFinite(n) ? n : null;
@@ -284,7 +304,10 @@ export function buildVehiclePayloadFromDalia(
   };
 
   const importBuffer = {
-    dalia_form: overflow,
+    dalia_form: {
+      ...overflow,
+      ...(allValues.assigned_driver ? { assigned_driver: allValues.assigned_driver } : {}),
+    },
     departments: extras.departments,
     docs: extras.docs,
     section_saved: extras.sectionSaved,
@@ -303,6 +326,18 @@ export function buildVehiclePayloadFromDalia(
   return { payload: direct, overflow, plate };
 }
 
+async function resolveAssignedDriverId(
+  driverName: string | undefined,
+  companyName: string | undefined,
+): Promise<string | null> {
+  const name = driverName?.trim();
+  if (!name) return null;
+  let query = supabase.from('drivers').select('id').eq('full_name', name).limit(1);
+  if (companyName) query = query.eq('company_name', companyName);
+  const { data } = await query.maybeSingle();
+  return data?.id ?? null;
+}
+
 export async function persistDaliaVehicle(params: {
   allValues: Record<string, string>;
   extras: DaliaPersistExtras;
@@ -315,6 +350,12 @@ export async function persistDaliaVehicle(params: {
     params.user,
   );
 
+  const assignedDriverId = await resolveAssignedDriverId(
+    params.allValues.assigned_driver,
+    params.user.company_name,
+  );
+  if (assignedDriverId) payload.assigned_driver_id = assignedDriverId;
+
   let vehicleId = params.vehicleId || null;
   let error;
 
@@ -326,7 +367,7 @@ export async function persistDaliaVehicle(params: {
     vehicleId = res.data?.id ?? null;
   }
 
-  if (error) throw error;
+  if (error) throw new Error(formatVehiclePersistError(error));
   if (!vehicleId) throw new Error('לא התקבל מזהה רכב');
 
   await logVehicleEvent({

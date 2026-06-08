@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const page = await browser.newPage();
+page.on('console', (m) => console.log('CON', m.type(), m.text()));
+page.on('pageerror', (e) => console.log('ERR', e.message));
+await page.goto('http://localhost:8080/dev/vehicle-form-live', { waitUntil: 'networkidle', timeout: 90000 });
+await page.waitForTimeout(3000);
+console.log('body len', (await page.locator('body').innerText()).length);
+console.log('dalia', await page.locator('.vehicle-new-dalia').count());
+await browser.close();

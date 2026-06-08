@@ -31,7 +31,7 @@ import VehicleSupplierOrderModal from '@/components/vehicles/VehicleSupplierOrde
 import VehicleDashboard from '@/components/vehicles/VehicleDashboard';
 import VehicleHubBottomActions from '@/components/vehicles/VehicleHubBottomActions';
 import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
-import VehicleDetailsPanel from '@/components/vehicles/VehicleDetailsPanel';
+import VehicleDaliaFullPanel from '@/components/vehicles/VehicleDaliaFullPanel';
 import { DocLink } from '@/components/vehicles/vehicleUi';
 import { statusLabel } from '@/components/vehicles/vehicleHubUtils';
 import {
@@ -82,6 +82,9 @@ export interface VehicleHubVehicle {
   has_loan: boolean;
   is_leasing: boolean;
   insurance_cost?: number | null;
+  vehicle_color?: string | null;
+  end_or_scrap_date?: string | null;
+  import_buffer?: string | null;
 }
 
 interface DriverRow {
@@ -214,6 +217,7 @@ export default function VehicleHub({
     { label: 'תקלות', path: '/faults', icon: Wrench },
     { label: 'הזמנת שירות', path: '/service-orders', icon: Briefcase },
     { label: 'דיווח תאונה', path: '/accidents', icon: AlertTriangle, action: 'new' as const },
+    { label: 'מסמכים', path: '/documents', icon: ClipboardList },
   ];
 
   const vehicleScopedLinks = (
@@ -763,10 +767,8 @@ export default function VehicleHub({
       )}
 
       {mainSection === 'details' && (
-        <VehicleDetailsPanel
-          vehicle={v}
-          driverName={driverName}
-          driverPhone={driver?.phone}
+        <VehicleDaliaFullPanel
+          vehicleRow={v as unknown as Record<string, unknown>}
           onEdit={() => onEdit(v)}
           isManager={isManager}
         />
@@ -845,7 +847,7 @@ export default function VehicleHub({
               <Button type="button" variant="outline" className="w-full" onClick={() => navigate(buildVehicleContextUrl('/attach-car', { plate: v.license_plate, vehicleId: v.id }))}>
                 <UserCheck size={18} className="ml-2" /> שינוי שיוך נהג
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => navigate(`/vehicle-exchange?plate=${plateQ}`)}>
+              <Button type="button" variant="outline" className="w-full" onClick={() => navigate(buildVehicleContextUrl('/vehicle-exchange', { plate: v.license_plate, vehicleId: v.id }))}>
                 <RefreshCw size={18} className="ml-2" /> החלפת רכב (מסך מלא)
               </Button>
               {driver?.phone && (

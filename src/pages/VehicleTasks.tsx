@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -43,7 +45,7 @@ const getDaysSince = (dateStr: string) => {
 export default function VehicleTasks() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
-  const { plate: contextPlate, locked, clearContext } = useVehicleUrlContext();
+  const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('open');
@@ -186,8 +188,10 @@ export default function VehicleTasks() {
       </h1>
       <p className="text-muted-foreground mb-4 -mt-2">ליקויים שנמצאו בביקורות רכב — מעקב וטיפול</p>
 
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+
       {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={() => { clearContext(); setSearch(''); }} />
+        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
       )}
 
       <div className="relative mb-4">
@@ -271,7 +275,7 @@ export default function VehicleTasks() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <AlertTriangle size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-xl">אין ליקויים{statusFilter !== 'all' ? ` בסטטוס "${STATUS_CONFIG[statusFilter]?.label || statusFilter}"` : ''}</p>
+          <p className="text-xl">{locked && contextPlate ? VEHICLE_EMPTY_LIST_MSG : `אין ליקויים${statusFilter !== 'all' ? ` בסטטוס "${STATUS_CONFIG[statusFilter]?.label || statusFilter}"` : ''}`}</p>
         </div>
       ) : (
         <div className="space-y-3">

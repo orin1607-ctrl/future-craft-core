@@ -9,6 +9,8 @@ import { useDriverVehicle } from '@/hooks/useDriverVehicle';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface AccidentRow {
   id: string;
@@ -36,7 +38,7 @@ type ViewMode = 'list' | 'detail' | 'form';
 export default function Accidents() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
-  const { plate: contextPlate, action: contextAction, locked, clearContext } = useVehicleUrlContext();
+  const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked } = useVehicleUrlContext();
   const [accidents, setAccidents] = useState<AccidentRow[]>([]);
   const [search, setSearch] = useState('');
   const [initialVehiclePlate, setInitialVehiclePlate] = useState('');
@@ -211,8 +213,9 @@ export default function Accidents() {
           </button>
         </div>
       </div>
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
       {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={() => { clearContext(); setSearch(''); }} />
+        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
       )}
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
@@ -230,7 +233,7 @@ export default function Accidents() {
       {loading ? (
         <div className="text-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" /></div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground"><AlertTriangle size={48} className="mx-auto mb-4 opacity-50" /><p className="text-xl">אין תאונות</p></div>
+        <div className="text-center py-12 text-muted-foreground"><AlertTriangle size={48} className="mx-auto mb-4 opacity-50" /><p className="text-xl">{locked && contextPlate ? VEHICLE_EMPTY_LIST_MSG : 'אין תאונות'}</p></div>
       ) : (
         <div className="space-y-3">
           {filtered.map(a => {

@@ -51,6 +51,10 @@ import DevVehicleNewFormFullPreview from "@/pages/DevVehicleNewFormFullPreview";
 import DevVehicleNewStep2Vision from "@/pages/DevVehicleNewStep2Vision";
 import DevVehicleNewFormDalia from "@/pages/DevVehicleNewFormDalia";
 import DevVehicleFormLive from "@/pages/DevVehicleFormLive";
+import DevVehiclesListPreview from "@/pages/DevVehiclesListPreview";
+import DevFaultsScopedPreview from "@/pages/DevFaultsScopedPreview";
+import DevDocumentsScopedPreview from "@/pages/DevDocumentsScopedPreview";
+import DevStagingProofFlow from "@/pages/DevStagingProofFlow";
 
 // New pages
 import Companions from "@/pages/Companions";
@@ -101,6 +105,11 @@ function AppRoutes() {
         <Route path="/dev/vehicle-new-dalia" element={<DevVehicleNewFormDalia />} />
         <Route path="/dev/vehicle-form-live" element={<DevVehicleFormLive />} />
         <Route path="/dev/vehicle-form-live/full" element={<DevVehicleFormLive initialStep="full" mockGov openAllSections />} />
+        <Route path="/dev/vehicle-form-live/edit" element={<DevVehicleFormLive editPreview initialStep="full" openAllSections />} />
+        <Route path="/dev/faults-scoped" element={<DevFaultsScopedPreview />} />
+        <Route path="/dev/documents-scoped" element={<DevDocumentsScopedPreview />} />
+        <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
+        <Route path="/dev/vehicles-list" element={<DevVehiclesListPreview />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -121,6 +130,11 @@ function AppRoutes() {
       <Route path="/dev/vehicle-new-step2-vision" element={<DevVehicleNewStep2Vision />} />
       <Route path="/dev/vehicle-form-live" element={<DevVehicleFormLive />} />
       <Route path="/dev/vehicle-form-live/full" element={<DevVehicleFormLive initialStep="full" mockGov openAllSections />} />
+      <Route path="/dev/vehicle-form-live/edit" element={<DevVehicleFormLive editPreview initialStep="full" openAllSections />} />
+      <Route path="/dev/faults-scoped" element={<DevFaultsScopedPreview />} />
+      <Route path="/dev/documents-scoped" element={<DevDocumentsScopedPreview />} />
+      <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
+      <Route path="/dev/vehicles-list" element={<DevVehiclesListPreview />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route element={<Layout />}>

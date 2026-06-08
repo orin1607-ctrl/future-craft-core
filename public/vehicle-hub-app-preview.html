@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Future Craft — תצוגה משולבת במערכת</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: hsl(210 20% 98%);
+      --fg: hsl(220 40% 13%);
+      --card: #fff;
+      --border: hsl(214 20% 90%);
+      --primary: hsl(218 58% 27%);
+      --sidebar: hsl(218 58% 15%);
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Heebo, sans-serif; background: var(--bg); color: var(--fg); font-size: 14px; }
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 220px; background: var(--sidebar); color: #fff; padding: 16px; flex-shrink: 0;
+      display: none;
+    }
+    @media (min-width: 900px) { .sidebar { display: block; } }
+    .sidebar a { display: block; padding: 10px 12px; color: rgba(255,255,255,.85); text-decoration: none; border-radius: 8px; margin-bottom: 4px; font-size: 13px; }
+    .sidebar a.on { background: rgba(255,255,255,.15); font-weight: 700; }
+    .main { flex: 1; padding: 16px; max-width: 900px; margin: 0 auto; }
+    .banner { background: var(--primary); color: #fff; padding: 12px; border-radius: var(--radius); text-align: center; margin-bottom: 16px; font-size: 13px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .tabs button { padding: 8px 14px; border-radius: 999px; border: 2px solid var(--border); background: var(--card); font-family: inherit; font-weight: 600; cursor: pointer; font-size: 12px; }
+    .tabs button.on { border-color: var(--primary); background: hsl(218 58% 27% / .1); color: var(--primary); }
+    .screen { display: none; }
+    .screen.on { display: block; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+    .mono { font-family: monospace; direction: ltr; display: inline-block; }
+    h2 { font-size: 18px; margin-bottom: 10px; }
+    .list-item { padding: 12px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .tile { background: hsl(210 20% 96%); border: 1px solid var(--border); border-radius: 10px; padding: 10px; min-height: 58px; font-size: 11px; }
+    .tile b { display: block; font-size: 13px; margin-top: 4px; }
+    .warn { border-color: hsl(0 84% 60% / .35); background: hsl(0 84% 60% / .06); }
+    .warn b { color: hsl(0 84% 60%); }
+    .nav4 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+    .nav4 button { min-height: 64px; border: 2px solid var(--border); border-radius: 10px; background: var(--card); font-weight: 700; cursor: pointer; font-family: inherit; }
+    .nav4 button.on { border-color: var(--primary); color: var(--primary); }
+    .footer3 { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 2px solid var(--border); }
+    @media (min-width: 500px) { .footer3 { grid-template-columns: repeat(3, 1fr); } }
+    .footer3 button { padding: 12px; font-weight: 700; border-radius: 10px; border: 2px solid var(--border); background: var(--card); font-family: inherit; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <p style="font-weight:800;margin-bottom:12px">דליה — תפריט</p>
+      <a href="#" class="on">רכבים</a>
+      <a href="#">יבוא רכבים</a>
+      <a href="#">נהגים</a>
+      <a href="#">הזמנת שירות</a>
+    </nav>
+    <main class="main">
+      <div class="banner">
+        תצוגה משולבת — איך כרטיס הרכב יושב בתוך Future Craft · React: /dev/vehicle-card · /vehicles
+      </div>
+      <div class="tabs" id="tabs">
+        <button type="button" class="on" data-s="list">רשימת רכבים</button>
+        <button type="button" data-s="new">רכב חדש — שלב 1</button>
+        <button type="button" data-s="newfull">רכב חדש — טופס מלא</button>
+        <button type="button" data-s="hub">כרטיס רכב</button>
+        <button type="button" data-s="import">יבוא רכבים</button>
+        <button type="button" data-s="history">היסטוריה</button>
+        <button type="button" data-s="archive">ארכיון</button>
+        <button type="button" data-s="delete">מחק רכב</button>
+        <button type="button" data-s="gaps">חוסרים</button>
+      </div>
+
+      <div class="screen on" id="list">
+        <h2>ניהול רכבים</h2>
+        <div class="card list-item">
+          <div style="flex:1"><b>טויוטה קורולה</b><br><span class="mono">123-45-678 · VH-042</span></div>
+          <span style="color:green;font-weight:700">פעיל</span>
+        </div>
+        <div class="card list-item">
+          <div style="flex:1"><b>מזדה 3</b><br><span class="mono">88-111-22 · VH-088</span></div>
+          <span>בטיפול</span>
+        </div>
+        <p style="font-size:12px;color:#666;margin-top:8px">+ רכב חדש → טופס → שמירה → כרטיס Hub</p>
+      </div>
+
+      <div class="screen" id="new">
+        <h2>הוספת רכב חדש — שלב 1</h2>
+        <div class="card">
+          <p style="margin-bottom:8px"><b>מספר רכב</b> <span class="mono">12-345-67</span> · <button style="background:var(--primary);color:#fff;border:none;padding:8px 12px;border-radius:8px;font-weight:700">משרד הרישוי / התחבורה</button></p>
+          <p><b>מספר פנימי</b> <span class="mono">VH-099</span></p>
+          <p style="margin-top:12px;font-size:12px;color:#666">המשך → טופס מלא סעיפים 1–5</p>
+        </div>
+      </div>
+
+      <div class="screen" id="newfull">
+        <h2>טופס מלא — אחרי שליפת רישוי</h2>
+        <p class="mono" style="margin-bottom:12px">12-345-67 · VH-099</p>
+        <div class="card" style="font-size:12px;line-height:1.6">
+          <p><b>1.</b> פרטי רכב — יצרן, דגם, שנה, סוג, ק״מ, נהג</p>
+          <p><b>2.</b> בעלות — ליסינג תפעולי/מימוני/עצמאי + שדות מותנים</p>
+          <p><b>3.</b> ביטוחים ורישיונות — טסט, חובה, מקיף, היסטוריה, מסמכים</p>
+          <p><b>4.</b> ציוד — אין בטופס (כמו במקור); בכרטיס מ-exchange</p>
+          <p><b>5.</b> טיפולים — אחרון/הבא, שינוע, הערות</p>
+          <p style="margin-top:10px;color:#666">React: /dev/vehicle-new-form-full</p>
+        </div>
+      </div>
+
+      <div class="screen" id="hub">
+        <h2>טויוטה קורולה</h2>
+        <p class="mono" style="margin-bottom:12px">123-45-678 · VH-042</p>
+        <div class="card">
+          <p style="font-size:11px;font-weight:700;color:#666;margin-bottom:8px">דשבורד</p>
+          <div class="grid3">
+            <div class="tile warn"><span>ביטוחים ורישיונות</span><b>יש לטפל</b></div>
+            <div class="tile warn"><span>מסמכים</span><b>3 חסרים</b></div>
+            <div class="tile warn"><span>חוסרים והתראות</span><b>דורש טיפול</b></div>
+            <div class="tile"><span>סטטוס</span><b>פעיל</b></div>
+            <div class="tile"><span>טיפול הבא</span><b>15/08</b></div>
+            <div class="tile warn"><span>התראות</span><b>3</b></div>
+          </div>
+        </div>
+        <div class="nav4">
+          <button type="button" class="on">פרטי רכב</button>
+          <button type="button">פעולות</button>
+          <button type="button">היסטוריה</button>
+          <button type="button">ניהול</button>
+        </div>
+        <div class="footer3">
+          <button type="button">יבוא רכב</button>
+          <button type="button" style="color:orange">ארכיון רכב</button>
+          <button type="button" style="color:red">מחק רכב</button>
+        </div>
+      </div>
+
+      <div class="screen" id="import">
+        <h2>יבוא רכבים מקובץ CSV</h2>
+        <div class="card">
+          <p>מיקום: תפריט → יבוא רכבים · כפתור בעמוד רכבים</p>
+          <p style="margin-top:8px">מיפוי שדות ללא שינוי · אחרי יבוא → רשימה → כרטיס חדש</p>
+        </div>
+      </div>
+
+      <div class="screen" id="history">
+        <h2>היסטוריית רכב</h2>
+        <div class="card">
+          <p class="mono" style="margin-bottom:10px">123-45-678 · VH-042</p>
+          <p>▸ הוספת רכב · 02/06/2025 14:30</p>
+          <p>▸ משיכת נתונים ממשרד הרישוי · 02/06/2025 14:28</p>
+          <p>▸ חוסר אחר: מפתח חסר · 01/06/2025</p>
+        </div>
+      </div>
+
+      <div class="screen" id="archive">
+        <h2>ארכיון רכב</h2>
+        <p class="mono" style="margin-bottom:12px">123-45-678 · VH-042</p>
+        <div class="card" style="border:2px solid orange">
+          <p style="font-weight:700;margin-bottom:8px">האם להעביר את הרכב לארכיון?</p>
+          <p style="font-size:12px;color:#666">הנתונים וההיסטוריה נשמרים · לא מחיקה</p>
+          <p style="margin-top:12px;font-size:12px">נרשם בהיסטוריה: ארכיון רכב</p>
+        </div>
+      </div>
+
+      <div class="screen" id="delete">
+        <h2>מחק רכב</h2>
+        <p class="mono" style="margin-bottom:12px">123-45-678 · VH-042</p>
+        <div class="card" style="border:2px solid hsl(0 84% 60%)">
+          <p style="font-weight:700;margin-bottom:8px">מחיקת רכב לצמיתות</p>
+          <p style="font-size:12px">פעולה נפרדת מארכיון · דורש אישור לפני ביצוע</p>
+          <p style="margin-top:12px;font-size:12px">נרשם בהיסטוריה: מחיקת רכב</p>
+        </div>
+      </div>
+
+      <div class="screen" id="gaps">
+        <h2>חוסרים והתראות</h2>
+        <p class="mono" style="margin-bottom:12px">123-45-678 · VH-042</p>
+        <div class="card">
+          <p><b>חסר:</b> ביטוח מקיף</p>
+          <p><b>פג תוקף:</b> טסט</p>
+          <p><b>דורש טיפול:</b> תקלה פתוחה</p>
+          <p style="margin-top:12px"><button style="border:2px dashed var(--primary);background:transparent;padding:8px 12px;border-radius:8px;font-weight:700;width:100%">+ חוסר אחר (מותאם)</button></p>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    document.getElementById('tabs').addEventListener('click', e => {
+      const b = e.target.closest('button[data-s]');
+      if (!b) return;
+      document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+      document.getElementById(b.dataset.s).classList.add('on');
+    });
+  </script>
+</body>
+</html>

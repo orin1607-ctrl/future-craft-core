@@ -157,6 +157,8 @@ async function run() {
     service_notes: sampleValues.service_notes,
     last_inspection_date: sampleValues.inspection_date,
     sale_date: sampleValues.purchase_date,
+    vehicle_color: sampleValues.vehicle_color,
+    end_or_scrap_date: sampleValues.end_or_scrap_date,
     horsepower: 120,
     engine_volume: 1600,
     weight_tons: 1.4,
@@ -216,10 +218,16 @@ async function run() {
     step('verify:import_buffer', { ok: false, message: 'invalid JSON' });
     failed++;
   }
-  if (buf.dalia_form?.vehicle_color === sampleValues.vehicle_color) {
-    step('verify:overflow', { ok: true, message: 'vehicle_color in import_buffer' });
+  if (row.vehicle_color === sampleValues.vehicle_color) {
+    step('verify:vehicle_color', { ok: true, message: `direct column = ${row.vehicle_color}` });
   } else {
-    step('verify:overflow', { ok: false, message: 'vehicle_color missing in import_buffer' });
+    step('verify:vehicle_color', { ok: false, message: `expected ${sampleValues.vehicle_color}, got ${row.vehicle_color}` });
+    failed++;
+  }
+  if (row.end_or_scrap_date === sampleValues.end_or_scrap_date) {
+    step('verify:end_or_scrap_date', { ok: true, message: `direct column = ${row.end_or_scrap_date}` });
+  } else {
+    step('verify:end_or_scrap_date', { ok: false, message: `expected ${sampleValues.end_or_scrap_date}, got ${row.end_or_scrap_date}` });
     failed++;
   }
 

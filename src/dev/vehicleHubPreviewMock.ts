@@ -38,6 +38,38 @@ export const PREVIEW_VEHICLE: VehicleHubVehicle = {
   has_loan: false,
   is_leasing: true,
   insurance_cost: 5100,
+  vin: 'JTDBT923000123456',
+  fuel_type: 'בנזין',
+  nickname: 'קורולה לבנה',
+  department: 'לוגיסטיקה',
+  work_site: 'מרכז',
+  import_buffer: JSON.stringify({
+    dalia_form: {
+      vehicle_color: 'לבן',
+      end_or_scrap_date: '2030-12-31',
+      assigned_driver: 'אבי כהן',
+      coverage_glass: 'true',
+      maint_garage: 'מוסך יוני',
+    },
+    docs: [
+      {
+        category: 'ביטוח חובה',
+        name: 'פוליסה 2025',
+        link: 'https://example.com/policy.pdf',
+        file: 'policy.pdf',
+        notes: 'חידוש שנתי',
+        date: '01/01/2025',
+      },
+    ],
+    departments: ['לוגיסטיקה', 'שינוע'],
+    section_saved: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true },
+  }),
+  insurances: JSON.stringify({
+    coverage: { glass: true, replacement: false, licensing: true },
+    mandatory: { company: 'הפניקס', cost: '5100' },
+  }),
+  maintenance_details: JSON.stringify({ method: 'דליה', maint_supervisor: 'דני לוי' }),
+  finance_details: JSON.stringify({ route: 'ליסינג תפעולי', op_monthly_cost: '4200' }),
 };
 
 export const PREVIEW_DRIVERS = [

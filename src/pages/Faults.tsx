@@ -14,6 +14,8 @@ import WhatsAppButton from '@/components/faults/WhatsAppButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface FaultRow {
   id: string;
@@ -172,7 +174,8 @@ function StatusCounters({ faults, onFilter, activeFilter }: { faults: FaultRow[]
 export default function Faults() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
-  const { plate: contextPlate, action: contextAction, locked, clearContext } = useVehicleUrlContext();
+  const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked, clearContext } =
+    useVehicleUrlContext();
   const [faults, setFaults] = useState<FaultRow[]>([]);
   const [search, setSearch] = useState('');
   const [initialVehiclePlate, setInitialVehiclePlate] = useState('');
@@ -433,10 +436,16 @@ export default function Faults() {
       </div>
 
       {/* Status Counters */}
-      <StatusCounters faults={faults} onFilter={setQuickFilter} activeFilter={quickFilter} />
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+
+      <StatusCounters
+        faults={locked && contextPlate ? filtered : faults}
+        onFilter={setQuickFilter}
+        activeFilter={quickFilter}
+      />
 
       {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={() => { clearContext(); setSearch(''); }} />
+        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
       )}
 
       {/* Search */}
@@ -490,8 +499,10 @@ export default function Faults() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 card-elevated">
           <Wrench size={56} className="mx-auto mb-4 text-muted-foreground opacity-30" />
-          <p className="text-xl font-bold">אין תקלות</p>
-          <p className="text-muted-foreground mt-2">לא נמצאו תקלות התואמות לחיפוש</p>
+          <p className="text-xl font-bold">{locked && contextPlate ? VEHICLE_EMPTY_LIST_MSG : 'אין תקלות'}</p>
+          <p className="text-muted-foreground mt-2">
+            {locked && contextPlate ? '' : 'לא נמצאו תקלות התואמות לחיפוש'}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

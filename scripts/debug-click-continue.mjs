@@ -1,0 +1,15 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+page.on('pageerror', (e) => console.log('PAGEERR', e.message));
+page.on('console', (m) => { if (m.type() === 'error') console.log('CONERR', m.text()); });
+await page.goto('http://localhost:8080/dev/vehicle-form-live', { waitUntil: 'networkidle' });
+await page.locator('input[placeholder="12-345-67"]').fill('99-888-77');
+await page.locator('input[placeholder="מספר פנימי בארגון..."]').fill('INT-001');
+await page.locator('button:has-text("המשך")').click();
+await page.waitForTimeout(3000);
+console.log('dalia count', await page.locator('.vehicle-new-dalia').count());
+console.log('visible', await page.locator('.vehicle-new-dalia').isVisible());
+console.log('body text len', (await page.locator('body').innerText()).length);
+await page.screenshot({ path: 'docs/screenshots/phase0-flow/debug-click-continue.png', fullPage: true });
+await browser.close();

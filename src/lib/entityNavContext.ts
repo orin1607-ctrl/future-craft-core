@@ -15,6 +15,14 @@ export function plateMatches(
   return a.includes(b) || b.includes(a);
 }
 
+/** Deep-link back to vehicle hub card on /vehicles */
+export function buildVehicleHubUrl(vehicleId: string): string {
+  const q = new URLSearchParams();
+  q.set('vehicleId', vehicleId);
+  q.set('view', 'hub');
+  return `/vehicles?${q.toString()}`;
+}
+
 export function buildVehicleContextUrl(
   path: string,
   ctx: { plate: string; vehicleId?: string; action?: string },

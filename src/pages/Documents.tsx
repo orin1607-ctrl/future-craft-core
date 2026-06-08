@@ -6,6 +6,10 @@ import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { buildStoragePath } from '@/lib/storage';
+import { buildVehicleContextUrl, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface DocCategory {
   key: string;
@@ -68,6 +72,7 @@ function formatSize(bytes?: number) {
 
 export default function Documents() {
   const { user } = useAuth();
+  const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
   const companyFilter = useCompanyFilter();
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
   const isDriver = user?.role === 'driver';
@@ -142,6 +147,10 @@ export default function Documents() {
 
   useEffect(() => { loadCounts(); }, [loadCounts]);
 
+  useEffect(() => {
+    if (locked && contextPlate) setFilterVehicle(contextPlate.replace(/[-\s]/g, ''));
+  }, [locked, contextPlate]);
+
   // Load docs for category
   const loadDocs = useCallback(async (cat: DocCategory) => {
     setLoadingFiles(true);
@@ -162,11 +171,15 @@ export default function Documents() {
       }
     }
 
+    if (locked && contextPlate && cat.scope === 'vehicle') {
+      query = query.eq('vehicle_plate', contextPlate.replace(/[-\s]/g, ''));
+    }
+
     const { data, error } = await query;
     if (error) toast.error('שגיאה בטעינת מסמכים');
     else setDocs((data || []) as DocMeta[]);
     setLoadingFiles(false);
-  }, [companyFilter, isDriver, driverVehicle, driverProfile]);
+  }, [companyFilter, isDriver, driverVehicle, driverProfile, locked, contextPlate]);
 
   const openCategory = (cat: DocCategory) => {
     setSelectedCategory(cat);
@@ -259,6 +272,8 @@ export default function Documents() {
   if (!selectedCategory) {
     return (
       <div className="animate-fade-in">
+        <VehicleBackToCardButton vehicleId={contextVehicleId} />
+        {locked && contextPlate && <EntityContextBanner label={`רכב ${contextPlate}`} strict />}
         <h1 className="page-header flex items-center gap-3"><FileText size={28} /> מסמכים</h1>
 
         <CategorySection title="מסמכי רכב" description="טסט, ביטוח, רישיון רכב" categories={visibleVehicleDocs} counts={categoryCounts} onOpen={openCategory} icon={<Car size={20} className="text-primary" />} />
@@ -282,9 +297,11 @@ export default function Documents() {
   // Files list view
   return (
     <div className="animate-fade-in">
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
       <button onClick={() => { setSelectedCategory(null); setDocs([]); setShowFilters(false); }} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
         <ArrowRight size={20} /> חזרה למסמכים
       </button>
+      {locked && contextPlate && <EntityContextBanner label={`רכב ${contextPlate}`} strict />}
 
       <div className="flex items-center gap-3 mb-4">
         <span className="text-3xl">{selectedCategory.icon}</span>
@@ -389,7 +406,7 @@ export default function Documents() {
       ) : filteredDocs.length === 0 ? (
         <div className="text-center py-12">
           <FolderOpen size={48} className="mx-auto text-muted-foreground/40 mb-3" />
-          <p className="text-muted-foreground text-lg">אין מסמכים בקטגוריה זו</p>
+          <p className="text-muted-foreground text-lg">{locked ? VEHICLE_EMPTY_LIST_MSG : 'אין מסמכים בקטגוריה זו'}</p>
           {isManager && <p className="text-sm text-muted-foreground mt-1">לחץ על "העלאה" כדי להוסיף מסמך</p>}
         </div>
       ) : (

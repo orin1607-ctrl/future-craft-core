@@ -19,9 +19,13 @@ import {
   type GovVehicleData,
 } from '@/lib/govVehicleLookup';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { buildStoragePath } from '@/lib/storage';
 import {
   collectDaliaFormValues,
   persistDaliaVehicle,
+  formatVehiclePersistError,
+  type DaliaPersistExtras,
 } from '@/lib/daliaVehiclePersist';
 
 export type DaliaDoc = {
@@ -66,6 +70,11 @@ export type VehicleNewFormDaliaProps = {
   onSaved?: (vehicleId: string) => void;
   /** תצוגת dev בלבד — ללא שמירה ל-DB */
   previewMode?: boolean;
+  /** עריכת רכב קיים — טעינה מ-Supabase */
+  vehicleId?: string;
+  isEdit?: boolean;
+  loadedValues?: Record<string, string>;
+  loadedExtras?: Partial<DaliaPersistExtras>;
 };
 
 export default function VehicleNewFormDalia(props: VehicleNewFormDaliaProps) {
@@ -74,11 +83,13 @@ export default function VehicleNewFormDalia(props: VehicleNewFormDaliaProps) {
       vehicle_plate: props.initialPlate || '',
       internal_number: props.initialInternal || '',
       vehicle_status: 'פעיל',
+      maintenance_method: 'דליה',
       mandatory_insurance_type: 'ביטוח חובה',
       comprehensive_insurance_type: 'ביטוח מקיף',
       third_party_insurance_type: 'ביטוח צד ג',
+      ...props.loadedValues,
     }),
-    [props.initialPlate, props.initialInternal],
+    [props.initialPlate, props.initialInternal, props.loadedValues],
   );
 
   return (
@@ -98,6 +109,10 @@ function VehicleNewFormDaliaInner({
   showPreviewBanner = true,
   onSaved,
   previewMode = false,
+  vehicleId,
+  isEdit = false,
+  loadedValues,
+  loadedExtras,
 }: VehicleNewFormDaliaProps) {
   const { user } = useAuth();
   const { getValue, setValue, setValues, values } = useDaliaFormValuesRequired();
@@ -106,6 +121,7 @@ function VehicleNewFormDaliaInner({
   const [activeStep, setActiveStep] = useState('1');
   const [route, setRoute] = useState('');
   const [saveMsg, setSaveMsg] = useState('מוכן להזנת רכב חדש');
+  const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
   const [sectionSaved, setSectionSaved] = useState<Record<number, boolean>>({});
   const [docs, setDocs] = useState<DaliaDoc[]>([]);
@@ -115,7 +131,6 @@ function VehicleNewFormDaliaInner({
   const [qsMsg, setQsMsg] = useState('');
   const [qsLoading, setQsLoading] = useState(false);
   const [summaryHtml, setSummaryHtml] = useState('לחץ על בדוק נתונים כדי לראות סיכום.');
-  const [maintMethod, setMaintMethod] = useState('דליה');
   const [pledgeOpen, setPledgeOpen] = useState<Record<string, boolean>>({});
   const [loanOpen, setLoanOpen] = useState<Record<string, boolean>>({});
 
@@ -124,11 +139,63 @@ function VehicleNewFormDaliaInner({
   const [docLink, setDocLink] = useState('');
   const [docFileName, setDocFileName] = useState('');
   const [docNotes, setDocNotes] = useState('');
+  const [docUploading, setDocUploading] = useState(false);
+
+  const handleDocFileUpload = async (file: File) => {
+    if (previewMode) {
+      setDocFileName(file.name);
+      toast.info('תצוגת פיתוח — הקובץ לא הועלה ל-Storage');
+      return;
+    }
+    if (!user?.id) {
+      toast.error('יש להתחבר כדי להעלות קבצים');
+      return;
+    }
+    setDocUploading(true);
+    const plate = getValue('vehicle_plate').replace(/[-\s]/g, '') || 'vehicle';
+    const path = buildStoragePath(user.id, `vehicles/${plate}`, file.name);
+    const { error } = await supabase.storage.from('documents').upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type || undefined,
+    });
+    if (error) {
+      const hint = error.message.includes('Bucket not found')
+        ? ' (נדרשת הרצת migration ל-bucket documents ב-staging)'
+        : '';
+      toast.error(`שגיאה בהעלאת הקובץ${hint}`);
+      setDocUploading(false);
+      return;
+    }
+    const { data: pub } = supabase.storage.from('documents').getPublicUrl(path);
+    setDocFileName(file.name);
+    if (!docLink) setDocLink(pub.publicUrl);
+    toast.success('הקובץ הועלה בהצלחה');
+    setDocUploading(false);
+  };
 
   useEffect(() => {
     if (initialPlate) setValue('vehicle_plate', initialPlate);
     if (initialInternal) setValue('internal_number', initialInternal);
   }, [initialPlate, initialInternal, setValue]);
+
+  useEffect(() => {
+    if (!loadedValues) return;
+    setValues(loadedValues);
+    if (loadedExtras?.docs) setDocs(loadedExtras.docs);
+    if (loadedExtras?.departments) setDeptList(loadedExtras.departments);
+    if (loadedExtras?.route) setRoute(loadedExtras.route);
+    if (loadedExtras?.maintMethod) setValue('maintenance_method', loadedExtras.maintMethod);
+    if (loadedExtras?.sectionSaved) setSectionSaved(loadedExtras.sectionSaved);
+    if (isEdit) setSaveMsg('טוען נתוני רכב לעריכה');
+  }, [loadedValues, loadedExtras, isEdit, setValues, setValue]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setOpenSecs((p) => ({ ...p, sec1: true }));
+  }, []);
+
+  const maintMethod = getValue('maintenance_method') || 'דליה';
 
   useEffect(() => {
     if (!initialGovData) return;
@@ -221,6 +288,7 @@ function VehicleNewFormDaliaInner({
       return;
     }
     setSaving(true);
+    setSaveError('');
     try {
       const { id } = await persistDaliaVehicle({
         allValues,
@@ -236,13 +304,17 @@ function VehicleNewFormDaliaInner({
           company_name: user.company_name,
           full_name: user.full_name,
         },
+        vehicleId: isEdit ? vehicleId : undefined,
       });
-      setSaveMsg(`הרכב ${plate} נשמר בהצלחה ב-dalia-staging`);
-      toast.success('הרכב נשמר בהצלחה');
+      setSaveMsg(`הרכב ${plate} ${isEdit ? 'עודכן' : 'נשמר'} בהצלחה`);
+      toast.success(isEdit ? 'הרכב עודכן בהצלחה' : 'הרכב נשמר — נפתח כרטיס הרכב');
       onSaved?.(id);
     } catch (err) {
+      const msg = formatVehiclePersistError(err);
       console.error('[VehicleNewFormDalia] save', err);
-      toast.error('שגיאה בשמירת הרכב — ' + ((err as Error).message || 'נסה שוב'));
+      setSaveError(msg);
+      setSaveMsg('שגיאה בשמירה');
+      toast.error(`שגיאה בשמירת הרכב: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -305,7 +377,9 @@ function VehicleNewFormDaliaInner({
     <div className="vehicle-new-dalia pb-28">
       {showPreviewBanner && (
         <div className="d-preview-banner">
-          <strong>{previewMode ? 'תצוגת פיתוח' : 'פתיחת רכב חדש'}</strong>
+          <strong>
+            {previewMode ? 'תצוגת פיתוח' : isEdit ? 'עריכת רכב' : 'פתיחת רכב חדש'}
+          </strong>
           {previewMode
             ? ' — אין שמירה ל-Supabase'
             : ' — שמירה ל-dalia-staging (vehicles + import_buffer)'}
@@ -655,7 +729,7 @@ function VehicleNewFormDaliaInner({
             onToggle={() => toggleSec('sec5')}
             onSave={() => saveSection(5)}
             maintMethod={maintMethod}
-            setMaintMethod={setMaintMethod}
+            onMaintMethodChange={(v) => setValue('maintenance_method', v)}
           />
           <Section6
             open={openSecs.sec6}
@@ -676,6 +750,8 @@ function VehicleNewFormDaliaInner({
             editingDocIndex={editingDocIndex}
             setEditingDocIndex={setEditingDocIndex}
             setDocs={setDocs}
+            docUploading={docUploading}
+            onDocFileUpload={handleDocFileUpload}
           />
           <section className={secClass('sec7')} id="sec7">
             <button type="button" className="d-sec-head" onClick={() => toggleSec('sec7')}>
@@ -698,7 +774,13 @@ function VehicleNewFormDaliaInner({
 
         <div className="d-savebar">
           <div className="d-savebar-inner">
-            <div className="d-save-msg">{saveMsg}</div>
+            <div className="d-save-msg">
+              {saveError ? (
+                <span style={{ color: 'var(--d-danger)' }}>⚠ {saveError}</span>
+              ) : (
+                saveMsg
+              )}
+            </div>
             <button type="button" className="d-btn" onClick={onCancel}>
               ביטול
             </button>
@@ -802,13 +884,13 @@ function Section5({
   onToggle,
   onSave,
   maintMethod,
-  setMaintMethod,
+  onMaintMethodChange,
 }: {
   open?: boolean;
   onToggle: () => void;
   onSave: () => void;
   maintMethod: string;
-  setMaintMethod: (v: string) => void;
+  onMaintMethodChange: (v: string) => void;
 }) {
   return (
     <section className={`d-sec${open ? ' open' : ''}`} id="sec5">
@@ -853,7 +935,11 @@ function Section5({
             <textarea name="service_notes" />
           </Fld>
           <Fld label="שיטת תחזוקה" name="maintenance_method">
-            <select name="maintenance_method" value={maintMethod} onChange={(e) => setMaintMethod(e.target.value)}>
+            <select
+              name="maintenance_method"
+              value={maintMethod}
+              onChange={(e) => onMaintMethodChange(e.target.value)}
+            >
               <option>דליה</option>
               <option>תחזוקה עצמאית</option>
               <option>ליסינג</option>
@@ -923,6 +1009,8 @@ function Section6({
   editingDocIndex,
   setEditingDocIndex,
   setDocs,
+  docUploading,
+  onDocFileUpload,
 }: {
   open?: boolean;
   onToggle: () => void;
@@ -942,6 +1030,8 @@ function Section6({
   editingDocIndex: number | null;
   setEditingDocIndex: (v: number | null) => void;
   setDocs: React.Dispatch<React.SetStateAction<DaliaDoc[]>>;
+  docUploading?: boolean;
+  onDocFileUpload?: (file: File) => void;
 }) {
   const categories = [
     'ביטוח חובה',
@@ -1018,10 +1108,18 @@ function Section6({
             <div className="d-fld">
               <label>קובץ</label>
               <input
-                value={docFileName}
-                onChange={(e) => setDocFileName(e.target.value)}
-                placeholder="שם קובץ..."
+                type="file"
+                accept="image/*,.pdf,.doc,.docx"
+                disabled={docUploading}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (f && onDocFileUpload) onDocFileUpload(f);
+                }}
               />
+              {docFileName ? (
+                <span className="text-xs text-muted-foreground mt-1 block">{docFileName}</span>
+              ) : null}
             </div>
             <div className="d-fld d-full">
               <label>הערות</label>

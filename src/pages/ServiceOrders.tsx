@@ -14,6 +14,8 @@ import ImageUpload from '@/components/ImageUpload';
 import ServiceOrderChat from '@/components/service-orders/ServiceOrderChat';
 import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface ServiceRow {
   id: string;
@@ -65,7 +67,7 @@ export default function ServiceOrders() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
-  const { plate: contextPlate, action: contextAction, locked, clearContext } = useVehicleUrlContext();
+  const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked } = useVehicleUrlContext();
   const [orders, setOrders] = useState<ServiceRow[]>([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -347,8 +349,10 @@ export default function ServiceOrders() {
         </div>
       </div>
 
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+
       {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} onClear={() => { clearContext(); setFilterVehicle(''); }} />
+        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
       )}
 
       {/* Dashboard stats - managers only */}
@@ -429,7 +433,7 @@ export default function ServiceOrders() {
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Briefcase size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-xl">אין הזמנות שירות</p>
+          <p className="text-xl">{locked && contextPlate ? VEHICLE_EMPTY_LIST_MSG : 'אין הזמנות שירות'}</p>
         </div>
       ) : (
         <div className="space-y-3">

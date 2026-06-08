@@ -1,0 +1,292 @@
+id,label,field,section,route,inNewForm,inEditForm,saved,loaded,hubDisplay,persistPath,roundTrip
+1,"מספר רכב",vehicle_plate,"1. פרטי רכב",,true,true,true,true,true,"direct:license_plate",true
+2,"מספר פנימי",internal_number,"1. פרטי רכב",,true,true,true,true,true,"direct:internal_number",true
+3,"מספר שלדה VIN",vin,"1. פרטי רכב",,true,true,true,true,true,"direct:vin",true
+4,"מספר מנוע",engine_number,"1. פרטי רכב",,true,true,true,true,true,"direct:engine_number",true
+5,"יצרן",manufacturer,"1. פרטי רכב",,true,true,true,true,true,"direct:manufacturer",true
+6,"דגם",model,"1. פרטי רכב",,true,true,true,true,true,"direct:model",true
+7,"שנתון",year,"1. פרטי רכב",,true,true,true,true,true,"direct:year",true
+8,"כינוי רכב",vehicle_nickname,"1. פרטי רכב",,true,true,true,true,true,"direct:nickname",true
+9,"סוג רכב",vehicle_type,"1. פרטי רכב",,true,true,true,true,true,"direct:vehicle_type",true
+10,"סגמנט רכב",vehicle_segment,"1. פרטי רכב",,true,true,true,true,true,"direct:segment",true
+11,"צבע רכב",vehicle_color,"1. פרטי רכב",,true,true,true,true,true,"direct:vehicle_color",true
+12,"סוג דלק",fuel_type,"1. פרטי רכב",,true,true,true,true,true,"direct:fuel_type",true
+13,"משקל",weight,"1. פרטי רכב",,true,true,true,true,true,"direct:weight_tons",true
+14,"סוג בעלות",ownership_type_text,"1. פרטי רכב",,true,true,true,true,true,"direct:ownership_type",true
+15,"חברה",company,"1. פרטי רכב",,true,true,true,true,true,"direct:company_name",true
+16,"שיוך מיקום",location_assignment,"1. פרטי רכב",,true,true,true,true,true,"direct:work_site",true
+17,"נהג משויך",assigned_driver,"1. פרטי רכב",,true,true,true,true,true,"assigned_driver_id + import_buffer",true
+18,"ממונה רכב",vehicle_supervisor,"1. פרטי רכב",,true,true,true,true,true,"direct:vehicle_manager",true
+19,"מיקום נוכחי",current_location,"1. פרטי רכב",,true,true,true,true,true,"direct:current_location",true
+20,"אתר עבודה",work_site,"1. פרטי רכב",,true,true,true,true,true,"direct:work_site",true
+21,"סוג שימוש",usage_type,"1. פרטי רכב",,true,true,true,true,true,"direct:usage_type",true
+22,"מחלקה",department,"1. פרטי רכב",,true,true,true,true,true,"direct:department",true
+23,"הוסף מחלקה חדשה",__departments_ui__,"1. פרטי רכב",,true,true,true,true,true,"ui-only",true
+24,"אזור עבודה",work_area,"1. פרטי רכב",,true,true,true,true,true,"direct:department",true
+25,"סטטוס",vehicle_status,"1. פרטי רכב",,true,true,true,true,true,"direct:status",true
+26,"תאריך רכישה",purchase_date,"1. פרטי רכב",,true,true,true,true,true,"direct:sale_date",true
+27,"תאריך עליה לכביש",road_date,"1. פרטי רכב",,true,true,true,true,true,"direct:road_entry_date",true
+28,"תאריך בדיקה",inspection_date,"1. פרטי רכב",,true,true,true,true,true,"direct:last_inspection_date",true
+29,"תאריך סיום / גריעה",end_or_scrap_date,"1. פרטי רכב",,true,true,true,true,true,"direct:end_or_scrap_date",true
+30,"בחר מסלול",ownership_route,"2. בעלות",,true,true,true,true,true,"direct:finance_track",true
+31,"חברת ליסינג / השכרה",op_company,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+32,"מספר הסכם",op_agreement,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+33,"עלות חודשית",op_monthly_cost,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"direct:monthly_leasing_cost",true
+34,"קילומטר כלול",op_included_km,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+35,"עלות חריגה",op_extra_cost,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+36,"אחריות תחזוקה",op_maintenance_responsibility,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+37,"תאריך תחילה",op_start,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+38,"תאריך סיום",op_end,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"direct:leasing_end_date",true
+39,"יתרת תשלומים",op_remaining_payments,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+40,"איש קשר",op_contact,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+41,"טלפון",op_phone,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+42,"מייל",op_email,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+43,"קישור להסכם",op_agreement_link,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+44,"העלאת קובץ הסכם",op_agreement_file_name,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+45,"הערות",op_notes,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+46,"למי משועבד",op_pledged_to,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+47,"מספר שעבוד",op_pledge_number,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+48,"תאריך התחלת שעבוד",op_pledge_start,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+49,"תאריך סיום שעבוד",op_pledge_end,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+50,"קישור למסמך שעבוד",op_pledge_link,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+51,"העלאת מסמך שעבוד",op_pledge_file_name,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+52,"הערות שעבוד",op_pledge_notes,"2. בעלות","ליסינג תפעולי",true,true,true,true,true,"json:finance_details or import_buffer",true
+53,"חברת ליסינג / השכרה",fl_company,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+54,"מספר הסכם",fl_agreement,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+55,"עלות חודשית",fl_monthly_cost,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"direct:monthly_loan_payment",true
+56,"תאריך תחילה",fl_start,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+57,"תאריך סיום",fl_end,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"direct:loan_end_date",true
+58,"יתרת תשלומים",fl_remaining_payments,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+59,"איש קשר",fl_contact,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+60,"טלפון",fl_phone,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+61,"מייל",fl_email,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+62,"קישור להסכם",fl_agreement_link,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+63,"העלאת קובץ הסכם",fl_agreement_file_name,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+64,"הערות",fl_notes,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+65,"למי משועבד",fl_pledged_to,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+66,"מספר שעבוד",fl_pledge_number,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+67,"תאריך התחלת שעבוד",fl_pledge_start,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+68,"תאריך סיום שעבוד",fl_pledge_end,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+69,"קישור למסמך שעבוד",fl_pledge_link,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+70,"העלאת מסמך שעבוד",fl_pledge_file_name,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+71,"הערות שעבוד",fl_pledge_notes,"2. בעלות","ליסינג מימוני",true,true,true,true,true,"json:finance_details or import_buffer",true
+72,"למי משועבד",loan_pledged_to,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+73,"מספר שעבוד",loan_pledge_number,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+74,"תאריך התחלת שעבוד",loan_pledge_start,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+75,"תאריך סיום שעבוד",loan_pledge_end,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+76,"קישור למסמך שעבוד",loan_pledge_link,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+77,"העלאת מסמך שעבוד",loan_pledge_file_name,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+78,"הערות שעבוד",loan_pledge_notes,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+79,"חברת מימון / בנק",loan_loan_bank,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+80,"מספר הסכם הלוואה",loan_loan_agreement,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+81,"סכום הלוואה מקורי",loan_loan_original_amount,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+82,"יתרת הלוואה",loan_loan_balance,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+83,"תאריך התחלה",loan_loan_start,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+84,"תאריך סיום",loan_loan_end,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+85,"ריבית",loan_loan_interest,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+86,"החזר חודשי",loan_loan_monthly_payment,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+87,"מספר תשלומים",loan_loan_payments,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+88,"תשלומים שנותרו",loan_loan_payments_left,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+89,"קישור למסמך הלוואה",loan_loan_link,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+90,"העלאת מסמך הלוואה",loan_loan_file_name,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+91,"הערות הלוואה",loan_loan_notes,"2. בעלות","הלוואה / מימון",true,true,true,true,true,"json:finance_details or import_buffer",true
+92,"למי משועבד",self_pledged_to,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+93,"מספר שעבוד",self_pledge_number,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+94,"תאריך התחלת שעבוד",self_pledge_start,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+95,"תאריך סיום שעבוד",self_pledge_end,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+96,"קישור למסמך שעבוד",self_pledge_link,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+97,"העלאת מסמך שעבוד",self_pledge_file_name,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+98,"הערות שעבוד",self_pledge_notes,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+99,"חברת מימון / בנק",self_loan_bank,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+100,"מספר הסכם הלוואה",self_loan_agreement,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+101,"סכום הלוואה מקורי",self_loan_original_amount,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+102,"יתרת הלוואה",self_loan_balance,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+103,"תאריך התחלה",self_loan_start,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+104,"תאריך סיום",self_loan_end,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+105,"ריבית",self_loan_interest,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+106,"החזר חודשי",self_loan_monthly_payment,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+107,"מספר תשלומים",self_loan_payments,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+108,"תשלומים שנותרו",self_loan_payments_left,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+109,"קישור למסמך הלוואה",self_loan_link,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+110,"העלאת מסמך הלוואה",self_loan_file_name,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+111,"הערות הלוואה",self_loan_notes,"2. בעלות","תחזוקה עצמאית",true,true,true,true,true,"json:finance_details or import_buffer",true
+112,"ספק שירות",svc_provider,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+113,"איש קשר",svc_contact,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+114,"טלפון",svc_phone,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+115,"סוג שירות",svc_type,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+116,"תנאי שירות",svc_terms,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+117,"SLA",svc_sla,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+118,"הערות",svc_notes,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+119,"למי משועבד",svc_pledged_to,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+120,"מספר שעבוד",svc_pledge_number,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+121,"תאריך התחלת שעבוד",svc_pledge_start,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+122,"תאריך סיום שעבוד",svc_pledge_end,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+123,"קישור למסמך שעבוד",svc_pledge_link,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+124,"העלאת מסמך שעבוד",svc_pledge_file_name,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+125,"הערות שעבוד",svc_pledge_notes,"2. בעלות","שירות ותחזוקה",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+126,"בעלים",company_owner,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+127,"תאריך רכישה",company_purchase_date,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+128,"קישור למסמך בעלות",company_ownership_link,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+129,"העלאת מסמך בעלות",company_ownership_file_name,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+130,"הערות בעלות",company_ownership_notes,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+131,"למי משועבד",company_pledged_to,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+132,"מספר שעבוד",company_pledge_number,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+133,"תאריך התחלת שעבוד",company_pledge_start,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+134,"תאריך סיום שעבוד",company_pledge_end,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+135,"קישור למסמך שעבוד",company_pledge_link,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+136,"העלאת מסמך שעבוד",company_pledge_file_name,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+137,"הערות שעבוד",company_pledge_notes,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+138,"חברת מימון / בנק",company_loan_bank,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+139,"מספר הסכם הלוואה",company_loan_agreement,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+140,"סכום הלוואה מקורי",company_loan_original_amount,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+141,"יתרת הלוואה",company_loan_balance,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+142,"תאריך התחלה",company_loan_start,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+143,"תאריך סיום",company_loan_end,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+144,"ריבית",company_loan_interest,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+145,"החזר חודשי",company_loan_monthly_payment,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+146,"מספר תשלומים",company_loan_payments,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+147,"תשלומים שנותרו",company_loan_payments_left,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+148,"קישור למסמך הלוואה",company_loan_link,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+149,"העלאת מסמך הלוואה",company_loan_file_name,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+150,"הערות הלוואה",company_loan_notes,"2. בעלות","בעלות חברה",true,true,true,true,true,"json:finance_details or import_buffer",true
+151,"בעלים רשומים",private_owner,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+152,"תאריך רכישה",private_purchase_date,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+153,"קישור למסמך בעלות",private_ownership_link,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+154,"העלאת מסמך בעלות",private_ownership_file_name,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+155,"הערות בעלות",private_ownership_notes,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+156,"למי משועבד",private_pledged_to,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+157,"מספר שעבוד",private_pledge_number,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+158,"תאריך התחלת שעבוד",private_pledge_start,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+159,"תאריך סיום שעבוד",private_pledge_end,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+160,"קישור למסמך שעבוד",private_pledge_link,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+161,"העלאת מסמך שעבוד",private_pledge_file_name,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+162,"הערות שעבוד",private_pledge_notes,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+163,"חברת מימון / בנק",private_loan_bank,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+164,"מספר הסכם הלוואה",private_loan_agreement,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+165,"סכום הלוואה מקורי",private_loan_original_amount,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+166,"יתרת הלוואה",private_loan_balance,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+167,"תאריך התחלה",private_loan_start,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+168,"תאריך סיום",private_loan_end,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+169,"ריבית",private_loan_interest,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+170,"החזר חודשי",private_loan_monthly_payment,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+171,"מספר תשלומים",private_loan_payments,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+172,"תשלומים שנותרו",private_loan_payments_left,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+173,"קישור למסמך הלוואה",private_loan_link,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+174,"העלאת מסמך הלוואה",private_loan_file_name,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+175,"הערות הלוואה",private_loan_notes,"2. בעלות","בעלות פרטית",true,true,true,true,true,"json:finance_details or import_buffer",true
+176,"חברת ליסינג / השכרה",rent_company,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+177,"מספר הסכם",rent_agreement,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+178,"עלות חודשית",rent_monthly_cost,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+179,"תאריך התחלה",rent_start,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+180,"תאריך סיום",rent_end,"2. בעלות","השכרה",true,true,true,true,true,"direct:vehicle_return_date",true
+181,"יתרת תשלומים",rent_remaining_payments,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+182,"איש קשר",rent_contact,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+183,"טלפון",rent_phone,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+184,"מייל",rent_email,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+185,"קישור להסכם",rent_agreement_link,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+186,"העלאת קובץ הסכם",rent_agreement_file_name,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+187,"הערות",rent_notes,"2. בעלות","השכרה",true,true,true,true,true,"json:finance_details or import_buffer",true
+188,"שם חברה / ספק",other_company,"2. בעלות","אחר",true,true,true,true,true,"json:finance_details or import_buffer",true
+189,"מספר הסכם",other_agreement,"2. בעלות","אחר",true,true,true,true,true,"json:finance_details or import_buffer",true
+190,"תאריך התחלה",other_start,"2. בעלות","אחר",true,true,true,true,true,"json:finance_details or import_buffer",true
+191,"תאריך סיום",other_end,"2. בעלות","אחר",true,true,true,true,true,"json:finance_details or import_buffer",true
+192,"קישור למסמך",other_doc_link,"2. בעלות","אחר",true,true,true,true,true,"json:finance_details or import_buffer",true
+193,"העלאת קובץ",other_file_name,"2. בעלות","אחר",true,true,true,true,true,"json:finance_details or import_buffer",true
+194,"הערות",other_route_notes,"2. בעלות","אחר",true,true,true,true,true,"direct:finance_details",true
+195,"חברת ביטוח",mandatory_insurance_company,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"direct:insurance_company",true
+196,"סוכן ביטוח",mandatory_insurance_agent,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"direct:insurance_agent",true
+197,"מספר פוליסה",mandatory_insurance_policy,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"json:insurances or import_buffer",true
+198,"סוג ביטוח",mandatory_insurance_type,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"json:insurances or import_buffer",true
+199,"תאריך התחלה",mandatory_insurance_start,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"direct:insurance_start",true
+200,"תאריך סיום",mandatory_insurance_end,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"direct:insurance_expiry",true
+201,"סטטוס",mandatory_insurance_status,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"json:insurances or import_buffer",true
+202,"עלות",mandatory_insurance_cost,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"direct:insurance_cost",true
+203,"אופן תשלום",mandatory_insurance_payment_method,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"json:insurances or import_buffer",true
+204,"קישור למסמך",mandatory_insurance_doc_link,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"direct:insurance_doc_url",true
+205,"העלאת קובץ פוליסה",mandatory_insurance_file_name,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"json:insurances or import_buffer",true
+206,"הערות",mandatory_insurance_notes,"3. ביטוחים","ביטוח חובה",true,true,true,true,true,"json:insurances or import_buffer",true
+207,"חברת ביטוח",comprehensive_insurance_company,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"json:insurances or import_buffer",true
+208,"סוכן ביטוח",comprehensive_insurance_agent,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"json:insurances or import_buffer",true
+209,"מספר פוליסה",comprehensive_insurance_policy,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"json:insurances or import_buffer",true
+210,"סוג ביטוח",comprehensive_insurance_type,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"json:insurances or import_buffer",true
+211,"תאריך התחלה",comprehensive_insurance_start,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"direct:comprehensive_insurance_start",true
+212,"תאריך סיום",comprehensive_insurance_end,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"direct:comprehensive_insurance_expiry",true
+213,"סטטוס",comprehensive_insurance_status,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"json:insurances or import_buffer",true
+214,"עלות",comprehensive_insurance_cost,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"json:insurances or import_buffer",true
+215,"אופן תשלום",comprehensive_insurance_payment_method,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"json:insurances or import_buffer",true
+216,"קישור למסמך",comprehensive_insurance_doc_link,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"direct:comprehensive_insurance_doc_url",true
+217,"העלאת קובץ פוליסה",comprehensive_insurance_file_name,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"json:insurances or import_buffer",true
+218,"הערות",comprehensive_insurance_notes,"3. ביטוחים","ביטוח מקיף",true,true,true,true,true,"json:insurances or import_buffer",true
+219,"חברת ביטוח",third_party_insurance_company,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+220,"סוכן ביטוח",third_party_insurance_agent,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+221,"מספר פוליסה",third_party_insurance_policy,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+222,"סוג ביטוח",third_party_insurance_type,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+223,"תאריך התחלה",third_party_insurance_start,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+224,"תאריך סיום",third_party_insurance_end,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+225,"סטטוס",third_party_insurance_status,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+226,"עלות",third_party_insurance_cost,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+227,"אופן תשלום",third_party_insurance_payment_method,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+228,"קישור למסמך",third_party_insurance_doc_link,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+229,"העלאת קובץ פוליסה",third_party_insurance_file_name,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+230,"הערות",third_party_insurance_notes,"3. ביטוחים","ביטוח צד ג",true,true,true,true,true,"json:insurances or import_buffer",true
+231,"אחריות שמשות",coverage_glass,"3. ביטוחים","כיסויים",true,true,true,true,true,"json:insurances or import_buffer",true
+232,"רכב חלופי",coverage_replacement,"3. ביטוחים","כיסויים",true,true,true,true,true,"json:insurances or import_buffer",true
+233,"כיסוי נהג חדש",coverage_new_driver,"3. ביטוחים","כיסויים",true,true,true,true,true,"json:insurances or import_buffer",true
+234,"רישוי וטסטים",coverage_licensing,"3. ביטוחים","כיסויים",true,true,true,true,true,"json:insurances or import_buffer",true
+235,"גרירה ושירותי דרך",coverage_roadside,"3. ביטוחים","כיסויים",true,true,true,true,true,"json:insurances or import_buffer",true
+236,"אחריות פנסים",coverage_lights,"3. ביטוחים","כיסויים",true,true,true,true,true,"json:insurances or import_buffer",true
+237,"אחר",coverage_other,"3. ביטוחים","כיסויים",true,true,true,true,true,"json:insurances or import_buffer",true
+238,"קישור למסמך רישיון רכב",license_link,"3. ביטוחים","רישיון וטסט",true,true,true,true,true,"direct:license_doc_url",true
+239,"העלאת קובץ רישיון רכב",license_file_name,"3. ביטוחים","רישיון וטסט",true,true,true,true,true,"json:import_buffer or import_buffer",true
+240,"טסט אחרון",last_test,"3. ביטוחים","רישיון וטסט",true,true,true,true,true,"direct:last_test_date",true
+241,"טסט הבא",next_test,"3. ביטוחים","רישיון וטסט",true,true,true,true,true,"direct:test_expiry",true
+242,"סטטוס טסט",test_status,"3. ביטוחים","רישיון וטסט",true,true,true,true,true,"direct:test_status",true
+243,"קישור מסמך טסט",test_doc_link,"3. ביטוחים","רישיון וטסט",true,true,true,true,true,"json:import_buffer or import_buffer",true
+244,"העלאת קובץ טסט",test_file_name,"3. ביטוחים","רישיון וטסט",true,true,true,true,true,"json:import_buffer or import_buffer",true
+245,"תזכיר מנהל",manager_reminder,"3. ביטוחים","תזכורות",true,true,true,true,true,"direct:manager_report",true
+246,"תאריך תזכיר מנהל",manager_reminder_date,"3. ביטוחים","תזכורות",true,true,true,true,true,"direct:next_inspection_date",true
+247,"תזכיר הרמה",lifting_reminder,"3. ביטוחים","תזכורות",true,true,true,true,true,"direct:lifting_report",true
+248,"תאריך תזכיר הרמה",lifting_reminder_date,"3. ביטוחים","תזכורות",true,true,true,true,true,"direct:repeat_inspection_date",true
+249,"תוקף אביזרים",accessories_validity,"3. ביטוחים","תזכורות",true,true,true,true,true,"direct:inspections_certificates",true
+250,"תאריך תוקף אביזרים",accessories_validity_date,"3. ביטוחים","תזכורות",true,true,true,true,true,"direct:inspections_certificates",true
+251,"תוקף ציוד ייעודי",dedicated_equipment_validity,"3. ביטוחים","תזכורות",true,true,true,true,true,"direct:special_equipment_expiry",true
+252,"תאריך תוקף ציוד ייעודי",dedicated_equipment_validity_date,"3. ביטוחים","תזכורות",true,true,true,true,true,"direct:special_equipment_expiry",true
+253,"מסוג / ייעודי",special_type,"4. ציוד",,true,true,true,true,true,"direct:equipment_type",true
+254,"כוח סוס",horse_power,"4. ציוד",,true,true,true,true,true,"direct:horsepower",true
+255,"נפח מנוע",engine_volume,"4. ציוד",,true,true,true,true,true,"direct:engine_volume",true
+256,"משקל / טון",weight_ton,"4. ציוד",,true,true,true,true,true,"direct:weight_tons",true
+257,"KVA",kva,"4. ציוד",,true,true,true,true,true,"direct:kva",true
+258,"שעות מנוע",maintenance_engine_hours,"4. ציוד",,true,true,true,true,true,"direct:engine_hours",true
+259,"מספר סידורי ציוד",equipment_serial,"4. ציוד",,true,true,true,true,true,"direct:equipment_serial",true
+260,"ציוד ייעודי",dedicated_equipment,"4. ציוד",,true,true,true,true,true,"direct:equipment_type",true
+261,"ציוד ייעודי — פירוט",dedicated_equipment_details,"4. ציוד",,true,true,true,true,true,"direct:equipment_details",true
+262,"הערות",equipment_notes,"4. ציוד",,true,true,true,true,true,"direct:equipment_details",true
+263,"ק"מ נוכחי",current_km,"5. תחזוקה",,true,true,true,true,true,"direct:odometer",true
+264,"שעות מנוע",equipment_engine_hours,"5. תחזוקה",,true,true,true,true,true,"direct:engine_hours",true
+265,"סוג מונה",meter_type,"5. תחזוקה",,true,true,true,true,true,"direct:meter_type",true
+266,"תאריך עדכון מונה",meter_update_date,"5. תחזוקה",,true,true,true,true,true,"direct:meter_updated_at",true
+267,"טיפול אחרון",last_service,"5. תחזוקה",,true,true,true,true,true,"direct:last_service_date",true
+268,"טיפול הבא",next_service,"5. תחזוקה",,true,true,true,true,true,"direct:next_service_date",true
+269,"טיפול הבא בק"מ",next_service_km,"5. תחזוקה",,true,true,true,true,true,"direct:next_service_km",true
+270,"שעות מנוע לטיפול הבא",next_service_engine_hours,"5. תחזוקה",,true,true,true,true,true,"direct:next_service_hours",true
+271,"סוג טיפול",service_type,"5. תחזוקה",,true,true,true,true,true,"direct:service_type",true
+272,"סטטוס התראות",alert_status,"5. תחזוקה",,true,true,true,true,true,"direct:service_status",true
+273,"הערות טיפול",service_notes,"5. תחזוקה",,true,true,true,true,true,"direct:service_notes",true
+274,"שיטת תחזוקה",maintenance_method,"5. תחזוקה",,true,true,true,true,true,"direct:maintenance_method",true
+275,"ממונה תחזוקה",maint_supervisor,"5. תחזוקה","תחזוקה עצמית",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+276,"מוסך מטפל",maint_garage,"5. תחזוקה","תחזוקה עצמית",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+277,"טלפון מוסך",maint_phone,"5. תחזוקה","תחזוקה עצמית",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+278,"אחריות",maint_warranty,"5. תחזוקה","תחזוקה עצמית",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+279,"פירוט אחריות",maint_warranty_details,"5. תחזוקה","תחזוקה עצמית",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+280,"הערות תחזוקה",maint_notes,"5. תחזוקה","תחזוקה עצמית",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+281,"הערות מוסך",maint_garage_notes,"5. תחזוקה","תחזוקה עצמית",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+282,"חברת ליסינג",maint_lease_company,"5. תחזוקה","ליסינג",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+283,"מוקד שירות",maint_service_center,"5. תחזוקה","ליסינג",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+284,"טלפון",maint_phone,"5. תחזוקה","ליסינג",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+285,"איש קשר",maint_lease_contact,"5. תחזוקה","ליסינג",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+286,"הערות תחזוקה",maint_lease_notes,"5. תחזוקה","ליסינג",true,true,true,true,true,"json:maintenance_details or import_buffer",true
+287,"קטגוריית מסמך",__doc_category_ui__,"6. מסמכים",,true,true,true,true,true,"ui-only",true
+288,"שם מסמך",__doc_name_ui__,"6. מסמכים",,true,true,true,true,true,"ui-only",true
+289,"הדבקת קישור",__doc_link_ui__,"6. מסמכים",,true,true,true,true,true,"ui-only",true
+290,"העלאת קובץ",__doc_file_ui__,"6. מסמכים",,true,true,true,true,true,"ui-only",true
+291,"הערות",__doc_notes_ui__,"6. מסמכים",,true,true,true,true,true,"ui-only",true

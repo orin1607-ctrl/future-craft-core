@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>תצוגה מקדימה — כרטיס רכב (Future Craft)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --background: hsl(210 20% 98%);
+      --foreground: hsl(220 40% 13%);
+      --card: hsl(0 0% 100%);
+      --border: hsl(214 20% 90%);
+      --primary: hsl(218 58% 27%);
+      --muted: hsl(210 20% 96%);
+      --muted-fg: hsl(215 16% 47%);
+      --success: hsl(142 55% 42%);
+      --warning: hsl(38 80% 50%);
+      --destructive: hsl(0 84% 60%);
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      font-size: 15px;
+      padding: 16px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .banner {
+      background: var(--primary);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .back { color: var(--primary); font-weight: 600; margin-bottom: 16px; display: inline-flex; gap: 6px; }
+    .card-elevated {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 12px rgba(0,0,0,.06);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .vc-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--muted);
+    }
+    .plate { font-size: 20px; font-weight: 800; letter-spacing: 2px; }
+    .status-badge {
+      display: inline-flex;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: hsl(142 55% 42% / .15);
+      color: var(--success);
+    }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; }
+    .field { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .field:nth-child(odd) { border-left: 1px solid var(--border); }
+    .lbl { font-size: 11px; color: var(--muted-fg); }
+    .val { font-size: 14px; font-weight: 700; }
+    .btn-primary {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    .quick { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+    .quick button {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      color: var(--muted-fg);
+    }
+    .tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--border); margin-bottom: 12px; padding-bottom: 0; }
+    .tabs button {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      white-space: nowrap;
+      color: var(--muted-fg);
+      cursor: pointer;
+    }
+    .tabs button.on { color: var(--primary); border-color: var(--primary); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: right; padding: 8px; color: var(--muted-fg); font-size: 11px; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .manage-h { width: 100%; padding: 14px 16px; font-weight: 700; background: var(--card); border: none; font-family: inherit; text-align: right; cursor: pointer; display: flex; justify-content: space-between; }
+    .hist-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); margin-top: 4px; flex-shrink: 0; }
+    .note { font-size: 12px; color: var(--muted-fg); margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="banner">תצוגה מקדימה בלבד — עיצוב Future Craft · מבנה לפי HTML שצורף</div>
+
+  <div class="back">← חזרה לרשימה</div>
+
+  <div class="card-elevated">
+    <div class="vc-head">
+      <div class="plate">123-45-678</div>
+      <span class="status-badge">פעיל</span>
+    </div>
+    <div class="grid2">
+      <div class="field"><div class="lbl">מספר פנימי</div><div class="val">VH-042</div></div>
+      <div class="field"><div class="lbl">חברה</div><div class="val">דליה לוגיסטיקה</div></div>
+      <div class="field"><div class="lbl">יצרן / דגם</div><div class="val">טויוטה קורולה</div></div>
+      <div class="field"><div class="lbl">שנתון</div><div class="val">2022</div></div>
+      <div class="field"><div class="lbl">נהג נוכחי</div><div class="val">אבי כהן</div></div>
+      <div class="field"><div class="lbl">קילומטראז׳</div><div class="val">87,420</div></div>
+    </div>
+  </div>
+
+  <button class="btn-primary">+ פתיחת פעולה לרכב</button>
+
+  <div class="quick">
+    <button>ליקוי</button><button>תקלה</button><button>טיפול</button><button>תאונה</button>
+    <button>בדיקה</button><button>התראה</button><button>שינוע</button><button>ספק</button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="on" data-t="tracking">מעקב</button>
+    <button data-t="faults">ליקויים</button>
+    <button data-t="service">שירות</button>
+    <button data-t="accidents">תאונות</button>
+    <button data-t="inspection">בדיקות</button>
+    <button data-t="alerts">התראות</button>
+    <button data-t="docs">מסמכים</button>
+    <button data-t="transfers">שינועים</button>
+    <button data-t="history">היסטוריה</button>
+  </div>
+
+  <div class="card-elevated" id="panel">
+    <table>
+      <thead><tr><th>פעולה</th><th>סוג</th><th>תאריך</th><th>סטטוס</th></tr></thead>
+      <tbody>
+        <tr><td>ליקוי בלמים</td><td>ליקוי</td><td>10/05/2025</td><td><span class="status-badge" style="background:hsl(38 80% 50%/.15);color:var(--warning)">פתוח</span></td></tr>
+        <tr><td>החלפת שמן</td><td>שירות</td><td>02/03/2025</td><td><span class="status-badge">הושלם</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card-elevated" style="margin-top:16px">
+    <button class="manage-h">ניהול רכב <span>▼</span></button>
+    <p class="note" style="padding:0 16px 14px">עריכה · שיוך נהג · ארכיון · מחיקה — נפרד מזרימת הפעולות</p>
+  </div>
+
+  <p class="note" style="text-align:center;margin-top:20px">
+    גרסת React מלאה: התחברות → רכבים → בחירת רכב → <code>npm run dev</code>
+  </p>
+
+  <script>
+    const panels = {
+      tracking: document.querySelector('#panel').innerHTML,
+      history: '<p class="note" style="padding:16px">ציר זמן — תוצאה של פעולות שנשמרו (ללא יצירה מכאן)</p><div class="hist-item"><div class="dot"></div><div><strong>ליקוי בלמים</strong><br><span class="note">10/05/2025 · ליקוי</span></div></div>',
+      faults: '<table><tbody><tr><td>רפידות שחוקות</td><td>ליקוי</td><td>פתוח</td></tr></tbody></table>',
+    };
+    document.getElementById('tabs').addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      document.querySelectorAll('.tabs button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      const p = document.getElementById('panel');
+      p.innerHTML = panels[b.dataset.t] || '<p class="note" style="padding:16px">טאב ' + b.textContent + '</p>';
+    });
+  </script>
+</body>
+</html>

@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowRight, MapPin, Camera, Loader2, Send, CheckCircle2, Car, Users, Navigation, Fuel, ClipboardCheck, Image, Package, MessageSquare, ShieldCheck, MessageCircle } from 'lucide-react';
+import { MapPin, Camera, Loader2, Send, CheckCircle2, Car, Users, Navigation, Fuel, ClipboardCheck, Image, Package, MessageSquare, ShieldCheck, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter } from '@/hooks/useCompanyFilter';
+import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -93,6 +97,7 @@ export default function VehicleExchange() {
   const { user } = useAuth();
   const isPrivate = user?.role === 'private_customer';
   const companyFilter = useCompanyFilter();
+  const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
   const [activeTab, setActiveTab] = useState('form');
   const [saving, setSaving] = useState(false);
 
@@ -175,6 +180,12 @@ export default function VehicleExchange() {
       setGivingDriverPhone(user.phone || '');
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!contextPlate) return;
+    setVehiclePlate(contextPlate);
+    setSearchPlate(contextPlate);
+  }, [contextPlate]);
 
   const getLocation = () => {
     setGettingLocation(true);
@@ -292,23 +303,27 @@ export default function VehicleExchange() {
   const loadHistory = async () => {
     setLoadingHistory(true);
     let query = supabase.from('vehicle_exchanges' as any).select('*').order('created_at', { ascending: false }).limit(50);
-    if (searchPlate) query = query.ilike('vehicle_plate', `%${searchPlate}%`);
+    const plateFilter = locked && contextPlate ? contextPlate : searchPlate;
+    if (plateFilter) query = query.ilike('vehicle_plate', `%${plateFilter}%`);
     if (searchDriver) query = query.or(`giving_driver_name.ilike.%${searchDriver}%,receiving_driver_name.ilike.%${searchDriver}%`);
     const { data } = await query;
-    setHistory((data as any[]) || []);
+    let rows = (data as any[]) || [];
+    if (locked && contextPlate) {
+      rows = rows.filter((r) => plateMatches(r.vehicle_plate, contextPlate));
+    }
+    setHistory(rows);
     setLoadingHistory(false);
   };
 
-  useEffect(() => { if (activeTab === 'history') loadHistory(); }, [activeTab]);
+  useEffect(() => { if (activeTab === 'history') loadHistory(); }, [activeTab, locked, contextPlate]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 pb-8" dir="rtl">
-      <div className="flex items-center gap-3 mb-2">
-        <button onClick={() => window.history.back()} className="p-2 rounded-xl bg-muted hover:bg-muted/80">
-          <ArrowRight size={20} />
-        </button>
-        <h1 className="text-2xl font-bold text-foreground">טופס החלפת רכב</h1>
-      </div>
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+      {locked && contextPlate && (
+        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
+      )}
+      <h1 className="text-2xl font-bold text-foreground">טופס החלפת רכב</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full grid grid-cols-2">
@@ -628,7 +643,9 @@ export default function VehicleExchange() {
           {loadingHistory ? (
             <div className="text-center py-8"><Loader2 className="animate-spin mx-auto" size={32} /></div>
           ) : history.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">אין היסטוריית החלפות</div>
+            <div className="text-center py-8 text-muted-foreground">
+              {locked && contextPlate ? VEHICLE_EMPTY_LIST_MSG : 'אין היסטוריית החלפות'}
+            </div>
           ) : (
             <div className="space-y-3">
               {history.map((ex: any) => (
