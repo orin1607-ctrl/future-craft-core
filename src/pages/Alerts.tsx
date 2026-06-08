@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
+import { buildVehicleContextUrl, buildVehicleHubUrl } from '@/lib/entityNavContext';
 import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -143,17 +144,17 @@ export default function Alerts() {
 
         const testDays = getDaysLeft(v.test_expiry);
         if (testDays !== null && testDays <= 30) {
-          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: '/vehicles' });
+          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const insDays = getDaysLeft(v.insurance_expiry);
         if (insDays !== null && insDays <= 30) {
-          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: '/vehicles' });
+          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
         if (compDays !== null && compDays <= 30) {
-          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: '/vehicles' });
+          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id) });
         }
       }
     }
@@ -189,7 +190,7 @@ export default function Alerts() {
     );
     if (faults) {
       for (const f of faults) {
-        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link: '/faults' });
+        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link: f.vehicle_plate ? buildVehicleContextUrl('/faults', { plate: f.vehicle_plate }) : '/faults' });
       }
     }
 
@@ -212,7 +213,7 @@ export default function Alerts() {
           daysLeft: vt.follow_up_date ? Math.floor((new Date(vt.follow_up_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null,
           date: vt.created_at?.split('T')[0] || null,
           meta: vt.description || undefined,
-          link: '/vehicle-tasks',
+          link: vt.vehicle_plate ? buildVehicleContextUrl('/vehicle-tasks', { plate: vt.vehicle_plate }) : '/vehicle-tasks',
         });
       }
     }
@@ -235,7 +236,7 @@ export default function Alerts() {
           daysLeft: null,
           date: so.created_at ? new Date(so.created_at).toISOString().split('T')[0] : null,
           meta: `${so.service_category || ''} ${so.description ? '- ' + so.description : ''}`.trim() || undefined,
-          link: '/service-orders',
+          link: so.vehicle_plate ? buildVehicleContextUrl('/service-orders', { plate: so.vehicle_plate }) : '/service-orders',
         });
       }
     }

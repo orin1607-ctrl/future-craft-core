@@ -7,6 +7,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import ImageUpload from '@/components/ImageUpload';
+import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface ExpenseRow {
   id: string;
@@ -26,6 +30,7 @@ const expenseCategories = ['דלק', 'שמן', 'צמיגים', 'שטיפה', 'ח
 export default function Expenses() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
@@ -41,10 +46,15 @@ export default function Expenses() {
 
   useEffect(() => { loadExpenses(); }, []);
 
+  useEffect(() => {
+    if (contextPlate) setSearch(contextPlate);
+  }, [contextPlate]);
+
   const filtered = expenses.filter(e => {
-    const matchSearch = !search || e.driver_name?.includes(search) || e.vehicle_plate?.includes(search) || e.vendor?.includes(search);
+    const matchVehicle = !locked || !contextPlate || plateMatches(e.vehicle_plate, contextPlate);
+    const matchSearch = !search || e.driver_name?.includes(search) || plateMatches(e.vehicle_plate, search) || e.vendor?.includes(search);
     const matchCat = !filterCategory || e.category === filterCategory;
-    return matchSearch && matchCat;
+    return matchVehicle && matchSearch && matchCat;
   });
 
   const totalFiltered = filtered.reduce((sum, e) => sum + (e.amount || 0), 0);
@@ -55,6 +65,8 @@ export default function Expenses() {
 
   return (
     <div className="animate-fade-in">
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+      {locked && contextPlate && <EntityContextBanner label={`רכב ${contextPlate}`} strict />}
       <div className="flex items-center justify-between mb-4">
         <h1 className="page-header !mb-0 flex items-center gap-3"><FileText size={28} /> הוצאות</h1>
         <div className="flex items-center gap-2">
@@ -87,7 +99,7 @@ export default function Expenses() {
 
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש..." className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש..." disabled={locked && !!contextPlate} className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none disabled:opacity-60" />
       </div>
 
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
@@ -106,7 +118,7 @@ export default function Expenses() {
       {loading ? (
         <div className="text-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" /></div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground"><FileText size={48} className="mx-auto mb-4 opacity-50" /><p className="text-xl">אין הוצאות</p></div>
+        <div className="text-center py-12 text-muted-foreground"><FileText size={48} className="mx-auto mb-4 opacity-50" /><p className="text-xl">{locked && contextPlate ? VEHICLE_EMPTY_LIST_MSG : 'אין הוצאות'}</p></div>
       ) : (
         <div className="space-y-3">
           {filtered.map(e => (

@@ -5,6 +5,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
+import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
+import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 type ActionType = 'pickup' | 'return';
 
@@ -56,6 +60,7 @@ interface HandoverRecord {
 export default function VehicleHandover() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
   const [action, setAction] = useState<ActionType>('pickup');
   const [vehiclePlate, setVehiclePlate] = useState('');
   const [odometer, setOdometer] = useState('');
@@ -111,6 +116,17 @@ export default function VehicleHandover() {
     });
     loadHandoverHistory();
   }, [companyFilter]);
+
+  useEffect(() => {
+    if (contextPlate) {
+      setVehiclePlate(contextPlate);
+      setActiveTab('history');
+    }
+  }, [contextPlate]);
+
+  const visibleHandoverRecords = locked && contextPlate
+    ? handoverRecords.filter((r) => plateMatches(r.vehicle_plate, contextPlate))
+    : handoverRecords;
 
   const selectedVehicle = dbVehicles.find(v => v.license_plate === vehiclePlate);
 
@@ -285,6 +301,8 @@ export default function VehicleHandover() {
 
   return (
     <div className="animate-fade-in">
+      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+      {locked && contextPlate && <EntityContextBanner label={`רכב ${contextPlate}`} strict />}
       <h1 className="page-header">טופס החלפת רכב</h1>
 
       {/* Tabs */}
@@ -295,18 +313,18 @@ export default function VehicleHandover() {
         </button>
         <button onClick={() => setActiveTab('history')}
           className={`flex-1 py-3 rounded-xl text-lg font-bold transition-colors ${activeTab === 'history' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-          <History size={18} className="inline ml-2" /> היסטוריה ({handoverRecords.length})
+          <History size={18} className="inline ml-2" /> היסטוריה ({visibleHandoverRecords.length})
         </button>
       </div>
 
       {activeTab === 'history' ? (
         <div className="space-y-3">
-          {handoverRecords.length === 0 ? (
+          {visibleHandoverRecords.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <RefreshCw size={48} className="mx-auto mb-4 opacity-50" />
-              <p className="text-xl">אין החלפות רכב</p>
+              <p className="text-xl">{locked && contextPlate ? VEHICLE_EMPTY_LIST_MSG : 'אין החלפות רכב'}</p>
             </div>
-          ) : handoverRecords.map(record => {
+          ) : visibleHandoverRecords.map(record => {
             const status = approvalStatusConfig[record.driver_approval_status] || approvalStatusConfig.pending;
             const StatusIcon = status.icon;
             return (
@@ -373,7 +391,7 @@ export default function VehicleHandover() {
         <div className="space-y-4">
           <div>
             <label className="block text-lg font-medium mb-2">מספר רכב</label>
-            <select value={vehiclePlate} onChange={e => setVehiclePlate(e.target.value)} className={inputClass}>
+            <select value={vehiclePlate} onChange={e => setVehiclePlate(e.target.value)} disabled={locked && !!contextPlate} className={inputClass}>
               <option value="">בחר רכב...</option>
               {dbVehicles.map(v => (
                 <option key={v.license_plate} value={v.license_plate}>{v.license_plate} - {v.manufacturer} {v.model}</option>

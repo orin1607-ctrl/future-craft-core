@@ -46,6 +46,6 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/customers', label: 'לקוחות', category: 'ניווט' },
   { path: '/emergency', label: 'חירום', category: 'ניווט' },
   { path: '/internal-chat', label: 'צ\'אט', category: 'ניווט' },
-  { path: '/admin-home', label: 'מנהל על', category: 'מנהל על' },
+  { path: '/admin-home', label: 'מרכז ניהול', category: 'מרכז ניהול' },
   { path: '/expenses', label: 'דלק וחשבוניות', category: 'נהג' },
 ];

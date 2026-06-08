@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Users, Search, ArrowRight, Phone, Mail, Plus, Save, Edit2, X, Download, Upload, FileImage, Eye, UserCheck, ClipboardList } from 'lucide-react';
-import { buildDriverContextUrl } from '@/lib/entityNavContext';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Users, Search, ArrowRight, Phone, Mail, Plus, Save, Edit2, X, Download, Upload, FileImage, Eye, UserCheck, ClipboardList, LayoutDashboard } from 'lucide-react';
+import { buildDriverContextUrl, buildDriverDashboardUrl } from '@/lib/entityNavContext';
 import { Button } from '@/components/ui/button';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
 import DriverDeclaration from '@/components/DriverDeclaration';
 import DriverExamsTab from '@/components/driving-exam/DriverExamsTab';
 import { exportToCsv } from '@/utils/exportCsv';
@@ -32,6 +33,7 @@ const licenseOptions = ['A', 'A1', 'A2', 'B', 'C', 'C1', 'D', 'D1', 'E'];
 
 export default function Drivers() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
@@ -48,6 +50,15 @@ export default function Drivers() {
   };
 
   useEffect(() => { loadDrivers(); }, []);
+
+  useEffect(() => {
+    const companyName = searchParams.get('companyName');
+    if (companyName) setFilterCompany(companyName);
+    const driverId = searchParams.get('driverId');
+    if (!driverId || drivers.length === 0) return;
+    const match = drivers.find((d) => d.id === driverId);
+    if (match) setSelected(match);
+  }, [searchParams, drivers]);
 
   const companies = [...new Set(drivers.map(d => d.company_name).filter(Boolean))];
 
@@ -68,16 +79,24 @@ export default function Drivers() {
     );
   }
 
+  const fromFleetManager = searchParams.get('from') === 'fleet-manager';
+
   if (selected) {
     const d = selected;
+    const openDriverDashboard = () =>
+      navigate(buildDriverDashboardUrl({ driverId: d.id, driverName: d.full_name }));
+
     return (
       <div className="animate-fade-in">
         <button onClick={() => setSelected(null)} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
           <ArrowRight size={20} />
           חזרה לרשימה
         </button>
+        {fromFleetManager && filterCompany && (
+          <EntityContextBanner label={`נהגים באחריות מנהל צי · ${filterCompany}`} strict />
+        )}
         <div className="card-elevated">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold">{d.full_name}</h1>
             <div className="flex items-center gap-2">
               <span className={`status-badge ${d.status === 'active' ? 'status-active' : 'status-inactive'}`}>
@@ -91,6 +110,17 @@ export default function Drivers() {
               )}
             </div>
           </div>
+
+          {user?.role !== 'driver' && (
+            <Button
+              type="button"
+              className="w-full h-14 text-lg font-bold gap-2 mb-6 shadow-md"
+              onClick={openDriverDashboard}
+            >
+              <LayoutDashboard size={22} />
+              פתח דשבורד נהג
+            </Button>
+          )}
           <div className="grid grid-cols-2 gap-4 text-lg">
             <div><span className="text-muted-foreground">טלפון:</span><p className="font-bold">{d.phone}</p></div>
             <div><span className="text-muted-foreground">אימייל:</span><p className="font-bold">{d.email || '—'}</p></div>
@@ -124,7 +154,7 @@ export default function Drivers() {
 
           {user?.role !== 'driver' && (
             <div className="mt-6 pt-6 border-t border-border">
-              <h2 className="text-lg font-bold mb-3">פעולות לפי נהג זה</h2>
+              <h2 className="text-lg font-bold mb-3">פעולות נוספות לנהג זה</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Button
                   type="button"
@@ -277,23 +307,45 @@ export default function Drivers() {
         </div>
       )}
 
+      {fromFleetManager && filterCompany && (
+        <EntityContextBanner label={`נהגים באחריות מנהל צי · ${filterCompany}`} strict />
+      )}
+
       <div className="space-y-3">
-        {filtered.map(d => (
-          <button key={d.id} onClick={() => setSelected(d)} className="card-elevated w-full text-right hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-info/10 flex items-center justify-center flex-shrink-0">
-                <Users size={28} className="text-info" />
+        {filtered.map((d) => (
+          <div key={d.id} className="card-elevated">
+            <button type="button" onClick={() => setSelected(d)} className="w-full text-right hover:opacity-90 transition-opacity">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-info/10 flex items-center justify-center flex-shrink-0">
+                  <Users size={28} className="text-info" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xl font-bold">{d.full_name}</p>
+                  <p className="text-muted-foreground text-lg">{d.phone}</p>
+                  {d.license_types?.length > 0 && (
+                    <p className="text-sm text-muted-foreground">{d.license_types.join(', ')}</p>
+                  )}
+                </div>
+                <span
+                  className={`status-badge ${d.status === 'active' ? 'status-active' : d.status === 'archived' ? 'bg-muted text-muted-foreground' : 'status-inactive'}`}
+                >
+                  {d.status === 'active' ? 'פעיל' : d.status === 'archived' ? 'ארכיון' : 'לא פעיל'}
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xl font-bold">{d.full_name}</p>
-                <p className="text-muted-foreground text-lg">{d.phone}</p>
-                {d.license_types?.length > 0 && <p className="text-sm text-muted-foreground">{d.license_types.join(', ')}</p>}
-              </div>
-              <span className={`status-badge ${d.status === 'active' ? 'status-active' : d.status === 'archived' ? 'bg-muted text-muted-foreground' : 'status-inactive'}`}>
-                {d.status === 'active' ? 'פעיל' : d.status === 'archived' ? 'ארכיון' : 'לא פעיל'}
-              </span>
-            </div>
-          </button>
+            </button>
+            {user?.role !== 'driver' && (
+              <Button
+                type="button"
+                className="w-full mt-3 h-12 font-bold gap-2"
+                onClick={() =>
+                  navigate(buildDriverDashboardUrl({ driverId: d.id, driverName: d.full_name }))
+                }
+              >
+                <LayoutDashboard size={18} />
+                פתח דשבורד נהג
+              </Button>
+            )}
+          </div>
         ))}
       </div>
 

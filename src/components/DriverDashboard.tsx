@@ -14,6 +14,9 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Link as RouterLink } from 'react-router-dom';
+import { EntityContextBanner } from '@/components/EntityContextBanner';
+import { buildVehicleContextUrl } from '@/lib/entityNavContext';
 
 interface AssignedVehicle {
   id: string;
@@ -81,38 +84,75 @@ function ExpiryBadge({ days }: { days: number | null }) {
   return <span className="text-xs text-muted-foreground">עוד {days} ימים</span>;
 }
 
-export default function DriverDashboard() {
+export default function DriverDashboard({
+  scopedDriverId,
+  scopedDriverName,
+  managerView = false,
+}: {
+  scopedDriverId?: string;
+  scopedDriverName?: string;
+  managerView?: boolean;
+} = {}) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [vehicle, setVehicle] = useState<AssignedVehicle | null>(null);
   const [alerts, setAlerts] = useState<DriverAlert[]>([]);
   const [pendingAssignments, setPendingAssignments] = useState<PendingAssignment[]>([]);
+  const [displayName, setDisplayName] = useState('');
+  const [displayCompany, setDisplayCompany] = useState('');
 
   useEffect(() => {
-    if (!user) return;
+    const subjectId = managerView ? scopedDriverId : user?.id;
+    if (!subjectId) return;
 
     const loadDriverDashboard = async () => {
       setLoading(true);
 
+      let driverFullName = managerView ? scopedDriverName || '' : user?.full_name || '';
+      let driverCompany = user?.company_name || '';
+
+      if (managerView && scopedDriverId) {
+        const { data: driverRow } = await supabase
+          .from('drivers')
+          .select('full_name, company_name')
+          .eq('id', scopedDriverId)
+          .maybeSingle();
+        if (driverRow) {
+          driverFullName = driverRow.full_name || driverFullName;
+          driverCompany = driverRow.company_name || driverCompany;
+        }
+      }
+
+      setDisplayName(driverFullName);
+      setDisplayCompany(driverCompany);
+
+      let vehicleQuery = supabase
+        .from('vehicles')
+        .select(
+          'id, manufacturer, model, year, license_plate, vehicle_type, odometer, test_expiry, insurance_expiry, comprehensive_insurance_expiry, company_name',
+        )
+        .eq('assigned_driver_id', subjectId);
+      if (managerView && driverCompany) {
+        vehicleQuery = vehicleQuery.eq('company_name', driverCompany);
+      }
+
       const [vehicleRes, serviceOrdersRes, assignmentsRes, pendingExamsRes] = await Promise.all([
-        supabase
-          .from('vehicles')
-          .select('id, manufacturer, model, year, license_plate, vehicle_type, odometer, test_expiry, insurance_expiry, comprehensive_insurance_expiry')
-          .eq('assigned_driver_id', user.id)
-          .limit(1),
-        supabase
-          .from('service_orders')
-          .select('id, service_category, treatment_status, vehicle_plate')
-          .eq('driver_name', user.full_name),
+        vehicleQuery.limit(1),
+        driverFullName
+          ? supabase
+              .from('service_orders')
+              .select('id, service_category, treatment_status, vehicle_plate, driver_name')
+              .eq('driver_name', driverFullName)
+          : Promise.resolve({ data: [], error: null }),
         supabase
           .from('work_assignments')
-          .select('id, title, scheduled_date, scheduled_time, status')
-          .eq('driver_id', user.id)
+          .select('id, title, scheduled_date, scheduled_time, status, driver_id, driver_name')
+          .eq('driver_id', subjectId)
           .in('status', ['pending_driver_approval', 'sent_to_driver', 'driver_approved', 'in_progress']),
         supabase
           .from('driving_exams')
           .select('id, status, exam_type, created_at')
-          .eq('driver_id', user.id)
+          .eq('driver_id', subjectId)
           .in('status', ['sent', 'in_progress'])
           .order('created_at', { ascending: false }),
       ]);
@@ -141,7 +181,9 @@ export default function DriverDashboard() {
       setVehicle(assignedVehicle);
 
       // Build alerts
-      const allOrders = serviceOrdersRes.data || [];
+      const allOrders = (serviceOrdersRes.data || []).filter(
+        (o) => !driverFullName || o.driver_name === driverFullName,
+      );
       const openOrders = allOrders.filter((o) => isOpenStatus(o.treatment_status));
       const scopedOpenOrders = assignedVehicle
         ? openOrders.filter((o) => !o.vehicle_plate || o.vehicle_plate === assignedVehicle.license_plate)
@@ -191,7 +233,12 @@ export default function DriverDashboard() {
           title: 'טיפול תקופתי מתקרב',
           count: periodicServiceOpen.length,
           severity: 'warning',
-          link: '/service-orders',
+          link: assignedVehicle
+            ? buildVehicleContextUrl('/service-orders', {
+                plate: assignedVehicle.license_plate,
+                vehicleId: assignedVehicle.id,
+              })
+            : '/service-orders',
         });
       }
 
@@ -201,12 +248,21 @@ export default function DriverDashboard() {
           title: 'הזמנת שירות פתוחה לרכב',
           count: scopedOpenOrders.length,
           severity: 'info',
-          link: '/service-orders',
+          link: assignedVehicle
+            ? buildVehicleContextUrl('/service-orders', {
+                plate: assignedVehicle.license_plate,
+                vehicleId: assignedVehicle.id,
+              })
+            : '/service-orders',
         });
       }
 
       // Pending work assignments alert
-      const pendingWA = assignmentsRes.data || [];
+      const pendingWA = (assignmentsRes.data || []).filter(
+        (a) =>
+          a.driver_id === subjectId &&
+          (!driverFullName || !a.driver_name || a.driver_name === driverFullName),
+      );
       setPendingAssignments(pendingWA as PendingAssignment[]);
       const awaitingApproval = pendingWA.filter(a => a.status === 'pending_driver_approval');
       if (awaitingApproval.length > 0) {
@@ -236,7 +292,7 @@ export default function DriverDashboard() {
     };
 
     loadDriverDashboard();
-  }, [user?.id, user?.full_name]);
+  }, [user?.id, user?.full_name, user?.company_name, managerView, scopedDriverId, scopedDriverName]);
 
   const testDays = daysUntil(vehicle?.test_expiry);
   const insuranceDays = daysUntil(vehicle?.insurance_expiry);
@@ -244,10 +300,18 @@ export default function DriverDashboard() {
 
   return (
     <div className="animate-fade-in space-y-6">
+      {managerView && scopedDriverId && (
+        <>
+          <RouterLink to={`/drivers?driverId=${scopedDriverId}`} className="text-primary text-sm font-medium inline-block">
+            ← חזרה לכרטיס נהג
+          </RouterLink>
+          <EntityContextBanner label={`נהג: ${displayName || scopedDriverName || '—'}`} strict />
+        </>
+      )}
       <header className="space-y-1">
-        <h1 className="text-3xl font-black text-foreground">דשבורד נהג</h1>
-        <p className="text-muted-foreground">{user?.full_name}</p>
-        <p className="text-muted-foreground text-sm">{user?.company_name}</p>
+        <h1 className="text-3xl font-black text-foreground">{managerView ? 'דשבורד נהג (צפייה מנהל)' : 'דשבורד נהג'}</h1>
+        <p className="text-muted-foreground">{displayName || user?.full_name}</p>
+        <p className="text-muted-foreground text-sm">{displayCompany || user?.company_name}</p>
       </header>
 
       {/* Vehicle Info */}
@@ -317,7 +381,7 @@ export default function DriverDashboard() {
             </div>
           </div>
         ) : (
-          <p className="text-muted-foreground">לא הוצמד רכב לנהג זה.</p>
+          <p className="text-muted-foreground">{managerView ? 'אין נתונים לנהג זה' : 'לא הוצמד רכב לנהג זה.'}</p>
         )}
       </section>
 
@@ -389,12 +453,22 @@ export default function DriverDashboard() {
 
       {/* Actions */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {driverActions.map((action) => (
-          <Link key={action.label} to={action.link} className="big-action-btn bg-card text-foreground border border-border">
-            <action.icon size={24} />
-            <span>{action.label}</span>
-          </Link>
-        ))}
+        {driverActions.map((action) => {
+          const scopedPaths = ['/faults', '/accidents', '/service-orders', '/expenses'];
+          const link =
+            managerView && vehicle && scopedPaths.includes(action.link)
+              ? buildVehicleContextUrl(action.link, {
+                  plate: vehicle.license_plate,
+                  vehicleId: vehicle.id,
+                })
+              : action.link;
+          return (
+            <Link key={action.label} to={link} className="big-action-btn bg-card text-foreground border border-border">
+              <action.icon size={24} />
+              <span>{action.label}</span>
+            </Link>
+          );
+        })}
       </section>
     </div>
   );

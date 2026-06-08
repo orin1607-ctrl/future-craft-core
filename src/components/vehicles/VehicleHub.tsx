@@ -826,7 +826,9 @@ export default function VehicleHub({
       {mainSection === 'history' && hubData && (
         <HistoryTimeline
           entries={hubData.history}
-          onNavigate={navigate}
+          onNavigate={(route) =>
+            navigate(buildVehicleContextUrl(route, { plate: v.license_plate, vehicleId: v.id }))
+          }
           plate={v.license_plate}
           internalNumber={v.internal_number}
         />

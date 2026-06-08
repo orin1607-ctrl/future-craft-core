@@ -29,7 +29,7 @@ export default function Layout() {
             className="flex items-center gap-1 bg-background/20 rounded-lg px-3 py-1 hover:bg-background/40 transition-colors"
           >
             <X size={14} />
-            {realUser?.role === 'super_admin' ? 'חזרה למנהל על' : 'חזרה למנהל צי'}
+            {realUser?.role === 'super_admin' ? 'חזרה למרכז ניהול' : 'חזרה למנהל צי'}
           </button>
         </div>
       )}

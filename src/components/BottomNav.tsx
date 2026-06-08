@@ -31,12 +31,12 @@ const managerNavItems: NavItem[] = [
 ];
 
 const adminNavItems: NavItem[] = [
-  { path: '/admin-home', label: 'מנהל על', icon: Shield },
+  { path: '/admin-home', label: 'מרכז ניהול', icon: Shield },
 ];
 
 const managerCategories = [
   { title: 'ניווט', items: managerNavItems },
-  { title: 'מנהל על', items: adminNavItems },
+  { title: 'מרכז ניהול', items: adminNavItems },
 ];
 
 // Manager mobile — בית בלבד (Mobile First; ניווט דרך כרטיסי הדשבורד)
@@ -91,7 +91,7 @@ export function DesktopSidebar() {
   const { selectedCompany, setSelectedCompany, companyOptions } = useCompanyScope();
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
     ניווט: true,
-    'מנהל על': false,
+    'מרכז ניהול': false,
   });
   const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
   const unreadCount = useUnreadNotifications();
@@ -185,7 +185,7 @@ export function DesktopSidebar() {
         ) : (
           <>
             {managerCategories.map((cat) => {
-              if (cat.title === 'מנהל על' && !isSuperAdmin) return null;
+              if (cat.title === 'מרכז ניהול' && !isSuperAdmin) return null;
               const visibleItems = cat.items.filter((item) => !hiddenButtons.includes(item.path));
               if (visibleItems.length === 0) return null;
               return (

@@ -5,13 +5,16 @@ import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import HomeWorldCard from '@/components/home/HomeWorldCard';
+import HomeAlertsWidget from '@/components/home/HomeAlertsWidget';
 import { countTrackingAttention } from '@/lib/vehicleTrackingData';
+import { useHomeAlertPrefs } from '@/hooks/useHomeAlertPrefs';
 
 export default function HomeDashboard() {
   const { user } = useAuth();
   const { selectedCompany } = useCompanyScope();
   const isSuperAdmin = user?.role === 'super_admin';
   const companyFilter = isSuperAdmin ? selectedCompany : user?.company_name || null;
+  const { prefs, setPrefs } = useHomeAlertPrefs(user?.id);
 
   const [loading, setLoading] = useState(true);
   const [vehiclesCount, setVehiclesCount] = useState(0);
@@ -87,6 +90,8 @@ export default function HomeDashboard() {
         </p>
       </header>
 
+      <HomeAlertsWidget companyFilter={companyFilter} prefs={prefs} onPrefsChange={setPrefs} />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         <HomeWorldCard
           to="/vehicles"
@@ -129,7 +134,7 @@ export default function HomeDashboard() {
           <HomeWorldCard
             to="/admin-home"
             icon={Shield}
-            title="מנהל על"
+            title="מרכז ניהול"
             subtitle="משתמשים, הרשאות והגדרות"
             accent="primary"
           />

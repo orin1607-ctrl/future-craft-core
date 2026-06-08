@@ -52,6 +52,7 @@ import DevVehicleNewStep2Vision from "@/pages/DevVehicleNewStep2Vision";
 import DevVehicleNewFormDalia from "@/pages/DevVehicleNewFormDalia";
 import DevVehicleFormLive from "@/pages/DevVehicleFormLive";
 import DevVehiclesListPreview from "@/pages/DevVehiclesListPreview";
+import DevFleetManagerDriverFlow from "@/pages/DevFleetManagerDriverFlow";
 import DevFaultsScopedPreview from "@/pages/DevFaultsScopedPreview";
 import DevDocumentsScopedPreview from "@/pages/DevDocumentsScopedPreview";
 import DevStagingProofFlow from "@/pages/DevStagingProofFlow";
@@ -113,6 +114,7 @@ function AppRoutes() {
         <Route path="/dev/documents-scoped" element={<DevDocumentsScopedPreview />} />
         <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
         <Route path="/dev/vehicles-list" element={<DevVehiclesListPreview />} />
+        <Route path="/dev/fleet-manager-driver-flow" element={<DevFleetManagerDriverFlow />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -138,6 +140,7 @@ function AppRoutes() {
       <Route path="/dev/documents-scoped" element={<DevDocumentsScopedPreview />} />
       <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
       <Route path="/dev/vehicles-list" element={<DevVehiclesListPreview />} />
+      <Route path="/dev/fleet-manager-driver-flow" element={<DevFleetManagerDriverFlow />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route element={<Layout />}>

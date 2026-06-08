@@ -23,6 +23,14 @@ export function buildVehicleHubUrl(vehicleId: string): string {
   return `/vehicles?${q.toString()}`;
 }
 
+export function buildDriverDashboardUrl(ctx: { driverId: string; driverName?: string }): string {
+  const q = new URLSearchParams();
+  q.set('driverId', ctx.driverId);
+  if (ctx.driverName) q.set('driverName', ctx.driverName);
+  q.set('context', 'driver');
+  return `/dashboard?${q.toString()}`;
+}
+
 export function buildVehicleContextUrl(
   path: string,
   ctx: { plate: string; vehicleId?: string; action?: string },

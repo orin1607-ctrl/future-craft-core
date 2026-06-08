@@ -95,6 +95,10 @@ export default function FleetManagers() {
             <h2 className="font-bold mb-3">פעולות מנהל צי</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
+                {
+                  to: `/drivers?companyName=${encodeURIComponent(m.company_name)}&from=fleet-manager`,
+                  label: 'נהגים באחריותו',
+                },
                 { to: '/customers', label: 'לקוחות' },
                 { to: '/routes', label: 'מסלולים' },
                 { to: '/work-orders', label: 'סידור עבודה' },

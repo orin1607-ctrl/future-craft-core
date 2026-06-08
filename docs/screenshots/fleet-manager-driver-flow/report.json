@@ -1,0 +1,11 @@
+{
+  "at": "2026-06-08T20:29:33.559Z",
+  "base": "http://localhost:8080",
+  "route": "/dev/fleet-manager-driver-flow",
+  "shots": [
+    "01-full-flow-all-steps.png",
+    "02-step1-fleet-manager-card.png",
+    "03-step2-driver-open-dashboard-button.png",
+    "04-step3-scoped-driver-dashboard.png"
+  ]
+}

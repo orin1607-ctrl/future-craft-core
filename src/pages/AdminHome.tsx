@@ -22,7 +22,7 @@ export default function AdminHome() {
       <header>
         <h1 className="page-header flex items-center gap-3 mb-2">
           <Shield size={28} className="text-primary" />
-          מנהל על
+          מרכז ניהול
         </h1>
         <p className="text-muted-foreground text-sm">משתמשים · הרשאות · הגדרות · בקרה</p>
       </header>
