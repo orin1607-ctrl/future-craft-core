@@ -76,15 +76,16 @@ export default function Layout() {
       {/* Footer credits */}
       <footer className="md:mr-72 pb-20 md:pb-4 px-4 text-center">
         <p className="text-muted-foreground text-xs">
-          נבנה ע״י{' '}
-          <a href="https://mao.co.il" target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline">
-            MAO.CO.IL
+          דליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לציי רכב |{' '}
+          <a
+            href="http://www.dalia-c.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground underline"
+          >
+            www.dalia-c.com
           </a>
-          {' '}| מערכת ניהול{' '}
-          <a href="https://tweak-soft.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline">
-            tweak-soft.com
-          </a>
-          {' '}— מערכות ארגוניות לעסקים
+          {' '}| כל הזכויות שמורות ©
         </p>
       </footer>
 
