@@ -12,6 +12,7 @@ const FORBIDDEN_REFS = ['qasomfndnjuixgjmjwcm'];
 const MIGRATIONS = [
   '20260608120000_vehicle_color_end_or_scrap.sql',
   '20260608130000_documents_bucket_staging.sql',
+  '20260609120000_user_management_staging.sql',
 ];
 
 function loadEnv() {

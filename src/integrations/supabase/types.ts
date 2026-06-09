@@ -514,6 +514,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          activity_field: string | null
           address: string | null
           agreement_amount_before_vat: number | null
           agreement_amount_with_vat: number | null
@@ -522,6 +523,7 @@ export type Database = {
           business_id: string | null
           company_name: string | null
           contact_person: string | null
+          contact_role: string | null
           created_at: string | null
           created_by: string | null
           customer_number: string | null
@@ -534,8 +536,10 @@ export type Database = {
           phone: string | null
           status: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
+          activity_field?: string | null
           address?: string | null
           agreement_amount_before_vat?: number | null
           agreement_amount_with_vat?: number | null
@@ -544,6 +548,7 @@ export type Database = {
           business_id?: string | null
           company_name?: string | null
           contact_person?: string | null
+          contact_role?: string | null
           created_at?: string | null
           created_by?: string | null
           customer_number?: string | null
@@ -556,8 +561,10 @@ export type Database = {
           phone?: string | null
           status?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
+          activity_field?: string | null
           address?: string | null
           agreement_amount_before_vat?: number | null
           agreement_amount_with_vat?: number | null
@@ -566,6 +573,7 @@ export type Database = {
           business_id?: string | null
           company_name?: string | null
           contact_person?: string | null
+          contact_role?: string | null
           created_at?: string | null
           created_by?: string | null
           customer_number?: string | null
@@ -578,6 +586,7 @@ export type Database = {
           phone?: string | null
           status?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1539,31 +1548,58 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          approval_status: string
+          approval_updated_at: string | null
+          approved_by: string | null
           company_name: string | null
+          contact_email: string | null
           created_at: string
+          customer_id: string | null
           full_name: string
           id: string
           is_active: boolean
+          job_title: string | null
+          nickname: string | null
+          notes: string | null
           phone: string | null
           updated_at: string
           user_number: string | null
         }
         Insert: {
+          address?: string | null
+          approval_status?: string
+          approval_updated_at?: string | null
+          approved_by?: string | null
           company_name?: string | null
+          contact_email?: string | null
           created_at?: string
+          customer_id?: string | null
           full_name?: string
           id: string
           is_active?: boolean
+          job_title?: string | null
+          nickname?: string | null
+          notes?: string | null
           phone?: string | null
           updated_at?: string
           user_number?: string | null
         }
         Update: {
+          address?: string | null
+          approval_status?: string
+          approval_updated_at?: string | null
+          approved_by?: string | null
           company_name?: string | null
+          contact_email?: string | null
           created_at?: string
+          customer_id?: string | null
           full_name?: string
           id?: string
           is_active?: boolean
+          job_title?: string | null
+          nickname?: string | null
+          notes?: string | null
           phone?: string | null
           updated_at?: string
           user_number?: string | null
@@ -2105,6 +2141,81 @@ export type Database = {
           start_lng?: number | null
           started_at?: string | null
           trip_date?: string
+        }
+        Relationships: []
+      }
+      registration_requests: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          rejection_reason: string | null
+          requested_role: Database["public"]["Enums"]["app_role"]
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          rejection_reason?: string | null
+          requested_role: Database["public"]["Enums"]["app_role"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          rejection_reason?: string | null
+          requested_role?: Database["public"]["Enums"]["app_role"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      user_access_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          mode: string
+          next_rotation_at: string | null
+          sent_to_email_at: string | null
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          mode?: string
+          next_rotation_at?: string | null
+          sent_to_email_at?: string | null
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          mode?: string
+          next_rotation_at?: string | null
+          sent_to_email_at?: string | null
+          user_id?: string
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -3316,7 +3427,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "driver" | "fleet_manager" | "super_admin" | "private_customer"
+      app_role: "driver" | "fleet_manager" | "super_admin" | "private_customer" | "business_customer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3444,7 +3555,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["driver", "fleet_manager", "super_admin", "private_customer"],
+      app_role: ["driver", "fleet_manager", "super_admin", "private_customer", "business_customer"],
     },
   },
 } as const

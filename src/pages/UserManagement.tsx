@@ -2,7 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Search, Users, Shield, KeyRound, Loader2, Filter, Pencil, Eye, Mail, Copy } from 'lucide-react';
+import { Search, Users, Shield, KeyRound, Loader2, Filter, Pencil, Eye, Mail, Copy, UserPlus } from 'lucide-react';
+import CreateUserWizardDialog from '@/components/user-management/CreateUserWizardDialog';
+import SettingsBackBar from '@/components/user-management/SettingsBackBar';
+import { APPROVAL_STATUS_LABELS } from '@/lib/userManagementSchema';
+import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,6 +24,7 @@ interface ManagedUser {
   phone: string;
   is_active: boolean;
   role: string;
+  approval_status: string;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -27,6 +32,7 @@ const ROLE_LABELS: Record<string, string> = {
   fleet_manager: 'מנהל צי',
   driver: 'נהג',
   private_customer: 'לקוח פרטי',
+  business_customer: 'לקוח עסקי',
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -34,6 +40,7 @@ const ROLE_COLORS: Record<string, string> = {
   fleet_manager: 'bg-primary/10 text-primary border-primary/30',
   driver: 'bg-muted text-muted-foreground border-border',
   private_customer: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
+  business_customer: 'bg-amber-500/10 text-amber-700 border-amber-500/30',
 };
 
 export default function UserManagement() {
@@ -52,6 +59,7 @@ export default function UserManagement() {
   const [editForm, setEditForm] = useState({ full_name: '', phone: '', company_name: '', role: '', is_active: true });
   const [saving, setSaving] = useState(false);
   const [companyOptions, setCompanyOptions] = useState<string[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     loadCompanyOptions();
@@ -69,7 +77,7 @@ export default function UserManagement() {
     
     // Fetch profiles and roles
     const [profilesRes, rolesRes, emailsRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, phone, company_name, is_active'),
+      supabase.from('profiles').select('id, full_name, phone, company_name, is_active, approval_status'),
       supabase.from('user_roles').select('user_id, role'),
       supabase.functions.invoke('create-admin-user', { body: { action: 'list-users' } }),
     ]);
@@ -91,6 +99,7 @@ export default function UserManagement() {
       phone: p.phone || '',
       is_active: p.is_active ?? true,
       role: roleMap.get(p.id) || 'driver',
+      approval_status: p.approval_status || 'pending',
     }));
 
     setUsers(mapped);
@@ -144,7 +153,8 @@ export default function UserManagement() {
     });
     setSaving(false);
     if (error || data?.error) {
-      toast({ title: 'שגיאה', description: data?.error || 'לא ניתן לעדכן משתמש', variant: 'destructive' });
+      const msg = await getEdgeFunctionErrorMessage(error, data);
+      toast({ title: 'שגיאה', description: msg || 'לא ניתן לעדכן משתמש', variant: 'destructive' });
       return;
     }
     setUsers((prev) =>
@@ -175,7 +185,8 @@ export default function UserManagement() {
     });
     setResetting(false);
     if (error || data?.error) {
-      toast({ title: 'שגיאה', description: data?.error || 'לא ניתן לאפס סיסמה', variant: 'destructive' });
+      const msg = await getEdgeFunctionErrorMessage(error, data);
+      toast({ title: 'שגיאה', description: msg || 'לא ניתן לאפס סיסמה', variant: 'destructive' });
       return;
     }
     toast({ title: '✅ סיסמה אופסה', description: `הסיסמה של ${selectedUser.full_name} עודכנה בהצלחה` });
@@ -187,7 +198,8 @@ export default function UserManagement() {
       body: { action: 'update-role', user_id: userId, role: newRole },
     });
     if (error || data?.error) {
-      toast({ title: 'שגיאה', description: data?.error || 'לא ניתן לעדכן תפקיד', variant: 'destructive' });
+      const msg = await getEdgeFunctionErrorMessage(error, data);
+      toast({ title: 'שגיאה', description: msg || 'לא ניתן לעדכן תפקיד', variant: 'destructive' });
       return;
     }
     setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
@@ -200,10 +212,17 @@ export default function UserManagement() {
       body: { action: 'toggle-active', user_id: userId, is_active: newActive },
     });
     if (error || data?.error) {
-      toast({ title: 'שגיאה', description: data?.error || 'לא ניתן לעדכן סטטוס', variant: 'destructive' });
+      const msg = await getEdgeFunctionErrorMessage(error, data);
+      toast({ title: 'שגיאה', description: msg || 'לא ניתן לעדכן סטטוס', variant: 'destructive' });
       return;
     }
-    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_active: newActive } : u)));
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId
+          ? { ...u, is_active: newActive, approval_status: newActive ? 'approved' : u.approval_status }
+          : u,
+      ),
+    );
     toast({ title: newActive ? '✅ חשבון הופעל' : '⛔ חשבון הושבת', description: `המשתמש ${newActive ? 'הופעל' : 'הושבת'} בהצלחה` });
   };
 
@@ -236,13 +255,27 @@ export default function UserManagement() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
+      <SettingsBackBar />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl font-black text-foreground flex items-center gap-2">
           <Users size={24} className="text-primary" />
           ניהול משתמשים
         </h1>
-        <Badge variant="outline" className="text-sm">{filtered.length} משתמשים</Badge>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="text-sm">{filtered.length} משתמשים</Badge>
+          <Button onClick={() => setCreateOpen(true)} className="gap-2 font-bold">
+            <UserPlus size={18} />
+            פתיחת משתמש חדש
+          </Button>
+        </div>
       </div>
+
+      <CreateUserWizardDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        companyOptions={companyOptions}
+        onCreated={loadUsers}
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -296,14 +329,15 @@ export default function UserManagement() {
                 <TableHead className="text-right">חברה</TableHead>
                 <TableHead className="text-right">טלפון</TableHead>
                 <TableHead className="text-right">תפקיד</TableHead>
-                <TableHead className="text-right">סטטוס</TableHead>
+                <TableHead className="text-right">אישור</TableHead>
+                <TableHead className="text-right">פעיל</TableHead>
                 <TableHead className="text-right">פעולות</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     לא נמצאו משתמשים
                   </TableCell>
                 </TableRow>
@@ -335,6 +369,20 @@ export default function UserManagement() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          u.approval_status === 'approved'
+                            ? 'border-green-500/40 text-green-700'
+                            : u.approval_status === 'rejected'
+                              ? 'border-destructive/40 text-destructive'
+                              : 'border-amber-500/40 text-amber-700'
+                        }
+                      >
+                        {APPROVAL_STATUS_LABELS[u.approval_status] || u.approval_status}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -419,7 +467,7 @@ export default function UserManagement() {
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setResetDialogOpen(false)}>ביטול</Button>
+            <Button variant="outline" onClick={() => setResetDialogOpen(false)}>חזור</Button>
             <Button onClick={handleResetPassword} disabled={resetting || newPassword.length < 6}>
               {resetting ? <Loader2 size={14} className="animate-spin ml-2" /> : <KeyRound size={14} className="ml-2" />}
               אפס סיסמה
@@ -500,7 +548,7 @@ export default function UserManagement() {
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>ביטול</Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>חזור לרשימה</Button>
             <Button onClick={handleSaveEdit} disabled={saving || !editForm.full_name}>
               {saving ? <Loader2 size={14} className="animate-spin ml-2" /> : <Pencil size={14} className="ml-2" />}
               שמור שינויים

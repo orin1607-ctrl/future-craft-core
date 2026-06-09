@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.send-password-reset]
 verify_jwt = false
 
+[functions.send-user-access-code]
+verify_jwt = false
+
 [functions.notify-service-order-email]
 verify_jwt = false
 

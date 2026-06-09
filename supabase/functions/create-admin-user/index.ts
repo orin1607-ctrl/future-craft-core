@@ -6,6 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+/** Staging QA only — may reuse existing auth user instead of failing on duplicate email. */
+const STAGING_TEST_LOGIN_EMAIL = 'yoni19111977@gmail.com';
+
+function isStagingTestLoginEmail(email: string): boolean {
+  return email.trim().toLowerCase() === STAGING_TEST_LOGIN_EMAIL;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -26,23 +33,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUser = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+    const { data: { user: callerUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    if (authError || !callerUser) {
+      return new Response(JSON.stringify({ error: authError?.message || 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const callerId = claimsData.claims.sub;
+    const callerId = callerUser.id;
 
     const { data: roleRow, error: roleError } = await supabaseAdmin
       .from('user_roles')
@@ -62,7 +63,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, full_name, role, company_name, phone, action, user_id, is_active, user_number } = await req.json();
+    const body = await req.json();
+    const {
+      email, password, full_name, role, company_name, phone, action, user_id, is_active, user_number,
+      nickname, address, contact_email, job_title, notes, permissions,
+      contact_role, activity_field, business_id,
+      license_number, assigned_vehicle_id,
+      approval_status,
+    } = body;
 
     // Actions that require super_admin only
     const superAdminOnlyActions = ['update-password', 'reset-password-by-id', 'update-role', 'update-profile', 'toggle-active', 'list-users'];
@@ -192,6 +200,12 @@ Deno.serve(async (req) => {
       if (company_name !== undefined) updates.company_name = company_name;
       if (typeof is_active === 'boolean') updates.is_active = is_active;
       if (user_number !== undefined) updates.user_number = user_number;
+      if (nickname !== undefined) updates.nickname = nickname;
+      if (address !== undefined) updates.address = address;
+      if (contact_email !== undefined) updates.contact_email = contact_email;
+      if (job_title !== undefined) updates.job_title = job_title;
+      if (notes !== undefined) updates.notes = notes;
+      if (approval_status !== undefined) updates.approval_status = approval_status;
 
       if (Object.keys(updates).length === 0) {
         return new Response(JSON.stringify({ error: 'No fields to update' }), {
@@ -229,7 +243,16 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { error } = await supabaseAdmin.from('profiles').update({ is_active }).eq('id', user_id);
+      const profileUpdate: Record<string, unknown> = {
+        is_active,
+        approval_updated_at: new Date().toISOString(),
+      };
+      if (is_active) {
+        profileUpdate.approval_status = 'approved';
+        profileUpdate.approved_by = callerId;
+      }
+
+      const { error } = await supabaseAdmin.from('profiles').update(profileUpdate).eq('id', user_id);
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {
           status: 400,
@@ -244,81 +267,241 @@ Deno.serve(async (req) => {
     }
 
     // === CREATE USER ===
-    if (!email || !password || !full_name || (role !== 'private_customer' && !company_name) || !role) {
+    const needsCompany = role !== 'private_customer';
+    if (!email || !password || !full_name || !role || (needsCompany && !company_name)) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Fleet managers can only create users for their own company, and users are always inactive
-    let effectiveCompany = company_name;
-    let effectiveIsActive = typeof is_active === 'boolean' ? is_active : true;
+    let effectiveCompany = company_name || '';
+    let effectiveIsActive = typeof is_active === 'boolean' ? is_active : false;
+    const effectiveApproval = approval_status || 'pending';
 
     if (isFleetManager) {
-      // Force inactive - only super_admin can activate
       effectiveIsActive = false;
-
-      // Fleet manager can only create for their own company
       const { data: callerProfile } = await supabaseAdmin
         .from('profiles')
         .select('company_name')
         .eq('id', callerId)
         .single();
-      
       if (callerProfile?.company_name) {
         effectiveCompany = callerProfile.company_name;
       }
     }
 
-    const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name, role, company_name: effectiveCompany },
-    });
+    const profileNotes = [notes, permissions ? `הרשאות: ${permissions}` : ''].filter(Boolean).join('\n') || null;
 
-    if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
+    let newUserId: string;
+    let reusedTestUser = false;
+
+    if (isStagingTestLoginEmail(email)) {
+      const { data: authUsers, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      if (listErr) {
+        return new Response(JSON.stringify({ error: listErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const existing = authUsers.users.find(
+        (u) => (u.email || '').trim().toLowerCase() === email.trim().toLowerCase(),
+      );
+      if (existing) {
+        newUserId = existing.id;
+        reusedTestUser = true;
+        const { error: updateAuthErr } = await supabaseAdmin.auth.admin.updateUserById(newUserId, {
+          password,
+          email_confirm: true,
+          user_metadata: { full_name, role, company_name: effectiveCompany },
+        });
+        if (updateAuthErr) {
+          return new Response(JSON.stringify({ error: updateAuthErr.message }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+    }
+
+    if (!reusedTestUser) {
+      const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name, role, company_name: effectiveCompany },
+      });
+
+      if (createError) {
+        return new Response(JSON.stringify({ error: createError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      newUserId = userData.user.id;
+    }
+
+    const cleanupAuthUser = async () => {
+      if (!reusedTestUser) {
+        await supabaseAdmin.auth.admin.deleteUser(newUserId);
+      }
+    };
+
+    await supabaseAdmin.from('user_roles').delete().eq('user_id', newUserId);
+    const { error: roleInsertErr } = await supabaseAdmin
+      .from('user_roles')
+      .insert({ user_id: newUserId, role });
+
+    if (roleInsertErr) {
+      await cleanupAuthUser();
+      return new Response(JSON.stringify({ error: roleInsertErr.message }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    await supabaseAdmin.from('user_roles').delete().eq('user_id', userData.user.id);
-    await supabaseAdmin.from('user_roles').insert({ user_id: userData.user.id, role });
+    const { error: profileErr } = await supabaseAdmin.from('profiles').upsert(
+      {
+        id: newUserId,
+        full_name,
+        company_name: effectiveCompany,
+        phone: phone || '',
+        is_active: effectiveIsActive,
+        user_number: user_number || null,
+        nickname: nickname || null,
+        address: address || null,
+        contact_email: contact_email || null,
+        job_title: job_title || null,
+        notes: profileNotes,
+        approval_status: effectiveApproval,
+        approval_updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' },
+    );
 
-    await supabaseAdmin
-      .from('profiles')
-      .upsert(
-        {
-          id: userData.user.id,
-          full_name,
-          company_name: effectiveCompany,
-          phone: phone || '',
-          is_active: effectiveIsActive,
-          user_number: user_number || null,
-        },
-        { onConflict: 'id' }
-      );
-
-    // Auto-create driver record when role is driver
-    if (role === 'driver') {
-      await supabaseAdmin.from('drivers').upsert(
-        {
-          id: userData.user.id,
-          full_name,
-          phone: phone || '',
-          email,
-          company_name: effectiveCompany,
-          status: 'active',
-          created_by: userData.user.id,
-        },
-        { onConflict: 'id' }
-      );
+    if (profileErr) {
+      await cleanupAuthUser();
+      return new Response(JSON.stringify({ error: profileErr.message }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // If created by fleet_manager, notify all super_admins
+    if (role === 'driver') {
+      const driverEmail = contact_email || email;
+      const { error: driverErr } = await supabaseAdmin.from('drivers').upsert(
+        {
+          id: newUserId,
+          full_name,
+          phone: phone || '',
+          email: driverEmail,
+          company_name: effectiveCompany,
+          license_number: license_number || '',
+          notes: notes || '',
+          status: 'active',
+          created_by: callerId,
+        },
+        { onConflict: 'id' },
+      );
+      if (driverErr) {
+        await cleanupAuthUser();
+        return new Response(JSON.stringify({ error: driverErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (assigned_vehicle_id) {
+        await supabaseAdmin
+          .from('vehicles')
+          .update({ assigned_driver_id: newUserId })
+          .eq('id', assigned_vehicle_id);
+      }
+    }
+
+    if (role === 'business_customer') {
+      const { data: existingCustomer } = await supabaseAdmin
+        .from('customers')
+        .select('id')
+        .eq('user_id', newUserId)
+        .maybeSingle();
+
+      if (existingCustomer?.id) {
+        const { error: custUpdateErr } = await supabaseAdmin
+          .from('customers')
+          .update({
+            name: company_name || full_name,
+            company_name: company_name || full_name,
+            contact_person: full_name,
+            contact_role: contact_role || '',
+            business_id: business_id || null,
+            address: address || '',
+            phone: phone || '',
+            email: contact_email || email,
+            notes: profileNotes,
+            activity_field: activity_field || '',
+            status: 'pending',
+          })
+          .eq('id', existingCustomer.id);
+
+        if (custUpdateErr) {
+          await cleanupAuthUser();
+          return new Response(JSON.stringify({ error: custUpdateErr.message }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        await supabaseAdmin
+          .from('profiles')
+          .update({ customer_id: existingCustomer.id })
+          .eq('id', newUserId);
+      } else {
+        const { data: customerRow, error: custErr } = await supabaseAdmin
+          .from('customers')
+          .insert({
+            name: company_name || full_name,
+            company_name: company_name || full_name,
+            contact_person: full_name,
+            contact_role: contact_role || '',
+            business_id: business_id || null,
+            address: address || '',
+            phone: phone || '',
+            email: contact_email || email,
+            notes: profileNotes,
+            activity_field: activity_field || '',
+            customer_type: 'company',
+            status: 'pending',
+            user_id: newUserId,
+            created_by: callerId,
+          })
+          .select('id')
+          .single();
+
+        if (custErr) {
+          await cleanupAuthUser();
+          return new Response(JSON.stringify({ error: custErr.message }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (customerRow?.id) {
+          const { error: linkErr } = await supabaseAdmin
+            .from('profiles')
+            .update({ customer_id: customerRow.id })
+            .eq('id', newUserId);
+          if (linkErr) {
+            await cleanupAuthUser();
+            return new Response(JSON.stringify({ error: linkErr.message }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+      }
+    }
+
     if (isFleetManager) {
       const { data: callerProfile } = await supabaseAdmin
         .from('profiles')
@@ -336,6 +519,8 @@ Deno.serve(async (req) => {
           driver: 'נהג',
           fleet_manager: 'מנהל צי',
           super_admin: 'מנהל על',
+          private_customer: 'לקוח פרטי',
+          business_customer: 'לקוח עסקי',
         };
 
         const notifications = superAdmins.map((sa) => ({
@@ -350,7 +535,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, user_id: userData.user.id }), {
+    return new Response(JSON.stringify({
+      success: true,
+      user_id: newUserId,
+      reused_test_user: reusedTestUser,
+    }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
