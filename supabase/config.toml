@@ -38,6 +38,3 @@ verify_jwt = false
 
 [functions.auth-complete-password-reset]
 verify_jwt = false
-
-[functions.send-user-access-code]
-verify_jwt = false
