@@ -1,6 +1,6 @@
 {
   "staging": "usfeoerkpcafxxlyuldl",
-  "at": "2026-06-09T20:07:54.686Z",
+  "at": "2026-06-09T20:59:47.716Z",
   "profiles": {
     "approval_status": {
       "ok": true
@@ -126,19 +126,20 @@
   },
   "enums": {
     "audit_events_in_db": [
+      "otp_failed",
       "login_failed",
       "account_locked",
       "login_success",
       "otp_sent",
       "otp_verified",
       "password_reset_completed",
-      "otp_failed",
       "two_factor_enabled",
-      "two_factor_disabled"
+      "two_factor_disabled",
+      "account_unlocked"
     ]
   },
   "counts": {
     "user_access_codes": 5,
-    "auth_verification_codes": 7
+    "auth_verification_codes": 9
   }
 }

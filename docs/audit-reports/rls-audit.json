@@ -1,0 +1,40 @@
+{
+  "at": "2026-06-09T21:00:37.305Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "anon_access": {
+    "auth_verification_codes": {
+      "blocked": true,
+      "error": null,
+      "row_count": 0
+    },
+    "auth_login_challenges": {
+      "blocked": true,
+      "error": null,
+      "row_count": 0
+    },
+    "auth_account_lockouts": {
+      "blocked": true,
+      "error": null,
+      "row_count": 0
+    },
+    "auth_password_reset_tokens": {
+      "blocked": true,
+      "error": null,
+      "row_count": 0
+    },
+    "auth_audit_log": {
+      "blocked": true,
+      "error": null,
+      "row_count": 0
+    },
+    "user_access_codes": {
+      "blocked": true,
+      "error": null,
+      "row_count": 0
+    }
+  },
+  "audit_log_super_admin": {
+    "can_read": true,
+    "error": null
+  }
+}

@@ -1,26 +1,26 @@
 {
-  "at": "2026-06-09T20:30:27.232Z",
+  "at": "2026-06-09T20:58:58.513Z",
   "staging": "usfeoerkpcafxxlyuldl",
   "tests": {
     "um_wizard_private_customer": {
-      "ok": "2ea2272a-98fb-4059-bf89-309b124a0037",
+      "ok": "1f5a2cc9-d465-43ea-93cd-31dde0f99191",
       "status": 200,
-      "user_id": "2ea2272a-98fb-4059-bf89-309b124a0037"
+      "user_id": "1f5a2cc9-d465-43ea-93cd-31dde0f99191"
     },
     "um_wizard_business_customer": {
-      "ok": "f3cf45e5-3cbd-4e27-8ff2-db2947821467",
+      "ok": "1e4e8ece-6cd2-4f29-bab8-387110ce8720",
       "status": 200,
-      "user_id": "f3cf45e5-3cbd-4e27-8ff2-db2947821467"
+      "user_id": "1e4e8ece-6cd2-4f29-bab8-387110ce8720"
     },
     "um_wizard_fleet_manager": {
-      "ok": "71fa633a-7928-4d2a-81a1-4703fa2a2dcf",
+      "ok": "e9620140-944b-485a-9fa6-3cd5f4259ef8",
       "status": 200,
-      "user_id": "71fa633a-7928-4d2a-81a1-4703fa2a2dcf"
+      "user_id": "e9620140-944b-485a-9fa6-3cd5f4259ef8"
     },
     "um_wizard_driver": {
-      "ok": "bf04848d-0944-4ab5-b4a2-8136b5cdb160",
+      "ok": "9351f908-454b-4c69-8c7d-5720abb1fd84",
       "status": 200,
-      "user_id": "bf04848d-0944-4ab5-b4a2-8136b5cdb160"
+      "user_id": "9351f908-454b-4c69-8c7d-5720abb1fd84"
     },
     "otp_expiry_10min": {
       "ok": true,
@@ -34,8 +34,8 @@
       "ok": true,
       "first": {
         "success": true,
-        "reset_token": "b67f7c3fe766430abbaf277c9b8ca389202c736b0fc3420e90e580bc22d53bbc",
-        "expires_at": "2026-06-09T20:40:39.224Z"
+        "reset_token": "5100a9c17fec42f7bd0b212492d868fa4767241ae9b347c4b6461d716c736eb1",
+        "expires_at": "2026-06-09T21:09:11.237Z"
       },
       "second": {
         "success": false,
@@ -47,7 +47,7 @@
       "login_success": true,
       "audit": {
         "event_type": "account_unlocked",
-        "email": "gap-unlock-1781037027232@staging-e2e.local",
+        "email": "gap-unlock-1781038738512@staging-e2e.local",
         "success": true,
         "details": {
           "reason": "lock_expired"

@@ -1,0 +1,20 @@
+{
+  "at": "2026-06-09T21:00:38.517Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "local_count": 76,
+  "remote_count": 0,
+  "query_error": "Invalid schema: supabase_migrations",
+  "staging_migrations_missing_on_remote": [
+    "20260609120000_user_management_staging",
+    "20260610120000_auth_otp_staging"
+  ],
+  "latest_local": [
+    "20260602120000_fix_vehicle_document_upload",
+    "20260608120000_vehicle_color_end_or_scrap",
+    "20260608130000_documents_bucket_staging",
+    "20260609120000_user_management_staging",
+    "20260610120000_auth_otp_staging"
+  ],
+  "latest_remote": [],
+  "note": "Schema for UM/Auth applied manually; migration history may not reflect live DDL"
+}

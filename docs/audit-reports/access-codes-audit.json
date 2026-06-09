@@ -1,5 +1,5 @@
 {
-  "at": "2026-06-09T20:14:24.813Z",
+  "at": "2026-06-09T20:58:58.513Z",
   "tests": {
     "manual_code": {
       "status": 200,
@@ -33,18 +33,18 @@
         "is_active": false,
         "sent_to_email_at": null,
         "verified_at": null,
-        "code_hash": "9eb27a3a1f481a902b24789b164799bc46bc81f05d1b5140d0f7ff8a262ccfa3"
+        "code_hash": "9dbed1aafe1d5c3326196a4e722e32b85ab1cff0c77eec1c7449c4db94d40474"
       },
       {
         "mode": "auto",
         "is_active": true,
         "sent_to_email_at": null,
         "verified_at": null,
-        "code_hash": "9eb27a3a1f481a902b24789b164799bc46bc81f05d1b5140d0f7ff8a262ccfa3"
+        "code_hash": "9dbed1aafe1d5c3326196a4e722e32b85ab1cff0c77eec1c7449c4db94d40474"
       }
     ],
     "otp_purposes": {
-      "login_2fa": 2,
+      "login_2fa": 3,
       "password_reset": 6
     },
     "access_codes_total": 7
