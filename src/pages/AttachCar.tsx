@@ -6,9 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { plateMatches, useVehicleUrlContext, useDriverUrlContext } from '@/lib/entityNavContext';
+import { isVehicleScopedContext, plateMatches, useVehicleUrlContext, useDriverUrlContext } from '@/lib/entityNavContext';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface VehicleRow { id: string; license_plate: string; manufacturer: string; model: string; assigned_driver_id: string | null; }
@@ -22,6 +22,7 @@ export default function AttachCar() {
   const companyFilter = useCompanyFilter();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked: vehicleLocked, clearContext: clearVehicleContext } = useVehicleUrlContext();
   const { driverId: contextDriverId, driverName: contextDriverName, locked: driverLocked, clearContext: clearDriverContext } = useDriverUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked: vehicleLocked, plate: contextPlate, vehicleId: contextVehicleId });
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -211,9 +212,14 @@ export default function AttachCar() {
         הצמדת רכב לנהג וללקוח
       </h1>
 
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="הצמדת רכב"
+        active={vehicleScoped}
+      />
 
-      {contextLabel && (
+      {contextLabel && !vehicleScoped && (
         <EntityContextBanner
           label={contextLabel}
           strict={vehicleLocked}

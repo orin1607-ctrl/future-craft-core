@@ -4,9 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
-import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface InspectionRow {
@@ -49,6 +48,7 @@ export default function VehicleInspections() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked } = useVehicleUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const [inspections, setInspections] = useState<InspectionRow[]>([]);
   const [vehicles, setVehicles] = useState<VehicleBasic[]>([]);
   const [search, setSearch] = useState('');
@@ -88,11 +88,31 @@ export default function VehicleInspections() {
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
   if (viewMode === 'form') {
-    return <InspectionForm vehicles={vehicles} user={user} initialVehicleId={initialVehicleId} onDone={() => { setViewMode('list'); loadData(); }} onBack={() => setViewMode('list')} />;
+    return (
+      <>
+        <VehicleScopedNavChrome
+          vehicleId={contextVehicleId}
+          plate={contextPlate}
+          pageLabel="ביקורת רכב"
+          active={vehicleScoped}
+        />
+        <InspectionForm vehicles={vehicles} user={user} initialVehicleId={initialVehicleId} onDone={() => { setViewMode('list'); loadData(); }} onBack={() => setViewMode('list')} />
+      </>
+    );
   }
 
   if (viewMode === 'detail' && selectedInspection) {
-    return <InspectionDetail inspection={selectedInspection} onBack={() => { setViewMode('list'); setSelectedInspection(null); }} />;
+    return (
+      <>
+        <VehicleScopedNavChrome
+          vehicleId={contextVehicleId}
+          plate={contextPlate}
+          pageLabel="ביקורת רכב"
+          active={vehicleScoped}
+        />
+        <InspectionDetail inspection={selectedInspection} onBack={() => { setViewMode('list'); setSelectedInspection(null); }} />
+      </>
+    );
   }
 
   return (
@@ -101,11 +121,12 @@ export default function VehicleInspections() {
         <h1 className="page-header !mb-0 flex items-center gap-3"><ClipboardCheck size={28} /> ביקורת רכב</h1>
       </div>
 
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
-
-      {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
-      )}
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="ביקורות רכב"
+        active={vehicleScoped}
+      />
 
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />

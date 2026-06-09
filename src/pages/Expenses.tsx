@@ -7,9 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import ImageUpload from '@/components/ImageUpload';
-import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface ExpenseRow {
@@ -31,6 +30,7 @@ export default function Expenses() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
@@ -65,8 +65,12 @@ export default function Expenses() {
 
   return (
     <div className="animate-fade-in">
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
-      {locked && contextPlate && <EntityContextBanner label={`רכב ${contextPlate}`} strict />}
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="הוצאות"
+        active={vehicleScoped}
+      />
       <div className="flex items-center justify-between mb-4">
         <h1 className="page-header !mb-0 flex items-center gap-3"><FileText size={28} /> הוצאות</h1>
         <div className="flex items-center gap-2">

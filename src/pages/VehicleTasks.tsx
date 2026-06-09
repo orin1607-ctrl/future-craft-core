@@ -5,9 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -46,6 +45,7 @@ export default function VehicleTasks() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('open');
@@ -188,11 +188,12 @@ export default function VehicleTasks() {
       </h1>
       <p className="text-muted-foreground mb-4 -mt-2">ליקויים שנמצאו בביקורות רכב — מעקב וטיפול</p>
 
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
-
-      {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
-      )}
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="ליקויים"
+        active={vehicleScoped}
+      />
 
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />

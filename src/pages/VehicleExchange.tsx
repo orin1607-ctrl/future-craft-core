@@ -4,9 +4,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter } from '@/hooks/useCompanyFilter';
-import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,6 +97,7 @@ export default function VehicleExchange() {
   const isPrivate = user?.role === 'private_customer';
   const companyFilter = useCompanyFilter();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const [activeTab, setActiveTab] = useState('form');
   const [saving, setSaving] = useState(false);
 
@@ -319,10 +319,12 @@ export default function VehicleExchange() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 pb-8" dir="rtl">
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
-      {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
-      )}
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="החלפת רכב"
+        active={vehicleScoped}
+      />
       <h1 className="text-2xl font-bold text-foreground">טופס החלפת רכב</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

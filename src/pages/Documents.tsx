@@ -6,9 +6,9 @@ import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { buildStoragePath } from '@/lib/storage';
-import { buildVehicleContextUrl, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { buildVehicleContextUrl, isVehicleScopedContext, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface DocCategory {
@@ -73,6 +73,7 @@ function formatSize(bytes?: number) {
 export default function Documents() {
   const { user } = useAuth();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const companyFilter = useCompanyFilter();
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
   const isDriver = user?.role === 'driver';
@@ -148,7 +149,10 @@ export default function Documents() {
   useEffect(() => { loadCounts(); }, [loadCounts]);
 
   useEffect(() => {
-    if (locked && contextPlate) setFilterVehicle(contextPlate.replace(/[-\s]/g, ''));
+    if (locked && contextPlate) {
+      setFilterVehicle(contextPlate.replace(/[-\s]/g, ''));
+      setUploadVehicle(contextPlate);
+    }
   }, [locked, contextPlate]);
 
   // Load docs for category
@@ -221,6 +225,19 @@ export default function Documents() {
 
     if (metaError) console.error('Meta save error:', metaError);
 
+    const plateForLog = uploadVehicle || contextPlate;
+    if (vehicleScoped && plateForLog) {
+      await recordVehicleHubAction({
+        vehicleId: contextVehicleId,
+        vehiclePlate: plateForLog,
+        companyName: companyName,
+        action: 'העלאת מסמך',
+        details: `${selectedCategory.label}: ${file.name}`,
+        userId: user?.id,
+        userName: user?.full_name,
+      });
+    }
+
     toast.success('הקובץ הועלה בהצלחה');
     loadDocs(selectedCategory);
     loadCounts();
@@ -272,8 +289,12 @@ export default function Documents() {
   if (!selectedCategory) {
     return (
       <div className="animate-fade-in">
-        <VehicleBackToCardButton vehicleId={contextVehicleId} />
-        {locked && contextPlate && <EntityContextBanner label={`רכב ${contextPlate}`} strict />}
+        <VehicleScopedNavChrome
+          vehicleId={contextVehicleId}
+          plate={contextPlate}
+          pageLabel="מסמכים"
+          active={vehicleScoped}
+        />
         <h1 className="page-header flex items-center gap-3"><FileText size={28} /> מסמכים</h1>
 
         <CategorySection title="מסמכי רכב" description="טסט, ביטוח, רישיון רכב" categories={visibleVehicleDocs} counts={categoryCounts} onOpen={openCategory} icon={<Car size={20} className="text-primary" />} />
@@ -297,11 +318,15 @@ export default function Documents() {
   // Files list view
   return (
     <div className="animate-fade-in">
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="מסמכים"
+        active={vehicleScoped}
+      />
       <button onClick={() => { setSelectedCategory(null); setDocs([]); setShowFilters(false); }} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
         <ArrowRight size={20} /> חזרה למסמכים
       </button>
-      {locked && contextPlate && <EntityContextBanner label={`רכב ${contextPlate}`} strict />}
 
       <div className="flex items-center gap-3 mb-4">
         <span className="text-3xl">{selectedCategory.icon}</span>

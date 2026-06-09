@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Plus, ArrowRight, Search, Edit2, Mail, Share2, Download, ExternalLink } from 'lucide-react';
 import { exportToCsv } from '@/utils/exportCsv';
 import { toast } from 'sonner';
@@ -7,9 +8,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { useDriverVehicle } from '@/hooks/useDriverVehicle';
 import MultiImageUpload from '@/components/MultiImageUpload';
-import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface AccidentRow {
@@ -36,9 +37,37 @@ const statusLabels: Record<string, { text: string; cls: string }> = {
 type ViewMode = 'list' | 'detail' | 'form';
 
 export default function Accidents() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked } = useVehicleUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
+
+  const goBackToHub = () => {
+    if (vehicleScoped && contextVehicleId) {
+      navigate(buildVehicleHubUrl(contextVehicleId));
+    }
+  };
+
+  const exitFormOrDetail = () => {
+    if (vehicleScoped && contextVehicleId) {
+      goBackToHub();
+      return;
+    }
+    setViewMode('list');
+    setEditItem(null);
+    setSelected(null);
+  };
+
+  const afterFormSave = () => {
+    if (vehicleScoped && contextVehicleId) {
+      goBackToHub();
+      return;
+    }
+    setViewMode('list');
+    setEditItem(null);
+    loadAccidents();
+  };
   const [accidents, setAccidents] = useState<AccidentRow[]>([]);
   const [search, setSearch] = useState('');
   const [initialVehiclePlate, setInitialVehiclePlate] = useState('');
@@ -82,7 +111,25 @@ export default function Accidents() {
   };
 
   if (viewMode === 'form') {
-    return <AccidentForm accident={editItem} initialVehiclePlate={initialVehiclePlate} onDone={() => { setViewMode('list'); setEditItem(null); loadAccidents(); }} onBack={() => { setViewMode('list'); setEditItem(null); }} user={user} />;
+    return (
+      <div className="animate-fade-in">
+        <VehicleScopedNavChrome
+          vehicleId={contextVehicleId}
+          plate={contextPlate}
+          pageLabel="תאונה"
+          active={vehicleScoped}
+        />
+        <AccidentForm
+          accident={editItem}
+          initialVehiclePlate={initialVehiclePlate}
+          plateLocked={vehicleScoped && !!initialVehiclePlate}
+          hubVehicleId={vehicleScoped ? contextVehicleId : undefined}
+          onDone={afterFormSave}
+          onBack={exitFormOrDetail}
+          user={user}
+        />
+      </div>
+    );
   }
 
   if (viewMode === 'detail' && selected) {
@@ -90,8 +137,24 @@ export default function Accidents() {
     const st = statusLabels[a.status] || statusLabels.open;
     return (
       <div className="animate-fade-in">
-        <button onClick={() => { setViewMode('list'); setSelected(null); }} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
-          <ArrowRight size={20} /> חזרה
+        <VehicleScopedNavChrome
+          vehicleId={contextVehicleId}
+          plate={contextPlate}
+          pageLabel="תאונה"
+          active={vehicleScoped}
+        />
+        <button
+          onClick={() => {
+            if (vehicleScoped && contextVehicleId) {
+              goBackToHub();
+            } else {
+              setViewMode('list');
+              setSelected(null);
+            }
+          }}
+          className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]"
+        >
+          <ArrowRight size={20} /> {vehicleScoped ? 'חזרה לכרטיס הרכב' : 'חזרה'}
         </button>
         <div className="card-elevated mb-4">
           <div className="flex items-center justify-between mb-4">
@@ -213,10 +276,12 @@ export default function Accidents() {
           </button>
         </div>
       </div>
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
-      {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
-      )}
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="תאונות"
+        active={vehicleScoped}
+      />
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש..." className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none"
@@ -266,7 +331,23 @@ export default function Accidents() {
   );
 }
 
-function AccidentForm({ accident, initialVehiclePlate = '', onDone, onBack, user }: { accident: AccidentRow | null; initialVehiclePlate?: string; onDone: () => void; onBack: () => void; user: any }) {
+function AccidentForm({
+  accident,
+  initialVehiclePlate = '',
+  plateLocked = false,
+  hubVehicleId,
+  onDone,
+  onBack,
+  user,
+}: {
+  accident: AccidentRow | null;
+  initialVehiclePlate?: string;
+  plateLocked?: boolean;
+  hubVehicleId?: string;
+  onDone: () => void;
+  onBack: () => void;
+  user: any;
+}) {
   const isEdit = !!accident;
   const { vehicle, isDriver } = useDriverVehicle();
   
@@ -314,10 +395,21 @@ function AccidentForm({ accident, initialVehiclePlate = '', onDone, onBack, user
     let error;
     if (isEdit) { ({ error } = await supabase.from('accidents').update(payload).eq('id', accident!.id)); }
     else {
-      const insertPayload = { ...payload, company_name: user?.company_name || '', created_by: user?.id };
+      const insertPayload = { ...payload, company_name: user?.company_name || '', created_by: user?.id, date: new Date().toISOString().split('T')[0] };
       ({ error } = await supabase.from('accidents').insert(insertPayload));
       if (!error) {
         supabase.functions.invoke('notify-accident-email', { body: { record: insertPayload } }).catch(console.error);
+        if (hubVehicleId) {
+          await recordVehicleHubAction({
+            vehicleId: hubVehicleId,
+            vehiclePlate: vehiclePlate,
+            companyName: user?.company_name || '',
+            action: 'דיווח תאונה',
+            details: description,
+            userId: user?.id,
+            userName: user?.full_name,
+          });
+        }
       }
     }
     setLoading(false);
@@ -330,12 +422,14 @@ function AccidentForm({ accident, initialVehiclePlate = '', onDone, onBack, user
       <h1 className="text-2xl font-bold mb-6">{isEdit ? 'עריכת תאונה' : 'דיווח תאונה'}</h1>
       <div className="space-y-5">
         {/* Vehicle */}
-        {isDriver && vehicle && !isEdit ? (
+        {(isDriver && vehicle && !isEdit) || (plateLocked && !isEdit) ? (
           <div>
             <label className="block text-lg font-medium mb-2">רכב משויך</label>
             <div className="w-full p-4 text-lg rounded-xl border-2 border-input bg-muted/50">
-              <p className="font-bold">{vehicle.license_plate}</p>
-              <p className="text-sm text-muted-foreground">{vehicle.manufacturer} {vehicle.model} {vehicle.year ? `(${vehicle.year})` : ''}</p>
+              <p className="font-bold">{vehiclePlate}</p>
+              {!plateLocked && vehicle && (
+                <p className="text-sm text-muted-foreground">{vehicle.manufacturer} {vehicle.model} {vehicle.year ? `(${vehicle.year})` : ''}</p>
+              )}
             </div>
           </div>
         ) : (

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { buildVehicleContextUrl, buildVehicleHubUrl } from '@/lib/entityNavContext';
+import { plateFromAlertText } from '@/lib/vehicleActionFollowUp';
 import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -214,6 +215,30 @@ export default function Alerts() {
           date: vt.created_at?.split('T')[0] || null,
           meta: vt.description || undefined,
           link: vt.vehicle_plate ? buildVehicleContextUrl('/vehicle-tasks', { plate: vt.vehicle_plate }) : '/vehicle-tasks',
+        });
+      }
+    }
+
+    // 3c. Custom alerts (30/7/1 day reminders from vehicle actions)
+    const { data: customAlerts } = await applyCompanyScope(
+      supabase.from('custom_alerts').select('*').eq('is_active', true),
+      companyFilter,
+    );
+    if (customAlerts) {
+      for (const ca of customAlerts) {
+        const daysLeft = getDaysLeft(ca.alert_date);
+        if (daysLeft === null || daysLeft > 30) continue;
+        const plate = plateFromAlertText(ca.description) || plateFromAlertText(ca.title);
+        allAlerts.push({
+          id: `custom-${ca.id}`,
+          category: 'service_order',
+          severity: getSeverity(daysLeft),
+          title: ca.title,
+          subtitle: plate ? `רכב ${plate}` : ca.description?.split('\n')[0] || '',
+          daysLeft,
+          date: ca.alert_date,
+          meta: ca.description || undefined,
+          link: plate ? buildVehicleContextUrl('/vehicles', { plate }) : '/alerts',
         });
       }
     }

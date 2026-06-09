@@ -12,9 +12,9 @@ import FaultReferral from '@/components/faults/FaultReferral';
 import FaultTowing from '@/components/faults/FaultTowing';
 import WhatsAppButton from '@/components/faults/WhatsAppButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface FaultRow {
@@ -176,6 +176,7 @@ export default function Faults() {
   const companyFilter = useCompanyFilter();
   const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked, clearContext } =
     useVehicleUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const [faults, setFaults] = useState<FaultRow[]>([]);
   const [search, setSearch] = useState('');
   const [initialVehiclePlate, setInitialVehiclePlate] = useState('');
@@ -238,7 +239,21 @@ export default function Faults() {
   if (viewMode === 'form') {
     return (
       <>
-        <FaultForm fault={editFault} initialVehiclePlate={initialVehiclePlate} onDone={() => { setViewMode('list'); setEditFault(null); loadFaults(); }} onBack={() => { setViewMode('list'); setEditFault(null); }} user={user} />
+        <VehicleScopedNavChrome
+          vehicleId={contextVehicleId}
+          plate={contextPlate}
+          pageLabel="תקלה"
+          active={vehicleScoped}
+        />
+        <FaultForm
+          fault={editFault}
+          initialVehiclePlate={initialVehiclePlate}
+          hubVehicleId={vehicleScoped ? contextVehicleId : undefined}
+          fromVehicleHub={vehicleScoped}
+          onDone={() => { setViewMode('list'); setEditFault(null); loadFaults(); }}
+          onBack={() => { setViewMode('list'); setEditFault(null); }}
+          user={user}
+        />
         <WhatsAppButton />
       </>
     );
@@ -253,6 +268,12 @@ export default function Faults() {
 
     return (
       <div className="animate-fade-in space-y-4">
+        <VehicleScopedNavChrome
+          vehicleId={contextVehicleId}
+          plate={contextPlate}
+          pageLabel="תקלה"
+          active={vehicleScoped}
+        />
         {/* Header */}
         <div className="flex items-center justify-between">
           <button onClick={() => { setViewMode('list'); setSelectedFault(null); }} className="flex items-center gap-2 text-primary text-lg font-medium min-h-[48px]">
@@ -436,17 +457,18 @@ export default function Faults() {
       </div>
 
       {/* Status Counters */}
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="תקלות"
+        active={vehicleScoped}
+      />
 
       <StatusCounters
         faults={locked && contextPlate ? filtered : faults}
         onFilter={setQuickFilter}
         activeFilter={quickFilter}
       />
-
-      {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
-      )}
 
       {/* Search */}
       <div className="relative">
@@ -566,7 +588,23 @@ export default function Faults() {
   );
 }
 
-function FaultForm({ fault, initialVehiclePlate = '', onDone, onBack, user }: { fault: FaultRow | null; initialVehiclePlate?: string; onDone: () => void; onBack: () => void; user: any }) {
+function FaultForm({
+  fault,
+  initialVehiclePlate = '',
+  hubVehicleId,
+  fromVehicleHub = false,
+  onDone,
+  onBack,
+  user,
+}: {
+  fault: FaultRow | null;
+  initialVehiclePlate?: string;
+  hubVehicleId?: string;
+  fromVehicleHub?: boolean;
+  onDone: () => void;
+  onBack: () => void;
+  user: any;
+}) {
   const isEdit = !!fault;
   const [vehiclePlate, setVehiclePlate] = useState(fault?.vehicle_plate || initialVehiclePlate);
   const [driverName, setDriverName] = useState(fault?.driver_name || '');
@@ -614,6 +652,17 @@ function FaultForm({ fault, initialVehiclePlate = '', onDone, onBack, user }: { 
       if (!error) {
         if (urgency === 'urgent' || urgency === 'critical') {
           supabase.functions.invoke('notify-accident-email', { body: { record: insertPayload, type: 'fault' } }).catch(console.error);
+        }
+        if (fromVehicleHub) {
+          await recordVehicleHubAction({
+            vehicleId: hubVehicleId,
+            vehiclePlate: vehiclePlate,
+            companyName: user?.company_name || '',
+            action: 'דיווח תקלה',
+            details: `${faultType}: ${description}`,
+            userId: user?.id,
+            userName: user?.full_name,
+          });
         }
       }
     }

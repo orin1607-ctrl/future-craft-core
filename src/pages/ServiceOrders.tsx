@@ -12,9 +12,9 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ImageUpload from '@/components/ImageUpload';
 import ServiceOrderChat from '@/components/service-orders/ServiceOrderChat';
-import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { isTowingServiceOrder, recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 interface ServiceRow {
@@ -68,6 +68,7 @@ export default function ServiceOrders() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked } = useVehicleUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const [orders, setOrders] = useState<ServiceRow[]>([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -187,7 +188,24 @@ export default function ServiceOrders() {
   };
 
   if (showForm || editOrder) {
-    return <ServiceOrderForm onDone={() => { setShowForm(false); setEditOrder(null); loadOrders(); }} user={user} editData={editOrder} initialVehiclePlate={initialVehiclePlate} />;
+    return (
+      <>
+        <VehicleScopedNavChrome
+          vehicleId={contextVehicleId}
+          plate={contextPlate}
+          pageLabel="הזמנת שירות"
+          active={vehicleScoped}
+        />
+        <ServiceOrderForm
+          onDone={() => { setShowForm(false); setEditOrder(null); loadOrders(); }}
+          user={user}
+          editData={editOrder}
+          initialVehiclePlate={initialVehiclePlate}
+          hubVehicleId={vehicleScoped ? contextVehicleId : undefined}
+          fromVehicleHub={vehicleScoped}
+        />
+      </>
+    );
   }
 
   if (selectedOrder) {
@@ -198,6 +216,12 @@ export default function ServiceOrders() {
 
     return (
       <div className="animate-fade-in">
+        <VehicleScopedNavChrome
+          vehicleId={contextVehicleId}
+          plate={contextPlate}
+          pageLabel="הזמנת שירות"
+          active={vehicleScoped}
+        />
         <button onClick={() => setSelectedOrder(null)} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
           <ArrowRight size={20} /> חזרה
         </button>
@@ -349,11 +373,12 @@ export default function ServiceOrders() {
         </div>
       </div>
 
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
-
-      {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
-      )}
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="הזמנות שירות"
+        active={vehicleScoped}
+      />
 
       {/* Dashboard stats - managers only */}
       {isManager && (
@@ -502,7 +527,21 @@ function InfoBox({ label, value }: { label: string; value: string }) {
 
 /* ======================== Form ======================== */
 
-function ServiceOrderForm({ onDone, user, editData, initialVehiclePlate = '' }: { onDone: () => void; user: any; editData?: ServiceRow | null; initialVehiclePlate?: string }) {
+function ServiceOrderForm({
+  onDone,
+  user,
+  editData,
+  initialVehiclePlate = '',
+  hubVehicleId,
+  fromVehicleHub = false,
+}: {
+  onDone: () => void;
+  user: any;
+  editData?: ServiceRow | null;
+  initialVehiclePlate?: string;
+  hubVehicleId?: string;
+  fromVehicleHub?: boolean;
+}) {
   const [serviceCategory, setServiceCategory] = useState(editData?.service_category || '');
   const [otherCategory, setOtherCategory] = useState('');
   const [description, setDescription] = useState(editData?.description || '');
@@ -577,7 +616,6 @@ function ServiceOrderForm({ onDone, user, editData, initialVehiclePlate = '' }: 
     if (error) { toast.error('שגיאה בשמירה'); console.error(error); }
     else {
       toast.success(editData ? 'ההזמנה עודכנה' : 'הזמנת השירות נשלחה – ממתינה לאישור');
-      // Send email notification for new orders (or urgent updates)
       if (!editData) {
         const isUrgent = urgency === 'critical' || urgency === 'urgent';
         supabase.functions.invoke('notify-service-order-email', {
@@ -586,6 +624,24 @@ function ServiceOrderForm({ onDone, user, editData, initialVehiclePlate = '' }: 
             type: isUrgent ? 'urgent_order' : 'new_order',
           },
         }).catch(err => console.error('Email notification error:', err));
+
+        if (fromVehicleHub) {
+          const towing = isTowingServiceOrder(payload);
+          await recordVehicleHubAction({
+            vehicleId: hubVehicleId,
+            vehiclePlate: vehiclePlate,
+            companyName: user?.company_name || '',
+            action: towing ? 'הזמנת שינוע' : 'הזמנת שירות',
+            details: payload.description || payload.service_category,
+            userId: user?.id,
+            userName: user?.full_name,
+            targetDate: serviceDate || null,
+            notifyTransport: towing,
+            transportMessage: towing
+              ? `רכב ${vehiclePlate} · ${payload.service_category} · ${payload.towing_address || ''}`
+              : undefined,
+          });
+        }
       }
       onDone();
     }

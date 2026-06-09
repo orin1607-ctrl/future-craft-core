@@ -3,6 +3,7 @@ import { X, Bell, Calendar, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { formatVehicleAlertMeta } from '@/lib/vehicleActionFollowUp';
 
 const ALERT_TYPES = [
   { value: 'insurance', label: 'ביטוח', emoji: '🛡️' },
@@ -21,7 +22,17 @@ const RECURRENCE_OPTIONS = [
   { value: 'custom', label: 'מותאם אישית (ימים)' },
 ];
 
-export default function CreateAlertModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+export default function CreateAlertModal({
+  onClose,
+  onCreated,
+  vehiclePlate,
+  vehicleId,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+  vehiclePlate?: string;
+  vehicleId?: string;
+}) {
   const { user } = useAuth();
   const [alertType, setAlertType] = useState('other');
   const [title, setTitle] = useState('');
@@ -40,12 +51,15 @@ export default function CreateAlertModal({ onClose, onCreated }: { onClose: () =
 
     const dateTime = new Date(`${alertDate}T${alertTime}`).toISOString();
 
+    const vehicleMeta = vehiclePlate ? formatVehicleAlertMeta(vehiclePlate, vehicleId) : '';
+    const fullDescription = [vehicleMeta, description.trim()].filter(Boolean).join('\n') || null;
+
     const { error } = await supabase.from('custom_alerts').insert({
       user_id: user.id,
       company_name: user.company_name || '',
       alert_type: alertType,
-      title: title.trim(),
-      description: description.trim() || null,
+      title: vehiclePlate ? `${title.trim()} · ${vehiclePlate}` : title.trim(),
+      description: fullDescription,
       alert_date: dateTime,
       recurrence,
       recurrence_interval: recurrence === 'custom' ? parseInt(customDays) || null : null,

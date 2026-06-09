@@ -107,6 +107,11 @@ const ACTION_TABS: { id: HubTabId; label: string }[] = [
   { id: 'transfers', label: 'שינועים' },
 ];
 
+/** Quick actions that open a full scoped screen (not inline modal). */
+const QUICK_FULL_SCREEN_ROUTES: Record<string, { path: string; action?: string }> = {
+  תאונה: { path: '/accidents', action: 'new' },
+};
+
 const QUICK_ACTIONS: { cat: string; label: string }[] = [
   { cat: 'ליקוי', label: 'ליקוי' },
   { cat: 'תקלה', label: 'תקלה' },
@@ -125,6 +130,7 @@ const HISTORY_TYPE_LABEL: Record<string, string> = {
   fault: 'תקלה',
   accident: 'תאונה',
   handover: 'שינוע',
+  towing: 'שינוע',
   service: 'שירות',
   expense: 'הוצאה',
   inspection: 'בדיקה',
@@ -349,6 +355,17 @@ export default function VehicleHub({
     }
     if (cat === 'התראה') {
       setShowAlertModal(true);
+      return;
+    }
+    const fullScreen = QUICK_FULL_SCREEN_ROUTES[cat];
+    if (fullScreen) {
+      navigate(
+        buildVehicleContextUrl(fullScreen.path, {
+          plate: v.license_plate,
+          vehicleId: v.id,
+          action: fullScreen.action,
+        }),
+      );
       return;
     }
     setActionCategory(cat);
@@ -598,21 +615,32 @@ export default function VehicleHub({
       case 'alerts':
         return (
           <div className="card-elevated divide-y divide-border">
-            {expiryAlerts.length === 0 ? (
-              <EmptyTab text="אין התראות תוקף" />
+            {expiryAlerts.length === 0 && data.vehicleAlerts.length === 0 ? (
+              <EmptyTab text="אין התראות" />
             ) : (
-              expiryAlerts.map((a, idx) => {
-                const days = Math.ceil((new Date(a.date).getTime() - Date.now()) / 86400000);
-                return (
-                  <div key={idx} className="p-3 flex justify-between items-center gap-2">
+              <>
+                {expiryAlerts.map((a, idx) => {
+                  const days = Math.ceil((new Date(a.date).getTime() - Date.now()) / 86400000);
+                  return (
+                    <div key={`exp-${idx}`} className="p-3 flex justify-between items-center gap-2">
+                      <span className="font-medium">{a.title}</span>
+                      <span className={`text-sm ${days <= 14 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                        {new Date(a.date).toLocaleDateString('he-IL')}
+                        {days <= 0 ? ' (פג)' : ` (${days} ימים)`}
+                      </span>
+                    </div>
+                  );
+                })}
+                {data.vehicleAlerts.map((a) => (
+                  <div key={a.id} className="p-3 flex justify-between items-center gap-2">
                     <span className="font-medium">{a.title}</span>
-                    <span className={`text-sm ${days <= 14 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                      {new Date(a.date).toLocaleDateString('he-IL')}
-                      {days <= 0 ? ' (פג)' : ` (${days} ימים)`}
+                    <span className={`text-sm ${a.daysLeft <= 7 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                      {a.alert_date ? new Date(a.alert_date).toLocaleDateString('he-IL') : '—'}
+                      {a.daysLeft <= 0 ? ' (היום)' : ` (${a.daysLeft} ימים)`}
                     </span>
                   </div>
-                );
-              })
+                ))}
+              </>
             )}
             <div className="p-3">
               <Button type="button" variant="outline" size="sm" onClick={() => setShowAlertModal(true)}>
@@ -650,19 +678,22 @@ export default function VehicleHub({
       case 'transfers':
         return (
           <div className="card-elevated overflow-x-auto">
-            {data.handovers.length === 0 ? (
+            {data.transfers.length === 0 ? (
               <EmptyTab text="אין שינועים" />
             ) : (
               <table className="w-full text-sm">
                 <tbody>
-                  {data.handovers.map((h) => (
-                    <tr key={h.id} className="border-b border-border/50">
+                  {data.transfers.map((t) => (
+                    <tr key={t.id} className="border-b border-border/50">
                       <td className="p-3">
-                        <p className="font-medium">{h.action_type === 'return' ? 'החזרה' : 'מסירה'}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {h.giving_driver_name || '—'} → {h.receiving_driver_name || '—'}
+                        <p className="font-medium flex items-center gap-2">
+                          {t.title}
+                          <span className="text-xs px-2 py-0.5 rounded-lg bg-primary/10 text-primary">
+                            {t.kind === 'towing' ? 'הזמנת שינוע' : 'מסירת נהג'}
+                          </span>
                         </p>
-                        <p className="text-xs text-muted-foreground">{formatHubDate(h.date_time)}</p>
+                        <p className="text-sm text-muted-foreground">{t.description}</p>
+                        <p className="text-xs text-muted-foreground">{formatHubDate(t.date_time)}</p>
                       </td>
                     </tr>
                   ))}
@@ -747,6 +778,29 @@ export default function VehicleHub({
             }}
           />
           {mainNav}
+          {hubData && hubData.history.length > 0 && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-base font-bold">פעולות אחרונות</h2>
+                <button
+                  type="button"
+                  className="text-sm text-primary font-medium"
+                  onClick={() => jumpFromDashboard('history')}
+                >
+                  כל ההיסטוריה
+                </button>
+              </div>
+              <HistoryTimeline
+                entries={hubData.history.slice(0, 5)}
+                onNavigate={(route) =>
+                  navigate(buildVehicleContextUrl(route, { plate: v.license_plate, vehicleId: v.id }))
+                }
+                plate={v.license_plate}
+                internalNumber={v.internal_number}
+                compact
+              />
+            </div>
+          )}
           {isManager && vehicleScopedLinks}
         </>
       )}
@@ -947,6 +1001,8 @@ export default function VehicleHub({
 
       {showAlertModal && (
         <CreateAlertModal
+          vehiclePlate={v.license_plate}
+          vehicleId={v.id}
           onClose={() => setShowAlertModal(false)}
           onCreated={() => {
             setShowAlertModal(false);
@@ -995,11 +1051,13 @@ function HistoryTimeline({
   onNavigate,
   plate,
   internalNumber,
+  compact,
 }: {
   entries: VehicleHistoryEntry[];
   onNavigate: (path: string) => void;
   plate: string;
   internalNumber: string;
+  compact?: boolean;
 }) {
   if (entries.length === 0) {
     return (
@@ -1010,11 +1068,13 @@ function HistoryTimeline({
   }
 
   return (
-    <div className="card-elevated p-4">
-      <p className="text-xs text-muted-foreground mb-4 flex flex-wrap items-center gap-2">
-        <span>היסטוריה לרכב:</span>
-        <VehiclePlateLine plate={plate} internal={internalNumber} className="font-bold" />
-      </p>
+    <div className={`card-elevated ${compact ? 'p-3' : 'p-4'}`}>
+      {!compact && (
+        <p className="text-xs text-muted-foreground mb-4 flex flex-wrap items-center gap-2">
+          <span>היסטוריה לרכב:</span>
+          <VehiclePlateLine plate={plate} internal={internalNumber} className="font-bold" />
+        </p>
+      )}
       {entries.map((h, i) => (
         <div key={`${h.type}-${h.id}`} className="flex gap-3 py-3 border-b border-border/50 last:border-0">
           <div className="flex flex-col items-center pt-1">

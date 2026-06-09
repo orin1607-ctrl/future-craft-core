@@ -5,9 +5,9 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
-import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 
 type ActionType = 'pickup' | 'return';
@@ -61,6 +61,7 @@ export default function VehicleHandover() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const [action, setAction] = useState<ActionType>('pickup');
   const [vehiclePlate, setVehiclePlate] = useState('');
   const [odometer, setOdometer] = useState('');
@@ -223,9 +224,17 @@ export default function VehicleHandover() {
 
   const handleSubmit = async () => {
     if (!isValid) return;
+    const dateTimeIso =
+      pickupDate && pickupTime
+        ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
+        : pickupDate
+          ? new Date(`${pickupDate}T12:00:00`).toISOString()
+          : null;
+
     const { error } = await supabase.from('vehicle_handovers' as any).insert({
       action_type: action,
       vehicle_plate: vehiclePlate,
+      date_time: dateTimeIso,
       vehicle_type: selectedVehicle?.vehicle_type || '',
       manufacturer: selectedVehicle?.manufacturer || '',
       model: selectedVehicle?.model || '',
@@ -279,6 +288,20 @@ export default function VehicleHandover() {
       if (tempDriverPromises.length > 0) {
         await Promise.all(tempDriverPromises);
       }
+      await recordVehicleHubAction({
+        vehicleId: contextVehicleId || selectedVehicle?.id,
+        vehiclePlate: vehiclePlate,
+        companyName: user?.company_name || '',
+        action: action === 'return' ? 'החזרת רכב' : 'מסירת רכב',
+        details: `${fromDriver} → ${toDriver}`,
+        userId: user?.id,
+        userName: user?.full_name,
+        targetDate: pickupDate || null,
+        notifyTransport: vehicleScoped,
+        transportMessage: vehicleScoped
+          ? `רכב ${vehiclePlate} · ${fromDriver} → ${toDriver} · ${pickupDate || ''}`
+          : undefined,
+      });
       toast.success('טופס החלפת רכב נשלח בהצלחה');
       loadHandoverHistory();
     }
@@ -301,8 +324,12 @@ export default function VehicleHandover() {
 
   return (
     <div className="animate-fade-in">
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
-      {locked && contextPlate && <EntityContextBanner label={`רכב ${contextPlate}`} strict />}
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="שינוע"
+        active={vehicleScoped}
+      />
       <h1 className="page-header">טופס החלפת רכב</h1>
 
       {/* Tabs */}

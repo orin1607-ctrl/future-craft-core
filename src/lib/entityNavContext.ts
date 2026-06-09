@@ -82,6 +82,15 @@ export function useVehicleUrlContext() {
   return { ...ctx, clearContext };
 }
 
+/** True when page was opened from vehicle hub (scoped context). */
+export function isVehicleScopedContext(ctx: {
+  locked?: boolean;
+  plate?: string;
+  vehicleId?: string;
+}): boolean {
+  return !!(ctx.locked && ctx.plate);
+}
+
 export function useDriverUrlContext() {
   const [searchParams, setSearchParams] = useSearchParams();
   const ctx = useMemo(() => readDriverContext(searchParams), [searchParams]);

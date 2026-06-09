@@ -1,6 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { loadVehicleHistory, type VehicleHistoryEntry } from '@/lib/vehicleHistory';
+import {
+  handoverDateTime,
+  isTowingServiceOrder,
+  plateFromAlertText,
+} from '@/lib/vehicleActionFollowUp';
 
 export type HubTabId =
   | 'tracking'
@@ -68,6 +73,22 @@ export interface HandoverRow {
   receiving_driver_name: string | null;
 }
 
+/** Driver handover or towing service order — shown in שינועים tab. */
+export interface TransferRow {
+  id: string;
+  kind: 'handover' | 'towing';
+  title: string;
+  description: string;
+  date_time: string | null;
+}
+
+export interface VehicleAlertRow {
+  id: string;
+  title: string;
+  alert_date: string;
+  daysLeft: number;
+}
+
 export interface DocRow {
   id: string;
   ref: string;
@@ -86,6 +107,8 @@ export interface VehicleHubData {
   accidents: AccidentRow[];
   inspections: InspectionRow[];
   handovers: HandoverRow[];
+  transfers: TransferRow[];
+  vehicleAlerts: VehicleAlertRow[];
   docs: DocRow[];
 }
 
@@ -106,7 +129,7 @@ export async function loadVehicleHubData(
     comprehensive_insurance_expiry?: string | null;
   },
 ): Promise<VehicleHubData> {
-  const [history, tasksRes, faultsRes, servicesRes, accidentsRes, inspectionsRes, handoversRes, docsRes] =
+  const [history, tasksRes, faultsRes, servicesRes, accidentsRes, inspectionsRes, handoversRes, docsRes, alertsRes] =
     await Promise.all([
       loadVehicleHistory(plate, internalNumber, companyFilter),
       byPlate('vehicle_tasks', plate, companyFilter).order('created_at', { ascending: false }),
@@ -117,6 +140,14 @@ export async function loadVehicleHubData(
       byPlate('vehicle_handovers', plate, companyFilter).order('date_time', { ascending: false }),
       applyCompanyScope(
         supabase.from('document_metadata').select('*').eq('vehicle_plate', plate).order('created_at', { ascending: false }),
+        companyFilter,
+      ),
+      applyCompanyScope(
+        supabase
+          .from('custom_alerts')
+          .select('id, title, description, alert_date, is_active')
+          .eq('is_active', true)
+          .order('alert_date', { ascending: true }),
         companyFilter,
       ),
     ]);
@@ -170,10 +201,56 @@ export async function loadVehicleHubData(
   const handovers: HandoverRow[] = (handoversRes.data || []).map((h: Record<string, string>) => ({
     id: h.id,
     action_type: h.action_type || '',
-    date_time: h.date_time,
+    date_time: h.date_time || handoverDateTime(h),
     giving_driver_name: h.giving_driver_name,
     receiving_driver_name: h.receiving_driver_name,
   }));
+
+  const transfers: TransferRow[] = [];
+
+  handovers.forEach((h) => {
+    transfers.push({
+      id: `handover-${h.id}`,
+      kind: 'handover',
+      title: h.action_type === 'return' ? 'החזרת רכב' : 'מסירת רכב',
+      description: `${h.giving_driver_name || '—'} → ${h.receiving_driver_name || '—'}`,
+      date_time: h.date_time,
+    });
+  });
+
+  (servicesRes.data || []).forEach((s: Record<string, string>) => {
+    if (!isTowingServiceOrder(s)) return;
+    transfers.push({
+      id: `towing-${s.id}`,
+      kind: 'towing',
+      title: s.service_category || 'שינוע',
+      description: s.description || '',
+      date_time: s.service_date || s.date_time || s.created_at,
+    });
+  });
+
+  transfers.sort(
+    (a, b) => new Date(b.date_time || 0).getTime() - new Date(a.date_time || 0).getTime(),
+  );
+
+  const now = Date.now();
+  const vehicleAlerts: VehicleAlertRow[] = (alertsRes.data || [])
+    .filter((a: Record<string, string>) => {
+      const p = plateFromAlertText(a.description) || plateFromAlertText(a.title);
+      return !p || p === plate;
+    })
+    .map((a: Record<string, string>) => {
+      const alertDate = a.alert_date || '';
+      const daysLeft = alertDate
+        ? Math.ceil((new Date(alertDate).getTime() - now) / 86400000)
+        : 0;
+      return {
+        id: a.id,
+        title: a.title || 'התראה',
+        alert_date: alertDate,
+        daysLeft,
+      };
+    });
 
   const docs: DocRow[] = [];
 
@@ -238,6 +315,8 @@ export async function loadVehicleHubData(
     accidents,
     inspections,
     handovers,
+    transfers,
+    vehicleAlerts,
     docs,
   };
 }

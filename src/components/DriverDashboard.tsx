@@ -460,6 +460,7 @@ export default function DriverDashboard({
               ? buildVehicleContextUrl(action.link, {
                   plate: vehicle.license_plate,
                   vehicleId: vehicle.id,
+                  action: action.link === '/accidents' ? 'new' : undefined,
                 })
               : action.link;
           return (

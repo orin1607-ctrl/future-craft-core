@@ -6,6 +6,7 @@ import {
   stripEventTitle,
   stripGapTitle,
 } from '@/lib/vehicleEventLog';
+import { handoverDateTime, isTowingServiceOrder } from '@/lib/vehicleActionFollowUp';
 
 export type VehicleHistoryType =
   | 'fault'
@@ -108,8 +109,8 @@ export async function loadVehicleHistory(
     push({
       id: h.id,
       type: 'handover',
-      date: h.date_time || h.created_at,
-      title: h.action_type === 'return' ? 'החזרת רכב' : 'איסוף רכב',
+      date: handoverDateTime(h),
+      title: h.action_type === 'return' ? 'החזרת רכב' : 'מסירת רכב',
       description: `${h.giving_driver_name || ''} → ${h.receiving_driver_name || ''}`,
       status: '',
       userName: h.giving_driver_name || '',
@@ -119,20 +120,21 @@ export async function loadVehicleHistory(
     }),
   );
 
-  (servicesRes.data || []).forEach((s: Record<string, string>) =>
+  (servicesRes.data || []).forEach((s: Record<string, string>) => {
+    const towing = isTowingServiceOrder(s);
     push({
       id: s.id,
-      type: 'service',
-      date: s.date_time || s.created_at,
-      title: s.service_category || 'הזמנת שירות',
+      type: towing ? 'towing' : 'service',
+      date: s.service_date || s.date_time || s.created_at,
+      title: towing ? s.service_category || 'שינוע' : s.service_category || 'הזמנת שירות',
       description: s.description || '',
       status: s.treatment_status || '',
       userName: s.driver_name || s.ordering_user || '',
       vehiclePlate: plate,
       internalNumber,
-      route: '/service-orders',
-    }),
-  );
+      route: towing ? '/service-orders' : '/service-orders',
+    });
+  });
 
   (expensesRes.data || []).forEach((e: Record<string, string>) =>
     push({

@@ -5,9 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { EntityContextBanner } from '@/components/EntityContextBanner';
-import VehicleBackToCardButton from '@/components/vehicles/VehicleBackToCardButton';
+import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 
 interface VehicleBasic {
   id: string;
@@ -48,6 +48,7 @@ export default function PrivateVehicleInspection() {
   const companyFilter = useCompanyFilter();
   const navigate = useNavigate();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
+  const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
 
   const [vehicles, setVehicles] = useState<VehicleBasic[]>([]);
   const [vehicleId, setVehicleId] = useState('');
@@ -133,28 +134,55 @@ export default function PrivateVehicleInspection() {
       toast.success('הבדיקה נשמרה – הרכב תקין');
     }
 
+    if (vehicleScoped && selectedVehicle) {
+      await recordVehicleHubAction({
+        vehicleId: contextVehicleId || vehicleId,
+        vehiclePlate: selectedVehicle.license_plate,
+        companyName: user?.company_name || '',
+        action: 'בדיקה תלת/חצי',
+        details: defects.length > 0 ? `${defects.length} ליקויים` : 'תקין',
+        userId: user?.id,
+        userName: user?.full_name,
+        targetDate: inspectionDate || null,
+      });
+    }
+
     setLoading(false);
-    navigate('/vehicle-inspections');
+    if (vehicleScoped && contextVehicleId) {
+      navigate(buildVehicleHubUrl(contextVehicleId));
+    } else {
+      navigate('/vehicle-inspections');
+    }
   };
 
   const inputClass = "w-full p-3 text-base rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
 
   return (
     <div className="animate-fade-in pb-24">
-      <button onClick={() => navigate('/vehicle-inspections')} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
-        <ArrowRight size={20} /> חזרה
+      <VehicleScopedNavChrome
+        vehicleId={contextVehicleId}
+        plate={contextPlate}
+        pageLabel="בדיקה תלת / חצי"
+        active={vehicleScoped}
+      />
+
+      <button
+        onClick={() => {
+          if (vehicleScoped && contextVehicleId) {
+            navigate(buildVehicleHubUrl(contextVehicleId));
+          } else {
+            navigate('/vehicle-inspections');
+          }
+        }}
+        className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]"
+      >
+        <ArrowRight size={20} /> {vehicleScoped ? 'חזרה לכרטיס הרכב' : 'חזרה'}
       </button>
 
       <div className="flex items-center gap-3 mb-6">
         <ClipboardCheck size={28} className="text-primary" />
         <h1 className="text-2xl font-bold">בדיקה תלת / חצי לרכב פרטי</h1>
       </div>
-
-      <VehicleBackToCardButton vehicleId={contextVehicleId} />
-
-      {locked && contextPlate && (
-        <EntityContextBanner label={`רכב ${contextPlate}`} strict />
-      )}
 
       {/* Top Fields */}
       <div className="space-y-4 mb-6">

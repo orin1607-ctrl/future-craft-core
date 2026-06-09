@@ -12,7 +12,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
-import { logVehicleEvent } from '@/lib/vehicleEventLog';
+import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 
 const CATEGORIES = [
   'ליקוי',
@@ -204,13 +204,18 @@ export default function VehicleActionModal({
         const merged = [vehicle.notes, `[${subType}] ${description}`].filter(Boolean).join('\n');
         ({ error } = await supabase.from('vehicles').update({ notes: merged }).eq('id', vehicle.id));
       } else if (category === 'שינוע') {
+        const transportDesc = `מ: ${fromLoc || '—'} → אל: ${toLoc || '—'}${description ? `. ${description}` : ''}`;
+        const serviceDate = date || new Date().toISOString().split('T')[0];
+        const dateTimeIso = date ? new Date(`${date}T09:00:00`).toISOString() : null;
         ({ error } = await supabase.from('service_orders').insert({
           service_category: `שינוע – ${subType}`,
-          description: `מ: ${fromLoc || '—'} → אל: ${toLoc || '—'}${description ? `. ${description}` : ''}`,
+          description: transportDesc,
           vehicle_plate: vehicle.license_plate,
           driver_name: transferDriver || driverName,
           towing_requested: true,
           towing_address: toLoc || null,
+          service_date: serviceDate,
+          date_time: dateTimeIso,
           company_name: vehicle.company_name || user?.company_name || '',
           treatment_status: 'pending_approval',
           created_by: user?.id,
@@ -237,14 +242,22 @@ export default function VehicleActionModal({
       console.error(error);
       return;
     }
-    await logVehicleEvent({
+    const actionDetails = [subType, description].filter(Boolean).join(' · ');
+    const datedCategories = new Set(['שינוע', 'בדיקה', 'טיפול', 'הזמנת שירות', 'תקלה', 'תאונה']);
+    await recordVehicleHubAction({
       vehicleId: vehicle.id,
       vehiclePlate: vehicle.license_plate,
       companyName: vehicle.company_name || user?.company_name || '',
       action: `פתיחת ${category}`,
-      details: [subType, description].filter(Boolean).join(' · '),
+      details: actionDetails,
       userId: user?.id,
       userName: user?.full_name,
+      targetDate: datedCategories.has(category) && date ? date : null,
+      notifyTransport: category === 'שינוע',
+      transportMessage:
+        category === 'שינוע'
+          ? `רכב ${vehicle.license_plate} · ${subType} · מ: ${fromLoc || '—'} → ${toLoc || '—'}`
+          : undefined,
     });
     toast.success(`${category} נשמר`);
     onSaved();

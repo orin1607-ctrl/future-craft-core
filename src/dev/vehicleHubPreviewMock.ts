@@ -270,6 +270,23 @@ export const PREVIEW_HUB_DATA: VehicleHubData = {
       receiving_driver_name: 'מוסך יוני',
     },
   ],
+  transfers: [
+    {
+      id: 'towing-so1',
+      kind: 'towing',
+      title: 'שינוע – למוסך',
+      description: 'מ: תל אביב → אל: מוסך יוני',
+      date_time: '2025-06-01T09:00:00Z',
+    },
+    {
+      id: 'handover-ho1',
+      kind: 'handover',
+      title: 'מסירת רכב',
+      description: 'אבי כהן → מוסך יוני',
+      date_time: '2025-05-01T12:00:00Z',
+    },
+  ],
+  vehicleAlerts: [],
   docs: [
     {
       id: 'insurance',
