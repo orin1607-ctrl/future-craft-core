@@ -1,0 +1,52 @@
+{
+  "at": "2026-06-09T20:14:24.813Z",
+  "tests": {
+    "manual_code": {
+      "status": 200,
+      "body": {
+        "success": true,
+        "code_saved": true,
+        "email_requested": false,
+        "email_sent": false,
+        "resend_status": null,
+        "resend_error": null,
+        "from": "דליה מערכות <onboarding@resend.dev>",
+        "subject": "קוד גישה — דליה"
+      }
+    },
+    "auto_code": {
+      "status": 200,
+      "body": {
+        "success": true,
+        "code_saved": true,
+        "email_requested": false,
+        "email_sent": false,
+        "resend_status": null,
+        "resend_error": null,
+        "from": "דליה מערכות <onboarding@resend.dev>",
+        "subject": "קוד גישה — דליה"
+      }
+    },
+    "db_codes": [
+      {
+        "mode": "manual",
+        "is_active": false,
+        "sent_to_email_at": null,
+        "verified_at": null,
+        "code_hash": "9eb27a3a1f481a902b24789b164799bc46bc81f05d1b5140d0f7ff8a262ccfa3"
+      },
+      {
+        "mode": "auto",
+        "is_active": true,
+        "sent_to_email_at": null,
+        "verified_at": null,
+        "code_hash": "9eb27a3a1f481a902b24789b164799bc46bc81f05d1b5140d0f7ff8a262ccfa3"
+      }
+    ],
+    "otp_purposes": {
+      "login_2fa": 2,
+      "password_reset": 6
+    },
+    "access_codes_total": 7
+  }
+}

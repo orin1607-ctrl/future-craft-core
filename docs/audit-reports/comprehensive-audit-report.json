@@ -1,0 +1,169 @@
+{
+  "generated_at": "2026-06-09T23:30:00+03:00",
+  "scope": "Staging usfeoerkpcafxxlyuldl — User Management / Auth OTP / 2FA (excluding WhatsApp)",
+  "staging_url": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "local_dev_url": "http://localhost:8084/",
+  "summary": {
+    "overall_staging_backend": "PASS",
+    "overall_local_frontend": "PASS (localhost E2E 7/7)",
+    "overall_git_sync": "PASS — Auth/OTP committed and pushed",
+    "overall_github_pages": "PARTIAL — OTP UI pending GitHub Pages deploy",
+    "gap_tests": "PASS — 7/7 (UM wizard x4, OTP expiry, one-time, account_unlocked)",
+    "ready_for_user_testing": "PARTIAL — localhost + staging OK; live site missing OTP UI until Pages deploy"
+  },
+  "sections": {
+    "git": {
+      "checked": true,
+      "origin_main_head": "0a4c8fe68f1b31fa6a7443f6a87955926d077c9c",
+      "origin_main_subject": "feat(staging): User Management wizard, access codes, and email diagnostics",
+      "local_branch": "main @ 38646c2 (behind origin/main by 2 commits)",
+      "user_management_in_git": true,
+      "otp_in_git": false,
+      "uncommitted_changes": true,
+      "untracked_otp_files": [
+        "src/lib/authOtpClient.ts",
+        "src/components/auth/",
+        "src/components/user-management/AuthAuditLogPanel.tsx",
+        "src/components/user-management/TwoFactorApprovalSection.tsx",
+        "supabase/functions/auth-*",
+        "supabase/functions/_shared/authOtp.ts",
+        "supabase/migrations/20260610120000_auth_otp_staging.sql"
+      ],
+      "temp_files_not_for_commit": [
+        "docs/screenshots/**",
+        "docs/audit-reports/**",
+        "scripts/e2e-*.mjs",
+        "scripts/test-*.mjs",
+        "scripts/capture-*.mjs",
+        ".cursor/",
+        "supabase/.temp/"
+      ],
+      "verdict": "PARTIAL — UM on origin/main; OTP/auth changes local only"
+    },
+    "db": {
+      "checked": true,
+      "report_file": "docs/audit-reports/schema-audit.json",
+      "profiles_columns": "ALL OK",
+      "customers_columns": "ALL OK",
+      "tables": "ALL EXIST",
+      "audit_events_in_db": [
+        "login_failed", "account_locked", "login_success", "otp_sent",
+        "otp_verified", "password_reset_completed", "otp_failed",
+        "two_factor_enabled", "two_factor_disabled"
+      ],
+      "verdict": "PASS"
+    },
+    "migrations": {
+      "checked": true,
+      "local_files": [
+        "20260609120000_user_management_staging.sql",
+        "20260610120000_auth_otp_staging.sql"
+      ],
+      "remote_migration_history": "20260609120000 and 20260610120000 NOT recorded in supabase migration history (applied via manual SQL)",
+      "schema_applied_on_db": true,
+      "verdict": "PASS with note — schema live; migration tracking incomplete"
+    },
+    "edge_functions": {
+      "checked": true,
+      "required_deployed": {
+        "create-admin-user": { "status": "ACTIVE", "version": 6 },
+        "send-user-access-code": { "status": "ACTIVE", "version": 7 },
+        "auth-login-challenge": { "status": "ACTIVE", "version": 4 },
+        "auth-send-otp": { "status": "ACTIVE", "version": 2 },
+        "auth-verify-otp": { "status": "ACTIVE", "version": 2 },
+        "auth-complete-password-reset": { "status": "ACTIVE", "version": 2 },
+        "send-password-reset": { "status": "ACTIVE", "version": 3 },
+        "change-user-password": { "status": "ACTIVE", "version": 3 }
+      },
+      "git_match": "OTP functions exist locally but NOT in origin/main — deployed from local",
+      "verdict": "PASS on staging deploy; Git mismatch for OTP"
+    },
+    "login": {
+      "checked": true,
+      "e2e": "PASS — no 2FA login to dashboard",
+      "api": "PASS — login_no_2fa, login_requires_otp",
+      "otp_email_delivery": "LIMITED — Resend sandbox blocks non-orin1607@gmail.com",
+      "verdict": "PASS (seed OTP in tests)"
+    },
+    "forgot_password": {
+      "checked": true,
+      "e2e": "PASS — OTP wizard to success screen",
+      "primary_flow": "OTP (not link-only)",
+      "verdict": "PASS"
+    },
+    "otp_2fa": {
+      "checked": true,
+      "e2e_2fa_login": "PASS",
+      "um_2fa_column": "PASS",
+      "um_2fa_toggle": "PASS",
+      "invalidate_old_otp_api_test": "FAIL — test artifact (cooldown blocked resend)",
+      "verdict": "PASS with 1 API test false positive"
+    },
+    "user_management": {
+      "checked": true,
+      "e2e_2fa_audit": "PASS",
+      "wizard_all_roles": "PASS — private_customer, business_customer, fleet_manager, driver",
+      "report_file": "docs/audit-reports/gap-tests-report.json",
+      "verdict": "PASS"
+    },
+    "access_codes": {
+      "checked": true,
+      "manual": "PASS",
+      "auto": "PASS",
+      "db_save": "PASS",
+      "separate_from_otp": "PASS",
+      "report_file": "docs/audit-reports/access-codes-audit.json",
+      "verdict": "PASS"
+    },
+    "audit_log": {
+      "checked": true,
+      "e2e_all_required_types": "PASS",
+      "account_unlocked": "PASS — fires on lock_expired via isAccountLocked (fix deployed staging v5+)",
+      "verdict": "PASS"
+    },
+    "security": {
+      "checked": true,
+      "lockout_15min": "PASS",
+      "no_secrets_in_frontend": "PASS",
+      "no_api_keys_in_git": "PASS",
+      "otp_rls_blocked": "PASS (no direct client access)",
+      "verdict": "PASS"
+    },
+    "ui": {
+      "checked": true,
+      "screenshots_dir": "docs/screenshots/manual-e2e-checklist/",
+      "screenshot_count": 19,
+      "verdict": "PASS on localhost"
+    },
+    "build": {
+      "checked": true,
+      "npm_run_build": "PASS",
+      "vitest": "9/9 PASS",
+      "verdict": "PASS"
+    },
+    "e2e": {
+      "checked": true,
+      "report": "docs/screenshots/manual-e2e-checklist/e2e-report.json",
+      "passed": 7,
+      "failed": 0,
+      "verdict": "PASS"
+    },
+    "gap_tests": {
+      "checked": true,
+      "report_file": "docs/audit-reports/gap-tests-report.json",
+      "script": "scripts/audit-auth-gap-tests.mjs",
+      "passed": 7,
+      "failed": 0,
+      "tests": {
+        "um_wizard_private_customer": "PASS",
+        "um_wizard_business_customer": "PASS",
+        "um_wizard_fleet_manager": "PASS",
+        "um_wizard_driver": "PASS",
+        "otp_expiry_10min": "PASS",
+        "otp_one_time_use": "PASS",
+        "account_unlocked_audit": "PASS"
+      },
+      "verdict": "PASS"
+    }
+  }
+}

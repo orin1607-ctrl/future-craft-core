@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Session } from '@supabase/supabase-js';
+import type { AuthSessionPayload } from '@/lib/authOtpClient';
+import { applyAuthSession } from '@/lib/authOtpClient';
 
 export type AppRole = 'driver' | 'fleet_manager' | 'super_admin' | 'private_customer' | 'business_customer';
 
@@ -22,6 +24,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signup: (email: string, password: string, metadata: { full_name: string; phone: string; company_name: string; role?: AppRole }) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
+  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null }>;
   isAuthenticated: boolean;
   isImpersonating: boolean;
   impersonate: (targetUser: UserProfile) => void;
@@ -152,8 +155,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setImpersonatedUser(null);
   };
 
+  const completeLoginSession = async (session: AuthSessionPayload) => {
+    const { error } = await applyAuthSession(session);
+    if (error) return { error };
+    const userId = (session.user as { id?: string })?.id;
+    const userEmail = (session.user as { email?: string })?.email || '';
+    if (userId) {
+      const profile = await fetchUserProfile(userId, userEmail);
+      setRealUser(profile);
+      const { data: { session: s } } = await supabase.auth.getSession();
+      setSession(s);
+    }
+    return { error: null };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, realUser, session, loading, login, signup, logout, isAuthenticated: !!realUser, isImpersonating, impersonate, stopImpersonation }}>
+    <AuthContext.Provider value={{ user, realUser, session, loading, login, signup, logout, completeLoginSession, isAuthenticated: !!realUser, isImpersonating, impersonate, stopImpersonation }}>
       {children}
     </AuthContext.Provider>
   );

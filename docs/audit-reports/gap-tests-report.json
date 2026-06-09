@@ -1,0 +1,59 @@
+{
+  "at": "2026-06-09T20:30:27.232Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "tests": {
+    "um_wizard_private_customer": {
+      "ok": "2ea2272a-98fb-4059-bf89-309b124a0037",
+      "status": 200,
+      "user_id": "2ea2272a-98fb-4059-bf89-309b124a0037"
+    },
+    "um_wizard_business_customer": {
+      "ok": "f3cf45e5-3cbd-4e27-8ff2-db2947821467",
+      "status": 200,
+      "user_id": "f3cf45e5-3cbd-4e27-8ff2-db2947821467"
+    },
+    "um_wizard_fleet_manager": {
+      "ok": "71fa633a-7928-4d2a-81a1-4703fa2a2dcf",
+      "status": 200,
+      "user_id": "71fa633a-7928-4d2a-81a1-4703fa2a2dcf"
+    },
+    "um_wizard_driver": {
+      "ok": "bf04848d-0944-4ab5-b4a2-8136b5cdb160",
+      "status": 200,
+      "user_id": "bf04848d-0944-4ab5-b4a2-8136b5cdb160"
+    },
+    "otp_expiry_10min": {
+      "ok": true,
+      "status": 400,
+      "response": {
+        "success": false,
+        "error": "קוד פג תוקף. בקש קוד חדש."
+      }
+    },
+    "otp_one_time_use": {
+      "ok": true,
+      "first": {
+        "success": true,
+        "reset_token": "b67f7c3fe766430abbaf277c9b8ca389202c736b0fc3420e90e580bc22d53bbc",
+        "expires_at": "2026-06-09T20:40:39.224Z"
+      },
+      "second": {
+        "success": false,
+        "error": "קוד לא תקין או שפג תוקפו"
+      }
+    },
+    "account_unlocked_audit": {
+      "ok": true,
+      "login_success": true,
+      "audit": {
+        "event_type": "account_unlocked",
+        "email": "gap-unlock-1781037027232@staging-e2e.local",
+        "success": true,
+        "details": {
+          "reason": "lock_expired"
+        }
+      },
+      "note": null
+    }
+  }
+}

@@ -26,3 +26,18 @@ verify_jwt = false
 
 [functions.backup-data]
 verify_jwt = false
+
+[functions.auth-login-challenge]
+verify_jwt = false
+
+[functions.auth-send-otp]
+verify_jwt = false
+
+[functions.auth-verify-otp]
+verify_jwt = false
+
+[functions.auth-complete-password-reset]
+verify_jwt = false
+
+[functions.send-user-access-code]
+verify_jwt = false

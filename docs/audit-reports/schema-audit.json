@@ -1,0 +1,144 @@
+{
+  "staging": "usfeoerkpcafxxlyuldl",
+  "at": "2026-06-09T20:07:54.686Z",
+  "profiles": {
+    "approval_status": {
+      "ok": true
+    },
+    "nickname": {
+      "ok": true
+    },
+    "contact_email": {
+      "ok": true
+    },
+    "customer_id": {
+      "ok": true
+    },
+    "two_factor_approved": {
+      "ok": true
+    },
+    "two_factor_approved_at": {
+      "ok": true
+    },
+    "two_factor_approved_by": {
+      "ok": true
+    }
+  },
+  "customers": {
+    "user_id": {
+      "ok": true
+    },
+    "contact_role": {
+      "ok": true
+    },
+    "activity_field": {
+      "ok": true
+    }
+  },
+  "tables": {
+    "user_access_codes": {
+      "exists": true,
+      "columns": [
+        "id",
+        "user_id",
+        "code_hash",
+        "mode",
+        "created_at",
+        "expires_at",
+        "verified_at",
+        "sent_to_email_at",
+        "next_rotation_at",
+        "is_active",
+        "created_by"
+      ]
+    },
+    "registration_requests": {
+      "exists": true,
+      "columns": []
+    },
+    "auth_verification_codes": {
+      "exists": true,
+      "columns": [
+        "id",
+        "user_id",
+        "email",
+        "purpose",
+        "code_hash",
+        "expires_at",
+        "attempts_count",
+        "max_attempts",
+        "verified_at",
+        "consumed_at",
+        "created_at",
+        "created_ip",
+        "metadata"
+      ]
+    },
+    "auth_login_challenges": {
+      "exists": true,
+      "columns": [
+        "id",
+        "user_id",
+        "email",
+        "expires_at",
+        "consumed_at",
+        "created_at",
+        "created_ip"
+      ]
+    },
+    "auth_audit_log": {
+      "exists": true,
+      "columns": [
+        "id",
+        "event_type",
+        "success",
+        "user_id",
+        "email",
+        "actor_user_id",
+        "ip_address",
+        "user_agent",
+        "details",
+        "created_at"
+      ]
+    },
+    "auth_account_lockouts": {
+      "exists": true,
+      "columns": [
+        "email",
+        "failed_attempts",
+        "locked_until",
+        "last_failed_at",
+        "updated_at"
+      ]
+    },
+    "auth_password_reset_tokens": {
+      "exists": true,
+      "columns": [
+        "id",
+        "user_id",
+        "email",
+        "token_hash",
+        "expires_at",
+        "consumed_at",
+        "created_at"
+      ]
+    }
+  },
+  "enums": {
+    "audit_events_in_db": [
+      "login_failed",
+      "account_locked",
+      "login_success",
+      "otp_sent",
+      "otp_verified",
+      "password_reset_completed",
+      "otp_failed",
+      "two_factor_enabled",
+      "two_factor_disabled"
+    ]
+  },
+  "counts": {
+    "user_access_codes": 5,
+    "auth_verification_codes": 7
+  }
+}

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getClientIp, getUserAgent, writeAudit } from '../_shared/authOtp.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,10 +71,11 @@ Deno.serve(async (req) => {
       contact_role, activity_field, business_id,
       license_number, assigned_vehicle_id,
       approval_status,
+      two_factor_approved,
     } = body;
 
     // Actions that require super_admin only
-    const superAdminOnlyActions = ['update-password', 'reset-password-by-id', 'update-role', 'update-profile', 'toggle-active', 'list-users'];
+    const superAdminOnlyActions = ['update-password', 'reset-password-by-id', 'update-role', 'update-profile', 'toggle-active', 'list-users', 'set-two-factor-approved'];
     if (action && superAdminOnlyActions.includes(action) && !isSuperAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden - super_admin only' }), {
         status: 403,
@@ -259,6 +261,64 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'set-two-factor-approved') {
+      if (!user_id || typeof two_factor_approved !== 'boolean') {
+        return new Response(JSON.stringify({ error: 'user_id and two_factor_approved are required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: targetProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name, two_factor_approved')
+        .eq('id', user_id)
+        .single();
+
+      const { data: callerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name')
+        .eq('id', callerId)
+        .single();
+
+      const updates: Record<string, unknown> = {
+        two_factor_approved,
+        two_factor_approved_at: two_factor_approved ? new Date().toISOString() : null,
+        two_factor_approved_by: two_factor_approved ? callerId : null,
+      };
+
+      const { error } = await supabaseAdmin.from('profiles').update(updates).eq('id', user_id);
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: targetAuth } = await supabaseAdmin.auth.admin.getUserById(user_id);
+      const targetEmail = targetAuth.user?.email ?? null;
+
+      await writeAudit(supabaseAdmin, two_factor_approved ? 'two_factor_enabled' : 'two_factor_disabled', {
+        success: true,
+        userId: user_id,
+        email: targetEmail,
+        actorUserId: callerId,
+        ip: getClientIp(req),
+        userAgent: getUserAgent(req),
+        details: {
+          target_name: targetProfile?.full_name ?? '',
+          actor_name: callerProfile?.full_name ?? '',
+          previous_value: targetProfile?.two_factor_approved ?? false,
+          new_value: two_factor_approved,
+        },
+      });
 
       return new Response(JSON.stringify({ success: true }), {
         status: 200,

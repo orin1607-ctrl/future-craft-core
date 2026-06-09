@@ -5,6 +5,8 @@ import { toast } from '@/hooks/use-toast';
 import { Search, Users, Shield, KeyRound, Loader2, Filter, Pencil, Eye, Mail, Copy, UserPlus } from 'lucide-react';
 import CreateUserWizardDialog from '@/components/user-management/CreateUserWizardDialog';
 import SettingsBackBar from '@/components/user-management/SettingsBackBar';
+import TwoFactorApprovalSection from '@/components/user-management/TwoFactorApprovalSection';
+import AuthAuditLogPanel from '@/components/user-management/AuthAuditLogPanel';
 import { APPROVAL_STATUS_LABELS } from '@/lib/userManagementSchema';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import { useNavigate } from 'react-router-dom';
@@ -25,6 +27,10 @@ interface ManagedUser {
   is_active: boolean;
   role: string;
   approval_status: string;
+  two_factor_approved: boolean;
+  two_factor_approved_at: string | null;
+  two_factor_approved_by: string | null;
+  two_factor_approved_by_name: string | null;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -76,10 +82,11 @@ export default function UserManagement() {
     setLoading(true);
     
     // Fetch profiles and roles
-    const [profilesRes, rolesRes, emailsRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, phone, company_name, is_active, approval_status'),
+    const [profilesRes, rolesRes, emailsRes, approversRes] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, phone, company_name, is_active, approval_status, two_factor_approved, two_factor_approved_at, two_factor_approved_by'),
       supabase.from('user_roles').select('user_id, role'),
       supabase.functions.invoke('create-admin-user', { body: { action: 'list-users' } }),
+      supabase.from('profiles').select('id, full_name'),
     ]);
 
     if (profilesRes.error) {
@@ -90,6 +97,7 @@ export default function UserManagement() {
 
     const roleMap = new Map((rolesRes.data || []).map((r: any) => [r.user_id, r.role]));
     const emailMap: Record<string, string> = emailsRes.data?.emails || {};
+    const approverMap = new Map((approversRes.data || []).map((p: any) => [p.id, p.full_name]));
 
     const mapped: ManagedUser[] = (profilesRes.data || []).map((p: any) => ({
       id: p.id,
@@ -100,6 +108,12 @@ export default function UserManagement() {
       is_active: p.is_active ?? true,
       role: roleMap.get(p.id) || 'driver',
       approval_status: p.approval_status || 'pending',
+      two_factor_approved: p.two_factor_approved ?? false,
+      two_factor_approved_at: p.two_factor_approved_at ?? null,
+      two_factor_approved_by: p.two_factor_approved_by ?? null,
+      two_factor_approved_by_name: p.two_factor_approved_by
+        ? approverMap.get(p.two_factor_approved_by) || null
+        : null,
     }));
 
     setUsers(mapped);
@@ -330,6 +344,7 @@ export default function UserManagement() {
                 <TableHead className="text-right">טלפון</TableHead>
                 <TableHead className="text-right">תפקיד</TableHead>
                 <TableHead className="text-right">אישור</TableHead>
+                <TableHead className="text-right">2FA</TableHead>
                 <TableHead className="text-right">פעיל</TableHead>
                 <TableHead className="text-right">פעולות</TableHead>
               </TableRow>
@@ -337,7 +352,7 @@ export default function UserManagement() {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     לא נמצאו משתמשים
                   </TableCell>
                 </TableRow>
@@ -382,6 +397,16 @@ export default function UserManagement() {
                         }
                       >
                         {APPROVAL_STATUS_LABELS[u.approval_status] || u.approval_status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={u.two_factor_approved
+                          ? 'border-amber-500/40 text-amber-700'
+                          : 'border-muted-foreground/30 text-muted-foreground'}
+                      >
+                        {u.two_factor_approved ? 'מאושר' : 'לא'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -436,6 +461,8 @@ export default function UserManagement() {
         </div>
       )}
 
+      <AuthAuditLogPanel />
+
       {/* Reset Password Dialog */}
       <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
         <DialogContent className="sm:max-w-md" dir="rtl">
@@ -486,6 +513,31 @@ export default function UserManagement() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {selectedUser && (
+              <TwoFactorApprovalSection
+                userId={selectedUser.id}
+                approved={selectedUser.two_factor_approved}
+                approvedAt={selectedUser.two_factor_approved_at}
+                approvedByName={selectedUser.two_factor_approved_by_name}
+                onUpdated={(approved) => {
+                  setSelectedUser((prev) => prev ? {
+                    ...prev,
+                    two_factor_approved: approved,
+                    two_factor_approved_at: approved ? new Date().toISOString() : null,
+                    two_factor_approved_by: approved ? user?.id ?? null : null,
+                    two_factor_approved_by_name: approved ? user?.full_name ?? null : null,
+                  } : prev);
+                  setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? {
+                    ...u,
+                    two_factor_approved: approved,
+                    two_factor_approved_at: approved ? new Date().toISOString() : null,
+                    two_factor_approved_by: approved ? user?.id ?? null : null,
+                    two_factor_approved_by_name: approved ? user?.full_name ?? null : null,
+                  } : u));
+                  loadUsers();
+                }}
+              />
+            )}
             {selectedUser?.email && (
               <div className="p-3 rounded-xl bg-muted text-sm">
                 <span className="text-muted-foreground">אימייל: </span>
