@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FileText, Search, Building2, Car } from 'lucide-react';
@@ -78,6 +79,9 @@ export default function SystemLogs() {
 
   return (
     <div className="animate-fade-in space-y-4">
+      <Link to="/dalia-settings" className="text-primary text-sm font-medium inline-block">
+        ← חזרה ל-Dalia Settings
+      </Link>
       <h1 className="page-header flex items-center gap-3"><FileText size={28} /> לוג מערכת</h1>
 
       <div className="flex flex-wrap gap-3">

@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
-import { Shield, Users, Settings, ScrollText, Building2, Mail } from 'lucide-react';
+import { Shield, Users, Settings, ScrollText, Building2, Mail, SlidersHorizontal } from 'lucide-react';
 import HomeWorldCard from '@/components/home/HomeWorldCard';
 
 const ADMIN_LINKS = [
+  { to: '/dalia-settings', icon: SlidersHorizontal, title: 'Dalia Settings', subtitle: 'התראות · WhatsApp · אימייל · חברות' },
   { to: '/user-management', icon: Users, title: 'משתמשים', subtitle: 'ניהול משתמשים והרשאות' },
   { to: '/permissions', icon: Shield, title: 'הרשאות', subtitle: 'תפקידים וגישה' },
-  { to: '/settings', icon: Settings, title: 'הגדרות', subtitle: 'הגדרות מערכת' },
+  { to: '/settings', icon: Settings, title: 'פרופיל אישי', subtitle: 'שם, טלפון, סיסמה' },
   { to: '/system-logs', icon: ScrollText, title: 'Audit / לוגים', subtitle: 'בקרה מערכתית' },
   { to: '/suppliers', icon: Building2, title: 'ספקים', subtitle: 'ניהול ספקים' },
   { to: '/email-templates', icon: Mail, title: 'תבניות מייל', subtitle: 'תקשורת מערכת' },

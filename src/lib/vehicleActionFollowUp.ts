@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { buildVehicleHubUrl } from '@/lib/entityNavContext';
 import { logVehicleEvent } from '@/lib/vehicleEventLog';
+import { getCompanyReminderOffsets } from '@/lib/companySettings';
 
 const PLATE_TAG = 'vplate:';
 const VEHICLE_ID_TAG = 'vid:';
@@ -100,8 +101,9 @@ export async function createTargetDateAlerts(params: {
   today.setHours(0, 0, 0, 0);
 
   const inserts: Record<string, unknown>[] = [];
+  const reminderDays = await getCompanyReminderOffsets(params.companyName);
 
-  for (const daysBefore of [30, 7, 1]) {
+  for (const daysBefore of reminderDays) {
     const alertDate = new Date(target);
     alertDate.setDate(alertDate.getDate() - daysBefore);
     alertDate.setHours(9, 0, 0, 0);

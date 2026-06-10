@@ -1,18 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, Save, Eye, Edit3, RotateCcw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import {
+  loadStoredEmailTemplates,
+  saveStoredEmailTemplate,
+  resetStoredEmailTemplate,
+  type StoredEmailTemplate,
+} from '@/lib/emailTemplateStorage';
 
-interface EmailTemplate {
-  id: string;
-  name: string;
-  subject: string;
-  body: string;
-  category: string;
-  variables: string[];
-}
-
-const DEFAULT_TEMPLATES: EmailTemplate[] = [
+const DEFAULT_TEMPLATES: StoredEmailTemplate[] = [
   {
     id: 'fault_new',
     name: 'תקלה חדשה',
@@ -57,7 +55,9 @@ const DEFAULT_TEMPLATES: EmailTemplate[] = [
 
 export default function EmailTemplates() {
   const { user } = useAuth();
-  const [templates, setTemplates] = useState<EmailTemplate[]>(DEFAULT_TEMPLATES);
+  const [templates, setTemplates] = useState<StoredEmailTemplate[]>(() =>
+    loadStoredEmailTemplates(DEFAULT_TEMPLATES),
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const isSuperAdmin = user?.role === 'super_admin';
@@ -71,24 +71,32 @@ export default function EmailTemplates() {
     );
   }
 
-  const updateTemplate = (id: string, field: keyof EmailTemplate, value: string) => {
+  const updateTemplate = (id: string, field: keyof StoredEmailTemplate, value: string) => {
     setTemplates(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
   };
 
-  const saveTemplate = (_id: string) => {
-    toast.success('התבנית נשמרה בהצלחה');
-    setEditingId(null);
+  const saveTemplate = (id: string) => {
+    const template = templates.find((t) => t.id === id);
+    if (!template) return;
+    try {
+      saveStoredEmailTemplate(template);
+      toast.success('התבנית נשמרה בהצלחה');
+      setEditingId(null);
+    } catch {
+      toast.error('שגיאה בשמירת התבנית');
+    }
   };
 
   const resetTemplate = (id: string) => {
     const original = DEFAULT_TEMPLATES.find(t => t.id === id);
     if (original) {
+      resetStoredEmailTemplate(id);
       setTemplates(prev => prev.map(t => t.id === id ? { ...original } : t));
       toast.success('התבנית אופסה לברירת מחדל');
     }
   };
 
-  const renderPreview = (template: EmailTemplate) => {
+  const renderPreview = (template: StoredEmailTemplate) => {
     const sampleValues: Record<string, string> = {
       manager_name: 'ישראל ישראלי',
       driver_name: 'משה כהן',
@@ -119,8 +127,14 @@ export default function EmailTemplates() {
 
   return (
     <div className="animate-fade-in space-y-6">
+      <Link to="/dalia-settings" className="text-primary text-sm font-medium inline-block">
+        ← חזרה ל-Dalia Settings
+      </Link>
       <h1 className="page-header flex items-center gap-3"><Mail size={28} /> תבניות מייל והודעות</h1>
       <p className="text-muted-foreground">ניהול תבניות הודעות אוטומטיות — ניתן לערוך נושא ותוכן. משתנים מסומנים ב-{`{{שם_משתנה}}`}</p>
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
+        <strong>Staging:</strong> תבניות נשמרות ב-localStorage בדפדפן. חיבור ל-DB ושליחה אמיתית (Resend) — בשלב הבא.
+      </div>
 
       {categories.map(cat => (
         <div key={cat} className="space-y-3">

@@ -24,6 +24,9 @@ import Settings from "@/pages/Settings";
 import AttachCar from "@/pages/AttachCar";
 import Alerts from "@/pages/Alerts";
 import NotificationLogPage from "@/pages/NotificationLogPage";
+import DaliaSettings from "@/pages/DaliaSettings";
+import WhatsAppSettingsPage from "@/pages/WhatsAppSettingsPage";
+import SystemLogs from "@/pages/SystemLogs";
 import HistoryPage from "@/pages/History";
 import ServiceOrders from "@/pages/ServiceOrders";
 import Expenses from "@/pages/Expenses";
@@ -163,6 +166,8 @@ function AppRoutes() {
         <Route path="/attach-car" element={<AttachCar />} />
         <Route path="/attach-customer" element={<AttachCar />} />
         <Route path="/alerts" element={<Alerts />} />
+        <Route path="/dalia-settings" element={<DaliaSettings />} />
+        <Route path="/dalia-settings/whatsapp" element={<WhatsAppSettingsPage />} />
         <Route path="/alerts/log" element={<NotificationLogPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/service-orders" element={<ServiceOrders />} />
@@ -186,7 +191,7 @@ function AppRoutes() {
         <Route path="/subscriptions" element={<Subscriptions />} />
         <Route path="/customer-docs" element={<CustomerDocs />} />
         <Route path="/emergency-settings" element={<EmergencySettings />} />
-        <Route path="/system-logs" element={<Alerts />} />
+        <Route path="/system-logs" element={<SystemLogs />} />
         <Route path="/service-order-history" element={<ServiceOrderHistory />} />
         <Route path="/project-summary" element={<ProjectSummary />} />
         <Route path="/completed-tasks" element={<CompletedTasks />} />

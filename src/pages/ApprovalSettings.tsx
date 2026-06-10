@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
@@ -134,8 +135,15 @@ export default function ApprovalSettings() {
 
   return (
     <div className="animate-fade-in space-y-4">
+      <Link to="/dalia-settings" className="text-primary text-sm font-medium inline-block">
+        ← חזרה ל-Dalia Settings
+      </Link>
+      <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm">
+        <strong>תור אישורים</strong> — לא הגדרות כללים. כללי אישור (למשל «אישור מנהל על נדרש לרכב חדש») מוגדרים ב-
+        <Link to="/alert-settings" className="text-primary underline mx-1">הגדרות חברות</Link>.
+      </div>
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="page-header flex items-center gap-3 !mb-0"><CheckSquare size={28} /> אישורים</h1>
+        <h1 className="page-header flex items-center gap-3 !mb-0"><CheckSquare size={28} /> תור אישורים</h1>
         {pendingCount > 0 && (
           <span className="px-3 py-1.5 rounded-full bg-amber-500 text-white text-sm font-bold animate-pulse">
             {pendingCount} ממתינים

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { clearCompanySettingsCache } from '@/lib/companySettings';
 import { Building2, Save, Search, ChevronDown, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -117,7 +119,10 @@ export default function AlertSettings() {
     }).eq('id', activeConfig.id);
     setSaving(false);
     if (error) toast.error('שגיאה בשמירה');
-    else toast.success(`הגדרות ${activeConfig.company_name} עודכנו בהצלחה`);
+    else {
+      clearCompanySettingsCache(activeConfig.company_name);
+      toast.success(`הגדרות ${activeConfig.company_name} עודכנו בהצלחה`);
+    }
   };
 
   const updateConfig = (field: string, value: any) => {
@@ -140,10 +145,22 @@ export default function AlertSettings() {
 
   return (
     <div className="animate-fade-in space-y-6">
+      <Link to="/dalia-settings" className="text-primary text-sm font-medium inline-block">
+        ← חזרה ל-Dalia Settings
+      </Link>
       <h1 className="page-header flex items-center gap-3">
         <Settings2 size={28} /> הגדרות חברות
       </h1>
       <p className="text-muted-foreground">בחר חברה כדי לערוך את ההגדרות שלה — התראות, אישורים, חובות הצמדה ומסמכים.</p>
+
+      <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm space-y-2">
+        <p className="font-bold">סטטוס יישום בהגדרות</p>
+        <ul className="text-muted-foreground space-y-1">
+          <li>✅ <strong>תזכורות אוטומטיות</strong> — מחובר ליצירת התראות מרכז רכב</li>
+          <li>✅ <strong>הסתרת כפתורים</strong> — מיושם בתפריט ניווט</li>
+          <li>⏳ <strong>חובת מסמכים / הצמדת נהג / אישור רכב</strong> — נשמר ב-DB, יישום בטפסים — בשלב הבא</li>
+        </ul>
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-12">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Phone, Plus, Trash2, Save, Settings, ArrowUp, ArrowDown, AlertTriangle, Car, Wrench, Shield, HelpCircle, Building2, Search, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -132,29 +133,34 @@ export default function EmergencySettings() {
     if (!settings) return;
     setSaving(true);
 
-    // Upsert company settings
+    let settingsError: Error | null = null;
+    let categoriesError: Error | null = null;
+
     if (settings.id) {
-      await supabase.from('company_settings').update({
+      const { error } = await supabase.from('company_settings').update({
         whatsapp_enabled: settings.whatsapp_enabled,
         whatsapp_phone: settings.whatsapp_phone,
         whatsapp_button_color: settings.whatsapp_button_color,
         whatsapp_button_text: settings.whatsapp_button_text,
         updated_at: new Date().toISOString(),
       }).eq('id', settings.id);
+      if (error) settingsError = error;
     } else {
-      await supabase.from('company_settings').insert({
+      const { error } = await supabase.from('company_settings').insert({
         company_name: settings.company_name,
         whatsapp_enabled: settings.whatsapp_enabled,
         whatsapp_phone: settings.whatsapp_phone,
         whatsapp_button_color: settings.whatsapp_button_color,
         whatsapp_button_text: settings.whatsapp_button_text,
       });
+      if (error) settingsError = error;
     }
 
-    // Save categories - delete and re-insert
-    await supabase.from('emergency_categories').delete().eq('company_name', selectedCompany);
-    if (categories.length > 0) {
-      await supabase.from('emergency_categories').insert(
+    const { error: deleteError } = await supabase.from('emergency_categories').delete().eq('company_name', selectedCompany);
+    if (deleteError) categoriesError = deleteError;
+
+    if (!categoriesError && categories.length > 0) {
+      const { error } = await supabase.from('emergency_categories').insert(
         categories.map((c, i) => ({
           company_name: selectedCompany,
           category_key: c.category_key,
@@ -167,9 +173,14 @@ export default function EmergencySettings() {
           is_active: c.is_active,
         }))
       );
+      if (error) categoriesError = error;
     }
 
     setSaving(false);
+    if (settingsError || categoriesError) {
+      toast.error(settingsError?.message || categoriesError?.message || 'שגיאה בשמירה');
+      return;
+    }
     toast.success(`הגדרות חירום עבור "${selectedCompany}" נשמרו בהצלחה`);
     loadData();
   };
@@ -229,7 +240,10 @@ export default function EmergencySettings() {
   const inputClass = "w-full p-3 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none text-sm";
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in space-y-4">
+      <Link to="/dalia-settings" className="text-primary text-sm font-medium inline-block">
+        ← חזרה ל-Dalia Settings
+      </Link>
       <h1 className="page-header flex items-center gap-3">
         <Phone size={28} />
         הגדרות שירותי חירום
