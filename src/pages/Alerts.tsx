@@ -5,14 +5,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { buildVehicleContextUrl, buildVehicleHubUrl } from '@/lib/entityNavContext';
 import { plateFromAlertText } from '@/lib/vehicleActionFollowUp';
-import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList } from 'lucide-react';
+import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, ClipboardList as LogIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 
 // ─── Alerts Types ───
 type AlertSeverity = 'critical' | 'warning' | 'info';
-type AlertCategory = 'test' | 'insurance' | 'comprehensive_insurance' | 'license' | 'fault' | 'service_order' | 'work_assignment';
+type AlertCategory =
+  | 'test'
+  | 'insurance'
+  | 'comprehensive_insurance'
+  | 'third_party_insurance'
+  | 'license'
+  | 'fault'
+  | 'service_order'
+  | 'work_assignment';
 
 interface AlertItem {
   id: string;
@@ -30,6 +38,7 @@ const categoryLabels: Record<AlertCategory, string> = {
   test: 'טסט',
   insurance: 'ביטוח חובה',
   comprehensive_insurance: 'ביטוח מקיף',
+  third_party_insurance: 'ביטוח צד ג׳',
   license: 'רישיון נהיגה',
   fault: 'תקלה דחופה',
   service_order: 'הזמנת שירות',
@@ -40,6 +49,7 @@ const categoryIcons: Record<AlertCategory, typeof Car> = {
   test: Car,
   insurance: ShieldAlert,
   comprehensive_insurance: ShieldAlert,
+  third_party_insurance: ShieldAlert,
   license: IdCard,
   fault: Wrench,
   service_order: Briefcase,
@@ -156,6 +166,21 @@ export default function Alerts() {
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
         if (compDays !== null && compDays <= 30) {
           allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id) });
+        }
+
+        const thirdExpiry = (v as { third_party_insurance_expiry?: string | null }).third_party_insurance_expiry;
+        const thirdDays = getDaysLeft(thirdExpiry ?? null);
+        if (thirdDays !== null && thirdDays <= 30) {
+          allAlerts.push({
+            id: `third-${v.id}`,
+            category: 'third_party_insurance',
+            severity: getSeverity(thirdDays),
+            title: thirdDays <= 0 ? 'ביטוח צד ג׳ פג!' : 'ביטוח צד ג׳ עומד לפוג',
+            subtitle: label,
+            daysLeft: thirdDays,
+            date: thirdExpiry ?? null,
+            link: buildVehicleHubUrl(v.id),
+          });
         }
       }
     }
@@ -312,7 +337,17 @@ export default function Alerts() {
     critical: alerts.filter(a => a.severity === 'critical').length,
     warning: alerts.filter(a => a.severity === 'warning').length,
   };
-  const categories: (AlertCategory | 'all')[] = ['all', 'test', 'insurance', 'comprehensive_insurance', 'license', 'fault', 'service_order', 'work_assignment'];
+  const categories: (AlertCategory | 'all')[] = [
+    'all',
+    'test',
+    'insurance',
+    'comprehensive_insurance',
+    'third_party_insurance',
+    'license',
+    'fault',
+    'service_order',
+    'work_assignment',
+  ];
 
   const filteredLogs = logs.filter(l => {
     if (logSearch && !l.user_name.includes(logSearch) && !l.details.includes(logSearch) && !l.vehicle_plate.includes(logSearch) && !l.entity_id.includes(logSearch)) return false;
@@ -330,7 +365,7 @@ export default function Alerts() {
       </h1>
 
       <Tabs defaultValue="alerts" dir="rtl">
-        <TabsList className="w-full grid grid-cols-2 h-12">
+        <TabsList className="w-full grid grid-cols-3 h-12">
           <TabsTrigger value="alerts" className="text-base font-bold gap-2">
             <Bell size={18} />
             התראות
@@ -339,6 +374,14 @@ export default function Alerts() {
                 {alertCounts.all}
               </span>
             )}
+          </TabsTrigger>
+          <TabsTrigger
+            value="log"
+            className="text-base font-bold gap-2"
+            onClick={() => navigate('/alerts/log?tab=active')}
+          >
+            <LogIcon size={18} />
+            התראות ושליחות
           </TabsTrigger>
           <TabsTrigger value="updates" className="text-base font-bold gap-2" disabled={!isSuperAdmin}>
             <ScrollText size={18} />

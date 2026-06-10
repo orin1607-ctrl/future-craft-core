@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
 
 interface DriverRow {
   id: string;
@@ -215,6 +216,11 @@ export default function Drivers() {
               </a>
             )}
           </div>
+          {user?.role !== 'driver' && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <NotificationsAndSendsButton driverId={d.id} driverName={d.full_name} />
+            </div>
+          )}
           {/* Archive button */}
           {user?.role !== 'driver' && d.status !== 'archived' && (
             <button onClick={async () => {

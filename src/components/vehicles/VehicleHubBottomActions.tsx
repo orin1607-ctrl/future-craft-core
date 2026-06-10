@@ -1,10 +1,12 @@
 import { Upload, Archive, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
+import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
 
 export default function VehicleHubBottomActions({
   plate,
   internalNumber,
+  vehicleId,
   isManager,
   isArchived,
   onImport,
@@ -14,6 +16,7 @@ export default function VehicleHubBottomActions({
 }: {
   plate: string;
   internalNumber: string;
+  vehicleId?: string;
   isManager: boolean;
   isArchived: boolean;
   onImport: () => void;
@@ -26,6 +29,11 @@ export default function VehicleHubBottomActions({
       <p className="text-xs text-muted-foreground text-center mb-2">
         פעולות קבועות · <VehiclePlateLine plate={plate} internal={internalNumber} />
       </p>
+      {isManager && vehicleId && (
+        <div className="mb-3">
+          <NotificationsAndSendsButton vehicleId={vehicleId} vehiclePlate={plate} />
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <Button
           type="button"

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { FileText, Image } from 'lucide-react';
 
 export function InfoField({ label, value }: { label: string; value: string }) {
@@ -30,21 +31,24 @@ export function ExpiryRow({
   date,
   daysLeft,
   colorCls,
+  trailing,
 }: {
   label: string;
   date: string | null;
   daysLeft: number | null;
   colorCls: string;
+  trailing?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
+    <div className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-border last:border-0">
       <span className="font-medium">{label}</span>
       {date ? (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <span className="text-sm text-muted-foreground">{new Date(date).toLocaleDateString('he-IL')}</span>
           <span className={`text-sm ${colorCls}`}>
             {daysLeft !== null && (daysLeft <= 0 ? 'פג תוקף!' : `${daysLeft} ימים`)}
           </span>
+          {trailing}
         </div>
       ) : (
         <span className="text-sm text-muted-foreground">לא הוגדר</span>

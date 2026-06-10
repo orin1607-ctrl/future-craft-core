@@ -23,6 +23,7 @@ import Roadmap from "@/pages/Roadmap";
 import Settings from "@/pages/Settings";
 import AttachCar from "@/pages/AttachCar";
 import Alerts from "@/pages/Alerts";
+import NotificationLogPage from "@/pages/NotificationLogPage";
 import HistoryPage from "@/pages/History";
 import ServiceOrders from "@/pages/ServiceOrders";
 import Expenses from "@/pages/Expenses";
@@ -162,6 +163,7 @@ function AppRoutes() {
         <Route path="/attach-car" element={<AttachCar />} />
         <Route path="/attach-customer" element={<AttachCar />} />
         <Route path="/alerts" element={<Alerts />} />
+        <Route path="/alerts/log" element={<NotificationLogPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/service-orders" element={<ServiceOrders />} />
         <Route path="/expenses" element={<Expenses />} />

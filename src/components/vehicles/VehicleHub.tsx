@@ -1014,6 +1014,7 @@ export default function VehicleHub({
       <VehicleHubBottomActions
         plate={v.license_plate}
         internalNumber={v.internal_number}
+        vehicleId={v.id}
         isManager={isManager}
         isArchived={v.status === 'archived'}
         previewMode={previewMode}
