@@ -56,6 +56,9 @@ import DevFleetManagerDriverFlow from "@/pages/DevFleetManagerDriverFlow";
 import DevFaultsScopedPreview from "@/pages/DevFaultsScopedPreview";
 import DevDocumentsScopedPreview from "@/pages/DevDocumentsScopedPreview";
 import DevStagingProofFlow from "@/pages/DevStagingProofFlow";
+import DevFleetOSModule1Preview from "@/pages/DevFleetOSModule1Preview";
+import DevFleetOSDashboardPreview from "@/pages/DevFleetOSDashboardPreview";
+import DevFleetOSSettingsPreview from "@/pages/DevFleetOSSettingsPreview";
 
 // New pages
 import Companions from "@/pages/Companions";
@@ -81,6 +84,7 @@ import PickupAppointments from "@/pages/PickupAppointments";
 import VehicleTracking from "@/pages/VehicleTracking";
 import AdminHome from "@/pages/AdminHome";
 import FleetManagers from "@/pages/FleetManagers";
+import FleetOSAIPage from "@/pages/FleetOSAIPage";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +119,9 @@ function AppRoutes() {
         <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
         <Route path="/dev/vehicles-list" element={<DevVehiclesListPreview />} />
         <Route path="/dev/fleet-manager-driver-flow" element={<DevFleetManagerDriverFlow />} />
+        <Route path="/dev/fleetos-module1" element={<DevFleetOSModule1Preview />} />
+        <Route path="/dev/fleetos-dashboard" element={<DevFleetOSDashboardPreview />} />
+        <Route path="/dev/fleetos-settings" element={<DevFleetOSSettingsPreview />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -141,10 +148,14 @@ function AppRoutes() {
       <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
       <Route path="/dev/vehicles-list" element={<DevVehiclesListPreview />} />
       <Route path="/dev/fleet-manager-driver-flow" element={<DevFleetManagerDriverFlow />} />
+      <Route path="/dev/fleetos-module1" element={<DevFleetOSModule1Preview />} />
+      <Route path="/dev/fleetos-dashboard" element={<DevFleetOSDashboardPreview />} />
+      <Route path="/dev/fleetos-settings" element={<DevFleetOSSettingsPreview />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
         <Route path="/vehicle-tracking" element={<VehicleTracking />} />
         <Route path="/admin-home" element={<AdminHome />} />
         <Route path="/fleet-managers" element={<FleetManagers />} />

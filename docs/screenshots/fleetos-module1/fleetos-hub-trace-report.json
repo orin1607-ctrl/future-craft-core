@@ -1,0 +1,97 @@
+{
+  "at": "2026-06-11T11:19:51.977Z",
+  "base": "http://localhost:8081",
+  "cases": [
+    {
+      "plate": "12-345-67",
+      "id": "preview-v1",
+      "label": "toyota",
+      "steps": [
+        "dashboard",
+        "fleetos",
+        "selected",
+        "hub"
+      ],
+      "sentVehicleId": "preview-v1",
+      "sentPlate": "12-345-67",
+      "finalUrl": "http://localhost:8081/dev/vehicle-card?vehicleId=preview-v1",
+      "toasts": [],
+      "badToast": false,
+      "hubShowsPlate": true,
+      "ok": true
+    },
+    {
+      "plate": "98-765-43",
+      "id": "preview-v2",
+      "label": "mazda",
+      "steps": [
+        "dashboard",
+        "fleetos",
+        "selected",
+        "hub"
+      ],
+      "sentVehicleId": "preview-v2",
+      "sentPlate": "98-765-43",
+      "finalUrl": "http://localhost:8081/dev/vehicle-card?vehicleId=preview-v2",
+      "toasts": [],
+      "badToast": false,
+      "hubShowsPlate": true,
+      "ok": true
+    },
+    {
+      "plate": "11-222-33",
+      "id": "preview-v3",
+      "label": "kia",
+      "steps": [
+        "dashboard",
+        "fleetos",
+        "selected",
+        "hub"
+      ],
+      "sentVehicleId": "preview-v3",
+      "sentPlate": "11-222-33",
+      "finalUrl": "http://localhost:8081/dev/vehicle-card?vehicleId=preview-v3",
+      "toasts": [],
+      "badToast": false,
+      "hubShowsPlate": true,
+      "ok": true
+    },
+    {
+      "plate": "77-888-99",
+      "id": "preview-v4",
+      "label": "hyundai",
+      "steps": [
+        "dashboard",
+        "fleetos",
+        "selected",
+        "hub"
+      ],
+      "sentVehicleId": "preview-v4",
+      "sentPlate": "77-888-99",
+      "finalUrl": "http://localhost:8081/dev/vehicle-card?vehicleId=preview-v4",
+      "toasts": [],
+      "badToast": false,
+      "hubShowsPlate": true,
+      "ok": true
+    },
+    {
+      "plate": "55-444-22",
+      "id": "preview-v5",
+      "label": "skoda",
+      "steps": [
+        "dashboard",
+        "fleetos",
+        "selected",
+        "hub"
+      ],
+      "sentVehicleId": "preview-v5",
+      "sentPlate": "55-444-22",
+      "finalUrl": "http://localhost:8081/dev/vehicle-card?vehicleId=preview-v5",
+      "toasts": [],
+      "badToast": false,
+      "hubShowsPlate": true,
+      "ok": true
+    }
+  ],
+  "allOk": true
+}
