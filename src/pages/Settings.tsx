@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, User, Building2, Phone, Mail, Moon, Sun, LogOut, Shield, Save, ChevronLeft, Download, Database, FolderDown, BookOpen, Package } from 'lucide-react';
+import { Settings as SettingsIcon, User, Building2, Phone, Mail, Moon, Sun, LogOut, Shield, Save, ChevronLeft, Download, Database, FolderDown, BookOpen, Package, Radar } from 'lucide-react';
+import FleetOSDashboardPreferences from '@/modules/fleetos/FleetOSDashboardPreferences';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -121,6 +122,19 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* FleetOS alert slots — fleet managers & super_admin */}
+      {(user?.role === 'fleet_manager' || user?.role === 'super_admin') && user?.id && (
+        <div className="card-elevated mb-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <Radar size={24} className="text-primary" />
+            </div>
+            <p className="text-lg font-bold">FleetOS AI</p>
+          </div>
+          <FleetOSDashboardPreferences userId={user.id} />
+        </div>
+      )}
 
       {/* Theme */}
       <div className="card-elevated mb-4">

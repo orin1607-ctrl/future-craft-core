@@ -65,7 +65,9 @@ function DashTile({
     >
       <p className="text-[10px] text-muted-foreground leading-snug mb-1 flex items-center justify-between gap-1">
         {label}
-        {interactive && <ChevronLeft size={14} className={warn ? 'text-destructive' : 'text-primary'} shrink-0 />}
+        {interactive && (
+          <ChevronLeft size={14} className={`shrink-0 ${warn ? 'text-destructive' : 'text-primary'}`} />
+        )}
       </p>
       <p className={`text-sm font-bold leading-snug ${warn ? 'text-destructive' : ''}`}>{value}</p>
       {interactive && (

@@ -1,0 +1,75 @@
+{
+  "at": "2026-06-11T10:57:27.349Z",
+  "base": "http://localhost:8081",
+  "cases": [
+    {
+      "plate": "12-345-67",
+      "expectedId": "preview-v1",
+      "label": "toyota",
+      "toasts": [],
+      "buttonVehicleId": "preview-v1",
+      "buttonPlate": "12-345-67",
+      "badToast": false,
+      "url": "http://localhost:8081/dev/vehicle-card?vehicleId=preview-v1",
+      "urlHasId": true,
+      "hubShowsPlate": true,
+      "ok": true
+    },
+    {
+      "plate": "98-765-43",
+      "expectedId": "preview-v2",
+      "label": "mazda-fault",
+      "toasts": [],
+      "buttonVehicleId": "preview-v2",
+      "buttonPlate": "98-765-43",
+      "badToast": false,
+      "url": "http://localhost:8081/dev/vehicle-card?vehicleId=preview-v2",
+      "urlHasId": true,
+      "hubShowsPlate": true,
+      "ok": true
+    },
+    {
+      "plate": "11-222-33",
+      "expectedId": "preview-v3",
+      "label": "kia-garage",
+      "toasts": [],
+      "buttonVehicleId": "preview-v3",
+      "buttonPlate": "11-222-33",
+      "badToast": false,
+      "url": "http://localhost:8081/dev/vehicle-card?vehicleId=preview-v3",
+      "urlHasId": true,
+      "hubShowsPlate": true,
+      "ok": true
+    },
+    {
+      "plate": "77-888-99",
+      "expectedId": "preview-v4",
+      "label": "hyundai-offline",
+      "toasts": [],
+      "buttonVehicleId": "preview-v4",
+      "buttonPlate": "77-888-99",
+      "badToast": false,
+      "url": "http://localhost:8081/dev/vehicle-card?vehicleId=preview-v4",
+      "urlHasId": true,
+      "hubShowsPlate": true,
+      "ok": true
+    },
+    {
+      "plate": "55-444-22",
+      "expectedId": "preview-v5",
+      "label": "skoda-no-driver",
+      "toasts": [],
+      "buttonVehicleId": "preview-v5",
+      "buttonPlate": "55-444-22",
+      "badToast": false,
+      "url": "http://localhost:8081/dev/vehicle-card?vehicleId=preview-v5",
+      "urlHasId": true,
+      "hubShowsPlate": true,
+      "ok": true
+    }
+  ],
+  "consoleErrors": [],
+  "allOk": true,
+  "noBadToastAnywhere": true,
+  "consoleClean": true
+}

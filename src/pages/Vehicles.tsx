@@ -1,11 +1,16 @@
-﻿import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+﻿import { useState, useEffect, useRef } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Car, Search, Plus, Download, Upload } from 'lucide-react';
 import { logVehicleEvent } from '@/lib/vehicleEventLog';
 import { exportToCsv } from '@/utils/exportCsv';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
+import {
+  clearFleetOSHubNavigation,
+  clearFleetOSHubPending,
+  peekFleetOSHubVehicle,
+} from '@/lib/entityNavContext';
 import { toast } from 'sonner';
 import CallCustomerButton from '@/components/voice/CallCustomerButton';
 import VehicleHub from '@/components/vehicles/VehicleHub';
@@ -57,6 +62,7 @@ export default function Vehicles() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [search, setSearch] = useState('');
@@ -67,6 +73,7 @@ export default function Vehicles() {
   const [editVehicle, setEditVehicle] = useState<VehicleRow | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [loading, setLoading] = useState(true);
+  const hubOpenedForRef = useRef<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -84,13 +91,84 @@ export default function Vehicles() {
   useEffect(() => {
     const vid = searchParams.get('vehicleId');
     const view = searchParams.get('view');
-    if (!vid || view !== 'hub' || loading) return;
-    const found = vehicles.find((v) => v.id === vid);
-    if (found) {
-      setSelectedVehicle(found);
-      setViewMode('detail');
+    if (!vid || view !== 'hub') {
+      hubOpenedForRef.current = null;
+      return;
     }
-  }, [searchParams, vehicles, loading]);
+
+    const routeState = location.state as {
+      fleetOSHubVehicle?: VehicleRow;
+      fleetOSFrom?: boolean;
+    } | null;
+    const stateRow = routeState?.fleetOSHubVehicle;
+    const stashedRow = peekFleetOSHubVehicle(vid) as VehicleRow | null;
+    const inList = vehicles.find((v) => v.id === vid);
+
+    console.info('[Vehicles hub-open]', {
+      vehicleId: vid,
+      fleetOSFrom: !!routeState?.fleetOSFrom,
+      hasRouterState: stateRow?.id === vid,
+      hasSessionStorage: stashedRow?.id === vid,
+      inList: !!inList,
+      loading,
+      alreadyOpened: hubOpenedForRef.current === vid,
+    });
+
+    const openHub = (row: VehicleRow, enrichFromDb = false) => {
+      hubOpenedForRef.current = vid;
+      setSelectedVehicle(row);
+      setViewMode('detail');
+      clearFleetOSHubPending();
+      clearFleetOSHubNavigation();
+
+      if (enrichFromDb) {
+        void (async () => {
+          const { data } = await applyCompanyScope(
+            supabase.from('vehicles').select('*').eq('id', vid),
+            companyFilter,
+          ).maybeSingle();
+          if (data) setSelectedVehicle(data as VehicleRow);
+        })();
+      }
+    };
+
+    if (stateRow?.id === vid) {
+      openHub(stateRow, !!routeState?.fleetOSFrom);
+      return;
+    }
+    if (stashedRow?.id === vid) {
+      openHub(stashedRow, true);
+      return;
+    }
+    if (inList) {
+      openHub(inList);
+      return;
+    }
+    if (hubOpenedForRef.current === vid) return;
+    if (loading) return;
+
+    let cancelled = false;
+    void (async () => {
+      console.info('[Vehicles hub-open] fetch-fallback', { vehicleId: vid });
+      const { data, error } = await applyCompanyScope(
+        supabase.from('vehicles').select('*').eq('id', vid),
+        companyFilter,
+      ).maybeSingle();
+      if (cancelled) return;
+      console.info('[Vehicles hub-open] fetch-result', {
+        vehicleId: vid,
+        ok: !!data,
+        error: error?.message ?? null,
+      });
+      if (data) {
+        openHub(data as VehicleRow);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, vehicles, loading, location.state, companyFilter]);
 
   const getDriverName = (id: string | null) => {
     if (!id) return 'לא משויך';

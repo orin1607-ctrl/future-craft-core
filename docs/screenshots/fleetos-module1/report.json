@@ -1,0 +1,35 @@
+{
+  "at": "2026-06-11T10:29:51.361Z",
+  "base": "http://localhost:8081",
+  "out": "C:\\Users\\MY-PC\\Desktop\\future-craft-core\\docs\\screenshots\\fleetos-module1",
+  "mode": "preview",
+  "auth": "none",
+  "shots": [
+    "03-dashboard-fleetos-card-desktop.png",
+    "01-fleetos-desktop.png",
+    "01b-fleetos-filter-desktop.png",
+    "04-settings-fleetos.png",
+    "06-selected-vehicle-mazda.png",
+    "05-vehicle-hub-from-fleetos-mazda.png",
+    "06-selected-vehicle-kia.png",
+    "05-vehicle-hub-from-fleetos-kia.png",
+    "02-fleetos-mobile.png",
+    "03b-dashboard-fleetos-card-mobile.png"
+  ],
+  "checks": {
+    "filter": "ok",
+    "hubPlate_mazda": "ok",
+    "hubVehicleId_mazda": "preview-v2",
+    "hubPlate_kia": "ok",
+    "hubVehicleId_kia": "preview-v3",
+    "vehicleHubNav": "ok",
+    "consoleErrors": [
+      "Warning: Received `%s` for a non-boolean attribute `%s`.\n\nIf you want to write it to the DOM, pass a string instead: %s=\"%s\" or %s={value.toString()}.%s true shrink-0 shrink-0 true shrink-0 \n    at svg\n    at http://localhost:8081/node_modules/.vite/deps/lucide-react.js?v=dbd9191d:1583:5\n    at http://localhost:8081/node_modules/.vite/deps/lucide-react.js?v=dbd9191d:1615:8\n    at p\n    at button\n    at DashTile (http://localhost:8081/src/components/vehicles/VehicleDashboard.tsx:34:21)\n    at div\n    at div\n    at VehicleDashboard (http://localhost:8081/src/components/vehicles/VehicleDashboard.tsx:131:53)\n    at div\n    at VehicleHub (http://localhost:8081/src/components/vehicles/VehicleHub.tsx:176:47)\n    at div\n    at div\n    at DevVehicleHubPreview (http://localhost:8081/src/pages/DevVehicleHubPreview.tsx:45:28)\n    at RenderedRoute (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=dbd9191d:4088:5)\n    at Routes (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=dbd9191d:4558:5)\n    at AppRoutes (http://localhost:8081/src/App.tsx:110:42)\n    at CompanyScopeProvider (http://localhost:8081/src/contexts/CompanyScopeContext.tsx:36:40)\n    at AuthProvider (http://localhost:8081/src/contexts/AuthContext.tsx:56:32)\n    at Router (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=dbd9191d:4501:15)\n    at BrowserRouter (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=dbd9191d:5247:5)\n    at Provider (http://localhost:8081/node_modules/.vite/deps/chunk-AGOQHPII.js?v=dbd9191d:38:15)\n    at TooltipProvider (http://localhost:8081/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=dbd9191d:62:5)\n    at ThemeProvider (http://localhost:8081/src/contexts/ThemeContext.tsx:31:33)\n    at QueryClientProvider (http://localhost:8081/node_modules/.vite/deps/@tanstack_react-query.js?v=dbd9191d:2934:3)\n    at App",
+      "Warning: Received `%s` for a non-boolean attribute `%s`.\n\nIf you want to write it to the DOM, pass a string instead: %s=\"%s\" or %s={value.toString()}.%s true shrink-0 shrink-0 true shrink-0 \n    at svg\n    at http://localhost:8081/node_modules/.vite/deps/lucide-react.js?v=dbd9191d:1583:5\n    at http://localhost:8081/node_modules/.vite/deps/lucide-react.js?v=dbd9191d:1615:8\n    at p\n    at button\n    at DashTile (http://localhost:8081/src/components/vehicles/VehicleDashboard.tsx:34:21)\n    at div\n    at div\n    at VehicleDashboard (http://localhost:8081/src/components/vehicles/VehicleDashboard.tsx:131:53)\n    at div\n    at VehicleHub (http://localhost:8081/src/components/vehicles/VehicleHub.tsx:176:47)\n    at div\n    at div\n    at DevVehicleHubPreview (http://localhost:8081/src/pages/DevVehicleHubPreview.tsx:45:28)\n    at RenderedRoute (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=dbd9191d:4088:5)\n    at Routes (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=dbd9191d:4558:5)\n    at AppRoutes (http://localhost:8081/src/App.tsx:110:42)\n    at CompanyScopeProvider (http://localhost:8081/src/contexts/CompanyScopeContext.tsx:36:40)\n    at AuthProvider (http://localhost:8081/src/contexts/AuthContext.tsx:56:32)\n    at Router (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=dbd9191d:4501:15)\n    at BrowserRouter (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=dbd9191d:5247:5)\n    at Provider (http://localhost:8081/node_modules/.vite/deps/chunk-AGOQHPII.js?v=dbd9191d:38:15)\n    at TooltipProvider (http://localhost:8081/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=dbd9191d:62:5)\n    at ThemeProvider (http://localhost:8081/src/contexts/ThemeContext.tsx:31:33)\n    at QueryClientProvider (http://localhost:8081/node_modules/.vite/deps/@tanstack_react-query.js?v=dbd9191d:2934:3)\n    at App"
+    ],
+    "noFatalErrors": false,
+    "build": "ok"
+  },
+  "authSkip": "no TEST_EMAIL/TEST_PASSWORD — using /dev/fleetos-* preview",
+  "note": "Preview UI — same FleetOS components as production. Set TEST_EMAIL + TEST_PASSWORD for live staging proof."
+}
