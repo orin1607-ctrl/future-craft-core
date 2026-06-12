@@ -11,7 +11,7 @@ import FleetOSPinnedAlerts from './FleetOSPinnedAlerts';
 import FleetOSMapSection from './FleetOSMapSection';
 import FleetOSFilterBar, { EMPTY_FLEETOS_FILTERS, type FleetOSFilters } from './FleetOSFilterBar';
 import FleetOSSelectedVehicleCard from './FleetOSSelectedVehicleCard';
-import FleetOSBottomNav from './FleetOSBottomNav';
+import FleetOSBottomNav, { type FleetOSNavModule } from './FleetOSBottomNav';
 import {
   applyFleetOSFilters,
   computeFleetOSKpisFromRows,
@@ -45,6 +45,7 @@ export interface FleetStatusModuleProps {
   onRefresh?: () => void;
   onOpenVehicleHub: (vehicle: FleetOSVehicleRow) => void | Promise<void>;
   companyOptions?: string[];
+  onModuleChange?: (module: FleetOSNavModule) => void;
 }
 
 export default function FleetStatusModule({
@@ -57,6 +58,7 @@ export default function FleetStatusModule({
   onRefresh,
   onOpenVehicleHub,
   companyOptions,
+  onModuleChange,
 }: FleetStatusModuleProps) {
   const visibility = getVisibilityForRole(userRole);
   const [draftFilters, setDraftFilters] = useState<FleetOSFilters>(EMPTY_FLEETOS_FILTERS);
@@ -269,7 +271,7 @@ export default function FleetStatusModule({
         </div>
       </div>
 
-      <FleetOSBottomNav active="status" />
+      <FleetOSBottomNav active="status" onModuleChange={onModuleChange} />
     </div>
   );
 }

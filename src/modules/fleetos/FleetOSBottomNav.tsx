@@ -11,9 +11,19 @@ const TABS: { id: FleetOSNavModule; label: string; icon: typeof Radar }[] = [
   { id: 'ai', label: 'AI ותובנות', icon: Sparkles },
 ];
 
-export default function FleetOSBottomNav({ active = 'status' }: { active?: FleetOSNavModule }) {
+export default function FleetOSBottomNav({
+  active = 'status',
+  onModuleChange,
+}: {
+  active?: FleetOSNavModule;
+  onModuleChange?: (id: FleetOSNavModule) => void;
+}) {
   const onTab = (id: FleetOSNavModule) => {
     if (id === active) return;
+    if (onModuleChange) {
+      onModuleChange(id);
+      return;
+    }
     toast.info('המודול בבנייה');
   };
 
