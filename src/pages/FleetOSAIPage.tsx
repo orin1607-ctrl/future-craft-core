@@ -39,6 +39,7 @@ export default function FleetOSAIPage() {
 
   const activeTab = parseTab(searchParams.get('tab'));
   const vehicleContext = useMemo(() => readVehicleContext(searchParams), [searchParams]);
+  const [statusSelectedId, setStatusSelectedId] = useState<string | null>(null);
 
   const isSuperAdmin = user?.role === 'super_admin';
   const companyFilter = isSuperAdmin ? selectedCompany : user?.company_name || null;
@@ -65,6 +66,32 @@ export default function FleetOSAIPage() {
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    const vid = searchParams.get('vehicleId');
+    if (vid && !vehicleContext.fromHub) {
+      setStatusSelectedId(vid);
+    }
+  }, [searchParams, vehicleContext.fromHub]);
+
+  const syncFleetVehicleToUrl = useCallback(
+    (vehicleId: string, plate: string, tab: FleetOSNavModule = activeTab) => {
+      const next = new URLSearchParams(searchParams);
+      next.set('vehicleId', vehicleId);
+      next.set('plate', plate);
+      next.delete('context');
+      next.delete('company');
+      next.delete('internal');
+      next.delete('driver');
+      if (tab === 'fuel') {
+        next.set('tab', 'fuel');
+      } else if (tab === 'status') {
+        next.delete('tab');
+      }
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams, activeTab],
+  );
+
   const onModuleChange = useCallback(
     (module: FleetOSNavModule) => {
       if (module === 'alerts' || module === 'ai') {
@@ -77,9 +104,38 @@ export default function FleetOSAIPage() {
       } else {
         next.set('tab', module);
       }
+      if (module === 'fuel' && !vehicleContext.fromHub) {
+        const selected = vehicles.find((v) => v.id === statusSelectedId);
+        if (selected) {
+          next.set('vehicleId', selected.id);
+          next.set('plate', selected.plate);
+          next.delete('context');
+          next.delete('company');
+          next.delete('internal');
+          next.delete('driver');
+        }
+      }
       setSearchParams(next, { replace: true });
     },
-    [searchParams, setSearchParams],
+    [searchParams, setSearchParams, statusSelectedId, vehicles, vehicleContext.fromHub],
+  );
+
+  const onFuelVehicleSelect = useCallback(
+    (vehicleId: string, plate: string) => {
+      setStatusSelectedId(vehicleId);
+      syncFleetVehicleToUrl(vehicleId, plate, 'fuel');
+    },
+    [syncFleetVehicleToUrl],
+  );
+
+  const onStatusVehicleSelect = useCallback(
+    (vehicleId: string | null) => {
+      setStatusSelectedId(vehicleId);
+      if (!vehicleId || vehicleContext.fromHub) return;
+      const v = vehicles.find((x) => x.id === vehicleId);
+      if (v) syncFleetVehicleToUrl(v.id, v.plate, activeTab === 'fuel' ? 'fuel' : 'status');
+    },
+    [vehicles, syncFleetVehicleToUrl, vehicleContext.fromHub, activeTab],
   );
 
   if (!canAccessFleetOS(user?.role)) {
@@ -98,6 +154,7 @@ export default function FleetOSAIPage() {
         navigate={navigate}
         onModuleChange={onModuleChange}
         vehicleContext={vehicleContext}
+        onVehicleSelect={vehicleContext.fromHub ? undefined : onFuelVehicleSelect}
       />
     );
   }
@@ -114,6 +171,8 @@ export default function FleetOSAIPage() {
       onOpenVehicleHub={(vehicle) => openVehicleHubFromFleetOS(vehicle, navigate, companyFilter)}
       companyOptions={companyNames}
       onModuleChange={onModuleChange}
+      selectedVehicleId={statusSelectedId}
+      onSelectedVehicleIdChange={onStatusVehicleSelect}
     />
   );
 }

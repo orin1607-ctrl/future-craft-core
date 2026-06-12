@@ -268,26 +268,27 @@ export function buildDriverDashboardUrl(ctx: { driverId: string; driverName?: st
 
 
 
-export function buildVehicleContextUrl(
+export type VehicleContextParams = {
+  plate: string;
+  vehicleId?: string;
+  action?: string;
+  tab?: string;
+  company?: string;
+  internal?: string;
+  driver?: string;
+};
 
-  path: string,
-
-  ctx: { plate: string; vehicleId?: string; action?: string },
-
-): string {
-
+export function buildVehicleContextUrl(path: string, ctx: VehicleContextParams): string {
   const q = new URLSearchParams();
-
   q.set('plate', ctx.plate);
-
   if (ctx.vehicleId) q.set('vehicleId', ctx.vehicleId);
-
   if (ctx.action) q.set('action', ctx.action);
-
+  if (ctx.tab) q.set('tab', ctx.tab);
+  if (ctx.company) q.set('company', ctx.company);
+  if (ctx.internal) q.set('internal', ctx.internal);
+  if (ctx.driver) q.set('driver', ctx.driver);
   q.set('context', 'vehicle');
-
   return `${path}?${q.toString()}`;
-
 }
 
 
@@ -315,17 +316,14 @@ export function buildDriverContextUrl(
 
 
 export function readVehicleContext(searchParams: URLSearchParams) {
-
   const plate = searchParams.get('plate') || '';
-
   const vehicleId = searchParams.get('vehicleId') || '';
-
   const action = searchParams.get('action') || '';
-
-  const locked = searchParams.get('context') === 'vehicle' || !!plate;
-
-  return { plate, vehicleId, action, locked };
-
+  const company = searchParams.get('company') || '';
+  const internal = searchParams.get('internal') || '';
+  const driver = searchParams.get('driver') || '';
+  const locked = searchParams.get('context') === 'vehicle';
+  return { plate, vehicleId, action, company, internal, driver, locked, fromHub: locked };
 }
 
 
@@ -344,7 +342,17 @@ export function readDriverContext(searchParams: URLSearchParams) {
 
 
 
-const CONTEXT_KEYS = ['plate', 'vehicleId', 'action', 'context', 'driverId', 'driverName'];
+const CONTEXT_KEYS = [
+  'plate',
+  'vehicleId',
+  'action',
+  'context',
+  'driverId',
+  'driverName',
+  'company',
+  'internal',
+  'driver',
+];
 
 
 

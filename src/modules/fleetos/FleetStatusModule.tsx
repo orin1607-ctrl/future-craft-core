@@ -46,6 +46,8 @@ export interface FleetStatusModuleProps {
   onOpenVehicleHub: (vehicle: FleetOSVehicleRow) => void | Promise<void>;
   companyOptions?: string[];
   onModuleChange?: (module: FleetOSNavModule) => void;
+  selectedVehicleId?: string | null;
+  onSelectedVehicleIdChange?: (vehicleId: string | null) => void;
 }
 
 export default function FleetStatusModule({
@@ -59,14 +61,19 @@ export default function FleetStatusModule({
   onOpenVehicleHub,
   companyOptions,
   onModuleChange,
+  selectedVehicleId = null,
+  onSelectedVehicleIdChange,
 }: FleetStatusModuleProps) {
   const visibility = getVisibilityForRole(userRole);
   const [draftFilters, setDraftFilters] = useState<FleetOSFilters>(EMPTY_FLEETOS_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<FleetOSFilters>(EMPTY_FLEETOS_FILTERS);
   const [listOpen, setListOpen] = useState(false);
-  const [selected, setSelected] = useState<FleetOSVehicleRow | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [hubOpening, setHubOpening] = useState(false);
+  const selected = useMemo(
+    () => (selectedVehicleId ? vehicles.find((v) => v.id === selectedVehicleId) || null : null),
+    [selectedVehicleId, vehicles],
+  );
   const selectedRef = useRef<FleetOSVehicleRow | null>(null);
   selectedRef.current = selected;
 
@@ -90,9 +97,12 @@ export default function FleetStatusModule({
     [alerts, filtered, selected, vehicles.length],
   );
 
-  const pickVehicle = useCallback((v: FleetOSVehicleRow) => {
-    setSelected(v);
-  }, []);
+  const pickVehicle = useCallback(
+    (v: FleetOSVehicleRow) => {
+      onSelectedVehicleIdChange?.(v.id);
+    },
+    [onSelectedVehicleIdChange],
+  );
 
   const applySearch = useCallback(() => {
     setAppliedFilters({ ...draftFilters });
@@ -104,12 +114,14 @@ export default function FleetStatusModule({
   }, []);
 
   useEffect(() => {
-    setSelected((prev) => {
-      if (filtered.length === 0) return null;
-      if (prev && filtered.some((v) => v.id === prev.id)) return prev;
-      return filtered[0];
-    });
-  }, [filtered]);
+    if (!onSelectedVehicleIdChange) return;
+    if (filtered.length === 0) {
+      onSelectedVehicleIdChange(null);
+      return;
+    }
+    if (selectedVehicleId && filtered.some((v) => v.id === selectedVehicleId)) return;
+    onSelectedVehicleIdChange(filtered[0].id);
+  }, [filtered, selectedVehicleId, onSelectedVehicleIdChange]);
 
   const handleOpenSelectedHub = useCallback(() => {
     const row = selectedRef.current;

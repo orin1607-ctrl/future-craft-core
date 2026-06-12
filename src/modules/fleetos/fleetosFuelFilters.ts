@@ -1,9 +1,10 @@
 import { normalizePlate, plateMatches } from '@/lib/entityNavContext';
-import type {
-  FleetOSFuelAnomaly,
-  FleetOSFuelFilters,
-  FleetOSChargeRow,
-  FleetOSFuelRow,
+import {
+  EMPTY_FUEL_FILTERS,
+  type FleetOSFuelAnomaly,
+  type FleetOSFuelFilters,
+  type FleetOSChargeRow,
+  type FleetOSFuelRow,
 } from './fleetosFuelTypes';
 
 function includesFold(haystack: string | undefined, needle: string): boolean {
@@ -119,4 +120,41 @@ export function filtersFromVehicleContext(ctx: {
   if (ctx.internal) patch.internal = ctx.internal;
   if (ctx.driver) patch.driver = ctx.driver;
   return patch;
+}
+
+export function mergeVehicleScopeWithAdvanced(
+  scope: Partial<FleetOSFuelFilters>,
+  advanced: FleetOSFuelFilters,
+): FleetOSFuelFilters {
+  return {
+    ...EMPTY_FUEL_FILTERS,
+    ...scope,
+    customer: advanced.customer || scope.customer || '',
+    energy_type: advanced.energy_type,
+    station: advanced.station,
+    location: advanced.location,
+    date_from: advanced.date_from,
+    date_to: advanced.date_to,
+    month: advanced.month,
+    year: advanced.year,
+    time_from: advanced.time_from,
+    time_to: advanced.time_to,
+    status: advanced.status,
+  };
+}
+
+export function vehicleScopeFromRow(v: {
+  id: string;
+  plate: string;
+  internal_number?: string;
+  company_name?: string;
+  driver_name?: string;
+}): Partial<FleetOSFuelFilters> {
+  return filtersFromVehicleContext({
+    plate: v.plate,
+    vehicleId: v.id,
+    company: v.company_name,
+    internal: v.internal_number,
+    driver: v.driver_name,
+  });
 }

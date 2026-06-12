@@ -19,8 +19,10 @@ import {
   AlertTriangle,
   Wrench,
   Briefcase,
+  Fuel,
 } from 'lucide-react';
-import { buildVehicleContextUrl } from '@/lib/entityNavContext';
+import { buildVehicleContextUrl, buildVehicleHubUrl, markFleetOSHubNavigation } from '@/lib/entityNavContext';
+import { canAccessFleetOS } from '@/modules/fleetos/fleetosRoleMap';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
@@ -217,7 +219,16 @@ export default function VehicleHub({
   const driverName = getDriverName(v.assigned_driver_id);
   const plateQ = encodeURIComponent(v.license_plate);
 
-  const vehicleScopedScreens = [
+  const vehicleScopedScreens: {
+    label: string;
+    path: string;
+    icon: typeof ClipboardCheck;
+    action?: 'new';
+    fleetFuel?: boolean;
+  }[] = [
+    ...(canAccessFleetOS(user?.role)
+      ? [{ label: 'דלק וטעינה', path: '/fleetos-ai', icon: Fuel, fleetFuel: true }]
+      : []),
     { label: 'ביקורת רכב', path: '/vehicle-inspections', icon: ClipboardCheck },
     { label: 'בדיקת תלת / חצי', path: '/private-vehicle-inspection', icon: ClipboardCheck },
     { label: 'ליקויים', path: '/vehicle-tasks', icon: AlertTriangle },
@@ -234,21 +245,35 @@ export default function VehicleHub({
         <ExternalLink size={18} /> מסכים מלאים — רכב זה בלבד
       </h2>
       <div className="grid grid-cols-2 gap-2">
-        {vehicleScopedScreens.map(({ label, path, icon: Icon, action }) => (
+        {vehicleScopedScreens.map(({ label, path, icon: Icon, action, fleetFuel }) => (
           <Button
             key={path + label}
             type="button"
             variant="outline"
             className="h-auto min-h-[72px] py-3 flex flex-col gap-1.5 text-sm font-medium"
-            onClick={() =>
+            onClick={() => {
+              if (fleetFuel) {
+                markFleetOSHubNavigation(v.id, buildVehicleHubUrl(v.id));
+                navigate(
+                  buildVehicleContextUrl(path, {
+                    plate: v.license_plate,
+                    vehicleId: v.id,
+                    tab: 'fuel',
+                    company: v.company_name || undefined,
+                    internal: v.internal_number || undefined,
+                    driver: driverName && driverName !== 'ללא נהג' ? driverName : undefined,
+                  }),
+                );
+                return;
+              }
               navigate(
                 buildVehicleContextUrl(path, {
                   plate: v.license_plate,
                   vehicleId: v.id,
                   action,
                 }),
-              )
-            }
+              );
+            }}
           >
             <Icon size={18} />
             {label}
