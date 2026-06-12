@@ -13,6 +13,13 @@ import FleetOSFilterBar, { EMPTY_FLEETOS_FILTERS, type FleetOSFilters } from './
 import FleetOSSelectedVehicleCard from './FleetOSSelectedVehicleCard';
 import FleetOSBottomNav from './FleetOSBottomNav';
 import {
+  applyFleetOSFilters,
+  computeFleetOSKpisFromRows,
+  filterFleetOSAlerts,
+  hasActiveFleetOSFilters,
+  STATUS_LABEL,
+} from './fleetosFilters';
+import {
   DEFAULT_PREFS,
   getVisibilityForRole,
   type DaliaRole,
@@ -21,32 +28,12 @@ import {
 } from './fleetosTypes';
 import type { FleetOSAlertRow, FleetOSVehicleRow } from './fleetosData';
 
-const STATUS_LABEL: Record<FleetOSVehicleRow['status'], string> = {
-  driving: 'בנסיעה',
-  stopped: 'עצור',
-  fault: 'תקלה',
-  offline: 'לא מחובר',
-};
-
 const STATUS_DOT: Record<FleetOSVehicleRow['status'], string> = {
   driving: 'bg-success',
   stopped: 'bg-muted-foreground',
   fault: 'bg-destructive',
   offline: 'bg-warning',
 };
-
-function applyFilters(vehicles: FleetOSVehicleRow[], f: FleetOSFilters): FleetOSVehicleRow[] {
-  return vehicles.filter((v) => {
-    if (f.company && v.company_name !== f.company) return false;
-    if (f.plate && !v.plate.includes(f.plate.trim())) return false;
-    if (f.internal && !(v.internal_number || '').includes(f.internal.trim())) return false;
-    if (f.driver && !(v.driver_name || '').includes(f.driver.trim())) return false;
-    if (f.make && v.make !== f.make) return false;
-    if (f.model && v.model !== f.model) return false;
-    if (f.status && v.status_text !== f.status) return false;
-    return true;
-  });
-}
 
 export interface FleetStatusModuleProps {
   userRole: DaliaRole;
@@ -72,7 +59,8 @@ export default function FleetStatusModule({
   companyOptions,
 }: FleetStatusModuleProps) {
   const visibility = getVisibilityForRole(userRole);
-  const [filters, setFilters] = useState<FleetOSFilters>(EMPTY_FLEETOS_FILTERS);
+  const [draftFilters, setDraftFilters] = useState<FleetOSFilters>(EMPTY_FLEETOS_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<FleetOSFilters>(EMPTY_FLEETOS_FILTERS);
   const [listOpen, setListOpen] = useState(false);
   const [selected, setSelected] = useState<FleetOSVehicleRow | null>(null);
   const [spinning, setSpinning] = useState(false);
@@ -80,10 +68,37 @@ export default function FleetStatusModule({
   const selectedRef = useRef<FleetOSVehicleRow | null>(null);
   selectedRef.current = selected;
 
-  const filtered = useMemo(() => applyFilters(vehicles, filters), [vehicles, filters]);
+  const isDirty = useMemo(
+    () => JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters),
+    [draftFilters, appliedFilters],
+  );
+
+  const filtered = useMemo(
+    () => applyFleetOSFilters(vehicles, appliedFilters),
+    [vehicles, appliedFilters],
+  );
+
+  const filteredKpis = useMemo(() => {
+    if (!hasActiveFleetOSFilters(appliedFilters)) return kpis;
+    return computeFleetOSKpisFromRows(filtered);
+  }, [appliedFilters, filtered, kpis]);
+
+  const filteredAlerts = useMemo(
+    () => filterFleetOSAlerts(alerts, filtered, selected, vehicles.length),
+    [alerts, filtered, selected, vehicles.length],
+  );
 
   const pickVehicle = useCallback((v: FleetOSVehicleRow) => {
     setSelected(v);
+  }, []);
+
+  const applySearch = useCallback(() => {
+    setAppliedFilters({ ...draftFilters });
+  }, [draftFilters]);
+
+  const clearFilters = useCallback(() => {
+    setDraftFilters(EMPTY_FLEETOS_FILTERS);
+    setAppliedFilters(EMPTY_FLEETOS_FILTERS);
   }, []);
 
   useEffect(() => {
@@ -113,28 +128,37 @@ export default function FleetStatusModule({
 
   return (
     <div className="animate-fade-in w-full max-w-none pb-36 md:pb-24">
-      {/* כותרת */}
-      <div className="flex flex-wrap items-start gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-start gap-3 mb-4">
         <div className="flex-1 min-w-0">
-          <h1 className="page-header flex items-center gap-3 mb-1 text-2xl md:text-3xl">
-            <span className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Radar size={24} className="text-primary" />
+          <h1 className="page-header flex flex-wrap items-center gap-2 sm:gap-3 mb-1 text-xl sm:text-2xl md:text-3xl">
+            <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Radar size={22} className="text-primary sm:hidden" />
+              <Radar size={24} className="text-primary hidden sm:block" />
             </span>
-            מיקום צי חכם
-            <span className="text-base font-bold text-muted-foreground hidden sm:inline">· FleetOS AI</span>
+            <span className="min-w-0">מיקום צי חכם</span>
+            <span className="text-sm sm:text-base font-bold text-muted-foreground w-full sm:w-auto sm:inline">
+              · FleetOS AI
+            </span>
           </h1>
-          <p className="text-sm text-muted-foreground pr-0 md:pr-14">
+          <p className="text-xs sm:text-sm text-muted-foreground pr-0 md:pr-14 leading-relaxed">
             מצב צי — נתונים חיים ממערכת דליה (רכבים, תקלות, הזמנות שירות)
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
+        <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="flex-1 sm:flex-none min-h-[44px]"
+            onClick={handleRefresh}
+            disabled={loading}
+          >
             <RefreshCcw size={14} className={cn(spinning && 'animate-spin')} />
             רענון
           </Button>
           <Link
             to="/dashboard"
-            className="text-sm border border-border rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-colors inline-flex items-center gap-1"
+            className="flex-1 sm:flex-none text-sm border border-border rounded-lg px-3 py-2.5 text-muted-foreground hover:bg-muted transition-colors inline-flex items-center justify-center gap-1 min-h-[44px]"
           >
             <ArrowRight size={14} />
             דשבורד
@@ -142,58 +166,69 @@ export default function FleetStatusModule({
         </div>
       </div>
 
-      <div className="space-y-5">
-        {/* סינון עליון */}
+      <div className="space-y-4 sm:space-y-5">
         <FleetOSFilterBar
-          filters={filters}
-          onChange={(patch) => setFilters((p) => ({ ...p, ...patch }))}
-          onClear={() => setFilters(EMPTY_FLEETOS_FILTERS)}
+          filters={draftFilters}
+          onChange={(patch) => setDraftFilters((p) => ({ ...p, ...patch }))}
+          onSearch={applySearch}
+          onClear={clearFilters}
           vehicles={vehicles}
           companyOptions={companyOptions}
+          filteredCount={filtered.length}
+          totalCount={vehicles.length}
+          isDirty={isDirty}
         />
 
-        {/* KPI */}
-        <FleetOSKpiBar kpis={kpis} loading={loading} />
+        <FleetOSKpiBar
+          kpis={filteredKpis}
+          loading={loading}
+          filtered={hasActiveFleetOSFilters(appliedFilters)}
+        />
 
-        {/* התראות נבחרות */}
         {visibility.canSeeAlerts && (
-          <FleetOSPinnedAlerts alertTypes={prefs.alerts} allAlerts={alerts} />
+          <FleetOSPinnedAlerts
+            alertTypes={prefs.alerts}
+            allAlerts={filteredAlerts}
+            selectedPlate={selected?.plate}
+          />
         )}
 
-        {/* מפה — כל הרכבים */}
         <FleetOSMapSection
-          vehicles={vehicles}
+          vehicles={filtered}
+          totalCount={vehicles.length}
           selectedId={selected?.id}
           onSelect={pickVehicle}
         />
 
-        {/* רכב נבחר */}
         <FleetOSSelectedVehicleCard
           vehicle={selected}
           onOpenHub={handleOpenSelectedHub}
           hubOpening={hubOpening}
         />
 
-        {/* רשימת רכבים מתקפלת */}
         <div className="card-elevated overflow-hidden">
           <button
             type="button"
             onClick={() => setListOpen((o) => !o)}
-            className="w-full flex items-center justify-between gap-3 p-4 text-right hover:bg-muted/30 transition-colors"
+            className="w-full flex items-center justify-between gap-3 p-4 text-right hover:bg-muted/30 transition-colors min-h-[52px]"
           >
-            <span className="text-sm font-bold text-foreground">
+            <span className="text-sm font-bold text-foreground truncate">
               {listOpen ? 'הסתר רשימת רכבים' : 'הצג רשימת רכבים'}
               <span className="text-muted-foreground font-normal mr-2">({filtered.length})</span>
             </span>
-            {listOpen ? <ChevronUp size={18} className="text-primary shrink-0" /> : <ChevronDown size={18} className="text-primary shrink-0" />}
+            {listOpen ? (
+              <ChevronUp size={18} className="text-primary shrink-0" />
+            ) : (
+              <ChevronDown size={18} className="text-primary shrink-0" />
+            )}
           </button>
 
           {listOpen && (
-            <div className="border-t border-border px-2 pb-2">
+            <div className="border-t border-border px-2 pb-2 max-h-[min(420px,50vh)] overflow-y-auto">
               {loading ? (
                 <p className="text-center py-8 text-muted-foreground text-sm">טוען רכבים…</p>
               ) : filtered.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground text-sm">אין רכבים להצגה</p>
+                <p className="text-center py-8 text-muted-foreground text-sm">אין רכבים להצגה — נסה לשנות סינון</p>
               ) : (
                 <ul className="divide-y divide-border">
                   {filtered.map((v) => (
@@ -202,20 +237,24 @@ export default function FleetStatusModule({
                         type="button"
                         onClick={() => pickVehicle(v)}
                         className={cn(
-                          'w-full flex items-center gap-3 py-3 text-right hover:bg-muted/40 rounded-lg px-2 transition-colors',
-                          selected?.id === v.id && 'bg-primary/5',
+                          'w-full flex items-center gap-3 py-3 text-right hover:bg-muted/40 rounded-lg px-2 transition-colors min-h-[56px]',
+                          selected?.id === v.id && 'bg-primary/5 ring-1 ring-primary/20',
                         )}
                       >
                         <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', STATUS_DOT[v.status])} />
                         <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-bold text-primary" dir="ltr">{v.plate}</span>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span className="font-bold text-primary text-sm" dir="ltr">
+                              {v.plate}
+                            </span>
                             {v.internal_number && (
-                              <span className="text-xs text-muted-foreground">{v.internal_number}</span>
+                              <span className="text-xs text-muted-foreground truncate">{v.internal_number}</span>
                             )}
-                            <span className="text-xs text-muted-foreground mr-auto">{STATUS_LABEL[v.status]}</span>
+                            <span className="text-xs text-muted-foreground mr-auto shrink-0">
+                              {STATUS_LABEL[v.status]}
+                            </span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
                             {v.driver_name || 'ללא נהג'}
                             {v.make && ` · ${v.make} ${v.model || ''}`}
                             {(v.fault_count ?? 0) > 0 && (
@@ -234,7 +273,6 @@ export default function FleetStatusModule({
         </div>
       </div>
 
-      {/* 4 כפתורי ניווט ראשיים */}
       <FleetOSBottomNav active="status" />
     </div>
   );

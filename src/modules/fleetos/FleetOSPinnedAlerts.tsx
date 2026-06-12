@@ -6,16 +6,23 @@ import type { FleetOSAlertRow } from './fleetosData';
 export default function FleetOSPinnedAlerts({
   alertTypes,
   allAlerts,
+  selectedPlate,
 }: {
   alertTypes: [AlertTypeKey, AlertTypeKey, AlertTypeKey];
   allAlerts: FleetOSAlertRow[];
+  selectedPlate?: string;
 }) {
   const pinned = alertTypes.map((type) => allAlerts.find((a) => a.type === type) ?? null);
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">התראות נבחרות</p>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+          התראות נבחרות
+          {selectedPlate && (
+            <span className="normal-case text-primary mr-1">· {selectedPlate}</span>
+          )}
+        </p>
         <Link to="/settings#fleetos-alerts" className="text-xs font-bold text-primary hover:underline">
           שנה בהגדרות
         </Link>

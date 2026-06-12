@@ -44,7 +44,7 @@ export default function FleetOSSelectedVehicleCard({
         </span>
       </div>
 
-      <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="p-3 sm:p-4 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
         <Info icon={User} label="נהג" value={vehicle.driver_name || 'ללא נהג'} />
         <Info icon={Activity} label="סטטוס" value={statusText} />
         <Info
@@ -64,7 +64,7 @@ export default function FleetOSSelectedVehicleCard({
       <div className="px-4 pb-4">
         <Button
           type="button"
-          className="w-full"
+          className="w-full min-h-[48px] text-sm sm:text-base"
           data-vehicle-id={vehicle.id}
           data-vehicle-plate={vehicle.plate}
           onClick={onOpenHub}
@@ -94,7 +94,7 @@ function Info({
         <Icon size={12} className="text-muted-foreground shrink-0" />
         <p className="text-[10px] font-bold text-muted-foreground">{label}</p>
       </div>
-      <p className="text-sm font-bold text-foreground truncate">{value}</p>
+      <p className="text-sm font-bold text-foreground truncate break-words">{value}</p>
     </div>
   );
 }

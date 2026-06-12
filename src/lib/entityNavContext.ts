@@ -170,11 +170,11 @@ export function clearFleetOSHubPending(): void {
 
 
 
-export function markFleetOSHubNavigation(vehicleId: string): void {
+export function markFleetOSHubNavigation(vehicleId: string, returnPath = '/fleetos-ai'): void {
 
   try {
 
-    sessionStorage.setItem(FLEETOS_HUB_NAV_KEY, JSON.stringify({ vehicleId, at: Date.now() }));
+    sessionStorage.setItem(FLEETOS_HUB_NAV_KEY, JSON.stringify({ vehicleId, returnPath, at: Date.now() }));
 
   } catch {
 
@@ -221,6 +221,30 @@ export function isFleetOSHubNavigationActive(vehicleId?: string): boolean {
   } catch {
 
     return false;
+
+  }
+
+}
+
+
+
+export function getFleetOSReturnPath(): string | null {
+
+  try {
+
+    const raw = sessionStorage.getItem(FLEETOS_HUB_NAV_KEY);
+
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as { returnPath?: string; at?: number };
+
+    if (typeof parsed.at !== 'number' || Date.now() - parsed.at > FLEETOS_HUB_TTL_MS) return null;
+
+    return parsed.returnPath || '/fleetos-ai';
+
+  } catch {
+
+    return null;
 
   }
 

@@ -1,0 +1,23 @@
+{
+  "at": "2026-06-12T04:50:27.584Z",
+  "base": "http://127.0.0.1:4173/future-craft-core",
+  "checks": {
+    "desktop_title": true,
+    "desktop_searchBtn": true,
+    "desktop_clearBtn": true,
+    "desktop_filterApplied": true,
+    "desktop_hubNoBadToast": true,
+    "desktop_hubPlate": true,
+    "mobile_title": true,
+    "mobile_searchBtn": true,
+    "mobile_clearBtn": true,
+    "mobile_filterApplied": true,
+    "mobile_hubNoBadToast": true,
+    "mobile_hubPlate": true,
+    "bottomNav": true
+  },
+  "shots": [
+    "desktop-fleetos-status.png",
+    "mobile-fleetos-status.png"
+  ]
+}

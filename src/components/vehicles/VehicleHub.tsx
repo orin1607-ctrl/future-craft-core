@@ -172,6 +172,7 @@ export default function VehicleHub({
   getDriverName,
   previewMode = false,
   previewHubExtras,
+  hubBackLabel,
 }: {
   vehicle: VehicleHubVehicle;
   drivers: DriverRow[];
@@ -189,6 +190,7 @@ export default function VehicleHub({
     openIssuesCount: number;
     drillDown: DashboardDrillDown;
   };
+  hubBackLabel?: string;
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -734,7 +736,9 @@ export default function VehicleHub({
   );
 
   const backLabel =
-    mainSection === 'home' ? 'חזרה לרשימה' : 'חזרה לכרטיס הרכב';
+    mainSection === 'home'
+      ? hubBackLabel || 'חזרה לרשימה'
+      : 'חזרה לכרטיס הרכב';
 
   return (
     <div className="animate-fade-in pb-8">

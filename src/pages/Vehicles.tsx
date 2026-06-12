@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Car, Search, Plus, Download, Upload } from 'lucide-react';
 import { logVehicleEvent } from '@/lib/vehicleEventLog';
 import { exportToCsv } from '@/utils/exportCsv';
@@ -9,6 +9,8 @@ import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import {
   clearFleetOSHubNavigation,
   clearFleetOSHubPending,
+  getFleetOSReturnPath,
+  isFleetOSHubNavigationActive,
   peekFleetOSHubVehicle,
 } from '@/lib/entityNavContext';
 import { toast } from 'sonner';
@@ -63,6 +65,7 @@ export default function Vehicles() {
   const companyFilter = useCompanyFilter();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [search, setSearch] = useState('');
@@ -74,6 +77,7 @@ export default function Vehicles() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [loading, setLoading] = useState(true);
   const hubOpenedForRef = useRef<string | null>(null);
+  const fleetOSReturnRef = useRef(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -114,12 +118,13 @@ export default function Vehicles() {
       alreadyOpened: hubOpenedForRef.current === vid,
     });
 
-    const openHub = (row: VehicleRow, enrichFromDb = false) => {
+    const openHub = (row: VehicleRow, enrichFromDb = false, fromFleetOS = false) => {
       hubOpenedForRef.current = vid;
+      fleetOSReturnRef.current =
+        fromFleetOS || isFleetOSHubNavigationActive(vid) || !!routeState?.fleetOSFrom;
       setSelectedVehicle(row);
       setViewMode('detail');
       clearFleetOSHubPending();
-      clearFleetOSHubNavigation();
 
       if (enrichFromDb) {
         void (async () => {
@@ -133,11 +138,11 @@ export default function Vehicles() {
     };
 
     if (stateRow?.id === vid) {
-      openHub(stateRow, !!routeState?.fleetOSFrom);
+      openHub(stateRow, !!routeState?.fleetOSFrom, !!routeState?.fleetOSFrom);
       return;
     }
     if (stashedRow?.id === vid) {
-      openHub(stashedRow, true);
+      openHub(stashedRow, true, isFleetOSHubNavigationActive(vid));
       return;
     }
     if (inList) {
@@ -213,6 +218,9 @@ export default function Vehicles() {
   };
 
   const handleBack = () => {
+    const returnToFleetOS = fleetOSReturnRef.current || isFleetOSHubNavigationActive();
+    const fleetOSPath = getFleetOSReturnPath() || '/fleetos-ai';
+
     setViewMode('list');
     setSelectedVehicle(null);
     setEditVehicle(null);
@@ -220,6 +228,13 @@ export default function Vehicles() {
     next.delete('vehicleId');
     next.delete('view');
     setSearchParams(next, { replace: true });
+
+    if (returnToFleetOS) {
+      fleetOSReturnRef.current = false;
+      clearFleetOSHubNavigation();
+      clearFleetOSHubPending();
+      navigate(fleetOSPath, { replace: true });
+    }
   };
 
   const handleFormDone = async (savedVehicleId?: string) => {
@@ -305,6 +320,7 @@ export default function Vehicles() {
         onDelete={handleDelete}
         onRefresh={refreshSelectedVehicle}
         getDriverName={getDriverName}
+        hubBackLabel={fleetOSReturnRef.current ? 'חזרה ל-FleetOS AI' : undefined}
       />
     );
   }
