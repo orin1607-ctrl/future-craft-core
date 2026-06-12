@@ -206,8 +206,10 @@ async function main() {
     // Map pins
     const mapPins = page.locator('button[aria-label][aria-pressed]');
     report.checks[`${name}_mapPins`] = (await mapPins.count()) > 0;
-    if ((await mapPins.count()) > 1) {
-      await mapPins.nth(1).click();
+    if ((await mapPins.count()) > 0) {
+      const pin = mapPins.first();
+      await pin.scrollIntoViewIfNeeded();
+      await pin.click({ force: true });
       await page.waitForTimeout(400);
       const selectedPlate = await page.locator('button[data-vehicle-plate]').first().getAttribute('data-vehicle-plate');
       report.checks[`${name}_mapSelectUpdatesCard`] = !!selectedPlate;

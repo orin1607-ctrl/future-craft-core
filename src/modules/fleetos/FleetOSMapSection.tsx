@@ -127,7 +127,7 @@ export default function FleetOSMapSection({
         </div>
       </div>
 
-      <div className="absolute inset-0 pt-[4.5rem] sm:pt-16 pb-12 px-2 sm:px-4">
+      <div className="absolute inset-0 pt-[4.5rem] sm:pt-16 pb-28 sm:pb-16 px-2 sm:px-4">
         {vehicles.length === 0 ? (
           <div className="h-full flex items-center justify-center px-4">
             <p className="text-sm text-muted-foreground bg-card/90 px-4 py-3 rounded-lg border border-border text-center">
