@@ -108,9 +108,9 @@ export default function FleetOSFilterBar({
         </div>
       </div>
 
-      {/* Mobile-first: plate + quick search always visible */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-2 sm:mb-3">
-        <Field label="מספר רכב">
+      {/* Primary filters — always visible (mobile + desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <Field label="מספר רישוי">
           <input
             className="filter-input text-sm w-full min-h-[44px]"
             value={filters.plate}
@@ -119,6 +119,15 @@ export default function FleetOSFilterBar({
             placeholder="12-345-67"
             dir="ltr"
             style={{ textAlign: 'right' }}
+          />
+        </Field>
+        <Field label="מספר פנימי">
+          <input
+            className="filter-input text-sm w-full min-h-[44px]"
+            value={filters.internal}
+            onChange={(e) => onChange({ internal: e.target.value })}
+            onKeyDown={handleKeyDown}
+            placeholder="D-101"
           />
         </Field>
         <Field label="נהג">
@@ -130,23 +139,6 @@ export default function FleetOSFilterBar({
             placeholder="שם נהג"
           />
         </Field>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setExpanded((o) => !o)}
-        className="sm:hidden w-full flex items-center justify-between gap-2 py-2.5 px-3 rounded-lg border border-border bg-muted/30 text-sm font-bold text-foreground mb-2 min-h-[44px]"
-      >
-        <span>סינון מתקדם</span>
-        {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-      </button>
-
-      <div
-        className={cn(
-          'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3',
-          !expanded && 'hidden sm:grid',
-        )}
-      >
         <Field label="חברה">
           <select
             className="filter-input text-sm w-full min-h-[44px]"
@@ -161,15 +153,23 @@ export default function FleetOSFilterBar({
             ))}
           </select>
         </Field>
-        <Field label="מספר פנימי">
-          <input
-            className="filter-input text-sm w-full min-h-[44px]"
-            value={filters.internal}
-            onChange={(e) => onChange({ internal: e.target.value })}
-            onKeyDown={handleKeyDown}
-            placeholder="D-101"
-          />
-        </Field>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setExpanded((o) => !o)}
+        className="sm:hidden w-full flex items-center justify-between gap-2 py-2.5 px-3 rounded-lg border border-border bg-muted/30 text-sm font-bold text-foreground mb-2 min-h-[44px]"
+      >
+        <span>סינון נוסף (יצרן, דגם, סטטוס)</span>
+        {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+      </button>
+
+      <div
+        className={cn(
+          'grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3',
+          !expanded && 'hidden sm:grid',
+        )}
+      >
         <Field label="יצרן">
           <select
             className="filter-input text-sm w-full min-h-[44px]"

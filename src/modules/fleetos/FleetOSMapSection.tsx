@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Layers, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FleetOSVehicleRow } from './fleetosData';
@@ -60,6 +60,13 @@ export default function FleetOSMapSection({
     () => vehicles.filter((v) => active.includes(v.status)),
     [vehicles, active],
   );
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const row = vehicles.find((v) => v.id === selectedId);
+    if (!row) return;
+    setActive((prev) => (prev.includes(row.status) ? prev : [...prev, row.status]));
+  }, [selectedId, vehicles]);
 
   const filteredFromTotal = totalCount != null && totalCount !== vehicles.length;
 

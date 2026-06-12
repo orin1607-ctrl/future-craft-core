@@ -113,11 +113,7 @@ export default function FleetStatusModule({
     const row = selectedRef.current;
     if (!row?.id || hubOpening) return;
     setHubOpening(true);
-    try {
-      void onOpenVehicleHub(row);
-    } finally {
-      setHubOpening(false);
-    }
+    void Promise.resolve(onOpenVehicleHub(row)).finally(() => setHubOpening(false));
   }, [onOpenVehicleHub, hubOpening]);
 
   const handleRefresh = () => {
