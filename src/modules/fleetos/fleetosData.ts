@@ -39,7 +39,16 @@ function mapDisplayStatus(row: TrackingVehicleRow): VehicleStatus {
   return 'stopped';
 }
 
-export function trackingRowToFleetOS(row: TrackingVehicleRow): FleetOSVehicleRow {
+/** Skip import/header junk rows that landed in vehicles.license_plate. */
+export function isFleetOSDisplayablePlate(plate: string | null | undefined): boolean {
+  const p = (plate || '').trim();
+  if (!p || p === '—') return false;
+  if (p.includes(',') || p.includes('סוג רכב') || p.length > 15) return false;
+  return true;
+}
+
+export function trackingRowToFleetOS(row: TrackingVehicleRow): FleetOSVehicleRow | null {
+  if (!isFleetOSDisplayablePlate(row.license_plate)) return null;
   return {
     id: row.id,
     plate: row.license_plate,
@@ -83,9 +92,12 @@ export async function loadFleetOSTracking(companyFilter: string | null): Promise
   trackingRows: TrackingVehicleRow[];
 }> {
   const trackingRows = await loadFleetTrackingRows(companyFilter);
+  const vehicles = trackingRows
+    .map(trackingRowToFleetOS)
+    .filter((v): v is FleetOSVehicleRow => v != null);
   return {
     trackingRows,
-    vehicles: trackingRows.map(trackingRowToFleetOS),
+    vehicles,
     kpis: computeFleetOSKpis(trackingRows),
   };
 }

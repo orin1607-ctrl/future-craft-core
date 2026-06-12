@@ -167,8 +167,9 @@ async function main() {
         await page.getByRole('button', { name: 'חפש' }).click();
         await page.waitForTimeout(500);
         const afterPlate = await page.locator('body').innerText();
-        report.checks[`${name}_plateFilter`] =
-          afterPlate.includes('מציג') && !afterPlate.match(/מציג 0 מתו׈/) === false;
+        const countMatch = afterPlate.match(/מציג (\d+) מתוך (\d+)/);
+        const shown = countMatch ? Number(countMatch[1]) : -1;
+        report.checks[`${name}_plateFilter`] = shown > 0 && shown <= totalCount;
         await page.getByRole('button', { name: 'נקה סינון' }).click();
         await page.waitForTimeout(400);
       }
