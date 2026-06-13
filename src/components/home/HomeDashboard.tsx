@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Car, Users, Radio, Building2, BarChart3, Shield, Radar } from 'lucide-react';
+import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
-import HomeWorldCard from '@/components/home/HomeWorldCard';
+import DashboardCardGate from '@/components/home/DashboardCardGate';
 import HomeAlertsWidget from '@/components/home/HomeAlertsWidget';
 import { countTrackingAttention } from '@/lib/vehicleTrackingData';
 import { useHomeAlertPrefs } from '@/hooks/useHomeAlertPrefs';
@@ -94,14 +94,16 @@ export default function HomeDashboard() {
       <HomeAlertsWidget companyFilter={companyFilter} prefs={prefs} onPrefsChange={setPrefs} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        <HomeWorldCard
+        <DashboardCardGate
+          path="/vehicles"
           to="/vehicles"
           icon={Car}
           title="רכבים"
           subtitle="רשימת צי וכרטיסי רכב"
           badge={countLabel(vehiclesCount)}
         />
-        <HomeWorldCard
+        <DashboardCardGate
+          path="/drivers"
           to="/drivers"
           icon={Users}
           title="נהגים"
@@ -109,7 +111,8 @@ export default function HomeDashboard() {
           badge={countLabel(driversCount)}
           accent="info"
         />
-        <HomeWorldCard
+        <DashboardCardGate
+          path="/vehicle-tracking"
           to="/vehicle-tracking"
           icon={Radio}
           title="מעקב רכבים"
@@ -118,7 +121,8 @@ export default function HomeDashboard() {
           accent="warning"
         />
         {canFleetOS && (
-          <HomeWorldCard
+          <DashboardCardGate
+            path="/fleetos-ai"
             to="/fleetos-ai"
             icon={Radar}
             title="מיקום צי חכם"
@@ -126,22 +130,33 @@ export default function HomeDashboard() {
             accent="primary"
           />
         )}
-        <HomeWorldCard
+        <DashboardCardGate
+          path="/fleet-managers"
           to="/fleet-managers"
           icon={Building2}
           title="מנהלי צי"
           subtitle="ניהול וכרטיסי מנהל"
           badge={countLabel(fleetManagersCount)}
         />
-        <HomeWorldCard
+        <DashboardCardGate
+          path="/reports"
           to="/reports"
           icon={BarChart3}
           title="דוחות"
           subtitle="דוחות וניתוחים"
           accent="success"
         />
+        <DashboardCardGate
+          path="/transport"
+          to="/transport"
+          icon={Bus}
+          title="חברות הסעות"
+          subtitle="לקוחות · מסלולים · סידור עבודה"
+          accent="info"
+        />
         {isSuperAdmin && (
-          <HomeWorldCard
+          <DashboardCardGate
+            path="/admin-home"
             to="/admin-home"
             icon={Shield}
             title="מרכז ניהול"

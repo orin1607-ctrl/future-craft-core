@@ -266,7 +266,9 @@ export type Database = {
           created_at: string | null
           hidden_buttons: string[]
           id: string
+          module_transport_enabled: boolean
           max_vehicles_without_assignment: number
+          transport_hidden_features: string[]
           reminder_1_day: boolean | null
           reminder_30_days: boolean | null
           reminder_7_days: boolean | null
@@ -286,7 +288,9 @@ export type Database = {
           created_at?: string | null
           hidden_buttons?: string[]
           id?: string
+          module_transport_enabled?: boolean
           max_vehicles_without_assignment?: number
+          transport_hidden_features?: string[]
           reminder_1_day?: boolean | null
           reminder_30_days?: boolean | null
           reminder_7_days?: boolean | null
@@ -306,7 +310,9 @@ export type Database = {
           created_at?: string | null
           hidden_buttons?: string[]
           id?: string
+          module_transport_enabled?: boolean
           max_vehicles_without_assignment?: number
+          transport_hidden_features?: string[]
           reminder_1_day?: boolean | null
           reminder_30_days?: boolean | null
           reminder_7_days?: boolean | null

@@ -7,6 +7,7 @@ import { Building2, Save, Search, ChevronDown, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { MANAGEABLE_BUTTONS } from '@/hooks/useHiddenButtons';
+import { TRANSPORT_FEATURES } from '@/lib/transportSettings';
 
 interface CompanyAlertConfig {
   id: string;
@@ -21,6 +22,8 @@ interface CompanyAlertConfig {
   require_insurance_docs: boolean;
   require_no_claims: boolean;
   hidden_buttons: string[];
+  module_transport_enabled: boolean;
+  transport_hidden_features: string[];
 }
 
 interface ProfileCompany {
@@ -48,9 +51,17 @@ export default function AlertSettings() {
     // Load all company settings
     const { data: settingsData } = await supabase
       .from('company_settings')
-      .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons');
+      .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons, module_transport_enabled, transport_hidden_features');
     
-    if (settingsData) setConfigs(settingsData as CompanyAlertConfig[]);
+    if (settingsData) {
+      setConfigs(
+        settingsData.map((s) => ({
+          ...s,
+          module_transport_enabled: s.module_transport_enabled ?? false,
+          transport_hidden_features: s.transport_hidden_features ?? [],
+        })) as CompanyAlertConfig[],
+      );
+    }
 
     // Load all unique company names from profiles
     const { data: profilesData } = await supabase
@@ -83,12 +94,14 @@ export default function AlertSettings() {
             vehicle_approval_required: false,
             require_insurance_docs: true,
             require_no_claims: true,
+            module_transport_enabled: false,
+            transport_hidden_features: [],
           }));
           
           const { data: inserted } = await supabase
             .from('company_settings')
             .insert(newSettings)
-            .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons');
+            .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons, module_transport_enabled, transport_hidden_features');
           
           if (inserted) {
             setConfigs(prev => [...prev, ...(inserted as CompanyAlertConfig[])]);
@@ -116,6 +129,8 @@ export default function AlertSettings() {
       require_insurance_docs: activeConfig.require_insurance_docs,
       require_no_claims: activeConfig.require_no_claims,
       hidden_buttons: activeConfig.hidden_buttons || [],
+      module_transport_enabled: activeConfig.module_transport_enabled,
+      transport_hidden_features: activeConfig.transport_hidden_features || [],
     }).eq('id', activeConfig.id);
     setSaving(false);
     if (error) toast.error('שגיאה בשמירה');
@@ -157,7 +172,8 @@ export default function AlertSettings() {
         <p className="font-bold">סטטוס יישום בהגדרות</p>
         <ul className="text-muted-foreground space-y-1">
           <li>✅ <strong>תזכורות אוטומטיות</strong> — מחובר ליצירת התראות מרכז רכב</li>
-          <li>✅ <strong>הסתרת כפתורים</strong> — מיושם בתפריט ניווט</li>
+          <li>✅ <strong>הסתרת כפתורים</strong> — מיושם בתפריט ניווט וכרטיסי דשבורד</li>
+          <li>✅ <strong>מודול הסעות</strong> — Master Switch + מסכים בנפרד + כרטיס דשבורד</li>
           <li>⏳ <strong>חובת מסמכים / הצמדת נהג / אישור רכב</strong> — נשמר ב-DB, יישום בטפסים — בשלב הבא</li>
         </ul>
       </div>
@@ -351,6 +367,59 @@ export default function AlertSettings() {
                   />
                   <span className="text-base font-medium">חובת מילוי היסטוריית הדר תביעות</span>
                 </label>
+              </div>
+
+              {/* Transport Module */}
+              <div className="border-t border-border pt-4 space-y-3">
+                <h3 className="font-bold text-lg">🚌 מודול הסעות</h3>
+                <p className="text-sm text-muted-foreground">
+                  Master Switch מפעיל את מרכז ההסעות (<code className="text-xs">/transport</code>) ואת כרטיס &quot;חברות הסעות&quot; בדשבורד.
+                  מנהל על תמיד רואה הכל.
+                </p>
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20 cursor-pointer hover:bg-primary/10 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={activeConfig.module_transport_enabled}
+                    onChange={e => updateConfig('module_transport_enabled', e.target.checked)}
+                    className="rounded w-5 h-5 accent-primary"
+                  />
+                  <span className="text-base font-bold">הפעל מודול הסעות לחברה זו</span>
+                </label>
+
+                {activeConfig.module_transport_enabled && (
+                  <div className="mr-2 space-y-2 p-3 rounded-xl bg-muted/50 border border-border">
+                    <p className="text-sm font-medium">מסכים וכפתורים — סמן להסתרה:</p>
+                    {TRANSPORT_FEATURES.map(feature => {
+                      const hiddenSet = new Set(activeConfig.transport_hidden_features || []);
+                      const isHidden = hiddenSet.has(feature.id);
+                      const toggleFeature = () => {
+                        const current = activeConfig.transport_hidden_features || [];
+                        const next = isHidden
+                          ? current.filter(id => id !== feature.id)
+                          : [...current, feature.id];
+                        updateConfig('transport_hidden_features', next);
+                      };
+                      return (
+                        <label
+                          key={feature.id}
+                          className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-muted/80 transition-colors ${isHidden ? 'bg-destructive/10' : 'bg-muted'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isHidden}
+                            onChange={toggleFeature}
+                            className="rounded w-5 h-5 accent-destructive"
+                          />
+                          <span className={`text-base font-medium ${isHidden ? 'text-destructive line-through' : ''}`}>
+                            {feature.label}
+                          </span>
+                          <span className="text-xs text-muted-foreground mr-auto">{feature.subtitle}</span>
+                          {isHidden && <span className="text-xs text-destructive">מוסתר</span>}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Button Visibility Settings */}

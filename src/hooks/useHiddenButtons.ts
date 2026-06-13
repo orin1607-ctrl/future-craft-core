@@ -34,6 +34,18 @@ export function useHiddenButtons(): string[] {
   return hiddenButtons;
 }
 
+/** Dashboard home cards — hidden via hidden_buttons[] */
+export const DASHBOARD_CARD_BUTTONS = [
+  { path: '/vehicles', label: 'רכבים', category: 'כרטיסי דשבורד' },
+  { path: '/drivers', label: 'נהגים', category: 'כרטיסי דשבורד' },
+  { path: '/vehicle-tracking', label: 'מעקב רכבים', category: 'כרטיסי דשבורד' },
+  { path: '/fleetos-ai', label: 'מיקום צי חכם (FleetOS)', category: 'כרטיסי דשבורד' },
+  { path: '/fleet-managers', label: 'מנהלי צי', category: 'כרטיסי דשבורד' },
+  { path: '/reports', label: 'דוחות', category: 'כרטיסי דשבורד' },
+  { path: '/transport', label: 'חברות הסעות', category: 'כרטיסי דשבורד' },
+  { path: '/admin-home', label: 'מרכז ניהול', category: 'כרטיסי דשבורד' },
+];
+
 /** All manageable buttons with labels for the settings UI (matches slim sidebar IA) */
 export const MANAGEABLE_BUTTONS = [
   { path: '/dashboard', label: 'בית', category: 'ניווט' },
@@ -48,4 +60,5 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/internal-chat', label: 'צ\'אט', category: 'ניווט' },
   { path: '/admin-home', label: 'מרכז ניהול', category: 'מרכז ניהול' },
   { path: '/expenses', label: 'דלק וחשבוניות', category: 'נהג' },
+  ...DASHBOARD_CARD_BUTTONS,
 ];

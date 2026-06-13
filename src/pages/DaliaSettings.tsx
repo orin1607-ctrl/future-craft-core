@@ -22,7 +22,7 @@ const SETTINGS_SECTIONS = [
         to: '/alert-settings',
         icon: Bell,
         title: 'הגדרות חברות',
-        subtitle: 'תזכורות, רכב, מסמכים, כפתורים',
+        subtitle: 'תזכורות, רכב, מסמכים, הסעות, כפתורים',
       },
       {
         to: '/alerts/log',
@@ -127,7 +127,7 @@ export default function DaliaSettings() {
           Dalia Settings
         </h1>
         <p className="text-muted-foreground text-sm">
-          התראות · WhatsApp · אימייל · מסמכים · תזכורות · חברות · נהגים · רכבים
+          התראות · WhatsApp · אימייל · מסמכים · תזכורות · חברות · הסעות · נהגים · רכבים
         </p>
       </header>
 
