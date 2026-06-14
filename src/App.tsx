@@ -59,6 +59,7 @@ import DevVehiclesListPreview from "@/pages/DevVehiclesListPreview";
 import DevFleetManagerDriverFlow from "@/pages/DevFleetManagerDriverFlow";
 import DevFaultsScopedPreview from "@/pages/DevFaultsScopedPreview";
 import DevDocumentsScopedPreview from "@/pages/DevDocumentsScopedPreview";
+import DevDocumentUxPreview from "@/pages/DevDocumentUxPreview";
 import DevStagingProofFlow from "@/pages/DevStagingProofFlow";
 import DevFleetOSModule1Preview from "@/pages/DevFleetOSModule1Preview";
 import DevFleetOSDashboardPreview from "@/pages/DevFleetOSDashboardPreview";
@@ -121,6 +122,7 @@ function AppRoutes() {
         <Route path="/dev/vehicle-form-live/edit" element={<DevVehicleFormLive editPreview initialStep="full" openAllSections />} />
         <Route path="/dev/faults-scoped" element={<DevFaultsScopedPreview />} />
         <Route path="/dev/documents-scoped" element={<DevDocumentsScopedPreview />} />
+        <Route path="/dev/document-ux-preview" element={<DevDocumentUxPreview />} />
         <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
         <Route path="/dev/vehicles-list" element={<DevVehiclesListPreview />} />
         <Route path="/dev/fleet-manager-driver-flow" element={<DevFleetManagerDriverFlow />} />
