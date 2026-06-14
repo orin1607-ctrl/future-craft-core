@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Building2, Search, ArrowRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Building2, Search, ArrowRight, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope, useCompanyFilter } from '@/hooks/useCompanyFilter';
+import { useAuth } from '@/contexts/AuthContext';
+import DriverDashboardPicker from '@/components/admin/DriverDashboardPicker';
+import { Button } from '@/components/ui/button';
 
 interface FleetManagerRow {
   id: string;
@@ -13,7 +16,10 @@ interface FleetManagerRow {
 }
 
 export default function FleetManagers() {
+  const { user, impersonate } = useAuth();
+  const navigate = useNavigate();
   const companyFilter = useCompanyFilter();
+  const isSuperAdmin = user?.role === 'super_admin';
   const [rows, setRows] = useState<FleetManagerRow[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -91,7 +97,33 @@ export default function FleetManagers() {
               <p className="font-bold">{m.email || '—'}</p>
             </div>
           </div>
-          <div className="mt-6 pt-6 border-t border-border">
+          <div className="mt-6 pt-6 border-t border-border space-y-4">
+            <h2 className="font-bold">צפייה ודשבורדים</h2>
+            <div className="flex flex-col sm:flex-row gap-2">
+              {isSuperAdmin && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 h-12 font-bold gap-2"
+                  onClick={() => {
+                    impersonate({
+                      id: m.id,
+                      email: m.email || '',
+                      full_name: m.full_name,
+                      phone: m.phone || '',
+                      company_name: m.company_name,
+                      is_active: true,
+                      role: 'fleet_manager',
+                    });
+                    navigate('/dashboard');
+                  }}
+                >
+                  <Eye size={18} />
+                  צפייה כמנהל צi
+                </Button>
+              )}
+              <DriverDashboardPicker companyName={m.company_name} className="flex-1 h-12 font-bold" />
+            </div>
             <h2 className="font-bold mb-3">פעולות מנהל צי</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[

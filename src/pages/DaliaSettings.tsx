@@ -21,8 +21,8 @@ const SETTINGS_SECTIONS = [
       {
         to: '/alert-settings',
         icon: Bell,
-        title: 'הגדרות חברות',
-        subtitle: 'תזכורות, רכב, מסמכים, הסעות, כפתורים',
+        title: 'כפתורים ומודולים לפי חברה',
+        subtitle: 'הסתרת כפתורים · מודול הסעות · תזכורות · רכב',
       },
       {
         to: '/alerts/log',

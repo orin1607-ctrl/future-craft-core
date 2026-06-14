@@ -172,7 +172,7 @@ export default function AlertSettings() {
         <p className="font-bold">סטטוס יישום בהגדרות</p>
         <ul className="text-muted-foreground space-y-1">
           <li>✅ <strong>תזכורות אוטומטיות</strong> — מחובר ליצירת התראות מרכז רכב</li>
-          <li>✅ <strong>הסתרת כפתורים</strong> — מיושם בתפריט ניווט וכרטיסי דשבורד</li>
+          <li>✅ <strong>הסתרת כפתורים</strong> — Sidebar, כרטיסי דשבורד, FleetOS והסעות</li>
           <li>✅ <strong>מודול הסעות</strong> — Master Switch + מסכים בנפרד + כרטיס דשבורד</li>
           <li>⏳ <strong>חובת מסמכים / הצמדת נהג / אישור רכב</strong> — נשמר ב-DB, יישום בטפסים — בשלב הבא</li>
         </ul>

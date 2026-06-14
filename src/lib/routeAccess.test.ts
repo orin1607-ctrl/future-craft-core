@@ -1,0 +1,20 @@
+import { describe, expect, it } from 'vitest';
+import { canAccessRoute } from './routeAccess';
+
+describe('routeAccess', () => {
+  it('super_admin can access all manager routes', () => {
+    expect(canAccessRoute('/dalia-settings', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/vehicles', 'super_admin')).toBe(true);
+  });
+
+  it('driver cannot access manager modules', () => {
+    expect(canAccessRoute('/vehicles', 'driver')).toBe(false);
+    expect(canAccessRoute('/user-management', 'driver')).toBe(false);
+    expect(canAccessRoute('/faults', 'driver')).toBe(true);
+  });
+
+  it('fleet_manager cannot access super admin settings', () => {
+    expect(canAccessRoute('/dalia-settings', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/fleetos-ai', 'fleet_manager')).toBe(true);
+  });
+});

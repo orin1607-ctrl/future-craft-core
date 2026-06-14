@@ -38,27 +38,33 @@ export function useHiddenButtons(): string[] {
 export const DASHBOARD_CARD_BUTTONS = [
   { path: '/vehicles', label: 'רכבים', category: 'כרטיסי דשבורד' },
   { path: '/drivers', label: 'נהגים', category: 'כרטיסי דשבורד' },
-  { path: '/vehicle-tracking', label: 'מעקב רכבים', category: 'כרטיסי דשבורד' },
+  { path: '/vehicle-tracking', label: 'מעקב רכבים', category: 'כרטיסי דשבורด' },
   { path: '/fleetos-ai', label: 'מיקום צי חכם (FleetOS)', category: 'כרטיסי דשבורד' },
-  { path: '/fleet-managers', label: 'מנהלי צי', category: 'כרטיסי דשבורד' },
-  { path: '/reports', label: 'דוחות', category: 'כרטיסי דשבורד' },
   { path: '/transport', label: 'חברות הסעות', category: 'כרטיסי דשבורד' },
+  { path: '/reports', label: 'דוחות', category: 'כרטיסי דשבורד' },
+  { path: '/fleet-managers', label: 'מנהלי צי', category: 'כרטיסי דשבורד' },
+  { path: '/user-management', label: 'משתמשים', category: 'כרטיסי דשבורד' },
   { path: '/admin-home', label: 'מרכז ניהול', category: 'כרטיסי דשבורד' },
 ];
 
-/** All manageable buttons with labels for the settings UI (matches slim sidebar IA) */
+/** All manageable buttons with labels for the settings UI (matches sidebar IA) */
 export const MANAGEABLE_BUTTONS = [
   { path: '/dashboard', label: 'בית', category: 'ניווט' },
   { path: '/vehicles', label: 'רשימת רכבים', category: 'ניווט' },
   { path: '/drivers', label: 'רשימת נהגים', category: 'ניווט' },
   { path: '/vehicle-tracking', label: 'מעקב רכבים', category: 'ניווט' },
-  { path: '/fleet-managers', label: 'מנהלי צי', category: 'ניווט' },
-  { path: '/alerts', label: 'התראות', category: 'ניווט' },
+  { path: '/fleetos-ai', label: 'מיקום צי חכם (FleetOS)', category: 'ניווט' },
+  { path: '/transport', label: 'חברות הסעות', category: 'ניווט' },
+  { path: '/faults', label: 'תקלות', category: 'ניווט' },
   { path: '/reports', label: 'דוחות', category: 'ניווט' },
+  { path: '/fleet-managers', label: 'מנהלי צי', category: 'ניווט' },
   { path: '/customers', label: 'לקוחות', category: 'ניווט' },
+  { path: '/alerts', label: 'התראות', category: 'ניווט' },
   { path: '/emergency', label: 'חירום', category: 'ניווט' },
   { path: '/internal-chat', label: 'צ\'אט', category: 'ניווט' },
   { path: '/admin-home', label: 'מרכז ניהול', category: 'מרכז ניהול' },
+  { path: '/dalia-settings', label: 'Dalia Settings', category: 'מרכז ניהול' },
+  { path: '/user-management', label: 'משתמשים (דשבורד)', category: 'כרטיסי דשבורד' },
   { path: '/expenses', label: 'דלק וחשבוניות', category: 'נהג' },
-  ...DASHBOARD_CARD_BUTTONS,
+  ...DASHBOARD_CARD_BUTTONS.filter((b) => b.path !== '/user-management' && b.path !== '/admin-home'),
 ];

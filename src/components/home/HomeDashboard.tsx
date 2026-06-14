@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus } from 'lucide-react';
+import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -131,12 +131,12 @@ export default function HomeDashboard() {
           />
         )}
         <DashboardCardGate
-          path="/fleet-managers"
-          to="/fleet-managers"
-          icon={Building2}
-          title="מנהלי צי"
-          subtitle="ניהול וכרטיסי מנהל"
-          badge={countLabel(fleetManagersCount)}
+          path="/transport"
+          to="/transport"
+          icon={Bus}
+          title="חברות הסעות"
+          subtitle="מרכז הסעות · לקוחות · מסלולים"
+          accent="info"
         />
         <DashboardCardGate
           path="/reports"
@@ -147,20 +147,30 @@ export default function HomeDashboard() {
           accent="success"
         />
         <DashboardCardGate
-          path="/transport"
-          to="/transport"
-          icon={Bus}
-          title="חברות הסעות"
-          subtitle="לקוחות · מסלולים · סידור עבודה"
-          accent="info"
+          path="/fleet-managers"
+          to="/fleet-managers"
+          icon={Building2}
+          title="מנהלי צי"
+          subtitle="ניהול וכרטיסי מנהל"
+          badge={countLabel(fleetManagersCount)}
         />
+        {isSuperAdmin && (
+          <DashboardCardGate
+            path="/user-management"
+            to="/user-management"
+            icon={UserCog}
+            title="משתמשים"
+            subtitle="ניהול משתמשים והרשאות"
+            accent="primary"
+          />
+        )}
         {isSuperAdmin && (
           <DashboardCardGate
             path="/admin-home"
             to="/admin-home"
             icon={Shield}
             title="מרכז ניהול"
-            subtitle="משתמשים, הרשאות והגדרות"
+            subtitle="Dalia Settings · בקרה · לוגים"
             accent="primary"
           />
         )}

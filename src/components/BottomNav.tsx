@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle } from 'lucide-react';
+import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
 import { useHiddenButtons } from '@/hooks/useHiddenButtons';
+import { useTransportModule } from '@/hooks/useTransportModule';
 import logo from '@/assets/white-logo.png';
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -22,16 +23,20 @@ const managerNavItems: NavItem[] = [
   { path: '/vehicles', label: 'רשימת רכבים', icon: Car },
   { path: '/drivers', label: 'רשימת נהגים', icon: Users },
   { path: '/vehicle-tracking', label: 'מעקב רכבים', icon: Radio },
-  { path: '/fleet-managers', label: 'מנהלי צי', icon: Building2 },
-  { path: '/alerts', label: 'התראות', icon: Bell },
+  { path: '/fleetos-ai', label: 'מיקום צי חכם', icon: Radar },
+  { path: '/transport', label: 'חברות הסעות', icon: Bus },
+  { path: '/faults', label: 'תקלות', icon: Wrench },
   { path: '/reports', label: 'דוחות', icon: BarChart3 },
+  { path: '/fleet-managers', label: 'מנהלי צי', icon: Building2 },
   { path: '/customers', label: 'לקוחות', icon: Users },
+  { path: '/alerts', label: 'התראות', icon: Bell },
   { path: '/emergency', label: 'חירום', icon: Phone },
   { path: '/internal-chat', label: 'צ\'אט', icon: MessageCircle },
 ];
 
 const adminNavItems: NavItem[] = [
   { path: '/admin-home', label: 'מרכז ניהול', icon: Shield },
+  { path: '/dalia-settings', label: 'Dalia Settings', icon: SlidersHorizontal },
 ];
 
 const managerCategories = [
@@ -96,9 +101,21 @@ export function DesktopSidebar() {
   const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
   const unreadCount = useUnreadNotifications();
   const hiddenButtons = useHiddenButtons();
+  const { enabled: transportEnabled, loading: transportLoading } = useTransportModule();
 
   const isDriver = user?.role === 'driver';
   const isSuperAdmin = user?.role === 'super_admin';
+  const canFleetOS = isSuperAdmin || user?.role === 'fleet_manager';
+
+  const isNavItemVisible = (path: string) => {
+    if (hiddenButtons.includes(path)) return false;
+    if (path === '/transport') {
+      if (transportLoading) return false;
+      return transportEnabled;
+    }
+    if (path === '/fleetos-ai') return canFleetOS;
+    return true;
+  };
 
   const toggleCategory = (title: string) => {
     setOpenCategories(prev => ({ ...prev, [title]: !prev[title] }));
@@ -186,7 +203,7 @@ export function DesktopSidebar() {
           <>
             {managerCategories.map((cat) => {
               if (cat.title === 'מרכז ניהול' && !isSuperAdmin) return null;
-              const visibleItems = cat.items.filter((item) => !hiddenButtons.includes(item.path));
+              const visibleItems = cat.items.filter((item) => isNavItemVisible(item.path));
               if (visibleItems.length === 0) return null;
               return (
               <div key={cat.title} className="mb-0.5">

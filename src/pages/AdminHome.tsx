@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Shield, Users, Settings, ScrollText, Building2, Mail, SlidersHorizontal } from 'lucide-react';
 import HomeWorldCard from '@/components/home/HomeWorldCard';
+import RoleViewLauncher from '@/components/admin/RoleViewLauncher';
 
 const ADMIN_LINKS = [
   { to: '/dalia-settings', icon: SlidersHorizontal, title: 'Dalia Settings', subtitle: 'התראות · WhatsApp · אימייל · חברות' },
@@ -27,6 +28,8 @@ export default function AdminHome() {
         </h1>
         <p className="text-muted-foreground text-sm">משתמשים · הרשאות · הגדרות · בקרה</p>
       </header>
+      <RoleViewLauncher />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {ADMIN_LINKS.map((item) => (
           <HomeWorldCard

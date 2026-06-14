@@ -62,10 +62,10 @@ export default function TransportHubPage() {
       <header>
         <h1 className="page-header flex items-center gap-3 mb-2">
           <Bus size={28} className="text-primary" />
-          חברות הסעות
+          מרכז הסעות · חברות נסיעה
         </h1>
         <p className="text-muted-foreground text-sm">
-          לקוחות · מסלולים · סידור עבודה · צוותים · תיאומים
+          לקוחות הסעה · מסלולים · סידור עבודה · צוותים · תיאומים
         </p>
       </header>
 

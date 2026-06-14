@@ -14,9 +14,7 @@ export default function TransportImportPage() {
       <header className="text-center space-y-2">
         <Upload size={48} className="mx-auto text-primary opacity-80" />
         <h1 className="page-header">יבוא נתונים — Dry Run</h1>
-        <p className="text-muted-foreground text-sm">
-          אשף יבוא נתונים (ללא כתיבה ל-DB) יגיע בשלב הבא.
-        </p>
+        <p className="text-muted-foreground text-sm">אשף יבוא נתונים (ללא כתיבה ל-DB) — שלב עתידי, באישור.</p>
       </header>
 
       <div className="card-elevated space-y-3 text-sm text-muted-foreground">

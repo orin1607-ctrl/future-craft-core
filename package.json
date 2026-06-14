@@ -15,7 +15,8 @@
     "e2e:dalia-save": "node scripts/e2e-dalia-vehicle-save.mjs",
     "e2e:vehicle-upload": "node scripts/test-vehicle-upload.mjs",
     "capture:hebrew": "node scripts/capture-hebrew-fix.mjs",
-    "capture:staging-proof": "node scripts/capture-staging-visual-proof.mjs"
+    "capture:staging-proof": "node scripts/capture-staging-visual-proof.mjs",
+    "capture:phase-b": "node scripts/capture-phase-b-screenshots.mjs"
   },
   "dependencies": {
     "@elevenlabs/react": "^1.1.1",
@@ -86,6 +87,7 @@
     "globals": "^15.15.0",
     "jsdom": "^20.0.3",
     "lovable-tagger": "^1.1.13",
+    "playwright": "^1.49.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
