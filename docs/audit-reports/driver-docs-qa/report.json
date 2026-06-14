@@ -1,0 +1,40 @@
+{
+  "at": "2026-06-14T19:38:37.420Z",
+  "company": "QA-DRV-DOC-1781465917417",
+  "plate": "QA17417",
+  "formats": {
+    "pdf": {
+      "ext": "pdf",
+      "ok": true,
+      "storage": true,
+      "metadata": true,
+      "visibleAfterInsert": true,
+      "metaId": "b840172f-b5bd-4602-bfb0-eee223a5b5c3",
+      "path": "a73d3082-1358-4010-af84-b17ab0a11cda/driver-license/license-1781465917417.pdf"
+    },
+    "jpg": {
+      "ext": "jpg",
+      "ok": true,
+      "storage": true,
+      "metadata": true,
+      "visibleAfterInsert": true,
+      "metaId": "1fdb40f2-ee02-4850-b771-c20d85c162f2",
+      "path": "a73d3082-1358-4010-af84-b17ab0a11cda/driver-license/license-1781465917417.jpg"
+    },
+    "png": {
+      "ext": "png",
+      "ok": true,
+      "storage": true,
+      "metadata": true,
+      "visibleAfterInsert": true,
+      "metaId": "fb7fd569-2f85-44dc-95b0-e38e1c2b27ae",
+      "path": "a73d3082-1358-4010-af84-b17ab0a11cda/driver-license/license-1781465917417.png"
+    }
+  },
+  "metadataSaved": true,
+  "storageOk": true,
+  "isolationOk": true,
+  "refreshVisible": true,
+  "passed": true,
+  "errors": []
+}
