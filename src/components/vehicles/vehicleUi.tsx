@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { FileText, Image } from 'lucide-react';
+import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 
 export function InfoField({ label, value }: { label: string; value: string }) {
   return (
@@ -10,20 +10,9 @@ export function InfoField({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** @deprecated use DocumentAttachment directly */
 export function DocLink({ label, url }: { label: string; url: string }) {
-  const isPdf = /\.pdf($|[?#])/i.test(url);
-  const Icon = isPdf ? FileText : Image;
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      download={isPdf ? true : undefined}
-      className="flex items-center gap-2 py-2 px-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors text-sm font-medium text-primary"
-    >
-      <Icon size={16} /> {label} {isPdf ? '(PDF)' : ''}
-    </a>
-  );
+  return <DocumentAttachment label={label} url={url} />;
 }
 
 export function ExpiryRow({

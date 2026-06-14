@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { useDriverVehicle } from '@/hooks/useDriverVehicle';
+import { DocumentGallery } from '@/components/documents/DocumentViewer';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
@@ -180,12 +181,7 @@ export default function Accidents() {
             try { imgs = a.images ? JSON.parse(a.images) : []; } catch { if (a.images) imgs = [a.images]; }
             return imgs.length > 0 ? (
               <div className="mt-4">
-                <p className="text-sm text-muted-foreground mb-2">תמונות ({imgs.length})</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {imgs.map((url, i) => (
-                    <img key={i} src={url} alt={`תמונה ${i + 1}`} className="w-full rounded-xl h-36 object-cover" />
-                  ))}
-                </div>
+                <DocumentGallery urls={imgs} title="תמונות מהתאונה" />
               </div>
             ) : null;
           })()}

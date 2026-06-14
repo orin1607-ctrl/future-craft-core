@@ -34,7 +34,7 @@ import VehicleDashboard from '@/components/vehicles/VehicleDashboard';
 import VehicleHubBottomActions from '@/components/vehicles/VehicleHubBottomActions';
 import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
 import VehicleDaliaFullPanel from '@/components/vehicles/VehicleDaliaFullPanel';
-import { DocLink } from '@/components/vehicles/vehicleUi';
+import { DocumentCard } from '@/components/documents/DocumentViewer';
 import { statusLabel } from '@/components/vehicles/vehicleHubUtils';
 import {
   loadVehicleHubData,
@@ -678,27 +678,26 @@ export default function VehicleHub({
         );
       case 'docs':
         return (
-          <div className="card-elevated overflow-x-auto">
+          <div className="space-y-2">
             {data.docs.length === 0 ? (
               <EmptyTab text="אין מסמכים" />
             ) : (
-              <table className="w-full text-sm">
-                <tbody>
-                  {data.docs.map((d) => (
-                    <tr key={d.id} className="border-b border-border/50">
-                      <td className="p-3">
-                        <p className="font-medium">{d.name}</p>
-                        {d.url && (
-                          <a href={d.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary text-xs mt-2 font-medium">
-                            <ExternalLink size={12} /> צפה
-                          </a>
-                        )}
-                      </td>
-                      <td className="p-3 text-muted-foreground text-xs">{d.expiry}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              data.docs.map((d) => (
+                d.url ? (
+                  <DocumentCard
+                    key={d.id}
+                    url={d.url}
+                    fileName={d.name}
+                    meta={d.expiry ? <p className="text-xs text-muted-foreground mt-0.5">תוקף: {d.expiry}</p> : undefined}
+                    compact
+                  />
+                ) : (
+                  <div key={d.id} className="card-elevated p-3">
+                    <p className="font-medium">{d.name}</p>
+                    {d.expiry && <p className="text-xs text-muted-foreground mt-1">תוקף: {d.expiry}</p>}
+                  </div>
+                )
+              ))
             )}
           </div>
         );

@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+import { DocumentGallery } from '@/components/documents/DocumentViewer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ImageUpload from '@/components/ImageUpload';
 import ServiceOrderChat from '@/components/service-orders/ServiceOrderChat';
@@ -261,16 +262,10 @@ export default function ServiceOrders() {
           )}
 
           {o.images && (
-            <div className="space-y-2">
-              <p className="text-sm font-bold">תמונות מצורפות</p>
-              <div className="flex gap-2 flex-wrap">
-                {o.images.split(',').filter(Boolean).map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noreferrer">
-                    <img src={url} alt="" className="w-20 h-20 rounded-xl object-cover border-2 border-border" />
-                  </a>
-                ))}
-              </div>
-            </div>
+            <DocumentGallery
+              urls={o.images.split(',').filter(Boolean)}
+              title="תמונות מצורפות"
+            />
           )}
 
           {o.notes && <p className="p-3 bg-muted rounded-xl text-muted-foreground text-sm">{o.notes}</p>}

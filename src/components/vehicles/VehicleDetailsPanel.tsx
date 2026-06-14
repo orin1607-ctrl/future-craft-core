@@ -226,10 +226,10 @@ export default function VehicleDetailsPanel({
 
       <AccordionSection title="מסמכים">
         <div className="space-y-2">
-          {v.license_doc_url && <DocLink label="רישיון רכב (license_doc_url)" url={v.license_doc_url} />}
-          {v.insurance_doc_url && <DocLink label="ביטוח חובה (insurance_doc_url)" url={v.insurance_doc_url} />}
+          {v.license_doc_url && <DocLink label="רישיון רכב" url={v.license_doc_url} />}
+          {v.insurance_doc_url && <DocLink label="ביטוח חובה" url={v.insurance_doc_url} />}
           {v.comprehensive_insurance_doc_url && (
-            <DocLink label="ביטוח מקיף (comprehensive_insurance_doc_url)" url={v.comprehensive_insurance_doc_url} />
+            <DocLink label="ביטוח מקיף" url={v.comprehensive_insurance_doc_url} />
           )}
           {thirdPartyDoc && <DocLink label="ביטוח צד ג׳" url={thirdPartyDoc} />}
           {!v.license_doc_url && !v.insurance_doc_url && !v.comprehensive_insurance_doc_url && !thirdPartyDoc && (

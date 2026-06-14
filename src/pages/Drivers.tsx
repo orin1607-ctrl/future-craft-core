@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { uploadDocument } from '@/lib/uploadDocument';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
 
@@ -146,10 +147,7 @@ export default function Drivers() {
               <div className="col-span-2">
                 <span className="text-muted-foreground">צילום רישיון נהיגה:</span>
                 <div className="mt-2">
-                  <a href={d.license_image_url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary font-medium hover:bg-primary/20 transition-colors">
-                    <Eye size={18} /> צפה ברישיון
-                  </a>
+                  <DocumentAttachment label="רישיון נהיגה" url={d.license_image_url} fileName="רישיון-נהיגה" />
                 </div>
               </div>
             )}
@@ -614,10 +612,7 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
               <input type="file" accept="image/*,.pdf" onChange={handleLicenseUpload} className="hidden" disabled={uploading} />
             </label>
             {licenseImageUrl && (
-              <a href={licenseImageUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors">
-                <FileImage size={18} /> צפה ברישיון
-              </a>
+              <DocumentAttachment label="רישיון נהיגה" url={licenseImageUrl} fileName="רישיון-נהיגה" />
             )}
           </div>
         </div>

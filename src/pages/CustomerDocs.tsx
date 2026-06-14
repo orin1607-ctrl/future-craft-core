@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FileText, Upload, Download, Trash2, Search, Building2 } from 'lucide-react';
+import { FileText, Upload, Search, Building2 } from 'lucide-react';
+import { DocumentCard } from '@/components/documents/DocumentViewer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
@@ -118,12 +119,8 @@ export default function CustomerDocs() {
     loadDocs();
   };
 
-  const handleDownload = async (doc: DocMetadata) => {
-    const { data } = supabase.storage.from('documents').getPublicUrl(doc.file_path);
-    if (data?.publicUrl) {
-      window.open(data.publicUrl, '_blank');
-    }
-  };
+  const docPublicUrl = (filePath: string) =>
+    supabase.storage.from('documents').getPublicUrl(filePath).data.publicUrl;
 
   const filtered = docs.filter(d => {
     if (filterCategory && d.category !== filterCategory) return false;
@@ -212,35 +209,21 @@ export default function CustomerDocs() {
       ) : (
         <div className="space-y-3">
           {filtered.map(doc => (
-            <div key={doc.id} className="card-elevated flex items-center justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <FileText size={16} className="text-primary shrink-0" />
-                  <p className="font-bold truncate">{doc.original_name || 'ללא שם'}</p>
-                  <span className="px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-xs font-bold shrink-0">
-                    {CATEGORY_LABELS[doc.category] || doc.category}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <DocumentCard
+              key={doc.id}
+              url={docPublicUrl(doc.file_path)}
+              fileName={doc.original_name || undefined}
+              label={CATEGORY_LABELS[doc.category] || doc.category}
+              meta={(
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                   {doc.company_name && <span className="flex items-center gap-1"><Building2 size={12} /> {doc.company_name}</span>}
                   {doc.vehicle_plate && <span>🚗 {doc.vehicle_plate}</span>}
                   {doc.driver_name && <span>👤 {doc.driver_name}</span>}
                   <span>{format(new Date(doc.created_at), 'dd/MM/yyyy', { locale: he })}</span>
                 </div>
-              </div>
-              <div className="flex gap-1 shrink-0">
-                <button onClick={() => handleDownload(doc)}
-                  className="p-2 rounded-xl bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
-                  <Download size={16} />
-                </button>
-                {isManager && (
-                  <button onClick={() => handleDelete(doc)}
-                    className="p-2 rounded-xl bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-            </div>
+              )}
+              onDelete={isManager ? () => handleDelete(doc) : undefined}
+            />
           ))}
         </div>
       )}

@@ -2,6 +2,7 @@ import { cloneElement, isValidElement, useState, type ChangeEvent, type ReactEle
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadDocument } from '@/lib/uploadDocument';
+import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { useDaliaFormValues } from './DaliaFormValuesContext';
 
 function bindControl(
@@ -205,6 +206,7 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
   };
 
   const displayName = form?.getValue(textName) || '';
+  const docUrl = linkField && form ? form.getValue(linkField) : '';
 
   return (
     <div className="d-file-wrap">
@@ -223,6 +225,11 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
           }}
         />
       </label>
+      {docUrl && (
+        <div className="mt-2">
+          <DocumentAttachment label="מסמך שהועלה" url={docUrl} fileName={displayName || undefined} />
+        </div>
+      )}
     </div>
   );
 }

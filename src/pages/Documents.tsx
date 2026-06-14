@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Search, Upload, Download, Trash2, Eye, FolderOpen, File, Image, FileSpreadsheet, Filter, ArrowRight, Car, User } from 'lucide-react';
+import { Search, Upload, FolderOpen, Filter, ArrowRight, Car, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter } from '@/hooks/useCompanyFilter';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { uploadDocument, deleteStoredDocument } from '@/lib/uploadDocument';
+import { DocumentCard } from '@/components/documents/DocumentViewer';
 import { buildVehicleContextUrl, isVehicleScopedContext, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
@@ -55,19 +55,8 @@ interface DocMeta {
   created_at: string;
 }
 
-function getFileIcon(name: string) {
-  const ext = name.split('.').pop()?.toLowerCase();
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].includes(ext || '')) return <Image size={20} className="text-info" />;
-  if (['pdf'].includes(ext || '')) return <FileText size={20} className="text-destructive" />;
-  if (['xls', 'xlsx', 'csv'].includes(ext || '')) return <FileSpreadsheet size={20} className="text-success" />;
-  return <File size={20} className="text-muted-foreground" />;
-}
-
-function formatSize(bytes?: number) {
-  if (!bytes) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function docPublicUrl(filePath: string) {
+  return supabase.storage.from('documents').getPublicUrl(filePath).data.publicUrl;
 }
 
 export default function Documents() {
@@ -85,8 +74,6 @@ export default function Documents() {
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
   // Filter states (manager only)
   const [filterVehicle, setFilterVehicle] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
@@ -246,16 +233,6 @@ export default function Documents() {
     if (!result.ok) { toast.error('שגיאה במחיקה'); return; }
     toast.success('נמחק');
     if (selectedCategory) { loadDocs(selectedCategory); loadCounts(); }
-  };
-
-  const handleDownload = (doc: DocMeta) => {
-    const { data } = supabase.storage.from('documents').getPublicUrl(doc.file_path);
-    window.open(data.publicUrl, '_blank');
-  };
-
-  const handlePreview = (doc: DocMeta) => {
-    const { data } = supabase.storage.from('documents').getPublicUrl(doc.file_path);
-    setPreviewUrl(data.publicUrl);
   };
 
   // Apply filters
@@ -425,60 +402,24 @@ export default function Documents() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredDocs.map(doc => {
-            const ext = doc.original_name?.split('.').pop()?.toLowerCase();
-            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '');
-            const isPdf = ext === 'pdf';
-
-            return (
-              <div key={doc.id} className="card-elevated flex items-center gap-3 p-3">
-                {getFileIcon(doc.original_name || doc.file_path)}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate text-sm">{doc.original_name || doc.file_path.split('/').pop()}</p>
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-0.5">
-                    {doc.vehicle_plate && <span className="bg-muted px-1.5 py-0.5 rounded">🚗 {doc.vehicle_plate}</span>}
-                    {doc.driver_name && <span className="bg-muted px-1.5 py-0.5 rounded">👤 {doc.driver_name}</span>}
-                    {doc.manufacturer && <span className="bg-muted px-1.5 py-0.5 rounded">{doc.manufacturer} {doc.model}</span>}
-                    {doc.created_at && <span>{new Date(doc.created_at).toLocaleDateString('he-IL')}</span>}
-                  </div>
+          {filteredDocs.map(doc => (
+            <DocumentCard
+              key={doc.id}
+              url={docPublicUrl(doc.file_path)}
+              fileName={doc.original_name || undefined}
+              meta={(
+                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-0.5">
+                  {doc.vehicle_plate && <span className="bg-muted px-1.5 py-0.5 rounded">🚗 {doc.vehicle_plate}</span>}
+                  {doc.driver_name && <span className="bg-muted px-1.5 py-0.5 rounded">👤 {doc.driver_name}</span>}
+                  {doc.manufacturer && <span className="bg-muted px-1.5 py-0.5 rounded">{doc.manufacturer} {doc.model}</span>}
+                  {doc.created_at && <span>{new Date(doc.created_at).toLocaleDateString('he-IL')}</span>}
                 </div>
-                <div className="flex gap-1">
-                  {(isImage || isPdf) && (
-                    <button onClick={() => handlePreview(doc)} className="p-2 rounded-lg hover:bg-muted transition-colors" title="תצוגה מקדימה">
-                      <Eye size={18} className="text-info" />
-                    </button>
-                  )}
-                  <button onClick={() => handleDownload(doc)} className="p-2 rounded-lg hover:bg-muted transition-colors" title="הורדה">
-                    <Download size={18} className="text-primary" />
-                  </button>
-                  {isManager && (
-                    <button onClick={() => handleDelete(doc)} className="p-2 rounded-lg hover:bg-destructive/10 transition-colors" title="מחיקה">
-                      <Trash2 size={18} className="text-destructive" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+              )}
+              onDelete={isManager ? () => handleDelete(doc) : undefined}
+            />
+          ))}
         </div>
       )}
-
-      {/* Preview Dialog */}
-      <Dialog open={!!previewUrl} onOpenChange={(open) => { if (!open) setPreviewUrl(null); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden">
-          <DialogHeader className="p-4 pb-2">
-            <DialogTitle>תצוגה מקדימה</DialogTitle>
-            <DialogDescription className="sr-only">תצוגה מקדימה של מסמך</DialogDescription>
-          </DialogHeader>
-          {previewUrl && (
-            previewUrl.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) ? (
-              <img src={previewUrl} alt="תצוגה מקדימה" className="w-full max-h-[75vh] object-contain p-4" />
-            ) : (
-              <iframe src={previewUrl} className="w-full h-[75vh]" title="תצוגה מקדימה" />
-            )
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+import { DocumentGallery } from '@/components/documents/DocumentViewer';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import FaultChat from '@/components/faults/FaultChat';
 import FaultStatusLog, { getStatusLabel } from '@/components/faults/FaultStatusLog';
@@ -354,14 +355,7 @@ export default function Faults() {
 
             {/* Images */}
             {faultImages.length > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-2 font-medium">📷 תמונות ({faultImages.length})</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {faultImages.map((url, i) => (
-                    <img key={i} src={url} alt={`תקלה ${i + 1}`} className="w-full rounded-xl aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity" onClick={() => window.open(url, '_blank')} />
-                  ))}
-                </div>
-              </div>
+              <DocumentGallery urls={faultImages} title="📷 תמונות" />
             )}
           </div>
 
