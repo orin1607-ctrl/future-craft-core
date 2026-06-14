@@ -1,0 +1,64 @@
+{
+  "at": "2026-06-14T20:44:13.084Z",
+  "repo": "orin1607-ctrl/future-craft-core",
+  "token_available": false,
+  "repo_meta": {
+    "full_name": "orin1607-ctrl/future-craft-core",
+    "private": false,
+    "visibility": "public",
+    "default_branch": "production",
+    "permissions": null
+  },
+  "collaborators": {
+    "error": "Requires authenticated token with repo admin/read access"
+  },
+  "branch_protection": {
+    "main": {
+      "configured": false,
+      "status": 401
+    },
+    "production": {
+      "configured": false,
+      "status": 401
+    }
+  },
+  "hooks": {
+    "error": 401
+  },
+  "deploy_keys": {
+    "error": 401
+  },
+  "installations": {
+    "error": 404
+  },
+  "limitations": [
+    "Collaborators list requires GITHUB_TOKEN or gh auth login"
+  ],
+  "recommendations": [
+    {
+      "item": "Repository visibility",
+      "action": "להפוך ל-Private",
+      "reason": "Anon JWT היה חשוף ב-workflow; Owner בלבד"
+    },
+    {
+      "item": "Collaborators",
+      "action": "להסיר Admin/Write מיותרים",
+      "reason": "Owner מלא — orin1607-ctrl בלבד"
+    },
+    {
+      "item": "Branch protection",
+      "action": "להפעיל על main + production",
+      "reason": "Require PR + status checks"
+    },
+    {
+      "item": "GitHub Pages",
+      "action": "נשאר פעיל ב-Private repo (GitHub Pro/Team)",
+      "reason": "Staging deploy"
+    },
+    {
+      "item": "Secrets",
+      "action": "להעביר VITE_SUPABASE_PUBLISHABLE_KEY ל-GitHub Secret",
+      "reason": "לא hardcode ב-workflow"
+    }
+  ]
+}

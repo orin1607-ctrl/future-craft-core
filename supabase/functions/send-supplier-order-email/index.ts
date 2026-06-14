@@ -1,9 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { assertCompanyAccess, edgeCorsHeaders, requireAuth } from "../_shared/edgeAuth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const corsHeaders = edgeCorsHeaders;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -11,6 +9,10 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req, { roles: ['super_admin', 'fleet_manager'] });
+    if ('error' in auth) return auth.error;
+    const { ctx } = auth;
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not configured");
@@ -23,6 +25,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const denied = assertCompanyAccess(ctx, order.company_name);
+    if (denied) return denied;
 
     const executionDate = order.execution_date
       ? new Date(order.execution_date).toLocaleDateString("he-IL")

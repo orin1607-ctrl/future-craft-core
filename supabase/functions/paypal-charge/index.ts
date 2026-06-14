@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { edgeCorsHeaders, requireAuth } from "../_shared/edgeAuth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const corsHeaders = edgeCorsHeaders;
 
 const PAYPAL_API = "https://api-m.paypal.com"; // Use https://api-m.sandbox.paypal.com for sandbox
 
@@ -84,13 +80,21 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const auth = await requireAuth(req, { roles: ['super_admin'], allowInternal: true });
+    if ("error" in auth) return auth.error;
+    const { ctx } = auth;
+
+    const supabase = ctx.supabaseAdmin;
 
     const { action, subscription_id, order_id } = await req.json();
 
     if (action === "charge_all_due") {
+      if (!ctx.isInternalCall && ctx.role !== "super_admin") {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       // Cron job: charge all subscriptions due today
       const today = new Date();
       const dayOfMonth = today.getDate();

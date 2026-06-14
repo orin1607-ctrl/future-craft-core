@@ -1,7 +1,6 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { edgeCorsHeaders, requireAuth } from '../_shared/edgeAuth.ts';
+
+const corsHeaders = edgeCorsHeaders;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -9,6 +8,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req, { roles: ['super_admin', 'fleet_manager'] });
+    if ('error' in auth) return auth.error;
+
     const ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID');
     const AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN');
     const FROM_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
@@ -81,7 +83,7 @@ Deno.serve(async (req) => {
   <Say language="he-IL" voice="Google.he-IL-Standard-A">${safeMsg}</Say>
 </Response>`;
 
-    const auth = btoa(`${ACCOUNT_SID}:${AUTH_TOKEN}`);
+    const twilioBasicAuth = btoa(`${ACCOUNT_SID}:${AUTH_TOKEN}`);
     const formData = new URLSearchParams({
       To: normalizedTo,
       From: FROM_NUMBER,
@@ -93,7 +95,7 @@ Deno.serve(async (req) => {
       {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${auth}`,
+          'Authorization': `Basic ${twilioBasicAuth}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: formData.toString(),

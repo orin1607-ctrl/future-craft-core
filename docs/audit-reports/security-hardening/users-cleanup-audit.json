@@ -1,0 +1,963 @@
+{
+  "at": "2026-06-14T20:44:12.930Z",
+  "summary": {
+    "total": 119,
+    "to_delete": 66,
+    "to_review": 17,
+    "to_keep": 36
+  },
+  "users": [
+    {
+      "email": "dosh@gmail.com",
+      "roles": "driver",
+      "company": "tesy",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "gogo@gmail.com",
+      "roles": "driver",
+      "company": "דרכי חיים",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "m.naeem.dosh@gmail.com",
+      "roles": "driver",
+      "company": "dosh44",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "menahel1.hevra1@gmail.com",
+      "roles": "fleet_manager",
+      "company": "חברה 1",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "menahel1.hevra2@gmail.com",
+      "roles": "fleet_manager",
+      "company": "חברה 2",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "nahag1.hevra1@gmail.com",
+      "roles": "driver",
+      "company": "חברה 1",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "nahag1.hevra2@gmail.com",
+      "roles": "driver",
+      "company": "חברה 2",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "nahag2.hevra1@gmail.com",
+      "roles": "driver",
+      "company": "חברה 1",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "nahag2.hevra2@gmail.com",
+      "roles": "driver",
+      "company": "חברה 2",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "op@gmail.com",
+      "roles": "driver",
+      "company": "דרכי חיים",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "oyt@gmail.com",
+      "roles": "driver",
+      "company": "אכבים",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "rrrr@gmail.com",
+      "roles": "fleet_manager",
+      "company": "חיל בדיקה",
+      "active": "active",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "rtrr@gmail.com",
+      "roles": "driver",
+      "company": "חיל בדיקה",
+      "active": "active",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "test@gmail.com",
+      "roles": "driver",
+      "company": "דרכי חיים",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "test2@gmail.com",
+      "roles": "driver",
+      "company": "דרכי חיים",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "test2025@gmail.com",
+      "roles": "driver",
+      "company": "test2025",
+      "active": "inactive",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "yyy@yyyy.com",
+      "roles": "driver",
+      "company": "מנזון דורון",
+      "active": "active",
+      "group": "Demo / Test (uns flagged)",
+      "recommendation": "לבדוק / למחוק"
+    },
+    {
+      "email": "beeri8843@gmail.com",
+      "roles": "driver",
+      "company": "קיבוץ בארי",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "dalia@dalia-c.com",
+      "roles": "fleet_manager",
+      "company": "ממתקים",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "daliaservicee@gmail.com",
+      "roles": "driver",
+      "company": "df",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "darkay.hayim@gmail.com",
+      "roles": "fleet_manager",
+      "company": "דרכי חיים",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "doron@menzong.net",
+      "roles": "fleet_manager",
+      "company": "מנזון דורון",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "ilanayoni22@gmail.com",
+      "roles": "driver",
+      "company": "טטטט",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "k.auto@beeri.co.il",
+      "roles": "fleet_manager",
+      "company": "קיבוץ בארי",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "k.car@givat-zeev.muni.il",
+      "roles": "fleet_manager",
+      "company": "זאב *",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "khalil.exdelivery@gmail.com",
+      "roles": "fleet_manager",
+      "company": "מ.ח אדם",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "linoy@hasystems.co.il",
+      "roles": "fleet_manager",
+      "company": "שיטות",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "m.car@carmit.com",
+      "roles": "driver",
+      "company": "מוטי",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "m.naeem.uet.cs@gmail.com",
+      "roles": "driver",
+      "company": "df",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "meniakerman@gmail.com",
+      "roles": "fleet_manager",
+      "company": "מני",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "miki@uppercase.co.il",
+      "roles": "driver",
+      "company": "בדיקה מיקי",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "moti16061975@gmail.com",
+      "roles": "fleet_manager",
+      "company": "מוטי",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "oren.s@bukiflowers.com",
+      "roles": "fleet_manager",
+      "company": "פרחי בוקי בע\"מ",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "orih@hasystems.co.il",
+      "roles": "fleet_manager",
+      "company": "שיטות",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "orin160711@gmail.com",
+      "roles": "driver",
+      "company": "חיל בדיקה",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "orin1607a@gmail.com",
+      "roles": "driver",
+      "company": "Yoni",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "rafi@dalia-c.com",
+      "roles": "fleet_manager",
+      "company": "חברה 1",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "rechev3@avrahami-yoav.com",
+      "roles": "fleet_manager",
+      "company": "אברהמי יואב ובניו בע\"מ",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "rinot@rinot.com",
+      "roles": "fleet_manager",
+      "company": "רותם",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "ron.biton@avrahami-yoav.com",
+      "roles": "fleet_manager",
+      "company": "אברהמי יואב ובניו בע\"מ",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "yoni@yonionline.net",
+      "roles": "private_customer",
+      "company": "—",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "yoni112222@gmail.com",
+      "roles": "driver",
+      "company": "Ilana",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "yoni1212@gmail.com",
+      "roles": "driver",
+      "company": "חיל בדיקה",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "yoni122222@gmail.com",
+      "roles": "driver",
+      "company": "טטטט",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "yoni19111977@gmail.com",
+      "roles": "private_customer",
+      "company": "—",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "yoni191177@gmail.com",
+      "roles": "fleet_manager",
+      "company": "טטטט",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "yoniatias23@gmail.com",
+      "roles": "driver",
+      "company": "df",
+      "active": "inactive",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "yoso@gmail.com",
+      "roles": "fleet_manager",
+      "company": "יוסי חחחח",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "yypsi@gmail.com",
+      "roles": "driver",
+      "company": "מנזון דורון",
+      "active": "active",
+      "group": "Production candidate",
+      "recommendation": "להשאיר — לוודא שיוך חברה"
+    },
+    {
+      "email": "03111111111@nomail.fleet.local",
+      "roles": "private_customer",
+      "company": "—",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "55555@nomail.fleet.local",
+      "roles": "private_customer",
+      "company": "—",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "e2e-ab-1780996116540@staging-e2e.local",
+      "roles": "driver, fleet_manager",
+      "company": "חברה 2",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "e2e-ab-1780996236498@staging-e2e.local",
+      "roles": "driver, fleet_manager",
+      "company": "חברה 2",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "fail-1781029861205@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "fail-1781029906442@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "fail-1781030308638@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "fail-1781035226496@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "fail-1781035770813@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "fail-1781038738515@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "gp-fleetos-1781244538479@staging-e2e.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "gp-fleetos-1781244728282@staging-e2e.local",
+      "roles": "fleet_manager",
+      "company": "QA",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "lock-1781035274231@staging-e2e.local",
+      "roles": "private_customer",
+      "company": "E2E QA",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "no2fa-1781035274231@staging-e2e.local",
+      "roles": "private_customer",
+      "company": "E2E QA",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "otp-inv-1781029861205@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "otp-inv-1781029906442@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "otp-inv-1781030308638@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "otp-inv-1781035226496@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "otp-inv-1781035770813@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "otp-inv-1781038738515@staging-e2e.local",
+      "roles": "driver",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "preclient-fm-1781461842298@staging-e2e.local",
+      "roles": "fleet_manager",
+      "company": "דליה",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781466922180@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781466922180",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781467417226@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781467417226",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781467427629@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781467427629",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781468001756@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781468001756",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781468023768@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781468023768",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781468102488@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781468102488",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781468148615@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781468148615",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781468197405@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781468197405",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781468229736@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781468229736",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781468286243@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781468286243",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-doc-ux-1781468349129@staging.local",
+      "roles": "driver, fleet_manager",
+      "company": "QA-DOC-UX-1781468349129",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-drv-1781464921733@staging-strict.local",
+      "roles": "driver",
+      "company": "QA-STRICT-1781464921733",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-drv-1781465202667@staging-strict.local",
+      "roles": "driver",
+      "company": "QA-STRICT-1781465202667",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-drv-probe-1781465571496@staging.local",
+      "roles": "driver",
+      "company": "QA-RLS-PROBE-1781465571496",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-fm-1781464921733@staging-strict.local",
+      "roles": "fleet_manager",
+      "company": "QA-STRICT-1781464921733",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-fm-1781465202667@staging-strict.local",
+      "roles": "fleet_manager",
+      "company": "QA-STRICT-1781465202667",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "reset-1781035274231@staging-e2e.local",
+      "roles": "private_customer",
+      "company": "E2E QA",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "test-123@test.com",
+      "roles": "private_customer",
+      "company": "—",
+      "active": "inactive",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "transport-prev-1781350606929@staging-e2e.local",
+      "roles": "fleet_manager",
+      "company": "TransportPreview-1781350606929",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "transport-prev-1781350742015@staging-e2e.local",
+      "roles": "fleet_manager",
+      "company": "TransportPreview-1781350742015",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "transport-prev-1781350825055@staging-e2e.local",
+      "roles": "fleet_manager",
+      "company": "TransportPreview-1781350825055",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "transport-prev-1781350883754@staging-e2e.local",
+      "roles": "fleet_manager",
+      "company": "TransportPreview-1781350883754",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "with2fa-1781035274231@staging-e2e.local",
+      "roles": "private_customer",
+      "company": "E2E QA",
+      "active": "active",
+      "group": "QA / Test",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "ilana@gmail.com",
+      "roles": "super_admin",
+      "company": "אילנה אטיאס",
+      "active": "active",
+      "group": "Super Admin",
+      "recommendation": "להשאיר"
+    },
+    {
+      "email": "miki@eustudios.com",
+      "roles": "super_admin",
+      "company": "מוסך יוני",
+      "active": "active",
+      "group": "Super Admin",
+      "recommendation": "להשאיר"
+    },
+    {
+      "email": "orin1607@gmail.com",
+      "roles": "super_admin",
+      "company": "אכבים",
+      "active": "active",
+      "group": "Super Admin",
+      "recommendation": "להשאיר"
+    },
+    {
+      "email": "orina1607@gmail.com",
+      "roles": "super_admin",
+      "company": "Yoni",
+      "active": "active",
+      "group": "Super Admin",
+      "recommendation": "להשאיר"
+    },
+    {
+      "email": "455555@nomail.fleet.local",
+      "roles": "super_admin",
+      "company": "Ilana",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "admin-1781035274231@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "E2E QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "env-proof-1781456594991@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "fuel-prev-1781259970056@staging-e2e.local",
+      "roles": "driver, super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "fuel-prev-1781260091789@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "fuel-sav-1781261244881@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "local-sync-1781457245878@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "m1-qa-1781253702917@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "m1-qa-1781254252195@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "phaseb-audit-1781456924048@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "plan-audit-1781028824142@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "Staging QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "preclient-sa-1781461836728@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-1781115112923@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "דליה",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-1781462237049@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "דליה",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-sa-1781464898731@staging-strict.local",
+      "roles": "super_admin",
+      "company": "QA-STRICT-1781464898731",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-sa-1781464921733@staging-strict.local",
+      "roles": "super_admin",
+      "company": "QA-STRICT-1781464921733",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "qa-sa-1781465202667@staging-strict.local",
+      "roles": "super_admin",
+      "company": "QA-STRICT-1781465202667",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "transport-sa-1781350606929@staging-e2e.local",
+      "roles": "driver, super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "transport-sa-1781350742015@staging-e2e.local",
+      "roles": "driver, super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "transport-sa-1781350825055@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "transport-sa-1781350883754@staging-e2e.local",
+      "roles": "super_admin",
+      "company": "QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    },
+    {
+      "email": "wa-admin-1781033659459@staging-e2e.local",
+      "roles": "driver, super_admin",
+      "company": "E2E QA",
+      "active": "active",
+      "group": "Super Admin QA",
+      "recommendation": "למחוק"
+    }
+  ]
+}

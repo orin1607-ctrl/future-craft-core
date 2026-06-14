@@ -1,0 +1,87 @@
+{
+  "at": "2026-06-14T20:47:59.164Z",
+  "staging": "https://usfeoerkpcafxxlyuldl.supabase.co",
+  "all_blocked": true,
+  "results": [
+    {
+      "function": "help-ai-chat",
+      "status": 403,
+      "blocked": true,
+      "body": {
+        "error": "Forbidden — user session required"
+      }
+    },
+    {
+      "function": "twilio-outbound-call",
+      "status": 403,
+      "blocked": true,
+      "body": {
+        "error": "Forbidden — user session required"
+      }
+    },
+    {
+      "function": "paypal-charge",
+      "status": 403,
+      "blocked": true,
+      "body": {
+        "error": "Forbidden — user session required"
+      }
+    },
+    {
+      "function": "send-password-reset",
+      "status": 403,
+      "blocked": true,
+      "body": {
+        "error": "Forbidden — user session required"
+      }
+    },
+    {
+      "function": "notify-accident-email",
+      "status": 403,
+      "blocked": true,
+      "body": {
+        "error": "Forbidden — user session required"
+      }
+    },
+    {
+      "function": "notify-service-order-email",
+      "status": 403,
+      "blocked": true,
+      "body": {
+        "error": "Forbidden — user session required"
+      }
+    },
+    {
+      "function": "send-supplier-order-email",
+      "status": 403,
+      "blocked": true,
+      "body": {
+        "error": "Forbidden — user session required"
+      }
+    },
+    {
+      "function": "elevenlabs-conversation-token",
+      "status": 403,
+      "blocked": true,
+      "body": {
+        "error": "Forbidden — user session required"
+      }
+    },
+    {
+      "function": "book-pickup-slot",
+      "status": 403,
+      "blocked": true,
+      "body": {
+        "error": "Forbidden — user session required"
+      }
+    },
+    {
+      "function": "vehicle-lookup",
+      "status": 403,
+      "blocked": true,
+      "body": {
+        "error": "Forbidden — user session required"
+      }
+    }
+  ]
+}

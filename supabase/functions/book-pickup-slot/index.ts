@@ -1,14 +1,18 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { assertCompanyAccess, edgeCorsHeaders, requireAuth } from '../_shared/edgeAuth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const corsHeaders = edgeCorsHeaders;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, {
+      roles: ['super_admin', 'fleet_manager'],
+      allowInternal: true,
+    });
+    if ('error' in auth) return auth.error;
+    const { ctx } = auth;
+
     const body = await req.json();
     const {
       driver_name,
@@ -29,10 +33,12 @@ Deno.serve(async (req) => {
       source,
     } = body;
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    if (!ctx.isInternalCall) {
+      const denied = assertCompanyAccess(ctx, company_name);
+      if (denied) return denied;
+    }
+
+    const supabase = ctx.supabaseAdmin;
 
     // Try to auto-resolve driver from phone if not provided
     let resolvedDriverId = driver_id || null;

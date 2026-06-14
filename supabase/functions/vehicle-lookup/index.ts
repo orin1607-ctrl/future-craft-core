@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { edgeCorsHeaders, requireAuth } from "../_shared/edgeAuth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const corsHeaders = edgeCorsHeaders;
 
 const GOV_API_URL = "https://data.gov.il/api/3/action/datastore_search";
 const RESOURCE_ID = "053cea08-09bc-40ec-8f7a-156f0677aff3";
@@ -105,6 +102,9 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req);
+    if ("error" in auth) return auth.error;
+
     const url = new URL(req.url);
     const plate = url.searchParams.get("plate")?.replace(/[-\s]/g, "");
 

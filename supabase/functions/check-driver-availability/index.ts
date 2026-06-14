@@ -1,23 +1,23 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { edgeCorsHeaders, requireAuth } from '../_shared/edgeAuth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const corsHeaders = edgeCorsHeaders;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, {
+      roles: ['super_admin', 'fleet_manager'],
+      allowInternal: true,
+    });
+    if ('error' in auth) return auth.error;
+
     const url = new URL(req.url);
     const driverName = url.searchParams.get('driver_name') || '';
     const companyName = url.searchParams.get('company_name') || '';
     const daysAhead = parseInt(url.searchParams.get('days_ahead') || '7');
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabase = auth.ctx.supabaseAdmin;
 
     const today = new Date();
     const endDate = new Date();

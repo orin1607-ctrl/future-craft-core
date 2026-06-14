@@ -1,9 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { edgeCorsHeaders, requireAuth, resolveCompanyScope } from "../_shared/edgeAuth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const corsHeaders = edgeCorsHeaders;
 
 const SYSTEM_PROMPT = `אתה עוזר AI חכם למערכת ניהול צי רכבים בעברית.
 המערכת מנהלת רכבים, נהגים, תקלות, תאונות, הוצאות, מסלולים, סידורי עבודה, הזמנות שירות, התראות ועוד.
@@ -120,9 +118,14 @@ const DATA_TOOLS = [
   },
 ];
 
-async function executeToolCall(name: string, args: Record<string, unknown>, supabase: ReturnType<typeof createClient>): Promise<string> {
+async function executeToolCall(
+  name: string,
+  args: Record<string, unknown>,
+  supabase: ReturnType<typeof createClient>,
+  forcedCompany?: string,
+): Promise<string> {
   try {
-    const company = args.company_name as string | undefined;
+    const company = forcedCompany ?? (args.company_name as string | undefined);
 
     switch (name) {
       case "get_vehicles_stats": {
@@ -289,6 +292,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req);
+    if ("error" in auth) return auth.error;
+    const { ctx } = auth;
+
     const { messages, company_name } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
@@ -300,13 +307,11 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = ctx.supabaseUser;
+    const companyScope = resolveCompanyScope(ctx, company_name);
 
-    const sysPrompt = company_name
-      ? `${SYSTEM_PROMPT}\n\nהמשתמש משויך לחברה: "${company_name}". כשאתה קורא לפונקציות נתונים, סנן תמיד לפי החברה הזו.`
+    const sysPrompt = companyScope
+      ? `${SYSTEM_PROMPT}\n\nהמשתמש משויך לחברה: "${companyScope}". כשאתה קורא לפונקציות נתונים, סנן תמיד לפי החברה הזו.`
       : SYSTEM_PROMPT;
 
     const firstResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -349,7 +354,7 @@ Deno.serve(async (req) => {
       const toolResults = [];
       for (const tc of toolCalls) {
         const args = typeof tc.function.arguments === "string" ? JSON.parse(tc.function.arguments) : tc.function.arguments;
-        const result = await executeToolCall(tc.function.name, args, supabase);
+        const result = await executeToolCall(tc.function.name, args, supabase, companyScope);
         toolResults.push({ role: "tool", tool_call_id: tc.id, content: result });
       }
 

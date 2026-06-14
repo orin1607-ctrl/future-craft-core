@@ -1,32 +1,6 @@
 project_id = "usfeoerkpcafxxlyuldl"
 
-[functions.create-admin-user]
-verify_jwt = false
-
-[functions.change-user-password]
-verify_jwt = false
-
-[functions.send-password-reset]
-verify_jwt = false
-
-[functions.send-user-access-code]
-verify_jwt = false
-
-[functions.notify-service-order-email]
-verify_jwt = false
-
-[functions.notify-accident-email]
-verify_jwt = false
-
-[functions.send-supplier-order-email]
-verify_jwt = false
-
-[functions.paypal-charge]
-verify_jwt = false
-
-[functions.backup-data]
-verify_jwt = false
-
+# Public auth flows — JWT verified inside handlers (OTP / password reset)
 [functions.auth-login-challenge]
 verify_jwt = false
 
@@ -38,3 +12,61 @@ verify_jwt = false
 
 [functions.auth-complete-password-reset]
 verify_jwt = false
+
+# Protected — gateway JWT + in-function role checks via _shared/edgeAuth.ts
+[functions.help-ai-chat]
+verify_jwt = true
+
+[functions.twilio-outbound-call]
+verify_jwt = true
+
+[functions.elevenlabs-conversation-token]
+verify_jwt = true
+
+[functions.paypal-charge]
+verify_jwt = true
+
+[functions.send-password-reset]
+verify_jwt = true
+
+[functions.notify-accident-email]
+verify_jwt = true
+
+[functions.notify-service-order-email]
+verify_jwt = true
+
+[functions.send-supplier-order-email]
+verify_jwt = true
+
+[functions.book-pickup-slot]
+verify_jwt = true
+
+[functions.request-human-callback]
+verify_jwt = true
+
+[functions.create-admin-user]
+verify_jwt = true
+
+[functions.change-user-password]
+verify_jwt = true
+
+[functions.send-user-access-code]
+verify_jwt = true
+
+[functions.send-whatsapp-message]
+verify_jwt = true
+
+[functions.backup-data]
+verify_jwt = true
+
+[functions.full-supabase-export]
+verify_jwt = true
+
+[functions.vehicle-lookup]
+verify_jwt = true
+
+[functions.check-exam-expiry]
+verify_jwt = true
+
+[functions.check-driver-availability]
+verify_jwt = true

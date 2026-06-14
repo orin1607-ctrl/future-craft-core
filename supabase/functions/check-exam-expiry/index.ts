@@ -1,20 +1,17 @@
 // Daily check for driving exam expiry - sends in-app notifications to drivers
 // Runs via cron (pg_cron) and notifies drivers whose exam expired or expires within 14 days
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { edgeCorsHeaders, requireAuth } from '../_shared/edgeAuth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const corsHeaders = edgeCorsHeaders;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const auth = await requireAuth(req, { roles: ['super_admin'], allowInternal: true });
+    if ('error' in auth) return auth.error;
+
+    const supabase = auth.ctx.supabaseAdmin;
 
     const today = new Date();
     const in14Days = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);

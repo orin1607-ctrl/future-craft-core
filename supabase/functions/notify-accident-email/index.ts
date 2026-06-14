@@ -1,9 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { assertCompanyAccess, edgeCorsHeaders, requireAuth } from '../_shared/edgeAuth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const corsHeaders = edgeCorsHeaders;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,15 +8,16 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req, { roles: ['super_admin', 'fleet_manager', 'driver'] });
+    if ('error' in auth) return auth.error;
+    const { ctx } = auth;
+
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) {
       throw new Error('RESEND_API_KEY is not configured');
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     const { record, type } = await req.json();
     const eventType = type || 'accident'; // 'accident' | 'fault'
@@ -30,6 +28,9 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    const denied = assertCompanyAccess(ctx, record.company_name);
+    if (denied) return denied;
 
     // Find fleet managers in the same company
     const { data: managers } = await supabaseAdmin

@@ -1,21 +1,19 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { edgeCorsHeaders, requireAuth } from '../_shared/edgeAuth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const corsHeaders = edgeCorsHeaders;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, { allowInternal: true });
+    if ('error' in auth) return auth.error;
+    const { ctx } = auth;
+
     const body = await req.json();
     const { customer_name, customer_phone, company_name, reason } = body;
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabase = ctx.supabaseAdmin;
 
     // Notify all fleet managers of the company about the callback request
     const { data: managers } = await supabase
