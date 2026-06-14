@@ -6,9 +6,11 @@ export const TRANSPORT_FEATURE_IDS = [
   'work-orders',
   'pickup',
   'teams',
-  'import',
   'reports',
 ] as const;
+
+/** Import wizard — planned for a future phase; not exposed in UI until implemented. */
+export const TRANSPORT_IMPORT_ENABLED = false;
 
 export type TransportFeatureId = (typeof TRANSPORT_FEATURE_IDS)[number];
 
@@ -55,12 +57,6 @@ export const TRANSPORT_FEATURES: TransportFeatureDef[] = [
     label: 'צוותי הסעה',
     subtitle: 'שיוך רכב, נהג ומלווה',
     to: '/attach-car',
-  },
-  {
-    id: 'import',
-    label: 'יבוא נתונים',
-    subtitle: 'Dry Run — בקרוב',
-    to: '/transport/import',
   },
   {
     id: 'reports',

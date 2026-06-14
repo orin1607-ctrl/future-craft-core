@@ -1,4 +1,7 @@
-import { cloneElement, isValidElement, type ChangeEvent, type ReactElement, type ReactNode } from 'react';
+import { cloneElement, isValidElement, useState, type ChangeEvent, type ReactElement, type ReactNode } from 'react';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { uploadDocument } from '@/lib/uploadDocument';
 import { useDaliaFormValues } from './DaliaFormValuesContext';
 
 function bindControl(
@@ -138,21 +141,85 @@ export function OwnershipBasicFields({ prefix, ownerLabel }: { prefix: string; o
   );
 }
 
+function inferLinkField(textName: string): string | undefined {
+  if (textName === 'license_file_name') return 'license_link';
+  if (textName === 'test_file_name') return 'test_doc_link';
+  if (textName.endsWith('_file_name')) {
+    const base = textName.slice(0, -'_file_name'.length);
+    if (base.endsWith('_pledge')) return `${base}_link`;
+    if (base.endsWith('_loan')) return `${base}_link`;
+    if (base.endsWith('_ownership')) return `${base}_ownership_link`;
+    if (base.endsWith('_agreement')) return `${base}_agreement_link`;
+    return `${base}_doc_link`;
+  }
+  return undefined;
+}
+
+function inferDocCategory(textName: string): string {
+  if (textName.includes('insurance') || textName.includes('license') || textName.includes('test')) {
+    return 'vehicle_docs';
+  }
+  return 'vehicle_docs';
+}
+
 export function FileWrap({ name, textName }: { name: string; textName: string }) {
+  const form = useDaliaFormValues();
+  const { user } = useAuth();
+  const [uploading, setUploading] = useState(false);
+  const linkField = inferLinkField(textName);
+
+  const handleFile = async (file: File) => {
+    if (!form) {
+      const text = document.querySelector(`input[name="${textName}"]`) as HTMLInputElement | null;
+      if (text) text.value = file.name;
+      return;
+    }
+
+    form.setValue(textName, file.name);
+
+    if (!user?.id) {
+      toast.error('יש להתחבר כדי להעלות קבצים');
+      return;
+    }
+
+    setUploading(true);
+    const plate = (form.getValue('vehicle_plate') || 'vehicle').replace(/[-\s]/g, '');
+    const result = await uploadDocument({
+      file,
+      storageFolder: `vehicles/${plate}`,
+      category: inferDocCategory(textName),
+      companyName: user.company_name || '',
+      vehiclePlate: plate,
+      manufacturer: form.getValue('manufacturer'),
+      model: form.getValue('model'),
+    });
+    setUploading(false);
+
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    if (linkField) form.setValue(linkField, result.publicUrl);
+    toast.success('הקובץ הועלה ונשמר במערכת המסמכים');
+  };
+
+  const displayName = form?.getValue(textName) || '';
+
   return (
     <div className="d-file-wrap">
-      <input type="text" name={textName} readOnly placeholder="שם קובץ..." />
-      <label className="d-btn small" style={{ margin: 0 }}>
-        העלה
+      <input type="text" name={textName} readOnly placeholder="שם קובץ..." value={displayName} />
+      <label className={`d-btn small${uploading ? ' opacity-50' : ''}`} style={{ margin: 0 }}>
+        {uploading ? 'מעלה...' : 'העלה'}
         <input
           type="file"
           name={name}
           style={{ display: 'none' }}
+          disabled={uploading}
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (!f) return;
-            const text = e.target.closest('.d-file-wrap')?.querySelector(`input[name="${textName}"]`) as HTMLInputElement;
-            if (text) text.value = f.name;
+            if (f) void handleFile(f);
+            e.target.value = '';
           }}
         />
       </label>

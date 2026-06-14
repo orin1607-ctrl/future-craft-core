@@ -3,6 +3,7 @@ import { Phone, Truck } from 'lucide-react';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
 import VehicleAccordionSection from '@/components/vehicles/VehicleAccordionSection';
 import { supabase } from '@/integrations/supabase/client';
+import { getThirdPartyInsuranceExpiry, getThirdPartyInsuranceDocUrl } from '@/lib/vehicleInsuranceUtils';
 import { InfoField, DocLink, ExpiryRow } from '@/components/vehicles/vehicleUi';
 import {
   daysUntil,
@@ -49,8 +50,19 @@ export default function VehicleDetailsPanel({
   const testDays = daysUntil(v.test_expiry);
   const insDays = daysUntil(v.insurance_expiry);
   const compDays = daysUntil(v.comprehensive_insurance_expiry);
-  const thirdPartyExpiry = (v as { third_party_insurance_expiry?: string | null }).third_party_insurance_expiry ?? null;
+  const thirdPartyExpiry = getThirdPartyInsuranceExpiry(v);
   const thirdDays = daysUntil(thirdPartyExpiry);
+  const thirdPartyDoc = getThirdPartyInsuranceDocUrl(v);
+
+  const maintenanceEq = (() => {
+    try {
+      const raw = (v as { maintenance_details?: unknown }).maintenance_details;
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return (parsed || {}) as Record<string, string>;
+    } catch {
+      return {} as Record<string, string>;
+    }
+  })();
 
   useEffect(() => {
     if (showInsurance) {
@@ -194,10 +206,15 @@ export default function VehicleDetailsPanel({
       </AccordionSection>
 
       <AccordionSection title="4. ציוד וכלים מיוחדים">
-        <p className="text-sm text-muted-foreground mb-2">
-          אין שדה ייעודי בטבלת vehicles. מוצג מ־vehicle_exchanges.extra_equipment (החלפה אחרונה) אם קיים.
-        </p>
-        <InfoField label="ציוד נוסף (extra_equipment)" value={extraEquipment || '—'} />
+        <div className="grid grid-cols-2 gap-3">
+          <InfoField label="דלקן" value={maintenanceEq.eq_fuel_dispenser || '—'} />
+          <InfoField label="איתוראן" value={maintenanceEq.eq_tracker || '—'} />
+          <InfoField label="כרטיס תדלוק" value={maintenanceEq.eq_fuel_card || '—'} />
+          <InfoField label="ציוד ייעודי" value={v.equipment_type || '—'} />
+          <InfoField label="פירוט ציוד" value={v.equipment_details || '—'} />
+          <InfoField label="ציוד נוסף" value={maintenanceEq.eq_extra || extraEquipment || '—'} />
+          <InfoField label="מספר סידורי" value={v.equipment_serial || '—'} />
+        </div>
       </AccordionSection>
 
       <AccordionSection title="5. טיפולים ותחזוקה">
@@ -214,7 +231,8 @@ export default function VehicleDetailsPanel({
           {v.comprehensive_insurance_doc_url && (
             <DocLink label="ביטוח מקיף (comprehensive_insurance_doc_url)" url={v.comprehensive_insurance_doc_url} />
           )}
-          {!v.license_doc_url && !v.insurance_doc_url && !v.comprehensive_insurance_doc_url && (
+          {thirdPartyDoc && <DocLink label="ביטוח צד ג׳" url={thirdPartyDoc} />}
+          {!v.license_doc_url && !v.insurance_doc_url && !v.comprehensive_insurance_doc_url && !thirdPartyDoc && (
             <p className="text-sm text-muted-foreground">אין מסמכים מצורפים</p>
           )}
         </div>

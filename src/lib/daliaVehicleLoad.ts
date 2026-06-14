@@ -76,6 +76,9 @@ const FORM_TO_COLUMN: Record<string, string> = {
   comprehensive_insurance_start: 'comprehensive_insurance_start',
   comprehensive_insurance_end: 'comprehensive_insurance_expiry',
   comprehensive_insurance_doc_link: 'comprehensive_insurance_doc_url',
+  third_party_insurance_end: 'third_party_insurance_expiry',
+  third_party_insurance_doc_link: 'third_party_insurance_doc_url',
+  has_no_claims: 'has_no_claims',
   op_monthly_cost: 'monthly_leasing_cost',
   op_end: 'leasing_end_date',
   fl_monthly_cost: 'monthly_loan_payment',
@@ -159,17 +162,26 @@ export function loadDaliaFromVehicleRow(row: Record<string, unknown>): DaliaLoad
   expandPrefixed(values, insurances.comprehensive as Record<string, unknown>, 'comprehensive_insurance_');
   expandPrefixed(values, insurances.third_party as Record<string, unknown>, 'third_party_insurance_');
 
+  if (row.third_party_insurance_expiry && !values.third_party_insurance_end) {
+    values.third_party_insurance_end = String(row.third_party_insurance_expiry);
+  }
+  if (row.third_party_insurance_doc_url && !values.third_party_insurance_doc_link) {
+    values.third_party_insurance_doc_link = String(row.third_party_insurance_doc_url);
+  }
+  if (row.has_no_claims === true) values.has_no_claims = 'true';
+  if (row.has_no_claims === false) values.has_no_claims = 'false';
+
   const maintenance = parseJson<Record<string, unknown>>(row.maintenance_details, {});
   const maintMethod = String(maintenance.method || row.maintenance_method || 'דליה');
   delete maintenance.method;
   for (const [k, v] of Object.entries(maintenance)) {
     if (v == null || v === '') continue;
-    if (k.startsWith('maint_') || k.startsWith('svc_')) values[k] = String(v);
+    if (k.startsWith('maint_') || k.startsWith('svc_') || k.startsWith('eq_')) values[k] = String(v);
     else if (k.startsWith('maint')) values[`maint_${k}`] = String(v);
     else values[k.startsWith('svc') ? k : `maint_${k}`] = String(v);
   }
   for (const [k, v] of Object.entries(maintenance)) {
-    if (k.startsWith('maint_') || k.startsWith('svc_')) values[k] = String(v);
+    if (k.startsWith('maint_') || k.startsWith('svc_') || k.startsWith('eq_')) values[k] = String(v);
   }
 
   const finance = parseJson<Record<string, unknown>>(row.finance_details, {});

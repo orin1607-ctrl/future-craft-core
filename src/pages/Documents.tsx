@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { buildStoragePath } from '@/lib/storage';
+import { uploadDocument, deleteStoredDocument } from '@/lib/uploadDocument';
 import { buildVehicleContextUrl, isVehicleScopedContext, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
@@ -196,34 +196,24 @@ export default function Documents() {
     if (!e.target.files?.length || !selectedCategory || !companyName || !user?.id) return;
     setUploading(true);
     const file = e.target.files[0];
-    const path = buildStoragePath(user.id, selectedCategory.folder, file.name);
 
-    const { error } = await supabase.storage.from('documents').upload(path, file, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: file.type || undefined,
+    const result = await uploadDocument({
+      file,
+      storageFolder: selectedCategory.folder,
+      category: selectedCategory.key,
+      companyName,
+      vehiclePlate: uploadVehicle,
+      driverName: uploadDriver,
+      manufacturer: uploadManufacturer,
+      model: uploadModel,
     });
-    if (error) {
-      toast.error('שגיאה בהעלאת הקובץ: ' + error.message);
+
+    if (!result.ok) {
+      toast.error('שגיאה בהעלאת הקובץ: ' + result.error);
       setUploading(false);
       e.target.value = '';
       return;
     }
-
-    // Save metadata
-    const { error: metaError } = await supabase.from('document_metadata').insert({
-      file_path: path,
-      category: selectedCategory.key,
-      company_name: companyName,
-      vehicle_plate: uploadVehicle,
-      driver_name: uploadDriver,
-      manufacturer: uploadManufacturer,
-      model: uploadModel,
-      original_name: file.name,
-      uploaded_by: user?.id,
-    } as any);
-
-    if (metaError) console.error('Meta save error:', metaError);
 
     const plateForLog = uploadVehicle || contextPlate;
     if (vehicleScoped && plateForLog) {
@@ -252,9 +242,8 @@ export default function Documents() {
 
   const handleDelete = async (doc: DocMeta) => {
     if (!confirm('למחוק מסמך זה?')) return;
-    const { error: storageErr } = await supabase.storage.from('documents').remove([doc.file_path]);
-    if (storageErr) { toast.error('שגיאה במחיקה'); return; }
-    await supabase.from('document_metadata').delete().eq('id', doc.id);
+    const result = await deleteStoredDocument(doc.file_path, doc.id);
+    if (!result.ok) { toast.error('שגיאה במחיקה'); return; }
     toast.success('נמחק');
     if (selectedCategory) { loadDocs(selectedCategory); loadCounts(); }
   };

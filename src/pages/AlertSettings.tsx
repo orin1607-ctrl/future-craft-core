@@ -174,7 +174,8 @@ export default function AlertSettings() {
           <li>✅ <strong>תזכורות אוטומטיות</strong> — מחובר ליצירת התראות מרכז רכב</li>
           <li>✅ <strong>הסתרת כפתורים</strong> — Sidebar, כרטיסי דשבורד, FleetOS והסעות</li>
           <li>✅ <strong>מודול הסעות</strong> — Master Switch + מסכים בנפרד + כרטיס דשבורד</li>
-          <li>⏳ <strong>חובת מסמכים / הצמדת נהג / אישור רכב</strong> — נשמר ב-DB, יישום בטפסים — בשלב הבא</li>
+          <li>✅ <strong>חובות רכב</strong> — הצמדת נהג, מסמכי ביטוח, הדר תביעות, אישור רכב חדש</li>
+          <li>ℹ️ <strong>יבוא הסעות</strong> — מוסתר עד לשלב יישום מלא (לא Placeholder ללקוח)</li>
         </ul>
       </div>
 

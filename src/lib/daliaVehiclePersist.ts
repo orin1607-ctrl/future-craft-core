@@ -4,6 +4,11 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logVehicleEvent } from '@/lib/vehicleEventLog';
+import {
+  resolveVehicleApprovalStatus,
+  validateVehicleAgainstCompanyPolicy,
+} from '@/lib/companyPolicyEnforcement';
+import { fetchCompanySettings } from '@/lib/companySettings';
 import type { DaliaDoc } from '@/components/vehicles/vehicleNewDalia/VehicleNewFormDalia';
 
 export type DaliaPersistExtras = {
@@ -78,6 +83,9 @@ const DIRECT_COLUMN_MAP: Record<string, string> = {
   comprehensive_insurance_start: 'comprehensive_insurance_start',
   comprehensive_insurance_end: 'comprehensive_insurance_expiry',
   comprehensive_insurance_doc_link: 'comprehensive_insurance_doc_url',
+  third_party_insurance_end: 'third_party_insurance_expiry',
+  third_party_insurance_doc_link: 'third_party_insurance_doc_url',
+  has_no_claims: 'has_no_claims',
   op_monthly_cost: 'monthly_leasing_cost',
   op_end: 'leasing_end_date',
   fl_monthly_cost: 'monthly_loan_payment',
@@ -153,6 +161,7 @@ const DATE_COLUMNS = new Set([
   'insurance_expiry',
   'comprehensive_insurance_start',
   'comprehensive_insurance_expiry',
+  'third_party_insurance_expiry',
   'last_service_date',
   'next_service_date',
   'road_entry_date',
@@ -172,6 +181,7 @@ const DATE_COLUMNS = new Set([
 function normValue(column: string, raw: string): unknown {
   const v = raw.trim();
   if (!v) return null;
+  if (column === 'has_no_claims') return v === 'true' || v === 'on';
   if (column === 'status') return STATUS_HE_TO_EN[v] || 'active';
   if (NUMERIC_COLUMNS.has(column)) {
     const n = parseFloat(v.replace(/,/g, ''));
@@ -199,6 +209,7 @@ export function collectDaliaFormValues(
     'coverage_licensing',
     'coverage_roadside',
     'coverage_lights',
+    'has_no_claims',
   ]) {
     out[name] = formData.get(name) ? 'true' : 'false';
   }
@@ -259,8 +270,8 @@ export function buildVehiclePayloadFromDalia(
   direct.company_name = user.company_name || String(direct.company_name || '');
   direct.created_by = user.id || null;
   direct.status = (direct.status as string) || 'active';
-  direct.approval_status = 'approved';
   direct.odometer = direct.odometer ?? 0;
+  if (allValues.has_no_claims === 'false') direct.has_no_claims = false;
 
   const insurancesJson = {
     coverage: {
@@ -281,6 +292,7 @@ export function buildVehiclePayloadFromDalia(
     method: extras.maintMethod,
     ...pickPrefix(allValues, 'maint_'),
     ...pickPrefix(allValues, 'svc_'),
+    ...Object.fromEntries(Object.entries(allValues).filter(([k]) => k.startsWith('eq_'))),
   };
 
   const financeJson = {
@@ -341,7 +353,7 @@ async function resolveAssignedDriverId(
 export async function persistDaliaVehicle(params: {
   allValues: Record<string, string>;
   extras: DaliaPersistExtras;
-  user: { id?: string; company_name?: string; full_name?: string };
+  user: { id?: string; company_name?: string; full_name?: string; role?: string };
   vehicleId?: string | null;
 }) {
   const { payload, plate } = buildVehiclePayloadFromDalia(
@@ -355,6 +367,25 @@ export async function persistDaliaVehicle(params: {
     params.user.company_name,
   );
   if (assignedDriverId) payload.assigned_driver_id = assignedDriverId;
+
+  const companyName = String(payload.company_name || params.user.company_name || '');
+  const isNewVehicle = !params.vehicleId;
+
+  const policyCheck = await validateVehicleAgainstCompanyPolicy({
+    allValues: params.allValues,
+    docs: params.extras.docs,
+    companyName,
+    userRole: params.user.role,
+    vehicleId: params.vehicleId,
+    assignedDriverId,
+    isNewVehicle,
+  });
+  if (!policyCheck.ok) throw new Error(policyCheck.message);
+
+  const settings = await fetchCompanySettings(companyName);
+  if (isNewVehicle) {
+    payload.approval_status = resolveVehicleApprovalStatus(settings, true, params.user.role);
+  }
 
   let vehicleId = params.vehicleId || null;
   let error;

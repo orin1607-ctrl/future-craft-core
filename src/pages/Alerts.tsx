@@ -9,6 +9,7 @@ import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
+import { getThirdPartyInsuranceExpiry } from '@/lib/vehicleInsuranceUtils';
 
 // ─── Alerts Types ───
 type AlertSeverity = 'critical' | 'warning' | 'info';
@@ -168,8 +169,8 @@ export default function Alerts() {
           allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
-        const thirdExpiry = (v as { third_party_insurance_expiry?: string | null }).third_party_insurance_expiry;
-        const thirdDays = getDaysLeft(thirdExpiry ?? null);
+        const thirdExpiry = getThirdPartyInsuranceExpiry(v);
+        const thirdDays = getDaysLeft(thirdExpiry);
         if (thirdDays !== null && thirdDays <= 30) {
           allAlerts.push({
             id: `third-${v.id}`,
@@ -178,7 +179,7 @@ export default function Alerts() {
             title: thirdDays <= 0 ? 'ביטוח צד ג׳ פג!' : 'ביטוח צד ג׳ עומד לפוג',
             subtitle: label,
             daysLeft: thirdDays,
-            date: thirdExpiry ?? null,
+            date: thirdExpiry,
             link: buildVehicleHubUrl(v.id),
           });
         }

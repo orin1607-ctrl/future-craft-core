@@ -5,7 +5,6 @@ import {
   CalendarClock,
   ClipboardList,
   Map,
-  Upload,
   UserCheck,
   Users,
   UsersRound,
@@ -22,7 +21,6 @@ const FEATURE_ICONS: Record<TransportFeatureId, LucideIcon> = {
   'work-orders': ClipboardList,
   pickup: CalendarClock,
   teams: UsersRound,
-  import: Upload,
   reports: BarChart3,
 };
 

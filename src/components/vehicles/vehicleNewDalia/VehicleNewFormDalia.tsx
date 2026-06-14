@@ -19,8 +19,7 @@ import {
   type GovVehicleData,
 } from '@/lib/govVehicleLookup';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { buildStoragePath } from '@/lib/storage';
+import { uploadDocument } from '@/lib/uploadDocument';
 import {
   collectDaliaFormValues,
   persistDaliaVehicle,
@@ -153,25 +152,23 @@ function VehicleNewFormDaliaInner({
     }
     setDocUploading(true);
     const plate = getValue('vehicle_plate').replace(/[-\s]/g, '') || 'vehicle';
-    const path = buildStoragePath(user.id, `vehicles/${plate}`, file.name);
-    const { error } = await supabase.storage.from('documents').upload(path, file, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: file.type || undefined,
+    const result = await uploadDocument({
+      file,
+      storageFolder: `vehicles/${plate}`,
+      category: docCategory,
+      companyName: user.company_name || '',
+      vehiclePlate: plate,
+      manufacturer: getValue('manufacturer'),
+      model: getValue('model'),
     });
-    if (error) {
-      const hint = error.message.includes('Bucket not found')
-        ? ' (נדרשת הרצת migration ל-bucket documents ב-staging)'
-        : '';
-      toast.error(`שגיאה בהעלאת הקובץ${hint}`);
-      setDocUploading(false);
+    setDocUploading(false);
+    if (!result.ok) {
+      toast.error(result.error);
       return;
     }
-    const { data: pub } = supabase.storage.from('documents').getPublicUrl(path);
     setDocFileName(file.name);
-    if (!docLink) setDocLink(pub.publicUrl);
-    toast.success('הקובץ הועלה בהצלחה');
-    setDocUploading(false);
+    if (!docLink) setDocLink(result.publicUrl);
+    toast.success('הקובץ הועלה ונרשם במערכת המסמכים');
   };
 
   useEffect(() => {
@@ -303,6 +300,7 @@ function VehicleNewFormDaliaInner({
           id: user.id,
           company_name: user.company_name,
           full_name: user.full_name,
+          role: user.role,
         },
         vehicleId: isEdit ? vehicleId : undefined,
       });
@@ -686,6 +684,18 @@ function VehicleNewFormDaliaInner({
                 <Fld label="אחר" name="coverage_other" className="d-full" />
               </div>
               <div className="d-card">
+                <div className="d-block-title">הדר תביעות</div>
+                <label className="flex items-center gap-2 p-3 rounded-lg bg-muted">
+                  <input
+                    type="checkbox"
+                    name="has_no_claims"
+                    checked={getValue('has_no_claims') === 'true'}
+                    onChange={(e) => setValue('has_no_claims', e.target.checked ? 'true' : 'false')}
+                  />
+                  <span>מאשר/ת: לרכב זה הדר תביעות (ללא תביעות) — נדרש לפי הגדרות חברה</span>
+                </label>
+              </div>
+              <div className="d-card">
                 <div className="d-block-title">רישיון רכב וטסט</div>
                 <div className="d-g2">
                   <Fld label="קישור למסמך רישיון" name="license_link" />
@@ -861,7 +871,13 @@ function Section4({ open, onToggle, onSave }: { open?: boolean; onToggle: () => 
           <Fld label="KVA" name="kva" type="number" />
           <Fld label="שעות מנוע" name="equipment_engine_hours" type="number" />
           <Fld label="מספר סידורי ציוד" name="equipment_serial" />
+          <Fld label="דלקן (ספק / מספר)" name="eq_fuel_dispenser" />
+          <Fld label="איתוראן (ספק / מזהה)" name="eq_tracker" />
+          <Fld label="כרטיס תדלוק (מספר / ספק)" name="eq_fuel_card" />
           <Fld label="ציוד ייעודי" name="dedicated_equipment" />
+          <Fld label="ציוד נוסף" name="eq_extra" className="d-full">
+            <textarea name="eq_extra" />
+          </Fld>
           <Fld label="ציוד ייעודי — פירוט" name="dedicated_equipment_details" className="d-full">
             <textarea name="dedicated_equipment_details" />
           </Fld>

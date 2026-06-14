@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+import { uploadDocument } from '@/lib/uploadDocument';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
 
 interface DriverRow {
@@ -28,6 +29,8 @@ interface DriverRow {
   company_name: string;
   id_number: string;
   license_image_url?: string;
+  last_exam_date?: string | null;
+  exam_expiry?: string | null;
 }
 
 const licenseOptions = ['A', 'A1', 'A2', 'B', 'C', 'C1', 'D', 'D1', 'E'];
@@ -131,12 +134,12 @@ export default function Drivers() {
             <div className="col-span-2"><span className="text-muted-foreground">סוגי רישיון:</span><p className="font-bold">{d.license_types?.join(', ') || '—'}</p></div>
             <div><span className="text-muted-foreground">עיר:</span><p className="font-bold">{d.city || '—'}</p></div>
             <div><span className="text-muted-foreground">רחוב:</span><p className="font-bold">{d.street || '—'}</p></div>
-            <div><span className="text-muted-foreground">מבחן אחרון:</span><p className="font-bold">{(d as any).last_exam_date ? new Date((d as any).last_exam_date).toLocaleDateString('he-IL') : '—'}</p></div>
+            <div><span className="text-muted-foreground">מבחן אחרון:</span><p className="font-bold">{d.last_exam_date ? new Date(d.last_exam_date).toLocaleDateString('he-IL') : '—'}</p></div>
             <div>
               <span className="text-muted-foreground">תוקף מבחן:</span>
-              <p className={`font-bold ${(d as any).exam_expiry && new Date((d as any).exam_expiry) < new Date() ? 'text-destructive' : ''}`}>
-                {(d as any).exam_expiry ? new Date((d as any).exam_expiry).toLocaleDateString('he-IL') : '—'}
-                {(d as any).exam_expiry && new Date((d as any).exam_expiry) < new Date() && ' ⚠️ פג תוקף'}
+              <p className={`font-bold ${d.exam_expiry && new Date(d.exam_expiry) < new Date() ? 'text-destructive' : ''}`}>
+                {d.exam_expiry ? new Date(d.exam_expiry).toLocaleDateString('he-IL') : '—'}
+                {d.exam_expiry && new Date(d.exam_expiry) < new Date() && ' ⚠️ פג תוקף'}
               </p>
             </div>
             {d.license_image_url && (
@@ -380,22 +383,30 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
   const [status, setStatus] = useState(driver?.status || 'active');
   const [notes, setNotes] = useState(driver?.notes || '');
   const [licenseImageUrl, setLicenseImageUrl] = useState(driver?.license_image_url || '');
+  const [lastExamDate, setLastExamDate] = useState(driver?.last_exam_date?.split('T')[0] || '');
+  const [examExpiry, setExamExpiry] = useState(driver?.exam_expiry?.split('T')[0] || '');
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLicenseUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error('הקובץ גדול מדי (מקסימום 5MB)'); return; }
     setUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `driver-licenses/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from('documents').upload(path, file);
-    if (error) { toast.error('שגיאה בהעלאת הקובץ'); setUploading(false); return; }
-    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path);
-    setLicenseImageUrl(urlData.publicUrl);
+    const result = await uploadDocument({
+      file,
+      storageFolder: 'driver-licenses',
+      category: 'driver_license',
+      companyName: user?.company_name || '',
+      driverName: fullName || driver?.full_name || '',
+    });
     setUploading(false);
-    toast.success('רישיון הועלה בהצלחה');
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    setLicenseImageUrl(result.publicUrl);
+    toast.success('רישיון הועלה ונרשם במערכת המסמכים');
+    e.target.value = '';
   };
 
   // For new drivers, email and password are required to create login credentials
@@ -426,6 +437,8 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
         status,
         notes,
         license_image_url: licenseImageUrl,
+        last_exam_date: lastExamDate || null,
+        exam_expiry: examExpiry || null,
         company_name: user?.company_name || '',
       };
 
@@ -473,6 +486,8 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
           status,
           notes,
           license_image_url: licenseImageUrl,
+          last_exam_date: lastExamDate || null,
+          exam_expiry: examExpiry || null,
         }).eq('id', data.user_id);
       }
 
@@ -551,6 +566,17 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
                 {type}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-lg font-medium mb-2">מבחן אחרון</label>
+            <input type="date" value={lastExamDate} onChange={e => setLastExamDate(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className="block text-lg font-medium mb-2">תוקף מבחן</label>
+            <input type="date" value={examExpiry} onChange={e => setExamExpiry(e.target.value)} className={inputClass} />
           </div>
         </div>
 

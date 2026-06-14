@@ -88,3 +88,18 @@ export async function uploadDocument(options: UploadDocumentOptions): Promise<Up
 
   return { ok: true, publicUrl, filePath };
 }
+
+export async function deleteStoredDocument(
+  filePath: string,
+  metadataId?: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error: storageErr } = await supabase.storage.from('documents').remove([filePath]);
+  if (storageErr) return { ok: false, error: storageErr.message };
+
+  if (metadataId) {
+    const { error: metaErr } = await supabase.from('document_metadata').delete().eq('id', metadataId);
+    if (metaErr) return { ok: false, error: metaErr.message };
+  }
+
+  return { ok: true };
+}

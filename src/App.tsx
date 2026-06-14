@@ -90,7 +90,6 @@ import AdminHome from "@/pages/AdminHome";
 import FleetManagers from "@/pages/FleetManagers";
 import FleetOSAIPage from "@/pages/FleetOSAIPage";
 import TransportHubPage from "@/pages/TransportHubPage";
-import TransportImportPage from "@/pages/TransportImportPage";
 
 const queryClient = new QueryClient();
 
@@ -163,7 +162,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
         <Route path="/transport" element={<TransportHubPage />} />
-        <Route path="/transport/import" element={<TransportImportPage />} />
+        <Route path="/transport/import" element={<Navigate to="/transport" replace />} />
         <Route path="/vehicle-tracking" element={<VehicleTracking />} />
         <Route path="/admin-home" element={<AdminHome />} />
         <Route path="/fleet-managers" element={<FleetManagers />} />
