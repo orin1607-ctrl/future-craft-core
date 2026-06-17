@@ -1,0 +1,153 @@
+name: Dalia CI — Tests + Preview
+
+# Push to main → build production artifact, smoke, deploy preview VPS, record deploy_run.
+# Does NOT touch live production web root.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: dalia-ci-preview
+  cancel-in-progress: true
+
+env:
+  PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+  PROD_SUPABASE_PROJECT_ID: qasomfndnjuixgjmjwcm
+  PREVIEW_HOST: preview.dalia-car.online
+  PREVIEW_ROOT: /var/www/future-craft-core-preview
+  STAGING_URL: https://orin1607-ctrl.github.io/future-craft-core/
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ github.sha }}
+      commit_message: ${{ github.event.head_commit.message }}
+      bundle: ${{ steps.bundle.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Build (production Supabase, root path)
+        env:
+          VITE_SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          VITE_SUPABASE_PROJECT_ID: ${{ env.PROD_SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: bun x vite build
+
+      - name: Smoke dist
+        run: node scripts/ci-smoke-report.mjs --dist dist --supabase-ref qasomfndnjuixgjmjwcm --out reports/ci-smoke-dist.json
+
+      - id: bundle
+        run: echo "name=$(grep -o 'index-[^\"']*\.js' dist/index.html | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Changed files
+        run: |
+          git diff --name-only HEAD~1 HEAD 2>/dev/null > reports/changed-files.txt || echo "(first commit)" > reports/changed-files.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: production-dist-${{ github.sha }}
+          path: dist/
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-reports-${{ github.sha }}
+          path: reports/
+          retention-days: 14
+
+  smoke-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Wait for GitHub Pages (staging deploy sibling workflow)
+        run: sleep 90
+      - name: Smoke staging URL
+        run: |
+          node scripts/ci-smoke-report.mjs \
+            --base "${{ env.STAGING_URL }}" \
+            --supabase-ref usfeoerkpcafxxlyuldl \
+            --forbid-ref qasomfndnjuixgjmjwcm \
+            --out reports/ci-smoke-staging.json || true
+        continue-on-error: true
+
+  deploy-preview:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ secrets.VPS_SSH_KEY != '' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-dist-${{ github.sha }}
+          path: dist/
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Rsync preview (live production untouched)
+        run: |
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            --delete dist/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.PREVIEW_ROOT }}/
+
+      - name: Reload nginx
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "nginx -t && systemctl reload nginx"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/checkout@v4
+
+      - name: Smoke preview
+        run: |
+          node scripts/ci-smoke-report.mjs \
+            --base "http://${{ env.PREVIEW_HOST }}" \
+            --supabase-ref qasomfndnjuixgjmjwcm \
+            --out reports/ci-smoke-preview.json
+
+  record-deploy-run:
+    needs: [build, deploy-preview]
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: ci-reports-${{ github.sha }}
+          path: reports/
+
+      - name: Record deploy_run in Supabase
+        if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        env:
+          SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/record-deploy-run.mjs \
+            --commit "${{ github.sha }}" \
+            --message "${{ github.event.head_commit.message }}" \
+            --bundle "${{ needs.build.outputs.bundle }}" \
+            --preview-url "http://${{ env.PREVIEW_HOST }}" \
+            --workflow-run "${{ github.run_id }}" \
+            --status "${{ needs.deploy-preview.result == 'success' && 'preview_ready' || 'tests_passed' }}"

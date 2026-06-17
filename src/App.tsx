@@ -25,6 +25,7 @@ import AttachCar from "@/pages/AttachCar";
 import Alerts from "@/pages/Alerts";
 import NotificationLogPage from "@/pages/NotificationLogPage";
 import DaliaSettings from "@/pages/DaliaSettings";
+import DaliaDeploy from "@/pages/DaliaDeploy";
 import WhatsAppSettingsPage from "@/pages/WhatsAppSettingsPage";
 import SystemLogs from "@/pages/SystemLogs";
 import HistoryPage from "@/pages/History";
@@ -183,6 +184,7 @@ function AppRoutes() {
         <Route path="/attach-customer" element={<AttachCar />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/dalia-settings" element={<DaliaSettings />} />
+        <Route path="/dalia-settings/deploy" element={<DaliaDeploy />} />
         <Route path="/dalia-settings/whatsapp" element={<WhatsAppSettingsPage />} />
         <Route path="/alerts/log" element={<NotificationLogPage />} />
         <Route path="/history" element={<HistoryPage />} />

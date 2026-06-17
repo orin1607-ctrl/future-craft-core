@@ -1,0 +1,110 @@
+name: Deploy Production (dalia-car.online)
+
+# Triggered only by workflow_dispatch or deploy-control edge function.
+# Requires GitHub Environment "production" approval.
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Git commit to deploy (default HEAD main)'
+        required: false
+        default: ''
+      deploy_run_id:
+        description: 'Optional deploy_runs UUID from Dalia Deploy UI'
+        required: false
+        default: ''
+
+concurrency:
+  group: dalia-production-deploy
+  cancel-in-progress: false
+
+env:
+  PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+  PROD_SUPABASE_PROJECT_ID: qasomfndnjuixgjmjwcm
+  WEB_ROOT: /var/www/future-craft-core
+  PRODUCTION_URL: https://dalia-car.online
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://dalia-car.online
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha || 'main' }}
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Build production
+        env:
+          VITE_SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          VITE_SUPABASE_PROJECT_ID: ${{ env.PROD_SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: bun x vite build
+
+      - name: Pre-deploy smoke (dist)
+        run: node scripts/ci-smoke-report.mjs --dist dist --supabase-ref qasomfndnjuixgjmjwcm
+
+      - id: bundle
+        run: echo "name=$(grep -o 'index-[^\"']*\.js' dist/index.html | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Backup production web root
+        id: backup
+        run: |
+          STAMP=$(date -u +%F-%H%M)
+          BACKUP="/root/pre-deploy-dist-${STAMP}.tgz"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "tar czf ${BACKUP} -C /var/www future-craft-core && echo ${BACKUP}"
+          echo "path=${BACKUP}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to production
+        run: |
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            --delete dist/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.WEB_ROOT }}/
+
+      - name: Reload nginx
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "nginx -t && systemctl reload nginx"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Post-deploy smoke
+        run: |
+          node scripts/ci-smoke-report.mjs \
+            --base "${{ env.PRODUCTION_URL }}" \
+            --supabase-ref qasomfndnjuixgjmjwcm \
+            --out reports/ci-smoke-production.json
+
+      - name: Update deploy_runs
+        if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        env:
+          SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/finalize-production-deploy.mjs \
+            --commit "${{ github.sha }}" \
+            --bundle "${{ steps.bundle.outputs.name }}" \
+            --backup "${{ steps.backup.outputs.path }}" \
+            --deploy-run-id "${{ inputs.deploy_run_id }}" \
+            --workflow-run "${{ github.run_id }}" \
+            --report reports/ci-smoke-production.json

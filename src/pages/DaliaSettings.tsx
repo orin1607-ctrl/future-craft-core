@@ -6,6 +6,7 @@ import {
   Mail,
   MessageCircle,
   Phone,
+  Rocket,
   Settings,
   Shield,
   ShieldCheck,
@@ -81,6 +82,12 @@ const SETTINGS_SECTIONS = [
   {
     title: 'מערכת',
     items: [
+      {
+        to: '/dalia-settings/deploy',
+        icon: Rocket,
+        title: 'Deploy — Staging → Production',
+        subtitle: 'Preview · אישור · Rollback · ללא ZIP ידני',
+      },
       {
         to: '/settings',
         icon: Settings,

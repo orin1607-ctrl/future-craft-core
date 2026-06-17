@@ -1,0 +1,70 @@
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_path:
+        description: 'Tarball on VPS e.g. /root/pre-deploy-dist-2026-06-16-1200.tgz (empty = latest)'
+        required: false
+        default: ''
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://dalia-car.online
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Rollback web root from backup
+        id: rollback
+        env:
+          BACKUP_INPUT: ${{ inputs.backup_path }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "bash -s" << 'REMOTE'
+          set -euo pipefail
+          BACKUP="${BACKUP_INPUT:-}"
+          if [ -z "$BACKUP" ]; then
+            BACKUP=$(ls -1t /root/pre-deploy-dist-*.tgz 2>/dev/null | head -1)
+          fi
+          if [ -z "$BACKUP" ] || [ ! -f "$BACKUP" ]; then
+            echo "No backup found" >&2
+            exit 1
+          fi
+          STAMP=$(date -u +%F-%H%M)
+          SAFETY="/root/pre-rollback-safety-${STAMP}.tgz"
+          tar czf "$SAFETY" -C /var/www future-craft-core
+          rm -rf /var/www/future-craft-core/*
+          tar xzf "$BACKUP" -C /var/www --strip-components=1 2>/dev/null || \
+            (cd /var/www && rm -rf future-craft-core && mkdir future-craft-core && tar xzf "$BACKUP" -C /var/www)
+          nginx -t && systemctl reload nginx
+          echo "restored_from=$BACKUP"
+          echo "safety_backup=$SAFETY"
+          grep -o 'index-[^\"']*\.js' /var/www/future-craft-core/index.html | head -1
+          REMOTE
+          echo "done=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Record rollback in Supabase
+        if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        env:
+          SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/finalize-production-deploy.mjs \
+            --action rollback \
+            --backup "${{ inputs.backup_path }}" \
+            --workflow-run "${{ github.run_id }}"
