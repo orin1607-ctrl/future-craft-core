@@ -65,6 +65,14 @@ const row = {
 
 const { data, error } = await admin.from('deploy_runs').insert(row).select('id').single();
 if (error) {
+  const skip =
+    error.message?.includes('deploy_runs') ||
+    error.code === 'PGRST205' ||
+    error.code === '42P01';
+  if (skip) {
+    console.warn(JSON.stringify({ ok: false, skipped: true, reason: error.message }));
+    process.exit(0);
+  }
   console.error(JSON.stringify({ ok: false, error: error.message }));
   process.exit(1);
 }

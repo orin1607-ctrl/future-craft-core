@@ -2,19 +2,21 @@ import { useState } from 'react';
 import { FileText } from 'lucide-react';
 import { DocumentCard, DocumentGallery, DocumentPreviewDialog } from '@/components/documents/DocumentViewer';
 
+const storageBase = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/documents/qa-samples`;
+
 const SAMPLES = {
   pdf: {
-    url: 'https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/qa-samples/sample.pdf',
+    url: `${storageBase}/sample.pdf`,
     name: 'qa-sample.pdf',
     label: 'PDF — רישיון נהיגה',
   },
   jpg: {
-    url: 'https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/qa-samples/sample.jpg',
+    url: `${storageBase}/sample.jpg`,
     name: 'qa-sample.jpg',
     label: 'JPG — ביטוח חובה',
   },
   png: {
-    url: 'https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/qa-samples/sample.png',
+    url: `${storageBase}/sample.png`,
     name: 'qa-sample.png',
     label: 'PNG — טסט',
   },

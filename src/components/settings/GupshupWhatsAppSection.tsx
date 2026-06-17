@@ -109,7 +109,7 @@ export default function GupshupWhatsAppSection() {
           <span>איך מגדירים / מחליפים API Key</span>
         </div>
         <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-          <li>Supabase Dashboard → פרויקט Staging (<code dir="ltr">usfeoerkpcafxxlyuldl</code>)</li>
+          <li>Supabase Dashboard → פרויקט זה (<code dir="ltr">{import.meta.env.VITE_SUPABASE_PROJECT_ID}</code>)</li>
           <li>Edge Functions → Secrets</li>
           <li>הוסף או עדכן: <code dir="ltr">GUPSHUP_API_KEY</code></li>
           <li>לחץ «בדוק חיבור» — אין צורך בשינוי קוד</li>
