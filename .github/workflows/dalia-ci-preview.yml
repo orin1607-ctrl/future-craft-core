@@ -88,7 +88,6 @@ jobs:
   deploy-preview:
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ secrets.VPS_SSH_KEY != '' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -139,7 +138,6 @@ jobs:
           path: reports/
 
       - name: Record deploy_run in Supabase
-        if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
         env:
           SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

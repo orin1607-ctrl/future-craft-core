@@ -96,7 +96,6 @@ jobs:
             --out reports/ci-smoke-production.json
 
       - name: Update deploy_runs
-        if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
         env:
           SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
