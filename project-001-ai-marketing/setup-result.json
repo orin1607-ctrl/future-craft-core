@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "appsScript": {
+    "id": "1YLwTgDGDjPPD0mAjijqAlsqokM_JB78Xkj0DCoakeVhGs0MY8AnEAovR",
+    "url": "https://script.google.com/d/1YLwTgDGDjPPD0mAjijqAlsqokM_JB78Xkj0DCoakeVhGs0MY8AnEAovR/edit"
+  },
+  "spreadsheet": {
+    "id": "1B38Fghh3pxoLBHGxtYE6z3KenVBq8D8sKYKDGrYa_Ts",
+    "url": "https://docs.google.com/spreadsheets/d/1B38Fghh3pxoLBHGxtYE6z3KenVBq8D8sKYKDGrYa_Ts/edit"
+  },
+  "driveRoot": {
+    "id": "1OjON1UlbZghcJ1VgtzNPwubqKZXRjQ87",
+    "url": "https://drive.google.com/drive/folders/1OjON1UlbZghcJ1VgtzNPwubqKZXRjQ87"
+  },
+  "folders": {
+    "drafts": "14dePQrI6-8vSYzg9PCXTmSBCMyvWzdqr",
+    "reports": "1G5tBxNrULgmoKHEXB5wkQvu-PyObtOjO",
+    "assets": "1rkjODP8iXBNgrAMYagdt7Dj-_UZ1paju",
+    "competitors": "1eMkAKcq2VRnBDJhgZZeQUCK3NfHuWAxV",
+    "published": "1cLcBO0cGZx0Tbh3IVigxxAmXQsliENqJ"
+  },
+  "templates": {
+    "article": {
+      "name": "TEMPLATE — Article",
+      "docId": "1qM92D86gUmKfBJsEb95BuNDXU6BkJXmSQXe39Sohvbk",
+      "url": "https://docs.google.com/document/d/1qM92D86gUmKfBJsEb95BuNDXU6BkJXmSQXe39Sohvbk/edit"
+    },
+    "faq": {
+      "name": "TEMPLATE — FAQ",
+      "docId": "1pD0Lni-ndRNex0xIjqnAA_SS6-gTRCMRIDSUv1Hg3g4",
+      "url": "https://docs.google.com/document/d/1pD0Lni-ndRNex0xIjqnAA_SS6-gTRCMRIDSUv1Hg3g4/edit"
+    },
+    "landing": {
+      "name": "TEMPLATE — Landing Page",
+      "docId": "1ndweN-SMgwG8LOLGS53ngi5cxHwLgLieUrJA2xRK1Lw",
+      "url": "https://docs.google.com/document/d/1ndweN-SMgwG8LOLGS53ngi5cxHwLgLieUrJA2xRK1Lw/edit"
+    },
+    "gbp_post": {
+      "name": "TEMPLATE — GBP Post",
+      "docId": "1LL6B_YK6jMX-jKZqtk69sKiOu97JClzpdf4tilsKCBI",
+      "url": "https://docs.google.com/document/d/1LL6B_YK6jMX-jKZqtk69sKiOu97JClzpdf4tilsKCBI/edit"
+    },
+    "video_script": {
+      "name": "TEMPLATE — Video Script",
+      "docId": "10dZBOVXuvju18qzO3ZCL7wktYUJQl9OIptFHqmb4ZQ0",
+      "url": "https://docs.google.com/document/d/10dZBOVXuvju18qzO3ZCL7wktYUJQl9OIptFHqmb4ZQ0/edit"
+    }
+  },
+  "verifiedAt": "2026-06-18T13:41:50.741Z",
+  "method": "drive-api-only"
+}

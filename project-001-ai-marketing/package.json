@@ -1,0 +1,18 @@
+{
+  "name": "project-001-ai-marketing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI SEO & Digital Marketing Manager — skeleton only",
+  "scripts": {
+    "login": "clasp login",
+    "create": "clasp create --title \"Project 001 AI Marketing\" --type sheets --rootDir src",
+    "push": "clasp push",
+    "open-script": "clasp open-script",
+    "setup": "node scripts/setup-drive-only.mjs",
+    "verify": "node scripts/verify-infra.mjs"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "exceljs": "^4.4.0"
+  }
+}
