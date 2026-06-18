@@ -139,7 +139,15 @@ jobs:
           name: ci-reports-${{ github.sha }}
           path: reports/
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm ci
+
       - name: Record deploy_run in Supabase
+        continue-on-error: true
         env:
           SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
