@@ -53,7 +53,9 @@ jobs:
         run: node scripts/ci-smoke-report.mjs --dist dist --supabase-ref qasomfndnjuixgjmjwcm
 
       - id: bundle
-        run: echo "name=$(grep -o 'index-[^\"']*\.js' dist/index.html | head -1)" >> "$GITHUB_OUTPUT"
+        run: |
+          BUNDLE=$(grep -oE 'index-[^"]+\.js' dist/index.html | head -1)
+          echo "name=${BUNDLE}" >> "$GITHUB_OUTPUT"
 
       - name: Setup SSH
         run: |
