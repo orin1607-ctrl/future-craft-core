@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-06-20T13:18:05.006Z",
+  "generatedAt": "2026-06-20T13:32:57.748Z",
   "project": {
     "id": "project001aimarketing",
     "name": "Project001AIMarketing",
@@ -12,7 +12,7 @@
     "ok": true,
     "scopeCount": 20,
     "hasRefresh": true,
-    "expiry": "2026-06-20T13:01:11.239Z"
+    "expiry": "2026-06-20T14:18:01.853Z"
   },
   "connections": {
     "searchConsole": {
@@ -85,7 +85,7 @@
   },
   "dataSource": "sheets",
   "lastSync": {
-    "timestamp": "2026-06-20T12:54:08.267Z",
+    "timestamp": "2026-06-20T13:32:52.692Z",
     "ok": true,
     "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
     "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
@@ -332,6 +332,20 @@
   "history": {
     "sync": [
       {
+        "id": "sync-1781962372703",
+        "timestamp": "2026-06-20T13:32:52.704Z",
+        "ok": true,
+        "gsc_queries": 0,
+        "gsc_pages": 0,
+        "ga4_daily": 151,
+        "ga4_pages": 48,
+        "date_range": {
+          "start": "2026-05-22",
+          "end": "2026-06-18"
+        },
+        "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+      },
+      {
         "id": "sync-1781960048281",
         "timestamp": "2026-06-20T12:54:08.281Z",
         "ok": true,
@@ -361,6 +375,19 @@
       }
     ],
     "ai": [
+      {
+        "id": "ai-1781962377408",
+        "timestamp": "2026-06-20T13:32:57.408Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
       {
         "id": "ai-1781961484883",
         "timestamp": "2026-06-20T13:18:04.883Z",
@@ -405,18 +432,25 @@
   },
   "activityLog": [
     {
-      "timestamp": "2026-06-20T12:54:08.281Z",
+      "timestamp": "2026-06-20T13:32:52.704Z",
       "action": "Sync",
       "status": "success",
       "detail": "GSC 0 queries · GA4 151 days",
       "source": "Project001 Sync → Google Sheets"
     },
     {
-      "timestamp": "2026-06-20T12:54:08.267Z",
+      "timestamp": "2026-06-20T13:32:52.692Z",
       "action": "Data sync",
       "status": "success",
       "detail": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
       "source": "Google Sheets"
+    },
+    {
+      "timestamp": "2026-06-20T12:54:08.281Z",
+      "action": "Sync",
+      "status": "success",
+      "detail": "GSC 0 queries · GA4 151 days",
+      "source": "Project001 Sync → Google Sheets"
     },
     {
       "timestamp": "2026-06-20T12:47:18.995Z",
