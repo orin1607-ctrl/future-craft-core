@@ -62,7 +62,8 @@ for (const id of SCREENS) {
 }
 
 report.counts.screens = SCREENS.length;
-report.counts.categories = await page.locator('.sb-sec').count();
+report.counts.categories = await page.locator('.sb-acc-hdr').count();
+if (!report.counts.categories) report.counts.categories = await page.locator('.sb-sec').count();
 report.counts.sidebarItems = await page.locator('.sb-item[data-sc]').count();
 
 if (report.counts.categories === CATEGORIES) report.passed.push('categories:12');
@@ -129,17 +130,37 @@ const visible = await page.evaluate(() => {
 });
 visible >= 1 ? report.passed.push('search:filter') : report.failed.push('search filter');
 
-// Mobile sidebar
+// Mobile accordion nav
 await page.setViewportSize({ width: 375, height: 812 });
+await page.reload({ waitUntil: 'networkidle' });
+await page.waitForTimeout(600);
+const accCount = await page.locator('.sb-acc-hdr').count();
+accCount === 12 ? report.passed.push('mobile:accordion-12') : report.failed.push(`mobile accordion expected 12 got ${accCount}`);
+await page.locator('.sb-acc-hdr').nth(1).click();
+const accOpen = await page.evaluate(() => document.querySelectorAll('.sb-acc-group.open').length >= 2);
+accOpen ? report.passed.push('mobile:accordion-toggle') : report.failed.push('mobile accordion toggle');
+await page.evaluate(() => window.gotoSc('keywords'));
+if (await page.locator('#sc-keywords.active').count()) report.passed.push('mobile:nav-keywords');
+else report.failed.push('mobile nav keywords');
+
+// Tablet
+await page.setViewportSize({ width: 768, height: 1024 });
 await page.evaluate(() => window.gotoSc('dashboard'));
-await page.locator('.mob-menu-btn').click();
-if (await page.evaluate(() => document.getElementById('sidebar').classList.contains('open')))
-  report.passed.push('mobile:sidebar-open');
-else report.failed.push('mobile sidebar open');
-await page.evaluate(() => window.closeSidebar());
-if (!(await page.evaluate(() => document.getElementById('sidebar').classList.contains('open'))))
-  report.passed.push('mobile:sidebar-close');
-else report.failed.push('mobile sidebar close');
+if (await page.locator('#sc-dashboard.active').count()) report.passed.push('tablet:dashboard');
+else report.failed.push('tablet dashboard');
+
+// Embedded mode
+await page.goto(`${baseUrl}/ai-marketing-platform?embedded=1`, { waitUntil: 'networkidle' });
+await page.waitForFunction(() => document.body.classList.contains('embedded'), { timeout: 5000 }).catch(() => null);
+const embedded = await page.evaluate(() => document.body.classList.contains('embedded'));
+embedded ? report.passed.push('embedded:mode') : report.failed.push('embedded mode');
+const noTopbar = await page.evaluate(() => {
+  var tb = document.querySelector('.topbar');
+  return tb && (getComputedStyle(tb).display === 'none' || tb.offsetParent === null);
+});
+noTopbar ? report.passed.push('embedded:no-topbar') : report.failed.push('embedded topbar hidden');
+await page.goto(url, { waitUntil: 'networkidle' });
+await page.waitForTimeout(400);
 
 // Desktop re-check
 await page.setViewportSize({ width: 1280, height: 900 });

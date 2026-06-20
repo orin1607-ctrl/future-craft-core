@@ -7,6 +7,7 @@ const MANAGER_PREFIXES = [
   '/fleet-managers',
   '/vehicle-tracking',
   '/fleetos-ai',
+  '/ai-marketing',
   '/transport',
   '/customers',
   '/routes',
@@ -25,6 +26,7 @@ const MANAGER_PREFIXES = [
 ];
 
 const SUPER_ADMIN_ONLY = [
+  '/ai-marketing',
   '/admin-home',
   '/user-management',
   '/permissions',

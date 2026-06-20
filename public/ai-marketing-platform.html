@@ -240,19 +240,51 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
 .screen{display:none}
 .screen.active{display:block}
 
+/* === MOBILE ACCORDION NAV === */
+.sb-acc-group{border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-acc-hdr{display:none;width:100%;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(255,255,255,.04);border:none;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:48px;text-align:right;gap:8px}
+.sb-acc-hdr:hover{background:rgba(255,255,255,.08)}
+.sb-acc-chevron{font-size:10px;opacity:.6;transition:transform .2s;flex-shrink:0}
+.sb-acc-group.open .sb-acc-chevron{transform:rotate(180deg)}
+.sb-acc-body{display:block}
+
+/* === EMBEDDED (inside Dalia) === */
+body.embedded .sb-logo,body.embedded .sb-footer{display:none}
+body.embedded .topbar{display:none}
+body.embedded .main{margin-right:var(--sb);min-height:100%}
+body.embedded .sidebar{top:0}
+
 /* === MOBILE === */
 .mob-menu-btn{display:none;width:34px;height:34px;border-radius:7px;border:1px solid var(--border);background:var(--surface);align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text2)}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:199}
 
 @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}.g4{grid-template-columns:repeat(2,1fr)}.g-7-3,.g-6-4{grid-template-columns:1fr}}
 @media(max-width:768px){
-  .sidebar{transform:translateX(100%)}.sidebar.open{transform:translateX(0)}
-  .sb-overlay.open{display:block}
-  .main{margin-right:0}.mob-menu-btn{display:flex}
+  body{display:flex;flex-direction:column}
+  .sidebar{transform:none;width:100%;position:relative;height:auto;max-height:none;flex-shrink:0;order:-1}
+  .sidebar.open{transform:none}
+  .sb-overlay,.sb-overlay.open{display:none!important}
+  .main{margin-right:0;flex-direction:column}
+  .mob-menu-btn{display:none!important}
+  .sb-acc-hdr{display:flex}
+  .sb-acc-body{display:none;padding-bottom:2px}
+  .sb-acc-group.open .sb-acc-body{display:block}
+  .sb-sec{display:none}
+  body.acc-nav-ready .sidebar{position:relative;transform:none;z-index:1}
+  body.embedded .sidebar{width:100%}
+  body.embedded .main{margin-right:0}
   .stats-grid{grid-template-columns:1fr 1fr}.g2,.g3,.g4{grid-template-columns:1fr}
-  .content{padding:14px}.topbar{padding:0 14px}
+  .content{padding:14px 12px}.topbar{padding:0 12px;height:52px}
+  .topbar .tb-title{font-size:14px}
+  .sec-hdr{flex-wrap:wrap;gap:6px}
+  .tabs-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+  .tab-btn{flex:0 0 auto;min-width:max-content;padding:8px 12px}
 }
-@media(max-width:480px){.stats-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:769px){
+  .sb-acc-hdr{display:none}
+  .sb-acc-body{display:block!important}
+  .sb-sec{display:block}
+}
 
 /* misc */
 .mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}
@@ -317,7 +349,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
     <button class="sb-item" data-sc="warehouse"><span class="icon">📚</span> מחסן תוכן</button>
     <button class="sb-item" data-sc="pages"><span class="icon">🌐</span> ניהול אתר</button>
     <button class="sb-item" data-sc="landing"><span class="icon">🚀</span> דפי נחיתה</button>
-    <button class="sb-item" data-sc="scheduler"><span class="icon">📅</span> תזמוןr</button>
+    <button class="sb-item" data-sc="scheduler"><span class="icon">📅</span> תזמון</button>
     <button class="sb-item" data-sc="strategy"><span class="icon">♟️</span> אסטרטגיית AI</button>
     <button class="sb-item" data-sc="ailab"><span class="icon">🧪</span> מעבדת AI</button>
     <button class="sb-item" data-sc="autonomous"><span class="icon">🤖</span> מצב אוטונומי</button>
@@ -2237,7 +2269,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
       <div class="row-item"><div class="row-icon ri-done">✓</div><div class="row-content"><div class="row-text">מרכז אישורים</div></div></div>
       <div class="row-item"><div class="row-icon ri-done">✓</div><div class="row-content"><div class="row-text">SEO + מילות מפתח</div></div></div>
       <div class="row-item"><div class="row-icon ri-done">✓</div><div class="row-content"><div class="row-text">מפעל תוכן</div></div></div>
-      <div class="row-item"><div class="row-icon ri-done">✓</div><div class="row-content"><div class="row-text">GBP + תזמוןr</div></div></div>
+      <div class="row-item"><div class="row-icon ri-done">✓</div><div class="row-content"><div class="row-text">GBP + תזמון</div></div></div>
     </div></div>
     <div class="card"><div class="card-header" style="background:#fff7ed;color:var(--orange)">⏳ V2 — בפיתוח</div><div class="card-body" style="padding:8px 16px">
       <div class="row-item"><div class="row-icon ri-wait">🔧</div><div class="row-content"><div class="row-text">Google Search Console API</div></div></div>
@@ -2299,11 +2331,11 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
         <tr><td class="fw7">מחסן תוכן</td><td>ALT, CTA, GBP Post</td><td>מחסן</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
         <tr><td class="fw7">ניהול אתר</td><td>טבלת עמודים מלאה</td><td>Pages</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
         <tr><td class="fw7">דפי נחיתה</td><td>טבלת דפי נחיתה</td><td>דף נחיתה</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
-        <tr><td class="fw7">תזמוןr</td><td>פרסם עכשיו</td><td>תזמוןr</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
-        <tr><td class="fw7">תזמוןr</td><td>פרסם בתאריך/שעה</td><td>תזמוןr</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
-        <tr><td class="fw7">תזמוןr</td><td>לוח שבועי</td><td>תזמוןr</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
-        <tr><td class="fw7">תזמוןr</td><td>פרסם לפי AI</td><td>תזמוןr</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
-        <tr><td class="fw7">תזמוןr</td><td>לוח חודשי/שנתי</td><td>תזמוןr</td><td><span class="badge-be">דורש Backend</span></td><td>—</td></tr>
+        <tr><td class="fw7">תזמון</td><td>פרסם עכשיו</td><td>תזמון</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
+        <tr><td class="fw7">תזמון</td><td>פרסם בתאריך/שעה</td><td>תזמון</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
+        <tr><td class="fw7">תזמון</td><td>לוח שבועי</td><td>תזמון</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
+        <tr><td class="fw7">תזמון</td><td>פרסם לפי AI</td><td>תזמון</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
+        <tr><td class="fw7">תזמון</td><td>לוח חודשי/שנתי</td><td>תזמון</td><td><span class="badge-be">דורש Backend</span></td><td>—</td></tr>
         <tr><td class="fw7">מודיעין</td><td>הזדמנויות מילים</td><td>מודיעין</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
         <tr><td class="fw7">מודיעין</td><td>הזדמנויות תוכן</td><td>מודיעין</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
         <tr><td class="fw7">מודיעין</td><td>טרנדים</td><td>מודיעין</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
@@ -2423,6 +2455,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
 </div>
 
 <!-- ===== JAVASCRIPT ===== -->
+<script src="./ai-marketing/sidebar-accordion.js"></script>
 <script src="./ai-marketing/app.js"></script>
 <script>
 // Screen navigation

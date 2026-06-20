@@ -15,6 +15,11 @@ describe('routeAccess', () => {
 
   it('fleet_manager cannot access super admin settings', () => {
     expect(canAccessRoute('/dalia-settings', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/ai-marketing', 'fleet_manager')).toBe(false);
     expect(canAccessRoute('/fleetos-ai', 'fleet_manager')).toBe(true);
+  });
+
+  it('super_admin can access ai-marketing', () => {
+    expect(canAccessRoute('/ai-marketing', 'super_admin')).toBe(true);
   });
 });

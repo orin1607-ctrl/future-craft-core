@@ -66,6 +66,7 @@ import DevFleetOSModule1Preview from "@/pages/DevFleetOSModule1Preview";
 import DevFleetOSDashboardPreview from "@/pages/DevFleetOSDashboardPreview";
 import DevFleetOSSettingsPreview from "@/pages/DevFleetOSSettingsPreview";
 import Project001Dashboard from "@/pages/Project001Dashboard";
+import AiMarketingPage from "@/pages/AiMarketingPage";
 
 // New pages
 import Companions from "@/pages/Companions";
@@ -167,6 +168,7 @@ function AppRoutes() {
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
+        <Route path="/ai-marketing" element={<AiMarketingPage />} />
         <Route path="/transport" element={<TransportHubPage />} />
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />
         <Route path="/vehicle-tracking" element={<VehicleTracking />} />

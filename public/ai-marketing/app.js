@@ -4,8 +4,10 @@
 (function () {
   'use strict';
 
-  var API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ? 'http://127.0.0.1:8787' : '';
+  var API = '';
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    API = location.port === '8888' ? 'http://127.0.0.1:8787' : '';
+  }
 
   var COCO = { data: null, ai: { connected: false, busy: false }, state: { approvalCount: 7 } };
   var FALLBACK_URLS = ['./ai-marketing/data.json', './project-001/dashboard.json'];
