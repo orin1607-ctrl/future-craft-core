@@ -40,7 +40,6 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build (staging Supabase environment)
-        continue-on-error: true
         env:
           VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
           VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
