@@ -71,8 +71,13 @@ else report.failed.push(`categories expected ${CATEGORIES} got ${report.counts.c
 if (report.counts.sidebarItems === 37) report.passed.push('sidebar:37');
 else report.failed.push(`sidebar expected 37 got ${report.counts.sidebarItems}`);
 
-// Data layer
-const dataLoaded = await page.evaluate(() => window.COCO && window.COCO.data);
+await page.waitForTimeout(1200);
+
+// Data layer (async load)
+const dataLoaded = await page.waitForFunction(
+  () => window.COCO && window.COCO.data && window.COCO.data.kpis,
+  { timeout: 8000 }
+).then(() => true).catch(() => false);
 dataLoaded ? report.passed.push('data-layer') : report.failed.push('data-layer missing');
 
 // Tabs — multiple screens

@@ -371,6 +371,8 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
     </div>
     <span class="chip chip-green">🟢 פעיל</span>
     <span class="chip chip-orange" id="aiStatusChip" style="display:none">OpenAI</span>
+    <a id="sheetsLink" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="display:none">📊 Google Sheets</a>
+    <button class="btn btn-ghost btn-sm" onclick="typeof syncNow==='function'&&syncNow()">🔄 סנכרן</button>
     <button class="btn btn-primary btn-sm">🤖 הרץ AI</button>
     <button class="btn-icon notif-dot-red">🔔</button>
     <div class="user-av">יו</div>
@@ -713,7 +715,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
             <tbody>
               <tr><td class="fw7">מאמר: עלות ניהול צי 2026</td><td><span class="chip chip-blue">מאמר</span></td><td>3,200/חודש</td><td><span class="pill pill-green">נמוך</span></td><td>₪2,100</td><td>GSC</td><td><button class="btn btn-primary btn-xs">צור תוכן</button></td></tr>
               <tr><td class="fw7">FAQ: שאלות GPS לרכב</td><td><span class="chip chip-green">FAQ</span></td><td>1,800/חודש</td><td><span class="pill pill-green">נמוך</span></td><td>₪900</td><td>מתחרים</td><td><button class="btn btn-primary btn-xs">צור תוכן</button></td></tr>
-              <tr><td class="fw7">Landing: ניהול צי לחברות גדולות</td><td><span class="chip chip-orange">Landing</span></td><td>2,400/חודש</td><td><span class="pill pill-yellow">בינוני</span></td><td>₪4,500</td><td>Analytics</td><td><button class="btn btn-primary btn-xs">צור תוכן</button></td></tr>
+              <tr><td class="fw7">דף נחיתה: ניהול צי לחברות גדולות</td><td><span class="chip chip-orange">Landing</span></td><td>2,400/חודש</td><td><span class="pill pill-yellow">בינוני</span></td><td>₪4,500</td><td>Analytics</td><td><button class="btn btn-primary btn-xs">צור תוכן</button></td></tr>
               <tr><td class="fw7">שדרוג: /תחזוקה-מניעתית</td><td><span class="chip chip-red">שיפור</span></td><td>1,200/חודש</td><td><span class="pill pill-green">נמוך</span></td><td>₪700</td><td>GSC</td><td><button class="btn btn-warn btn-xs">שפר</button></td></tr>
               <tr><td class="fw7">עמוד חדש: דו"ח נסיעה אפליקציה</td><td><span class="chip chip-blue">עמוד</span></td><td>900/חודש</td><td><span class="pill pill-green">נמוך</span></td><td>₪600</td><td>Trends</td><td><button class="btn btn-primary btn-xs">צור תוכן</button></td></tr>
               <tr><td class="fw7">Schema: 15 עמודים ללא Schema</td><td><span class="chip chip-purple">Schema</span></td><td>—</td><td><span class="pill pill-green">נמוך</span></td><td>₪1,200</td><td>GSC</td><td><button class="btn btn-purple btn-xs">הוסף Schema</button></td></tr>
@@ -1017,7 +1019,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
           <div class="card-body">
             <div class="flex-bet mb-8"><span class="fs12">עמודים עם Schema</span><span class="fw7">32 / 47</span></div><div class="prog-bar mb-12"><div class="prog-fill pf-blue" style="width:68%"></div></div>
             <div class="flex-bet mb-8"><span class="fs12">תיאורי Meta מלאים</span><span class="fw7">39 / 47</span></div><div class="prog-bar mb-12"><div class="prog-fill pf-green" style="width:83%"></div></div>
-            <div class="flex-bet mb-8"><span class="fs12">Alt Text לתמונות</span><span class="fw7">78%</span></div><div class="prog-bar mb-12"><div class="prog-fill pf-orange" style="width:78%"></div></div>
+            <div class="flex-bet mb-8"><span class="fs12">טקst חלופי לתמונות</span><span class="fw7">78%</span></div><div class="prog-bar mb-12"><div class="prog-fill pf-orange" style="width:78%"></div></div>
             <div class="flex-bet mb-8"><span class="fs12">קישורים פנימיים אופטימליים</span><span class="fw7">61%</span></div><div class="prog-bar mb-12"><div class="prog-fill pf-red" style="width:61%"></div></div>
             <div class="divider"></div>
             <div class="flex-bet"><span class="fw7">ציון SEO כולל</span><span class="fw8" style="color:var(--orange);font-size:24px">74</span></div>
@@ -1031,7 +1033,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
     <div class="tbl-wrap">
       <div class="tbl-toolbar"><input class="srch" placeholder="חיפוש עמוד..."><button class="btn btn-ghost btn-sm">סנן ▼</button><button class="btn btn-outline btn-sm">יצוא Excel</button></div>
       <table>
-        <thead><tr><th>עמוד</th><th>כותרת H1</th><th>Meta</th><th>Schema</th><th>קישורים פנימיים</th><th>Alt Text</th><th>עדכון אחרון</th><th>פעולה</th></tr></thead>
+        <thead><tr><th>עמוד</th><th>כותרת H1</th><th>Meta</th><th>Schema</th><th>קישורים פנימיים</th><th>טקst חלופי</th><th>עדכון אחרון</th><th>פעולה</th></tr></thead>
         <tbody>
           <tr><td><span class="url-txt">/ניהול-צי-רכב</span></td><td><span class="pill pill-green">✓</span></td><td><span class="pill pill-green">✓</span></td><td><span class="pill pill-green">✓</span></td><td><span class="pill pill-green">8</span></td><td><span class="pill pill-green">100%</span></td><td>3 ימים</td><td><button class="btn btn-outline btn-xs">ניתוח</button></td></tr>
           <tr><td><span class="url-txt">/ביטוח-צי</span></td><td><span class="pill pill-yellow">חלקי</span></td><td><span class="pill pill-red">חסר</span></td><td><span class="pill pill-red">✕</span></td><td><span class="pill pill-red">2</span></td><td><span class="pill pill-red">45%</span></td><td>8 חודשים</td><td><button class="btn btn-warn btn-xs">שפר</button></td></tr>
@@ -1053,7 +1055,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
     <div class="g2">
       <div class="card"><div class="card-header">⚙️ בעיות טכניות</div><div class="card-body">
         <div class="row-item"><div class="row-icon ri-down">⚠️</div><div class="row-content"><div class="row-text">3 עמודים עם 404 שגיאות</div></div><button class="btn btn-warn btn-xs">תקן</button></div>
-        <div class="row-item"><div class="row-icon ri-down">⚠️</div><div class="row-content"><div class="row-text">7 תמונות ללא Alt Text</div></div><button class="btn btn-outline btn-xs">הוסף</button></div>
+        <div class="row-item"><div class="row-icon ri-down">⚠️</div><div class="row-content"><div class="row-text">7 תמונות ללא טקst חלופי</div></div><button class="btn btn-outline btn-xs">הוסף</button></div>
         <div class="row-item"><div class="row-icon ri-down">⚠️</div><div class="row-content"><div class="row-text">Core Web Vitals — LCP גבוה ב-3 עמודים</div></div><button class="btn btn-outline btn-xs">בדוק</button></div>
       </div></div>
       <div class="card"><div class="card-header">📱 מובייל SEO</div><div class="card-body">
@@ -1175,7 +1177,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
                 <label class="fs12" style="display:flex;align-items:center;gap:4px"><input type="checkbox" checked> קישורים פנימיים</label>
                 <label class="fs12" style="display:flex;align-items:center;gap:4px"><input type="checkbox" checked> Meta Description</label>
                 <label class="fs12" style="display:flex;align-items:center;gap:4px"><input type="checkbox"> External Links</label>
-                <label class="fs12" style="display:flex;align-items:center;gap:4px"><input type="checkbox"> Alt Text לתמונות</label>
+                <label class="fs12" style="display:flex;align-items:center;gap:4px"><input type="checkbox"> טקst חלופי לתמונות</label>
               </div>
             </div>
             <button class="btn btn-primary" style="width:100%">🤖 צור תוכן AI עכשיו</button>
@@ -1236,14 +1238,14 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
   <div class="tbl-wrap">
     <div class="tbl-toolbar">
       <input class="srch" placeholder="חיפוש תוכן...">
-      <select class="srch" style="max-width:130px"><option>כל הסוגים</option><option>מאמר</option><option>FAQ</option><option>Landing</option><option>Meta</option><option>GBP</option></select>
+      <select class="srch" style="max-width:130px"><option>כל הסוגים</option><option>מאמר</option><option>FAQ</option><option>דף נחיתה</option><option>Meta</option><option>GBP</option></select>
       <select class="srch" style="max-width:130px"><option>כל הסטטוסים</option><option>ממתין</option><option>פורסם</option><option>ארכיון</option></select>
       <button class="btn btn-ghost btn-sm">סנן ▼</button>
       <button class="btn btn-outline btn-sm">📥 יצוא Excel</button>
     </div>
     <div style="overflow-x:auto">
       <table>
-        <thead><tr><th>כותרת</th><th>סוג</th><th>URL/Slug</th><th>H1</th><th>Meta</th><th>Schema</th><th>FAQ</th><th>Int. Links</th><th>Ext. Links</th><th>ALT</th><th>GBP Post</th><th>סטטוס</th><th>תאריך</th><th>ציון SEO</th><th>פעולה</th></tr></thead>
+        <thead><tr><th>כותרת</th><th>סוג</th><th>URL/Slug</th><th>H1</th><th>Meta</th><th>Schema</th><th>FAQ</th><th>קישורים פנימיים</th><th>קישורים חיצוניים</th><th>ALT</th><th>GBP Post</th><th>סטטוס</th><th>תאריך</th><th>ציון SEO</th><th>פעולה</th></tr></thead>
         <tbody>
           <tr>
             <td class="fw7" style="min-width:200px">מאמר: 10 יתרונות מערכת ניהול צי</td>
@@ -1280,7 +1282,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
             <td><button class="btn btn-outline btn-xs">פתח</button></td>
           </tr>
           <tr>
-            <td class="fw7">Landing: ניהול צי לעסקים גדולים</td>
+            <td class="fw7">דף נחיתה: ניהול צי לעסקים גדולים</td>
             <td><span class="chip chip-orange">Landing</span></td>
             <td><span class="url-txt">/ניהול-צי-עסקים</span></td>
             <td><span class="pill pill-green">✓</span></td>
@@ -1332,7 +1334,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
     <div class="tbl-toolbar"><input class="srch" placeholder="חיפוש עמוד..."><select class="srch" style="max-width:140px"><option>כל הסטטוסים</option><option>חזק</option><option>דורש שיפור</option><option>חלש</option></select><button class="btn btn-outline btn-sm">📥 יצוא</button></div>
     <div style="overflow-x:auto">
       <table>
-        <thead><tr><th>URL</th><th>כותרת H1</th><th>קליקים</th><th>CTR</th><th>מיקום</th><th>עדכון</th><th>Meta</th><th>Schema</th><th>FAQ</th><th>Int. Links</th><th>סטטוס</th><th>פעולה</th></tr></thead>
+        <thead><tr><th>URL</th><th>כותרת H1</th><th>קליקים</th><th>CTR</th><th>מיקום</th><th>עדכון</th><th>Meta</th><th>Schema</th><th>FAQ</th><th>קישורים פנימיים</th><th>סטטוס</th><th>פעולה</th></tr></thead>
         <tbody>
           <tr><td><span class="url-txt fw7">/ניהול-צי-רכב</span></td><td class="fw7">ניהול צי רכב</td><td>412</td><td>5.0%</td><td>3</td><td>3 ימים</td><td><span class="pill pill-green">✓</span></td><td><span class="pill pill-green">✓</span></td><td><span class="pill pill-green">18</span></td><td><span class="pill pill-green">8</span></td><td><span class="pill pill-green">חזק</span></td><td><button class="btn btn-outline btn-xs">ניתוח</button></td></tr>
           <tr><td><span class="url-txt fw7">/דף-הבית</span></td><td class="fw7">ניהול צי רכב — דליה</td><td>890</td><td>4.8%</td><td>2</td><td>1 יום</td><td><span class="pill pill-green">✓</span></td><td><span class="pill pill-green">✓</span></td><td><span class="pill pill-green">12</span></td><td><span class="pill pill-green">15</span></td><td><span class="pill pill-green">חזק</span></td><td><button class="btn btn-outline btn-xs">ניתוח</button></td></tr>
@@ -1387,7 +1389,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
             <tbody>
               <tr><td class="fw7">מאמר: 10 יתרונות ניהול צי</td><td><span class="chip chip-blue">מאמר</span></td><td>22.6.26</td><td>09:00</td><td>WordPress + GSC</td><td><span class="pill pill-green">✓ AI</span></td><td><span class="pill pill-blue">מתוזמן</span></td><td><button class="btn btn-ghost btn-xs">עריכה</button></td></tr>
               <tr><td class="fw7">FAQ: ניהול צי עסקי</td><td><span class="chip chip-green">FAQ</span></td><td>23.6.26</td><td>14:00</td><td>WordPress</td><td><span class="pill pill-green">✓ AI</span></td><td><span class="pill pill-blue">מתוזמן</span></td><td><button class="btn btn-ghost btn-xs">עריכה</button></td></tr>
-              <tr><td class="fw7">Landing: ניהול צי עסקים גדולים</td><td><span class="chip chip-orange">Landing</span></td><td>25.6.26</td><td>10:00</td><td>WordPress</td><td><span class="pill pill-blue">AI ממתין</span></td><td><span class="pill pill-orange">ממתין אישור</span></td><td><button class="btn btn-success btn-xs">אשר</button></td></tr>
+              <tr><td class="fw7">דף נחיתה: ניהול צי עסקים גדולים</td><td><span class="chip chip-orange">Landing</span></td><td>25.6.26</td><td>10:00</td><td>WordPress</td><td><span class="pill pill-blue">AI ממתין</span></td><td><span class="pill pill-orange">ממתין אישור</span></td><td><button class="btn btn-success btn-xs">אשר</button></td></tr>
               <tr><td class="fw7">פוסט GBP: מבצע חצי שנה</td><td><span class="chip chip-purple">GBP Post</span></td><td>22.6.26</td><td>08:00</td><td>Google Business Profile Profile</td><td><span class="pill pill-green">✓ AI</span></td><td><span class="pill pill-blue">מתוזמן</span></td><td><button class="btn btn-ghost btn-xs">עריכה</button></td></tr>
               <tr><td class="fw7">Meta: 8 עמודים מעודכנים</td><td><span class="chip chip-yellow">Meta</span></td><td>21.6.26</td><td>07:00</td><td>WordPress</td><td><span class="pill pill-green">✓ AI</span></td><td><span class="pill pill-green">בוצע</span></td><td><button class="btn btn-outline btn-xs">פרטים</button></td></tr>
             </tbody>
@@ -1423,7 +1425,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
     </div>
     <div class="cal-grid">
       <div class="cal-day today"><div class="cal-day-num">20</div><div class="cal-event ce-orange">08:00 GBP Post</div></div>
-      <div class="cal-day"><div class="cal-day-num">21</div><div class="cal-event ce-blue">07:00 Meta Updates</div></div>
+      <div class="cal-day"><div class="cal-day-num">21</div><div class="cal-event ce-blue">07:00 עדכוני Meta</div></div>
       <div class="cal-day"><div class="cal-day-num">22</div><div class="cal-event ce-green">09:00 מאמר יתרונות</div><div class="cal-event ce-purple">08:00 GBP פוסט</div></div>
       <div class="cal-day"><div class="cal-day-num">23</div><div class="cal-event ce-green">14:00 FAQ ניהול צי</div></div>
       <div class="cal-day"><div class="cal-day-num">24</div></div>
@@ -1947,7 +1949,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
 <div class="screen" id="sc-ailab">
   <div class="sec-hdr"><h2 class="sec-title">🧪 מעבדת AI — מעבדת AI</h2><div class="sec-actions"><span class="badge-cs">Beta</span></div></div>
   <div class="g3 mb-16">
-    <div class="card"><div class="card-body" style="text-align:center;padding:28px 16px"><div style="font-size:40px;margin-bottom:10px">📝</div><div class="fw7 mb-8">AI Content Generator</div><div class="fs12 text2 mb-12">צור תוכן SEO מלא בלחיצה</div><button class="btn btn-primary" onclick="gotoSc('content')">נסה עכשיו</button></div></div>
+    <div class="card"><div class="card-body" style="text-align:center;padding:28px 16px"><div style="font-size:40px;margin-bottom:10px">📝</div><div class="fw7 mb-8">מחולל תוכן AI</div><div class="fs12 text2 mb-12">צור תוכן SEO מלא בלחיצה</div><button class="btn btn-primary" onclick="gotoSc('content')">נסה עכשיו</button></div></div>
     <div class="card"><div class="card-body" style="text-align:center;padding:28px 16px"><div style="font-size:40px;margin-bottom:10px">🔍</div><div class="fw7 mb-8">AI Keyword Finder</div><div class="fs12 text2 mb-12">גלה מילות מפתח נסתרות</div><button class="btn btn-primary" onclick="gotoSc('keywords')">נסה עכשיו</button></div></div>
     <div class="card"><div class="card-body" style="text-align:center;padding:28px 16px"><div style="font-size:40px;margin-bottom:10px">🏆</div><div class="fw7 mb-8">AI Competitor Spy</div><div class="fs12 text2 mb-12">נתח מתחרים אוטומטית</div><button class="btn btn-primary" onclick="gotoSc('competitors')">נסה עכשיו</button></div></div>
   </div>
@@ -2130,7 +2132,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
     <div class="card"><div class="card-header">🏥 בריאות SEO</div><div class="card-body">
       <div class="flex-bet mb-8"><span class="fs12">Schema Markup</span><span class="fw7">32/47</span></div><div class="prog-bar mb-12"><div class="prog-fill pf-blue" style="width:68%"></div></div>
       <div class="flex-bet mb-8"><span class="fs12">תיאורי Meta</span><span class="fw7">39/47</span></div><div class="prog-bar mb-12"><div class="prog-fill pf-green" style="width:83%"></div></div>
-      <div class="flex-bet mb-8"><span class="fs12">Alt Text תמונות</span><span class="fw7">78%</span></div><div class="prog-bar mb-12"><div class="prog-fill pf-orange" style="width:78%"></div></div>
+      <div class="flex-bet mb-8"><span class="fs12">טקst חלופי תמונות</span><span class="fw7">78%</span></div><div class="prog-bar mb-12"><div class="prog-fill pf-orange" style="width:78%"></div></div>
       <div class="flex-bet mb-8"><span class="fs12">קישורים פנימיים</span><span class="fw7">61%</span></div><div class="prog-bar"><div class="prog-fill pf-red" style="width:61%"></div></div>
     </div></div>
     <div class="card"><div class="card-header">⚙️ בריאות טכנית</div><div class="card-body">
@@ -2150,7 +2152,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
       <div class="card mb-12">
         <div class="card-header">🔌 חיבורי API</div>
         <div class="card-body">
-          <div class="row-item"><div class="row-icon ri-up">🤖</div><div class="row-content"><div class="row-text fw7">OpenAI GPT-4o</div><div class="fs11 text3">AI Content Generation</div></div><span class="pill pill-green">מחובר</span></div>
+          <div class="row-item"><div class="row-icon ri-up">🤖</div><div class="row-content"><div class="row-text fw7">OpenAI GPT-4o</div><div class="fs11 text3">יצירת תוכן AI</div></div><span class="pill pill-green">מחובר</span></div>
           <div class="row-item"><div class="row-icon ri-down">📊</div><div class="row-content"><div class="row-text fw7">Google Search Console</div><div class="fs11 text3">נתוני SEO ו-Keywords</div></div><button class="btn btn-outline btn-xs">חבר</button></div>
           <div class="row-item"><div class="row-icon ri-down">📍</div><div class="row-content"><div class="row-text fw7">Google Business Profile Profile API</div><div class="fs11 text3">ניהול GBP</div></div><span class="badge-ga" style="font-size:9px">דורש אישור Google</span></div>
           <div class="row-item"><div class="row-icon ri-down">💰</div><div class="row-content"><div class="row-text fw7">Google Ads API</div><div class="fs11 text3">ניהול קמפיינים</div></div><button class="btn btn-outline btn-xs">חבר</button></div>
@@ -2335,7 +2337,7 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
         <tr><td class="fw7">שיווק CRM</td><td>חיבור CRM</td><td>CRM</td><td><span class="badge-cs">בקרוב</span></td><td>—</td></tr>
         <tr><td class="fw7">שילוב FleetOS</td><td>חיבור FleetOS</td><td>FleetOS</td><td><span class="badge-pl">מתוכנן</span></td><td>—</td></tr>
         <tr><td class="fw7">דשבורד בריאות</td><td>בריאות SEO וטכנית</td><td>Health</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
-        <tr><td class="fw7">הגדרות</td><td>API Connections</td><td>Settings</td><td><span class="pill pill-green">✓ פעיל (UI)</span></td><td>—</td></tr>
+        <tr><td class="fw7">הגדרות</td><td>חיבורי API</td><td>Settings</td><td><span class="pill pill-green">✓ פעיל (UI)</span></td><td>—</td></tr>
         <tr><td class="fw7">הרשאות</td><td>ניהול משתמשים</td><td>Permissions</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
         <tr><td class="fw7">מפת דרכים</td><td>תכנון גרסאות</td><td>מפת דרכים</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
         <tr><td class="fw7">Notifications</td><td>מרכז התראות</td><td>Notifications</td><td><span class="pill pill-green">✓ פעיל</span></td><td>—</td></tr>
