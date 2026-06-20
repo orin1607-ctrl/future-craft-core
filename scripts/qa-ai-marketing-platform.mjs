@@ -18,9 +18,10 @@ const SCREENS = [
   'sc-intel','sc-competitors','sc-news','sc-gbp','sc-ads','sc-roi','sc-funnel','sc-journey',
   'sc-kpi','sc-heatmap','sc-executive','sc-strategy','sc-ailab','sc-autonomous','sc-aiimage',
   'sc-reports','sc-history','sc-crm','sc-fleetint','sc-health',
-  'sc-settings','sc-permissions','sc-roadmap','sc-qa'
+  'sc-settings','sc-permissions','sc-roadmap','sc-aiguide','sc-qa'
 ];
 const CATEGORIES = 12;
+const SIDEBAR_ITEMS = 38;
 
 const report = { passed: [], failed: [], consoleErrors: [], counts: {} };
 
@@ -69,8 +70,8 @@ report.counts.sidebarItems = await page.locator('.sb-item[data-sc]').count();
 if (report.counts.categories === CATEGORIES) report.passed.push('categories:12');
 else report.failed.push(`categories expected ${CATEGORIES} got ${report.counts.categories}`);
 
-if (report.counts.sidebarItems === 37) report.passed.push('sidebar:37');
-else report.failed.push(`sidebar expected 37 got ${report.counts.sidebarItems}`);
+if (report.counts.sidebarItems === SIDEBAR_ITEMS) report.passed.push('sidebar:' + SIDEBAR_ITEMS);
+else report.failed.push(`sidebar expected ${SIDEBAR_ITEMS} got ${report.counts.sidebarItems}`);
 
 await page.waitForTimeout(1200);
 

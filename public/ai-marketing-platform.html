@@ -286,6 +286,18 @@ body.embedded .sidebar{top:0}
   .sb-sec{display:block}
 }
 
+.guide-section{margin-bottom:22px}
+.guide-section h3{font-size:15px;font-weight:800;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.guide-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px;font-size:13px;line-height:1.65}
+.guide-prompt{cursor:pointer;transition:all .12s;border-right:3px solid var(--blue)}
+.guide-prompt:hover{background:#eff6ff;border-color:var(--blue)}
+.guide-prompt .gp-title{font-weight:700;color:var(--navy);margin-bottom:4px}
+.guide-prompt .gp-text{font-size:12px;color:var(--text2)}
+.guide-steps{counter-reset:step;padding-right:0;list-style:none}
+.guide-steps li{counter-increment:step;padding:8px 0 8px 32px;position:relative;border-bottom:1px solid var(--border);font-size:13px}
+.guide-steps li::before{content:counter(step);position:absolute;right:0;width:22px;height:22px;background:var(--blue);color:#fff;border-radius:50%;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.guide-tag{display:inline-block;background:#eff6ff;color:var(--blue);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:4px}
+
 /* misc */
 .mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}
 .fw7{font-weight:700}.fw8{font-weight:800}
@@ -346,6 +358,7 @@ body.embedded .sidebar{top:0}
 
     <div class="sb-sec">תוכן ו-AI</div>
     <button class="sb-item" data-sc="content"><span class="icon">✍️</span> מפעל תוכן</button>
+    <button class="sb-item" data-sc="aiguide"><span class="icon">📖</span> מדריך AI</button>
     <button class="sb-item" data-sc="warehouse"><span class="icon">📚</span> מחסן תוכן</button>
     <button class="sb-item" data-sc="pages"><span class="icon">🌐</span> ניהול אתר</button>
     <button class="sb-item" data-sc="landing"><span class="icon">🚀</span> דפי נחיתה</button>
@@ -405,7 +418,7 @@ body.embedded .sidebar{top:0}
     <span class="chip chip-orange" id="aiStatusChip" style="display:none">OpenAI</span>
     <a id="sheetsLink" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="display:none">📊 Google Sheets</a>
     <button class="btn btn-ghost btn-sm" onclick="typeof syncNow==='function'&&syncNow()">🔄 סנכרן</button>
-    <button class="btn btn-primary btn-sm">🤖 הרץ AI</button>
+    <button class="btn btn-primary btn-sm" id="topbarRunAi">🤖 הרץ AI</button>
     <button class="btn-icon notif-dot-red">🔔</button>
     <div class="user-av">יו</div>
   </header>
@@ -2288,6 +2301,108 @@ body.embedded .sidebar{top:0}
   </div>
 </div>
 
+<!-- ===== SCREEN: AI GUIDE ===== -->
+<div class="screen" id="sc-aiguide">
+  <div class="sec-hdr"><h2 class="sec-title">📖 מדריך שימוש ב-AI — CO.CO דליה</h2><div class="sec-actions"><button class="btn btn-primary btn-sm" onclick="gotoSc('content')">✍️ מפעל תוכן</button></div></div>
+  <p class="fs12 text2 mb-16">מדריך קצר לעבודה יומיומית עם OpenAI, Google Sheets, Search Console ו-Analytics. קרא 5 דקות — התחל לעבוד.</p>
+
+  <div class="guide-section">
+    <h3>🚀 איך מתחילים שיחה עם ה-AI?</h3>
+    <ol class="guide-steps">
+      <li>ודא ש-<strong>OpenAI מחובר</strong> (chip ירוק בראש הדף). אם כתוב "בדוק .env.openai" — פנה למפתח להגדרת המפתח.</li>
+      <li>לחץ <strong>🔄 סנכרן</strong> כדי לטעון נתונים עדכניים מ-Google Sheets, GSC ו-GA4.</li>
+      <li>עבור למסך הרלוונטי (מנהל AI, מילות מפתח, מפעל תוכן וכו').</li>
+      <li>לחץ <strong>🤖 הרץ AI</strong> בראש הדף, או על כפתור AI במסך — התשובה תופיע בחלון.</li>
+      <li>לפרומפטים מוכנים — לחץ על הדוגמאות למטה ↓</li>
+    </ol>
+  </div>
+
+  <div class="guide-section">
+    <h3>🧠 מה כל מודול AI יודע לעשות?</h3>
+    <div class="g2">
+      <div class="guide-card"><strong>מנהל AI</strong> — ניתוח אתר, עמודים חלשים, הזדמנויות SEO, המלצות שיפור.<span class="guide-tag">GSC + GA4</span></div>
+      <div class="guide-card"><strong>מילות מפתח</strong> — מחקר מילים, ניתוח דירוג, הצעות לשיפור CTR.<span class="guide-tag">Search Console</span></div>
+      <div class="guide-card"><strong>מפעל תוכן</strong> — מאמרים, FAQ, Meta, דפי נחיתה, Schema.<span class="guide-tag">Sheets</span></div>
+      <div class="guide-card"><strong>אסטרטגיית AI</strong> — תוכנית שיווק חודשית/רבעונית, עדיפויות.<span class="guide-tag">כל הנתונים</span></div>
+      <div class="guide-card"><strong>מעבדת AI</strong> — ניסויי פרומפטים, A/B לכותרות, רעיונות.<span class="guide-tag">OpenAI</span></div>
+      <div class="guide-card"><strong>Google Ads / GBP</strong> — טקסטים לפרסום, פוסטים, מודעות.<span class="guide-tag">בקרוב מלא</span></div>
+    </div>
+  </div>
+
+  <div class="guide-section">
+    <h3>✍️ איך לכתוב בקשות טובות?</h3>
+    <div class="guide-card">
+      <strong>כללים:</strong> היה ספציפי · ציין קהל יעד · בקש פורmat (רשימה / טבלה / כותרות) · הזכר את dalia-c.com · ציין אורך (מילים / נקודות).
+    </div>
+  </div>
+
+  <div class="guide-section">
+    <h3>💡 דוגמאות פרומפטים מוכנים — לחץ להרצה</h3>
+    <div class="guide-card guide-prompt" data-ai-module="seo" data-ai-prompt="נתח 5 עמודים חלשים ב-dalia-c.com לפי CTR ומיקום. לכל עמוד: בעיה, פעולה, צפי שיפור.">
+      <div class="gp-title">🔍 SEO — ניתוח עמודים חלשים</div>
+      <div class="gp-text">מזהה עמודים עם CTR נמוך ומציע שיפורים מעשיים</div>
+    </div>
+    <div class="guide-card guide-prompt" data-ai-module="keywords" data-ai-prompt="מחקר מילות מפתח לנושא 'ניהול צי רכב' ו'תוכנת ניהול צי'. 15 מילים: נפח, קושי, כוונה, עמוד מומלץ.">
+      <div class="gp-title">🔑 מחקר מילות מפתח</div>
+      <div class="gp-text">רשימת מילים עם נפח, קושי ועמוד יעד מומלץ</div>
+    </div>
+    <div class="guide-card guide-prompt" data-ai-module="content" data-ai-prompt="כתוב מתווה מאמר SEO: '10 יתרונות מערכת ניהול צי לעסקים'. כולל H1, H2-H3, 800 מילים, Meta Title+Description, 3 שאלות FAQ.">
+      <div class="gp-title">📝 כתיבת מאמר</div>
+      <div class="gp-text">מתווה מלא עם כותרות, Meta ו-FAQ</div>
+    </div>
+    <div class="guide-card guide-prompt" data-ai-module="landing" data-ai-prompt="תכנן דף נחיתה ל'ניהול צי לחברות גדולות': מבנה, כותרות, bullets, CTA, Meta, Schema FAQ.">
+      <div class="gp-title">🚀 דף נחיתה</div>
+      <div class="gp-text">מבנה דף עם CTA ו-Schema</div>
+    </div>
+    <div class="guide-card guide-prompt" data-ai-module="competitors" data-ai-prompt="ניתוח מתחרים בתחום ניהול צי רכב בישראל: 3 מתחרים, חוזקות, חולשות, פערי תוכן, 5 הזדמנויות לדליה.">
+      <div class="gp-title">🏆 ניתוח מתחרים</div>
+      <div class="gp-text">השוואה ופערי תוכן</div>
+    </div>
+    <div class="guide-card guide-prompt" data-ai-module="ads" data-ai-prompt="3 מודעות Google Ads ל'תוכנת ניהול צי': כותרת 1+2, תיאור, מילות מפתח, דף נחיתה מומלץ.">
+      <div class="gp-title">💰 Google Ads</div>
+      <div class="gp-text">מודעות מוכנות עם כותרות ותיאורים</div>
+    </div>
+    <div class="guide-card guide-prompt" data-ai-module="gbp" data-ai-prompt="פוסט Google Business Profile: מבצע 'חצי שנה חינם' לניהול צי. 150 מילים, CTA, האשטags.">
+      <div class="gp-title">📍 Google Business Profile</div>
+      <div class="gp-text">פוסט GBP מוכן לפרסום</div>
+    </div>
+    <div class="guide-card guide-prompt" data-ai-module="strategy" data-ai-prompt="אסטרטגיית שיווק ל-90 יום ל-dalia-c.com: 5 יעדים, ערוצים, תוכן, KPI, לוח זמנים.">
+      <div class="gp-title">♟️ אסטרטגיית שיווק 90 יום</div>
+      <div class="gp-text">תוכנית מלאה עם KPI ולוח זמנים</div>
+    </div>
+  </div>
+
+  <div class="guide-section">
+    <h3>📊 איך ה-AI משתמש בנתונים?</h3>
+    <div class="guide-card">
+      <strong>Google Sheets</strong> — טיוטות, אישורים, לוג פעולות (טאב COCO_UI).<br>
+      <strong>Search Console</strong> — מילות מפתח, קליקים, CTR, מיקומים, עמודים.<br>
+      <strong>Google Analytics 4</strong> — סשנים, צפיות, עמודים מובילים.<br>
+      <strong>dashboard.json</strong> — מיזוג כל המקורות ל-KPIs בזמן סנכרון.<br>
+      לחץ <strong>🔄 סנכרן</strong> לפני ניתוח AI כדי לקבל נתונים עדכניים.
+    </div>
+  </div>
+
+  <div class="guide-section">
+    <h3>✅ אוטומטי vs דורש אישור</h3>
+    <div class="g2">
+      <div class="guide-card"><strong>אוטומטי:</strong> ניתוח AI, הצעות, דוחות, מחקר מילים, יצירת טיוטות.<span class="guide-tag">ללא פרסום</span></div>
+      <div class="guide-card"><strong>דורש אישורך:</strong> פרסום תוכן, עדכון Meta, פוסט GBP, קמפיינים, שליחת מיילים.<span class="guide-tag">מרכז אישורים</span></div>
+    </div>
+  </div>
+
+  <div class="guide-section">
+    <h3>📅 שגרה יומית מומלצת</h3>
+    <ol class="guide-steps">
+      <li><strong>בוקר:</strong> סנכרן → תדרוך יומי → בדוק התראות ומשימות.</li>
+      <li><strong>אמצע:</strong> מנהל AI → אשר/דחה טיוטות במרכז אישורים.</li>
+      <li><strong>צהריים:</strong> מילות מפתח → הרץ AI על מילים חלשות.</li>
+      <li><strong>אחה"צ:</strong> מפעל תוכן → צור תוכן חדש → תזמן פרסום.</li>
+      <li><strong>סוף שבוע:</strong> דוחות → ROI → אסטרטגיית AI לשבוע הבא.</li>
+    </ol>
+  </div>
+</div>
+
 <!-- ===== SCREEN: QA CHECKLIST ===== -->
 <div class="screen" id="sc-qa">
   <div class="sec-hdr"><h2 class="sec-title">✔️ רשימת בדיקות QA מלא</h2><div class="sec-actions"><button class="btn btn-ghost btn-sm">📥 יצוא PDF</button></div></div>
@@ -2473,7 +2588,8 @@ var screenLabels = {
   'sc-ailab': 'מעבדת AI', 'sc-autonomous': 'מצב אוטונומי', 'sc-aiimage': 'סטודיו תמונות AI',
   'sc-reports': 'דוחות', 'sc-history': 'היסטוריה', 'sc-briefing': 'תדרוך יומי',
   'sc-crm': 'שיווק CRM', 'sc-fleetint': 'שילוב FleetOS', 'sc-health': 'דשבורד בריאות',
-  'sc-settings': 'הגדרות ו-API', 'sc-permissions': 'הרשאות ואבטחה', 'sc-roadmap': 'מפת דרכים', 'sc-qa': 'רשימת בדיקות QA'
+  'sc-settings': 'הגדרות ו-API', 'sc-permissions': 'הרשאות ואבטחה', 'sc-roadmap': 'מפת דרכים',
+  'sc-aiguide': 'מדריך AI', 'sc-qa': 'רשימת בדיקות QA'
 };
 
 function gotoSc(id) {

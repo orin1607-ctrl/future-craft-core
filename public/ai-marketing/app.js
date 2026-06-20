@@ -10,7 +10,31 @@
   }
 
   var COCO = { data: null, ai: { connected: false, busy: false }, state: { approvalCount: 7 } };
-  var FALLBACK_URLS = ['./ai-marketing/data.json', './project-001/dashboard.json'];
+
+  function dataUrls() {
+    var base = './';
+    var path = location.pathname || '';
+    if (path.indexOf('ai-marketing-platform') > 0) {
+      base = path.substring(0, path.indexOf('ai-marketing-platform'));
+    }
+    return [base + 'ai-marketing/data.json', base + 'project-001/dashboard.json'];
+  }
+
+  var MODULE_PROMPTS = {
+    dashboard: 'סיכום KPI שיווקי ל-5 נקודות עבור dalia-c.com — מגמות, הזדמנויות, פעולות מיידיות.',
+    director: 'ניתוח AI Director: 5 תובנות SEO + 3 פעולות דחופות ל-dalia-c.com לפי נתוני GSC ו-GA4.',
+    seo: 'ניתוח SEO: 5 עמודים לשיפור, Meta מומלץ, קישורים פנימיים — dalia-c.com.',
+    keywords: 'מחקר מילות מפתח: 10 מילים עם נפח, קושי, עמוד יעד — ניהול צי רכב.',
+    content: 'מתווה תוכן SEO: מאמר 800 מילים, H1-H3, Meta, FAQ — dalia-c.com.',
+    strategy: 'אסטרטגיית שיווק 60 יום: יעדים, ערוצים, KPI, לוח תוכן.',
+    ailab: '3 רעיונות A/B לכותרות דף נחיתה + נימוק SEO.',
+    intel: '5 הזדמנויות תוכן מ-GSC שלא מנוצלות — dalia-c.com.',
+    competitors: 'ניתוח 3 מתחרים: חוזקות, חולשות, 5 פערי תוכן.',
+    gbp: 'פוסט Google Business: 120 מילים, CTA, האשטags — dalia-c.com.',
+    ads: '3 מודעות Google Ads: כותרות + תיאורים + מילות מפתח.',
+    landing: 'מבנה דף נחיתה: כותרות, bullets, CTA, Meta, Schema FAQ.',
+    general: 'ניתוח שיווקי קצר (5 נקודות) — dalia-c.com.',
+  };
 
   function showToast(msg, type) {
     var el = document.getElementById('cocoToast');
@@ -60,13 +84,26 @@
     if (src) src.textContent = 'מקור: ' + (d.meta?.source || 'demo');
     if (d.meta?.spreadsheetUrl) {
       var link = document.getElementById('sheetsLink');
-      if (link) { link.href = d.meta.spreadsheetUrl; link.style.display = 'inline'; }
+      if (link) { link.href = d.meta.spreadsheetUrl; link.style.display = 'inline-flex'; }
     }
     COCO.state.approvalCount = d.badges?.pendingApproval ?? COCO.state.approvalCount;
     updateBadges();
     renderKeywordsTable(document.querySelector('#kw-active tbody'), d.keywords, false);
     var dashTb = document.querySelector('#sc-dashboard .section table tbody');
     if (dashTb && d.keywords?.length) renderKeywordsTable(dashTb, d.keywords.slice(0, 5), true);
+    if (d.approvals?.length) bindApprovals(d.approvals);
+  }
+
+  function bindApprovals(list) {
+    var container = document.querySelector('#sc-approval .card-body');
+    if (!container || container.dataset.dynamicBound) return;
+    var existing = container.querySelectorAll('.appr-item');
+    if (existing.length >= list.length) {
+      existing.forEach(function (el, i) {
+        if (list[i]?.id) el.dataset.draftId = list[i].id;
+      });
+      return;
+    }
   }
 
   function renderKeywordsTable(tbody, list, compact) {
@@ -100,7 +137,7 @@
     if (!chip) return;
     chip.style.display = 'inline-flex';
     chip.className = 'chip ' + (ok ? 'chip-green' : 'chip-orange');
-    chip.textContent = ok ? '🟢 OpenAI מחובר' : (API ? '🟠 OpenAI — בדוק .env.openai' : '🟠 OpenAI — npm run ai-marketing:dev');
+    chip.textContent = ok ? '🟢 OpenAI מחובר' : (API ? '🟠 OpenAI — בדוק .env.openai' : '🟠 Staging — AI דורש שרת מקומי');
   }
 
   function loadData() {
@@ -114,13 +151,16 @@
   }
 
   function fallbackLoad() {
-    return fetch(FALLBACK_URLS[0]).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .catch(function () { return fetch(FALLBACK_URLS[1]).then(function (r) { return r.ok ? r.json() : null; }); })
+    var urls = dataUrls();
+    return fetch(urls[0]).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .catch(function () { return fetch(urls[1]).then(function (r) { return r.ok ? r.json() : null; }); })
       .then(function (raw) {
-        if (raw?.meta?.kpis) COCO.data = raw;
-        else if (raw?.stats) {
+        if (!raw) return;
+        if (raw.kpis) {
+          COCO.data = raw;
+        } else if (raw.stats) {
           COCO.data = {
-            meta: { source: 'dashboard.json (static)', generatedAt: raw.generatedAt },
+            meta: { source: 'dashboard.json (static)', generatedAt: raw.generatedAt, spreadsheetUrl: raw.lastSync?.spreadsheet_url },
             kpis: {
               avgPosition: { value: String(raw.stats.avgPosition ?? '—'), change: '—', trend: 'neutral' },
               weeklyClicks: { value: String(raw.stats.totalClicks ?? 0), change: '—', trend: 'up' },
@@ -132,9 +172,12 @@
               avgCtr: { value: raw.stats.avgCtr != null ? raw.stats.avgCtr + '%' : '—', change: '—', trend: 'neutral' },
             },
             keywords: (raw.searchConsole?.keywords || []).slice(0, 10).map(function (k) {
-              return { keyword: k.query, rank: Math.round(k.position), clicks: k.clicks, volume: k.impressions, ctr: '—', url: '—', score: 70, change: 0, prev: 0 };
+              return { keyword: k.query, rank: Math.round(k.position), clicks: k.clicks, volume: k.impressions, ctr: '—', url: k.page || '—', score: 70, change: 0, prev: 0 };
             }),
             badges: { pendingApproval: raw.stats.pendingDrafts || 0 },
+            approvals: raw.drafts?.filter(function (d) { return d.status === 'pending_approval'; }).map(function (d) {
+              return { id: d.id, title: d.title, status: 'pending' };
+            }) || [],
           };
         }
         bindDataToUI();
@@ -143,7 +186,7 @@
 
   function syncNow() {
     showToast('🔄 מסנכרן Google Sheets + GSC + GA4...', 'info');
-    if (!API) { showToast('סנכרון מלא דורש: npm run ai-marketing:dev', 'warn'); return loadData(); }
+    if (!API) { showToast('סנכרון מלא זמין בפיתוח מקומי (npm run ai-marketing:dev)', 'warn'); return loadData(); }
     return apiFetch('/api/sync', { method: 'POST' }).then(function (res) {
       if (res.ok && res.data.data) { COCO.data = res.data.data; bindDataToUI(); showToast('✓ סנכרון הושלם', 'success'); }
       else showToast(res.data.message || 'שגיאת סנכרון', 'warn');
@@ -151,24 +194,26 @@
   }
 
   function saveAction(payload) {
-    if (!API) { showToast('שמירה ל-Google Sheets דורשת שרת מקומי (ai-marketing:dev)', 'warn'); return Promise.resolve(); }
+    if (!API) { showToast('שמירה ל-Google Sheets זמינה בפיתוח מקומי', 'warn'); return Promise.resolve({ ok: false }); }
     return apiFetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       .then(function (res) {
-        if (res.ok && res.data.data) { COCO.data = res.data.data; bindDataToUI(); }
-        if (!res.ok) showToast(res.data.message || 'שגיאת שמירה', 'warn');
+        if (res.ok && res.data.data) { COCO.data = res.data.data; bindDataToUI(); showToast('✓ נשמר ב-Google Sheets', 'success'); }
+        else if (!res.ok) showToast(res.data.message || 'שגיאת שמירה', 'warn');
         return res;
       });
   }
 
   function runAi(module, prompt, title) {
     if (COCO.ai.busy) { showToast('AI עסוק — המתן', 'warn'); return; }
-    if (!API) { showToast('OpenAI דורש: npm run ai-marketing:dev + .env.openai', 'warn'); return; }
+    if (!API) { showToast('OpenAI: הפעל npm run ai-marketing:dev + הגדר .env.openai', 'warn'); return; }
+    if (!COCO.ai.connected) { showToast('OpenAI לא מחובר — בדוק .env.openai', 'warn'); return; }
     COCO.ai.busy = true;
     showToast('🤖 שולח ל-OpenAI...', 'info');
-    apiFetch('/api/ai/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ module: module, prompt: prompt }) })
+    var ctx = COCO.data ? '\n\nנתונים: KPI קליקים=' + (COCO.data.kpis?.weeklyClicks?.value || '—') + ', מילות=' + (COCO.data.keywords?.length || 0) : '';
+    apiFetch('/api/ai/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ module: module, prompt: prompt + ctx }) })
       .then(function (res) {
         COCO.ai.busy = false;
-        if (res.ok && res.data.text) openActionModal(title, '<div style="white-space:pre-wrap;line-height:1.7">' + esc(res.data.text) + '</div>', [{ label: 'סגור', cls: 'btn-ghost' }]);
+        if (res.ok && res.data.text) openActionModal(title || '🤖 AI', '<div style="white-space:pre-wrap;line-height:1.7">' + esc(res.data.text) + '</div>', [{ label: 'סגור', cls: 'btn-ghost' }]);
         else showToast(res.data.message || 'שגיאת OpenAI', 'warn');
       })
       .catch(function (e) { COCO.ai.busy = false; showToast('שגיאה: ' + e.message, 'warn'); });
@@ -237,7 +282,6 @@
       { label: 'ביטול', cls: 'btn-ghost' },
       { label: '💾 שמור', cls: 'btn-primary', fn: function () {
         saveAction({ action: 'edited', title: title, note: document.getElementById('editArea')?.value || '' });
-        showToast('נשמר', 'success');
       }},
     ]);
   }
@@ -246,20 +290,22 @@
     var title = btn.closest('.appr-item')?.querySelector('.fw7')?.textContent || '';
     openActionModal('📅 תזמון פרסום', '<p>' + esc(title) + '</p>', [
       { label: 'ביטול', cls: 'btn-ghost' },
-      { label: '📅 תזמן', cls: 'btn-primary', fn: function () { showToast('תוזמן (הדגמה)', 'success'); gotoSc('scheduler'); } },
+      { label: '📅 תזמן', cls: 'btn-primary', fn: function () { showToast('תוזמן — ממתין לאישור סופי', 'success'); gotoSc('scheduler'); } },
     ]);
+  }
+
+  function getModulePrompt(sc) {
+    var mod = sc ? sc.id.replace('sc-', '') : 'general';
+    return { module: mod, prompt: MODULE_PROMPTS[mod] || MODULE_PROMPTS.general, title: sc?.querySelector('.sec-title')?.textContent || 'AI' };
   }
 
   function handleAiButton(btn) {
     var t = btn.textContent.trim();
     if (/הרץ AI|הרץ ניתוח|AI Keyword|מחקר מילות|יצירת תוכן|צור תוכן|🤖/.test(t)) {
-      if (/AI Image|סטודיו תמונות|Landing Page/.test(t) && /Studio|תמונות/.test(t)) {
-        showToast('סטודיו תמונות AI — בקרוב', 'info'); return true;
-      }
-      var sc = btn.closest('.screen');
-      var mod = sc ? sc.id.replace('sc-', '') : 'general';
-      var title = sc?.querySelector('.sec-title')?.textContent || 'AI';
-      runAi(mod, 'ניתוח שיווקי קצר (5 נקודות) עבור ' + title + ' — dalia-c.com', '🤖 ' + title);
+      if (/סטודיו תמונות|AI Image/.test(t)) { showToast('סטודיו תמונות AI — בקרוב', 'info'); return true; }
+      var sc = btn.closest('.screen') || document.querySelector('.screen.active');
+      var p = getModulePrompt(sc);
+      runAi(p.module, p.prompt, '🤖 ' + p.title);
       return true;
     }
     return false;
@@ -293,16 +339,33 @@
     });
   }
 
+  function initGuidePrompts() {
+    document.querySelectorAll('.guide-prompt[data-ai-prompt]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        runAi(el.dataset.aiModule || 'general', el.dataset.aiPrompt, el.querySelector('.gp-title')?.textContent || 'AI');
+      });
+    });
+  }
+
   function onClick(e) {
+    var guidePrompt = e.target.closest('.guide-prompt[data-ai-prompt]');
+    if (guidePrompt) return;
     var btn = e.target.closest('.btn');
     if (!btn || btn.disabled) return;
     var t = btn.textContent.trim();
+    if (btn.id === 'topbarRunAi') {
+      var sc = document.querySelector('.screen.active');
+      var p = getModulePrompt(sc);
+      runAi(p.module, p.prompt, '🤖 ' + p.title);
+      return;
+    }
     if (handleAiButton(btn)) return;
-    if (/סנכרן|Sync Now|סנכron/.test(t)) { syncNow(); return; }
+    if (/סנכרן|Sync Now/.test(t)) { syncNow(); return; }
     if (/רענן.*GSC|GSC/.test(t) && /רענן/.test(t)) { syncNow(); return; }
     if (/יצוא PDF|📥 יצוא PDF|📄 יצוא/.test(t)) { exportFile('pdf', btn); return; }
     if (/Excel|CSV/.test(t)) { exportFile(/CSV/.test(t) ? 'csv' : 'excel', btn); return; }
-    if (/שמור הגדרות/.test(t)) { showToast('הגדרות נשמרו (הדגמה)', 'success'); return; }
+    if (/שמור הגדרות/.test(t)) { saveAction({ action: 'settings_saved', status: 'saved', note: 'הגדרות מהדשבורד' }); return; }
+    if (/מדריך AI|📖/.test(t) && btn.closest('.sb-item')) { gotoSc('aiguide'); return; }
     if (btn.closest('#sc-approval')) {
       if (/אשר הכל/.test(t)) {
         document.querySelectorAll('#sc-approval .appr-item').forEach(function (it) {
@@ -322,6 +385,7 @@
 
   function init() {
     initSearchFilters();
+    initGuidePrompts();
     document.body.addEventListener('click', onClick);
     document.getElementById('actionModal')?.addEventListener('click', function (e) {
       if (e.target.id === 'actionModal') closeActionModal();
