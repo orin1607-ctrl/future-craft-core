@@ -1,0 +1,59 @@
+{
+  "at": "2026-06-20T14:08:00.626Z",
+  "base": "http://127.0.0.1:4173/future-craft-core/dev/project-001/dashboard",
+  "checks": [
+    {
+      "name": "desktop-no-horizontal-scroll",
+      "ok": true
+    },
+    {
+      "name": "mobile-portrait-no-horizontal-scroll",
+      "ok": true
+    },
+    {
+      "name": "mobile-single-column-stats",
+      "ok": true,
+      "detail": "columns=1"
+    },
+    {
+      "name": "mobile-hamburger-visible",
+      "ok": true
+    },
+    {
+      "name": "mobile-sidebar-opens",
+      "ok": true
+    },
+    {
+      "name": "mobile-sidebar-closes-on-nav",
+      "ok": true
+    },
+    {
+      "name": "mobile-table-internal-scroll",
+      "ok": true,
+      "detail": "560px table in 349px"
+    },
+    {
+      "name": "touch-target-sync-btn",
+      "ok": true,
+      "detail": "247x44"
+    },
+    {
+      "name": "mobile-landscape-no-horizontal-scroll",
+      "ok": true
+    },
+    {
+      "name": "tablet-sidebar-visible",
+      "ok": true
+    }
+  ],
+  "shots": [
+    "desktop-1280-dashboard.png",
+    "mobile-375-portrait-dashboard.png",
+    "mobile-375-portrait-sidebar-open.png",
+    "mobile-375-portrait-keywords-table.png",
+    "mobile-667-landscape-dashboard.png",
+    "tablet-768-portrait-dashboard.png"
+  ],
+  "passed": 10,
+  "failed": 0
+}

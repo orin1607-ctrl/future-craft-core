@@ -378,6 +378,15 @@ export default function Project001Dashboard() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [sidebarOpen]);
+
   const stats = useMemo(() => (data ? resolveStats(data) : null), [data]);
 
   const mergedPages = useMemo(
@@ -620,19 +629,21 @@ export default function Project001Dashboard() {
               className="mobile-menu-btn"
               onClick={() => setSidebarOpen((o) => !o)}
               aria-label="תפריט"
+              aria-expanded={sidebarOpen}
             >
               ☰
             </button>
-            <div>
+            <div className="topbar-title-block">
               <div className="topbar-title">דשבורד ראשי</div>
               <div className="topbar-subtitle">
                 {data.project.name} · עודכן {timeAgo(data.generatedAt)}
               </div>
             </div>
-            <span className="topbar-badge">
-              {connectedCount > 0 ? '🟢 פעיל' : '🟡 ממתין לחיבור'}
-            </span>
-            <div className="topbar-actions" style={{ marginRight: 'auto' }}>
+            <div className="topbar-badge-row">
+              <span className="topbar-badge">
+                {connectedCount > 0 ? '🟢 פעיל' : '🟡 ממתין לחיבור'}
+              </span>
+              <div className="topbar-actions">
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
@@ -653,6 +664,7 @@ export default function Project001Dashboard() {
               </button>
               <div className="user-avatar" title={data.project.account || undefined}>
                 {accountInitial}
+              </div>
               </div>
             </div>
           </header>
@@ -757,7 +769,7 @@ export default function Project001Dashboard() {
                       onChange={(e) => setKwSearch(e.target.value)}
                     />
                   </div>
-                  <div style={{ overflowX: 'auto' }}>
+                  <div className="table-scroll">
                     <table>
                       <thead>
                         <tr>
@@ -821,7 +833,7 @@ export default function Project001Dashboard() {
                       onChange={(e) => setPageSearch(e.target.value)}
                     />
                   </div>
-                  <div style={{ overflowX: 'auto' }}>
+                  <div className="table-scroll">
                     <table>
                       <thead>
                         <tr>
@@ -1160,7 +1172,7 @@ export default function Project001Dashboard() {
               </div>
 
               <div className="table-wrap">
-                <div style={{ overflowX: 'auto' }}>
+              <div className="table-scroll">
                   <table>
                     <thead>
                       <tr>
@@ -1191,7 +1203,7 @@ export default function Project001Dashboard() {
                             <td className="text-muted" style={{ fontSize: 12 }}>
                               {resolveLogSource(e)}
                             </td>
-                            <td className="text-muted" style={{ fontSize: 12, maxWidth: 280 }}>
+                            <td className="text-muted log-detail-cell">
                               {e.detail || '—'}
                             </td>
                           </tr>
@@ -1291,7 +1303,7 @@ export default function Project001Dashboard() {
                 </div>
               </div>
               {modalDraft.status === 'pending_approval' && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="modal-actions">
                   <button
                     type="button"
                     className="btn btn-success btn-sm"
@@ -1345,7 +1357,7 @@ export default function Project001Dashboard() {
           </div>
           {modalKw && (
             <div className="modal-body">
-              <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+              <div className="modal-stat-row">
                 <div
                   className="modal-stat-box"
                   style={{ background: 'var(--blue-light)' }}
