@@ -1,0 +1,15 @@
+{
+  "at": "2026-06-18T06:12:20.801Z",
+  "owner_gate": 0,
+  "complete": true,
+  "setup_verified": true,
+  "account": "orin1607@gmail.com",
+  "gcp_project_number": "840269841580",
+  "probes_ok": ["userinfo", "drive", "sheets", "gmail", "calendar", "docs", "apps_script"],
+  "drive_folders": {
+    "root_id": "1_bDJT4HByMPjrPjiL4nSrr160SKfd_cA",
+    "staging_id": "1E4_8MUSZkJOFq7Adcnh8Auaqyxo_ZccT",
+    "production_id": "1y1qL3lpJuBPQ-LuRjqbVVuYWMt0v5IWF"
+  },
+  "optional_later": ["clasp deploy", "cleanup probe files"]
+}

@@ -1,0 +1,41 @@
+[
+  {
+    "id": "ai-1781961484883",
+    "timestamp": "2026-06-20T13:18:04.883Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
+    "id": "ai-1781960051533",
+    "timestamp": "2026-06-20T12:54:11.533Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
+    "id": "ai-1781959643192",
+    "timestamp": "2026-06-20T12:47:23.192Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  }
+]

@@ -1,0 +1,494 @@
+{
+  "version": 2,
+  "generatedAt": "2026-06-20T13:18:05.006Z",
+  "project": {
+    "id": "project001aimarketing",
+    "name": "Project001AIMarketing",
+    "account": "orin1607@gmail.com",
+    "site": "https://dalia-c.com/",
+    "ga4Property": "properties/427711798"
+  },
+  "token": {
+    "ok": true,
+    "scopeCount": 20,
+    "hasRefresh": true,
+    "expiry": "2026-06-20T13:01:11.239Z"
+  },
+  "connections": {
+    "searchConsole": {
+      "status": "connected",
+      "ok": true,
+      "note": null
+    },
+    "analytics4": {
+      "status": "connected",
+      "ok": true,
+      "note": null
+    },
+    "businessProfile": {
+      "status": "pending_google_api_approval",
+      "ok": false,
+      "note": "Pending Google API Approval — Basic API Access (quota=0). לא חוסם את הפרויקט."
+    },
+    "drive": {
+      "status": "connected",
+      "ok": true,
+      "note": null
+    },
+    "sheets": {
+      "status": "connected",
+      "ok": true,
+      "note": null
+    },
+    "docs": {
+      "status": "connected",
+      "ok": true,
+      "note": "test doc — delete manually"
+    },
+    "gmail": {
+      "status": "connected",
+      "ok": true,
+      "note": "send scope"
+    },
+    "appsScript": {
+      "status": "connected",
+      "ok": true,
+      "note": null
+    }
+  },
+  "probe": {
+    "gscSites": 3,
+    "ga4Properties": 0,
+    "configuredGsc": "https://dalia-c.com/",
+    "configuredGa4": "properties/427711798"
+  },
+  "gbp": {
+    "ok": false,
+    "status": "pending_google_api_approval",
+    "pendingApproval": true,
+    "matchedBusiness": null,
+    "locations": 0,
+    "hint": "דליה פתרונות מימון ותחזוקה לרכב",
+    "lastError": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:484351148380'."
+  },
+  "stats": {
+    "avgPosition": null,
+    "totalClicks": 0,
+    "totalImpressions": 0,
+    "avgCtr": null,
+    "activeKeywords": 0,
+    "opportunities": 1,
+    "weakPages": 0,
+    "pendingDrafts": 1,
+    "ga4Sessions": 251,
+    "ga4PageViews": 411
+  },
+  "dataSource": "sheets",
+  "lastSync": {
+    "timestamp": "2026-06-20T12:54:08.267Z",
+    "ok": true,
+    "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
+    "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
+    "counts": {
+      "gsc_queries": 0,
+      "gsc_pages": 0,
+      "ga4_daily": 151,
+      "ga4_pages": 48
+    },
+    "date_range": {
+      "start": "2026-05-22",
+      "end": "2026-06-18"
+    }
+  },
+  "searchConsole": {
+    "keywords": [],
+    "pages": [],
+    "dateRange": {
+      "start": "2026-05-22",
+      "end": "2026-06-18"
+    }
+  },
+  "analytics4": {
+    "summary": {
+      "totalSessions": 251,
+      "totalUsers": 250,
+      "totalPageViews": 411,
+      "days": 151
+    },
+    "daily": [
+      {
+        "date": "20260501",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260506",
+        "activeUsers": 2,
+        "sessions": 2,
+        "newUsers": 2,
+        "screenPageViews": 2
+      },
+      {
+        "date": "20260508",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260513",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260518",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 10
+      },
+      {
+        "date": "20260523",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260525",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260528",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260531",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260608",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260610",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260611",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260617",
+        "activeUsers": 1,
+        "sessions": 1,
+        "newUsers": 1,
+        "screenPageViews": 1
+      },
+      {
+        "date": "20260618",
+        "activeUsers": 2,
+        "sessions": 2,
+        "newUsers": 2,
+        "screenPageViews": 2
+      }
+    ],
+    "topPages": [
+      {
+        "pagePath": "/",
+        "activeUsers": 193,
+        "sessions": 196,
+        "screenPageViews": 223
+      },
+      {
+        "pagePath": "/elementor-13192-bmw/",
+        "activeUsers": 25,
+        "sessions": 25,
+        "screenPageViews": 25
+      },
+      {
+        "pagePath": "/form/",
+        "activeUsers": 14,
+        "sessions": 14,
+        "screenPageViews": 15
+      },
+      {
+        "pagePath": "/רכבים-מסחריים-6/",
+        "activeUsers": 11,
+        "sessions": 11,
+        "screenPageViews": 11
+      },
+      {
+        "pagePath": "/category/מוניות/",
+        "activeUsers": 10,
+        "sessions": 10,
+        "screenPageViews": 10
+      },
+      {
+        "pagePath": "/כל-הרכבים-3/",
+        "activeUsers": 10,
+        "sessions": 10,
+        "screenPageViews": 10
+      },
+      {
+        "pagePath": "/צור-קשר/",
+        "activeUsers": 9,
+        "sessions": 9,
+        "screenPageViews": 9
+      },
+      {
+        "pagePath": "/mdsl-id13623-האודי/",
+        "activeUsers": 7,
+        "sessions": 7,
+        "screenPageViews": 7
+      },
+      {
+        "pagePath": "/רכב-קטן-2/",
+        "activeUsers": 7,
+        "sessions": 7,
+        "screenPageViews": 7
+      },
+      {
+        "pagePath": "/רכבים-משפחתים-4/",
+        "activeUsers": 7,
+        "sessions": 7,
+        "screenPageViews": 7
+      },
+      {
+        "pagePath": "/כל-גיפ-5/",
+        "activeUsers": 6,
+        "sessions": 6,
+        "screenPageViews": 6
+      },
+      {
+        "pagePath": "/כל-גיפונים/",
+        "activeUsers": 5,
+        "sessions": 5,
+        "screenPageViews": 5
+      },
+      {
+        "pagePath": "/עלינו/",
+        "activeUsers": 5,
+        "sessions": 5,
+        "screenPageViews": 5
+      },
+      {
+        "pagePath": "/רכב-מסחרי/",
+        "activeUsers": 4,
+        "sessions": 4,
+        "screenPageViews": 4
+      },
+      {
+        "pagePath": "/elementor-13189-מישל/",
+        "activeUsers": 3,
+        "sessions": 3,
+        "screenPageViews": 3
+      }
+    ]
+  },
+  "pagesNeedingImprovement": [],
+  "aiSeoSuggestions": [
+    {
+      "priority": "low",
+      "title": "ממתין לנתוני GSC",
+      "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים."
+    }
+  ],
+  "drafts": [
+    {
+      "id": "draft-1781959643196-m9068",
+      "sourceId": "sug-ממתין לנתוני GSC",
+      "type": "article",
+      "title": "ממתין לנתוני GSC",
+      "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+      "status": "pending_approval",
+      "createdAt": "2026-06-20T12:47:23.196Z",
+      "published": false,
+      "note": "המלצת AI בלבד — לא פורסם"
+    }
+  ],
+  "history": {
+    "sync": [
+      {
+        "id": "sync-1781960048281",
+        "timestamp": "2026-06-20T12:54:08.281Z",
+        "ok": true,
+        "gsc_queries": 0,
+        "gsc_pages": 0,
+        "ga4_daily": 151,
+        "ga4_pages": 48,
+        "date_range": {
+          "start": "2026-05-22",
+          "end": "2026-06-18"
+        },
+        "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+      },
+      {
+        "id": "sync-1781959638995",
+        "timestamp": "2026-06-20T12:47:18.995Z",
+        "ok": true,
+        "gsc_queries": 0,
+        "gsc_pages": 0,
+        "ga4_daily": 151,
+        "ga4_pages": 48,
+        "date_range": {
+          "start": "2026-05-22",
+          "end": "2026-06-18"
+        },
+        "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+      }
+    ],
+    "ai": [
+      {
+        "id": "ai-1781961484883",
+        "timestamp": "2026-06-20T13:18:04.883Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
+        "id": "ai-1781960051533",
+        "timestamp": "2026-06-20T12:54:11.533Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
+        "id": "ai-1781959643192",
+        "timestamp": "2026-06-20T12:47:23.192Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      }
+    ],
+    "drafts": []
+  },
+  "activityLog": [
+    {
+      "timestamp": "2026-06-20T12:54:08.281Z",
+      "action": "Sync",
+      "status": "success",
+      "detail": "GSC 0 queries · GA4 151 days",
+      "source": "Project001 Sync → Google Sheets"
+    },
+    {
+      "timestamp": "2026-06-20T12:54:08.267Z",
+      "action": "Data sync",
+      "status": "success",
+      "detail": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
+      "source": "Google Sheets"
+    },
+    {
+      "timestamp": "2026-06-20T12:47:18.995Z",
+      "action": "Sync",
+      "status": "success",
+      "detail": "GSC 0 queries · GA4 151 days",
+      "source": "Project001 Sync → Google Sheets"
+    },
+    {
+      "timestamp": "2026-06-20T12:46:56.866Z",
+      "action": "Connections probe",
+      "status": "success",
+      "detail": "Google APIs connectivity check",
+      "source": "GCP / OAuth"
+    },
+    {
+      "timestamp": "2026-06-20T12:27:42.211Z",
+      "action": "GBP probe",
+      "status": "warning",
+      "detail": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of se",
+      "source": "Google Business Profile API"
+    },
+    {
+      "timestamp": "2026-06-20T09:45:21.535Z",
+      "action": "Data probe",
+      "status": "warning",
+      "detail": "GSC sites + GA4 properties",
+      "source": "Search Console + GA4"
+    }
+  ],
+  "dailyReports": [
+    {
+      "date": "2026-06-20",
+      "label": "דוח יומי",
+      "whatUp": "GA4: 251 sessions · GSC: ממתין לנתונים",
+      "whatDown": "—",
+      "created": "1 המלצות AI · 1 טיוטות חדשות",
+      "pending": "1 טיוטות ממתינות לאישור",
+      "tomorrow": "1. אשר טיוטות ממתינות. 2. הרץ Sync. 3. בדוק עמודים חלשים.",
+      "sessions": 251,
+      "gscQueries": 0,
+      "range": {
+        "start": "2026-05-22",
+        "end": "2026-06-18"
+      }
+    },
+    {
+      "date": "2026-06-20",
+      "label": "סנכרון אחרון",
+      "sessions": 251,
+      "pageViews": 411,
+      "gscQueries": 0,
+      "gscPages": 0,
+      "range": {
+        "start": "2026-05-22",
+        "end": "2026-06-18"
+      }
+    }
+  ],
+  "appsScript": {
+    "template": "integrations/google/apps-script/project001-sync.gs",
+    "note": "Deploy via clasp — triggers log sync requests to Sheet _Meta tab",
+    "spreadsheetId": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+  },
+  "sync": {
+    "command": "npm run project-001:sync-and-export",
+    "apiDev": "/api/project-001/sync",
+    "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+  },
+  "policies": {
+    "publishRequiresApproval": true,
+    "aiRecommendationsOnly": true,
+    "noAutoPublish": true
+  }
+}

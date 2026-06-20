@@ -1,0 +1,34 @@
+{
+  "description": "OAuth scopes for Project 001 — merged with base Google integration scopes",
+  "additional_scopes": [
+    "https://www.googleapis.com/auth/webmasters.readonly",
+    "https://www.googleapis.com/auth/webmasters",
+    "https://www.googleapis.com/auth/analytics.readonly",
+    "https://www.googleapis.com/auth/analytics.edit",
+    "https://www.googleapis.com/auth/siteverification",
+    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/script.deployments",
+    "https://www.googleapis.com/auth/script.scriptapp",
+    "https://www.googleapis.com/auth/business.manage",
+    "https://www.googleapis.com/auth/adwords"
+  ],
+  "required_gcp_apis": [
+    { "id": "searchconsole.googleapis.com", "name": "Google Search Console API" },
+    { "id": "siteverification.googleapis.com", "name": "Google Site Verification API" },
+    { "id": "analyticsdata.googleapis.com", "name": "Google Analytics Data API" },
+    { "id": "analyticsadmin.googleapis.com", "name": "Google Analytics Admin API" },
+    { "id": "drive.googleapis.com", "name": "Google Drive API" },
+    { "id": "sheets.googleapis.com", "name": "Google Sheets API" },
+    { "id": "docs.googleapis.com", "name": "Google Docs API" },
+    { "id": "gmail.googleapis.com", "name": "Gmail API" },
+    { "id": "script.googleapis.com", "name": "Google Apps Script API" },
+    { "id": "mybusinessaccountmanagement.googleapis.com", "name": "My Business Account Management API" },
+    { "id": "mybusinessbusinessinformation.googleapis.com", "name": "My Business Business Information API" },
+    { "id": "googleads.googleapis.com", "name": "Google Ads API" }
+  ],
+  "safety": {
+    "allowed": ["connect", "read", "pull_data", "save_sheets", "test_drafts", "test_reports"],
+    "blocked_without_manual_approval": ["website_publish", "gbp_publish", "gmail_send_real"]
+  }
+}

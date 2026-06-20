@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-06-20T12:27:42.211Z",
+  "ok": false,
+  "accounts": [],
+  "locations": [],
+  "errors": [
+    {
+      "api": "mybusinessaccountmanagement",
+      "error": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:484351148380'.",
+      "code": 429,
+      "owner_gate": {
+        "cause": "GBP API quota — ensure OAuth is on Project001AIMarketing (not legacy)",
+        "fix": [
+          "npm run project-001:migrate (if not done)",
+          "npm run project-001:enable-apis",
+          "npm run project-001:auth",
+          "Retry: npm run project-001:gbp-probe"
+        ],
+        "enable_api": "https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com?project=project001aimarketing"
+      }
+    }
+  ],
+  "matched_business": null
+}

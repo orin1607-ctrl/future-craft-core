@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-06-20T09:37:26.673Z",
+  "gcp_project": "project001aimarketing",
+  "legacy_migrated": true,
+  "services": {
+    "oauth_credentials": true,
+    "oauth_token": true,
+    "google_verify": false,
+    "gsc": false,
+    "ga4": false,
+    "sheets": false,
+    "drive": false,
+    "gbp": false,
+    "ads": false,
+    "openai": false
+  },
+  "sync": {},
+  "ready_for_ai_marketing_dev": false,
+  "pending_owner_gates": [
+    {
+      "id": "ads_token",
+      "url": "https://ads.google.com/aw/apicenter"
+    },
+    {
+      "id": "openai_key",
+      "url": "https://platform.openai.com/api-keys"
+    }
+  ]
+}

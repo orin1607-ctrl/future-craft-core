@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-06-20T09:45:21.535Z",
+  "ok": false,
+  "gsc": {
+    "ok": false,
+    "error": "Google Search Console API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/searchconsole.googleapis.com/overview?project=484351148380 then retry. If you enabled this API recently, wait a few minutes for the actio"
+  },
+  "ga4": {
+    "ok": false,
+    "error": "Google Analytics Admin API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/analyticsadmin.googleapis.com/overview?project=484351148380 then retry. If you enabled this API recently, wait a few minutes for the act"
+  }
+}

@@ -17,6 +17,21 @@ dist-ssr
 .env.local
 .env.production
 .env.*.local
+.env.google
+.env.google.local
+.env.openai
+.env.ads
+integrations/project-001/gcp.json
+
+# Google OAuth (never commit)
+integrations/google/credentials.oauth.json
+integrations/google/credentials.oauth.paste.json
+integrations/google/token.json
+integrations/google/config.json
+integrations/google/archive/
+integrations/google/apps-script/.clasp.json
+integrations/google/.clasprc.json
+integrations/project-001/config.json
 
 # Editor directories and files
 .vscode/*

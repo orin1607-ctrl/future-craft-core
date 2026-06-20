@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-06-20T07:15:00.000Z",
+  "issue": "GCP project project001aimarketing never existed in owner account",
+  "root_cause": "Prior session assumed project was created from chat message; CRM API returned 403; project_id was guessed as lowercase name without Console verification",
+  "verified_by_owner": {
+    "display_name": "My First Project",
+    "project_id": "burnished-craft-466809-v1",
+    "account": "orin1607@gmail.com (assumed)"
+  },
+  "action_taken": [
+    "Stopped OAuth watch process",
+    "Updated integrations/project-001/gcp.json",
+    "Updated .env.google and integrations/google/config.json",
+    "Updated all script TARGET_PROJECT_ID references",
+    "OAuth blocked until owner confirms project dashboard opens"
+  ],
+  "not_legacy": "840269841580 / dalia-fleetos remains blocked — do not use",
+  "next_step": "Owner opens project dashboard → OAuth client create → Download JSON",
+  "oauth_url": "https://console.cloud.google.com/apis/credentials/oauthclient?project=burnished-craft-466809-v1"
+}

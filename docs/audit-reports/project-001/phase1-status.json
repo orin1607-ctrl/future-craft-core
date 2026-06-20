@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-06-18T18:00:00Z",
+  "phase": "Phase 1 — blocked on owner gates",
+  "git": {
+    "branch": "main",
+    "last_commit": "38747e6",
+    "last_commit_message": "Add GSC verification for staging GitHub Pages (Project 001)",
+    "ahead_of_origin": 2,
+    "pushed": false
+  },
+  "completed": [
+    "OAuth full scopes (orin1607@gmail.com)",
+    "GCP APIs enabled (GSC, GA4, Site Verification, etc.)",
+    "npm run verify — Google infra 7/7 OK",
+    "Project 001 scripts: auth, probe, setup, sync, verify, verify-site, enable-apis",
+    "GSC site registered (siteUnverifiedUser)",
+    "GSC verification files committed locally (index.html meta + public/google77a6b81f03ca2659.html)",
+    "Google Sheet created: 1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
+    "Sync pipeline tested (0 data rows — blocked)",
+    "GA4 setup changed to discover-only (no new account/property)",
+    "ga4_date_range_days: 425 for historical pull"
+  ],
+  "remaining": [
+    "GA4: grant orin1607@gmail.com Viewer+ on existing property (yoni122222@gmail.com)",
+    "GA4: probe → auto-save ga4_property_id → sync historical data",
+    "GSC: git push origin main → verify site → pull Search Console data",
+    "project-001:verify (full Phase 1 pass with data rows)",
+    "Stop before Dashboard (planned)"
+  ],
+  "blockers": {
+    "ga4": {
+      "status": "no_properties_visible",
+      "action": "Add orin1607@gmail.com to existing GA4 property OR send properties/ID"
+    },
+    "gsc": {
+      "status": "site_unverified",
+      "live_verification_file": "404",
+      "action": "git push origin main (deploy verification to GitHub Pages)"
+    }
+  },
+  "config": {
+    "ga4_property_id": "properties/YOUR_GA4_PROPERTY_ID (placeholder)",
+    "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+  }
+}

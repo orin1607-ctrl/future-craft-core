@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-06-18T17:38:11.570Z",
+  "siteUrl": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "verification": {
+    "siteUrl": "https://orin1607-ctrl.github.io/future-craft-core/",
+    "meta_injected": true,
+    "verified": false,
+    "verification_token": "<meta name=\"google-site-verification\" content=\"uRS1OxmsOeJjFpv4ciyc_fQYn7s29Sn6gZbtO3jliOY\" />",
+    "verify_error": "Missing required parameters: verificationMethod"
+  },
+  "gsc": {
+    "added": true,
+    "sites": [
+      "https://orin1607-ctrl.github.io/future-craft-core/"
+    ]
+  },
+  "ga4": {
+    "ok": false,
+    "error": "GA4 account not ready — complete provision in browser and re-run setup"
+  }
+}

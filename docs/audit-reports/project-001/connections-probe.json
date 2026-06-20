@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-06-20T12:46:56.866Z",
+  "account": "orin1607@gmail.com",
+  "gcp": {
+    "project_name": "Project001AIMarketing",
+    "project_id": "project001aimarketing"
+  },
+  "connections": {
+    "gsc": {
+      "ok": true,
+      "siteUrl": "https://dalia-c.com/",
+      "permission": "siteOwner",
+      "sites": 3
+    },
+    "ga4": {
+      "ok": true,
+      "property": "properties/427711798",
+      "rows": 1
+    },
+    "sheets": {
+      "ok": true,
+      "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+    },
+    "drive": {
+      "ok": true,
+      "email": "orin1607@gmail.com"
+    },
+    "docs": {
+      "ok": true,
+      "documentId": "1o_nx1N5ankFsPgaKvY42BrGl0kehbr4JSVthTUpBWRc",
+      "note": "test doc — delete manually"
+    },
+    "gmail": {
+      "ok": true,
+      "note": "send scope"
+    },
+    "apps_script": {
+      "ok": true
+    },
+    "gbp_accounts": {
+      "ok": false,
+      "error": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:484351148380'.",
+      "code": 429
+    }
+  },
+  "openai": {
+    "configured": false
+  },
+  "ok": true
+}

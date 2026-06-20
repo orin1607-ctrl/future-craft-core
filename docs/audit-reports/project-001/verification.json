@@ -1,0 +1,15 @@
+{
+  "siteUrl": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "timestamp": "2026-06-18T17:30:17.104Z",
+  "meta_token_added": true,
+  "verification_file": "public/google77a6b81f03ca2659.html",
+  "verify_attempt_1": "Missing required parameters: verificationMethod",
+  "verify_attempt_2": "Missing required parameters: verificationMethod",
+  "verify_attempt_3": "Missing required parameters: verificationMethod",
+  "gsc_sites": [
+    {
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/",
+      "level": "siteUnverifiedUser"
+    }
+  ]
+}

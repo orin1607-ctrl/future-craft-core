@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-06-20T12:54:08.267Z",
+  "ok": true,
+  "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
+  "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
+  "counts": {
+    "gsc_queries": 0,
+    "gsc_pages": 0,
+    "ga4_daily": 151,
+    "ga4_pages": 48
+  },
+  "date_range": {
+    "start": "2026-05-22",
+    "end": "2026-06-18"
+  }
+}

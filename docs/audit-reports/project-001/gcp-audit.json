@@ -1,0 +1,171 @@
+{
+  "timestamp": "2026-06-20T07:11:01.428Z",
+  "target_gcp": {
+    "project_name": "My First Project",
+    "project_id": "burnished-craft-466809-v1",
+    "project_id_source": "gcp.json"
+  },
+  "credentials": {
+    "present": false
+  },
+  "oauth": {
+    "token_present": false
+  },
+  "apis": {
+    "searchconsole.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "Google Search Console API"
+    },
+    "analyticsdata.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "Google Analytics Data API"
+    },
+    "analyticsadmin.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "Google Analytics Admin API"
+    },
+    "sheets.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "Google Sheets API"
+    },
+    "drive.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "Google Drive API"
+    },
+    "docs.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "Google Docs API"
+    },
+    "gmail.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "Gmail API"
+    },
+    "script.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "Google Apps Script API"
+    },
+    "siteverification.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "Google Site Verification API"
+    },
+    "mybusinessaccountmanagement.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "My Business Account Management API"
+    },
+    "mybusinessbusinessinformation.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "My Business Business Information API"
+    },
+    "googleads.googleapis.com": {
+      "state": "UNKNOWN",
+      "error": "Cannot read properties of undefined (reading 'get')",
+      "name": "Google Ads API"
+    }
+  },
+  "iam": {
+    "console": "https://console.cloud.google.com/iam-admin/iam?project=burnished-craft-466809-v1",
+    "service_accounts": "https://console.cloud.google.com/iam-admin/serviceaccounts?project=burnished-craft-466809-v1",
+    "note": "Create service account if needed for server automation; OAuth user flow used for Project 001 scripts"
+  },
+  "openai": {
+    "example": ".env.openai.example",
+    "env_file": ".env.openai",
+    "key_configured": false
+  },
+  "project001": {
+    "gsc_site": "https://dalia-c.com/",
+    "ga4_property_id": "properties/427711798",
+    "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+  },
+  "ready_for_development": false,
+  "owner_gates": [
+    {
+      "id": "oauth_client",
+      "title": "Create OAuth Web Client in Project001AIMarketing",
+      "url": "https://console.cloud.google.com/apis/credentials?project=burnished-craft-466809-v1",
+      "button": "CREATE CREDENTIALS → OAuth client ID → Web application → Add redirect URI http://127.0.0.1:4521/oauth2callback"
+    },
+    {
+      "id": "oauth_login",
+      "title": "OAuth login",
+      "action": "npm run project-001:auth",
+      "button": "Approve all scopes in browser as orin1607@gmail.com"
+    },
+    {
+      "id": "openai_key",
+      "title": "OpenAI API Key",
+      "url": "https://platform.openai.com/api-keys",
+      "button": "Create new secret key → copy → paste in .env.openai as OPENAI_API_KEY=sk-..."
+    }
+  ],
+  "apis_enable_urls": [
+    {
+      "name": "Google Search Console API",
+      "url": "https://console.cloud.google.com/apis/library/searchconsole.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "Google Analytics Data API",
+      "url": "https://console.cloud.google.com/apis/library/analyticsdata.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "Google Analytics Admin API",
+      "url": "https://console.cloud.google.com/apis/library/analyticsadmin.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "Google Sheets API",
+      "url": "https://console.cloud.google.com/apis/library/sheets.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "Google Drive API",
+      "url": "https://console.cloud.google.com/apis/library/drive.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "Google Docs API",
+      "url": "https://console.cloud.google.com/apis/library/docs.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "Gmail API",
+      "url": "https://console.cloud.google.com/apis/library/gmail.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "Google Apps Script API",
+      "url": "https://console.cloud.google.com/apis/library/script.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "Google Site Verification API",
+      "url": "https://console.cloud.google.com/apis/library/siteverification.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "My Business Account Management API",
+      "url": "https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "My Business Business Information API",
+      "url": "https://console.cloud.google.com/apis/library/mybusinessbusinessinformation.googleapis.com?project=burnished-craft-466809-v1"
+    },
+    {
+      "name": "Google Ads API",
+      "url": "https://console.cloud.google.com/apis/library/googleads.googleapis.com?project=burnished-craft-466809-v1"
+    }
+  ],
+  "oauth_consent": {
+    "url": "https://console.cloud.google.com/apis/credentials/consent?project=burnished-craft-466809-v1",
+    "checklist": [
+      "App name: Project 001 AI Marketing",
+      "User type: External (or Internal if Workspace)",
+      "Add test user: orin1607@gmail.com",
+      "Add all scopes from integrations/google/scopes.json"
+    ]
+  }
+}

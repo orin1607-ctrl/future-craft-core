@@ -1,0 +1,21 @@
+{
+  "at": "2026-06-20T06:00:20.432Z",
+  "account": "orin1607@gmail.com",
+  "folders": {
+    "root": {
+      "name": "Dalia FleetOS",
+      "id": "1_bDJT4HByMPjrPjiL4nSrr160SKfd_cA",
+      "created": false
+    },
+    "staging": {
+      "name": "Staging",
+      "id": "1E4_8MUSZkJOFq7Adcnh8Auaqyxo_ZccT",
+      "created": false
+    },
+    "production": {
+      "name": "Production",
+      "id": "1y1qL3lpJuBPQ-LuRjqbVVuYWMt0v5IWF",
+      "created": false
+    }
+  }
+}

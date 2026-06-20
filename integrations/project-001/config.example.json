@@ -1,0 +1,16 @@
+{
+  "project_name": "Project 001 — SEO & Analytics Data Hub",
+  "gsc_site_url": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "ga4_property_id": "properties/YOUR_GA4_PROPERTY_ID",
+  "spreadsheet_id": "",
+  "spreadsheet_title": "Project 001 — GSC + GA4 Data",
+  "drive_folder_id": "",
+  "date_range_days": 28,
+  "sheets": {
+    "gsc_queries": "GSC_Queries",
+    "gsc_pages": "GSC_Pages",
+    "ga4_daily": "GA4_Daily",
+    "ga4_pages": "GA4_Pages",
+    "meta": "_Meta"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "gcp_project_id": "YOUR_GCP_PROJECT_ID",
+  "oauth_client_type": "desktop",
+  "default_account_hint": "owner@your-domain.com",
+  "redirect_uris": ["http://127.0.0.1:4521/oauth2callback"],
+  "token_store": "integrations/google/token.json",
+  "credentials_file": "integrations/google/credentials.oauth.json",
+  "apps_script": {
+    "root_dir": "integrations/google/apps-script",
+    "script_id": "",
+    "deployment_id": ""
+  },
+  "folders": {
+    "drive_root_name": "Dalia FleetOS",
+    "drive_staging_subfolder": "Staging",
+    "drive_production_subfolder": "Production"
+  },
+  "enabled_services": ["drive", "sheets", "gmail", "calendar", "docs", "apps_script"]
+}

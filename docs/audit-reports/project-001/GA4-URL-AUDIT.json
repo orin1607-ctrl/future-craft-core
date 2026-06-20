@@ -1,0 +1,290 @@
+{
+  "timestamp": "2026-06-20T13:19:13.691Z",
+  "site": "https://dalia-c.com",
+  "checked": 15,
+  "broken_count": 13,
+  "results": [
+    {
+      "path": "/",
+      "ga4_sessions": 196,
+      "ga4_page_views": 223,
+      "http_status": 200,
+      "ok": true,
+      "recommendation": "ok",
+      "note": "URL פעיל",
+      "checked_url": "https://dalia-c.com/"
+    },
+    {
+      "path": "/elementor-13192-bmw/",
+      "ga4_sessions": 25,
+      "ga4_page_views": 25,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 25 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/elementor-13192-bmw/"
+    },
+    {
+      "path": "/form/",
+      "ga4_sessions": 14,
+      "ga4_page_views": 15,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 14 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/form/"
+    },
+    {
+      "path": "/רכבים-מסחריים-6/",
+      "ga4_sessions": 11,
+      "ga4_page_views": 11,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 11 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/רכבים-מסחריים-6/"
+    },
+    {
+      "path": "/category/מוניות/",
+      "ga4_sessions": 10,
+      "ga4_page_views": 10,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 10 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/category/מוניות/"
+    },
+    {
+      "path": "/כל-הרכבים-3/",
+      "ga4_sessions": 10,
+      "ga4_page_views": 10,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 10 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/כל-הרכבים-3/"
+    },
+    {
+      "path": "/צור-קשר/",
+      "ga4_sessions": 9,
+      "ga4_page_views": 9,
+      "http_status": 200,
+      "ok": true,
+      "recommendation": "ok",
+      "note": "URL פעיל",
+      "checked_url": "https://dalia-c.com/צור-קשר/"
+    },
+    {
+      "path": "/mdsl-id13623-האודי/",
+      "ga4_sessions": 7,
+      "ga4_page_views": 7,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 7 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/mdsl-id13623-האודי/"
+    },
+    {
+      "path": "/רכב-קטן-2/",
+      "ga4_sessions": 7,
+      "ga4_page_views": 7,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 7 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/רכב-קטן-2/"
+    },
+    {
+      "path": "/רכבים-משפחתים-4/",
+      "ga4_sessions": 7,
+      "ga4_page_views": 7,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 7 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/רכבים-משפחתים-4/"
+    },
+    {
+      "path": "/כל-גיפ-5/",
+      "ga4_sessions": 6,
+      "ga4_page_views": 6,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 6 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/כל-גיפ-5/"
+    },
+    {
+      "path": "/כל-גיפונים/",
+      "ga4_sessions": 5,
+      "ga4_page_views": 5,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 5 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/כל-גיפונים/"
+    },
+    {
+      "path": "/עלינו/",
+      "ga4_sessions": 5,
+      "ga4_page_views": 5,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 5 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/עלינו/"
+    },
+    {
+      "path": "/רכב-מסחרי/",
+      "ga4_sessions": 4,
+      "ga4_page_views": 4,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "ignore_or_redirect",
+      "note": "404 עם תנועה נמוכה — redirect או התעלמות",
+      "checked_url": "https://dalia-c.com/רכב-מסחרי/"
+    },
+    {
+      "path": "/elementor-13189-מישל/",
+      "ga4_sessions": 3,
+      "ga4_page_views": 3,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "ignore_or_redirect",
+      "note": "404 עם תנועה נמוכה — redirect או התעלמות",
+      "checked_url": "https://dalia-c.com/elementor-13189-מישל/"
+    }
+  ],
+  "broken": [
+    {
+      "path": "/elementor-13192-bmw/",
+      "ga4_sessions": 25,
+      "ga4_page_views": 25,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 25 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/elementor-13192-bmw/"
+    },
+    {
+      "path": "/form/",
+      "ga4_sessions": 14,
+      "ga4_page_views": 15,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 14 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/form/"
+    },
+    {
+      "path": "/רכבים-מסחריים-6/",
+      "ga4_sessions": 11,
+      "ga4_page_views": 11,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 11 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/רכבים-מסחריים-6/"
+    },
+    {
+      "path": "/category/מוניות/",
+      "ga4_sessions": 10,
+      "ga4_page_views": 10,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 10 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/category/מוניות/"
+    },
+    {
+      "path": "/כל-הרכבים-3/",
+      "ga4_sessions": 10,
+      "ga4_page_views": 10,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 10 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/כל-הרכבים-3/"
+    },
+    {
+      "path": "/mdsl-id13623-האודי/",
+      "ga4_sessions": 7,
+      "ga4_page_views": 7,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 7 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/mdsl-id13623-האודי/"
+    },
+    {
+      "path": "/רכב-קטן-2/",
+      "ga4_sessions": 7,
+      "ga4_page_views": 7,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 7 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/רכב-קטן-2/"
+    },
+    {
+      "path": "/רכבים-משפחתים-4/",
+      "ga4_sessions": 7,
+      "ga4_page_views": 7,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 7 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/רכבים-משפחתים-4/"
+    },
+    {
+      "path": "/כל-גיפ-5/",
+      "ga4_sessions": 6,
+      "ga4_page_views": 6,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 6 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/כל-גיפ-5/"
+    },
+    {
+      "path": "/כל-גיפונים/",
+      "ga4_sessions": 5,
+      "ga4_page_views": 5,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 5 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/כל-גיפונים/"
+    },
+    {
+      "path": "/עלינו/",
+      "ga4_sessions": 5,
+      "ga4_page_views": 5,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "redirect",
+      "note": "301 redirect לעמוד רלוונטי — 5 sessions ב-GA4",
+      "checked_url": "https://dalia-c.com/עלינו/"
+    },
+    {
+      "path": "/רכב-מסחרי/",
+      "ga4_sessions": 4,
+      "ga4_page_views": 4,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "ignore_or_redirect",
+      "note": "404 עם תנועה נמוכה — redirect או התעלמות",
+      "checked_url": "https://dalia-c.com/רכב-מסחרי/"
+    },
+    {
+      "path": "/elementor-13189-מישל/",
+      "ga4_sessions": 3,
+      "ga4_page_views": 3,
+      "http_status": 404,
+      "ok": false,
+      "recommendation": "ignore_or_redirect",
+      "note": "404 עם תנועה נמוכה — redirect או התעלמות",
+      "checked_url": "https://dalia-c.com/elementor-13189-מישל/"
+    }
+  ]
+}

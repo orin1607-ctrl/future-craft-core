@@ -1,0 +1,182 @@
+{
+  "at": "2026-06-20T09:31:46.512Z",
+  "scope": "Google integration audit — read-only",
+  "infrastructure": {
+    "integrations_dir": "integrations/google",
+    "scripts_dir": "scripts/google",
+    "docs": "docs/GOOGLE_INTEGRATION.md",
+    "env_example": ".env.google.example"
+  },
+  "files": {
+    "credentials_oauth": "C:/Users/אליאב/OneDrive/מסמכים/future-craft-core-STAGING/integrations/google/credentials.oauth.json",
+    "credentials_example": true,
+    "token": "C:/Users/אליאב/OneDrive/מסמכים/future-craft-core-STAGING/integrations/google/token.json",
+    "config": true,
+    "config_example": true,
+    "env_google": true,
+    "apps_script_template": true,
+    "clasp_config": false
+  },
+  "npm": {
+    "googleapis_installed": true
+  },
+  "connection": {
+    "oauth_configured": true,
+    "credentials_usable": true,
+    "credentials_project_id": "project001aimarketing",
+    "credentials_client_type": "web",
+    "credentials_playground_only": false,
+    "token_present": true,
+    "connected": true
+  },
+  "services_catalog": [
+    {
+      "id": "drive",
+      "name": "Google Drive",
+      "api": "drive.googleapis.com",
+      "console_enable": "Google Drive API",
+      "scopes_bundle": "drive",
+      "use_cases": [
+        "מסמכים",
+        "גיבוי קבצים",
+        "קישור מסמכים מתאונות"
+      ],
+      "staging": "optional",
+      "production": "planned"
+    },
+    {
+      "id": "sheets",
+      "name": "Google Sheets",
+      "api": "sheets.googleapis.com",
+      "console_enable": "Google Sheets API",
+      "scopes_bundle": "sheets",
+      "use_cases": [
+        "FleetOS fuel/charge sheets",
+        "ייבוא/ייצוא",
+        "דוחות"
+      ],
+      "staging": "planned",
+      "production": "planned"
+    },
+    {
+      "id": "gmail",
+      "name": "Gmail API",
+      "api": "gmail.googleapis.com",
+      "console_enable": "Gmail API",
+      "scopes_bundle": "gmail_send",
+      "use_cases": [
+        "שליחת מייל חלופי/גיבוי ל-Resend"
+      ],
+      "staging": "optional",
+      "production": "optional"
+    },
+    {
+      "id": "calendar",
+      "name": "Google Calendar",
+      "api": "calendar-json.googleapis.com",
+      "console_enable": "Google Calendar API",
+      "scopes_bundle": "calendar",
+      "use_cases": [
+        "תזכורות טסט/ביטוח",
+        "אירועי שירות"
+      ],
+      "staging": "planned",
+      "production": "planned"
+    },
+    {
+      "id": "docs",
+      "name": "Google Docs",
+      "api": "docs.googleapis.com",
+      "console_enable": "Google Docs API",
+      "scopes_bundle": "docs",
+      "use_cases": [
+        "תבניות מסמכים",
+        "הסכמים"
+      ],
+      "staging": "planned",
+      "production": "planned"
+    },
+    {
+      "id": "apps_script",
+      "name": "Google Apps Script",
+      "api": "script.googleapis.com",
+      "console_enable": "Google Apps Script API",
+      "scopes_bundle": "apps_script",
+      "use_cases": [
+        "אוטומציות ללא שרת",
+        "טריגרים על Sheets",
+        "clasp deploy"
+      ],
+      "staging": "planned",
+      "production": "optional"
+    }
+  ],
+  "scopes_bundles": [
+    "readonly_audit",
+    "drive",
+    "sheets",
+    "gmail_send",
+    "gmail_readonly",
+    "calendar",
+    "calendar_readonly",
+    "docs",
+    "apps_script",
+    "search_console",
+    "analytics",
+    "business_profile"
+  ],
+  "default_login_scopes": [
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/documents",
+    "https://www.googleapis.com/auth/script.projects",
+    "https://www.googleapis.com/auth/script.deployments",
+    "https://www.googleapis.com/auth/script.scriptapp",
+    "https://www.googleapis.com/auth/webmasters.readonly",
+    "https://www.googleapis.com/auth/analytics.readonly",
+    "https://www.googleapis.com/auth/business.manage"
+  ],
+  "config_snapshot": {
+    "gcp_project_id": "project001aimarketing",
+    "oauth_client_type": "web",
+    "default_account_hint": "orin1607@gmail.com",
+    "redirect_uris": [
+      "http://127.0.0.1:4521/oauth2callback"
+    ],
+    "token_store": "integrations/google/token.json",
+    "credentials_file": "integrations/google/credentials.oauth.json",
+    "apps_script": {
+      "root_dir": "integrations/google/apps-script",
+      "script_id": "",
+      "deployment_id": ""
+    },
+    "folders": {
+      "drive_root_name": "Dalia FleetOS",
+      "drive_staging_subfolder": "Staging",
+      "drive_production_subfolder": "Production",
+      "drive_root_id": "1_bDJT4HByMPjrPjiL4nSrr160SKfd_cA",
+      "drive_staging_id": "1E4_8MUSZkJOFq7Adcnh8Auaqyxo_ZccT",
+      "drive_production_id": "1y1qL3lpJuBPQ-LuRjqbVVuYWMt0v5IWF"
+    },
+    "enabled_services": [
+      "drive",
+      "sheets",
+      "gmail",
+      "calendar",
+      "docs",
+      "apps_script"
+    ]
+  },
+  "permissions_granted": {
+    "note": "Run npm run google:check for live scope verification"
+  },
+  "limitations": [],
+  "next_owner_step": null
+}

@@ -1,0 +1,38 @@
+{
+  "at": "2026-06-17T20:21:58.741Z",
+  "phases": [
+    {
+      "phase": "audit",
+      "status": "ok"
+    },
+    {
+      "phase": "pick_credentials",
+      "status": "no_change",
+      "current": {
+        "path": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\integrations\\google\\credentials.oauth.json",
+        "mtime": "2025-09-22T07:16:19.911Z",
+        "projectId": "sonorous-study-472906-u7",
+        "clientType": "web",
+        "redirectUris": [
+          "https://developers.google.com/oauthplayground"
+        ],
+        "isPlaygroundOnly": true,
+        "hasFleetRedirect": false,
+        "isUsable": false
+      }
+    }
+  ],
+  "owner_gate": 1,
+  "credentials": {
+    "path": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\integrations\\google\\credentials.oauth.json",
+    "mtime": "2025-09-22T07:16:19.911Z",
+    "projectId": "sonorous-study-472906-u7",
+    "clientType": "web",
+    "redirectUris": [
+      "https://developers.google.com/oauthplayground"
+    ],
+    "isPlaygroundOnly": true,
+    "hasFleetRedirect": false,
+    "isUsable": false
+  }
+}

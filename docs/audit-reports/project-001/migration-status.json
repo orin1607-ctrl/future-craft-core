@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-06-20T06:29:23.240Z",
+  "dry_run": false,
+  "target": {
+    "name": "Project001AIMarketing",
+    "project_id": "project001aimarketing"
+  },
+  "archived": {
+    "credentials": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\integrations\\google\\archive\\credentials.oauth.legacy-dalia-fleetos.json",
+    "token": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\integrations\\google\\archive\\token.legacy-dalia-fleetos.json"
+  },
+  "removed": [
+    "integrations/google/credentials.oauth.json",
+    "integrations/google/token.json"
+  ],
+  "owner_gate": {
+    "id": "oauth_client_project001",
+    "title": "צור OAuth Web Client ב-Project001AIMarketing בלבד",
+    "urls": {
+      "consent": "https://console.cloud.google.com/apis/credentials/consent?project=project001aimarketing",
+      "credentials": "https://console.cloud.google.com/apis/credentials?project=project001aimarketing",
+      "create_client": "https://console.cloud.google.com/apis/credentials/oauthclient?project=project001aimarketing"
+    },
+    "steps": [
+      "OAuth consent screen → App name: Project 001 AI Marketing → Test user: orin1607@gmail.com",
+      "Credentials → CREATE CREDENTIALS → OAuth client ID → Web application",
+      "Authorized redirect URI: http://127.0.0.1:4521/oauth2callback",
+      "Copy Client ID + Client secret (shown once)",
+      "Paste into integrations/google/credentials.oauth.paste.json → npm run google:import-paste"
+    ],
+    "paste_file": "integrations/google/credentials.oauth.paste.json",
+    "paste_example": "integrations/google/credentials.oauth.paste.example.json",
+    "auto_continue": "npm run project-001:watch"
+  },
+  "next": "npm run project-001:watch",
+  "previous_credentials": {
+    "project_id": "dalia-fleetos",
+    "client_id": "840269841580-u027l805ah3ibo3m6nrhfgnnshigeh41.apps.googleusercontent.com",
+    "legacy": true
+  }
+}

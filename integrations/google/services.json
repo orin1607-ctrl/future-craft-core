@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "project_label": "Dalia FleetOS Google Integration",
+  "services": [
+    {
+      "id": "drive",
+      "name": "Google Drive",
+      "api": "drive.googleapis.com",
+      "console_enable": "Google Drive API",
+      "scopes_bundle": "drive",
+      "use_cases": ["מסמכים", "גיבוי קבצים", "קישור מסמכים מתאונות"],
+      "staging": "optional",
+      "production": "planned"
+    },
+    {
+      "id": "sheets",
+      "name": "Google Sheets",
+      "api": "sheets.googleapis.com",
+      "console_enable": "Google Sheets API",
+      "scopes_bundle": "sheets",
+      "use_cases": ["FleetOS fuel/charge sheets", "ייבוא/ייצוא", "דוחות"],
+      "staging": "planned",
+      "production": "planned"
+    },
+    {
+      "id": "gmail",
+      "name": "Gmail API",
+      "api": "gmail.googleapis.com",
+      "console_enable": "Gmail API",
+      "scopes_bundle": "gmail_send",
+      "use_cases": ["שליחת מייל חלופי/גיבוי ל-Resend"],
+      "staging": "optional",
+      "production": "optional"
+    },
+    {
+      "id": "calendar",
+      "name": "Google Calendar",
+      "api": "calendar-json.googleapis.com",
+      "console_enable": "Google Calendar API",
+      "scopes_bundle": "calendar",
+      "use_cases": ["תזכורות טסט/ביטוח", "אירועי שירות"],
+      "staging": "planned",
+      "production": "planned"
+    },
+    {
+      "id": "docs",
+      "name": "Google Docs",
+      "api": "docs.googleapis.com",
+      "console_enable": "Google Docs API",
+      "scopes_bundle": "docs",
+      "use_cases": ["תבניות מסמכים", "הסכמים"],
+      "staging": "planned",
+      "production": "planned"
+    },
+    {
+      "id": "apps_script",
+      "name": "Google Apps Script",
+      "api": "script.googleapis.com",
+      "console_enable": "Google Apps Script API",
+      "scopes_bundle": "apps_script",
+      "use_cases": ["אוטומציות ללא שרת", "טריגרים על Sheets", "clasp deploy"],
+      "staging": "planned",
+      "production": "optional"
+    }
+  ],
+  "cloud_console_checklist": [
+    "Create GCP project (e.g. dalia-fleetos)",
+    "Configure OAuth consent screen (Internal or External)",
+    "Create OAuth 2.0 Client ID — Desktop app (for local scripts)",
+    "Enable APIs listed above",
+    "Download credentials JSON → integrations/google/credentials.oauth.json",
+    "Run: npm run google:auth"
+  ]
+}

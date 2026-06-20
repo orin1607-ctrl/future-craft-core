@@ -1,0 +1,63 @@
+{
+  "at": "2026-06-20T09:31:50.955Z",
+  "connected": true,
+  "probes": {
+    "userinfo": {
+      "ok": true,
+      "email": "orin1607@gmail.com",
+      "name": "ILANA ATIAS"
+    },
+    "drive": {
+      "ok": false,
+      "error": "Google Drive API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=48435114"
+    },
+    "sheets": {
+      "ok": false,
+      "error": "Google Sheets API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/sheets.googleapis.com/overview?project=484351"
+    },
+    "gmail": {
+      "ok": true,
+      "note": "gmail.send scope active (send-only integration)"
+    },
+    "calendar": {
+      "ok": false,
+      "error": "Google Calendar API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?proje"
+    },
+    "docs": {
+      "ok": false,
+      "error": "Google Docs API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/docs.googleapis.com/overview?project=4843511483"
+    },
+    "apps_script": {
+      "ok": false,
+      "error": "Apps Script API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/script.googleapis.com/overview?project=48435114"
+    }
+  },
+  "summary": {
+    "ok": [
+      "userinfo",
+      "gmail"
+    ],
+    "failed": [
+      {
+        "service": "drive",
+        "error": "Google Drive API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=48435114"
+      },
+      {
+        "service": "sheets",
+        "error": "Google Sheets API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/sheets.googleapis.com/overview?project=484351"
+      },
+      {
+        "service": "calendar",
+        "error": "Google Calendar API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?proje"
+      },
+      {
+        "service": "docs",
+        "error": "Google Docs API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/docs.googleapis.com/overview?project=4843511483"
+      },
+      {
+        "service": "apps_script",
+        "error": "Apps Script API has not been used in project 484351148380 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/script.googleapis.com/overview?project=48435114"
+      }
+    ]
+  }
+}

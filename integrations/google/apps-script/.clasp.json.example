@@ -1,0 +1,5 @@
+{
+  "scriptId": "YOUR_APPS_SCRIPT_ID",
+  "rootDir": ".",
+  "parentId": ["YOUR_DRIVE_FOLDER_ID_OPTIONAL"]
+}

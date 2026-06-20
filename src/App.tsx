@@ -65,6 +65,7 @@ import DevStagingProofFlow from "@/pages/DevStagingProofFlow";
 import DevFleetOSModule1Preview from "@/pages/DevFleetOSModule1Preview";
 import DevFleetOSDashboardPreview from "@/pages/DevFleetOSDashboardPreview";
 import DevFleetOSSettingsPreview from "@/pages/DevFleetOSSettingsPreview";
+import Project001Dashboard from "@/pages/Project001Dashboard";
 
 // New pages
 import Companions from "@/pages/Companions";
@@ -130,6 +131,7 @@ function AppRoutes() {
         <Route path="/dev/fleetos-module1" element={<DevFleetOSModule1Preview />} />
         <Route path="/dev/fleetos-dashboard" element={<DevFleetOSDashboardPreview />} />
         <Route path="/dev/fleetos-settings" element={<DevFleetOSSettingsPreview />} />
+        <Route path="/dev/project-001/dashboard" element={<Project001Dashboard />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -159,6 +161,7 @@ function AppRoutes() {
       <Route path="/dev/fleetos-module1" element={<DevFleetOSModule1Preview />} />
       <Route path="/dev/fleetos-dashboard" element={<DevFleetOSDashboardPreview />} />
       <Route path="/dev/fleetos-settings" element={<DevFleetOSSettingsPreview />} />
+      <Route path="/dev/project-001/dashboard" element={<Project001Dashboard />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route element={<Layout />}>

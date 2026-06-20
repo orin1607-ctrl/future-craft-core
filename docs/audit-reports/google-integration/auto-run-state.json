@@ -1,0 +1,10 @@
+{
+  "at": "2026-06-18T05:11:00.000Z",
+  "authorization": "full_auto_except_production_deploy_and_deletions",
+  "owner_gate": 1,
+  "watch": "npm run google:watch (active — polls Downloads)",
+  "blocker": "Dalia Login JSON not in Downloads yet",
+  "next_auto_after_gate1": ["pick credentials", "OAuth browser (Gate 2)", "google:check", "FINAL-REPORT.md"],
+  "credentials_usable": false,
+  "token_present": false
+}
