@@ -1,0 +1,83 @@
+{
+  "meta": {
+    "version": "2.0.0",
+    "platform": "CO.CO Dalia AI Marketing",
+    "source": "demo",
+    "generatedAt": "2026-06-07T12:00:00.000Z",
+    "liveSources": {
+      "primary": "public/project-001/dashboard.json",
+      "sheets": "Google Sheets (via Apps Script)",
+      "gsc": "Google Search Console API",
+      "ga4": "Google Analytics 4 API",
+      "drive": "Google Drive API",
+      "docs": "Google Docs API",
+      "gmail": "Gmail API",
+      "appsScript": "Google Apps Script",
+      "gbp": "Google Business Profile (pending approval)",
+      "ads": "Google Ads API (planned)",
+      "openai": ".env.openai — server-side only"
+    }
+  },
+  "project": {
+    "name": "דליה — AI Marketing",
+    "site": "https://dalia-c.com/",
+    "account": "orin1607@gmail.com"
+  },
+  "connections": {
+    "searchConsole": { "status": "connected", "label": "Google Search Console" },
+    "analytics4": { "status": "connected", "label": "Google Analytics 4" },
+    "sheets": { "status": "connected", "label": "Google Sheets" },
+    "drive": { "status": "connected", "label": "Google Drive" },
+    "docs": { "status": "connected", "label": "Google Docs" },
+    "gmail": { "status": "connected", "label": "Gmail" },
+    "appsScript": { "status": "connected", "label": "Apps Script" },
+    "businessProfile": { "status": "pending_google_api_approval", "label": "Google Business Profile" },
+    "googleAds": { "status": "planned", "label": "Google Ads" },
+    "openai": { "status": "ready_for_secure_config", "label": "OpenAI" }
+  },
+  "kpis": {
+    "avgPosition": { "value": "8.3", "change": "▲ 1.2 מהשבוע שעבר", "trend": "up" },
+    "weeklyClicks": { "value": "3,842", "change": "▲ 14%", "trend": "up" },
+    "weeklyImpressions": { "value": "124,500", "change": "▲ 8%", "trend": "up" },
+    "avgCtr": { "value": "3.1%", "change": "▼ 0.2%", "trend": "down" },
+    "activeKeywords": { "value": "248", "change": "+12 חדשות", "trend": "neutral" },
+    "aiOpportunities": { "value": "12", "change": "ממתינות לאישור", "trend": "neutral" },
+    "weakPages": { "value": "9", "change": "דורשים תשומת לב", "trend": "down" },
+    "pendingDrafts": { "value": "7", "change": "לאישורך", "trend": "neutral" }
+  },
+  "keywords": [
+    { "keyword": "ניהול צי רכב", "rank": 3, "prev": 7, "change": 4, "clicks": 412, "volume": 8200, "ctr": "5.0%", "url": "/ניהול-צי", "score": 92 },
+    { "keyword": "תוכנת ניהול צי", "rank": 5, "prev": 8, "change": 3, "clicks": 318, "volume": 6100, "ctr": "5.2%", "url": "/תוכנה", "score": 88 },
+    { "keyword": "מעקב GPS לרכב", "rank": 12, "prev": 11, "change": -1, "clicks": 95, "volume": 3400, "ctr": "2.8%", "url": "/gps", "score": 67 },
+    { "keyword": "דוח נסיעה דיגיטלי", "rank": 6, "prev": 14, "change": 8, "clicks": 280, "volume": 5900, "ctr": "4.7%", "url": "/דוחות", "score": 85 },
+    { "keyword": "ביטוח צי רכב", "rank": 18, "prev": 15, "change": -3, "clicks": 67, "volume": 2800, "ctr": "2.4%", "url": "/ביטוח", "score": 44 }
+  ],
+  "approvals": [
+    { "id": "appr-1", "type": "article", "title": "מאמר: \"10 יתרונות של מערכת ניהול צי מתקדמת\"", "status": "pending", "aiScore": 95, "seoScore": 92, "roi": "₪1.8K" },
+    { "id": "appr-2", "type": "faq", "title": "FAQ: שאלות ותשובות — ניהול צי רכב עסקי", "status": "pending", "aiScore": 91, "seoScore": 88, "roi": "₪900" },
+    { "id": "appr-3", "type": "landing", "title": "Landing Page: \"תוכנת ניהול צי לעסקים גדולים\"", "status": "pending", "aiScore": 97, "seoScore": 94, "roi": "₪4.5K" },
+    { "id": "appr-4", "type": "meta", "title": "Meta Descriptions — 8 עמודים מעודכנים", "status": "pending", "aiScore": 89, "seoScore": 93, "roi": "₪640" },
+    { "id": "appr-5", "type": "gbp", "title": "פוסט Google Business: \"מבצע חצי שנה — ניהול צי\"", "status": "pending", "aiScore": 87, "seoScore": 90, "roi": "₪420" },
+    { "id": "appr-6", "type": "video", "title": "סקריפט וידאו: \"איך לחסוך 30% בעלויות צי\"", "status": "pending", "aiScore": 90, "seoScore": 85, "roi": "₪1.2K" },
+    { "id": "appr-7", "type": "article", "title": "מאמר: \"ניהול צי חשמלי — המדריך המלא\"", "status": "pending", "aiScore": 93, "seoScore": 91, "roi": "₪2.1K" }
+  ],
+  "scheduler": [
+    { "id": "sch-1", "title": "מאמר: 10 יתרונות ניהול צי", "type": "מאמר", "date": "22.6.26", "time": "09:00", "channel": "WordPress + GSC", "aiRecommended": true, "status": "scheduled" },
+    { "id": "sch-2", "title": "FAQ: ניהול צי עסקי", "type": "FAQ", "date": "23.6.26", "time": "14:00", "channel": "WordPress", "aiRecommended": true, "status": "scheduled" },
+    { "id": "sch-3", "title": "פוסט GBP: מבצע חצי שנה", "type": "GBP", "date": "24.6.26", "time": "10:30", "channel": "Google Business", "aiRecommended": true, "status": "scheduled" },
+    { "id": "sch-4", "title": "Landing: GPS לרכב עסקי", "type": "Landing", "date": "25.6.26", "time": "11:00", "channel": "WordPress", "aiRecommended": false, "status": "pending_approval" },
+    { "id": "sch-5", "title": "Meta: 8 עמודים", "type": "Meta", "date": "26.6.26", "time": "08:00", "channel": "WordPress", "aiRecommended": true, "status": "scheduled" },
+    { "id": "sch-6", "title": "Newsletter: סיכום חודשי", "type": "Email", "date": "30.6.26", "time": "09:00", "channel": "Gmail", "aiRecommended": true, "status": "scheduled" }
+  ],
+  "badges": {
+    "pendingApproval": 7,
+    "notifications": 12,
+    "aiDirector": 5
+  },
+  "placeholders": {
+    "requiresBackend": ["Heat Map", "Autonomous Mode", "ROI History", "Reports Monthly", "History Full"],
+    "comingSoon": ["CRM Marketing", "AI Image Studio", "AI Voice", "AI Translation"],
+    "requiresGoogleApproval": ["Google Business Insights", "Google Ads Campaigns"],
+    "readyForOpenAI": ["AI Director Analysis", "Content Factory", "AI Strategy", "AI Lab", "Keyword Research"]
+  }
+}
