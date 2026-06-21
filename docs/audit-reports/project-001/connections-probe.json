@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-20T12:46:56.866Z",
+  "timestamp": "2026-06-21T19:57:28.850Z",
   "account": "orin1607@gmail.com",
   "gcp": {
     "project_name": "Project001AIMarketing",
@@ -27,7 +27,7 @@
     },
     "docs": {
       "ok": true,
-      "documentId": "1o_nx1N5ankFsPgaKvY42BrGl0kehbr4JSVthTUpBWRc",
+      "documentId": "15NDGq_Db7w9iWcLol4UkEU5cb6DnUOE_cBW4AHi9oSA",
       "note": "test doc — delete manually"
     },
     "gmail": {
@@ -44,7 +44,7 @@
     }
   },
   "openai": {
-    "configured": false
+    "configured": true
   },
   "ok": true
 }

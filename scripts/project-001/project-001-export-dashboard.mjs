@@ -396,6 +396,11 @@ async function main() {
       apiDev: '/api/project-001/sync',
       spreadsheetUrl: lastSync?.spreadsheet_url || (cfg.spreadsheet_id ? `https://docs.google.com/spreadsheets/d/${cfg.spreadsheet_id}` : null),
     },
+    siteCrawl: loadJson(join(P001.auditOut, 'site-crawl.json'))?.crawl?.summary || null,
+    siteInfra: loadJson(join(P001.auditOut, 'site-infra.json')) || null,
+    competitors: loadJson(join(P001.auditOut, 'competitors.json')) || null,
+    indexing: loadJson(join(P001.auditOut, 'indexing-inspection.json')) || null,
+    officialSite: cfg.official_site || cfg.gsc_site_url,
     policies: {
       publishRequiresApproval: true,
       aiRecommendationsOnly: true,

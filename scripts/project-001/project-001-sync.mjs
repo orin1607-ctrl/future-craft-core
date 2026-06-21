@@ -4,6 +4,7 @@ import { getAuthenticatedClient } from '../google/_lib/auth.mjs';
 import { getP001Scopes, tokenHasP001Scopes } from './_lib/auth.mjs';
 import { loadP001Config, loadGoogleFolders, P001 } from './_lib/config.mjs';
 import { appendSyncHistory } from './_lib/history.mjs';
+import { pullGscEnhanced } from './_lib/gsc-pull.mjs';
 
 function dateRange(days) {
   const end = new Date();
@@ -63,51 +64,14 @@ async function clearAndWrite(sheets, spreadsheetId, tab, headers, rows) {
 }
 
 async function pullGsc(auth, google, cfg) {
-  const sc = google.searchconsole({ version: 'v1', auth });
-  const { startDate, endDate } = dateRange(cfg.date_range_days);
-  const siteUrl = cfg.gsc_site_url;
-
-  const queryRes = await sc.searchanalytics.query({
-    siteUrl,
-    requestBody: {
-      startDate,
-      endDate,
-      dimensions: ['query'],
-      rowLimit: 1000,
-    },
-  });
-
-  const pageRes = await sc.searchanalytics.query({
-    siteUrl,
-    requestBody: {
-      startDate,
-      endDate,
-      dimensions: ['page'],
-      rowLimit: 1000,
-    },
-  });
-
-  const queryRows = (queryRes.data.rows || []).map((r) => [
-    r.keys[0],
-    r.clicks,
-    r.impressions,
-    r.ctr,
-    r.position,
-  ]);
-
-  const pageRows = (pageRes.data.rows || []).map((r) => [
-    r.keys[0],
-    r.clicks,
-    r.impressions,
-    r.ctr,
-    r.position,
-  ]);
-
+  const gsc = await pullGscEnhanced(auth, google, cfg);
   return {
-    startDate,
-    endDate,
-    queries: queryRows,
-    pages: pageRows,
+    startDate: gsc.startDate,
+    endDate: gsc.endDate,
+    queries: gsc.queries,
+    pages: gsc.pages,
+    siteUsed: gsc.siteUrl,
+    attempts: gsc.attempts,
   };
 }
 
@@ -187,7 +151,7 @@ async function main() {
 
   try {
     gsc = await pullGsc(auth, google, cfg);
-    console.log('GSC:', gsc.queries.length, 'queries,', gsc.pages.length, 'pages');
+    console.log('GSC:', gsc.queries.length, 'queries,', gsc.pages.length, 'pages', gsc.siteUsed ? `(${gsc.siteUsed})` : '');
   } catch (e) {
     console.warn('GSC pull:', e.message?.slice(0, 200));
   }
@@ -240,6 +204,7 @@ async function main() {
     ['date_range', `${gsc.startDate} → ${gsc.endDate}`],
     ['gsc_query_rows', String(gsc.queries.length)],
     ['gsc_page_rows', String(gsc.pages.length)],
+    ['gsc_site_used', gsc.siteUsed || cfg.gsc_site_url],
     ['ga4_daily_rows', String(ga4.daily.length)],
     ['ga4_page_rows', String(ga4.pages.length)],
     ['spreadsheet_id', spreadsheetId],

@@ -1,15 +1,15 @@
 [
   {
-    "id": "sync-1781962372703",
-    "timestamp": "2026-06-20T13:32:52.704Z",
+    "id": "sync-1782072191753",
+    "timestamp": "2026-06-21T20:03:11.753Z",
     "ok": true,
-    "gsc_queries": 0,
-    "gsc_pages": 0,
-    "ga4_daily": 151,
+    "gsc_queries": 2,
+    "gsc_pages": 10,
+    "ga4_daily": 150,
     "ga4_pages": 48,
     "date_range": {
-      "start": "2026-05-22",
-      "end": "2026-06-18"
+      "start": "2026-03-22",
+      "end": "2026-06-19"
     },
     "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
   },

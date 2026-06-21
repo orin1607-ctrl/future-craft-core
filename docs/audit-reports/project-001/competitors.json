@@ -1,0 +1,51 @@
+{
+  "timestamp": "2026-06-21T20:02:57.228Z",
+  "ourSite": "https://dalia-c.com/",
+  "competitors": [
+    {
+      "name": "FleetOS",
+      "domain": "fleetos.co.il",
+      "url": "https://fleetos.co.il/",
+      "reachable": false,
+      "error": "fetch failed",
+      "analyzedAt": "2026-06-21T20:02:52.855Z"
+    },
+    {
+      "name": "Optibus",
+      "domain": "optibus.com",
+      "url": "https://optibus.com/",
+      "httpStatus": 200,
+      "reachable": true,
+      "title": "Making public transportation better. Together. - Optibus",
+      "metaDescription": "AI-powered transportation management platform for planning and operating more equitable, sustainable, and efficient public transportation.",
+      "h1": "",
+      "analyzedAt": "2026-06-21T20:02:55.691Z"
+    },
+    {
+      "name": "Gett Business",
+      "domain": "gett.com",
+      "url": "https://gett.com/",
+      "httpStatus": 200,
+      "reachable": true,
+      "title": "(גט טקסי) Gett - הזמנת מונית ומשלוח בלחיצת כפתור",
+      "metaDescription": "שירות להזמנת מוניות ומשלוחים בפריסה ארצית, 24/7. מתאים גם לעסקים קטנים וגדולים עם מערכת לניהול היסעים ועוד…",
+      "h1": "הדרך החכמה לנוע בישראל",
+      "analyzedAt": "2026-06-21T20:02:56.785Z"
+    },
+    {
+      "name": "Moovit",
+      "domain": "moovit.com",
+      "url": "https://moovit.com/",
+      "httpStatus": 200,
+      "reachable": true,
+      "title": "Moovit: MaaS Solutions &amp; the #1 Urban Mobility App",
+      "metaDescription": "Utilizing the power of MaaS, we&#039;re helping cities, transit agencies and corporations simplify urban mobility, making it more efficient, accessible and sustainable.",
+      "h1": "",
+      "analyzedAt": "2026-06-21T20:02:57.228Z"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "reachable": 3
+  }
+}

@@ -1,10 +1,10 @@
 # GA4 URL Audit — dalia-c.com
 
-**2026-06-20T13:19:13.691Z**
+**2026-06-21T20:03:41.897Z**
 
 | Path | GA4 Sessions | HTTP | המלצה | הערה |
 |------|-------------|------|--------|------|
-| / | 196 | 200 | ok | URL פעיל |
+| / | 195 | 200 | ok | URL פעיל |
 | /elementor-13192-bmw/ | 25 | 404 | redirect | 301 redirect לעמוד רלוונטי — 25 sessions ב-GA4 |
 | /form/ | 14 | 404 | redirect | 301 redirect לעמוד רלוונטי — 14 sessions ב-GA4 |
 | /רכבים-מסחריים-6/ | 11 | 404 | redirect | 301 redirect לעמוד רלוונטי — 11 sessions ב-GA4 |

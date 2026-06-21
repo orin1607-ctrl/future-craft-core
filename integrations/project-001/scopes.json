@@ -28,7 +28,8 @@
     { "id": "googleads.googleapis.com", "name": "Google Ads API" }
   ],
   "safety": {
-    "allowed": ["connect", "read", "pull_data", "save_sheets", "test_drafts", "test_reports"],
-    "blocked_without_manual_approval": ["website_publish", "gbp_publish", "gmail_send_real"]
+    "allowed": ["connect", "read", "pull_data", "save_sheets", "test_drafts", "test_reports", "gmail_send_when_enabled"],
+    "blocked_without_manual_approval": ["website_publish", "gbp_publish"],
+    "gmail_send_real": "Set GMAIL_SEND_ENABLED=1 in environment to allow real outbound email"
   }
 }

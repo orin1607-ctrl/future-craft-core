@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-06-20T13:18:05.006Z",
+  "generatedAt": "2026-06-21T20:03:15.867Z",
   "project": {
     "id": "project001aimarketing",
     "name": "Project001AIMarketing",
@@ -12,7 +12,7 @@
     "ok": true,
     "scopeCount": 20,
     "hasRefresh": true,
-    "expiry": "2026-06-20T13:01:11.239Z"
+    "expiry": "2026-06-21T20:41:03.576Z"
   },
   "connections": {
     "searchConsole": {
@@ -72,48 +72,134 @@
     "lastError": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:484351148380'."
   },
   "stats": {
-    "avgPosition": null,
+    "avgPosition": 45.5,
     "totalClicks": 0,
-    "totalImpressions": 0,
-    "avgCtr": null,
-    "activeKeywords": 0,
+    "totalImpressions": 2,
+    "avgCtr": 0,
+    "activeKeywords": 2,
     "opportunities": 1,
     "weakPages": 0,
     "pendingDrafts": 1,
-    "ga4Sessions": 251,
-    "ga4PageViews": 411
+    "ga4Sessions": 250,
+    "ga4PageViews": 410
   },
   "dataSource": "sheets",
   "lastSync": {
-    "timestamp": "2026-06-20T12:54:08.267Z",
+    "timestamp": "2026-06-21T20:03:11.748Z",
     "ok": true,
     "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
     "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
     "counts": {
-      "gsc_queries": 0,
-      "gsc_pages": 0,
-      "ga4_daily": 151,
+      "gsc_queries": 2,
+      "gsc_pages": 10,
+      "ga4_daily": 150,
       "ga4_pages": 48
     },
     "date_range": {
-      "start": "2026-05-22",
-      "end": "2026-06-18"
+      "start": "2026-03-22",
+      "end": "2026-06-19"
     }
   },
   "searchConsole": {
-    "keywords": [],
-    "pages": [],
+    "keywords": [
+      {
+        "query": "ניהול צי",
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 44
+      },
+      {
+        "query": "ניהול צי טרקטורים",
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 47
+      }
+    ],
+    "pages": [
+      {
+        "page": "https://dalia-c.com/home/",
+        "clicks": 1,
+        "impressions": 3,
+        "ctr": 0.3333333333,
+        "position": 1.666666667
+      },
+      {
+        "page": "https://dalia-c.com/",
+        "clicks": 0,
+        "impressions": 4,
+        "ctr": 0,
+        "position": 6.5
+      },
+      {
+        "page": "https://dalia-c.com/%D7%94%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D-%D7%A9%D7%9C%D7%A0%D7%95/",
+        "clicks": 0,
+        "impressions": 3,
+        "ctr": 0,
+        "position": 5
+      },
+      {
+        "page": "https://dalia-c.com/%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
+        "clicks": 0,
+        "impressions": 2,
+        "ctr": 0,
+        "position": 45.5
+      },
+      {
+        "page": "https://dalia-c.com/%D7%A6%D7%95%D7%A8-%D7%A7%D7%A9%D7%A8-%D7%93%D7%9C%D7%99%D7%94/",
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 9
+      },
+      {
+        "page": "https://dalia-c.com/about/",
+        "clicks": 0,
+        "impressions": 6,
+        "ctr": 0,
+        "position": 7.666666667
+      },
+      {
+        "page": "https://dalia-c.com/catalog/",
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 9
+      },
+      {
+        "page": "https://dalia-c.com/category/%D7%A1%D7%A7%D7%95%D7%93%D7%94/",
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 1
+      },
+      {
+        "page": "https://dalia-c.com/santa-fe_hybrid/",
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 29
+      },
+      {
+        "page": "https://dalia-c.com/seat_tarraco/",
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 3
+      }
+    ],
     "dateRange": {
-      "start": "2026-05-22",
-      "end": "2026-06-18"
+      "start": "2026-03-22",
+      "end": "2026-06-19"
     }
   },
   "analytics4": {
     "summary": {
-      "totalSessions": 251,
-      "totalUsers": 250,
-      "totalPageViews": 411,
-      "days": 151
+      "totalSessions": 250,
+      "totalUsers": 249,
+      "totalPageViews": 410,
+      "days": 150
     },
     "daily": [
       {
@@ -218,9 +304,9 @@
     "topPages": [
       {
         "pagePath": "/",
-        "activeUsers": 193,
-        "sessions": 196,
-        "screenPageViews": 223
+        "activeUsers": 192,
+        "sessions": 195,
+        "screenPageViews": 222
       },
       {
         "pagePath": "/elementor-13192-bmw/",
@@ -332,6 +418,20 @@
   "history": {
     "sync": [
       {
+        "id": "sync-1782072191753",
+        "timestamp": "2026-06-21T20:03:11.753Z",
+        "ok": true,
+        "gsc_queries": 2,
+        "gsc_pages": 10,
+        "ga4_daily": 150,
+        "ga4_pages": 48,
+        "date_range": {
+          "start": "2026-03-22",
+          "end": "2026-06-19"
+        },
+        "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+      },
+      {
         "id": "sync-1781960048281",
         "timestamp": "2026-06-20T12:54:08.281Z",
         "ok": true,
@@ -361,6 +461,19 @@
       }
     ],
     "ai": [
+      {
+        "id": "ai-1782072195850",
+        "timestamp": "2026-06-21T20:03:15.850Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
       {
         "id": "ai-1781961484883",
         "timestamp": "2026-06-20T13:18:04.883Z",
@@ -405,6 +518,34 @@
   },
   "activityLog": [
     {
+      "timestamp": "2026-06-21T20:03:11.753Z",
+      "action": "Sync",
+      "status": "success",
+      "detail": "GSC 2 queries · GA4 150 days",
+      "source": "Project001 Sync → Google Sheets"
+    },
+    {
+      "timestamp": "2026-06-21T20:03:11.748Z",
+      "action": "Data sync",
+      "status": "success",
+      "detail": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
+      "source": "Google Sheets"
+    },
+    {
+      "timestamp": "2026-06-21T19:57:40.577Z",
+      "action": "GBP probe",
+      "status": "warning",
+      "detail": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of se",
+      "source": "Google Business Profile API"
+    },
+    {
+      "timestamp": "2026-06-21T19:57:28.850Z",
+      "action": "Connections probe",
+      "status": "success",
+      "detail": "Google APIs connectivity check",
+      "source": "GCP / OAuth"
+    },
+    {
       "timestamp": "2026-06-20T12:54:08.281Z",
       "action": "Sync",
       "status": "success",
@@ -412,32 +553,11 @@
       "source": "Project001 Sync → Google Sheets"
     },
     {
-      "timestamp": "2026-06-20T12:54:08.267Z",
-      "action": "Data sync",
-      "status": "success",
-      "detail": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
-      "source": "Google Sheets"
-    },
-    {
       "timestamp": "2026-06-20T12:47:18.995Z",
       "action": "Sync",
       "status": "success",
       "detail": "GSC 0 queries · GA4 151 days",
       "source": "Project001 Sync → Google Sheets"
-    },
-    {
-      "timestamp": "2026-06-20T12:46:56.866Z",
-      "action": "Connections probe",
-      "status": "success",
-      "detail": "Google APIs connectivity check",
-      "source": "GCP / OAuth"
-    },
-    {
-      "timestamp": "2026-06-20T12:27:42.211Z",
-      "action": "GBP probe",
-      "status": "warning",
-      "detail": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of se",
-      "source": "Google Business Profile API"
     },
     {
       "timestamp": "2026-06-20T09:45:21.535Z",
@@ -449,30 +569,30 @@
   ],
   "dailyReports": [
     {
-      "date": "2026-06-20",
+      "date": "2026-06-21",
       "label": "דוח יומי",
-      "whatUp": "GA4: 251 sessions · GSC: ממתין לנתונים",
-      "whatDown": "—",
-      "created": "1 המלצות AI · 1 טיוטות חדשות",
+      "whatUp": "GA4: 250 sessions · GSC: 0 קליקים · 2 מילות מפתח",
+      "whatDown": "2 מילות מפתח במיקום >15",
+      "created": "1 המלצות AI · 0 טיוטות חדשות",
       "pending": "1 טיוטות ממתינות לאישור",
       "tomorrow": "1. אשר טיוטות ממתינות. 2. הרץ Sync. 3. בדוק עמודים חלשים.",
-      "sessions": 251,
-      "gscQueries": 0,
+      "sessions": 250,
+      "gscQueries": 2,
       "range": {
-        "start": "2026-05-22",
-        "end": "2026-06-18"
+        "start": "2026-03-22",
+        "end": "2026-06-19"
       }
     },
     {
-      "date": "2026-06-20",
+      "date": "2026-06-21",
       "label": "סנכרון אחרון",
-      "sessions": 251,
-      "pageViews": 411,
-      "gscQueries": 0,
-      "gscPages": 0,
+      "sessions": 250,
+      "pageViews": 410,
+      "gscQueries": 2,
+      "gscPages": 10,
       "range": {
-        "start": "2026-05-22",
-        "end": "2026-06-18"
+        "start": "2026-03-22",
+        "end": "2026-06-19"
       }
     }
   ],
@@ -486,6 +606,108 @@
     "apiDev": "/api/project-001/sync",
     "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
   },
+  "siteCrawl": null,
+  "siteInfra": {
+    "site": "https://dalia-c.com/",
+    "fetchedAt": "2026-06-21T19:57:47.510Z",
+    "robots": {
+      "status": 200,
+      "url": "https://dalia-c.com/robots.txt",
+      "content": "# Robots.txt generated by Booter - Crwalers Manager at Sat, 01 Jun 2024 01:02:40 +0000\r\n# Do not modify this file, any contents will be overwritten\r\n\r\nUser-Agent: *\r\nAllow: /wp-admin/admin-ajax.php\r\nDisallow: /wp-admin\r\n",
+      "sitemapRefs": []
+    },
+    "sitemaps": [
+      {
+        "url": "https://dalia-c.com/sitemap.xml",
+        "status": 200,
+        "locCount": 5,
+        "sample": [
+          "https://dalia-c.com/post-sitemap.xml",
+          "https://dalia-c.com/page-sitemap.xml",
+          "https://dalia-c.com/e-landing-page-sitemap.xml",
+          "https://dalia-c.com/category-sitemap.xml",
+          "https://dalia-c.com/author-sitemap.xml"
+        ]
+      },
+      {
+        "url": "https://dalia-c.com/sitemap_index.xml",
+        "status": 200,
+        "locCount": 5,
+        "sample": [
+          "https://dalia-c.com/post-sitemap.xml",
+          "https://dalia-c.com/page-sitemap.xml",
+          "https://dalia-c.com/e-landing-page-sitemap.xml",
+          "https://dalia-c.com/category-sitemap.xml",
+          "https://dalia-c.com/author-sitemap.xml"
+        ]
+      },
+      {
+        "url": "https://dalia-c.com/wp-sitemap.xml",
+        "status": 200,
+        "locCount": 5,
+        "sample": [
+          "https://dalia-c.com/post-sitemap.xml",
+          "https://dalia-c.com/page-sitemap.xml",
+          "https://dalia-c.com/e-landing-page-sitemap.xml",
+          "https://dalia-c.com/category-sitemap.xml",
+          "https://dalia-c.com/author-sitemap.xml"
+        ]
+      }
+    ]
+  },
+  "competitors": {
+    "timestamp": "2026-06-21T20:02:57.228Z",
+    "ourSite": "https://dalia-c.com/",
+    "competitors": [
+      {
+        "name": "FleetOS",
+        "domain": "fleetos.co.il",
+        "url": "https://fleetos.co.il/",
+        "reachable": false,
+        "error": "fetch failed",
+        "analyzedAt": "2026-06-21T20:02:52.855Z"
+      },
+      {
+        "name": "Optibus",
+        "domain": "optibus.com",
+        "url": "https://optibus.com/",
+        "httpStatus": 200,
+        "reachable": true,
+        "title": "Making public transportation better. Together. - Optibus",
+        "metaDescription": "AI-powered transportation management platform for planning and operating more equitable, sustainable, and efficient public transportation.",
+        "h1": "",
+        "analyzedAt": "2026-06-21T20:02:55.691Z"
+      },
+      {
+        "name": "Gett Business",
+        "domain": "gett.com",
+        "url": "https://gett.com/",
+        "httpStatus": 200,
+        "reachable": true,
+        "title": "(גט טקסי) Gett - הזמנת מונית ומשלוח בלחיצת כפתור",
+        "metaDescription": "שירות להזמנת מוניות ומשלוחים בפריסה ארצית, 24/7. מתאים גם לעסקים קטנים וגדולים עם מערכת לניהול היסעים ועוד…",
+        "h1": "הדרך החכמה לנוע בישראל",
+        "analyzedAt": "2026-06-21T20:02:56.785Z"
+      },
+      {
+        "name": "Moovit",
+        "domain": "moovit.com",
+        "url": "https://moovit.com/",
+        "httpStatus": 200,
+        "reachable": true,
+        "title": "Moovit: MaaS Solutions &amp; the #1 Urban Mobility App",
+        "metaDescription": "Utilizing the power of MaaS, we&#039;re helping cities, transit agencies and corporations simplify urban mobility, making it more efficient, accessible and sustainable.",
+        "h1": "",
+        "analyzedAt": "2026-06-21T20:02:57.228Z"
+      }
+    ],
+    "summary": {
+      "total": 4,
+      "reachable": 3
+    }
+  },
+  "indexing": null,
+  "officialSite": "https://dalia-c.com/",
   "policies": {
     "publishRequiresApproval": true,
     "aiRecommendationsOnly": true,

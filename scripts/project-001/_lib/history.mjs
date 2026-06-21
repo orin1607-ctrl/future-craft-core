@@ -96,12 +96,14 @@ export function updateDraftStatus(draftId, status, note) {
   const drafts = loadDrafts();
   const idx = drafts.findIndex((d) => d.id === draftId);
   if (idx === -1) return null;
+  const published = status === 'published' || status === 'approved_publish';
   drafts[idx] = {
     ...drafts[idx],
-    status,
+    status: published ? 'published' : status,
     reviewedAt: new Date().toISOString(),
     note: note || drafts[idx].note,
-    published: false,
+    published,
+    publishedAt: published ? new Date().toISOString() : drafts[idx].publishedAt,
   };
   saveJson(path, drafts);
   saveJson(join(PUBLIC, 'drafts.json'), drafts.slice(0, 50));
@@ -114,7 +116,7 @@ export function updateDraftStatus(draftId, status, note) {
     draftId,
     action: status,
     title: drafts[idx].title,
-    published: false,
+    published: published || false,
   });
   saveJson(histPath, hist.slice(0, 200));
   saveJson(join(PUBLIC, 'drafts-history.json'), hist.slice(0, 50));

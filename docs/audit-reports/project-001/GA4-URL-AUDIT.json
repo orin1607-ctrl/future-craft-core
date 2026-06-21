@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-06-20T13:19:13.691Z",
+  "timestamp": "2026-06-21T20:03:41.897Z",
   "site": "https://dalia-c.com",
   "checked": 15,
   "broken_count": 13,
   "results": [
     {
       "path": "/",
-      "ga4_sessions": 196,
-      "ga4_page_views": 223,
+      "ga4_sessions": 195,
+      "ga4_page_views": 222,
       "http_status": 200,
       "ok": true,
       "recommendation": "ok",

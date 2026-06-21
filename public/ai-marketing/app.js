@@ -18,7 +18,7 @@
     if (path.indexOf('ai-marketing-platform') > 0) {
       base = path.substring(0, path.indexOf('ai-marketing-platform'));
     }
-    return [base + 'ai-marketing/data.json', base + 'project-001/dashboard.json'];
+    return [base + 'project-001/dashboard.json', base + 'ai-marketing/data.json'];
   }
 
   var MODULE_PROMPTS = {
@@ -170,11 +170,11 @@
       .catch(function () { return fetch(urls[1]).then(function (r) { return r.ok ? r.json() : null; }); })
       .then(function (raw) {
         if (!raw) return;
-        if (raw.kpis) {
+        if (raw.kpis && raw.meta?.source !== 'demo') {
           COCO.data = raw;
-        } else if (raw.stats) {
+        } else if (raw.stats || raw.version) {
           COCO.data = {
-            meta: { source: 'dashboard.json (static)', generatedAt: raw.generatedAt, spreadsheetUrl: raw.lastSync?.spreadsheet_url },
+            meta: { source: 'live-dashboard.json', generatedAt: raw.generatedAt, spreadsheetUrl: raw.lastSync?.spreadsheet_url, liveOnly: true },
             kpis: {
               avgPosition: { value: String(raw.stats.avgPosition ?? '—'), change: '—', trend: 'neutral' },
               weeklyClicks: { value: String(raw.stats.totalClicks ?? 0), change: '—', trend: 'up' },

@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-06-21T19:57:44.389Z",
+  "gcp_project_id": "project001aimarketing",
+  "ok": false,
+  "developer_token_set": false,
+  "accessible_customers": [],
+  "errors": [],
+  "owner_gate": {
+    "title": "Google Ads Developer Token",
+    "url": "https://ads.google.com/aw/apicenter",
+    "steps": [
+      "Sign in as orin1607@gmail.com",
+      "Apply for / copy Developer Token",
+      "Create .env.ads from .env.ads.example → GOOGLE_ADS_DEVELOPER_TOKEN=...",
+      "Re-run: npm run project-001:ads-probe"
+    ]
+  }
+}

@@ -1,0 +1,500 @@
+{
+  "generatedAt": "2026-06-21T20:03:57.333Z",
+  "officialSite": "https://dalia-c.com/",
+  "domainNote": "System uses dalia-c.com. dalia-c.co.il is NOT configured.",
+  "git": {
+    "branch": "main",
+    "commit": "c35f5ba",
+    "dirty": true
+  },
+  "steps": [
+    {
+      "ok": true,
+      "code": 0,
+      "label": "Connections probe"
+    },
+    {
+      "ok": true,
+      "code": 0,
+      "label": "OpenAI probe"
+    },
+    {
+      "ok": false,
+      "code": 1,
+      "label": "GBP probe"
+    },
+    {
+      "ok": false,
+      "code": 10,
+      "label": "Ads probe"
+    },
+    {
+      "ok": true,
+      "code": 0,
+      "label": "GSC diagnose"
+    },
+    {
+      "ok": true,
+      "code": 0,
+      "label": "Site infra (robots/sitemap)"
+    },
+    {
+      "ok": false,
+      "code": null,
+      "label": "Site crawl"
+    },
+    {
+      "ok": true,
+      "code": 0,
+      "label": "Competitors"
+    },
+    {
+      "ok": true,
+      "code": 0,
+      "label": "Sync + export"
+    },
+    {
+      "ok": true,
+      "code": 0,
+      "label": "GA4 URL audit"
+    },
+    {
+      "ok": true,
+      "code": 0,
+      "label": "Indexing inspect"
+    }
+  ],
+  "systems": [
+    {
+      "id": 1,
+      "name": "Google Search Console",
+      "level": "yellow",
+      "checks": [
+        {
+          "ok": true,
+          "label": "connected",
+          "missing": "OAuth/API"
+        },
+        {
+          "ok": true,
+          "label": "siteOwner",
+          "missing": "verify site"
+        },
+        {
+          "ok": true,
+          "label": "data_rows",
+          "missing": "0 rows — low organic traffic or delay (API OK)"
+        },
+        {
+          "ok": true,
+          "label": "read",
+          "missing": null
+        },
+        {
+          "ok": false,
+          "label": "write",
+          "missing": "GSC is read-only API"
+        }
+      ],
+      "summary": "GSC is read-only API"
+    },
+    {
+      "id": 2,
+      "name": "Google Analytics 4",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "connected",
+          "missing": "GA4 API"
+        },
+        {
+          "ok": true,
+          "label": "daily_data",
+          "missing": "sync GA4"
+        },
+        {
+          "ok": true,
+          "label": "page_data",
+          "missing": "sync GA4 pages"
+        },
+        {
+          "ok": true,
+          "label": "read",
+          "missing": null
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 3,
+      "name": "Google Business Profile",
+      "level": "red",
+      "checks": [
+        {
+          "ok": false,
+          "label": "connected",
+          "missing": "Google API approval pending (quota=0)"
+        },
+        {
+          "ok": false,
+          "label": "locations",
+          "missing": "await Google Basic API Access"
+        }
+      ],
+      "summary": "Google API approval pending (quota=0)"
+    },
+    {
+      "id": 4,
+      "name": "Google Ads",
+      "level": "red",
+      "checks": [
+        {
+          "ok": false,
+          "label": "developer_token",
+          "missing": "Google Ads Developer Token"
+        },
+        {
+          "ok": false,
+          "label": "customers",
+          "missing": "set .env.ads + probe"
+        }
+      ],
+      "summary": "Google Ads Developer Token"
+    },
+    {
+      "id": 5,
+      "name": "Google Sheets",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "connected",
+          "missing": "Sheets API"
+        },
+        {
+          "ok": true,
+          "label": "sync",
+          "missing": "run sync"
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 6,
+      "name": "Google Drive",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "connected",
+          "missing": "Drive API"
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 7,
+      "name": "Google Docs",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "connected",
+          "missing": "Docs API"
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 8,
+      "name": "Gmail",
+      "level": "yellow",
+      "checks": [
+        {
+          "ok": true,
+          "label": "connected",
+          "missing": "Gmail API"
+        },
+        {
+          "ok": false,
+          "label": "send_enabled",
+          "missing": "set GMAIL_SEND_ENABLED=1 for real send (policy)"
+        }
+      ],
+      "summary": "set GMAIL_SEND_ENABLED=1 for real send (policy)"
+    },
+    {
+      "id": 9,
+      "name": "Google Apps Script",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "api",
+          "missing": "Script API"
+        },
+        {
+          "ok": true,
+          "label": "script_id",
+          "missing": "clasp deploy"
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 10,
+      "name": "Site Verification",
+      "level": "yellow",
+      "checks": [
+        {
+          "ok": true,
+          "label": "production",
+          "missing": "verify dalia-c.com"
+        },
+        {
+          "ok": false,
+          "label": "staging",
+          "missing": "GitHub Pages staging unverified"
+        }
+      ],
+      "summary": "GitHub Pages staging unverified"
+    },
+    {
+      "id": 11,
+      "name": "Google OAuth",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "token",
+          "missing": "run project-001:auth"
+        },
+        {
+          "ok": true,
+          "label": "scopes",
+          "missing": "re-auth with full scopes"
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 12,
+      "name": "OpenAI API",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "local_key",
+          "missing": "set .env.openai"
+        },
+        {
+          "ok": true,
+          "label": "staging_supabase",
+          "missing": "MARKETING_OPENAI on Supabase"
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 13,
+      "name": "Website (dalia-c.com)",
+      "level": "yellow",
+      "checks": [
+        {
+          "ok": true,
+          "label": "domain_unified",
+          "missing": "set official_site"
+        },
+        {
+          "ok": true,
+          "label": "urls_ok",
+          "missing": "13 broken URLs of top GA4 pages"
+        },
+        {
+          "ok": false,
+          "label": "crawl_clean",
+          "missing": "? broken in crawl"
+        }
+      ],
+      "summary": "? broken in crawl"
+    },
+    {
+      "id": 14,
+      "name": "Site Crawler",
+      "level": "red",
+      "checks": [
+        {
+          "ok": false,
+          "label": "implemented",
+          "missing": "run site-crawl"
+        },
+        {
+          "ok": false,
+          "label": "coverage",
+          "missing": "increase crawl depth"
+        }
+      ],
+      "summary": "run site-crawl"
+    },
+    {
+      "id": 15,
+      "name": "AI Dashboard",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "live_data",
+          "missing": "sync + export"
+        },
+        {
+          "ok": true,
+          "label": "dashboard",
+          "missing": "export dashboard"
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 16,
+      "name": "Approval Center",
+      "level": "yellow",
+      "checks": [
+        {
+          "ok": true,
+          "label": "backend",
+          "missing": "drafts workflow"
+        },
+        {
+          "ok": false,
+          "label": "publish_tested",
+          "missing": "no published draft yet (workflow ready)"
+        }
+      ],
+      "summary": "no published draft yet (workflow ready)"
+    },
+    {
+      "id": 17,
+      "name": "SEO Analyzer",
+      "level": "yellow",
+      "checks": [
+        {
+          "ok": true,
+          "label": "live_gsc",
+          "missing": "GSC data or crawl-based SEO"
+        },
+        {
+          "ok": false,
+          "label": "crawl_seo",
+          "missing": "run crawler"
+        }
+      ],
+      "summary": "run crawler"
+    },
+    {
+      "id": 18,
+      "name": "Competitor Analysis",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "backend",
+          "missing": "run competitors probe"
+        },
+        {
+          "ok": true,
+          "label": "live_scan",
+          "missing": "competitors unreachable"
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 19,
+      "name": "Google Indexing",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "url_inspection",
+          "missing": "run indexing-inspect"
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 20,
+      "name": "Sitemap",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "detected",
+          "missing": "no sitemap found on site"
+        },
+        {
+          "ok": true,
+          "label": "reachable",
+          "missing": "sitemap HTTP error"
+        }
+      ],
+      "summary": "100% operational"
+    },
+    {
+      "id": 21,
+      "name": "Robots.txt",
+      "level": "green",
+      "checks": [
+        {
+          "ok": true,
+          "label": "reachable",
+          "missing": "robots.txt not found"
+        },
+        {
+          "ok": true,
+          "label": "content",
+          "missing": "empty robots"
+        }
+      ],
+      "summary": "100% operational"
+    }
+  ],
+  "summary": {
+    "green": 12,
+    "yellow": 6,
+    "red": 3
+  },
+  "externalGates": [
+    {
+      "name": "Google Business Profile API",
+      "detail": "Basic API Access approval — quota=0 until Google approves"
+    },
+    {
+      "name": "Google Ads Developer Token",
+      "detail": "Apply at ads.google.com/aw/apicenter → set .env.ads"
+    },
+    {
+      "name": "WordPress 404 fixes",
+      "detail": "13 legacy URLs return 404 — requires redirect rules on hosting (not in repo)"
+    },
+    {
+      "name": "GSC zero rows",
+      "detail": "API connected siteOwner — may reflect low/zero organic search traffic in range"
+    }
+  ],
+  "answers": {
+    "All pages connected and crawled?": "Partial — crawler implemented, full coverage depends on site size",
+    "AI can read all site data?": "GA4 yes; GSC partial; crawl yes after site-crawl; GBP/Ads no until gates clear",
+    "AI can read all Google services?": "Sheets/Drive/Docs/Gmail read yes; GBP/Ads no",
+    "GBP fully connected?": "No — pending Google API approval",
+    "Ads fully connected?": "No — Developer Token missing",
+    "Any limitation blocking 100%?": "Yes — GBP approval, Ads token, GSC data gap, WordPress 404 redirects on live site"
+  },
+  "staging": {
+    "url": "https://orin1607-ctrl.github.io/future-craft-core/",
+    "aiMarketing": "/ai-marketing"
+  },
+  "production": {
+    "site": "https://dalia-c.com/"
+  }
+}

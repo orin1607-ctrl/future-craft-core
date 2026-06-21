@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-06-21T20:03:57.144Z",
+  "siteUrl": "https://dalia-c.com/",
+  "inspections": [
+    {
+      "url": "https://dalia-c.com/",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-06-20T07:23:54Z"
+    }
+  ]
+}

@@ -1,17 +1,17 @@
 {
-  "timestamp": "2026-06-20T13:18:51.806Z",
+  "timestamp": "2026-06-21T19:57:46.561Z",
   "site_url": "https://dalia-c.com/",
-  "date_range_days": 28,
+  "date_range_days": 90,
   "date_range": {
-    "startDate": "2026-05-22",
-    "endDate": "2026-06-18"
+    "startDate": "2026-03-22",
+    "endDate": "2026-06-19"
   },
   "site_access": {
     "url": "https://dalia-c.com/",
     "permission": "siteOwner"
   },
-  "query_rows": 0,
-  "page_rows": 0,
+  "query_rows": 2,
+  "page_rows": 10,
   "all_sites": [
     {
       "url": "https://dalia-c.com/",
@@ -28,10 +28,55 @@
   ],
   "conclusion": [
     "חיבור GSC תקין — siteOwner מאומת",
-    "API מחזיר 0 שורות בטווח — לא בהכרח באג",
-    "סיבות אפשריות: אין תנועה אורגנית ב-Google Search בטווח, אתר חדש/מעט impressions, או delay 48-72h",
-    "טווח נבדק: 2026-05-22 → 2026-06-18 (28 ימים)"
+    "נמצאו נתונים: 2 queries, 10 pages (sample)"
   ],
-  "sample_queries": [],
-  "sample_pages": []
+  "sample_queries": [
+    {
+      "keys": [
+        "ניהול צי"
+      ],
+      "clicks": 0,
+      "impressions": 1,
+      "ctr": 0,
+      "position": 44
+    },
+    {
+      "keys": [
+        "ניהול צי טרקטורים"
+      ],
+      "clicks": 0,
+      "impressions": 1,
+      "ctr": 0,
+      "position": 47
+    }
+  ],
+  "sample_pages": [
+    {
+      "keys": [
+        "https://dalia-c.com/home/"
+      ],
+      "clicks": 1,
+      "impressions": 3,
+      "ctr": 0.3333333333333333,
+      "position": 1.6666666666666665
+    },
+    {
+      "keys": [
+        "https://dalia-c.com/"
+      ],
+      "clicks": 0,
+      "impressions": 4,
+      "ctr": 0,
+      "position": 6.5
+    },
+    {
+      "keys": [
+        "https://dalia-c.com/%D7%94%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D-%D7%A9%D7%9C%D7%A0%D7%95/"
+      ],
+      "clicks": 0,
+      "impressions": 3,
+      "ctr": 0,
+      "position": 5
+    }
+  ]
 }
