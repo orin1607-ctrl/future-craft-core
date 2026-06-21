@@ -1,17 +1,16 @@
-import { existsSync, readFileSync } from 'fs';
+import { loadOpenAIKey, openAIKeyStatus } from '../ai-marketing/_lib/openai-env.mjs';
 
 async function main() {
-  const path = existsSync('.env.openai') ? '.env.openai' : '.env.openai.example';
-  const raw = readFileSync(path, 'utf8');
-  const m = raw.match(/^OPENAI_API_KEY=(.*)$/m);
-  const key = m?.[1]?.trim();
-  const ok = key && key.length > 10 && !key.includes('YOUR');
+  const status = openAIKeyStatus();
+  const key = loadOpenAIKey();
 
   console.log('\n=== OpenAI Probe ===\n');
-  console.log('Env file:', path);
-  if (!ok) {
+  console.log('Env file:', status.file);
+  console.log('Model:', status.model);
+
+  if (!key) {
     console.log('Status: OPENAI_API_KEY not set');
-    console.log('→ Copy .env.openai.example to .env.openai and paste key');
+    console.log('→ הדבק מפתח בשורה: OPENAI_API_KEY=sk-...');
     console.log('→ https://platform.openai.com/api-keys → Create new secret key');
     process.exit(1);
   }

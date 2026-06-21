@@ -20,6 +20,7 @@ const SYSTEM_PROMPT = `אתה עוזר AI חכם למערכת ניהול צי ר
 - ענה תמיד בעברית, תמציתי וברור
 - כשמראה נתונים מספריים - השתמש באמוג'י (🚗 🔧 ⚠️ ✅ 📊)
 - תן הנחיות מעשיות עם הפניה למסך במערכת (למשל "/vehicles", "/faults")
+- כשמפנה למסך — הוסף [[nav:/path]] (למשל [[nav:/vehicles]])
 - אם לא יודע - אמור זאת בגלוי, אל תמציא`;
 
 const DATA_TOOLS = [
@@ -296,7 +297,7 @@ Deno.serve(async (req) => {
     if ("error" in auth) return auth.error;
     const { ctx } = auth;
 
-    const { messages, company_name } = await req.json();
+    const { messages, company_name, page_context } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "Messages array is required" }), {
@@ -314,6 +315,10 @@ Deno.serve(async (req) => {
       ? `${SYSTEM_PROMPT}\n\nהמשתמש משויך לחברה: "${companyScope}". כשאתה קורא לפונקציות נתונים, סנן תמיד לפי החברה הזו.`
       : SYSTEM_PROMPT;
 
+    const fullSysPrompt = page_context
+      ? `${sysPrompt}\n\n--- הקשר מסך נוכחי ---\n${page_context}`
+      : sysPrompt;
+
     const firstResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -322,7 +327,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: sysPrompt }, ...messages],
+        messages: [{ role: "system", content: fullSysPrompt }, ...messages],
         tools: DATA_TOOLS,
         stream: false,
       }),
@@ -364,7 +369,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: sysPrompt },
+            { role: "system", content: fullSysPrompt },
             ...messages,
             firstChoice.message,
             ...toolResults,
@@ -387,7 +392,7 @@ Deno.serve(async (req) => {
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: sysPrompt }, ...messages],
+        messages: [{ role: "system", content: fullSysPrompt }, ...messages],
         stream: true,
       }),
     });

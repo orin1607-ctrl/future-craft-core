@@ -13,7 +13,7 @@ const url = process.env.QA_BASE_URL ? `${baseUrl}/ai-marketing-platform.html` : 
 
 const REQUIRED_FNS = ['toggleSidebar', 'closeSidebar', 'gotoSc', 'stab', 'openKwMo', 'closeModal', 'closeActionModal', 'showToast'];
 const SCREENS = [
-  'sc-dashboard','sc-director','sc-approval','sc-notifications','sc-tasks','sc-briefing',
+  'sc-dashboard','sc-usermanual','sc-director','sc-approval','sc-notifications','sc-tasks','sc-briefing',
   'sc-seo','sc-keywords','sc-content','sc-warehouse','sc-pages','sc-landing','sc-scheduler',
   'sc-intel','sc-competitors','sc-news','sc-gbp','sc-ads','sc-roi','sc-funnel','sc-journey',
   'sc-kpi','sc-heatmap','sc-executive','sc-strategy','sc-ailab','sc-autonomous','sc-aiimage',
@@ -21,7 +21,7 @@ const SCREENS = [
   'sc-settings','sc-permissions','sc-roadmap','sc-aiguide','sc-qa'
 ];
 const CATEGORIES = 12;
-const SIDEBAR_ITEMS = 38;
+const SIDEBAR_ITEMS = 39;
 
 const report = { passed: [], failed: [], consoleErrors: [], counts: {} };
 
@@ -168,6 +168,25 @@ await page.setViewportSize({ width: 1280, height: 900 });
 await page.evaluate(() => window.gotoSc('executive'));
 if (await page.locator('#sc-executive.active').count()) report.passed.push('desktop:executive');
 else report.failed.push('desktop executive');
+
+// AI Assistant layer
+if (await page.locator('#cocoAiFab').count()) report.passed.push('assistant:fab');
+else report.failed.push('assistant:fab missing');
+await page.click('#cocoAiFab');
+await page.waitForTimeout(350);
+const panelOpen = await page.evaluate(() => document.getElementById('cocoAiPanel')?.classList.contains('open'));
+panelOpen ? report.passed.push('assistant:panel-open') : report.failed.push('assistant:panel open');
+for (const sc of ['keywords', 'content', 'approval', 'director']) {
+  await page.evaluate((id) => window.gotoSc(id), sc);
+  const vis = await page.locator('#cocoAiFab').isVisible();
+  vis ? report.passed.push('assistant:fab-' + sc) : report.failed.push('assistant fab on ' + sc);
+}
+await page.setViewportSize({ width: 375, height: 812 });
+await page.waitForTimeout(200);
+(await page.locator('#cocoAiFab').isVisible()) ? report.passed.push('assistant:mobile-fab') : report.failed.push('assistant mobile fab');
+await page.click('#cocoAiFab');
+const chips = await page.locator('.coco-ai-chip').count();
+chips >= 4 ? report.passed.push('assistant:chips') : report.failed.push('assistant chips');
 
 await browser.close();
 

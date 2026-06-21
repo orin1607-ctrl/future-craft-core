@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { project001ApiPlugin } from "./scripts/vite-plugin-project001-api.mjs";
+import { viteAiOpenAIPlugin } from "./scripts/vite-ai-openai-plugin.mjs";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -22,6 +23,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    mode === "development" && viteAiOpenAIPlugin(),
     mode === "development" && componentTagger(),
     mode === "development" && project001ApiPlugin(),
   ].filter(Boolean),

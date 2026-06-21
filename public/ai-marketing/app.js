@@ -4,9 +4,10 @@
 (function () {
   'use strict';
 
-  var API = '';
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-    API = location.port === '8888' ? 'http://127.0.0.1:8787' : '';
+  var API_BASE = '';
+  var HAS_API = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (HAS_API) {
+    API_BASE = location.port === '8888' ? 'http://127.0.0.1:8787' : '';
   }
 
   var COCO = { data: null, ai: { connected: false, busy: false }, state: { approvalCount: 7 } };
@@ -22,17 +23,30 @@
 
   var MODULE_PROMPTS = {
     dashboard: 'סיכום KPI שיווקי ל-5 נקודות עבור dalia-c.com — מגמות, הזדמנויות, פעולות מיידיות.',
-    director: 'ניתוח AI Director: 5 תובנות SEO + 3 פעולות דחופות ל-dalia-c.com לפי נתוני GSC ו-GA4.',
+    director: 'ניתוח AI Director: 5 תובנות SEO + 3 פעולות דחופות ל-dalia-c.com לפי GSC ו-GA4.',
     seo: 'ניתוח SEO: 5 עמודים לשיפור, Meta מומלץ, קישורים פנימיים — dalia-c.com.',
     keywords: 'מחקר מילות מפתח: 10 מילים עם נפח, קושי, עמוד יעד — ניהול צי רכב.',
-    content: 'מתווה תוכן SEO: מאמר 800 מילים, H1-H3, Meta, FAQ — dalia-c.com.',
-    strategy: 'אסטרטגיית שיווק 60 יום: יעדים, ערוצים, KPI, לוח תוכן.',
+    content: 'מתווה תוכן SEO: מאמר 800 מילים, H1-H3, Meta Title+Description, FAQ — dalia-c.com.',
+    strategy: 'אסטרטגיית שיווק 90 יום: 5 יעדים, ערוצים, KPI, לוח תוכן — dalia-c.com.',
     ailab: '3 רעיונות A/B לכותרות דף נחיתה + נימוק SEO.',
     intel: '5 הזדמנויות תוכן מ-GSC שלא מנוצלות — dalia-c.com.',
-    competitors: 'ניתוח 3 מתחרים: חוזקות, חולשות, 5 פערי תוכן.',
+    competitors: 'ניתוח 3 מתחרים בניהול צי: חוזקות, חולשות, 5 פערי תוכן.',
+    news: '3 נושאים טרנדיים לתוכן שיווקי בתחום ניהול צי רכב.',
     gbp: 'פוסט Google Business: 120 מילים, CTA, האשטags — dalia-c.com.',
-    ads: '3 מודעות Google Ads: כותרות + תיאורים + מילות מפתח.',
-    landing: 'מבנה דף נחיתה: כותרות, bullets, CTA, Meta, Schema FAQ.',
+    ads: '3 מודעות Google Ads: כותרות 1+2, תיאורים, מילות מפתח, דף נחיתה.',
+    landing: 'מבנה דף נחיתה מלא: כותרות, bullets, CTA, Meta, Schema FAQ.',
+    pages: 'המלצות SEO ל-5 עמודים: Meta, H1, קישורים פנימיים.',
+    warehouse: 'צ\'קליסט SEO לתוכן: URL, Slug, Meta, Schema, FAQ, ALT.',
+    briefing: 'תדרוך יומי שיווקי: 3 עליות, 3 ירידות, 3 פעולות להיום.',
+    executive: 'סיכום מנהלים: KPI, ROI, המלצות אסטרטגיות לרבעון.',
+    roi: 'תחזית ROI ל-3 ערוצי שיווק — SEO, Ads, תוכן.',
+    reports: 'מתווה דוח שיווק שבועי: KPI, מילים, תוכן, המלצות.',
+    funnel: 'ניתוח משפך: TOFU/MOFU/BOFU — 3 המלצות לשיפור.',
+    journey: 'מפת מסע לקוח B2B לניהול צי — 5 נקודות מגע.',
+    crm: '3 רעיונות לקמפיין CRM — segment, message, CTA.',
+    autonomous: 'מה AI אוטונומי יכול לעשות ב-24 שעות — רשימת פעולות (ללא פרסום).',
+    aiimage: 'תיאור 3 תמונות שיווקיות לדף נחיתה (טקst בלבד — יצירת תמונה בקרוב).',
+    settings: 'רשימת חיבורי API נדרשים וסטטוס — GSC, GA4, Sheets, OpenAI.',
     general: 'ניתוח שיווקי קצר (5 נקודות) — dalia-c.com.',
   };
 
@@ -46,8 +60,8 @@
   }
 
   function apiFetch(path, opts) {
-    if (!API) return Promise.reject(new Error('offline'));
-    return fetch(API + path, opts || {}).then(function (r) {
+    if (!HAS_API) return Promise.reject(new Error('offline'));
+    return fetch(API_BASE + path, opts || {}).then(function (r) {
       return r.json().then(function (d) { return { ok: r.ok, data: d }; });
     });
   }
@@ -137,11 +151,11 @@
     if (!chip) return;
     chip.style.display = 'inline-flex';
     chip.className = 'chip ' + (ok ? 'chip-green' : 'chip-orange');
-    chip.textContent = ok ? '🟢 OpenAI מחובר' : (API ? '🟠 OpenAI — בדוק .env.openai' : '🟠 Staging — AI דורש שרת מקומי');
+    chip.textContent = ok ? '🟢 OpenAI מחובר' : (HAS_API ? '🟠 OpenAI — בדוק .env.openai' : '🟠 Staging — AI דורש שרת מקומי');
   }
 
   function loadData() {
-    if (API) {
+    if (HAS_API) {
       return apiFetch('/api/data').then(function (res) {
         if (res.ok && res.data.data) { COCO.data = res.data.data; bindDataToUI(); return; }
         throw new Error(res.data.message || 'API');
@@ -186,7 +200,7 @@
 
   function syncNow() {
     showToast('🔄 מסנכרן Google Sheets + GSC + GA4...', 'info');
-    if (!API) { showToast('סנכרון מלא זמין בפיתוח מקומי (npm run ai-marketing:dev)', 'warn'); return loadData(); }
+    if (!HAS_API) { showToast('סנכרון מלא זמין בפיתוח מקומי (npm run ai-marketing:dev)', 'warn'); return loadData(); }
     return apiFetch('/api/sync', { method: 'POST' }).then(function (res) {
       if (res.ok && res.data.data) { COCO.data = res.data.data; bindDataToUI(); showToast('✓ סנכרון הושלם', 'success'); }
       else showToast(res.data.message || 'שגיאת סנכרון', 'warn');
@@ -194,7 +208,7 @@
   }
 
   function saveAction(payload) {
-    if (!API) { showToast('שמירה ל-Google Sheets זמינה בפיתוח מקומי', 'warn'); return Promise.resolve({ ok: false }); }
+    if (!HAS_API) { showToast('שמירה ל-Google Sheets זמינה בפיתוח מקומי', 'warn'); return Promise.resolve({ ok: false }); }
     return apiFetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       .then(function (res) {
         if (res.ok && res.data.data) { COCO.data = res.data.data; bindDataToUI(); showToast('✓ נשמר ב-Google Sheets', 'success'); }
@@ -205,7 +219,7 @@
 
   function runAi(module, prompt, title) {
     if (COCO.ai.busy) { showToast('AI עסוק — המתן', 'warn'); return; }
-    if (!API) { showToast('OpenAI: הפעל npm run ai-marketing:dev + הגדר .env.openai', 'warn'); return; }
+    if (!HAS_API) { showToast('OpenAI: הפעל npm run ai-marketing:dev + הגדר .env.openai', 'warn'); return; }
     if (!COCO.ai.connected) { showToast('OpenAI לא מחובר — בדוק .env.openai', 'warn'); return; }
     COCO.ai.busy = true;
     showToast('🤖 שולח ל-OpenAI...', 'info');
@@ -339,12 +353,38 @@
     });
   }
 
-  function initGuidePrompts() {
-    document.querySelectorAll('.guide-prompt[data-ai-prompt]').forEach(function (el) {
+  function initGuidePrompts(root) {
+    (root || document).querySelectorAll('.guide-prompt[data-ai-prompt]').forEach(function (el) {
+      if (el.dataset.bound) return;
+      el.dataset.bound = '1';
       el.addEventListener('click', function () {
         runAi(el.dataset.aiModule || 'general', el.dataset.aiPrompt, el.querySelector('.gp-title')?.textContent || 'AI');
       });
     });
+  }
+
+  var manualLoaded = false;
+  function manualUrl() {
+    var base = './';
+    var path = location.pathname || '';
+    if (path.indexOf('ai-marketing-platform') > 0) {
+      base = path.substring(0, path.indexOf('ai-marketing-platform'));
+    }
+    return base + 'ai-marketing/usermanual-content.html';
+  }
+
+  function loadUserManual() {
+    if (manualLoaded) return Promise.resolve();
+    return fetch(manualUrl())
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function (html) {
+        var el = document.getElementById('manualBody');
+        if (el) { el.innerHTML = html; initGuidePrompts(el); manualLoaded = true; }
+      })
+      .catch(function () {
+        var el = document.getElementById('manualBody');
+        if (el) el.innerHTML = '<p class="text2 fs12">לא ניתן לטעון את המדריך. ודא שהקובץ ai-marketing/usermanual-content.html קיים.</p>';
+      });
   }
 
   function onClick(e) {
@@ -365,6 +405,7 @@
     if (/יצוא PDF|📥 יצוא PDF|📄 יצוא/.test(t)) { exportFile('pdf', btn); return; }
     if (/Excel|CSV/.test(t)) { exportFile(/CSV/.test(t) ? 'csv' : 'excel', btn); return; }
     if (/שמור הגדרות/.test(t)) { saveAction({ action: 'settings_saved', status: 'saved', note: 'הגדרות מהדשבורד' }); return; }
+    if (/מדריך שימוש|📘/.test(t) && btn.closest('.sb-item')) { gotoSc('usermanual'); return; }
     if (/מדריך AI|📖/.test(t) && btn.closest('.sb-item')) { gotoSc('aiguide'); return; }
     if (btn.closest('#sc-approval')) {
       if (/אשר הכל/.test(t)) {
@@ -386,12 +427,20 @@
   function init() {
     initSearchFilters();
     initGuidePrompts();
+    if (typeof window.gotoSc === 'function') {
+      var _gotoSc = window.gotoSc;
+      window.gotoSc = function (id) {
+        _gotoSc(id);
+        var sid = id.startsWith('sc-') ? id : 'sc-' + id;
+        if (sid === 'sc-usermanual') loadUserManual();
+      };
+    }
     document.body.addEventListener('click', onClick);
     document.getElementById('actionModal')?.addEventListener('click', function (e) {
       if (e.target.id === 'actionModal') closeActionModal();
     });
     loadData().then(function () { showToast('CO.CO דליה — נטען', 'success'); });
-    if (API) {
+    if (HAS_API) {
       apiFetch('/api/ai/health').then(function (r) { updateAiStatus(!!r.data?.ok); }).catch(function () { updateAiStatus(false); });
     } else updateAiStatus(false);
   }
@@ -400,8 +449,10 @@
   else init();
 
   window.COCO = COCO;
+  window.COCO_API = { hasApi: HAS_API, base: API_BASE, fetch: apiFetch };
   window.closeActionModal = closeActionModal;
   window.showToast = showToast;
   window.syncNow = syncNow;
   window.runAi = runAi;
+  window.loadUserManual = loadUserManual;
 })();

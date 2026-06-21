@@ -53,7 +53,8 @@
     "ai-marketing:dev": "node scripts/ai-marketing/ai-marketing-dev.mjs",
     "ai-marketing:hebrew": "node scripts/ai-marketing/hebrew-translate.mjs",
     "ai-marketing:qa": "node scripts/qa-ai-marketing-platform.mjs",
-    "ai-marketing:qa-full": "node scripts/qa-ai-marketing-full.mjs"
+    "ai-marketing:qa-full": "node scripts/qa-ai-marketing-full.mjs",
+    "ai-marketing:openai-modules-probe": "node scripts/ai-marketing/openai-modules-probe.mjs"
   },
   "dependencies": {
     "@elevenlabs/client": "^1.12.0",
@@ -128,6 +129,7 @@
     "lovable-tagger": "^1.1.13",
     "playwright": "^1.61.0",
     "postcss": "^8.5.6",
+    "postcss-selector-parser": "^7.1.4",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",

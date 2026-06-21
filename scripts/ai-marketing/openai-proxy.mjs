@@ -3,21 +3,9 @@
  * Local: http://127.0.0.1:8787
  */
 import http from 'http';
-import { existsSync, readFileSync } from 'fs';
+import { loadOpenAIKey, loadOpenAIModel } from './_lib/openai-env.mjs';
 
 const PORT = Number(process.env.AI_PROXY_PORT || 8787);
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-
-function loadKey() {
-  if (!existsSync('.env.openai')) return null;
-  const raw = readFileSync('.env.openai', 'utf8');
-  const m = raw.match(/^OPENAI_API_KEY=(.*)$/m);
-  const key = m?.[1]?.trim();
-  if (!key || key.length < 10 || key.includes('YOUR')) return null;
-  return key;
-}
-
-const API_KEY = loadKey();
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -48,16 +36,20 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.url === '/api/ai/health' && req.method === 'GET') {
+    const key = loadOpenAIKey();
+    const model = loadOpenAIModel();
     return json(res, 200, {
-      ok: !!API_KEY,
+      ok: !!key,
       provider: 'OpenAI',
-      model: MODEL,
-      message: API_KEY ? 'מחובר' : 'OPENAI_API_KEY חסר ב-.env.openai',
+      model,
+      message: key ? 'מחובר' : 'OPENAI_API_KEY חסר ב-.env.openai',
     });
   }
 
   if (req.url === '/api/ai/chat' && req.method === 'POST') {
-    if (!API_KEY) {
+    const key = loadOpenAIKey();
+    const model = loadOpenAIModel();
+    if (!key) {
       return json(res, 503, {
         error: 'missing_key',
         message: 'הגדר OPENAI_API_KEY בקובץ .env.openai (לא ב-GitHub)',
@@ -77,11 +69,11 @@ const server = http.createServer(async (req, res) => {
       const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${API_KEY}`,
+          Authorization: `Bearer ${key}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: MODEL,
+          model,
           messages: [
             { role: 'system', content: system },
             { role: 'user', content: `[${module}] ${prompt}` },
@@ -104,7 +96,7 @@ const server = http.createServer(async (req, res) => {
         ok: true,
         module,
         text,
-        model: data.model || MODEL,
+        model: data.model || model,
         usage: data.usage,
       });
     } catch (e) {
@@ -118,6 +110,6 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`\n=== CO.CO OpenAI Proxy ===`);
   console.log(`URL: http://127.0.0.1:${PORT}`);
-  console.log(`OpenAI key: ${API_KEY ? 'configured (.env.openai)' : 'NOT SET'}`);
+  console.log(`OpenAI key: ${loadOpenAIKey() ? 'configured (.env.openai)' : 'NOT SET'}`);
   console.log(`Health: http://127.0.0.1:${PORT}/api/ai/health\n`);
 });

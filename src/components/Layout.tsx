@@ -6,6 +6,7 @@ import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import logo from '@/assets/logo.png';
 import { LogOut, X, Eye, Building2 } from 'lucide-react';
 import HelpButton from '@/components/HelpButton';
+import DaliaAiFab from '@/components/DaliaAiFab';
 
 export default function Layout() {
   const { user, realUser, isImpersonating, stopImpersonation, logout } = useAuth();
@@ -94,6 +95,7 @@ export default function Layout() {
 
       <BottomNav />
       <HelpButton />
+      <DaliaAiFab />
     </div>
   );
 }

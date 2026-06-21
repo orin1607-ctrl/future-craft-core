@@ -61,7 +61,7 @@ const viewports = [
 ];
 
 const SCREENS = [
-  'sc-dashboard','sc-director','sc-approval','sc-notifications','sc-tasks','sc-briefing',
+  'sc-dashboard','sc-usermanual','sc-director','sc-approval','sc-notifications','sc-tasks','sc-briefing',
   'sc-seo','sc-keywords','sc-content','sc-warehouse','sc-pages','sc-landing','sc-scheduler',
   'sc-intel','sc-competitors','sc-news','sc-gbp','sc-ads','sc-roi','sc-funnel','sc-journey',
   'sc-kpi','sc-heatmap','sc-executive','sc-strategy','sc-ailab','sc-autonomous','sc-aiimage',
@@ -75,6 +75,7 @@ for (const vp of viewports) {
     if (msg.type() === 'error') {
       const t = msg.text();
       if (t.includes('8787') && t.includes('REFUSED')) return;
+      if (t.includes('/api/ai/chat') && t.includes('503')) return;
       report.consoleErrors.push(`[${vp.name}] ${t}`);
     }
   });
@@ -100,6 +101,12 @@ for (const vp of viewports) {
   const dataOk = await page.waitForFunction(() => window.COCO?.data?.kpis, { timeout: 8000 }).then(() => true).catch(() => false);
   dataOk ? report.passed.push(`${vp.name}:data-layer`) : report.failed.push(`${vp.name}:data-layer`);
 
+  // User manual screen
+  await page.evaluate(() => window.gotoSc('usermanual'));
+  await page.waitForTimeout(400);
+  const manualOk = await page.locator('#sc-usermanual .guide-section').count();
+  manualOk >= 5 ? report.passed.push(`${vp.name}:usermanual-content`) : report.failed.push(`${vp.name}:usermanual missing sections`);
+
   // AI guide screen content
   await page.evaluate(() => window.gotoSc('aiguide'));
   const guideOk = await page.locator('#sc-aiguide .guide-section').count();
@@ -111,6 +118,23 @@ for (const vp of viewports) {
     acc === 12 ? report.passed.push('mobile:accordion-12') : report.failed.push(`mobile accordion ${acc}`);
     await page.locator('.sb-acc-hdr').first().click();
     report.passed.push('mobile:accordion-click');
+    (await page.locator('#cocoAiFab').isVisible()) ? report.passed.push('assistant:mobile-fab') : report.failed.push('assistant:mobile-fab');
+  }
+
+  // AI Assistant (desktop only — full interaction)
+  if (vp.name === 'desktop') {
+    const fab = await page.locator('#cocoAiFab').count();
+    fab ? report.passed.push('assistant:fab') : report.failed.push('assistant:fab');
+    await page.click('#cocoAiFab');
+    await page.waitForTimeout(300);
+    const open = await page.evaluate(() => document.getElementById('cocoAiPanel')?.classList.contains('open'));
+    open ? report.passed.push('assistant:panel') : report.failed.push('assistant:panel');
+    const navOk = await page.evaluate(() => typeof window.COCO_ASSISTANT?.open === 'function');
+    navOk ? report.passed.push('assistant:api') : report.failed.push('assistant:api');
+    const chipCount = await page.locator('.coco-ai-chip').count();
+    chipCount >= 4 ? report.passed.push('assistant:chips') : report.failed.push('assistant:chips');
+    await page.click('#cocoAiClose');
+    report.passed.push('assistant:panel-close');
   }
 
   // Button smoke — click AI buttons without crash

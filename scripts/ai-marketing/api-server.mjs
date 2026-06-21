@@ -10,27 +10,18 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { appendUiAction, readUiActions } from './sheets-ui.mjs';
 import { loadDrafts, updateDraftStatus } from '../project-001/_lib/history.mjs';
+import { loadOpenAIKey } from './_lib/openai-env.mjs';
+import { handleAiChat, openAiHealth } from './handle-ai-chat.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..', '..');
 const PORT = Number(process.env.COCO_API_PORT || 8787);
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 const PATHS = {
   dashboard: join(ROOT, 'public', 'project-001', 'dashboard.json'),
   cocoData: join(ROOT, 'public', 'ai-marketing', 'data.json'),
   drafts: join(ROOT, 'public', 'project-001', 'drafts.json'),
 };
-
-function loadKey() {
-  if (!existsSync(join(ROOT, '.env.openai'))) return null;
-  const raw = readFileSync(join(ROOT, '.env.openai'), 'utf8');
-  const m = raw.match(/^OPENAI_API_KEY=(.*)$/m);
-  const key = m?.[1]?.trim();
-  return key && key.length > 10 && !key.includes('YOUR') ? key : null;
-}
-
-const OPENAI_KEY = loadKey();
 
 function json(res, code, body) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -137,35 +128,6 @@ function runSyncExport() {
   });
 }
 
-async function handleAiChat(body) {
-  if (!OPENAI_KEY) {
-    return { ok: false, error: 'missing_key', message: 'הגדר OPENAI_API_KEY ב-.env.openai' };
-  }
-  const prompt = body.prompt || body.message || '';
-  const system = body.system || 'אתה עוזר שיווק AI של דליה (dalia-c.com). ענה בעברית, מקצועי וקצר.';
-  const module = body.module || 'general';
-  if (!prompt.trim()) return { ok: false, error: 'empty_prompt' };
-
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: `[${module}] ${prompt}` },
-      ],
-      max_tokens: body.max_tokens || 900,
-      temperature: 0.7,
-    }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    return { ok: false, error: 'openai_error', message: data.error?.message || `HTTP ${res.status}` };
-  }
-  return { ok: true, text: data.choices?.[0]?.message?.content || '', model: data.model || MODEL };
-}
-
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -178,9 +140,10 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.url === '/api/health' && req.method === 'GET') {
       const dash = loadJson(PATHS.dashboard);
+      const key = loadOpenAIKey();
       return json(res, 200, {
         ok: true,
-        openai: !!OPENAI_KEY,
+        openai: !!key,
         dashboard: !!dash,
         dataSource: dash?.dataSource || 'demo',
         spreadsheet: dash?.lastSync?.spreadsheet_url || null,
@@ -188,12 +151,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.url === '/api/ai/health' && req.method === 'GET') {
-      return json(res, 200, {
-        ok: !!OPENAI_KEY,
-        provider: 'OpenAI',
-        model: MODEL,
-        message: OPENAI_KEY ? 'מחובר' : 'OPENAI_API_KEY חסר ב-.env.openai',
-      });
+      return json(res, 200, openAiHealth());
     }
 
     if (req.url === '/api/ai/chat' && req.method === 'POST') {
@@ -246,8 +204,9 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
+  const key = loadOpenAIKey();
   console.log('\n=== CO.CO Dalia API ===');
   console.log(`http://127.0.0.1:${PORT}`);
-  console.log(`OpenAI: ${OPENAI_KEY ? 'configured' : 'NOT SET (.env.openai)'}`);
+  console.log(`OpenAI: ${key ? 'configured (.env.openai)' : 'NOT SET — הדבק OPENAI_API_KEY ב-.env.openai'}`);
   console.log(`Dashboard: ${existsSync(PATHS.dashboard) ? 'yes' : 'missing'}\n`);
 });
