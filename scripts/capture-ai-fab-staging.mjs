@@ -1,6 +1,5 @@
 /**
- * Capture AI FAB on staging — button + open chat panel
- * Usage: node scripts/capture-ai-fab-staging.mjs [baseUrl]
+ * Capture marketing AI FAB on staging — only inside /ai-marketing
  */
 import { chromium } from 'playwright';
 import { createClient } from '@supabase/supabase-js';
@@ -10,7 +9,6 @@ import { join } from 'path';
 
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
 const STAGING_URL = `https://${STAGING_REF}.supabase.co`;
-
 const BASE = (process.argv[2] || 'https://orin1607-ctrl.github.io/future-craft-core/').replace(/\/?$/, '/');
 const OUT = join(process.cwd(), 'docs', 'screenshots', 'ai-fab-staging');
 mkdirSync(OUT, { recursive: true });
@@ -34,14 +32,11 @@ function loadEnv() {
 }
 
 const fileEnv = loadEnv();
-const supabaseUrl = process.env.VITE_SUPABASE_URL || fileEnv.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || fileEnv.VITE_SUPABASE_PUBLISHABLE_KEY;
 const testEmail = process.env.TEST_EMAIL || fileEnv.TEST_EMAIL;
 const testPassword = process.env.TEST_PASSWORD || fileEnv.TEST_PASSWORD;
 
 async function injectSession(context, session) {
-  const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
-  const storageKey = `sb-${projectRef}-auth-token`;
+  const storageKey = `sb-${STAGING_REF}-auth-token`;
   await context.addInitScript(
     ({ key, value }) => localStorage.setItem(key, JSON.stringify(value)),
     { key: storageKey, value: session },
@@ -63,8 +58,8 @@ async function main() {
 
   if (!email || !password) {
     const runId = Date.now();
-    email = `ai-fab-${runId}@staging-e2e.local`;
-    password = `Fab!${runId}`;
+    email = `mkt-ai-${runId}@staging-e2e.local`;
+    password = `Mkt!${runId}`;
     const { data: created, error } = await admin.auth.admin.createUser({
       email,
       password,
@@ -74,7 +69,7 @@ async function main() {
     ephemeralUid = created.user.id;
     await admin.from('profiles').upsert({
       id: ephemeralUid,
-      full_name: 'AI FAB QA',
+      full_name: 'Marketing AI QA',
       company_name: 'QA',
       is_active: true,
       approval_status: 'approved',
@@ -82,60 +77,68 @@ async function main() {
     await admin.from('user_roles').delete().eq('user_id', ephemeralUid);
     await admin.from('user_roles').insert({ user_id: ephemeralUid, role: 'super_admin' });
     await new Promise((r) => setTimeout(r, 800));
-    console.log('Auth: ephemeral super_admin', email);
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.session) {
-    console.error('Login failed:', error?.message);
-    process.exit(1);
-  }
+  if (error || !data.session) throw new Error(`Login failed: ${error?.message}`);
 
   const browser = await chromium.launch();
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await injectSession(context, data.session);
-  const page = await context.newPage();
+  const report = { fabOnDashboard: false, fabOnMarketing: false, noGlobalFab: true };
 
-  await page.goto(`${BASE}dashboard`, { waitUntil: 'networkidle', timeout: 60000 });
-  await page.waitForTimeout(2000);
+  // Mobile — marketing module
+  const mobileCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await injectSession(mobileCtx, data.session);
+  const mobilePage = await mobileCtx.newPage();
 
-  const fab = page.locator('.dalia-ai-fab');
-  await fab.waitFor({ state: 'visible', timeout: 15000 });
-  await page.screenshot({ path: join(OUT, '01-mobile-fab-visible.png') });
-  console.log('📷 01-mobile-fab-visible.png');
+  await mobilePage.goto(`${BASE}dashboard`, { waitUntil: 'networkidle', timeout: 60000 });
+  await mobilePage.waitForTimeout(1500);
+  report.fabOnDashboard = (await mobilePage.locator('.dalia-ai-fab, .coco-ai-fab').count()) > 0;
+  report.noGlobalFab = !report.fabOnDashboard;
+
+  await mobilePage.goto(`${BASE}ai-marketing`, { waitUntil: 'networkidle', timeout: 60000 });
+  await mobilePage.waitForTimeout(2500);
+  const iframe = mobilePage.frameLocator('iframe[title*="ניהול שיווק"]');
+  const fab = iframe.locator('#cocoAiFab');
+  await fab.waitFor({ state: 'visible', timeout: 20000 });
+  report.fabOnMarketing = true;
+  await mobilePage.screenshot({ path: join(OUT, '01-mobile-marketing-fab.png') });
+  console.log('📷 01-mobile-marketing-fab.png');
 
   await fab.click({ force: true });
-  await page.waitForTimeout(800);
-  await page.screenshot({ path: join(OUT, '02-mobile-chat-open.png') });
+  await mobilePage.waitForTimeout(800);
+  await mobilePage.screenshot({ path: join(OUT, '02-mobile-chat-open.png') });
   console.log('📷 02-mobile-chat-open.png');
 
-  const chip = page.locator('button', { hasText: 'מה הכי דחוף' }).first();
+  const chip = iframe.locator('.coco-ai-chip', { hasText: 'מה הכי דחוף' }).first();
   if (await chip.count()) {
     await chip.click({ force: true });
-    await page.waitForTimeout(15000);
-    await page.screenshot({ path: join(OUT, '03-mobile-ai-response.png') });
+    await mobilePage.waitForTimeout(15000);
+    await mobilePage.screenshot({ path: join(OUT, '03-mobile-ai-response.png') });
     console.log('📷 03-mobile-ai-response.png');
   }
 
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(`${BASE}dashboard`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1500);
-  await page.screenshot({ path: join(OUT, '04-desktop-fab-visible.png') });
-  console.log('📷 04-desktop-fab-visible.png');
+  // Desktop
+  const desktopCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await injectSession(desktopCtx, data.session);
+  const desktopPage = await desktopCtx.newPage();
+  await desktopPage.goto(`${BASE}ai-marketing`, { waitUntil: 'networkidle', timeout: 60000 });
+  await desktopPage.waitForTimeout(2500);
+  const dFrame = desktopPage.frameLocator('iframe[title*="ניהול שיווק"]');
+  await dFrame.locator('#cocoAiFab').waitFor({ state: 'visible', timeout: 20000 });
+  await desktopPage.screenshot({ path: join(OUT, '04-desktop-marketing-fab.png') });
+  console.log('📷 04-desktop-marketing-fab.png');
 
-  await page.locator('.dalia-ai-fab').click({ force: true });
-  await page.waitForTimeout(600);
-  await page.screenshot({ path: join(OUT, '05-desktop-chat-open.png') });
+  await dFrame.locator('#cocoAiFab').click({ force: true });
+  await desktopPage.waitForTimeout(600);
+  await desktopPage.screenshot({ path: join(OUT, '05-desktop-chat-open.png') });
   console.log('📷 05-desktop-chat-open.png');
 
   await browser.close();
+  if (ephemeralUid) await admin.auth.admin.deleteUser(ephemeralUid);
 
-  if (ephemeralUid) {
-    await admin.auth.admin.deleteUser(ephemeralUid);
-    console.log('Cleaned up ephemeral user');
-  }
-
-  console.log('\nDone:', OUT);
+  console.log('\nReport:', report);
+  if (!report.noGlobalFab || !report.fabOnMarketing) process.exit(1);
+  console.log('Done:', OUT);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

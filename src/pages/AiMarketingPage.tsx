@@ -1,13 +1,45 @@
+import { useEffect, useRef, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * CO.CO דליה — ניהול שיווק (Super Admin only)
- * Embedded inside Dalia Layout — same header, sidebar, permissions.
- * Staging / workspace only (route gated in routeAccess.ts).
+ * Marketing AI lives inside this iframe only — separate from fleet Help AI.
  */
 export default function AiMarketingPage() {
   const { user } = useAuth();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const pushAuthToIframe = useCallback(async () => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    iframe.contentWindow.postMessage(
+      {
+        type: 'dalia-coco-auth',
+        accessToken: session.access_token,
+        supabaseUrl,
+        marketingChatUrl: `${supabaseUrl}/functions/v1/marketing-ai-chat`,
+      },
+      '*',
+    );
+  }, []);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    iframe.addEventListener('load', pushAuthToIframe);
+    pushAuthToIframe();
+    const onFocus = () => pushAuthToIframe();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      iframe.removeEventListener('load', pushAuthToIframe);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [pushAuthToIframe]);
 
   if (user?.role !== 'super_admin') {
     return <Navigate to="/dashboard" replace />;
@@ -22,6 +54,7 @@ export default function AiMarketingPage() {
       style={{ marginBottom: 0 }}
     >
       <iframe
+        ref={iframeRef}
         title="ניהול שיווק — CO.CO דליה"
         src={src}
         className="w-full h-full border-0"

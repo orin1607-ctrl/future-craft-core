@@ -200,27 +200,50 @@
 
   function apiChat(prompt) {
     var api = window.COCO_API;
-    if (!api?.hasApi) {
-      return Promise.resolve({
-        ok: false,
-        message: 'AI זמין בפיתוח מקומי: npm run ai-marketing:dev + .env.openai',
+    if (api?.hasApi) {
+      return api.fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assistant: true,
+          module: 'assistant',
+          system: buildSystemPrompt(),
+          prompt: prompt,
+          history: state.history,
+          max_tokens: 1100,
+        }),
+      }).then(function (r) {
+        return { ok: r.ok && r.data?.ok, text: r.data?.text, message: r.data?.message };
+      }).catch(function (e) {
+        return { ok: false, message: e.message };
       });
     }
-    return api.fetch('/api/ai/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        assistant: true,
-        module: 'assistant',
-        system: buildSystemPrompt(),
-        prompt: prompt,
-        history: state.history,
-        max_tokens: 1100,
-      }),
-    }).then(function (r) {
-      return { ok: r.ok && r.data?.ok, text: r.data?.text, message: r.data?.message };
-    }).catch(function (e) {
-      return { ok: false, message: e.message };
+
+    var staging = window.COCO_STAGING;
+    if (staging?.marketingChatUrl && staging?.accessToken) {
+      return fetch(staging.marketingChatUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + staging.accessToken,
+        },
+        body: JSON.stringify({
+          assistant: true,
+          module: 'assistant',
+          system: buildSystemPrompt(),
+          prompt: prompt,
+          history: state.history,
+        }),
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        return { ok: !!data.ok, text: data.text, message: data.error || data.message };
+      }).catch(function (e) {
+        return { ok: false, message: e.message };
+      });
+    }
+
+    return Promise.resolve({
+      ok: false,
+      message: 'AI שיווק זמין ב-Staging לאחר התחברות, או מקומית: npm run ai-marketing:dev + .env.openai',
     });
   }
 
@@ -306,15 +329,12 @@
   function init() {
     initChips();
     initMic();
-    if (new URLSearchParams(location.search).get('embedded') === '1' || window.self !== window.top) {
-      var fab = document.getElementById('cocoAiFab');
-      var panel = document.getElementById('cocoAiPanel');
-      var backdrop = document.getElementById('cocoAiBackdrop');
-      if (fab) fab.style.display = 'none';
-      if (panel) panel.style.display = 'none';
-      if (backdrop) backdrop.style.display = 'none';
-    }
-    $('cocoAiFab')?.addEventListener('click', function () { setOpen(!state.open); });
+    window.addEventListener('message', function (e) {
+      if (e.data && e.data.type === 'dalia-coco-auth') {
+        window.COCO_STAGING = e.data;
+      }
+    });
+    $('cocoAiFab')?.addEventListener('click', function () { setOpen(true); });
     $('cocoAiClose')?.addEventListener('click', function () { setOpen(false); });
     $('cocoAiBackdrop')?.addEventListener('click', function () { setOpen(false); });
     $('cocoAiSend')?.addEventListener('click', function () { sendMessage(); });
