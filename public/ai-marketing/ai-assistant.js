@@ -27,12 +27,13 @@
   };
 
   var QUICK_CHIPS = [
-    'תעשה לי סיכום יומי',
-    'מה הכי דחוף?',
-    'תכין תוכנית עבודה לשבוע',
+    'מה הכי דחוף היום?',
+    'מה מצב ה-SEO?',
+    'איזה תוכן כדאי לכתוב?',
+    'תמצא לי מילות מפתח',
+    'תנתח לי את האתר',
+    'מה כדאי לעשות השבוע?',
     'מה ממתין לאישור?',
-    'הזדמנויות SEO',
-    'המלצות קידום',
   ];
 
   var NAV_RE = /\[\[nav:([a-z0-9_-]+)\]\]/gi;
@@ -109,6 +110,7 @@
       '[[action:runai:MODULE:בקשה קצרה]] — הרצת מודול AI (לדוגמה [[action:runai:content:כתוב מתווה מאמר]])',
       '',
       'כללי:',
+      '- ענה תמיד בעברית מלאה — ללא אנגלית מיותרת.',
       '- ענה בנקודות כשמתאים. סכם יומי = מה קרה, מה דחוף, מה לעשות.',
       '- פרסום/אישור סופי תמיד דורש אישור המשתמש — הפנה ל"מרכז אישורים".',
       '- אם אין OpenAI — הסבר להפעיל npm run ai-marketing:dev ו-.env.openai',
@@ -190,10 +192,13 @@
     $('cocoAiBackdrop')?.classList.toggle('open', open);
     $('cocoAiPanel')?.setAttribute('aria-hidden', open ? 'false' : 'true');
     $('cocoAiBackdrop')?.setAttribute('aria-hidden', open ? 'false' : 'true');
+    $('cocoAiFab')?.classList.toggle('hidden', open);
+    $('cocoAiFab')?.setAttribute('aria-expanded', open ? 'true' : 'false');
+    document.body.classList.toggle('coco-ai-open', open);
     if (open) {
       $('cocoAiInput')?.focus();
       if (!$('cocoAiMsgs')?.children.length) {
-        appendMsg('bot', 'שלום יוני 👋\nאני מנהל השיווק AI.\n\nשאל אותי כל דבר — סיכום יומי, מה דחוף, מילות מפתח, תוכן, SEO — ואני אוביל אותך למסך הנכון.');
+        appendMsg('bot', 'שלום יוני 👋\nאני מנהל השיווק AI של CO.CO דליה.\n\nשאל בחופשיות — SEO, מילות מפתח, תוכן, GBP, דוחות — ואני אוביל אותך למסך הנכון.');
       }
     }
   }
@@ -334,7 +339,10 @@
         window.COCO_STAGING = e.data;
       }
     });
-    $('cocoAiFab')?.addEventListener('click', function () { setOpen(true); });
+    $('cocoAiFab')?.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (!state.open) setOpen(true);
+    });
     $('cocoAiClose')?.addEventListener('click', function () { setOpen(false); });
     $('cocoAiBackdrop')?.addEventListener('click', function () { setOpen(false); });
     $('cocoAiSend')?.addEventListener('click', function () { sendMessage(); });
