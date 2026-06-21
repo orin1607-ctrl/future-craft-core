@@ -49,7 +49,7 @@ async function main() {
   let ephemeralUid = null;
 
   const keys = JSON.parse(
-    execSync(`supabase projects api-keys --project-ref ${STAGING_REF} -o json`, { encoding: 'utf8' }),
+    execSync(`npx supabase projects api-keys --project-ref ${STAGING_REF} -o json`, { encoding: 'utf8' }),
   );
   const anon = keys.find((k) => k.name === 'anon' && k.type === 'legacy').api_key;
   const service = keys.find((k) => k.name === 'service_role' && k.type === 'legacy').api_key;
@@ -82,7 +82,13 @@ async function main() {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.session) throw new Error(`Login failed: ${error?.message}`);
 
-  const browser = await chromium.launch();
+  const browser = await (async () => {
+    try {
+      return await chromium.launch({ channel: 'chrome' });
+    } catch {
+      return await chromium.launch();
+    }
+  })();
   const report = { fabOnDashboard: false, fabOnMarketing: false, noGlobalFab: true };
 
   // Mobile — marketing module
