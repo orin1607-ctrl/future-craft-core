@@ -104,16 +104,15 @@ async function main() {
   await page.screenshot({ path: join(OUT, '01-mobile-fab-visible.png') });
   console.log('📷 01-mobile-fab-visible.png');
 
-  await fab.click();
+  await fab.click({ force: true });
   await page.waitForTimeout(800);
   await page.screenshot({ path: join(OUT, '02-mobile-chat-open.png') });
   console.log('📷 02-mobile-chat-open.png');
 
-  await page.locator('.dalia-ai-fab').first().click();
   const chip = page.locator('button', { hasText: 'מה הכי דחוף' }).first();
   if (await chip.count()) {
-    await chip.click();
-    await page.waitForTimeout(12000);
+    await chip.click({ force: true });
+    await page.waitForTimeout(15000);
     await page.screenshot({ path: join(OUT, '03-mobile-ai-response.png') });
     console.log('📷 03-mobile-ai-response.png');
   }
@@ -124,7 +123,7 @@ async function main() {
   await page.screenshot({ path: join(OUT, '04-desktop-fab-visible.png') });
   console.log('📷 04-desktop-fab-visible.png');
 
-  await page.locator('.dalia-ai-fab').click();
+  await page.locator('.dalia-ai-fab').click({ force: true });
   await page.waitForTimeout(600);
   await page.screenshot({ path: join(OUT, '05-desktop-chat-open.png') });
   console.log('📷 05-desktop-chat-open.png');

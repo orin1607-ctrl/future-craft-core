@@ -306,7 +306,14 @@ Deno.serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const OPENAI_MODEL = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
+
+    if (!LOVABLE_API_KEY && !OPENAI_API_KEY) {
+      throw new Error("AI is not configured (set LOVABLE_API_KEY or OPENAI_API_KEY)");
+    }
+
+    const useOpenAI = !LOVABLE_API_KEY && !!OPENAI_API_KEY;
 
     const supabase = ctx.supabaseUser;
     const companyScope = resolveCompanyScope(ctx, company_name);
@@ -318,6 +325,35 @@ Deno.serve(async (req) => {
     const fullSysPrompt = page_context
       ? `${sysPrompt}\n\n--- הקשר מסך נוכחי ---\n${page_context}`
       : sysPrompt;
+
+    if (useOpenAI) {
+      const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: OPENAI_MODEL,
+          messages: [{ role: "system", content: fullSysPrompt }, ...messages],
+          stream: true,
+          max_tokens: 1200,
+          temperature: 0.65,
+        }),
+      });
+
+      if (!openAiResponse.ok) {
+        const t = await openAiResponse.text();
+        console.error("OpenAI error:", openAiResponse.status, t);
+        return new Response(JSON.stringify({ error: "שגיאה בשירות AI" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(openAiResponse.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
 
     const firstResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
