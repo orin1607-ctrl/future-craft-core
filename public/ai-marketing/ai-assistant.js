@@ -27,12 +27,13 @@
   };
 
   var QUICK_CHIPS = [
-    'תעשה לי סיכום יומי',
-    'מה הכי דחוף?',
-    'תכין תוכנית עבודה לשבוע',
+    'מה הכי דחוף היום?',
+    'מה מצב ה-SEO?',
+    'איזה תוכן כדאי לכתוב?',
+    'תמצא לי מילות מפתח',
+    'תנתח לי את האתר',
+    'מה כדאי לעשות השבוע?',
     'מה ממתין לאישור?',
-    'הזדמנויות SEO',
-    'המלצות קידום',
   ];
 
   var NAV_RE = /\[\[nav:([a-z0-9_-]+)\]\]/gi;
@@ -81,6 +82,28 @@
     if (d.approvals?.length) {
       lines.push('פריטים לאישור: ' + d.approvals.map(function (a) { return a.title; }).join('; '));
     }
+    var gbp = d.gbpLive || d.businessProfileData;
+    if (gbp) {
+      lines.push('--- Google Business Profile ---');
+      lines.push('סטטוס GBP: ' + (gbp.ok ? 'מחובר' : (gbp.status || 'לא מחובר')));
+      if (gbp.profile?.title) lines.push('שם עסק GBP: ' + gbp.profile.title);
+      var gk = gbp.kpis || {};
+      if (gk.profileViews != null) lines.push('צפיות בפרופיל (28 יום): ' + gk.profileViews);
+      if (gk.navigations != null) lines.push('ניווטים לעסק: ' + gk.navigations);
+      if (gk.calls != null) lines.push('לחיצות על חיוג: ' + gk.calls);
+      if (gk.messages != null) lines.push('הודעות/שיחות: ' + gk.messages);
+      if (gk.averageRating != null) lines.push('דירוג ממוצע: ' + gk.averageRating + ' (' + (gk.totalReviews || '—') + ' ביקורות)');
+      if (gk.unansweredReviews != null) lines.push('ביקורות ללא תגובה: ' + gk.unansweredReviews);
+      if (gk.postsCount != null) lines.push('פוסטים: ' + gk.postsCount);
+      if (gbp.performance?.searchKeywords?.length) {
+        lines.push('חיפושים מובילים: ' + gbp.performance.searchKeywords.slice(0, 5).map(function (k) {
+          return k.keyword + ' (' + k.impressions + ')';
+        }).join(', '));
+      }
+      if (gbp.gaps?.length) lines.push('חסר ב-GBP: ' + gbp.gaps.join(', '));
+      if (gbp.lastError) lines.push('שגיאת GBP אחרונה: ' + gbp.lastError);
+      lines.push('מדיניות: פרסום GBP רק דרך מרכז אישורים — אין פרסום אוטומטי.');
+    }
     return lines.join('\n');
   }
 
@@ -109,8 +132,10 @@
       '[[action:runai:MODULE:בקשה קצרה]] — הרצת מודול AI (לדוגמה [[action:runai:content:כתוב מתווה מאמר]])',
       '',
       'כללי:',
+      '- ענה תמיד בעברית מלאה — ללא אנגלית מיותרת.',
       '- ענה בנקודות כשמתאים. סכם יומי = מה קרה, מה דחוף, מה לעשות.',
       '- פרסום/אישור סופי תמיד דורש אישור המשתמש — הפנה ל"מרכז אישורים".',
+      '- פוסטים, תגובות לביקורות ועדכוני פרופיל GBP — רק טיוטה + מרכז אישורים, ללא פרסום אוטומטי.',
       '- אם אין OpenAI — הסבר להפעיל npm run ai-marketing:dev ו-.env.openai',
     ].join('\n');
   }
@@ -190,10 +215,13 @@
     $('cocoAiBackdrop')?.classList.toggle('open', open);
     $('cocoAiPanel')?.setAttribute('aria-hidden', open ? 'false' : 'true');
     $('cocoAiBackdrop')?.setAttribute('aria-hidden', open ? 'false' : 'true');
+    $('cocoAiFab')?.classList.toggle('hidden', open);
+    $('cocoAiFab')?.setAttribute('aria-expanded', open ? 'true' : 'false');
+    document.body.classList.toggle('coco-ai-open', open);
     if (open) {
       $('cocoAiInput')?.focus();
       if (!$('cocoAiMsgs')?.children.length) {
-        appendMsg('bot', 'שלום יוני 👋\nאני מנהל השיווק AI.\n\nשאל אותי כל דבר — סיכום יומי, מה דחוף, מילות מפתח, תוכן, SEO — ואני אוביל אותך למסך הנכון.');
+        appendMsg('bot', 'שלום יוני 👋\nאני מנהל השיווק AI של CO.CO דליה.\n\nשאל בחופשיות — SEO, מילות מפתח, תוכן, GBP, דוחות — ואני אוביל אותך למסך הנכון.');
       }
     }
   }
@@ -334,7 +362,10 @@
         window.COCO_STAGING = e.data;
       }
     });
-    $('cocoAiFab')?.addEventListener('click', function () { setOpen(true); });
+    $('cocoAiFab')?.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (!state.open) setOpen(true);
+    });
     $('cocoAiClose')?.addEventListener('click', function () { setOpen(false); });
     $('cocoAiBackdrop')?.addEventListener('click', function () { setOpen(false); });
     $('cocoAiSend')?.addEventListener('click', function () { sendMessage(); });

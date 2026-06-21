@@ -44,5 +44,8 @@ export const REQUIRED_APIS = [
   { id: 'siteverification.googleapis.com', name: 'Google Site Verification API' },
   { id: 'mybusinessaccountmanagement.googleapis.com', name: 'My Business Account Management API' },
   { id: 'mybusinessbusinessinformation.googleapis.com', name: 'My Business Business Information API' },
+  { id: 'businessprofileperformance.googleapis.com', name: 'Business Profile Performance API' },
+  { id: 'mybusinessbusinesscalls.googleapis.com', name: 'My Business Business Calls API' },
+  { id: 'mybusinessqanda.googleapis.com', name: 'My Business Q&A API' },
   { id: 'googleads.googleapis.com', name: 'Google Ads API' },
 ];

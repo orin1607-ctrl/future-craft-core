@@ -105,6 +105,7 @@ async function main() {
   run('npm run project-001:verify', { optional: true });
 
   run('npm run project-001:gbp-probe', { optional: true });
+  run('npm run project-001:gbp-sync', { optional: true });
 
   const adsEnv = loadAdsEnv();
   if (adsEnv.GOOGLE_ADS_DEVELOPER_TOKEN) {
