@@ -187,6 +187,7 @@ async function main() {
     ['OpenAI probe', 'npm run project-001:openai-probe'],
     ['GBP probe', 'npm run project-001:gbp-probe'],
     ['Ads probe', 'npm run project-001:ads-probe'],
+    ['Owner gates doc', 'npm run project-001:owner-gates'],
     ['GSC diagnose', 'npm run project-001:gsc-diagnose'],
     ['Site infra (robots/sitemap)', 'node scripts/project-001/project-001-site-infra.mjs'],
     ['Site crawl', 'node scripts/project-001/project-001-site-crawl.mjs'],

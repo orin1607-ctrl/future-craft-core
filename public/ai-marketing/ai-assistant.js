@@ -104,6 +104,24 @@
       if (gbp.lastError) lines.push('שגיאת GBP אחרונה: ' + gbp.lastError);
       lines.push('מדיניות: פרסום GBP רק דרך מרכז אישורים — אין פרסום אוטומטי.');
     }
+    var ads = d.adsLive || d.googleAdsData;
+    if (ads) {
+      lines.push('--- Google Ads ---');
+      lines.push('סטטוס Ads: ' + (ads.ok ? 'מחובר' : (ads.status || 'לא מחובר')));
+      if (ads.customerName) lines.push('חשבון: ' + ads.customerName);
+      var ak = ads.kpis || {};
+      if (ak.impressions != null) lines.push('חשיפות (30 יום): ' + ak.impressions);
+      if (ak.clicks != null) lines.push('קליקים: ' + ak.clicks);
+      if (ak.cost != null) lines.push('עלות: ' + ak.cost + ' ' + (ak.currency || 'ILS'));
+      if (ak.conversions != null) lines.push('המרות: ' + ak.conversions);
+      if (ads.campaigns?.length) {
+        lines.push('קמפיינים מובילים: ' + ads.campaigns.slice(0, 5).map(function (c) {
+          return c.name + ' (עלות ' + c.cost + ')';
+        }).join('; '));
+      }
+      if (ads.lastError) lines.push('שגיאת Ads: ' + ads.lastError);
+      lines.push('מדיניות: שינוי קמפיינים רק דרך מרכז אישורים — sync read-only.');
+    }
     return lines.join('\n');
   }
 

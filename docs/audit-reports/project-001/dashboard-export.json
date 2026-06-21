@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-06-21T20:03:15.867Z",
+  "generatedAt": "2026-06-21T20:26:57.945Z",
   "project": {
     "id": "project001aimarketing",
     "name": "Project001AIMarketing",
@@ -29,6 +29,11 @@
       "status": "pending_google_api_approval",
       "ok": false,
       "note": "Pending Google API Approval — Basic API Access (quota=0). לא חוסם את הפרויקט."
+    },
+    "googleAds": {
+      "status": "pending_developer_token",
+      "ok": false,
+      "note": "Developer Token missing — https://ads.google.com/aw/apicenter"
     },
     "drive": {
       "status": "connected",
@@ -69,7 +74,26 @@
     "matchedBusiness": null,
     "locations": 0,
     "hint": "דליה פתרונות מימון ותחזוקה לרכב",
-    "lastError": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:484351148380'."
+    "summary": null
+  },
+  "businessProfileData": {
+    "ok": false,
+    "status": "pending_google_api_approval",
+    "pendingApproval": true,
+    "connectionNote": "Pending Google API Approval — Basic API Access (quota=0). לא חוסם את הפרויקט."
+  },
+  "googleAds": {
+    "ok": false,
+    "status": "pending_developer_token",
+    "pendingToken": true,
+    "customerId": null,
+    "summary": null
+  },
+  "googleAdsData": {
+    "ok": false,
+    "status": "pending_developer_token",
+    "pendingToken": true,
+    "connectionNote": "Developer Token missing — https://ads.google.com/aw/apicenter"
   },
   "stats": {
     "avgPosition": 45.5,
@@ -462,6 +486,19 @@
     ],
     "ai": [
       {
+        "id": "ai-1782073617932",
+        "timestamp": "2026-06-21T20:26:57.933Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
         "id": "ai-1782072195850",
         "timestamp": "2026-06-21T20:03:15.850Z",
         "count": 1,
@@ -518,6 +555,13 @@
   },
   "activityLog": [
     {
+      "timestamp": "2026-06-21T20:26:35.840Z",
+      "action": "GBP probe",
+      "status": "warning",
+      "detail": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of se",
+      "source": "Google Business Profile API"
+    },
+    {
       "timestamp": "2026-06-21T20:03:11.753Z",
       "action": "Sync",
       "status": "success",
@@ -530,13 +574,6 @@
       "status": "success",
       "detail": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
       "source": "Google Sheets"
-    },
-    {
-      "timestamp": "2026-06-21T19:57:40.577Z",
-      "action": "GBP probe",
-      "status": "warning",
-      "detail": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of se",
-      "source": "Google Business Profile API"
     },
     {
       "timestamp": "2026-06-21T19:57:28.850Z",
@@ -606,7 +643,17 @@
     "apiDev": "/api/project-001/sync",
     "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
   },
-  "siteCrawl": null,
+  "siteCrawl": {
+    "okPages": 199,
+    "brokenPages": 1,
+    "missingTitle": 5,
+    "missingMetaDescription": 73,
+    "missingH1": 167,
+    "imagesWithoutAlt": 16,
+    "missingSchema": 5,
+    "duplicateTitles": 10,
+    "crawlErrors": 0
+  },
   "siteInfra": {
     "site": "https://dalia-c.com/",
     "fetchedAt": "2026-06-21T19:57:47.510Z",
@@ -706,7 +753,19 @@
       "reachable": 3
     }
   },
-  "indexing": null,
+  "indexing": {
+    "timestamp": "2026-06-21T20:03:57.144Z",
+    "siteUrl": "https://dalia-c.com/",
+    "inspections": [
+      {
+        "url": "https://dalia-c.com/",
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "lastCrawlTime": "2026-06-20T07:23:54Z"
+      }
+    ]
+  },
   "officialSite": "https://dalia-c.com/",
   "policies": {
     "publishRequiresApproval": true,

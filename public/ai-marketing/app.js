@@ -107,6 +107,57 @@
     if (dashTb && d.keywords?.length) renderKeywordsTable(dashTb, d.keywords.slice(0, 5), true);
     if (d.approvals?.length) bindApprovals(d.approvals);
     bindGbpToUI();
+    bindAdsToUI();
+  }
+
+  function adsScreen() { return document.getElementById('sc-ads'); }
+
+  function renderAdsLive(d) {
+    var ads = d?.adsLive || d?.googleAdsData;
+    var screen = adsScreen();
+    if (!screen || !ads) return;
+    var overlay = screen.querySelector('.cs-overlay');
+    if (!ads.ok) {
+      if (overlay) overlay.style.display = '';
+      var bannerId = 'adsConnBanner';
+      var existing = document.getElementById(bannerId);
+      if (!existing && overlay) {
+        existing = document.createElement('div');
+        existing.id = bannerId;
+        existing.className = 'card mb-16';
+        screen.insertBefore(existing, overlay);
+      }
+      if (existing) {
+        var note = ads.connectionNote || ads.lastError || 'Developer Token חסר — ads.google.com/aw/apicenter';
+        existing.innerHTML = '<div class="card-body"><div class="fw7 fs13">💰 Google Ads — ממתין לאישור</div><p class="fs12 text2 mt4">' + esc(note) + '</p><p class="fs11 text2 mt4">לאחר token: npm run project-001:ads-connect</p></div>';
+      }
+      return;
+    }
+    if (overlay) overlay.style.display = 'none';
+    var k = ads.kpis || {};
+    var html = '<div class="g4 mb-16" id="adsLiveKpis">' +
+      '<div class="stat-card blue"><div class="stat-label">חשיפות (30 יום)</div><div class="stat-value sm">' + fmt(k.impressions || 0) + '</div></div>' +
+      '<div class="stat-card green"><div class="stat-label">קליקים</div><div class="stat-value sm">' + fmt(k.clicks || 0) + '</div></div>' +
+      '<div class="stat-card orange"><div class="stat-label">עלות</div><div class="stat-value sm">' + (k.cost != null ? k.cost + ' ' + (k.currency || 'ILS') : '—') + '</div></div>' +
+      '<div class="stat-card purple"><div class="stat-label">המרות</div><div class="stat-value sm">' + fmt(k.conversions || 0) + '</div></div>' +
+      '</div>';
+    var campPane = document.getElementById('adsLiveCampaigns');
+    if (!campPane) {
+      campPane = document.createElement('div');
+      campPane.id = 'adsLiveCampaigns';
+      campPane.className = 'card';
+      screen.appendChild(campPane);
+    }
+    var rows = (ads.campaigns || []).slice(0, 10).map(function (c) {
+      return '<tr><td class="fw7">' + esc(c.name || '—') + '</td><td><span class="chip chip-blue">' + esc(c.status || '—') + '</span></td><td>' + fmt(c.impressions) + '</td><td>' + fmt(c.clicks) + '</td><td>' + (c.cost != null ? c.cost : '—') + '</td><td>' + fmt(c.conversions) + '</td></tr>';
+    }).join('');
+    campPane.innerHTML = html + '<div class="card-header">📊 קמפיינים (30 יום)</div><div class="card-body table-wrap"><table class="data-table"><thead><tr><th>קמפיין</th><th>סטטוס</th><th>חשיפות</th><th>קליקים</th><th>עלות</th><th>המרות</th></tr></thead><tbody>' + (rows || '<tr><td colspan="6">אין קמפיינים</td></tr>') + '</tbody></table></div>';
+    var title = screen.querySelector('.sec-title');
+    if (title && ads.customerName) title.textContent = '💰 Google Ads — ' + ads.customerName;
+  }
+
+  function bindAdsToUI() {
+    renderAdsLive(COCO.data);
   }
 
   function gbpScreen() { return document.getElementById('sc-gbp'); }
@@ -349,6 +400,8 @@
             }) || [],
             businessProfileData: raw.businessProfileData || null,
             gbpLive: raw.businessProfileData || null,
+            googleAdsData: raw.googleAdsData || null,
+            adsLive: raw.googleAdsData || null,
             connections: raw.connections || null,
           };
         }

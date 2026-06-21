@@ -109,12 +109,15 @@ async function main() {
 
   const adsEnv = loadAdsEnv();
   if (adsEnv.GOOGLE_ADS_DEVELOPER_TOKEN) {
-    run('npm run project-001:ads-probe', { optional: true });
+    run('npm run project-001:ads-connect', { optional: true });
   } else {
     console.log('\n--- Google Ads Owner Gate ---');
+    console.log('Guide: docs/audit-reports/project-001/OWNER-GATES-GBP-ADS.md');
     console.log('URL: https://ads.google.com/aw/apicenter');
-    console.log('→ לחץ Copy על Developer token → שמור ב-.env.ads');
+    console.log('→ Copy Developer token → .env.ads → npm run project-001:ads-connect');
   }
+
+  run('npm run project-001:owner-gates', { optional: true });
 
   if (existsSync('.env.openai') && !readFileSync('.env.openai', 'utf8').match(/OPENAI_API_KEY=\s*$/m)) {
     run('npm run project-001:openai-probe', { optional: true });

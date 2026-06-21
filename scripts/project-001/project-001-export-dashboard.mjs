@@ -63,6 +63,70 @@ function resolveGbpConnection(conn, gbp, gbpSync) {
   };
 }
 
+function resolveAdsConnection(adsProbe, adsSync) {
+  if (adsSync?.ok && adsSync?.summary) {
+    return {
+      status: 'connected',
+      ok: true,
+      note: adsSync.summary.customerName || adsSync.customerId || null,
+    };
+  }
+  if (adsProbe?.ok && (adsProbe?.accessible_customers?.length || 0) > 0) {
+    return { status: 'connected', ok: true, note: null };
+  }
+  if (!adsProbe?.developer_token_set) {
+    return {
+      status: 'pending_developer_token',
+      ok: false,
+      note: 'Developer Token missing — https://ads.google.com/aw/apicenter',
+    };
+  }
+  return {
+    status: 'disconnected',
+    ok: false,
+    note: adsProbe?.errors?.[0]?.error?.slice(0, 120) || adsSync?.errors?.[0]?.message?.slice(0, 120) || null,
+  };
+}
+
+function buildAdsDashboardSlice(adsSync, adsConn) {
+  if (!adsSync?.summary && !adsSync?.campaigns?.length) {
+    return {
+      ok: false,
+      status: adsConn.status,
+      pendingToken: adsConn.status === 'pending_developer_token',
+      connectionNote: adsConn.note,
+    };
+  }
+  const s = adsSync.summary || {};
+  return {
+    ok: Boolean(adsSync.ok),
+    status: adsConn.status,
+    pendingToken: adsConn.status === 'pending_developer_token',
+    syncedAt: adsSync.timestamp,
+    customerId: adsSync.customerId,
+    customerName: s.customerName || adsSync.customer?.descriptiveName || null,
+    kpis: {
+      impressions: s.impressions ?? null,
+      clicks: s.clicks ?? null,
+      cost: s.cost ?? null,
+      conversions: s.conversions ?? null,
+      ctr: s.ctr ?? null,
+      cpc: s.cpc ?? null,
+      campaignCount: s.campaignCount ?? null,
+      currency: s.currency || 'ILS',
+    },
+    campaigns: (adsSync.campaigns || []).slice(0, 20),
+    adGroups: (adsSync.adGroups || []).slice(0, 15),
+    keywords: (adsSync.keywords || []).slice(0, 20),
+    daily: (adsSync.daily || []).slice(0, 14),
+    lastError: adsSync.errors?.[0]?.message || adsConn.note || null,
+    policies: {
+      publishRequiresApproval: true,
+      noAutoPublish: true,
+    },
+  };
+}
+
 function buildGbpDashboardSlice(gbpSync, gbpConn) {
   if (!gbpSync) {
     return {
@@ -306,6 +370,8 @@ async function main() {
   const lastSync = loadJson(join(P001.auditOut, 'last-sync.json'));
   const gbp = loadJson(join(P001.auditOut, 'gbp-probe.json'));
   const gbpSync = loadJson(join(P001.auditOut, 'gbp-sync.json'));
+  const adsProbe = loadJson(join(P001.auditOut, 'ads-probe.json'));
+  const adsSync = loadJson(join(P001.auditOut, 'ads-sync.json'));
 
   const tokenOk = tokenHasP001Scopes();
   let tokenMeta = { ok: false };
@@ -378,6 +444,8 @@ async function main() {
   const stats = computeStats(topKeywords, topPages, ga4Summary, suggestions, drafts, needing);
   const gbpConn = resolveGbpConnection(conn, gbp, gbpSync);
   const businessProfileData = buildGbpDashboardSlice(gbpSync, gbpConn);
+  const adsConn = resolveAdsConnection(adsProbe, adsSync);
+  const googleAdsData = buildAdsDashboardSlice(adsSync, adsConn);
 
   const dashboard = {
     version: 2,
@@ -394,6 +462,7 @@ async function main() {
       searchConsole: connectionStatus(conn, 'gsc'),
       analytics4: connectionStatus(conn, 'ga4'),
       businessProfile: gbpConn,
+      googleAds: adsConn,
       drive: connectionStatus(conn, 'drive'),
       sheets: connectionStatus(conn, 'sheets'),
       docs: connectionStatus(conn, 'docs'),
@@ -417,6 +486,15 @@ async function main() {
       summary: gbpSync?.summary || null,
     },
     businessProfileData,
+    googleAds: {
+      ok: Boolean(adsSync?.ok || adsProbe?.ok),
+      status: adsConn.status,
+      pendingToken: adsConn.status === 'pending_developer_token',
+      customerId: adsSync?.customerId || adsProbe?.customer_id || null,
+      lastError: googleAdsData.lastError,
+      summary: adsSync?.summary || null,
+    },
+    googleAdsData,
     stats,
     dataSource,
     lastSync: lastSync || null,

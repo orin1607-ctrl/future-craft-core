@@ -1,6 +1,10 @@
 {
-  "timestamp": "2026-06-21T19:57:40.577Z",
+  "timestamp": "2026-06-21T20:26:35.840Z",
   "ok": false,
+  "oauth": {
+    "hasBusinessManage": true,
+    "scopeCount": 20
+  },
   "accounts": [],
   "locations": [],
   "errors": [
@@ -9,16 +13,75 @@
       "error": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:484351148380'.",
       "code": 429,
       "owner_gate": {
-        "cause": "GBP API quota — ensure OAuth is on Project001AIMarketing (not legacy)",
-        "fix": [
-          "npm run project-001:migrate (if not done)",
-          "npm run project-001:enable-apis",
-          "npm run project-001:auth",
-          "Retry: npm run project-001:gbp-probe"
-        ],
-        "enable_api": "https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com?project=project001aimarketing"
+        "id": "gbp_basic_api_access",
+        "directLink": "https://support.google.com/business/contact/api_default",
+        "cause": "quota=0 — Basic API Access not yet approved by Google",
+        "gcp_project_number": "484351148380"
       }
     }
   ],
+  "owner_gate": {
+    "id": "gbp_basic_api_access",
+    "name": "Google Business Profile — Basic API Access",
+    "blocked": true,
+    "directLink": "https://support.google.com/business/contact/api_default",
+    "alternateLinks": {
+      "workflow": "https://support.google.com/business/workflow/16726127",
+      "prerequisites": "https://developers.google.com/my-business/content/prereqs",
+      "gcp_dashboard": "https://console.cloud.google.com/home/dashboard?project=project001aimarketing",
+      "gcp_project_number": "https://console.cloud.google.com/home/dashboard?project=project001aimarketing",
+      "enable_account_mgmt_api": "https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com?project=project001aimarketing",
+      "enable_business_info_api": "https://console.cloud.google.com/apis/library/mybusinessbusinessinformation.googleapis.com?project=project001aimarketing",
+      "enable_performance_api": "https://console.cloud.google.com/apis/library/businessprofileperformance.googleapis.com?project=project001aimarketing",
+      "business_profile": "https://business.google.com/",
+      "quota_docs": "https://developers.google.com/my-business/content/limits"
+    },
+    "whatToDo": [
+      "היכנס ל-support.google.com/business/contact/api_default עם orin1607@gmail.com (בעלים/מנהל על הפרופיל).",
+      "ב-dropdown \"What can we help with?\" בחר Application for Basic API Access.",
+      "לחץ Apply for Google Business Profile API access והמשך במסך האשף.",
+      "בחר את העסק: \"דליה פתרונות מימון ותחזוקה לרכב\" (חייב להיות מאומת 60+ יום).",
+      "הזן Project Number: 484351148380 (לא project ID — מספר בלבד).",
+      "Company website: https://dalia-c.com/",
+      "Primary reason (דוגמה): \"Project 001 — read-only sync of reviews, posts, and performance metrics for our own verified business into internal dashboard and Google Sheets. No third-party SaaS.\"",
+      "אשר את תנאי ה-API ושלח.",
+      "ודא ש-orin1607@gmail.com הוא Owner/Manager ב-business.google.com על המיקום."
+    ],
+    "whatToApprove": "אישור Google ל-Basic API Access עבור GCP project 484351148380 (Project001AIMarketing). עד האישור quota=0 QPM וכל קריאה מחזירה 429.",
+    "expectedDuration": "7–14 ימי עסקים (לעיתים 3–5 ימים). אימייל follow-up מ-Google Business Profile API team.",
+    "afterApproval": [
+      "Quota יעלה ל-~300 QPM ב-Cloud Console → APIs → My Business Account Management → Quotas.",
+      "npm run project-001:gbp-connect יריץ probe + sync + export אוטומטית.",
+      "נתוני GBP (ביקורים, ביקורות, פוסטים, Q&A) יופיעו ב-dashboard.json ובמסך GBP ב-CO.CO.",
+      "שורה חדשה תיכתב ל-gbp_audit ב-Google Sheets."
+    ],
+    "verifySuccess": [
+      "npm run project-001:gbp-probe → ok: true, locations ≥ 1",
+      "npm run project-001:gbp-sync → ✓ GBP sync OK",
+      "docs/audit-reports/project-001/gbp-sync.json → ok: true, summary.profileViews מספר",
+      "public/project-001/dashboard.json → connections.businessProfile.status = connected"
+    ],
+    "commandsAfterApproval": [
+      "npm run project-001:gbp-connect",
+      "npm run project-001:complete"
+    ],
+    "gcpProjectNumber": "484351148380",
+    "gcpProjectId": "project001aimarketing",
+    "account": "orin1607@gmail.com",
+    "businessHint": "דליה פתרונות מימון ותחזוקה לרכב",
+    "officialSite": "https://dalia-c.com/"
+  },
+  "prep": {
+    "oauth_scope_business_manage": true,
+    "gcp_project_id": "project001aimarketing",
+    "gcp_project_number": "484351148380",
+    "business_hint": "דליה פתרונות מימון ותחזוקה לרכב",
+    "apis_configured": [
+      "mybusinessaccountmanagement.googleapis.com",
+      "mybusinessbusinessinformation.googleapis.com",
+      "businessprofileperformance.googleapis.com"
+    ],
+    "next_command_after_approval": "npm run project-001:gbp-connect"
+  },
   "matched_business": null
 }
