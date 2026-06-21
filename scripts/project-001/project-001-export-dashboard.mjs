@@ -37,7 +37,10 @@ function connectionStatus(conn, key) {
   };
 }
 
-function resolveGbpConnection(conn, gbp) {
+function resolveGbpConnection(conn, gbp, gbpSync) {
+  if (gbpSync?.ok && gbpSync?.summary) {
+    return { status: 'connected', ok: true, note: gbpSync.location?.title || null };
+  }
   if (conn?.connections?.gbp_accounts?.ok) {
     return { status: 'connected', ok: true, note: null };
   }
@@ -57,6 +60,53 @@ function resolveGbpConnection(conn, gbp) {
     status: 'disconnected',
     ok: false,
     note: err.slice(0, 120) || null,
+  };
+}
+
+function buildGbpDashboardSlice(gbpSync, gbpConn) {
+  if (!gbpSync) {
+    return {
+      ok: false,
+      status: gbpConn.status,
+      pendingApproval: gbpConn.status === 'pending_google_api_approval',
+      connectionNote: gbpConn.note,
+    };
+  }
+  const s = gbpSync.summary || {};
+  const perf = gbpSync.performance || {};
+  return {
+    ok: Boolean(gbpSync.ok),
+    status: gbpConn.status,
+    pendingApproval: gbpConn.status === 'pending_google_api_approval',
+    syncedAt: gbpSync.timestamp,
+    location: gbpSync.location || null,
+    profile: gbpSync.profile || null,
+    kpis: {
+      profileViews: s.profileViews ?? null,
+      navigations: s.navigations ?? null,
+      averageRating: s.averageRating ?? null,
+      totalReviews: s.totalReviews ?? null,
+      unansweredReviews: s.unansweredReviews ?? null,
+      calls: s.calls ?? null,
+      messages: s.messages ?? null,
+      websiteClicks: perf.websiteClicks ?? null,
+      postsCount: s.postsCount ?? null,
+    },
+    performance: {
+      dateRange: perf.dateRange || null,
+      metrics: perf.metrics || {},
+      searchKeywords: perf.searchKeywords || [],
+    },
+    reviews: (gbpSync.reviews?.reviews || []).slice(0, 20),
+    posts: (gbpSync.posts?.posts || []).slice(0, 20),
+    qa: gbpSync.qa?.questions || [],
+    gaps: gbpSync.gaps || [],
+    apisUsed: gbpSync.apisUsed || [],
+    lastError: gbpSync.errors?.[0]?.message || gbpConn.note || null,
+    policies: {
+      publishRequiresApproval: true,
+      noAutoPublish: true,
+    },
   };
 }
 
@@ -255,6 +305,7 @@ async function main() {
   const probe = loadJson(join(P001.auditOut, 'probe.json'));
   const lastSync = loadJson(join(P001.auditOut, 'last-sync.json'));
   const gbp = loadJson(join(P001.auditOut, 'gbp-probe.json'));
+  const gbpSync = loadJson(join(P001.auditOut, 'gbp-sync.json'));
 
   const tokenOk = tokenHasP001Scopes();
   let tokenMeta = { ok: false };
@@ -325,7 +376,8 @@ async function main() {
   const topKeywords = [...keywords].sort((a, b) => b.clicks - a.clicks).slice(0, 50);
   const topPages = [...gscPages].sort((a, b) => b.clicks - a.clicks).slice(0, 50);
   const stats = computeStats(topKeywords, topPages, ga4Summary, suggestions, drafts, needing);
-  const gbpConn = resolveGbpConnection(conn, gbp);
+  const gbpConn = resolveGbpConnection(conn, gbp, gbpSync);
+  const businessProfileData = buildGbpDashboardSlice(gbpSync, gbpConn);
 
   const dashboard = {
     version: 2,
@@ -355,14 +407,16 @@ async function main() {
       configuredGa4: cfg.ga4_property_id,
     },
     gbp: {
-      ok: Boolean(gbp?.ok),
+      ok: Boolean(gbpSync?.ok || gbp?.ok),
       status: gbpConn.status,
       pendingApproval: gbpConn.status === 'pending_google_api_approval',
-      matchedBusiness: gbp?.matched_business || null,
-      locations: gbp?.locations?.length ?? 0,
+      matchedBusiness: gbpSync?.location || gbp?.matched_business || null,
+      locations: gbpSync?.location ? 1 : gbp?.locations?.length ?? 0,
       hint: cfg.gbp_business_hint,
-      lastError: gbp?.errors?.[0]?.error?.slice(0, 200) || gbpConn.note || null,
+      lastError: businessProfileData.lastError,
+      summary: gbpSync?.summary || null,
     },
+    businessProfileData,
     stats,
     dataSource,
     lastSync: lastSync || null,

@@ -106,6 +106,161 @@
     var dashTb = document.querySelector('#sc-dashboard .section table tbody');
     if (dashTb && d.keywords?.length) renderKeywordsTable(dashTb, d.keywords.slice(0, 5), true);
     if (d.approvals?.length) bindApprovals(d.approvals);
+    bindGbpToUI();
+  }
+
+  function gbpScreen() { return document.getElementById('sc-gbp'); }
+
+  function setGbpStat(labelPart, value, change, trend) {
+    var screen = gbpScreen();
+    if (!screen) return;
+    screen.querySelectorAll('.stat-label').forEach(function (lbl) {
+      if (lbl.textContent.indexOf(labelPart) === -1) return;
+      var card = lbl.closest('.stat-card');
+      if (!card) return;
+      var val = card.querySelector('.stat-value');
+      var chg = card.querySelector('.stat-change');
+      if (val && value != null) val.textContent = typeof value === 'number' ? fmt(value) : value;
+      if (chg && change) {
+        chg.textContent = change;
+        chg.className = 'stat-change sc-' + (trend || 'neu');
+      }
+    });
+  }
+
+  function renderGbpConnectionBanner(gbp, live) {
+    var screen = gbpScreen();
+    if (!screen) return;
+    var id = 'gbpConnBanner';
+    var existing = document.getElementById(id);
+    if (!live) {
+      if (existing) existing.remove();
+      return;
+    }
+    var status = gbp.status || 'disconnected';
+    var msg = gbp.connectionNote || gbp.lastError || '';
+    if (status === 'connected') {
+      if (existing) existing.remove();
+      return;
+    }
+    if (!existing) {
+      existing = document.createElement('div');
+      existing.id = id;
+      existing.className = 'card mb-12';
+      screen.insertBefore(existing, screen.querySelector('.g4') || screen.firstChild.nextSibling);
+    }
+    var title = status === 'pending_google_api_approval'
+      ? '⏳ Google Business Profile — ממתין לאישור API'
+      : '⚠️ Google Business Profile — לא מחובר';
+    existing.innerHTML = '<div class="card-body"><div class="fw7 fs13">' + title + '</div><p class="fs12 text2 mt4">' + esc(msg || 'הרץ npm run project-001:gbp-sync לאחר OAuth') + '</p></div>';
+  }
+
+  function renderGbpReviews(reviews, unanswered) {
+    var pane = document.getElementById('gbp-reviews');
+    if (!pane) return;
+    var card = pane.querySelector('.card .card-body');
+    if (!card || !reviews?.length) return;
+    card.style.padding = '0 16px';
+    card.innerHTML = reviews.slice(0, 8).map(function (r) {
+      var stars = (r.starRating || '').replace('FIVE', '⭐⭐⭐⭐⭐').replace('FOUR', '⭐⭐⭐⭐').replace('THREE', '⭐⭐⭐').replace('TWO', '⭐⭐').replace('ONE', '⭐');
+      var btn = r.hasReply
+        ? '<span class="pill pill-green">נענה</span>'
+        : '<button class="btn btn-primary btn-sm" data-gbp-action="review-reply" data-review="' + esc(r.name || r.reviewer) + '">🤖 הגב עם AI</button>';
+      return '<div class="review-style" style="padding:12px 0;border-bottom:1px solid var(--border)"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex-shrink:0"><div style="color:#f59e0b;font-size:12px">' + stars + '</div></div><div style="flex:1"><div class="fw7 fs13">' + esc((r.comment || '').slice(0, 60) || r.reviewer) + '</div><div class="fs12 text2 mt4">"' + esc(r.comment || '') + '"</div><div class="fs11 text3 mt4">' + esc(r.reviewer) + '</div></div>' + btn + '</div></div>';
+    }).join('');
+    if (unanswered != null) setGbpStat('ביקורות ללא תגובה', unanswered, unanswered > 0 ? 'דחוף להגיב' : 'הכל נענה', unanswered > 0 ? 'down' : 'up');
+  }
+
+  function renderGbpPosts(posts) {
+    var pane = document.getElementById('gbp-posts');
+    if (!pane) return;
+    var tbody = pane.querySelector('table tbody');
+    if (!tbody || !posts?.length) return;
+    tbody.innerHTML = posts.map(function (p) {
+      var dt = (p.createTime || '').slice(0, 10).split('-').reverse().join('.') || '—';
+      var st = p.state === 'LIVE' ? '<span class="pill pill-green">פעיל</span>' : '<span class="pill pill-orange">' + esc(p.state || '—') + '</span>';
+      return '<tr><td class="fw7">' + esc((p.summary || '').slice(0, 48)) + '</td><td><span class="chip chip-blue">' + esc(p.topicType || '—') + '</span></td><td>' + dt + '</td><td>—</td><td>—</td><td>' + st + '</td><td><button class="btn btn-outline btn-xs" data-gbp-action="post-view">פרטים</button></td></tr>';
+    }).join('');
+  }
+
+  function renderGbpProfileDetails(profile) {
+    if (!profile) return;
+    var pane = document.getElementById('gbp-status');
+    if (!pane) return;
+    var card = pane.querySelector('.card .card-body');
+    var rows = pane.querySelectorAll('.card .card-body .row-item');
+    var profileCard = rows.length ? rows[0].closest('.card') : null;
+    if (!profileCard) return;
+    var body = profileCard.querySelector('.card-body');
+    if (!body) return;
+    body.innerHTML = [
+      rowItem('✓', profile.title || '—', 'ri-up'),
+      rowItem('✓', profile.primaryCategory || '—', 'ri-up'),
+      rowItem(profile.description ? '✓' : '!', profile.description ? 'תיאור עסק — ' + profile.description.slice(0, 80) + (profile.description.length > 80 ? '…' : '') : 'תיאור עסק — חסר', profile.description ? 'ri-up' : 'ri-down', 'עדכן', 'profile-description'),
+      rowItem(profile.phone ? '✓' : '!', profile.phone ? 'טלפון: ' + profile.phone : 'טלפון — חסר', profile.phone ? 'ri-up' : 'ri-down'),
+      rowItem(profile.website ? '✓' : '!', profile.website ? 'אתר: ' + profile.website : 'אתר — חסר', profile.website ? 'ri-up' : 'ri-down'),
+    ].join('');
+  }
+
+  function rowItem(icon, text, iconCls, btnLabel, action) {
+    var btn = btnLabel ? '<button class="btn btn-outline btn-xs" data-gbp-action="' + (action || 'profile-update') + '">' + btnLabel + '</button>' : '';
+    return '<div class="row-item"><div class="row-icon ' + iconCls + '">' + icon + '</div><div class="row-content"><div class="row-text">' + esc(text) + '</div></div>' + btn + '</div>';
+  }
+
+  function bindGbpToUI() {
+    var d = COCO.data;
+    var gbp = d?.gbpLive || d?.businessProfileData;
+    if (!gbp) return;
+    renderGbpConnectionBanner(gbp, Boolean(gbp.pendingApproval || !gbp.ok));
+    if (!gbp.ok && !gbp.kpis) return;
+    var k = gbp.kpis || {};
+    setGbpStat('ביקורים בפרופיל', k.profileViews, k.profileViews != null ? 'נתונים חיים' : '—', 'up');
+    setGbpStat('ניווטים לעסק', k.navigations, k.navigations != null ? 'נתונים חיים' : '—', 'up');
+    setGbpStat('דירוג ממוצע', k.averageRating, k.totalReviews != null ? '⭐ ' + k.totalReviews + ' ביקורות' : '—', 'neu');
+    setGbpStat('ביקורות ללא תגובה', k.unansweredReviews, k.unansweredReviews > 0 ? 'דחוף להגיב' : 'הכל נענה', k.unansweredReviews > 0 ? 'down' : 'up');
+    renderGbpProfileDetails(gbp.profile);
+    renderGbpReviews(gbp.reviews, k.unansweredReviews);
+    renderGbpPosts(gbp.posts);
+    var src = gbpScreen()?.querySelector('.sec-title');
+    if (src && gbp.profile?.title) src.textContent = '📍 ' + gbp.profile.title;
+  }
+
+  function queueGbpApproval(type, title, body) {
+    var item = {
+      id: 'gbp-' + Date.now(),
+      type: type || 'gbp',
+      title: title,
+      status: 'pending',
+      body: body || '',
+      channel: 'Google Business Profile',
+    };
+    if (!COCO.data) COCO.data = {};
+    if (!COCO.data.approvals) COCO.data.approvals = [];
+    COCO.data.approvals.unshift(item);
+    COCO.state.approvalCount = (COCO.state.approvalCount || 0) + 1;
+    updateBadges();
+    saveAction({ action: 'gbp_queued', status: 'pending_approval', title: title, note: body, type: type });
+    showToast('📋 נשמר למרכז אישורים — לא פורסם ב-GBP', 'success');
+  }
+
+  function handleGbpAction(btn) {
+    var action = btn.dataset.gbpAction || '';
+    var t = btn.textContent.trim();
+    if (!action) {
+      if (/הגב/.test(t)) action = 'review-reply';
+      else if (/פוסט חדש|צור פוסט/.test(t)) action = 'post-create';
+      else if (/עדכן/.test(t)) action = 'profile-update';
+      else return false;
+    }
+    var title = action === 'review-reply'
+      ? 'תגובה לביקורת GBP: ' + (btn.dataset.review || t.slice(0, 30))
+      : action === 'profile-description' || action === 'profile-update'
+        ? 'עדכון פרופיל Google Business'
+        : action === 'post-create' || action === 'post-view'
+          ? 'פוסט Google Business'
+          : 'פעולת GBP — ' + t.slice(0, 40);
+    queueGbpApproval('gbp', title, 'טיוטה AI — דורש אישור במרכז אישורים לפני פרסום');
+    return true;
   }
 
   function bindApprovals(list) {
@@ -192,6 +347,9 @@
             approvals: raw.drafts?.filter(function (d) { return d.status === 'pending_approval'; }).map(function (d) {
               return { id: d.id, title: d.title, status: 'pending' };
             }) || [],
+            businessProfileData: raw.businessProfileData || null,
+            gbpLive: raw.businessProfileData || null,
+            connections: raw.connections || null,
           };
         }
         bindDataToUI();
@@ -400,6 +558,12 @@
       return;
     }
     if (handleAiButton(btn)) return;
+    if (btn.closest('#sc-gbp') && (btn.dataset.gbpAction || /פוסט חדש|עדכן פרופיל|צור פוסט|אשר כל|הגב/.test(t))) {
+      if (handleGbpAction(btn)) return;
+      if (/פוסט חדש|צור פוסט/.test(t)) { btn.dataset.gbpAction = 'post-create'; handleGbpAction(btn); return; }
+      if (/עדכן פרופיל|עדכן/.test(t)) { btn.dataset.gbpAction = 'profile-update'; handleGbpAction(btn); return; }
+      if (/אשר כל/.test(t)) { queueGbpApproval('gbp', 'אישור פעולות GBP מרוכז', 'ממתין לאישור ידני'); return; }
+    }
     if (/סנכרן|Sync Now/.test(t)) { syncNow(); return; }
     if (/רענן.*GSC|GSC/.test(t) && /רענן/.test(t)) { syncNow(); return; }
     if (/יצוא PDF|📥 יצוא PDF|📄 יצוא/.test(t)) { exportFile('pdf', btn); return; }
@@ -455,4 +619,5 @@
   window.syncNow = syncNow;
   window.runAi = runAi;
   window.loadUserManual = loadUserManual;
+  window.queueGbpApproval = queueGbpApproval;
 })();
