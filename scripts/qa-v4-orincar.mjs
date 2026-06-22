@@ -108,12 +108,29 @@ for (const vp of [
   msgs >= 2 ? pass(`${vp.name}:chat`) : fail(`${vp.name}:chat`);
 
   if (vp.name === 'mobile') {
+    const overflow = await page.evaluate(() => ({
+      doc: document.documentElement.scrollWidth,
+      win: window.innerWidth,
+    }));
+    if (overflow.doc <= overflow.win + 2) pass('mobile:no-horizontal-scroll');
+    else fail(`mobile:overflow-${overflow.doc}>${overflow.win}`);
+
+    const dashCols = await page.evaluate(() => {
+      const g = document.getElementById('v4DashGrid');
+      return g ? getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length : 0;
+    });
+    dashCols === 1 ? pass('mobile:dash-1-col') : fail(`mobile:dash-${dashCols}-cols`);
+
     const btnH = await page.evaluate(() => {
       const b = document.querySelector('#v4CategoryGrid .v4-world-btn');
       return b ? b.getBoundingClientRect().height : 0;
     });
+    btnH >= 72 ? pass('mobile:cat-btn-72px') : fail(`mobile:cat-btn-${btnH}px`);
+
+    const sendH = await page.evaluate(() => document.getElementById('v4ChatSend')?.getBoundingClientRect().height || 0);
+    sendH >= 48 ? pass('mobile:chat-send-48px') : fail(`mobile:chat-send-${sendH}px`);
+
     report.mobile.categoryBtnHeight = btnH;
-    btnH >= 100 ? pass('mobile:cat-btn-height') : fail(`mobile:cat-btn-${btnH}px`);
     const sidebarHidden = await page.evaluate(() => {
       const s = document.getElementById('sidebar');
       return s ? getComputedStyle(s).display === 'none' : true;

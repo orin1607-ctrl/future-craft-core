@@ -316,8 +316,8 @@
     grid.innerHTML = CATEGORIES.map(function (cat) {
       return '<button type="button" class="v4-world-btn cat-main" data-cat="' + cat.id + '">' +
         '<span class="w-ico">' + cat.icon + '</span>' +
-        '<span class="w-title">' + esc(cat.title) + '</span>' +
-        '<span class="w-sub">' + esc(cat.sub) + '</span></button>';
+        '<span class="w-text"><span class="w-title">' + esc(cat.title) + '</span>' +
+        '<span class="w-sub">' + esc(cat.sub) + '</span></span></button>';
     }).join('');
     grid.querySelectorAll('[data-cat]').forEach(function (btn) {
       btn.addEventListener('click', function () { openCategory(btn.dataset.cat); });
@@ -336,7 +336,7 @@
       items.innerHTML = cat.items.map(function (it) {
         return '<button type="button" class="v4-world-btn item" data-goto="' + it.sc + '">' +
           '<span class="w-ico">' + it.ico + '</span>' +
-          '<span class="w-title">' + esc(it.label) + '</span></button>';
+          '<span class="w-text"><span class="w-title">' + esc(it.label) + '</span></span></button>';
       }).join('');
       items.querySelectorAll('[data-goto]').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -510,6 +510,8 @@
     document.querySelectorAll('.v4-go-cat').forEach(function (btn) {
       btn.style.display = window.V4_CURRENT_CAT && bare !== 'category' && bare !== 'morning' ? 'inline-flex' : 'none';
     });
+    var isModule = bare !== 'morning' && bare !== 'category' && bare !== 'modules';
+    document.body.classList.toggle('v4-has-module', isModule);
     if (bare === 'morning') renderHome();
   }
 
