@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#003366" />
+  <title>CO.CO דליה — Project 001 Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./mockup.css" />
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar" id="sidebar" aria-label="תפריט ראשי">
+      <div class="sb-logo">
+        <div class="sb-logo-name">CO.CO דליה</div>
+        <div class="sb-logo-sub">Project 001 · Mockup · AI-First</div>
+      </div>
+      <nav class="sb-nav" id="sbNav"></nav>
+      <div class="sb-footer">Mockup · נתוני דמו · ללא פיתוח סופי</div>
+    </aside>
+
+    <div class="shell">
+      <header class="topbar">
+        <button type="button" class="mob-menu" id="menuBtn" aria-label="תפריט">☰</button>
+        <div class="topbar-titles">
+          <div class="tb-title" id="screenTitle">מרכז האסטרטגיה</div>
+          <div class="tb-sub" id="screenSub">המוח של המערכת</div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" id="syncBtn">סנכרן</button>
+        <button type="button" class="btn btn-primary btn-sm" id="openChatBtn">שאל AI</button>
+        <div class="user-av" title="משתמש">יו</div>
+      </header>
+
+      <!-- Global AI command -->
+      <div class="global-ask" id="globalAsk">
+        <input type="search" id="globalAskInput" placeholder="שאל כל דבר: מה מצב האתר? מה הכי חשוב היום? למה ירדנו בגוגל?" autocomplete="off" />
+        <button type="button" class="btn btn-primary" id="globalAskBtn">שאל</button>
+      </div>
+
+      <main class="content" id="mainContent">
+        <!-- Universal action bar -->
+        <div class="action-bar" id="actionBar">
+          <button type="button" class="btn btn-ai" data-action="recommend">מה ה-AI ממליץ?</button>
+          <button type="button" class="btn btn-outline" data-action="tasks">צור משימות</button>
+          <button type="button" class="btn btn-ghost" data-action="summary">סכם את המסך</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="export">ייצוא</button>
+        </div>
+
+        <!-- Status strip -->
+        <div class="status-strip" id="statusStrip"></div>
+
+        <!-- Module tabs -->
+        <div class="tab-row" id="tabRow"></div>
+
+        <!-- Screen body -->
+        <div id="screenBody"></div>
+      </main>
+    </div>
+
+    <!-- Mobile bottom nav -->
+    <nav class="bottom-nav" id="bottomNav" aria-label="ניווט מובייל"></nav>
+  </div>
+
+  <!-- AI result modal -->
+  <div class="modal-backdrop hidden" id="modalBackdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">AI</h2>
+        <button type="button" class="modal-close" id="modalClose" aria-label="סגור">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+
+  <!-- Full chat -->
+  <div class="chat-overlay hidden" id="chatOverlay">
+    <div class="chat-shell">
+      <header class="chat-top">
+        <button type="button" class="btn btn-ghost btn-sm" id="chatClose">סגור</button>
+        <select id="chatModel" class="chat-select">
+          <option value="gpt">ChatGPT</option>
+          <option value="claude">Claude</option>
+          <option value="gemini">Gemini</option>
+          <option value="compare">השוואה</option>
+        </select>
+        <button type="button" class="btn btn-ghost btn-sm" id="chatNew">שיחה חדשה</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="chatFullscreen">מסך מלא</button>
+      </header>
+      <div class="chat-layout">
+        <aside class="chat-history" id="chatHistoryList"></aside>
+        <div class="chat-main">
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-compose">
+            <button type="button" class="btn btn-ghost btn-sm" id="chatFile">קובץ</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="chatImage">תמונה</button>
+            <input type="text" id="chatInput" placeholder="כתוב הודעה..." />
+            <button type="button" class="btn btn-primary" id="chatSend">שלח</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="./mockup.js"></script>
+</body>
+</html>

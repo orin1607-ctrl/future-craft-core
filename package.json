@@ -61,6 +61,7 @@
     "ai-marketing:proxy": "node scripts/ai-marketing/api-server.mjs",
     "ai-marketing:api": "node scripts/ai-marketing/api-server.mjs",
     "ai-marketing:serve": "npx --yes serve public -l 8888",
+    "project-001-mockup:serve": "npx --yes serve public/project-001-mockup -l 8890",
     "ai-marketing:dev": "node scripts/ai-marketing/ai-marketing-dev.mjs",
     "ai-marketing:hebrew": "node scripts/ai-marketing/hebrew-translate.mjs",
     "ai-marketing:qa": "node scripts/qa-ai-marketing-platform.mjs",
