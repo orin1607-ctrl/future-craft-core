@@ -95,7 +95,7 @@
     bindKpiByLabel('עמודים חלשים', k.weakPages);
     bindKpiByLabel('טיוטות ממתינות', k.pendingDrafts);
     var src = document.getElementById('dataSourceLabel');
-    if (src) src.textContent = 'מקור: ' + (d.meta?.source || 'demo');
+    if (src) src.textContent = 'מקור: ' + (isLiveData(d) ? 'חי (GSC/GA4)' : (d.meta?.source || 'דמו'));
     if (d.meta?.spreadsheetUrl) {
       var link = document.getElementById('sheetsLink');
       if (link) { link.href = d.meta.spreadsheetUrl; link.style.display = 'inline-flex'; }
@@ -361,63 +361,152 @@
     if (!chip) return;
     chip.style.display = 'inline-flex';
     chip.className = 'chip ' + (ok ? 'chip-green' : 'chip-orange');
-    chip.textContent = ok ? '🟢 OpenAI מחובר' : (HAS_API ? '🟠 OpenAI — בדוק .env.openai' : '🟠 Staging — AI דורש שרת מקומי');
+    if (ok) chip.textContent = '🟢 OpenAI מחובר';
+    else if (HAS_API) chip.textContent = '🟠 OpenAI — בדוק .env.openai';
+    else if (window.COCO_STAGING?.accessToken) chip.textContent = '🟠 AI — בודק חיבור…';
+    else chip.textContent = '🟠 AI — התחבר דרך דליה (Super Admin)';
+  }
+
+  function isLiveData(d) {
+    d = d || COCO.data;
+    if (!d) return false;
+    if (d.meta?.liveOnly) return true;
+    var s = d.meta?.source;
+    if (s === 'live' || s === 'live-dashboard.json') return true;
+    if (s && s !== 'demo' && /dashboard|sheets|live/i.test(String(s))) return true;
+    return false;
+  }
+
+  function mapDashboardRaw(raw) {
+    if (!raw || (!raw.stats && !raw.version)) return null;
+    return {
+      meta: {
+        source: 'live',
+        generatedAt: raw.generatedAt,
+        spreadsheetUrl: raw.lastSync?.spreadsheet_url,
+        liveOnly: true,
+        dataSource: raw.dataSource || 'sheets',
+      },
+      kpis: {
+        avgPosition: { value: String(raw.stats.avgPosition ?? '—'), change: '—', trend: 'neutral' },
+        weeklyClicks: { value: String(raw.stats.totalClicks ?? 0), change: '—', trend: 'up' },
+        activeKeywords: { value: String(raw.stats.activeKeywords ?? 0), change: '—', trend: 'neutral' },
+        pendingDrafts: { value: String(raw.stats.pendingDrafts ?? 0), change: 'לאישורך', trend: 'neutral' },
+        aiOpportunities: { value: String(raw.stats.opportunities ?? 0), change: '—', trend: 'neutral' },
+        weakPages: { value: String(raw.stats.weakPages ?? 0), change: '—', trend: 'down' },
+        weeklyImpressions: { value: String(raw.stats.totalImpressions ?? 0), change: '—', trend: 'up' },
+        avgCtr: { value: raw.stats.avgCtr != null ? raw.stats.avgCtr + '%' : '—', change: '—', trend: 'neutral' },
+        ga4Sessions: { value: String(raw.stats.ga4Sessions ?? 0), change: '—', trend: 'up' },
+        ga4PageViews: { value: String(raw.stats.ga4PageViews ?? 0), change: '—', trend: 'up' },
+      },
+      ga4Sessions: raw.stats.ga4Sessions,
+      ga4PageViews: raw.stats.ga4PageViews,
+      keywords: (raw.searchConsole?.keywords || []).slice(0, 10).map(function (k) {
+        return { keyword: k.query, rank: Math.round(k.position), clicks: k.clicks, volume: k.impressions, ctr: '—', url: k.page || '—', score: 70, change: 0, prev: 0 };
+      }),
+      badges: { pendingApproval: raw.stats.pendingDrafts || 0 },
+      approvals: (raw.drafts || []).filter(function (d) { return d.status === 'pending_approval'; }).map(function (d) {
+        return { id: d.id, title: d.title, status: 'pending' };
+      }),
+      businessProfileData: raw.businessProfileData || raw.gbp || null,
+      gbpLive: raw.businessProfileData || raw.gbp || null,
+      googleAdsData: raw.googleAdsData || raw.googleAds || null,
+      adsLive: raw.googleAdsData || raw.googleAds || null,
+      connections: raw.connections || null,
+      lastSync: raw.lastSync || null,
+      pagesNeedingImprovement: raw.pagesNeedingImprovement || [],
+      aiSeoSuggestions: raw.aiSeoSuggestions || [],
+    };
+  }
+
+  function afterDataLoad() {
+    bindDataToUI();
+    if (typeof window.HomeV4?.render === 'function') window.HomeV4.render();
+  }
+
+  function fetchDashboardJson() {
+    var urls = dataUrls();
+    return fetch(urls[0] + '?t=' + Date.now()).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('dashboard.json')); })
+      .catch(function () { return fetch(urls[1] + '?t=' + Date.now()).then(function (r) { return r.ok ? r.json() : null; }); });
+  }
+
+  function marketingApiChat(opts) {
+    var staging = window.COCO_STAGING;
+    if (staging?.marketingChatUrl && staging?.accessToken) {
+      return fetch(staging.marketingChatUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + staging.accessToken },
+        body: JSON.stringify({
+          module: opts.module || 'assistant',
+          system: opts.system || '',
+          prompt: opts.prompt,
+          history: opts.history || [],
+        }),
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        return { ok: !!data.ok, text: data.text, message: data.error || data.message };
+      }).catch(function (e) { return { ok: false, message: e.message }; });
+    }
+    if (HAS_API) {
+      return apiFetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(opts),
+      }).then(function (r) {
+        return { ok: r.ok && r.data?.ok, text: r.data?.text, message: r.data?.message };
+      }).catch(function (e) { return { ok: false, message: e.message }; });
+    }
+    return Promise.resolve({ ok: false, message: 'AI זמין לאחר התחברות Super Admin בדליה, או npm run ai-marketing:dev מקומית' });
+  }
+
+  function probeStagingAi() {
+    if (!window.COCO_STAGING?.accessToken) return;
+    marketingApiChat({ module: 'assistant', prompt: 'ping', system: 'ענה רק: ok' }).then(function (r) {
+      updateAiStatus(!!(r.ok && r.text));
+    });
   }
 
   function loadData() {
     if (HAS_API) {
       return apiFetch('/api/data').then(function (res) {
-        if (res.ok && res.data.data) { COCO.data = res.data.data; bindDataToUI(); return; }
+        if (res.ok && res.data.data) { COCO.data = res.data.data; afterDataLoad(); return; }
         throw new Error(res.data.message || 'API');
-      }).catch(fallbackLoad);
+      }).catch(function () { return fallbackLoad(); });
     }
     return fallbackLoad();
   }
 
   function fallbackLoad() {
-    var urls = dataUrls();
-    return fetch(urls[0]).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .catch(function () { return fetch(urls[1]).then(function (r) { return r.ok ? r.json() : null; }); })
-      .then(function (raw) {
-        if (!raw) return;
-        if (raw.kpis && raw.meta?.source !== 'demo') {
-          COCO.data = raw;
-        } else if (raw.stats || raw.version) {
-          COCO.data = {
-            meta: { source: 'live-dashboard.json', generatedAt: raw.generatedAt, spreadsheetUrl: raw.lastSync?.spreadsheet_url, liveOnly: true },
-            kpis: {
-              avgPosition: { value: String(raw.stats.avgPosition ?? '—'), change: '—', trend: 'neutral' },
-              weeklyClicks: { value: String(raw.stats.totalClicks ?? 0), change: '—', trend: 'up' },
-              activeKeywords: { value: String(raw.stats.activeKeywords ?? 0), change: '—', trend: 'neutral' },
-              pendingDrafts: { value: String(raw.stats.pendingDrafts ?? 0), change: 'לאישורך', trend: 'neutral' },
-              aiOpportunities: { value: String(raw.stats.opportunities ?? 0), change: '—', trend: 'neutral' },
-              weakPages: { value: String(raw.stats.weakPages ?? 0), change: '—', trend: 'down' },
-              weeklyImpressions: { value: String(raw.stats.totalImpressions ?? 0), change: '—', trend: 'up' },
-              avgCtr: { value: raw.stats.avgCtr != null ? raw.stats.avgCtr + '%' : '—', change: '—', trend: 'neutral' },
-            },
-            keywords: (raw.searchConsole?.keywords || []).slice(0, 10).map(function (k) {
-              return { keyword: k.query, rank: Math.round(k.position), clicks: k.clicks, volume: k.impressions, ctr: '—', url: k.page || '—', score: 70, change: 0, prev: 0 };
-            }),
-            badges: { pendingApproval: raw.stats.pendingDrafts || 0 },
-            approvals: raw.drafts?.filter(function (d) { return d.status === 'pending_approval'; }).map(function (d) {
-              return { id: d.id, title: d.title, status: 'pending' };
-            }) || [],
-            businessProfileData: raw.businessProfileData || null,
-            gbpLive: raw.businessProfileData || null,
-            googleAdsData: raw.googleAdsData || null,
-            adsLive: raw.googleAdsData || null,
-            connections: raw.connections || null,
-          };
-        }
-        bindDataToUI();
-      });
+    return fetchDashboardJson().then(function (raw) {
+      if (!raw) return;
+      if (raw.kpis && raw.meta?.source !== 'demo') {
+        COCO.data = raw;
+      } else {
+        var mapped = mapDashboardRaw(raw);
+        if (mapped) COCO.data = mapped;
+      }
+      afterDataLoad();
+    });
   }
 
   function syncNow() {
     showToast('🔄 מסנכרן Google Sheets + GSC + GA4...', 'info');
-    if (!HAS_API) { showToast('סנכרון מלא זמין בפיתוח מקומי (npm run ai-marketing:dev)', 'warn'); return loadData(); }
+    if (!HAS_API) {
+      return fetchDashboardJson().then(function (raw) {
+        var mapped = mapDashboardRaw(raw);
+        if (mapped) {
+          COCO.data = mapped;
+          afterDataLoad();
+          showToast('✓ נתונים עודכנו מ-dashboard.json', 'success');
+        } else {
+          showToast('סנכרון מלא דורש מחשב משרד — npm run project-001:sync-and-export', 'warn');
+          return fallbackLoad();
+        }
+      }).catch(function (e) {
+        showToast('שגיאת רענון: ' + e.message, 'warn');
+      });
+    }
     return apiFetch('/api/sync', { method: 'POST' }).then(function (res) {
-      if (res.ok && res.data.data) { COCO.data = res.data.data; bindDataToUI(); showToast('✓ סנכרון הושלם', 'success'); }
+      if (res.ok && res.data.data) { COCO.data = res.data.data; afterDataLoad(); showToast('✓ סנכרון הושלם', 'success'); }
       else showToast(res.data.message || 'שגיאת סנכרון', 'warn');
     }).catch(function (e) { showToast('סנכרון נכשל: ' + e.message, 'warn'); });
   }
@@ -434,18 +523,31 @@
 
   function runAi(module, prompt, title) {
     if (COCO.ai.busy) { showToast('AI עסוק — המתן', 'warn'); return; }
-    if (!HAS_API) { showToast('OpenAI: הפעל npm run ai-marketing:dev + הגדר .env.openai', 'warn'); return; }
-    if (!COCO.ai.connected) { showToast('OpenAI לא מחובר — בדוק .env.openai', 'warn'); return; }
+    var hasStaging = !!(window.COCO_STAGING?.accessToken);
+    if (!HAS_API && !hasStaging) {
+      showToast('AI: התחבר דרך דליה (Super Admin) או npm run ai-marketing:dev', 'warn');
+      return;
+    }
+    if (HAS_API && !COCO.ai.connected) { showToast('OpenAI לא מחובר — בדוק .env.openai', 'warn'); return; }
     COCO.ai.busy = true;
     showToast('🤖 שולח ל-OpenAI...', 'info');
-    var ctx = COCO.data ? '\n\nנתונים: KPI קליקים=' + (COCO.data.kpis?.weeklyClicks?.value || '—') + ', מילות=' + (COCO.data.keywords?.length || 0) : '';
-    apiFetch('/api/ai/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ module: module, prompt: prompt + ctx }) })
-      .then(function (res) {
-        COCO.ai.busy = false;
-        if (res.ok && res.data.text) openActionModal(title || '🤖 AI', '<div style="white-space:pre-wrap;line-height:1.7">' + esc(res.data.text) + '</div>', [{ label: 'סגור', cls: 'btn-ghost' }]);
-        else showToast(res.data.message || 'שגיאת OpenAI', 'warn');
-      })
-      .catch(function (e) { COCO.ai.busy = false; showToast('שגיאה: ' + e.message, 'warn'); });
+    var ctx = COCO.data ? '\n\nנתונים: KPI קליקים=' + (COCO.data.kpis?.weeklyClicks?.value || '—') +
+      ', מיקום=' + (COCO.data.kpis?.avgPosition?.value || '—') +
+      ', GA4 סשנים=' + (COCO.data.kpis?.ga4Sessions?.value || '—') +
+      ', מילות=' + (COCO.data.keywords?.length || 0) : '';
+    var mod = module || 'general';
+    var sys = MODULE_PROMPTS[mod] || MODULE_PROMPTS.general;
+    marketingApiChat({
+      module: mod,
+      prompt: prompt + ctx,
+      system: sys,
+      history: [],
+    }).then(function (res) {
+      COCO.ai.busy = false;
+      if (res.ok && res.text) {
+        openActionModal(title || '🤖 AI', '<div style="white-space:pre-wrap;line-height:1.7">' + esc(res.text) + '</div>', [{ label: 'סגור', cls: 'btn-ghost' }]);
+      } else showToast(res.message || 'שגיאת OpenAI', 'warn');
+    }).catch(function (e) { COCO.ai.busy = false; showToast('שגיאה: ' + e.message, 'warn'); });
   }
 
   function openActionModal(title, body, actions) {
@@ -663,7 +765,16 @@
     loadData().then(function () { showToast('CO.CO דליה — נטען', 'success'); });
     if (HAS_API) {
       apiFetch('/api/ai/health').then(function (r) { updateAiStatus(!!r.data?.ok); }).catch(function () { updateAiStatus(false); });
-    } else updateAiStatus(false);
+    } else {
+      updateAiStatus(false);
+      window.addEventListener('message', function (e) {
+        if (e.data && e.data.type === 'dalia-coco-auth') {
+          window.COCO_STAGING = e.data;
+          probeStagingAi();
+        }
+      });
+      if (window.COCO_STAGING?.accessToken) probeStagingAi();
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
@@ -675,6 +786,9 @@
   window.showToast = showToast;
   window.syncNow = syncNow;
   window.runAi = runAi;
+  window.loadData = loadData;
+  window.isLiveData = isLiveData;
+  window.marketingApiChat = marketingApiChat;
   window.loadUserManual = loadUserManual;
   window.queueGbpApproval = queueGbpApproval;
 })();

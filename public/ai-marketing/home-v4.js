@@ -211,38 +211,110 @@
     return days[d.getDay()] + ', ' + d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
   }
 
+  function isLive() {
+    if (typeof window.isLiveData === 'function') return window.isLiveData();
+    var d = window.COCO && window.COCO.data;
+    return !!(d && d.meta && (d.meta.source === 'live' || d.meta.liveOnly));
+  }
+
+  function connSummary(conn) {
+    if (!conn) return '—';
+    var p = [];
+    if (conn.searchConsole?.ok) p.push('GSC ✓');
+    if (conn.analytics4?.ok) p.push('GA4 ✓');
+    if (conn.businessProfile?.ok) p.push('GBP ✓');
+    else if (conn.businessProfile) p.push('GBP ⏳');
+    if (conn.googleAds?.ok) p.push('Ads ✓');
+    else if (conn.googleAds) p.push('Ads ⏳');
+    return p.join(' · ') || '—';
+  }
+
+  function buildLiveChanges(d) {
+    var k = d.kpis || {};
+    var out = [];
+    if (k.weeklyClicks) out.push({ type: 'neu', text: 'קליקים GSC: ' + k.weeklyClicks.value });
+    if (k.avgPosition) out.push({ type: 'neu', text: 'מיקום ממוצע: ' + k.avgPosition.value });
+    if (k.ga4Sessions) out.push({ type: 'up', text: 'GA4 סשנים: ' + k.ga4Sessions.value });
+    var gbp = d.gbpLive;
+    if (gbp && !gbp.ok) out.push({ type: 'warn', text: 'GBP ממתין לאישור Google' });
+    var ads = d.adsLive;
+    if (ads && !ads.ok) out.push({ type: 'warn', text: 'Google Ads ממתין ל-Developer Token' });
+    var kw = d.keywords || [];
+    if (kw[0]) out.push({ type: 'up', text: 'מילה מובילה: "' + kw[0].keyword + '" — דירוג ' + kw[0].rank });
+    return out.length ? out : DEMO.changes;
+  }
+
+  function buildLiveAutoDone(d) {
+    var out = [];
+    var ls = d.lastSync;
+    if (ls?.timestamp) out.push('סנכרון אחרון: ' + new Date(ls.timestamp).toLocaleDateString('he-IL'));
+    if (ls?.counts?.gsc_queries) out.push('GSC: ' + ls.counts.gsc_queries + ' שאילתות');
+    if (ls?.counts?.ga4_pages) out.push('GA4: ' + ls.counts.ga4_pages + ' עמודים');
+    var weak = d.kpis?.weakPages?.value;
+    if (weak && weak !== '0') out.push('זיהוי ' + weak + ' עמודים חלשים');
+    var drafts = d.badges?.pendingApproval;
+    if (drafts) out.push(drafts + ' טיוטות ממתינות לאישור');
+    return out.length ? out : DEMO.autoDone;
+  }
+
+  function buildLiveActions(d) {
+    var list = d.approvals || [];
+    if (!list.length) return DEMO.actions;
+    return list.slice(0, 6).map(function (a, i) {
+      return { id: a.id || ('live' + i), title: a.title, module: 'approval', needsApproval: true };
+    });
+  }
+
   function getData() {
     var d = window.COCO && window.COCO.data;
     var k = d && d.kpis ? d.kpis : {};
+    var live = isLive();
     var pending = d?.badges?.pendingApproval ?? window.COCO?.state?.approvalCount ?? DEMO.needsApproval;
+    var weakN = k.weakPages?.value || '0';
+    var kwN = k.activeKeywords?.value || '0';
     return {
       greeting: DEMO.greeting,
-      status: (k.weeklyClicks?.value ? 'קליקים: ' + k.weeklyClicks.value : DEMO.businessStatus) +
-        (k.avgPosition?.value ? ' · מיקום ' + k.avgPosition.value : '') +
-        (d?.gbpLive?.status === 'pending_google_api_approval' ? ' · GBP ממתין' : ''),
-      changes: DEMO.changes,
-      topTask: DEMO.topTask,
-      goals: DEMO.goals,
-      recommend: DEMO.recommend,
-      opportunities: DEMO.opportunities,
+      status: live
+        ? ('קליקים: ' + (k.weeklyClicks?.value || '0') +
+          ' · מיקום ' + (k.avgPosition?.value || '—') +
+          ' · GA4: ' + (k.ga4Sessions?.value || d?.ga4Sessions || '—') + ' סשנים' +
+          (d?.gbpLive && !d.gbpLive.ok ? ' · GBP ממתין' : ''))
+        : DEMO.businessStatus,
+      changes: live ? buildLiveChanges(d) : DEMO.changes,
+      topTask: live && d?.aiSeoSuggestions?.length
+        ? d.aiSeoSuggestions[0].title || d.aiSeoSuggestions[0]
+        : DEMO.topTask,
+      goals: live ? [
+        { name: 'קליקים GSC', current: Number(k.weeklyClicks?.value) || 0, target: 100, pct: Math.min(99, Number(k.weeklyClicks?.value) || 0) },
+        { name: 'מילות מפתח', current: Number(kwN) || 0, target: 50, pct: Math.min(99, Math.round((Number(kwN) || 0) * 2)) },
+        { name: 'סשנים GA4', current: Number(k.ga4Sessions?.value || d?.ga4Sessions) || 0, target: 500, pct: Math.min(99, Math.round((Number(k.ga4Sessions?.value) || 0) / 5)) },
+      ] : DEMO.goals,
+      recommend: live && d?.aiSeoSuggestions?.length
+        ? d.aiSeoSuggestions.slice(0, 5).map(function (s) { return s.title || s.text || String(s); })
+        : DEMO.recommend,
+      opportunities: live
+        ? ['הזדמנויות AI: ' + (k.aiOpportunities?.value || '0'), 'עמודים לשיפור: ' + weakN].concat(
+          (d.keywords || []).slice(0, 2).map(function (kw) { return 'מילה: ' + kw.keyword + ' (דירוג ' + kw.rank + ')'; })
+        )
+        : DEMO.opportunities,
       needsApproval: pending,
-      autoDone: DEMO.autoDone,
-      actions: DEMO.actions,
+      autoDone: live ? buildLiveAutoDone(d) : DEMO.autoDone,
+      actions: live ? buildLiveActions(d) : DEMO.actions,
       dash: {
-        site: '9 עמודים חלשים',
-        seo: k.avgPosition?.value || '8.3',
-        ga: k.weeklyClicks?.value || '3,842',
-        gsc: '248 מילות',
-        gbp: d?.gbpLive?.status === 'pending_google_api_approval' ? 'ממתין' : 'פעיל',
-        ads: 'ממתין API',
-        pos: k.avgPosition?.value || '8.3',
-        clicks: k.weeklyClicks?.value || '3,842',
-        leads: '42',
-        tasks: '12 פתוחות',
+        site: weakN !== '0' ? (weakN + ' עמודים חלשים') : (live ? 'תקין' : '9 עמודים חלשים'),
+        seo: k.avgPosition?.value || '—',
+        ga: k.ga4Sessions?.value || String(d?.ga4Sessions ?? '—'),
+        gsc: kwN + ' מילים',
+        gbp: d?.gbpLive?.ok ? 'פעיל' : (d?.gbpLive?.status === 'pending_google_api_approval' ? 'ממתין Google' : 'ממתין'),
+        ads: d?.adsLive?.ok ? 'פעיל' : 'ממתין API',
+        pos: k.avgPosition?.value || '—',
+        clicks: k.weeklyClicks?.value || '0',
+        leads: live ? '—' : '42',
+        tasks: live ? String(pending) + ' פתוחות' : '12 פתוחות',
         approval: String(pending),
-        kpi: '77%',
-        notif: '12',
-        conn: 'GSC+GA4 ✓',
+        kpi: live ? (k.avgCtr?.value || '—') : '77%',
+        notif: live ? String(pending) : '12',
+        conn: live ? connSummary(d.connections) : 'GSC+GA4 ✓',
       },
     };
   }
@@ -294,7 +366,7 @@
   function renderDashboard(dash) {
     var grid = $('v4DashGrid');
     if (!grid) return;
-    var isDemo = !(window.COCO && window.COCO.data && window.COCO.data.meta && window.COCO.data.meta.source === 'live');
+    var isDemo = !isLive();
     grid.innerHTML = DASH_CARDS.map(function (c) {
       return '<button type="button" class="v4-dash-card ' + (c.cls || '') + '" data-goto="' + c.sc + '">' +
         '<div class="ico">' + c.ico + '</div>' +
@@ -357,24 +429,108 @@
     box.scrollTop = box.scrollHeight;
   }
 
+  var v4ChatHistory = [];
+  var v4ChatBusy = false;
+
+  function appendChatActions(bubble, actions) {
+    if (!actions || !actions.length) return;
+    var row = document.createElement('div');
+    row.className = 'v4-chat-actions';
+    row.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:10px';
+    actions.forEach(function (act) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-outline btn-sm';
+      b.textContent = act.label;
+      b.addEventListener('click', function () {
+        if (window.COCO_ASSISTANT?.runAction) window.COCO_ASSISTANT.runAction(act);
+        else if (act.type === 'nav' && typeof window.gotoSc === 'function') window.gotoSc(act.screen);
+      });
+      row.appendChild(b);
+    });
+    bubble.appendChild(row);
+  }
+
   function chatSend(text) {
     var t = String(text || '').trim();
-    if (!t) return;
+    if (!t || v4ChatBusy) return;
     var input = $('v4ChatInput');
     if (input) input.value = '';
     appendChat('user', t);
-    var low = t.toLowerCase();
+
     if (/בצע הכול|בצע את הכל/.test(t)) { executeAll(); return; }
     if (/הצג משימות|משימות/.test(t) && t.length < 20) { showTasks(); return; }
+
+    var canAi = window.COCO_API?.hasApi || window.COCO_STAGING?.accessToken;
+    var apiChat = window.COCO_ASSISTANT?.apiChat || window.marketingApiChat;
+    var buildSys = window.COCO_ASSISTANT?.buildSystemPrompt;
+
+    if (!canAi || !apiChat) {
+      chatSendFallback(t);
+      return;
+    }
+
+    v4ChatBusy = true;
+    v4ChatHistory.push({ role: 'user', content: t });
+    var think = document.createElement('div');
+    think.className = 'v4-msg ai';
+    think.innerHTML = '<div class="bubble" style="opacity:0.7">חושב…</div>';
+    think.id = 'v4ChatThinking';
+    $('v4ChatMsgs')?.appendChild(think);
+    $('v4ChatMsgs').scrollTop = $('v4ChatMsgs').scrollHeight;
+
+    var chatPromise = window.COCO_ASSISTANT?.apiChat
+      ? window.COCO_ASSISTANT.apiChat(t, v4ChatHistory)
+      : window.marketingApiChat({
+        module: 'assistant',
+        prompt: t,
+        system: buildSys ? buildSys() : '',
+        history: v4ChatHistory,
+      });
+
+    chatPromise.then(function (res) {
+      think.remove();
+      v4ChatBusy = false;
+      if (!res.ok || !res.text) {
+        appendChat('ai', res.message || 'לא הצלחתי לקבל תשובה. נסה שוב או התחבר דרך דליה.');
+        return;
+      }
+      var parseActs = window.COCO_ASSISTANT?.parseActions;
+      var strip = window.COCO_ASSISTANT?.stripMarkers;
+      var actions = parseActs ? parseActs(res.text) : [];
+      var clean = strip ? strip(res.text) : res.text;
+      v4ChatHistory.push({ role: 'assistant', content: clean });
+      if (v4ChatHistory.length > 12) v4ChatHistory = v4ChatHistory.slice(-12);
+      var box = $('v4ChatMsgs');
+      var div = document.createElement('div');
+      div.className = 'v4-msg ai';
+      var bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = clean;
+      div.appendChild(bubble);
+      appendChatActions(bubble, actions);
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    });
+  }
+
+  function chatSendFallback(t) {
     if (/למה|ממליץ/.test(t)) {
-      appendChat('ai', 'המלצותיי מבוססות על:\n• ירידת CTR בעמוד הבית\n• 5 ביקורות GBP ללא מענה\n• עלייה של מתחרה על מילת מפתח מרכזית\n• פערי תוכן בנושא צי חשמלי');
+      var d = getData();
+      appendChat('ai', 'המלצותיי מבוססות על נתוני המערכת:\n• קליקים: ' + d.dash.clicks +
+        '\n• מיקום: ' + d.dash.pos + '\n• אישורים: ' + d.needsApproval +
+        (isLive() ? '\n\n(מצב חי — GSC/GA4)' : '\n\n(מצב דמו — חבר נתונים חיים)'));
       return;
     }
     if (/נתונים|מספרים|דוח/.test(t)) {
-      appendChat('ai', 'נתונים עיקריים:\n• קליקים: 3,842 (+14%)\n• מיקום ממוצע: 8.3\n• אישורים ממתינים: ' + (getData().needsApproval) + '\n\nלפירוט — כרטיסי הדשבורד למטה או קטגוריית דוחות.');
+      var data = getData();
+      appendChat('ai', 'נתונים עיקריים:\n• קליקים: ' + data.dash.clicks +
+        '\n• מיקום ממוצע: ' + data.dash.pos +
+        '\n• GA4 סשנים: ' + data.dash.ga +
+        '\n• אישורים ממתינים: ' + data.needsApproval);
       return;
     }
-    appendChat('ai', 'אני מנהל השיווק AI. שאל על:\n• מה דחוף היום?\n• איזה עמוד לשפר?\n• מה השתנה בגוגל?\n• מה המתחרים עשו?');
+    appendChat('ai', 'אני מנהל השיווק AI.\nלהפעלת AI מלא — היכנס דרך דליה (Super Admin) או npm run ai-marketing:dev.\n\nשאל על:\n• מה דחוף היום?\n• איזה עמוד לשפר?\n• מה השתנה בגוגל?');
   }
 
   function showTasks() {
@@ -436,9 +592,17 @@
   function updateDemoBanner() {
     var banner = $('v4DemoBanner');
     var lbl = document.getElementById('dataSourceLabel');
-    var isLive = window.COCO && window.COCO.data && window.COCO.data.meta && window.COCO.data.meta.source === 'live';
-    if (lbl) lbl.textContent = 'מקור: ' + (isLive ? 'חי (GSC/GA4)' : 'דמו');
-    if (banner) banner.style.display = isLive ? 'none' : 'flex';
+    var live = isLive();
+    if (lbl) lbl.textContent = 'מקור: ' + (live ? 'חי (GSC/GA4)' : 'דמו');
+    if (banner) {
+      if (live) {
+        banner.style.display = 'flex';
+        banner.innerHTML = '<span class="tag" style="background:#16a34a">חי</span>' +
+          '<span>GSC + GA4 מחוברים. GBP ו-Ads ממתינים לאישור Google. סנכרון מלא מהמשרד: npm run project-001:sync-and-export</span>';
+      } else {
+        banner.style.display = 'flex';
+      }
+    }
   }
 
   function bindTextareaGrow() {
@@ -534,7 +698,7 @@
       };
     }
 
-    var loadP = window.COCO && window.loadData;
+    var loadP = window.loadData;
     if (typeof loadP === 'function') loadP().then(renderHome);
     else if (window.COCO) setTimeout(renderHome, 400);
   }

@@ -73,6 +73,8 @@
       'חשיפות: ' + (k.weeklyImpressions?.value || '—'),
       'CTR: ' + (k.avgCtr?.value || '—'),
       'מילות מפתח פעילות: ' + (k.activeKeywords?.value || '—'),
+      'סשנים GA4: ' + (k.ga4Sessions?.value || d.ga4Sessions || '—'),
+      'צפיות GA4: ' + (k.ga4PageViews?.value || d.ga4PageViews || '—'),
       'טיוטות ממתינות לאישור: ' + (d.badges?.pendingApproval ?? window.COCO?.state?.approvalCount ?? '—'),
       'הזדמנויות AI: ' + (k.aiOpportunities?.value || '—'),
       'עמודים חלשים: ' + (k.weakPages?.value || '—'),
@@ -247,7 +249,8 @@
     }
   }
 
-  function apiChat(prompt) {
+  function apiChat(prompt, historyOverride) {
+    var hist = historyOverride || state.history;
     var api = window.COCO_API;
     if (api?.hasApi) {
       return api.fetch('/api/ai/chat', {
@@ -258,7 +261,7 @@
           module: 'assistant',
           system: buildSystemPrompt(),
           prompt: prompt,
-          history: state.history,
+          history: hist,
           max_tokens: 1100,
         }),
       }).then(function (r) {
@@ -281,12 +284,21 @@
           module: 'assistant',
           system: buildSystemPrompt(),
           prompt: prompt,
-          history: state.history,
+          history: hist,
         }),
       }).then(function (r) { return r.json(); }).then(function (data) {
         return { ok: !!data.ok, text: data.text, message: data.error || data.message };
       }).catch(function (e) {
         return { ok: false, message: e.message };
+      });
+    }
+
+    if (typeof window.marketingApiChat === 'function') {
+      return window.marketingApiChat({
+        module: 'assistant',
+        system: buildSystemPrompt(),
+        prompt: prompt,
+        history: hist,
       });
     }
 
@@ -401,5 +413,14 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  window.COCO_ASSISTANT = { open: function () { setOpen(true); }, send: sendMessage, micSupported: function () { return state.micOk; } };
+  window.COCO_ASSISTANT = {
+    open: function () { setOpen(true); },
+    send: sendMessage,
+    apiChat: apiChat,
+    buildSystemPrompt: buildSystemPrompt,
+    parseActions: parseActions,
+    stripMarkers: stripMarkers,
+    runAction: runAction,
+    micSupported: function () { return state.micOk; },
+  };
 })();
