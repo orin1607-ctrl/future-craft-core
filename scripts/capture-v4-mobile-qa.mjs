@@ -109,15 +109,16 @@ async function checkDevice(browser, label, deviceDescriptor) {
 
   await page.evaluate(() => window.gotoSc('seo'));
   await page.waitForTimeout(200);
-  const backVis = await page.locator('.v4-module-bar .v4-go-home').isVisible();
+  const backBtn = page.locator('#sc-seo .v4-module-bar .v4-go-home');
+  const backVis = await backBtn.isVisible();
   backVis ? dev.passed.push('module-back-visible') : dev.failed.push('module-back-visible');
-  const backBox = await page.locator('.v4-module-bar .v4-go-home').boundingBox();
+  const backBox = await backBtn.boundingBox();
   if (backBox && backBox.height >= 48) dev.passed.push('module-back-height');
   else dev.failed.push(`module-back-h-${backBox?.height}`);
   await shot('05-module-seo');
   await noOverflow('module-seo');
 
-  await page.locator('.v4-module-bar .v4-go-home').click();
+  await backBtn.click();
   await page.waitForTimeout(200);
   const homeAgain = await page.evaluate(() => document.getElementById('sc-morning')?.classList.contains('active'));
   homeAgain ? dev.passed.push('back-to-home') : dev.failed.push('back-to-home');

@@ -43,7 +43,7 @@ body.v4-mode .g2, body.v4-mode .g3, body.v4-mode .g4 {
   padding: 3px 8px; border-radius: 4px; flex-shrink: 0;
 }
 
-.home-v4 { max-width: 100%; width: 100%; box-sizing: border-box; }
+.home-v4 { max-width: 100%; width: 100%; box-sizing: border-box; padding-bottom: 24px; }
 
 .v4-zone { margin-bottom: 32px; }
 .v4-zone-hdr { margin-bottom: 14px; }
@@ -244,8 +244,20 @@ body.v4-mode.v4-has-module .v4-module-bar {
   border-top: 1px solid var(--border);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(8px);
+  flex-direction: row; flex-wrap: wrap; gap: 10px;
 }
-body.v4-mode.v4-has-module .content { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+body.v4-mode.v4-has-module .v4-module-bar .v4-back-btn {
+  flex: 1 1 calc(50% - 6px); min-width: 0; margin-top: 0;
+}
+body.v4-mode.v4-has-module .v4-module-bar .v4-back-btn:only-child {
+  flex: 1 1 100%;
+}
+body.v4-mode.v4-has-module .content {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+body.v4-mode.v4-has-module .screen.active {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
 
 /* Topbar mobile */
 body.v4-mode .topbar {

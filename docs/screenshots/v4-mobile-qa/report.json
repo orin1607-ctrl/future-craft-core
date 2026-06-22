@@ -1,0 +1,103 @@
+{
+  "url": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform",
+  "at": "2026-06-22T13:45:06.553Z",
+  "devices": [
+    {
+      "label": "iphone",
+      "passed": [
+        "v4-mode",
+        "home:no-horizontal-scroll",
+        "dash-single-column",
+        "cat-btn-size",
+        "chat-send",
+        "chat-send-height",
+        "cat-open-ai",
+        "cat-ai:no-horizontal-scroll",
+        "cat-open-plan",
+        "cat-plan:no-horizontal-scroll",
+        "cat-open-site",
+        "cat-site:no-horizontal-scroll",
+        "cat-open-promo",
+        "cat-promo:no-horizontal-scroll",
+        "cat-open-exec",
+        "cat-exec:no-horizontal-scroll",
+        "cat-open-reports",
+        "cat-reports:no-horizontal-scroll",
+        "cat-open-knowledge",
+        "cat-knowledge:no-horizontal-scroll",
+        "cat-open-settings",
+        "cat-settings:no-horizontal-scroll",
+        "module-back-visible",
+        "module-back-height",
+        "module-seo:no-horizontal-scroll",
+        "back-to-home"
+      ],
+      "failed": [],
+      "shots": [
+        "iphone-01-home-top.png",
+        "iphone-02-dashboard.png",
+        "iphone-03-categories.png",
+        "iphone-04-chat.png",
+        "iphone-05-module-seo.png",
+        "iphone-06-home-bottom.png"
+      ],
+      "ok": true
+    },
+    {
+      "label": "android",
+      "passed": [
+        "v4-mode",
+        "home:no-horizontal-scroll",
+        "dash-single-column",
+        "cat-btn-size",
+        "chat-send",
+        "chat-send-height",
+        "cat-open-ai",
+        "cat-ai:no-horizontal-scroll",
+        "cat-open-plan",
+        "cat-plan:no-horizontal-scroll",
+        "cat-open-site",
+        "cat-site:no-horizontal-scroll",
+        "cat-open-promo",
+        "cat-promo:no-horizontal-scroll",
+        "cat-open-exec",
+        "cat-exec:no-horizontal-scroll",
+        "cat-open-reports",
+        "cat-reports:no-horizontal-scroll",
+        "cat-open-knowledge",
+        "cat-knowledge:no-horizontal-scroll",
+        "cat-open-settings",
+        "cat-settings:no-horizontal-scroll",
+        "module-back-visible",
+        "module-back-height",
+        "module-seo:no-horizontal-scroll",
+        "back-to-home"
+      ],
+      "failed": [],
+      "shots": [
+        "android-01-home-top.png",
+        "android-02-dashboard.png",
+        "android-03-categories.png",
+        "android-04-chat.png",
+        "android-05-module-seo.png",
+        "android-06-home-bottom.png"
+      ],
+      "ok": true
+    }
+  ],
+  "shots": [
+    "iphone-01-home-top.png",
+    "iphone-02-dashboard.png",
+    "iphone-03-categories.png",
+    "iphone-04-chat.png",
+    "iphone-05-module-seo.png",
+    "iphone-06-home-bottom.png",
+    "android-01-home-top.png",
+    "android-02-dashboard.png",
+    "android-03-categories.png",
+    "android-04-chat.png",
+    "android-05-module-seo.png",
+    "android-06-home-bottom.png"
+  ],
+  "ok": true
+}
