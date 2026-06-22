@@ -1,0 +1,90 @@
+{
+  "at": "2026-06-22T08:33:38.296Z",
+  "base": "http://localhost:8890",
+  "expectVersion": "6ceb18b-m4",
+  "checks": [
+    {
+      "name": "iphone-13-version",
+      "ok": true,
+      "detail": "meta=6ceb18b-m4 badge=v6ceb18b-m4"
+    },
+    {
+      "name": "iphone-13-bottom-nav",
+      "ok": true
+    },
+    {
+      "name": "iphone-13-global-ask",
+      "ok": true
+    },
+    {
+      "name": "iphone-13-no-page-overflow",
+      "ok": true
+    },
+    {
+      "name": "iphone-13-touch-target-ai",
+      "ok": true,
+      "detail": "188.296875x44"
+    },
+    {
+      "name": "iphone-13-sidebar-opens",
+      "ok": true
+    },
+    {
+      "name": "iphone-13-bottom-nav-site",
+      "ok": true,
+      "detail": "מרכז האתר"
+    },
+    {
+      "name": "iphone-13-ai-modal",
+      "ok": true
+    },
+    {
+      "name": "pixel-7-version",
+      "ok": true,
+      "detail": "meta=6ceb18b-m4 badge=v6ceb18b-m4"
+    },
+    {
+      "name": "pixel-7-bottom-nav",
+      "ok": true
+    },
+    {
+      "name": "pixel-7-global-ask",
+      "ok": true
+    },
+    {
+      "name": "pixel-7-no-page-overflow",
+      "ok": true
+    },
+    {
+      "name": "pixel-7-touch-target-ai",
+      "ok": true,
+      "detail": "199.296875x44"
+    },
+    {
+      "name": "pixel-7-sidebar-opens",
+      "ok": true
+    },
+    {
+      "name": "pixel-7-bottom-nav-site",
+      "ok": true,
+      "detail": "מרכז האתר"
+    },
+    {
+      "name": "pixel-7-ai-modal",
+      "ok": true
+    }
+  ],
+  "shots": [
+    "iphone-13-home.png",
+    "iphone-13-sidebar-open.png",
+    "iphone-13-site-module.png",
+    "iphone-13-ai-modal.png",
+    "pixel-7-home.png",
+    "pixel-7-sidebar-open.png",
+    "pixel-7-site-module.png",
+    "pixel-7-ai-modal.png",
+    "pixel-7-landscape.png"
+  ],
+  "passed": 16,
+  "failed": 0
+}

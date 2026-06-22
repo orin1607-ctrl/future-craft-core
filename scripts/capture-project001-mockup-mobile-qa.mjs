@@ -9,7 +9,7 @@ import { join } from 'path';
 const BASE =
   process.argv[2]?.replace(/\/$/, '') ||
   'https://orin1607-ctrl.github.io/future-craft-core/project-001-mockup';
-const EXPECT_VERSION = process.argv[3] || '6ceb18b-m2';
+const EXPECT_VERSION = process.argv[3] || '6ceb18b-m4';
 const OUT = join(process.cwd(), 'docs', 'screenshots', 'project-001-mockup-qa');
 
 mkdirSync(OUT, { recursive: true });
@@ -86,6 +86,12 @@ async function runViewport(browser, label, contextOptions, viewport) {
   else fail(`${label}-sidebar-opens`);
 
   await shot(page, `${label}-sidebar-open.png`);
+
+  await page.evaluate(() => {
+    document.getElementById('sidebar')?.classList.remove('open');
+    document.getElementById('overlayScrim')?.classList.remove('show');
+  });
+  await page.waitForTimeout(200);
 
   await page.click('.bottom-nav .bn-item[data-mod="site"]');
   await page.waitForTimeout(400);
