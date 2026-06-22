@@ -491,14 +491,14 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 <!-- MAIN -->
 <div class="main">
   <header class="topbar">
+    <button type="button" class="v4-back-btn" id="topbarHome" style="display:none" title="חזרה לבית">→ חזרה לבית</button>
     <button class="mob-menu-btn" onclick="toggleSidebar()">☰</button>
     <div style="flex:1">
       <div class="tb-title" id="scrLabel">בית — AI מנהל שיווק</div>
-      <div class="tb-sub">CO.CO דליה — פלטפורמת שיווק AI · <span id="dataSourceLabel">מקור: demo</span></div>
+      <div class="tb-sub">CO.CO דליה — פלטפורמת שיווק AI · <span id="dataSourceLabel">מקור: דמו</span></div>
     </div>
     <span class="chip chip-green">🟢 פעיל</span>
     <span class="chip chip-orange" id="aiStatusChip" style="display:none">OpenAI</span>
-    <button type="button" class="btn btn-ghost btn-sm" id="topbarHome" style="display:none">🏠 בית</button>
     <a id="sheetsLink" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="display:none">📊 Google Sheets</a>
     <button class="btn btn-ghost btn-sm" onclick="typeof syncNow==='function'&&syncNow()">🔄 סנכרן</button>
     <button class="btn btn-primary btn-sm" id="topbarRunAi">🤖 הרץ AI</button>
@@ -511,11 +511,15 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 <!-- ===== SCREEN: HOME (V4 — AI + Dashboard + Categories) ===== -->
 <div class="screen active" id="sc-morning">
   <div class="home-v4">
+    <div class="v4-demo-banner" id="v4DemoBanner">
+      <span class="tag">דמו</span>
+      <span>Mockup V4 — חלק מהנתונים לדוגמה בלבד. חיבורים חיים: GSC + GA4 (כשיש export). GBP ו-Ads ממתינים לאישור Google.</span>
+    </div>
 
     <section class="v4-zone v4-zone-ai">
       <div class="v4-zone-hdr">
         <div>
-          <h2>🤖 אזור 1 — AI מנהל השיווק <span class="v4-badge">V4</span></h2>
+          <h2>🤖 AI מנהל השיווק <span class="v4-badge">V4</span></h2>
           <p>אני מנהל את ה-AI · ה-AI מנהל את כל מחלקת השיווק</p>
         </div>
       </div>
@@ -573,7 +577,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
     <section class="v4-zone v4-zone-dash">
       <div class="v4-zone-hdr">
         <div>
-          <h2>📊 אזור 2 — Dashboard</h2>
+          <h2>📊 Dashboard — מצב העסק</h2>
           <p>תוך 10 שניות — מצב העסק במבט אחד</p>
         </div>
       </div>
@@ -583,7 +587,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
     <section class="v4-zone v4-zone-cats">
       <div class="v4-zone-hdr">
         <div>
-          <h2>🗂️ אזור 3 — קטגוריות עבודה</h2>
+          <h2>🗂️ קטגוריות עבודה</h2>
           <p>כפתורים גדולים כמו בדליה — כל כפתור פותח עולם שלם</p>
         </div>
       </div>
@@ -597,7 +601,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 <div class="screen" id="sc-category">
   <div class="v4-category-page">
     <div class="v4-back-row">
-      <button type="button" class="v4-back-btn" id="v4CatBackHome">← חזרה לבית</button>
+      <button type="button" class="v4-back-btn" id="v4CatBackHome">→ חזרה לבית</button>
     </div>
     <div class="v4-zone-hdr">
       <div>
@@ -2405,13 +2409,41 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   <div class="g2">
     <div>
       <div class="card mb-12">
-        <div class="card-header">🔌 חיבורי API</div>
+        <div class="card-header">🤖 ספקי AI <span class="badge-cs" style="font-size:9px">מוכן ל-P1</span></div>
+        <div class="card-body">
+          <div class="row-item"><div class="row-icon ri-up">🤖</div><div class="row-content"><div class="row-text fw7">ChatGPT (OpenAI)</div><div class="fs11 text3">GPT-4o — יצירת תוכן וניתוח</div></div><span class="pill pill-green">מוכן</span></div>
+          <div class="row-item"><div class="row-icon ri-wait">🧠</div><div class="row-content"><div class="row-text fw7">Claude (Anthropic)</div><div class="fs11 text3">ניתוח ארוך ואסטרטגיה</div></div><span class="badge-cs">P1</span></div>
+          <div class="row-item"><div class="row-icon ri-wait">✨</div><div class="row-content"><div class="row-text fw7">Gemini (Google)</div><div class="fs11 text3">ניתוח נתוני Google</div></div><span class="badge-cs">P1</span></div>
+        </div>
+      </div>
+      <div class="card mb-12">
+        <div class="card-header">🔌 Google Workspace &amp; אתר</div>
+        <div class="card-body">
+          <div class="row-item"><div class="row-icon ri-down">📊</div><div class="row-content"><div class="row-text fw7">Google Analytics 4</div><div class="fs11 text3">נתוני תנועה</div></div><span class="pill pill-green" id="settingsGaStatus">חי*</span></div>
+          <div class="row-item"><div class="row-icon ri-down">🔍</div><div class="row-content"><div class="row-text fw7">Search Console</div><div class="fs11 text3">SEO ומילות מפתח</div></div><span class="pill pill-green">חי*</span></div>
+          <div class="row-item"><div class="row-icon ri-down">📍</div><div class="row-content"><div class="row-text fw7">Google Business Profile</div><div class="fs11 text3">ניהול GBP</div></div><span class="badge-ga" style="font-size:9px">ממתין Google</span></div>
+          <div class="row-item"><div class="row-icon ri-down">💰</div><div class="row-content"><div class="row-text fw7">Google Ads</div><div class="fs11 text3">קמפיינים</div></div><span class="badge-ga" style="font-size:9px">ממתין Google</span></div>
+          <div class="row-item"><div class="row-icon ri-wait">📧</div><div class="row-content"><div class="row-text fw7">Gmail</div><div class="fs11 text3">דוחות והתראות</div></div><span class="badge-cs">P1</span></div>
+          <div class="row-item"><div class="row-icon ri-wait">📁</div><div class="row-content"><div class="row-text fw7">Drive · Docs · Sheets</div><div class="fs11 text3">ייצוא ודוחות</div></div><span class="badge-cs">P1</span></div>
+          <div class="row-item"><div class="row-icon ri-wait">🌐</div><div class="row-content"><div class="row-text fw7">WordPress / האתר</div><div class="fs11 text3">עמודים, תוכן, SEO</div></div><span class="badge-pl">מתוכנן</span></div>
+          <div class="row-item"><div class="row-icon ri-wait">☁️</div><div class="row-content"><div class="row-text fw7">Cloudflare</div><div class="fs11 text3">DNS, CDN, אבטחה</div></div><span class="badge-cs">P1</span></div>
+          <p class="fs11 text3 mt8">* חי כשקיים export מ-<code>dashboard.json</code></p>
+        </div>
+      </div>
+      <div class="card mb-12">
+        <div class="card-header">📱 רשתות חברתיות <span class="badge-pl">עתידי</span></div>
+        <div class="card-body">
+          <div class="row-item"><div class="row-icon ri-wait">📘</div><div class="row-content"><div class="row-text fw7">Facebook / Meta</div></div><span class="badge-pl">מתוכנן</span></div>
+          <div class="row-item"><div class="row-icon ri-wait">📸</div><div class="row-content"><div class="row-text fw7">Instagram</div></div><span class="badge-pl">מתוכנן</span></div>
+          <div class="row-item"><div class="row-icon ri-wait">💼</div><div class="row-content"><div class="row-text fw7">LinkedIn</div></div><span class="badge-pl">מתוכנן</span></div>
+          <div class="row-item"><div class="row-icon ri-wait">▶️</div><div class="row-content"><div class="row-text fw7">YouTube</div></div><span class="badge-pl">מתוכנן</span></div>
+          <div class="row-item"><div class="row-icon ri-wait">💬</div><div class="row-content"><div class="row-text fw7">WhatsApp Business</div></div><span class="badge-pl">מתוכנן</span></div>
+        </div>
+      </div>
+      <div class="card mb-12">
+        <div class="card-header">🔌 חיבורי API (ליבה)</div>
         <div class="card-body">
           <div class="row-item"><div class="row-icon ri-up">🤖</div><div class="row-content"><div class="row-text fw7">OpenAI GPT-4o</div><div class="fs11 text3">יצירת תוכן AI</div></div><span class="pill pill-green">מחובר</span></div>
-          <div class="row-item"><div class="row-icon ri-down">📊</div><div class="row-content"><div class="row-text fw7">Google Search Console</div><div class="fs11 text3">נתוני SEO ומילות מפתח</div></div><button class="btn btn-outline btn-xs">חבר</button></div>
-          <div class="row-item"><div class="row-icon ri-down">📍</div><div class="row-content"><div class="row-text fw7">Google Business Profile API</div><div class="fs11 text3">ניהול GBP</div></div><span class="badge-ga" style="font-size:9px">דורש אישור Google</span></div>
-          <div class="row-item"><div class="row-icon ri-down">💰</div><div class="row-content"><div class="row-text fw7">Google Ads API</div><div class="fs11 text3">ניהול קמפיינים</div></div><button class="btn btn-outline btn-xs">חבר</button></div>
-          <div class="row-item"><div class="row-icon ri-down">📈</div><div class="row-content"><div class="row-text fw7">Google Analytics 4</div><div class="fs11 text3">נתוני תנועה</div></div><button class="btn btn-outline btn-xs">חבר</button></div>
         </div>
       </div>
       <div class="card">

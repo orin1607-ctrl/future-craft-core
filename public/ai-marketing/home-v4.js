@@ -164,6 +164,14 @@
         { ico: '📧', label: 'Gmail', sc: 'settings' },
         { ico: '📁', label: 'Drive / Docs / Sheets', sc: 'settings' },
         { ico: '☁️', label: 'Cloudflare / API', sc: 'settings' },
+        { ico: '📘', label: 'Facebook / Meta', sc: 'settings' },
+        { ico: '📸', label: 'Instagram', sc: 'settings' },
+        { ico: '💼', label: 'LinkedIn', sc: 'settings' },
+        { ico: '▶️', label: 'YouTube', sc: 'settings' },
+        { ico: '💬', label: 'WhatsApp', sc: 'settings' },
+        { ico: '🤖', label: 'ChatGPT', sc: 'settings' },
+        { ico: '🧠', label: 'Claude', sc: 'settings' },
+        { ico: '✨', label: 'Gemini', sc: 'settings' },
         { ico: '👤', label: 'משתמשים והרשאות', sc: 'permissions' },
         { ico: '🔐', label: 'אבטחה', sc: 'permissions' },
         { ico: '❤️', label: 'בריאות מערכת', sc: 'health' },
@@ -279,17 +287,20 @@
     renderList('v4Opportunities', data.opportunities.map(function (t) { return { type: 'up', text: t }; }));
     renderList('v4Auto', data.autoDone);
     renderDashboard(data.dash);
+    updateDemoBanner();
     window.HOME_V4 = { data: data, actions: data.actions };
   }
 
   function renderDashboard(dash) {
     var grid = $('v4DashGrid');
     if (!grid) return;
+    var isDemo = !(window.COCO && window.COCO.data && window.COCO.data.meta && window.COCO.data.meta.source === 'live');
     grid.innerHTML = DASH_CARDS.map(function (c) {
       return '<button type="button" class="v4-dash-card ' + (c.cls || '') + '" data-goto="' + c.sc + '">' +
         '<div class="ico">' + c.ico + '</div>' +
         '<div class="lbl">' + esc(c.lbl) + '</div>' +
         '<div class="val">' + esc(dash[c.key] || '—') + '</div>' +
+        (isDemo ? '<span class="demo-tag">דמו</span>' : '') +
         '</button>';
     }).join('');
     grid.querySelectorAll('[data-goto]').forEach(function (btn) {
@@ -422,6 +433,23 @@
     step();
   }
 
+  function updateDemoBanner() {
+    var banner = $('v4DemoBanner');
+    var lbl = document.getElementById('dataSourceLabel');
+    var isLive = window.COCO && window.COCO.data && window.COCO.data.meta && window.COCO.data.meta.source === 'live';
+    if (lbl) lbl.textContent = 'מקור: ' + (isLive ? 'חי (GSC/GA4)' : 'דמו');
+    if (banner) banner.style.display = isLive ? 'none' : 'flex';
+  }
+
+  function bindTextareaGrow() {
+    var ta = $('v4ChatInput');
+    if (!ta) return;
+    ta.addEventListener('input', function () {
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+    });
+  }
+
   function scrollToChat() {
     var el = $('v4Chat');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -434,8 +462,8 @@
       if (sc.querySelector('.v4-module-bar')) return;
       var bar = document.createElement('div');
       bar.className = 'v4-module-bar';
-      bar.innerHTML = '<button type="button" class="v4-back-btn v4-go-home">← חזרה לבית</button>' +
-        '<button type="button" class="v4-back-btn v4-go-cat" style="display:none">← חזרה לקטגוריה</button>';
+      bar.innerHTML = '<button type="button" class="v4-back-btn v4-go-home">→ חזרה לבית</button>' +
+        '<button type="button" class="v4-back-btn ghost v4-go-cat" style="display:none">→ חזרה לקטגוריה</button>';
       sc.insertBefore(bar, sc.firstChild);
       bar.querySelector('.v4-go-home')?.addEventListener('click', function () {
         if (typeof window.gotoSc === 'function') window.gotoSc('morning');
@@ -450,6 +478,7 @@
   function bindEvents() {
     document.body.classList.add('v4-mode');
 
+    bindTextareaGrow();
     $('v4BtnWork')?.addEventListener('click', runWorkForMe);
     $('v4BtnExecAll')?.addEventListener('click', executeAll);
     $('v4BtnExecAll2')?.addEventListener('click', executeAll);
