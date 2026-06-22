@@ -165,10 +165,11 @@ function AppRoutes() {
       <Route path="/dev/project-001/dashboard" element={<Project001Dashboard />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+      {/* Marketing AI — fullscreen, outside Dalia chrome */}
+      <Route path="/ai-marketing" element={<AiMarketingPage />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
-        <Route path="/ai-marketing" element={<AiMarketingPage />} />
         <Route path="/transport" element={<TransportHubPage />} />
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />
         <Route path="/vehicle-tracking" element={<VehicleTracking />} />

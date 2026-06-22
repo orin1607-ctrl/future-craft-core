@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CO.CO דליה — מנהל שיווק AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./ai-marketing/morning-v3.css">
+<link rel="stylesheet" href="./ai-marketing/home-v4.css">
 <style>
 :root {
   --navy:#003366; --blue:#2563eb; --blue2:#1d4ed8; --green:#16a34a; --red:#dc2626;
@@ -14,7 +14,8 @@
   --text:#0f172a; --text2:#475569; --text3:#94a3b8;
   --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
   --sh-md:0 4px 12px rgba(0,0,0,.1);
-  --r:12px; --r-sm:8px; --sb:262px;
+  --r:12px; --r-sm:8px; --sb:228px;
+  --content-pad-x:28px; --content-pad-top:28px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;direction:rtl}
@@ -39,7 +40,8 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);height:56px;padding:0 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
 .tb-title{font-size:16px;font-weight:700;color:var(--navy);flex:1}
 .tb-sub{font-size:11px;color:var(--text3)}
-.content{padding:22px 24px;flex:1}
+.content{padding:var(--content-pad-top) var(--content-pad-x) 32px;flex:1}
+body.v3-mode .content{padding-top:calc(var(--content-pad-top) + 4px)}
 
 /* === BUTTONS === */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;text-decoration:none}
@@ -249,17 +251,28 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
 .sb-acc-group.open .sb-acc-chevron{transform:rotate(180deg)}
 .sb-acc-body{display:block}
 
-/* === EMBEDDED (inside Dalia) === */
+/* === EMBEDDED (legacy iframe) / FULLSCREEN (Dalia route) === */
 body.embedded .sb-logo,body.embedded .sb-footer{display:none}
 body.embedded .topbar{display:none}
 body.embedded .main{margin-right:var(--sb);min-height:100%}
 body.embedded .sidebar{top:0}
+body.fullscreen .main{margin-right:var(--sb);min-height:100vh}
+body.fullscreen .topbar{display:flex}
+body.fullscreen .content{padding-top:var(--content-pad-top)}
+body.nav-full .sb-nav-v3{display:none!important}
+body.nav-full .sb-nav-full{display:block!important}
+body.nav-ai .sb-nav-full{display:none!important}
+body.nav-ai .sb-nav-v3{display:block!important}
+.sb-nav-full .sb-back-ai{border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:4px;font-weight:700;color:#fff!important}
 
 /* === MOBILE === */
 .mob-menu-btn{display:none;width:34px;height:34px;border-radius:7px;border:1px solid var(--border);background:var(--surface);align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text2)}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:199}
 
-@media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}.g4{grid-template-columns:repeat(2,1fr)}.g-7-3,.g-6-4{grid-template-columns:1fr}}
+@media(min-width:1400px){
+  :root{--content-pad-x:36px;--content-pad-top:32px}
+  body.v3-mode .content{padding-top:calc(var(--content-pad-top) + 4px)}
+}
 @media(max-width:768px){
   body{display:flex;flex-direction:column}
   .sidebar{transform:none;width:100%;position:relative;height:auto;max-height:none;flex-shrink:0;order:-1}
@@ -406,15 +419,70 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 <aside class="sidebar" id="sidebar">
   <div class="sb-logo">
     <div class="sb-logo-name">🚀 CO.CO דליה</div>
-    <div class="sb-logo-sub">מנהל שיווק AI · v3.0</div>
+    <div class="sb-logo-sub">מנהל שיווק AI · v4.0</div>
   </div>
 
-  <nav class="sb-nav sb-nav-v3" data-v3-nav="1">
+  <nav class="sb-nav sb-nav-v3" id="sbNavAi" data-v3-nav="1">
     <button class="sb-item active" data-sc="morning"><span class="icon">🌅</span> בוקר / AI</button>
     <button class="sb-item" data-sc="approval"><span class="icon">✅</span> אישורים <span class="sb-badge" id="sbBadgeApproval">7</span></button>
     <button class="sb-item" data-sc="tasks"><span class="icon">📋</span> משימות</button>
-    <button class="sb-item" data-sc="modules"><span class="icon">📦</span> מודולים</button>
+    <button class="sb-item" data-sc="modules"><span class="icon">📦</span> כל המודולים</button>
     <button class="sb-item" data-sc="settings"><span class="icon">⚙️</span> הגדרות</button>
+  </nav>
+
+  <nav class="sb-nav sb-nav-full" id="sbNavFull" hidden>
+    <button type="button" class="sb-item sb-back-ai" data-sc="morning"><span class="icon">🌅</span> חזרה ל-AI</button>
+    <div class="sb-sec">דשבורד מנהלים</div>
+    <button class="sb-item" data-sc="usermanual"><span class="icon">📘</span> מדריך שימוש</button>
+    <button class="sb-item" data-sc="dashboard"><span class="icon">📊</span> דשבורד ראשי</button>
+    <button class="sb-item" data-sc="executive"><span class="icon">📈</span> דשבורד מנהלים</button>
+    <button class="sb-item" data-sc="director"><span class="icon">🧠</span> מנהל AI <span class="sb-badge">5</span></button>
+    <button class="sb-item" data-sc="approval"><span class="icon">✅</span> מרכז אישורים <span class="sb-badge" id="sbBadgeApprovalFull">7</span></button>
+    <button class="sb-item" data-sc="notifications"><span class="icon">🔔</span> התראות <span class="sb-badge">12</span></button>
+    <button class="sb-item" data-sc="tasks"><span class="icon">📋</span> משימות</button>
+    <button class="sb-item" data-sc="briefing"><span class="icon">☀️</span> תדרוך יומי</button>
+    <div class="sb-sec">SEO</div>
+    <button class="sb-item" data-sc="seo"><span class="icon">📈</span> מודיעין SEO</button>
+    <button class="sb-item" data-sc="keywords"><span class="icon">🔑</span> מילות מפתח</button>
+    <button class="sb-item" data-sc="intel"><span class="icon">🔭</span> מרכז מודיעין</button>
+    <button class="sb-item" data-sc="competitors"><span class="icon">🏆</span> ניתוח מתחרים</button>
+    <button class="sb-item" data-sc="news"><span class="icon">📰</span> מודיעין חדשות</button>
+    <div class="sb-sec">תוכן ו-AI</div>
+    <button class="sb-item" data-sc="content"><span class="icon">✍️</span> מפעל תוכן</button>
+    <button class="sb-item" data-sc="aiguide"><span class="icon">📖</span> מדריך AI</button>
+    <button class="sb-item" data-sc="warehouse"><span class="icon">📚</span> מחסן תוכן</button>
+    <button class="sb-item" data-sc="pages"><span class="icon">🌐</span> ניהול אתר</button>
+    <button class="sb-item" data-sc="landing"><span class="icon">🚀</span> דפי נחיתה</button>
+    <button class="sb-item" data-sc="scheduler"><span class="icon">📅</span> תזמון</button>
+    <button class="sb-item" data-sc="strategy"><span class="icon">♟️</span> אסטרטגיית AI</button>
+    <button class="sb-item" data-sc="ailab"><span class="icon">🧪</span> מעבדת AI</button>
+    <button class="sb-item" data-sc="autonomous"><span class="icon">🤖</span> מצב אוטונומי</button>
+    <button class="sb-item" data-sc="aiimage"><span class="icon">🎨</span> סטודיו תמונות AI</button>
+    <div class="sb-sec">שירותי Google</div>
+    <button class="sb-item" data-sc="gbp"><span class="icon">📍</span> Google Business</button>
+    <button class="sb-item" data-sc="ads"><span class="icon">💰</span> Google Ads</button>
+    <div class="sb-sec">אנליטיקה ונתונים</div>
+    <button class="sb-item" data-sc="roi"><span class="icon">💹</span> ROI ותחזית</button>
+    <button class="sb-item" data-sc="kpi"><span class="icon">🎯</span> דשבורד KPI</button>
+    <button class="sb-item" data-sc="heatmap"><span class="icon">🔥</span> מפת חום</button>
+    <div class="sb-sec">שיווק</div>
+    <button class="sb-item" data-sc="funnel"><span class="icon">🔽</span> משפך שיווק</button>
+    <button class="sb-item" data-sc="journey"><span class="icon">🗺️</span> מסע לקוח</button>
+    <div class="sb-sec">CRM</div>
+    <button class="sb-item" data-sc="crm"><span class="icon">👥</span> שיווק CRM</button>
+    <div class="sb-sec">דוחות והיסטוריה</div>
+    <button class="sb-item" data-sc="reports"><span class="icon">📄</span> דוחות</button>
+    <button class="sb-item" data-sc="history"><span class="icon">🕐</span> היסטוריה</button>
+    <div class="sb-sec">שילוב FleetOS</div>
+    <button class="sb-item" data-sc="fleetint"><span class="icon">🚗</span> שילוב FleetOS</button>
+    <button class="sb-item" data-sc="health"><span class="icon">❤️</span> דשבורד בריאות</button>
+    <div class="sb-sec">הגדרות ו-API</div>
+    <button class="sb-item" data-sc="settings"><span class="icon">⚙️</span> הגדרות ו-API</button>
+    <div class="sb-sec">הרשאות ואבטחה</div>
+    <button class="sb-item" data-sc="permissions"><span class="icon">🔐</span> הרשאות &amp; אבטחה</button>
+    <div class="sb-sec">בדיקות ו-מפת דרכים</div>
+    <button class="sb-item" data-sc="roadmap"><span class="icon">🗺️</span> מפת דרכים</button>
+    <button class="sb-item" data-sc="qa"><span class="icon">✔️</span> רשימת בדיקות QA</button>
   </nav>
 
   <div class="sb-footer">מנהל על · v3 Mockup · AI First</div>
@@ -425,11 +493,12 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   <header class="topbar">
     <button class="mob-menu-btn" onclick="toggleSidebar()">☰</button>
     <div style="flex:1">
-      <div class="tb-title" id="scrLabel">בוקר / AI</div>
+      <div class="tb-title" id="scrLabel">בית — AI מנהל שיווק</div>
       <div class="tb-sub">CO.CO דליה — פלטפורמת שיווק AI · <span id="dataSourceLabel">מקור: demo</span></div>
     </div>
     <span class="chip chip-green">🟢 פעיל</span>
     <span class="chip chip-orange" id="aiStatusChip" style="display:none">OpenAI</span>
+    <button type="button" class="btn btn-ghost btn-sm" id="topbarHome" style="display:none">🏠 בית</button>
     <a id="sheetsLink" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="display:none">📊 Google Sheets</a>
     <button class="btn btn-ghost btn-sm" onclick="typeof syncNow==='function'&&syncNow()">🔄 סנכרן</button>
     <button class="btn btn-primary btn-sm" id="topbarRunAi">🤖 הרץ AI</button>
@@ -439,94 +508,118 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 
   <main class="content">
 
-<!-- ===== SCREEN: MORNING / AI (V3 default) ===== -->
+<!-- ===== SCREEN: HOME (V4 — AI + Dashboard + Categories) ===== -->
 <div class="screen active" id="sc-morning">
-  <div class="morning-wrap">
-    <div class="morning-hero">
-      <span class="v3-badge">Mockup V3</span>
-      <h1 id="morningGreet">בוקר טוב, יוני</h1>
-      <p id="morningDate">—</p>
-      <p style="margin-top:10px;font-size:13px;opacity:.9" id="morningStatus">טוען מצב עסק…</p>
-      <div class="morning-hero-actions">
-        <button type="button" class="btn btn-success" id="morningBtnWork">⚡ עבוד בשבילי</button>
-        <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="typeof syncNow==='function'&&syncNow()">🔄 סנכרן נתונים</button>
-        <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="gotoSc('approval')">✅ אישורים</button>
-      </div>
-    </div>
+  <div class="home-v4">
 
-    <div class="morning-stats">
-      <div class="morning-stat"><div class="lbl">דורש אישור</div><div class="val" id="morningStatPending">7</div><div class="sub">פריטים במרכז אישורים</div></div>
-      <div class="morning-stat"><div class="lbl">המלצות היום</div><div class="val" id="morningStatRec">5</div><div class="sub">פעולות מומלצות</div></div>
-      <div class="morning-stat"><div class="lbl">בוצע אוטומטית</div><div class="val" id="morningStatAuto">3</div><div class="sub">סנכרון וניתוח</div></div>
-      <div class="morning-stat"><div class="lbl">עדיין פתוח</div><div class="val" id="morningStatOpen">3</div><div class="sub">חסמים ומשימות</div></div>
-    </div>
+    <section class="v4-zone v4-zone-ai">
+      <div class="v4-zone-hdr">
+        <div>
+          <h2>🤖 אזור 1 — AI מנהל השיווק <span class="v4-badge">V4</span></h2>
+          <p>אני מנהל את ה-AI · ה-AI מנהל את כל מחלקת השיווק</p>
+        </div>
+      </div>
 
-    <div class="morning-grid">
-      <div class="morning-card">
-        <h3>📈 מה השתנה מאתמול</h3>
-        <ul class="morning-list" id="morningChanges"></ul>
+      <div class="v4-ai-hero">
+        <h1 id="v4Greet">בוקר טוב, יוני</h1>
+        <p class="sub" id="v4Date">—</p>
+        <p class="sub" id="v4Status" style="margin-top:8px">טוען מצב עסק…</p>
+        <div class="v4-ai-actions">
+          <button type="button" class="btn btn-success" id="v4BtnWork">⚡ עבוד בשבילי</button>
+          <button type="button" class="btn btn-primary" id="v4BtnExecAll">✅ בצע הכול</button>
+          <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" id="v4BtnTasks">📋 הצג משימות</button>
+          <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" id="v4BtnWhy">❓ למה אתה ממליץ?</button>
+          <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" id="v4BtnAsk">💬 שאל את ה-AI</button>
+          <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="typeof syncNow==='function'&&syncNow()">🔄 סנכרן</button>
+        </div>
       </div>
-      <div class="morning-card">
-        <h3>🎯 המשימה החשובה ביותר</h3>
-        <p class="fw7 fs13" style="color:var(--navy);line-height:1.6" id="morningTopTask">—</p>
-      </div>
-      <div class="morning-card">
-        <h3>🏁 יעדים והתקדמות</h3>
-        <div id="morningGoals"></div>
-      </div>
-      <div class="morning-card">
-        <h3>💡 מה AI ממליץ היום</h3>
-        <ul class="morning-list" id="morningRecommend"></ul>
-      </div>
-      <div class="morning-card">
-        <h3>✅ דורש אישורך</h3>
-        <ul class="morning-list" id="morningApproval"></ul>
-      </div>
-      <div class="morning-card">
-        <h3>🤖 בוצע אוטומטית</h3>
-        <ul class="morning-list" id="morningAuto"></ul>
-      </div>
-      <div class="morning-card full">
-        <h3>📌 עדיין פתוח</h3>
-        <ul class="morning-list" id="morningOpen"></ul>
-      </div>
-    </div>
 
-    <div class="morning-proposal">
-      <div class="ai-line" id="morningProposalText">יוני, מצאתי 5 פעולות שכדאי לבצע היום. האם לבצע אותן?</div>
-      <div class="actions">
-        <button type="button" class="btn btn-success" id="morningBtnExecAll">✅ בצע הכול</button>
-        <button type="button" class="btn btn-primary" id="morningBtnTasks">📋 הצג משימות</button>
-        <button type="button" class="btn btn-outline" id="morningBtnWhy">❓ למה אתה ממליץ?</button>
-        <button type="button" class="btn btn-outline" id="morningBtnData">📊 תראה נתונים</button>
+      <div class="v4-ai-grid">
+        <div class="v4-ai-card"><h3>📈 מה השתנה מאתמול</h3><ul class="v4-ai-list" id="v4Changes"></ul></div>
+        <div class="v4-ai-card"><h3>🎯 המשימה החשובה ביותר</h3><p class="fw7 fs13" style="color:var(--navy);line-height:1.6" id="v4TopTask">—</p></div>
+        <div class="v4-ai-card"><h3>🏁 יעדים ואיפה אנחנו</h3><div id="v4Goals"></div></div>
+        <div class="v4-ai-card"><h3>💡 מה AI ממליץ</h3><ul class="v4-ai-list" id="v4Recommend"></ul></div>
+        <div class="v4-ai-card"><h3>✅ מחכה לאישור</h3><ul class="v4-ai-list" id="v4Approval"></ul></div>
+        <div class="v4-ai-card"><h3>✨ הזדמנויות חדשות</h3><ul class="v4-ai-list" id="v4Opportunities"></ul></div>
+        <div class="v4-ai-card"><h3>🤖 בוצע אוטומטית</h3><ul class="v4-ai-list" id="v4Auto"></ul></div>
       </div>
-    </div>
 
-    <div class="morning-chat">
-      <div class="morning-chat-hdr">
-        <span>💬 שיחה עם מנהל השיווק AI</span>
-        <span class="fs11 text3">הזיכרון המרכזי נשמר בין סשנים (P1)</span>
+      <div class="v4-proposal">
+        <div class="line" id="v4Proposal">—</div>
+        <div class="actions">
+          <button type="button" class="btn btn-success" id="v4BtnExecAll2">✅ בצע הכול</button>
+          <button type="button" class="btn btn-primary" onclick="document.getElementById('v4BtnTasks')?.click()">📋 הצג משימות</button>
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('v4BtnWhy')?.click()">❓ למה?</button>
+        </div>
       </div>
-      <div class="morning-chat-msgs" id="morningChatMsgs"></div>
-      <div class="morning-chips">
-        <button type="button" class="morning-chip" data-prompt="מה מצב העסק?">מה מצב העסק?</button>
-        <button type="button" class="morning-chip" data-prompt="מה הכי דחוף היום?">מה הכי דחוף?</button>
-        <button type="button" class="morning-chip" data-prompt="בצע הכול">בצע הכול</button>
-        <button type="button" class="morning-chip" data-prompt="מה המתחרים עשו?">מתחרים</button>
+
+      <div class="v4-chat" id="v4Chat">
+        <div class="v4-chat-hdr">💬 שאל את מנהל השיווק AI</div>
+        <div class="v4-chat-msgs" id="v4ChatMsgs"></div>
+        <div class="v4-chips">
+          <button type="button" class="v4-chip" data-prompt="מה צריך לעשות היום?">מה לעשות היום?</button>
+          <button type="button" class="v4-chip" data-prompt="איזה עמוד כדאי לשפר?">איזה עמוד לשפר?</button>
+          <button type="button" class="v4-chip" data-prompt="מה השתנה בגוגל?">מה השתנה בגוגל?</button>
+          <button type="button" class="v4-chip" data-prompt="מה המתחרים עשו?">מתחרים</button>
+          <button type="button" class="v4-chip" data-prompt="איזה קמפיין מפסיד כסף?">קמפיינים</button>
+        </div>
+        <div class="v4-chat-input">
+          <textarea id="v4ChatInput" rows="1" placeholder="שאל את מנהל השיווק AI…" aria-label="הודעה"></textarea>
+          <button type="button" class="btn btn-primary" id="v4ChatSend">שלח</button>
+        </div>
       </div>
-      <div class="morning-chat-input">
-        <textarea id="morningChatInput" rows="1" placeholder="שאל את מנהל השיווק AI…" aria-label="הודעה"></textarea>
-        <button type="button" class="btn btn-primary" id="morningChatSend">שלח</button>
+    </section>
+
+    <section class="v4-zone v4-zone-dash">
+      <div class="v4-zone-hdr">
+        <div>
+          <h2>📊 אזור 2 — Dashboard</h2>
+          <p>תוך 10 שניות — מצב העסק במבט אחד</p>
+        </div>
+      </div>
+      <div class="v4-dash-grid" id="v4DashGrid"></div>
+    </section>
+
+    <section class="v4-zone v4-zone-cats">
+      <div class="v4-zone-hdr">
+        <div>
+          <h2>🗂️ אזור 3 — קטגוריות עבודה</h2>
+          <p>כפתורים גדולים כמו בדליה — כל כפתור פותח עולם שלם</p>
+        </div>
+      </div>
+      <div class="v4-world-grid" id="v4CategoryGrid"></div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ===== SCREEN: CATEGORY DRILL-DOWN (V4) ===== -->
+<div class="screen" id="sc-category">
+  <div class="v4-category-page">
+    <div class="v4-back-row">
+      <button type="button" class="v4-back-btn" id="v4CatBackHome">← חזרה לבית</button>
+    </div>
+    <div class="v4-zone-hdr">
+      <div>
+        <h2 id="v4CatTitle">קטגוריה</h2>
+        <p id="v4CatSub">—</p>
       </div>
     </div>
+    <div class="v4-world-grid" id="v4CategoryItems"></div>
   </div>
 </div>
 
 <!-- ===== SCREEN: MODULES HUB (V3) ===== -->
 <div class="screen" id="sc-modules">
   <div class="modules-hub">
-    <div class="sec-hdr"><h2 class="sec-title">📦 מודולים — מחלקות פנימיות</h2></div>
-    <p class="modules-intro">כל היכולות נשארות במערכת. כאן נכנסים רק כשצריך להעמיק. דרך העבודה הראשית היא מסך <strong>בוקר / AI</strong>.</p>
+    <div class="sec-hdr modules-hdr">
+      <h2 class="sec-title">📦 כל המודולים — שליטה מלאה</h2>
+      <div class="sec-actions">
+        <button type="button" class="btn btn-outline btn-sm" id="modulesBtnFullNav">📋 ניווט מלא בסרגל</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="gotoSc('morning')">🌅 חזרה ל-AI</button>
+      </div>
+    </div>
+    <p class="modules-intro">כל יכולות השיווק נשארות כאן. דרך העבודה הראשית היא מסך <strong>בוקר / AI</strong> — אבל תמיד אפשר להיכנס ידנית לכל מודול, לבדוק נתונים ולוודא שהשינויים בוצעו.</p>
     <div id="modulesGrid"></div>
   </div>
 </div>
@@ -2723,7 +2816,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 var screenMap = {};
 document.querySelectorAll('.screen').forEach(function(sc) { screenMap[sc.id] = sc; });
 var screenLabels = {
-  'sc-morning': 'בוקר / AI', 'sc-modules': 'מודולים',
+  'sc-morning': 'בית — AI מנהל שיווק', 'sc-category': 'קטגוריה', 'sc-modules': 'כל המודולים',
   'sc-dashboard': 'דשבורד ראשי', 'sc-usermanual': 'מדריך שימוש', 'sc-director': 'מנהל AI', 'sc-approval': 'מרכז אישורים',
   'sc-notifications': 'מרכז התראות', 'sc-tasks': 'משימות', 'sc-seo': 'מודיעין SEO',
   'sc-keywords': 'מילות מפתח', 'sc-intel': 'מרכז מודיעין', 'sc-competitors': 'ניתוח מתחרים',
@@ -2744,10 +2837,6 @@ function gotoSc(id) {
   Object.values(screenMap).forEach(function(sc) { sc.classList.remove('active'); });
   var target = screenMap[fullId];
   if (target) { target.classList.add('active'); }
-  document.querySelectorAll('.sb-item').forEach(function(item) {
-    item.classList.remove('active');
-    if (item.dataset.sc === fullId || ('sc-'+item.dataset.sc) === fullId) item.classList.add('active');
-  });
   var lbl = screenLabels[fullId] || fullId;
   var el = document.getElementById('scrLabel');
   if (el) el.textContent = lbl;
@@ -2755,7 +2844,7 @@ function gotoSc(id) {
   window.scrollTo(0,0);
 }
 
-// Sidebar nav — attach click events
+// Sidebar nav — attach click events (AI + full nav)
 document.querySelectorAll('.sb-item[data-sc]').forEach(function(btn) {
   btn.addEventListener('click', function() { gotoSc(btn.dataset.sc); });
 });
@@ -2798,7 +2887,7 @@ document.getElementById('compModal').addEventListener('click', function(e) { if 
 // Init: V3 — morning screen default
 gotoSc('morning');
 </script>
-<script src="./ai-marketing/morning-v3.js"></script>
+<script src="./ai-marketing/home-v4.js"></script>
 <script src="./ai-marketing/ai-assistant.js"></script>
 </body>
 </html>

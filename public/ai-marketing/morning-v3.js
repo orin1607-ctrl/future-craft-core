@@ -65,6 +65,44 @@
 
   function $(id) { return document.getElementById(id); }
 
+  var AI_PRIMARY = ['morning', 'approval', 'tasks', 'settings'];
+
+  function bareId(fullId) {
+    return String(fullId || '').replace(/^sc-/, '');
+  }
+
+  function shouldUseFullNav(fullId) {
+    var bare = bareId(fullId);
+    if (bare === 'modules') return true;
+    return AI_PRIMARY.indexOf(bare) === -1;
+  }
+
+  function setNavMode(mode) {
+    document.body.classList.remove('nav-ai', 'nav-full');
+    document.body.classList.add(mode === 'full' ? 'nav-full' : 'nav-ai');
+    var fullNav = $('sbNavFull');
+    var aiNav = $('sbNavAi');
+    if (fullNav) fullNav.hidden = mode !== 'full';
+    if (aiNav) aiNav.hidden = mode === 'full';
+    var btn = $('modulesBtnFullNav');
+    if (btn) btn.textContent = mode === 'full' ? '✓ ניווט מלא פעיל' : '📋 ניווט מלא בסרגל';
+  }
+
+  function openAllModules() {
+    setNavMode('full');
+    if (typeof window.gotoSc === 'function') window.gotoSc('modules');
+  }
+
+  window.CocoNavMode = {
+    set: setNavMode,
+    openAllModules: openAllModules,
+    onGoto: function (fullId) {
+      if (bareId(fullId) === 'morning') setNavMode('ai');
+      else if (shouldUseFullNav(fullId)) setNavMode('full');
+    },
+  };
+
+
   function esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
   }
@@ -284,12 +322,22 @@
     var grid = $('modulesGrid');
     if (!grid || grid.dataset.ready) return;
     var tiles = [
+      { cat: 'דשבורד וניהול', items: [
+        { sc: 'dashboard', ico: '📊', label: 'דשבורד ראשי' },
+        { sc: 'executive', ico: '📈', label: 'דשבורד מנהלים' },
+        { sc: 'director', ico: '🧠', label: 'מנהל AI' },
+        { sc: 'approval', ico: '✅', label: 'מרכז אישורים' },
+        { sc: 'notifications', ico: '🔔', label: 'התראות' },
+        { sc: 'tasks', ico: '📋', label: 'משימות' },
+        { sc: 'briefing', ico: '☀️', label: 'תדרוך יומי' },
+      ]},
       { cat: 'אתר ותוכן', items: [
         { sc: 'pages', ico: '🌐', label: 'ניהול אתר' },
         { sc: 'landing', ico: '🚀', label: 'דפי נחיתה' },
         { sc: 'content', ico: '✍️', label: 'מפעל תוכן' },
         { sc: 'warehouse', ico: '📚', label: 'מחסן תוכן' },
         { sc: 'scheduler', ico: '📅', label: 'תזמון' },
+        { sc: 'aiguide', ico: '📖', label: 'מדריך AI' },
       ]},
       { cat: 'SEO ומחקר', items: [
         { sc: 'seo', ico: '📈', label: 'מודיעין SEO' },
@@ -302,24 +350,28 @@
         { sc: 'gbp', ico: '📍', label: 'Google Business' },
         { sc: 'ads', ico: '💰', label: 'Google Ads' },
       ]},
-      { cat: 'אנליטיקה', items: [
+      { cat: 'אנליטיקה ושיווק', items: [
         { sc: 'kpi', ico: '🎯', label: 'KPI' },
         { sc: 'roi', ico: '💹', label: 'ROI' },
-        { sc: 'reports', ico: '📄', label: 'דוחות' },
         { sc: 'funnel', ico: '🔽', label: 'משפך' },
+        { sc: 'journey', ico: '🗺️', label: 'מסע לקוח' },
         { sc: 'heatmap', ico: '🔥', label: 'מפת חום' },
+        { sc: 'reports', ico: '📄', label: 'דוחות' },
+        { sc: 'crm', ico: '👥', label: 'שיווק CRM' },
       ]},
       { cat: 'AI ואסטרטגיה', items: [
-        { sc: 'director', ico: '🧠', label: 'מנהל AI' },
         { sc: 'strategy', ico: '♟️', label: 'אסטרטגיה' },
         { sc: 'ailab', ico: '🧪', label: 'מעבדת AI' },
-        { sc: 'briefing', ico: '☀️', label: 'תדרוך יומי' },
+        { sc: 'autonomous', ico: '🤖', label: 'מצב אוטונומי' },
+        { sc: 'aiimage', ico: '🎨', label: 'סטודיו תמונות' },
       ]},
       { cat: 'מערכת', items: [
-        { sc: 'dashboard', ico: '📊', label: 'דשבורד קלאסי' },
         { sc: 'history', ico: '🕐', label: 'היסטוריה' },
         { sc: 'health', ico: '❤️', label: 'בריאות' },
-        { sc: 'settings', ico: '⚙️', label: 'חיבורים' },
+        { sc: 'fleetint', ico: '🚗', label: 'שילוב FleetOS' },
+        { sc: 'settings', ico: '⚙️', label: 'חיבורים והגדרות' },
+        { sc: 'permissions', ico: '🔐', label: 'הרשאות' },
+        { sc: 'roadmap', ico: '🗺️', label: 'מפת דרכים' },
         { sc: 'usermanual', ico: '📘', label: 'מדריך' },
         { sc: 'qa', ico: '✔️', label: 'QA' },
       ]},
@@ -339,9 +391,21 @@
     grid.dataset.ready = '1';
   }
 
+  function bindNavButtons() {
+    $('morningBtnModules')?.addEventListener('click', openAllModules);
+    $('topbarAllModules')?.addEventListener('click', openAllModules);
+    $('modulesBtnFullNav')?.addEventListener('click', function () {
+      var next = document.body.classList.contains('nav-full') ? 'ai' : 'full';
+      setNavMode(next);
+      if (next === 'full' && typeof window.gotoSc === 'function') window.gotoSc('modules');
+    });
+  }
+
   function bindEvents() {
     document.body.classList.add('v3-mode');
+    setNavMode('ai');
 
+    bindNavButtons();
     $('morningBtnWork')?.addEventListener('click', runWorkForMe);
     $('morningBtnExecAll')?.addEventListener('click', executeAllActions);
     $('morningBtnTasks')?.addEventListener('click', showTasksModal);
@@ -377,9 +441,10 @@
     if (typeof origGoto === 'function') {
       window.gotoSc = function (id) {
         origGoto(id);
+        var bare = bareId(id.startsWith('sc-') ? id : 'sc-' + id);
         var fab = document.getElementById('cocoAiFab');
-        if (fab) fab.style.display = (id === 'morning' || id === 'sc-morning') ? 'none' : '';
-        if (id === 'morning' || id === 'sc-morning') renderMorning();
+        if (fab) fab.style.display = (bare === 'morning') ? 'none' : '';
+        if (bare === 'morning') renderMorning();
       };
     }
 

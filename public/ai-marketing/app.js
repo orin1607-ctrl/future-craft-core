@@ -104,6 +104,8 @@
     updateBadges();
     var sbAp = document.getElementById('sbBadgeApproval');
     if (sbAp) sbAp.textContent = COCO.state.approvalCount;
+    var sbApFull = document.getElementById('sbBadgeApprovalFull');
+    if (sbApFull) sbApFull.textContent = COCO.state.approvalCount;
     renderKeywordsTable(document.querySelector('#kw-active tbody'), d.keywords, false);
     var dashTb = document.querySelector('#sc-dashboard .section table tbody');
     if (dashTb && d.keywords?.length) renderKeywordsTable(dashTb, d.keywords.slice(0, 5), true);

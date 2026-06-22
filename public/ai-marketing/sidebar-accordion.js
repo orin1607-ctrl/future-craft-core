@@ -5,9 +5,15 @@
   'use strict';
 
   var params = new URLSearchParams(location.search);
-  var embedded = params.get('embedded') === '1' || window.self !== window.top;
+  var fullscreen = params.get('fullscreen') === '1';
+  var embedded = !fullscreen && (params.get('embedded') === '1' || window.self !== window.top);
 
   function applyEmbedded() {
+    if (fullscreen) {
+      document.documentElement.classList.add('fullscreen');
+      document.body.classList.add('fullscreen');
+      return;
+    }
     if (!embedded) return;
     document.documentElement.classList.add('embedded');
     document.body.classList.add('embedded');

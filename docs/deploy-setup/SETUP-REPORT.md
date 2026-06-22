@@ -1,7 +1,8 @@
 # דוח הגדרת Deploy — מצב נוכחי
 
-**תאריך:** 2026-06-16  
-**שרת:** `root@72.60.36.182` (Ubuntu 24.04)
+**תאריך:** 2026-06-16 (עודכן אחרי הוספת מפתח)  
+**שרת:** `root@72.60.36.182` (Ubuntu 24.04)  
+**Commit:** `0a6786b` על `main` (נדחף ל-GitHub)
 
 ---
 
@@ -9,36 +10,39 @@
 
 | פעולה | סטטוס |
 |--------|--------|
-| יצירת זוג מפתחות SSH ל-GitHub Actions | ✅ בוצע |
-| נתיב מפתח פרטי (מקומי) | `C:\Users\MY-PC\.ssh\github-actions-dalia` |
-| נתיב מפתח ציבורי | `docs/deploy-setup/github-actions-dalia.pub` |
-| בדיקת SSH לשרת | ❌ נכשל — המפתח **לא רשום עדיין** ב-VPS |
-| בדיקת PasswordAuthentication על השרת | ❌ לא ניתן — אין גישה לשרת |
-| הזנת GitHub Secrets | ❌ לא ניתן — `gh` לא מחובר |
+| יצירת זוג מפתחות SSH ל-GitHub Actions | ✅ |
+| בדיקת SSH מהמחשב אחרי הוספת מפתח | ❌ **עדיין נדחה** — השרת לא מקבל את המפתח |
+| הזנת GitHub Secrets | ❌ `gh` לא מחובר — דורש `gh auth login` |
+| Environment `production` | ❌ לא נוצר — דורש `gh auth login` |
+| Commit + Push קוד אוטומציה | ✅ `0a6786b` |
 | Deploy ל-Production | ❌ **לא בוצע** |
-| שינוי קבצים ב-Production | ❌ **לא בוצע** |
 
 ---
 
-## חסימה יחידה
+## חסימה #1 — SSH (דחוף)
 
-**יש להוסיף את המפתח הציבורי ל-VPS** — בלי זה לא GitHub Actions ולא SSH מהמחשב יעבדו.
+המחשב שולח מפתח `SHA256:LtTQ3mIOtB/Ke4iQAaXflVsDj5ONGo7uufDpCoEaIB8` אבל השרת דוחה אותו.
 
-### אפשרות א' — Hostinger Browser Terminal (מומלץ)
+**הרץ ב-Browser Terminal את:** `docs/deploy-setup/HOSTINGER-FIX-SSH-KEY.sh`  
+(מתקן הרשאות, מסיר שורות שבורות, מוסיף מחדש את המפתח הנכון)
 
-1. hPanel → VPS → **Browser Terminal**
-2. הדבק והרץ את התוכן מ-`docs/deploy-setup/HOSTINGER-ADD-SSH-KEY.sh`
-
-### אפשרות ב' — hPanel → SSH Keys
-
-1. hPanel → VPS → **SSH Keys** → Add
-2. הדבק את השורה מ-`docs/deploy-setup/github-actions-dalia.pub`
+אחרי זה מהמחשב:
+```powershell
+ssh -i "$env:USERPROFILE\.ssh\github-actions-dalia" root@72.60.36.182 "echo OK"
+```
 
 ---
 
-## GitHub Secrets — איפה ומה להכניס
+## חסימה #2 — GitHub Secrets + Environment
 
-**מיקום:** https://github.com/orin1607-ctrl/future-craft-core/settings/secrets/actions → **New repository secret**
+`gh` לא מחובר במחשב. אחרי `gh auth login` הרץ:
+
+```powershell
+cd C:\Users\MY-PC\Desktop\future-craft-core
+.\docs\deploy-setup\set-github-secrets.ps1
+```
+
+או ידנית ב-[Secrets](https://github.com/orin1607-ctrl/future-craft-core/settings/secrets/actions):
 
 | Secret | ערך |
 |--------|-----|
