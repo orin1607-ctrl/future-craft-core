@@ -22,7 +22,7 @@
   }
 
   var MODULE_PROMPTS = {
-    dashboard: 'סיכום KPI שיווקי ל-5 נקודות עבור dalia-c.com — מגמות, הזדמנויות, פעולות מיידיות.',
+    morning: 'תדרוך בוקר: סיכום מצב העסק, 5 פעולות מומלצות, מה דחוף — dalia-c.com. אל תמציא מספרים.',
     director: 'ניתוח AI Director: 5 תובנות SEO + 3 פעולות דחופות ל-dalia-c.com לפי GSC ו-GA4.',
     seo: 'ניתוח SEO: 5 עמודים לשיפור, Meta מומלץ, קישורים פנימיים — dalia-c.com.',
     keywords: 'מחקר מילות מפתח: 10 מילים עם נפח, קושי, עמוד יעד — ניהול צי רכב.',
@@ -102,6 +102,8 @@
     }
     COCO.state.approvalCount = d.badges?.pendingApproval ?? COCO.state.approvalCount;
     updateBadges();
+    var sbAp = document.getElementById('sbBadgeApproval');
+    if (sbAp) sbAp.textContent = COCO.state.approvalCount;
     renderKeywordsTable(document.querySelector('#kw-active tbody'), d.keywords, false);
     var dashTb = document.querySelector('#sc-dashboard .section table tbody');
     if (dashTb && d.keywords?.length) renderKeywordsTable(dashTb, d.keywords.slice(0, 5), true);

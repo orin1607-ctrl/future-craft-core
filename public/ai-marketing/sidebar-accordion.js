@@ -19,7 +19,7 @@
 
   function initSidebarAccordion() {
     var nav = document.querySelector('.sb-nav');
-    if (!nav || nav.dataset.accReady) return;
+    if (!nav || nav.dataset.accReady || nav.dataset.v3Nav) return;
 
     var nodes = Array.from(nav.children);
     var groups = [];

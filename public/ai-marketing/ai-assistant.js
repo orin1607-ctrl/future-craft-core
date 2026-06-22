@@ -20,6 +20,8 @@
     landing: 'דפי נחיתה',
     pages: 'ניהול אתר',
     gbp: 'Google Business Profile',
+    morning: 'מסך בוקר / AI',
+    modules: 'מודולים',
     ads: 'Google Ads',
     reports: 'דוחות',
     usermanual: 'מדריך שימוש',
