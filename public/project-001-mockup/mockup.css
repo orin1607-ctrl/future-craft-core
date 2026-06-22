@@ -143,6 +143,17 @@ body {
   font-size: 13px;
 }
 
+.build-badge {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text3);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 4px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
 .global-ask {
   display: flex;
   gap: 8px;
