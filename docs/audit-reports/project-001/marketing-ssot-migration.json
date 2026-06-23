@@ -1,0 +1,18 @@
+{
+  "migration": "applied_via_supabase_db_query",
+  "verify": {
+    "ok": true,
+    "results": {
+      "marketing_profiles": true,
+      "marketing_contacts": true,
+      "marketing_sites": true,
+      "marketing_domains": true,
+      "marketing_connections": true,
+      "marketing_api_items": true,
+      "marketing_campaigns": true,
+      "marketing_ai_setup": true,
+      "customers_service_type": true
+    }
+  },
+  "at": "2026-06-23T14:25:02.134Z"
+}

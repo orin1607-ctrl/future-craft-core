@@ -118,10 +118,14 @@ for (const vp of [
     const badges = document.querySelectorAll('#sc-seo .prd-ctx-badge').length;
     const breadcrumb = document.querySelector('#sc-seo .prd-breadcrumb');
     if (!bar) return { ok: false };
-    const toggle = bar.querySelector('.prd-filter-toggle');
-    if (toggle) toggle.click();
+    const mainBtn = bar.querySelector('.prd-filter-btn-main');
+    const moreBtn = bar.querySelector('.prd-filter-btn-more');
+    if (mainBtn) mainBtn.click();
+    if (moreBtn) moreBtn.click();
     const selects = bar.querySelectorAll('.prd-filter-select').length;
+    const hasClient = !!bar.querySelector('[data-key="client"]');
     const hasCampaignId = !!bar.querySelector('[data-key="campaignExternalId"]');
+    const btnCount = bar.querySelectorAll('.prd-filter-btn').length;
     const hasCampaignStatus = !!bar.querySelector('[data-key="campaignStatus"]');
     const hasResponsible = !!bar.querySelector('[data-key="responsibleUser"]');
     const hasDatePreset = !!bar.querySelector('[data-key="datePreset"]');
@@ -129,12 +133,14 @@ for (const vp of [
     const stub = bar.textContent.includes('שלב ב');
     const dg = document.querySelector('#sc-seo .prd-dg-search');
     return {
-      ok: !!bar && !!ctx && badges >= 4 && !!breadcrumb && selects >= 6 && !stub,
-      selects, hasCampaignId, hasCampaignStatus, hasResponsible, hasDatePreset, hasSavedViews, hasDg: !!dg,
+      ok: !!bar && !!ctx && badges >= 4 && !!breadcrumb && selects >= 6 && !stub && btnCount <= 3 && hasClient,
+      selects, hasClient, hasCampaignId, hasCampaignStatus, hasResponsible, hasDatePreset, hasSavedViews, hasDg: !!dg, btnCount,
     };
   });
   filterInfo.ok ? pass(`${vp.name}:prd-filter-v2-${filterInfo.selects}`) : fail(`${vp.name}:prd-filter-v2`);
+  filterInfo.hasClient ? pass(`${vp.name}:filter-client`) : fail(`${vp.name}:filter-client`);
   filterInfo.hasCampaignId ? pass(`${vp.name}:filter-campaign-id`) : fail(`${vp.name}:filter-campaign-id`);
+  filterInfo.btnCount <= 3 ? pass(`${vp.name}:filter-compact-buttons`) : fail(`${vp.name}:filter-compact-buttons`);
   filterInfo.hasDatePreset ? pass(`${vp.name}:filter-date-preset`) : fail(`${vp.name}:filter-date-preset`);
   filterInfo.hasSavedViews ? pass(`${vp.name}:filter-saved-views`) : fail(`${vp.name}:filter-saved-views`);
   filterInfo.hasDg ? pass(`${vp.name}:datagrid-seo`) : fail(`${vp.name}:datagrid-seo`);
@@ -143,12 +149,16 @@ for (const vp of [
   await page.waitForTimeout(300);
   const homeFilter = await page.evaluate(() => {
     const bar = document.querySelector('#sc-morning .prd-filter-bar');
+    const mainBtn = bar?.querySelector('.prd-filter-btn-main');
+    if (mainBtn) mainBtn.click();
     const company = bar?.querySelector('select[data-key="company"]');
-    return { hasBar: !!bar, hasCompany: !!company, options: company?.options?.length || 0 };
+    const navyBar = bar ? getComputedStyle(bar).backgroundImage.includes('gradient') : false;
+    return { hasBar: !!bar, hasCompany: !!company, options: company?.options?.length || 0, navyBar };
   });
   homeFilter.hasBar && homeFilter.hasCompany && homeFilter.options >= 2
     ? pass(`${vp.name}:home-filter-company`)
     : fail(`${vp.name}:home-filter-company`);
+  homeFilter.navyBar ? pass(`${vp.name}:filter-navy-theme`) : fail(`${vp.name}:filter-navy-theme`);
 
   await page.evaluate(() => window.gotoSc('mkt-hub'));
   await page.waitForTimeout(300);

@@ -29,7 +29,7 @@
   };
 
   var FIELD_LABELS = {
-    company: 'חברה', business: 'עסק', project: 'פרויקט', site: 'אתר', domain: 'דומיין',
+    company: 'חברה', business: 'עסק', client: 'לקוח', project: 'פרויקט', site: 'אתר', domain: 'דומיין',
     page: 'עמוד באתר', campaign: 'קמפיין (מלא)', campaignName: 'שם קמפיין',
     campaignNumber: 'מספר קמפיין', campaignExternalId: 'מזהה קמפיין (Campaign ID)',
     campaignType: 'סוג קמפיין', campaignStatus: 'סטטוס קמפיין',
@@ -39,7 +39,7 @@
 
   var CAMPAIGN_TYPES = ['SEO', 'Search', 'Display', 'Performance Max', 'מקומי', 'Social', 'Email'];
 
-  var BASE_ENTITY = ['company', 'business', 'project', 'site', 'domain'];
+  var BASE_ENTITY = ['company', 'business', 'client', 'project', 'site', 'domain'];
   var BASE_CAMPAIGN = ['campaign', 'campaignName', 'campaignNumber', 'campaignExternalId', 'campaignStatus', 'campaignType'];
   var BASE_DATES = ['datePreset', 'dateFrom', 'dateTo'];
   var BASE_TAIL = ['responsibleUser', 'status'];
@@ -57,8 +57,8 @@
     competitors: BASE_ENTITY.concat(['page', 'google_seo'], BASE_DATES, BASE_TAIL),
     ai: BASE_ENTITY.concat(BASE_CAMPAIGN.slice(0, 2), BASE_DATES, BASE_TAIL),
     reports: BASE_ENTITY.concat(['page'], BASE_CAMPAIGN.slice(0, 3), ['channel'], BASE_DATES, BASE_TAIL),
-    settings: ['company', 'business', 'responsibleUser'],
-    nav: ['company', 'business', 'project', 'datePreset'],
+    settings: ['company', 'business', 'client', 'responsibleUser'],
+    nav: ['company', 'business', 'client', 'project', 'datePreset'],
   };
 
   var SCREEN_SCHEMA = {
@@ -85,7 +85,7 @@
 
   function defaultState() {
     return {
-      companyId: '', businessId: '', projectId: '', siteId: '', pageId: '',
+      companyId: '', businessId: '', clientId: '', projectId: '', siteId: '', pageId: '',
       campaignId: '', campaignName: '', campaignNumber: '', campaignExternalId: '',
       campaignStatus: '', campaignType: '', channel: '', responsibleUserId: '',
       datePreset: 'this_month', dateFrom: '', dateTo: '', status: '', channels: {},
@@ -187,6 +187,15 @@
     return entities.pages.filter(function (p) { return !siteId || p.siteId === siteId; });
   }
 
+  function clientsForScope(companyId, businessId) {
+    if (!entities || !entities.clients) return [];
+    return entities.clients.filter(function (c) {
+      if (companyId && c.companyId && c.companyId !== companyId) return false;
+      if (businessId && c.businessId && c.businessId !== businessId) return false;
+      return true;
+    });
+  }
+
   function campaignsForProject(projectId) {
     if (!entities) return [];
     return entities.campaigns.filter(function (c) { return !projectId || c.projectId === projectId; });
@@ -208,12 +217,12 @@
   }
 
   function resetCascade(fromField) {
-    var order = ['companyId', 'businessId', 'projectId', 'siteId', 'pageId', 'campaignId'];
-    var map = { company: 0, business: 1, project: 2, site: 3, page: 4, campaign: 5, campaignName: 5 };
+    var order = ['companyId', 'businessId', 'clientId', 'projectId', 'siteId', 'pageId', 'campaignId'];
+    var map = { company: 0, business: 1, client: 2, project: 3, site: 4, page: 5, campaign: 6, campaignName: 6 };
     var start = map[fromField];
     if (start == null) return;
     for (var i = start + 1; i < order.length; i++) state[order[i]] = '';
-    if (fromField === 'company' || fromField === 'business' || fromField === 'project') {
+    if (fromField === 'company' || fromField === 'business' || fromField === 'client' || fromField === 'project') {
       state.campaignName = '';
       state.campaignNumber = '';
       state.campaignExternalId = '';
@@ -242,7 +251,8 @@
 
   function getSnapshot() {
     return {
-      companyId: state.companyId, businessId: state.businessId, projectId: state.projectId,
+      companyId: state.companyId, businessId: state.businessId, clientId: state.clientId,
+      projectId: state.projectId,
       siteId: state.siteId, pageId: state.pageId, campaignId: state.campaignId,
       campaignName: state.campaignName, campaignNumber: state.campaignNumber,
       campaignExternalId: state.campaignExternalId, campaignStatus: state.campaignStatus,
@@ -269,9 +279,11 @@
     if (!camp && state.campaignName) {
       camp = entities.campaigns.find(function (c) { return c.name === state.campaignName; });
     }
+    var cl = resolveEntity(state.clientId, entities.clients);
     return {
       company: co ? co.name : (daliaCompanyName || 'הכל'),
       business: biz ? biz.name : 'הכל',
+      client: cl ? cl.name : 'הכל',
       project: proj ? proj.name : '',
       site: site ? site.domain : 'הכל',
       page: page ? page.title : (state.pageId ? state.pageId : ''),
@@ -317,6 +329,7 @@
     var badges = [
       { k: 'חברה', v: p.company },
       { k: 'עסק', v: p.business },
+      { k: 'לקוח', v: p.client },
       { k: 'אתר', v: p.site },
       { k: 'עמוד', v: p.page || screenName || '—' },
       { k: 'קמפיין', v: p.campaign },
@@ -381,12 +394,10 @@
       '<div class="prd-saved-views-title">תצוגות שמורות</div>' +
       '<div class="prd-saved-views-row">' +
       '<input type="text" class="prd-filter-input prd-view-name" placeholder="שם תצוגה (לדוגמה: SEO דליה)">' +
-      '<button type="button" class="prd-filter-toggle prd-view-save">💾 שמור</button>' +
       '</div>' +
       '<div class="prd-saved-views-row">' +
-      '<select class="prd-filter-select prd-view-list"><option value="">טען תצוגה…</option>' + opts + '</select>' +
-      '<button type="button" class="prd-filter-toggle prd-view-load">טען</button>' +
-      '<button type="button" class="prd-filter-clear prd-view-delete">מחק</button>' +
+      '<select class="prd-filter-select prd-view-list"><option value="">טען תצוגה שמורה…</option>' + opts + '</select>' +
+      '<button type="button" class="prd-filter-link prd-view-delete">מחק תצוגה</button>' +
       '</div></div>';
   }
 
@@ -427,6 +438,7 @@
     switch (key) {
       case 'company': return entities.companies;
       case 'business': return businessesForCompany(state.companyId);
+      case 'client': return clientsForScope(state.companyId, state.businessId);
       case 'project': return projectsForBusiness(state.businessId);
       case 'site': return sitesForProject(state.projectId);
       case 'domain': return domainsForSite(state.siteId, state.projectId);
@@ -451,7 +463,7 @@
 
   function valueForField(key) {
     var map = {
-      company: 'companyId', business: 'businessId', project: 'projectId', site: 'siteId',
+      company: 'companyId', business: 'businessId', client: 'clientId', project: 'projectId', site: 'siteId',
       page: 'pageId', campaign: 'campaignId', campaignName: 'campaignName',
       campaignNumber: 'campaignNumber', campaignExternalId: 'campaignExternalId',
       campaignStatus: 'campaignStatus', campaignType: 'campaignType', channel: 'channel',
@@ -480,14 +492,20 @@
     var expandedKeys = regular.slice(4);
 
     var html = '<div class="prd-filter-head">' +
-      '<span class="prd-filter-title">🔍 סינון</span>' +
+      '<span class="prd-filter-title">סינון</span>' +
       '<div class="prd-filter-actions">' +
-      '<span class="prd-filter-scope-badge">' + esc(getScopeLabel()) + '</span>' +
-      '<button type="button" class="prd-filter-toggle" aria-expanded="false">עוד סינונים</button>' +
-      '<button type="button" class="prd-filter-clear">נקה</button>' +
-      '</div></div>';
+      '<button type="button" class="prd-filter-btn prd-filter-btn-main" aria-expanded="false">סינון ראשי</button>' +
+      '<button type="button" class="prd-filter-btn prd-filter-btn-more" aria-expanded="false">עוד סינונים</button>' +
+      '<div class="prd-filter-menu-wrap">' +
+      '<button type="button" class="prd-filter-btn prd-filter-btn-menu" aria-haspopup="true">נקה / שמור</button>' +
+      '<div class="prd-filter-menu" hidden>' +
+      '<button type="button" class="prd-filter-menu-item" data-action="clear">נקה הכל</button>' +
+      '<button type="button" class="prd-filter-menu-item" data-action="save-view">שמור תצוגה</button>' +
+      '</div></div>' +
+      '</div></div>' +
+      '<div class="prd-filter-scope-badge">' + esc(getScopeLabel()) + '</div>';
 
-    html += '<div class="prd-filter-primary">';
+    html += '<div class="prd-filter-primary" hidden>';
     primaryKeys.forEach(function (key) { html += renderField(key); });
     html += '</div>';
 
@@ -503,31 +521,65 @@
   }
 
   function bindBar(bar, scId) {
-    bar.querySelector('.prd-filter-toggle')?.addEventListener('click', function () {
+    bar.querySelector('.prd-filter-btn-main')?.addEventListener('click', function () {
+      var panel = bar.querySelector('.prd-filter-primary');
+      if (!panel) return;
+      var open = panel.hasAttribute('hidden');
+      if (open) panel.removeAttribute('hidden'); else panel.setAttribute('hidden', '');
+      this.setAttribute('aria-expanded', open ? 'true' : 'false');
+      this.classList.toggle('is-active', open);
+    });
+
+    bar.querySelector('.prd-filter-btn-more')?.addEventListener('click', function () {
       var exp = bar.querySelector('.prd-filter-expanded');
       if (!exp) return;
       var open = exp.hasAttribute('hidden');
       if (open) exp.removeAttribute('hidden'); else exp.setAttribute('hidden', '');
       this.setAttribute('aria-expanded', open ? 'true' : 'false');
-      this.textContent = open ? 'פחות סינונים' : 'עוד סינונים';
+      this.classList.toggle('is-active', open);
     });
 
-    bar.querySelector('.prd-filter-clear')?.addEventListener('click', function () {
+    var menuWrap = bar.querySelector('.prd-filter-menu-wrap');
+    var menuBtn = bar.querySelector('.prd-filter-btn-menu');
+    var menu = bar.querySelector('.prd-filter-menu');
+    menuBtn?.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (!menu) return;
+      var open = menu.hasAttribute('hidden');
+      if (open) menu.removeAttribute('hidden'); else menu.setAttribute('hidden', '');
+    });
+    if (!window.__prdFilterMenuClose) {
+      window.__prdFilterMenuClose = true;
+      document.addEventListener('click', function () {
+        document.querySelectorAll('.prd-filter-menu').forEach(function (m) { m.setAttribute('hidden', ''); });
+      });
+    }
+
+    bar.querySelector('[data-action="clear"]')?.addEventListener('click', function () {
+      menu?.setAttribute('hidden', '');
       state = defaultState();
       applyDatePresetToState('this_month', state);
       if (daliaCompanyName) applyDaliaCompany(daliaCompanyName);
       else { saveState(); remountAll(); }
     });
 
-    bar.querySelector('.prd-view-save')?.addEventListener('click', function () {
+    bar.querySelector('[data-action="save-view"]')?.addEventListener('click', function () {
+      menu?.setAttribute('hidden', '');
+      var exp = bar.querySelector('.prd-filter-expanded');
+      if (exp) exp.removeAttribute('hidden');
+      bar.querySelector('.prd-filter-btn-more')?.classList.add('is-active');
+      bar.querySelector('.prd-filter-btn-more')?.setAttribute('aria-expanded', 'true');
       var name = bar.querySelector('.prd-view-name')?.value?.trim();
-      if (!name) { alert('הזן שם לתצוגה השמורה'); return; }
+      if (!name) {
+        name = prompt('שם לתצוגה השמורה:');
+        if (!name) return;
+      }
       saveCurrentView(name);
       renderBar(scId, bar);
     });
 
-    bar.querySelector('.prd-view-load')?.addEventListener('click', function () {
-      var id = bar.querySelector('.prd-view-list')?.value;
+    bar.querySelector('.prd-view-list')?.addEventListener('change', function () {
+      var id = this.value;
       if (id) loadView(id);
     });
 
@@ -603,7 +655,7 @@
       return;
     }
     var map = {
-      company: 'companyId', business: 'businessId', project: 'projectId', site: 'siteId',
+      company: 'companyId', business: 'businessId', client: 'clientId', project: 'projectId', site: 'siteId',
       page: 'pageId', campaignStatus: 'campaignStatus', campaignType: 'campaignType',
       channel: 'channel', responsibleUser: 'responsibleUserId', status: 'status',
     };
@@ -679,9 +731,30 @@
     });
   }
 
+  function fetchMarketingClients() {
+    if (window.MarketingApi && typeof window.MarketingApi.listMarketingCustomers === 'function') {
+      return window.MarketingApi.listMarketingCustomers().then(function (rows) {
+        return (rows || []).map(function (c) {
+          return {
+            id: c.id,
+            name: c.name || c.company_name || ('לקוח ' + String(c.id).slice(0, 8)),
+            companyId: c.company_id || '',
+            businessId: c.business_id || '',
+          };
+        });
+      }).catch(function () { return []; });
+    }
+    return Promise.resolve([]);
+  }
+
   function fetchEntities() {
     return fetch(ENTITIES_URL).then(function (r) { return r.json(); }).catch(function () {
-      return { companies: [], businesses: [], projects: [], sites: [], pages: [], campaigns: [], channels: [], statuses: [], campaignStatuses: [], responsibleUsers: [] };
+      return { companies: [], businesses: [], projects: [], sites: [], pages: [], campaigns: [], channels: [], statuses: [], campaignStatuses: [], responsibleUsers: [], clients: [] };
+    }).then(function (data) {
+      return fetchMarketingClients().then(function (clients) {
+        data.clients = clients;
+        return data;
+      });
     });
   }
 
