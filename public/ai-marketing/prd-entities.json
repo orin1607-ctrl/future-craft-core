@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "companies": [
+    { "id": "coco-dalia", "name": "CO.CO דליה", "businessId": "514000000" },
+    { "id": "demo-client", "name": "לקוח דמו", "businessId": "999000001" }
+  ],
+  "businesses": [
+    { "id": "biz-dalia", "companyId": "coco-dalia", "name": "דליה פתרונות תפעול ותחזוקה לרכב" },
+    { "id": "biz-demo", "companyId": "demo-client", "name": "עסק דמו שיווק" }
+  ],
+  "projects": [
+    { "id": "proj-marketing", "businessId": "biz-dalia", "name": "ניהול שיווק", "type": "שיווק דיגיטלי" },
+    { "id": "proj-site", "businessId": "biz-dalia", "name": "אתר dalia-c.com", "type": "אתר" },
+    { "id": "proj-demo", "businessId": "biz-demo", "name": "פרויקט דמו", "type": "שיווק" }
+  ],
+  "sites": [
+    { "id": "site-dalia-c", "projectId": "proj-site", "name": "dalia-c.com", "domain": "dalia-c.com", "url": "https://dalia-c.com/" },
+    { "id": "site-dalia-co", "projectId": "proj-marketing", "name": "dalia.co.il", "domain": "dalia.co.il", "url": "https://dalia.co.il/" },
+    { "id": "site-demo", "projectId": "proj-demo", "name": "demo.example.com", "domain": "demo.example.com", "url": "https://demo.example.com/" }
+  ],
+  "pages": [
+    { "id": "page-home", "siteId": "site-dalia-c", "path": "/", "title": "דף הבית" },
+    { "id": "page-services", "siteId": "site-dalia-c", "path": "/שירותים", "title": "שירותים" },
+    { "id": "page-fleet", "siteId": "site-dalia-c", "path": "/ניהול-צי", "title": "ניהול צי רכב" }
+  ],
+  "campaigns": [
+    { "id": "camp-seo", "projectId": "proj-marketing", "name": "קידום אורגני", "number": "SEO-001", "type": "SEO", "channel": "google_seo" },
+    { "id": "camp-ads", "projectId": "proj-marketing", "name": "Google Ads — לידים", "number": "ADS-104", "type": "Search", "channel": "google_ads" },
+    { "id": "camp-gbp", "projectId": "proj-marketing", "name": "Google Business", "number": "GBP-01", "type": "מקומי", "channel": "google_business" }
+  ],
+  "channels": [
+    { "id": "google_seo", "label": "Google SEO" },
+    { "id": "google_ads", "label": "Google Ads" },
+    { "id": "google_business", "label": "Google Business" },
+    { "id": "facebook", "label": "Facebook" },
+    { "id": "instagram", "label": "Instagram" },
+    { "id": "tiktok", "label": "TikTok" },
+    { "id": "linkedin", "label": "LinkedIn" },
+    { "id": "youtube", "label": "YouTube" },
+    { "id": "whatsapp", "label": "WhatsApp" },
+    { "id": "email", "label": "Email Marketing" }
+  ],
+  "statuses": ["פעיל", "מושהה", "טיוטה", "ממתין לאישור", "הושלם"]
+}

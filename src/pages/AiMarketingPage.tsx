@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowRight } from 'lucide-react';
 
@@ -10,37 +11,47 @@ import { ArrowRight } from 'lucide-react';
  */
 export default function AiMarketingPage() {
   const { user } = useAuth();
+  const { selectedCompany, companyOptions } = useCompanyScope();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const pushAuthToIframe = useCallback(async () => {
+  const pushToIframe = useCallback(async () => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) return;
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    if (session?.access_token) {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      iframe.contentWindow.postMessage(
+        {
+          type: 'dalia-coco-auth',
+          accessToken: session.access_token,
+          supabaseUrl,
+          marketingChatUrl: `${supabaseUrl}/functions/v1/marketing-ai-chat`,
+        },
+        '*',
+      );
+    }
     iframe.contentWindow.postMessage(
       {
-        type: 'dalia-coco-auth',
-        accessToken: session.access_token,
-        supabaseUrl,
-        marketingChatUrl: `${supabaseUrl}/functions/v1/marketing-ai-chat`,
+        type: 'dalia-coco-scope',
+        selectedCompany,
+        companyOptions,
       },
       '*',
     );
-  }, []);
+  }, [selectedCompany, companyOptions]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
-    iframe.addEventListener('load', pushAuthToIframe);
-    pushAuthToIframe();
-    const onFocus = () => pushAuthToIframe();
+    iframe.addEventListener('load', pushToIframe);
+    pushToIframe();
+    const onFocus = () => pushToIframe();
     window.addEventListener('focus', onFocus);
     return () => {
-      iframe.removeEventListener('load', pushAuthToIframe);
+      iframe.removeEventListener('load', pushToIframe);
       window.removeEventListener('focus', onFocus);
     };
-  }, [pushAuthToIframe]);
+  }, [pushToIframe]);
 
   if (user?.role !== 'super_admin') {
     return <Navigate to="/dashboard" replace />;

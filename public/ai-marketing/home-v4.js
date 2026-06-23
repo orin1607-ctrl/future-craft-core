@@ -313,7 +313,11 @@
     var data = getData();
     if ($('v4Greet')) $('v4Greet').textContent = 'בוקר טוב, ' + data.greeting;
     if ($('v4Date')) $('v4Date').textContent = fmtDate();
-    if ($('v4Status')) $('v4Status').textContent = data.status;
+    if ($('v4Status')) {
+      var scope = window.PrdFilter && typeof window.PrdFilter.getScopeLabel === 'function'
+        ? window.PrdFilter.getScopeLabel() : '';
+      $('v4Status').textContent = scope ? scope + ' · ' + data.status : data.status;
+    }
     if ($('v4Proposal')) {
       $('v4Proposal').textContent = data.greeting + ', מצאתי ' + data.actions.length +
         ' פעולות שכדאי לבצע היום. מה תרצה לעשות?';
@@ -591,21 +595,6 @@
     $('v4ChatInput')?.focus();
   }
 
-  function injectPrdShell() {
-    var skip = { 'sc-morning': 1, 'sc-category': 1, 'sc-modules': 1, 'sc-aichat': 1 };
-    document.querySelectorAll('.screen').forEach(function (sc) {
-      if (skip[sc.id]) return;
-      if (sc.querySelector('.prd-filter-bar')) return;
-      var filter = document.createElement('div');
-      filter.className = 'prd-filter-bar';
-      filter.innerHTML = '<div class="prd-filter-title">🔍 סינון</div>' +
-        '<div class="prd-filter-note">מסונכרן עם מערכת דליה — שלב ב\'</div>';
-      var bar = sc.querySelector('.v4-module-bar');
-      if (bar) sc.insertBefore(filter, bar.nextSibling);
-      else sc.insertBefore(filter, sc.firstChild);
-    });
-  }
-
   function injectModuleBars() {
     document.querySelectorAll('.screen').forEach(function (sc) {
       if (sc.id === 'sc-morning' || sc.id === 'sc-category' || sc.id === 'sc-modules') return;
@@ -671,7 +660,9 @@
     renderCategories();
     renderHome();
     injectModuleBars();
-    injectPrdShell();
+    if (window.PrdFilter && typeof window.PrdFilter.remount === 'function') window.PrdFilter.remount();
+    if (window.PrdTheme && typeof window.PrdTheme.mountSettings === 'function') window.PrdTheme.mountSettings();
+    window.addEventListener('prd-filter-change', function () { renderHome(); });
     appendChat('ai', 'בוקר טוב! אני מנהל השיווק AI.\nשאל אותי כל שאלה, או לחץ "עבוד בשבילי".');
 
     var fab = document.getElementById('cocoAiFab');

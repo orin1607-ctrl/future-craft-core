@@ -108,11 +108,33 @@ for (const vp of [
   const chatMsgs = await page.locator('#v4ChatMsgs .v4-msg').count();
   chatMsgs >= 2 ? pass(`${vp.name}:chat-aichat`) : fail(`${vp.name}:chat-aichat`);
 
-  // PRD filter bar on module
+  // PRD filter bar on module + home
   await page.evaluate(() => window.gotoSc('seo'));
-  await page.waitForTimeout(200);
-  const hasFilter = await page.evaluate(() => !!document.querySelector('#sc-seo .prd-filter-bar'));
-  hasFilter ? pass(`${vp.name}:prd-filter-bar`) : fail(`${vp.name}:prd-filter-bar`);
+  await page.waitForTimeout(400);
+  const filterInfo = await page.evaluate(() => {
+    const bar = document.querySelector('#sc-seo .prd-filter-bar');
+    if (!bar) return { ok: false };
+    const selects = bar.querySelectorAll('.prd-filter-select').length;
+    const stub = bar.textContent.includes('שלב ב');
+    return { ok: !!bar && selects >= 3 && !stub, selects };
+  });
+  filterInfo.ok ? pass(`${vp.name}:prd-filter-bar-${filterInfo.selects}`) : fail(`${vp.name}:prd-filter-bar`);
+
+  await page.evaluate(() => window.gotoSc('morning'));
+  await page.waitForTimeout(300);
+  const homeFilter = await page.evaluate(() => {
+    const bar = document.querySelector('#sc-morning .prd-filter-bar');
+    const company = bar?.querySelector('select[data-key="company"]');
+    return { hasBar: !!bar, hasCompany: !!company, options: company?.options?.length || 0 };
+  });
+  homeFilter.hasBar && homeFilter.hasCompany && homeFilter.options >= 2
+    ? pass(`${vp.name}:home-filter-company`)
+    : fail(`${vp.name}:home-filter-company`);
+
+  await page.evaluate(() => window.gotoSc('settings'));
+  await page.waitForTimeout(300);
+  const themeCard = await page.evaluate(() => !!document.getElementById('prdThemeCard'));
+  themeCard ? pass(`${vp.name}:theme-settings-card`) : fail(`${vp.name}:theme-settings-card`);
 
   await page.evaluate(() => window.gotoSc('morning'));
 
@@ -152,7 +174,7 @@ for (const vp of [
   }
 
   // Assets
-  for (const asset of ['home-v4.js', 'home-v4.css', 'home-prd.css', 'app.js']) {
+  for (const asset of ['home-v4.js', 'home-v4.css', 'home-prd.css', 'app.js', 'prd-filter.js', 'prd-theme.js', 'prd-entities.json']) {
     const r = await page.request.get(`${STAGING}/ai-marketing/${asset}`);
     r.ok() ? pass(`${vp.name}:asset-${asset}`) : fail(`${vp.name}:asset-${asset}-${r.status()}`);
   }
