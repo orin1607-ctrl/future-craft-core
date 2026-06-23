@@ -76,6 +76,7 @@
     'sc-approval': 'standard', 'sc-aiimage': 'content', 'sc-heatmap': 'content',
     'sc-settings': 'settings', 'sc-permissions': 'settings', 'sc-fleetint': 'standard', 'sc-usermanual': 'settings',
     'sc-qa': 'standard',
+    'sc-mkt-hub': 'nav', 'sc-mkt-client': 'settings',
   };
 
   var entities = null;

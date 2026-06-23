@@ -51,6 +51,12 @@
 
   var PRD_BUTTONS = [
     {
+      id: 'companies', icon: '🏢', title: 'חברות ולקוחות', sub: 'כרטיס שיווק מחובר לדליה — מקור אמת אחד',
+      items: [
+        { ico: '🏢', label: 'מרכז לקוחות שיווק', sc: 'mkt-hub' },
+      ],
+    },
+    {
       id: 'status', icon: '📊', title: 'מצב נוכחי', sub: 'דשבורד, התראות, משימות, בריאות מערכת',
       items: [
         { ico: '📊', label: 'דשבורד ראשי', sc: 'dashboard' },
@@ -653,6 +659,10 @@
     var isModule = bare !== 'morning' && bare !== 'category' && bare !== 'modules';
     document.body.classList.toggle('v4-has-module', isModule);
     if (bare === 'morning') renderHome();
+    if (bare === 'mkt-hub' && window.MarketingClient) window.MarketingClient.renderHub();
+    if (bare === 'mkt-client' && window.MarketingClient && window.MarketingClient.openClient) {
+      /* render handled by marketing-client */
+    }
     if (window.PrdFilter && typeof window.PrdFilter.remount === 'function') window.PrdFilter.remount();
     if (window.PrdDataGrid && typeof window.PrdDataGrid.enhanceAll === 'function') window.PrdDataGrid.enhanceAll();
   }

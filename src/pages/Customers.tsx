@@ -5,6 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CallCustomerButton from '@/components/voice/CallCustomerButton';
+import { Link } from 'react-router-dom';
+import {
+  hasMarketingService,
+  provisionMarketingClient,
+  syncMarketingFromDalia,
+  SERVICE_TYPE_OPTIONS,
+  type ServiceType,
+  type DaliaCustomerSnapshot,
+} from '@/lib/marketingProvision';
 
 interface CustomerRow {
   id: string;
@@ -23,6 +32,9 @@ interface CustomerRow {
   agreement_amount_before_vat: number | null;
   agreement_amount_with_vat: number | null;
   agreement_serial_number: string;
+  service_type?: string;
+  contact_role?: string;
+  activity_field?: string;
 }
 
 interface AgreementRow {
@@ -192,6 +204,9 @@ export default function Customers() {
                     <p className="text-xl font-bold truncate">{c.name}</p>
                     <p className="text-muted-foreground truncate">{c.contact_person} • {c.phone}</p>
                     {c.customer_number && <p className="text-xs text-muted-foreground">מס׳ {c.customer_number}</p>}
+                    {hasMarketingService(c.service_type) && (
+                      <span className="inline-block mt-1 text-xs font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">שיווק</span>
+                    )}
                   </div>
                 </button>
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -317,8 +332,21 @@ function CustomerDetail({ customer: c, isManager, user, onBack, onEdit, onDelete
           <span className={`status-badge ${c.status === 'active' ? 'status-active' : 'status-inactive'}`}>{c.status === 'active' ? 'פעיל' : 'לא פעיל'}</span>
         </div>
 
+        {hasMarketingService(c.service_type) && (
+          <div className="mb-4 p-4 rounded-xl border-2 border-violet-200 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-800">
+            <p className="text-sm text-muted-foreground mb-2">כרטיס שיווק מחובר לדליה — מקור אמת אחד</p>
+            <Link
+              to={`/ai-marketing?customer=${c.id}`}
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 rounded-xl bg-violet-600 text-white font-bold min-h-[48px] hover:opacity-90"
+            >
+              פתח כרטיס ניהול שיווק
+            </Link>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4 text-lg">
           <div><span className="text-muted-foreground text-sm">סוג</span><p className="font-bold">{c.customer_type === 'company' ? 'חברה' : 'פרטי'}</p></div>
+          <div><span className="text-muted-foreground text-sm">סוג שירות</span><p className="font-bold">{SERVICE_TYPE_OPTIONS.find(o => o.value === (c.service_type || 'fleet_only'))?.label || '—'}</p></div>
           {c.business_id && <div><span className="text-muted-foreground text-sm">עוסק מורשה / ח.פ</span><p className="font-bold">{c.business_id}</p></div>}
           <div><span className="text-muted-foreground text-sm">איש קשר</span><p className="font-bold">{c.contact_person}</p></div>
           <div><span className="text-muted-foreground text-sm">טלפון</span><p className="font-bold" dir="ltr">{c.phone}</p></div>
@@ -674,6 +702,7 @@ function CustomerForm({ customer, onDone, onBack, user }: { customer: CustomerRo
   const [customerNumber, setCustomerNumber] = useState(customer?.customer_number || '');
   const [businessId, setBusinessId] = useState(customer?.business_id || '');
   const [fax, setFax] = useState(customer?.fax || '');
+  const [serviceType, setServiceType] = useState<ServiceType>((customer?.service_type as ServiceType) || 'fleet_only');
   const [loading, setLoading] = useState(false);
 
   // Multiple agreements
@@ -730,6 +759,7 @@ function CustomerForm({ customer, onDone, onBack, user }: { customer: CustomerRo
       name, customer_type: customerType, contact_person: contactPerson,
       phone, email, address, status, notes,
       customer_number: customerNumber, business_id: businessId, fax,
+      service_type: serviceType,
       // Keep legacy fields for backward compat
       agreement_description: agreements[0]?.description || null,
       agreement_amount_before_vat: agreements[0]?.amount_before_vat ? parseFloat(agreements[0].amount_before_vat) : null,
@@ -753,6 +783,19 @@ function CustomerForm({ customer, onDone, onBack, user }: { customer: CustomerRo
       console.error(error);
       setLoading(false);
       return;
+    }
+
+    if (customerId && hasMarketingService(serviceType)) {
+      const { data: row } = await supabase.from('customers').select('*').eq('id', customerId).single();
+      if (row) {
+        const prov = await provisionMarketingClient(row as DaliaCustomerSnapshot);
+        if (!prov.ok) {
+          toast.error('הלקוח נשמר — שגיאה בהקמת כרטיס שיווק: ' + (prov.error || ''));
+        } else {
+          await syncMarketingFromDalia(row as DaliaCustomerSnapshot);
+          if (!isEdit) toast.success('נוצר כרטיס שיווק אוטומטי');
+        }
+      }
     }
 
     // Save agreements
@@ -799,6 +842,14 @@ function CustomerForm({ customer, onDone, onBack, user }: { customer: CustomerRo
           <select value={customerType} onChange={e => setCustomerType(e.target.value)} className={inputClass}>
             <option value="company">חברה</option><option value="private">פרטי</option>
           </select></div>
+        <div><label className="block text-lg font-medium mb-2">סוג שירות *</label>
+          <select value={serviceType} onChange={e => setServiceType(e.target.value as ServiceType)} className={inputClass}>
+            {SERVICE_TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          <p className="text-sm text-muted-foreground mt-2">בחירת שיווק יוצרת כרטיס שיווק מחובר — ללא לקוח כפול</p>
+        </div>
         <div><label className="block text-lg font-medium mb-2">עוסק מורשה / ח.פ</label><input value={businessId} onChange={e => setBusinessId(e.target.value)} className={inputClass} /></div>
         <div><label className="block text-lg font-medium mb-2">איש קשר *</label><input value={contactPerson} onChange={e => setContactPerson(e.target.value)} className={inputClass} /></div>
         <div><label className="block text-lg font-medium mb-2">כתובת מלאה</label><input value={address} onChange={e => setAddress(e.target.value)} className={inputClass} /></div>

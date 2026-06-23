@@ -771,6 +771,9 @@
         if (e.data && e.data.type === 'dalia-coco-auth') {
           window.COCO_STAGING = e.data;
           probeStagingAi();
+          if (window.MarketingClient && typeof window.MarketingClient.renderHub === 'function') {
+            window.MarketingClient.renderHub();
+          }
         }
       });
       if (window.COCO_STAGING?.accessToken) probeStagingAi();

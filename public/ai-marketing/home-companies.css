@@ -1,0 +1,77 @@
+/* Project 001 — משימה 2: חברות ולקוחות */
+
+.mkt-loading, .mkt-empty { text-align: center; padding: 24px 12px; color: var(--text2); font-size: 14px; }
+
+.mkt-hub-card {
+  width: 100%; text-align: right; padding: 16px; margin-bottom: 10px;
+  border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface);
+  box-shadow: var(--sh); cursor: pointer; font-family: inherit; min-height: 72px;
+}
+.mkt-hub-card:hover { border-color: var(--blue); background: #eff6ff; }
+.mkt-hub-title { font-size: 17px; font-weight: 800; color: var(--navy); }
+.mkt-hub-sub { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.mkt-sync-tag {
+  display: inline-block; margin-top: 8px; font-size: 10px; font-weight: 700;
+  background: #dbeafe; color: var(--navy); padding: 3px 8px; border-radius: 4px;
+}
+
+.mkt-client-head {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px;
+  margin-bottom: 12px; justify-content: space-between;
+}
+.mkt-client-title { font-size: 20px; font-weight: 800; color: var(--navy); margin: 0; }
+.mkt-client-sub { font-size: 12px; color: var(--text2); margin: 4px 0 0; }
+.mkt-ssot-badge {
+  font-size: 11px; font-weight: 800; background: var(--green); color: #fff;
+  padding: 6px 10px; border-radius: 6px;
+}
+.mkt-ssot-note {
+  background: #ecfdf5; border: 1px solid #86efac; color: #166534;
+  padding: 10px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  margin-bottom: 14px; line-height: 1.5;
+}
+
+.mkt-section {
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  margin-bottom: 10px; background: var(--surface); overflow: hidden;
+}
+.mkt-section-hdr {
+  padding: 14px 16px; font-size: 14px; font-weight: 800; color: var(--navy);
+  cursor: pointer; list-style: none; min-height: 48px; display: flex; align-items: center;
+}
+.mkt-section-hdr::-webkit-details-marker { display: none; }
+.mkt-section-body { padding: 12px 16px 16px; border-top: 1px solid var(--border); }
+
+.mkt-readonly-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 14px; }
+.mkt-ro { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--surface2); border-radius: 8px; }
+.mkt-ro .lbl { font-size: 11px; font-weight: 700; color: var(--text2); }
+.mkt-ro .val { font-size: 14px; font-weight: 700; color: var(--navy); }
+
+.mkt-editable-block { padding-top: 8px; border-top: 1px dashed var(--border); }
+.mkt-mini-form {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: stretch;
+}
+.mkt-mini-form .srch { flex: 1; min-width: 120px; min-height: 44px; }
+
+.mkt-conn-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.mkt-conn-card {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: space-between;
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2);
+}
+.mkt-conn-name { font-weight: 700; font-size: 13px; color: var(--navy); }
+.mkt-conn-status { font-size: 11px; font-weight: 700; color: var(--text2); }
+.mkt-conn-status.on { color: var(--green); }
+
+.mkt-ai-list { list-style: none; padding: 0; margin: 0; }
+.mkt-ai-list li { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
+.mkt-ai-st { width: 10px; height: 10px; border-radius: 50%; background: #fbbf24; flex-shrink: 0; }
+.mkt-ai-st.done { background: var(--green); }
+
+.mkt-footer-actions { margin-top: 20px; padding-bottom: 24px; }
+.mkt-footer-actions .btn { min-height: 52px; font-weight: 800; }
+.mkt-back-hub { min-height: 44px; }
+
+@media (min-width: 640px) {
+  .mkt-readonly-grid { grid-template-columns: repeat(2, 1fr); }
+  .mkt-conn-grid { grid-template-columns: repeat(2, 1fr); }
+}

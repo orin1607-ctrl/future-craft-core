@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./ai-marketing/home-v4.css">
 <link rel="stylesheet" href="./ai-marketing/home-prd.css">
+<link rel="stylesheet" href="./ai-marketing/home-companies.css">
 <style>
 :root {
   --navy:#003366; --blue:#2563eb; --blue2:#1d4ed8; --green:#16a34a; --red:#dc2626;
@@ -553,6 +554,24 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
       </div>
       <div class="v4-world-grid prd-main-grid" id="v4CategoryGrid"></div>
     </section>
+  </div>
+</div>
+
+<!-- ===== SCREEN: MARKETING CLIENTS HUB (משימה 2 — SSOT מדליה) ===== -->
+<div class="screen" id="sc-mkt-hub">
+  <div class="prd-module-wrap mkt-wrap">
+    <div class="v4-zone-hdr" style="margin-bottom:14px">
+      <h2>🏢 חברות ולקוחות</h2>
+      <p>לקוחות עם שירות שיווק — מקור אמת: מערכת דליה</p>
+    </div>
+    <div id="mktHubList"></div>
+  </div>
+</div>
+
+<!-- ===== SCREEN: MARKETING CLIENT CARD (כרטיס אחד) ===== -->
+<div class="screen" id="sc-mkt-client">
+  <div class="prd-module-wrap mkt-wrap" id="mktClientRoot">
+    <p class="mkt-loading">טוען…</p>
   </div>
 </div>
 
@@ -2852,6 +2871,8 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 <script src="./ai-marketing/prd-filter.js"></script>
 <script src="./ai-marketing/prd-theme.js"></script>
 <script src="./ai-marketing/prd-datagrid.js"></script>
+<script src="./ai-marketing/marketing-api.js"></script>
+<script src="./ai-marketing/marketing-client.js"></script>
 <script>
 // Screen navigation
 var screenMap = {};
@@ -2870,7 +2891,8 @@ var screenLabels = {
   'sc-reports': 'דוחות', 'sc-history': 'היסטוריה', 'sc-briefing': 'תדרוך יומי',
   'sc-crm': 'שיווק CRM', 'sc-fleetint': 'שילוב FleetOS', 'sc-health': 'דשבורד בריאות',
   'sc-settings': 'הגדרות ו-API', 'sc-permissions': 'הרשאות ואבטחה', 'sc-roadmap': 'מפת דרכים',
-  'sc-aiguide': 'מדריך AI', 'sc-qa': 'רשימת בדיקות QA'
+  'sc-aiguide': 'מדריך AI', 'sc-qa': 'רשימת בדיקות QA',
+  'sc-mkt-hub': 'חברות ולקוחות', 'sc-mkt-client': 'כרטיס לקוח שיווק'
 };
 
 function gotoSc(id) {

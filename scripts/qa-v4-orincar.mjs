@@ -17,9 +17,10 @@ const LEGACY_SCREENS = [
   'sc-executive','sc-strategy','sc-ailab','sc-autonomous','sc-aiimage','sc-reports','sc-history','sc-crm',
   'sc-fleetint','sc-health','sc-settings','sc-permissions','sc-roadmap','sc-aiguide','sc-qa','sc-modules',
   'sc-aichat',
+  'sc-mkt-hub', 'sc-mkt-client',
 ];
 
-const V4_CATEGORIES = ['status','goals','assets','assistants','actions','history','decisions','reports'];
+const V4_CATEGORIES = ['companies','status','goals','assets','assistants','actions','history','decisions','reports'];
 
 const report = {
   url: pageUrl,
@@ -63,7 +64,7 @@ for (const vp of [
   dashCards >= 14 ? pass(`${vp.name}:dash-14`) : fail(`${vp.name}:dash-${dashCards}`);
 
   const prdBtns = await page.locator('#v4CategoryGrid .v4-world-btn').count();
-  prdBtns === 8 ? pass(`${vp.name}:prd-8-buttons`) : fail(`${vp.name}:prd-buttons-${prdBtns}`);
+  prdBtns === 9 ? pass(`${vp.name}:prd-9-buttons`) : fail(`${vp.name}:prd-buttons-${prdBtns}`);
 
   // Categories open
   for (const catId of V4_CATEGORIES) {
@@ -149,6 +150,14 @@ for (const vp of [
     ? pass(`${vp.name}:home-filter-company`)
     : fail(`${vp.name}:home-filter-company`);
 
+  await page.evaluate(() => window.gotoSc('mkt-hub'));
+  await page.waitForTimeout(300);
+  const mktHub = await page.evaluate(() => ({
+    screen: !!document.getElementById('sc-mkt-hub'),
+    list: !!document.getElementById('mktHubList'),
+  }));
+  mktHub.screen && mktHub.list ? pass(`${vp.name}:mkt-hub-screen`) : fail(`${vp.name}:mkt-hub-screen`);
+
   await page.evaluate(() => window.gotoSc('settings'));
   await page.waitForTimeout(300);
   const themeCard = await page.evaluate(() => ({
@@ -161,7 +170,7 @@ for (const vp of [
   themeCard.export && themeCard.import ? pass(`${vp.name}:theme-import-export`) : fail(`${vp.name}:theme-import-export`);
 
   if (vp.name === 'desktop') {
-    const requiredScreens = ['morning', 'dashboard', 'seo', 'ads', 'gbp', 'crm', 'content', 'keywords', 'landing', 'competitors', 'director', 'reports', 'settings'];
+    const requiredScreens = ['morning', 'mkt-hub', 'mkt-client', 'dashboard', 'seo', 'ads', 'gbp', 'crm', 'content', 'keywords', 'landing', 'competitors', 'director', 'reports', 'settings'];
     const missingFilter = await page.evaluate((ids) => {
       return ids.filter((id) => {
         const sc = document.getElementById('sc-' + id);
@@ -209,7 +218,7 @@ for (const vp of [
   }
 
   // Assets
-  for (const asset of ['home-v4.js', 'home-v4.css', 'home-prd.css', 'app.js', 'prd-filter.js', 'prd-theme.js', 'prd-datagrid.js', 'prd-entities.json']) {
+  for (const asset of ['home-v4.js', 'home-v4.css', 'home-prd.css', 'home-companies.css', 'app.js', 'prd-filter.js', 'prd-theme.js', 'prd-datagrid.js', 'marketing-api.js', 'marketing-client.js', 'prd-entities.json']) {
     const r = await page.request.get(`${STAGING}/ai-marketing/${asset}`);
     r.ok() ? pass(`${vp.name}:asset-${asset}`) : fail(`${vp.name}:asset-${asset}-${r.status()}`);
   }

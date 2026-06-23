@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,19 +12,23 @@ import { ArrowRight } from 'lucide-react';
 export default function AiMarketingPage() {
   const { user } = useAuth();
   const { selectedCompany, companyOptions } = useCompanyScope();
+  const [searchParams] = useSearchParams();
+  const customerId = searchParams.get('customer');
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const pushToIframe = useCallback(async () => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
     const { data: { session } } = await supabase.auth.getSession();
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
     if (session?.access_token) {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
       iframe.contentWindow.postMessage(
         {
           type: 'dalia-coco-auth',
           accessToken: session.access_token,
           supabaseUrl,
+          anonKey,
           marketingChatUrl: `${supabaseUrl}/functions/v1/marketing-ai-chat`,
         },
         '*',
@@ -38,7 +42,13 @@ export default function AiMarketingPage() {
       },
       '*',
     );
-  }, [selectedCompany, companyOptions]);
+    if (customerId) {
+      iframe.contentWindow.postMessage(
+        { type: 'dalia-coco-open-customer', customerId },
+        '*',
+      );
+    }
+  }, [selectedCompany, companyOptions, customerId]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -58,7 +68,7 @@ export default function AiMarketingPage() {
   }
 
   const base = import.meta.env.BASE_URL || '/';
-  const src = `${base}ai-marketing-platform?fullscreen=1`;
+  const src = `${base}ai-marketing-platform?fullscreen=1${customerId ? `&customer=${encodeURIComponent(customerId)}` : ''}`;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
