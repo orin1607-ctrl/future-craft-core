@@ -136,7 +136,11 @@ for (const vp of [
     });
     btnH >= 72 ? pass('mobile:cat-btn-72px') : fail(`mobile:cat-btn-${btnH}px`);
 
-    const sendH = await page.evaluate(() => document.getElementById('v4ChatSend')?.getBoundingClientRect().height || 0);
+    const sendH = await page.evaluate(() => {
+      window.gotoSc('aichat');
+      var el = document.getElementById('v4ChatSend');
+      return el && el.getBoundingClientRect().height ? el.getBoundingClientRect().height : 0;
+    });
     sendH >= 48 ? pass('mobile:chat-send-48px') : fail(`mobile:chat-send-${sendH}px`);
 
     report.mobile.categoryBtnHeight = btnH;
@@ -148,7 +152,7 @@ for (const vp of [
   }
 
   // Assets
-  for (const asset of ['home-v4.js', 'home-v4.css', 'app.js']) {
+  for (const asset of ['home-v4.js', 'home-v4.css', 'home-prd.css', 'app.js']) {
     const r = await page.request.get(`${STAGING}/ai-marketing/${asset}`);
     r.ok() ? pass(`${vp.name}:asset-${asset}`) : fail(`${vp.name}:asset-${asset}-${r.status()}`);
   }
