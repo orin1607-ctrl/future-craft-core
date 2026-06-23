@@ -114,6 +114,9 @@
     html += '<div class="prd-theme-actions mt-12">' +
       '<button type="button" class="btn btn-primary" id="prdThemeSave">💾 שמור צבעים</button>' +
       '<button type="button" class="btn btn-outline" id="prdThemeReset">↺ איפוס לברירת מחדל</button>' +
+      '<button type="button" class="btn btn-outline" id="prdThemeExport">📤 Export Theme</button>' +
+      '<button type="button" class="btn btn-outline" id="prdThemeImport">📥 Import Theme</button>' +
+      '<input type="file" id="prdThemeImportFile" accept="application/json,.json" hidden>' +
       '</div>';
     html += '<p class="fs11 text3 mt-8" id="prdThemeStatus"></p>';
     body.innerHTML = html;
@@ -149,6 +152,50 @@
       saveAll();
       applyTheme(DEFAULT);
       renderForm();
+    });
+
+    document.getElementById('prdThemeExport')?.addEventListener('click', function () {
+      var payload = {
+        version: 1,
+        companyKey: activeCompanyKey,
+        theme: getTheme(activeCompanyKey),
+        exportedAt: new Date().toISOString(),
+      };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'coco-prd-theme-' + activeCompanyKey + '.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      var st = document.getElementById('prdThemeStatus');
+      if (st) st.textContent = 'Theme יוצא בהצלחה — ניתן לייבא בחברה אחרת.';
+    });
+
+    var importFile = document.getElementById('prdThemeImportFile');
+    document.getElementById('prdThemeImport')?.addEventListener('click', function () {
+      importFile?.click();
+    });
+    importFile?.addEventListener('change', function () {
+      var file = importFile.files && importFile.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var data = JSON.parse(reader.result);
+          var theme = data.theme || data;
+          if (!theme.primary) throw new Error('invalid');
+          themeByCompany[activeCompanyKey] = Object.assign({}, DEFAULT, theme);
+          saveAll();
+          applyTheme(themeByCompany[activeCompanyKey]);
+          renderForm();
+          var st = document.getElementById('prdThemeStatus');
+          if (st) st.textContent = 'Theme יובא בהצלחה.';
+        } catch (e) {
+          alert('קובץ Theme לא תקין');
+        }
+        importFile.value = '';
+      };
+      reader.readAsText(file);
     });
   }
 

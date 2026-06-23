@@ -653,6 +653,8 @@
     var isModule = bare !== 'morning' && bare !== 'category' && bare !== 'modules';
     document.body.classList.toggle('v4-has-module', isModule);
     if (bare === 'morning') renderHome();
+    if (window.PrdFilter && typeof window.PrdFilter.remount === 'function') window.PrdFilter.remount();
+    if (window.PrdDataGrid && typeof window.PrdDataGrid.enhanceAll === 'function') window.PrdDataGrid.enhanceAll();
   }
 
   function init() {

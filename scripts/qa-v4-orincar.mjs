@@ -110,15 +110,33 @@ for (const vp of [
 
   // PRD filter bar on module + home
   await page.evaluate(() => window.gotoSc('seo'));
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(500);
   const filterInfo = await page.evaluate(() => {
     const bar = document.querySelector('#sc-seo .prd-filter-bar');
+    const ctx = document.querySelector('#sc-seo .prd-context-bar');
+    const badges = document.querySelectorAll('#sc-seo .prd-ctx-badge').length;
+    const breadcrumb = document.querySelector('#sc-seo .prd-breadcrumb');
     if (!bar) return { ok: false };
+    const toggle = bar.querySelector('.prd-filter-toggle');
+    if (toggle) toggle.click();
     const selects = bar.querySelectorAll('.prd-filter-select').length;
+    const hasCampaignId = !!bar.querySelector('[data-key="campaignExternalId"]');
+    const hasCampaignStatus = !!bar.querySelector('[data-key="campaignStatus"]');
+    const hasResponsible = !!bar.querySelector('[data-key="responsibleUser"]');
+    const hasDatePreset = !!bar.querySelector('[data-key="datePreset"]');
+    const hasSavedViews = !!bar.querySelector('.prd-saved-views');
     const stub = bar.textContent.includes('שלב ב');
-    return { ok: !!bar && selects >= 3 && !stub, selects };
+    const dg = document.querySelector('#sc-seo .prd-dg-search');
+    return {
+      ok: !!bar && !!ctx && badges >= 4 && !!breadcrumb && selects >= 6 && !stub,
+      selects, hasCampaignId, hasCampaignStatus, hasResponsible, hasDatePreset, hasSavedViews, hasDg: !!dg,
+    };
   });
-  filterInfo.ok ? pass(`${vp.name}:prd-filter-bar-${filterInfo.selects}`) : fail(`${vp.name}:prd-filter-bar`);
+  filterInfo.ok ? pass(`${vp.name}:prd-filter-v2-${filterInfo.selects}`) : fail(`${vp.name}:prd-filter-v2`);
+  filterInfo.hasCampaignId ? pass(`${vp.name}:filter-campaign-id`) : fail(`${vp.name}:filter-campaign-id`);
+  filterInfo.hasDatePreset ? pass(`${vp.name}:filter-date-preset`) : fail(`${vp.name}:filter-date-preset`);
+  filterInfo.hasSavedViews ? pass(`${vp.name}:filter-saved-views`) : fail(`${vp.name}:filter-saved-views`);
+  filterInfo.hasDg ? pass(`${vp.name}:datagrid-seo`) : fail(`${vp.name}:datagrid-seo`);
 
   await page.evaluate(() => window.gotoSc('morning'));
   await page.waitForTimeout(300);
@@ -133,8 +151,25 @@ for (const vp of [
 
   await page.evaluate(() => window.gotoSc('settings'));
   await page.waitForTimeout(300);
-  const themeCard = await page.evaluate(() => !!document.getElementById('prdThemeCard'));
-  themeCard ? pass(`${vp.name}:theme-settings-card`) : fail(`${vp.name}:theme-settings-card`);
+  const themeCard = await page.evaluate(() => ({
+    card: !!document.getElementById('prdThemeCard'),
+    export: !!document.getElementById('prdThemeExport'),
+    import: !!document.getElementById('prdThemeImport'),
+    reset: !!document.getElementById('prdThemeReset'),
+  }));
+  themeCard.card ? pass(`${vp.name}:theme-settings-card`) : fail(`${vp.name}:theme-settings-card`);
+  themeCard.export && themeCard.import ? pass(`${vp.name}:theme-import-export`) : fail(`${vp.name}:theme-import-export`);
+
+  if (vp.name === 'desktop') {
+    const requiredScreens = ['morning', 'dashboard', 'seo', 'ads', 'gbp', 'crm', 'content', 'keywords', 'landing', 'competitors', 'director', 'reports', 'settings'];
+    const missingFilter = await page.evaluate((ids) => {
+      return ids.filter((id) => {
+        const sc = document.getElementById('sc-' + id);
+        return !sc || !sc.querySelector('.prd-filter-bar') || !sc.querySelector('.prd-context-bar');
+      });
+    }, requiredScreens);
+    missingFilter.length === 0 ? pass('desktop:all-key-screens-filtered') : fail('desktop:missing-filter-' + missingFilter.join(','));
+  }
 
   await page.evaluate(() => window.gotoSc('morning'));
 
@@ -174,7 +209,7 @@ for (const vp of [
   }
 
   // Assets
-  for (const asset of ['home-v4.js', 'home-v4.css', 'home-prd.css', 'app.js', 'prd-filter.js', 'prd-theme.js', 'prd-entities.json']) {
+  for (const asset of ['home-v4.js', 'home-v4.css', 'home-prd.css', 'app.js', 'prd-filter.js', 'prd-theme.js', 'prd-datagrid.js', 'prd-entities.json']) {
     const r = await page.request.get(`${STAGING}/ai-marketing/${asset}`);
     r.ok() ? pass(`${vp.name}:asset-${asset}`) : fail(`${vp.name}:asset-${asset}-${r.status()}`);
   }
