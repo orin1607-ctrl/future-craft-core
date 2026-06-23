@@ -12,7 +12,7 @@ const pageUrl = `${STAGING}/ai-marketing-platform`;
 const OUT = path.join(__dirname, '../docs/screenshots/v4-mobile-qa');
 mkdirSync(OUT, { recursive: true });
 
-const V4_CATEGORIES = ['ai', 'plan', 'site', 'promo', 'exec', 'reports', 'knowledge', 'settings'];
+const V4_CATEGORIES = ['status', 'goals', 'assets', 'assistants', 'actions', 'history', 'decisions', 'reports'];
 
 const report = { url: pageUrl, at: new Date().toISOString(), devices: [], shots: [], ok: true };
 
@@ -83,10 +83,12 @@ async function checkDevice(browser, label, deviceDescriptor) {
   await page.waitForTimeout(300);
   await shot('03-categories');
 
-  await page.evaluate(() => document.getElementById('v4Chat')?.scrollIntoView({ block: 'center' }));
+  await page.evaluate(() => document.getElementById('v4Chat')?.scrollIntoView({ block: 'center' }) || window.gotoSc('aichat'));
   await page.waitForTimeout(300);
   await shot('04-chat');
 
+  await page.evaluate(() => window.gotoSc('aichat'));
+  await page.waitForTimeout(200);
   await page.fill('#v4ChatInput', 'בדיקת מובייל');
   await page.click('#v4ChatSend');
   await page.waitForTimeout(400);

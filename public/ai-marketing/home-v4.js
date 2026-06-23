@@ -49,138 +49,108 @@
     'הכנת 3 המלצות AI', 'הכנת 2 טיוטות תוכן', 'העברת 3 פריטים לאישור', 'עדכון זיכרון מרכזי',
   ];
 
-  var CATEGORIES = [
+  var PRD_BUTTONS = [
     {
-      id: 'ai', icon: '🤖', title: 'AI מנהל שיווק', sub: 'מנהל AI, תדרוך, מעבדה, אוטונומי',
+      id: 'status', icon: '📊', title: 'מצב נוכחי', sub: 'דשבורד, התראות, משימות, בריאות מערכת',
       items: [
-        { ico: '🧠', label: 'מנהל AI', sc: 'director' },
-        { ico: '☀️', label: 'תדרוך יומי', sc: 'briefing' },
-        { ico: '🧪', label: 'מעבדת AI', sc: 'ailab' },
-        { ico: '🤖', label: 'מצב אוטונומי', sc: 'autonomous' },
-        { ico: '📖', label: 'מדריך AI', sc: 'aiguide' },
-        { ico: '🔭', label: 'מרכז מודיעין', sc: 'intel' },
-        { ico: '📊', label: 'דשבורד קלאסי', sc: 'dashboard' },
+        { ico: '📊', label: 'דשבורד ראשי', sc: 'dashboard' },
         { ico: '📈', label: 'דשבורד מנהלים', sc: 'executive' },
-      ],
-    },
-    {
-      id: 'plan', icon: '📋', title: 'תכנון ואסטרטגיה', sub: 'יעדים, תוכנית, מחקר, תחזיות',
-      items: [
-        { ico: '♟️', label: 'אסטרטגיה', sc: 'strategy' },
-        { ico: '🎯', label: 'יעדים ו-KPI', sc: 'kpi' },
-        { ico: '🗺️', label: 'תוכנית עבודה', sc: 'roadmap' },
-        { ico: '💹', label: 'תחזיות ROI', sc: 'roi' },
-        { ico: '🔭', label: 'מחקר שוק', sc: 'intel' },
-        { ico: '🏆', label: 'מתחרים', sc: 'competitors' },
-        { ico: '🔑', label: 'מילות מפתח', sc: 'keywords' },
-        { ico: '📰', label: 'חדשות שוק', sc: 'news' },
-      ],
-    },
-    {
-      id: 'site', icon: '🌍', title: 'אתר', sub: 'עמודים, תוכן, נחיתה, פרסום',
-      items: [
-        { ico: '🌐', label: 'כל העמודים', sc: 'pages' },
-        { ico: '➕', label: 'עמוד / דף חדש', sc: 'landing' },
-        { ico: '✏️', label: 'עריכת עמודים', sc: 'pages' },
-        { ico: '🛠️', label: 'דפי שירות', sc: 'landing' },
-        { ico: '🚀', label: 'דפי נחיתה', sc: 'landing' },
-        { ico: '✍️', label: 'מאמרים', sc: 'content' },
-        { ico: '🎨', label: 'תמונות AI', sc: 'aiimage' },
-        { ico: '🎬', label: 'תוכן וסרטונים', sc: 'content' },
-        { ico: '❓', label: 'FAQ ועמודים', sc: 'pages' },
-        { ico: '📝', label: 'טפסים ותפריטים', sc: 'pages' },
-        { ico: '🔗', label: 'קישורים פנימיים', sc: 'pages' },
-        { ico: '📈', label: 'SEO לעמודים', sc: 'seo' },
-        { ico: '📚', label: 'מחסן תוכן', sc: 'warehouse' },
-        { ico: '📅', label: 'פרסום ותזמון', sc: 'scheduler' },
-        { ico: '✅', label: 'אישורים', sc: 'approval' },
-      ],
-    },
-    {
-      id: 'promo', icon: '🚀', title: 'קידום ושיווק', sub: 'SEO, Google, קמפיינים, מתחרים',
-      items: [
-        { ico: '📈', label: 'SEO', sc: 'seo' },
+        { ico: '☀️', label: 'תדרוך יומי', sc: 'briefing' },
+        { ico: '🎯', label: 'מדדי ביצוע KPI', sc: 'kpi' },
+        { ico: '🔔', label: 'התראות', sc: 'notifications' },
+        { ico: '📋', label: 'משימות פתוחות', sc: 'tasks' },
+        { ico: '❤️', label: 'בריאות מערכת', sc: 'health' },
         { ico: '🔍', label: 'Search Console', sc: 'dashboard' },
         { ico: '📊', label: 'Google Analytics', sc: 'kpi' },
-        { ico: '💰', label: 'Google Ads', sc: 'ads' },
-        { ico: '📍', label: 'Google Business', sc: 'gbp' },
-        { ico: '🔑', label: 'מילות מפתח', sc: 'keywords' },
+      ],
+    },
+    {
+      id: 'goals', icon: '🎯', title: 'המטרות שלנו', sub: 'יעדים, אסטרטגיה, תחזיות, מתחרים',
+      items: [
+        { ico: '🎯', label: 'יעדים ו-KPI', sc: 'kpi' },
+        { ico: '♟️', label: 'אסטרטגיה', sc: 'strategy' },
+        { ico: '🗺️', label: 'תוכנית עבודה', sc: 'roadmap' },
+        { ico: '💹', label: 'תחזיות ROI', sc: 'roi' },
         { ico: '🏆', label: 'מתחרים', sc: 'competitors' },
-        { ico: '📣', label: 'קמפיינים', sc: 'ads' },
-        { ico: '👥', label: 'רשתות / CRM', sc: 'crm' },
+        { ico: '🔑', label: 'מילות מפתח', sc: 'keywords' },
+        { ico: '🔭', label: 'מחקר שוק', sc: 'intel' },
+        { ico: '📰', label: 'חדשות שוק', sc: 'news' },
         { ico: '🔽', label: 'משפך שיווק', sc: 'funnel' },
         { ico: '🗺️', label: 'מסע לקוח', sc: 'journey' },
       ],
     },
     {
-      id: 'exec', icon: '⚡', title: 'ביצוע ומשימות', sub: 'משימות, אישורים, אוטומציה',
+      id: 'assets', icon: '🌐', title: 'הנכסים הדיגיטליים', sub: 'אתר, Google, Meta, קמפיינים, חיבורים',
       items: [
-        { ico: '📋', label: 'משימות', sc: 'tasks' },
-        { ico: '✅', label: 'אישורים', sc: 'approval' },
-        { ico: '🤖', label: 'אוטומציות', sc: 'autonomous' },
-        { ico: '🧠', label: 'פעולות AI', sc: 'director' },
-        { ico: '🛡️', label: 'Approval Center', sc: 'approval' },
-        { ico: '📅', label: 'פרסום', sc: 'scheduler' },
-        { ico: '🔔', label: 'התראות', sc: 'notifications' },
+        { ico: '🌐', label: 'כל העמודים', sc: 'pages' },
+        { ico: '🚀', label: 'דפי נחיתה', sc: 'landing' },
+        { ico: '✍️', label: 'תוכן ומאמרים', sc: 'content' },
+        { ico: '📚', label: 'מחסן תוכן', sc: 'warehouse' },
+        { ico: '📍', label: 'Google Business', sc: 'gbp' },
+        { ico: '💰', label: 'Google Ads', sc: 'ads' },
+        { ico: '👥', label: 'רשתות / CRM', sc: 'crm' },
+        { ico: '⚙️', label: 'חיבורים והגדרות', sc: 'settings' },
+        { ico: '🔐', label: 'הרשאות', sc: 'permissions' },
+        { ico: '🚗', label: 'שילוב FleetOS', sc: 'fleetint' },
       ],
     },
     {
-      id: 'reports', icon: '📊', title: 'דוחות וביצועים', sub: 'KPI, ROI, לידים, השוואות',
+      id: 'assistants', icon: '🤖', title: 'העוזרים שלנו', sub: 'Website AI, SEO, Analytics, Google, Meta',
       items: [
-        { ico: '📄', label: 'דוחות', sc: 'reports' },
-        { ico: '📅', label: 'דוחות יומיים', sc: 'reports' },
-        { ico: '📆', label: 'דוחות שבועיים', sc: 'reports' },
-        { ico: '🗓️', label: 'דוחות חודשיים', sc: 'reports' },
-        { ico: '🎯', label: 'KPI', sc: 'kpi' },
-        { ico: '💹', label: 'ROI', sc: 'roi' },
-        { ico: '📈', label: 'ביצועים', sc: 'executive' },
-        { ico: '🎯', label: 'לידים', sc: 'funnel' },
-        { ico: '📍', label: 'מיקומים', sc: 'keywords' },
-        { ico: '⚖️', label: 'השוואות', sc: 'competitors' },
+        { ico: '🧠', label: 'מנהל AI', sc: 'director' },
+        { ico: '🧪', label: 'מעבדת AI', sc: 'ailab' },
+        { ico: '🤖', label: 'מצב אוטונומי', sc: 'autonomous' },
+        { ico: '📖', label: 'מדריך AI', sc: 'aiguide' },
+        { ico: '📈', label: 'מודיעין SEO', sc: 'seo' },
+        { ico: '🔭', label: 'מרכז מודיעין', sc: 'intel' },
+        { ico: '🎨', label: 'סטודיו תמונות AI', sc: 'aiimage' },
+        { ico: '📅', label: 'תזמון ופרסום', sc: 'scheduler' },
         { ico: '🔥', label: 'מפת חום', sc: 'heatmap' },
       ],
     },
     {
-      id: 'knowledge', icon: '🧠', title: 'ידע והיסטוריה', sub: 'שיחות, פעולות, מסקנות AI',
+      id: 'actions', icon: '⚙️', title: 'הפעולות', sub: 'משימות מאושרות, Preview, ביצוע',
       items: [
-        { ico: '🕐', label: 'היסטוריית פעולות', sc: 'history' },
-        { ico: '💬', label: 'היסטוריית שיחות', sc: 'history' },
-        { ico: '✅', label: 'היסטוריית אישורים', sc: 'approval' },
-        { ico: '📚', label: 'מרכז ידע', sc: 'warehouse' },
-        { ico: '📘', label: 'מדריך שימוש', sc: 'usermanual' },
-        { ico: '💡', label: 'מסקנות AI', sc: 'history' },
-        { ico: '✔️', label: 'מה הצליח', sc: 'history' },
-        { ico: '⚠️', label: 'מה נכשל', sc: 'history' },
+        { ico: '📋', label: 'משימות', sc: 'tasks' },
+        { ico: '✅', label: 'מרכז אישורים', sc: 'approval' },
+        { ico: '📅', label: 'פרסום מתוזמן', sc: 'scheduler' },
+        { ico: '🤖', label: 'פעולות אוטומטיות', sc: 'autonomous' },
       ],
     },
     {
-      id: 'settings', icon: '⚙️', title: 'חיבורים והגדרות', sub: 'Google, API, הרשאות, אבטחה',
+      id: 'history', icon: '📚', title: 'ההיסטוריה', sub: 'כל שינוי, פעולה, גרסה, תוצאה',
       items: [
-        { ico: '📊', label: 'Google Analytics', sc: 'settings' },
-        { ico: '🔍', label: 'Search Console', sc: 'settings' },
-        { ico: '💰', label: 'Google Ads', sc: 'settings' },
-        { ico: '📍', label: 'Google Business', sc: 'settings' },
-        { ico: '🌐', label: 'WordPress / אתר', sc: 'settings' },
-        { ico: '📧', label: 'Gmail', sc: 'settings' },
-        { ico: '📁', label: 'Drive / Docs / Sheets', sc: 'settings' },
-        { ico: '☁️', label: 'Cloudflare / API', sc: 'settings' },
-        { ico: '📘', label: 'Facebook / Meta', sc: 'settings' },
-        { ico: '📸', label: 'Instagram', sc: 'settings' },
-        { ico: '💼', label: 'LinkedIn', sc: 'settings' },
-        { ico: '▶️', label: 'YouTube', sc: 'settings' },
-        { ico: '💬', label: 'WhatsApp', sc: 'settings' },
-        { ico: '🤖', label: 'ChatGPT', sc: 'settings' },
-        { ico: '🧠', label: 'Claude', sc: 'settings' },
-        { ico: '✨', label: 'Gemini', sc: 'settings' },
-        { ico: '👤', label: 'משתמשים והרשאות', sc: 'permissions' },
-        { ico: '🔐', label: 'אבטחה', sc: 'permissions' },
-        { ico: '❤️', label: 'בריאות מערכת', sc: 'health' },
-        { ico: '🚗', label: 'שילוב FleetOS', sc: 'fleetint' },
+        { ico: '🕐', label: 'היסטוריית פעולות', sc: 'history' },
+        { ico: '✅', label: 'היסטוריית אישורים', sc: 'approval' },
+        { ico: '📘', label: 'מדריך שימוש', sc: 'usermanual' },
+        { ico: '📚', label: 'מרכז ידע', sc: 'warehouse' },
+      ],
+    },
+    {
+      id: 'decisions', icon: '🧠', title: 'מרכז החלטות AI', sub: 'מה דחוף, מה חשוב, מה לעשות היום',
+      items: [
+        { ico: '💬', label: 'צ\'אט AI מנהל השיווק', sc: 'aichat' },
+        { ico: '🧠', label: 'מנהל החלטות AI', sc: 'director' },
+        { ico: '☀️', label: 'תדרוך והחלטות יומיות', sc: 'briefing' },
+        { ico: '🔭', label: 'הזדמנויות וסיכונים', sc: 'intel' },
+        { ico: '📊', label: 'דשבורד החלטות', sc: 'executive' },
+      ],
+    },
+    {
+      id: 'reports', icon: '📑', title: 'הדוחות', sub: 'SEO, Analytics, ROI, השוואות, ייצוא',
+      items: [
+        { ico: '📄', label: 'דוחות', sc: 'reports' },
+        { ico: '💹', label: 'ROI', sc: 'roi' },
+        { ico: '📈', label: 'ביצועים', sc: 'executive' },
+        { ico: '⚖️', label: 'השוואות', sc: 'competitors' },
         { ico: '✔️', label: 'QA ובדיקות', sc: 'qa' },
         { ico: '🗺️', label: 'מפת דרכים', sc: 'roadmap' },
+        { ico: '📦', label: 'כל המודולים', sc: 'modules' },
       ],
     },
   ];
+
+  var CATEGORIES = PRD_BUTTONS;
 
   var DASH_CARDS = [
     { ico: '🌐', lbl: 'מצב האתר', key: 'site', sc: 'pages', cls: 'good' },
@@ -400,6 +370,7 @@
   function openCategory(catId) {
     var cat = CATEGORIES.find(function (c) { return c.id === catId; });
     if (!cat) return;
+    window.PRD_CURRENT_CAT = catId;
     window.V4_CURRENT_CAT = catId;
     if ($('v4CatTitle')) $('v4CatTitle').innerHTML = cat.icon + ' ' + esc(cat.title);
     if ($('v4CatSub')) $('v4CatSub').textContent = cat.sub;
@@ -620,6 +591,21 @@
     $('v4ChatInput')?.focus();
   }
 
+  function injectPrdShell() {
+    var skip = { 'sc-morning': 1, 'sc-category': 1, 'sc-modules': 1, 'sc-aichat': 1 };
+    document.querySelectorAll('.screen').forEach(function (sc) {
+      if (skip[sc.id]) return;
+      if (sc.querySelector('.prd-filter-bar')) return;
+      var filter = document.createElement('div');
+      filter.className = 'prd-filter-bar';
+      filter.innerHTML = '<div class="prd-filter-title">🔍 סינון</div>' +
+        '<div class="prd-filter-note">מסונכרן עם מערכת דליה — שלב ב\'</div>';
+      var bar = sc.querySelector('.v4-module-bar');
+      if (bar) sc.insertBefore(filter, bar.nextSibling);
+      else sc.insertBefore(filter, sc.firstChild);
+    });
+  }
+
   function injectModuleBars() {
     document.querySelectorAll('.screen').forEach(function (sc) {
       if (sc.id === 'sc-morning' || sc.id === 'sc-category' || sc.id === 'sc-modules') return;
@@ -640,15 +626,15 @@
   }
 
   function bindEvents() {
-    document.body.classList.add('v4-mode');
+    document.body.classList.add('v4-mode', 'prd-mode');
 
     bindTextareaGrow();
+    $('prdBtnDecisions')?.addEventListener('click', function () { openCategory('decisions'); });
     $('v4BtnWork')?.addEventListener('click', runWorkForMe);
     $('v4BtnExecAll')?.addEventListener('click', executeAll);
     $('v4BtnExecAll2')?.addEventListener('click', executeAll);
     $('v4BtnTasks')?.addEventListener('click', showTasks);
     $('v4BtnWhy')?.addEventListener('click', function () { chatSend('למה אתה ממליץ?'); });
-    $('v4BtnAsk')?.addEventListener('click', scrollToChat);
     $('v4ChatSend')?.addEventListener('click', function () { chatSend($('v4ChatInput')?.value); });
     $('v4ChatInput')?.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(e.target.value); }
@@ -672,7 +658,8 @@
     var topHome = $('topbarHome');
     if (topHome) topHome.style.display = bare === 'morning' ? 'none' : 'inline-flex';
     document.querySelectorAll('.v4-go-cat').forEach(function (btn) {
-      btn.style.display = window.V4_CURRENT_CAT && bare !== 'category' && bare !== 'morning' ? 'inline-flex' : 'none';
+      var cat = window.PRD_CURRENT_CAT || window.V4_CURRENT_CAT;
+      btn.style.display = cat && bare !== 'category' && bare !== 'morning' && bare !== 'aichat' ? 'inline-flex' : 'none';
     });
     var isModule = bare !== 'morning' && bare !== 'category' && bare !== 'modules';
     document.body.classList.toggle('v4-has-module', isModule);
@@ -684,6 +671,7 @@
     renderCategories();
     renderHome();
     injectModuleBars();
+    injectPrdShell();
     appendChat('ai', 'בוקר טוב! אני מנהל השיווק AI.\nשאל אותי כל שאלה, או לחץ "עבוד בשבילי".');
 
     var fab = document.getElementById('cocoAiFab');
@@ -709,5 +697,6 @@
     init();
   }
 
-  window.HomeV4 = { render: renderHome, openCategory: openCategory, categories: CATEGORIES };
+  window.HomeV4 = { render: renderHome, openCategory: openCategory, categories: CATEGORIES, buttons: PRD_BUTTONS };
+  window.HomePrd = window.HomeV4;
 })();

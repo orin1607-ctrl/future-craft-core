@@ -16,9 +16,10 @@ const LEGACY_SCREENS = [
   'sc-landing','sc-scheduler','sc-gbp','sc-ads','sc-roi','sc-funnel','sc-journey','sc-kpi','sc-heatmap',
   'sc-executive','sc-strategy','sc-ailab','sc-autonomous','sc-aiimage','sc-reports','sc-history','sc-crm',
   'sc-fleetint','sc-health','sc-settings','sc-permissions','sc-roadmap','sc-aiguide','sc-qa','sc-modules',
+  'sc-aichat',
 ];
 
-const V4_CATEGORIES = ['ai','plan','site','promo','exec','reports','knowledge','settings'];
+const V4_CATEGORIES = ['status','goals','assets','assistants','actions','history','decisions','reports'];
 
 const report = {
   url: pageUrl,
@@ -61,8 +62,8 @@ for (const vp of [
   const dashCards = await page.locator('#v4DashGrid .v4-dash-card').count();
   dashCards >= 14 ? pass(`${vp.name}:dash-14`) : fail(`${vp.name}:dash-${dashCards}`);
 
-  const cats = await page.locator('#v4CategoryGrid .v4-world-btn').count();
-  cats === 8 ? pass(`${vp.name}:cats-8`) : fail(`${vp.name}:cats-${cats}`);
+  const prdBtns = await page.locator('#v4CategoryGrid .v4-world-btn').count();
+  prdBtns === 8 ? pass(`${vp.name}:prd-8-buttons`) : fail(`${vp.name}:prd-buttons-${prdBtns}`);
 
   // Categories open
   for (const catId of V4_CATEGORIES) {
@@ -99,13 +100,21 @@ for (const vp of [
     }
   }
 
-  // Chat
-  await page.evaluate(() => window.gotoSc('morning'));
+  // Chat on aichat screen
+  await page.evaluate(() => window.gotoSc('aichat'));
   await page.fill('#v4ChatInput', 'מה לעשות היום?');
   await page.click('#v4ChatSend');
   await page.waitForTimeout(400);
-  const msgs = await page.locator('#v4ChatMsgs .v4-msg').count();
-  msgs >= 2 ? pass(`${vp.name}:chat`) : fail(`${vp.name}:chat`);
+  const chatMsgs = await page.locator('#v4ChatMsgs .v4-msg').count();
+  chatMsgs >= 2 ? pass(`${vp.name}:chat-aichat`) : fail(`${vp.name}:chat-aichat`);
+
+  // PRD filter bar on module
+  await page.evaluate(() => window.gotoSc('seo'));
+  await page.waitForTimeout(200);
+  const hasFilter = await page.evaluate(() => !!document.querySelector('#sc-seo .prd-filter-bar'));
+  hasFilter ? pass(`${vp.name}:prd-filter-bar`) : fail(`${vp.name}:prd-filter-bar`);
+
+  await page.evaluate(() => window.gotoSc('morning'));
 
   if (vp.name === 'mobile') {
     const overflow = await page.evaluate(() => ({

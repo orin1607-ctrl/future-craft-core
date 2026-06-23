@@ -69,6 +69,8 @@
     "ai-marketing:qa-full": "node scripts/qa-ai-marketing-full.mjs",
     "project-001:qa-v4": "node scripts/qa-v4-orincar.mjs",
     "project-001:qa-mobile": "node scripts/capture-v4-mobile-qa.mjs",
+    "project-001:qa-uat": "node scripts/qa-p1-uat.mjs",
+    "project-001:qa-prd-a": "node scripts/qa-v4-orincar.mjs",
     "ai-marketing:openai-modules-probe": "node scripts/ai-marketing/openai-modules-probe.mjs"
   },
   "dependencies": {

@@ -6,6 +6,7 @@
 <title>CO.CO דליה — מנהל שיווק AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./ai-marketing/home-v4.css">
+<link rel="stylesheet" href="./ai-marketing/home-prd.css">
 <style>
 :root {
   --navy:#003366; --blue:#2563eb; --blue2:#1d4ed8; --green:#16a34a; --red:#dc2626;
@@ -508,96 +509,101 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 
   <main class="content">
 
-<!-- ===== SCREEN: HOME (V4 — AI + Dashboard + Categories) ===== -->
+<!-- ===== SCREEN: HOME (PRD שלב א — מצב נוכחי + 8 כפתורים) ===== -->
 <div class="screen active" id="sc-morning">
-  <div class="home-v4">
+  <div class="home-prd home-v4">
     <div class="v4-demo-banner" id="v4DemoBanner">
       <span class="tag">דמו</span>
-      <span>Mockup V4 — חלק מהנתונים לדוגמה בלבד. חיבורים חיים: GSC + GA4 (כשיש export). GBP ו-Ads ממתינים לאישור Google.</span>
+      <span>שלב א — מבנה PRD. נתונים חיים: GSC + GA4. GBP ו-Ads ממתינים לאישור Google.</span>
     </div>
 
-    <section class="v4-zone v4-zone-ai">
+    <section class="v4-zone prd-zone-status">
       <div class="v4-zone-hdr">
         <div>
-          <h2>🤖 AI מנהל השיווק <span class="v4-badge">P1</span></h2>
-          <p>אני מנהל את ה-AI · ה-AI מנהל את כל מחלקת השיווק</p>
+          <h2>📊 מצב נוכחי <span class="v4-badge">PRD</span></h2>
+          <p>מבט על העסק — תוך 10 שניות</p>
         </div>
       </div>
 
-      <div class="v4-ai-hero">
-        <h1 id="v4Greet">בוקר טוב, יוני</h1>
-        <p class="sub" id="v4Date">—</p>
-        <p class="sub" id="v4Status" style="margin-top:8px">טוען מצב עסק…</p>
-        <div class="v4-ai-actions">
-          <button type="button" class="btn btn-success" id="v4BtnWork">⚡ עבוד בשבילי</button>
-          <button type="button" class="btn btn-primary" id="v4BtnExecAll">✅ בצע הכול</button>
-          <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" id="v4BtnTasks">📋 הצג משימות</button>
-          <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" id="v4BtnWhy">❓ למה אתה ממליץ?</button>
-          <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" id="v4BtnAsk">💬 שאל את ה-AI</button>
-          <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="typeof syncNow==='function'&&syncNow()">🔄 סנכרן</button>
+      <div class="prd-status-bar">
+        <div class="prd-status-text">
+          <h1 id="v4Greet">בוקר טוב, יוני</h1>
+          <p class="sub" id="v4Date">—</p>
+          <p class="sub" id="v4Status" style="margin-top:6px">טוען מצב עסק…</p>
         </div>
+        <button type="button" class="btn btn-primary prd-sync-btn" onclick="typeof syncNow==='function'&&syncNow()">🔄 סנכרן</button>
       </div>
 
-      <div class="v4-ai-grid">
-        <div class="v4-ai-card"><h3>📈 מה השתנה מאתמול</h3><ul class="v4-ai-list" id="v4Changes"></ul></div>
-        <div class="v4-ai-card"><h3>🎯 המשימה החשובה ביותר</h3><p class="fw7 fs13" style="color:var(--navy);line-height:1.6" id="v4TopTask">—</p></div>
-        <div class="v4-ai-card"><h3>🏁 יעדים ואיפה אנחנו</h3><div id="v4Goals"></div></div>
-        <div class="v4-ai-card"><h3>💡 מה AI ממליץ</h3><ul class="v4-ai-list" id="v4Recommend"></ul></div>
-        <div class="v4-ai-card"><h3>✅ מחכה לאישור</h3><ul class="v4-ai-list" id="v4Approval"></ul></div>
-        <div class="v4-ai-card"><h3>✨ הזדמנויות חדשות</h3><ul class="v4-ai-list" id="v4Opportunities"></ul></div>
-        <div class="v4-ai-card"><h3>🤖 בוצע אוטומטית</h3><ul class="v4-ai-list" id="v4Auto"></ul></div>
-      </div>
-
-      <div class="v4-proposal">
-        <div class="line" id="v4Proposal">—</div>
-        <div class="actions">
-          <button type="button" class="btn btn-success" id="v4BtnExecAll2">✅ בצע הכול</button>
-          <button type="button" class="btn btn-primary" onclick="document.getElementById('v4BtnTasks')?.click()">📋 הצג משימות</button>
-          <button type="button" class="btn btn-outline" onclick="document.getElementById('v4BtnWhy')?.click()">❓ למה?</button>
-        </div>
-      </div>
-
-      <div class="v4-chat" id="v4Chat">
-        <div class="v4-chat-hdr">💬 שאל את מנהל השיווק AI</div>
-        <div class="v4-chat-msgs" id="v4ChatMsgs"></div>
-        <div class="v4-chips">
-          <button type="button" class="v4-chip" data-prompt="מה צריך לעשות היום?">מה לעשות היום?</button>
-          <button type="button" class="v4-chip" data-prompt="איזה עמוד כדאי לשפר?">איזה עמוד לשפר?</button>
-          <button type="button" class="v4-chip" data-prompt="מה השתנה בגוגל?">מה השתנה בגוגל?</button>
-          <button type="button" class="v4-chip" data-prompt="מה המתחרים עשו?">מתחרים</button>
-          <button type="button" class="v4-chip" data-prompt="איזה קמפיין מפסיד כסף?">קמפיינים</button>
-        </div>
-        <div class="v4-chat-input">
-          <textarea id="v4ChatInput" rows="2" placeholder="שאל את מנהל השיווק AI…" aria-label="הודעה"></textarea>
-          <button type="button" class="btn btn-primary v4-chat-send-btn" id="v4ChatSend">שלח</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="v4-zone v4-zone-dash">
-      <div class="v4-zone-hdr">
-        <div>
-          <h2>📊 Dashboard — מצב העסק</h2>
-          <p>תוך 10 שניות — מצב העסק במבט אחד</p>
-        </div>
-      </div>
       <div class="v4-dash-grid" id="v4DashGrid"></div>
+
+      <div class="prd-ai-quick v4-ai-card" id="prdAiQuick">
+        <h3>💡 המלצת AI</h3>
+        <p class="fw7 fs13" style="color:var(--navy);line-height:1.6;margin-bottom:8px" id="v4TopTask">—</p>
+        <ul class="v4-ai-list" id="v4Recommend"></ul>
+        <button type="button" class="btn btn-outline btn-block prd-decisions-btn" id="prdBtnDecisions">🧠 מרכז החלטות AI</button>
+      </div>
     </section>
 
-    <section class="v4-zone v4-zone-cats">
+    <section class="v4-zone prd-zone-nav">
       <div class="v4-zone-hdr">
         <div>
-          <h2>🗂️ קטגוריות עבודה</h2>
-          <p>כפתורים גדולים כמו בדליה — כל כפתור פותח עולם שלם</p>
+          <h2>ניווט ראשי</h2>
+          <p>8 אזורי עבודה — כל המסכים נגישים מכאן</p>
         </div>
       </div>
-      <div class="v4-world-grid" id="v4CategoryGrid"></div>
+      <div class="v4-world-grid prd-main-grid" id="v4CategoryGrid"></div>
     </section>
-
   </div>
 </div>
 
-<!-- ===== SCREEN: CATEGORY DRILL-DOWN (V4) ===== -->
+<!-- ===== SCREEN: AI CHAT (מרכז החלטות) ===== -->
+<div class="screen" id="sc-aichat">
+  <div class="prd-module-wrap">
+    <div class="v4-zone-hdr" style="margin-bottom:14px">
+      <h2>💬 צ'אט AI מנהל השיווק</h2>
+      <p>שאל, קבל החלטות, הפעל פעולות</p>
+    </div>
+    <div class="v4-ai-hero prd-aichat-hero">
+      <p class="sub" id="v4Proposal">—</p>
+      <div class="v4-ai-actions">
+        <button type="button" class="btn btn-success" id="v4BtnWork">⚡ עבוד בשבילי</button>
+        <button type="button" class="btn btn-primary" id="v4BtnExecAll">✅ בצע הכול</button>
+        <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" id="v4BtnTasks">📋 הצג משימות</button>
+        <button type="button" class="btn btn-ghost" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" id="v4BtnWhy">❓ למה אתה ממליץ?</button>
+      </div>
+    </div>
+    <div class="v4-ai-grid" style="margin-bottom:14px">
+      <div class="v4-ai-card"><h3>📈 מה השתנה</h3><ul class="v4-ai-list" id="v4Changes"></ul></div>
+      <div class="v4-ai-card"><h3>🏁 יעדים ואיפה אנחנו</h3><div id="v4Goals"></div></div>
+      <div class="v4-ai-card"><h3>✅ מחכה לאישור</h3><ul class="v4-ai-list" id="v4Approval"></ul></div>
+      <div class="v4-ai-card"><h3>✨ הזדמנויות</h3><ul class="v4-ai-list" id="v4Opportunities"></ul></div>
+      <div class="v4-ai-card"><h3>🤖 בוצע אוטומטית</h3><ul class="v4-ai-list" id="v4Auto"></ul></div>
+    </div>
+    <div class="v4-proposal">
+      <div class="actions">
+        <button type="button" class="btn btn-success" id="v4BtnExecAll2">✅ בצע הכול</button>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('v4BtnTasks')?.click()">📋 הצג משימות</button>
+      </div>
+    </div>
+    <div class="v4-chat" id="v4Chat">
+      <div class="v4-chat-hdr">💬 שאל את מנהל השיווק AI</div>
+      <div class="v4-chat-msgs" id="v4ChatMsgs"></div>
+      <div class="v4-chips">
+        <button type="button" class="v4-chip" data-prompt="מה צריך לעשות היום?">מה לעשות היום?</button>
+        <button type="button" class="v4-chip" data-prompt="איזה עמוד כדאי לשפר?">איזה עמוד לשפר?</button>
+        <button type="button" class="v4-chip" data-prompt="מה השתנה בגוגל?">מה השתנה בגוגל?</button>
+        <button type="button" class="v4-chip" data-prompt="מה המתחרים עשו?">מתחרים</button>
+        <button type="button" class="v4-chip" data-prompt="איזה קמפיין מפסיד כסף?">קמפיינים</button>
+      </div>
+      <div class="v4-chat-input">
+        <textarea id="v4ChatInput" rows="2" placeholder="שאל את מנהל השיווק AI…" aria-label="הודעה"></textarea>
+        <button type="button" class="btn btn-primary v4-chat-send-btn" id="v4ChatSend">שלח</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCREEN: CATEGORY DRILL-DOWN (PRD) ===== -->
 <div class="screen" id="sc-category">
   <div class="v4-category-page">
     <div class="v4-back-row">
@@ -2848,7 +2854,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 var screenMap = {};
 document.querySelectorAll('.screen').forEach(function(sc) { screenMap[sc.id] = sc; });
 var screenLabels = {
-  'sc-morning': 'בית — AI מנהל שיווק', 'sc-category': 'קטגוריה', 'sc-modules': 'כל המודולים',
+  'sc-morning': 'מצב נוכחי', 'sc-aichat': 'צ\'אט AI מנהל השיווק', 'sc-category': 'ניווט PRD', 'sc-modules': 'כל המודולים',
   'sc-dashboard': 'דשבורד ראשי', 'sc-usermanual': 'מדריך שימוש', 'sc-director': 'מנהל AI', 'sc-approval': 'מרכז אישורים',
   'sc-notifications': 'מרכז התראות', 'sc-tasks': 'משימות', 'sc-seo': 'מודיעין SEO',
   'sc-keywords': 'מילות מפתח', 'sc-intel': 'מרכז מודיעין', 'sc-competitors': 'ניתוח מתחרים',

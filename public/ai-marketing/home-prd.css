@@ -1,0 +1,48 @@
+/* Project 001 — PRD שלב א: ניווט + תבנית מסך אחידה */
+
+body.prd-mode .home-prd { padding-bottom: 28px; }
+
+.prd-status-bar {
+  display: flex; flex-direction: column; gap: 12px;
+  background: linear-gradient(135deg, var(--navy) 0%, #1e40af 55%, var(--blue) 100%);
+  color: #fff; border-radius: var(--r); padding: 18px 16px; margin-bottom: 14px;
+  box-shadow: var(--sh-md);
+}
+.prd-status-text h1 { font-size: 20px; font-weight: 800; margin: 0 0 4px; line-height: 1.25; }
+.prd-status-text .sub { font-size: 14px; opacity: 0.92; margin: 0; line-height: 1.45; }
+.prd-sync-btn { width: 100%; min-height: 48px; font-weight: 700; }
+
+.prd-ai-quick { margin-top: 14px; }
+.prd-ai-quick h3 { font-size: 14px; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
+.prd-decisions-btn { width: 100%; min-height: 48px; margin-top: 12px; font-weight: 700; }
+
+.prd-zone-nav { margin-top: 8px; }
+.prd-main-grid .v4-world-btn.cat-main {
+  border: 2px solid #dbeafe;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+
+.prd-module-wrap { max-width: 100%; padding-bottom: 16px; }
+.prd-aichat-hero { margin-bottom: 14px; }
+.prd-aichat-hero .sub { font-size: 15px; line-height: 1.5; margin-bottom: 12px; }
+
+/* תבנית מסך אחידה — שלב א (סינון stub) */
+.prd-filter-bar {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 12px 14px; margin-bottom: 14px; display: flex; flex-wrap: wrap;
+  align-items: center; justify-content: space-between; gap: 8px;
+}
+.prd-filter-title { font-size: 14px; font-weight: 800; color: var(--navy); }
+.prd-filter-note { font-size: 12px; color: var(--text2); }
+
+body.prd-mode .screen.active .sec-hdr,
+body.prd-mode .screen.active .card { max-width: 100%; }
+
+@media (min-width: 640px) {
+  .prd-status-bar { flex-direction: row; align-items: center; justify-content: space-between; }
+  .prd-sync-btn { width: auto; min-width: 140px; }
+}
+
+@media (min-width: 769px) {
+  .prd-main-grid { grid-template-columns: repeat(2, 1fr); }
+}
