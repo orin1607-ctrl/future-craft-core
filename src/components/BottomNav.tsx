@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone } from 'lucide-react';
+import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Contact } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -36,6 +36,7 @@ const managerNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { path: '/admin-home', label: 'מרכז ניהול', icon: Shield },
+  { path: '/dalia-crm', label: 'CRM', icon: Contact },
   { path: '/ai-marketing', label: 'ניהול שיווק', icon: Megaphone },
   { path: '/dalia-settings', label: 'Dalia Settings', icon: SlidersHorizontal },
 ];
@@ -116,6 +117,7 @@ export function DesktopSidebar() {
     }
     if (path === '/fleetos-ai') return canFleetOS;
     if (path === '/ai-marketing') return isSuperAdmin;
+    if (path === '/dalia-crm') return isSuperAdmin;
     return true;
   };
 

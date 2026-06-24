@@ -17,18 +17,28 @@ const files = [
   'public/dalia-crm-platform.html',
   'public/crm/dalia-crm-screens.html',
   'public/crm/dalia-crm-app.js',
+  'public/crm/crm-api.js',
   'public/crm/dalia-crm-auth.js',
   'public/crm/dalia-crm-nav.js',
   'public/crm/dalia-crm.css',
   'src/pages/DaliaCrmPage.tsx',
+  'supabase/migrations/20260624190000_crm_module.sql',
+  '.github/workflows/deploy-staging-pages.yml',
 ];
 
 files.forEach((f) => (existsSync(join(process.cwd(), f)) ? pass('file:' + f) : fail('file-missing:' + f)));
 
 const app = readFileSync(join(process.cwd(), 'public/crm/dalia-crm-app.js'), 'utf8');
 !app.includes('greentech') && !app.includes('CLT-001') ? pass('crm:no-demo-clients') : fail('crm:demo-clients');
-app.includes('listAllCustomers') ? pass('crm:supabase-list') : fail('crm:supabase-list');
-app.includes('ממתין לחיבור') ? pass('crm:pending-labels') : fail('crm:pending-labels');
+app.includes('CrmApi.loadBundle') ? pass('crm:load-bundle') : fail('crm:load-bundle');
+app.includes('submitNewTask') ? pass('crm:tasks-module') : fail('crm:tasks-module');
+
+const api = readFileSync(join(process.cwd(), 'public/crm/crm-api.js'), 'utf8');
+api.includes('crm_leads') && api.includes('crm_tasks') ? pass('crm:api-tables') : fail('crm:api-tables');
+api.includes('loadBundle') ? pass('crm:supabase-list') : fail('crm:supabase-list');
+
+const deploy = readFileSync(join(process.cwd(), '.github/workflows/deploy-staging-pages.yml'), 'utf8');
+deploy.includes('dalia-crm-platform.html') && deploy.includes('dist/dalia-crm') ? pass('deploy:crm-copy') : fail('deploy:crm-copy');
 
 const platform = readFileSync(join(process.cwd(), 'public/dalia-crm-platform.html'), 'utf8');
 platform.includes('marketing-api.js') && platform.includes('client-id-ssot.js') ? pass('crm:loads-api') : fail('crm:loads-api');
@@ -51,6 +61,10 @@ try {
   await page.waitForSelector('#screen-crm-main', { timeout: 20000 }).then(() => pass('staging:crm-main-screen')).catch(() => fail('staging:crm-main-screen'));
   const title = await page.textContent('.page-title');
   title && title.includes('לקוחות') ? pass('staging:crm-title') : fail('staging:crm-title');
+  const crmApi = await page.goto(STAGING + '/crm/crm-api.js', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  crmApi && crmApi.ok() ? pass('staging:crm-api-js') : fail('staging:crm-api-js');
+  const deep = await page.goto(STAGING + '/dalia-crm/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  deep && deep.ok() ? pass('staging:crm-spa-deep-link') : fail('staging:crm-spa-deep-link');
   await browser.close();
 } catch (e) {
   fail('staging:browser-' + (e.message || e));

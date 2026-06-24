@@ -1,23 +1,32 @@
 {
-  "at": "2026-06-24T16:15:14.937Z",
+  "at": "2026-06-24T16:35:28.776Z",
   "passed": [
     "file:public/dalia-crm-platform.html",
     "file:public/crm/dalia-crm-screens.html",
     "file:public/crm/dalia-crm-app.js",
+    "file:public/crm/crm-api.js",
     "file:public/crm/dalia-crm-auth.js",
     "file:public/crm/dalia-crm-nav.js",
     "file:public/crm/dalia-crm.css",
     "file:src/pages/DaliaCrmPage.tsx",
+    "file:supabase/migrations/20260624190000_crm_module.sql",
+    "file:.github/workflows/deploy-staging-pages.yml",
     "crm:no-demo-clients",
-    "crm:supabase-list",
-    "crm:pending-labels",
+    "crm:load-bundle",
+    "crm:tasks-module",
+    "crm:api-tables",
+    "deploy:crm-copy",
     "crm:loads-api",
     "crm:react-route",
     "crm:route-access",
     "crm:admin-home-link",
     "staging:crm-platform-http",
     "staging:crm-main-screen",
-    "staging:crm-title"
+    "staging:crm-title",
+    "staging:crm-api-js"
   ],
-  "failed": []
+  "failed": [
+    "crm:supabase-list",
+    "staging:crm-spa-deep-link"
+  ]
 }

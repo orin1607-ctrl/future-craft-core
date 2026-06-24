@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog } from 'lucide-react';
+import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Contact } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -161,6 +161,16 @@ export default function HomeDashboard() {
             icon={UserCog}
             title="משתמשים"
             subtitle="ניהול משתמשים והרשאות"
+            accent="primary"
+          />
+        )}
+        {isSuperAdmin && (
+          <DashboardCardGate
+            path="/dalia-crm"
+            to="/dalia-crm"
+            icon={Contact}
+            title="CRM"
+            subtitle="לקוחות · לידים · משימות · Supabase"
             accent="primary"
           />
         )}

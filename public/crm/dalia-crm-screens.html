@@ -119,14 +119,25 @@
       <div class="form-row"><label class="form-label">שם חברה / לקוח *</label><input class="form-input" name="name" required placeholder="שם העסק"></div>
       <div class="grid grid-2" style="gap:0;">
         <div class="form-row"><label class="form-label">איש קשר</label><input class="form-input" name="contact_person" placeholder="שם"></div>
-        <div class="form-row" style="margin-right:8px;"><label class="form-label">טלפון *</label><input class="form-input" name="phone" required type="tel" placeholder="05X-XXXXXXX"></div>
+        <div class="form-row" style="margin-right:8px;"><label class="form-label">טלפון *</label><input class="form-input" name="phone" required type="tel"></div>
       </div>
-      <div class="form-row"><label class="form-label">אימייל</label><input class="form-input" name="email" type="email" placeholder="email@company.co.il"></div>
+      <div class="form-row"><label class="form-label">אימייל</label><input class="form-input" name="email" type="email"></div>
+      <div class="grid grid-2" style="gap:0;">
+        <div class="form-row"><label class="form-label">מקור</label>
+          <select class="form-select" name="source">
+            <option value="google_ads">Google Ads</option><option value="google_organic">Google אורגני</option>
+            <option value="google_business">Google Business</option><option value="facebook">Facebook</option>
+            <option value="form">טופס</option><option value="referral">הפניה</option><option value="call">שיחה</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin-right:8px;"><label class="form-label">ציון</label>
+          <select class="form-select" name="score"><option value="3">⭐⭐⭐</option><option value="2" selected>⭐⭐</option><option value="1">⭐</option></select>
+        </div>
+      </div>
       <div class="form-row"><label class="form-label">שירות</label>
         <select class="form-select" name="service_type">
-          <option value="marketing_only">ניהול שיווק</option>
-          <option value="fleet_only">ניהול צי</option>
-          <option value="fleet_and_marketing">שיווק + צי</option>
+          <option value="marketing_only">ניהול שיווק</option><option value="fleet_only">ניהול צי</option>
+          <option value="fleet_and_marketing">שיווק + צי</option><option value="undecided">לא הוחלט</option>
         </select>
       </div>
       <div class="form-row"><label class="form-label">הערות</label><textarea class="form-input" name="notes" style="height:70px;resize:none;"></textarea></div>
@@ -144,20 +155,31 @@
       <div class="modal-title" style="margin:0;">+ משימה חדשה</div>
       <button class="btn-icon" type="button" onclick="DaliaCrm.closeModal('modal-new-task')">✕</button>
     </div>
-    <div class="alert alert-info">משימות CRM — ממתין לחיבור טבלת משימות ב-Supabase</div>
-    <div class="modal-actions">
-      <button type="button" class="btn btn-ghost" onclick="DaliaCrm.closeModal('modal-new-task')">סגור</button>
-    </div>
+    <form id="form-new-task" onsubmit="return DaliaCrm.submitNewTask(event)">
+      <div class="form-row"><label class="form-label">נושא *</label><input class="form-input" name="title" required placeholder="שיחת מעקב…"></div>
+      <div class="grid grid-2" style="gap:0;">
+        <div class="form-row"><label class="form-label">תאריך יעד</label><input class="form-input" name="due_at" type="datetime-local"></div>
+        <div class="form-row" style="margin-right:8px;"><label class="form-label">עדיפות</label>
+          <select class="form-select" name="priority"><option value="urgent">דחוף</option><option value="high">גבוה</option><option value="medium" selected>בינוני</option><option value="low">נמוך</option></select>
+        </div>
+      </div>
+      <div class="form-row"><label class="form-label">אחראי</label><input class="form-input" name="assigned_to" placeholder="שם"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="DaliaCrm.closeModal('modal-new-task')">ביטול</button>
+        <button type="submit" class="btn btn-primary">✅ שמור</button>
+      </div>
+    </form>
   </div>
 </div>
 
 <div class="overlay" id="modal-ai-crm">
   <div class="modal" style="max-width:500px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div class="modal-title" style="margin:0;">🤖 AI CRM Assistant</div>
+      <div class="modal-title" style="margin:0;">🤖 AI CRM — תשתית</div>
       <button class="btn-icon" type="button" onclick="DaliaCrm.closeModal('modal-ai-crm')">✕</button>
     </div>
-    <div class="alert alert-warn">AI CRM — מושהה עד אישור שלב א׳ (ללא מנועי AI)</div>
+    <div class="alert alert-warn">תשתית AI מוכנה (crm_ai_insights). מנועים יופעלו בשלב ב׳ — ללא מפתחות API כרגע.</div>
+    <div style="font-size:12px;color:var(--white50);margin-top:10px;">עוזרים: SEO · Analytics · Ads · CRM · GBP · Decision AI</div>
     <div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="DaliaCrm.closeModal('modal-ai-crm')">סגור</button></div>
   </div>
 </div>

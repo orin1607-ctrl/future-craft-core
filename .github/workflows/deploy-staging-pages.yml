@@ -56,13 +56,19 @@ jobs:
           mkdir -p dist dist/project-001
           cp public/coco-marketing-platform.html dist/
           cp public/ai-marketing-platform.html dist/
+          cp public/dalia-crm-platform.html dist/
           cp -r public/ai-marketing dist/
+          cp -r public/crm dist/
           cp dist/index.html dist/ai-marketing/index.html
+          mkdir -p dist/dalia-crm
+          cp dist/index.html dist/dalia-crm/index.html
           cp -r public/project-001-mockup dist/
           cp public/project-001/dashboard.json dist/project-001/ 2>/dev/null || true
           HASH=$(git rev-parse --short HEAD)
           sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/coco-marketing-platform.html
           sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/ai-marketing-platform.html
+          sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/dalia-crm-platform.html
+          sed -i "s/v=crm-1/v=crm-${HASH}/g" dist/dalia-crm-platform.html
           test -f dist/index.html || cp public/ai-marketing-platform.html dist/index.html
           test -f dist/404.html || cp dist/index.html dist/404.html
           touch dist/.nojekyll
