@@ -57,11 +57,10 @@ jobs:
           cp public/coco-marketing-platform.html dist/
           cp public/ai-marketing-platform.html dist/
           cp public/dalia-crm-platform.html dist/
+          cp public/dalia-crm.html dist/
           cp -r public/ai-marketing dist/
           cp -r public/crm dist/
           cp dist/index.html dist/ai-marketing/index.html
-          mkdir -p dist/dalia-crm
-          cp dist/index.html dist/dalia-crm/index.html
           cp -r public/project-001-mockup dist/
           cp public/project-001/dashboard.json dist/project-001/ 2>/dev/null || true
           HASH=$(git rev-parse --short HEAD)

@@ -136,6 +136,7 @@ function AppRoutes() {
         <Route path="/dev/project-001/dashboard" element={<Project001Dashboard />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/dalia-crm" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/sign-declaration" element={<SignDeclaration />} />
