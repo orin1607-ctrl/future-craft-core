@@ -2,108 +2,17 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ניהול שיווק AI – דליה</title>
 <script>
 (function () {
-  var host = location.hostname;
-  var base = '/future-craft-core/';
-  if (host === 'localhost' || host === '127.0.0.1') {
-    var p = location.pathname || '';
-    var i = p.indexOf('coco-marketing-platform');
-    if (i < 0) i = p.indexOf('ai-marketing-platform');
-    base = i >= 0 ? p.substring(0, i) : (p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/'));
-  }
-  window.COCO_PAGES_BASE = base;
-  var b = document.createElement('base');
-  b.id = 'coco-pages-base';
-  b.href = base.charAt(0) === '/' ? (location.origin + base) : new URL(base, location.href).href;
-  document.head.appendChild(b);
+  var q = location.search || '';
+  if (q.indexOf('v=') < 0) q += (q ? '&' : '?') + 'v=v3-claude-1to1-2';
+  location.replace('./ai-marketing-platform.html' + q);
 })();
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="ui-version" content="v3-claude-1to1-1">
-<meta name="build-commit" content="STAGING">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<title>ניהול שיווק AI – דליה</title>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-claude-1to1-1">
-<link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=3-claude-1to1-1">
 </head>
-<body>
-<div id="coco-claude-root" class="coco-boot-active" aria-label="ניהול שיווק — Claude UI">
-  <div class="coco-boot-loading" style="padding:48px 20px;text-align:center;color:#94a3b8;font-family:'Heebo',sans-serif;min-height:100vh;background:#04091a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
-    <div style="font-size:20px;font-weight:700;color:#fff;">טוען מרכז שיווק…</div>
-    <div style="font-size:12px;opacity:0.7;">Claude UI · Orin Car Staging</div>
-  </div>
-</div>
-
-<script src="./ai-marketing/sidebar-accordion.js"></script>
-<script src="./ai-marketing/app.js"></script>
-<script src="./ai-marketing/marketing-api.js"></script>
-<script src="./ai-marketing/coco-claude-data.js?v=v3-claude-1to1-1"></script>
-<script src="./ai-marketing/marketing-client.js"></script>
-<script>
-(function initCocoClaude() {
-  var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-claude-1to1-1';
-  document.body.classList.add('coco-boot-active');
-  if (root) root.classList.add('coco-boot-active');
-
-  function assetUrl(rel) {
-    var base = window.COCO_PAGES_BASE || '/future-craft-core/';
-    if (base.charAt(0) !== '/') base = '/' + base.replace(/^\.\//, '');
-    return location.origin + base + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);
-  }
-
-  function showBootError(msg) {
-    if (!root) return;
-    root.classList.add('coco-boot-active');
-    root.innerHTML = '<div style="padding:32px 20px;text-align:center;font-family:\'Heebo\',sans-serif;min-height:100vh;background:#04091a;color:#fff;">' +
-      '<div style="font-size:18px;font-weight:700;margin-bottom:8px;">לא ניתן לטעון את ממשק השיווק</div>' +
-      '<div style="font-size:13px;color:#94a3b8;margin-bottom:16px;">' + (msg || '') + '</div>' +
-      '<button type="button" id="coco-boot-retry" style="padding:10px 18px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:14px;cursor:pointer;">רענון</button></div>';
-    document.getElementById('coco-boot-retry')?.addEventListener('click', function () {
-      location.href = location.pathname.split('?')[0] + '?v=' + ver + '&t=' + Date.now();
-    });
-  }
-
-  function loadScript(url) {
-    return new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = url;
-      s.onload = resolve;
-      s.onerror = function () { reject(new Error('failed: ' + url)); };
-      document.body.appendChild(s);
-    });
-  }
-
-  function boot() {
-    if (!root || !document.getElementById('screen-hub')) {
-      showBootError('מסכי Claude לא נטענו');
-      return;
-    }
-    root.classList.remove('coco-boot-active');
-    document.body.classList.remove('coco-boot-active');
-    if (window.CocoClaude) CocoClaude.init();
-    else if (typeof window.goScreen === 'function') goScreen('screen-hub');
-  }
-
-  if (!root) return;
-
-  fetch(assetUrl('ai-marketing/coco-claude-screens.html'), { cache: 'no-store' })
-    .then(function (r) { if (!r.ok) throw new Error('screens HTTP ' + r.status); return r.text(); })
-    .then(function (html) {
-      if (!html || html.length < 5000) throw new Error('screens truncated');
-      root.innerHTML = html;
-      return loadScript(assetUrl('ai-marketing/coco-claude-main.js'))
-        .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-bridge.js')); });
-    })
-    .then(boot)
-    .catch(function (e) {
-      console.warn('CocoClaude load:', e);
-      showBootError(e && e.message ? e.message : 'שגיאה');
-    });
-})();
-</script>
+<body style="font-family:'Heebo',sans-serif;background:#04091a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;">
+  <p>מעביר ל-Orin Car Staging… <a href="./ai-marketing-platform.html?v=v3-claude-1to1-2" style="color:#60a5fa;">לחץ כאן</a></p>
 </body>
 </html>
