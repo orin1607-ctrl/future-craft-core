@@ -99,7 +99,9 @@
     if (isFullscreen) document.body.classList.add('prd-dalia-fullscreen');
     if (isEmbedded) document.body.classList.add('prd-dalia-embedded');
     injectTopbarDaliaBtn();
-    injectScreenDaliaBar();
+    if (!isFullscreen && !isEmbedded) {
+      injectScreenDaliaBar();
+    }
 
     var origGo = window.goScreen;
     if (typeof origGo === 'function') {

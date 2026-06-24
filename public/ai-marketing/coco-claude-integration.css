@@ -1,3 +1,15 @@
+html {
+  background: #04091a;
+}
+body {
+  background: #04091a;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+#coco-claude-root {
+  background: #04091a;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
 #coco-unified-context-bar.coco-unified-bar {
   position: sticky;
   top: 0;
@@ -12,6 +24,65 @@
 #coco-marketing-crm-root .screen.active { display: block; }
 #coco-marketing-crm-root .fab-ai,
 #coco-marketing-crm-root .bottom-nav { display: none !important; }
+
+/* iframe / fullscreen — no duplicate dalia bar (avoids extra strip + clutter) */
+body.prd-dalia-fullscreen .prd-dalia-bar,
+body.prd-dalia-embedded .prd-dalia-bar {
+  display: none !important;
+}
+body.prd-dalia-fullscreen .prd-dalia-exit,
+body.prd-dalia-embedded .prd-dalia-exit {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.coco-crm-entry-banner {
+  margin: 0 16px 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  background: rgba(37, 99, 235, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.coco-crm-entry-banner button {
+  font-weight: 700;
+}
+
+@media (max-width: 680px) {
+  #coco-unified-context-bar .cfc-inner {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  #coco-unified-context-bar .filter-input,
+  #coco-unified-context-bar .filter-select {
+    background: var(--bg3, #0a1830);
+    color: var(--white, #fff);
+    border-color: rgba(255, 255, 255, 0.15);
+    min-height: 36px;
+    font-size: 12px;
+  }
+  #coco-open-crm-btn {
+    background: rgba(37, 99, 235, 0.3) !important;
+    border: 1px solid rgba(59, 130, 246, 0.6) !important;
+    color: #fff !important;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .topbar .prd-dalia-exit {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #fff !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+  }
+  #screen-clients .nav-tab[data-crm-tab="1"] {
+    color: var(--accent2, #3b82f6);
+    font-weight: 800;
+  }
+}
 #legacy-dalia-root { display: none !important; }
 .coco-integration-flow-bar {
   background: rgba(37, 99, 235, 0.12);

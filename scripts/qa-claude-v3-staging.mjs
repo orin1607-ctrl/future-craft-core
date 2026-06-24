@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3b';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
@@ -218,6 +218,25 @@ async function runViewport(browser, name, viewport) {
     return !!document.getElementById('coco-open-crm-btn');
   });
   crmBtn ? pass('unified:crm-in-marketing-bar', name) : fail('unified:crm button missing from marketing bar', name);
+
+  if (name === 'mobile') {
+    const topBg = await page.evaluate(function () {
+      var htmlBg = getComputedStyle(document.documentElement).backgroundColor;
+      var bodyBg = getComputedStyle(document.body).backgroundColor;
+      var bar = document.getElementById('coco-unified-context-bar');
+      var barBg = bar ? getComputedStyle(bar).backgroundColor : '';
+      var whiteStrip = /rgb\(255, 255, 255\)|#fff/i.test(htmlBg) || /rgb\(255, 255, 255\)|#fff/i.test(bodyBg);
+      return { htmlBg: htmlBg, bodyBg: bodyBg, barBg: barBg, whiteStrip: whiteStrip };
+    });
+    if (!topBg.whiteStrip) pass('mobile:no-white-body-bg', name);
+    else fail('mobile:white-body-bg ' + topBg.htmlBg, name);
+
+    const crmTab = await page.evaluate(function () {
+      window.goScreen('screen-clients');
+      return !!document.querySelector('#screen-clients .nav-tab[data-crm-tab="1"]');
+    });
+    crmTab ? pass('mobile:crm-tab-visible', name) : fail('mobile:crm tab missing', name);
+  }
 
   // Filter persistence across modules
   const filterTest = await page.evaluate(() => {
