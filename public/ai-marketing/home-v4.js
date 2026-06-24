@@ -607,9 +607,17 @@
       if (sc.querySelector('.v4-module-bar')) return;
       var bar = document.createElement('div');
       bar.className = 'v4-module-bar';
-      bar.innerHTML = '<button type="button" class="v4-back-btn v4-go-home">→ חזרה לבית</button>' +
+      bar.innerHTML = '<button type="button" class="v4-back-btn v4-go-dalia">← חזרה לדליה</button>' +
+        '<button type="button" class="v4-back-btn v4-go-home">→ בית שיווק</button>' +
         '<button type="button" class="v4-back-btn ghost v4-go-cat" style="display:none">→ חזרה לקטגוריה</button>';
       sc.insertBefore(bar, sc.firstChild);
+      bar.querySelector('.v4-go-dalia')?.addEventListener('click', function () {
+        if (window.PrdDaliaNav && typeof window.PrdDaliaNav.exitToDalia === 'function') {
+          window.PrdDaliaNav.exitToDalia();
+        } else if (window.parent !== window) {
+          window.parent.postMessage({ type: 'dalia-coco-exit', path: '/admin-home' }, '*');
+        }
+      });
       bar.querySelector('.v4-go-home')?.addEventListener('click', function () {
         if (typeof window.gotoSc === 'function') window.gotoSc('morning');
       });
@@ -665,6 +673,9 @@
     }
     if (window.PrdFilter && typeof window.PrdFilter.remount === 'function') window.PrdFilter.remount();
     if (window.PrdDataGrid && typeof window.PrdDataGrid.enhanceAll === 'function') window.PrdDataGrid.enhanceAll();
+    if (window.PrdDaliaNav && typeof window.PrdDaliaNav.updateScreenLabels === 'function') {
+      window.PrdDaliaNav.updateScreenLabels();
+    }
   }
 
   function init() {

@@ -40,6 +40,7 @@ import {
   type AccessCodeSendResult,
 } from '@/lib/edgeFunctionError';
 import { cn } from '@/lib/utils';
+import { SERVICE_TYPE_OPTIONS } from '@/lib/marketingProvision';
 
 const TYPE_ICONS: Record<UserCreationType, typeof User> = {
   private_customer: User,
@@ -144,6 +145,13 @@ export default function CreateUserWizardDialog({
       toast({ title: 'סיסמה קצרה מדי', description: 'סיסמה / קוד כניסה חייבים להכיל לפחות 6 תווים', variant: 'destructive' });
       return false;
     }
+    if (userType === 'business_customer') {
+      const st = form.service_type || 'marketing_only';
+      if (!st) {
+        toast({ title: 'שדה חסר', description: 'יש לבחור סוג שירות', variant: 'destructive' });
+        return false;
+      }
+    }
     return true;
   };
 
@@ -182,6 +190,7 @@ export default function CreateUserWizardDialog({
       contact_role: form.contact_role || undefined,
       activity_field: form.activity_field || undefined,
       business_id: form.business_id || undefined,
+      service_type: userType === 'business_customer' ? (form.service_type || 'marketing_only') : undefined,
       license_number: form.license_number || undefined,
       assigned_vehicle_id: form.assigned_vehicle_id || undefined,
     };
@@ -411,6 +420,26 @@ export default function CreateUserWizardDialog({
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                );
+              }
+              if (fd.key === 'service_type') {
+                return (
+                  <div key={fd.key}>
+                    <label className="text-sm font-medium mb-1 block">{fd.label}{fd.required ? ' *' : ''}</label>
+                    <Select value={form.service_type || 'marketing_only'} onValueChange={(v) => setField('service_type', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="בחר סוג שירות" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SERVICE_TYPE_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      בחירת שיווק יוצרת כרטיס ניהול שיווק מחובר (Client ID אחד) — ללא כפילות.
+                    </p>
                   </div>
                 );
               }

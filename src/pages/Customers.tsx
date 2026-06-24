@@ -204,6 +204,9 @@ export default function Customers() {
                     <p className="text-xl font-bold truncate">{c.name}</p>
                     <p className="text-muted-foreground truncate">{c.contact_person} • {c.phone}</p>
                     {c.customer_number && <p className="text-xs text-muted-foreground">מס׳ {c.customer_number}</p>}
+                    <p className="text-xs text-primary/80 font-semibold mt-1">
+                      {SERVICE_TYPE_OPTIONS.find(o => o.value === (c.service_type || 'fleet_only'))?.label}
+                    </p>
                     {hasMarketingService(c.service_type) && (
                       <span className="inline-block mt-1 text-xs font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">שיווק</span>
                     )}
@@ -332,6 +335,14 @@ function CustomerDetail({ customer: c, isManager, user, onBack, onEdit, onDelete
           <span className={`status-badge ${c.status === 'active' ? 'status-active' : 'status-inactive'}`}>{c.status === 'active' ? 'פעיל' : 'לא פעיל'}</span>
         </div>
 
+        <div className="mb-6 p-4 rounded-xl border-2 border-primary/25 bg-primary/5">
+          <span className="text-sm font-medium text-muted-foreground block mb-1">סוג שירות</span>
+          <p className="text-xl font-bold text-primary">
+            {SERVICE_TYPE_OPTIONS.find(o => o.value === (c.service_type || 'fleet_only'))?.label || '—'}
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">לפי סוג השירות נקבע אם נפתח כרטיס ניהול שיווק</p>
+        </div>
+
         {hasMarketingService(c.service_type) && (
           <div className="mb-4 p-4 rounded-xl border-2 border-violet-200 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-800">
             <p className="text-sm text-muted-foreground mb-2">כרטיס שיווק מחובר לדליה — מקור אמת אחד</p>
@@ -346,7 +357,6 @@ function CustomerDetail({ customer: c, isManager, user, onBack, onEdit, onDelete
 
         <div className="grid grid-cols-2 gap-4 text-lg">
           <div><span className="text-muted-foreground text-sm">סוג</span><p className="font-bold">{c.customer_type === 'company' ? 'חברה' : 'פרטי'}</p></div>
-          <div><span className="text-muted-foreground text-sm">סוג שירות</span><p className="font-bold">{SERVICE_TYPE_OPTIONS.find(o => o.value === (c.service_type || 'fleet_only'))?.label || '—'}</p></div>
           {c.business_id && <div><span className="text-muted-foreground text-sm">עוסק מורשה / ח.פ</span><p className="font-bold">{c.business_id}</p></div>}
           <div><span className="text-muted-foreground text-sm">איש קשר</span><p className="font-bold">{c.contact_person}</p></div>
           <div><span className="text-muted-foreground text-sm">טלפון</span><p className="font-bold" dir="ltr">{c.phone}</p></div>

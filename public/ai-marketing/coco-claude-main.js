@@ -40,6 +40,10 @@ function showToast(msg) {
 }
 
 function showDaliaToast() {
+  if (window.PrdDaliaNav && typeof window.PrdDaliaNav.exitToDalia === 'function') {
+    window.PrdDaliaNav.exitToDalia();
+    return;
+  }
   showToast('🏠 חוזר למערכת דליה הראשית...');
 }
 

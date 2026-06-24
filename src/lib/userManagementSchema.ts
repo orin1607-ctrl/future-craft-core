@@ -47,7 +47,8 @@ export type FieldKey =
   | 'job_title'
   | 'permissions'
   | 'assigned_vehicle_id'
-  | 'license_number';
+  | 'license_number'
+  | 'service_type';
 
 export interface FieldDef {
   key: FieldKey;
@@ -89,6 +90,7 @@ export const FIELDS_BY_TYPE: Record<UserCreationType, FieldDef[]> = {
     f('password', 'סיסמה', { required: true, type: 'password', dir: 'ltr', persistTarget: 'auth.password' }),
     f('nickname', 'כינוי', { persistTarget: 'profiles.nickname' }),
     f('activity_field', 'תחום פעילות', { persistTarget: 'customers.activity_field' }),
+    f('service_type', 'סוג שירות', { type: 'select', required: true, persistTarget: 'customers.service_type' }),
     f('notes', 'הערות', { type: 'textarea', persistTarget: 'customers.notes' }),
   ],
   fleet_manager: [
@@ -135,7 +137,9 @@ export const FUTURE_LOGIN_FEATURES = [
 ] as const;
 
 export function emptyFormForType(type: UserCreationType): CreateUserFormValues {
-  return { userType: type, isActive: false, noEmail: false };
+  const base: CreateUserFormValues = { userType: type, isActive: false, noEmail: false };
+  if (type === 'business_customer') base.service_type = 'marketing_only';
+  return base;
 }
 
 export function getPendingFields(_type: UserCreationType): FieldDef[] {

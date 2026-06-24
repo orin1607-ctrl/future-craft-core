@@ -168,6 +168,37 @@ for (const vp of [
   }));
   mktHub.screen && mktHub.list ? pass(`${vp.name}:mkt-hub-screen`) : fail(`${vp.name}:mkt-hub-screen`);
 
+  const mktTask2 = await page.evaluate(() => {
+    var hubBtn = !!document.querySelector('.mkt-new-client-btn');
+    if (!hubBtn && window.MarketingClient) window.MarketingClient.renderHub();
+    hubBtn = !!document.querySelector('.mkt-new-client-btn');
+    document.querySelector('.mkt-new-client-btn')?.click();
+    var wizard = !!document.getElementById('mktWizardOverlay');
+    document.getElementById('mktWizardOverlay')?.remove();
+    return {
+      hubBtn: hubBtn,
+      wizard: wizard,
+      apiOnboard: typeof window.MarketingApi?.onboardMarketingCustomer === 'function',
+      googleProviders: (window.MarketingApi?.GOOGLE_PROVIDERS || []).length,
+      socialProviders: (window.MarketingApi?.SOCIAL_PROVIDERS || []).length,
+    };
+  });
+  mktTask2.hubBtn ? pass(`${vp.name}:mkt-new-client-btn`) : fail(`${vp.name}:mkt-new-client-btn`);
+  mktTask2.wizard ? pass(`${vp.name}:mkt-wizard-opens`) : fail(`${vp.name}:mkt-wizard-opens`);
+  mktTask2.apiOnboard ? pass(`${vp.name}:mkt-api-onboard`) : fail(`${vp.name}:mkt-api-onboard`);
+  mktTask2.googleProviders >= 7 ? pass(`${vp.name}:mkt-google-providers`) : fail(`${vp.name}:mkt-google-providers`);
+  mktTask2.socialProviders >= 6 ? pass(`${vp.name}:mkt-social-providers`) : fail(`${vp.name}:mkt-social-providers`);
+
+  const daliaNav = await page.evaluate(() => ({
+    topBtn: !!document.querySelector('.prd-dalia-exit'),
+    screenBar: !!document.querySelector('.prd-dalia-bar'),
+    exitFn: typeof window.PrdDaliaNav?.exitToDalia === 'function',
+    moduleDalia: !!document.querySelector('.v4-go-dalia'),
+  }));
+  daliaNav.topBtn ? pass(`${vp.name}:dalia-top-exit`) : fail(`${vp.name}:dalia-top-exit`);
+  daliaNav.screenBar ? pass(`${vp.name}:dalia-screen-bar`) : fail(`${vp.name}:dalia-screen-bar`);
+  daliaNav.exitFn ? pass(`${vp.name}:dalia-exit-fn`) : fail(`${vp.name}:dalia-exit-fn`);
+
   await page.evaluate(() => window.gotoSc('settings'));
   await page.waitForTimeout(300);
   const themeCard = await page.evaluate(() => ({

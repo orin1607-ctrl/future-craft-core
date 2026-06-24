@@ -1,0 +1,29 @@
+{
+  "at": "2026-06-24T12:10:47.616Z",
+  "passed": [
+    "module:vehicles",
+    "module:drivers",
+    "module:customers",
+    "module:documents",
+    "module:permissions",
+    "module:reports",
+    "module:tasks",
+    "module:fleet",
+    "module:marketing",
+    "module:settings",
+    "module:whatsapp",
+    "module:user-management",
+    "customers:service_type",
+    "customers:provision",
+    "customers:marketing-link",
+    "wizard:service_type",
+    "edge:marketing-provision",
+    "marketing:dalia-nav",
+    "marketing:new-client-wizard",
+    "marketing:ai-assistants",
+    "qa:v4-orincar-live"
+  ],
+  "failed": [],
+  "warnings": [],
+  "ok": true
+}

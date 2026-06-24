@@ -53,11 +53,19 @@ export default function AiMarketingPage() {
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'dalia-coco-exit') {
+        const path = typeof e.data.path === 'string' ? e.data.path : '/admin-home';
+        window.location.href = path;
+      }
+    };
+    window.addEventListener('message', onMessage);
     iframe.addEventListener('load', pushToIframe);
     pushToIframe();
     const onFocus = () => pushToIframe();
     window.addEventListener('focus', onFocus);
     return () => {
+      window.removeEventListener('message', onMessage);
       iframe.removeEventListener('load', pushToIframe);
       window.removeEventListener('focus', onFocus);
     };

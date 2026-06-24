@@ -14,6 +14,102 @@ function isStagingTestLoginEmail(email: string): boolean {
   return email.trim().toLowerCase() === STAGING_TEST_LOGIN_EMAIL;
 }
 
+const GOOGLE_PROVIDERS = [
+  'google_analytics', 'google_search_console', 'google_ads', 'google_business',
+  'google_tag_manager', 'gmail', 'google_workspace',
+];
+const SOCIAL_PROVIDERS = [
+  'facebook', 'instagram', 'tiktok', 'linkedin', 'youtube', 'whatsapp_business',
+];
+
+function hasMarketingService(st: string | null | undefined): boolean {
+  return st === 'marketing_only' || st === 'fleet_and_marketing';
+}
+
+async function provisionMarketingClient(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  customer: {
+    id: string;
+    name?: string;
+    business_id?: string | null;
+    address?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    contact_person?: string | null;
+    contact_role?: string | null;
+    activity_field?: string | null;
+    customer_number?: string | null;
+    status?: string | null;
+  },
+) {
+  const now = new Date().toISOString();
+  const snapshot = {
+    name: customer.name,
+    business_id: customer.business_id,
+    address: customer.address,
+    phone: customer.phone,
+    email: customer.email,
+    contact_person: customer.contact_person,
+    contact_role: customer.contact_role,
+    activity_field: customer.activity_field,
+    customer_number: customer.customer_number,
+    status: customer.status,
+    synced_at: now,
+  };
+
+  const { data: existing } = await supabaseAdmin
+    .from('marketing_profiles')
+    .select('id')
+    .eq('customer_id', customer.id)
+    .maybeSingle();
+
+  if (existing?.id) {
+    await supabaseAdmin.from('marketing_profiles').update({
+      dalia_snapshot: snapshot,
+      synced_at: now,
+      updated_at: now,
+    }).eq('customer_id', customer.id);
+    return;
+  }
+
+  await supabaseAdmin.from('marketing_profiles').insert({
+    customer_id: customer.id,
+    dalia_snapshot: snapshot,
+    synced_at: now,
+    setup_status: 'provisioned',
+    provisioned_at: now,
+  });
+
+  await supabaseAdmin.from('marketing_ai_setup').insert({
+    customer_id: customer.id,
+    checklist: {},
+    initial_goals: [],
+    recommendations: ['השלם חיבורי Google ורשתות', 'הגדר אתר ודומיין ראשי'],
+    work_plan: ['ניתוח אתר', 'קביעת מטרות'],
+  });
+
+  const connections = [...GOOGLE_PROVIDERS, ...SOCIAL_PROVIDERS].map((provider) => ({
+    customer_id: customer.id,
+    provider,
+    status: 'disconnected',
+  }));
+  await supabaseAdmin.from('marketing_connections').upsert(connections, {
+    onConflict: 'customer_id,provider',
+    ignoreDuplicates: true,
+  });
+
+  if (customer.contact_person) {
+    await supabaseAdmin.from('marketing_contacts').insert({
+      customer_id: customer.id,
+      contact_role: 'owner',
+      full_name: customer.contact_person,
+      phone: customer.phone || '',
+      email: customer.email || '',
+      is_primary: true,
+    });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -72,6 +168,7 @@ Deno.serve(async (req) => {
       license_number, assigned_vehicle_id,
       approval_status,
       two_factor_approved,
+      service_type,
     } = body;
 
     // Actions that require super_admin only
@@ -480,6 +577,11 @@ Deno.serve(async (req) => {
     }
 
     if (role === 'business_customer') {
+      const effectiveServiceType =
+        service_type === 'marketing_only' || service_type === 'fleet_and_marketing' || service_type === 'fleet_only'
+          ? service_type
+          : 'marketing_only';
+
       const { data: existingCustomer } = await supabaseAdmin
         .from('customers')
         .select('id')
@@ -501,6 +603,7 @@ Deno.serve(async (req) => {
             notes: profileNotes,
             activity_field: activity_field || '',
             status: 'pending',
+            service_type: effectiveServiceType,
           })
           .eq('id', existingCustomer.id);
 
@@ -516,6 +619,21 @@ Deno.serve(async (req) => {
           .from('profiles')
           .update({ customer_id: existingCustomer.id })
           .eq('id', newUserId);
+
+        if (hasMarketingService(effectiveServiceType)) {
+          await provisionMarketingClient(supabaseAdmin, {
+            id: existingCustomer.id,
+            name: company_name || full_name,
+            business_id: business_id || null,
+            address: address || '',
+            phone: phone || '',
+            email: contact_email || email,
+            contact_person: full_name,
+            contact_role: contact_role || '',
+            activity_field: activity_field || '',
+            status: 'pending',
+          });
+        }
       } else {
         const { data: customerRow, error: custErr } = await supabaseAdmin
           .from('customers')
@@ -532,6 +650,7 @@ Deno.serve(async (req) => {
             activity_field: activity_field || '',
             customer_type: 'company',
             status: 'pending',
+            service_type: effectiveServiceType,
             user_id: newUserId,
             created_by: callerId,
           })
@@ -556,6 +675,20 @@ Deno.serve(async (req) => {
             return new Response(JSON.stringify({ error: linkErr.message }), {
               status: 400,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          if (hasMarketingService(effectiveServiceType)) {
+            await provisionMarketingClient(supabaseAdmin, {
+              id: customerRow.id,
+              name: company_name || full_name,
+              business_id: business_id || null,
+              address: address || '',
+              phone: phone || '',
+              email: contact_email || email,
+              contact_person: full_name,
+              contact_role: contact_role || '',
+              activity_field: activity_field || '',
+              status: 'pending',
             });
           }
         }

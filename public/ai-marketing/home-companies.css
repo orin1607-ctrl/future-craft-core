@@ -71,7 +71,69 @@
 .mkt-footer-actions .btn { min-height: 52px; font-weight: 800; }
 .mkt-back-hub { min-height: 44px; }
 
+.mkt-hub-toolbar { margin-bottom: 14px; }
+.mkt-hub-toolbar .btn { min-height: 48px; font-weight: 800; width: 100%; }
+
+.mkt-wizard-overlay {
+  position: fixed; inset: 0; z-index: 9999; background: rgba(0, 20, 50, 0.55);
+  display: flex; align-items: flex-end; justify-content: center; padding: 12px;
+}
+.mkt-wizard {
+  background: var(--surface); border-radius: var(--r) var(--r) 0 0; width: 100%; max-width: 520px;
+  max-height: 90vh; overflow-y: auto; padding: 16px; box-shadow: var(--sh-md);
+}
+.mkt-wizard-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.mkt-wizard-hdr h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--navy); }
+.mkt-wizard-close { border: 0; background: transparent; font-size: 24px; cursor: pointer; line-height: 1; padding: 4px 8px; }
+.mkt-wizard-sub { font-size: 12px; color: var(--text2); margin: 0 0 12px; }
+.mkt-wizard-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.mkt-wiz-tab {
+  flex: 1; min-height: 40px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface2); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.mkt-wiz-tab.is-active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.mkt-wiz-list { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.mkt-wiz-pick {
+  text-align: right; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); cursor: pointer; font-family: inherit; width: 100%;
+}
+.mkt-wiz-pick strong { display: block; font-size: 14px; color: var(--navy); }
+.mkt-wiz-pick span { font-size: 12px; color: var(--text2); }
+.mkt-wiz-pick.is-picked { border-color: var(--navy); background: #eff6ff; }
+.mkt-wizard-actions { display: flex; gap: 8px; margin-top: 14px; }
+.mkt-wizard-actions .btn { flex: 1; min-height: 48px; font-weight: 700; }
+
+.mkt-sub-hdr { font-size: 12px; font-weight: 800; color: var(--navy); margin: 12px 0 8px; }
+.mkt-primary-card {
+  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 12px;
+  font-size: 13px; margin-bottom: 8px;
+}
+.mkt-primary-lbl { display: block; font-size: 10px; font-weight: 800; color: var(--text2); margin-bottom: 4px; }
+.mkt-check { font-size: 12px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.mkt-color-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.mkt-color-row input[type="color"] { width: 48px; height: 40px; border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+.mkt-logo-preview { max-width: 120px; max-height: 48px; margin-top: 8px; object-fit: contain; }
+
+.mkt-ai-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.mkt-ai-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px;
+  border: 1px solid var(--border); border-radius: 10px; background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  cursor: pointer; font-family: inherit; min-height: 72px;
+}
+.mkt-ai-btn:hover { border-color: var(--navy); background: #eff6ff; }
+.mkt-ai-ico { font-size: 22px; }
+.mkt-ai-lbl { font-size: 11px; font-weight: 800; color: var(--navy); text-align: center; line-height: 1.25; }
+.mkt-ai-panel {
+  margin-top: 12px; padding: 12px; border: 1px solid #bfdbfe; border-radius: 8px; background: #f0f9ff;
+}
+.mkt-ai-panel-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.mkt-ai-panel-close { border: 0; background: transparent; font-size: 20px; cursor: pointer; }
+
 @media (min-width: 640px) {
+  .mkt-wizard-overlay { align-items: center; }
+  .mkt-wizard { border-radius: var(--r); }
+  .mkt-hub-toolbar .btn { width: auto; min-width: 220px; }
+  .mkt-ai-grid { grid-template-columns: repeat(3, 1fr); }
   .mkt-readonly-grid { grid-template-columns: repeat(2, 1fr); }
   .mkt-conn-grid { grid-template-columns: repeat(2, 1fr); }
 }

@@ -1,5 +1,5 @@
 {
-  "url": "http://localhost:3456/ai-marketing-platform",
+  "url": "http://localhost:51461/ai-marketing-platform",
   "passed": [
     "desktop:page-load",
     "desktop:v4-mode",
@@ -32,6 +32,14 @@
     "desktop:home-filter-company",
     "desktop:filter-navy-theme",
     "desktop:mkt-hub-screen",
+    "desktop:mkt-new-client-btn",
+    "desktop:mkt-wizard-opens",
+    "desktop:mkt-api-onboard",
+    "desktop:mkt-google-providers",
+    "desktop:mkt-social-providers",
+    "desktop:dalia-top-exit",
+    "desktop:dalia-screen-bar",
+    "desktop:dalia-exit-fn",
     "desktop:theme-settings-card",
     "desktop:theme-import-export",
     "desktop:all-key-screens-filtered",
@@ -77,6 +85,14 @@
     "mobile:home-filter-company",
     "mobile:filter-navy-theme",
     "mobile:mkt-hub-screen",
+    "mobile:mkt-new-client-btn",
+    "mobile:mkt-wizard-opens",
+    "mobile:mkt-api-onboard",
+    "mobile:mkt-google-providers",
+    "mobile:mkt-social-providers",
+    "mobile:dalia-top-exit",
+    "mobile:dalia-screen-bar",
+    "mobile:dalia-exit-fn",
     "mobile:theme-settings-card",
     "mobile:theme-import-export",
     "mobile:no-horizontal-scroll",
@@ -103,8 +119,8 @@
   "mobile": {
     "categoryBtnHeight": 88
   },
-  "passedCount": 94,
+  "passedCount": 110,
   "failedCount": 0,
   "ok": true,
-  "at": "2026-06-23T14:26:52.812Z"
+  "at": "2026-06-24T12:11:10.623Z"
 }

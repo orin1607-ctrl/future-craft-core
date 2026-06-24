@@ -1,0 +1,133 @@
+{
+  "at": "2026-06-24T12:03:00.676Z",
+  "source": "demo",
+  "staging": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform",
+  "services": [
+    {
+      "service": "Google Search Console",
+      "connected": true,
+      "active": true,
+      "dataMode": "נתונים אמיתיים (מקומי/סנכרון)",
+      "configStatus": "connected",
+      "gapsFor100Percent": [
+        "אימות token refresh בפרודקשן"
+      ]
+    },
+    {
+      "service": "Google Analytics",
+      "connected": true,
+      "active": true,
+      "dataMode": "נתונים אמיתיים (מקומי/סנכרון)",
+      "configStatus": "connected",
+      "gapsFor100Percent": [
+        "אימות token refresh בפרודקשן"
+      ]
+    },
+    {
+      "service": "Google Business Profile",
+      "connected": false,
+      "active": false,
+      "dataMode": "Demo — ממתין לאישור Google",
+      "configStatus": "pending_google_api_approval",
+      "gapsFor100Percent": [
+        "אישור Google Business Profile API",
+        "חיבור OAuth ללקוח"
+      ]
+    },
+    {
+      "service": "Google Ads",
+      "connected": false,
+      "active": false,
+      "dataMode": "Demo — מתוכנן",
+      "configStatus": "planned",
+      "gapsFor100Percent": [
+        "הפעלת Google Ads API",
+        "חשבון MCC / Developer Token"
+      ]
+    },
+    {
+      "service": "Google Tag Manager",
+      "connected": false,
+      "active": false,
+      "dataMode": "Demo — מתוכנן",
+      "configStatus": "infrastructure",
+      "gapsFor100Percent": [
+        "רישום ב-marketing_connections",
+        "חיבור OAuth בשלב ב׳"
+      ]
+    },
+    {
+      "service": "Google Drive",
+      "connected": true,
+      "active": true,
+      "dataMode": "נתונים אמיתיים (מקומי/סנכרון)",
+      "configStatus": "connected",
+      "gapsFor100Percent": [
+        "אימות token refresh בפרודקשן"
+      ]
+    },
+    {
+      "service": "Google Docs",
+      "connected": true,
+      "active": true,
+      "dataMode": "נתונים אמיתיים (מקומי/סנכרון)",
+      "configStatus": "connected",
+      "gapsFor100Percent": [
+        "אימות token refresh בפרודקשן"
+      ]
+    },
+    {
+      "service": "Google Sheets",
+      "connected": true,
+      "active": true,
+      "dataMode": "נתונים אמיתיים (מקומי/סנכרון)",
+      "configStatus": "connected",
+      "gapsFor100Percent": [
+        "אימות token refresh בפרודקשן"
+      ]
+    },
+    {
+      "service": "Gmail",
+      "connected": true,
+      "active": true,
+      "dataMode": "נתונים אמיתיים (מקומי/סנכרון)",
+      "configStatus": "connected",
+      "gapsFor100Percent": [
+        "אימות token refresh בפרודקשן"
+      ]
+    },
+    {
+      "service": "OpenAI",
+      "connected": false,
+      "active": false,
+      "dataMode": "מוכן להגדרה — דורש .env.openai",
+      "configStatus": "ready_for_secure_config",
+      "gapsFor100Percent": [
+        "OPENAI_API_KEY בשרת",
+        "marketing-ai-chat Edge Function"
+      ]
+    },
+    {
+      "service": "Claude",
+      "connected": false,
+      "active": false,
+      "dataMode": "Demo — מתוכנן",
+      "configStatus": "not_configured",
+      "gapsFor100Percent": [
+        "אין מפתח API בפרויקט",
+        "הוספת Claude API + Edge Function"
+      ]
+    },
+    {
+      "service": "Gemini",
+      "connected": false,
+      "active": false,
+      "dataMode": "Demo — מתוכנן",
+      "configStatus": "not_configured",
+      "gapsFor100Percent": [
+        "אין מפתח Gemini",
+        "הוספת Google AI Studio key"
+      ]
+    }
+  ]
+}

@@ -28,6 +28,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-claude-1to1-2">
 <link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=3-claude-1to1-2">
+<link rel="stylesheet" href="./ai-marketing/home-prd.css?v=3-claude-1to1-2">
 </head>
 <body>
 <div id="coco-claude-root" class="coco-boot-active" aria-label="ניהול שיווק — Claude UI">
@@ -82,10 +83,15 @@
       showBootError('מסכי Claude לא נטענו');
       return;
     }
-    root.classList.remove('coco-boot-active');
-    document.body.classList.remove('coco-boot-active');
-    if (window.CocoClaude) CocoClaude.init();
-    else if (typeof window.goScreen === 'function') goScreen('screen-hub');
+    return loadScript(assetUrl('ai-marketing/prd-dalia-nav.js')).then(function () {
+      root.classList.remove('coco-boot-active');
+      document.body.classList.remove('coco-boot-active');
+      if (window.PrdDaliaNav && typeof window.PrdDaliaNav.init === 'function') {
+        window.PrdDaliaNav.init();
+      }
+      if (window.CocoClaude) CocoClaude.init();
+      else if (typeof window.goScreen === 'function') goScreen('screen-hub');
+    });
   }
 
   if (!root) return;

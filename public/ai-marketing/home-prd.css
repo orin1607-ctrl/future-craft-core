@@ -139,6 +139,26 @@ body.prd-mode .card, body.prd-mode .stat-card { background: var(--prd-cards, var
 body.prd-mode { overflow-x: hidden; }
 body.prd-mode .main, body.prd-mode .screen.active { overflow-x: hidden; max-width: 100%; }
 
+/* חזרה לדליה — ניווט קבוע */
+.prd-dalia-bar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  background: linear-gradient(135deg, #003366 0%, #0c4a6e 100%);
+  color: #fff; border-radius: var(--r-sm); padding: 8px 12px; margin-bottom: 10px;
+  box-shadow: var(--sh-md);
+}
+.prd-dalia-bc { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; }
+.prd-dalia-bc-btn {
+  border: 0; background: transparent; color: #fff; font-family: inherit; font-size: 11px;
+  font-weight: 800; cursor: pointer; text-decoration: underline; padding: 4px 0;
+}
+.prd-dalia-bc-sep { opacity: 0.5; }
+.prd-dalia-bc-here, .prd-dalia-bc-screen { opacity: 0.92; }
+.prd-dalia-exit { min-height: 40px; font-weight: 700; border-color: rgba(255,255,255,0.5) !important; color: var(--navy) !important; background: #fff !important; }
+body.prd-dalia-fullscreen .prd-dalia-exit,
+body.prd-dalia-embedded .prd-dalia-exit { display: inline-flex !important; }
+.prd-dalia-bar .prd-dalia-exit-inline { min-height: 36px; font-weight: 700; border-color: rgba(255,255,255,0.45); color: #fff; background: rgba(255,255,255,0.12); }
+.prd-dalia-bar .prd-dalia-exit-inline:hover { background: rgba(255,255,255,0.22); }
+
 /* DataGrid */
 .prd-dg-toolbar { flex-direction: column; align-items: stretch !important; gap: 8px !important; }
 .prd-dg-search-row { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }

@@ -51,8 +51,133 @@
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch (e) { /* ignore */ }
   }
 
+  var GOOGLE_PROVIDERS = [
+    'google_analytics', 'google_search_console', 'google_ads', 'google_business',
+    'google_tag_manager', 'gmail', 'google_workspace',
+  ];
+  var SOCIAL_PROVIDERS = [
+    'facebook', 'instagram', 'tiktok', 'linkedin', 'youtube', 'whatsapp_business',
+  ];
+  var AI_CHECKLIST_KEYS = [
+    'site_check', 'seo_check', 'analytics_check', 'search_console_check',
+    'google_business_check', 'performance_check', 'competitors_check',
+  ];
+
   function hasMarketingService(st) {
     return st === 'marketing_only' || st === 'fleet_and_marketing';
+  }
+
+  function listAllCustomers(search) {
+    if (!canRemote()) {
+      var loc = loadLocal().customers || [];
+      if (!search || !search.trim()) return Promise.resolve(loc);
+      var q = search.trim().toLowerCase();
+      return Promise.resolve(loc.filter(function (c) {
+        return (c.name || '').toLowerCase().indexOf(q) >= 0 || (c.contact_person || '').toLowerCase().indexOf(q) >= 0;
+      }));
+    }
+    return rest('customers?select=*&order=name.asc&limit=100').then(function (rows) {
+      if (!search || !search.trim()) return rows;
+      var q = search.trim().toLowerCase();
+      return rows.filter(function (c) {
+        return (c.name || '').toLowerCase().indexOf(q) >= 0 || (c.contact_person || '').toLowerCase().indexOf(q) >= 0;
+      });
+    });
+  }
+
+  function createCustomer(row) {
+    var payload = Object.assign({
+      service_type: 'marketing_only',
+      status: 'active',
+      customer_type: 'company',
+      contact_person: row.contact_person || row.name || '',
+    }, row);
+    if (!canRemote()) {
+      var loc = loadLocal();
+      payload.id = 'local-' + Date.now();
+      loc.customers.push(payload);
+      saveLocal(loc);
+      return Promise.resolve(payload);
+    }
+    return rest('customers', { method: 'POST', body: JSON.stringify(payload) }).then(function (r) {
+      return Array.isArray(r) ? r[0] : r;
+    });
+  }
+
+  function updateCustomer(id, patch) {
+    if (!canRemote()) {
+      var loc = loadLocal();
+      var idx = loc.customers.findIndex(function (c) { return c.id === id; });
+      if (idx >= 0) loc.customers[idx] = Object.assign({}, loc.customers[idx], patch);
+      saveLocal(loc);
+      return Promise.resolve(loc.customers[idx]);
+    }
+    return rest('customers?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(patch) });
+  }
+
+  function enableMarketingService(customerId, currentType) {
+    var next = currentType === 'fleet_only' ? 'fleet_and_marketing' : 'marketing_only';
+    return updateCustomer(customerId, { service_type: next }).then(function () {
+      return getCustomer(customerId);
+    });
+  }
+
+  function provisionClient(customer) {
+    if (!customer || !customer.id) return Promise.reject(new Error('no-customer'));
+    var snap = buildDaliaSnapshot(customer);
+    var now = new Date().toISOString();
+    return getProfile(customer.id).then(function (existing) {
+      if (existing) {
+        return upsertProfile(customer.id, { dalia_snapshot: snap, synced_at: now });
+      }
+      return upsertProfile(customer.id, {
+        dalia_snapshot: snap,
+        synced_at: now,
+        setup_status: 'provisioned',
+        provisioned_at: now,
+      }).then(function () {
+        return insertRow('marketing_ai_setup', {
+          customer_id: customer.id,
+          checklist: Object.fromEntries(AI_CHECKLIST_KEYS.map(function (k) { return [k, 'pending']; })),
+          initial_goals: [],
+          recommendations: ['השלם חיבורי Google ורשתות', 'הגדר אתר ודומיין ראשי', 'פתח קמפיין ראשון'],
+          work_plan: ['ניתוח אתר', 'ניתוח SEO', 'קביעת מטרות ראשוניות'],
+        });
+      }).then(function () {
+        var connections = GOOGLE_PROVIDERS.concat(SOCIAL_PROVIDERS).map(function (provider) {
+          return { customer_id: customer.id, provider: provider, status: 'disconnected' };
+        });
+        if (!canRemote()) {
+          connections.forEach(function (cn) { insertRow('marketing_connections', cn); });
+          return null;
+        }
+        return rest('marketing_connections?on_conflict=customer_id,provider', {
+          method: 'POST',
+          headers: headers({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
+          body: JSON.stringify(connections),
+        });
+      }).then(function () {
+        if (customer.contact_person) {
+          return insertRow('marketing_contacts', {
+            customer_id: customer.id,
+            contact_role: 'owner',
+            full_name: customer.contact_person,
+            phone: customer.phone || '',
+            email: customer.email || '',
+            is_primary: true,
+          });
+        }
+      });
+    });
+  }
+
+  function onboardMarketingCustomer(customerOrPayload, isNew) {
+    var chain = isNew
+      ? createCustomer(customerOrPayload)
+      : enableMarketingService(customerOrPayload.id, customerOrPayload.service_type || 'fleet_only');
+    return chain.then(function (customer) {
+      return provisionClient(customer).then(function () { return customer; });
+    });
   }
 
   function listMarketingCustomers() {
@@ -181,7 +306,15 @@
   window.MarketingApi = {
     canRemote: canRemote,
     hasMarketingService: hasMarketingService,
+    GOOGLE_PROVIDERS: GOOGLE_PROVIDERS,
+    SOCIAL_PROVIDERS: SOCIAL_PROVIDERS,
     listMarketingCustomers: listMarketingCustomers,
+    listAllCustomers: listAllCustomers,
+    createCustomer: createCustomer,
+    updateCustomer: updateCustomer,
+    enableMarketingService: enableMarketingService,
+    provisionClient: provisionClient,
+    onboardMarketingCustomer: onboardMarketingCustomer,
     getCustomer: getCustomer,
     getProfile: getProfile,
     getContacts: function (id) { return getRelated('marketing_contacts', id); },
