@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-3e';
+  var VERSION = 'v3-unified-3f';
   var SEARCH_KEY = 'coco-mkt-global-search';
   var FILTER_KEY = 'coco-mkt-filter-persist';
 
@@ -136,6 +136,7 @@
 
   function openCrm() {
     ensureCrmScreen();
+    document.body.classList.add('coco-crm-active');
     if (typeof goScreen === 'function') goScreen('screen-crm');
     if (window.CocoMarketingCrm) {
       if (CocoMarketingCrm.init) CocoMarketingCrm.init();
@@ -152,24 +153,8 @@
     screen.className = 'screen';
     screen.id = 'screen-crm';
     screen.innerHTML =
-      '<div class="topbar">' +
-      '<div class="topbar-right">' +
-      '<button class="btn-icon" onclick="goScreen(\'screen-hub\')">←</button>' +
-      '<div class="breadcrumb">דליה <span class="sep">›</span> שיווק AI <span class="sep">›</span> <span>CRM</span></div>' +
-      '</div>' +
-      '<div class="topbar-left">' +
-      '<button class="btn-icon" onclick="showDaliaToast()">🏠</button>' +
-      '</div>' +
-      '</div>' +
       '<div class="content coco-crm-screen-content">' +
       '<div id="coco-marketing-crm-mount-screen"></div>' +
-      '</div>' +
-      '<div class="bottom-nav">' +
-      '<div class="bnav-btn" data-screen="screen-hub" onclick="goScreen(\'screen-hub\')"><div class="icon">🏠</div>ראשי</div>' +
-      '<div class="bnav-btn" data-screen="screen-status" onclick="goScreen(\'screen-status\')"><div class="icon">📊</div>מצב</div>' +
-      '<div class="bnav-btn active" data-screen="screen-crm" onclick="openCrmModule()"><div class="icon">📇</div>CRM</div>' +
-      '<div class="bnav-btn" data-screen="screen-actions" onclick="goScreen(\'screen-actions\')"><div class="icon">⚙️</div>פעולות</div>' +
-      '<div class="bnav-btn" data-screen="screen-goals" onclick="goScreen(\'screen-goals\')"><div class="icon">🎯</div>מטרות</div>' +
       '</div>';
     root.appendChild(screen);
     if (!window.screenLabels) window.screenLabels = {};
@@ -542,6 +527,8 @@
     if (!_go) return;
     window.goScreen = function (id) {
       _go(id);
+      if (id === 'screen-crm') document.body.classList.add('coco-crm-active');
+      else document.body.classList.remove('coco-crm-active');
       placeContextBar(id);
       removeStrayCrmUi();
       updateContextBar();

@@ -81,8 +81,6 @@ body {
 #coco-marketing-crm-root .screen.active {
   display: flex;
 }
-#coco-marketing-crm-root .fab-ai,
-#coco-marketing-crm-root .bottom-nav { display: none !important; }
 
 #screen-crm.active {
   display: flex;
@@ -178,7 +176,7 @@ body.prd-dalia-embedded .prd-dalia-exit-inline {
 
 @media (min-width: 681px) {
   #screen-hub .bottom-nav .bnav-btn[data-screen="screen-crm"],
-  #screen-crm .bottom-nav {
+  #screen-crm > .bottom-nav {
     display: none !important;
   }
   #coco-unified-context-bar .cfc-row-filters {

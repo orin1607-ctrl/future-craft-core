@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3e';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3f';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
@@ -247,7 +247,7 @@ async function runViewport(browser, name, viewport) {
       return new Promise(function (resolve) {
         setTimeout(function () {
           var main = document.getElementById('screen-crm-main');
-          resolve(!!(main && main.classList.contains('active') && document.querySelector('#coco-marketing-crm-root .coco-marketing-crm-inner')));
+          resolve(!!(main && main.classList.contains('active') && document.getElementById('crm-clients-tbody')));
         }, 2000);
       });
     });

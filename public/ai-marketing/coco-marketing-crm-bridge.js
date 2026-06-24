@@ -16,7 +16,7 @@
   }
 
   function assetUrl(rel) {
-    var ver = (window.CocoUnified && CocoUnified.version) || 'v3-unified-3e';
+    var ver = (window.CocoUnified && CocoUnified.version) || 'v3-unified-3f';
     var base = window.COCO_PAGES_BASE || '/future-craft-core/';
     if (base.charAt(0) !== '/') base = '/' + base.replace(/^\.\//, '');
     return location.origin + base + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);
@@ -136,14 +136,14 @@
     if (window.CocoUnified && CocoUnified.ensureCrmScreen) CocoUnified.ensureCrmScreen();
     var mount = crmMountEl();
     if (!mount) return;
-    if (booted && mount.querySelector('.coco-marketing-crm-inner')) {
+    if (booted && mount.querySelector('#screen-crm-main')) {
       syncMarketingFilters();
       if (window.DaliaCrm && DaliaCrm.loadAll) DaliaCrm.loadAll();
       mount.classList.add('crm-layout');
       return Promise.resolve();
     }
-    if (booted && !mount.querySelector('.coco-marketing-crm-inner')) booted = false;
-    return fetch(assetUrl('ai-marketing/coco-marketing-crm-embed.html'), { cache: 'no-store' })
+    if (booted && !mount.querySelector('#screen-crm-main')) booted = false;
+    return fetch(assetUrl('crm/dalia-crm-screens.html'), { cache: 'no-store' })
       .then(function (r) { return r.text(); })
       .then(function (html) {
         mount.innerHTML = html;
@@ -155,7 +155,7 @@
       })
       .then(function () {
         patchDaliaCrm();
-        ['f-search', 'f-status', 'f-service'].forEach(function (id) {
+        ['f-search', 'f-status', 'f-service', 'f-company', 'f-source'].forEach(function (id) {
           document.getElementById(id)?.addEventListener('input', pullFiltersToContext);
           document.getElementById(id)?.addEventListener('change', pullFiltersToContext);
         });
