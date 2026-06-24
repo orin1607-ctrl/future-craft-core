@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="ui-version" content="v2-hub-1">
 <title>CO.CO דליה — מנהל שיווק AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./ai-marketing/home-v4.css">
@@ -411,6 +412,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   .tbl-wrap table{min-width:560px}
 }
 </style>
+<link rel="stylesheet" href="./ai-marketing/coco-v2.css?v=1">
 </head>
 <body>
 
@@ -425,7 +427,8 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   </div>
 
   <nav class="sb-nav sb-nav-v3" id="sbNavAi" data-v3-nav="1">
-    <button class="sb-item active" data-sc="morning"><span class="icon">🌅</span> בוקר / AI</button>
+    <button class="sb-item active" data-sc="hub"><span class="icon">🏠</span> מרכז שיווק</button>
+    <button class="sb-item" data-sc="morning"><span class="icon">🌅</span> בוקר / AI</button>
     <button class="sb-item" data-sc="approval"><span class="icon">✅</span> אישורים <span class="sb-badge" id="sbBadgeApproval">7</span></button>
     <button class="sb-item" data-sc="tasks"><span class="icon">📋</span> משימות</button>
     <button class="sb-item" data-sc="modules"><span class="icon">📦</span> כל המודולים</button>
@@ -433,7 +436,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   </nav>
 
   <nav class="sb-nav sb-nav-full" id="sbNavFull" hidden>
-    <button type="button" class="sb-item sb-back-ai" data-sc="morning"><span class="icon">🌅</span> חזרה ל-AI</button>
+    <button type="button" class="sb-item sb-back-ai" data-sc="hub"><span class="icon">🏠</span> חזרה למרכז</button>
     <div class="sb-sec">דשבורד מנהלים</div>
     <button class="sb-item" data-sc="usermanual"><span class="icon">📘</span> מדריך שימוש</button>
     <button class="sb-item" data-sc="dashboard"><span class="icon">📊</span> דשבורד ראשי</button>
@@ -511,7 +514,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   <main class="content">
 
 <!-- ===== SCREEN: HOME (PRD שלב א — מצב נוכחי + 8 כפתורים) ===== -->
-<div class="screen active" id="sc-morning">
+<div class="screen" id="sc-morning">
   <div class="home-prd home-v4">
     <div class="v4-demo-banner" id="v4DemoBanner">
       <span class="tag">דמו</span>
@@ -2824,6 +2827,8 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   </div>
 </div>
 
+<div id="coco-v2-mount"></div>
+
   </main><!-- /content -->
 </div><!-- /main -->
 
@@ -2878,6 +2883,9 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 var screenMap = {};
 document.querySelectorAll('.screen').forEach(function(sc) { screenMap[sc.id] = sc; });
 var screenLabels = {
+  'sc-hub': 'מרכז שיווק', 'sc-mkt-status': 'מצב נוכחי', 'sc-mkt-goals': 'מטרות',
+  'sc-mkt-actions': 'פעולות', 'sc-mkt-agents': 'עוזרים AI', 'sc-mkt-assets': 'נכסים דיגיטליים',
+  'sc-mkt-clients': 'חברות',
   'sc-morning': 'מצב נוכחי', 'sc-aichat': 'צ\'אט AI מנהל השיווק', 'sc-category': 'ניווט PRD', 'sc-modules': 'כל המודולים',
   'sc-dashboard': 'דשבורד ראשי', 'sc-usermanual': 'מדריך שימוש', 'sc-director': 'מנהל AI', 'sc-approval': 'מרכז אישורים',
   'sc-notifications': 'מרכז התראות', 'sc-tasks': 'משימות', 'sc-seo': 'מודיעין SEO',
@@ -2895,11 +2903,28 @@ var screenLabels = {
   'sc-mkt-hub': 'חברות ולקוחות', 'sc-mkt-client': 'כרטיס לקוח שיווק'
 };
 
+var V2_SCREEN_IDS = ['sc-hub','sc-mkt-status','sc-mkt-goals','sc-mkt-actions','sc-mkt-agents','sc-mkt-assets','sc-mkt-clients'];
+
+function isV2Screen(fullId) {
+  return V2_SCREEN_IDS.indexOf(fullId) !== -1 ||
+    (window.CocoV2 && CocoV2.V2_SCREEN_IDS && CocoV2.V2_SCREEN_IDS.indexOf(fullId) !== -1);
+}
+
 function gotoSc(id) {
   var fullId = id.startsWith('sc-') ? id : 'sc-' + id;
   Object.values(screenMap).forEach(function(sc) { sc.classList.remove('active'); });
   var target = screenMap[fullId];
   if (target) { target.classList.add('active'); }
+  if (isV2Screen(fullId)) {
+    document.body.classList.add('coco-v2-layout');
+    if (window.CocoV2 && CocoV2.updateBottomNav) CocoV2.updateBottomNav(fullId);
+  } else {
+    document.body.classList.remove('coco-v2-layout');
+  }
+  document.querySelectorAll('.sb-item').forEach(function(item) {
+    item.classList.remove('active');
+    if (item.dataset.sc === fullId || ('sc-'+item.dataset.sc) === fullId) item.classList.add('active');
+  });
   var lbl = screenLabels[fullId] || fullId;
   var el = document.getElementById('scrLabel');
   if (el) el.textContent = lbl;
@@ -2947,8 +2972,35 @@ function closeModal(id) {
 document.getElementById('kwModal').addEventListener('click', function(e) { if (e.target === this) closeModal('kwModal'); });
 document.getElementById('compModal').addEventListener('click', function(e) { if (e.target === this) closeModal('compModal'); });
 
-// Init: V3 — morning screen default
-gotoSc('morning');
+// Init: load Coco V2 screens then show hub (v4 morning remains in sidebar)
+(function initCocoV2() {
+  var mount = document.getElementById('coco-v2-mount');
+  var loadUi = function() {
+    return new Promise(function(resolve, reject) {
+      if (window.CocoV2) { resolve(); return; }
+      var s = document.createElement('script');
+      s.src = './ai-marketing/coco-v2-ui.js?v=1';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.body.appendChild(s);
+    });
+  };
+  var boot = function() {
+    document.querySelectorAll('.screen').forEach(function(sc) { screenMap[sc.id] = sc; });
+    if (window.CocoV2) CocoV2.init();
+    gotoSc('hub');
+  };
+  if (!mount) { boot(); return; }
+  fetch('./ai-marketing/coco-v2-screens.html?v=1')
+    .then(function(r) { return r.ok ? r.text() : ''; })
+    .then(function(html) {
+      if (html) mount.innerHTML = html;
+      return loadUi();
+    })
+    .catch(function() { return loadUi(); })
+    .then(boot)
+    .catch(function(e) { console.warn('CocoV2 load:', e); boot(); });
+})();
 </script>
 <script src="./ai-marketing/home-v4.js"></script>
 <script src="./ai-marketing/ai-assistant.js"></script>

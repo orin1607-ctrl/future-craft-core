@@ -1,0 +1,1322 @@
+/**
+ * CO.CO Dalia — Coco V2 Design System (dark Claude-inspired theme)
+ * Scoped to .coco-v2-layout / .coco-v2-screen — does not override legacy platform.
+ */
+
+/* ── V2 CSS variables (scoped) ── */
+.coco-v2-layout,
+.coco-v2-screen {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #1c2128;
+  --surface: #161b22;
+  --surface2: #1c2128;
+  --surface3: #21262d;
+  --border: #30363d;
+  --border2: #3d444d;
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --text3: #6e7681;
+  --accent: #58a6ff;
+  --accent2: #388bfd;
+  --accent-dim: rgba(88, 166, 255, 0.12);
+  --green: #3fb950;
+  --green-dim: rgba(63, 185, 80, 0.15);
+  --red: #f85149;
+  --red-dim: rgba(248, 81, 73, 0.15);
+  --orange: #d29922;
+  --orange-dim: rgba(210, 153, 34, 0.15);
+  --purple: #a371f7;
+  --purple-dim: rgba(163, 113, 247, 0.15);
+  --yellow: #e3b341;
+  --r: 12px;
+  --r-sm: 8px;
+  --r-lg: 16px;
+  --sh: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sh-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Layout overrides ── */
+body.coco-v2-layout .sidebar,
+body.coco-v2-layout .topbar {
+  display: none !important;
+}
+
+body.coco-v2-layout .main {
+  margin-right: 0 !important;
+}
+
+body.coco-v2-layout .content {
+  padding: 0;
+  background: var(--bg);
+}
+
+body.coco-v2-layout {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Screen visibility ── */
+.screen.coco-v2-screen {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Heebo', sans-serif;
+  direction: rtl;
+}
+
+.screen.coco-v2-screen.active {
+  display: flex;
+}
+
+#coco-v2-mount {
+  display: contents;
+}
+
+/* ── V2 topbar ── */
+.coco-v2-screen .v2-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex-shrink: 0;
+}
+
+.coco-v2-screen .v2-topbar-back {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface3);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.coco-v2-screen .v2-topbar-back:hover {
+  background: var(--border);
+}
+
+.coco-v2-screen .v2-topbar-brand {
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 600;
+}
+
+.coco-v2-screen .v2-topbar-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  flex: 1;
+}
+
+.coco-v2-screen .v2-topbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── V2 body scroll area ── */
+.coco-v2-screen .v2-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 100px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.coco-v2-screen .v2-body.no-pad-bottom {
+  padding-bottom: 24px;
+}
+
+/* ── Client header ── */
+.coco-v2-screen .client-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  margin-bottom: 16px;
+}
+
+.coco-v2-screen .client-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.coco-v2-screen .client-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.coco-v2-screen .client-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coco-v2-screen .client-meta {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+.coco-v2-screen .client-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--green-dim);
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+/* ── KPI strip ── */
+.coco-v2-screen .kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.coco-v2-screen .kpi-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.coco-v2-screen .kpi-chip-label {
+  font-size: 10px;
+  color: var(--text3);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.coco-v2-screen .kpi-chip-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.coco-v2-screen .kpi-chip-change {
+  font-size: 10px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.coco-v2-screen .kpi-chip-change.up { color: var(--green); }
+.coco-v2-screen .kpi-chip-change.down { color: var(--red); }
+.coco-v2-screen .kpi-chip-change.neu { color: var(--accent); }
+
+/* ── AI box ── */
+.coco-v2-screen .ai-box {
+  background: linear-gradient(135deg, #1a2332 0%, #1c2a3a 50%, #1a1f2e 100%);
+  border: 1px solid rgba(88, 166, 255, 0.25);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.coco-v2-screen .ai-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(88, 166, 255, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.coco-v2-screen .ai-box-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.coco-v2-screen .ai-box-icon {
+  font-size: 18px;
+}
+
+.coco-v2-screen .ai-box-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.coco-v2-screen .ai-box-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.65;
+}
+
+.coco-v2-screen .ai-box-footer {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Hub grid ── */
+.coco-v2-screen .hub-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.coco-v2-screen .hub-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.coco-v2-screen .hub-card:hover {
+  border-color: var(--accent);
+  background: var(--surface2);
+  transform: translateY(-2px);
+  box-shadow: var(--sh-md);
+}
+
+.coco-v2-screen .hub-card-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.coco-v2-screen .hub-card-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.coco-v2-screen .hub-card-sub {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+.coco-v2-screen .hub-card-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--orange);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.coco-v2-screen .hub-card.legacy {
+  border-style: dashed;
+  border-color: var(--border2);
+}
+
+.coco-v2-screen .hub-card.legacy:hover {
+  border-color: var(--purple);
+}
+
+/* ── Quick access row ── */
+.coco-v2-screen .quick-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.coco-v2-screen .quick-card {
+  background: var(--surface2);
+  border: 1px dashed var(--border2);
+  border-radius: var(--r-sm);
+  padding: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.coco-v2-screen .quick-card:hover {
+  border-color: var(--purple);
+  background: var(--purple-dim);
+}
+
+.coco-v2-screen .quick-card-icon {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.coco-v2-screen .quick-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+/* ── Alerts section ── */
+.coco-v2-screen .alerts-section {
+  margin-bottom: 16px;
+}
+
+.coco-v2-screen .section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.coco-v2-screen .alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  margin-bottom: 8px;
+}
+
+.coco-v2-screen .alert-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.coco-v2-screen .alert-dot.red { background: var(--red); }
+.coco-v2-screen .alert-dot.orange { background: var(--orange); }
+.coco-v2-screen .alert-dot.green { background: var(--green); }
+
+.coco-v2-screen .alert-body { flex: 1; min-width: 0; }
+
+.coco-v2-screen .alert-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.coco-v2-screen .alert-desc {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+/* ── Bottom nav ── */
+.coco-v2-screen .bottom-nav {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 6px 8px calc(6px + var(--safe-b));
+  z-index: 100;
+  gap: 4px;
+}
+
+.coco-v2-screen .bn-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border: none;
+  background: none;
+  color: var(--text3);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: all 0.12s;
+  min-height: 48px;
+}
+
+.coco-v2-screen .bn-item .bn-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.coco-v2-screen .bn-item:hover {
+  color: var(--text);
+  background: var(--surface3);
+}
+
+.coco-v2-screen .bn-item.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ── Filter bar ── */
+.coco-v2-screen .filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  margin-bottom: 14px;
+}
+
+.coco-v2-screen .filter-bar label {
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 600;
+}
+
+.coco-v2-screen .filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 120px;
+}
+
+.coco-v2-screen .filter-input,
+.coco-v2-screen .filter-select {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg3);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.coco-v2-screen .filter-input:focus,
+.coco-v2-screen .filter-select:focus {
+  border-color: var(--accent);
+}
+
+.coco-v2-screen .filter-input[readonly] {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.coco-v2-screen .filter-actions {
+  display: flex;
+  gap: 6px;
+  margin-right: auto;
+}
+
+.coco-v2-screen .filter-advanced {
+  display: none;
+  width: 100%;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.coco-v2-screen .filter-advanced.open {
+  display: flex;
+}
+
+/* ── Nav tabs ── */
+.coco-v2-screen .nav-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 4px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.coco-v2-screen .nav-tab {
+  flex: 1;
+  min-width: max-content;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  color: var(--text3);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.coco-v2-screen .nav-tab:hover {
+  color: var(--text);
+  background: var(--surface3);
+}
+
+.coco-v2-screen .nav-tab.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.coco-v2-screen .v2-tab-pane {
+  display: none;
+}
+
+.coco-v2-screen .v2-tab-pane.active {
+  display: block;
+}
+
+/* ── Score ring ── */
+.coco-v2-screen .score-ring-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.coco-v2-screen .score-ring {
+  position: relative;
+  width: 140px;
+  height: 140px;
+}
+
+.coco-v2-screen .score-ring svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.coco-v2-screen .score-ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 8;
+}
+
+.coco-v2-screen .score-ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 377;
+  stroke-dashoffset: 94;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.coco-v2-screen .score-ring-fill.good { stroke: var(--green); }
+.coco-v2-screen .score-ring-fill.warn { stroke: var(--orange); }
+.coco-v2-screen .score-ring-fill.bad { stroke: var(--red); }
+
+.coco-v2-screen .score-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.coco-v2-screen .score-ring-value {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1;
+}
+
+.coco-v2-screen .score-ring-label {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+/* ── KPI dashboard grid ── */
+.coco-v2-screen .kpi-dashboard {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.coco-v2-screen .kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+}
+
+.coco-v2-screen .kpi-card-label {
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.coco-v2-screen .kpi-card-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.coco-v2-screen .kpi-card-target {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 6px;
+}
+
+.coco-v2-screen .kpi-card-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.coco-v2-screen .kpi-card-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.coco-v2-screen .kpi-card-fill.good { background: var(--green); }
+.coco-v2-screen .kpi-card-fill.warn { background: var(--orange); }
+
+/* ── Chart mockup ── */
+.coco-v2-screen .chart-mock {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 16px;
+  height: 180px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding-bottom: 24px;
+}
+
+.coco-v2-screen .chart-bar {
+  flex: 1;
+  background: linear-gradient(to top, var(--accent2), var(--accent));
+  border-radius: 4px 4px 0 0;
+  opacity: 0.7;
+  min-height: 20px;
+  transition: opacity 0.15s;
+}
+
+.coco-v2-screen .chart-bar:hover {
+  opacity: 1;
+}
+
+/* ── Accordion cards ── */
+.coco-v2-screen .acc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.coco-v2-screen .acc-hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.coco-v2-screen .acc-hdr:hover {
+  background: var(--surface2);
+}
+
+.coco-v2-screen .acc-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.coco-v2-screen .acc-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.coco-v2-screen .acc-meta {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.coco-v2-screen .acc-chevron {
+  font-size: 12px;
+  color: var(--text3);
+  transition: transform 0.2s;
+}
+
+.coco-v2-screen .acc-card.open .acc-chevron {
+  transform: rotate(180deg);
+}
+
+.coco-v2-screen .acc-body {
+  display: none;
+  padding: 0 16px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.coco-v2-screen .acc-card.open .acc-body {
+  display: block;
+}
+
+.coco-v2-screen .goal-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.coco-v2-screen .goal-item:last-child {
+  border-bottom: none;
+}
+
+.coco-v2-screen .goal-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border2);
+  flex-shrink: 0;
+}
+
+.coco-v2-screen .goal-check.done {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.coco-v2-screen .goal-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.coco-v2-screen .goal-progress {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ── Action cards ── */
+.coco-v2-screen .action-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.coco-v2-screen .action-card-hdr {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.coco-v2-screen .action-type {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--accent-dim);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.coco-v2-screen .action-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.coco-v2-screen .action-desc {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+
+.coco-v2-screen .action-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text3);
+  margin-bottom: 12px;
+}
+
+.coco-v2-screen .action-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.coco-v2-screen .action-card.approved {
+  opacity: 0.55;
+  border-color: var(--green);
+}
+
+/* ── Agent cards ── */
+.coco-v2-screen .agent-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.coco-v2-screen .agent-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-sm);
+  background: var(--accent-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.coco-v2-screen .agent-info { flex: 1; min-width: 0; }
+
+.coco-v2-screen .agent-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.coco-v2-screen .agent-desc {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+.coco-v2-screen .agent-stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.coco-v2-screen .agent-stat-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.coco-v2-screen .agent-stat-lbl {
+  font-size: 10px;
+  color: var(--text3);
+}
+
+.coco-v2-screen .agent-status {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.coco-v2-screen .agent-status.live {
+  background: var(--green-dim);
+  color: var(--green);
+}
+
+.coco-v2-screen .agent-status.idle {
+  background: var(--surface3);
+  color: var(--text3);
+}
+
+/* ── Assets grid ── */
+.coco-v2-screen .assets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.coco-v2-screen .asset-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px 14px;
+  text-align: center;
+  transition: all 0.15s;
+  cursor: default;
+}
+
+.coco-v2-screen .asset-card.connected {
+  border-color: rgba(63, 185, 80, 0.4);
+}
+
+.coco-v2-screen .asset-card.pending {
+  border-color: rgba(210, 153, 34, 0.4);
+}
+
+.coco-v2-screen .asset-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.coco-v2-screen .asset-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.coco-v2-screen .asset-status {
+  font-size: 11px;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.coco-v2-screen .asset-status.ok { color: var(--green); }
+.coco-v2-screen .asset-status.wait { color: var(--orange); }
+.coco-v2-screen .asset-status.off { color: var(--text3); }
+
+/* ── Client cards ── */
+.coco-v2-screen .client-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.coco-v2-screen .client-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.coco-v2-screen .client-card-info { flex: 1; }
+
+.coco-v2-screen .client-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.coco-v2-screen .client-card-site {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+.coco-v2-screen .readonly-note {
+  background: var(--orange-dim);
+  border: 1px solid rgba(210, 153, 34, 0.3);
+  border-radius: var(--r-sm);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--orange);
+  margin-bottom: 14px;
+}
+
+/* ── Service type radios ── */
+.coco-v2-screen .radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.coco-v2-screen .radio-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+
+.coco-v2-screen .radio-item:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.coco-v2-screen .radio-item input {
+  accent-color: var(--accent);
+}
+
+.coco-v2-screen .radio-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.coco-v2-screen .radio-desc {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+/* ── V2 buttons (scoped — legacy unaffected) ── */
+.coco-v2-layout .btn,
+.coco-v2-screen .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  text-decoration: none;
+  min-height: 36px;
+}
+
+.coco-v2-layout .btn-primary,
+.coco-v2-screen .btn-primary {
+  background: var(--accent);
+  color: #0d1117;
+}
+
+.coco-v2-layout .btn-primary:hover,
+.coco-v2-screen .btn-primary:hover {
+  background: var(--accent2);
+}
+
+.coco-v2-layout .btn-success,
+.coco-v2-screen .btn-success {
+  background: var(--green);
+  color: #0d1117;
+}
+
+.coco-v2-layout .btn-success:hover,
+.coco-v2-screen .btn-success:hover {
+  filter: brightness(1.1);
+}
+
+.coco-v2-layout .btn-ghost,
+.coco-v2-screen .btn-ghost {
+  background: transparent;
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+.coco-v2-layout .btn-ghost:hover,
+.coco-v2-screen .btn-ghost:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+
+.coco-v2-layout .btn-outline,
+.coco-v2-screen .btn-outline {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.coco-v2-layout .btn-outline:hover,
+.coco-v2-screen .btn-outline:hover {
+  background: var(--accent-dim);
+}
+
+.coco-v2-layout .btn-sm,
+.coco-v2-screen .btn-sm {
+  padding: 5px 10px;
+  font-size: 11px;
+  min-height: 32px;
+}
+
+.coco-v2-layout .btn-xs,
+.coco-v2-screen .btn-xs {
+  padding: 3px 8px;
+  font-size: 10px;
+  min-height: 28px;
+}
+
+.coco-v2-layout .btn-danger,
+.coco-v2-screen .btn-danger {
+  background: var(--red);
+  color: #fff;
+}
+
+.coco-v2-layout .btn-warn,
+.coco-v2-screen .btn-warn {
+  background: var(--orange);
+  color: #0d1117;
+}
+
+/* ── Pills & chips (v2 scoped) ── */
+.coco-v2-screen .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.coco-v2-screen .pill-green { background: var(--green-dim); color: var(--green); }
+.coco-v2-screen .pill-red { background: var(--red-dim); color: var(--red); }
+.coco-v2-screen .pill-orange { background: var(--orange-dim); color: var(--orange); }
+.coco-v2-screen .pill-blue { background: var(--accent-dim); color: var(--accent); }
+
+.coco-v2-screen .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.coco-v2-screen .chip-green { background: var(--green-dim); color: var(--green); }
+.coco-v2-screen .chip-blue { background: var(--accent-dim); color: var(--accent); }
+.coco-v2-screen .chip-orange { background: var(--orange-dim); color: var(--orange); }
+
+/* ── Link style ── */
+.coco-v2-screen .v2-link {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+.coco-v2-screen .v2-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Dalia return button ── */
+.coco-v2-screen .dalia-btn {
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface3);
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.coco-v2-screen .dalia-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .coco-v2-screen .hub-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .coco-v2-screen .kpi-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .coco-v2-screen .kpi-dashboard {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .coco-v2-screen .assets-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .coco-v2-screen .quick-row {
+    grid-template-columns: 1fr;
+  }
+
+  .coco-v2-screen .v2-body {
+    padding: 12px 14px 90px;
+  }
+
+  .coco-v2-screen .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .coco-v2-screen .filter-actions {
+    margin-right: 0;
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .coco-v2-screen .filter-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .coco-v2-screen .agent-card {
+    flex-direction: column;
+  }
+
+  .coco-v2-screen .bottom-nav {
+    display: flex;
+  }
+}
+
+@media (min-width: 769px) {
+  .coco-v2-screen#sc-hub .bottom-nav {
+    display: none;
+  }
+
+  .coco-v2-screen#sc-hub .v2-body {
+    padding-bottom: 24px;
+  }
+}

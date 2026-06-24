@@ -112,6 +112,7 @@
     if (d.approvals?.length) bindApprovals(d.approvals);
     bindGbpToUI();
     bindAdsToUI();
+    if (window.CocoV2?.bindClientData) CocoV2.bindClientData(d);
   }
 
   function adsScreen() { return document.getElementById('sc-ads'); }

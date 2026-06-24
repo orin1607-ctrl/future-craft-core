@@ -1,0 +1,873 @@
+<!-- ===== COCO V2: HUB ===== -->
+<div class="screen coco-v2-screen" id="sc-hub">
+  <div class="v2-topbar">
+    <div>
+      <div class="v2-topbar-brand">דליה</div>
+      <div class="v2-topbar-title">שיווק AI</div>
+    </div>
+    <div class="v2-topbar-actions">
+      <button class="dalia-btn" onclick="CocoV2.goDalia()">← חזרה לדליה</button>
+      <button class="btn btn-ghost btn-sm" onclick="CocoV2.toggleTheme()">🌙</button>
+    </div>
+  </div>
+
+  <div class="v2-body">
+    <div class="client-header">
+      <div class="client-avatar">🏢</div>
+      <div class="client-info">
+        <div class="client-name" id="v2-client-name">דליה — AI Marketing</div>
+        <div class="client-meta">dalia-c.com · מקור: Google Search Console + GA4</div>
+      </div>
+      <span class="client-badge">🟢 פעיל</span>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi-chip">
+        <div class="kpi-chip-label">מיקום ממוצע</div>
+        <div class="kpi-chip-value" id="v2-kpi-site">8.3</div>
+        <div class="kpi-chip-change up">▲ 1.2</div>
+      </div>
+      <div class="kpi-chip">
+        <div class="kpi-chip-label">ביקורים שבועיים</div>
+        <div class="kpi-chip-value" id="v2-kpi-visits">3,842</div>
+        <div class="kpi-chip-change up">▲ 14%</div>
+      </div>
+      <div class="kpi-chip">
+        <div class="kpi-chip-label">הזדמנויות AI</div>
+        <div class="kpi-chip-value" id="v2-kpi-leads">12</div>
+        <div class="kpi-chip-change neu">ממתינות</div>
+      </div>
+      <div class="kpi-chip">
+        <div class="kpi-chip-label">משימות פתוחות</div>
+        <div class="kpi-chip-value" id="v2-kpi-tasks">7</div>
+        <div class="kpi-chip-change neu">לאישור</div>
+      </div>
+    </div>
+
+    <div class="ai-box">
+      <div class="ai-box-hdr">
+        <span class="ai-box-icon">💡</span>
+        <span class="ai-box-title">טיפ יומי מ-AI</span>
+      </div>
+      <div class="ai-box-text" id="v2-daily-tip">
+        מילת המפתח "ניהול צי רכב" עלתה 4 מקומות השבוע. מומלץ ליצור תוכן נוסף עם FAQ וקישורים פנימיים מעמוד הבית.
+      </div>
+      <div class="ai-box-footer">
+        <button class="btn btn-primary btn-sm" onclick="CocoV2.go('sc-mkt-actions')">צפה בפעולות</button>
+        <button class="btn btn-ghost btn-sm" onclick="CocoV2.go('sc-mkt-goals')">ראה מטרות</button>
+      </div>
+    </div>
+
+    <div class="section-title">🎯 מרכז שיווק</div>
+    <div class="hub-grid">
+      <div class="hub-card" onclick="CocoV2.go('sc-mkt-status')">
+        <span class="hub-card-icon">📊</span>
+        <div class="hub-card-label">מצב נוכחי</div>
+        <div class="hub-card-sub">סקירה, SEO, קמפיינים</div>
+      </div>
+      <div class="hub-card" onclick="CocoV2.go('sc-mkt-clients')">
+        <span class="hub-card-icon">🏢</span>
+        <div class="hub-card-label">חברות</div>
+        <div class="hub-card-sub">ניהול לקוחות</div>
+      </div>
+      <div class="hub-card" onclick="CocoV2.go('sc-mkt-agents')">
+        <span class="hub-card-icon">🤖</span>
+        <div class="hub-card-label">עוזרים</div>
+        <div class="hub-card-sub">GSC, GA4, PageSpeed</div>
+      </div>
+      <div class="hub-card" onclick="CocoV2.go('sc-mkt-goals')">
+        <span class="hub-card-icon">🎯</span>
+        <div class="hub-card-label">מטרות</div>
+        <div class="hub-card-sub">יעדים ו-KPI</div>
+      </div>
+      <div class="hub-card" onclick="CocoV2.go('sc-mkt-actions')">
+        <span class="hub-card-badge">7</span>
+        <span class="hub-card-icon">⚡</span>
+        <div class="hub-card-label">פעולות</div>
+        <div class="hub-card-sub">לאישור וביצוע</div>
+      </div>
+      <div class="hub-card" onclick="CocoV2.go('sc-mkt-assets')">
+        <span class="hub-card-icon">🔗</span>
+        <div class="hub-card-label">נכסים</div>
+        <div class="hub-card-sub">אתר, GA4, GSC, Ads</div>
+      </div>
+    </div>
+
+    <div class="section-title">🔗 גישה מהירה</div>
+    <div class="quick-row">
+      <div class="quick-card legacy" onclick="CocoV2.goLegacy('history')">
+        <div class="quick-card-icon">📜</div>
+        <div class="quick-card-label">היסטוריה</div>
+      </div>
+      <div class="quick-card legacy" onclick="CocoV2.goLegacy('director')">
+        <div class="quick-card-icon">🧠</div>
+        <div class="quick-card-label">מרכז החלטות AI</div>
+      </div>
+      <div class="quick-card legacy" onclick="CocoV2.goLegacy('reports')">
+        <div class="quick-card-icon">📋</div>
+        <div class="quick-card-label">דוחות</div>
+      </div>
+    </div>
+
+    <div class="alerts-section">
+      <div class="section-title">🔔 התראות אחרונות</div>
+      <div class="alert-item">
+        <span class="alert-dot red"></span>
+        <div class="alert-body">
+          <div class="alert-title">7 טיוטות ממתינות לאישור</div>
+          <div class="alert-desc">AI יצר תוכן חדש — יש לאשר לפני פרסום</div>
+        </div>
+        <button class="btn btn-success btn-xs" onclick="CocoV2.go('sc-mkt-actions')">אשר</button>
+      </div>
+      <div class="alert-item">
+        <span class="alert-dot orange"></span>
+        <div class="alert-body">
+          <div class="alert-title">9 עמודים חלשים דורשים תשומת לב</div>
+          <div class="alert-desc">זמן טעינה מעל 4 שניות ב-3 עמודים</div>
+        </div>
+        <button class="btn btn-ghost btn-xs" onclick="CocoV2.go('sc-mkt-status')">פרטים</button>
+      </div>
+      <div class="alert-item">
+        <span class="alert-dot green"></span>
+        <div class="alert-body">
+          <div class="alert-title">מיקום ממוצע עלה ל-8.3</div>
+          <div class="alert-desc">שיפור של 1.2 מקומות מהשבוע שעבר</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" id="v2-bottom-nav">
+    <button class="bn-item active" data-v2="sc-hub" onclick="CocoV2.go('sc-hub')">
+      <span class="bn-icon">🏠</span>
+      <span>ראשי</span>
+    </button>
+    <button class="bn-item" data-v2="sc-mkt-status" onclick="CocoV2.go('sc-mkt-status')">
+      <span class="bn-icon">📊</span>
+      <span>מצב</span>
+    </button>
+    <button class="bn-item" data-v2="sc-mkt-actions" onclick="CocoV2.go('sc-mkt-actions')">
+      <span class="bn-icon">⚡</span>
+      <span>פעולות</span>
+    </button>
+    <button class="bn-item" data-v2="sc-mkt-goals" onclick="CocoV2.go('sc-mkt-goals')">
+      <span class="bn-icon">🎯</span>
+      <span>מטרות</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ===== COCO V2: STATUS ===== -->
+<div class="screen coco-v2-screen" id="sc-mkt-status">
+  <div class="v2-topbar">
+    <button class="v2-topbar-back" onclick="CocoV2.go('sc-hub')" aria-label="חזרה">→</button>
+    <div class="v2-topbar-title">מצב נוכחי</div>
+    <div class="v2-topbar-actions">
+      <button class="btn btn-ghost btn-sm" onclick="CocoV2.resetStatusFilter()">איפוס</button>
+    </div>
+  </div>
+
+  <div class="v2-body no-pad-bottom">
+    <div class="filter-bar" id="status-filter-bar">
+      <div class="filter-field">
+        <label>חברה</label>
+        <input type="text" class="filter-input" id="v2-status-company" value="דליה — AI Marketing" readonly>
+      </div>
+      <div class="filter-field">
+        <label>תקופה</label>
+        <select class="filter-select" id="v2-status-period">
+          <option value="7">7 ימים</option>
+          <option value="30" selected>30 ימים</option>
+          <option value="90">90 ימים</option>
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-ghost btn-sm" onclick="CocoV2.toggleAdvancedFilter('status-filter-bar')">מתקדם ▾</button>
+        <button class="btn btn-primary btn-sm" onclick="CocoV2.applyStatusFilter()">החל</button>
+      </div>
+      <div class="filter-advanced" id="status-filter-advanced">
+        <div class="filter-field">
+          <label>מקור נתונים</label>
+          <select class="filter-select">
+            <option>GSC + GA4</option>
+            <option>GSC בלבד</option>
+            <option>GA4 בלבד</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>סוג עמוד</label>
+          <select class="filter-select">
+            <option>הכל</option>
+            <option>בלוג</option>
+            <option>דפי נחיתה</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="CocoV2.setTab(this,'status-overview')">סקירה</button>
+      <button class="nav-tab" onclick="CocoV2.setTab(this,'status-seo')">SEO</button>
+      <button class="nav-tab" onclick="CocoV2.setTab(this,'status-campaigns')">קמפיינים</button>
+      <button class="nav-tab" onclick="CocoV2.setTab(this,'status-social')">רשתות</button>
+      <button class="nav-tab" onclick="CocoV2.setTab(this,'status-report')">דוח</button>
+    </div>
+
+    <div class="v2-tab-pane active" id="status-overview">
+      <div class="score-ring-wrap">
+        <div class="score-ring">
+          <svg viewBox="0 0 140 140">
+            <circle class="score-ring-bg" cx="70" cy="70" r="60"></circle>
+            <circle class="score-ring-fill good" cx="70" cy="70" r="60"></circle>
+          </svg>
+          <div class="score-ring-center">
+            <div class="score-ring-value">75</div>
+            <div class="score-ring-label">ציון בריאות</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-dashboard">
+        <div class="kpi-card">
+          <div class="kpi-card-label">מיקום ממוצע</div>
+          <div class="kpi-card-value">8.3</div>
+          <div class="kpi-card-target">יעד: 5.0</div>
+          <div class="kpi-card-bar"><div class="kpi-card-fill warn" style="width:62%"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">קליקים שבועיים</div>
+          <div class="kpi-card-value">3,842</div>
+          <div class="kpi-card-target">▲ 14% מהשבוע שעבר</div>
+          <div class="kpi-card-bar"><div class="kpi-card-fill good" style="width:78%"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">CTR ממוצע</div>
+          <div class="kpi-card-value">3.1%</div>
+          <div class="kpi-card-target">▼ 0.2%</div>
+          <div class="kpi-card-bar"><div class="kpi-card-fill" style="width:55%"></div></div>
+        </div>
+      </div>
+
+      <div class="section-title">📈 מגמת ביקורים — 30 יום</div>
+      <div class="chart-mock">
+        <div class="chart-bar" style="height:45%"></div>
+        <div class="chart-bar" style="height:52%"></div>
+        <div class="chart-bar" style="height:48%"></div>
+        <div class="chart-bar" style="height:60%"></div>
+        <div class="chart-bar" style="height:55%"></div>
+        <div class="chart-bar" style="height:68%"></div>
+        <div class="chart-bar" style="height:72%"></div>
+        <div class="chart-bar" style="height:65%"></div>
+        <div class="chart-bar" style="height:78%"></div>
+        <div class="chart-bar" style="height:85%"></div>
+        <div class="chart-bar" style="height:80%"></div>
+        <div class="chart-bar" style="height:92%"></div>
+      </div>
+
+      <div class="ai-box">
+        <div class="ai-box-hdr">
+          <span class="ai-box-icon">🤖</span>
+          <span class="ai-box-title">סיכום AI — מצב נוכחי</span>
+        </div>
+        <div class="ai-box-text">
+          הביצועים הכלליים טובים. מיקום ממוצע משתפר, אך CTR ירד מעט. 3 עמודים דורשים שיפור מהירות. מומלץ לאשר 2 פעולות תוכן דחופות השבוע.
+        </div>
+      </div>
+    </div>
+
+    <div class="v2-tab-pane" id="status-seo">
+      <div class="kpi-dashboard">
+        <div class="kpi-card">
+          <div class="kpi-card-label">מילות מפתח פעילות</div>
+          <div class="kpi-card-value">248</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">עמודים בטופ-10</div>
+          <div class="kpi-card-value">34</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">עמודים חלשים</div>
+          <div class="kpi-card-value">9</div>
+        </div>
+      </div>
+      <div class="ai-box">
+        <div class="ai-box-text">SEO טכני: Schema מותקן ב-78% מהעמודים. 3 עמודים ללא Meta Description. מומלץ לתקן ALT ב-12 תמונות.</div>
+      </div>
+    </div>
+
+    <div class="v2-tab-pane" id="status-campaigns">
+      <div class="readonly-note">קמפיינים Google Ads — ממתין לאישור Developer Token</div>
+      <div class="kpi-dashboard">
+        <div class="kpi-card">
+          <div class="kpi-card-label">קמפיינים פעילים</div>
+          <div class="kpi-card-value">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">עלות חודשית</div>
+          <div class="kpi-card-value">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">המרות</div>
+          <div class="kpi-card-value">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="v2-tab-pane" id="status-social">
+      <div class="assets-grid" style="margin-bottom:16px">
+        <div class="asset-card connected">
+          <div class="asset-icon">📘</div>
+          <div class="asset-name">Facebook</div>
+          <div class="asset-status ok">מחובר</div>
+        </div>
+        <div class="asset-card connected">
+          <div class="asset-icon">📸</div>
+          <div class="asset-name">Instagram</div>
+          <div class="asset-status ok">מחובר</div>
+        </div>
+        <div class="asset-card pending">
+          <div class="asset-icon">💼</div>
+          <div class="asset-name">LinkedIn</div>
+          <div class="asset-status wait">בקרוב</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="v2-tab-pane" id="status-report">
+      <div class="ai-box">
+        <div class="ai-box-hdr">
+          <span class="ai-box-icon">📋</span>
+          <span class="ai-box-title">דוח שבועי — 14–20 יוני 2026</span>
+        </div>
+        <div class="ai-box-text">
+          • קליקים: 3,842 (+14%)<br>
+          • חשיפות: 124,500 (+8%)<br>
+          • מיקום ממוצע: 8.3 (▲ 1.2)<br>
+          • 7 טיוטות חדשות לאישור<br>
+          • 12 הזדמנויות AI זוהו
+        </div>
+        <div class="ai-box-footer">
+          <button class="btn btn-primary btn-sm" onclick="CocoV2.goLegacy('reports')">דוח מלא</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COCO V2: GOALS ===== -->
+<div class="screen coco-v2-screen" id="sc-mkt-goals">
+  <div class="v2-topbar">
+    <button class="v2-topbar-back" onclick="CocoV2.go('sc-hub')" aria-label="חזרה">→</button>
+    <div class="v2-topbar-title">מטרות</div>
+  </div>
+
+  <div class="v2-body no-pad-bottom">
+    <div class="filter-bar">
+      <div class="filter-field">
+        <label>חברה</label>
+        <input type="text" class="filter-input" value="דליה — AI Marketing" readonly>
+      </div>
+      <div class="filter-field">
+        <label>רבעון</label>
+        <select class="filter-select">
+          <option>Q2 2026</option>
+          <option>Q3 2026</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="kpi-dashboard">
+      <div class="kpi-card">
+        <div class="kpi-card-label">יעד מיקום</div>
+        <div class="kpi-card-value">5.0</div>
+        <div class="kpi-card-target">נוכחי: 8.3</div>
+        <div class="kpi-card-bar"><div class="kpi-card-fill warn" style="width:45%"></div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card-label">יעד קליקים/שבוע</div>
+        <div class="kpi-card-value">5,000</div>
+        <div class="kpi-card-target">נוכחי: 3,842</div>
+        <div class="kpi-card-bar"><div class="kpi-card-fill" style="width:77%"></div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card-label">יעד תוכן חדש</div>
+        <div class="kpi-card-value">20</div>
+        <div class="kpi-card-target">פורסם: 14</div>
+        <div class="kpi-card-bar"><div class="kpi-card-fill good" style="width:70%"></div></div>
+      </div>
+    </div>
+
+    <div class="section-title">📂 קטגוריות מטרות</div>
+
+    <div class="acc-card open" onclick="this.classList.toggle('open')">
+      <div class="acc-hdr">
+        <span class="acc-icon">⚡</span>
+        <div>
+          <div class="acc-title">מהירות אתר</div>
+          <div class="acc-meta">3 יעדים · 1 הושלם</div>
+        </div>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="goal-item">
+          <div class="goal-check done"></div>
+          <div class="goal-text">LCP מתחת ל-2.5 שניות בעמוד הבית</div>
+          <span class="goal-progress">100%</span>
+        </div>
+        <div class="goal-item">
+          <div class="goal-check"></div>
+          <div class="goal-text">דחיסת תמונות בכל העמודים</div>
+          <span class="goal-progress">40%</span>
+        </div>
+        <div class="goal-item">
+          <div class="goal-check"></div>
+          <div class="goal-text">הפעלת CDN לכל הנכסים הסטטיים</div>
+          <span class="goal-progress">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc-card" onclick="this.classList.toggle('open')">
+      <div class="acc-hdr">
+        <span class="acc-icon">🔍</span>
+        <div>
+          <div class="acc-title">מילות מפתח</div>
+          <div class="acc-meta">5 יעדים · 2 הושלמו</div>
+        </div>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="goal-item">
+          <div class="goal-check done"></div>
+          <div class="goal-text">"ניהול צי רכב" — טופ 3</div>
+          <span class="goal-progress">100%</span>
+        </div>
+        <div class="goal-item">
+          <div class="goal-check done"></div>
+          <div class="goal-text">"תוכנת ניהול צי" — טופ 5</div>
+          <span class="goal-progress">100%</span>
+        </div>
+        <div class="goal-item">
+          <div class="goal-check"></div>
+          <div class="goal-text">"מעקב GPS לרכב" — טופ 10</div>
+          <span class="goal-progress">60%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc-card" onclick="this.classList.toggle('open')">
+      <div class="acc-hdr">
+        <span class="acc-icon">📝</span>
+        <div>
+          <div class="acc-title">תוכן</div>
+          <div class="acc-meta">4 יעדים · 1 הושלם</div>
+        </div>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="goal-item">
+          <div class="goal-check done"></div>
+          <div class="goal-text">פרסום 2 מאמרים בחודש</div>
+          <span class="goal-progress">100%</span>
+        </div>
+        <div class="goal-item">
+          <div class="goal-check"></div>
+          <div class="goal-text">יצירת FAQ לכל דף שירות</div>
+          <span class="goal-progress">25%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:16px">🎯 מטרות פעילות</div>
+    <div class="acc-card open">
+      <div class="acc-hdr" onclick="event.stopPropagation(); this.parentElement.classList.toggle('open')">
+        <span class="acc-icon">🚀</span>
+        <div>
+          <div class="acc-title">רבעון Q2 2026</div>
+          <div class="acc-meta">2 מטרות פעילות</div>
+        </div>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="goal-item">
+          <div class="goal-check"></div>
+          <div class="goal-text">הגעה ל-5,000 קליקים שבועיים</div>
+          <span class="goal-progress">77%</span>
+        </div>
+        <div class="goal-item">
+          <div class="goal-check"></div>
+          <div class="goal-text">פרסום 20 פריטי תוכן חדשים</div>
+          <span class="goal-progress">70%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ai-box" style="margin-top:16px">
+      <div class="ai-box-hdr">
+        <span class="ai-box-icon">🤖</span>
+        <span class="ai-box-title">סיכום AI — מטרות</span>
+      </div>
+      <div class="ai-box-text">
+        התקדמות טובה ברבעון. מטרות מילות מפתח מתקדמות היטב. מהירות אתר דורשת תשומת לב — 2 פעולות ממתינות לאישור ישפרו את LCP בעמודי שירות.
+      </div>
+      <div class="ai-box-footer">
+        <button class="v2-link" onclick="CocoV2.go('sc-mkt-actions')">העבר לפעולות ←</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COCO V2: ACTIONS ===== -->
+<div class="screen coco-v2-screen" id="sc-mkt-actions">
+  <div class="v2-topbar">
+    <button class="v2-topbar-back" onclick="CocoV2.go('sc-hub')" aria-label="חזרה">→</button>
+    <div class="v2-topbar-title">פעולות</div>
+    <div class="v2-topbar-actions">
+      <span class="pill pill-orange">7 ממתינות</span>
+    </div>
+  </div>
+
+  <div class="v2-body no-pad-bottom">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="CocoV2.setTab(this,'act-new')">חדשות</button>
+      <button class="nav-tab" onclick="CocoV2.setTab(this,'act-pending')">לאישור</button>
+      <button class="nav-tab" onclick="CocoV2.setTab(this,'act-progress')">בביצוע</button>
+      <button class="nav-tab" onclick="CocoV2.setTab(this,'act-done')">הושלמו</button>
+      <button class="nav-tab" onclick="CocoV2.setTab(this,'act-history')">היסטוריה</button>
+      <button class="nav-tab" onclick="CocoV2.setTab(this,'act-summary')">סיכום</button>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-field">
+        <label>חברה</label>
+        <input type="text" class="filter-input" value="דליה — AI Marketing" readonly>
+      </div>
+      <div class="filter-field">
+        <label>סוג</label>
+        <select class="filter-select">
+          <option>הכל</option>
+          <option>תוכן</option>
+          <option>SEO</option>
+          <option>GBP</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>עדיפות</label>
+        <select class="filter-select">
+          <option>הכל</option>
+          <option>דחוף</option>
+          <option>רגיל</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="v2-tab-pane active" id="act-new">
+      <div class="action-card" id="action-card-1">
+        <div class="action-card-hdr">
+          <span class="action-type">תוכן</span>
+          <div class="action-title">מאמר: "10 יתרונות של מערכת ניהול צי מתקדמת"</div>
+          <span class="pill pill-red">דחוף</span>
+        </div>
+        <div class="action-desc">
+          AI יצר מאמר SEO מלא (1,200 מילים) עם H1-H3, Meta, Schema FAQ. ציון AI: 95 · ציון SEO: 92 · ROI משוער: ₪1,800
+        </div>
+        <div class="action-meta">
+          <span>📅 היום</span>
+          <span>👤 יוני</span>
+          <span>🎯 מילה: ניהול צי רכב</span>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-success btn-sm" onclick="CocoV2.approveAction(this)">✓ אשר</button>
+          <button class="btn btn-ghost btn-sm" onclick="CocoV2.showToast('נשלח לעריכה','info')">✏️ ערוך</button>
+          <button class="btn btn-danger btn-sm" onclick="CocoV2.showToast('הפעולה נדחתה','warn')">✕ דחה</button>
+        </div>
+      </div>
+
+      <div class="action-card" id="action-card-2">
+        <div class="action-card-hdr">
+          <span class="action-type">GBP</span>
+          <div class="action-title">פוסט Google Business: "מבצע חצי שנה — ניהול צי"</div>
+          <span class="pill pill-orange">רגיל</span>
+        </div>
+        <div class="action-desc">
+          פוסט GBP מוכן לפרסום עם CTA ותמונה. ציון AI: 87 · ROI משוער: ₪420
+        </div>
+        <div class="action-meta">
+          <span>📅 מחר</span>
+          <span>👤 AI אוטומטי</span>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-success btn-sm" onclick="CocoV2.approveAction(this)">✓ אשר</button>
+          <button class="btn btn-ghost btn-sm">👁 תצוגה</button>
+          <button class="btn btn-danger btn-sm">✕ דחה</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="v2-tab-pane" id="act-pending">
+      <div class="ai-box">
+        <div class="ai-box-text">7 פריטים ממתינים לאישורך — 2 דחופים, 5 רגילים. אישור כל הפריטים יחסוך כ-3 שעות עבודה ידנית.</div>
+      </div>
+    </div>
+
+    <div class="v2-tab-pane" id="act-progress">
+      <div class="goal-item" style="padding:14px;background:var(--surface);border-radius:var(--r-sm);margin-bottom:8px">
+        <div class="goal-check"></div>
+        <div class="goal-text">אופטימיזציית תמונות — 12 עמודים</div>
+        <span class="pill pill-blue">בביצוע</span>
+      </div>
+    </div>
+
+    <div class="v2-tab-pane" id="act-done">
+      <div class="goal-item" style="padding:14px;background:var(--surface);border-radius:var(--r-sm);margin-bottom:8px">
+        <div class="goal-check done"></div>
+        <div class="goal-text">עדכון Meta Descriptions — 8 עמודים</div>
+        <span class="pill pill-green">הושלם</span>
+      </div>
+    </div>
+
+    <div class="v2-tab-pane" id="act-history">
+      <button class="v2-link" onclick="CocoV2.goLegacy('history')">פתח היסטוריה מלאה ←</button>
+    </div>
+
+    <div class="v2-tab-pane" id="act-summary">
+      <div class="kpi-dashboard">
+        <div class="kpi-card">
+          <div class="kpi-card-label">אושרו השבוע</div>
+          <div class="kpi-card-value">5</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">ממתינים</div>
+          <div class="kpi-card-value">7</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-label">נדחו</div>
+          <div class="kpi-card-value">1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COCO V2: AGENTS ===== -->
+<div class="screen coco-v2-screen" id="sc-mkt-agents">
+  <div class="v2-topbar">
+    <button class="v2-topbar-back" onclick="CocoV2.go('sc-hub')" aria-label="חזרה">→</button>
+    <div class="v2-topbar-title">עוזרים AI</div>
+  </div>
+
+  <div class="v2-body no-pad-bottom">
+    <div class="filter-bar">
+      <div class="filter-field">
+        <label>חברה</label>
+        <input type="text" class="filter-input" value="דליה — AI Marketing" readonly>
+      </div>
+      <div class="filter-field">
+        <label>סטטוס</label>
+        <select class="filter-select">
+          <option>הכל</option>
+          <option>פעיל</option>
+          <option>כבוי</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-icon">🔍</div>
+      <div class="agent-info">
+        <div class="agent-name">Google Search Console Agent</div>
+        <div class="agent-desc">מנטר מיקומים, קליקים, חשיפות ומזהה הזדמנויות SEO</div>
+        <div class="agent-stats">
+          <div>
+            <div class="agent-stat-val">248</div>
+            <div class="agent-stat-lbl">מילות מפתח</div>
+          </div>
+          <div>
+            <div class="agent-stat-val">3,842</div>
+            <div class="agent-stat-lbl">קליקים/שבוע</div>
+          </div>
+          <div>
+            <div class="agent-stat-val">12</div>
+            <div class="agent-stat-lbl">הזדמנויות</div>
+          </div>
+        </div>
+      </div>
+      <span class="agent-status live">🟢 פעיל</span>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-icon">📊</div>
+      <div class="agent-info">
+        <div class="agent-name">Google Analytics 4 Agent</div>
+        <div class="agent-desc">מנתח תנועה, המרות, מסלולי משתמשים ומקורות תנועה</div>
+        <div class="agent-stats">
+          <div>
+            <div class="agent-stat-val">18.4K</div>
+            <div class="agent-stat-lbl">ביקורים/חודש</div>
+          </div>
+          <div>
+            <div class="agent-stat-val">2.8%</div>
+            <div class="agent-stat-lbl">המרה</div>
+          </div>
+          <div>
+            <div class="agent-stat-val">4:32</div>
+            <div class="agent-stat-lbl">זמן ממוצע</div>
+          </div>
+        </div>
+      </div>
+      <span class="agent-status live">🟢 פעיל</span>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-icon">⚡</div>
+      <div class="agent-info">
+        <div class="agent-name">PageSpeed Insights Agent</div>
+        <div class="agent-desc">בודק מהירות טעינה, Core Web Vitals וממליץ על שיפורים</div>
+        <div class="agent-stats">
+          <div>
+            <div class="agent-stat-val">72</div>
+            <div class="agent-stat-lbl">ציון מובייל</div>
+          </div>
+          <div>
+            <div class="agent-stat-val">89</div>
+            <div class="agent-stat-lbl">ציון דסקטופ</div>
+          </div>
+          <div>
+            <div class="agent-stat-val">9</div>
+            <div class="agent-stat-lbl">עמודים חלשים</div>
+          </div>
+        </div>
+      </div>
+      <span class="agent-status live">🟢 פעיל</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COCO V2: ASSETS ===== -->
+<div class="screen coco-v2-screen" id="sc-mkt-assets">
+  <div class="v2-topbar">
+    <button class="v2-topbar-back" onclick="CocoV2.go('sc-hub')" aria-label="חזרה">→</button>
+    <div class="v2-topbar-title">נכסים דיגיטליים</div>
+  </div>
+
+  <div class="v2-body no-pad-bottom">
+    <div class="filter-bar">
+      <div class="filter-field">
+        <label>חברה</label>
+        <input type="text" class="filter-input" value="דליה — AI Marketing" readonly>
+      </div>
+    </div>
+
+    <div class="assets-grid">
+      <div class="asset-card connected">
+        <div class="asset-icon">🌐</div>
+        <div class="asset-name">אתר</div>
+        <div class="asset-status ok">dalia-c.com</div>
+      </div>
+      <div class="asset-card connected">
+        <div class="asset-icon">📊</div>
+        <div class="asset-name">GA4</div>
+        <div class="asset-status ok">מחובר</div>
+      </div>
+      <div class="asset-card connected">
+        <div class="asset-icon">🔍</div>
+        <div class="asset-name">GSC</div>
+        <div class="asset-status ok">מחובר</div>
+      </div>
+      <div class="asset-card pending">
+        <div class="asset-icon">💰</div>
+        <div class="asset-name">Google Ads</div>
+        <div class="asset-status wait">ממתין ל-API</div>
+      </div>
+      <div class="asset-card pending">
+        <div class="asset-icon">📍</div>
+        <div class="asset-name">GBP</div>
+        <div class="asset-status wait">ממתין לאישור</div>
+      </div>
+      <div class="asset-card connected">
+        <div class="asset-icon">📘</div>
+        <div class="asset-name">Facebook</div>
+        <div class="asset-status ok">מחובר</div>
+      </div>
+      <div class="asset-card connected">
+        <div class="asset-icon">📸</div>
+        <div class="asset-name">Instagram</div>
+        <div class="asset-status ok">מחובר</div>
+      </div>
+    </div>
+
+    <div class="ai-box" style="margin-top:16px">
+      <div class="ai-box-hdr">
+        <span class="ai-box-icon">🔗</span>
+        <span class="ai-box-title">סטטוס חיבורים</span>
+      </div>
+      <div class="ai-box-text">
+        5 מתוך 7 נכסים מחוברים. Google Ads ו-GBP ממתינים לאישור. מומלץ להשלים חיבור GBP לשיפור נראות מקומית.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COCO V2: CLIENTS ===== -->
+<div class="screen coco-v2-screen" id="sc-mkt-clients">
+  <div class="v2-topbar">
+    <button class="v2-topbar-back" onclick="CocoV2.go('sc-hub')" aria-label="חזרה">→</button>
+    <div class="v2-topbar-title">חברות</div>
+  </div>
+
+  <div class="v2-body no-pad-bottom">
+    <div class="readonly-note">ℹ️ לקוח נפתח דרך דליה — רשימה לקריאה בלבד</div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="CocoV2.setTab(this,'clients-list')">רשימה</button>
+      <button class="nav-tab" onclick="CocoV2.setTab(this,'clients-setup')">הגדרות</button>
+    </div>
+
+    <div class="v2-tab-pane active" id="clients-list">
+      <div class="client-card">
+        <div class="client-card-avatar">🏢</div>
+        <div class="client-card-info">
+          <div class="client-card-name">דליה — AI Marketing</div>
+          <div class="client-card-site">dalia-c.com</div>
+        </div>
+        <span class="pill pill-green">פעיל</span>
+      </div>
+
+      <div class="client-card">
+        <div class="client-card-avatar">🚗</div>
+        <div class="client-card-info">
+          <div class="client-card-name">FleetOS Demo</div>
+          <div class="client-card-site">fleetos-demo.com</div>
+        </div>
+        <span class="pill pill-blue">דמו</span>
+      </div>
+    </div>
+
+    <div class="v2-tab-pane" id="clients-setup">
+      <div class="section-title">סוג שירות</div>
+      <div class="radio-group">
+        <label class="radio-item">
+          <input type="radio" name="service-type" value="seo" checked>
+          <div>
+            <div class="radio-label">SEO + תוכן</div>
+            <div class="radio-desc">אופטימיזציה, מילות מפתח, יצירת תוכן AI</div>
+          </div>
+        </label>
+        <label class="radio-item">
+          <input type="radio" name="service-type" value="full">
+          <div>
+            <div class="radio-label">שיווק מלא</div>
+            <div class="radio-desc">SEO + Ads + רשתות חברתיות + GBP</div>
+          </div>
+        </label>
+        <label class="radio-item">
+          <input type="radio" name="service-type" value="autonomous">
+          <div>
+            <div class="radio-label">מצב אוטונומי</div>
+            <div class="radio-desc">AI מנהל הכל — דורש אישור לפני פרסום</div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
