@@ -4,7 +4,7 @@ import HomeWorldCard from '@/components/home/HomeWorldCard';
 import RoleViewLauncher from '@/components/admin/RoleViewLauncher';
 
 const ADMIN_LINKS = [
-  { to: '/ai-marketing', icon: Megaphone, title: 'ניהול שיווק', subtitle: 'CRM · לקוחות · לידים · Google · AI' },
+  { to: '/ai-marketing', icon: Megaphone, title: 'ניהול שיווק', subtitle: 'לקוחות · לידים · Google · AI' },
   { to: '/dalia-settings', icon: SlidersHorizontal, title: 'Dalia Settings', subtitle: 'התראות · WhatsApp · אימייל · חברות' },
   { to: '/user-management', icon: Users, title: 'משתמשים', subtitle: 'ניהול משתמשים והרשאות' },
   { to: '/permissions', icon: Shield, title: 'הרשאות', subtitle: 'תפקידים וגישה' },

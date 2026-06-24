@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-3g';
+  var VERSION = 'v3-unified-3h';
   var SEARCH_KEY = 'coco-mkt-global-search';
   var FILTER_KEY = 'coco-mkt-filter-persist';
 
@@ -107,6 +107,7 @@
   }
 
   function placeContextBar(screenId) {
+    if (screenId === 'screen-crm') return;
     var bar = document.getElementById('coco-unified-context-bar');
     var sc = document.getElementById(screenId || getActiveScreenId());
     if (!bar || !sc) return;
@@ -245,55 +246,6 @@
       if (c.dateRange) parts.push(c.dateRange + ' ימים');
       fchip.textContent = 'סינון: ' + (parts.length ? parts.join(' · ') : 'כללי');
     }
-  }
-
-  function ensureCrmTab() {
-    var tabs = document.querySelector('#screen-clients .nav-tabs');
-    if (!tabs || document.getElementById('tab-clients-crm')) return;
-
-    var listTab = tabs.querySelector('.nav-tab');
-    var tab = document.createElement('div');
-    tab.className = 'nav-tab';
-    tab.setAttribute('data-crm-tab', '1');
-    tab.textContent = '📇 CRM';
-    tab.onclick = function () {
-      openCrm();
-    };
-    if (listTab && listTab.nextSibling) {
-      tabs.insertBefore(tab, listTab.nextSibling);
-    } else {
-      tabs.appendChild(tab);
-    }
-
-    var content = document.querySelector('#screen-clients .content');
-    if (!content) return;
-    var panel = document.createElement('div');
-    panel.id = 'tab-clients-crm';
-    panel.style.display = 'none';
-    panel.innerHTML =
-      '<div class="page-header"><div class="page-title">📇 CRM — חלק ממנהל השיווק</div>' +
-      '<div class="page-subtitle">לקוחות · לידים · משימות · Pipeline · מסונכרן עם כל המודולים</div><hr class="page-rule"></div>' +
-      '<div id="coco-marketing-crm-mount"></div>';
-    content.appendChild(panel);
-
-    ensureCrmEntryBanner();
-  }
-
-  function ensureCrmEntryBanner() {
-    var list = document.getElementById('tab-clients-list');
-    if (!list || document.getElementById('coco-crm-entry-banner')) return;
-    var header = list.querySelector('.page-header');
-    if (!header) return;
-    var banner = document.createElement('div');
-    banner.id = 'coco-crm-entry-banner';
-    banner.className = 'coco-crm-entry-banner';
-    banner.innerHTML =
-      '<span style="font-size:13px;font-weight:600;">📇 CRM משולב במנהל השיווק — לידים, משימות, Pipeline</span>' +
-      '<button type="button" class="btn btn-primary" style="font-size:12px;padding:6px 14px;" id="coco-crm-entry-open">פתח CRM</button>';
-    header.insertAdjacentElement('afterend', banner);
-    document.getElementById('coco-crm-entry-open')?.addEventListener('click', function () {
-      openCrm();
-    });
   }
 
   function bindCrm() {

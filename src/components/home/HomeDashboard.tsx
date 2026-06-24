@@ -170,7 +170,7 @@ export default function HomeDashboard() {
             to="/ai-marketing"
             icon={Megaphone}
             title="ניהול שיווק"
-            subtitle="CRM · שיווק · Google · AI — מערכת אחת"
+            subtitle="שיווק · Google · AI — מערכת אחת"
             accent="primary"
           />
         )}

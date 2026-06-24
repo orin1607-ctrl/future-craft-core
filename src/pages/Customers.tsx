@@ -344,12 +344,12 @@ function CustomerDetail({ customer: c, isManager, user, onBack, onEdit, onDelete
         </div>
 
         <div className="mb-4 p-4 rounded-xl border-2 border-violet-200 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-800">
-          <p className="text-sm text-muted-foreground mb-2">CRM וניהול שיווק — מערכת אחת · Client ID: {c.id.slice(0, 8)}…</p>
+          <p className="text-sm text-muted-foreground mb-2">ניהול שיווק — מערכת אחת · Client ID: {c.id.slice(0, 8)}…</p>
           <Link
             to={`/ai-marketing?customer=${c.id}&tab=crm`}
             className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 rounded-xl bg-violet-600 text-white font-bold min-h-[48px] hover:opacity-90"
           >
-            פתח במנהל השיווק (CRM)
+            פתח במנהל השיווק
           </Link>
         </div>
 

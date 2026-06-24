@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3g';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3h';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
@@ -242,6 +242,11 @@ async function runViewport(browser, name, viewport) {
   });
   crmScreen ? pass('unified:crm-screen-opens', name) : fail('unified:crm screen did not open', name);
 
+  const noBnavCrmDesktop = await page.evaluate(function () {
+    return !document.querySelector('#screen-hub .bnav-btn[data-screen="screen-crm"]');
+  });
+  noBnavCrmDesktop ? pass('unified:no-bottom-nav-crm', name) : fail('unified:crm should not be in bottom nav', name);
+
   if (name === 'desktop') {
     const crmLoaded = await page.evaluate(function () {
       return new Promise(function (resolve) {
@@ -266,12 +271,17 @@ async function runViewport(browser, name, viewport) {
     if (!topBg.whiteStrip) pass('mobile:no-white-body-bg', name);
     else fail('mobile:white-body-bg ' + topBg.htmlBg, name);
 
-    const hubCrmHidden = await page.evaluate(function () {
+    const hubCrmVisible = await page.evaluate(function () {
       var card = document.getElementById('coco-hub-crm-card');
       if (!card) return false;
-      return getComputedStyle(card).display === 'none';
+      return getComputedStyle(card).display !== 'none';
     });
-    hubCrmHidden ? pass('mobile:crm-only-bottom-nav', name) : fail('mobile:crm hub card should be hidden', name);
+    hubCrmVisible ? pass('mobile:crm-hub-card-visible', name) : fail('mobile:crm hub card should be visible', name);
+
+    const noBnavCrm = await page.evaluate(function () {
+      return !document.querySelector('#screen-hub .bnav-btn[data-screen="screen-crm"]');
+    });
+    noBnavCrm ? pass('mobile:no-bottom-nav-crm', name) : fail('mobile:crm should not be in bottom nav', name);
   }
 
   // Filter persistence across modules

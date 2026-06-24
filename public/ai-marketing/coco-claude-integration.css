@@ -153,9 +153,6 @@ body.prd-dalia-embedded .prd-dalia-exit-inline {
   #coco-integration-flow-bar {
     display: none !important;
   }
-  #coco-hub-crm-card {
-    display: none !important;
-  }
   #coco-hub-client-name {
     font-size: 16px;
     white-space: nowrap;
@@ -175,10 +172,6 @@ body.prd-dalia-embedded .prd-dalia-exit-inline {
 }
 
 @media (min-width: 681px) {
-  #screen-hub .bottom-nav .bnav-btn[data-screen="screen-crm"],
-  #screen-crm > .bottom-nav {
-    display: none !important;
-  }
   #coco-unified-context-bar .cfc-row-filters {
     display: flex !important;
   }

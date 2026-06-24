@@ -720,16 +720,6 @@
   }
 
   function init() {
-    if (window.COCO_MARKETING_CRM) {
-      var back = document.querySelector('.crm-back-hub');
-      if (back) {
-        back.style.display = '';
-        back.onclick = function () {
-          document.body.classList.remove('coco-crm-active');
-          if (typeof goScreen === 'function') goScreen('screen-hub');
-        };
-      }
-    }
     bindTabs();
     loadAll().then(function () {
       var cid = new URLSearchParams(location.search).get('customer');

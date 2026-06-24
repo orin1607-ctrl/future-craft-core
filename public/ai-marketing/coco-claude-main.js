@@ -5,6 +5,8 @@ function goScreen(id) {
   screens.forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) { el.classList.add('active'); el.querySelector('.content')?.scrollTo(0,0); }
+  if (id === 'screen-crm') document.body.classList.add('coco-crm-active');
+  else document.body.classList.remove('coco-crm-active');
   document.querySelectorAll('.bottom-nav .bnav-btn').forEach(function (b) {
     b.classList.toggle('active', b.getAttribute('data-screen') === id);
   });
