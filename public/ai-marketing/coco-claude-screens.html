@@ -27,7 +27,6 @@
         <div style="font-size:11px;color:var(--white50);margin-bottom:4px;">לקוח פעיל</div>
         <div id="coco-hub-client-name" style="font-size:18px;font-weight:800;color:var(--white);">🏢 גרין-טק פתרונות בע"מ</div>
         <div id="coco-hub-client-sub" style="font-size:12px;color:var(--white50);margin-top:3px;">ניהול שיווק + ניהול צי • מאז ינואר 2024</div>
-        <span id="coco-hub-client-id" class="badge badge-purple" style="display:none;margin-top:6px;font-size:10px;"></span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <span class="badge badge-green">● פעיל</span>
@@ -73,7 +72,7 @@
       </div>
     </div>
 
-    <!-- 9 מודולים — זרימת עבודה -->
+    <!-- 6 Main buttons -->
     <div style="padding:16px 20px 0;">
       <div class="sec-title">מודולים</div>
     </div>
@@ -90,6 +89,12 @@
         <div class="hub-desc">הגדרת סביבת שיווק</div>
         <div class="hub-count">12 לקוחות</div>
       </div>
+      <div class="hub-card" onclick="goScreen('screen-agents')">
+        <div class="hub-icon">🤖</div>
+        <div class="hub-name">העוזרים שלנו</div>
+        <div class="hub-desc">איסוף וניתוח מידע AI</div>
+        <div class="hub-count">12 עוזרים פעילים</div>
+      </div>
       <div class="hub-card" onclick="goScreen('screen-goals')">
         <div class="hub-icon">🎯</div>
         <div class="hub-name">המטרות שלנו</div>
@@ -102,6 +107,7 @@
         <div class="hub-desc">ביצוע ואישור משימות</div>
         <div class="hub-count">12 ממתינות לאישור</div>
       </div>
+      
       <div class="hub-card" onclick="goScreen('screen-history')">
         <div class="hub-icon">📚</div>
         <div class="hub-name">היסטוריה</div>
@@ -126,13 +132,10 @@
         <div class="hub-desc">הפקה אוטומטית ללקוח</div>
         <div class="hub-count">6 סוגי דוחות</div>
       </div>
-    </div>
-
-    <!-- עוזרים — מחוץ לשרשרת, זמין מכל מקום -->
-    <div style="padding:8px 20px 0;">
-      <button class="btn btn-ghost" style="width:100%;justify-content:center;gap:8px;" onclick="goScreen('screen-agents')">
-        🤖 העוזרים שלנו — איסוף וניתוח מידע AI
-      </button>
+        <div class="hub-name">הנכסים הדיגיטליים</div>
+        <div class="hub-desc">שליטה בכל הנכסים</div>
+        <div class="hub-count">9 נכסים מחוברים</div>
+      </div>
     </div>
 
     <!-- Alerts -->
@@ -389,7 +392,7 @@
 
       <div class="section">
         <div class="sec-title">ביצועי גוגל – 30 יום אחרונים</div>
-        <div class="grid grid-2" id="coco-live-status-kpis" style="gap:10px;">
+        <div class="grid grid-2" style="gap:10px;">
           <div class="card"><div class="card-title">קליקים</div><div class="card-value">8,420</div><div class="card-delta up">↑ +14%</div></div>
           <div class="card"><div class="card-title">חשיפות</div><div class="card-value">184,000</div><div class="card-delta up">↑ +8%</div></div>
           <div class="card"><div class="card-title">CTR</div><div class="card-value">4.6%</div><div class="card-delta up">↑ +0.4%</div></div>
@@ -462,7 +465,13 @@
         <div class="table-wrap">
           <table>
             <thead><tr><th>מילת מפתח</th><th>מיקום</th><th>שינוי</th><th>קליקים</th></tr></thead>
-            <tbody id="coco-live-status-keywords">
+            <tbody>
+              <tr><td>ניהול צי רכב</td><td>3</td><td style="color:var(--green)">↑ +2</td><td>840</td></tr>
+              <tr><td>תוכנת ניהול רכבים</td><td>5</td><td style="color:var(--green)">↑ +1</td><td>612</td></tr>
+              <tr><td>מערכת GPS לצי</td><td>8</td><td style="color:var(--yellow)">→ 0</td><td>480</td></tr>
+              <tr><td>ביטוח צי רכב</td><td>14</td><td style="color:var(--red)">↓ -3</td><td>214</td></tr>
+              <tr><td>ניהול תחזוקה רכב</td><td>17</td><td style="color:var(--green)">↑ +5</td><td>198</td></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -487,7 +496,12 @@
         <div class="table-wrap">
           <table>
             <thead><tr><th>קמפיין</th><th>תקציב</th><th>הוצאה</th><th>המרות</th><th>סטטוס</th></tr></thead>
-            <tbody id="coco-live-status-campaigns">
+            <tbody>
+              <tr><td>Brand Search</td><td>₪2,000</td><td>₪1,840</td><td>12</td><td><span class="badge badge-green">● פעיל</span></td></tr>
+              <tr><td>מוצרים – כללי</td><td>₪4,000</td><td>₪3,920</td><td>11</td><td><span class="badge badge-green">● פעיל</span></td></tr>
+              <tr><td>Remarketing</td><td>₪2,000</td><td>₪1,840</td><td>5</td><td><span class="badge badge-green">● פעיל</span></td></tr>
+              <tr><td>Competitor</td><td>₪2,000</td><td>₪800</td><td>0</td><td><span class="badge badge-yellow">⏸ מושהה</span></td></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -572,8 +586,59 @@
             <option>שיווק + צי</option>
           </select>
         </div>
-        <div id="coco-live-clients-list" style="display:flex;flex-direction:column;gap:10px;">
-          <div class="alert alert-info">טוען לקוחות מדליה…</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <!-- Client rows -->
+          <div class="card" style="cursor:pointer;transition:border-color 0.2s;" onclick="selectClient('גרין-טק פתרונות')">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+              <div>
+                <div style="font-weight:700;font-size:14px;">🏢 גרין-טק פתרונות בע"מ</div>
+                <div style="font-size:12px;color:var(--white50);margin-top:2px;">ניהול שיווק + ניהול צי • 8 נכסים מחוברים</div>
+                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                  <span class="badge badge-green">● פעיל</span>
+                  <span class="badge badge-blue">שיווק + צי</span>
+                  <span class="badge badge-purple">לקוח VIP</span>
+                </div>
+              </div>
+              <div style="text-align:left;flex-shrink:0;">
+                <div style="font-size:11px;color:var(--white50)">ציון</div>
+                <div style="font-size:20px;font-weight:800;color:var(--green);">82</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="cursor:pointer;" onclick="selectClient('דלתא לוגיסטיקה')">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+              <div>
+                <div style="font-weight:700;font-size:14px;">🚛 דלתא לוגיסטיקה בע"מ</div>
+                <div style="font-size:12px;color:var(--white50);margin-top:2px;">ניהול שיווק בלבד • 5 נכסים מחוברים</div>
+                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                  <span class="badge badge-green">● פעיל</span>
+                  <span class="badge badge-blue">שיווק בלבד</span>
+                </div>
+              </div>
+              <div style="text-align:left;flex-shrink:0;">
+                <div style="font-size:11px;color:var(--white50)">ציון</div>
+                <div style="font-size:20px;font-weight:800;color:var(--yellow);">68</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="cursor:pointer;" onclick="selectClient('פתרונות טק')">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+              <div>
+                <div style="font-weight:700;font-size:14px;">💻 פתרונות טק ישראל</div>
+                <div style="font-size:12px;color:var(--white50);margin-top:2px;">ניהול שיווק בלבד • 3 נכסים מחוברים</div>
+                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                  <span class="badge badge-yellow">⏸ בהקמה</span>
+                  <span class="badge badge-blue">שיווק בלבד</span>
+                </div>
+              </div>
+              <div style="text-align:left;flex-shrink:0;">
+                <div style="font-size:11px;color:var(--white50)">ציון</div>
+                <div style="font-size:20px;font-weight:800;color:var(--red);">N/A</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1855,7 +1920,7 @@
       <!-- ===== SECTION 3: GOAL CARDS (Accordion) ===== -->
       <div class="section">
         <div class="sec-title">כרטיסי מטרות – לחץ לפתיחה</div>
-        <div style="display:flex;flex-direction:column;gap:10px;" id="coco-live-goals-list">
+        <div style="display:flex;flex-direction:column;gap:10px;" id="goals-accordion">
 
           <!-- GOAL 1 -->
           <div class="goal-acc-item" data-agent="pagespeed" data-status="urgent" data-priority="קריטי">
@@ -2455,7 +2520,7 @@
         <hr class="page-rule">
       </div>
       <div class="section">
-        <div id="coco-live-actions-pending" style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
 
           <!-- New Action 1 -->
           <div class="action-card act-item" data-cat="cat3" data-type="ביצועים" data-urgency="קריטי" style="border-color:rgba(139,92,246,0.4);">
@@ -2779,7 +2844,43 @@
         <div class="table-wrap">
           <table>
             <thead><tr><th>פעולה</th><th>קטגוריה</th><th>תאריך</th><th>מבצע</th><th>השפעה</th><th>סטטוס</th></tr></thead>
-            <tbody id="coco-live-actions-done"></tbody>
+            <tbody>
+              <tr>
+                <td>Meta Titles – 8 עמודים</td>
+                <td><span class="badge badge-purple" style="font-size:10px;">מבנה אתר</span></td>
+                <td>12.6.25</td><td>AI Auto</td>
+                <td style="color:var(--green);">CTR ↑ +0.4%</td>
+                <td><span class="badge badge-green">✓ פורסם</span></td>
+              </tr>
+              <tr>
+                <td>Schema – דף הבית</td>
+                <td><span class="badge badge-purple" style="font-size:10px;">מבנה אתר</span></td>
+                <td>8.6.25</td><td>AI Auto</td>
+                <td style="color:var(--green);">Rich Result ✓</td>
+                <td><span class="badge badge-green">✓ פורסם</span></td>
+              </tr>
+              <tr>
+                <td>Google Business Post – מאי</td>
+                <td><span class="badge badge-purple" style="font-size:10px;">GBP</span></td>
+                <td>1.6.25</td><td>AI Auto</td>
+                <td style="color:var(--accent2);">+12% צפיות</td>
+                <td><span class="badge badge-green">✓ פורסם</span></td>
+              </tr>
+              <tr>
+                <td>Breadcrumbs – כל האתר</td>
+                <td><span class="badge badge-purple" style="font-size:10px;">מבנה אתר</span></td>
+                <td>28.5.25</td><td>Miki</td>
+                <td style="color:var(--green);">UX ↑</td>
+                <td><span class="badge badge-green">✓ פורסם</span></td>
+              </tr>
+              <tr>
+                <td>H1 תיקון – 6 עמודים</td>
+                <td><span class="badge badge-purple" style="font-size:10px;">מבנה אתר</span></td>
+                <td>20.5.25</td><td>AI Auto</td>
+                <td style="color:var(--accent2);">SEO ↑</td>
+                <td><span class="badge badge-green">✓ פורסם</span></td>
+              </tr>
+            </tbody>
           </table>
         </div>
         <!-- Period summary teaser -->
@@ -2929,9 +3030,7 @@
     </div>
 
     <div class="section">
-      <div class="sec-title">נכסים מחוברים (דליה)</div>
-      <div class="grid grid-2" id="coco-live-assets-grid" style="gap:10px;margin-bottom:20px;"></div>
-      <div class="sec-title">נכסי Google (תצוגה מורחבת)</div>
+      <div class="sec-title">נכסי Google</div>
       <div class="grid grid-2" style="gap:10px;margin-bottom:20px;">
         <div class="asset-card" onclick="openModal('modal-asset-website')">
           <div class="asset-header"><div class="asset-icon">🌐</div><div><div class="asset-name">אתר ראשי</div><div class="asset-status">greentech.co.il</div></div></div>
@@ -3090,6 +3189,12 @@
   <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
 </div>
 
+
+
+
+
+
+
 <!-- ============================= SCREEN: AI DECISIONS ============================= -->
 <div class="screen" id="screen-ai-decisions">
   <div class="topbar">
@@ -3150,6 +3255,12 @@
   <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
 </div>
 
+
+
+
+
+
+
 <!-- ============================= SCREEN: REPORTS ============================= -->
 <div class="screen" id="screen-reports">
   <div class="topbar">
@@ -3200,6 +3311,12 @@
   </div>
   <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
 </div>
+
+
+
+
+
+
 
 <!-- ============================= MODALS ============================= -->
 

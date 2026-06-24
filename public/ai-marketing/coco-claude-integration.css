@@ -1,0 +1,11 @@
+/* Orin Car — integration only (no visual overrides) */
+#legacy-dalia-root { display: none !important; }
+body.coco-boot-active { background: #04091a; }
+#coco-claude-root.coco-boot-active {
+  display: block !important;
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  min-height: 100vh;
+  background: #04091a;
+}
