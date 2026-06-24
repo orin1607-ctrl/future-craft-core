@@ -10,9 +10,9 @@
   var PENDING_AUTH = 'ממתין להרשאה';
 
   var AI_ENGINES = [
-    { id: 'openai', label: 'OpenAI (ChatGPT)', icon: '🟢', wired: true, apiEnabled: false, reason: PENDING_KEY + ' — שלב נתונים קודם' },
-    { id: 'claude', label: 'Claude', icon: '🟣', wired: true, apiEnabled: false, reason: PENDING_KEY },
-    { id: 'gemini', label: 'Gemini', icon: '🔵', wired: true, apiEnabled: false, reason: PENDING_KEY },
+    { id: 'openai', label: 'OpenAI (ChatGPT)', icon: '🟢', wired: true, apiEnabled: true, reason: 'Edge marketing-ai-chat' },
+    { id: 'claude', label: 'Claude', icon: '🟣', wired: true, apiEnabled: false, reason: 'ממתין למפתח Anthropic' },
+    { id: 'gemini', label: 'Gemini', icon: '🔵', wired: true, apiEnabled: true, reason: 'Edge marketing-gemini-chat' },
   ];
 
   var ASSISTANTS = [
@@ -201,11 +201,12 @@
   }
 
   function isAiApiEnabled() {
-    return false;
+    return !!(window.COCO_STAGING && window.COCO_STAGING.accessToken);
   }
 
   function getAiBlockedMessage() {
-    return 'מנועי AI (OpenAI / Claude / Gemini) ממתינים למפתח API. כרגע עובדים על שכבת נתונים מלאה ל-dalia-c.com — אין המלצות AI עד אישור שלב א׳.';
+    if (isAiApiEnabled()) return 'מנועי AI זמינים לאחר התחברות — OpenAI דרך Edge; Claude ממתין למפתח Anthropic.';
+    return 'מנועי AI (OpenAI / Claude / Gemini) דורשים התחברות Super Admin בדליה.';
   }
 
   window.CocoIntegrationHub = {

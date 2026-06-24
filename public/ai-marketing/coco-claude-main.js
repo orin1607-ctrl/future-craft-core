@@ -376,10 +376,15 @@ function openAgentDashboard(agentId) {
   if (window.DaliaSite && typeof DaliaSite.getAgentData === 'function') {
     a = DaliaSite.getAgentData(agentId);
   }
+  if (!a && window.CocoData && typeof CocoData.getAgentData === 'function') {
+    a = CocoData.getAgentData(agentId);
+  }
   if (!a && !(window.DaliaSite && DaliaSite.isLiveOnly && DaliaSite.isLiveOnly())) {
     a = AGENT_DATA[agentId];
   }
   if (!a) { showToast('⏳ דשבורד בפיתוח'); return; }
+
+  const scoreDisplay = typeof a.score === 'number' ? a.score : 'ממתין לחיבור';
 
   const siteDomain = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.domain) || 'dalia-c.com';
   const siteCompany = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.company) || 'דליה';

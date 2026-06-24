@@ -66,6 +66,8 @@ export default function AiMarketingPage() {
 
           marketingChatUrl: `${supabaseUrl}/functions/v1/marketing-ai-chat`,
 
+          marketingGeminiChatUrl: `${supabaseUrl}/functions/v1/marketing-gemini-chat`,
+
         },
 
         '*',

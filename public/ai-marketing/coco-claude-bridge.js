@@ -83,7 +83,7 @@
     { ctx: 'site', ids: ['sf-site', 'gf-site', 'ag-site', 'act-site', 'hist-site', 'ai-site', 'rep-site'] },
     { ctx: 'domain', ids: ['gf-domain', 'ag-domain', 'act-domain'] },
     { ctx: 'page', ids: ['sf-page', 'gf-page', 'act-page', 'hist-page', 'ai-page', 'rep-page'] },
-    { ctx: 'campaign', ids: ['sf-campaign', 'gf-campaign', 'act-campaign', 'hist-campaign', 'ai-campaign', 'rep-campaign'] },
+    { ctx: 'campaign', ids: ['sf-campaign', 'gf-campaign', 'act-campaign', 'hist-campaign', 'ai-campaign', 'rep-campaign', 'coco-central-campaign'] },
     { ctx: 'campaignType', ids: ['sf-campaign-type', 'gf-campaign-type', 'act-campaign-type'] },
     { ctx: 'channel', ids: ['sf-channel', 'gf-channel', 'rep-channel'] },
     { ctx: 'status', ids: ['sf-status', 'gf-status', 'ag-status', 'act-status-adv', 'hist-status', 'rep-status'] },

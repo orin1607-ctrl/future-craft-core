@@ -16,7 +16,7 @@
   }
 
   function assetUrl(rel) {
-    var ver = (window.CocoUnified && CocoUnified.version) || 'v3-unified-3h';
+    var ver = (window.CocoUnified && CocoUnified.version) || 'v3-unified-3i';
     var base = window.COCO_PAGES_BASE || '/future-craft-core/';
     if (base.charAt(0) !== '/') base = '/' + base.replace(/^\.\//, '');
     return location.origin + base + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);
@@ -82,6 +82,8 @@
     if (fs && free !== fs.value) fs.value = free;
     if (fst && c.customerStatus && fst.value !== c.customerStatus) fst.value = c.customerStatus;
     if (fsvc && c.serviceType && fsvc.value !== c.serviceType) fsvc.value = c.serviceType;
+    var fcamp = document.getElementById('f-campaign');
+    if (fcamp && c.campaign && fcamp.value !== c.campaign) fcamp.value = c.campaign;
     if (window.DaliaCrm && typeof DaliaCrm.applyFilters === 'function') {
       DaliaCrm.applyFilters();
     } else if (fs) {
@@ -96,7 +98,8 @@
     var fsvc = document.getElementById('f-service');
     if (fs) c.freeSearch = fs.value;
     if (fst) c.customerStatus = fst.value;
-    if (fsvc) c.serviceType = fsvc.value;
+    var fcamp = document.getElementById('f-campaign');
+    if (fcamp) c.campaign = fcamp.value;
     try {
       localStorage.setItem('coco-flow-context-v2', JSON.stringify(c));
     } catch (e) { /* ignore */ }

@@ -327,6 +327,9 @@
       }
     });
     hideStaticDemoBlocks();
+    document.querySelectorAll('#screen-hub .section .alert').forEach(function (el) {
+      if (/PageSpeed|404|Meta Description|61 בנייד/i.test(el.textContent || '')) el.style.display = 'none';
+    });
     ensureLiveMounts();
   }
 

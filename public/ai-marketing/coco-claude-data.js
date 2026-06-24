@@ -34,6 +34,7 @@
   };
 
   var NO_DATA = '—';
+  var PENDING = 'ממתין לחיבור';
 
   function isRemoteAuth() {
     return window.MarketingApi && MarketingApi.canRemote && MarketingApi.canRemote();
@@ -125,23 +126,31 @@
     content.insertBefore(div, content.firstChild);
   }
 
+  function crmCounts() {
+    if (!window.DaliaCrm || typeof DaliaCrm.getCounts !== 'function') return null;
+    return DaliaCrm.getCounts();
+  }
+
   function deriveKpis(bundle) {
     var dash = getDashboard();
     var k = window.COCO && COCO.data && COCO.data.kpis;
     var gsc = (state.metrics || []).find(function (m) { return m.provider === 'google_search_console'; });
     var ga4 = (state.metrics || []).find(function (m) { return m.provider === 'google_analytics'; });
+    var cc = crmCounts();
+    var leadsVal = cc ? cc.leads : NO_DATA;
+    var tasksVal = cc ? cc.openTasks : NO_DATA;
     if (gsc && gsc.metric_value) {
       var gv = gsc.metric_value;
       state.meta.kpiSource = 'supabase';
       return {
-        siteScore: 82,
+        siteScore: NO_DATA,
         visits: fmt(ga4 && ga4.metric_value && ga4.metric_value.sessions),
-        leads: '—',
-        openTasks: '—',
+        leads: fmt(leadsVal),
+        openTasks: fmt(tasksVal),
         clicks: fmt(gv.clicks),
         impressions: fmt(gv.impressions),
-        ctr: gv.ctr != null ? (Number(gv.ctr) * 100).toFixed(1) + '%' : '—',
-        position: '—',
+        ctr: gv.ctr != null ? (Number(gv.ctr) * 100).toFixed(1) + '%' : NO_DATA,
+        position: gv.position != null ? Number(gv.position).toFixed(1) : NO_DATA,
       };
     }
     if (k && k.weeklyClicks) {
@@ -149,8 +158,8 @@
       return {
         siteScore: NO_DATA,
         visits: (k.weeklyClicks && k.weeklyClicks.value) || NO_DATA,
-        leads: (k.pendingDrafts && k.pendingDrafts.value) || NO_DATA,
-        openTasks: (k.aiOpportunities && k.aiOpportunities.value) || NO_DATA,
+        leads: fmt(leadsVal !== NO_DATA ? leadsVal : ((k.pendingDrafts && k.pendingDrafts.value) || NO_DATA)),
+        openTasks: fmt(tasksVal !== NO_DATA ? tasksVal : ((k.aiOpportunities && k.aiOpportunities.value) || NO_DATA)),
         clicks: (k.weeklyClicks && k.weeklyClicks.value) || NO_DATA,
         impressions: (k.weeklyImpressions && k.weeklyImpressions.value) || NO_DATA,
         ctr: (k.avgCtr && k.avgCtr.value) || NO_DATA,
@@ -162,8 +171,8 @@
       return {
         siteScore: NO_DATA,
         visits: fmt(dash.ga4Sessions != null ? dash.ga4Sessions : dash.totalClicks),
-        leads: fmt(dash.pendingDrafts != null ? dash.pendingDrafts : NO_DATA),
-        openTasks: fmt(dash.opportunities != null ? dash.opportunities : (dash.pendingDrafts != null ? dash.pendingDrafts : NO_DATA)),
+        leads: fmt(leadsVal !== NO_DATA ? leadsVal : (dash.pendingDrafts != null ? dash.pendingDrafts : NO_DATA)),
+        openTasks: fmt(tasksVal !== NO_DATA ? tasksVal : (dash.opportunities != null ? dash.opportunities : (dash.pendingDrafts != null ? dash.pendingDrafts : NO_DATA))),
         clicks: fmt(dash.totalClicks),
         impressions: fmt(dash.totalImpressions),
         ctr: dash.avgCtr != null ? (Number(dash.avgCtr) * (dash.avgCtr < 1 ? 100 : 1)).toFixed(1) + '%' : NO_DATA,
@@ -230,6 +239,20 @@
         detail: (a.module || 'מערכת') + (a.detail ? (' — ' + a.detail) : ''),
       });
     });
+    if (window.DaliaCrm && typeof DaliaCrm.listActivityForClient === 'function') {
+      var cid = ctx().clientId;
+      if (cid) {
+        (DaliaCrm.listActivityForClient(cid) || []).forEach(function (a) {
+          items.push({
+            type: 'crm',
+            title: a.title || a.action_type || 'CRM',
+            date: a.created_at,
+            status: a.action_type || 'crm',
+            detail: 'CRM — ' + (a.detail || a.title || ''),
+          });
+        });
+      }
+    }
     if (!items.length) {
       state.meta.historySource = 'pending';
       return [];
@@ -347,6 +370,11 @@
         }
       });
     });
+    var crmCnt = document.getElementById('coco-hub-crm-count');
+    if (crmCnt) {
+      var cc = crmCounts();
+      crmCnt.textContent = cc ? (cc.customers + ' לקוחות · ' + cc.leads + ' לידים') : PENDING;
+    }
   }
 
   function bindStatus(bundle) {
@@ -662,6 +690,102 @@
     if (window.CocoUnified && CocoUnified.bindCrm) CocoUnified.bindCrm();
   }
 
+  function pendingAgent(name, icon, source, reason) {
+    return {
+      name: name, icon: icon, source: source,
+      status: 'pending', liveOnly: true, connectionOk: false, scanTime: PENDING,
+      findings: 0, issues: 0, opportunities: 0, score: PENDING,
+      urgency: '—', readyToTransfer: false,
+      kpis: [{ label: 'סטטוס', val: PENDING, delta: reason || PENDING, color: 'var(--white50)' }],
+      findings_table: [{ type: 'מידע', desc: reason || PENDING, src: source, importance: '—', impact: '—', status: PENDING, transfer: false }],
+      aiSummary: reason || PENDING,
+      readyCount: 0, readyIssues: 0, readyOpp: 0, urgencyLabel: '—',
+    };
+  }
+
+  function getAgentData(agentId) {
+    if (window.DaliaSite && DaliaSite.getAgentData) {
+      var official = DaliaSite.getAgentData(agentId);
+      if (official) return official;
+    }
+    var id = String(agentId || '').toLowerCase();
+    var metrics = state.metrics || [];
+    var bundle = state.bundle;
+    var gscM = metrics.find(function (m) { return m.provider === 'google_search_console'; });
+    var ga4M = metrics.find(function (m) { return m.provider === 'google_analytics'; });
+    var conn = {};
+    (bundle && bundle.connections || []).forEach(function (c) {
+      conn[c.provider] = c.status;
+    });
+    var gscVal = gscM && gscM.metric_value;
+    var ga4Val = ga4M && ga4M.metric_value;
+
+    if (id === 'gsc' || id === 'search_console' || id === 'seo') {
+      if (!gscVal && conn.google_search_console !== 'connected') {
+        return pendingAgent('Google Search Console AI', '🔎', 'Search Console', PENDING);
+      }
+      var kw = (gscVal && gscVal.keywords) || getKeywords();
+      return {
+        name: 'Google Search Console AI', icon: '🔎', source: 'Search Console (Supabase)',
+        status: 'live', liveOnly: true, connectionOk: !!gscVal, scanTime: state.meta.loadedAt || PENDING,
+        findings: kw.length, issues: 0, opportunities: 0, score: PENDING,
+        urgency: '—', readyToTransfer: false,
+        kpis: [
+          { label: 'קליקים', val: fmt(gscVal && gscVal.clicks), delta: 'GSC', color: 'var(--white)' },
+          { label: 'חשיפות', val: fmt(gscVal && gscVal.impressions), delta: 'GSC', color: 'var(--white)' },
+          { label: 'CTR', val: gscVal && gscVal.ctr != null ? (Number(gscVal.ctr) * 100).toFixed(1) + '%' : NO_DATA, delta: '', color: 'var(--white)' },
+        ],
+        findings_table: kw.slice(0, 8).map(function (k) {
+          return { type: 'נתון', desc: k.keyword || k.query, src: 'GSC', importance: '—', impact: fmt(k.clicks) + ' קליקים', status: 'חי', transfer: false };
+        }),
+        aiSummary: gscVal ? 'נתונים אמיתיים מ-Supabase/GSC.' : PENDING,
+        readyCount: 0, readyIssues: 0, readyOpp: 0, urgencyLabel: '—',
+      };
+    }
+    if (id === 'ga4' || id === 'analytics') {
+      if (!ga4Val && conn.google_analytics !== 'connected') {
+        return pendingAgent('Google Analytics AI', '📊', 'GA4', PENDING);
+      }
+      return {
+        name: 'Google Analytics AI', icon: '📊', source: 'GA4 (Supabase)',
+        status: 'live', liveOnly: true, connectionOk: !!ga4Val, scanTime: state.meta.loadedAt || PENDING,
+        findings: 0, issues: 0, opportunities: 0, score: PENDING,
+        urgency: '—', readyToTransfer: false,
+        kpis: [
+          { label: 'סשנים', val: fmt(ga4Val && ga4Val.sessions), delta: 'GA4', color: 'var(--green)' },
+          { label: 'משתמשים', val: fmt(ga4Val && ga4Val.activeUsers), delta: 'GA4', color: 'var(--white)' },
+        ],
+        findings_table: [{ type: 'מידע', desc: ga4Val ? 'נתוני GA4 מסונכרנים' : PENDING, src: 'GA4', importance: '—', impact: '—', status: ga4Val ? 'חי' : PENDING, transfer: false }],
+        aiSummary: ga4Val ? 'נתונים אמיתיים מ-GA4.' : PENDING,
+        readyCount: 0, readyIssues: 0, readyOpp: 0, urgencyLabel: '—',
+      };
+    }
+    if (id === 'gbp' || id === 'google_business') return pendingAgent('Google Business AI', '📍', 'Google Business', PENDING);
+    if (id === 'ads' || id === 'google_ads' || id === 'campaign') return pendingAgent('Google Ads AI', '🎯', 'Google Ads', PENDING);
+    if (id === 'pagespeed') return pendingAgent('PageSpeed AI', '⚡', 'PageSpeed', PENDING);
+    if (id === 'meta') return pendingAgent('Meta AI', '👥', 'Meta', PENDING);
+    if (id === 'manager' || id === 'project001' || id === 'reports') {
+      var active = [gscVal, ga4Val].filter(Boolean).length;
+      return {
+        name: id === 'manager' ? 'AI Manager' : 'Project AI', icon: '🤖', source: 'מנהל השיווק',
+        status: active ? 'live' : 'pending', liveOnly: true, connectionOk: active > 0, scanTime: state.meta.loadedAt || PENDING,
+        findings: active, issues: 0, opportunities: 0, score: PENDING,
+        urgency: '—', readyToTransfer: false,
+        kpis: [
+          { label: 'מקורות פעילים', val: String(active), delta: 'Google', color: 'var(--accent2)' },
+          { label: 'Client ID', val: (ctx().clientId || '').slice(0, 8) + '…', delta: '', color: 'var(--white)' },
+        ],
+        findings_table: [
+          { type: 'GSC', desc: gscVal ? 'מחובר' : PENDING, src: 'GSC', importance: '—', impact: '—', status: gscVal ? 'חי' : PENDING, transfer: false },
+          { type: 'GA4', desc: ga4Val ? 'מחובר' : PENDING, src: 'GA4', importance: '—', impact: '—', status: ga4Val ? 'חי' : PENDING, transfer: false },
+        ],
+        aiSummary: active ? (active + ' מקורות Google פעילים ללקוח הנוכחי.') : PENDING,
+        readyCount: 0, readyIssues: 0, readyOpp: 0, urgencyLabel: '—',
+      };
+    }
+    return pendingAgent('AI Assistant', '🤖', agentId, PENDING);
+  }
+
   window.CocoData = {
     load: load,
     loadCustomers: loadCustomers,
@@ -673,5 +797,7 @@
     onContextChange: onContextChange,
     getMeta: function () { return Object.assign({}, state.meta); },
     getBundle: function () { return state.bundle; },
+    getAgentData: getAgentData,
+    getMetrics: function () { return (state.metrics || []).slice(); },
   };
 })();

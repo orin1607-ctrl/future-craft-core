@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-3h';
+  var VERSION = 'v3-unified-3i';
   var SEARCH_KEY = 'coco-mkt-global-search';
   var FILTER_KEY = 'coco-mkt-filter-persist';
 
@@ -274,13 +274,50 @@
     });
   }
 
+  function populateCentralCampaigns() {
+    var sel = document.getElementById('coco-central-campaign');
+    if (!sel) return;
+    var bundle = window.CocoData && CocoData.getBundle ? CocoData.getBundle() : null;
+    var camps = (bundle && bundle.campaigns) || [];
+    var cur = sel.value;
+    camps.forEach(function (c) {
+      var name = c.name || c.title;
+      if (!name) return;
+      var exists = Array.prototype.some.call(sel.options, function (o) { return o.value === name; });
+      if (!exists) {
+        var o = document.createElement('option');
+        o.value = name;
+        o.textContent = name;
+        sel.appendChild(o);
+      }
+    });
+    if (cur) sel.value = cur;
+    else if (ctx().campaign) sel.value = ctx().campaign;
+  }
+
+  function renderConnectionsFromBundle(mount) {
+    var bundle = window.CocoData && CocoData.getBundle ? CocoData.getBundle() : null;
+    if (!bundle || !bundle.connections || !bundle.connections.length) return false;
+    var rows = bundle.connections.map(function (c) {
+      var st = c.status || 'disconnected';
+      var cls = /connected|ready/.test(st) ? 'badge-green' : /pending/.test(st) ? 'badge-yellow' : 'badge-gray';
+      var label = c.provider || c.name || 'connection';
+      return '<div class="card" style="padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">' +
+        '<span>' + esc(label) + '</span><span class="badge ' + cls + '">' + esc(st) + '</span></div>';
+    });
+    mount.innerHTML = '<div class="sec-title">חיבורים (Supabase)</div>' + rows.join('');
+    return true;
+  }
+
   function bindConnections() {
     var mount = document.getElementById('coco-live-connections');
     if (!mount) return;
     var url = edgeUrl('marketing-google-sync');
     var token = staging().accessToken;
     if (!url || !token) {
-      mount.innerHTML = '<div class="alert alert-info">התחבר דרך דליה (Super Admin) לבדיקת חיבורים.</div>';
+      if (!renderConnectionsFromBundle(mount)) {
+        mount.innerHTML = '<div class="alert alert-info">התחבר דרך דליה (Super Admin) לבדיקת חיבורים.</div>';
+      }
       return;
     }
     mount.innerHTML = '<div class="alert alert-info">בודק חיבורי API…</div>';
@@ -339,6 +376,7 @@
 
   function refreshAllModules() {
     updateContextBar();
+    populateCentralCampaigns();
     if (window.CocoData && CocoData.bindAll) CocoData.bindAll();
     bindCrm();
     bindConnections();
@@ -409,7 +447,7 @@
     var body = Object.assign({}, opts, { clientContext: clientContext });
 
     if (opts.provider === 'gemini') {
-      var gUrl = edgeUrl('marketing-gemini-chat');
+      var gUrl = edgeUrl('marketing-gemini-chat') || (staging().marketingGeminiChatUrl);
       if (gUrl && s.accessToken) {
         return fetch(gUrl, {
           method: 'POST',
@@ -426,6 +464,7 @@
   function onAuthReady() {
     hideStaticDemo();
     ensureLiveMounts();
+    populateCentralCampaigns();
     bindConnections();
     if (window.CocoData && CocoData.loadCustomers) {
       CocoData.loadCustomers().then(function () {

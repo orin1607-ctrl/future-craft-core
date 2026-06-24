@@ -520,6 +520,8 @@
           : '🟠 מקומי · ' + state.customers.length + ' לקוחות';
       }
       return loadActivity();
+    }).then(function () {
+      if (window.CocoData && CocoData.bindAll) CocoData.bindAll();
     }).then(applyFilters).catch(function (e) {
       if (chip) chip.textContent = '🔴 ' + (e.message || 'שגיאה');
       console.warn('CRM load:', e);
@@ -581,7 +583,7 @@
         return '<div style="padding:6px 10px;border-radius:8px;background:' + (on ? 'var(--accent-glow)' : 'var(--bg4)') + ';border:1px solid ' + (on ? 'rgba(37,99,235,0.4)' : 'var(--border)') + ';font-size:11px;color:' + (on ? 'var(--accent2)' : 'var(--white50)') + ';">' + ch[0] + ' ' + ch[1] + (on ? ' ✓' : '') + '</div>';
       }).join('') + '</div></div></div>' +
       '<div class="section"><div class="card"><div class="sec-title">חיבורים – לפי ' + esc(c.id) + '</div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+      '<div id="cc-connections-chips" style="display:flex;flex-wrap:wrap;gap:6px;">' +
       ['מצב נוכחי', 'שיווק', 'משימות', 'היסטוריה', 'נכסים דיגיטליים', 'AI', 'דוחות'].map(function (m) {
         return '<span style="padding:4px 10px;border-radius:7px;background:var(--bg4);border:1px solid var(--border);font-size:11px;color:var(--white50);">○ ' + m + '</span>';
       }).join('') + '</div></div></div></div>' +
@@ -606,7 +608,7 @@
       '<button type="button" class="btn btn-ghost" style="margin-top:10px;font-size:12px;" onclick="DaliaCrm.showToast(\'' + PENDING + '\')">+ הוסף מסמך</button></div></div>' +
 
       '<div id="tab-cc-marketing" style="display:none;"><div class="section"><div class="ai-box" style="margin-bottom:14px;"><div class="ai-box-header"><div class="ai-pulse"></div>שיווק – ' + esc(c.name) + '</div>' +
-      '<div class="ai-box-text">נתוני שיווק יסונכרנו לאחר חיבור Google Analytics, Google Ads ו-Search Console במערכת ניהול השיווק.</div></div>' +
+      '<div class="ai-box-text" id="cc-marketing-summary">טוען נתוני שיווק…</div></div>' +
       '<button type="button" class="btn btn-primary" id="cc-marketing-tab-btn">📊 מצב נוכחי בשיווק</button></div></div>' +
 
       '<div id="tab-cc-ai" style="display:none;"><div class="section"><div class="ai-box"><div class="ai-box-header"><div class="ai-pulse"></div>🤖 AI אישי – ' + esc(c.name) + '</div>' +
@@ -615,6 +617,8 @@
     document.getElementById('cc-call-btn')?.addEventListener('click', function () { showToast(c.phone ? '📞 ' + c.phone : 'אין טלפון'); });
     document.getElementById('cc-wa-btn')?.addEventListener('click', function () { showToast(c.phone ? '💬 ' + c.phone : 'אין טלפון'); });
     document.getElementById('cc-marketing-tab-btn')?.addEventListener('click', function () { openMarketing(c.id); });
+    wireClientConnections(c);
+    wireClientMarketingSummary(c);
     document.querySelectorAll('#cc-content [id^="tab-cc-"]').forEach(function (t, i) { t.style.display = i === 0 ? '' : 'none'; });
     document.querySelectorAll('#crm-client-tabs .nav-tab').forEach(function (t, i) { t.classList.toggle('active', i === 0); });
     goScreen('screen-client');
@@ -734,6 +738,80 @@
     else openClient(id);
   }
 
+  function getCounts() {
+    var openTasks = state.tasks.filter(function (x) { return x.status !== 'done'; }).length;
+    return {
+      customers: state.customers.length,
+      leads: state.leads.length,
+      openTasks: openTasks,
+      filtered: state.filtered.length,
+    };
+  }
+
+  function listActivityForClient(customerId) {
+    return (state.activity || []).filter(function (a) {
+      return a.customer_id === customerId;
+    });
+  }
+
+  var CONN_LABELS = {
+    google_search_console: 'Search Console',
+    google_analytics: 'GA4',
+    google_ads: 'Google Ads',
+    google_business: 'Google Business',
+    google_tag_manager: 'GTM',
+    gmail: 'Gmail',
+    google_workspace: 'Workspace',
+  };
+
+  function wireClientConnections(c) {
+    var mount = document.getElementById('cc-connections-chips');
+    if (!mount) return;
+    var modules = ['מצב נוכחי', 'שיווק', 'משימות', 'היסטוריה', 'נכסים דיגיטליים', 'AI', 'דוחות', 'CRM'];
+    var base = modules.map(function (m) {
+      return '<span style="padding:4px 10px;border-radius:7px;background:var(--bg4);border:1px solid var(--border);font-size:11px;color:var(--white50);">✓ ' + m + '</span>';
+    }).join('');
+    if (!window.MarketingApi || !MarketingApi.getConnections) {
+      mount.innerHTML = base;
+      return;
+    }
+    MarketingApi.getConnections(c.id).then(function (rows) {
+      var google = Object.keys(CONN_LABELS).map(function (p) {
+        var row = (rows || []).find(function (x) { return x.provider === p; });
+        var ok = row && /connected|ready/.test(row.status);
+        return '<span style="padding:4px 10px;border-radius:7px;background:' + (ok ? 'var(--accent-glow)' : 'var(--bg4)') + ';border:1px solid ' + (ok ? 'rgba(37,99,235,0.4)' : 'var(--border)') + ';font-size:11px;color:' + (ok ? 'var(--accent2)' : 'var(--white50)') + ';">' + (ok ? '✓' : '○') + ' ' + CONN_LABELS[p] + '</span>';
+      }).join('');
+      mount.innerHTML = base + google;
+    }).catch(function () {
+      mount.innerHTML = base;
+    });
+  }
+
+  function wireClientMarketingSummary(c) {
+    var el = document.getElementById('cc-marketing-summary');
+    if (!el) return;
+    if (window.CocoData && CocoData.getBundle) {
+      var bundle = CocoData.getBundle();
+      if (bundle && bundle.customer && bundle.customer.id === c.id) {
+        var kpis = [];
+        if (window.CocoData.getMetrics) {
+          var metrics = CocoData.getMetrics();
+          metrics.forEach(function (m) {
+            if (m.provider === 'google_search_console' && m.metric_value) {
+              kpis.push('GSC: ' + (m.metric_value.clicks || 0) + ' קליקים');
+            }
+            if (m.provider === 'google_analytics' && m.metric_value) {
+              kpis.push('GA4: ' + (m.metric_value.sessions || 0) + ' סשנים');
+            }
+          });
+        }
+        el.textContent = kpis.length ? kpis.join(' · ') : (PENDING + ' — לחץ "מצב נוכחי בשיווק" לסנכרון Google');
+        return;
+      }
+    }
+    el.textContent = PENDING + ' — פתח את הלקוח במנהל השיווק לסנכרון נתונים.';
+  }
+
   window.DaliaCrm = {
     init: init, onAuth: onAuth, goScreen: goScreen, setTab: setTab,
     openModal: openModal, closeModal: closeModal, showToast: showToast,
@@ -741,6 +819,8 @@
     openClient: openClient, openCustomerById: openCustomerById,
     submitNewLead: submitNewLead, submitNewTask: submitNewTask, loadAll: loadAll,
     applyFilters: applyFilters, aiQuick: aiQuick,
+    getCounts: getCounts,
+    listActivityForClient: listActivityForClient,
     _stateCustomers: function () { return state.customers; },
   };
 })();

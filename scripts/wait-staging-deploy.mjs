@@ -6,7 +6,7 @@ async function once() {
   const build = t.match(/name="build-commit"\s+content="([^"]+)"/)?.[1];
   const ui = t.match(/name="ui-version"\s+content="([^"]+)"/)?.[1];
   const ver = t.match(/var ver = '([^']+)'/)?.[1];
-  const ok = build === want && ver && ver.startsWith('v3-unified-3h-') && !ver.includes('"');
+  const ok = build === want && ver && ver.startsWith('v3-unified-3i-') && !ver.includes('"');
   console.log(JSON.stringify({ build, ui, ver, ok, loadingHub: t.includes('טוען לקוח') }));
   return ok;
 }
