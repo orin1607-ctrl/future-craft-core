@@ -359,6 +359,16 @@
   }
 
   function updateAiStatus(ok) {
+    if (window.CocoIntegrationHub && !CocoIntegrationHub.isAiApiEnabled()) {
+      COCO.ai.connected = false;
+      var chip = document.getElementById('aiStatusChip');
+      if (chip) {
+        chip.style.display = 'inline-flex';
+        chip.className = 'chip chip-orange';
+        chip.textContent = '⏳ AI — ממתין למפתח (שלב נתונים)';
+      }
+      return;
+    }
     COCO.ai.connected = ok;
     var chip = document.getElementById('aiStatusChip');
     if (!chip) return;
@@ -462,6 +472,10 @@
   }
 
   function probeStagingAi() {
+    if (window.CocoIntegrationHub && !CocoIntegrationHub.isAiApiEnabled()) {
+      updateAiStatus(false);
+      return;
+    }
     if (!window.COCO_STAGING?.accessToken) return;
     marketingApiChat({ module: 'assistant', prompt: 'ping', system: 'ענה רק: ok' }).then(function (r) {
       updateAiStatus(!!(r.ok && r.text));

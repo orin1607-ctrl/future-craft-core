@@ -1,5 +1,5 @@
 /**
- * Project 001 — אתר רשmi dalia-c.com בלבד (ללא Demo)
+ * Project 001 — אתר רשמי dalia-c.com בלבד (ללא Demo)
  */
 (function () {
   'use strict';
@@ -308,6 +308,9 @@
       }
       renderClientsLive();
       scrubDemoUi();
+      if (window.CocoIntegrationHub && CocoIntegrationHub.wireAll) {
+        CocoIntegrationHub.wireAll(state.dashboard);
+      }
       document.body.classList.add('dalia-live-only');
       document.body.classList.remove('demo-mode');
       return { dashboard: state.dashboard, bundle: bundle };

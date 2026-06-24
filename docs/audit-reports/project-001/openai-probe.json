@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-06-21T19:57:37.224Z",
-  "ok": true,
+  "timestamp": "2026-06-24T14:48:38.384Z",
+  "ok": false,
   "model": "gpt-4o-mini",
-  "file": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\.env.openai",
-  "modelCount": 120
+  "file": "C:\\Users\\MY-PC\\Desktop\\future-craft-core\\.env.openai.example",
+  "error": "OPENAI_API_KEY not set"
 }

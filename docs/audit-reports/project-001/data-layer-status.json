@@ -1,0 +1,97 @@
+{
+  "at": "2026-06-24T15:09:34.316Z",
+  "phase": "A-data-layer",
+  "aiPhaseBlocked": true,
+  "aiNote": "OpenAI/Claude/Gemini — תשתית מחוברת, API ממתין למפתח (לא מחובר)",
+  "site": "https://dalia-c.com/",
+  "clientId": "dalia-c-official",
+  "dashboardGeneratedAt": "2026-06-21T20:26:57.945Z",
+  "lastSync": "2026-06-21T20:03:11.748Z",
+  "realKpis": {
+    "avgPosition": 45.5,
+    "totalClicks": 0,
+    "totalImpressions": 2,
+    "avgCtr": 0,
+    "activeKeywords": 2,
+    "opportunities": 1,
+    "weakPages": 0,
+    "pendingDrafts": 1,
+    "ga4Sessions": 250,
+    "ga4PageViews": 410
+  },
+  "modules": {
+    "searchConsole": {
+      "wired": true,
+      "active": true,
+      "status": "פעיל — נתונים אמיתיים"
+    },
+    "ga4": {
+      "wired": true,
+      "active": true,
+      "status": "פעיל — נתונים אמיתיים"
+    },
+    "googleBusiness": {
+      "wired": true,
+      "active": false,
+      "status": "ממתין להרשאה — Google Business Profile — Basic API Access"
+    },
+    "googleAds": {
+      "wired": true,
+      "active": false,
+      "status": "ממתין להרשאה — Developer Token"
+    },
+    "tagManager": {
+      "wired": true,
+      "active": false,
+      "status": "ממתין להרשאה — OAuth"
+    },
+    "siteData": {
+      "wired": true,
+      "active": true,
+      "pages": 10,
+      "crawl": "public/project-001/site-crawl.json"
+    },
+    "customerOnboarding": {
+      "wired": true,
+      "active": true,
+      "edge": "create-admin-user deployed",
+      "e2e": "ידני נדרש"
+    },
+    "rlsClientId": {
+      "wired": true,
+      "active": "code-ready",
+      "e2e": "ידני נדרש"
+    },
+    "marketingFlow": {
+      "wired": true,
+      "screens": 10,
+      "clientIdSync": true
+    },
+    "assistants": {
+      "wired": true,
+      "count": 12,
+      "aiApi": "ממתין למפתח"
+    },
+    "openai": {
+      "wired": true,
+      "active": false,
+      "missing": "OPENAI_API_KEY + שלב אישור"
+    },
+    "claude": {
+      "wired": true,
+      "active": false,
+      "missing": "API key"
+    },
+    "gemini": {
+      "wired": true,
+      "active": false,
+      "missing": "Google AI Studio key"
+    }
+  },
+  "nextSteps": [
+    "npm run project-001:auth (ממחשב בעלים + credentials.oauth.json)",
+    "npm run project-001:sync-and-export",
+    "git push dashboard.json → Staging",
+    "בדיקה ידנית: יוני → לקוח חדש → שיווק → מצב נוכחי"
+  ]
+}

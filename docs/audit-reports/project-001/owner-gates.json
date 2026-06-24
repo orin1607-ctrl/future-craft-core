@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-21T20:26:39.792Z",
+  "generatedAt": "2026-06-24T14:47:10.098Z",
   "account": "orin1607@gmail.com",
-  "gcpProjectId": "project001aimarketing",
+  "gcpProjectId": "burnished-craft-466809-v1",
   "gates": {
     "gbp": {
       "id": "gbp_basic_api_access",
@@ -11,11 +11,11 @@
       "alternateLinks": {
         "workflow": "https://support.google.com/business/workflow/16726127",
         "prerequisites": "https://developers.google.com/my-business/content/prereqs",
-        "gcp_dashboard": "https://console.cloud.google.com/home/dashboard?project=project001aimarketing",
-        "gcp_project_number": "https://console.cloud.google.com/home/dashboard?project=project001aimarketing",
-        "enable_account_mgmt_api": "https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com?project=project001aimarketing",
-        "enable_business_info_api": "https://console.cloud.google.com/apis/library/mybusinessbusinessinformation.googleapis.com?project=project001aimarketing",
-        "enable_performance_api": "https://console.cloud.google.com/apis/library/businessprofileperformance.googleapis.com?project=project001aimarketing",
+        "gcp_dashboard": "https://console.cloud.google.com/home/dashboard?project=burnished-craft-466809-v1",
+        "gcp_project_number": "https://console.cloud.google.com/home/dashboard?project=burnished-craft-466809-v1",
+        "enable_account_mgmt_api": "https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com?project=burnished-craft-466809-v1",
+        "enable_business_info_api": "https://console.cloud.google.com/apis/library/mybusinessbusinessinformation.googleapis.com?project=burnished-craft-466809-v1",
+        "enable_performance_api": "https://console.cloud.google.com/apis/library/businessprofileperformance.googleapis.com?project=burnished-craft-466809-v1",
         "business_profile": "https://business.google.com/",
         "quota_docs": "https://developers.google.com/my-business/content/limits"
       },
@@ -49,7 +49,7 @@
         "npm run project-001:complete"
       ],
       "gcpProjectNumber": "484351148380",
-      "gcpProjectId": "project001aimarketing",
+      "gcpProjectId": "burnished-craft-466809-v1",
       "account": "orin1607@gmail.com",
       "businessHint": "דליה פתרונות מימון ותחזוקה לרכב",
       "officialSite": "https://dalia-c.com/",
@@ -68,8 +68,8 @@
       "directLink": "https://ads.google.com/aw/apicenter",
       "alternateLinks": {
         "ads_api_docs": "https://developers.google.com/google-ads/api/docs/first-call/overview",
-        "enable_ads_api": "https://console.cloud.google.com/apis/library/googleads.googleapis.com?project=project001aimarketing",
-        "oauth_consent": "https://console.cloud.google.com/apis/credentials/consent?project=project001aimarketing",
+        "enable_ads_api": "https://console.cloud.google.com/apis/library/googleads.googleapis.com?project=burnished-craft-466809-v1",
+        "oauth_consent": "https://console.cloud.google.com/apis/credentials/consent?project=burnished-craft-466809-v1",
         "env_template": ".env.ads.example"
       },
       "whatToDo": [
@@ -109,7 +109,7 @@
       },
       "account": "orin1607@gmail.com",
       "oauthScope": "https://www.googleapis.com/auth/adwords",
-      "gcpProjectId": "project001aimarketing",
+      "gcpProjectId": "burnished-craft-466809-v1",
       "probeOk": false,
       "developerTokenSet": false,
       "lastProbe": "2026-06-21T20:26:39.692Z"

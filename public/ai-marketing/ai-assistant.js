@@ -67,7 +67,7 @@
     if (!d) return 'נתוני דשבורד: לא נטענו עדיין.';
     var k = d.kpis || {};
     var lines = [
-      'מקור נתונים: ' + (d.meta?.source || 'demo'),
+      'מקור נתונים: ' + (d.meta?.liveOnly ? 'live (dalia-c.com)' : (d.meta?.source === 'live' ? 'live' : (d.meta?.source || 'ממתין'))),
       'מיקום ממוצע: ' + (k.avgPosition?.value || '—'),
       'קליקים שבועיים: ' + (k.weeklyClicks?.value || '—'),
       'חשיפות: ' + (k.weeklyImpressions?.value || '—'),
@@ -250,6 +250,9 @@
   }
 
   function apiChat(prompt, historyOverride) {
+    if (window.CocoIntegrationHub && !CocoIntegrationHub.isAiApiEnabled()) {
+      return Promise.resolve({ ok: false, message: CocoIntegrationHub.getAiBlockedMessage() });
+    }
     var hist = historyOverride || state.history;
     var api = window.COCO_API;
     if (api?.hasApi) {
@@ -326,7 +329,7 @@
       thinking.remove();
       state.busy = false;
       if (!res.ok || !res.text) {
-        appendMsg('bot', res.message || 'לא הצלחתי לקבל תשובה. בדוק חיבור OpenAI.');
+        appendMsg('bot', res.message || 'ממתין למפתח AI — שלב נתונים קודם.');
         return;
       }
       var actions = parseActions(res.text);

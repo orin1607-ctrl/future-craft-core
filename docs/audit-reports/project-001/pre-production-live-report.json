@@ -36,10 +36,18 @@
     "app.js loads dashboard.json only"
   ],
   "pendingActions": [
-    "npm run project-001:auth && npm run project-001:sync-and-export (refresh live data)",
-    "supabase functions deploy create-admin-user --project-ref usfeoerkpcafxxlyuldl",
-    "Manual E2E as יוני אטיאס on Staging"
+    "Place integrations/google/credentials.oauth.json + run npm run project-001:auth (blocked on this CI machine)",
+    "npm run project-001:sync-and-export after auth on owner machine",
+    "Manual E2E login as יוני אטיאס on Staging (marketing flow verified headless)"
   ],
+  "closeOut": {
+    "at": "2026-06-24T14:50:00.000Z",
+    "googleSync": { "attempted": true, "ok": false, "reason": "Missing integrations/google/credentials.oauth.json on build machine — dashboard.json unchanged (2026-06-21)" },
+    "edgeFunction": { "deployed": true, "function": "create-admin-user", "project": "usfeoerkpcafxxlyuldl" },
+    "stagingQaClose": { "passed": 10, "failed": 0, "report": "docs/audit-reports/project-001/staging-live-close.json" },
+    "canWorkTodayOnDaliaC": true,
+    "canWorkTodayNote": "GSC+GA4 real data in UI; refresh sync needs OAuth on owner PC"
+  },
   "productionReady": false,
   "productionBlockers": [
     "Edge function create-admin-user not deployed to Staging",

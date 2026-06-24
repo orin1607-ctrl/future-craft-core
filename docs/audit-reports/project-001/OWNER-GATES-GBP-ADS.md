@@ -1,8 +1,8 @@
 # Project 001 — Owner Gates (GBP + Google Ads)
 
-**Generated:** 2026-06-21T20:26:39.792Z
+**Generated:** 2026-06-24T14:47:10.098Z
 **Account:** orin1607@gmail.com
-**GCP Project:** project001aimarketing
+**GCP Project:** burnished-craft-466809-v1
 
 כל ההכנות מצד הפיתוח הושלמו. נשארו רק שני אישורים חיצוניים:
 
@@ -16,11 +16,11 @@
 - **עיקרי:** https://support.google.com/business/contact/api_default
 - workflow: https://support.google.com/business/workflow/16726127
 - prerequisites: https://developers.google.com/my-business/content/prereqs
-- gcp_dashboard: https://console.cloud.google.com/home/dashboard?project=project001aimarketing
-- gcp_project_number: https://console.cloud.google.com/home/dashboard?project=project001aimarketing
-- enable_account_mgmt_api: https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com?project=project001aimarketing
-- enable_business_info_api: https://console.cloud.google.com/apis/library/mybusinessbusinessinformation.googleapis.com?project=project001aimarketing
-- enable_performance_api: https://console.cloud.google.com/apis/library/businessprofileperformance.googleapis.com?project=project001aimarketing
+- gcp_dashboard: https://console.cloud.google.com/home/dashboard?project=burnished-craft-466809-v1
+- gcp_project_number: https://console.cloud.google.com/home/dashboard?project=burnished-craft-466809-v1
+- enable_account_mgmt_api: https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com?project=burnished-craft-466809-v1
+- enable_business_info_api: https://console.cloud.google.com/apis/library/mybusinessbusinessinformation.googleapis.com?project=burnished-craft-466809-v1
+- enable_performance_api: https://console.cloud.google.com/apis/library/businessprofileperformance.googleapis.com?project=burnished-craft-466809-v1
 - business_profile: https://business.google.com/
 - quota_docs: https://developers.google.com/my-business/content/limits
 
@@ -66,8 +66,8 @@
 ### 1. קישור ישיר
 - **עיקרי:** https://ads.google.com/aw/apicenter
 - ads_api_docs: https://developers.google.com/google-ads/api/docs/first-call/overview
-- enable_ads_api: https://console.cloud.google.com/apis/library/googleads.googleapis.com?project=project001aimarketing
-- oauth_consent: https://console.cloud.google.com/apis/credentials/consent?project=project001aimarketing
+- enable_ads_api: https://console.cloud.google.com/apis/library/googleads.googleapis.com?project=burnished-craft-466809-v1
+- oauth_consent: https://console.cloud.google.com/apis/credentials/consent?project=burnished-craft-466809-v1
 - env_template: .env.ads.example
 
 ### 2. מה לעשות (צעד-אחר-צעד)

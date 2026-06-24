@@ -1,0 +1,31 @@
+{
+  "at": "2026-06-24T15:09:35.318Z",
+  "staging": "http://127.0.0.1:3457",
+  "passed": [
+    "dashboard:site-dalia-c",
+    "dashboard:loaded",
+    "edge:create-admin-user-reachable",
+    "ui:dalia-live-only",
+    "ui:hub-dalia-c",
+    "ui:status-panel",
+    "ui:dalia-exit-btn",
+    "ui:no-demo-company",
+    "ui:status-real-data",
+    "ui:exit-fn"
+  ],
+  "failed": [],
+  "data": {
+    "dashboard": {
+      "generatedAt": "2026-06-21T20:26:57.945Z",
+      "site": "https://dalia-c.com/",
+      "gscClicks": 0,
+      "gscImpressions": 2,
+      "ga4Sessions": 250,
+      "ga4PageViews": 410,
+      "gscPages": 10,
+      "gscQueries": 2,
+      "lastSync": "2026-06-21T20:03:11.748Z"
+    }
+  },
+  "ok": true
+}
