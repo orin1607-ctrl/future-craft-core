@@ -1,5 +1,5 @@
 {
-  "at": "2026-06-24T12:10:47.616Z",
+  "at": "2026-06-24T13:41:01.300Z",
   "passed": [
     "module:vehicles",
     "module:drivers",
@@ -16,7 +16,7 @@
     "customers:service_type",
     "customers:provision",
     "customers:marketing-link",
-    "wizard:service_type",
+    "wizard:service_type-options",
     "edge:marketing-provision",
     "marketing:dalia-nav",
     "marketing:new-client-wizard",

@@ -38,7 +38,7 @@ customersSrc.includes('provisionMarketingClient') ? pass('customers:provision') 
 customersSrc.includes('פתח כרטיס ניהול שיווק') ? pass('customers:marketing-link') : fail('customers:marketing-link');
 
 const wizardSrc = readFileSync(join(process.cwd(), 'src/components/user-management/CreateUserWizardDialog.tsx'), 'utf8');
-wizardSrc.includes('service_type') ? pass('wizard:service_type') : fail('wizard:service_type');
+wizardSrc.includes('BUSINESS_CUSTOMER_SERVICE_TYPES') ? pass('wizard:service_type-options') : fail('wizard:service_type-options');
 
 const edgeSrc = readFileSync(join(process.cwd(), 'supabase/functions/create-admin-user/index.ts'), 'utf8');
 edgeSrc.includes('provisionMarketingClient') ? pass('edge:marketing-provision') : fail('edge:marketing-provision');
