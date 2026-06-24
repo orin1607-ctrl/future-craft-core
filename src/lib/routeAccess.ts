@@ -8,6 +8,7 @@ const MANAGER_PREFIXES = [
   '/vehicle-tracking',
   '/fleetos-ai',
   '/ai-marketing',
+  '/dalia-crm',
   '/transport',
   '/customers',
   '/routes',
@@ -27,6 +28,7 @@ const MANAGER_PREFIXES = [
 
 const SUPER_ADMIN_ONLY = [
   '/ai-marketing',
+  '/dalia-crm',
   '/admin-home',
   '/user-management',
   '/permissions',

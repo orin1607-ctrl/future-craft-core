@@ -67,6 +67,7 @@ import DevFleetOSDashboardPreview from "@/pages/DevFleetOSDashboardPreview";
 import DevFleetOSSettingsPreview from "@/pages/DevFleetOSSettingsPreview";
 import Project001Dashboard from "@/pages/Project001Dashboard";
 import AiMarketingPage from "@/pages/AiMarketingPage";
+import DaliaCrmPage from "@/pages/DaliaCrmPage";
 
 // New pages
 import Companions from "@/pages/Companions";
@@ -167,6 +168,7 @@ function AppRoutes() {
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       {/* Marketing AI — fullscreen, outside Dalia chrome */}
       <Route path="/ai-marketing" element={<AiMarketingPage />} />
+      <Route path="/dalia-crm" element={<DaliaCrmPage />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />

@@ -1,0 +1,23 @@
+{
+  "at": "2026-06-24T16:15:14.937Z",
+  "passed": [
+    "file:public/dalia-crm-platform.html",
+    "file:public/crm/dalia-crm-screens.html",
+    "file:public/crm/dalia-crm-app.js",
+    "file:public/crm/dalia-crm-auth.js",
+    "file:public/crm/dalia-crm-nav.js",
+    "file:public/crm/dalia-crm.css",
+    "file:src/pages/DaliaCrmPage.tsx",
+    "crm:no-demo-clients",
+    "crm:supabase-list",
+    "crm:pending-labels",
+    "crm:loads-api",
+    "crm:react-route",
+    "crm:route-access",
+    "crm:admin-home-link",
+    "staging:crm-platform-http",
+    "staging:crm-main-screen",
+    "staging:crm-title"
+  ],
+  "failed": []
+}

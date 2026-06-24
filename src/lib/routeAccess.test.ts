@@ -22,4 +22,9 @@ describe('routeAccess', () => {
   it('super_admin can access ai-marketing', () => {
     expect(canAccessRoute('/ai-marketing', 'super_admin')).toBe(true);
   });
+
+  it('super_admin can access dalia-crm; fleet_manager cannot', () => {
+    expect(canAccessRoute('/dalia-crm', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/dalia-crm', 'fleet_manager')).toBe(false);
+  });
 });
