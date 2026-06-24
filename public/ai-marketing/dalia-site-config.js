@@ -212,7 +212,17 @@
 
   function renderAssetsLive(raw) {
     var grid = document.getElementById('coco-live-assets-grid');
-    if (!grid) return;
+    if (!grid) {
+      var screen = document.getElementById('screen-assets');
+      if (!screen) return;
+      var content = screen.querySelector('.content');
+      if (!content) return;
+      grid = document.createElement('div');
+      grid.id = 'coco-live-assets-grid';
+      grid.className = 'coco-live-section grid grid-3';
+      grid.style.cssText = 'gap:10px;padding:16px 20px 0;';
+      content.insertBefore(grid, content.firstChild);
+    }
     var conn = raw.connections || {};
     var assets = [
       { icon: '🌐', name: SITE.domain, detail: SITE.url, ok: true },
@@ -231,6 +241,28 @@
       return '<div class="asset-card"><div class="asset-header"><div class="asset-icon">' + a.icon + '</div><div><div class="asset-name">' + esc(a.name) + '</div><div class="asset-status">' + esc(a.detail) + '</div></div></div>' +
         (a.ok ? '<span class="badge badge-green">● פעיל</span>' : '<span class="badge badge-yellow">⏳ ' + esc(PENDING) + '</span>') + '</div>';
     }).join('');
+    var sub = document.querySelector('#screen-assets .page-subtitle');
+    if (sub) sub.textContent = 'מרכז שליטה — ' + SITE.company + ' · ' + SITE.domain;
+    hideStaticDemoBlocks();
+  }
+
+  function renderHubAiBox(bundle) {
+    var hdr = document.querySelector('#screen-hub .ai-box-header');
+    var txt = document.querySelector('#screen-hub .ai-box-text');
+    if (!hdr || !txt) return;
+    hdr.textContent = 'המלצת AI — ' + SITE.domain + ' (ממתין למפתח)';
+    var suggestions = (bundle && bundle.ai && bundle.ai.recommendations) || [];
+    var raw = state.dashboard;
+    var seo = (raw && raw.aiSeoSuggestions) || [];
+    if (seo.length) {
+      txt.innerHTML = seo.slice(0, 3).map(function (s) {
+        return '• ' + esc(s.title || s.suggestion || String(s));
+      }).join('<br>') + '<br><span style="color:var(--white50);font-size:12px;">מקור: GSC/GA4 · AI מנועים: ממתין למפתח</span>';
+    } else if (suggestions.length) {
+      txt.textContent = suggestions.slice(0, 2).join(' · ') + ' — AI: ממתין למפתח';
+    } else {
+      txt.textContent = 'נתוני GSC/GA4 פעילים ל-' + SITE.domain + '. מנועי AI (OpenAI/Claude/Gemini) ממתינים למפתח — שלב נתונים קודם.';
+    }
   }
 
   function renderClientsLive() {
@@ -288,13 +320,16 @@
 
   function hideStaticDemoBlocks() {
     var demoRx = /גרין|greentech|8,420|14,320|184,000|342|77%|42 ליד|FleetOS|דלתא לוגיסטיקה|9 עמודים חלשים|23 ממצא|12 משימות/i;
-    ['screen-goals', 'screen-actions', 'screen-history', 'screen-assets', 'screen-hub'].forEach(function (sid) {
+    ['screen-goals', 'screen-actions', 'screen-history', 'screen-assets', 'screen-hub', 'screen-ai-decisions', 'screen-reports'].forEach(function (sid) {
       var screen = document.getElementById(sid);
       if (!screen) return;
       screen.querySelectorAll('.section, .grid.grid-4, .act-item, .action-card, .timeline .tl-item').forEach(function (el) {
         if (el.closest('.coco-live-section') || (el.id && el.id.indexOf('coco-live') === 0)) return;
         if (demoRx.test(el.textContent || '')) el.style.display = 'none';
       });
+    });
+    document.querySelectorAll('#screen-assets .asset-card').forEach(function (el) {
+      if (!el.closest('#coco-live-assets-grid')) el.style.display = 'none';
     });
     document.querySelectorAll('#screen-agents .section .grid.grid-4').forEach(function (g) {
       if (!g.closest('#coco-live-agents-root')) g.style.display = 'none';
@@ -469,6 +504,7 @@
         renderAssetsLive(state.dashboard);
       }
       renderClientsLive();
+      renderHubAiBox(bundle);
       scrubDemoUi();
       if (window.CocoIntegrationHub && CocoIntegrationHub.wireAll) {
         CocoIntegrationHub.wireAll(state.dashboard);
@@ -487,6 +523,8 @@
     buildLiveBundle: buildLiveBundle,
     applySiteLabels: applySiteLabels,
     renderStatusLive: renderStatusLive,
+    renderHubAiBox: renderHubAiBox,
+    renderAssetsLive: renderAssetsLive,
     getDashboard: function () { return state.dashboard; },
     getAgentData: getAgentData,
     isLiveOnly: function () { return true; },

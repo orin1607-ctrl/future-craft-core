@@ -31,6 +31,7 @@ const COCO_ASSETS = [
   'coco-claude-main.js', 'coco-claude-bridge.js', 'coco-claude-screens.html',
   'coco-claude-main.css', 'coco-claude-integration.css', 'prd-dalia-nav.js',
   'marketing-api.js', 'marketing-client.js', 'home-prd.css', 'app.js', 'dalia-site-config.js',
+  'coco-integration-hub.js', 'coco-claude-data.js',
 ];
 
 const report = {
@@ -95,6 +96,29 @@ async function runCocoQa(page, vp) {
   liveOnly.site ? pass(`${vp.name}:dalia-c-site-label`) : fail(`${vp.name}:dalia-c-site-label`);
   liveOnly.company ? pass(`${vp.name}:no-demo-company-label`) : fail(`${vp.name}:no-demo-company-label`);
   liveOnly.statusRoot ? pass(`${vp.name}:live-status-panel`) : fail(`${vp.name}:live-status-panel`);
+
+  const hubKpis = await page.evaluate(() => {
+    const t = document.getElementById('coco-live-hub-kpis')?.textContent || '';
+    return {
+      text: t,
+      fake: /14,320|8,420/.test(t.replace(/\s/g, '')),
+      hasGsc: /קליקים|GSC/.test(t),
+    };
+  });
+  !hubKpis.fake ? pass(`${vp.name}:hub-no-fake-kpis`) : fail(`${vp.name}:hub-fake-kpis`);
+  hubKpis.hasGsc ? pass(`${vp.name}:hub-live-kpi-labels`) : fail(`${vp.name}:hub-live-kpi-labels`);
+
+  await page.evaluate(() => window.goScreen('screen-assets'));
+  await page.waitForTimeout(400);
+  const assetsLive = await page.evaluate(() => ({
+    grid: !!document.getElementById('coco-live-assets-grid'),
+    dalia: (document.querySelector('#screen-assets .page-subtitle')?.textContent || '').includes('dalia-c.com'),
+    noGreentech: !(document.getElementById('coco-live-assets-grid')?.textContent || '').includes('greentech'),
+  }));
+  assetsLive.grid ? pass(`${vp.name}:assets-live-grid`) : fail(`${vp.name}:assets-live-grid`);
+  assetsLive.dalia || assetsLive.noGreentech ? pass(`${vp.name}:assets-dalia-site`) : fail(`${vp.name}:assets-dalia-site`);
+
+  await page.evaluate(() => window.goScreen('screen-hub'));
 
   if (vp.name === 'mobile') {
     const overflow = await page.evaluate(() => ({

@@ -188,9 +188,18 @@
   }
 
   function isLive() {
+    if (window.DaliaSite && DaliaSite.isLiveOnly && DaliaSite.isLiveOnly()) return true;
     if (typeof window.isLiveData === 'function') return window.isLiveData();
     var d = window.COCO && window.COCO.data;
     return !!(d && d.meta && (d.meta.source === 'live' || d.meta.liveOnly));
+  }
+
+  function pendingList(msg) {
+    return [{ type: 'warn', text: msg || 'ממתין לחיבור' }];
+  }
+
+  function pendingActions() {
+    return [{ id: 'pending', title: 'ממתין לנתונים / הרשאות', module: 'pending', needsApproval: false }];
   }
 
   function connSummary(conn) {
@@ -217,7 +226,7 @@
     if (ads && !ads.ok) out.push({ type: 'warn', text: 'Google Ads ממתין ל-Developer Token' });
     var kw = d.keywords || [];
     if (kw[0]) out.push({ type: 'up', text: 'מילה מובילה: "' + kw[0].keyword + '" — דירוג ' + kw[0].rank });
-    return out.length ? out : DEMO.changes;
+    return out.length ? out : (isLive() ? pendingList('ממתין לעדכון GSC/GA4') : DEMO.changes);
   }
 
   function buildLiveAutoDone(d) {
@@ -230,12 +239,12 @@
     if (weak && weak !== '0') out.push('זיהוי ' + weak + ' עמודים חלשים');
     var drafts = d.badges?.pendingApproval;
     if (drafts) out.push(drafts + ' טיוטות ממתינות לאישור');
-    return out.length ? out : DEMO.autoDone;
+    return out.length ? out : (isLive() ? ['ממתין לנתונים'] : DEMO.autoDone);
   }
 
   function buildLiveActions(d) {
     var list = d.approvals || [];
-    if (!list.length) return DEMO.actions;
+    if (!list.length) return isLive() ? pendingActions() : DEMO.actions;
     return list.slice(0, 6).map(function (a, i) {
       return { id: a.id || ('live' + i), title: a.title, module: 'approval', needsApproval: true };
     });
@@ -256,26 +265,26 @@
           ' · GA4: ' + (k.ga4Sessions?.value || d?.ga4Sessions || '—') + ' סשנים' +
           (d?.gbpLive && !d.gbpLive.ok ? ' · GBP ממתין' : ''))
         : DEMO.businessStatus,
-      changes: live ? buildLiveChanges(d) : DEMO.changes,
+      changes: live ? buildLiveChanges(d) : (isLive() ? pendingList() : DEMO.changes),
       topTask: live && d?.aiSeoSuggestions?.length
         ? d.aiSeoSuggestions[0].title || d.aiSeoSuggestions[0]
-        : DEMO.topTask,
+        : (isLive() ? 'ממתין לנתונים מ-GSC/GA4' : DEMO.topTask),
       goals: live ? [
         { name: 'קליקים GSC', current: Number(k.weeklyClicks?.value) || 0, target: 100, pct: Math.min(99, Number(k.weeklyClicks?.value) || 0) },
         { name: 'מילות מפתח', current: Number(kwN) || 0, target: 50, pct: Math.min(99, Math.round((Number(kwN) || 0) * 2)) },
         { name: 'סשנים GA4', current: Number(k.ga4Sessions?.value || d?.ga4Sessions) || 0, target: 500, pct: Math.min(99, Math.round((Number(k.ga4Sessions?.value) || 0) / 5)) },
-      ] : DEMO.goals,
+      ] : (isLive() ? [{ name: 'ממתין', current: 0, target: 0, pct: 0 }] : DEMO.goals),
       recommend: live && d?.aiSeoSuggestions?.length
         ? d.aiSeoSuggestions.slice(0, 5).map(function (s) { return s.title || s.text || String(s); })
-        : DEMO.recommend,
+        : (isLive() ? ['ממתין למפתח AI'] : DEMO.recommend),
       opportunities: live
         ? ['הזדמנויות AI: ' + (k.aiOpportunities?.value || '0'), 'עמודים לשיפור: ' + weakN].concat(
           (d.keywords || []).slice(0, 2).map(function (kw) { return 'מילה: ' + kw.keyword + ' (דירוג ' + kw.rank + ')'; })
         )
-        : DEMO.opportunities,
+        : (isLive() ? ['ממתין לנתונים'] : DEMO.opportunities),
       needsApproval: pending,
-      autoDone: live ? buildLiveAutoDone(d) : DEMO.autoDone,
-      actions: live ? buildLiveActions(d) : DEMO.actions,
+      autoDone: live ? buildLiveAutoDone(d) : (isLive() ? ['ממתין'] : DEMO.autoDone),
+      actions: live ? buildLiveActions(d) : (isLive() ? pendingActions() : DEMO.actions),
       dash: {
         site: weakN !== '0' ? (weakN + ' עמודים חלשים') : (live ? 'תקין' : '9 עמודים חלשים'),
         seo: k.avgPosition?.value || '—',
@@ -288,7 +297,7 @@
         leads: live ? '—' : '42',
         tasks: live ? String(pending) + ' פתוחות' : '12 פתוחות',
         approval: String(pending),
-        kpi: live ? (k.avgCtr?.value || '—') : '77%',
+        kpi: live ? (k.avgCtr?.value || '—') : (isLive() ? '—' : '77%'),
         notif: live ? String(pending) : '12',
         conn: live ? connSummary(d.connections) : 'GSC+GA4 ✓',
       },

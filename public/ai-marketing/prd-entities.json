@@ -1,44 +1,27 @@
 {
-  "version": 2,
+  "version": 3,
+  "liveOnly": true,
   "companies": [
-    { "id": "coco-dalia", "name": "CO.CO דליה", "businessId": "514000000" },
-    { "id": "demo-client", "name": "לקוח דמו", "businessId": "999000001" }
+    { "id": "dalia-c-official", "name": "דליה פתרונות מימון ותחזוקה לרכב", "businessId": "514000000" }
   ],
   "businesses": [
-    { "id": "biz-dalia", "companyId": "coco-dalia", "name": "דליה פתרונות תפעול ותחזוקה לרכב" },
-    { "id": "biz-demo", "companyId": "demo-client", "name": "עסק דמו שיווק" }
+    { "id": "biz-dalia", "companyId": "dalia-c-official", "name": "דליה פתרונות מימון ותחזוקה לרכב" }
   ],
   "projects": [
     { "id": "proj-marketing", "businessId": "biz-dalia", "name": "ניהול שיווק", "type": "שיווק דיגיטלי" },
-    { "id": "proj-site", "businessId": "biz-dalia", "name": "אתר dalia-c.com", "type": "אתר" },
-    { "id": "proj-demo", "businessId": "biz-demo", "name": "פרויקט דמו", "type": "שיווק" }
+    { "id": "proj-site", "businessId": "biz-dalia", "name": "אתר dalia-c.com", "type": "אתר" }
   ],
   "sites": [
-    { "id": "site-dalia-c", "projectId": "proj-site", "name": "dalia-c.com", "domain": "dalia-c.com", "url": "https://dalia-c.com/" },
-    { "id": "site-dalia-co", "projectId": "proj-marketing", "name": "dalia.co.il", "domain": "dalia.co.il", "url": "https://dalia.co.il/" },
-    { "id": "site-demo", "projectId": "proj-demo", "name": "demo.example.com", "domain": "demo.example.com", "url": "https://demo.example.com/" }
+    { "id": "site-dalia-c", "projectId": "proj-site", "name": "dalia-c.com", "domain": "dalia-c.com", "url": "https://dalia-c.com/" }
   ],
   "pages": [
     { "id": "page-home", "siteId": "site-dalia-c", "path": "/", "title": "דף הבית" },
     { "id": "page-services", "siteId": "site-dalia-c", "path": "/שירותים", "title": "שירותים" },
-    { "id": "page-fleet", "siteId": "site-dalia-c", "path": "/ניהול-צי", "title": "ניהול צי רכב" },
-    { "id": "page-seo", "siteId": "site-dalia-c", "path": "/seo", "title": "SEO" }
+    { "id": "page-fleet", "siteId": "site-dalia-c", "path": "/ניהול-צי", "title": "ניהול צי רכב" }
   ],
-  "campaigns": [
-    { "id": "camp-seo", "projectId": "proj-marketing", "name": "קידום אורגני", "number": "SEO-001", "externalId": "22847391001", "type": "SEO", "channel": "google_seo", "status": "פעיל", "responsibleUserId": "user-seo" },
-    { "id": "camp-ads", "projectId": "proj-marketing", "name": "Google Ads — לידים", "number": "ADS-104", "externalId": "18472938401", "type": "Search", "channel": "google_ads", "status": "פעיל", "responsibleUserId": "user-campaigns" },
-    { "id": "camp-gbp", "projectId": "proj-marketing", "name": "Google Business", "number": "GBP-01", "externalId": "GBP-DALIA-01", "type": "מקומי", "channel": "google_business", "status": "פעיל", "responsibleUserId": "user-marketing" },
-    { "id": "camp-fb", "projectId": "proj-marketing", "name": "Facebook — מודעות", "number": "FB-220", "externalId": "120238472910", "type": "Social", "channel": "facebook", "status": "מושהה", "responsibleUserId": "user-campaigns" },
-    { "id": "camp-ig", "projectId": "proj-marketing", "name": "Instagram Stories", "number": "IG-088", "externalId": "178462910384", "type": "Social", "channel": "instagram", "status": "פעיל", "responsibleUserId": "user-content" },
-    { "id": "camp-email", "projectId": "proj-marketing", "name": "Newsletter חודשי", "number": "EML-12", "externalId": "EML-DALIA-12", "type": "Email", "channel": "email", "status": "טיוטה", "responsibleUserId": "user-content" }
-  ],
+  "campaigns": [],
   "responsibleUsers": [
-    { "id": "user-marketing", "role": "מנהל שיווק", "name": "יוני כהן" },
-    { "id": "user-seo", "role": "איש SEO", "name": "מיכל לוי" },
-    { "id": "user-campaigns", "role": "מנהל קמפיינים", "name": "דני אברהם" },
-    { "id": "user-content", "role": "כותב תוכן", "name": "נועה שמש" },
-    { "id": "user-design", "role": "מעצב", "name": "עומר גל" },
-    { "id": "user-client", "role": "מנהל לקוח", "name": "רונית דליה" }
+    { "id": "user-yoni", "role": "Super Admin", "name": "יוני אטיאס" }
   ],
   "channels": [
     { "id": "google_seo", "label": "Google SEO" },
@@ -46,7 +29,6 @@
     { "id": "google_business", "label": "Google Business" },
     { "id": "facebook", "label": "Facebook" },
     { "id": "instagram", "label": "Instagram" },
-    { "id": "tiktok", "label": "TikTok" },
     { "id": "linkedin", "label": "LinkedIn" },
     { "id": "youtube", "label": "YouTube" },
     { "id": "whatsapp", "label": "WhatsApp" },

@@ -281,22 +281,23 @@
     }
     var m = state.meta;
     var parts = [];
-    if (m.clientSource === 'dalia') parts.push('לקוח: דליה');
-    else if (m.clientSource === 'demo') parts.push('לקוח: דמו (מושבת)');
+    if (m.clientSource === 'dalia' || m.clientSource === 'live') parts.push('לקוח: dalia-c.com');
+    else if (m.clientSource === 'pending') parts.push('לקוח: ממתין');
     if (m.kpiSource === 'live') parts.push('KPI: חי');
     else if (m.kpiSource === 'pending') parts.push('KPI: ממתין');
-    else parts.push('KPI: דמו (מושבת)');
+    else parts.push('KPI: ממתין');
     badge.textContent = 'מקור: ' + parts.join(' · ');
   }
 
   function bindHub(bundle) {
     var kpis = deriveKpis(bundle);
     setHtml('coco-live-hub-kpis', [
-      '<div class="card" style="padding:12px 14px;"><div class="card-title">ציון אתר</div><div class="card-value" style="font-size:22px;color:var(--green);">' + esc(kpis.siteScore) + '</div></div>',
-      '<div class="card" style="padding:12px 14px;"><div class="card-title">כניסות</div><div class="card-value" style="font-size:22px;">' + esc(kpis.visits) + '</div></div>',
-      '<div class="card" style="padding:12px 14px;"><div class="card-title">לידים / משימות</div><div class="card-value" style="font-size:22px;color:var(--accent2);">' + esc(kpis.leads) + '</div></div>',
-      '<div class="card" style="padding:12px 14px;"><div class="card-title">משימות פתוחות</div><div class="card-value" style="font-size:22px;color:var(--yellow);">' + esc(kpis.openTasks) + '</div></div>',
+      '<div class="card" style="padding:12px 14px;"><div class="card-title">קליקים (GSC)</div><div class="card-value" style="font-size:22px;">' + esc(kpis.clicks) + '</div></div>',
+      '<div class="card" style="padding:12px 14px;"><div class="card-title">חשיפות (GSC)</div><div class="card-value" style="font-size:22px;">' + esc(kpis.impressions) + '</div></div>',
+      '<div class="card" style="padding:12px 14px;"><div class="card-title">סשנים (GA4)</div><div class="card-value" style="font-size:22px;color:var(--accent2);">' + esc(kpis.visits) + '</div></div>',
+      '<div class="card" style="padding:12px 14px;"><div class="card-title">מיקום ממוצע</div><div class="card-value" style="font-size:22px;color:var(--yellow);">' + esc(kpis.position) + '</div></div>',
     ].join(''));
+    if (window.DaliaSite && DaliaSite.renderHubAiBox) DaliaSite.renderHubAiBox(bundle);
     var goals = deriveGoals(bundle);
     var actions = deriveActions(bundle);
     var assets = deriveAssets(bundle);
@@ -398,15 +399,16 @@
   }
 
   function bindHistory(bundle) {
+    ensureLiveMount('coco-live-history-empty', 'screen-history');
     var items = applyCtxFilter(deriveHistory(bundle), function (h) {
       return { campaign: h.title, status: h.status, action: h.detail };
     });
-    setHtml('coco-live-history-timeline', items.slice(0, 12).map(function (h) {
+    setHtml('coco-live-history-timeline', items.length ? items.slice(0, 12).map(function (h) {
       var color = /בוצע|done|active/.test(h.status) ? 'var(--green)' : 'var(--yellow)';
       return '<div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:' + color + '"></div><div class="tl-line"></div></div>' +
         '<div class="tl-content"><div class="tl-title">' + esc(h.title) + '</div>' +
         '<div class="tl-time">' + esc(h.date || '') + ' | ' + esc(h.detail || h.type) + ' | ' + esc(h.status) + '</div></div></div>';
-    }).join(''));
+    }).join('') : '<div class="alert alert-info">אין היסטוריה מתועדת — יופיע לאחר קמפיינים ופעולות בדליה.</div>');
     var sites = (bundle && bundle.sites) || [];
     setHtml('coco-live-history-site', sites.slice(0, 6).map(function (s) {
       return '<tr><td>' + esc((s.updated_at || s.created_at || '').slice(0, 10)) + '</td><td>' + esc(s.name) + '</td><td>אתר ' + esc(s.site_type) + '</td><td>דליה</td><td>' + statusBadge(s.status) + '</td></tr>';
@@ -456,12 +458,12 @@
     var actions = deriveActions(bundle);
     var keywords = getKeywords();
     setHtml('coco-live-reports-grid', [
-      { title: '📊 דוח מצב נוכחי', rows: [['ציון אתר', kpis.siteScore], ['כניסות', kpis.visits], ['לידים', kpis.leads]] },
+      { title: '📊 דוח מצב נוכחי', rows: [['קליקים GSC', kpis.clicks], ['סשנים GA4', kpis.visits], ['חשיפות', kpis.impressions]] },
       { title: '🔍 דוח SEO', rows: [['מילות מפתח', keywords.length || '—'], ['מיקום ממוצע', kpis.position], ['CTR', kpis.ctr]] },
       { title: '📢 דוח קמפיינים', rows: [['קמפיינים', (bundle && bundle.campaigns && bundle.campaigns.length) || 0], ['פעילים', (bundle && bundle.campaigns && bundle.campaigns.filter(function (c) { return c.status === 'active'; }).length) || 0], ['טיוטה', (bundle && bundle.campaigns && bundle.campaigns.filter(function (c) { return c.status === 'draft'; }).length) || 0]] },
       { title: '⚙️ דוח פעולות', rows: [['ממתינות', actions.filter(function (a) { return a.status !== 'done'; }).length], ['הושלמו', actions.filter(function (a) { return a.status === 'done'; }).length], ['סה״כ', actions.length]] },
       { title: '🎯 דוח מטרות', rows: [['פעילות', goals.filter(function (g) { return g.status === 'active'; }).length], ['ממתינות', goals.filter(function (g) { return g.status === 'pending'; }).length], ['סה״כ', goals.length]] },
-      { title: '📅 דוח חודשי', rows: [['כניסות', kpis.visits], ['קליקים', kpis.clicks], ['מקור', state.meta.kpiSource === 'live' ? 'חי' : 'דמו']] },
+      { title: '📅 דוח חודשי', rows: [['כניסות', kpis.visits], ['קליקים', kpis.clicks], ['מקור', state.meta.kpiSource === 'live' ? 'חי' : 'ממתין']] },
     ].map(function (box) {
       return '<div class="report-box" style="cursor:pointer;" onclick="openModal(\'modal-report\')"><div class="report-title">' + box.title + '</div>' +
         box.rows.map(function (r) { return '<div class="report-row"><span class="rl">' + r[0] + '</span><span class="rv">' + esc(r[1]) + '</span></div>'; }).join('') + '</div>';

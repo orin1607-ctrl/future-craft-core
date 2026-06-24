@@ -112,11 +112,11 @@
 
   function resolveCompanySlug(name) {
     if (!name) return '';
+    if (window.DaliaSite && DaliaSite.SITE) return DaliaSite.SITE.domain.replace(/\./g, '-');
     for (var key in DEMO_CLIENTS) {
       if (DEMO_CLIENTS[key].name === name || name.indexOf(key) !== -1) return DEMO_CLIENTS[key].company;
     }
-    if (/גרין|green/i.test(name)) return 'greentech';
-    if (/דלתא|delta/i.test(name)) return 'delta';
+    if (/דליה|dalia/i.test(name)) return 'dalia-c';
     return '';
   }
 

@@ -73,7 +73,7 @@
     "project-001:qa-v4": "node scripts/qa-v4-orincar.mjs",
     "project-001:qa-mobile": "node scripts/capture-v4-mobile-qa.mjs",
     "project-001:qa-uat": "node scripts/qa-p1-uat.mjs",
-    "project-001:qa-prd-a": "node scripts/qa-v4-orincar.mjs",
+    "project-001:generate-handoff": "node scripts/generate-data-layer-status.mjs && node scripts/generate-owner-handoff.mjs",
     "ai-marketing:openai-modules-probe": "node scripts/ai-marketing/openai-modules-probe.mjs"
   },
   "dependencies": {

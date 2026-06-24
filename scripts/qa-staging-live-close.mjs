@@ -65,6 +65,17 @@ ui.statusPanel ? pass('ui:status-panel') : fail('ui:status-panel');
 ui.daliaExit ? pass('ui:dalia-exit-btn') : fail('ui:dalia-exit-btn');
 !ui.demoCompany ? pass('ui:no-demo-company') : fail('ui:demo-company-visible');
 
+const hubFake = await page.evaluate(() => {
+  const t = document.getElementById('coco-live-hub-kpis')?.textContent || '';
+  return /14,320|8,420/.test(t);
+});
+!hubFake ? pass('ui:hub-no-fake-kpis') : fail('ui:hub-fake-kpis');
+
+await page.evaluate(() => window.goScreen('screen-assets'));
+await page.waitForTimeout(500);
+const assetsGrid = await page.evaluate(() => !!document.getElementById('coco-live-assets-grid'));
+assetsGrid ? pass('ui:assets-live-grid') : fail('ui:assets-live-grid');
+
 await page.evaluate(() => window.goScreen('screen-status'));
 await page.waitForTimeout(800);
 const statusHasReal = await page.evaluate(() => {
