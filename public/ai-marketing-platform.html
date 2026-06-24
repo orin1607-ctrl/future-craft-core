@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="ui-version" content="v2-hub-1">
+<meta name="ui-version" content="v3-claude-full-1">
 <title>CO.CO דליה — מנהל שיווק AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./ai-marketing/home-v4.css">
@@ -412,7 +412,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   .tbl-wrap table{min-width:560px}
 }
 </style>
-<link rel="stylesheet" href="./ai-marketing/coco-v2.css?v=1">
+<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-claude-full-1">
 </head>
 <body>
 
@@ -2827,7 +2827,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   </div>
 </div>
 
-<div id="coco-v2-mount"></div>
+<div id="coco-claude-root" aria-label="ניהול שיווק — Claude UI"></div>
 
   </main><!-- /content -->
 </div><!-- /main -->
@@ -2972,14 +2972,18 @@ function closeModal(id) {
 document.getElementById('kwModal').addEventListener('click', function(e) { if (e.target === this) closeModal('kwModal'); });
 document.getElementById('compModal').addEventListener('click', function(e) { if (e.target === this) closeModal('compModal'); });
 
-// Init: load Coco V2 screens then show hub (v4 morning remains in sidebar)
-(function initCocoV2() {
-  var mount = document.getElementById('coco-v2-mount');
+// Preserve legacy navigation before Claude bridge overwrites gotoSc
+window._gotoScLegacy = gotoSc;
+
+// Init: load Claude UI (1:1) then show screen-hub
+(function initCocoClaude() {
+  var root = document.getElementById('coco-claude-root');
+  var ver = 'v3-claude-full-1';
   var loadUi = function() {
     return new Promise(function(resolve, reject) {
-      if (window.CocoV2) { resolve(); return; }
+      if (window.CocoClaude && typeof window.goScreen === 'function') { resolve(); return; }
       var s = document.createElement('script');
-      s.src = './ai-marketing/coco-v2-ui.js?v=1';
+      s.src = './ai-marketing/coco-claude-main.js?v=' + ver;
       s.onload = resolve;
       s.onerror = reject;
       document.body.appendChild(s);
@@ -2987,19 +2991,19 @@ document.getElementById('compModal').addEventListener('click', function(e) { if 
   };
   var boot = function() {
     document.querySelectorAll('.screen').forEach(function(sc) { screenMap[sc.id] = sc; });
-    if (window.CocoV2) CocoV2.init();
-    gotoSc('hub');
+    if (window.CocoClaude) CocoClaude.init();
+    else if (typeof window.goScreen === 'function') goScreen('screen-hub');
   };
-  if (!mount) { boot(); return; }
-  fetch('./ai-marketing/coco-v2-screens.html?v=1')
+  if (!root) { boot(); return; }
+  fetch('./ai-marketing/coco-claude-screens.html?v=' + ver)
     .then(function(r) { return r.ok ? r.text() : ''; })
     .then(function(html) {
-      if (html) mount.innerHTML = html;
+      if (html) root.innerHTML = html;
       return loadUi();
     })
     .catch(function() { return loadUi(); })
     .then(boot)
-    .catch(function(e) { console.warn('CocoV2 load:', e); boot(); });
+    .catch(function(e) { console.warn('CocoClaude load:', e); boot(); });
 })();
 </script>
 <script src="./ai-marketing/home-v4.js"></script>

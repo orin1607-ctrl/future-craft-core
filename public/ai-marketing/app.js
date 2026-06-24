@@ -112,6 +112,7 @@
     if (d.approvals?.length) bindApprovals(d.approvals);
     bindGbpToUI();
     bindAdsToUI();
+    if (window.CocoClaude?.bindClientData) CocoClaude.bindClientData(d);
     if (window.CocoV2?.bindClientData) CocoV2.bindClientData(d);
   }
 
