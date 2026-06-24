@@ -76,6 +76,10 @@ function toggleTheme() {
 
 // ===== CLIENT SELECT =====
 function selectClient(name) {
+  if (window.CocoClaude && CocoClaude.bindDemoClient) {
+    CocoClaude.bindDemoClient(name);
+    return;
+  }
   showToast('🏢 עבר ללקוח: ' + name);
 }
 
@@ -928,7 +932,7 @@ document.querySelectorAll('.screen').forEach(screen => {
   });
 });
 
-// ===== COCO CLAUDE INTEGRATION (Phase A+) =====
+// ===== COCO CLAUDE INTEGRATION (Phase C — flow context sync) =====
 (function () {
   'use strict';
 
@@ -939,8 +943,10 @@ document.querySelectorAll('.screen').forEach(screen => {
       company: '',
       clientName: '',
       site: '',
+      domain: '',
       page: '',
       campaign: '',
+      campaignType: '',
       channel: '',
       goal: '',
       action: '',
@@ -949,11 +955,19 @@ document.querySelectorAll('.screen').forEach(screen => {
       dateFrom: '',
       dateTo: '',
       agent: '',
+      project: '',
       selectedCard: null
     };
   }
 
-  var STORAGE_KEY = 'coco-flow-context-v1';
+  var STORAGE_KEY = 'coco-flow-context-v2';
+  var SYNC_GUARD = false;
+
+  var DEMO_CLIENTS = {
+    'גרין-טק פתרונות': { id: 'demo-greentech', company: 'greentech', name: 'גרין-טק פתרונות בע"מ', site: 'greentech.co.il', sub: 'ניהול שיווק + ניהול צי' },
+    'דלתא לוגיסטיקה': { id: 'demo-delta', company: 'delta', name: 'דלתא לוגיסטיקה בע"מ', site: 'delta-log.co.il', sub: 'ניהול שיווק בלבד' },
+    'פתרונות טק': { id: 'demo-techsol', company: 'techsol', name: 'פתרונות טק ישראל', site: 'techsol.co.il', sub: 'ניהול שיווק בלבד' }
+  };
 
   var FLOW_CHAIN = [
     'screen-hub',
@@ -992,21 +1006,31 @@ document.querySelectorAll('.screen').forEach(screen => {
   };
 
   var FIELD_MAP = [
-    { ctx: 'company', ids: ['sf-company-display', 'gf-company', 'ag-company', 'act-company', 'hist-company', 'ai-company', 'rep-company'] },
+    { ctx: 'company', ids: ['gf-company', 'ag-company', 'act-company', 'hist-company', 'ai-company', 'rep-company'], displayIds: ['sf-company-display'] },
     { ctx: 'site', ids: ['sf-site', 'gf-site', 'ag-site', 'act-site', 'hist-site', 'ai-site', 'rep-site'] },
+    { ctx: 'domain', ids: ['gf-domain', 'ag-domain', 'act-domain'] },
     { ctx: 'page', ids: ['sf-page', 'gf-page', 'act-page', 'hist-page', 'ai-page', 'rep-page'] },
     { ctx: 'campaign', ids: ['sf-campaign', 'gf-campaign', 'act-campaign', 'hist-campaign', 'ai-campaign', 'rep-campaign'] },
+    { ctx: 'campaignType', ids: ['sf-campaign-type', 'gf-campaign-type', 'act-campaign-type'] },
     { ctx: 'channel', ids: ['sf-channel', 'gf-channel', 'rep-channel'] },
     { ctx: 'status', ids: ['sf-status', 'gf-status', 'ag-status', 'act-status-adv', 'hist-status', 'rep-status'] },
     { ctx: 'dateRange', ids: ['sf-daterange', 'gf-date', 'act-date-range', 'hist-date', 'ai-date', 'rep-date'] },
+    { ctx: 'dateFrom', ids: ['sf-date-from'] },
+    { ctx: 'dateTo', ids: ['sf-date-to'] },
     { ctx: 'agent', ids: ['gf-agent', 'ag-agent', 'act-source', 'ai-agent', 'rep-ai-agent'] },
-    { ctx: 'goal', ids: ['gf-goal-category', 'ai-goal'] },
-    { ctx: 'action', ids: ['act-type', 'hist-action-type'] }
+    { ctx: 'goal', ids: ['gf-goal-category', 'ai-goal', 'act-cat'] },
+    { ctx: 'action', ids: ['act-type', 'hist-action-type'] },
+    { ctx: 'project', ids: ['sf-project', 'gf-project', 'ag-project', 'act-project'] }
   ];
+
+  var CTX_ID_INDEX = {};
+  FIELD_MAP.forEach(function (row) {
+    row.ids.forEach(function (id) { CTX_ID_INDEX[id] = row.ctx; });
+  });
 
   function loadContext() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
+      var raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('coco-flow-context-v1');
       if (raw) Object.assign(COCO.flowContext, JSON.parse(raw));
     } catch (e) { /* ignore */ }
     var m = location.search.match(/[?&]customer=([^&]+)/);
@@ -1019,40 +1043,251 @@ document.querySelectorAll('.screen').forEach(screen => {
     } catch (e) { /* ignore */ }
   }
 
-  function applyContextToScreen(screenId) {
+  function normalizeDomain(val) {
+    if (!val) return '';
+    return String(val).replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+  }
+
+  function resolveCompanySlug(name) {
+    if (!name) return '';
+    for (var key in DEMO_CLIENTS) {
+      if (DEMO_CLIENTS[key].name === name || name.indexOf(key) !== -1) return DEMO_CLIENTS[key].company;
+    }
+    if (/גרין|green/i.test(name)) return 'greentech';
+    if (/דלתא|delta/i.test(name)) return 'delta';
+    return '';
+  }
+
+  function setFieldValue(el, val) {
+    if (!el || val == null || val === '') return false;
+    if (el.tagName === 'SELECT') {
+      if (el.value === val) return false;
+      var opts = el.options;
+      for (var i = 0; i < opts.length; i++) {
+        if (opts[i].value === val || opts[i].text === val) {
+          el.value = opts[i].value || opts[i].text;
+          return true;
+        }
+      }
+      for (var j = 0; j < opts.length; j++) {
+        if (opts[j].text.indexOf(val) !== -1 || String(val).indexOf(opts[j].text) !== -1) {
+          el.value = opts[j].value || opts[j].text;
+          return true;
+        }
+      }
+      return false;
+    }
+    if (el.tagName === 'INPUT' && el.type !== 'checkbox') {
+      if (el.value === val) return false;
+      el.value = val;
+      return true;
+    }
+    if (el.id === 'sf-company-display' || el.id === 'coco-hub-client-name') {
+      var text = String(val).indexOf('🏢') === 0 ? val : ('🏢 ' + val);
+      if (el.textContent !== text) { el.textContent = text; return true; }
+    }
+    return false;
+  }
+
+  function propagateField(ctxKey, val, skipId) {
+    if (SYNC_GUARD || val == null || val === '') return;
+    var row = FIELD_MAP.find(function (r) { return r.ctx === ctxKey; });
+    if (!row) return;
+    SYNC_GUARD = true;
+    row.ids.forEach(function (id) {
+      if (id === skipId) return;
+      var el = document.getElementById(id);
+      if (el) setFieldValue(el, val);
+    });
+    (row.displayIds || []).forEach(function (id) {
+      if (id === skipId) return;
+      var el = document.getElementById(id);
+      if (el) setFieldValue(el, ctxKey === 'company' ? (COCO.flowContext.clientName || val) : val);
+    });
+    if (ctxKey === 'site' && val) {
+      var dom = normalizeDomain(val);
+      COCO.flowContext.domain = dom;
+      propagateField('domain', dom, skipId);
+    }
+    SYNC_GUARD = false;
+  }
+
+  function syncFromElement(el) {
+    if (SYNC_GUARD || !el || !el.id) return;
+    var ctxKey = CTX_ID_INDEX[el.id];
+    if (!ctxKey) return;
+    var val = (el.tagName === 'SELECT' || el.tagName === 'INPUT') ? el.value : (el.textContent || '').trim();
+    if (!val && ctxKey !== 'dateRange') return;
+    COCO.flowContext[ctxKey] = val;
+    if (ctxKey === 'company' && el.tagName === 'SELECT' && el.selectedIndex >= 0) {
+      var optText = el.options[el.selectedIndex].text;
+      if (optText && optText !== 'כל החברות') COCO.flowContext.clientName = optText;
+    }
+    saveContext();
+    propagateField(ctxKey, val, el.id);
+    updateContextBar();
+    updateHubClientHeader();
+    refreshScreenFilters();
+  }
+
+  function applyContextGlobally() {
+    SYNC_GUARD = true;
     var ctx = COCO.flowContext;
     FIELD_MAP.forEach(function (row) {
       var val = ctx[row.ctx];
       if (val == null || val === '') return;
       row.ids.forEach(function (id) {
         var el = document.getElementById(id);
-        if (!el) return;
-        if (el.tagName === 'SELECT' || el.tagName === 'INPUT') {
-          if (el.type !== 'checkbox') el.value = val;
-        } else {
-          el.textContent = val;
-        }
+        if (el) setFieldValue(el, val);
+      });
+      (row.displayIds || []).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) setFieldValue(el, row.ctx === 'company' ? (ctx.clientName || val) : val);
       });
     });
-    if (screenId === 'screen-status' && typeof applyStatusFilter === 'function') applyStatusFilter();
+    if (ctx.dateRange === 'custom') {
+      var panel = document.getElementById('sf-date-custom');
+      if (panel) panel.style.display = 'flex';
+    }
+    SYNC_GUARD = false;
+    updateContextBar();
+    updateHubClientHeader();
+    refreshScreenFilters();
   }
 
   function captureContextFromScreen(screenId) {
-    FIELD_MAP.forEach(function (row) {
-      for (var i = 0; i < row.ids.length; i++) {
-        var el = document.getElementById(row.ids[i]);
-        if (!el) continue;
-        if (el.tagName === 'SELECT' || (el.tagName === 'INPUT' && el.type !== 'checkbox')) {
-          if (el.value) COCO.flowContext[row.ctx] = el.value;
-          break;
-        }
-        if (el.textContent && el.id === 'sf-company-display') {
-          COCO.flowContext.company = el.textContent.trim();
-          break;
-        }
-      }
+    var screen = document.getElementById(screenId);
+    if (!screen) return;
+    screen.querySelectorAll('select[id], input[id].filter-input, input[id][type="date"]').forEach(function (el) {
+      if (!CTX_ID_INDEX[el.id]) return;
+      var val = el.value;
+      if (val) COCO.flowContext[CTX_ID_INDEX[el.id]] = val;
     });
+    var disp = document.getElementById('sf-company-display');
+    if (disp && disp.textContent) COCO.flowContext.clientName = disp.textContent.replace(/^🏢\s*/, '').trim();
     saveContext();
+  }
+
+  function refreshScreenFilters() {
+    var active = document.querySelector('#coco-claude-root .screen.active');
+    if (!active) return;
+    var id = active.id;
+    if (id === 'screen-status' && typeof applyStatusFilter === 'function') applyStatusFilter();
+    if (id === 'screen-goals' && typeof applyGoalsAgentFilter === 'function') applyGoalsAgentFilter();
+    if (id === 'screen-actions' && typeof applyActFilter === 'function') applyActFilter();
+    if (id === 'screen-agents' && typeof applyAgentFilter === 'function') applyAgentFilter();
+  }
+
+  function ensureContextBar() {
+    var root = document.getElementById('coco-claude-root');
+    if (!root || document.getElementById('coco-flow-context-bar')) return;
+    var bar = document.createElement('div');
+    bar.id = 'coco-flow-context-bar';
+    bar.className = 'coco-flow-context-bar';
+    bar.innerHTML =
+      '<div class="cfc-inner">' +
+      '<span class="cfc-label">הקשר פעיל:</span>' +
+      '<span id="cfc-client" class="cfc-chip cfc-client"></span>' +
+      '<span id="cfc-site" class="cfc-chip"></span>' +
+      '<span id="cfc-page" class="cfc-chip"></span>' +
+      '<span id="cfc-campaign" class="cfc-chip"></span>' +
+      '<span id="cfc-channel" class="cfc-chip"></span>' +
+      '<span id="cfc-status" class="cfc-chip"></span>' +
+      '<span id="cfc-date" class="cfc-chip"></span>' +
+      '<span id="cfc-goal" class="cfc-chip"></span>' +
+      '<span id="cfc-agent" class="cfc-chip"></span>' +
+      '</div>';
+    root.insertBefore(bar, root.firstChild);
+  }
+
+  function updateContextBar() {
+    var bar = document.getElementById('coco-flow-context-bar');
+    if (!bar) return;
+    var ctx = COCO.flowContext;
+    var hasClient = !!(ctx.clientId || ctx.clientName);
+    bar.style.display = hasClient ? '' : 'none';
+    if (!hasClient) return;
+    function chip(id, label, val) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = val ? (label + ': ' + val) : '';
+      el.style.display = val ? '' : 'none';
+    }
+    chip('cfc-client', 'לקוח', ctx.clientName || ctx.company);
+    chip('cfc-site', 'אתר', ctx.site);
+    chip('cfc-page', 'עמוד', ctx.page);
+    chip('cfc-campaign', 'קמפיין', ctx.campaign);
+    chip('cfc-channel', 'ערוץ', ctx.channel);
+    chip('cfc-status', 'סטטוס', ctx.status);
+    var dateLabel = ctx.dateRange === 'custom' ? (ctx.dateFrom + '–' + ctx.dateTo) : (ctx.dateRange ? ctx.dateRange + ' ימים' : '');
+    chip('cfc-date', 'תאריך', dateLabel);
+    chip('cfc-goal', 'מטרה', ctx.goal);
+    chip('cfc-agent', 'עוזר', ctx.agent);
+    if (ctx.clientId) {
+      var idBadge = document.getElementById('coco-hub-client-id');
+      if (idBadge) { idBadge.textContent = 'ID: ' + ctx.clientId; idBadge.style.display = ''; }
+    }
+  }
+
+  function updateHubClientHeader() {
+    var ctx = COCO.flowContext;
+    var nameEl = document.getElementById('coco-hub-client-name');
+    var subEl = document.getElementById('coco-hub-client-sub');
+    if (nameEl && ctx.clientName) nameEl.textContent = '🏢 ' + ctx.clientName;
+    if (subEl && ctx.site) subEl.textContent = (ctx.site) + (ctx.clientId ? (' • ID: ' + ctx.clientId) : '');
+  }
+
+  function updateUrlClientId() {
+    var id = COCO.flowContext.clientId;
+    if (!id || String(id).indexOf('demo-') === 0) return;
+    try {
+      var u = new URL(location.href);
+      u.searchParams.set('customer', id);
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch (e) { /* ignore */ }
+  }
+
+  function populateSelectOptions(selectIds, items, valueKey, labelKey) {
+    selectIds.forEach(function (sid) {
+      var sel = document.getElementById(sid);
+      if (!sel) return;
+      items.forEach(function (item) {
+        var val = typeof item === 'string' ? item : (item[valueKey] || item.name || '');
+        var label = typeof item === 'string' ? item : (item[labelKey] || item.name || val);
+        if (!val) return;
+        var exists = Array.prototype.some.call(sel.options, function (o) {
+          return o.value === val || o.text === label;
+        });
+        if (!exists) {
+          var o = document.createElement('option');
+          o.value = val;
+          o.textContent = label;
+          sel.appendChild(o);
+        }
+      });
+    });
+  }
+
+  function populateSiteOptions(sites) {
+    var siteIds = (FIELD_MAP.find(function (r) { return r.ctx === 'site'; }) || {}).ids || [];
+    var domains = (sites || []).map(function (s) { return s.domain || s.site_url; }).filter(Boolean).map(normalizeDomain);
+    populateSelectOptions(siteIds, domains);
+  }
+
+  function populateCampaignOptions(campaigns) {
+    var campIds = (FIELD_MAP.find(function (r) { return r.ctx === 'campaign'; }) || {}).ids || [];
+    populateSelectOptions(campIds, campaigns || [], 'name', 'name');
+  }
+
+  function applyClientContext(patch) {
+    Object.assign(COCO.flowContext, patch);
+    if (patch.site) COCO.flowContext.domain = normalizeDomain(patch.site);
+    saveContext();
+    applyContextGlobally();
+    updateUrlClientId();
+    if (typeof showToast === 'function' && patch.clientName) {
+      showToast('🏢 לקוח פעיל: ' + patch.clientName);
+    }
   }
 
   var _goScreen = window.goScreen;
@@ -1066,7 +1301,7 @@ document.querySelectorAll('.screen').forEach(screen => {
       });
     }
     document.body.classList.add('coco-claude-layout');
-    applyContextToScreen(id);
+    applyContextGlobally();
     if (window.CocoClaude) CocoClaude.onScreenChange(id);
   };
 
@@ -1085,14 +1320,38 @@ document.querySelectorAll('.screen').forEach(screen => {
     FLOW_CHAIN: FLOW_CHAIN,
     init: function () {
       loadContext();
+      ensureContextBar();
       document.body.classList.add('coco-claude-layout');
+      applyContextGlobally();
       goScreen('screen-hub');
       this.wireFlowNav();
       this.wireContextListeners();
       this.applyPermissions();
+      var cid = COCO.flowContext.clientId;
+      if (cid && String(cid).indexOf('demo-') !== 0 && window.MarketingApi) {
+        var A = window.MarketingApi;
+        Promise.all([
+          A.getCustomer(cid),
+          A.getProfile(cid),
+          A.getSites(cid),
+          A.getCampaigns(cid)
+        ]).then(function (parts) {
+          if (parts[0] && window.CocoClaude) {
+            CocoClaude.bindClientFromDalia({
+              customer: parts[0],
+              profile: parts[1],
+              sites: parts[2] || [],
+              campaigns: parts[3] || []
+            });
+          }
+        }).catch(function () { /* offline demo */ });
+      } else if (!cid && !COCO.flowContext.clientName) {
+        CocoClaude.bindDemoClient('גרין-טק פתרונות');
+      }
     },
     onScreenChange: function (id) {
       this.updateFlowButtons(id);
+      applyContextGlobally();
     },
     wireFlowNav: function () {
       FLOW_CHAIN.forEach(function (sid, idx) {
@@ -1125,27 +1384,74 @@ document.querySelectorAll('.screen').forEach(screen => {
     },
     updateFlowButtons: function () { /* reserved */ },
     wireContextListeners: function () {
-      document.getElementById('coco-claude-root')?.addEventListener('change', function (e) {
+      var root = document.getElementById('coco-claude-root');
+      if (!root) return;
+      root.addEventListener('change', function (e) {
         var t = e.target;
-        if (!t.id) return;
-        FIELD_MAP.forEach(function (row) {
-          if (row.ids.indexOf(t.id) !== -1 && t.value !== undefined) {
-            COCO.flowContext[row.ctx] = t.value;
-            saveContext();
-          }
-        });
+        if (t && t.id && CTX_ID_INDEX[t.id]) syncFromElement(t);
+      });
+      root.addEventListener('input', function (e) {
+        var t = e.target;
+        if (t && t.id && CTX_ID_INDEX[t.id] && t.tagName === 'INPUT') syncFromElement(t);
+      });
+    },
+    setClientId: function (id) {
+      COCO.flowContext.clientId = id;
+      saveContext();
+      updateContextBar();
+      updateUrlClientId();
+    },
+    bindDemoClient: function (nameKey) {
+      var demo = DEMO_CLIENTS[nameKey];
+      if (!demo) {
+        COCO.flowContext.clientName = nameKey;
+        COCO.flowContext.company = nameKey;
+        saveContext();
+        applyContextGlobally();
+        return;
+      }
+      applyClientContext({
+        clientId: demo.id,
+        clientName: demo.name,
+        company: demo.company,
+        site: demo.site,
+        domain: demo.site
+      });
+      if (demo.sub) {
+        var subEl = document.getElementById('coco-hub-client-sub');
+        if (subEl) subEl.textContent = demo.sub;
+      }
+    },
+    bindClientFromDalia: function (bundle) {
+      if (!bundle || !bundle.customer) return;
+      var c = bundle.customer;
+      var p = bundle.profile || {};
+      var sites = bundle.sites || [];
+      var campaigns = bundle.campaigns || [];
+      var primary = sites.find(function (s) { return s.site_type !== 'landing'; }) || sites[0];
+      var siteVal = primary ? normalizeDomain(primary.domain || primary.site_url || '') : normalizeDomain(p.website || '');
+      populateSiteOptions(sites);
+      populateCampaignOptions(campaigns);
+      applyClientContext({
+        clientId: c.id,
+        clientName: c.name || '',
+        company: resolveCompanySlug(c.name) || COCO.flowContext.company,
+        site: siteVal,
+        domain: siteVal
       });
     },
     bindClientData: function (data) {
       if (!data) return;
       var c = data.client || data.customer || data;
-      COCO.flowContext.clientId = c.id || COCO.flowContext.clientId;
-      COCO.flowContext.clientName = c.name || COCO.flowContext.clientName;
-      COCO.flowContext.company = c.name || COCO.flowContext.company;
+      if (c.id) COCO.flowContext.clientId = c.id;
+      if (c.name) {
+        COCO.flowContext.clientName = c.name;
+        COCO.flowContext.company = c.name;
+      }
       saveContext();
-      var nameEl = document.querySelector('#screen-hub [style*="font-size:18px"]');
-      if (nameEl && c.name) nameEl.textContent = '🏢 ' + c.name;
+      applyContextGlobally();
     },
+    applyContextGlobally: applyContextGlobally,
     applyPermissions: function () {
       var role = (window.COCO_AUTH && COCO_AUTH.role) || 'super_admin';
       var canAct = role === 'super_admin' || role === 'admin';

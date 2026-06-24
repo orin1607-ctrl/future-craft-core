@@ -345,3 +345,48 @@ body.coco-claude-layout #coco-claude-root { display: block; }
 #coco-claude-root { display: none; min-height: 100vh; }
 #coco-claude-root .screen { display: none; min-height: 100vh; flex-direction: column; }
 #coco-claude-root .screen.active { display: flex; }
+
+/* Phase C — global flow context bar */
+.coco-flow-context-bar {
+  background: linear-gradient(90deg, rgba(37,99,235,0.12), rgba(139,92,246,0.08));
+  border-bottom: 1px solid rgba(37,99,235,0.25);
+  padding: 8px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  backdrop-filter: blur(8px);
+}
+.coco-flow-context-bar .cfc-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+.coco-flow-context-bar .cfc-label {
+  color: var(--white50);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.coco-flow-context-bar .cfc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--white06);
+  border: 1px solid var(--border);
+  color: var(--white80);
+  white-space: nowrap;
+}
+.coco-flow-context-bar .cfc-chip.cfc-client {
+  background: rgba(37,99,235,0.15);
+  border-color: rgba(37,99,235,0.35);
+  color: var(--accent2);
+  font-weight: 600;
+}
+.coco-flow-context-bar .cfc-chip:empty { display: none; }
+@media (max-width: 560px) {
+  .coco-flow-context-bar { padding: 6px 12px; }
+  .coco-flow-context-bar .cfc-chip { font-size: 10px; padding: 2px 8px; }
+}

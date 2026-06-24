@@ -92,6 +92,11 @@
 
   function openClient(id) {
     state.customerId = id;
+    if (window.COCO) {
+      window.COCO.flowContext = window.COCO.flowContext || {};
+      window.COCO.flowContext.clientId = id;
+    }
+    if (window.CocoClaude && CocoClaude.setClientId) CocoClaude.setClientId(id);
     if (typeof window.gotoSc === 'function') window.gotoSc('mkt-client');
     renderClient(id);
   }
@@ -174,6 +179,7 @@
     root.innerHTML = html;
     bindClientEvents(b);
     if (window.PrdDataGrid && window.PrdDataGrid.enhanceAll) window.PrdDataGrid.enhanceAll();
+    if (window.CocoClaude && CocoClaude.bindClientFromDalia) CocoClaude.bindClientFromDalia(b);
   }
 
   function renderCompanyReadonly(d, p) {
