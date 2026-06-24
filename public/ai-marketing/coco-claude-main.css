@@ -337,14 +337,24 @@ tr:hover td { background: var(--white06); }
 .swatch { width: 32px; height: 32px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; }
 .swatch.selected { border-color: var(--white); }
 /* Integration layer — legacy platform hidden when Claude UI active */
+body.coco-claude-layout { background: var(--bg); overflow-x: hidden; min-height: 100dvh; }
 body.coco-claude-layout .sidebar,
 body.coco-claude-layout .main,
 body.coco-claude-layout .sb-overlay,
 body.coco-claude-layout #sbOverlay { display: none !important; }
-body.coco-claude-layout #coco-claude-root { display: block; }
-#coco-claude-root { display: none; min-height: 100vh; }
-#coco-claude-root .screen { display: none; min-height: 100vh; flex-direction: column; }
+body.coco-claude-layout #coco-claude-root { display: block; width: 100%; max-width: 100vw; min-height: 100dvh; position: relative; z-index: 2; }
+#coco-claude-root { display: none; min-height: 100dvh; background: var(--bg); }
+#coco-claude-root .screen { display: none; min-height: 100dvh; flex-direction: column; }
 #coco-claude-root .screen.active { display: flex; }
+#coco-claude-root .content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+#coco-claude-root .bottom-nav {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
 
 /* Phase C — global flow context bar */
 .coco-flow-context-bar {

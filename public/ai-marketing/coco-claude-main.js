@@ -40,6 +40,7 @@ document.querySelectorAll('.overlay').forEach(o => {
 // ===== TOAST =====
 function showToast(msg) {
   const t = document.getElementById('toast');
+  if (!t) { console.log('[toast]', msg); return; }
   t.textContent = msg;
   t.style.opacity = '1';
   t.style.transform = 'translateY(0)';
@@ -919,8 +920,10 @@ function resetReportsFilter() {
 
 // ===== END STATUS FILTER LOGIC =====
 
-// Init: show only first tabs in each screen
-document.querySelectorAll('.screen').forEach(screen => {
+// Init: show only first tabs in each Claude screen
+var cocoRootEarly = document.getElementById('coco-claude-root');
+if (cocoRootEarly) {
+  cocoRootEarly.querySelectorAll('.screen').forEach(screen => {
   const tabGroups = {};
   screen.querySelectorAll('[id^="tab-"]').forEach(tab => {
     const prefix = tab.id.split('-').slice(0,3).join('-');
@@ -930,7 +933,8 @@ document.querySelectorAll('.screen').forEach(screen => {
   Object.values(tabGroups).forEach(group => {
     group.forEach((t, i) => { t.style.display = i === 0 ? '' : 'none'; });
   });
-});
+  });
+}
 
 // ===== COCO CLAUDE INTEGRATION (Phase C — flow context sync) =====
 (function () {
@@ -1321,6 +1325,10 @@ document.querySelectorAll('.screen').forEach(screen => {
   window.CocoClaude = {
     FLOW_CHAIN: FLOW_CHAIN,
     init: function () {
+      if (!document.getElementById('screen-hub')) {
+        console.warn('CocoClaude.init: screen-hub missing');
+        return;
+      }
       loadContext();
       ensureContextBar();
       document.body.classList.add('coco-claude-layout');

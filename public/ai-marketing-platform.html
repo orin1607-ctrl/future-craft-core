@@ -2,8 +2,11 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="ui-version" content="v3-claude-full-4">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="ui-version" content="v3-claude-full-5">
+<meta name="build-commit" content="STAGING">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>CO.CO דליה — מנהל שיווק AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./ai-marketing/home-v4.css">
@@ -242,9 +245,9 @@ td{padding:10px 13px;font-size:13px;vertical-align:middle}
 .kpi-bar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
 .kpi-fill{height:100%;border-radius:2px}
 
-/* === SCREENS === */
-.screen{display:none}
-.screen.active{display:block}
+/* === SCREENS (legacy only — Claude UI uses #coco-claude-root) === */
+.main .screen{display:none}
+.main .screen.active{display:block}
 
 /* === MOBILE ACCORDION NAV === */
 .sb-acc-group{border-bottom:1px solid rgba(255,255,255,.08)}
@@ -412,7 +415,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   .tbl-wrap table{min-width:560px}
 }
 </style>
-<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-claude-full-4">
+<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-claude-full-5">
 </head>
 <body>
 
@@ -2827,10 +2830,15 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   </div>
 </div>
 
-<div id="coco-claude-root" aria-label="ניהול שיווק — Claude UI"></div>
-
   </main><!-- /content -->
 </div><!-- /main -->
+
+<div id="coco-claude-root" aria-label="ניהול שיווק — Claude UI">
+  <div class="coco-boot-loading" style="padding:48px 20px;text-align:center;color:#94a3b8;font-family:'Heebo',sans-serif;min-height:100dvh;background:#04091a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+    <div style="font-size:20px;font-weight:700;color:#fff;">טוען מרכז שיווק…</div>
+    <div style="font-size:12px;opacity:0.7;">Orin Car Staging</div>
+  </div>
+</div>
 
 <!-- Toast notification -->
 <div id="cocoToast" class="coco-toast" role="status" aria-live="polite"></div>
@@ -2877,7 +2885,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 <script src="./ai-marketing/prd-theme.js"></script>
 <script src="./ai-marketing/prd-datagrid.js"></script>
 <script src="./ai-marketing/marketing-api.js"></script>
-<script src="./ai-marketing/coco-claude-data.js?v=v3-claude-full-4"></script>
+<script src="./ai-marketing/coco-claude-data.js?v=v3-claude-full-5"></script>
 <script src="./ai-marketing/marketing-client.js"></script>
 <script>
 // Screen navigation
@@ -2979,32 +2987,58 @@ window._gotoScLegacy = gotoSc;
 // Init: load Claude UI (1:1) then show screen-hub
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-claude-full-4';
+  var ver = 'v3-claude-full-5';
+  var path = location.pathname || '';
+  var assetBase = path.indexOf('ai-marketing-platform') > 0
+    ? path.substring(0, path.indexOf('ai-marketing-platform'))
+    : './';
+  function assetUrl(rel) {
+    return assetBase + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);
+  }
+  function showBootError(msg) {
+    document.body.classList.remove('coco-claude-layout');
+    if (!root) return;
+    root.style.display = 'block';
+    root.innerHTML = '<div style="padding:32px 20px;text-align:center;font-family:\'Heebo\',sans-serif;min-height:100dvh;background:#04091a;color:#fff;">' +
+      '<div style="font-size:18px;font-weight:700;margin-bottom:8px;">לא ניתן לטעון את ממשק השיווק</div>' +
+      '<div style="font-size:13px;color:#94a3b8;margin-bottom:16px;">' + (msg || 'שגיאת רשת או cache') + '</div>' +
+      '<button type="button" onclick="location.reload(true)" style="padding:10px 18px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:14px;cursor:pointer;">רענון קשיח</button></div>';
+  }
   var loadUi = function() {
     return new Promise(function(resolve, reject) {
       if (window.CocoClaude && typeof window.goScreen === 'function') { resolve(); return; }
       var s = document.createElement('script');
-      s.src = './ai-marketing/coco-claude-main.js?v=' + ver;
+      s.src = assetUrl('ai-marketing/coco-claude-main.js');
       s.onload = resolve;
-      s.onerror = reject;
+      s.onerror = function() { reject(new Error('main.js load failed')); };
       document.body.appendChild(s);
     });
   };
   var boot = function() {
-    document.querySelectorAll('.screen').forEach(function(sc) { screenMap[sc.id] = sc; });
+    if (!root || !document.getElementById('screen-hub')) {
+      showBootError('מסכי Claude לא נטענו');
+      return;
+    }
+    document.querySelectorAll('#coco-claude-root .screen').forEach(function(sc) { screenMap[sc.id] = sc; });
     if (window.CocoClaude) CocoClaude.init();
     else if (typeof window.goScreen === 'function') goScreen('screen-hub');
   };
   if (!root) { boot(); return; }
-  fetch('./ai-marketing/coco-claude-screens.html?v=' + ver)
-    .then(function(r) { return r.ok ? r.text() : ''; })
+  fetch(assetUrl('ai-marketing/coco-claude-screens.html'), { cache: 'no-store' })
+    .then(function(r) {
+      if (!r.ok) throw new Error('screens HTTP ' + r.status);
+      return r.text();
+    })
     .then(function(html) {
-      if (html) root.innerHTML = html;
+      if (!html || html.length < 5000) throw new Error('screens empty or truncated');
+      root.innerHTML = html;
       return loadUi();
     })
-    .catch(function() { return loadUi(); })
     .then(boot)
-    .catch(function(e) { console.warn('CocoClaude load:', e); boot(); });
+    .catch(function(e) {
+      console.warn('CocoClaude load:', e);
+      showBootError(e && e.message ? e.message : 'שגיאה לא ידועה');
+    });
 })();
 </script>
 <script src="./ai-marketing/home-v4.js"></script>
