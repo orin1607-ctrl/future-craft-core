@@ -8,6 +8,11 @@ export const SERVICE_TYPE_OPTIONS: { value: ServiceType; label: string }[] = [
   { value: 'fleet_and_marketing', label: 'ניהול צי רכב + ניהול שיווק' },
 ];
 
+/** אפשרויות באשף פתיחת לקוח עסקי — שיווק בלבד או צי+שיווק */
+export const BUSINESS_CUSTOMER_SERVICE_TYPES = SERVICE_TYPE_OPTIONS.filter(
+  (o) => o.value === 'marketing_only' || o.value === 'fleet_and_marketing',
+);
+
 export function hasMarketingService(serviceType: string | null | undefined): boolean {
   return serviceType === 'marketing_only' || serviceType === 'fleet_and_marketing';
 }

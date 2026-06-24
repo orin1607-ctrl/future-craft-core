@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,7 @@ import { ArrowRight } from 'lucide-react';
 export default function AiMarketingPage() {
   const { user } = useAuth();
   const { selectedCompany, companyOptions } = useCompanyScope();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const customerId = searchParams.get('customer');
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -56,7 +57,7 @@ export default function AiMarketingPage() {
     const onMessage = (e: MessageEvent) => {
       if (e.data?.type === 'dalia-coco-exit') {
         const path = typeof e.data.path === 'string' ? e.data.path : '/admin-home';
-        window.location.href = path;
+        navigate(path);
       }
     };
     window.addEventListener('message', onMessage);
@@ -69,7 +70,7 @@ export default function AiMarketingPage() {
       iframe.removeEventListener('load', pushToIframe);
       window.removeEventListener('focus', onFocus);
     };
-  }, [pushToIframe]);
+  }, [pushToIframe, navigate]);
 
   if (user?.role !== 'super_admin') {
     return <Navigate to="/dashboard" replace />;

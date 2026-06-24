@@ -1,5 +1,5 @@
 {
-  "url": "http://localhost:51461/ai-marketing-platform",
+  "url": "http://127.0.0.1:53075/ai-marketing-platform",
   "passed": [
     "desktop:page-load",
     "desktop:v4-mode",
@@ -122,5 +122,5 @@
   "passedCount": 110,
   "failedCount": 0,
   "ok": true,
-  "at": "2026-06-24T12:11:10.623Z"
+  "at": "2026-06-24T13:27:18.019Z"
 }

@@ -40,7 +40,7 @@ import {
   type AccessCodeSendResult,
 } from '@/lib/edgeFunctionError';
 import { cn } from '@/lib/utils';
-import { SERVICE_TYPE_OPTIONS } from '@/lib/marketingProvision';
+import { BUSINESS_CUSTOMER_SERVICE_TYPES } from '@/lib/marketingProvision';
 
 const TYPE_ICONS: Record<UserCreationType, typeof User> = {
   private_customer: User,
@@ -432,7 +432,7 @@ export default function CreateUserWizardDialog({
                         <SelectValue placeholder="בחר סוג שירות" />
                       </SelectTrigger>
                       <SelectContent>
-                        {SERVICE_TYPE_OPTIONS.map((o) => (
+                        {BUSINESS_CUSTOMER_SERVICE_TYPES.map((o) => (
                           <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                         ))}
                       </SelectContent>
