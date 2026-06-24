@@ -22,7 +22,18 @@
       dateTo: '',
       agent: '',
       project: '',
-      selectedCard: null
+      selectedCard: null,
+      leadStatus: '',
+      customerStatus: '',
+      taskStatus: '',
+      keyword: '',
+      source: '',
+      tags: '',
+      priority: '',
+      urgency: '',
+      serviceType: '',
+      assignee: '',
+      freeSearch: '',
     };
   }
 

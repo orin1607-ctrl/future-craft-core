@@ -7,6 +7,11 @@
   backdrop-filter: blur(8px);
 }
 #coco-unified-context-bar .cfc-chip { font-size: 11px; }
+#coco-marketing-crm-root .coco-marketing-crm-inner { position: relative; }
+#coco-marketing-crm-root .screen { display: none; }
+#coco-marketing-crm-root .screen.active { display: block; }
+#coco-marketing-crm-root .fab-ai,
+#coco-marketing-crm-root .bottom-nav { display: none !important; }
 #legacy-dalia-root { display: none !important; }
 .coco-integration-flow-bar {
   background: rgba(37, 99, 235, 0.12);

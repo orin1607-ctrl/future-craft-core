@@ -75,8 +75,15 @@
 
   function applyCtxFilter(items, mapFn) {
     var c = ctx();
+    var free = (c.freeSearch || '').trim().toLowerCase();
     return items.filter(function (item) {
       var m = mapFn(item);
+      if (free) {
+        var blob = JSON.stringify(item).toLowerCase();
+        if (blob.indexOf(free) === -1) return false;
+      }
+      if (c.serviceType && m.serviceType && !matchFilter(m.serviceType, c.serviceType)) return false;
+      if (c.customerStatus && m.customerStatus && !matchFilter(m.customerStatus, c.customerStatus)) return false;
       if (c.site && m.site && !matchFilter(m.site, c.site)) return false;
       if (c.campaign && m.campaign && !matchFilter(m.campaign, c.campaign)) return false;
       if (c.channel && m.channel && !matchFilter(m.channel, c.channel)) return false;
@@ -400,6 +407,15 @@
       return;
     }
     var rows = state.customers;
+    var c = ctx();
+    if (c.serviceType) rows = rows.filter(function (x) { return x.service_type === c.serviceType; });
+    if (c.customerStatus) rows = rows.filter(function (x) { return (x.status || '').toLowerCase() === c.customerStatus; });
+    if (c.freeSearch) {
+      var q = c.freeSearch.toLowerCase();
+      rows = rows.filter(function (x) {
+        return [x.name, x.contact_person, x.phone, x.email, x.id].join(' ').toLowerCase().indexOf(q) >= 0;
+      });
+    }
     if (!rows.length && isRemoteAuth()) {
       setHtml('coco-live-clients-list', emptyStatus('אין לקוחות שיווק בדליה — צור לקוח עם "ניהול שיווק בלבד" או "צי + שיווק"'));
       state.meta.clientSource = 'none';

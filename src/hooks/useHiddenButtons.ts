@@ -45,7 +45,7 @@ export const DASHBOARD_CARD_BUTTONS = [
   { path: '/fleet-managers', label: 'מנהלי צי', category: 'כרטיסי דשבורד' },
   { path: '/user-management', label: 'משתמשים', category: 'כרטיסי דשבורד' },
   { path: '/admin-home', label: 'מרכז ניהול', category: 'כרטיסי דשבורד' },
-  { path: '/dalia-crm', label: 'CRM', category: 'כרטיסי דשבורד' },
+  { path: '/ai-marketing', label: 'ניהול שיווק', category: 'כרטיסי דשבורד' },
 ];
 
 /** All manageable buttons with labels for the settings UI (matches sidebar IA) */
@@ -64,7 +64,6 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/emergency', label: 'חירום', category: 'ניווט' },
   { path: '/internal-chat', label: 'צ\'אט', category: 'ניווט' },
   { path: '/admin-home', label: 'מרכז ניהול', category: 'מרכז ניהול' },
-  { path: '/dalia-crm', label: 'CRM', category: 'מרכז ניהול' },
   { path: '/ai-marketing', label: 'ניהול שיווק', category: 'מרכז ניהול' },
   { path: '/dalia-settings', label: 'Dalia Settings', category: 'מרכז ניהול' },
   { path: '/user-management', label: 'משתמשים (דשבורד)', category: 'כרטיסי דשבורד' },

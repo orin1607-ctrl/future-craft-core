@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-2';
+  var VERSION = 'v3-unified-3';
   var SEARCH_KEY = 'coco-mkt-global-search';
   var FILTER_KEY = 'coco-mkt-filter-persist';
 
@@ -110,24 +110,55 @@
       '<div class="cfc-inner" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;font-size:12px;">' +
       '<span id="coco-unified-client-chip" class="cfc-chip" style="cursor:pointer;" title="לחץ לפתיחת לקוחות">לקוח: —</span>' +
       '<span id="coco-unified-filter-chip" class="cfc-chip">סינון: כללי</span>' +
-      '<input id="coco-global-search" class="filter-input" placeholder="🔍 חיפוש גלובלי (לקוח, ליד, מטרה…)" style="min-width:200px;flex:1;max-width:320px;">' +
-      '<button type="button" id="coco-sync-google-btn" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;">🔄 סנכרון Google</button>' +
+      '<input id="coco-central-search" class="filter-input" placeholder="🔍 חיפוש חופשי" style="min-width:160px;flex:1;max-width:240px;">' +
+      '<select id="coco-central-service" class="filter-select" title="סוג שירות"><option value="">כל השירותים</option><option value="marketing_only">שיווק</option><option value="fleet_and_marketing">שיווק+צי</option></select>' +
+      '<select id="coco-central-status" class="filter-select" title="סטטוס לקוח"><option value="">סטטוס לקוח</option><option value="active">פעיל</option><option value="inactive">לא פעיל</option></select>' +
+      '<select id="coco-central-campaign" class="filter-select" id="coco-filter-campaign" title="קמפיין"><option value="">קמפיין</option></select>' +
+      '<button type="button" id="coco-sync-google-btn" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;">🔄 Google</button>' +
+      '<button type="button" id="coco-open-crm-btn" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;">📇 CRM</button>' +
       '<span id="coco-live-source-badge" class="cfc-chip" style="margin-right:auto;"></span>' +
       '</div>';
     root.insertBefore(bar, root.firstChild);
 
     document.getElementById('coco-sync-google-btn')?.addEventListener('click', syncGoogle);
-    document.getElementById('coco-global-search')?.addEventListener('input', onGlobalSearch);
+    document.getElementById('coco-open-crm-btn')?.addEventListener('click', function () {
+      if (window.CocoMarketingCrm && CocoMarketingCrm.openTab) CocoMarketingCrm.openTab();
+    });
     document.getElementById('coco-unified-client-chip')?.addEventListener('click', function () {
       if (typeof goScreen === 'function') goScreen('screen-clients');
     });
+    document.getElementById('coco-central-search')?.addEventListener('input', onCentralFilter);
+    document.getElementById('coco-central-service')?.addEventListener('change', onCentralFilter);
+    document.getElementById('coco-central-status')?.addEventListener('change', onCentralFilter);
+    document.getElementById('coco-central-campaign')?.addEventListener('change', onCentralFilter);
     try {
       var saved = localStorage.getItem(SEARCH_KEY);
       if (saved) {
-        var inp = document.getElementById('coco-global-search');
-        if (inp) { inp.value = saved; onGlobalSearch({ target: inp }); }
+        var inp = document.getElementById('coco-central-search');
+        if (inp) { inp.value = saved; onCentralFilter({ target: inp }); }
       }
     } catch (err) { /* ignore */ }
+  }
+
+  function onCentralFilter(e) {
+    var c = ctx();
+    var search = document.getElementById('coco-central-search');
+    var svc = document.getElementById('coco-central-service');
+    var st = document.getElementById('coco-central-status');
+    var camp = document.getElementById('coco-central-campaign');
+    if (search) c.freeSearch = search.value;
+    if (svc) c.serviceType = svc.value;
+    if (st) c.customerStatus = st.value;
+    if (camp) c.campaign = camp.value;
+    try {
+      localStorage.setItem(SEARCH_KEY, c.freeSearch || '');
+      if (window.COCO && COCO.flowContext) {
+        localStorage.setItem('coco-flow-context-v2', JSON.stringify(COCO.flowContext));
+      }
+    } catch (err) { /* ignore */ }
+    if (window.CocoClaude && CocoClaude.applyContextGlobally) CocoClaude.applyContextGlobally();
+    if (window.CocoMarketingCrm && CocoMarketingCrm.syncFilters) CocoMarketingCrm.syncFilters();
+    refreshAllModules();
   }
 
   function updateContextBar() {
@@ -153,8 +184,11 @@
     if (!tabs || document.getElementById('tab-clients-crm')) return;
     var tab = document.createElement('div');
     tab.className = 'nav-tab';
-    tab.textContent = 'CRM ולידים';
-    tab.onclick = function () { setTab(this, 'tab-clients-crm'); bindCrm(); };
+    tab.textContent = '📇 CRM';
+    tab.onclick = function () {
+      setTab(this, 'tab-clients-crm');
+      if (window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
+    };
     tabs.appendChild(tab);
 
     var content = document.querySelector('#screen-clients .content');
@@ -162,19 +196,14 @@
     var panel = document.createElement('div');
     panel.id = 'tab-clients-crm';
     panel.style.display = 'none';
-    panel.innerHTML =
-      '<div class="page-header"><div class="page-title">📇 CRM ולידים</div>' +
-      '<div class="page-subtitle">מחובר ל-Client ID הפעיל · מסונכרן עם כל המודולים</div><hr class="page-rule"></div>' +
-      '<div class="section"><div class="filter-bar" style="margin-bottom:12px;gap:8px;flex-wrap:wrap;display:flex;">' +
-      '<select id="crm-filter-status" class="filter-select"><option value="">כל הסטטוסים</option>' +
-      '<option value="new">חדש</option><option value="contacted">נוצר קשר</option><option value="qualified">מתאים</option>' +
-      '<option value="won">נסגר</option><option value="lost">אבוד</option></select>' +
-      '<button type="button" id="crm-add-lead-btn" class="btn btn-primary" style="font-size:12px;">+ ליד חדש</button>' +
-      '</div><div id="coco-live-crm-list"></div></div>';
+    panel.innerHTML = '<div class="page-header"><div class="page-title">📇 CRM — חלק ממנהל השיווק</div>' +
+      '<div class="page-subtitle">לקוחות · לידים · משימות · Pipeline · מסונכרן עם כל 10 המודולים</div><hr class="page-rule"></div>' +
+      '<div id="coco-marketing-crm-mount"></div>';
     content.appendChild(panel);
+  }
 
-    document.getElementById('crm-filter-status')?.addEventListener('change', bindCrm);
-    document.getElementById('crm-add-lead-btn')?.addEventListener('click', addLeadPrompt);
+  function bindCrm() {
+    if (window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
   }
 
   function ensureConnectionsPanel() {
@@ -196,55 +225,6 @@
       if (cnt && /^\d+$/.test(cnt.textContent.trim()) && cnt.textContent === '23') {
         cnt.textContent = '—';
       }
-    });
-  }
-
-  function bindCrm() {
-    var mount = document.getElementById('coco-live-crm-list');
-    if (!mount) return;
-    var cid = ctx().clientId;
-    if (!cid || String(cid).indexOf('demo-') === 0) {
-      mount.innerHTML = '<div class="alert alert-info">בחר לקוח פעיל או התחבר דרך דליה כדי לראות לידים.</div>';
-      return;
-    }
-    if (!window.MarketingApi || !MarketingApi.listLeads) {
-      mount.innerHTML = '<div class="alert alert-warn">CRM API לא זמין.</div>';
-      return;
-    }
-    var status = (document.getElementById('crm-filter-status') || {}).value || '';
-    MarketingApi.listLeads(cid, status).then(function (rows) {
-      if (!rows.length) {
-        mount.innerHTML = '<div class="alert alert-info">אין לידים ללקוח זה. לחץ "+ ליד חדש" להוספה.</div>';
-        return;
-      }
-      mount.innerHTML = rows.map(function (l) {
-        return '<div class="card" style="padding:12px;margin-bottom:8px;">' +
-          '<div style="font-weight:700;">' + esc(l.full_name) + '</div>' +
-          '<div style="font-size:12px;color:var(--white50);">' + esc(l.phone || '') + ' · ' + esc(l.email || '') + '</div>' +
-          '<div style="margin-top:6px;">' + esc(l.source || '') + ' · ' + esc(l.status) + '</div></div>';
-      }).join('');
-    }).catch(function () {
-      mount.innerHTML = '<div class="alert alert-err">שגיאה בטעינת לידים — ודא ש-migration הופעל ב-Staging.</div>';
-    });
-  }
-
-  function addLeadPrompt() {
-    var cid = ctx().clientId;
-    if (!cid || !MarketingApi.insertLead) return;
-    var name = prompt('שם הליד:');
-    if (!name) return;
-    var phone = prompt('טלפון (אופציונלי):') || '';
-    MarketingApi.insertLead({
-      customer_id: cid,
-      full_name: name,
-      phone: phone,
-      source: 'crm',
-      status: 'new',
-    }).then(function () {
-      logActivity('crm', 'lead_created', 'ליד חדש: ' + name);
-      bindCrm();
-      if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen('screen-clients');
-      if (typeof showToast === 'function') showToast('ליד נוסף');
     });
   }
 

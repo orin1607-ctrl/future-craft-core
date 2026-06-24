@@ -85,6 +85,12 @@
   }
 
   function openMarketing(id) {
+    if (window.COCO_MARKETING_CRM) {
+      if (window.CocoData && CocoData.selectCustomer) CocoData.selectCustomer(id);
+      if (typeof goScreen === 'function') goScreen('screen-hub');
+      if (typeof showToast === 'function') showToast('🏢 לקוח פעיל בכל המודולים');
+      return;
+    }
     if (window.self !== window.top) {
       window.parent.postMessage({ type: 'dalia-coco-navigate', path: '/ai-marketing?customer=' + id }, '*');
       return;
@@ -467,5 +473,7 @@
     openModal: openModal, closeModal: closeModal, showToast: showToast,
     resetFilter: resetFilter, openClient: openClient, openCustomerById: openCustomerById,
     submitNewLead: submitNewLead, submitNewTask: submitNewTask, loadAll: loadAll,
+    applyFilters: applyFilters,
+    _stateCustomers: function () { return state.customers; },
   };
 })();

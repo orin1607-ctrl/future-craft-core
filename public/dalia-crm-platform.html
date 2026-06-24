@@ -2,81 +2,11 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<script>
-(function () {
-  var host = location.hostname;
-  var base = '/future-craft-core/';
-  if (host === 'localhost' || host === '127.0.0.1') {
-    var p = location.pathname || '';
-    var i = p.indexOf('dalia-crm-platform');
-    base = i >= 0 ? p.substring(0, i) : (p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/'));
-  }
-  window.COCO_PAGES_BASE = base;
-  window.DALIA_APP_BASE = base;
-  var b = document.createElement('base');
-  b.href = base.charAt(0) === '/' ? (location.origin + base) : new URL(base, location.href).href;
-  document.head.appendChild(b);
-})();
-</script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta name="build-commit" content="STAGING">
-<title>דליה CRM – ניהול לקוחות</title>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=crm-1">
-<link rel="stylesheet" href="./crm/dalia-crm.css?v=crm-1">
+<meta http-equiv="refresh" content="0;url=./ai-marketing-platform.html?fullscreen=1&tab=crm">
+<script>location.replace('./ai-marketing-platform.html?fullscreen=1&tab=crm&v=' + Date.now());</script>
+<title>מעבר למנהל השיווק…</title>
 </head>
 <body>
-<div id="dalia-crm-root" aria-label="דליה CRM">
-  <div style="padding:48px 20px;text-align:center;color:#94a3b8;font-family:'Heebo',sans-serif;min-height:100vh;background:#04091a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
-    <div style="font-size:20px;font-weight:700;color:#fff;">טוען CRM…</div>
-    <div style="font-size:12px;opacity:0.7;">Orin Car Staging · Supabase</div>
-  </div>
-</div>
-<script src="./ai-marketing/client-id-ssot.js"></script>
-<script src="./ai-marketing/marketing-api.js"></script>
-<script src="./crm/crm-api.js"></script>
-<script src="./crm/dalia-crm-auth.js"></script>
-<script>
-(function bootCrm() {
-  var root = document.getElementById('dalia-crm-root');
-  var ver = 'crm-1';
-
-  function assetUrl(rel) {
-    var base = window.COCO_PAGES_BASE || '/future-craft-core/';
-    if (base.charAt(0) !== '/') base = '/' + base.replace(/^\.\//, '');
-    return location.origin + base + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);
-  }
-
-  function loadScript(url) {
-    return new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = url;
-      s.onload = resolve;
-      s.onerror = function () { reject(new Error('failed: ' + url)); };
-      document.body.appendChild(s);
-    });
-  }
-
-  fetch(assetUrl('crm/dalia-crm-screens.html'), { cache: 'no-store' })
-    .then(function (r) { if (!r.ok) throw new Error('screens HTTP ' + r.status); return r.text(); })
-    .then(function (html) {
-      if (!html || html.length < 500) throw new Error('screens truncated');
-      root.innerHTML = html;
-      return loadScript(assetUrl('crm/dalia-crm-app.js'));
-    })
-    .then(function () { return loadScript(assetUrl('crm/dalia-crm-nav.js')); })
-    .then(function () {
-      if (window.CrmDaliaNav) CrmDaliaNav.init();
-      if (window.DaliaCrm) DaliaCrm.init();
-    })
-    .catch(function (e) {
-      console.warn('CRM boot:', e);
-      root.innerHTML = '<div style="padding:32px;font-family:Heebo,sans-serif;color:#fff;background:#04091a;min-height:100vh;text-align:center;">' +
-        '<div style="font-size:18px;font-weight:700;margin-bottom:8px;">לא ניתן לטעון CRM</div>' +
-        '<div style="font-size:13px;color:#94a3b8">' + (e && e.message ? e.message : '') + '</div></div>';
-    });
-})();
-</script>
+  <p>מעביר CRM למנהל השיווק… <a href="./ai-marketing-platform.html?fullscreen=1&tab=crm">לחץ כאן</a></p>
 </body>
 </html>

@@ -15,6 +15,7 @@ export default function AiMarketingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const customerId = searchParams.get('customer');
+  const tab = searchParams.get('tab');
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const pushToIframe = useCallback(async () => {
@@ -49,7 +50,10 @@ export default function AiMarketingPage() {
         '*',
       );
     }
-  }, [selectedCompany, companyOptions, customerId]);
+    if (tab === 'crm') {
+      iframe.contentWindow.postMessage({ type: 'dalia-coco-open-crm' }, '*');
+    }
+  }, [selectedCompany, companyOptions, customerId, tab]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -77,7 +81,7 @@ export default function AiMarketingPage() {
   }
 
   const base = import.meta.env.BASE_URL || '/';
-  const src = `${base}ai-marketing-platform.html?fullscreen=1&v=v3-unified-2${customerId ? `&customer=${encodeURIComponent(customerId)}` : ''}`;
+  const src = `${base}ai-marketing-platform.html?fullscreen=1&v=v3-unified-3${customerId ? `&customer=${encodeURIComponent(customerId)}` : ''}${tab ? `&tab=${encodeURIComponent(tab)}` : ''}`;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">

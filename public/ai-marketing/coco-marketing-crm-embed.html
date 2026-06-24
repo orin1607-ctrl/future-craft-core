@@ -1,0 +1,83 @@
+<div class="coco-marketing-crm-inner">
+  <div class="screen active" id="screen-crm-main">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 16px 0;">
+      <span id="crm-sync-chip" style="font-size:11px;color:var(--white50);">טוען CRM…</span>
+      <button class="btn btn-primary" style="font-size:12px;padding:5px 14px;" type="button" onclick="DaliaCrm.openModal('modal-new-lead')">+ ליד חדש</button>
+    </div>
+    <div class="nav-tabs" id="crm-main-tabs" style="margin-top:8px;">
+      <div class="nav-tab active" data-tab="tab-main-clients">👥 לקוחות (<span id="crm-count-clients">—</span>)</div>
+      <div class="nav-tab" data-tab="tab-main-leads">🔔 לידים (<span id="crm-count-leads">—</span>)</div>
+      <div class="nav-tab" data-tab="tab-main-pipeline">🏗️ Pipeline</div>
+      <div class="nav-tab" data-tab="tab-main-tasks">📋 משימות</div>
+      <div class="nav-tab" data-tab="tab-main-reports">📊 דוחות</div>
+      <div class="nav-tab" data-tab="tab-main-ai">🤖 AI</div>
+    </div>
+    <div class="content" style="padding-bottom:24px;">
+      <div id="tab-main-clients">
+        <div class="section" style="padding-bottom:0;" id="crm-kpi-grid"></div>
+        <div style="padding:0 20px;" id="crm-ai-daily"></div>
+        <div class="section">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th></th><th>לקוח</th><th>קשר</th><th>שירות</th><th>Client ID</th><th>סטטוס</th><th></th></tr>
+              </thead>
+              <tbody id="crm-clients-tbody"></tbody>
+            </table>
+          </div>
+          <div id="crm-empty-msg" style="display:none;margin-top:12px;font-size:13px;color:var(--white50);text-align:center;">אין לקוחות · סנכרן מדליה או הוסף ליד</div>
+        </div>
+      </div>
+      <div id="tab-main-leads" style="display:none;"><div class="section" id="crm-leads-list"></div></div>
+      <div id="tab-main-pipeline" style="display:none;"><div class="section" id="crm-pipeline-board"></div></div>
+      <div id="tab-main-tasks" style="display:none;"><div class="section" id="crm-tasks-list"></div></div>
+      <div id="tab-main-reports" style="display:none;"><div class="section" id="crm-reports-panel"></div></div>
+      <div id="tab-main-ai" style="display:none;"><div class="section" id="crm-ai-panel"></div></div>
+    </div>
+  </div>
+  <div class="screen" id="screen-client">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;gap:8px;flex-wrap:wrap;">
+      <button class="btn-icon" type="button" onclick="DaliaCrm.goScreen('screen-crm-main')">←</button>
+      <span id="cc-breadcrumb" style="font-weight:700;font-size:14px;">לקוח</span>
+      <button class="btn btn-primary" style="font-size:12px;" type="button" id="cc-btn-marketing">📊 כל המודולים</button>
+    </div>
+    <div class="nav-tabs" id="crm-client-tabs">
+      <div class="nav-tab active" data-tab="tab-cc-info">פרטים</div>
+      <div class="nav-tab" data-tab="tab-cc-tasks">משימות</div>
+      <div class="nav-tab" data-tab="tab-cc-history">היסטוריה</div>
+    </div>
+    <div class="content" id="cc-content"></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-new-lead">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header"><span>ליד חדש</span><button type="button" class="btn-icon" onclick="DaliaCrm.closeModal('modal-new-lead')">✕</button></div>
+    <form onsubmit="return DaliaCrm.submitNewLead(event)">
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;">
+        <input class="filter-input" name="name" placeholder="שם חברה *" required>
+        <input class="filter-input" name="contact_person" placeholder="איש קשר">
+        <input class="filter-input" name="phone" placeholder="טלפון">
+        <input class="filter-input" name="email" placeholder="אימייל">
+        <select class="filter-select" name="source"><option value="form">טופס</option><option value="google">Google</option><option value="referral">הפניה</option><option value="phone">טלפון</option></select>
+        <select class="filter-select" name="service_type"><option value="marketing_only">שיווק בלבד</option><option value="fleet_and_marketing">שיווק + צי</option></select>
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn btn-primary">שמור</button></div>
+    </form>
+  </div>
+</div>
+<div class="overlay" id="modal-new-task">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header"><span>משימה חדשה</span><button type="button" class="btn-icon" onclick="DaliaCrm.closeModal('modal-new-task')">✕</button></div>
+    <form onsubmit="return DaliaCrm.submitNewTask(event)">
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;">
+        <input class="filter-input" name="title" placeholder="נושא *" required>
+        <input class="filter-input" name="due_at" type="datetime-local">
+        <select class="filter-select" name="priority"><option value="medium">בינוני</option><option value="high">גבוה</option><option value="urgent">דחוף</option></select>
+        <input class="filter-input" name="assigned_to" placeholder="אחראי">
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn btn-primary">שמור</button></div>
+    </form>
+  </div>
+</div>
+<div id="toast" style="opacity:0;"></div>

@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-2';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
@@ -213,6 +213,11 @@ async function runViewport(browser, name, viewport) {
   else fail('unified:client-id changed across screens', name);
   if (unifiedTest.hasUnified) pass(`unified:CocoUnified-${unifiedTest.unifiedVer}`, name);
   else fail('unified:CocoUnified missing', name);
+
+  var crmBtn = await page.evaluate(function () {
+    return !!document.getElementById('coco-open-crm-btn');
+  });
+  crmBtn ? pass('unified:crm-in-marketing-bar', name) : fail('unified:crm button missing from marketing bar', name);
 
   // Filter persistence across modules
   const filterTest = await page.evaluate(() => {
