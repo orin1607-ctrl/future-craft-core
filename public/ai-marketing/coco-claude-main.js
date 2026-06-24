@@ -883,6 +883,36 @@ function resetAdvancedFilter() {
   showToast('✓ הסינון המתקדם אופס');
 }
 
+function resetHistoryFilter() {
+  ['hist-company','hist-site','hist-page','hist-campaign','hist-status','hist-action-type'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const d = document.getElementById('hist-date'); if (d) d.value = '30';
+  const c = document.getElementById('hist-company'); if (c) c.value = 'greentech';
+  const s = document.getElementById('hist-site'); if (s) s.value = 'greentech.co.il';
+  showToast('✓ סינון היסטוריה אופס');
+}
+
+function resetAiDecisionsFilter() {
+  ['ai-company','ai-site','ai-page','ai-campaign','ai-goal','ai-agent'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const d = document.getElementById('ai-date'); if (d) d.value = '30';
+  const c = document.getElementById('ai-company'); if (c) c.value = 'greentech';
+  const s = document.getElementById('ai-site'); if (s) s.value = 'greentech.co.il';
+  showToast('✓ סינון AI אופס');
+}
+
+function resetReportsFilter() {
+  ['rep-company','rep-site','rep-page','rep-campaign','rep-channel','rep-status','rep-employee','rep-ai-agent'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const d = document.getElementById('rep-date'); if (d) d.value = '30';
+  const c = document.getElementById('rep-company'); if (c) c.value = 'greentech';
+  const s = document.getElementById('rep-site'); if (s) s.value = 'greentech.co.il';
+  showToast('✓ סינון דוחות אופס');
+}
+
 // ===== END STATUS FILTER LOGIC =====
 
 // Init: show only first tabs in each screen
@@ -931,8 +961,10 @@ document.querySelectorAll('.screen').forEach(screen => {
     'screen-clients',
     'screen-goals',
     'screen-actions',
-    'screen-assets'
-    /* Phase B: 'screen-history', 'screen-ai-decisions', 'screen-reports' */
+    'screen-history',
+    'screen-assets',
+    'screen-ai-decisions',
+    'screen-reports'
   ];
 
   var GOTO_MAP = {
@@ -952,21 +984,24 @@ document.querySelectorAll('.screen').forEach(screen => {
     'sc-mkt-clients': 'screen-clients',
     'sc-mkt-goals': 'screen-goals',
     'sc-mkt-actions': 'screen-actions',
+    'sc-mkt-history': 'screen-history',
     'sc-mkt-assets': 'screen-assets',
+    'sc-mkt-ai-decisions': 'screen-ai-decisions',
+    'sc-mkt-reports': 'screen-reports',
     'sc-mkt-agents': 'screen-agents'
   };
 
   var FIELD_MAP = [
-    { ctx: 'company', ids: ['sf-company-display', 'gf-company', 'ag-company', 'act-company'] },
-    { ctx: 'site', ids: ['sf-site', 'gf-site', 'ag-site', 'act-site'] },
-    { ctx: 'page', ids: ['sf-page', 'gf-page', 'act-page'] },
-    { ctx: 'campaign', ids: ['sf-campaign', 'gf-campaign', 'act-campaign'] },
-    { ctx: 'channel', ids: ['sf-channel', 'gf-channel'] },
-    { ctx: 'status', ids: ['sf-status', 'gf-status', 'ag-status', 'act-status-adv'] },
-    { ctx: 'dateRange', ids: ['sf-daterange', 'gf-date', 'act-date-range'] },
-    { ctx: 'agent', ids: ['gf-agent', 'ag-agent', 'act-source'] },
-    { ctx: 'goal', ids: ['gf-goal-category'] },
-    { ctx: 'action', ids: ['act-type'] }
+    { ctx: 'company', ids: ['sf-company-display', 'gf-company', 'ag-company', 'act-company', 'hist-company', 'ai-company', 'rep-company'] },
+    { ctx: 'site', ids: ['sf-site', 'gf-site', 'ag-site', 'act-site', 'hist-site', 'ai-site', 'rep-site'] },
+    { ctx: 'page', ids: ['sf-page', 'gf-page', 'act-page', 'hist-page', 'ai-page', 'rep-page'] },
+    { ctx: 'campaign', ids: ['sf-campaign', 'gf-campaign', 'act-campaign', 'hist-campaign', 'ai-campaign', 'rep-campaign'] },
+    { ctx: 'channel', ids: ['sf-channel', 'gf-channel', 'rep-channel'] },
+    { ctx: 'status', ids: ['sf-status', 'gf-status', 'ag-status', 'act-status-adv', 'hist-status', 'rep-status'] },
+    { ctx: 'dateRange', ids: ['sf-daterange', 'gf-date', 'act-date-range', 'hist-date', 'ai-date', 'rep-date'] },
+    { ctx: 'agent', ids: ['gf-agent', 'ag-agent', 'act-source', 'ai-agent', 'rep-ai-agent'] },
+    { ctx: 'goal', ids: ['gf-goal-category', 'ai-goal'] },
+    { ctx: 'action', ids: ['act-type', 'hist-action-type'] }
   ];
 
   function loadContext() {
@@ -1065,17 +1100,19 @@ document.querySelectorAll('.screen').forEach(screen => {
         var nextId = FLOW_CHAIN[idx + 1];
         var screen = document.getElementById(sid);
         if (!screen) return;
+        if (!screen || screen.querySelector('.flow-next-bar')) return;
         var bar = document.createElement('div');
         bar.className = 'flow-next-bar';
         bar.style.cssText = 'padding:12px 20px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;';
         var labels = {
-          'screen-status': 'חברות ולקוחות',
-          'screen-clients': 'המטרות',
-          'screen-goals': 'הפעולות',
-          'screen-actions': 'נכסים דיגיטליים',
-          'screen-history': 'נכסים דיגיטליים',
-          'screen-assets': 'AI / קבלת החלטות',
-          'screen-ai-decisions': 'דוחות'
+          'screen-status': 'מצב נוכחי',
+          'screen-clients': 'חברות ולקוחות',
+          'screen-goals': 'המטרות',
+          'screen-actions': 'הפעולות',
+          'screen-history': 'היסטוריה',
+          'screen-assets': 'הנכסים הדיגיטליים',
+          'screen-ai-decisions': 'AI / קבלת החלטות',
+          'screen-reports': 'דוחות'
         };
         bar.innerHTML = '<button type="button" class="btn btn-primary" data-flow-next="' + nextId + '">המשך ל-' + (labels[nextId] || nextId) + ' →</button>';
         var content = screen.querySelector('.content');

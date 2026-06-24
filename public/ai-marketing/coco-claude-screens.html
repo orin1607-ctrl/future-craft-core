@@ -72,7 +72,7 @@
       </div>
     </div>
 
-    <!-- 6 Main buttons -->
+    <!-- 9 מודולים — זרימת עבודה -->
     <div style="padding:16px 20px 0;">
       <div class="sec-title">מודולים</div>
     </div>
@@ -89,12 +89,6 @@
         <div class="hub-desc">הגדרת סביבת שיווק</div>
         <div class="hub-count">12 לקוחות</div>
       </div>
-      <div class="hub-card" onclick="goScreen('screen-agents')">
-        <div class="hub-icon">🤖</div>
-        <div class="hub-name">העוזרים שלנו</div>
-        <div class="hub-desc">איסוף וניתוח מידע AI</div>
-        <div class="hub-count">12 עוזרים פעילים</div>
-      </div>
       <div class="hub-card" onclick="goScreen('screen-goals')">
         <div class="hub-icon">🎯</div>
         <div class="hub-name">המטרות שלנו</div>
@@ -107,12 +101,37 @@
         <div class="hub-desc">ביצוע ואישור משימות</div>
         <div class="hub-count">12 ממתינות לאישור</div>
       </div>
+      <div class="hub-card" onclick="goScreen('screen-history')">
+        <div class="hub-icon">📚</div>
+        <div class="hub-name">היסטוריה</div>
+        <div class="hub-desc">תיעוד פעולות ושינויים</div>
+        <div class="hub-count">18 בוצעו החודש</div>
+      </div>
       <div class="hub-card" onclick="goScreen('screen-assets')">
         <div class="hub-icon">🌐</div>
         <div class="hub-name">הנכסים הדיגיטליים</div>
         <div class="hub-desc">שליטה בכל הנכסים</div>
         <div class="hub-count">9 נכסים מחוברים</div>
       </div>
+      <div class="hub-card" onclick="goScreen('screen-ai-decisions')">
+        <div class="hub-icon">🧠</div>
+        <div class="hub-name">AI / קבלת החלטות</div>
+        <div class="hub-desc">ישיבת צוות AI מרכזית</div>
+        <div class="hub-count">23 המלצות</div>
+      </div>
+      <div class="hub-card" onclick="goScreen('screen-reports')">
+        <div class="hub-icon">📄</div>
+        <div class="hub-name">דוחות</div>
+        <div class="hub-desc">הפקה אוטומטית ללקוח</div>
+        <div class="hub-count">6 סוגי דוחות</div>
+      </div>
+    </div>
+
+    <!-- עוזרים — מחוץ לשרשרת, זמין מכל מקום -->
+    <div style="padding:8px 20px 0;">
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;gap:8px;" onclick="goScreen('screen-agents')">
+        🤖 העוזרים שלנו — איסוף וניתוח מידע AI
+      </button>
     </div>
 
     <!-- Alerts -->
@@ -3089,6 +3108,255 @@
         <div class="ai-box-header"><div class="ai-pulse"></div>AI – נכסים דיגיטליים</div>
         <div class="ai-box-text">9 נכסים מחוברים. 2 נכסים חסרים (TikTok, YouTube) – שוק היעד של גרין-טק פעיל בשניהם. ממליץ לחבר YouTube ולפתוח ערוץ תוכן מקצועי. Instagram מציג ביצועים מצוינים – ממליץ להגדיל תדירות פרסום.</div>
         <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;margin-top:10px;" onclick="goScreen('screen-actions')">⚙️ פתח משימות נכסים</button>
+      </div>
+    </div>
+  </div>
+  <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
+</div>
+
+<!-- ============================= SCREEN: HISTORY ============================= -->
+<div class="screen" id="screen-history">
+  <div class="topbar">
+    <div class="topbar-right">
+      <button class="btn-icon" onclick="goScreen('screen-hub')">←</button>
+      <div class="breadcrumb">דליה <span class="sep">›</span> שיווק AI <span class="sep">›</span> <span>היסטוריה</span></div>
+    </div>
+    <div class="topbar-left">
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-agents')">🤖 עוזרים</button>
+      <button class="btn-icon" onclick="showDaliaToast()">🏠</button>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="setTab(this,'tab-hist-actions')">פעולות</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-hist-goals')">מטרות</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-hist-site')">שינויים באתר</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-hist-campaigns')">קמפיינים</div>
+  </div>
+
+  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
+    <div class="filter-bar" style="flex-wrap:wrap;">
+      <select class="filter-select" id="hist-company" title="חברה"><option value="">כל החברות</option><option value="greentech" selected>גרין-טק</option><option value="delta">דלתא לוגיסטיקה</option></select>
+      <select class="filter-select" id="hist-site" title="אתר"><option value="">כל האתרים</option><option value="greentech.co.il" selected>greentech.co.il</option></select>
+      <select class="filter-select" id="hist-page" title="עמוד"><option value="">כל העמודים</option><option>דף הבית</option><option>שירותים</option><option>ניהול צי</option><option>ביטוח צי</option></select>
+      <select class="filter-select" id="hist-campaign" title="קמפיין"><option value="">כל הקמפיינים</option><option>Brand Search</option><option>מוצרים – כללי</option><option>Remarketing</option></select>
+      <select class="filter-select" id="hist-status" title="סטטוס"><option value="">כל הסטטוסים</option><option>בוצע</option><option>נדחה</option><option>הוחזר</option></select>
+      <select class="filter-select" id="hist-action-type" title="פעולה"><option value="">כל הפעולות</option><option>SEO</option><option>תוכן</option><option>ביצועים</option><option>קמפיין</option></select>
+      <select class="filter-select" id="hist-date" title="תאריך"><option value="30" selected>30 ימים</option><option value="7">7 ימים</option><option value="60">60 ימים</option><option value="90">90 ימים</option></select>
+      <button onclick="resetHistoryFilter()" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;">✕ נקה</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="tab-hist-actions">
+      <div class="page-header">
+        <div class="page-title">📚 היסטוריית פעולות</div>
+        <div class="page-subtitle">כל פעולה שבוצעה, אושרה או נדחתה — מתועדת אוטומטית</div>
+        <hr class="page-rule">
+      </div>
+      <div class="section">
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">✅ Meta Titles פורסמו – 8 עמודים</div><div class="tl-time">12.6.25 | SEO | greentech.co.il | CTR ↑ +0.4%</div></div></div>
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">✅ Schema נוסף לדף הבית</div><div class="tl-time">8.6.25 | מבנה אתר | Rich Result פעיל</div></div></div>
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--yellow)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">🔄 PageSpeed – הוחזר לתיקון</div><div class="tl-time">5.6.25 | ביצועים | ממתין לגרסה v2</div></div></div>
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--red)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">❌ קמפיין Competitor – נדחה</div><div class="tl-time">10.6.25 | Google Ads | סיבה: תקציב</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div id="tab-hist-goals" style="display:none;">
+      <div class="page-header"><div class="page-title">🎯 היסטוריית מטרות</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="alert alert-ok">✅ Meta Titles – הושלם 12.6.25</div>
+        <div class="alert alert-ok">✅ Schema דף הבית – הושלם 8.6.25</div>
+        <div class="alert alert-warn">⏳ PageSpeed נייד – בתהליך (61→80)</div>
+      </div>
+    </div>
+    <div id="tab-hist-site" style="display:none;">
+      <div class="page-header"><div class="page-title">🌐 שינויים באתר</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="table-wrap"><table><thead><tr><th>תאריך</th><th>עמוד</th><th>שינוי</th><th>מבצע</th><th>סטטוס</th></tr></thead><tbody>
+          <tr><td>12.6.25</td><td>שירותים</td><td>Meta Description עודכן</td><td>AI Auto</td><td><span class="badge badge-green">פורסם</span></td></tr>
+          <tr><td>8.6.25</td><td>דף הבית</td><td>Schema Markup</td><td>AI Auto</td><td><span class="badge badge-green">פורסם</span></td></tr>
+          <tr><td>28.5.25</td><td>כל האתר</td><td>Breadcrumbs</td><td>Miki</td><td><span class="badge badge-green">פורסם</span></td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+    <div id="tab-hist-campaigns" style="display:none;">
+      <div class="page-header"><div class="page-title">📢 היסטוריית קמפיינים</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="table-wrap"><table><thead><tr><th>תאריך</th><th>קמפיין</th><th>פעולה</th><th>תוצאה</th></tr></thead><tbody>
+          <tr><td>10.6.25</td><td>Competitor</td><td>השהיה</td><td><span class="badge badge-yellow">מושהה</span></td></tr>
+          <tr><td>1.6.25</td><td>Brand Search</td><td>הגדלת תקציב +₪800</td><td><span class="badge badge-green">ROAS 4.8x</span></td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+  </div>
+  <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
+</div>
+
+<!-- ============================= SCREEN: AI DECISIONS ============================= -->
+<div class="screen" id="screen-ai-decisions">
+  <div class="topbar">
+    <div class="topbar-right">
+      <button class="btn-icon" onclick="goScreen('screen-hub')">←</button>
+      <div class="breadcrumb">דליה <span class="sep">›</span> שיווק AI <span class="sep">›</span> <span>AI / קבלת החלטות</span></div>
+    </div>
+    <div class="topbar-left">
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-agents')">🤖 עוזרים</button>
+      <button class="btn-icon" onclick="showDaliaToast()">🏠</button>
+    </div>
+  </div>
+
+  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
+    <div class="filter-bar" style="flex-wrap:wrap;">
+      <select class="filter-select" id="ai-company" title="חברה"><option value="">כל החברות</option><option value="greentech" selected>גרין-טק</option></select>
+      <select class="filter-select" id="ai-site" title="אתר"><option value="">כל האתרים</option><option value="greentech.co.il" selected>greentech.co.il</option></select>
+      <select class="filter-select" id="ai-page" title="עמוד"><option value="">כל העמודים</option><option>דף הבית</option><option>שירותים</option></select>
+      <select class="filter-select" id="ai-campaign" title="קמפיין"><option value="">כל הקמפיינים</option><option>Brand Search</option><option>Remarketing</option></select>
+      <select class="filter-select" id="ai-goal" title="מטרה"><option value="">כל המטרות</option><option>PageSpeed</option><option>SEO</option><option>לידים</option></select>
+      <select class="filter-select" id="ai-agent" title="עוזר"><option value="">כל העוזרים</option><option>ChatGPT</option><option>Claude</option><option>Gemini</option><option>AI Manager</option></select>
+      <select class="filter-select" id="ai-date" title="תאריך"><option value="30" selected>30 ימים</option><option value="7">7 ימים</option><option value="90">90 ימים</option></select>
+      <button onclick="resetAiDecisionsFilter()" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;">✕ נקה</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-header">
+      <div class="page-title">🧠 AI / קבלת החלטות</div>
+      <div class="page-subtitle">ישיבת צוות AI — נתונים מכל המודולים והעוזרים</div>
+      <hr class="page-rule">
+    </div>
+
+    <div class="section" style="padding-top:0;">
+      <div class="grid grid-3" style="gap:10px;">
+        <div class="card" style="padding:14px;border-color:rgba(16,163,74,0.35);">
+          <div class="card-title">ChatGPT</div>
+          <div style="font-size:12px;color:var(--white80);margin-top:8px;line-height:1.6;">ממליץ להתמקד ב-PageSpeed נייד ו-Meta חסרים. מזהה 3 הזדמנויות תוכן עם ROI גבוה.</div>
+          <span class="badge badge-green" style="margin-top:8px;">✓ ניתוח הושלם</span>
+        </div>
+        <div class="card" style="padding:14px;border-color:rgba(139,92,246,0.35);">
+          <div class="card-title">Claude</div>
+          <div style="font-size:12px;color:var(--white80);margin-top:8px;line-height:1.6;">מדגיש תיעוד והיסטוריה. מציע לשלב Internal Links לפני הרחבת קמפיינים.</div>
+          <span class="badge badge-purple" style="margin-top:8px;">✓ ניתוח הושלם</span>
+        </div>
+        <div class="card" style="padding:14px;border-color:rgba(6,182,212,0.35);">
+          <div class="card-title">Gemini</div>
+          <div style="font-size:12px;color:var(--white80);margin-top:8px;line-height:1.6;">מזהה מגמת ירידה ב"ביטוח צי". ממליץ על עדכון תוכן + קמפיין Brand.</div>
+          <span class="badge badge-blue" style="margin-top:8px;">✓ ניתוח הושלם</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="ai-box" style="border-color:rgba(37,99,235,0.45);">
+        <div class="ai-box-header"><div class="ai-pulse"></div>החלטה מסודרת — סיכום ישיבת צוות</div>
+        <div class="ai-box-text">
+          <strong>בעיות:</strong> PageSpeed נייד 61 | 3 Meta חסרים | קמפיין Competitor לא רווחי<br><br>
+          <strong>הזדמנויות:</strong> 18 ביטויי SEO חדשים | ROAS Brand 4.8x | Instagram 6.1% אינטראקציה<br><br>
+          <strong>סדר עדיפויות:</strong> 1) PageSpeed דחוף 2) Meta + Schema 3) תוכן SEO 4) אופטימיזציית Ads<br><br>
+          <strong>פעולות מוצעות:</strong> 8 משימות מוכנות להעברה למטרות ולפעולות
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-goals');showToast('🎯 8 המלצות הועברו למטרות')">🎯 העבר למטרות</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-actions')">⚙️ לפעולות</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">ממצאים לפי חשיבות</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="alert alert-err">🔴 קריטי: PageSpeed נייד — פוגע ב-SEO ובהמרות</div>
+        <div class="alert alert-warn">⚠️ גבוה: 18 ביטויים לא מכוסים — פוטנציאל +2,000 קליקים</div>
+        <div class="alert alert-info">ℹ️ בינוני: TikTok לא מחובר — קהל יעד פעיל</div>
+        <div class="alert alert-ok">✅ חיובי: CTR עלה +0.4% | לידים +8</div>
+      </div>
+    </div>
+  </div>
+  <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
+</div>
+
+<!-- ============================= SCREEN: REPORTS ============================= -->
+<div class="screen" id="screen-reports">
+  <div class="topbar">
+    <div class="topbar-right">
+      <button class="btn-icon" onclick="goScreen('screen-hub')">←</button>
+      <div class="breadcrumb">דליה <span class="sep">›</span> שיווק AI <span class="sep">›</span> <span>דוחות</span></div>
+    </div>
+    <div class="topbar-left">
+      <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="openModal('modal-report')">📄 הפק דוח</button>
+      <button class="btn-icon" onclick="showDaliaToast()">🏠</button>
+    </div>
+  </div>
+
+  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
+    <div class="filter-bar" style="flex-wrap:wrap;">
+      <select class="filter-select" id="rep-company" title="חברה"><option value="">כל החברות</option><option value="greentech" selected>גרין-טק</option></select>
+      <select class="filter-select" id="rep-site" title="אתר"><option value="">כל האתרים</option><option value="greentech.co.il" selected>greentech.co.il</option></select>
+      <select class="filter-select" id="rep-page" title="עמוד"><option value="">כל העמודים</option><option>דף הבית</option><option>שירותים</option></select>
+      <select class="filter-select" id="rep-campaign" title="קמפיין"><option value="">כל הקמפיינים</option><option>Brand Search</option></select>
+      <select class="filter-select" id="rep-channel" title="ערוץ"><option value="">כל הערוצים</option><option>SEO</option><option>Google Ads</option><option>Facebook</option></select>
+      <select class="filter-select" id="rep-status" title="סטטוס"><option value="">כל הסטטוסים</option><option>פעיל</option><option>הושלם</option></select>
+      <select class="filter-select" id="rep-date" title="תאריך"><option value="30" selected>30 ימים</option><option value="7">7 ימים</option><option value="month">חודשי</option></select>
+      <select class="filter-select" id="rep-employee" title="עובד"><option value="">כל העובדים</option><option>יוני</option><option>Miki</option><option>AI Auto</option></select>
+      <select class="filter-select" id="rep-ai-agent" title="עוזר AI"><option value="">כל העוזרים</option><option>ChatGPT</option><option>Claude</option><option>Gemini</option></select>
+      <button onclick="resetReportsFilter()" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;">✕ נקה</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-header">
+      <div class="page-title">📄 דוחות</div>
+      <div class="page-subtitle">נבנים אוטומטית מכל נתוני המערכת — מצב, מטרות, פעולות, היסטוריה, AI</div>
+      <hr class="page-rule">
+    </div>
+
+    <div class="section" style="padding-top:0;">
+      <div class="grid grid-2" style="gap:10px;">
+        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
+          <div class="report-title">📊 דוח מצב נוכחי</div>
+          <div class="report-row"><span class="rl">ציון אתר</span><span class="rv" style="color:var(--green)">82</span></div>
+          <div class="report-row"><span class="rl">כניסות</span><span class="rv">14,320</span></div>
+          <div class="report-row"><span class="rl">לידים</span><span class="rv">47</span></div>
+        </div>
+        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
+          <div class="report-title">🔍 דוח SEO</div>
+          <div class="report-row"><span class="rl">מילות מפתח</span><span class="rv">342</span></div>
+          <div class="report-row"><span class="rl">מיקום ממוצע</span><span class="rv">12.3</span></div>
+          <div class="report-row"><span class="rl">CTR</span><span class="rv">4.6%</span></div>
+        </div>
+        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
+          <div class="report-title">📢 דוח קמפיינים</div>
+          <div class="report-row"><span class="rl">ROAS</span><span class="rv">3.2x</span></div>
+          <div class="report-row"><span class="rl">הוצאה</span><span class="rv">₪8,400</span></div>
+          <div class="report-row"><span class="rl">המרות</span><span class="rv">28</span></div>
+        </div>
+        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
+          <div class="report-title">⚙️ דוח פעולות שבוצעו</div>
+          <div class="report-row"><span class="rl">הושלמו</span><span class="rv">18</span></div>
+          <div class="report-row"><span class="rl">ממתינות</span><span class="rv" style="color:var(--yellow)">12</span></div>
+          <div class="report-row"><span class="rl">נדחו</span><span class="rv">2</span></div>
+        </div>
+        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
+          <div class="report-title">🎯 דוח מטרות</div>
+          <div class="report-row"><span class="rl">פעילות</span><span class="rv">8</span></div>
+          <div class="report-row"><span class="rl">הושלמו</span><span class="rv">4</span></div>
+          <div class="report-row"><span class="rl">התקדמות</span><span class="rv">68%</span></div>
+        </div>
+        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
+          <div class="report-title">📅 דוח חודשי — יוני 2025</div>
+          <div class="report-row"><span class="rl">כניסות</span><span class="rv">+12%</span></div>
+          <div class="report-row"><span class="rl">לידים</span><span class="rv">+8</span></div>
+          <div class="report-row"><span class="rl">פעולות</span><span class="rv">18 בוצעו</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="ai-box">
+        <div class="ai-box-header"><div class="ai-pulse"></div>דוחות מבוססי החלטות AI</div>
+        <div class="ai-box-text">הדוחות נבנים אוטומטית מהחלטת ישיבת ה-AI האחרונה: עדיפות PageSpeed, Meta חסרים, ואופטימיזציית Brand Search. ניתן לסנן ולהפיק לפי כל פרמטרי המערכת.</div>
+        <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;margin-top:10px;" onclick="openModal('modal-report')">📄 הפק דוח מלא</button>
       </div>
     </div>
   </div>
