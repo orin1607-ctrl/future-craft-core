@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-claude-full-6';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-claude-1to1-2';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
@@ -122,19 +122,24 @@ async function runViewport(browser, name, viewport) {
     }
   }
 
-  // Flow "המשך ל..." buttons
-  for (let i = 0; i < FLOW_CHAIN.length - 1; i++) {
-    const from = FLOW_CHAIN[i];
-    const to = FLOW_CHAIN[i + 1];
-    const ok = await page.evaluate(({ from, to }) => {
-      window.goScreen(from);
-      const btn = document.querySelector(`#${from} [data-flow-next="${to}"]`);
-      if (!btn) return { ok: false, reason: 'no button' };
-      btn.click();
-      const el = document.getElementById(to);
-      return { ok: !!(el && el.classList.contains('active')), reason: '' };
-    }, { from, to });
-    ok.ok ? pass(`flow-next:${from}->${to}`, name) : fail(`flow-next ${from}->${to} (${ok.reason})`, name);
+  // Flow "המשך ל..." buttons — optional in 1:1 Claude UI (removed intentionally)
+  const hasFlowNext = await page.evaluate(() => !!document.querySelector('[data-flow-next]'));
+  if (hasFlowNext) {
+    for (let i = 0; i < FLOW_CHAIN.length - 1; i++) {
+      const from = FLOW_CHAIN[i];
+      const to = FLOW_CHAIN[i + 1];
+      const ok = await page.evaluate(({ from, to }) => {
+        window.goScreen(from);
+        const btn = document.querySelector(`#${from} [data-flow-next="${to}"]`);
+        if (!btn) return { ok: false, reason: 'no button' };
+        btn.click();
+        const el = document.getElementById(to);
+        return { ok: !!(el && el.classList.contains('active')), reason: '' };
+      }, { from, to });
+      ok.ok ? pass(`flow-next:${from}->${to}`, name) : fail(`flow-next ${from}->${to} (${ok.reason})`, name);
+    }
+  } else {
+    pass('flow-next:skipped-1to1-design', name);
   }
 
   // Back links (hub header back buttons)

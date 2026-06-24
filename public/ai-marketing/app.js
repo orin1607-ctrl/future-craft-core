@@ -454,6 +454,9 @@
           system: opts.system || '',
           prompt: opts.prompt,
           history: opts.history || [],
+          clientContext: (window.CocoUnified && CocoUnified.buildClientContext)
+            ? CocoUnified.buildClientContext()
+            : (opts.clientContext || null),
         }),
       }).then(function (r) { return r.json(); }).then(function (data) {
         return { ok: !!data.ok, text: data.text, message: data.error || data.message };
@@ -796,6 +799,8 @@
           if (window.MarketingClient && typeof window.MarketingClient.renderHub === 'function') {
             window.MarketingClient.renderHub();
           }
+          if (window.CocoUnified && CocoUnified.onAuthReady) CocoUnified.onAuthReady();
+          else if (window.CocoData && CocoData.loadCustomers) CocoData.loadCustomers();
         }
       });
       if (window.COCO_STAGING?.accessToken) probeStagingAi();

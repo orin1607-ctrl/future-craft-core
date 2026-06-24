@@ -274,6 +274,33 @@
     return upsertProfile(customerId, { setup_status: 'goals_ready' });
   }
 
+  function listLeads(customerId, status) {
+    if (!canRemote()) return Promise.resolve([]);
+    var q = 'marketing_leads?customer_id=eq.' + customerId + '&select=*&order=created_at.desc';
+    if (status) q += '&status=eq.' + status;
+    return rest(q);
+  }
+
+  function insertLead(row) {
+    return insertRow('marketing_leads', row);
+  }
+
+  function getMetrics(customerId, provider) {
+    if (!canRemote()) return Promise.resolve([]);
+    var q = 'marketing_metrics?customer_id=eq.' + customerId + '&select=*&order=synced_at.desc';
+    if (provider) q += '&provider=eq.' + provider;
+    return rest(q);
+  }
+
+  function logActivity(row) {
+    return insertRow('marketing_activity_log', row);
+  }
+
+  function listActivity(customerId, limit) {
+    if (!canRemote()) return Promise.resolve([]);
+    return rest('marketing_activity_log?customer_id=eq.' + customerId + '&select=*&order=created_at.desc&limit=' + (limit || 50));
+  }
+
   function loadBundle(customerId) {
     return Promise.all([
       getCustomer(customerId),
@@ -338,5 +365,10 @@
     insertApiItem: function (row) { return insertRow('marketing_api_items', row); },
     updateConnection: function (id, patch) { return updateRow('marketing_connections', id, patch); },
     updateProfile: function (customerId, patch) { return upsertProfile(customerId, patch); },
+    listLeads: listLeads,
+    insertLead: insertLead,
+    getMetrics: getMetrics,
+    logActivity: logActivity,
+    listActivity: listActivity,
   };
 })();

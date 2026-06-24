@@ -347,6 +347,16 @@
       }
       if (cid && window.CocoData && CocoData.load) {
         CocoData.load(cid);
+      } else if (!cid && !COCO.flowContext.clientName) {
+        if (window.MarketingApi && MarketingApi.canRemote && MarketingApi.canRemote()) {
+          MarketingApi.listMarketingCustomers().then(function (rows) {
+            if (rows && rows[0] && window.CocoData && CocoData.selectCustomer) {
+              CocoData.selectCustomer(rows[0].id);
+            } else if (typeof showToast === 'function') {
+              showToast('אין לקוחות שיווק — צור לקוח בדליה עם סוג שירות שיווק');
+            }
+          });
+        }
       }
     },
     onScreenChange: function (id) {

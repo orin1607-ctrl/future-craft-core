@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     if ("error" in auth) return auth.error;
 
     const body = await req.json();
-    const { prompt, system, history, module } = body;
+    const { prompt, system, history, module, clientContext } = body;
 
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return jsonResponse({ ok: false, error: "empty_prompt" }, 400);
@@ -30,7 +30,10 @@ Deno.serve(async (req) => {
     }
 
     const model = Deno.env.get("MARKETING_OPENAI_MODEL") || Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
-    const sys = [MARKETING_ONLY, system].filter(Boolean).join("\n\n---\n\n");
+    const ctxBlock = clientContext
+      ? `\n\nהקשר לקוח פעיל (Client ID אחיד):\n${JSON.stringify(clientContext, null, 2).slice(0, 4000)}`
+      : "";
+    const sys = [MARKETING_ONLY, system, ctxBlock].filter(Boolean).join("\n\n---\n\n");
 
     const messages: { role: string; content: string }[] = [{ role: "system", content: sys }];
     if (Array.isArray(history)) {

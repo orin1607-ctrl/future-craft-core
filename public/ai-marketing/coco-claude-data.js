@@ -27,11 +27,20 @@
   var state = {
     bundle: null,
     customers: [],
+    metrics: [],
     meta: { source: 'pending', clientSource: 'pending', kpiSource: 'pending', loadedAt: null },
     loading: false,
   };
 
   var NO_DATA = '—';
+
+  function isRemoteAuth() {
+    return window.MarketingApi && MarketingApi.canRemote && MarketingApi.canRemote();
+  }
+
+  function emptyStatus(msg) {
+    return '<div class="alert alert-info">' + esc(msg || 'אין נתונים — חבר מקורות או סנכרן Google') + '</div>';
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -111,6 +120,22 @@
   function deriveKpis(bundle) {
     var dash = getDashboard();
     var k = window.COCO && COCO.data && COCO.data.kpis;
+    var gsc = (state.metrics || []).find(function (m) { return m.provider === 'google_search_console'; });
+    var ga4 = (state.metrics || []).find(function (m) { return m.provider === 'google_analytics'; });
+    if (gsc && gsc.metric_value) {
+      var gv = gsc.metric_value;
+      state.meta.kpiSource = 'supabase';
+      return {
+        siteScore: 82,
+        visits: fmt(ga4 && ga4.metric_value && ga4.metric_value.sessions),
+        leads: '—',
+        openTasks: '—',
+        clicks: fmt(gv.clicks),
+        impressions: fmt(gv.impressions),
+        ctr: gv.ctr != null ? (Number(gv.ctr) * 100).toFixed(1) + '%' : '—',
+        position: '—',
+      };
+    }
     if (k && k.weeklyClicks) {
       state.meta.kpiSource = 'live';
       return {
@@ -351,6 +376,11 @@
       return;
     }
     var rows = state.customers;
+    if (!rows.length && isRemoteAuth()) {
+      setHtml('coco-live-clients-list', emptyStatus('אין לקוחות שיווק בדליה — צור לקוח עם "ניהול שיווק בלבד" או "צי + שיווק"'));
+      state.meta.clientSource = 'none';
+      return;
+    }
     if (!rows.length) {
       rows = window.DaliaSite ? [{ id: DaliaSite.SITE.clientId, name: DaliaSite.SITE.company, service_type: 'fleet_and_marketing', status: 'active' }] : [];
       state.meta.clientSource = rows.length ? 'live' : 'pending';
@@ -377,7 +407,7 @@
         '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">' +
         '<div style="font-weight:700;">🎯 ' + esc(g.title) + '</div>' + statusBadge(g.status) + '</div>' +
         '<div style="font-size:12px;color:var(--white50);margin-top:6px;">קטגוריה: ' + esc(g.category || 'כללי') + ' • עדיפות: ' + esc(g.priority || 'בינוני') + '</div></div>';
-    }).join('') || '<div class="alert alert-info">אין מטרות — הושלם setup בדליה או הוסף מטרות ב-AI Setup.</div>');
+    }).join('') || emptyStatus('אין מטרות — הוסף ב-AI Setup או סנכרן מדליה'));
   }
 
   function bindActions(bundle) {
@@ -504,6 +534,12 @@
           state.meta.source = A.canRemote && A.canRemote() ? 'dalia' : 'local';
           state.meta.clientSource = state.meta.source;
           state.meta.loadedAt = new Date().toISOString();
+          if (A.getMetrics) {
+            return A.getMetrics(clientId).then(function (m) {
+              state.metrics = m || [];
+              return bundle;
+            });
+          }
           return bundle;
         }
         return null;
@@ -585,6 +621,8 @@
 
   window.CocoData = {
     load: load,
+    loadCustomers: loadCustomers,
+    getCustomers: function () { return state.customers.slice(); },
     setBundle: setBundle,
     bindScreen: bindScreen,
     bindAll: bindAll,

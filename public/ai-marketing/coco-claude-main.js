@@ -79,10 +79,16 @@ function selectClient(name) {
 // ===== AI CHAT =====
 function sendAiMessage() {
   const inp = document.getElementById('ai-input');
-  const val = inp.value.trim();
+  const val = inp && inp.value.trim();
   if (!val) return;
   inp.value = '';
   showToast('🤖 AI מעבד את השאלה...');
+  var chat = (window.CocoUnified && CocoUnified.marketingAiChat) || window.marketingApiChat;
+  if (!chat) { showToast('AI לא זמין — התחבר דרך דליה'); return; }
+  chat({ module: 'assistant', prompt: val, provider: 'openai' }).then(function (r) {
+    if (r && r.ok && r.text) showToast(r.text.slice(0, 120) + (r.text.length > 120 ? '…' : ''));
+    else showToast((r && (r.message || r.error)) || 'שגיאת AI');
+  });
 }
 function aiQuickQ(q) {
   document.getElementById('ai-input').value = q;
