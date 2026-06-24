@@ -95,33 +95,46 @@
     return [];
   }
 
+  function ensureLiveMount(id, screenId) {
+    if (document.getElementById(id)) return;
+    var screen = document.getElementById(screenId);
+    if (!screen) return;
+    var content = screen.querySelector('.content');
+    if (!content) return;
+    var div = document.createElement('div');
+    div.id = id;
+    div.className = 'coco-live-section';
+    div.style.cssText = 'padding:16px 20px 0;';
+    content.insertBefore(div, content.firstChild);
+  }
+
   function deriveKpis(bundle) {
     var dash = getDashboard();
     var k = window.COCO && COCO.data && COCO.data.kpis;
     if (k && k.weeklyClicks) {
       state.meta.kpiSource = 'live';
       return {
-        siteScore: 82,
-        visits: (k.weeklyClicks && k.weeklyClicks.value) || '—',
-        leads: (k.pendingDrafts && k.pendingDrafts.value) || '—',
-        openTasks: (k.aiOpportunities && k.aiOpportunities.value) || '—',
-        clicks: (k.weeklyClicks && k.weeklyClicks.value) || '—',
-        impressions: (k.weeklyImpressions && k.weeklyImpressions.value) || '—',
-        ctr: (k.avgCtr && k.avgCtr.value) || '—',
-        position: (k.avgPosition && k.avgPosition.value) || '—',
+        siteScore: NO_DATA,
+        visits: (k.weeklyClicks && k.weeklyClicks.value) || NO_DATA,
+        leads: (k.pendingDrafts && k.pendingDrafts.value) || NO_DATA,
+        openTasks: (k.aiOpportunities && k.aiOpportunities.value) || NO_DATA,
+        clicks: (k.weeklyClicks && k.weeklyClicks.value) || NO_DATA,
+        impressions: (k.weeklyImpressions && k.weeklyImpressions.value) || NO_DATA,
+        ctr: (k.avgCtr && k.avgCtr.value) || NO_DATA,
+        position: (k.avgPosition && k.avgPosition.value) || NO_DATA,
       };
     }
     if (dash) {
       state.meta.kpiSource = 'live';
       return {
-        siteScore: 75,
-        visits: fmt(dash.ga4Sessions || dash.totalClicks),
-        leads: fmt(dash.pendingDrafts || 0),
-        openTasks: fmt(dash.opportunities || dash.pendingDrafts || 0),
+        siteScore: NO_DATA,
+        visits: fmt(dash.ga4Sessions != null ? dash.ga4Sessions : dash.totalClicks),
+        leads: fmt(dash.pendingDrafts != null ? dash.pendingDrafts : NO_DATA),
+        openTasks: fmt(dash.opportunities != null ? dash.opportunities : (dash.pendingDrafts != null ? dash.pendingDrafts : NO_DATA)),
         clicks: fmt(dash.totalClicks),
         impressions: fmt(dash.totalImpressions),
-        ctr: dash.avgCtr != null ? (Number(dash.avgCtr) * (dash.avgCtr < 1 ? 100 : 1)).toFixed(1) + '%' : '—',
-        position: dash.avgPosition != null ? Number(dash.avgPosition).toFixed(1) : '—',
+        ctr: dash.avgCtr != null ? (Number(dash.avgCtr) * (dash.avgCtr < 1 ? 100 : 1)).toFixed(1) + '%' : NO_DATA,
+        position: dash.avgPosition != null ? Number(dash.avgPosition).toFixed(1) : NO_DATA,
       };
     }
     state.meta.kpiSource = 'pending';
@@ -287,7 +300,8 @@
     var goals = deriveGoals(bundle);
     var actions = deriveActions(bundle);
     var assets = deriveAssets(bundle);
-    var counts = { 'screen-status': 'מצב', 'screen-clients': state.customers.length + ' לקוחות', 'screen-goals': goals.length + ' מטרות', 'screen-actions': actions.filter(function (a) { return a.status !== 'done'; }).length + ' ממתינות', 'screen-history': deriveHistory(bundle).length + ' רשומות', 'screen-assets': assets.length + ' נכסים', 'screen-ai-decisions': (bundle && bundle.ai && bundle.ai.recommendations && bundle.ai.recommendations.length) || '23', 'screen-reports': '6 סוגים' };
+    var aiRecs = (bundle && bundle.ai && bundle.ai.recommendations && bundle.ai.recommendations.length) || 0;
+    var counts = { 'screen-status': 'מצב', 'screen-clients': state.customers.length + ' לקוחות', 'screen-goals': goals.length + ' מטרות', 'screen-actions': actions.filter(function (a) { return a.status !== 'done'; }).length + ' ממתינות', 'screen-history': deriveHistory(bundle).length + ' רשומות', 'screen-assets': assets.length + ' נכסים', 'screen-ai-decisions': aiRecs ? (aiRecs + ' המלצות') : 'ממתין', 'screen-reports': 'דוחות' };
     document.querySelectorAll('.hub-card').forEach(function (card) {
       var onclick = card.getAttribute('onclick') || '';
       Object.keys(counts).forEach(function (sid) {
@@ -353,6 +367,7 @@
   }
 
   function bindGoals(bundle) {
+    ensureLiveMount('coco-live-goals-list', 'screen-goals');
     var goals = applyCtxFilter(deriveGoals(bundle), function (g) {
       return { goal: g.category || g.title, status: g.status };
     });
@@ -365,6 +380,8 @@
   }
 
   function bindActions(bundle) {
+    ensureLiveMount('coco-live-actions-pending', 'screen-actions');
+    ensureLiveMount('coco-live-actions-done', 'screen-actions');
     var actions = applyCtxFilter(deriveActions(bundle), function (a) {
       return { action: a.category, status: a.status, campaign: a.campaign };
     });
@@ -468,7 +485,7 @@
     if (!A) return Promise.resolve([]);
     return A.listMarketingCustomers().then(function (rows) {
       state.customers = rows || [];
-      state.meta.clientSource = A.canRemote && A.canRemote() ? 'dalia' : (rows.length ? 'local' : 'demo');
+      state.meta.clientSource = A.canRemote && A.canRemote() ? 'dalia' : (rows.length ? 'local' : 'pending');
       return rows;
     }).catch(function () { state.customers = []; return []; });
   }

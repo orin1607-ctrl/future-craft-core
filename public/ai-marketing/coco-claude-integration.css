@@ -11,6 +11,7 @@
 body.dalia-live-only #screen-agents .section .grid.grid-4 { display: none !important; }
 body.coco-integration-wired .fab-ai { opacity: 1; }
 body.dalia-live-only .v4-demo-banner { display: none !important; }
+body.dalia-live-only .coco-live-section { position: relative; z-index: 2; }
 #coco-live-status-root .table-wrap { overflow-x: auto; }
 #coco-live-status-root td { font-size: 12px; max-width: 280px; word-break: break-word; }
 body.coco-boot-active { background: #04091a; }

@@ -347,8 +347,15 @@ const AGENT_DATA = {
 };
 
 function openAgentDashboard(agentId) {
-  const a = AGENT_DATA[agentId];
+  let a = AGENT_DATA[agentId];
+  if (window.DaliaSite && typeof DaliaSite.getAgentData === 'function') {
+    const live = DaliaSite.getAgentData(agentId);
+    if (live) a = live;
+  }
   if (!a) { showToast('⏳ דשבורד בפיתוח'); return; }
+
+  const siteDomain = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.domain) || 'dalia-c.com';
+  const siteCompany = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.company) || 'דליה';
 
   document.getElementById('agent-dash-breadcrumb').textContent = a.name;
 
@@ -356,10 +363,10 @@ function openAgentDashboard(agentId) {
   const filterHTML = `
     <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
-        <select class="filter-select" title="חברה"><option>גרין-טק</option></select>
+        <select class="filter-select" title="חברה"><option>${siteCompany}</option></select>
         <select class="filter-select" title="פרויקט"><option>Project 001</option><option>כל הפרויקטים</option></select>
-        <select class="filter-select" title="אתר"><option>greentech.co.il</option><option>כל האתרים</option></select>
-        <input class="filter-input" placeholder="דומיין..." style="max-width:140px;" value="greentech.co.il">
+        <select class="filter-select" title="אתר"><option>${siteDomain}</option><option>כל האתרים</option></select>
+        <input class="filter-input" placeholder="דומיין..." style="max-width:140px;" value="${siteDomain}">
         <select class="filter-select" title="טווח תאריכים">
           <option>7 ימים</option><option selected>30 ימים</option><option>60 ימים</option><option>90 ימים</option>
         </select>
@@ -408,11 +415,25 @@ function openAgentDashboard(agentId) {
     </tr>`).join('');
 
   // Build chart mockup
-  const chartBars = [45,58,52,67,61,74,68,82,76,88,80,95].map(h =>
+  const chartBars = a.liveOnly ? '' : [45,58,52,67,61,74,68,82,76,88,80,95].map(h =>
     `<div class="chart-bar" style="height:${h}%"></div>`).join('');
-  const chartLabels = ['1','3','6','9','12','15','18','21','24','27','29','30'].map(l =>
+  const chartLabels = a.liveOnly ? '' : ['1','3','6','9','12','15','18','21','24','27','29','30'].map(l =>
     `<div class="chart-label">${l}</div>`).join('');
-
+  const chartSection = a.liveOnly
+    ? `<div class="section"><div class="alert alert-info">📈 גרף מגמה — ממתין לנתונים היסטוריים (סנכרון Google)</div></div>`
+    : `<div class="section">
+      <div class="sec-title">גרף מגמה – 30 יום</div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px;">מגמת ביצועים</div>
+        <div class="chart-bar-wrap">${chartBars}</div>
+        <div class="chart-labels">${chartLabels}</div>
+        <div style="font-size:11px;color:var(--white50);margin-top:6px;">מגמה: עלייה מתמשכת</div>
+      </div>
+    </div>`;
+  const connBadge = a.connectionOk
+    ? '<span class="badge badge-green">● מחובר — נתונים אמיתיים</span>'
+    : '<span class="badge badge-yellow">⏳ ממתין לחיבור</span>';
+  const scoreColor = typeof a.score === 'number' && a.score >= 80 ? 'var(--green)' : (typeof a.score === 'number' && a.score >= 65 ? 'var(--yellow)' : 'var(--white50)');
   const urgencyColor = a.urgency==='קריטית' ? 'var(--red)' : a.urgency==='גבוהה' ? 'var(--yellow)' : 'var(--accent2)';
 
   const content = `
@@ -431,7 +452,7 @@ function openAgentDashboard(agentId) {
       <div class="grid grid-4" style="gap:10px;margin-bottom:10px;">
         <div class="card" style="padding:12px 14px;">
           <div class="card-title">סטטוס חיבור</div>
-          <div style="margin-top:4px;"><span class="badge badge-green">● מחובר</span></div>
+          <div style="margin-top:4px;">${connBadge}</div>
         </div>
         <div class="card" style="padding:12px 14px;">
           <div class="card-title">נתונים שנאספו</div>
@@ -447,7 +468,7 @@ function openAgentDashboard(agentId) {
         </div>
         <div class="card" style="padding:12px 14px;">
           <div class="card-title">ציון כללי</div>
-          <div style="font-size:22px;font-weight:800;color:${a.score>=80?'var(--green)':a.score>=65?'var(--yellow)':'var(--red)'};">${a.score}</div>
+          <div style="font-size:22px;font-weight:800;color:${scoreColor};">${scoreDisplay}</div>
         </div>
         <div class="card" style="padding:12px 14px;">
           <div class="card-title">רמת דחיפות</div>
@@ -470,16 +491,7 @@ function openAgentDashboard(agentId) {
       <div class="grid grid-4" style="gap:10px;">${kpiHTML}</div>
     </div>
 
-    <!-- 3. Charts -->
-    <div class="section">
-      <div class="sec-title">גרף מגמה – 30 יום</div>
-      <div class="card">
-        <div class="card-title" style="margin-bottom:10px;">מגמת ביצועים</div>
-        <div class="chart-bar-wrap">${chartBars}</div>
-        <div class="chart-labels">${chartLabels}</div>
-        <div style="font-size:11px;color:var(--white50);margin-top:6px;">מגמה: עלייה מתמשכת</div>
-      </div>
-    </div>
+    ${chartSection}
 
     <!-- 4. Findings table -->
     <div class="section">
@@ -561,7 +573,8 @@ function resetAgentFilter() {
     if (el) el.value = '';
   });
   document.getElementById('ag-scandate').value = '3h';
-  document.getElementById('ag-domain').value = 'greentech.co.il';
+  var dom = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.domain) || 'dalia-c.com';
+  document.getElementById('ag-domain').value = dom;
   showToast('✓ סינון עוזרים אופס');
 }
 // ===== END AGENT LOGIC =====
@@ -612,7 +625,7 @@ function resetActFilter() {
     const el=document.getElementById(id); if(el) el.value='';
   });
   const s=document.getElementById('act-search'); if(s) s.value='';
-  const d=document.getElementById('act-domain'); if(d) d.value='greentech.co.il';
+  const d=document.getElementById('act-domain'); if(d) d.value=(window.DaliaSite&&DaliaSite.SITE&&DaliaSite.SITE.domain)||'dalia-c.com';
   applyActFilter();
   showToast('✓ סינון פעולות אופס');
 }
@@ -854,9 +867,10 @@ function resetStatusFilter() {
   document.getElementById('sf-date-custom').style.display = 'none';
   document.getElementById('sf-chips').style.display = 'none';
   document.getElementById('sf-chips').innerHTML = '';
-  updateStatusSubtitle('גרין-טק פתרונות בע"מ', '', '30');
-  // Also reset site to default
-  document.getElementById('sf-site').value = 'greentech.co.il';
+  var co = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.company) || 'דליה';
+  var dom = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.domain) || 'dalia-c.com';
+  updateStatusSubtitle(co, '', '30');
+  document.getElementById('sf-site').value = dom;
   showToast('✓ הסינון אופס');
 }
 

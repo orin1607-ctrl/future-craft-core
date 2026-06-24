@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-06-24T16:00:00.000Z",
+  "phase": "A-data-layer",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform",
+  "daliaUrl": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "automatedWorkCompleted": [
+    "Integration Hub — 12 עוזרים + סרגל סטטוס + מודל חיבורים",
+    "dalia-site-config — נתונים חיים מ-dashboard.json בלבד",
+    "עוזרים (GSC/GA4/CMS/Manager) — KPIs אמיתיים או ממתין",
+    "הסרת KPIs מזויפים (siteScore 82/75, greentech defaults)",
+    "AI gate — OpenAI/Claude/Gemini חסומים, תשתית מחוברת",
+    "create-admin-user Edge deployed",
+    "QA 77/77 + staging-live-close 10/10"
+  ],
+  "blockedOnOwner": [
+    {
+      "id": "oauth-sync",
+      "priority": 1,
+      "title": "OAuth + סנכרון Google",
+      "steps": [
+        "שים integrations/google/credentials.oauth.json",
+        "npm run project-001:auth",
+        "npm run project-001:sync-and-export",
+        "git add public/project-001/dashboard.json && git push"
+      ],
+      "reason": "ENOENT credentials.oauth.json במחשב הפיתוח"
+    },
+    {
+      "id": "manual-e2e",
+      "priority": 2,
+      "title": "בדיקה ידנית — יוני אטיאס",
+      "steps": [
+        "התחברות ל-Staging",
+        "לקוח עסקי חדש — שיווק בלבד",
+        "לקוח עסקי חדש — צי+שיווק",
+        "כרטיס שיווק → מצב נוכחי → וידוא GSC/GA4 אמיתיים",
+        "חזרה לדליה"
+      ]
+    },
+    {
+      "id": "gbp-api",
+      "priority": 3,
+      "title": "Google Business — Basic API Access",
+      "link": "https://support.google.com/business/contact/api_default",
+      "doc": "docs/audit-reports/project-001/owner-gates.json"
+    },
+    {
+      "id": "ads-token",
+      "priority": 4,
+      "title": "Google Ads — Developer Token",
+      "link": "https://ads.google.com/aw/apicenter",
+      "doc": ".env.ads.example"
+    }
+  ],
+  "intentionallyBlocked": [
+    "OpenAI / Claude / Gemini API — שלב AI אחרי אישור שלב א׳",
+    "Production deploy"
+  ],
+  "lastDashboardSync": "2026-06-21T20:03:11.748Z",
+  "nextCommitAfterOwner": "Refresh dashboard.json from owner OAuth sync"
+}

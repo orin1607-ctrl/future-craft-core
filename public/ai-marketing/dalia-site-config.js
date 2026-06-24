@@ -271,12 +271,174 @@
     });
     document.querySelectorAll('#coco-claude-root .hub-card').forEach(function (card) {
       var t = card.textContent || '';
-      if (/גרין-טק|greentech|דלתא|פתרונות טק/i.test(t)) card.style.display = 'none';
+      if (/גרין-טק|greentech|דלתא|פתרונות טק|FleetOS/i.test(t)) card.style.display = 'none';
     });
     var aiBox = document.querySelector('#screen-hub .ai-box-header');
     if (aiBox && /גרין-טק/i.test(aiBox.textContent)) {
-      aiBox.textContent = 'המלצת AI יומית — ' + SITE.domain;
+      aiBox.textContent = 'המלצת AI יומית — ' + SITE.domain + ' (ממתין למפתח)';
     }
+    document.querySelectorAll('#coco-claude-root .page-subtitle, #coco-claude-root .page-title').forEach(function (el) {
+      if (/גרין-טק|greentech|FleetOS|דלתא/i.test(el.textContent)) {
+        el.textContent = SITE.company + ' • ' + SITE.domain;
+      }
+    });
+    hideStaticDemoBlocks();
+    ensureLiveMounts();
+  }
+
+  function hideStaticDemoBlocks() {
+    var demoRx = /גרין|greentech|8,420|14,320|184,000|342|77%|42 ליד|FleetOS|דלתא לוגיסטיקה|9 עמודים חלשים|23 ממצא|12 משימות/i;
+    ['screen-goals', 'screen-actions', 'screen-history', 'screen-assets', 'screen-hub'].forEach(function (sid) {
+      var screen = document.getElementById(sid);
+      if (!screen) return;
+      screen.querySelectorAll('.section, .grid.grid-4, .act-item, .action-card, .timeline .tl-item').forEach(function (el) {
+        if (el.closest('.coco-live-section') || (el.id && el.id.indexOf('coco-live') === 0)) return;
+        if (demoRx.test(el.textContent || '')) el.style.display = 'none';
+      });
+    });
+    document.querySelectorAll('#screen-agents .section .grid.grid-4').forEach(function (g) {
+      if (!g.closest('#coco-live-agents-root')) g.style.display = 'none';
+    });
+  }
+
+  function ensureLiveMounts() {
+    [
+      ['coco-live-goals-list', 'screen-goals'],
+      ['coco-live-actions-pending', 'screen-actions'],
+      ['coco-live-actions-done', 'screen-actions'],
+    ].forEach(function (pair) {
+      if (document.getElementById(pair[0])) return;
+      var screen = document.getElementById(pair[1]);
+      if (!screen) return;
+      var content = screen.querySelector('.content');
+      if (!content) return;
+      var div = document.createElement('div');
+      div.id = pair[0];
+      div.className = 'coco-live-section';
+      div.style.cssText = 'padding:16px 20px 0;';
+      content.insertBefore(div, content.firstChild);
+    });
+  }
+
+  function syncLabel() {
+    return state.dashboard && (state.dashboard.generatedAt || state.dashboard.lastSync?.timestamp)
+      ? new Date(state.dashboard.generatedAt || state.dashboard.lastSync.timestamp).toLocaleString('he-IL')
+      : '—';
+  }
+
+  function pendingAgent(name, icon, source, reason) {
+    var aiMsg = window.CocoIntegrationHub ? CocoIntegrationHub.getAiBlockedMessage() : 'ממתין למפתח AI';
+    return {
+      name: name, icon: icon, source: source + ' — ' + SITE.domain,
+      status: 'pending', liveOnly: true, connectionOk: false,
+      scanTime: PENDING, findings: 0, issues: 0, opportunities: 0, score: NO_DATA,
+      urgency: '—', readyToTransfer: false,
+      kpis: [{ label: 'סטטוס', val: reason, delta: '', color: 'var(--yellow)' }],
+      findings_table: [{ type: 'ממתין', desc: reason, src: source, importance: '—', impact: '—', status: 'ממתין', transfer: false }],
+      aiSummary: aiMsg,
+      readyCount: 0, readyIssues: 0, readyOpp: 0, urgencyLabel: '—',
+    };
+  }
+
+  function getAgentData(agentId) {
+    var raw = state.dashboard;
+    if (!raw) return null;
+    var stats = raw.stats || {};
+    var conn = raw.connections || {};
+    var sc = raw.searchConsole || {};
+    var ga4 = raw.analytics4 || {};
+    var keywords = sc.keywords || [];
+    var pages = sc.pages || [];
+    var ga4Pages = ga4.topPages || [];
+    var crawlN = (state.crawl && state.crawl.crawl && state.crawl.crawl.pageCount) || raw.lastSync?.counts?.gsc_pages || pages.length;
+    var aiPending = window.CocoIntegrationHub ? CocoIntegrationHub.PENDING_KEY : 'ממתין למפתח';
+    var id = String(agentId || '').toLowerCase();
+
+    if (id === 'gsc' || id === 'search_console' || id === 'seo') {
+      if (!conn.searchConsole?.ok) return pendingAgent('Google Search Console AI', '🔎', 'Search Console', PENDING);
+      return {
+        name: 'Google Search Console AI', icon: '🔎', source: 'Google Search Console',
+        status: 'live', liveOnly: true, connectionOk: true, scanTime: syncLabel(),
+        findings: keywords.length + pages.length, issues: stats.weakPages || 0, opportunities: stats.opportunities || 0,
+        score: NO_DATA, urgency: '—', readyToTransfer: false,
+        kpis: [
+          { label: 'קליקים', val: fmt(stats.totalClicks), delta: 'GSC', color: 'var(--white)' },
+          { label: 'חשיפות', val: fmt(stats.totalImpressions), delta: 'GSC', color: 'var(--white)' },
+          { label: 'CTR', val: stats.avgCtr != null ? stats.avgCtr + '%' : NO_DATA, delta: '', color: 'var(--white)' },
+          { label: 'מיקום ממוצע', val: stats.avgPosition != null ? Number(stats.avgPosition).toFixed(1) : NO_DATA, delta: '', color: 'var(--accent2)' },
+          { label: 'מילות מפתח', val: fmt(stats.activeKeywords), delta: '', color: 'var(--white)' },
+          { label: 'דפים (GSC)', val: fmt(pages.length), delta: '', color: 'var(--white)' },
+        ],
+        findings_table: keywords.slice(0, 8).map(function (k) {
+          return { type: 'נתון', desc: k.query, src: 'GSC', importance: '—', impact: fmt(k.clicks) + ' קליקים', status: 'חי', transfer: false };
+        }).concat(pages.length ? [] : [{ type: 'מידע', desc: 'אין דפים בטווח — האתר מחובר', src: 'GSC', importance: '—', impact: '—', status: 'חי', transfer: false }]),
+        aiSummary: 'נתונים אמיתיים מ-GSC ל-' + SITE.domain + '. AI: ' + aiPending + '.',
+        readyCount: stats.opportunities || 0, readyIssues: stats.weakPages || 0, readyOpp: stats.opportunities || 0, urgencyLabel: '—',
+      };
+    }
+    if (id === 'ga4' || id === 'analytics') {
+      if (!conn.analytics4?.ok) return pendingAgent('Google Analytics AI', '📊', 'GA4', PENDING);
+      return {
+        name: 'Google Analytics AI', icon: '📊', source: 'Google Analytics 4',
+        status: 'live', liveOnly: true, connectionOk: true, scanTime: syncLabel(),
+        findings: ga4Pages.length, issues: 0, opportunities: 0, score: NO_DATA,
+        urgency: '—', readyToTransfer: false,
+        kpis: [
+          { label: 'סשנים', val: fmt(stats.ga4Sessions), delta: 'GA4', color: 'var(--green)' },
+          { label: 'צפיות', val: fmt(stats.ga4PageViews), delta: 'GA4', color: 'var(--white)' },
+          { label: 'עמודים מובילים', val: fmt(ga4Pages.length), delta: '', color: 'var(--white)' },
+        ],
+        findings_table: ga4Pages.slice(0, 8).map(function (p) {
+          return { type: 'עמוד', desc: p.pagePath || p.page, src: 'GA4', importance: '—', impact: fmt(p.sessions) + ' סשנים', status: 'חי', transfer: false };
+        }),
+        aiSummary: 'נתונים אמיתיים מ-GA4. AI: ' + aiPending + '.',
+        readyCount: 0, readyIssues: 0, readyOpp: 0, urgencyLabel: '—',
+      };
+    }
+    if (id === 'gbp' || id === 'google_business') {
+      return pendingAgent('Google Business AI', '📍', 'Google Business', conn.businessProfile?.note || PENDING);
+    }
+    if (id === 'ads' || id === 'google_ads' || id === 'campaign') {
+      return pendingAgent('Google Ads AI', '🎯', 'Google Ads', conn.googleAds?.note || PENDING);
+    }
+    if (id === 'meta') return pendingAgent('Meta AI', '👥', 'Meta', PENDING);
+    if (id === 'pagespeed') return pendingAgent('PageSpeed AI', '⚡', 'PageSpeed', PENDING);
+    if (id === 'cms' || id === 'website') {
+      return {
+        name: 'Website / CMS AI', icon: '🌐', source: SITE.domain,
+        status: 'live', liveOnly: true, connectionOk: true, scanTime: syncLabel(),
+        findings: crawlN, issues: 0, opportunities: 0, score: NO_DATA,
+        urgency: '—', readyToTransfer: false,
+        kpis: [{ label: 'עמודים באתר', val: fmt(crawlN), delta: 'crawl', color: 'var(--white)' }],
+        findings_table: [{ type: 'אתר', desc: SITE.url, src: 'site-crawl', importance: '—', impact: fmt(crawlN) + ' עמודים', status: 'חי', transfer: false }],
+        aiSummary: 'נתוני אתר אמיתיים. AI: ' + aiPending + '.',
+        readyCount: 0, readyIssues: 0, readyOpp: 0, urgencyLabel: '—',
+      };
+    }
+    if (id === 'project001' || id === 'manager' || id === 'reports') {
+      var activeConn = ['searchConsole', 'analytics4'].filter(function (k) { return conn[k]?.ok; }).length;
+      return {
+        name: id === 'manager' ? 'AI Manager' : 'Project 001 AI', icon: id === 'manager' ? '🤖' : '🚀',
+        source: 'dalia-c.com dashboard',
+        status: 'live', liveOnly: true, connectionOk: activeConn > 0, scanTime: syncLabel(),
+        findings: activeConn, issues: 0, opportunities: stats.opportunities || 0, score: NO_DATA,
+        urgency: '—', readyToTransfer: false,
+        kpis: [
+          { label: 'GSC קליקים', val: fmt(stats.totalClicks), delta: '', color: 'var(--white)' },
+          { label: 'GA4 סשנים', val: fmt(stats.ga4Sessions), delta: '', color: 'var(--white)' },
+          { label: 'חיבורים פעילים', val: String(activeConn), delta: 'מתוך Google', color: 'var(--accent2)' },
+        ],
+        findings_table: [
+          { type: 'GSC', desc: conn.searchConsole?.ok ? 'מחובר' : PENDING, src: 'Search Console', importance: '—', impact: '—', status: conn.searchConsole?.ok ? 'חי' : 'ממתין', transfer: false },
+          { type: 'GA4', desc: conn.analytics4?.ok ? 'מחובר' : PENDING, src: 'Analytics', importance: '—', impact: '—', status: conn.analytics4?.ok ? 'חי' : 'ממתין', transfer: false },
+          { type: 'GBP', desc: conn.businessProfile?.note || PENDING, src: 'Business', importance: '—', impact: '—', status: 'ממתין', transfer: false },
+          { type: 'Ads', desc: conn.googleAds?.note || PENDING, src: 'Google Ads', importance: '—', impact: '—', status: 'ממתין', transfer: false },
+        ],
+        aiSummary: 'סיכום מודולים — ' + activeConn + ' מקורות Google פעילים. AI: ' + aiPending + '.',
+        readyCount: 0, readyIssues: 0, readyOpp: stats.opportunities || 0, urgencyLabel: '—',
+      };
+    }
+    return null;
   }
 
   function initOfficial() {
@@ -326,6 +488,7 @@
     applySiteLabels: applySiteLabels,
     renderStatusLive: renderStatusLive,
     getDashboard: function () { return state.dashboard; },
+    getAgentData: getAgentData,
     isLiveOnly: function () { return true; },
   };
 })();
