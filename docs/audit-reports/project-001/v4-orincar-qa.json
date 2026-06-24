@@ -32,6 +32,9 @@
     "desktop:hub-live-kpi-labels",
     "desktop:assets-live-grid",
     "desktop:assets-dalia-site",
+    "desktop:ssot-client-id",
+    "desktop:flow-client-id",
+    "desktop:client-id-unified",
     "desktop:asset-coco-claude-main.js",
     "desktop:asset-coco-claude-bridge.js",
     "desktop:asset-coco-claude-screens.html",
@@ -45,6 +48,7 @@
     "desktop:asset-dalia-site-config.js",
     "desktop:asset-coco-integration-hub.js",
     "desktop:asset-coco-claude-data.js",
+    "desktop:asset-client-id-ssot.js",
     "mobile:page-load",
     "mobile:coco-mode",
     "mobile:coco-hub-loaded",
@@ -76,6 +80,9 @@
     "mobile:hub-live-kpi-labels",
     "mobile:assets-live-grid",
     "mobile:assets-dalia-site",
+    "mobile:ssot-client-id",
+    "mobile:flow-client-id",
+    "mobile:client-id-unified",
     "mobile:no-horizontal-scroll",
     "mobile:asset-coco-claude-main.js",
     "mobile:asset-coco-claude-bridge.js",
@@ -89,15 +96,16 @@
     "mobile:asset-app.js",
     "mobile:asset-dalia-site-config.js",
     "mobile:asset-coco-integration-hub.js",
-    "mobile:asset-coco-claude-data.js"
+    "mobile:asset-coco-claude-data.js",
+    "mobile:asset-client-id-ssot.js"
   ],
   "failed": [],
   "warnings": [],
   "consoleErrors": [],
   "missingScreens": [],
   "mobile": {},
-  "passedCount": 89,
+  "passedCount": 97,
   "failedCount": 0,
   "ok": true,
-  "at": "2026-06-24T15:44:52.631Z"
+  "at": "2026-06-24T16:03:46.377Z"
 }
