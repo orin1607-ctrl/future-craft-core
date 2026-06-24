@@ -58,7 +58,9 @@
   }
 
   function goScreen(id) {
-    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    var scope = window.COCO_MARKETING_CRM ? document.getElementById('coco-marketing-crm-root') : null;
+    var screens = scope ? scope.querySelectorAll('.screen') : document.querySelectorAll('.screen');
+    screens.forEach(function (s) { s.classList.remove('active'); });
     var el = document.getElementById(id);
     if (el) { el.classList.add('active'); el.querySelector('.content')?.scrollTo(0, 0); }
   }

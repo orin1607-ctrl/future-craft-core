@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3d';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3e';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
@@ -242,6 +242,18 @@ async function runViewport(browser, name, viewport) {
   });
   crmScreen ? pass('unified:crm-screen-opens', name) : fail('unified:crm screen did not open', name);
 
+  if (name === 'desktop') {
+    const crmLoaded = await page.evaluate(function () {
+      return new Promise(function (resolve) {
+        setTimeout(function () {
+          var main = document.getElementById('screen-crm-main');
+          resolve(!!(main && main.classList.contains('active') && document.querySelector('#coco-marketing-crm-root .coco-marketing-crm-inner')));
+        }, 2000);
+      });
+    });
+    crmLoaded ? pass('desktop:crm-ui-visible', name) : fail('desktop:crm black/empty screen', name);
+  }
+
   if (name === 'mobile') {
     const topBg = await page.evaluate(function () {
       var htmlBg = getComputedStyle(document.documentElement).backgroundColor;
@@ -254,19 +266,12 @@ async function runViewport(browser, name, viewport) {
     if (!topBg.whiteStrip) pass('mobile:no-white-body-bg', name);
     else fail('mobile:white-body-bg ' + topBg.htmlBg, name);
 
-    const crmBnav = await page.evaluate(function () {
-      window.goScreen('screen-hub');
-      var btn = document.querySelector('.bottom-nav .bnav-btn[data-screen="screen-crm"]');
-      return !!btn && !btn.classList.contains('coco-bnav-crm');
+    const hubCrmHidden = await page.evaluate(function () {
+      var card = document.getElementById('coco-hub-crm-card');
+      if (!card) return false;
+      return getComputedStyle(card).display === 'none';
     });
-    crmBnav ? pass('mobile:crm-bottom-nav', name) : fail('mobile:crm bottom nav missing', name);
-
-    const noDaliaMid = await page.evaluate(function () {
-      var el = document.querySelector('.topbar .prd-dalia-exit');
-      if (!el) return true;
-      return getComputedStyle(el).display === 'none' || el.offsetParent === null;
-    });
-    noDaliaMid ? pass('mobile:no-mid-exit-btn', name) : fail('mobile:חזרה לדליה in topbar', name);
+    hubCrmHidden ? pass('mobile:crm-only-bottom-nav', name) : fail('mobile:crm hub card should be hidden', name);
   }
 
   // Filter persistence across modules

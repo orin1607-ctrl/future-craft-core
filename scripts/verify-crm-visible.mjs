@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, '../docs/screenshots/crm-visible-proof');
 const URL = process.env.VERIFY_URL
-  || 'https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?fullscreen=1&v=v3-unified-3d';
+  || 'https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?fullscreen=1&v=v3-unified-3e';
 
 import fs from 'fs';
 fs.mkdirSync(OUT, { recursive: true });

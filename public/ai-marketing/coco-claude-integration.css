@@ -10,61 +10,132 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
 }
+
+/* Context strip — below topbar inside each screen */
 #coco-unified-context-bar.coco-unified-bar {
   position: sticky;
   top: 0;
-  z-index: 50;
-  background: rgba(4, 9, 26, 0.95);
+  z-index: 40;
+  background: rgba(4, 9, 26, 0.98);
   border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
   backdrop-filter: blur(8px);
 }
+#coco-unified-context-bar .cfc-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+#coco-unified-context-bar .cfc-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+}
+#coco-unified-context-bar .cfc-row-filters {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
 #coco-unified-context-bar .cfc-chip { font-size: 11px; }
-#coco-marketing-crm-root .coco-marketing-crm-inner { position: relative; }
-#coco-marketing-crm-root .screen { display: none; }
-#coco-marketing-crm-root .screen.active { display: block; }
+#coco-unified-context-bar .cfc-client-chip {
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#coco-unified-context-bar .cfc-source-badge {
+  margin-right: auto;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#coco-unified-context-bar .cfc-search {
+  min-width: 120px;
+  flex: 1;
+  max-width: 200px;
+}
+#coco-unified-context-bar .coco-cfc-toggle { display: none; }
+
+#coco-marketing-crm-root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  background: var(--bg, #04091a);
+}
+#coco-marketing-crm-root .coco-marketing-crm-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+#coco-marketing-crm-root .screen {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+#coco-marketing-crm-root .screen.active {
+  display: flex;
+}
 #coco-marketing-crm-root .fab-ai,
 #coco-marketing-crm-root .bottom-nav { display: none !important; }
 
-/* iframe / fullscreen — no duplicate dalia bar (avoids extra strip + clutter) */
-body.prd-dalia-fullscreen .prd-dalia-bar,
-body.prd-dalia-embedded .prd-dalia-bar {
-  display: none !important;
+#screen-crm.active {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg, #04091a);
 }
-body.prd-dalia-fullscreen .prd-dalia-exit,
-body.prd-dalia-embedded .prd-dalia-exit {
-  display: none !important;
-}
-
-.coco-crm-screen-content {
+#screen-crm .coco-crm-screen-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   padding: 0 !important;
   overflow: auto;
-  min-height: calc(100vh - 120px);
-  min-height: calc(100dvh - 120px);
 }
 #screen-crm .topbar .breadcrumb span:last-child {
   color: var(--white);
 }
 
-.coco-crm-entry-banner {
-  margin: 0 16px 12px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(59, 130, 246, 0.45);
-  background: rgba(37, 99, 235, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
+/* iframe / fullscreen — no duplicate dalia chrome */
+body.prd-dalia-fullscreen .prd-dalia-bar,
+body.prd-dalia-embedded .prd-dalia-bar,
+body.prd-dalia-fullscreen .prd-dalia-exit,
+body.prd-dalia-embedded .prd-dalia-exit,
+body.prd-dalia-fullscreen .prd-dalia-exit-inline,
+body.prd-dalia-embedded .prd-dalia-exit-inline {
+  display: none !important;
 }
-.coco-crm-entry-banner button {
-  font-weight: 700;
+
+/* Hub client header */
+#coco-hub-client-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#coco-hub-client-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 680px) {
-  #coco-unified-context-bar .cfc-inner {
+  #coco-unified-context-bar .coco-cfc-toggle {
+    display: inline-flex !important;
+    flex-shrink: 0;
+    padding: 4px 8px;
+    min-height: 32px;
+  }
+  #coco-unified-context-bar:not(.is-expanded) .cfc-row-filters {
+    display: none;
+  }
+  #coco-unified-context-bar .cfc-row-main {
     padding: 6px 10px;
-    gap: 6px;
   }
   #coco-unified-context-bar .filter-input,
   #coco-unified-context-bar .filter-select {
@@ -73,8 +144,48 @@ body.prd-dalia-embedded .prd-dalia-exit {
     border-color: rgba(255, 255, 255, 0.15);
     min-height: 36px;
     font-size: 12px;
+    width: 100%;
+    max-width: none;
+    flex: 1 1 45%;
+  }
+  #coco-unified-context-bar .cfc-search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  #coco-integration-flow-bar {
+    display: none !important;
+  }
+  #coco-hub-crm-card {
+    display: none !important;
+  }
+  #coco-hub-client-name {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+  #screen-hub .topbar {
+    height: auto;
+    min-height: 48px;
+    padding: 6px 12px;
+  }
+  #screen-hub .topbar-right {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  #screen-hub .role-badge {
+    font-size: 10px;
   }
 }
+
+@media (min-width: 681px) {
+  #screen-hub .bottom-nav .bnav-btn[data-screen="screen-crm"],
+  #screen-crm .bottom-nav {
+    display: none !important;
+  }
+  #coco-unified-context-bar .cfc-row-filters {
+    display: flex !important;
+  }
+}
+
 #legacy-dalia-root { display: none !important; }
 .coco-integration-flow-bar {
   background: rgba(37, 99, 235, 0.12);

@@ -1,11 +1,16 @@
 // ===== NAVIGATION =====
 function goScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  var root = document.getElementById('coco-claude-root');
+  var screens = root ? root.querySelectorAll(':scope > .screen') : document.querySelectorAll('.screen');
+  screens.forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) { el.classList.add('active'); el.querySelector('.content')?.scrollTo(0,0); }
   document.querySelectorAll('.bottom-nav .bnav-btn').forEach(function (b) {
     b.classList.toggle('active', b.getAttribute('data-screen') === id);
   });
+  if (id === 'screen-crm' && window.CocoMarketingCrm && CocoMarketingCrm.ensureVisible) {
+    CocoMarketingCrm.ensureVisible();
+  }
 }
 
 function openCrmModule() {

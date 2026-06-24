@@ -313,24 +313,15 @@
   }
 
   function updateSourceBadge() {
-    var bar = document.querySelector('.coco-flow-context-bar .cfc-inner');
-    if (!bar) return;
     var badge = document.getElementById('coco-live-source-badge');
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.id = 'coco-live-source-badge';
-      badge.className = 'cfc-chip';
-      badge.style.marginRight = 'auto';
-      bar.appendChild(badge);
-    }
+    if (!badge) return;
     var m = state.meta;
     var parts = [];
-    if (m.clientSource === 'dalia' || m.clientSource === 'live') parts.push('לקוח: dalia-c.com');
-    else if (m.clientSource === 'pending') parts.push('לקוח: ממתין');
-    if (m.kpiSource === 'live') parts.push('KPI: חי');
-    else if (m.kpiSource === 'pending') parts.push('KPI: ממתין');
-    else parts.push('KPI: ממתין');
-    badge.textContent = 'מקור: ' + parts.join(' · ');
+    if (m.clientSource === 'dalia' || m.clientSource === 'live') parts.push('dalia-c.com');
+    else if (m.clientSource === 'pending') parts.push('ממתין');
+    if (m.kpiSource === 'live') parts.push('KPI חי');
+    else if (m.kpiSource === 'pending') parts.push('KPI ממתין');
+    badge.textContent = parts.join(' · ');
   }
 
   function bindHub(bundle) {

@@ -155,7 +155,9 @@ body.prd-mode .main, body.prd-mode .screen.active { overflow-x: hidden; max-widt
 .prd-dalia-bc-here, .prd-dalia-bc-screen { opacity: 0.92; }
 .prd-dalia-exit { min-height: 40px; font-weight: 700; border-color: rgba(255,255,255,0.5) !important; color: var(--navy) !important; background: #fff !important; }
 body.prd-dalia-fullscreen .prd-dalia-exit,
-body.prd-dalia-embedded .prd-dalia-exit { display: none !important; }
+body.prd-dalia-embedded .prd-dalia-exit,
+body.prd-dalia-fullscreen .prd-dalia-exit-inline,
+body.prd-dalia-embedded .prd-dalia-exit-inline { display: none !important; }
 .prd-dalia-bar .prd-dalia-exit-inline { min-height: 36px; font-weight: 700; border-color: rgba(255,255,255,0.45); color: #fff; background: rgba(255,255,255,0.12); }
 .prd-dalia-bar .prd-dalia-exit-inline:hover { background: rgba(255,255,255,0.22); }
 

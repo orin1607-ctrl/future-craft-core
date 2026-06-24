@@ -164,7 +164,7 @@ export default function AiMarketingPage() {
 
   const base = import.meta.env.BASE_URL || '/';
 
-  const src = `${base}ai-marketing-platform.html?fullscreen=1&v=v3-unified-3d${customerId ? `&customer=${encodeURIComponent(customerId)}` : ''}${tab ? `&tab=${encodeURIComponent(tab)}` : ''}`;
+  const src = `${base}ai-marketing-platform.html?fullscreen=1&v=v3-unified-3e${customerId ? `&customer=${encodeURIComponent(customerId)}` : ''}${tab ? `&tab=${encodeURIComponent(tab)}` : ''}`;
 
 
 

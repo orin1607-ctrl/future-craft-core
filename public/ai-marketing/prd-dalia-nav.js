@@ -19,7 +19,7 @@
 
   function stripDaliaExitChrome() {
     if (!isFullscreenMode() && !isEmbeddedMode()) return;
-    document.querySelectorAll('.topbar .prd-dalia-exit, .prd-dalia-bar').forEach(function (el) {
+    document.querySelectorAll('.prd-dalia-bar, .topbar .prd-dalia-exit, .prd-dalia-exit-inline').forEach(function (el) {
       el.remove();
     });
   }

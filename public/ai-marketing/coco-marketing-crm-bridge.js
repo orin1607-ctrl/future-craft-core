@@ -16,7 +16,7 @@
   }
 
   function assetUrl(rel) {
-    var ver = (window.CocoUnified && CocoUnified.version) || 'v3-unified-3d';
+    var ver = (window.CocoUnified && CocoUnified.version) || 'v3-unified-3e';
     var base = window.COCO_PAGES_BASE || '/future-craft-core/';
     if (base.charAt(0) !== '/') base = '/' + base.replace(/^\.\//, '');
     return location.origin + base + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);
@@ -139,12 +139,15 @@
     if (booted && mount.querySelector('.coco-marketing-crm-inner')) {
       syncMarketingFilters();
       if (window.DaliaCrm && DaliaCrm.loadAll) DaliaCrm.loadAll();
+      mount.classList.add('crm-layout');
       return Promise.resolve();
     }
+    if (booted && !mount.querySelector('.coco-marketing-crm-inner')) booted = false;
     return fetch(assetUrl('ai-marketing/coco-marketing-crm-embed.html'), { cache: 'no-store' })
       .then(function (r) { return r.text(); })
       .then(function (html) {
         mount.innerHTML = html;
+        mount.classList.add('crm-layout');
         var scripts = [];
         if (!window.CrmApi) scripts.push(loadScript(assetUrl('crm/crm-api.js')));
         if (!window.DaliaCrm) scripts.push(loadScript(assetUrl('crm/dalia-crm-app.js')));
@@ -159,6 +162,7 @@
         if (window.DaliaCrm) {
           DaliaCrm.init();
           booted = true;
+          ensureCrmVisible();
           syncMarketingFilters();
           var cid = ctx().clientId;
           if (cid && DaliaCrm.openCustomerById) DaliaCrm.openCustomerById(cid);
@@ -186,9 +190,18 @@
     });
   }
 
+  function ensureCrmVisible() {
+    var main = document.getElementById('screen-crm-main');
+    var root = document.getElementById('coco-marketing-crm-root');
+    if (!main || !root) return;
+    root.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    main.classList.add('active');
+  }
+
   window.CocoMarketingCrm = {
     init: initCrmEmbed,
     openTab: openCrmTab,
     syncFilters: syncMarketingFilters,
+    ensureVisible: ensureCrmVisible,
   };
 })();

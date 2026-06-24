@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-3d';
+  var VERSION = 'v3-unified-3e';
   var SEARCH_KEY = 'coco-mkt-global-search';
   var FILTER_KEY = 'coco-mkt-filter-persist';
 
@@ -94,11 +94,29 @@
       else ensureEl(assetsTab, 'coco-live-assets-grid', 'div', 'grid grid-3');
     }
 
-    ensureCrmTab();
     ensureCrmScreen();
     ensureConnectionsPanel();
     ensureUnifiedContextBar();
+    placeContextBar(getActiveScreenId());
     removeStrayCrmUi();
+  }
+
+  function getActiveScreenId() {
+    var active = document.querySelector('#coco-claude-root > .screen.active');
+    return active ? active.id : 'screen-hub';
+  }
+
+  function placeContextBar(screenId) {
+    var bar = document.getElementById('coco-unified-context-bar');
+    var sc = document.getElementById(screenId || getActiveScreenId());
+    if (!bar || !sc) return;
+    var topbar = sc.querySelector('.topbar');
+    if (!topbar) return;
+    var flow = sc.querySelector('#coco-integration-flow-bar');
+    var anchor = flow || topbar;
+    if (bar.parentElement !== sc || anchor.nextElementSibling !== bar) {
+      anchor.insertAdjacentElement('afterend', bar);
+    }
   }
 
   function removeStrayCrmUi() {
@@ -111,13 +129,18 @@
     document.querySelectorAll('.bnav-btn.coco-bnav-crm').forEach(function (btn) {
       btn.classList.remove('coco-bnav-crm');
     });
-    if (window.PrdDaliaNav && PrdDaliaNav.stripDaliaExitChrome) PrdDaliaNav.stripDaliaExitChrome();
+    document.querySelectorAll('.prd-dalia-bar, .topbar .prd-dalia-exit, .prd-dalia-exit-inline').forEach(function (el) {
+      el.remove();
+    });
   }
 
   function openCrm() {
     ensureCrmScreen();
     if (typeof goScreen === 'function') goScreen('screen-crm');
-    if (window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
+    if (window.CocoMarketingCrm) {
+      if (CocoMarketingCrm.init) CocoMarketingCrm.init();
+      if (CocoMarketingCrm.ensureVisible) CocoMarketingCrm.ensureVisible();
+    }
     logActivity('crm', 'open', 'נפתח CRM ממנהל השיווק');
   }
 
@@ -161,17 +184,26 @@
     bar.id = 'coco-unified-context-bar';
     bar.className = 'coco-flow-context-bar coco-unified-bar';
     bar.innerHTML =
-      '<div class="cfc-inner" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;font-size:12px;">' +
-      '<span id="coco-unified-client-chip" class="cfc-chip" style="cursor:pointer;" title="לחץ לפתיחת לקוחות">לקוח: —</span>' +
+      '<div class="cfc-inner">' +
+      '<div class="cfc-row cfc-row-main">' +
+      '<button type="button" id="coco-cfc-toggle" class="btn btn-ghost coco-cfc-toggle" title="הצג/הסתר סינון">⚙️</button>' +
+      '<span id="coco-unified-client-chip" class="cfc-chip cfc-client-chip" title="לחץ לפתיחת לקוחות">לקוח: —</span>' +
+      '<span id="coco-live-source-badge" class="cfc-chip cfc-source-badge"></span>' +
+      '</div>' +
+      '<div class="cfc-row cfc-row-filters" id="coco-cfc-filters">' +
       '<span id="coco-unified-filter-chip" class="cfc-chip">סינון: כללי</span>' +
-      '<input id="coco-central-search" class="filter-input" placeholder="🔍 חיפוש חופשי" style="min-width:140px;flex:1;max-width:240px;">' +
+      '<input id="coco-central-search" class="filter-input cfc-search" placeholder="🔍 חיפוש">' +
       '<select id="coco-central-service" class="filter-select" title="סוג שירות"><option value="">כל השירותים</option><option value="marketing_only">שיווק</option><option value="fleet_and_marketing">שיווק+צי</option></select>' +
       '<select id="coco-central-status" class="filter-select" title="סטטוס לקוח"><option value="">סטטוס לקוח</option><option value="active">פעיל</option><option value="inactive">לא פעיל</option></select>' +
       '<select id="coco-central-campaign" class="filter-select" title="קמפיין"><option value="">קמפיין</option></select>' +
-      '<button type="button" id="coco-sync-google-btn" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;">🔄 Google</button>' +
-      '<span id="coco-live-source-badge" class="cfc-chip" style="margin-right:auto;"></span>' +
-      '</div>';
-    root.insertBefore(bar, root.firstChild);
+      '<button type="button" id="coco-sync-google-btn" class="btn btn-ghost cfc-sync-btn">🔄 Google</button>' +
+      '</div></div>';
+    root.appendChild(bar);
+    placeContextBar(getActiveScreenId());
+
+    document.getElementById('coco-cfc-toggle')?.addEventListener('click', function () {
+      bar.classList.toggle('is-expanded');
+    });
 
     document.getElementById('coco-sync-google-btn')?.addEventListener('click', syncGoogle);
     document.getElementById('coco-unified-client-chip')?.addEventListener('click', function () {
@@ -215,8 +247,9 @@
     var c = ctx();
     var chip = document.getElementById('coco-unified-client-chip');
     if (chip) {
+      var name = (c.clientName || c.clientId || '').toString();
       chip.textContent = c.clientId
-        ? ('לקוח: ' + (c.clientName || c.clientId).slice(0, 40) + ' · ID ' + String(c.clientId).slice(0, 8))
+        ? ('לקוח: ' + name.slice(0, 32))
         : 'לקוח: לא נבחר';
     }
     var fchip = document.getElementById('coco-unified-filter-chip');
@@ -484,6 +517,7 @@
     var origScreen = CocoClaude.onScreenChange;
     CocoClaude.onScreenChange = function (id) {
       if (typeof origScreen === 'function') origScreen.call(this, id);
+      placeContextBar(id);
       removeStrayCrmUi();
       updateContextBar();
       if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen(id);
@@ -508,6 +542,7 @@
     if (!_go) return;
     window.goScreen = function (id) {
       _go(id);
+      placeContextBar(id);
       removeStrayCrmUi();
       updateContextBar();
       if (id === 'screen-crm' && window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
