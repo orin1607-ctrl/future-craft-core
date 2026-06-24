@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-claude-1to1-2';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-2';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
@@ -184,6 +184,49 @@ async function runViewport(browser, name, viewport) {
     return cards.length;
   });
   hubCards >= 8 ? pass(`hub-cards:${hubCards}`, name) : fail(`hub cards expected >=8 got ${hubCards}`, name);
+
+  // Unified OS: context bar + Client ID across all hub modules
+  const unifiedTest = await page.evaluate(() => {
+    var screens = ['screen-hub', 'screen-status', 'screen-clients', 'screen-goals', 'screen-actions',
+      'screen-history', 'screen-assets', 'screen-ai-decisions', 'screen-reports', 'screen-agents'];
+    var barOk = true;
+    var clientId = null;
+    var clientIdStable = true;
+    screens.forEach(function (sid) {
+      window.goScreen(sid);
+      var bar = document.getElementById('coco-unified-context-bar');
+      if (!bar) barOk = false;
+      if (!window.COCO || !COCO.flowContext) { clientIdStable = false; return; }
+      if (clientId == null) clientId = COCO.flowContext.clientId;
+      else if (COCO.flowContext.clientId !== clientId) clientIdStable = false;
+    });
+    return {
+      barOk: barOk,
+      clientIdStable: clientIdStable,
+      hasUnified: !!(window.CocoUnified && CocoUnified.version),
+      unifiedVer: window.CocoUnified && CocoUnified.version
+    };
+  });
+  if (unifiedTest.barOk) pass('unified:context-bar-all-screens', name);
+  else fail('unified:context-bar missing on some screens', name);
+  if (unifiedTest.clientIdStable) pass('unified:client-id-stable', name);
+  else fail('unified:client-id changed across screens', name);
+  if (unifiedTest.hasUnified) pass(`unified:CocoUnified-${unifiedTest.unifiedVer}`, name);
+  else fail('unified:CocoUnified missing', name);
+
+  // Filter persistence across modules
+  const filterTest = await page.evaluate(() => {
+    window.goScreen('screen-status');
+    var dr = document.getElementById('sf-daterange');
+    if (!dr) return { ok: false, reason: 'no sf-daterange' };
+    var val = '7';
+    dr.value = val;
+    dr.dispatchEvent(new Event('change', { bubbles: true }));
+    window.goScreen('screen-reports');
+    var rep = document.getElementById('rep-date');
+    return { ok: rep && rep.value === val, val: val, repVal: rep && rep.value };
+  });
+  filterTest.ok ? pass('unified:filter-date-persist', name) : fail(`unified:filter persist (${filterTest.reason || filterTest.repVal})`, name);
 
   // Responsive: bottom nav on mobile
   if (name === 'mobile') {

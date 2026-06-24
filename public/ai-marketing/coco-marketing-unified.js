@@ -5,8 +5,9 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-1';
+  var VERSION = 'v3-unified-2';
   var SEARCH_KEY = 'coco-mkt-global-search';
+  var FILTER_KEY = 'coco-mkt-filter-persist';
 
   function isAuth() {
     return window.MarketingApi && MarketingApi.canRemote && MarketingApi.canRemote();
@@ -100,25 +101,33 @@
 
   function ensureUnifiedContextBar() {
     if (document.getElementById('coco-unified-context-bar')) return;
-    var hub = document.getElementById('screen-hub');
-    if (!hub) return;
+    var root = document.getElementById('coco-claude-root');
+    if (!root) return;
     var bar = document.createElement('div');
     bar.id = 'coco-unified-context-bar';
-    bar.className = 'coco-flow-context-bar';
+    bar.className = 'coco-flow-context-bar coco-unified-bar';
     bar.innerHTML =
       '<div class="cfc-inner" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;font-size:12px;">' +
-      '<span id="coco-unified-client-chip" class="cfc-chip">לקוח: —</span>' +
+      '<span id="coco-unified-client-chip" class="cfc-chip" style="cursor:pointer;" title="לחץ לפתיחת לקוחות">לקוח: —</span>' +
       '<span id="coco-unified-filter-chip" class="cfc-chip">סינון: כללי</span>' +
       '<input id="coco-global-search" class="filter-input" placeholder="🔍 חיפוש גלובלי (לקוח, ליד, מטרה…)" style="min-width:200px;flex:1;max-width:320px;">' +
       '<button type="button" id="coco-sync-google-btn" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;">🔄 סנכרון Google</button>' +
       '<span id="coco-live-source-badge" class="cfc-chip" style="margin-right:auto;"></span>' +
       '</div>';
-    var content = hub.querySelector('.content');
-    if (content) content.insertBefore(bar, content.firstChild);
-    else hub.insertBefore(bar, hub.firstChild);
+    root.insertBefore(bar, root.firstChild);
 
     document.getElementById('coco-sync-google-btn')?.addEventListener('click', syncGoogle);
     document.getElementById('coco-global-search')?.addEventListener('input', onGlobalSearch);
+    document.getElementById('coco-unified-client-chip')?.addEventListener('click', function () {
+      if (typeof goScreen === 'function') goScreen('screen-clients');
+    });
+    try {
+      var saved = localStorage.getItem(SEARCH_KEY);
+      if (saved) {
+        var inp = document.getElementById('coco-global-search');
+        if (inp) { inp.value = saved; onGlobalSearch({ target: inp }); }
+      }
+    } catch (err) { /* ignore */ }
   }
 
   function updateContextBar() {
@@ -302,6 +311,13 @@
     });
   }
 
+  function refreshAllModules() {
+    updateContextBar();
+    if (window.CocoData && CocoData.bindAll) CocoData.bindAll();
+    bindCrm();
+    bindConnections();
+  }
+
   function onGlobalSearch(e) {
     var q = (e.target.value || '').trim().toLowerCase();
     try { localStorage.setItem(SEARCH_KEY, q); } catch (err) { /* ignore */ }
@@ -413,11 +429,31 @@
     CocoClaude.onScreenChange = function (id) {
       if (typeof origScreen === 'function') origScreen.call(this, id);
       updateContextBar();
+      if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen(id);
       if (id === 'screen-clients') {
         bindCrm();
         bindConnections();
       }
     };
+    var origApply = CocoClaude.applyContextGlobally;
+    if (origApply) {
+      CocoClaude.applyContextGlobally = function () {
+        origApply();
+        updateContextBar();
+        refreshAllModules();
+      };
+    }
+  }
+
+  function hookNavigation() {
+    if (window.goScreen && window.goScreen._cocoUnifiedHooked) return;
+    var _go = window.goScreen;
+    if (!_go) return;
+    window.goScreen = function (id) {
+      _go(id);
+      updateContextBar();
+    };
+    window.goScreen._cocoUnifiedHooked = true;
   }
 
   function hookContext() {
@@ -428,6 +464,28 @@
       updateContextBar();
       bindCrm();
     };
+    var origSelect = CocoData.selectCustomer;
+    if (origSelect) {
+      CocoData.selectCustomer = function (id) {
+        return origSelect(id).then(function () {
+          logActivity('clients', 'client_selected', 'נבחר לקוח', id);
+          refreshAllModules();
+        });
+      };
+    }
+  }
+
+  function hookBridgeContext() {
+    if (!window.COCO) return;
+    var root = document.getElementById('coco-claude-root');
+    if (!root || root._cocoUnifiedCtx) return;
+    root._cocoUnifiedCtx = true;
+    root.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t && t.id && /^(sf-|gf-|act-|hist-|ai-|rep-|ag-)/.test(t.id)) {
+        setTimeout(refreshAllModules, 50);
+      }
+    });
   }
 
   window.addEventListener('message', function (e) {
@@ -457,10 +515,13 @@
     logActivity: logActivity,
     onAuthReady: onAuthReady,
     updateContextBar: updateContextBar,
+    refreshAllModules: refreshAllModules,
     init: function () {
       ensureLiveMounts();
       hookInit();
+      hookNavigation();
       hookContext();
+      hookBridgeContext();
       updateContextBar();
       if (isAuth()) onAuthReady();
     },

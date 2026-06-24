@@ -28,6 +28,7 @@
     bundle: null,
     customers: [],
     metrics: [],
+    activity: [],
     meta: { source: 'pending', clientSource: 'pending', kpiSource: 'pending', loadedAt: null },
     loading: false,
   };
@@ -213,12 +214,23 @@
     goals.forEach(function (g) {
       items.push({ type: 'goal', title: g.title, date: g.completed_at || '', status: 'בוצע', detail: g.category || '' });
     });
+    (state.activity || []).forEach(function (a) {
+      items.push({
+        type: 'activity',
+        title: a.title || a.action || 'פעילות',
+        date: a.created_at,
+        status: a.action || 'logged',
+        detail: (a.module || 'מערכת') + (a.detail ? (' — ' + a.detail) : ''),
+      });
+    });
     if (!items.length) {
       state.meta.historySource = 'pending';
       return [];
     }
-    state.meta.historySource = 'dalia';
-    return items;
+    state.meta.historySource = state.activity.length ? 'unified' : 'dalia';
+    return items.sort(function (a, b) {
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    });
   }
 
   function deriveAssets(bundle) {
@@ -369,6 +381,18 @@
     }
   }
 
+  function bindAgents(bundle) {
+    var c = ctx();
+    var sub = document.querySelector('#screen-agents .page-subtitle');
+    if (sub) {
+      sub.textContent = (c.clientName || 'לקוח פעיל') + ' · Client ID: ' + (c.clientId ? String(c.clientId).slice(0, 8) + '…' : 'לא נבחר');
+    }
+    ensureLiveMount('coco-live-agents-context', 'screen-agents');
+    setHtml('coco-live-agents-context',
+      '<div class="alert alert-info" style="margin-bottom:12px;">AI משותף לכל המודולים · OpenAI · Claude · Gemini · הקשר: ' +
+      esc(c.clientName || '—') + (c.campaign ? (' · קמפיין: ' + esc(c.campaign)) : '') + '</div>');
+  }
+
   function bindClients() {
     if (window.DaliaSite && typeof DaliaSite.renderClientsLive === 'function') {
       DaliaSite.renderClientsLive();
@@ -504,6 +528,7 @@
     'screen-hub': bindHub,
     'screen-status': bindStatus,
     'screen-clients': bindClients,
+    'screen-agents': bindAgents,
     'screen-goals': bindGoals,
     'screen-actions': bindActions,
     'screen-history': bindHistory,
@@ -537,6 +562,16 @@
           if (A.getMetrics) {
             return A.getMetrics(clientId).then(function (m) {
               state.metrics = m || [];
+              var actP = A.listActivity ? A.listActivity(clientId, 50) : Promise.resolve([]);
+              return actP.then(function (rows) {
+                state.activity = rows || [];
+                return bundle;
+              });
+            });
+          }
+          if (A.listActivity) {
+            return A.listActivity(clientId, 50).then(function (rows) {
+              state.activity = rows || [];
               return bundle;
             });
           }
@@ -589,16 +624,17 @@
 
   function bindAll() {
     Object.keys(SCREEN_BINDERS).forEach(function (sid) {
-      var el = document.getElementById(sid);
-      if (el && el.classList.contains('active')) bindScreen(sid);
+      bindScreen(sid);
     });
-    bindScreen('screen-hub');
-    bindScreen('screen-clients');
+    updateSourceBadge();
+    if (window.CocoUnified && CocoUnified.updateContextBar) CocoUnified.updateContextBar();
   }
 
   function selectCustomer(id) {
     if (window.CocoClaude && CocoClaude.setClientId) CocoClaude.setClientId(id);
     return load(id).then(function () {
+      bindAll();
+      if (window.CocoUnified && CocoUnified.bindCrm) CocoUnified.bindCrm();
       if (typeof showToast === 'function') showToast('🏢 נטען לקוח: ' + (ctx().clientName || id));
     });
   }
@@ -615,8 +651,8 @@
   }
 
   function onContextChange() {
-    var active = document.querySelector('#coco-claude-root .screen.active');
-    if (active) bindScreen(active.id);
+    bindAll();
+    if (window.CocoUnified && CocoUnified.bindCrm) CocoUnified.bindCrm();
   }
 
   window.CocoData = {

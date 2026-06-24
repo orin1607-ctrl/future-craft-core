@@ -28,7 +28,9 @@ const secrets = {
   GOOGLE_GA4_PROPERTY: process.env.GOOGLE_GA4_PROPERTY || config.ga4_property || 'properties/427711798',
 };
 
-const missing = Object.entries(secrets).filter(([k, v]) => !v && k.startsWith('GOOGLE_CLIENT') || k === 'GOOGLE_REFRESH_TOKEN').map(([k]) => k);
+const missing = Object.entries(secrets)
+  .filter(([k, v]) => !v && (k.startsWith('GOOGLE_CLIENT') || k === 'GOOGLE_REFRESH_TOKEN'))
+  .map(([k]) => k);
 if (missing.length) {
   console.error('Missing secrets:', missing.join(', '));
   process.exit(2);

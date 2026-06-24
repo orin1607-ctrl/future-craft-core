@@ -11,7 +11,7 @@ import { join } from 'path';
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
 const STAGING_URL = `https://${STAGING_REF}.supabase.co`;
 const BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
-const MARKETING_URL = `${BASE}/ai-marketing-platform.html?v=v3-claude-1to1-2`;
+const MARKETING_URL = `${BASE}/ai-marketing-platform.html?v=v3-unified-2`;
 const OUT = join(process.cwd(), 'docs', 'audit-reports', 'staging-comprehensive-qa');
 mkdirSync(OUT, { recursive: true });
 
@@ -211,7 +211,7 @@ async function testMarketingDirect(page, label) {
   }));
   report.commit = state.commit;
   record(`MKT-direct-${label}`, 'Marketing direct — hub loads', state.hub && state.layout && state.rootW > 200);
-  record(`MKT-version-${label}`, 'Marketing ui-version', state.ui === 'v3-claude-1to1-2', { note: state.ui });
+  record(`MKT-version-${label}`, 'Marketing ui-version', state.ui === 'v3-unified-2', { note: state.ui });
   record(`MKT-404-${label}`, 'No 404 on marketing assets', failed404.length === 0, { note: failed404.slice(0, 3).join('; ') });
 
   const screens = [
@@ -237,7 +237,7 @@ async function testMarketingDirect(page, label) {
 }
 
 async function testMarketingIframe(page, label) {
-  const iframeSrc = `${BASE}/ai-marketing-platform.html?fullscreen=1&v=v3-claude-1to1-2`;
+  const iframeSrc = `${BASE}/ai-marketing-platform.html?fullscreen=1&v=v3-unified-2`;
   await page.setContent(
     `<!DOCTYPE html><html><body style="margin:0"><iframe id="f" style="width:100%;height:100vh;border:0" src="${iframeSrc}"></iframe></body></html>`,
   );
@@ -252,7 +252,7 @@ async function testMarketingIframe(page, label) {
     hub: document.getElementById('screen-hub')?.offsetWidth > 200,
     layout: document.body.classList.contains('coco-claude-layout'),
   }));
-  record(`MKT-iframe-${label}`, 'Marketing in iframe', st.hub && st.layout && st.ui === 'v3-claude-1to1-2');
+  record(`MKT-iframe-${label}`, 'Marketing in iframe', st.hub && st.layout && st.ui === 'v3-unified-2');
 }
 
 async function testDaliaMarketingRoute(page, label) {

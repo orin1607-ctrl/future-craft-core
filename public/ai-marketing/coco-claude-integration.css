@@ -1,4 +1,12 @@
-/* Orin Car — integration only (no visual overrides) */
+#coco-unified-context-bar.coco-unified-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(4, 9, 26, 0.95);
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+  backdrop-filter: blur(8px);
+}
+#coco-unified-context-bar .cfc-chip { font-size: 11px; }
 #legacy-dalia-root { display: none !important; }
 .coco-integration-flow-bar {
   background: rgba(37, 99, 235, 0.12);

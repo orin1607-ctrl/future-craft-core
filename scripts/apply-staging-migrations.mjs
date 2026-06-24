@@ -91,7 +91,7 @@ async function main() {
       const sql = readFileSync(join('supabase/migrations', file), 'utf8');
       const res = spawnSync(
         'npx',
-        ['supabase', 'db', 'execute', '--linked', '--file', join('supabase/migrations', file)],
+        ['supabase', 'db', 'query', '--linked', '-f', join('supabase/migrations', file)],
         { cwd: process.cwd(), env, shell: true, encoding: 'utf8' },
       );
       if (res.status === 0) {
