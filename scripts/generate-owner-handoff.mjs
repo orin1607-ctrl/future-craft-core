@@ -136,7 +136,11 @@ ${handoff.completedAutonomously.map((x) => `- ${x}`).join('\n')}
 
 ## ממתין לבעלים
 
-${handoff.blockedOnOwner.map((b) => `### ${b.priority}. ${b.title}\n${b.steps.map((s) => `- ${s}`).join('\n')}`).join('\n\n')}
+${handoff.blockedOnOwner.map((b) => {
+  const steps = (b.steps || []).map((s) => `- ${s}`).join('\n');
+  const extra = b.link ? `- קישור: ${b.link}\n- doc: ${b.doc || ''}` : '';
+  return `### ${b.priority}. ${b.title}\n${steps}${extra ? '\n' + extra : ''}`;
+}).join('\n\n')}
 
 ---
 

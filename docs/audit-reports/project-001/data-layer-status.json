@@ -1,5 +1,5 @@
 {
-  "at": "2026-06-24T15:28:36.538Z",
+  "at": "2026-06-24T15:44:58.859Z",
   "phase": "A-data-layer",
   "aiPhaseBlocked": true,
   "aiNote": "OpenAI/Claude/Gemini — תשתית מחוברת, API ממתין למפתח (לא מחובר)",
@@ -93,15 +93,5 @@
     "npm run project-001:sync-and-export",
     "git push dashboard.json → Staging",
     "בדיקה ידנית: יוני → לקוח חדש → שיווק → מצב נוכחי"
-  ],
-  "automatedSession": {
-    "commit": "pending",
-    "changes": [
-      "Live agent dashboards (GSC/GA4/CMS/Manager) from dashboard.json",
-      "Removed fake KPIs and greentech defaults",
-      "Goals/actions live mount containers",
-      "owner-handoff.json for return checklist"
-    ],
-    "qa": { "v4": "77/77", "stagingClose": "10/10" }
-  }
+  ]
 }

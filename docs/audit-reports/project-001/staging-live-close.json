@@ -1,5 +1,5 @@
 {
-  "at": "2026-06-24T15:09:35.318Z",
+  "at": "2026-06-24T15:44:53.613Z",
   "staging": "http://127.0.0.1:3457",
   "passed": [
     "dashboard:site-dalia-c",
@@ -10,6 +10,8 @@
     "ui:status-panel",
     "ui:dalia-exit-btn",
     "ui:no-demo-company",
+    "ui:hub-no-fake-kpis",
+    "ui:assets-live-grid",
     "ui:status-real-data",
     "ui:exit-fn"
   ],

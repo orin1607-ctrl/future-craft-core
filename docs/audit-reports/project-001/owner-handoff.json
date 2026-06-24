@@ -1,21 +1,27 @@
 {
-  "generatedAt": "2026-06-24T16:00:00.000Z",
+  "generatedAt": "2026-06-24T15:45:33.792Z",
   "phase": "A-data-layer",
   "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform",
-  "daliaUrl": "https://orin1607-ctrl.github.io/future-craft-core/",
-  "automatedWorkCompleted": [
-    "Integration Hub — 12 עוזרים + סרגל סטטוס + מודל חיבורים",
-    "dalia-site-config — נתונים חיים מ-dashboard.json בלבד",
-    "עוזרים (GSC/GA4/CMS/Manager) — KPIs אמיתיים או ממתין",
-    "הסרת KPIs מזויפים (siteScore 82/75, greentech defaults)",
-    "AI gate — OpenAI/Claude/Gemini חסומים, תשתית מחוברת",
-    "create-admin-user Edge deployed",
-    "QA 77/77 + staging-live-close 10/10"
+  "daliaAppUrl": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "production": "CLOSED — no deploy without explicit owner approval",
+  "lastCommitNote": "See git log on main branch",
+  "completedAutonomously": [
+    "Integration Hub — 12 עוזרים, סרגל סטטוס, מודל חיבורים",
+    "dalia-site-config — SSOT dalia-c.com, dashboard.json + site-crawl.json",
+    "Hub KPIs — GSC/GA4 אמיתיים (לא 14,320 / 8,420)",
+    "מסך נכסים — coco-live-assets-grid עם סטטוס חיבור",
+    "עוזרים — GSC/GA4/CMS/Manager מ-dashboard.json",
+    "AI gate — OpenAI/Claude/Gemini: תשתית מחוברת, API חסום",
+    "scrub Demo UI — greentech/FleetOS מוסתרים ב-live mode",
+    "prd-entities.json — רק dalia-c-official, ללא demo-client",
+    "create-admin-user Edge + RLS migrations + marketingProvision.ts",
+    "QA: qa-v4-orincar + qa-staging-live-close לפני כל push"
   ],
   "blockedOnOwner": [
     {
       "id": "oauth-sync",
       "priority": 1,
+      "status": "ממתין לבעלים",
       "title": "OAuth + סנכרון Google",
       "steps": [
         "שים integrations/google/credentials.oauth.json",
@@ -23,23 +29,25 @@
         "npm run project-001:sync-and-export",
         "git add public/project-001/dashboard.json && git push"
       ],
-      "reason": "ENOENT credentials.oauth.json במחשב הפיתוח"
+      "reason": "credentials.oauth.json חסר במחשב הפיתוח"
     },
     {
       "id": "manual-e2e",
       "priority": 2,
+      "status": "ממתין לבעלים",
       "title": "בדיקה ידנית — יוני אטיאס",
       "steps": [
         "התחברות ל-Staging",
-        "לקוח עסקי חדש — שיווק בלבד",
-        "לקוח עסקי חדש — צי+שיווק",
-        "כרטיס שיווק → מצב נוכחי → וידוא GSC/GA4 אמיתיים",
-        "חזרה לדליה"
+        "לקוח עסקי חדש — marketing_only",
+        "לקוח עסקי חדש — fleet_and_marketing",
+        "כרטיס שיווק → מצב נוכחי → GSC/GA4 אמיתיים",
+        "חזרה לדליה (exit)"
       ]
     },
     {
       "id": "gbp-api",
       "priority": 3,
+      "status": "ממתין לבעלים",
       "title": "Google Business — Basic API Access",
       "link": "https://support.google.com/business/contact/api_default",
       "doc": "docs/audit-reports/project-001/owner-gates.json"
@@ -47,15 +55,49 @@
     {
       "id": "ads-token",
       "priority": 4,
+      "status": "ממתין לבעלים",
       "title": "Google Ads — Developer Token",
       "link": "https://ads.google.com/aw/apicenter",
       "doc": ".env.ads.example"
     }
   ],
   "intentionallyBlocked": [
-    "OpenAI / Claude / Gemini API — שלב AI אחרי אישור שלב א׳",
-    "Production deploy"
+    {
+      "item": "OpenAI / Claude / Gemini API",
+      "reason": "שלב AI — רק אחרי אישור שלב א׳"
+    },
+    {
+      "item": "Production deploy",
+      "reason": "אין deploy ללא אישור מפורש"
+    }
   ],
+  "liveData": {
+    "avgPosition": 45.5,
+    "totalClicks": 0,
+    "totalImpressions": 2,
+    "avgCtr": 0,
+    "activeKeywords": 2,
+    "opportunities": 1,
+    "weakPages": 0,
+    "pendingDrafts": 1,
+    "ga4Sessions": 250,
+    "ga4PageViews": 410
+  },
   "lastDashboardSync": "2026-06-21T20:03:11.748Z",
-  "nextCommitAfterOwner": "Refresh dashboard.json from owner OAuth sync"
+  "qaLastRun": {
+    "v4": "89/89",
+    "ok": true,
+    "at": "2026-06-24T15:44:52.631Z"
+  },
+  "remainingAutomated": [
+    "Wire marketing-api Supabase bundle ללקוחות חדשים (post E2E)",
+    "GTM sync after OAuth",
+    "Historical trend charts (post sync)"
+  ],
+  "docs": {
+    "handoffJson": "docs/audit-reports/project-001/owner-handoff.json",
+    "dataLayer": "docs/audit-reports/project-001/data-layer-status.json",
+    "ownerGates": "docs/audit-reports/project-001/owner-gates.json",
+    "stagingClose": "docs/audit-reports/project-001/staging-live-close.json"
+  }
 }
