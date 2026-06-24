@@ -29,11 +29,7 @@
   var STORAGE_KEY = 'coco-flow-context-v2';
   var SYNC_GUARD = false;
 
-  var DEMO_CLIENTS = {
-    'גרין-טק פתרונות': { id: 'demo-greentech', company: 'greentech', name: 'גרין-טק פתרונות בע"מ', site: 'greentech.co.il', sub: 'ניהול שיווק + ניהול צי' },
-    'דלתא לוגיסטיקה': { id: 'demo-delta', company: 'delta', name: 'דלתא לוגיסטיקה בע"מ', site: 'delta-log.co.il', sub: 'ניהול שיווק בלבד' },
-    'פתרונות טק': { id: 'demo-techsol', company: 'techsol', name: 'פתרונות טק ישראל', site: 'techsol.co.il', sub: 'ניהול שיווק בלבד' }
-  };
+  var DEMO_CLIENTS = {};
 
   var FLOW_CHAIN = [
     'screen-hub',
@@ -344,11 +340,12 @@
       this.wireContextListeners();
       this.applyPermissions();
       var cid = COCO.flowContext.clientId;
+      if (window.DaliaSite && DaliaSite.SITE) {
+        if (window.CocoData && CocoData.load) CocoData.load(DaliaSite.SITE.clientId);
+        return;
+      }
       if (cid && window.CocoData && CocoData.load) {
         CocoData.load(cid);
-      } else if (!cid && !COCO.flowContext.clientName) {
-        CocoClaude.bindDemoClient('גרין-טק פתרונות');
-        if (window.CocoData && CocoData.load) CocoData.load('demo-greentech');
       }
     },
     onScreenChange: function (id) {

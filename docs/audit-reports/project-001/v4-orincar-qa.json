@@ -1,5 +1,5 @@
 {
-  "url": "http://127.0.0.1:53075/ai-marketing-platform",
+  "url": "http://127.0.0.1:3457/ai-marketing-platform",
   "passed": [
     "desktop:page-load",
     "desktop:coco-mode",
@@ -24,6 +24,10 @@
     "desktop:dalia-screen-bar",
     "desktop:dalia-exit-fn",
     "desktop:dalia-home-icon",
+    "desktop:dalia-live-only",
+    "desktop:dalia-c-site-label",
+    "desktop:no-demo-company-label",
+    "desktop:live-status-panel",
     "desktop:asset-coco-claude-main.js",
     "desktop:asset-coco-claude-bridge.js",
     "desktop:asset-coco-claude-screens.html",
@@ -34,6 +38,7 @@
     "desktop:asset-marketing-client.js",
     "desktop:asset-home-prd.css",
     "desktop:asset-app.js",
+    "desktop:asset-dalia-site-config.js",
     "mobile:page-load",
     "mobile:coco-mode",
     "mobile:coco-hub-loaded",
@@ -57,6 +62,10 @@
     "mobile:dalia-screen-bar",
     "mobile:dalia-exit-fn",
     "mobile:dalia-home-icon",
+    "mobile:dalia-live-only",
+    "mobile:dalia-c-site-label",
+    "mobile:no-demo-company-label",
+    "mobile:live-status-panel",
     "mobile:no-horizontal-scroll",
     "mobile:asset-coco-claude-main.js",
     "mobile:asset-coco-claude-bridge.js",
@@ -67,15 +76,16 @@
     "mobile:asset-marketing-api.js",
     "mobile:asset-marketing-client.js",
     "mobile:asset-home-prd.css",
-    "mobile:asset-app.js"
+    "mobile:asset-app.js",
+    "mobile:asset-dalia-site-config.js"
   ],
   "failed": [],
   "warnings": [],
   "consoleErrors": [],
   "missingScreens": [],
   "mobile": {},
-  "passedCount": 67,
+  "passedCount": 77,
   "failedCount": 0,
   "ok": true,
-  "at": "2026-06-24T13:41:13.649Z"
+  "at": "2026-06-24T14:33:17.409Z"
 }

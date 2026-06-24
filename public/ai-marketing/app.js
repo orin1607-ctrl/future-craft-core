@@ -18,7 +18,7 @@
     if (path.indexOf('ai-marketing-platform') > 0) {
       base = path.substring(0, path.indexOf('ai-marketing-platform'));
     }
-    return [base + 'project-001/dashboard.json', base + 'ai-marketing/data.json'];
+    return [base + 'project-001/dashboard.json'];
   }
 
   var MODULE_PROMPTS = {
@@ -480,16 +480,21 @@
 
   function fallbackLoad() {
     return fetchDashboardJson().then(function (raw) {
-      if (!raw) return;
-      if (raw.kpis && raw.meta?.source !== 'demo') {
+      if (!raw) {
+        if (typeof showToast === 'function') showToast('לא נמצא dashboard.json — הרץ project-001:sync-and-export', 'warn');
+        return;
+      }
+      var mapped = mapDashboardRaw(raw);
+      if (mapped) COCO.data = mapped;
+      else if (raw.stats) {
         COCO.data = raw;
-      } else {
-        var mapped = mapDashboardRaw(raw);
-        if (mapped) COCO.data = mapped;
+        if (COCO.data.meta) COCO.data.meta.source = 'live';
       }
       afterDataLoad();
     });
   }
+
+  window.mapDashboardRaw = mapDashboardRaw;
 
   function syncNow() {
     showToast('🔄 מסנכרן Google Sheets + GSC + GA4...', 'info');

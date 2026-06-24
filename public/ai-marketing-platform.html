@@ -38,6 +38,7 @@
   </div>
 </div>
 
+<script src="./ai-marketing/dalia-site-config.js"></script>
 <script src="./ai-marketing/sidebar-accordion.js"></script>
 <script src="./ai-marketing/app.js"></script>
 <script src="./ai-marketing/marketing-api.js"></script>
@@ -89,8 +90,12 @@
       if (window.PrdDaliaNav && typeof window.PrdDaliaNav.init === 'function') {
         window.PrdDaliaNav.init();
       }
-      if (window.CocoClaude) CocoClaude.init();
-      else if (typeof window.goScreen === 'function') goScreen('screen-hub');
+      if (window.DaliaSite && typeof window.DaliaSite.initOfficial === 'function') {
+        return window.DaliaSite.initOfficial().then(function () {
+          if (window.CocoClaude) CocoClaude.init();
+          else if (typeof window.goScreen === 'function') goScreen('screen-hub');
+        });
+      }
     });
   }
 

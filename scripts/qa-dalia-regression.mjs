@@ -46,6 +46,13 @@ edgeSrc.includes('provisionMarketingClient') ? pass('edge:marketing-provision') 
 const navSrc = readFileSync(join(process.cwd(), 'public/ai-marketing/prd-dalia-nav.js'), 'utf8');
 navSrc.includes('exitToDalia') ? pass('marketing:dalia-nav') : fail('marketing:dalia-nav');
 
+const siteCfg = readFileSync(join(process.cwd(), 'public/ai-marketing/dalia-site-config.js'), 'utf8');
+siteCfg.includes('dalia-c.com') && siteCfg.includes('initOfficial') ? pass('marketing:dalia-live-config') : fail('marketing:dalia-live-config');
+siteCfg.includes('DEMO_CLIENTS') === false || !siteCfg.includes('demo-greentech') ? pass('marketing:no-demo-clients') : fail('marketing:no-demo-clients');
+
+const dataJson = readFileSync(join(process.cwd(), 'public/ai-marketing/data.json'), 'utf8');
+dataJson.includes('demoDisabled') ? pass('marketing:data-json-live-only') : fail('marketing:data-json-live-only');
+
 const mktClient = readFileSync(join(process.cwd(), 'public/ai-marketing/marketing-client.js'), 'utf8');
 mktClient.includes('לקוח שיווק חדש') ? pass('marketing:new-client-wizard') : fail('marketing:new-client-wizard');
 mktClient.includes('AI_ASSISTANTS') ? pass('marketing:ai-assistants') : fail('marketing:ai-assistants');

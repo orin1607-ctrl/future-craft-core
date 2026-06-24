@@ -1,0 +1,50 @@
+{
+  "at": "2026-06-24T14:35:00.000Z",
+  "staging": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform",
+  "daliaApp": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "officialSite": "https://dalia-c.com/",
+  "superAdmin": "יוני אטיאס",
+  "mode": "live-only",
+  "demoDisabled": true,
+  "qa": { "orincar": { "passed": 77, "failed": 0 }, "regression": { "passed": 24, "failed": 0 } },
+  "realData": {
+    "source": "public/project-001/dashboard.json",
+    "lastSync": "2026-06-21T20:03:11.748Z",
+    "gsc": { "connected": true, "queries": 2, "pages": 10, "clicks": 0, "impressions": 2 },
+    "ga4": { "connected": true, "sessions": 250, "pageViews": 410, "topPages": 48 },
+    "siteCrawl": { "pageCount": 200, "path": "public/project-001/site-crawl.json" }
+  },
+  "connections": {
+    "googleSearchConsole": { "status": "connected", "dataMode": "real" },
+    "googleAnalytics": { "status": "connected", "dataMode": "real" },
+    "googleBusinessProfile": { "status": "pending", "missing": "Google API approval / quota" },
+    "googleAds": { "status": "pending", "missing": "Developer Token + MCC" },
+    "googleTagManager": { "status": "pending", "missing": "OAuth + DB registration" },
+    "googleDrive": { "status": "connected", "dataMode": "real" },
+    "googleDocs": { "status": "connected", "dataMode": "real" },
+    "googleSheets": { "status": "connected", "dataMode": "real" },
+    "gmail": { "status": "connected", "dataMode": "real" },
+    "openai": { "status": "pending", "missing": "OPENAI_API_KEY on server + Edge deploy" },
+    "claude": { "status": "pending", "missing": "API key + Edge Function" },
+    "gemini": { "status": "pending", "missing": "Google AI Studio key" }
+  },
+  "fixes": [
+    "dalia-site-config.js — dalia-c.com only, no demo clients",
+    "Removed demo fallbacks from coco-claude-data.js",
+    "Live status panel from GSC/GA4 dashboard.json",
+    "data.json stripped to config-only",
+    "app.js loads dashboard.json only"
+  ],
+  "pendingActions": [
+    "npm run project-001:auth && npm run project-001:sync-and-export (refresh live data)",
+    "supabase functions deploy create-admin-user --project-ref usfeoerkpcafxxlyuldl",
+    "Manual E2E as יוני אטיאס on Staging"
+  ],
+  "productionReady": false,
+  "productionBlockers": [
+    "Edge function create-admin-user not deployed to Staging",
+    "Google sync requires re-auth (project-001:auth)",
+    "GBP, Ads, GTM, Claude, Gemini pending connection",
+    "Full Dalia module E2E not automated yet"
+  ]
+}

@@ -27,9 +27,11 @@
   var state = {
     bundle: null,
     customers: [],
-    meta: { source: 'demo', clientSource: 'demo', kpiSource: 'demo', loadedAt: null },
+    meta: { source: 'pending', clientSource: 'pending', kpiSource: 'pending', loadedAt: null },
     loading: false,
   };
+
+  var NO_DATA = '—';
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -122,8 +124,8 @@
         position: dash.avgPosition != null ? Number(dash.avgPosition).toFixed(1) : '—',
       };
     }
-    state.meta.kpiSource = 'demo';
-    return { siteScore: 82, visits: '14,320', leads: '47', openTasks: '12', clicks: '8,420', impressions: '184,000', ctr: '4.6%', position: '12.3' };
+    state.meta.kpiSource = 'pending';
+    return { siteScore: NO_DATA, visits: NO_DATA, leads: NO_DATA, openTasks: NO_DATA, clicks: NO_DATA, impressions: NO_DATA, ctr: NO_DATA, position: NO_DATA };
   }
 
   function deriveGoals(bundle) {
@@ -136,12 +138,8 @@
       });
     }
     if (!goals.length) {
-      state.meta.goalsSource = 'demo';
-      return [
-        { id: 'g1', title: 'שיפור PageSpeed נייד ל-80+', status: 'active', category: 'ביצועים', priority: 'קריטי' },
-        { id: 'g2', title: 'כיסוי Meta חסרים – 8 עמודים', status: 'active', category: 'SEO', priority: 'גבוה' },
-        { id: 'g3', title: 'מחקר 18 ביטויי SEO חדשים', status: 'pending', category: 'תוכן', priority: 'גבוה' },
-      ];
+      state.meta.goalsSource = 'pending';
+      return [];
     }
     state.meta.goalsSource = 'dalia';
     return goals;
@@ -160,8 +158,8 @@
       actions.push({ id: 'appr-' + i, title: ap.title, status: 'pending', urgency: 'גבוה', source: 'אישורים', category: ap.type || 'תוכן' });
     });
     if (!actions.length) {
-      state.meta.actionsSource = 'demo';
-      return [{ id: 'a1', title: 'שיפור PageSpeed נייד', status: 'pending', urgency: 'קריטי', source: 'PageSpeed AI', category: 'ביצועים' }];
+      state.meta.actionsSource = 'pending';
+      return [];
     }
     state.meta.actionsSource = ai && ai.work_plan && ai.work_plan.length ? 'dalia' : 'live';
     return actions;
@@ -178,11 +176,8 @@
       items.push({ type: 'goal', title: g.title, date: g.completed_at || '', status: 'בוצע', detail: g.category || '' });
     });
     if (!items.length) {
-      state.meta.historySource = 'demo';
-      return [
-        { type: 'action', title: 'Meta Titles פורסמו – 8 עמודים', date: '12.6.25', status: 'בוצע', detail: 'SEO' },
-        { type: 'action', title: 'Schema נוסף לדף הבית', date: '8.6.25', status: 'בוצע', detail: 'מבנה אתר' },
-      ];
+      state.meta.historySource = 'pending';
+      return [];
     }
     state.meta.historySource = 'dalia';
     return items;
@@ -202,8 +197,11 @@
       });
     });
     if (!assets.length) {
-      state.meta.assetsSource = 'demo';
-      return [{ kind: 'site', icon: '🌐', name: 'אתר ראשי', status: 'active', detail: ctx().site || 'greentech.co.il', connected: true }];
+      state.meta.assetsSource = 'pending';
+      if (window.DaliaSite && DaliaSite.SITE) {
+        return [{ kind: 'site', icon: '🌐', name: DaliaSite.SITE.domain, status: 'active', detail: DaliaSite.SITE.url, connected: true }];
+      }
+      return [];
     }
     state.meta.assetsSource = 'dalia';
     return assets;
@@ -214,19 +212,15 @@
     var recs = normList(ai && ai.recommendations, 'rec');
     var report = (ai && ai.opening_report) || '';
     if (!recs.length && !report) {
-      state.meta.aiSource = 'demo';
+      state.meta.aiSource = 'pending';
       return {
         team: [
-          { name: 'ChatGPT', text: 'ממליץ להתמקד ב-PageSpeed נייד ו-Meta חסרים.', status: 'done' },
-          { name: 'Claude', text: 'מדגיש תיעוד והיסטוריה לפני הרחבת קמפיינים.', status: 'done' },
-          { name: 'Gemini', text: 'מזהה מגמות ירידה בעמודי שירות.', status: 'done' },
+          { name: 'ChatGPT', text: 'ממתין לנתונים אמיתיים מ-dalia-c.com', status: 'pending' },
+          { name: 'Claude', text: 'ממתין לחיבור', status: 'pending' },
+          { name: 'Gemini', text: 'ממתין לחיבור', status: 'pending' },
         ],
-        summary: 'בעיות: PageSpeed נייד | Meta חסרים | קמפיין לא רווחי. עדיפות: PageSpeed → Meta → תוכן.',
-        findings: [
-          { level: 'err', text: 'קריטי: PageSpeed נייד — פוגע ב-SEO ובהמרות' },
-          { level: 'warn', text: 'גבוה: ביטויים לא מכוסים — פוטנציאל תנועה' },
-          { level: 'ok', text: 'חיובי: CTR ולידים במגמת עלייה' },
-        ],
+        summary: 'אין ניתוח AI — נדרשים נתוני GSC/GA4 וחיבור OpenAI.',
+        findings: [{ level: 'warn', text: 'המערכת מוגדרת לנתונים אמיתיים בלבד — אין Demo.' }],
       };
     }
     state.meta.aiSource = 'dalia';
@@ -275,9 +269,10 @@
     var m = state.meta;
     var parts = [];
     if (m.clientSource === 'dalia') parts.push('לקוח: דליה');
-    else if (m.clientSource === 'demo') parts.push('לקוח: דמו');
+    else if (m.clientSource === 'demo') parts.push('לקוח: דמו (מושבת)');
     if (m.kpiSource === 'live') parts.push('KPI: חי');
-    else parts.push('KPI: דמו');
+    else if (m.kpiSource === 'pending') parts.push('KPI: ממתין');
+    else parts.push('KPI: דמו (מושבת)');
     badge.textContent = 'מקור: ' + parts.join(' · ');
   }
 
@@ -305,6 +300,10 @@
   }
 
   function bindStatus(bundle) {
+    var dash = (bundle && bundle._dashboard) || (window.DaliaSite && DaliaSite.getDashboard && DaliaSite.getDashboard());
+    if (dash && window.DaliaSite && DaliaSite.renderStatusLive) {
+      DaliaSite.renderStatusLive(dash, null);
+    }
     var kpis = deriveKpis(bundle);
     var c = ctx();
     setText('#tab-status-overview .page-subtitle', (c.clientName || 'לקוח פעיל') + ' • עדכון: ' + (state.meta.loadedAt ? new Date(state.meta.loadedAt).toLocaleString('he-IL') : 'עכשיו'));
@@ -331,14 +330,15 @@
   }
 
   function bindClients() {
+    if (window.DaliaSite && typeof DaliaSite.renderClientsLive === 'function') {
+      DaliaSite.renderClientsLive();
+      state.meta.clientSource = 'live';
+      return;
+    }
     var rows = state.customers;
     if (!rows.length) {
-      rows = [
-        { id: 'demo-greentech', name: 'גרין-טק פתרונות בע"מ', service_type: 'fleet_and_marketing', status: 'active' },
-        { id: 'demo-delta', name: 'דלתא לוגיסטיקה בע"מ', service_type: 'marketing_only', status: 'active' },
-        { id: 'demo-techsol', name: 'פתרונות טק ישראל', service_type: 'marketing_only', status: 'draft' },
-      ];
-      state.meta.clientSource = 'demo';
+      rows = window.DaliaSite ? [{ id: DaliaSite.SITE.clientId, name: DaliaSite.SITE.company, service_type: 'fleet_and_marketing', status: 'active' }] : [];
+      state.meta.clientSource = rows.length ? 'live' : 'pending';
     }
     setHtml('coco-live-clients-list', rows.map(function (c) {
       var svc = SERVICE_LABELS[c.service_type] || c.service_type || '';
@@ -401,6 +401,11 @@
   }
 
   function bindAssets(bundle) {
+    var dash = (bundle && bundle._dashboard) || (window.DaliaSite && DaliaSite.getDashboard && DaliaSite.getDashboard());
+    if (dash && window.DaliaSite && DaliaSite.renderAssetsLive) {
+      DaliaSite.renderAssetsLive(dash);
+      return;
+    }
     var assets = applyCtxFilter(deriveAssets(bundle), function (a) {
       return { site: a.detail, status: a.status };
     });
@@ -473,7 +478,7 @@
     state.loading = true;
     var A = window.MarketingApi;
     var p;
-    if (A && A.loadBundle && String(clientId).indexOf('demo-') !== 0) {
+    if (A && A.loadBundle && String(clientId).indexOf('demo-') !== 0 && clientId !== 'dalia-c-official') {
       p = A.loadBundle(clientId).then(function (bundle) {
         if (bundle && bundle.customer) {
           state.bundle = bundle;
@@ -484,22 +489,25 @@
         }
         return null;
       });
-    } else if (String(clientId).indexOf('demo-') === 0) {
-      if (!ctx().clientName && window.CocoClaude && CocoClaude.bindDemoClient) {
-        var demoKey = clientId === 'demo-greentech' ? 'גרין-טק פתרונות' : clientId === 'demo-delta' ? 'דלתא לוגיסטיקה' : 'פתרונות טק';
-        CocoClaude.bindDemoClient(demoKey);
-      }
-      state.bundle = { customer: { id: clientId, name: ctx().clientName || clientId }, sites: [], campaigns: [], connections: [], ai: null };
-      state.meta.source = 'demo';
-      state.meta.clientSource = 'demo';
+    } else if (clientId === 'dalia-c-official' || (window.DaliaSite && clientId === DaliaSite.SITE.clientId)) {
+      var dash = window.DaliaSite && DaliaSite.getDashboard && DaliaSite.getDashboard();
+      if (!dash && window.COCO && COCO.data && COCO.data.stats) dash = COCO.data;
+      state.bundle = window.DaliaSite ? DaliaSite.buildLiveBundle(dash || { stats: {}, connections: {} }) : null;
+      state.meta.source = dash ? 'live' : 'pending';
+      state.meta.clientSource = 'live';
       p = Promise.resolve(state.bundle);
+    } else if (String(clientId).indexOf('demo-') === 0) {
+      state.bundle = null;
+      state.meta.source = 'pending';
+      state.meta.clientSource = 'pending';
+      p = Promise.resolve(null);
     } else {
       p = Promise.resolve(null);
     }
     return p.then(function (bundle) {
       if (!bundle && window.CocoClaude) {
-        state.meta.source = 'demo';
-        state.meta.clientSource = 'demo';
+        state.meta.source = 'pending';
+        state.meta.clientSource = 'pending';
       }
       state.loading = false;
       return loadCustomers().then(function () {

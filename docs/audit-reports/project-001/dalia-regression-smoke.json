@@ -1,5 +1,5 @@
 {
-  "at": "2026-06-24T13:41:01.300Z",
+  "at": "2026-06-24T14:33:04.951Z",
   "passed": [
     "module:vehicles",
     "module:drivers",
@@ -19,6 +19,9 @@
     "wizard:service_type-options",
     "edge:marketing-provision",
     "marketing:dalia-nav",
+    "marketing:dalia-live-config",
+    "marketing:no-demo-clients",
+    "marketing:data-json-live-only",
     "marketing:new-client-wizard",
     "marketing:ai-assistants",
     "qa:v4-orincar-live"

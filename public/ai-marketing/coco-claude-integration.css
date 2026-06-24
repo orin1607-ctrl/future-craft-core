@@ -1,5 +1,9 @@
 /* Orin Car — integration only (no visual overrides) */
 #legacy-dalia-root { display: none !important; }
+body.dalia-live-only #screen-clients .card[onclick*="selectClient"] { display: none !important; }
+body.dalia-live-only .v4-demo-banner { display: none !important; }
+#coco-live-status-root .table-wrap { overflow-x: auto; }
+#coco-live-status-root td { font-size: 12px; max-width: 280px; word-break: break-word; }
 body.coco-boot-active { background: #04091a; }
 #coco-claude-root.coco-boot-active {
   display: block !important;

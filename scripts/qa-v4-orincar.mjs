@@ -30,7 +30,7 @@ const COCO_FLOW_SCREENS = [
 const COCO_ASSETS = [
   'coco-claude-main.js', 'coco-claude-bridge.js', 'coco-claude-screens.html',
   'coco-claude-main.css', 'coco-claude-integration.css', 'prd-dalia-nav.js',
-  'marketing-api.js', 'marketing-client.js', 'home-prd.css', 'app.js',
+  'marketing-api.js', 'marketing-client.js', 'home-prd.css', 'app.js', 'dalia-site-config.js',
 ];
 
 const report = {
@@ -84,6 +84,17 @@ async function runCocoQa(page, vp) {
   daliaNav.screenBar ? pass(`${vp.name}:dalia-screen-bar`) : fail(`${vp.name}:dalia-screen-bar`);
   daliaNav.exitFn ? pass(`${vp.name}:dalia-exit-fn`) : fail(`${vp.name}:dalia-exit-fn`);
   daliaNav.homeIcon ? pass(`${vp.name}:dalia-home-icon`) : fail(`${vp.name}:dalia-home-icon`);
+
+  const liveOnly = await page.evaluate(() => ({
+    body: document.body.classList.contains('dalia-live-only'),
+    site: document.getElementById('coco-hub-client-sub')?.textContent?.includes('dalia-c.com'),
+    company: (document.getElementById('sf-company-display')?.textContent || '').indexOf('גרין-טק') < 0,
+    statusRoot: !!document.getElementById('coco-live-status-root'),
+  }));
+  liveOnly.body ? pass(`${vp.name}:dalia-live-only`) : fail(`${vp.name}:dalia-live-only`);
+  liveOnly.site ? pass(`${vp.name}:dalia-c-site-label`) : fail(`${vp.name}:dalia-c-site-label`);
+  liveOnly.company ? pass(`${vp.name}:no-demo-company-label`) : fail(`${vp.name}:no-demo-company-label`);
+  liveOnly.statusRoot ? pass(`${vp.name}:live-status-panel`) : fail(`${vp.name}:live-status-panel`);
 
   if (vp.name === 'mobile') {
     const overflow = await page.evaluate(() => ({
