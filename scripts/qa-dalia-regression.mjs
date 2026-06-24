@@ -48,6 +48,11 @@ navSrc.includes('exitToDalia') ? pass('marketing:dalia-nav') : fail('marketing:d
 
 const siteCfg = readFileSync(join(process.cwd(), 'public/ai-marketing/dalia-site-config.js'), 'utf8');
 siteCfg.includes('dalia-c.com') && siteCfg.includes('initOfficial') ? pass('marketing:dalia-live-config') : fail('marketing:dalia-live-config');
+
+const ssot = readFileSync(join(process.cwd(), 'public/ai-marketing/client-id-ssot.js'), 'utf8');
+ssot.includes('dalia-c-official') && ssot.includes('DATA_PATHS') ? pass('marketing:client-id-ssot') : fail('marketing:client-id-ssot');
+
+existsSync(join(process.cwd(), 'docs/audit-reports/project-001/OAUTH-SYNC-CHECKLIST.md')) ? pass('docs:oauth-checklist') : fail('docs:oauth-checklist');
 siteCfg.includes('DEMO_CLIENTS') === false || !siteCfg.includes('demo-greentech') ? pass('marketing:no-demo-clients') : fail('marketing:no-demo-clients');
 
 const dataJson = readFileSync(join(process.cwd(), 'public/ai-marketing/data.json'), 'utf8');

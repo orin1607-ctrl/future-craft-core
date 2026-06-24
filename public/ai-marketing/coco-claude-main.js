@@ -347,10 +347,12 @@ const AGENT_DATA = {
 };
 
 function openAgentDashboard(agentId) {
-  let a = AGENT_DATA[agentId];
+  let a = null;
   if (window.DaliaSite && typeof DaliaSite.getAgentData === 'function') {
-    const live = DaliaSite.getAgentData(agentId);
-    if (live) a = live;
+    a = DaliaSite.getAgentData(agentId);
+  }
+  if (!a && !(window.DaliaSite && DaliaSite.isLiveOnly && DaliaSite.isLiveOnly())) {
+    a = AGENT_DATA[agentId];
   }
   if (!a) { showToast('⏳ דשבורד בפיתוח'); return; }
 

@@ -12,6 +12,8 @@ body.dalia-live-only #screen-agents .section .grid.grid-4 { display: none !impor
 body.coco-integration-wired .fab-ai { opacity: 1; }
 body.dalia-live-only .v4-demo-banner { display: none !important; }
 body.dalia-live-only .coco-live-section { position: relative; z-index: 2; }
+body.coco-boot-active #coco-live-hub-kpis .card-value { visibility: hidden; }
+body.dalia-live-only:not(.coco-boot-active) #coco-live-hub-kpis .card-value { visibility: visible; }
 #coco-live-status-root .table-wrap { overflow-x: auto; }
 #coco-live-status-root td { font-size: 12px; max-width: 280px; word-break: break-word; }
 body.coco-boot-active { background: #04091a; }

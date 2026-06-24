@@ -4,7 +4,11 @@
 (function () {
   'use strict';
 
-  var SITE = {
+  var SITE = window.ClientIdSsot ? Object.assign({}, ClientIdSsot.OFFICIAL, {
+    name: 'דליה — dalia-c.com',
+    ga4Property: 'properties/427711798',
+    superAdmin: 'יוני אטיאס',
+  }) : {
     url: 'https://dalia-c.com/',
     domain: 'dalia-c.com',
     name: 'דליה — dalia-c.com',
@@ -44,7 +48,12 @@
   }
 
   function fetchJson(rel) {
-    return fetch(assetUrl(rel) + '?t=' + Date.now(), { cache: 'no-store' })
+    var path = rel;
+    if (window.ClientIdSsot && ClientIdSsot.DATA_PATHS) {
+      if (rel === 'project-001/dashboard.json') path = ClientIdSsot.DATA_PATHS.dashboard;
+      if (rel === 'project-001/site-crawl.json') path = ClientIdSsot.DATA_PATHS.siteCrawl;
+    }
+    return fetch(assetUrl(path) + '?t=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; });
   }
@@ -285,6 +294,9 @@
   }
 
   function bindOfficialContext() {
+    if (window.ClientIdSsot && ClientIdSsot.applyFlowContext) {
+      ClientIdSsot.applyFlowContext();
+    }
     if (!window.COCO) window.COCO = {};
     COCO.flowContext = Object.assign(COCO.flowContext || {}, {
       clientId: SITE.clientId,

@@ -334,6 +334,7 @@
         console.warn('CocoClaude.init: screen-hub missing');
         return;
       }
+      if (window.ClientIdSsot && ClientIdSsot.applyFlowContext) ClientIdSsot.applyFlowContext();
       loadContext();
       applyContextGlobally();
       goScreen('screen-hub');

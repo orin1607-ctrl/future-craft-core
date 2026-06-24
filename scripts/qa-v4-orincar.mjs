@@ -31,7 +31,7 @@ const COCO_ASSETS = [
   'coco-claude-main.js', 'coco-claude-bridge.js', 'coco-claude-screens.html',
   'coco-claude-main.css', 'coco-claude-integration.css', 'prd-dalia-nav.js',
   'marketing-api.js', 'marketing-client.js', 'home-prd.css', 'app.js', 'dalia-site-config.js',
-  'coco-integration-hub.js', 'coco-claude-data.js',
+  'coco-integration-hub.js', 'coco-claude-data.js', 'client-id-ssot.js',
 ];
 
 const report = {
@@ -119,6 +119,15 @@ async function runCocoQa(page, vp) {
   assetsLive.dalia || assetsLive.noGreentech ? pass(`${vp.name}:assets-dalia-site`) : fail(`${vp.name}:assets-dalia-site`);
 
   await page.evaluate(() => window.goScreen('screen-hub'));
+
+  const clientId = await page.evaluate(() => ({
+    ssot: window.ClientIdSsot?.OFFICIAL?.clientId,
+    ctx: window.COCO?.flowContext?.clientId,
+    unified: window.ClientIdSsot?.assertUnified?.()?.ok,
+  }));
+  clientId.ssot === 'dalia-c-official' ? pass(`${vp.name}:ssot-client-id`) : fail(`${vp.name}:ssot-client-id`);
+  clientId.ctx === 'dalia-c-official' ? pass(`${vp.name}:flow-client-id`) : fail(`${vp.name}:flow-client-id`);
+  clientId.unified !== false ? pass(`${vp.name}:client-id-unified`) : fail(`${vp.name}:client-id-unified`);
 
   if (vp.name === 'mobile') {
     const overflow = await page.evaluate(() => ({

@@ -22,6 +22,7 @@ const handoff = {
   lastCommitNote: 'See git log on main branch',
 
   completedAutonomously: [
+    'Client ID SSOT — client-id-ssot.js (dalia-c-official + DATA_PATHS)',
     'Integration Hub — 12 עוזרים, סרגל סטטוס, מודל חיבורים',
     'dalia-site-config — SSOT dalia-c.com, dashboard.json + site-crawl.json',
     'Hub KPIs — GSC/GA4 אמיתיים (לא 14,320 / 8,420)',
@@ -36,17 +37,12 @@ const handoff = {
 
   blockedOnOwner: [
     {
-      id: 'oauth-sync',
-      priority: 1,
-      status: 'ממתין לבעלים',
-      title: 'OAuth + סנכרון Google',
-      steps: [
-        'שים integrations/google/credentials.oauth.json',
-        'npm run project-001:auth',
-        'npm run project-001:sync-and-export',
-        'git add public/project-001/dashboard.json && git push',
-      ],
-      reason: 'credentials.oauth.json חסר במחשב הפיתוח',
+      id: 'google-paused',
+      priority: 0,
+      status: 'מושהה — מחשב בית',
+      title: 'כל חיבורי Google (OAuth / sync)',
+      note: 'אל תיצור credentials חדשים. השתמש בקיימים מהבית.',
+      doc: 'docs/audit-reports/project-001/OAUTH-SYNC-CHECKLIST.md',
     },
     {
       id: 'manual-e2e',
