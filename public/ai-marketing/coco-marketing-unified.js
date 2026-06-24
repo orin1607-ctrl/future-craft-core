@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-3b';
+  var VERSION = 'v3-unified-3c';
   var SEARCH_KEY = 'coco-mkt-global-search';
   var FILTER_KEY = 'coco-mkt-filter-persist';
 
@@ -95,8 +95,107 @@
     }
 
     ensureCrmTab();
+    ensureCrmScreen();
+    ensureCrmHubCard();
+    ensureTopbarCrmButtons();
+    ensureBottomNavCrm();
     ensureConnectionsPanel();
     ensureUnifiedContextBar();
+  }
+
+  function openCrm() {
+    ensureCrmScreen();
+    ensureTopbarCrmButtons();
+    ensureBottomNavCrm();
+    if (typeof goScreen === 'function') goScreen('screen-crm');
+    document.querySelectorAll('.bnav-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('.coco-bnav-crm').forEach(function (b) { b.classList.add('active'); });
+    if (window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
+    logActivity('crm', 'open', 'נפתח CRM ממנהל השיווק');
+  }
+
+  function ensureCrmScreen() {
+    if (document.getElementById('screen-crm')) return;
+    var root = document.getElementById('coco-claude-root');
+    if (!root) return;
+    var screen = document.createElement('div');
+    screen.className = 'screen';
+    screen.id = 'screen-crm';
+    screen.innerHTML =
+      '<div class="topbar">' +
+      '<div class="topbar-right">' +
+      '<button class="btn-icon" onclick="goScreen(\'screen-hub\')">←</button>' +
+      '<span class="topbar-title" style="font-weight:800">📇 CRM</span>' +
+      '<span style="font-size:11px;color:var(--white50);margin-right:8px;">לקוחות · לידים · משימות · Pipeline</span>' +
+      '</div>' +
+      '<div class="topbar-left"></div>' +
+      '</div>' +
+      '<div class="content coco-crm-screen-content">' +
+      '<div id="coco-marketing-crm-mount-screen"></div>' +
+      '</div>' +
+      '<div class="bottom-nav">' +
+      '<div class="bnav-btn" onclick="goScreen(\'screen-hub\')"><div class="icon">🏠</div>ראשי</div>' +
+      '<div class="bnav-btn" onclick="goScreen(\'screen-status\')"><div class="icon">📊</div>מצב</div>' +
+      '<div class="bnav-btn coco-bnav-crm active"><div class="icon">📇</div>CRM</div>' +
+      '<div class="bnav-btn" onclick="goScreen(\'screen-actions\')"><div class="icon">⚙️</div>פעולות</div>' +
+      '<div class="bnav-btn" onclick="goScreen(\'screen-goals\')"><div class="icon">🎯</div>מטרות</div>' +
+      '</div>';
+    root.appendChild(screen);
+    if (!window.screenLabels) window.screenLabels = {};
+    window.screenLabels['screen-crm'] = 'CRM';
+    ensureTopbarCrmButtons();
+  }
+
+  function ensureCrmHubCard() {
+    var grid = document.querySelector('#screen-hub .hub-grid');
+    if (!grid || document.getElementById('coco-hub-crm-card')) return;
+    var card = document.createElement('div');
+    card.id = 'coco-hub-crm-card';
+    card.className = 'hub-card coco-hub-crm-card';
+    card.setAttribute('role', 'button');
+    card.tabIndex = 0;
+    card.innerHTML =
+      '<div class="hub-icon">📇</div>' +
+      '<div class="hub-name">CRM</div>' +
+      '<div class="hub-desc">לקוחות · לידים · Pipeline · משימות</div>' +
+      '<div class="hub-count">לחץ לכניסה →</div>';
+    card.addEventListener('click', function () { openCrm(); });
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCrm(); }
+    });
+    grid.insertBefore(card, grid.firstChild);
+  }
+
+  function ensureTopbarCrmButtons() {
+    document.querySelectorAll('.topbar').forEach(function (tb) {
+      if (tb.querySelector('.coco-topbar-crm-btn')) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-primary coco-topbar-crm-btn';
+      btn.textContent = '📇 CRM';
+      btn.title = 'פתח CRM — לקוחות, לידים, משימות';
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openCrm();
+      });
+      var right = tb.querySelector('.topbar-right');
+      if (right) right.appendChild(btn);
+      else tb.appendChild(btn);
+    });
+  }
+
+  function ensureBottomNavCrm() {
+    document.querySelectorAll('.bottom-nav').forEach(function (nav) {
+      if (nav.querySelector('.coco-bnav-crm')) return;
+      var btn = document.createElement('div');
+      btn.className = 'bnav-btn coco-bnav-crm';
+      btn.innerHTML = '<div class="icon">📇</div>CRM';
+      btn.addEventListener('click', function () { openCrm(); });
+      var children = nav.children;
+      if (children.length >= 2) nav.insertBefore(btn, children[2]);
+      else nav.appendChild(btn);
+    });
   }
 
   function ensureUnifiedContextBar() {
@@ -122,7 +221,7 @@
 
     document.getElementById('coco-sync-google-btn')?.addEventListener('click', syncGoogle);
     document.getElementById('coco-open-crm-btn')?.addEventListener('click', function () {
-      if (window.CocoMarketingCrm && CocoMarketingCrm.openTab) CocoMarketingCrm.openTab();
+      openCrm();
     });
     document.getElementById('coco-unified-client-chip')?.addEventListener('click', function () {
       if (typeof goScreen === 'function') goScreen('screen-clients');
@@ -189,8 +288,7 @@
     tab.setAttribute('data-crm-tab', '1');
     tab.textContent = '📇 CRM';
     tab.onclick = function () {
-      setTab(this, 'tab-clients-crm');
-      if (window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
+      openCrm();
     };
     if (listTab && listTab.nextSibling) {
       tabs.insertBefore(tab, listTab.nextSibling);
@@ -225,12 +323,7 @@
       '<button type="button" class="btn btn-primary" style="font-size:12px;padding:6px 14px;" id="coco-crm-entry-open">פתח CRM</button>';
     header.insertAdjacentElement('afterend', banner);
     document.getElementById('coco-crm-entry-open')?.addEventListener('click', function () {
-      if (window.CocoMarketingCrm && CocoMarketingCrm.openTab) CocoMarketingCrm.openTab();
-      else if (typeof goScreen === 'function') {
-        goScreen('screen-clients');
-        var crmTab = document.querySelector('#screen-clients .nav-tab[data-crm-tab="1"]');
-        if (crmTab) crmTab.click();
-      }
+      openCrm();
     });
   }
 
@@ -440,11 +533,13 @@
     var origScreen = CocoClaude.onScreenChange;
     CocoClaude.onScreenChange = function (id) {
       if (typeof origScreen === 'function') origScreen.call(this, id);
+      ensureTopbarCrmButtons();
+      ensureBottomNavCrm();
       updateContextBar();
       if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen(id);
-      if (id === 'screen-clients') {
+      if (id === 'screen-crm' || id === 'screen-clients') {
         bindCrm();
-        bindConnections();
+        if (id === 'screen-clients') bindConnections();
       }
     };
     var origApply = CocoClaude.applyContextGlobally;
@@ -463,7 +558,10 @@
     if (!_go) return;
     window.goScreen = function (id) {
       _go(id);
+      ensureTopbarCrmButtons();
+      ensureBottomNavCrm();
       updateContextBar();
+      if (id === 'screen-crm' && window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
     };
     window.goScreen._cocoUnifiedHooked = true;
   }
@@ -518,6 +616,8 @@
   window.CocoUnified = {
     version: VERSION,
     isAuth: isAuth,
+    openCrm: openCrm,
+    ensureCrmScreen: ensureCrmScreen,
     syncGoogle: syncGoogle,
     bindCrm: bindCrm,
     bindConnections: bindConnections,

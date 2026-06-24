@@ -16,7 +16,7 @@
   }
 
   function assetUrl(rel) {
-    var ver = (window.CocoUnified && CocoUnified.version) || 'v3-unified-3';
+    var ver = (window.CocoUnified && CocoUnified.version) || 'v3-unified-3c';
     var base = window.COCO_PAGES_BASE || '/future-craft-core/';
     if (base.charAt(0) !== '/') base = '/' + base.replace(/^\.\//, '');
     return location.origin + base + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);
@@ -103,37 +103,39 @@
     if (window.CocoData && CocoData.onContextChange) CocoData.onContextChange();
   }
 
-  function openCrmTab() {
-    var tabs = document.querySelector('#screen-clients .nav-tabs');
-    var crmTab = document.getElementById('tab-clients-crm');
-    if (tabs && crmTab) {
-      tabs.querySelectorAll('.nav-tab').forEach(function (t) { t.classList.remove('active'); });
-      var btn = Array.prototype.find.call(tabs.querySelectorAll('.nav-tab'), function (t) {
-        return t.textContent.indexOf('CRM') >= 0;
-      });
-      if (btn) btn.classList.add('active');
-      document.querySelectorAll('#screen-clients .content > [id^="tab-clients"]').forEach(function (p) {
-        p.style.display = 'none';
-      });
-      crmTab.style.display = '';
+  function crmMountEl() {
+    var screenMount = document.getElementById('coco-marketing-crm-mount-screen');
+    var root = document.getElementById('coco-marketing-crm-root');
+    if (screenMount && root && root !== screenMount && root.hasChildNodes()) {
+      while (root.firstChild) screenMount.appendChild(root.firstChild);
+      root.innerHTML = '';
     }
-    if (typeof goScreen === 'function') goScreen('screen-clients');
+    var el = screenMount || root || document.getElementById('coco-marketing-crm-mount');
+    if (!el) {
+      var panel = document.getElementById('tab-clients-crm');
+      if (panel) {
+        el = document.createElement('div');
+        el.id = 'coco-marketing-crm-mount';
+        panel.appendChild(el);
+      }
+    }
+    if (el && el.id !== 'coco-marketing-crm-root') el.id = 'coco-marketing-crm-root';
+    return el;
+  }
+
+  function openCrmTab() {
+    if (window.CocoUnified && CocoUnified.openCrm) {
+      CocoUnified.openCrm();
+      return;
+    }
+    if (typeof goScreen === 'function') goScreen('screen-crm');
     initCrmEmbed();
   }
 
   function initCrmEmbed() {
-    var panel = document.getElementById('tab-clients-crm');
-    if (!panel) return;
-    var mount = document.getElementById('coco-marketing-crm-root');
-    if (!mount) {
-      mount = document.getElementById('coco-marketing-crm-mount');
-      if (mount) mount.id = 'coco-marketing-crm-root';
-      else {
-        mount = document.createElement('div');
-        mount.id = 'coco-marketing-crm-root';
-        panel.appendChild(mount);
-      }
-    }
+    if (window.CocoUnified && CocoUnified.ensureCrmScreen) CocoUnified.ensureCrmScreen();
+    var mount = crmMountEl();
+    if (!mount) return;
     if (booted && mount.querySelector('.coco-marketing-crm-inner')) {
       syncMarketingFilters();
       if (window.DaliaCrm && DaliaCrm.loadAll) DaliaCrm.loadAll();

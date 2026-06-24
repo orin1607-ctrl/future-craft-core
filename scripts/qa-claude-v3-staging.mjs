@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3b';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3c';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
@@ -219,6 +219,22 @@ async function runViewport(browser, name, viewport) {
   });
   crmBtn ? pass('unified:crm-in-marketing-bar', name) : fail('unified:crm button missing from marketing bar', name);
 
+  var topbarCrm = await page.evaluate(function () {
+    return !!document.querySelector('.coco-topbar-crm-btn');
+  });
+  topbarCrm ? pass('unified:crm-topbar-btn', name) : fail('unified:crm topbar button missing', name);
+
+  var hubCrm = await page.evaluate(function () {
+    return !!document.getElementById('coco-hub-crm-card');
+  });
+  hubCrm ? pass('unified:crm-hub-card', name) : fail('unified:crm hub card missing', name);
+
+  var crmScreen = await page.evaluate(function () {
+    if (window.CocoUnified && CocoUnified.openCrm) CocoUnified.openCrm();
+    return !!document.getElementById('screen-crm') && document.getElementById('screen-crm').classList.contains('active');
+  });
+  crmScreen ? pass('unified:crm-screen-opens', name) : fail('unified:crm screen did not open', name);
+
   if (name === 'mobile') {
     const topBg = await page.evaluate(function () {
       var htmlBg = getComputedStyle(document.documentElement).backgroundColor;
@@ -231,11 +247,11 @@ async function runViewport(browser, name, viewport) {
     if (!topBg.whiteStrip) pass('mobile:no-white-body-bg', name);
     else fail('mobile:white-body-bg ' + topBg.htmlBg, name);
 
-    const crmTab = await page.evaluate(function () {
-      window.goScreen('screen-clients');
-      return !!document.querySelector('#screen-clients .nav-tab[data-crm-tab="1"]');
+    const crmBnav = await page.evaluate(function () {
+      window.goScreen('screen-hub');
+      return !!document.querySelector('.coco-bnav-crm');
     });
-    crmTab ? pass('mobile:crm-tab-visible', name) : fail('mobile:crm tab missing', name);
+    crmBnav ? pass('mobile:crm-bottom-nav', name) : fail('mobile:crm bottom nav missing', name);
   }
 
   // Filter persistence across modules
