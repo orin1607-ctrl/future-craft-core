@@ -163,9 +163,12 @@ export default function AiMarketingPage() {
 
 
   const base = import.meta.env.BASE_URL || '/';
-
-  const marketingVer = import.meta.env.VITE_MARKETING_UI_VERSION || 'v3-unified-3g';
-  const src = `${base}ai-marketing-platform.html?fullscreen=1&v=${encodeURIComponent(marketingVer)}&_=${import.meta.env.VITE_BUILD_COMMIT || 'staging'}${customerId ? `&customer=${encodeURIComponent(customerId)}` : ''}${tab ? `&tab=${encodeURIComponent(tab)}` : ''}`;
+  const build = (import.meta.env.VITE_BUILD_COMMIT as string) || '';
+  const qs = new URLSearchParams();
+  if (build) qs.set('b', build.replace(/[^a-f0-9]/gi, '').slice(0, 12));
+  if (customerId) qs.set('customer', customerId);
+  if (tab) qs.set('tab', tab);
+  const src = `${base}ai-marketing-platform.html${qs.toString() ? `?${qs.toString()}` : ''}`;
 
 
 

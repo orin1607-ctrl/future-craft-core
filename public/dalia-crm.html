@@ -2,11 +2,19 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0;url=./dalia-crm-platform.html?fullscreen=1">
-<script>location.replace('./dalia-crm-platform.html?fullscreen=1&v=' + Date.now());</script>
-<title>מעבר ל-CRM…</title>
+<title>מעבר למנהל השיווק…</title>
+<script>
+(function () {
+  var path = location.pathname || '';
+  var i = path.indexOf('/future-craft-core');
+  var base = i >= 0 ? path.substring(0, i + '/future-craft-core'.length) : '';
+  var q = location.search || '';
+  if (q.indexOf('tab=') < 0) q = (q ? q + '&' : '?') + 'tab=crm';
+  location.replace(base + '/ai-marketing' + q);
+})();
+</script>
 </head>
 <body style="font-family:Heebo,sans-serif;background:#04091a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;">
-  <p>מעביר לדליה CRM… <a href="./dalia-crm-platform.html?fullscreen=1">לחץ כאן</a></p>
+  <p>מעביר למנהל השיווק…</p>
 </body>
 </html>

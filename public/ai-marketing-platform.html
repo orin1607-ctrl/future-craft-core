@@ -59,8 +59,12 @@
   var root = document.getElementById('coco-claude-root');
   var ver = 'v3-unified-3g';
   try {
-    var bootV = new URLSearchParams(location.search).get('v');
-    if (bootV) ver = bootV;
+    var bootB = new URLSearchParams(location.search).get('b');
+    if (bootB) ver = 'v3-unified-3g-' + bootB.slice(0, 12);
+    else {
+      var bootV = new URLSearchParams(location.search).get('v');
+      if (bootV) ver = bootV;
+    }
   } catch (e) { /* ignore */ }
   document.body.classList.add('coco-boot-active');
   if (root) root.classList.add('coco-boot-active');
