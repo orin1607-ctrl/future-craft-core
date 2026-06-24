@@ -1128,6 +1128,7 @@ document.querySelectorAll('.screen').forEach(screen => {
     updateContextBar();
     updateHubClientHeader();
     refreshScreenFilters();
+    if (window.CocoData && CocoData.onContextChange) CocoData.onContextChange();
   }
 
   function applyContextGlobally() {
@@ -1153,6 +1154,7 @@ document.querySelectorAll('.screen').forEach(screen => {
     updateContextBar();
     updateHubClientHeader();
     refreshScreenFilters();
+    if (window.CocoData && CocoData.onContextChange) CocoData.onContextChange();
   }
 
   function captureContextFromScreen(screenId) {
@@ -1328,30 +1330,17 @@ document.querySelectorAll('.screen').forEach(screen => {
       this.wireContextListeners();
       this.applyPermissions();
       var cid = COCO.flowContext.clientId;
-      if (cid && String(cid).indexOf('demo-') !== 0 && window.MarketingApi) {
-        var A = window.MarketingApi;
-        Promise.all([
-          A.getCustomer(cid),
-          A.getProfile(cid),
-          A.getSites(cid),
-          A.getCampaigns(cid)
-        ]).then(function (parts) {
-          if (parts[0] && window.CocoClaude) {
-            CocoClaude.bindClientFromDalia({
-              customer: parts[0],
-              profile: parts[1],
-              sites: parts[2] || [],
-              campaigns: parts[3] || []
-            });
-          }
-        }).catch(function () { /* offline demo */ });
+      if (cid && window.CocoData && CocoData.load) {
+        CocoData.load(cid);
       } else if (!cid && !COCO.flowContext.clientName) {
         CocoClaude.bindDemoClient('גרין-טק פתרונות');
+        if (window.CocoData && CocoData.load) CocoData.load('demo-greentech');
       }
     },
     onScreenChange: function (id) {
       this.updateFlowButtons(id);
       applyContextGlobally();
+      if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen(id);
     },
     wireFlowNav: function () {
       FLOW_CHAIN.forEach(function (sid, idx) {
@@ -1439,6 +1428,7 @@ document.querySelectorAll('.screen').forEach(screen => {
         site: siteVal,
         domain: siteVal
       });
+      if (window.CocoData && CocoData.setBundle) CocoData.setBundle(bundle);
     },
     bindClientData: function (data) {
       if (!data) return;

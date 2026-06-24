@@ -114,6 +114,7 @@
     bindAdsToUI();
     if (window.CocoClaude?.bindClientData) CocoClaude.bindClientData(d);
     if (window.CocoV2?.bindClientData) CocoV2.bindClientData(d);
+    if (window.CocoData && CocoData.bindAll) CocoData.bindAll();
   }
 
   function adsScreen() { return document.getElementById('sc-ads'); }

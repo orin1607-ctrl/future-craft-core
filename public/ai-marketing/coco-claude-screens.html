@@ -37,7 +37,7 @@
 
     <!-- KPI mini strip -->
     <div style="padding:14px 20px 0;">
-      <div class="grid grid-4" style="gap:10px;">
+      <div class="grid grid-4" id="coco-live-hub-kpis" style="gap:10px;">
         <div class="card" style="padding:12px 14px;">
           <div class="card-title">ציון אתר</div>
           <div class="card-value" style="font-size:22px;color:var(--green);">82</div>
@@ -389,7 +389,7 @@
 
       <div class="section">
         <div class="sec-title">ביצועי גוגל – 30 יום אחרונים</div>
-        <div class="grid grid-2" style="gap:10px;">
+        <div class="grid grid-2" id="coco-live-status-kpis" style="gap:10px;">
           <div class="card"><div class="card-title">קליקים</div><div class="card-value">8,420</div><div class="card-delta up">↑ +14%</div></div>
           <div class="card"><div class="card-title">חשיפות</div><div class="card-value">184,000</div><div class="card-delta up">↑ +8%</div></div>
           <div class="card"><div class="card-title">CTR</div><div class="card-value">4.6%</div><div class="card-delta up">↑ +0.4%</div></div>
@@ -462,13 +462,7 @@
         <div class="table-wrap">
           <table>
             <thead><tr><th>מילת מפתח</th><th>מיקום</th><th>שינוי</th><th>קליקים</th></tr></thead>
-            <tbody>
-              <tr><td>ניהול צי רכב</td><td>3</td><td style="color:var(--green)">↑ +2</td><td>840</td></tr>
-              <tr><td>תוכנת ניהול רכבים</td><td>5</td><td style="color:var(--green)">↑ +1</td><td>612</td></tr>
-              <tr><td>מערכת GPS לצי</td><td>8</td><td style="color:var(--yellow)">→ 0</td><td>480</td></tr>
-              <tr><td>ביטוח צי רכב</td><td>14</td><td style="color:var(--red)">↓ -3</td><td>214</td></tr>
-              <tr><td>ניהול תחזוקה רכב</td><td>17</td><td style="color:var(--green)">↑ +5</td><td>198</td></tr>
-            </tbody>
+            <tbody id="coco-live-status-keywords">
           </table>
         </div>
       </div>
@@ -493,12 +487,7 @@
         <div class="table-wrap">
           <table>
             <thead><tr><th>קמפיין</th><th>תקציב</th><th>הוצאה</th><th>המרות</th><th>סטטוס</th></tr></thead>
-            <tbody>
-              <tr><td>Brand Search</td><td>₪2,000</td><td>₪1,840</td><td>12</td><td><span class="badge badge-green">● פעיל</span></td></tr>
-              <tr><td>מוצרים – כללי</td><td>₪4,000</td><td>₪3,920</td><td>11</td><td><span class="badge badge-green">● פעיל</span></td></tr>
-              <tr><td>Remarketing</td><td>₪2,000</td><td>₪1,840</td><td>5</td><td><span class="badge badge-green">● פעיל</span></td></tr>
-              <tr><td>Competitor</td><td>₪2,000</td><td>₪800</td><td>0</td><td><span class="badge badge-yellow">⏸ מושהה</span></td></tr>
-            </tbody>
+            <tbody id="coco-live-status-campaigns">
           </table>
         </div>
       </div>
@@ -583,59 +572,8 @@
             <option>שיווק + צי</option>
           </select>
         </div>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <!-- Client rows -->
-          <div class="card" style="cursor:pointer;transition:border-color 0.2s;" onclick="selectClient('גרין-טק פתרונות')">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-              <div>
-                <div style="font-weight:700;font-size:14px;">🏢 גרין-טק פתרונות בע"מ</div>
-                <div style="font-size:12px;color:var(--white50);margin-top:2px;">ניהול שיווק + ניהול צי • 8 נכסים מחוברים</div>
-                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                  <span class="badge badge-green">● פעיל</span>
-                  <span class="badge badge-blue">שיווק + צי</span>
-                  <span class="badge badge-purple">לקוח VIP</span>
-                </div>
-              </div>
-              <div style="text-align:left;flex-shrink:0;">
-                <div style="font-size:11px;color:var(--white50)">ציון</div>
-                <div style="font-size:20px;font-weight:800;color:var(--green);">82</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" style="cursor:pointer;" onclick="selectClient('דלתא לוגיסטיקה')">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-              <div>
-                <div style="font-weight:700;font-size:14px;">🚛 דלתא לוגיסטיקה בע"מ</div>
-                <div style="font-size:12px;color:var(--white50);margin-top:2px;">ניהול שיווק בלבד • 5 נכסים מחוברים</div>
-                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                  <span class="badge badge-green">● פעיל</span>
-                  <span class="badge badge-blue">שיווק בלבד</span>
-                </div>
-              </div>
-              <div style="text-align:left;flex-shrink:0;">
-                <div style="font-size:11px;color:var(--white50)">ציון</div>
-                <div style="font-size:20px;font-weight:800;color:var(--yellow);">68</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" style="cursor:pointer;" onclick="selectClient('פתרונות טק')">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-              <div>
-                <div style="font-weight:700;font-size:14px;">💻 פתרונות טק ישראל</div>
-                <div style="font-size:12px;color:var(--white50);margin-top:2px;">ניהול שיווק בלבד • 3 נכסים מחוברים</div>
-                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                  <span class="badge badge-yellow">⏸ בהקמה</span>
-                  <span class="badge badge-blue">שיווק בלבד</span>
-                </div>
-              </div>
-              <div style="text-align:left;flex-shrink:0;">
-                <div style="font-size:11px;color:var(--white50)">ציון</div>
-                <div style="font-size:20px;font-weight:800;color:var(--red);">N/A</div>
-              </div>
-            </div>
-          </div>
+        <div id="coco-live-clients-list" style="display:flex;flex-direction:column;gap:10px;">
+          <div class="alert alert-info">טוען לקוחות מדליה…</div>
         </div>
       </div>
     </div>
@@ -1917,7 +1855,7 @@
       <!-- ===== SECTION 3: GOAL CARDS (Accordion) ===== -->
       <div class="section">
         <div class="sec-title">כרטיסי מטרות – לחץ לפתיחה</div>
-        <div style="display:flex;flex-direction:column;gap:10px;" id="goals-accordion">
+        <div style="display:flex;flex-direction:column;gap:10px;" id="coco-live-goals-list">
 
           <!-- GOAL 1 -->
           <div class="goal-acc-item" data-agent="pagespeed" data-status="urgent" data-priority="קריטי">
@@ -2517,7 +2455,7 @@
         <hr class="page-rule">
       </div>
       <div class="section">
-        <div style="display:flex;flex-direction:column;gap:14px;">
+        <div id="coco-live-actions-pending" style="display:flex;flex-direction:column;gap:14px;">
 
           <!-- New Action 1 -->
           <div class="action-card act-item" data-cat="cat3" data-type="ביצועים" data-urgency="קריטי" style="border-color:rgba(139,92,246,0.4);">
@@ -2841,43 +2779,7 @@
         <div class="table-wrap">
           <table>
             <thead><tr><th>פעולה</th><th>קטגוריה</th><th>תאריך</th><th>מבצע</th><th>השפעה</th><th>סטטוס</th></tr></thead>
-            <tbody>
-              <tr>
-                <td>Meta Titles – 8 עמודים</td>
-                <td><span class="badge badge-purple" style="font-size:10px;">מבנה אתר</span></td>
-                <td>12.6.25</td><td>AI Auto</td>
-                <td style="color:var(--green);">CTR ↑ +0.4%</td>
-                <td><span class="badge badge-green">✓ פורסם</span></td>
-              </tr>
-              <tr>
-                <td>Schema – דף הבית</td>
-                <td><span class="badge badge-purple" style="font-size:10px;">מבנה אתר</span></td>
-                <td>8.6.25</td><td>AI Auto</td>
-                <td style="color:var(--green);">Rich Result ✓</td>
-                <td><span class="badge badge-green">✓ פורסם</span></td>
-              </tr>
-              <tr>
-                <td>Google Business Post – מאי</td>
-                <td><span class="badge badge-purple" style="font-size:10px;">GBP</span></td>
-                <td>1.6.25</td><td>AI Auto</td>
-                <td style="color:var(--accent2);">+12% צפיות</td>
-                <td><span class="badge badge-green">✓ פורסם</span></td>
-              </tr>
-              <tr>
-                <td>Breadcrumbs – כל האתר</td>
-                <td><span class="badge badge-purple" style="font-size:10px;">מבנה אתר</span></td>
-                <td>28.5.25</td><td>Miki</td>
-                <td style="color:var(--green);">UX ↑</td>
-                <td><span class="badge badge-green">✓ פורסם</span></td>
-              </tr>
-              <tr>
-                <td>H1 תיקון – 6 עמודים</td>
-                <td><span class="badge badge-purple" style="font-size:10px;">מבנה אתר</span></td>
-                <td>20.5.25</td><td>AI Auto</td>
-                <td style="color:var(--accent2);">SEO ↑</td>
-                <td><span class="badge badge-green">✓ פורסם</span></td>
-              </tr>
-            </tbody>
+            <tbody id="coco-live-actions-done"></tbody>
           </table>
         </div>
         <!-- Period summary teaser -->
@@ -3027,7 +2929,9 @@
     </div>
 
     <div class="section">
-      <div class="sec-title">נכסי Google</div>
+      <div class="sec-title">נכסים מחוברים (דליה)</div>
+      <div class="grid grid-2" id="coco-live-assets-grid" style="gap:10px;margin-bottom:20px;"></div>
+      <div class="sec-title">נכסי Google (תצוגה מורחבת)</div>
       <div class="grid grid-2" style="gap:10px;margin-bottom:20px;">
         <div class="asset-card" onclick="openModal('modal-asset-website')">
           <div class="asset-header"><div class="asset-icon">🌐</div><div><div class="asset-name">אתר ראשי</div><div class="asset-status">greentech.co.il</div></div></div>
@@ -3156,12 +3060,7 @@
         <hr class="page-rule">
       </div>
       <div class="section">
-        <div class="timeline">
-          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">✅ Meta Titles פורסמו – 8 עמודים</div><div class="tl-time">12.6.25 | SEO | greentech.co.il | CTR ↑ +0.4%</div></div></div>
-          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">✅ Schema נוסף לדף הבית</div><div class="tl-time">8.6.25 | מבנה אתר | Rich Result פעיל</div></div></div>
-          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--yellow)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">🔄 PageSpeed – הוחזר לתיקון</div><div class="tl-time">5.6.25 | ביצועים | ממתין לגרסה v2</div></div></div>
-          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--red)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">❌ קמפיין Competitor – נדחה</div><div class="tl-time">10.6.25 | Google Ads | סיבה: תקציב</div></div></div>
-        </div>
+        <div class="timeline" id="coco-live-history-timeline">
       </div>
     </div>
     <div id="tab-hist-goals" style="display:none;">
@@ -3175,19 +3074,14 @@
     <div id="tab-hist-site" style="display:none;">
       <div class="page-header"><div class="page-title">🌐 שינויים באתר</div><hr class="page-rule"></div>
       <div class="section">
-        <div class="table-wrap"><table><thead><tr><th>תאריך</th><th>עמוד</th><th>שינוי</th><th>מבצע</th><th>סטטוס</th></tr></thead><tbody>
-          <tr><td>12.6.25</td><td>שירותים</td><td>Meta Description עודכן</td><td>AI Auto</td><td><span class="badge badge-green">פורסם</span></td></tr>
-          <tr><td>8.6.25</td><td>דף הבית</td><td>Schema Markup</td><td>AI Auto</td><td><span class="badge badge-green">פורסם</span></td></tr>
-          <tr><td>28.5.25</td><td>כל האתר</td><td>Breadcrumbs</td><td>Miki</td><td><span class="badge badge-green">פורסם</span></td></tr>
+        <div class="table-wrap"><table><thead><tr><th>תאריך</th><th>עמוד</th><th>שינוי</th><th>מבצע</th><th>סטטוס</th></tr></thead><tbody id="coco-live-history-site">
         </tbody></table></div>
       </div>
     </div>
     <div id="tab-hist-campaigns" style="display:none;">
       <div class="page-header"><div class="page-title">📢 היסטוריית קמפיינים</div><hr class="page-rule"></div>
       <div class="section">
-        <div class="table-wrap"><table><thead><tr><th>תאריך</th><th>קמפיין</th><th>פעולה</th><th>תוצאה</th></tr></thead><tbody>
-          <tr><td>10.6.25</td><td>Competitor</td><td>השהיה</td><td><span class="badge badge-yellow">מושהה</span></td></tr>
-          <tr><td>1.6.25</td><td>Brand Search</td><td>הגדלת תקציב +₪800</td><td><span class="badge badge-green">ROAS 4.8x</span></td></tr>
+        <div class="table-wrap"><table><thead><tr><th>תאריך</th><th>קמפיין</th><th>פעולה</th><th>תוצאה</th></tr></thead><tbody id="coco-live-history-campaigns">
         </tbody></table></div>
       </div>
     </div>
@@ -3229,34 +3123,13 @@
     </div>
 
     <div class="section" style="padding-top:0;">
-      <div class="grid grid-3" style="gap:10px;">
-        <div class="card" style="padding:14px;border-color:rgba(16,163,74,0.35);">
-          <div class="card-title">ChatGPT</div>
-          <div style="font-size:12px;color:var(--white80);margin-top:8px;line-height:1.6;">ממליץ להתמקד ב-PageSpeed נייד ו-Meta חסרים. מזהה 3 הזדמנויות תוכן עם ROI גבוה.</div>
-          <span class="badge badge-green" style="margin-top:8px;">✓ ניתוח הושלם</span>
-        </div>
-        <div class="card" style="padding:14px;border-color:rgba(139,92,246,0.35);">
-          <div class="card-title">Claude</div>
-          <div style="font-size:12px;color:var(--white80);margin-top:8px;line-height:1.6;">מדגיש תיעוד והיסטוריה. מציע לשלב Internal Links לפני הרחבת קמפיינים.</div>
-          <span class="badge badge-purple" style="margin-top:8px;">✓ ניתוח הושלם</span>
-        </div>
-        <div class="card" style="padding:14px;border-color:rgba(6,182,212,0.35);">
-          <div class="card-title">Gemini</div>
-          <div style="font-size:12px;color:var(--white80);margin-top:8px;line-height:1.6;">מזהה מגמת ירידה ב"ביטוח צי". ממליץ על עדכון תוכן + קמפיין Brand.</div>
-          <span class="badge badge-blue" style="margin-top:8px;">✓ ניתוח הושלם</span>
-        </div>
-      </div>
+      <div class="grid grid-3" id="coco-live-ai-team" style="gap:10px;">
     </div>
 
     <div class="section">
       <div class="ai-box" style="border-color:rgba(37,99,235,0.45);">
         <div class="ai-box-header"><div class="ai-pulse"></div>החלטה מסודרת — סיכום ישיבת צוות</div>
-        <div class="ai-box-text">
-          <strong>בעיות:</strong> PageSpeed נייד 61 | 3 Meta חסרים | קמפיין Competitor לא רווחי<br><br>
-          <strong>הזדמנויות:</strong> 18 ביטויי SEO חדשים | ROAS Brand 4.8x | Instagram 6.1% אינטראקציה<br><br>
-          <strong>סדר עדיפויות:</strong> 1) PageSpeed דחוף 2) Meta + Schema 3) תוכן SEO 4) אופטימיזציית Ads<br><br>
-          <strong>פעולות מוצעות:</strong> 8 משימות מוכנות להעברה למטרות ולפעולות
-        </div>
+        <div class="ai-box-text" id="coco-live-ai-summary">
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-goals');showToast('🎯 8 המלצות הועברו למטרות')">🎯 העבר למטרות</button>
           <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-actions')">⚙️ לפעולות</button>
@@ -3266,12 +3139,7 @@
 
     <div class="section">
       <div class="sec-title">ממצאים לפי חשיבות</div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div class="alert alert-err">🔴 קריטי: PageSpeed נייד — פוגע ב-SEO ובהמרות</div>
-        <div class="alert alert-warn">⚠️ גבוה: 18 ביטויים לא מכוסים — פוטנציאל +2,000 קליקים</div>
-        <div class="alert alert-info">ℹ️ בינוני: TikTok לא מחובר — קהל יעד פעיל</div>
-        <div class="alert alert-ok">✅ חיובי: CTR עלה +0.4% | לידים +8</div>
-      </div>
+      <div id="coco-live-ai-findings" style="display:flex;flex-direction:column;gap:8px;">
     </div>
   </div>
   <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
@@ -3313,43 +3181,7 @@
     </div>
 
     <div class="section" style="padding-top:0;">
-      <div class="grid grid-2" style="gap:10px;">
-        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
-          <div class="report-title">📊 דוח מצב נוכחי</div>
-          <div class="report-row"><span class="rl">ציון אתר</span><span class="rv" style="color:var(--green)">82</span></div>
-          <div class="report-row"><span class="rl">כניסות</span><span class="rv">14,320</span></div>
-          <div class="report-row"><span class="rl">לידים</span><span class="rv">47</span></div>
-        </div>
-        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
-          <div class="report-title">🔍 דוח SEO</div>
-          <div class="report-row"><span class="rl">מילות מפתח</span><span class="rv">342</span></div>
-          <div class="report-row"><span class="rl">מיקום ממוצע</span><span class="rv">12.3</span></div>
-          <div class="report-row"><span class="rl">CTR</span><span class="rv">4.6%</span></div>
-        </div>
-        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
-          <div class="report-title">📢 דוח קמפיינים</div>
-          <div class="report-row"><span class="rl">ROAS</span><span class="rv">3.2x</span></div>
-          <div class="report-row"><span class="rl">הוצאה</span><span class="rv">₪8,400</span></div>
-          <div class="report-row"><span class="rl">המרות</span><span class="rv">28</span></div>
-        </div>
-        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
-          <div class="report-title">⚙️ דוח פעולות שבוצעו</div>
-          <div class="report-row"><span class="rl">הושלמו</span><span class="rv">18</span></div>
-          <div class="report-row"><span class="rl">ממתינות</span><span class="rv" style="color:var(--yellow)">12</span></div>
-          <div class="report-row"><span class="rl">נדחו</span><span class="rv">2</span></div>
-        </div>
-        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
-          <div class="report-title">🎯 דוח מטרות</div>
-          <div class="report-row"><span class="rl">פעילות</span><span class="rv">8</span></div>
-          <div class="report-row"><span class="rl">הושלמו</span><span class="rv">4</span></div>
-          <div class="report-row"><span class="rl">התקדמות</span><span class="rv">68%</span></div>
-        </div>
-        <div class="report-box" style="cursor:pointer;" onclick="openModal('modal-report')">
-          <div class="report-title">📅 דוח חודשי — יוני 2025</div>
-          <div class="report-row"><span class="rl">כניסות</span><span class="rv">+12%</span></div>
-          <div class="report-row"><span class="rl">לידים</span><span class="rv">+8</span></div>
-          <div class="report-row"><span class="rl">פעולות</span><span class="rv">18 בוצעו</span></div>
-        </div>
+      <div class="grid grid-2" id="coco-live-reports-grid" style="gap:10px;">
       </div>
     </div>
 

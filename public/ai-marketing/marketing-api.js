@@ -149,6 +149,35 @@
     return upsertProfile(customerId, { setup_status: 'goals_ready' });
   }
 
+  function loadBundle(customerId) {
+    return Promise.all([
+      getCustomer(customerId),
+      getProfile(customerId),
+      getRelated('marketing_contacts', customerId),
+      getRelated('marketing_sites', customerId),
+      getRelated('marketing_domains', customerId),
+      getRelated('marketing_connections', customerId),
+      getRelated('marketing_campaigns', customerId),
+      getRelated('marketing_api_items', customerId),
+      (function () {
+        if (!canRemote()) return Promise.resolve(loadLocal().ai[customerId] || null);
+        return rest('marketing_ai_setup?customer_id=eq.' + customerId + '&select=*').then(function (r) { return r[0] || null; });
+      })(),
+    ]).then(function (parts) {
+      return {
+        customer: parts[0],
+        profile: parts[1],
+        contacts: parts[2] || [],
+        sites: parts[3] || [],
+        domains: parts[4] || [],
+        connections: parts[5] || [],
+        campaigns: parts[6] || [],
+        apiItems: parts[7] || [],
+        ai: parts[8] || null,
+      };
+    });
+  }
+
   window.MarketingApi = {
     canRemote: canRemote,
     hasMarketingService: hasMarketingService,
@@ -168,6 +197,7 @@
     upsertProfile: upsertProfile,
     syncFromDalia: syncFromDalia,
     markGoalsReady: markGoalsReady,
+    loadBundle: loadBundle,
     insertSite: function (row) { return insertRow('marketing_sites', row); },
     insertDomain: function (row) { return insertRow('marketing_domains', row); },
     insertContact: function (row) { return insertRow('marketing_contacts', row); },

@@ -1,0 +1,569 @@
+/**
+ * Phase D — חיבור נתונים אמיתיים (דליה / MarketingApi / Client ID) לכל מסכי Claude UI
+ */
+(function () {
+  'use strict';
+
+  var PROVIDER_LABELS = {
+    google_analytics: 'Google Analytics 4', google_search_console: 'Search Console',
+    google_ads: 'Google Ads', google_business: 'Google Business Profile',
+    google_tag_manager: 'Google Tag Manager', gmail: 'Gmail', google_workspace: 'Google Workspace',
+    facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', linkedin: 'LinkedIn',
+    youtube: 'YouTube', whatsapp_business: 'WhatsApp Business',
+  };
+
+  var PROVIDER_ICONS = {
+    google_analytics: '📊', google_search_console: '🔍', google_ads: '📢',
+    google_business: '📍', facebook: '📘', instagram: '📸', linkedin: '💼',
+    youtube: '▶️', tiktok: '🎵', website: '🌐',
+  };
+
+  var SERVICE_LABELS = {
+    fleet_only: 'ניהול צי בלבד',
+    marketing_only: 'שיווק בלבד',
+    fleet_and_marketing: 'שיווק + צי',
+  };
+
+  var state = {
+    bundle: null,
+    customers: [],
+    meta: { source: 'demo', clientSource: 'demo', kpiSource: 'demo', loadedAt: null },
+    loading: false,
+  };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function fmt(n) {
+    if (n == null || n === '') return '—';
+    return Number(n).toLocaleString('he-IL');
+  }
+
+  function ctx() {
+    return (window.COCO && COCO.flowContext) || {};
+  }
+
+  function normList(arr, prefix) {
+    if (!Array.isArray(arr)) return [];
+    return arr.map(function (item, i) {
+      if (typeof item === 'string') {
+        return { id: prefix + '-' + i, title: item, status: 'pending', category: 'כללי' };
+      }
+      return Object.assign({ id: item.id || prefix + '-' + i, title: item.title || item.name || 'פריט', status: item.status || 'pending' }, item);
+    });
+  }
+
+  function matchFilter(val, filterVal) {
+    if (!filterVal) return true;
+    if (!val) return false;
+    return String(val).toLowerCase().indexOf(String(filterVal).toLowerCase()) !== -1 ||
+      String(filterVal).toLowerCase().indexOf(String(val).toLowerCase()) !== -1;
+  }
+
+  function applyCtxFilter(items, mapFn) {
+    var c = ctx();
+    return items.filter(function (item) {
+      var m = mapFn(item);
+      if (c.site && m.site && !matchFilter(m.site, c.site)) return false;
+      if (c.campaign && m.campaign && !matchFilter(m.campaign, c.campaign)) return false;
+      if (c.channel && m.channel && !matchFilter(m.channel, c.channel)) return false;
+      if (c.status && m.status && !matchFilter(m.status, c.status)) return false;
+      if (c.page && m.page && !matchFilter(m.page, c.page)) return false;
+      if (c.goal && m.goal && !matchFilter(m.goal, c.goal)) return false;
+      if (c.action && m.action && !matchFilter(m.action, c.action)) return false;
+      return true;
+    });
+  }
+
+  function getDashboard() {
+    var d = window.COCO && COCO.data;
+    if (!d) return null;
+    return d.stats || d.kpis || null;
+  }
+
+  function getKeywords() {
+    var d = window.COCO && COCO.data;
+    if (d && d.keywords && d.keywords.length) return d.keywords;
+    if (d && d.searchConsole && d.searchConsole.keywords) {
+      return d.searchConsole.keywords.map(function (k) {
+        return { keyword: k.query, rank: Math.round(k.position || 0), clicks: k.clicks, volume: k.impressions, ctr: ((k.ctr || 0) * 100).toFixed(1) + '%' };
+      });
+    }
+    return [];
+  }
+
+  function deriveKpis(bundle) {
+    var dash = getDashboard();
+    var k = window.COCO && COCO.data && COCO.data.kpis;
+    if (k && k.weeklyClicks) {
+      state.meta.kpiSource = 'live';
+      return {
+        siteScore: 82,
+        visits: (k.weeklyClicks && k.weeklyClicks.value) || '—',
+        leads: (k.pendingDrafts && k.pendingDrafts.value) || '—',
+        openTasks: (k.aiOpportunities && k.aiOpportunities.value) || '—',
+        clicks: (k.weeklyClicks && k.weeklyClicks.value) || '—',
+        impressions: (k.weeklyImpressions && k.weeklyImpressions.value) || '—',
+        ctr: (k.avgCtr && k.avgCtr.value) || '—',
+        position: (k.avgPosition && k.avgPosition.value) || '—',
+      };
+    }
+    if (dash) {
+      state.meta.kpiSource = 'live';
+      return {
+        siteScore: 75,
+        visits: fmt(dash.ga4Sessions || dash.totalClicks),
+        leads: fmt(dash.pendingDrafts || 0),
+        openTasks: fmt(dash.opportunities || dash.pendingDrafts || 0),
+        clicks: fmt(dash.totalClicks),
+        impressions: fmt(dash.totalImpressions),
+        ctr: dash.avgCtr != null ? (Number(dash.avgCtr) * (dash.avgCtr < 1 ? 100 : 1)).toFixed(1) + '%' : '—',
+        position: dash.avgPosition != null ? Number(dash.avgPosition).toFixed(1) : '—',
+      };
+    }
+    state.meta.kpiSource = 'demo';
+    return { siteScore: 82, visits: '14,320', leads: '47', openTasks: '12', clicks: '8,420', impressions: '184,000', ctr: '4.6%', position: '12.3' };
+  }
+
+  function deriveGoals(bundle) {
+    var ai = bundle && bundle.ai;
+    var goals = normList(ai && ai.initial_goals, 'goal');
+    if (!goals.length && ai && ai.work_plan) {
+      goals = normList(ai.work_plan, 'goal').map(function (g) {
+        g.category = 'תכנון AI';
+        return g;
+      });
+    }
+    if (!goals.length) {
+      state.meta.goalsSource = 'demo';
+      return [
+        { id: 'g1', title: 'שיפור PageSpeed נייד ל-80+', status: 'active', category: 'ביצועים', priority: 'קריטי' },
+        { id: 'g2', title: 'כיסוי Meta חסרים – 8 עמודים', status: 'active', category: 'SEO', priority: 'גבוה' },
+        { id: 'g3', title: 'מחקר 18 ביטויי SEO חדשים', status: 'pending', category: 'תוכן', priority: 'גבוה' },
+      ];
+    }
+    state.meta.goalsSource = 'dalia';
+    return goals;
+  }
+
+  function deriveActions(bundle) {
+    var ai = bundle && bundle.ai;
+    var actions = normList(ai && ai.work_plan, 'act').map(function (a, i) {
+      a.status = a.status || (i === 0 ? 'pending' : 'review');
+      a.urgency = a.urgency || a.priority || 'בינוני';
+      a.source = a.source || 'AI Setup';
+      return a;
+    });
+    var approvals = (window.COCO && COCO.data && COCO.data.approvals) || [];
+    approvals.forEach(function (ap, i) {
+      actions.push({ id: 'appr-' + i, title: ap.title, status: 'pending', urgency: 'גבוה', source: 'אישורים', category: ap.type || 'תוכן' });
+    });
+    if (!actions.length) {
+      state.meta.actionsSource = 'demo';
+      return [{ id: 'a1', title: 'שיפור PageSpeed נייד', status: 'pending', urgency: 'קריטי', source: 'PageSpeed AI', category: 'ביצועים' }];
+    }
+    state.meta.actionsSource = ai && ai.work_plan && ai.work_plan.length ? 'dalia' : 'live';
+    return actions;
+  }
+
+  function deriveHistory(bundle) {
+    var items = [];
+    var campaigns = (bundle && bundle.campaigns) || [];
+    campaigns.forEach(function (c) {
+      items.push({ type: 'campaign', title: c.name, date: c.start_date || c.created_at, status: c.status, channel: c.channel, detail: 'קמפיין — ' + (c.campaign_type || '') });
+    });
+    var goals = deriveGoals(bundle).filter(function (g) { return g.status === 'done' || g.status === 'completed'; });
+    goals.forEach(function (g) {
+      items.push({ type: 'goal', title: g.title, date: g.completed_at || '', status: 'בוצע', detail: g.category || '' });
+    });
+    if (!items.length) {
+      state.meta.historySource = 'demo';
+      return [
+        { type: 'action', title: 'Meta Titles פורסמו – 8 עמודים', date: '12.6.25', status: 'בוצע', detail: 'SEO' },
+        { type: 'action', title: 'Schema נוסף לדף הבית', date: '8.6.25', status: 'בוצע', detail: 'מבנה אתר' },
+      ];
+    }
+    state.meta.historySource = 'dalia';
+    return items;
+  }
+
+  function deriveAssets(bundle) {
+    var assets = [];
+    (bundle && bundle.sites || []).forEach(function (s) {
+      assets.push({ kind: 'site', icon: '🌐', name: s.name || 'אתר', status: s.status || 'active', detail: s.domain || s.site_url || '', connected: s.status === 'active' });
+    });
+    (bundle && bundle.connections || []).forEach(function (c) {
+      assets.push({
+        kind: 'connection', icon: PROVIDER_ICONS[c.provider] || '🔗',
+        name: PROVIDER_LABELS[c.provider] || c.provider,
+        status: c.status, detail: c.status === 'connected' ? 'מחובר' : 'לא מחובר',
+        connected: c.status === 'connected',
+      });
+    });
+    if (!assets.length) {
+      state.meta.assetsSource = 'demo';
+      return [{ kind: 'site', icon: '🌐', name: 'אתר ראשי', status: 'active', detail: ctx().site || 'greentech.co.il', connected: true }];
+    }
+    state.meta.assetsSource = 'dalia';
+    return assets;
+  }
+
+  function deriveAiDecisions(bundle) {
+    var ai = bundle && bundle.ai;
+    var recs = normList(ai && ai.recommendations, 'rec');
+    var report = (ai && ai.opening_report) || '';
+    if (!recs.length && !report) {
+      state.meta.aiSource = 'demo';
+      return {
+        team: [
+          { name: 'ChatGPT', text: 'ממליץ להתמקד ב-PageSpeed נייד ו-Meta חסרים.', status: 'done' },
+          { name: 'Claude', text: 'מדגיש תיעוד והיסטוריה לפני הרחבת קמפיינים.', status: 'done' },
+          { name: 'Gemini', text: 'מזהה מגמות ירידה בעמודי שירות.', status: 'done' },
+        ],
+        summary: 'בעיות: PageSpeed נייד | Meta חסרים | קמפיין לא רווחי. עדיפות: PageSpeed → Meta → תוכן.',
+        findings: [
+          { level: 'err', text: 'קריטי: PageSpeed נייד — פוגע ב-SEO ובהמרות' },
+          { level: 'warn', text: 'גבוה: ביטויים לא מכוסים — פוטנציאל תנועה' },
+          { level: 'ok', text: 'חיובי: CTR ולידים במגמת עלייה' },
+        ],
+      };
+    }
+    state.meta.aiSource = 'dalia';
+    var team = recs.slice(0, 3).map(function (r, i) {
+      return { name: ['ChatGPT', 'Claude', 'Gemini'][i] || 'AI', text: r.title, status: 'done' };
+    });
+    while (team.length < 3) team.push({ name: 'AI Manager', text: 'ממתין לניתוח נוסף', status: 'pending' });
+    return {
+      team: team,
+      summary: report || recs.map(function (r) { return r.title; }).join(' • '),
+      findings: recs.slice(0, 4).map(function (r, i) {
+        return { level: i === 0 ? 'err' : i < 3 ? 'warn' : 'ok', text: r.title };
+      }),
+    };
+  }
+
+  function statusBadge(status) {
+    var s = String(status || '').toLowerCase();
+    if (/active|connected|פעיל|בוצע|done|completed/.test(s)) return '<span class="badge badge-green">● פעיל</span>';
+    if (/draft|pending|ממתין|review/.test(s)) return '<span class="badge badge-yellow">⏳ ממתין</span>';
+    if (/paused|מושהה/.test(s)) return '<span class="badge badge-yellow">⏸ מושהה</span>';
+    return '<span class="badge badge-gray">' + esc(status || '—') + '</span>';
+  }
+
+  function setHtml(id, html) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+
+  function setText(sel, text) {
+    var el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+    if (el) el.textContent = text;
+  }
+
+  function updateSourceBadge() {
+    var bar = document.querySelector('.coco-flow-context-bar .cfc-inner');
+    if (!bar) return;
+    var badge = document.getElementById('coco-live-source-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.id = 'coco-live-source-badge';
+      badge.className = 'cfc-chip';
+      badge.style.marginRight = 'auto';
+      bar.appendChild(badge);
+    }
+    var m = state.meta;
+    var parts = [];
+    if (m.clientSource === 'dalia') parts.push('לקוח: דליה');
+    else if (m.clientSource === 'demo') parts.push('לקוח: דמו');
+    if (m.kpiSource === 'live') parts.push('KPI: חי');
+    else parts.push('KPI: דמו');
+    badge.textContent = 'מקור: ' + parts.join(' · ');
+  }
+
+  function bindHub(bundle) {
+    var kpis = deriveKpis(bundle);
+    setHtml('coco-live-hub-kpis', [
+      '<div class="card" style="padding:12px 14px;"><div class="card-title">ציון אתר</div><div class="card-value" style="font-size:22px;color:var(--green);">' + esc(kpis.siteScore) + '</div></div>',
+      '<div class="card" style="padding:12px 14px;"><div class="card-title">כניסות</div><div class="card-value" style="font-size:22px;">' + esc(kpis.visits) + '</div></div>',
+      '<div class="card" style="padding:12px 14px;"><div class="card-title">לידים / משימות</div><div class="card-value" style="font-size:22px;color:var(--accent2);">' + esc(kpis.leads) + '</div></div>',
+      '<div class="card" style="padding:12px 14px;"><div class="card-title">משימות פתוחות</div><div class="card-value" style="font-size:22px;color:var(--yellow);">' + esc(kpis.openTasks) + '</div></div>',
+    ].join(''));
+    var goals = deriveGoals(bundle);
+    var actions = deriveActions(bundle);
+    var assets = deriveAssets(bundle);
+    var counts = { 'screen-status': 'מצב', 'screen-clients': state.customers.length + ' לקוחות', 'screen-goals': goals.length + ' מטרות', 'screen-actions': actions.filter(function (a) { return a.status !== 'done'; }).length + ' ממתינות', 'screen-history': deriveHistory(bundle).length + ' רשומות', 'screen-assets': assets.length + ' נכסים', 'screen-ai-decisions': (bundle && bundle.ai && bundle.ai.recommendations && bundle.ai.recommendations.length) || '23', 'screen-reports': '6 סוגים' };
+    document.querySelectorAll('.hub-card').forEach(function (card) {
+      var onclick = card.getAttribute('onclick') || '';
+      Object.keys(counts).forEach(function (sid) {
+        if (onclick.indexOf(sid) !== -1) {
+          var cnt = card.querySelector('.hub-count');
+          if (cnt) cnt.textContent = counts[sid];
+        }
+      });
+    });
+  }
+
+  function bindStatus(bundle) {
+    var kpis = deriveKpis(bundle);
+    var c = ctx();
+    setText('#tab-status-overview .page-subtitle', (c.clientName || 'לקוח פעיל') + ' • עדכון: ' + (state.meta.loadedAt ? new Date(state.meta.loadedAt).toLocaleString('he-IL') : 'עכשיו'));
+    setHtml('coco-live-status-kpis', [
+      '<div class="card"><div class="card-title">קליקים</div><div class="card-value">' + esc(kpis.clicks) + '</div></div>',
+      '<div class="card"><div class="card-title">חשיפות</div><div class="card-value">' + esc(kpis.impressions) + '</div></div>',
+      '<div class="card"><div class="card-title">CTR</div><div class="card-value">' + esc(kpis.ctr) + '</div></div>',
+      '<div class="card"><div class="card-title">מיקום ממוצע</div><div class="card-value">' + esc(kpis.position) + '</div></div>',
+    ].join(''));
+    var keywords = applyCtxFilter(getKeywords(), function (k) { return { page: k.url }; });
+    if (keywords.length) {
+      setHtml('coco-live-status-keywords', keywords.slice(0, 8).map(function (k) {
+        return '<tr><td>' + esc(k.keyword) + '</td><td>' + esc(k.rank) + '</td><td style="color:var(--green)">—</td><td>' + esc(k.clicks) + '</td></tr>';
+      }).join(''));
+    }
+    var campaigns = applyCtxFilter((bundle && bundle.campaigns) || [], function (c) {
+      return { campaign: c.name, channel: c.channel, status: c.status };
+    });
+    if (campaigns.length) {
+      setHtml('coco-live-status-campaigns', campaigns.map(function (c) {
+        return '<tr><td>' + esc(c.name) + '</td><td>₪' + fmt(c.budget) + '</td><td>—</td><td>—</td><td>' + statusBadge(c.status) + '</td></tr>';
+      }).join(''));
+    }
+  }
+
+  function bindClients() {
+    var rows = state.customers;
+    if (!rows.length) {
+      rows = [
+        { id: 'demo-greentech', name: 'גרין-טק פתרונות בע"מ', service_type: 'fleet_and_marketing', status: 'active' },
+        { id: 'demo-delta', name: 'דלתא לוגיסטיקה בע"מ', service_type: 'marketing_only', status: 'active' },
+        { id: 'demo-techsol', name: 'פתרונות טק ישראל', service_type: 'marketing_only', status: 'draft' },
+      ];
+      state.meta.clientSource = 'demo';
+    }
+    setHtml('coco-live-clients-list', rows.map(function (c) {
+      var svc = SERVICE_LABELS[c.service_type] || c.service_type || '';
+      var active = ctx().clientId === c.id;
+      return '<div class="card" style="cursor:pointer;' + (active ? 'border-color:var(--accent);' : '') + '" data-client-id="' + esc(c.id) + '" onclick="CocoData.selectCustomer(\'' + esc(c.id) + '\')">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">' +
+        '<div><div style="font-weight:700;font-size:14px;">🏢 ' + esc(c.name) + '</div>' +
+        '<div style="font-size:12px;color:var(--white50);margin-top:2px;">' + esc(svc) + ' • ID: ' + esc(c.id).slice(0, 8) + '…</div>' +
+        '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">' + statusBadge(c.status || 'active') +
+        (active ? '<span class="badge badge-purple">לקוח פעיל</span>' : '') + '</div></div></div></div>';
+    }).join(''));
+  }
+
+  function bindGoals(bundle) {
+    var goals = applyCtxFilter(deriveGoals(bundle), function (g) {
+      return { goal: g.category || g.title, status: g.status };
+    });
+    setHtml('coco-live-goals-list', goals.map(function (g) {
+      return '<div class="goal-acc-item card" style="padding:14px;margin-bottom:10px;" data-agent="' + esc(g.agent || '') + '">' +
+        '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">' +
+        '<div style="font-weight:700;">🎯 ' + esc(g.title) + '</div>' + statusBadge(g.status) + '</div>' +
+        '<div style="font-size:12px;color:var(--white50);margin-top:6px;">קטגוריה: ' + esc(g.category || 'כללי') + ' • עדיפות: ' + esc(g.priority || 'בינוני') + '</div></div>';
+    }).join('') || '<div class="alert alert-info">אין מטרות — הושלם setup בדליה או הוסף מטרות ב-AI Setup.</div>');
+  }
+
+  function bindActions(bundle) {
+    var actions = applyCtxFilter(deriveActions(bundle), function (a) {
+      return { action: a.category, status: a.status, campaign: a.campaign };
+    });
+    var pending = actions.filter(function (a) { return a.status !== 'done' && a.status !== 'completed'; });
+    var done = actions.filter(function (a) { return a.status === 'done' || a.status === 'completed'; });
+    setHtml('coco-live-actions-pending', pending.map(function (a) {
+      return '<div class="action-card act-item" style="border-color:rgba(139,92,246,0.4);margin-bottom:12px;">' +
+        '<div class="action-title">' + esc(a.title) + '</div>' +
+        '<div style="font-size:12px;color:var(--white50);margin-top:6px;">מקור: ' + esc(a.source) + ' • ' + statusBadge(a.urgency) + '</div></div>';
+    }).join('') || '<div class="alert alert-ok">אין פעולות ממתינות 🎉</div>');
+    setHtml('coco-live-actions-done', done.map(function (a) {
+      return '<tr><td>' + esc(a.title) + '</td><td>' + esc(a.category) + '</td><td>—</td><td>' + esc(a.source) + '</td><td>—</td><td>' + statusBadge('done') + '</td></tr>';
+    }).join('') || '<tr><td colspan="6">אין פעולות שהושלמו עדיין</td></tr>');
+  }
+
+  function bindHistory(bundle) {
+    var items = applyCtxFilter(deriveHistory(bundle), function (h) {
+      return { campaign: h.title, status: h.status, action: h.detail };
+    });
+    setHtml('coco-live-history-timeline', items.slice(0, 12).map(function (h) {
+      var color = /בוצע|done|active/.test(h.status) ? 'var(--green)' : 'var(--yellow)';
+      return '<div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:' + color + '"></div><div class="tl-line"></div></div>' +
+        '<div class="tl-content"><div class="tl-title">' + esc(h.title) + '</div>' +
+        '<div class="tl-time">' + esc(h.date || '') + ' | ' + esc(h.detail || h.type) + ' | ' + esc(h.status) + '</div></div></div>';
+    }).join(''));
+    var sites = (bundle && bundle.sites) || [];
+    setHtml('coco-live-history-site', sites.slice(0, 6).map(function (s) {
+      return '<tr><td>' + esc((s.updated_at || s.created_at || '').slice(0, 10)) + '</td><td>' + esc(s.name) + '</td><td>אתר ' + esc(s.site_type) + '</td><td>דליה</td><td>' + statusBadge(s.status) + '</td></tr>';
+    }).join('') || '<tr><td colspan="5">אין שינויי אתר מתועדים</td></tr>');
+    var camps = (bundle && bundle.campaigns) || [];
+    setHtml('coco-live-history-campaigns', camps.map(function (c) {
+      return '<tr><td>' + esc((c.created_at || '').slice(0, 10)) + '</td><td>' + esc(c.name) + '</td><td>' + esc(c.campaign_type || 'עדכון') + '</td><td>' + statusBadge(c.status) + '</td></tr>';
+    }).join('') || '<tr><td colspan="4">אין קמפיינים מתועדים</td></tr>');
+  }
+
+  function bindAssets(bundle) {
+    var assets = applyCtxFilter(deriveAssets(bundle), function (a) {
+      return { site: a.detail, status: a.status };
+    });
+    setHtml('coco-live-assets-grid', assets.map(function (a) {
+      return '<div class="asset-card" style="cursor:pointer;">' +
+        '<div class="asset-header"><div class="asset-icon">' + a.icon + '</div><div><div class="asset-name">' + esc(a.name) + '</div>' +
+        '<div class="asset-status">' + esc(a.detail) + '</div></div></div>' +
+        statusBadge(a.connected ? 'connected' : a.status) + '</div>';
+    }).join(''));
+    var sub = document.querySelector('#screen-assets .page-subtitle');
+    if (sub && bundle && bundle.customer) sub.textContent = 'מרכז שליטה — ' + bundle.customer.name;
+  }
+
+  function bindAiDecisions(bundle) {
+    var data = deriveAiDecisions(bundle);
+    setHtml('coco-live-ai-team', data.team.map(function (t) {
+      return '<div class="card" style="padding:14px;"><div class="card-title">' + esc(t.name) + '</div>' +
+        '<div style="font-size:12px;color:var(--white80);margin-top:8px;line-height:1.6;">' + esc(t.text) + '</div>' +
+        statusBadge(t.status === 'done' ? 'done' : 'pending') + '</div>';
+    }).join(''));
+    setHtml('coco-live-ai-summary', esc(data.summary));
+    setHtml('coco-live-ai-findings', data.findings.map(function (f) {
+      var cls = f.level === 'err' ? 'alert-err' : f.level === 'warn' ? 'alert-warn' : f.level === 'ok' ? 'alert-ok' : 'alert-info';
+      return '<div class="alert ' + cls + '">' + esc(f.text) + '</div>';
+    }).join(''));
+  }
+
+  function bindReports(bundle) {
+    var kpis = deriveKpis(bundle);
+    var goals = deriveGoals(bundle);
+    var actions = deriveActions(bundle);
+    var keywords = getKeywords();
+    setHtml('coco-live-reports-grid', [
+      { title: '📊 דוח מצב נוכחי', rows: [['ציון אתר', kpis.siteScore], ['כניסות', kpis.visits], ['לידים', kpis.leads]] },
+      { title: '🔍 דוח SEO', rows: [['מילות מפתח', keywords.length || '—'], ['מיקום ממוצע', kpis.position], ['CTR', kpis.ctr]] },
+      { title: '📢 דוח קמפיינים', rows: [['קמפיינים', (bundle && bundle.campaigns && bundle.campaigns.length) || 0], ['פעילים', (bundle && bundle.campaigns && bundle.campaigns.filter(function (c) { return c.status === 'active'; }).length) || 0], ['טיוטה', (bundle && bundle.campaigns && bundle.campaigns.filter(function (c) { return c.status === 'draft'; }).length) || 0]] },
+      { title: '⚙️ דוח פעולות', rows: [['ממתינות', actions.filter(function (a) { return a.status !== 'done'; }).length], ['הושלמו', actions.filter(function (a) { return a.status === 'done'; }).length], ['סה״כ', actions.length]] },
+      { title: '🎯 דוח מטרות', rows: [['פעילות', goals.filter(function (g) { return g.status === 'active'; }).length], ['ממתינות', goals.filter(function (g) { return g.status === 'pending'; }).length], ['סה״כ', goals.length]] },
+      { title: '📅 דוח חודשי', rows: [['כניסות', kpis.visits], ['קליקים', kpis.clicks], ['מקור', state.meta.kpiSource === 'live' ? 'חי' : 'דמו']] },
+    ].map(function (box) {
+      return '<div class="report-box" style="cursor:pointer;" onclick="openModal(\'modal-report\')"><div class="report-title">' + box.title + '</div>' +
+        box.rows.map(function (r) { return '<div class="report-row"><span class="rl">' + r[0] + '</span><span class="rv">' + esc(r[1]) + '</span></div>'; }).join('') + '</div>';
+    }).join(''));
+  }
+
+  var SCREEN_BINDERS = {
+    'screen-hub': bindHub,
+    'screen-status': bindStatus,
+    'screen-clients': bindClients,
+    'screen-goals': bindGoals,
+    'screen-actions': bindActions,
+    'screen-history': bindHistory,
+    'screen-assets': bindAssets,
+    'screen-ai-decisions': bindAiDecisions,
+    'screen-reports': bindReports,
+  };
+
+  function loadCustomers() {
+    var A = window.MarketingApi;
+    if (!A) return Promise.resolve([]);
+    return A.listMarketingCustomers().then(function (rows) {
+      state.customers = rows || [];
+      state.meta.clientSource = A.canRemote && A.canRemote() ? 'dalia' : (rows.length ? 'local' : 'demo');
+      return rows;
+    }).catch(function () { state.customers = []; return []; });
+  }
+
+  function load(clientId) {
+    if (!clientId) return Promise.resolve(null);
+    state.loading = true;
+    var A = window.MarketingApi;
+    var p;
+    if (A && A.loadBundle && String(clientId).indexOf('demo-') !== 0) {
+      p = A.loadBundle(clientId).then(function (bundle) {
+        if (bundle && bundle.customer) {
+          state.bundle = bundle;
+          state.meta.source = A.canRemote && A.canRemote() ? 'dalia' : 'local';
+          state.meta.clientSource = state.meta.source;
+          state.meta.loadedAt = new Date().toISOString();
+          return bundle;
+        }
+        return null;
+      });
+    } else if (String(clientId).indexOf('demo-') === 0) {
+      if (!ctx().clientName && window.CocoClaude && CocoClaude.bindDemoClient) {
+        var demoKey = clientId === 'demo-greentech' ? 'גרין-טק פתרונות' : clientId === 'demo-delta' ? 'דלתא לוגיסטיקה' : 'פתרונות טק';
+        CocoClaude.bindDemoClient(demoKey);
+      }
+      state.bundle = { customer: { id: clientId, name: ctx().clientName || clientId }, sites: [], campaigns: [], connections: [], ai: null };
+      state.meta.source = 'demo';
+      state.meta.clientSource = 'demo';
+      p = Promise.resolve(state.bundle);
+    } else {
+      p = Promise.resolve(null);
+    }
+    return p.then(function (bundle) {
+      if (!bundle && window.CocoClaude) {
+        state.meta.source = 'demo';
+        state.meta.clientSource = 'demo';
+      }
+      state.loading = false;
+      return loadCustomers().then(function () {
+        if (bundle && bundle.customer && window.CocoClaude && CocoClaude.bindClientFromDalia) {
+          CocoClaude.bindClientFromDalia(bundle);
+        } else {
+          bindAll();
+        }
+        updateSourceBadge();
+        return bundle;
+      });
+    }).catch(function () {
+      state.loading = false;
+      bindAll();
+      return null;
+    });
+  }
+
+  function bindScreen(screenId) {
+    var fn = SCREEN_BINDERS[screenId];
+    if (fn) fn(state.bundle);
+    updateSourceBadge();
+  }
+
+  function bindAll() {
+    Object.keys(SCREEN_BINDERS).forEach(function (sid) {
+      var el = document.getElementById(sid);
+      if (el && el.classList.contains('active')) bindScreen(sid);
+    });
+    bindScreen('screen-hub');
+    bindScreen('screen-clients');
+  }
+
+  function selectCustomer(id) {
+    if (window.CocoClaude && CocoClaude.setClientId) CocoClaude.setClientId(id);
+    return load(id).then(function () {
+      if (typeof showToast === 'function') showToast('🏢 נטען לקוח: ' + (ctx().clientName || id));
+    });
+  }
+
+  function setBundle(bundle) {
+    state.bundle = bundle;
+    if (bundle && bundle.customer) {
+      state.meta.source = window.MarketingApi && MarketingApi.canRemote && MarketingApi.canRemote() ? 'dalia' : 'local';
+      state.meta.clientSource = state.meta.source;
+      state.meta.loadedAt = new Date().toISOString();
+    }
+    bindAll();
+    updateSourceBadge();
+  }
+
+  function onContextChange() {
+    var active = document.querySelector('#coco-claude-root .screen.active');
+    if (active) bindScreen(active.id);
+  }
+
+  window.CocoData = {
+    load: load,
+    setBundle: setBundle,
+    bindScreen: bindScreen,
+    bindAll: bindAll,
+    selectCustomer: selectCustomer,
+    onContextChange: onContextChange,
+    getMeta: function () { return Object.assign({}, state.meta); },
+    getBundle: function () { return state.bundle; },
+  };
+})();

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="ui-version" content="v3-claude-full-3">
+<meta name="ui-version" content="v3-claude-full-4">
 <title>CO.CO דליה — מנהל שיווק AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./ai-marketing/home-v4.css">
@@ -412,7 +412,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   .tbl-wrap table{min-width:560px}
 }
 </style>
-<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-claude-full-3">
+<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-claude-full-4">
 </head>
 <body>
 
@@ -2877,6 +2877,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 <script src="./ai-marketing/prd-theme.js"></script>
 <script src="./ai-marketing/prd-datagrid.js"></script>
 <script src="./ai-marketing/marketing-api.js"></script>
+<script src="./ai-marketing/coco-claude-data.js?v=v3-claude-full-4"></script>
 <script src="./ai-marketing/marketing-client.js"></script>
 <script>
 // Screen navigation
@@ -2978,7 +2979,7 @@ window._gotoScLegacy = gotoSc;
 // Init: load Claude UI (1:1) then show screen-hub
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-claude-full-3';
+  var ver = 'v3-claude-full-4';
   var loadUi = function() {
     return new Promise(function(resolve, reject) {
       if (window.CocoClaude && typeof window.goScreen === 'function') { resolve(); return; }
