@@ -68,7 +68,7 @@ export default function AiMarketingPage() {
   }
 
   const base = import.meta.env.BASE_URL || '/';
-  const src = `${base}ai-marketing-platform?fullscreen=1${customerId ? `&customer=${encodeURIComponent(customerId)}` : ''}`;
+  const src = `${base}ai-marketing-platform.html?fullscreen=1&v=v3-claude-full-6${customerId ? `&customer=${encodeURIComponent(customerId)}` : ''}`;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">

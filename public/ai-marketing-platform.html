@@ -2,8 +2,24 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<script>
+(function () {
+  var host = location.hostname;
+  var base = '/future-craft-core/';
+  if (host === 'localhost' || host === '127.0.0.1') {
+    var p = location.pathname || '';
+    var i = p.indexOf('ai-marketing-platform');
+    base = i >= 0 ? p.substring(0, i) : (p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/'));
+  }
+  window.COCO_PAGES_BASE = base;
+  var b = document.createElement('base');
+  b.id = 'coco-pages-base';
+  b.href = base.charAt(0) === '/' ? (location.origin + base) : new URL(base, location.href).href;
+  document.head.appendChild(b);
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="ui-version" content="v3-claude-full-5">
+<meta name="ui-version" content="v3-claude-full-6">
 <meta name="build-commit" content="STAGING">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -415,7 +431,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   .tbl-wrap table{min-width:560px}
 }
 </style>
-<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-claude-full-5">
+<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-claude-full-6">
 </head>
 <body>
 
@@ -2833,7 +2849,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
   </main><!-- /content -->
 </div><!-- /main -->
 
-<div id="coco-claude-root" aria-label="ניהול שיווק — Claude UI">
+<div id="coco-claude-root" class="coco-boot-active" aria-label="ניהול שיווק — Claude UI">
   <div class="coco-boot-loading" style="padding:48px 20px;text-align:center;color:#94a3b8;font-family:'Heebo',sans-serif;min-height:100dvh;background:#04091a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
     <div style="font-size:20px;font-weight:700;color:#fff;">טוען מרכז שיווק…</div>
     <div style="font-size:12px;opacity:0.7;">Orin Car Staging</div>
@@ -2885,7 +2901,7 @@ body.embedded .coco-ai-panel{bottom:58px;right:10px}
 <script src="./ai-marketing/prd-theme.js"></script>
 <script src="./ai-marketing/prd-datagrid.js"></script>
 <script src="./ai-marketing/marketing-api.js"></script>
-<script src="./ai-marketing/coco-claude-data.js?v=v3-claude-full-5"></script>
+<script src="./ai-marketing/coco-claude-data.js?v=v3-claude-full-6"></script>
 <script src="./ai-marketing/marketing-client.js"></script>
 <script>
 // Screen navigation
@@ -2978,8 +2994,8 @@ function openCompMo(name) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
-document.getElementById('kwModal').addEventListener('click', function(e) { if (e.target === this) closeModal('kwModal'); });
-document.getElementById('compModal').addEventListener('click', function(e) { if (e.target === this) closeModal('compModal'); });
+document.getElementById('kwModal')?.addEventListener('click', function(e) { if (e.target === this) closeModal('kwModal'); });
+document.getElementById('compModal')?.addEventListener('click', function(e) { if (e.target === this) closeModal('compModal'); });
 
 // Preserve legacy navigation before Claude bridge overwrites gotoSc
 window._gotoScLegacy = gotoSc;
@@ -2987,22 +3003,34 @@ window._gotoScLegacy = gotoSc;
 // Init: load Claude UI (1:1) then show screen-hub
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-claude-full-5';
-  var path = location.pathname || '';
-  var assetBase = path.indexOf('ai-marketing-platform') > 0
-    ? path.substring(0, path.indexOf('ai-marketing-platform'))
-    : './';
+  var ver = 'v3-claude-full-6';
+  document.body.classList.add('coco-boot-active');
+  if (root) root.classList.add('coco-boot-active');
+  function assetBase() {
+    return window.COCO_PAGES_BASE || '/future-craft-core/';
+  }
   function assetUrl(rel) {
-    return assetBase + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);
+    var base = assetBase();
+    if (base.charAt(0) !== '/') base = '/' + base.replace(/^\.\//, '');
+    return location.origin + base + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);
   }
   function showBootError(msg) {
     document.body.classList.remove('coco-claude-layout');
+    document.body.classList.add('coco-boot-active');
     if (!root) return;
+    root.classList.add('coco-boot-active');
     root.style.display = 'block';
     root.innerHTML = '<div style="padding:32px 20px;text-align:center;font-family:\'Heebo\',sans-serif;min-height:100dvh;background:#04091a;color:#fff;">' +
       '<div style="font-size:18px;font-weight:700;margin-bottom:8px;">לא ניתן לטעון את ממשק השיווק</div>' +
-      '<div style="font-size:13px;color:#94a3b8;margin-bottom:16px;">' + (msg || 'שגיאת רשת או cache') + '</div>' +
-      '<button type="button" onclick="location.reload(true)" style="padding:10px 18px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:14px;cursor:pointer;">רענון קשיח</button></div>';
+      '<div style="font-size:13px;color:#94a3b8;margin-bottom:8px;">' + (msg || 'שגיאת רשת או cache') + '</div>' +
+      '<div style="font-size:11px;color:#64748b;margin-bottom:16px;">Staging · ' + ver + '</div>' +
+      '<button type="button" id="coco-boot-retry" style="padding:10px 18px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:14px;cursor:pointer;">רענון קשיח</button></div>';
+    var retry = document.getElementById('coco-boot-retry');
+    if (retry) {
+      retry.addEventListener('click', function () {
+        location.href = location.pathname.split('?')[0] + '?v=' + encodeURIComponent(ver) + '&t=' + Date.now();
+      });
+    }
   }
   var loadUi = function() {
     return new Promise(function(resolve, reject) {
@@ -3010,7 +3038,7 @@ window._gotoScLegacy = gotoSc;
       var s = document.createElement('script');
       s.src = assetUrl('ai-marketing/coco-claude-main.js');
       s.onload = resolve;
-      s.onerror = function() { reject(new Error('main.js load failed')); };
+      s.onerror = function() { reject(new Error('main.js load failed: ' + s.src)); };
       document.body.appendChild(s);
     });
   };
@@ -3019,6 +3047,8 @@ window._gotoScLegacy = gotoSc;
       showBootError('מסכי Claude לא נטענו');
       return;
     }
+    root.classList.remove('coco-boot-active');
+    document.body.classList.remove('coco-boot-active');
     document.querySelectorAll('#coco-claude-root .screen').forEach(function(sc) { screenMap[sc.id] = sc; });
     if (window.CocoClaude) CocoClaude.init();
     else if (typeof window.goScreen === 'function') goScreen('screen-hub');

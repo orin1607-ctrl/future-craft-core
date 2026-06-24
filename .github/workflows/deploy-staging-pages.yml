@@ -56,6 +56,7 @@ jobs:
           mkdir -p dist dist/project-001
           cp public/ai-marketing-platform.html dist/
           cp -r public/ai-marketing dist/
+          cp dist/index.html dist/ai-marketing/index.html
           cp -r public/project-001-mockup dist/
           cp public/project-001/dashboard.json dist/project-001/ 2>/dev/null || true
           HASH=$(git rev-parse --short HEAD)

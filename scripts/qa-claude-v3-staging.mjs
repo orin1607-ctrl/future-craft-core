@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-claude-full-5';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-claude-full-6';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
@@ -210,7 +210,7 @@ async function verifyStagingAssets() {
     `/ai-marketing-platform.html?v=${EXPECT_VERSION}`,
     `/ai-marketing/coco-claude-main.js?v=${EXPECT_VERSION}`,
     `/ai-marketing/coco-claude-screens.html?v=${EXPECT_VERSION}`,
-    `/ai-marketing/coco-claude-main.css?v=3-claude-full-5`
+    `/ai-marketing/coco-claude-main.css?v=3-claude-full-6`
   ];
   for (const rel of assets) {
     const res = await fetch(STAGING_BASE + rel, { cache: 'no-store' });
