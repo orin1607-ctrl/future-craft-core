@@ -164,7 +164,8 @@ export default function AiMarketingPage() {
 
   const base = import.meta.env.BASE_URL || '/';
 
-  const src = `${base}ai-marketing-platform.html?fullscreen=1&v=v3-unified-3f${customerId ? `&customer=${encodeURIComponent(customerId)}` : ''}${tab ? `&tab=${encodeURIComponent(tab)}` : ''}`;
+  const marketingVer = import.meta.env.VITE_MARKETING_UI_VERSION || 'v3-unified-3g';
+  const src = `${base}ai-marketing-platform.html?fullscreen=1&v=${encodeURIComponent(marketingVer)}&_=${import.meta.env.VITE_BUILD_COMMIT || 'staging'}${customerId ? `&customer=${encodeURIComponent(customerId)}` : ''}${tab ? `&tab=${encodeURIComponent(tab)}` : ''}`;
 
 
 

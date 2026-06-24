@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3f';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3g';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
@@ -99,7 +99,7 @@ async function runViewport(browser, name, viewport) {
     ui: document.querySelector('meta[name="ui-version"]')?.content || '',
     commit: document.querySelector('meta[name="build-commit"]')?.content || ''
   }));
-  if (meta.ui === EXPECT_VERSION) pass(`ui-version=${meta.ui}`, name);
+  if (meta.ui === EXPECT_VERSION || (meta.ui && meta.ui.startsWith(EXPECT_VERSION + '-'))) pass(`ui-version=${meta.ui}`, name);
   else fail(`ui-version expected ${EXPECT_VERSION} got ${meta.ui || 'none'}`, name);
 
   await assertNoWhiteScreen(page, 'hub-load', name);

@@ -27,16 +27,16 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="ui-version" content="v3-unified-3f">
+<meta name="ui-version" content="v3-unified-3g">
 <meta name="build-commit" content="STAGING">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>ניהול שיווק AI – דליה</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-unified-3">
-<link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=3-unified-3f">
-<link rel="stylesheet" href="./ai-marketing/home-prd.css?v=3-unified-3d">
-<link rel="stylesheet" href="./crm/dalia-crm.css?v=3-unified-3f">
+<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-unified-3g">
+<link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=3-unified-3g">
+<link rel="stylesheet" href="./ai-marketing/home-prd.css?v=3-unified-3g">
+<link rel="stylesheet" href="./crm/dalia-crm.css?v=3-unified-3g">
 </head>
 <body>
 <div id="coco-claude-root" class="coco-boot-active" aria-label="ניהול שיווק — Claude UI">
@@ -57,7 +57,11 @@
 <script>
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-unified-3f';
+  var ver = 'v3-unified-3g';
+  try {
+    var bootV = new URLSearchParams(location.search).get('v');
+    if (bootV) ver = bootV;
+  } catch (e) { /* ignore */ }
   document.body.classList.add('coco-boot-active');
   if (root) root.classList.add('coco-boot-active');
 
@@ -121,6 +125,10 @@
     .then(function (html) {
       if (!html || html.length < 5000) throw new Error('screens truncated');
       root.innerHTML = html;
+      if (window.DaliaSite) {
+        if (DaliaSite.applySiteLabels) DaliaSite.applySiteLabels();
+        if (DaliaSite.scrubDemoUi) DaliaSite.scrubDemoUi();
+      }
       return loadScript(assetUrl('ai-marketing/coco-claude-main.js'))
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-bridge.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-unified.js')); })

@@ -534,6 +534,7 @@
     initOfficial: initOfficial,
     buildLiveBundle: buildLiveBundle,
     applySiteLabels: applySiteLabels,
+    scrubDemoUi: scrubDemoUi,
     renderStatusLive: renderStatusLive,
     renderHubAiBox: renderHubAiBox,
     renderAssetsLive: renderAssetsLive,

@@ -45,6 +45,8 @@ jobs:
           VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
           VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
           VITE_BASE_PATH: /future-craft-core/
+          VITE_BUILD_COMMIT: ${{ github.sha }}
+          VITE_MARKETING_UI_VERSION: v3-unified-3g-${{ github.run_number }}
         run: |
           bun x vite build
           cp dist/index.html dist/404.html
@@ -64,10 +66,16 @@ jobs:
           cp -r public/project-001-mockup dist/
           cp public/project-001/dashboard.json dist/project-001/ 2>/dev/null || true
           HASH=$(git rev-parse --short HEAD)
+          RUN_VER="v3-unified-3g-${HASH}"
           sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/coco-marketing-platform.html
           sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/ai-marketing-platform.html
           sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/dalia-crm-platform.html
+          sed -i "s/v3-unified-3[fge]/\"${RUN_VER}\"/g" dist/ai-marketing-platform.html
+          sed -i "s/var ver = 'v3-unified-3[^']*'/var ver = '${RUN_VER}'/" dist/ai-marketing-platform.html
+          sed -i "s/v3-unified-3[fge]/\"${RUN_VER}\"/g" dist/ai-marketing/coco-marketing-unified.js
+          sed -i "s/v3-unified-3[fge]/\"${RUN_VER}\"/g" dist/ai-marketing/coco-marketing-crm-bridge.js
           sed -i "s/v=crm-1/v=crm-${HASH}/g" dist/dalia-crm-platform.html
+          sed -i "s/v=3-unified-3[^\"']*/v=${RUN_VER}/g" dist/ai-marketing-platform.html
           test -f dist/index.html || cp public/ai-marketing-platform.html dist/index.html
           test -f dist/404.html || cp dist/index.html dist/404.html
           touch dist/.nojekyll
