@@ -70,12 +70,12 @@ jobs:
           sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/coco-marketing-platform.html
           sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/ai-marketing-platform.html
           sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/dalia-crm-platform.html
-          sed -i "s/v3-unified-3[fge]/\"${RUN_VER}\"/g" dist/ai-marketing-platform.html
-          sed -i "s/var ver = 'v3-unified-3[^']*'/var ver = '${RUN_VER}'/" dist/ai-marketing-platform.html
-          sed -i "s/v3-unified-3[fge]/\"${RUN_VER}\"/g" dist/ai-marketing/coco-marketing-unified.js
-          sed -i "s/v3-unified-3[fge]/\"${RUN_VER}\"/g" dist/ai-marketing/coco-marketing-crm-bridge.js
+          sed -i "s/content=\"v3-unified-3g\"/content=\"${RUN_VER}\"/" dist/ai-marketing-platform.html
+          sed -i "s/var ver = 'v3-unified-3g'/var ver = '${RUN_VER}'/" dist/ai-marketing-platform.html
+          sed -i "s/var VERSION = 'v3-unified-3g'/var VERSION = '${RUN_VER}'/" dist/ai-marketing/coco-marketing-unified.js
+          sed -i "s/|| 'v3-unified-3g'/|| '${RUN_VER}'/" dist/ai-marketing/coco-marketing-crm-bridge.js
+          sed -i "s/v=3-unified-3g/v=${RUN_VER}/g" dist/ai-marketing-platform.html
           sed -i "s/v=crm-1/v=crm-${HASH}/g" dist/dalia-crm-platform.html
-          sed -i "s/v=3-unified-3[^\"']*/v=${RUN_VER}/g" dist/ai-marketing-platform.html
           test -f dist/index.html || cp public/ai-marketing-platform.html dist/index.html
           test -f dist/404.html || cp dist/index.html dist/404.html
           touch dist/.nojekyll
