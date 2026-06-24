@@ -13,6 +13,13 @@
     base = i >= 0 ? p.substring(0, i) : (p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/'));
   }
   window.COCO_PAGES_BASE = base;
+  var bootParams = new URLSearchParams(location.search);
+  if (bootParams.get('fullscreen') === '1') {
+    try { sessionStorage.setItem('coco-mkt-fullscreen', '1'); } catch (e) { /* ignore */ }
+  }
+  if (window.self !== window.top) {
+    try { sessionStorage.setItem('coco-mkt-embedded', '1'); } catch (e) { /* ignore */ }
+  }
   var b = document.createElement('base');
   b.id = 'coco-pages-base';
   b.href = base.charAt(0) === '/' ? (location.origin + base) : new URL(base, location.href).href;
@@ -20,15 +27,15 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="ui-version" content="v3-unified-3c">
+<meta name="ui-version" content="v3-unified-3d">
 <meta name="build-commit" content="STAGING">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>ניהול שיווק AI – דליה</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-unified-3">
-<link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=3-unified-3c">
-<link rel="stylesheet" href="./ai-marketing/home-prd.css?v=3-unified-3">
+<link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=3-unified-3d">
+<link rel="stylesheet" href="./ai-marketing/home-prd.css?v=3-unified-3d">
 <link rel="stylesheet" href="./crm/dalia-crm.css?v=3-unified-3">
 </head>
 <body>
@@ -50,7 +57,7 @@
 <script>
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-unified-3c';
+  var ver = 'v3-unified-3d';
   document.body.classList.add('coco-boot-active');
   if (root) root.classList.add('coco-boot-active');
 

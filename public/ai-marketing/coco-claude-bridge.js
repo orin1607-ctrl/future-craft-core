@@ -265,6 +265,11 @@
     try {
       var u = new URL(location.href);
       u.searchParams.set('customer', id);
+      try {
+        if (sessionStorage.getItem('coco-mkt-fullscreen') === '1') u.searchParams.set('fullscreen', '1');
+      } catch (e) { /* ignore */ }
+      var ver = u.searchParams.get('v') || (document.querySelector('meta[name="ui-version"]') || {}).content;
+      if (ver) u.searchParams.set('v', ver);
       history.replaceState(null, '', u.pathname + u.search + u.hash);
     } catch (e) { /* ignore */ }
   }

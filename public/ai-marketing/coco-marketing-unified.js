@@ -1,11 +1,11 @@
 /**
  * CO.CO Marketing OS — unified context, CRM, filters, connections, AI routing
- * Single Client ID + shared filters across all 9 hub modules
+ * Single Client ID + shared filters across all 10 hub modules
  */
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-3c';
+  var VERSION = 'v3-unified-3d';
   var SEARCH_KEY = 'coco-mkt-global-search';
   var FILTER_KEY = 'coco-mkt-filter-persist';
 
@@ -96,20 +96,27 @@
 
     ensureCrmTab();
     ensureCrmScreen();
-    ensureCrmHubCard();
-    ensureTopbarCrmButtons();
-    ensureBottomNavCrm();
     ensureConnectionsPanel();
     ensureUnifiedContextBar();
+    removeStrayCrmUi();
+  }
+
+  function removeStrayCrmUi() {
+    document.querySelectorAll('.coco-topbar-crm-btn, #coco-open-crm-btn').forEach(function (el) {
+      el.remove();
+    });
+    document.querySelectorAll('.hub-card.coco-hub-crm-card').forEach(function (card) {
+      card.classList.remove('coco-hub-crm-card');
+    });
+    document.querySelectorAll('.bnav-btn.coco-bnav-crm').forEach(function (btn) {
+      btn.classList.remove('coco-bnav-crm');
+    });
+    if (window.PrdDaliaNav && PrdDaliaNav.stripDaliaExitChrome) PrdDaliaNav.stripDaliaExitChrome();
   }
 
   function openCrm() {
     ensureCrmScreen();
-    ensureTopbarCrmButtons();
-    ensureBottomNavCrm();
     if (typeof goScreen === 'function') goScreen('screen-crm');
-    document.querySelectorAll('.bnav-btn').forEach(function (b) { b.classList.remove('active'); });
-    document.querySelectorAll('.coco-bnav-crm').forEach(function (b) { b.classList.add('active'); });
     if (window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
     logActivity('crm', 'open', 'נפתח CRM ממנהל השיווק');
   }
@@ -125,77 +132,25 @@
       '<div class="topbar">' +
       '<div class="topbar-right">' +
       '<button class="btn-icon" onclick="goScreen(\'screen-hub\')">←</button>' +
-      '<span class="topbar-title" style="font-weight:800">📇 CRM</span>' +
-      '<span style="font-size:11px;color:var(--white50);margin-right:8px;">לקוחות · לידים · משימות · Pipeline</span>' +
+      '<div class="breadcrumb">דליה <span class="sep">›</span> שיווק AI <span class="sep">›</span> <span>CRM</span></div>' +
       '</div>' +
-      '<div class="topbar-left"></div>' +
+      '<div class="topbar-left">' +
+      '<button class="btn-icon" onclick="showDaliaToast()">🏠</button>' +
+      '</div>' +
       '</div>' +
       '<div class="content coco-crm-screen-content">' +
       '<div id="coco-marketing-crm-mount-screen"></div>' +
       '</div>' +
       '<div class="bottom-nav">' +
-      '<div class="bnav-btn" onclick="goScreen(\'screen-hub\')"><div class="icon">🏠</div>ראשי</div>' +
-      '<div class="bnav-btn" onclick="goScreen(\'screen-status\')"><div class="icon">📊</div>מצב</div>' +
-      '<div class="bnav-btn coco-bnav-crm active"><div class="icon">📇</div>CRM</div>' +
-      '<div class="bnav-btn" onclick="goScreen(\'screen-actions\')"><div class="icon">⚙️</div>פעולות</div>' +
-      '<div class="bnav-btn" onclick="goScreen(\'screen-goals\')"><div class="icon">🎯</div>מטרות</div>' +
+      '<div class="bnav-btn" data-screen="screen-hub" onclick="goScreen(\'screen-hub\')"><div class="icon">🏠</div>ראשי</div>' +
+      '<div class="bnav-btn" data-screen="screen-status" onclick="goScreen(\'screen-status\')"><div class="icon">📊</div>מצב</div>' +
+      '<div class="bnav-btn active" data-screen="screen-crm" onclick="openCrmModule()"><div class="icon">📇</div>CRM</div>' +
+      '<div class="bnav-btn" data-screen="screen-actions" onclick="goScreen(\'screen-actions\')"><div class="icon">⚙️</div>פעולות</div>' +
+      '<div class="bnav-btn" data-screen="screen-goals" onclick="goScreen(\'screen-goals\')"><div class="icon">🎯</div>מטרות</div>' +
       '</div>';
     root.appendChild(screen);
     if (!window.screenLabels) window.screenLabels = {};
     window.screenLabels['screen-crm'] = 'CRM';
-    ensureTopbarCrmButtons();
-  }
-
-  function ensureCrmHubCard() {
-    var grid = document.querySelector('#screen-hub .hub-grid');
-    if (!grid || document.getElementById('coco-hub-crm-card')) return;
-    var card = document.createElement('div');
-    card.id = 'coco-hub-crm-card';
-    card.className = 'hub-card coco-hub-crm-card';
-    card.setAttribute('role', 'button');
-    card.tabIndex = 0;
-    card.innerHTML =
-      '<div class="hub-icon">📇</div>' +
-      '<div class="hub-name">CRM</div>' +
-      '<div class="hub-desc">לקוחות · לידים · Pipeline · משימות</div>' +
-      '<div class="hub-count">לחץ לכניסה →</div>';
-    card.addEventListener('click', function () { openCrm(); });
-    card.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCrm(); }
-    });
-    grid.insertBefore(card, grid.firstChild);
-  }
-
-  function ensureTopbarCrmButtons() {
-    document.querySelectorAll('.topbar').forEach(function (tb) {
-      if (tb.querySelector('.coco-topbar-crm-btn')) return;
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn btn-primary coco-topbar-crm-btn';
-      btn.textContent = '📇 CRM';
-      btn.title = 'פתח CRM — לקוחות, לידים, משימות';
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        openCrm();
-      });
-      var right = tb.querySelector('.topbar-right');
-      if (right) right.appendChild(btn);
-      else tb.appendChild(btn);
-    });
-  }
-
-  function ensureBottomNavCrm() {
-    document.querySelectorAll('.bottom-nav').forEach(function (nav) {
-      if (nav.querySelector('.coco-bnav-crm')) return;
-      var btn = document.createElement('div');
-      btn.className = 'bnav-btn coco-bnav-crm';
-      btn.innerHTML = '<div class="icon">📇</div>CRM';
-      btn.addEventListener('click', function () { openCrm(); });
-      var children = nav.children;
-      if (children.length >= 2) nav.insertBefore(btn, children[2]);
-      else nav.appendChild(btn);
-    });
   }
 
   function ensureUnifiedContextBar() {
@@ -207,8 +162,7 @@
     bar.className = 'coco-flow-context-bar coco-unified-bar';
     bar.innerHTML =
       '<div class="cfc-inner" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;font-size:12px;">' +
-      '<button type="button" id="coco-open-crm-btn" class="btn btn-primary" style="font-size:11px;padding:4px 10px;order:-2;">📇 CRM</button>' +
-      '<span id="coco-unified-client-chip" class="cfc-chip" style="cursor:pointer;order:-1;" title="לחץ לפתיחת לקוחות">לקוח: —</span>' +
+      '<span id="coco-unified-client-chip" class="cfc-chip" style="cursor:pointer;" title="לחץ לפתיחת לקוחות">לקוח: —</span>' +
       '<span id="coco-unified-filter-chip" class="cfc-chip">סינון: כללי</span>' +
       '<input id="coco-central-search" class="filter-input" placeholder="🔍 חיפוש חופשי" style="min-width:140px;flex:1;max-width:240px;">' +
       '<select id="coco-central-service" class="filter-select" title="סוג שירות"><option value="">כל השירותים</option><option value="marketing_only">שיווק</option><option value="fleet_and_marketing">שיווק+צי</option></select>' +
@@ -220,9 +174,6 @@
     root.insertBefore(bar, root.firstChild);
 
     document.getElementById('coco-sync-google-btn')?.addEventListener('click', syncGoogle);
-    document.getElementById('coco-open-crm-btn')?.addEventListener('click', function () {
-      openCrm();
-    });
     document.getElementById('coco-unified-client-chip')?.addEventListener('click', function () {
       if (typeof goScreen === 'function') goScreen('screen-clients');
     });
@@ -533,8 +484,7 @@
     var origScreen = CocoClaude.onScreenChange;
     CocoClaude.onScreenChange = function (id) {
       if (typeof origScreen === 'function') origScreen.call(this, id);
-      ensureTopbarCrmButtons();
-      ensureBottomNavCrm();
+      removeStrayCrmUi();
       updateContextBar();
       if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen(id);
       if (id === 'screen-crm' || id === 'screen-clients') {
@@ -558,8 +508,7 @@
     if (!_go) return;
     window.goScreen = function (id) {
       _go(id);
-      ensureTopbarCrmButtons();
-      ensureBottomNavCrm();
+      removeStrayCrmUi();
       updateContextBar();
       if (id === 'screen-crm' && window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
     };

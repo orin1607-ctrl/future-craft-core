@@ -132,9 +132,11 @@
         <div class="hub-desc">הפקה אוטומטית ללקוח</div>
         <div class="hub-count">6 סוגי דוחות</div>
       </div>
-        <div class="hub-name">הנכסים הדיגיטליים</div>
-        <div class="hub-desc">שליטה בכל הנכסים</div>
-        <div class="hub-count">9 נכסים מחוברים</div>
+      <div class="hub-card" id="coco-hub-crm-card" onclick="openCrmModule()">
+        <div class="hub-icon">📇</div>
+        <div class="hub-name">CRM</div>
+        <div class="hub-desc">לקוחות · לידים · משימות · Pipeline</div>
+        <div class="hub-count" id="coco-hub-crm-count">—</div>
       </div>
     </div>
 
@@ -150,10 +152,11 @@
   </div>
 
   <div class="bottom-nav">
-    <div class="bnav-btn active" onclick="goScreen('screen-hub')"><div class="icon">🏠</div>ראשי</div>
-    <div class="bnav-btn" onclick="goScreen('screen-status')"><div class="icon">📊</div>מצב</div>
-    <div class="bnav-btn" onclick="goScreen('screen-actions')"><div class="icon">⚙️</div>פעולות</div>
-    <div class="bnav-btn" onclick="goScreen('screen-goals')"><div class="icon">🎯</div>מטרות</div>
+    <div class="bnav-btn active" data-screen="screen-hub" onclick="goScreen('screen-hub')"><div class="icon">🏠</div>ראשי</div>
+    <div class="bnav-btn" data-screen="screen-status" onclick="goScreen('screen-status')"><div class="icon">📊</div>מצב</div>
+    <div class="bnav-btn" data-screen="screen-crm" onclick="openCrmModule()"><div class="icon">📇</div>CRM</div>
+    <div class="bnav-btn" data-screen="screen-actions" onclick="goScreen('screen-actions')"><div class="icon">⚙️</div>פעולות</div>
+    <div class="bnav-btn" data-screen="screen-goals" onclick="goScreen('screen-goals')"><div class="icon">🎯</div>מטרות</div>
   </div>
 </div>
 

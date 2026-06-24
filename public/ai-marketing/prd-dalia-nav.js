@@ -5,8 +5,24 @@
   'use strict';
 
   var params = new URLSearchParams(location.search);
-  var isFullscreen = params.get('fullscreen') === '1';
-  var isEmbedded = window.self !== window.top;
+
+  function isFullscreenMode() {
+    if (params.get('fullscreen') === '1') return true;
+    try { return sessionStorage.getItem('coco-mkt-fullscreen') === '1'; } catch (e) { return false; }
+  }
+
+  function isEmbeddedMode() {
+    if (window.self !== window.top) return true;
+    if (params.get('embedded') === '1') return true;
+    try { return sessionStorage.getItem('coco-mkt-embedded') === '1'; } catch (e) { return false; }
+  }
+
+  function stripDaliaExitChrome() {
+    if (!isFullscreenMode() && !isEmbeddedMode()) return;
+    document.querySelectorAll('.topbar .prd-dalia-exit, .prd-dalia-bar').forEach(function (el) {
+      el.remove();
+    });
+  }
 
   function getDaliaBase() {
     if (window.DALIA_APP_BASE) return window.DALIA_APP_BASE;
@@ -26,12 +42,12 @@
   }
 
   function exitToDalia() {
-    if (isEmbedded || isFullscreen) {
+    if (isEmbeddedMode() || isFullscreenMode()) {
       try {
         window.parent.postMessage({ type: 'dalia-coco-exit', path: '/admin-home' }, '*');
       } catch (e) { /* ignore */ }
     }
-    if (!isEmbedded) {
+    if (!isEmbeddedMode()) {
       location.href = getDaliaHomeUrl();
     }
   }
@@ -96,11 +112,13 @@
 
   function init() {
     document.body.classList.add('prd-dalia-nav-ready');
-    if (isFullscreen) document.body.classList.add('prd-dalia-fullscreen');
-    if (isEmbedded) document.body.classList.add('prd-dalia-embedded');
-    injectTopbarDaliaBtn();
-    if (!isFullscreen && !isEmbedded) {
+    if (isFullscreenMode()) document.body.classList.add('prd-dalia-fullscreen');
+    if (isEmbeddedMode()) document.body.classList.add('prd-dalia-embedded');
+    if (!isFullscreenMode() && !isEmbeddedMode()) {
+      injectTopbarDaliaBtn();
       injectScreenDaliaBar();
+    } else {
+      stripDaliaExitChrome();
     }
 
     var origGo = window.goScreen;
@@ -125,6 +143,7 @@
     exitToDalia: exitToDalia,
     getDaliaHomeUrl: getDaliaHomeUrl,
     updateScreenLabels: updateScreenLabels,
+    stripDaliaExitChrome: stripDaliaExitChrome,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

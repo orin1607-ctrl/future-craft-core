@@ -7,16 +7,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3c';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3d';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');
 const baseUrl = process.env.QA_BASE_URL || (useStaging ? STAGING_BASE : 'http://127.0.0.1:8888');
 const pageUrl = useStaging
-  ? `${STAGING_BASE}/ai-marketing-platform.html?v=${EXPECT_VERSION}`
+  ? `${STAGING_BASE}/ai-marketing-platform.html?fullscreen=1&v=${EXPECT_VERSION}`
   : (process.env.QA_BASE_URL
-    ? `${baseUrl}/ai-marketing-platform.html?v=${EXPECT_VERSION}`
-    : pathToFileURL(localHtml).href + `?v=${EXPECT_VERSION}`);
+    ? `${baseUrl}/ai-marketing-platform.html?fullscreen=1&v=${EXPECT_VERSION}`
+    : pathToFileURL(localHtml).href + `?fullscreen=1&v=${EXPECT_VERSION}`);
 
 const FLOW_CHAIN = [
   'screen-hub', 'screen-status', 'screen-clients', 'screen-goals', 'screen-actions',
@@ -77,6 +77,9 @@ async function runViewport(browser, name, viewport) {
     userAgent: name === 'mobile' ? devices['iPhone 13'].userAgent : undefined,
     isMobile: name === 'mobile',
     hasTouch: name === 'mobile'
+  });
+  await context.addInitScript(() => {
+    try { sessionStorage.setItem('coco-mkt-fullscreen', '1'); } catch (e) { /* ignore */ }
   });
   const page = await context.newPage();
 
@@ -183,12 +186,12 @@ async function runViewport(browser, name, viewport) {
     const cards = Array.from(document.querySelectorAll('#screen-hub .module-card, #screen-hub .hub-card'));
     return cards.length;
   });
-  hubCards >= 8 ? pass(`hub-cards:${hubCards}`, name) : fail(`hub cards expected >=8 got ${hubCards}`, name);
+  hubCards >= 10 ? pass(`hub-cards:${hubCards}`, name) : fail(`hub cards expected >=10 got ${hubCards}`, name);
 
   // Unified OS: context bar + Client ID across all hub modules
   const unifiedTest = await page.evaluate(() => {
     var screens = ['screen-hub', 'screen-status', 'screen-clients', 'screen-goals', 'screen-actions',
-      'screen-history', 'screen-assets', 'screen-ai-decisions', 'screen-reports', 'screen-agents'];
+      'screen-history', 'screen-assets', 'screen-ai-decisions', 'screen-reports', 'screen-agents', 'screen-crm'];
     var barOk = true;
     var clientId = null;
     var clientIdStable = true;
@@ -217,20 +220,24 @@ async function runViewport(browser, name, viewport) {
   var crmBtn = await page.evaluate(function () {
     return !!document.getElementById('coco-open-crm-btn');
   });
-  crmBtn ? pass('unified:crm-in-marketing-bar', name) : fail('unified:crm button missing from marketing bar', name);
+  if (!crmBtn) pass('unified:no-corner-crm-btn', name);
+  else fail('unified:corner crm button should be removed', name);
 
   var topbarCrm = await page.evaluate(function () {
     return !!document.querySelector('.coco-topbar-crm-btn');
   });
-  topbarCrm ? pass('unified:crm-topbar-btn', name) : fail('unified:crm topbar button missing', name);
+  if (!topbarCrm) pass('unified:no-topbar-crm-btn', name);
+  else fail('unified:topbar crm button should be removed', name);
 
   var hubCrm = await page.evaluate(function () {
-    return !!document.getElementById('coco-hub-crm-card');
+    var card = document.getElementById('coco-hub-crm-card');
+    return !!(card && card.classList.contains('hub-card') && !card.classList.contains('coco-hub-crm-card'));
   });
-  hubCrm ? pass('unified:crm-hub-card', name) : fail('unified:crm hub card missing', name);
+  hubCrm ? pass('unified:crm-hub-card-10th', name) : fail('unified:crm hub card missing or wrong style', name);
 
   var crmScreen = await page.evaluate(function () {
-    if (window.CocoUnified && CocoUnified.openCrm) CocoUnified.openCrm();
+    if (typeof openCrmModule === 'function') openCrmModule();
+    else if (window.CocoUnified && CocoUnified.openCrm) CocoUnified.openCrm();
     return !!document.getElementById('screen-crm') && document.getElementById('screen-crm').classList.contains('active');
   });
   crmScreen ? pass('unified:crm-screen-opens', name) : fail('unified:crm screen did not open', name);
@@ -249,9 +256,17 @@ async function runViewport(browser, name, viewport) {
 
     const crmBnav = await page.evaluate(function () {
       window.goScreen('screen-hub');
-      return !!document.querySelector('.coco-bnav-crm');
+      var btn = document.querySelector('.bottom-nav .bnav-btn[data-screen="screen-crm"]');
+      return !!btn && !btn.classList.contains('coco-bnav-crm');
     });
     crmBnav ? pass('mobile:crm-bottom-nav', name) : fail('mobile:crm bottom nav missing', name);
+
+    const noDaliaMid = await page.evaluate(function () {
+      var el = document.querySelector('.topbar .prd-dalia-exit');
+      if (!el) return true;
+      return getComputedStyle(el).display === 'none' || el.offsetParent === null;
+    });
+    noDaliaMid ? pass('mobile:no-mid-exit-btn', name) : fail('mobile:חזרה לדליה in topbar', name);
   }
 
   // Filter persistence across modules

@@ -3,6 +3,18 @@ function goScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) { el.classList.add('active'); el.querySelector('.content')?.scrollTo(0,0); }
+  document.querySelectorAll('.bottom-nav .bnav-btn').forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-screen') === id);
+  });
+}
+
+function openCrmModule() {
+  if (window.CocoUnified && typeof CocoUnified.openCrm === 'function') {
+    CocoUnified.openCrm();
+    return;
+  }
+  goScreen('screen-crm');
+  if (window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
 }
 
 // ===== TABS =====

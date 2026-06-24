@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, '../docs/screenshots/crm-visible-proof');
 const URL = process.env.VERIFY_URL
-  || 'https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?fullscreen=1&v=v3-unified-3c';
+  || 'https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?fullscreen=1&v=v3-unified-3d';
 
 import fs from 'fs';
 fs.mkdirSync(OUT, { recursive: true });
@@ -32,9 +32,15 @@ for (const vp of viewports) {
   const entry = await page.evaluate(() => ({
     version: document.querySelector('meta[name=ui-version]')?.content,
     hubCard: !!document.getElementById('coco-hub-crm-card'),
+    hubCardStandard: (() => {
+      const c = document.getElementById('coco-hub-crm-card');
+      return !!(c && c.classList.contains('hub-card') && !c.classList.contains('coco-hub-crm-card'));
+    })(),
     topbarBtn: !!document.querySelector('.coco-topbar-crm-btn'),
     contextBtn: !!document.getElementById('coco-open-crm-btn'),
-    bottomNav: !!document.querySelector('.coco-bnav-crm'),
+    bottomNav: !!document.querySelector('.bottom-nav .bnav-btn[data-screen="screen-crm"]'),
+    midExit: !!document.querySelector('.topbar .prd-dalia-exit'),
+    hubCount: document.querySelectorAll('#screen-hub .hub-card').length,
   }));
 
   await page.screenshot({ path: path.join(OUT, `${vp.name}-01-hub-entry.png`) });
