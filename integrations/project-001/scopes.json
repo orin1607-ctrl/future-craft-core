@@ -11,7 +11,9 @@
     "https://www.googleapis.com/auth/script.deployments",
     "https://www.googleapis.com/auth/script.scriptapp",
     "https://www.googleapis.com/auth/business.manage",
-    "https://www.googleapis.com/auth/adwords",
+    "https://www.googleapis.com/auth/adwords"
+  ],
+  "optional_scopes": [
     "https://www.googleapis.com/auth/tagmanager.readonly"
   ],
   "required_gcp_apis": [

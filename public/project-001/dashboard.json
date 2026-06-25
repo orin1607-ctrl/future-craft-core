@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-06-25T06:09:02.454Z",
+  "generatedAt": "2026-06-25T06:34:27.560Z",
   "project": {
     "id": "project001aimarketing",
     "name": "Project001AIMarketing",
@@ -9,7 +9,7 @@
     "ga4Property": "properties/427711798"
   },
   "token": {
-    "ok": false,
+    "ok": true,
     "scopeCount": 20,
     "hasRefresh": true,
     "expiry": "2026-06-25T06:50:38.801Z"
@@ -193,7 +193,7 @@
   },
   "dataSource": "sheets",
   "lastSync": {
-    "timestamp": "2026-06-25T05:50:47.551Z",
+    "timestamp": "2026-06-25T06:33:52.994Z",
     "ok": true,
     "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
     "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
@@ -638,6 +638,20 @@
   "history": {
     "sync": [
       {
+        "id": "sync-1782369232999",
+        "timestamp": "2026-06-25T06:33:53.000Z",
+        "ok": true,
+        "gsc_queries": 10,
+        "gsc_pages": 18,
+        "ga4_daily": 148,
+        "ga4_pages": 48,
+        "date_range": {
+          "start": "2026-03-26",
+          "end": "2026-06-23"
+        },
+        "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+      },
+      {
         "id": "sync-1782366647555",
         "timestamp": "2026-06-25T05:50:47.555Z",
         "ok": true,
@@ -737,6 +751,32 @@
       }
     ],
     "ai": [
+      {
+        "id": "ai-1782369267552",
+        "timestamp": "2026-06-25T06:34:27.552Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
+        "id": "ai-1782369122370",
+        "timestamp": "2026-06-25T06:32:02.370Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
       {
         "id": "ai-1782367742440",
         "timestamp": "2026-06-25T06:09:02.441Z",
@@ -840,50 +880,31 @@
             "status": "recommendation_only"
           }
         ]
-      },
-      {
-        "id": "ai-1781960051533",
-        "timestamp": "2026-06-20T12:54:11.533Z",
-        "count": 1,
-        "items": [
-          {
-            "priority": "low",
-            "title": "ממתין לנתוני GSC",
-            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
-            "status": "recommendation_only"
-          }
-        ]
-      },
-      {
-        "id": "ai-1781959643192",
-        "timestamp": "2026-06-20T12:47:23.192Z",
-        "count": 1,
-        "items": [
-          {
-            "priority": "low",
-            "title": "ממתין לנתוני GSC",
-            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
-            "status": "recommendation_only"
-          }
-        ]
       }
     ],
     "drafts": []
   },
   "activityLog": [
     {
-      "timestamp": "2026-06-25T05:50:47.555Z",
+      "timestamp": "2026-06-25T06:33:53.000Z",
       "action": "Sync",
       "status": "success",
       "detail": "GSC 10 queries · GA4 148 days",
       "source": "Project001 Sync → Google Sheets"
     },
     {
-      "timestamp": "2026-06-25T05:50:47.551Z",
+      "timestamp": "2026-06-25T06:33:52.994Z",
       "action": "Data sync",
       "status": "success",
       "detail": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
       "source": "Google Sheets"
+    },
+    {
+      "timestamp": "2026-06-25T05:50:47.555Z",
+      "action": "Sync",
+      "status": "success",
+      "detail": "GSC 10 queries · GA4 148 days",
+      "source": "Project001 Sync → Google Sheets"
     },
     {
       "timestamp": "2026-06-25T05:04:48.754Z",

@@ -75,7 +75,7 @@
 |-----|-----|
 | **חשבון** | `orin1607@gmail.com` |
 | **הפעל API** | https://console.cloud.google.com/apis/library/tagmanager.googleapis.com?project=project001aimarketing |
-| **OAuth מחדש** | בטרמינל: `npm run project-001:auth -- --force` (מוסיף scope `tagmanager.readonly`) |
+| **OAuth מחדש** | בטרמינל: `npm run project-001:auth -- --force` (מוסיף scope אופציונלי `tagmanager.readonly` — **לא חוסם** GSC/GA4) |
 | **בדיקה** | `npm run project-001:gtm-probe` |
 | **סנכרון** | `npm run project-001:export-dashboard` (אחרי probe מוצלח) |
 | **מצב נוכחי** | קוד sync מוכן (`scripts/project-001/_lib/gtm.mjs`) · חסר scope ב-token הקיים |

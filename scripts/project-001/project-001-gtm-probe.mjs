@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'fs';
 import { getAuthenticatedClient } from '../google/_lib/auth.mjs';
-import { getP001Scopes } from './_lib/auth.mjs';
+import { getP001Scopes, tokenHasOptionalScope } from './_lib/auth.mjs';
 import { P001 } from './_lib/config.mjs';
 import { gtmOAuthStatus, probeGtm } from './_lib/gtm.mjs';
 
@@ -28,7 +28,7 @@ async function main() {
     process.exit(1);
   }
 
-  if (!oauth.hasTagManagerScope) {
+  if (!tokenHasOptionalScope('tagmanager')) {
     report.errors.push({
       step: 'oauth',
       message: 'Missing tagmanager.readonly scope — run npm run project-001:auth -- --force',
