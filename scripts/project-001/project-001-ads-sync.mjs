@@ -153,7 +153,7 @@ async function main() {
 
   mkdirSync(P001.auditOut, { recursive: true });
   writeFileSync(`${P001.auditOut}/ads-sync.json`, JSON.stringify(report, null, 2));
-  saveProbeFromSync(report);
+  // Probe snapshot lives in ads-probe.json — only updated by project-001-ads-probe.mjs
 
   await writeAdsSheets(auth, google, cfg, report);
 

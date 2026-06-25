@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-06-25T06:05:05.365Z",
+  "generatedAt": "2026-06-25T06:09:02.454Z",
   "project": {
     "id": "project001aimarketing",
     "name": "Project001AIMarketing",
@@ -31,9 +31,9 @@
       "note": "Pending Google API Approval — Basic API Access (quota=0). לא חוסם את הפרויקט."
     },
     "googleAds": {
-      "status": "disconnected",
+      "status": "pending_production_access",
       "ok": false,
-      "note": "HTTP 403: The caller does not have permission (test token or MCC login-customer-id)"
+      "note": "Developer Token Test — בקש Basic/Standard access ב-API Center או הגדר GOOGLE_ADS_LOGIN_CUSTOMER_ID"
     },
     "googleTagManager": {
       "status": "pending_oauth_scope",
@@ -119,8 +119,8 @@
     }
   },
   "googleAds": {
-    "ok": false,
-    "status": "disconnected",
+    "ok": true,
+    "status": "pending_production_access",
     "pendingToken": false,
     "customerId": "8957638890",
     "lastError": "HTTP 403: The caller does not have permission (test token or MCC login-customer-id)",
@@ -142,7 +142,7 @@
   },
   "googleAdsData": {
     "ok": false,
-    "status": "disconnected",
+    "status": "pending_production_access",
     "pendingToken": false,
     "syncedAt": "2026-06-25T06:04:59.216Z",
     "customerId": "8957638890",
@@ -737,6 +737,19 @@
       }
     ],
     "ai": [
+      {
+        "id": "ai-1782367742440",
+        "timestamp": "2026-06-25T06:09:02.441Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
       {
         "id": "ai-1782367505355",
         "timestamp": "2026-06-25T06:05:05.355Z",

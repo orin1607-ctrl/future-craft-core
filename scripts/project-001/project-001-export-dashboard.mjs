@@ -71,7 +71,7 @@ function resolveAdsConnection(adsProbe, adsSync) {
       note: adsSync.summary.customerName || adsSync.customerId || null,
     };
   }
-  if (adsProbe?.ok && (adsProbe?.accessible_customers?.length || 0) > 0) {
+  if ((adsProbe?.accessible_customers?.length || 0) > 0 || adsProbe?.ok) {
     const has403 = (adsSync?.errors || []).some((e) =>
       String(e.message || e.error || '').includes('403'),
     );

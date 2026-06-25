@@ -1,38 +1,22 @@
 {
-  "timestamp": "2026-06-25T06:04:59.216Z",
-  "ok": false,
-  "gcp_project_id": null,
+  "timestamp": "2026-06-25T06:08:55.910Z",
+  "gcp_project_id": "project001aimarketing",
+  "ok": true,
   "developer_token_set": true,
+  "customer_id": "8957638890",
+  "login_customer_id": "5523570429",
+  "oauth_adwords_scope": true,
   "accessible_customers": [
     "customers/4449261832",
     "customers/8957638890",
     "customers/5523570429"
   ],
-  "customer_id": "8957638890",
-  "summary": {
-    "ok": false,
-    "customerId": "8957638890",
-    "customerName": null,
-    "campaignCount": 0,
-    "keywordCount": 0,
-    "impressions": 0,
-    "clicks": 0,
-    "cost": 0,
-    "conversions": 0,
-    "ctr": 0,
-    "cpc": 0,
-    "daysSynced": 0,
-    "currency": "ILS"
-  },
-  "errors": [
-    {
-      "step": "customer",
-      "message": "HTTP 403: The caller does not have permission (test token or MCC login-customer-id)"
-    }
-  ],
-  "owner_gate": {
-    "id": "ads_token_test_or_mcc",
-    "url": "https://ads.google.com/aw/apicenter",
-    "note": "403 Permission — Developer Token כנראה ברמת Test (דורש חשבון test) או חסר GOOGLE_ADS_LOGIN_CUSTOMER_ID ל-MCC. בקש Basic/Standard access ב-API Center."
+  "errors": [],
+  "owner_gate": null,
+  "prep": {
+    "oauth_scope_adwords": true,
+    "gcp_ads_api": "googleads.googleapis.com",
+    "env_file": ".env.ads",
+    "next_command_after_token": "npm run project-001:ads-connect"
   }
 }
