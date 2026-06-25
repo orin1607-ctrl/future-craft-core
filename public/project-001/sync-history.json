@@ -1,5 +1,61 @@
 [
   {
+    "id": "sync-1782366647555",
+    "timestamp": "2026-06-25T05:50:47.555Z",
+    "ok": true,
+    "gsc_queries": 10,
+    "gsc_pages": 18,
+    "ga4_daily": 148,
+    "ga4_pages": 48,
+    "date_range": {
+      "start": "2026-03-26",
+      "end": "2026-06-23"
+    },
+    "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+  },
+  {
+    "id": "sync-1782363888754",
+    "timestamp": "2026-06-25T05:04:48.754Z",
+    "ok": true,
+    "gsc_queries": 10,
+    "gsc_pages": 18,
+    "ga4_daily": 148,
+    "ga4_pages": 48,
+    "date_range": {
+      "start": "2026-03-26",
+      "end": "2026-06-23"
+    },
+    "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+  },
+  {
+    "id": "sync-1782363735232",
+    "timestamp": "2026-06-25T05:02:15.232Z",
+    "ok": true,
+    "gsc_queries": 10,
+    "gsc_pages": 18,
+    "ga4_daily": 148,
+    "ga4_pages": 48,
+    "date_range": {
+      "start": "2026-03-26",
+      "end": "2026-06-23"
+    },
+    "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+  },
+  {
+    "id": "sync-1782361475973",
+    "timestamp": "2026-06-25T04:24:35.973Z",
+    "ok": true,
+    "gsc_queries": 10,
+    "gsc_pages": 18,
+    "ga4_daily": 148,
+    "ga4_pages": 48,
+    "date_range": {
+      "start": "2026-03-26",
+      "end": "2026-06-23"
+    },
+    "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+  },
+  {
     "id": "sync-1782072191753",
     "timestamp": "2026-06-21T20:03:11.753Z",
     "ok": true,
