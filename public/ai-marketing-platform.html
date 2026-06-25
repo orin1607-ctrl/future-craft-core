@@ -27,7 +27,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="ui-version" content="v3-unified-3i">
+<meta name="ui-version" content="v3-unified-3j">
 <meta name="build-commit" content="STAGING">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -57,10 +57,10 @@
 <script>
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-unified-3i';
+  var ver = 'v3-unified-3j';
   try {
     var bootB = new URLSearchParams(location.search).get('b');
-    if (bootB) ver = 'v3-unified-3i-' + bootB.slice(0, 12);
+    if (bootB) ver = 'v3-unified-3j-' + bootB.slice(0, 12);
     else {
       var bootV = new URLSearchParams(location.search).get('v');
       if (bootV) ver = bootV;

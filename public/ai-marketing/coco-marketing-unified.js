@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-3i';
+  var VERSION = 'v3-unified-3j';
   var SEARCH_KEY = 'coco-mkt-global-search';
   var FILTER_KEY = 'coco-mkt-filter-persist';
 
@@ -333,7 +333,7 @@
       var rows = Object.keys(data.providers || {}).map(function (k) {
         var p = data.providers[k];
         var st = p.status || 'unknown';
-        var cls = /connected|ready/.test(st) ? 'badge-green' : /pending|missing/.test(st) ? 'badge-yellow' : 'badge-gray';
+        var cls = /connected|ready|oauth_ready/.test(st) ? 'badge-green' : /pending|missing|not_implemented/.test(st) ? 'badge-yellow' : 'badge-gray';
         return '<div class="card" style="padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">' +
           '<span>' + esc(k) + '</span><span class="badge ' + cls + '">' + esc(st) + '</span></div>' +
           (p.note ? '<div style="font-size:11px;color:var(--white50);margin:-4px 0 8px 8px;">' + esc(p.note) + '</div>' : '');
@@ -457,8 +457,31 @@
       }
     }
 
+    if (opts.provider === 'claude') {
+      var cUrl = edgeUrl('marketing-claude-chat') || (staging().marketingClaudeChatUrl);
+      if (cUrl && s.accessToken) {
+        return fetch(cUrl, {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + s.accessToken, 'Content-Type': 'application/json', apikey: s.anonKey || '' },
+          body: JSON.stringify(body),
+        }).then(function (r) { return r.json(); });
+      }
+      return Promise.resolve({ ok: false, message: 'ממתין לחיבור — ANTHROPIC_API_KEY חסר בשרת' });
+    }
+
+    if (opts.provider === 'openai' || !opts.provider) {
+      var oUrl = edgeUrl('marketing-ai-chat') || (staging().marketingChatUrl);
+      if (oUrl && s.accessToken) {
+        return fetch(oUrl, {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + s.accessToken, 'Content-Type': 'application/json', apikey: s.anonKey || '' },
+          body: JSON.stringify(body),
+        }).then(function (r) { return r.json(); });
+      }
+    }
+
     if (window.marketingApiChat) return window.marketingApiChat(body);
-    return Promise.resolve({ ok: false, message: 'AI לא זמין' });
+    return Promise.resolve({ ok: false, message: 'ממתין לחיבור — התחבר דרך דליה (Super Admin)' });
   }
 
   function onAuthReady() {

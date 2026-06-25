@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3i';
+const EXPECT_VERSION = process.env.QA_EXPECT_VERSION || 'v3-unified-3j';
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const localHtml = path.resolve(__dirname, '../public/ai-marketing-platform.html');
 const useStaging = process.env.QA_STAGING === '1' || process.argv.includes('--staging');

@@ -11,7 +11,7 @@
 
   var AI_ENGINES = [
     { id: 'openai', label: 'OpenAI (ChatGPT)', icon: '🟢', wired: true, apiEnabled: true, reason: 'Edge marketing-ai-chat' },
-    { id: 'claude', label: 'Claude', icon: '🟣', wired: true, apiEnabled: false, reason: 'ממתין למפתח Anthropic' },
+    { id: 'claude', label: 'Claude', icon: '🟣', wired: true, apiEnabled: false, reason: 'ממתין ל-ANTHROPIC_API_KEY בשרת' },
     { id: 'gemini', label: 'Gemini', icon: '🔵', wired: true, apiEnabled: true, reason: 'Edge marketing-gemini-chat' },
   ];
 

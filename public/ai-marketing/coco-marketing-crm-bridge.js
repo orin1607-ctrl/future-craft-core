@@ -16,7 +16,7 @@
   }
 
   function assetUrl(rel) {
-    var ver = (window.CocoUnified && CocoUnified.version) || 'v3-unified-3i';
+    var ver = (window.CocoUnified && CocoUnified.version) || 'v3-unified-3j';
     var base = window.COCO_PAGES_BASE || '/future-craft-core/';
     if (base.charAt(0) !== '/') base = '/' + base.replace(/^\.\//, '');
     return location.origin + base + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);

@@ -135,16 +135,22 @@ Deno.serve(async (req) => {
         note: adsToken ? "" : "GOOGLE_ADS_DEVELOPER_TOKEN חסר",
       },
       google_business: { status: "pending_google_api_approval", note: "ממתין לאישור Google API" },
-      google_tag_manager: { status: hasGoogleCreds ? "ready" : "missing_credentials" },
-      gmail: { status: hasGoogleCreds ? "ready" : "missing_credentials" },
-      google_workspace: { status: hasGoogleCreds ? "ready" : "missing_credentials" },
+      google_tag_manager: { status: "pending_not_implemented", note: "אין סנכרון GTM API בקוד" },
+      gmail: { status: "pending_not_implemented", note: "אין סנכרון Gmail API בקוד" },
+      google_workspace: { status: hasGoogleCreds ? "oauth_ready" : "missing_credentials", note: "OAuth בלבד — ללא sync" },
+      google_sheets: { status: hasGoogleCreds ? "oauth_ready" : "missing_credentials", note: "CLI בלבד — project-001-sync" },
+      google_drive: { status: hasGoogleCreds ? "oauth_ready" : "missing_credentials", note: "CLI בלבד" },
+      google_docs: { status: hasGoogleCreds ? "oauth_ready" : "missing_credentials", note: "CLI probe בלבד" },
       openai: {
         status: Deno.env.get("MARKETING_OPENAI_API_KEY") || Deno.env.get("OPENAI_API_KEY") ? "connected" : "missing",
       },
       gemini: {
         status: Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") ? "connected" : "missing",
       },
-      claude: { status: "not_configured", note: "Anthropic API לא מוגדר — ניתן להשתמש ב-OpenAI" },
+      claude: {
+        status: Deno.env.get("ANTHROPIC_API_KEY") || Deno.env.get("MARKETING_ANTHROPIC_API_KEY") ? "connected" : "missing",
+        note: "Edge marketing-claude-chat",
+      },
     };
 
     if (action === "status") {
