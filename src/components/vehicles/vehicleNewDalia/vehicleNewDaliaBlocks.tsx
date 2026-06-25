@@ -1,6 +1,9 @@
 import { cloneElement, isValidElement, useState, type ChangeEvent, type ReactElement, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequiredFieldsOptional } from '@/contexts/RequiredFieldsContext';
+import { isFieldRequired } from '@/lib/requiredFieldsValidate';
+import type { RequiredFieldModule } from '@/lib/requiredFieldsSchema';
 import { uploadDocument } from '@/lib/uploadDocument';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { useDaliaFormValues } from './DaliaFormValuesContext';
@@ -40,7 +43,7 @@ function bindControl(
 export function Fld({
   label,
   name,
-  required,
+  moduleKey = 'vehicles',
   type = 'text',
   children,
   className = '',
@@ -48,7 +51,8 @@ export function Fld({
 }: {
   label: string;
   name?: string;
-  required?: boolean;
+  /** מודול לניהול שדות חובה מרכזי */
+  moduleKey?: RequiredFieldModule;
   type?: string;
   children?: ReactNode;
   className?: string;
@@ -56,14 +60,20 @@ export function Fld({
   defaultValue?: string;
 }) {
   const form = useDaliaFormValues();
+  const requiredFields = useRequiredFieldsOptional();
   const fieldName = name ?? '';
+  const isReq =
+    fieldName &&
+    (requiredFields
+      ? requiredFields.isFieldRequired(moduleKey, fieldName)
+      : isFieldRequired(moduleKey, fieldName));
 
   if (form && fieldName) {
     const value = form.getValue(fieldName) || defaultValue || '';
     const onChange = (v: string) => form.setValue(fieldName, v);
 
     return (
-      <div className={`d-fld ${required ? 'd-required' : ''} ${className}`}>
+      <div className={`d-fld ${isReq ? 'd-required' : ''} ${className}`}>
         <label>{label}</label>
         {children
           ? isValidElement(children)
@@ -77,7 +87,7 @@ export function Fld({
   }
 
   return (
-    <div className={`d-fld ${required ? 'd-required' : ''} ${className}`}>
+    <div className={`d-fld ${isReq ? 'd-required' : ''} ${className}`}>
       <label>{label}</label>
       {children ?? <input name={name} type={type} defaultValue={defaultValue} />}
     </div>

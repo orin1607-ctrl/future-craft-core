@@ -1,0 +1,20 @@
+{
+  "at": "2026-06-25T13:43:40.803Z",
+  "passed": [
+    "file:src/lib/requiredFieldsSchema.ts",
+    "file:src/lib/requiredFieldsApi.ts",
+    "file:src/lib/requiredFieldsValidate.ts",
+    "file:src/contexts/RequiredFieldsContext.tsx",
+    "file:src/pages/RequiredFieldsSettings.tsx",
+    "file:supabase/migrations/20260626120000_dalia_form_config.sql",
+    "schema:comprehensive-optional-default",
+    "schema:third-party-fields",
+    "blocks:fld-context",
+    "app:route",
+    "app:provider",
+    "route-access",
+    "admin-home",
+    "persist:validation"
+  ],
+  "failed": []
+}

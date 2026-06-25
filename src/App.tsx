@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { RequiredFieldsProvider } from "@/contexts/RequiredFieldsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CompanyScopeProvider } from "@/contexts/CompanyScopeContext";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -68,6 +69,7 @@ import DevFleetOSSettingsPreview from "@/pages/DevFleetOSSettingsPreview";
 import Project001Dashboard from "@/pages/Project001Dashboard";
 import AiMarketingPage from "@/pages/AiMarketingPage";
 import DaliaCrmPage from "@/pages/DaliaCrmPage";
+import RequiredFieldsSettings from "@/pages/RequiredFieldsSettings";
 
 // New pages
 import Companions from "@/pages/Companions";
@@ -177,6 +179,7 @@ function AppRoutes() {
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />
         <Route path="/vehicle-tracking" element={<VehicleTracking />} />
         <Route path="/admin-home" element={<AdminHome />} />
+        <Route path="/required-fields" element={<RequiredFieldsSettings />} />
         <Route path="/fleet-managers" element={<FleetManagers />} />
         <Route path="/vehicles" element={<Vehicles />} />
         <Route path="/drivers" element={<Drivers />} />
@@ -249,10 +252,12 @@ const App = () => (
         <Sonner />
         <BrowserRouter basename={import.meta.env.BASE_URL}>
           <AuthProvider>
-            <CompanyScopeProvider>
-              <ThemeToggle />
-              <AppRoutes />
-            </CompanyScopeProvider>
+            <RequiredFieldsProvider>
+              <CompanyScopeProvider>
+                <ThemeToggle />
+                <AppRoutes />
+              </CompanyScopeProvider>
+            </RequiredFieldsProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
