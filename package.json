@@ -37,6 +37,7 @@
     "project-001:gcp-audit": "node scripts/project-001/project-001-gcp-audit.mjs",
     "project-001:openai-probe": "node scripts/project-001/project-001-openai-probe.mjs",
     "project-001:gbp-probe": "node scripts/project-001/project-001-gbp-probe.mjs",
+    "project-001:gtm-probe": "node scripts/project-001/project-001-gtm-probe.mjs",
     "project-001:gbp-sync": "node scripts/project-001/project-001-gbp-sync.mjs",
     "project-001:connections": "node scripts/project-001/project-001-connections-probe.mjs",
     "project-001:migrate": "node scripts/project-001/project-001-migrate.mjs",

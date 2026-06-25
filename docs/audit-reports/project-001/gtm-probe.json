@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-06-25T06:04:56.882Z",
+  "ok": false,
+  "oauth": {
+    "hasTagManagerScope": false,
+    "requiredScope": "https://www.googleapis.com/auth/tagmanager.readonly"
+  },
+  "hasTagManagerScope": false,
+  "requiredScope": "https://www.googleapis.com/auth/tagmanager.readonly",
+  "accounts": [],
+  "containers": [],
+  "errors": [
+    {
+      "step": "oauth",
+      "message": "Missing tagmanager.readonly scope — run npm run project-001:auth -- --force"
+    }
+  ],
+  "owner_gate": {
+    "directLink": "https://console.cloud.google.com/apis/library/tagmanager.googleapis.com?project=project001aimarketing",
+    "reauthCommand": "npm run project-001:auth -- --force",
+    "scope": "https://www.googleapis.com/auth/tagmanager.readonly"
+  }
+}

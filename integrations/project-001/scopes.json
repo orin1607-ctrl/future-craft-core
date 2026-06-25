@@ -11,7 +11,8 @@
     "https://www.googleapis.com/auth/script.deployments",
     "https://www.googleapis.com/auth/script.scriptapp",
     "https://www.googleapis.com/auth/business.manage",
-    "https://www.googleapis.com/auth/adwords"
+    "https://www.googleapis.com/auth/adwords",
+    "https://www.googleapis.com/auth/tagmanager.readonly"
   ],
   "required_gcp_apis": [
     { "id": "searchconsole.googleapis.com", "name": "Google Search Console API" },
@@ -28,7 +29,8 @@
     { "id": "businessprofileperformance.googleapis.com", "name": "Business Profile Performance API" },
     { "id": "mybusinessbusinesscalls.googleapis.com", "name": "My Business Business Calls API" },
     { "id": "mybusinessqanda.googleapis.com", "name": "My Business Q&A API" },
-    { "id": "googleads.googleapis.com", "name": "Google Ads API" }
+    { "id": "googleads.googleapis.com", "name": "Google Ads API" },
+    { "id": "tagmanager.googleapis.com", "name": "Google Tag Manager API" }
   ],
   "safety": {
     "allowed": ["connect", "read", "pull_data", "save_sheets", "test_drafts", "test_reports", "gmail_send_when_enabled"],

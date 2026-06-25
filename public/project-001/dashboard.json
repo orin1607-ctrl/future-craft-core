@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-06-25T05:50:51.579Z",
+  "generatedAt": "2026-06-25T06:05:05.365Z",
   "project": {
     "id": "project001aimarketing",
     "name": "Project001AIMarketing",
@@ -9,7 +9,7 @@
     "ga4Property": "properties/427711798"
   },
   "token": {
-    "ok": true,
+    "ok": false,
     "scopeCount": 20,
     "hasRefresh": true,
     "expiry": "2026-06-25T06:50:38.801Z"
@@ -33,7 +33,12 @@
     "googleAds": {
       "status": "disconnected",
       "ok": false,
-      "note": "Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+      "note": "HTTP 403: The caller does not have permission (test token or MCC login-customer-id)"
+    },
+    "googleTagManager": {
+      "status": "pending_oauth_scope",
+      "ok": false,
+      "note": "חסר scope tagmanager.readonly — npm run project-001:auth -- --force"
     },
     "drive": {
       "status": "connected",
@@ -117,14 +122,62 @@
     "ok": false,
     "status": "disconnected",
     "pendingToken": false,
-    "customerId": null,
-    "summary": null
+    "customerId": "8957638890",
+    "lastError": "HTTP 403: The caller does not have permission (test token or MCC login-customer-id)",
+    "summary": {
+      "ok": false,
+      "customerId": "8957638890",
+      "customerName": null,
+      "campaignCount": 0,
+      "keywordCount": 0,
+      "impressions": 0,
+      "clicks": 0,
+      "cost": 0,
+      "conversions": 0,
+      "ctr": 0,
+      "cpc": 0,
+      "daysSynced": 0,
+      "currency": "ILS"
+    }
   },
   "googleAdsData": {
     "ok": false,
     "status": "disconnected",
     "pendingToken": false,
-    "connectionNote": "Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    "syncedAt": "2026-06-25T06:04:59.216Z",
+    "customerId": "8957638890",
+    "customerName": null,
+    "kpis": {
+      "impressions": 0,
+      "clicks": 0,
+      "cost": 0,
+      "conversions": 0,
+      "ctr": 0,
+      "cpc": 0,
+      "campaignCount": 0,
+      "currency": "ILS"
+    },
+    "campaigns": [],
+    "adGroups": [],
+    "keywords": [],
+    "daily": [],
+    "lastError": "HTTP 403: The caller does not have permission (test token or MCC login-customer-id)",
+    "policies": {
+      "publishRequiresApproval": true,
+      "noAutoPublish": true
+    }
+  },
+  "googleTagManager": {
+    "ok": false,
+    "status": "pending_oauth_scope",
+    "lastError": "חסר scope tagmanager.readonly — npm run project-001:auth -- --force",
+    "containers": []
+  },
+  "googleTagManagerData": {
+    "ok": false,
+    "status": "pending_oauth_scope",
+    "connectionNote": "חסר scope tagmanager.readonly — npm run project-001:auth -- --force",
+    "containers": []
   },
   "stats": {
     "avgPosition": 35,
@@ -684,6 +737,32 @@
       }
     ],
     "ai": [
+      {
+        "id": "ai-1782367505355",
+        "timestamp": "2026-06-25T06:05:05.355Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
+        "id": "ai-1782367342134",
+        "timestamp": "2026-06-25T06:02:22.134Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
       {
         "id": "ai-1782366651568",
         "timestamp": "2026-06-25T05:50:51.568Z",

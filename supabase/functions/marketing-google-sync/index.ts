@@ -131,11 +131,16 @@ Deno.serve(async (req) => {
       google_search_console: { status: hasGoogleCreds ? "ready" : "missing_credentials", site: gscSite },
       google_analytics: { status: hasGoogleCreds ? "ready" : "missing_credentials", property: ga4Property },
       google_ads: {
-        status: adsToken && adsCustomer ? "ready" : "pending_developer_token",
-        note: adsToken ? "" : "GOOGLE_ADS_DEVELOPER_TOKEN חסר",
+        status: adsToken && adsCustomer ? "ready" : adsToken ? "pending_customer_id" : "pending_developer_token",
+        note: adsToken
+          ? "API v24 — אם 403: בקש Basic/Standard access ב-API Center"
+          : "GOOGLE_ADS_DEVELOPER_TOKEN חסר",
       },
-      google_business: { status: "pending_google_api_approval", note: "ממתין לאישור Google API" },
-      google_tag_manager: { status: "pending_not_implemented", note: "אין סנכרון GTM API בקוד" },
+      google_business: { status: "pending_google_api_approval", note: "ממתין לאישור Google API (quota=0)" },
+      google_tag_manager: {
+        status: hasGoogleCreds ? "pending_oauth_scope" : "missing_credentials",
+        note: "דורש scope tagmanager.readonly ב-OAuth + npm run project-001:gtm-probe",
+      },
       gmail: { status: "pending_not_implemented", note: "אין סנכרון Gmail API בקוד" },
       google_workspace: { status: hasGoogleCreds ? "oauth_ready" : "missing_credentials", note: "OAuth בלבד — ללא sync" },
       google_sheets: { status: hasGoogleCreds ? "oauth_ready" : "missing_credentials", note: "CLI בלבד — project-001-sync" },

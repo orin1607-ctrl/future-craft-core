@@ -1,67 +1,38 @@
 {
-  "timestamp": "2026-06-21T20:26:39.692Z",
-  "gcp_project_id": "project001aimarketing",
+  "timestamp": "2026-06-25T06:04:59.216Z",
   "ok": false,
-  "developer_token_set": false,
-  "customer_id": null,
-  "login_customer_id": null,
-  "oauth_adwords_scope": null,
-  "accessible_customers": [],
-  "errors": [],
-  "owner_gate": {
-    "id": "google_ads_developer_token",
-    "name": "Google Ads — Developer Token",
-    "blocked": true,
-    "directLink": "https://ads.google.com/aw/apicenter",
-    "alternateLinks": {
-      "ads_api_docs": "https://developers.google.com/google-ads/api/docs/first-call/overview",
-      "enable_ads_api": "https://console.cloud.google.com/apis/library/googleads.googleapis.com?project=project001aimarketing",
-      "oauth_consent": "https://console.cloud.google.com/apis/credentials/consent?project=project001aimarketing",
-      "env_template": ".env.ads.example"
-    },
-    "whatToDo": [
-      "היכנס ל-https://ads.google.com/aw/apicenter עם orin1607@gmail.com (חשבון עם גישה ל-Google Ads).",
-      "אם אין API Center — פתח חשבון Google Ads או בקש גישת Admin מ-MCC.",
-      "בחלק Developer token לחץ על Apply for token (אם עדיין אין) או Copy token (אם כבר קיים).",
-      "רמת Token: Test Account — מיידי; Basic/Standard — דורש בקשה ל-Google (1–5 ימי עסקים).",
-      "העתק את ה-token (מחרוזת alphanumerical).",
-      "בשורש הפרויקט: cp .env.ads.example .env.ads",
-      "מלא: GOOGLE_ADS_DEVELOPER_TOKEN=<ה-token>",
-      "אופציונלי: GOOGLE_ADS_CUSTOMER_ID=XXX-XXX-XXXX (מספר חשבון ללא מקפים גם OK)",
-      "אופציונלי: GOOGLE_ADS_LOGIN_CUSTOMER_ID=XXX-XXX-XXXX (אם MCC manager)",
-      "שמור את הקובץ — אל תעלה ל-git (.env.ads ב-gitignore)."
-    ],
-    "whatToApprove": "הפקת Developer Token ב-Google Ads API Center + (לפרודקשן) אישור Basic/Standard access מ-Google Ads API team.",
-    "expectedDuration": "העתקת token: 2–5 דקות. Test access: מיידי. Production: 1–5 ימי עסקים.",
-    "afterApproval": [
-      "npm run project-001:ads-connect יריץ probe → sync → export.",
-      "קמפיינים, מילות מפתח, עלויות והמרות יישמרו ב-ads-sync.json ו-dashboard.json.",
-      "נתונים ייכתבו ל-Google Sheets (טאב ads_daily אם קיים).",
-      "מסך Google Ads ב-CO.CO יציג KPIs חיים במקום placeholder."
-    ],
-    "verifySuccess": [
-      "npm run project-001:ads-probe → ok: true, accessible_customers ≥ 1",
-      "npm run project-001:ads-sync → ✓ Ads sync OK",
-      "docs/audit-reports/project-001/ads-sync.json → ok: true",
-      "public/project-001/dashboard.json → googleAds.ok = true"
-    ],
-    "commandsAfterApproval": [
-      "npm run project-001:ads-connect",
-      "npm run project-001:complete"
-    ],
-    "requiredEnv": {
-      "GOOGLE_ADS_DEVELOPER_TOKEN": "חובה",
-      "GOOGLE_ADS_CUSTOMER_ID": "אופציונלי — נבחר אוטומטית מה-customer הראשון",
-      "GOOGLE_ADS_LOGIN_CUSTOMER_ID": "נדרש רק אם גישה דרך MCC"
-    },
-    "account": "orin1607@gmail.com",
-    "oauthScope": "https://www.googleapis.com/auth/adwords",
-    "gcpProjectId": "project001aimarketing"
+  "gcp_project_id": null,
+  "developer_token_set": true,
+  "accessible_customers": [
+    "customers/4449261832",
+    "customers/8957638890",
+    "customers/5523570429"
+  ],
+  "customer_id": "8957638890",
+  "summary": {
+    "ok": false,
+    "customerId": "8957638890",
+    "customerName": null,
+    "campaignCount": 0,
+    "keywordCount": 0,
+    "impressions": 0,
+    "clicks": 0,
+    "cost": 0,
+    "conversions": 0,
+    "ctr": 0,
+    "cpc": 0,
+    "daysSynced": 0,
+    "currency": "ILS"
   },
-  "prep": {
-    "oauth_scope_adwords": false,
-    "gcp_ads_api": "googleads.googleapis.com",
-    "env_file": ".env.ads",
-    "next_command_after_token": "npm run project-001:ads-connect"
+  "errors": [
+    {
+      "step": "customer",
+      "message": "HTTP 403: The caller does not have permission (test token or MCC login-customer-id)"
+    }
+  ],
+  "owner_gate": {
+    "id": "ads_token_test_or_mcc",
+    "url": "https://ads.google.com/aw/apicenter",
+    "note": "403 Permission — Developer Token כנראה ברמת Test (דורש חשבון test) או חסר GOOGLE_ADS_LOGIN_CUSTOMER_ID ל-MCC. בקש Basic/Standard access ב-API Center."
   }
 }

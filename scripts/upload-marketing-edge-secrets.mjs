@@ -38,6 +38,7 @@ const creds = loadJson(join('integrations/google/credentials.oauth.json'));
 const token = loadJson(join('integrations/google/token.json'));
 const config = loadJson(join('integrations/google/config.json')) || {};
 const openai = parseEnv('.env.openai');
+const local = parseEnv('.env.local');
 const ads = parseEnv('.env.ads');
 
 const secrets = {
@@ -51,6 +52,9 @@ const secrets = {
   GOOGLE_ADS_DEVELOPER_TOKEN: ads.GOOGLE_ADS_DEVELOPER_TOKEN,
   GOOGLE_ADS_CUSTOMER_ID: ads.GOOGLE_ADS_CUSTOMER_ID,
   GOOGLE_ADS_LOGIN_CUSTOMER_ID: ads.GOOGLE_ADS_LOGIN_CUSTOMER_ID,
+  GEMINI_API_KEY: openai.GEMINI_API_KEY || openai.GOOGLE_AI_API_KEY || local.GEMINI_API_KEY || local.GOOGLE_AI_API_KEY,
+  ANTHROPIC_API_KEY: openai.ANTHROPIC_API_KEY || local.ANTHROPIC_API_KEY,
+  MARKETING_ANTHROPIC_API_KEY: openai.ANTHROPIC_API_KEY || local.ANTHROPIC_API_KEY,
 };
 
 const results = [];

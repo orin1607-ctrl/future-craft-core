@@ -1,6 +1,8 @@
 import { getAdsCredentials, normalizeCustomerId } from './ads-env.mjs';
 
-const ADS_API = 'https://googleads.googleapis.com/v18';
+/** v18 sunset — use current major REST version (see developers.google.com/google-ads/api/docs/sunset-dates) */
+const ADS_API_VERSION = process.env.GOOGLE_ADS_API_VERSION || 'v24';
+const ADS_API = `https://googleads.googleapis.com/${ADS_API_VERSION}`;
 
 function adsError(res, text, data) {
   const msg = data?.error?.message || data?.[0]?.error?.message || text?.slice(0, 400) || res.statusText;
@@ -37,12 +39,30 @@ export async function adsRequest({
   const text = await res.text();
   let data = null;
   try {
-    data = text ? JSON.parse(text) : null;
+    data = text && !text.trim().startsWith('<') ? JSON.parse(text) : { raw: text.slice(0, 500) };
   } catch {
     data = { raw: text.slice(0, 500) };
   }
   if (!res.ok) throw adsError(res, text, data);
   return data;
+}
+
+function parseAdsJson(text, res) {
+  if (!text || text.trim().startsWith('<')) {
+    const err = new Error(
+      `HTTP ${res.status}: non-JSON response (often wrong API version or invalid developer token). ` +
+        `Endpoint: ${ADS_API}. Body starts: ${text.slice(0, 80).replace(/\s+/g, ' ')}`,
+    );
+    err.status = res.status;
+    throw err;
+  }
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch (e) {
+    const err = new Error(`HTTP ${res.status}: invalid JSON — ${e.message}`);
+    err.status = res.status;
+    throw err;
+  }
 }
 
 export async function listAccessibleCustomers(accessToken, developerToken) {
@@ -53,7 +73,7 @@ export async function listAccessibleCustomers(accessToken, developerToken) {
     },
   });
   const text = await res.text();
-  const data = JSON.parse(text);
+  const data = parseAdsJson(text, res);
   if (!res.ok) throw adsError(res, text, data);
   return (data.resourceNames || []).map((r) => r.replace(/^customers\//, ''));
 }
@@ -295,17 +315,65 @@ export async function runFullAdsSync(auth, options = {}) {
     report.errors.push({ step: 'customer', message: 'No accessible Google Ads customer accounts' });
     return report;
   }
-  report.customerId = customerId;
 
-  const ctx = { accessToken, developerToken, customerId, loginCustomerId: loginCustomerId || options.loginCustomerId };
+  const customerCandidates = [
+    ...new Set([
+      normalizeCustomerId(envCustomerId || options.customerId),
+      ...report.accessibleCustomers.map(normalizeCustomerId),
+    ].filter(Boolean)),
+  ];
+
+  let ctx = null;
+  let last403 = false;
+
+  for (const cid of customerCandidates) {
+    const trialCtx = {
+      accessToken,
+      developerToken,
+      customerId: cid,
+      loginCustomerId: loginCustomerId || options.loginCustomerId,
+    };
+    const trialErrors = [];
+    try {
+      const rows = await adsSearch({ ...trialCtx, query: QUERIES.customer });
+      const c = rows[0]?.customer || {};
+      if (c.id || c.descriptiveName || c.descriptive_name) {
+        ctx = trialCtx;
+        report.customerId = cid;
+        report.customer = c;
+        break;
+      }
+    } catch (e) {
+      trialErrors.push(e);
+      if (e.status === 403 || String(e.message).includes('403')) last403 = true;
+    }
+  }
+
+  if (!ctx) {
+    report.customerId = customerId;
+    if (last403) {
+      report.owner_gate = {
+        id: 'ads_token_test_or_mcc',
+        url: 'https://ads.google.com/aw/apicenter',
+        note:
+          '403 Permission — Developer Token כנראה ברמת Test (דורש חשבון test) או חסר GOOGLE_ADS_LOGIN_CUSTOMER_ID ל-MCC. בקש Basic/Standard access ב-API Center.',
+      };
+      report.errors.push({
+        step: 'customer',
+        message: 'HTTP 403: The caller does not have permission (test token or MCC login-customer-id)',
+      });
+    } else {
+      report.errors.push({ step: 'customer', message: 'Could not read any accessible customer' });
+    }
+    report.summary = summarizeAdsSync(report);
+    return report;
+  }
 
   for (const [key, query] of Object.entries(QUERIES)) {
+    if (key === 'customer') continue;
     try {
       const rows = await adsSearch({ ...ctx, query });
-      if (key === 'customer') {
-        const c = rows[0]?.customer || {};
-        report.customer = c;
-      } else if (key === 'campaigns') report.campaigns = rows.map(mapCampaign);
+      if (key === 'campaigns') report.campaigns = rows.map(mapCampaign);
       else if (key === 'adGroups') report.adGroups = rows.map(mapAdGroup);
       else if (key === 'keywords') report.keywords = rows.map(mapKeyword);
       else if (key === 'daily') report.daily = rows.map(mapDaily);

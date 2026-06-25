@@ -72,6 +72,16 @@ function resolveAdsConnection(adsProbe, adsSync) {
     };
   }
   if (adsProbe?.ok && (adsProbe?.accessible_customers?.length || 0) > 0) {
+    const has403 = (adsSync?.errors || []).some((e) =>
+      String(e.message || e.error || '').includes('403'),
+    );
+    if (has403 || adsSync?.owner_gate?.id === 'ads_token_test_or_mcc') {
+      return {
+        status: 'pending_production_access',
+        ok: false,
+        note: 'Developer Token Test — בקש Basic/Standard access ב-API Center או הגדר GOOGLE_ADS_LOGIN_CUSTOMER_ID',
+      };
+    }
     return { status: 'connected', ok: true, note: null };
   }
   if (!adsProbe?.developer_token_set) {
@@ -85,6 +95,51 @@ function resolveAdsConnection(adsProbe, adsSync) {
     status: 'disconnected',
     ok: false,
     note: adsProbe?.errors?.[0]?.error?.slice(0, 120) || adsSync?.errors?.[0]?.message?.slice(0, 120) || null,
+  };
+}
+
+function resolveGtmConnection(gtmProbe) {
+  if (gtmProbe?.ok && (gtmProbe?.containers?.length || 0) > 0) {
+    const c = gtmProbe.containers[0];
+    return {
+      status: 'connected',
+      ok: true,
+      note: c.publicId ? `${c.publicId} — ${c.name}` : c.name || null,
+    };
+  }
+  if (!gtmProbe?.hasTagManagerScope && gtmProbe?.oauth) {
+    return {
+      status: 'pending_oauth_scope',
+      ok: false,
+      note: 'חסר scope tagmanager.readonly — npm run project-001:auth -- --force',
+    };
+  }
+  if (gtmProbe && !gtmProbe.ok) {
+    return {
+      status: 'disconnected',
+      ok: false,
+      note: gtmProbe.errors?.[0]?.message?.slice(0, 120) || 'ממתין לחיבור',
+    };
+  }
+  return { status: 'pending_oauth_scope', ok: false, note: 'הרץ npm run project-001:gtm-probe לאחר OAuth' };
+}
+
+function buildGtmDashboardSlice(gtmProbe, gtmConn) {
+  if (!gtmProbe?.ok) {
+    return {
+      ok: false,
+      status: gtmConn.status,
+      connectionNote: gtmConn.note,
+      containers: [],
+    };
+  }
+  return {
+    ok: true,
+    status: gtmConn.status,
+    syncedAt: gtmProbe.timestamp,
+    containers: (gtmProbe.containers || []).slice(0, 10),
+    accounts: (gtmProbe.accounts || []).slice(0, 5),
+    lastError: gtmProbe.errors?.[0]?.message || null,
   };
 }
 
@@ -372,6 +427,7 @@ async function main() {
   const gbpSync = loadJson(join(P001.auditOut, 'gbp-sync.json'));
   const adsProbe = loadJson(join(P001.auditOut, 'ads-probe.json'));
   const adsSync = loadJson(join(P001.auditOut, 'ads-sync.json'));
+  const gtmProbe = loadJson(join(P001.auditOut, 'gtm-probe.json'));
 
   const tokenOk = tokenHasP001Scopes();
   let tokenMeta = { ok: false };
@@ -446,6 +502,8 @@ async function main() {
   const businessProfileData = buildGbpDashboardSlice(gbpSync, gbpConn);
   const adsConn = resolveAdsConnection(adsProbe, adsSync);
   const googleAdsData = buildAdsDashboardSlice(adsSync, adsConn);
+  const gtmConn = resolveGtmConnection(gtmProbe);
+  const googleTagManagerData = buildGtmDashboardSlice(gtmProbe, gtmConn);
 
   const dashboard = {
     version: 2,
@@ -463,6 +521,7 @@ async function main() {
       analytics4: connectionStatus(conn, 'ga4'),
       businessProfile: gbpConn,
       googleAds: adsConn,
+      googleTagManager: gtmConn,
       drive: connectionStatus(conn, 'drive'),
       sheets: connectionStatus(conn, 'sheets'),
       docs: connectionStatus(conn, 'docs'),
@@ -495,6 +554,13 @@ async function main() {
       summary: adsSync?.summary || null,
     },
     googleAdsData,
+    googleTagManager: {
+      ok: Boolean(gtmProbe?.ok),
+      status: gtmConn.status,
+      lastError: googleTagManagerData.lastError || gtmConn.note,
+      containers: googleTagManagerData.containers || [],
+    },
+    googleTagManagerData,
     stats,
     dataSource,
     lastSync: lastSync || null,
