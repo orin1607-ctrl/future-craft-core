@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Shield, Users, Settings, ScrollText, Building2, Mail, SlidersHorizontal, Megaphone, Asterisk } from 'lucide-react';
+import { Shield, Users, Settings, ScrollText, Building2, Mail, SlidersHorizontal, Megaphone, LayoutGrid } from 'lucide-react';
 import HomeWorldCard from '@/components/home/HomeWorldCard';
 import RoleViewLauncher from '@/components/admin/RoleViewLauncher';
 
 const ADMIN_LINKS = [
-  { to: '/required-fields', icon: Asterisk, title: 'ניהול שדות חובה', subtitle: 'חובה / אופציונלי לפי מודול' },
+  { to: '/admin/modules', icon: LayoutGrid, title: 'כפתורים ומודולים', subtitle: 'ניהול רכבים · שדות חובה · מודולים' },
   { to: '/ai-marketing', icon: Megaphone, title: 'ניהול שיווק', subtitle: 'לקוחות · לידים · Google · AI' },
   { to: '/dalia-settings', icon: SlidersHorizontal, title: 'Dalia Settings', subtitle: 'התראות · WhatsApp · אימייל · חברות' },
   { to: '/user-management', icon: Users, title: 'משתמשים', subtitle: 'ניהול משתמשים והרשאות' },

@@ -3,6 +3,7 @@ import {
   Bell,
   Building2,
   ClipboardList,
+  LayoutGrid,
   Mail,
   MessageCircle,
   Phone,
@@ -16,6 +17,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import HomeWorldCard from '@/components/home/HomeWorldCard';
 
 const SETTINGS_SECTIONS = [
+  {
+    title: 'מודולים ושדות חובה',
+    items: [
+      {
+        to: '/admin/modules',
+        icon: LayoutGrid,
+        title: 'כפתורים ומודולים',
+        subtitle: 'ניהול רכבים · שדות חובה · מודולים לפי תחום',
+      },
+    ],
+  },
   {
     title: 'התראות ותזכורות',
     items: [

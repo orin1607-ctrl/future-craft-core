@@ -39,6 +39,7 @@ const SUPER_ADMIN_ONLY = [
   '/system-logs',
   '/email-templates',
   '/required-fields',
+  '/admin/modules',
   '/emergency-settings',
 ];
 

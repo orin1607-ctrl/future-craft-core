@@ -160,8 +160,8 @@ export default function AlertSettings() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <Link to="/dalia-settings" className="text-primary text-sm font-medium inline-block">
-        ← חזרה ל-Dalia Settings
+      <Link to="/admin/modules" className="text-primary text-sm font-medium inline-block">
+        ← חזרה לכפתורים ומודולים
       </Link>
       <h1 className="page-header flex items-center gap-3">
         <Settings2 size={28} /> הגדרות חברות

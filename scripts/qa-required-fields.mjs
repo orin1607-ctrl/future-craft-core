@@ -1,5 +1,5 @@
 /**
- * QA — Required fields management module
+ * QA — Required fields management module (admin hierarchy)
  */
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
@@ -13,9 +13,8 @@ const fail = (m) => report.failed.push(m);
 
 const files = [
   'src/lib/requiredFieldsSchema.ts',
-  'src/lib/requiredFieldsApi.ts',
-  'src/lib/requiredFieldsValidate.ts',
-  'src/contexts/RequiredFieldsContext.tsx',
+  'src/pages/admin/AdminModulesHub.tsx',
+  'src/pages/admin/VehicleModuleAdmin.tsx',
   'src/pages/RequiredFieldsSettings.tsx',
   'supabase/migrations/20260626120000_dalia_form_config.sql',
 ];
@@ -26,36 +25,38 @@ const schema = readFileSync(join(process.cwd(), 'src/lib/requiredFieldsSchema.ts
 schema.includes("comprehensive_insurance', 'ביטוח מקיף', false")
   ? pass('schema:comprehensive-optional-default')
   : fail('schema:comprehensive-optional-default');
-schema.includes('third_party_insurance')
-  ? pass('schema:third-party-fields')
-  : fail('schema:third-party-fields');
+schema.includes("'רישיון רכב'")
+  ? pass('schema:license-category')
+  : fail('schema:license-category');
 
-const blocks = readFileSync(
-  join(process.cwd(), 'src/components/vehicles/vehicleNewDalia/vehicleNewDaliaBlocks.tsx'),
-  'utf8',
-);
-blocks.includes('useRequiredFieldsOptional') && blocks.includes('moduleKey')
-  ? pass('blocks:fld-context')
-  : fail('blocks:fld-context');
+const adminHub = readFileSync(join(process.cwd(), 'src/pages/admin/AdminModulesHub.tsx'), 'utf8');
+adminHub.includes('כפתורים ומודולים') && adminHub.includes('/admin/modules/vehicles')
+  ? pass('hub:modules-vehicles')
+  : fail('hub:modules-vehicles');
+
+const vehicleHub = readFileSync(join(process.cwd(), 'src/pages/admin/VehicleModuleAdmin.tsx'), 'utf8');
+vehicleHub.includes('ניהול רכבים') && vehicleHub.includes('/admin/modules/vehicles/required-fields')
+  ? pass('hub:vehicle-required-fields-link')
+  : fail('hub:vehicle-required-fields-link');
+
+const panel = readFileSync(join(process.cwd(), 'src/pages/RequiredFieldsSettings.tsx'), 'utf8');
+panel.includes('RequiredFieldsPanel') && panel.includes('מרכז ניהול')
+  ? pass('panel:breadcrumb')
+  : fail('panel:breadcrumb');
 
 const routes = readFileSync(join(process.cwd(), 'src/App.tsx'), 'utf8');
-routes.includes('/required-fields') && routes.includes('RequiredFieldsSettings')
-  ? pass('app:route')
-  : fail('app:route');
-routes.includes('RequiredFieldsProvider') ? pass('app:provider') : fail('app:provider');
-
-const access = readFileSync(join(process.cwd(), 'src/lib/routeAccess.ts'), 'utf8');
-access.includes("'/required-fields'") ? pass('route-access') : fail('route-access');
+routes.includes('/admin/modules/vehicles/required-fields') && routes.includes('VehicleRequiredFieldsPage')
+  ? pass('app:vehicle-required-route')
+  : fail('app:vehicle-required-route');
+routes.includes('Navigate to="/admin/modules/vehicles/required-fields"')
+  ? pass('app:legacy-redirect')
+  : fail('app:legacy-redirect');
 
 const admin = readFileSync(join(process.cwd(), 'src/pages/AdminHome.tsx'), 'utf8');
-admin.includes('/required-fields') && admin.includes('ניהול שדות חובה')
-  ? pass('admin-home')
-  : fail('admin-home');
-
-const persist = readFileSync(join(process.cwd(), 'src/lib/daliaVehiclePersist.ts'), 'utf8');
-persist.includes('validateRequiredModuleFields')
-  ? pass('persist:validation')
-  : fail('persist:validation');
+admin.includes('/admin/modules') && admin.includes('כפתורים ומודולים')
+  ? pass('admin-home:modules-link')
+  : fail('admin-home:modules-link');
+!admin.includes("to: '/required-fields'") ? pass('admin-home:no-scattered-link') : fail('admin-home:no-scattered-link');
 
 writeFileSync(join(OUT, 'required-fields-qa.json'), JSON.stringify(report, null, 2));
 console.log(JSON.stringify(report, null, 2));

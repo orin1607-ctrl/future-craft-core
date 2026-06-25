@@ -61,11 +61,11 @@ const INSURANCE_SUFFIXES: Array<[string, string]> = [
 
 function insuranceBlockFields(
   prefix: string,
-  group: string,
+  category: string,
   defaultRequired: boolean,
 ): RequiredFieldDefinition[] {
   return INSURANCE_SUFFIXES.map(([suffix, label]) =>
-    field(`${prefix}_${suffix}`, `${group} — ${label}`, 'ביטוחים', defaultRequired, group),
+    field(`${prefix}_${suffix}`, label, category, defaultRequired, category),
   );
 }
 
@@ -99,15 +99,15 @@ const VEHICLE_FIELDS: RequiredFieldDefinition[] = [
   field('inspection_date', 'תאריך בדיקה', 'פרטי רכב'),
   field('end_or_scrap_date', 'תאריך סיום / גריעה', 'פרטי רכב'),
   field('ownership_route', 'מסלול בעלות', 'בעלות ומימון'),
-  field('license_link', 'קישור למסמך רישיון', 'רישיונות וטסטים'),
-  field('license_file_name', 'העלאת קובץ רישיון', 'רישיונות וטסטים'),
-  field('last_test', 'טסט אחרון', 'רישיונות וטסטים'),
-  field('next_test', 'טסט הבא', 'רישיונות וטסטים'),
-  field('test_status', 'סטטוס טסט', 'רישיונות וטסטים'),
-  field('test_doc_link', 'קישור מסמך טסט', 'רישיונות וטסטים'),
-  field('test_file_name', 'העלאת קובץ טסט', 'רישיונות וטסטים'),
-  field('has_no_claims', 'הצהרת תביעות', 'ביטוחים'),
-  field('coverage_other', 'כיסוי — אחר', 'ביטוחים'),
+  field('license_link', 'קישור למסמך רישיון', 'רישיון רכב'),
+  field('license_file_name', 'העלאת קובץ רישיון', 'רישיון רכב'),
+  field('last_test', 'טסט אחרון', 'רישיון רכב'),
+  field('next_test', 'טסט הבא', 'רישיון רכב'),
+  field('test_status', 'סטטוס טסט', 'רישיון רכב'),
+  field('test_doc_link', 'קישור מסמך טסט', 'רישיון רכב'),
+  field('test_file_name', 'העלאת קובץ טסט', 'רישיון רכב'),
+  field('has_no_claims', 'הצהרת תביעות', 'ביטוחים — כללי'),
+  field('coverage_other', 'כיסוי — אחר', 'ביטוחים — כללי'),
   ...insuranceBlockFields('mandatory_insurance', 'ביטוח חובה', false),
   ...insuranceBlockFields('comprehensive_insurance', 'ביטוח מקיף', false),
   ...insuranceBlockFields('third_party_insurance', 'ביטוח צד ג׳', false),
