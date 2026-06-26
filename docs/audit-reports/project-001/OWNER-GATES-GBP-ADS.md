@@ -1,8 +1,8 @@
 # Project 001 — Owner Gates (GBP + Google Ads)
 
-**Generated:** 2026-06-24T14:47:10.098Z
+**Generated:** 2026-06-26T09:48:33.086Z
 **Account:** orin1607@gmail.com
-**GCP Project:** burnished-craft-466809-v1
+**GCP Project:** project001aimarketing
 
 כל ההכנות מצד הפיתוח הושלמו. נשארו רק שני אישורים חיצוניים:
 
@@ -16,11 +16,11 @@
 - **עיקרי:** https://support.google.com/business/contact/api_default
 - workflow: https://support.google.com/business/workflow/16726127
 - prerequisites: https://developers.google.com/my-business/content/prereqs
-- gcp_dashboard: https://console.cloud.google.com/home/dashboard?project=burnished-craft-466809-v1
-- gcp_project_number: https://console.cloud.google.com/home/dashboard?project=burnished-craft-466809-v1
-- enable_account_mgmt_api: https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com?project=burnished-craft-466809-v1
-- enable_business_info_api: https://console.cloud.google.com/apis/library/mybusinessbusinessinformation.googleapis.com?project=burnished-craft-466809-v1
-- enable_performance_api: https://console.cloud.google.com/apis/library/businessprofileperformance.googleapis.com?project=burnished-craft-466809-v1
+- gcp_dashboard: https://console.cloud.google.com/home/dashboard?project=project001aimarketing
+- gcp_project_number: https://console.cloud.google.com/home/dashboard?project=project001aimarketing
+- enable_account_mgmt_api: https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com?project=project001aimarketing
+- enable_business_info_api: https://console.cloud.google.com/apis/library/mybusinessbusinessinformation.googleapis.com?project=project001aimarketing
+- enable_performance_api: https://console.cloud.google.com/apis/library/businessprofileperformance.googleapis.com?project=project001aimarketing
 - business_profile: https://business.google.com/
 - quota_docs: https://developers.google.com/my-business/content/limits
 
@@ -61,32 +61,24 @@
 
 ## Google Ads — Developer Token
 
-**סטטוס:** 🔴 חסום — נדרש אישור שלך
+**סטטוס:** 🟢 פתוח / מוכן
 
 ### 1. קישור ישיר
 - **עיקרי:** https://ads.google.com/aw/apicenter
 - ads_api_docs: https://developers.google.com/google-ads/api/docs/first-call/overview
-- enable_ads_api: https://console.cloud.google.com/apis/library/googleads.googleapis.com?project=burnished-craft-466809-v1
-- oauth_consent: https://console.cloud.google.com/apis/credentials/consent?project=burnished-craft-466809-v1
+- enable_ads_api: https://console.cloud.google.com/apis/library/googleads.googleapis.com?project=project001aimarketing
+- oauth_consent: https://console.cloud.google.com/apis/credentials/consent?project=project001aimarketing
 - env_template: .env.ads.example
 
 ### 2. מה לעשות (צעד-אחר-צעד)
-1. היכנס ל-https://ads.google.com/aw/apicenter עם orin1607@gmail.com (חשבון עם גישה ל-Google Ads).
-2. אם אין API Center — פתח חשבון Google Ads או בקש גישת Admin מ-MCC.
-3. בחלק Developer token לחץ על Apply for token (אם עדיין אין) או Copy token (אם כבר קיים).
-4. רמת Token: Test Account — מיידי; Basic/Standard — דורש בקשה ל-Google (1–5 ימי עסקים).
-5. העתק את ה-token (מחרוזת alphanumerical).
-6. בשורש הפרויקט: cp .env.ads.example .env.ads
-7. מלא: GOOGLE_ADS_DEVELOPER_TOKEN=<ה-token>
-8. אופציונלי: GOOGLE_ADS_CUSTOMER_ID=XXX-XXX-XXXX (מספר חשבון ללא מקפים גם OK)
-9. אופציונלי: GOOGLE_ADS_LOGIN_CUSTOMER_ID=XXX-XXX-XXXX (אם MCC manager)
-10. שמור את הקובץ — אל תעלה ל-git (.env.ads ב-gitignore).
+1. Developer Token כבר ב-.env.ads — הרץ npm run project-001:ads-connect.
+2. אם ה-token Test Account בלבד — ודא שחשבון Google Ads הוא test account או המתן לאישור Production.
 
 ### 3. מה לאשר / לספק
-הפקת Developer Token ב-Google Ads API Center + (לפרודקשן) אישור Basic/Standard access מ-Google Ads API team.
+אם token ברמת Test — אישור Production access ב-API Center (Apply for Basic/Standard access) כדי לקרוא חשבון אמיתי.
 
 ### 4. זמן צפוי
-העתקת token: 2–5 דקות. Test access: מיידי. Production: 1–5 ימי עסקים.
+Test token: מיידי. Production approval: 1–5 ימי עסקים.
 
 ### 5. מה יקרה אחרי האישור
 - npm run project-001:ads-connect יריץ probe → sync → export.

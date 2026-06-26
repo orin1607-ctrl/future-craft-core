@@ -36,23 +36,19 @@ async function fetchGscSummary(token: string, siteUrl: string) {
   const start = new Date();
   start.setDate(end.getDate() - 28);
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  const q = new URLSearchParams({
-    startDate: fmt(start),
-    endDate: fmt(end),
-    dimensions: "query",
-    rowLimit: "25",
-  });
-  const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      startDate: fmt(start),
-      endDate: fmt(end),
-      dimensions: ["query"],
-      rowLimit: 25,
-    }),
-  });
+  const res = await fetch(
+    `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        startDate: fmt(start),
+        endDate: fmt(end),
+        dimensions: ["query"],
+        rowLimit: 25,
+      }),
+    },
+  );
   if (!res.ok) {
     const err = await res.text();
     return { ok: false, error: err.slice(0, 200) };
@@ -77,6 +73,30 @@ async function fetchGscSummary(token: string, siteUrl: string) {
       position: r.position || 0,
     })),
   };
+}
+
+async function probeGtmStatus(token: string) {
+  try {
+    const res = await fetch("https://tagmanager.googleapis.com/tagmanager/v2/accounts", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 403) {
+      return { status: "pending_oauth_scope", note: "חסר scope tagmanager.readonly — npm run project-001:auth -- --force" };
+    }
+    if (!res.ok) {
+      const err = await res.text();
+      return { status: "error", note: err.slice(0, 120) };
+    }
+    const data = await res.json();
+    const count = (data.account || []).length;
+    return {
+      status: count > 0 ? "connected" : "ready_empty",
+      note: count > 0 ? `${count} GTM account(s)` : "אין חשבונות GTM",
+      accountCount: count,
+    };
+  } catch (e) {
+    return { status: "error", note: e instanceof Error ? e.message : "probe_failed" };
+  }
 }
 
 async function fetchGa4Summary(token: string, propertyId: string) {
@@ -127,6 +147,15 @@ Deno.serve(async (req) => {
     const adsToken = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN");
     const adsCustomer = Deno.env.get("GOOGLE_ADS_CUSTOMER_ID");
 
+    let gtmStatus: { status: string; note: string; accountCount?: number } = {
+      status: hasGoogleCreds ? "pending_oauth_scope" : "missing_credentials",
+      note: "דורש scope tagmanager.readonly ב-OAuth + npm run project-001:gtm-probe",
+    };
+    if (hasGoogleCreds && action === "status") {
+      const probeToken = await googleAccessToken();
+      if (probeToken) gtmStatus = await probeGtmStatus(probeToken);
+    }
+
     const status = {
       google_search_console: { status: hasGoogleCreds ? "ready" : "missing_credentials", site: gscSite },
       google_analytics: { status: hasGoogleCreds ? "ready" : "missing_credentials", property: ga4Property },
@@ -137,10 +166,7 @@ Deno.serve(async (req) => {
           : "GOOGLE_ADS_DEVELOPER_TOKEN חסר",
       },
       google_business: { status: "pending_google_api_approval", note: "ממתין לאישור Google API (quota=0)" },
-      google_tag_manager: {
-        status: hasGoogleCreds ? "pending_oauth_scope" : "missing_credentials",
-        note: "דורש scope tagmanager.readonly ב-OAuth + npm run project-001:gtm-probe",
-      },
+      google_tag_manager: gtmStatus,
       gmail: { status: "pending_not_implemented", note: "אין סנכרון Gmail API בקוד" },
       google_workspace: { status: hasGoogleCreds ? "oauth_ready" : "missing_credentials", note: "OAuth בלבד — ללא sync" },
       google_sheets: { status: hasGoogleCreds ? "oauth_ready" : "missing_credentials", note: "CLI בלבד — project-001-sync" },

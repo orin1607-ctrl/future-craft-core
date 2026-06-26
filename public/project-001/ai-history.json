@@ -1,5 +1,122 @@
 [
   {
+    "id": "ai-1782467303111",
+    "timestamp": "2026-06-26T09:48:23.111Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
+    "id": "ai-1782369267552",
+    "timestamp": "2026-06-25T06:34:27.552Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
+    "id": "ai-1782369122370",
+    "timestamp": "2026-06-25T06:32:02.370Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
+    "id": "ai-1782367742440",
+    "timestamp": "2026-06-25T06:09:02.441Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
+    "id": "ai-1782367505355",
+    "timestamp": "2026-06-25T06:05:05.355Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
+    "id": "ai-1782367342134",
+    "timestamp": "2026-06-25T06:02:22.134Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
+    "id": "ai-1782366651568",
+    "timestamp": "2026-06-25T05:50:51.568Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
+    "id": "ai-1782363894004",
+    "timestamp": "2026-06-25T05:04:54.004Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
+    "id": "ai-1782361507666",
+    "timestamp": "2026-06-25T04:25:07.666Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "low",
+        "title": "ממתין לנתוני GSC",
+        "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
     "id": "ai-1782072195850",
     "timestamp": "2026-06-21T20:03:15.850Z",
     "count": 1,

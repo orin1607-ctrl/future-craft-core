@@ -124,7 +124,7 @@ function resolveGtmConnection(gtmProbe) {
   return { status: 'pending_oauth_scope', ok: false, note: 'הרץ npm run project-001:gtm-probe לאחר OAuth' };
 }
 
-function buildGtmDashboardSlice(gtmProbe, gtmConn) {
+function buildGtmDashboardSlice(gtmProbe, gtmConn, gtmSync) {
   if (!gtmProbe?.ok) {
     return {
       ok: false,
@@ -133,13 +133,23 @@ function buildGtmDashboardSlice(gtmProbe, gtmConn) {
       containers: [],
     };
   }
+  const primary = (gtmSync?.summaries || []).find((s) => s.ok) || null;
   return {
     ok: true,
     status: gtmConn.status,
-    syncedAt: gtmProbe.timestamp,
+    syncedAt: gtmSync?.timestamp || gtmProbe.timestamp,
     containers: (gtmProbe.containers || []).slice(0, 10),
     accounts: (gtmProbe.accounts || []).slice(0, 5),
-    lastError: gtmProbe.errors?.[0]?.message || null,
+    summary: primary
+      ? {
+          publicId: primary.publicId,
+          containerName: primary.containerName,
+          tagCount: primary.tagCount,
+          triggerCount: primary.triggerCount,
+          variableCount: primary.variableCount,
+        }
+      : null,
+    lastError: gtmSync?.errors?.[0]?.message || gtmProbe.errors?.[0]?.message || null,
   };
 }
 
@@ -428,6 +438,7 @@ async function main() {
   const adsProbe = loadJson(join(P001.auditOut, 'ads-probe.json'));
   const adsSync = loadJson(join(P001.auditOut, 'ads-sync.json'));
   const gtmProbe = loadJson(join(P001.auditOut, 'gtm-probe.json'));
+  const gtmSync = loadJson(join(P001.auditOut, 'gtm-sync.json'));
 
   const tokenOk = tokenHasP001Scopes();
   let tokenMeta = { ok: false };
@@ -503,7 +514,7 @@ async function main() {
   const adsConn = resolveAdsConnection(adsProbe, adsSync);
   const googleAdsData = buildAdsDashboardSlice(adsSync, adsConn);
   const gtmConn = resolveGtmConnection(gtmProbe);
-  const googleTagManagerData = buildGtmDashboardSlice(gtmProbe, gtmConn);
+  const googleTagManagerData = buildGtmDashboardSlice(gtmProbe, gtmConn, gtmSync);
 
   const dashboard = {
     version: 2,

@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-06-26T09:47:30.498Z",
+  "ok": false,
+  "provider": "gemini",
+  "envFile": ".env.openai",
+  "error": "GEMINI_API_KEY not set",
+  "ownerAction": "https://aistudio.google.com/apikey → .env.openai GEMINI_API_KEY"
+}

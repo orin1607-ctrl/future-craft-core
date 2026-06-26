@@ -46,7 +46,7 @@
       ga4: !!(conn.analytics4 && conn.analytics4.ok),
       gbp: !!(conn.businessProfile && conn.businessProfile.ok),
       google_ads: !!(conn.googleAds && conn.googleAds.ok),
-      gtm: false,
+      gtm: !!(conn.googleTagManager && conn.googleTagManager.ok),
       site_crawl: !!(window.DaliaSite && DaliaSite.getDashboard()),
       gsc_queries: ((raw && raw.searchConsole && raw.searchConsole.keywords) || []).length,
       gsc_pages: ((raw && raw.searchConsole && raw.searchConsole.pages) || []).length,
@@ -83,7 +83,7 @@
       { id: 'analytics4', label: 'Google Analytics 4', active: !!conn.analytics4?.ok, pending: conn.analytics4?.note || PENDING_AUTH },
       { id: 'businessProfile', label: 'Google Business Profile', active: !!conn.businessProfile?.ok, pending: conn.businessProfile?.note || PENDING_AUTH },
       { id: 'googleAds', label: 'Google Ads', active: !!conn.googleAds?.ok, pending: conn.googleAds?.note || PENDING_AUTH },
-      { id: 'gtm', label: 'Google Tag Manager', active: false, pending: PENDING_AUTH },
+      { id: 'gtm', label: 'Google Tag Manager', active: !!conn.googleTagManager?.ok, pending: conn.googleTagManager?.note || PENDING_AUTH },
       { id: 'site', label: 'נתוני אתר dalia-c.com', active: !!data.site_crawl, pending: PENDING },
       { id: 'clientId', label: 'Client ID + RLS (דליה)', active: true, pending: 'בדיקה ידנית — Edge deployed' },
     ];

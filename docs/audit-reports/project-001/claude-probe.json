@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-06-26T09:47:31.054Z",
+  "ok": false,
+  "provider": "claude",
+  "envFile": ".env.openai",
+  "error": "ANTHROPIC_API_KEY not set",
+  "ownerAction": "https://console.anthropic.com/settings/keys → .env.openai ANTHROPIC_API_KEY"
+}

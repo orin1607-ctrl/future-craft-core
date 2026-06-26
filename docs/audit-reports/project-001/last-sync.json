@@ -1,16 +1,16 @@
 {
-  "timestamp": "2026-06-21T20:03:11.748Z",
+  "timestamp": "2026-06-26T09:48:01.411Z",
   "ok": true,
   "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
   "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
   "counts": {
-    "gsc_queries": 2,
-    "gsc_pages": 10,
-    "ga4_daily": 150,
+    "gsc_queries": 13,
+    "gsc_pages": 22,
+    "ga4_daily": 149,
     "ga4_pages": 48
   },
   "date_range": {
-    "start": "2026-03-22",
-    "end": "2026-06-19"
+    "start": "2026-03-27",
+    "end": "2026-06-24"
   }
 }
