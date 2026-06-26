@@ -19,6 +19,7 @@ import {
   type GovVehicleData,
 } from '@/lib/govVehicleLookup';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequiredFieldsOptional } from '@/contexts/RequiredFieldsContext';
 import { uploadDocument } from '@/lib/uploadDocument';
 import {
   collectDaliaFormValues,
@@ -114,6 +115,7 @@ function VehicleNewFormDaliaInner({
   loadedExtras,
 }: VehicleNewFormDaliaProps) {
   const { user } = useAuth();
+  const requiredFields = useRequiredFieldsOptional();
   const { getValue, setValue, setValues, values } = useDaliaFormValuesRequired();
   const formRef = useRef<HTMLFormElement>(null);
   const [openSecs, setOpenSecs] = useState<Record<string, boolean>>({ sec1: true });
@@ -278,6 +280,14 @@ function VehicleNewFormDaliaInner({
     }
     const fd = formRef.current ? new FormData(formRef.current) : null;
     const allValues = collectDaliaFormValues(values, fd);
+    if (requiredFields) {
+      const reqCheck = requiredFields.validateModule('vehicles', allValues);
+      if (!reqCheck.ok) {
+        toast.error(reqCheck.message);
+        if (reqCheck.fieldKey === 'vehicle_plate') goSec('sec1', '1');
+        return;
+      }
+    }
     const plate = (allValues.vehicle_plate || '').replace(/[-\s]/g, '');
     if (!plate) {
       toast.error('חסר מספר רכב');
@@ -427,8 +437,12 @@ function VehicleNewFormDaliaInner({
               הזן מספר רכב ולחץ משיכה — נתונים יימשכו ממשרד התחבורה (אותו API כמו במערכת).
             </div>
             <div className="d-g2" style={{ marginBottom: 12 }}>
-              <div className="d-fld d-required">
-                <label>מספר רכב *</label>
+              <div
+                className={`d-fld ${
+                  (requiredFields?.isFieldRequired('vehicles', 'vehicle_plate') ?? true) ? 'd-required' : ''
+                }`}
+              >
+                <label>מספר רכב{(requiredFields?.isFieldRequired('vehicles', 'vehicle_plate') ?? true) ? ' *' : ''}</label>
                 <input
                   name="vehicle_plate"
                   value={getValue('vehicle_plate')}
@@ -468,7 +482,7 @@ function VehicleNewFormDaliaInner({
             <div className="d-sec-body">
               <div className="d-block-title">פרטי זיהוי</div>
               <div className="d-g2">
-                <Fld label="מספר רכב" name="vehicle_plate" required />
+                <Fld label="מספר רכב" name="vehicle_plate" />
                 <Fld label="מספר פנימי" name="internal_number" />
                 <Fld label="מספר שלדה VIN" name="vin" />
                 <Fld label="מספר מנוע" name="engine_number" />

@@ -9,6 +9,8 @@ import {
   validateVehicleAgainstCompanyPolicy,
 } from '@/lib/companyPolicyEnforcement';
 import { fetchCompanySettings } from '@/lib/companySettings';
+import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
+import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
 import type { DaliaDoc } from '@/components/vehicles/vehicleNewDalia/VehicleNewFormDalia';
 
 export type DaliaPersistExtras = {
@@ -381,6 +383,10 @@ export async function persistDaliaVehicle(params: {
     isNewVehicle,
   });
   if (!policyCheck.ok) throw new Error(policyCheck.message);
+
+  const fieldOverrides = await fetchRequiredFieldsOverrides();
+  const requiredCheck = validateRequiredModuleFields('vehicles', params.allValues, fieldOverrides);
+  if (!requiredCheck.ok) throw new Error(requiredCheck.message);
 
   const settings = await fetchCompanySettings(companyName);
   if (isNewVehicle) {

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { RequiredFieldsProvider } from "@/contexts/RequiredFieldsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CompanyScopeProvider } from "@/contexts/CompanyScopeContext";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -68,6 +69,13 @@ import DevFleetOSSettingsPreview from "@/pages/DevFleetOSSettingsPreview";
 import Project001Dashboard from "@/pages/Project001Dashboard";
 import AiMarketingPage from "@/pages/AiMarketingPage";
 import DaliaCrmPage from "@/pages/DaliaCrmPage";
+import {
+  ModuleAdminHub,
+  ModuleRequiredFieldsPage,
+  VehicleRequiredFieldsPage,
+} from "@/pages/RequiredFieldsSettings";
+import AdminModulesHub from "@/pages/admin/AdminModulesHub";
+import VehicleModuleAdmin from "@/pages/admin/VehicleModuleAdmin";
 
 // New pages
 import Companions from "@/pages/Companions";
@@ -177,6 +185,22 @@ function AppRoutes() {
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />
         <Route path="/vehicle-tracking" element={<VehicleTracking />} />
         <Route path="/admin-home" element={<AdminHome />} />
+        <Route path="/admin/modules" element={<AdminModulesHub />} />
+        <Route path="/admin/modules/vehicles" element={<VehicleModuleAdmin />} />
+        <Route path="/admin/modules/vehicles/required-fields" element={<VehicleRequiredFieldsPage />} />
+        <Route path="/admin/modules/drivers" element={<ModuleAdminHub module="drivers" />} />
+        <Route path="/admin/modules/drivers/required-fields" element={<ModuleRequiredFieldsPage module="drivers" />} />
+        <Route path="/admin/modules/customers" element={<ModuleAdminHub module="customers" />} />
+        <Route path="/admin/modules/customers/required-fields" element={<ModuleRequiredFieldsPage module="customers" />} />
+        <Route path="/admin/modules/accidents" element={<ModuleAdminHub module="accidents" />} />
+        <Route path="/admin/modules/accidents/required-fields" element={<ModuleRequiredFieldsPage module="accidents" />} />
+        <Route path="/admin/modules/documents" element={<ModuleAdminHub module="documents" />} />
+        <Route path="/admin/modules/documents/required-fields" element={<ModuleRequiredFieldsPage module="documents" />} />
+        <Route path="/admin/modules/treatments" element={<ModuleAdminHub module="treatments" />} />
+        <Route path="/admin/modules/treatments/required-fields" element={<ModuleRequiredFieldsPage module="treatments" />} />
+        <Route path="/admin/modules/insurance" element={<ModuleAdminHub module="insurance" />} />
+        <Route path="/admin/modules/insurance/required-fields" element={<ModuleRequiredFieldsPage module="insurance" />} />
+        <Route path="/required-fields" element={<Navigate to="/admin/modules/vehicles/required-fields" replace />} />
         <Route path="/fleet-managers" element={<FleetManagers />} />
         <Route path="/vehicles" element={<Vehicles />} />
         <Route path="/drivers" element={<Drivers />} />
@@ -249,10 +273,12 @@ const App = () => (
         <Sonner />
         <BrowserRouter basename={import.meta.env.BASE_URL}>
           <AuthProvider>
-            <CompanyScopeProvider>
-              <ThemeToggle />
-              <AppRoutes />
-            </CompanyScopeProvider>
+            <RequiredFieldsProvider>
+              <CompanyScopeProvider>
+                <ThemeToggle />
+                <AppRoutes />
+              </CompanyScopeProvider>
+            </RequiredFieldsProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

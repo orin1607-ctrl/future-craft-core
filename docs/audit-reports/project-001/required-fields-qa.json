@@ -1,0 +1,20 @@
+{
+  "at": "2026-06-25T14:05:31.816Z",
+  "passed": [
+    "file:src/lib/requiredFieldsSchema.ts",
+    "file:src/pages/admin/AdminModulesHub.tsx",
+    "file:src/pages/admin/VehicleModuleAdmin.tsx",
+    "file:src/pages/RequiredFieldsSettings.tsx",
+    "file:supabase/migrations/20260626120000_dalia_form_config.sql",
+    "schema:comprehensive-optional-default",
+    "schema:license-category",
+    "hub:modules-vehicles",
+    "hub:vehicle-required-fields-link",
+    "panel:breadcrumb",
+    "app:vehicle-required-route",
+    "app:legacy-redirect",
+    "admin-home:modules-link",
+    "admin-home:no-scattered-link"
+  ],
+  "failed": []
+}

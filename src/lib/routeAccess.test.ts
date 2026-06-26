@@ -27,4 +27,11 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/dalia-crm', 'super_admin')).toBe(true);
     expect(canAccessRoute('/dalia-crm', 'fleet_manager')).toBe(false);
   });
+
+  it('required-fields admin is super_admin only', () => {
+    expect(canAccessRoute('/required-fields', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/required-fields', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/admin/modules/vehicles/required-fields', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/admin/modules/vehicles/required-fields', 'fleet_manager')).toBe(false);
+  });
 });
