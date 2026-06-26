@@ -360,7 +360,20 @@
     var actions = deriveActions(bundle);
     var assets = deriveAssets(bundle);
     var aiRecs = (bundle && bundle.ai && bundle.ai.recommendations && bundle.ai.recommendations.length) || 0;
-    var counts = { 'screen-status': 'מצב', 'screen-clients': state.customers.length + ' לקוחות', 'screen-goals': goals.length + ' מטרות', 'screen-actions': actions.filter(function (a) { return a.status !== 'done'; }).length + ' ממתינות', 'screen-history': deriveHistory(bundle).length + ' רשומות', 'screen-assets': assets.length + ' נכסים', 'screen-ai-decisions': aiRecs ? (aiRecs + ' המלצות') : 'ממתין', 'screen-reports': 'דוחות' };
+    var pendingAi = aiRecs ? (aiRecs + ' החלטות ממתינות') : '0 החלטות ממתינות';
+    var counts = {
+      'screen-status': 'מצב',
+      'screen-clients': state.customers.length + ' לקוחות',
+      'screen-agents': '12 עוזרים פעילים',
+      'screen-goals': goals.length + ' מטרות',
+      'screen-actions': actions.filter(function (a) { return a.status !== 'done'; }).length + ' ממתינות',
+      'screen-crm': (function () { var cc = crmCounts(); return cc ? (cc.customers + ' לקוחות פעילים') : PENDING; })(),
+      'screen-history': deriveHistory(bundle).length + ' רשומות',
+      'screen-assets': assets.length + ' נכסים',
+      'screen-ai-center': pendingAi,
+      'screen-ai-decisions': aiRecs ? (aiRecs + ' המלצות') : 'ממתין',
+      'screen-reports': 'דוחות'
+    };
     document.querySelectorAll('.hub-card').forEach(function (card) {
       var onclick = card.getAttribute('onclick') || '';
       Object.keys(counts).forEach(function (sid) {
@@ -527,6 +540,21 @@
     if (sub && bundle && bundle.customer) sub.textContent = 'מרכז שליטה — ' + bundle.customer.name;
   }
 
+  function bindAiCenter(bundle) {
+    bindAiDecisions(bundle);
+    var data = deriveAiDecisions(bundle);
+    var n = (data.findings && data.findings.length) || 0;
+    setText('#hub-ai-count', n ? (n + ' החלטות ממתינות') : '0 החלטות ממתינות');
+    var tabLabel = document.querySelector('#screen-ai-center .nav-tab[onclick*="tab-ai-decisions"]');
+    if (tabLabel) tabLabel.textContent = '📋 החלטות (' + n + ')';
+    var tbody = document.getElementById('ai-decisions-tbody');
+    if (tbody && data.findings.length) {
+      tbody.innerHTML = data.findings.slice(0, 8).map(function (f, i) {
+        return '<tr><td>' + (i + 1) + '</td><td>—</td><td>—</td><td>—</td><td>—</td><td>' + esc(f.text) + '</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
+      }).join('');
+    }
+  }
+
   function bindAiDecisions(bundle) {
     var data = deriveAiDecisions(bundle);
     setHtml('coco-live-ai-team', data.team.map(function (t) {
@@ -569,6 +597,7 @@
     'screen-history': bindHistory,
     'screen-assets': bindAssets,
     'screen-ai-decisions': bindAiDecisions,
+    'screen-ai-center': bindAiCenter,
     'screen-reports': bindReports,
   };
 

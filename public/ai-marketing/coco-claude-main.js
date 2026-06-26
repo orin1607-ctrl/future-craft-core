@@ -1,10 +1,297 @@
+// ===== CLIENT ASSETS =====
+const ASSET_DATA = {
+  website: {
+    icon:'🌐', title:'אתר אינטרנט', subtitle:'greentech.co.il',
+    status:'connected', statusLabel:'מחובר', statusBadge:'badge-green',
+    lastSync:'לפני 12 דקות',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;"><span style="color:var(--green);font-weight:700;">✓ האתר מחובר ונסרק</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--white50);">
+        <div style="display:flex;justify-content:space-between;"><span>דומיין</span><strong style="color:var(--white80);">greentech.co.il</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span>סריקה אחרונה</span><strong style="color:var(--green);">לפני 12 דק'</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span>עמודים שנסרקו</span><strong style="color:var(--white80);">48</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span>שגיאות</span><strong style="color:var(--red);">3 (שגיאות 404)</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span>Sitemap</span><strong style="color:var(--green);">✓ קיים</strong></div>
+      </div>`,
+    manualFields:['דומיין','כתובת URL','שם משתמש / FTP','הערות']
+  },
+  gsc: {
+    icon:'🔎', title:'Google Search Console', subtitle:'Google SEO',
+    status:'pending', statusLabel:'ממתין לחיבור', statusBadge:'badge-yellow',
+    lastSync:'טרם חובר',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;font-weight:700;color:var(--yellow);">⏳ ממתין לחיבור OAuth</div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        שלב 1: לחץ "חבר אוטומטית" להפניה ל-Google<br>
+        שלב 2: אשר הרשאת קריאה ל-Search Console<br>
+        שלב 3: בחר נכס (property): greentech.co.il<br><br>
+        <span style="color:var(--white80);">לאחר חיבור יוצגו: קליקים, חשיפות, CTR, מיקום, שאילתות, שגיאות אינדוקס, Core Web Vitals</span>
+      </div>`,
+    manualFields:['Property URL','Property ID','חשבון Google','הערות']
+  },
+  ga4: {
+    icon:'📊', title:'Google Analytics 4', subtitle:'תנועה ומשתמשים',
+    status:'pending', statusLabel:'ממתין לחיבור', statusBadge:'badge-yellow',
+    lastSync:'טרם חובר',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;font-weight:700;color:var(--yellow);">⏳ ממתין לחיבור OAuth</div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        שלב 1: לחץ "חבר אוטומטית"<br>
+        שלב 2: אשר הרשאת Google Analytics<br>
+        שלב 3: בחר Property ID<br><br>
+        <span style="color:var(--white80);">לאחר חיבור: סשנים, משתמשים, Bounce Rate, המרות, מקורות תנועה, עמודים</span>
+      </div>`,
+    manualFields:['Property ID','Measurement ID','חשבון Google','הערות']
+  },
+  gads: {
+    icon:'📢', title:'Google Ads', subtitle:'קמפיינים ממומנים',
+    status:'pending', statusLabel:'ממתין לחיבור', statusBadge:'badge-yellow',
+    lastSync:'טרם חובר',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;font-weight:700;color:var(--yellow);">⏳ ממתין לחיבור Google Ads API</div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        שלב 1: לחץ "חבר אוטומטית"<br>
+        שלב 2: הזן Customer ID<br>
+        שלב 3: אשר הרשאות<br><br>
+        <span style="color:var(--white80);">לאחר חיבור: קמפיינים, תקציב, קליקים, המרות, ROAS, CPC, Quality Score</span>
+      </div>`,
+    manualFields:['Customer ID','חשבון Google','מנהל חשבון MCC','הערות']
+  },
+  gbp: {
+    icon:'📍', title:'Google Business Profile', subtitle:'גרין-טק ראשל"צ',
+    status:'error', statusLabel:'שגיאה – Token פג', statusBadge:'badge-red',
+    lastSync:'לפני 3 ימים (שגיאה)',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;font-weight:700;color:var(--red);">⚠️ שגיאה: Token פג תוקף</div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        <div style="color:var(--red);margin-bottom:6px;">OAuth Token פג תוקף – נדרש חיבור מחדש</div>
+        לחץ "חבר אוטומטית" לחידוש ההרשאה<br><br>
+        <span style="color:var(--white80);">לאחר חיבור: ביקורות, דירוג, פוסטים, תמונות, שאלות ותשובות, צפיות בכרטיס</span>
+      </div>`,
+    manualFields:['Business ID','שם עסק בGBP','קישור לכרטיס','הערות']
+  },
+  facebook: {
+    icon:'📘', title:'Facebook Page', subtitle:'Page ID: 10842938174',
+    status:'connected', statusLabel:'מחובר (OAuth)', statusBadge:'badge-green',
+    lastSync:'לפני שעה',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;"><span style="color:var(--green);font-weight:700;">✓ Facebook מחובר ב-OAuth</span></div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;justify-content:space-between;"><span>Page ID</span><strong style="color:var(--white80);">10842938174</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>הרשאות</span><strong style="color:var(--green);">pages_read_engagement ✓</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>עוקבים</span><strong style="color:var(--white50);">ממתין לחיבור API נתונים</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>לידים</span><strong style="color:var(--white50);">ממתין לחיבור Lead Ads API</strong></div>
+        </div>
+      </div>`,
+    manualFields:['Page ID','Page URL','Access Token','הערות']
+  },
+  instagram: {
+    icon:'📸', title:'Instagram', subtitle:'@greentech_official',
+    status:'connected', statusLabel:'מחובר (Meta OAuth)', statusBadge:'badge-green',
+    lastSync:'לפני שעה',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;"><span style="color:var(--green);font-weight:700;">✓ Instagram מחובר דרך Meta</span></div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;justify-content:space-between;"><span>Account</span><strong style="color:var(--white80);">@greentech_official</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>חיבור</span><strong style="color:var(--green);">Meta Business Suite ✓</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>עוקבים</span><strong style="color:var(--white50);">ממתין לחיבור API נתונים</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>Insights</span><strong style="color:var(--white50);">ממתין לחיבור</strong></div>
+        </div>
+      </div>`,
+    manualFields:['Account ID','שם משתמש','קישור לפרופיל','הערות']
+  },
+  tiktok: {
+    icon:'🎵', title:'TikTok', subtitle:'לא מחובר',
+    status:'pending', statusLabel:'ממתין לחיבור', statusBadge:'badge-yellow',
+    lastSync:'טרם חובר',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;font-weight:700;color:var(--yellow);">⏳ ממתין לחיבור TikTok API</div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        TikTok Business API דורש אישור TikTok for Business<br><br>
+        שלב 1: פתח חשבון TikTok for Business<br>
+        שלב 2: לחץ "חבר אוטומטית" לאחר אישור<br><br>
+        <span style="color:var(--white80);">לאחר חיבור: עוקבים, צפיות, אינטראקציה, סרטונים, Ads (אם קיים)</span>
+      </div>`,
+    manualFields:['קישור לפרופיל','שם משתמש','Advertiser ID (Ads)','הערות']
+  },
+  youtube: {
+    icon:'▶️', title:'YouTube', subtitle:'לא מחובר',
+    status:'pending', statusLabel:'ממתין לחיבור', statusBadge:'badge-yellow',
+    lastSync:'טרם חובר',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;font-weight:700;color:var(--yellow);">⏳ ממתין לחיבור YouTube Data API</div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        שלב 1: לחץ "חבר אוטומטית" (Google OAuth)<br>
+        שלב 2: אשר הרשאת YouTube Analytics<br>
+        שלב 3: בחר Channel ID<br><br>
+        <span style="color:var(--white80);">לאחר חיבור: מנויים, צפיות, סרטונים, Watch Time, קהל</span>
+      </div>`,
+    manualFields:['Channel ID','קישור לערוץ','חשבון Google','הערות']
+  },
+  linkedin: {
+    icon:'💼', title:'LinkedIn', subtitle:'עמוד חברה',
+    status:'manual', statusLabel:'חיבור ידני', statusBadge:'badge-purple',
+    lastSync:'עודכן ידנית',
+    hasApi: false,
+    autoContent:`<div style="margin-bottom:8px;font-weight:700;color:var(--purple);">ℹ️ LinkedIn Marketing API – דורש אישור LinkedIn</div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        LinkedIn API דורש אישור מיוחד מ-LinkedIn Marketing Solutions<br><br>
+        כרגע: חיבור ידני מומלץ<br>
+        עתידי: API אחרי קבלת הרשאה<br><br>
+        <span style="color:var(--white80);">לאחר חיבור מלא: עוקבים, פוסטים, Impressions, לידים</span>
+      </div>`,
+    manualFields:['קישור לעמוד חברה','Page ID','שם העמוד','עוקבים (הזנה ידנית)','הערות']
+  },
+  email: {
+    icon:'📧', title:'Email / Gmail', subtitle:'מייל עסקי',
+    status:'pending', statusLabel:'ממתין לחיבור', statusBadge:'badge-yellow',
+    lastSync:'טרם חובר',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;font-weight:700;color:var(--yellow);">⏳ ממתין לחיבור Gmail API</div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        שלב 1: לחץ "חבר אוטומטית" (Google OAuth)<br>
+        שלב 2: אשר הרשאת Gmail Read<br><br>
+        <span style="color:var(--white80);">לאחר חיבור: מעקב פניות, תבניות, שליחות, לידים ממייל</span>
+      </div>`,
+    manualFields:['כתובת מייל עסקית','ספק מייל','IMAP/SMTP','הערות']
+  },
+  whatsapp: {
+    icon:'💬', title:'WhatsApp Business', subtitle:'Business API',
+    status:'pending', statusLabel:'ממתין לחיבור', statusBadge:'badge-yellow',
+    lastSync:'טרם חובר',
+    hasApi: true,
+    autoContent:`<div style="margin-bottom:8px;font-weight:700;color:var(--yellow);">⏳ ממתין לחיבור WhatsApp Business API</div>
+      <div style="font-size:12px;color:var(--white50);line-height:1.7;">
+        WhatsApp Business API דורש אישור Meta<br><br>
+        שלב 1: פתח חשבון Meta Business<br>
+        שלב 2: הגש בקשת גישה ל-WhatsApp API<br>
+        שלב 3: לחץ "חבר אוטומטית" אחרי אישור<br><br>
+        <span style="color:var(--white80);">לאחר חיבור: מקור לידים, הודעות, שיחות, תבניות</span>
+      </div>`,
+    manualFields:['מספר עסקי WhatsApp','Phone Number ID','שם העסק','הערות']
+  }
+};
+
+function openAssetModal(assetId) {
+  const a = ASSET_DATA[assetId];
+  if (!a) return;
+  document.getElementById('mac-icon').textContent      = a.icon;
+  document.getElementById('mac-title').textContent     = a.title;
+  document.getElementById('mac-subtitle').textContent  = 'CLT-001 • גרין-טק';
+  document.getElementById('mac-status-badge').outerHTML =
+    `<span id="mac-status-badge" class="badge ${a.statusBadge}">${a.statusLabel}</span>`;
+  document.getElementById('mac-last-sync').textContent = a.lastSync;
+  document.getElementById('mac-auto-content').innerHTML = a.autoContent;
+
+  // Manual fields
+  const mf = document.getElementById('mac-manual-fields');
+  mf.innerHTML = a.manualFields.map(f => `
+    <div>
+      <div style="font-size:11px;color:var(--white50);margin-bottom:3px;">${f}</div>
+      <input class="filter-input" style="width:100%;" placeholder="${f}...">
+    </div>`).join('');
+
+  // Connect button label
+  const btn = document.getElementById('mac-btn-connect');
+  if (btn) btn.textContent = a.status === 'error' ? '🔄 חבר מחדש' : a.hasApi ? '🔗 חבר אוטומטית' : '⚠️ API בהמתנה';
+
+  switchMacTab('auto');
+  openModal('modal-asset-connect');
+}
+
+function switchMacTab(tab) {
+  const auto   = document.getElementById('mac-panel-auto');
+  const manual = document.getElementById('mac-panel-manual');
+  const btnA   = document.getElementById('mac-tab-auto');
+  const btnM   = document.getElementById('mac-tab-manual');
+  if (tab === 'auto') {
+    auto.style.display   = '';
+    manual.style.display = 'none';
+    btnA.style.background = 'var(--accent)'; btnA.style.color = '#fff'; btnA.style.border = 'none';
+    btnM.style.background = 'var(--bg4)';    btnM.style.color = 'var(--white80)'; btnM.style.border = '1px solid var(--border)';
+  } else {
+    auto.style.display   = 'none';
+    manual.style.display = '';
+    btnM.style.background = 'var(--accent)'; btnM.style.color = '#fff'; btnM.style.border = 'none';
+    btnA.style.background = 'var(--bg4)';    btnA.style.color = 'var(--white80)'; btnA.style.border = '1px solid var(--border)';
+  }
+}
+
+function doAutoConnect() {
+  showToast('🔗 מעביר ל-OAuth...');
+  closeModal('modal-asset-connect');
+}
+
+function saveManualAsset() {
+  showToast('💾 חיבור ידני נשמר');
+  closeModal('modal-asset-connect');
+}
+
+function filterClientAssets() {
+  const type   = document.getElementById('ca-type')?.value   || '';
+  const status = document.getElementById('ca-status')?.value || '';
+  const search = (document.getElementById('ca-search')?.value || '').toLowerCase();
+  document.querySelectorAll('.ca-card').forEach(card => {
+    const typeOk   = !type   || card.dataset.type   === type;
+    const statusOk = !status || card.dataset.status === status;
+    const textOk   = !search || card.textContent.toLowerCase().includes(search);
+    card.style.display = (typeOk && statusOk && textOk) ? '' : 'none';
+  });
+}
+// ===== END CLIENT ASSETS =====
+
+// ===== GLOBAL CLIENT CONTEXT =====
+// When a client is selected, all 10 modules filter to the same context
+const ACTIVE_CONTEXT = {
+  clientId: 'CLT-001',
+  company: 'גרין-טק פתרונות בע"מ',
+  site: 'greentech.co.il',
+  campaign: 'Brand Search',
+  manager: 'יוני'
+};
+
+// ===== AI CENTER =====
+function runAiAnalysis() {
+  const box = document.getElementById('ai-status-box');
+  if (!box) { showToast('▶️ ניתוח AI הופעל'); return; }
+  box.style.color = 'var(--accent2)';
+  box.style.borderColor = 'rgba(37,99,235,0.4)';
+  box.innerHTML = '⏳ שולח נתונים ל-ChatGPT...';
+  setTimeout(() => {
+    box.innerHTML = '🔄 ChatGPT מנתח 11 עוזרים + ציוני 20 מטרות...';
+    setTimeout(() => {
+      box.style.color = 'var(--yellow)';
+      box.innerHTML = '⚠️ ממתין לחיבור API אמיתי – עוזרים לא מחוברים.<br><span style="font-size:11px;color:var(--white50);">לאחר חיבור: ChatGPT יקבל נתונים אמיתיים ויחזיר החלטות מובנות לטבלת הפעולות.</span>';
+      showToast('⚠️ ממתין לחיבור API');
+    }, 2000);
+  }, 1500);
+}
+
+// ===== END AI CENTER / HISTORY / REPORTS =====
+
 // ===== NAVIGATION =====
+function clearNestedActiveScreens(root) {
+  if (!root) return;
+  root.querySelectorAll('.screen .screen.active').forEach(function (s) {
+    s.classList.remove('active');
+  });
+}
+
 function goScreen(id) {
+  if (id === 'screen-ai-decisions') id = 'screen-ai-center';
   var root = document.getElementById('coco-claude-root');
   var screens = root ? root.querySelectorAll(':scope > .screen') : document.querySelectorAll('.screen');
-  screens.forEach(s => s.classList.remove('active'));
-  const el = document.getElementById(id);
-  if (el) { el.classList.add('active'); el.querySelector('.content')?.scrollTo(0,0); }
+  screens.forEach(function (s) { s.classList.remove('active'); });
+  var el = null;
+  if (root) {
+    screens.forEach(function (s) { if (s.id === id) el = s; });
+  } else {
+    el = document.getElementById(id);
+  }
+  if (el) { el.classList.add('active'); el.querySelector('.content')?.scrollTo(0, 0); }
+  if (id !== 'screen-crm') clearNestedActiveScreens(root);
   if (id === 'screen-crm') document.body.classList.add('coco-crm-active');
   else document.body.classList.remove('coco-crm-active');
   document.querySelectorAll('.bottom-nav .bnav-btn').forEach(function (b) {
@@ -13,15 +300,6 @@ function goScreen(id) {
   if (id === 'screen-crm' && window.CocoMarketingCrm && CocoMarketingCrm.ensureVisible) {
     CocoMarketingCrm.ensureVisible();
   }
-}
-
-function openCrmModule() {
-  if (window.CocoUnified && typeof CocoUnified.openCrm === 'function') {
-    CocoUnified.openCrm();
-    return;
-  }
-  goScreen('screen-crm');
-  if (window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
 }
 
 // ===== TABS =====
@@ -59,10 +337,6 @@ function showToast(msg) {
 }
 
 function showDaliaToast() {
-  if (window.PrdDaliaNav && typeof window.PrdDaliaNav.exitToDalia === 'function') {
-    window.PrdDaliaNav.exitToDalia();
-    return;
-  }
   showToast('🏠 חוזר למערכת דליה הראשית...');
 }
 
@@ -98,21 +372,176 @@ function selectClient(name) {
 // ===== AI CHAT =====
 function sendAiMessage() {
   const inp = document.getElementById('ai-input');
-  const val = inp && inp.value.trim();
+  const val = inp.value.trim();
   if (!val) return;
   inp.value = '';
   showToast('🤖 AI מעבד את השאלה...');
-  var chat = (window.CocoUnified && CocoUnified.marketingAiChat) || window.marketingApiChat;
-  if (!chat) { showToast('AI לא זמין — התחבר דרך דליה'); return; }
-  chat({ module: 'assistant', prompt: val, provider: 'openai' }).then(function (r) {
-    if (r && r.ok && r.text) showToast(r.text.slice(0, 120) + (r.text.length > 120 ? '…' : ''));
-    else showToast((r && (r.message || r.error)) || 'שגיאת AI');
-  });
 }
 function aiQuickQ(q) {
   document.getElementById('ai-input').value = q;
   setTimeout(sendAiMessage, 100);
 }
+
+// ===== CHECKS TABLE =====
+const CATEGORIES = [
+  '1. תוכן איכותי','2. מחקר מילות מפתח','3. מהירות האתר','4. מבנה SEO',
+  '5. UX','6. Mobile First','7. קישורים פנימיים','8. דפי שירות',
+  '9. מאמרים','10. תמונות ומדיה','11. SEO לכל עמוד','12. בדיקות יומיות',
+  '13. מתחרים','14. Authority','15. מעקב שינויים','16. עמודים חלשים',
+  '17. המלצות Google','18. מיקומים בגוגל','19. כניסות ולידים','20. האתר כנכס שיווקי'
+];
+
+// Full checks dataset – filter selects WHAT to show, table shows RESULTS only
+const ALL_CHECKS = [
+  { id:1, catId:3, name:'מהירות טעינה – נייד', score:61, prev:63, target:80, trend:'↓', status:'crit', channel:'SEO', asset:'greentech.co.il',
+    problem:'LCP 4.2s, תמונות לא מכווצות (4.2MB)', rec:'כיווץ WebP + Lazy Load + הסרת JS חוסם', source:'⚡ PageSpeed', date:'24.6.25' },
+  { id:2, catId:3, name:'מהירות טעינה – דסקטופ', score:88, prev:86, target:90, trend:'↑', status:'good', channel:'SEO', asset:'greentech.co.il',
+    problem:'', rec:'תקין – לשמור מעל 85', source:'⚡ PageSpeed', date:'24.6.25' },
+  { id:3, catId:18, name:'מיקום ממוצע בגוגל', score:72, prev:68, target:85, trend:'↑', status:'good', channel:'SEO', asset:'greentech.co.il',
+    problem:'מיקום 12.3 בממוצע', rec:'שיפור תוכן לביטויים בעמדות 11–20', source:'🔎 Search Console', date:'24.6.25' },
+  { id:4, catId:18, name:'ביטויים Top 5', score:50, prev:40, target:70, trend:'↑', status:'warn', channel:'SEO', asset:'greentech.co.il',
+    problem:'5 מתוך 10 יעדים בTop5', rec:'תוכן ייעודי לביטויים 6–10', source:'🔎 Search Console', date:'24.6.25' },
+  { id:5, catId:4, name:'Meta Descriptions', score:78, prev:65, target:100, trend:'↑', status:'good', channel:'SEO', asset:'greentech.co.il',
+    problem:'3 עמודים חסרים', rec:'כתיבת Meta לעמודי שירות', source:'🌐 CMS', date:'24.6.25' },
+  { id:6, catId:4, name:'Schema Markup', score:62, prev:55, target:90, trend:'↑', status:'warn', channel:'SEO', asset:'greentech.co.il',
+    problem:'12 עמודים ללא Schema', rec:'הוספת Schema.org לכל עמוד שירות', source:'🌐 CMS', date:'24.6.25' },
+  { id:7, catId:19, name:'כניסות אורגניות', score:84, prev:75, target:90, trend:'↑', status:'good', channel:'SEO', asset:'greentech.co.il',
+    problem:'', rec:'להמשיך אסטרטגיית תוכן', source:'📊 GA4', date:'24.6.25' },
+  { id:8, catId:19, name:'לידים מהאתר', score:76, prev:70, target:85, trend:'↑', status:'good', channel:'SEO', asset:'greentech.co.il',
+    problem:'', rec:'שיפור CTA בדף הבית', source:'📊 GA4', date:'24.6.25' },
+  { id:9, catId:6, name:'Mobile UX', score:72, prev:72, target:85, trend:'→', status:'warn', channel:'SEO', asset:'greentech.co.il',
+    problem:'3 עמודים לא מותאמים', rec:'תיקון Responsive ב-3 עמודים', source:'⚡ PageSpeed', date:'24.6.25' },
+  { id:10, catId:1, name:'איכות תוכן', score:60, prev:58, target:80, trend:'↑', status:'warn', channel:'SEO', asset:'greentech.co.il',
+    problem:'תוכן דל ב-7 עמודים', rec:'שדרוג תוכן + CTA', source:'🌐 CMS', date:'24.6.25' },
+  { id:11, catId:2, name:'כיסוי מילות מפתח', score:85, prev:73, target:90, trend:'↑', status:'good', channel:'SEO', asset:'greentech.co.il',
+    problem:'18 ביטויים לא מכוסים', rec:'מאמרים ממוקדים', source:'🔎 Search Console', date:'24.6.25' },
+  { id:12, catId:12, name:'Google Ads – ביצועים', score:null, prev:null, target:80, trend:'—', status:'wait', channel:'Google Ads', asset:'Google Ads',
+    problem:'', rec:'ממתין לחיבור API', source:'📢 Google Ads', date:'24.6.25' },
+  { id:13, catId:12, name:'Google Business – כרטיס', score:null, prev:null, target:80, trend:'—', status:'wait', channel:'Google Business', asset:'Google Business',
+    problem:'', rec:'ממתין לחיבור (Token פג)', source:'📍 Google Business', date:'24.6.25' },
+];
+
+function scoreDisplay(s) {
+  if (s===null) return { dot:'⏳', color:'var(--white50)', label:'—' };
+  if (s>=90) return { dot:'🟢', color:'var(--green)', label:String(s) };
+  if (s>=70) return { dot:'🟡', color:'var(--yellow)', label:String(s) };
+  if (s>=50) return { dot:'🟠', color:'#f97316', label:String(s) };
+  return       { dot:'🔴', color:'var(--red)', label:String(s) };
+}
+function trendCol(t){ return t==='↑'?'var(--green)':t==='↓'?'var(--red)':'var(--white30)'; }
+function statusBadge(st){
+  const m={ok:'badge-green',good:'badge-yellow',warn:'badge badge-yellow',crit:'badge-red',wait:'badge-gray'};
+  const l={ok:'מצוין',good:'טוב',warn:'שיפור',crit:'קריטי',wait:'ממתין'};
+  return `<span class="badge ${m[st]||'badge-gray'}" style="font-size:10px;">${l[st]||st}</span>`;
+}
+
+function renderChecksTable(data) {
+  const tbody = document.getElementById('checks-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = data.length === 0
+    ? `<tr><td colspan="12" style="text-align:center;color:var(--white50);padding:20px;">אין תוצאות לסינון שנבחר</td></tr>`
+    : data.map((r,i) => {
+        const s = scoreDisplay(r.score);
+        const prev = r.prev!==null ? `<span style="font-size:13px;color:var(--white50);">${r.prev}</span>` : '—';
+        const tgt  = `<span style="font-size:12px;color:var(--accent2);">${r.target}</span>`;
+        return `<tr>
+          <td style="color:var(--white50);font-size:11px;">${i+1}</td>
+          <td style="font-size:12px;font-weight:600;">${r.name}</td>
+          <td style="text-align:center;"><span style="font-size:15px;font-weight:800;color:${s.color};">${s.dot} ${s.label}</span></td>
+          <td style="text-align:center;">${prev}</td>
+          <td style="text-align:center;">${tgt}</td>
+          <td style="text-align:center;font-size:15px;color:${trendCol(r.trend)};">${r.trend}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td style="font-size:11px;color:${r.problem?'var(--red)':'var(--white50)'};">${r.problem||'—'}</td>
+          <td style="font-size:11px;color:var(--white80);">${r.rec}</td>
+          <td style="font-size:11px;color:var(--white50);white-space:nowrap;">${r.source}</td>
+          <td style="font-size:11px;color:var(--white50);white-space:nowrap;">${r.date}</td>
+          <td>${r.status!=='wait'?`<button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;" onclick="sendRowToGoals(${r.id})">🎯</button>`:'—'}</td>
+        </tr>`;
+    }).join('');
+
+  updateOverallScore(data);
+}
+
+function updateOverallScore(data) {
+  const scored = data.filter(r => r.score !== null);
+  const avg = scored.length ? Math.round(scored.reduce((a,r)=>a+r.score,0)/scored.length) : null;
+  const el = document.getElementById('ct-overall-score');
+  const lbl = document.getElementById('ct-score-label');
+  if (!el) return;
+  if (avg===null) { el.textContent='—'; el.style.color='var(--white50)'; if(lbl) lbl.textContent='ממתין'; return; }
+  el.textContent = avg;
+  el.style.color = avg>=90?'var(--green)':avg>=70?'var(--yellow)':avg>=50?'#f97316':'var(--red)';
+  if (lbl) lbl.textContent = avg>=90?'מצוין':avg>=70?'טוב':avg>=50?'דורש שיפור':'קריטי';
+}
+
+function applyChecksFilter() {
+  const catId   = parseInt(document.getElementById('ct-cat')?.value||'0')||0;
+  const channel  = document.getElementById('ct-channel')?.value||'';
+  const asset    = document.getElementById('ct-asset')?.value||'';
+  const filtered = ALL_CHECKS.filter(r => {
+    const catOk     = !catId   || r.catId === catId;
+    const channelOk = !channel || r.channel === channel;
+    const assetOk   = !asset   || r.asset === asset;
+    return catOk && channelOk && assetOk;
+  });
+  renderChecksTable(filtered);
+  updateSummaryText();
+}
+
+function updateSummaryText() {
+  const catEl  = document.getElementById('ct-cat');
+  const chEl   = document.getElementById('ct-channel');
+  const asEl   = document.getElementById('ct-asset');
+  const perEl  = document.getElementById('ct-period');
+  const txt    = document.getElementById('ct-summary-text');
+  if (!txt||!catEl) return;
+  const cat  = catEl.value  ? catEl.options[catEl.selectedIndex].text  : 'כל הקטגוריות';
+  const ch   = chEl.value   ? chEl.options[chEl.selectedIndex].text    : 'כל הערוצים';
+  const as   = asEl.value   ? asEl.options[asEl.selectedIndex].text    : 'כל הנכסים';
+  const per  = perEl.value  ? perEl.options[perEl.selectedIndex].text  : '30 ימים';
+  txt.innerHTML = `נבדק: <strong>${cat}</strong> לפי ערוץ <strong>${ch}</strong> | נכס <strong>${as}</strong> | תקופה <strong>${per}</strong>`;
+}
+
+function resetChecksFilter() {
+  ['ct-cat','ct-channel','ct-asset','ct-campaign'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const p=document.getElementById('ct-period'); if(p) p.value='30';
+  applyChecksFilter();
+}
+
+function refreshChecks() {
+  showToast('🔄 מרענן בדיקות לפי הסינון הנוכחי...');
+  setTimeout(()=>{ applyChecksFilter(); showToast('✅ הבדיקות עודכנו'); }, 1800);
+}
+
+function runChecks() {
+  showToast('▶️ מפעיל עוזרים...');
+  setTimeout(()=>showToast('⏳ עוזרים אוספים נתונים...'),1500);
+  setTimeout(()=>{ applyChecksFilter(); showToast('✅ הסריקה הושלמה'); },3500);
+}
+
+function exportToGoals() {
+  const catEl = document.getElementById('ct-cat');
+  const catId = parseInt(catEl?.value||'0')||0;
+  const data  = catId ? ALL_CHECKS.filter(r=>r.catId===catId&&r.score!==null) : ALL_CHECKS.filter(r=>r.score!==null);
+  // Update transfer status badge
+  const st = document.getElementById('ct-transfer-status');
+  if (st) st.innerHTML = `<span class="badge badge-green" style="font-size:11px;">✓ הועבר למטרות (${data.length} ציונים)</span>`;
+  goScreen('screen-goals');
+  showToast('🎯 ' + data.length + ' ציונים הועברו למטרות');
+}
+
+function sendRowToGoals(id) {
+  const r = ALL_CHECKS.find(x=>x.id===id);
+  if (!r) return;
+  showToast('🎯 "' + r.name + '" הועבר למטרות');
+}
+
+// Init on load
+(function(){ try { renderChecksTable(ALL_CHECKS); updateSummaryText(); } catch(e){} })();
+// ===== END CHECKS TABLE =====
 
 // ===== AGENT DASHBOARD DATA =====
 const AGENT_DATA = {
@@ -372,22 +801,8 @@ const AGENT_DATA = {
 };
 
 function openAgentDashboard(agentId) {
-  let a = null;
-  if (window.DaliaSite && typeof DaliaSite.getAgentData === 'function') {
-    a = DaliaSite.getAgentData(agentId);
-  }
-  if (!a && window.CocoData && typeof CocoData.getAgentData === 'function') {
-    a = CocoData.getAgentData(agentId);
-  }
-  if (!a && !(window.DaliaSite && DaliaSite.isLiveOnly && DaliaSite.isLiveOnly())) {
-    a = AGENT_DATA[agentId];
-  }
+  const a = AGENT_DATA[agentId];
   if (!a) { showToast('⏳ דשבורד בפיתוח'); return; }
-
-  const scoreDisplay = typeof a.score === 'number' ? a.score : 'ממתין לחיבור';
-
-  const siteDomain = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.domain) || 'dalia-c.com';
-  const siteCompany = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.company) || 'דליה';
 
   document.getElementById('agent-dash-breadcrumb').textContent = a.name;
 
@@ -395,10 +810,10 @@ function openAgentDashboard(agentId) {
   const filterHTML = `
     <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
-        <select class="filter-select" title="חברה"><option>${siteCompany}</option></select>
+        <select class="filter-select" title="חברה"><option>גרין-טק</option></select>
         <select class="filter-select" title="פרויקט"><option>Project 001</option><option>כל הפרויקטים</option></select>
-        <select class="filter-select" title="אתר"><option>${siteDomain}</option><option>כל האתרים</option></select>
-        <input class="filter-input" placeholder="דומיין..." style="max-width:140px;" value="${siteDomain}">
+        <select class="filter-select" title="אתר"><option>greentech.co.il</option><option>כל האתרים</option></select>
+        <input class="filter-input" placeholder="דומיין..." style="max-width:140px;" value="greentech.co.il">
         <select class="filter-select" title="טווח תאריכים">
           <option>7 ימים</option><option selected>30 ימים</option><option>60 ימים</option><option>90 ימים</option>
         </select>
@@ -447,25 +862,11 @@ function openAgentDashboard(agentId) {
     </tr>`).join('');
 
   // Build chart mockup
-  const chartBars = a.liveOnly ? '' : [45,58,52,67,61,74,68,82,76,88,80,95].map(h =>
+  const chartBars = [45,58,52,67,61,74,68,82,76,88,80,95].map(h =>
     `<div class="chart-bar" style="height:${h}%"></div>`).join('');
-  const chartLabels = a.liveOnly ? '' : ['1','3','6','9','12','15','18','21','24','27','29','30'].map(l =>
+  const chartLabels = ['1','3','6','9','12','15','18','21','24','27','29','30'].map(l =>
     `<div class="chart-label">${l}</div>`).join('');
-  const chartSection = a.liveOnly
-    ? `<div class="section"><div class="alert alert-info">📈 גרף מגמה — ממתין לנתונים היסטוריים (סנכרון Google)</div></div>`
-    : `<div class="section">
-      <div class="sec-title">גרף מגמה – 30 יום</div>
-      <div class="card">
-        <div class="card-title" style="margin-bottom:10px;">מגמת ביצועים</div>
-        <div class="chart-bar-wrap">${chartBars}</div>
-        <div class="chart-labels">${chartLabels}</div>
-        <div style="font-size:11px;color:var(--white50);margin-top:6px;">מגמה: עלייה מתמשכת</div>
-      </div>
-    </div>`;
-  const connBadge = a.connectionOk
-    ? '<span class="badge badge-green">● מחובר — נתונים אמיתיים</span>'
-    : '<span class="badge badge-yellow">⏳ ממתין לחיבור</span>';
-  const scoreColor = typeof a.score === 'number' && a.score >= 80 ? 'var(--green)' : (typeof a.score === 'number' && a.score >= 65 ? 'var(--yellow)' : 'var(--white50)');
+
   const urgencyColor = a.urgency==='קריטית' ? 'var(--red)' : a.urgency==='גבוהה' ? 'var(--yellow)' : 'var(--accent2)';
 
   const content = `
@@ -484,7 +885,7 @@ function openAgentDashboard(agentId) {
       <div class="grid grid-4" style="gap:10px;margin-bottom:10px;">
         <div class="card" style="padding:12px 14px;">
           <div class="card-title">סטטוס חיבור</div>
-          <div style="margin-top:4px;">${connBadge}</div>
+          <div style="margin-top:4px;"><span class="badge badge-green">● מחובר</span></div>
         </div>
         <div class="card" style="padding:12px 14px;">
           <div class="card-title">נתונים שנאספו</div>
@@ -500,7 +901,7 @@ function openAgentDashboard(agentId) {
         </div>
         <div class="card" style="padding:12px 14px;">
           <div class="card-title">ציון כללי</div>
-          <div style="font-size:22px;font-weight:800;color:${scoreColor};">${scoreDisplay}</div>
+          <div style="font-size:22px;font-weight:800;color:${a.score>=80?'var(--green)':a.score>=65?'var(--yellow)':'var(--red)'};">${a.score}</div>
         </div>
         <div class="card" style="padding:12px 14px;">
           <div class="card-title">רמת דחיפות</div>
@@ -523,7 +924,16 @@ function openAgentDashboard(agentId) {
       <div class="grid grid-4" style="gap:10px;">${kpiHTML}</div>
     </div>
 
-    ${chartSection}
+    <!-- 3. Charts -->
+    <div class="section">
+      <div class="sec-title">גרף מגמה – 30 יום</div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px;">מגמת ביצועים</div>
+        <div class="chart-bar-wrap">${chartBars}</div>
+        <div class="chart-labels">${chartLabels}</div>
+        <div style="font-size:11px;color:var(--white50);margin-top:6px;">מגמה: עלייה מתמשכת</div>
+      </div>
+    </div>
 
     <!-- 4. Findings table -->
     <div class="section">
@@ -591,22 +1001,21 @@ function getAgentFilterHint(id) {
 }
 
 // ===== AGENT LIST FILTER =====
-function toggleAgentFilter() {
-  const panel = document.getElementById('ag-advanced-panel');
-  const chevron = document.getElementById('ag-adv-chevron');
-  const open = panel.style.display === 'none' || panel.style.display === '';
-  panel.style.display = open ? 'block' : 'none';
-  chevron.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+function toggleAgentAdvFilter() {
+  const p = document.getElementById('ag-adv-panel');
+  const btn = document.getElementById('ag-adv-toggle');
+  const ico = document.getElementById('ag-adv-icon');
+  if (!p) return;
+  const open = p.style.display === 'none' || p.style.display === '';
+  p.style.display = open ? 'block' : 'none';
+  if (ico) ico.textContent = open ? '▲' : '▼';
+  if (btn) { btn.style.borderColor = open ? 'var(--accent)' : 'var(--border)'; btn.style.color = open ? 'var(--accent2)' : 'var(--white50)'; }
 }
+function toggleAgentFilter() { toggleAgentAdvFilter(); }
 
 function resetAgentFilter() {
-  ['ag-company','ag-project','ag-site','ag-agent','ag-system','ag-status','ag-datatype','ag-priority'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  document.getElementById('ag-scandate').value = '3h';
-  var dom = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.domain) || 'dalia-c.com';
-  document.getElementById('ag-domain').value = dom;
+  ['ag-agent','ag-status','ag-priority'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  const s=document.getElementById('ag-search'); if(s) s.value='';
   showToast('✓ סינון עוזרים אופס');
 }
 // ===== END AGENT LOGIC =====
@@ -657,7 +1066,7 @@ function resetActFilter() {
     const el=document.getElementById(id); if(el) el.value='';
   });
   const s=document.getElementById('act-search'); if(s) s.value='';
-  const d=document.getElementById('act-domain'); if(d) d.value=(window.DaliaSite&&DaliaSite.SITE&&DaliaSite.SITE.domain)||'dalia-c.com';
+  const d=document.getElementById('act-domain'); if(d) d.value='greentech.co.il';
   applyActFilter();
   showToast('✓ סינון פעולות אופס');
 }
@@ -675,6 +1084,17 @@ function pauseAction(btn) {
 }
 // ===== END ACTIONS LOGIC =====
 
+// ===== GOALS FILTER ADV =====
+function toggleGoalsAdvFilter() {
+  const p = document.getElementById('gf-adv-panel');
+  const ch = document.getElementById('gf-adv-ch');
+  const btn = document.getElementById('gf-adv-btn');
+  if (!p) return;
+  const open = p.style.display === 'none' || p.style.display === '';
+  p.style.display = open ? 'block' : 'none';
+  if (ch) ch.textContent = open ? '▲' : '▼';
+  if (btn) { btn.style.borderColor = open ? 'var(--accent)' : 'var(--border)'; btn.style.color = open ? 'var(--accent2)' : 'var(--white50)'; }
+}
 // ===== GOALS LOGIC =====
 function applyGoalsAgentFilter() {
   const sel = document.getElementById('gf-agent');
@@ -812,6 +1232,132 @@ function transferGoalToActions(goalName, agentId) {
 }
 // ===== END GOALS LOGIC =====
 
+// ===== CRM =====
+const CRM_CLIENTS = {
+  greentech: { name:'גרין-טק פתרונות', id:'CLT-001', contact:'ראובן לוי', phone:'054-1234567', email:'reuven@greentech.co.il', site:'greentech.co.il', sector:'ניהול צי', service:'שיווק + צי', status:'פעיל', score:'⭐⭐⭐', owner:'יוני', source:'Google Ads', since:'10.1.24' },
+  delta:     { name:'דלתא לוגיסטיקה', id:'CLT-002', contact:'שרה כהן', phone:'052-9876543', email:'sarah@delta.co.il', site:'delta-logistics.co.il', sector:'לוגיסטיקה', service:'שיווק בלבד', status:'פעיל', score:'⭐⭐', owner:'דנה', source:'Google אורגני', since:'3.3.24' },
+  alpha:     { name:'אלפא מוטורס', id:'CLT-003', contact:'דוד מזרחי', phone:'050-3456789', email:'david@alpha.co.il', site:'alpha-motors.co.il', sector:'רכב', service:'ניהול צי', status:'הצעת מחיר', score:'⭐⭐⭐', owner:'יוני', source:'הפניה', since:'18.6.25' },
+  tech:      { name:'פתרונות טק ישראל', id:'CLT-004', contact:'מיכל אברהם', phone:'053-7654321', email:'michal@tek.co.il', site:'tek-solutions.co.il', sector:'טכנולוגיה', service:'שיווק בלבד', status:'בטיפול', score:'⭐', owner:'Miki', source:'Facebook', since:'20.6.25' },
+  lead1:     { name:'בן-דוד תחבורה', id:'CLT-005', contact:'אלי בן-דוד', phone:'058-1122334', email:'eli@bd.co.il', site:'bd-transport.co.il', sector:'תחבורה', service:'לא הוחלט', status:'ליד חדש', score:'⭐⭐', owner:'יוני', source:'Google Business', since:'23.6.25' },
+  lead2:     { name:'מגדל ביטוח צי', id:'CLT-006', contact:'רחל שפירא', phone:'054-9988776', email:'rachel@migdal-fleet.co.il', site:'migdal-fleet.co.il', sector:'ביטוח', service:'לא הוחלט', status:'ליד חדש', score:'⭐⭐⭐', owner:'דנה', source:'Google Ads', since:'24.6.25' },
+  new:       { name:'לקוח חדש', id:'CLT-NEW', contact:'', phone:'', email:'', site:'', sector:'', service:'', status:'ליד חדש', score:'', owner:'', source:'', since:'' }
+};
+
+function openCrmCard(id) {
+  const c = CRM_CLIENTS[id] || CRM_CLIENTS['new'];
+  document.getElementById('crm-card-breadcrumb').textContent = c.name;
+
+  const statusColor = c.status==='פעיל' ? 'var(--green)' : c.status==='ליד חדש' ? 'var(--accent2)' : c.status==='הצעת מחיר' ? 'var(--purple)' : 'var(--yellow)';
+
+  const infoTab = `
+    <div class="page-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div class="page-title">${c.name}</div>
+          <div class="page-subtitle">${c.id} • ${c.sector} • מאז ${c.since}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span class="badge badge-blue">${c.service || 'לא הוגדר'}</span>
+          <span style="font-size:14px;font-weight:700;color:${statusColor};">${c.status}</span>
+          <span style="font-size:16px;">${c.score}</span>
+        </div>
+      </div>
+      <hr class="page-rule">
+    </div>
+
+    <div class="section" style="padding-bottom:0;">
+      <div class="grid grid-2" style="gap:12px;">
+        <!-- Contact details -->
+        <div class="card">
+          <div class="sec-title">פרטי התקשרות</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">איש קשר</span><strong>${c.contact || '—'}</strong></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">טלפון</span><strong>${c.phone || '—'}</strong></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">אימייל</span><strong style="font-size:12px;">${c.email || '—'}</strong></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">אתר</span><strong style="font-size:12px;">${c.site || '—'}</strong></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">אחראי</span><strong>${c.owner || '—'}</strong></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
+            <button class="btn btn-primary" style="font-size:11px;padding:4px 10px;" onclick="showToast('📞 מחייג...')">📞 התקשר</button>
+            <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="showToast('💬 WhatsApp...')">💬 WhatsApp</button>
+            <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="showToast('📧 מייל...')">📧 מייל</button>
+          </div>
+        </div>
+
+        <!-- Business details -->
+        <div class="card">
+          <div class="sec-title">פרטי העסק</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">Client ID</span><code style="background:var(--bg4);padding:1px 6px;border-radius:4px;font-size:12px;">${c.id}</code></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">תחום</span><strong>${c.sector || '—'}</strong></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">שירות</span><strong>${c.service || '—'}</strong></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">מקור הגעה</span><strong>${c.source || '—'}</strong></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">ציון ליד</span><strong>${c.score || '—'}</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leads source summary -->
+    <div class="section" style="padding-bottom:0;">
+      <div class="card">
+        <div class="sec-title">מקורות הגעה – הכנה לחיבור</div>
+        <div class="grid grid-4" style="gap:8px;">
+          ${['Google אורגני','Google Ads','Google Business','Facebook','Instagram','LinkedIn','WhatsApp','טופס','שיחה','הפניה'].map((s,i) =>
+            `<div style="background:var(--bg4);border-radius:7px;padding:8px;text-align:center;opacity:${c.source===s?'1':'0.4'};">
+              <div style="font-size:10px;color:var(--white50);">${s}</div>
+              <div style="font-size:16px;font-weight:800;color:${c.source===s?'var(--accent2)':'var(--white20)'};">${c.source===s?'✓':'—'}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Future connections -->
+    <div class="section">
+      <div class="card">
+        <div class="sec-title">חיבורים עתידיים – לפי Client ID: ${c.id}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${['מצב נוכחי','חברות','עוזרים','מטרות','פעולות','היסטוריה','נכסים','AI','דוחות','Supabase'].map(m =>
+            `<span style="padding:4px 10px;border-radius:7px;background:var(--bg4);border:1px solid var(--border);font-size:11px;color:var(--white50);">○ ${m}</span>`).join('')}
+        </div>
+        <div style="font-size:11px;color:var(--white50);margin-top:8px;">💡 לאחר חיבור ב-Cursor: כל מודול יאגד נתונים לפי Client ID ${c.id} בלבד</div>
+      </div>
+    </div>`;
+
+  document.getElementById('crm-card-content').innerHTML = infoTab +
+    `<div id="tab-cc-leads" style="display:none;"><div class="section"><div class="alert alert-info">🔔 לידים של ${c.name} – יתמלא מ-Supabase לאחר חיבור</div></div></div>
+     <div id="tab-cc-tasks" style="display:none;"><div class="section"><div class="alert alert-info">📌 משימות של ${c.name} – יתמלא לאחר חיבור</div></div></div>
+     <div id="tab-cc-history" style="display:none;"><div class="section">
+       <div class="sec-title">Audit Trail – ${c.name}</div>
+       <div class="timeline">
+         <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">לקוח נוצר במערכת</div><div class="tl-time">${c.since} | ${c.owner} | מקור: ${c.source}</div></div></div>
+         <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--accent2)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">שיחת היכרות</div><div class="tl-time">ממתין לתיעוד</div></div></div>
+       </div>
+     </div></div>
+     <div id="tab-cc-docs" style="display:none;"><div class="section"><div class="alert alert-info">📄 מסמכים – יתמלא לאחר חיבור</div></div></div>
+     <div id="tab-cc-marketing" style="display:none;"><div class="section">
+       <div class="ai-box"><div class="ai-box-header"><div class="ai-pulse"></div>שיווק – ${c.name}</div><div class="ai-box-text">נתוני שיווק יסונכרנו לאחר חיבור ל-Google Analytics, Google Ads וה-Search Console בעמוד "הנכסים הדיגיטליים".</div></div>
+       <div style="margin-top:12px;display:flex;gap:8px;"><button class="btn btn-ghost" style="font-size:12px;" onclick="goScreen('screen-status')">📊 מצב נוכחי</button><button class="btn btn-ghost" style="font-size:12px;" onclick="goScreen('screen-assets')">🌐 נכסים</button></div>
+     </div></div>
+     <div id="tab-cc-ai" style="display:none;"><div class="section">
+       <div class="ai-box"><div class="ai-box-header"><div class="ai-pulse"></div>🤖 AI אישי – ${c.name}</div><div class="ai-box-text">עוזר AI אישי ייצור לאחר חיבור. יכיר: האתר, הקמפיינים, ההיסטוריה, לידים, איכות לידים, משימות, פעולות שבוצעו – ויפיק המלצות, פעולות, סדרי עדיפויות ותובנות.</div></div>
+     </div></div>`;
+
+  // Init tabs in new content
+  document.querySelectorAll('#crm-card-content [id^="tab-cc-"]').forEach((t,i) => { t.style.display = i===0?'':'none'; });
+  goScreen('screen-crm-card');
+}
+
+function resetCrmFilter() {
+  ['crm-company','crm-source','crm-status','crm-service','crm-owner','crm-score'].forEach(id => {
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const d=document.getElementById('crm-date'); if(d) d.value='30';
+  const s=document.getElementById('crm-search'); if(s) s.value='';
+  showToast('✓ סינון CRM אופס');
+}
+// ===== END CRM =====
+
 // ===== STATUS FILTER LOGIC =====
 
 // Show/hide custom date range
@@ -899,10 +1445,9 @@ function resetStatusFilter() {
   document.getElementById('sf-date-custom').style.display = 'none';
   document.getElementById('sf-chips').style.display = 'none';
   document.getElementById('sf-chips').innerHTML = '';
-  var co = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.company) || 'דליה';
-  var dom = (window.DaliaSite && DaliaSite.SITE && DaliaSite.SITE.domain) || 'dalia-c.com';
-  updateStatusSubtitle(co, '', '30');
-  document.getElementById('sf-site').value = dom;
+  updateStatusSubtitle('גרין-טק פתרונות בע"מ', '', '30');
+  // Also reset site to default
+  document.getElementById('sf-site').value = 'greentech.co.il';
   showToast('✓ הסינון אופס');
 }
 

@@ -46,11 +46,13 @@
     'screen-hub',
     'screen-status',
     'screen-clients',
+    'screen-agents',
     'screen-goals',
     'screen-actions',
-    'screen-history',
+    'screen-crm',
     'screen-assets',
-    'screen-ai-decisions',
+    'screen-ai-center',
+    'screen-history',
     'screen-reports'
   ];
 
@@ -62,7 +64,8 @@
     actions: 'screen-actions',
     history: 'screen-history',
     assets: 'screen-assets',
-    'ai-decisions': 'screen-ai-decisions',
+    'ai-decisions': 'screen-ai-center',
+    'screen-ai-decisions': 'screen-ai-center',
     reports: 'screen-reports',
     agents: 'screen-agents',
     'agent-dashboard': 'screen-agent-dashboard',
@@ -73,7 +76,7 @@
     'sc-mkt-actions': 'screen-actions',
     'sc-mkt-history': 'screen-history',
     'sc-mkt-assets': 'screen-assets',
-    'sc-mkt-ai-decisions': 'screen-ai-decisions',
+    'sc-mkt-ai-decisions': 'screen-ai-center',
     'sc-mkt-reports': 'screen-reports',
     'sc-mkt-agents': 'screen-agents'
   };
@@ -241,8 +244,13 @@
     saveContext();
   }
 
+  function topActiveScreen() {
+    var root = document.getElementById('coco-claude-root');
+    return root ? root.querySelector(':scope > .screen.active') : document.querySelector('.screen.active');
+  }
+
   function refreshScreenFilters() {
-    var active = document.querySelector('#coco-claude-root .screen.active');
+    var active = topActiveScreen();
     if (!active) return;
     var id = active.id;
     if (id === 'screen-status' && typeof applyStatusFilter === 'function') applyStatusFilter();
@@ -319,7 +327,8 @@
 
   var _goScreen = window.goScreen;
   window.goScreen = function (id) {
-    var active = document.querySelector('#coco-claude-root .screen.active');
+    if (id === 'screen-ai-decisions') id = 'screen-ai-center';
+    var active = topActiveScreen();
     if (active) captureContextFromScreen(active.id);
     if (typeof _goScreen === 'function') _goScreen(id);
     else {

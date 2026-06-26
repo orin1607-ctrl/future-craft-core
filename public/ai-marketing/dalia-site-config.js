@@ -335,7 +335,7 @@
 
   function hideStaticDemoBlocks() {
     var demoRx = /גרין|greentech|8,420|14,320|184,000|342|77%|42 ליד|FleetOS|דלתא לוגיסטיקה|9 עמודים חלשים|23 ממצא|12 משימות/i;
-    ['screen-goals', 'screen-actions', 'screen-history', 'screen-assets', 'screen-hub', 'screen-ai-decisions', 'screen-reports'].forEach(function (sid) {
+    ['screen-goals', 'screen-actions', 'screen-history', 'screen-assets', 'screen-hub', 'screen-ai-center', 'screen-ai-decisions', 'screen-agents', 'screen-crm', 'screen-reports'].forEach(function (sid) {
       var screen = document.getElementById(sid);
       if (!screen) return;
       screen.querySelectorAll('.section, .grid.grid-4, .act-item, .action-card, .timeline .tl-item').forEach(function (el) {

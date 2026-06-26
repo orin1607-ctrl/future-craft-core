@@ -25,8 +25,8 @@
     <div style="padding:20px 20px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>
         <div style="font-size:11px;color:var(--white50);margin-bottom:4px;">לקוח פעיל</div>
-        <div id="coco-hub-client-name" style="font-size:18px;font-weight:800;color:var(--white);">🏢 טוען לקוח…</div>
-        <div id="coco-hub-client-sub" style="font-size:12px;color:var(--white50);margin-top:3px;">ממתין לחיבור · Client ID מ-Supabase</div>
+        <div id="coco-hub-client-name" style="font-size:18px;font-weight:800;color:var(--white);">🏢 גרין-טק פתרונות בע"מ</div>
+        <div id="coco-hub-client-sub" style="font-size:12px;color:var(--white50);margin-top:3px;">ניהול שיווק + ניהול צי • מאז ינואר 2024</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <span class="badge badge-green">● פעיל</span>
@@ -37,18 +37,34 @@
     <!-- KPI mini strip -->
     <div style="padding:14px 20px 0;">
       <div class="grid grid-4" id="coco-live-hub-kpis" style="gap:10px;">
-        <div class="card" style="padding:12px 14px;"><div class="card-title">קליקים (GSC)</div><div class="card-value" style="font-size:22px;color:var(--white50);">—</div><div class="card-delta" style="color:var(--white50)">ממתין לחיבור</div></div>
-        <div class="card" style="padding:12px 14px;"><div class="card-title">חשיפות (GSC)</div><div class="card-value" style="font-size:22px;color:var(--white50);">—</div><div class="card-delta" style="color:var(--white50)">ממתין לחיבור</div></div>
-        <div class="card" style="padding:12px 14px;"><div class="card-title">סשנים (GA4)</div><div class="card-value" style="font-size:22px;color:var(--white50);">—</div><div class="card-delta" style="color:var(--white50)">ממתין לחיבור</div></div>
-        <div class="card" style="padding:12px 14px;"><div class="card-title">מיקום ממוצע</div><div class="card-value" style="font-size:22px;color:var(--white50);">—</div><div class="card-delta" style="color:var(--white50)">ממתין לחיבור</div></div>
+        <div class="card" style="padding:12px 14px;">
+          <div class="card-title">ציון אתר</div>
+          <div class="card-value" style="font-size:22px;color:var(--green);">82</div>
+          <div class="card-delta up">↑ +4 החודש</div>
+        </div>
+        <div class="card" style="padding:12px 14px;">
+          <div class="card-title">כניסות</div>
+          <div class="card-value" style="font-size:22px;">14,320</div>
+          <div class="card-delta up">↑ +12%</div>
+        </div>
+        <div class="card" style="padding:12px 14px;">
+          <div class="card-title">לידים</div>
+          <div class="card-value" style="font-size:22px;color:var(--accent2);">47</div>
+          <div class="card-delta up">↑ +8</div>
+        </div>
+        <div class="card" style="padding:12px 14px;">
+          <div class="card-title">משימות פתוחות</div>
+          <div class="card-value" style="font-size:22px;color:var(--yellow);">12</div>
+          <div class="card-delta" style="color:var(--white50);">3 דחופות</div>
+        </div>
       </div>
     </div>
 
     <!-- AI daily tip -->
     <div style="padding:14px 20px 0;">
       <div class="ai-box">
-        <div class="ai-box-header"><div class="ai-pulse"></div>המלצת AI יומית</div>
-        <div class="ai-box-text">ממתין לחיבור — נתונים ייטענו מ-Supabase ו-Google לאחר סנכרון. אין תצוגת Demo.</div>
+        <div class="ai-box-header"><div class="ai-pulse"></div>המלצת AI יומית – גרין-טק</div>
+        <div class="ai-box-text">3 עמודי שירות עדיין ללא Meta Description. מחקר מילות מפתח מצביע על 18 ביטויים בעלי נפח חיפוש גבוה שהאתר לא מכסה. מומלץ לפתוח משימות SEO דרך <strong>המטרות שלנו</strong>.</div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-goals')">עבור למטרות</button>
           <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-status')">מצב נוכחי</button>
@@ -91,12 +107,11 @@
         <div class="hub-desc">ביצוע ואישור משימות</div>
         <div class="hub-count">12 ממתינות לאישור</div>
       </div>
-      
-      <div class="hub-card" onclick="goScreen('screen-history')">
-        <div class="hub-icon">📚</div>
-        <div class="hub-name">היסטוריה</div>
-        <div class="hub-desc">תיעוד פעולות ושינויים</div>
-        <div class="hub-count">18 בוצעו החודש</div>
+      <div class="hub-card" onclick="goScreen('screen-crm')">
+        <div class="hub-icon">👥</div>
+        <div class="hub-name">לקוחות CRM</div>
+        <div class="hub-desc">ניהול לקוחות ולידים</div>
+        <div class="hub-count">12 לקוחות פעילים</div>
       </div>
       <div class="hub-card" onclick="goScreen('screen-assets')">
         <div class="hub-icon">🌐</div>
@@ -104,23 +119,23 @@
         <div class="hub-desc">שליטה בכל הנכסים</div>
         <div class="hub-count">9 נכסים מחוברים</div>
       </div>
-      <div class="hub-card" onclick="goScreen('screen-ai-decisions')">
+      <div class="hub-card" onclick="goScreen('screen-ai-center')">
         <div class="hub-icon">🧠</div>
-        <div class="hub-name">AI / קבלת החלטות</div>
-        <div class="hub-desc">ישיבת צוות AI מרכזית</div>
-        <div class="hub-count">23 המלצות</div>
+        <div class="hub-name">מרכז AI</div>
+        <div class="hub-desc">ChatGPT מנתח → יוצר פעולות</div>
+        <div class="hub-count" id="hub-ai-count">0 החלטות ממתינות</div>
+      </div>
+      <div class="hub-card" onclick="goScreen('screen-history')">
+        <div class="hub-icon">📚</div>
+        <div class="hub-name">היסטוריה</div>
+        <div class="hub-desc">Audit Trail מלא – לא נמחק</div>
+        <div class="hub-count">22 רשומות</div>
       </div>
       <div class="hub-card" onclick="goScreen('screen-reports')">
-        <div class="hub-icon">📄</div>
+        <div class="hub-icon">📑</div>
         <div class="hub-name">דוחות</div>
-        <div class="hub-desc">הפקה אוטומטית ללקוח</div>
-        <div class="hub-count">6 סוגי דוחות</div>
-      </div>
-      <div class="hub-card" id="coco-hub-crm-card" onclick="openCrmModule()">
-        <div class="hub-icon">📇</div>
-        <div class="hub-name">CRM</div>
-        <div class="hub-desc">לקוחות · לידים · משימות · Pipeline</div>
-        <div class="hub-count" id="coco-hub-crm-count">—</div>
+        <div class="hub-desc">דוחות אוטומטיים לפי מטרות</div>
+        <div class="hub-count">דוח יוני 2025 מוכן</div>
       </div>
     </div>
 
@@ -136,10 +151,10 @@
   </div>
 
   <div class="bottom-nav">
-    <div class="bnav-btn active" data-screen="screen-hub" onclick="goScreen('screen-hub')"><div class="icon">🏠</div>ראשי</div>
-    <div class="bnav-btn" data-screen="screen-status" onclick="goScreen('screen-status')"><div class="icon">📊</div>מצב</div>
-    <div class="bnav-btn" data-screen="screen-actions" onclick="goScreen('screen-actions')"><div class="icon">⚙️</div>פעולות</div>
-    <div class="bnav-btn" data-screen="screen-goals" onclick="goScreen('screen-goals')"><div class="icon">🎯</div>מטרות</div>
+    <div class="bnav-btn active" onclick="goScreen('screen-hub')"><div class="icon">🏠</div>ראשי</div>
+    <div class="bnav-btn" onclick="goScreen('screen-status')"><div class="icon">📊</div>מצב</div>
+    <div class="bnav-btn" onclick="goScreen('screen-actions')"><div class="icon">⚙️</div>פעולות</div>
+    <div class="bnav-btn" onclick="goScreen('screen-goals')"><div class="icon">🎯</div>מטרות</div>
   </div>
 </div>
 
@@ -344,6 +359,18 @@
   <div class="content">
     <!-- Tab: Overview -->
     <div id="tab-status-overview">
+      <!-- Client header -->
+      <div style="padding:12px 20px 0;">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="font-size:12px;color:var(--white80);display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <span><strong>CLT-001</strong></span><span style="color:var(--white20);">|</span>
+            <span>גרין-טק פתרונות</span><span style="color:var(--white20);">|</span>
+            <span>🌐 greentech.co.il</span><span style="color:var(--white20);">|</span>
+            <span>📢 Brand Search</span>
+          </div>
+          <button class="btn btn-primary" style="font-size:11px;padding:3px 9px;" onclick="goScreen('screen-clients')">⚙️ הגדרות לקוח</button>
+        </div>
+      </div>
       <div class="page-header">
         <div class="page-title">📊 מצב נוכחי</div>
         <div class="page-subtitle">גרין-טק פתרונות בע"מ • עדכון אחרון: לפני 12 דקות</div>
@@ -547,6 +574,7 @@
   <div class="nav-tabs">
     <div class="nav-tab active" onclick="setTab(this,'tab-clients-list')">רשימת לקוחות</div>
     <div class="nav-tab" onclick="setTab(this,'tab-clients-setup')">הגדרת לקוח</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-clients-assets')">🔗 נכסי לקוח</div>
     <div class="nav-tab" onclick="setTab(this,'tab-clients-integrations')">חיבורי API</div>
   </div>
 
@@ -680,6 +708,190 @@
     </div>
 
     <!-- Tab: Integrations -->
+    <!-- ===== TAB: CLIENT ASSETS ===== -->
+    <div id="tab-clients-assets" style="display:none;">
+      <div class="page-header">
+        <div class="page-title">🔗 נכסי לקוח</div>
+        <div class="page-subtitle">גרין-טק פתרונות בע"מ • CLT-001 • לחץ על כרטיס לפתיחת אזור החיבור</div>
+        <hr class="page-rule">
+      </div>
+
+      <!-- Filter bar – compact -->
+      <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select class="filter-select" id="ca-type" onchange="filterClientAssets()" style="font-size:12px;">
+          <option value="">כל הנכסים</option>
+          <option value="site">🌐 אתר</option>
+          <option value="google">🔍 Google</option>
+          <option value="social">📱 רשתות</option>
+          <option value="comm">💬 תקשורת</option>
+        </select>
+        <select class="filter-select" id="ca-status" onchange="filterClientAssets()" style="font-size:12px;">
+          <option value="">כל הסטטוסים</option>
+          <option value="connected">מחובר</option>
+          <option value="pending">ממתין</option>
+          <option value="manual">ידני</option>
+          <option value="error">שגיאה</option>
+          <option value="na">לא רלוונטי</option>
+        </select>
+        <input class="filter-input" id="ca-search" placeholder="🔍 חפש..." style="flex:1;min-width:110px;font-size:12px;" oninput="filterClientAssets()">
+      </div>
+
+      <!-- Summary strip -->
+      <div style="padding:12px 20px 0;">
+        <div class="grid grid-4" style="gap:8px;">
+          <div class="card" style="padding:8px 12px;"><div class="card-title" style="font-size:11px;">מחוברים</div><div style="font-size:20px;font-weight:800;color:var(--green);">4</div></div>
+          <div class="card" style="padding:8px 12px;"><div class="card-title" style="font-size:11px;">ממתינים</div><div style="font-size:20px;font-weight:800;color:var(--yellow);">6</div></div>
+          <div class="card" style="padding:8px 12px;"><div class="card-title" style="font-size:11px;">ידני</div><div style="font-size:20px;font-weight:800;color:var(--purple);">1</div></div>
+          <div class="card" style="padding:8px 12px;"><div class="card-title" style="font-size:11px;">שגיאה</div><div style="font-size:20px;font-weight:800;color:var(--red);">1</div></div>
+        </div>
+      </div>
+
+      <!-- Compact asset cards grid -->
+      <div class="section">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;" id="ca-grid">
+
+          <!-- Each card: icon + name + status + one button -->
+
+          <div class="ca-card" data-type="site" data-status="connected" onclick="openAssetModal('website')"
+            style="background:var(--bg3);border:1px solid rgba(34,197,94,0.3);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='rgba(34,197,94,0.3)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">🌐</span>
+              <div><div style="font-size:12px;font-weight:700;">אתר אינטרנט</div><div style="font-size:10px;color:var(--white50);">greentech.co.il</div></div>
+            </div>
+            <span class="badge badge-green" style="font-size:10px;">● מחובר</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לפרטים ←</div>
+          </div>
+
+          <div class="ca-card" data-type="google" data-status="pending" onclick="openAssetModal('gsc')"
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">🔎</span>
+              <div><div style="font-size:12px;font-weight:700;">Search Console</div><div style="font-size:10px;color:var(--white50);">Google SEO</div></div>
+            </div>
+            <span class="badge badge-yellow" style="font-size:10px;">⏳ ממתין לחיבור</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לחיבור ←</div>
+          </div>
+
+          <div class="ca-card" data-type="google" data-status="pending" onclick="openAssetModal('ga4')"
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">📊</span>
+              <div><div style="font-size:12px;font-weight:700;">Google Analytics</div><div style="font-size:10px;color:var(--white50);">GA4</div></div>
+            </div>
+            <span class="badge badge-yellow" style="font-size:10px;">⏳ ממתין לחיבור</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לחיבור ←</div>
+          </div>
+
+          <div class="ca-card" data-type="google" data-status="pending" onclick="openAssetModal('gads')"
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">📢</span>
+              <div><div style="font-size:12px;font-weight:700;">Google Ads</div><div style="font-size:10px;color:var(--white50);">קמפיינים ממומנים</div></div>
+            </div>
+            <span class="badge badge-yellow" style="font-size:10px;">⏳ ממתין לחיבור</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לחיבור ←</div>
+          </div>
+
+          <div class="ca-card" data-type="google" data-status="error" onclick="openAssetModal('gbp')"
+            style="background:var(--bg3);border:1px solid rgba(239,68,68,0.35);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='rgba(239,68,68,0.35)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">📍</span>
+              <div><div style="font-size:12px;font-weight:700;">Google Business</div><div style="font-size:10px;color:var(--white50);">Profile</div></div>
+            </div>
+            <span class="badge badge-red" style="font-size:10px;">⚠️ שגיאה</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--red);">Token פג – לחץ לתיקון</div>
+          </div>
+
+          <div class="ca-card" data-type="social" data-status="connected" onclick="openAssetModal('facebook')"
+            style="background:var(--bg3);border:1px solid rgba(34,197,94,0.3);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='rgba(34,197,94,0.3)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">📘</span>
+              <div><div style="font-size:12px;font-weight:700;">Facebook</div><div style="font-size:10px;color:var(--white50);">Page מחובר</div></div>
+            </div>
+            <span class="badge badge-green" style="font-size:10px;">● מחובר</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לפרטים ←</div>
+          </div>
+
+          <div class="ca-card" data-type="social" data-status="connected" onclick="openAssetModal('instagram')"
+            style="background:var(--bg3);border:1px solid rgba(34,197,94,0.3);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='rgba(34,197,94,0.3)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">📸</span>
+              <div><div style="font-size:12px;font-weight:700;">Instagram</div><div style="font-size:10px;color:var(--white50);">@greentech_official</div></div>
+            </div>
+            <span class="badge badge-green" style="font-size:10px;">● מחובר</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לפרטים ←</div>
+          </div>
+
+          <div class="ca-card" data-type="social" data-status="pending" onclick="openAssetModal('tiktok')"
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">🎵</span>
+              <div><div style="font-size:12px;font-weight:700;">TikTok</div><div style="font-size:10px;color:var(--white50);">לא מחובר</div></div>
+            </div>
+            <span class="badge badge-yellow" style="font-size:10px;">⏳ ממתין</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לחיבור ←</div>
+          </div>
+
+          <div class="ca-card" data-type="social" data-status="pending" onclick="openAssetModal('youtube')"
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">▶️</span>
+              <div><div style="font-size:12px;font-weight:700;">YouTube</div><div style="font-size:10px;color:var(--white50);">ערוץ</div></div>
+            </div>
+            <span class="badge badge-yellow" style="font-size:10px;">⏳ ממתין</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לחיבור ←</div>
+          </div>
+
+          <div class="ca-card" data-type="social" data-status="manual" onclick="openAssetModal('linkedin')"
+            style="background:var(--bg3);border:1px solid rgba(139,92,246,0.3);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='rgba(139,92,246,0.3)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">💼</span>
+              <div><div style="font-size:12px;font-weight:700;">LinkedIn</div><div style="font-size:10px;color:var(--white50);">עמוד חברה</div></div>
+            </div>
+            <span class="badge badge-purple" style="font-size:10px;">✏️ חיבור ידני</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לפרטים ←</div>
+          </div>
+
+          <div class="ca-card" data-type="comm" data-status="pending" onclick="openAssetModal('email')"
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">📧</span>
+              <div><div style="font-size:12px;font-weight:700;">Email / Gmail</div><div style="font-size:10px;color:var(--white50);">מייל עסקי</div></div>
+            </div>
+            <span class="badge badge-yellow" style="font-size:10px;">⏳ ממתין</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לחיבור ←</div>
+          </div>
+
+          <div class="ca-card" data-type="comm" data-status="pending" onclick="openAssetModal('whatsapp')"
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:14px;cursor:pointer;transition:all 0.18s;"
+            onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:24px;">💬</span>
+              <div><div style="font-size:12px;font-weight:700;">WhatsApp</div><div style="font-size:10px;color:var(--white50);">Business API</div></div>
+            </div>
+            <span class="badge badge-yellow" style="font-size:10px;">⏳ ממתין</span>
+            <div style="margin-top:8px;font-size:10px;color:var(--white50);">לחץ לחיבור ←</div>
+          </div>
+
+        </div><!-- end ca-grid -->
+        <div style="margin-top:10px;font-size:11px;color:var(--white50);">
+          Client ID: <code style="color:var(--accent2);">CLT-001</code> • נתונים יתמלאו לאחר חיבור API אמיתי
+        </div>
+      </div>
+    </div>
+    <!-- ===== END TAB: CLIENT ASSETS ===== -->
+
     <div id="tab-clients-integrations" style="display:none;">
       <div class="page-header"><div class="page-title">חיבורי API ו-OAuth</div><hr class="page-rule"></div>
       <div class="section">
@@ -733,164 +945,244 @@
   </div>
 
   <div class="content">
-    <!-- Header -->
-    <div class="page-header">
-      <div class="page-title">🤖 העוזרים שלנו</div>
-      <div class="page-subtitle">מרכז איסוף וניתוח הנתונים של מערכת ניהול השיווק • העוזרים לא מבצעים פעולות</div>
-      <hr class="page-rule">
+
+    <!-- ===== 1. CLIENT DETAILS – auto-loaded, no re-selection ===== -->
+    <div style="padding:14px 20px 0;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+          <div style="width:40px;height:40px;border-radius:50%;background:rgba(37,99,235,0.2);color:var(--accent2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0;">ג</div>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:var(--white);">גרין-טק פתרונות בע"מ</div>
+            <div style="font-size:12px;color:var(--white50);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap;">
+              <span>CLT-001</span>
+              <span>•</span>
+              <span>ראובן לוי</span>
+              <span>•</span>
+              <span>🌐 greentech.co.il</span>
+              <span>•</span>
+              <span>📢 קמפיין: Brand Search</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+          <span class="badge badge-green" style="font-size:11px;">● פעיל</span>
+          <span class="badge badge-blue" style="font-size:11px;">שיווק + צי</span>
+        </div>
+      </div>
     </div>
 
-    <!-- Summary KPI cards -->
-    <div class="section" style="padding-bottom:0;">
+    <!-- ===== 2. MINI DASHBOARD – clickable cards ===== -->
+    <div style="padding:12px 20px 0;">
       <div class="grid grid-4" style="gap:10px;">
-        <div class="card" style="padding:12px 14px;">
-          <div class="card-title">עוזרים פעילים</div>
-          <div class="card-value" style="font-size:22px;color:var(--green);">11</div>
-          <div class="card-delta" style="color:var(--white50)">מתוך 11</div>
+        <div class="card" style="padding:12px 14px;cursor:pointer;transition:border-color 0.18s;"
+          onclick="goScreen('screen-goals')" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+          <div class="card-title">ציון כללי</div>
+          <div style="font-size:24px;font-weight:800;color:var(--yellow);">72</div>
+          <div style="font-size:10px;color:var(--white50);margin-top:2px;">← לחץ למטרות</div>
+        </div>
+        <div class="card" style="padding:12px 14px;cursor:pointer;transition:border-color 0.18s;"
+          onclick="setTab(document.querySelector('#screen-clients .nav-tab:nth-child(3)'),'tab-clients-assets');goScreen('screen-clients')"
+          onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+          <div class="card-title">נכסים מחוברים</div>
+          <div style="font-size:24px;font-weight:800;color:var(--green);">4</div>
+          <div style="font-size:10px;color:var(--white50);margin-top:2px;">← לחץ לנכסי לקוח</div>
+        </div>
+        <div class="card" style="padding:12px 14px;cursor:pointer;transition:border-color 0.18s;"
+          onclick="goScreen('screen-assets')" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+          <div class="card-title">ערוצי שיווק</div>
+          <div style="font-size:24px;font-weight:800;color:var(--accent2);">5</div>
+          <div style="font-size:10px;color:var(--white50);margin-top:2px;">← לחץ לנכסים</div>
         </div>
         <div class="card" style="padding:12px 14px;">
-          <div class="card-title">עוזרים מחוברים</div>
-          <div class="card-value" style="font-size:22px;color:var(--accent2);">9</div>
-          <div class="card-delta up">↑ +1 החודש</div>
+          <div class="card-title">סנכרון אחרון</div>
+          <div style="font-size:14px;font-weight:700;color:var(--white);margin-top:4px;">לפני 3 שעות</div>
+          <div style="font-size:10px;color:var(--white50);margin-top:2px;">24.6.25 | 14:32</div>
+        </div>
+        <div class="card" style="padding:12px 14px;">
+          <div class="card-title">עוזרים פעילים</div>
+          <div style="font-size:24px;font-weight:800;color:var(--green);">11</div>
+          <div style="font-size:10px;color:var(--white50);margin-top:2px;">מתוך 11</div>
+        </div>
+        <div class="card" style="padding:12px 14px;">
+          <div class="card-title">ממצאים</div>
+          <div style="font-size:24px;font-weight:800;">84</div>
+          <div class="card-delta up" style="font-size:10px;">↑ +12</div>
+        </div>
+        <div class="card" style="padding:12px 14px;">
+          <div class="card-title">המלצות</div>
+          <div style="font-size:24px;font-weight:800;color:var(--accent2);">23</div>
+          <div style="font-size:10px;color:var(--white50);margin-top:2px;">מוכנות</div>
         </div>
         <div class="card" style="padding:12px 14px;">
           <div class="card-title">בסריקה עכשיו</div>
-          <div class="card-value" style="font-size:22px;color:var(--yellow);">1</div>
-          <div class="card-delta" style="color:var(--white50)">Google Business</div>
-        </div>
-        <div class="card" style="padding:12px 14px;">
-          <div class="card-title">עם תקלות</div>
-          <div class="card-value" style="font-size:22px;color:var(--red);">0</div>
-          <div class="card-delta up">↑ הכל תקין</div>
-        </div>
-      </div>
-      <div class="grid grid-4" style="gap:10px;margin-top:10px;">
-        <div class="card" style="padding:12px 14px;">
-          <div class="card-title">סך ממצאים</div>
-          <div class="card-value" style="font-size:22px;">84</div>
-          <div class="card-delta up">↑ +12 מסריקה קודמת</div>
-        </div>
-        <div class="card" style="padding:12px 14px;">
-          <div class="card-title">סך המלצות</div>
-          <div class="card-value" style="font-size:22px;color:var(--accent2);">23</div>
-          <div class="card-delta" style="color:var(--white50)">מוכנות להעברה</div>
-        </div>
-        <div class="card" style="padding:12px 14px;">
-          <div class="card-title">סריקה אחרונה</div>
-          <div class="card-value" style="font-size:14px;font-weight:700;margin-top:4px;">לפני 3 שעות</div>
-          <div class="card-delta" style="color:var(--white50)">24.6.25 | 14:32</div>
-        </div>
-        <div class="card" style="padding:12px 14px;">
-          <div class="card-title">העברה אחרונה למטרות</div>
-          <div class="card-value" style="font-size:14px;font-weight:700;margin-top:4px;">לפני 5 שעות</div>
-          <div class="card-delta" style="color:var(--white50)">8 ממצאים הועברו</div>
+          <div style="font-size:24px;font-weight:800;color:var(--yellow);">1</div>
+          <div style="font-size:10px;color:var(--white50);margin-top:2px;">Google Business</div>
         </div>
       </div>
     </div>
 
-    <!-- Filter bar -->
-    <div style="background:var(--bg2);border-bottom:1px solid var(--border);border-top:1px solid var(--border);padding:12px 16px;margin-top:14px;">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
-        <select class="filter-select" id="ag-company" title="חברה">
-          <option value="">כל החברות</option>
-          <option value="greentech" selected>גרין-טק</option>
-          <option value="delta">דלתא לוגיסטיקה</option>
-        </select>
-        <select class="filter-select" id="ag-project" title="פרויקט">
-          <option value="">כל הפרויקטים</option>
-          <option value="main" selected>Project 001</option>
-          <option value="landing">דפי נחיתה</option>
-        </select>
-        <select class="filter-select" id="ag-site" title="אתר">
-          <option value="">כל האתרים</option>
-          <option value="greentech.co.il" selected>greentech.co.il</option>
-        </select>
-        <input class="filter-input" id="ag-domain" placeholder="דומיין..." style="max-width:140px;" value="greentech.co.il">
-        <select class="filter-select" id="ag-agent" title="עוזר">
-          <option value="">כל העוזרים</option>
-          <option>Google Search Console AI</option>
-          <option>Google Analytics GA4 AI</option>
-          <option>PageSpeed + Lighthouse AI</option>
-          <option>Project 001 AI</option>
-          <option>CMS / Website AI</option>
-          <option>SEO Tools AI</option>
-          <option>Google Business AI</option>
-          <option>Google Ads AI</option>
-          <option>Meta / Facebook / Instagram AI</option>
-          <option>Cursor AI</option>
-          <option>AI Marketing Manager</option>
-        </select>
-        <select class="filter-select" id="ag-system" title="מערכת">
-          <option value="">כל המערכות</option>
-          <option>Google</option>
-          <option>Meta</option>
-          <option>CMS</option>
-          <option>SEO Tools</option>
-          <option>Internal</option>
-        </select>
-        <select class="filter-select" id="ag-status" title="סטטוס">
-          <option value="">כל הסטטוסים</option>
-          <option value="done">סיים סריקה</option>
-          <option value="running">בסריקה</option>
-          <option value="waiting">ממתין</option>
-          <option value="error">תקלה</option>
-        </select>
-        <select class="filter-select" id="ag-datatype" title="סוג מידע">
-          <option value="">כל סוגי המידע</option>
-          <option>SEO</option>
-          <option>Analytics</option>
-          <option>Performance</option>
-          <option>Ads</option>
-          <option>Social</option>
-          <option>Technical</option>
-          <option>Content</option>
-        </select>
-        <select class="filter-select" id="ag-scandate" title="תאריך סריקה">
-          <option value="today">היום</option>
-          <option value="3h" selected>3 שעות אחרונות</option>
-          <option value="24h">24 שעות</option>
-          <option value="7d">7 ימים</option>
-          <option value="30d">30 ימים</option>
-        </select>
-        <select class="filter-select" id="ag-priority" title="רמת חשיבות">
-          <option value="">כל הרמות</option>
-          <option value="critical">קריטי</option>
-          <option value="high">גבוה</option>
-          <option value="medium">בינוני</option>
-          <option value="low">נמוך</option>
-        </select>
-        <button id="ag-advanced-btn" onclick="toggleAgentFilter()"
-          style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--white80);font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;">
-          🔍 סינון מתקדם <span id="ag-adv-chevron" style="font-size:10px;transition:transform 0.2s;">▼</span>
-        </button>
-        <button onclick="resetAgentFilter()"
-          style="padding:6px 12px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;flex-shrink:0;">
-          ✕ נקה
-        </button>
-      </div>
-      <!-- Advanced filter (placeholder – modular for future per-agent filters) -->
-      <div id="ag-advanced-panel" style="display:none;padding-top:10px;border-top:1px solid var(--border);margin-top:6px;">
-        <div style="font-size:11px;font-weight:700;color:var(--white50);margin-bottom:8px;">סינון מתקדם – תשתית מודולרית (מסנני עומק לפי עוזר יתווספו בשלב הבא)</div>
+    <!-- ===== 3. ADVANCED FILTER – collapsed by default ===== -->
+    <div style="padding:10px 20px 0;">
+      <button id="ag-adv-toggle" onclick="toggleAgentAdvFilter()"
+        style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--white50);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;transition:all 0.18s;">
+        <span id="ag-adv-icon">▼</span> סינון מתקדם
+      </button>
+      <div id="ag-adv-panel" style="display:none;margin-top:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:12px;">
+        <div style="font-size:11px;color:var(--white50);margin-bottom:8px;font-weight:700;">סינון עוזרים ופריטים</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <input class="filter-input" placeholder="🔍 חיפוש חופשי..." style="flex:1;min-width:180px;" id="ag-search">
-          <select class="filter-select" id="ag-findingtype">
-            <option value="">סוג ממצא – הכל</option>
-            <option>בעיה</option>
-            <option>הזדמנות</option>
-            <option>אזהרה</option>
-            <option>מידע</option>
+          <select class="filter-select" id="ag-agent" style="font-size:12px;">
+            <option value="">כל העוזרים</option>
+            <option>🔎 Google Search Console AI</option><option>📊 Google Analytics GA4 AI</option>
+            <option>⚡ PageSpeed + Lighthouse AI</option><option>🚀 Project 001 AI</option>
+            <option>🌐 CMS / Website AI</option><option>🔍 SEO Tools AI</option>
+            <option>📍 Google Business AI</option><option>📢 Google Ads AI</option>
+            <option>📘 Meta AI</option><option>🖥️ Cursor AI</option><option>🧠 AI Manager</option>
           </select>
-          <select class="filter-select" id="ag-transfer">
-            <option value="">מוכן להעברה – הכל</option>
-            <option value="yes">כן – מוכן</option>
-            <option value="no">לא – דורש עבודה</option>
+          <select class="filter-select" id="ag-status" style="font-size:12px;">
+            <option value="">כל הסטטוסים</option>
+            <option>סיים סריקה</option><option>בסריקה</option><option>ממתין</option><option>תקלה</option>
           </select>
+          <select class="filter-select" id="ag-priority" style="font-size:12px;">
+            <option value="">כל הרמות</option>
+            <option>קריטי</option><option>גבוה</option><option>בינוני</option><option>נמוך</option>
+          </select>
+          <input class="filter-input" id="ag-search" placeholder="🔍 חיפוש חופשי..." style="flex:1;min-width:140px;font-size:12px;">
+          <button onclick="resetAgentFilter()" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:11px;cursor:pointer;">✕ נקה</button>
         </div>
-        <div style="margin-top:8px;font-size:11px;color:var(--white50);">
-          💡 בשלב הבא: סינון לפי מילות מפתח (GSC), מקורות תנועה (GA4), Mobile/Desktop (PageSpeed), קמפיינים (Ads), ביקורות (GBP) ועוד.
+        <div style="font-size:11px;color:var(--white50);margin-top:8px;">💡 מסנני עומק לכל עוזר יתווספו בשלב הבא לפי סוג הנתונים</div>
+      </div>
+    </div>
+
+    <!-- ===== CHECKS TABLE ===== -->
+    <div class="section" style="padding-bottom:0;">
+
+      <!-- Section header with action buttons -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <div class="sec-title" style="margin-bottom:0;">📋 בדיקות ציונים – גרין-טק | CLT-001</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="refreshChecks()">🔄 רענן בדיקה</button>
+
+          <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="runChecks()">▶️ הפעל עוזרים</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="exportToGoals()">🎯 העבר למטרות</button>
+        </div>
+      </div>
+
+      <!-- FILTER – קובע מה נבדק, לא מופיע שוב בטבלה -->
+      <div style="background:var(--bg4);border:1px solid var(--border);border-radius:var(--card-r);padding:14px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--white50);margin-bottom:10px;letter-spacing:0.4px;">🔍 סינון – בחר מה לבדוק ולקבל ציון</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select class="filter-select" id="ct-cat" onchange="applyChecksFilter()" style="font-size:12px;border-color:rgba(37,99,235,0.5);">
+            <option value="">כל הקטגוריות (20)</option>
+            <option value="1">1. תוכן איכותי</option>
+            <option value="2">2. מחקר מילות מפתח</option>
+            <option value="3">3. מהירות האתר</option>
+            <option value="4">4. מבנה SEO</option>
+            <option value="5">5. UX</option>
+            <option value="6">6. Mobile First</option>
+            <option value="7">7. קישורים פנימיים</option>
+            <option value="8">8. דפי שירות</option>
+            <option value="9">9. מאמרים</option>
+            <option value="10">10. תמונות ומדיה</option>
+            <option value="11">11. SEO לכל עמוד</option>
+            <option value="12">12. בדיקות יומיות</option>
+            <option value="13">13. מתחרים</option>
+            <option value="14">14. Authority</option>
+            <option value="15">15. מעקב שינויים</option>
+            <option value="16">16. עמודים חלשים</option>
+            <option value="17">17. המלצות Google</option>
+            <option value="18">18. מיקומים בגוגל</option>
+            <option value="19">19. כניסות ולידים</option>
+            <option value="20">20. האתר כנכס שיווקי</option>
+          </select>
+          <select class="filter-select" id="ct-channel" onchange="applyChecksFilter()" style="font-size:12px;">
+            <option value="">כל הערוצים</option>
+            <option>SEO</option><option>Google Ads</option><option>Google Business</option>
+            <option>Facebook</option><option>Instagram</option><option>TikTok</option>
+            <option>YouTube</option><option>LinkedIn</option><option>Email Marketing</option>
+          </select>
+          <select class="filter-select" id="ct-asset" onchange="applyChecksFilter()" style="font-size:12px;">
+            <option value="">כל הנכסים</option>
+            <option selected>greentech.co.il</option>
+            <option>Google Search Console</option>
+            <option>Google Analytics</option>
+            <option>Google Ads</option>
+            <option>Google Business</option>
+            <option>Facebook</option>
+            <option>Instagram</option>
+            <option>PageSpeed</option>
+            <option>CMS</option>
+          </select>
+          <select class="filter-select" id="ct-campaign" onchange="applyChecksFilter()" style="font-size:12px;">
+            <option value="">כל הקמפיינים</option>
+            <option>Brand Search</option><option>General</option><option>Remarketing</option>
+          </select>
+          <select class="filter-select" id="ct-period" onchange="applyChecksFilter()" style="font-size:12px;">
+            <option value="30" selected>30 ימים</option>
+            <option value="7">7 ימים</option>
+            <option value="60">60 ימים</option>
+            <option value="90">90 ימים</option>
+            <option value="custom">טווח מותאם</option>
+          </select>
+          <button onclick="resetChecksFilter()" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:11px;cursor:pointer;flex-shrink:0;">✕ נקה</button>
+        </div>
+      </div>
+
+      <!-- SUMMARY ROW – מה נבחר + ציון כללי + סטטוס העברה -->
+      <div id="ct-summary-row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);">
+        <!-- Summary text -->
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:12px;color:var(--white80);" id="ct-summary-text">נבדק: <strong>כל הקטגוריות</strong> לפי <strong>כל הנכסים</strong> לתקופה <strong>30 ימים</strong></div>
+          <div style="font-size:11px;color:var(--white50);margin-top:2px;">Client ID: CLT-001 • גרין-טק פתרונות בע"מ • greentech.co.il</div>
+        </div>
+        <!-- Overall score -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
+          <div style="font-size:10px;color:var(--white50);">ציון כללי</div>
+          <div id="ct-overall-score" style="font-size:24px;font-weight:800;color:var(--yellow);">72</div>
+          <div style="font-size:10px;color:var(--white50);" id="ct-score-label">טוב</div>
+        </div>
+        <!-- Transfer status -->
+        <div style="flex-shrink:0;" id="ct-transfer-status">
+          <span class="badge badge-yellow" style="font-size:11px;">⏳ ממתין להעברה למטרות</span>
+        </div>
+      </div>
+
+      <!-- RESULTS TABLE – ציונים ותוצאות בלבד, ללא שדות הסינון -->
+      <div class="table-wrap">
+        <table id="checks-table">
+          <thead>
+            <tr>
+              <th style="width:30px;">#</th>
+              <th>שם הבדיקה / מדד</th>
+              <th style="width:60px;text-align:center;">ציון</th>
+              <th style="width:60px;text-align:center;">קודם</th>
+              <th style="width:60px;text-align:center;">יעד</th>
+              <th style="width:50px;text-align:center;">שינוי</th>
+              <th>סטטוס</th>
+              <th>בעיה שנמצאה</th>
+              <th>המלצת עוזר</th>
+              <th>מקור</th>
+              <th style="white-space:nowrap;">בדיקה</th>
+              <th>פעולה</th>
+            </tr>
+          </thead>
+          <tbody id="checks-tbody">
+            <!-- Filled by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Legend + goal transfer note -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--white50);">
+          <span>🟢 90–100 מצוין</span><span>🟡 70–89 טוב</span>
+          <span>🟠 50–69 שיפור</span><span>🔴 0–49 קריטי</span><span>⏳ ממתין</span>
+        </div>
+        <div style="font-size:11px;color:var(--white50);">
+          הטבלה מזינה אוטומטית את <strong style="color:var(--accent2);">המטרות שלנו</strong> לפי אותו Client ID וסינון
         </div>
       </div>
     </div>
+    <!-- ===== END CHECKS TABLE ===== -->
 
     <!-- Agents grid -->
     <div class="section">
@@ -1276,6 +1568,25 @@
     <!-- ===== TAB: ALL GOALS ===== -->
     <div id="tab-goals-all">
 
+      <!-- Client header – auto loaded -->
+      <div style="padding:12px 20px 0;">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="font-size:12px;color:var(--white80);display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <span><strong>CLT-001</strong></span>
+            <span style="color:var(--white20);">|</span>
+            <span>גרין-טק פתרונות</span>
+            <span style="color:var(--white20);">|</span>
+            <span>🌐 greentech.co.il</span>
+            <span style="color:var(--white20);">|</span>
+            <span>📢 Brand Search</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+            <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="goScreen('screen-agents')">← עוזרים</button>
+            <button class="btn btn-primary" style="font-size:11px;padding:3px 9px;" onclick="goScreen('screen-actions')">פעולות ←</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Page header -->
       <div class="page-header">
         <div class="page-title">🎯 המטרות שלנו</div>
@@ -1283,96 +1594,103 @@
         <hr class="page-rule">
       </div>
 
-      <!-- ===== FILTER BAR ===== -->
-      <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
+      <!-- ===== FILTER BAR – סינון עבודה בלבד (ללא חברה/לקוח/אתר) ===== -->
+      <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
-          <select class="filter-select" id="gf-company" title="חברה">
-            <option value="">כל החברות</option>
-            <option value="greentech" selected>גרין-טק</option>
-            <option value="delta">דלתא לוגיסטיקה</option>
+          <!-- נכס לקוח -->
+          <select class="filter-select" id="gf-asset" style="font-size:12px;">
+            <option value="">נכס לקוח</option>
+            <option selected>greentech.co.il</option>
+            <option>Google Search Console</option><option>Google Ads</option>
+            <option>Google Business</option><option>Facebook</option><option>Instagram</option>
           </select>
-          <select class="filter-select" id="gf-project" title="פרויקט">
-            <option value="">כל הפרויקטים</option>
-            <option value="main" selected>Project 001</option>
-          </select>
-          <select class="filter-select" id="gf-site" title="אתר">
-            <option value="">כל האתרים</option>
-            <option value="greentech" selected>greentech.co.il</option>
-          </select>
-          <input class="filter-input" id="gf-domain" placeholder="דומיין..." style="max-width:130px;" value="greentech.co.il">
-          <select class="filter-select" id="gf-page" title="עמוד באתר">
-            <option value="">כל העמודים</option>
-            <option>דף הבית</option><option>שירותים</option><option>ניהול צי</option><option>ביטוח צי</option><option>צור קשר</option>
-          </select>
-          <select class="filter-select" id="gf-agent" onchange="applyGoalsAgentFilter()" title="עוזר">
-            <option value="">כל העוזרים</option>
-            <option value="gsc">🔎 Google Search Console AI</option>
-            <option value="ga4">📊 Google Analytics GA4 AI</option>
-            <option value="pagespeed">⚡ PageSpeed + Lighthouse AI</option>
-            <option value="project001">🚀 Project 001 AI</option>
-            <option value="cms">🌐 CMS / Website AI</option>
-            <option value="seotools">🔍 SEO Tools AI</option>
-            <option value="gbp">📍 Google Business Profile AI</option>
-            <option value="ads">📢 Google Ads AI</option>
-            <option value="meta">📘 Meta / Facebook / Instagram AI</option>
-            <option value="cursor">🖥️ Cursor AI</option>
-            <option value="manager">🧠 AI Marketing Manager</option>
-          </select>
-          <select class="filter-select" id="gf-agent-type" title="סוג עוזר">
-            <option value="">כל הסוגים</option>
-            <option>Google</option><option>Meta</option><option>SEO</option><option>Technical</option><option>Content</option><option>Internal</option>
-          </select>
-          <select class="filter-select" id="gf-campaign" title="קמפיין">
-            <option value="">כל הקמפיינים</option>
-            <option>Brand Search</option><option>מוצרים – כללי</option><option>Remarketing</option>
-          </select>
-          <select class="filter-select" id="gf-campaign-type" title="סוג קמפיין">
-            <option value="">כל הסוגים</option>
-            <option>Search</option><option>Display</option><option>Performance Max</option>
-          </select>
-          <select class="filter-select" id="gf-channel" title="ערוץ שיווק">
-            <option value="">כל הערוצים</option>
+          <!-- ערוץ שיווק -->
+          <select class="filter-select" id="gf-channel" style="font-size:12px;">
+            <option value="">ערוץ שיווק</option>
             <option>Google SEO</option><option>Google Ads</option><option>Google Business</option>
             <option>Facebook</option><option>Instagram</option><option>LinkedIn</option><option>Email</option>
           </select>
-          <select class="filter-select" id="gf-status" title="סטטוס">
-            <option value="">כל הסטטוסים</option>
-            <option>דחוף</option><option>בתהליך</option><option>בתכנון</option><option>הושלם</option>
+          <!-- קמפיין -->
+          <select class="filter-select" id="gf-campaign" style="font-size:12px;">
+            <option value="">קמפיין</option>
+            <option>Brand Search</option><option>מוצרים – כללי</option><option>Remarketing</option>
           </select>
-          <select class="filter-select" id="gf-priority" title="עדיפות">
-            <option value="">כל העדיפויות</option>
-            <option>קריטי</option><option>גבוה</option><option>בינוני</option><option>נמוך</option>
+          <!-- סוג קמפיין -->
+          <select class="filter-select" id="gf-campaign-type" style="font-size:12px;">
+            <option value="">סוג קמפיין</option>
+            <option>Search</option><option>Display</option><option>Performance Max</option>
           </select>
-          <select class="filter-select" id="gf-date" title="תאריך">
+          <!-- קטגוריה מ-20 -->
+          <select class="filter-select" id="gf-goal-category" onchange="applyGoalCategoryFilter()" style="font-size:12px;border-color:rgba(139,92,246,0.4);font-weight:600;">
+            <option value="">🎯 קטגוריה (20)</option>
+            <option value="cat1">1. תוכן איכותי</option>
+            <option value="cat2">2. מחקר מילות מפתח</option>
+            <option value="cat3">3. מהירות האתר</option>
+            <option value="cat4">4. מבנה SEO</option>
+            <option value="cat5">5. UX</option>
+            <option value="cat6">6. Mobile First</option>
+            <option value="cat7">7. קישורים פנימיים</option>
+            <option value="cat8">8. דפי שירות</option>
+            <option value="cat9">9. מאמרים</option>
+            <option value="cat10">10. מדיה</option>
+            <option value="cat11">11. SEO לכל עמוד</option>
+            <option value="cat12">12. בדיקות יומיות</option>
+            <option value="cat13">13. מתחרים</option>
+            <option value="cat14">14. Authority</option>
+            <option value="cat15">15. מעקב שינויים</option>
+            <option value="cat16">16. עמודים חלשים</option>
+            <option value="cat17">17. המלצות Google</option>
+            <option value="cat18">18. מיקומים בגוגל</option>
+            <option value="cat19">19. כניסות ולידים</option>
+            <option value="cat20">20. נכס שיווקי – AI</option>
+          </select>
+          <!-- תאריך -->
+          <select class="filter-select" id="gf-date" style="font-size:12px;">
             <option value="30" selected>30 ימים</option>
             <option value="7">7 ימים</option><option value="60">60 ימים</option><option value="90">90 ימים</option>
           </select>
-          <select class="filter-select" id="gf-goal-category" onchange="applyGoalCategoryFilter()" title="קטגוריית מטרה" style="font-weight:600;border-color:rgba(139,92,246,0.4);">
-            <option value="">🎯 כל קטגוריות המטרה</option>
-            <option value="cat1">1. יצירת תוכן איכותי ומקצועי</option>
-            <option value="cat2">2. מחקר מילות מפתח</option>
-            <option value="cat3">3. שיפור מהירות האתר</option>
-            <option value="cat4">4. מבנה האתר (H1, Meta, URL, Schema)</option>
-            <option value="cat5">5. שיפור חוויית משתמש (UX)</option>
-            <option value="cat6">6. התאמה למובייל (Mobile First)</option>
-            <option value="cat7">7. קישורים פנימיים</option>
-            <option value="cat8">8. עמודי שירות ודפי נחיתה</option>
-            <option value="cat9">9. מאמרים ותוכן אורגני</option>
-            <option value="cat10">10. תמונות, סרטונים ומדיה</option>
-            <option value="cat11">11. אופטימיזציה לכל עמוד (SEO / CTA / UX)</option>
-            <option value="cat12">12. בדיקות יומיות של האתר</option>
-            <option value="cat13">13. ניתוח מתחרים</option>
-            <option value="cat14">14. שיפור סמכות האתר (Authority)</option>
-            <option value="cat15">15. מעקב אחר שינויים באתר</option>
-            <option value="cat16">16. שיפור עמודים חלשים</option>
-            <option value="cat17">17. יישום המלצות Google וכלי SEO</option>
-            <option value="cat18">18. קידום למיקומים גבוהים בגוגל</option>
-            <option value="cat19">19. הגדלת תנועה אורגנית, לידים והמרות</option>
-            <option value="cat20">20. הפיכת האתר לנכס שיווקי מרכזי – AI</option>
+          <!-- סטטוס -->
+          <select class="filter-select" id="gf-status" style="font-size:12px;">
+            <option value="">סטטוס</option>
+            <option>דחוף</option><option>בתהליך</option><option>בתכנון</option><option>הושלם</option>
           </select>
-          <input class="filter-input" id="gf-search" placeholder="🔍 חיפוש חופשי..." style="flex:1;min-width:120px;" oninput="applyGoalsAgentFilter()">
+          <!-- עדיפות -->
+          <select class="filter-select" id="gf-priority" style="font-size:12px;">
+            <option value="">עדיפות</option>
+            <option>קריטי</option><option>גבוה</option><option>בינוני</option><option>נמוך</option>
+          </select>
+          <!-- עוזר / מקור נתון – בסינון מתקדם בלבד -->
+          <button id="gf-adv-btn" onclick="toggleGoalsAdvFilter()"
+            style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--white50);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+            + סינון מתקדם <span id="gf-adv-ch">▼</span>
+          </button>
           <button onclick="resetGoalsFilter()"
-            style="padding:6px 12px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;flex-shrink:0;">
+            style="padding:5px 10px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;flex-shrink:0;">
+            ✕ נקה
+          </button>
+        </div>
+        <!-- Advanced filter – collapsed by default -->
+        <div id="gf-adv-panel" style="display:none;padding-top:8px;border-top:1px solid var(--border);margin-top:4px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;">
+            <select class="filter-select" id="gf-agent" onchange="applyGoalsAgentFilter()" style="font-size:12px;">
+              <option value="">עוזר / מקור נתון</option>
+              <option value="gsc">🔎 Search Console</option><option value="ga4">📊 GA4</option>
+              <option value="pagespeed">⚡ PageSpeed</option><option value="project001">🚀 Project 001</option>
+              <option value="cms">🌐 CMS</option><option value="gbp">📍 Google Business</option>
+              <option value="ads">📢 Google Ads</option><option value="meta">📘 Meta</option>
+              <option value="cursor">🖥️ Cursor</option><option value="manager">🧠 AI Manager</option>
+            </select>
+            <input class="filter-input" id="gf-search" placeholder="🔍 חיפוש חופשי..." style="flex:1;min-width:120px;font-size:12px;" oninput="applyGoalsAgentFilter()">
+            <select class="filter-select" id="gf-page" style="font-size:12px;">
+              <option value="">עמוד באתר</option>
+              <option>דף הבית</option><option>שירותים</option><option>ניהול צי</option><option>ביטוח צי</option>
+            </select>
+          </div>
+          <div style="font-size:11px;color:var(--white50);margin-top:6px;">💡 בשלב הבא: ציון מינימלי/מקסימלי, סטטוס QA, פעולה פתוחה/סגורה</div>
+        </div>
+        <!-- Chips -->
+        <div id="goals-filter-chips" style="display:none;gap:6px;flex-wrap:wrap;margin-top:6px;"></div>
+      </div>
             ✕ נקה
           </button>
         </div>
@@ -2996,6 +3314,415 @@
   <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
 </div>
 
+<!-- ============================= SCREEN: CRM ============================= -->
+<div class="screen" id="screen-crm">
+  <div class="topbar">
+    <div class="topbar-right">
+      <button class="btn-icon" onclick="goScreen('screen-hub')">←</button>
+      <div class="breadcrumb">דליה <span class="sep">›</span> שיווק AI <span class="sep">›</span> <span>לקוחות CRM</span></div>
+    </div>
+    <div class="topbar-left">
+      <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="openCrmCard('new')">+ לקוח חדש</button>
+      <button class="btn-icon" onclick="showDaliaToast()">🏠</button>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="setTab(this,'tab-crm-list')">👥 כל הלקוחות (12)</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-crm-leads')">🔔 לידים חדשים (7)</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-crm-tasks')">📋 משימות (14)</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-crm-reports')">📊 דוחות</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-crm-ai')">🤖 AI תובנות</div>
+  </div>
+
+  <!-- ===== FILTER BAR ===== -->
+  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
+      <select class="filter-select" id="crm-company" title="חברה">
+        <option value="">כל החברות</option>
+        <option selected>גרין-טק פתרונות</option>
+        <option>דלתא לוגיסטיקה</option>
+        <option>פתרונות טק ישראל</option>
+        <option>אלפא מוטורס</option>
+      </select>
+      <select class="filter-select" id="crm-source" title="מקור ליד">
+        <option value="">כל המקורות</option>
+        <option>🔍 Google אורגני</option>
+        <option>📢 Google Ads</option>
+        <option>📍 Google Business</option>
+        <option>📘 Facebook</option>
+        <option>📸 Instagram</option>
+        <option>💼 LinkedIn</option>
+        <option>💬 WhatsApp</option>
+        <option>📝 טופס באתר</option>
+        <option>📞 שיחת טלפון</option>
+        <option>📧 אימייל</option>
+        <option>👋 הפניה</option>
+      </select>
+      <select class="filter-select" id="crm-status" title="סטטוס">
+        <option value="">כל הסטטוסים</option>
+        <option>ליד חדש</option>
+        <option>בטיפול</option>
+        <option>הצעת מחיר</option>
+        <option>לקוח פעיל</option>
+        <option>לא רלוונטי</option>
+        <option>מושהה</option>
+      </select>
+      <select class="filter-select" id="crm-service" title="שירות">
+        <option value="">כל השירותים</option>
+        <option>ניהול שיווק</option>
+        <option>ניהול צי רכב</option>
+        <option>שיווק + צי</option>
+      </select>
+      <select class="filter-select" id="crm-owner" title="אחראי">
+        <option value="">כל האחראים</option>
+        <option>יוני</option>
+        <option>Miki</option>
+        <option>דנה</option>
+      </select>
+      <select class="filter-select" id="crm-score" title="ציון איכות">
+        <option value="">כל הציונים</option>
+        <option>⭐⭐⭐ גבוה</option>
+        <option>⭐⭐ בינוני</option>
+        <option>⭐ נמוך</option>
+      </select>
+      <select class="filter-select" id="crm-date" title="תאריך">
+        <option value="30" selected>30 ימים</option>
+        <option value="7">7 ימים</option>
+        <option value="60">60 ימים</option>
+        <option value="all">הכל</option>
+      </select>
+      <input class="filter-input" id="crm-search" placeholder="🔍 שם, טלפון, אימייל..." style="flex:1;min-width:140px;">
+      <button onclick="resetCrmFilter()" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;flex-shrink:0;">✕ נקה</button>
+    </div>
+  </div>
+
+  <div class="content"><div id="coco-marketing-crm-mount-screen" style="display:none!important" aria-hidden="true"></div>
+
+    <!-- ===== TAB: CLIENTS LIST ===== -->
+    <div id="tab-crm-list">
+      <div class="page-header">
+        <div class="page-title">👥 לקוחות CRM</div>
+        <div class="page-subtitle">ניהול לקוחות ולידים • כל לקוח בסביבת עבודה נפרדת • הכנה לחיבור Supabase</div>
+        <hr class="page-rule">
+      </div>
+
+      <!-- KPI strip -->
+      <div class="section" style="padding-bottom:0;">
+        <div class="grid grid-4" style="gap:10px;">
+          <div class="card" style="padding:12px 14px;"><div class="card-title">לקוחות פעילים</div><div class="card-value" style="font-size:22px;color:var(--green);">12</div><div class="card-delta up">↑ +2 החודש</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">לידים חדשים</div><div class="card-value" style="font-size:22px;color:var(--accent2);">7</div><div class="card-delta" style="color:var(--white50)">השבוע</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">בטיפול</div><div class="card-value" style="font-size:22px;color:var(--yellow);">5</div><div class="card-delta" style="color:var(--white50)">ממתינים למענה</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">אחוז סגירה</div><div class="card-value" style="font-size:22px;color:var(--green);">34%</div><div class="card-delta up">↑ +6%</div></div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="section">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>לקוח / חברה</th>
+                <th>טלפון</th>
+                <th>מקור הגעה</th>
+                <th>שירות</th>
+                <th>ציון</th>
+                <th>אחראי</th>
+                <th>סטטוס</th>
+                <th>תאריך</th>
+                <th>פעולה</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="cursor:pointer;" onclick="openCrmCard('greentech')">
+                <td><div style="font-weight:700;">גרין-טק פתרונות</div><div style="font-size:11px;color:var(--white50);">ראובן לוי • reuven@greentech.co.il</div></td>
+                <td>054-1234567</td>
+                <td><span class="badge badge-green" style="font-size:10px;">📢 Google Ads</span></td>
+                <td><span class="badge badge-blue" style="font-size:10px;">שיווק + צי</span></td>
+                <td style="color:var(--green);">⭐⭐⭐</td>
+                <td>יוני</td>
+                <td><span class="badge badge-green">● פעיל</span></td>
+                <td style="color:var(--white50);font-size:12px;">10.6.25</td>
+                <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="openCrmCard('greentech');event.stopPropagation()">פתח</button></td>
+              </tr>
+              <tr style="cursor:pointer;" onclick="openCrmCard('delta')">
+                <td><div style="font-weight:700;">דלתא לוגיסטיקה</div><div style="font-size:11px;color:var(--white50);">שרה כהן • sarah@delta.co.il</div></td>
+                <td>052-9876543</td>
+                <td><span class="badge badge-blue" style="font-size:10px;">🔍 Google אורגני</span></td>
+                <td><span class="badge badge-blue" style="font-size:10px;">שיווק בלבד</span></td>
+                <td style="color:var(--accent2);">⭐⭐</td>
+                <td>דנה</td>
+                <td><span class="badge badge-green">● פעיל</span></td>
+                <td style="color:var(--white50);font-size:12px;">3.6.25</td>
+                <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="openCrmCard('delta');event.stopPropagation()">פתח</button></td>
+              </tr>
+              <tr style="cursor:pointer;" onclick="openCrmCard('alpha')">
+                <td><div style="font-weight:700;">אלפא מוטורס</div><div style="font-size:11px;color:var(--white50);">דוד מזרחי • david@alpha.co.il</div></td>
+                <td>050-3456789</td>
+                <td><span class="badge badge-purple" style="font-size:10px;">👋 הפניה</span></td>
+                <td><span class="badge badge-blue" style="font-size:10px;">ניהול צי</span></td>
+                <td style="color:var(--green);">⭐⭐⭐</td>
+                <td>יוני</td>
+                <td><span class="badge badge-yellow">⏳ הצעת מחיר</span></td>
+                <td style="color:var(--white50);font-size:12px;">18.6.25</td>
+                <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="openCrmCard('alpha');event.stopPropagation()">פתח</button></td>
+              </tr>
+              <tr style="cursor:pointer;" onclick="openCrmCard('tech')">
+                <td><div style="font-weight:700;">פתרונות טק ישראל</div><div style="font-size:11px;color:var(--white50);">מיכל אברהם • michal@tek.co.il</div></td>
+                <td>053-7654321</td>
+                <td><span class="badge badge-blue" style="font-size:10px;">📘 Facebook</span></td>
+                <td><span class="badge badge-blue" style="font-size:10px;">שיווק בלבד</span></td>
+                <td style="color:var(--yellow);">⭐</td>
+                <td>Miki</td>
+                <td><span class="badge badge-yellow">🔔 בטיפול</span></td>
+                <td style="color:var(--white50);font-size:12px;">20.6.25</td>
+                <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="openCrmCard('tech');event.stopPropagation()">פתח</button></td>
+              </tr>
+              <tr style="cursor:pointer;" onclick="openCrmCard('lead1')">
+                <td><div style="font-weight:700;">בן-דוד תחבורה</div><div style="font-size:11px;color:var(--white50);">אלי בן-דוד • eli@bd.co.il</div></td>
+                <td>058-1122334</td>
+                <td><span class="badge badge-green" style="font-size:10px;">📍 Google Business</span></td>
+                <td><span class="badge badge-gray" style="font-size:10px;">לא הוחלט</span></td>
+                <td style="color:var(--accent2);">⭐⭐</td>
+                <td>יוני</td>
+                <td><span class="badge badge-blue">🔔 ליד חדש</span></td>
+                <td style="color:var(--white50);font-size:12px;">23.6.25</td>
+                <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="openCrmCard('lead1');event.stopPropagation()">פתח</button></td>
+              </tr>
+              <tr style="cursor:pointer;" onclick="openCrmCard('lead2')">
+                <td><div style="font-weight:700;">מגדל ביטוח צי</div><div style="font-size:11px;color:var(--white50);">רחל שפירא • rachel@migdal-fleet.co.il</div></td>
+                <td>054-9988776</td>
+                <td><span class="badge badge-green" style="font-size:10px;">📢 Google Ads</span></td>
+                <td><span class="badge badge-gray" style="font-size:10px;">לא הוחלט</span></td>
+                <td style="color:var(--green);">⭐⭐⭐</td>
+                <td>דנה</td>
+                <td><span class="badge badge-blue">🔔 ליד חדש</span></td>
+                <td style="color:var(--white50);font-size:12px;">24.6.25</td>
+                <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="openCrmCard('lead2');event.stopPropagation()">פתח</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- end tab-crm-list -->
+
+    <!-- ===== TAB: LEADS ===== -->
+    <div id="tab-crm-leads" style="display:none;">
+      <div class="page-header"><div class="page-title">🔔 לידים חדשים</div><hr class="page-rule"></div>
+      <div class="section">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="card" style="cursor:pointer;border-color:rgba(37,99,235,0.4);" onclick="openCrmCard('lead2')">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+              <div>
+                <div style="font-size:14px;font-weight:700;">מגדל ביטוח צי – רחל שפירא</div>
+                <div style="font-size:12px;color:var(--white50);margin-top:3px;">054-9988776 • rachel@migdal-fleet.co.il</div>
+                <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+                  <span class="badge badge-green" style="font-size:10px;">📢 Google Ads – "ניהול צי"</span>
+                  <span class="badge badge-blue" style="font-size:10px;">דף: /ניהול-צי</span>
+                  <span style="font-size:11px;color:var(--white50)">היום 09:14</span>
+                </div>
+              </div>
+              <div style="text-align:center;flex-shrink:0;">
+                <div style="font-size:22px;font-weight:800;color:var(--green);">⭐⭐⭐</div>
+                <div style="font-size:10px;color:var(--white50)">ציון איכות</div>
+              </div>
+            </div>
+            <div class="ai-box" style="margin-top:10px;padding:10px;">
+              <div class="ai-box-header" style="font-size:11px;"><div class="ai-pulse"></div>AI CRM: ליד חם – חברה עם 80+ רכבים. מתאים לשיווק + צי. מומלץ ליצור קשר תוך 2 שעות.</div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+              <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="showToast('📞 מחייג...');event.stopPropagation()">📞 התקשר</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="showToast('💬 WhatsApp...');event.stopPropagation()">💬 WhatsApp</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="openCrmCard('lead2');event.stopPropagation()">📋 פתח כרטיס</button>
+            </div>
+          </div>
+
+          <div class="card" style="cursor:pointer;" onclick="openCrmCard('lead1')">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+              <div>
+                <div style="font-size:14px;font-weight:700;">בן-דוד תחבורה – אלי בן-דוד</div>
+                <div style="font-size:12px;color:var(--white50);margin-top:3px;">058-1122334 • eli@bd.co.il</div>
+                <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+                  <span class="badge badge-green" style="font-size:10px;">📍 Google Business</span>
+                  <span style="font-size:11px;color:var(--white50)">אתמול 16:32</span>
+                </div>
+              </div>
+              <div style="text-align:center;flex-shrink:0;">
+                <div style="font-size:22px;font-weight:800;color:var(--accent2);">⭐⭐</div>
+                <div style="font-size:10px;color:var(--white50)">ציון איכות</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+              <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="showToast('📞 מחייג...');event.stopPropagation()">📞 התקשר</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="openCrmCard('lead1');event.stopPropagation()">📋 פתח כרטיס</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: TASKS ===== -->
+    <div id="tab-crm-tasks" style="display:none;">
+      <div class="page-header"><div class="page-title">📋 משימות</div><hr class="page-rule"></div>
+      <div class="section">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="card" style="display:flex;align-items:flex-start;gap:10px;">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--red);flex-shrink:0;margin-top:2px;"></div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;">התקשר למגדל ביטוח צי – ליד חם</div>
+              <div style="font-size:11px;color:var(--white50);margin-top:2px;">היום לפני 12:00 • יוני • רחל שפירא</div>
+            </div>
+            <span class="badge badge-red">דחוף</span>
+          </div>
+          <div class="card" style="display:flex;align-items:flex-start;gap:10px;">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--yellow);flex-shrink:0;margin-top:2px;"></div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;">שלח הצעת מחיר – אלפא מוטורס</div>
+              <div style="font-size:11px;color:var(--white50);margin-top:2px;">מחר 10:00 • יוני • דוד מזרחי</div>
+            </div>
+            <span class="badge badge-yellow">ממתין</span>
+          </div>
+          <div class="card" style="display:flex;align-items:flex-start;gap:10px;">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--accent2);flex-shrink:0;margin-top:2px;"></div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;">דוח חודשי – גרין-טק</div>
+              <div style="font-size:11px;color:var(--white50);margin-top:2px;">30.6.25 • Miki • ראובן לוי</div>
+            </div>
+            <span class="badge badge-blue">בתהליך</span>
+          </div>
+          <div class="card" style="display:flex;align-items:flex-start;gap:10px;opacity:0.6;">
+            <div style="width:16px;height:16px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:10px;">✓</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;text-decoration:line-through;">פגישה היכרות – דלתא לוגיסטיקה</div>
+              <div style="font-size:11px;color:var(--white50);margin-top:2px;">20.6.25 • הושלם</div>
+            </div>
+            <span class="badge badge-green">✓ הושלם</span>
+          </div>
+        </div>
+        <button class="btn btn-ghost" style="margin-top:12px;font-size:12px;" onclick="showToast('+ משימה חדשה')">+ הוסף משימה</button>
+      </div>
+    </div>
+
+    <!-- ===== TAB: REPORTS ===== -->
+    <div id="tab-crm-reports" style="display:none;">
+      <div class="page-header"><div class="page-title">📊 דוחות CRM</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="grid grid-2" style="gap:12px;margin-bottom:14px;">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:10px;">לידים לפי מקור – יוני</div>
+            <div class="progress-wrap">
+              <div class="progress-item"><div class="progress-label"><span class="name">📢 Google Ads</span><span class="pct">38%</span></div><div class="progress-bar"><div class="progress-fill" style="width:38%;background:var(--accent2)"></div></div></div>
+              <div class="progress-item"><div class="progress-label"><span class="name">🔍 אורגני</span><span class="pct">26%</span></div><div class="progress-bar"><div class="progress-fill" style="width:26%;background:var(--green)"></div></div></div>
+              <div class="progress-item"><div class="progress-label"><span class="name">👋 הפניות</span><span class="pct">18%</span></div><div class="progress-bar"><div class="progress-fill" style="width:18%;background:var(--purple)"></div></div></div>
+              <div class="progress-item"><div class="progress-label"><span class="name">📘 Facebook</span><span class="pct">12%</span></div><div class="progress-bar"><div class="progress-fill" style="width:12%;background:var(--yellow)"></div></div></div>
+              <div class="progress-item"><div class="progress-label"><span class="name">📍 GBP</span><span class="pct">6%</span></div><div class="progress-bar"><div class="progress-fill" style="width:6%;background:var(--red)"></div></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:10px;">Funnel לידים</div>
+            <div class="progress-wrap">
+              <div class="progress-item"><div class="progress-label"><span class="name">סה"כ לידים</span><span class="pct">47</span></div><div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--accent)"></div></div></div>
+              <div class="progress-item"><div class="progress-label"><span class="name">ליצירת קשר</span><span class="pct">38 (81%)</span></div><div class="progress-bar"><div class="progress-fill" style="width:81%;background:var(--accent2)"></div></div></div>
+              <div class="progress-item"><div class="progress-label"><span class="name">הצעת מחיר</span><span class="pct">18 (38%)</span></div><div class="progress-bar"><div class="progress-fill" style="width:38%;background:var(--yellow)"></div></div></div>
+              <div class="progress-item"><div class="progress-label"><span class="name">סגירה</span><span class="pct">16 (34%)</span></div><div class="progress-bar"><div class="progress-fill" style="width:34%;background:var(--green)"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="report-box">
+          <div class="report-title">📊 סיכום חודשי – יוני 2025</div>
+          <div class="report-row"><span class="rl">סה"כ לידים</span><span class="rv">47</span></div>
+          <div class="report-row"><span class="rl">לקוחות חדשים שנסגרו</span><span class="rv" style="color:var(--green)">2</span></div>
+          <div class="report-row"><span class="rl">אחוז סגירה</span><span class="rv" style="color:var(--green)">34%</span></div>
+          <div class="report-row"><span class="rl">ממוצע זמן סגירה</span><span class="rv">8 ימים</span></div>
+          <div class="report-row"><span class="rl">מקור מוביל</span><span class="rv">Google Ads (38%)</span></div>
+          <div class="report-row"><span class="rl">ציון ליד ממוצע</span><span class="rv">⭐⭐</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: AI INSIGHTS ===== -->
+    <div id="tab-crm-ai" style="display:none;">
+      <div class="page-header"><div class="page-title">🤖 AI תובנות CRM</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="ai-box" style="margin-bottom:14px;">
+          <div class="ai-box-header"><div class="ai-pulse"></div>🧠 AI CRM Manager – סיכום</div>
+          <div class="ai-box-text">2 לידים חמים דורשים מענה דחוף (תוך 2 שעות). מגדל ביטוח צי – ציון ⭐⭐⭐ מ-Google Ads – ייתכן שוק גדול. אלפא מוטורס ממתינה להצעת מחיר 5 ימים – סיכון לאיבוד ליד.</div>
+        </div>
+        <!-- Agents placeholder -->
+        <div class="sec-title">עוזרי AI לחיבור עתידי</div>
+        <div class="grid grid-2" style="gap:10px;">
+          <div class="card" style="opacity:0.6;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:18px;">🔍</span><div style="font-size:13px;font-weight:700;">עוזר SEO</div></div>
+            <div style="font-size:11px;color:var(--white50);">ניתוח ביצועי SEO לכל לקוח</div>
+            <span class="badge badge-gray" style="margin-top:6px;font-size:10px;">○ בהמתנה לחיבור</span>
+          </div>
+          <div class="card" style="opacity:0.6;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:18px;">📊</span><div style="font-size:13px;font-weight:700;">עוזר Google Analytics</div></div>
+            <div style="font-size:11px;color:var(--white50);">נתוני תנועה לאתר הלקוח</div>
+            <span class="badge badge-gray" style="margin-top:6px;font-size:10px;">○ בהמתנה לחיבור</span>
+          </div>
+          <div class="card" style="opacity:0.6;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:18px;">📢</span><div style="font-size:13px;font-weight:700;">עוזר Google Ads</div></div>
+            <div style="font-size:11px;color:var(--white50);">ביצועי קמפיינים לכל לקוח</div>
+            <span class="badge badge-gray" style="margin-top:6px;font-size:10px;">○ בהמתנה לחיבור</span>
+          </div>
+          <div class="card" style="opacity:0.6;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:18px;">🤖</span><div style="font-size:13px;font-weight:700;">עוזר AI / קבלת החלטות</div></div>
+            <div style="font-size:11px;color:var(--white50);">המלצות אישיות לכל לקוח</div>
+            <span class="badge badge-gray" style="margin-top:6px;font-size:10px;">○ בהמתנה לחיבור</span>
+          </div>
+          <div class="card" style="opacity:0.6;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:18px;">📍</span><div style="font-size:13px;font-weight:700;">עוזר Google Business</div></div>
+            <div style="font-size:11px;color:var(--white50);">ביקורות, פוסטים ודירוגים</div>
+            <span class="badge badge-gray" style="margin-top:6px;font-size:10px;">○ בהמתנה לחיבור</span>
+          </div>
+          <div class="card" style="opacity:0.6;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:18px;">📋</span><div style="font-size:13px;font-weight:700;">עוזר CRM</div></div>
+            <div style="font-size:11px;color:var(--white50);">ניהול לידים ומשימות אוטומטי</div>
+            <span class="badge badge-gray" style="margin-top:6px;font-size:10px;">○ בהמתנה לחיבור</span>
+          </div>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--white50);background:var(--bg3);border-radius:8px;padding:10px;">
+          💡 בהמשך: כל עוזר יציג תובנות חיות לכל לקוח בנפרד לפי ה-Client ID שלו.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+  <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
+</div>
+
+<!-- ===== SCREEN: CRM CARD (client detail) ===== -->
+<div class="screen" id="screen-crm-card">
+  <div class="topbar">
+    <div class="topbar-right">
+      <button class="btn-icon" onclick="goScreen('screen-crm')">←</button>
+      <div class="breadcrumb">שיווק AI <span class="sep">›</span> <a href="#" onclick="goScreen('screen-crm');return false;" style="color:var(--white50);text-decoration:none;">CRM</a> <span class="sep">›</span> <span id="crm-card-breadcrumb">לקוח</span></div>
+    </div>
+    <div class="topbar-left">
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="showToast('📧 שולח אימייל...')">📧 שלח מייל</button>
+      <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="showToast('💾 נשמר')">💾 שמור</button>
+      <button class="btn-icon" onclick="showDaliaToast()">🏠</button>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="setTab(this,'tab-cc-info')">📋 פרטים</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-cc-leads')">🔔 לידים</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-cc-tasks')">📌 משימות</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-cc-history')">📚 היסטוריה</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-cc-docs')">📄 מסמכים</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-cc-marketing')">📊 שיווק</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-cc-ai')">🤖 AI</div>
+  </div>
+
+  <div class="content" id="crm-card-content">
+    <!-- Filled by openCrmCard() -->
+  </div>
+  <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
+</div>
+
 <!-- ============================= SCREEN: ASSETS ============================= -->
 <div class="screen" id="screen-assets">
   <div class="topbar">
@@ -3104,6 +3831,304 @@
   <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
 </div>
 
+<!-- ============================= SCREEN: AI CENTER ============================= -->
+<div class="screen" id="screen-ai-center">
+  <div class="topbar">
+    <div class="topbar-right">
+      <button class="btn-icon" onclick="goScreen('screen-hub')">←</button>
+      <div class="breadcrumb">דליה <span class="sep">›</span> שיווק AI <span class="sep">›</span> <span>מרכז AI</span></div>
+    </div>
+    <div class="topbar-left">
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-goals')">🎯 מטרות</button>
+      <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="runAiAnalysis()">▶️ הפעל ניתוח</button>
+      <button class="btn-icon" onclick="showDaliaToast()">🏠</button>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="setTab(this,'tab-ai-overview')">🧠 ניתוח AI</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-ai-decisions')">📋 החלטות (0)</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-ai-prompt')">⚙️ הגדרות</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-ai-sheets')">📊 Google Sheets</div>
+  </div>
+
+  <div class="content">
+
+    <!-- TAB: AI OVERVIEW -->
+    <div id="tab-ai-overview">
+      <div class="page-header">
+        <div class="page-title">🧠 מרכז AI – ChatGPT</div>
+        <div class="page-subtitle">ChatGPT מקבל נתוני 11 עוזרים + ציוני 20 מטרות → יוצר שורות בטבלת פעולות</div>
+        <hr class="page-rule">
+      </div>
+
+      <!-- Flow diagram -->
+      <div class="section" style="padding-bottom:0;">
+        <div class="card">
+          <div class="sec-title">זרימת עבודה אוטומטית</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;overflow-x:auto;padding-bottom:4px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
+              <div style="padding:6px 10px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">🏢<br>חברה</div>
+            </div>
+            <span style="color:var(--white20);">→</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
+              <div style="padding:6px 10px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">🤖<br>11 עוזרים</div>
+            </div>
+            <span style="color:var(--white20);">→</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
+              <div style="padding:6px 10px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">🎯<br>20 מטרות</div>
+            </div>
+            <span style="color:var(--white20);">→</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
+              <div style="padding:6px 10px;background:rgba(37,99,235,0.2);border:1px solid rgba(37,99,235,0.4);border-radius:8px;font-size:11px;text-align:center;color:var(--accent2);font-weight:700;">🧠<br>ChatGPT</div>
+            </div>
+            <span style="color:var(--white20);">→</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
+              <div style="padding:6px 10px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">⚙️<br>פעולות</div>
+            </div>
+            <span style="color:var(--white20);">→</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
+              <div style="padding:6px 10px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">🖥️<br>Cursor</div>
+            </div>
+            <span style="color:var(--white20);">→</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
+              <div style="padding:6px 10px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">🔍<br>QA</div>
+            </div>
+            <span style="color:var(--white20);">→</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
+              <div style="padding:6px 10px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:8px;font-size:11px;text-align:center;color:var(--green);font-weight:700;">✅<br>אישור יוני</div>
+            </div>
+            <span style="color:var(--white20);">→</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
+              <div style="padding:6px 10px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">🚀<br>פרסום</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data feed status -->
+      <div class="section" style="padding-bottom:0;">
+        <div class="sec-title">נתונים שנטענים לניתוח</div>
+        <div class="grid grid-2" style="gap:10px;">
+          <div class="card">
+            <div class="sec-title" style="font-size:12px;">11 עוזרים – סטטוס הזנה</div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>🔎 Google Search Console</span><span class="badge badge-yellow">ממתין לחיבור</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>📊 Google Analytics GA4</span><span class="badge badge-yellow">ממתין לחיבור</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>⚡ PageSpeed + Lighthouse</span><span class="badge badge-yellow">ממתין לחיבור</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>🚀 Project 001 AI</span><span class="badge badge-yellow">ממתין לחיבור</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>🌐 CMS / Website AI</span><span class="badge badge-yellow">ממתין לחיבור</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>🔍 SEO Tools</span><span class="badge badge-gray">עתידי</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>📍 Google Business</span><span class="badge badge-yellow">ממתין לחיבור</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>📢 Google Ads</span><span class="badge badge-yellow">ממתין לחיבור</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>📘 Meta / Facebook</span><span class="badge badge-gray">עתידי</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>🖥️ Cursor AI</span><span class="badge badge-yellow">ממתין לחיבור</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span>🧠 AI מנהל שיווק</span><span class="badge badge-blue">פעיל – מרכז זה</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="sec-title" style="font-size:12px;">20 מטרות – ציונים נוכחיים</div>
+            <div style="display:flex;flex-direction:column;gap:4px;font-size:11px;">
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">1. תוכן איכותי</span><span class="badge badge-yellow">60</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">2. מחקר מילות מפתח</span><span class="badge badge-green">85+</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">3. מהירות האתר</span><span class="badge badge-red">61</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">4. מבנה SEO</span><span class="badge badge-yellow">78</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">5. UX</span><span class="badge badge-green">84</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">6. Mobile First</span><span class="badge badge-red">72</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">7. קישורים פנימיים</span><span class="badge badge-yellow">65</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">8. דפי שירות</span><span class="badge badge-yellow">70</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">9. מאמרים</span><span class="badge badge-yellow">60</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">10. מדיה</span><span class="badge badge-yellow">68</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--white50);">11–20</span><span style="color:var(--white50);font-size:10px;">→ <button onclick="goScreen('screen-goals')" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:10px;">ראה מטרות</button></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Input / Analysis -->
+      <div class="section" style="padding-bottom:0;">
+        <div class="card">
+          <div class="sec-title">Prompt לניתוח – גרין-טק פתרונות</div>
+          <div style="background:var(--bg4);border-radius:8px;padding:12px;font-size:12px;color:var(--white50);margin-bottom:12px;line-height:1.7;font-family:monospace;">
+            <div style="color:var(--accent2);font-weight:700;margin-bottom:6px;">// Prompt אוטומטי שנשלח ל-ChatGPT</div>
+            Client: גרין-טק פתרונות בע"מ | ID: CLT-001<br>
+            Domain: greentech.co.il | Service: שיווק + צי<br><br>
+            נתוני עוזרים: [ממתין לחיבור API]<br>
+            ציוני 20 מטרות: מהירות=61🔴 Mobile=72🟡 תוכן=60🟡...<br>
+            CRM: 47 לידים | 34% סגירה<br>
+            היסטוריה: 18 פעולות קודמות<br><br>
+            <span style="color:var(--white80);">נתח, זהה בעיות, קבע עדיפויות, צור רשימת פעולות מובנית.</span><br>
+            <span style="color:var(--white80);">כל המלצה = שורה אחת בטבלת פעולות.</span><br>
+            <span style="color:var(--yellow);">פלט: JSON מובנה בלבד. לא טקסט חופשי.</span>
+          </div>
+          <div id="ai-status-box" style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;min-height:60px;font-size:13px;color:var(--white50);text-align:center;">
+            לחץ "הפעל ניתוח" כדי לשלוח ל-ChatGPT
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="runAiAnalysis()">▶️ הפעל ניתוח AI</button>
+            <button class="btn btn-ghost" onclick="goScreen('screen-agents')">🤖 עדכן עוזרים</button>
+            <button class="btn btn-ghost" onclick="goScreen('screen-actions')">⚙️ טבלת פעולות</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Approval section -->
+      <div class="section">
+        <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:var(--card-r);padding:16px;">
+          <div class="sec-title" style="color:var(--green);">✅ אישור בעלים – נקודת שליטה</div>
+          <div style="font-size:13px;color:var(--white80);margin-bottom:12px;">כל פרסום לאתר, Google, Ads, Facebook או שינוי Production דורש אישור מפורש. Production סגור עד אישור.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-green" onclick="showToast('✅ אישור נרשם בהיסטוריה')">✅ אשר ובצע</button>
+            <button class="btn btn-red" onclick="showToast('❌ נדחה – נרשם בהיסטוריה')">❌ דחה</button>
+            <button class="btn btn-yellow" onclick="showToast('🔁 הוחזר לתיקון')">🔁 החזר לתיקון</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: DECISIONS -->
+    <div id="tab-ai-decisions" style="display:none;">
+      <div class="page-header"><div class="page-title">📋 החלטות AI – טבלת פעולות</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="alert alert-info" style="margin-bottom:14px;">ℹ️ כל החלטת ChatGPT הופכת לשורה בטבלה. לאחר חיבור API ההחלטות יופיעו כאן אוטומטית.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Client ID</th><th>אתר</th><th>URL</th><th>מטרה</th>
+                <th>ציון</th><th>יעד</th><th>הבעיה</th><th>פעולה</th>
+                <th>סוג</th><th>עדיפות</th><th>אחראי</th><th>סטטוס</th>
+                <th>אישור יוני</th><th>QA</th><th>Staging</th><th>Commit</th>
+              </tr>
+            </thead>
+            <tbody id="ai-decisions-tbody">
+              <tr><td colspan="17" style="text-align:center;color:var(--white50);padding:24px;">ממתין לניתוח AI – לחץ "הפעל ניתוח" בטאב הראשון</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--white50);">
+          סטטוסים: <span class="badge badge-blue">חדש</span> <span class="badge badge-yellow">ממתין לאישור</span> <span class="badge badge-green">מאושר</span> <span class="badge badge-blue">בביצוע</span> <span class="badge badge-purple">QA</span> <span class="badge badge-green">מוכן לפרסום</span> <span class="badge badge-gray">עבר להיסטוריה</span> <span class="badge badge-red">נכשל</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SETTINGS -->
+    <div id="tab-ai-prompt" style="display:none;">
+      <div class="page-header"><div class="page-title">⚙️ הגדרות מרכז AI</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="card" style="margin-bottom:12px;">
+          <div class="sec-title">חיבור ChatGPT API</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div><div style="font-size:12px;color:var(--white50);margin-bottom:4px;">API Key</div><input class="filter-input" style="width:100%;font-family:monospace;" placeholder="sk-... (ממתין לחיבור)" type="password"></div>
+            <div><div style="font-size:12px;color:var(--white50);margin-bottom:4px;">מודל</div>
+              <select class="filter-select" style="width:100%;"><option>gpt-4o</option><option>gpt-4-turbo</option><option>gpt-4</option></select>
+            </div>
+            <div><div style="font-size:12px;color:var(--white50);margin-bottom:4px;">תדירות ניתוח אוטומטי</div>
+              <select class="filter-select" style="width:100%;"><option>יומי – 07:00</option><option>כל 6 שעות</option><option>ידני בלבד</option></select>
+            </div>
+            <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="showToast('✅ הגדרות נשמרו')">💾 שמור</button><button class="btn btn-ghost" onclick="showToast('🔗 בודק חיבור...')">🔗 בדוק חיבור</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sec-title">הגדרות פלט – JSON Schema</div>
+          <div style="background:var(--bg4);border-radius:8px;padding:12px;font-size:11px;color:var(--white50);font-family:monospace;line-height:1.6;">
+            {<br>
+            &nbsp;&nbsp;"action_id": "string",<br>
+            &nbsp;&nbsp;"client_id": "string",<br>
+            &nbsp;&nbsp;"site": "string",<br>
+            &nbsp;&nbsp;"url": "string",<br>
+            &nbsp;&nbsp;"goal": "1–20",<br>
+            &nbsp;&nbsp;"current_score": 0–100,<br>
+            &nbsp;&nbsp;"target_score": 0–100,<br>
+            &nbsp;&nbsp;"problem": "string",<br>
+            &nbsp;&nbsp;"reason": "string",<br>
+            &nbsp;&nbsp;"action": "string",<br>
+            &nbsp;&nbsp;"action_type": "content|seo|code|speed|ux|ads|crm",<br>
+            &nbsp;&nbsp;"priority": "critical|high|medium|low",<br>
+            &nbsp;&nbsp;"requires_approval": true|false,<br>
+            &nbsp;&nbsp;"expected_result": "string",<br>
+            &nbsp;&nbsp;"success_check": "string"<br>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SHEETS -->
+    <div id="tab-ai-sheets" style="display:none;">
+      <div class="page-header"><div class="page-title">📊 Google Sheets – AI Marketing Actions</div><hr class="page-rule"></div>
+      <div class="section">
+        <!-- Connection -->
+        <div class="alert alert-info" style="margin-bottom:12px;">ℹ️ גשר העבודה המשותף: מנהל שיווק → ChatGPT כותב → Cursor קורא ומבצע → Apps Script מעדכן → היסטוריה ודוחות.</div>
+        <div class="card" style="margin-bottom:12px;">
+          <div class="sec-title">חיבור לגיליון</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div><div style="font-size:12px;color:var(--white50);margin-bottom:3px;">Spreadsheet ID</div><input class="filter-input" style="width:100%;font-family:monospace;" placeholder="1ABC...xyz (ממתין לחיבור)"></div>
+            <div><div style="font-size:12px;color:var(--white50);margin-bottom:3px;">Sheet Name</div><input class="filter-input" style="width:100%;" value="AI Marketing Actions"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="showToast('✅ גיליון חובר')">🔗 חבר גיליון</button>
+              <button class="btn btn-ghost" onclick="showToast('📊 פותח גיליון...')">📊 פתח בגוגל</button>
+              <button class="btn btn-ghost" onclick="showToast('🔄 מסנכרן...')">🔄 סנכרן עכשיו</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columns -->
+        <div class="card" style="margin-bottom:12px;">
+          <div class="sec-title">עמודות הגיליון – AI Marketing Actions (24 עמודות)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;font-size:11px;">
+            ${['Action ID','Client ID','שם לקוח','אתר','קמפיין','קטגוריה (1–20)','מקור נתון','ציון נוכחי','ציון יעד','המלצת ChatGPT','פעולה לביצוע','אחראי','סטטוס','תאריך יצירה','תאריך יעד','תאריך ביצוע','קישור לעמוד','Staging URL','Commit','QA','אישור יוני','תוצאה','ציון אחרי','הערות'].map((c,i)=>`<span style="padding:2px 7px;background:var(--bg4);border:1px solid var(--border);border-radius:5px;">${i+1}. ${c}</span>`).join('')}
+          </div>
+        </div>
+
+        <!-- Flow diagram -->
+        <div class="card" style="margin-bottom:12px;">
+          <div class="sec-title">זרימת נתונים – כל שלב</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg4);border-radius:7px;"><span style="color:var(--accent2);font-weight:700;min-width:28px;">1.</span><span>🤖 <strong>עוזרים</strong> אוספים נתונים ומחשבים ציונים לכל קטגוריה</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg4);border-radius:7px;"><span style="color:var(--accent2);font-weight:700;min-width:28px;">2.</span><span>🎯 <strong>מטרות</strong> מציגות ציונים ופערים → שולחות ל-ChatGPT</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.25);border-radius:7px;"><span style="color:var(--accent2);font-weight:700;min-width:28px;">3.</span><span>🧠 <strong>ChatGPT</strong> מייצר טבלת המלצות → <strong>כותב שורות לגיליון</strong></span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg4);border-radius:7px;"><span style="color:var(--accent2);font-weight:700;min-width:28px;">4.</span><span>⚙️ <strong>עמוד פעולות</strong> קורא שורות מהגיליון → מציג לאישור</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg4);border-radius:7px;"><span style="color:var(--green);font-weight:700;min-width:28px;">5.</span><span>✅ <strong>יוני מאשר</strong> → סטטוס מתעדכן בגיליון</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg4);border-radius:7px;"><span style="color:var(--accent2);font-weight:700;min-width:28px;">6.</span><span>🖥️ <strong>Cursor</strong> קורא שורות "מאושר" → מבצע → מעדכן Commit + Staging + QA</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg4);border-radius:7px;"><span style="color:var(--purple);font-weight:700;min-width:28px;">7.</span><span>📜 <strong>Apps Script</strong> מזהה שורות מוכנות → מריץ פעולות אוטומטיות → מעדכן סטטוס</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg4);border-radius:7px;"><span style="color:var(--yellow);font-weight:700;min-width:28px;">8.</span><span>📚 <strong>היסטוריה + דוחות</strong> מתעדכנים אוטומטית מאותו גיליון</span></div>
+          </div>
+        </div>
+
+        <!-- Google Apps Script section -->
+        <div class="card">
+          <div class="sec-title">Google Apps Script – הכנה לאוטומציה</div>
+          <div style="font-size:12px;color:var(--white80);margin-bottom:10px;">Apps Script יריץ פעולות אוטומטיות כשסטטוס שורה = "מאושר". כרגע: הכנת תשתית בלבד.</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--bg4);border-radius:7px;">
+              <span>קריאת שורות חדשות מגיליון</span><span class="badge badge-yellow">בהכנה</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--bg4);border-radius:7px;">
+              <span>זיהוי סטטוס "מאושר" והפעלה</span><span class="badge badge-yellow">בהכנה</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--bg4);border-radius:7px;">
+              <span>עדכון סטטוס + תוצאה בגיליון</span><span class="badge badge-yellow">בהכנה</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--bg4);border-radius:7px;">
+              <span>העברה אוטומטית להיסטוריה</span><span class="badge badge-yellow">בהכנה</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--bg4);border-radius:7px;">
+              <span>שליחת התראה ל-Slack / Email על שינוי סטטוס</span><span class="badge badge-gray">עתידי</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="showToast('📜 פותח Apps Script...')">📜 פתח Apps Script</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="showToast('🔄 בודק טריגרים...')">🔄 בדוק טריגרים</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+  <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
+</div>
+
 <!-- ============================= SCREEN: HISTORY ============================= -->
 <div class="screen" id="screen-history">
   <div class="topbar">
@@ -3112,140 +4137,193 @@
       <div class="breadcrumb">דליה <span class="sep">›</span> שיווק AI <span class="sep">›</span> <span>היסטוריה</span></div>
     </div>
     <div class="topbar-left">
-      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-agents')">🤖 עוזרים</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="openModal('modal-report')">📄 הפק דוח</button>
       <button class="btn-icon" onclick="showDaliaToast()">🏠</button>
     </div>
   </div>
 
   <div class="nav-tabs">
-    <div class="nav-tab active" onclick="setTab(this,'tab-hist-actions')">פעולות</div>
-    <div class="nav-tab" onclick="setTab(this,'tab-hist-goals')">מטרות</div>
-    <div class="nav-tab" onclick="setTab(this,'tab-hist-site')">שינויים באתר</div>
-    <div class="nav-tab" onclick="setTab(this,'tab-hist-campaigns')">קמפיינים</div>
-  </div>
-
-  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
-    <div class="filter-bar" style="flex-wrap:wrap;">
-      <select class="filter-select" id="hist-company" title="חברה"><option value="">כל החברות</option><option value="greentech" selected>גרין-טק</option><option value="delta">דלתא לוגיסטיקה</option></select>
-      <select class="filter-select" id="hist-site" title="אתר"><option value="">כל האתרים</option><option value="greentech.co.il" selected>greentech.co.il</option></select>
-      <select class="filter-select" id="hist-page" title="עמוד"><option value="">כל העמודים</option><option>דף הבית</option><option>שירותים</option><option>ניהול צי</option><option>ביטוח צי</option></select>
-      <select class="filter-select" id="hist-campaign" title="קמפיין"><option value="">כל הקמפיינים</option><option>Brand Search</option><option>מוצרים – כללי</option><option>Remarketing</option></select>
-      <select class="filter-select" id="hist-status" title="סטטוס"><option value="">כל הסטטוסים</option><option>בוצע</option><option>נדחה</option><option>הוחזר</option></select>
-      <select class="filter-select" id="hist-action-type" title="פעולה"><option value="">כל הפעולות</option><option>SEO</option><option>תוכן</option><option>ביצועים</option><option>קמפיין</option></select>
-      <select class="filter-select" id="hist-date" title="תאריך"><option value="30" selected>30 ימים</option><option value="7">7 ימים</option><option value="60">60 ימים</option><option value="90">90 ימים</option></select>
-      <button onclick="resetHistoryFilter()" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;">✕ נקה</button>
-    </div>
+    <div class="nav-tab active" onclick="setTab(this,'tab-hist-all')">📚 הכל (22)</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-hist-approved')">✅ אושרו (18)</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-hist-rejected')">❌ נדחו (2)</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-hist-audit')">🔒 Audit Trail</div>
   </div>
 
   <div class="content">
-    <div id="tab-hist-actions">
+
+    <!-- TAB: ALL -->
+    <div id="tab-hist-all">
+      <!-- Client header -->
+      <div style="padding:12px 20px 0;">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="font-size:12px;color:var(--white80);display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <span><strong>CLT-001</strong></span><span style="color:var(--white20);">|</span>
+            <span>גרין-טק פתרונות</span><span style="color:var(--white20);">|</span>
+            <span>🌐 greentech.co.il</span><span style="color:var(--white20);">|</span>
+            <span>📢 Brand Search</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="goScreen('screen-actions')">← פעולות</button>
+            <button class="btn btn-primary" style="font-size:11px;padding:3px 9px;" onclick="goScreen('screen-reports')">דוחות ←</button>
+          </div>
+        </div>
+      </div>
       <div class="page-header">
-        <div class="page-title">📚 היסטוריית פעולות</div>
-        <div class="page-subtitle">כל פעולה שבוצעה, אושרה או נדחתה — מתועדת אוטומטית</div>
+        <div class="page-title">📚 היסטוריה מלאה</div>
+        <div class="page-subtitle">לא נמחק שום מידע • כולל לפני/אחרי, Commit, Staging, ציונים</div>
         <hr class="page-rule">
       </div>
+
+      <!-- Standard filter – no company/client -->
+      <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select class="filter-select" style="font-size:12px;"><option value="">ערוץ שיווק</option><option>Google SEO</option><option>Google Ads</option><option>Google Business</option><option>Facebook</option></select>
+          <select class="filter-select" style="font-size:12px;"><option value="">קטגוריה (20)</option><option>3. מהירות</option><option>4. מבנה SEO</option><option>18. מיקומים</option></select>
+          <select class="filter-select" style="font-size:12px;"><option value="">סטטוס</option><option>פורסם</option><option>נדחה</option><option>הוחזר לתיקון</option></select>
+          <select class="filter-select" style="font-size:12px;"><option value="">עדיפות</option><option>קריטי</option><option>גבוה</option><option>בינוני</option></select>
+          <select class="filter-select" style="font-size:12px;"><option value="30" selected>30 ימים</option><option value="60">60 ימים</option><option value="all">הכל</option></select>
+          <input class="filter-input" placeholder="🔍 חיפוש..." style="flex:1;min-width:120px;font-size:12px;">
+          <button onclick="showToast('✕ סינון אופס')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:11px;cursor:pointer;">✕ נקה</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="section" style="padding-bottom:0;">
+        <div class="grid grid-4" style="gap:10px;">
+          <div class="card" style="padding:12px 14px;"><div class="card-title">סה"כ רשומות</div><div class="card-value" style="font-size:22px;">22</div><div class="card-delta" style="color:var(--white50)">לא נמחק</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">אושרו ופורסמו</div><div class="card-value" style="font-size:22px;color:var(--green);">18</div><div class="card-delta up">↑ +5 השבוע</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">נדחו</div><div class="card-value" style="font-size:22px;color:var(--red);">2</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">הוחזרו לתיקון</div><div class="card-value" style="font-size:22px;color:var(--yellow);">2</div></div>
+        </div>
+      </div>
+
+      <!-- History Timeline (full detail) -->
       <div class="section">
-        <div class="timeline" id="coco-live-history-timeline">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+              <div>
+                <div style="font-size:13px;font-weight:700;">✅ Meta Titles פורסמו – 8 עמודים</div>
+                <div style="font-size:11px;color:var(--white50);margin-top:2px;">12.6.25 14:32 | יוני אישר | AI: 🧠 AI Manager | Cursor ביצע</div>
+              </div>
+              <span class="badge badge-green">✓ פורסם</span>
+            </div>
+            <div class="grid grid-4" style="gap:8px;margin-bottom:10px;">
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">מטרה</div><div style="font-size:12px;font-weight:700;">#4 מבנה SEO</div></div>
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">ציון לפני</div><div style="font-size:16px;font-weight:800;color:var(--yellow);">68</div></div>
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">ציון אחרי</div><div style="font-size:16px;font-weight:800;color:var(--green);">79</div></div>
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">CTR שינוי</div><div style="font-size:12px;font-weight:700;color:var(--green);">↑ +0.4%</div></div>
+            </div>
+            <div style="font-size:12px;color:var(--white50);display:flex;gap:12px;flex-wrap:wrap;">
+              <span>Commit: <code style="color:var(--accent2);">a3f9c2b</code></span>
+              <span>Staging: <code style="color:var(--accent2);">ממתין לחיבור</code></span>
+              <span>Client ID: CLT-001</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+              <div>
+                <div style="font-size:13px;font-weight:700;">✅ Schema – דף הבית</div>
+                <div style="font-size:11px;color:var(--white50);margin-top:2px;">8.6.25 10:15 | יוני אישר | AI: 🧠 AI Manager | Cursor ביצע</div>
+              </div>
+              <span class="badge badge-green">✓ פורסם</span>
+            </div>
+            <div class="grid grid-4" style="gap:8px;margin-bottom:10px;">
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">מטרה</div><div style="font-size:12px;font-weight:700;">#4 מבנה SEO</div></div>
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">לפני</div><div style="font-size:16px;font-weight:800;color:var(--red);">62</div></div>
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">אחרי</div><div style="font-size:16px;font-weight:800;color:var(--green);">74</div></div>
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">Rich Results</div><div style="font-size:12px;font-weight:700;color:var(--green);">✓ פעיל</div></div>
+            </div>
+          </div>
+
+          <div class="card" style="opacity:0.75;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+              <div>
+                <div style="font-size:13px;font-weight:700;">❌ קמפיין Competitor – נדחה</div>
+                <div style="font-size:11px;color:var(--white50);margin-top:2px;">10.6.25 | יוני דחה | סיבה: תקציב מוגבל</div>
+              </div>
+              <span class="badge badge-red">❌ נדחה</span>
+            </div>
+            <div style="font-size:12px;color:var(--white50);">מטרה: #8 Google Ads | לא בוצע | ניתן לפתוח מחדש</div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+              <div>
+                <div style="font-size:13px;font-weight:700;">✅ Breadcrumbs – כל האתר</div>
+                <div style="font-size:11px;color:var(--white50);margin-top:2px;">28.5.25 | יוני אישר | Miki ביצע | 3 שעות עבודה</div>
+              </div>
+              <span class="badge badge-green">✓ פורסם</span>
+            </div>
+            <div class="grid grid-4" style="gap:8px;">
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">מטרה</div><div style="font-size:12px;font-weight:700;">#4 מבנה SEO</div></div>
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">לפני</div><div style="font-size:16px;font-weight:800;color:var(--yellow);">71</div></div>
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">אחרי</div><div style="font-size:16px;font-weight:800;color:var(--green);">78</div></div>
+              <div style="background:var(--bg4);border-radius:7px;padding:8px;"><div style="font-size:9px;color:var(--white50);">UX</div><div style="font-size:12px;font-weight:700;color:var(--green);">↑ שיפור</div></div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
-    <div id="tab-hist-goals" style="display:none;">
-      <div class="page-header"><div class="page-title">🎯 היסטוריית מטרות</div><hr class="page-rule"></div>
+
+    <!-- TAB: APPROVED -->
+    <div id="tab-hist-approved" style="display:none;">
+      <div class="page-header"><div class="page-title">✅ פעולות שאושרו ופורסמו</div><hr class="page-rule"></div>
       <div class="section">
-        <div class="alert alert-ok">✅ Meta Titles – הושלם 12.6.25</div>
-        <div class="alert alert-ok">✅ Schema דף הבית – הושלם 8.6.25</div>
-        <div class="alert alert-warn">⏳ PageSpeed נייד – בתהליך (61→80)</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>פעולה</th><th>מטרה</th><th>לפני</th><th>אחרי</th><th>שינוי</th><th>אישר</th><th>תאריך</th><th>Commit</th></tr></thead>
+            <tbody>
+              <tr><td>18</td><td>Meta Titles – 8 עמודים</td><td>#4</td><td style="color:var(--yellow);">68</td><td style="color:var(--green);">79</td><td style="color:var(--green);">↑+11</td><td>יוני</td><td>12.6.25</td><td><code style="font-size:10px;color:var(--accent2);">a3f9c2b</code></td></tr>
+              <tr><td>17</td><td>Schema – דף הבית</td><td>#4</td><td style="color:var(--red);">62</td><td style="color:var(--green);">74</td><td style="color:var(--green);">↑+12</td><td>יוני</td><td>8.6.25</td><td><code style="font-size:10px;">—</code></td></tr>
+              <tr><td>16</td><td>Breadcrumbs – כל האתר</td><td>#4</td><td style="color:var(--yellow);">71</td><td style="color:var(--green);">78</td><td style="color:var(--green);">↑+7</td><td>יוני</td><td>28.5.25</td><td><code style="font-size:10px;">—</code></td></tr>
+              <tr><td>15</td><td>Google Business Post – מאי</td><td>#12</td><td>—</td><td>—</td><td style="color:var(--green);">+12% צפיות</td><td>יוני</td><td>1.6.25</td><td><code style="font-size:10px;">—</code></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-    <div id="tab-hist-site" style="display:none;">
-      <div class="page-header"><div class="page-title">🌐 שינויים באתר</div><hr class="page-rule"></div>
+
+    <!-- TAB: REJECTED -->
+    <div id="tab-hist-rejected" style="display:none;">
+      <div class="page-header"><div class="page-title">❌ נדחו / הוחזרו לתיקון</div><hr class="page-rule"></div>
       <div class="section">
-        <div class="table-wrap"><table><thead><tr><th>תאריך</th><th>עמוד</th><th>שינוי</th><th>מבצע</th><th>סטטוס</th></tr></thead><tbody id="coco-live-history-site">
-        </tbody></table></div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="card" style="opacity:0.75;border-color:rgba(239,68,68,0.3);">
+            <div style="font-size:13px;font-weight:700;">❌ קמפיין Competitor – נדחה</div>
+            <div style="font-size:12px;color:var(--white50);margin-top:4px;">10.6.25 | יוני | סיבה: תקציב | לא בוצע</div>
+            <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;margin-top:8px;" onclick="showToast('🔄 הועבר לפעולות מחדש')">🔄 פתח מחדש</button>
+          </div>
+          <div class="card" style="opacity:0.75;border-color:rgba(245,158,11,0.3);">
+            <div style="font-size:13px;font-weight:700;">🔁 PageSpeed Task – הוחזר לתיקון</div>
+            <div style="font-size:12px;color:var(--white50);margin-top:4px;">5.6.25 | יוני | סיבה: חסרה בדיקת Cache | גרסה v1→v2</div>
+          </div>
+        </div>
       </div>
     </div>
-    <div id="tab-hist-campaigns" style="display:none;">
-      <div class="page-header"><div class="page-title">📢 היסטוריית קמפיינים</div><hr class="page-rule"></div>
+
+    <!-- TAB: AUDIT TRAIL -->
+    <div id="tab-hist-audit" style="display:none;">
+      <div class="page-header"><div class="page-title">🔒 Audit Trail – רשומה מלאה</div><hr class="page-rule"></div>
       <div class="section">
-        <div class="table-wrap"><table><thead><tr><th>תאריך</th><th>קמפיין</th><th>פעולה</th><th>תוצאה</th></tr></thead><tbody id="coco-live-history-campaigns">
-        </tbody></table></div>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">✅ Meta Titles פורסמו</div><div class="tl-time">12.6.25 14:32 | מקור: AI Manager | אישר: יוני | Cursor ביצע | CTR ↑+0.4%</div></div></div>
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">✅ Schema נוסף – דף הבית</div><div class="tl-time">8.6.25 10:15 | מקור: CMS AI | אישר: יוני | Rich Results פעיל</div></div></div>
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--yellow)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">🔁 PageSpeed Task הוחזר לתיקון</div><div class="tl-time">5.6.25 16:40 | יוני | סיבה: חסרה בדיקת Browser Cache</div></div></div>
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">✅ Google Business Post מאי</div><div class="tl-time">1.6.25 09:00 | AI Auto | +12% צפיות בכרטיס</div></div></div>
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--red)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">❌ קמפיין Competitor – נדחה</div><div class="tl-time">10.6.25 | יוני | סיבה: תקציב | לא בוצע</div></div></div>
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">✅ Breadcrumbs – כל האתר</div><div class="tl-time">28.5.25 | Miki | 3 שעות | UX ↑</div></div></div>
+          <div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div></div><div class="tl-content"><div class="tl-title">✅ H1 תיקון – 6 עמודים</div><div class="tl-time">20.5.25 | AI Auto | SEO ↑</div></div></div>
+        </div>
       </div>
     </div>
-  </div>
+
+  </div><!-- end content -->
   <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
 </div>
-
-
-
-
-
-
-
-<!-- ============================= SCREEN: AI DECISIONS ============================= -->
-<div class="screen" id="screen-ai-decisions">
-  <div class="topbar">
-    <div class="topbar-right">
-      <button class="btn-icon" onclick="goScreen('screen-hub')">←</button>
-      <div class="breadcrumb">דליה <span class="sep">›</span> שיווק AI <span class="sep">›</span> <span>AI / קבלת החלטות</span></div>
-    </div>
-    <div class="topbar-left">
-      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-agents')">🤖 עוזרים</button>
-      <button class="btn-icon" onclick="showDaliaToast()">🏠</button>
-    </div>
-  </div>
-
-  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
-    <div class="filter-bar" style="flex-wrap:wrap;">
-      <select class="filter-select" id="ai-company" title="חברה"><option value="">כל החברות</option><option value="greentech" selected>גרין-טק</option></select>
-      <select class="filter-select" id="ai-site" title="אתר"><option value="">כל האתרים</option><option value="greentech.co.il" selected>greentech.co.il</option></select>
-      <select class="filter-select" id="ai-page" title="עמוד"><option value="">כל העמודים</option><option>דף הבית</option><option>שירותים</option></select>
-      <select class="filter-select" id="ai-campaign" title="קמפיין"><option value="">כל הקמפיינים</option><option>Brand Search</option><option>Remarketing</option></select>
-      <select class="filter-select" id="ai-goal" title="מטרה"><option value="">כל המטרות</option><option>PageSpeed</option><option>SEO</option><option>לידים</option></select>
-      <select class="filter-select" id="ai-agent" title="עוזר"><option value="">כל העוזרים</option><option>ChatGPT</option><option>Claude</option><option>Gemini</option><option>AI Manager</option></select>
-      <select class="filter-select" id="ai-date" title="תאריך"><option value="30" selected>30 ימים</option><option value="7">7 ימים</option><option value="90">90 ימים</option></select>
-      <button onclick="resetAiDecisionsFilter()" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;">✕ נקה</button>
-    </div>
-  </div>
-
-  <div class="content">
-    <div class="page-header">
-      <div class="page-title">🧠 AI / קבלת החלטות</div>
-      <div class="page-subtitle">ישיבת צוות AI — נתונים מכל המודולים והעוזרים</div>
-      <hr class="page-rule">
-    </div>
-
-    <div class="section" style="padding-top:0;">
-      <div class="grid grid-3" id="coco-live-ai-team" style="gap:10px;">
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="ai-box" style="border-color:rgba(37,99,235,0.45);">
-        <div class="ai-box-header"><div class="ai-pulse"></div>החלטה מסודרת — סיכום ישיבת צוות</div>
-        <div class="ai-box-text" id="coco-live-ai-summary">
-          <p>סיכום ישיבת הצוות יוצג כאן לאחר טעינת נתונים.</p>
-        </div>
-        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-goals');showToast('🎯 8 המלצות הועברו למטרות')">🎯 העבר למטרות</button>
-          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-actions')">⚙️ לפעולות</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="sec-title">ממצאים לפי חשיבות</div>
-      <div id="coco-live-ai-findings" style="display:flex;flex-direction:column;gap:8px;">
-      </div>
-    </div>
-  </div>
-  <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
-</div>
-
-
-
-
-
-
 
 <!-- ============================= SCREEN: REPORTS ============================= -->
 <div class="screen" id="screen-reports">
@@ -3260,51 +4338,188 @@
     </div>
   </div>
 
-  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
-    <div class="filter-bar" style="flex-wrap:wrap;">
-      <select class="filter-select" id="rep-company" title="חברה"><option value="">כל החברות</option><option value="greentech" selected>גרין-טק</option></select>
-      <select class="filter-select" id="rep-site" title="אתר"><option value="">כל האתרים</option><option value="greentech.co.il" selected>greentech.co.il</option></select>
-      <select class="filter-select" id="rep-page" title="עמוד"><option value="">כל העמודים</option><option>דף הבית</option><option>שירותים</option></select>
-      <select class="filter-select" id="rep-campaign" title="קמפיין"><option value="">כל הקמפיינים</option><option>Brand Search</option></select>
-      <select class="filter-select" id="rep-channel" title="ערוץ"><option value="">כל הערוצים</option><option>SEO</option><option>Google Ads</option><option>Facebook</option></select>
-      <select class="filter-select" id="rep-status" title="סטטוס"><option value="">כל הסטטוסים</option><option>פעיל</option><option>הושלם</option></select>
-      <select class="filter-select" id="rep-date" title="תאריך"><option value="30" selected>30 ימים</option><option value="7">7 ימים</option><option value="month">חודשי</option></select>
-      <select class="filter-select" id="rep-employee" title="עובד"><option value="">כל העובדים</option><option>יוני</option><option>Miki</option><option>AI Auto</option></select>
-      <select class="filter-select" id="rep-ai-agent" title="עוזר AI"><option value="">כל העוזרים</option><option>ChatGPT</option><option>Claude</option><option>Gemini</option></select>
-      <button onclick="resetReportsFilter()" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;">✕ נקה</button>
-    </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="setTab(this,'tab-rep-overview')">📊 סיכום כללי</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-rep-goals')">🎯 20 מטרות</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-rep-actions')">⚙️ פעולות</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-rep-compare')">📈 השוואות</div>
+    <div class="nav-tab" onclick="setTab(this,'tab-rep-clients')">🏢 לקוחות</div>
   </div>
 
   <div class="content">
-    <div class="page-header">
-      <div class="page-title">📄 דוחות</div>
-      <div class="page-subtitle">נבנים אוטומטית מכל נתוני המערכת — מצב, מטרות, פעולות, היסטוריה, AI</div>
-      <hr class="page-rule">
-    </div>
 
-    <div class="section" style="padding-top:0;">
-      <div class="grid grid-2" id="coco-live-reports-grid" style="gap:10px;">
+    <!-- TAB: OVERVIEW -->
+    <div id="tab-rep-overview">
+      <!-- Client header -->
+      <div style="padding:12px 20px 0;">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="font-size:12px;color:var(--white80);display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <span><strong>CLT-001</strong></span><span style="color:var(--white20);">|</span>
+            <span>גרין-טק פתרונות</span><span style="color:var(--white20);">|</span>
+            <span>🌐 greentech.co.il</span><span style="color:var(--white20);">|</span>
+            <span>📢 Brand Search</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="goScreen('screen-history')">← היסטוריה</button>
+            <button class="btn btn-primary" style="font-size:11px;padding:3px 9px;" onclick="goScreen('screen-crm')">CRM ←</button>
+          </div>
+        </div>
+      </div>
+      <div class="page-header">
+        <div class="page-title">📑 דוחות – יוני 2025</div>
+        <div class="page-subtitle">גרין-טק פתרונות בע"מ • CLT-001 • greentech.co.il</div>
+        <hr class="page-rule">
+      </div>
+
+      <!-- Standard filter – no company/client -->
+      <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select class="filter-select" style="font-size:12px;"><option value="">נכס לקוח</option><option selected>greentech.co.il</option><option>Google Ads</option><option>Google Business</option></select>
+          <select class="filter-select" style="font-size:12px;"><option value="">ערוץ שיווק</option><option>Google SEO</option><option>Google Ads</option><option>Google Business</option><option>Facebook</option></select>
+          <select class="filter-select" style="font-size:12px;"><option value="">קמפיין</option><option>Brand Search</option><option>General</option><option>Remarketing</option></select>
+          <select class="filter-select" style="font-size:12px;"><option value="">קטגוריה (20)</option><option>3. מהירות</option><option>4. מבנה SEO</option><option>18. מיקומים</option><option>19. תנועה ולידים</option></select>
+          <select class="filter-select" style="font-size:12px;"><option selected>יוני 2025</option><option>מאי 2025</option><option>אפריל 2025</option><option>Q2 2025</option></select>
+          <button onclick="showToast('✕ סינון אופס')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--red);font-family:'Heebo',sans-serif;font-size:11px;cursor:pointer;">✕ נקה</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="section" style="padding-bottom:0;">
+        <div class="grid grid-4" style="gap:10px;">
+          <div class="card" style="padding:12px 14px;"><div class="card-title">ציון כללי</div><div class="card-value" style="font-size:22px;color:var(--green);">76</div><div class="card-delta up">↑ +8 מחודש קודם</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">פעולות בוצעו</div><div class="card-value" style="font-size:22px;color:var(--accent2);">18</div><div class="card-delta" style="color:var(--white50)">0 נכשלו</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">ממתינות</div><div class="card-value" style="font-size:22px;color:var(--yellow);">5</div><div class="card-delta" style="color:var(--white50)">לאישור יוני</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">CTR שינוי</div><div class="card-value" style="font-size:22px;color:var(--green);">+0.4%</div><div class="card-delta up">4.2% → 4.6%</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">לידים</div><div class="card-value" style="font-size:22px;color:var(--accent2);">47</div><div class="card-delta up">↑ +8</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">כניסות</div><div class="card-value" style="font-size:22px;">14,320</div><div class="card-delta up">↑ +12%</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">מיקום ממוצע</div><div class="card-value" style="font-size:22px;color:var(--green);">12.3</div><div class="card-delta up">↑ שיפור מ-14.1</div></div>
+          <div class="card" style="padding:12px 14px;"><div class="card-title">ROAS</div><div class="card-value" style="font-size:22px;color:var(--accent2);">3.2x</div><div class="card-delta up">↑ +0.4</div></div>
+        </div>
+      </div>
+
+      <!-- What improved / what declined -->
+      <div class="section" style="padding-bottom:0;">
+        <div class="grid grid-2" style="gap:12px;">
+          <div>
+            <div class="sec-title">✅ מה השתפר</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div class="alert alert-ok">✅ CTR: 4.2% → 4.6% | Meta Titles</div>
+              <div class="alert alert-ok">✅ Rich Results פעיל | Schema</div>
+              <div class="alert alert-ok">✅ Bounce Rate: 42% → 38%</div>
+              <div class="alert alert-ok">✅ לידים: 39 → 47 (+8)</div>
+              <div class="alert alert-ok">✅ מיקום ממוצע: 14.1 → 12.3</div>
+            </div>
+          </div>
+          <div>
+            <div class="sec-title">⚠️ עדיין פתוח / דורש עבודה</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div class="alert alert-err">🔴 PageSpeed נייד: 63→61 (ירד)</div>
+              <div class="alert alert-warn">⚠️ "ביטוח צי" ירד 3 מקומות</div>
+              <div class="alert alert-warn">⚠️ DA עדיין 28 (מתחרה: 34)</div>
+              <div class="alert alert-warn">⚠️ 18 ביטויים לא מכוסים</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="ai-box">
+          <div class="ai-box-header"><div class="ai-pulse"></div>🧠 סיכום AI – דוח יוני</div>
+          <div class="ai-box-text">החודש הצליח. 18 פעולות בוצעו, 0 נכשלו. PageSpeed ירד – זה הסיכון הגדול לחודש הבא. עדיפות ראשונה: PageSpeed נייד → תוכן → Internal Links. ROAS 3.2x – ניתן להגיע ל-4x אחרי השהיית Competitor.</div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-ai-center')">🧠 מרכז AI</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="goScreen('screen-actions')">⚙️ פעולות</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="openModal('modal-report')">📄 הפק PDF</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="section">
-      <div class="ai-box">
-        <div class="ai-box-header"><div class="ai-pulse"></div>דוחות מבוססי החלטות AI</div>
-        <div class="ai-box-text">הדוחות נבנים אוטומטית מהחלטת ישיבת ה-AI האחרונה: עדיפות PageSpeed, Meta חסרים, ואופטימיזציית Brand Search. ניתן לסנן ולהפיק לפי כל פרמטרי המערכת.</div>
-        <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;margin-top:10px;" onclick="openModal('modal-report')">📄 הפק דוח מלא</button>
+    <!-- TAB: 20 GOALS REPORT -->
+    <div id="tab-rep-goals" style="display:none;">
+      <div class="page-header"><div class="page-title">🎯 דוח 20 מטרות</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>מטרה</th><th>ציון</th><th>שינוי</th><th>סטטוס</th><th>עדיפות</th><th>פעולות שבוצעו</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>תוכן איכותי</td><td><span class="badge badge-yellow">60</span></td><td style="color:var(--white50);">→</td><td><span class="badge badge-yellow">בתהליך</span></td><td>גבוה</td><td>2</td></tr>
+              <tr><td>2</td><td>מחקר מילות מפתח</td><td><span class="badge badge-green">85</span></td><td style="color:var(--green);">↑+12</td><td><span class="badge badge-green">מעל יעד</span></td><td>בינוני</td><td>3</td></tr>
+              <tr><td>3</td><td>מהירות האתר</td><td><span class="badge badge-red">61</span></td><td style="color:var(--red);">↓-2</td><td><span class="badge badge-red">דחוף</span></td><td>קריטי</td><td>0</td></tr>
+              <tr><td>4</td><td>מבנה SEO</td><td><span class="badge badge-yellow">78</span></td><td style="color:var(--green);">↑+10</td><td><span class="badge badge-yellow">בתהליך</span></td><td>גבוה</td><td>5</td></tr>
+              <tr><td>5</td><td>UX</td><td><span class="badge badge-green">84</span></td><td style="color:var(--green);">↑+4</td><td><span class="badge badge-blue">טוב</span></td><td>בינוני</td><td>1</td></tr>
+              <tr><td>6</td><td>Mobile First</td><td><span class="badge badge-red">72</span></td><td style="color:var(--white50);">→</td><td><span class="badge badge-red">דחוף</span></td><td>קריטי</td><td>0</td></tr>
+              <tr><td>7</td><td>קישורים פנימיים</td><td><span class="badge badge-yellow">65</span></td><td style="color:var(--white50);">→</td><td><span class="badge badge-yellow">בתהליך</span></td><td>בינוני</td><td>1</td></tr>
+              <tr><td>8</td><td>דפי שירות</td><td><span class="badge badge-yellow">70</span></td><td style="color:var(--green);">↑+5</td><td><span class="badge badge-yellow">בתהליך</span></td><td>גבוה</td><td>2</td></tr>
+              <tr><td>9</td><td>מאמרים</td><td><span class="badge badge-yellow">60</span></td><td style="color:var(--white50);">→</td><td><span class="badge badge-yellow">בתהליך</span></td><td>גבוה</td><td>1</td></tr>
+              <tr><td>10</td><td>מדיה</td><td><span class="badge badge-yellow">68</span></td><td style="color:var(--white50);">→</td><td><span class="badge badge-yellow">בתהליך</span></td><td>בינוני</td><td>0</td></tr>
+              <tr><td style="color:var(--white50);">11–20</td><td colspan="6" style="color:var(--white50);"><button onclick="goScreen('screen-goals')" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:12px;">→ צפה בכל 20 המטרות</button></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
+
+    <!-- TAB: ACTIONS REPORT -->
+    <div id="tab-rep-actions" style="display:none;">
+      <div class="page-header"><div class="page-title">⚙️ דוח פעולות</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="grid grid-4" style="gap:10px;margin-bottom:16px;">
+          <div class="card" style="padding:12px;"><div class="card-title">בוצעו</div><div style="font-size:22px;font-weight:800;color:var(--green);">18</div></div>
+          <div class="card" style="padding:12px;"><div class="card-title">ממתינות</div><div style="font-size:22px;font-weight:800;color:var(--yellow);">5</div></div>
+          <div class="card" style="padding:12px;"><div class="card-title">נדחו</div><div style="font-size:22px;font-weight:800;color:var(--red);">2</div></div>
+          <div class="card" style="padding:12px;"><div class="card-title">זמן ממוצע</div><div style="font-size:22px;font-weight:800;">1.8h</div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-item"><div class="progress-label"><span class="name">SEO</span><span class="pct">7 פעולות</span></div><div class="progress-bar"><div class="progress-fill" style="width:70%;background:var(--accent2)"></div></div></div>
+          <div class="progress-item"><div class="progress-label"><span class="name">תוכן</span><span class="pct">4 פעולות</span></div><div class="progress-bar"><div class="progress-fill" style="width:40%;background:var(--green)"></div></div></div>
+          <div class="progress-item"><div class="progress-label"><span class="name">קוד / טכני</span><span class="pct">4 פעולות</span></div><div class="progress-bar"><div class="progress-fill" style="width:40%;background:var(--purple)"></div></div></div>
+          <div class="progress-item"><div class="progress-label"><span class="name">Google / Ads</span><span class="pct">3 פעולות</span></div><div class="progress-bar"><div class="progress-fill" style="width:30%;background:var(--yellow)"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: COMPARE -->
+    <div id="tab-rep-compare" style="display:none;">
+      <div class="page-header"><div class="page-title">📈 השוואות</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>מדד</th><th>חודש קודם</th><th>חודש נוכחי</th><th>שינוי</th><th>מול מתחרה א'</th></tr></thead>
+            <tbody>
+              <tr><td>ציון כללי</td><td>68</td><td style="color:var(--green);">76</td><td style="color:var(--green);">↑+8</td><td>—</td></tr>
+              <tr><td>קליקים</td><td>7,380</td><td>8,420</td><td style="color:var(--green);">↑+14%</td><td>—</td></tr>
+              <tr><td>לידים</td><td>39</td><td style="color:var(--green);">47</td><td style="color:var(--green);">↑+8</td><td>—</td></tr>
+              <tr><td>CTR</td><td>4.2%</td><td style="color:var(--green);">4.6%</td><td style="color:var(--green);">↑+0.4%</td><td>—</td></tr>
+              <tr><td>מיקום ממוצע</td><td>14.1</td><td style="color:var(--green);">12.3</td><td style="color:var(--green);">↑שיפור</td><td style="color:var(--red);">10.1</td></tr>
+              <tr><td>PageSpeed נייד</td><td>63</td><td style="color:var(--red);">61</td><td style="color:var(--red);">↓-2</td><td>—</td></tr>
+              <tr><td>ROAS</td><td>2.8x</td><td style="color:var(--green);">3.2x</td><td style="color:var(--green);">↑+0.4</td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: CLIENTS REPORT -->
+    <div id="tab-rep-clients" style="display:none;">
+      <div class="page-header"><div class="page-title">🏢 דוח לפי לקוחות</div><hr class="page-rule"></div>
+      <div class="section">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>לקוח</th><th>ציון כללי</th><th>פעולות</th><th>לידים</th><th>שינוי</th><th>מצב</th></tr></thead>
+            <tbody>
+              <tr><td><div style="font-weight:700;">גרין-טק</div><div style="font-size:11px;color:var(--white50);">CLT-001</div></td><td><span class="badge badge-green">76</span></td><td>18</td><td>47</td><td style="color:var(--green);">↑+12%</td><td><span class="badge badge-green">● פעיל</span></td></tr>
+              <tr><td><div style="font-weight:700;">דלתא לוגיסטיקה</div><div style="font-size:11px;color:var(--white50);">CLT-002</div></td><td><span class="badge badge-yellow">68</span></td><td>12</td><td>28</td><td style="color:var(--green);">↑+6%</td><td><span class="badge badge-green">● פעיל</span></td></tr>
+              <tr><td><div style="font-weight:700;">אלפא מוטורס</div><div style="font-size:11px;color:var(--white50);">CLT-003</div></td><td><span class="badge badge-gray">—</span></td><td>0</td><td>—</td><td>—</td><td><span class="badge badge-yellow">⏳ הקמה</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end content -->
   <button class="fab-ai" onclick="openModal('modal-ai')">🤖</button>
 </div>
-
-
-
-
-
-
-
-<!-- ============================= MODALS ============================= -->
 
 <!-- AI Assistant Modal -->
 <div class="overlay" id="modal-ai">
@@ -3538,6 +4753,56 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-edit-action')">ביטול</button>
       <button class="btn btn-primary" onclick="closeModal('modal-edit-action');showToast('✅ הפעולה עודכנה')">💾 שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- Asset Connection Modal -->
+<div class="overlay" id="modal-asset-connect">
+  <div class="modal" style="max-width:500px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="mac-icon" style="font-size:26px;">🌐</span>
+        <div>
+          <div class="modal-title" style="margin:0;" id="mac-title">נכס</div>
+          <div style="font-size:11px;color:var(--white50);" id="mac-subtitle">CLT-001 • גרין-טק</div>
+        </div>
+      </div>
+      <button class="btn-icon" onclick="closeModal('modal-asset-connect')">✕</button>
+    </div>
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+      <span id="mac-status-badge"></span>
+      <span id="mac-last-sync" style="font-size:11px;color:var(--white50);"></span>
+    </div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <button id="mac-tab-auto" onclick="switchMacTab('auto')"
+        style="padding:6px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:'Heebo',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">
+        🔗 חיבור אוטומטי
+      </button>
+      <button id="mac-tab-manual" onclick="switchMacTab('manual')"
+        style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg4);color:var(--white80);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;">
+        ✏️ חיבור ידני
+      </button>
+    </div>
+    <!-- Auto panel -->
+    <div id="mac-panel-auto">
+      <div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;">
+        <div id="mac-auto-content" style="font-size:13px;color:var(--white80);line-height:1.7;"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="mac-btn-connect" onclick="doAutoConnect()">🔗 חבר אוטומטית</button>
+        <button class="btn btn-ghost" onclick="showToast('🔄 מרענן נכס...')">🔄 רענן</button>
+        <button class="btn btn-ghost" id="mac-btn-open">↗ פתח נכס</button>
+      </div>
+    </div>
+    <!-- Manual panel -->
+    <div id="mac-panel-manual" style="display:none;">
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;" id="mac-manual-fields"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="saveManualAsset()">💾 שמור</button>
+        <button class="btn btn-ghost" onclick="closeModal('modal-asset-connect')">ביטול</button>
+      </div>
     </div>
   </div>
 </div>
