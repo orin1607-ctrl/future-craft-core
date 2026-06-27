@@ -19,6 +19,7 @@
     dashboard: 'project-001/dashboard.json',
     siteCrawl: 'project-001/site-crawl-lite.json',
     sitePagesIndex: 'project-001/site-pages-index.json',
+    siteWorkPlan: 'project-001/site-work-plan.json',
     siteCrawlFull: 'docs/audit-reports/dalia-site-full-audit/site-crawl-full.json',
     auditDashboard: 'docs/audit-reports/project-001/dashboard-export.json',
   };

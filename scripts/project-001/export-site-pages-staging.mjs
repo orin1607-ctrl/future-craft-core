@@ -62,7 +62,15 @@ const classified = report.pages.map((p) => ({ ...p, pageType: classify(p) }));
 const counts = {};
 for (const p of classified) counts[p.pageType] = (counts[p.pageType] || 0) + 1;
 
-const business = classified.filter((p) => ['business', 'content'].includes(p.pageType) && p.httpStatus < 400);
+const businessRaw = classified.filter((p) => ['business', 'content'].includes(p.pageType) && p.httpStatus < 400);
+const seenBiz = new Set();
+const business = [];
+for (const p of businessRaw) {
+  const key = pathOf(p.url).toLowerCase();
+  if (seenBiz.has(key)) continue;
+  seenBiz.add(key);
+  business.push(p);
+}
 const priority = classified
   .filter((p) => p.httpStatus < 400 && p.pageType !== 'broken')
   .sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));

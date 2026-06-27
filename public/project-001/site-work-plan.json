@@ -1,0 +1,1706 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-27T21:25:40.308Z",
+  "phase": "planning_only",
+  "note": "תוכנית עבודה — אין לבצע שינויים באתר החי עד אישור",
+  "campaign": {
+    "id": "campaign-dalia-seo-primary",
+    "name": "דליה — קידום dalia-c.com",
+    "owner": "יוני אטיאס",
+    "projectId": "project001aimarketing",
+    "projectName": "Project 001 — AI Marketing",
+    "site": "dalia-c.com",
+    "channel": "seo",
+    "status": "active",
+    "type": "organic_seo"
+  },
+  "summary": {
+    "pageCount": 28,
+    "totalEstimateHours": 63.5,
+    "avgSeoScore": 5.4,
+    "tier1": 10,
+    "tier2": 8,
+    "tier3": 6,
+    "tier4": 4
+  },
+  "pages": [
+    {
+      "id": "page-01",
+      "url": "https://dalia-c.com/",
+      "path": "/",
+      "title": "בית חדש - דליה",
+      "rank": 1,
+      "tier": 1,
+      "seoScore": 6,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "בינוני-גבוה — 223 צפיות",
+      "missing": [
+        "alt tags for images",
+        "Alt לתמונות (25)"
+      ],
+      "improvements": [
+        "לשפר את כותרת הדף כך שתהיה יותר ממוקדת ומכילה מילות מפתח רלוונטיות",
+        "לצמצם את מספר המילים בדף כדי לשפר את חווית המשתמש",
+        "להוסיף תוכן איכותי נוסף שיכול לשפר את דירוג החיפוש",
+        "לשפר את קישורי הפנימיים בין עמודי האתר"
+      ],
+      "estimateHours": 3.5,
+      "estimateLabel": "2–4 שעות",
+      "gsc": {
+        "clicks": 2,
+        "impressions": 25,
+        "position": 4.76
+      },
+      "ga4Views": 223,
+      "issues": [
+        "images_without_alt:25"
+      ],
+      "aiSummary": "העמוד דורש שיפורים בכותרות ובתוכן כדי לשפר את הדירוג במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-02",
+      "url": "https://dalia-c.com/home/",
+      "path": "/home",
+      "title": "פתרונות מימון ותפעול לרכב - דליה",
+      "rank": 2,
+      "tier": 1,
+      "seoScore": 4,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "בינוני — דורש CTA חזק יותר",
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוספת כותרת H1",
+        "שיפור הכותרות H2",
+        "אופטימיזציה של התוכן למילות מפתח רלוונטיות",
+        "שיפור תיאורי מטא ליותר אטרקטיביות"
+      ],
+      "estimateHours": 4,
+      "estimateLabel": "2–4 שעות",
+      "gsc": {
+        "clicks": 2,
+        "impressions": 11,
+        "position": 2.727272727
+      },
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1"
+      ],
+      "aiSummary": "העמוד זקוק לשיפורים משמעותיים בכותרות ובתוכן כדי לשפר את הדירוג במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-12",
+      "url": "https://dalia-c.com/79-shekels/",
+      "path": "/79-shekels",
+      "title": "79 ש\"ח - דליה",
+      "rank": 3,
+      "tier": 1,
+      "seoScore": 4,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "פוטנציאל גבוה — דף המרה ללא תנועה",
+      "missing": [
+        "h1",
+        "Alt לתמונות (13)"
+      ],
+      "improvements": [
+        "הוספת תג H1",
+        "הוספת תיאורי ALT לתמונות",
+        "שיפור מיקום במנועי חיפוש על ידי אופטימיזציה של תוכן",
+        "שימוש במילות מפתח רלוונטיות יותר בכותרות ובתיאור"
+      ],
+      "estimateHours": 5.5,
+      "estimateLabel": "4+ שעות",
+      "gsc": {
+        "clicks": 0,
+        "impressions": 4,
+        "position": 18
+      },
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1",
+        "images_without_alt:13"
+      ],
+      "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את דירוגו במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-08",
+      "url": "https://dalia-c.com/%D7%A6%D7%95%D7%A8-%D7%A7%D7%A9%D7%A8-%D7%93%D7%9C%D7%99%D7%94/",
+      "path": "/צור-קשר-דליה",
+      "title": "צור קשר דליה - דליה",
+      "rank": 4,
+      "tier": 1,
+      "seoScore": 4,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "פוטנציאל גבוה — דף המרה ללא תנועה",
+      "missing": [
+        "h1",
+        "Alt לתמונות (1)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תג H1",
+        "הוספת טקסט חלופי לתמונה",
+        "שיפור תיאור המטא כדי לכלול מילות מפתח נוספות",
+        "שיפור קישורים פנימיים"
+      ],
+      "estimateHours": 5,
+      "estimateLabel": "4+ שעות",
+      "gsc": {
+        "clicks": 0,
+        "impressions": 3,
+        "position": 8
+      },
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1",
+        "images_without_alt:1",
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את דירוג ה-SEO שלו.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-06",
+      "url": "https://dalia-c.com/catalog/",
+      "path": "/catalog",
+      "title": "קטלוג רכבים - דליה",
+      "rank": 5,
+      "tier": 1,
+      "seoScore": 5,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "בינוני — דורש CTA חזק יותר",
+      "missing": [
+        "h1",
+        "Alt לתמונות (9)"
+      ],
+      "improvements": [
+        "הוספת תג H1",
+        "הוספת תיאורי ALT לתמונות חסרות",
+        "שיפור מיקום במנועי חיפוש על ידי אופטימיזציה של תוכן",
+        "שימוש במילות מפתח רלוונטיות יותר בכותרות ובתיאורים"
+      ],
+      "estimateHours": 3,
+      "estimateLabel": "2–4 שעות",
+      "gsc": {
+        "clicks": 1,
+        "impressions": 10,
+        "position": 30.1
+      },
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1",
+        "images_without_alt:9"
+      ],
+      "aiSummary": "העמוד דורש שיפורים משמעותיים כדי לשדרג את הדירוג שלו במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-05",
+      "url": "https://dalia-c.com/contact/",
+      "path": "/contact",
+      "title": "צור קשר - דליה",
+      "rank": 6,
+      "tier": 1,
+      "seoScore": 5,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "פוטנציאל גבוה — דף המרה ללא תנועה",
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוסף תג H1 לעמוד",
+        "שפר את תיאור המטה כדי לכלול מילות מפתח רלוונטיות"
+      ],
+      "estimateHours": 2,
+      "estimateLabel": "1–2 שעות",
+      "gsc": {
+        "clicks": 0,
+        "impressions": 1,
+        "position": 1
+      },
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1"
+      ],
+      "aiSummary": "העמוד זקוק לשיפור במבנה התוכן והוספת תג H1 כדי לשפר את ה-SEO.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-03",
+      "url": "https://dalia-c.com/our-app/",
+      "path": "/our-app",
+      "title": "האפליקציה שלנו - דליה",
+      "rank": 7,
+      "tier": 1,
+      "seoScore": 5,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "בינוני — דורש CTA חזק יותר",
+      "missing": [
+        "h1",
+        "Alt לתמונות (5)"
+      ],
+      "improvements": [
+        "הוספת תגית H1 עם מילות מפתח רלוונטיות",
+        "הוספת תיאורי ALT לתמונות",
+        "שיפור התוכן כדי להגדיל את כמות החשיפות והקליקים",
+        "אופטימיזציה של המידע כדי לשפר את מיקום הדירוג"
+      ],
+      "estimateHours": 2.5,
+      "estimateLabel": "2–4 שעות",
+      "gsc": {
+        "clicks": 1,
+        "impressions": 1,
+        "position": 8
+      },
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1",
+        "images_without_alt:5"
+      ],
+      "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את הדירוג והנראות במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-14",
+      "url": "https://dalia-c.com/%d7%9e%d7%92%d7%95%d7%95%d7%9f-%d7%97%d7%91%d7%99%d7%9c%d7%95%d7%aa/",
+      "path": "/מגוון-חבילות",
+      "title": "מגוון חבילות - דליה",
+      "rank": 8,
+      "tier": 1,
+      "seoScore": 5,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "בינוני — דורש CTA חזק יותר",
+      "missing": [
+        "h1",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תג H1 לעמוד",
+        "תיקון בעיית קנוניקל",
+        "שיפור תיאור המטה כדי לכלול מילות מפתח רלוונטיות",
+        "הוספת קישורים פנימיים לעמודים אחרים באתר"
+      ],
+      "estimateHours": 3,
+      "estimateLabel": "2–4 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1",
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את דירוגו במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-04",
+      "url": "https://dalia-c.com/about/",
+      "path": "/about",
+      "title": "אודות - דליה",
+      "rank": 9,
+      "tier": 1,
+      "seoScore": 5,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוספת תגית H1 לעמוד",
+        "שיפור התיאור המטא כדי לכלול מילות מפתח נוספות"
+      ],
+      "estimateHours": 2,
+      "estimateLabel": "1–2 שעות",
+      "gsc": {
+        "clicks": 0,
+        "impressions": 14,
+        "position": 8.785714286
+      },
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1"
+      ],
+      "aiSummary": "העמוד זקוק לשיפור במבנה התוכן והוספת תגיות כדי לשפר את הדירוג במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-07",
+      "url": "https://dalia-c.com/%D7%94%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D-%D7%A9%D7%9C%D7%A0%D7%95/",
+      "path": "/השירותים-שלנו",
+      "title": "השירותים שלנו - דליה",
+      "rank": 10,
+      "tier": 1,
+      "seoScore": 5,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "h1",
+        "Alt לתמונות (2)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תג H1 לעמוד",
+        "הוספת טקסט חלופי (alt) לתמונות",
+        "שיפור תיאור מטה כדי לכלול מילות מפתח רלוונטיות",
+        "שיפור קישורים פנימיים לעמודים אחרים באתר"
+      ],
+      "estimateHours": 3,
+      "estimateLabel": "2–4 שעות",
+      "gsc": {
+        "clicks": 0,
+        "impressions": 14,
+        "position": 5.5
+      },
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1",
+        "images_without_alt:2",
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד דורש שיפורים משמעותיים כדי לשפר את הדירוג במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-24",
+      "url": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%a7%d7%a6%d7%a8-%d7%9c%d7%94%d7%aa%d7%90%d7%9e%d7%aa-%d7%a4%d7%aa%d7%a8%d7%95%d7%9f-%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%95%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8/",
+      "path": "/שאלון-קצר-להתאמת-פתרון-ניהול-ותחזוקת-ר",
+      "title": "שאלון קצר להתאמת פתרון ניהול ותחזוקת רכבים - דליה",
+      "rank": 11,
+      "tier": 2,
+      "seoScore": 6,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "פוטנציאל גבוה — דף המרה ללא תנועה",
+      "missing": [
+        "Canonical"
+      ],
+      "improvements": [
+        "תיקון בעיית canonical",
+        "שיפור תיאור המטא כדי לכלול מילות מפתח נוספות",
+        "הוספת קישורים פנימיים לעמודים רלוונטיים",
+        "שיפור חווית המשתמש על ידי הוספת תמונות או גרפים"
+      ],
+      "estimateHours": 1.5,
+      "estimateLabel": "1–2 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "canonical_mismatch"
+      ],
+      "aiSummary": "עמוד זה מצריך שיפורים טכניים ותוכן כדי לשפר את הדירוג במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-11",
+      "url": "https://dalia-c.com/%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
+      "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
+      "title": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי - דליה",
+      "rank": 12,
+      "tier": 2,
+      "seoScore": 5,
+      "contentStatus": "בינוני — ניתן לשפר",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "alt tags for images",
+        "canonical tag alignment",
+        "Alt לתמונות (1)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תגי alt לתמונות",
+        "תיקון בעיית הקנוניקל",
+        "שיפור תיאור המטה כדי לכלול מילות מפתח נוספות",
+        "הוספת קישורים פנימיים לעמודים רלוונטיים נוספים"
+      ],
+      "estimateHours": 1.5,
+      "estimateLabel": "1–2 שעות",
+      "gsc": {
+        "clicks": 0,
+        "impressions": 22,
+        "position": 35.18181818
+      },
+      "ga4Views": 0,
+      "issues": [
+        "images_without_alt:1",
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד מציע תוכן עשיר אך זקוק לשיפורים טכניים כדי לשפר את דירוג ה-SEO.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-13",
+      "url": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%9c%d7%a7%d7%95%d7%97-%d7%a4%d7%a8%d7%98%d7%99-%d7%95%d7%a2%d7%a1%d7%a7%d7%99-15/",
+      "path": "/שאלון-לקוח-פרטי-ועסקי-15",
+      "title": "שאלון לקוח פרטי ועסקי (#15) - דליה",
+      "rank": 13,
+      "tier": 3,
+      "seoScore": 5,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "פוטנציאל גבוה — דף המרה ללא תנועה",
+      "missing": [
+        "h1",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תג H1 לעמוד",
+        "תיקון בעיית קנוניקל",
+        "שיפור תוכן כדי לכלול מילות מפתח רלוונטיות נוספות",
+        "הוספת קישורים פנימיים לעמודים אחרים באתר"
+      ],
+      "estimateHours": 2,
+      "estimateLabel": "1–2 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1",
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את דירוג ה-SEO שלו.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-26",
+      "url": "https://dalia-c.com/%d7%94%d7%9e%d7%a2%d7%a8%d7%9b%d7%aa-%d7%95%d7%94%d7%90%d7%a4%d7%9c%d7%99%d7%a7%d7%a6%d7%99%d7%94-%d7%a9%d7%9c-%d7%93%d7%9c%d7%99%d7%94/",
+      "path": "/המערכת-והאפליקציה-של-דליה",
+      "title": "המערכת והאפליקציה של דליה - דליה",
+      "rank": 14,
+      "tier": 2,
+      "seoScore": 6,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "בינוני — דורש CTA חזק יותר",
+      "missing": [
+        "keywords",
+        "alt text for images",
+        "Canonical"
+      ],
+      "improvements": [
+        "שיפור הכותרת והמטא תיאור כדי לכלול מילות מפתח רלוונטיות",
+        "הוספת קישורים פנימיים בין עמודים שונים באתר",
+        "שיפור מהירות הטעינה של העמוד",
+        "הוספת תוכן ויזואלי כמו תמונות עם טקסט חלופי"
+      ],
+      "estimateHours": 1.5,
+      "estimateLabel": "1–2 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד מציע תוכן עשיר אך זקוק לשיפורים בתחום האופטימיזציה למנועי חיפוש.",
+      "priority": "בינוני"
+    },
+    {
+      "id": "page-23",
+      "url": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%9e%d7%aa%d7%9c%d7%91%d7%98%d7%99%d7%9d-%d7%91%d7%99%d7%9f-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%9c%d7%a0%d7%99%d7%94%d7%95/",
+      "path": "/שאלון-מתלבטים-בין-ליסינג-תפעולי-לניהו",
+      "title": "שאלון מתלבטים בין ליסינג תפעולי לניהול עצמאי של הרכבים? - דליה",
+      "rank": 15,
+      "tier": 3,
+      "seoScore": 6,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "פוטנציאל גבוה — דף המרה ללא תנועה",
+      "missing": [
+        "keywords",
+        "internal links",
+        "alt text for images",
+        "Canonical"
+      ],
+      "improvements": [
+        "שיפור הכותרת והמטא תיאור כדי לכלול מילות מפתח רלוונטיות",
+        "הוספת קישורים פנימיים לעמודים אחרים באתר",
+        "הוספת תיאורי alt לתמונות",
+        "שיפור הנראות במנועי חיפוש על ידי אופטימיזציה של תוכן"
+      ],
+      "estimateHours": 1.5,
+      "estimateLabel": "1–2 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד זקוק לשיפורים באופטימיזציה כדי לשפר את הנראות והביצועים במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-16",
+      "url": "https://dalia-c.com/%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%97%d7%9b%d7%9d-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%9e%d7%a2%d7%a8%d7%9b%d7%aa/",
+      "path": "/ניהול-תחזוקת-רכבים-חכם-לעסקים-מערכת",
+      "title": "ניהול תחזוקת רכבים חכם לעסקים – מערכת, שירות וליווי במקום אחד - דליה",
+      "rank": 16,
+      "tier": 2,
+      "seoScore": 6,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "alt tags for images",
+        "canonical tag alignment",
+        "Alt לתמונות (1)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תגיות alt לתמונות",
+        "תיקון חוסר התאמה בתגית קנוניקל",
+        "שיפור תוכן עם מילות מפתח רלוונטיות",
+        "הוספת קישורים פנימיים לחיזוק SEO"
+      ],
+      "estimateHours": 1.5,
+      "estimateLabel": "1–2 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "images_without_alt:1",
+        "canonical_mismatch"
+      ],
+      "aiSummary": "עמוד זה דורש שיפורים טכניים ותוכן כדי לשפר את הדירוג במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-17",
+      "url": "https://dalia-c.com/service/",
+      "path": "/service",
+      "title": "מימון, שירות ואחריות - דליה",
+      "rank": 17,
+      "tier": 2,
+      "seoScore": 6,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוסף תגית H1 לעמוד",
+        "שיפור התיאור המטא כדי לכלול מילות מפתח נוספות"
+      ],
+      "estimateHours": 1,
+      "estimateLabel": "עד שעה",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1"
+      ],
+      "aiSummary": "העמוד דורש שיפור על ידי הוספת תגית H1 ואופטימיזציה של התיאור המטא.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-18",
+      "url": "https://dalia-c.com/how-it-works/",
+      "path": "/how-it-works",
+      "title": "איך זה עובד? - דליה",
+      "rank": 18,
+      "tier": 2,
+      "seoScore": 6,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוספת תג H1 לעמוד",
+        "שיפור התיאור המטא כדי לכלול מילות מפתח רלוונטיות",
+        "קיצור התוכן כדי לשפר את קריאות העמוד",
+        "שיפור קישורים פנימיים לעמודים אחרים באתר"
+      ],
+      "estimateHours": 1,
+      "estimateLabel": "עד שעה",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1"
+      ],
+      "aiSummary": "העמוד זקוק לשיפור במבנה התוכן והוספת תגיות כדי לשפר את דירוג ה-SEO.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-25",
+      "url": "https://dalia-c.com/card-provider-customer/",
+      "path": "/card-provider-customer",
+      "title": "card/provider customer עע - דליה",
+      "rank": 19,
+      "tier": 4,
+      "seoScore": 5,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "פוטנציאל גבוה — דף המרה ללא תנועה",
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוסף תגית H1 מתאימה לעמוד",
+        "שפר את הכותרת כך שתהיה יותר ממוקדת ומזמינה",
+        "שפר את תיאור המטא כך שיהיה יותר ממוקד במילות מפתח רלוונטיות",
+        "הוסף תוכן נוסף שיכול להעשיר את העמוד ולשפר את הדירוג"
+      ],
+      "estimateHours": 1,
+      "estimateLabel": "עד שעה",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1"
+      ],
+      "aiSummary": "העמוד זקוק לשיפור בכותרת ובמבנה התוכן כדי לשפר את דירוג ה-SEO שלו.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-28",
+      "url": "https://dalia-c.com/registration/",
+      "path": "/registration",
+      "title": "Registration - דליה",
+      "rank": 20,
+      "tier": 4,
+      "seoScore": 5,
+      "contentStatus": "בינוני — ניתן לשפר",
+      "conversionStatus": "פוטנציאל גבוה — דף המרה ללא תנועה",
+      "missing": [
+        "H1 בעברית",
+        "תוכן ממוקד יותר",
+        "קישורים פנימיים",
+        "שימוש במילות מפתח רלוונטיות"
+      ],
+      "improvements": [
+        "החלפת H1 ל-'הרשמה - דליה'",
+        "הוספת תוכן ייחודי וממוקד יותר בנושא הרשמה",
+        "שיפור התיאור המטא",
+        "שימוש במילות מפתח כמו 'הרשמה לשירותי רכב'"
+      ],
+      "estimateHours": 0.5,
+      "estimateLabel": "עד שעה",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [],
+      "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את הנראות במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-09",
+      "url": "https://dalia-c.com/%D7%9E%D7%94-%D7%A2%D7%95%D7%9E%D7%93-%D7%9E/",
+      "path": "/מה-עומד-מ",
+      "title": "מה עומד מ - דליה",
+      "rank": 21,
+      "tier": 3,
+      "seoScore": 4,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "h1",
+        "Alt לתמונות (12)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תגית H1 עם מילות מפתח רלוונטיות",
+        "הוספת טקסט חלופי לתמונות",
+        "שיפור תיאור המטא כדי לכלול מילות מפתח נוספות",
+        "שיפור הקאנוניקל כדי למנוע בעיות כפילויות"
+      ],
+      "estimateHours": 5,
+      "estimateLabel": "4+ שעות",
+      "gsc": {
+        "clicks": 0,
+        "impressions": 1,
+        "position": 8
+      },
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1",
+        "images_without_alt:12",
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד דורש שיפורים משמעותיים כדי לשפר את דירוג ה-SEO שלו.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-15",
+      "url": "https://dalia-c.com/%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%97%d7%9b%d7%9e%d7%94-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%a9%d7%9c%d7%99%d7%98%d7%94-%d7%a1%d7%93%d7%a8-%d7%95/",
+      "path": "/תחזוקת-רכבים-חכמה-לעסקים-שליטה-סדר-ו",
+      "title": "תחזוקת רכבים חכמה לעסקים – שליטה, סדר וחיסכון - דליה",
+      "rank": 22,
+      "tier": 2,
+      "seoScore": 7,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "תיאור מטה קצר יותר",
+        "כותרת H2 עם מילות מפתח",
+        "Alt לתמונות (1)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת טקסט חלופי לתמונה",
+        "תיקון בעיית קנוניקל",
+        "שיפור תיאור המטה כדי להיות יותר ממוקד",
+        "הוספת קישורים פנימיים לעמודים נוספים באתר"
+      ],
+      "estimateHours": 1.5,
+      "estimateLabel": "1–2 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "images_without_alt:1",
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד מציע תוכן עשיר אך זקוק לשיפורים טכניים כדי לשפר את דירוג ה-SEO.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-21",
+      "url": "https://dalia-c.com/%d7%90%d7%99%d7%9a-%d7%97%d7%95%d7%a1%d7%9b%d7%99%d7%9d-%d7%91%d7%a2%d7%9c%d7%95%d7%99%d7%95%d7%aa-%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a6%d7%99%d7%99-%d7%a8%d7%9b%d7%91/",
+      "path": "/איך-חוסכים-בעלויות-תחזוקת-ציי-רכב",
+      "title": "איך חוסכים בעלויות תחזוקת ציי רכב? - דליה",
+      "rank": 23,
+      "tier": 2,
+      "seoScore": 7,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "keywords",
+        "internal links",
+        "Canonical"
+      ],
+      "improvements": [
+        "שיפור תיאור המטה",
+        "הוספת מילות מפתח רלוונטיות",
+        "שיפור קישורים פנימיים",
+        "הוספת תוכן ויזואלי"
+      ],
+      "estimateHours": 1.5,
+      "estimateLabel": "1–2 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד מציע תוכן עשיר אך זקוק לשיפורים בקידום ובאופטימיזציה.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-19",
+      "url": "https://dalia-c.com/%d7%94%d7%90%d7%9d-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%9e%d7%a9%d7%aa%d7%9c%d7%9d-%d7%9b%d7%a9%d7%90%d7%99%d7%9f-%d7%96%d7%9e%d7%9f-%d7%9c%d7%94%d7%aa%d7%a2/",
+      "path": "/האם-ליסינג-תפעולי-משתלם-כשאין-זמן-להתע",
+      "title": "האם ליסינג תפעולי משתלם? כשאין זמן להתעסק בתחזוקת רכבים - דליה",
+      "rank": 24,
+      "tier": 3,
+      "seoScore": 6,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "keywords",
+        "internal_links",
+        "Canonical"
+      ],
+      "improvements": [
+        "תיקון בעיית canonical",
+        "שיפור תיאור המטה",
+        "הוספת מילות מפתח רלוונטיות",
+        "הוספת קישורים פנימיים"
+      ],
+      "estimateHours": 1.5,
+      "estimateLabel": "1–2 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד מציע תוכן איכותי אך זקוק לשיפורים טכניים ואופטימיזציה למנועי חיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-20",
+      "url": "https://dalia-c.com/%d7%94%d7%90%d7%9d-%d7%9b%d7%93%d7%90%d7%99-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%94%d7%90%d7%9e%d7%aa-%d7%a9%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%9c%d7%90-%d7%aa/",
+      "path": "/האם-כדאי-ליסינג-תפעולי-האמת-שעסקים-לא-ת",
+      "title": "האם כדאי ליסינג תפעולי? האמת שעסקים לא תמיד שומעים - דליה",
+      "rank": 25,
+      "tier": 3,
+      "seoScore": 6,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "Keywords in meta description",
+        "Internal links",
+        "Image alt texts",
+        "Canonical"
+      ],
+      "improvements": [
+        "Optimize meta description with relevant keywords",
+        "Add internal links to related content",
+        "Include alt texts for images",
+        "Expand content with more detailed sections"
+      ],
+      "estimateHours": 1.5,
+      "estimateLabel": "1–2 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד מציע תוכן עשיר אך זקוק לשיפורים בתחום ה-SEO כדי לשפר את הנראות במנועי החיפוש.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-10",
+      "url": "https://dalia-c.com/%D7%A2%D7%9E%D7%95%D7%93-%D7%A1%D7%A4%D7%A7/",
+      "path": "/עמוד-ספק",
+      "title": "עמוד ספק עע - דליה",
+      "rank": 26,
+      "tier": 4,
+      "seoScore": 4,
+      "contentStatus": "חלש — חסר H1",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "h1",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תג H1 לעמוד",
+        "תיקון בעיית קנוניקל",
+        "שיפור תיאור המטא כדי לכלול מילות מפתח רלוונטיות",
+        "הוספת תוכן נוסף שיכול לשפר את המעורבות"
+      ],
+      "estimateHours": 4,
+      "estimateLabel": "2–4 שעות",
+      "gsc": {
+        "clicks": 0,
+        "impressions": 1,
+        "position": 6
+      },
+      "ga4Views": 0,
+      "issues": [
+        "missing_h1",
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את דירוג ה-SEO שלו.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-22",
+      "url": "https://dalia-c.com/%d7%aa%d7%a4%d7%a2%d7%95%d7%9c-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%9c%d7%97%d7%91%d7%a8%d7%95%d7%aa/",
+      "path": "/תפעול-רכבים-לחברות",
+      "title": "תפעול רכבים לחברות - דליה",
+      "rank": 27,
+      "tier": 3,
+      "seoScore": 7,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "תמונות עם alt",
+        "קישורים פנימיים",
+        "קישורים חיצוניים",
+        "Canonical"
+      ],
+      "improvements": [
+        "לתקן בעיות קנוניקל",
+        "לשפר את המטא תיאור כדי לכלול מילות מפתח נוספות",
+        "להוסיף קישורים פנימיים בין העמודים באתר",
+        "ליצור תוכן נוסף סביב נושאים קשורים לתפעול רכבים"
+      ],
+      "estimateHours": 1.5,
+      "estimateLabel": "1–2 שעות",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [
+        "canonical_mismatch"
+      ],
+      "aiSummary": "העמוד מציע תוכן עשיר אך דורש שיפורים טכניים ואופטימיזציה כדי לשפר את דירוג ה-SEO.",
+      "priority": "גבוה"
+    },
+    {
+      "id": "page-27",
+      "url": "https://dalia-c.com/my-account/",
+      "path": "/my-account",
+      "title": "My Account - דליה",
+      "rank": 28,
+      "tier": 4,
+      "seoScore": 6,
+      "contentStatus": "טוב — בסיס תקין",
+      "conversionStatus": "נמוך — תוכן מידעי",
+      "missing": [
+        "keywords",
+        "internal links"
+      ],
+      "improvements": [
+        "שיפור כותרת H1",
+        "הוספת מילות מפתח רלוונטיות",
+        "שיפור תיאור המטה",
+        "שימוש בתוכן ייחודי"
+      ],
+      "estimateHours": 0.5,
+      "estimateLabel": "עד שעה",
+      "gsc": null,
+      "ga4Views": 0,
+      "issues": [],
+      "aiSummary": "העמוד מצריך שיפורים בכותרות ובמילות המפתח כדי לשפר את הדירוג במנועי החיפוש.",
+      "priority": "בינוני"
+    }
+  ],
+  "goals": [
+    {
+      "id": "goal-page-01",
+      "title": "SEO + המרות: בית חדש - דליה",
+      "status": "active",
+      "category": "SEO",
+      "priority": "גבוה",
+      "pageId": "page-01",
+      "pagePath": "/"
+    },
+    {
+      "id": "goal-page-02",
+      "title": "SEO + המרות: פתרונות מימון ותפעול לרכב - דליה",
+      "status": "active",
+      "category": "SEO",
+      "priority": "גבוה",
+      "pageId": "page-02",
+      "pagePath": "/home"
+    },
+    {
+      "id": "goal-page-12",
+      "title": "SEO + המרות: 79 ש\"ח - דליה",
+      "status": "active",
+      "category": "SEO",
+      "priority": "גבוה",
+      "pageId": "page-12",
+      "pagePath": "/79-shekels"
+    },
+    {
+      "id": "goal-page-08",
+      "title": "SEO + המרות: צור קשר דליה - דליה",
+      "status": "pending",
+      "category": "SEO",
+      "priority": "גבוה",
+      "pageId": "page-08",
+      "pagePath": "/צור-קשר-דליה"
+    },
+    {
+      "id": "goal-page-06",
+      "title": "SEO + המרות: קטלוג רכבים - דליה",
+      "status": "pending",
+      "category": "SEO",
+      "priority": "גבוה",
+      "pageId": "page-06",
+      "pagePath": "/catalog"
+    },
+    {
+      "id": "goal-page-05",
+      "title": "SEO + המרות: צור קשר - דליה",
+      "status": "pending",
+      "category": "SEO",
+      "priority": "בינוני",
+      "pageId": "page-05",
+      "pagePath": "/contact"
+    },
+    {
+      "id": "goal-page-03",
+      "title": "SEO + המרות: האפליקציה שלנו - דליה",
+      "status": "pending",
+      "category": "SEO",
+      "priority": "בינוני",
+      "pageId": "page-03",
+      "pagePath": "/our-app"
+    },
+    {
+      "id": "goal-page-14",
+      "title": "SEO + המרות: מגוון חבילות - דליה",
+      "status": "pending",
+      "category": "SEO",
+      "priority": "בינוני",
+      "pageId": "page-14",
+      "pagePath": "/מגוון-חבילות"
+    },
+    {
+      "id": "goal-page-04",
+      "title": "SEO + המרות: אודות - דליה",
+      "status": "pending",
+      "category": "SEO",
+      "priority": "בינוני",
+      "pageId": "page-04",
+      "pagePath": "/about"
+    },
+    {
+      "id": "goal-page-07",
+      "title": "SEO + המרות: השירותים שלנו - דליה",
+      "status": "pending",
+      "category": "SEO",
+      "priority": "בינוני",
+      "pageId": "page-07",
+      "pagePath": "/השירותים-שלנו"
+    }
+  ],
+  "actions": [
+    {
+      "id": "act-page-01",
+      "title": "תוכנית עבודה: בית חדש - דליה",
+      "status": "pending",
+      "urgency": "גבוה",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-01",
+      "pagePath": "/",
+      "pageUrl": "https://dalia-c.com/",
+      "estimateHours": 3.5,
+      "missing": [
+        "alt tags for images",
+        "Alt לתמונות (25)"
+      ],
+      "improvements": [
+        "לשפר את כותרת הדף כך שתהיה יותר ממוקדת ומכילה מילות מפתח רלוונטיות",
+        "לצמצם את מספר המילים בדף כדי לשפר את חווית המשתמש",
+        "להוסיף תוכן איכותי נוסף שיכול לשפר את דירוג החיפוש",
+        "לשפר את קישורי הפנימיים בין עמודי האתר"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-02",
+      "title": "תוכנית עבודה: פתרונות מימון ותפעול לרכב - דליה",
+      "status": "pending",
+      "urgency": "גבוה",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-02",
+      "pagePath": "/home",
+      "pageUrl": "https://dalia-c.com/home/",
+      "estimateHours": 4,
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוספת כותרת H1",
+        "שיפור הכותרות H2",
+        "אופטימיזציה של התוכן למילות מפתח רלוונטיות",
+        "שיפור תיאורי מטא ליותר אטרקטיביות"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-12",
+      "title": "תוכנית עבודה: 79 ש\"ח - דליה",
+      "status": "pending",
+      "urgency": "גבוה",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-12",
+      "pagePath": "/79-shekels",
+      "pageUrl": "https://dalia-c.com/79-shekels/",
+      "estimateHours": 5.5,
+      "missing": [
+        "h1",
+        "Alt לתמונות (13)"
+      ],
+      "improvements": [
+        "הוספת תג H1",
+        "הוספת תיאורי ALT לתמונות",
+        "שיפור מיקום במנועי חיפוש על ידי אופטימיזציה של תוכן",
+        "שימוש במילות מפתח רלוונטיות יותר בכותרות ובתיאור"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-08",
+      "title": "תוכנית עבודה: צור קשר דליה - דליה",
+      "status": "pending",
+      "urgency": "גבוה",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-08",
+      "pagePath": "/צור-קשר-דליה",
+      "pageUrl": "https://dalia-c.com/%D7%A6%D7%95%D7%A8-%D7%A7%D7%A9%D7%A8-%D7%93%D7%9C%D7%99%D7%94/",
+      "estimateHours": 5,
+      "missing": [
+        "h1",
+        "Alt לתמונות (1)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תג H1",
+        "הוספת טקסט חלופי לתמונה",
+        "שיפור תיאור המטא כדי לכלול מילות מפתח נוספות",
+        "שיפור קישורים פנימיים"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-06",
+      "title": "תוכנית עבודה: קטלוג רכבים - דליה",
+      "status": "pending",
+      "urgency": "גבוה",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-06",
+      "pagePath": "/catalog",
+      "pageUrl": "https://dalia-c.com/catalog/",
+      "estimateHours": 3,
+      "missing": [
+        "h1",
+        "Alt לתמונות (9)"
+      ],
+      "improvements": [
+        "הוספת תג H1",
+        "הוספת תיאורי ALT לתמונות חסרות",
+        "שיפור מיקום במנועי חיפוש על ידי אופטימיזציה של תוכן",
+        "שימוש במילות מפתח רלוונטיות יותר בכותרות ובתיאורים"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-05",
+      "title": "תוכנית עבודה: צור קשר - דליה",
+      "status": "pending",
+      "urgency": "בינוני",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-05",
+      "pagePath": "/contact",
+      "pageUrl": "https://dalia-c.com/contact/",
+      "estimateHours": 2,
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוסף תג H1 לעמוד",
+        "שפר את תיאור המטה כדי לכלול מילות מפתח רלוונטיות"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-03",
+      "title": "תוכנית עבודה: האפליקציה שלנו - דליה",
+      "status": "pending",
+      "urgency": "בינוני",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-03",
+      "pagePath": "/our-app",
+      "pageUrl": "https://dalia-c.com/our-app/",
+      "estimateHours": 2.5,
+      "missing": [
+        "h1",
+        "Alt לתמונות (5)"
+      ],
+      "improvements": [
+        "הוספת תגית H1 עם מילות מפתח רלוונטיות",
+        "הוספת תיאורי ALT לתמונות",
+        "שיפור התוכן כדי להגדיל את כמות החשיפות והקליקים",
+        "אופטימיזציה של המידע כדי לשפר את מיקום הדירוג"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-14",
+      "title": "תוכנית עבודה: מגוון חבילות - דליה",
+      "status": "pending",
+      "urgency": "בינוני",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-14",
+      "pagePath": "/מגוון-חבילות",
+      "pageUrl": "https://dalia-c.com/%d7%9e%d7%92%d7%95%d7%95%d7%9f-%d7%97%d7%91%d7%99%d7%9c%d7%95%d7%aa/",
+      "estimateHours": 3,
+      "missing": [
+        "h1",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תג H1 לעמוד",
+        "תיקון בעיית קנוניקל",
+        "שיפור תיאור המטה כדי לכלול מילות מפתח רלוונטיות",
+        "הוספת קישורים פנימיים לעמודים אחרים באתר"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-04",
+      "title": "תוכנית עבודה: אודות - דליה",
+      "status": "pending",
+      "urgency": "בינוני",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-04",
+      "pagePath": "/about",
+      "pageUrl": "https://dalia-c.com/about/",
+      "estimateHours": 2,
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוספת תגית H1 לעמוד",
+        "שיפור התיאור המטא כדי לכלול מילות מפתח נוספות"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-07",
+      "title": "תוכנית עבודה: השירותים שלנו - דליה",
+      "status": "pending",
+      "urgency": "בינוני",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-07",
+      "pagePath": "/השירותים-שלנו",
+      "pageUrl": "https://dalia-c.com/%D7%94%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D-%D7%A9%D7%9C%D7%A0%D7%95/",
+      "estimateHours": 3,
+      "missing": [
+        "h1",
+        "Alt לתמונות (2)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תג H1 לעמוד",
+        "הוספת טקסט חלופי (alt) לתמונות",
+        "שיפור תיאור מטה כדי לכלול מילות מפתח רלוונטיות",
+        "שיפור קישורים פנימיים לעמודים אחרים באתר"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-24",
+      "title": "תוכנית עבודה: שאלון קצר להתאמת פתרון ניהול ותחזוקת רכבים - דליה",
+      "status": "pending",
+      "urgency": "בינוני",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-24",
+      "pagePath": "/שאלון-קצר-להתאמת-פתרון-ניהול-ותחזוקת-ר",
+      "pageUrl": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%a7%d7%a6%d7%a8-%d7%9c%d7%94%d7%aa%d7%90%d7%9e%d7%aa-%d7%a4%d7%aa%d7%a8%d7%95%d7%9f-%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%95%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8/",
+      "estimateHours": 1.5,
+      "missing": [
+        "Canonical"
+      ],
+      "improvements": [
+        "תיקון בעיית canonical",
+        "שיפור תיאור המטא כדי לכלול מילות מפתח נוספות",
+        "הוספת קישורים פנימיים לעמודים רלוונטיים",
+        "שיפור חווית המשתמש על ידי הוספת תמונות או גרפים"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-11",
+      "title": "תוכנית עבודה: ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי - דליה",
+      "status": "pending",
+      "urgency": "בינוני",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-11",
+      "pagePath": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
+      "pageUrl": "https://dalia-c.com/%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
+      "estimateHours": 1.5,
+      "missing": [
+        "alt tags for images",
+        "canonical tag alignment",
+        "Alt לתמונות (1)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תגי alt לתמונות",
+        "תיקון בעיית הקנוניקל",
+        "שיפור תיאור המטה כדי לכלול מילות מפתח נוספות",
+        "הוספת קישורים פנימיים לעמודים רלוונטיים נוספים"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-13",
+      "title": "תוכנית עבודה: שאלון לקוח פרטי ועסקי (#15) - דליה",
+      "status": "pending",
+      "urgency": "בינוני",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-13",
+      "pagePath": "/שאלון-לקוח-פרטי-ועסקי-15",
+      "pageUrl": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%9c%d7%a7%d7%95%d7%97-%d7%a4%d7%a8%d7%98%d7%99-%d7%95%d7%a2%d7%a1%d7%a7%d7%99-15/",
+      "estimateHours": 2,
+      "missing": [
+        "h1",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תג H1 לעמוד",
+        "תיקון בעיית קנוניקל",
+        "שיפור תוכן כדי לכלול מילות מפתח רלוונטיות נוספות",
+        "הוספת קישורים פנימיים לעמודים אחרים באתר"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-26",
+      "title": "תוכנית עבודה: המערכת והאפליקציה של דליה - דליה",
+      "status": "pending",
+      "urgency": "בינוני",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-26",
+      "pagePath": "/המערכת-והאפליקציה-של-דליה",
+      "pageUrl": "https://dalia-c.com/%d7%94%d7%9e%d7%a2%d7%a8%d7%9b%d7%aa-%d7%95%d7%94%d7%90%d7%a4%d7%9c%d7%99%d7%a7%d7%a6%d7%99%d7%94-%d7%a9%d7%9c-%d7%93%d7%9c%d7%99%d7%94/",
+      "estimateHours": 1.5,
+      "missing": [
+        "keywords",
+        "alt text for images",
+        "Canonical"
+      ],
+      "improvements": [
+        "שיפור הכותרת והמטא תיאור כדי לכלול מילות מפתח רלוונטיות",
+        "הוספת קישורים פנימיים בין עמודים שונים באתר",
+        "שיפור מהירות הטעינה של העמוד",
+        "הוספת תוכן ויזואלי כמו תמונות עם טקסט חלופי"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-23",
+      "title": "תוכנית עבודה: שאלון מתלבטים בין ליסינג תפעולי לניהול עצמאי של הרכבים?",
+      "status": "pending",
+      "urgency": "בינוני",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-23",
+      "pagePath": "/שאלון-מתלבטים-בין-ליסינג-תפעולי-לניהו",
+      "pageUrl": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%9e%d7%aa%d7%9c%d7%91%d7%98%d7%99%d7%9d-%d7%91%d7%99%d7%9f-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%9c%d7%a0%d7%99%d7%94%d7%95/",
+      "estimateHours": 1.5,
+      "missing": [
+        "keywords",
+        "internal links",
+        "alt text for images",
+        "Canonical"
+      ],
+      "improvements": [
+        "שיפור הכותרת והמטא תיאור כדי לכלול מילות מפתח רלוונטיות",
+        "הוספת קישורים פנימיים לעמודים אחרים באתר",
+        "הוספת תיאורי alt לתמונות",
+        "שיפור הנראות במנועי חיפוש על ידי אופטימיזציה של תוכן"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-16",
+      "title": "תוכנית עבודה: ניהול תחזוקת רכבים חכם לעסקים – מערכת, שירות וליווי במק",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-16",
+      "pagePath": "/ניהול-תחזוקת-רכבים-חכם-לעסקים-מערכת",
+      "pageUrl": "https://dalia-c.com/%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%97%d7%9b%d7%9d-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%9e%d7%a2%d7%a8%d7%9b%d7%aa/",
+      "estimateHours": 1.5,
+      "missing": [
+        "alt tags for images",
+        "canonical tag alignment",
+        "Alt לתמונות (1)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תגיות alt לתמונות",
+        "תיקון חוסר התאמה בתגית קנוניקל",
+        "שיפור תוכן עם מילות מפתח רלוונטיות",
+        "הוספת קישורים פנימיים לחיזוק SEO"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-17",
+      "title": "תוכנית עבודה: מימון, שירות ואחריות - דליה",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-17",
+      "pagePath": "/service",
+      "pageUrl": "https://dalia-c.com/service/",
+      "estimateHours": 1,
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוסף תגית H1 לעמוד",
+        "שיפור התיאור המטא כדי לכלול מילות מפתח נוספות"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-18",
+      "title": "תוכנית עבודה: איך זה עובד? - דליה",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-18",
+      "pagePath": "/how-it-works",
+      "pageUrl": "https://dalia-c.com/how-it-works/",
+      "estimateHours": 1,
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוספת תג H1 לעמוד",
+        "שיפור התיאור המטא כדי לכלול מילות מפתח רלוונטיות",
+        "קיצור התוכן כדי לשפר את קריאות העמוד",
+        "שיפור קישורים פנימיים לעמודים אחרים באתר"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-25",
+      "title": "תוכנית עבודה: card/provider customer עע - דליה",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-25",
+      "pagePath": "/card-provider-customer",
+      "pageUrl": "https://dalia-c.com/card-provider-customer/",
+      "estimateHours": 1,
+      "missing": [
+        "h1"
+      ],
+      "improvements": [
+        "הוסף תגית H1 מתאימה לעמוד",
+        "שפר את הכותרת כך שתהיה יותר ממוקדת ומזמינה",
+        "שפר את תיאור המטא כך שיהיה יותר ממוקד במילות מפתח רלוונטיות",
+        "הוסף תוכן נוסף שיכול להעשיר את העמוד ולשפר את הדירוג"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-28",
+      "title": "תוכנית עבודה: Registration - דליה",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-28",
+      "pagePath": "/registration",
+      "pageUrl": "https://dalia-c.com/registration/",
+      "estimateHours": 0.5,
+      "missing": [
+        "H1 בעברית",
+        "תוכן ממוקד יותר",
+        "קישורים פנימיים",
+        "שימוש במילות מפתח רלוונטיות"
+      ],
+      "improvements": [
+        "החלפת H1 ל-'הרשמה - דליה'",
+        "הוספת תוכן ייחודי וממוקד יותר בנושא הרשמה",
+        "שיפור התיאור המטא",
+        "שימוש במילות מפתח כמו 'הרשמה לשירותי רכב'"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-09",
+      "title": "תוכנית עבודה: מה עומד מ - דליה",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-09",
+      "pagePath": "/מה-עומד-מ",
+      "pageUrl": "https://dalia-c.com/%D7%9E%D7%94-%D7%A2%D7%95%D7%9E%D7%93-%D7%9E/",
+      "estimateHours": 5,
+      "missing": [
+        "h1",
+        "Alt לתמונות (12)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תגית H1 עם מילות מפתח רלוונטיות",
+        "הוספת טקסט חלופי לתמונות",
+        "שיפור תיאור המטא כדי לכלול מילות מפתח נוספות",
+        "שיפור הקאנוניקל כדי למנוע בעיות כפילויות"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-15",
+      "title": "תוכנית עבודה: תחזוקת רכבים חכמה לעסקים – שליטה, סדר וחיסכון - דליה",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-15",
+      "pagePath": "/תחזוקת-רכבים-חכמה-לעסקים-שליטה-סדר-ו",
+      "pageUrl": "https://dalia-c.com/%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%97%d7%9b%d7%9e%d7%94-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%a9%d7%9c%d7%99%d7%98%d7%94-%d7%a1%d7%93%d7%a8-%d7%95/",
+      "estimateHours": 1.5,
+      "missing": [
+        "תיאור מטה קצר יותר",
+        "כותרת H2 עם מילות מפתח",
+        "Alt לתמונות (1)",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת טקסט חלופי לתמונה",
+        "תיקון בעיית קנוניקל",
+        "שיפור תיאור המטה כדי להיות יותר ממוקד",
+        "הוספת קישורים פנימיים לעמודים נוספים באתר"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-21",
+      "title": "תוכנית עבודה: איך חוסכים בעלויות תחזוקת ציי רכב? - דליה",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-21",
+      "pagePath": "/איך-חוסכים-בעלויות-תחזוקת-ציי-רכב",
+      "pageUrl": "https://dalia-c.com/%d7%90%d7%99%d7%9a-%d7%97%d7%95%d7%a1%d7%9b%d7%99%d7%9d-%d7%91%d7%a2%d7%9c%d7%95%d7%99%d7%95%d7%aa-%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a6%d7%99%d7%99-%d7%a8%d7%9b%d7%91/",
+      "estimateHours": 1.5,
+      "missing": [
+        "keywords",
+        "internal links",
+        "Canonical"
+      ],
+      "improvements": [
+        "שיפור תיאור המטה",
+        "הוספת מילות מפתח רלוונטיות",
+        "שיפור קישורים פנימיים",
+        "הוספת תוכן ויזואלי"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-19",
+      "title": "תוכנית עבודה: האם ליסינג תפעולי משתלם? כשאין זמן להתעסק בתחזוקת רכבים",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-19",
+      "pagePath": "/האם-ליסינג-תפעולי-משתלם-כשאין-זמן-להתע",
+      "pageUrl": "https://dalia-c.com/%d7%94%d7%90%d7%9d-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%9e%d7%a9%d7%aa%d7%9c%d7%9d-%d7%9b%d7%a9%d7%90%d7%99%d7%9f-%d7%96%d7%9e%d7%9f-%d7%9c%d7%94%d7%aa%d7%a2/",
+      "estimateHours": 1.5,
+      "missing": [
+        "keywords",
+        "internal_links",
+        "Canonical"
+      ],
+      "improvements": [
+        "תיקון בעיית canonical",
+        "שיפור תיאור המטה",
+        "הוספת מילות מפתח רלוונטיות",
+        "הוספת קישורים פנימיים"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-20",
+      "title": "תוכנית עבודה: האם כדאי ליסינג תפעולי? האמת שעסקים לא תמיד שומעים - דל",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-20",
+      "pagePath": "/האם-כדאי-ליסינג-תפעולי-האמת-שעסקים-לא-ת",
+      "pageUrl": "https://dalia-c.com/%d7%94%d7%90%d7%9d-%d7%9b%d7%93%d7%90%d7%99-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%94%d7%90%d7%9e%d7%aa-%d7%a9%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%9c%d7%90-%d7%aa/",
+      "estimateHours": 1.5,
+      "missing": [
+        "Keywords in meta description",
+        "Internal links",
+        "Image alt texts",
+        "Canonical"
+      ],
+      "improvements": [
+        "Optimize meta description with relevant keywords",
+        "Add internal links to related content",
+        "Include alt texts for images",
+        "Expand content with more detailed sections"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-10",
+      "title": "תוכנית עבודה: עמוד ספק עע - דליה",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-10",
+      "pagePath": "/עמוד-ספק",
+      "pageUrl": "https://dalia-c.com/%D7%A2%D7%9E%D7%95%D7%93-%D7%A1%D7%A4%D7%A7/",
+      "estimateHours": 4,
+      "missing": [
+        "h1",
+        "Canonical"
+      ],
+      "improvements": [
+        "הוספת תג H1 לעמוד",
+        "תיקון בעיית קנוניקל",
+        "שיפור תיאור המטא כדי לכלול מילות מפתח רלוונטיות",
+        "הוספת תוכן נוסף שיכול לשפר את המעורבות"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-22",
+      "title": "תוכנית עבודה: תפעול רכבים לחברות - דליה",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-22",
+      "pagePath": "/תפעול-רכבים-לחברות",
+      "pageUrl": "https://dalia-c.com/%d7%aa%d7%a4%d7%a2%d7%95%d7%9c-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%9c%d7%97%d7%91%d7%a8%d7%95%d7%aa/",
+      "estimateHours": 1.5,
+      "missing": [
+        "תמונות עם alt",
+        "קישורים פנימיים",
+        "קישורים חיצוניים",
+        "Canonical"
+      ],
+      "improvements": [
+        "לתקן בעיות קנוניקל",
+        "לשפר את המטא תיאור כדי לכלול מילות מפתח נוספות",
+        "להוסיף קישורים פנימיים בין העמודים באתר",
+        "ליצור תוכן נוסף סביב נושאים קשורים לתפעול רכבים"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    },
+    {
+      "id": "act-page-27",
+      "title": "תוכנית עבודה: My Account - דליה",
+      "status": "pending",
+      "urgency": "נמוך",
+      "source": "אבחון dalia-c.com",
+      "category": "SEO",
+      "pageId": "page-27",
+      "pagePath": "/my-account",
+      "pageUrl": "https://dalia-c.com/my-account/",
+      "estimateHours": 0.5,
+      "missing": [
+        "keywords",
+        "internal links"
+      ],
+      "improvements": [
+        "שיפור כותרת H1",
+        "הוספת מילות מפתח רלוונטיות",
+        "שיפור תיאור המטה",
+        "שימוש בתוכן ייחודי"
+      ],
+      "campaignId": "campaign-dalia-seo-primary"
+    }
+  ],
+  "activity": [
+    {
+      "id": "log-plan-created",
+      "title": "נוצרה תוכנית עבודה ל-33 עמודים עסקיים",
+      "action": "work_plan_created",
+      "module": "SEO",
+      "detail": "אבחון read-only — ללא שינוי באתר החי",
+      "created_at": "2026-06-27T21:25:40.308Z"
+    },
+    {
+      "id": "log-campaign-bound",
+      "title": "dalia-c.com מחובר לקמפיין: דליה — קידום dalia-c.com",
+      "action": "campaign_connected",
+      "module": "Marketing",
+      "detail": "Project 001 · יוני אטיאס",
+      "created_at": "2026-06-27T21:25:40.308Z"
+    }
+  ],
+  "progressLog": [
+    {
+      "at": "2026-06-27T21:25:40.308Z",
+      "event": "plan_built",
+      "pages": 28,
+      "by": "system",
+      "note": "תוכנית ראשונית — ממתין לאישור"
+    }
+  ]
+}

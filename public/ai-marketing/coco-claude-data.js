@@ -230,7 +230,8 @@
     goals.forEach(function (g) {
       items.push({ type: 'goal', title: g.title, date: g.completed_at || '', status: 'בוצע', detail: g.category || '' });
     });
-    (state.activity || []).forEach(function (a) {
+    var activityRows = (bundle && bundle.activity) || state.activity || [];
+    activityRows.forEach(function (a) {
       items.push({
         type: 'activity',
         title: a.title || a.action || 'פעילות',
@@ -475,10 +476,11 @@
       return { goal: g.category || g.title, status: g.status };
     });
     setHtml('coco-live-goals-list', goals.map(function (g) {
-      return '<div class="goal-acc-item card" style="padding:14px;margin-bottom:10px;" data-agent="' + esc(g.agent || '') + '">' +
+      var pageHint = g.pagePath ? ' · עמוד: ' + g.pagePath : '';
+      return '<div class="goal-acc-item card" style="padding:14px;margin-bottom:10px;" data-agent="' + esc(g.agent || '') + '" data-page-id="' + esc(g.pageId || '') + '">' +
         '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">' +
         '<div style="font-weight:700;">🎯 ' + esc(g.title) + '</div>' + statusBadge(g.status) + '</div>' +
-        '<div style="font-size:12px;color:var(--white50);margin-top:6px;">קטגוריה: ' + esc(g.category || 'כללי') + ' • עדיפות: ' + esc(g.priority || 'בינוני') + '</div></div>';
+        '<div style="font-size:12px;color:var(--white50);margin-top:6px;">קטגוריה: ' + esc(g.category || 'כללי') + ' • עדיפות: ' + esc(g.priority || 'בינוני') + pageHint + '</div></div>';
     }).join('') || emptyStatus('אין מטרות — הוסף ב-AI Setup או סנכרן מדליה'));
   }
 
@@ -491,9 +493,14 @@
     var pending = actions.filter(function (a) { return a.status !== 'done' && a.status !== 'completed'; });
     var done = actions.filter(function (a) { return a.status === 'done' || a.status === 'completed'; });
     setHtml('coco-live-actions-pending', pending.map(function (a) {
-      return '<div class="action-card act-item" style="border-color:rgba(139,92,246,0.4);margin-bottom:12px;">' +
+      var meta = [];
+      if (a.pagePath) meta.push('עמוד: ' + a.pagePath);
+      if (a.estimateHours) meta.push('~' + a.estimateHours + ' שעות');
+      if (a.missing && a.missing.length) meta.push('חסר: ' + a.missing.slice(0, 2).join(', '));
+      return '<div class="action-card act-item" style="border-color:rgba(139,92,246,0.4);margin-bottom:12px;" data-page-id="' + esc(a.pageId || '') + '">' +
         '<div class="action-title">' + esc(a.title) + '</div>' +
-        '<div style="font-size:12px;color:var(--white50);margin-top:6px;">מקור: ' + esc(a.source) + ' • ' + statusBadge(a.urgency) + '</div></div>';
+        '<div style="font-size:12px;color:var(--white50);margin-top:6px;">מקור: ' + esc(a.source) + ' • ' + statusBadge(a.urgency) +
+        (meta.length ? '<br>' + esc(meta.join(' · ')) : '') + '</div></div>';
     }).join('') || '<div class="alert alert-ok">אין פעולות ממתינות 🎉</div>');
     setHtml('coco-live-actions-done', done.map(function (a) {
       return '<tr><td>' + esc(a.title) + '</td><td>' + esc(a.category) + '</td><td>—</td><td>' + esc(a.source) + '</td><td>—</td><td>' + statusBadge('done') + '</td></tr>';
@@ -502,6 +509,7 @@
 
   function bindHistory(bundle) {
     ensureLiveMount('coco-live-history-empty', 'screen-history');
+    ensureLiveMount('coco-live-history-timeline', 'screen-history');
     var items = applyCtxFilter(deriveHistory(bundle), function (h) {
       return { campaign: h.title, status: h.status, action: h.detail };
     });
@@ -580,6 +588,7 @@
       { title: '📢 דוח קמפיינים', rows: [['קמפיינים', (bundle && bundle.campaigns && bundle.campaigns.length) || 0], ['פעילים', (bundle && bundle.campaigns && bundle.campaigns.filter(function (c) { return c.status === 'active'; }).length) || 0], ['טיוטה', (bundle && bundle.campaigns && bundle.campaigns.filter(function (c) { return c.status === 'draft'; }).length) || 0]] },
       { title: '⚙️ דוח פעולות', rows: [['ממתינות', actions.filter(function (a) { return a.status !== 'done'; }).length], ['הושלמו', actions.filter(function (a) { return a.status === 'done'; }).length], ['סה״כ', actions.length]] },
       { title: '🎯 דוח מטרות', rows: [['פעילות', goals.filter(function (g) { return g.status === 'active'; }).length], ['ממתינות', goals.filter(function (g) { return g.status === 'pending'; }).length], ['סה״כ', goals.length]] },
+      { title: '📄 דוח עמודים עסקיים', rows: [['עמודים בתוכנית', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.pageCount) || (bundle && bundle.pageTasks && bundle.pageTasks.length) || 0], ['שעות משוערות', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.totalEstimateHours) || '—'], ['שלב', (bundle && bundle.workPlan && bundle.workPlan.phase === 'planning_only') ? 'תכנון' : 'ביצוע']] },
       { title: '📅 דוח חודשי', rows: [['כניסות', kpis.visits], ['קליקים', kpis.clicks], ['מקור', state.meta.kpiSource === 'live' ? 'חי' : 'ממתין']] },
     ].map(function (box) {
       return '<div class="report-box" style="cursor:pointer;" onclick="openModal(\'modal-report\')"><div class="report-title">' + box.title + '</div>' +
@@ -647,6 +656,7 @@
       var dash = window.DaliaSite && DaliaSite.getDashboard && DaliaSite.getDashboard();
       if (!dash && window.COCO && COCO.data && COCO.data.stats) dash = COCO.data;
       state.bundle = window.DaliaSite ? DaliaSite.buildLiveBundle(dash || { stats: {}, connections: {} }) : null;
+      state.activity = (state.bundle && state.bundle.activity) || [];
       state.meta.source = dash ? 'live' : 'pending';
       state.meta.clientSource = 'live';
       p = Promise.resolve(state.bundle);

@@ -22,7 +22,7 @@
   var PENDING = 'ממתין לחיבור';
   var NO_DATA = '—';
 
-  var state = { dashboard: null, crawl: null, pagesIndex: null, loadedAt: null };
+  var state = { dashboard: null, crawl: null, pagesIndex: null, workPlan: null, loadedAt: null };
 
   function primaryCampaign() {
     var c = (state.pagesIndex && state.pagesIndex.campaign) ||
@@ -81,6 +81,7 @@
         path = ClientIdSsot.DATA_PATHS.siteCrawl;
       }
       if (rel === 'project-001/site-pages-index.json') path = ClientIdSsot.DATA_PATHS.sitePagesIndex;
+      if (rel === 'project-001/site-work-plan.json') path = ClientIdSsot.DATA_PATHS.siteWorkPlan;
     }
     return fetch(assetUrl(path) + '?t=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -100,6 +101,11 @@
     if (!raw) return null;
     var stats = raw.stats || {};
     var conn = raw.connections || {};
+    var wp = state.workPlan || {};
+    var wpPages = wp.pages || [];
+    var wpGoals = wp.goals || [];
+    var wpActions = wp.actions || [];
+    var wpActivity = (wp.activity || []).concat(loadProgressFromStorage());
     var connections = Object.keys(conn).map(function (k) {
       var c = conn[k];
       return {
@@ -115,19 +121,56 @@
       campaigns: [primaryCampaign()],
       sitePages: (state.pagesIndex && state.pagesIndex.pages && state.pagesIndex.pages.business) ||
         (state.crawl && state.crawl.crawl && state.crawl.crawl.pages) || [],
+      pageTasks: wpPages,
+      workPlan: wp,
+      activity: wpActivity,
       connections: connections,
       ai: {
-        initial_goals: (raw.aiSeoSuggestions || []).slice(0, 5).map(function (s, i) {
+        initial_goals: wpGoals.length ? wpGoals : (raw.aiSeoSuggestions || []).slice(0, 5).map(function (s, i) {
           return { id: 'goal-' + i, title: s.title || s.suggestion || String(s), status: 'active', category: 'SEO', priority: s.priority || 'גבוה' };
         }),
-        work_plan: (raw.aiSeoSuggestions || []).slice(0, 3).map(function (s, i) {
+        work_plan: wpActions.length ? wpActions : (raw.aiSeoSuggestions || []).slice(0, 3).map(function (s, i) {
           return { id: 'act-' + i, title: s.title || s.suggestion || String(s), status: 'pending', source: 'GSC/GA4', category: 'SEO' };
         }),
-        recommendations: (raw.aiSeoSuggestions || []).map(function (s) { return s.title || s.suggestion || String(s); }),
-        opening_report: 'ניתוח dalia-c.com — ' + fmt(stats.totalClicks) + ' קליקים GSC · ' + fmt(stats.ga4Sessions) + ' סשנים GA4',
+        recommendations: wpPages.slice(0, 10).map(function (p) {
+          return '#' + p.rank + ' ' + (p.path || p.url) + ': ' + (p.missing && p.missing.length ? p.missing.join(', ') : 'אופטימיזציה');
+        }),
+        opening_report: wp.summary
+          ? 'תוכנית עבודה — ' + wp.summary.pageCount + ' עמודים עסקיים · ~' + wp.summary.totalEstimateHours + ' שעות · שלב: תכנון בלבד'
+          : 'ניתוח dalia-c.com — ' + fmt(stats.totalClicks) + ' קליקים GSC · ' + fmt(stats.ga4Sessions) + ' סשנים GA4',
       },
       _dashboard: raw,
     };
+  }
+
+  function loadProgressFromStorage() {
+    try {
+      var raw = localStorage.getItem('dalia-work-progress-log');
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function logWorkProgress(event, detail) {
+    var entry = {
+      id: 'log-' + Date.now(),
+      title: event,
+      action: 'progress',
+      module: 'SEO',
+      detail: detail || '',
+      created_at: new Date().toISOString(),
+    };
+    var rows = loadProgressFromStorage();
+    rows.unshift(entry);
+    try {
+      localStorage.setItem('dalia-work-progress-log', JSON.stringify(rows.slice(0, 100)));
+    } catch (e) { /* ignore */ }
+    if (state.dashboard) {
+      var bundle = buildLiveBundle(state.dashboard);
+      if (window.CocoData && CocoData.setBundle) CocoData.setBundle(bundle);
+    }
+    return entry;
   }
 
   function applySiteLabels() {
@@ -572,10 +615,12 @@
       fetchJson('project-001/dashboard.json'),
       fetchJson('project-001/site-crawl-lite.json'),
       fetchJson('project-001/site-pages-index.json'),
+      fetchJson('project-001/site-work-plan.json'),
     ]).then(function (res) {
       state.dashboard = res[0];
       state.crawl = res[1] || res[2] ? { crawl: { pageCount: (res[2] && res[2].summary && res[2].summary.businessAndContent) || 0, pages: (res[2] && res[2].pages && res[2].pages.business) || [] } } : null;
       state.pagesIndex = res[2];
+      state.workPlan = res[3];
       if (res[1] && res[1].crawl) state.crawl = res[1];
       state.loadedAt = new Date().toISOString();
       bindOfficialContext();
@@ -624,6 +669,8 @@
     renderHubAiBox: renderHubAiBox,
     renderAssetsLive: renderAssetsLive,
     getDashboard: function () { return state.dashboard; },
+    getWorkPlan: function () { return state.workPlan; },
+    logWorkProgress: logWorkProgress,
     getAgentData: getAgentData,
     isLiveOnly: function () { return true; },
   };

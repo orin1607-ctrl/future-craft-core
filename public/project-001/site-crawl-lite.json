@@ -1,13 +1,13 @@
 {
   "infra": {
     "site": "https://dalia-c.com/",
-    "fetchedAt": "2026-06-27T21:12:11.571Z",
+    "fetchedAt": "2026-06-27T21:25:40.214Z",
     "method": "playwright-lite"
   },
   "crawl": {
     "site": "https://dalia-c.com/",
-    "crawledAt": "2026-06-27T21:12:11.571Z",
-    "pageCount": 33,
+    "crawledAt": "2026-06-27T21:25:40.214Z",
+    "pageCount": 28,
     "mode": "business-first",
     "summary": {
       "totalCrawled": 120,
@@ -17,8 +17,8 @@
       "vehicle": 11,
       "content": 1,
       "other": 4,
-      "businessAndContent": 33,
-      "recommendedStagingLoad": 33,
+      "businessAndContent": 28,
+      "recommendedStagingLoad": 28,
       "fullCrawlSizeNote": "Full crawl ~1.9MB — use site-pages-index.json on Staging"
     },
     "pages": [
@@ -253,78 +253,6 @@
         "ga4Views": 0
       },
       {
-        "url": "https://dalia-c.com/%d7%a6%d7%95%d7%a8-%d7%a7%d7%a9%d7%a8-%d7%93%d7%9c%d7%99%d7%94/",
-        "path": "/צור-קשר-דליה",
-        "title": "צור קשר דליה - דליה",
-        "type": "business",
-        "httpStatus": 200,
-        "h1": "",
-        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
-        "issues": [
-          "missing_h1",
-          "images_without_alt:1",
-          "canonical_mismatch"
-        ],
-        "seoScore": 5,
-        "priority": "גבוה",
-        "gsc": null,
-        "ga4Views": 0
-      },
-      {
-        "url": "https://dalia-c.com/%d7%9e%d7%94-%d7%a2%d7%95%d7%9e%d7%93-%d7%9e/",
-        "path": "/מה-עומד-מ",
-        "title": "מה עומד מ - דליה",
-        "type": "business",
-        "httpStatus": 200,
-        "h1": "",
-        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
-        "issues": [
-          "missing_h1",
-          "images_without_alt:12",
-          "canonical_mismatch"
-        ],
-        "seoScore": 5,
-        "priority": "גבוה",
-        "gsc": null,
-        "ga4Views": 0
-      },
-      {
-        "url": "https://dalia-c.com/%d7%a6%d7%95%d7%a8-%d7%a7%d7%a9%d7%a8-%d7%93%d7%9c%d7%99%d7%94/",
-        "path": "/צור-קשר-דליה",
-        "title": "צור קשר דליה - דליה",
-        "type": "business",
-        "httpStatus": 200,
-        "h1": "",
-        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
-        "issues": [
-          "missing_h1",
-          "images_without_alt:1",
-          "canonical_mismatch"
-        ],
-        "seoScore": 5,
-        "priority": "גבוה",
-        "gsc": null,
-        "ga4Views": 0
-      },
-      {
-        "url": "https://dalia-c.com/%d7%94%d7%a9%d7%99%d7%a8%d7%95%d7%aa%d7%99%d7%9d-%d7%a9%d7%9c%d7%a0%d7%95/",
-        "path": "/השירותים-שלנו",
-        "title": "השירותים שלנו - דליה",
-        "type": "business",
-        "httpStatus": 200,
-        "h1": "",
-        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
-        "issues": [
-          "missing_h1",
-          "images_without_alt:2",
-          "canonical_mismatch"
-        ],
-        "seoScore": 5,
-        "priority": "גבוה",
-        "gsc": null,
-        "ga4Views": 0
-      },
-      {
         "url": "https://dalia-c.com/79-shekels/",
         "path": "/79-shekels",
         "title": "79 ש\"ח - דליה",
@@ -403,23 +331,6 @@
         "type": "business",
         "httpStatus": 200,
         "h1": "ניהול תחזוקת רכבים חכם לעסקים – מערכת, שירות וליווי במקום אחד",
-        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
-        "issues": [
-          "images_without_alt:1",
-          "canonical_mismatch"
-        ],
-        "seoScore": 6,
-        "priority": "גבוה",
-        "gsc": null,
-        "ga4Views": 0
-      },
-      {
-        "url": "https://dalia-c.com/%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%a6%d7%99-%d7%a8%d7%9b%d7%91-%d7%97%d7%9b%d7%9d-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%a9%d7%9c%d7%99%d7%98%d7%94-%d7%a1%d7%93%d7%a8-%d7%95%d7%a9%d7%a7/",
-        "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
-        "title": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי - דליה",
-        "type": "business",
-        "httpStatus": 200,
-        "h1": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי",
         "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
         "issues": [
           "images_without_alt:1",
