@@ -36,13 +36,49 @@
 <link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=3-unified-3g">
 <link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=3-unified-3g">
 <link rel="stylesheet" href="./ai-marketing/home-prd.css?v=3-unified-3g">
+<link rel="stylesheet" href="./ai-marketing/ai-assistant.css?v=3-unified-3g">
 <link rel="stylesheet" href="./crm/dalia-crm.css?v=3-unified-3g">
 </head>
 <body>
+<div id="cocoToast" class="coco-toast" aria-live="polite"></div>
+<div id="actionModal" class="overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:640px;max-height:80vh;overflow:auto;">
+    <div class="modal-title" id="actionModalTitle"></div>
+    <div id="actionModalBody" style="font-size:14px;color:var(--white80);line-height:1.7;"></div>
+    <div class="modal-actions" id="actionModalFoot"></div>
+  </div>
+</div>
+<style>
+.coco-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:12px 20px; border-radius:10px; background:#1e293b; color:#fff; font-size:13px; z-index:400; opacity:0; pointer-events:none; transition:opacity 0.2s; max-width:90vw; text-align:center; }
+.coco-toast.show { opacity:1; pointer-events:auto; }
+.coco-toast-success { background:#065f46; }
+.coco-toast-warn { background:#92400e; }
+.coco-toast-info { background:#1e40af; }
+</style>
 <div id="coco-claude-root" class="coco-boot-active" aria-label="ניהול שיווק — Claude UI">
   <div class="coco-boot-loading" style="padding:48px 20px;text-align:center;color:#94a3b8;font-family:'Heebo',sans-serif;min-height:100vh;background:#04091a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
     <div style="font-size:20px;font-weight:700;color:#fff;">טוען מרכז שיווק…</div>
     <div style="font-size:12px;opacity:0.7;">Orin Car Staging · Claude UI</div>
+  </div>
+</div>
+
+<!-- ChatGPT floating assistant -->
+<button type="button" id="cocoAiFab" class="coco-ai-fab" aria-label="פתח צ'אט ChatGPT" aria-expanded="false" title="ChatGPT — שאל את מנהל השיווק AI">🤖</button>
+<div id="cocoAiBackdrop" class="coco-ai-backdrop" aria-hidden="true"></div>
+<div id="cocoAiPanel" class="coco-ai-panel" role="dialog" aria-label="צ'אט ChatGPT" aria-hidden="true">
+  <div class="coco-ai-head">
+    <div>
+      <div class="coco-ai-head-title">ChatGPT — מנהל שיווק AI</div>
+      <div class="coco-ai-head-sub">דבר או הקלד · SEO · תוכן · GBP · דוחות</div>
+    </div>
+    <button type="button" id="cocoAiClose" class="coco-ai-close" aria-label="סגור">✕</button>
+  </div>
+  <div id="cocoAiMsgs" class="coco-ai-msgs" aria-live="polite"></div>
+  <div id="cocoAiChips" class="coco-ai-chips"></div>
+  <div class="coco-ai-input-row">
+    <button type="button" id="cocoAiMic" class="coco-ai-mic" aria-label="דבר במקום להקליד" title="לחץ והקלד בדיבור — נשלח אוטומטית ל-ChatGPT">🎤</button>
+    <textarea id="cocoAiInput" rows="1" placeholder="שאל את ChatGPT…" aria-label="הודעה ל-ChatGPT"></textarea>
+    <button type="button" id="cocoAiSend" aria-label="שלח">שלח</button>
   </div>
 </div>
 
@@ -117,6 +153,7 @@
           if (tab === 'crm' && window.CocoMarketingCrm && CocoMarketingCrm.openTab) {
             setTimeout(function () { CocoMarketingCrm.openTab(); }, 400);
           }
+          return loadScript(assetUrl('ai-marketing/ai-assistant.js'));
         });
       }
     });

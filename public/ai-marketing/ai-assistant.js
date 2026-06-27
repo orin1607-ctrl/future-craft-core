@@ -53,8 +53,8 @@
 
   function currentScreenId() {
     var active = document.querySelector('.screen.active');
-    if (!active) return 'dashboard';
-    return active.id.replace(/^sc-/, '');
+    if (!active || !active.id) return 'hub';
+    return active.id.replace(/^screen-/, '').replace(/^sc-/, '');
   }
 
   function currentScreenLabel() {
@@ -281,6 +281,7 @@
         headers: {
           'Content-Type': 'application/json',
           Authorization: 'Bearer ' + staging.accessToken,
+          apikey: staging.anonKey || '',
         },
         body: JSON.stringify({
           assistant: true,
@@ -368,9 +369,12 @@
     state.recognition = rec;
 
     rec.onresult = function (e) {
-      var t = e.results[0][0].transcript;
-      $('cocoAiInput').value = t;
+      var t = (e.results[0][0].transcript || '').trim();
       btn.classList.remove('listening');
+      if (t) {
+        $('cocoAiInput').value = t;
+        sendMessage(t);
+      }
     };
     rec.onerror = function () { btn.classList.remove('listening'); };
     rec.onend = function () { btn.classList.remove('listening'); };

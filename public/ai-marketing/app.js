@@ -553,7 +553,7 @@
       showToast('AI: התחבר דרך דליה (Super Admin) או npm run ai-marketing:dev', 'warn');
       return;
     }
-    if (HAS_API && !COCO.ai.connected) { showToast('OpenAI לא מחובר — בדוק .env.openai', 'warn'); return; }
+    if (HAS_API && !COCO.ai.connected && !hasStaging) { showToast('OpenAI לא מחובר — בדוק .env.openai', 'warn'); return; }
     COCO.ai.busy = true;
     showToast('🤖 שולח ל-OpenAI...', 'info');
     var ctx = COCO.data ? '\n\nנתונים: KPI קליקים=' + (COCO.data.kpis?.weeklyClicks?.value || '—') +

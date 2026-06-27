@@ -256,17 +256,40 @@ const ACTIVE_CONTEXT = {
 function runAiAnalysis() {
   const box = document.getElementById('ai-status-box');
   if (!box) { showToast('▶️ ניתוח AI הופעל'); return; }
-  box.style.color = 'var(--accent2)';
-  box.style.borderColor = 'rgba(37,99,235,0.4)';
-  box.innerHTML = '⏳ שולח נתונים ל-ChatGPT...';
-  setTimeout(() => {
-    box.innerHTML = '🔄 ChatGPT מנתח 11 עוזרים + ציוני 20 מטרות...';
-    setTimeout(() => {
-      box.style.color = 'var(--yellow)';
-      box.innerHTML = '⚠️ ממתין לחיבור API אמיתי – עוזרים לא מחוברים.<br><span style="font-size:11px;color:var(--white50);">לאחר חיבור: ChatGPT יקבל נתונים אמיתיים ויחזיר החלטות מובנות לטבלת הפעולות.</span>';
-      showToast('⚠️ ממתין לחיבור API');
-    }, 2000);
-  }, 1500);
+  var chat = typeof window.marketingApiChat === 'function'
+    ? window.marketingApiChat
+    : (window.CocoUnified && CocoUnified.marketingAiChat);
+  var hasAuth = !!(window.COCO_STAGING && window.COCO_STAGING.accessToken);
+  if (chat && hasAuth) {
+    box.style.color = 'var(--accent2)';
+    box.style.borderColor = 'rgba(37,99,235,0.4)';
+    box.innerHTML = '⏳ שולח נתונים ל-ChatGPT...';
+    chat({
+      module: 'director',
+      prompt: 'ניתוח AI Director: 5 תובנות SEO + 3 פעולות דחופות ל-dalia-c.com לפי GSC ו-GA4. ענה בעברית, מובנה.',
+    }).then(function (res) {
+      if (res.ok && res.text) {
+        box.style.color = 'var(--green)';
+        box.style.borderColor = 'rgba(34,197,94,0.4)';
+        box.style.textAlign = 'right';
+        box.innerHTML = '<div style="white-space:pre-wrap;line-height:1.7;font-size:13px;color:var(--white);">' +
+          String(res.text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+        showToast('✓ ניתוח ChatGPT הושלם');
+      } else {
+        box.style.color = 'var(--yellow)';
+        box.innerHTML = '⚠️ ' + (res.message || res.error || 'שגיאת OpenAI');
+        showToast('⚠️ שגיאת ChatGPT', 'warn');
+      }
+    }).catch(function (e) {
+      box.style.color = 'var(--red)';
+      box.innerHTML = '⚠️ ' + (e.message || 'שגיאה');
+      showToast('⚠️ שגיאת ChatGPT', 'warn');
+    });
+    return;
+  }
+  box.style.color = 'var(--yellow)';
+  box.innerHTML = '⚠️ ממתין להתחברות Super Admin בדליה — ChatGPT דרך Edge marketing-ai-chat';
+  showToast('⚠️ התחבר דרך דליה (Super Admin)', 'warn');
 }
 
 // ===== END AI CENTER / HISTORY / REPORTS =====
@@ -673,6 +696,30 @@ const AGENT_DATA = {
     ],
     aiSummary: 'מצב אתר טוב בסך הכל. 3 עמודים ללא Meta Description – תיקון קל. Schema חסר ב-12 עמודים – השפעה גדולה על Rich Results.',
     readyCount: 4, readyIssues: 3, readyOpp: 1, urgencyLabel: 'בינונית'
+  },
+  seotools: {
+    name: 'SEO Tools AI', icon: '🔑',
+    source: 'Keyword / Backlink Tools',
+    status: 'done', scanTime: 'לפני 2 שעות',
+    findings: 14, issues: 4, opportunities: 10, score: 74,
+    urgency: 'גבוהה', readyToTransfer: true,
+    kpis: [
+      {label:'מילות מפתח', val:'186', delta:'↑ +12', color:'var(--white)'},
+      {label:'Top 10', val:'42', delta:'23%', color:'var(--green)'},
+      {label:'פערי מילים', val:'18', delta:'הזדמנות', color:'var(--accent2)'},
+      {label:'Backlinks חדשים', val:'7', delta:'החודש', color:'var(--green)'},
+      {label:'Domain Rating', val:'38', delta:'↑ +1', color:'var(--white)'},
+      {label:'מתחרים עוקבים', val:'5', delta:'פעילים', color:'var(--yellow)'},
+      {label:'Cannibalization', val:'3', delta:'עמודים', color:'var(--red)'},
+      {label:'Content Gap', val:'11', delta:'נושאים', color:'var(--accent2)'}
+    ],
+    findings_table: [
+      {type:'הזדמנות', desc:'18 ביטויים לא מכוסים – פוטנציאל +2,000 קליקים', src:'Keywords', importance:'גבוה', impact:'גבוה', status:'פתוח', transfer:true},
+      {type:'בעיה', desc:'3 עמודים עם Cannibalization על "ניהול צי"', src:'Keywords', importance:'גבוה', impact:'בינוני', status:'פתוח', transfer:true},
+      {type:'הזדמנות', desc:'11 נושאי Content Gap מול מתחרים', src:'Competitors', importance:'בינוני', impact:'גבוה', status:'פתוח', transfer:true}
+    ],
+    aiSummary: 'מחקר מילות מפתח: 18 הזדמנויות לא מכוסות. Cannibalization ב-3 עמודים – לאחד כוונת חיפוש. Content Gap: 11 נושאים עם ROI גבוה.',
+    readyCount: 5, readyIssues: 2, readyOpp: 3, urgencyLabel: 'גבוהה'
   },
   gbp: {
     name: 'Google Business Profile AI', icon: '📍',
