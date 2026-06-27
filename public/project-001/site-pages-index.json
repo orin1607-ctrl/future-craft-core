@@ -1,0 +1,2555 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-27T21:12:11.571Z",
+  "site": "https://dalia-c.com/",
+  "campaign": {
+    "id": "campaign-dalia-seo-primary",
+    "name": "דליה — קידום dalia-c.com",
+    "owner": "יוני אטיאס",
+    "projectId": "project001aimarketing",
+    "projectName": "Project 001 — AI Marketing",
+    "site": "dalia-c.com",
+    "channel": "seo",
+    "status": "active",
+    "type": "organic_seo"
+  },
+  "summary": {
+    "totalCrawled": 120,
+    "business": 32,
+    "broken": 14,
+    "category": 58,
+    "vehicle": 11,
+    "content": 1,
+    "other": 4,
+    "businessAndContent": 33,
+    "recommendedStagingLoad": 33,
+    "fullCrawlSizeNote": "Full crawl ~1.9MB — use site-pages-index.json on Staging"
+  },
+  "pages": {
+    "business": [
+      {
+        "url": "https://dalia-c.com/",
+        "path": "/",
+        "title": "בית חדש - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "דליה  פתרונות תפעול\n ותחזוקה לרכב",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "images_without_alt:25"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 2,
+          "impressions": 25,
+          "position": 4.76
+        },
+        "ga4Views": 223
+      },
+      {
+        "url": "https://dalia-c.com/home/",
+        "path": "/home",
+        "title": "פתרונות מימון ותפעול לרכב - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 2,
+          "impressions": 11,
+          "position": 2.727272727
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/our-app/",
+        "path": "/our-app",
+        "title": "האפליקציה שלנו - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:5"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 1,
+          "impressions": 1,
+          "position": 8
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/about/",
+        "path": "/about",
+        "title": "אודות - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 14,
+          "position": 8.785714286
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/contact/",
+        "path": "/contact",
+        "title": "צור קשר - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 1
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/catalog/",
+        "path": "/catalog",
+        "title": "קטלוג רכבים - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:9"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 1,
+          "impressions": 10,
+          "position": 30.1
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%D7%94%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D-%D7%A9%D7%9C%D7%A0%D7%95/",
+        "path": "/השירותים-שלנו",
+        "title": "השירותים שלנו - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:2",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 14,
+          "position": 5.5
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%D7%A6%D7%95%D7%A8-%D7%A7%D7%A9%D7%A8-%D7%93%D7%9C%D7%99%D7%94/",
+        "path": "/צור-קשר-דליה",
+        "title": "צור קשר דליה - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 3,
+          "position": 8
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%D7%9E%D7%94-%D7%A2%D7%95%D7%9E%D7%93-%D7%9E/",
+        "path": "/מה-עומד-מ",
+        "title": "מה עומד מ - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:12",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 8
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%D7%A2%D7%9E%D7%95%D7%93-%D7%A1%D7%A4%D7%A7/",
+        "path": "/עמוד-ספק",
+        "title": "עמוד ספק עע - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 6
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
+        "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
+        "title": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 22,
+          "position": 35.18181818
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a6%d7%95%d7%a8-%d7%a7%d7%a9%d7%a8-%d7%93%d7%9c%d7%99%d7%94/",
+        "path": "/צור-קשר-דליה",
+        "title": "צור קשר דליה - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%9e%d7%94-%d7%a2%d7%95%d7%9e%d7%93-%d7%9e/",
+        "path": "/מה-עומד-מ",
+        "title": "מה עומד מ - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:12",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a6%d7%95%d7%a8-%d7%a7%d7%a9%d7%a8-%d7%93%d7%9c%d7%99%d7%94/",
+        "path": "/צור-קשר-דליה",
+        "title": "צור קשר דליה - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%94%d7%a9%d7%99%d7%a8%d7%95%d7%aa%d7%99%d7%9d-%d7%a9%d7%9c%d7%a0%d7%95/",
+        "path": "/השירותים-שלנו",
+        "title": "השירותים שלנו - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:2",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/79-shekels/",
+        "path": "/79-shekels",
+        "title": "79 ש\"ח - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:13"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 4,
+          "position": 18
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%9c%d7%a7%d7%95%d7%97-%d7%a4%d7%a8%d7%98%d7%99-%d7%95%d7%a2%d7%a1%d7%a7%d7%99-15/",
+        "path": "/שאלון-לקוח-פרטי-ועסקי-15",
+        "title": "שאלון לקוח פרטי ועסקי (#15) - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%9e%d7%92%d7%95%d7%95%d7%9f-%d7%97%d7%91%d7%99%d7%9c%d7%95%d7%aa/",
+        "path": "/מגוון-חבילות",
+        "title": "מגוון חבילות - דליה",
+        "type": "content",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%97%d7%9b%d7%9e%d7%94-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%a9%d7%9c%d7%99%d7%98%d7%94-%d7%a1%d7%93%d7%a8-%d7%95/",
+        "path": "/תחזוקת-רכבים-חכמה-לעסקים-שליטה-סדר-ו",
+        "title": "תחזוקת רכבים חכמה לעסקים – שליטה, סדר וחיסכון - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "תחזוקת רכבים חכמה לעסקים – שליטה, סדר וחיסכון",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 7,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%97%d7%9b%d7%9d-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%9e%d7%a2%d7%a8%d7%9b%d7%aa/",
+        "path": "/ניהול-תחזוקת-רכבים-חכם-לעסקים-מערכת",
+        "title": "ניהול תחזוקת רכבים חכם לעסקים – מערכת, שירות וליווי במקום אחד - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "ניהול תחזוקת רכבים חכם לעסקים – מערכת, שירות וליווי במקום אחד",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%a6%d7%99-%d7%a8%d7%9b%d7%91-%d7%97%d7%9b%d7%9d-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%a9%d7%9c%d7%99%d7%98%d7%94-%d7%a1%d7%93%d7%a8-%d7%95%d7%a9%d7%a7/",
+        "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
+        "title": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/service/",
+        "path": "/service",
+        "title": "מימון, שירות ואחריות - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/how-it-works/",
+        "path": "/how-it-works",
+        "title": "איך זה עובד? - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%94%d7%90%d7%9d-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%9e%d7%a9%d7%aa%d7%9c%d7%9d-%d7%9b%d7%a9%d7%90%d7%99%d7%9f-%d7%96%d7%9e%d7%9f-%d7%9c%d7%94%d7%aa%d7%a2/",
+        "path": "/האם-ליסינג-תפעולי-משתלם-כשאין-זמן-להתע",
+        "title": "האם ליסינג תפעולי משתלם? כשאין זמן להתעסק בתחזוקת רכבים - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "האם ליסינג תפעולי משתלם? כשאין זמן להתעסק בתחזוקת רכבים",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%94%d7%90%d7%9d-%d7%9b%d7%93%d7%90%d7%99-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%94%d7%90%d7%9e%d7%aa-%d7%a9%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%9c%d7%90-%d7%aa/",
+        "path": "/האם-כדאי-ליסינג-תפעולי-האמת-שעסקים-לא-ת",
+        "title": "האם כדאי ליסינג תפעולי? האמת שעסקים לא תמיד שומעים - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "האם כדאי ליסינג תפעולי? האמת שעסקים לא תמיד שומעים",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%90%d7%99%d7%9a-%d7%97%d7%95%d7%a1%d7%9b%d7%99%d7%9d-%d7%91%d7%a2%d7%9c%d7%95%d7%99%d7%95%d7%aa-%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a6%d7%99%d7%99-%d7%a8%d7%9b%d7%91/",
+        "path": "/איך-חוסכים-בעלויות-תחזוקת-ציי-רכב",
+        "title": "איך חוסכים בעלויות תחזוקת ציי רכב? - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "איך חוסכים בעלויות תחזוקת ציי רכב?",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 7,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%aa%d7%a4%d7%a2%d7%95%d7%9c-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%9c%d7%97%d7%91%d7%a8%d7%95%d7%aa/",
+        "path": "/תפעול-רכבים-לחברות",
+        "title": "תפעול רכבים לחברות - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "תפעול רכבים לחברות",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 7,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%9e%d7%aa%d7%9c%d7%91%d7%98%d7%99%d7%9d-%d7%91%d7%99%d7%9f-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%9c%d7%a0%d7%99%d7%94%d7%95/",
+        "path": "/שאלון-מתלבטים-בין-ליסינג-תפעולי-לניהו",
+        "title": "שאלון מתלבטים בין ליסינג תפעולי לניהול עצמאי של הרכבים? - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "שירות חדש בישראל לניהול ותחזוקה  רכבים חכמה\nבלי ליסינג תפעולי יקר  לעסקים ולקוחות פרטים",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%a7%d7%a6%d7%a8-%d7%9c%d7%94%d7%aa%d7%90%d7%9e%d7%aa-%d7%a4%d7%aa%d7%a8%d7%95%d7%9f-%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%95%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8/",
+        "path": "/שאלון-קצר-להתאמת-פתרון-ניהול-ותחזוקת-ר",
+        "title": "שאלון קצר להתאמת פתרון ניהול ותחזוקת רכבים - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "שאלון קצר להתאמת פתרון ניהול ותחזוקת רכבים",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/card-provider-customer/",
+        "path": "/card-provider-customer",
+        "title": "card/provider customer עע - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%94%d7%9e%d7%a2%d7%a8%d7%9b%d7%aa-%d7%95%d7%94%d7%90%d7%a4%d7%9c%d7%99%d7%a7%d7%a6%d7%99%d7%94-%d7%a9%d7%9c-%d7%93%d7%9c%d7%99%d7%94/",
+        "path": "/המערכת-והאפליקציה-של-דליה",
+        "title": "המערכת והאפליקציה של דליה - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "מערכת מתקדמת לניהול, בקרה ותפעול צי רכב",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "בינוני",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/my-account/",
+        "path": "/my-account",
+        "title": "My Account - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "My Account",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [],
+        "seoScore": 6,
+        "priority": "בינוני",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/registration/",
+        "path": "/registration",
+        "title": "Registration - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "Registration",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      }
+    ],
+    "all": [
+      {
+        "url": "https://dalia-c.com/",
+        "path": "/",
+        "title": "בית חדש - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "דליה  פתרונות תפעול\n ותחזוקה לרכב",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "images_without_alt:25"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 2,
+          "impressions": 25,
+          "position": 4.76
+        },
+        "ga4Views": 223
+      },
+      {
+        "url": "https://dalia-c.com/home/",
+        "path": "/home",
+        "title": "פתרונות מימון ותפעול לרכב - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 2,
+          "impressions": 11,
+          "position": 2.727272727
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/our-app/",
+        "path": "/our-app",
+        "title": "האפליקציה שלנו - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:5"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 1,
+          "impressions": 1,
+          "position": 8
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/about/",
+        "path": "/about",
+        "title": "אודות - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 14,
+          "position": 8.785714286
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/contact/",
+        "path": "/contact",
+        "title": "צור קשר - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 1
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/catalog/",
+        "path": "/catalog",
+        "title": "קטלוג רכבים - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:9"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 1,
+          "impressions": 10,
+          "position": 30.1
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%D7%94%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D-%D7%A9%D7%9C%D7%A0%D7%95/",
+        "path": "/השירותים-שלנו",
+        "title": "השירותים שלנו - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:2",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 14,
+          "position": 5.5
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%D7%A4%D7%99%D7%92%D7%95/",
+        "path": "/category/פיגו",
+        "title": "ארכיון פיג'ו - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 3,
+          "position": 9.333333333
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%D7%A1%D7%A7%D7%95%D7%93%D7%94/",
+        "path": "/category/סקודה",
+        "title": "ארכיון סקודה - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 3,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 1
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%D7%A4%D7%95%D7%9C%D7%A7%D7%A1%D7%95%D7%95%D7%92%D7%9F/",
+        "path": "/category/פולקסווגן",
+        "title": "ארכיון פולקסווגן - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 2
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%D7%A8%D7%9B%D7%91%D7%99%D7%9D-%D7%97%D7%A9%D7%9E%D7%9C%D7%99%D7%99%D7%9D/",
+        "path": "/category/רכבים-חשמליים",
+        "title": "ארכיון רכבים חשמליים - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 7
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%D7%A8%D7%9B%D7%91-%D7%9E%D7%A9%D7%A4%D7%97%D7%94/",
+        "path": "/category/רכב-משפחה",
+        "title": "ארכיון רכבים משפחתיים - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 7
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%D7%A6%D7%95%D7%A8-%D7%A7%D7%A9%D7%A8-%D7%93%D7%9C%D7%99%D7%94/",
+        "path": "/צור-קשר-דליה",
+        "title": "צור קשר דליה - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 3,
+          "position": 8
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%D7%9E%D7%94-%D7%A2%D7%95%D7%9E%D7%93-%D7%9E/",
+        "path": "/מה-עומד-מ",
+        "title": "מה עומד מ - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:12",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 8
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%D7%A2%D7%9E%D7%95%D7%93-%D7%A1%D7%A4%D7%A7/",
+        "path": "/עמוד-ספק",
+        "title": "עמוד ספק עע - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 6
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
+        "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
+        "title": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 22,
+          "position": 35.18181818
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a2%d7%93-1500%e2%82%aa/",
+        "path": "/category/עד-1500₪",
+        "title": "ארכיון עד 1,500₪ - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "images_without_alt:2",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%91%d7%99%d7%9f-1500-2500%e2%82%aa/",
+        "path": "/category/בין-1500-2500₪",
+        "title": "ארכיון בין 1,500-2,500₪ - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%99%d7%95%d7%a0%d7%93%d7%90%d7%99/",
+        "path": "/category/יונדאי",
+        "title": "ארכיון יונדאי - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%D7%A8%D7%A0%D7%95/",
+        "path": "/category/רנו",
+        "title": "ארכיון רנו - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 3,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 1,
+          "position": 35
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%9b%d7%9c-%d7%94%d7%a8%d7%9b%d7%91%d7%99%d7%9d/",
+        "path": "/category/כל-הרכבים",
+        "title": "ארכיון כל הרכבים - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a8%d7%9b%d7%91-%d7%9e%d7%a9%d7%a4%d7%97%d7%94/",
+        "path": "/category/רכב-משפחה",
+        "title": "ארכיון רכבים משפחתיים - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%9e%d7%a9%d7%a4%d7%97%d7%aa%d7%99%d7%99%d7%9d/",
+        "path": "/category/רכבים-משפחתיים",
+        "title": "ארכיון רכבים משפחתיים - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a8%d7%9b%d7%91-%d7%9e%d7%a0%d7%94%d7%9c%d7%99%d7%9d/",
+        "path": "/category/רכב-מנהלים",
+        "title": "ארכיון רכב מנהלים - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%a7%d7%98%d7%a0%d7%99%d7%9d/",
+        "path": "/category/רכבים-קטנים",
+        "title": "ארכיון רכבים קטנים - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%9e%d7%a1%d7%97%d7%a8%d7%99%d7%99%d7%9d/",
+        "path": "/category/רכבים-מסחריים",
+        "title": "ארכיון רכבים מסחריים - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%92%d7%99%d7%a4%d7%95%d7%a0%d7%99%d7%9d/",
+        "path": "/category/גיפונים",
+        "title": "ארכיון ג'יפונים - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%97%d7%a9%d7%9e%d7%9c%d7%99%d7%99%d7%9d/",
+        "path": "/category/רכבים-חשמליים",
+        "title": "ארכיון רכבים חשמליים - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%91%d7%99%d7%9f-2500-3500%e2%82%aa/",
+        "path": "/category/בין-2500-3500₪",
+        "title": "ארכיון בין 2,500-3,500₪ - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%90%d7%95%d7%a4%d7%9c/",
+        "path": "/category/אופל",
+        "title": "ארכיון אופל - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 3,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%90%d7%99%d7%a0%d7%a4%d7%99%d7%a0%d7%99%d7%98%d7%99/",
+        "path": "/category/אינפיניטי",
+        "title": "ארכיון אינפיניטי - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%90%d7%99%d7%a1%d7%95%d7%96%d7%95/",
+        "path": "/category/איסוזו",
+        "title": "ארכיון איסוזו - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%90%d7%9c%d7%a4%d7%90-%d7%a8%d7%95%d7%9e%d7%99%d7%90%d7%95/",
+        "path": "/category/אלפא-רומיאו",
+        "title": "ארכיון אלפא רומיאו - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%91%d7%99%d7%95%d7%90%d7%99%d7%a7/",
+        "path": "/category/ביואיק",
+        "title": "ארכיון ביואיק - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%92%d7%99%d7%a4/",
+        "path": "/category/גיפ",
+        "title": "ארכיון ג'יפ - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%92%d7%a8%d7%99%d7%99%d7%98-%d7%95%d7%95%d7%9c/",
+        "path": "/category/גרייט-וול",
+        "title": "ארכיון גרייט וול - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%93%d7%90%d7%a6%d7%99%d7%94/",
+        "path": "/category/דאציה",
+        "title": "ארכיון דאצ'יה - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%93%d7%99%d7%99%d7%94%d7%95/",
+        "path": "/category/דייהו",
+        "title": "ארכיון דייהו - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%93%d7%99%d7%99%d7%94%d7%98%d7%a1%d7%95/",
+        "path": "/category/דייהטסו",
+        "title": "ארכיון דייהטסו - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%94%d7%90%d7%9e%d7%a8/",
+        "path": "/category/האמר",
+        "title": "ארכיון האמר - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%94%d7%95%d7%a0%d7%93%d7%94/",
+        "path": "/category/הונדה",
+        "title": "ארכיון הונדה - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%95%d7%95%d7%9c%d7%95%d7%95/",
+        "path": "/category/וולוו",
+        "title": "ארכיון וולוו - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%98%d7%95%d7%99%d7%95%d7%98%d7%94/",
+        "path": "/category/טויוטה",
+        "title": "ארכיון טויוטה - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%99%d7%92%d7%95%d7%90%d7%a8/",
+        "path": "/category/יגואר",
+        "title": "ארכיון יגואר - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%9c%d7%a0%d7%93-%d7%a8%d7%95%d7%91%d7%a8/",
+        "path": "/category/לנד-רובר",
+        "title": "ארכיון לנד רובר - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%9c%d7%a0%d7%a6%d7%99%d7%94/",
+        "path": "/category/לנציה",
+        "title": "ארכיון לנצ'יה - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%9c%d7%a7%d7%a1%d7%95%d7%a1/",
+        "path": "/category/לקסוס",
+        "title": "ארכיון לקסוס - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%9e%d7%90%d7%96%d7%93%d7%94/",
+        "path": "/category/מאזדה",
+        "title": "ארכיון מאזדה - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%9e%d7%99%d7%a6%d7%95%d7%91%d7%99%d7%a9%d7%99/",
+        "path": "/category/מיצובישי",
+        "title": "ארכיון מיצובישי - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%9e%d7%a8%d7%a6%d7%93%d7%a1/",
+        "path": "/category/מרצדס",
+        "title": "ארכיון מרצדס - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a0%d7%99%d7%a1%d7%90%d7%9f/",
+        "path": "/category/ניסאן",
+        "title": "ארכיון ניסאן - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a1%d7%a0%d7%92%d7%99%d7%95%d7%a0%d7%92/",
+        "path": "/category/סנגיונג",
+        "title": "ארכיון סנגיונג - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a1%d7%95%d7%91%d7%90%d7%a8%d7%95/",
+        "path": "/category/סובארו",
+        "title": "ארכיון סובארו - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a1%d7%95%d7%96%d7%95%d7%a7%d7%99/",
+        "path": "/category/סוזוקי",
+        "title": "ארכיון סוזוקי - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a1%d7%99%d7%90%d7%98/",
+        "path": "/category/סיאט",
+        "title": "ארכיון סיאט - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a1%d7%99%d7%98%d7%a8%d7%95%d7%90%d7%9f/",
+        "path": "/category/סיטרואן",
+        "title": "ארכיון סיטרואן - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a1%d7%9e%d7%90%d7%a8%d7%98/",
+        "path": "/category/סמארט",
+        "title": "ארכיון סמארט - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a1%d7%a7%d7%95%d7%93%d7%94/",
+        "path": "/category/סקודה",
+        "title": "ארכיון סקודה - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a4%d7%95%d7%9c%d7%a7%d7%a1%d7%95%d7%95%d7%92%d7%9f/",
+        "path": "/category/פולקסווגן",
+        "title": "ארכיון פולקסווגן - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a4%d7%95%d7%a8%d7%93/",
+        "path": "/category/פורד",
+        "title": "ארכיון פורד - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a4%d7%95%d7%a8%d7%a9%d7%94/",
+        "path": "/category/פורשה",
+        "title": "ארכיון פורשה - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 3,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a4%d7%99%d7%90%d7%98/",
+        "path": "/category/פיאט",
+        "title": "ארכיון פיאט - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a4%d7%99%d7%92%d7%95/",
+        "path": "/category/פיגו",
+        "title": "ארכיון פיג'ו - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a7%d7%90%d7%93%d7%99%d7%9c%d7%a7/",
+        "path": "/category/קאדילק",
+        "title": "ארכיון קאדילק - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a7%d7%99%d7%94/",
+        "path": "/category/קיה",
+        "title": "ארכיון קיה - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a7%d7%a8%d7%99%d7%99%d7%96%d7%9c/",
+        "path": "/category/קרייזל",
+        "title": "ארכיון קרייזל - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a8%d7%a0%d7%95/",
+        "path": "/category/רנו",
+        "title": "ארכיון רנו - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/%d7%a9%d7%91%d7%a8%d7%95%d7%9c%d7%98/",
+        "path": "/category/שברולט",
+        "title": "ארכיון שברולט - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/elementor-2194/",
+        "path": "/elementor-2194",
+        "title": "ערך נוסף - דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/category/mg/",
+        "path": "/category/mg",
+        "title": "ארכיון MG - דליה",
+        "type": "category",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "",
+        "issues": [
+          "missing_meta_description",
+          "missing_h1"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/elementor-5000/",
+        "path": "/elementor-5000",
+        "title": "Elementor #5000 - דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:2"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/hyundai_tucson_diesel/",
+        "path": "/hyundai_tucson_diesel",
+        "title": "יונדאי טוסון - דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 4,
+          "position": 17.5
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/seat_tarraco/",
+        "path": "/seat_tarraco",
+        "title": "סיאט טראקו פלאג-אין - דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 3,
+          "position": 27
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/skoda_enyaq/",
+        "path": "/skoda_enyaq",
+        "title": "סקודה אניאק - דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 4,
+          "position": 51.25
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/santa-fe_hybrid/",
+        "path": "/santa-fe_hybrid",
+        "title": "יונדאי סנטה פה היבריד - דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 2,
+          "position": 17.5
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a6%d7%95%d7%a8-%d7%a7%d7%a9%d7%a8-%d7%93%d7%9c%d7%99%d7%94/",
+        "path": "/צור-קשר-דליה",
+        "title": "צור קשר דליה - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%9e%d7%94-%d7%a2%d7%95%d7%9e%d7%93-%d7%9e/",
+        "path": "/מה-עומד-מ",
+        "title": "מה עומד מ - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:12",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a6%d7%95%d7%a8-%d7%a7%d7%a9%d7%a8-%d7%93%d7%9c%d7%99%d7%94/",
+        "path": "/צור-קשר-דליה",
+        "title": "צור קשר דליה - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%94%d7%a9%d7%99%d7%a8%d7%95%d7%aa%d7%99%d7%9d-%d7%a9%d7%9c%d7%a0%d7%95/",
+        "path": "/השירותים-שלנו",
+        "title": "השירותים שלנו - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:2",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/79-shekels/",
+        "path": "/79-shekels",
+        "title": "79 ש\"ח - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "images_without_alt:13"
+        ],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": {
+          "clicks": 0,
+          "impressions": 4,
+          "position": 18
+        },
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/elementor-2080/",
+        "path": "/elementor-2080",
+        "title": "קצת עלינו - דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/elementor-4553/",
+        "path": "/elementor-4553",
+        "title": "Elementor #4553 - דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%9c%d7%a7%d7%95%d7%97-%d7%a4%d7%a8%d7%98%d7%99-%d7%95%d7%a2%d7%a1%d7%a7%d7%99-15/",
+        "path": "/שאלון-לקוח-פרטי-ועסקי-15",
+        "title": "שאלון לקוח פרטי ועסקי (#15) - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%9e%d7%92%d7%95%d7%95%d7%9f-%d7%97%d7%91%d7%99%d7%9c%d7%95%d7%aa/",
+        "path": "/מגוון-חבילות",
+        "title": "מגוון חבילות - דליה",
+        "type": "content",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%97%d7%9b%d7%9e%d7%94-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%a9%d7%9c%d7%99%d7%98%d7%94-%d7%a1%d7%93%d7%a8-%d7%95/",
+        "path": "/תחזוקת-רכבים-חכמה-לעסקים-שליטה-סדר-ו",
+        "title": "תחזוקת רכבים חכמה לעסקים – שליטה, סדר וחיסכון - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "תחזוקת רכבים חכמה לעסקים – שליטה, סדר וחיסכון",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 7,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%97%d7%9b%d7%9d-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%9e%d7%a2%d7%a8%d7%9b%d7%aa/",
+        "path": "/ניהול-תחזוקת-רכבים-חכם-לעסקים-מערכת",
+        "title": "ניהול תחזוקת רכבים חכם לעסקים – מערכת, שירות וליווי במקום אחד - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "ניהול תחזוקת רכבים חכם לעסקים – מערכת, שירות וליווי במקום אחד",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%a6%d7%99-%d7%a8%d7%9b%d7%91-%d7%97%d7%9b%d7%9d-%d7%9c%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%a9%d7%9c%d7%99%d7%98%d7%94-%d7%a1%d7%93%d7%a8-%d7%95%d7%a9%d7%a7/",
+        "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
+        "title": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "images_without_alt:1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%90%d7%95%d7%a1%d7%a3-%d7%a0%d7%94%d7%92/",
+        "path": "/אוסף-נהג",
+        "title": "אוסף נהג עע - דליה",
+        "type": "other",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%90%d7%a0%d7%a9%d7%99-%d7%a7%d7%a9%d7%a8/",
+        "path": "/אנשי-קשר",
+        "title": "אנשי קשר עע - דליה",
+        "type": "other",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%93%d7%99%d7%95%d7%95%d7%97-%d7%aa%d7%a7%d7%9c%d7%94/",
+        "path": "/דיווח-תקלה",
+        "title": "דיווח תקלה עע - דליה",
+        "type": "other",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1",
+          "canonical_mismatch"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/elementor-4643/",
+        "path": "/elementor-4643",
+        "title": "Elementor #4643 עע - דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "Elementor #4643 עע",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [],
+        "seoScore": 4,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/service/",
+        "path": "/service",
+        "title": "מימון, שירות ואחריות - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/how-it-works/",
+        "path": "/how-it-works",
+        "title": "איך זה עובד? - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%94%d7%90%d7%9d-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%9e%d7%a9%d7%aa%d7%9c%d7%9d-%d7%9b%d7%a9%d7%90%d7%99%d7%9f-%d7%96%d7%9e%d7%9f-%d7%9c%d7%94%d7%aa%d7%a2/",
+        "path": "/האם-ליסינג-תפעולי-משתלם-כשאין-זמן-להתע",
+        "title": "האם ליסינג תפעולי משתלם? כשאין זמן להתעסק בתחזוקת רכבים - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "האם ליסינג תפעולי משתלם? כשאין זמן להתעסק בתחזוקת רכבים",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%94%d7%90%d7%9d-%d7%9b%d7%93%d7%90%d7%99-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%94%d7%90%d7%9e%d7%aa-%d7%a9%d7%a2%d7%a1%d7%a7%d7%99%d7%9d-%d7%9c%d7%90-%d7%aa/",
+        "path": "/האם-כדאי-ליסינג-תפעולי-האמת-שעסקים-לא-ת",
+        "title": "האם כדאי ליסינג תפעולי? האמת שעסקים לא תמיד שומעים - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "האם כדאי ליסינג תפעולי? האמת שעסקים לא תמיד שומעים",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%90%d7%99%d7%9a-%d7%97%d7%95%d7%a1%d7%9b%d7%99%d7%9d-%d7%91%d7%a2%d7%9c%d7%95%d7%99%d7%95%d7%aa-%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a6%d7%99%d7%99-%d7%a8%d7%9b%d7%91/",
+        "path": "/איך-חוסכים-בעלויות-תחזוקת-ציי-רכב",
+        "title": "איך חוסכים בעלויות תחזוקת ציי רכב? - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "איך חוסכים בעלויות תחזוקת ציי רכב?",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 7,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%aa%d7%a4%d7%a2%d7%95%d7%9c-%d7%a8%d7%9b%d7%91%d7%99%d7%9d-%d7%9c%d7%97%d7%91%d7%a8%d7%95%d7%aa/",
+        "path": "/תפעול-רכבים-לחברות",
+        "title": "תפעול רכבים לחברות - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "תפעול רכבים לחברות",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 7,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%9e%d7%aa%d7%9c%d7%91%d7%98%d7%99%d7%9d-%d7%91%d7%99%d7%9f-%d7%9c%d7%99%d7%a1%d7%99%d7%a0%d7%92-%d7%aa%d7%a4%d7%a2%d7%95%d7%9c%d7%99-%d7%9c%d7%a0%d7%99%d7%94%d7%95/",
+        "path": "/שאלון-מתלבטים-בין-ליסינג-תפעולי-לניהו",
+        "title": "שאלון מתלבטים בין ליסינג תפעולי לניהול עצמאי של הרכבים? - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "שירות חדש בישראל לניהול ותחזוקה  רכבים חכמה\nבלי ליסינג תפעולי יקר  לעסקים ולקוחות פרטים",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%a9%d7%90%d7%9c%d7%95%d7%9f-%d7%a7%d7%a6%d7%a8-%d7%9c%d7%94%d7%aa%d7%90%d7%9e%d7%aa-%d7%a4%d7%aa%d7%a8%d7%95%d7%9f-%d7%a0%d7%99%d7%94%d7%95%d7%9c-%d7%95%d7%aa%d7%97%d7%96%d7%95%d7%a7%d7%aa-%d7%a8/",
+        "path": "/שאלון-קצר-להתאמת-פתרון-ניהול-ותחזוקת-ר",
+        "title": "שאלון קצר להתאמת פתרון ניהול ותחזוקת רכבים - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "שאלון קצר להתאמת פתרון ניהול ותחזוקת רכבים",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/4640-2/",
+        "path": "/4640-2",
+        "title": "- דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/card-provider-customer/",
+        "path": "/card-provider-customer",
+        "title": "card/provider customer עע - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/elantra_n_line/",
+        "path": "/elantra_n_line",
+        "title": "N-LINE יונדאי אלנטרה - דליה",
+        "type": "vehicle",
+        "httpStatus": 200,
+        "h1": "",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "missing_h1"
+        ],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%91%d7%93%d7%99%d7%a7%d7%94-%d7%9c%d7%9e%d7%97%d7%99%d7%a7%d7%94/",
+        "path": "/בדיקה-למחיקה",
+        "title": "בדיקה למחיקה - דליה",
+        "type": "other",
+        "httpStatus": 200,
+        "h1": "בדיקה למחיקה",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/%d7%94%d7%9e%d7%a2%d7%a8%d7%9b%d7%aa-%d7%95%d7%94%d7%90%d7%a4%d7%9c%d7%99%d7%a7%d7%a6%d7%99%d7%94-%d7%a9%d7%9c-%d7%93%d7%9c%d7%99%d7%94/",
+        "path": "/המערכת-והאפליקציה-של-דליה",
+        "title": "המערכת והאפליקציה של דליה - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "מערכת מתקדמת לניהול, בקרה ותפעול צי רכב",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [
+          "canonical_mismatch"
+        ],
+        "seoScore": 6,
+        "priority": "בינוני",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/my-account/",
+        "path": "/my-account",
+        "title": "My Account - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "My Account",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [],
+        "seoScore": 6,
+        "priority": "בינוני",
+        "gsc": null,
+        "ga4Views": 0
+      },
+      {
+        "url": "https://dalia-c.com/registration/",
+        "path": "/registration",
+        "title": "Registration - דליה",
+        "type": "business",
+        "httpStatus": 200,
+        "h1": "Registration",
+        "metaDescription": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+        "issues": [],
+        "seoScore": 5,
+        "priority": "גבוה",
+        "gsc": null,
+        "ga4Views": 0
+      }
+    ]
+  }
+}

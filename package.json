@@ -59,6 +59,8 @@
     "project-001:gsc-diagnose": "node scripts/project-001/project-001-gsc-diagnose.mjs",
     "project-001:ga4-url-audit": "node scripts/project-001/project-001-ga4-url-audit.mjs",
     "project-001:site-crawl": "node scripts/project-001/project-001-site-crawl.mjs",
+    "project-001:export-site-pages": "node scripts/project-001/export-site-pages-staging.mjs",
+    "dalia:site-audit": "node scripts/dalia-site-full-audit.mjs",
     "project-001:site-infra": "node scripts/project-001/project-001-site-infra.mjs",
     "project-001:indexing-inspect": "node scripts/project-001/project-001-indexing-inspect.mjs",
     "project-001:competitors": "node scripts/project-001/project-001-competitors.mjs",

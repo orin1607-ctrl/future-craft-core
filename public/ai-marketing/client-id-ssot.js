@@ -17,8 +17,22 @@
   /** נתיב יחיד לנתוני Google אחרי sync מהבית */
   var DATA_PATHS = {
     dashboard: 'project-001/dashboard.json',
-    siteCrawl: 'project-001/site-crawl.json',
+    siteCrawl: 'project-001/site-crawl-lite.json',
+    sitePagesIndex: 'project-001/site-pages-index.json',
+    siteCrawlFull: 'docs/audit-reports/dalia-site-full-audit/site-crawl-full.json',
     auditDashboard: 'docs/audit-reports/project-001/dashboard-export.json',
+  };
+
+  var PRIMARY_CAMPAIGN = {
+    id: 'campaign-dalia-seo-primary',
+    name: 'דליה — קידום dalia-c.com',
+    owner: 'יוני אטיאס',
+    projectId: 'project001aimarketing',
+    projectName: 'Project 001 — AI Marketing',
+    site: 'dalia-c.com',
+    channel: 'seo',
+    status: 'active',
+    type: 'organic_seo',
   };
 
   function applyFlowContext(overrides) {
@@ -60,6 +74,7 @@
   window.ClientIdSsot = {
     OFFICIAL: OFFICIAL,
     DATA_PATHS: DATA_PATHS,
+    PRIMARY_CAMPAIGN: PRIMARY_CAMPAIGN,
     applyFlowContext: applyFlowContext,
     isOfficialClientId: isOfficialClientId,
     normalizeClientId: normalizeClientId,

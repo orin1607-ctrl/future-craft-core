@@ -22,7 +22,33 @@
   var PENDING = 'ממתין לחיבור';
   var NO_DATA = '—';
 
-  var state = { dashboard: null, crawl: null, loadedAt: null };
+  var state = { dashboard: null, crawl: null, pagesIndex: null, loadedAt: null };
+
+  function primaryCampaign() {
+    var c = (state.pagesIndex && state.pagesIndex.campaign) ||
+      (window.ClientIdSsot && ClientIdSsot.PRIMARY_CAMPAIGN) || {
+        id: 'campaign-dalia-seo-primary',
+        name: 'דליה — קידום dalia-c.com',
+        owner: SITE.superAdmin,
+        projectId: 'project001aimarketing',
+        projectName: 'Project 001 — AI Marketing',
+        site: SITE.domain,
+        channel: 'seo',
+        status: 'active',
+        type: 'organic_seo',
+      };
+    return {
+      id: c.id,
+      name: c.name,
+      status: c.status || 'active',
+      channel: c.channel || 'seo',
+      campaign_type: c.type || 'organic_seo',
+      site: c.site || SITE.domain,
+      owner: c.owner || SITE.superAdmin,
+      project_id: c.projectId || 'project001aimarketing',
+      start_date: state.loadedAt,
+    };
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -51,7 +77,10 @@
     var path = rel;
     if (window.ClientIdSsot && ClientIdSsot.DATA_PATHS) {
       if (rel === 'project-001/dashboard.json') path = ClientIdSsot.DATA_PATHS.dashboard;
-      if (rel === 'project-001/site-crawl.json') path = ClientIdSsot.DATA_PATHS.siteCrawl;
+      if (rel === 'project-001/site-crawl.json' || rel === 'project-001/site-crawl-lite.json') {
+        path = ClientIdSsot.DATA_PATHS.siteCrawl;
+      }
+      if (rel === 'project-001/site-pages-index.json') path = ClientIdSsot.DATA_PATHS.sitePagesIndex;
     }
     return fetch(assetUrl(path) + '?t=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -83,7 +112,9 @@
       customer: { id: SITE.clientId, name: SITE.company, service_type: 'fleet_and_marketing', status: 'active' },
       profile: { website: SITE.url, setup_status: 'live' },
       sites: [{ name: SITE.domain, domain: SITE.domain, site_url: SITE.url, site_type: 'primary', status: 'active' }],
-      campaigns: [],
+      campaigns: [primaryCampaign()],
+      sitePages: (state.pagesIndex && state.pagesIndex.pages && state.pagesIndex.pages.business) ||
+        (state.crawl && state.crawl.crawl && state.crawl.crawl.pages) || [],
       connections: connections,
       ai: {
         initial_goals: (raw.aiSeoSuggestions || []).slice(0, 5).map(function (s, i) {
@@ -118,6 +149,45 @@
         el.innerHTML = '<option value="' + esc(SITE.domain) + '" selected>' + esc(SITE.domain) + '</option>';
       }
     });
+
+    var camp = primaryCampaign();
+    var campSelectIds = ['sf-campaign', 'gf-campaign', 'act-campaign', 'hist-campaign', 'ai-campaign', 'rep-campaign', 'coco-central-campaign'];
+    campSelectIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el || el.tagName !== 'SELECT') return;
+      el.innerHTML = '<option value="">כל הקמפיינים</option>' +
+        '<option value="' + esc(camp.id) + '" selected>' + esc(camp.name) + '</option>';
+    });
+
+    var projSelectIds = ['sf-project', 'gf-project', 'ag-project', 'act-project'];
+    projSelectIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el || el.tagName !== 'SELECT') return;
+      el.innerHTML = '<option value="">כל הפרויקטים</option>' +
+        '<option value="' + esc(camp.project_id) + '" selected>' + esc(camp.project_id === 'project001aimarketing' ? 'Project 001 — AI Marketing' : camp.project_id) + '</option>';
+    });
+
+    var pages = (state.pagesIndex && state.pagesIndex.pages && state.pagesIndex.pages.business) ||
+      (state.crawl && state.crawl.crawl && state.crawl.crawl.pages) || [];
+    var pageSelectIds = ['sf-page', 'gf-page', 'act-page', 'hist-page', 'ai-page', 'rep-page'];
+    pageSelectIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el || el.tagName !== 'SELECT') return;
+      var opts = '<option value="">כל העמודים</option>';
+      pages.slice(0, 40).forEach(function (p) {
+        var path = p.path || p.url || '';
+        try { path = path.replace(/^https?:\/\/dalia-c\.com/i, '') || '/'; } catch (e) { /* ignore */ }
+        var val = path.replace(/^\//, '') || 'home';
+        var label = (p.title || path || val).slice(0, 48);
+        opts += '<option value="' + esc(val) + '">' + esc(label) + '</option>';
+      });
+      el.innerHTML = opts;
+    });
+
+    var chEl = document.getElementById('sf-channel');
+    if (chEl && chEl.tagName === 'SELECT') {
+      chEl.value = 'seo';
+    }
     ['gf-domain', 'ag-domain', 'act-domain'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.value = SITE.domain;
@@ -298,12 +368,18 @@
       ClientIdSsot.applyFlowContext();
     }
     if (!window.COCO) window.COCO = {};
+    var camp = primaryCampaign();
     COCO.flowContext = Object.assign(COCO.flowContext || {}, {
       clientId: SITE.clientId,
       clientName: SITE.company,
       company: SITE.company,
       site: SITE.domain,
       domain: SITE.domain,
+      project: camp.project_id,
+      projectName: camp.project_id === 'project001aimarketing' ? 'Project 001 — AI Marketing' : camp.project_id,
+      campaign: camp.id,
+      campaignName: camp.name,
+      channel: 'seo',
     });
     if (window.CocoClaude && CocoClaude.setClientId) CocoClaude.setClientId(SITE.clientId);
     applySiteLabels();
@@ -494,10 +570,13 @@
   function initOfficial() {
     return Promise.all([
       fetchJson('project-001/dashboard.json'),
-      fetchJson('project-001/site-crawl.json'),
+      fetchJson('project-001/site-crawl-lite.json'),
+      fetchJson('project-001/site-pages-index.json'),
     ]).then(function (res) {
       state.dashboard = res[0];
-      state.crawl = res[1];
+      state.crawl = res[1] || res[2] ? { crawl: { pageCount: (res[2] && res[2].summary && res[2].summary.businessAndContent) || 0, pages: (res[2] && res[2].pages && res[2].pages.business) || [] } } : null;
+      state.pagesIndex = res[2];
+      if (res[1] && res[1].crawl) state.crawl = res[1];
       state.loadedAt = new Date().toISOString();
       bindOfficialContext();
       applySiteLabels();
@@ -510,6 +589,9 @@
       }
 
       var bundle = buildLiveBundle(state.dashboard);
+      if (window.CocoClaude && CocoClaude.bindClientFromDalia) {
+        CocoClaude.bindClientFromDalia(bundle);
+      }
       if (window.CocoData) {
         if (CocoData.setBundle) CocoData.setBundle(bundle);
         if (CocoData.bindAll) CocoData.bindAll();
