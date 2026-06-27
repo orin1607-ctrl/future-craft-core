@@ -76,6 +76,7 @@ import {
 } from "@/pages/RequiredFieldsSettings";
 import AdminModulesHub from "@/pages/admin/AdminModulesHub";
 import VehicleModuleAdmin from "@/pages/admin/VehicleModuleAdmin";
+import VehicleTypesSettings from "@/pages/admin/VehicleTypesSettings";
 
 // New pages
 import Companions from "@/pages/Companions";
@@ -188,6 +189,7 @@ function AppRoutes() {
         <Route path="/admin/modules" element={<AdminModulesHub />} />
         <Route path="/admin/modules/vehicles" element={<VehicleModuleAdmin />} />
         <Route path="/admin/modules/vehicles/required-fields" element={<VehicleRequiredFieldsPage />} />
+        <Route path="/admin/modules/vehicles/vehicle-types" element={<VehicleTypesSettings />} />
         <Route path="/admin/modules/drivers" element={<ModuleAdminHub module="drivers" />} />
         <Route path="/admin/modules/drivers/required-fields" element={<ModuleRequiredFieldsPage module="drivers" />} />
         <Route path="/admin/modules/customers" element={<ModuleAdminHub module="customers" />} />
@@ -200,6 +202,8 @@ function AppRoutes() {
         <Route path="/admin/modules/treatments/required-fields" element={<ModuleRequiredFieldsPage module="treatments" />} />
         <Route path="/admin/modules/insurance" element={<ModuleAdminHub module="insurance" />} />
         <Route path="/admin/modules/insurance/required-fields" element={<ModuleRequiredFieldsPage module="insurance" />} />
+        <Route path="/admin/modules/tasks" element={<ModuleAdminHub module="tasks" />} />
+        <Route path="/admin/modules/tasks/required-fields" element={<ModuleRequiredFieldsPage module="tasks" />} />
         <Route path="/required-fields" element={<Navigate to="/admin/modules/vehicles/required-fields" replace />} />
         <Route path="/fleet-managers" element={<FleetManagers />} />
         <Route path="/vehicles" element={<Vehicles />} />

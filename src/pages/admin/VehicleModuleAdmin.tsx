@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Car, Asterisk, ChevronLeft } from 'lucide-react';
+import { Car, Asterisk, ChevronLeft, Tags } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import HomeWorldCard from '@/components/home/HomeWorldCard';
 
@@ -9,6 +9,12 @@ const VEHICLE_ADMIN_ITEMS = [
     icon: Asterisk,
     title: 'שדות חובה בכרטיס רכב',
     subtitle: 'מספר רכב · רישיון · ביטוח חובה · מקיף · צד ג׳ · ועוד',
+  },
+  {
+    to: '/admin/modules/vehicles/vehicle-types',
+    icon: Tags,
+    title: 'סוגי רכב',
+    subtitle: 'רשימה לבחירה ב-Dalia New · dalia_form_config',
   },
 ];
 

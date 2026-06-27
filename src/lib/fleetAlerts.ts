@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
-import type { HomeAlertSlotPrefs, HomeAlertSlotType } from '@/hooks/useHomeAlertPrefs';
-import { HOME_ALERT_SLOT_LABELS } from '@/hooks/useHomeAlertPrefs';
+import type { HomeAlertSlotPrefs, HomeAlertSlotType } from '@/lib/homeAlertPrefsTypes';
+import { HOME_ALERT_SLOT_LABELS } from '@/lib/homeAlertPrefsTypes';
 
 export type FleetAlertSeverity = 'critical' | 'warning' | 'info';
 

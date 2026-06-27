@@ -3,6 +3,11 @@ import { Upload, ArrowRight, FileSpreadsheet, CheckCircle2, AlertTriangle } from
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { fetchCompanySettings } from '@/lib/companySettings';
+import { resolveVehicleApprovalStatus } from '@/lib/companyPolicyEnforcement';
+import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
+import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
+import { createApprovalRequest } from '@/lib/approvalQueue';
 
 interface ImportRow {
   internal_number?: string;
@@ -149,12 +154,40 @@ export default function VehicleImport() {
     let success = 0;
     let failed = 0;
     const errors: ImportError[] = [];
+    const companyName = user?.company_name || '';
+    const settings = await fetchCompanySettings(companyName);
+    const fieldOverrides = await fetchRequiredFieldsOverrides();
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       if (!row.license_plate) {
         failed++;
         errors.push({ row: i + 2, license_plate: '—', reason: 'חסר מספר רישוי' });
+        continue;
+      }
+
+      const requiredCheck = validateRequiredModuleFields(
+        'vehicles',
+        {
+          vehicle_plate: row.license_plate,
+          manufacturer: row.manufacturer || '',
+          internal_number: row.internal_number || '',
+        },
+        fieldOverrides,
+      );
+      if (!requiredCheck.ok) {
+        failed++;
+        errors.push({ row: i + 2, license_plate: row.license_plate, reason: requiredCheck.message });
+        continue;
+      }
+
+      if (settings?.require_insurance_docs && !row.insurance_expiry) {
+        failed++;
+        errors.push({
+          row: i + 2,
+          license_plate: row.license_plate,
+          reason: 'לפי הגדרות החברה — חובה תאריך/מסמך ביטוח בייבוא',
+        });
         continue;
       }
 
@@ -169,20 +202,41 @@ export default function VehicleImport() {
         last_service_date: row.last_inspection_date || null,
         next_service_date: row.next_inspection_date || null,
         notes: [row.engineer_report, row.notes].filter(Boolean).join(' | '),
-        company_name: user?.company_name || '',
+        company_name: companyName,
         created_by: user?.id,
         status: 'active',
         management_type: 'operational_leasing',
         odometer: 0,
+        approval_status: resolveVehicleApprovalStatus(settings, true, user?.role),
       };
 
-      const { error } = await supabase.from('vehicles').insert(payload);
+      const { data: inserted, error } = await supabase
+        .from('vehicles')
+        .insert(payload)
+        .select('id')
+        .single();
       if (error) {
         console.error('Import error for row', i + 2, row.license_plate, error);
         failed++;
         errors.push({ row: i + 2, license_plate: row.license_plate, reason: error.message || 'שגיאת הכנסה' });
       } else {
         success++;
+        if (inserted?.id && payload.approval_status === 'pending_approval') {
+          try {
+            await createApprovalRequest({
+              companyName,
+              entityType: 'vehicle',
+              entityId: inserted.id,
+              actionType: 'vehicle_import',
+              vehiclePlate: row.license_plate,
+              description: `ייבוא CSV — ממתין לאישור`,
+              requestedBy: user?.id,
+              requestedByName: user?.full_name || '',
+            });
+          } catch (approvalErr) {
+            console.error('[VehicleImport] approval queue', approvalErr);
+          }
+        }
       }
     }
 

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sheet';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
+import { validateTaskFields } from '@/lib/taskFieldValidation';
 
 const CATEGORIES = [
   'ליקוי',
@@ -132,12 +133,25 @@ export default function VehicleActionModal({
 
     try {
       if (category === 'ליקוי') {
+        const title = `${subType}${description ? ` – ${description.slice(0, 40)}` : ''}`;
+        const taskDescription = description || subType;
+        const requiredCheck = await validateTaskFields({
+          vehicle_plate: vehicle.license_plate,
+          title,
+          description: taskDescription,
+          status: 'open',
+        });
+        if (!requiredCheck.ok) {
+          toast.error(requiredCheck.message);
+          setLoading(false);
+          return;
+        }
         ({ error } = await supabase.from('vehicle_tasks').insert({
           vehicle_id: vehicle.id,
           vehicle_plate: vehicle.license_plate,
           company_name: vehicle.company_name || user?.company_name || '',
-          title: `${subType}${description ? ` – ${description.slice(0, 40)}` : ''}`,
-          description: description || subType,
+          title,
+          description: taskDescription,
           status: 'open',
           created_by: user?.id,
         }));

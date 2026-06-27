@@ -9,6 +9,7 @@ import {
   validateVehicleAgainstCompanyPolicy,
 } from '@/lib/companyPolicyEnforcement';
 import { fetchCompanySettings } from '@/lib/companySettings';
+import { createApprovalRequest } from '@/lib/approvalQueue';
 import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
 import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
 import type { DaliaDoc } from '@/components/vehicles/vehicleNewDalia/VehicleNewFormDalia';
@@ -416,6 +417,19 @@ export async function persistDaliaVehicle(params: {
     userId: params.user.id,
     userName: params.user.full_name,
   });
+
+  if (isNewVehicle && payload.approval_status === 'pending_approval') {
+    await createApprovalRequest({
+      companyName,
+      entityType: 'vehicle',
+      entityId: vehicleId,
+      actionType: 'vehicle_create',
+      vehiclePlate: plate,
+      description: `רכב חדש ממתין לאישור: ${payload.manufacturer || ''} ${payload.model || ''}`.trim(),
+      requestedBy: params.user.id,
+      requestedByName: params.user.full_name || '',
+    });
+  }
 
   return { id: vehicleId, payload };
 }

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+import { validateTaskFields } from '@/lib/taskFieldValidation';
 import { Badge } from '@/components/ui/badge';
 import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
@@ -120,6 +121,18 @@ export default function VehicleTasks() {
 
   const confirmResolve = async () => {
     if (!resolveDialog) return;
+
+    const requiredCheck = await validateTaskFields({
+      vehicle_plate: resolveDialog.vehicle_plate,
+      title: resolveDialog.title,
+      description: resolveDialog.description || '',
+      status: 'resolved',
+      resolution_notes: resolutionNotes.trim(),
+    });
+    if (!requiredCheck.ok) {
+      toast.error(requiredCheck.message);
+      return;
+    }
     if (!resolutionNotes.trim()) {
       toast.error('יש לפרט מה התיקון שבוצע');
       return;

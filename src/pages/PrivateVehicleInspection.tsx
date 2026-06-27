@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
+import { validateTaskFields } from '@/lib/taskFieldValidation';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 
 interface VehicleBasic {
@@ -118,6 +119,20 @@ export default function PrivateVehicleInspection() {
 
     const defects = items.filter(i => i.status === 'defect');
     if (defects.length > 0) {
+      const plate = selectedVehicle?.license_plate || '';
+      for (const d of defects) {
+        const requiredCheck = await validateTaskFields({
+          vehicle_plate: plate,
+          title: `ליקוי: ${d.name}`,
+          description: d.notes || `ליקוי שנמצא בבדיקה תלת/חצי ${new Date().toLocaleDateString('he-IL')}`,
+          status: 'open',
+        });
+        if (!requiredCheck.ok) {
+          toast.error(requiredCheck.message);
+          setLoading(false);
+          return;
+        }
+      }
       const tasks = defects.map(d => ({
         vehicle_id: vehicleId,
         vehicle_plate: selectedVehicle?.license_plate || '',

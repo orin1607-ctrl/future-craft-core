@@ -9,6 +9,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
+import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
+import { createApprovalRequest } from '@/lib/approvalQueue';
 import { DocumentGallery } from '@/components/documents/DocumentViewer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ImageUpload from '@/components/ImageUpload';
@@ -581,6 +584,21 @@ function ServiceOrderForm({
 
   const handleSubmit = async () => {
     if (!isValid) return;
+
+    const fieldOverrides = await fetchRequiredFieldsOverrides();
+    const treatmentValues: Record<string, string> = {
+      vehicle_plate: vehiclePlate,
+      service_date: serviceDate || '',
+      description,
+      provider: vendorName,
+      odometer,
+    };
+    const requiredCheck = validateRequiredModuleFields('treatments', treatmentValues, fieldOverrides);
+    if (!requiredCheck.ok) {
+      toast.error(requiredCheck.message);
+      return;
+    }
+
     setLoading(true);
     const payload = {
       service_category: serviceCategory === 'אחר' ? otherCategory || 'אחר' : serviceCategory,
@@ -597,14 +615,34 @@ function ServiceOrderForm({
     };
 
     let error;
+    let newOrderId: string | null = null;
     if (editData) {
       ({ error } = await supabase.from('service_orders').update(payload).eq('id', editData.id));
     } else {
-      ({ error } = await supabase.from('service_orders').insert({
+      const res = await supabase.from('service_orders').insert({
         ...payload,
         created_by: user?.id,
         ordering_user: user?.full_name || '',
-      }));
+      }).select('id').single();
+      error = res.error;
+      newOrderId = res.data?.id ?? null;
+    }
+
+    if (!error && !editData && newOrderId) {
+      try {
+        await createApprovalRequest({
+          companyName: user?.company_name || '',
+          entityType: 'service_order',
+          entityId: newOrderId,
+          actionType: 'service_order_create',
+          vehiclePlate: vehiclePlate,
+          description: `${payload.service_category}: ${description}`.trim(),
+          requestedBy: user?.id,
+          requestedByName: user?.full_name || '',
+        });
+      } catch (approvalErr) {
+        console.error('[ServiceOrders] approval queue', approvalErr);
+      }
     }
 
     setLoading(false);

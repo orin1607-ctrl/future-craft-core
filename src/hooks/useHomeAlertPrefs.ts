@@ -1,68 +1,80 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  fetchHomeAlertPrefs,
+  parseLocalHomeAlertPrefs,
+  saveHomeAlertPrefs,
+} from '@/lib/homeAlertPrefsApi';
+import {
+  DEFAULT_HOME_ALERT_PREFS,
+  HOME_ALERT_PREFS_STORAGE_PREFIX,
+  type HomeAlertPrefs,
+  type HomeAlertSlotPrefs,
+  type HomeAlertSlotType,
+  HOME_ALERT_SLOT_LABELS,
+} from '@/lib/homeAlertPrefsTypes';
 
-export type HomeAlertSlotType =
-  | 'test'
-  | 'insurance'
-  | 'service'
-  | 'comprehensive_insurance'
-  | 'license'
-  | 'fault'
-  | 'service_order';
+export type { HomeAlertPrefs, HomeAlertSlotPrefs, HomeAlertSlotType };
+export { HOME_ALERT_SLOT_LABELS, DEFAULT_HOME_ALERT_PREFS };
 
-export interface HomeAlertSlotPrefs {
-  type: HomeAlertSlotType;
-  daysBefore: number;
-  targetDate?: string;
-  alertTime?: string;
-}
-
-export interface HomeAlertPrefs {
-  slots: [HomeAlertSlotPrefs, HomeAlertSlotPrefs, HomeAlertSlotPrefs];
-}
-
-export const HOME_ALERT_SLOT_LABELS: Record<HomeAlertSlotType, string> = {
-  test: 'טסט מתקרב',
-  insurance: 'ביטוח מתקרב',
-  service: 'טיפול תקופתי מתקרב',
-  comprehensive_insurance: 'ביטוח מקיף מתקרב',
-  license: 'רישיון נהיגה מתקרב',
-  fault: 'תקלות דחופות',
-  service_order: 'הזמנות שירות פתוחות',
-};
-
-export const DEFAULT_HOME_ALERT_PREFS: HomeAlertPrefs = {
-  slots: [
-    { type: 'test', daysBefore: 30 },
-    { type: 'insurance', daysBefore: 30 },
-    { type: 'service', daysBefore: 30 },
-  ],
-};
-
-const STORAGE_PREFIX = 'dalia_home_alerts_';
-
-function loadPrefs(userId: string): HomeAlertPrefs {
+function loadLocalPrefs(userId: string): HomeAlertPrefs {
   try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${userId}`);
-    if (!raw) return DEFAULT_HOME_ALERT_PREFS;
-    const parsed = JSON.parse(raw) as HomeAlertPrefs;
-    if (!parsed?.slots || parsed.slots.length !== 3) return DEFAULT_HOME_ALERT_PREFS;
-    return parsed;
+    const raw = localStorage.getItem(`${HOME_ALERT_PREFS_STORAGE_PREFIX}${userId}`);
+    return parseLocalHomeAlertPrefs(raw);
   } catch {
     return DEFAULT_HOME_ALERT_PREFS;
   }
 }
 
 export function useHomeAlertPrefs(userId: string | undefined) {
-  const [prefs, setPrefsState] = useState<HomeAlertPrefs>(() =>
-    userId ? loadPrefs(userId) : DEFAULT_HOME_ALERT_PREFS,
-  );
+  const [prefs, setPrefsState] = useState<HomeAlertPrefs>(DEFAULT_HOME_ALERT_PREFS);
+  const [loading, setLoading] = useState(Boolean(userId));
+
+  useEffect(() => {
+    if (!userId) {
+      setPrefsState(DEFAULT_HOME_ALERT_PREFS);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
+    (async () => {
+      const fromDb = await fetchHomeAlertPrefs(userId);
+      if (cancelled) return;
+
+      if (fromDb) {
+        setPrefsState(fromDb);
+        localStorage.setItem(`${HOME_ALERT_PREFS_STORAGE_PREFIX}${userId}`, JSON.stringify(fromDb));
+        setLoading(false);
+        return;
+      }
+
+      const local = loadLocalPrefs(userId);
+      setPrefsState(local);
+      setLoading(false);
+
+      try {
+        await saveHomeAlertPrefs(userId, local);
+      } catch (err) {
+        console.warn('[useHomeAlertPrefs] migrate local → DB failed', err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const setPrefs = useCallback(
     (next: HomeAlertPrefs) => {
       setPrefsState(next);
-      if (userId) {
-        localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(next));
-      }
+      if (!userId) return;
+
+      localStorage.setItem(`${HOME_ALERT_PREFS_STORAGE_PREFIX}${userId}`, JSON.stringify(next));
+      void saveHomeAlertPrefs(userId, next).catch((err) => {
+        console.warn('[useHomeAlertPrefs] save failed', err);
+      });
     },
     [userId],
   );
@@ -71,5 +83,8 @@ export function useHomeAlertPrefs(userId: string | undefined) {
     setPrefs(DEFAULT_HOME_ALERT_PREFS);
   }, [setPrefs]);
 
-  return useMemo(() => ({ prefs, setPrefs, resetPrefs }), [prefs, setPrefs, resetPrefs]);
+  return useMemo(
+    () => ({ prefs, setPrefs, resetPrefs, loading }),
+    [prefs, setPrefs, resetPrefs, loading],
+  );
 }

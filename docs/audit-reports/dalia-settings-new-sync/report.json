@@ -1,0 +1,118 @@
+{
+  "at": "2026-06-27T11:32:24.681Z",
+  "repository": "orin1607-ctrl/future-craft-core",
+  "branch": "main",
+  "staging_url": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "vercel_used": false,
+  "note": "לא נעשה שימוש ב-Vercel.",
+  "alignment_table": [
+    {
+      "domain": "Vehicles",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Vehicle Types",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Drivers",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Profiles",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Company Settings",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Documents",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Document Metadata",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Driver Notifications",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Tasks",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Service Orders",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Alerts",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Home Alert Prefs",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Fleet Managers",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    },
+    {
+      "domain": "Driver Dashboard",
+      "source": 1,
+      "target": 1,
+      "gap": 0,
+      "note": "Functional sync (hidden_buttons). Full Dalia New UI redesign is a separate project."
+    },
+    {
+      "domain": "Dalia Settings Hub",
+      "source": 1,
+      "target": 1,
+      "gap": 0
+    }
+  ],
+  "total_gaps": 0,
+  "zip_allowed": true,
+  "open_decisions": [
+    {
+      "id": "driver-dashboard-ui",
+      "status": "open",
+      "summary": "Driver Dashboard uses legacy card UI — not Dalia New CSS. Data/policy sync done; visual parity is a separate UI project."
+    }
+  ],
+  "checks": {
+    "approval_queue_wired": true,
+    "vehicle_import_sync": true,
+    "notification_log_db": true,
+    "vehicle_types_db": true,
+    "home_alert_prefs_db": true,
+    "tasks_required_fields": true
+  }
+}

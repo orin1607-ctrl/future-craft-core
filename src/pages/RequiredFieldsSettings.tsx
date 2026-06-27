@@ -21,6 +21,7 @@ const MODULE_ADMIN_PATHS: Record<RequiredFieldModule, { hub: string; label: stri
   documents: { hub: '/admin/modules/documents', label: 'מסמכים' },
   treatments: { hub: '/admin/modules/treatments', label: 'טיפולים' },
   insurance: { hub: '/admin/modules/insurance', label: 'ביטוחים' },
+  tasks: { hub: '/admin/modules/tasks', label: 'ליקויים / משימות' },
 };
 
 type BreadcrumbProps = {

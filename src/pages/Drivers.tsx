@@ -11,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
+import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
+import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { uploadDocument } from '@/lib/uploadDocument';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
@@ -418,6 +420,25 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
 
   const handleSubmit = async () => {
     if (!isValid) return;
+
+    const fieldOverrides = await fetchRequiredFieldsOverrides();
+    const driverValues: Record<string, string> = {
+      full_name: fullName,
+      phone,
+      email,
+      login_email: email,
+      password: isEdit ? 'unchanged' : password,
+      license_number: licenseNumber,
+      license_expiry: licenseExpiry || '',
+      id_number: idNumber,
+      company_name: user?.company_name || '',
+    };
+    const requiredCheck = validateRequiredModuleFields('drivers', driverValues, fieldOverrides);
+    if (!requiredCheck.ok) {
+      toast.error(requiredCheck.message);
+      return;
+    }
+
     setLoading(true);
 
     if (isEdit) {

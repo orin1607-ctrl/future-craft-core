@@ -17,6 +17,7 @@ import { toast } from '@/hooks/use-toast';
 import { Link as RouterLink } from 'react-router-dom';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { buildVehicleContextUrl } from '@/lib/entityNavContext';
+import { useHiddenButtons } from '@/hooks/useHiddenButtons';
 
 interface AssignedVehicle {
   id: string;
@@ -94,6 +95,7 @@ export default function DriverDashboard({
   managerView?: boolean;
 } = {}) {
   const { user } = useAuth();
+  const hiddenButtons = useHiddenButtons();
   const [loading, setLoading] = useState(true);
   const [vehicle, setVehicle] = useState<AssignedVehicle | null>(null);
   const [alerts, setAlerts] = useState<DriverAlert[]>([]);
@@ -451,9 +453,11 @@ export default function DriverDashboard({
         </section>
       )}
 
-      {/* Actions */}
+      {/* Actions — מסונכרן עם hidden_buttons מ-company_settings; UI נפרד מ-Dalia New */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {driverActions.map((action) => {
+        {driverActions
+          .filter((action) => !hiddenButtons.includes(action.link))
+          .map((action) => {
           const scopedPaths = ['/faults', '/accidents', '/service-orders', '/expenses'];
           const link =
             managerView && vehicle && scopedPaths.includes(action.link)

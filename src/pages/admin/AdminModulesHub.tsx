@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { LayoutGrid, Car, Users, Building2, AlertTriangle, FileText, Wrench, Shield, Settings2 } from 'lucide-react';
+import { LayoutGrid, Car, Users, Building2, AlertTriangle, FileText, Wrench, Shield, Settings2, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import HomeWorldCard from '@/components/home/HomeWorldCard';
 
@@ -45,6 +45,12 @@ const MODULE_HUBS = [
     icon: Shield,
     title: 'ביטוחים',
     subtitle: 'שדות חובה במודול ביטוח',
+  },
+  {
+    to: '/admin/modules/tasks',
+    icon: ClipboardList,
+    title: 'ליקויים / משימות',
+    subtitle: 'שדות חובה בפתיחת ליקוי',
   },
 ];
 

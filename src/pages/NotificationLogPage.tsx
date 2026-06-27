@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -37,6 +37,7 @@ import {
   type LogViewMode,
   type NotificationLogEntry,
 } from '@/lib/notificationLogMock';
+import { fetchNotificationLogEntries } from '@/lib/notificationLogService';
 import { buildMockPreviewMessage, type WhatsAppSendKind } from '@/lib/whatsappUiMock';
 
 const LOG_TABS: { id: LogTab; label: string; icon: typeof Bell }[] = [
@@ -166,11 +167,18 @@ export default function NotificationLogPage() {
   const [filterStatus, setFilterStatus] = useState<LogStatus | ''>('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [waDialog, setWaDialog] = useState<{ entry: NotificationLogEntry } | null>(null);
+  const [dbEntries, setDbEntries] = useState<NotificationLogEntry[]>([]);
+
+  useEffect(() => {
+    void fetchNotificationLogEntries().then(setDbEntries);
+  }, []);
+
+  const sourceEntries = dbEntries.length > 0 ? dbEntries : MOCK_LOG_ENTRIES;
 
   const scoped = viewMode !== 'general';
 
   const baseEntries = useMemo(() => {
-    let list = filterMockEntries(MOCK_LOG_ENTRIES, {
+    let list = filterMockEntries(sourceEntries, {
       viewMode,
       vehicleId,
       vehiclePlate,
@@ -188,7 +196,7 @@ export default function NotificationLogPage() {
       });
     }
     return list;
-  }, [viewMode, vehicleId, vehiclePlate, driverId, driverName, filterCompany, filterChannel, filterStatus, scoped]);
+  }, [sourceEntries, viewMode, vehicleId, vehiclePlate, driverId, driverName, filterCompany, filterChannel, filterStatus, scoped]);
 
   const activeEntries = useMemo(
     () => filterMockEntries(baseEntries, { timing: 'active' }),

@@ -26,6 +26,36 @@ const SETTINGS_SECTIONS = [
         title: 'כפתורים ומודולים',
         subtitle: 'ניהול רכבים · שדות חובה · מודולים לפי תחום',
       },
+      {
+        to: '/admin/modules/vehicles/required-fields',
+        icon: ShieldCheck,
+        title: 'שדות חובה — רכבים',
+        subtitle: 'סנכרון עם Dalia New · vehicles',
+      },
+      {
+        to: '/admin/modules/drivers/required-fields',
+        icon: ShieldCheck,
+        title: 'שדות חובה — נהגים',
+        subtitle: 'סנכרון עם טופס נהגים',
+      },
+      {
+        to: '/admin/modules/documents/required-fields',
+        icon: ShieldCheck,
+        title: 'שדות חובה — מסמכים',
+        subtitle: 'סנכרון עם העלאת מסמכים',
+      },
+      {
+        to: '/admin/modules/tasks/required-fields',
+        icon: ShieldCheck,
+        title: 'שדות חובה — ליקויים',
+        subtitle: 'סנכרון עם vehicle_tasks',
+      },
+      {
+        to: '/admin/modules/vehicles/vehicle-types',
+        icon: Car,
+        title: 'סוגי רכב',
+        subtitle: 'רשימת סוגים ל-Dalia New · dalia_form_config',
+      },
     ],
   },
   {
@@ -82,6 +112,12 @@ const SETTINGS_SECTIONS = [
         icon: Shield,
         title: 'הרשאות',
         subtitle: 'תפקידים וגישה',
+      },
+      {
+        to: '/fleet-managers',
+        icon: Users,
+        title: 'מנהלי צי',
+        subtitle: 'רשימה · צפייה בדשבורד נהג · לפי חברה',
       },
       {
         to: '/approval-settings',

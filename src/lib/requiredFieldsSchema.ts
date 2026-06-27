@@ -10,7 +10,8 @@ export type RequiredFieldModule =
   | 'accidents'
   | 'documents'
   | 'treatments'
-  | 'insurance';
+  | 'insurance'
+  | 'tasks';
 
 export interface RequiredFieldDefinition {
   key: string;
@@ -180,6 +181,15 @@ const INSURANCE_MODULE_FIELDS: RequiredFieldDefinition[] = [
   field('insurance_type', 'סוג ביטוח', 'פרטי ביטוח'),
 ];
 
+const TASK_FIELDS: RequiredFieldDefinition[] = [
+  field('vehicle_plate', 'מספר רכב', 'פרטי משימה', true),
+  field('title', 'כותרת / ליקוי', 'פרטי משימה', true),
+  field('description', 'תיאור', 'פרטי משימה'),
+  field('status', 'סטטוס', 'מעקב'),
+  field('follow_up_date', 'תאריך מעקב', 'מעקב'),
+  field('resolution_notes', 'פרטי תיקון', 'סגירה'),
+];
+
 export const REQUIRED_FIELD_MODULES: RequiredFieldModuleDef[] = [
   { key: 'vehicles', label: 'רכבים', fields: VEHICLE_FIELDS },
   { key: 'drivers', label: 'נהגים', fields: DRIVER_FIELDS },
@@ -188,6 +198,7 @@ export const REQUIRED_FIELD_MODULES: RequiredFieldModuleDef[] = [
   { key: 'documents', label: 'מסמכים', fields: DOCUMENT_FIELDS },
   { key: 'treatments', label: 'טיפולים', fields: TREATMENT_FIELDS },
   { key: 'insurance', label: 'ביטוחים', fields: INSURANCE_MODULE_FIELDS },
+  { key: 'tasks', label: 'ליקויים / משימות', fields: TASK_FIELDS },
 ];
 
 const MODULE_MAP = Object.fromEntries(

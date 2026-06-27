@@ -27,6 +27,8 @@ import {
   formatVehiclePersistError,
   type DaliaPersistExtras,
 } from '@/lib/daliaVehiclePersist';
+import { useVehicleTypes } from '@/hooks/useVehicleTypes';
+import { VEHICLE_TYPE_OTHER_ID } from '@/lib/vehicleTypesConfig';
 
 export type DaliaDoc = {
   category: string;
@@ -116,6 +118,7 @@ function VehicleNewFormDaliaInner({
 }: VehicleNewFormDaliaProps) {
   const { user } = useAuth();
   const requiredFields = useRequiredFieldsOptional();
+  const { types: vehicleTypes } = useVehicleTypes();
   const { getValue, setValue, setValues, values } = useDaliaFormValuesRequired();
   const formRef = useRef<HTMLFormElement>(null);
   const [openSecs, setOpenSecs] = useState<Record<string, boolean>>({ sec1: true });
@@ -134,6 +137,21 @@ function VehicleNewFormDaliaInner({
   const [summaryHtml, setSummaryHtml] = useState('לחץ על בדוק נתונים כדי לראות סיכום.');
   const [pledgeOpen, setPledgeOpen] = useState<Record<string, boolean>>({});
   const [loanOpen, setLoanOpen] = useState<Record<string, boolean>>({});
+  const [vehicleTypeCustom, setVehicleTypeCustom] = useState('');
+
+  const vehicleTypeSelectValue = useMemo(() => {
+    const stored = getValue('vehicle_type') || '';
+    const match = vehicleTypes.find((t) => t.label === stored || t.id === stored);
+    if (match) return match.id;
+    if (stored) return VEHICLE_TYPE_OTHER_ID;
+    return '';
+  }, [getValue, vehicleTypes]);
+
+  useEffect(() => {
+    const stored = getValue('vehicle_type') || '';
+    const match = vehicleTypes.find((t) => t.label === stored || t.id === stored);
+    if (!match && stored) setVehicleTypeCustom(stored);
+  }, [getValue, vehicleTypes]);
 
   const [docCategory, setDocCategory] = useState('ביטוח חובה');
   const [docName, setDocName] = useState('');
@@ -490,7 +508,55 @@ function VehicleNewFormDaliaInner({
                 <Fld label="דגם" name="model" />
                 <Fld label="שנתון" name="year" type="number" />
                 <Fld label="כינוי רכב" name="vehicle_nickname" />
-                <Fld label="סוג רכב" name="vehicle_type" />
+                <div
+                  className={`d-fld ${
+                    (requiredFields?.isFieldRequired('vehicles', 'vehicle_type') ?? false) ? 'd-required' : ''
+                  }`}
+                >
+                  <label>
+                    סוג רכב
+                    {(requiredFields?.isFieldRequired('vehicles', 'vehicle_type') ?? false) ? ' *' : ''}
+                  </label>
+                  <select
+                    name="vehicle_type"
+                    value={vehicleTypeSelectValue}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const opt = vehicleTypes.find((t) => t.id === id);
+                      if (!id) {
+                        setValue('vehicle_type', '');
+                        setVehicleTypeCustom('');
+                        return;
+                      }
+                      if (id === VEHICLE_TYPE_OTHER_ID) {
+                        setValue('vehicle_type', vehicleTypeCustom);
+                        return;
+                      }
+                      setVehicleTypeCustom('');
+                      setValue('vehicle_type', opt?.label || id);
+                    }}
+                  >
+                    <option value="">בחר סוג...</option>
+                    {vehicleTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {vehicleTypeSelectValue === VEHICLE_TYPE_OTHER_ID && (
+                  <div className="d-fld">
+                    <label>פרט סוג רכב</label>
+                    <input
+                      value={vehicleTypeCustom}
+                      onChange={(e) => {
+                        setVehicleTypeCustom(e.target.value);
+                        setValue('vehicle_type', e.target.value);
+                      }}
+                      placeholder="סוג רכב מותאם"
+                    />
+                  </div>
+                )}
                 <Fld label="סגמנט רכב" name="vehicle_segment" />
                 <Fld label="צבע רכב" name="vehicle_color" />
                 <Fld label="סוג דלק" name="fuel_type" />

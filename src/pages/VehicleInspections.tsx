@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
+import { validateTaskFields } from '@/lib/taskFieldValidation';
 
 interface InspectionRow {
   id: string;
@@ -240,6 +241,20 @@ function InspectionForm({ vehicles, user, initialVehicleId = '', onDone, onBack 
     // Create follow-up tasks for defects
     const defects = items.filter(i => i.status === 'defect');
     if (defects.length > 0) {
+      const plate = selectedVehicle?.license_plate || '';
+      for (const d of defects) {
+        const requiredCheck = await validateTaskFields({
+          vehicle_plate: plate,
+          title: `ליקוי: ${d.item_name}`,
+          description: d.notes || `ליקוי שנמצא בביקורת ${new Date().toLocaleDateString('he-IL')}`,
+          status: 'open',
+        });
+        if (!requiredCheck.ok) {
+          toast.error(requiredCheck.message);
+          setLoading(false);
+          return;
+        }
+      }
       const tasks = defects.map(d => ({
         vehicle_id: vehicleId,
         vehicle_plate: selectedVehicle?.license_plate || '',

@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { uploadDocument, deleteStoredDocument } from '@/lib/uploadDocument';
+import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
+import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
 import { DocumentCard } from '@/components/documents/DocumentViewer';
 import { buildVehicleContextUrl, isVehicleScopedContext, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
@@ -181,9 +183,24 @@ export default function Documents() {
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length || !selectedCategory || !companyName || !user?.id) return;
-    setUploading(true);
     const file = e.target.files[0];
 
+    const fieldOverrides = await fetchRequiredFieldsOverrides();
+    const docValues: Record<string, string> = {
+      name: file.name,
+      category: selectedCategory.key,
+      vehicle_plate: uploadVehicle || contextPlate || '',
+      file_url: file.name,
+      notes: '',
+    };
+    const requiredCheck = validateRequiredModuleFields('documents', docValues, fieldOverrides);
+    if (!requiredCheck.ok) {
+      toast.error(requiredCheck.message);
+      e.target.value = '';
+      return;
+    }
+
+    setUploading(true);
     const result = await uploadDocument({
       file,
       storageFolder: selectedCategory.folder,
