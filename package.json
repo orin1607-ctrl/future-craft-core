@@ -61,6 +61,8 @@
     "project-001:site-crawl": "node scripts/project-001/project-001-site-crawl.mjs",
     "project-001:export-site-pages": "node scripts/project-001/export-site-pages-staging.mjs",
     "project-001:work-plan": "node scripts/project-001/build-business-work-plan.mjs",
+    "project-001:checklist": "node scripts/project-001/page-checklist-runner.mjs",
+    "project-001:checklist:all": "node scripts/project-001/page-checklist-runner.mjs --all",
     "dalia:site-audit": "node scripts/dalia-site-full-audit.mjs",
     "project-001:site-infra": "node scripts/project-001/project-001-site-infra.mjs",
     "project-001:indexing-inspect": "node scripts/project-001/project-001-indexing-inspect.mjs",

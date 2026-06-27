@@ -136,7 +136,7 @@
           return '#' + p.rank + ' ' + (p.path || p.url) + ': ' + (p.missing && p.missing.length ? p.missing.join(', ') : 'אופטימיזציה');
         }),
         opening_report: wp.summary
-          ? 'תוכנית עבודה — ' + wp.summary.pageCount + ' עמודים עסקיים · ~' + wp.summary.totalEstimateHours + ' שעות · שלב: תכנון בלבד'
+          ? 'התקדמות: ' + (wp.summary.progressPercent || 0) + '% · ' + (wp.summary.pagesCompleted || 0) + '/' + (wp.summary.pageCount || 0) + ' עמודים · Checklist ' + (wp.summary.checklistPass || 0) + '/' + (wp.summary.checklistTotal || 0)
           : 'ניתוח dalia-c.com — ' + fmt(stats.totalClicks) + ' קליקים GSC · ' + fmt(stats.ga4Sessions) + ' סשנים GA4',
       },
       _dashboard: raw,

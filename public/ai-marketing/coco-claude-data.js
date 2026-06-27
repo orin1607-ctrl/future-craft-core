@@ -495,7 +495,9 @@
     setHtml('coco-live-actions-pending', pending.map(function (a) {
       var meta = [];
       if (a.pagePath) meta.push('עמוד: ' + a.pagePath);
-      if (a.estimateHours) meta.push('~' + a.estimateHours + ' שעות');
+      if (a.checklistSummary) meta.push('Checklist: ' + a.checklistSummary.pass + '/' + a.checklistSummary.total);
+      if (a.status === 'in_progress') meta.push('בביצוע');
+      if (a.status === 'done') meta.push('הושלם');
       if (a.missing && a.missing.length) meta.push('חסר: ' + a.missing.slice(0, 2).join(', '));
       return '<div class="action-card act-item" style="border-color:rgba(139,92,246,0.4);margin-bottom:12px;" data-page-id="' + esc(a.pageId || '') + '">' +
         '<div class="action-title">' + esc(a.title) + '</div>' +
@@ -588,7 +590,8 @@
       { title: '📢 דוח קמפיינים', rows: [['קמפיינים', (bundle && bundle.campaigns && bundle.campaigns.length) || 0], ['פעילים', (bundle && bundle.campaigns && bundle.campaigns.filter(function (c) { return c.status === 'active'; }).length) || 0], ['טיוטה', (bundle && bundle.campaigns && bundle.campaigns.filter(function (c) { return c.status === 'draft'; }).length) || 0]] },
       { title: '⚙️ דוח פעולות', rows: [['ממתינות', actions.filter(function (a) { return a.status !== 'done'; }).length], ['הושלמו', actions.filter(function (a) { return a.status === 'done'; }).length], ['סה״כ', actions.length]] },
       { title: '🎯 דוח מטרות', rows: [['פעילות', goals.filter(function (g) { return g.status === 'active'; }).length], ['ממתינות', goals.filter(function (g) { return g.status === 'pending'; }).length], ['סה״כ', goals.length]] },
-      { title: '📄 דוח עמודים עסקיים', rows: [['עמודים בתוכנית', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.pageCount) || (bundle && bundle.pageTasks && bundle.pageTasks.length) || 0], ['שעות משוערות', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.totalEstimateHours) || '—'], ['שלב', (bundle && bundle.workPlan && bundle.workPlan.phase === 'planning_only') ? 'תכנון' : 'ביצוע']] },
+      { title: '📄 דוח עמודים עסקיים', rows: [['עמודים בתוכנית', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.pageCount) || 0], ['הושלמו', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.pagesCompleted) || 0], ['התקדמות', ((bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.progressPercent) || 0) + '%']] },
+      { title: '✅ Checklist SEO', rows: [['עברו', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.checklistPass) || 0], ['סה"כ בדיקות', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.checklistTotal) || 0], ['בביצוע', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.pagesInProgress) || 0]] },
       { title: '📅 דוח חודשי', rows: [['כניסות', kpis.visits], ['קליקים', kpis.clicks], ['מקור', state.meta.kpiSource === 'live' ? 'חי' : 'ממתין']] },
     ].map(function (box) {
       return '<div class="report-box" style="cursor:pointer;" onclick="openModal(\'modal-report\')"><div class="report-title">' + box.title + '</div>' +

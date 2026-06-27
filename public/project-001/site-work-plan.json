@@ -1,8 +1,8 @@
 {
   "version": 1,
   "generatedAt": "2026-06-27T21:25:40.308Z",
-  "phase": "planning_only",
-  "note": "תוכנית עבודה — אין לבצע שינויים באתר החי עד אישור",
+  "phase": "execution_audit",
+  "note": "ביצוע checklist read-only — תיקונים מתועדים, יישום ב-WordPress",
   "campaign": {
     "id": "campaign-dalia-seo-primary",
     "name": "דליה — קידום dalia-c.com",
@@ -21,7 +21,12 @@
     "tier1": 10,
     "tier2": 8,
     "tier3": 6,
-    "tier4": 4
+    "tier4": 4,
+    "checklistPass": 7,
+    "checklistTotal": 336,
+    "pagesCompleted": 0,
+    "pagesInProgress": 1,
+    "progressPercent": 0
   },
   "pages": [
     {
@@ -56,7 +61,46 @@
         "images_without_alt:25"
       ],
       "aiSummary": "העמוד דורש שיפורים בכותרות ובתוכן כדי לשפר את הדירוג במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "executionStatus": "blocked",
+      "startedAt": "2026-06-27T21:43:25.002Z",
+      "lastAuditAt": "2026-06-27T21:43:28.427Z",
+      "checklist": {
+        "title": "fail",
+        "meta": "fail",
+        "h1": "pass",
+        "h2": "pass",
+        "canonical": "pass",
+        "alt": "fail",
+        "internalLinks": "pass",
+        "schema": "pass",
+        "cta": "pass",
+        "mobile": "pass",
+        "pageSpeed": "pending",
+        "seo": "fail"
+      },
+      "fixes": {
+        "title": "ניהול צי רכב ותחזוקה לעסקים | דליה — dalia-c.com",
+        "meta": "לקצר/למקד Meta ל-120–155 תווים עם CTA",
+        "alt": "להוסיף alt ל-25 תמונות (תיאור בעברית + מילת מפתח)",
+        "pageSpeed": "להריץ PageSpeed Insights ידנית לאחר יישום תיקונים"
+      },
+      "pageSpeedScore": null,
+      "pageSpeedNote": "PSI HTTP 429",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 7,
+        "fail": 4,
+        "pending": 1,
+        "pct": 58
+      },
+      "blockers": [
+        "title",
+        "meta",
+        "alt",
+        "pageSpeed",
+        "seo"
+      ]
     },
     {
       "id": "page-02",
@@ -89,7 +133,14 @@
         "missing_h1"
       ],
       "aiSummary": "העמוד זקוק לשיפורים משמעותיים בכותרות ובתוכן כדי לשפר את הדירוג במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-12",
@@ -124,7 +175,14 @@
         "images_without_alt:13"
       ],
       "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את דירוגו במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-08",
@@ -161,7 +219,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את דירוג ה-SEO שלו.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-06",
@@ -196,7 +261,14 @@
         "images_without_alt:9"
       ],
       "aiSummary": "העמוד דורש שיפורים משמעותיים כדי לשדרג את הדירוג שלו במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-05",
@@ -227,7 +299,14 @@
         "missing_h1"
       ],
       "aiSummary": "העמוד זקוק לשיפור במבנה התוכן והוספת תג H1 כדי לשפר את ה-SEO.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-03",
@@ -262,7 +341,14 @@
         "images_without_alt:5"
       ],
       "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את הדירוג והנראות במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-14",
@@ -293,7 +379,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את דירוגו במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-04",
@@ -324,7 +417,14 @@
         "missing_h1"
       ],
       "aiSummary": "העמוד זקוק לשיפור במבנה התוכן והוספת תגיות כדי לשפר את הדירוג במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-07",
@@ -361,7 +461,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד דורש שיפורים משמעותיים כדי לשפר את הדירוג במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-24",
@@ -390,7 +497,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "עמוד זה מצריך שיפורים טכניים ותוכן כדי לשפר את הדירוג במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-11",
@@ -427,7 +541,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד מציע תוכן עשיר אך זקוק לשיפורים טכניים כדי לשפר את דירוג ה-SEO.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-13",
@@ -458,7 +579,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את דירוג ה-SEO שלו.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-26",
@@ -489,7 +617,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד מציע תוכן עשיר אך זקוק לשיפורים בתחום האופטימיזציה למנועי חיפוש.",
-      "priority": "בינוני"
+      "priority": "בינוני",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-23",
@@ -521,7 +656,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד זקוק לשיפורים באופטימיזציה כדי לשפר את הנראות והביצועים במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-16",
@@ -554,7 +696,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "עמוד זה דורש שיפורים טכניים ותוכן כדי לשפר את הדירוג במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-17",
@@ -581,7 +730,14 @@
         "missing_h1"
       ],
       "aiSummary": "העמוד דורש שיפור על ידי הוספת תגית H1 ואופטימיזציה של התיאור המטא.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-18",
@@ -610,7 +766,14 @@
         "missing_h1"
       ],
       "aiSummary": "העמוד זקוק לשיפור במבנה התוכן והוספת תגיות כדי לשפר את דירוג ה-SEO.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-25",
@@ -639,7 +802,14 @@
         "missing_h1"
       ],
       "aiSummary": "העמוד זקוק לשיפור בכותרת ובמבנה התוכן כדי לשפר את דירוג ה-SEO שלו.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-28",
@@ -669,7 +839,14 @@
       "ga4Views": 0,
       "issues": [],
       "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את הנראות במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-09",
@@ -706,7 +883,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד דורש שיפורים משמעותיים כדי לשפר את דירוג ה-SEO שלו.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-15",
@@ -739,7 +923,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד מציע תוכן עשיר אך זקוק לשיפורים טכניים כדי לשפר את דירוג ה-SEO.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-21",
@@ -770,7 +961,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד מציע תוכן עשיר אך זקוק לשיפורים בקידום ובאופטימיזציה.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-19",
@@ -801,7 +999,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד מציע תוכן איכותי אך זקוק לשיפורים טכניים ואופטימיזציה למנועי חיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-20",
@@ -833,7 +1038,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד מציע תוכן עשיר אך זקוק לשיפורים בתחום ה-SEO כדי לשפר את הנראות במנועי החיפוש.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-10",
@@ -868,7 +1080,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד זקוק לשיפורים משמעותיים כדי לשפר את דירוג ה-SEO שלו.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-22",
@@ -900,7 +1119,14 @@
         "canonical_mismatch"
       ],
       "aiSummary": "העמוד מציע תוכן עשיר אך דורש שיפורים טכניים ואופטימיזציה כדי לשפר את דירוג ה-SEO.",
-      "priority": "גבוה"
+      "priority": "גבוה",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     },
     {
       "id": "page-27",
@@ -928,7 +1154,14 @@
       "ga4Views": 0,
       "issues": [],
       "aiSummary": "העמוד מצריך שיפורים בכותרות ובמילות המפתח כדי לשפר את הדירוג במנועי החיפוש.",
-      "priority": "בינוני"
+      "priority": "בינוני",
+      "checklistSummary": {
+        "total": 12,
+        "pass": 0,
+        "fail": 0,
+        "pending": 0,
+        "pct": 0
+      }
     }
   ],
   "goals": [
@@ -1027,7 +1260,7 @@
     {
       "id": "act-page-01",
       "title": "תוכנית עבודה: בית חדש - דליה",
-      "status": "pending",
+      "status": "in_progress",
       "urgency": "גבוה",
       "source": "אבחון dalia-c.com",
       "category": "SEO",
@@ -1045,7 +1278,28 @@
         "להוסיף תוכן איכותי נוסף שיכול לשפר את דירוג החיפוש",
         "לשפר את קישורי הפנימיים בין עמודי האתר"
       ],
-      "campaignId": "campaign-dalia-seo-primary"
+      "campaignId": "campaign-dalia-seo-primary",
+      "checklist": {
+        "title": "fail",
+        "meta": "fail",
+        "h1": "pass",
+        "h2": "pass",
+        "canonical": "pass",
+        "alt": "fail",
+        "internalLinks": "pass",
+        "schema": "pass",
+        "cta": "pass",
+        "mobile": "pass",
+        "pageSpeed": "pending",
+        "seo": "fail"
+      },
+      "checklistSummary": {
+        "total": 12,
+        "pass": 7,
+        "fail": 4,
+        "pending": 1,
+        "pct": 58
+      }
     },
     {
       "id": "act-page-02",
@@ -1678,6 +1932,22 @@
   ],
   "activity": [
     {
+      "id": "audit-page-01-1782596608433",
+      "title": "Checklist: /",
+      "action": "checklist_audit",
+      "module": "SEO",
+      "detail": "7/12 pass",
+      "created_at": "2026-06-27T21:43:28.427Z"
+    },
+    {
+      "id": "audit-page-01-1782596554873",
+      "title": "Checklist: /",
+      "action": "checklist_audit",
+      "module": "SEO",
+      "detail": "7/12 pass",
+      "created_at": "2026-06-27T21:42:34.873Z"
+    },
+    {
       "id": "log-plan-created",
       "title": "נוצרה תוכנית עבודה ל-33 עמודים עסקיים",
       "action": "work_plan_created",
@@ -1696,11 +1966,28 @@
   ],
   "progressLog": [
     {
+      "id": "audit-page-01-1782596608433",
+      "type": "checklist_audit",
+      "event": "Checklist: /",
+      "pagePath": "/",
+      "detail": "7/12 pass",
+      "at": "2026-06-27T21:43:28.427Z"
+    },
+    {
+      "id": "audit-page-01-1782596554873",
+      "type": "checklist_audit",
+      "event": "Checklist: /",
+      "pagePath": "/",
+      "detail": "7/12 pass",
+      "at": "2026-06-27T21:42:34.873Z"
+    },
+    {
       "at": "2026-06-27T21:25:40.308Z",
       "event": "plan_built",
       "pages": 28,
       "by": "system",
       "note": "תוכנית ראשונית — ממתין לאישור"
     }
-  ]
+  ],
+  "lastUpdated": "2026-06-27T21:43:29.588Z"
 }
