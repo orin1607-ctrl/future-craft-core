@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import {
   Bell,
   Building2,
+  Car,
   ClipboardList,
   LayoutGrid,
   Mail,
