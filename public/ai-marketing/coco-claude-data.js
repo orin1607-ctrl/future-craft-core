@@ -577,7 +577,7 @@
       }).join(''));
     }
     var campaigns = applyCtxFilter((bundle && bundle.campaigns) || [], function (c) {
-      return { campaign: c.name, channel: c.channel, status: c.status };
+      return window.FilterMeta ? FilterMeta.campaign(c) : { campaign: c.name, channel: c.channel, status: c.status };
     });
     if (campaigns.length) {
       setHtml('coco-live-status-campaigns', campaigns.map(function (c) {
@@ -707,7 +707,7 @@
     function tryRender(b) {
       if (gen !== _goalsBindGen) return true;
       var pages = applyCtxFilter(deriveWorkPages(b), function (p) {
-        return { page: p.path, status: p.executionStatus, goal: p.title };
+        return window.FilterMeta ? FilterMeta.page(p) : { page: p.path, status: p.executionStatus, goal: p.title };
       });
       if (!pages.length) return false;
       renderGoalsPages(pages, b || state.bundle);
@@ -746,7 +746,7 @@
       return n;
     }
     var actions = applyCtxFilter(deriveActions(bundle), function (a) {
-      return { action: a.category, status: a.status, campaign: a.campaignId };
+      return window.FilterMeta ? FilterMeta.action(a) : { action: a.category, status: a.status, campaign: a.campaignId };
     });
     var pending = actions.filter(function (a) { return a.status !== 'done' && a.status !== 'completed'; });
     var done = actions.filter(function (a) { return a.status === 'done' || a.status === 'completed'; });
@@ -809,7 +809,7 @@
     ensureLiveMount('coco-live-history-empty', 'screen-history');
     ensureLiveMount('coco-live-history-timeline', 'screen-history');
     var items = applyCtxFilter(deriveHistory(bundle), function (h) {
-      return { campaign: h.title, status: h.status, action: h.detail };
+      return window.FilterMeta ? FilterMeta.history(h) : { campaign: h.title, status: h.status, action: h.detail };
     });
     setHtml('coco-live-history-timeline', items.length ? items.slice(0, 12).map(function (h) {
       var color = /בוצע|done|active/.test(h.status) ? 'var(--green)' : 'var(--yellow)';
@@ -834,7 +834,7 @@
       return;
     }
     var assets = applyCtxFilter(deriveAssets(bundle), function (a) {
-      return { site: a.detail, status: a.status };
+      return window.FilterMeta ? FilterMeta.asset(a) : { site: a.detail, status: a.status };
     });
     setHtml('coco-live-assets-grid', assets.map(function (a) {
       return '<div class="asset-card" style="cursor:pointer;">' +

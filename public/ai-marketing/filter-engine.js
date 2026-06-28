@@ -1,11 +1,8 @@
 /**
- * Filter Engine — single filtering SSOT for all screens.
- * Reads context from GlobalFilterContext (v3) with legacy COCO.flowContext fallback.
+ * Filter Engine — single filtering SSOT for all screens (Phase B: full scope + specificItem).
  */
 (function () {
   'use strict';
-
-  var _matchMemo = { hash: null, fn: null };
 
   function getContext() {
     if (window.GlobalFilterContext && GlobalFilterContext.get) {
@@ -17,11 +14,11 @@
   function contextHash(c) {
     c = c || getContext();
     var sub = c.subCategory;
+    var si = c.specificItem;
     return [
       c.clientId, c.activityType, c.campaignId || c.campaign,
-      c.assetId, sub && (sub.id || sub.path), c.dateRange && c.dateRange.preset,
-      c.status, c.freeSearch, c.serviceType, c.customerStatus,
-      c.site, c.channel, c.page,
+      c.assetId, sub && sub.id, si && si.id,
+      c.dateRange && c.dateRange.preset, c.status, c.freeSearch,
     ].join('\u001f');
   }
 
@@ -37,29 +34,57 @@
     return a.indexOf(b) !== -1 || b.indexOf(a) !== -1;
   }
 
+  function isPageKind(id) {
+    return window.FilterTaxonomy && FilterTaxonomy.isPageKind
+      ? FilterTaxonomy.isPageKind(id)
+      : ['home', 'service', 'article', 'product', 'category', 'other'].indexOf(id) >= 0;
+  }
+
   function statusMatches(itemStatus, filterStatus) {
     if (!filterStatus) return true;
     var s = norm(itemStatus);
     var f = norm(filterStatus);
     if (f === 'active' && /active|connected|פעיל/.test(s)) return true;
     if (f === 'pending' && /pending|ממתין|review|draft/.test(s)) return true;
-    if (f === 'in_progress' && /in_progress|progress|בביצוע|active/.test(s)) return true;
+    if (f === 'in_progress' && /in_progress|progress|בביצוע/.test(s)) return true;
     if (f === 'done' && /done|completed|הושלם|בוצע/.test(s)) return true;
     if (f === 'paused' && /paused|נעצר|מושהה/.test(s)) return true;
     if (f === 'error' && /error|fail|שגיאה/.test(s)) return true;
     return matchFilter(itemStatus, filterStatus);
   }
 
-  function pageMatches(itemMeta, c) {
-    var sub = c.subCategory;
-    if (sub && sub.id) {
-      if (itemMeta.pageId && itemMeta.pageId === sub.id) return true;
-      if (itemMeta.page && (itemMeta.page === sub.path || itemMeta.page === sub.label)) return true;
-      if (sub.path && itemMeta.pagePath === sub.path) return true;
+  function specificItemMatches(itemMeta, c) {
+    var si = c.specificItem;
+    if (!si || !si.id) return true;
+    if (si.type === 'page' || itemMeta.pageId) {
+      if (itemMeta.pageId && itemMeta.pageId === si.id) return true;
+      if (itemMeta.pagePath && si.path && itemMeta.pagePath === si.path) return true;
+      if (itemMeta.page && (itemMeta.page === si.path || itemMeta.page === si.id)) return true;
       return false;
     }
-    if (c.page && itemMeta.page) return matchFilter(itemMeta.page, c.page);
+    if (itemMeta.entityId) return itemMeta.entityId === si.id;
+    if (itemMeta.id) return itemMeta.id === si.id;
     return true;
+  }
+
+  function subCategoryMatches(itemMeta, c) {
+    var sub = c.subCategory;
+    if (!sub || !sub.id) return true;
+    if (isPageKind(sub.id)) {
+      if (!itemMeta.pageKind) return true;
+      return itemMeta.pageKind === sub.id;
+    }
+    if (sub.matchType === 'page') {
+      if (itemMeta.pageId && itemMeta.pageId === sub.id) return true;
+      if (itemMeta.pagePath && sub.path && itemMeta.pagePath === sub.path) return true;
+      return false;
+    }
+    return true;
+  }
+
+  function pageMatches(itemMeta, c) {
+    if (c.specificItem && c.specificItem.id) return specificItemMatches(itemMeta, c);
+    return subCategoryMatches(itemMeta, c);
   }
 
   function clientMatches(itemMeta, c) {
@@ -103,26 +128,20 @@
     return false;
   }
 
-  function dateMatches(itemMeta, c) {
+  function dateMatches(itemMeta, c, opts) {
+    opts = opts || {};
     var dr = c.dateRange;
-    if (!dr || !dr.preset || dr.preset === 'custom' && !dr.from && !dr.to) return true;
+    if (!dr || !dr.preset) return true;
+    if (opts.skipDefaultMonth && dr.preset === 'month' && !dr.from && !dr.to) return true;
     var itemDate = itemMeta.date || itemMeta.createdAt || itemMeta.updatedAt;
     if (!itemDate) return true;
     try {
       var d = new Date(itemDate);
       if (isNaN(d.getTime())) return true;
       var now = new Date();
-      if (dr.preset === 'today') {
-        return d.toDateString() === now.toDateString();
-      }
-      if (dr.preset === 'week') {
-        var weekAgo = new Date(now.getTime() - 7 * 86400000);
-        return d >= weekAgo;
-      }
-      if (dr.preset === 'month') {
-        var monthAgo = new Date(now.getTime() - 30 * 86400000);
-        return d >= monthAgo;
-      }
+      if (dr.preset === 'today') return d.toDateString() === now.toDateString();
+      if (dr.preset === 'week') return d >= new Date(now.getTime() - 7 * 86400000);
+      if (dr.preset === 'month') return d >= new Date(now.getTime() - 30 * 86400000);
       if (dr.preset === 'custom' && dr.from) {
         var from = new Date(dr.from);
         var to = dr.to ? new Date(dr.to) : now;
@@ -132,10 +151,17 @@
     return true;
   }
 
-  /**
-   * @param {object} item — data row
-   * @param {object} itemMeta — normalized fields from mapFn(item)
-   */
+  function hasUserScope(c) {
+    return !!(
+      (c.specificItem && c.specificItem.id) ||
+      (c.subCategory && c.subCategory.id) ||
+      c.status ||
+      (c.freeSearch && c.freeSearch.trim()) ||
+      (c.dateRange && c.dateRange.preset && c.dateRange.preset !== 'month') ||
+      (c.dateRange && c.dateRange.preset === 'custom' && (c.dateRange.from || c.dateRange.to))
+    );
+  }
+
   function matches(item, itemMeta) {
     var c = getContext();
     itemMeta = itemMeta || {};
@@ -159,17 +185,24 @@
     if (!Array.isArray(items)) return [];
     mapFn = mapFn || function () { return {}; };
     var c = getContext();
-    var hash = contextHash(c);
-    var liveOnlyFreeSearch = window.DaliaSite && DaliaSite.isLiveOnly && DaliaSite.isLiveOnly();
-    var free = (c.freeSearch || '').trim().toLowerCase();
-    var hasPageScope = c.subCategory && c.subCategory.id;
+    var liveMode = window.DaliaSite && DaliaSite.isLiveOnly && DaliaSite.isLiveOnly();
 
-    if (liveOnlyFreeSearch) {
-      if (!free && !hasPageScope) return items;
+    if (liveMode && !hasUserScope(c)) {
+      var freeOnly = (c.freeSearch || '').trim().toLowerCase();
+      if (!freeOnly) return items;
+      return items.filter(function (item) {
+        return JSON.stringify(item).toLowerCase().indexOf(freeOnly) >= 0;
+      });
+    }
+
+    if (liveMode && hasUserScope(c)) {
       return items.filter(function (item) {
         var meta = mapFn(item);
-        if (free && JSON.stringify(item).toLowerCase().indexOf(free) === -1) return false;
-        if (hasPageScope && !pageMatches(meta, c)) return false;
+        if (!freeSearchMatches(item, meta, c)) return false;
+        if (c.specificItem && c.specificItem.id && !specificItemMatches(meta, c)) return false;
+        if (c.subCategory && c.subCategory.id && !subCategoryMatches(meta, c)) return false;
+        if (c.status && meta.status && !statusMatches(meta.status, c.status)) return false;
+        if (!dateMatches(meta, c, { skipDefaultMonth: true })) return false;
         return true;
       });
     }
@@ -186,7 +219,8 @@
     if (c.activityType) base.activityType = c.activityType;
     if (c.campaignId || c.campaign) base.campaignId = c.campaignId || c.campaign;
     if (c.assetId) base.assetId = c.assetId;
-    if (c.subCategory && c.subCategory.id) base.pageId = c.subCategory.id;
+    if (c.subCategory && c.subCategory.id) base.subCategoryId = c.subCategory.id;
+    if (c.specificItem && c.specificItem.id) base.specificItemId = c.specificItem.id;
     if (c.status) base.status = c.status;
     if (c.dateRange) base.dateRange = c.dateRange;
     if (c.freeSearch) base.q = c.freeSearch;
@@ -200,5 +234,8 @@
     matches: matches,
     filter: filter,
     scopeQuery: scopeQuery,
+    hasUserScope: hasUserScope,
+    specificItemMatches: specificItemMatches,
+    subCategoryMatches: subCategoryMatches,
   };
 })();

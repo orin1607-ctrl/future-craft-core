@@ -166,7 +166,13 @@
   }
 
   function ensureUnifiedContextBar() {
-    if (document.getElementById('coco-unified-context-bar')) return;
+    if (document.getElementById('coco-unified-context-bar')) {
+      if (window.GlobalFilterBar && GlobalFilterBar.mountIntoBar) {
+        GlobalFilterBar.mountIntoBar();
+        if (!window.GlobalFilterBar._inited) GlobalFilterBar.init();
+      }
+      return;
+    }
     var root = document.getElementById('coco-claude-root');
     if (!root) return;
     var bar = document.createElement('div');
@@ -176,26 +182,15 @@
       '<div class="cfc-inner">' +
       '<div class="cfc-row cfc-row-main">' +
       '<button type="button" id="coco-cfc-toggle" class="btn btn-ghost coco-cfc-toggle" title="הצג/הסתר סינון">⚙️</button>' +
+      '<span id="coco-unified-filter-chip" class="cfc-chip gfc-summary">סינון: כללי</span>' +
       '<span id="coco-unified-client-chip" class="cfc-chip cfc-client-chip" title="לחץ לפתיחת לקוחות">לקוח: —</span>' +
       '<span id="coco-unified-asset-chip" class="cfc-chip cfc-asset-chip" title="נכס פעיל">נכס: —</span>' +
       '<span id="coco-live-source-badge" class="cfc-chip cfc-source-badge"></span>' +
       '</div>' +
-      '<div class="cfc-row cfc-row-filters" id="coco-cfc-filters">' +
-      '<span id="coco-unified-filter-chip" class="cfc-chip">סינון: כללי</span>' +
-      '<input id="coco-central-search" class="filter-input cfc-search" placeholder="🔍 חיפוש">' +
-      '<select id="coco-central-service" class="filter-select" title="סוג שירות"><option value="">כל השירותים</option><option value="marketing_only">שיווק</option><option value="fleet_and_marketing">שיווק+צי</option></select>' +
-      '<select id="coco-central-status" class="filter-select" title="סטטוס לקוח"><option value="">סטטוס לקוח</option><option value="active">פעיל</option><option value="inactive">לא פעיל</option></select>' +
-      '<select id="coco-central-campaign" class="filter-select" title="קמפיין"><option value="">קמפיין</option></select>' +
-      '<button type="button" id="coco-sync-google-btn" class="btn btn-ghost cfc-sync-btn">🔄 Google</button>' +
-      '</div></div>';
+      '<div class="cfc-row cfc-row-filters gfc-row" id="coco-cfc-filters"></div></div>';
     root.appendChild(bar);
     placeContextBar(getActiveScreenId());
 
-    document.getElementById('coco-cfc-toggle')?.addEventListener('click', function () {
-      bar.classList.toggle('is-expanded');
-    });
-
-    document.getElementById('coco-sync-google-btn')?.addEventListener('click', syncGoogle);
     document.getElementById('coco-unified-client-chip')?.addEventListener('click', function () {
       if (typeof goScreen === 'function') goScreen('screen-clients');
     });
@@ -206,17 +201,12 @@
         if (tab) setTab(tab, 'tab-clients-assets');
       }
     });
-    document.getElementById('coco-central-search')?.addEventListener('input', onCentralFilter);
-    document.getElementById('coco-central-service')?.addEventListener('change', onCentralFilter);
-    document.getElementById('coco-central-status')?.addEventListener('change', onCentralFilter);
-    document.getElementById('coco-central-campaign')?.addEventListener('change', onCentralFilter);
-    try {
-      var saved = localStorage.getItem(SEARCH_KEY);
-      if (saved) {
-        var inp = document.getElementById('coco-central-search');
-        if (inp) { inp.value = saved; onCentralFilter({ target: inp }); }
-      }
-    } catch (err) { /* ignore */ }
+    if (window.GlobalFilterBar && GlobalFilterBar.init) {
+      GlobalFilterBar.init().then(function () {
+        var syncBtn = document.getElementById('coco-sync-google-btn');
+        if (syncBtn) syncBtn.addEventListener('click', syncGoogle);
+      });
+    }
   }
 
   function onCentralFilter(e) {
@@ -585,6 +575,7 @@
       if (id === 'screen-crm') document.body.classList.add('coco-crm-active');
       else document.body.classList.remove('coco-crm-active');
       placeContextBar(id);
+      if (window.GlobalFilterBar && GlobalFilterBar.place) GlobalFilterBar.place(id);
       removeStrayCrmUi();
       updateContextBar();
       if (id === 'screen-goals' || id === 'screen-actions') {
@@ -657,6 +648,7 @@
     onAuthReady: onAuthReady,
     updateContextBar: updateContextBar,
     refreshAllModules: refreshAllModules,
+    placeContextBar: placeContextBar,
     init: function () {
       ensureLiveMounts();
       hookInit();

@@ -175,6 +175,40 @@
     }).slice(0, limit);
   }
 
+  /**
+   * Specific items (pages, ads, posts…) — paginated + optional kind filter.
+   */
+  function getSpecificItems(assetId, opts) {
+    opts = opts || {};
+    var bucket = state.pagesByAsset[assetId];
+    if (!bucket) return { total: 0, items: [] };
+    var all = (bucket.pages || []).slice();
+    if (opts.kind) {
+      all = all.filter(function (p) { return p.kind === opts.kind; });
+    }
+    if (opts.query) {
+      var q = String(opts.query).toLowerCase();
+      all = all.filter(function (p) {
+        return [p.id, p.path, p.title, p.url].join(' ').toLowerCase().indexOf(q) >= 0;
+      });
+    }
+    var offset = opts.offset || 0;
+    var limit = opts.limit || PAGE_CHUNK;
+    return {
+      total: all.length,
+      items: all.slice(offset, offset + limit).map(function (p) {
+        return {
+          type: 'page',
+          id: p.id,
+          label: (p.title || p.path) + ' (' + p.path + ')',
+          path: p.path,
+          url: p.url,
+          kind: p.kind,
+        };
+      }),
+    };
+  }
+
   function findClient(id) {
     return state.clients.find(function (c) { return c.id === id; }) || null;
   }
@@ -204,10 +238,10 @@
     if (ctx.campaignId && ctx.assetId && !findAsset(ctx.campaignId, ctx.assetId)) {
       issues.push({ field: 'assetId', code: 'asset_not_for_campaign', id: ctx.assetId });
     }
-    if (ctx.assetId && ctx.subCategory && ctx.subCategory.id) {
-      var p = findPage(ctx.assetId, ctx.subCategory.id);
-      if (!p && state.pagesByAsset[ctx.assetId]) {
-        issues.push({ field: 'subCategory', code: 'page_not_for_asset', id: ctx.subCategory.id });
+    if (ctx.assetId && ctx.specificItem && ctx.specificItem.id && ctx.specificItem.type === 'page') {
+      var pg = findPage(ctx.assetId, ctx.specificItem.id);
+      if (!pg && state.pagesByAsset[ctx.assetId]) {
+        issues.push({ field: 'specificItem', code: 'item_not_for_asset', id: ctx.specificItem.id });
       }
     }
     return { ok: issues.length === 0, issues: issues };
@@ -221,6 +255,7 @@
     getAssets: getAssets,
     getPages: getPages,
     searchPages: searchPages,
+    getSpecificItems: getSpecificItems,
     findClient: findClient,
     findCampaign: findCampaign,
     findAsset: findAsset,

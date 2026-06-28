@@ -55,8 +55,8 @@
 
   if (window.GlobalFilterContext && GlobalFilterContext.onChange) {
     GlobalFilterContext.onChange(function () {
-      if (window.CocoMarketingUnified && CocoMarketingUnified.refreshAllModules) {
-        CocoMarketingUnified.refreshAllModules();
+      if (window.CocoUnified && CocoUnified.refreshAllModules) {
+        CocoUnified.refreshAllModules();
       } else {
         refreshAll();
       }

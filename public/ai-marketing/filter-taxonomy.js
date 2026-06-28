@@ -112,7 +112,16 @@
     { id: 'error', labelHe: 'שגיאה' },
   ];
 
-  var CASCADE_STEPS = ['clientId', 'activityType', 'campaignId', 'assetId', 'subCategory'];
+  var CASCADE_STEPS = [
+    'clientId', 'activityType', 'campaignId', 'assetId',
+    'subCategory', 'specificItem', 'dateRange', 'status', 'freeSearch',
+  ];
+
+  var PAGE_KINDS = ['home', 'service', 'article', 'product', 'category', 'other'];
+
+  function isPageKind(id) {
+    return PAGE_KINDS.indexOf(id) >= 0;
+  }
 
   function getActivityType(id) {
     return ACTIVITY_TYPES.find(function (a) { return a.id === id; }) || null;
@@ -139,6 +148,8 @@
     DATE_PRESETS: DATE_PRESETS,
     STATUS_OPTIONS: STATUS_OPTIONS,
     CASCADE_STEPS: CASCADE_STEPS,
+    PAGE_KINDS: PAGE_KINDS,
+    isPageKind: isPageKind,
     getActivityType: getActivityType,
     getAssetType: getAssetType,
     getSubSchema: getSubSchema,

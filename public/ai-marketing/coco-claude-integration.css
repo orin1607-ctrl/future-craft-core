@@ -59,6 +59,61 @@ body {
 }
 #coco-unified-context-bar .coco-cfc-toggle { display: none; }
 
+/* Global Filter Bar (Phase B) — compact cascade */
+#coco-unified-context-bar .gfc-primary,
+#coco-unified-context-bar .gfc-advanced {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+#coco-unified-context-bar .gfc-select {
+  min-width: 88px;
+  max-width: 160px;
+  flex: 1 1 auto;
+  font-size: 11px;
+  padding: 4px 8px;
+  min-height: 30px;
+}
+#coco-unified-context-bar .gfc-adv-btn {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 4px 10px;
+  min-height: 30px;
+  opacity: 0.85;
+}
+#coco-unified-context-bar .gfc-item-select {
+  max-width: 220px;
+}
+#coco-unified-context-bar .gfc-summary {
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+#coco-unified-context-bar .gfc-date-custom {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+#coco-unified-context-bar .gfc-date-inp {
+  width: 118px;
+  font-size: 11px;
+  min-height: 30px;
+}
+#coco-unified-context-bar.gfc-expanded .gfc-advanced {
+  padding-top: 2px;
+}
+#coco-unified-context-bar .cfc-row-filters.gfc-mounted {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding-top: 4px;
+  padding-bottom: 6px;
+}
+
 #coco-marketing-crm-root {
   flex: 1;
   display: flex;

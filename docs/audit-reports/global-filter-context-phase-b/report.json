@@ -1,0 +1,68 @@
+{
+  "at": "2026-06-28T11:24:15.316Z",
+  "url": "http://127.0.0.1:8888/ai-marketing-platform.html?v=v3-global-filter-b",
+  "viewports": {
+    "desktop": {
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+      ],
+      "checks": {
+        "bar": {
+          "hasBar": true,
+          "hasMeta": true,
+          "mounted": true,
+          "primaryCount": 4,
+          "advancedCount": 4,
+          "summaryChip": "דליה פתרונות מימון ותחזוקה לרכב › SEO › דליה — קידום dalia-c.com › dalia-c.com",
+          "clientId": "dalia-c-official",
+          "activityType": "seo",
+          "campaignId": "campaign-dalia-seo-primary",
+          "assetId": "asset-dalia-c-com",
+          "hasItemSelect": true
+        },
+        "goalsAll": 28,
+        "scoped": {
+          "goals": 1,
+          "ctxAfter": "page-01",
+          "persisted": true,
+          "barStill": true,
+          "actions": 28
+        },
+        "restored": 28
+      }
+    },
+    "mobile": {
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+      ],
+      "checks": {
+        "bar": {
+          "hasBar": true,
+          "hasMeta": true,
+          "mounted": true,
+          "primaryCount": 4,
+          "advancedCount": 4,
+          "summaryChip": "דליה פתרונות מימון ותחזוקה לרכב › SEO › דליה — קידום dalia-c.com › dalia-c.com",
+          "clientId": "dalia-c-official",
+          "activityType": "seo",
+          "campaignId": "campaign-dalia-seo-primary",
+          "assetId": "asset-dalia-c-com",
+          "hasItemSelect": true
+        },
+        "goalsAll": 28,
+        "scoped": {
+          "goals": 1,
+          "ctxAfter": "page-01",
+          "persisted": true,
+          "barStill": true,
+          "actions": 28
+        },
+        "restored": 28
+      }
+    }
+  },
+  "ok": true,
+  "errors": []
+}

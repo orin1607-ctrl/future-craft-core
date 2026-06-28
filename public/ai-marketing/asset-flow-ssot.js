@@ -138,7 +138,7 @@
     }
     if (window.MarketingSsot && MarketingSsot.refreshUi) MarketingSsot.refreshUi();
     if (window.CocoData && CocoData.bindAll) CocoData.bindAll();
-    if (window.CocoMarketingUnified && CocoMarketingUnified.updateContextBar) CocoMarketingUnified.updateContextBar();
+    if (window.CocoUnified && CocoUnified.updateContextBar) CocoUnified.updateContextBar();
     if (window.CocoUnified && CocoUnified.updateContextBar) CocoUnified.updateContextBar();
     if (window.CocoIntegrationHub && CocoIntegrationHub.renderAgentsLive && window.DaliaSite) {
       CocoIntegrationHub.renderAgentsLive(DaliaSite.getDashboard && DaliaSite.getDashboard());

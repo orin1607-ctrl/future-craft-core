@@ -11,11 +11,12 @@
   var EVENT_NAME = 'coco:filter-changed';
 
   var CASCADE_RESET = {
-    clientId: ['activityType', 'campaignId', 'campaignName', 'assetId', 'assetType', 'assetLabel', 'subCategory', 'site', 'domain', 'campaign', 'page'],
-    activityType: ['campaignId', 'campaignName', 'assetId', 'assetType', 'assetLabel', 'subCategory', 'page'],
-    campaignId: ['assetId', 'assetType', 'assetLabel', 'subCategory', 'page'],
-    assetId: ['subCategory', 'page'],
-    subCategory: ['page'],
+    clientId: ['activityType', 'campaignId', 'campaignName', 'assetId', 'assetType', 'assetLabel', 'subCategory', 'specificItem', 'site', 'domain', 'campaign', 'page'],
+    activityType: ['campaignId', 'campaignName', 'assetId', 'assetType', 'assetLabel', 'subCategory', 'specificItem', 'page'],
+    campaignId: ['assetId', 'assetType', 'assetLabel', 'subCategory', 'specificItem', 'page'],
+    assetId: ['subCategory', 'specificItem', 'page'],
+    subCategory: ['specificItem', 'page'],
+    specificItem: ['page'],
   };
 
   var state = defaultState();
@@ -35,6 +36,7 @@
       assetType: null,
       assetLabel: '',
       subCategory: null,
+      specificItem: null,
       dateRange: { preset: 'month', from: '', to: '' },
       status: null,
       freeSearch: '',
@@ -77,8 +79,9 @@
       state.domain = raw.domain || raw.site;
     }
     if (raw.subCategory) state.subCategory = raw.subCategory;
+    if (raw.specificItem) state.specificItem = raw.specificItem;
     else if (raw.page) {
-      state.subCategory = { type: 'page', id: raw.page, label: raw.page, path: raw.page };
+      state.specificItem = { type: 'page', id: raw.page, label: raw.page, path: raw.page };
       state.page = raw.page;
     }
     if (raw.dateRange || raw.dateFrom || raw.dateTo) {
@@ -125,7 +128,8 @@
     if (!window.COCO) window.COCO = {};
     if (!COCO.flowContext) COCO.flowContext = {};
     var sub = state.subCategory;
-    var pageVal = sub ? (sub.path || sub.label || sub.id || '') : state.page;
+    var si = state.specificItem;
+    var pageVal = si ? (si.path || si.label || si.id || '') : (sub ? (sub.path || sub.label || sub.id || '') : state.page);
     Object.assign(COCO.flowContext, {
       clientId: state.clientId,
       clientName: state.clientName,
@@ -141,6 +145,7 @@
       domain: state.domain || state.assetLabel || state.site,
       page: pageVal,
       subCategory: state.subCategory,
+      specificItem: state.specificItem,
       dateRange: state.dateRange.preset === 'custom' ? 'custom' : state.dateRange.preset,
       dateFrom: state.dateRange.from,
       dateTo: state.dateRange.to,
@@ -166,6 +171,7 @@
     if (!reset) return;
     reset.forEach(function (key) {
       if (key === 'subCategory') state.subCategory = null;
+      else if (key === 'specificItem') state.specificItem = null;
       else if (key === 'dateRange') { /* keep */ }
       else state[key] = key === 'campaignName' || key === 'assetLabel' ? '' : null;
     });
@@ -203,6 +209,10 @@
       if (k === 'version') return;
       if (k === 'subCategory' && partial[k] === null) {
         state.subCategory = null;
+        return;
+      }
+      if (k === 'specificItem' && partial[k] === null) {
+        state.specificItem = null;
         state.page = '';
         return;
       }
@@ -222,6 +232,9 @@
     }
     if (state.subCategory && state.subCategory.path) {
       state.page = state.subCategory.path;
+    }
+    if (state.specificItem && state.specificItem.path) {
+      state.page = state.specificItem.path;
     }
 
     if (!opts.skipValidation && window.FilterEntityIndex && FilterEntityIndex.isLoaded()) {
@@ -244,7 +257,7 @@
   }
 
   function reset(fromStep) {
-    var steps = ['clientId', 'activityType', 'campaignId', 'assetId', 'subCategory'];
+    var steps = ['clientId', 'activityType', 'campaignId', 'assetId', 'subCategory', 'specificItem'];
     var idx = fromStep ? steps.indexOf(fromStep) : 0;
     if (idx < 0) idx = 0;
     for (var i = idx; i < steps.length; i++) {
