@@ -1,18 +1,20 @@
 /**
- * Deep performance audit — Actions screen only (read-only).
+ * Deep performance audit — Actions screen lite (read-only).
  * Output: docs/audit-reports/actions-performance-audit/
  */
-import { writeFileSync, mkdirSync, readFileSync } from 'fs';
+import { writeFileSync, mkdirSync, readFileSync, copyFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
 import { chromium, devices } from 'playwright';
 import { P001 } from './project-001/_lib/config.mjs';
 
+const VER = process.env.ACTIONS_AUDIT_VER || 'v3-actions-lite-1';
 const STAGING =
   process.env.STAGING_PAGES_URL ||
-  'https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-actions-lite-1';
+  `https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=${VER}`;
 const OUT = join(P001.root, 'docs', 'audit-reports', 'actions-performance-audit');
 const WP_PATH = join(P001.root, 'public', 'project-001', 'site-work-plan.json');
+const OUT_SUFFIX = process.env.AUDIT_OUT_SUFFIX || '';
 
 mkdirSync(OUT, { recursive: true });
 
@@ -49,17 +51,21 @@ async function auditViewport(name, viewport) {
   await page.goto(STAGING, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForFunction(() => typeof window.goScreen === 'function', { timeout: 60000 });
   await page.evaluate(() => goScreen('screen-actions'));
-  await page.waitForSelector('#coco-live-actions-pending .coco-act-lite-card', { state: 'attached', timeout: 60000 });
+  await page.waitForSelector('#coco-live-actions-pending .coco-act-lite-card, #coco-live-actions-pending .coco-act-page-card', { state: 'attached', timeout: 60000 });
   const actionsLoadMs = Date.now() - t0;
 
+  await page.waitForFunction(
+    () => document.getElementById('coco-live-actions-pending')?.getAttribute('data-coco-act-ready') === 'true',
+    { timeout: 30000 }
+  ).catch(() => null);
   const fullLoadMs = Date.now() - t0;
 
   const domStats = await page.evaluate(() => {
     const root = document.getElementById('coco-live-actions-pending');
-    const cards = document.querySelectorAll('.coco-act-lite-card');
-    const items = document.querySelectorAll('.coco-act-lite-acc');
+    const cards = document.querySelectorAll('.coco-act-lite-card, .coco-act-page-card');
+    const items = document.querySelectorAll('.coco-act-item, .coco-act-lite-acc-item');
     const baGrids = document.querySelectorAll('.coco-act-ba-grid');
-    const feedback = document.querySelectorAll('.coco-act-lite-acc-body');
+    const feedback = document.querySelectorAll('.coco-act-feedback');
     const htmlLen = root ? root.innerHTML.length : 0;
     let lsBytes = 0;
     ['dalia-actions-seq-v1', 'dalia-actions-workbench-v1', 'dalia-action-approvals-v1'].forEach((k) => {
@@ -76,7 +82,6 @@ async function auditViewport(name, viewport) {
     };
   });
 
-  // Scroll test — down then up, measure frame time proxy
   const scrollPerf = await page.evaluate(async () => {
     const el = document.querySelector('#screen-actions .page-body') || document.scrollingElement;
     const steps = 20;
@@ -101,54 +106,48 @@ async function auditViewport(name, viewport) {
 
   const heapBefore = await page.evaluate(() => performance.memory?.usedJSHeapSize || 0);
 
-  // Open workbench for first page
-  const expandT0 = Date.now();
-  await page.click('[data-open-wb]').catch(() => null);
-  await page.waitForSelector('.coco-act-lite-acc', { timeout: 15000 }).catch(() => null);
-  const expandMs = Date.now() - expandT0;
+  const workbenchT0 = Date.now();
+  await page.click('[data-act-open-wb]').catch(() => null);
+  await page.waitForSelector('.coco-act-lite-wb, .coco-act-lite-acc-list', { timeout: 15000 }).catch(() => null);
+  const workbenchMs = Date.now() - workbenchT0;
 
-  const domAfterExpand = await page.evaluate(() => ({
-    actionItems: document.querySelectorAll('.coco-act-lite-acc').length,
-    feedbackPanels: document.querySelectorAll('.coco-act-lite-acc-open .coco-act-lite-acc-body').length,
+  const domAfterWorkbench = await page.evaluate(() => ({
+    actionItems: document.querySelectorAll('.coco-act-lite-acc-item, .coco-act-item').length,
+    feedbackPanels: document.querySelectorAll('.coco-act-feedback').length,
     totalDomNodes: document.querySelectorAll('*').length,
     pendingHtmlChars: (document.getElementById('coco-live-actions-pending')?.innerHTML.length) || 0,
   }));
 
-  // Preview open (lite — single iframe srcdoc)
+  const expandT0 = Date.now();
+  await page.click('[data-act-acc-toggle]').catch(() => null);
+  await page.waitForSelector('.coco-act-ba-grid', { timeout: 10000 }).catch(() => null);
+  const expandMs = Date.now() - expandT0;
+
   const previewT0 = Date.now();
-  await page.click('[data-open-lite-preview]').catch(() => null);
-  await page.waitForSelector('#coco-act-lite-preview[style*="flex"]', { timeout: 60000 }).catch(() => null);
+  await page.click('[data-act-lite-preview]').catch(() => null);
+  await page.waitForSelector('#coco-act-lite-preview-modal[style*="flex"], #coco-act-lite-preview-modal:not([style*="none"])', { timeout: 30000 }).catch(() => null);
   await page.waitForFunction(
     () => {
-      const m = document.getElementById('coco-act-lite-preview');
-      if (!m || m.style.display === 'none') return false;
-      const f = document.getElementById('coco-act-lite-frame');
-      return f && (f.srcdoc?.length > 200);
+      const f = document.getElementById('coco-act-lite-preview-frame');
+      return f && (f.srcdoc?.length > 50 || f.contentDocument?.documentElement);
     },
-    { timeout: 90000 }
+    { timeout: 30000 }
   ).catch(() => null);
   const previewOpenMs = Date.now() - previewT0;
 
   const previewStats = await page.evaluate(() => {
-    const modal = document.getElementById('coco-act-lite-preview');
-    const iframes = document.querySelectorAll('#coco-act-lite-frame');
-    let srcdocTotal = 0;
-    iframes.forEach((f) => { srcdocTotal += (f.srcdoc || '').length; });
+    const modal = document.getElementById('coco-act-lite-preview-modal');
+    const frame = document.getElementById('coco-act-lite-preview-frame');
     return {
       modalVisible: modal && modal.style.display !== 'none',
-      iframeCount: iframes.length,
-      srcdocTotalChars: srcdocTotal,
-      sidebarItems: document.querySelectorAll('.coco-act-lite-acc').length,
-      mode: 'lite-srcdoc',
+      iframeCount: frame ? 1 : 0,
+      srcdocTotalChars: frame ? (frame.srcdoc || '').length : 0,
+      accordionItems: document.querySelectorAll('.coco-act-lite-acc-item').length,
     };
   });
 
-  const compareMs = 0;
-  const compareStats = { iframeCount: 0, srcdocTotalChars: 0, skipped: 'lite workbench has no compare mode' };
-
   const heapAfter = await page.evaluate(() => performance.memory?.usedJSHeapSize || 0);
 
-  // Other screens smoke
   const hubT0 = Date.now();
   await page.evaluate(() => goScreen('screen-hub'));
   await page.waitForSelector('#screen-hub.active, #screen-hub:not([style*="display: none"])', { timeout: 15000 }).catch(() => null);
@@ -161,16 +160,16 @@ async function auditViewport(name, viewport) {
     viewport: name,
     timings: {
       actionsFirstPaintMs: actionsLoadMs,
-      actionsFullLazyMs: fullLoadMs,
-      expandFirstPageMs: expandMs,
+      actionsFullLoadMs: fullLoadMs,
+      openWorkbenchMs: workbenchMs,
+      expandFirstActionMs: expandMs,
       previewOpenMs,
-      compareSwitchMs: compareMs,
       hubAfterActionsMs: hubLoadMs,
     },
-    dom: { initial: domStats, afterExpand: domAfterExpand },
+    dom: { initial: domStats, afterWorkbench: domAfterWorkbench },
     scroll: scrollPerf,
     memory: { heapBeforeBytes: heapBefore, heapAfterBytes: heapAfter, deltaMb: ((heapAfter - heapBefore) / 1048576).toFixed(2) },
-    preview: { open: previewStats, compare: compareStats },
+    preview: previewStats,
     errors: {
       console: [...new Set(consoleErrors)].slice(0, 20),
       pageErrors,
@@ -180,7 +179,6 @@ async function auditViewport(name, viewport) {
   };
 }
 
-// Page strategy analysis from SSOT
 function analyzePages() {
   const byPage = {};
   actions.forEach((a) => {
@@ -191,7 +189,6 @@ function analyzePages() {
   return pages.map((p) => {
     const acts = byPage[p.id] || [];
     const failCount = p.checklist ? Object.values(p.checklist).filter((v) => v === 'fail').length : 0;
-    const passCount = p.checklist ? Object.values(p.checklist).filter((v) => v === 'pass').length : 0;
     const gscClicks = p.gsc?.clicks || 0;
     const ga4 = p.ga4Views || 0;
     const score = (p.seoScore || 0) * 10 + gscClicks * 5 + ga4 * 0.1 + (p.tier === 1 ? 50 : p.tier === 2 ? 30 : p.tier === 3 ? 10 : 0);
@@ -204,16 +201,7 @@ function analyzePages() {
       path: p.path,
       title: p.title,
       rank: p.rank,
-      tier: p.tier,
-      seoScore: p.seoScore,
-      estimateHours: p.estimateHours,
-      estimateLabel: p.estimateLabel,
-      gscClicks: gscClicks,
-      ga4Views: ga4,
       actionCount: acts.length,
-      checklistFail: failCount,
-      checklistPass: passCount,
-      priority: p.priority,
       strategy,
       businessValue: score > 80 ? 'גבוה' : score > 40 ? 'בינוני' : 'נמוך',
     };
@@ -226,83 +214,40 @@ const mobile = await auditViewport('mobile', 'iPhone 13');
 
 const report = {
   at: new Date().toISOString(),
+  version: VER,
   stagingUrl: STAGING,
   commit: git('git log origin/main -1 --format=%H'),
   commitMsg: git('git log origin/main -1 --format=%s'),
-  ssot: {
-    pages: pages.length,
-    actions: actions.length,
-    totalEstimateHours: wp.summary?.totalEstimateHours,
-    tier1: wp.summary?.tier1,
-    tier2: wp.summary?.tier2,
-    tier3: wp.summary?.tier3,
-    tier4: wp.summary?.tier4,
-  },
+  ssot: { pages: pages.length, actions: actions.length },
   performance: { desktop, mobile },
   pageAnalysis,
-  pageStrategySummary: {
-    fix_priority: pageAnalysis.filter((p) => p.strategy === 'fix_priority').length,
-    fix: pageAnalysis.filter((p) => p.strategy === 'fix').length,
-    rebuild: pageAnalysis.filter((p) => p.strategy === 'rebuild').length,
-    defer: pageAnalysis.filter((p) => p.strategy === 'defer').length,
-  },
-  rootCauses: [],
-  recommendations: [],
+  rootCauses: [
+    {
+      id: 'pagination',
+      severity: 'low',
+      finding: `Lite list: ${desktop.dom.initial.cards} cards visible (max 8/page) vs ${pages.length} total`,
+      evidence: `HTML ${desktop.dom.initial.pendingHtmlChars} chars`,
+    },
+    {
+      id: 'workbench_on_demand',
+      severity: 'medium',
+      finding: 'Workbench + accordion expand loads detail only on demand',
+      evidence: `after workbench: ${desktop.dom.afterWorkbench.totalDomNodes} nodes`,
+    },
+    {
+      id: 'lite_preview',
+      severity: 'low',
+      finding: 'Single iframe srcdoc preview — no proxy/compare',
+      evidence: `srcdoc ${desktop.preview.srcdocTotalChars} chars, iframes ${desktop.preview.iframeCount}`,
+    },
+  ],
 };
 
-// Root cause analysis
-report.rootCauses = [
-  {
-    id: 'dom_volume',
-    severity: 'high',
-    finding: `${pages.length} כרטיסי עמוד + ${actions.length} פעולות — HTML כבד (${desktop.dom.initial.pendingHtmlChars} chars אחרי lazy מלא)`,
-    evidence: `DOM nodes: ${desktop.dom.initial.totalDomNodes}, cards: ${desktop.dom.initial.cards}`,
-  },
-  {
-    id: 'expand_hydration',
-    severity: 'high',
-    finding: 'פתיחת "פירוט תיקונים" מזריקה before/after + 7 impact badges + feedback לכל פעולה — DOM גדל פי 3–5',
-    evidence: `אחרי expand: ${desktop.dom.afterExpand.actionItems} items, ${desktop.dom.afterExpand.totalDomNodes} nodes, HTML ${desktop.dom.afterExpand.pendingHtmlChars} chars`,
-  },
-  {
-    id: 'compare_iframes',
-    severity: 'high',
-    finding: 'מצב השוואה טוען 2 iframe עם HTML מלא (srcdoc) — כבד בזיכרון',
-    evidence: `compare: ${desktop.preview.compare.iframeCount} iframes, ${desktop.preview.compare.srcdocTotalChars} chars srcdoc`,
-  },
-  {
-    id: 'lazy_batch_scroll',
-    severity: 'medium',
-    finding: 'lazy load ממשיך להוסיף DOM בזמן גלילה (insertAdjacentHTML) — גורם ל-jank בעלייה',
-    evidence: `scroll up max ${desktop.scroll.scrollUpMaxMs.toFixed(1)}ms vs down ${desktop.scroll.scrollDownMaxMs.toFixed(1)}ms`,
-  },
-  {
-    id: 'pulse_animation',
-    severity: 'low',
-    finding: 'כפתור Preview עם animation infinite (coco-act-pulse) על כל כרטיס — repaint',
-    evidence: 'CSS animation on .coco-act-btn-preview × 28 cards',
-  },
-  {
-    id: 'localStorage',
-    severity: 'low',
-    finding: `localStorage קטן (${desktop.dom.initial.lsBytes} bytes) — לא הגורם העיקרי`,
-    evidence: 'seq + workbench + approvals keys',
-  },
-];
-
-report.recommendations = [
-  { priority: 1, title: 'Pagination — 5–8 עמודים בלבד', desc: 'הצג ברירת מחדל 5–8 עמודים + "טען עוד" — לא 28 בבת אחת' },
-  { priority: 2, title: 'Accordion יחיד', desc: 'רק עמוד אחד פתוח — סגור אחרים אוטומטית' },
-  { priority: 3, title: 'Summary קצר + עומק בלחיצה', desc: 'כרטיס: כותרת + 3 שורות + זמן. before/after רק ב-Preview או expand' },
-  { priority: 4, title: 'Preview on-demand בלבד', desc: 'כבר קיים — לשמור. compare רק בלחיצה, לא default' },
-  { priority: 5, title: 'Virtual scroll / IntersectionObserver', desc: 'טען כרטיסים רק כשנכנסים ל-viewport' },
-  { priority: 6, title: 'הסר pulse animation', desc: 'החלף ב-badge סטטי — חוסך repaint' },
-  { priority: 7, title: 'כפתור "התעלם מעמוד"', desc: 'הוצא tier4 / 0 traffic מ-work queue' },
-  { priority: 8, title: 'סינון: tier / עדיפות / סטטוס', desc: 'הצג רק מה רלוונטי עכשיו' },
-  { priority: 9, title: 'Rebuild vs Fix badge', desc: 'סמן עמודים rebuild — אל תציג 20 פעולות micro-fix' },
-  { priority: 10, title: 'Preview: thumbnail mode', desc: 'השוואה = screenshot diff, לא 2× HTML מלא' },
-];
-
-writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2));
-console.log('Report:', join(OUT, 'report.json'));
+const outFile = OUT_SUFFIX ? `report-${OUT_SUFFIX}.json` : 'report.json';
+const outPath = join(OUT, outFile);
+if (outFile === 'report.json' && existsSync(outPath) && !process.env.AUDIT_SKIP_BACKUP) {
+  copyFileSync(outPath, join(OUT, 'report-before-lite.json'));
+}
+writeFileSync(outPath, JSON.stringify(report, null, 2));
+console.log('Report:', outPath);
 console.log(JSON.stringify({ desktop: desktop.timings, mobile: mobile.timings, scroll: desktop.scroll }, null, 2));
