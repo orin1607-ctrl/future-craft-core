@@ -212,6 +212,7 @@
       return items.filter(function (item) {
         var meta = mapFn(item);
         if (!isOfficialClient && !clientMatches(meta, c)) return false;
+        if (!isOfficialClient && (c.campaignId || c.campaign) && !campaignMatches(meta, c)) return false;
         if (freeOnly && JSON.stringify(item).toLowerCase().indexOf(freeOnly) < 0) return false;
         return true;
       });

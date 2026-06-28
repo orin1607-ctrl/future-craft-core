@@ -8,7 +8,7 @@ import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
 
-const VER = process.env.QA_UI_VERSION || 'v3-final-strict-5';
+const VER = process.env.QA_UI_VERSION || 'v3-final-strict-7';
 const STAGING = `https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=${VER}`;
 const OUT = join(process.cwd(), 'docs', 'audit-reports', 'final-strict-qa');
 mkdirSync(OUT, { recursive: true });
@@ -276,7 +276,19 @@ async function verifyData(page) {
 
     for (const sid of ['screen-goals', 'screen-actions', 'screen-history', 'screen-reports', 'screen-crm', 'screen-assets', 'screen-ai-center', 'screen-agents']) {
       goScreen(sid);
-      await new Promise((r) => setTimeout(r, 500));
+      const waitMs = sid === 'screen-actions' ? 2500 : sid === 'screen-goals' ? 1200 : 500;
+      await new Promise((r) => setTimeout(r, waitMs));
+      if (sid === 'screen-actions') {
+        await new Promise((r) => {
+          const t0 = Date.now();
+          const poll = () => {
+            const ready = document.querySelector('[data-coco-act-ready="true"]');
+            if (ready || Date.now() - t0 > 8000) return r();
+            setTimeout(poll, 150);
+          };
+          poll();
+        });
+      }
       const el = document.getElementById(sid);
       const live = el?.querySelector('[id^="coco-live-"]');
       out.screens[sid] = {
@@ -332,7 +344,9 @@ async function customerIsolationTest(page) {
         const wp = bundle.workPlan || (window.DaliaSite && DaliaSite.getWorkPlan && DaliaSite.getWorkPlan());
         return (wp && wp.actions) || [];
       })();
-      actionsA = FilterEngine.filter(all, (a) => ({ action: a.category, status: a.status, campaign: a.campaignId })).length;
+      actionsA = FilterEngine.filter(all, (a) => (
+        window.FilterMeta ? FilterMeta.action(a) : { action: a.category, status: a.status, campaign: a.campaignId }
+      )).length;
     }
 
     GlobalFilterContext.set({ clientId: isoClientB, clientName: 'QA B', campaignId: 'qa-camp-b', activityType: 'seo' }, { source: 'qa-test', allowInvalid: true });
@@ -343,7 +357,9 @@ async function customerIsolationTest(page) {
     if (window.FilterEngine && bundle) {
       const wp = bundle.workPlan || (window.DaliaSite && DaliaSite.getWorkPlan && DaliaSite.getWorkPlan());
       const all = (wp && wp.actions) || [];
-      const filtered = FilterEngine.filter(all, (a) => ({ action: a.category, status: a.status, campaign: a.campaignId, clientId: isoClientB }));
+      const filtered = FilterEngine.filter(all, (a) => (
+        window.FilterMeta ? FilterMeta.action(a) : { action: a.category, status: a.status, campaign: a.campaignId }
+      ));
       actionsB = filtered.length;
       crossIds = filtered.filter((a) => a.campaignId === 'campaign-dalia-seo-primary').map((a) => a.id).slice(0, 5);
     }

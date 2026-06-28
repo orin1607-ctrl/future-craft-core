@@ -14,10 +14,15 @@
     return c.campaignId || (window.ClientIdSsot && ClientIdSsot.PRIMARY_CAMPAIGN && ClientIdSsot.PRIMARY_CAMPAIGN.id);
   }
 
+  function officialClientId() {
+    var off = window.ClientIdSsot && ClientIdSsot.OFFICIAL;
+    return (off && off.clientId) || 'dalia-c-official';
+  }
+
   function base(item) {
     return {
-      clientId: item.clientId || clientId(),
-      campaignId: item.campaignId || campaignId(),
+      clientId: item.clientId || item.customerId || officialClientId(),
+      campaignId: item.campaignId || item.campaign || '',
       activityType: item.activityType || item.channel || 'seo',
     };
   }
