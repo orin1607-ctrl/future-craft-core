@@ -126,7 +126,7 @@
         liked: '', disliked: '', changeRequests: '', userNotes: '',
         chat: [], revisionRound: 1, updatedAt: null,
         assignee: '', openedAt: null, completedAt: null, workflowStatus: null,
-        codeHtml: '', codeCss: '', codeJs: '', filesNote: '',
+        filesNote: '',
       };
     }
     return store.items[actionId];
@@ -625,19 +625,16 @@
       fbField('changeRequests', 'בקשות שינוי', fb.changeRequests, action.id) +
       '</div>' +
       '<div class="coco-act-work-section">' +
-      '<span class="coco-act-work-section-title">קוד / קבצים רלוונטיים (Staging)</span>' +
+      '<span class="coco-act-work-section-title">קישור / קובץ (טקסט בלבד)</span>' +
       '<label class="coco-act-fb-field"><span class="coco-act-fb-label">קישור או תיאור קובץ</span>' +
       '<input class="filter-input" data-act-meta="filesNote" data-act-meta-id="' + escAttr(action.id) + '" value="' + escAttr(fb.filesNote || '') + '"></label>' +
-      '<label class="coco-act-fb-field"><span class="coco-act-fb-label">HTML</span>' +
-      '<textarea rows="3" class="coco-act-code-input" data-act-code="codeHtml" data-act-code-id="' + escAttr(action.id) + '">' + esc(fb.codeHtml || '') + '</textarea></label>' +
-      '<label class="coco-act-fb-field"><span class="coco-act-fb-label">CSS</span>' +
-      '<textarea rows="2" class="coco-act-code-input" data-act-code="codeCss" data-act-code-id="' + escAttr(action.id) + '">' + esc(fb.codeCss || '') + '</textarea></label>' +
       '</div>' +
+      (window.ActionsDemoCode ? ActionsDemoCode.renderDemoSection(action.id, expanded) : '') +
       renderBeforeAfter(ba, itemNum, action) +
       renderFeedbackPanel(action, page, itemNum) +
       '<div class="coco-act-work-actions">' +
       '<button type="button" class="btn btn-green coco-act-btn-sm" data-act-mark-done="' + escAttr(action.id) + '">✓ סמן הושלם</button>' +
-      '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-action-preview="' + escAttr(action.id) + '">🔍 תצוגה מקדימה</button>' +
+      '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-demo-open="' + escAttr(action.id) + '">📋 קוד לדemo</button>' +
       (approved
         ? '<span class="badge badge-green">✓ מאושר לביצוע · ' + esc(formatDateHe(getApprovals()[action.id].at)) + '</span>' +
           ' <button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-revoke="' + escAttr(action.id) + '">↩ בטל אישור</button>'
@@ -678,7 +675,13 @@
           return renderActionAccordionItem(a, page, _expandedActionId === a.id, sorted);
         }).join('')
         : '<div class="alert alert-ok">אין פעולות פתוחות לעמוד זה 🎉</div>') +
-      '</div></div>';
+      '</div>' +
+      (window.ActionsDemoCode
+        ? '<div class="coco-act-demo-history-panel card">' +
+          '<div class="coco-act-demo-history-head">📜 היסטוריית העלאות (קלה · ללא קוד)</div>' +
+          ActionsDemoCode.renderHistoryHtml(10) + '</div>'
+        : '') +
+      '</div>';
   }
 
   function renderListView(pageGroups, wp, pending) {
@@ -800,6 +803,54 @@
   function closeLitePreview() {
     var modal = document.getElementById('coco-act-lite-preview-modal');
     if (modal) modal.style.display = 'none';
+    var frame = document.getElementById('coco-act-lite-preview-frame');
+    if (frame) frame.srcdoc = 'about:blank';
+  }
+
+  function getDemoStagingMeta(action, page) {
+    var fb = getActionFeedback(action.id);
+    var ver = '';
+    try {
+      var m = document.querySelector('meta[name="ui-version"]');
+      if (m) ver = m.getAttribute('content') || '';
+    } catch (e) { /* ignore */ }
+    return {
+      actionId: action.id,
+      taskName: (action.category || action.title || 'משימה') + ' #' + (getActionNumber(action.id) || ''),
+      pagePath: page.path || '',
+      assignee: fb.assignee || '',
+      uiVersion: ver,
+      stagingUrl: 'https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=' + (ver || 'staging'),
+      note: 'אושר מהכרטיס',
+    };
+  }
+
+  function openDemoForAction(actionId) {
+    if (!window.ActionsDemoCode) return;
+    var ctx = findActionAndPage(actionId);
+    if (!ctx.action || !ctx.page) return;
+    ActionsDemoCode._stagingMeta = getDemoStagingMeta(ctx.action, ctx.page);
+    ActionsDemoCode.openDemoModal(actionId, ActionsDemoCode._stagingMeta);
+  }
+
+  function requestStagingUpload(actionId) {
+    if (!window.ActionsDemoCode) return;
+    if (!ActionsDemoCode.isDemoApproved(actionId)) {
+      if (typeof showToast === 'function') showToast('יש לאשר את הדemo לפני העלאה ל-Staging');
+      return;
+    }
+    var ok = window.confirm(
+      'אישור סופי להעלאה ל-Staging:\n\n• Orin Staging בלבד\n• לא Production\n• לא dalia-c.com\n• Deploy ידני — לא אוטומטי\n• הקוד לא נשמר בהיסטוריה\n\nלהמשיך?'
+    );
+    if (!ok) return;
+    var ctx = findActionAndPage(actionId);
+    if (!ctx.action || !ctx.page) return;
+    var meta = getDemoStagingMeta(ctx.action, ctx.page);
+    var res = ActionsDemoCode.approveStagingUpload(meta);
+    if (res.ok && typeof showToast === 'function') {
+      showToast('✓ נרשם לאישור Staging · Deploy יתבצע רק ידנית');
+    }
+    rerender();
   }
 
   function findActionAndPage(actionId) {
@@ -1039,13 +1090,34 @@
         markActionDone(doneBtn.getAttribute('data-act-mark-done'));
         return;
       }
-      var actPrev = e.target.closest('[data-act-action-preview]');
-      if (actPrev) {
-        var aid2 = actPrev.getAttribute('data-act-action-preview');
-        var fb2 = getActionFeedback(aid2);
-        if (_workbenchPageId) {
-          savePreviewStore(_workbenchPageId, fb2.codeHtml, fb2.codeCss, fb2.codeJs);
-          openLitePreview(_workbenchPageId);
+      var demoOpen = e.target.closest('[data-demo-open]');
+      if (demoOpen) {
+        openDemoForAction(demoOpen.getAttribute('data-demo-open'));
+        return;
+      }
+      var demoOk = e.target.closest('[data-demo-inline-ok]');
+      if (demoOk) {
+        var idOk = demoOk.getAttribute('data-demo-inline-ok');
+        if (window.ActionsDemoCode) {
+          ActionsDemoCode.approveDemo(idOk);
+          if (typeof showToast === 'function') showToast('✓ הדemo אושר');
+          rerender();
+        }
+        return;
+      }
+      var demoStaging = e.target.closest('[data-demo-inline-staging]');
+      if (demoStaging) {
+        requestStagingUpload(demoStaging.getAttribute('data-demo-inline-staging'));
+        return;
+      }
+      var demoClear = e.target.closest('[data-demo-inline-clear]');
+      if (demoClear) {
+        var idCl = demoClear.getAttribute('data-demo-inline-clear');
+        if (window.ActionsDemoCode) {
+          ActionsDemoCode.clearDemo(idCl);
+          ActionsDemoCode.purgePreviewFrame();
+          if (typeof showToast === 'function') showToast('קוד נמחק מהזיכרון');
+          rerender();
         }
         return;
       }
@@ -1086,13 +1158,15 @@
         saveActionFeedback(meta.getAttribute('data-act-meta-id'), patch);
         return;
       }
-      var code = e.target.closest('[data-act-code]');
-      if (code) {
+      var demoIn = e.target.closest('[data-demo-inline]');
+      if (demoIn && window.ActionsDemoCode) {
         clearTimeout(_fbSaveTimer);
         _fbSaveTimer = setTimeout(function () {
+          var aid = demoIn.getAttribute('data-demo-inline-id');
+          var field = demoIn.getAttribute('data-demo-inline');
           var p = {};
-          p[code.getAttribute('data-act-code')] = code.value;
-          saveActionFeedback(code.getAttribute('data-act-code-id'), p);
+          p[field] = demoIn.value;
+          ActionsDemoCode.setDemo(aid, p);
         }, 400);
         return;
       }
@@ -1218,6 +1292,7 @@
 
   window.ActionsWorkbench = {
     render: render,
+    rerender: rerender,
     getApprovals: getApprovals,
     getSeqState: getSeqState,
     getActionNumber: getActionNumber,

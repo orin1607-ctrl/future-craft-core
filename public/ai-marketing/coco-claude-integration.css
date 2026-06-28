@@ -753,6 +753,26 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
   .coco-act-work-grid { grid-template-columns: 1fr; }
   .coco-act-work-actions .btn { flex: 1; min-height: 44px; }
 }
+/* ── Demo code (session-only) ── */
+.coco-act-demo-section { border-top: 1px solid rgba(139, 92, 246, 0.25); background: rgba(139, 92, 246, 0.04); margin-top: 12px; padding-top: 12px; }
+.coco-act-demo-hint { font-size: 11px; color: var(--white50); margin: 0 0 10px; line-height: 1.45; }
+.coco-act-demo-inline-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.coco-act-demo-dialog { width: min(980px, 96vw) !important; max-height: 92vh !important; }
+.coco-act-demo-modal-body { display: grid; grid-template-rows: auto auto 1fr; flex: 1; min-height: 0; overflow: hidden; }
+.coco-act-demo-editors { padding: 10px 14px; border-bottom: 1px solid var(--border); max-height: 28vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.coco-act-demo-modal-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+.coco-act-demo-staging-btn { font-weight: 700; }
+.coco-act-demo-history-panel { margin-top: 16px; padding: 12px 14px; }
+.coco-act-demo-history-head { font-size: 13px; font-weight: 700; color: var(--white80); margin-bottom: 10px; }
+.coco-act-demo-history-empty { font-size: 11px; color: var(--white50); font-style: italic; }
+.coco-act-demo-history-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
+.coco-act-demo-history-row { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg3); font-size: 11px; }
+.coco-act-demo-history-main { color: var(--white90); margin-bottom: 4px; }
+.coco-act-demo-history-meta { color: var(--white50); }
+.coco-act-demo-history-note { color: var(--white70); margin-top: 4px; font-style: italic; }
+@media (max-width: 767px) {
+  .coco-act-demo-inline-actions .btn { flex: 1; min-height: 44px; }
+}
 .coco-act-impact-badges {
   display: flex;
   flex-wrap: wrap;
