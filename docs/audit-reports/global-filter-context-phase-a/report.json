@@ -1,0 +1,57 @@
+{
+  "at": "2026-06-28T10:42:40.004Z",
+  "viewports": {
+    "desktop": {
+      "consoleErrors": [],
+      "checks": {
+        "infra": {
+          "hasGfc": true,
+          "hasEngine": true,
+          "hasTaxonomy": true,
+          "hasIndex": true,
+          "hasRegistry": true,
+          "ctxVersion": 3,
+          "clientId": "dalia-c-official",
+          "flowClientId": "dalia-c-official",
+          "synced": true,
+          "indexLoaded": true,
+          "clients": 1,
+          "pages": 28,
+          "registry": 12,
+          "testFilter": 2,
+          "scoped": 1,
+          "activityTypes": 12
+        },
+        "goals": 28,
+        "actions": 28
+      }
+    },
+    "mobile": {
+      "consoleErrors": [],
+      "checks": {
+        "infra": {
+          "hasGfc": true,
+          "hasEngine": true,
+          "hasTaxonomy": true,
+          "hasIndex": true,
+          "hasRegistry": true,
+          "ctxVersion": 3,
+          "clientId": "dalia-c-official",
+          "flowClientId": "dalia-c-official",
+          "synced": true,
+          "indexLoaded": true,
+          "clients": 1,
+          "pages": 28,
+          "registry": 12,
+          "testFilter": 2,
+          "scoped": 1,
+          "activityTypes": 12
+        },
+        "goals": 28,
+        "actions": 28
+      }
+    }
+  },
+  "ok": true,
+  "errors": []
+}
