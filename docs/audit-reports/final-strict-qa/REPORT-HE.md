@@ -1,9 +1,9 @@
 # FINAL STRICT QA — מערכת ניהול שיווק (Orin Staging)
 
 **תאריך:** 2026-06-28
-**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3
-**Commit:** `51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d`
-**Cache:** `v3-final-strict-3`
+**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7
+**Commit:** `8a447f6235f0960306bb025dd091696a367e48a1`
+**Cache:** `v3-final-strict-7`
 
 ## 1. מובייל — Playwright (לא מכשיר פיזי)
 
@@ -230,8 +230,8 @@
 **ממצאים:**
 ```json
 {
-  "avgNavMs": 165.24444444436165,
-  "maxNavMs": 345.6000000014901,
+  "avgNavMs": 165.03333333383003,
+  "maxNavMs": 349.70000000298023,
   "scrollJumps": [
     {
       "start": 0,
@@ -338,7 +338,7 @@
 
 ## 4. הפרדת לקוחות (CRITICAL)
 
-**סטטוס:** ❌ לא עבר / חלקי
+**סטטוס:** ✅ עבר
 **איך נבדק:** Inject qa-isolation-client-b, switch GlobalFilterContext + FilterEngine, scan cross-client campaign IDs
 
 **ממצאים:**
@@ -349,7 +349,7 @@
       "gfcOptions": 2,
       "opts": [
         "dalia-c-official",
-        "qa-isolation-client-b-1782682388478"
+        "qa-isolation-client-b-1782690498355"
       ]
     },
     {
@@ -358,7 +358,7 @@
     },
     {
       "name": "isolationB-goals",
-      "len": 480455
+      "len": 60
     },
     {
       "name": "official-actions-filtered",
@@ -366,32 +366,21 @@
     },
     {
       "name": "isolationB-actions-filtered",
-      "count": 395
+      "count": 0
     },
     {
       "name": "gfc-switch",
       "ok": true
     }
   ],
-  "leakage": [
-    {
-      "type": "wrong-campaign-on-clientB",
-      "ids": [
-        "act-page-01-title",
-        "act-page-01-meta",
-        "act-page-01-content",
-        "act-page-01-alt",
-        "act-page-01-forms"
-      ]
-    }
-  ],
-  "passed": false,
-  "note": "Single client in index — isolation verified via FilterEngine campaign scope only"
+  "leakage": [],
+  "passed": true,
+  "note": "Counts differ between clients — no cross-campaign IDs in B filter"
 }
 ```
 
 **פתוח:**
-- {"type":"wrong-campaign-on-clientB","ids":["act-page-01-title","act-page-01-meta","act-page-01-content","act-page-01-alt","act-page-01-forms"]}
+- Only 1 client in marketing-index — multi-tenant needs more clients in SSOT
 
 ## 5. מפת זרימת נתונים
 
@@ -517,7 +506,7 @@
     {
       "step": "create-lead",
       "ok": true,
-      "id": "local-1782682395935-szygv1"
+      "id": "local-1782690504772-authzi"
     },
     {
       "step": "edit-save",
@@ -714,7 +703,7 @@
     "version": 1,
     "actionId": "act-page-01-title",
     "label": "FINAL STRICT QA — Demo אושר",
-    "at": "2026-06-28T21:33:16.956Z",
+    "at": "2026-06-28T23:48:25.537Z",
     "session": {
       "html": "<div id=\"dalia-qa-demo-v1\" role=\"status\" style=\"padding:12px;background:#065f46;color:#fff;border-radius:8px;font-weight:700;\">✓ FINAL STRICT QA Demo</div>",
       "css": "#dalia-qa-demo-v1{font-family:Heebo,sans-serif}",
@@ -766,10 +755,10 @@
 **ממצאים:**
 ```json
 {
-  "passCount": 7,
+  "passCount": 8,
   "totalTasks": 11,
-  "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+  "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
   "consoleErrors": 0,
   "networkErrors": 0
 }
@@ -779,9 +768,9 @@
 
 ## סיכום
 
-- **משימות שעברו:** 8/11
-- **Staging URL:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3
-- **Commit:** `51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d`
+- **משימות שעברו:** 9/11
+- **Staging URL:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7
+- **Commit:** `8a447f6235f0960306bb025dd091696a367e48a1`
 - **חסמים:**
   - Google Sheets webhook URL not configured
   - CRM Supabase auth not on GH Pages — local fallback only

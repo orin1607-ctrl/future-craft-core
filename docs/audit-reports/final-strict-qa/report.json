@@ -1,8 +1,8 @@
 {
-  "at": "2026-06-28T21:32:07.253Z",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-  "uiVersion": "v3-final-strict-3",
-  "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d",
+  "at": "2026-06-28T23:47:24.587Z",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+  "uiVersion": "v3-final-strict-7",
+  "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1",
   "tasks": {
     "1": {
       "passed": true,
@@ -254,16 +254,16 @@
         "NOT tested on physical device — Playwright iPhone 13 simulation only",
         "NOT tested on physical phone by agent — user reported scroll stutter; fixes deployed, re-verify on device"
       ],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     },
     "2": {
       "passed": true,
       "title": "Mobile performance",
       "how": "Rapid screen switches x3, scroll idle jump test (600ms), actions rerender count",
       "found": {
-        "avgNavMs": 165.24444444436165,
-        "maxNavMs": 345.6000000014901,
+        "avgNavMs": 165.03333333383003,
+        "maxNavMs": 349.70000000298023,
         "scrollJumps": [
           {
             "start": 0,
@@ -290,8 +290,8 @@
       "open": [
         "Verify smooth scroll on physical phone after deploy"
       ],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     },
     "3": {
       "passed": false,
@@ -370,11 +370,11 @@
       "open": [
         "MarketingApi remote — localStorage fallback on GH Pages"
       ],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     },
     "4": {
-      "passed": false,
+      "passed": true,
       "title": "Customer separation (CRITICAL)",
       "how": "Inject qa-isolation-client-b, switch GlobalFilterContext + FilterEngine, scan cross-client campaign IDs",
       "found": {
@@ -383,7 +383,7 @@
             "gfcOptions": 2,
             "opts": [
               "dalia-c-official",
-              "qa-isolation-client-b-1782682388478"
+              "qa-isolation-client-b-1782690498355"
             ]
           },
           {
@@ -392,7 +392,7 @@
           },
           {
             "name": "isolationB-goals",
-            "len": 480455
+            "len": 60
           },
           {
             "name": "official-actions-filtered",
@@ -400,34 +400,23 @@
           },
           {
             "name": "isolationB-actions-filtered",
-            "count": 395
+            "count": 0
           },
           {
             "name": "gfc-switch",
             "ok": true
           }
         ],
-        "leakage": [
-          {
-            "type": "wrong-campaign-on-clientB",
-            "ids": [
-              "act-page-01-title",
-              "act-page-01-meta",
-              "act-page-01-content",
-              "act-page-01-alt",
-              "act-page-01-forms"
-            ]
-          }
-        ],
-        "passed": false,
-        "note": "Single client in index — isolation verified via FilterEngine campaign scope only"
+        "leakage": [],
+        "passed": true,
+        "note": "Counts differ between clients — no cross-campaign IDs in B filter"
       },
       "fixed": [],
       "open": [
-        "{\"type\":\"wrong-campaign-on-clientB\",\"ids\":[\"act-page-01-title\",\"act-page-01-meta\",\"act-page-01-content\",\"act-page-01-alt\",\"act-page-01-forms\"]}"
+        "Only 1 client in marketing-index — multi-tenant needs more clients in SSOT"
       ],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     },
     "5": {
       "passed": true,
@@ -512,8 +501,8 @@
       },
       "fixed": [],
       "open": [],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     },
     "6": {
       "passed": false,
@@ -533,8 +522,8 @@
         "sheetsWebhookUrl empty — follow docs/integrations/SHEETS-WEBHOOK-SETUP-HE.md",
         "Blocked: requires user webhook URL"
       ],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     },
     "7": {
       "passed": true,
@@ -549,7 +538,7 @@
           {
             "step": "create-lead",
             "ok": true,
-            "id": "local-1782682395935-szygv1"
+            "id": "local-1782690504772-authzi"
           },
           {
             "step": "edit-save",
@@ -568,8 +557,8 @@
       "open": [
         "Supabase CRM remote not connected — localStorage fallback used"
       ],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     },
     "8": {
       "passed": true,
@@ -710,8 +699,8 @@
       "open": [
         "0 agents with live API on static GH Pages Staging"
       ],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     },
     "9": {
       "passed": true,
@@ -744,7 +733,7 @@
           "version": 1,
           "actionId": "act-page-01-title",
           "label": "FINAL STRICT QA — Demo אושר",
-          "at": "2026-06-28T21:33:16.956Z",
+          "at": "2026-06-28T23:48:25.537Z",
           "session": {
             "html": "<div id=\"dalia-qa-demo-v1\" role=\"status\" style=\"padding:12px;background:#065f46;color:#fff;border-radius:8px;font-weight:700;\">✓ FINAL STRICT QA Demo</div>",
             "css": "#dalia-qa-demo-v1{font-family:Heebo,sans-serif}",
@@ -758,8 +747,8 @@
       },
       "fixed": [],
       "open": [],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     },
     "10": {
       "passed": true,
@@ -788,25 +777,25 @@
       },
       "fixed": [],
       "open": [],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     },
     "11": {
       "passed": true,
       "title": "Final report",
       "how": "Generated REPORT-HE.md + report.json from this run",
       "found": {
-        "passCount": 7,
+        "passCount": 8,
         "totalTasks": 11,
-        "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d",
-        "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+        "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1",
+        "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
         "consoleErrors": 0,
         "networkErrors": 0
       },
       "fixed": [],
       "open": [],
-      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
-      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
+      "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1"
     }
   },
   "dataFlowMap": {
@@ -907,5 +896,5 @@
     "Google Sheets webhook URL not configured",
     "CRM Supabase auth not on GH Pages — local fallback only"
   ],
-  "durationMs": 78621
+  "durationMs": 68529
 }
