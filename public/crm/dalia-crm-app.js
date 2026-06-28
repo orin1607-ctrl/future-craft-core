@@ -615,7 +615,8 @@
       '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
       '<span class="badge ' + badge.cls + '">● ' + esc(badge.text.replace('● ', '')) + '</span>' +
       (lead ? '<span style="color:' + scoreColor + ';font-size:16px;">' + stars(lead.score) + '</span>' : '') +
-      '<span class="badge badge-blue" style="font-size:10px;">' + esc(serviceLabel(c.service_type)) + '</span></div></div>' +
+      '<span class="badge badge-blue" style="font-size:10px;">' + esc(serviceLabel(c.service_type)) + '</span>' +
+      '<button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" id="cc-edit-btn">✏️ ערוך</button></div></div>' +
       (note && note !== '—' ? '<div style="padding:8px 12px;background:var(--bg4);border-radius:8px;margin-top:10px;font-size:12px;color:var(--yellow);">' + esc(note) + '</div>' : '') +
       '<hr class="page-rule"></div>' +
       '<div class="section" style="padding-bottom:0;"><div class="grid grid-2" style="gap:12px;">' +
@@ -673,6 +674,7 @@
 
     document.getElementById('cc-call-btn')?.addEventListener('click', function () { showToast(c.phone ? '📞 ' + c.phone : 'אין טלפון'); });
     document.getElementById('cc-wa-btn')?.addEventListener('click', function () { showToast(c.phone ? '💬 ' + c.phone : 'אין טלפון'); });
+    document.getElementById('cc-edit-btn')?.addEventListener('click', function () { openEditCustomer(c.id); });
     document.getElementById('cc-marketing-tab-btn')?.addEventListener('click', function () { openMarketing(c.id); });
     wireClientConnections(c);
     wireClientMarketingSummary(c);
@@ -718,6 +720,57 @@
       showToast('✅ ליד נוצר');
       return loadAll();
     }).catch(function () { showToast('שגיאה — ודא ש-migration CRM הורץ ב-Supabase'); });
+    return false;
+  }
+
+  function openEditCustomer(id) {
+    var c = state.customers.find(function (x) { return x.id === (id || state.currentId); });
+    if (!c) { showToast('לקוח לא נמצא'); return; }
+    state.currentId = c.id;
+    var lead = customerLead(c);
+    var notesEl = document.getElementById('edit-cust-notes');
+    var nameEl = document.getElementById('edit-cust-name');
+    var contactEl = document.getElementById('edit-cust-contact');
+    var phoneEl = document.getElementById('edit-cust-phone');
+    var emailEl = document.getElementById('edit-cust-email');
+    if (nameEl) nameEl.value = c.name || '';
+    if (contactEl) contactEl.value = c.contact_person || '';
+    if (phoneEl) phoneEl.value = c.phone || '';
+    if (emailEl) emailEl.value = c.email || '';
+    if (notesEl) notesEl.value = (lead && lead.notes) || c.notes || '';
+    openModal('modal-edit-customer');
+  }
+
+  function submitEditCustomer(ev) {
+    ev.preventDefault();
+    if (!state.currentId) { showToast('אין לקוח פעיל'); return false; }
+    var fd = new FormData(ev.target);
+    var patch = {
+      name: String(fd.get('name') || '').trim(),
+      contact_person: String(fd.get('contact_person') || '').trim(),
+      phone: String(fd.get('phone') || '').trim(),
+      email: String(fd.get('email') || '').trim(),
+      notes: String(fd.get('notes') || '').trim(),
+    };
+    if (!patch.name) { showToast('שם חובה'); return false; }
+    var api = window.MarketingApi || window.CrmApi;
+    if (!api || !api.updateCustomer) { showToast('⚠️ API לא זמין'); return false; }
+    var customerId = state.currentId;
+    var lead = customerLead(state.customers.find(function (x) { return x.id === customerId; }));
+    api.updateCustomer(customerId, patch).then(function () {
+      var leadP = Promise.resolve();
+      if (lead && lead.id && window.CrmApi && CrmApi.updateLead) {
+        leadP = CrmApi.updateLead(lead.id, { notes: patch.notes, company_name: patch.name });
+      }
+      return leadP.then(function () {
+        logAct({ customer_id: customerId, action_type: 'customer_updated', title: 'עודכן לקוח: ' + patch.name });
+        closeModal('modal-edit-customer');
+        showToast('✓ לקוח נשמר');
+        return loadAll().then(function () { openClient(customerId); });
+      });
+    }).catch(function (e) {
+      showToast('שגיאה בשמירה — ' + (e.message || 'נסה שוב'));
+    });
     return false;
   }
 
@@ -874,6 +927,7 @@
     openModal: openModal, closeModal: closeModal, showToast: showToast,
     resetFilter: resetFilter, toggleAdv: toggleAdv, toggleTheme: toggleTheme,
     openClient: openClient, openCustomerById: openCustomerById,
+    openEditCustomer: openEditCustomer, submitEditCustomer: submitEditCustomer,
     submitNewLead: submitNewLead, submitNewTask: submitNewTask, loadAll: loadAll,
     applyFilters: applyFilters, aiQuick: aiQuick,
     getCounts: getCounts,

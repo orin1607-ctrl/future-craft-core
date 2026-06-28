@@ -246,6 +246,28 @@
   </div>
 </div>
 
+<div class="overlay" id="modal-edit-customer">
+  <div class="modal" style="max-width:520px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="modal-title" style="margin:0;">✏️ עריכת לקוח</div>
+      <button class="btn-icon" type="button" onclick="DaliaCrm.closeModal('modal-edit-customer')">✕</button>
+    </div>
+    <form id="form-edit-customer" onsubmit="return DaliaCrm.submitEditCustomer(event)">
+      <div class="form-row"><label class="form-label">שם חברה / לקוח *</label><input class="form-input" name="name" id="edit-cust-name" required></div>
+      <div class="form-row"><label class="form-label">איש קשר</label><input class="form-input" name="contact_person" id="edit-cust-contact"></div>
+      <div class="grid grid-2" style="gap:0;">
+        <div class="form-row"><label class="form-label">טלפון</label><input class="form-input" name="phone" id="edit-cust-phone" type="tel"></div>
+        <div class="form-row" style="margin-right:8px;"><label class="form-label">אימייל</label><input class="form-input" name="email" id="edit-cust-email" type="email"></div>
+      </div>
+      <div class="form-row"><label class="form-label">הערות</label><textarea class="form-input" name="notes" id="edit-cust-notes" style="height:80px;resize:vertical;"></textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="DaliaCrm.closeModal('modal-edit-customer')">ביטול</button>
+        <button type="submit" class="btn btn-primary">💾 שמור</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="overlay" id="modal-ai-crm">
   <div class="modal" style="max-width:500px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">

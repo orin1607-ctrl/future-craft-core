@@ -765,6 +765,15 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
   width: 100%; font-family: ui-monospace, monospace; font-size: 11px;
   padding: 8px; border-radius: 6px; border: 1px solid var(--border);
   background: var(--bg3); color: var(--white90); resize: vertical;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+.coco-act-lite-editor,
+.coco-act-fb-input {
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
 }
 .coco-act-work-actions {
   display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
@@ -973,6 +982,7 @@ body.dalia-live-only:not(.coco-boot-active) #coco-live-command-center .card-valu
 #coco-live-status-root .table-wrap { overflow-x: auto; }
 #coco-live-status-root td { font-size: 12px; max-width: 280px; word-break: break-word; }
 body.coco-boot-active { background: #04091a; }
+#coco-claude-root:not(.coco-ready) > .screen { display: none !important; visibility: hidden; }
 #coco-claude-root.coco-boot-active {
   display: block !important;
   position: fixed;

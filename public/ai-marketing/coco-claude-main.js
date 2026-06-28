@@ -302,7 +302,8 @@ function clearNestedActiveScreens(root) {
   });
 }
 
-function goScreen(id) {
+function goScreen(id, opts) {
+  opts = opts || {};
   if (id === 'screen-ai-decisions') id = 'screen-ai-center';
   var root = document.getElementById('coco-claude-root');
   var screens = root ? root.querySelectorAll(':scope > .screen') : document.querySelectorAll('.screen');
@@ -313,7 +314,15 @@ function goScreen(id) {
   } else {
     el = document.getElementById(id);
   }
-  if (el) { el.classList.add('active'); el.querySelector('.content')?.scrollTo(0, 0); }
+  if (el) {
+    el.classList.add('active');
+    var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+    var skipScroll = opts.preserveScroll || (id === 'screen-actions' && isMobile);
+    if (!skipScroll) {
+      var content = el.querySelector('.content');
+      if (content) content.scrollTo(0, 0);
+    }
+  }
   if (id !== 'screen-crm') clearNestedActiveScreens(root);
   if (id === 'screen-crm') document.body.classList.add('coco-crm-active');
   else document.body.classList.remove('coco-crm-active');
@@ -361,6 +370,15 @@ function showToast(msg) {
 
 function showDaliaToast() {
   showToast('🏠 חוזר למערכת דליה הראשית...');
+  if (window.PrdDaliaNav && typeof PrdDaliaNav.exitToDalia === 'function') {
+    setTimeout(function () { PrdDaliaNav.exitToDalia(); }, 450);
+    return;
+  }
+  var home = (window.PrdDaliaNav && PrdDaliaNav.getDaliaHomeUrl)
+    ? PrdDaliaNav.getDaliaHomeUrl()
+    : ((window.COCO_PAGES_BASE || '/future-craft-core/').replace(/\/?$/, '/') + 'admin-home');
+  if (home.charAt(0) === '/') home = location.origin + home;
+  setTimeout(function () { location.href = home; }, 450);
 }
 
 // ===== ACTIONS =====

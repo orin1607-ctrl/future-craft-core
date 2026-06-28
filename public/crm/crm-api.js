@@ -70,10 +70,23 @@
   }
 
   function updateLead(id, patch) {
-    if (!canRemote()) return Promise.resolve(patch);
+    if (!canRemote()) {
+      var loc = loadLocal();
+      var idx = (loc.leads || []).findIndex(function (l) { return l.id === id; });
+      if (idx >= 0) loc.leads[idx] = Object.assign({}, loc.leads[idx], patch);
+      saveLocal(loc);
+      return Promise.resolve(loc.leads[idx]);
+    }
     return rest('crm_leads?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(patch) }).then(function (r) {
       return Array.isArray(r) ? r[0] : r;
     });
+  }
+
+  function updateCustomer(id, patch) {
+    if (window.MarketingApi && MarketingApi.updateCustomer) {
+      return MarketingApi.updateCustomer(id, patch);
+    }
+    return Promise.reject(new Error('MarketingApi unavailable'));
   }
 
   function listTasks(filters) {
@@ -207,6 +220,7 @@
     listLeads: listLeads,
     createLead: createLead,
     updateLead: updateLead,
+    updateCustomer: updateCustomer,
     listTasks: listTasks,
     createTask: createTask,
     updateTask: updateTask,

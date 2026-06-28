@@ -1,0 +1,95 @@
+{
+  "at": "2026-06-28T21:05:04.847Z",
+  "stagingUrl": "http://localhost:8888/ai-marketing-platform.html?v=v3-open-gaps-1",
+  "uiVersion": "v3-open-gaps-1",
+  "commitHash": "",
+  "tasks": {
+    "1-mobile": {
+      "bootFlash": {
+        "cocoReady": true,
+        "bootActive": false,
+        "activeScreens": [
+          "screen-hub"
+        ]
+      },
+      "actionsScroll": {
+        "preserved": false,
+        "scrollTop": 0
+      },
+      "paste": {
+        "found": true,
+        "valueLen": 49,
+        "ok": true
+      },
+      "autoModeList": true,
+      "autoModeAfterBack": true,
+      "homeBtn": {
+        "found": true,
+        "toast": true,
+        "hasPrdNav": true
+      },
+      "overflow": true
+    },
+    "2-paste": {
+      "found": true,
+      "valueLen": 49,
+      "ok": true
+    },
+    "3-auto-mode": {
+      "inWorkbench": true,
+      "inList": true
+    },
+    "7-workflow": {
+      "steps": [
+        {
+          "name": "agents",
+          "ok": true,
+          "detail": true
+        },
+        {
+          "name": "goals",
+          "ok": true,
+          "detail": true
+        },
+        {
+          "name": "actions",
+          "ok": true,
+          "detail": true
+        },
+        {
+          "name": "workbench",
+          "ok": true,
+          "detail": true
+        },
+        {
+          "name": "work-card",
+          "ok": true,
+          "detail": true
+        },
+        {
+          "name": "demo-code",
+          "ok": true,
+          "detail": true
+        },
+        {
+          "name": "history",
+          "ok": true,
+          "detail": true
+        },
+        {
+          "name": "reports",
+          "ok": true,
+          "detail": true
+        }
+      ],
+      "pass": 8,
+      "total": 8
+    },
+    "5-crm": {
+      "hasEdit": true,
+      "hasSave": true,
+      "modal": true,
+      "crmActive": true
+    }
+  }
+}

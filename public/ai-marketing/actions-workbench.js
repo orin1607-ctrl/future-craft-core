@@ -680,7 +680,9 @@
       '</div>' +
       '<div class="coco-act-lite-wb-tools">' +
       '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-lite-preview="' + escAttr(page.id) + '">🔍 תצוגה מקדימה (HTML/CSS/JS)</button>' +
-      '</div></div>' +
+      '</div>' +
+      renderExportBar() +
+      '</div>' +
       '<div class="coco-act-lite-acc-list">' +
       (sorted.length
         ? sorted.map(function (a) {
@@ -1024,7 +1026,26 @@
     }
   }
 
+  function syncDemoFieldsFromDom() {
+    if (!window.ActionsDemoCode) return;
+    document.querySelectorAll('[data-demo-inline]').forEach(function (ta) {
+      var aid = ta.getAttribute('data-demo-inline-id');
+      var field = ta.getAttribute('data-demo-inline');
+      if (!aid || !field) return;
+      var p = {};
+      p[field] = ta.value;
+      ActionsDemoCode.setDemo(aid, p);
+    });
+  }
+
+  function getActionsScrollEl() {
+    return document.querySelector('#screen-actions .content') || document.getElementById('screen-actions');
+  }
+
   function refreshPendingDom(setHtml, emptyStatus, wp, pageGroups, pending, done, statusBadge) {
+    syncDemoFieldsFromDom();
+    var scrollEl = getActionsScrollEl();
+    var savedScroll = scrollEl ? scrollEl.scrollTop : 0;
     var html;
     if (_view === 'workbench' && _workbenchPageId) {
       var entry = pageGroups.find(function (g) { return g.page && g.page.id === _workbenchPageId; });
@@ -1042,6 +1063,14 @@
       var num = getActionNumber(a.id);
       return '<tr><td>' + (num ? '#' + num + ' ' : '') + esc(a.title) + '</td><td>' + esc(a.pagePath || '—') + '</td><td>' + esc(a.category) + '</td><td>' + esc(a.source) + '</td><td>' + (statusBadge ? statusBadge('done') : 'done') + '</td></tr>';
     }).join('') : '<tr><td colspan="5">אין פעולות שהושלמו עדיין</td></tr>');
+
+    requestAnimationFrame(function () {
+      var el = getActionsScrollEl();
+      if (el && savedScroll > 0) el.scrollTop = savedScroll;
+      if (window.ActionsDemoCode && ActionsDemoCode.restoreInlineFields) {
+        ActionsDemoCode.restoreInlineFields(document.getElementById('coco-live-actions-pending'));
+      }
+    });
   }
 
   function rerender() {
@@ -1093,8 +1122,10 @@
         _expandedActionId = nav.getAttribute('data-act-nav');
         ensureActionOpened(_expandedActionId);
         rerender();
-        var el = document.querySelector('[data-action-id="' + _expandedActionId + '"]');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches)) {
+          var el = document.querySelector('[data-action-id="' + _expandedActionId + '"]');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
         return;
       }
       var doneBtn = e.target.closest('[data-act-mark-done]');
@@ -1164,6 +1195,19 @@
       }
       var send = e.target.closest('[data-chat-send]');
       if (send) sendScopedChat(send.getAttribute('data-chat-send'));
+    });
+
+    root.addEventListener('paste', function (e) {
+      var ta = e.target.closest('[data-demo-inline]');
+      if (!ta || !window.ActionsDemoCode) return;
+      setTimeout(function () {
+        var aid = ta.getAttribute('data-demo-inline-id');
+        var field = ta.getAttribute('data-demo-inline');
+        if (!aid || !field) return;
+        var p = {};
+        p[field] = ta.value;
+        ActionsDemoCode.setDemo(aid, p);
+      }, 0);
     });
 
     root.addEventListener('input', function (e) {

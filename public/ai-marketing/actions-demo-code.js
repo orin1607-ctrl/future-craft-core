@@ -242,6 +242,16 @@
         if (attr === 'data-demo-js') patch.js = ta.value;
         setDemo(_activeModalActionId, patch);
       });
+      ta.addEventListener('paste', function () {
+        setTimeout(function () {
+          if (!_activeModalActionId) return;
+          var patch = {};
+          if (attr === 'data-demo-html') patch.html = ta.value;
+          if (attr === 'data-demo-css') patch.css = ta.value;
+          if (attr === 'data-demo-js') patch.js = ta.value;
+          setDemo(_activeModalActionId, patch);
+        }, 0);
+      });
     });
 
     return el;
@@ -348,14 +358,11 @@
       '<span class="coco-act-work-section-title">📋 קוד לדemo / העלאת קוד</span>' +
       '<p class="coco-act-demo-hint">הדבק קוד מ-ChatGPT, Claude, Gemini או כל AI · נשמר ב-session בלבד (עד 2 שעות) · מקס ~50KB לשדה</p>' +
       '<label class="coco-act-fb-field"><span class="coco-act-fb-label">HTML</span>' +
-      '<textarea rows="3" class="coco-act-code-input" data-demo-inline="html" data-demo-inline-id="' + escapeHtml(actionId) + '">' +
-      escapeHtml(demo.html || '') + '</textarea></label>' +
+      '<textarea rows="3" class="coco-act-code-input" spellcheck="false" autocorrect="off" autocapitalize="off" data-demo-inline="html" data-demo-inline-id="' + escapeHtml(actionId) + '"></textarea></label>' +
       '<label class="coco-act-fb-field"><span class="coco-act-fb-label">CSS</span>' +
-      '<textarea rows="2" class="coco-act-code-input" data-demo-inline="css" data-demo-inline-id="' + escapeHtml(actionId) + '">' +
-      escapeHtml(demo.css || '') + '</textarea></label>' +
+      '<textarea rows="2" class="coco-act-code-input" spellcheck="false" autocorrect="off" autocapitalize="off" data-demo-inline="css" data-demo-inline-id="' + escapeHtml(actionId) + '"></textarea></label>' +
       '<label class="coco-act-fb-field"><span class="coco-act-fb-label">JavaScript</span>' +
-      '<textarea rows="2" class="coco-act-code-input" data-demo-inline="js" data-demo-inline-id="' + escapeHtml(actionId) + '">' +
-      escapeHtml(demo.js || '') + '</textarea></label>' +
+      '<textarea rows="2" class="coco-act-code-input" spellcheck="false" autocorrect="off" autocapitalize="off" data-demo-inline="js" data-demo-inline-id="' + escapeHtml(actionId) + '"></textarea></label>' +
       '<div class="coco-act-demo-inline-actions">' +
       '<button type="button" class="btn btn-primary coco-act-btn-sm" data-demo-open="' + escapeHtml(actionId) + '">▶ Preview מלא</button>' +
       '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-demo-inline-clear="' + escapeHtml(actionId) + '">🗑 מחק קוד</button>' +
@@ -383,7 +390,21 @@
     getHistory: getHistory,
     renderHistoryHtml: renderHistoryHtml,
     renderDemoSection: renderDemoSection,
+    restoreInlineFields: restoreInlineFields,
     MAX_FIELD_CHARS: MAX_FIELD_CHARS,
     _stagingMeta: {},
   };
+
+  function restoreInlineFields(root) {
+    root = root || document.getElementById('coco-live-actions-pending');
+    if (!root) return;
+    root.querySelectorAll('[data-demo-inline]').forEach(function (ta) {
+      var aid = ta.getAttribute('data-demo-inline-id');
+      var field = ta.getAttribute('data-demo-inline');
+      if (!aid || !field) return;
+      var demo = getDemo(aid);
+      var val = (demo && demo[field]) || '';
+      if (document.activeElement !== ta) ta.value = val;
+    });
+  }
 })();
