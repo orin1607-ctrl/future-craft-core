@@ -9,7 +9,16 @@
   var WORKBENCH_KEY = 'dalia-actions-workbench-v1';
   var SEQ_KEY = 'dalia-actions-seq-v1';
   var CONFIG_KEY = 'dalia-actions-export-config-v1';
-  var PREVIEW_KEY_PREFIX = 'dalia-act-lite-preview-v1:';
+  var AUTO_MODE_KEY = 'dalia-auto-mode-v1';
+
+  function getAutoModeState() {
+    return readJson(AUTO_MODE_KEY, { prepared: false, enabled: false, since: null });
+  }
+
+  function prepareAutoMode() {
+    writeJson(AUTO_MODE_KEY, { prepared: true, enabled: false, since: new Date().toISOString() });
+  }
+
   var PREVIEW_TTL_MS = 2 * 60 * 60 * 1000;
   var PAGE_SIZE = 8;
 
@@ -522,8 +531,11 @@
 
   function renderExportBar() {
     var cfg = getExportConfig();
+    var auto = getAutoModeState();
     return '<div class="coco-act-lite-export-bar">' +
       '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-export-csv>📥 ייצוא CSV</button>' +
+      '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-auto-mode title="תשתית בלבד — לא פעיל">' +
+      '🤖 מצב אוטומטי' + (auto.prepared ? ' <span class="badge badge-gray" style="font-size:9px;">תשתית</span>' : '') + '</button>' +
       '<label class="coco-act-lite-sheets-label">' +
       '<span>Google Sheets webhook:</span>' +
       '<input type="url" class="filter-input coco-act-lite-sheets-input" data-act-sheets-url placeholder="https://script.google.com/…" value="' + escAttr(cfg.sheetsWebhookUrl || '') + '">' +
@@ -1129,6 +1141,15 @@
       var exp = e.target.closest('[data-act-export-csv]');
       if (exp) {
         exportActionsCsv();
+        return;
+      }
+      var autoBtn = e.target.closest('[data-act-auto-mode]');
+      if (autoBtn) {
+        prepareAutoMode();
+        if (typeof showToast === 'function') {
+          showToast('תשתית מצב אוטומטי מוכנה — לא מופעל · יופעל מחר בצורה מבוקרת');
+        }
+        rerender();
         return;
       }
       var appr = e.target.closest('[data-act-approve]');
