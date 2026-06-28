@@ -125,8 +125,7 @@
       return;
     }
     if (!topbar) return;
-    var flow = sc.querySelector('#coco-integration-flow-bar');
-    var anchor = flow || topbar;
+    var anchor = topbar;
     if (bar.parentElement !== sc || anchor.nextElementSibling !== bar) {
       anchor.insertAdjacentElement('afterend', bar);
     }
