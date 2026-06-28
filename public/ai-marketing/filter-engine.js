@@ -17,7 +17,7 @@
     var si = c.specificItem;
     return [
       c.clientId, c.activityType, c.campaignId || c.campaign,
-      c.assetId, sub && sub.id, si && si.id,
+      c.assetId, c.interfaceId, sub && sub.id, si && si.id,
       c.dateRange && c.dateRange.preset, c.status, c.freeSearch,
     ].join('\u001f');
   }
@@ -116,6 +116,15 @@
     return true;
   }
 
+  function interfaceMatches(itemMeta, c) {
+    if (!c.interfaceId) return true;
+    var src = itemMeta.source || itemMeta.channel || itemMeta.interface || itemMeta.interfaceId || '';
+    if (window.FilterTaxonomy && FilterTaxonomy.interfaceMatchesSource) {
+      return FilterTaxonomy.interfaceMatchesSource(c.interfaceId, src);
+    }
+    return matchFilter(src, c.interfaceId);
+  }
+
   function activityMatches(itemMeta, c) {
     if (!c.activityType) return true;
     if (itemMeta.activityType) return itemMeta.activityType === c.activityType;
@@ -175,6 +184,7 @@
     if (!activityMatches(itemMeta, c)) return false;
     if (!campaignMatches(itemMeta, c)) return false;
     if (!assetMatches(itemMeta, c)) return false;
+    if (!interfaceMatches(itemMeta, c)) return false;
     if (!pageMatches(itemMeta, c)) return false;
     if (c.serviceType && itemMeta.serviceType && !matchFilter(itemMeta.serviceType, c.serviceType)) return false;
     if (c.customerStatus && itemMeta.customerStatus && !matchFilter(itemMeta.customerStatus, c.customerStatus)) return false;
@@ -224,6 +234,7 @@
     if (c.activityType) base.activityType = c.activityType;
     if (c.campaignId || c.campaign) base.campaignId = c.campaignId || c.campaign;
     if (c.assetId) base.assetId = c.assetId;
+    if (c.interfaceId) base.interfaceId = c.interfaceId;
     if (c.subCategory && c.subCategory.id) base.subCategoryId = c.subCategory.id;
     if (c.specificItem && c.specificItem.id) base.specificItemId = c.specificItem.id;
     if (c.status) base.status = c.status;

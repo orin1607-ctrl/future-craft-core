@@ -11,10 +11,31 @@ body {
   min-height: 100dvh;
 }
 
-/* Context strip — below topbar inside each screen */
+/* Context strip — fixed global chrome below active topbar */
+#coco-gfc-chrome {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 46;
+  pointer-events: auto;
+}
+#coco-gfc-chrome.coco-gfc-hidden {
+  display: none !important;
+}
+.gfc-slot {
+  width: 100%;
+  flex-shrink: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+#coco-unified-context-bar.coco-gfc-visible {
+  display: block !important;
+  visibility: visible !important;
+}
+
 #coco-unified-context-bar.coco-unified-bar {
-  position: sticky;
-  top: 0;
+  position: relative;
+  top: auto;
   z-index: 40;
   background: rgba(4, 9, 26, 0.98);
   border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
@@ -254,6 +275,13 @@ body.prd-dalia-embedded .prd-dalia-exit-inline {
   #coco-unified-context-bar .cfc-row-filters {
     display: flex !important;
   }
+  #coco-unified-context-bar .gfc-advanced,
+  #coco-unified-context-bar .gfc-advanced-default {
+    display: flex !important;
+  }
+  #coco-unified-context-bar.gfc-desktop-open .gfc-adv-btn {
+    opacity: 0.65;
+  }
 }
 
 #legacy-dalia-root { display: none !important; }
@@ -270,7 +298,7 @@ body.coco-integration-wired .fab-ai { opacity: 1; }
 body.dalia-live-only .v4-demo-banner { display: none !important; }
 body.dalia-live-only #screen-goals .nav-tabs,
 body.dalia-live-only #screen-actions .nav-tabs { display: none !important; }
-body.dalia-live-only #screen-actions > div:not(.topbar):not(.content):not(#coco-unified-context-bar):not(.coco-unified-bar) { display: none !important; }
+body.dalia-live-only #screen-actions > div:not(.topbar):not(.content):not(#coco-unified-context-bar):not(.coco-unified-bar):not(.gfc-slot) { display: none !important; }
 body.dalia-live-only #coco-live-goals-list,
 body.dalia-live-only #coco-live-actions-pending { display: block !important; visibility: visible !important; }
 .coco-rec-mobile { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }

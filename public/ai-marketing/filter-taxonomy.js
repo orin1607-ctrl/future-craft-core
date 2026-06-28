@@ -112,8 +112,22 @@
     { id: 'error', labelHe: 'שגיאה' },
   ];
 
+  /** Explicit interface/channel filter — GSC, GA4, Ads, GBP, social, etc. */
+  var INTERFACE_TYPES = [
+    { id: 'gsc', labelHe: 'Google Search Console', matchSources: ['gsc', 'GSC', 'google_organic'] },
+    { id: 'ga4', labelHe: 'Google Analytics (GA4)', matchSources: ['ga4', 'GA4', 'google_analytics'] },
+    { id: 'google_ads', labelHe: 'Google Ads', matchSources: ['google_ads', 'ads'] },
+    { id: 'gbp', labelHe: 'Google Business (GBP)', matchSources: ['gbp', 'google_business'] },
+    { id: 'facebook', labelHe: 'Facebook', matchSources: ['facebook', 'fb'] },
+    { id: 'instagram', labelHe: 'Instagram', matchSources: ['instagram', 'ig'] },
+    { id: 'youtube', labelHe: 'YouTube', matchSources: ['youtube', 'yt'] },
+    { id: 'tiktok', labelHe: 'TikTok', matchSources: ['tiktok'] },
+    { id: 'linkedin', labelHe: 'LinkedIn', matchSources: ['linkedin'] },
+    { id: 'website', labelHe: 'אתר / CMS', matchSources: ['website', 'crawl', 'checklist'] },
+  ];
+
   var CASCADE_STEPS = [
-    'clientId', 'activityType', 'campaignId', 'assetId',
+    'clientId', 'activityType', 'campaignId', 'assetId', 'interface',
     'subCategory', 'specificItem', 'dateRange', 'status', 'freeSearch',
   ];
 
@@ -140,10 +154,25 @@
     return act ? act.subSchema : null;
   }
 
+  function getInterfaceType(id) {
+    return INTERFACE_TYPES.find(function (i) { return i.id === id; }) || null;
+  }
+
+  function interfaceMatchesSource(interfaceId, sourceVal) {
+    if (!interfaceId || !sourceVal) return true;
+    var iface = getInterfaceType(interfaceId);
+    if (!iface || !iface.matchSources) return true;
+    var s = String(sourceVal).toLowerCase();
+    return iface.matchSources.some(function (m) {
+      return s.indexOf(String(m).toLowerCase()) >= 0 || String(m).toLowerCase().indexOf(s) >= 0;
+    });
+  }
+
   window.FilterTaxonomy = {
     VERSION: 1,
     ACTIVITY_TYPES: ACTIVITY_TYPES,
     ASSET_TYPES: ASSET_TYPES,
+    INTERFACE_TYPES: INTERFACE_TYPES,
     SUB_CATEGORY_SCHEMAS: SUB_CATEGORY_SCHEMAS,
     DATE_PRESETS: DATE_PRESETS,
     STATUS_OPTIONS: STATUS_OPTIONS,
@@ -152,6 +181,8 @@
     isPageKind: isPageKind,
     getActivityType: getActivityType,
     getAssetType: getAssetType,
+    getInterfaceType: getInterfaceType,
+    interfaceMatchesSource: interfaceMatchesSource,
     getSubSchema: getSubSchema,
     subSchemaForActivity: subSchemaForActivity,
   };

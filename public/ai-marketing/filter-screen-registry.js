@@ -51,6 +51,8 @@
       register(s.id, { needsFilter: true });
     });
     register('screen-agents', { needsFilter: true });
+    register('screen-agent-dashboard', { needsFilter: true });
+    register('screen-crm-card', { needsFilter: true });
     register('screen-ai-decisions', { needsFilter: false });
   }
 

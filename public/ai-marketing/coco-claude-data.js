@@ -334,11 +334,14 @@
 
     screen.querySelectorAll(':scope > div').forEach(function (el) {
       if (el.id === 'coco-unified-context-bar' || el.classList.contains('coco-unified-bar')) return;
+      if (el.classList.contains('gfc-slot')) return;
       if (el.classList.contains('topbar') || el.classList.contains('content') || el.classList.contains('fab-ai')) return;
       if (!el.classList.contains('coco-live-section')) el.style.display = 'none';
     });
 
     screen.querySelectorAll('[style*="border-bottom"]').forEach(function (el) {
+      if (el.id === 'coco-unified-context-bar' || el.classList.contains('coco-unified-bar')) return;
+      if (el.closest('#coco-unified-context-bar') || el.closest('#coco-gfc-chrome')) return;
       if (el.closest('#' + screenId) && !el.closest('.coco-live-section')) el.style.display = 'none';
     });
 
@@ -361,6 +364,8 @@
       live.style.display = 'block';
       live.style.visibility = 'visible';
     }
+    if (window.CocoUnified && CocoUnified.ensureGfcVisible) CocoUnified.ensureGfcVisible();
+    if (window.CocoUnified && CocoUnified.placeContextBar) CocoUnified.placeContextBar(screenId);
   }
 
   function renderRecRowsMobile(recs) {

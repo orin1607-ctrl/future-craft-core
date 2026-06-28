@@ -38,6 +38,10 @@
     }
     if (ctx.campaignName || ctx.campaignId) parts.push((ctx.campaignName || ctx.campaignId).slice(0, 24));
     if (ctx.assetLabel) parts.push(ctx.assetLabel);
+    if (ctx.interfaceId) {
+      var iface = window.FilterTaxonomy && FilterTaxonomy.getInterfaceType(ctx.interfaceId);
+      parts.push(iface ? iface.labelHe : ctx.interfaceId);
+    }
     if (ctx.subCategory && ctx.subCategory.labelHe) parts.push(ctx.subCategory.labelHe);
     if (ctx.specificItem && ctx.specificItem.label) parts.push(String(ctx.specificItem.label).slice(0, 20));
     return parts.length ? parts.join(' › ') : 'סינון: כללי';
@@ -49,12 +53,13 @@
       '<select id="gfc-client" class="filter-select gfc-select" title="לקוח"><option value="">לקוח…</option></select>' +
       '<select id="gfc-activity" class="filter-select gfc-select" title="סוג פעילות" disabled><option value="">סוג פעילות…</option></select>' +
       '<select id="gfc-campaign" class="filter-select gfc-select" title="קמפיין" disabled><option value="">קמפיין…</option></select>' +
-      '<select id="gfc-asset" class="filter-select gfc-select" title="נכס דיגיטלי" disabled><option value="">נכס…</option></select>' +
+      '<select id="gfc-asset" class="filter-select gfc-select" title="אתר/נכס" disabled><option value="">נכס…</option></select>' +
       '<button type="button" id="gfc-advanced-toggle" class="btn btn-ghost gfc-adv-btn" title="סינון מתקדם">▾ עוד</button>' +
       '</div>' +
-      '<div class="gfc-advanced" id="gfc-advanced" style="display:none;">' +
-      '<select id="gfc-subcat" class="filter-select gfc-select" title="תת-קטגוריה" disabled><option value="">תת-קטגוריה…</option></select>' +
-      '<select id="gfc-item" class="filter-select gfc-select gfc-item-select" title="פריט ספציפי" disabled><option value="">פריט ספציפי…</option></select>' +
+      '<div class="gfc-advanced gfc-advanced-default" id="gfc-advanced">' +
+      '<select id="gfc-interface" class="filter-select gfc-select" title="ממשק/ערוץ"><option value="">ממשק/ערוץ…</option></select>' +
+      '<select id="gfc-subcat" class="filter-select gfc-select" title="סוג עמוד" disabled><option value="">סוג עמוד…</option></select>' +
+      '<select id="gfc-item" class="filter-select gfc-select gfc-item-select" title="עמוד באתר" disabled><option value="">עמוד…</option></select>' +
       '<select id="gfc-date" class="filter-select gfc-select" title="תאריך"><option value="">תאריך…</option></select>' +
       '<select id="gfc-status" class="filter-select gfc-select" title="סטטוס"><option value="">סטטוס…</option></select>' +
       '<input id="coco-central-search" class="filter-input cfc-search gfc-search" placeholder="🔍 חיפוש מהיר">' +
@@ -104,10 +109,13 @@
     fillSelect(assetSel, assetOpts, 'נכס…', ctx.assetId);
     if (assetSel) assetSel.disabled = !ctx.campaignId;
 
+    var ifaces = (window.FilterTaxonomy && FilterTaxonomy.INTERFACE_TYPES) || [];
+    fillSelect(el('gfc-interface'), ifaces, 'ממשק/ערוץ…', ctx.interfaceId);
+
     var schemaId = ctx.activityType && FilterTaxonomy.subSchemaForActivity(ctx.activityType);
     var subOpts = schemaId ? FilterTaxonomy.getSubSchema(schemaId) : [];
     var subSel = el('gfc-subcat');
-    fillSelect(subSel, subOpts, 'תת-קטגוריה…', ctx.subCategory && ctx.subCategory.id);
+    fillSelect(subSel, subOpts, 'סוג עמוד…', ctx.subCategory && ctx.subCategory.id);
     if (subSel) subSel.disabled = !ctx.assetId;
 
     populateSpecificItems(ctx);
@@ -143,14 +151,14 @@
     if (!itemSel) return;
     if (!ctx.assetId) {
       itemSel.disabled = true;
-      itemSel.innerHTML = '<option value="">פריט ספציפי…</option>';
+      itemSel.innerHTML = '<option value="">עמוד…</option>';
       return;
     }
     var kind = ctx.subCategory && FilterTaxonomy.isPageKind && FilterTaxonomy.isPageKind(ctx.subCategory.id)
       ? ctx.subCategory.id : null;
     var res = FilterEntityIndex.getSpecificItems(ctx.assetId, { kind: kind, limit: 100 });
     var items = res.items || [];
-    var html = '<option value="">פריט ספציפי…</option>';
+    var html = '<option value="">עמוד…</option>';
     items.forEach(function (it) {
       var sel = ctx.specificItem && ctx.specificItem.id === it.id;
       html += '<option value="' + esc(it.id) + '"' + (sel ? ' selected' : '') + ' data-type="' + esc(it.type) + '" data-path="' + esc(it.path || '') + '">' + esc(it.label) + '</option>';
@@ -192,6 +200,10 @@
       assetType: asset ? asset.type : null,
       assetLabel: asset ? (asset.domain || asset.label) : '',
     }, { source: 'gfc-bar' });
+  }
+
+  function onInterfaceChange(val) {
+    GlobalFilterContext.set({ interfaceId: val || null }, { source: 'gfc-bar' });
   }
 
   function onSubcatChange(val) {
@@ -245,6 +257,7 @@
 
   function onResetClick() {
     GlobalFilterContext.set({
+      interfaceId: null,
       subCategory: null,
       specificItem: null,
       status: null,
@@ -261,6 +274,7 @@
     el('gfc-activity')?.addEventListener('change', function (e) { if (!_uiGuard) onActivityChange(e.target.value); });
     el('gfc-campaign')?.addEventListener('change', function (e) { if (!_uiGuard) onCampaignChange(e.target.value); });
     el('gfc-asset')?.addEventListener('change', function (e) { if (!_uiGuard) onAssetChange(e.target.value); });
+    el('gfc-interface')?.addEventListener('change', function (e) { if (!_uiGuard) onInterfaceChange(e.target.value); });
     el('gfc-subcat')?.addEventListener('change', function (e) { if (!_uiGuard) onSubcatChange(e.target.value); });
     el('gfc-item')?.addEventListener('change', function (e) { if (!_uiGuard) onItemChange(e.target.value); });
     el('gfc-date')?.addEventListener('change', function (e) { if (!_uiGuard) onDateChange(e.target.value); });
@@ -303,6 +317,12 @@
       mountIntoBar();
       populateFromContext();
       document.body.classList.add('coco-gfc-unified');
+      var adv = el('gfc-advanced');
+      var barRoot = el('coco-unified-context-bar');
+      if (adv && window.matchMedia('(min-width: 681px)').matches) {
+        adv.style.display = 'flex';
+        if (barRoot) barRoot.classList.add('gfc-expanded', 'gfc-desktop-open');
+      }
       window.GlobalFilterBar._inited = true;
       if (window.GlobalFilterContext && !GlobalFilterContext._barListener) {
         GlobalFilterContext._barListener = true;

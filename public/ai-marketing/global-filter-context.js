@@ -11,10 +11,11 @@
   var EVENT_NAME = 'coco:filter-changed';
 
   var CASCADE_RESET = {
-    clientId: ['activityType', 'campaignId', 'campaignName', 'assetId', 'assetType', 'assetLabel', 'subCategory', 'specificItem', 'site', 'domain', 'campaign', 'page'],
-    activityType: ['campaignId', 'campaignName', 'assetId', 'assetType', 'assetLabel', 'subCategory', 'specificItem', 'page'],
-    campaignId: ['assetId', 'assetType', 'assetLabel', 'subCategory', 'specificItem', 'page'],
-    assetId: ['subCategory', 'specificItem', 'page'],
+    clientId: ['activityType', 'campaignId', 'campaignName', 'assetId', 'assetType', 'assetLabel', 'interfaceId', 'subCategory', 'specificItem', 'site', 'domain', 'campaign', 'page'],
+    activityType: ['campaignId', 'campaignName', 'assetId', 'assetType', 'assetLabel', 'interfaceId', 'subCategory', 'specificItem', 'page'],
+    campaignId: ['assetId', 'assetType', 'assetLabel', 'interfaceId', 'subCategory', 'specificItem', 'page'],
+    assetId: ['interfaceId', 'subCategory', 'specificItem', 'page'],
+    interfaceId: ['subCategory', 'specificItem', 'page'],
     subCategory: ['specificItem', 'page'],
     specificItem: ['page'],
   };
@@ -35,6 +36,7 @@
       assetId: null,
       assetType: null,
       assetLabel: '',
+      interfaceId: null,
       subCategory: null,
       specificItem: null,
       dateRange: { preset: 'month', from: '', to: '' },
@@ -96,6 +98,8 @@
     if (raw.serviceType) state.serviceType = raw.serviceType;
     if (raw.customerStatus) state.customerStatus = raw.customerStatus;
     if (raw.channel) state.channel = raw.channel;
+    if (raw.interfaceId) state.interfaceId = raw.interfaceId;
+    else if (raw.interface) state.interfaceId = raw.interface;
     state.campaign = state.campaignId || state.campaignName || raw.campaign || '';
   }
 
@@ -154,6 +158,8 @@
       serviceType: state.serviceType,
       customerStatus: state.customerStatus,
       channel: state.channel || state.activityType,
+      interfaceId: state.interfaceId,
+      interface: state.interfaceId,
     });
     try {
       localStorage.setItem(LEGACY_KEY, JSON.stringify(COCO.flowContext));
@@ -269,6 +275,7 @@
       state.serviceType = '';
       state.customerStatus = '';
       state.status = null;
+      state.interfaceId = null;
       state.dateRange = { preset: 'month', from: '', to: '' };
     }
     persist();

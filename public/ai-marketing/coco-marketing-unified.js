@@ -5,9 +5,21 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-goals28';
+  var VERSION = 'v3-global-filter-unified';
   var SEARCH_KEY = 'coco-mkt-global-search';
   var FILTER_KEY = 'coco-mkt-filter-persist';
+
+  var MARKETING_SCREENS = [
+    'screen-hub', 'screen-status', 'screen-clients', 'screen-goals', 'screen-actions',
+    'screen-history', 'screen-assets', 'screen-ai-center', 'screen-reports', 'screen-crm',
+    'screen-agents', 'screen-agent-dashboard', 'screen-crm-card', 'screen-ai-decisions',
+  ];
+
+  function isMarketingScreen(screenId) {
+    if (!screenId) return false;
+    if (MARKETING_SCREENS.indexOf(screenId) >= 0) return true;
+    return /^screen-/.test(screenId);
+  }
 
   function isAuth() {
     return window.MarketingApi && MarketingApi.canRemote && MarketingApi.canRemote();
@@ -109,33 +121,83 @@
     return active ? active.id : 'screen-hub';
   }
 
+  function ensureGfcChrome() {
+    var root = document.getElementById('coco-claude-root');
+    if (!root) return null;
+    var chrome = document.getElementById('coco-gfc-chrome');
+    if (!chrome) {
+      chrome = document.createElement('div');
+      chrome.id = 'coco-gfc-chrome';
+      chrome.className = 'coco-gfc-chrome';
+      var firstScreen = root.querySelector('.screen');
+      root.insertBefore(chrome, firstScreen || root.firstChild);
+    }
+    return chrome;
+  }
+
+  function ensureGfcVisible(bar) {
+    bar = bar || document.getElementById('coco-unified-context-bar');
+    if (!bar) return;
+    bar.style.removeProperty('display');
+    bar.style.visibility = 'visible';
+    bar.classList.add('coco-gfc-visible');
+    var chrome = document.getElementById('coco-gfc-chrome');
+    if (chrome) chrome.classList.remove('coco-gfc-hidden');
+  }
+
+  function ensureGfcSlot(screenId) {
+    document.querySelectorAll('.gfc-slot').forEach(function (slot) {
+      slot.style.display = 'none';
+      slot.style.height = '0';
+    });
+    var sc = document.getElementById(screenId);
+    if (!sc) return;
+    var topbar = sc.querySelector(':scope > .topbar') || sc.querySelector('.topbar');
+    if (!topbar) return;
+    var slot = sc.querySelector('.gfc-slot');
+    if (!slot) {
+      slot = document.createElement('div');
+      slot.className = 'gfc-slot';
+      slot.setAttribute('aria-hidden', 'true');
+      topbar.insertAdjacentElement('afterend', slot);
+    }
+    var bar = document.getElementById('coco-unified-context-bar');
+    var h = bar && bar.offsetHeight > 0 ? bar.offsetHeight : 71;
+    slot.style.display = 'block';
+    slot.style.height = h + 'px';
+    slot.style.flexShrink = '0';
+  }
+
+  function syncGfcPosition() {
+    var chrome = document.getElementById('coco-gfc-chrome');
+    var sc = document.querySelector('#coco-claude-root > .screen.active');
+    if (!chrome || !sc) return;
+    var topbar = sc.querySelector(':scope > .topbar') || sc.querySelector('.topbar');
+    if (!topbar) return;
+    var rect = topbar.getBoundingClientRect();
+    chrome.style.top = Math.max(0, rect.bottom) + 'px';
+    ensureGfcSlot(sc.id);
+  }
+
   function placeContextBar(screenId) {
     var bar = document.getElementById('coco-unified-context-bar');
     if (!bar) return;
-    var sc = document.getElementById(screenId || getActiveScreenId());
-    if (!sc) return;
-    var topbar = screenId === 'screen-crm'
-      ? (sc.querySelector(':scope > .topbar') ||
-        (function () {
-          var crmTop = sc.querySelector('#screen-crm-main .topbar');
-          if (crmTop && crmTop.offsetParent !== null) return crmTop;
-          return sc.querySelector('.topbar');
-        })())
-      : sc.querySelector('.topbar');
-    if (!topbar && screenId === 'screen-crm') {
-      var crmContent = sc.querySelector('.coco-crm-screen-content') || sc.querySelector('.content') || sc;
-      if (bar.parentElement !== crmContent || crmContent.firstElementChild !== bar) {
-        crmContent.insertBefore(bar, crmContent.firstChild);
-      }
-      return;
+    screenId = screenId || getActiveScreenId();
+    var chrome = ensureGfcChrome();
+    if (chrome && bar.parentElement !== chrome) {
+      chrome.appendChild(bar);
     }
-    if (!topbar) return;
-    var anchor = topbar;
-    if (bar.parentElement !== sc || anchor.nextElementSibling !== bar) {
-      anchor.insertAdjacentElement('afterend', bar);
-    }
-    bar.style.display = '';
-    bar.style.visibility = '';
+    var marketing = isMarketingScreen(screenId);
+    if (chrome) chrome.classList.toggle('coco-gfc-hidden', !marketing);
+    document.body.classList.toggle('coco-gfc-active', marketing);
+    document.body.dataset.gfcScreen = marketing ? screenId : '';
+    if (!marketing) return;
+    ensureGfcVisible(bar);
+    ensureGfcSlot(screenId);
+    requestAnimationFrame(function () {
+      syncGfcPosition();
+      ensureGfcSlot(screenId);
+    });
     if (window.GlobalFilterBar) {
       if (GlobalFilterBar.mountIntoBar) GlobalFilterBar.mountIntoBar();
       if (GlobalFilterBar.populateFromContext) GlobalFilterBar.populateFromContext();
@@ -185,18 +247,20 @@
   }
 
   function ensureUnifiedContextBar() {
+    ensureGfcChrome();
     if (document.getElementById('coco-unified-context-bar')) {
       if (window.GlobalFilterBar && GlobalFilterBar.mountIntoBar) {
         GlobalFilterBar.mountIntoBar();
         if (!window.GlobalFilterBar._inited) GlobalFilterBar.init();
       }
+      placeContextBar(getActiveScreenId());
       return;
     }
-    var root = document.getElementById('coco-claude-root');
-    if (!root) return;
+    var chrome = ensureGfcChrome();
+    if (!chrome) return;
     var bar = document.createElement('div');
     bar.id = 'coco-unified-context-bar';
-    bar.className = 'coco-flow-context-bar coco-unified-bar';
+    bar.className = 'coco-flow-context-bar coco-unified-bar coco-gfc-visible';
     bar.innerHTML =
       '<div class="cfc-inner">' +
       '<div class="cfc-row cfc-row-main">' +
@@ -207,8 +271,13 @@
       '<span id="coco-live-source-badge" class="cfc-chip cfc-source-badge"></span>' +
       '</div>' +
       '<div class="cfc-row cfc-row-filters gfc-row" id="coco-cfc-filters"></div></div>';
-    root.appendChild(bar);
+    chrome.appendChild(bar);
     placeContextBar(getActiveScreenId());
+    if (!window._cocoGfcResizeHook) {
+      window._cocoGfcResizeHook = true;
+      window.addEventListener('resize', function () { syncGfcPosition(); });
+      window.addEventListener('scroll', function () { syncGfcPosition(); }, { passive: true });
+    }
 
     document.getElementById('coco-unified-client-chip')?.addEventListener('click', function () {
       if (typeof goScreen === 'function') goScreen('screen-clients');
@@ -669,6 +738,10 @@
     updateContextBar: updateContextBar,
     refreshAllModules: refreshAllModules,
     placeContextBar: placeContextBar,
+    syncGfcPosition: syncGfcPosition,
+    ensureGfcVisible: ensureGfcVisible,
+    isMarketingScreen: isMarketingScreen,
+    marketingScreens: function () { return MARKETING_SCREENS.slice(); },
     init: function () {
       ensureLiveMounts();
       hookInit();
