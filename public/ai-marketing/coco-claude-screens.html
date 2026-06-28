@@ -180,7 +180,7 @@
   </div>
 
   <!-- ===== STATUS FILTER PANEL ===== -->
-  <div id="status-filter-panel" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
+  <div id="status-filter-panel" class="legacy-marketing-filter" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;">
 
     <!-- Row 1: Basic filters -->
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
@@ -587,7 +587,7 @@
         <hr class="page-rule">
       </div>
       <div class="section">
-        <div class="filter-bar" style="margin-bottom:14px;">
+        <div class="filter-bar legacy-marketing-filter" style="margin-bottom:14px;">
           <input class="filter-input" placeholder="🔍 חיפוש לקוח...">
           <select class="filter-select">
             <option>כל הסטטוסים</option>
@@ -717,7 +717,7 @@
       </div>
 
       <!-- Filter bar – compact -->
-      <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <div class="legacy-marketing-filter" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <select class="filter-select" id="ca-type" onchange="filterClientAssets()" style="font-size:12px;">
           <option value="">כל הנכסים</option>
           <option value="site">🌐 אתר</option>
@@ -1595,7 +1595,7 @@
       </div>
 
       <!-- ===== FILTER BAR – סינון עבודה בלבד (ללא חברה/לקוח/אתר) ===== -->
-      <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
+      <div id="goals-legacy-filters" class="legacy-marketing-filter" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
           <!-- נכס לקוח -->
           <select class="filter-select" id="gf-asset" style="font-size:12px;">
@@ -2696,7 +2696,7 @@
   </div>
 
   <!-- ===== FILTER BAR ===== -->
-  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
+  <div id="actions-legacy-filters" class="legacy-marketing-filter" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <select class="filter-select" id="act-cat" onchange="applyActFilter()" title="קטגוריית מטרה" style="border-color:rgba(139,92,246,0.4);">
         <option value="">🎯 כל קטגוריות המטרה</option>
@@ -3336,7 +3336,7 @@
   </div>
 
   <!-- ===== FILTER BAR ===== -->
-  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
+  <div id="crm-static-legacy-filters" class="legacy-marketing-filter" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
       <select class="filter-select" id="crm-company" title="חברה">
         <option value="">כל החברות</option>
@@ -4175,7 +4175,7 @@
       </div>
 
       <!-- Standard filter – no company/client -->
-      <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
+      <div id="history-legacy-filters" class="legacy-marketing-filter" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <select class="filter-select" style="font-size:12px;"><option value="">ערוץ שיווק</option><option>Google SEO</option><option>Google Ads</option><option>Google Business</option><option>Facebook</option></select>
           <select class="filter-select" style="font-size:12px;"><option value="">קטגוריה (20)</option><option>3. מהירות</option><option>4. מבנה SEO</option><option>18. מיקומים</option></select>
@@ -4372,7 +4372,7 @@
       </div>
 
       <!-- Standard filter – no company/client -->
-      <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
+      <div id="reports-legacy-filters" class="legacy-marketing-filter" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <select class="filter-select" style="font-size:12px;"><option value="">נכס לקוח</option><option selected>greentech.co.il</option><option>Google Ads</option><option>Google Business</option></select>
           <select class="filter-select" style="font-size:12px;"><option value="">ערוץ שיווק</option><option>Google SEO</option><option>Google Ads</option><option>Google Business</option><option>Facebook</option></select>

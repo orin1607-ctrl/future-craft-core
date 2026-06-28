@@ -164,10 +164,16 @@ body {
   color: var(--white);
 }
 
-/* Unified GFC bar on CRM — hide legacy duplicate filter row */
-body.coco-gfc-unified #crm-legacy-filters {
+/* Unified GFC bar — hide all legacy duplicate filter rows */
+body.coco-gfc-unified .legacy-marketing-filter,
+body.coco-gfc-unified #crm-legacy-filters,
+body.coco-gfc-unified #crm-static-legacy-filters {
   display: none !important;
 }
+#coco-unified-context-bar {
+  flex-shrink: 0;
+}
+
 #screen-crm #coco-unified-context-bar {
   position: sticky;
   top: 0;

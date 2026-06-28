@@ -130,6 +130,10 @@
     if (bar.parentElement !== sc || anchor.nextElementSibling !== bar) {
       anchor.insertAdjacentElement('afterend', bar);
     }
+    if (window.GlobalFilterBar) {
+      if (GlobalFilterBar.mountIntoBar) GlobalFilterBar.mountIntoBar();
+      if (GlobalFilterBar.populateFromContext) GlobalFilterBar.populateFromContext();
+    }
   }
 
   function removeStrayCrmUi() {
@@ -543,6 +547,7 @@
     CocoClaude.onScreenChange = function (id) {
       if (typeof origScreen === 'function') origScreen.call(this, id);
       placeContextBar(id);
+      if (window.GlobalFilterBar && GlobalFilterBar.place) GlobalFilterBar.place(id);
       removeStrayCrmUi();
       updateContextBar();
       if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen(id);
