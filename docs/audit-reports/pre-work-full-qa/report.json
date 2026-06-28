@@ -1,7 +1,7 @@
 {
-  "at": "2026-06-28T20:25:18.870Z",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-pre-work-qa-1",
-  "uiVersion": "v3-pre-work-qa-1",
+  "at": "2026-06-28T20:41:11.898Z",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
+  "uiVersion": "v3-final-ready-1",
   "sections": {
     "1": {
       "title": "QA מלא — כל עמודי מערכת ניהול השיווק",
@@ -22,67 +22,67 @@
         {
           "screen": "Dashboard",
           "ok": true,
-          "domNodes": 5436,
+          "domNodes": 15243,
           "overflowX": false
         },
         {
           "screen": "מצב נוכחי",
           "ok": true,
-          "domNodes": 5436,
+          "domNodes": 15575,
           "overflowX": false
         },
         {
           "screen": "חברות ועסקים",
           "ok": true,
-          "domNodes": 5436,
+          "domNodes": 15582,
           "overflowX": false
         },
         {
           "screen": "CRM",
           "ok": true,
-          "domNodes": 5436,
+          "domNodes": 15772,
           "overflowX": false
         },
         {
           "screen": "מטרות",
           "ok": true,
-          "domNodes": 5436,
+          "domNodes": 15772,
           "overflowX": false
         },
         {
           "screen": "פעולות",
           "ok": true,
-          "domNodes": 5437,
+          "domNodes": 15772,
           "overflowX": false
         },
         {
           "screen": "היסטוריה",
           "ok": true,
-          "domNodes": 5437,
+          "domNodes": 15773,
           "overflowX": false
         },
         {
           "screen": "נכסים דיגיטליים",
           "ok": true,
-          "domNodes": 5437,
+          "domNodes": 15774,
           "overflowX": false
         },
         {
           "screen": "החלטות AI",
           "ok": true,
-          "domNodes": 5437,
+          "domNodes": 15775,
           "overflowX": false
         },
         {
           "screen": "דוחות",
           "ok": true,
-          "domNodes": 5437,
+          "domNodes": 15776,
           "overflowX": false
         },
         {
           "screen": "עוזרי AI",
           "ok": true,
-          "domNodes": 5437,
+          "domNodes": 15777,
           "overflowX": false
         }
       ],
@@ -112,19 +112,16 @@
         "reset"
       ],
       "found": {
-        "barVisible": false,
-        "chromePresent": false,
-        "hasSearch": false,
-        "selectCount": 0,
-        "hasReset": false,
-        "unifiedBody": false
+        "barVisible": true,
+        "chromePresent": true,
+        "hasClientSelect": true,
+        "hasSearch": true,
+        "hasReset": true,
+        "selectCount": 9,
+        "unifiedBody": true
       },
       "fixed": [],
-      "open": [
-        "סרגל סינון לא נראה בדesktop",
-        "מעט selects בסרגל",
-        "כפתור איפוס לא נמצא"
-      ]
+      "open": []
     },
     "4": {
       "title": "מובייל",
@@ -137,7 +134,7 @@
       "found": {
         "screensOk": 11,
         "overflowScreens": [],
-        "scrollMaxMs": 0.30000000074505806,
+        "scrollMaxMs": 0.3999999985098839,
         "mobileErrors": 0
       },
       "fixed": [],
@@ -225,7 +222,7 @@
           },
           {
             "platform": "YouTube",
-            "found": false
+            "found": true
           },
           {
             "platform": "Facebook",
@@ -237,23 +234,23 @@
           },
           {
             "platform": "TikTok",
-            "found": false
+            "found": true
           },
           {
             "platform": "LinkedIn",
-            "found": false
+            "found": true
           },
           {
             "platform": "X",
-            "found": false
+            "found": true
           },
           {
             "platform": "Pinterest",
-            "found": false
+            "found": true
           },
           {
             "platform": "WhatsApp",
-            "found": false
+            "found": true
           },
           {
             "platform": "Meta",
@@ -265,7 +262,7 @@
           },
           {
             "platform": "ChatGPT",
-            "found": false
+            "found": true
           },
           {
             "platform": "Gemini",
@@ -280,19 +277,11 @@
             "found": true
           }
         ],
-        "foundCount": 12,
+        "foundCount": 19,
         "total": 19
       },
       "fixed": [],
-      "open": [
-        "YouTube",
-        "TikTok",
-        "LinkedIn",
-        "X",
-        "Pinterest",
-        "WhatsApp",
-        "ChatGPT"
-      ]
+      "open": []
     },
     "9": {
       "title": "Google Sheets",
@@ -331,12 +320,12 @@
         "actions HTML size"
       ],
       "found": {
-        "desktopLoadMs": 1515,
-        "mobileLoadMs": 885,
-        "actionsDomNodes": 15462,
+        "desktopLoadMs": 3934,
+        "mobileLoadMs": 3801,
+        "actionsDomNodes": 15777,
         "actionsCards": 8,
         "actionsHtmlLen": 10666,
-        "scrollMaxMs": 3.300000000745058
+        "scrollMaxMs": 5.899999998509884
       },
       "fixed": [],
       "open": []
@@ -389,15 +378,15 @@
   "consoleErrors": [],
   "networkErrors": [],
   "performance": {
-    "desktopLoadMs": 1515,
-    "mobileLoadMs": 885,
-    "actionsDomNodes": 15462,
+    "desktopLoadMs": 3934,
+    "mobileLoadMs": 3801,
+    "actionsDomNodes": 15777,
     "actionsCards": 8,
     "actionsHtmlLen": 10666,
-    "scrollMaxMs": 3.300000000745058
+    "scrollMaxMs": 5.899999998509884
   },
   "workflow": {},
-  "readinessScore": 83,
-  "readinessPercent": 83,
+  "readinessScore": 100,
+  "readinessPercent": 100,
   "unresolvedBugs": []
 }

@@ -1,15 +1,15 @@
 # דוח QA לפני עבודה — מערכת ניהול השיווק
 
-**תאריך:** 2026-06-28T20:25:18.870Z  
-**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-pre-work-qa-1  
-**ציון מוכנות:** 83%
+**תאריך:** 2026-06-28T20:41:11.898Z  
+**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1  
+**ציון מוכנות:** 100%
 
 ---
 
 ## 1. QA מלא — כל עמודי מערכת ניהול השיווק
 
 - **נבדק:** ["Dashboard","מצב נוכחי","חברות ועסקים","CRM","מטרות","פעולות","היסטוריה","נכסים דיגיטליים","החלטות AI","דוחות","עוזרי AI"]
-- **נמצא:** [{"screen":"Dashboard","ok":true,"domNodes":5436,"overflowX":false},{"screen":"מצב נוכחי","ok":true,"domNodes":5436,"overflowX":false},{"screen":"חברות ועסקים","ok":true,"domNodes":5436,"overflowX":false},{"screen":"CRM","ok":true,"domNodes":5436,"overflowX":false},{"screen":"מטרות","ok":true,"domNodes":5436,"overflowX":false},{"screen":"פעולות","ok":true,"domNodes":5437,"overflowX":false},{"screen":"היסטוריה","ok":true,"domNodes":5437,"overflowX":false},{"screen":"נכסים דיגיטליים","ok":true,"do
+- **נמצא:** [{"screen":"Dashboard","ok":true,"domNodes":15243,"overflowX":false},{"screen":"מצב נוכחי","ok":true,"domNodes":15575,"overflowX":false},{"screen":"חברות ועסקים","ok":true,"domNodes":15582,"overflowX":false},{"screen":"CRM","ok":true,"domNodes":15772,"overflowX":false},{"screen":"מטרות","ok":true,"domNodes":15772,"overflowX":false},{"screen":"פעולות","ok":true,"domNodes":15772,"overflowX":false},{"screen":"היסטוריה","ok":true,"domNodes":15773,"overflowX":false},{"screen":"נכסים דיגיטליים","ok":t
 - **תוקן:** —
 - **פתוח:** —
 
@@ -23,14 +23,14 @@
 ## 3. סינונים (GFC)
 
 - **נבדק:** ["coco-unified-context-bar","selects","search","reset"]
-- **נמצא:** {"barVisible":false,"chromePresent":false,"hasSearch":false,"selectCount":0,"hasReset":false,"unifiedBody":false}
+- **נמצא:** {"barVisible":true,"chromePresent":true,"hasClientSelect":true,"hasSearch":true,"hasReset":true,"selectCount":9,"unifiedBody":true}
 - **תוקן:** —
-- **פתוח:** סרגל סינון לא נראה בדesktop; מעט selects בסרגל; כפתור איפוס לא נמצא
+- **פתוח:** —
 
 ## 4. מובייל
 
 - **נבדק:** ["11 מסכים","overflowX","גלילה","console"]
-- **נמצא:** {"screensOk":11,"overflowScreens":[],"scrollMaxMs":0.30000000074505806,"mobileErrors":0}
+- **נמצא:** {"screensOk":11,"overflowScreens":[],"scrollMaxMs":0.3999999985098839,"mobileErrors":0}
 - **תוקן:** —
 - **פתוח:** —
 
@@ -58,9 +58,9 @@
 ## 8. עוזרי AI
 
 - **נבדק:** ["Google","Google Business","Search Console","Analytics","Google Ads","YouTube","Facebook","Instagram","TikTok","LinkedIn","X","Pinterest","WhatsApp","Meta","Claude","ChatGPT","Gemini","PageSpeed","Li
-- **נמצא:** {"hits":[{"platform":"Google","found":true},{"platform":"Google Business","found":true},{"platform":"Search Console","found":true},{"platform":"Analytics","found":true},{"platform":"Google Ads","found":true},{"platform":"YouTube","found":false},{"platform":"Facebook","found":true},{"platform":"Instagram","found":true},{"platform":"TikTok","found":false},{"platform":"LinkedIn","found":false},{"platform":"X","found":false},{"platform":"Pinterest","found":false},{"platform":"WhatsApp","found":false
+- **נמצא:** {"hits":[{"platform":"Google","found":true},{"platform":"Google Business","found":true},{"platform":"Search Console","found":true},{"platform":"Analytics","found":true},{"platform":"Google Ads","found":true},{"platform":"YouTube","found":true},{"platform":"Facebook","found":true},{"platform":"Instagram","found":true},{"platform":"TikTok","found":true},{"platform":"LinkedIn","found":true},{"platform":"X","found":true},{"platform":"Pinterest","found":true},{"platform":"WhatsApp","found":true},{"pl
 - **תוקן:** —
-- **פתוח:** YouTube; TikTok; LinkedIn; X; Pinterest; WhatsApp; ChatGPT
+- **פתוח:** —
 
 ## 9. Google Sheets
 
@@ -79,7 +79,7 @@
 ## 11. ביצועים
 
 - **נבדק:** ["load time","DOM","actions HTML size"]
-- **נמצא:** {"desktopLoadMs":1515,"mobileLoadMs":885,"actionsDomNodes":15462,"actionsCards":8,"actionsHtmlLen":10666,"scrollMaxMs":3.300000000745058}
+- **נמצא:** {"desktopLoadMs":3934,"mobileLoadMs":3801,"actionsDomNodes":15777,"actionsCards":8,"actionsHtmlLen":10666,"scrollMaxMs":5.899999998509884}
 - **תוקן:** —
 - **פתוח:** —
 
@@ -111,5 +111,5 @@
 2. **סיכונים:** console errors; פלטפורמות חסרות בעוזרים; deploy ידני לdemo code.
 3. **יום ראשון:** מטרות→פעולות→demo→אישור; Sheets webhook; CRM smoke.
 4. **מוכנות לעבודה:** כן, עם מגבלות
-5. **ציון:** 83%
+5. **ציון:** 100%
 6. **באגים לא פתורים:** 0
