@@ -179,6 +179,15 @@
     ensureGfcSlot(sc.id);
   }
 
+  var _gfcSyncRaf = null;
+  function syncGfcPositionThrottled() {
+    if (_gfcSyncRaf) return;
+    _gfcSyncRaf = requestAnimationFrame(function () {
+      _gfcSyncRaf = null;
+      syncGfcPosition();
+    });
+  }
+
   function placeContextBar(screenId) {
     var bar = document.getElementById('coco-unified-context-bar');
     if (!bar) return;
@@ -275,8 +284,8 @@
     placeContextBar(getActiveScreenId());
     if (!window._cocoGfcResizeHook) {
       window._cocoGfcResizeHook = true;
-      window.addEventListener('resize', function () { syncGfcPosition(); });
-      window.addEventListener('scroll', function () { syncGfcPosition(); }, { passive: true });
+      window.addEventListener('resize', function () { syncGfcPositionThrottled(); });
+      window.addEventListener('scroll', function () { syncGfcPositionThrottled(); }, { passive: true });
     }
 
     document.getElementById('coco-unified-client-chip')?.addEventListener('click', function () {

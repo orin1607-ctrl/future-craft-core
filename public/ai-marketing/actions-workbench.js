@@ -1083,8 +1083,20 @@
     });
   }
 
-  function getActionsScrollEl() {
-    return document.querySelector('#screen-actions .content') || document.getElementById('screen-actions');
+  var _lastActionsScrollAt = 0;
+
+  function bindActionsScrollGuard() {
+    var el = getActionsScrollEl();
+    if (!el || el._actScrollGuard) return;
+    el._actScrollGuard = true;
+    var mark = function () { _lastActionsScrollAt = Date.now(); };
+    el.addEventListener('scroll', mark, { passive: true });
+    el.addEventListener('touchstart', mark, { passive: true });
+    el.addEventListener('touchmove', mark, { passive: true });
+  }
+
+  function shouldRestoreActionsScroll() {
+    return Date.now() - _lastActionsScrollAt > 250;
   }
 
   function refreshPendingDom(setHtml, emptyStatus, wp, pageGroups, pending, done, statusBadge) {
@@ -1111,7 +1123,7 @@
 
     requestAnimationFrame(function () {
       var el = getActionsScrollEl();
-      if (el && savedScroll > 0) el.scrollTop = savedScroll;
+      if (el && savedScroll > 0 && shouldRestoreActionsScroll()) el.scrollTop = savedScroll;
       if (window.ActionsDemoCode && ActionsDemoCode.restoreInlineFields) {
         ActionsDemoCode.restoreInlineFields(document.getElementById('coco-live-actions-pending'));
       }
@@ -1383,7 +1395,25 @@
     }
 
     bindWorkbenchEvents();
+    bindActionsScrollGuard();
+    ensureQaDemoSeed();
     return pending.length;
+  }
+
+  function ensureQaDemoSeed() {
+    try {
+      var raw = localStorage.getItem('dalia-qa-demo-seed-v1');
+      if (!raw || !window.ActionsDemoCode) return;
+      var seed = JSON.parse(raw);
+      if (!seed.actionId) return;
+      var demo = seed.session || seed.demo || {
+        html: '<div class="qa-demo-banner" style="padding:12px;background:#1e3a5f;border-radius:8px;color:#fff;">✅ דוגמת QA — מוכנה לבדיקה מחר בבוקר</div>',
+        css: '.qa-demo-banner{font-family:Heebo,sans-serif}',
+        js: '',
+      };
+      ActionsDemoCode.setDemo(seed.actionId, demo);
+      if (seed.approved !== false) ActionsDemoCode.approveDemo(seed.actionId);
+    } catch (e) { /* ignore */ }
   }
 
   window.CocoActApprove = function (actionId) {

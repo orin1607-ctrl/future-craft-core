@@ -548,6 +548,19 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
   min-width: 720px;
 }
 .coco-act-lite-list { display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 767px) {
+  #screen-actions .content {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scroll-behavior: auto;
+    touch-action: pan-y;
+  }
+  #screen-actions .coco-act-lite-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 120px;
+  }
+}
 .coco-act-lite-card-head {
   padding: 14px;
   display: flex;
