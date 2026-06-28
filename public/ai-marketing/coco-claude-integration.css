@@ -527,12 +527,122 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
 }
 .coco-act-btn-preview {
   font-weight: 700 !important;
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.45);
-  animation: coco-act-pulse 2.5s ease-in-out infinite;
+  /* pulse removed — lite workbench */
 }
 @keyframes coco-act-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.35); }
-  50% { box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.55); }
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: none; }
+}
+/* ── Actions Lite workbench ── */
+.coco-act-lite-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.coco-act-lite-count { font-size: 12px; color: var(--white50); margin-right: auto; }
+.coco-act-lite-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.coco-act-lite-main { flex: 1; min-width: 200px; }
+.coco-act-lite-title { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 4px; }
+.coco-act-lite-meta { font-size: 12px; color: var(--white60); line-height: 1.45; }
+.coco-act-lite-stats { font-size: 12px; color: var(--white80); margin-top: 6px; }
+.coco-act-lite-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.coco-act-lite-pager {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--white70);
+}
+.coco-act-lite-actions-list { display: flex; flex-direction: column; gap: 6px; }
+.coco-act-lite-acc {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg3);
+  overflow: hidden;
+}
+.coco-act-lite-acc-head {
+  width: 100%;
+  text-align: right;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  color: var(--white90);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.coco-act-lite-acc-head:hover { background: rgba(255,255,255,0.04); }
+.coco-act-lite-acc-open .coco-act-lite-acc-head { border-bottom: 1px solid var(--border); }
+.coco-act-lite-acc-body {
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--white80);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.coco-act-lite-row { line-height: 1.5; word-break: break-word; }
+.coco-act-lite-preview-dialog { width: min(960px, 96vw) !important; max-height: 92vh !important; }
+.coco-act-lite-code-tabs {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  max-height: 28vh;
+  overflow-y: auto;
+}
+.coco-act-lite-code-tabs label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--white60); }
+.coco-act-code-input {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--white90);
+  resize: vertical;
+}
+.coco-act-lite-preview-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.coco-act-new-page-dialog { width: min(720px, 96vw) !important; max-height: 90vh !important; overflow-y: auto; }
+.coco-act-new-page-form { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; }
+.coco-act-new-page-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--white70); }
+.coco-act-new-page-form input,
+.coco-act-new-page-form select,
+.coco-act-new-page-form textarea {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--white90);
+  font-size: 13px;
+}
+@media (max-width: 767px) {
+  .coco-act-lite-card { flex-direction: column; align-items: stretch; }
+  .coco-act-lite-btns .btn { flex: 1; min-height: 44px; }
+  .coco-act-lite-acc-head { min-height: 44px; }
 }
 .coco-act-impact-badges {
   display: flex;
