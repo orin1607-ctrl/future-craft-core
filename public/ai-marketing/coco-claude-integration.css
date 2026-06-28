@@ -718,6 +718,41 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
   .coco-act-lite-preview-frame { min-height: 240px; height: 40vh; }
   .coco-act-lite-preview-dialog { width: 100vw; max-height: 100vh; border-radius: 0; }
 }
+/* ── Action work cards ── */
+.coco-act-work-card { border: 1px solid var(--border); border-radius: 10px; background: var(--bg2); overflow: hidden; }
+.coco-act-work-card-head { gap: 10px; }
+.coco-act-work-card-name { font-weight: 700; color: var(--white); flex: 1; min-width: 140px; text-align: right; }
+.coco-act-work-card-order { font-size: 10px; color: var(--white50); flex-shrink: 0; }
+.coco-act-work-card-body { padding: 0 0 14px; }
+.coco-act-work-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; background: var(--bg3); border-bottom: 1px solid var(--border);
+}
+.coco-act-work-nav-pos { font-size: 12px; font-weight: 600; color: var(--white70); }
+.coco-act-work-nav-spacer { width: 72px; }
+.coco-act-work-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 14px;
+  padding: 14px 14px 0;
+}
+.coco-act-work-field-full { grid-column: 1 / -1; }
+.coco-act-work-label { display: block; font-size: 10px; font-weight: 700; color: var(--white50); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.coco-act-work-value { font-size: 13px; color: var(--white90); line-height: 1.5; word-break: break-word; }
+.coco-act-work-select { width: 100%; min-height: 36px; font-size: 12px; }
+.coco-act-work-section { padding: 12px 14px 0; border-top: 1px solid var(--border); margin-top: 12px; }
+.coco-act-work-section-title { display: block; font-size: 12px; font-weight: 700; color: var(--accent2); margin-bottom: 8px; }
+.coco-act-code-input {
+  width: 100%; font-family: ui-monospace, monospace; font-size: 11px;
+  padding: 8px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--bg3); color: var(--white90); resize: vertical;
+}
+.coco-act-work-actions {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 14px; margin-top: 12px; border-top: 1px solid var(--border); background: var(--bg3);
+}
+@media (max-width: 767px) {
+  .coco-act-work-grid { grid-template-columns: 1fr; }
+  .coco-act-work-actions .btn { flex: 1; min-height: 44px; }
+}
 .coco-act-impact-badges {
   display: flex;
   flex-wrap: wrap;

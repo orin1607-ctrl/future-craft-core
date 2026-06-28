@@ -125,6 +125,8 @@
       store.items[actionId] = {
         liked: '', disliked: '', changeRequests: '', userNotes: '',
         chat: [], revisionRound: 1, updatedAt: null,
+        assignee: '', openedAt: null, completedAt: null, workflowStatus: null,
+        codeHtml: '', codeCss: '', codeJs: '', filesNote: '',
       };
     }
     return store.items[actionId];
@@ -202,6 +204,8 @@
   function resolveActionStatus(action) {
     var appr = approvalStatus(action.id);
     if (appr === 'approved_for_execution') return 'approved_for_execution';
+    var fb = getActionFeedback(action.id);
+    if (fb.workflowStatus && STATUS_META[fb.workflowStatus]) return fb.workflowStatus;
     var s = String(action.status || 'pending').toLowerCase();
     if (isDoneStatus(s)) return 'done';
     if (STATUS_META[s]) return s;
@@ -526,33 +530,124 @@
       '</label></div>';
   }
 
-  function renderActionAccordionItem(action, page, expanded) {
+  function ensureActionOpened(actionId) {
+    var fb = getActionFeedback(actionId);
+    if (!fb.openedAt) saveActionFeedback(actionId, { openedAt: new Date().toISOString() });
+  }
+
+  function markActionDone(actionId) {
+    saveActionFeedback(actionId, {
+      workflowStatus: 'done',
+      completedAt: new Date().toISOString(),
+    });
+    if (typeof showToast === 'function') showToast('✓ המשימה סומנה כהושלמה');
+    rerender();
+  }
+
+  function formatDateHe(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' }); }
+    catch (e) { return iso; }
+  }
+
+  function renderActionNav(sorted, currentId) {
+    if (!currentId || !sorted.length) return '';
+    var idx = sorted.findIndex(function (a) { return a.id === currentId; });
+    if (idx < 0) return '';
+    var prev = idx > 0 ? sorted[idx - 1] : null;
+    var next = idx < sorted.length - 1 ? sorted[idx + 1] : null;
+    return '<div class="coco-act-work-nav">' +
+      (prev
+        ? '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-nav="' + escAttr(prev.id) + '">← #' + getActionNumber(prev.id) + '</button>'
+        : '<span class="coco-act-work-nav-spacer"></span>') +
+      '<span class="coco-act-work-nav-pos">' + (idx + 1) + ' / ' + sorted.length + '</span>' +
+      (next
+        ? '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-nav="' + escAttr(next.id) + '">#' + getActionNumber(next.id) + ' →</button>'
+        : '<span class="coco-act-work-nav-spacer"></span>') +
+      '</div>';
+  }
+
+  function renderActionWorkCard(action, page, expanded, sorted) {
     var ba = buildBeforeAfterFallback(page, action);
     var appr = approvalStatus(action.id);
     var approved = appr === 'approved_for_execution';
     var itemNum = getActionNumber(action.id);
-    var impact = parseImpactFields(ba, action);
+    var fb = getActionFeedback(action.id);
     var st = resolveActionStatus(action);
     var panelId = 'coco-act-acc-' + escAttr(action.id);
+    var impact = parseImpactFields(ba, action);
+    var taskName = action.category || action.title || 'משימה';
+    var taskDesc = action.detail || ba.proposed || ba.current || '—';
+    var taskGoal = ba.why || action.problem || 'שיפור לפי המלצות המטרות';
 
-    return '<div class="coco-act-lite-acc-item' + (expanded ? ' coco-act-lite-acc-open' : '') + '" data-action-id="' + escAttr(action.id) + '">' +
-      '<button type="button" class="coco-act-lite-acc-head" data-act-acc-toggle="' + escAttr(action.id) + '" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="' + panelId + '">' +
+    if (expanded) ensureActionOpened(action.id);
+
+    return '<article class="coco-act-work-card coco-act-lite-acc-item' + (expanded ? ' coco-act-lite-acc-open' : '') + '" data-action-id="' + escAttr(action.id) + '">' +
+      '<button type="button" class="coco-act-lite-acc-head coco-act-work-card-head" data-act-acc-toggle="' + escAttr(action.id) + '" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="' + panelId + '">' +
       '<span class="coco-act-lite-acc-chevron">' + (expanded ? '▲' : '▼') + '</span>' +
-      (itemNum ? '<span class="coco-act-num-tag">#' + itemNum + '</span> ' : '') +
-      '<span class="coco-act-lite-acc-title">' + esc(action.category || action.title) + '</span>' +
+      (itemNum ? '<span class="coco-act-num-tag">#' + itemNum + '</span>' : '') +
+      '<span class="coco-act-work-card-name">' + esc(taskName) + '</span>' +
       '<span class="badge badge-blue coco-act-work-badge">⏱ ' + esc(impact.workFormatted) + '</span> ' +
-      sourceBadge(action.source) + ' ' + priorityBadge(action.urgency || action.priority) + ' ' + statusBadgeFor(st) +
+      statusBadgeFor(st) +
+      '<span class="coco-act-work-card-order">סדר: ' + (itemNum || '—') + '</span>' +
       '</button>' +
-      '<div id="' + panelId + '" class="coco-act-lite-acc-panel" style="display:' + (expanded ? 'block' : 'none') + ';">' +
+      '<div id="' + panelId + '" class="coco-act-work-card-body coco-act-lite-acc-panel" style="display:' + (expanded ? 'block' : 'none') + ';">' +
+      (expanded ? renderActionNav(sorted, action.id) : '') +
+      '<div class="coco-act-work-grid">' +
+      '<div class="coco-act-work-field coco-act-work-field-full">' +
+      '<span class="coco-act-work-label">שם המשימה</span>' +
+      '<div class="coco-act-work-value">' + esc(taskName) + '</div></div>' +
+      '<div class="coco-act-work-field coco-act-work-field-full">' +
+      '<span class="coco-act-work-label">תיאור המשימה</span>' +
+      '<div class="coco-act-work-value">' + esc(taskDesc) + '</div></div>' +
+      '<div class="coco-act-work-field coco-act-work-field-full">' +
+      '<span class="coco-act-work-label">מטרת המשימה</span>' +
+      '<div class="coco-act-work-value">' + esc(taskGoal) + '</div></div>' +
+      '<div class="coco-act-work-field"><span class="coco-act-work-label">סדר ביצוע</span>' +
+      '<div class="coco-act-work-value"><strong>#' + (itemNum || '—') + '</strong></div></div>' +
+      '<div class="coco-act-work-field"><span class="coco-act-work-label">מקור</span>' +
+      '<div class="coco-act-work-value">' + sourceBadge(action.source) + ' ' + priorityBadge(action.urgency || action.priority) + '</div></div>' +
+      '<div class="coco-act-work-field"><span class="coco-act-work-label">סטטוס</span>' +
+      '<select class="filter-select coco-act-work-select" data-act-status="' + escAttr(action.id) + '">' +
+      ['pending', 'in_progress', 'done', 'needs_review', 'deferred', 'not_done'].map(function (k) {
+        return '<option value="' + k + '"' + (st === k ? ' selected' : '') + '>' + (STATUS_META[k] ? STATUS_META[k].label : k) + '</option>';
+      }).join('') + '</select></div>' +
+      '<div class="coco-act-work-field"><span class="coco-act-work-label">מי ביצע</span>' +
+      '<input class="filter-input" data-act-meta="assignee" data-act-meta-id="' + escAttr(action.id) + '" value="' + escAttr(fb.assignee || '') + '" placeholder="שם המבצע"></div>' +
+      '<div class="coco-act-work-field"><span class="coco-act-work-label">תאריך פתיחה</span>' +
+      '<div class="coco-act-work-value">' + formatDateHe(fb.openedAt) + '</div></div>' +
+      '<div class="coco-act-work-field"><span class="coco-act-work-label">תאריך סיום</span>' +
+      '<div class="coco-act-work-value">' + formatDateHe(fb.completedAt) + '</div></div>' +
+      '</div>' +
+      '<div class="coco-act-work-section">' +
+      '<span class="coco-act-work-section-title">הערות</span>' +
+      fbField('userNotes', 'הערות עבודה', fb.userNotes, action.id) +
+      fbField('changeRequests', 'בקשות שינוי', fb.changeRequests, action.id) +
+      '</div>' +
+      '<div class="coco-act-work-section">' +
+      '<span class="coco-act-work-section-title">קוד / קבצים רלוונטיים (Staging)</span>' +
+      '<label class="coco-act-fb-field"><span class="coco-act-fb-label">קישור או תיאור קובץ</span>' +
+      '<input class="filter-input" data-act-meta="filesNote" data-act-meta-id="' + escAttr(action.id) + '" value="' + escAttr(fb.filesNote || '') + '"></label>' +
+      '<label class="coco-act-fb-field"><span class="coco-act-fb-label">HTML</span>' +
+      '<textarea rows="3" class="coco-act-code-input" data-act-code="codeHtml" data-act-code-id="' + escAttr(action.id) + '">' + esc(fb.codeHtml || '') + '</textarea></label>' +
+      '<label class="coco-act-fb-field"><span class="coco-act-fb-label">CSS</span>' +
+      '<textarea rows="2" class="coco-act-code-input" data-act-code="codeCss" data-act-code-id="' + escAttr(action.id) + '">' + esc(fb.codeCss || '') + '</textarea></label>' +
+      '</div>' +
       renderBeforeAfter(ba, itemNum, action) +
       renderFeedbackPanel(action, page, itemNum) +
-      '<div class="coco-act-item-footer">' +
+      '<div class="coco-act-work-actions">' +
+      '<button type="button" class="btn btn-green coco-act-btn-sm" data-act-mark-done="' + escAttr(action.id) + '">✓ סמן הושלם</button>' +
+      '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-action-preview="' + escAttr(action.id) + '">🔍 תצוגה מקדימה</button>' +
       (approved
-        ? '<span class="badge badge-green" style="font-size:12px;">✓ מאושר לביצוע · ' + esc(new Date(getApprovals()[action.id].at).toLocaleString('he-IL')) + '</span>' +
+        ? '<span class="badge badge-green">✓ מאושר לביצוע · ' + esc(formatDateHe(getApprovals()[action.id].at)) + '</span>' +
           ' <button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-revoke="' + escAttr(action.id) + '">↩ בטל אישור</button>'
-        : '<button type="button" class="btn btn-green coco-act-btn-sm" data-act-approve="' + escAttr(action.id) + '">✅ אישור לביצוע</button>') +
-      ' <span class="coco-act-approval-note">לא משנה את dalia-c.com · Staging בלבד</span>' +
-      '</div></div></div>';
+        : '<button type="button" class="btn btn-primary coco-act-btn-sm" data-act-approve="' + escAttr(action.id) + '">✅ אישור לביצוע</button>') +
+      ' <span class="coco-act-approval-note">Staging בלבד · לא משנה dalia-c.com</span>' +
+      '</div></div></article>';
+  }
+
+  function renderActionAccordionItem(action, page, expanded, sorted) {
+    return renderActionWorkCard(action, page, expanded, sorted || []);
   }
 
   function renderWorkbenchView(page, openActions) {
@@ -580,7 +675,7 @@
       '<div class="coco-act-lite-acc-list">' +
       (sorted.length
         ? sorted.map(function (a) {
-          return renderActionAccordionItem(a, page, _expandedActionId === a.id);
+          return renderActionAccordionItem(a, page, _expandedActionId === a.id, sorted);
         }).join('')
         : '<div class="alert alert-ok">אין פעולות פתוחות לעמוד זה 🎉</div>') +
       '</div></div>';
@@ -926,7 +1021,32 @@
       if (acc) {
         var aid = acc.getAttribute('data-act-acc-toggle');
         _expandedActionId = _expandedActionId === aid ? null : aid;
+        if (_expandedActionId) ensureActionOpened(_expandedActionId);
         rerender();
+        return;
+      }
+      var nav = e.target.closest('[data-act-nav]');
+      if (nav) {
+        _expandedActionId = nav.getAttribute('data-act-nav');
+        ensureActionOpened(_expandedActionId);
+        rerender();
+        var el = document.querySelector('[data-action-id="' + _expandedActionId + '"]');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      var doneBtn = e.target.closest('[data-act-mark-done]');
+      if (doneBtn) {
+        markActionDone(doneBtn.getAttribute('data-act-mark-done'));
+        return;
+      }
+      var actPrev = e.target.closest('[data-act-action-preview]');
+      if (actPrev) {
+        var aid2 = actPrev.getAttribute('data-act-action-preview');
+        var fb2 = getActionFeedback(aid2);
+        if (_workbenchPageId) {
+          savePreviewStore(_workbenchPageId, fb2.codeHtml, fb2.codeCss, fb2.codeJs);
+          openLitePreview(_workbenchPageId);
+        }
         return;
       }
       var prev = e.target.closest('[data-act-lite-preview]');
@@ -941,7 +1061,7 @@
       }
       var appr = e.target.closest('[data-act-approve]');
       if (appr) {
-        window.CocoActApprove(appr.getAttribute('data-act-approve'), appr);
+        window.CocoActApprove(appr.getAttribute('data-act-approve'));
         return;
       }
       var rev = e.target.closest('[data-act-revoke]');
@@ -959,8 +1079,37 @@
         scheduleFeedbackSave(ta.getAttribute('data-fb-action'), ta.getAttribute('data-fb-field'), ta.value);
         return;
       }
+      var meta = e.target.closest('[data-act-meta]');
+      if (meta) {
+        var patch = {};
+        patch[meta.getAttribute('data-act-meta')] = meta.value;
+        saveActionFeedback(meta.getAttribute('data-act-meta-id'), patch);
+        return;
+      }
+      var code = e.target.closest('[data-act-code]');
+      if (code) {
+        clearTimeout(_fbSaveTimer);
+        _fbSaveTimer = setTimeout(function () {
+          var p = {};
+          p[code.getAttribute('data-act-code')] = code.value;
+          saveActionFeedback(code.getAttribute('data-act-code-id'), p);
+        }, 400);
+        return;
+      }
       var sheets = e.target.closest('[data-act-sheets-url]');
       if (sheets) saveExportConfig({ sheetsWebhookUrl: sheets.value.trim() });
+    });
+
+    root.addEventListener('change', function (e) {
+      var st = e.target.closest('[data-act-status]');
+      if (st) {
+        var id = st.getAttribute('data-act-status');
+        var val = st.value;
+        var patch = { workflowStatus: val };
+        if (val === 'done') patch.completedAt = new Date().toISOString();
+        saveActionFeedback(id, patch);
+        rerender();
+      }
     });
 
     root.addEventListener('keydown', function (e) {
