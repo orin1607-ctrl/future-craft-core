@@ -79,6 +79,9 @@
   }
 
   function applyCtxFilter(items, mapFn) {
+    if (window.FilterEngine && FilterEngine.filter) {
+      return FilterEngine.filter(items, mapFn);
+    }
     var c = ctx();
     var free = (c.freeSearch || '').trim().toLowerCase();
     if (isLiveGoalsActionsMode()) {

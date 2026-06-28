@@ -109,6 +109,17 @@
       localStorage.setItem('coco-flow-context-v2', JSON.stringify(COCO.flowContext));
       localStorage.setItem(STORAGE_KEY, a.id);
     } catch (e) { /* ignore */ }
+    if (window.GlobalFilterContext && GlobalFilterContext.set) {
+      GlobalFilterContext.set({
+        assetId: a.id,
+        assetType: a.type,
+        assetLabel: a.domain || a.label,
+        site: a.domain || a.label,
+        domain: a.domain || a.label,
+        campaignId: a.campaignId || COCO.flowContext.campaign,
+        campaignName: a.campaignName || COCO.flowContext.campaignName,
+      }, { skipCascade: true, source: 'asset-flow-ssot', allowInvalid: true });
+    }
     return COCO.flowContext;
   }
 

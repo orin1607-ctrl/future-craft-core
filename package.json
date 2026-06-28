@@ -62,6 +62,8 @@
     "project-001:export-site-pages": "node scripts/project-001/export-site-pages-staging.mjs",
     "project-001:work-plan": "node scripts/project-001/build-business-work-plan.mjs",
     "project-001:sync-recommendations": "node scripts/project-001/sync-page-recommendations.mjs",
+    "project-001:sync-marketing-index": "node scripts/project-001/sync-marketing-index.mjs",
+    "project-001:verify-global-filter-a": "node scripts/verify-global-filter-context-phase-a.mjs",
     "project-001:verify-phase-ab": "node scripts/verify-phase-ab-recommendations.mjs",
     "project-001:verify-clients": "node scripts/verify-clients-screen-staging.mjs",
     "project-001:verify-asset-flow": "node scripts/verify-asset-flow-chain.mjs",

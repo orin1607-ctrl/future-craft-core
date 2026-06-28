@@ -82,6 +82,11 @@
   </div>
 </div>
 
+<script src="./ai-marketing/filter-taxonomy.js"></script>
+<script src="./ai-marketing/filter-entity-index.js"></script>
+<script src="./ai-marketing/filter-engine.js"></script>
+<script src="./ai-marketing/global-filter-context.js"></script>
+<script src="./ai-marketing/filter-screen-registry.js"></script>
 <script src="./ai-marketing/client-id-ssot.js"></script>
 <script src="./ai-marketing/asset-flow-ssot.js"></script>
 <script src="./ai-marketing/marketing-ssot.js"></script>
@@ -94,7 +99,7 @@
 <script>
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-unified-actions-workbench';
+  var ver = 'v3-global-filter-a';
   try {
     var bootB = new URLSearchParams(location.search).get('b');
     if (bootB) ver = 'v3-unified-3j-' + bootB.slice(0, 12);

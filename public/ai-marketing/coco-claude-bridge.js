@@ -109,11 +109,25 @@
       var raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('coco-flow-context-v1');
       if (raw) Object.assign(COCO.flowContext, JSON.parse(raw));
     } catch (e) { /* ignore */ }
+    if (window.GlobalFilterContext) {
+      if (GlobalFilterContext.init) {
+        GlobalFilterContext.init();
+      } else {
+        GlobalFilterContext.syncFromFlowContext();
+        GlobalFilterContext.syncToFlowContext();
+      }
+    }
     var m = location.search.match(/[?&]customer=([^&]+)/);
     if (m) COCO.flowContext.clientId = decodeURIComponent(m[1]);
   }
 
   function saveContext() {
+    if (window.GlobalFilterContext) {
+      GlobalFilterContext.syncFromFlowContext();
+      try {
+        localStorage.setItem(GlobalFilterContext.STORAGE_KEY, JSON.stringify(GlobalFilterContext.get()));
+      } catch (e) { /* ignore */ }
+    }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(COCO.flowContext));
     } catch (e) { /* ignore */ }

@@ -38,7 +38,7 @@
 
   function applyFlowContext(overrides) {
     if (!window.COCO) window.COCO = {};
-    COCO.flowContext = Object.assign(COCO.flowContext || {}, {
+    var patch = Object.assign({
       clientId: OFFICIAL.clientId,
       clientName: OFFICIAL.company,
       company: OFFICIAL.company,
@@ -48,6 +48,49 @@
       campaign: PRIMARY_CAMPAIGN.id,
       campaignName: PRIMARY_CAMPAIGN.name,
     }, overrides || {});
+    COCO.flowContext = Object.assign(COCO.flowContext || {}, patch);
+
+    if (window.GlobalFilterContext && GlobalFilterContext.set) {
+      GlobalFilterContext.set({
+        clientId: OFFICIAL.clientId,
+        clientName: OFFICIAL.company,
+        activityType: PRIMARY_CAMPAIGN.channel || 'seo',
+        campaignId: PRIMARY_CAMPAIGN.id,
+        campaignName: PRIMARY_CAMPAIGN.name,
+        assetId: patch.activeAssetId || 'asset-dalia-c-com',
+        assetType: 'website',
+        assetLabel: OFFICIAL.domain,
+        site: OFFICIAL.domain,
+        domain: OFFICIAL.domain,
+      }, { skipCascade: true, source: 'client-id-ssot', allowInvalid: true });
+    }
+
+    if (window.FilterEntityIndex) {
+      FilterEntityIndex.registerClient({
+        id: OFFICIAL.clientId,
+        name: OFFICIAL.company,
+        slug: OFFICIAL.slug,
+        status: 'active',
+      });
+      FilterEntityIndex.registerCampaign(OFFICIAL.clientId, {
+        id: PRIMARY_CAMPAIGN.id,
+        name: PRIMARY_CAMPAIGN.name,
+        activityType: PRIMARY_CAMPAIGN.channel || 'seo',
+        status: PRIMARY_CAMPAIGN.status,
+        clientId: OFFICIAL.clientId,
+      });
+      FilterEntityIndex.registerAsset(PRIMARY_CAMPAIGN.id, {
+        id: 'asset-dalia-c-com',
+        type: 'website',
+        label: OFFICIAL.domain,
+        domain: OFFICIAL.domain,
+        url: OFFICIAL.url,
+        status: 'active',
+        clientId: OFFICIAL.clientId,
+        campaignId: PRIMARY_CAMPAIGN.id,
+      });
+    }
+
     return COCO.flowContext;
   }
 

@@ -229,6 +229,16 @@
     if (svc) c.serviceType = svc.value;
     if (st) c.customerStatus = st.value;
     if (camp) c.campaign = camp.value;
+    if (window.GlobalFilterContext && GlobalFilterContext.set) {
+      GlobalFilterContext.set({
+        freeSearch: c.freeSearch || '',
+        serviceType: c.serviceType || '',
+        customerStatus: c.customerStatus || '',
+        campaignId: c.campaign || '',
+        campaign: c.campaign || '',
+        campaignName: c.campaignName || '',
+      }, { skipCascade: true, source: 'unified-context-bar', allowInvalid: true });
+    }
     try {
       localStorage.setItem(SEARCH_KEY, c.freeSearch || '');
       if (window.COCO && COCO.flowContext) {

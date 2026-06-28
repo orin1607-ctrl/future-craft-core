@@ -1,0 +1,14 @@
+{
+  "campaign-dalia-seo-primary": [
+    {
+      "id": "asset-dalia-c-com",
+      "type": "website",
+      "label": "dalia-c.com",
+      "domain": "dalia-c.com",
+      "url": "https://dalia-c.com/",
+      "status": "active",
+      "clientId": "dalia-c-official",
+      "campaignId": "campaign-dalia-seo-primary"
+    }
+  ]
+}

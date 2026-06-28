@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-28T10:33:14.826Z",
+  "clients": [
+    {
+      "id": "dalia-c-official",
+      "name": "דליה פתרונות מימון ותחזוקה לרכב",
+      "slug": "dalia-c-official",
+      "status": "active",
+      "serviceTypes": [
+        "fleet_and_marketing",
+        "marketing_only"
+      ]
+    }
+  ]
+}
