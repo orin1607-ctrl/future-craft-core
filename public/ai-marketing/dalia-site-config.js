@@ -114,6 +114,7 @@
     var wpGoals = wp.goals || [];
     var wpActions = wp.actions || [];
     var wpActivity = (wp.activity || []).concat(loadProgressFromStorage());
+    var pageGoals = wpPages.length ? wpPages : [];
     var connections = Object.keys(conn).map(function (k) {
       var c = conn[k];
       return {
@@ -134,17 +135,20 @@
       activity: wpActivity,
       connections: connections,
       ai: {
-        initial_goals: wpGoals.length ? wpGoals : (raw.aiSeoSuggestions || []).slice(0, 5).map(function (s, i) {
-          return { id: 'goal-' + i, title: s.title || s.suggestion || String(s), status: 'active', category: 'SEO', priority: s.priority || 'גבוה' };
-        }),
+        initial_goals: pageGoals.length ? pageGoals : wpGoals,
         work_plan: wpActions.length ? wpActions : (raw.aiSeoSuggestions || []).slice(0, 3).map(function (s, i) {
           return { id: 'act-' + i, title: s.title || s.suggestion || String(s), status: 'pending', source: 'GSC/GA4', category: 'SEO' };
         }),
-        recommendations: wpPages.slice(0, 10).map(function (p) {
-          return '#' + p.rank + ' ' + (p.path || p.url) + ': ' + (p.missing && p.missing.length ? p.missing.join(', ') : 'אופטימיזציה');
-        }),
+        recommendations: pageGoals.length
+          ? pageGoals.map(function (p) {
+            var open = (p.recommendations || []).filter(function (r) { return r.status !== 'ok' && r.status !== 'na'; }).length;
+            return '#' + p.rank + ' ' + (p.path || p.url) + ': ' + open + ' המלצות פתוחות';
+          })
+          : wpPages.slice(0, 10).map(function (p) {
+            return '#' + p.rank + ' ' + (p.path || p.url) + ': ' + (p.missing && p.missing.length ? p.missing.join(', ') : 'אופטימיזציה');
+          }),
         opening_report: wp.summary
-          ? 'התקדמות: ' + (wp.summary.progressPercent || 0) + '% · ' + (wp.summary.pagesCompleted || 0) + '/' + (wp.summary.pageCount || 0) + ' עמודים · Checklist ' + (wp.summary.checklistPass || 0) + '/' + (wp.summary.checklistTotal || 0)
+          ? (wp.summary.pageCount || 0) + ' עמודים · ' + (wp.summary.actionsOpen || 0) + ' פעולות פתוחות · Checklist ' + (wp.summary.checklistPass || 0) + '/' + (wp.summary.checklistTotal || 0)
           : 'ניתוח dalia-c.com — ' + fmt(stats.totalClicks) + ' קליקים GSC · ' + fmt(stats.ga4Sessions) + ' סשנים GA4',
       },
       _dashboard: raw,

@@ -183,42 +183,87 @@
     return { siteScore: NO_DATA, visits: NO_DATA, leads: NO_DATA, openTasks: NO_DATA, clicks: NO_DATA, impressions: NO_DATA, ctr: NO_DATA, position: NO_DATA };
   }
 
+  var REC_STATUS_LABELS = {
+    ok: 'תקין',
+    needs_improvement: 'דורש שיפור',
+    fail: 'לא תקין',
+    pending: 'ממתין',
+    na: 'לא רלוונטי',
+  };
+
+  function deriveWorkPages(bundle) {
+    var wp = bundle && bundle.workPlan;
+    var pages = (wp && wp.pages) || (bundle && bundle.pageTasks) || [];
+    if (pages.length) {
+      state.meta.goalsSource = 'dalia';
+      return pages;
+    }
+    state.meta.goalsSource = 'pending';
+    return [];
+  }
+
   function deriveGoals(bundle) {
+    var pages = deriveWorkPages(bundle);
+    if (pages.length) return pages;
     var ai = bundle && bundle.ai;
     var goals = normList(ai && ai.initial_goals, 'goal');
-    if (!goals.length && ai && ai.work_plan) {
-      goals = normList(ai.work_plan, 'goal').map(function (g) {
-        g.category = 'תכנון AI';
-        return g;
-      });
+    if (goals.length) {
+      state.meta.goalsSource = 'dalia';
+      return goals;
     }
-    if (!goals.length) {
-      state.meta.goalsSource = 'pending';
-      return [];
-    }
-    state.meta.goalsSource = 'dalia';
-    return goals;
+    return [];
   }
 
   function deriveActions(bundle) {
-    var ai = bundle && bundle.ai;
-    var actions = normList(ai && ai.work_plan, 'act').map(function (a, i) {
-      a.status = a.status || (i === 0 ? 'pending' : 'review');
+    var wp = bundle && bundle.workPlan;
+    var raw = (wp && wp.actions) || (bundle && bundle.ai && bundle.ai.work_plan) || [];
+    var actions = normList(raw, 'act').map(function (a) {
+      a.status = a.status || 'pending';
       a.urgency = a.urgency || a.priority || 'בינוני';
-      a.source = a.source || 'AI Setup';
+      a.source = a.source || 'checklist';
       return a;
-    });
-    var approvals = (window.COCO && COCO.data && COCO.data.approvals) || [];
-    approvals.forEach(function (ap, i) {
-      actions.push({ id: 'appr-' + i, title: ap.title, status: 'pending', urgency: 'גבוה', source: 'אישורים', category: ap.type || 'תוכן' });
     });
     if (!actions.length) {
       state.meta.actionsSource = 'pending';
       return [];
     }
-    state.meta.actionsSource = ai && ai.work_plan && ai.work_plan.length ? 'dalia' : 'live';
+    state.meta.actionsSource = 'dalia';
     return actions;
   }
+
+  function recStatusBadge(status) {
+    var map = {
+      ok: 'badge-green',
+      needs_improvement: 'badge-yellow',
+      fail: 'badge-red',
+      pending: 'badge-gray',
+      na: 'badge-gray',
+    };
+    var label = REC_STATUS_LABELS[status] || status || '—';
+    return '<span class="badge ' + (map[status] || 'badge-gray') + '">' + esc(label) + '</span>';
+  }
+
+  function hideLegacyGoalsActionsUi(screenId) {
+    var screen = document.getElementById(screenId);
+    if (!screen) return;
+    var live = screen.querySelector('.coco-live-section');
+    if (!live || !live.innerHTML.trim()) return;
+    var tabs = screen.querySelector('.nav-tabs');
+    if (tabs) tabs.style.display = 'none';
+    screen.querySelectorAll('.content > *').forEach(function (el) {
+      if (!el.classList.contains('coco-live-section')) el.style.display = 'none';
+    });
+    var filters = screen.querySelectorAll('[style*="border-bottom"]');
+    filters.forEach(function (el) {
+      if (el.closest('#' + screenId) && !el.closest('.coco-live-section')) el.style.display = 'none';
+    });
+  }
+
+  window.CocoDataTogglePageRecs = function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = el.style.display === 'none' ? '' : 'none';
+  };
 
   function deriveHistory(bundle) {
     var items = [];
@@ -371,8 +416,8 @@
       'screen-status': 'מצב',
       'screen-clients': (ssotCounts ? ssotCounts.clients : state.customers.length) + ' לקוחות',
       'screen-agents': (ssotCounts ? ssotCounts.activeAiAssistants : 0) + ' עוזרים פעילים',
-      'screen-goals': goals.length + ' מטרות',
-      'screen-actions': actions.filter(function (a) { return a.status !== 'done'; }).length + ' ממתינות',
+      'screen-goals': (goals.length ? goals.length + ' עמודים' : '0 עמודים'),
+      'screen-actions': actions.filter(function (a) { return a.status !== 'done' && a.status !== 'completed'; }).length + ' ממתינות',
       'screen-crm': (function () { var cc = crmCounts(); return cc ? (cc.customers + ' לקוחות פעילים') : PENDING; })(),
       'screen-history': deriveHistory(bundle).length + ' רשומות',
       'screen-assets': (ssotCounts ? ssotCounts.connectedAssets : assets.length) + ' נכסים',
@@ -482,42 +527,96 @@
 
   function bindGoals(bundle) {
     ensureLiveMount('coco-live-goals-list', 'screen-goals');
-    var goals = applyCtxFilter(deriveGoals(bundle), function (g) {
-      return { goal: g.category || g.title, status: g.status };
+    var pages = applyCtxFilter(deriveWorkPages(bundle), function (p) {
+      return { page: p.path, status: p.executionStatus, goal: p.title };
     });
-    setHtml('coco-live-goals-list', goals.map(function (g) {
-      var pageHint = g.pagePath ? ' · עמוד: ' + g.pagePath : '';
-      return '<div class="goal-acc-item card" style="padding:14px;margin-bottom:10px;" data-agent="' + esc(g.agent || '') + '" data-page-id="' + esc(g.pageId || '') + '">' +
-        '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">' +
-        '<div style="font-weight:700;">🎯 ' + esc(g.title) + '</div>' + statusBadge(g.status) + '</div>' +
-        '<div style="font-size:12px;color:var(--white50);margin-top:6px;">קטגוריה: ' + esc(g.category || 'כללי') + ' • עדיפות: ' + esc(g.priority || 'בינוני') + pageHint + '</div></div>';
-    }).join('') || emptyStatus('אין מטרות — הוסף ב-AI Setup או סנכרן מדליה'));
+    if (!pages.length) {
+      setHtml('coco-live-goals-list', emptyStatus('אין עמודים — סנכרן site-work-plan.json'));
+      return;
+    }
+    var wp = bundle && bundle.workPlan;
+    var campaignName = (wp && wp.campaign && wp.campaign.name) || 'קמפיין SEO';
+    var header = '<div class="alert alert-info" style="margin-bottom:14px;">📌 ' + esc(campaignName) +
+      ' · dalia-c.com · <strong>' + pages.length + '</strong> עמודים · <strong>20</strong> המלצות לכל עמוד</div>';
+    var html = header + pages.map(function (p, idx) {
+      var recs = p.recommendations || [];
+      var openN = recs.filter(function (r) { return r.status !== 'ok' && r.status !== 'na'; }).length;
+      var panelId = 'coco-page-recs-' + idx;
+      var gscLine = p.gsc ? ('GSC: ' + (p.gsc.clicks || 0) + ' קליקים · ' + (p.gsc.impressions || 0) + ' חשיפות') : 'GSC: —';
+      var recRows = recs.map(function (r) {
+        return '<tr style="border-bottom:1px solid var(--border);">' +
+          '<td style="padding:8px 6px;font-size:12px;color:var(--white50);width:28px;">' + r.order + '</td>' +
+          '<td style="padding:8px 6px;font-size:12px;font-weight:600;">' + esc(r.labelHe) + '</td>' +
+          '<td style="padding:8px 6px;">' + recStatusBadge(r.status) + '</td>' +
+          '<td style="padding:8px 6px;font-size:11px;color:var(--white50);">' + esc(r.source) + '</td>' +
+          '<td style="padding:8px 6px;font-size:11px;">' + esc(r.priority || 'בינוני') + '</td>' +
+          '<td style="padding:8px 6px;font-size:11px;color:var(--white80);">' + esc(r.detail || '') + '</td></tr>';
+      }).join('');
+      return '<div class="goal-acc-item card" style="margin-bottom:10px;overflow:hidden;" data-page-id="' + esc(p.id) + '">' +
+        '<div onclick="CocoDataTogglePageRecs(\'' + panelId + '\')" style="padding:14px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;background:var(--bg3);">' +
+        '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:700;font-size:14px;">#' + (p.rank || idx + 1) + ' · ' + esc(p.title || p.path) + '</div>' +
+        '<div style="font-size:11px;color:var(--white50);margin-top:4px;">' +
+        '<a href="' + esc(p.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:var(--accent2);">' + esc(p.path) + ' ↗</a>' +
+        ' · SEO ' + esc(p.seoScore != null ? p.seoScore + '/10' : '—') + ' · ' + esc(gscLine) +
+        '</div></div>' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">' +
+        '<span class="badge badge-yellow">' + openN + ' פתוחות</span>' +
+        statusBadge(p.executionStatus === 'done' ? 'done' : (p.rank <= 3 ? 'active' : 'pending')) +
+        '<span style="font-size:10px;color:var(--white50);">▼</span></div></div>' +
+        '<div id="' + panelId + '" style="display:' + (idx === 0 ? 'block' : 'none') + ';padding:0 14px 14px;">' +
+        '<table style="width:100%;border-collapse:collapse;margin-top:8px;">' +
+        '<thead><tr style="font-size:10px;color:var(--white50);text-align:right;">' +
+        '<th style="padding:6px;">#</th><th style="padding:6px;">המלצה</th><th style="padding:6px;">סטטוס</th>' +
+        '<th style="padding:6px;">מקור</th><th style="padding:6px;">עדיפות</th><th style="padding:6px;">פירוט</th></tr></thead>' +
+        '<tbody>' + recRows + '</tbody></table></div></div>';
+    }).join('');
+    setHtml('coco-live-goals-list', html);
+    hideLegacyGoalsActionsUi('screen-goals');
   }
 
   function bindActions(bundle) {
     ensureLiveMount('coco-live-actions-pending', 'screen-actions');
     ensureLiveMount('coco-live-actions-done', 'screen-actions');
     var actions = applyCtxFilter(deriveActions(bundle), function (a) {
-      return { action: a.category, status: a.status, campaign: a.campaign };
+      return { action: a.category, status: a.status, campaign: a.campaignId };
     });
     var pending = actions.filter(function (a) { return a.status !== 'done' && a.status !== 'completed'; });
     var done = actions.filter(function (a) { return a.status === 'done' || a.status === 'completed'; });
-    setHtml('coco-live-actions-pending', pending.map(function (a) {
-      var meta = [];
-      if (a.pagePath) meta.push('עמוד: ' + a.pagePath);
-      if (a.checklistSummary) meta.push('Checklist: ' + a.checklistSummary.pass + '/' + a.checklistSummary.total);
-      if (a.estimateHours) meta.push('~' + a.estimateHours + ' ש\'');
-      if (a.status === 'in_progress') meta.push('בביצוע');
-      if (a.status === 'done') meta.push('הושלם');
-      if (a.missing && a.missing.length) meta.push('חסר: ' + a.missing.slice(0, 2).join(', '));
-      return '<div class="action-card act-item" style="border-color:rgba(139,92,246,0.4);margin-bottom:12px;" data-page-id="' + esc(a.pageId || '') + '">' +
-        '<div class="action-title">' + esc(a.title) + '</div>' +
-        '<div style="font-size:12px;color:var(--white50);margin-top:6px;">מקור: ' + esc(a.source) + ' • ' + statusBadge(a.urgency) +
-        (meta.length ? '<br>' + esc(meta.join(' · ')) : '') + '</div></div>';
-    }).join('') || '<div class="alert alert-ok">אין פעולות ממתינות 🎉</div>');
-    setHtml('coco-live-actions-done', done.map(function (a) {
-      return '<tr><td>' + esc(a.title) + '</td><td>' + esc(a.category) + '</td><td>—</td><td>' + esc(a.source) + '</td><td>—</td><td>' + statusBadge('done') + '</td></tr>';
-    }).join('') || '<tr><td colspan="6">אין פעולות שהושלמו עדיין</td></tr>');
+    var byPage = {};
+    pending.forEach(function (a) {
+      var key = a.pageId || a.pagePath || 'other';
+      if (!byPage[key]) byPage[key] = { pagePath: a.pagePath, pageUrl: a.pageUrl, pageId: a.pageId, items: [] };
+      byPage[key].items.push(a);
+    });
+    var pageGroups = Object.keys(byPage).map(function (k) { return byPage[k]; });
+    pageGroups.sort(function (a, b) { return String(a.pagePath).localeCompare(String(b.pagePath)); });
+    var wp = bundle && bundle.workPlan;
+    var pendingHeader = '<div class="alert alert-info" style="margin-bottom:14px;">⚙️ ' +
+      pending.length + ' פעולות פתוחות · ' + pageGroups.length + ' עמודים · קמפיין: ' +
+      esc((wp && wp.campaign && wp.campaign.name) || 'SEO') + '</div>';
+    setHtml('coco-live-actions-pending', pending.length ? pendingHeader + pageGroups.map(function (grp) {
+      var pageLink = grp.pageUrl
+        ? '<a href="' + esc(grp.pageUrl) + '" target="_blank" rel="noopener" style="color:var(--accent2);font-size:12px;">' + esc(grp.pagePath || '') + ' ↗</a>'
+        : esc(grp.pagePath || '');
+      var itemsHtml = grp.items.map(function (a) {
+        return '<div class="action-card act-item" style="border-color:rgba(139,92,246,0.35);margin:8px 0 0;padding:12px;" data-page-id="' + esc(a.pageId || '') + '" data-rec="' + esc(a.recommendationType || '') + '">' +
+          '<div class="action-title" style="font-size:13px;font-weight:700;">' + esc(a.title) + '</div>' +
+          '<div style="font-size:11px;color:var(--white50);margin-top:6px;line-height:1.5;">' +
+          'מקור: <strong style="color:var(--white80);">' + esc(a.source) + '</strong> · ' + statusBadge(a.urgency || a.priority) +
+          ' · ' + statusBadge(a.status === 'in_progress' ? 'active' : 'pending') +
+          (a.detail ? '<br>' + esc(a.detail) : '') +
+          '</div></div>';
+      }).join('');
+      return '<div class="card" style="padding:14px;margin-bottom:14px;">' +
+        '<div style="font-weight:700;margin-bottom:4px;">📄 ' + pageLink + '</div>' +
+        '<div style="font-size:11px;color:var(--white50);margin-bottom:6px;">' + grp.items.length + ' פעולות</div>' +
+        itemsHtml + '</div>';
+    }).join('') : '<div class="alert alert-ok">אין פעולות ממתינות 🎉</div>');
+    setHtml('coco-live-actions-done', done.length ? done.slice(0, 50).map(function (a) {
+      return '<tr><td>' + esc(a.title) + '</td><td>' + esc(a.pagePath || '—') + '</td><td>' + esc(a.category) + '</td><td>' + esc(a.source) + '</td><td>' + statusBadge('done') + '</td></tr>';
+    }).join('') : '<tr><td colspan="5">אין פעולות שהושלמו עדיין</td></tr>');
+    hideLegacyGoalsActionsUi('screen-actions');
   }
 
   function bindHistory(bundle) {
@@ -592,6 +691,7 @@
 
   function bindReports(bundle) {
     var kpis = deriveKpis(bundle);
+    var pages = deriveWorkPages(bundle);
     var goals = deriveGoals(bundle);
     var actions = deriveActions(bundle);
     var keywords = getKeywords();
@@ -600,7 +700,7 @@
       { title: '🔍 דוח SEO', rows: [['מילות מפתח', keywords.length || '—'], ['מיקום ממוצע', kpis.position], ['CTR', kpis.ctr]] },
       { title: '📢 דוח קמפיינים', rows: [['קמפיינים', (bundle && bundle.campaigns && bundle.campaigns.length) || 0], ['פעילים', (bundle && bundle.campaigns && bundle.campaigns.filter(function (c) { return c.status === 'active'; }).length) || 0], ['טיוטה', (bundle && bundle.campaigns && bundle.campaigns.filter(function (c) { return c.status === 'draft'; }).length) || 0]] },
       { title: '⚙️ דוח פעולות', rows: [['ממתינות', actions.filter(function (a) { return a.status !== 'done'; }).length], ['הושלמו', actions.filter(function (a) { return a.status === 'done'; }).length], ['סה״כ', actions.length]] },
-      { title: '🎯 דוח מטרות', rows: [['פעילות', goals.filter(function (g) { return g.status === 'active'; }).length], ['ממתינות', goals.filter(function (g) { return g.status === 'pending'; }).length], ['סה״כ', goals.length]] },
+      { title: '🎯 דוח מטרות', rows: [['עמודים', pages.length || goals.length], ['המלצות/עמוד', '20'], ['פתוחות (פעולות)', actions.filter(function (a) { return a.status !== 'done' && a.status !== 'completed'; }).length]] },
       { title: '📄 דוח עמודים עסקיים', rows: [['עמודים בתוכנית', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.pageCount) || 0], ['הושלמו', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.pagesCompleted) || 0], ['התקדמות', ((bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.progressPercent) || 0) + '%']] },
       { title: '✅ Checklist SEO', rows: [['עברו', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.checklistPass) || 0], ['סה"כ בדיקות', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.checklistTotal) || 0], ['בביצוע', (bundle && bundle.workPlan && bundle.workPlan.summary && bundle.workPlan.summary.pagesInProgress) || 0]] },
       { title: '📅 דוח חודשי', rows: [['כניסות', kpis.visits], ['קליקים', kpis.clicks], ['מקור', state.meta.kpiSource === 'live' ? 'חי' : 'ממתין']] },

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "description": "20 סוגי המלצות SEO לכל עמוד — SSOT Staging (dalia-c.com)",
+  "statusLabels": {
+    "ok": "תקין",
+    "needs_improvement": "דורש שיפור",
+    "fail": "לא תקין",
+    "pending": "ממתין",
+    "na": "לא רלוונטי"
+  },
+  "types": [
+    { "id": "title", "order": 1, "labelHe": "Title", "checklistKey": "title" },
+    { "id": "meta", "order": 2, "labelHe": "Meta Description", "checklistKey": "meta" },
+    { "id": "h1", "order": 3, "labelHe": "H1", "checklistKey": "h1" },
+    { "id": "h2", "order": 4, "labelHe": "H2", "checklistKey": "h2" },
+    { "id": "keywords", "order": 5, "labelHe": "מילות מפתח", "checklistKey": null },
+    { "id": "content", "order": 6, "labelHe": "תוכן", "checklistKey": "seo" },
+    { "id": "internalLinks", "order": 7, "labelHe": "קישורים פנימיים", "checklistKey": "internalLinks" },
+    { "id": "externalLinks", "order": 8, "labelHe": "קישורים חיצוניים", "checklistKey": null },
+    { "id": "alt", "order": 9, "labelHe": "Alt לתמונות", "checklistKey": "alt" },
+    { "id": "schema", "order": 10, "labelHe": "Schema", "checklistKey": "schema" },
+    { "id": "cta", "order": 11, "labelHe": "CTA", "checklistKey": "cta" },
+    { "id": "forms", "order": 12, "labelHe": "טפסים", "checklistKey": null },
+    { "id": "pageSpeed", "order": 13, "labelHe": "מהירות", "checklistKey": "pageSpeed" },
+    { "id": "mobile", "order": 14, "labelHe": "Mobile", "checklistKey": "mobile" },
+    { "id": "ux", "order": 15, "labelHe": "UX", "checklistKey": null },
+    { "id": "accessibility", "order": 16, "labelHe": "נגישות", "checklistKey": null },
+    { "id": "performance", "order": 17, "labelHe": "ביצועים", "checklistKey": "pageSpeed" },
+    { "id": "conversion", "order": 18, "labelHe": "איכות המרה", "checklistKey": null },
+    { "id": "businessFit", "order": 19, "labelHe": "התאמה לעסק", "checklistKey": null },
+    { "id": "aiAdditional", "order": 20, "labelHe": "המלצות AI נוספות", "checklistKey": null }
+  ]
+}
