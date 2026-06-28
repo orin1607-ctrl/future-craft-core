@@ -94,7 +94,10 @@
     if (itemMeta.customerId && itemMeta.customerId === c.clientId) return true;
     if (itemMeta.clientId && matchFilter(itemMeta.clientId, c.clientId)) return true;
     if (window.ClientIdSsot && ClientIdSsot.isOfficialClientId(c.clientId) && itemMeta.officialClient) return true;
-    if (!itemMeta.clientId && !itemMeta.customerId) return true;
+    if (!itemMeta.clientId && !itemMeta.customerId) {
+      if (window.ClientIdSsot && ClientIdSsot.isOfficialClientId(c.clientId)) return true;
+      return false;
+    }
     return false;
   }
 

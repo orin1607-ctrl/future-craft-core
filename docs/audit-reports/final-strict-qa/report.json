@@ -1,0 +1,911 @@
+{
+  "at": "2026-06-28T21:32:07.253Z",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+  "uiVersion": "v3-final-strict-3",
+  "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d",
+  "tasks": {
+    "1": {
+      "passed": true,
+      "title": "Real phone manual QA (Playwright mobile proxy)",
+      "how": "Playwright iPhone 13 390px — all 11 screens, buttons, modals, accordions, AI panel, forms, scroll",
+      "found": {
+        "screens": [
+          {
+            "id": "screen-hub",
+            "name": "Dashboard",
+            "active": true,
+            "overflowX": false,
+            "clicks": [
+              "הגדרות לקוח"
+            ],
+            "modals": [],
+            "contentLen": 8382,
+            "ok": true
+          },
+          {
+            "id": "screen-status",
+            "name": "מצב נוכחי",
+            "active": true,
+            "overflowX": false,
+            "clicks": [
+              "סקירה כללית",
+              "SEO ואתר",
+              "קמפיינים",
+              "📄 הפק דוח"
+            ],
+            "modals": [
+              {
+                "screen": "screen-status",
+                "modal": "modal-report"
+              }
+            ],
+            "contentLen": 38374,
+            "ok": true
+          },
+          {
+            "id": "screen-clients",
+            "name": "חברות ועסקים",
+            "active": true,
+            "overflowX": false,
+            "clicks": [
+              "רשימת לקוחות",
+              "הגדרת לקוח",
+              "🔗 נכסי לקוח",
+              "➕ הוספת נכס חדש"
+            ],
+            "modals": [
+              {
+                "screen": "screen-clients",
+                "modal": "modal-add-asset"
+              }
+            ],
+            "contentLen": 47029,
+            "ok": true
+          },
+          {
+            "id": "screen-crm",
+            "name": "CRM",
+            "active": true,
+            "overflowX": false,
+            "clicks": [
+              "👥 כל הלקוחות (12)",
+              "🔔 לידים חדשים (7)",
+              "📋 משימות (14)",
+              "+ לקוח חדש"
+            ],
+            "modals": [],
+            "contentLen": 56167,
+            "ok": true
+          },
+          {
+            "id": "screen-goals",
+            "name": "מטרות",
+            "active": true,
+            "overflowX": false,
+            "clicks": [
+              "כל העמודים (28)",
+              "דחופות (3)",
+              "בתהליך (4)",
+              "🤖 עוזרים"
+            ],
+            "modals": [],
+            "contentLen": 585244,
+            "ok": true
+          },
+          {
+            "id": "screen-actions",
+            "name": "פעולות",
+            "active": true,
+            "overflowX": false,
+            "clicks": [
+              "📥 חדשות (2)",
+              "👀 לאישור (5)",
+              "📝 בביצוע (3)",
+              "🎯 מטרות"
+            ],
+            "modals": [],
+            "contentLen": 57976,
+            "ok": true
+          },
+          {
+            "id": "screen-history",
+            "name": "היסטוריה",
+            "active": true,
+            "overflowX": false,
+            "clicks": [
+              "📚 הכל (22)",
+              "✅ אושרו (18)",
+              "❌ נדחו (2)",
+              "📄 הפק דוח",
+              "🔄 פתח מחדש"
+            ],
+            "modals": [
+              {
+                "screen": "screen-history",
+                "modal": "modal-report"
+              }
+            ],
+            "contentLen": 18729,
+            "ok": true
+          },
+          {
+            "id": "screen-assets",
+            "name": "נכסים דיגיטליים",
+            "active": true,
+            "overflowX": false,
+            "clicks": [],
+            "modals": [],
+            "contentLen": 10887,
+            "ok": true
+          },
+          {
+            "id": "screen-ai-center",
+            "name": "החלטות AI",
+            "active": true,
+            "overflowX": false,
+            "clicks": [
+              "🧠 ניתוח AI",
+              "📋 החלטות (4)",
+              "⚙️ הגדרות",
+              "🎯 מטרות"
+            ],
+            "modals": [],
+            "contentLen": 24371,
+            "ok": true
+          },
+          {
+            "id": "screen-reports",
+            "name": "דוחות",
+            "active": true,
+            "overflowX": false,
+            "clicks": [
+              "📊 סיכום כללי",
+              "🎯 20 מטרות",
+              "⚙️ פעולות",
+              "📄 הפק דוח"
+            ],
+            "modals": [
+              {
+                "screen": "screen-reports",
+                "modal": "modal-report"
+              }
+            ],
+            "contentLen": 16283,
+            "ok": true
+          },
+          {
+            "id": "screen-agents",
+            "name": "עוזרי AI",
+            "active": true,
+            "overflowX": false,
+            "clicks": [
+              "➕ חיבור עוזר חדש",
+              "▶️ הפעל סריקה",
+              "📊 צפה בדשבורד"
+            ],
+            "modals": [
+              {
+                "screen": "screen-agents",
+                "modal": "modal-add-assistant"
+              },
+              {
+                "screen": "screen-agents",
+                "modal": "modal-run-agents"
+              }
+            ],
+            "contentLen": 64502,
+            "ok": true
+          }
+        ],
+        "modals": [
+          {
+            "screen": "screen-status",
+            "modal": "modal-report"
+          },
+          {
+            "screen": "screen-clients",
+            "modal": "modal-add-asset"
+          },
+          {
+            "screen": "screen-history",
+            "modal": "modal-report"
+          },
+          {
+            "screen": "screen-reports",
+            "modal": "modal-report"
+          },
+          {
+            "screen": "screen-agents",
+            "modal": "modal-add-assistant"
+          },
+          {
+            "screen": "screen-agents",
+            "modal": "modal-run-agents"
+          },
+          {
+            "aiPanel": true
+          }
+        ],
+        "accordions": [
+          {
+            "workbench": true
+          },
+          {
+            "accordion": true
+          }
+        ],
+        "forms": [
+          {
+            "paste": true
+          }
+        ],
+        "scrollTests": [
+          {
+            "scrollTop": 0,
+            "note": "scroll at top — verify on real phone"
+          }
+        ],
+        "limitation": "NOT tested on physical device — Playwright iPhone 13 simulation only"
+      },
+      "fixed": [
+        "Mobile actions scroll jank — delayed restore removed, scroll guard, CSS touch scroll"
+      ],
+      "open": [
+        "NOT tested on physical device — Playwright iPhone 13 simulation only",
+        "NOT tested on physical phone by agent — user reported scroll stutter; fixes deployed, re-verify on device"
+      ],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    },
+    "2": {
+      "passed": true,
+      "title": "Mobile performance",
+      "how": "Rapid screen switches x3, scroll idle jump test (600ms), actions rerender count",
+      "found": {
+        "avgNavMs": 165.24444444436165,
+        "maxNavMs": 345.6000000014901,
+        "scrollJumps": [
+          {
+            "start": 0,
+            "after600ms": 0,
+            "unexpectedJump": false
+          },
+          {
+            "returnFromGoals": 0,
+            "jumpToTop": true
+          }
+        ],
+        "scrollDuringIdle": 0,
+        "doubleLoadSuspect": false,
+        "rerenderStable": true,
+        "cards1": 0,
+        "cards2": 0
+      },
+      "fixed": [
+        "Removed 500/1200ms scroll restore timers",
+        "Scroll guard during user touch",
+        "content-visibility on cards",
+        "throttled GFC sync"
+      ],
+      "open": [
+        "Verify smooth scroll on physical phone after deploy"
+      ],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    },
+    "3": {
+      "passed": false,
+      "title": "Data verification",
+      "how": "Runtime read CocoData, DaliaSite, MarketingApi, localStorage + screen DOM lengths",
+      "found": {
+        "sources": {
+          "daliaSite": {
+            "ready": true,
+            "workPlanPages": 28,
+            "domain": "dalia-c.com"
+          },
+          "marketingSsot": {
+            "hydrated": true
+          },
+          "marketingApi": {
+            "canRemote": false,
+            "localKey": "coco-mkt-local-v1"
+          },
+          "cocoData": {
+            "goalsSource": "dalia",
+            "actionsSource": "dalia",
+            "customers": 0
+          }
+        },
+        "screens": {
+          "screen-goals": {
+            "active": true,
+            "contentLen": 480455
+          },
+          "screen-actions": {
+            "active": true,
+            "contentLen": 24,
+            "hasPending": 8
+          },
+          "screen-history": {
+            "active": true,
+            "contentLen": 2585
+          },
+          "screen-reports": {
+            "active": true,
+            "contentLen": 16218
+          },
+          "screen-crm": {
+            "active": true,
+            "contentLen": 56109
+          },
+          "screen-assets": {
+            "active": true,
+            "contentLen": 2804
+          },
+          "screen-ai-center": {
+            "active": true,
+            "contentLen": 24320
+          },
+          "screen-agents": {
+            "active": true,
+            "contentLen": 188
+          }
+        },
+        "localStorage": {
+          "keys": [
+            "dalia-qa-demo-seed-v1",
+            "coco-global-filter-v3",
+            "coco-flow-context-v2",
+            "dalia-actions-seq-v1",
+            "coco-active-asset-v1"
+          ]
+        },
+        "ssot": {
+          "filterClients": 1,
+          "gfcClient": "dalia-c-official"
+        }
+      },
+      "fixed": [],
+      "open": [
+        "MarketingApi remote — localStorage fallback on GH Pages"
+      ],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    },
+    "4": {
+      "passed": false,
+      "title": "Customer separation (CRITICAL)",
+      "how": "Inject qa-isolation-client-b, switch GlobalFilterContext + FilterEngine, scan cross-client campaign IDs",
+      "found": {
+        "steps": [
+          {
+            "gfcOptions": 2,
+            "opts": [
+              "dalia-c-official",
+              "qa-isolation-client-b-1782682388478"
+            ]
+          },
+          {
+            "name": "official-goals",
+            "len": 480455
+          },
+          {
+            "name": "isolationB-goals",
+            "len": 480455
+          },
+          {
+            "name": "official-actions-filtered",
+            "count": 395
+          },
+          {
+            "name": "isolationB-actions-filtered",
+            "count": 395
+          },
+          {
+            "name": "gfc-switch",
+            "ok": true
+          }
+        ],
+        "leakage": [
+          {
+            "type": "wrong-campaign-on-clientB",
+            "ids": [
+              "act-page-01-title",
+              "act-page-01-meta",
+              "act-page-01-content",
+              "act-page-01-alt",
+              "act-page-01-forms"
+            ]
+          }
+        ],
+        "passed": false,
+        "note": "Single client in index — isolation verified via FilterEngine campaign scope only"
+      },
+      "fixed": [],
+      "open": [
+        "{\"type\":\"wrong-campaign-on-clientB\",\"ids\":[\"act-page-01-title\",\"act-page-01-meta\",\"act-page-01-content\",\"act-page-01-alt\",\"act-page-01-forms\"]}"
+      ],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    },
+    "5": {
+      "passed": true,
+      "title": "Data flow map",
+      "how": "Code reading + runtime inspection (static map in report.dataFlowMap)",
+      "found": {
+        "sources": [
+          {
+            "id": "DaliaSite",
+            "file": "dalia-site-config.js",
+            "loads": "project-001/dashboard.json, site-work-plan.json",
+            "writes": "DaliaSite state"
+          },
+          {
+            "id": "MarketingSsot",
+            "file": "marketing-ssot.js",
+            "loads": "dashboard + bundle",
+            "writes": "MarketingSsot.hydrate"
+          },
+          {
+            "id": "CocoClaudeData",
+            "file": "coco-claude-data.js",
+            "loads": "MarketingApi / DaliaSite bundle",
+            "writes": "screen DOM via bindScreen"
+          },
+          {
+            "id": "MarketingApi",
+            "file": "marketing-api.js",
+            "loads": "Supabase REST or coco-mkt-local-v1",
+            "writes": "localStorage fallback"
+          },
+          {
+            "id": "FilterEntityIndex",
+            "file": "filter-entity-index.js",
+            "loads": "marketing-index/*.json",
+            "writes": "in-memory index"
+          },
+          {
+            "id": "GlobalFilterContext",
+            "file": "global-filter-context.js",
+            "loads": "coco-global-filter-v3",
+            "writes": "localStorage + coco:filter-changed"
+          },
+          {
+            "id": "ActionsWorkbench",
+            "file": "actions-workbench.js",
+            "loads": "work plan actions + approvals LS",
+            "writes": "dalia-action-approvals-v1, dalia-qa-demo-seed-v1"
+          },
+          {
+            "id": "CrmApi",
+            "file": "crm/crm-api.js",
+            "loads": "Supabase or dalia-crm-local-v1",
+            "writes": "CRM leads/tasks"
+          }
+        ],
+        "localStorageKeys": [
+          "coco-global-filter-v3",
+          "coco-mkt-local-v1",
+          "dalia-crm-local-v1",
+          "dalia-action-approvals-v1",
+          "dalia-actions-workbench-v1",
+          "dalia-actions-export-config-v1",
+          "dalia-auto-mode-v1",
+          "dalia-qa-demo-seed-v1",
+          "dalia-act-demo:*",
+          "coco-actions-scroll-m"
+        ],
+        "screens": [
+          "screen-hub",
+          "screen-status",
+          "screen-clients",
+          "screen-crm",
+          "screen-goals",
+          "screen-actions",
+          "screen-history",
+          "screen-assets",
+          "screen-ai-center",
+          "screen-reports",
+          "screen-agents"
+        ]
+      },
+      "fixed": [],
+      "open": [],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    },
+    "6": {
+      "passed": false,
+      "title": "Google Sheets",
+      "how": "Check sheetsWebhookUrl + UI field; no live POST without user URL",
+      "found": {
+        "sheetsWebhookUrl": "",
+        "hasInput": true,
+        "hasExportBtn": true,
+        "canExport": false,
+        "setupDoc": "docs/integrations/SHEETS-WEBHOOK-SETUP-HE.md",
+        "template": "docs/integrations/dalia-actions-sheets-webhook.gs",
+        "blocked": true
+      },
+      "fixed": [],
+      "open": [
+        "sheetsWebhookUrl empty — follow docs/integrations/SHEETS-WEBHOOK-SETUP-HE.md",
+        "Blocked: requires user webhook URL"
+      ],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    },
+    "7": {
+      "passed": true,
+      "title": "CRM real operations",
+      "how": "Playwright: createLead, updateLead, search via CrmApi localStorage on GH Pages",
+      "found": {
+        "steps": [
+          {
+            "step": "open-crm",
+            "ok": true
+          },
+          {
+            "step": "create-lead",
+            "ok": true,
+            "id": "local-1782682395935-szygv1"
+          },
+          {
+            "step": "edit-save",
+            "ok": true
+          },
+          {
+            "step": "search",
+            "ok": true
+          }
+        ],
+        "localLeads": 1,
+        "canRemote": false,
+        "passed": true
+      },
+      "fixed": [],
+      "open": [
+        "Supabase CRM remote not connected — localStorage fallback used"
+      ],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    },
+    "8": {
+      "passed": true,
+      "title": "AI agents inventory",
+      "how": "Per-agent honest status — no WORKING without live API on Staging",
+      "found": {
+        "agents": [
+          {
+            "id": "gsc",
+            "status": "DEMO_STATIC_UI",
+            "detail": "UI + AGENT_DATA mock — no live API on GH Pages Staging",
+            "workingLiveApi": false
+          },
+          {
+            "id": "ga4",
+            "status": "DEMO_STATIC_UI",
+            "detail": "UI + AGENT_DATA mock — no live API on GH Pages Staging",
+            "workingLiveApi": false
+          },
+          {
+            "id": "pagespeed",
+            "status": "DEMO_STATIC_UI",
+            "detail": "UI + AGENT_DATA mock — no live API on GH Pages Staging",
+            "workingLiveApi": false
+          },
+          {
+            "id": "project001",
+            "status": "DEMO_STATIC_UI",
+            "detail": "UI + AGENT_DATA mock — no live API on GH Pages Staging",
+            "workingLiveApi": false
+          },
+          {
+            "id": "cms",
+            "status": "DEMO_STATIC_UI",
+            "detail": "UI + AGENT_DATA mock — no live API on GH Pages Staging",
+            "workingLiveApi": false
+          },
+          {
+            "id": "seotools",
+            "status": "INFRASTRUCTURE",
+            "detail": "Infrastructure / dev tooling UI",
+            "workingLiveApi": false
+          },
+          {
+            "id": "gbp",
+            "status": "PARTIAL_UI",
+            "detail": "UI only — scan status mock",
+            "workingLiveApi": false
+          },
+          {
+            "id": "ads",
+            "status": "DEMO_STATIC_UI",
+            "detail": "UI + AGENT_DATA mock — no live API on GH Pages Staging",
+            "workingLiveApi": false
+          },
+          {
+            "id": "meta",
+            "status": "DEMO_STATIC_UI",
+            "detail": "UI + AGENT_DATA mock — no live API on GH Pages Staging",
+            "workingLiveApi": false
+          },
+          {
+            "id": "cursor",
+            "status": "INFRASTRUCTURE",
+            "detail": "Infrastructure / dev tooling UI",
+            "workingLiveApi": false
+          },
+          {
+            "id": "chatgpt",
+            "status": "REQUIRES_API",
+            "detail": "Stub card — needs platform API key",
+            "workingLiveApi": false
+          },
+          {
+            "id": "claude",
+            "status": "REQUIRES_API",
+            "detail": "Stub card — needs platform API key",
+            "workingLiveApi": false
+          },
+          {
+            "id": "gemini",
+            "status": "REQUIRES_API",
+            "detail": "Stub card — needs platform API key",
+            "workingLiveApi": false
+          },
+          {
+            "id": "youtube",
+            "status": "REQUIRES_API",
+            "detail": "Stub card — needs platform API key",
+            "workingLiveApi": false
+          },
+          {
+            "id": "tiktok",
+            "status": "REQUIRES_API",
+            "detail": "Stub card — needs platform API key",
+            "workingLiveApi": false
+          },
+          {
+            "id": "linkedin",
+            "status": "REQUIRES_API",
+            "detail": "Stub card — needs platform API key",
+            "workingLiveApi": false
+          },
+          {
+            "id": "xtwitter",
+            "status": "REQUIRES_API",
+            "detail": "Stub card — needs platform API key",
+            "workingLiveApi": false
+          },
+          {
+            "id": "pinterest",
+            "status": "REQUIRES_API",
+            "detail": "Stub card — needs platform API key",
+            "workingLiveApi": false
+          },
+          {
+            "id": "whatsapp",
+            "status": "REQUIRES_API",
+            "detail": "Stub card — needs platform API key",
+            "workingLiveApi": false
+          },
+          {
+            "id": "manager",
+            "status": "DEMO_STATIC_UI",
+            "detail": "UI + AGENT_DATA mock — no live API on GH Pages Staging",
+            "workingLiveApi": false
+          }
+        ],
+        "summary": {
+          "DEMO_STATIC_UI": 8,
+          "INFRASTRUCTURE": 2,
+          "REQUIRES_API": 9,
+          "PARTIAL_UI": 1,
+          "workingLiveApi": 0
+        }
+      },
+      "fixed": [],
+      "open": [
+        "0 agents with live API on static GH Pages Staging"
+      ],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    },
+    "9": {
+      "passed": true,
+      "title": "Real demo on actions page",
+      "how": "E2E workflow + localStorage dalia-qa-demo-seed-v1 + default staging banner in actions-workbench.js",
+      "found": {
+        "steps": [
+          {
+            "step": "qa-banner",
+            "ok": true,
+            "text": "🎯 QA Demo: FINAL STRICT QA — Demo אושר · פעולה act-page-01-title"
+          },
+          {
+            "step": "workbench",
+            "ok": true
+          },
+          {
+            "step": "demo-textarea",
+            "ok": true,
+            "actionId": "act-page-01-accessibility"
+          },
+          {
+            "step": "approve",
+            "ok": true
+          }
+        ],
+        "seedKey": "dalia-qa-demo-seed-v1",
+        "actionId": "act-page-01-accessibility",
+        "seedParsed": {
+          "version": 1,
+          "actionId": "act-page-01-title",
+          "label": "FINAL STRICT QA — Demo אושר",
+          "at": "2026-06-28T21:33:16.956Z",
+          "session": {
+            "html": "<div id=\"dalia-qa-demo-v1\" role=\"status\" style=\"padding:12px;background:#065f46;color:#fff;border-radius:8px;font-weight:700;\">✓ FINAL STRICT QA Demo</div>",
+            "css": "#dalia-qa-demo-v1{font-family:Heebo,sans-serif}",
+            "js": ""
+          },
+          "approved": true
+        },
+        "sessionKey": "dalia-act-demo:act-page-01-accessibility",
+        "allOk": true,
+        "findDemo": "מסך פעולות → באנר ירוק QA Demo → פעולה act-page-01-title"
+      },
+      "fixed": [],
+      "open": [],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    },
+    "10": {
+      "passed": true,
+      "title": "Data counts report",
+      "how": "Runtime counts + SSOT work plan summary",
+      "found": {
+        "customers": 1,
+        "clients": 1,
+        "businesses": 1,
+        "sites": 1,
+        "goals": 28,
+        "actions": 395,
+        "digitalAssets": 1,
+        "historyRecords": 0,
+        "reports": 0,
+        "aiAgents": 20,
+        "marketingManagers": 1,
+        "crmLeads": 1,
+        "filesChangedThisSession": [
+          "scripts/final-strict-qa.mjs",
+          "public/ai-marketing/actions-workbench.js",
+          "public/ai-marketing-platform.html",
+          "docs/audit-reports/final-strict-qa/REPORT-HE.md",
+          "docs/audit-reports/final-strict-qa/report.json"
+        ]
+      },
+      "fixed": [],
+      "open": [],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    },
+    "11": {
+      "passed": true,
+      "title": "Final report",
+      "how": "Generated REPORT-HE.md + report.json from this run",
+      "found": {
+        "passCount": 7,
+        "totalTasks": 11,
+        "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d",
+        "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+        "consoleErrors": 0,
+        "networkErrors": 0
+      },
+      "fixed": [],
+      "open": [],
+      "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-3",
+      "commitHash": "51aefb6d807cdb39f0fcfb7d1bc757eb0d731a4d"
+    }
+  },
+  "dataFlowMap": {
+    "sources": [
+      {
+        "id": "DaliaSite",
+        "file": "dalia-site-config.js",
+        "loads": "project-001/dashboard.json, site-work-plan.json",
+        "writes": "DaliaSite state"
+      },
+      {
+        "id": "MarketingSsot",
+        "file": "marketing-ssot.js",
+        "loads": "dashboard + bundle",
+        "writes": "MarketingSsot.hydrate"
+      },
+      {
+        "id": "CocoClaudeData",
+        "file": "coco-claude-data.js",
+        "loads": "MarketingApi / DaliaSite bundle",
+        "writes": "screen DOM via bindScreen"
+      },
+      {
+        "id": "MarketingApi",
+        "file": "marketing-api.js",
+        "loads": "Supabase REST or coco-mkt-local-v1",
+        "writes": "localStorage fallback"
+      },
+      {
+        "id": "FilterEntityIndex",
+        "file": "filter-entity-index.js",
+        "loads": "marketing-index/*.json",
+        "writes": "in-memory index"
+      },
+      {
+        "id": "GlobalFilterContext",
+        "file": "global-filter-context.js",
+        "loads": "coco-global-filter-v3",
+        "writes": "localStorage + coco:filter-changed"
+      },
+      {
+        "id": "ActionsWorkbench",
+        "file": "actions-workbench.js",
+        "loads": "work plan actions + approvals LS",
+        "writes": "dalia-action-approvals-v1, dalia-qa-demo-seed-v1"
+      },
+      {
+        "id": "CrmApi",
+        "file": "crm/crm-api.js",
+        "loads": "Supabase or dalia-crm-local-v1",
+        "writes": "CRM leads/tasks"
+      }
+    ],
+    "localStorageKeys": [
+      "coco-global-filter-v3",
+      "coco-mkt-local-v1",
+      "dalia-crm-local-v1",
+      "dalia-action-approvals-v1",
+      "dalia-actions-workbench-v1",
+      "dalia-actions-export-config-v1",
+      "dalia-auto-mode-v1",
+      "dalia-qa-demo-seed-v1",
+      "dalia-act-demo:*",
+      "coco-actions-scroll-m"
+    ],
+    "screens": [
+      "screen-hub",
+      "screen-status",
+      "screen-clients",
+      "screen-crm",
+      "screen-goals",
+      "screen-actions",
+      "screen-history",
+      "screen-assets",
+      "screen-ai-center",
+      "screen-reports",
+      "screen-agents"
+    ]
+  },
+  "dataCounts": {
+    "customers": 1,
+    "clients": 1,
+    "businesses": 1,
+    "sites": 1,
+    "goals": 28,
+    "actions": 395,
+    "digitalAssets": 1,
+    "historyRecords": 0,
+    "reports": 0,
+    "aiAgents": 20,
+    "marketingManagers": 1,
+    "crmLeads": 1
+  },
+  "filesChangedThisSession": [],
+  "consoleErrors": [],
+  "networkErrors": [],
+  "blockers": [
+    "Google Sheets webhook URL not configured",
+    "CRM Supabase auth not on GH Pages — local fallback only"
+  ],
+  "durationMs": 78621
+}
