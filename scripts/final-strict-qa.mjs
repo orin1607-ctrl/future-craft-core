@@ -8,7 +8,7 @@ import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
 
-const VER = process.env.QA_UI_VERSION || 'v3-final-strict-4';
+const VER = process.env.QA_UI_VERSION || 'v3-final-strict-5';
 const STAGING = `https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=${VER}`;
 const OUT = join(process.cwd(), 'docs', 'audit-reports', 'final-strict-qa');
 mkdirSync(OUT, { recursive: true });

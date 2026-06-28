@@ -207,9 +207,13 @@
 
     if (liveMode && !hasUserScope(c)) {
       var freeOnly = (c.freeSearch || '').trim().toLowerCase();
-      if (!freeOnly) return items;
+      var isOfficialClient = !c.clientId || (window.ClientIdSsot && ClientIdSsot.isOfficialClientId(c.clientId));
+      if (isOfficialClient && !freeOnly) return items;
       return items.filter(function (item) {
-        return JSON.stringify(item).toLowerCase().indexOf(freeOnly) >= 0;
+        var meta = mapFn(item);
+        if (!isOfficialClient && !clientMatches(meta, c)) return false;
+        if (freeOnly && JSON.stringify(item).toLowerCase().indexOf(freeOnly) < 0) return false;
+        return true;
       });
     }
 
