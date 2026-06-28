@@ -543,6 +543,33 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
 .coco-act-impact-compact { margin-top: 4px; }
 .coco-act-impact-compact .coco-act-impact-badge { font-size: 9px !important; padding: 2px 6px !important; }
 .coco-act-impact-item { display: inline-flex; }
+.coco-act-time-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--white80);
+}
+.coco-act-time-compact {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  font-size: 10px;
+  gap: 6px 12px;
+}
+.coco-act-time-item strong { color: var(--white); font-weight: 600; }
+.coco-act-work-badge { font-size: 10px !important; margin-right: 4px; vertical-align: middle; }
+.coco-act-panel-placeholder {
+  padding: 16px;
+  font-size: 12px;
+  color: var(--white50);
+  text-align: center;
+  font-style: italic;
+}
 .coco-act-wb-tabs {
   display: flex;
   gap: 6px;

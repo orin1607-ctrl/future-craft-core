@@ -13,12 +13,52 @@
   var _crawlPromise = null;
   var _lastRenderActions = [];
   var _previewMsgBound = false;
+  var _htmlMemCache = {};
+  var LAZY_INITIAL_CARDS = 6;
+  var LAZY_BATCH_SIZE = 4;
+  var HTML_CACHE_PREFIX = 'dalia-act-html-v1:';
+  var HTML_CACHE_TTL_MS = 30 * 60 * 1000;
 
   var WORK_MINUTES_BY_TYPE = {
     title: 15, meta: 20, h1: 25, h2: 30, content: 90, alt: 45, schema: 40,
     cta: 25, forms: 35, internalLinks: 30, pageSpeed: 60, mobile: 45, ux: 50,
     accessibility: 55, performance: 60, conversion: 40, aiAdditional: 30,
     keywords: 20, externalLinks: 25, businessFit: 30,
+  };
+
+  var AUTOMATION_FACTOR_BY_TYPE = {
+    title: 0.75, meta: 0.75, h1: 0.7, h2: 0.7, content: 0.45, alt: 0.85,
+    schema: 0.8, cta: 0.65, forms: 0.5, internalLinks: 0.7, pageSpeed: 0.55,
+    mobile: 0.6, ux: 0.5, accessibility: 0.6, performance: 0.55, conversion: 0.5,
+    aiAdditional: 0.7, keywords: 0.8, externalLinks: 0.75, businessFit: 0.65,
+  };
+
+  var IMPACT_DEFAULTS_BY_TYPE = {
+    title: { seo: 'גבוה', ux: 'בינוני', performance: '—', accessibility: '—', leads: 'בינוני', conversions: '—', googleRanking: 'גבוה' },
+    meta: { seo: 'גבוה', ux: 'נמוך', performance: '—', accessibility: '—', leads: 'בינוני', conversions: '—', googleRanking: 'גבוה' },
+    h1: { seo: 'גבוה', ux: 'גבוה', performance: '—', accessibility: '—', leads: 'בינוני', conversions: '—', googleRanking: 'גבוה' },
+    h2: { seo: 'בינוני', ux: 'גבוה', performance: '—', accessibility: '—', leads: '—', conversions: '—', googleRanking: 'בינוני' },
+    content: { seo: 'גבוה', ux: 'בינוני', performance: '—', accessibility: '—', leads: 'גבוה', conversions: 'בינוני', googleRanking: 'גבוה' },
+    alt: { seo: 'גבוה', ux: 'בינוני', performance: '—', accessibility: 'גבוה', leads: '—', conversions: '—', googleRanking: 'בינוני' },
+    schema: { seo: 'גבוה', ux: 'נמוך', performance: '—', accessibility: '—', leads: '—', conversions: '—', googleRanking: 'גבוה' },
+    cta: { seo: '—', ux: 'גבוה', performance: '—', accessibility: '—', leads: 'גבוה', conversions: 'גבוה', googleRanking: '—' },
+    forms: { seo: '—', ux: 'גבוה', performance: '—', accessibility: 'בינוני', leads: 'גבוה', conversions: 'גבוה', googleRanking: '—' },
+    internalLinks: { seo: 'גבוה', ux: 'בינוני', performance: '—', accessibility: '—', leads: '—', conversions: '—', googleRanking: 'גבוה' },
+    pageSpeed: { seo: 'בינוני', ux: 'גבוה', performance: 'גבוה', accessibility: '—', leads: '—', conversions: 'בינוני', googleRanking: 'גבוה' },
+    mobile: { seo: 'בינוני', ux: 'גבוה', performance: 'גבוה', accessibility: 'בינוני', leads: '—', conversions: 'בינוני', googleRanking: 'בינוני' },
+    ux: { seo: '—', ux: 'גבוה', performance: '—', accessibility: 'בינוני', leads: 'בינוני', conversions: 'גבוה', googleRanking: '—' },
+    accessibility: { seo: 'בינוני', ux: 'גבוה', performance: '—', accessibility: 'גבוה', leads: '—', conversions: '—', googleRanking: '—' },
+    performance: { seo: 'בינוני', ux: 'גבוה', performance: 'גבוה', accessibility: '—', leads: '—', conversions: 'בינוני', googleRanking: 'גבוה' },
+    conversion: { seo: '—', ux: 'גבוה', performance: '—', accessibility: '—', leads: 'גבוה', conversions: 'גבוה', googleRanking: '—' },
+    keywords: { seo: 'גבוה', ux: '—', performance: '—', accessibility: '—', leads: 'בינוני', conversions: '—', googleRanking: 'גבוה' },
+    externalLinks: { seo: 'גבוה', ux: '—', performance: '—', accessibility: '—', leads: '—', conversions: '—', googleRanking: 'בינוני' },
+    businessFit: { seo: 'בינוני', ux: 'בינוני', performance: '—', accessibility: '—', leads: 'גבוה', conversions: 'בינוני', googleRanking: 'בינוני' },
+    aiAdditional: { seo: 'בינוני', ux: 'בינוני', performance: '—', accessibility: '—', leads: 'בינוני', conversions: 'בינוני', googleRanking: 'בינוני' },
+  };
+
+  var IMPACT_FALLBACK = {
+    seo: 'בינוני', ux: 'בינוני', performance: '—', accessibility: '—',
+    leads: '—', conversions: '—', googleRanking: 'בינוני',
   };
 
   var PREVIEW_MARKER_CSS =
@@ -239,19 +279,85 @@
   }
 
   function buildBeforeAfterFallback(page, action) {
-    if (action.beforeAfter && action.beforeAfter.current) return action.beforeAfter;
+    if (action.beforeAfter && action.beforeAfter.current) {
+      var ba = action.beforeAfter;
+      var enriched = parseImpactFields(ba, action);
+      ba.impact = formatImpactString(enriched);
+      return ba;
+    }
     var rec = (page.recommendations || []).find(function (r) {
       return r.typeId === action.recommendationType;
     });
-    return {
+    var stub = {
       current: action.detail || 'מצב נוכחי — ראה פירוט',
       problem: rec ? (rec.status === 'fail' ? rec.labelHe + ' לא תקין' : rec.detail) : action.detail,
       proposed: action.detail || '—',
       after: action.detail || 'יושם לפי ההמלצה',
       why: action.detail || 'שיפור מומלץ לפי ביקורת',
-      impact: 'SEO: בינוני · UX: בינוני',
+      impact: '',
       source: action.source,
     };
+    stub.impact = formatImpactString(parseImpactFields(stub, action));
+    return stub;
+  }
+
+  function formatHebrewDuration(minutes) {
+    var m = Math.max(0, Math.round(Number(minutes) || 0));
+    if (m < 60) return m + ' דק׳';
+    var h = Math.floor(m / 60);
+    var r = m % 60;
+    if (r === 0) return h + ' שע׳';
+    return h + ' שע׳ ' + r + ' דק׳';
+  }
+
+  function getEstimatedWorkMinutes(action) {
+    if (!action) return 30;
+    if (action.estimatedWorkMinutes) return Number(action.estimatedWorkMinutes);
+    if (action.estimatedMinutes) return Number(action.estimatedMinutes);
+    if (action.estHours) return Math.round(Number(action.estHours) * 60);
+    var type = String(action.recommendationType || action.category || '').toLowerCase();
+    var base = WORK_MINUTES_BY_TYPE[type] || 30;
+    var pri = String(action.urgency || action.priority || 'בינוני');
+    if (/גבוה|קריטי|high/i.test(pri)) base = Math.round(base * 1.2);
+    else if (/נמוך|low/i.test(pri)) base = Math.round(base * 0.85);
+    return base;
+  }
+
+  function getAutomationFactor(action) {
+    if (!action) return 0.7;
+    var type = String(action.recommendationType || action.category || '').toLowerCase();
+    return AUTOMATION_FACTOR_BY_TYPE[type] != null ? AUTOMATION_FACTOR_BY_TYPE[type] : 0.7;
+  }
+
+  function computeTimeSummary(actions) {
+    var totalMin = 0;
+    var savedMin = 0;
+    (actions || []).forEach(function (a) {
+      var w = getEstimatedWorkMinutes(a);
+      totalMin += w;
+      savedMin += Math.round(w * getAutomationFactor(a));
+    });
+    return { totalMin: totalMin, savedMin: savedMin, manualMin: Math.max(0, totalMin - savedMin) };
+  }
+
+  function renderTimeSummaryBar(summary, compact) {
+    if (!summary || !summary.totalMin) return '';
+    return '<div class="coco-act-time-summary' + (compact ? ' coco-act-time-compact' : '') + '" role="status">' +
+      '<span class="coco-act-time-item"><strong>⏱ סה״כ עבודה:</strong> ' + formatHebrewDuration(summary.totalMin) + '</span>' +
+      '<span class="coco-act-time-item"><strong>🤖 חיסכון אוטומציה:</strong> ' + formatHebrewDuration(summary.savedMin) + '</span>' +
+      '<span class="coco-act-time-item"><strong>👤 ידני:</strong> ' + formatHebrewDuration(summary.manualMin) + '</span>' +
+      '</div>';
+  }
+
+  function coalesceImpact(parsed, fallback) {
+    return parsed && parsed !== '—' ? parsed : (fallback || 'בינוני');
+  }
+
+  function formatImpactString(impact) {
+    if (!impact) return '—';
+    return 'SEO: ' + impact.seo + ' · UX: ' + impact.ux + ' · ביצועים: ' + impact.performance +
+      ' · נגישות: ' + impact.accessibility + ' · לידים: ' + impact.leads +
+      ' · המרות: ' + impact.conversions + ' · דירוג בגוגל: ' + impact.googleRanking;
   }
 
   function previewBanner() {
@@ -273,18 +379,21 @@
   }
 
   function parseImpactFields(ba, action) {
-    var s = [ba.impact, ba.why, action && action.detail].filter(Boolean).join(' · ');
-    var type = String((action && action.recommendationType) || '').toLowerCase();
-    var work = (action && action.estimatedWorkMinutes) ||
-      WORK_MINUTES_BY_TYPE[type] ||
-      (type === 'content' ? 90 : 30);
+    var s = [ba.impact, ba.why, action && action.detail, action && action.problem].filter(Boolean).join(' · ');
+    var type = String((action && action.recommendationType) || (action && action.category) || '').toLowerCase();
+    var defaults = IMPACT_DEFAULTS_BY_TYPE[type] || IMPACT_FALLBACK;
+    var work = getEstimatedWorkMinutes(action);
     return {
       workMinutes: work,
-      seo: extractImpactLevel(s, ['SEO', 'seo']),
-      ux: extractImpactLevel(s, ['UX', 'ux', 'נגישות']),
-      performance: extractImpactLevel(s, ['ביצועים', 'performance', 'מהירות', 'pageSpeed', 'Performance']),
-      leads: extractImpactLevel(s, ['לידים', 'המרות', 'conversion', 'leads', 'המרה']),
-      raw: ba.impact || '—',
+      workFormatted: formatHebrewDuration(work),
+      seo: coalesceImpact(extractImpactLevel(s, ['SEO', 'seo']), defaults.seo),
+      ux: coalesceImpact(extractImpactLevel(s, ['UX', 'ux']), defaults.ux),
+      performance: coalesceImpact(extractImpactLevel(s, ['ביצועים', 'performance', 'מהירות', 'pageSpeed', 'Performance']), defaults.performance),
+      accessibility: coalesceImpact(extractImpactLevel(s, ['נגישות', 'accessibility', 'a11y', 'alt']), defaults.accessibility),
+      leads: coalesceImpact(extractImpactLevel(s, ['לידים', 'leads']), defaults.leads),
+      conversions: coalesceImpact(extractImpactLevel(s, ['המרות', 'conversion', 'המרה', 'conversions']), defaults.conversions),
+      googleRanking: coalesceImpact(extractImpactLevel(s, ['דירוג בגוגל', 'דירוג', 'ranking', 'google', 'גוגל']), defaults.googleRanking),
+      raw: ba.impact || formatImpactString(defaults),
     };
   }
 
@@ -298,15 +407,18 @@
   function renderImpactBadges(impact, compact) {
     if (!impact) return '';
     var items = [
-      ['⏱', 'זמן עבודה', impact.workMinutes + ' דק׳', 'badge-blue'],
+      ['⏱', 'זמן עבודה', impact.workFormatted || formatHebrewDuration(impact.workMinutes), 'badge-blue'],
       ['SEO', 'SEO', impact.seo, impactLevelClass(impact.seo)],
       ['UX', 'UX', impact.ux, impactLevelClass(impact.ux)],
       ['⚡', 'ביצועים', impact.performance, impactLevelClass(impact.performance)],
+      ['♿', 'נגישות', impact.accessibility, impactLevelClass(impact.accessibility)],
       ['📈', 'לידים', impact.leads, impactLevelClass(impact.leads)],
+      ['🎯', 'המרות', impact.conversions, impactLevelClass(impact.conversions)],
+      ['🔍', 'דירוג בגוגל', impact.googleRanking, impactLevelClass(impact.googleRanking)],
     ];
-    return '<div class="coco-act-impact-badges' + (compact ? ' coco-act-impact-compact' : '') + '">' +
+    return '<div class="coco-act-impact-badges' + (compact ? ' coco-act-impact-compact' : '') + '" data-impact-fields="' + items.length + '">' +
       items.map(function (row) {
-        return '<span class="coco-act-impact-item" title="' + esc(row[1]) + '">' +
+        return '<span class="coco-act-impact-item" title="' + esc(row[1]) + '" data-impact-key="' + escAttr(row[1]) + '">' +
           '<span class="badge ' + row[3] + ' coco-act-impact-badge">' +
           row[0] + ' ' + esc(String(row[2])) + '</span></span>';
       }).join('') + '</div>';
@@ -379,21 +491,26 @@
       esc(value || '') + '</textarea></label>';
   }
 
-  function renderActionItem(action, page, idx) {
+  function renderActionItem(action, page, idx, deferFeedback) {
     var ba = buildBeforeAfterFallback(page, action);
     var appr = approvalStatus(action.id);
     var approved = appr === 'approved_for_execution';
     var itemNum = getActionNumber(action.id);
+    var impact = parseImpactFields(ba, action);
+    var fbHtml = deferFeedback
+      ? '<div class="coco-act-fb-deferred" data-fb-defer="' + escAttr(action.id) + '" data-page-id="' + escAttr(page.id || '') + '" data-item-num="' + (itemNum || '') + '"></div>'
+      : renderFeedbackPanel(action, page, itemNum);
 
     return '<div class="coco-act-item action-card" data-action-id="' + escAttr(action.id) + '" data-page-id="' + escAttr(action.pageId || '') + '">' +
       '<div class="coco-act-item-head">' +
       '<div class="coco-act-item-title">' +
       (itemNum ? '<span class="coco-act-num-tag">#' + itemNum + '</span> ' : '') +
-      esc(action.category || action.title) + '</div>' +
+      esc(action.category || action.title) +
+      ' <span class="badge badge-blue coco-act-work-badge" title="זמן עבודה משוער">⏱ ' + esc(impact.workFormatted) + '</span></div>' +
       '<div class="coco-act-item-badges">' + sourceBadge(action.source) + ' ' +
       priorityBadge(action.urgency || action.priority) + ' ' + actionStatusBadge(action) + '</div></div>' +
       renderBeforeAfter(ba, itemNum, action) +
-      renderFeedbackPanel(action, page, itemNum) +
+      fbHtml +
       '<div class="coco-act-item-footer">' +
       (approved
         ? '<span class="badge badge-green" style="font-size:12px;">✓ מאושר לביצוע · ' + esc(new Date(getApprovals()[action.id].at).toLocaleString('he-IL')) + '</span>' +
@@ -403,6 +520,45 @@
       '</div></div>';
   }
 
+  function hydratePagePanel(panel) {
+    if (!panel || panel.getAttribute('data-hydrated') === 'true') return;
+    var pageId = panel.getAttribute('data-lazy-page-id');
+    var idx = Number(panel.getAttribute('data-page-idx') || 0);
+    var entry = _lastRenderActions.find(function (g) { return g.page && g.page.id === pageId; });
+    if (!entry) return;
+    var actions = entry.items || [];
+    panel.innerHTML = actions.length
+      ? actions.map(function (a, i) { return renderActionItem(a, entry.page, idx * 100 + i, true); }).join('')
+      : '<div class="alert alert-ok" style="margin:0;">אין פעולות פתוחות לעמוד זה 🎉</div>';
+    panel.setAttribute('data-hydrated', 'true');
+    hydrateDeferredFeedback(panel);
+  }
+
+  function hydrateDeferredFeedback(container) {
+    (container || document).querySelectorAll('[data-fb-defer]').forEach(function (slot) {
+      if (slot.getAttribute('data-fb-ready')) return;
+      var actionId = slot.getAttribute('data-fb-defer');
+      var pageId = slot.getAttribute('data-page-id');
+      var itemNum = slot.getAttribute('data-item-num');
+      var ctx = findActionAndPage(actionId);
+      if (!ctx.action || !ctx.page) return;
+      slot.outerHTML = renderFeedbackPanel(ctx.action, ctx.page, itemNum ? Number(itemNum) : null);
+      slot.setAttribute('data-fb-ready', 'true');
+    });
+  }
+
+  function togglePagePanel(panelId, btn) {
+    var panel = document.getElementById(panelId);
+    if (!panel) return;
+    var open = panel.style.display !== 'none';
+    if (!open) hydratePagePanel(panel);
+    panel.style.display = open ? 'none' : 'block';
+    if (btn) {
+      var ch = btn.querySelector('.coco-act-chevron');
+      if (ch) ch.textContent = open ? '▼' : '▲';
+    }
+  }
+
   function renderPageCard(page, actions, idx) {
     var panelId = 'coco-act-page-panel-' + idx;
     var openCount = actions.length;
@@ -410,10 +566,7 @@
     var gscLine = gsc.impressions ? (gsc.clicks || 0) + ' קליקים · ' + gsc.impressions + ' חשיפות' : 'GSC: —';
     var revRound = getPageRevisionRound(page.id, actions);
     var approvedCount = actions.filter(function (a) { return approvalStatus(a.id) === 'approved_for_execution'; }).length;
-
-    var actionsHtml = openCount
-      ? actions.map(function (a, i) { return renderActionItem(a, page, idx * 100 + i); }).join('')
-      : '<div class="alert alert-ok" style="margin:0;">אין פעולות פתוחות לעמוד זה 🎉</div>';
+    var pageTime = computeTimeSummary(actions);
 
     return '<div class="coco-act-page-card card" data-page-id="' + escAttr(page.id) + '" data-page-idx="' + idx + '">' +
       '<div class="coco-act-page-head">' +
@@ -424,9 +577,12 @@
       ' · SEO ' + esc(page.seoScore != null ? page.seoScore + '/10' : '—') +
       ' · ' + esc(gscLine) +
       ' · <strong>' + openCount + '</strong> פעולות' +
+      (openCount ? ' · <span class="badge badge-blue" style="font-size:10px;">⏱ ' + esc(formatHebrewDuration(pageTime.totalMin)) + '</span>' : '') +
       ' · <span class="badge badge-gray" style="font-size:10px;">סבב ' + revRound + '</span>' +
       (approvedCount ? ' · <span class="badge badge-green" style="font-size:10px;">' + approvedCount + ' מאושרים</span>' : '') +
-      '</div></div>' +
+      '</div>' +
+      (openCount ? renderTimeSummaryBar(pageTime, true) : '') +
+      '</div>' +
       '<div class="coco-act-page-btns">' +
       '<a href="' + esc(page.url || page.pageUrl || '#') + '" target="_blank" rel="noopener" class="btn btn-ghost coco-act-btn-sm">👁️ צפה בעמוד</a>' +
       '<button type="button" class="btn btn-primary coco-act-btn-preview coco-act-btn-sm" data-act-preview="' + escAttr(page.id) + '" data-page-idx="' + idx + '" title="פתח סביבת עבודה — תצוגה מקדימה עם סימון שינויים">' +
@@ -439,8 +595,37 @@
       '<input type="checkbox" data-act-compare="' + escAttr(page.id) + '"> השוואה לפני/אחרי בתצוגה מקדימה</label>' +
       '<span class="badge badge-yellow coco-act-preview-status" data-preview-status="' + escAttr(page.id) + '">תצוגה: מוכן</span>' +
       '</div></div>' +
-      '<div id="' + panelId + '" class="coco-act-page-panel" style="display:none;">' +
-      actionsHtml + '</div></div>';
+      '<div id="' + panelId + '" class="coco-act-page-panel" style="display:none;" data-lazy-page-id="' + escAttr(page.id) + '" data-page-idx="' + idx + '" data-hydrated="false">' +
+      '<div class="coco-act-panel-placeholder">לחץ «פירוט תיקונים» לטעינת ' + openCount + ' פעולות</div></div></div>';
+  }
+
+  function scheduleLazyPageCards(pageGroups, startIdx) {
+    var idx = startIdx;
+    function renderBatch() {
+      if (idx >= pageGroups.length) {
+        var root = document.getElementById('coco-live-actions-pending');
+        if (root) root.setAttribute('data-coco-act-ready', 'true');
+        return;
+      }
+      var lazyRoot = document.getElementById('coco-act-lazy-root');
+      if (!lazyRoot) return;
+      var end = Math.min(idx + LAZY_BATCH_SIZE, pageGroups.length);
+      var batch = pageGroups.slice(idx, end).map(function (grp, i) {
+        return renderPageCard(grp.page, grp.items, idx + i);
+      }).join('');
+      lazyRoot.insertAdjacentHTML('beforebegin', batch);
+      idx = end;
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(renderBatch, { timeout: 120 });
+      } else {
+        setTimeout(renderBatch, 20);
+      }
+    }
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(renderBatch, { timeout: 250 });
+    } else {
+      setTimeout(renderBatch, 30);
+    }
   }
 
   function pagesBase() {
@@ -495,23 +680,82 @@
     return 'technical';
   }
 
-  function fetchPageHtml(url) {
+  function getCachedPageHtml(pageId) {
+    if (!pageId) return null;
+    if (_htmlMemCache[pageId]) return _htmlMemCache[pageId];
+    try {
+      var raw = sessionStorage.getItem(HTML_CACHE_PREFIX + pageId);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (Date.now() - parsed.at < HTML_CACHE_TTL_MS && parsed.html) {
+        _htmlMemCache[pageId] = parsed.html;
+        return parsed.html;
+      }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function setCachedPageHtml(pageId, html) {
+    if (!pageId || !html) return;
+    _htmlMemCache[pageId] = html;
+    try {
+      sessionStorage.setItem(HTML_CACHE_PREFIX + pageId, JSON.stringify({ at: Date.now(), html: html }));
+    } catch (e) { /* ignore quota */ }
+  }
+
+  function fetchPageHtml(url, pageId) {
     if (!url) return Promise.resolve(null);
+    var cached = pageId ? getCachedPageHtml(pageId) : null;
+    if (cached) return Promise.resolve(cached);
     var proxies = [
       'https://api.allorigins.win/raw?url=',
       'https://corsproxy.io/?',
     ];
     function tryProxy(i) {
       if (i >= proxies.length) return Promise.resolve(null);
-      return fetch(proxies[i] + encodeURIComponent(url), { cache: 'no-store' })
+      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 8000) : null;
+      return fetch(proxies[i] + encodeURIComponent(url), {
+        cache: 'no-store',
+        signal: ctrl ? ctrl.signal : undefined,
+      })
         .then(function (r) { return r.ok ? r.text() : null; })
         .then(function (html) {
-          if (html && html.length > 500 && /<html/i.test(html)) return html;
+          if (timer) clearTimeout(timer);
+          if (html && html.length > 500 && /<html/i.test(html)) {
+            if (pageId) setCachedPageHtml(pageId, html);
+            return html;
+          }
           return tryProxy(i + 1);
         })
-        .catch(function () { return tryProxy(i + 1); });
+        .catch(function () {
+          if (timer) clearTimeout(timer);
+          return tryProxy(i + 1);
+        });
     }
     return tryProxy(0);
+  }
+
+  function applyPreviewRender(modal, state, pageId, statusEl, selectFirst) {
+    var sidebar = document.getElementById('coco-act-wb-sidebar');
+    modal._previewState = state;
+    if (sidebar) sidebar.innerHTML = renderPreviewSidebar(state, modal._selectedChangeId);
+    setPreviewMode(modal, modal._previewMode || 'after');
+    if (selectFirst && state.changes.length && !modal._selectedChangeId) {
+      selectPreviewChange(state.changes[0].id);
+    } else if (modal._selectedChangeId) {
+      highlightPreviewChange(modal._selectedChangeId);
+    }
+    if (statusEl) {
+      statusEl.textContent = state.rawHtml ? 'תצוגה: HTML מלא ✓' : 'תצוגה: crawl+SSOT ✓';
+      statusEl.className = 'badge badge-green coco-act-preview-status';
+    }
+    var modeBadge = document.getElementById('coco-act-preview-mode');
+    if (modeBadge) {
+      var labels = { current: 'קיים', after: 'אחרי שינויים', compare: 'השוואה' };
+      modeBadge.textContent = (state.htmlSource === 'proxy-html' ? 'HTML מלא · ' : 'crawl+SSOT · ') +
+        (labels[modal._previewMode] || modal._previewMode);
+    }
   }
 
   function buildPagePreviewState(page, actions, crawlPage, rawHtml) {
@@ -1006,32 +1250,22 @@
 
     var pageUrl = page.url || page.pageUrl || '';
 
-    Promise.all([
-      loadCrawlData(),
-      fetchPageHtml(pageUrl),
-    ]).then(function (results) {
-      var crawl = results[0];
-      var rawHtml = results[1];
+    loadCrawlData().then(function (crawl) {
       var crawlPage = findCrawlPage(crawl, page);
-      if (crawlPage && crawlPage.h2) { /* keep */ }
-      else if (page && !crawlPage) crawlPage = { title: page.title, h1: page.title, metaDescription: '' };
-
-      var state = buildPagePreviewState(page, actions, crawlPage, rawHtml);
-      modal._previewState = state;
+      if (!crawlPage) {
+        crawlPage = { title: page.title, h1: page.title, metaDescription: page.metaDescription || '' };
+      }
+      var state = buildPagePreviewState(page, actions, crawlPage, null);
       modal._previewActions = actions;
       modal._previewPage = page;
+      applyPreviewRender(modal, state, pageId, statusEl, true);
 
-      if (sidebar) sidebar.innerHTML = renderPreviewSidebar(state, null);
-      setPreviewMode(modal, modal._previewMode || 'after');
-
-      if (state.changes.length) {
-        selectPreviewChange(state.changes[0].id);
-      }
-
-      if (statusEl) {
-        statusEl.textContent = rawHtml ? 'תצוגה: HTML מלא ✓' : 'תצוגה: crawl+SSOT ✓';
-        statusEl.className = 'badge badge-green coco-act-preview-status';
-      }
+      fetchPageHtml(pageUrl, pageId).then(function (rawHtml) {
+        if (!rawHtml || modal.style.display === 'none') return;
+        state.rawHtml = rawHtml;
+        state.htmlSource = 'proxy-html';
+        applyPreviewRender(modal, state, pageId, statusEl, false);
+      });
     });
   }
 
@@ -1159,14 +1393,7 @@
     root.addEventListener('click', function (e) {
       var t = e.target.closest('[data-act-toggle]');
       if (t) {
-        var panelId = t.getAttribute('data-act-toggle');
-        var panel = document.getElementById(panelId);
-        if (panel) {
-          var open = panel.style.display !== 'none';
-          panel.style.display = open ? 'none' : 'block';
-          var ch = t.querySelector('.coco-act-chevron');
-          if (ch) ch.textContent = open ? '▼' : '▲';
-        }
+        togglePagePanel(t.getAttribute('data-act-toggle'), t);
         return;
       }
       var prev = e.target.closest('[data-act-preview]');
@@ -1252,17 +1479,29 @@
     });
     _lastRenderActions = pageGroups;
 
+    var totalTime = computeTimeSummary(pending);
+
     var pendingHeader = previewBanner() +
+      renderTimeSummaryBar(totalTime) +
       '<div class="alert alert-info" style="margin-bottom:14px;">⚙️ ' +
       pending.length + ' פעולות פתוחות · ' + pages.length + ' עמודים · מספור יציב #' +
       (getSeqState().nextActionItemNumber - 1) + ' · קמפיין: ' +
       esc((wp && wp.campaign && wp.campaign.name) || 'SEO') + '</div>';
 
-    var cardsHtml = pageGroups.map(function (grp, idx) {
+    var initialGroups = pageGroups.slice(0, LAZY_INITIAL_CARDS);
+    var cardsHtml = initialGroups.map(function (grp, idx) {
       return renderPageCard(grp.page, grp.items, idx);
     }).join('');
+    cardsHtml += '<div id="coco-act-lazy-root" aria-hidden="true"></div>';
 
     setHtml('coco-live-actions-pending', pages.length ? pendingHeader + cardsHtml : emptyStatus('אין עמודים ב-SSOT'));
+
+    if (pageGroups.length > LAZY_INITIAL_CARDS) {
+      scheduleLazyPageCards(pageGroups, LAZY_INITIAL_CARDS);
+    } else {
+      var rootEl = document.getElementById('coco-live-actions-pending');
+      if (rootEl) rootEl.setAttribute('data-coco-act-ready', 'true');
+    }
 
     setHtml('coco-live-actions-done', done.length ? done.slice(0, 50).map(function (a) {
       var num = getActionNumber(a.id);
@@ -1279,14 +1518,7 @@
   }
 
   window.CocoActTogglePage = function (panelId, btn) {
-    var panel = document.getElementById(panelId);
-    if (!panel) return;
-    var open = panel.style.display !== 'none';
-    panel.style.display = open ? 'none' : 'block';
-    if (btn) {
-      var ch = btn.querySelector('.coco-act-chevron');
-      if (ch) ch.textContent = open ? '▼' : '▲';
-    }
+    togglePagePanel(panelId, btn);
   };
 
   window.CocoActOpenPreview = function (pageId, pageIdx) {
@@ -1317,6 +1549,9 @@
     buildPagePreviewState: buildPagePreviewState,
     buildPreviewDocument: buildPreviewDocument,
     parseImpactFields: parseImpactFields,
+    getEstimatedWorkMinutes: getEstimatedWorkMinutes,
+    formatHebrewDuration: formatHebrewDuration,
+    computeTimeSummary: computeTimeSummary,
     selectPreviewChange: selectPreviewChange,
     openPagePreview: openPagePreview,
     EXECUTION_MODE: EXECUTION_MODE,
