@@ -270,7 +270,7 @@ body.coco-integration-wired .fab-ai { opacity: 1; }
 body.dalia-live-only .v4-demo-banner { display: none !important; }
 body.dalia-live-only #screen-goals .nav-tabs,
 body.dalia-live-only #screen-actions .nav-tabs { display: none !important; }
-body.dalia-live-only #screen-actions > div:not(.topbar):not(.content) { display: none !important; }
+body.dalia-live-only #screen-actions > div:not(.topbar):not(.content):not(#coco-unified-context-bar):not(.coco-unified-bar) { display: none !important; }
 body.dalia-live-only #coco-live-goals-list,
 body.dalia-live-only #coco-live-actions-pending { display: block !important; visibility: visible !important; }
 .coco-rec-mobile { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }

@@ -115,7 +115,12 @@
     var sc = document.getElementById(screenId || getActiveScreenId());
     if (!sc) return;
     var topbar = screenId === 'screen-crm'
-      ? (sc.querySelector('#screen-crm-main .topbar') || sc.querySelector('.topbar'))
+      ? (sc.querySelector(':scope > .topbar') ||
+        (function () {
+          var crmTop = sc.querySelector('#screen-crm-main .topbar');
+          if (crmTop && crmTop.offsetParent !== null) return crmTop;
+          return sc.querySelector('.topbar');
+        })())
       : sc.querySelector('.topbar');
     if (!topbar && screenId === 'screen-crm') {
       var crmContent = sc.querySelector('.coco-crm-screen-content') || sc.querySelector('.content') || sc;
@@ -129,6 +134,8 @@
     if (bar.parentElement !== sc || anchor.nextElementSibling !== bar) {
       anchor.insertAdjacentElement('afterend', bar);
     }
+    bar.style.display = '';
+    bar.style.visibility = '';
     if (window.GlobalFilterBar) {
       if (GlobalFilterBar.mountIntoBar) GlobalFilterBar.mountIntoBar();
       if (GlobalFilterBar.populateFromContext) GlobalFilterBar.populateFromContext();

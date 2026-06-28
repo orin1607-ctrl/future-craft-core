@@ -333,6 +333,7 @@
     if (tabs) tabs.style.display = 'none';
 
     screen.querySelectorAll(':scope > div').forEach(function (el) {
+      if (el.id === 'coco-unified-context-bar' || el.classList.contains('coco-unified-bar')) return;
       if (el.classList.contains('topbar') || el.classList.contains('content') || el.classList.contains('fab-ai')) return;
       if (!el.classList.contains('coco-live-section')) el.style.display = 'none';
     });

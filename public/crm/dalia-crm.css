@@ -131,7 +131,6 @@
   .crm-layout .fab-ai { bottom: 80px; }
 }
 
-body.coco-crm-active #coco-unified-context-bar,
 body.coco-crm-active #coco-integration-flow-bar {
   display: none !important;
 }
