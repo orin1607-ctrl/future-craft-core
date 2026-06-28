@@ -88,6 +88,33 @@
       .catch(function () { return null; });
   }
 
+  function fetchJsonWithRetry(rel, attempts) {
+    var max = attempts || 3;
+    function attempt(n) {
+      return fetchJson(rel).then(function (data) {
+        if (data || n >= max) return data;
+        return new Promise(function (resolve) { setTimeout(resolve, 350 * n); }).then(function () {
+          return attempt(n + 1);
+        });
+      });
+    }
+    return attempt(1);
+  }
+
+  var _readyPromise = null;
+
+  function hydrateWorkPlan(wp) {
+    if (!wp || !wp.pages || !wp.pages.length) return null;
+    state.workPlan = wp;
+    var bundle = buildLiveBundle(state.dashboard || { stats: {}, connections: {} });
+    if (window.CocoData && CocoData.setBundle) CocoData.setBundle(bundle);
+    return bundle;
+  }
+
+  function whenReady() {
+    return _readyPromise || initOfficial();
+  }
+
   function connectionBadge(key, raw) {
     if (window.MarketingSsot && MarketingSsot.resolveConn) {
       var c = (raw && raw.connections && raw.connections[key]) || {};
@@ -874,11 +901,12 @@
   }
 
   function initOfficial() {
-    return Promise.all([
+    if (_readyPromise) return _readyPromise;
+    _readyPromise = Promise.all([
       fetchJson('project-001/dashboard.json'),
       fetchJson('project-001/site-crawl-lite.json'),
       fetchJson('project-001/site-pages-index.json'),
-      fetchJson('project-001/site-work-plan.json'),
+      fetchJsonWithRetry('project-001/site-work-plan.json', 3),
     ]).then(function (res) {
       state.dashboard = res[0];
       state.crawl = res[1] || res[2] ? { crawl: { pageCount: (res[2] && res[2].summary && res[2].summary.businessAndContent) || 0, pages: (res[2] && res[2].pages && res[2].pages.business) || [] } } : null;
@@ -886,6 +914,19 @@
       state.workPlan = res[3];
       if (res[1] && res[1].crawl) state.crawl = res[1];
       state.loadedAt = new Date().toISOString();
+
+      if (!state.workPlan || !state.workPlan.pages || !state.workPlan.pages.length) {
+        return fetchJsonWithRetry('project-001/site-work-plan.json', 2).then(function (wp) {
+          if (wp) state.workPlan = wp;
+          return finishInitOfficial();
+        });
+      }
+      return finishInitOfficial();
+    });
+    return _readyPromise;
+  }
+
+  function finishInitOfficial() {
       bindOfficialContext();
       applySiteLabels();
 
@@ -897,6 +938,9 @@
       }
 
       var bundle = buildLiveBundle(state.dashboard);
+      if (window.CocoData && CocoData.setBundle && bundle && bundle.workPlan && bundle.workPlan.pages) {
+        CocoData.setBundle(bundle);
+      }
       if (window.CocoClaude && CocoClaude.bindClientFromDalia) {
         CocoClaude.bindClientFromDalia(bundle);
       }
@@ -930,7 +974,6 @@
       document.body.classList.add('dalia-live-only');
       document.body.classList.remove('demo-mode');
       return { dashboard: state.dashboard, bundle: bundle };
-    });
   }
 
   window.DaliaSite = {
@@ -938,6 +981,8 @@
     PENDING: PENDING,
     NO_DATA: NO_DATA,
     initOfficial: initOfficial,
+    whenReady: whenReady,
+    hydrateWorkPlan: hydrateWorkPlan,
     buildLiveBundle: buildLiveBundle,
     applySiteLabels: applySiteLabels,
     scrubDemoUi: scrubDemoUi,

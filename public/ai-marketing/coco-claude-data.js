@@ -212,7 +212,8 @@
   };
 
   function deriveWorkPages(bundle) {
-    var wp = bundle && bundle.workPlan;
+    var wp = (bundle && bundle.workPlan) ||
+      (window.DaliaSite && DaliaSite.getWorkPlan && DaliaSite.getWorkPlan());
     var pages = (wp && wp.pages) || (bundle && bundle.pageTasks) || [];
     if (pages.length) {
       state.meta.goalsSource = 'dalia';
@@ -221,6 +222,60 @@
     state.meta.goalsSource = 'pending';
     return [];
   }
+
+  function deriveActionsFromBundle(bundle) {
+    var wp = (bundle && bundle.workPlan) ||
+      (window.DaliaSite && DaliaSite.getWorkPlan && DaliaSite.getWorkPlan());
+    var raw = (wp && wp.actions) || (bundle && bundle.ai && bundle.ai.work_plan) || [];
+    return raw;
+  }
+
+  function fetchWorkPlanFallback() {
+    var base = window.COCO_PAGES_BASE || '/future-craft-core/';
+    if (base.charAt(0) !== '/') base = '/' + base.replace(/^\.\//, '');
+    var url = location.origin + base + 'project-001/site-work-plan.json?t=' + Date.now();
+    return fetch(url, { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+  }
+
+  function resolveLiveBundle(bundle) {
+    bundle = bundle || state.bundle;
+    if (bundle && deriveWorkPages(bundle).length) return Promise.resolve(bundle);
+    if (window.DaliaSite && DaliaSite.getWorkPlan) {
+      var wp = DaliaSite.getWorkPlan();
+      if (wp && wp.pages && wp.pages.length && DaliaSite.buildLiveBundle) {
+        var dash = (DaliaSite.getDashboard && DaliaSite.getDashboard()) || { stats: {}, connections: {} };
+        bundle = DaliaSite.buildLiveBundle(dash);
+        state.bundle = bundle;
+        return Promise.resolve(bundle);
+      }
+    }
+    if (window.DaliaSite && DaliaSite.whenReady) {
+      return DaliaSite.whenReady().then(function () {
+        if (state.bundle && deriveWorkPages(state.bundle).length) return state.bundle;
+        if (DaliaSite.buildLiveBundle) {
+          var d = (DaliaSite.getDashboard && DaliaSite.getDashboard()) || { stats: {}, connections: {} };
+          state.bundle = DaliaSite.buildLiveBundle(d);
+          if (deriveWorkPages(state.bundle).length) return state.bundle;
+        }
+        return fetchWorkPlanFallback().then(function (wp) {
+          if (wp && window.DaliaSite && DaliaSite.hydrateWorkPlan) {
+            return DaliaSite.hydrateWorkPlan(wp) || state.bundle;
+          }
+          return state.bundle;
+        });
+      });
+    }
+    return fetchWorkPlanFallback().then(function (wp) {
+      if (wp && window.DaliaSite && DaliaSite.hydrateWorkPlan) {
+        return DaliaSite.hydrateWorkPlan(wp) || state.bundle;
+      }
+      return bundle || null;
+    });
+  }
+
+  var _goalsBindGen = 0;
 
   function deriveGoals(bundle) {
     var pages = deriveWorkPages(bundle);
@@ -235,8 +290,7 @@
   }
 
   function deriveActions(bundle) {
-    var wp = bundle && bundle.workPlan;
-    var raw = (wp && wp.actions) || (bundle && bundle.ai && bundle.ai.work_plan) || [];
+    var raw = deriveActionsFromBundle(bundle);
     var actions = normList(raw, 'act').map(function (a) {
       a.status = a.status || 'pending';
       a.urgency = a.urgency || a.priority || 'בינוני';
@@ -592,21 +646,7 @@
     }).join(''));
   }
 
-  function bindGoals(bundle) {
-    bundle = bundle || state.bundle;
-    if (!bundle && window.DaliaSite && DaliaSite.buildLiveBundle) {
-      var dash = DaliaSite.getDashboard && DaliaSite.getDashboard();
-      if (dash) bundle = DaliaSite.buildLiveBundle(dash);
-    }
-    ensureLiveMount('coco-live-goals-list', 'screen-goals');
-    var pages = applyCtxFilter(deriveWorkPages(bundle), function (p) {
-      return { page: p.path, status: p.executionStatus, goal: p.title };
-    });
-    if (!pages.length) {
-      setHtml('coco-live-goals-list', emptyStatus('טוען עמודים מ-SSOT… אם זה נמשך — רענן את הדף (site-work-plan.json)'));
-      hideLegacyGoalsActionsUi('screen-goals');
-      return;
-    }
+  function renderGoalsPages(pages, bundle) {
     var wp = bundle && bundle.workPlan;
     var campaignName = (wp && wp.campaign && wp.campaign.name) || 'קמפיין SEO';
     var header = '<div class="alert alert-info" style="margin-bottom:14px;">📌 ' + esc(campaignName) +
@@ -657,14 +697,39 @@
     hideLegacyGoalsActionsUi('screen-goals');
   }
 
-  function bindActions(bundle) {
-    bundle = bundle || state.bundle;
-    if (!bundle && window.DaliaSite && DaliaSite.buildLiveBundle) {
-      var dash = DaliaSite.getDashboard && DaliaSite.getDashboard();
-      if (dash) bundle = DaliaSite.buildLiveBundle(dash);
+  function bindGoals(bundle) {
+    var gen = ++_goalsBindGen;
+    ensureLiveMount('coco-live-goals-list', 'screen-goals');
+
+    function tryRender(b) {
+      if (gen !== _goalsBindGen) return true;
+      var pages = applyCtxFilter(deriveWorkPages(b), function (p) {
+        return { page: p.path, status: p.executionStatus, goal: p.title };
+      });
+      if (!pages.length) return false;
+      renderGoalsPages(pages, b || state.bundle);
+      return true;
     }
-    ensureLiveMount('coco-live-actions-pending', 'screen-actions');
-    ensureLiveMount('coco-live-actions-done', 'screen-actions', 'tab-act-done');
+
+    if (tryRender(bundle)) return;
+
+    var existing = document.querySelectorAll('#coco-live-goals-list .goal-acc-item').length;
+    if (existing >= 28) return;
+
+    setHtml('coco-live-goals-list', emptyStatus('טוען 28 עמודים מ-SSOT…'));
+    hideLegacyGoalsActionsUi('screen-goals');
+
+    resolveLiveBundle(bundle).then(function (b) {
+      if (gen !== _goalsBindGen) return;
+      if (tryRender(b)) return;
+      setHtml('coco-live-goals-list',
+        emptyStatus('לא ניתן לטעון site-work-plan.json — ') +
+        '<button type="button" class="btn btn-primary" style="margin-top:10px;font-size:12px;" onclick="CocoData.retryGoals()">🔄 נסה שוב</button>');
+      hideLegacyGoalsActionsUi('screen-goals');
+    });
+  }
+
+  function renderActionsPages(bundle) {
     var actions = applyCtxFilter(deriveActions(bundle), function (a) {
       return { action: a.category, status: a.status, campaign: a.campaignId };
     });
@@ -678,7 +743,7 @@
     });
     var pageGroups = Object.keys(byPage).map(function (k) { return byPage[k]; });
     pageGroups.sort(function (a, b) { return String(a.pagePath).localeCompare(String(b.pagePath)); });
-    var wp = bundle && bundle.workPlan;
+    var wp = (bundle && bundle.workPlan) || (window.DaliaSite && DaliaSite.getWorkPlan && DaliaSite.getWorkPlan());
     var pendingHeader = '<div class="alert alert-info" style="margin-bottom:14px;">⚙️ ' +
       pending.length + ' פעולות פתוחות · ' + pageGroups.length + ' עמודים · קמפיין: ' +
       esc((wp && wp.campaign && wp.campaign.name) || 'SEO') + '</div>';
@@ -708,6 +773,21 @@
     if (sub && isLiveGoalsActionsMode()) {
       sub.textContent = pending.length + ' פעולות · ' + pageGroups.length + ' עמודים · site-work-plan.json';
     }
+    return pending.length;
+  }
+
+  function bindActions(bundle) {
+    ensureLiveMount('coco-live-actions-pending', 'screen-actions');
+    ensureLiveMount('coco-live-actions-done', 'screen-actions', 'tab-act-done');
+    var count = renderActionsPages(bundle || state.bundle);
+    if (count > 0 || !isLiveGoalsActionsMode()) return;
+    var existing = document.querySelectorAll('#coco-live-actions-pending .action-card').length;
+    if (existing >= 50) return;
+    setHtml('coco-live-actions-pending', emptyStatus('טוען פעולות מ-SSOT…'));
+    hideLegacyGoalsActionsUi('screen-actions');
+    resolveLiveBundle(bundle).then(function (b) {
+      renderActionsPages(b || state.bundle);
+    });
   }
 
   function bindHistory(bundle) {
@@ -899,14 +979,20 @@
     var fn = SCREEN_BINDERS[screenId];
     if (fn) fn(state.bundle);
     if ((screenId === 'screen-goals' || screenId === 'screen-actions') && isLiveGoalsActionsMode()) {
-      var pages = deriveWorkPages(state.bundle);
-      if (!pages.length && window.DaliaSite && DaliaSite.initOfficial) {
-        setTimeout(function () {
+      if (window.DaliaSite && DaliaSite.whenReady) {
+        DaliaSite.whenReady().then(function () {
           if (fn) fn(state.bundle);
-        }, 800);
+        });
       }
     }
     updateSourceBadge();
+  }
+
+  function retryGoals() {
+    fetchWorkPlanFallback().then(function (wp) {
+      if (wp && window.DaliaSite && DaliaSite.hydrateWorkPlan) DaliaSite.hydrateWorkPlan(wp);
+      else bindGoals();
+    });
   }
 
   function bindAll() {
@@ -1051,5 +1137,6 @@
     getBundle: function () { return state.bundle; },
     getAgentData: getAgentData,
     getMetrics: function () { return (state.metrics || []).slice(); },
+    retryGoals: retryGoals,
   };
 })();
