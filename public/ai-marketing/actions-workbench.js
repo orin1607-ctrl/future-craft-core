@@ -12,6 +12,54 @@
   var _crawlCache = null;
   var _crawlPromise = null;
   var _lastRenderActions = [];
+  var _previewMsgBound = false;
+
+  var WORK_MINUTES_BY_TYPE = {
+    title: 15, meta: 20, h1: 25, h2: 30, content: 90, alt: 45, schema: 40,
+    cta: 25, forms: 35, internalLinks: 30, pageSpeed: 60, mobile: 45, ux: 50,
+    accessibility: 55, performance: 60, conversion: 40, aiAdditional: 30,
+    keywords: 20, externalLinks: 25, businessFit: 30,
+  };
+
+  var PREVIEW_MARKER_CSS =
+    '.coco-change-wrap{position:relative;display:block;outline:2px dashed transparent;transition:outline .2s,background .2s;border-radius:4px}' +
+    '.coco-change-wrap.coco-change-active,.coco-change-wrap:hover{outline-color:#8b5cf6;background:rgba(139,92,246,.1)}' +
+    '.coco-change-marker{position:absolute;top:-11px;right:4px;z-index:9999;background:#7c3aed;color:#fff;font:bold 11px/1 Heebo,Arial,sans-serif;padding:3px 8px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.3);pointer-events:none}' +
+    '[data-change-id]{cursor:pointer}' +
+    '.coco-tech-pin{position:relative;border:2px dashed #f59e0b;border-radius:8px;padding:10px 36px 10px 12px;margin:8px 0;background:#fffbeb;font-size:13px}' +
+    '.coco-tech-pin .coco-change-marker{top:6px;right:6px}' +
+    '.coco-pv-banner{background:#fef3c7;border:1px solid #f59e0b;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:12px}' +
+    '.coco-pv-site-header{background:#1e293b;color:#fff;padding:12px 16px;font-size:14px;font-weight:700}' +
+    '.coco-pv-nav{display:flex;gap:12px;padding:8px 16px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;font-size:12px;color:#475569;flex-wrap:wrap}' +
+    '.coco-pv-hero{padding:24px 16px;background:linear-gradient(135deg,#f8fafc,#e2e8f0)}' +
+    '.coco-pv-hero h1{font-size:24px;margin:0 0 12px;color:#0f172a;line-height:1.3}' +
+    '.coco-pv-intro{font-size:14px;color:#334155;line-height:1.6;margin:0 0 16px}' +
+    '.coco-pv-section{padding:16px;border-top:1px solid #e2e8f0}' +
+    '.coco-pv-section h2{font-size:18px;margin:0 0 8px;color:#1e293b}' +
+    '.coco-pv-section p{font-size:13px;color:#475569;margin:0;line-height:1.5}' +
+    '.coco-pv-serp{background:#f1f5f9;border-radius:8px;padding:10px;margin:12px 16px}' +
+    '.coco-pv-serp-url{font-size:12px;color:#15803d}.coco-pv-serp-title{font-size:16px;color:#1d4ed8;margin:4px 0}' +
+    '.coco-pv-serp-meta{font-size:13px;color:#475569}' +
+    '.coco-pv-tech{margin:16px;padding:12px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px}' +
+    '.coco-pv-tech h3{font-size:13px;margin:0 0 8px;color:#9a3412}' +
+    '.coco-pv-compare{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:100%}' +
+    '.coco-pv-compare-pane{border-left:1px solid #e2e8f0;overflow:auto}' +
+    '.coco-pv-compare-pane:first-child{border-left:0}' +
+    '.coco-pv-pane-label{font-size:11px;font-weight:700;padding:8px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;color:#64748b;text-transform:uppercase}' +
+    '.coco-pv-pane-label.before{background:#fff5f5;color:#b91c1c}' +
+    '.coco-pv-pane-label.after{background:#f0fdf4;color:#15803d}' +
+    '@media(max-width:700px){.coco-pv-compare{grid-template-columns:1fr}}';
+
+  var PREVIEW_BRIDGE_SCRIPT =
+    '(function(){window.addEventListener("message",function(e){' +
+    'if(!e.data||e.data.type!=="coco-act-highlight")return;' +
+    'var el=document.querySelector(\'[data-change-id="\'+e.data.changeId+\'"]\');' +
+    'if(!el)return;el.scrollIntoView({behavior:"smooth",block:"center"});' +
+    'document.querySelectorAll(".coco-change-active").forEach(function(x){x.classList.remove("coco-change-active");});' +
+    'el.classList.add("coco-change-active");});' +
+    'document.addEventListener("click",function(e){' +
+    'var m=e.target.closest("[data-change-id]");if(!m)return;e.preventDefault();' +
+    'parent.postMessage({type:"coco-act-preview-select",changeId:m.getAttribute("data-change-id")},"*");});})();';
 
   var SOURCE_LABELS = {
     checklist: 'Checklist',
@@ -212,7 +260,60 @@
       '<code style="font-size:10px;opacity:0.85;">' + esc(EXECUTION_MODE) + '</code></div>';
   }
 
-  function renderBeforeAfter(ba, itemNum) {
+  function extractImpactLevel(text, keys) {
+    var s = String(text || '');
+    var i;
+    for (i = 0; i < keys.length; i++) {
+      var re = new RegExp(keys[i] + '\\s*[:：]?\\s*(גבוה|בינוני|נמוך|high|medium|low)', 'i');
+      var m = s.match(re);
+      if (m) return m[1];
+      if (new RegExp(keys[i], 'i').test(s) && /גבוה|high/i.test(s)) return 'גבוה';
+    }
+    return '—';
+  }
+
+  function parseImpactFields(ba, action) {
+    var s = [ba.impact, ba.why, action && action.detail].filter(Boolean).join(' · ');
+    var type = String((action && action.recommendationType) || '').toLowerCase();
+    var work = (action && action.estimatedWorkMinutes) ||
+      WORK_MINUTES_BY_TYPE[type] ||
+      (type === 'content' ? 90 : 30);
+    return {
+      workMinutes: work,
+      seo: extractImpactLevel(s, ['SEO', 'seo']),
+      ux: extractImpactLevel(s, ['UX', 'ux', 'נגישות']),
+      performance: extractImpactLevel(s, ['ביצועים', 'performance', 'מהירות', 'pageSpeed', 'Performance']),
+      leads: extractImpactLevel(s, ['לידים', 'המרות', 'conversion', 'leads', 'המרה']),
+      raw: ba.impact || '—',
+    };
+  }
+
+  function impactLevelClass(level) {
+    if (/גבוה|high/i.test(String(level))) return 'badge-red';
+    if (/נמוך|low/i.test(String(level))) return 'badge-gray';
+    if (level && level !== '—') return 'badge-yellow';
+    return 'badge-gray';
+  }
+
+  function renderImpactBadges(impact, compact) {
+    if (!impact) return '';
+    var items = [
+      ['⏱', 'זמן עבודה', impact.workMinutes + ' דק׳', 'badge-blue'],
+      ['SEO', 'SEO', impact.seo, impactLevelClass(impact.seo)],
+      ['UX', 'UX', impact.ux, impactLevelClass(impact.ux)],
+      ['⚡', 'ביצועים', impact.performance, impactLevelClass(impact.performance)],
+      ['📈', 'לידים', impact.leads, impactLevelClass(impact.leads)],
+    ];
+    return '<div class="coco-act-impact-badges' + (compact ? ' coco-act-impact-compact' : '') + '">' +
+      items.map(function (row) {
+        return '<span class="coco-act-impact-item" title="' + esc(row[1]) + '">' +
+          '<span class="badge ' + row[3] + ' coco-act-impact-badge">' +
+          row[0] + ' ' + esc(String(row[2])) + '</span></span>';
+      }).join('') + '</div>';
+  }
+
+  function renderBeforeAfter(ba, itemNum, action) {
+    var impact = parseImpactFields(ba, action);
     var numBadge = itemNum
       ? '<span class="coco-act-item-num badge badge-purple" title="מספר פריט יציב">#' + itemNum + '</span> '
       : '';
@@ -230,7 +331,7 @@
       '</div></div>' +
       '<div class="coco-act-ba-meta">' +
       '<div><strong>למה:</strong> ' + esc(ba.why) + '</div>' +
-      '<div style="margin-top:4px;"><strong>השפעה צפויה:</strong> ' + esc(ba.impact) + '</div>' +
+      renderImpactBadges(impact) +
       '</div>';
   }
 
@@ -291,7 +392,7 @@
       esc(action.category || action.title) + '</div>' +
       '<div class="coco-act-item-badges">' + sourceBadge(action.source) + ' ' +
       priorityBadge(action.urgency || action.priority) + ' ' + actionStatusBadge(action) + '</div></div>' +
-      renderBeforeAfter(ba, itemNum) +
+      renderBeforeAfter(ba, itemNum, action) +
       renderFeedbackPanel(action, page, itemNum) +
       '<div class="coco-act-item-footer">' +
       (approved
@@ -327,9 +428,9 @@
       (approvedCount ? ' · <span class="badge badge-green" style="font-size:10px;">' + approvedCount + ' מאושרים</span>' : '') +
       '</div></div>' +
       '<div class="coco-act-page-btns">' +
-      '<a href="' + esc(page.url || page.pageUrl || '#') + '" target="_blank" rel="noopener" class="btn btn-primary coco-act-btn-sm">👁️ צפה בעמוד</a>' +
-      '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-preview="' + escAttr(page.id) + '" data-page-idx="' + idx + '">' +
-      '👁️ צפה בעמוד לאחר השינויים</button>' +
+      '<a href="' + esc(page.url || page.pageUrl || '#') + '" target="_blank" rel="noopener" class="btn btn-ghost coco-act-btn-sm">👁️ צפה בעמוד</a>' +
+      '<button type="button" class="btn btn-primary coco-act-btn-preview coco-act-btn-sm" data-act-preview="' + escAttr(page.id) + '" data-page-idx="' + idx + '" title="פתח סביבת עבודה — תצוגה מקדימה עם סימון שינויים">' +
+      '🔍 תצוגה מקדימה — לפני/אחרי</button>' +
       '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-toggle="' + escAttr(panelId) + '" onclick="CocoActTogglePage(\'' + escAttr(panelId) + '\',this)">' +
       '📋 פירוט תיקונים <span class="coco-act-chevron">▼</span></button>' +
       '</div>' +
@@ -351,13 +452,27 @@
   function loadCrawlData() {
     if (_crawlCache) return Promise.resolve(_crawlCache);
     if (_crawlPromise) return _crawlPromise;
-    _crawlPromise = fetch(pagesBase() + 'project-001/site-crawl-lite.json?t=' + Date.now(), { cache: 'no-store' })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (data) {
-        _crawlCache = data;
-        return data;
-      })
-      .catch(function () { return null; });
+    var base = pagesBase() + 'project-001/';
+    _crawlPromise = Promise.all([
+      fetch(base + 'site-crawl-lite.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }),
+      fetch(base + 'site-pages-index.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+    ]).then(function (results) {
+      var lite = results[0];
+      var index = results[1];
+      if (lite && index && index.pages && index.pages.business) {
+        var byPath = {};
+        index.pages.business.forEach(function (p) { byPath[String(p.path || '/').replace(/\/$/, '') || '/'] = p; });
+        if (lite.crawl && lite.crawl.pages) {
+          lite.crawl.pages.forEach(function (p) {
+            var key = String(p.path || '/').replace(/\/$/, '') || '/';
+            var extra = byPath[key];
+            if (extra) Object.keys(extra).forEach(function (k) { if (!p[k]) p[k] = extra[k]; });
+          });
+        }
+      }
+      _crawlCache = lite;
+      return lite;
+    }).catch(function () { return null; });
     return _crawlPromise;
   }
 
@@ -370,87 +485,351 @@
     }) || null;
   }
 
-  function buildPagePreviewState(page, actions, crawlPage) {
-    var before = {
-      title: (crawlPage && crawlPage.title) || page.title || page.path,
-      meta: (crawlPage && crawlPage.metaDescription) || '—',
-      h1: (crawlPage && crawlPage.h1) || page.title || '—',
-      content: (crawlPage && crawlPage.metaDescription) || 'תוכן העמוד — מבוסס נתוני crawl',
-      url: page.url || page.pageUrl || '',
-    };
-    var after = {
-      title: before.title,
-      meta: before.meta,
-      h1: before.h1,
-      content: before.content,
-      url: before.url,
-    };
-    var applied = [];
-    (actions || []).forEach(function (action) {
-      var ba = buildBeforeAfterFallback(page, action);
-      var val = ba.after || ba.proposed;
-      if (!val || val === '—') return;
-      var type = String(action.recommendationType || '').toLowerCase();
-      var num = getActionNumber(action.id);
-      var tag = num ? '#' + num + ' ' : '';
-      if (type === 'title') { after.title = val; applied.push(tag + 'Title'); }
-      else if (type === 'meta') { after.meta = val; applied.push(tag + 'Meta'); }
-      else if (type === 'h1') { after.h1 = val; applied.push(tag + 'H1'); }
-      else if (type === 'h2') { after.h2 = val; applied.push(tag + 'H2'); }
-      else if (type === 'content') { after.content = val; applied.push(tag + 'תוכן'); }
-      else { applied.push(tag + (action.category || type)); }
-    });
-    return { before: before, after: after, applied: applied };
+  function mapTypeToTarget(type) {
+    var t = String(type || '').toLowerCase();
+    if (t === 'title') return 'title';
+    if (t === 'meta') return 'meta';
+    if (t === 'h1') return 'h1';
+    if (t === 'h2') return 'h2';
+    if (t === 'content') return 'content';
+    return 'technical';
   }
 
-  function buildPreviewDocument(state, compareMode) {
-    var b = state.before;
-    var a = state.after;
-    var appliedList = (state.applied || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('');
+  function fetchPageHtml(url) {
+    if (!url) return Promise.resolve(null);
+    var proxies = [
+      'https://api.allorigins.win/raw?url=',
+      'https://corsproxy.io/?',
+    ];
+    function tryProxy(i) {
+      if (i >= proxies.length) return Promise.resolve(null);
+      return fetch(proxies[i] + encodeURIComponent(url), { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.text() : null; })
+        .then(function (html) {
+          if (html && html.length > 500 && /<html/i.test(html)) return html;
+          return tryProxy(i + 1);
+        })
+        .catch(function () { return tryProxy(i + 1); });
+    }
+    return tryProxy(0);
+  }
 
-    function pane(label, data, cls) {
-      return '<div class="pane ' + cls + '">' +
-        '<div class="pane-label">' + esc(label) + '</div>' +
-        '<div class="serp">' +
-        '<div class="serp-url">' + esc(data.url || 'dalia-c.com') + '</div>' +
-        '<div class="serp-title">' + esc(data.title) + '</div>' +
-        '<div class="serp-meta">' + esc(data.meta) + '</div></div>' +
-        '<header class="page-head"><h1>' + esc(String(data.h1 || '').replace(/\n/g, ' ')) + '</h1></header>' +
-        '<main class="page-body"><p>' + esc(data.content) + '</p></main></div>';
+  function buildPagePreviewState(page, actions, crawlPage, rawHtml) {
+    var changes = [];
+    (actions || []).forEach(function (action) {
+      var ba = buildBeforeAfterFallback(page, action);
+      var num = getActionNumber(action.id);
+      var afterVal = ba.after || ba.proposed;
+      if (!afterVal || afterVal === '—') afterVal = ba.proposed || ba.current;
+      changes.push({
+        id: action.id,
+        num: num,
+        type: action.recommendationType || action.category,
+        category: action.category || action.title,
+        target: mapTypeToTarget(action.recommendationType),
+        beforeValue: ba.current || '—',
+        afterValue: afterVal,
+        ba: ba,
+        impact: parseImpactFields(ba, action),
+        action: action,
+      });
+    });
+    changes.sort(function (a, b) { return (a.num || 0) - (b.num || 0); });
+    return {
+      page: page,
+      changes: changes,
+      crawlPage: crawlPage || {},
+      rawHtml: rawHtml || null,
+      htmlSource: rawHtml ? 'proxy-html' : 'reconstructed',
+      url: page.url || page.pageUrl || '',
+    };
+  }
+
+  function effectiveFieldValue(state, field, variant) {
+    var crawl = state.crawlPage || {};
+    var page = state.page || {};
+    var base = {
+      title: crawl.title || page.title || page.path || 'דליה',
+      meta: crawl.metaDescription || '—',
+      h1: crawl.h1 || page.title || '—',
+      content: page.aiSummary || crawl.metaDescription || page.contentStatus || 'תוכן העמוד',
+    };
+    var val = base[field] || '—';
+    (state.changes || []).forEach(function (ch) {
+      if (ch.target !== field) return;
+      val = variant === 'after' ? (ch.afterValue || val) : (ch.beforeValue || val);
+    });
+    return val;
+  }
+
+  function wrapChangeMarker(changeId, num, innerHtml, showMarkers) {
+    if (!showMarkers || !changeId) return innerHtml;
+    return '<div class="coco-change-wrap" data-change-id="' + escAttr(changeId) + '">' +
+      '<span class="coco-change-marker">#' + esc(String(num || '?')) + '</span>' +
+      innerHtml + '</div>';
+  }
+
+  function findChangeByTarget(state, target) {
+    return (state.changes || []).find(function (c) { return c.target === target; }) || null;
+  }
+
+  function buildReconstructedBody(state, variant, showMarkers) {
+    var page = state.page || {};
+    var title = effectiveFieldValue(state, 'title', variant);
+    var meta = effectiveFieldValue(state, 'meta', variant);
+    var h1 = effectiveFieldValue(state, 'h1', variant);
+    var content = effectiveFieldValue(state, 'content', variant);
+    var h2s = (state.crawlPage && state.crawlPage.h2 && state.crawlPage.h2.slice)
+      ? state.crawlPage.h2.slice(0, 6)
+      : (page.improvements || []).slice(0, 4).map(function (x) { return String(x).slice(0, 90); });
+    if (!h2s.length) h2s = ['השירותים שלנו', 'למה לבחור בדליה?', 'צור קשר'];
+
+    var h2Change = (state.changes || []).find(function (c) { return c.target === 'h2'; });
+    if (h2Change && variant === 'after') h2s[0] = h2Change.afterValue || h2s[0];
+    else if (h2Change && variant === 'before') h2s[0] = h2Change.beforeValue || h2s[0];
+
+    var titleCh = findChangeByTarget(state, 'title');
+    var metaCh = findChangeByTarget(state, 'meta');
+    var h1Ch = findChangeByTarget(state, 'h1');
+    var contentCh = findChangeByTarget(state, 'content');
+
+    var serpTitleInner = '<div class="coco-pv-serp-title">' + esc(title) + '</div>';
+    var serpMetaInner = '<div class="coco-pv-serp-meta">' + esc(meta) + '</div>';
+    if (showMarkers && titleCh) serpTitleInner = wrapChangeMarker(titleCh.id, titleCh.num, serpTitleInner, true);
+    if (showMarkers && metaCh) serpMetaInner = wrapChangeMarker(metaCh.id, metaCh.num, serpMetaInner, true);
+    var serpHtml = '<div class="coco-pv-serp"><div class="coco-pv-serp-url">' + esc(state.url || 'dalia-c.com') + '</div>' +
+      serpTitleInner + serpMetaInner + '</div>';
+
+    var h1Inner = '<h1 data-coco-field="h1">' + esc(String(h1).replace(/\n/g, ' ')) + '</h1>';
+    var h1Html = wrapChangeMarker(h1Ch && h1Ch.id, h1Ch && h1Ch.num, h1Inner, showMarkers && h1Ch);
+
+    var introInner = '<p class="coco-pv-intro" data-coco-field="content">' + esc(content) + '</p>';
+    var introHtml = wrapChangeMarker(contentCh && contentCh.id, contentCh && contentCh.num, introInner, showMarkers && contentCh);
+
+    var sectionsHtml = h2s.map(function (h2, idx) {
+      var ch = idx === 0 ? h2Change : null;
+      var inner = '<h2 data-coco-field="h2">' + esc(String(h2).replace(/\n/g, ' ')) + '</h2>' +
+        '<p>' + esc(page.aiSummary || 'תוכן מקטע — מבוסס נתוני crawl ו-SSOT') + '</p>';
+      if (ch && showMarkers) {
+        return '<section class="coco-pv-section">' +
+          wrapChangeMarker(ch.id, ch.num, inner, true) + '</section>';
+      }
+      return '<section class="coco-pv-section">' + inner + '</section>';
+    }).join('');
+
+    var techChanges = (state.changes || []).filter(function (c) { return c.target === 'technical'; });
+    var techHtml = techChanges.length
+      ? '<div class="coco-pv-tech"><h3>שינויים טכניים מסומנים (' + techChanges.length + ')</h3>' +
+        techChanges.map(function (ch) {
+          var pin = '<strong>' + esc(ch.category) + '</strong><br>' +
+            '<span style="font-size:12px;color:#78350f">' + esc(ch.afterValue) + '</span>';
+          if (!showMarkers) return '<div class="coco-tech-pin">' + pin + '</div>';
+          return '<div class="coco-tech-pin coco-change-wrap" data-change-id="' + escAttr(ch.id) + '">' +
+            '<span class="coco-change-marker">#' + esc(String(ch.num)) + '</span>' + pin + '</div>';
+        }).join('') + '</div>'
+      : '';
+
+    return '<div class="coco-pv-banner">📄 תצוגת עמוד מלאה — ' +
+      (state.htmlSource === 'proxy-html' ? 'HTML מ-crawl/proxy' : 'מבוסס crawl+SSOT') +
+      ' · Staging preview · לא האתר החי</div>' +
+      '<header class="coco-pv-site-header">דליה — פתרונות תפעול ותחזוקה לרכב</header>' +
+      '<nav class="coco-pv-nav"><span>דף הבית</span><span>שירותים</span><span>צור קשר</span></nav>' +
+      serpHtml +
+      '<div class="coco-pv-hero">' + h1Html + introHtml + '</div>' +
+      sectionsHtml + techHtml;
+  }
+
+  function sanitizePreviewHtml(html) {
+    return String(html || '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+      .replace(/on\w+="[^"]*"/gi, '')
+      .replace(/on\w+='[^']*'/gi, '');
+  }
+
+  function injectMarkersIntoRawHtml(html, state, variant, showMarkers) {
+    if (!html || typeof DOMParser === 'undefined') return null;
+    try {
+      var clean = sanitizePreviewHtml(html);
+      var doc = new DOMParser().parseFromString(clean, 'text/html');
+      var base = doc.createElement('base');
+      base.href = 'https://dalia-c.com/';
+      if (doc.head.firstChild) doc.head.insertBefore(base, doc.head.firstChild);
+      else doc.head.appendChild(base);
+
+      var banner = doc.createElement('div');
+      banner.className = 'coco-pv-banner';
+      banner.innerHTML = '📄 HTML מלא מ-crawl/proxy · שינויים מסומנים · Staging preview';
+      if (doc.body.firstChild) doc.body.insertBefore(banner, doc.body.firstChild);
+      else doc.body.appendChild(banner);
+
+      (state.changes || []).forEach(function (ch) {
+        var val = variant === 'after' ? ch.afterValue : ch.beforeValue;
+        var el = null;
+        if (ch.target === 'title') {
+          doc.title = val;
+          el = doc.querySelector('h1') || doc.body;
+        } else if (ch.target === 'meta') {
+          el = doc.querySelector('meta[name="description"]');
+          if (el) el.setAttribute('content', val);
+          else {
+            var m = doc.createElement('meta');
+            m.name = 'description';
+            m.content = val;
+            doc.head.appendChild(m);
+          }
+          el = doc.querySelector('p') || doc.body;
+        } else if (ch.target === 'h1') {
+          el = doc.querySelector('h1');
+          if (el) el.textContent = val;
+        } else if (ch.target === 'h2') {
+          el = doc.querySelector('h2');
+          if (el) el.textContent = val;
+        } else if (ch.target === 'content') {
+          el = doc.querySelector('main p, article p, .entry-content p, p');
+          if (el) el.textContent = val;
+        }
+        if (!el && ch.target === 'technical') {
+          var pin = doc.createElement('div');
+          pin.className = 'coco-tech-pin';
+          pin.setAttribute('data-change-id', ch.id);
+          pin.innerHTML = '<span class="coco-change-marker">#' + ch.num + '</span><strong>' +
+            esc(ch.category) + '</strong><br>' + esc(val);
+          doc.body.appendChild(pin);
+          return;
+        }
+        if (!el || !showMarkers) return;
+        if (el.getAttribute('data-change-id')) return;
+        var wrap = doc.createElement('div');
+        wrap.className = 'coco-change-wrap';
+        wrap.setAttribute('data-change-id', ch.id);
+        var badge = doc.createElement('span');
+        badge.className = 'coco-change-marker';
+        badge.textContent = '#' + ch.num;
+        el.parentNode.insertBefore(wrap, el);
+        wrap.appendChild(badge);
+        wrap.appendChild(el);
+      });
+
+      var style = doc.createElement('style');
+      style.textContent = PREVIEW_MARKER_CSS;
+      doc.head.appendChild(style);
+      var script = doc.createElement('script');
+      script.textContent = PREVIEW_BRIDGE_SCRIPT;
+      doc.body.appendChild(script);
+      return '<!DOCTYPE html><html' + (doc.documentElement.getAttribute('lang') ? ' lang="' + doc.documentElement.getAttribute('lang') + '"' : '') +
+        ' dir="' + (doc.documentElement.getAttribute('dir') || 'rtl') + '"><head>' + doc.head.innerHTML + '</head><body>' + doc.body.innerHTML + '</body></html>';
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function buildPreviewDocument(state, mode) {
+    mode = mode || 'after';
+    var showMarkers = true;
+
+    function singleDoc(variant, label) {
+      var bodyHtml;
+      if (state.rawHtml) {
+        bodyHtml = injectMarkersIntoRawHtml(state.rawHtml, state, variant, showMarkers);
+      }
+      if (!bodyHtml) {
+        bodyHtml = '<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">' +
+          '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+          '<title>' + esc(effectiveFieldValue(state, 'title', variant)) + '</title>' +
+          '<style>body{font-family:Heebo,Arial,sans-serif;margin:0;padding:0;background:#fff;color:#0f172a;line-height:1.5}' +
+          PREVIEW_MARKER_CSS + '</style></head><body>' +
+          buildReconstructedBody(state, variant, showMarkers) +
+          '<script>' + PREVIEW_BRIDGE_SCRIPT + '<\/script></body></html>';
+      }
+      if (label) {
+        return '<div class="coco-pv-compare-pane"><div class="coco-pv-pane-label ' + (variant === 'before' ? 'before' : 'after') + '">' +
+          esc(label) + '</div>' + bodyHtml.replace('<!DOCTYPE html>', '').replace(/<html[^>]*>/, '<div class="coco-pv-inner">').replace('</html>', '</div>') + '</div>';
+      }
+      return bodyHtml;
     }
 
-    var body = compareMode
-      ? '<div class="compare">' + pane('לפני (חי)', b, 'before') + pane('אחרי (מדומה)', a, 'after') + '</div>'
-      : pane('אחרי כל התיקונים המוצעים', a, 'after solo');
+    if (mode === 'compare') {
+      var beforeInner = state.rawHtml
+        ? (injectMarkersIntoRawHtml(state.rawHtml, state, 'before', showMarkers) || '')
+        : '';
+      var afterInner = state.rawHtml
+        ? (injectMarkersIntoRawHtml(state.rawHtml, state, 'after', showMarkers) || '')
+        : '';
+      if (!beforeInner || !afterInner) {
+        return '<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">' +
+          '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+          '<title>השוואה — ' + esc(state.page.title || '') + '</title>' +
+          '<style>body{margin:0;font-family:Heebo,Arial,sans-serif}' + PREVIEW_MARKER_CSS +
+          '</style></head><body><div class="coco-pv-compare">' +
+          '<div class="coco-pv-compare-pane"><div class="coco-pv-pane-label before">העמוד הקיים</div>' +
+          buildReconstructedBody(state, 'before', showMarkers) + '</div>' +
+          '<div class="coco-pv-compare-pane"><div class="coco-pv-pane-label after">לאחר השינויים</div>' +
+          buildReconstructedBody(state, 'after', showMarkers) + '</div></div>' +
+          '<script>' + PREVIEW_BRIDGE_SCRIPT + '<\/script></body></html>';
+      }
+      return beforeInner; // fallback — compare via dual frames in parent
+    }
 
-    return '<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">' +
-      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-      '<title>Preview — ' + esc(a.title) + '</title>' +
-      '<style>' +
-      'body{font-family:Arial,Heebo,sans-serif;margin:0;padding:16px;background:#f8fafc;color:#0f172a;line-height:1.5}' +
-      '.banner{background:#fef3c7;border:1px solid #f59e0b;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:12px}' +
-      '.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px}' +
-      '.pane{border:1px solid #e2e8f0;border-radius:10px;padding:12px;background:#fff}' +
-      '.pane.before{border-color:#fca5a5;background:#fff5f5}' +
-      '.pane.after,.pane.after.solo{border-color:#86efac;background:#f0fdf4}' +
-      '.pane-label{font-size:11px;font-weight:700;margin-bottom:8px;text-transform:uppercase;color:#64748b}' +
-      '.serp{background:#f1f5f9;border-radius:8px;padding:10px;margin-bottom:10px}' +
-      '.serp-url{font-size:12px;color:#15803d}.serp-title{font-size:16px;color:#1d4ed8;margin:4px 0}' +
-      '.serp-meta{font-size:13px;color:#475569}' +
-      '.page-head h1{font-size:20px;margin:0 0 8px}.page-body p{font-size:14px;color:#334155}' +
-      '.applied{margin-top:12px;font-size:12px;background:#eff6ff;border-radius:8px;padding:10px}' +
-      '.applied ul{margin:6px 0 0;padding-right:18px}' +
-      '@media(max-width:700px){.compare{grid-template-columns:1fr}}' +
-      '</style></head><body>' +
-      '<div class="banner">⚠️ תצוגה מדומה — מבוססת crawl + beforeAfter מ-SSOT · לא האתר החי · Staging preview</div>' +
-      body +
-      '<div class="applied"><strong>שינויים שהוחלו בתצוגה (' + (state.applied || []).length + '):</strong><ul>' +
-      (appliedList || '<li>אין שינויי HTML ישירים — ראה פירוט בכרטיסי הפעולות</li>') +
-      '</ul></div></body></html>';
+    if (mode === 'current') return singleDoc('before');
+    return singleDoc('after');
+  }
+
+  function renderPreviewSidebar(state, selectedId) {
+    var changes = state.changes || [];
+    if (!changes.length) {
+      return '<div class="coco-act-wb-empty">אין שינויים מוצעים לעמוד זה</div>';
+    }
+    return changes.map(function (ch) {
+      var a = ch.action || {};
+      var ba = ch.ba || {};
+      var src = a.source || ba.source || '';
+      var pri = a.urgency || a.priority || 'בינוני';
+      var appr = approvalStatus(ch.id);
+      var sel = ch.id === selectedId ? ' coco-act-wb-change-active' : '';
+      return '<button type="button" class="coco-act-wb-change' + sel + '" data-wb-change="' + escAttr(ch.id) + '">' +
+        '<div class="coco-act-wb-change-head">' +
+        '<span class="coco-act-wb-change-num">#' + (ch.num || '?') + '</span>' +
+        '<span class="coco-act-wb-change-title">' + esc(ch.category) + '</span></div>' +
+        '<div class="coco-act-wb-change-badges">' + sourceBadge(src) + ' ' + priorityBadge(pri) +
+        (appr === 'approved_for_execution' ? ' <span class="badge badge-green">✓ מאושר</span>' : '') +
+        '</div>' +
+        '<div class="coco-act-wb-change-detail">' +
+        '<div class="coco-act-wb-row"><span class="lbl">נוכחי:</span> ' + esc(truncate(ch.beforeValue, 90)) + '</div>' +
+        '<div class="coco-act-wb-row"><span class="lbl">שינוי:</span> ' + esc(truncate(ch.afterValue, 90)) + '</div>' +
+        '<div class="coco-act-wb-row"><span class="lbl">למה:</span> ' + esc(truncate(ba.why, 100)) + '</div>' +
+        '</div>' +
+        renderImpactBadges(ch.impact, true) +
+        '</button>';
+    }).join('');
+  }
+
+  function truncate(s, n) {
+    s = String(s == null ? '' : s);
+    return s.length > n ? s.slice(0, n) + '…' : s;
+  }
+
+  function renderPreviewFeedbackBar(action, page, itemNum) {
+    if (!action || !page) {
+      return '<div class="coco-act-wb-fb-empty">בחר שינוי מהרשימה או לחץ על סימון # בתצוגה</div>';
+    }
+    var appr = approvalStatus(action.id);
+    var approved = appr === 'approved_for_execution';
+    var footer = '<div class="coco-act-wb-fb-footer">' +
+      (approved
+        ? '<span class="badge badge-green">✓ מוכן לביצוע · Staging בלבד</span> ' +
+          '<button type="button" class="btn btn-ghost coco-act-btn-sm" onclick="CocoActRevokeApproval(\'' + escAttr(action.id) + '\')">↩ בטל אישור</button>'
+        : '<button type="button" class="btn btn-green coco-act-btn-sm" onclick="CocoActApprove(\'' + escAttr(action.id) + '\',this)">✅ מוכן לביצוע</button>') +
+      ' <span class="coco-act-approval-note">לא משנה את dalia-c.com</span></div>';
+    return renderFeedbackPanel(action, page, itemNum) + footer;
   }
 
   function ensurePreviewModal() {
     var existing = document.getElementById('coco-act-preview-modal');
+    if (existing && !existing.querySelector('.coco-act-wb-body')) {
+      existing.remove();
+      existing = null;
+    }
     if (existing) return existing;
     var screen = document.getElementById('screen-actions');
     var wrap = document.createElement('div');
@@ -458,32 +837,135 @@
     wrap.className = 'coco-act-preview-overlay';
     wrap.style.display = 'none';
     wrap.innerHTML =
-      '<div class="coco-act-preview-dialog" role="dialog" aria-modal="true" aria-label="תצוגה מקדימה">' +
+      '<div class="coco-act-preview-dialog coco-act-wb-dialog" role="dialog" aria-modal="true" aria-label="סביבת עבודה — תצוגה מקדימה">' +
       '<div class="coco-act-preview-head">' +
-      '<div><div class="coco-act-preview-title">👁️ תצוגה מקדימה — לאחר השינויים</div>' +
+      '<div><div class="coco-act-preview-title">🔍 סביבת עבודה — תצוגה מקדימה</div>' +
       '<div class="coco-act-preview-sub" id="coco-act-preview-sub"></div></div>' +
       '<button type="button" class="btn-icon coco-act-preview-close" aria-label="סגור">✕</button></div>' +
-      '<div class="coco-act-preview-toolbar">' +
-      '<label class="coco-act-compare-toggle"><input type="checkbox" id="coco-act-preview-compare"> השוואה לפני/אחרי</label>' +
-      '<span class="badge badge-yellow" id="coco-act-preview-mode">מדומה · crawl+SSOT</span></div>' +
-      '<iframe id="coco-act-preview-frame" class="coco-act-preview-frame" title="תצוגה מקדימה" sandbox="allow-same-origin"></iframe>' +
+      '<div class="coco-act-wb-tabs" role="tablist">' +
+      '<button type="button" class="coco-act-wb-tab" data-preview-mode="current" role="tab">העמוד הקיים</button>' +
+      '<button type="button" class="coco-act-wb-tab coco-act-wb-tab-active" data-preview-mode="after" role="tab">העמוד לאחר השינויים</button>' +
+      '<button type="button" class="coco-act-wb-tab" data-preview-mode="compare" role="tab">השוואה לפני/אחרי</button>' +
+      '<span class="badge badge-yellow" id="coco-act-preview-mode">טוען…</span></div>' +
+      '<div class="coco-act-wb-body">' +
+      '<aside class="coco-act-wb-sidebar" id="coco-act-wb-sidebar" aria-label="רשימת שינויים"></aside>' +
+      '<div class="coco-act-wb-main">' +
+      '<div class="coco-act-wb-frames" id="coco-act-wb-frames">' +
+      '<iframe id="coco-act-preview-frame" class="coco-act-preview-frame" title="תצוגה מקדימה" sandbox="allow-scripts allow-same-origin"></iframe>' +
+      '</div></div></div>' +
+      '<div class="coco-act-wb-feedback" id="coco-act-wb-feedback"></div>' +
       '</div>';
     (screen || document.body).appendChild(wrap);
     wrap.querySelector('.coco-act-preview-close').addEventListener('click', closePreviewModal);
     wrap.addEventListener('click', function (e) {
       if (e.target === wrap) closePreviewModal();
+      var tab = e.target.closest('[data-preview-mode]');
+      if (tab) {
+        setPreviewMode(wrap, tab.getAttribute('data-preview-mode'));
+        return;
+      }
+      var chBtn = e.target.closest('[data-wb-change]');
+      if (chBtn) {
+        selectPreviewChange(chBtn.getAttribute('data-wb-change'));
+        return;
+      }
+      var send = e.target.closest('[data-chat-send]');
+      if (send) sendScopedChat(send.getAttribute('data-chat-send'));
     });
-    wrap.querySelector('#coco-act-preview-compare').addEventListener('change', function () {
-      if (wrap._previewState) renderPreviewFrame(wrap._previewState, this.checked);
+    wrap.addEventListener('input', function (e) {
+      var ta = e.target.closest('[data-fb-field]');
+      if (!ta) return;
+      scheduleFeedbackSave(ta.getAttribute('data-fb-action'), ta.getAttribute('data-fb-field'), ta.value);
     });
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var input = e.target.closest('[data-chat-input]');
+      if (input) {
+        e.preventDefault();
+        sendScopedChat(input.getAttribute('data-chat-input'));
+      }
+    });
+    bindPreviewMessaging();
     return wrap;
   }
 
-  function renderPreviewFrame(state, compareMode) {
-    var frame = document.getElementById('coco-act-preview-frame');
-    if (!frame) return;
-    var doc = buildPreviewDocument(state, compareMode);
-    frame.srcdoc = doc;
+  function bindPreviewMessaging() {
+    if (_previewMsgBound) return;
+    _previewMsgBound = true;
+    window.addEventListener('message', function (e) {
+      if (!e.data || e.data.type !== 'coco-act-preview-select') return;
+      var modal = document.getElementById('coco-act-preview-modal');
+      if (!modal || modal.style.display === 'none') return;
+      selectPreviewChange(e.data.changeId);
+    });
+  }
+
+  function setPreviewMode(modal, mode) {
+    modal = modal || document.getElementById('coco-act-preview-modal');
+    if (!modal || !modal._previewState) return;
+    modal._previewMode = mode;
+    modal.querySelectorAll('[data-preview-mode]').forEach(function (btn) {
+      btn.classList.toggle('coco-act-wb-tab-active', btn.getAttribute('data-preview-mode') === mode);
+    });
+    renderPreviewFrames(modal._previewState, mode);
+    var modeBadge = document.getElementById('coco-act-preview-mode');
+    if (modeBadge) {
+      var labels = { current: 'קיים', after: 'אחרי שינויים', compare: 'השוואה' };
+      modeBadge.textContent = (modal._previewState.htmlSource === 'proxy-html' ? 'HTML מלא · ' : 'crawl+SSOT · ') +
+        (labels[mode] || mode);
+    }
+  }
+
+  function renderPreviewFrames(state, mode) {
+    var framesWrap = document.getElementById('coco-act-wb-frames');
+    if (!framesWrap) return;
+    mode = mode || 'after';
+
+    if (mode === 'compare') {
+      framesWrap.innerHTML =
+        '<iframe id="coco-act-preview-frame-before" class="coco-act-preview-frame coco-act-preview-frame-split" title="לפני" sandbox="allow-scripts allow-same-origin"></iframe>' +
+        '<iframe id="coco-act-preview-frame-after" class="coco-act-preview-frame coco-act-preview-frame-split" title="אחרי" sandbox="allow-scripts allow-same-origin"></iframe>';
+      var beforeF = document.getElementById('coco-act-preview-frame-before');
+      var afterF = document.getElementById('coco-act-preview-frame-after');
+      if (beforeF) beforeF.srcdoc = buildPreviewDocument(state, 'current');
+      if (afterF) afterF.srcdoc = buildPreviewDocument(state, 'after');
+    } else {
+      framesWrap.innerHTML =
+        '<iframe id="coco-act-preview-frame" class="coco-act-preview-frame" title="תצוגה מקדימה" sandbox="allow-scripts allow-same-origin"></iframe>';
+      var frame = document.getElementById('coco-act-preview-frame');
+      if (frame) frame.srcdoc = buildPreviewDocument(state, mode);
+    }
+  }
+
+  function highlightPreviewChange(changeId) {
+    var frames = document.querySelectorAll('#coco-act-wb-frames iframe');
+    frames.forEach(function (frame) {
+      try {
+        if (frame.contentWindow) {
+          frame.contentWindow.postMessage({ type: 'coco-act-highlight', changeId: changeId }, '*');
+        }
+      } catch (e) { /* ignore */ }
+    });
+  }
+
+  function selectPreviewChange(changeId) {
+    var modal = document.getElementById('coco-act-preview-modal');
+    if (!modal || !modal._previewState) return;
+    modal._selectedChangeId = changeId;
+    var sidebar = document.getElementById('coco-act-wb-sidebar');
+    if (sidebar) {
+      sidebar.innerHTML = renderPreviewSidebar(modal._previewState, changeId);
+    }
+    var ch = (modal._previewState.changes || []).find(function (c) { return c.id === changeId; });
+    var fb = document.getElementById('coco-act-wb-feedback');
+    if (fb) {
+      fb.innerHTML = ch
+        ? renderPreviewFeedbackBar(ch.action, modal._previewState.page, ch.num)
+        : renderPreviewFeedbackBar(null, null, null);
+    }
+    highlightPreviewChange(changeId);
+    var activeBtn = sidebar && sidebar.querySelector('[data-wb-change="' + changeId + '"]');
+    if (activeBtn) activeBtn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   function closePreviewModal() {
@@ -504,8 +986,12 @@
 
     var modal = ensurePreviewModal();
     var sub = document.getElementById('coco-act-preview-sub');
-    if (sub) sub.textContent = (page.path || '') + ' · ' + actions.length + ' תיקונים מוצעים';
+    if (sub) {
+      sub.textContent = (page.path || '') + ' · ' + actions.length + ' תיקונים · לחץ על # בתצוגה או ברשימה';
+    }
     modal.style.display = 'flex';
+    modal._previewMode = 'after';
+    modal._selectedChangeId = null;
 
     var statusEl = document.querySelector('[data-preview-status="' + pageId + '"]');
     if (statusEl) {
@@ -513,18 +999,37 @@
       statusEl.className = 'badge badge-purple coco-act-preview-status';
     }
 
-    var compareCheck = document.querySelector('[data-act-compare="' + pageId + '"]');
-    var compareOn = compareCheck && compareCheck.checked;
+    var sidebar = document.getElementById('coco-act-wb-sidebar');
+    if (sidebar) sidebar.innerHTML = '<div class="coco-act-wb-loading">טוען נתוני עמוד…</div>';
+    var fb = document.getElementById('coco-act-wb-feedback');
+    if (fb) fb.innerHTML = renderPreviewFeedbackBar(null, null, null);
 
-    loadCrawlData().then(function (crawl) {
+    var pageUrl = page.url || page.pageUrl || '';
+
+    Promise.all([
+      loadCrawlData(),
+      fetchPageHtml(pageUrl),
+    ]).then(function (results) {
+      var crawl = results[0];
+      var rawHtml = results[1];
       var crawlPage = findCrawlPage(crawl, page);
-      var state = buildPagePreviewState(page, actions, crawlPage);
+      if (crawlPage && crawlPage.h2) { /* keep */ }
+      else if (page && !crawlPage) crawlPage = { title: page.title, h1: page.title, metaDescription: '' };
+
+      var state = buildPagePreviewState(page, actions, crawlPage, rawHtml);
       modal._previewState = state;
-      var prevCompare = document.getElementById('coco-act-preview-compare');
-      if (prevCompare) prevCompare.checked = !!compareOn;
-      renderPreviewFrame(state, compareOn);
+      modal._previewActions = actions;
+      modal._previewPage = page;
+
+      if (sidebar) sidebar.innerHTML = renderPreviewSidebar(state, null);
+      setPreviewMode(modal, modal._previewMode || 'after');
+
+      if (state.changes.length) {
+        selectPreviewChange(state.changes[0].id);
+      }
+
       if (statusEl) {
-        statusEl.textContent = 'תצוגה: מדומה ✓';
+        statusEl.textContent = rawHtml ? 'תצוגה: HTML מלא ✓' : 'תצוגה: crawl+SSOT ✓';
         statusEl.className = 'badge badge-green coco-act-preview-status';
       }
     });
@@ -703,9 +1208,7 @@
       if (!cmp) return;
       var modal = document.getElementById('coco-act-preview-modal');
       if (modal && modal.style.display !== 'none' && modal._previewState) {
-        var prevCompare = document.getElementById('coco-act-preview-compare');
-        if (prevCompare) prevCompare.checked = cmp.checked;
-        renderPreviewFrame(modal._previewState, cmp.checked);
+        setPreviewMode(modal, cmp.checked ? 'compare' : 'after');
       }
     });
   }
@@ -812,6 +1315,10 @@
     getActionNumber: getActionNumber,
     getActionFeedback: getActionFeedback,
     buildPagePreviewState: buildPagePreviewState,
+    buildPreviewDocument: buildPreviewDocument,
+    parseImpactFields: parseImpactFields,
+    selectPreviewChange: selectPreviewChange,
+    openPagePreview: openPagePreview,
     EXECUTION_MODE: EXECUTION_MODE,
     APPROVAL_KEY: APPROVAL_KEY,
     WORKBENCH_KEY: WORKBENCH_KEY,
