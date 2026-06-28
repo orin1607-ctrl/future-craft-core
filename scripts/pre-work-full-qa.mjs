@@ -84,13 +84,14 @@ async function runViewport(name, contextOpts) {
   }
 
   const gfc = await page.evaluate(() => {
+    goScreen('screen-goals');
     const bar = document.getElementById('coco-unified-context-bar');
     const chrome = document.getElementById('coco-gfc-chrome');
-    const hasSearch = !!document.querySelector('#coco-unified-context-bar input[type="search"], #coco-unified-context-bar .coco-gfc-search, #coco-unified-context-bar input.filter-input');
+    const hasSearch = !!document.querySelector('#coco-unified-context-bar input, #coco-unified-context-bar .filter-input');
     const selects = document.querySelectorAll('#coco-unified-context-bar select, #coco-unified-context-bar .filter-select').length;
-    const resetBtn = !!document.querySelector('[data-gfc-reset], [data-coco-gfc-reset], .coco-gfc-reset');
+    const resetBtn = !!document.querySelector('[data-gfc-reset], [data-coco-gfc-reset], .coco-gfc-reset, [data-coco-filter-reset]');
     return {
-      barVisible: !!(bar && bar.offsetParent !== null),
+      barVisible: !!(bar && bar.offsetParent !== null && bar.innerHTML.length > 50),
       chromePresent: !!chrome,
       hasSearch,
       selectCount: selects,
@@ -101,6 +102,11 @@ async function runViewport(name, contextOpts) {
 
   await page.evaluate(() => goScreen('screen-actions'));
   await page.waitForSelector('#coco-live-actions-pending', { timeout: 30000 }).catch(() => null);
+  await page.waitForFunction(
+    () => document.querySelector('#coco-live-actions-pending .coco-act-lite-card') ||
+      document.getElementById('coco-live-actions-pending')?.innerHTML?.length > 500,
+    { timeout: 45000 }
+  ).catch(() => null);
   const autoModeBtn = await page.locator('[data-act-auto-mode]').count();
   const actionsMetrics = await page.evaluate(() => {
     const root = document.getElementById('coco-live-actions-pending');
@@ -292,7 +298,7 @@ section(13, {
 });
 
 section(14, {
-  title: 'מצb אוטומטי',
+  title: 'מצב אוטומטי',
   checked: ['כפתור data-act-auto-mode', 'localStorage dalia-auto-mode-v1'],
   found: { autoModeButtonCount: desktop.autoModeBtn, note: desktop.autoModeBtn ? 'כפתור קיים — תשתית בלבד' : 'כפתור לא נמצא' },
   fixed: desktop.autoModeBtn ? [] : ['הוספת כפתור מצב אוטומטי'],

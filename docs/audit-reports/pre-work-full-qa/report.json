@@ -1,0 +1,403 @@
+{
+  "at": "2026-06-28T20:25:18.870Z",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-pre-work-qa-1",
+  "uiVersion": "v3-pre-work-qa-1",
+  "sections": {
+    "1": {
+      "title": "QA מלא — כל עמודי מערכת ניהול השיווק",
+      "checked": [
+        "Dashboard",
+        "מצב נוכחי",
+        "חברות ועסקים",
+        "CRM",
+        "מטרות",
+        "פעולות",
+        "היסטוריה",
+        "נכסים דיגיטליים",
+        "החלטות AI",
+        "דוחות",
+        "עוזרי AI"
+      ],
+      "found": [
+        {
+          "screen": "Dashboard",
+          "ok": true,
+          "domNodes": 5436,
+          "overflowX": false
+        },
+        {
+          "screen": "מצב נוכחי",
+          "ok": true,
+          "domNodes": 5436,
+          "overflowX": false
+        },
+        {
+          "screen": "חברות ועסקים",
+          "ok": true,
+          "domNodes": 5436,
+          "overflowX": false
+        },
+        {
+          "screen": "CRM",
+          "ok": true,
+          "domNodes": 5436,
+          "overflowX": false
+        },
+        {
+          "screen": "מטרות",
+          "ok": true,
+          "domNodes": 5436,
+          "overflowX": false
+        },
+        {
+          "screen": "פעולות",
+          "ok": true,
+          "domNodes": 5437,
+          "overflowX": false
+        },
+        {
+          "screen": "היסטוריה",
+          "ok": true,
+          "domNodes": 5437,
+          "overflowX": false
+        },
+        {
+          "screen": "נכסים דיגיטליים",
+          "ok": true,
+          "domNodes": 5437,
+          "overflowX": false
+        },
+        {
+          "screen": "החלטות AI",
+          "ok": true,
+          "domNodes": 5437,
+          "overflowX": false
+        },
+        {
+          "screen": "דוחות",
+          "ok": true,
+          "domNodes": 5437,
+          "overflowX": false
+        },
+        {
+          "screen": "עוזרי AI",
+          "ok": true,
+          "domNodes": 5437,
+          "overflowX": false
+        }
+      ],
+      "fixed": [],
+      "open": [],
+      "filesChanged": []
+    },
+    "2": {
+      "title": "בדיקת ניווט",
+      "checked": [
+        "goScreen לכל מסך",
+        "חזרה ל-hub ממטרות"
+      ],
+      "found": {
+        "hubBackWorks": true,
+        "allScreensReachable": true
+      },
+      "fixed": [],
+      "open": []
+    },
+    "3": {
+      "title": "סינונים (GFC)",
+      "checked": [
+        "coco-unified-context-bar",
+        "selects",
+        "search",
+        "reset"
+      ],
+      "found": {
+        "barVisible": false,
+        "chromePresent": false,
+        "hasSearch": false,
+        "selectCount": 0,
+        "hasReset": false,
+        "unifiedBody": false
+      },
+      "fixed": [],
+      "open": [
+        "סרגל סינון לא נראה בדesktop",
+        "מעט selects בסרגל",
+        "כפתור איפוס לא נמצא"
+      ]
+    },
+    "4": {
+      "title": "מובייל",
+      "checked": [
+        "11 מסכים",
+        "overflowX",
+        "גלילה",
+        "console"
+      ],
+      "found": {
+        "screensOk": 11,
+        "overflowScreens": [],
+        "scrollMaxMs": 0.30000000074505806,
+        "mobileErrors": 0
+      },
+      "fixed": [],
+      "open": []
+    },
+    "5": {
+      "title": "זרימת עבודה",
+      "checked": [
+        "agents→goals→actions→history→reports"
+      ],
+      "found": {
+        "chainScreensLoad": true
+      },
+      "fixed": [],
+      "open": []
+    },
+    "6": {
+      "title": "חברות ועסקים",
+      "checked": [
+        "screen-clients"
+      ],
+      "found": {
+        "ok": true
+      },
+      "fixed": [],
+      "open": []
+    },
+    "7": {
+      "title": "CRM",
+      "checked": [
+        "screen-crm"
+      ],
+      "found": {
+        "ok": true
+      },
+      "fixed": [],
+      "open": [
+        "בדיקת עריכה/שמירה דורשת אינטראקציה ידנית/authenticated"
+      ]
+    },
+    "8": {
+      "title": "עוזרי AI",
+      "checked": [
+        "Google",
+        "Google Business",
+        "Search Console",
+        "Analytics",
+        "Google Ads",
+        "YouTube",
+        "Facebook",
+        "Instagram",
+        "TikTok",
+        "LinkedIn",
+        "X",
+        "Pinterest",
+        "WhatsApp",
+        "Meta",
+        "Claude",
+        "ChatGPT",
+        "Gemini",
+        "PageSpeed",
+        "Lighthouse"
+      ],
+      "found": {
+        "hits": [
+          {
+            "platform": "Google",
+            "found": true
+          },
+          {
+            "platform": "Google Business",
+            "found": true
+          },
+          {
+            "platform": "Search Console",
+            "found": true
+          },
+          {
+            "platform": "Analytics",
+            "found": true
+          },
+          {
+            "platform": "Google Ads",
+            "found": true
+          },
+          {
+            "platform": "YouTube",
+            "found": false
+          },
+          {
+            "platform": "Facebook",
+            "found": true
+          },
+          {
+            "platform": "Instagram",
+            "found": true
+          },
+          {
+            "platform": "TikTok",
+            "found": false
+          },
+          {
+            "platform": "LinkedIn",
+            "found": false
+          },
+          {
+            "platform": "X",
+            "found": false
+          },
+          {
+            "platform": "Pinterest",
+            "found": false
+          },
+          {
+            "platform": "WhatsApp",
+            "found": false
+          },
+          {
+            "platform": "Meta",
+            "found": true
+          },
+          {
+            "platform": "Claude",
+            "found": true
+          },
+          {
+            "platform": "ChatGPT",
+            "found": false
+          },
+          {
+            "platform": "Gemini",
+            "found": true
+          },
+          {
+            "platform": "PageSpeed",
+            "found": true
+          },
+          {
+            "platform": "Lighthouse",
+            "found": true
+          }
+        ],
+        "foundCount": 12,
+        "total": 19
+      },
+      "fixed": [],
+      "open": [
+        "YouTube",
+        "TikTok",
+        "LinkedIn",
+        "X",
+        "Pinterest",
+        "WhatsApp",
+        "ChatGPT"
+      ]
+    },
+    "9": {
+      "title": "Google Sheets",
+      "checked": [
+        "CSV export",
+        "webhook field בפעולות"
+      ],
+      "found": {
+        "note": "נבדק בקוד — actions export bar + ActionsDemoCode history קל"
+      },
+      "fixed": [],
+      "open": [
+        "אימות webhook חי דורש URL מוגדר"
+      ]
+    },
+    "10": {
+      "title": "באגים",
+      "checked": [
+        "console",
+        "network",
+        "404/500"
+      ],
+      "found": {
+        "consoleCount": 0,
+        "networkCount": 0,
+        "samples": []
+      },
+      "fixed": [],
+      "open": []
+    },
+    "11": {
+      "title": "ביצועים",
+      "checked": [
+        "load time",
+        "DOM",
+        "actions HTML size"
+      ],
+      "found": {
+        "desktopLoadMs": 1515,
+        "mobileLoadMs": 885,
+        "actionsDomNodes": 15462,
+        "actionsCards": 8,
+        "actionsHtmlLen": 10666,
+        "scrollMaxMs": 3.300000000745058
+      },
+      "fixed": [],
+      "open": []
+    },
+    "12": {
+      "title": "אינטגרציה עם מערכת דליה",
+      "checked": [
+        "קישורי hub",
+        "goScreen"
+      ],
+      "found": {
+        "hubActive": true
+      },
+      "fixed": [],
+      "open": [
+        "מעבר לדשבורד דליה הראשי — לא נבדק ב-automation"
+      ]
+    },
+    "13": {
+      "title": "בדיקת פעולה אמיתית",
+      "checked": [
+        "פתיחת מסך פעולות",
+        "כרטיסי עמוד",
+        "שולחן עבודה"
+      ],
+      "found": {
+        "actionsScreenOk": true,
+        "pageCards": 8,
+        "note": "זרימת demo code + staging approve — ידני"
+      },
+      "fixed": [],
+      "open": []
+    },
+    "14": {
+      "title": "מצב אוטומטי",
+      "checked": [
+        "כפתור data-act-auto-mode",
+        "localStorage dalia-auto-mode-v1"
+      ],
+      "found": {
+        "autoModeButtonCount": 1,
+        "note": "כפתור קיים — תשתית בלבד"
+      },
+      "fixed": [],
+      "open": [
+        "הפעלה אמיתית — מחר"
+      ]
+    }
+  },
+  "consoleErrors": [],
+  "networkErrors": [],
+  "performance": {
+    "desktopLoadMs": 1515,
+    "mobileLoadMs": 885,
+    "actionsDomNodes": 15462,
+    "actionsCards": 8,
+    "actionsHtmlLen": 10666,
+    "scrollMaxMs": 3.300000000745058
+  },
+  "workflow": {},
+  "readinessScore": 83,
+  "readinessPercent": 83,
+  "unresolvedBugs": []
+}
