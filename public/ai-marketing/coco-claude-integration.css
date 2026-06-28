@@ -206,6 +206,56 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
   .coco-rec-desktop { display: block; }
 }
 #coco-live-goals-list .goal-acc-item { scroll-margin-top: 72px; }
+
+/* ===== Actions Workbench (Staging preview) ===== */
+.coco-act-preview-banner {
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: var(--white80);
+  line-height: 1.5;
+}
+.coco-act-page-card { margin-bottom: 14px; overflow: hidden; padding: 0 !important; }
+.coco-act-page-head {
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--bg3);
+}
+.coco-act-page-title { font-weight: 700; font-size: 14px; color: var(--white); }
+.coco-act-page-meta { font-size: 11px; color: var(--white50); margin-top: 4px; line-height: 1.5; }
+.coco-act-path-link { color: var(--accent2); text-decoration: none; }
+.coco-act-page-btns { display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+.coco-act-btn-sm { font-size: 12px !important; padding: 6px 12px !important; min-height: 36px; }
+.coco-act-page-panel { padding: 0 14px 14px; border-top: 1px solid var(--border); }
+.coco-act-item { margin-top: 12px; padding: 14px !important; border-color: rgba(139, 92, 246, 0.35) !important; }
+.coco-act-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.coco-act-item-title { font-size: 13px; font-weight: 700; color: var(--white); }
+.coco-act-item-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.coco-act-ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.coco-act-ba-box { border-radius: 8px; padding: 10px; font-size: 12px; line-height: 1.5; }
+.coco-act-ba-before { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); }
+.coco-act-ba-after { background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); }
+.coco-act-ba-label { font-size: 10px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.03em; }
+.coco-act-ba-before .coco-act-ba-label { color: var(--red); }
+.coco-act-ba-after .coco-act-ba-label { color: var(--green); }
+.coco-act-ba-text { color: var(--white80); word-break: break-word; }
+.coco-act-ba-sub { font-size: 11px; color: var(--white50); margin-top: 8px; }
+.coco-act-ba-meta { font-size: 11px; color: var(--white50); margin-bottom: 10px; line-height: 1.5; padding: 8px 10px; background: var(--bg4); border-radius: 6px; }
+.coco-act-item-footer { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+.coco-act-approval-note { font-size: 10px; color: var(--white50); }
+@media (max-width: 767px) {
+  .coco-act-ba-grid { grid-template-columns: 1fr; }
+  .coco-act-page-btns { width: 100%; }
+  .coco-act-page-btns .btn { flex: 1; text-align: center; min-height: 44px; }
+  .coco-act-item-footer .btn { width: 100%; min-height: 44px; }
+}
 body.coco-boot-active #coco-live-hub-kpis .card-value,
 body.coco-boot-active #coco-live-command-center .card-value { visibility: hidden; }
 body.dalia-live-only:not(.coco-boot-active) #coco-live-hub-kpis .card-value,

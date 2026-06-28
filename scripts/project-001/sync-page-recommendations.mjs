@@ -11,6 +11,7 @@ const INDEX_PATH = join(P001.root, 'public', 'project-001', 'site-pages-index.js
 const DASH_PATH = join(P001.root, 'public', 'project-001', 'dashboard.json');
 const TYPES_PATH = join(P001.root, 'public', 'project-001', 'marketing-recommendation-types.json');
 const AUDIT_PATH = join(P001.root, 'docs', 'audit-reports', 'dalia-site-full-audit', 'report.json');
+const CRAWL_PATH = join(P001.root, 'docs', 'audit-reports', 'dalia-site-full-audit', 'site-crawl-full.json');
 
 const typesDoc = JSON.parse(readFileSync(TYPES_PATH, 'utf8'));
 const REC_TYPES = typesDoc.types;
@@ -46,6 +47,155 @@ function buildAuditMap() {
   if (!existsSync(AUDIT_PATH)) return new Map();
   const audit = JSON.parse(readFileSync(AUDIT_PATH, 'utf8'));
   return new Map(audit.pages.map((p) => [normPath(p.url), p]));
+}
+
+function buildCrawlMap() {
+  if (!existsSync(CRAWL_PATH)) return new Map();
+  try {
+    const crawl = JSON.parse(readFileSync(CRAWL_PATH, 'utf8'));
+    const pages = crawl.crawl?.pages || crawl.pages || [];
+    return new Map(pages.map((p) => [normPath(p.url), p]));
+  } catch {
+    return new Map();
+  }
+}
+
+function inferImpact(typeId, page) {
+  const seo = ['title', 'meta', 'h1', 'h2', 'keywords', 'content', 'schema', 'pageSpeed', 'mobile', 'performance', 'internalLinks'];
+  const conv = ['cta', 'forms', 'conversion'];
+  const ux = ['ux', 'accessibility', 'alt'];
+  const parts = [];
+  if (seo.includes(typeId)) parts.push('SEO: גבוה');
+  if (conv.includes(typeId)) parts.push('המרות: גבוה');
+  if (ux.includes(typeId)) parts.push('UX: בינוני');
+  if ((page.gsc?.clicks || 0) > 0 || (page.ga4Views || 0) > 50) parts.push('לידים: בינוני');
+  if (typeId === 'aiAdditional') parts.push('AI: המלצה');
+  return parts.length ? parts.join(' · ') : 'SEO: בינוני · UX: בינוני';
+}
+
+function buildBeforeAfter(page, rec) {
+  const typeId = rec.typeId;
+  const fixes = page.fixes || {};
+  const impl = page.implementationPackage || {};
+  const checklist = page.checklist || {};
+  const detail = rec.detail || fixes[typeId] || '—';
+
+  let current = '—';
+  let proposed = detail;
+  let problem = '';
+  let why = '';
+  let after = proposed;
+  let impact = inferImpact(typeId, page);
+
+  switch (typeId) {
+    case 'title':
+      current = page.crawlTitle || page.title || 'לא זוהה בקרול';
+      proposed = impl.title?.value || fixes.title || detail;
+      after = proposed;
+      problem = checklist.title === 'fail' ? 'Title לא ממוקד / חלש ל-SEO' : 'Title דורש שיפור לפני יישום';
+      why = 'Title הוא אחד מגורמי הדירוג העיקריים בתוצאות Google';
+      break;
+    case 'meta': {
+      current = page.crawlMeta || page.metaDescription || 'חסר / לא זוהה';
+      proposed = impl.meta?.value || fixes.meta || detail;
+      after = proposed;
+      const len = String(current).length;
+      if (!current || current === 'חסר / לא זוהה') problem = 'Meta Description חסר';
+      else if (len > 160) problem = `Meta ארוך מדי (${len} תווים — יעד 120–155)`;
+      else problem = 'Meta לא ממוקד עם CTA ברור';
+      why = 'Meta Description משפיע ישירות על CTR בתוצאות החיפוש';
+      break;
+    }
+    case 'h1':
+      current = page.crawlH1 || page.h1 || 'לא זוהה';
+      proposed = fixes.h1 || detail;
+      after = proposed;
+      problem = checklist.h1 === 'fail' ? 'H1 חסר או לא תקין' : 'H1 דורש התאמה למילות מפתח';
+      why = 'H1 מגדיר את נושא העמוד למנועי חיפוש';
+      break;
+    case 'h2':
+      current = (page.crawlH2Count != null ? `${page.crawlH2Count} כותרות H2` : 'מבנה H2 קיים');
+      proposed = detail;
+      after = 'מבנה H2 עם מילות מפתח רלוונטיות';
+      problem = checklist.h2 === 'fail' ? 'מבנה H2 חלש' : 'ניתן לשפר היררכיית כותרות';
+      why = 'H2 מסייע לסкан ולדירוג long-tail';
+      break;
+    case 'alt': {
+      const altIssue = (page.issues || []).find((i) => String(i).startsWith('images_without_alt'));
+      const n = altIssue ? altIssue.split(':')[1] : (impl.alt?.count || '?');
+      current = `${n} תמונות ללא alt`;
+      proposed = impl.alt?.note || fixes.alt || detail;
+      after = `alt בעברית + מילת מפתח ב-${n} תמונות (Elementor Image widget)`;
+      problem = `${n} תמונות חסרות alt — פוגע ב-SEO ובנגישות`;
+      why = 'Alt tags משפרים SEO תמונות ונגישות';
+      impact = 'SEO: גבוה · UX: גבוה · נגישות: גבוה';
+      break;
+    }
+    case 'keywords': {
+      const gsc = page.gsc || {};
+      current = gsc.impressions ? `${gsc.impressions} חשיפות · מיקום ${(gsc.position || 0).toFixed(1)}` : 'אין נתוני GSC';
+      proposed = detail;
+      after = 'הרחבת כיסוי מילות מפתח + שיפור מיקום';
+      problem = gsc.impressions > 10 ? 'נפח חיפוש קיים — ניתן לשפר מיקום' : 'כיסוי מילות מפתח נמוך';
+      why = 'מילות מפתח מניעות תנועה אורגנית ממוקדת';
+      impact = 'SEO: גבוה · לידים: בינוני';
+      break;
+    }
+    case 'pageSpeed':
+    case 'performance':
+      current = page.pageSpeedScore != null ? `PageSpeed ${page.pageSpeedScore}/100` : (page.pageSpeedNote || 'לא נמדד');
+      proposed = fixes.pageSpeed || detail;
+      after = 'PageSpeed 80+ · LCP < 2.5s · תמונות WebP + lazy load';
+      problem = page.pageSpeedScore != null && page.pageSpeedScore < 80 ? `ציון ${page.pageSpeedScore} — מתחת ליעד 80` : 'ביצועים דורשים מדידה/שיפור';
+      why = 'מהירות משפיעה על דירוג (Core Web Vitals) ועל המרות במובייל';
+      impact = 'SEO: גבוה · המרות: גבוה · UX: גבוה';
+      break;
+    case 'content':
+      current = page.contentStatus || `ציון SEO ${page.seoScore ?? '—'}/10`;
+      proposed = (page.improvements || [])[0] || detail;
+      after = 'תוכן ממוקד מילות מפתח + ערך ללקוח';
+      problem = detail;
+      why = 'תוכן איכותי מחזק דירוג ואמון';
+      break;
+    case 'conversion':
+      current = page.conversionStatus || (page.ga4Views ? `${page.ga4Views} צפיות GA4` : '—');
+      proposed = detail;
+      after = 'מסלול המרה ברור: CTA + טופס/וואטסאפ';
+      problem = 'פוטנציאל המרה לא ממומש במלואו';
+      why = 'עמודי המרה צריכים CTA ברור';
+      impact = 'המרות: גבוה · לידים: גבוה';
+      break;
+    case 'forms':
+    case 'cta':
+      current = typeId === 'forms' ? 'טופס/יצירת קשר — לבדיקה' : 'CTA — לבדיקה';
+      proposed = detail;
+      after = typeId === 'forms' ? 'טופס + טלפון + וואטסאפ זמינים' : 'CTA בולט מעל הקיפול';
+      problem = detail;
+      why = 'שיפור נקודות המרה בעמוד';
+      impact = 'המרות: גבוה · לידים: גבוה';
+      break;
+    case 'aiAdditional':
+      current = page.aiSummary || 'מצב נוכחי לפי ביקורת AI';
+      proposed = detail;
+      after = detail;
+      problem = 'המלצת AI נוספת לשיפור העמוד';
+      why = page.aiSummary || 'שיפור מקיף לפי ניתוח AI';
+      impact = 'SEO: בינוני · UX: בינוני';
+      break;
+    default:
+      current = rec.status === 'ok' ? 'תקין' : `סטטוס: ${rec.status}`;
+      proposed = fixes[typeId] || detail;
+      after = proposed !== '—' ? proposed : `יושם לפי המלצת ${rec.labelHe}`;
+      problem = rec.status === 'fail' ? `${rec.labelHe} לא עבר בדיקה` : `${rec.labelHe} דורש שיפור`;
+      why = detail;
+  }
+
+  if (!problem) problem = rec.status === 'fail' ? `${rec.labelHe} — לא תקין` : `${rec.labelHe} — דורש שיפור`;
+  if (!why || why === '—') why = detail !== '—' ? detail : 'שיפור יועיל לדירוג ולחוויית המשתמש';
+  if (!after || after === '—') after = proposed !== '—' ? proposed : detail;
+  if (!current || current === '—') current = `מצב נוכחי: ${rec.labelHe} (${rec.status})`;
+
+  return { current, problem, proposed, after, why, impact, source: rec.source };
 }
 
 function buildIndexMap() {
@@ -279,8 +429,10 @@ function mergeActions(plan, pages, campaignId) {
         pageId: page.id,
         pagePath: page.path,
         pageUrl: page.url,
+        pageTitle: page.title,
         campaignId,
         detail: rec.detail,
+        beforeAfter: buildBeforeAfter(page, rec),
         createdAt: prev?.createdAt || now,
         updatedAt: now,
       });
@@ -314,14 +466,28 @@ function buildPageGoals(pages, campaignId) {
 export function syncPageRecommendations(options = {}) {
   const plan = JSON.parse(readFileSync(PLAN_PATH, 'utf8'));
   const auditMap = buildAuditMap();
+  const crawlMap = buildCrawlMap();
   const indexMap = buildIndexMap();
   const campaignId = plan.campaign?.id || 'campaign-dalia-seo-primary';
   const now = new Date().toISOString();
 
   const pages = (plan.pages || []).map((page) => {
     const auditPage = auditMap.get(normPath(page.url));
+    const crawlPage = crawlMap.get(normPath(page.url));
     const indexPage = indexMap.get(normPath(page.url));
-    const merged = { ...indexPage, ...page, ...(auditPage ? { h1: auditPage.h1, metaDescription: auditPage.metaDescription } : {}) };
+    const merged = {
+      ...indexPage,
+      ...page,
+      ...(auditPage ? { h1: auditPage.h1, metaDescription: auditPage.metaDescription } : {}),
+      ...(crawlPage
+        ? {
+            crawlTitle: crawlPage.title,
+            crawlMeta: crawlPage.metaDescription,
+            crawlH1: crawlPage.h1,
+            crawlH2Count: Array.isArray(crawlPage.h2) ? crawlPage.h2.length : 0,
+          }
+        : {}),
+    };
 
     const recommendations = REC_TYPES.map((typeDef) => evaluateRecommendation(merged, typeDef, auditPage));
     recommendations.sort((a, b) => a.order - b.order);

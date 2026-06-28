@@ -730,6 +730,18 @@
   }
 
   function renderActionsPages(bundle) {
+    if (window.ActionsWorkbench && ActionsWorkbench.render) {
+      var n = ActionsWorkbench.render(bundle, {
+        applyCtxFilter: applyCtxFilter,
+        deriveActions: deriveActions,
+        setHtml: setHtml,
+        statusBadge: statusBadge,
+        emptyStatus: emptyStatus,
+        isLiveGoalsActionsMode: isLiveGoalsActionsMode,
+      });
+      hideLegacyGoalsActionsUi('screen-actions');
+      return n;
+    }
     var actions = applyCtxFilter(deriveActions(bundle), function (a) {
       return { action: a.category, status: a.status, campaign: a.campaignId };
     });
@@ -781,7 +793,7 @@
     ensureLiveMount('coco-live-actions-done', 'screen-actions', 'tab-act-done');
     var count = renderActionsPages(bundle || state.bundle);
     if (count > 0 || !isLiveGoalsActionsMode()) return;
-    var existing = document.querySelectorAll('#coco-live-actions-pending .action-card').length;
+    var existing = document.querySelectorAll('#coco-live-actions-pending .coco-act-page-card, #coco-live-actions-pending .action-card').length;
     if (existing >= 50) return;
     setHtml('coco-live-actions-pending', emptyStatus('טוען פעולות מ-SSOT…'));
     hideLegacyGoalsActionsUi('screen-actions');
