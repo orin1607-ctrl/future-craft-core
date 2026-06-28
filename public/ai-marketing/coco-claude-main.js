@@ -307,6 +307,14 @@ function goScreen(id, opts) {
   if (id === 'screen-ai-decisions') id = 'screen-ai-center';
   var root = document.getElementById('coco-claude-root');
   var screens = root ? root.querySelectorAll(':scope > .screen') : document.querySelectorAll('.screen');
+  var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+  var prevActive = root ? root.querySelector(':scope > .screen.active') : document.querySelector('.screen.active');
+  if (isMobile && prevActive && prevActive.id === 'screen-actions' && id !== 'screen-actions') {
+    var prevContent = prevActive.querySelector('.content');
+    if (prevContent) {
+      try { sessionStorage.setItem('coco-actions-scroll-m', String(prevContent.scrollTop || 0)); } catch (e) { /* ignore */ }
+    }
+  }
   screens.forEach(function (s) { s.classList.remove('active'); });
   var el = null;
   if (root) {
@@ -316,11 +324,19 @@ function goScreen(id, opts) {
   }
   if (el) {
     el.classList.add('active');
-    var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
     var skipScroll = opts.preserveScroll || (id === 'screen-actions' && isMobile);
     if (!skipScroll) {
       var content = el.querySelector('.content');
       if (content) content.scrollTo(0, 0);
+    } else if (id === 'screen-actions' && isMobile) {
+      var saved = 0;
+      try { saved = parseInt(sessionStorage.getItem('coco-actions-scroll-m') || '0', 10) || 0; } catch (e2) { saved = 0; }
+      if (saved > 0) {
+        requestAnimationFrame(function () {
+          var c = el.querySelector('.content');
+          if (c) c.scrollTop = saved;
+        });
+      }
     }
   }
   if (id !== 'screen-crm') clearNestedActiveScreens(root);

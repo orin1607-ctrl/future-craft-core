@@ -1,95 +1,342 @@
 {
-  "at": "2026-06-28T21:05:04.847Z",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-1",
-  "uiVersion": "v3-open-gaps-1",
-  "commitHash": "69efecd",
+  "at": "2026-06-28T21:09:55.717Z",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-2",
+  "uiVersion": "v3-open-gaps-2",
+  "commitHash": "",
   "tasks": {
     "1-mobile": {
+      "screens": [
+        {
+          "id": "screen-hub",
+          "name": "Dashboard",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 20,
+          "clicked": 1
+        },
+        {
+          "id": "screen-status",
+          "name": "מצב נוכחי",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 18,
+          "clicked": 0
+        },
+        {
+          "id": "screen-clients",
+          "name": "חברות ועסקים",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 9,
+          "clicked": 0
+        },
+        {
+          "id": "screen-crm",
+          "name": "CRM",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 56,
+          "clicked": 0
+        },
+        {
+          "id": "screen-goals",
+          "name": "מטרות",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 58,
+          "clicked": 0
+        },
+        {
+          "id": "screen-actions",
+          "name": "פעולות",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 64,
+          "clicked": 0
+        },
+        {
+          "id": "screen-history",
+          "name": "היסטוריה",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 8,
+          "clicked": 0
+        },
+        {
+          "id": "screen-assets",
+          "name": "נכסים דיגיטליים",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 8,
+          "clicked": 0
+        },
+        {
+          "id": "screen-ai-center",
+          "name": "החלטות AI",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 19,
+          "clicked": 0
+        },
+        {
+          "id": "screen-reports",
+          "name": "דוחות",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 11,
+          "clicked": 0
+        },
+        {
+          "id": "screen-agents",
+          "name": "עוזרי AI",
+          "active": true,
+          "overflowX": false,
+          "clickableCount": 43,
+          "clicked": 0
+        }
+      ],
       "bootFlash": {
         "cocoReady": true,
         "bootActive": false,
-        "activeScreens": [
-          "screen-hub"
-        ]
+        "hiddenScreensUntilReady": false
       },
       "actionsScroll": {
+        "scrollTop": 0,
         "preserved": false,
-        "scrollTop": 0
+        "jumpedToTop": true
       },
       "paste": {
         "found": true,
-        "valueLen": 49,
-        "ok": true
+        "valueLen": 82,
+        "ok": true,
+        "afterWait": true
       },
-      "autoModeList": true,
-      "autoModeAfterBack": true,
-      "homeBtn": {
-        "found": true,
-        "toast": true,
-        "hasPrdNav": true
+      "autoMode": {
+        "inList": true,
+        "exportBar": true
       },
-      "overflow": true
+      "overflow": {
+        "doc": true,
+        "actions": true
+      },
+      "modals": []
     },
     "2-paste": {
       "found": true,
-      "valueLen": 49,
-      "ok": true
+      "valueLen": 82,
+      "ok": true,
+      "afterWait": true
     },
     "3-auto-mode": {
-      "inWorkbench": true,
-      "inList": true
+      "inList": true,
+      "exportBar": true
+    },
+    "4-sheets": {
+      "sheetsWebhookUrl": "",
+      "hasExportBar": true,
+      "hasSheetsInput": true,
+      "canExport": false
+    },
+    "5-crm": {
+      "hasEdit": true,
+      "hasSave": true,
+      "modal": true,
+      "editBtn": false,
+      "saveTest": true,
+      "crmActive": true
+    },
+    "6-agents": {
+      "agents": [
+        {
+          "id": "gsc",
+          "name": "Google Search Console AI",
+          "status": "DEMO_STATIC_UI",
+          "requiresLiveApi": false
+        },
+        {
+          "id": "ga4",
+          "name": "Google Analytics GA4 AI",
+          "status": "DEMO_STATIC_UI",
+          "requiresLiveApi": false
+        },
+        {
+          "id": "pagespeed",
+          "name": "PageSpeed + Lighthouse AI",
+          "status": "DEMO_STATIC_UI",
+          "requiresLiveApi": false
+        },
+        {
+          "id": "project001",
+          "name": "Project 001 AI",
+          "status": "DEMO_STATIC_UI",
+          "requiresLiveApi": false
+        },
+        {
+          "id": "cms",
+          "name": "CMS / Website AI",
+          "status": "DEMO_STATIC_UI",
+          "requiresLiveApi": false
+        },
+        {
+          "id": "seotools",
+          "name": "SEO Tools AI",
+          "status": "DEMO_STATIC_UI",
+          "requiresLiveApi": false
+        },
+        {
+          "id": "gbp",
+          "name": "Google Business Profile AI",
+          "status": "PARTIAL_UI_ONLY",
+          "requiresLiveApi": true
+        },
+        {
+          "id": "ads",
+          "name": "Google Ads AI",
+          "status": "DEMO_STATIC_UI",
+          "requiresLiveApi": false
+        },
+        {
+          "id": "meta",
+          "name": "Meta / Facebook / Instagram AI",
+          "status": "DEMO_STATIC_UI",
+          "requiresLiveApi": false
+        },
+        {
+          "id": "cursor",
+          "name": "Cursor AI",
+          "status": "DEMO_STATIC_UI",
+          "requiresLiveApi": false
+        },
+        {
+          "id": "chatgpt",
+          "name": "ChatGPT AI",
+          "status": "STUB_INFRASTRUCTURE",
+          "requiresLiveApi": true
+        },
+        {
+          "id": "claude",
+          "name": "Claude AI",
+          "status": "STUB_INFRASTRUCTURE",
+          "requiresLiveApi": true
+        },
+        {
+          "id": "gemini",
+          "name": "Gemini AI",
+          "status": "STUB_INFRASTRUCTURE",
+          "requiresLiveApi": true
+        },
+        {
+          "id": "youtube",
+          "name": "YouTube AI",
+          "status": "STUB_INFRASTRUCTURE",
+          "requiresLiveApi": true
+        },
+        {
+          "id": "tiktok",
+          "name": "TikTok AI",
+          "status": "STUB_INFRASTRUCTURE",
+          "requiresLiveApi": true
+        },
+        {
+          "id": "linkedin",
+          "name": "LinkedIn AI",
+          "status": "STUB_INFRASTRUCTURE",
+          "requiresLiveApi": true
+        },
+        {
+          "id": "xtwitter",
+          "name": "X AI",
+          "status": "STUB_INFRASTRUCTURE",
+          "requiresLiveApi": true
+        },
+        {
+          "id": "pinterest",
+          "name": "Pinterest AI",
+          "status": "STUB_INFRASTRUCTURE",
+          "requiresLiveApi": true
+        },
+        {
+          "id": "whatsapp",
+          "name": "WhatsApp Business AI",
+          "status": "STUB_INFRASTRUCTURE",
+          "requiresLiveApi": true
+        },
+        {
+          "id": "manager",
+          "name": "AI Marketing Manager – Project 001",
+          "status": "DEMO_STATIC_UI",
+          "requiresLiveApi": false
+        }
+      ],
+      "stubCount": 9
     },
     "7-workflow": {
       "steps": [
         {
           "name": "agents",
           "ok": true,
-          "detail": true
+          "detail": ""
         },
         {
           "name": "goals",
           "ok": true,
-          "detail": true
+          "detail": ""
         },
         {
           "name": "actions",
           "ok": true,
-          "detail": true
+          "detail": ""
         },
         {
           "name": "workbench",
           "ok": true,
-          "detail": true
+          "detail": ""
         },
         {
           "name": "work-card",
           "ok": true,
-          "detail": true
+          "detail": ""
         },
         {
           "name": "demo-code",
           "ok": true,
+          "detail": "<p>E2E workflow</p>"
+        },
+        {
+          "name": "preview",
+          "ok": true,
           "detail": true
+        },
+        {
+          "name": "approve",
+          "ok": true,
+          "detail": ""
         },
         {
           "name": "history",
           "ok": true,
-          "detail": true
+          "detail": ""
         },
         {
           "name": "reports",
           "ok": true,
-          "detail": true
+          "detail": ""
+        },
+        {
+          "name": "back-to-agents",
+          "ok": true,
+          "detail": ""
         }
       ],
-      "pass": 8,
-      "total": 8
+      "pass": 11,
+      "total": 11
     },
-    "5-crm": {
-      "hasEdit": true,
-      "hasSave": true,
-      "modal": true,
-      "crmActive": true
+    "8-dalia-nav": {
+      "before": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-2&customer=dalia-c-official",
+      "after": "https://orin1607-ctrl.github.io/future-craft-core/admin-home",
+      "navigated": true,
+      "hasPrdDaliaNav": false,
+      "homeUrl": null
     }
   }
 }

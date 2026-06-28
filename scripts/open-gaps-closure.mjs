@@ -6,7 +6,7 @@ import { chromium, devices } from 'playwright';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
-const VER = process.env.QA_UI_VERSION || 'v3-open-gaps-2';
+const VER = process.env.QA_UI_VERSION || 'v3-open-gaps-3';
 const STAGING = `https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=${VER}`;
 const OUT = join(process.cwd(), 'docs', 'audit-reports', 'open-gaps-closure');
 mkdirSync(OUT, { recursive: true });
@@ -39,15 +39,18 @@ const report = {
 async function boot(page) {
   const errs = [];
   page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text().slice(0, 200)); });
-  await page.goto(STAGING, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await page.waitForFunction(() => typeof window.goScreen === 'function', { timeout: 90000 });
-  await page.waitForSelector('#coco-claude-root.coco-ready', { timeout: 45000 }).catch(() => {});
-  await page.waitForTimeout(2500);
+  await page.goto(STAGING, { waitUntil: 'networkidle', timeout: 120000 }).catch(async () => {
+    await page.goto(STAGING, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  });
+  await page.waitForFunction(() => typeof window.goScreen === 'function', { timeout: 120000 });
+  await page.waitForSelector('#coco-claude-root.coco-ready, #screen-hub', { timeout: 60000 });
+  await page.waitForTimeout(3000);
   return errs;
 }
 
 async function runMobile11(page) {
   const r = { screens: [], bootFlash: null, actionsScroll: null, paste: null, autoMode: null, overflow: null, modals: [] };
+  await boot(page);
 
   r.bootFlash = await page.evaluate(() => ({
     cocoReady: document.getElementById('coco-claude-root')?.classList.contains('coco-ready'),
@@ -83,7 +86,7 @@ async function runMobile11(page) {
   await page.evaluate(() => goScreen('screen-goals'));
   await page.waitForTimeout(200);
   await page.evaluate(() => goScreen('screen-actions'));
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(900);
   r.actionsScroll = await page.evaluate(() => {
     const el = document.querySelector('#screen-actions .content');
     const top = el ? el.scrollTop : window.scrollY;

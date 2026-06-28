@@ -1,214 +1,199 @@
 # דוח סגירת פערים — מערכת ניהול שיווק (Orin Staging)
 
 **תאריך:** 2026-06-29  
-**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-1  
-**Commit:** `69efecd`  
-**Cache:** `v3-open-gaps-1`
+**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-3  
+**Commits:** `69efecd`, `821591f`, *(עדכון scroll)*  
+**Cache:** `v3-open-gaps-3`
 
 ---
 
-## 1. באגים במובייל (390px)
+## 1. מובייל (11 מסכים)
 
 ### איך בדקת
-Playwright iPhone 12 Pro / viewport 390×844 (`scripts/open-gaps-closure.mjs`) על שרת מקומי לפני deploy; בדיקות ידניות-סגנון: כניסה לפעולות, workbench, accordion, overflow.
+Playwright iPhone 13 (390×844) — `node scripts/open-gaps-closure.mjs`: ניווט לכל 11 המסכים, לחיצה על hub-card, בדיקת overflow, כניסה חוזרת לפעולות אחרי גלילה, workbench + accordion.
+
+**לא בוצעה בדיקה ידנית על מכשיר פיזי** — רק סימולציית מובייל ב-Playwright.
 
 ### מה בדיוק עשית
-- `goScreen`: ביטול `scrollTo(0,0)` בכניסה ל-`screen-actions` במובייל (≤767px).
-- `refreshPendingDom`: שמירה/שחזור `scrollTop` של `.content` לפני/אחרי rerender.
-- `syncDemoFieldsFromDom` לפני rerender — מונע איבוד תוכן שדות.
-- Boot: הסרת `.active` ממסכים בטעינה + `#coco-claude-root:not(.coco-ready) > .screen { display:none }` + מחלקה `coco-ready` בסיום boot.
+- `goScreen`: ללא `scrollTo(0,0)` במובייל ל-`screen-actions`; שמירת/שחזור `scrollTop` ב-`sessionStorage` (`coco-actions-scroll-m`) ביציאה/כניסה.
+- `refreshPendingDom`: שמירת scroll לפני rerender + `restoreInlineFields`.
+- Boot: הסתרת מסכים עד `coco-ready`; הסרת `.active` בטעינה.
 
 ### מה הייתה התוצאה
-- Boot: `cocoReady=true`, מסך פעיל יחיד `screen-hub`, ללא flash של מסכים אחרים.
-- Overflow אופקי: לא זוהה (`overflow: true`).
-- כפתורים / modals / workbench: נפתחים; paste ו-auto-mode נבדקו (ראו משימות 2–3).
-- גלילה: כניסה ראשונה ממסך אחר מאפסת scroll של מסך הפעולות (צפוי); rerender פנימי משחזר scroll.
+- **11/11** מסכים פעילים, **ללא overflowX**.
+- Boot: `cocoReady=true`, `bootActive=false`.
+- גלילה בפעולות: נבדק שוב ב-`v3-open-gaps-3` (שחזור scroll בחזרה ממטרות).
+- כפתור hub נלחץ; CRM/מודאלים — לא נלחץ כל כפתור בכל מסך (מגבלת אוטומציה).
 
 ### מה תיקנת
-קפיצה לראש בכניסה (mobile), flash ב-boot, איבוד scroll ב-rerender.
+קפיצה לראש בפעולות, flash ב-boot, איבוד scroll ב-rerender.
 
 ### מה עדיין חסר
-אימות חוזר על GH Pages live אחרי deploy (לא רק localhost).
+אימות **ידני** על טלפון אמיתי (מומלץ מחר בבוקר).
+
+### קבצים
+`coco-claude-main.js`, `actions-workbench.js`, `coco-claude-integration.css`, `ai-marketing-platform.html`
 
 ---
 
-## 2. הדבקת קוד (Demo Code)
+## 2. הדבקת קוד
 
 ### איך בדקת
-Playwright: `fill()` ל-`[data-demo-inline="html"]` עם HTML מ-Claude-style; בדיקת אורך ותוכן.
+Playwright: `fill()` ל-`[data-demo-inline="html"]` עם HTML+CSS; בדיקה אחרי 500ms.
 
 ### מה בדיוק עשית
-- CSS: `user-select: text`, `touch-action: manipulation` על `.coco-act-code-input`, `.coco-act-lite-editor`, `.coco-act-fb-input`.
-- `paste` listener ב-workbench + modal ב-`actions-demo-code.js`.
-- `syncDemoFieldsFromDom` לפני rerender.
+- Textareas ריקים ב-HTML + `restoreInlineFields()` אחרי rerender (מונע שבירת `</textarea>` ו-entity escape).
+- `paste` + `input` listeners; `user-select: text`, `touch-action: manipulation`.
 
 ### מה הייתה התוצאה
-`paste.ok=true`, `valueLen=49`, תוכן `<div class="qa-paste">` נשמר.
+`paste.ok=true`, `afterWait=true` — תוכן נשמר אחרי rerender.
 
 ### מה תיקנת
-הדבקה/מילוי לשדה HTML inline ו-modal.
+הדבקה שנמחקה/נשברה בגלל rerender ו-escapeHtml.
 
 ### מה עדיין חסר
-בדיקת paste אמיתי מ-clipboard במכשיר físי (Playwright משתמש ב-fill).
+בדיקת הדבקה **ידנית** מ-Claude/ChatGPT על iOS/Android.
+
+### קבצים
+`actions-demo-code.js`, `actions-workbench.js`, `coco-claude-integration.css`
 
 ---
 
-## 3. כפתור מצב אוטומטי `[data-act-auto-mode]`
+## 3. מצב אוטומטי
 
 ### איך בדקת
-Playwright: חיפוש DOM ב-workbench וברשימה אחרי "חזרה לרשימה".
+Playwright במסך פעולות — חיפוש `[data-act-auto-mode]` ו-`.coco-act-lite-export-bar`.
 
 ### מה בדיוק עשית
-הוספת `renderExportBar()` גם ל-`renderWorkbenchView` (לפני היה רק ב-list view — המשתמש ב-workbench לא ראה את הכפתור).
+הוספת `renderExportBar()` גם ל**תצוגת רשימה** (לא רק workbench).
 
 ### מה הייתה התוצאה
-`inWorkbench: true`, `inList: true`.
+`inList=true`, `exportBar=true` — כפתור **🤖 מצב אוטומטי** בראש מסך הפעולות (תשתית בלבד, לא פעיל).
 
 ### מה תיקנת
-נראות הכפתור בשולחן עבודה (באג mount — לא redesign).
+כפתור שלא היה גלוי ברשימה — היה רק בתוך workbench.
 
 ### מה עדיין חסר
-—
+הפעלת מצב אוטומטי אמיתי (מכוון כתשתית).
+
+### קבצים
+`actions-workbench.js`
 
 ---
 
 ## 4. Google Sheets
 
 ### איך בדקת
-חיפוש repo: `dalia-actions-export-config-v1`, `[data-act-sheets-url]`, `exportActionsCsv`; אין webhook URL ב-env/docs.
+בדיקת `localStorage` + שדה webhook במסך פעולות על Staging live.
 
 ### מה בדיוק עשית
-- יצירת תבנית Apps Script: `docs/integrations/dalia-actions-sheets-webhook.gs`
-- שדה webhook + export CSV קיימים ב-`actions-workbench.js` (לא שונה).
+- תבנית Apps Script: `docs/integrations/dalia-actions-sheets-webhook.gs`
+- מדריך: `docs/integrations/SHEETS-WEBHOOK-SETUP-HE.md`
 
 ### מה הייתה התוצאה
-**לא ניתן לבדוק POST חי** — `sheetsWebhookUrl` ריק.
+`sheetsWebhookUrl` **ריק** — `canExport=false`. **לא בוצעה שליחה אמיתית לגיליון.**
 
 ### מה תיקנת
-תבנית + תיעוד deployment (לא URL אמיתי).
+תיעוד + תבנית script (לא webhook פרוס).
 
-### מה עדיין חסר (חוסם)
-1. **Sheet ID** — ליצור Google Sheet או להשתמש בקיים  
-2. **Script Properties:** `SPREADSHEET_ID`  
-3. **Deploy** Web App → URL  
-4. **הדבקה** בשדה `[data-act-sheets-url]` או `localStorage.dalia-actions-export-config-v1`
+### מה עדיין חסר (נדרש ממך)
+1. Google Sheet + `SPREADSHEET_ID` ב-Script Properties  
+2. Deploy Web App → URL  
+3. הדבקה בשדה במסך פעולות  
 
 ---
 
-## 5. CRM — עריכה / שמירת לקוח
+## 5. CRM — עריכה ושמירה
 
 ### איך בדקת
-Playwright: `DaliaCrm.openEditCustomer`, `submitEditCustomer`, `#modal-edit-customer` אחרי `goScreen('screen-crm')`.
+Playwright: `DaliaCrm.openEditCustomer`, `submitEditCustomer`, `modal-edit-customer`; יצירת ליד בדיקה.
 
 ### מה בדיוק עשית
-- מודאל `modal-edit-customer` ב-`dalia-crm-screens.html`
-- כפתור "✏️ ערוך" בכרטיס לקוח
-- `openEditCustomer` / `submitEditCustomer` → `MarketingApi.updateCustomer` (+ `CrmApi.updateLead` להערות)
-- `CrmApi.updateCustomer` wrapper; `updateLead` עם localStorage fallback
+- מודאל `modal-edit-customer` + כפתור **✏️ ערוך** בכרטיס לקוח.
+- `updateCustomer` / `updateLead` עם fallback ל-localStorage על GH Pages.
 
 ### מה הייתה התוצאה
-`hasEdit: true`, `hasSave: true`, `modal: true`.
+`hasEdit=true`, `hasSave=true`, `modal=true`, `saveTest=true` (יצירת ליד).  
+`editBtn=false` ברשימה — כפתור עריכה מופיע **רק אחרי פתיחת לקוח** (`cc-edit-btn`).
 
 ### מה תיקנת
-עריכה/שמירה מינימלית (שם, איש קשר, טלפון, אימייל, הערות).
+עריכה/שמירה שלא היו קיימים.
 
 ### מה עדיין חסר
-E2E מלא create→edit→save על GH Pages עם localStorage (לא רץ ב-playwright script — רק presence).
+סנכронização Supabase CRM ב-production credentials; בדיקה ידנית: פתיחת לקוח → ערוך → שמור.
+
+### קבצים
+`dalia-crm-app.js`, `dalia-crm-screens.html`, `crm-api.js`
 
 ---
 
-## 6. מלאי AI Agents (AGENT_DATA)
+## 6. עוזרי AI — מצב אמיתי
 
 ### איך בדקת
-קריאת `coco-claude-main.js` — `AGENT_DATA`, `_platformAgentStub`, `openAgentDashboard`.
+קריאת `AGENT_DATA` ב-runtime על Staging.
 
-| Agent | סטטוס | הערה |
-|-------|--------|------|
-| gsc | INFRASTRUCTURE | דשבורד סטטי AGENT_DATA, ללא GSC API חי |
-| ga4 | INFRASTRUCTURE | סטטי |
-| pagespeed | INFRASTRUCTURE | סטטי |
-| project001 | INFRASTRUCTURE | סטטי |
-| cms | INFRASTRUCTURE | סטטי |
-| seotools | INFRASTRUCTURE | סטטי |
-| gbp | INFRASTRUCTURE | סטטי (status running מדומה) |
-| ads | INFRASTRUCTURE | סטטי |
-| meta | INFRASTRUCTURE | סטטי |
-| cursor | INFRASTRUCTURE | סטטי |
-| manager | INFRASTRUCTURE | אggregation סטטי |
-| chatgpt | STUB | `_platformAgentStub` |
-| claude | STUB | `_platformAgentStub` |
-| gemini | STUB | `_platformAgentStub` |
-| youtube | STUB | `_platformAgentStub` |
-| tiktok | STUB | `_platformAgentStub` |
-| linkedin | STUB | `_platformAgentStub` |
-| xtwitter | STUB | `_platformAgentStub` |
-| pinterest | STUB | `_platformAgentStub` |
-| whatsapp | STUB | `_platformAgentStub` |
+### סיכום (20 עוזרים)
 
-**אין סוכן שסומן WORKING** — אין חיבור API חי ב-GH Pages Staging.
+| סטטוס | עוזרים |
+|--------|--------|
+| **DEMO_STATIC_UI** — UI + נתוני דמו, **לא API חי** | gsc, ga4, pagespeed, project001, cms, seotools, ads, meta, cursor, manager |
+| **PARTIAL_UI_ONLY** | gbp (סריקה "running", ללא העברה) |
+| **STUB_INFRASTRUCTURE** — כרטיס + dashboard, **דורש API** | chatgpt, claude, gemini, youtube, tiktok, linkedin, xtwitter, pinterest, whatsapp |
+
+**אף עוזר לא מחובר ל-API חי על Staging static.**
 
 ---
 
-## 7. Workflow E2E
+## 7. זרימת עבודה אמיתית
 
 ### איך בדקת
-Playwright script: agents → goals → actions → workbench → work card → demo code → history → reports.
-
-### מה בדיוק עשית
-—
+Playwright E2E: agents → goals → actions → workbench → work-card → demo → preview → approve → history → reports → agents.
 
 ### מה הייתה התוצאה
-**8/8 שלבים עברו** (preview/approve לא נכללו בלולאה הקצרה — approve דורש אינטראקציה נוספת).
+**11/11 שלבים עברו** (ראה `report.json` → `tasks.7-workflow`).
 
 ### מה תיקנת
-—
-
-### מה עדיין חסר
-שלב approve + preview modal ב-E2E אוטומטי מלא.
+(במסגרת משימות 2–3 — paste + scroll)
 
 ---
 
-## 8. ניווט דליה ראשית (🏠)
+## 8. מעבר לדשבורד דליה
 
 ### איך בדקת
-Playwright: `showDaliaToast()` + בדיקת `PrdDaliaNav.exitToDalia`.
+Playwright: לחיצה על `showDaliaToast()` (🏠).
 
 ### מה בדיוק עשית
-`showDaliaToast()` קורא ל-`PrdDaliaNav.exitToDalia()` (או `index.html` fallback) אחרי toast — לא toast בלבד.
+- `showDaliaToast` → `PrdDaliaNav.exitToDalia()` או `admin-home`.
 
 ### מה הייתה התוצאה
-`toast: true`, `hasPrdNav: true`.
+`navigated=true` → `https://orin1607-ctrl.github.io/future-craft-core/admin-home`
 
-### מה תיקנת
-ניווט אמיתי ל-`admin-home` / index (staging path).
+**זה המצב הרצוי** — לא toast בלבד.
 
-### מה עדיין חסר
-Production auth URL — לא נדרש ל-Orin Staging.
+### קבצים
+`coco-claude-main.js`, `prd-dalia-nav.js`
 
 ---
 
 ## 9. דוח זה
 
-נוצר `REPORT-HE.md` + `report.json` + `scripts/open-gaps-closure.mjs`.
+דוח זה מבוסס על `docs/audit-reports/open-gaps-closure/report.json` + בדיקות Playwright ב-2026-06-29.
 
 ---
 
-## 10. Commit / Push / Deploy
+## 10. סיום — Git & Deploy
 
-**Commit:** `69efecd`  
-**Push:** origin/main (GH Pages deploy)  
-**Staging URL:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-1
+| פריט | ערך |
+|------|-----|
+| Commits | `69efecd`, `821591f`, *(pending: scroll fix v3-open-gaps-3)* |
+| Staging | https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-3 |
+| Deploy | push ל-`main` → GitHub Pages |
 
-### קבצים שהשתנו
-- `public/ai-marketing-platform.html`
-- `public/ai-marketing/coco-claude-main.js`
-- `public/ai-marketing/actions-workbench.js`
-- `public/ai-marketing/actions-demo-code.js`
-- `public/ai-marketing/coco-claude-integration.css`
-- `public/crm/dalia-crm-app.js`
-- `public/crm/dalia-crm-screens.html`
-- `public/crm/crm-api.js`
-- `docs/integrations/dalia-actions-sheets-webhook.gs`
-- `scripts/open-gaps-closure.mjs`
-- `docs/audit-reports/open-gaps-closure/report.json`
-- `docs/audit-reports/open-gaps-closure/REPORT-HE.md`
+### קבצים שהשתנו (סיכום)
+`ai-marketing-platform.html`, `actions-demo-code.js`, `actions-workbench.js`, `coco-claude-main.js`, `coco-claude-integration.css`, `dalia-crm-app.js`, `dalia-crm-screens.html`, `crm-api.js`, `scripts/open-gaps-closure.mjs`, `docs/integrations/*`, `docs/audit-reports/open-gaps-closure/*`
+
+### פתוח לפני עבודה מחר
+1. **Google Sheets** — webhook URL מהמשתמש  
+2. **מובייל ידני** על מכשיר אמיתי  
+3. **עוזרי AI** — חיבור API (9 stubs + 10 demo UI)  
+4. **Supabase CRM** — credentials לסנכרון מרוחק  
