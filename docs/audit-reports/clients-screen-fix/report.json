@@ -1,0 +1,87 @@
+{
+  "at": "2026-06-28T08:39:55.114Z",
+  "checks": [
+    {
+      "name": "desktop: domain visible",
+      "ok": true,
+      "detail": "dalia-c.com in clients list"
+    },
+    {
+      "name": "desktop: site link",
+      "ok": true,
+      "detail": "https://dalia-c.com/"
+    },
+    {
+      "name": "desktop: owner",
+      "ok": true,
+      "detail": "יוני אטיאס"
+    },
+    {
+      "name": "desktop: campaign",
+      "ok": true,
+      "detail": "SEO / קידום"
+    },
+    {
+      "name": "desktop: GSC",
+      "ok": true,
+      "detail": "Search Console row"
+    },
+    {
+      "name": "desktop: assets tab",
+      "ok": true,
+      "detail": "dalia-c.com in נכסי לקוח"
+    },
+    {
+      "name": "desktop: goals still work",
+      "ok": true,
+      "detail": "28 accordions"
+    },
+    {
+      "name": "desktop: actions still work",
+      "ok": true,
+      "detail": "395 action cards"
+    },
+    {
+      "name": "mobile: domain visible",
+      "ok": true,
+      "detail": "dalia-c.com in clients list"
+    },
+    {
+      "name": "mobile: site link",
+      "ok": true,
+      "detail": "https://dalia-c.com/"
+    },
+    {
+      "name": "mobile: owner",
+      "ok": true,
+      "detail": "יוני אטיאס"
+    },
+    {
+      "name": "mobile: campaign",
+      "ok": true,
+      "detail": "SEO / קידום"
+    },
+    {
+      "name": "mobile: GSC",
+      "ok": true,
+      "detail": "Search Console row"
+    },
+    {
+      "name": "mobile: assets tab",
+      "ok": true,
+      "detail": "dalia-c.com in נכסי לקוח"
+    },
+    {
+      "name": "mobile: goals still work",
+      "ok": true,
+      "detail": "28 accordions"
+    },
+    {
+      "name": "mobile: actions still work",
+      "ok": true,
+      "detail": "395 action cards"
+    }
+  ],
+  "ok": true,
+  "errors": []
+}

@@ -486,6 +486,13 @@
   }
 
   function bindClients() {
+    if (window.DaliaSite && DaliaSite.isLiveOnly && DaliaSite.isLiveOnly()) {
+      if (typeof DaliaSite.renderClientsLive === 'function') DaliaSite.renderClientsLive();
+      if (typeof DaliaSite.renderClientsAssetsLive === 'function') DaliaSite.renderClientsAssetsLive();
+      if (window.MarketingSsot && MarketingSsot.renderClientsChannels) MarketingSsot.renderClientsChannels();
+      state.meta.clientSource = 'live';
+      return;
+    }
     if (window.DaliaSite && typeof DaliaSite.renderClientsLive === 'function') {
       DaliaSite.renderClientsLive();
       state.meta.clientSource = 'live';

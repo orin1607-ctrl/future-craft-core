@@ -393,23 +393,179 @@
     }
   }
 
-  function renderClientsLive() {
+  function badgeForStatus(st) {
+    if (!st) return '<span class="badge badge-gray">לא מחובר</span>';
+    if (window.MarketingSsot && MarketingSsot.statusBadgeHtml) return MarketingSsot.statusBadgeHtml(st);
+    var cls = st.badgeClass || 'badge-gray';
+    return '<span class="badge ' + cls + '">' + esc(st.labelHe || st.code || '—') + '</span>';
+  }
+
+  function ensureClientsListMount() {
     var list = document.getElementById('coco-live-clients-list');
-    if (!list) {
-      var clientsScreen = document.getElementById('screen-clients');
-      if (!clientsScreen) return;
-      var content = clientsScreen.querySelector('.content');
-      if (!content) return;
-      list = document.createElement('div');
-      list.id = 'coco-live-clients-list';
-      list.style.cssText = 'padding:16px 20px;display:flex;flex-direction:column;gap:10px;';
-      content.insertBefore(list, content.firstChild);
+    if (list) return list;
+    var tabList = document.getElementById('tab-clients-list');
+    if (tabList) {
+      var section = tabList.querySelector('.section');
+      if (section) {
+        var listWrap = section.querySelector('div[style*="flex-direction:column"]');
+        if (listWrap) {
+          listWrap.innerHTML = '';
+          listWrap.id = 'coco-live-clients-list';
+          listWrap.className = 'coco-live-section';
+          listWrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+          return listWrap;
+        }
+      }
     }
+    var clientsScreen = document.getElementById('screen-clients');
+    if (!clientsScreen) return null;
+    var content = clientsScreen.querySelector('.content');
+    if (!content) return null;
+    list = document.createElement('div');
+    list.id = 'coco-live-clients-list';
+    list.className = 'coco-live-section';
+    list.style.cssText = 'padding:16px 20px;display:flex;flex-direction:column;gap:10px;';
+    content.insertBefore(list, content.firstChild);
+    return list;
+  }
+
+  function clientsChannelRows(includeInfra) {
+    if (window.MarketingSsot && MarketingSsot.getMarketingChannels) {
+      return MarketingSsot.getMarketingChannels(!!includeInfra);
+    }
+    return [];
+  }
+
+  function renderClientChannelTable(channels, filterIds) {
+    var rows = channels.filter(function (c) {
+      return !filterIds || filterIds.indexOf(c.id) >= 0;
+    });
+    if (!rows.length) return '';
+    return '<div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">' +
+      rows.map(function (c) {
+        var detail = c.detail ? '<div style="font-size:11px;color:var(--white50);margin-top:2px;">' + esc(c.detail) + '</div>' : '';
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">' +
+          '<div style="display:flex;align-items:center;gap:8px;min-width:0;">' +
+          '<span style="font-size:20px;flex-shrink:0;">' + c.icon + '</span>' +
+          '<div style="min-width:0;"><div style="font-weight:600;font-size:12px;">' + esc(c.nameHe) + '</div>' + detail + '</div></div>' +
+          badgeForStatus(c.status) +
+          '</div>';
+      }).join('') +
+      '</div>';
+  }
+
+  function renderClientsLive() {
+    var list = ensureClientsListMount();
+    if (!list) return;
+
+    var camp = primaryCampaign();
+    var channels = clientsChannelRows(true);
+    var marketing = clientsChannelRows(false);
+    var activeMarketing = marketing.filter(function (c) { return c.status && c.status.code === 'active'; });
+    var gtm = channels.find(function (c) { return c.id === 'googleTagManager'; });
+    var pendingIds = ['googleAds', 'businessProfile', 'meta'];
+    var pendingRows = marketing.filter(function (c) { return pendingIds.indexOf(c.id) >= 0; });
+
     list.innerHTML =
-      '<div class="card" style="border-color:var(--accent);"><div style="font-weight:700;font-size:14px;">🏢 ' + esc(SITE.company) + '</div>' +
-      '<div style="font-size:12px;color:var(--white50);margin-top:4px;">' + esc(SITE.domain) + ' · Client ID: ' + esc(SITE.clientId) + '</div>' +
-      '<div style="margin-top:8px;"><span class="badge badge-green">● פעיל</span> <span class="badge badge-purple">אתר רשמי</span></div></div>' +
-      '<div class="alert alert-info">עובדים כרגע על <strong>dalia-c.com</strong> בלבד. לקוחות נוספים יופיעו מדליה (SSOT).</div>';
+      '<div class="card" style="border-color:var(--accent);padding:16px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
+      '<div style="min-width:0;flex:1;">' +
+      '<div style="font-weight:800;font-size:16px;">🏢 דליה · ' + esc(SITE.superAdmin) + '</div>' +
+      '<div style="font-size:12px;color:var(--white50);margin-top:4px;">לקוח פעיל · Client ID: ' + esc(SITE.clientId) + '</div>' +
+      '<div style="margin-top:10px;"><span class="badge badge-green">● פעיל</span> <span class="badge badge-purple">אתר רשמי</span></div>' +
+      '</div></div>' +
+
+      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
+      '<div style="font-size:11px;color:var(--white50);margin-bottom:4px;">נכס פעיל</div>' +
+      '<div style="font-weight:700;font-size:15px;">🌐 <a href="' + esc(SITE.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);text-decoration:underline;">' + esc(SITE.domain) + '</a></div>' +
+      '<div style="font-size:11px;color:var(--white50);margin-top:4px;">קישור ישיר לאתר · נפתח בטאב חדש</div>' +
+      '</div>' +
+
+      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
+      '<div style="font-size:11px;color:var(--white50);margin-bottom:4px;">קמפיין פעיל</div>' +
+      '<div style="font-weight:700;font-size:14px;">📈 ' + esc(camp.name) + '</div>' +
+      '<div style="font-size:12px;color:var(--white50);margin-top:4px;">SEO · קידום אורגני · ' + esc(camp.id) + '</div>' +
+      '</div>' +
+
+      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
+      '<div style="font-size:11px;color:var(--white50);margin-bottom:6px;">ערוצים פעילים (' + activeMarketing.length + ')</div>' +
+      renderClientChannelTable(activeMarketing) +
+      '</div>' +
+
+      (gtm ? ('<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
+        '<div style="font-size:11px;color:var(--white50);margin-bottom:6px;">סטטוס GTM</div>' +
+        renderClientChannelTable([gtm]) +
+        '</div>') : '') +
+
+      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
+      '<div style="font-size:11px;color:var(--white50);margin-bottom:6px;">Google Ads · GBP · Meta</div>' +
+      renderClientChannelTable(pendingRows) +
+      '</div>' +
+      '</div>';
+
+    var filterBar = document.querySelector('#tab-clients-list .filter-bar');
+    if (filterBar) filterBar.style.display = 'none';
+    var sub = document.querySelector('#tab-clients-list .page-subtitle');
+    if (sub) sub.textContent = 'דליה · ' + SITE.domain + ' · ' + SITE.superAdmin;
+    var setupSub = document.querySelector('#tab-clients-setup .page-subtitle');
+    if (setupSub) setupSub.textContent = SITE.company + ' · ' + SITE.domain + ' — נבחר מדליה';
+  }
+
+  function renderClientsAssetsLive() {
+    var tab = document.getElementById('tab-clients-assets');
+    if (!tab) return;
+
+    tab.querySelectorAll('.filter-bar, #ca-grid, .grid.grid-4').forEach(function (el) {
+      if (!el.closest('.coco-live-section')) el.style.display = 'none';
+    });
+
+    var mount = document.getElementById('coco-live-clients-assets');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'coco-live-clients-assets';
+      mount.className = 'coco-live-section';
+      mount.style.cssText = 'padding:0 20px 20px;';
+      var header = tab.querySelector('.page-header');
+      if (header) header.insertAdjacentElement('afterend', mount);
+      else tab.appendChild(mount);
+    }
+
+    var channels = clientsChannelRows(false);
+    var gtm = clientsChannelRows(true).find(function (c) { return c.id === 'googleTagManager'; });
+    var siteCard =
+      '<div class="ca-card" style="background:var(--bg3);border:1px solid rgba(34,197,94,0.35);border-radius:var(--card-r);padding:14px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+      '<span style="font-size:24px;">🌐</span>' +
+      '<div><div style="font-size:12px;font-weight:700;">אתר אינטרנט</div>' +
+      '<div style="font-size:10px;color:var(--white50);"><a href="' + esc(SITE.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);">' + esc(SITE.domain) + '</a></div></div></div>' +
+      '<span class="badge badge-green" style="font-size:10px;">● פעיל</span></div>';
+
+    var channelCards = channels.map(function (c) {
+      var border = c.status && c.status.code === 'active' ? 'rgba(34,197,94,0.3)' : 'var(--border)';
+      return '<div class="ca-card" style="background:var(--bg3);border:1px solid ' + border + ';border-radius:var(--card-r);padding:14px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<span style="font-size:24px;">' + c.icon + '</span>' +
+        '<div><div style="font-size:12px;font-weight:700;">' + esc(c.nameHe) + '</div>' +
+        (c.detail ? '<div style="font-size:10px;color:var(--white50);">' + esc(c.detail) + '</div>' : '') +
+        '</div></div>' + badgeForStatus(c.status) + '</div>';
+    }).join('');
+
+    var gtmCard = gtm ?
+      ('<div class="ca-card" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--card-r);padding:14px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<span style="font-size:24px;">' + gtm.icon + '</span>' +
+        '<div><div style="font-size:12px;font-weight:700;">' + esc(gtm.nameHe) + '</div>' +
+        (gtm.detail ? '<div style="font-size:10px;color:var(--white50);">' + esc(gtm.detail) + '</div>' : '') +
+        '</div></div>' + badgeForStatus(gtm.status) + '</div>') : '';
+
+    mount.innerHTML =
+      '<div class="sec-title" style="margin:12px 0 10px;">נכסים מחוברים — ' + esc(SITE.domain) + '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">' +
+      siteCard + channelCards + gtmCard +
+      '</div>';
+
+    var sub = tab.querySelector('.page-subtitle');
+    if (sub) sub.textContent = SITE.company + ' · ' + SITE.domain;
   }
 
   function bindOfficialContext() {
@@ -666,6 +822,7 @@
         renderAssetsLive(state.dashboard);
       }
       renderClientsLive();
+      renderClientsAssetsLive();
       renderHubAiBox(bundle);
       scrubDemoUi();
       if (window.CocoIntegrationHub && CocoIntegrationHub.wireAll) {
@@ -702,6 +859,8 @@
     renderStatusLive: renderStatusLive,
     renderHubAiBox: renderHubAiBox,
     renderAssetsLive: renderAssetsLive,
+    renderClientsLive: renderClientsLive,
+    renderClientsAssetsLive: renderClientsAssetsLive,
     getDashboard: function () { return state.dashboard; },
     getWorkPlan: function () { return state.workPlan; },
     logWorkProgress: logWorkProgress,

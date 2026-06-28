@@ -87,6 +87,18 @@
       actDone.id = 'coco-live-actions-done';
     }
 
+    var assetsClientsTab = document.getElementById('tab-clients-assets');
+    if (assetsClientsTab && !document.getElementById('coco-live-clients-assets')) {
+      var assetsHeader = assetsClientsTab.querySelector('.page-header');
+      if (assetsHeader) {
+        var assetsMount = document.createElement('div');
+        assetsMount.id = 'coco-live-clients-assets';
+        assetsMount.className = 'coco-live-section';
+        assetsMount.style.cssText = 'padding:0 20px 20px;';
+        assetsHeader.insertAdjacentElement('afterend', assetsMount);
+      }
+    }
+
     var assetsTab = document.querySelector('#screen-assets .section, #tab-assets-all');
     if (assetsTab && !document.getElementById('coco-live-assets-grid')) {
       var grid = assetsTab.querySelector('.grid-3, .grid.grid-3');
