@@ -48,8 +48,6 @@ async function auditViewport(browser, label, contextOpts) {
     var pending = document.getElementById('coco-live-actions-pending');
     var pageCards = pending ? pending.querySelectorAll('.coco-act-page-card').length : 0;
     var banner = pending ? pending.querySelector('.coco-act-preview-banner') : null;
-    var viewBtns = pending ? pending.querySelectorAll('a.btn:has-text("צפה"), a.btn-primary').length : 0;
-    var detailBtns = pending ? pending.querySelectorAll('button[onclick*="CocoActTogglePage"]').length : 0;
     var baBefore = pending ? pending.querySelectorAll('.coco-act-ba-before').length : 0;
     var baAfter = pending ? pending.querySelectorAll('.coco-act-ba-after').length : 0;
     var approveBtns = pending ? pending.querySelectorAll('button[onclick*="CocoActApprove"]').length : 0;

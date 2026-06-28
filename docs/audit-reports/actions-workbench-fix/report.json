@@ -1,0 +1,43 @@
+{
+  "at": "2026-06-28T10:08:32.670Z",
+  "viewports": {
+    "desktop": {
+      "consoleErrors": [],
+      "writeRequests": [],
+      "checks": {
+        "pageCards": 28,
+        "banner": true,
+        "viewBtns": 28,
+        "detailBtns": 28,
+        "baBefore": 395,
+        "baAfter": 395,
+        "approveBtns": 395,
+        "withBA": 395,
+        "totalActions": 395,
+        "pages": 28,
+        "workbench": true,
+        "execMode": "preview"
+      }
+    },
+    "mobile": {
+      "consoleErrors": [],
+      "writeRequests": [],
+      "checks": {
+        "pageCards": 28,
+        "banner": true,
+        "viewBtns": 28,
+        "detailBtns": 28,
+        "baBefore": 395,
+        "baAfter": 395,
+        "approveBtns": 395,
+        "withBA": 395,
+        "totalActions": 395,
+        "pages": 28,
+        "workbench": true,
+        "execMode": "preview"
+      }
+    }
+  },
+  "ok": true,
+  "errors": []
+}
