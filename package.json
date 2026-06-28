@@ -64,6 +64,7 @@
     "project-001:sync-recommendations": "node scripts/project-001/sync-page-recommendations.mjs",
     "project-001:verify-phase-ab": "node scripts/verify-phase-ab-recommendations.mjs",
     "project-001:verify-clients": "node scripts/verify-clients-screen-staging.mjs",
+    "project-001:verify-asset-flow": "node scripts/verify-asset-flow-chain.mjs",
     "project-001:checklist": "node scripts/project-001/page-checklist-runner.mjs",
     "project-001:checklist:all": "node scripts/project-001/page-checklist-runner.mjs --all",
     "project-001:page-implement": "node scripts/project-001/prepare-page-implementation.mjs",

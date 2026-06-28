@@ -109,6 +109,18 @@
   }
 
   function getConnectedAssets() {
+    if (window.AssetFlowSsot && AssetFlowSsot.getActiveAsset) {
+      var a = AssetFlowSsot.getActiveAsset();
+      if (a && a.live !== false) {
+        return [{
+          id: a.id || 'site-primary',
+          icon: a.icon || '🌐',
+          name: a.domain || a.label || 'dalia-c.com',
+          url: a.url || ('https://' + (a.domain || 'dalia-c.com') + '/'),
+          status: 'active',
+        }];
+      }
+    }
     return [{
       id: 'site-primary',
       icon: '🌐',

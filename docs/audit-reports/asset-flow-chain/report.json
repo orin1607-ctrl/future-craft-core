@@ -1,0 +1,82 @@
+{
+  "at": "2026-06-28T09:07:30.765Z",
+  "checks": [
+    {
+      "name": "no new client button",
+      "ok": true,
+      "detail": "screen-clients has no visible לקוח חדש"
+    },
+    {
+      "name": "active asset in list",
+      "ok": true,
+      "detail": "dalia-c.com visible"
+    },
+    {
+      "name": "setup add asset button",
+      "ok": true,
+      "detail": "➕ הוספת נכס חדש on הגדרת לקוח"
+    },
+    {
+      "name": "api add button",
+      "ok": true,
+      "detail": "➕ חיבור API חדש on חיבורי API"
+    },
+    {
+      "name": "assistant add button",
+      "ok": true,
+      "detail": "➕ חיבור עוזר חדש on העוזרים"
+    },
+    {
+      "name": "chain unified",
+      "ok": true,
+      "detail": "client + asset + site in flowContext"
+    },
+    {
+      "name": "chain step2 asset",
+      "ok": true,
+      "detail": "dalia-c.com"
+    },
+    {
+      "name": "chain step3 campaign",
+      "ok": true,
+      "detail": "campaign-dalia-seo-primary"
+    },
+    {
+      "name": "context asset chip",
+      "ok": true,
+      "detail": "נכס: dalia-c.com"
+    },
+    {
+      "name": "goals bound to asset",
+      "ok": true,
+      "detail": "28 page accordions"
+    },
+    {
+      "name": "actions bound to asset",
+      "ok": true,
+      "detail": "395 action cards"
+    },
+    {
+      "name": "add asset modal",
+      "ok": true,
+      "detail": "modal opens (infrastructure)"
+    }
+  ],
+  "chain": {
+    "step1_client": "dalia-c-official",
+    "step2_activeAsset": "asset-dalia-c-com",
+    "step2_domain": "dalia-c.com",
+    "step3_campaign": "campaign-dalia-seo-primary",
+    "step4_channelsSource": "dashboard.json",
+    "step5_agentsScope": "dalia-c.com",
+    "step6_goalsSource": "site-work-plan.json",
+    "step7_pagesBound": true,
+    "step8_recommendationsBound": true,
+    "step9_actionsBound": true,
+    "step10_historyBound": true,
+    "step11_reportsBound": true,
+    "unified": true
+  },
+  "ok": true,
+  "errors": []
+}

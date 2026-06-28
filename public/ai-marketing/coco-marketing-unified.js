@@ -186,6 +186,7 @@
       '<div class="cfc-row cfc-row-main">' +
       '<button type="button" id="coco-cfc-toggle" class="btn btn-ghost coco-cfc-toggle" title="הצג/הסתר סינון">⚙️</button>' +
       '<span id="coco-unified-client-chip" class="cfc-chip cfc-client-chip" title="לחץ לפתיחת לקוחות">לקוח: —</span>' +
+      '<span id="coco-unified-asset-chip" class="cfc-chip cfc-asset-chip" title="נכס פעיל">נכס: —</span>' +
       '<span id="coco-live-source-badge" class="cfc-chip cfc-source-badge"></span>' +
       '</div>' +
       '<div class="cfc-row cfc-row-filters" id="coco-cfc-filters">' +
@@ -206,6 +207,13 @@
     document.getElementById('coco-sync-google-btn')?.addEventListener('click', syncGoogle);
     document.getElementById('coco-unified-client-chip')?.addEventListener('click', function () {
       if (typeof goScreen === 'function') goScreen('screen-clients');
+    });
+    document.getElementById('coco-unified-asset-chip')?.addEventListener('click', function () {
+      if (typeof goScreen === 'function') goScreen('screen-clients');
+      if (typeof setTab === 'function') {
+        var tab = document.querySelector('#screen-clients .nav-tab[onclick*="tab-clients-assets"]');
+        if (tab) setTab(tab, 'tab-clients-assets');
+      }
     });
     document.getElementById('coco-central-search')?.addEventListener('input', onCentralFilter);
     document.getElementById('coco-central-service')?.addEventListener('change', onCentralFilter);
@@ -249,6 +257,12 @@
       chip.textContent = c.clientId
         ? ('לקוח: ' + name.slice(0, 32))
         : 'לקוח: לא נבחר';
+    }
+    var assetChip = document.getElementById('coco-unified-asset-chip');
+    if (assetChip) {
+      var asset = window.AssetFlowSsot && AssetFlowSsot.getActiveAsset ? AssetFlowSsot.getActiveAsset() : null;
+      var dom = (asset && (asset.domain || asset.label)) || c.site || c.domain || '—';
+      assetChip.textContent = 'נכס: ' + String(dom).slice(0, 28);
     }
     var fchip = document.getElementById('coco-unified-filter-chip');
     if (fchip) {

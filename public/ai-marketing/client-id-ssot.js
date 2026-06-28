@@ -44,6 +44,9 @@
       company: OFFICIAL.company,
       site: OFFICIAL.domain,
       domain: OFFICIAL.domain,
+      activeAssetId: 'asset-dalia-c-com',
+      campaign: PRIMARY_CAMPAIGN.id,
+      campaignName: PRIMARY_CAMPAIGN.name,
     }, overrides || {});
     return COCO.flowContext;
   }

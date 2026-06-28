@@ -454,11 +454,70 @@
       '</div>';
   }
 
+  function activeAssetInfo() {
+    if (window.AssetFlowSsot && AssetFlowSsot.getActiveAsset) return AssetFlowSsot.getActiveAsset();
+    return { id: 'asset-dalia-c-com', domain: SITE.domain, url: SITE.url, label: SITE.domain, live: true };
+  }
+
+  function renderAssetPickerHtml() {
+    if (!window.AssetFlowSsot || !AssetFlowSsot.getAssets) return '';
+    var assets = AssetFlowSsot.getAssets();
+    var activeId = AssetFlowSsot.getActiveAssetId();
+    return '<div style="margin-top:12px;"><div style="font-size:11px;color:var(--white50);margin-bottom:6px;">בחר נכס פעיל — כל המערכת מסתנכרנת לנכס שנבחר</div>' +
+      '<div style="display:flex;flex-direction:column;gap:6px;">' +
+      assets.map(function (a) {
+        var isActive = a.id === activeId;
+        var isDraft = a.status === 'draft' || a.live === false;
+        var border = isActive ? 'var(--accent)' : 'var(--border)';
+        var badge = isDraft
+          ? '<span class="badge badge-yellow" style="font-size:10px;">ממתין</span>'
+          : (isActive ? '<span class="badge badge-purple" style="font-size:10px;">● נכס פעיל</span>' : '<span class="badge badge-gray" style="font-size:10px;">לחץ לבחירה</span>');
+        return '<div class="card" style="padding:10px 12px;cursor:pointer;border-color:' + border + ';" data-asset-id="' + esc(a.id) + '" onclick="AssetFlowSsot.selectActiveAsset(\'' + esc(a.id) + '\')">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;min-width:0;">' +
+          '<span style="font-size:20px;">' + (a.icon || '🌐') + '</span>' +
+          '<div style="min-width:0;"><div style="font-weight:700;font-size:13px;">' + esc(a.label || a.domain) + '</div>' +
+          (a.url ? '<div style="font-size:11px;color:var(--white50);">' + esc(a.url) + '</div>' : '') +
+          '</div></div>' + badge + '</div></div>';
+      }).join('') +
+      '</div></div>';
+  }
+
+  function renderClientsSetupLive() {
+    var tab = document.getElementById('tab-clients-setup');
+    if (!tab) return;
+    tab.querySelectorAll('.section > .sec-title, .section > .grid, .section > div[style*="flex"], .section > .alert:not(.coco-live-section *)').forEach(function (el) {
+      if (!el.closest('.coco-live-section') && !el.closest('#coco-live-setup-panel')) el.style.display = 'none';
+    });
+    var mount = document.getElementById('coco-live-setup-panel');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'coco-live-setup-panel';
+      mount.className = 'coco-live-section section';
+      mount.style.cssText = 'padding:0 20px 20px;';
+      var header = tab.querySelector('.page-header');
+      if (header) header.insertAdjacentElement('afterend', mount);
+      else tab.appendChild(mount);
+    }
+    var asset = activeAssetInfo();
+    mount.innerHTML =
+      '<div class="alert alert-info" style="margin:14px 0;">ℹ️ פרטי הלקוח מגיעים אוטומטית ממערכת דליה. כאן מגדירים נכסים וסביבת שיווק בלבד — <strong>לא</strong> פותחים לקוח חדש.</div>' +
+      '<div class="card" style="padding:14px;margin-bottom:12px;">' +
+      '<div style="font-size:11px;color:var(--white50);">נכס פעיל כרגע</div>' +
+      '<div style="font-weight:700;font-size:14px;margin-top:4px;">' + esc(asset.icon || '🌐') + ' ' + esc(asset.domain || asset.label) + '</div>' +
+      '<div style="font-size:12px;color:var(--white50);margin-top:4px;">קמפיין: ' + esc(primaryCampaign().name) + '</div></div>' +
+      renderAssetPickerHtml();
+    if (window.AssetFlowSsot && AssetFlowSsot.wireActionButtons) AssetFlowSsot.wireActionButtons();
+  }
+
   function renderClientsLive() {
     var list = ensureClientsListMount();
     if (!list) return;
 
+    var asset = activeAssetInfo();
     var camp = primaryCampaign();
+    var domain = asset.domain || asset.label || SITE.domain;
+    var url = asset.url || SITE.url;
     var channels = clientsChannelRows(true);
     var marketing = clientsChannelRows(false);
     var activeMarketing = marketing.filter(function (c) { return c.status && c.status.code === 'active'; });
@@ -477,8 +536,9 @@
 
       '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
       '<div style="font-size:11px;color:var(--white50);margin-bottom:4px;">נכס פעיל</div>' +
-      '<div style="font-weight:700;font-size:15px;">🌐 <a href="' + esc(SITE.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);text-decoration:underline;">' + esc(SITE.domain) + '</a></div>' +
+      '<div style="font-weight:700;font-size:15px;">🌐 <a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);text-decoration:underline;">' + esc(domain) + '</a></div>' +
       '<div style="font-size:11px;color:var(--white50);margin-top:4px;">קישור ישיר לאתר · נפתח בטאב חדש</div>' +
+      renderAssetPickerHtml() +
       '</div>' +
 
       '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
@@ -488,7 +548,7 @@
       '</div>' +
 
       '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
-      '<div style="font-size:11px;color:var(--white50);margin-bottom:6px;">ערוצים פעילים (' + activeMarketing.length + ')</div>' +
+      '<div style="font-size:11px;color:var(--white50);margin-bottom:6px;">ערוצים פעילים (' + activeMarketing.length + ') — לנכס ' + esc(domain) + '</div>' +
       renderClientChannelTable(activeMarketing) +
       '</div>' +
 
@@ -530,15 +590,31 @@
       else tab.appendChild(mount);
     }
 
+    var asset = activeAssetInfo();
+    var domain = asset.domain || asset.label || SITE.domain;
+    var url = asset.url || SITE.url;
+
     var channels = clientsChannelRows(false);
     var gtm = clientsChannelRows(true).find(function (c) { return c.id === 'googleTagManager'; });
     var siteCard =
-      '<div class="ca-card" style="background:var(--bg3);border:1px solid rgba(34,197,94,0.35);border-radius:var(--card-r);padding:14px;">' +
+      '<div class="ca-card" style="background:var(--bg3);border:2px solid var(--accent);border-radius:var(--card-r);padding:14px;cursor:pointer;" onclick="AssetFlowSsot.selectActiveAsset(\'' + esc(asset.id || 'asset-dalia-c-com') + '\')">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
       '<span style="font-size:24px;">🌐</span>' +
-      '<div><div style="font-size:12px;font-weight:700;">אתר אינטרנט</div>' +
-      '<div style="font-size:10px;color:var(--white50);"><a href="' + esc(SITE.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);">' + esc(SITE.domain) + '</a></div></div></div>' +
+      '<div><div style="font-size:12px;font-weight:700;">אתר אינטרנט · נכס פעיל</div>' +
+      '<div style="font-size:10px;color:var(--white50);"><a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);">' + esc(domain) + '</a></div></div></div>' +
       '<span class="badge badge-green" style="font-size:10px;">● פעיל</span></div>';
+
+    var pendingAssets = (window.AssetFlowSsot && AssetFlowSsot.getAssets)
+      ? AssetFlowSsot.getAssets().filter(function (a) { return a.status === 'draft' || a.live === false; })
+      : [];
+    var pendingCards = pendingAssets.map(function (a) {
+      return '<div class="ca-card" style="background:var(--bg3);border:1px dashed var(--border);border-radius:var(--card-r);padding:14px;opacity:0.85;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<span style="font-size:24px;">' + (a.icon || '🔗') + '</span>' +
+        '<div><div style="font-size:12px;font-weight:700;">' + esc(a.label) + '</div>' +
+        '<div style="font-size:10px;color:var(--white50);">ממתין לחיבור</div></div></div>' +
+        '<span class="badge badge-yellow" style="font-size:10px;">⏳ ממתין</span></div>';
+    }).join('');
 
     var channelCards = channels.map(function (c) {
       var border = c.status && c.status.code === 'active' ? 'rgba(34,197,94,0.3)' : 'var(--border)';
@@ -559,13 +635,16 @@
         '</div></div>' + badgeForStatus(gtm.status) + '</div>') : '';
 
     mount.innerHTML =
-      '<div class="sec-title" style="margin:12px 0 10px;">נכסים מחוברים — ' + esc(SITE.domain) + '</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 10px;">' +
+      '<div class="sec-title" style="margin:0;">נכסים — ' + esc(domain) + '</div>' +
+      '<button type="button" class="btn btn-primary" style="font-size:12px;padding:5px 12px;" onclick="AssetFlowSsot.openAddAssetModal()">➕ הוספת נכס חדש</button></div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">' +
-      siteCard + channelCards + gtmCard +
+      siteCard + pendingCards + channelCards + gtmCard +
       '</div>';
 
     var sub = tab.querySelector('.page-subtitle');
-    if (sub) sub.textContent = SITE.company + ' · ' + SITE.domain;
+    if (sub) sub.textContent = SITE.company + ' · ' + domain;
+    if (window.AssetFlowSsot && AssetFlowSsot.wireActionButtons) AssetFlowSsot.wireActionButtons();
   }
 
   function bindOfficialContext() {
@@ -602,6 +681,10 @@
     document.querySelectorAll('#screen-clients .card[onclick*="selectClient"]').forEach(function (el) {
       el.style.display = 'none';
     });
+    document.querySelectorAll('#screen-clients .btn, #screen-clients button').forEach(function (btn) {
+      if (/לקוח חדש/i.test(btn.textContent || '')) btn.style.display = 'none';
+    });
+    if (window.AssetFlowSsot && AssetFlowSsot.hideNewClientButtons) AssetFlowSsot.hideNewClientButtons();
     restoreHubCards();
     var aiBox = document.querySelector('#screen-hub .ai-box');
     if (aiBox && /גרין-טק/i.test(aiBox.textContent || '')) aiBox.style.display = 'none';
@@ -823,6 +906,7 @@
       }
       renderClientsLive();
       renderClientsAssetsLive();
+      renderClientsSetupLive();
       renderHubAiBox(bundle);
       scrubDemoUi();
       if (window.CocoIntegrationHub && CocoIntegrationHub.wireAll) {
@@ -841,6 +925,8 @@
         if (CocoData.setBundle) CocoData.setBundle(bundle);
         if (CocoData.bindAll) CocoData.bindAll();
       }
+      if (window.AssetFlowSsot && AssetFlowSsot.init) AssetFlowSsot.init();
+      if (window.CocoUnified && CocoUnified.updateContextBar) CocoUnified.updateContextBar();
       document.body.classList.add('dalia-live-only');
       document.body.classList.remove('demo-mode');
       return { dashboard: state.dashboard, bundle: bundle };
@@ -861,6 +947,7 @@
     renderAssetsLive: renderAssetsLive,
     renderClientsLive: renderClientsLive,
     renderClientsAssetsLive: renderClientsAssetsLive,
+    renderClientsSetupLive: renderClientsSetupLive,
     getDashboard: function () { return state.dashboard; },
     getWorkPlan: function () { return state.workPlan; },
     logWorkProgress: logWorkProgress,
