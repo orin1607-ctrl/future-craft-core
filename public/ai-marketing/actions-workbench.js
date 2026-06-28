@@ -1085,6 +1085,10 @@
 
   var _lastActionsScrollAt = 0;
 
+  function getActionsScrollEl() {
+    return document.querySelector('#screen-actions .content') || document.getElementById('screen-actions');
+  }
+
   function bindActionsScrollGuard() {
     var el = getActionsScrollEl();
     if (!el || el._actScrollGuard) return;
