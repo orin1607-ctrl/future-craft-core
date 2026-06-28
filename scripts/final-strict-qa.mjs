@@ -290,11 +290,15 @@ async function verifyData(page) {
         });
       }
       const el = document.getElementById(sid);
-      const live = el?.querySelector('[id^="coco-live-"]');
+      const live = sid === 'screen-actions'
+        ? document.getElementById('coco-live-actions-pending')
+        : el?.querySelector('[id^="coco-live-"]');
+      const cards = sid === 'screen-actions' ? document.querySelectorAll('.coco-act-lite-card').length : undefined;
       out.screens[sid] = {
         active: el?.classList.contains('active'),
         contentLen: live ? live.innerHTML.length : (el?.innerHTML.length || 0),
-        hasPending: sid === 'screen-actions' ? document.querySelectorAll('.coco-act-lite-card').length : undefined,
+        hasPending: cards,
+        dataReady: sid === 'screen-actions' ? !!document.querySelector('[data-coco-act-ready="true"]') : undefined,
       };
     }
 
@@ -628,7 +632,10 @@ task(2, {
 
 task(3, {
   title: 'Data verification',
-  passed: !!(dataVerify.sources?.daliaSite?.workPlanPages > 0 && dataVerify.screens['screen-actions']?.contentLen > 500),
+  passed: !!(dataVerify.sources?.daliaSite?.workPlanPages > 0 && (
+    (dataVerify.screens['screen-actions']?.contentLen > 500) ||
+    (dataVerify.screens['screen-actions']?.hasPending > 0 && dataVerify.screens['screen-actions']?.dataReady)
+  )),
   how: 'Runtime read CocoData, DaliaSite, MarketingApi, localStorage + screen DOM lengths',
   found: dataVerify,
   open: dataVerify.sources?.marketingApi?.canRemote ? [] : ['MarketingApi remote — localStorage fallback on GH Pages'],

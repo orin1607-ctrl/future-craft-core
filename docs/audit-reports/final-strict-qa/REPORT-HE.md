@@ -230,8 +230,8 @@
 **ממצאים:**
 ```json
 {
-  "avgNavMs": 165.03333333383003,
-  "maxNavMs": 349.70000000298023,
+  "avgNavMs": 126.40555555580391,
+  "maxNavMs": 255.40000000596046,
   "scrollJumps": [
     {
       "start": 0,
@@ -257,7 +257,7 @@
 
 ## 3. אימות נתונים
 
-**סטטוס:** ❌ לא עבר / חלקי
+**סטטוס:** ✅ עבר
 **איך נבדק:** Runtime read CocoData, DaliaSite, MarketingApi, localStorage + screen DOM lengths
 
 **ממצאים:**
@@ -289,8 +289,9 @@
     },
     "screen-actions": {
       "active": true,
-      "contentLen": 24,
-      "hasPending": 8
+      "contentLen": 10880,
+      "hasPending": 8,
+      "dataReady": true
     },
     "screen-history": {
       "active": true,
@@ -349,7 +350,7 @@
       "gfcOptions": 2,
       "opts": [
         "dalia-c-official",
-        "qa-isolation-client-b-1782690498355"
+        "qa-isolation-client-b-1782690586558"
       ]
     },
     {
@@ -506,7 +507,7 @@
     {
       "step": "create-lead",
       "ok": true,
-      "id": "local-1782690504772-authzi"
+      "id": "local-1782690592905-idm12j"
     },
     {
       "step": "edit-save",
@@ -703,7 +704,7 @@
     "version": 1,
     "actionId": "act-page-01-title",
     "label": "FINAL STRICT QA — Demo אושר",
-    "at": "2026-06-28T23:48:25.537Z",
+    "at": "2026-06-28T23:49:53.667Z",
     "session": {
       "html": "<div id=\"dalia-qa-demo-v1\" role=\"status\" style=\"padding:12px;background:#065f46;color:#fff;border-radius:8px;font-weight:700;\">✓ FINAL STRICT QA Demo</div>",
       "css": "#dalia-qa-demo-v1{font-family:Heebo,sans-serif}",
@@ -755,7 +756,7 @@
 **ממצאים:**
 ```json
 {
-  "passCount": 8,
+  "passCount": 9,
   "totalTasks": 11,
   "commitHash": "8a447f6235f0960306bb025dd091696a367e48a1",
   "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7",
@@ -768,7 +769,7 @@
 
 ## סיכום
 
-- **משימות שעברו:** 9/11
+- **משימות שעברו:** 10/11
 - **Staging URL:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-7
 - **Commit:** `8a447f6235f0960306bb025dd091696a367e48a1`
 - **חסמים:**
