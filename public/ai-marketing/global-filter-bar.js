@@ -80,30 +80,35 @@
 
   function populateFromContext() {
     if (!window.GlobalFilterContext || !window.FilterEntityIndex) return;
+    if (!el('gfc-client') && !mountIntoBar()) return;
     _uiGuard = true;
     var ctx = GlobalFilterContext.get();
     var clients = FilterEntityIndex.getClients();
     fillSelect(el('gfc-client'), clients, 'לקוח…', ctx.clientId);
 
     var acts = (window.FilterTaxonomy && FilterTaxonomy.ACTIVITY_TYPES) || [];
-    fillSelect(el('gfc-activity'), acts, 'סוג פעילות…', ctx.activityType);
-    el('gfc-activity').disabled = !ctx.clientId;
+    var actSel = el('gfc-activity');
+    fillSelect(actSel, acts, 'סוג פעילות…', ctx.activityType);
+    if (actSel) actSel.disabled = !ctx.clientId;
 
     var camps = ctx.clientId ? FilterEntityIndex.getCampaigns(ctx.clientId) : [];
-    fillSelect(el('gfc-campaign'), camps, 'קמפיין…', ctx.campaignId);
-    el('gfc-campaign').disabled = !ctx.activityType;
+    var campSel = el('gfc-campaign');
+    fillSelect(campSel, camps, 'קמפיין…', ctx.campaignId);
+    if (campSel) campSel.disabled = !ctx.activityType;
 
     var assets = ctx.campaignId ? FilterEntityIndex.getAssets(ctx.campaignId) : [];
     var assetOpts = assets.map(function (a) {
       return { id: a.id, labelHe: (a.domain || a.label) + ' (' + (a.type || 'asset') + ')' };
     });
-    fillSelect(el('gfc-asset'), assetOpts, 'נכס…', ctx.assetId);
-    el('gfc-asset').disabled = !ctx.campaignId;
+    var assetSel = el('gfc-asset');
+    fillSelect(assetSel, assetOpts, 'נכס…', ctx.assetId);
+    if (assetSel) assetSel.disabled = !ctx.campaignId;
 
     var schemaId = ctx.activityType && FilterTaxonomy.subSchemaForActivity(ctx.activityType);
     var subOpts = schemaId ? FilterTaxonomy.getSubSchema(schemaId) : [];
-    fillSelect(el('gfc-subcat'), subOpts, 'תת-קטגוריה…', ctx.subCategory && ctx.subCategory.id);
-    el('gfc-subcat').disabled = !ctx.assetId;
+    var subSel = el('gfc-subcat');
+    fillSelect(subSel, subOpts, 'תת-קטגוריה…', ctx.subCategory && ctx.subCategory.id);
+    if (subSel) subSel.disabled = !ctx.assetId;
 
     populateSpecificItems(ctx);
 
@@ -297,6 +302,7 @@
     ).then(function () {
       mountIntoBar();
       populateFromContext();
+      document.body.classList.add('coco-gfc-unified');
       window.GlobalFilterBar._inited = true;
       if (window.GlobalFilterContext && !GlobalFilterContext._barListener) {
         GlobalFilterContext._barListener = true;
@@ -309,7 +315,6 @@
   }
 
   function place(screenId) {
-    if (screenId === 'screen-crm') return;
     if (window.CocoUnified && CocoUnified.placeContextBar) {
       CocoUnified.placeContextBar(screenId);
     }

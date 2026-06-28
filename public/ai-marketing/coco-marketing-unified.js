@@ -110,11 +110,20 @@
   }
 
   function placeContextBar(screenId) {
-    if (screenId === 'screen-crm') return;
     var bar = document.getElementById('coco-unified-context-bar');
+    if (!bar) return;
     var sc = document.getElementById(screenId || getActiveScreenId());
-    if (!bar || !sc) return;
-    var topbar = sc.querySelector('.topbar');
+    if (!sc) return;
+    var topbar = screenId === 'screen-crm'
+      ? (sc.querySelector('#screen-crm-main .topbar') || sc.querySelector('.topbar'))
+      : sc.querySelector('.topbar');
+    if (!topbar && screenId === 'screen-crm') {
+      var crmContent = sc.querySelector('.coco-crm-screen-content') || sc.querySelector('.content') || sc;
+      if (bar.parentElement !== crmContent || crmContent.firstElementChild !== bar) {
+        crmContent.insertBefore(bar, crmContent.firstChild);
+      }
+      return;
+    }
     if (!topbar) return;
     var flow = sc.querySelector('#coco-integration-flow-bar');
     var anchor = flow || topbar;

@@ -22,6 +22,35 @@
     };
   }
 
+  function activityToSource(activityType) {
+    var map = {
+      seo: 'google_organic',
+      google_ads: 'google_ads',
+      google_business: 'google_business',
+      facebook: 'facebook',
+      instagram: 'instagram',
+      linkedin: 'linkedin',
+      whatsapp: 'whatsapp',
+      youtube: 'youtube',
+    };
+    return map[activityType] || activityType || '';
+  }
+
+  function sourceToActivity(source) {
+    var map = {
+      google_organic: 'seo',
+      organic: 'seo',
+      google_ads: 'google_ads',
+      google_business: 'google_business',
+      facebook: 'facebook',
+      instagram: 'instagram',
+      linkedin: 'linkedin',
+      whatsapp: 'whatsapp',
+      youtube: 'youtube',
+    };
+    return map[source] || source || '';
+  }
+
   window.FilterMeta = {
     page: function (p) {
       return Object.assign(base(p), {
@@ -84,6 +113,57 @@
         campaign: c.name,
         status: c.status,
         channel: c.channel || c.campaign_type,
+      });
+    },
+    crmCustomer: function (c) {
+      var cid = c.marketing_client_id || c.slug || '';
+      var official = false;
+      if (window.ClientIdSsot && ClientIdSsot.OFFICIAL) {
+        var off = ClientIdSsot.OFFICIAL;
+        if (cid === off.clientId || cid === off.slug) official = true;
+        if (!cid && c.name && off.company && String(c.name).indexOf('דליה') >= 0) {
+          cid = off.clientId;
+          official = true;
+        }
+      }
+      return {
+        clientId: cid || c.id,
+        customerId: c.id,
+        officialClient: official,
+        serviceType: c.service_type,
+        customerStatus: c.status,
+        status: c.status,
+      };
+    },
+    crmLead: function (l) {
+      var src = l.source || '';
+      return Object.assign(base(l), {
+        clientId: l.marketing_client_id || '',
+        customerId: l.customer_id,
+        campaign: l.campaign,
+        campaignId: l.campaign,
+        page: l.landing_page,
+        pagePath: l.landing_page,
+        pageUrl: l.landing_page,
+        source: src,
+        channel: src,
+        activityType: sourceToActivity(src) || src,
+        status: l.status,
+        date: l.created_at,
+      });
+    },
+    crmTask: function (t, ctx) {
+      ctx = ctx || {};
+      var lead = ctx.lead || null;
+      return Object.assign(base(t), {
+        clientId: ctx.clientId || '',
+        customerId: t.customer_id,
+        campaign: lead && lead.campaign,
+        campaignId: lead && lead.campaign,
+        pagePath: lead && lead.landing_page,
+        pageUrl: lead && lead.landing_page,
+        status: t.status,
+        date: t.due_at || t.created_at,
       });
     },
     generic: function (item) {

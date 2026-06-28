@@ -73,7 +73,13 @@
   }
 
   function syncMarketingFilters() {
-    var c = ctx();
+    if (window.DaliaCrm && DaliaCrm.applyFilters) {
+      DaliaCrm.applyFilters();
+      return;
+    }
+    var c = window.GlobalFilterContext && GlobalFilterContext.get
+      ? GlobalFilterContext.get()
+      : ctx();
     var search = document.getElementById('coco-central-search');
     var free = (search && search.value) || c.freeSearch || '';
     var fs = document.getElementById('f-search');
@@ -167,6 +173,7 @@
           booted = true;
           ensureCrmVisible();
           syncMarketingFilters();
+          if (window.GlobalFilterBar && GlobalFilterBar.place) GlobalFilterBar.place('screen-crm');
           var cid = ctx().clientId;
           if (cid && DaliaCrm.openCustomerById) DaliaCrm.openCustomerById(cid);
         }
@@ -207,4 +214,12 @@
     syncFilters: syncMarketingFilters,
     ensureVisible: ensureCrmVisible,
   };
+
+  if (window.GlobalFilterContext && GlobalFilterContext.onChange && !GlobalFilterContext._crmBridgeListener) {
+    GlobalFilterContext._crmBridgeListener = true;
+    GlobalFilterContext.onChange(function (detail) {
+      if (detail && detail.source === 'crm-reset') return;
+      syncMarketingFilters();
+    });
+  }
 })();

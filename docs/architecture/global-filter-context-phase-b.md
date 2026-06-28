@@ -30,7 +30,9 @@ Parent change resets all downstream steps (except date/status/search when `skipC
 | Primary | client, activity, campaign, asset + "עוד" | Desktop always; mobile when bar expanded |
 | Advanced | subCategory, specificItem, date, status, search | Toggle via `#gfc-advanced-toggle` |
 
-Mount point: `#coco-cfc-filters` inside `#coco-unified-context-bar` (same position on every screen).
+Mount point: `#coco-cfc-filters` inside `#coco-unified-context-bar` (same position on every screen, **including CRM**).
+
+Legacy CRM filter row (`#crm-legacy-filters`) is hidden when unified GFC is active; CRM data (customers, leads, tasks) filters via `FilterEngine` + `FilterMeta.crm*`.
 
 ## New modules (Phase B)
 

@@ -59,6 +59,7 @@
     if (si.type === 'page' || itemMeta.pageId) {
       if (itemMeta.pageId && itemMeta.pageId === si.id) return true;
       if (itemMeta.pagePath && si.path && itemMeta.pagePath === si.path) return true;
+      if (itemMeta.pagePath && si.path && si.path !== '/' && norm(itemMeta.pagePath).indexOf(norm(si.path)) >= 0) return true;
       if (itemMeta.page && (itemMeta.page === si.path || itemMeta.page === si.id)) return true;
       return false;
     }
@@ -89,8 +90,12 @@
 
   function clientMatches(itemMeta, c) {
     if (!c.clientId) return true;
-    if (itemMeta.clientId) return itemMeta.clientId === c.clientId;
-    return true;
+    if (itemMeta.clientId && itemMeta.clientId === c.clientId) return true;
+    if (itemMeta.customerId && itemMeta.customerId === c.clientId) return true;
+    if (itemMeta.clientId && matchFilter(itemMeta.clientId, c.clientId)) return true;
+    if (window.ClientIdSsot && ClientIdSsot.isOfficialClientId(c.clientId) && itemMeta.officialClient) return true;
+    if (!itemMeta.clientId && !itemMeta.customerId) return true;
+    return false;
   }
 
   function campaignMatches(itemMeta, c) {

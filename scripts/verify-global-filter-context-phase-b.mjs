@@ -10,7 +10,7 @@ const OUT = join(P001.root, 'docs', 'audit-reports', 'global-filter-context-phas
 const BASE = process.env.LOCAL_VERIFY_URL ||
   process.env.STAGING_PAGES_URL ||
   'http://127.0.0.1:8888/ai-marketing-platform.html';
-const STAGING = BASE.includes('?') ? BASE : BASE + '?v=v3-global-filter-b';
+const STAGING = BASE.includes('?') ? BASE : BASE + '?v=v3-global-filter-crm';
 
 mkdirSync(OUT, { recursive: true });
 
@@ -141,6 +141,26 @@ async function auditViewport(browser, label, contextOpts) {
   vpReport.checks.restored = restored;
   if (restored !== 28) fail(label, 'goals restored after reset', String(restored));
   else pass(label, 'goals restored after reset');
+
+  await page.evaluate(() => { if (typeof goScreen === 'function') goScreen('screen-crm'); });
+  await page.waitForTimeout(4000);
+  const crm = await page.evaluate(async () => {
+    if (window.CocoMarketingCrm && CocoMarketingCrm.init) await CocoMarketingCrm.init();
+    if (window.GlobalFilterBar && GlobalFilterBar.place) GlobalFilterBar.place('screen-crm');
+    await new Promise((r) => setTimeout(r, 800));
+    return {
+      bar: !!document.getElementById('gfc-client'),
+      legacyHidden: document.getElementById('crm-legacy-filters')
+        ? getComputedStyle(document.getElementById('crm-legacy-filters')).display === 'none'
+        : false,
+      crmMain: !!document.getElementById('screen-crm-main'),
+    };
+  });
+  vpReport.checks.crm = crm;
+  if (!crm.bar) fail(label, 'GFC bar on CRM');
+  else pass(label, 'GFC bar on CRM');
+  if (!crm.legacyHidden) fail(label, 'CRM legacy filters hidden');
+  else pass(label, 'CRM legacy filters hidden');
 
   report.viewports[label] = vpReport;
   await ctx.close();

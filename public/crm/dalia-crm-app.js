@@ -6,7 +6,7 @@
 
   var state = {
     customers: [], leads: [], tasks: [], activity: [], kpis: {},
-    filtered: [], currentId: null, loading: true,
+    filtered: [], filteredLeads: [], filteredTasks: [], currentId: null, loading: true,
   };
 
   var SERVICE_LABELS = {
@@ -27,6 +27,43 @@
     if (!c) return null;
     return state.leads.find(function (l) { return l.customer_id === c.id; }) ||
       state.leads.find(function (l) { return (l.company_name || '').trim() === (c.name || '').trim(); });
+  }
+
+  function leadForCustomer(id) {
+    return state.leads.find(function (l) { return l.customer_id === id; }) || null;
+  }
+
+  function crmCustomerMeta(c) {
+    return window.FilterMeta && FilterMeta.crmCustomer ? FilterMeta.crmCustomer(c) : { clientId: c.id, customerId: c.id };
+  }
+
+  function crmLeadMeta(l) {
+    return window.FilterMeta && FilterMeta.crmLead ? FilterMeta.crmLead(l) : { campaign: l.campaign, pagePath: l.landing_page };
+  }
+
+  function crmTaskMeta(t) {
+    var lead = leadForCustomer(t.customer_id);
+    var cust = state.customers.find(function (c) { return c.id === t.customer_id; });
+    return window.FilterMeta && FilterMeta.crmTask
+      ? FilterMeta.crmTask(t, { lead: lead, clientId: cust && crmCustomerMeta(cust).clientId })
+      : { customerId: t.customer_id, campaign: lead && lead.campaign };
+  }
+
+  function applyGfcFilters() {
+    if (!window.FilterEngine || !FilterEngine.filter) return false;
+    state.filtered = FilterEngine.filter(state.customers, crmCustomerMeta);
+    state.filteredLeads = FilterEngine.filter(state.leads, crmLeadMeta);
+    state.filteredTasks = FilterEngine.filter(state.tasks, crmTaskMeta);
+    var fc = document.getElementById('filter-count');
+    if (fc) {
+      var gfc = window.GlobalFilterContext && GlobalFilterContext.get ? GlobalFilterContext.get() : null;
+      var parts = [];
+      if (gfc && gfc.clientName) parts.push(gfc.clientName);
+      if (gfc && gfc.campaignName) parts.push(gfc.campaignName);
+      if (gfc && gfc.specificItem && gfc.specificItem.label) parts.push(gfc.specificItem.label);
+      fc.textContent = parts.length ? ('סינון גלובלי: ' + parts.join(' › ')) : '';
+    }
+    return true;
   }
 
   function lastActivityFor(customerId) {
@@ -133,6 +170,10 @@
   }
 
   function applyFilters() {
+    if (applyGfcFilters()) {
+      renderAll();
+      return;
+    }
     var q = (document.getElementById('f-search')?.value || '').trim().toLowerCase();
     var st = document.getElementById('f-status')?.value || '';
     var svc = document.getElementById('f-service')?.value || '';
@@ -169,10 +210,24 @@
     if (q) activeCount++;
     var fc = document.getElementById('filter-count');
     if (fc) fc.textContent = activeCount ? activeCount + ' מסננים פעילים' : '';
+    state.filteredLeads = state.leads.slice();
+    state.filteredTasks = state.tasks.slice();
     renderAll();
   }
 
   function resetFilter() {
+    if (window.GlobalFilterContext && GlobalFilterContext.set) {
+      GlobalFilterContext.set({
+        subCategory: null,
+        specificItem: null,
+        status: null,
+        freeSearch: '',
+        dateRange: { preset: 'month', from: '', to: '' },
+      }, { skipCascade: true, source: 'crm-reset', allowInvalid: true });
+      applyFilters();
+      showToast('✓ סינון אופס');
+      return;
+    }
     ['f-company', 'f-source', 'f-status', 'f-service', 'f-owner', 'f-score', 'f-campaign', 'f-page', 'f-tag', 'f-keyword'].forEach(function (id) {
       var el = document.getElementById(id); if (el) el.value = '';
     });
@@ -300,11 +355,11 @@
   function renderLeads() {
     var el = document.getElementById('crm-leads-list');
     if (!el) return;
-    if (!state.leads.length) {
+    if (!state.filteredLeads.length) {
       el.innerHTML = '<div class="alert alert-info">אין לידים · לחץ + ליד חדש</div>';
       return;
     }
-    el.innerHTML = state.leads.map(function (l) {
+    el.innerHTML = state.filteredLeads.map(function (l) {
       var hot = l.score >= 3;
       var timeStr = l.created_at ? l.created_at.slice(0, 16).replace('T', ' ') : '—';
       return '<div class="card" style="cursor:pointer;margin-bottom:12px;' + (hot ? 'border-color:rgba(239,68,68,0.4);' : '') + '" data-lead="' + esc(l.id) + '">' +
@@ -348,7 +403,7 @@
     var el = document.getElementById('crm-pipeline-board');
     if (!el) return;
     el.innerHTML = '<div class="kanban">' + PIPELINE.map(function (col) {
-      var items = state.leads.filter(function (l) {
+      var items = state.filteredLeads.filter(function (l) {
         if (col.key === 'closed_lost') return l.status === 'closed_lost' || l.status === 'closed_won';
         return l.status === col.key;
       });
@@ -366,7 +421,7 @@
   function renderTasks() {
     var el = document.getElementById('crm-tasks-list');
     if (!el) return;
-    if (!state.tasks.length) {
+    if (!state.filteredTasks.length) {
       el.innerHTML = '<div style="display:flex;gap:8px;margin-bottom:14px;"><button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" type="button" onclick="DaliaCrm.openModal(\'modal-new-task\')">+ משימה</button></div><div class="alert alert-info">אין משימות · + משימה</div>';
       return;
     }
@@ -374,7 +429,7 @@
       '<button class="btn btn-primary" style="font-size:12px;padding:5px 12px;" type="button" onclick="DaliaCrm.openModal(\'modal-new-task\')">+ משימה</button>' +
       '<button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" type="button">היום בלבד</button>' +
       '<button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" type="button">דחופות</button></div>' +
-      state.tasks.map(function (t) {
+      state.filteredTasks.map(function (t) {
       var done = t.status === 'done';
       var pri = t.priority === 'urgent' ? 'badge-red' : t.priority === 'high' ? 'badge-yellow' : 'badge-blue';
       var borderColor = t.priority === 'urgent' ? 'var(--red)' : t.priority === 'high' ? 'var(--yellow)' : 'var(--accent2)';
@@ -481,9 +536,9 @@
     var c = document.getElementById('crm-count-clients');
     var l = document.getElementById('crm-count-leads');
     var t = document.getElementById('crm-count-tasks');
-    var openTasks = state.tasks.filter(function (x) { return x.status !== 'done'; }).length;
+    var openTasks = state.filteredTasks.filter(function (x) { return x.status !== 'done'; }).length;
     if (c) c.textContent = String(state.filtered.length);
-    if (l) l.textContent = String(state.leads.length);
+    if (l) l.textContent = String(state.filteredLeads.length);
     if (t) t.textContent = String(openTasks);
     var foot = document.getElementById('crm-table-footer');
     if (foot) foot.textContent = 'מציג ' + state.filtered.length + ' מתוך ' + state.customers.length + ' לקוחות';
@@ -513,6 +568,8 @@
       state.tasks = bundle.tasks || [];
       state.kpis = bundle.kpis || {};
       state.filtered = state.customers.slice();
+      state.filteredLeads = state.leads.slice();
+      state.filteredTasks = state.tasks.slice();
       state.loading = false;
       if (chip) {
         chip.textContent = CrmApi.canRemote()

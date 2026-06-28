@@ -164,6 +164,16 @@ body {
   color: var(--white);
 }
 
+/* Unified GFC bar on CRM — hide legacy duplicate filter row */
+body.coco-gfc-unified #crm-legacy-filters {
+  display: none !important;
+}
+#screen-crm #coco-unified-context-bar {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+}
+
 /* iframe / fullscreen — no duplicate dalia chrome */
 body.prd-dalia-fullscreen .prd-dalia-bar,
 body.prd-dalia-embedded .prd-dalia-bar,
