@@ -2,7 +2,7 @@
 
 **תאריך:** 2026-06-28  
 **Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1  
-**Commit:** _(מתעדכן לאחר push)_  
+**Commit:** 004c22e  
 **ציון:** 11/12 סעיפים עברו
 
 ---
@@ -27,7 +27,7 @@ Dashboard, מצב נוכחי, חברות ועסקים, CRM, מטרות, פעול
 `scripts/final-readiness-e2e.mjs`
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -54,7 +54,7 @@ Playwright `devices['iPhone 13']` — אותה סuite אינטראקציות כ�
 `scripts/final-readiness-e2e.mjs`
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -83,7 +83,7 @@ https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v
 `scripts/final-readiness-e2e.mjs`
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -112,7 +112,7 @@ Playwright click chain + `ActionsDemoCode.setDemo/approveDemo` + sessionStorage.
 `scripts/final-readiness-e2e.mjs`
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -142,7 +142,7 @@ https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v
 —
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -172,7 +172,7 @@ https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v
 —
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -200,7 +200,7 @@ Playwright evaluate — לחיצה על כפתורי "צפה בדשבורד", ב
 —
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -229,7 +229,7 @@ Preview, Demo Code, מחיקת קוד, history tab, nav, statuses, `data-act-aut
 `scripts/final-readiness-e2e.mjs`
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -258,7 +258,7 @@ https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v
 —
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -285,7 +285,7 @@ https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v
 `scripts/final-readiness-e2e.mjs`
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -314,7 +314,7 @@ Playwright listeners לאורך כל ה-E2E (desktop + mobile).
 —
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1
@@ -343,7 +343,7 @@ https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v
 `scripts/final-readiness-e2e.mjs`
 
 ### מספר Commit
-_(מתעדכן)_
+004c22e
 
 ### קישור ל-Orin Staging
 https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1

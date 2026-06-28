@@ -2,7 +2,7 @@
   "at": "2026-06-28T20:52:42.866Z",
   "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
   "uiVersion": "v3-final-ready-1",
-  "commitHash": "",
+  "commitHash": "004c22e",
   "sections": {
     "1": {
       "passed": true,
@@ -24,7 +24,7 @@
       "fixed": [],
       "open": [],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "desktop": [
@@ -132,7 +132,7 @@
       "fixed": [],
       "open": [],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "screensOk": 11,
@@ -170,7 +170,7 @@
         "שינוי לקוח — לא אומת"
       ],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "barVisible": true,
@@ -250,7 +250,7 @@
       "fixed": [],
       "open": [],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "steps": [
@@ -319,7 +319,7 @@
         "Supabase remote — לא מחובר (localStorage fallback)"
       ],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "hasCrm": true,
@@ -348,7 +348,7 @@
         "דורש webhook URL מהמשתמש"
       ],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "sheetsWebhookUrl": "",
@@ -391,7 +391,7 @@
         "seotools/chatgpt/claude/gemini — stubs"
       ],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "tested": [
@@ -476,7 +476,7 @@
       "fixed": [],
       "open": [],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "cards": 8,
@@ -504,7 +504,7 @@
         "showDaliaToast — toast בלבד, לא ניווט לדשבורד דליה"
       ],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "hubTests": [
@@ -545,7 +545,7 @@
       "fixed": [],
       "open": [],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "switchCount": 25,
@@ -573,7 +573,7 @@
       "fixed": [],
       "open": [],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "consoleCount": 0,
@@ -594,7 +594,7 @@
       "fixed": [],
       "open": [],
       "filesChanged": [],
-      "commitHash": "",
+      "commitHash": "004c22e",
       "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-ready-1",
       "found": {
         "startScreen": "screen-agents",
