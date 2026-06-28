@@ -1,8 +1,8 @@
 {
-  "at": "2026-06-28T21:09:55.717Z",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-2",
-  "uiVersion": "v3-open-gaps-2",
-  "commitHash": "",
+  "at": "2026-06-28T21:16:45.171Z",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-3",
+  "uiVersion": "v3-open-gaps-3",
+  "commitHash": "47c5b92",
   "tasks": {
     "1-mobile": {
       "screens": [
@@ -332,7 +332,7 @@
       "total": 11
     },
     "8-dalia-nav": {
-      "before": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-2&customer=dalia-c-official",
+      "before": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-3&customer=dalia-c-official",
       "after": "https://orin1607-ctrl.github.io/future-craft-core/admin-home",
       "navigated": true,
       "hasPrdDaliaNav": false,

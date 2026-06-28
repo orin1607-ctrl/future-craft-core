@@ -332,10 +332,13 @@ function goScreen(id, opts) {
       var saved = 0;
       try { saved = parseInt(sessionStorage.getItem('coco-actions-scroll-m') || '0', 10) || 0; } catch (e2) { saved = 0; }
       if (saved > 0) {
-        requestAnimationFrame(function () {
+        var restoreActionsScroll = function () {
           var c = el.querySelector('.content');
           if (c) c.scrollTop = saved;
-        });
+        };
+        requestAnimationFrame(restoreActionsScroll);
+        setTimeout(restoreActionsScroll, 500);
+        setTimeout(restoreActionsScroll, 1200);
       }
     }
   }

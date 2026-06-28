@@ -2,7 +2,7 @@
 
 **תאריך:** 2026-06-29  
 **Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-3  
-**Commits:** `69efecd`, `821591f`, *(עדכון scroll)*  
+**Commits:** `69efecd`, `821591f`, `47c5b92`  
 **Cache:** `v3-open-gaps-3`
 
 ---
@@ -22,7 +22,7 @@ Playwright iPhone 13 (390×844) — `node scripts/open-gaps-closure.mjs`: ניו
 ### מה הייתה התוצאה
 - **11/11** מסכים פעילים, **ללא overflowX**.
 - Boot: `cocoReady=true`, `bootActive=false`.
-- גלילה בפעולות: נבדק שוב ב-`v3-open-gaps-3` (שחזור scroll בחזרה ממטרות).
+- גלילה בפעולות: שמירה/שחזור ב-`sessionStorage` + delayed restore. **בדיקת Playwright:** `scrollTop=0` (ייתכן שאין גובה גלילה ב-viewport או lag deploy) — **נדרש אימות ידני על טלפון**.
 - כפתור hub נלחץ; CRM/מודאלים — לא נלחץ כל כפתור בכל מסך (מגבלת אוטומציה).
 
 ### מה תיקנת
@@ -185,7 +185,7 @@ Playwright: לחיצה על `showDaliaToast()` (🏠).
 
 | פריט | ערך |
 |------|-----|
-| Commits | `69efecd`, `821591f`, *(pending: scroll fix v3-open-gaps-3)* |
+| Commits | `69efecd`, `821591f`, `47c5b92` |
 | Staging | https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-3 |
 | Deploy | push ל-`main` → GitHub Pages |
 
