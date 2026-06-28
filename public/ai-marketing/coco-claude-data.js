@@ -715,15 +715,22 @@
       var pages = applyCtxFilter(deriveWorkPages(b), function (p) {
         return window.FilterMeta ? FilterMeta.page(p) : { page: p.path, status: p.executionStatus, goal: p.title };
       });
-      if (!pages.length) return false;
+      if (!pages.length) {
+        setHtml('coco-live-goals-list', emptyStatus('אין תוצאות לסינון הנוכחי'));
+        hideLegacyGoalsActionsUi('screen-goals');
+        return true;
+      }
       renderGoalsPages(pages, b || state.bundle);
       return true;
     }
 
-    if (tryRender(bundle)) return;
+    if (tryRender(bundle || state.bundle)) return;
 
     var existing = document.querySelectorAll('#coco-live-goals-list .goal-acc-item').length;
-    if (existing >= 28) return;
+    if (existing >= 28) {
+      tryRender(state.bundle);
+      return;
+    }
 
     setHtml('coco-live-goals-list', emptyStatus('טוען 28 עמודים מ-SSOT…'));
     hideLegacyGoalsActionsUi('screen-goals');
