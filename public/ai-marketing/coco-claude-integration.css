@@ -189,7 +189,23 @@ body.prd-dalia-embedded .prd-dalia-exit-inline {
 body.dalia-live-only #screen-agents .section .grid.grid-4 { display: none !important; }
 body.coco-integration-wired .fab-ai { opacity: 1; }
 body.dalia-live-only .v4-demo-banner { display: none !important; }
-body.dalia-live-only .coco-live-section { position: relative; z-index: 2; }
+body.dalia-live-only #screen-goals .nav-tabs,
+body.dalia-live-only #screen-actions .nav-tabs { display: none !important; }
+body.dalia-live-only #screen-actions > div:not(.topbar):not(.content) { display: none !important; }
+body.dalia-live-only #coco-live-goals-list,
+body.dalia-live-only #coco-live-actions-pending { display: block !important; visibility: visible !important; }
+.coco-rec-mobile { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.coco-rec-desktop { display: none; }
+.coco-rec-row { padding: 10px 12px; background: var(--bg4); border: 1px solid var(--border); border-radius: 8px; }
+.coco-rec-head { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+.coco-rec-num { font-size: 11px; color: var(--white50); min-width: 18px; }
+.coco-rec-label { font-size: 12px; font-weight: 600; flex: 1; min-width: 0; }
+.coco-rec-meta { font-size: 11px; color: var(--white50); margin-top: 6px; line-height: 1.45; }
+@media (min-width: 768px) {
+  .coco-rec-mobile { display: none; }
+  .coco-rec-desktop { display: block; }
+}
+#coco-live-goals-list .goal-acc-item { scroll-margin-top: 72px; }
 body.coco-boot-active #coco-live-hub-kpis .card-value,
 body.coco-boot-active #coco-live-command-center .card-value { visibility: hidden; }
 body.dalia-live-only:not(.coco-boot-active) #coco-live-hub-kpis .card-value,

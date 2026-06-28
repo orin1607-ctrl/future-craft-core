@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v3-unified-3j';
+  var VERSION = 'v3-unified-goals28';
   var SEARCH_KEY = 'coco-mkt-global-search';
   var FILTER_KEY = 'coco-mkt-filter-persist';
 
@@ -66,15 +66,6 @@
       var grid4 = overview.querySelector('.grid-4, .grid.grid-4');
       if (grid4 && !document.getElementById('coco-live-status-kpis')) {
         grid4.id = 'coco-live-status-kpis';
-      }
-    }
-
-    var goalsTab = document.getElementById('tab-goals-active');
-    if (goalsTab && !document.getElementById('coco-live-goals-list')) {
-      var gAcc = goalsTab.querySelector('.goal-acc, .section');
-      var mount = ensureEl(goalsTab, 'coco-live-goals-list', 'div');
-      if (mount && gAcc && mount !== gAcc) {
-        mount.style.marginTop = '12px';
       }
     }
 
@@ -550,7 +541,21 @@
         bindCrm();
         if (id === 'screen-clients') bindConnections();
       }
+      if (id === 'screen-goals' || id === 'screen-actions') {
+        if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen(id);
+      }
     };
+    if (window.setTab && !window.setTab._cocoLiveGuard) {
+      var _setTab = window.setTab;
+      window.setTab = function (btn, tabId) {
+        if (document.body.classList.contains('dalia-live-only')) {
+          if (/tab-goals-(urgent|progress|done|compare)/.test(tabId)) return;
+          if (/tab-act-(new|progress|rejected|history|summary)/.test(tabId)) return;
+        }
+        return _setTab(btn, tabId);
+      };
+      window.setTab._cocoLiveGuard = true;
+    }
     var origApply = CocoClaude.applyContextGlobally;
     if (origApply) {
       CocoClaude.applyContextGlobally = function () {
@@ -572,6 +577,9 @@
       placeContextBar(id);
       removeStrayCrmUi();
       updateContextBar();
+      if (id === 'screen-goals' || id === 'screen-actions') {
+        if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen(id);
+      }
       if (id === 'screen-crm' && window.CocoMarketingCrm && CocoMarketingCrm.init) CocoMarketingCrm.init();
     };
     window.goScreen._cocoUnifiedHooked = true;

@@ -1,0 +1,94 @@
+{
+  "at": "2026-06-28T09:19:49.540Z",
+  "viewports": {
+    "desktop": {
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+      ],
+      "failedRequests": [
+        {
+          "url": "http://127.0.0.1:8787/api/data",
+          "err": "net::ERR_CONNECTION_REFUSED"
+        },
+        {
+          "url": "http://127.0.0.1:8787/api/ai/health",
+          "err": "net::ERR_CONNECTION_REFUSED"
+        }
+      ],
+      "checks": {
+        "dataJsUrl": "http://127.0.0.1:8888/ai-marketing/coco-claude-data.js?v=v3-unified-goals28",
+        "goals": {
+          "liveItems": 28,
+          "demoItems": 0,
+          "liveVisible": true,
+          "liveDisplay": "block",
+          "tabDisplay": "none",
+          "tabAllDisplay": "none",
+          "recRows": 560,
+          "pages": 28,
+          "goalsSource": "dalia",
+          "bundlePages": 28,
+          "firstPanelOpen": true
+        },
+        "actions": {
+          "cards": 395,
+          "groups": 28,
+          "visible": true,
+          "actionsSource": "dalia"
+        }
+      }
+    },
+    "mobile": {
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+      ],
+      "failedRequests": [
+        {
+          "url": "http://127.0.0.1:8787/api/data",
+          "err": "net::ERR_CONNECTION_REFUSED"
+        },
+        {
+          "url": "http://127.0.0.1:8787/api/ai/health",
+          "err": "net::ERR_CONNECTION_REFUSED"
+        }
+      ],
+      "checks": {
+        "dataJsUrl": "http://127.0.0.1:8888/ai-marketing/coco-claude-data.js?v=v3-unified-goals28",
+        "goals": {
+          "liveItems": 28,
+          "demoItems": 0,
+          "liveVisible": true,
+          "liveDisplay": "block",
+          "tabDisplay": "none",
+          "tabAllDisplay": "none",
+          "recRows": 560,
+          "pages": 28,
+          "goalsSource": "dalia",
+          "bundlePages": 28,
+          "firstPanelOpen": true
+        },
+        "actions": {
+          "cards": 395,
+          "groups": 28,
+          "visible": true,
+          "actionsSource": "dalia"
+        }
+      }
+    }
+  },
+  "ok": false,
+  "errors": [
+    {
+      "vp": "desktop",
+      "name": "console errors",
+      "detail": "Failed to load resource: net::ERR_CONNECTION_REFUSED | Failed to load resource: net::ERR_CONNECTION_REFUSED"
+    },
+    {
+      "vp": "mobile",
+      "name": "console errors",
+      "detail": "Failed to load resource: net::ERR_CONNECTION_REFUSED | Failed to load resource: net::ERR_CONNECTION_REFUSED"
+    }
+  ]
+}

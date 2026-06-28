@@ -74,9 +74,19 @@
       String(filterVal).toLowerCase().indexOf(String(val).toLowerCase()) !== -1;
   }
 
+  function isLiveGoalsActionsMode() {
+    return !!(window.DaliaSite && DaliaSite.isLiveOnly && DaliaSite.isLiveOnly());
+  }
+
   function applyCtxFilter(items, mapFn) {
     var c = ctx();
     var free = (c.freeSearch || '').trim().toLowerCase();
+    if (isLiveGoalsActionsMode()) {
+      if (!free) return items;
+      return items.filter(function (item) {
+        return JSON.stringify(item).toLowerCase().indexOf(free) >= 0;
+      });
+    }
     return items.filter(function (item) {
       var m = mapFn(item);
       if (free) {
@@ -113,17 +123,27 @@
     return [];
   }
 
-  function ensureLiveMount(id, screenId) {
-    if (document.getElementById(id)) return;
-    var screen = document.getElementById(screenId);
-    if (!screen) return;
-    var content = screen.querySelector('.content');
-    if (!content) return;
+  function ensureLiveMount(id, screenId, tabId) {
+    if (document.getElementById(id)) return document.getElementById(id);
     var div = document.createElement('div');
     div.id = id;
     div.className = 'coco-live-section';
-    div.style.cssText = 'padding:16px 20px 0;';
+    div.style.cssText = 'padding:12px 16px 16px;';
+    if (tabId) {
+      var tab = document.getElementById(tabId);
+      if (tab) {
+        var header = tab.querySelector('.page-header');
+        if (header) header.insertAdjacentElement('afterend', div);
+        else tab.insertBefore(div, tab.firstChild);
+        return div;
+      }
+    }
+    var screen = document.getElementById(screenId);
+    if (!screen) return null;
+    var content = screen.querySelector('.content');
+    if (!content) return null;
     content.insertBefore(div, content.firstChild);
+    return div;
   }
 
   function crmCounts() {
@@ -246,17 +266,53 @@
   function hideLegacyGoalsActionsUi(screenId) {
     var screen = document.getElementById(screenId);
     if (!screen) return;
-    var live = screen.querySelector('.coco-live-section');
-    if (!live || !live.innerHTML.trim()) return;
+    var liveOnly = isLiveGoalsActionsMode();
+    var liveId = screenId === 'screen-goals' ? 'coco-live-goals-list' : 'coco-live-actions-pending';
+    var live = document.getElementById(liveId);
+    var hasLive = live && live.innerHTML.trim().length > 80;
+    if (!liveOnly && !hasLive) return;
+
     var tabs = screen.querySelector('.nav-tabs');
     if (tabs) tabs.style.display = 'none';
-    screen.querySelectorAll('.content > *').forEach(function (el) {
+
+    screen.querySelectorAll(':scope > div').forEach(function (el) {
+      if (el.classList.contains('topbar') || el.classList.contains('content') || el.classList.contains('fab-ai')) return;
       if (!el.classList.contains('coco-live-section')) el.style.display = 'none';
     });
-    var filters = screen.querySelectorAll('[style*="border-bottom"]');
-    filters.forEach(function (el) {
+
+    screen.querySelectorAll('[style*="border-bottom"]').forEach(function (el) {
       if (el.closest('#' + screenId) && !el.closest('.coco-live-section')) el.style.display = 'none';
     });
+
+    screen.querySelectorAll('.content > *').forEach(function (el) {
+      if (el.id === liveId || el.classList.contains('coco-live-section')) {
+        el.style.display = 'block';
+        return;
+      }
+      if (live && el.contains && el.contains(live)) {
+        el.style.display = 'block';
+        el.querySelectorAll(':scope > *').forEach(function (child) {
+          if (child.id !== liveId && !child.classList.contains('coco-live-section')) child.style.display = 'none';
+        });
+        return;
+      }
+      el.style.display = 'none';
+    });
+
+    if (live) {
+      live.style.display = 'block';
+      live.style.visibility = 'visible';
+    }
+  }
+
+  function renderRecRowsMobile(recs) {
+    return recs.map(function (r) {
+      return '<div class="coco-rec-row">' +
+        '<div class="coco-rec-head"><span class="coco-rec-num">' + r.order + '</span>' +
+        '<span class="coco-rec-label">' + esc(r.labelHe) + '</span>' + recStatusBadge(r.status) + '</div>' +
+        '<div class="coco-rec-meta">' + esc(r.source) + ' · ' + esc(r.priority || 'בינוני') +
+        (r.detail ? (' · ' + esc(r.detail)) : '') + '</div></div>';
+    }).join('');
   }
 
   window.CocoDataTogglePageRecs = function (id) {
@@ -537,12 +593,18 @@
   }
 
   function bindGoals(bundle) {
+    bundle = bundle || state.bundle;
+    if (!bundle && window.DaliaSite && DaliaSite.buildLiveBundle) {
+      var dash = DaliaSite.getDashboard && DaliaSite.getDashboard();
+      if (dash) bundle = DaliaSite.buildLiveBundle(dash);
+    }
     ensureLiveMount('coco-live-goals-list', 'screen-goals');
     var pages = applyCtxFilter(deriveWorkPages(bundle), function (p) {
       return { page: p.path, status: p.executionStatus, goal: p.title };
     });
     if (!pages.length) {
-      setHtml('coco-live-goals-list', emptyStatus('אין עמודים — סנכרן site-work-plan.json'));
+      setHtml('coco-live-goals-list', emptyStatus('טוען עמודים מ-SSOT… אם זה נמשך — רענן את הדף (site-work-plan.json)'));
+      hideLegacyGoalsActionsUi('screen-goals');
       return;
     }
     var wp = bundle && bundle.workPlan;
@@ -554,7 +616,7 @@
       var openN = recs.filter(function (r) { return r.status !== 'ok' && r.status !== 'na'; }).length;
       var panelId = 'coco-page-recs-' + idx;
       var gscLine = p.gsc ? ('GSC: ' + (p.gsc.clicks || 0) + ' קליקים · ' + (p.gsc.impressions || 0) + ' חשיפות') : 'GSC: —';
-      var recRows = recs.map(function (r) {
+      var recRowsTable = recs.map(function (r) {
         return '<tr style="border-bottom:1px solid var(--border);">' +
           '<td style="padding:8px 6px;font-size:12px;color:var(--white50);width:28px;">' + r.order + '</td>' +
           '<td style="padding:8px 6px;font-size:12px;font-weight:600;">' + esc(r.labelHe) + '</td>' +
@@ -563,6 +625,7 @@
           '<td style="padding:8px 6px;font-size:11px;">' + esc(r.priority || 'בינוני') + '</td>' +
           '<td style="padding:8px 6px;font-size:11px;color:var(--white80);">' + esc(r.detail || '') + '</td></tr>';
       }).join('');
+      var recRowsMobile = renderRecRowsMobile(recs);
       return '<div class="goal-acc-item card" style="margin-bottom:10px;overflow:hidden;" data-page-id="' + esc(p.id) + '">' +
         '<div onclick="CocoDataTogglePageRecs(\'' + panelId + '\')" style="padding:14px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;background:var(--bg3);">' +
         '<div style="flex:1;min-width:0;">' +
@@ -570,25 +633,38 @@
         '<div style="font-size:11px;color:var(--white50);margin-top:4px;">' +
         '<a href="' + esc(p.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:var(--accent2);">' + esc(p.path) + ' ↗</a>' +
         ' · SEO ' + esc(p.seoScore != null ? p.seoScore + '/10' : '—') + ' · ' + esc(gscLine) +
-        '</div></div>' +
+        ' · <strong>' + recs.length + '/20</strong> המלצות</div></div>' +
         '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">' +
         '<span class="badge badge-yellow">' + openN + ' פתוחות</span>' +
         statusBadge(p.executionStatus === 'done' ? 'done' : (p.rank <= 3 ? 'active' : 'pending')) +
-        '<span style="font-size:10px;color:var(--white50);">▼</span></div></div>' +
-        '<div id="' + panelId + '" style="display:' + (idx === 0 ? 'block' : 'none') + ';padding:0 14px 14px;">' +
-        '<table style="width:100%;border-collapse:collapse;margin-top:8px;">' +
+        '<span class="coco-acc-chevron" style="font-size:10px;color:var(--white50);">▼</span></div></div>' +
+        '<div id="' + panelId + '" class="coco-page-rec-panel" style="display:' + (idx === 0 ? 'block' : 'none') + ';padding:0 14px 14px;">' +
+        '<div class="coco-rec-mobile">' + recRowsMobile + '</div>' +
+        '<div class="coco-rec-desktop table-wrap" style="overflow-x:auto;margin-top:8px;">' +
+        '<table style="width:100%;border-collapse:collapse;min-width:520px;">' +
         '<thead><tr style="font-size:10px;color:var(--white50);text-align:right;">' +
         '<th style="padding:6px;">#</th><th style="padding:6px;">המלצה</th><th style="padding:6px;">סטטוס</th>' +
         '<th style="padding:6px;">מקור</th><th style="padding:6px;">עדיפות</th><th style="padding:6px;">פירוט</th></tr></thead>' +
-        '<tbody>' + recRows + '</tbody></table></div></div>';
+        '<tbody>' + recRowsTable + '</tbody></table></div></div></div>';
     }).join('');
     setHtml('coco-live-goals-list', html);
+    var goalsTab = document.querySelector('#screen-goals .nav-tab.active');
+    if (goalsTab && /\(8\)/.test(goalsTab.textContent)) goalsTab.textContent = 'כל העמודים (' + pages.length + ')';
+    var sub = document.querySelector('#screen-goals .page-subtitle');
+    if (sub && isLiveGoalsActionsMode()) {
+      sub.textContent = pages.length + ' עמודים · 20 המלצות לכל עמוד · נתונים מ-site-work-plan.json';
+    }
     hideLegacyGoalsActionsUi('screen-goals');
   }
 
   function bindActions(bundle) {
+    bundle = bundle || state.bundle;
+    if (!bundle && window.DaliaSite && DaliaSite.buildLiveBundle) {
+      var dash = DaliaSite.getDashboard && DaliaSite.getDashboard();
+      if (dash) bundle = DaliaSite.buildLiveBundle(dash);
+    }
     ensureLiveMount('coco-live-actions-pending', 'screen-actions');
-    ensureLiveMount('coco-live-actions-done', 'screen-actions');
+    ensureLiveMount('coco-live-actions-done', 'screen-actions', 'tab-act-done');
     var actions = applyCtxFilter(deriveActions(bundle), function (a) {
       return { action: a.category, status: a.status, campaign: a.campaignId };
     });
@@ -628,6 +704,10 @@
       return '<tr><td>' + esc(a.title) + '</td><td>' + esc(a.pagePath || '—') + '</td><td>' + esc(a.category) + '</td><td>' + esc(a.source) + '</td><td>' + statusBadge('done') + '</td></tr>';
     }).join('') : '<tr><td colspan="5">אין פעולות שהושלמו עדיין</td></tr>');
     hideLegacyGoalsActionsUi('screen-actions');
+    var sub = document.querySelector('#screen-actions .page-subtitle');
+    if (sub && isLiveGoalsActionsMode()) {
+      sub.textContent = pending.length + ' פעולות · ' + pageGroups.length + ' עמודים · site-work-plan.json';
+    }
   }
 
   function bindHistory(bundle) {
@@ -818,6 +898,14 @@
   function bindScreen(screenId) {
     var fn = SCREEN_BINDERS[screenId];
     if (fn) fn(state.bundle);
+    if ((screenId === 'screen-goals' || screenId === 'screen-actions') && isLiveGoalsActionsMode()) {
+      var pages = deriveWorkPages(state.bundle);
+      if (!pages.length && window.DaliaSite && DaliaSite.initOfficial) {
+        setTimeout(function () {
+          if (fn) fn(state.bundle);
+        }, 800);
+      }
+    }
     updateSourceBadge();
   }
 

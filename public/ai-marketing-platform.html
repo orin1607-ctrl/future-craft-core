@@ -90,12 +90,11 @@
 <script src="./ai-marketing/sidebar-accordion.js"></script>
 <script src="./ai-marketing/app.js"></script>
 <script src="./ai-marketing/marketing-api.js"></script>
-<script src="./ai-marketing/coco-claude-data.js?v=v3-unified-3"></script>
 <script src="./ai-marketing/marketing-client.js"></script>
 <script>
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-unified-3j';
+  var ver = 'v3-unified-goals28';
   try {
     var bootB = new URLSearchParams(location.search).get('b');
     if (bootB) ver = 'v3-unified-3j-' + bootB.slice(0, 12);
@@ -173,6 +172,7 @@
         if (DaliaSite.scrubDemoUi) DaliaSite.scrubDemoUi();
       }
       return loadScript(assetUrl('ai-marketing/coco-claude-main.js'))
+        .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-data.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-bridge.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-unified.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-crm-bridge.js')); });
