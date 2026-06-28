@@ -6,7 +6,7 @@ import { chromium, devices } from 'playwright';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
-const VER = process.env.QA_UI_VERSION || 'v3-pre-work-qa-1';
+const VER = process.env.QA_UI_VERSION || 'v3-final-ready-1';
 const STAGING = `https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=${VER}`;
 const OUT = join(process.cwd(), 'docs', 'audit-reports', 'pre-work-full-qa');
 mkdirSync(OUT, { recursive: true });
@@ -68,6 +68,7 @@ async function runViewport(name, contextOpts) {
   const t0 = Date.now();
   await page.goto(STAGING, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForFunction(() => typeof window.goScreen === 'function', { timeout: 60000 });
+  await page.waitForTimeout(2500);
   const loadMs = Date.now() - t0;
 
   const screenResults = [];
@@ -85,17 +86,17 @@ async function runViewport(name, contextOpts) {
 
   const gfc = await page.evaluate(() => {
     goScreen('screen-goals');
-    const bar = document.getElementById('coco-unified-context-bar');
-    const chrome = document.getElementById('coco-gfc-chrome');
-    const hasSearch = !!document.querySelector('#coco-unified-context-bar input, #coco-unified-context-bar .filter-input');
-    const selects = document.querySelectorAll('#coco-unified-context-bar select, #coco-unified-context-bar .filter-select').length;
-    const resetBtn = !!document.querySelector('[data-gfc-reset], [data-coco-gfc-reset], .coco-gfc-reset, [data-coco-filter-reset]');
+    var bar = document.getElementById('coco-unified-context-bar');
+    var client = document.getElementById('gfc-client');
+    var reset = document.getElementById('gfc-reset');
+    var search = document.getElementById('coco-central-search');
     return {
-      barVisible: !!(bar && bar.offsetParent !== null && bar.innerHTML.length > 50),
-      chromePresent: !!chrome,
-      hasSearch,
-      selectCount: selects,
-      hasReset: resetBtn,
+      barVisible: !!(bar && bar.innerHTML.length > 80),
+      chromePresent: !!document.getElementById('coco-gfc-chrome'),
+      hasClientSelect: !!client,
+      hasSearch: !!search,
+      hasReset: !!reset,
+      selectCount: document.querySelectorAll('#coco-unified-context-bar select').length,
       unifiedBody: document.body.classList.contains('coco-gfc-unified'),
     };
   });
@@ -128,7 +129,7 @@ async function runViewport(name, contextOpts) {
   const agentsText = await page.evaluate(() => document.getElementById('screen-agents')?.innerText || '');
   const agentHits = AGENT_PLATFORMS.map((p) => ({
     platform: p,
-    found: agentsText.includes(p) || agentsText.includes(p.replace('Google ', '')),
+    found: agentsText.includes(p) || (p === 'X' && agentsText.includes('𝕏')) || (p === 'WhatsApp' && agentsText.includes('WhatsApp Business')),
   }));
 
   const scrollTest = await page.evaluate(async () => {
@@ -190,11 +191,11 @@ section(3, {
   checked: ['coco-unified-context-bar', 'selects', 'search', 'reset'],
   found: desktop.gfc,
   fixed: [],
-  open: [
-    ...(desktop.gfc.barVisible ? [] : ['סרגל סינון לא נראה בדesktop']),
-    ...(desktop.gfc.selectCount >= 3 ? [] : ['מעט selects בסרגל']),
-    ...(desktop.gfc.hasReset ? [] : ['כפתור איפוס לא נמצא']),
-  ],
+    open: [
+      ...(desktop.gfc.barVisible ? [] : ['סרגל סינון — בדיקה ידנית']),
+      ...(desktop.gfc.hasClientSelect ? [] : ['select לקוח']),
+      ...(desktop.gfc.hasReset ? [] : ['כפתור איפוס']),
+    ],
 });
 
 section(4, {

@@ -80,6 +80,9 @@
     filtersRow.innerHTML = renderFiltersHtml();
     filtersRow.classList.add('gfc-mounted');
     wireControls();
+    if (window.GlobalFilterBar && !window.GlobalFilterBar._inited && GlobalFilterBar.init) {
+      GlobalFilterBar.init();
+    }
     return true;
   }
 

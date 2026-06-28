@@ -1186,7 +1186,7 @@
 
     <!-- Agents grid -->
     <div class="section">
-      <div class="sec-title">11 עוזרים פעילים</div>
+      <div class="sec-title">20 עוזרים פעילים</div>
       <div style="display:flex;flex-direction:column;gap:12px;">
 
         <!-- Agent card template – repeated for each of 11 agents -->
@@ -1470,6 +1470,80 @@
         </div>
 
         <!-- 11. AI Marketing Manager -->
+        <div class="agent-card" id="agcard-chatgpt" style="cursor:default;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <div class="agent-header" style="flex:1;min-width:200px;"><div class="agent-icon">💬</div><div><div class="agent-name">ChatGPT AI</div><div class="agent-role">OpenAI ChatGPT • תוכן, קוד, המלצות</div></div></div>
+            <span class="badge badge-yellow">● תשתית</span>
+          </div>
+          <div style="font-size:12px;color:var(--white50);margin-top:8px;">מחובר למערכת • Staging</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;margin-top:8px;" onclick="openAgentDashboard('chatgpt')">📊 צפה בדשבורד</button>
+        </div>
+        <div class="agent-card" id="agcard-claude" style="cursor:default;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <div class="agent-header" style="flex:1;min-width:200px;"><div class="agent-icon">🟣</div><div><div class="agent-name">Claude AI</div><div class="agent-role">Anthropic Claude • ניתוח ותוכן</div></div></div>
+            <span class="badge badge-yellow">● תשתית</span>
+          </div>
+          <div style="font-size:12px;color:var(--white50);margin-top:8px;">מחובר למערכת • Staging</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;margin-top:8px;" onclick="openAgentDashboard('claude')">📊 צפה בדשבורד</button>
+        </div>
+        <div class="agent-card" id="agcard-gemini" style="cursor:default;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <div class="agent-header" style="flex:1;min-width:200px;"><div class="agent-icon">✨</div><div><div class="agent-name">Gemini AI</div><div class="agent-role">Google Gemini • ניתוח ותובנות</div></div></div>
+            <span class="badge badge-yellow">● תשתית</span>
+          </div>
+          <div style="font-size:12px;color:var(--white50);margin-top:8px;">מחובר למערכת • Staging</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;margin-top:8px;" onclick="openAgentDashboard('gemini')">📊 צפה בדשבורד</button>
+        </div>
+        <div class="agent-card" id="agcard-youtube" style="cursor:default;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <div class="agent-header" style="flex:1;min-width:200px;"><div class="agent-icon">▶️</div><div><div class="agent-name">YouTube AI</div><div class="agent-role">YouTube • וידאו וערוץ</div></div></div>
+            <span class="badge badge-yellow">● תשתית</span>
+          </div>
+          <div style="font-size:12px;color:var(--white50);margin-top:8px;">מחובר למערכת • Staging</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;margin-top:8px;" onclick="openAgentDashboard('youtube')">📊 צפה בדשבורד</button>
+        </div>
+        <div class="agent-card" id="agcard-tiktok" style="cursor:default;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <div class="agent-header" style="flex:1;min-width:200px;"><div class="agent-icon">🎵</div><div><div class="agent-name">TikTok AI</div><div class="agent-role">TikTok • תוכן קצר</div></div></div>
+            <span class="badge badge-yellow">● תשתית</span>
+          </div>
+          <div style="font-size:12px;color:var(--white50);margin-top:8px;">מחובר למערכת • Staging</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;margin-top:8px;" onclick="openAgentDashboard('tiktok')">📊 צפה בדשבורד</button>
+        </div>
+        <div class="agent-card" id="agcard-linkedin-agent" style="cursor:default;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <div class="agent-header" style="flex:1;min-width:200px;"><div class="agent-icon">💼</div><div><div class="agent-name">LinkedIn AI</div><div class="agent-role">LinkedIn • B2B ותוכן מקצועי</div></div></div>
+            <span class="badge badge-yellow">● תשתית</span>
+          </div>
+          <div style="font-size:12px;color:var(--white50);margin-top:8px;">מחובר למערכת • Staging</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;margin-top:8px;" onclick="openAgentDashboard('linkedin')">📊 צפה בדשבורד</button>
+        </div>
+        <div class="agent-card" id="agcard-x" style="cursor:default;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <div class="agent-header" style="flex:1;min-width:200px;"><div class="agent-icon">𝕏</div><div><div class="agent-name">X AI</div><div class="agent-role">X (Twitter) • תוכן ומעקב</div></div></div>
+            <span class="badge badge-yellow">● תשתית</span>
+          </div>
+          <div style="font-size:12px;color:var(--white50);margin-top:8px;">מחובר למערכת • Staging</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;margin-top:8px;" onclick="openAgentDashboard('xtwitter')">📊 צפה בדשבורד</button>
+        </div>
+        <div class="agent-card" id="agcard-pinterest" style="cursor:default;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <div class="agent-header" style="flex:1;min-width:200px;"><div class="agent-icon">📌</div><div><div class="agent-name">Pinterest AI</div><div class="agent-role">Pinterest • ויזואל ו-Pins</div></div></div>
+            <span class="badge badge-yellow">● תשתית</span>
+          </div>
+          <div style="font-size:12px;color:var(--white50);margin-top:8px;">מחובר למערכת • Staging</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;margin-top:8px;" onclick="openAgentDashboard('pinterest')">📊 צפה בדשבורד</button>
+        </div>
+        <div class="agent-card" id="agcard-whatsapp" style="cursor:default;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <div class="agent-header" style="flex:1;min-width:200px;"><div class="agent-icon">💬</div><div><div class="agent-name">WhatsApp Business AI</div><div class="agent-role">WhatsApp Business • הודעות ולידים</div></div></div>
+            <span class="badge badge-yellow">● תשתית</span>
+          </div>
+          <div style="font-size:12px;color:var(--white50);margin-top:8px;">מחובר למערכת • Staging</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;margin-top:8px;" onclick="openAgentDashboard('whatsapp')">📊 צפה בדשבורד</button>
+        </div>
+
+        <!-- 20. AI Marketing Manager -->
         <div class="agent-card" id="agcard-manager" style="cursor:default;border-color:rgba(37,99,235,0.5);background:var(--bg4);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
             <div class="agent-header" style="flex:1;min-width:200px;">
@@ -3397,7 +3471,7 @@
     </div>
   </div>
 
-  <div class="content"><div id="coco-marketing-crm-mount-screen" style="display:none!important" aria-hidden="true"></div>
+  <div class="content"><div id="coco-marketing-crm-mount-screen" style="display:none" aria-hidden="true"></div>
 
     <!-- ===== TAB: CLIENTS LIST ===== -->
     <div id="tab-crm-list">
@@ -3804,6 +3878,14 @@
         <div class="asset-card" onclick="openModal('modal-asset-detail')">
           <div class="asset-header"><div class="asset-icon">💬</div><div><div class="asset-name">WhatsApp Business</div><div class="asset-status">12 הודעות ממתינות</div></div></div>
           <span class="badge badge-yellow">● חלקי</span>
+        </div>
+        <div class="asset-card">
+          <div class="asset-header"><div class="asset-icon">𝕏</div><div><div class="asset-name">X (Twitter)</div><div class="asset-status">לא מחובר</div></div></div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;margin-top:4px;" onclick="openModal('modal-connect-asset')">+ חבר</button>
+        </div>
+        <div class="asset-card">
+          <div class="asset-header"><div class="asset-icon">📌</div><div><div class="asset-name">Pinterest</div><div class="asset-status">לא מחובר</div></div></div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;margin-top:4px;" onclick="openModal('modal-connect-asset')">+ חבר</button>
         </div>
       </div>
 

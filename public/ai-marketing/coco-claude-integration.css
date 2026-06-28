@@ -18,6 +18,8 @@ body {
   right: 0;
   z-index: 46;
   pointer-events: auto;
+  max-width: 100vw;
+  overflow-x: auto;
 }
 #coco-gfc-chrome.coco-gfc-hidden {
   display: none !important;
@@ -230,7 +232,16 @@ body.prd-dalia-embedded .prd-dalia-exit-inline {
     min-height: 32px;
   }
   #coco-unified-context-bar:not(.is-expanded) .cfc-row-filters {
-    display: none;
+    display: block;
+  }
+  #coco-unified-context-bar:not(.is-expanded) .gfc-advanced,
+  #coco-unified-context-bar:not(.is-expanded) .gfc-advanced-default {
+    display: none !important;
+  }
+  #coco-unified-context-bar:not(.is-expanded) .gfc-primary {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 6px;
   }
   #coco-unified-context-bar .cfc-row-main {
     padding: 6px 10px;
@@ -256,6 +267,9 @@ body.prd-dalia-embedded .prd-dalia-exit-inline {
   #coco-hub-client-name {
     font-size: 16px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 55vw;
   }
   #screen-hub .topbar {
     height: auto;
@@ -526,6 +540,13 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
   max-height: 94vh !important;
 }
 /* ── Actions Lite (v3-actions-lite-1) ── */
+#screen-agents .table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#screen-agents .table-wrap table {
+  min-width: 720px;
+}
 .coco-act-lite-list { display: flex; flex-direction: column; gap: 10px; }
 .coco-act-lite-card-head {
   padding: 14px;

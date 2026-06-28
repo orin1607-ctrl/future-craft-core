@@ -172,6 +172,13 @@
           DaliaCrm.init();
           booted = true;
           ensureCrmVisible();
+          var screenMount = document.getElementById('coco-marketing-crm-mount-screen');
+          if (screenMount) {
+            screenMount.style.display = 'block';
+            screenMount.removeAttribute('aria-hidden');
+          }
+          var staticList = document.getElementById('tab-crm-list');
+          if (staticList) staticList.style.display = 'none';
           syncMarketingFilters();
           if (window.GlobalFilterBar && GlobalFilterBar.place) GlobalFilterBar.place('screen-crm');
           var cid = ctx().clientId;

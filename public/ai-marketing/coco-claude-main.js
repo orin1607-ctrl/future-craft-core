@@ -567,6 +567,19 @@ function sendRowToGoals(id) {
 // ===== END CHECKS TABLE =====
 
 // ===== AGENT DASHBOARD DATA =====
+function _platformAgentStub(name, icon, source) {
+  return {
+    name: name, icon: icon, source: source,
+    status: 'ready', scanTime: 'תשתית מחוברת',
+    findings: 0, issues: 0, opportunities: 0, score: 0,
+    urgency: 'בינונית', readyToTransfer: false,
+    kpis: [{ label: 'חיבור', val: 'תשתית', delta: 'Staging', color: 'var(--accent2)' }],
+    findings_table: [],
+    aiSummary: name + ' – תשתית מחוברת למערכת ניהול השיווק. חיבור API מלא בשלב הבא.',
+    readyCount: 0, readyIssues: 0, readyOpp: 0, urgencyLabel: 'בינונית',
+  };
+}
+
 const AGENT_DATA = {
   gsc: {
     name: 'Google Search Console AI', icon: '🔎',
@@ -818,6 +831,15 @@ const AGENT_DATA = {
     aiSummary: 'מצב טכני טוב. Redirect Loop בעמוד about-us – תיקון קל. API שיתוף לא מגיב – לא קריטי. 5 שיפורי SEO טכניים מוכנים לביצוע.',
     readyCount: 3, readyIssues: 2, readyOpp: 1, urgencyLabel: 'בינונית'
   },
+  chatgpt: _platformAgentStub('ChatGPT AI', '💬', 'OpenAI ChatGPT'),
+  claude: _platformAgentStub('Claude AI', '🟣', 'Anthropic Claude'),
+  gemini: _platformAgentStub('Gemini AI', '✨', 'Google Gemini'),
+  youtube: _platformAgentStub('YouTube AI', '▶️', 'YouTube'),
+  tiktok: _platformAgentStub('TikTok AI', '🎵', 'TikTok'),
+  linkedin: _platformAgentStub('LinkedIn AI', '💼', 'LinkedIn'),
+  xtwitter: _platformAgentStub('X AI', '𝕏', 'X (Twitter)'),
+  pinterest: _platformAgentStub('Pinterest AI', '📌', 'Pinterest'),
+  whatsapp: _platformAgentStub('WhatsApp Business AI', '💬', 'WhatsApp Business'),
   manager: {
     name: 'AI Marketing Manager – Project 001', icon: '🧠',
     source: 'Internal – All Agents',
