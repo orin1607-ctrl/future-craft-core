@@ -251,19 +251,25 @@ async function runDaliaNav(page) {
 
 async function runAgentsInventory(page) {
   await boot(page);
-  return page.evaluate(() => {
+  const stubIds = STUB_AGENTS;
+  return page.evaluate((stubList) => {
     const inv = [];
     if (typeof AGENT_DATA === 'undefined') return { error: 'AGENT_DATA missing', agents: [] };
     Object.keys(AGENT_DATA).forEach((k) => {
       const a = AGENT_DATA[k];
-      let status = 'DEMO_DATA';
-      if (STUB_AGENTS.includes(k)) status = 'STUB_INFRASTRUCTURE';
-      if (a.aiSummary && a.aiSummary.includes('תשתית')) status = 'STUB_INFRASTRUCTURE';
-      if (a.readyToTransfer === false && a.status === 'running') status = 'PARTIAL_SCAN';
-      inv.push({ id: k, name: a.name, status, requiresApi: status !== 'DEMO_DATA' || STUB_AGENTS.includes(k) });
+      let status = 'DEMO_STATIC_UI';
+      if (stubList.includes(k)) status = 'STUB_INFRASTRUCTURE';
+      else if (a.aiSummary && String(a.aiSummary).includes('תשתית')) status = 'STUB_INFRASTRUCTURE';
+      else if (a.status === 'running') status = 'PARTIAL_UI_ONLY';
+      inv.push({
+        id: k,
+        name: a.name,
+        status,
+        requiresLiveApi: status === 'STUB_INFRASTRUCTURE' || status === 'PARTIAL_UI_ONLY',
+      });
     });
     return { agents: inv, stubCount: inv.filter((x) => x.status === 'STUB_INFRASTRUCTURE').length };
-  });
+  }, stubIds);
 }
 
 async function main() {
