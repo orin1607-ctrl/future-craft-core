@@ -162,11 +162,15 @@
     var hash = contextHash(c);
     var liveOnlyFreeSearch = window.DaliaSite && DaliaSite.isLiveOnly && DaliaSite.isLiveOnly();
     var free = (c.freeSearch || '').trim().toLowerCase();
+    var hasPageScope = c.subCategory && c.subCategory.id;
 
     if (liveOnlyFreeSearch) {
-      if (!free) return items;
+      if (!free && !hasPageScope) return items;
       return items.filter(function (item) {
-        return JSON.stringify(item).toLowerCase().indexOf(free) >= 0;
+        var meta = mapFn(item);
+        if (free && JSON.stringify(item).toLowerCase().indexOf(free) === -1) return false;
+        if (hasPageScope && !pageMatches(meta, c)) return false;
+        return true;
       });
     }
 
