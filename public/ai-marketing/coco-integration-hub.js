@@ -209,6 +209,16 @@
     return 'מנועי AI (OpenAI / Claude / Gemini) דורשים התחברות Super Admin בדליה.';
   }
 
+  function countActiveAssistants(raw) {
+    var data = resolveDataFeeds(raw);
+    return ASSISTANTS.filter(function (a) { return feedOk(a.feeds, data); }).length;
+  }
+
+  function listActiveAssistantIds(raw) {
+    var data = resolveDataFeeds(raw);
+    return ASSISTANTS.filter(function (a) { return feedOk(a.feeds, data); }).map(function (a) { return a.id; });
+  }
+
   window.CocoIntegrationHub = {
     ASSISTANTS: ASSISTANTS,
     AI_ENGINES: AI_ENGINES,
@@ -219,6 +229,10 @@
     showStatusModal: showStatusModal,
     isAiApiEnabled: isAiApiEnabled,
     getAiBlockedMessage: getAiBlockedMessage,
+    countActiveAssistants: countActiveAssistants,
+    listActiveAssistantIds: listActiveAssistantIds,
+    resolveDataFeeds: resolveDataFeeds,
+    feedOk: feedOk,
     PENDING: PENDING,
     PENDING_KEY: PENDING_KEY,
     PENDING_AUTH: PENDING_AUTH,

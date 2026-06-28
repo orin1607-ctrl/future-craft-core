@@ -349,28 +349,33 @@
   }
 
   function bindHub(bundle) {
-    var kpis = deriveKpis(bundle);
-    setHtml('coco-live-hub-kpis', [
-      '<div class="card" style="padding:12px 14px;"><div class="card-title">קליקים (GSC)</div><div class="card-value" style="font-size:22px;">' + esc(kpis.clicks) + '</div></div>',
-      '<div class="card" style="padding:12px 14px;"><div class="card-title">חשיפות (GSC)</div><div class="card-value" style="font-size:22px;">' + esc(kpis.impressions) + '</div></div>',
-      '<div class="card" style="padding:12px 14px;"><div class="card-title">סשנים (GA4)</div><div class="card-value" style="font-size:22px;color:var(--accent2);">' + esc(kpis.visits) + '</div></div>',
-      '<div class="card" style="padding:12px 14px;"><div class="card-title">מיקום ממוצע</div><div class="card-value" style="font-size:22px;color:var(--yellow);">' + esc(kpis.position) + '</div></div>',
-    ].join(''));
+    if (window.MarketingSsot && MarketingSsot.renderCommandCenter) {
+      MarketingSsot.renderCommandCenter();
+    } else {
+      var kpis = deriveKpis(bundle);
+      setHtml('coco-live-hub-kpis', [
+        '<div class="card" style="padding:12px 14px;"><div class="card-title">קליקים (GSC)</div><div class="card-value" style="font-size:22px;">' + esc(kpis.clicks) + '</div></div>',
+        '<div class="card" style="padding:12px 14px;"><div class="card-title">חשיפות (GSC)</div><div class="card-value" style="font-size:22px;">' + esc(kpis.impressions) + '</div></div>',
+        '<div class="card" style="padding:12px 14px;"><div class="card-title">סשנים (GA4)</div><div class="card-value" style="font-size:22px;color:var(--accent2);">' + esc(kpis.visits) + '</div></div>',
+        '<div class="card" style="padding:12px 14px;"><div class="card-title">מיקום ממוצע</div><div class="card-value" style="font-size:22px;color:var(--yellow);">' + esc(kpis.position) + '</div></div>',
+      ].join(''));
+    }
     if (window.DaliaSite && DaliaSite.renderHubAiBox) DaliaSite.renderHubAiBox(bundle);
     var goals = deriveGoals(bundle);
     var actions = deriveActions(bundle);
     var assets = deriveAssets(bundle);
     var aiRecs = (bundle && bundle.ai && bundle.ai.recommendations && bundle.ai.recommendations.length) || 0;
     var pendingAi = aiRecs ? (aiRecs + ' החלטות ממתינות') : '0 החלטות ממתינות';
+    var ssotCounts = window.MarketingSsot ? MarketingSsot.getCounts() : null;
     var counts = {
       'screen-status': 'מצב',
-      'screen-clients': state.customers.length + ' לקוחות',
-      'screen-agents': '12 עוזרים פעילים',
+      'screen-clients': (ssotCounts ? ssotCounts.clients : state.customers.length) + ' לקוחות',
+      'screen-agents': (ssotCounts ? ssotCounts.activeAiAssistants : 0) + ' עוזרים פעילים',
       'screen-goals': goals.length + ' מטרות',
       'screen-actions': actions.filter(function (a) { return a.status !== 'done'; }).length + ' ממתינות',
       'screen-crm': (function () { var cc = crmCounts(); return cc ? (cc.customers + ' לקוחות פעילים') : PENDING; })(),
       'screen-history': deriveHistory(bundle).length + ' רשומות',
-      'screen-assets': assets.length + ' נכסים',
+      'screen-assets': (ssotCounts ? ssotCounts.connectedAssets : assets.length) + ' נכסים',
       'screen-ai-center': pendingAi,
       'screen-ai-decisions': aiRecs ? (aiRecs + ' המלצות') : 'ממתין',
       'screen-reports': 'דוחות'
@@ -437,8 +442,11 @@
     if (window.DaliaSite && typeof DaliaSite.renderClientsLive === 'function') {
       DaliaSite.renderClientsLive();
       state.meta.clientSource = 'live';
-      return;
     }
+    if (window.MarketingSsot && MarketingSsot.renderClientsChannels) {
+      MarketingSsot.renderClientsChannels();
+    }
+    if (window.DaliaSite && typeof DaliaSite.renderClientsLive === 'function') return;
     var rows = state.customers;
     var c = ctx();
     if (c.serviceType) rows = rows.filter(function (x) { return x.service_type === c.serviceType; });

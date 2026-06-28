@@ -89,12 +89,20 @@
   }
 
   function connectionBadge(key, raw) {
+    if (window.MarketingSsot && MarketingSsot.resolveConn) {
+      var c = (raw && raw.connections && raw.connections[key]) || {};
+      var st = MarketingSsot.resolveConn(c);
+      return MarketingSsot.statusBadgeHtml(st);
+    }
     var c = (raw && raw.connections && raw.connections[key]) || {};
-    if (c.ok || c.status === 'connected') return '<span class="badge badge-green">● מחובר</span>';
+    if (c.ok || c.status === 'connected') return '<span class="badge badge-green">● פעיל</span>';
+    if (/pending.*approval/i.test(c.status || '') || /approval/i.test(c.note || '')) {
+      return '<span class="badge badge-yellow">⏳ ממתין לאישור</span>';
+    }
     if (/pending|planned|infrastructure/.test(c.status || '')) {
       return '<span class="badge badge-yellow">⏳ ' + esc(PENDING) + '</span>';
     }
-    return '<span class="badge badge-gray">⏳ ' + esc(PENDING) + '</span>';
+    return '<span class="badge badge-gray">○ לא מחובר</span>';
   }
 
   function buildLiveBundle(raw) {
@@ -305,23 +313,25 @@
   }
 
   function connectionsBox(raw) {
+    var channels = window.MarketingSsot
+      ? MarketingSsot.getMarketingChannels(true)
+      : null;
+    if (channels) {
+      var rows = channels.map(function (c) {
+        return '<tr><td>' + esc(c.nameHe) + '</td><td>' + MarketingSsot.statusBadgeHtml(c.status) + '</td><td style="font-size:12px;color:var(--white50);">' + esc(c.detail || c.status.labelHe) + '</td></tr>';
+      }).join('');
+      return '<div class="card" style="padding:14px;grid-column:1/-1;"><div class="card-title" style="margin-bottom:10px;">🔗 ערוצי שיווק וחיבורים</div><div class="table-wrap"><table><thead><tr><th>ערוץ</th><th>סטטוס</th><th>פרטים</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+    }
     var items = [
       ['Google Search Console', 'searchConsole'],
       ['Google Analytics 4', 'analytics4'],
       ['Google Business Profile', 'businessProfile'],
       ['Google Ads', 'googleAds'],
       ['Google Tag Manager', 'googleTagManager'],
-      ['Google Drive', 'drive'],
-      ['Google Sheets', 'sheets'],
-      ['Google Docs', 'docs'],
-      ['Gmail', 'gmail'],
-      ['OpenAI', 'openai'],
-      ['Claude', 'claude'],
-      ['Gemini', 'gemini'],
     ];
     var rows = items.map(function (pair) {
       var c = (raw.connections && raw.connections[pair[1]]) || {};
-      var status = c.ok ? 'מחובר — נתונים אמיתיים' : (c.note || c.connectionNote || PENDING);
+      var status = c.ok ? 'פעיל' : (c.note || PENDING);
       return '<tr><td>' + esc(pair[0]) + '</td><td>' + connectionBadge(pair[1], raw) + '</td><td style="font-size:12px;color:var(--white50);">' + esc(status) + '</td></tr>';
     }).join('');
     return '<div class="card" style="padding:14px;grid-column:1/-1;"><div class="card-title" style="margin-bottom:10px;">🔗 חיבורים</div><div class="table-wrap"><table><thead><tr><th>שירות</th><th>סטטוס</th><th>פרטים</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
@@ -345,24 +355,16 @@
       grid.style.cssText = 'gap:10px;padding:16px 20px 0;';
       content.insertBefore(grid, content.firstChild);
     }
-    var conn = raw.connections || {};
-    var assets = [
-      { icon: '🌐', name: SITE.domain, detail: SITE.url, ok: true },
-      { icon: '🔍', name: 'Search Console', detail: conn.searchConsole?.ok ? 'מחובר' : PENDING, ok: !!conn.searchConsole?.ok },
-      { icon: '📊', name: 'Google Analytics', detail: conn.analytics4?.ok ? 'מחובר' : PENDING, ok: !!conn.analytics4?.ok },
-      { icon: '📍', name: 'Google Business', detail: conn.businessProfile?.ok ? 'מחובר' : PENDING, ok: !!conn.businessProfile?.ok },
-      { icon: '📢', name: 'Google Ads', detail: conn.googleAds?.ok ? 'מחובר' : PENDING, ok: !!conn.googleAds?.ok },
-      { icon: '🏷️', name: 'Tag Manager', detail: PENDING, ok: false },
-      { icon: '📘', name: 'Facebook', detail: PENDING, ok: false },
-      { icon: '📸', name: 'Instagram', detail: PENDING, ok: false },
-      { icon: '💼', name: 'LinkedIn', detail: PENDING, ok: false },
-      { icon: '▶️', name: 'YouTube', detail: PENDING, ok: false },
-      { icon: '💬', name: 'WhatsApp', detail: PENDING, ok: false },
-    ];
-    grid.innerHTML = assets.map(function (a) {
-      return '<div class="asset-card"><div class="asset-header"><div class="asset-icon">' + a.icon + '</div><div><div class="asset-name">' + esc(a.name) + '</div><div class="asset-status">' + esc(a.detail) + '</div></div></div>' +
-        (a.ok ? '<span class="badge badge-green">● פעיל</span>' : '<span class="badge badge-yellow">⏳ ' + esc(PENDING) + '</span>') + '</div>';
-    }).join('');
+    var assets = window.MarketingSsot ? MarketingSsot.getConnectedAssets() : [{ icon: '🌐', name: SITE.domain, url: SITE.url, status: 'active' }];
+    var channels = window.MarketingSsot ? MarketingSsot.getMarketingChannels(true) : [];
+    var cards = assets.map(function (a) {
+      return '<div class="asset-card"><div class="asset-header"><div class="asset-icon">' + a.icon + '</div><div><div class="asset-name">' + esc(a.name) + '</div><div class="asset-status">' + esc(a.url) + '</div></div></div>' +
+        '<span class="badge badge-green">● פעיל</span></div>';
+    }).concat(channels.map(function (c) {
+      return '<div class="asset-card"><div class="asset-header"><div class="asset-icon">' + c.icon + '</div><div><div class="asset-name">' + esc(c.nameHe) + '</div><div class="asset-status">' + esc(c.detail || c.status.labelHe) + '</div></div></div>' +
+        (window.MarketingSsot ? MarketingSsot.statusBadgeHtml(c.status) : connectionBadge('', { connections: {} })) + '</div>';
+    }));
+    grid.innerHTML = cards.join('');
     var sub = document.querySelector('#screen-assets .page-subtitle');
     if (sub) sub.textContent = 'מרכז שליטה — ' + SITE.company + ' · ' + SITE.domain;
     hideStaticDemoBlocks();
@@ -434,16 +436,31 @@
     });
     document.querySelectorAll('#coco-claude-root .hub-card').forEach(function (card) {
       var t = card.textContent || '';
-      if (/גרין-טק|greentech|דלתא|פתרונות טק|FleetOS/i.test(t)) card.style.display = 'none';
+      if (/גרין-טק|greentech|דלתא|פתרונות טק|FleetOS|12 לקוחות|9 נכסים|3 התראות|22 רשומות|דוח יוני 2025|20 מטרות|12 ממתינות לאישור|12 לקוחות פעילים/i.test(t)) {
+        card.style.display = 'none';
+      }
     });
-    var aiBox = document.querySelector('#screen-hub .ai-box-header');
-    if (aiBox && /גרין-טק/i.test(aiBox.textContent)) {
-      aiBox.textContent = 'המלצת AI יומית — ' + SITE.domain + ' (ממתין למפתח)';
-    }
+    var aiBox = document.querySelector('#screen-hub .ai-box');
+    if (aiBox && /גרין-טק/i.test(aiBox.textContent || '')) aiBox.style.display = 'none';
     document.querySelectorAll('#coco-claude-root .page-subtitle, #coco-claude-root .page-title').forEach(function (el) {
       if (/גרין-טק|greentech|FleetOS|דלתא/i.test(el.textContent)) {
         el.textContent = SITE.company + ' • ' + SITE.domain;
       }
+    });
+    document.querySelectorAll('#screen-hub .section').forEach(function (sec) {
+      if (/התראות אחרונות|PageSpeed|404|Meta Description/i.test(sec.textContent || '')) sec.style.display = 'none';
+    });
+    document.querySelectorAll('#screen-agents .content > div').forEach(function (el) {
+      if (/גרין-טק|greentech|CLT-001|Brand Search|ציון כללי|72/i.test(el.textContent || '')) {
+        if (!el.closest('#coco-live-agents-root') && !el.closest('#coco-live-agents-context')) el.style.display = 'none';
+      }
+    });
+    ['tab-clients-assets', 'tab-clients-integrations'].forEach(function (tid) {
+      var tab = document.getElementById(tid);
+      if (!tab) return;
+      tab.querySelectorAll('.card, .ca-card, .grid.grid-4').forEach(function (el) {
+        if (!el.closest('.coco-live-section') && !el.id) el.style.display = 'none';
+      });
     });
     hideStaticDemoBlocks();
     document.querySelectorAll('#screen-hub .section .alert').forEach(function (el) {
@@ -637,10 +654,6 @@
       if (window.CocoClaude && CocoClaude.bindClientFromDalia) {
         CocoClaude.bindClientFromDalia(bundle);
       }
-      if (window.CocoData) {
-        if (CocoData.setBundle) CocoData.setBundle(bundle);
-        if (CocoData.bindAll) CocoData.bindAll();
-      }
       if (state.dashboard) {
         renderStatusLive(state.dashboard, state.crawl);
         renderAssetsLive(state.dashboard);
@@ -650,6 +663,19 @@
       scrubDemoUi();
       if (window.CocoIntegrationHub && CocoIntegrationHub.wireAll) {
         CocoIntegrationHub.wireAll(state.dashboard);
+      }
+      if (window.MarketingSsot && MarketingSsot.hydrate) {
+        MarketingSsot.hydrate({
+          dashboard: state.dashboard,
+          bundle: bundle,
+          workPlan: state.workPlan,
+          site: SITE,
+        });
+        MarketingSsot.refreshUi();
+      }
+      if (window.CocoData) {
+        if (CocoData.setBundle) CocoData.setBundle(bundle);
+        if (CocoData.bindAll) CocoData.bindAll();
       }
       document.body.classList.add('dalia-live-only');
       document.body.classList.remove('demo-mode');
