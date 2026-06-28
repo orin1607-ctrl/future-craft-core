@@ -1,8 +1,8 @@
 {
   "at": "2026-06-28T21:05:04.847Z",
-  "stagingUrl": "http://localhost:8888/ai-marketing-platform.html?v=v3-open-gaps-1",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-1",
   "uiVersion": "v3-open-gaps-1",
-  "commitHash": "",
+  "commitHash": "69efecd",
   "tasks": {
     "1-mobile": {
       "bootFlash": {

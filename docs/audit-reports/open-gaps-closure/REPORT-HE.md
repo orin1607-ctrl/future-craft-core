@@ -2,7 +2,7 @@
 
 **תאריך:** 2026-06-29  
 **Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-1  
-**Commit:** _(מתעדכן לאחר push)_  
+**Commit:** `69efecd`  
 **Cache:** `v3-open-gaps-1`
 
 ---
@@ -195,7 +195,9 @@ Production auth URL — לא נדרש ל-Orin Staging.
 
 ## 10. Commit / Push / Deploy
 
-_(מתעדכן לאחר push)_
+**Commit:** `69efecd`  
+**Push:** origin/main (GH Pages deploy)  
+**Staging URL:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-open-gaps-1
 
 ### קבצים שהשתנו
 - `public/ai-marketing-platform.html`
