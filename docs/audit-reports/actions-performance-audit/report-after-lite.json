@@ -1,0 +1,389 @@
+{
+  "at": "2026-06-28T19:18:28.647Z",
+  "version": "v3-actions-lite-1",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-actions-lite-1",
+  "commit": "912c65051c39b91999e4a3b279e14634b7bb6b86",
+  "commitMsg": "refactor(actions): complete lite workbench v3-actions-lite-1",
+  "ssot": {
+    "pages": 28,
+    "actions": 395
+  },
+  "performance": {
+    "desktop": {
+      "viewport": "desktop",
+      "timings": {
+        "actionsFirstPaintMs": 3441,
+        "actionsFullLoadMs": 3443,
+        "openWorkbenchMs": 45018,
+        "expandFirstActionMs": 40029,
+        "previewOpenMs": 90028,
+        "hubAfterActionsMs": 600
+      },
+      "dom": {
+        "initial": {
+          "cards": 8,
+          "actionItems": 0,
+          "beforeAfterBlocks": 0,
+          "feedbackPanels": 0,
+          "pendingHtmlChars": 10532,
+          "totalDomNodes": 15466,
+          "lsBytes": 10401
+        },
+        "afterWorkbench": {
+          "actionItems": 0,
+          "feedbackPanels": 0,
+          "totalDomNodes": 15644,
+          "pendingHtmlChars": 10532
+        }
+      },
+      "scroll": {
+        "scrollDownAvgMs": 1.0050000004470347,
+        "scrollUpAvgMs": 0.3649999998509884,
+        "scrollDownMaxMs": 2.7999999970197678,
+        "scrollUpMaxMs": 2
+      },
+      "memory": {
+        "heapBeforeBytes": 10000000,
+        "heapAfterBytes": 10000000,
+        "deltaMb": "0.00"
+      },
+      "preview": {
+        "modalVisible": null,
+        "iframeCount": 0,
+        "srcdocTotalChars": 0,
+        "accordionItems": 0
+      },
+      "errors": {
+        "console": [],
+        "pageErrors": [],
+        "network": []
+      },
+      "hubDomNodes": 15644
+    },
+    "mobile": {
+      "viewport": "mobile",
+      "timings": {
+        "actionsFirstPaintMs": 3216,
+        "actionsFullLoadMs": 3219,
+        "openWorkbenchMs": 45007,
+        "expandFirstActionMs": 40005,
+        "previewOpenMs": 90037,
+        "hubAfterActionsMs": 503
+      },
+      "dom": {
+        "initial": {
+          "cards": 8,
+          "actionItems": 0,
+          "beforeAfterBlocks": 0,
+          "feedbackPanels": 0,
+          "pendingHtmlChars": 10532,
+          "totalDomNodes": 15466,
+          "lsBytes": 10401
+        },
+        "afterWorkbench": {
+          "actionItems": 0,
+          "feedbackPanels": 0,
+          "totalDomNodes": 15644,
+          "pendingHtmlChars": 10532
+        }
+      },
+      "scroll": {
+        "scrollDownAvgMs": 0.23500000014901162,
+        "scrollUpAvgMs": 0.13499999940395355,
+        "scrollDownMaxMs": 0.6000000014901161,
+        "scrollUpMaxMs": 0.4000000022351742
+      },
+      "memory": {
+        "heapBeforeBytes": 10600000,
+        "heapAfterBytes": 10600000,
+        "deltaMb": "0.00"
+      },
+      "preview": {
+        "modalVisible": null,
+        "iframeCount": 0,
+        "srcdocTotalChars": 0,
+        "accordionItems": 0
+      },
+      "errors": {
+        "console": [],
+        "pageErrors": [],
+        "network": []
+      },
+      "hubDomNodes": 15644
+    }
+  },
+  "pageAnalysis": [
+    {
+      "id": "page-01",
+      "path": "/",
+      "title": "בית חדש - דליה",
+      "rank": 1,
+      "actionCount": 10,
+      "strategy": "fix_priority",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-02",
+      "path": "/home",
+      "title": "פתרונות מימון ותפעול לרכב - דליה",
+      "rank": 2,
+      "actionCount": 16,
+      "strategy": "fix_priority",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-12",
+      "path": "/79-shekels",
+      "title": "79 ש\"ח - דליה",
+      "rank": 3,
+      "actionCount": 18,
+      "strategy": "fix_priority",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-08",
+      "path": "/צור-קשר-דליה",
+      "title": "צור קשר דליה - דליה",
+      "rank": 4,
+      "actionCount": 18,
+      "strategy": "fix_priority",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-06",
+      "path": "/catalog",
+      "title": "קטלוג רכבים - דליה",
+      "rank": 5,
+      "actionCount": 18,
+      "strategy": "fix_priority",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-05",
+      "path": "/contact",
+      "title": "צור קשר - דליה",
+      "rank": 6,
+      "actionCount": 17,
+      "strategy": "fix_priority",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-03",
+      "path": "/our-app",
+      "title": "האפליקציה שלנו - דליה",
+      "rank": 7,
+      "actionCount": 18,
+      "strategy": "fix_priority",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-14",
+      "path": "/מגוון-חבילות",
+      "title": "מגוון חבילות - דליה",
+      "rank": 8,
+      "actionCount": 15,
+      "strategy": "fix_priority",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-04",
+      "path": "/about",
+      "title": "אודות - דליה",
+      "rank": 9,
+      "actionCount": 13,
+      "strategy": "fix_priority",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-07",
+      "path": "/השירותים-שלנו",
+      "title": "השירותים שלנו - דליה",
+      "rank": 10,
+      "actionCount": 14,
+      "strategy": "fix_priority",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-24",
+      "path": "/שאלון-קצר-להתאמת-פתרון-ניהול-ותחזוקת-ר",
+      "title": "שאלון קצר להתאמת פתרון ניהול ותחזוקת רכבים - דליה",
+      "rank": 11,
+      "actionCount": 13,
+      "strategy": "fix",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-11",
+      "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
+      "title": "ניהול צי רכב חכם לעסקים – שליטה, סדר ושקט תפעולי - דליה",
+      "rank": 12,
+      "actionCount": 13,
+      "strategy": "fix",
+      "businessValue": "בינוני"
+    },
+    {
+      "id": "page-13",
+      "path": "/שאלון-לקוח-פרטי-ועסקי-15",
+      "title": "שאלון לקוח פרטי ועסקי (#15) - דליה",
+      "rank": 13,
+      "actionCount": 18,
+      "strategy": "fix",
+      "businessValue": "בינוני"
+    },
+    {
+      "id": "page-26",
+      "path": "/המערכת-והאפליקציה-של-דליה",
+      "title": "המערכת והאפליקציה של דליה - דליה",
+      "rank": 14,
+      "actionCount": 12,
+      "strategy": "fix",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-23",
+      "path": "/שאלון-מתלבטים-בין-ליסינג-תפעולי-לניהו",
+      "title": "שאלון מתלבטים בין ליסינג תפעולי לניהול עצמאי של הרכבים? - דליה",
+      "rank": 15,
+      "actionCount": 15,
+      "strategy": "fix",
+      "businessValue": "בינוני"
+    },
+    {
+      "id": "page-16",
+      "path": "/ניהול-תחזוקת-רכבים-חכם-לעסקים-מערכת",
+      "title": "ניהול תחזוקת רכבים חכם לעסקים – מערכת, שירות וליווי במקום אחד - דליה",
+      "rank": 16,
+      "actionCount": 11,
+      "strategy": "fix",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-17",
+      "path": "/service",
+      "title": "מימון, שירות ואחריות - דליה",
+      "rank": 17,
+      "actionCount": 11,
+      "strategy": "fix",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-18",
+      "path": "/how-it-works",
+      "title": "איך זה עובד? - דליה",
+      "rank": 18,
+      "actionCount": 11,
+      "strategy": "fix",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-25",
+      "path": "/card-provider-customer",
+      "title": "card/provider customer עע - דליה",
+      "rank": 19,
+      "actionCount": 18,
+      "strategy": "defer",
+      "businessValue": "בינוני"
+    },
+    {
+      "id": "page-28",
+      "path": "/registration",
+      "title": "Registration - דליה",
+      "rank": 20,
+      "actionCount": 18,
+      "strategy": "defer",
+      "businessValue": "בינוני"
+    },
+    {
+      "id": "page-09",
+      "path": "/מה-עומד-מ",
+      "title": "מה עומד מ - דליה",
+      "rank": 21,
+      "actionCount": 16,
+      "strategy": "fix",
+      "businessValue": "בינוני"
+    },
+    {
+      "id": "page-15",
+      "path": "/תחזוקת-רכבים-חכמה-לעסקים-שליטה-סדר-ו",
+      "title": "תחזוקת רכבים חכמה לעסקים – שליטה, סדר וחיסכון - דליה",
+      "rank": 22,
+      "actionCount": 11,
+      "strategy": "fix",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-21",
+      "path": "/איך-חוסכים-בעלויות-תחזוקת-ציי-רכב",
+      "title": "איך חוסכים בעלויות תחזוקת ציי רכב? - דליה",
+      "rank": 23,
+      "actionCount": 10,
+      "strategy": "fix",
+      "businessValue": "גבוה"
+    },
+    {
+      "id": "page-19",
+      "path": "/האם-ליסינג-תפעולי-משתלם-כשאין-זמן-להתע",
+      "title": "האם ליסינג תפעולי משתלם? כשאין זמן להתעסק בתחזוקת רכבים - דליה",
+      "rank": 24,
+      "actionCount": 11,
+      "strategy": "fix",
+      "businessValue": "בינוני"
+    },
+    {
+      "id": "page-20",
+      "path": "/האם-כדאי-ליסינג-תפעולי-האמת-שעסקים-לא-ת",
+      "title": "האם כדאי ליסינג תפעולי? האמת שעסקים לא תמיד שומעים - דליה",
+      "rank": 25,
+      "actionCount": 12,
+      "strategy": "fix",
+      "businessValue": "בינוני"
+    },
+    {
+      "id": "page-10",
+      "path": "/עמוד-ספק",
+      "title": "עמוד ספק עע - דליה",
+      "rank": 26,
+      "actionCount": 15,
+      "strategy": "defer",
+      "businessValue": "נמוך"
+    },
+    {
+      "id": "page-22",
+      "path": "/תפעול-רכבים-לחברות",
+      "title": "תפעול רכבים לחברות - דליה",
+      "rank": 27,
+      "actionCount": 12,
+      "strategy": "fix",
+      "businessValue": "בינוני"
+    },
+    {
+      "id": "page-27",
+      "path": "/my-account",
+      "title": "My Account - דליה",
+      "rank": 28,
+      "actionCount": 11,
+      "strategy": "defer",
+      "businessValue": "בינוני"
+    }
+  ],
+  "rootCauses": [
+    {
+      "id": "pagination",
+      "severity": "low",
+      "finding": "Lite list: 8 cards visible (max 8/page) vs 28 total",
+      "evidence": "HTML 10532 chars"
+    },
+    {
+      "id": "workbench_on_demand",
+      "severity": "medium",
+      "finding": "Workbench + accordion expand loads detail only on demand",
+      "evidence": "after workbench: 15644 nodes"
+    },
+    {
+      "id": "lite_preview",
+      "severity": "low",
+      "finding": "Single iframe srcdoc preview — no proxy/compare",
+      "evidence": "srcdoc 0 chars, iframes 0"
+    }
+  ]
+}

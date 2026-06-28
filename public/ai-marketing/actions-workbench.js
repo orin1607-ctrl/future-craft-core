@@ -15,6 +15,8 @@
 
   var _lastRenderActions = [];
   var _lastAllActions = [];
+  var _lastBundle = null;
+  var _renderDeps = null;
   var _view = 'list';
   var _workbenchPageId = null;
   var _listPage = 0;
@@ -884,6 +886,14 @@
     }).join('') : '<tr><td colspan="5">אין פעולות שהושלמו עדיין</td></tr>');
   }
 
+  function rerender() {
+    if (_renderDeps && _lastBundle) {
+      render(_lastBundle, _renderDeps);
+    } else if (window.CocoData && CocoData.bindScreen) {
+      CocoData.bindScreen('screen-actions');
+    }
+  }
+
   function bindWorkbenchEvents() {
     var root = document.getElementById('coco-live-actions-pending');
     if (!root || root._actWorkbenchBound) return;
@@ -895,7 +905,7 @@
         _view = 'workbench';
         _workbenchPageId = openWb.getAttribute('data-act-open-wb');
         _expandedActionId = null;
-        if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen('screen-actions');
+        rerender();
         return;
       }
       var back = e.target.closest('[data-act-back-list]');
@@ -903,20 +913,20 @@
         _view = 'list';
         _workbenchPageId = null;
         _expandedActionId = null;
-        if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen('screen-actions');
+        rerender();
         return;
       }
       var pageBtn = e.target.closest('[data-act-list-page]');
       if (pageBtn) {
         _listPage = Number(pageBtn.getAttribute('data-act-list-page') || 0);
-        if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen('screen-actions');
+        rerender();
         return;
       }
       var acc = e.target.closest('[data-act-acc-toggle]');
       if (acc) {
         var aid = acc.getAttribute('data-act-acc-toggle');
         _expandedActionId = _expandedActionId === aid ? null : aid;
-        if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen('screen-actions');
+        rerender();
         return;
       }
       var prev = e.target.closest('[data-act-lite-preview]');
@@ -990,6 +1000,16 @@
     var isLiveGoalsActionsMode = deps.isLiveGoalsActionsMode;
 
     if (!applyCtxFilter || !deriveActions || !setHtml) return 0;
+
+    _lastBundle = bundle;
+    _renderDeps = {
+      applyCtxFilter: applyCtxFilter,
+      deriveActions: deriveActions,
+      setHtml: setHtml,
+      statusBadge: statusBadge,
+      emptyStatus: emptyStatus,
+      isLiveGoalsActionsMode: isLiveGoalsActionsMode,
+    };
 
     var wp = (bundle && bundle.workPlan) || (window.DaliaSite && DaliaSite.getWorkPlan && DaliaSite.getWorkPlan());
     var pages = (wp && wp.pages) ? wp.pages.slice() : [];
