@@ -58,6 +58,7 @@
       '<select id="gfc-date" class="filter-select gfc-select" title="תאריך"><option value="">תאריך…</option></select>' +
       '<select id="gfc-status" class="filter-select gfc-select" title="סטטוס"><option value="">סטטוס…</option></select>' +
       '<input id="coco-central-search" class="filter-input cfc-search gfc-search" placeholder="🔍 חיפוש מהיר">' +
+      '<button type="button" id="gfc-reset" class="btn btn-ghost gfc-reset-btn" title="איפוס סינון">✕ איפוס</button>' +
       '<span id="gfc-date-custom" class="gfc-date-custom" style="display:none;">' +
       '<input type="date" id="gfc-date-from" class="filter-input gfc-date-inp">' +
       '<input type="date" id="gfc-date-to" class="filter-input gfc-date-inp">' +
@@ -237,6 +238,16 @@
     }, 300);
   }
 
+  function onResetClick() {
+    GlobalFilterContext.set({
+      subCategory: null,
+      specificItem: null,
+      status: null,
+      freeSearch: '',
+      dateRange: { preset: 'month', from: '', to: '' },
+    }, { skipCascade: true, source: 'gfc-bar', allowInvalid: true });
+  }
+
   function wireControls() {
     if (_wired) return;
     _wired = true;
@@ -264,6 +275,7 @@
         dateRange: Object.assign({}, ctx.dateRange, { to: el('gfc-date-to').value, preset: 'custom' }),
       }, { skipCascade: true, source: 'gfc-bar', allowInvalid: true });
     });
+    el('gfc-reset')?.addEventListener('click', function () { if (!_uiGuard) onResetClick(); });
     el('gfc-advanced-toggle')?.addEventListener('click', function () {
       var adv = el('gfc-advanced');
       var btn = el('gfc-advanced-toggle');
