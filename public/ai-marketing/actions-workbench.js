@@ -14,6 +14,7 @@
   var _lastRenderActions = [];
   var _previewMsgBound = false;
   var _htmlMemCache = {};
+  var _lazyGen = 0;
   var LAZY_INITIAL_CARDS = 6;
   var LAZY_BATCH_SIZE = 4;
   var HTML_CACHE_PREFIX = 'dalia-act-html-v1:';
@@ -600,15 +601,18 @@
   }
 
   function scheduleLazyPageCards(pageGroups, startIdx) {
+    _lazyGen += 1;
+    var myGen = _lazyGen;
     var idx = startIdx;
     function renderBatch() {
+      if (myGen !== _lazyGen) return;
       if (idx >= pageGroups.length) {
         var root = document.getElementById('coco-live-actions-pending');
-        if (root) root.setAttribute('data-coco-act-ready', 'true');
+        if (root && myGen === _lazyGen) root.setAttribute('data-coco-act-ready', 'true');
         return;
       }
       var lazyRoot = document.getElementById('coco-act-lazy-root');
-      if (!lazyRoot) return;
+      if (!lazyRoot || myGen !== _lazyGen) return;
       var end = Math.min(idx + LAZY_BATCH_SIZE, pageGroups.length);
       var batch = pageGroups.slice(idx, end).map(function (grp, i) {
         return renderPageCard(grp.page, grp.items, idx + i);
