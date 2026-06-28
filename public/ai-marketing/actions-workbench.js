@@ -10,6 +10,51 @@
   var SEQ_KEY = 'dalia-actions-seq-v1';
   var CONFIG_KEY = 'dalia-actions-export-config-v1';
   var AUTO_MODE_KEY = 'dalia-auto-mode-v1';
+  var QA_DEMO_SEED_KEY = 'dalia-qa-demo-seed-v1';
+  var QA_DEMO_DEFAULT = {
+    version: 1,
+    actionId: 'act-page-01-title',
+    label: 'FINAL STRICT QA — Demo אושר',
+    at: '2026-06-29T00:00:00.000Z',
+    session: {
+      html: '<div id="dalia-qa-demo-v1" role="status" style="padding:12px;background:#065f46;color:#fff;border-radius:8px;font-weight:700;text-align:center;">✓ FINAL STRICT QA Demo — Staging · אימות מחר בבוקר</div>',
+      css: '#dalia-qa-demo-v1{font-family:Heebo,sans-serif}',
+      js: '',
+    },
+    approved: true,
+  };
+  var _qaDemoActive = null;
+
+  function isOrinStagingHost() {
+    try { return /orin1607-ctrl\.github\.io/i.test(location.hostname); } catch (e) { return false; }
+  }
+
+  function readQaDemoSeed() {
+    if (!isOrinStagingHost()) return null;
+    try {
+      var raw = localStorage.getItem(QA_DEMO_SEED_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* ignore */ }
+    return QA_DEMO_DEFAULT;
+  }
+
+  function applyQaDemoSeed(allActions) {
+    var seed = readQaDemoSeed();
+    if (!seed || !seed.actionId) return;
+    _qaDemoActive = seed;
+    if (window.ActionsDemoCode) {
+      if (seed.session) ActionsDemoCode.setDemo(seed.actionId, seed.session);
+      if (seed.approved && ActionsDemoCode.approveDemo) ActionsDemoCode.approveDemo(seed.actionId);
+    }
+    try { localStorage.setItem(QA_DEMO_SEED_KEY, JSON.stringify(seed)); } catch (e) { /* ignore */ }
+  }
+
+  function renderQaDemoBanner() {
+    if (!_qaDemoActive) return '';
+    return '<div class="alert alert-ok" data-qa-demo-banner="true" style="margin-bottom:12px;border:2px solid var(--green);">' +
+      '🎯 <strong>QA Demo:</strong> ' + esc(_qaDemoActive.label || 'Final Strict QA') +
+      ' · פעולה <code>' + esc(_qaDemoActive.actionId) + '</code></div>';
+  }
 
   function getAutoModeState() {
     return readJson(AUTO_MODE_KEY, { prepared: false, enabled: false, since: null });
@@ -702,7 +747,7 @@
     var totalTime = computeTimeSummary(pending);
     var slice = pageGroups.slice(_listPage * PAGE_SIZE, (_listPage + 1) * PAGE_SIZE);
 
-    var header = previewBanner() + renderTimeSummaryBar(totalTime) +
+    var header = previewBanner() + renderQaDemoBanner() + renderTimeSummaryBar(totalTime) +
       '<div class="alert alert-info" style="margin-bottom:14px;">⚙️ ' +
       pending.length + ' פעולות פתוחות · ' + pageGroups.length + ' עמודים · מספור #' +
       (getSeqState().nextActionItemNumber - 1) + ' · קמפיין: ' +
@@ -1307,6 +1352,7 @@
       return { action: a.category, status: a.status, campaign: a.campaignId };
     });
     bootstrapSequenceNumbers(allActions);
+    applyQaDemoSeed(allActions);
     _lastAllActions = allActions;
 
     var pending = allActions.filter(function (a) { return !isDoneStatus(a.status); });
@@ -1374,5 +1420,8 @@
     WORKBENCH_KEY: WORKBENCH_KEY,
     SEQ_KEY: SEQ_KEY,
     CONFIG_KEY: CONFIG_KEY,
+    QA_DEMO_SEED_KEY: QA_DEMO_SEED_KEY,
+    getExportConfig: getExportConfig,
+    readQaDemoSeed: readQaDemoSeed,
   };
 })();
