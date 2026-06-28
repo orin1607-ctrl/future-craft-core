@@ -63,6 +63,7 @@
     "project-001:work-plan": "node scripts/project-001/build-business-work-plan.mjs",
     "project-001:checklist": "node scripts/project-001/page-checklist-runner.mjs",
     "project-001:checklist:all": "node scripts/project-001/page-checklist-runner.mjs --all",
+    "project-001:page-implement": "node scripts/project-001/prepare-page-implementation.mjs",
     "dalia:site-audit": "node scripts/dalia-site-full-audit.mjs",
     "project-001:site-infra": "node scripts/project-001/project-001-site-infra.mjs",
     "project-001:indexing-inspect": "node scripts/project-001/project-001-indexing-inspect.mjs",

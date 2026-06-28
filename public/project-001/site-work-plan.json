@@ -62,9 +62,9 @@
       ],
       "aiSummary": "העמוד דורש שיפורים בכותרות ובתוכן כדי לשפר את הדירוג במנועי החיפוש.",
       "priority": "גבוה",
-      "executionStatus": "blocked",
-      "startedAt": "2026-06-27T21:43:25.002Z",
-      "lastAuditAt": "2026-06-27T21:43:28.427Z",
+      "executionStatus": "awaiting_implementation",
+      "startedAt": "2026-06-28T05:06:53.084Z",
+      "lastAuditAt": "2026-06-28T05:06:55.753Z",
       "checklist": {
         "title": "fail",
         "meta": "fail",
@@ -100,7 +100,29 @@
         "alt",
         "pageSpeed",
         "seo"
-      ]
+      ],
+      "implementationPackage": {
+        "readyAt": "2026-06-28T05:05:42.439Z",
+        "title": {
+          "value": "ניהול צי רכב ותחזוקה לעסקים | דליה",
+          "chars": 34
+        },
+        "meta": {
+          "value": "דליה — פתרונות ניהול צי, תחזוקה ותפעול רכב לעסקים וחברות בישראל. מעל 20 שנות ניסיון. ייעוץ מקצועי חינם + חודש ראשון במתנה. צרו קשר.",
+          "chars": 131
+        },
+        "alt": {
+          "count": 25,
+          "note": "25 תמונות ללא alt — עדכון ב-Elementor Image widget, בלי שינוי עיצוב"
+        },
+        "wpSteps": [
+          "WordPress → עמוד הבית → Yoast SEO (או Rank Math)",
+          "Title: הדבק את ה-Title המומלץ",
+          "Meta Description: הדבק את ה-Meta המומלץ",
+          "Elementor: לכל תמונה ללא alt → Advanced → Alt Text (25 תמונות)",
+          "שמור ופרסם — הרץ: npm run project-001:checklist -- --page=page-01"
+        ]
+      }
     },
     {
       "id": "page-02",
@@ -1932,6 +1954,30 @@
   ],
   "activity": [
     {
+      "id": "audit-page-01-1782623215756",
+      "title": "Checklist: /",
+      "action": "checklist_audit",
+      "module": "SEO",
+      "detail": "7/12 pass",
+      "created_at": "2026-06-28T05:06:55.753Z"
+    },
+    {
+      "id": "audit-page-01-1782623149648",
+      "title": "Checklist: /",
+      "action": "checklist_audit",
+      "module": "SEO",
+      "detail": "7/12 pass",
+      "created_at": "2026-06-28T05:05:49.641Z"
+    },
+    {
+      "id": "impl-page-01-1782623142455",
+      "title": "חבילת תיקון מוכנה: /",
+      "action": "implementation_ready",
+      "module": "SEO",
+      "detail": "Title 34 תווים · Meta 131 תווים · ממתין ליישום WP",
+      "created_at": "2026-06-28T05:05:42.455Z"
+    },
+    {
       "id": "audit-page-01-1782596608433",
       "title": "Checklist: /",
       "action": "checklist_audit",
@@ -1966,6 +2012,29 @@
   ],
   "progressLog": [
     {
+      "id": "audit-page-01-1782623215756",
+      "type": "checklist_audit",
+      "event": "Checklist: /",
+      "pagePath": "/",
+      "detail": "7/12 pass",
+      "at": "2026-06-28T05:06:55.753Z"
+    },
+    {
+      "id": "audit-page-01-1782623149648",
+      "type": "checklist_audit",
+      "event": "Checklist: /",
+      "pagePath": "/",
+      "detail": "7/12 pass",
+      "at": "2026-06-28T05:05:49.641Z"
+    },
+    {
+      "id": "impl-page-01-1782623142455",
+      "type": "implementation_ready",
+      "event": "חבילת תיקון מוכנה: /",
+      "detail": "Title 34 תווים · Meta 131 תווים · ממתין ליישום WP",
+      "at": "2026-06-28T05:05:42.455Z"
+    },
+    {
       "id": "audit-page-01-1782596608433",
       "type": "checklist_audit",
       "event": "Checklist: /",
@@ -1989,5 +2058,5 @@
       "note": "תוכנית ראשונית — ממתין לאישור"
     }
   ],
-  "lastUpdated": "2026-06-27T21:43:29.588Z"
+  "lastUpdated": "2026-06-28T05:06:56.205Z"
 }

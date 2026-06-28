@@ -496,6 +496,7 @@
       var meta = [];
       if (a.pagePath) meta.push('עמוד: ' + a.pagePath);
       if (a.checklistSummary) meta.push('Checklist: ' + a.checklistSummary.pass + '/' + a.checklistSummary.total);
+      if (a.estimateHours) meta.push('~' + a.estimateHours + ' ש\'');
       if (a.status === 'in_progress') meta.push('בביצוע');
       if (a.status === 'done') meta.push('הושלם');
       if (a.missing && a.missing.length) meta.push('חסר: ' + a.missing.slice(0, 2).join(', '));

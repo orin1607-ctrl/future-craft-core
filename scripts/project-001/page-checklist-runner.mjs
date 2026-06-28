@@ -220,7 +220,7 @@ function buildProgressMarkdown(plan) {
     lines.push(`| ${p.rank} | ${p.path} | ${p.executionStatus || 'pending'} | ${c.pass || 0}/${c.total || 12} (${c.pct || 0}%) | ${p.pageSpeedScore ?? '—'} |`);
   }
   lines.push('', '## עמוד נוכחי', '');
-  const cur = plan.pages.find((p) => p.executionStatus === 'in_progress' || p.executionStatus === 'blocked');
+  const cur = plan.pages.find((p) => ['in_progress', 'blocked', 'awaiting_implementation'].includes(p.executionStatus));
   if (cur) {
     lines.push(`**${cur.path}** — ${cur.title || ''}`, '');
     for (const k of CHECKLIST_KEYS) {
@@ -261,7 +261,7 @@ function recomputeSummary(plan) {
     checklistPass += c.pass;
     checklistTotal += c.total;
     if (p.executionStatus === 'done') pagesCompleted++;
-    if (p.executionStatus === 'in_progress' || p.executionStatus === 'blocked') pagesInProgress++;
+    if (['in_progress', 'blocked', 'awaiting_implementation'].includes(p.executionStatus)) pagesInProgress++;
   }
   plan.summary = {
     ...plan.summary,
@@ -338,7 +338,7 @@ export async function runChecklist(options = {}) {
       });
       console.log(`  ✅ ALL PASS — page marked done`);
     } else {
-      pageDef.executionStatus = 'blocked';
+      pageDef.executionStatus = pageDef.implementationPackage ? 'awaiting_implementation' : 'blocked';
       pageDef.blockers = CHECKLIST_KEYS.filter((k) => pageDef.checklist[k] === 'fail' || pageDef.checklist[k] === 'pending');
       console.log(`  ⏸ ${pageDef.checklistSummary.pass}/${pageDef.checklistSummary.total} pass — blocked: ${pageDef.blockers.join(', ')}`);
       if (stopOnIncomplete) {
