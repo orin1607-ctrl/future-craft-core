@@ -380,7 +380,8 @@
       'screen-ai-decisions': aiRecs ? (aiRecs + ' המלצות') : 'ממתין',
       'screen-reports': 'דוחות'
     };
-    document.querySelectorAll('.hub-card').forEach(function (card) {
+    document.querySelectorAll('#screen-hub .hub-card').forEach(function (card) {
+      card.style.display = '';
       var onclick = card.getAttribute('onclick') || '';
       Object.keys(counts).forEach(function (sid) {
         if (onclick.indexOf(sid) !== -1) {
@@ -389,6 +390,7 @@
         }
       });
     });
+    if (window.DaliaSite && DaliaSite.restoreHubCards) DaliaSite.restoreHubCards();
     var crmCnt = document.getElementById('coco-hub-crm-count');
     if (crmCnt) {
       var cc = crmCounts();

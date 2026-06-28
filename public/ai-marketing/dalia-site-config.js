@@ -430,16 +430,19 @@
     applySiteLabels();
   }
 
+  function restoreHubCards() {
+    var grid = document.querySelector('#screen-hub .hub-grid');
+    if (grid) grid.style.display = '';
+    document.querySelectorAll('#screen-hub .hub-card').forEach(function (card) {
+      card.style.display = '';
+    });
+  }
+
   function scrubDemoUi() {
     document.querySelectorAll('#screen-clients .card[onclick*="selectClient"]').forEach(function (el) {
       el.style.display = 'none';
     });
-    document.querySelectorAll('#coco-claude-root .hub-card').forEach(function (card) {
-      var t = card.textContent || '';
-      if (/גרין-טק|greentech|דלתא|פתרונות טק|FleetOS|12 לקוחות|9 נכסים|3 התראות|22 רשומות|דוח יוני 2025|20 מטרות|12 ממתינות לאישור|12 לקוחות פעילים/i.test(t)) {
-        card.style.display = 'none';
-      }
-    });
+    restoreHubCards();
     var aiBox = document.querySelector('#screen-hub .ai-box');
     if (aiBox && /גרין-טק/i.test(aiBox.textContent || '')) aiBox.style.display = 'none';
     document.querySelectorAll('#coco-claude-root .page-subtitle, #coco-claude-root .page-title').forEach(function (el) {
@@ -691,6 +694,7 @@
     buildLiveBundle: buildLiveBundle,
     applySiteLabels: applySiteLabels,
     scrubDemoUi: scrubDemoUi,
+    restoreHubCards: restoreHubCards,
     renderStatusLive: renderStatusLive,
     renderHubAiBox: renderHubAiBox,
     renderAssetsLive: renderAssetsLive,
