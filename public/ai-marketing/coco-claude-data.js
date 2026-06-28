@@ -805,6 +805,12 @@
   }
 
   function bindActions(bundle) {
+    if (window.ActionsWorkbench && ActionsWorkbench.isUserScrolling && ActionsWorkbench.isUserScrolling()) {
+      if (ActionsWorkbench.deferBind) {
+        ActionsWorkbench.deferBind(function () { bindActions(bundle); });
+        return;
+      }
+    }
     ensureLiveMount('coco-live-actions-pending', 'screen-actions');
     ensureLiveMount('coco-live-actions-done', 'screen-actions', 'tab-act-done');
     var count = renderActionsPages(bundle || state.bundle);
@@ -1004,10 +1010,19 @@
   }
 
   function bindScreen(screenId) {
+    if (screenId === 'screen-actions' && window.ActionsWorkbench && ActionsWorkbench.isUserScrolling && ActionsWorkbench.isUserScrolling()) {
+      if (ActionsWorkbench.deferBind) {
+        ActionsWorkbench.deferBind(function () { bindScreen(screenId); });
+        return;
+      }
+    }
     var fn = SCREEN_BINDERS[screenId];
     if (fn) fn(state.bundle);
     if ((screenId === 'screen-goals' || screenId === 'screen-actions') && isLiveGoalsActionsMode()) {
-      if (window.DaliaSite && DaliaSite.whenReady) {
+      var wp = (state.bundle && state.bundle.workPlan) ||
+        (window.DaliaSite && DaliaSite.getWorkPlan && DaliaSite.getWorkPlan());
+      var hasWp = wp && wp.pages && wp.pages.length;
+      if (!hasWp && window.DaliaSite && DaliaSite.whenReady) {
         DaliaSite.whenReady().then(function () {
           if (fn) fn(state.bundle);
         });

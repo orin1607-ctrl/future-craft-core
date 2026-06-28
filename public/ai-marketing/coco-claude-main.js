@@ -331,13 +331,11 @@ function goScreen(id, opts) {
     } else if (id === 'screen-actions' && isMobile) {
       var saved = 0;
       try { saved = parseInt(sessionStorage.getItem('coco-actions-scroll-m') || '0', 10) || 0; } catch (e2) { saved = 0; }
-      if (saved > 0) {
+      if (saved > 0 && !(window.ActionsWorkbench && ActionsWorkbench.isUserScrolling && ActionsWorkbench.isUserScrolling())) {
         requestAnimationFrame(function () {
-          requestAnimationFrame(function () {
-            var c = el.querySelector('.content');
-            if (!c || c.scrollTop > 12) return;
-            c.scrollTop = saved;
-          });
+          var c = el.querySelector('.content');
+          if (!c || c.scrollTop > 12) return;
+          c.scrollTop = saved;
         });
       }
     }

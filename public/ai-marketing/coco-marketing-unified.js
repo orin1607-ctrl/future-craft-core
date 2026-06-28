@@ -182,6 +182,10 @@
   var _gfcSyncRaf = null;
   function syncGfcPositionThrottled() {
     if (_gfcSyncRaf) return;
+    if (getActiveScreenId() === 'screen-actions' &&
+        window.ActionsWorkbench && ActionsWorkbench.isUserScrolling && ActionsWorkbench.isUserScrolling()) {
+      return;
+    }
     _gfcSyncRaf = requestAnimationFrame(function () {
       _gfcSyncRaf = null;
       syncGfcPosition();
@@ -638,9 +642,6 @@
       if (id === 'screen-crm' || id === 'screen-clients') {
         bindCrm();
         if (id === 'screen-clients') bindConnections();
-      }
-      if (id === 'screen-goals' || id === 'screen-actions') {
-        if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen(id);
       }
     };
     if (window.setTab && !window.setTab._cocoLiveGuard) {

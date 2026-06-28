@@ -555,6 +555,7 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
     overscroll-behavior-y: contain;
     scroll-behavior: auto;
     touch-action: pan-y;
+    contain: layout style;
   }
   #screen-actions .coco-act-lite-card {
     content-visibility: auto;

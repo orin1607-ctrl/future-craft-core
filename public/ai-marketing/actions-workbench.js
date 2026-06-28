@@ -1084,29 +1084,56 @@
   }
 
   var _lastActionsScrollAt = 0;
+  var _actScrollIdleTimer = null;
+  var _rerenderDebounceTimer = null;
+  var _deferBindTimer = null;
+  var _deferredBindFn = null;
+  var SCROLL_IDLE_MS = 400;
 
   function getActionsScrollEl() {
     return document.querySelector('#screen-actions .content') || document.getElementById('screen-actions');
+  }
+
+  function isUserScrolling() {
+    return Date.now() - _lastActionsScrollAt < SCROLL_IDLE_MS;
+  }
+
+  function needsDemoDomSync() {
+    if (!window.ActionsDemoCode) return false;
+    if (_view === 'list') return false;
+    if (_view === 'workbench' && _expandedActionId) return true;
+    return !!document.querySelector('#coco-live-actions-pending [data-demo-inline]');
+  }
+
+  function deferBind(fn) {
+    _deferredBindFn = fn;
+    clearTimeout(_deferBindTimer);
+    _deferBindTimer = setTimeout(function () {
+      var f = _deferredBindFn;
+      _deferredBindFn = null;
+      if (!f) return;
+      if (isUserScrolling()) deferBind(f);
+      else f();
+    }, SCROLL_IDLE_MS);
   }
 
   function bindActionsScrollGuard() {
     var el = getActionsScrollEl();
     if (!el || el._actScrollGuard) return;
     el._actScrollGuard = true;
-    var mark = function () { _lastActionsScrollAt = Date.now(); };
+    var mark = function () {
+      _lastActionsScrollAt = Date.now();
+      clearTimeout(_actScrollIdleTimer);
+      _actScrollIdleTimer = setTimeout(function () { /* idle */ }, SCROLL_IDLE_MS);
+    };
     el.addEventListener('scroll', mark, { passive: true });
     el.addEventListener('touchstart', mark, { passive: true });
     el.addEventListener('touchmove', mark, { passive: true });
-  }
-
-  function shouldRestoreActionsScroll() {
-    return Date.now() - _lastActionsScrollAt > 250;
+    el.addEventListener('touchend', mark, { passive: true });
   }
 
   function refreshPendingDom(setHtml, emptyStatus, wp, pageGroups, pending, done, statusBadge) {
-    syncDemoFieldsFromDom();
-    var scrollEl = getActionsScrollEl();
-    var savedScroll = scrollEl ? scrollEl.scrollTop : 0;
+    if (needsDemoDomSync()) syncDemoFieldsFromDom();
     var html;
     if (_view === 'workbench' && _workbenchPageId) {
       var entry = pageGroups.find(function (g) { return g.page && g.page.id === _workbenchPageId; });
@@ -1125,16 +1152,19 @@
       return '<tr><td>' + (num ? '#' + num + ' ' : '') + esc(a.title) + '</td><td>' + esc(a.pagePath || '—') + '</td><td>' + esc(a.category) + '</td><td>' + esc(a.source) + '</td><td>' + (statusBadge ? statusBadge('done') : 'done') + '</td></tr>';
     }).join('') : '<tr><td colspan="5">אין פעולות שהושלמו עדיין</td></tr>');
 
-    requestAnimationFrame(function () {
-      var el = getActionsScrollEl();
-      if (el && savedScroll > 0 && shouldRestoreActionsScroll()) el.scrollTop = savedScroll;
-      if (window.ActionsDemoCode && ActionsDemoCode.restoreInlineFields) {
+    if (needsDemoDomSync() && window.ActionsDemoCode && ActionsDemoCode.restoreInlineFields) {
+      requestAnimationFrame(function () {
         ActionsDemoCode.restoreInlineFields(document.getElementById('coco-live-actions-pending'));
-      }
-    });
+      });
+    }
   }
 
   function rerender() {
+    if (isUserScrolling()) {
+      clearTimeout(_rerenderDebounceTimer);
+      _rerenderDebounceTimer = setTimeout(function () { rerender(); }, SCROLL_IDLE_MS);
+      return;
+    }
     if (_renderDeps && _lastBundle) {
       render(_lastBundle, _renderDeps);
     } else if (window.CocoData && CocoData.bindScreen) {
@@ -1424,7 +1454,7 @@
     if (EXECUTION_MODE !== 'preview') return;
     saveApproval(actionId, 'approved_for_execution');
     if (typeof showToast === 'function') showToast('✓ אושר לביצוע (Staging בלבד — לא שונה באתר החי)');
-    if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen('screen-actions');
+    rerender();
   };
 
   window.CocoActRevokeApproval = function (actionId) {
@@ -1432,12 +1462,14 @@
     delete map[actionId];
     writeJson(APPROVAL_KEY, map);
     if (typeof showToast === 'function') showToast('אישור בוטל');
-    if (window.CocoData && CocoData.bindScreen) CocoData.bindScreen('screen-actions');
+    rerender();
   };
 
   window.ActionsWorkbench = {
     render: render,
     rerender: rerender,
+    isUserScrolling: isUserScrolling,
+    deferBind: deferBind,
     getApprovals: getApprovals,
     getSeqState: getSeqState,
     getActionNumber: getActionNumber,
