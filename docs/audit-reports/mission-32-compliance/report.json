@@ -1,0 +1,614 @@
+{
+  "mission": 32,
+  "at": "2026-06-29T17:35:26.043Z",
+  "stagingUrl": "http://127.0.0.1:8765/ai-marketing-platform.html",
+  "version": "v3-mission-25-1-390e12d",
+  "approvedSource": "public/ai-marketing/business-strategy-approved-source.html",
+  "checks": [
+    {
+      "name": "id:tb-client",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:steps",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:pf",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:p1",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:p2",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:p3",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:p4",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:p5",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-name",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-sector",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-site",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-loc",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-age",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-size",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-main",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-services",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-diff",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-pain",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-usp",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-ideal",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-bad",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:sec-chips",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:upz",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:fi",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:fl2",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:site-url",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:url-list",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-free",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-goal",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:chal-chips",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-comp",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-vs",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:b-budget",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:plat-list",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:agents-list",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:ai-box",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:ai-log",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:ana-ready",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:ana-done",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:rep-score",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:rep-name",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:rep-head",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:rep-badges",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-who",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-problem",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-opp",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-rec",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-ta-main",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-kw-main",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-kw-long",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-kw-no",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-comp-list",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-budget-rows",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:r-workplan",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:sw-s",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:sw-w",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:sw-o",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:sw-t",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:cl",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:ctx-json",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:exported",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:fhint",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:btn-back",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:btn-next",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "id:toast",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "text:CO.CO",
+      "ok": true,
+      "detail": "CO.CO"
+    },
+    {
+      "name": "text:דליה",
+      "ok": true,
+      "detail": "דליה"
+    },
+    {
+      "name": "text:אסטרטגיית שיווק AI",
+      "ok": true,
+      "detail": "אסטרטגיית שיווק AI"
+    },
+    {
+      "name": "text:Staging",
+      "ok": true,
+      "detail": "Staging"
+    },
+    {
+      "name": "text:🏢 הכרת עסק",
+      "ok": true,
+      "detail": "🏢 הכרת עסק"
+    },
+    {
+      "name": "text:🔗 חיבור נכסים",
+      "ok": true,
+      "detail": "🔗 חיבור נכסים"
+    },
+    {
+      "name": "text:🧠 ניתוח AI",
+      "ok": true,
+      "detail": "🧠 ניתוח AI"
+    },
+    {
+      "name": "text:📄 דוח ללקוח",
+      "ok": true,
+      "detail": "📄 דוח ללקוח"
+    },
+    {
+      "name": "text:✅ אישור",
+      "ok": true,
+      "detail": "✅ אישור"
+    },
+    {
+      "name": "text:הכרת העסק",
+      "ok": true,
+      "detail": "הכרת העסק"
+    },
+    {
+      "name": "text:חיבור נכסים דיגיטליים",
+      "ok": true,
+      "detail": "חיבור נכסים דיגיטליים"
+    },
+    {
+      "name": "text:ניתוח AI",
+      "ok": true,
+      "detail": "ניתוח AI"
+    },
+    {
+      "name": "text:דוח אסטרטגיה — ללקוח",
+      "ok": true,
+      "detail": "דוח אסטרטגיה — ללקוח"
+    },
+    {
+      "name": "text:אישור ומעבר לעוזרים",
+      "ok": true,
+      "detail": "אישור ומעבר לעוזרים"
+    },
+    {
+      "name": "text:פרטי העסק",
+      "ok": true,
+      "detail": "פרטי העסק"
+    },
+    {
+      "name": "text:שירותים ויתרונות",
+      "ok": true,
+      "detail": "שירותים ויתרונות"
+    },
+    {
+      "name": "text:קהל יעד",
+      "ok": true,
+      "detail": "קהל יעד"
+    },
+    {
+      "name": "text:העלאת חומרים",
+      "ok": true,
+      "detail": "העלאת חומרים"
+    },
+    {
+      "name": "text:מטרות ואתגרים",
+      "ok": true,
+      "detail": "מטרות ואתגרים"
+    },
+    {
+      "name": "text:א. תקציר מנהלים",
+      "ok": true,
+      "detail": "א. תקציר מנהלים"
+    },
+    {
+      "name": "text:ב. קהל יעד",
+      "ok": true,
+      "detail": "ב. קהל יעד"
+    },
+    {
+      "name": "text:ג. אזורי פרסום",
+      "ok": true,
+      "detail": "ג. אזורי פרסום"
+    },
+    {
+      "name": "text:ד. מילות מפתח",
+      "ok": true,
+      "detail": "ד. מילות מפתח"
+    },
+    {
+      "name": "text:ה. מתחרים",
+      "ok": true,
+      "detail": "ה. מתחרים"
+    },
+    {
+      "name": "text:ו. נכסים דיגיטליים",
+      "ok": true,
+      "detail": "ו. נכסים דיגיטליים"
+    },
+    {
+      "name": "text:ז. המלצת קמפיין",
+      "ok": true,
+      "detail": "ז. המלצת קמפיין"
+    },
+    {
+      "name": "text:ח. תקציב מומלץ",
+      "ok": true,
+      "detail": "ח. תקציב מומלץ"
+    },
+    {
+      "name": "text:ט. תחזית",
+      "ok": true,
+      "detail": "ט. תחזית"
+    },
+    {
+      "name": "text:י. תוכנית עבודה",
+      "ok": true,
+      "detail": "י. תוכנית עבודה"
+    },
+    {
+      "name": "text:יא. SWOT",
+      "ok": true,
+      "detail": "יא. SWOT"
+    },
+    {
+      "name": "text:ציון הבנה",
+      "ok": true,
+      "detail": "ציון הבנה"
+    },
+    {
+      "name": "text:Business Context — JSON",
+      "ok": true,
+      "detail": "Business Context — JSON"
+    },
+    {
+      "name": "text:בדיקה סופית",
+      "ok": true,
+      "detail": "בדיקה סופית"
+    },
+    {
+      "name": "text:מה עובר לאן",
+      "ok": true,
+      "detail": "מה עובר לאן"
+    },
+    {
+      "name": "text:📧 שלח ללקוח לאישור",
+      "ok": true,
+      "detail": "📧 שלח ללקוח לאישור"
+    },
+    {
+      "name": "text:💾 שמור טיוטה",
+      "ok": true,
+      "detail": "💾 שמור טיוטה"
+    },
+    {
+      "name": "text:🖨️ הדפס / PDF",
+      "ok": true,
+      "detail": "🖨️ הדפס / PDF"
+    },
+    {
+      "name": "text:▶ הפעל ניתוח AI",
+      "ok": true,
+      "detail": "▶ הפעל ניתוח AI"
+    },
+    {
+      "name": "text:פתח מנהל השיווק",
+      "ok": true,
+      "detail": "פתח מנהל השיווק"
+    },
+    {
+      "name": "platforms_count_30plus",
+      "ok": true,
+      "detail": "34"
+    },
+    {
+      "name": "agents_count_9",
+      "ok": true,
+      "detail": "9"
+    },
+    {
+      "name": "wizard_steps_5",
+      "ok": true,
+      "detail": "5"
+    },
+    {
+      "name": "css_bg_dark",
+      "ok": true,
+      "detail": "rgb(4, 9, 26)"
+    },
+    {
+      "name": "prefill_dalia",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tab2_active",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "platform_connected_website",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "analysis_complete",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "report_score",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "report_swot",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "checklist_items",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "business_context_dalia",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "flow_to_agents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "flow_to_goals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "flow_to_actions",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "clients_strategy_button",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "differences": [],
+  "passed": 120,
+  "failed": 0,
+  "oneToOne": true,
+  "commitHash": "390e12d53b91b8279658e1e3767958e0391cc44a"
+}

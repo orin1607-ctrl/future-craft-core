@@ -1,8 +1,8 @@
 {
-  "at": "2026-06-29T17:16:39.081Z",
-  "commitHash": "b6e2e0a102b4e076cf6fb82fa63cad6f4d579a49",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-b6e2e0a",
-  "version": "v3-mission-25-1-b6e2e0a",
+  "at": "2026-06-29T17:33:52.984Z",
+  "commitHash": "390e12d53b91b8279658e1e3767958e0391cc44a",
+  "stagingUrl": "http://127.0.0.1:8765/ai-marketing-platform.html",
+  "version": "v3-mission-25-1-390e12d",
   "checks": {
     "modules_loaded": {
       "ok": true,
@@ -16,6 +16,14 @@
       "ok": true,
       "detail": ""
     },
+    "wizard_steps_5": {
+      "ok": true,
+      "detail": ""
+    },
+    "platforms_34": {
+      "ok": true,
+      "detail": ""
+    },
     "dalia_prefill_name": {
       "ok": true,
       "detail": "דליה פתרונות מימון ותחזוקה לרכב"
@@ -24,9 +32,13 @@
       "ok": true,
       "detail": "https://dalia-c.com/"
     },
-    "connected_assets": {
+    "step2_active": {
       "ok": true,
-      "detail": "● מחובר\nאתר אינטרנט\n● מחובר\nGoogle Search Console\n● מחובר\nGoogle Analytics 4\n● מ"
+      "detail": ""
+    },
+    "connected_website": {
+      "ok": true,
+      "detail": "● מחובר"
     },
     "ai_analysis_done": {
       "ok": true,
@@ -34,7 +46,11 @@
     },
     "report_built": {
       "ok": true,
-      "detail": "עסק\nדליה פתרונות מימון ותחזוקה לרכב · תפעול ותחזוקת רכב / ני"
+      "detail": "95"
+    },
+    "checklist_8plus": {
+      "ok": true,
+      "detail": ""
     },
     "business_context_json": {
       "ok": true,
@@ -58,19 +74,23 @@
     },
     "goals_screen_ok": {
       "ok": true,
-      "detail": "screen-goals active"
+      "detail": ""
     },
-    "actions_include_strategy": {
+    "actions_screen_ok": {
       "ok": true,
-      "detail": "strategy actions in LS"
+      "detail": ""
     },
     "clients_open_button": {
       "ok": true,
       "detail": ""
     }
   },
-  "passed": 16,
+  "passed": 20,
   "failed": 0,
   "openIssues": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
   "ok": true
 }
