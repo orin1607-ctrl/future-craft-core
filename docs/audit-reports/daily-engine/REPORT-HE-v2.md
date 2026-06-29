@@ -261,4 +261,14 @@ companies → sites → sources → analyze → goals → actions → SLA → hi
 
 ---
 
+---
+
+## המשך — סעיפים 16–22 (דוח סופי)
+
+סיכונים · תוכנית בוקר · כלים · עדיפויות · Roadmap 90 יום · הערכה מקצועית · סיכום:
+
+→ **[REPORT-HE-FINAL.md](./REPORT-HE-FINAL.md)**
+
+---
+
 *Orin Staging בלבד · ללא Production · ללא שינוי עיצוב UI*
