@@ -1,0 +1,168 @@
+{
+  "at": "2026-06-29T04:47:24.496Z",
+  "mode": "live_uat_preview_only",
+  "executionMode": "preview",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-1fdfb7a",
+  "page": {
+    "id": "page-07",
+    "path": "/השירותים-שלנו",
+    "url": "https://dalia-c.com/%D7%94%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D-%D7%A9%D7%9C%D7%A0%D7%95/",
+    "title": "השירותים שלנו - דליה"
+  },
+  "before": {
+    "title": "השירותים שלנו - דליה",
+    "meta": "חברת דליה עוסקת בתפעול ותחזוקת רכבים עם ניסיון וותק של מעל ל-20 שנה בתחום הרכב. חברתינו גאה לספק שירותי תפעול ותחזוקת רכבים לכלל הלקוחות כבר שנים רבות, אצלנו תוכלו לקבל את כלל השירותים תחת קורת גג אחת.",
+    "h1": null,
+    "seoScore": 5,
+    "pageSpeed": "pending",
+    "gsc": {
+      "clicks": 0,
+      "impressions": 14,
+      "position": 5.5
+    },
+    "ga4Views": 0,
+    "issues": [
+      "missing_h1",
+      "images_without_alt:2",
+      "canonical_mismatch"
+    ],
+    "openActions": 14
+  },
+  "proposed": {
+    "title": "שירותי ניהול צי רכב לעסקים | דליה — תפעול, תחזוקה ומעקב",
+    "meta": "גלו את שירותי דליה: ניהול צי רכב, תחזוקה מונעת, מעקב GPS וטיפול 24/7. פתרון מלא לעסקים בישראל. צרו קשר לייעוץ חינם.",
+    "h1": "שירותי ניהול צי רכב ותחזוקה לעסקים"
+  },
+  "multiAi": {
+    "mode": "stub",
+    "taskType": "seo",
+    "selection": {
+      "engineId": "stub",
+      "reason": "Staging — no live API; rule-based stub",
+      "mode": "stub"
+    },
+    "engines": [
+      {
+        "engineId": "openai",
+        "engineLabel": "ChatGPT (OpenAI)",
+        "mode": "stub",
+        "text": "[Stub · ChatGPT (OpenAI)] משימה: seo. ב-Staging אין קריאת API — תשובה מבוססת כללים. Prompt: שיפור SEO לעמוד שירותים /השירותים-שלנו: Title, Meta, H1. מילות מפתח: ניהול צי רכב, תחזוקה.",
+        "confidence": 0.6
+      },
+      {
+        "engineId": "claude",
+        "engineLabel": "Claude (Anthropic)",
+        "mode": "stub",
+        "text": "[Stub · Claude (Anthropic)] משימה: seo. ב-Staging אין קריאת API — תשובה מבוססת כללים. Prompt: שיפור SEO לעמוד שירותים /השירותים-שלנו: Title, Meta, H1. מילות מפתח: ניהול צי רכב, תחזוקה.",
+        "confidence": 0.6
+      },
+      {
+        "engineId": "gemini",
+        "engineLabel": "Gemini (Google)",
+        "mode": "stub",
+        "text": "[Stub · Gemini (Google)] משימה: seo. ב-Staging אין קריאת API — תשובה מבוססת כללים. Prompt: שיפור SEO לעמוד שירותים /השירותים-שלנו: Title, Meta, H1. מילות מפתח: ניהול צי רכב, תחזוקה.",
+        "confidence": 0.6
+      }
+    ],
+    "finalRecommendation": {
+      "engineLabel": "ChatGPT (OpenAI)",
+      "text": "[Stub · ChatGPT (OpenAI)] משימה: seo. ב-Staging אין קריאת API — תשובה מבוססת כללים. Prompt: שיפור SEO לעמוד שירותים /השירותים-שלנו: Title, Meta, H1. מילות מפתח: ניהול צי רכב, תחזוקה."
+    },
+    "contentStub": {
+      "engineLabel": "ChatGPT (OpenAI)",
+      "text": "[Stub · ChatGPT (OpenAI)] משימה: content. ב-Staging אין קריאת API — תשובה מבוססת כללים. Prompt: כתוב Meta Description קצר עם CTA"
+    }
+  },
+  "dailyEngine": {
+    "ok": true,
+    "runId": "run-1782708449501",
+    "status": "completed",
+    "pendingApproval": 2,
+    "actionsCreated": 2,
+    "recommendations": [
+      {
+        "id": "rec-seo-page-01",
+        "title": "שיפור SEO — /",
+        "priority": "גבוה"
+      },
+      {
+        "id": "rec-content-page-01",
+        "title": "תוכן חסר — /",
+        "priority": "גבוה"
+      }
+    ],
+    "draftActionsBefore": 0,
+    "draftActionsAfter": 2,
+    "executionMode": "preview"
+  },
+  "actions": {
+    "ok": true,
+    "method": "forceOpenWorkbench",
+    "workbenchTitle": "שולחן עבודה · השירותים שלנו - דליה",
+    "openActions": 14,
+    "sampleActions": [
+      {
+        "id": "act-page-07-h1",
+        "title": "H1: השירותים שלנו - דליה",
+        "category": "H1",
+        "status": "pending",
+        "detail": "חסר H1"
+      },
+      {
+        "id": "act-page-07-alt",
+        "title": "Alt לתמונות: השירותים שלנו - דליה",
+        "category": "Alt לתמונות",
+        "status": "pending",
+        "detail": "2 תמונות ללא alt"
+      },
+      {
+        "id": "act-page-07-title",
+        "title": "Title: השירותים שלנו - דליה",
+        "category": "Title",
+        "status": "pending",
+        "detail": "לבדוק אורך ומיקוד Title"
+      },
+      {
+        "id": "act-page-07-meta",
+        "title": "Meta Description: השירותים שלנו - דליה",
+        "category": "Meta Description",
+        "status": "pending",
+        "detail": "למקד Meta עם CTA"
+      },
+      {
+        "id": "act-page-07-h2",
+        "title": "H2: השירותים שלנו - דליה",
+        "category": "H2",
+        "status": "pending",
+        "detail": "להוסיף H2 עם מילות מפתח"
+      }
+    ],
+    "executionMode": "preview"
+  },
+  "preview": {
+    "ok": true,
+    "beforeLen": 1044,
+    "afterLen": 1075,
+    "beforeHasTitle": true,
+    "afterHasH1": true,
+    "executionMode": "preview"
+  },
+  "aiControlCenter": {
+    "notifyOk": true,
+    "message": "notification queued",
+    "aiStatusText": "✅ עמוד מוכן לאישור\\n\\nעמוד: השירותים שלנו - דליה\\nסטטוס: pending_approval · preview\\n\\nלא בוצע אישור אוטומטי.",
+    "pendingNotifications": 1,
+    "approvedAny": false,
+    "hasNotifyHook": false
+  },
+  "approvalState": "pending_approval",
+  "autoApproved": false,
+  "writeRequestsToLiveSite": [],
+  "screenshotErrors": [],
+  "ok": true,
+  "approvalCheck": {
+    "executionMode": "preview",
+    "approvals": 0,
+    "approvedIds": []
+  }
+}

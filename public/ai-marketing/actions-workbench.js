@@ -1544,6 +1544,14 @@
     rerender();
   };
 
+  function openWorkbench(pageId) {
+    _view = 'workbench';
+    _workbenchPageId = pageId || null;
+    _expandedActionId = null;
+    rerender();
+    return { ok: !!pageId, pageId: pageId, view: _view };
+  }
+
   window.CocoActRevokeApproval = function (actionId) {
     var map = getApprovals();
     delete map[actionId];
@@ -1568,6 +1576,7 @@
     resolveActionStatus: resolveActionStatus,
     exportActionsCsv: exportActionsCsv,
     openLitePreview: openLitePreview,
+    openWorkbench: openWorkbench,
     openPreview: function (pageId) { return openLitePreview(pageId); },
     EXECUTION_MODE: EXECUTION_MODE,
     APPROVAL_KEY: APPROVAL_KEY,

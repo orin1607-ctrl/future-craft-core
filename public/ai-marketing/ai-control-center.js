@@ -136,16 +136,31 @@
     };
   }
 
+  function showPageReadyMessage(detail) {
+    var box = document.getElementById('ai-status-box');
+    if (!box || !detail) return;
+    box.style.color = 'var(--green)';
+    box.style.borderColor = 'rgba(34,197,94,0.4)';
+    box.style.textAlign = 'right';
+    box.innerHTML = '<div style="white-space:pre-wrap;line-height:1.7;font-size:13px;color:var(--white);">' +
+      esc(detail.message || 'עמוד מוכן לאישור') + '</div>';
+    if (typeof showToast === 'function') showToast('📋 עמוד מוכן לאישור — ממתין לך');
+    renderSnapshot();
+  }
+
   function init() {
     injectControlPanel();
     wireRunAiAnalysis();
     document.addEventListener('coco:filter-changed', function () {
       renderSnapshot();
     });
+    document.addEventListener('coco:page-ready-for-approval', function (e) {
+      showPageReadyMessage(e.detail);
+    });
   }
 
   document.addEventListener('coco:ai-control-ready', init);
   if (window.COCO_AI_CONTROL) init();
 
-  window.AiControlCenter = { init: init, ask: askControlCenter, renderSnapshot: renderSnapshot };
+  window.AiControlCenter = { init: init, ask: askControlCenter, renderSnapshot: renderSnapshot, showPageReadyMessage: showPageReadyMessage };
 })();

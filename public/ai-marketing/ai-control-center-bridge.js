@@ -60,6 +60,36 @@
     return engines;
   }
 
+  function buildPageReadyMessage(payload) {
+    var p = payload || {};
+    var lines = [
+      '✅ עמוד מוכן לאישור',
+      '',
+      'עמוד: ' + (p.pageTitle || p.pagePath || p.pageId || '—'),
+      'סטטוס: pending_approval · EXECUTION_MODE=preview',
+    ];
+    if (p.summary) lines.push('סיכום: ' + p.summary);
+    if (p.recommendationCount != null) lines.push('המלצות: ' + p.recommendationCount);
+    if (p.aiEngines && p.aiEngines.length) lines.push('AI: ' + p.aiEngines.join(', '));
+    if (p.previewUrl) lines.push('תצוגה: ' + p.previewUrl);
+    lines.push('', 'לא בוצע אישור אוטומטי — ממתין לאישור המשתמש.');
+    return lines.join('\n');
+  }
+
+  function notifyPageReadyForApproval(payload) {
+    payload = payload || {};
+    payload.status = 'pending_approval';
+    payload.executionMode = 'preview';
+    payload.message = buildPageReadyMessage(payload);
+    var ntf = null;
+    if (window.MarketingNotifications) {
+      ntf = MarketingNotifications.enqueue('page_ready', payload);
+      MarketingNotifications.enqueue('approval_required', payload);
+    }
+    document.dispatchEvent(new CustomEvent('coco:page-ready-for-approval', { detail: payload }));
+    return { ok: true, notification: ntf, message: payload.message };
+  }
+
   function init() {
     if (window.CocoIntegrationHub && window.MultiAiOrchestrator) {
       CocoIntegrationHub.MultiAi = MultiAiOrchestrator;
@@ -77,6 +107,7 @@
       getSnapshot: getSnapshot,
       getContext: getContext,
       getEngineStatus: getEngineStatus,
+      notifyPageReadyForApproval: notifyPageReadyForApproval,
       version: '1.1.0-mission25',
     };
     document.dispatchEvent(new CustomEvent('coco:ai-control-ready', { detail: window.COCO_AI_CONTROL }));
