@@ -3,7 +3,7 @@
 **תאריך:** 2026-06-29  
 **גרסה:** v3-daily-engine-2 · Engine 2.0.0  
 **Staging URL:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-daily-engine-2  
-**Commit:** *(יתעדכן לאחר push)*  
+**Commit:** `3f8426c`  
 
 ---
 
