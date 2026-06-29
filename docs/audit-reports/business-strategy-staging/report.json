@@ -1,0 +1,76 @@
+{
+  "at": "2026-06-29T17:16:39.081Z",
+  "commitHash": "b6e2e0a102b4e076cf6fb82fa63cad6f4d579a49",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-b6e2e0a",
+  "version": "v3-mission-25-1-b6e2e0a",
+  "checks": {
+    "modules_loaded": {
+      "ok": true,
+      "detail": "BusinessStrategyWizard + Module"
+    },
+    "hub_card_visible": {
+      "ok": true,
+      "detail": "חברות ועסקים"
+    },
+    "wizard_screen_active": {
+      "ok": true,
+      "detail": ""
+    },
+    "dalia_prefill_name": {
+      "ok": true,
+      "detail": "דליה פתרונות מימון ותחזוקה לרכב"
+    },
+    "dalia_prefill_site": {
+      "ok": true,
+      "detail": "https://dalia-c.com/"
+    },
+    "connected_assets": {
+      "ok": true,
+      "detail": "● מחובר\nאתר אינטרנט\n● מחובר\nGoogle Search Console\n● מחובר\nGoogle Analytics 4\n● מ"
+    },
+    "ai_analysis_done": {
+      "ok": true,
+      "detail": ""
+    },
+    "report_built": {
+      "ok": true,
+      "detail": "עסק\nדליה פתרונות מימון ותחזוקה לרכב · תפעול ותחזוקת רכב / ני"
+    },
+    "business_context_json": {
+      "ok": true,
+      "detail": "{\n  \"version\": 1,\n  \"moduleVersion\": \"1.0.0\",\n  \"clientId\": \"dalia-c-official\",\n"
+    },
+    "export_ui_success": {
+      "ok": true,
+      "detail": ""
+    },
+    "business_context_stored": {
+      "ok": true,
+      "detail": "דליה פתרונות מימון ותחזוקה לרכב"
+    },
+    "strategy_actions_stored": {
+      "ok": true,
+      "detail": "5 actions"
+    },
+    "agents_business_context_banner": {
+      "ok": true,
+      "detail": "✅ Business Context פעיל — דליה פתרונות מימון ותחזוקה לרכב · עודכן 2026-06-29\nAI "
+    },
+    "goals_screen_ok": {
+      "ok": true,
+      "detail": "screen-goals active"
+    },
+    "actions_include_strategy": {
+      "ok": true,
+      "detail": "strategy actions in LS"
+    },
+    "clients_open_button": {
+      "ok": true,
+      "detail": ""
+    }
+  },
+  "passed": 16,
+  "failed": 0,
+  "openIssues": [],
+  "ok": true
+}

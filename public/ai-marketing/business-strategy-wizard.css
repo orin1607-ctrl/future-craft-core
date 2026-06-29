@@ -45,7 +45,7 @@
 #biz-strategy-root .bw-alt-w { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.22); color: var(--yel); }
 #biz-strategy-root .bw-pane { display: none; }
 #biz-strategy-root .bw-pane.on { display: block; }
-#biz-strategy-root .bw-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg2); border-top: 1px solid var(--w10); padding: 11px 18px; display: flex; justify-content: space-between; align-items: center; z-index: 90; }
+#biz-strategy-root .bw-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg2); border-top: 1px solid var(--w10); padding: 11px 18px; display: flex; justify-content: space-between; align-items: center; z-index: 510; }
 #biz-strategy-root .bw-chip { padding: 4px 11px; border-radius: 99px; border: 1px solid var(--w10); background: var(--bg4); font-size: 11px; cursor: pointer; display: inline-block; margin: 3px; }
 #biz-strategy-root .bw-chip.on { border-color: var(--acc); background: var(--glow); color: var(--acc2); }
 #biz-strategy-root .bw-ai-box { background: var(--glow); border: 1px solid rgba(37,99,235,0.28); border-radius: var(--r); padding: 14px; display: none; }

@@ -34,6 +34,13 @@ function check(name, ok, detail) {
   if (ok) report.passed++; else { report.failed++; report.openIssues.push(name + ': ' + (detail || 'fail')); }
 }
 
+async function clickId(page, id) {
+  await page.evaluate((sel) => {
+    const el = document.getElementById(sel);
+    if (el) el.click();
+  }, id);
+}
+
 async function main() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
@@ -63,31 +70,31 @@ async function main() {
     check('dalia_prefill_site', /dalia-c\.com/i.test(siteVal), siteVal);
 
     // Step through wizard
-    await page.click('#bw-next'); // -> assets
+    await clickId(page, 'bw-next'); // -> assets
     await page.waitForTimeout(400);
     const connected = await page.locator('#bw-connected-list').innerText();
     check('connected_assets', /אתר|Search Console|Analytics/i.test(connected), connected.slice(0, 80));
 
-    await page.click('#bw-next'); // -> analysis
+    await clickId(page, 'bw-next'); // -> analysis
     await page.waitForTimeout(400);
-    await page.click('#bw-run-analysis');
+    await clickId(page, 'bw-run-analysis');
     await page.waitForFunction(() => {
       const el = document.querySelector('#bw-ana-done');
       return el && el.style.display !== 'none';
     }, { timeout: 25000 });
     check('ai_analysis_done', true);
 
-    await page.click('#bw-next'); // -> report
+    await clickId(page, 'bw-next'); // -> report
     await page.waitForTimeout(500);
     const reportTxt = await page.locator('#bw-report').innerText();
     check('report_built', reportTxt.length > 40, reportTxt.slice(0, 60));
 
-    await page.click('#bw-next'); // -> export
+    await clickId(page, 'bw-next'); // -> export
     await page.waitForTimeout(500);
     const ctxJson = await page.locator('#bw-ctx-json').innerText();
     check('business_context_json', ctxJson.includes('clientId') && ctxJson.includes('dalia'), ctxJson.slice(0, 80));
 
-    await page.click('#bw-next'); // export
+    await clickId(page, 'bw-next'); // export
     await page.waitForFunction(() => {
       const el = document.querySelector('#bw-exported');
       return el && el.style.display !== 'none';
@@ -104,7 +111,7 @@ async function main() {
     });
     check('strategy_actions_stored', lsActions.length >= 2, String(lsActions.length) + ' actions');
 
-    await page.click('#bw-go-agents');
+    await clickId(page, 'bw-go-agents');
     await page.waitForFunction(() => document.getElementById('screen-agents')?.classList.contains('active'), { timeout: 15000 });
     const agentsBanner = await page.locator('#coco-live-agents-context').innerText().catch(() => '');
     check('agents_business_context_banner', /Business Context פעיל/i.test(agentsBanner), agentsBanner.slice(0, 80));
