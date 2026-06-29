@@ -1,0 +1,41 @@
+{
+  "mission": 28,
+  "at": "2026-06-29T06:17:59.270Z",
+  "mode": "staging_trial",
+  "pageId": "page-07",
+  "pageName": "השירותים שלנו - דליה",
+  "subject": "עמוד מוכן לאישור – השירותים שלנו",
+  "htmlPath": "docs/audit-reports/gmail-approval-trial/email-sample.html",
+  "stagingPreviewUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-live-demo-3&page=page-07",
+  "stagingEmailPreviewUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing/email-preview-approval.html",
+  "dataSource": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\live-workflow-demo\\report.json",
+  "gmailConnected": false,
+  "resend": {
+    "localKeyPresent": false,
+    "localKeyPrefix": null,
+    "supabaseStaging": {
+      "reachable": true,
+      "hasResend": true,
+      "hasGmail": false,
+      "note": "secret exists in Supabase Staging"
+    },
+    "from": "דליה מערכות <onboarding@resend.dev>",
+    "note": "No local RESEND_API_KEY — HTML mockup only"
+  },
+  "marketingNotifyEdge": {
+    "exists": false,
+    "name": "marketing-notify-email"
+  },
+  "sendAttempted": false,
+  "sendSucceeded": false,
+  "recipientMasked": "or***@gmail.com",
+  "recipientDomain": "gmail.com",
+  "missingForProduction": [
+    "Edge function marketing-notify-email",
+    "marketing_approvals + tokens tables",
+    "GMAIL_SEND_ENABLED (Phase 2 — optional)",
+    "Screenshot capture pipeline",
+    "Signed HMAC tokens (MARKETING_APPROVAL_SECRET)",
+    "RESEND_FROM with verified dalia-c.com domain"
+  ]
+}

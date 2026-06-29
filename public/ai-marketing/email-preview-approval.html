@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>תצוגת מייל אישור — CO.CO Marketing AI</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .bar h1 { margin: 0; font-size: 16px; font-weight: 600; }
+    .bar .tag {
+      font-size: 11px;
+      background: #f59e0b;
+      color: #1a1a2e;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .bar a { color: #93c5fd; font-size: 13px; }
+    .stub-banner {
+      background: #422006;
+      color: #fde68a;
+      padding: 10px 20px;
+      font-size: 13px;
+      text-align: center;
+      border-bottom: 1px solid #78350f;
+    }
+    .frame-wrap {
+      padding: 16px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    iframe {
+      width: 100%;
+      min-height: calc(100vh - 140px);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      background: #fff;
+    }
+    .action-result {
+      display: none;
+      margin: 16px auto;
+      max-width: 720px;
+      padding: 20px;
+      border-radius: 12px;
+      background: #14532d;
+      border: 1px solid #22c55e;
+    }
+    .action-result.show { display: block; }
+    .action-result.revise { background: #422006; border-color: #f59e0b; }
+    .action-result.reject { background: #450a0a; border-color: #ef4444; }
+    .action-result.preview { background: #1e3a5f; border-color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <div>
+      <h1>תצוגת מייל אישור Gmail</h1>
+      <span class="tag">Mission 28 · Staging</span>
+    </div>
+    <a href="../ai-marketing-platform.html?v=v3-live-demo-3&page=page-07">← חזרה לפלטפורמה</a>
+  </div>
+  <div class="stub-banner" id="stub-banner">
+    קישורי אישור הם stub — אין Edge function עדיין. לחיצה מציגה תוצאה מקומית בלבד.
+  </div>
+  <div class="action-result" id="action-result"></div>
+  <div class="frame-wrap">
+    <iframe id="email-frame" title="דוגמת מייל אישור" src="email-approval-sample.html"></iframe>
+  </div>
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var action = params.get('action');
+      var approvalId = params.get('approvalId') || 'trial-page-07-m28';
+      var token = params.get('t') || '';
+      var result = document.getElementById('action-result');
+      var banner = document.getElementById('stub-banner');
+      var frame = document.getElementById('email-frame');
+
+      var labels = {
+        approve: { text: '✅ בקשת אישור התקבלה (stub) — ב-Production יופעל marketing-approval-action', cls: '' },
+        revise: { text: '✏️ נשלח לתיקון (stub) — הערות יישמרו ב-Supabase ב-Phase 1', cls: 'revise' },
+        reject: { text: '❌ הפריט נדחה (stub) — לא יפורסם', cls: 'reject' },
+        preview: { text: '👁️ מצב תצוגה מלאה — פתח את שולחן העבודה ב-Staging', cls: 'preview' },
+      };
+
+      if (action && labels[action]) {
+        result.className = 'action-result show ' + labels[action].cls;
+        result.innerHTML = '<strong>' + labels[action].text + '</strong><br><small>approvalId: ' +
+          approvalId + ' · token: ' + (token ? token.slice(0, 20) + '…' : '(none)') + '</small>';
+        banner.textContent = 'פעולה: ' + action + ' — stub בלבד, ללא פרסום ל-Production.';
+        if (action === 'preview') {
+          frame.src = '../ai-marketing-platform.html?v=v3-live-demo-3&page=page-07';
+        }
+      }
+
+      frame.onerror = function () {
+        frame.srcdoc = '<p dir="rtl" style="padding:24px;font-family:Arial">הרץ <code>node scripts/send-gmail-approval-trial.mjs</code> ליצירת email-sample.html</p>';
+      };
+    })();
+  </script>
+</body>
+</html>
