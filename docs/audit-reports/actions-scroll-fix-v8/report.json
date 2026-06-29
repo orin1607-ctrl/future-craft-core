@@ -1,0 +1,41 @@
+{
+  "at": "2026-06-29T00:17:12.643Z",
+  "version": "v3-final-strict-8",
+  "url": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-8",
+  "loadMs": 6354,
+  "baselineTotalDom": 15466,
+  "metrics": {
+    "totalDom": 15184,
+    "screenActionsNodes": 195,
+    "legacyRemaining": 0,
+    "legacyIds": [],
+    "navTabs": false,
+    "cards": 8,
+    "pendingHtml": 10880,
+    "iframes": 0
+  },
+  "domReducedBy": 282,
+  "scroll": {
+    "ok": true,
+    "maxMs": 0.4000000059604645,
+    "avgMs": 0.10833333246409893
+  },
+  "workbench": {
+    "closed": {
+      "accItems": 10,
+      "accBodies": 0,
+      "pendingHtml": 7694
+    },
+    "open": {
+      "accBodies": 1,
+      "pendingHtml": 16599
+    },
+    "lazyOk": true
+  },
+  "preview": {
+    "modal": true,
+    "iframe": 1
+  },
+  "hubButtons": 19,
+  "consoleErrors": []
+}
