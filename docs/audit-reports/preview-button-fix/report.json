@@ -1,6 +1,7 @@
 {
   "at": "2026-06-29T05:52:09.790Z",
   "ver": "v3-live-demo-3",
+  "commit": "b73938d",
   "localUrl": "http://127.0.0.1:50379/ai-marketing-platform.html?v=v3-live-demo-3&page=page-07",
   "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-live-demo-3&page=page-07",
   "investigation": {
@@ -66,5 +67,10 @@
     },
     "errors": []
   },
-  "ok": true
+  "ok": true,
+  "stagingVerified": {
+    "at": "2026-06-29T05:54:00.000Z",
+    "desktop": { "parent": "BODY", "computedDisplay": "flex", "visible": true, "tabs": ["לפני", "אחרי", "השוואה"] },
+    "mobile": { "parent": "BODY", "computedDisplay": "flex", "visible": true, "tabs": ["לפני", "אחרי", "השוואה"] }
+  }
 }
