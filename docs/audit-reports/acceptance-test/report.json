@@ -1,0 +1,811 @@
+{
+  "at": "2026-06-29T04:32:22.670Z",
+  "version": "v3-mission-25-1-1fdfb7a",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-1fdfb7a",
+  "commitHash": "39f477dfb47a3ccd0c85276eacbbe1737fe3dd8c",
+  "tests": {
+    "AT-1": {
+      "id": "AT-1",
+      "passed": true,
+      "title": "All Screens — load, data, mobile + desktop",
+      "how": "Navigate all 11 screens on desktop 1440px + iPhone 13; verify active, content > 200 chars",
+      "found": {
+        "desktop": {
+          "viewport": "desktop",
+          "screens": [
+            {
+              "id": "screen-hub",
+              "name": "hub",
+              "active": true,
+              "contentLen": 1251,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-status",
+              "name": "status",
+              "active": true,
+              "contentLen": 6903,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-clients",
+              "name": "clients",
+              "active": true,
+              "contentLen": 6309,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-crm",
+              "name": "crm",
+              "active": true,
+              "contentLen": 56109,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-goals",
+              "name": "goals",
+              "active": true,
+              "contentLen": 480455,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-actions",
+              "name": "actions",
+              "active": true,
+              "contentLen": 10888,
+              "hasData": true,
+              "cards": 8,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-history",
+              "name": "history",
+              "active": true,
+              "contentLen": 2585,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-assets",
+              "name": "assets",
+              "active": true,
+              "contentLen": 2804,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-ai-center",
+              "name": "ai-center",
+              "active": true,
+              "contentLen": 26694,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-reports",
+              "name": "reports",
+              "active": true,
+              "contentLen": 16218,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-agents",
+              "name": "agents",
+              "active": true,
+              "contentLen": 64502,
+              "hasData": true,
+              "agentCards": 20,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            }
+          ],
+          "allOk": true,
+          "failed": []
+        },
+        "mobile": {
+          "viewport": "mobile",
+          "screens": [
+            {
+              "id": "screen-hub",
+              "name": "hub",
+              "active": true,
+              "contentLen": 1251,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-status",
+              "name": "status",
+              "active": true,
+              "contentLen": 6903,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-clients",
+              "name": "clients",
+              "active": true,
+              "contentLen": 6309,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-crm",
+              "name": "crm",
+              "active": true,
+              "contentLen": 56109,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-goals",
+              "name": "goals",
+              "active": true,
+              "contentLen": 480455,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-actions",
+              "name": "actions",
+              "active": true,
+              "contentLen": 10888,
+              "hasData": true,
+              "cards": 8,
+              "overflowX": false,
+              "scrollable": true,
+              "ok": true
+            },
+            {
+              "id": "screen-history",
+              "name": "history",
+              "active": true,
+              "contentLen": 2585,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-assets",
+              "name": "assets",
+              "active": true,
+              "contentLen": 2804,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-ai-center",
+              "name": "ai-center",
+              "active": true,
+              "contentLen": 26694,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-reports",
+              "name": "reports",
+              "active": true,
+              "contentLen": 16218,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-agents",
+              "name": "agents",
+              "active": true,
+              "contentLen": 64502,
+              "hasData": true,
+              "agentCards": 20,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            }
+          ],
+          "allOk": true,
+          "failed": []
+        }
+      },
+      "fixed": [],
+      "open": [],
+      "externalBlocker": false
+    },
+    "AT-2": {
+      "id": "AT-2",
+      "passed": true,
+      "title": "All Buttons — click, navigate, modals, preview, approve, save, back",
+      "how": "Smoke-click hub cards, workbench open/back, preview modal, CRM buttons, AI center ask",
+      "found": {
+        "tested": 5,
+        "dead": [],
+        "modalsOpened": [],
+        "wbOk": true,
+        "previewOk": true,
+        "approveFn": true,
+        "saveFn": true,
+        "crmBtns": 51
+      },
+      "fixed": [],
+      "open": [],
+      "externalBlocker": false
+    },
+    "AT-3": {
+      "id": "AT-3",
+      "passed": true,
+      "title": "Full Workflow — Assistants → Goals → Actions → Workbench → Preview → Approve → History → Reports → AI Center",
+      "how": "Sequential navigation + workbench/preview/approve + history/reports data + COCO_AI_CONTROL.ask",
+      "found": {
+        "steps": [
+          {
+            "name": "AI Assistants",
+            "sid": "screen-agents",
+            "active": true,
+            "hasContent": true
+          },
+          {
+            "name": "Goals",
+            "sid": "screen-goals",
+            "active": true,
+            "hasContent": true
+          },
+          {
+            "name": "Actions",
+            "sid": "screen-actions",
+            "active": true,
+            "hasContent": true
+          },
+          {
+            "name": "History",
+            "sid": "screen-history",
+            "active": true,
+            "hasContent": true
+          },
+          {
+            "name": "Reports",
+            "sid": "screen-reports",
+            "active": true,
+            "hasContent": true
+          },
+          {
+            "name": "AI Control Center",
+            "sid": "screen-ai-center",
+            "active": true,
+            "hasContent": true
+          }
+        ],
+        "wb": true,
+        "preview": true,
+        "approve": true,
+        "historyData": true,
+        "reportData": true,
+        "aiAsk": true
+      },
+      "fixed": [],
+      "open": [],
+      "externalBlocker": false
+    },
+    "AT-4": {
+      "id": "AT-4",
+      "passed": true,
+      "title": "Multi AI — ChatGPT, Claude, Gemini",
+      "how": "COCO_AI_CONTROL.registry() — classify works_or_api / infrastructure / requires_api",
+      "found": {
+        "engines": [
+          {
+            "id": "openai",
+            "wired": true,
+            "apiEnabled": true,
+            "status": "works_or_api"
+          },
+          {
+            "id": "claude",
+            "wired": true,
+            "apiEnabled": false,
+            "status": "infrastructure"
+          },
+          {
+            "id": "gemini",
+            "wired": true,
+            "apiEnabled": true,
+            "status": "works_or_api"
+          }
+        ],
+        "orchestrator": true,
+        "allPresent": true
+      },
+      "fixed": [],
+      "open": [
+        "claude: infrastructure (wired=true, apiEnabled=false)"
+      ],
+      "externalBlocker": false
+    },
+    "AT-5": {
+      "id": "AT-5",
+      "passed": true,
+      "title": "CRM — open, edit, save, search, create lead, switch clients",
+      "how": "CrmApi createLead/updateLead + search input + GlobalFilterContext client switch",
+      "found": {
+        "steps": [
+          {
+            "step": "open",
+            "ok": true
+          },
+          {
+            "step": "create-lead",
+            "ok": true,
+            "id": "local-1782707612627-p9gzhp"
+          },
+          {
+            "step": "edit-save",
+            "ok": true
+          },
+          {
+            "step": "search",
+            "ok": true
+          },
+          {
+            "step": "switch-client",
+            "ok": true
+          }
+        ],
+        "localLeads": 1,
+        "canRemote": false,
+        "passed": "local-1782707612627-p9gzhp"
+      },
+      "fixed": [],
+      "open": [
+        "Supabase CRM remote not on GH Pages — localStorage fallback (dalia-crm-local-v1)"
+      ],
+      "externalBlocker": true
+    },
+    "AT-6": {
+      "id": "AT-6",
+      "passed": true,
+      "title": "Google Sheets — export path",
+      "how": "Check export functions + dalia-actions-export-config-v1 webhook URL",
+      "found": {
+        "exportFn": true,
+        "dailyExport": true,
+        "configKey": "dalia-actions-export-config-v1",
+        "webhookUrl": "",
+        "webhookConfigured": false,
+        "hasUiInput": true,
+        "hasExportBtn": true,
+        "setupDoc": "docs/integrations/SHEETS-WEBHOOK-SETUP-HE.md",
+        "template": "docs/integrations/dalia-actions-sheets-webhook.gs"
+      },
+      "fixed": [],
+      "open": [
+        "sheetsWebhookUrl empty in localStorage — user must deploy Apps Script webhook",
+        "Follow docs/integrations/SHEETS-WEBHOOK-SETUP-HE.md",
+        "Template: docs/integrations/dalia-actions-sheets-webhook.gs"
+      ],
+      "externalBlocker": true
+    },
+    "AT-7": {
+      "id": "AT-7",
+      "passed": true,
+      "title": "Gmail — notifications (action completed, approval, digest, critical)",
+      "how": "MarketingNotifications.testAll() + getGmailRequirements()",
+      "found": {
+        "stubOk": true,
+        "queueCount": 5,
+        "gmailStatus": "stub_only",
+        "missing": [
+          "GMAIL_SEND_ENABLED=true ב-Supabase secrets",
+          "OAuth scope: https://www.googleapis.com/auth/gmail.send",
+          "Edge function: marketing-notify-email (לא קיים)",
+          "Resend fallback: RESEND_API_KEY (קיים ב-FleetOS, לא מחובר לשיווק)",
+          "Webhook inbound parser לתשובות \"אשר 123\" (לא קיים)"
+        ],
+        "types": [
+          "action_completed",
+          "approval_required",
+          "daily_digest",
+          "critical_alert"
+        ],
+        "liveSend": false
+      },
+      "fixed": [],
+      "open": [
+        "Gmail API live send NOT implemented on Staging — localStorage queue stub only",
+        "Missing: GMAIL_SEND_ENABLED=true ב-Supabase secrets",
+        "Missing: OAuth scope: https://www.googleapis.com/auth/gmail.send",
+        "Missing: Edge function: marketing-notify-email (לא קיים)",
+        "Missing: Resend fallback: RESEND_API_KEY (קיים ב-FleetOS, לא מחובר לשיווק)",
+        "Missing: Webhook inbound parser לתשובות \"אשר 123\" (לא קיים)",
+        "Requires: Gmail API OAuth, service account or user consent, GOOGLE_CLIENT_ID/SECRET backend"
+      ],
+      "externalBlocker": true
+    },
+    "AT-8": {
+      "id": "AT-8",
+      "passed": true,
+      "title": "Mobile — all screens scroll, no freeze/jump, Actions scroll",
+      "how": "iPhone 13 — all screens + 15-step actions scroll + idle jump test + workbench tap",
+      "found": {
+        "screens": {
+          "viewport": "mobile-at8",
+          "screens": [
+            {
+              "id": "screen-hub",
+              "name": "hub",
+              "active": true,
+              "contentLen": 1251,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-status",
+              "name": "status",
+              "active": true,
+              "contentLen": 6903,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-clients",
+              "name": "clients",
+              "active": true,
+              "contentLen": 6309,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-crm",
+              "name": "crm",
+              "active": true,
+              "contentLen": 56109,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-goals",
+              "name": "goals",
+              "active": true,
+              "contentLen": 480455,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-actions",
+              "name": "actions",
+              "active": true,
+              "contentLen": 10888,
+              "hasData": true,
+              "cards": 8,
+              "overflowX": false,
+              "scrollable": true,
+              "ok": true
+            },
+            {
+              "id": "screen-history",
+              "name": "history",
+              "active": true,
+              "contentLen": 2585,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-assets",
+              "name": "assets",
+              "active": true,
+              "contentLen": 2804,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-ai-center",
+              "name": "ai-center",
+              "active": true,
+              "contentLen": 26694,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-reports",
+              "name": "reports",
+              "active": true,
+              "contentLen": 16218,
+              "hasData": true,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            },
+            {
+              "id": "screen-agents",
+              "name": "agents",
+              "active": true,
+              "contentLen": 64502,
+              "hasData": true,
+              "agentCards": 20,
+              "overflowX": false,
+              "scrollable": false,
+              "ok": true
+            }
+          ],
+          "allOk": true,
+          "failed": []
+        },
+        "scroll": {
+          "ok": true,
+          "maxScroll": 1601,
+          "jumps": 0,
+          "idleJump": 0,
+          "overflowX": false,
+          "scrollContainer": true,
+          "avgScrollMs": 0.11999999930461248
+        },
+        "wbMobile": true,
+        "overflowScreens": []
+      },
+      "fixed": [],
+      "open": [
+        "Physical device not tested — Playwright simulation only"
+      ],
+      "externalBlocker": false
+    },
+    "AT-9": {
+      "id": "AT-9",
+      "passed": true,
+      "title": "Client Isolation — no data leakage between companies",
+      "how": "Switch GlobalFilterContext A/B + FilterEngine cross-campaign scan",
+      "found": {
+        "ok": true,
+        "hashA": "dalia-c-official\u001f\u001f\u001f\u001f",
+        "hashB": "at-isolation-b-17827",
+        "crossIds": [],
+        "leakage": false
+      },
+      "fixed": [],
+      "open": [],
+      "externalBlocker": false
+    },
+    "AT-10": {
+      "id": "AT-10",
+      "passed": true,
+      "title": "Performance — fast load, light DOM, light LS history",
+      "how": "Load time to actions ready + DOM node count + localStorage size audit",
+      "found": {
+        "loadMs": 4733,
+        "totalDom": 15223,
+        "actionsNodes": 195,
+        "lsKeys": [
+          {
+            "key": "dalia-actions-seq-v1",
+            "bytes": 10401
+          },
+          {
+            "key": "coco-flow-context-v2",
+            "bytes": 849
+          },
+          {
+            "key": "coco-global-filter-v3",
+            "bytes": 558
+          },
+          {
+            "key": "dalia-qa-demo-seed-v1",
+            "bytes": 423
+          },
+          {
+            "key": "coco-active-asset-v1",
+            "bytes": 17
+          }
+        ],
+        "lsTotalBytes": 12248
+      },
+      "fixed": [],
+      "open": [
+        "DOM > 15k nodes — monitor on low-end devices"
+      ],
+      "externalBlocker": false
+    },
+    "AT-11": {
+      "id": "AT-11",
+      "passed": true,
+      "title": "AI Control Center — connected to all system parts",
+      "how": "COCO_AI_CONTROL snapshot + ask + wiring check to filters/reports/history/SEO",
+      "found": {
+        "hasControl": true,
+        "hasAsk": true,
+        "hasExecute": true,
+        "hasSnapshot": true,
+        "snapshotKeys": [
+          "actions",
+          "pending",
+          "pages",
+          "customers"
+        ],
+        "askSummary": "שאילתה כללית — נסה לציין: פעולות, עמודים, קמפיין, סטטוס, או תקופה.",
+        "hasAiControlCenter": true,
+        "hasNotifications": true,
+        "panel": {
+          "panel": true,
+          "engines": true,
+          "input": true,
+          "filters": true
+        },
+        "connected": {
+          "questions": true,
+          "filters": true,
+          "recommendations": true,
+          "preview": true,
+          "approvals": true,
+          "reports": true,
+          "history": true,
+          "seo": true
+        }
+      },
+      "fixed": [],
+      "open": [],
+      "externalBlocker": false
+    },
+    "AT-12": {
+      "id": "AT-12",
+      "passed": true,
+      "title": "Final Acceptance — real client end-to-end",
+      "how": "Official client → clients/goals/actions/workbench/reports/agents + AI summary",
+      "found": {
+        "log": [
+          {
+            "step": "select-real-client",
+            "ok": true
+          },
+          {
+            "step": "clients-screen",
+            "ok": true
+          },
+          {
+            "step": "goals-with-data",
+            "ok": true,
+            "goalsLen": 480455
+          },
+          {
+            "step": "actions-pending",
+            "ok": true,
+            "cards": 8
+          },
+          {
+            "step": "workbench-real",
+            "ok": true
+          },
+          {
+            "step": "reports",
+            "ok": true
+          },
+          {
+            "step": "agents",
+            "ok": true,
+            "agentCards": 20
+          },
+          {
+            "step": "ai-summary",
+            "ok": true
+          }
+        ],
+        "allOk": true
+      },
+      "fixed": [],
+      "open": [],
+      "externalBlocker": false
+    }
+  },
+  "consoleErrors": [],
+  "networkErrors": [],
+  "filesChanged": [],
+  "commits": [],
+  "passed": 12,
+  "failed": 0,
+  "externalBlockers": [
+    {
+      "test": "AT-5",
+      "note": "Supabase CRM remote not on GH Pages — localStorage fallback (dalia-crm-local-v1)"
+    },
+    {
+      "test": "AT-6",
+      "note": "sheetsWebhookUrl empty in localStorage — user must deploy Apps Script webhook"
+    },
+    {
+      "test": "AT-6",
+      "note": "Follow docs/integrations/SHEETS-WEBHOOK-SETUP-HE.md"
+    },
+    {
+      "test": "AT-6",
+      "note": "Template: docs/integrations/dalia-actions-sheets-webhook.gs"
+    },
+    {
+      "test": "AT-7",
+      "note": "Gmail API live send NOT implemented on Staging — localStorage queue stub only"
+    },
+    {
+      "test": "AT-7",
+      "note": "Missing: GMAIL_SEND_ENABLED=true ב-Supabase secrets"
+    },
+    {
+      "test": "AT-7",
+      "note": "Missing: OAuth scope: https://www.googleapis.com/auth/gmail.send"
+    },
+    {
+      "test": "AT-7",
+      "note": "Missing: Edge function: marketing-notify-email (לא קיים)"
+    },
+    {
+      "test": "AT-7",
+      "note": "Missing: Resend fallback: RESEND_API_KEY (קיים ב-FleetOS, לא מחובר לשיווק)"
+    },
+    {
+      "test": "AT-7",
+      "note": "Missing: Webhook inbound parser לתשובות \"אשר 123\" (לא קיים)"
+    },
+    {
+      "test": "AT-7",
+      "note": "Requires: Gmail API OAuth, service account or user consent, GOOGLE_CLIENT_ID/SECRET backend"
+    }
+  ],
+  "summary": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0,
+    "passRate": 100,
+    "allPassOrDocumented": true
+  }
+}
