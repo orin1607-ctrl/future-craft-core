@@ -68,6 +68,13 @@ function ignorableConsole(t) {
   return /favicon|404.*\.(png|ico|woff|svg)|net::ERR.*font|Failed to load resource.*\.(png|ico)/i.test(t);
 }
 
+async function waitForWizard(page) {
+  await page.waitForFunction(
+    () => window.BusinessStrategyWizard && window.BusinessStrategyModule,
+    { timeout: 90000 }
+  );
+}
+
 async function bootPage(page, opts = {}) {
   page.on('console', (m) => {
     if (m.type() === 'error' && !ignorableConsole(m.text())) {
@@ -83,13 +90,17 @@ async function bootPage(page, opts = {}) {
   await page.goto(STAGING, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForFunction(() => typeof window.goScreen === 'function', { timeout: 90000 });
   await page.waitForSelector('#screen-hub, #coco-claude-root', { timeout: 60000 }).catch(() => {});
+  if (opts.waitWizard !== false) {
+    await waitForWizard(page).catch(() => {});
+  }
   await page.waitForTimeout(opts.waitMs ?? 2500);
   return Date.now() - t0;
 }
 
 async function probeScreen(page, sid, opts = {}) {
   if (sid === 'screen-business-strategy') {
-    await page.evaluate(() => BusinessStrategyWizard && BusinessStrategyWizard.open());
+    await waitForWizard(page);
+    await page.evaluate(() => BusinessStrategyWizard.open());
     await page.waitForSelector('#biz-strategy-root .tb', { timeout: 30000 }).catch(() => {});
   } else if (sid === 'screen-agent-dashboard') {
     await page.evaluate(() => {
@@ -377,6 +388,7 @@ await checkDeploy();
   const flow = [];
 
   // Business strategy full flow
+  await waitForWizard(page);
   await page.evaluate(() => BusinessStrategyWizard.open());
   await page.waitForSelector('#biz-strategy-root .tb', { timeout: 30000 });
   flow.push({ step: 'biz_strategy_open', ok: true });

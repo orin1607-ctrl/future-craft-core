@@ -1,9 +1,9 @@
 {
   "mission": 33,
-  "at": "2026-06-29T18:43:29.980Z",
-  "version": "v3-mission-33-f2fc66b",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-33-f2fc66b",
-  "commitHash": "f2fc66b68e1c896df2e31e5f77482f92b483874b",
+  "at": "2026-06-29T19:38:43.131Z",
+  "version": "v3-mission-33-47f2dad",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-33-47f2dad",
+  "commitHash": "47f2dad8b323757264c29555ab1ad0ba0fd6f633",
   "screens": {
     "screen-hub": {
       "desktop": "pass",
@@ -12,7 +12,7 @@
       "exists": true,
       "active": true,
       "hasContent": true,
-      "contentLen": 646,
+      "contentLen": 644,
       "canScroll": false,
       "overflowY": "auto",
       "buttons": 14,
@@ -324,7 +324,7 @@
       "status": "pass",
       "title": "Git / GitHub Pages deploy",
       "found": {
-        "commitHash": "f2fc66b68e1c896df2e31e5f77482f92b483874b",
+        "commitHash": "47f2dad8b323757264c29555ab1ad0ba0fd6f633",
         "localWizard": true,
         "stagingWizard": true,
         "pagesOk": true
@@ -335,7 +335,7 @@
       "status": "pass",
       "title": "Desktop — all screens",
       "found": {
-        "bootMs": 3591,
+        "bootMs": 5587,
         "hubCards": 10,
         "actionTabs": {
           "count": 0,
@@ -351,7 +351,7 @@
             "exists": true,
             "active": true,
             "hasContent": true,
-            "contentLen": 646,
+            "contentLen": 644,
             "canScroll": false,
             "overflowY": "auto",
             "buttons": 14,
@@ -821,7 +821,7 @@
       "status": "pass",
       "title": "Performance",
       "found": {
-        "bootMs": 3365,
+        "bootMs": 4766,
         "totalDom": 15236,
         "actionsNodes": 195,
         "jsHeap": 10,
