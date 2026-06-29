@@ -1,0 +1,73 @@
+{
+  "mission": 30,
+  "test": "TEST_2",
+  "missionStatus": "OPEN",
+  "at": "2026-06-29T16:32:05.727Z",
+  "sendStartedAt": "2026-06-29T16:31:59.061Z",
+  "recipient": "orin1607@gmail.com",
+  "subject": "MISSION 30 – TEST 2 – 29/06/2026",
+  "plainLine": "אם אתה קורא את השורה הזאת, המייל הגיע בהצלחה.",
+  "previousMessageId": "0ea0cdc6-5f7b-4267-a4e2-8aab1bf26fe8",
+  "send": {
+    "http": 200,
+    "ok": true,
+    "id": "6af0b206-690e-4440-b5bf-e9f4b1f23ae4",
+    "from": "דליה מערכות <onboarding@resend.dev>",
+    "endpoint": "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/marketing-notify-email",
+    "error": null,
+    "resend_http": 200
+  },
+  "statusWaitMs": 4000,
+  "statusCheck": {
+    "http": 200,
+    "ok": true,
+    "resend_http": 200,
+    "summary": {
+      "id": "6af0b206-690e-4440-b5bf-e9f4b1f23ae4",
+      "message_id": "<0100019f14393078-4db181cd-e046-4c60-9393-33c913ca2880-000000@email.amazonses.com>",
+      "to": [
+        "orin1607@gmail.com"
+      ],
+      "from": "דליה מערכות <onboarding@resend.dev>",
+      "subject": "MISSION 30 – TEST 2 – 29/06/2026",
+      "created_at": "2026-06-29 16:31:59.91487+00",
+      "last_event": "delivered",
+      "delivered": true,
+      "bounced": false,
+      "complained": false,
+      "rejected": false,
+      "scheduled_at": null,
+      "raw_last_event": "delivered"
+    },
+    "email": {
+      "object": "email",
+      "id": "6af0b206-690e-4440-b5bf-e9f4b1f23ae4",
+      "to": [
+        "orin1607@gmail.com"
+      ],
+      "from": "דליה מערכות <onboarding@resend.dev>",
+      "created_at": "2026-06-29 16:31:59.91487+00",
+      "subject": "MISSION 30 – TEST 2 – 29/06/2026",
+      "bcc": [],
+      "cc": [],
+      "reply_to": [],
+      "last_event": "delivered",
+      "scheduled_at": null,
+      "message_id": "<0100019f14393078-4db181cd-e046-4c60-9393-33c913ca2880-000000@email.amazonses.com>",
+      "html": "<!DOCTYPE html>\n<html lang=\"he\" dir=\"rtl\">\n<head><meta charset=\"utf-8\"><title>MISSION 30 – TEST 2 – 29/06/2026</title></head>\n<body style=\"font-family:Arial,sans-serif;line-height:1.5;padding:16px;\">\n  <p><strong>Mission 30 — TEST 2</strong></p>\n  <p>אם אתה קורא את השורה הזאת, המייל הגיע בהצלחה.</p>\n  <p style=\"color:#666;font-size:12px;\">Delivery test via Supabase Edge → Resend</p>\n</body>\n</html>",
+      "text": "Mission 30 — TEST 2 — delivery probe\n\nאם אתה קורא את השורה הזאת, המייל הגיע בהצלחה.\n\nRecipient: orin1607@gmail.com\nSent: 2026-06-29T16:31:58.941Z"
+    }
+  },
+  "proof": {
+    "sendTimestamp": "2026-06-29T16:31:59.061Z",
+    "resendId": "6af0b206-690e-4440-b5bf-e9f4b1f23ae4",
+    "sesMessageId": "<0100019f14393078-4db181cd-e046-4c60-9393-33c913ca2880-000000@email.amazonses.com>",
+    "lastEvent": "delivered",
+    "delivered": true,
+    "bounced": false,
+    "complained": false,
+    "rejected": false
+  },
+  "inboxConfirmed": false,
+  "note": "Mission 30 stays OPEN until user confirms inbox receipt at orin1607@gmail.com"
+}
