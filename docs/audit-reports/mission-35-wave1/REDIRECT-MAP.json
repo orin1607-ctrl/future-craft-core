@@ -1,0 +1,83 @@
+{
+  "meta": {
+    "mission": "Mission 35 - Wave 1",
+    "status": "STAGING_PLAN_ONLY",
+    "production_change": false,
+    "notes": [
+      "No redirects were deployed to dalia-c.com production.",
+      "This file is a planning/source-of-truth map for future deployment only.",
+      "my-account portal remains separate and is not merged into marketing pages."
+    ],
+    "sources": [
+      "docs/audit-reports/mission-34-site-master-plan/MASTER-PLAN-HE.md",
+      "public/project-001/site-crawl-lite.json",
+      "docs/audit-reports/project-001/GA4-URL-AUDIT.md",
+      "docs/audit-reports/project-001/SEO-LANDING-PAGES-PLAN.md"
+    ]
+  },
+  "exact_redirects": [
+    { "from": "/home/", "to": "/", "reason": "Duplicate homepage" },
+    { "from": "/our-app/", "to": "/אפליקציה-לניהול-צי-רכב/", "reason": "App page rebuild" },
+    { "from": "/about/", "to": "/אודות/", "reason": "Hebrew URL structure" },
+    { "from": "/contact/", "to": "/צור-קשר/", "reason": "Contact consolidation" },
+    { "from": "/catalog/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "Car catalog removed from core model" },
+    { "from": "/השירותים-שלנו/", "to": "/שירותים/", "reason": "New services hub" },
+    { "from": "/צור-קשר-דליה/", "to": "/צור-קשר/", "reason": "Duplicate contact page" },
+    { "from": "/מה-עומד-מ/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "Low value legacy page" },
+    { "from": "/עמוד-ספק/", "to": "/שירותים/", "reason": "Legacy optional supplier page" },
+    { "from": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "Pillar consolidation" },
+    { "from": "/79-shekels/", "to": "/חבילות-ניהול-צי/", "reason": "Single price page merged into pricing" },
+    { "from": "/שאלון-לקוח-פרטי-ועסקי-15/", "to": "/התאמת-פתרון/", "reason": "Lead form migration" },
+    { "from": "/מגוון-חבילות/", "to": "/חבילות-ניהול-צי/", "reason": "Pricing page consolidation" },
+    { "from": "/תחזוקת-רכבים-חכמה-לעסקים-שליטה-סדר-ו/", "to": "/תחזוקת-צי-רכב-לעסקים/", "reason": "Maintenance pillar migration" },
+    { "from": "/ניהול-תחזוקת-רכבים-חכם-לעסקים-מערכת/", "to": "/תחזוקת-צי-רכב-לעסקים/", "reason": "Duplicate maintenance intent" },
+    { "from": "/service/", "to": "/איך-זה-עובד/", "reason": "English legacy URL consolidation" },
+    { "from": "/how-it-works/", "to": "/איך-זה-עובד/", "reason": "Hebrew URL unification" },
+    { "from": "/האם-ליסינג-תפעולי-משתלם-כשאין-זמן-להתע/", "to": "/ידע/ליסינג-תפעולי-מול-ניהול-צי/", "reason": "Duplicate blog merge" },
+    { "from": "/האם-כדאי-ליסינג-תפעולי-האמת-שעסקים-לא-ת/", "to": "/ידע/ליסינג-תפעולי-מול-ניהול-צי/", "reason": "Duplicate blog merge" },
+    { "from": "/איך-חוסכים-בעלויות-תחזוקת-ציי-רכב/", "to": "/ידע/חיסכון-בתחזוקת-צי/", "reason": "Knowledge migration" },
+    { "from": "/תפעול-רכבים-לחברות/", "to": "/תפעול-רכב-לעסקים/", "reason": "Service slug normalization" },
+    { "from": "/שאלון-מתלבטים-בין-ליסינג-תפעולי-לניהו/", "to": "/השוואת-ליסינג/", "reason": "Landing page migration" },
+    { "from": "/שאלון-קצר-להתאמת-פתרון-ניהול-ותחזוקת-ר/", "to": "/התאמת-פתרון/", "reason": "Landing page merge" },
+    { "from": "/card-provider-customer/", "to": "/צור-קשר/", "reason": "Internal legacy page retired" },
+    { "from": "/המערכת-והאפליקציה-של-דליה/", "to": "/אפליקציה-לניהול-צי-רכב/", "reason": "App page consolidation" },
+    { "from": "/registration/", "to": "/צור-קשר/", "reason": "Legacy registration retired" },
+
+    { "from": "/elementor-13192-bmw/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "GA4 404 with high traffic" },
+    { "from": "/form/", "to": "/צור-קשר/", "reason": "GA4 404 form path" },
+    { "from": "/רכבים-מסחריים-6/", "to": "/תפעול-רכב-לעסקים/", "reason": "GA4 404 category intent" },
+    { "from": "/category/מוניות/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "GA4 404 category" },
+    { "from": "/כל-הרכבים-3/", "to": "/", "reason": "GA4 404 legacy listing" },
+    { "from": "/mdsl-id13623-האודי/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "GA4 404 vehicle detail" },
+    { "from": "/רכב-קטן-2/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "GA4 404 vehicle detail" },
+    { "from": "/רכבים-משפחתים-4/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "GA4 404 vehicle detail" },
+    { "from": "/כל-גיפ-5/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "GA4 404 listing page" },
+    { "from": "/כל-גיפונים/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "GA4 404 listing page" },
+    { "from": "/עלינו/", "to": "/אודות/", "reason": "GA4 404 about alias" },
+    { "from": "/רכב-מסחרי/", "to": "/תפעול-רכב-לעסקים/", "reason": "GA4 low traffic but relevant intent" },
+    { "from": "/elementor-13189-מישל/", "to": "/ניהול-צי-רכב-לעסקים/", "reason": "GA4 low traffic but safe redirect" }
+  ],
+  "pattern_redirects": [
+    {
+      "from_pattern": "/category/*",
+      "to": "/ניהול-צי-רכב-לעסקים/",
+      "reason": "Legacy vehicle categories (58 URLs) removed"
+    },
+    {
+      "from_pattern": "/mdsl-id*/",
+      "to": "/ניהול-צי-רכב-לעסקים/",
+      "reason": "Legacy vehicle detail URL family"
+    },
+    {
+      "from_pattern": "/elementor-*/",
+      "to": "/ניהול-צי-רכב-לעסקים/",
+      "reason": "Legacy Elementor pages and broken paths"
+    }
+  ],
+  "preserve_without_redirect": [
+    {
+      "path": "/my-account/",
+      "reason": "Portal stays separate and untouched"
+    }
+  ]
+}

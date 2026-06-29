@@ -68,6 +68,8 @@
     "project-001:verify-gfc-all-10": "node scripts/verify-gfc-all-10-screens.mjs",
     "project-001:verify-gfc-visual-audit": "node scripts/verify-gfc-visual-audit.mjs",
     "project-001:verify-gfc-visual-staging": "node scripts/verify-gfc-visual-staging.mjs",
+    "mission-35:wave1:verify": "node scripts/verify-mission-35-wave1.mjs",
+    "mission-35:wave1:serve": "npx --yes serve sites/dalia-new -l 8891",
     "project-001:verify-phase-ab": "node scripts/verify-phase-ab-recommendations.mjs",
     "project-001:verify-clients": "node scripts/verify-clients-screen-staging.mjs",
     "project-001:verify-asset-flow": "node scripts/verify-asset-flow-chain.mjs",

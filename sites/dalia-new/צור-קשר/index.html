@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>צור קשר | דליה פתרונות מימון ותחזוקה לרכב</title>
+  <meta name="description" content="צור קשר עם צוות דליה לקבלת פתרון ניהול צי מותאם לעסק, כולל שיחת אפיון ותוכנית פעולה." />
+  <link rel="canonical" href="https://staging.dalia-c.com/צור-קשר/" />
+  <meta name="robots" content="index,follow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <div data-site-header></div>
+
+  <main class="section">
+    <div class="container">
+      <section class="hero-card">
+        <h1>נדבר על הצי שלכם ונבנה תוכנית תפעולית ברורה</h1>
+        <p class="lead">השאירו פרטים ונחזור אליכם עם אפיון ראשוני, זמני הטמעה ועלות מותאמת.</p>
+        <div class="grid-two" style="margin-top:1rem;">
+          <div class="card">
+            <h2 style="margin-bottom:.7rem;">טופס יצירת קשר</h2>
+            <form id="contact-form" novalidate>
+              <label>
+                שם מלא
+                <input name="fullName" type="text" autocomplete="name" placeholder="ישראל ישראלי" required />
+              </label>
+              <label>
+                טלפון
+                <input name="phone" type="tel" autocomplete="tel" placeholder="050-1234567" required />
+              </label>
+              <label>
+                אימייל
+                <input name="email" type="email" autocomplete="email" placeholder="name@company.co.il" />
+              </label>
+              <label>
+                גודל צי הרכב
+                <select name="fleetSize">
+                  <option value="1-5">1-5 רכבים</option>
+                  <option value="6-20">6-20 רכבים</option>
+                  <option value="21-50">21-50 רכבים</option>
+                  <option value="51+">מעל 50 רכבים</option>
+                </select>
+              </label>
+              <label>
+                הערות
+                <textarea name="notes" rows="4" placeholder="מה האתגר המרכזי בניהול הצי כיום?"></textarea>
+              </label>
+              <button type="submit" class="btn btn-primary">שליחת פרטים</button>
+              <p class="form-note" id="form-note" aria-live="polite"></p>
+            </form>
+          </div>
+          <aside class="card">
+            <h2 style="margin-bottom:.7rem;">פרטי התקשרות</h2>
+            <p class="lead">טלפון ישיר: <a href="tel:+972-3-555-0119">03-5550119</a></p>
+            <p class="lead">שעות מענה: א'-ה' 08:30-17:30</p>
+            <h3 style="margin-top:1rem;">אותות אמון</h3>
+            <ul class="trust-list">
+              <li>מעל 20 שנות ניסיון בניהול ותפעול רכבים.</li>
+              <li>עבודה מול עסקים וציים בגדלים שונים.</li>
+              <li>שקיפות תפעולית ועדכונים שוטפים לאורך כל החודש.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div data-site-footer></div>
+  <script src="/assets/layout.js"></script>
+  <script>
+    const form = document.getElementById("contact-form");
+    const note = document.getElementById("form-note");
+    form?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      if (!data.get("fullName") || !data.get("phone")) {
+        note.textContent = "יש למלא שם מלא ומספר טלפון.";
+        note.style.color = "var(--danger)";
+        return;
+      }
+      note.textContent = "זהו טופס דמו ב-Staging בלבד. השליחה לפרודקשן תחובר בשלב הבא.";
+      note.style.color = "var(--accent)";
+      form.reset();
+    });
+  </script>
+</body>
+</html>
