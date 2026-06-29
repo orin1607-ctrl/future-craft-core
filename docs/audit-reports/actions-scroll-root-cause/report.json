@@ -1,0 +1,90 @@
+{
+  "at": "2026-06-29T00:44:26.954Z",
+  "url": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-final-strict-9",
+  "baseline": {
+    "totalDom": 15184,
+    "screenActionsDom": 195,
+    "pendingHtml": 10880,
+    "scrollHeight": 2014,
+    "clientHeight": 413,
+    "contentOverflow": "auto",
+    "contentContain": "none",
+    "contentTouchAction": "pan-y",
+    "gfcFixed": "fixed",
+    "inactiveScreensDom": 14374,
+    "goalsScreenDom": 9718
+  },
+  "duringScroll": {
+    "durationMs": 1271.6000000014901,
+    "scrollMaxMs": 0.6000000014901161,
+    "scrollAvgMs": 0.04250000007450581,
+    "layoutReadMaxMs": 0.10000000149011612,
+    "layoutReadAvgMs": 0.009999999962747096,
+    "finalScrollTop": 1601,
+    "probe": {
+      "bindScreen": 0,
+      "bindAll": 0,
+      "bindActions": 0,
+      "setHtmlPending": 0,
+      "rerender": 0,
+      "innerHtmlBytes": 10828,
+      "windowScroll": 14,
+      "contentScroll": 14,
+      "gfcSync": 0,
+      "deriveActionsMs": 0,
+      "renderMs": 0,
+      "events": []
+    },
+    "isScrollingAfter": false
+  },
+  "fullBindCost": {
+    "bindScreenMs": 9.199999995529652,
+    "probe": {
+      "bindScreen": 1,
+      "bindAll": 0,
+      "bindActions": 0,
+      "setHtmlPending": 1,
+      "rerender": 0,
+      "innerHtmlBytes": 10828,
+      "windowScroll": 14,
+      "contentScroll": 14,
+      "gfcSync": 0,
+      "deriveActionsMs": 0,
+      "renderMs": 0,
+      "events": [
+        {
+          "t": 1782693866836,
+          "type": "bindScreen",
+          "id": "screen-actions"
+        },
+        {
+          "t": 1782693866838,
+          "type": "innerHTML",
+          "bytes": 10828
+        }
+      ]
+    }
+  },
+  "scrollTarget": {
+    "bodyScrollTop": 0,
+    "docScrollTop": 0,
+    "contentScrollTop": 1601,
+    "bodyOverflow": "hidden auto",
+    "rootMinHeight": "664px",
+    "screenDisplay": "flex",
+    "screenHeight": 664,
+    "contentHeight": 413
+  },
+  "consoleErrors": [],
+  "analysis": {
+    "domInActionsScreen": 195,
+    "hiddenInactiveScreensDom": 14374,
+    "goalsScreenDom": 9718,
+    "bindDuringScroll": 0,
+    "innerHtmlDuringScroll": 0,
+    "rerenderDuringScroll": 0,
+    "bindAllDuringScroll": 0,
+    "gfcSyncDuringScroll": 0,
+    "postScrollIdleEvents": []
+  }
+}
