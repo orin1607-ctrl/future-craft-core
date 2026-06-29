@@ -57,11 +57,27 @@
   }
 
   function getAutoModeState() {
-    return readJson(AUTO_MODE_KEY, { prepared: false, enabled: false, since: null });
+    return readJson(AUTO_MODE_KEY, {
+      prepared: false, enabled: false, since: null,
+      lastRunAt: null, nextRunAt: null, lastRunId: null, lastRunStatus: null,
+      lastRunSummary: null, lastRunErrors: [], runCount: 0, executionMode: 'preview',
+    });
   }
 
   function prepareAutoMode() {
-    writeJson(AUTO_MODE_KEY, { prepared: true, enabled: false, since: new Date().toISOString() });
+    var prev = getAutoModeState();
+    writeJson(AUTO_MODE_KEY, Object.assign({}, prev, {
+      prepared: true, enabled: false,
+      since: prev.since || new Date().toISOString(),
+      executionMode: 'preview',
+    }));
+  }
+
+  function formatAutoModeTitle(auto) {
+    if (!auto || !auto.lastRunAt) return 'תשתית בלבד — לחץ להרצה ידנית';
+    var s = auto.lastRunSummary || {};
+    var err = (auto.lastRunErrors && auto.lastRunErrors.length) ? (' · שגיאות ' + auto.lastRunErrors.length) : '';
+    return 'ריצה ' + (auto.runCount || 1) + ' · המלצות ' + (s.recommendations || 0) + ' · פעולות ' + (s.actionsCreated || 0) + err;
   }
 
   var PREVIEW_TTL_MS = 2 * 60 * 60 * 1000;
@@ -577,10 +593,17 @@
   function renderExportBar() {
     var cfg = getExportConfig();
     var auto = getAutoModeState();
+    var autoBadge = '';
+    if (auto.lastRunAt) {
+      autoBadge = ' <span class="badge badge-gray" style="font-size:9px;">' + esc(formatAutoModeTitle(auto)) + '</span>';
+    } else if (auto.prepared) {
+      autoBadge = ' <span class="badge badge-gray" style="font-size:9px;">תשתית</span>';
+    }
+    var nextHint = auto.nextRunAt ? (' · הבא: ' + formatDateHe(auto.nextRunAt)) : '';
     return '<div class="coco-act-lite-export-bar">' +
       '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-export-csv>📥 ייצוא CSV</button>' +
-      '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-auto-mode title="תשתית בלבד — לא פעיל">' +
-      '🤖 מצב אוטומטי' + (auto.prepared ? ' <span class="badge badge-gray" style="font-size:9px;">תשתית</span>' : '') + '</button>' +
+      '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-auto-mode title="' + escAttr(formatAutoModeTitle(auto) + nextHint) + '">' +
+      '🤖 מצב אוטומטי' + autoBadge + '</button>' +
       '<label class="coco-act-lite-sheets-label">' +
       '<span>Google Sheets webhook:</span>' +
       '<input type="url" class="filter-input coco-act-lite-sheets-input" data-act-sheets-url placeholder="https://script.google.com/…" value="' + escAttr(cfg.sheetsWebhookUrl || '') + '">' +
@@ -1284,10 +1307,30 @@
       var autoBtn = e.target.closest('[data-act-auto-mode]');
       if (autoBtn) {
         prepareAutoMode();
-        if (typeof showToast === 'function') {
-          showToast('תשתית מצב אוטומטי מוכנה — לא מופעל · יופעל מחר בצורה מבוקרת');
+        if (window.DailyEngine && typeof DailyEngine.run === 'function') {
+          autoBtn.disabled = true;
+          DailyEngine.run({ demo: false }).then(function (res) {
+            autoBtn.disabled = false;
+            var run = res && res.run;
+            var msg = run && run.status === 'completed'
+              ? '✓ מנוע יומי הושלם — ' + (run.summary && run.summary.recommendations) + ' המלצות · ממתין לאישורך'
+              : '⚠ מנוע יומי — שגיאה או נתונים חסרים';
+            if (typeof showToast === 'function') showToast(msg, run && run.status === 'completed' ? 'success' : 'warn');
+            rerender();
+            if (window.CocoData && CocoData.bindScreen && window.goScreen) {
+              try { CocoData.bindScreen('screen-actions'); CocoData.bindScreen('screen-history'); } catch (e) { /* ignore */ }
+            }
+          }).catch(function () {
+            autoBtn.disabled = false;
+            if (typeof showToast === 'function') showToast('שגיאה בהרצת מנוע יומי', 'warn');
+            rerender();
+          });
+        } else {
+          if (typeof showToast === 'function') {
+            showToast('תשתית מצב אוטומטי מוכנה — מנוע יומי לא נטען');
+          }
+          rerender();
         }
-        rerender();
         return;
       }
       var appr = e.target.closest('[data-act-approve]');
@@ -1505,5 +1548,8 @@
     QA_DEMO_SEED_KEY: QA_DEMO_SEED_KEY,
     getExportConfig: getExportConfig,
     readQaDemoSeed: readQaDemoSeed,
+    getAutoModeState: getAutoModeState,
+    prepareAutoMode: prepareAutoMode,
+    AUTO_MODE_KEY: AUTO_MODE_KEY,
   };
 })();

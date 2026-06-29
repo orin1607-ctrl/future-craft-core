@@ -1,0 +1,36 @@
+name: Daily Marketing Engine (Staging)
+
+# Staging only — prepares audit report artifact; does NOT deploy or touch production.
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  daily-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run daily marketing engine
+        run: node scripts/daily-marketing-engine.mjs
+
+      - name: Upload daily engine report
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-engine-report
+          path: |
+            docs/audit-reports/daily-engine/report.json
+            docs/audit-reports/daily-engine/meta.json
+            docs/audit-reports/daily-engine/local-state-snapshot.json
+          retention-days: 30

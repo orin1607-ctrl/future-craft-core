@@ -1,0 +1,43 @@
+{
+  "engineVersion": "1.0.0",
+  "runId": "run-1782703252004",
+  "status": "completed",
+  "durationMs": 26,
+  "commit": "c8e8cb5",
+  "branch": "main",
+  "generatedAt": "2026-06-29T03:20:52.005Z",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-daily-engine-1",
+  "summary": {
+    "pagesChecked": 28,
+    "recommendations": 2,
+    "goalsCreated": 1,
+    "actionsCreated": 1,
+    "openActions": 395,
+    "pagesDown": 0,
+    "seoIssues": 6
+  },
+  "conclusions": [
+    "שיפור SEO — /",
+    "תוכן חסר — /"
+  ],
+  "draftActionId": "act-daily-03252004",
+  "dataChecked": [
+    "dashboard",
+    "workPlan",
+    "crawl",
+    "gsc",
+    "ga4",
+    "sheets",
+    "manual"
+  ],
+  "missing": [
+    "GBP",
+    "Google Ads",
+    "PageSpeed API",
+    "CRM Supabase",
+    "Sheets webhook URL",
+    "Supabase remote",
+    "AI agents live API"
+  ],
+  "mode": "REAL — headless Node POC on local JSON snapshots"
+}

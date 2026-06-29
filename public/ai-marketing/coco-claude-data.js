@@ -226,10 +226,24 @@
     return [];
   }
 
+  function getEngineDraftActions() {
+    try {
+      var raw = localStorage.getItem('dalia-daily-engine-draft-actions-v1');
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+
   function deriveActionsFromBundle(bundle) {
     var wp = (bundle && bundle.workPlan) ||
       (window.DaliaSite && DaliaSite.getWorkPlan && DaliaSite.getWorkPlan());
     var raw = (wp && wp.actions) || (bundle && bundle.ai && bundle.ai.work_plan) || [];
+    var drafts = getEngineDraftActions();
+    if (!drafts.length) return raw;
+    var ids = {};
+    raw.forEach(function (a) { if (a && a.id) ids[a.id] = true; });
+    drafts.forEach(function (a) {
+      if (a && a.id && !ids[a.id]) raw = raw.concat([a]);
+    });
     return raw;
   }
 
