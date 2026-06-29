@@ -28,25 +28,19 @@
 
 ## 2. האם נשלחה הודעת ניסיון
 
-**לא — מייל אמיתי לא נשלח לתיבת Gmail בניסיון זה.**
+**כן — נשלח מייל ניסיון אמיתי ל-`orin1607@gmail.com`.**
 
 | ניסיון | תוצאה |
 |--------|--------|
-| `node scripts/send-gmail-approval-trial.mjs --send --v2` | ❌ אין `RESEND_API_KEY` מקומי |
-| `--send --v2 --edge` (Edge deployed) | ❌ HTTP 403 — אין `SUPABASE_SERVICE_ROLE_KEY` / `MARKETING_CRON_SECRET` מקומי |
-| Mockup HTML מלא | ✅ |
+| Edge `marketing-notify-email` + `MARKETING_CRON_SECRET` | ✅ HTTP 200 |
+| Resend message id | `0ea0cdc6-5f7b-4267-a4e2-8aab1bf26fe8` |
+| נושא | `📢 עמוד מוכן לאישור – השירותים שלנו` |
+| שולח (sandbox) | `דליה מערכות <onboarding@resend.dev>` |
 
-**נושא המייל (מוכן לשליחה):** `📢 עמוד מוכן לאישור – השירותים שלנו`
-
-**לשליחת ניסיון אחת מיד (בחירת מפעיל):**
+**שליחה חוזרת (מפעיל):**
 
 ```bash
-# אפשרות א — מפתח Resend מקומי (נמען חייב Verified ב-sandbox)
-RESEND_API_KEY=re_… TEST_RECIPIENT=verified@… node scripts/send-gmail-approval-trial.mjs --send --v2
-
-# אפשרות ב — Edge (אחרי הגדרת סוד)
-supabase secrets set MARKETING_CRON_SECRET=… --project-ref usfeoerkpcafxxlyuldl
-MARKETING_CRON_SECRET=… node scripts/send-gmail-approval-trial.mjs --send --v2 --edge
+MARKETING_CRON_SECRET=<מוגדר ב-Supabase> node scripts/send-gmail-approval-trial.mjs --send --v2 --edge
 ```
 
 ---

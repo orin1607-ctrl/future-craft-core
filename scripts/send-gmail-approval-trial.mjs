@@ -117,9 +117,19 @@ async function sendViaResend(apiKey, { to, subject, html, text }) {
 async function sendViaEdge({ url, anon, service, cron }, { to, subject, html, text, approvalId }) {
   const endpoint = `${url.replace(/\/$/, '')}/functions/v1/marketing-notify-email`;
   const headers = { 'Content-Type': 'application/json' };
-  if (cron) headers['x-marketing-cron-secret'] = cron;
-  else if (service) headers.Authorization = `Bearer ${service}`;
-  else if (anon) headers.Authorization = `Bearer ${anon}`;
+  if (cron) {
+    headers['x-marketing-cron-secret'] = cron;
+    if (anon) {
+      headers.apikey = anon;
+      headers.Authorization = `Bearer ${anon}`;
+    }
+  } else if (service) {
+    headers.apikey = service;
+    headers.Authorization = `Bearer ${service}`;
+  } else if (anon) {
+    headers.apikey = anon;
+    headers.Authorization = `Bearer ${anon}`;
+  }
 
   const res = await fetch(endpoint, {
     method: 'POST',

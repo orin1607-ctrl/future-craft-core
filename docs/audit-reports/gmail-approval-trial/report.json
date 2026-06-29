@@ -1,6 +1,6 @@
 {
   "mission": 30,
-  "at": "2026-06-29T06:55:55.113Z",
+  "at": "2026-06-29T14:00:05.116Z",
   "mode": "staging_trial",
   "templateVersion": 2,
   "pageId": "page-07",
@@ -10,7 +10,7 @@
   "stagingPreviewUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-30&page=page-07",
   "stagingEmailPreviewUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing/email-preview-approval.html?v=m30",
   "dataSource": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\live-workflow-demo\\report.json",
-  "gmailConnected": false,
+  "gmailConnected": true,
   "gmailOAuth": {
     "enabled": false,
     "phase": 2,
@@ -23,7 +23,7 @@
       "reachable": true,
       "hasResend": true,
       "hasGmail": false,
-      "hasCron": false,
+      "hasCron": true,
       "note": "RESEND_API_KEY exists in Supabase Staging"
     },
     "from": "דליה מערכות <onboarding@resend.dev>"
@@ -31,18 +31,17 @@
   "marketingNotifyEdge": {
     "exists": true,
     "name": "marketing-notify-email",
-    "deployed": true,
-    "deployRef": "usfeoerkpcafxxlyuldl",
+    "deployed": null,
     "invokeAttempted": true,
     "send": {
-      "httpStatus": 403,
-      "id": null,
-      "error": "Forbidden — user session required",
+      "httpStatus": 200,
+      "id": "0ea0cdc6-5f7b-4267-a4e2-8aab1bf26fe8",
+      "error": null,
       "endpoint": "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/marketing-notify-email"
     }
   },
   "sendAttempted": true,
-  "sendSucceeded": false,
+  "sendSucceeded": true,
   "sendChannel": "edge",
   "recipientMasked": "or***@gmail.com",
   "recipientDomain": "gmail.com",
@@ -66,7 +65,6 @@
     "managerSummary": true
   },
   "missingForProduction": [
-    "MARKETING_CRON_SECRET or local service role for Edge invoke",
     "marketing_approvals + tokens tables",
     "GMAIL_SEND_ENABLED (Phase 2 — optional Gmail OAuth)",
     "Screenshot capture pipeline (Playwright → Storage)",
