@@ -1,0 +1,108 @@
+{
+  "at": "2026-06-29T21:43:00.170Z",
+  "commitHash": "d8bb0eeb5190e7f8b68a13b9a7ef5041d6eb09a5",
+  "stagingUrl": "http://127.0.0.1:8765/ai-marketing-platform.html?v=wb-integration",
+  "version": "v3-live-demo-3",
+  "checks": {
+    "desktop_modules_loaded": {
+      "ok": true,
+      "detail": "BusinessStrategy + WebsiteBuilder"
+    },
+    "desktop_strategy_opened": {
+      "ok": true,
+      "detail": ""
+    },
+    "desktop_analysis_done": {
+      "ok": true,
+      "detail": ""
+    },
+    "desktop_export_success": {
+      "ok": true,
+      "detail": ""
+    },
+    "desktop_website_builder_cta_visible": {
+      "ok": true,
+      "detail": "count=1"
+    },
+    "desktop_opens_inside_business_screen": {
+      "ok": true,
+      "detail": "{\"strategyHidden\":true,\"builderVisible\":true}"
+    },
+    "desktop_website_steps_7": {
+      "ok": true,
+      "detail": ""
+    },
+    "desktop_context_passes_to_builder": {
+      "ok": true,
+      "detail": "דליה פתרונות מימון ותחזוקה לרכב"
+    },
+    "desktop_builder_reached_step7": {
+      "ok": true,
+      "detail": "✅ מוכן לחיבור ל-CMS/Hosting בסביבת Staging"
+    },
+    "desktop_scroll_check": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"mode\":\"none\",\"reason\":\"no_scroll_required\"}"
+    },
+    "desktop_returns_to_agents": {
+      "ok": true,
+      "detail": ""
+    },
+    "desktop_console_clean": {
+      "ok": true,
+      "detail": ""
+    },
+    "mobile_iphone13_modules_loaded": {
+      "ok": true,
+      "detail": "BusinessStrategy + WebsiteBuilder"
+    },
+    "mobile_iphone13_strategy_opened": {
+      "ok": true,
+      "detail": ""
+    },
+    "mobile_iphone13_analysis_done": {
+      "ok": true,
+      "detail": ""
+    },
+    "mobile_iphone13_export_success": {
+      "ok": true,
+      "detail": ""
+    },
+    "mobile_iphone13_website_builder_cta_visible": {
+      "ok": true,
+      "detail": "count=1"
+    },
+    "mobile_iphone13_opens_inside_business_screen": {
+      "ok": true,
+      "detail": "{\"strategyHidden\":true,\"builderVisible\":true}"
+    },
+    "mobile_iphone13_website_steps_7": {
+      "ok": true,
+      "detail": ""
+    },
+    "mobile_iphone13_context_passes_to_builder": {
+      "ok": true,
+      "detail": "דליה פתרונות מימון ותחזוקה לרכב"
+    },
+    "mobile_iphone13_builder_reached_step7": {
+      "ok": true,
+      "detail": "✅ מוכן לחיבור ל-CMS/Hosting בסביבת Staging"
+    },
+    "mobile_iphone13_scroll_check": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"mode\":\"none\",\"reason\":\"no_scroll_required\"}"
+    },
+    "mobile_iphone13_returns_to_agents": {
+      "ok": true,
+      "detail": ""
+    },
+    "mobile_iphone13_console_clean": {
+      "ok": true,
+      "detail": ""
+    }
+  },
+  "passed": 24,
+  "failed": 0,
+  "openIssues": [],
+  "ok": true
+}

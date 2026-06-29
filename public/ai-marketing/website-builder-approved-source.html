@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Website Builder AI</title>
+<style>
+:root{
+  --bg:#04091a;--bg2:#071022;--bg3:#0a1830;--bg4:#0d1f3c;
+  --acc:#2563eb;--acc2:#3b82f6;--green:#22c55e;--yel:#f59e0b;
+  --w:#fff;--w80:rgba(255,255,255,.80);--w50:rgba(255,255,255,.50);--w10:rgba(255,255,255,.10);
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-height:100vh;}
+.tb{height:52px;background:var(--bg2);border-bottom:1px solid var(--w10);display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;z-index:90;gap:8px;}
+.wiz{background:var(--bg2);border-bottom:1px solid var(--w10);}
+.steps{display:flex;overflow-x:auto;}
+.step{padding:10px 12px;font-size:11px;font-weight:700;color:var(--w50);display:flex;align-items:center;gap:6px;border-bottom:2px solid transparent;white-space:nowrap;}
+.step.on{color:var(--w);border-bottom-color:var(--acc);}
+.step.done{color:var(--green);}
+.sn{width:18px;height:18px;border-radius:50%;background:var(--w10);display:flex;align-items:center;justify-content:center;font-size:9px;}
+.step.on .sn{background:var(--acc);}
+.step.done .sn{background:rgba(34,197,94,.25);}
+.pb{height:2px;background:var(--w10);}
+.pf{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));width:14%;transition:width .25s;}
+.main{max-width:820px;margin:0 auto;padding-bottom:88px;}
+.pane{display:none;padding:18px;}
+.pane.on{display:block;}
+.card{background:var(--bg3);border:1px solid var(--w10);border-radius:var(--r);padding:14px;margin-bottom:10px;}
+.t{font-size:18px;font-weight:900;margin-bottom:6px;}
+.s{font-size:12px;color:var(--w50);line-height:1.7;margin-bottom:14px;}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pill{padding:8px 10px;background:var(--bg4);border:1px solid var(--w10);border-radius:9px;font-size:12px;color:var(--w80);}
+.ta{width:100%;min-height:100px;background:var(--bg4);border:1px solid var(--w10);border-radius:9px;color:var(--w);padding:10px;font-family:'Heebo',sans-serif;}
+.alt{padding:10px;border-radius:8px;font-size:12px;line-height:1.7;}
+.ok{background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.25);color:var(--green);}
+.info{background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.3);color:#93c5fd;}
+.warn{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.25);color:var(--yel);}
+.footer{position:fixed;left:0;right:0;bottom:0;background:var(--bg2);border-top:1px solid var(--w10);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;z-index:99;}
+.btn{padding:8px 14px;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-weight:700;cursor:pointer;}
+.btn-p{background:var(--acc);color:#fff;}
+.btn-g{background:var(--bg4);color:var(--w80);border:1px solid var(--w10);}
+#wb-toast{position:fixed;bottom:72px;right:16px;background:var(--bg3);border:1px solid var(--w10);border-radius:8px;padding:9px 12px;font-size:12px;opacity:0;transform:translateY(10px);transition:all .2s;pointer-events:none;z-index:100;}
+@media(max-width:540px){.kpi{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="tb">
+  <div style="font-size:13px;font-weight:800;">🌐 Website Builder AI</div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <span id="wb-company" style="font-size:11px;color:var(--w50);"></span>
+    <button class="btn btn-g" style="padding:4px 10px;font-size:11px;" onclick="closeWebsiteBuilder()">חזרה לאסטרטגיה</button>
+  </div>
+</div>
+<div class="wiz">
+  <div id="wb-steps" class="steps"></div>
+  <div class="pb"><div id="wb-pf" class="pf"></div></div>
+</div>
+<div class="main">
+  <div class="pane on" id="w1">
+    <div class="t">1. ניתוח עסקי ואפיון אתר</div>
+    <div class="s">המערכת קוראת את Business Context ומתרגמת אותו לאסטרטגיית אתר.</div>
+    <div class="card">
+      <div class="kpi">
+        <div class="pill">עסק: <span id="wb-k-company">—</span></div>
+        <div class="pill">שירות מרכזי: <span id="wb-k-service">—</span></div>
+        <div class="pill">אתר קיים: <span id="wb-k-site">—</span></div>
+        <div class="pill">תקציב: <span id="wb-k-budget">—</span></div>
+      </div>
+    </div>
+    <div class="card"><div id="wb-analysis-log" class="s">מוכן לניתוח.</div></div>
+  </div>
+
+  <div class="pane" id="w2">
+    <div class="t">2. מבנה אתר (Site Map)</div>
+    <div class="s">מבנה מומלץ בהתאם ליעדים העסקיים.</div>
+    <div class="card"><textarea id="wb-structure" class="ta">דף בית
+עמוד שירות ראשי
+עמוד פתרונות לפי מגזר
+עמוד אודות
+בלוג מקצועי
+עמוד יצירת קשר</textarea></div>
+  </div>
+
+  <div class="pane" id="w3">
+    <div class="t">3. יצירת תוכן שיווקי</div>
+    <div class="s">טיוטת מסרים ראשיים, כותרות ותועלות.</div>
+    <div class="card"><textarea id="wb-content" class="ta">כותרת ראשית: פתרונות חכמים לניהול ותפעול צי רכב
+תת כותרת: חיסכון בעלויות, שליטה מלאה ושירות מקצועי 24/7
+CTA: קבלו אפיון ללא התחייבות</textarea></div>
+  </div>
+
+  <div class="pane" id="w4">
+    <div class="t">4. עיצוב וחווית משתמש</div>
+    <div class="s">הגדרת קו עיצוב בסיסי בהתאם למותג.</div>
+    <div class="card"><textarea id="wb-design" class="ta">סגנון: מקצועי נקי
+צבעים: כחול כהה + הדגשות ירוק
+טיפוגרפיה: Heebo
+דגש: קריאות גבוהה במובייל</textarea></div>
+  </div>
+
+  <div class="pane" id="w5">
+    <div class="t">5. SEO On-Page</div>
+    <div class="s">מיפוי מטא-דאטה בסיסי ומילות מפתח.</div>
+    <div class="card"><textarea id="wb-seo" class="ta">Title: ניהול צי רכב לעסקים | דליה
+Description: פתרונות ניהול ותחזוקת צי רכב לעסקים בכל הארץ.
+Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
+  </div>
+
+  <div class="pane" id="w6">
+    <div class="t">6. תצוגה מקדימה</div>
+    <div class="s">בדיקה מהירה של התוצר לפני הפצה.</div>
+    <div class="card">
+      <div class="info alt">תצוגה זו היא דמו פנימי ל-Staging. החיבור ל-CMS/Hosting אמיתי יתווסף לפי סביבת הפעלה.</div>
+      <div id="wb-preview" style="margin-top:10px;color:var(--w80);font-size:12px;"></div>
+    </div>
+  </div>
+
+  <div class="pane" id="w7">
+    <div class="t">7. פריסה והעברה להמשך עבודה</div>
+    <div class="s">סגירת תהליך והעברת תקציר לביצועי המשך.</div>
+    <div class="card"><div id="wb-deploy-status" class="warn alt">ממתין לאישור פריסה.</div></div>
+    <div class="card"><pre id="wb-json" style="font-size:10px;color:#93c5fd;line-height:1.7;white-space:pre-wrap;"></pre></div>
+  </div>
+</div>
+<div class="footer">
+  <div id="wb-hint" style="font-size:11px;color:var(--w50);">שלב 1 מתוך 7</div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-g" id="wb-back" onclick="wbPrev()" style="display:none;">← חזרה</button>
+    <button class="btn btn-p" id="wb-next" onclick="wbNext()">הבא ←</button>
+  </div>
+</div>
+<div id="wb-toast"></div>
+
+<script>
+const WB_STEPS = ['ניתוח','מבנה','תוכן','עיצוב','SEO','תצוגה','פריסה'];
+const WB = { tab:1, context:null, strategy:null, output:{} };
+
+function wbInit(){
+  const rawBiz = parseLs('dalia_biz');
+  const rawCtx = parseLs('coco-business-context-v1');
+  WB.context = rawBiz || {};
+  WB.strategy = rawCtx || {};
+  document.getElementById('wb-company').textContent = WB.context.name || WB.strategy.company || 'עסק לא מזוהה';
+  document.getElementById('wb-k-company').textContent = WB.strategy.company || WB.context.name || '—';
+  document.getElementById('wb-k-service').textContent = WB.strategy.mainService || WB.context.mainService || '—';
+  document.getElementById('wb-k-site').textContent = WB.strategy.site || WB.context.site || '—';
+  document.getElementById('wb-k-budget').textContent = WB.strategy.budget || WB.context.budget || '—';
+  buildStepBar();
+  runAnalysisLog();
+  wbGo(1);
+}
+
+function parseLs(key){
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; }
+}
+
+function buildStepBar(){
+  const el = document.getElementById('wb-steps');
+  el.innerHTML = WB_STEPS.map((name, i) =>
+    `<div class="step ${i===0?'on':''}" id="wbs${i+1}"><div class="sn">${i+1}</div>${name}</div>`
+  ).join('');
+}
+
+function runAnalysisLog(){
+  const lines = [
+    'קורא הקשר עסקי מ-dalia_biz',
+    'מאמת Business Context מ-coco-business-context-v1',
+    'מייצר מבנה אתר לפי שירות וקהל יעד',
+    'מכין תבניות תוכן והנעה לפעולה'
+  ];
+  const box = document.getElementById('wb-analysis-log');
+  let i = 0;
+  const timer = setInterval(() => {
+    if (i >= lines.length) { clearInterval(timer); return; }
+    box.innerHTML += `<div>• ${lines[i]}</div>`;
+    i += 1;
+  }, 350);
+}
+
+function wbGo(step){
+  WB.tab = step;
+  document.querySelectorAll('.pane').forEach((p) => p.classList.remove('on'));
+  const pane = document.getElementById('w' + step);
+  if (pane) pane.classList.add('on');
+  for (let i = 1; i <= 7; i += 1) {
+    const s = document.getElementById('wbs' + i);
+    if (!s) continue;
+    s.className = 'step ' + (i < step ? 'done' : i === step ? 'on' : '');
+    s.querySelector('.sn').textContent = i < step ? '✓' : String(i);
+  }
+  document.getElementById('wb-pf').style.width = (step / 7 * 100) + '%';
+  document.getElementById('wb-back').style.display = step > 1 ? '' : 'none';
+  document.getElementById('wb-next').textContent = step === 7 ? '✅ סיים וחזור לעוזרים' : 'הבא ←';
+  document.getElementById('wb-hint').textContent = `שלב ${step} מתוך 7`;
+  if (step === 6) fillPreview();
+  if (step === 7) buildDeployPayload();
+  window.scrollTo(0, 0);
+}
+
+function wbPrev(){ if (WB.tab > 1) wbGo(WB.tab - 1); }
+
+function wbNext(){
+  if (WB.tab < 7) { wbGo(WB.tab + 1); return; }
+  try {
+    localStorage.setItem('coco-website-builder-last-output-v1', JSON.stringify(WB.output));
+    localStorage.setItem('coco-website-builder-last-context-v1', JSON.stringify({
+      dalia_biz: WB.context || null,
+      business_context: WB.strategy || null
+    }));
+  } catch (e) { /* ignore */ }
+  if (typeof goScreen === 'function') goScreen('screen-agents');
+  wbToast('✅ תהליך בניית האתר נשמר והועבר להמשך עבודה');
+}
+
+function fillPreview(){
+  const txt = [
+    `מבנה: ${(document.getElementById('wb-structure').value || '').split('\n').length} מקטעים`,
+    `תוכן: ${(document.getElementById('wb-content').value || '').slice(0, 70)}...`,
+    `עיצוב: ${(document.getElementById('wb-design').value || '').split('\n')[0] || '—'}`,
+    `SEO: ${(document.getElementById('wb-seo').value || '').split('\n')[0] || '—'}`
+  ];
+  document.getElementById('wb-preview').innerHTML = txt.map((x) => `<div style="margin-bottom:6px;">• ${x}</div>`).join('');
+}
+
+function buildDeployPayload(){
+  WB.output = {
+    at: new Date().toISOString(),
+    company: WB.strategy.company || WB.context.name || '',
+    site: WB.strategy.site || WB.context.site || '',
+    structure: document.getElementById('wb-structure').value,
+    content: document.getElementById('wb-content').value,
+    design: document.getElementById('wb-design').value,
+    seo: document.getElementById('wb-seo').value
+  };
+  document.getElementById('wb-deploy-status').className = 'ok alt';
+  document.getElementById('wb-deploy-status').textContent = '✅ מוכן לחיבור ל-CMS/Hosting בסביבת Staging';
+  document.getElementById('wb-json').textContent = JSON.stringify(WB.output, null, 2);
+}
+
+function wbToast(msg){
+  const t = document.getElementById('wb-toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateY(0)';
+  setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateY(10px)';
+  }, 2200);
+}
+</script>
+</body>
+</html>

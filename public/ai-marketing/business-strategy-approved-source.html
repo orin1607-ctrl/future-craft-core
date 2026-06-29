@@ -467,6 +467,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
     <div id="exported" style="display:none;margin-top:14px;">
       <div class="alt alt-ok">✅ הדוח הועבר בהצלחה! העוזרים מתחילים. עבור למנהל השיווק AI לראות התקדמות.</div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn btn-go" onclick="openWebsiteBuilder()">🌐 צור אתר AI</button>
         <button class="btn btn-p" onclick="showToast('🚀 עובר למנהל השיווק...')">פתח מנהל השיווק ←</button>
         <button class="btn btn-g" onclick="showToast('📧 נשלח ל-Gmail')">📧 שלח ל-Gmail</button>
       </div>
@@ -999,6 +1000,14 @@ function exportData(){
   document.getElementById('exported').style.display='block';
   document.getElementById('btn-next').style.display='none';
   showToast('🚀 הועבר לכל העוזרים!');
+}
+
+function openWebsiteBuilder(){
+  if(window.WebsiteBuilderWizard && typeof WebsiteBuilderWizard.open==='function'){
+    WebsiteBuilderWizard.open();
+    return;
+  }
+  showToast('⚠️ מודול בניית אתר לא זמין כרגע');
 }
  
 function parseBudget(b){

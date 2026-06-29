@@ -152,6 +152,18 @@ js = js.replace(
 }`
 );
 
+if (!js.includes('function openWebsiteBuilder(')) {
+  js += `
+function openWebsiteBuilder(){
+  if(window.WebsiteBuilderWizard && typeof WebsiteBuilderWizard.open==='function'){
+    WebsiteBuilderWizard.open();
+    return;
+  }
+  showToast('⚠️ מודול בניית אתר לא זמין כרגע');
+}
+`;
+}
+
 js = js.replace(
   "clientId:'CLT-NEW'",
   "clientId:(window.BusinessStrategyModule&&BusinessStrategyModule.ENABLED_CLIENT)||'dalia-c-official'"
@@ -195,7 +207,7 @@ ${js}
   window.tc = tc; window.dov = dov; window.dlv = dlv; window.ddr = ddr; window.hf = hf;
   window.addUrl = addUrl; window.togglePlat = togglePlat; window.connectPlat = connectPlat;
   window.disconnectPlat = disconnectPlat; window.goT = goT; window.nextT = nextT; window.prevT = prevT;
-  window.startAnalysis = startAnalysis; window.exportData = exportData; window.showToast = showToast;
+  window.startAnalysis = startAnalysis; window.exportData = exportData; window.openWebsiteBuilder = openWebsiteBuilder; window.showToast = showToast;
 
   function mountWizard() {
     rootEl = document.getElementById('biz-strategy-root');
@@ -235,6 +247,7 @@ ${js}
     VERSION: '2.0.0-approved',
     open: openWizard,
     mount: mountWizard,
+    openWebsiteBuilder: openWebsiteBuilder,
   };
 })();
 `;

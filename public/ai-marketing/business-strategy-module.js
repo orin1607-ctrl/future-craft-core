@@ -292,6 +292,7 @@
     var brief = buildAgentBrief(ctx);
 
     saveJson(CONTEXT_KEY, ctx);
+    saveJson('dalia_biz', wizardData || {});
     saveJson(ACTIONS_KEY, actions);
     saveJson(AGENT_BRIEF_KEY, brief);
 
