@@ -139,7 +139,7 @@
 | `360553cb9680461f5db32b24760b1b585c520ec7` | feat(mission-25): AI Control Center, scroll v10, QA suite |
 | `e13fce6f52344e01a217109f2f22574c1d4235a0` | fix(mission-25): Multi-AI registry + isolation QA |
 | `1fdfb7a0f6ebc1b876cb2c38c923da7684af1087` | docs(mission-25): QA reports 11/11 |
-| _(מתעדכן)_ | docs(mission-25): REPORT-HE סופי 12 סעיפים |
+| `947826f73ff5286d899b58521bef18fc2dd98aab` | docs(mission-25): REPORT-HE סופי 12 סעיפים + QA 11/11 |
 
 ---
 
