@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { chromium, devices } from 'playwright';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const VER = process.env.QA_UI_VERSION || 'v3-final-strict-9';
+const VER = process.env.QA_UI_VERSION || 'v3-mission-25-1';
 const URL = process.env.STAGING_PAGES_URL || `https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=${VER}`;
 const OUT = join(ROOT, 'docs', 'audit-reports', 'actions-scroll-fix-v9');
 mkdirSync(OUT, { recursive: true });

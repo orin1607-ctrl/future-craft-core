@@ -1131,7 +1131,7 @@
   var _rerenderDebounceTimer = null;
   var _deferBindTimer = null;
   var _deferredBindFn = null;
-  var SCROLL_IDLE_MS = 400;
+  var SCROLL_IDLE_MS = 550;
 
   function getActionsScrollEl() {
     return document.querySelector('#screen-actions .content') || document.getElementById('screen-actions');
@@ -1177,6 +1177,8 @@
 
   function refreshPendingDom(setHtml, emptyStatus, wp, pageGroups, pending, done, statusBadge) {
     if (needsDemoDomSync()) syncDemoFieldsFromDom();
+    var scrollEl = getActionsScrollEl();
+    var savedScroll = scrollEl ? scrollEl.scrollTop : 0;
     var html;
     if (_view === 'workbench' && _workbenchPageId) {
       var entry = pageGroups.find(function (g) { return g.page && g.page.id === _workbenchPageId; });
@@ -1187,6 +1189,11 @@
       html = pageGroups.length ? renderListView(pageGroups, wp, pending) : emptyStatus('אין עמודים ב-SSOT');
     }
     setHtml('coco-live-actions-pending', html);
+    if (scrollEl && savedScroll > 0 && isUserScrolling()) {
+      requestAnimationFrame(function () {
+        if (scrollEl.scrollTop < savedScroll - 8) scrollEl.scrollTop = savedScroll;
+      });
+    }
     var rootEl = document.getElementById('coco-live-actions-pending');
     if (rootEl) rootEl.setAttribute('data-coco-act-ready', 'true');
 
@@ -1561,6 +1568,7 @@
     resolveActionStatus: resolveActionStatus,
     exportActionsCsv: exportActionsCsv,
     openLitePreview: openLitePreview,
+    openPreview: function (pageId) { return openLitePreview(pageId); },
     EXECUTION_MODE: EXECUTION_MODE,
     APPROVAL_KEY: APPROVAL_KEY,
     WORKBENCH_KEY: WORKBENCH_KEY,

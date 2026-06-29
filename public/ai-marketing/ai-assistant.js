@@ -312,6 +312,45 @@
     });
   }
 
+  function hasLiveAiApi() {
+    if (window.CocoIntegrationHub && !CocoIntegrationHub.isAiApiEnabled()) return false;
+    if (window.COCO_API && window.COCO_API.hasApi) return true;
+    if (window.COCO_STAGING && window.COCO_STAGING.accessToken) return true;
+    return typeof window.marketingApiChat === 'function';
+  }
+
+  function formatControlAnswer(result) {
+    var lines = [result.summary || ''];
+    if (result.aiInsight) lines.push('', String(result.aiInsight));
+    if (result.multiAi && result.multiAi.agreement === false) {
+      lines.push('', '[Multi-AI: חילוקי דעות — ראה מרכז AI]');
+    }
+    var text = lines.join('\n').trim();
+    var actions = [];
+    (result.actions || []).forEach(function (a) {
+      if (a.type === 'navigate' && a.screen) {
+        var sid = String(a.screen).replace(/^screen-/, '');
+        actions.push({ type: 'nav', screen: sid, label: '↗ ' + (a.label || sid) });
+      }
+    });
+    if (result.aiInsight) parseActions(result.aiInsight).forEach(function (a) { actions.push(a); });
+    return { ok: !!text, text: text, actions: actions };
+  }
+
+  function askControlCenter(msg) {
+    if (!window.COCO_AI_CONTROL || !COCO_AI_CONTROL.ask) return null;
+    return COCO_AI_CONTROL.ask(msg, { enrichAi: hasLiveAiApi() }).then(function (result) {
+      var formatted = formatControlAnswer(result);
+      if (hasLiveAiApi() && result.intent === 'general' && !(result.items && result.items.length) && !(result.summary && result.summary.length > 40)) {
+        return apiChat(msg).then(function (res) {
+          if (res.ok && res.text) return { ok: true, text: res.text, actions: parseActions(res.text) };
+          return formatted;
+        });
+      }
+      return formatted;
+    });
+  }
+
   function sendMessage(text) {
     var msg = (text || $('cocoAiInput')?.value || '').trim();
     if (!msg || state.busy) return;
@@ -326,18 +365,27 @@
     $('cocoAiMsgs')?.appendChild(thinking);
     $('cocoAiMsgs').scrollTop = $('cocoAiMsgs').scrollHeight;
 
-    apiChat(msg).then(function (res) {
+    var promise = askControlCenter(msg) || apiChat(msg).then(function (res) {
+      if (!res.ok || !res.text) return res;
+      return { ok: true, text: res.text, actions: parseActions(res.text) };
+    });
+
+    promise.then(function (res) {
       thinking.remove();
       state.busy = false;
-      if (!res.ok || !res.text) {
-        appendMsg('bot', res.message || 'ממתין למפתח AI — שלב נתונים קודם.');
+      if (!res || !res.ok || !res.text) {
+        appendMsg('bot', (res && res.message) || 'ממתין למפתח AI — שלב נתונים קודם.');
         return;
       }
-      var actions = parseActions(res.text);
+      var actions = res.actions || parseActions(res.text);
       var clean = stripMarkers(res.text);
       state.history.push({ role: 'assistant', content: clean });
       if (state.history.length > 12) state.history = state.history.slice(-12);
       appendMsg('bot', clean, actions);
+    }).catch(function (e) {
+      thinking.remove();
+      state.busy = false;
+      appendMsg('bot', e.message || 'שגיאה בשליחה');
     });
   }
 
