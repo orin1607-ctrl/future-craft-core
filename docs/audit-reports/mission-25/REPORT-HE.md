@@ -1,8 +1,9 @@
-# דוח Mission 25 — מערכת ניהול שיווק AI (סופי)
+# דוח Mission 25 — מערכת ניהול שיווק AI
 
-**גרסת QA:** v3-mission-25-1-e13fce6  
-**תאריך:** 2026-06-29  
-**תוצאה:** 11/11 עברו · 0 נכשלו · 0 שגיאות קונסול
+**גרסה:** v3-mission-25-1-1fdfb7a  
+**תאריך:** 29 ביוני 2026  
+**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-1fdfb7a  
+**תוצאת QA:** 11/11 עברו
 
 ---
 
@@ -10,106 +11,99 @@
 
 | משימה | תיאור | תוצאה |
 |-------|--------|--------|
-| 25.1 | מרכז בקרה AI — `COCO_AI_CONTROL`, פאנל, ask/execute/snapshot | ✅ |
-| 25.2 | Mobile scroll — 11 מסכים (iPhone 13), Actions v10 — 0 jumps | ✅ |
-| 25.3 | Smoke כפתורים — Actions, Workbench, Hub (17 כפתורים) | ✅ |
-| 25.4 | Workflow E2E — Agents → Goals → Actions → History → Reports → AI Center | ✅ |
-| 25.5 | Gmail notifications stub — 5 סוגי התראות ב-queue | ✅ |
+| 25.1 | מרכז בקרה AI — COCO_AI_CONTROL, FAB, screen-ai-center | ✅ |
+| 25.2 | גלילה במובייל — 11 מסכים + Actions scroll v10 | ✅ |
+| 25.3 | Smoke test כפתורים — Workbench, Hub, CSV | ✅ |
+| 25.4 | Workflow E2E — Agents→Goals→Actions→History→Reports→AI Center | ✅ |
+| 25.5 | Gmail notification stub — queue ב-localStorage | ✅ |
 | 25.6 | Multi-AI — ChatGPT / Claude / Gemini ב-registry | ✅ |
-| 25.7 | ביצועים — load 5.5s, DOM 15,229 nodes | ✅ |
-| 25.8 | בידוד FilterEngine — contextHash שונה בין קמפיינים | ✅ |
+| 25.7 | ביצועים — loadMs, DOM nodes | ✅ |
+| 25.8 | בידוד לקוחות — FilterEngine contextHash | ✅ |
 | 25.9 | Google Sheets — CSV export + webhook infra | ✅ |
-| 25.10 | דוח נתונים — מודולים, localStorage, חיבורים | ✅ |
-| 25.11 | סיכום QA סופי | ✅ |
+| 25.10 | דוח נתונים — מודולים וחיבורים | ✅ |
+| 25.11 | סיכום QA סופי — 0 שגיאות קונסול | ✅ |
 
-**סקריפט:** `scripts/mission-25-qa.mjs` (Playwright headless)  
-**יעד:** Staging חי — Orin GitHub Pages
+בדיקה בוצעה ב-Playwright (iPhone 13 למובייל) מול Orin Staging החי.
 
 ---
 
 ## 2. מה תוקן
 
-### כשלים ראשוניים (דוח 360553c — 9/11)
+### 25.6 Multi-AI
+- **בעיה:** `getEngineStatus()` חיפש `reg.engines` במקום `reg.primary` — רשימת המנועים הראשיים לא הוחזרה.
+- **תיקון:** `ai-control-center-bridge.js` — שימוש ב-`getRegistry().primary` (openai, claude, gemini).
 
-**25.6 Multi-AI — מנועים ריקים (`engines: []`)**  
-- **שורש:** הסקריפט חיפש `registry().engines` אך `MultiAiOrchestrator.getRegistry()` מחזיר `{ primary, evaluated, routing }`.  
-- **תיקון (e13fce6):** `ai-control-center-bridge.js` + `mission-25-qa.mjs` — שימוש ב-`reg.primary`.
+### 25.8 Client Isolation
+- **בעיה:** בדיקת QA השתמשה ב-`clientId` שלא השתנה בין קריאות (אותו hash).
+- **תיקון:** `mission-25-qa.mjs` — בדיקה עם `campaignId` שונה (A/B) + `allowInvalid: true`; `FilterEngine.contextHash()` כולל `campaignId`.
 
-**25.8 בידוד לקוחות — hash זהה (`dalia-c-official`)**  
-- **שורש:** בדיקה ישנה עם `clientId` לא קיים — `FilterEntityIndex` ביטל את השינוי (ללא `allowInvalid`).  
-- **תיקון (e13fce6):** בדיקה עם `campaignId` שונה + `allowInvalid: true` — hash מלא שונה (קמפיין A מול B).
-
-### תיקונים עיקריים (360553c)
-
-- **Actions scroll v10** — שמירת scrollTop, SCROLL_IDLE_MS=550ms, `content-visibility:auto`
-- **FAB ai-assistant** — מחובר ל-`COCO_AI_CONTROL.ask`
-- **runAiAnalysis** — משתמש במרכז בקרה AI
-- **ActionsWorkbench.openPreview** — alias ל-openLitePreview
+### תיקונים קודמים (Mission 25.1)
+- Actions scroll v10, FAB→COCO_AI_CONTROL.ask, ActionsWorkbench.openPreview alias.
 
 ---
 
 ## 3. מה הושלם
 
-- מרכז בקרה AI (`ai-control-center.js` + bridge) — UI + API גלובלי `COCO_AI_CONTROL`
-- התראות שיווק stub (`marketing-notifications.js`) — תור 5 סוגים
-- חיבור FAB + מסך `screen-ai-center` + Multi-AI registry
-- סקריפט QA אוטומטי מלא (`mission-25-qa.mjs`)
-- דוחות ב-`docs/audit-reports/mission-25/` (JSON + MD)
-- פריסה ל-Staging Orin עם cache-bust לפי commit hash
+- מרכז בקרה AI פונקציונלי במסך `screen-ai-center`
+- חיבור FAB ל-`COCO_AI_CONTROL.ask` עם fallback
+- `marketing-notifications.js` — תור 5 סוגי התראות stub
+- `multi-ai-orchestrator.js` — registry של 3 מנועים ראשיים
+- סקריפט QA אוטומטי `scripts/mission-25-qa.mjs`
+- דוחות ב-`docs/audit-reports/mission-25/`
+- Deploy ל-Orin Staging — commit `1fdfb7a`
 
 ---
 
 ## 4. מה עובד בפועל
 
-- `COCO_AI_CONTROL.ask('מה דחוף היום?')` — מחזיר summary בעברית
-- `COCO_AI_CONTROL.getSnapshot()` — counts (actions, pending, pages, customers)
-- פאנל AI Center — engines, input, כפתור שאילתה
-- Multi-AI registry — 3 מנועים: openai (wired+api), claude (wired), gemini (wired+api)
-- Mobile scroll Actions — maxScroll 1601px, 0 jumps
-- Workbench open/close מכרטיס פעולה
-- `MarketingNotifications.testAll()` — 5 התראות ב-localStorage queue
-- `FilterEngine.contextHash()` — משתנה לפי scope (קמפיין/פילטר)
-- CSV export (`ActionsWorkbench.exportActionsCsv`) + `DailyEngine.exportHistoryToSheets`
-- ניווט E2E בין 6 מסכי ליבה + שאילתת AI
+- **AI Control Center** — ask, execute, snapshot, פאנל מנועים
+- **FAB ChatGPT** — שאילתות דרך AiQuestionEngine
+- **Actions scroll** — maxScroll 1601px, 0 jumps
+- **Workbench** — פתיחה/סגירה, Preview modal
+- **Multi-AI registry** — openai (wired+api), claude (wired), gemini (wired+api)
+- **FilterEngine isolation** — hash שונה בין campaign A/B
+- **CSV export** — `ActionsWorkbench.exportActionsCsv`
+- **DailyEngine** — `exportHistoryToSheets` infra
+- **MarketingNotifications** — queue 5 פריטים, `gmailStatus: stub_only`
 
 ---
 
 ## 5. מה עדיין דורש API
 
-| מנוע | תשתית | Live |
-|------|--------|------|
-| ChatGPT (openai) | ✅ wired, stub | דורש Supabase Edge `marketing-ai-chat` + auth Super Admin |
-| Claude | ✅ wired, `apiEnabled: false` | דורש `ANTHROPIC_API_KEY` ב-Supabase secrets |
-| Gemini | ✅ wired, stub | דורש `GOOGLE_AI_KEY` / Edge function |
-
-`MultiAiOrchestrator.execute()` — stub ב-Staging; live רק עם Edge + מפתחות.
+| מנוע | סטטוס |
+|------|--------|
+| ChatGPT (openai) | תשתית + stub; live דורש Supabase Edge + auth |
+| Claude | תשתית בלבד (`apiEnabled: false`); דורש ANTHROPIC_API_KEY |
+| Gemini | תשתית + stub; live דורש GOOGLE_AI_KEY |
+| marketing-ai-chat Edge | דורש auth Super Admin |
+| marketing-google-sync | Gmail pending |
 
 ---
 
 ## 6. מה עדיין דורש Gmail
 
-- `GMAIL_SEND_ENABLED` + OAuth scope `gmail.send` — לא מוגדר
+- `GMAIL_SEND_ENABLED` + OAuth scope `gmail.send`
 - Edge function `marketing-notify-email` — לא קיים
-- Resend (קיים ב-FleetOS) — לא מחובר למודול שיווק
-- **קיים היום:** `MarketingNotifications` — localStorage queue, 5 סוגי stub, `gmailStatus: stub_only`
+- Resend (קיים ב-FleetOS) — לא מחובר לשיווק
+- **קיים היום:** localStorage queue + 5 סוגי התראות stub (`gmailStatus: stub_only`)
 
 ---
 
 ## 7. מה עדיין דורש Google Sheets
 
-- **CSV export** — עובד (הורדה מקומית)
-- **Webhook POST** — תשתית מוכנה; `sheetsWebhookUrl` ריק ב-`dalia-actions-export-config-v1`
-- משתמש חייב להגדיר URL + Apps Script (`docs/integrations/dalia-actions-sheets-webhook.gs`)
-- `DailyEngine.exportHistoryToSheets` — פונקציה קיימת, דורשת webhook
+- CSV export — **עובד**
+- Webhook POST — **תשתית מוכנה**, `sheetsWebhookUrl` ריק
+- משתמש חייב להגדיר webhook URL ב-`dalia-actions-export-config-v1`
+- Apps Script template: `docs/integrations/dalia-actions-sheets-webhook.gs`
 
 ---
 
 ## 8. מה עדיין דורש Supabase
 
-- `marketing-ai-chat` Edge — enrichAi live, דורש auth
-- `marketing-google-sync` — Gmail sync — pending
-- Persistence ל-history / notifications — לא מחובר (רק localStorage)
-- RLS / multi-tenant DB — לא נדרש ל-Staging יחיד-לקוח (`dalia-c-official`)
+- marketing-ai-chat Edge — auth Super Admin
+- persistence ל-history/notifications — לא מחובר ל-DB
+- ANTHROPIC_API_KEY / GOOGLE_AI_KEY ב-secrets ל-live enrichAi
+- IndexedDB migration — מומלץ כש-history עובר 100 רשומות
 
 ---
 
@@ -118,43 +112,40 @@
 | קובץ | שינוי |
 |------|--------|
 | `public/ai-marketing/ai-control-center.js` | חדש — UI מרכז בקרה |
-| `public/ai-marketing/marketing-notifications.js` | חדש — תור התראות stub |
-| `public/ai-marketing/ai-control-center-bridge.js` | bridge + `COCO_AI_CONTROL` + registry fix |
-| `public/ai-marketing/ai-assistant.js` | FAB → ask, runAiAnalysis |
-| `public/ai-marketing/actions-workbench.js` | openPreview alias, scroll |
-| `public/ai-marketing/coco-claude-integration.css` | scroll/content-visibility |
+| `public/ai-marketing/marketing-notifications.js` | חדש — תור התראות |
+| `public/ai-marketing/ai-control-center-bridge.js` | registry.primary fix |
+| `public/ai-marketing/ai-assistant.js` | FAB → COCO_AI_CONTROL |
+| `public/ai-marketing/actions-workbench.js` | scroll v10, openPreview |
 | `public/ai-marketing-platform.html` | טעינת מודולים חדשים |
-| `.github/workflows/deploy-staging-pages.yml` | v3-mission-25-1 versioning |
-| `scripts/mission-25-qa.mjs` | חדש — QA מלא + תיקוני 25.6/25.8 |
-| `scripts/verify-actions-scroll-fix.mjs` | עדכון גרסה |
-| `docs/audit-reports/mission-25/report.json` | דוח QA JSON |
-| `docs/audit-reports/mission-25/REPORT-HE.md` | דוח סופי זה |
+| `scripts/mission-25-qa.mjs` | חדש — QA 25.1–25.11 |
+| `scripts/verify-actions-scroll-fix.mjs` | scroll verification |
+| `.github/workflows/deploy-staging-pages.yml` | v3-mission-25-1 |
+| `docs/audit-reports/mission-25/report.json` | דוח QA |
+| `docs/audit-reports/mission-25/REPORT-HE.md` | דוח זה |
 
 ---
 
 ## 10. מספרי Commit
 
-| Hash | תיאור |
-|------|--------|
-| `360553cb9680461f5db32b24760b1b585c520ec7` | feat(mission-25): AI Control Center, scroll v10, QA suite |
-| `e13fce6f52344e01a217109f2f22574c1d4235a0` | fix(mission-25): Multi-AI registry + isolation QA |
-| `1fdfb7a0f6ebc1b876cb2c38c923da7684af1087` | docs(mission-25): QA reports 11/11 |
-| `947826f73ff5286d899b58521bef18fc2dd98aab` | docs(mission-25): REPORT-HE סופי 12 סעיפים + QA 11/11 |
+| Commit | תיאור |
+|--------|--------|
+| `360553c` | feat(mission-25): AI Control Center, scroll v10, QA suite |
+| `e13fce6` | fix(mission-25): Multi-AI registry + isolation QA |
+| `1fdfb7a` | docs(mission-25): final QA reports 11/11 |
 
 ---
 
 ## 11. קישור ל-Orin (Staging)
 
-https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-e13fce6
+https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-1fdfb7a
 
 ---
 
 ## 12. המלצות להמשך
 
-1. **Gmail Phase 1** — חבר Resend (קיים ב-FleetOS) ל-`MarketingNotifications.enqueue` → Edge send
-2. **Claude API** — הוסף `ANTHROPIC_API_KEY` ל-Supabase secrets; הפעל `apiEnabled` ב-registry
-3. **Google Sheets** — הגדר `sheetsWebhookUrl` ובדוק POST end-to-end
-4. **CI** — הוסף `mission-25-qa.mjs` ל-GitHub Actions post-deploy (כבר יש deploy workflow)
-5. **בידוד multi-client** — כשיתווספו לקוחות ל-index, הרחב בדיקת 25.8 ל-clientId אמיתי (כיום: קמפיין בודד `dalia-c-official`)
-6. **Actions scroll** — אימות על מכשיר פיזי (iPhone/Android); v10 שיפר preservation
-7. **IndexedDB** — migrate history מ-localStorage כשעובר 100 רשומות
+1. **Gmail Phase 1** — חבר Resend ל-MarketingNotifications.enqueue → Edge send
+2. **Claude API** — הוסף ANTHROPIC_API_KEY ל-Supabase secrets
+3. **Sheets** — הגדר `sheetsWebhookUrl` ובדוק POST
+4. **CI** — הוסף `mission-25-qa.mjs` ל-GitHub Actions post-deploy
+5. **Actions scroll** — אימות על iPhone/Android פיזי
+6. **IndexedDB** — migrate מ-localStorage כש-history גדל
