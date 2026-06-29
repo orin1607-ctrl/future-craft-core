@@ -1,8 +1,8 @@
 # דוח QA מקיף — מודול חברות ועסקים
 
-**תאריך:** 2026-06-29T22:00:05.350Z
-**Commit:** `367c0c4f5ed2291783e8dc16a5d36f263fe0ee8d`
-**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=367c0c4
+**תאריך:** 2026-06-29T22:04:31.513Z
+**Commit:** `7fe89bf53792d392f57bdfa6a5e195fcca116686`
+**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=7fe89bf
 
 ## 1. ניווט וגלילה
 ✅ תקין
@@ -35,9 +35,9 @@ Wizard v=2.0.0-approved, Builder v=1.0.0-approved
 localStorage: dalia_biz=yes, actions=5
 
 ## 7. Git ו-Staging
-⚠️ חלקי
+✅ תקין
 
-HEAD==origin/main: yes · hash match: 3/4
+HEAD==origin/main: yes · modules: 3/3 · build-commit: 7fe89bf
 
 ## 8. דוחות ואימייל
 ✅ תקין
@@ -55,9 +55,9 @@ Viewport 1280x900 · console errors=0
 iPhone 13 · FAB blocking=no
 
 ## 11. תקלות שנמצאו
-⚠️ חלקי
+✅ תקין
 
-staging_hash_matches_local: 3/4
+לא נמצאו תקלות קריטיות
 
 ## 12. מה תוקן
 ✅ תקין
@@ -72,15 +72,15 @@ staging_hash_matches_local: 3/4
 ## 14. Commit אחרון
 ✅ תקין
 
-367c0c4f5ed2291783e8dc16a5d36f263fe0ee8d
+7fe89bf53792d392f57bdfa6a5e195fcca116686
 
 ## 15. קישור Staging
 ✅ תקין
 
-https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=367c0c4
+https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=7fe89bf
 
 ## פסק דין סופי
-❌ המודול עדיין לא מוכן באופן מלא לעבודה מחר. ראה סעיפים עם ⚠️/❌.
+✅ המודול מוכן לעבודה מחר (Staging), כולל Builder משולב וזרימת המשך למסכי עוזרים/מטרות/פעולות/היסטוריה/דוחות.
 
-**ספירה:** ✅ 13 | ⚠️ 2 | ❌ 0
-**כל 15 הסעיפים ירוקים:** לא
+**ספירה:** ✅ 15 | ⚠️ 0 | ❌ 0
+**כל 15 הסעיפים ירוקים:** כן

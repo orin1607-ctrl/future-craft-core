@@ -84,6 +84,18 @@ function sha256Text(input) {
   return crypto.createHash('sha256').update(input || '', 'utf8').digest('hex');
 }
 
+function extractBuildCommit(html) {
+  const m = String(html || '').match(/<meta\s+name="build-commit"\s+content="([^"]+)"/i);
+  return m ? m[1] : null;
+}
+
+const PLATFORM_HTML = 'public/ai-marketing-platform.html';
+const MODULE_FILES = [
+  'public/ai-marketing/business-strategy-wizard.js',
+  'public/ai-marketing/website-builder-module.js',
+  'public/ai-marketing/business-strategy-module.js',
+];
+
 function toShortList(items, max = 6) {
   if (!items || !items.length) return '—';
   return items.slice(0, max).join(', ');
@@ -417,19 +429,14 @@ async function runMobileChecks() {
 }
 
 async function checkGitAndStagingFiles() {
-  const requiredFiles = [
-    'public/ai-marketing/business-strategy-wizard.js',
-    'public/ai-marketing/website-builder-module.js',
-    'public/ai-marketing/business-strategy-module.js',
-    'public/ai-marketing-platform.html',
-  ];
-
+  const requiredFiles = [...MODULE_FILES, PLATFORM_HTML];
   const localPresence = {};
   const remoteHashes = {};
   const localHashes = {};
-  let hashMatches = 0;
+  let moduleHashMatches = 0;
+  let platformBuildCommit = null;
 
-  for (const rel of requiredFiles) {
+  for (const rel of MODULE_FILES) {
     const abs = join(ROOT, rel);
     localPresence[rel] = existsSync(abs);
     if (!localPresence[rel]) continue;
@@ -442,16 +449,33 @@ async function checkGitAndStagingFiles() {
     if (remote.ok) {
       const remoteHash = sha256Text(remote.text);
       remoteHashes[rel] = remoteHash;
-      if (remoteHash === localHash) hashMatches += 1;
+      if (remoteHash === localHash) moduleHashMatches += 1;
     } else {
       remoteHashes[rel] = null;
     }
   }
 
+  localPresence[PLATFORM_HTML] = existsSync(join(ROOT, PLATFORM_HTML));
+  const platformRemoteUrl = `https://orin1607-ctrl.github.io/future-craft-core/${PLATFORM_HTML.replace(/^public\//, '')}?t=${Date.now()}`;
+  const platformRemote = await fetchText(platformRemoteUrl);
+  if (platformRemote.ok) {
+    platformBuildCommit = extractBuildCommit(platformRemote.text);
+    remoteHashes[PLATFORM_HTML] = `build-commit:${platformBuildCommit || 'missing'}`;
+  } else {
+    remoteHashes[PLATFORM_HTML] = null;
+  }
+  localHashes[PLATFORM_HTML] = `expected-build-commit:${HEAD_SHORT}`;
+
   const branchAligned = !!HEAD && !!REMOTE_MAIN && HEAD === REMOTE_MAIN;
+  const platformCommitAligned = !!platformBuildCommit && platformBuildCommit === HEAD_SHORT;
+  const stagingAligned = moduleHashMatches === MODULE_FILES.length && platformCommitAligned;
+  const hashMatches = moduleHashMatches + (platformCommitAligned ? 1 : 0);
+
   addCheck('git_local_equals_origin_main', branchAligned, `${(HEAD || '').slice(0, 7)} vs ${(REMOTE_MAIN || '').slice(0, 7)}`);
   addCheck('required_files_present', Object.values(localPresence).every(Boolean), JSON.stringify(localPresence));
-  addCheck('staging_hash_matches_local', hashMatches === requiredFiles.length, `${hashMatches}/${requiredFiles.length}`);
+  addCheck('staging_module_hashes_match', moduleHashMatches === MODULE_FILES.length, `${moduleHashMatches}/${MODULE_FILES.length}`);
+  addCheck('staging_platform_build_commit', platformCommitAligned, `${platformBuildCommit || 'missing'} vs ${HEAD_SHORT}`);
+  addCheck('staging_hash_matches_local', stagingAligned, `${hashMatches}/${requiredFiles.length}`);
 
   return {
     branchAligned,
@@ -460,6 +484,8 @@ async function checkGitAndStagingFiles() {
     remoteHashes,
     hashMatches,
     requiredCount: requiredFiles.length,
+    platformBuildCommit,
+    moduleHashMatches,
   };
 }
 
@@ -484,7 +510,7 @@ function buildSectionStatuses(desktop, mobile, gitStaging) {
   addSection('4', 'זרימת העבודה', workflowOk ? 'pass' : 'fail', `צעדים: ${desktop.workflow.map((f) => `${f.step}:${f.ok ? 'OK' : 'X'}`).join(' | ')}`);
   addSection('5', 'Website Builder', builderOk ? 'pass' : 'fail', `שלבים: ${desktop.builderCompliance.stepsCount}/7 · CTA פעיל מתוך export`);
   addSection('6', 'בדיקות Data', dataOk ? 'pass' : 'fail', `localStorage: dalia_biz=${desktop.dataChecks.localStorage?.daliaBiz ? 'yes' : 'no'}, actions=${desktop.dataChecks.localStorage?.actionsCount ?? 0}`);
-  addSection('7', 'Git ו-Staging', gitOk ? 'pass' : 'warn', `HEAD==origin/main: ${gitStaging.branchAligned ? 'yes' : 'no'} · hash match: ${gitStaging.hashMatches}/${gitStaging.requiredCount}`);
+  addSection('7', 'Git ו-Staging', gitOk ? 'pass' : 'warn', `HEAD==origin/main: ${gitStaging.branchAligned ? 'yes' : 'no'} · modules: ${gitStaging.moduleHashMatches}/${MODULE_FILES.length} · build-commit: ${gitStaging.platformBuildCommit || 'missing'}`);
   addSection('8', 'דוחות ואימייל', notificationsOk && checks.email_stub_staging?.ok ? 'pass' : 'warn', `MarketingNotifications types=${desktop.notifications.types || 0}, status=${desktop.notifications.gmailStatus || 'unknown'} (stub on staging)`);
   addSection('9', 'Desktop', desktopOk ? 'pass' : 'warn', `Viewport 1280x900 · console errors=${desktop.consoleErrors.length}`);
   addSection('10', 'Mobile', mobileOk ? 'pass' : 'warn', `iPhone 13 · FAB blocking=${mobile.fabBlocking ? 'yes' : 'no'}`);

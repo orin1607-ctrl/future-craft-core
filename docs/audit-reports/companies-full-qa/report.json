@@ -1,11 +1,11 @@
 {
   "mission": "companies-full-qa",
-  "at": "2026-06-29T22:00:05.350Z",
+  "at": "2026-06-29T22:04:31.513Z",
   "scope": "חברות ועסקים בלבד",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=367c0c4",
-  "commitHash": "367c0c4f5ed2291783e8dc16a5d36f263fe0ee8d",
-  "commitShort": "367c0c4",
-  "remoteMainHash": "367c0c4f5ed2291783e8dc16a5d36f263fe0ee8d",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=7fe89bf",
+  "commitHash": "7fe89bf53792d392f57bdfa6a5e195fcca116686",
+  "commitShort": "7fe89bf",
+  "remoteMainHash": "7fe89bf53792d392f57bdfa6a5e195fcca116686",
   "sections": {
     "1": {
       "key": "1",
@@ -46,8 +46,8 @@
     "7": {
       "key": "7",
       "title": "Git ו-Staging",
-      "status": "warn",
-      "details": "HEAD==origin/main: yes · hash match: 3/4"
+      "status": "pass",
+      "details": "HEAD==origin/main: yes · modules: 3/3 · build-commit: 7fe89bf"
     },
     "8": {
       "key": "8",
@@ -70,8 +70,8 @@
     "11": {
       "key": "11",
       "title": "תקלות שנמצאו",
-      "status": "warn",
-      "details": "staging_hash_matches_local: 3/4"
+      "status": "pass",
+      "details": "לא נמצאו תקלות קריטיות"
     },
     "12": {
       "key": "12",
@@ -89,13 +89,13 @@
       "key": "14",
       "title": "Commit אחרון",
       "status": "pass",
-      "details": "367c0c4f5ed2291783e8dc16a5d36f263fe0ee8d"
+      "details": "7fe89bf53792d392f57bdfa6a5e195fcca116686"
     },
     "15": {
       "key": "15",
       "title": "קישור Staging",
       "status": "pass",
-      "details": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=367c0c4"
+      "details": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=7fe89bf"
     }
   },
   "checks": {
@@ -265,29 +265,35 @@
     },
     "git_local_equals_origin_main": {
       "ok": true,
-      "detail": "367c0c4 vs 367c0c4"
+      "detail": "7fe89bf vs 7fe89bf"
     },
     "required_files_present": {
       "ok": true,
       "detail": "{\"public/ai-marketing/business-strategy-wizard.js\":true,\"public/ai-marketing/website-builder-module.js\":true,\"public/ai-marketing/business-strategy-module.js\":true,\"public/ai-marketing-platform.html\":true}"
     },
+    "staging_module_hashes_match": {
+      "ok": true,
+      "detail": "3/3"
+    },
+    "staging_platform_build_commit": {
+      "ok": true,
+      "detail": "7fe89bf vs 7fe89bf"
+    },
     "staging_hash_matches_local": {
-      "ok": false,
-      "detail": "3/4"
+      "ok": true,
+      "detail": "4/4"
     }
   },
-  "issuesFound": [
-    "staging_hash_matches_local: 3/4"
-  ],
+  "issuesFound": [],
   "fixesApplied": [],
   "blockers": [],
   "counts": {
-    "pass": 13,
-    "warn": 2,
+    "pass": 15,
+    "warn": 0,
     "fail": 0
   },
-  "all15Green": false,
-  "readyForTomorrow": false,
+  "all15Green": true,
+  "readyForTomorrow": true,
   "results": {
     "desktop": {
       "opened": true,
@@ -497,18 +503,20 @@
       },
       "localHashes": {
         "public/ai-marketing/business-strategy-wizard.js": "2c32195095f25e3ddda6575cbff1a401b51a5607afa1e20161e67fdc08ef1acf",
-        "public/ai-marketing/website-builder-module.js": "68427384397d4dde0f15c0ff8de84d269959fcca55c98fa3152fa854a0c639bb",
+        "public/ai-marketing/website-builder-module.js": "789d1edecb7ad1eca979de9db44172fa10073be8229964c78b859915e351ff29",
         "public/ai-marketing/business-strategy-module.js": "32826a76229426dde9070b7a075baa22d14e54f76846c3c02999acc9c07a04e7",
-        "public/ai-marketing-platform.html": "6146cdaade020377886ada83f0d1b3380c9e1abf71895cec41bfdee4e192613b"
+        "public/ai-marketing-platform.html": "expected-build-commit:7fe89bf"
       },
       "remoteHashes": {
         "public/ai-marketing/business-strategy-wizard.js": "2c32195095f25e3ddda6575cbff1a401b51a5607afa1e20161e67fdc08ef1acf",
-        "public/ai-marketing/website-builder-module.js": "68427384397d4dde0f15c0ff8de84d269959fcca55c98fa3152fa854a0c639bb",
+        "public/ai-marketing/website-builder-module.js": "789d1edecb7ad1eca979de9db44172fa10073be8229964c78b859915e351ff29",
         "public/ai-marketing/business-strategy-module.js": "32826a76229426dde9070b7a075baa22d14e54f76846c3c02999acc9c07a04e7",
-        "public/ai-marketing-platform.html": "5f73d07093ae7e1ddbd0292aca024dfa031cd37e84be6481c97c711716a19325"
+        "public/ai-marketing-platform.html": "build-commit:7fe89bf"
       },
-      "hashMatches": 3,
-      "requiredCount": 4
+      "hashMatches": 4,
+      "requiredCount": 4,
+      "platformBuildCommit": "7fe89bf",
+      "moduleHashMatches": 3
     }
   }
 }
