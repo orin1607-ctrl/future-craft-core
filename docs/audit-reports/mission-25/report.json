@@ -1,9 +1,9 @@
 {
   "mission": 25,
-  "at": "2026-06-29T04:21:09.038Z",
-  "version": "v3-mission-25-1-e13fce6",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-e13fce6",
-  "commitHash": "e13fce6f52344e01a217109f2f22574c1d4235a0",
+  "at": "2026-06-29T04:23:26.803Z",
+  "version": "v3-mission-25-1",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1",
+  "commitHash": "1fdfb7a0f6ebc1b876cb2c38c923da7684af1087",
   "tasks": {
     "25.1": {
       "passed": true,
@@ -188,7 +188,7 @@
       "passed": true,
       "title": "Performance",
       "found": {
-        "loadMs": 7010,
+        "loadMs": 5672,
         "totalDom": 15229,
         "actionsNodes": 195
       }
