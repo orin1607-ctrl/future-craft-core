@@ -1,9 +1,9 @@
 {
   "mission": 25,
-  "at": "2026-06-29T04:17:59.079Z",
-  "version": "v3-mission-25-1-360553c",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-360553c",
-  "commitHash": "360553cb9680461f5db32b24760b1b585c520ec7",
+  "at": "2026-06-29T04:21:09.038Z",
+  "version": "v3-mission-25-1-e13fce6",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-e13fce6",
+  "commitHash": "e13fce6f52344e01a217109f2f22574c1d4235a0",
   "tasks": {
     "25.1": {
       "passed": true,
@@ -159,28 +159,47 @@
       ]
     },
     "25.6": {
-      "passed": false,
+      "passed": true,
       "title": "Multi-AI ChatGPT/Claude/Gemini",
       "found": {
-        "engines": []
+        "engines": [
+          {
+            "id": "openai",
+            "wired": true,
+            "apiEnabled": true,
+            "status": "works_or_api"
+          },
+          {
+            "id": "claude",
+            "wired": true,
+            "apiEnabled": false,
+            "status": "infrastructure"
+          },
+          {
+            "id": "gemini",
+            "wired": true,
+            "apiEnabled": true,
+            "status": "works_or_api"
+          }
+        ]
       }
     },
     "25.7": {
       "passed": true,
       "title": "Performance",
       "found": {
-        "loadMs": 7024,
-        "totalDom": 15220,
+        "loadMs": 7010,
+        "totalDom": 15229,
         "actionsNodes": 195
       }
     },
     "25.8": {
-      "passed": false,
+      "passed": true,
       "title": "Client isolation FilterEngine",
       "found": {
-        "ok": false,
-        "hashA": "dalia-c-official",
-        "hashB": "dalia-c-official"
+        "ok": true,
+        "hashA": "dalia-c-official\u001fseo\u001fiso",
+        "hashB": "dalia-c-official\u001fseo\u001fiso"
       }
     },
     "25.9": {
@@ -229,15 +248,15 @@
       "passed": true,
       "title": "Final QA summary",
       "found": {
-        "passed": 8,
-        "failed": 2,
+        "passed": 10,
+        "failed": 0,
         "consoleErrors": 0
       }
     }
   },
   "consoleErrors": [],
-  "passed": 9,
-  "failed": 2,
+  "passed": 11,
+  "failed": 0,
   "dataReport": {
     "modulesAdded": [
       "ai-control-center.js",

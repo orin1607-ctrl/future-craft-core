@@ -1,11 +1,11 @@
 {
-  "at": "2026-06-29T04:18:15.078Z",
-  "version": "v3-mission-25-1-360553c",
-  "url": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-360553c",
-  "loadMs": 11541,
+  "at": "2026-06-29T04:22:46.735Z",
+  "version": "v3-mission-25-1-e13fce6",
+  "url": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-e13fce6",
+  "loadMs": 4714,
   "baselineTotalDom": 15466,
   "metrics": {
-    "totalDom": 15220,
+    "totalDom": 15229,
     "screenActionsNodes": 195,
     "legacyRemaining": 0,
     "legacyIds": [],
@@ -14,11 +14,11 @@
     "pendingHtml": 10888,
     "iframes": 0
   },
-  "domReducedBy": 246,
+  "domReducedBy": 237,
   "scroll": {
     "ok": true,
-    "maxMs": 0.7999999970197678,
-    "avgMs": 0.16666666604578495
+    "maxMs": 48.399999998509884,
+    "avgMs": 4.166666666666667
   },
   "workbench": {
     "closed": {
