@@ -1,12 +1,14 @@
 /**
- * Marketing Notifications — infrastructure stub (Mission 25.5).
- * Queues notifications locally; live Gmail send requires Edge + OAuth.
+ * Marketing Notifications — infrastructure stub (Mission 30).
+ * Queues notifications locally; Resend send via marketing-notify-email Edge.
  */
 (function () {
   'use strict';
 
   var STORAGE_KEY = 'coco-marketing-notifications-v1';
   var MAX_ITEMS = 200;
+  var EDGE_NAME = 'marketing-notify-email';
+  var STAGING_SUPABASE_URL = 'https://usfeoerkpcafxxlyuldl.supabase.co';
 
   var TYPES = {
     action_completed: { label: 'פעולה הושלמה', priority: 'normal' },
@@ -29,16 +31,64 @@
 
   function getGmailRequirements() {
     return {
-      status: 'stub_only',
+      status: 'resend_phase1',
+      path: 'Resend via Supabase Edge (marketing-notify-email) — not native Gmail OAuth',
       missing: [
-        'GMAIL_SEND_ENABLED=true ב-Supabase secrets',
-        'OAuth scope: https://www.googleapis.com/auth/gmail.send',
-        'Edge function: marketing-notify-email (לא קיים)',
-        'Resend fallback: RESEND_API_KEY (קיים ב-FleetOS, לא מחובר לשיווק)',
-        'Webhook inbound parser לתשובות "אשר 123" (לא קיים)',
+        'Deploy marketing-notify-email to Supabase Staging',
+        'MARKETING_CRON_SECRET for headless dispatch (optional)',
+        'marketing_approvals + tokens tables (Mission 27 Phase 1)',
+        'GMAIL_SEND_ENABLED + OAuth (Phase 2 — optional)',
+        'Webhook inbound parser לתשובות "אשר 123" (Phase 3)',
       ],
-      wired: ['localStorage queue', 'notification type registry', 'test harness'],
+      wired: [
+        'localStorage queue',
+        'approval_required → tryDispatchApprovalEmail stub',
+        'notification type registry',
+        'test harness',
+      ],
+      edgeFunction: EDGE_NAME,
     };
+  }
+
+  function getSupabaseUrl() {
+    try {
+      if (window.CocoEnv && CocoEnv.SUPABASE_URL) return CocoEnv.SUPABASE_URL;
+      if (window.__SUPABASE_URL__) return window.__SUPABASE_URL__;
+    } catch (e) { /* ignore */ }
+    return STAGING_SUPABASE_URL;
+  }
+
+  /**
+   * Stub: when approval_required is queued, POST to Edge if configured.
+   * GH Pages cannot hold secrets — production uses cron/outbox with service role.
+   */
+  function tryDispatchApprovalEmail(item) {
+    if (!item || item.type !== 'approval_required') return Promise.resolve({ ok: false, skipped: 'not_approval' });
+    var base = getSupabaseUrl();
+    var endpoint = base.replace(/\/$/, '') + '/functions/v1/' + EDGE_NAME;
+    var payload = item.payload || {};
+    var body = {
+      recipient: payload.recipient || payload.managerEmail || null,
+      approvalId: payload.approvalId || payload.pageId || item.id,
+      subject: payload.emailSubject || ('📢 עמוד מוכן לאישור – ' + (payload.pageTitle || payload.pageName || 'עמוד')),
+      html: payload.emailHtml || null,
+      dryRun: true,
+    };
+    if (!body.recipient || !body.html) {
+      return Promise.resolve({
+        ok: false,
+        skipped: 'missing_recipient_or_html',
+        note: 'Run scripts/send-gmail-approval-trial.mjs --v2 or wire Edge outbox',
+        edgeEndpoint: endpoint,
+      });
+    }
+    return fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; }); })
+      .catch(function (e) { return { ok: false, error: String(e.message || e) }; });
   }
 
   function enqueue(type, payload) {
@@ -55,6 +105,12 @@
     q.unshift(item);
     writeQueue(q);
     document.dispatchEvent(new CustomEvent('coco:notification-queued', { detail: item }));
+    if (type === 'approval_required') {
+      tryDispatchApprovalEmail(item).then(function (dispatch) {
+        item.edgeDispatch = dispatch;
+        document.dispatchEvent(new CustomEvent('coco:approval-email-dispatch', { detail: { item: item, dispatch: dispatch } }));
+      });
+    }
     return { ok: true, item: item, gmail: getGmailRequirements() };
   }
 
@@ -88,5 +144,7 @@
     markSent: markSent,
     testAll: testAll,
     getGmailRequirements: getGmailRequirements,
+    tryDispatchApprovalEmail: tryDispatchApprovalEmail,
+    EDGE_NAME: EDGE_NAME,
   };
 })();

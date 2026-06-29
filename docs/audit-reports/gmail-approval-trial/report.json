@@ -1,15 +1,21 @@
 {
-  "mission": 28,
-  "at": "2026-06-29T06:17:59.270Z",
+  "mission": 30,
+  "at": "2026-06-29T06:55:55.113Z",
   "mode": "staging_trial",
+  "templateVersion": 2,
   "pageId": "page-07",
   "pageName": "השירותים שלנו - דליה",
-  "subject": "עמוד מוכן לאישור – השירותים שלנו",
-  "htmlPath": "docs/audit-reports/gmail-approval-trial/email-sample.html",
-  "stagingPreviewUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-live-demo-3&page=page-07",
-  "stagingEmailPreviewUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing/email-preview-approval.html",
+  "subject": "📢 עמוד מוכן לאישור – השירותים שלנו",
+  "htmlPath": "docs/audit-reports/gmail-approval-trial/email-sample-v2.html",
+  "stagingPreviewUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-30&page=page-07",
+  "stagingEmailPreviewUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing/email-preview-approval.html?v=m30",
   "dataSource": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\live-workflow-demo\\report.json",
   "gmailConnected": false,
+  "gmailOAuth": {
+    "enabled": false,
+    "phase": 2,
+    "note": "Resend recommended — see Mission 27 PLAN-HE.md"
+  },
   "resend": {
     "localKeyPresent": false,
     "localKeyPrefix": null,
@@ -17,25 +23,55 @@
       "reachable": true,
       "hasResend": true,
       "hasGmail": false,
-      "note": "secret exists in Supabase Staging"
+      "hasCron": false,
+      "note": "RESEND_API_KEY exists in Supabase Staging"
     },
-    "from": "דליה מערכות <onboarding@resend.dev>",
-    "note": "No local RESEND_API_KEY — HTML mockup only"
+    "from": "דליה מערכות <onboarding@resend.dev>"
   },
   "marketingNotifyEdge": {
-    "exists": false,
-    "name": "marketing-notify-email"
+    "exists": true,
+    "name": "marketing-notify-email",
+    "deployed": true,
+    "deployRef": "usfeoerkpcafxxlyuldl",
+    "invokeAttempted": true,
+    "send": {
+      "httpStatus": 403,
+      "id": null,
+      "error": "Forbidden — user session required",
+      "endpoint": "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/marketing-notify-email"
+    }
   },
-  "sendAttempted": false,
+  "sendAttempted": true,
   "sendSucceeded": false,
+  "sendChannel": "edge",
   "recipientMasked": "or***@gmail.com",
   "recipientDomain": "gmail.com",
+  "checklist17": {
+    "companyName": true,
+    "siteName": true,
+    "pageName": true,
+    "dateTime": true,
+    "aiEngines": true,
+    "rationale": true,
+    "dataCollected": true,
+    "keywords": true,
+    "stateBefore": true,
+    "stateAfter": true,
+    "changes": true,
+    "expectedImprovements": true,
+    "confidenceScore": true,
+    "beforeAfterVisual": true,
+    "actionButtons": true,
+    "stagingLink": true,
+    "managerSummary": true
+  },
   "missingForProduction": [
-    "Edge function marketing-notify-email",
+    "MARKETING_CRON_SECRET or local service role for Edge invoke",
     "marketing_approvals + tokens tables",
-    "GMAIL_SEND_ENABLED (Phase 2 — optional)",
-    "Screenshot capture pipeline",
+    "GMAIL_SEND_ENABLED (Phase 2 — optional Gmail OAuth)",
+    "Screenshot capture pipeline (Playwright → Storage)",
     "Signed HMAC tokens (MARKETING_APPROVAL_SECRET)",
-    "RESEND_FROM with verified dalia-c.com domain"
+    "RESEND_FROM with verified dalia-c.com domain",
+    "Wire Daily Engine → enqueue → Edge outbox"
   ]
 }

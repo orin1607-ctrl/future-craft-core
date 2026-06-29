@@ -29,8 +29,8 @@
     .bar h1 { margin: 0; font-size: 16px; font-weight: 600; }
     .bar .tag {
       font-size: 11px;
-      background: #f59e0b;
-      color: #1a1a2e;
+      background: #22c55e;
+      color: #052e16;
       padding: 3px 8px;
       border-radius: 4px;
       font-weight: bold;
@@ -69,28 +69,41 @@
     .action-result.revise { background: #422006; border-color: #f59e0b; }
     .action-result.reject { background: #450a0a; border-color: #ef4444; }
     .action-result.preview { background: #1e3a5f; border-color: #3b82f6; }
+    .checklist {
+      max-width: 720px;
+      margin: 0 auto 12px;
+      padding: 12px 16px;
+      background: #1e293b;
+      border-radius: 10px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .checklist strong { color: #e2e8f0; }
   </style>
 </head>
 <body>
   <div class="bar">
     <div>
-      <h1>תצוגת מייל אישור Gmail</h1>
-      <span class="tag">Mission 28 · Staging</span>
+      <h1>תצוגת מייל אישור Gmail · דוח מקצועי v2</h1>
+      <span class="tag">Mission 30 · Staging</span>
     </div>
-    <a href="../ai-marketing-platform.html?v=v3-live-demo-3&page=page-07">← חזרה לפלטפורמה</a>
+    <a href="../ai-marketing-platform.html?v=v3-mission-30&page=page-07">← חזרה לפלטפורמה</a>
+  </div>
+  <div class="checklist">
+    <strong>17 רכיבים בדוח:</strong> חברה · אתר · עמוד · תאריך · AI · סיבה · נתונים · מילות מפתח · לפני/אחרי · שינויים · שיפורים · ביטחון · ויזואל · כפתורים · Staging · סיכום מנהל
   </div>
   <div class="stub-banner" id="stub-banner">
-    קישורי אישור הם stub — אין Edge function עדיין. לחיצה מציגה תוצאה מקומית בלבד.
+    קישורי אישור הם stub — Edge <code>marketing-notify-email</code> מוכן ב-repo; deploy ל-Supabase לשליחה אמיתית.
   </div>
   <div class="action-result" id="action-result"></div>
   <div class="frame-wrap">
-    <iframe id="email-frame" title="דוגמת מייל אישור" src="email-approval-sample.html"></iframe>
+    <iframe id="email-frame" title="דוגמת מייל אישור v2" src="email-approval-sample.html"></iframe>
   </div>
   <script>
     (function () {
       var params = new URLSearchParams(location.search);
       var action = params.get('action');
-      var approvalId = params.get('approvalId') || 'trial-page-07-m28';
+      var approvalId = params.get('approvalId') || 'trial-page-07-m30';
       var token = params.get('t') || '';
       var result = document.getElementById('action-result');
       var banner = document.getElementById('stub-banner');
@@ -109,12 +122,12 @@
           approvalId + ' · token: ' + (token ? token.slice(0, 20) + '…' : '(none)') + '</small>';
         banner.textContent = 'פעולה: ' + action + ' — stub בלבד, ללא פרסום ל-Production.';
         if (action === 'preview') {
-          frame.src = '../ai-marketing-platform.html?v=v3-live-demo-3&page=page-07';
+          frame.src = '../ai-marketing-platform.html?v=v3-mission-30&page=page-07';
         }
       }
 
       frame.onerror = function () {
-        frame.srcdoc = '<p dir="rtl" style="padding:24px;font-family:Arial">הרץ <code>node scripts/send-gmail-approval-trial.mjs</code> ליצירת email-sample.html</p>';
+        frame.srcdoc = '<p dir="rtl" style="padding:24px;font-family:Arial">הרץ <code>node scripts/send-gmail-approval-trial.mjs --v2</code> ליצירת email-sample-v2.html</p>';
       };
     })();
   </script>

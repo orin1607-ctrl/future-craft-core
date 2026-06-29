@@ -1,5 +1,5 @@
 /**
- * Gmail / Resend approval email template — Mission 28 trial.
+ * Gmail / Resend approval email template — Mission 30 professional report.
  * Hebrew RTL HTML; data from live-workflow-demo page-07.
  */
 import { readFileSync, existsSync } from 'fs';
@@ -7,8 +7,8 @@ import { join } from 'path';
 
 const STAGING_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const STAGING_PREVIEW =
-  `${STAGING_BASE}/ai-marketing-platform.html?v=v3-live-demo-3&page=page-07`;
-const STAGING_EMAIL_PREVIEW = `${STAGING_BASE}/ai-marketing/email-preview-approval.html`;
+  `${STAGING_BASE}/ai-marketing-platform.html?v=v3-mission-30&page=page-07`;
+const STAGING_EMAIL_PREVIEW = `${STAGING_BASE}/ai-marketing/email-preview-approval.html?v=m30`;
 
 const DEFAULT_DATA = {
   companyName: 'דליה פתרונות מימון ותחזוקה לרכב',
@@ -16,7 +16,7 @@ const DEFAULT_DATA = {
   pageName: 'השירותים שלנו - דליה',
   pagePath: '/השירותים-שלנו',
   pageId: 'page-07',
-  approvalId: 'trial-page-07-m28',
+  approvalId: 'trial-page-07-m30',
   sentAt: new Date().toISOString(),
   executionMode: 'preview',
   confidence: 87,
@@ -32,6 +32,41 @@ const DEFAULT_DATA = {
     { field: 'Meta Description', before: 'חברת דליה עוסקת בתפעול ותחזוקת רכבים…', after: 'גלו את שירותי דליה: ניהול צי רכב, תחזוקה מונעת, מעקב GPS וטיפול 24/7. צרו קשר לייעוץ חינם.' },
     { field: 'H1', before: '(חסר)', after: 'שירותי ניהול צי רכב ותחזוקה לעסקים' },
     { field: 'Alt לתמונות', before: '2 תמונות ללא alt', after: 'תיאור alt ממוקד לשירותי צי' },
+  ],
+  keywords: [
+    'ניהול צי רכב',
+    'תחזוקה מונעת',
+    'תפעול רכב לעסקים',
+    'מעקב GPS לצי',
+    'שירותי דליה',
+  ],
+  dataCollected: [
+    'Google Search Console: 14 חשיפות, 0 קליקים, מיקום ממוצע 5.5',
+    'Google Analytics 4: 0 צפיות (30 יום) — פוטנציאל לשיפור',
+    'סריקת אתר: חסר H1, 2 תמונות ללא alt, canonical mismatch',
+    '14 פעולות פתוחות בשולחן העבודה לעמוד זה',
+    'ציון SEO נוכחי: 5/10 · PageSpeed: ממתין למדידה',
+  ],
+  kpiImprovements: {
+    seo: 'ציון SEO: 5 → 8/10 — Title, Meta, H1 ממוקדים',
+    pageSpeed: 'אין שינוי משקל תמונות — השפעה ניטרלית על PageSpeed',
+    content: 'הוספת H1 עסקי + Meta קצר עם ערך מוסף',
+    cta: 'CTA ב-Meta: "צרו קשר לייעוץ חינם"',
+    ux: 'מבנה כותרות ברור (H1) — שיפור סריקה ונגישות',
+    internalLinks: 'המלצה עתידית: קישור לעמודי שירות משניים (לא בטיוטה זו)',
+    ranking: 'פוטנציאל עלייה ב-GSC למילות "ניהול צי רכב" (מיקום 5.5 כיום)',
+  },
+  managerSummary: [
+    'שלום,',
+    'סקרנו את עמוד "השירותים שלנו" ב-dalia-c.com. שלושת מנועי ה-AI (ChatGPT, Claude, Gemini) ממליצים לאשר את הטיוטה.',
+    'העמוד כיום ללא H1, עם Title לא ממוקד ו-Meta ארוך מדי ללא קריאה לפעולה.',
+    'הטיוטה מוסיפה H1 עסקי, משפרת SEO ומכניסה CTA ברור ב-Meta Description.',
+    `ציון הביטחון המשולב: ${87}% — כל המנועים הסכימו (stub ב-Staging).`,
+    'הנתונים מ-GSC מראים 14 חשיפות במיקום 5.5 — יש פוטנציאל לעלייה ב-CTR.',
+    'המלצתנו: לאשר. השינוי בטוח, נשאר ב-preview בלבד — לא יפורסם ל-Production ללא אישור נוסף.',
+    'ניתן לדחות או לשלוח לתיקון בלחיצה אחת מתוך המייל.',
+    'בברכה,',
+    'CO.CO Marketing AI · דוח מנהל שיווק',
   ],
   expectedImprovements: [
     'ציון SEO משוער: 5 → 8/10',
@@ -67,8 +102,41 @@ export function loadPage07DemoData(root = process.cwd()) {
       ? Math.round(engines.reduce((s, e) => s + e.confidence, 0) / engines.length)
       : DEFAULT_DATA.confidence;
 
+    const gsc = raw.before?.gsc || {};
+    const issues = raw.before?.issues || [];
+    const dataCollected = [
+      `Google Search Console: ${gsc.impressions ?? 14} חשיפות, ${gsc.clicks ?? 0} קליקים, מיקום ${gsc.position ?? '—'}`,
+      `Google Analytics 4: ${raw.before?.ga4Views ?? 0} צפיות (30 יום)`,
+      `סריקת אתר: ${issues.join(', ') || 'ללא בעיות קריטיות'}`,
+      `${raw.before?.openActions ?? raw.actions?.openActions ?? 14} פעולות פתוחות בשולחן העבודה`,
+      `ציון SEO: ${raw.before?.seoScore ?? 5}/10 · PageSpeed: ${raw.before?.pageSpeed || 'ממתין'}`,
+    ];
+    const keywords = ['ניהול צי רכב', 'תחזוקה מונעת', 'תפעול רכב לעסקים', 'מעקב GPS לצי', 'שירותי דליה'];
+    const kpiImprovements = {
+      seo: `ציון SEO: ${raw.before?.seoScore ?? 5} → 8/10 — Title, Meta, H1 ממוקדים`,
+      pageSpeed: 'אין שינוי משקל תמונות — השפעה ניטרלית על PageSpeed',
+      content: 'הוספת H1 עסקי + Meta קצר עם ערך מוסף',
+      cta: 'CTA ב-Meta: "צרו קשר לייעוץ חינם"',
+      ux: 'מבנה כותרות ברור (H1) — שיפור סריקה ונגישות',
+      internalLinks: 'המלצה עתידית: קישור לעמודי שירות משניים',
+      ranking: `פוטנציאל עלייה ב-GSC (מיקום ${gsc.position ?? 5.5} כיום)`,
+    };
+    const managerSummary = [
+      'שלום,',
+      `סקרנו את עמוד "${raw.page?.title || DEFAULT_DATA.pageName}" ב-dalia-c.com.`,
+      'שלושת מנועי ה-AI (ChatGPT, Claude, Gemini) ממליצים לאשר את הטיוטה.',
+      'העמוד ללא H1, Title לא ממוקד, Meta ארוך ללא CTA.',
+      'הטיוטה מוסיפה H1 עסקי ומשפרת SEO.',
+      `ציון ביטחון משולב: ${avgConf}% — כל המנועים הסכימו.`,
+      `GSC: ${gsc.impressions ?? 14} חשיפות, מיקום ${gsc.position ?? 5.5}.`,
+      'המלצה: לאשר — preview בלבד, לא Production.',
+      'ניתן לדחות או לשלוח לתיקון מהמייל.',
+      'CO.CO Marketing AI · דוח מנהל שיווק',
+    ];
+
     return {
       ...DEFAULT_DATA,
+      approvalId: `trial-${raw.page?.id || 'page-07'}-m30`,
       pageName: raw.page?.title || DEFAULT_DATA.pageName,
       pagePath: raw.page?.path || DEFAULT_DATA.pagePath,
       pageId: raw.page?.id || DEFAULT_DATA.pageId,
@@ -107,6 +175,10 @@ export function loadPage07DemoData(root = process.cwd()) {
         'כיסוי מילות מפתח: ניהול צי רכב, תחזוקה מונעת',
         'תיקון נגישות — alt לתמונות',
       ],
+      keywords,
+      dataCollected,
+      kpiImprovements,
+      managerSummary,
       sourceReport: reportPath,
     };
   } catch {
@@ -160,10 +232,29 @@ function actionUrl(action, approvalId) {
   return `${STAGING_BASE}/ai-marketing/email-preview-approval.html?action=${action}&approvalId=${encodeURIComponent(approvalId)}&t=${token}`;
 }
 
-export function buildApprovalEmail(data = DEFAULT_DATA) {
+function sectionTitle(text) {
+  return `<h2 style="margin:0 0 10px;font-size:15px;color:#1a1a2e;border-right:4px solid #3b82f6;padding-right:10px;">${text}</h2>`;
+}
+
+function stateBlock(label, state, accent) {
+  const h1 = state.h1 ? esc(state.h1) : '<span style="color:#dc2626;">(חסר)</span>';
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;margin-bottom:12px;">
+    <tr><td colspan="2" style="background:${accent};padding:8px 12px;font-size:12px;font-weight:bold;color:#fff;">${esc(label)}</td></tr>
+    <tr><td style="padding:8px 12px;font-size:12px;color:#64748b;width:90px;">Title</td><td style="padding:8px 12px;font-size:13px;color:#334155;">${esc(state.title || '—')}</td></tr>
+    <tr><td style="padding:8px 12px;font-size:12px;color:#64748b;">H1</td><td style="padding:8px 12px;font-size:13px;color:#334155;">${h1}</td></tr>
+    <tr><td style="padding:8px 12px;font-size:12px;color:#64748b;">Meta</td><td style="padding:8px 12px;font-size:12px;color:#64748b;line-height:1.5;">${esc((state.meta || '').slice(0, 160))}${(state.meta || '').length > 160 ? '…' : ''}</td></tr>
+    <tr><td style="padding:8px 12px;font-size:12px;color:#64748b;">SEO</td><td style="padding:8px 12px;font-size:13px;color:#334155;">${state.seoScore != null ? `${state.seoScore}/10` : '—'}</td></tr>
+  </table>`;
+}
+
+export function buildApprovalEmail(data = DEFAULT_DATA, options = {}) {
+  const version = options.version ?? 2;
   const d = { ...DEFAULT_DATA, ...data };
   const dateStr = formatHeDate(d.sentAt);
-  const subject = `עמוד מוכן לאישור – ${d.pageName.replace(/\s*-\s*דליה$/, '')}`;
+  const pageShort = d.pageName.replace(/\s*-\s*דליה$/, '');
+  const subject = version >= 2
+    ? `📢 עמוד מוכן לאישור – ${pageShort}`
+    : `עמוד מוכן לאישור – ${pageShort}`;
   const previewUrl = STAGING_PREVIEW;
   const links = {
     approve: actionUrl('approve', d.approvalId),
@@ -210,6 +301,96 @@ export function buildApprovalEmail(data = DEFAULT_DATA) {
     .map((item) => `<li style="margin-bottom:6px;color:#334155;font-size:14px;">${esc(item)}</li>`)
     .join('');
 
+  const kpi = d.kpiImprovements || {};
+  const kpiRows = [
+    ['SEO', kpi.seo],
+    ['PageSpeed', kpi.pageSpeed],
+    ['תוכן', kpi.content],
+    ['CTA', kpi.cta],
+    ['UX', kpi.ux],
+    ['קישורים פנימיים', kpi.internalLinks],
+    ['דירוג Google', kpi.ranking],
+  ]
+    .filter(([, v]) => v)
+    .map(
+      ([k, v]) =>
+        `<tr><td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:13px;font-weight:bold;color:#1a1a2e;width:120px;">${esc(k)}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:13px;color:#334155;">${esc(v)}</td></tr>`,
+    )
+    .join('');
+
+  const dataList = (d.dataCollected || [])
+    .map((item) => `<li style="margin-bottom:5px;color:#334155;font-size:13px;">${esc(item)}</li>`)
+    .join('');
+
+  const keywordTags = (d.keywords || [])
+    .map(
+      (kw) =>
+        `<span style="display:inline-block;background:#eff6ff;color:#1d4ed8;padding:4px 10px;border-radius:20px;font-size:12px;margin:3px 0 3px 6px;">${esc(kw)}</span>`,
+    )
+    .join('');
+
+  const managerLines = (d.managerSummary || [])
+    .map((line) => `<p style="margin:0 0 8px;font-size:14px;line-height:1.65;color:#1e293b;">${esc(line)}</p>`)
+    .join('');
+
+  const confidenceWhy =
+    d.confidence >= 80
+      ? 'שלושת המנועים הסכימו; השינוי ממוקד SEO ללא סיכון תוכן; מומלץ לאשר.'
+      : 'יש הסכמה חלקית — מומלץ לעיין בטיוטה לפני אישור.';
+
+  const v2Middle =
+    version >= 2
+      ? `
+          <!-- 7. Data collected -->
+          <tr>
+            <td style="padding:8px 28px 16px;">
+              ${sectionTitle('7 · נתונים שנאספו')}
+              <ul style="margin:0;padding-right:20px;">${dataList}</ul>
+            </td>
+          </tr>
+          <!-- 8. Keywords -->
+          <tr>
+            <td style="padding:8px 28px 16px;">
+              ${sectionTitle('8 · מילות מפתח שנותחו')}
+              <div style="line-height:2;">${keywordTags}</div>
+            </td>
+          </tr>
+          <!-- 9-10. Before / After state -->
+          <tr>
+            <td style="padding:8px 28px 16px;">
+              ${sectionTitle('9 · מצב לפני השינוי')}
+              ${stateBlock('לפני', d.before, '#64748b')}
+              ${sectionTitle('10 · מצב אחרי השינוי (טיוטה)')}
+              ${stateBlock('אחרי', { ...d.proposed, seoScore: 8 }, '#059669')}
+            </td>
+          </tr>
+          <!-- 12. KPI improvements grid -->
+          <tr>
+            <td style="padding:8px 28px 16px;">
+              ${sectionTitle('12 · שיפורים צפויים לפי תחום')}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;">${kpiRows}</table>
+            </td>
+          </tr>`
+      : '';
+
+  const v2ManagerBlock =
+    version >= 2
+      ? `
+          <tr>
+            <td style="padding:16px 28px;background:#fffbeb;border-top:1px solid #fde68a;">
+              ${sectionTitle('17 · סיכום מנהל שיווק')}
+              ${managerLines}
+            </td>
+          </tr>`
+      : '';
+
+  const headerEmoji = version >= 2 ? '📢' : '📋';
+  const missionTag = version >= 2 ? 'Mission 30 · דוח מקצועי' : 'Mission 28 · Staging';
+  const footerNote =
+    version >= 2
+      ? 'הודעה זו נשלחה ממערכת CO.CO Marketing AI (Mission 30). קישורי אישור הם stub — אין פרסום ל-Production. שליחה דרך Resend (Phase 1); Gmail OAuth — Phase 2.'
+      : 'הודעה זו נשלחה ממערכת CO.CO Marketing AI (Mission 28 trial). קישורי האישור הם stub — אין פרסום ל-Production.';
+
   const html = `<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -225,8 +406,8 @@ export function buildApprovalEmail(data = DEFAULT_DATA) {
           <!-- Header -->
           <tr>
             <td style="background:#1a1a2e;padding:24px 28px;">
-              <p style="margin:0 0 6px;color:#94a3b8;font-size:12px;">CO.CO Marketing AI · Staging</p>
-              <h1 style="margin:0;color:#ffffff;font-size:22px;line-height:1.4;">📋 עמוד מוכן לאישור</h1>
+              <p style="margin:0 0 6px;color:#94a3b8;font-size:12px;">CO.CO Marketing AI · ${missionTag}</p>
+              <h1 style="margin:0;color:#ffffff;font-size:22px;line-height:1.4;">${headerEmoji} עמוד מוכן לאישור</h1>
               <p style="margin:10px 0 0;color:#cbd5e1;font-size:14px;">${esc(d.pageName)}</p>
             </td>
           </tr>
@@ -239,6 +420,9 @@ export function buildApprovalEmail(data = DEFAULT_DATA) {
                 </tr>
                 <tr>
                   <td style="font-size:13px;color:#64748b;padding:4px 0;"><strong style="color:#1a1a2e;">אתר:</strong> ${esc(d.siteName)} · ${esc(d.pagePath)}</td>
+                </tr>
+                <tr>
+                  <td style="font-size:13px;color:#64748b;padding:4px 0;"><strong style="color:#1a1a2e;">עמוד:</strong> ${esc(d.pageName)} · ${esc(d.pageId)}</td>
                 </tr>
                 <tr>
                   <td style="font-size:13px;color:#64748b;padding:4px 0;"><strong style="color:#1a1a2e;">תאריך:</strong> ${esc(dateStr)}</td>
@@ -256,8 +440,8 @@ export function buildApprovalEmail(data = DEFAULT_DATA) {
                 <tr>
                   <td style="padding:14px 16px;">
                     <span style="font-size:28px;font-weight:bold;color:#059669;">${d.confidence}%</span>
-                    <span style="font-size:14px;color:#166534;margin-right:8px;">ציון ביטחון AI</span>
-                    <p style="margin:8px 0 0;font-size:13px;color:#334155;">שלושת המנועים הסכימו על ההמלצה (stub ב-Staging).</p>
+                    <span style="font-size:14px;color:#166534;margin-right:8px;">13 · ציון ביטחון AI</span>
+                    <p style="margin:8px 0 0;font-size:13px;color:#334155;">${esc(confidenceWhy)}</p>
                   </td>
                 </tr>
               </table>
@@ -266,14 +450,14 @@ export function buildApprovalEmail(data = DEFAULT_DATA) {
           <!-- Rationale -->
           <tr>
             <td style="padding:8px 28px 16px;">
-              <h2 style="margin:0 0 10px;font-size:16px;color:#1a1a2e;">למה ה-AI המליץ על השינוי?</h2>
+              ${version >= 2 ? sectionTitle('6 · למה ה-AI החליט לבצע שינוי?') : '<h2 style="margin:0 0 10px;font-size:16px;color:#1a1a2e;">למה ה-AI המליץ על השינוי?</h2>'}
               <p style="margin:0;font-size:14px;line-height:1.6;color:#334155;">${esc(d.rationale)}</p>
             </td>
           </tr>
           <!-- Engines -->
           <tr>
             <td style="padding:8px 28px 16px;">
-              <h2 style="margin:0 0 10px;font-size:16px;color:#1a1a2e;">מנועי AI שהשתתפו</h2>
+              ${version >= 2 ? sectionTitle('5 · מנועי AI שהשתתפו') : '<h2 style="margin:0 0 10px;font-size:16px;color:#1a1a2e;">מנועי AI שהשתתפו</h2>'}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;">
                 <tr style="background:#f8fafc;">
                   <th style="padding:8px 10px;font-size:12px;text-align:right;color:#64748b;">מנוע</th>
@@ -284,10 +468,11 @@ export function buildApprovalEmail(data = DEFAULT_DATA) {
               </table>
             </td>
           </tr>
+          ${v2Middle}
           <!-- Changes -->
           <tr>
             <td style="padding:8px 28px 16px;">
-              <h2 style="margin:0 0 10px;font-size:16px;color:#1a1a2e;">מה השתנה</h2>
+              ${version >= 2 ? sectionTitle('11 · מה בדיוק השתנה') : '<h2 style="margin:0 0 10px;font-size:16px;color:#1a1a2e;">מה השתנה</h2>'}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;">
                 <tr style="background:#f8fafc;">
                   <th style="padding:8px 10px;font-size:12px;text-align:right;color:#64748b;">שדה</th>
@@ -301,29 +486,32 @@ export function buildApprovalEmail(data = DEFAULT_DATA) {
           <!-- Expected improvements -->
           <tr>
             <td style="padding:8px 28px 16px;">
-              <h2 style="margin:0 0 10px;font-size:16px;color:#1a1a2e;">שיפור צפוי</h2>
+              ${version >= 2 ? sectionTitle('12 · שיפורים צפויים (סיכום)') : '<h2 style="margin:0 0 10px;font-size:16px;color:#1a1a2e;">שיפור צפוי</h2>'}
               <ul style="margin:0;padding-right:20px;">${improveList}</ul>
             </td>
           </tr>
           <!-- Screenshots -->
           <tr>
             <td style="padding:8px 28px 16px;">
-              <h2 style="margin:0 0 12px;font-size:16px;color:#1a1a2e;">לפני / אחרי / השוואה</h2>
+              ${version >= 2 ? sectionTitle('14 · לפני / אחרי / השוואה ויזואלית') : '<h2 style="margin:0 0 12px;font-size:16px;color:#1a1a2e;">לפני / אחרי / השוואה</h2>'}
               <p style="margin:0 0 12px;font-size:12px;color:#94a3b8;">תמונות סימולציה — ב-Production יגיעו מ-Supabase Storage (Playwright capture).</p>
               <img src="${beforeImg}" alt="לפני" width="100%" style="display:block;border-radius:8px;margin-bottom:10px;border:1px solid #e2e8f0;"/>
               <img src="${afterImg}" alt="אחרי" width="100%" style="display:block;border-radius:8px;margin-bottom:10px;border:1px solid #e2e8f0;"/>
               <img src="${compareImg}" alt="השוואה" width="100%" style="display:block;border-radius:8px;border:1px solid #e2e8f0;"/>
             </td>
           </tr>
-          <!-- Preview CTA -->
+          <!-- 16. Staging link -->
           <tr>
-            <td style="padding:8px 28px 20px;text-align:center;">
-              <a href="${esc(previewUrl)}" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:bold;">👁️ תצוגה מקדימה ב-Staging</a>
+            <td style="padding:8px 28px 12px;text-align:center;">
+              <p style="margin:0 0 10px;font-size:12px;color:#64748b;">16 · קישור ישיר ל-Staging</p>
+              <a href="${esc(previewUrl)}" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:bold;">👁️ Preview</a>
+              <p style="margin:10px 0 0;font-size:11px;color:#94a3b8;word-break:break-all;">${esc(previewUrl)}</p>
             </td>
           </tr>
-          <!-- Action buttons -->
+          <!-- 15. Action buttons -->
           <tr>
             <td style="padding:8px 28px 28px;">
+              ${version >= 2 ? '<p style="margin:0 0 12px;font-size:12px;color:#64748b;text-align:center;">15 · כפתורי פעולה</p>' : ''}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding:6px;">
@@ -344,11 +532,12 @@ export function buildApprovalEmail(data = DEFAULT_DATA) {
               </table>
             </td>
           </tr>
+          ${v2ManagerBlock}
           <!-- Footer -->
           <tr>
             <td style="padding:16px 28px;background:#f8fafc;border-top:1px solid #eee;">
               <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.5;">
-                הודעה זו נשלחה ממערכת CO.CO Marketing AI (Mission 28 trial). קישורי האישור הם stub — אין פרסום ל-Production.
+                ${footerNote}
                 <br/>מרכז אישורים: <a href="${esc(STAGING_EMAIL_PREVIEW)}" style="color:#3b82f6;">email-preview-approval.html</a>
               </p>
             </td>
@@ -381,6 +570,12 @@ export function buildApprovalEmail(data = DEFAULT_DATA) {
     links,
     previewUrl,
     stagingEmailPreview: STAGING_EMAIL_PREVIEW,
+    version,
     data: d,
   };
+}
+
+/** Mission 30 alias */
+export function buildApprovalEmailV2(data) {
+  return buildApprovalEmail(data, { version: 2 });
 }
