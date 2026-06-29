@@ -549,13 +549,20 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
 }
 .coco-act-lite-list { display: flex; flex-direction: column; gap: 10px; }
 @media (max-width: 767px) {
+  #screen-actions.active {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
   #screen-actions .content {
-    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    overscroll-behavior-y: contain;
-    scroll-behavior: auto;
+    -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
-    contain: layout style;
+    overscroll-behavior-y: contain;
   }
 }
 .coco-act-lite-card-head {
