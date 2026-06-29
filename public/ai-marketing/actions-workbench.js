@@ -624,32 +624,10 @@
       '</div>';
   }
 
-  function renderActionWorkCard(action, page, expanded, sorted) {
-    var ba = buildBeforeAfterFallback(page, action);
-    var appr = approvalStatus(action.id);
-    var approved = appr === 'approved_for_execution';
-    var itemNum = getActionNumber(action.id);
-    var fb = getActionFeedback(action.id);
-    var st = resolveActionStatus(action);
+  function renderActionWorkCardBody(action, page, sorted, ba, approved, itemNum, fb, st, taskName, taskDesc, taskGoal) {
     var panelId = 'coco-act-acc-' + escAttr(action.id);
-    var impact = parseImpactFields(ba, action);
-    var taskName = action.category || action.title || 'משימה';
-    var taskDesc = action.detail || ba.proposed || ba.current || '—';
-    var taskGoal = ba.why || action.problem || 'שיפור לפי המלצות המטרות';
-
-    if (expanded) ensureActionOpened(action.id);
-
-    return '<article class="coco-act-work-card coco-act-lite-acc-item' + (expanded ? ' coco-act-lite-acc-open' : '') + '" data-action-id="' + escAttr(action.id) + '">' +
-      '<button type="button" class="coco-act-lite-acc-head coco-act-work-card-head" data-act-acc-toggle="' + escAttr(action.id) + '" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="' + panelId + '">' +
-      '<span class="coco-act-lite-acc-chevron">' + (expanded ? '▲' : '▼') + '</span>' +
-      (itemNum ? '<span class="coco-act-num-tag">#' + itemNum + '</span>' : '') +
-      '<span class="coco-act-work-card-name">' + esc(taskName) + '</span>' +
-      '<span class="badge badge-blue coco-act-work-badge">⏱ ' + esc(impact.workFormatted) + '</span> ' +
-      statusBadgeFor(st) +
-      '<span class="coco-act-work-card-order">סדר: ' + (itemNum || '—') + '</span>' +
-      '</button>' +
-      '<div id="' + panelId + '" class="coco-act-work-card-body coco-act-lite-acc-panel" style="display:' + (expanded ? 'block' : 'none') + ';">' +
-      (expanded ? renderActionNav(sorted, action.id) : '') +
+    return '<div id="' + panelId + '" class="coco-act-work-card-body coco-act-lite-acc-panel">' +
+      renderActionNav(sorted, action.id) +
       '<div class="coco-act-work-grid">' +
       '<div class="coco-act-work-field coco-act-work-field-full">' +
       '<span class="coco-act-work-label">שם המשימה</span>' +
@@ -686,7 +664,7 @@
       '<label class="coco-act-fb-field"><span class="coco-act-fb-label">קישור או תיאור קובץ</span>' +
       '<input class="filter-input" data-act-meta="filesNote" data-act-meta-id="' + escAttr(action.id) + '" value="' + escAttr(fb.filesNote || '') + '"></label>' +
       '</div>' +
-      (window.ActionsDemoCode ? ActionsDemoCode.renderDemoSection(action.id, expanded) : '') +
+      (window.ActionsDemoCode ? ActionsDemoCode.renderDemoSection(action.id, true) : '') +
       renderBeforeAfter(ba, itemNum, action) +
       renderFeedbackPanel(action, page, itemNum) +
       '<div class="coco-act-work-actions">' +
@@ -697,7 +675,40 @@
           ' <button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-revoke="' + escAttr(action.id) + '">↩ בטל אישור</button>'
         : '<button type="button" class="btn btn-primary coco-act-btn-sm" data-act-approve="' + escAttr(action.id) + '">✅ אישור לביצוע</button>') +
       ' <span class="coco-act-approval-note">Staging בלבד · לא משנה dalia-c.com</span>' +
-      '</div></div></article>';
+      '</div></div>';
+  }
+
+  function renderActionWorkCard(action, page, expanded, sorted) {
+    var ba = buildBeforeAfterFallback(page, action);
+    var appr = approvalStatus(action.id);
+    var approved = appr === 'approved_for_execution';
+    var itemNum = getActionNumber(action.id);
+    var fb = getActionFeedback(action.id);
+    var st = resolveActionStatus(action);
+    var panelId = 'coco-act-acc-' + escAttr(action.id);
+    var impact = parseImpactFields(ba, action);
+    var taskName = action.category || action.title || 'משימה';
+    var taskDesc = action.detail || ba.proposed || ba.current || '—';
+    var taskGoal = ba.why || action.problem || 'שיפור לפי המלצות המטרות';
+
+    if (expanded) ensureActionOpened(action.id);
+
+    var html = '<article class="coco-act-work-card coco-act-lite-acc-item' + (expanded ? ' coco-act-lite-acc-open' : '') + '" data-action-id="' + escAttr(action.id) + '">' +
+      '<button type="button" class="coco-act-lite-acc-head coco-act-work-card-head" data-act-acc-toggle="' + escAttr(action.id) + '" aria-expanded="' + (expanded ? 'true' : 'false') + '"' +
+      (expanded ? ' aria-controls="' + panelId + '"' : '') + '>' +
+      '<span class="coco-act-lite-acc-chevron">' + (expanded ? '▲' : '▼') + '</span>' +
+      (itemNum ? '<span class="coco-act-num-tag">#' + itemNum + '</span>' : '') +
+      '<span class="coco-act-work-card-name">' + esc(taskName) + '</span>' +
+      '<span class="badge badge-blue coco-act-work-badge">⏱ ' + esc(impact.workFormatted) + '</span> ' +
+      statusBadgeFor(st) +
+      '<span class="coco-act-work-card-order">סדר: ' + (itemNum || '—') + '</span>' +
+      '</button>';
+
+    if (expanded) {
+      html += renderActionWorkCardBody(action, page, sorted, ba, approved, itemNum, fb, st, taskName, taskDesc, taskGoal);
+    }
+
+    return html + '</article>';
   }
 
   function renderActionAccordionItem(action, page, expanded, sorted) {
@@ -1203,8 +1214,13 @@
       var acc = e.target.closest('[data-act-acc-toggle]');
       if (acc) {
         var aid = acc.getAttribute('data-act-acc-toggle');
-        _expandedActionId = _expandedActionId === aid ? null : aid;
-        if (_expandedActionId) ensureActionOpened(_expandedActionId);
+        if (_expandedActionId === aid) {
+          if (needsDemoDomSync()) syncDemoFieldsFromDom();
+          _expandedActionId = null;
+        } else {
+          _expandedActionId = aid;
+          ensureActionOpened(_expandedActionId);
+        }
         rerender();
         return;
       }

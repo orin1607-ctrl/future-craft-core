@@ -320,6 +320,26 @@
     return '<span class="badge ' + (map[status] || 'badge-gray') + '">' + esc(label) + '</span>';
   }
 
+  var LEGACY_ACTIONS_TAB_IDS = [
+    'tab-act-new', 'tab-act-pending', 'tab-act-progress', 'tab-act-done',
+    'tab-act-rejected', 'tab-act-history', 'tab-act-summary', 'actions-legacy-filters',
+  ];
+
+  function purgeLegacyActionsDom() {
+    if (!isLiveGoalsActionsMode()) return 0;
+    var screen = document.getElementById('screen-actions');
+    if (!screen) return 0;
+    var removed = 0;
+    LEGACY_ACTIONS_TAB_IDS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) { el.remove(); removed++; }
+    });
+    var tabs = screen.querySelector('.nav-tabs');
+    if (tabs) { tabs.remove(); removed++; }
+    screen._legacyActionsPurged = true;
+    return removed;
+  }
+
   function hideLegacyGoalsActionsUi(screenId) {
     var screen = document.getElementById(screenId);
     if (!screen) return;
@@ -328,6 +348,10 @@
     var live = document.getElementById(liveId);
     var hasLive = live && live.innerHTML.trim().length > 80;
     if (!liveOnly && !hasLive) return;
+
+    if (screenId === 'screen-actions' && liveOnly && !screen._legacyActionsPurged) {
+      purgeLegacyActionsDom();
+    }
 
     var tabs = screen.querySelector('.nav-tabs');
     if (tabs) tabs.style.display = 'none';

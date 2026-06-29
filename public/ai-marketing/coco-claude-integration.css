@@ -557,10 +557,6 @@ body.dalia-live-only #coco-live-actions-pending { display: block !important; vis
     touch-action: pan-y;
     contain: layout style;
   }
-  #screen-actions .coco-act-lite-card {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 120px;
-  }
 }
 .coco-act-lite-card-head {
   padding: 14px;
