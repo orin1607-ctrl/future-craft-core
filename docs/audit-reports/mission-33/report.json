@@ -1,0 +1,856 @@
+{
+  "mission": 33,
+  "at": "2026-06-29T18:43:29.980Z",
+  "version": "v3-mission-33-f2fc66b",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-33-f2fc66b",
+  "commitHash": "f2fc66b68e1c896df2e31e5f77482f92b483874b",
+  "screens": {
+    "screen-hub": {
+      "desktop": "pass",
+      "name": "מרכז שיווק",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 646,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 14,
+      "tabs": 0,
+      "height": 1093.1875,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-hub",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-status": {
+      "desktop": "pass",
+      "name": "מצב נוכחי",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 4155,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 14,
+      "tabs": 5,
+      "height": 5892.3125,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-status",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-clients": {
+      "desktop": "pass",
+      "name": "חברות ועסקים",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 2728,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 7,
+      "tabs": 4,
+      "height": 3700,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-clients",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-business-strategy": {
+      "desktop": "pass",
+      "name": "אסטרטגיית שיווק AI",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 0,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 2,
+      "tabs": 0,
+      "height": 0,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-business-strategy",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-agents": {
+      "desktop": "pass",
+      "name": "עוזרים",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 3026,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 27,
+      "tabs": 0,
+      "height": 3431.4375,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-agents",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-goals": {
+      "desktop": "pass",
+      "name": "מטרות",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 4709,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 4,
+      "tabs": 5,
+      "height": 4192,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-goals",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-actions": {
+      "desktop": "pass",
+      "name": "פעולות",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 1331,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 26,
+      "tabs": 0,
+      "height": 1316,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-actions",
+        "scrollable": true,
+        "ok": true,
+        "downOk": true,
+        "upOk": true,
+        "jumps": 0,
+        "fabBlocks": false,
+        "footerVisible": true,
+        "maxScroll": 316
+      },
+      "overall": "pass"
+    },
+    "screen-history": {
+      "desktop": "pass",
+      "name": "היסטוריה",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 2614,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 7,
+      "tabs": 4,
+      "height": 2524,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-history",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-reports": {
+      "desktop": "pass",
+      "name": "דוחות",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 1245,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 10,
+      "tabs": 5,
+      "height": 1768.4375,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-reports",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-crm": {
+      "desktop": "pass",
+      "name": "CRM",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 1386,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 9,
+      "tabs": 18,
+      "height": 1853.4375,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-crm",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-assets": {
+      "desktop": "pass",
+      "name": "נכסים דיגיטליים",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 79,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 3,
+      "tabs": 0,
+      "height": 844,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-assets",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-ai-center": {
+      "desktop": "pass",
+      "name": "מרכז AI",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 3713,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 21,
+      "tabs": 4,
+      "height": 3686.09375,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-ai-center",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-agent-dashboard": {
+      "desktop": "pass",
+      "name": "דשבורד עוזר",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 1673,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 9,
+      "tabs": 0,
+      "height": 1822.4375,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-agent-dashboard",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    },
+    "screen-crm-card": {
+      "desktop": "pass",
+      "name": "כרטיס CRM",
+      "issues": [],
+      "exists": true,
+      "active": true,
+      "hasContent": true,
+      "contentLen": 688,
+      "canScroll": false,
+      "overflowY": "auto",
+      "buttons": 8,
+      "tabs": 7,
+      "height": 901,
+      "mobile": "pass",
+      "mobileScroll": {
+        "sid": "screen-crm-card",
+        "scrollable": false,
+        "ok": true,
+        "reason": "no_scroll_needed"
+      },
+      "overall": "pass"
+    }
+  },
+  "sections": {
+    "33.0_git_deploy": {
+      "status": "pass",
+      "title": "Git / GitHub Pages deploy",
+      "found": {
+        "commitHash": "f2fc66b68e1c896df2e31e5f77482f92b483874b",
+        "localWizard": true,
+        "stagingWizard": true,
+        "pagesOk": true
+      },
+      "note": "Staging bundle matches approved wizard"
+    },
+    "33.1_desktop_screens": {
+      "status": "pass",
+      "title": "Desktop — all screens",
+      "found": {
+        "bootMs": 3591,
+        "hubCards": 10,
+        "actionTabs": {
+          "count": 0,
+          "tabs": []
+        },
+        "aiCenter": {
+          "panel": true,
+          "input": true,
+          "hasControl": true
+        },
+        "screens": {
+          "screen-hub": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 646,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 14,
+            "tabs": 0,
+            "height": 1093.1875,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-status": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 4155,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 14,
+            "tabs": 5,
+            "height": 5892.3125,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-clients": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 2728,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 7,
+            "tabs": 4,
+            "height": 3700,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-business-strategy": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 0,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 2,
+            "tabs": 0,
+            "height": 0,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-agents": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 3026,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 27,
+            "tabs": 0,
+            "height": 3431.4375,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-goals": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 4709,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 4,
+            "tabs": 5,
+            "height": 4192,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-actions": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 1331,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 26,
+            "tabs": 0,
+            "height": 1316,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-history": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 2614,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 7,
+            "tabs": 4,
+            "height": 2524,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-reports": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 1245,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 10,
+            "tabs": 5,
+            "height": 1768.4375,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-crm": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 1386,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 9,
+            "tabs": 18,
+            "height": 1853.4375,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-assets": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 79,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 3,
+            "tabs": 0,
+            "height": 844,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-ai-center": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 3713,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 21,
+            "tabs": 4,
+            "height": 3686.09375,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-agent-dashboard": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 1673,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 9,
+            "tabs": 0,
+            "height": 1822.4375,
+            "status": "pass",
+            "issues": []
+          },
+          "screen-crm-card": {
+            "exists": true,
+            "active": true,
+            "hasContent": true,
+            "contentLen": 688,
+            "canScroll": false,
+            "overflowY": "auto",
+            "buttons": 8,
+            "tabs": 7,
+            "height": 901,
+            "status": "pass",
+            "issues": []
+          }
+        }
+      }
+    },
+    "33.2_mobile_scroll": {
+      "status": "pass",
+      "title": "Mobile scroll — all screens",
+      "found": {
+        "scrollFails": [],
+        "actionsDeep": {
+          "ok": true,
+          "maxScroll": 1601,
+          "jumps": 0
+        },
+        "sample": {
+          "screen-hub": {
+            "info": {
+              "exists": true,
+              "active": true,
+              "hasContent": true,
+              "contentLen": 646,
+              "canScroll": false,
+              "overflowY": "auto",
+              "buttons": 17,
+              "tabs": 0,
+              "height": 1550.578125
+            },
+            "scroll": {
+              "sid": "screen-hub",
+              "scrollable": false,
+              "ok": true,
+              "reason": "no_scroll_needed"
+            },
+            "status": "pass",
+            "issues": []
+          },
+          "screen-status": {
+            "info": {
+              "exists": true,
+              "active": true,
+              "hasContent": true,
+              "contentLen": 4155,
+              "canScroll": false,
+              "overflowY": "auto",
+              "buttons": 14,
+              "tabs": 5,
+              "height": 9546.9375
+            },
+            "scroll": {
+              "sid": "screen-status",
+              "scrollable": false,
+              "ok": true,
+              "reason": "no_scroll_needed"
+            },
+            "status": "pass",
+            "issues": []
+          },
+          "screen-clients": {
+            "info": {
+              "exists": true,
+              "active": true,
+              "hasContent": true,
+              "contentLen": 2728,
+              "canScroll": false,
+              "overflowY": "auto",
+              "buttons": 7,
+              "tabs": 4,
+              "height": 4831
+            },
+            "scroll": {
+              "sid": "screen-clients",
+              "scrollable": false,
+              "ok": true,
+              "reason": "no_scroll_needed"
+            },
+            "status": "pass",
+            "issues": []
+          },
+          "screen-business-strategy": {
+            "info": {
+              "exists": true,
+              "active": true,
+              "hasContent": false,
+              "contentLen": 0,
+              "canScroll": false,
+              "overflowY": "auto",
+              "buttons": 2,
+              "tabs": 0,
+              "height": 0
+            },
+            "scroll": {
+              "sid": "screen-business-strategy",
+              "scrollable": false,
+              "ok": true,
+              "reason": "no_scroll_needed"
+            },
+            "status": "pass",
+            "issues": []
+          }
+        }
+      }
+    },
+    "33.3_buttons": {
+      "status": "pass",
+      "title": "Buttons & navigation",
+      "found": {
+        "hubNav": [
+          {
+            "label": "📊\nמצב נוכחי\nתמונת מצב בזמן אמ",
+            "active": "screen-status",
+            "ok": true
+          },
+          {
+            "label": "🏢\nחברות ועסקים\nאסטרטגיית שיוו",
+            "active": "screen-business-strategy",
+            "ok": true
+          },
+          {
+            "label": "🤖\nהעוזרים שלנו\nאיסוף וניתוח מ",
+            "active": "screen-agents",
+            "ok": true
+          },
+          {
+            "label": "🎯\nהמטרות שלנו\nמסקנות אסטרטגיו",
+            "active": "screen-goals",
+            "ok": true
+          },
+          {
+            "label": "⚙️\nהפעולות\nביצוע ואישור משימות",
+            "active": "screen-actions",
+            "ok": true
+          },
+          {
+            "label": "👥\nלקוחות CRM\nניהול לקוחות ולי",
+            "active": "screen-crm",
+            "ok": true
+          },
+          {
+            "label": "🌐\nהנכסים הדיגיטליים\nשליטה בכל",
+            "active": "screen-assets",
+            "ok": true
+          },
+          {
+            "label": "🧠\nמרכז AI\nChatGPT מנתח → יוצר",
+            "active": "screen-ai-center",
+            "ok": true
+          },
+          {
+            "label": "📚\nהיסטוריה\nAudit Trail מלא – ",
+            "active": "screen-history",
+            "ok": true
+          },
+          {
+            "label": "📑\nדוחות\nדוחות אוטומטיים לפי מ",
+            "active": "screen-reports",
+            "ok": true
+          }
+        ],
+        "bnav": [
+          {
+            "label": "🏠ראשי",
+            "active": "screen-hub",
+            "ok": true
+          },
+          {
+            "label": "📊\nמצב",
+            "active": "screen-status",
+            "ok": true
+          },
+          {
+            "label": "⚙️פעולות",
+            "active": "screen-actions",
+            "ok": true
+          },
+          {
+            "label": "🎯מטרות",
+            "active": "screen-goals",
+            "ok": true
+          },
+          {
+            "label": "👥לקוחות",
+            "active": "screen-goals",
+            "ok": true
+          },
+          {
+            "label": "🔔לידים",
+            "active": "screen-goals",
+            "ok": true
+          },
+          {
+            "label": "🏗️Pipeline",
+            "active": "screen-goals",
+            "ok": true
+          },
+          {
+            "label": "📋משימות",
+            "active": "screen-goals",
+            "ok": true
+          },
+          {
+            "label": "📊דוחות",
+            "active": "screen-goals",
+            "ok": true
+          }
+        ],
+        "workbenchOpens": true
+      }
+    },
+    "33.4_connections": {
+      "status": "pass",
+      "title": "Screen connections & Business Strategy flow",
+      "found": {
+        "flow": [
+          {
+            "step": "biz_strategy_open",
+            "ok": true
+          },
+          {
+            "step": "biz_prefill",
+            "ok": true
+          },
+          {
+            "step": "biz_analysis",
+            "ok": true
+          },
+          {
+            "step": "biz_export",
+            "ok": true
+          },
+          {
+            "step": "business_context",
+            "ok": true
+          },
+          {
+            "step": "to_agents",
+            "ok": true
+          },
+          {
+            "step": "goals",
+            "ok": true
+          },
+          {
+            "step": "actions",
+            "ok": true
+          },
+          {
+            "step": "history",
+            "ok": true
+          },
+          {
+            "step": "reports",
+            "ok": true
+          },
+          {
+            "step": "agents_banner",
+            "ok": true
+          }
+        ]
+      }
+    },
+    "33.5_gmail": {
+      "status": "pass",
+      "title": "Gmail / notifications infrastructure",
+      "found": {
+        "ok": true,
+        "queueCount": 5,
+        "types": 5,
+        "gmailStatus": "resend_phase1",
+        "wired": [
+          "localStorage queue",
+          "approval_required → tryDispatchApprovalEmail stub",
+          "notification type registry",
+          "test harness"
+        ],
+        "missing": [
+          "Deploy marketing-notify-email to Supabase Staging",
+          "MARKETING_CRON_SECRET for headless dispatch (optional)",
+          "marketing_approvals + tokens tables (Mission 27 Phase 1)",
+          "GMAIL_SEND_ENABLED + OAuth (Phase 2 — optional)",
+          "Webhook inbound parser לתשובות \"אשר 123\" (Phase 3)"
+        ],
+        "templateFiles": [
+          "email-approval-sample.html",
+          "email-preview-approval.html"
+        ],
+        "templatesExist": true
+      },
+      "note": "Live Gmail OAuth deferred — Resend stub ready"
+    },
+    "33.6_performance": {
+      "status": "pass",
+      "title": "Performance",
+      "found": {
+        "bootMs": 3365,
+        "totalDom": 15236,
+        "actionsNodes": 195,
+        "jsHeap": 10,
+        "consoleErrorCount": 0,
+        "networkErrorCount": 0
+      }
+    },
+    "33.7_console": {
+      "status": "pass",
+      "title": "Console & network errors",
+      "found": {
+        "consoleErrors": [],
+        "networkErrors": [],
+        "uniqueConsole": 0
+      }
+    }
+  },
+  "fixes": [],
+  "consoleErrors": [],
+  "networkErrors": [],
+  "passed": 8,
+  "failed": 0,
+  "warnings": 0,
+  "readyForStaging": true,
+  "summary": {
+    "screensPass": 14,
+    "screensWarn": 0,
+    "screensFail": 0,
+    "sectionFails": 0,
+    "sectionWarnings": 0
+  }
+}
