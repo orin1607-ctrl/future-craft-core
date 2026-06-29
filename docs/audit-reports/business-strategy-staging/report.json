@@ -1,8 +1,8 @@
 {
-  "at": "2026-06-29T17:33:52.984Z",
-  "commitHash": "390e12d53b91b8279658e1e3767958e0391cc44a",
-  "stagingUrl": "http://127.0.0.1:8765/ai-marketing-platform.html",
-  "version": "v3-mission-25-1-390e12d",
+  "at": "2026-06-29T17:38:24.192Z",
+  "commitHash": "16d0d4f7cd19ac0c979033f1157636e1d0cbb801",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-32-16d0d4f",
+  "version": "v3-mission-32-16d0d4f",
   "checks": {
     "modules_loaded": {
       "ok": true,
@@ -88,9 +88,5 @@
   "passed": 20,
   "failed": 0,
   "openIssues": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)",
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
   "ok": true
 }
