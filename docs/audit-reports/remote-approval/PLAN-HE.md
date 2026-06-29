@@ -272,10 +272,15 @@ else → in-app notification center (סעיף 4)
 - סוגים: `approval_required`, `page_ready`, `action_completed`, `daily_digest`, `critical_alert`
 - `ai-control-center-bridge.js` → `notifyPageReadyForApproval()` מזין את התור
 
-**יעד (Mission 27):**
-- טבלת `marketing_in_app_notifications` ב-Supabase
+**יעד Phase 0 (מרכז הודעות ואישורים — סעיף 15):**
+- עמוד ייעודי in-app = **ערוץ ראשי ל-POC** — לא fallback בלבד
+- מנצל Preview מ-`actions-workbench.js` ו-badge מ-`app.js`
+- טבלת `marketing_in_app_notifications` ב-Supabase (Phase 0b)
 - Realtime subscription (אופציונלי) למסך Hub
-- **גם בלי login:** in-app לא ממלא את "אין צורך להתחבר" — לכן in-app הוא **fallback בלבד**, לא ערוץ ראשי
+
+**יעד Phase 1+ (ערוצים חיצוניים):**
+- Gmail/WhatsApp = **התראה + deep link** למרכז — לא מחליפים את המרכז
+- אישור מרחוק ללא login (tokens) — משלים את המרכז, לא מחליף אותו
 
 ### 4.4 UI מרכז התראות
 
@@ -711,41 +716,63 @@ GitHub Actions (scheduler)
 
 ---
 
-## 13. Roadmap יישום (Phase 1/2/3)
+## 13. Roadmap יישום (Phase 0/1/2/3)
 
-### Phase 1 — MVP אישור מרחוק (4–6 שבועות)
+> **עדכון 2026-06-29:** נוסף **Phase 0** — מרכז הודעות ואישורים בתוך האפליקציה. Gmail ו-WhatsApp מדורגים אחריו כערוצי התראה חיצוניים בלבד (קישור לעמוד). פירוט מלא — סעיף 15.
 
-**מטרה:** משתמש אחד (Dalia C) מקבל מייל עם כפתורי אישור עובדים.
+### Phase 0 — מרכז הודעות ואישורים (2–3 שבועות) ⭐ **להתחיל כאן**
+
+**מטרה:** עמוד ייעודי אחד בתוך Staging שמרכז את כל ההודעות, האישורים וההתראות — **ללא** Gmail API, WhatsApp API, או OAuth.
+
+| שבוע | משימות |
+|------|--------|
+| 1 | מסך `screen-approval-hub` (או הרחבת `screen-ai-center`): רשימת פריטים ממתינים, badge, סינון לפי סטטוס |
+| 1 | חיבור ל-`marketing-notifications.js` (stub) + `ai-control-center-bridge.js` → `notifyPageReadyForApproval()` |
+| 2 | שילוב Preview מ-`actions-workbench.js` (modal before/after, `EXECUTION_MODE=preview`) |
+| 2 | כפתורי אישור / דחייה / שליחה לתיקון — בתוך המערכת (SSO קיים ב-Staging) |
+| 2–3 | דוח יומי, פעולות שהסתיימו, היסטוריית החלטות, סטטוס פריט, קישורים ישירים למשימות ולעמודים |
+| 3 | מיגרציה ראשונית ל-Supabase: `marketing_approvals` + `marketing_in_app_notifications` (אופציונלי — מתחילים ב-LS) |
+| 3 | QA: Playwright — ניווט לעמוד, אישור פריט, בדיקת היסטוריה |
+
+**Definition of Done Phase 0:**
+- [ ] עמוד יחיד מציג את כל 10 הרכיבים (סעיף 15.1)
+- [ ] אישור מתוך המערכת מעדכן status + היסטוריה
+- [ ] Preview לפני/אחרי עובד (מבוסס Workbench קיים)
+- [ ] `notifyPageReadyForApproval` מזין את המרכז אוטומטית
+- [ ] אין תלות ב-Gmail / WhatsApp / Resend
+
+### Phase 1 — Gmail/Resend: התראה + קישור למרכז (3–4 שבועות)
+
+**מטרה:** משתמש מקבל מייל **קצר** עם קישור ישיר לפריט ב**מרכז הודעות ואישורים** — לא אישור מלא מתוך המייל (זה מגיע ב-Phase 1b אופציונלי).
 
 | שבוע | משימות |
 |------|--------|
 | 1 | מיגרציות Supabase: `marketing_approvals`, `tokens`, `audit`, `outbox` |
-| 2 | Edge: `marketing-approval-action` + `marketing-notify-email` (Resend) |
+| 2 | Edge: `marketing-notify-email` (Resend) — תבנית קצרה: סיכום + קישור למרכז |
+| 2–3 | Edge: `marketing-approval-action` + tokens (לאישור מרחוק אופציונלי) |
 | 3 | `approve.html` + preview page ב-Storage; token flow E2E |
-| 4 | חיבור `notifyPageReadyForApproval` → Edge (במקום LS בלבד) |
-| 5 | `marketing-publish-approved` stub → עדכון status + הודעת השלמה |
-| 6 | QA: Playwright + `scripts/verify-remote-approval.mjs` |
+| 4 | `marketing-publish-approved` stub → עדכון status + הודעת השלמה במרכז + במייל |
+| 4 | QA: Playwright + `scripts/verify-remote-approval.mjs` |
 
 **Definition of Done Phase 1:**
-- [ ] מייל נשלח עם 4 קישורים
-- [ ] אשר מרחוק מעדכן DB + audit
-- [ ] ללא login
-- [ ] completion email נשלח
+- [ ] מייל נשלח עם קישור למרכז + (אופציונלי) כפתורי אישור מרחוק
+- [ ] אשר מרחוק או מתוך המרכז מעדכן DB + audit
+- [ ] completion notification במרכז + במייל
 
 ### Phase 2 — WhatsApp + Screenshots + Daily Automation (6–8 שבועות)
 
 | שבוע | משימות |
 |------|--------|
-| 1–2 | אישור תבנית Gupshup `marketing_approval_v1` |
-| 3 | `marketing-notify-whatsapp` + fallback chain |
+| 1–2 | אישור תבנית Gupshup `marketing_approval_v1` — **קישור למרכז בלבד** |
+| 3 | `marketing-notify-whatsapp` + fallback chain (WA → מייל → in-app) |
 | 4–5 | Screenshot pipeline (GH Actions / Browserless) |
 | 6 | `marketing-daily-run` + חיבור cron ל-Edge |
 | 7 | Multi-AI live בpipeline (סף confidence) |
 | 8 | Outbox processor + retry + anti-spam |
 
 **Definition of Done Phase 2:**
-- [ ] זרימה יומית מלאה ללא כניסה למערכת
-- [ ] before/after בתמונה במייל וב-WA
+- [ ] זרימה יומית מלאה — התראה חיצונית מפנה למרכז
+- [ ] before/after בתמונה במייל, ב-WA ובמרכז
 - [ ] 0 התראות על פריטים שאושרו/נדחו
 
 ### Phase 3 — Scale + Gmail OAuth + Multi-tenant (8–12 שבועות)
@@ -768,20 +795,26 @@ GitHub Actions (scheduler)
 
 ## 14. המלצה מקצועית — הדרך האמינה ביותר
 
-### 14.1 סיכום החלטה
+### 14.1 סיכום החלטה (עודכן)
 
-**הדרך האמינה ביותר** למימוש Mission 27 היא ארכיטקטורת **Supabase Edge + Queue + Resend** לערוץ ראשון, עם **tokens חתומים** לאישור ללא login, ו-**GH Pages רק כשכבת תצוגה קלה** (`approve.html`, קישורים ל-Storage).
+**להתחיל ב-Phase 0: מרכז הודעות ואישורים בתוך האפליקציה** — עמוד ייעודי אחד שמרכז את כל ההחלטות, ה-Preview, וההיסטוריה. זה מנצל תשתית קיימת (`marketing-notifications.js`, `ai-control-center`, `actions-workbench` Preview) ומאפשר לבדוק את זרימת האישור ב-Staging **בשבועיים** ללא Gmail OAuth, תבניות WhatsApp, או עלויות שליחה.
 
-לא לנסות לבנות אישור מרחוק על localStorage או GH Pages בלבד — זה ייכשל באבטחה, באמינות ובסקייל.
+**אחרי ש-Phase 0 יציב:** Gmail/Resend (Phase 1) שולח **התראה קצרה + קישור** למרכז — לא מחליף את המרכז. WhatsApp (Phase 2) באותו עיקרון. אישור מרחוק ללא login (tokens חתומים) נשאר יעד ארוך-טווח — לא חוסם את ה-MVP.
 
-### 14.2 סדר עדיפויות מומלץ
+ארכיטקטורת יעד: **מרכז in-app = מקור אמת לחוויית אישור** · **ערוצים חיצוניים = push notification + deep link** · **Supabase Edge = אחסון, tokens, publish**.
 
-1. **DB + token gateway** — הבסיס לכל השאר
-2. **Resend email** — הכי מהיר ליישום; כבר מוכח ב-FleetOS
-3. **Preview ב-Storage** — ערך גבוה גם בלי תמונות (Phase 1: טקסט + diff)
-4. **Screenshots** — Phase 2 (לא לחסום MVP)
-5. **WhatsApp** — אחרי תבנית Meta מאושרת
-6. **Multi-AI live** — אחרי שזרימת האישור יציבה (לא לשלב הכל ביום אחד)
+לא לנסות לבנות את כל Mission 27 בבת אחת על Gmail/WhatsApp — זה יאט Staging וייצור תלות בהרשאות שלא נדרשות ל-POC.
+
+### 14.2 סדר עדיפויות מומלץ (עודכן)
+
+1. **מרכז הודעות ואישורים (Phase 0)** — MVP מהיר; מנצל קוד קיים
+2. **DB + approvals ב-Supabase** — מקור אמת (מקביל או מיד אחרי Phase 0)
+3. **Preview + before/after** — כבר קיים ב-Workbench; לחבר למרכז
+4. **Resend email** — התראה + קישור למרכז (לא אישור מלא במייל)
+5. **Token gateway** — לאישור מרחוק אופציונלי (Phase 1b)
+6. **Screenshots** — Phase 2 (לא לחסום MVP)
+7. **WhatsApp** — אחרי תבנית Meta; קישור למרכז בלבד
+8. **Multi-AI live** — אחרי שזרימת האישור יציבה
 
 ### 14.3 נקודות סיכון שיש להיות כנים לגביהן
 
@@ -793,18 +826,110 @@ GitHub Actions (scheduler)
 | GH Actions לא מספיק ל-1000 screenshots | queue + worker נפרד (Fly.io) |
 | בלבול Staging/Production | תמיד `EXECUTION_MODE` בבירור בהודעות |
 
-### 14.4 ארכיטקטורת יעד (מצומצמת)
+### 14.4 ארכיטקטורת יעד (מצומצמת — עודכן)
 
 ```
 Cron (GH) → Node engine → Edge orchestrator → Queue
     → Multi-AI (conditional) → Approval row → Capture (async)
-    → Outbox → Resend (primary) / Gupshup (secondary) / In-app (fallback)
-    → User clicks signed link → Edge action → Publish → Done notify
+    → In-app hub (מרכז הודעות) ← מקור אמת לחוויית אישור
+    → Outbox → Resend / Gupshup — התראה + deep link למרכז בלבד
+    → User מאשר במרכז (או דרך token מרחוק) → Edge action → Publish → Done
 ```
 
 ### 14.5 קריטריון הצלחה ל-Mission 27
 
-המשתמש מתעורר, מקבל **מייל אחד** (או WA) עם הסבר ברור, תמונות, וביטחון AI — לוחץ **אשר** מהטלפון — **בלי סיסמה** — והשינוי מתפרסם עם אישור חוזר. המערכת לא שולחת כלום בימים שאין `pending_approval` אמיתי.
+**Phase 0:** המשתמש נכנס למרכז הודעות ואישורים, רואה פריטים ממתינים עם Preview והשוואה לפני/אחרי, ולוחץ **אשר** — השינוי מתפרסם (או נשאר ב-preview לפי `EXECUTION_MODE`).
+
+**Phase 1+:** בנוסף — המשתמש מקבל **מייל או WA** עם סיכום קצר וקישור ישיר לפריט במרכז. אישור מרחוק ללא login (token) — בונוס, לא חובה ל-MVP.
+
+המערכת לא שולחת כלום בימים שאין `pending_approval` אמיתי.
+
+---
+
+## 15. Phase 0 — מרכז הודעות ואישורים (חלופה פשוטה in-app)
+
+### 15.1 חזון ותוכן העמוד
+
+**מרכז הודעות ואישורים** — עמוד ייעודי אחד בתוך האפליקציה (`ai-marketing-platform.html`) שמרכז את כל מה שהמשתמש צריך לדעת ולהחליט, **בלי** לפתוח Gmail, WhatsApp, או מסכים מפוזרים.
+
+| # | רכיב | תיאור | בסיס קיים |
+|---|------|--------|-----------|
+| 1 | **דוח יומי** | סיכום ריצת המנוע היומי: כמה פריטים נוצרו, כמה ממתינים, כמה אושרו | `daily-engine.js`, `marketing_daily_runs` (יעד) |
+| 2 | **פעולות שהסתיימו** | רשימת publish / reject שהושלמו היום/שבוע | `action_completed` ב-`marketing-notifications.js` |
+| 3 | **עמודים שמוכנים לאישור** | תור `pending_approval` — הפריט המרכזי | `approval_required`, `notifyPageReadyForApproval()` |
+| 4 | **Preview** | תצוגה מקדימה מלאה של הטיוטה | `actions-workbench.js` — modal Preview |
+| 5 | **השוואה לפני/אחרי** | diff ויזואלי: title, meta, H1, CTA | Workbench + `history-lite` |
+| 6 | **כפתורי אישור / דחייה / שליחה לתיקון** | 3 פעולות עיקריות על כל פריט | `ActionsWorkbench.approve()`, approvals LS |
+| 7 | **התראות על תקלות** | `critical_alert` — עמוד down, SEO קריטי, כשל capture | `marketing-notifications.js` — סוג `critical_alert` |
+| 8 | **היסטוריה של החלטות** | מי אישר/דחה, מתי, הערות | `dalia-action-approvals-v1` → Supabase `marketing_approval_audit` |
+| 9 | **סטטוס של כל פעולה** | `pending` / `approved` / `rejected` / `revision_requested` | `marketing_approvals.status` |
+| 10 | **קישורים ישירים למשימות ולעמודים** | deep link ל-Actions Workbench, לעמוד באתר, ל-AI Center | `screen-actions`, `screen-ai-center` |
+
+### 15.2 יתרונות לעומת Gmail/WhatsApp מיידי
+
+| יתרון | הסבר |
+|--------|------|
+| **קל יותר לבנייה** | מנצל `MarketingNotifications`, `ai-control-center`, Workbench Preview — כבר ב-Staging |
+| **פחות תלות חיצונית** | אין OAuth Gmail, אין תבניות Meta ל-WhatsApp, אין Resend ל-POC |
+| **עלות נמוכה** | $0 לערוץ in-app; AI בלבד (אם רץ) |
+| **פחות הרשאות** | לא נדרש `gmail.send`, Gupshup template approval, Pub/Sub |
+| **מהיר יותר ב-Staging** | GH Pages + LS/Supabase — ללא Edge Functions לשליחה |
+| **חוויית אישור עשירה** | Preview מלא, השוואה, היסטוריה — לא מוגבל לתבנית מייל/WA |
+| **מסלול ברור להמשך** | Gmail/WA שולחים רק **התראה + קישור** לעמוד זה |
+
+### 15.3 מיקום ב-UI
+
+**אפשרות A (מומלצת):** מסך חדש `screen-approval-hub` — כרטיס ב-Hub הראשי עם badge (`approvalCount` — כבר קיים ב-`app.js`).
+
+**אפשרות B:** הרחבת `screen-ai-center` (`ai-control-center.js`) — טאב "אישורים" לצד שאלות AI.
+
+**אפשרות C:** טאב ייעודי בתוך Actions Workbench — "מרכז אישורים" מעל רשימת הפעולות.
+
+### 15.4 זרימת נתונים (Phase 0)
+
+```
+Daily Engine / AI Control Center
+    → notifyPageReadyForApproval()
+    → MarketingNotifications.enqueue('approval_required', payload)
+    → מרכז הודעות ואישורים (UI)
+    → משתמש: Preview → אשר / דחה / תיקון
+    → ActionsWorkbench.approve() / reject / revise
+    → LS (Phase 0) → Supabase (Phase 0b)
+    → הודעת השלמה in-app (action_completed)
+```
+
+**הערה:** ב-Phase 0 המשתמש **נכנס** למערכת — זה מקבל את עקרון "No login for approval" מסעיף 1.2. זה מכוון: POC מהיר בתוך Staging. אישור ללא login (tokens) מגיע ב-Phase 1 כשהמרכז כבר עובד.
+
+### 15.5 השוואת 3 גישות
+
+דירוג: ⭐ (נמוך) עד ⭐⭐⭐⭐⭐ (גבוה).
+
+| קריטריון | אישורים דרך Gmail | אישורים דרך WhatsApp | מרכז הודעות בתוך האפליקציה |
+|----------|-------------------|----------------------|----------------------------|
+| **מהירות פיתוח** | ⭐⭐⭐ — Resend מהיר; OAuth + inbound איטי | ⭐⭐ — תבנית Meta, Gupshup, מגבלות כפתורים | ⭐⭐⭐⭐⭐ — קוד קיים, UI בלבד |
+| **עלות** | ⭐⭐⭐⭐ — Resend freemium; Gmail חינם | ⭐⭐ — תשלום per message + template | ⭐⭐⭐⭐⭐ — $0 לערוץ |
+| **אמינות** | ⭐⭐⭐⭐ — תשתית מייל מבוססת; spam risk | ⭐⭐⭐ — תלוי Meta/Gupshup; 24h window | ⭐⭐⭐⭐ — תלוי Supabase/LS; אין כשל שליחה |
+| **אבטחה** | ⭐⭐⭐⭐ — tokens חתומים; סיכון העברת קישור | ⭐⭐⭐ — tokens; פחות מקום ל-Preview מלא | ⭐⭐⭐⭐ — SSO/RBAC קיים; אין token ב-URL |
+| **נוחות שימוש** | ⭐⭐⭐⭐⭐ — לא דורש כניסה; מהטלפון | ⭐⭐⭐⭐ — מובייל; מוגבל בתבנית | ⭐⭐⭐ — דורש כניסה; חוויה עשירה |
+| **התאמה לעבודה עם הרבה לקוחות** | ⭐⭐⭐⭐ — מייל per client; digest אפשרי | ⭐⭐⭐ — עלות ליניארית; opt-in | ⭐⭐⭐⭐⭐ — מסך אחד, multi-tenant טבעי |
+
+### 15.6 המלצה מפורשת — מה לעשות **קודם**
+
+> **התחילו ב-Phase 0: מרכז הודעות ואישורים בתוך האפליקציה.**
+
+**נימוק:**
+1. **זמן לשוק:** 2–3 שבועות לעומת 4–6 ל-Gmail MVP מלא — כי רוב ה-UI והלוגיקה כבר קיימים.
+2. **סיכון נמוך:** אין תלות באישור Meta לתבנית WA, ב-OAuth Google, או ב-onboarding Resend domain.
+3. **ערך מיידי:** המשתמש רואה דוח יומי, תור אישורים, Preview, והיסטוריה — **היום** ב-Staging.
+4. **בסיס לערוצים חיצוניים:** כש-Gmail/WA מגיעים — הם שולחים רק "יש פריט חדש" + קישור deep link לפריט במרכז. לא צריך לשכפל Preview במייל.
+5. **סקייל:** עם 100+ לקוחות — מסך אחד עם סינון per `clientId` עדיף על 100 תיבות מייל.
+
+**סדר מומלץ:**
+```
+Phase 0 (in-app hub) → Phase 1 (Gmail: notify + link) → Phase 2 (WhatsApp: notify + link) → Phase 3 (scale)
+```
+
+אישור מרחוק ללא login (token links) — **Phase 1b אופציונלי**, לא חוסם את השאר.
 
 ---
 
@@ -836,4 +961,4 @@ Cron (GH) → Node engine → Edge orchestrator → Queue
 ---
 
 **סוף מסמך תכנון Mission 27**  
-*יישום בפועל — לפי Roadmap בסעיף 13, Phase 1.*
+*יישום בפועל — לפי Roadmap בסעיף 13, **Phase 0** (מרכז הודעות ואישורים). Gmail ו-WhatsApp — Phase 1–2.*
