@@ -1,0 +1,39 @@
+{
+  "at": "2026-06-29T05:15:35.140Z",
+  "stagingUrl": "http://localhost:52979/ai-marketing-platform.html?v=v3-live-demo-2&page=page-07",
+  "ver": "v3-live-demo-2",
+  "checks": {
+    "deepLink": {
+      "view": "workbench-expected",
+      "wbTitle": null,
+      "onPage07": false
+    },
+    "previewBtn": {
+      "found": true,
+      "label": "🔍 תצוגה מקדימה (לפני/אחרי/השוואה)"
+    },
+    "previewModal": {
+      "modal": true,
+      "tabs": [
+        "לפני",
+        "אחרי",
+        "השוואה"
+      ],
+      "hasBefore": true,
+      "hasAfter": true
+    },
+    "compare": {
+      "beforeFrame": true,
+      "afterFrame": true,
+      "beforeLen": 783,
+      "afterLen": 963
+    },
+    "accordion": {
+      "baBefore": 1,
+      "baAfter": 1,
+      "approve": "✅ אישור לביצוע"
+    },
+    "notifyHook": true
+  },
+  "ok": "✅ אישור לביצוע"
+}

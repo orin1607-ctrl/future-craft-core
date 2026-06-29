@@ -90,6 +90,8 @@
   }
 
   var PREVIEW_TTL_MS = 2 * 60 * 60 * 1000;
+  var PREVIEW_KEY_PREFIX = 'dalia-act-lite-preview:';
+  var WB_NOTIFY_KEY = 'dalia-act-wb-notify-v1';
   var PAGE_SIZE = 8;
 
   var _lastRenderActions = [];
@@ -100,6 +102,8 @@
   var _workbenchPageId = null;
   var _listPage = 0;
   var _expandedActionId = null;
+  var _deepLinkHandled = false;
+  var _litePreviewMode = 'after';
   var _fbSaveTimer = null;
 
   var WORK_MINUTES_BY_TYPE = {
@@ -767,8 +771,11 @@
       renderTimeSummaryBar(pageTime, true) +
       '</div>' +
       '<div class="coco-act-lite-wb-tools">' +
-      '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-lite-preview="' + escAttr(page.id) + '">🔍 תצוגה מקדימה (HTML/CSS/JS)</button>' +
+      '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-act-lite-preview="' + escAttr(page.id) + '">🔍 תצוגה מקדימה (לפני/אחרי/השוואה)</button>' +
       '</div>' +
+      '<div class="alert alert-info" style="margin:10px 0;font-size:12px;line-height:1.55;">' +
+      '📌 <strong>תצוגה מקדימה</strong> — כפתור למעלה · <strong>לפני/אחרי + אישור לביצוע</strong> — הרחב פעולה מהרשימה (▼) · ' +
+      '<strong>מרכז בקרה AI</strong> — הודעת מוכן לאישור אחרי כניסה לשולחן עבודה</div>' +
       renderExportBar() +
       '</div>' +
       '<div class="coco-act-lite-acc-list">' +
@@ -824,16 +831,124 @@
     }
   }
 
-  function savePreviewStore(pageId, html, css, js) {
+  function savePreviewStore(pageId, data) {
     try {
-      sessionStorage.setItem(PREVIEW_KEY_PREFIX + pageId, JSON.stringify({
-        at: Date.now(), html: html || '', css: css || '', js: js || '',
-      }));
+      var prev = getPreviewStore(pageId) || {};
+      sessionStorage.setItem(PREVIEW_KEY_PREFIX + pageId, JSON.stringify(Object.assign({}, prev, data || {}, {
+        at: Date.now(),
+      })));
     } catch (e) { /* ignore quota */ }
   }
 
   function deletePreviewStore(pageId) {
     try { sessionStorage.removeItem(PREVIEW_KEY_PREFIX + pageId); } catch (e) { /* ignore */ }
+  }
+
+  function buildPagePreviewSeed(page, openActions) {
+    var title = page.title || '';
+    var meta = '';
+    var h1 = 'חסר H1';
+    var afterTitle = title;
+    var afterMeta = meta;
+    var afterH1 = h1;
+    (openActions || []).forEach(function (a) {
+      var ba = a.beforeAfter;
+      if (!ba || !ba.current) return;
+      var kind = String(a.recommendationType || a.category || '').toLowerCase();
+      if (/title/.test(kind)) {
+        title = ba.current;
+        afterTitle = ba.after || ba.proposed || afterTitle;
+      } else if (/meta/.test(kind)) {
+        meta = ba.current;
+        afterMeta = ba.after || ba.proposed || afterMeta;
+      } else if (/h1/.test(kind)) {
+        h1 = ba.current || 'חסר H1';
+        afterH1 = ba.after || ba.proposed || afterH1;
+      }
+    });
+    if (page.id === 'page-07') {
+      afterTitle = 'שירותי ניהול צי רכב לעסקים | דליה — תפעול, תחזוקה ומעקב';
+      afterMeta = 'גלו את שירותי דליה: ניהול צי רכב, תחזוקה מונעת, מעקב GPS וטיפול 24/7. פתרון מלא לעסקים בישראל. צרו קשר לייעוץ חינם.';
+      afterH1 = 'שירותי ניהול צי רכב ותחזוקה לעסקים';
+    }
+    var css = '.demo-page{font-family:Heebo,sans-serif;padding:16px;line-height:1.6}' +
+      '.label{font-size:11px;color:#64748b;margin:8px 0 4px}.meta{font-size:13px;color:#334155}' +
+      '.warn{color:#b45309;background:#fef3c7;padding:8px;border-radius:6px}' +
+      '.after{border:2px solid #22c55e;border-radius:8px}h1{color:#1e40af;font-size:22px}';
+    function block(kind, t, m, h) {
+      var h1Html = h && h !== 'חסר H1'
+        ? '<h1>' + esc(h) + '</h1>'
+        : '<p class="warn">' + esc(h || 'חסר H1') + '</p>';
+      return '<div class="demo-page' + (kind === 'after' ? ' after' : '') + '">' +
+        '<p class="label">Title (' + (kind === 'after' ? 'אחרי — preview' : 'לפני') + ')</p><h2>' + esc(t) + '</h2>' +
+        '<p class="label">Meta (' + (kind === 'after' ? 'אחרי' : 'לפני') + ')</p><p class="meta">' + esc(m || '—') + '</p>' +
+        '<p class="label">H1 (' + (kind === 'after' ? 'אחרי' : 'לפני') + ')</p>' + h1Html + '</div>';
+    }
+    return {
+      beforeHtml: block('before', title, meta, h1),
+      afterHtml: block('after', afterTitle, afterMeta, afterH1),
+      html: block('after', afterTitle, afterMeta, afterH1),
+      css: css,
+      js: '',
+    };
+  }
+
+  function ensurePreviewSeed(pageId, page, openActions) {
+    var stored = getPreviewStore(pageId);
+    if (stored && (stored.beforeHtml || stored.html)) return stored;
+    var seed = buildPagePreviewSeed(page, openActions);
+    savePreviewStore(pageId, seed);
+    return seed;
+  }
+
+  function tryGetPageDeepLink() {
+    try {
+      var params = new URLSearchParams(location.search);
+      var fromQuery = params.get('page') || params.get('pageId');
+      if (fromQuery) return fromQuery;
+      var hash = (location.hash || '').replace(/^#/, '');
+      if (!hash) return null;
+      var hashParams = new URLSearchParams(hash.indexOf('?') >= 0 ? hash.split('?')[1] : hash.replace(/^[^&]*&?/, ''));
+      if (hash.indexOf('page=') >= 0) {
+        var m = hash.match(/(?:^|[&?])page=([^&]+)/);
+        if (m) return decodeURIComponent(m[1]);
+      }
+      return hashParams.get('page') || hashParams.get('pageId');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function notifyWorkbenchReady(page, openActions) {
+    if (!page || !window.COCO_AI_CONTROL || !COCO_AI_CONTROL.notifyPageReadyForApproval) return;
+    var map = readJson(WB_NOTIFY_KEY, {});
+    if (map[page.id]) return;
+    map[page.id] = new Date().toISOString();
+    writeJson(WB_NOTIFY_KEY, map);
+    var ver = '';
+    try {
+      var m = document.querySelector('meta[name="ui-version"]');
+      if (m) ver = m.getAttribute('content') || '';
+    } catch (e) { /* ignore */ }
+    COCO_AI_CONTROL.notifyPageReadyForApproval({
+      pageId: page.id,
+      pageTitle: page.title,
+      pagePath: page.path,
+      previewUrl: location.href.split('#')[0] + '?v=' + (ver || 'staging') + '&page=' + encodeURIComponent(page.id) + '#screen-actions',
+      recommendationCount: (openActions || []).length,
+      summary: 'שיפור Title, Meta, H1 — preview ב-sessionStorage בלבד',
+    });
+  }
+
+  function focusListPageFor(pageId, pages) {
+    var idx = -1;
+    if (pages && pages.length) {
+      idx = pages.findIndex(function (p) { return p.id === pageId; });
+    }
+    if (idx < 0) {
+      idx = _lastRenderActions.findIndex(function (g) { return g.page && g.page.id === pageId; });
+    }
+    if (idx >= 0) _listPage = Math.max(0, Math.floor(idx / PAGE_SIZE));
   }
 
   function buildLitePreviewSrcdoc(html, css, js) {
@@ -859,17 +974,25 @@
       '<div><div class="coco-act-lite-preview-title">🔍 תצוגה מקדימה — Staging בלבד</div>' +
       '<div class="coco-act-lite-preview-sub" id="coco-act-lite-preview-sub"></div></div>' +
       '<button type="button" class="btn-icon coco-act-lite-preview-close" aria-label="סגור">✕</button></div>' +
+      '<div class="coco-act-preview-toolbar" style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">' +
+      '<button type="button" class="coco-act-wb-tab coco-act-btn-sm" data-lite-preview-mode="before">לפני</button>' +
+      '<button type="button" class="coco-act-wb-tab coco-act-btn-sm" data-lite-preview-mode="after">אחרי</button>' +
+      '<button type="button" class="coco-act-wb-tab coco-act-btn-sm" data-lite-preview-mode="compare">השוואה</button>' +
+      '</div>' +
       '<div class="coco-act-lite-preview-body">' +
       '<div class="coco-act-lite-preview-editors">' +
-      '<label class="coco-act-lite-editor-label">HTML<textarea rows="4" class="coco-act-lite-editor" data-lite-preview-html placeholder="&lt;div&gt;…&lt;/div&gt;"></textarea></label>' +
+      '<label class="coco-act-lite-editor-label">HTML (אחרי)<textarea rows="4" class="coco-act-lite-editor" data-lite-preview-html placeholder="&lt;div&gt;…&lt;/div&gt;"></textarea></label>' +
+      '<label class="coco-act-lite-editor-label">HTML (לפני)<textarea rows="3" class="coco-act-lite-editor" data-lite-preview-before placeholder="לפני…"></textarea></label>' +
       '<label class="coco-act-lite-editor-label">CSS<textarea rows="3" class="coco-act-lite-editor" data-lite-preview-css placeholder="body { … }"></textarea></label>' +
       '<label class="coco-act-lite-editor-label">JS<textarea rows="2" class="coco-act-lite-editor" data-lite-preview-js placeholder="// optional"></textarea></label>' +
       '<div class="coco-act-lite-preview-actions">' +
       '<button type="button" class="btn btn-primary coco-act-btn-sm" data-lite-preview-apply>הצג בתצוגה</button>' +
       '<button type="button" class="btn btn-ghost coco-act-btn-sm" data-lite-preview-delete>🗑 מחק תצוגה</button>' +
       '</div></div>' +
+      '<div class="coco-act-wb-main" data-lite-preview-frames-wrap>' +
+      '<div class="coco-act-wb-frames" id="coco-act-lite-preview-frames">' +
       '<iframe id="coco-act-lite-preview-frame" class="coco-act-lite-preview-frame" title="תצוגה מקדימה" sandbox="allow-scripts"></iframe>' +
-      '</div></div>';
+      '</div></div></div></div>';
     (screen || document.body).appendChild(wrap);
     wrap.querySelector('.coco-act-lite-preview-close').addEventListener('click', closeLitePreview);
     wrap.addEventListener('click', function (e) {
@@ -878,35 +1001,86 @@
     return wrap;
   }
 
+  function setLitePreviewMode(modal, mode) {
+    if (!modal) return;
+    _litePreviewMode = mode || 'after';
+    modal.querySelectorAll('[data-lite-preview-mode]').forEach(function (btn) {
+      var active = btn.getAttribute('data-lite-preview-mode') === _litePreviewMode;
+      btn.classList.toggle('coco-act-wb-tab-active', active);
+    });
+    var framesWrap = document.getElementById('coco-act-lite-preview-frames');
+    var mainFrame = document.getElementById('coco-act-lite-preview-frame');
+    if (!framesWrap || !mainFrame) return;
+    var beforeFrame = document.getElementById('coco-act-lite-preview-frame-before');
+    var css = modal.querySelector('[data-lite-preview-css]')?.value || '';
+    var js = modal.querySelector('[data-lite-preview-js]')?.value || '';
+    var beforeHtml = modal.querySelector('[data-lite-preview-before]')?.value || '';
+    var afterHtml = modal.querySelector('[data-lite-preview-html]')?.value || '';
+
+    if (_litePreviewMode === 'compare') {
+      if (!beforeFrame) {
+        beforeFrame = document.createElement('iframe');
+        beforeFrame.id = 'coco-act-lite-preview-frame-before';
+        beforeFrame.className = 'coco-act-preview-frame-split';
+        beforeFrame.title = 'לפני';
+        beforeFrame.setAttribute('sandbox', 'allow-scripts');
+        framesWrap.insertBefore(beforeFrame, mainFrame);
+      }
+      mainFrame.className = 'coco-act-preview-frame-split';
+      beforeFrame.style.display = '';
+      mainFrame.style.display = '';
+      beforeFrame.srcdoc = buildLitePreviewSrcdoc(beforeHtml, css, js);
+      mainFrame.srcdoc = buildLitePreviewSrcdoc(afterHtml, css, js);
+      return;
+    }
+
+    if (beforeFrame) beforeFrame.style.display = 'none';
+    mainFrame.className = 'coco-act-lite-preview-frame';
+    mainFrame.style.display = '';
+    var html = _litePreviewMode === 'before' ? beforeHtml : afterHtml;
+    mainFrame.srcdoc = buildLitePreviewSrcdoc(html, css, js);
+  }
+
   function applyLitePreviewFrame(modal) {
     var html = modal.querySelector('[data-lite-preview-html]').value;
+    var beforeHtml = modal.querySelector('[data-lite-preview-before]').value;
     var css = modal.querySelector('[data-lite-preview-css]').value;
     var js = modal.querySelector('[data-lite-preview-js]').value;
-    var frame = document.getElementById('coco-act-lite-preview-frame');
-    if (frame) frame.srcdoc = buildLitePreviewSrcdoc(html, css, js);
-    if (modal._previewPageId) savePreviewStore(modal._previewPageId, html, css, js);
+    if (modal._previewPageId) {
+      savePreviewStore(modal._previewPageId, {
+        html: html, beforeHtml: beforeHtml, css: css, js: js,
+      });
+    }
+    setLitePreviewMode(modal, _litePreviewMode);
   }
 
   function openLitePreview(pageId) {
     var entry = _lastRenderActions.find(function (g) { return g.page && g.page.id === pageId; });
     if (!entry) return;
+    var seed = ensurePreviewSeed(pageId, entry.page, entry.items);
     var modal = ensureLitePreviewModal();
     modal._previewPageId = pageId;
     var sub = document.getElementById('coco-act-lite-preview-sub');
-    if (sub) sub.textContent = (entry.page.path || '') + ' · לא משנה את האתר החי · פג תוקף 2 שעות';
-    var stored = getPreviewStore(pageId);
-    modal.querySelector('[data-lite-preview-html]').value = stored ? stored.html : '';
-    modal.querySelector('[data-lite-preview-css]').value = stored ? stored.css : '';
-    modal.querySelector('[data-lite-preview-js]').value = stored ? stored.js : '';
+    if (sub) {
+      sub.textContent = (entry.page.path || '') + ' · לפני/אחרי/השוואה · לא משנה את האתר החי · פג תוקף 2 שעות';
+    }
+    var stored = getPreviewStore(pageId) || seed;
+    modal.querySelector('[data-lite-preview-html]').value = stored.html || stored.afterHtml || '';
+    modal.querySelector('[data-lite-preview-before]').value = stored.beforeHtml || '';
+    modal.querySelector('[data-lite-preview-css]').value = stored.css || '';
+    modal.querySelector('[data-lite-preview-js]').value = stored.js || '';
     modal.style.display = 'flex';
-    applyLitePreviewFrame(modal);
+    _litePreviewMode = 'after';
+    setLitePreviewMode(modal, 'after');
   }
 
   function closeLitePreview() {
     var modal = document.getElementById('coco-act-lite-preview-modal');
     if (modal) modal.style.display = 'none';
-    var frame = document.getElementById('coco-act-lite-preview-frame');
-    if (frame) frame.srcdoc = 'about:blank';
+    ['coco-act-lite-preview-frame', 'coco-act-lite-preview-frame-before'].forEach(function (id) {
+      var frame = document.getElementById(id);
+      if (frame) frame.srcdoc = 'about:blank';
+    });
   }
 
   function getDemoStagingMeta(action, page) {
@@ -1233,6 +1407,11 @@
         _view = 'workbench';
         _workbenchPageId = openWb.getAttribute('data-act-open-wb');
         _expandedActionId = null;
+        var wbEntry = _lastRenderActions.find(function (g) { return g.page && g.page.id === _workbenchPageId; });
+        if (wbEntry) {
+          ensurePreviewSeed(_workbenchPageId, wbEntry.page, wbEntry.items);
+          notifyWorkbenchReady(wbEntry.page, wbEntry.items);
+        }
         rerender();
         return;
       }
@@ -1445,9 +1624,15 @@
         applyLitePreviewFrame(modal);
         return;
       }
+      var modeBtn = e.target.closest('[data-lite-preview-mode]');
+      if (modeBtn) {
+        setLitePreviewMode(modal, modeBtn.getAttribute('data-lite-preview-mode'));
+        return;
+      }
       if (e.target.closest('[data-lite-preview-delete]')) {
         if (modal._previewPageId) deletePreviewStore(modal._previewPageId);
         modal.querySelector('[data-lite-preview-html]').value = '';
+        modal.querySelector('[data-lite-preview-before]').value = '';
         modal.querySelector('[data-lite-preview-css]').value = '';
         modal.querySelector('[data-lite-preview-js]').value = '';
         applyLitePreviewFrame(modal);
@@ -1506,6 +1691,22 @@
     var maxPage = Math.max(0, Math.ceil(pageGroups.length / PAGE_SIZE) - 1);
     if (_listPage > maxPage) _listPage = maxPage;
 
+    if (!_deepLinkHandled) {
+      var deepPage = tryGetPageDeepLink();
+      if (deepPage) {
+        var deepEntry = pageGroups.find(function (g) { return g.page && g.page.id === deepPage; });
+        if (deepEntry) {
+          _deepLinkHandled = true;
+          focusListPageFor(deepPage, pages);
+          _view = 'workbench';
+          _workbenchPageId = deepPage;
+          _expandedActionId = null;
+          ensurePreviewSeed(deepPage, deepEntry.page, deepEntry.items);
+          notifyWorkbenchReady(deepEntry.page, deepEntry.items);
+        }
+      }
+    }
+
     refreshPendingDom(setHtml, emptyStatus, wp, pageGroups, pending, done, statusBadge);
 
     var sub = document.querySelector('#screen-actions .page-subtitle');
@@ -1545,9 +1746,15 @@
   };
 
   function openWorkbench(pageId) {
+    focusListPageFor(pageId, (_lastBundle && _lastBundle.workPlan && _lastBundle.workPlan.pages) || []);
     _view = 'workbench';
     _workbenchPageId = pageId || null;
     _expandedActionId = null;
+    var entry = _lastRenderActions.find(function (g) { return g.page && g.page.id === pageId; });
+    if (entry) {
+      ensurePreviewSeed(pageId, entry.page, entry.items);
+      notifyWorkbenchReady(entry.page, entry.items);
+    }
     rerender();
     return { ok: !!pageId, pageId: pageId, view: _view };
   }
