@@ -1,0 +1,514 @@
+{
+  "mission": "companies-full-qa",
+  "at": "2026-06-29T22:00:05.350Z",
+  "scope": "חברות ועסקים בלבד",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=367c0c4",
+  "commitHash": "367c0c4f5ed2291783e8dc16a5d36f263fe0ee8d",
+  "commitShort": "367c0c4",
+  "remoteMainHash": "367c0c4f5ed2291783e8dc16a5d36f263fe0ee8d",
+  "sections": {
+    "1": {
+      "key": "1",
+      "title": "ניווט וגלילה",
+      "status": "pass",
+      "details": "נבדקו 5 מסכים בזרימה + מובייל. שגיאות console: 0"
+    },
+    "2": {
+      "key": "2",
+      "title": "כל הכפתורים",
+      "status": "pass",
+      "details": "בוצעו 12 פעולות כפתורים קריטיות. שגיאות רשת: 0"
+    },
+    "3": {
+      "key": "3",
+      "title": "התאמה לקוד המקורי",
+      "status": "pass",
+      "details": "Wizard v=2.0.0-approved, Builder v=1.0.0-approved"
+    },
+    "4": {
+      "key": "4",
+      "title": "זרימת העבודה",
+      "status": "pass",
+      "details": "צעדים: screen-agents:OK | screen-goals:OK | screen-actions:OK | screen-history:OK | screen-reports:OK"
+    },
+    "5": {
+      "key": "5",
+      "title": "Website Builder",
+      "status": "pass",
+      "details": "שלבים: 7/7 · CTA פעיל מתוך export"
+    },
+    "6": {
+      "key": "6",
+      "title": "בדיקות Data",
+      "status": "pass",
+      "details": "localStorage: dalia_biz=yes, actions=5"
+    },
+    "7": {
+      "key": "7",
+      "title": "Git ו-Staging",
+      "status": "warn",
+      "details": "HEAD==origin/main: yes · hash match: 3/4"
+    },
+    "8": {
+      "key": "8",
+      "title": "דוחות ואימייל",
+      "status": "pass",
+      "details": "MarketingNotifications types=5, status=resend_phase1 (stub on staging)"
+    },
+    "9": {
+      "key": "9",
+      "title": "Desktop",
+      "status": "pass",
+      "details": "Viewport 1280x900 · console errors=0"
+    },
+    "10": {
+      "key": "10",
+      "title": "Mobile",
+      "status": "pass",
+      "details": "iPhone 13 · FAB blocking=no"
+    },
+    "11": {
+      "key": "11",
+      "title": "תקלות שנמצאו",
+      "status": "warn",
+      "details": "staging_hash_matches_local: 3/4"
+    },
+    "12": {
+      "key": "12",
+      "title": "מה תוקן",
+      "status": "pass",
+      "details": "לא נדרש תיקון קוד במודול בבדיקה זו"
+    },
+    "13": {
+      "key": "13",
+      "title": "מה עדיין דורש טיפול",
+      "status": "pass",
+      "details": "אין חסימות פתוחות בתחום המודול"
+    },
+    "14": {
+      "key": "14",
+      "title": "Commit אחרון",
+      "status": "pass",
+      "details": "367c0c4f5ed2291783e8dc16a5d36f263fe0ee8d"
+    },
+    "15": {
+      "key": "15",
+      "title": "קישור Staging",
+      "status": "pass",
+      "details": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=367c0c4"
+    }
+  },
+  "checks": {
+    "strategy_version_approved": {
+      "ok": true,
+      "detail": "2.0.0-approved"
+    },
+    "strategy_steps_5": {
+      "ok": true,
+      "detail": "5"
+    },
+    "strategy_tokens_match": {
+      "ok": true,
+      "detail": "tokens in DOM + approved source"
+    },
+    "strategy_ids_core": {
+      "ok": true,
+      "detail": "core IDs existence"
+    },
+    "prefill_dalia_name": {
+      "ok": true,
+      "detail": "דליה פתרונות מימון ותחזוקה לרכב"
+    },
+    "prefill_dalia_site": {
+      "ok": true,
+      "detail": "https://dalia-c.com/"
+    },
+    "report_ui_generated": {
+      "ok": true,
+      "detail": "{\"score\":\"95\",\"hasWorkplan\":true,\"hasSwot\":true,\"hasReportTabTitle\":true}"
+    },
+    "ls_dalia_biz": {
+      "ok": true,
+      "detail": "dalia_biz exists"
+    },
+    "ls_business_context": {
+      "ok": true,
+      "detail": "dalia-c-official"
+    },
+    "ls_actions": {
+      "ok": true,
+      "detail": "5"
+    },
+    "builder_version_approved": {
+      "ok": true,
+      "detail": "1.0.0-approved"
+    },
+    "builder_steps_7": {
+      "ok": true,
+      "detail": "7"
+    },
+    "builder_tokens_match": {
+      "ok": true,
+      "detail": "tokens in DOM + approved source"
+    },
+    "builder_in_screen": {
+      "ok": true,
+      "detail": "{\"strategyHidden\":true,\"builderVisible\":true}"
+    },
+    "builder_context_passed": {
+      "ok": true,
+      "detail": "{\"company\":\"דליה פתרונות מימון ותחזוקה לרכב\",\"service\":\"ניהול צי רכב ותפעול לעסקים\",\"site\":\"https://dalia-c.com/\"}"
+    },
+    "builder_reached_step7": {
+      "ok": true,
+      "detail": "✅ מוכן לחיבור ל-CMS/Hosting בסביבת Staging"
+    },
+    "nav_screen-agents_active": {
+      "ok": true,
+      "detail": "screen-agents"
+    },
+    "scroll_screen-agents": {
+      "ok": true,
+      "detail": "not scrollable required"
+    },
+    "nav_screen-goals_active": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "scroll_screen-goals": {
+      "ok": true,
+      "detail": "not scrollable required"
+    },
+    "nav_screen-actions_active": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "scroll_screen-actions": {
+      "ok": true,
+      "detail": "not scrollable required"
+    },
+    "nav_screen-history_active": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "scroll_screen-history": {
+      "ok": true,
+      "detail": "not scrollable required"
+    },
+    "nav_screen-reports_active": {
+      "ok": true,
+      "detail": "screen-reports"
+    },
+    "scroll_screen-reports": {
+      "ok": true,
+      "detail": "not scrollable required"
+    },
+    "buttons_main_count": {
+      "ok": true,
+      "detail": "12"
+    },
+    "notifications_5_types": {
+      "ok": true,
+      "detail": "{\"count\":5,\"types\":5}"
+    },
+    "email_stub_staging": {
+      "ok": true,
+      "detail": "resend_phase1"
+    },
+    "mobile_screen-business-strategy_active": {
+      "ok": true,
+      "detail": "screen-business-strategy"
+    },
+    "mobile_screen-business-strategy_scroll": {
+      "ok": true,
+      "detail": "{\"downOk\":true,\"upOk\":true,\"jumps\":0}"
+    },
+    "mobile_screen-agents_active": {
+      "ok": true,
+      "detail": "screen-agents"
+    },
+    "mobile_screen-agents_scroll": {
+      "ok": true,
+      "detail": "{\"downOk\":true,\"upOk\":true,\"jumps\":0}"
+    },
+    "mobile_screen-goals_active": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "mobile_screen-goals_scroll": {
+      "ok": true,
+      "detail": "{\"downOk\":true,\"upOk\":true,\"jumps\":0}"
+    },
+    "mobile_screen-actions_active": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "mobile_screen-actions_scroll": {
+      "ok": true,
+      "detail": "{\"downOk\":true,\"upOk\":true,\"jumps\":0}"
+    },
+    "mobile_screen-history_active": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "mobile_screen-history_scroll": {
+      "ok": true,
+      "detail": "{\"downOk\":true,\"upOk\":true,\"jumps\":0}"
+    },
+    "mobile_screen-reports_active": {
+      "ok": true,
+      "detail": "screen-reports"
+    },
+    "mobile_screen-reports_scroll": {
+      "ok": true,
+      "detail": "{\"downOk\":true,\"upOk\":true,\"jumps\":0}"
+    },
+    "git_local_equals_origin_main": {
+      "ok": true,
+      "detail": "367c0c4 vs 367c0c4"
+    },
+    "required_files_present": {
+      "ok": true,
+      "detail": "{\"public/ai-marketing/business-strategy-wizard.js\":true,\"public/ai-marketing/website-builder-module.js\":true,\"public/ai-marketing/business-strategy-module.js\":true,\"public/ai-marketing-platform.html\":true}"
+    },
+    "staging_hash_matches_local": {
+      "ok": false,
+      "detail": "3/4"
+    }
+  },
+  "issuesFound": [
+    "staging_hash_matches_local: 3/4"
+  ],
+  "fixesApplied": [],
+  "blockers": [],
+  "counts": {
+    "pass": 13,
+    "warn": 2,
+    "fail": 0
+  },
+  "all15Green": false,
+  "readyForTomorrow": false,
+  "results": {
+    "desktop": {
+      "opened": true,
+      "nav": {
+        "screen-agents": {
+          "active": true,
+          "textLen": 3103,
+          "buttons": 27,
+          "scrollable": false,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0
+        },
+        "screen-goals": {
+          "active": true,
+          "textLen": 4709,
+          "buttons": 4,
+          "scrollable": false,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0
+        },
+        "screen-actions": {
+          "active": true,
+          "textLen": 1317,
+          "buttons": 26,
+          "scrollable": false,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0
+        },
+        "screen-history": {
+          "active": true,
+          "textLen": 2733,
+          "buttons": 11,
+          "scrollable": false,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0
+        },
+        "screen-reports": {
+          "active": true,
+          "textLen": 1245,
+          "buttons": 15,
+          "scrollable": false,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0
+        }
+      },
+      "workflow": [
+        {
+          "step": "screen-agents",
+          "ok": true
+        },
+        {
+          "step": "screen-goals",
+          "ok": true
+        },
+        {
+          "step": "screen-actions",
+          "ok": true
+        },
+        {
+          "step": "screen-history",
+          "ok": true
+        },
+        {
+          "step": "screen-reports",
+          "ok": true
+        }
+      ],
+      "buttons": [
+        "wb-next-1",
+        "wb-next-2",
+        "wb-next-3",
+        "wb-next-4",
+        "wb-next-5",
+        "wb-next-6",
+        "wb-finish-to-agents",
+        "strategy-prevT",
+        "strategy-nextT",
+        "strategy-send-client",
+        "strategy-save-draft",
+        "strategy-print"
+      ],
+      "strategyCompliance": {
+        "version": "2.0.0-approved",
+        "stepsCount": 5,
+        "hasTokens": true,
+        "approvedSourceHasTokens": true,
+        "idsOk": true
+      },
+      "builderCompliance": {
+        "version": "1.0.0-approved",
+        "stepsCount": 7,
+        "hasTokens": true,
+        "approvedSourceHasTokens": true,
+        "mountedInScreen": {
+          "strategyHidden": true,
+          "builderVisible": true
+        }
+      },
+      "builderFlow": {
+        "contextData": {
+          "company": "דליה פתרונות מימון ותחזוקה לרכב",
+          "service": "ניהול צי רכב ותפעול לעסקים",
+          "site": "https://dalia-c.com/"
+        },
+        "finishedToAgents": true
+      },
+      "dataChecks": {
+        "prefill": {
+          "name": "דליה פתרונות מימון ותחזוקה לרכב",
+          "site": "https://dalia-c.com/"
+        },
+        "localStorage": {
+          "daliaBiz": true,
+          "bizContextClient": "dalia-c-official",
+          "actionsCount": 5
+        }
+      },
+      "notifications": {
+        "ok": true,
+        "count": 5,
+        "types": 5,
+        "gmailStatus": "resend_phase1",
+        "edgeName": "marketing-notify-email",
+        "isStub": true,
+        "missing": [
+          "Deploy marketing-notify-email to Supabase Staging",
+          "MARKETING_CRON_SECRET for headless dispatch (optional)",
+          "marketing_approvals + tokens tables (Mission 27 Phase 1)",
+          "GMAIL_SEND_ENABLED + OAuth (Phase 2 — optional)",
+          "Webhook inbound parser לתשובות \"אשר 123\" (Phase 3)"
+        ]
+      },
+      "consoleErrors": [],
+      "requestErrors": []
+    },
+    "mobile": {
+      "screenChecks": {
+        "screen-business-strategy": {
+          "active": true,
+          "scrollable": false,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0,
+          "textLen": 927,
+          "fabBlocks": false
+        },
+        "screen-agents": {
+          "active": true,
+          "scrollable": false,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0,
+          "textLen": 3026,
+          "fabBlocks": false
+        },
+        "screen-goals": {
+          "active": true,
+          "scrollable": false,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0,
+          "textLen": 4757,
+          "fabBlocks": false
+        },
+        "screen-actions": {
+          "active": true,
+          "scrollable": true,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0,
+          "textLen": 490,
+          "fabBlocks": false
+        },
+        "screen-history": {
+          "active": true,
+          "scrollable": false,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0,
+          "textLen": 2614,
+          "fabBlocks": false
+        },
+        "screen-reports": {
+          "active": true,
+          "scrollable": false,
+          "downOk": true,
+          "upOk": true,
+          "jumps": 0,
+          "textLen": 1245,
+          "fabBlocks": false
+        }
+      },
+      "fabBlocking": false
+    },
+    "gitStaging": {
+      "branchAligned": true,
+      "localPresence": {
+        "public/ai-marketing/business-strategy-wizard.js": true,
+        "public/ai-marketing/website-builder-module.js": true,
+        "public/ai-marketing/business-strategy-module.js": true,
+        "public/ai-marketing-platform.html": true
+      },
+      "localHashes": {
+        "public/ai-marketing/business-strategy-wizard.js": "2c32195095f25e3ddda6575cbff1a401b51a5607afa1e20161e67fdc08ef1acf",
+        "public/ai-marketing/website-builder-module.js": "68427384397d4dde0f15c0ff8de84d269959fcca55c98fa3152fa854a0c639bb",
+        "public/ai-marketing/business-strategy-module.js": "32826a76229426dde9070b7a075baa22d14e54f76846c3c02999acc9c07a04e7",
+        "public/ai-marketing-platform.html": "6146cdaade020377886ada83f0d1b3380c9e1abf71895cec41bfdee4e192613b"
+      },
+      "remoteHashes": {
+        "public/ai-marketing/business-strategy-wizard.js": "2c32195095f25e3ddda6575cbff1a401b51a5607afa1e20161e67fdc08ef1acf",
+        "public/ai-marketing/website-builder-module.js": "68427384397d4dde0f15c0ff8de84d269959fcca55c98fa3152fa854a0c639bb",
+        "public/ai-marketing/business-strategy-module.js": "32826a76229426dde9070b7a075baa22d14e54f76846c3c02999acc9c07a04e7",
+        "public/ai-marketing-platform.html": "5f73d07093ae7e1ddbd0292aca024dfa031cd37e84be6481c97c711716a19325"
+      },
+      "hashMatches": 3,
+      "requiredCount": 4
+    }
+  }
+}
