@@ -1,0 +1,17 @@
+{
+  "mission": "23",
+  "version": "v3-multi-ai-1",
+  "orchestratorVersion": "1.0.0",
+  "questionEngineVersion": "1.0.0",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-multi-ai-1",
+  "generatedAt": "2026-06-29",
+  "modules": [
+    "public/ai-marketing/multi-ai-orchestrator.js",
+    "public/ai-marketing/ai-question-engine.js",
+    "public/ai-marketing/ai-control-center-bridge.js"
+  ],
+  "primaryEngines": ["openai", "claude", "gemini"],
+  "evaluatedEngines": ["perplexity", "grok", "deepseek", "github_copilot", "mistral"],
+  "mode": "infrastructure_stub",
+  "liveApiRequired": true
+}

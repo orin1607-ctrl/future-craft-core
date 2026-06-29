@@ -27,17 +27,17 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="ui-version" content="v3-daily-engine-2">
+<meta name="ui-version" content="v3-multi-ai-1">
 <meta name="build-commit" content="STAGING">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>ניהול שיווק AI – דליה</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=v3-daily-engine-2">
-<link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=v3-daily-engine-2">
-<link rel="stylesheet" href="./ai-marketing/home-prd.css?v=v3-daily-engine-2">
-<link rel="stylesheet" href="./ai-marketing/ai-assistant.css?v=v3-daily-engine-2">
-<link rel="stylesheet" href="./crm/dalia-crm.css?v=v3-daily-engine-2">
+<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=v3-multi-ai-1">
+<link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=v3-multi-ai-1">
+<link rel="stylesheet" href="./ai-marketing/home-prd.css?v=v3-multi-ai-1">
+<link rel="stylesheet" href="./ai-marketing/ai-assistant.css?v=v3-multi-ai-1">
+<link rel="stylesheet" href="./crm/dalia-crm.css?v=v3-multi-ai-1">
 </head>
 <body>
 <div id="cocoToast" class="coco-toast" aria-live="polite"></div>
@@ -101,7 +101,7 @@
 <script>
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-daily-engine-2';
+  var ver = 'v3-multi-ai-1';
   try {
     var bootB = new URLSearchParams(location.search).get('b');
     if (bootB) ver = 'v3-unified-3j-' + bootB.slice(0, 12);
@@ -187,6 +187,9 @@
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-data.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-bridge.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-unified.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/multi-ai-orchestrator.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/ai-question-engine.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/ai-control-center-bridge.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-crm-bridge.js')); });
     })
     .then(boot)
