@@ -74,10 +74,19 @@
   }
 
   function formatAutoModeTitle(auto) {
+    if (auto && auto.active) {
+      var stage = auto.currentStage ? (' · ' + auto.currentStage) : '';
+      var pct = auto.progress != null ? (' ' + auto.progress + '%') : '';
+      return 'פעיל' + stage + pct;
+    }
     if (!auto || !auto.lastRunAt) return 'תשתית בלבד — לחץ להרצה ידנית';
-    var s = auto.lastRunSummary || {};
+    var s = auto.counts || auto.lastRunSummary || {};
     var err = (auto.lastRunErrors && auto.lastRunErrors.length) ? (' · שגיאות ' + auto.lastRunErrors.length) : '';
-    return 'ריצה ' + (auto.runCount || 1) + ' · המלצות ' + (s.recommendations || 0) + ' · פעולות ' + (s.actionsCreated || 0) + err;
+    return 'ריצה ' + (auto.runCount || 1) +
+      ' · המלצות ' + (s.recommendations || 0) +
+      ' · מטרות ' + (s.goalsCreated || 0) +
+      ' · פעולות ' + (s.actionsCreated || 0) +
+      ' · ממתין ' + (s.pendingApproval || 0) + err;
   }
 
   var PREVIEW_TTL_MS = 2 * 60 * 60 * 1000;
@@ -1309,11 +1318,23 @@
         prepareAutoMode();
         if (window.DailyEngine && typeof DailyEngine.run === 'function') {
           autoBtn.disabled = true;
-          DailyEngine.run({ demo: false }).then(function (res) {
+          var runFn = DailyEngine.runBatched || DailyEngine.run;
+          runFn({
+            demo: false,
+            onProgress: function (stage, current, total) {
+              var label = stage === 'analyze' && total
+                ? ('ניתוח ' + current + '/' + total)
+                : (stage === 'sources' ? 'מקורות' : (stage === 'goals' ? 'מטרות' : (stage === 'actions' ? 'פעולות' : stage)));
+              if (typeof showToast === 'function') showToast('מנוע יומי: ' + label, 'info');
+              rerender();
+            },
+          }).then(function (res) {
             autoBtn.disabled = false;
             var run = res && res.run;
+            var s = run && run.summary;
             var msg = run && run.status === 'completed'
-              ? '✓ מנוע יומי הושלם — ' + (run.summary && run.summary.recommendations) + ' המלצות · ממתין לאישורך'
+              ? '✓ מנוע יומי — ' + (s && s.recommendations) + ' המלצות · ' +
+                (s && s.goalsCreated) + ' מטרות · ' + (s && s.actionsCreated) + ' פעולות · ממתין לאישור'
               : '⚠ מנוע יומי — שגיאה או נתונים חסרים';
             if (typeof showToast === 'function') showToast(msg, run && run.status === 'completed' ? 'success' : 'warn');
             rerender();

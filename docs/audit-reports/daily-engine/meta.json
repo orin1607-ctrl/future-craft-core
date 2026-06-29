@@ -1,43 +1,95 @@
 {
-  "engineVersion": "1.0.0",
-  "runId": "run-1782703252004",
+  "engineVersion": "2.0.0",
+  "runId": "run-1782703966124",
   "status": "completed",
-  "durationMs": 26,
-  "commit": "c8e8cb5",
+  "durationMs": 110,
+  "commit": "6f41134",
   "branch": "main",
-  "generatedAt": "2026-06-29T03:20:52.005Z",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-daily-engine-1",
+  "generatedAt": "2026-06-29T03:32:46.127Z",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-daily-engine-2",
   "summary": {
     "pagesChecked": 28,
+    "chunksProcessed": 6,
     "recommendations": 2,
-    "goalsCreated": 1,
-    "actionsCreated": 1,
+    "goalsCreated": 2,
+    "actionsCreated": 2,
+    "pendingApproval": 2,
     "openActions": 395,
     "pagesDown": 0,
-    "seoIssues": 6
+    "seoIssues": 6,
+    "newIssues": 0
   },
   "conclusions": [
     "שיפור SEO — /",
     "תוכן חסר — /"
   ],
-  "draftActionId": "act-daily-03252004",
+  "draftActionIds": [
+    "act-daily-03966124",
+    "act-daily-03966124-1"
+  ],
+  "goalsCreated": [
+    {
+      "id": "goal-daily-1782703966127-0",
+      "keyword": "ניהול צי רכב",
+      "topic": "SEO"
+    },
+    {
+      "id": "goal-daily-1782703966127-1",
+      "keyword": "ניהול צי רכב",
+      "topic": "SEO"
+    }
+  ],
+  "slaSample": {
+    "type": "seo_followup",
+    "dueAt": "2026-07-13T03:32:46.127Z",
+    "openedAt": "2026-06-29T03:32:46.127Z",
+    "recheckAt": "2026-07-13T03:32:46.127Z"
+  },
+  "keywordsUsed": [
+    "ניהול צי רכב",
+    "מעקב GPS",
+    "תחזוקת רכבים",
+    "דלק וצריכה",
+    "ביטוח צי"
+  ],
   "dataChecked": [
     "dashboard",
     "workPlan",
     "crawl",
     "gsc",
     "ga4",
-    "sheets",
     "manual"
   ],
   "missing": [
-    "GBP",
-    "Google Ads",
-    "PageSpeed API",
-    "CRM Supabase",
-    "Sheets webhook URL",
-    "Supabase remote",
-    "AI agents live API"
+    "gbp",
+    "ads",
+    "pageSpeed",
+    "Sheets webhook URL"
   ],
-  "mode": "REAL — headless Node POC on local JSON snapshots"
+  "phasesSkipped": {
+    "seo": false,
+    "pagespeed": false
+  },
+  "scheduleRuns": {
+    "daily": "2026-06-29T03:32:46.127Z",
+    "seo": "2026-06-29T03:32:46.127Z",
+    "reportsDaily": "2026-06-29T03:32:46.127Z"
+  },
+  "storageEstimates": {
+    "runs": 1172,
+    "drafts": 2032,
+    "keywords": 168,
+    "autoMode": 386,
+    "historyLite": 556,
+    "total": 4372,
+    "limits": {
+      "maxRuns": 30,
+      "maxDrafts": 50,
+      "maxHistory": 100,
+      "runSummaryTargetKb": 2,
+      "reportMaxKb": 50
+    }
+  },
+  "historyExportHint": null,
+  "mode": "REAL — headless Node POC v2 on local JSON snapshots"
 }

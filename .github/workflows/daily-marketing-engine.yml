@@ -33,4 +33,5 @@ jobs:
             docs/audit-reports/daily-engine/report.json
             docs/audit-reports/daily-engine/meta.json
             docs/audit-reports/daily-engine/local-state-snapshot.json
+            docs/audit-reports/daily-engine/REPORT-HE-v2.md
           retention-days: 30

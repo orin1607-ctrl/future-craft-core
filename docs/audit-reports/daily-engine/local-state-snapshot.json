@@ -2,6 +2,48 @@
   "dalia-daily-engine-runs-v1": {
     "runs": [
       {
+        "id": "run-1782703966124",
+        "client": "dalia-c-official",
+        "site": "dalia-c.com",
+        "startedAt": "2026-06-29T03:32:46.112Z",
+        "finishedAt": "2026-06-29T03:32:46.127Z",
+        "status": "completed",
+        "dataChecked": [
+          "dashboard",
+          "workPlan",
+          "crawl",
+          "gsc",
+          "ga4",
+          "manual"
+        ],
+        "conclusions": [
+          "שיפור SEO — /",
+          "תוכן חסר — /"
+        ],
+        "actionsCreated": [
+          "act-daily-03966124",
+          "act-daily-03966124-1"
+        ],
+        "errors": [],
+        "summary": {
+          "pagesChecked": 28,
+          "chunksProcessed": 6,
+          "recommendations": 2,
+          "goalsCreated": 2,
+          "actionsCreated": 2,
+          "pendingApproval": 2,
+          "openActions": 395,
+          "pagesDown": 0,
+          "seoIssues": 6,
+          "newIssues": 0
+        },
+        "nextRunAt": "2026-06-29T06:00:00.000Z",
+        "phasesSkipped": {
+          "seo": false,
+          "pagespeed": false
+        }
+      },
+      {
         "id": "run-1782703252004",
         "client": "dalia-c-official",
         "site": "dalia-c.com",
@@ -38,26 +80,28 @@
       }
     ],
     "lastRun": {
-      "id": "run-1782703252004",
+      "id": "run-1782703966124",
       "client": "dalia-c-official",
       "site": "dalia-c.com",
       "mode": "headless",
       "demo": false,
       "status": "completed",
-      "startedAt": "2026-06-29T03:20:51.984Z",
-      "finishedAt": "2026-06-29T03:20:52.005Z",
+      "startedAt": "2026-06-29T03:32:46.112Z",
+      "finishedAt": "2026-06-29T03:32:46.127Z",
       "dataSources": {
         "sources": {
           "dashboard": {
             "ok": true,
-            "at": "2026-06-27T20:53:41.381Z"
+            "mode": "snapshot"
           },
           "workPlan": {
             "ok": true,
+            "mode": "snapshot",
             "pages": 28
           },
           "crawl": {
             "ok": true,
+            "mode": "crawl-lite",
             "pages": 28
           },
           "gsc": {
@@ -70,44 +114,53 @@
           },
           "gbp": {
             "ok": false,
-            "mode": "snapshot"
+            "mode": "not_connected"
           },
           "ads": {
             "ok": false,
-            "mode": "snapshot"
+            "mode": "not_connected"
           },
           "pageSpeed": {
             "ok": false,
-            "mode": "missing"
-          },
-          "crm": {
-            "ok": false,
-            "mode": "not_connected_staging"
+            "mode": "not_connected"
           },
           "sheets": {
             "ok": true,
+            "mode": "webhook_if_set",
             "webhook": "empty"
           },
-          "supabase": {
+          "crm": {
             "ok": false,
-            "mode": "not_connected_staging"
+            "mode": "local_only"
           },
           "aiAgents": {
             "ok": false,
-            "live": 0
+            "mode": "skip_live"
           },
           "manual": {
-            "ok": true
+            "ok": true,
+            "mode": "button"
           }
         },
+        "connected": [
+          "dashboard",
+          "workPlan",
+          "crawl",
+          "gsc",
+          "ga4",
+          "manual"
+        ],
+        "skipped": [
+          "gbp",
+          "ads",
+          "pageSpeed",
+          "crm"
+        ],
         "missing": [
-          "GBP",
-          "Google Ads",
-          "PageSpeed API",
-          "CRM Supabase",
-          "Sheets webhook URL",
-          "Supabase remote",
-          "AI agents live API"
+          "gbp",
+          "ads",
+          "pageSpeed",
+          "Sheets webhook URL"
         ]
       },
       "dataChecked": [
@@ -116,13 +169,10 @@
         "crawl",
         "gsc",
         "ga4",
-        "sheets",
         "manual"
       ],
       "findings": {
-        "checkedAt": "2026-06-29T03:20:51.984Z",
         "pagesTotal": 28,
-        "crawlTotal": 28,
         "pagesDown": [],
         "pagesSlow": [],
         "missingContent": [
@@ -135,7 +185,8 @@
             ],
             "issues": [
               "images_without_alt:25"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-02",
@@ -145,7 +196,8 @@
             ],
             "issues": [
               "missing_h1"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-12",
@@ -157,7 +209,8 @@
             "issues": [
               "missing_h1",
               "images_without_alt:13"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-08",
@@ -171,7 +224,8 @@
               "missing_h1",
               "images_without_alt:1",
               "canonical_mismatch"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-06",
@@ -183,7 +237,8 @@
             "issues": [
               "missing_h1",
               "images_without_alt:9"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-05",
@@ -193,7 +248,8 @@
             ],
             "issues": [
               "missing_h1"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-03",
@@ -205,7 +261,8 @@
             "issues": [
               "missing_h1",
               "images_without_alt:5"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-14",
@@ -217,7 +274,8 @@
             "issues": [
               "missing_h1",
               "canonical_mismatch"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-04",
@@ -227,7 +285,8 @@
             ],
             "issues": [
               "missing_h1"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-07",
@@ -241,7 +300,8 @@
               "missing_h1",
               "images_without_alt:2",
               "canonical_mismatch"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-24",
@@ -251,7 +311,8 @@
             ],
             "issues": [
               "canonical_mismatch"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-11",
@@ -259,13 +320,13 @@
             "missing": [
               "alt tags for images",
               "canonical tag alignment",
-              "Alt לתמונות (1)",
-              "Canonical"
+              "Alt לתמונות (1)"
             ],
             "issues": [
               "images_without_alt:1",
               "canonical_mismatch"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-13",
@@ -277,7 +338,8 @@
             "issues": [
               "missing_h1",
               "canonical_mismatch"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-26",
@@ -289,7 +351,8 @@
             ],
             "issues": [
               "canonical_mismatch"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-23",
@@ -297,12 +360,12 @@
             "missing": [
               "keywords",
               "internal links",
-              "alt text for images",
-              "Canonical"
+              "alt text for images"
             ],
             "issues": [
               "canonical_mismatch"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-16",
@@ -310,13 +373,13 @@
             "missing": [
               "alt tags for images",
               "canonical tag alignment",
-              "Alt לתמונות (1)",
-              "Canonical"
+              "Alt לתמונות (1)"
             ],
             "issues": [
               "images_without_alt:1",
               "canonical_mismatch"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-17",
@@ -326,7 +389,8 @@
             ],
             "issues": [
               "missing_h1"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-18",
@@ -336,7 +400,8 @@
             ],
             "issues": [
               "missing_h1"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-25",
@@ -346,7 +411,8 @@
             ],
             "issues": [
               "missing_h1"
-            ]
+            ],
+            "keyword": "ניהול צי רכב"
           },
           {
             "pageId": "page-28",
@@ -354,10 +420,10 @@
             "missing": [
               "H1 בעברית",
               "תוכן ממוקד יותר",
-              "קישורים פנימיים",
-              "שימוש במילות מפתח רלוונטיות"
+              "קישורים פנימיים"
             ],
-            "issues": []
+            "issues": [],
+            "keyword": "ניהול צי רכב"
           }
         ],
         "seoIssues": [
@@ -370,60 +436,227 @@
               "meta",
               "alt",
               "seo"
-            ]
+            ],
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
           },
           {
             "pageId": "page-02",
             "path": "/home",
             "seoScore": 4,
-            "checklistFails": []
+            "checklistFails": [],
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
           },
           {
             "pageId": "page-12",
             "path": "/79-shekels",
             "seoScore": 4,
-            "checklistFails": []
+            "checklistFails": [],
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
           },
           {
             "pageId": "page-08",
             "path": "/צור-קשר-דליה",
             "seoScore": 4,
-            "checklistFails": []
+            "checklistFails": [],
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
           },
           {
             "pageId": "page-09",
             "path": "/מה-עומד-מ",
             "seoScore": 4,
-            "checklistFails": []
+            "checklistFails": [],
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
           },
           {
             "pageId": "page-10",
             "path": "/עמוד-ספק",
             "seoScore": 4,
-            "checklistFails": []
+            "checklistFails": [],
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          }
+        ],
+        "keywordMatches": [
+          {
+            "pageId": "page-01",
+            "path": "/",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-02",
+            "path": "/home",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-12",
+            "path": "/79-shekels",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-08",
+            "path": "/צור-קשר-דליה",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-06",
+            "path": "/catalog",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-05",
+            "path": "/contact",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-03",
+            "path": "/our-app",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-14",
+            "path": "/מגוון-חבילות",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-04",
+            "path": "/about",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-07",
+            "path": "/השירותים-שלנו",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-24",
+            "path": "/שאלון-קצר-להתאמת-פתרון-ניהול-ותחזוקת-ר",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-11",
+            "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-13",
+            "path": "/שאלון-לקוח-פרטי-ועסקי-15",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-26",
+            "path": "/המערכת-והאפליקציה-של-דליה",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-23",
+            "path": "/שאלון-מתלבטים-בין-ליסינג-תפעולי-לניהו",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-16",
+            "path": "/ניהול-תחזוקת-רכבים-חכם-לעסקים-מערכת",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-17",
+            "path": "/service",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-18",
+            "path": "/how-it-works",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-25",
+            "path": "/card-provider-customer",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-28",
+            "path": "/registration",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-09",
+            "path": "/מה-עומד-מ",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-15",
+            "path": "/תחזוקת-רכבים-חכמה-לעסקים-שליטה-סדר-ו",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-21",
+            "path": "/איך-חוסכים-בעלויות-תחזוקת-ציי-רכב",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-19",
+            "path": "/האם-ליסינג-תפעולי-משתלם-כשאין-זמן-להתע",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-20",
+            "path": "/האם-כדאי-ליסינג-תפעולי-האמת-שעסקים-לא-ת",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-10",
+            "path": "/עמוד-ספק",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-22",
+            "path": "/תפעול-רכבים-לחברות",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
+          },
+          {
+            "pageId": "page-27",
+            "path": "/my-account",
+            "keyword": "ניהול צי רכב",
+            "topic": "SEO"
           }
         ],
         "actions": {
           "open": 395,
-          "completed": 0,
-          "stuck": [],
-          "needsApproval": 395
+          "stuck": []
         },
         "diff": {
-          "newIssues": [],
-          "resolvedIssues": []
-        },
-        "stats": {
-          "avgPosition": 41.3,
-          "totalClicks": 0,
-          "totalImpressions": 28,
-          "avgCtr": 0,
-          "activeKeywords": 14,
-          "opportunities": 1,
-          "weakPages": 0,
-          "pendingDrafts": 1,
-          "ga4Sessions": 251,
-          "ga4PageViews": 411
+          "newIssues": []
         }
       },
       "recommendations": [
@@ -431,67 +664,220 @@
           "id": "rec-seo-page-01",
           "priority": "גבוה",
           "title": "שיפור SEO — /",
-          "detail": "ציון 6 · כשלים: title, meta, alt, seo",
-          "source": "checklist"
+          "detail": "ציון 6 · ניהול צי רכב",
+          "source": "checklist",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO",
+          "slaType": "seo_followup"
         },
         {
           "id": "rec-content-page-01",
           "priority": "גבוה",
           "title": "תוכן חסר — /",
           "detail": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
-          "source": "crawl"
+          "source": "crawl",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO",
+          "slaType": "normal"
         }
       ],
-      "goal": {
-        "id": "goal-daily-1782703252005",
-        "title": "שיפור SEO — /",
-        "category": "SEO",
-        "status": "pending",
-        "priority": "גבוה",
-        "metric": "28 עמודים · 395 פעולות פתוחות",
-        "created_at": "2026-06-29T03:20:52.005Z",
-        "source": "daily-engine",
-        "requiresApproval": true
-      },
-      "actionsCreated": [
-        "act-daily-03252004"
+      "goals": [
+        {
+          "id": "goal-daily-1782703966127-0",
+          "clientId": "dalia-c-official",
+          "siteId": "site-dalia-c",
+          "pageId": "page-01",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO",
+          "priority": "גבוה",
+          "reason": "ציון 6 · ניהול צי רכב",
+          "source": "checklist",
+          "status": "pending_approval"
+        },
+        {
+          "id": "goal-daily-1782703966127-1",
+          "clientId": "dalia-c-official",
+          "siteId": "site-dalia-c",
+          "pageId": "page-02",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO",
+          "priority": "גבוה",
+          "reason": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+          "source": "crawl",
+          "status": "pending_approval"
+        }
       ],
-      "draftAction": {
-        "id": "act-daily-03252004",
-        "pageId": "page-01",
-        "pagePath": "/",
-        "category": "title",
-        "recommendationType": "title",
-        "status": "pending",
-        "priority": "גבוה",
-        "urgency": "גבוה",
-        "source": "checklist",
-        "detail": "ציון 6 · כשלים: title, meta, alt, seo",
-        "problem": "שיפור SEO — /",
-        "createdBy": "daily-engine",
-        "created_at": "2026-06-29T03:20:52.005Z",
-        "requiresApproval": true,
-        "executionMode": "preview",
-        "runId": "run-1782703252004"
-      },
+      "actionsCreated": [
+        "act-daily-03966124",
+        "act-daily-03966124-1"
+      ],
+      "draftActions": [
+        {
+          "id": "act-daily-03966124",
+          "name": "שיפור SEO — /",
+          "description": "ציון 6 · ניהול צי רכב",
+          "goalId": "goal-daily-1782703966127-0",
+          "clientId": "dalia-c-official",
+          "siteId": "site-dalia-c",
+          "pageId": "page-01",
+          "pagePath": "/",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO",
+          "priority": "גבוה",
+          "status": "pending_approval",
+          "sla": {
+            "type": "seo_followup",
+            "dueAt": "2026-07-13T03:32:46.127Z",
+            "openedAt": "2026-06-29T03:32:46.127Z",
+            "recheckAt": "2026-07-13T03:32:46.127Z"
+          },
+          "assignee": null,
+          "completionChecklist": "בדיקת SEO · אישור תוכן · preview",
+          "source": "checklist",
+          "createdBy": "daily-engine",
+          "created_at": "2026-06-29T03:32:46.127Z",
+          "requiresApproval": true,
+          "executionMode": "preview",
+          "runId": "run-1782703966124",
+          "problem": "שיפור SEO — /",
+          "detail": "ציון 6 · ניהול צי רכב",
+          "category": "title",
+          "recommendationType": "title"
+        },
+        {
+          "id": "act-daily-03966124-1",
+          "name": "תוכן חסר — /",
+          "description": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+          "goalId": "goal-daily-1782703966127-1",
+          "clientId": "dalia-c-official",
+          "siteId": "site-dalia-c",
+          "pageId": "page-02",
+          "pagePath": "/home",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO",
+          "priority": "גבוה",
+          "status": "pending_approval",
+          "sla": {
+            "type": "normal",
+            "dueAt": "2026-07-01T03:32:46.127Z",
+            "openedAt": "2026-06-29T03:32:46.127Z",
+            "recheckAt": null
+          },
+          "assignee": null,
+          "completionChecklist": "בדיקת SEO · אישור תוכן · preview",
+          "source": "crawl",
+          "createdBy": "daily-engine",
+          "created_at": "2026-06-29T03:32:46.127Z",
+          "requiresApproval": true,
+          "executionMode": "preview",
+          "runId": "run-1782703966124",
+          "problem": "תוכן חסר — /",
+          "detail": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+          "category": "title",
+          "recommendationType": "title"
+        }
+      ],
       "errors": [],
       "summary": {
         "pagesChecked": 28,
+        "chunksProcessed": 6,
         "recommendations": 2,
-        "goalsCreated": 1,
-        "actionsCreated": 1,
+        "goalsCreated": 2,
+        "actionsCreated": 2,
+        "pendingApproval": 2,
         "openActions": 395,
         "pagesDown": 0,
-        "seoIssues": 6
+        "seoIssues": 6,
+        "newIssues": 0
       },
       "conclusions": [
         "שיפור SEO — /",
         "תוכן חסר — /"
       ],
-      "nextRunAt": "2026-06-29T06:00:00.000Z"
+      "nextRunAt": "2026-06-29T06:00:00.000Z",
+      "keywordsUsed": [
+        "ניהול צי רכב",
+        "מעקב GPS",
+        "תחזוקת רכבים",
+        "דלק וצריכה",
+        "ביטוח צי"
+      ],
+      "scheduleRuns": {
+        "daily": "2026-06-29T03:32:46.127Z",
+        "seo": "2026-06-29T03:32:46.127Z",
+        "reportsDaily": "2026-06-29T03:32:46.127Z"
+      },
+      "phasesSkipped": {
+        "seo": false,
+        "pagespeed": false
+      }
     }
   },
   "dalia-daily-engine-draft-actions-v1": [
+    {
+      "id": "act-daily-03966124-1",
+      "name": "תוכן חסר — /",
+      "description": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+      "goalId": "goal-daily-1782703966127-1",
+      "clientId": "dalia-c-official",
+      "siteId": "site-dalia-c",
+      "pageId": "page-02",
+      "pagePath": "/home",
+      "keyword": "ניהול צי רכב",
+      "topic": "SEO",
+      "priority": "גבוה",
+      "status": "pending_approval",
+      "sla": {
+        "type": "normal",
+        "dueAt": "2026-07-01T03:32:46.127Z",
+        "openedAt": "2026-06-29T03:32:46.127Z",
+        "recheckAt": null
+      },
+      "assignee": null,
+      "completionChecklist": "בדיקת SEO · אישור תוכן · preview",
+      "source": "crawl",
+      "createdBy": "daily-engine",
+      "created_at": "2026-06-29T03:32:46.127Z",
+      "requiresApproval": true,
+      "executionMode": "preview",
+      "runId": "run-1782703966124",
+      "problem": "תוכן חסר — /",
+      "detail": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+      "category": "title",
+      "recommendationType": "title"
+    },
+    {
+      "id": "act-daily-03966124",
+      "name": "שיפור SEO — /",
+      "description": "ציון 6 · ניהול צי רכב",
+      "goalId": "goal-daily-1782703966127-0",
+      "clientId": "dalia-c-official",
+      "siteId": "site-dalia-c",
+      "pageId": "page-01",
+      "pagePath": "/",
+      "keyword": "ניהול צי רכב",
+      "topic": "SEO",
+      "priority": "גבוה",
+      "status": "pending_approval",
+      "sla": {
+        "type": "seo_followup",
+        "dueAt": "2026-07-13T03:32:46.127Z",
+        "openedAt": "2026-06-29T03:32:46.127Z",
+        "recheckAt": "2026-07-13T03:32:46.127Z"
+      },
+      "assignee": null,
+      "completionChecklist": "בדיקת SEO · אישור תוכן · preview",
+      "source": "checklist",
+      "createdBy": "daily-engine",
+      "created_at": "2026-06-29T03:32:46.127Z",
+      "requiresApproval": true,
+      "executionMode": "preview",
+      "runId": "run-1782703966124",
+      "problem": "שיפור SEO — /",
+      "detail": "ציון 6 · ניהול צי רכב",
+      "category": "title",
+      "recommendationType": "title"
+    },
     {
       "id": "act-daily-03252004",
       "pageId": "page-01",
@@ -511,28 +897,77 @@
       "runId": "run-1782703252004"
     }
   ],
+  "dalia-daily-engine-keywords-v1": {
+    "dalia-c-official": [
+      "ניהול צי רכב",
+      "מעקב GPS",
+      "תחזוקת רכבים",
+      "דלק וצריכה",
+      "ביטוח צי",
+      "נהגים ורישיונות",
+      "טלמטיקה",
+      "Fleet management",
+      "vehicle tracking",
+      "תחזוקה מונעת"
+    ]
+  },
   "dalia-auto-mode-v1": {
     "prepared": true,
     "enabled": false,
     "since": "2026-06-29T03:20:51.984Z",
-    "lastRunAt": "2026-06-29T03:20:52.005Z",
-    "lastRunId": "run-1782703252004",
+    "lastRunAt": "2026-06-29T03:32:46.127Z",
+    "lastRunId": "run-1782703966124",
     "lastRunStatus": "completed",
     "nextRunAt": "2026-06-29T06:00:00.000Z",
-    "lastRunSummary": {
-      "pagesChecked": 28,
+    "active": false,
+    "counts": {
       "recommendations": 2,
-      "goalsCreated": 1,
-      "actionsCreated": 1,
-      "openActions": 395,
-      "pagesDown": 0,
-      "seoIssues": 6
+      "goalsCreated": 2,
+      "actionsCreated": 2,
+      "pendingApproval": 2
     },
     "lastRunErrors": [],
-    "runCount": 1,
-    "executionMode": "preview"
+    "runCount": 2,
+    "executionMode": "preview",
+    "currentStage": null
   },
+  "dalia-daily-engine-history-lite-v1": [
+    {
+      "client": "dalia-c-official",
+      "site": "dalia-c.com",
+      "goalId": "goal-daily-1782703966127-0",
+      "actionId": "act-daily-03966124",
+      "status": "pending_approval",
+      "date": "2026-06-29T03:32:46.127Z",
+      "who": "daily-engine",
+      "result": "draft_created",
+      "link": "/",
+      "commit": "",
+      "note": "שיפור SEO — /"
+    },
+    {
+      "client": "dalia-c-official",
+      "site": "dalia-c.com",
+      "goalId": "goal-daily-1782703966127-1",
+      "actionId": "act-daily-03966124-1",
+      "status": "pending_approval",
+      "date": "2026-06-29T03:32:46.127Z",
+      "who": "daily-engine",
+      "result": "draft_created",
+      "link": "/home",
+      "commit": "",
+      "note": "תוכן חסר — /"
+    }
+  ],
   "dalia-work-progress-log": [
+    {
+      "id": "engine-run-1782703966124",
+      "title": "מנוע יומי — הושלם",
+      "action": "daily_engine",
+      "module": "אוטומציה",
+      "detail": "שיפור SEO — / · תוכן חסר — /",
+      "created_at": "2026-06-29T03:32:46.127Z"
+    },
     {
       "id": "engine-run-1782703252004",
       "title": "מנוע יומי — הושלם",
@@ -543,26 +978,28 @@
     }
   ],
   "lastRun": {
-    "id": "run-1782703252004",
+    "id": "run-1782703966124",
     "client": "dalia-c-official",
     "site": "dalia-c.com",
     "mode": "headless",
     "demo": false,
     "status": "completed",
-    "startedAt": "2026-06-29T03:20:51.984Z",
-    "finishedAt": "2026-06-29T03:20:52.005Z",
+    "startedAt": "2026-06-29T03:32:46.112Z",
+    "finishedAt": "2026-06-29T03:32:46.127Z",
     "dataSources": {
       "sources": {
         "dashboard": {
           "ok": true,
-          "at": "2026-06-27T20:53:41.381Z"
+          "mode": "snapshot"
         },
         "workPlan": {
           "ok": true,
+          "mode": "snapshot",
           "pages": 28
         },
         "crawl": {
           "ok": true,
+          "mode": "crawl-lite",
           "pages": 28
         },
         "gsc": {
@@ -575,44 +1012,53 @@
         },
         "gbp": {
           "ok": false,
-          "mode": "snapshot"
+          "mode": "not_connected"
         },
         "ads": {
           "ok": false,
-          "mode": "snapshot"
+          "mode": "not_connected"
         },
         "pageSpeed": {
           "ok": false,
-          "mode": "missing"
-        },
-        "crm": {
-          "ok": false,
-          "mode": "not_connected_staging"
+          "mode": "not_connected"
         },
         "sheets": {
           "ok": true,
+          "mode": "webhook_if_set",
           "webhook": "empty"
         },
-        "supabase": {
+        "crm": {
           "ok": false,
-          "mode": "not_connected_staging"
+          "mode": "local_only"
         },
         "aiAgents": {
           "ok": false,
-          "live": 0
+          "mode": "skip_live"
         },
         "manual": {
-          "ok": true
+          "ok": true,
+          "mode": "button"
         }
       },
+      "connected": [
+        "dashboard",
+        "workPlan",
+        "crawl",
+        "gsc",
+        "ga4",
+        "manual"
+      ],
+      "skipped": [
+        "gbp",
+        "ads",
+        "pageSpeed",
+        "crm"
+      ],
       "missing": [
-        "GBP",
-        "Google Ads",
-        "PageSpeed API",
-        "CRM Supabase",
-        "Sheets webhook URL",
-        "Supabase remote",
-        "AI agents live API"
+        "gbp",
+        "ads",
+        "pageSpeed",
+        "Sheets webhook URL"
       ]
     },
     "dataChecked": [
@@ -621,13 +1067,10 @@
       "crawl",
       "gsc",
       "ga4",
-      "sheets",
       "manual"
     ],
     "findings": {
-      "checkedAt": "2026-06-29T03:20:51.984Z",
       "pagesTotal": 28,
-      "crawlTotal": 28,
       "pagesDown": [],
       "pagesSlow": [],
       "missingContent": [
@@ -640,7 +1083,8 @@
           ],
           "issues": [
             "images_without_alt:25"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-02",
@@ -650,7 +1094,8 @@
           ],
           "issues": [
             "missing_h1"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-12",
@@ -662,7 +1107,8 @@
           "issues": [
             "missing_h1",
             "images_without_alt:13"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-08",
@@ -676,7 +1122,8 @@
             "missing_h1",
             "images_without_alt:1",
             "canonical_mismatch"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-06",
@@ -688,7 +1135,8 @@
           "issues": [
             "missing_h1",
             "images_without_alt:9"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-05",
@@ -698,7 +1146,8 @@
           ],
           "issues": [
             "missing_h1"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-03",
@@ -710,7 +1159,8 @@
           "issues": [
             "missing_h1",
             "images_without_alt:5"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-14",
@@ -722,7 +1172,8 @@
           "issues": [
             "missing_h1",
             "canonical_mismatch"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-04",
@@ -732,7 +1183,8 @@
           ],
           "issues": [
             "missing_h1"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-07",
@@ -746,7 +1198,8 @@
             "missing_h1",
             "images_without_alt:2",
             "canonical_mismatch"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-24",
@@ -756,7 +1209,8 @@
           ],
           "issues": [
             "canonical_mismatch"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-11",
@@ -764,13 +1218,13 @@
           "missing": [
             "alt tags for images",
             "canonical tag alignment",
-            "Alt לתמונות (1)",
-            "Canonical"
+            "Alt לתמונות (1)"
           ],
           "issues": [
             "images_without_alt:1",
             "canonical_mismatch"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-13",
@@ -782,7 +1236,8 @@
           "issues": [
             "missing_h1",
             "canonical_mismatch"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-26",
@@ -794,7 +1249,8 @@
           ],
           "issues": [
             "canonical_mismatch"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-23",
@@ -802,12 +1258,12 @@
           "missing": [
             "keywords",
             "internal links",
-            "alt text for images",
-            "Canonical"
+            "alt text for images"
           ],
           "issues": [
             "canonical_mismatch"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-16",
@@ -815,13 +1271,13 @@
           "missing": [
             "alt tags for images",
             "canonical tag alignment",
-            "Alt לתמונות (1)",
-            "Canonical"
+            "Alt לתמונות (1)"
           ],
           "issues": [
             "images_without_alt:1",
             "canonical_mismatch"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-17",
@@ -831,7 +1287,8 @@
           ],
           "issues": [
             "missing_h1"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-18",
@@ -841,7 +1298,8 @@
           ],
           "issues": [
             "missing_h1"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-25",
@@ -851,7 +1309,8 @@
           ],
           "issues": [
             "missing_h1"
-          ]
+          ],
+          "keyword": "ניהול צי רכב"
         },
         {
           "pageId": "page-28",
@@ -859,10 +1318,10 @@
           "missing": [
             "H1 בעברית",
             "תוכן ממוקד יותר",
-            "קישורים פנימיים",
-            "שימוש במילות מפתח רלוונטיות"
+            "קישורים פנימיים"
           ],
-          "issues": []
+          "issues": [],
+          "keyword": "ניהול צי רכב"
         }
       ],
       "seoIssues": [
@@ -875,60 +1334,227 @@
             "meta",
             "alt",
             "seo"
-          ]
+          ],
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
         },
         {
           "pageId": "page-02",
           "path": "/home",
           "seoScore": 4,
-          "checklistFails": []
+          "checklistFails": [],
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
         },
         {
           "pageId": "page-12",
           "path": "/79-shekels",
           "seoScore": 4,
-          "checklistFails": []
+          "checklistFails": [],
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
         },
         {
           "pageId": "page-08",
           "path": "/צור-קשר-דליה",
           "seoScore": 4,
-          "checklistFails": []
+          "checklistFails": [],
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
         },
         {
           "pageId": "page-09",
           "path": "/מה-עומד-מ",
           "seoScore": 4,
-          "checklistFails": []
+          "checklistFails": [],
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
         },
         {
           "pageId": "page-10",
           "path": "/עמוד-ספק",
           "seoScore": 4,
-          "checklistFails": []
+          "checklistFails": [],
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        }
+      ],
+      "keywordMatches": [
+        {
+          "pageId": "page-01",
+          "path": "/",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-02",
+          "path": "/home",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-12",
+          "path": "/79-shekels",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-08",
+          "path": "/צור-קשר-דליה",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-06",
+          "path": "/catalog",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-05",
+          "path": "/contact",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-03",
+          "path": "/our-app",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-14",
+          "path": "/מגוון-חבילות",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-04",
+          "path": "/about",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-07",
+          "path": "/השירותים-שלנו",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-24",
+          "path": "/שאלון-קצר-להתאמת-פתרון-ניהול-ותחזוקת-ר",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-11",
+          "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-13",
+          "path": "/שאלון-לקוח-פרטי-ועסקי-15",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-26",
+          "path": "/המערכת-והאפליקציה-של-דליה",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-23",
+          "path": "/שאלון-מתלבטים-בין-ליסינג-תפעולי-לניהו",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-16",
+          "path": "/ניהול-תחזוקת-רכבים-חכם-לעסקים-מערכת",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-17",
+          "path": "/service",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-18",
+          "path": "/how-it-works",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-25",
+          "path": "/card-provider-customer",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-28",
+          "path": "/registration",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-09",
+          "path": "/מה-עומד-מ",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-15",
+          "path": "/תחזוקת-רכבים-חכמה-לעסקים-שליטה-סדר-ו",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-21",
+          "path": "/איך-חוסכים-בעלויות-תחזוקת-ציי-רכב",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-19",
+          "path": "/האם-ליסינג-תפעולי-משתלם-כשאין-זמן-להתע",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-20",
+          "path": "/האם-כדאי-ליסינג-תפעולי-האמת-שעסקים-לא-ת",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-10",
+          "path": "/עמוד-ספק",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-22",
+          "path": "/תפעול-רכבים-לחברות",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
+        },
+        {
+          "pageId": "page-27",
+          "path": "/my-account",
+          "keyword": "ניהול צי רכב",
+          "topic": "SEO"
         }
       ],
       "actions": {
         "open": 395,
-        "completed": 0,
-        "stuck": [],
-        "needsApproval": 395
+        "stuck": []
       },
       "diff": {
-        "newIssues": [],
-        "resolvedIssues": []
-      },
-      "stats": {
-        "avgPosition": 41.3,
-        "totalClicks": 0,
-        "totalImpressions": 28,
-        "avgCtr": 0,
-        "activeKeywords": 14,
-        "opportunities": 1,
-        "weakPages": 0,
-        "pendingDrafts": 1,
-        "ga4Sessions": 251,
-        "ga4PageViews": 411
+        "newIssues": []
       }
     },
     "recommendations": [
@@ -936,66 +1562,197 @@
         "id": "rec-seo-page-01",
         "priority": "גבוה",
         "title": "שיפור SEO — /",
-        "detail": "ציון 6 · כשלים: title, meta, alt, seo",
-        "source": "checklist"
+        "detail": "ציון 6 · ניהול צי רכב",
+        "source": "checklist",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "slaType": "seo_followup"
       },
       {
         "id": "rec-content-page-01",
         "priority": "גבוה",
         "title": "תוכן חסר — /",
         "detail": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
-        "source": "crawl"
+        "source": "crawl",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "slaType": "normal"
       }
     ],
-    "goal": {
-      "id": "goal-daily-1782703252005",
-      "title": "שיפור SEO — /",
-      "category": "SEO",
-      "status": "pending",
-      "priority": "גבוה",
-      "metric": "28 עמודים · 395 פעולות פתוחות",
-      "created_at": "2026-06-29T03:20:52.005Z",
-      "source": "daily-engine",
-      "requiresApproval": true
-    },
-    "actionsCreated": [
-      "act-daily-03252004"
+    "goals": [
+      {
+        "id": "goal-daily-1782703966127-0",
+        "clientId": "dalia-c-official",
+        "siteId": "site-dalia-c",
+        "pageId": "page-01",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "priority": "גבוה",
+        "reason": "ציון 6 · ניהול צי רכב",
+        "source": "checklist",
+        "status": "pending_approval"
+      },
+      {
+        "id": "goal-daily-1782703966127-1",
+        "clientId": "dalia-c-official",
+        "siteId": "site-dalia-c",
+        "pageId": "page-02",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "priority": "גבוה",
+        "reason": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+        "source": "crawl",
+        "status": "pending_approval"
+      }
     ],
-    "draftAction": {
-      "id": "act-daily-03252004",
-      "pageId": "page-01",
-      "pagePath": "/",
-      "category": "title",
-      "recommendationType": "title",
-      "status": "pending",
-      "priority": "גבוה",
-      "urgency": "גבוה",
-      "source": "checklist",
-      "detail": "ציון 6 · כשלים: title, meta, alt, seo",
-      "problem": "שיפור SEO — /",
-      "createdBy": "daily-engine",
-      "created_at": "2026-06-29T03:20:52.005Z",
-      "requiresApproval": true,
-      "executionMode": "preview",
-      "runId": "run-1782703252004"
-    },
+    "actionsCreated": [
+      "act-daily-03966124",
+      "act-daily-03966124-1"
+    ],
+    "draftActions": [
+      {
+        "id": "act-daily-03966124",
+        "name": "שיפור SEO — /",
+        "description": "ציון 6 · ניהול צי רכב",
+        "goalId": "goal-daily-1782703966127-0",
+        "clientId": "dalia-c-official",
+        "siteId": "site-dalia-c",
+        "pageId": "page-01",
+        "pagePath": "/",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "priority": "גבוה",
+        "status": "pending_approval",
+        "sla": {
+          "type": "seo_followup",
+          "dueAt": "2026-07-13T03:32:46.127Z",
+          "openedAt": "2026-06-29T03:32:46.127Z",
+          "recheckAt": "2026-07-13T03:32:46.127Z"
+        },
+        "assignee": null,
+        "completionChecklist": "בדיקת SEO · אישור תוכן · preview",
+        "source": "checklist",
+        "createdBy": "daily-engine",
+        "created_at": "2026-06-29T03:32:46.127Z",
+        "requiresApproval": true,
+        "executionMode": "preview",
+        "runId": "run-1782703966124",
+        "problem": "שיפור SEO — /",
+        "detail": "ציון 6 · ניהול צי רכב",
+        "category": "title",
+        "recommendationType": "title"
+      },
+      {
+        "id": "act-daily-03966124-1",
+        "name": "תוכן חסר — /",
+        "description": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+        "goalId": "goal-daily-1782703966127-1",
+        "clientId": "dalia-c-official",
+        "siteId": "site-dalia-c",
+        "pageId": "page-02",
+        "pagePath": "/home",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "priority": "גבוה",
+        "status": "pending_approval",
+        "sla": {
+          "type": "normal",
+          "dueAt": "2026-07-01T03:32:46.127Z",
+          "openedAt": "2026-06-29T03:32:46.127Z",
+          "recheckAt": null
+        },
+        "assignee": null,
+        "completionChecklist": "בדיקת SEO · אישור תוכן · preview",
+        "source": "crawl",
+        "createdBy": "daily-engine",
+        "created_at": "2026-06-29T03:32:46.127Z",
+        "requiresApproval": true,
+        "executionMode": "preview",
+        "runId": "run-1782703966124",
+        "problem": "תוכן חסר — /",
+        "detail": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+        "category": "title",
+        "recommendationType": "title"
+      }
+    ],
     "errors": [],
     "summary": {
       "pagesChecked": 28,
+      "chunksProcessed": 6,
       "recommendations": 2,
-      "goalsCreated": 1,
-      "actionsCreated": 1,
+      "goalsCreated": 2,
+      "actionsCreated": 2,
+      "pendingApproval": 2,
       "openActions": 395,
       "pagesDown": 0,
-      "seoIssues": 6
+      "seoIssues": 6,
+      "newIssues": 0
     },
     "conclusions": [
       "שיפור SEO — /",
       "תוכן חסר — /"
     ],
-    "nextRunAt": "2026-06-29T06:00:00.000Z"
+    "nextRunAt": "2026-06-29T06:00:00.000Z",
+    "keywordsUsed": [
+      "ניהול צי רכב",
+      "מעקב GPS",
+      "תחזוקת רכבים",
+      "דלק וצריכה",
+      "ביטוח צי"
+    ],
+    "scheduleRuns": {
+      "daily": "2026-06-29T03:32:46.127Z",
+      "seo": "2026-06-29T03:32:46.127Z",
+      "reportsDaily": "2026-06-29T03:32:46.127Z"
+    },
+    "phasesSkipped": {
+      "seo": false,
+      "pagespeed": false
+    }
   },
   "runs": [
+    {
+      "id": "run-1782703966124",
+      "client": "dalia-c-official",
+      "site": "dalia-c.com",
+      "startedAt": "2026-06-29T03:32:46.112Z",
+      "finishedAt": "2026-06-29T03:32:46.127Z",
+      "status": "completed",
+      "dataChecked": [
+        "dashboard",
+        "workPlan",
+        "crawl",
+        "gsc",
+        "ga4",
+        "manual"
+      ],
+      "conclusions": [
+        "שיפור SEO — /",
+        "תוכן חסר — /"
+      ],
+      "actionsCreated": [
+        "act-daily-03966124",
+        "act-daily-03966124-1"
+      ],
+      "errors": [],
+      "summary": {
+        "pagesChecked": 28,
+        "chunksProcessed": 6,
+        "recommendations": 2,
+        "goalsCreated": 2,
+        "actionsCreated": 2,
+        "pendingApproval": 2,
+        "openActions": 395,
+        "pagesDown": 0,
+        "seoIssues": 6,
+        "newIssues": 0
+      },
+      "nextRunAt": "2026-06-29T06:00:00.000Z",
+      "phasesSkipped": {
+        "seo": false,
+        "pagespeed": false
+      }
+    },
     {
       "id": "run-1782703252004",
       "client": "dalia-c-official",
@@ -1034,6 +1791,70 @@
   ],
   "drafts": [
     {
+      "id": "act-daily-03966124-1",
+      "name": "תוכן חסר — /",
+      "description": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+      "goalId": "goal-daily-1782703966127-1",
+      "clientId": "dalia-c-official",
+      "siteId": "site-dalia-c",
+      "pageId": "page-02",
+      "pagePath": "/home",
+      "keyword": "ניהול צי רכב",
+      "topic": "SEO",
+      "priority": "גבוה",
+      "status": "pending_approval",
+      "sla": {
+        "type": "normal",
+        "dueAt": "2026-07-01T03:32:46.127Z",
+        "openedAt": "2026-06-29T03:32:46.127Z",
+        "recheckAt": null
+      },
+      "assignee": null,
+      "completionChecklist": "בדיקת SEO · אישור תוכן · preview",
+      "source": "crawl",
+      "createdBy": "daily-engine",
+      "created_at": "2026-06-29T03:32:46.127Z",
+      "requiresApproval": true,
+      "executionMode": "preview",
+      "runId": "run-1782703966124",
+      "problem": "תוכן חסר — /",
+      "detail": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+      "category": "title",
+      "recommendationType": "title"
+    },
+    {
+      "id": "act-daily-03966124",
+      "name": "שיפור SEO — /",
+      "description": "ציון 6 · ניהול צי רכב",
+      "goalId": "goal-daily-1782703966127-0",
+      "clientId": "dalia-c-official",
+      "siteId": "site-dalia-c",
+      "pageId": "page-01",
+      "pagePath": "/",
+      "keyword": "ניהול צי רכב",
+      "topic": "SEO",
+      "priority": "גבוה",
+      "status": "pending_approval",
+      "sla": {
+        "type": "seo_followup",
+        "dueAt": "2026-07-13T03:32:46.127Z",
+        "openedAt": "2026-06-29T03:32:46.127Z",
+        "recheckAt": "2026-07-13T03:32:46.127Z"
+      },
+      "assignee": null,
+      "completionChecklist": "בדיקת SEO · אישור תוכן · preview",
+      "source": "checklist",
+      "createdBy": "daily-engine",
+      "created_at": "2026-06-29T03:32:46.127Z",
+      "requiresApproval": true,
+      "executionMode": "preview",
+      "runId": "run-1782703966124",
+      "problem": "שיפור SEO — /",
+      "detail": "ציון 6 · ניהול צי רכב",
+      "category": "title",
+      "recommendationType": "title"
+    },
+    {
       "id": "act-daily-03252004",
       "pageId": "page-01",
       "pagePath": "/",
@@ -1056,24 +1877,31 @@
     "prepared": true,
     "enabled": false,
     "since": "2026-06-29T03:20:51.984Z",
-    "lastRunAt": "2026-06-29T03:20:52.005Z",
-    "lastRunId": "run-1782703252004",
+    "lastRunAt": "2026-06-29T03:32:46.127Z",
+    "lastRunId": "run-1782703966124",
     "lastRunStatus": "completed",
     "nextRunAt": "2026-06-29T06:00:00.000Z",
-    "lastRunSummary": {
-      "pagesChecked": 28,
+    "active": false,
+    "counts": {
       "recommendations": 2,
-      "goalsCreated": 1,
-      "actionsCreated": 1,
-      "openActions": 395,
-      "pagesDown": 0,
-      "seoIssues": 6
+      "goalsCreated": 2,
+      "actionsCreated": 2,
+      "pendingApproval": 2
     },
     "lastRunErrors": [],
-    "runCount": 1,
-    "executionMode": "preview"
+    "runCount": 2,
+    "executionMode": "preview",
+    "currentStage": null
   },
   "progress": [
+    {
+      "id": "engine-run-1782703966124",
+      "title": "מנוע יומי — הושלם",
+      "action": "daily_engine",
+      "module": "אוטומציה",
+      "detail": "שיפור SEO — / · תוכן חסר — /",
+      "created_at": "2026-06-29T03:32:46.127Z"
+    },
     {
       "id": "engine-run-1782703252004",
       "title": "מנוע יומי — הושלם",
@@ -1082,5 +1910,47 @@
       "detail": "שיפור SEO — / · תוכן חסר — /",
       "created_at": "2026-06-29T03:20:52.005Z"
     }
-  ]
+  ],
+  "historyLite": [
+    {
+      "client": "dalia-c-official",
+      "site": "dalia-c.com",
+      "goalId": "goal-daily-1782703966127-0",
+      "actionId": "act-daily-03966124",
+      "status": "pending_approval",
+      "date": "2026-06-29T03:32:46.127Z",
+      "who": "daily-engine",
+      "result": "draft_created",
+      "link": "/",
+      "commit": "",
+      "note": "שיפור SEO — /"
+    },
+    {
+      "client": "dalia-c-official",
+      "site": "dalia-c.com",
+      "goalId": "goal-daily-1782703966127-1",
+      "actionId": "act-daily-03966124-1",
+      "status": "pending_approval",
+      "date": "2026-06-29T03:32:46.127Z",
+      "who": "daily-engine",
+      "result": "draft_created",
+      "link": "/home",
+      "commit": "",
+      "note": "תוכן חסר — /"
+    }
+  ],
+  "keywords": {
+    "dalia-c-official": [
+      "ניהול צי רכב",
+      "מעקב GPS",
+      "תחזוקת רכבים",
+      "דלק וצריכה",
+      "ביטוח צי",
+      "נהגים ורישיונות",
+      "טלמטיקה",
+      "Fleet management",
+      "vehicle tracking",
+      "תחזוקה מונעת"
+    ]
+  }
 }

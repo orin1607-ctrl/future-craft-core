@@ -1,0 +1,228 @@
+{
+  "run": {
+    "id": "run-1782703966124",
+    "status": "completed",
+    "summary": {
+      "pagesChecked": 28,
+      "chunksProcessed": 6,
+      "recommendations": 2,
+      "goalsCreated": 2,
+      "actionsCreated": 2,
+      "pendingApproval": 2,
+      "openActions": 395,
+      "pagesDown": 0,
+      "seoIssues": 6,
+      "newIssues": 0
+    },
+    "goals": [
+      {
+        "id": "goal-daily-1782703966127-0",
+        "clientId": "dalia-c-official",
+        "siteId": "site-dalia-c",
+        "pageId": "page-01",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "priority": "גבוה",
+        "reason": "ציון 6 · ניהול צי רכב",
+        "source": "checklist",
+        "status": "pending_approval"
+      },
+      {
+        "id": "goal-daily-1782703966127-1",
+        "clientId": "dalia-c-official",
+        "siteId": "site-dalia-c",
+        "pageId": "page-02",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "priority": "גבוה",
+        "reason": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+        "source": "crawl",
+        "status": "pending_approval"
+      }
+    ],
+    "draftActions": [
+      {
+        "id": "act-daily-03966124",
+        "name": "שיפור SEO — /",
+        "description": "ציון 6 · ניהול צי רכב",
+        "goalId": "goal-daily-1782703966127-0",
+        "clientId": "dalia-c-official",
+        "siteId": "site-dalia-c",
+        "pageId": "page-01",
+        "pagePath": "/",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "priority": "גבוה",
+        "status": "pending_approval",
+        "sla": {
+          "type": "seo_followup",
+          "dueAt": "2026-07-13T03:32:46.127Z",
+          "openedAt": "2026-06-29T03:32:46.127Z",
+          "recheckAt": "2026-07-13T03:32:46.127Z"
+        },
+        "assignee": null,
+        "completionChecklist": "בדיקת SEO · אישור תוכן · preview",
+        "source": "checklist",
+        "createdBy": "daily-engine",
+        "created_at": "2026-06-29T03:32:46.127Z",
+        "requiresApproval": true,
+        "executionMode": "preview",
+        "runId": "run-1782703966124",
+        "problem": "שיפור SEO — /",
+        "detail": "ציון 6 · ניהול צי רכב",
+        "category": "title",
+        "recommendationType": "title"
+      },
+      {
+        "id": "act-daily-03966124-1",
+        "name": "תוכן חסר — /",
+        "description": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+        "goalId": "goal-daily-1782703966127-1",
+        "clientId": "dalia-c-official",
+        "siteId": "site-dalia-c",
+        "pageId": "page-02",
+        "pagePath": "/home",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "priority": "גבוה",
+        "status": "pending_approval",
+        "sla": {
+          "type": "normal",
+          "dueAt": "2026-07-01T03:32:46.127Z",
+          "openedAt": "2026-06-29T03:32:46.127Z",
+          "recheckAt": null
+        },
+        "assignee": null,
+        "completionChecklist": "בדיקת SEO · אישור תוכן · preview",
+        "source": "crawl",
+        "createdBy": "daily-engine",
+        "created_at": "2026-06-29T03:32:46.127Z",
+        "requiresApproval": true,
+        "executionMode": "preview",
+        "runId": "run-1782703966124",
+        "problem": "תוכן חסר — /",
+        "detail": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
+        "category": "title",
+        "recommendationType": "title"
+      }
+    ],
+    "scheduleRuns": {
+      "daily": "2026-06-29T03:32:46.127Z",
+      "seo": "2026-06-29T03:32:46.127Z",
+      "reportsDaily": "2026-06-29T03:32:46.127Z"
+    },
+    "phasesSkipped": {
+      "seo": false,
+      "pagespeed": false
+    }
+  },
+  "report": {
+    "stage": "report-lite",
+    "version": "2.0.0",
+    "generatedAt": "2026-06-29T03:32:46.127Z",
+    "runId": "run-1782703966124",
+    "client": "dalia-c-official",
+    "site": "dalia-c.com",
+    "status": "completed",
+    "whatChangedToday": [],
+    "goalsCreated": [
+      {
+        "id": "goal-daily-1782703966127-0",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "status": "pending_approval"
+      },
+      {
+        "id": "goal-daily-1782703966127-1",
+        "keyword": "ניהול צי רכב",
+        "topic": "SEO",
+        "status": "pending_approval"
+      }
+    ],
+    "actionsOpened": [
+      {
+        "id": "act-daily-03966124",
+        "name": "שיפור SEO — /",
+        "keyword": "ניהול צי רכב",
+        "sla": {
+          "type": "seo_followup",
+          "dueAt": "2026-07-13T03:32:46.127Z",
+          "openedAt": "2026-06-29T03:32:46.127Z",
+          "recheckAt": "2026-07-13T03:32:46.127Z"
+        }
+      },
+      {
+        "id": "act-daily-03966124-1",
+        "name": "תוכן חסר — /",
+        "keyword": "ניהול צי רכב",
+        "sla": {
+          "type": "normal",
+          "dueAt": "2026-07-01T03:32:46.127Z",
+          "openedAt": "2026-06-29T03:32:46.127Z",
+          "recheckAt": null
+        }
+      }
+    ],
+    "actionsCompleted": [],
+    "pendingApproval": 2,
+    "stuck": [],
+    "tomorrowRecommendation": "שיפור SEO — /",
+    "summary": {
+      "pagesChecked": 28,
+      "chunksProcessed": 6,
+      "recommendations": 2,
+      "goalsCreated": 2,
+      "actionsCreated": 2,
+      "pendingApproval": 2,
+      "openActions": 395,
+      "pagesDown": 0,
+      "seoIssues": 6,
+      "newIssues": 0
+    },
+    "dataSourcesMissing": [
+      "gbp",
+      "ads",
+      "pageSpeed",
+      "Sheets webhook URL"
+    ],
+    "schedule": {
+      "stage": "schedule-recheck",
+      "lastRunAt": {
+        "daily": "2026-06-29T03:32:46.127Z",
+        "seo": "2026-06-29T03:32:46.127Z",
+        "reportsDaily": "2026-06-29T03:32:46.127Z"
+      },
+      "nextRecheck": {
+        "daily": "2026-06-29T06:00:00.000Z",
+        "seo": "2026-07-13T03:32:46.127Z",
+        "pagespeed": "2026-07-29T03:32:46.127Z"
+      },
+      "phasesSkipped": {
+        "seo": false,
+        "pagespeed": false
+      }
+    }
+  },
+  "storageEst": {
+    "runs": 1172,
+    "drafts": 2032,
+    "keywords": 168,
+    "autoMode": 386,
+    "historyLite": 556,
+    "total": 4372,
+    "limits": {
+      "maxRuns": 30,
+      "maxDrafts": 50,
+      "maxHistory": 100,
+      "runSummaryTargetKb": 2,
+      "reportMaxKb": 50
+    }
+  },
+  "stateKeys": {
+    "RUNS_KEY": "dalia-daily-engine-runs-v1",
+    "DRAFT_ACTIONS_KEY": "dalia-daily-engine-draft-actions-v1",
+    "KEYWORDS_KEY": "dalia-daily-engine-keywords-v1",
+    "AUTO_MODE_KEY": "dalia-auto-mode-v1",
+    "HISTORY_LITE_KEY": "dalia-daily-engine-history-lite-v1"
+  }
+}

@@ -1,421 +1,87 @@
 {
-  "version": "1.0.0",
-  "generatedAt": "2026-06-29T03:20:52.005Z",
-  "runId": "run-1782703252004",
+  "stage": "report-lite",
+  "version": "2.0.0",
+  "generatedAt": "2026-06-29T03:32:46.127Z",
+  "runId": "run-1782703966124",
   "client": "dalia-c-official",
   "site": "dalia-c.com",
   "status": "completed",
+  "whatChangedToday": [],
+  "goalsCreated": [
+    {
+      "id": "goal-daily-1782703966127-0",
+      "keyword": "ניהול צי רכב",
+      "topic": "SEO",
+      "status": "pending_approval"
+    },
+    {
+      "id": "goal-daily-1782703966127-1",
+      "keyword": "ניהול צי רכב",
+      "topic": "SEO",
+      "status": "pending_approval"
+    }
+  ],
+  "actionsOpened": [
+    {
+      "id": "act-daily-03966124",
+      "name": "שיפור SEO — /",
+      "keyword": "ניהול צי רכב",
+      "sla": {
+        "type": "seo_followup",
+        "dueAt": "2026-07-13T03:32:46.127Z",
+        "openedAt": "2026-06-29T03:32:46.127Z",
+        "recheckAt": "2026-07-13T03:32:46.127Z"
+      }
+    },
+    {
+      "id": "act-daily-03966124-1",
+      "name": "תוכן חסר — /",
+      "keyword": "ניהול צי רכב",
+      "sla": {
+        "type": "normal",
+        "dueAt": "2026-07-01T03:32:46.127Z",
+        "openedAt": "2026-06-29T03:32:46.127Z",
+        "recheckAt": null
+      }
+    }
+  ],
+  "actionsCompleted": [],
+  "pendingApproval": 2,
+  "stuck": [],
+  "tomorrowRecommendation": "שיפור SEO — /",
   "summary": {
     "pagesChecked": 28,
+    "chunksProcessed": 6,
     "recommendations": 2,
-    "goalsCreated": 1,
-    "actionsCreated": 1,
+    "goalsCreated": 2,
+    "actionsCreated": 2,
+    "pendingApproval": 2,
     "openActions": 395,
     "pagesDown": 0,
-    "seoIssues": 6
+    "seoIssues": 6,
+    "newIssues": 0
   },
-  "dataSources": {
-    "sources": {
-      "dashboard": {
-        "ok": true,
-        "at": "2026-06-27T20:53:41.381Z"
-      },
-      "workPlan": {
-        "ok": true,
-        "pages": 28
-      },
-      "crawl": {
-        "ok": true,
-        "pages": 28
-      },
-      "gsc": {
-        "ok": true,
-        "mode": "snapshot"
-      },
-      "ga4": {
-        "ok": true,
-        "mode": "snapshot"
-      },
-      "gbp": {
-        "ok": false,
-        "mode": "snapshot"
-      },
-      "ads": {
-        "ok": false,
-        "mode": "snapshot"
-      },
-      "pageSpeed": {
-        "ok": false,
-        "mode": "missing"
-      },
-      "crm": {
-        "ok": false,
-        "mode": "not_connected_staging"
-      },
-      "sheets": {
-        "ok": true,
-        "webhook": "empty"
-      },
-      "supabase": {
-        "ok": false,
-        "mode": "not_connected_staging"
-      },
-      "aiAgents": {
-        "ok": false,
-        "live": 0
-      },
-      "manual": {
-        "ok": true
-      }
-    },
-    "missing": [
-      "GBP",
-      "Google Ads",
-      "PageSpeed API",
-      "CRM Supabase",
-      "Sheets webhook URL",
-      "Supabase remote",
-      "AI agents live API"
-    ]
-  },
-  "findings": {
-    "checkedAt": "2026-06-29T03:20:51.984Z",
-    "pagesTotal": 28,
-    "crawlTotal": 28,
-    "pagesDown": [],
-    "pagesSlow": [],
-    "missingContent": [
-      {
-        "pageId": "page-01",
-        "path": "/",
-        "missing": [
-          "alt tags for images",
-          "Alt לתמונות (25)"
-        ],
-        "issues": [
-          "images_without_alt:25"
-        ]
-      },
-      {
-        "pageId": "page-02",
-        "path": "/home",
-        "missing": [
-          "h1"
-        ],
-        "issues": [
-          "missing_h1"
-        ]
-      },
-      {
-        "pageId": "page-12",
-        "path": "/79-shekels",
-        "missing": [
-          "h1",
-          "Alt לתמונות (13)"
-        ],
-        "issues": [
-          "missing_h1",
-          "images_without_alt:13"
-        ]
-      },
-      {
-        "pageId": "page-08",
-        "path": "/צור-קשר-דליה",
-        "missing": [
-          "h1",
-          "Alt לתמונות (1)",
-          "Canonical"
-        ],
-        "issues": [
-          "missing_h1",
-          "images_without_alt:1",
-          "canonical_mismatch"
-        ]
-      },
-      {
-        "pageId": "page-06",
-        "path": "/catalog",
-        "missing": [
-          "h1",
-          "Alt לתמונות (9)"
-        ],
-        "issues": [
-          "missing_h1",
-          "images_without_alt:9"
-        ]
-      },
-      {
-        "pageId": "page-05",
-        "path": "/contact",
-        "missing": [
-          "h1"
-        ],
-        "issues": [
-          "missing_h1"
-        ]
-      },
-      {
-        "pageId": "page-03",
-        "path": "/our-app",
-        "missing": [
-          "h1",
-          "Alt לתמונות (5)"
-        ],
-        "issues": [
-          "missing_h1",
-          "images_without_alt:5"
-        ]
-      },
-      {
-        "pageId": "page-14",
-        "path": "/מגוון-חבילות",
-        "missing": [
-          "h1",
-          "Canonical"
-        ],
-        "issues": [
-          "missing_h1",
-          "canonical_mismatch"
-        ]
-      },
-      {
-        "pageId": "page-04",
-        "path": "/about",
-        "missing": [
-          "h1"
-        ],
-        "issues": [
-          "missing_h1"
-        ]
-      },
-      {
-        "pageId": "page-07",
-        "path": "/השירותים-שלנו",
-        "missing": [
-          "h1",
-          "Alt לתמונות (2)",
-          "Canonical"
-        ],
-        "issues": [
-          "missing_h1",
-          "images_without_alt:2",
-          "canonical_mismatch"
-        ]
-      },
-      {
-        "pageId": "page-24",
-        "path": "/שאלון-קצר-להתאמת-פתרון-ניהול-ותחזוקת-ר",
-        "missing": [
-          "Canonical"
-        ],
-        "issues": [
-          "canonical_mismatch"
-        ]
-      },
-      {
-        "pageId": "page-11",
-        "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
-        "missing": [
-          "alt tags for images",
-          "canonical tag alignment",
-          "Alt לתמונות (1)",
-          "Canonical"
-        ],
-        "issues": [
-          "images_without_alt:1",
-          "canonical_mismatch"
-        ]
-      },
-      {
-        "pageId": "page-13",
-        "path": "/שאלון-לקוח-פרטי-ועסקי-15",
-        "missing": [
-          "h1",
-          "Canonical"
-        ],
-        "issues": [
-          "missing_h1",
-          "canonical_mismatch"
-        ]
-      },
-      {
-        "pageId": "page-26",
-        "path": "/המערכת-והאפליקציה-של-דליה",
-        "missing": [
-          "keywords",
-          "alt text for images",
-          "Canonical"
-        ],
-        "issues": [
-          "canonical_mismatch"
-        ]
-      },
-      {
-        "pageId": "page-23",
-        "path": "/שאלון-מתלבטים-בין-ליסינג-תפעולי-לניהו",
-        "missing": [
-          "keywords",
-          "internal links",
-          "alt text for images",
-          "Canonical"
-        ],
-        "issues": [
-          "canonical_mismatch"
-        ]
-      },
-      {
-        "pageId": "page-16",
-        "path": "/ניהול-תחזוקת-רכבים-חכם-לעסקים-מערכת",
-        "missing": [
-          "alt tags for images",
-          "canonical tag alignment",
-          "Alt לתמונות (1)",
-          "Canonical"
-        ],
-        "issues": [
-          "images_without_alt:1",
-          "canonical_mismatch"
-        ]
-      },
-      {
-        "pageId": "page-17",
-        "path": "/service",
-        "missing": [
-          "h1"
-        ],
-        "issues": [
-          "missing_h1"
-        ]
-      },
-      {
-        "pageId": "page-18",
-        "path": "/how-it-works",
-        "missing": [
-          "h1"
-        ],
-        "issues": [
-          "missing_h1"
-        ]
-      },
-      {
-        "pageId": "page-25",
-        "path": "/card-provider-customer",
-        "missing": [
-          "h1"
-        ],
-        "issues": [
-          "missing_h1"
-        ]
-      },
-      {
-        "pageId": "page-28",
-        "path": "/registration",
-        "missing": [
-          "H1 בעברית",
-          "תוכן ממוקד יותר",
-          "קישורים פנימיים",
-          "שימוש במילות מפתח רלוונטיות"
-        ],
-        "issues": []
-      }
-    ],
-    "seoIssues": [
-      {
-        "pageId": "page-01",
-        "path": "/",
-        "seoScore": 6,
-        "checklistFails": [
-          "title",
-          "meta",
-          "alt",
-          "seo"
-        ]
-      },
-      {
-        "pageId": "page-02",
-        "path": "/home",
-        "seoScore": 4,
-        "checklistFails": []
-      },
-      {
-        "pageId": "page-12",
-        "path": "/79-shekels",
-        "seoScore": 4,
-        "checklistFails": []
-      },
-      {
-        "pageId": "page-08",
-        "path": "/צור-קשר-דליה",
-        "seoScore": 4,
-        "checklistFails": []
-      },
-      {
-        "pageId": "page-09",
-        "path": "/מה-עומד-מ",
-        "seoScore": 4,
-        "checklistFails": []
-      },
-      {
-        "pageId": "page-10",
-        "path": "/עמוד-ספק",
-        "seoScore": 4,
-        "checklistFails": []
-      }
-    ],
-    "actions": {
-      "open": 395,
-      "completed": 0,
-      "stuck": [],
-      "needsApproval": 395
-    },
-    "diff": {
-      "newIssues": [],
-      "resolvedIssues": []
-    },
-    "stats": {
-      "avgPosition": 41.3,
-      "totalClicks": 0,
-      "totalImpressions": 28,
-      "avgCtr": 0,
-      "activeKeywords": 14,
-      "opportunities": 1,
-      "weakPages": 0,
-      "pendingDrafts": 1,
-      "ga4Sessions": 251,
-      "ga4PageViews": 411
-    }
-  },
-  "recommendations": [
-    {
-      "id": "rec-seo-page-01",
-      "priority": "גבוה",
-      "title": "שיפור SEO — /",
-      "detail": "ציון 6 · כשלים: title, meta, alt, seo",
-      "source": "checklist"
-    },
-    {
-      "id": "rec-content-page-01",
-      "priority": "גבוה",
-      "title": "תוכן חסר — /",
-      "detail": "alt tags for images; Alt לתמונות (25); images_without_alt:25",
-      "source": "crawl"
-    }
+  "dataSourcesMissing": [
+    "gbp",
+    "ads",
+    "pageSpeed",
+    "Sheets webhook URL"
   ],
-  "goal": {
-    "id": "goal-daily-1782703252005",
-    "title": "שיפור SEO — /",
-    "category": "SEO",
-    "status": "pending",
-    "priority": "גבוה",
-    "metric": "28 עמודים · 395 פעולות פתוחות",
-    "created_at": "2026-06-29T03:20:52.005Z",
-    "source": "daily-engine",
-    "requiresApproval": true
-  },
-  "actionsCreated": [
-    "act-daily-03252004"
-  ],
-  "errors": [],
-  "mode": "headless",
-  "demo": false
+  "schedule": {
+    "stage": "schedule-recheck",
+    "lastRunAt": {
+      "daily": "2026-06-29T03:32:46.127Z",
+      "seo": "2026-06-29T03:32:46.127Z",
+      "reportsDaily": "2026-06-29T03:32:46.127Z"
+    },
+    "nextRecheck": {
+      "daily": "2026-06-29T06:00:00.000Z",
+      "seo": "2026-07-13T03:32:46.127Z",
+      "pagespeed": "2026-07-29T03:32:46.127Z"
+    },
+    "phasesSkipped": {
+      "seo": false,
+      "pagespeed": false
+    }
+  }
 }
