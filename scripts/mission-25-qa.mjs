@@ -215,7 +215,8 @@ const browser = await chromium.launch({ headless: true });
   await bootPage(page);
   const engines = await page.evaluate(() => {
     const reg = COCO_AI_CONTROL.registry();
-    return (reg?.engines || []).filter((e) => ['openai', 'claude', 'gemini'].includes(e.id)).map((e) => ({
+    const list = reg?.primary || reg?.engines || [];
+    return list.filter((e) => ['openai', 'claude', 'gemini'].includes(e.id)).map((e) => ({
       id: e.id,
       wired: e.wired,
       apiEnabled: e.apiEnabled,
@@ -256,13 +257,12 @@ const browser = await chromium.launch({ headless: true });
   await bootPage(page);
   const iso = await page.evaluate(async () => {
     if (!window.GlobalFilterContext || !window.FilterEngine) return { ok: false };
-    GlobalFilterContext.set({ clientId: 'test-client-A', companyId: 'co-A' });
-    const ctxA = FilterEngine.getContext();
+    GlobalFilterContext.set({ campaignId: 'iso-test-campaign-A', campaignName: 'A' }, { allowInvalid: true });
     const hashA = FilterEngine.contextHash();
-    GlobalFilterContext.set({ clientId: 'test-client-B', companyId: 'co-B' });
+    GlobalFilterContext.set({ campaignId: 'iso-test-campaign-B', campaignName: 'B' }, { allowInvalid: true });
     const hashB = FilterEngine.contextHash();
     GlobalFilterContext.reset();
-    return { ok: hashA !== hashB, hashA: hashA.slice(0, 16), hashB: hashB.slice(0, 16) };
+    return { ok: hashA !== hashB && hashA.length > 3 && hashB.length > 3, hashA: hashA.slice(0, 24), hashB: hashB.slice(0, 24) };
   });
   await page.close();
   task('25.8', {

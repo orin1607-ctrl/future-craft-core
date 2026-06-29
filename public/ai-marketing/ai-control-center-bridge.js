@@ -56,7 +56,8 @@
   function getEngineStatus() {
     if (!window.MultiAiOrchestrator || !MultiAiOrchestrator.getRegistry) return [];
     var reg = MultiAiOrchestrator.getRegistry();
-    return (reg && reg.engines) ? reg.engines : [];
+    var engines = (reg && reg.primary) ? reg.primary : (reg && reg.engines ? reg.engines : []);
+    return engines;
   }
 
   function init() {

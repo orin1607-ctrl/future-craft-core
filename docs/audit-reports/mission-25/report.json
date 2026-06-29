@@ -1,0 +1,265 @@
+{
+  "mission": 25,
+  "at": "2026-06-29T04:17:59.079Z",
+  "version": "v3-mission-25-1-360553c",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-mission-25-1-360553c",
+  "commitHash": "360553cb9680461f5db32b24760b1b585c520ec7",
+  "tasks": {
+    "25.1": {
+      "passed": true,
+      "title": "AI Control Center wired",
+      "found": {
+        "hasControl": true,
+        "hasAsk": true,
+        "hasExecute": true,
+        "hasSnapshot": true,
+        "askSummary": "שאילתה כללית — נסה לציין: פעולות, עמודים, קמפיין, סטטוס, או תקופה.",
+        "hasAiControlCenter": true,
+        "hasNotifications": true,
+        "panel": {
+          "panel": true,
+          "engines": true,
+          "input": true
+        }
+      }
+    },
+    "25.2": {
+      "passed": true,
+      "title": "Mobile scroll all screens",
+      "found": {
+        "mobileScreens": {
+          "screen-hub": {
+            "active": true,
+            "scrollable": false,
+            "overflow": "auto"
+          },
+          "screen-status": {
+            "active": true,
+            "scrollable": false,
+            "overflow": "auto"
+          },
+          "screen-clients": {
+            "active": true,
+            "scrollable": false,
+            "overflow": "auto"
+          },
+          "screen-crm": {
+            "active": true,
+            "scrollable": false,
+            "overflow": "auto"
+          },
+          "screen-goals": {
+            "active": true,
+            "scrollable": false,
+            "overflow": "auto"
+          },
+          "screen-actions": {
+            "active": true,
+            "scrollable": true,
+            "overflow": "auto"
+          },
+          "screen-history": {
+            "active": true,
+            "scrollable": false,
+            "overflow": "auto"
+          },
+          "screen-assets": {
+            "active": true,
+            "scrollable": false,
+            "overflow": "auto"
+          },
+          "screen-ai-center": {
+            "active": true,
+            "scrollable": false,
+            "overflow": "auto"
+          },
+          "screen-reports": {
+            "active": true,
+            "scrollable": false,
+            "overflow": "auto"
+          },
+          "screen-agents": {
+            "active": true,
+            "scrollable": false,
+            "overflow": "auto"
+          }
+        },
+        "scroll": {
+          "ok": true,
+          "maxScroll": 1601,
+          "jumps": 0,
+          "scrollContainer": true
+        }
+      }
+    },
+    "25.3": {
+      "passed": true,
+      "title": "Button smoke test",
+      "found": {
+        "buttons": {
+          "count": 17,
+          "sample": [
+            "←",
+            "🎯 מטרות",
+            "🏠",
+            "📥 ייצוא CSV",
+            "🤖 מצב אוטומטי",
+            "פתח שולחן עבודה",
+            "פתח שולחן עבודה",
+            "פתח שולחן עבודה"
+          ]
+        },
+        "workbenchOpens": true,
+        "hubCards": 10
+      }
+    },
+    "25.4": {
+      "passed": true,
+      "title": "End-to-end workflow",
+      "found": {
+        "flow": [
+          {
+            "step": "agents",
+            "ok": true
+          },
+          {
+            "step": "goals",
+            "ok": true
+          },
+          {
+            "step": "actions",
+            "ok": true
+          },
+          {
+            "step": "history",
+            "ok": true
+          },
+          {
+            "step": "reports",
+            "ok": true
+          },
+          {
+            "step": "ai-center",
+            "ok": true
+          }
+        ]
+      }
+    },
+    "25.5": {
+      "passed": true,
+      "title": "Gmail notification stub",
+      "found": {
+        "ok": true,
+        "queue": 5,
+        "gmailStatus": "stub_only",
+        "missing": 5
+      },
+      "open": [
+        "Gmail API live send not implemented — stub queue only"
+      ]
+    },
+    "25.6": {
+      "passed": false,
+      "title": "Multi-AI ChatGPT/Claude/Gemini",
+      "found": {
+        "engines": []
+      }
+    },
+    "25.7": {
+      "passed": true,
+      "title": "Performance",
+      "found": {
+        "loadMs": 7024,
+        "totalDom": 15220,
+        "actionsNodes": 195
+      }
+    },
+    "25.8": {
+      "passed": false,
+      "title": "Client isolation FilterEngine",
+      "found": {
+        "ok": false,
+        "hashA": "dalia-c-official",
+        "hashB": "dalia-c-official"
+      }
+    },
+    "25.9": {
+      "passed": true,
+      "title": "Google Sheets export infrastructure",
+      "found": {
+        "exportFn": true,
+        "configKey": "dalia-actions-export-config-v1",
+        "webhookUrl": "",
+        "webhookConfigured": false,
+        "dailyExport": true
+      },
+      "open": [
+        "sheetsWebhookUrl empty — user must configure webhook URL"
+      ]
+    },
+    "25.10": {
+      "passed": true,
+      "title": "Data report",
+      "found": {
+        "modulesAdded": [
+          "ai-control-center.js",
+          "marketing-notifications.js"
+        ],
+        "modulesUpdated": [
+          "ai-control-center-bridge.js",
+          "ai-assistant.js",
+          "actions-workbench.js"
+        ],
+        "localStorageKeys": [
+          "coco-ai-questions-v1",
+          "coco-multi-ai-runs-v1",
+          "coco-marketing-notifications-v1",
+          "dalia-daily-engine-runs-v1",
+          "coco-global-filter-v3"
+        ],
+        "connections": [
+          "FAB → COCO_AI_CONTROL.ask → AiQuestionEngine → FilterEngine/CocoData",
+          "screen-ai-center → AiControlCenter → COCO_AI_CONTROL",
+          "MultiAiOrchestrator → CocoIntegrationHub.MultiAi",
+          "MarketingNotifications → localStorage queue (Gmail stub)"
+        ]
+      }
+    },
+    "25.11": {
+      "passed": true,
+      "title": "Final QA summary",
+      "found": {
+        "passed": 8,
+        "failed": 2,
+        "consoleErrors": 0
+      }
+    }
+  },
+  "consoleErrors": [],
+  "passed": 9,
+  "failed": 2,
+  "dataReport": {
+    "modulesAdded": [
+      "ai-control-center.js",
+      "marketing-notifications.js"
+    ],
+    "modulesUpdated": [
+      "ai-control-center-bridge.js",
+      "ai-assistant.js",
+      "actions-workbench.js"
+    ],
+    "localStorageKeys": [
+      "coco-ai-questions-v1",
+      "coco-multi-ai-runs-v1",
+      "coco-marketing-notifications-v1",
+      "dalia-daily-engine-runs-v1",
+      "coco-global-filter-v3"
+    ],
+    "connections": [
+      "FAB → COCO_AI_CONTROL.ask → AiQuestionEngine → FilterEngine/CocoData",
+      "screen-ai-center → AiControlCenter → COCO_AI_CONTROL",
+      "MultiAiOrchestrator → CocoIntegrationHub.MultiAi",
+      "MarketingNotifications → localStorage queue (Gmail stub)"
+    ]
+  }
+}
