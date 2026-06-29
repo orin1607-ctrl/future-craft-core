@@ -962,8 +962,10 @@
 
   function ensureLitePreviewModal() {
     var existing = document.getElementById('coco-act-lite-preview-modal');
-    if (existing) return existing;
-    var screen = document.getElementById('screen-actions');
+    if (existing) {
+      if (existing.parentElement !== document.body) document.body.appendChild(existing);
+      return existing;
+    }
     var wrap = document.createElement('div');
     wrap.id = 'coco-act-lite-preview-modal';
     wrap.className = 'coco-act-lite-preview-overlay';
@@ -993,7 +995,7 @@
       '<div class="coco-act-wb-frames" id="coco-act-lite-preview-frames">' +
       '<iframe id="coco-act-lite-preview-frame" class="coco-act-lite-preview-frame" title="תצוגה מקדימה" sandbox="allow-scripts"></iframe>' +
       '</div></div></div></div>';
-    (screen || document.body).appendChild(wrap);
+    document.body.appendChild(wrap);
     wrap.querySelector('.coco-act-lite-preview-close').addEventListener('click', closeLitePreview);
     wrap.addEventListener('click', function (e) {
       if (e.target === wrap) closeLitePreview();
@@ -1703,6 +1705,9 @@
           _expandedActionId = null;
           ensurePreviewSeed(deepPage, deepEntry.page, deepEntry.items);
           notifyWorkbenchReady(deepEntry.page, deepEntry.items);
+          if (typeof goScreen === 'function') {
+            try { goScreen('screen-actions'); } catch (e) { /* ignore */ }
+          }
         }
       }
     }

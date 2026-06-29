@@ -1,0 +1,70 @@
+{
+  "at": "2026-06-29T05:52:09.790Z",
+  "ver": "v3-live-demo-3",
+  "localUrl": "http://127.0.0.1:50379/ai-marketing-platform.html?v=v3-live-demo-3&page=page-07",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-live-demo-3&page=page-07",
+  "investigation": {
+    "onclickWired": "yes — root click delegation on [data-act-lite-preview]",
+    "modalOpens": "was broken — inline flex set but CSS display:none !important on screen-actions child",
+    "jsErrors": "none observed",
+    "desktopOnly": "no — same CSS rule on mobile and desktop",
+    "cssZIndex": "z-index 500 ok once modal mounted on body",
+    "buttonModalConnection": "openLitePreview wired; modal parent was #screen-actions (hidden by dalia-live-only rule)"
+  },
+  "fix": "Mount preview overlay on document.body; deep-link auto goScreen(screen-actions)",
+  "desktop": {
+    "label": "desktop",
+    "url": "http://127.0.0.1:50379/ai-marketing-platform.html?v=v3-live-demo-3&page=page-07",
+    "wired": {
+      "handlerBound": true,
+      "btn": true,
+      "liveOnly": true
+    },
+    "modal": {
+      "exists": true,
+      "parent": "BODY",
+      "inlineDisplay": "flex",
+      "computedDisplay": "flex",
+      "zIndex": "500",
+      "visible": true,
+      "rect": {
+        "w": 1400,
+        "h": 900
+      },
+      "tabs": [
+        "לפני",
+        "אחרי",
+        "השוואה"
+      ]
+    },
+    "errors": []
+  },
+  "mobile": {
+    "label": "iphone13",
+    "url": "http://127.0.0.1:50379/ai-marketing-platform.html?v=v3-live-demo-3&page=page-07",
+    "wired": {
+      "handlerBound": true,
+      "btn": true,
+      "liveOnly": true
+    },
+    "modal": {
+      "exists": true,
+      "parent": "BODY",
+      "inlineDisplay": "flex",
+      "computedDisplay": "flex",
+      "zIndex": "500",
+      "visible": true,
+      "rect": {
+        "w": 390,
+        "h": 664
+      },
+      "tabs": [
+        "לפני",
+        "אחרי",
+        "השוואה"
+      ]
+    },
+    "errors": []
+  },
+  "ok": true
+}
