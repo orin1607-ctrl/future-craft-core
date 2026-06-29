@@ -588,6 +588,11 @@
       '<div style="font-size:11px;color:var(--white50);margin-bottom:6px;">Google Ads · GBP · Meta</div>' +
       renderClientChannelTable(pendingRows) +
       '</div>' +
+
+      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
+      '<button type="button" class="btn btn-primary" style="width:100%;font-size:13px;padding:11px" onclick="BusinessStrategyWizard.open()">🧠 פתח אסטרטגיית שיווק AI</button>' +
+      '<div style="font-size:11px;color:var(--white50);margin-top:6px;text-align:center">למידת אתר · Business Context · העברה לעוזרים ומטרות</div>' +
+      '</div>' +
       '</div>';
 
     var filterBar = document.querySelector('#tab-clients-list .filter-bar');
@@ -995,6 +1000,8 @@
     renderClientsSetupLive: renderClientsSetupLive,
     getDashboard: function () { return state.dashboard; },
     getWorkPlan: function () { return state.workPlan; },
+    getCrawl: function () { return state.crawl; },
+    getPagesIndex: function () { return state.pagesIndex; },
     logWorkProgress: logWorkProgress,
     getAgentData: getAgentData,
     isLiveOnly: function () { return true; },

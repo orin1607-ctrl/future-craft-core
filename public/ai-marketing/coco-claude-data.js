@@ -227,10 +227,22 @@
   }
 
   function getEngineDraftActions() {
+    var out = [];
     try {
       var raw = localStorage.getItem('dalia-daily-engine-draft-actions-v1');
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) { return []; }
+      if (raw) out = JSON.parse(raw);
+    } catch (e) { /* ignore */ }
+    if (window.BusinessStrategyModule && BusinessStrategyModule.getExportedActions) {
+      var biz = BusinessStrategyModule.getExportedActions();
+      if (biz && biz.length) {
+        var ids = {};
+        out.forEach(function (a) { if (a && a.id) ids[a.id] = true; });
+        biz.forEach(function (a) {
+          if (a && a.id && !ids[a.id]) out = out.concat([a]);
+        });
+      }
+    }
+    return out;
   }
 
   function deriveActionsFromBundle(bundle) {
@@ -638,7 +650,13 @@
       sub.textContent = (c.clientName || 'לקוח פעיל') + ' · נכס: ' + (assetDom || '—') + ' · Client ID: ' + (c.clientId ? String(c.clientId).slice(0, 8) + '…' : 'לא נבחר');
     }
     ensureLiveMount('coco-live-agents-context', 'screen-agents');
-    setHtml('coco-live-agents-context',
+    var bizCtx = window.BusinessStrategyModule && BusinessStrategyModule.getBusinessContext
+      ? BusinessStrategyModule.getBusinessContext() : null;
+    var bizBanner = bizCtx
+      ? '<div class="alert alert-ok" style="margin-bottom:12px;">✅ Business Context פעיל — ' + esc(bizCtx.company || '') +
+        ' · עודכן ' + esc((bizCtx.exportedAt || '').slice(0, 10)) + '</div>'
+      : '';
+    setHtml('coco-live-agents-context', bizBanner +
       '<div class="alert alert-info" style="margin-bottom:12px;">AI משותף לכל המודולים · OpenAI · Claude · Gemini · נכס פעיל: <strong>' +
       esc(assetDom || '—') + '</strong>' + (c.campaignName || c.campaign ? (' · קמפיין: ' + esc(c.campaignName || c.campaign)) : '') + '</div>');
     if (window.AssetFlowSsot && AssetFlowSsot.wireActionButtons) AssetFlowSsot.wireActionButtons();

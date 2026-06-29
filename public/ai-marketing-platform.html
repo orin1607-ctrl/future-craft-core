@@ -37,7 +37,7 @@
 <link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=v3-live-demo-3">
 <link rel="stylesheet" href="./ai-marketing/home-prd.css?v=v3-live-demo-3">
 <link rel="stylesheet" href="./ai-marketing/ai-assistant.css?v=v3-live-demo-3">
-<link rel="stylesheet" href="./crm/dalia-crm.css?v=v3-live-demo-3">
+<link rel="stylesheet" href="./ai-marketing/business-strategy-wizard.css?v=v3-live-demo-3">
 </head>
 <body>
 <div id="cocoToast" class="coco-toast" aria-live="polite"></div>
@@ -192,7 +192,9 @@
         .then(function () { return loadScript(assetUrl('ai-marketing/ai-control-center-bridge.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/marketing-notifications.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/ai-control-center.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-crm-bridge.js')); });
+        .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-crm-bridge.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-module.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-wizard.js')); });
     })
     .then(boot)
     .catch(function (e) {

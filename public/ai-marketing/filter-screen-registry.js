@@ -37,6 +37,7 @@
     { id: 'screen-hub', labelHe: 'מרכז שיווק' },
     { id: 'screen-status', labelHe: 'מצב נוכחי' },
     { id: 'screen-clients', labelHe: 'חברות ולקוחות' },
+    { id: 'screen-business-strategy', labelHe: 'אסטרטגיית שיווק AI' },
     { id: 'screen-goals', labelHe: 'מטרות' },
     { id: 'screen-actions', labelHe: 'פעולות' },
     { id: 'screen-history', labelHe: 'היסטוריה' },

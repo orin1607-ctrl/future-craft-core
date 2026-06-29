@@ -10,7 +10,7 @@
   var FILTER_KEY = 'coco-mkt-filter-persist';
 
   var MARKETING_SCREENS = [
-    'screen-hub', 'screen-status', 'screen-clients', 'screen-goals', 'screen-actions',
+    'screen-hub', 'screen-status', 'screen-clients', 'screen-business-strategy', 'screen-goals', 'screen-actions',
     'screen-history', 'screen-assets', 'screen-ai-center', 'screen-reports', 'screen-crm',
     'screen-agents', 'screen-agent-dashboard', 'screen-crm-card', 'screen-ai-decisions',
   ];
