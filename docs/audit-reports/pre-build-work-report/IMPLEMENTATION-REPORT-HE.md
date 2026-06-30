@@ -36,13 +36,13 @@
 
 ## 3. Commit
 
-_(מתעדכן אחרי push)_
+`92afda5` — feat(staging): pre-build work report gate before website builder
 
 ---
 
 ## 4. קישור Staging
 
-https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=COMMIT_SHORT
+https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=92afda5
 
 ---
 
