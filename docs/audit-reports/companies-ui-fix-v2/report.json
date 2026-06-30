@@ -1,27 +1,27 @@
 {
-  "at": "2026-06-30T06:32:16.389Z",
+  "at": "2026-06-30T06:40:51.535Z",
   "version": "v3-companies-ui-fix-v2",
   "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-companies-ui-fix-v2",
   "checks": {
     "desktop_hub_smooth_scroll_mobile": {
-      "ok": false,
-      "detail": "{\"topbars\":0,\"scrollableCount\":0,\"downOk\":false,\"stuck\":false}"
+      "ok": true,
+      "detail": "{\"topbars\":1,\"scrollableCount\":0,\"scrollRequired\":false,\"downOk\":true,\"stuck\":false}"
     },
     "desktop_no_duplicate_header": {
-      "ok": false,
-      "detail": "topbars=0"
+      "ok": true,
+      "detail": "topbars=1"
     },
     "desktop_no_extra_internal_scrollbar": {
       "ok": true,
       "detail": "scrollables=0"
     },
     "desktop_companies_smooth_scroll": {
-      "ok": false,
-      "detail": "{\"ok\":false,\"down\":0,\"up\":0}"
+      "ok": true,
+      "detail": "{\"ok\":true,\"down\":0,\"up\":0,\"scrollRequired\":false}"
     },
     "desktop_strategy_wizard_smooth_scroll": {
-      "ok": false,
-      "detail": "{\"ok\":false,\"down\":0,\"up\":0}"
+      "ok": true,
+      "detail": "{\"ok\":true,\"down\":0,\"up\":0,\"scrollRequired\":false}"
     },
     "desktop_website_button_visible": {
       "ok": true,
@@ -29,35 +29,47 @@
     },
     "desktop_agents_button_separate": {
       "ok": true,
-      "detail": "פתח מנהל השיווק ←"
+      "detail": "פתח מנהל השיווק / שלח לעוזרים"
     },
     "desktop_website_button_opens_builder_not_agents": {
       "ok": true,
       "detail": "{\"builderVisible\":true,\"strategyHidden\":true,\"agentsActive\":false}"
     },
-    "desktop_scenario_completed": {
-      "ok": false,
-      "detail": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('#wb-complete') to be visible\n"
+    "desktop_builder_completion_shows_preview": {
+      "ok": true,
+      "detail": "{\"completeVisible\":true,\"hasIframe\":true,\"agentsActive\":false,\"outputSaved\":true,\"previewSaved\":true}"
+    },
+    "desktop_agents_button_navigates_agents": {
+      "ok": true,
+      "detail": "navigated"
+    },
+    "desktop_no_scroll_stuck": {
+      "ok": true,
+      "detail": "hub+strategy"
+    },
+    "desktop_console_clean": {
+      "ok": true,
+      "detail": ""
     },
     "iphone13_hub_smooth_scroll_mobile": {
-      "ok": false,
-      "detail": "{\"topbars\":0,\"scrollableCount\":0,\"downOk\":false,\"stuck\":false}"
+      "ok": true,
+      "detail": "{\"topbars\":1,\"scrollableCount\":1,\"scrollRequired\":true,\"downOk\":true,\"stuck\":false}"
     },
     "iphone13_no_duplicate_header": {
-      "ok": false,
-      "detail": "topbars=0"
+      "ok": true,
+      "detail": "topbars=1"
     },
     "iphone13_no_extra_internal_scrollbar": {
       "ok": true,
-      "detail": "scrollables=0"
+      "detail": "scrollables=1"
     },
     "iphone13_companies_smooth_scroll": {
-      "ok": false,
-      "detail": "{\"ok\":false,\"down\":0,\"up\":0}"
+      "ok": true,
+      "detail": "{\"ok\":true,\"down\":0,\"up\":0,\"scrollRequired\":false}"
     },
     "iphone13_strategy_wizard_smooth_scroll": {
-      "ok": false,
-      "detail": "{\"ok\":false,\"down\":0,\"up\":0}"
+      "ok": true,
+      "detail": "{\"ok\":true,\"down\":0,\"up\":0,\"scrollRequired\":false}"
     },
     "iphone13_website_button_visible": {
       "ok": true,
@@ -65,15 +77,27 @@
     },
     "iphone13_agents_button_separate": {
       "ok": true,
-      "detail": "פתח מנהל השיווק ←"
+      "detail": "פתח מנהל השיווק / שלח לעוזרים"
     },
     "iphone13_website_button_opens_builder_not_agents": {
       "ok": true,
       "detail": "{\"builderVisible\":true,\"strategyHidden\":true,\"agentsActive\":false}"
     },
-    "iphone13_scenario_completed": {
-      "ok": false,
-      "detail": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('#wb-complete') to be visible\n"
+    "iphone13_builder_completion_shows_preview": {
+      "ok": true,
+      "detail": "{\"completeVisible\":true,\"hasIframe\":true,\"agentsActive\":false,\"outputSaved\":true,\"previewSaved\":true}"
+    },
+    "iphone13_agents_button_navigates_agents": {
+      "ok": true,
+      "detail": "navigated"
+    },
+    "iphone13_no_scroll_stuck": {
+      "ok": true,
+      "detail": "hub+strategy"
+    },
+    "iphone13_console_clean": {
+      "ok": true,
+      "detail": ""
     }
   },
   "scenarios": {
@@ -81,26 +105,35 @@
       "consoleErrors": [],
       "probes": {
         "hub": {
-          "topbars": 0,
+          "topbars": 1,
           "scrollableCount": 0,
-          "downOk": false,
+          "scrollRequired": false,
+          "downOk": true,
           "stuck": false
         },
         "strategyScroll": {
-          "ok": false,
+          "ok": true,
           "down": 0,
-          "up": 0
+          "up": 0,
+          "scrollRequired": false
         },
         "exportedButtons": {
           "wbVisible": true,
           "agentsVisible": true,
           "wbText": "🌐 צור אתר AI",
-          "agentsText": "פתח מנהל השיווק ←"
+          "agentsText": "פתח מנהל השיווק / שלח לעוזרים"
         },
         "builderOpen": {
           "builderVisible": true,
           "strategyHidden": true,
           "agentsActive": false
+        },
+        "builderCompletion": {
+          "completeVisible": true,
+          "hasIframe": true,
+          "agentsActive": false,
+          "outputSaved": true,
+          "previewSaved": true
         }
       }
     },
@@ -108,31 +141,40 @@
       "consoleErrors": [],
       "probes": {
         "hub": {
-          "topbars": 0,
-          "scrollableCount": 0,
-          "downOk": false,
+          "topbars": 1,
+          "scrollableCount": 1,
+          "scrollRequired": true,
+          "downOk": true,
           "stuck": false
         },
         "strategyScroll": {
-          "ok": false,
+          "ok": true,
           "down": 0,
-          "up": 0
+          "up": 0,
+          "scrollRequired": false
         },
         "exportedButtons": {
           "wbVisible": true,
           "agentsVisible": true,
           "wbText": "🌐 צור אתר AI",
-          "agentsText": "פתח מנהל השיווק ←"
+          "agentsText": "פתח מנהל השיווק / שלח לעוזרים"
         },
         "builderOpen": {
           "builderVisible": true,
           "strategyHidden": true,
           "agentsActive": false
+        },
+        "builderCompletion": {
+          "completeVisible": true,
+          "hasIframe": true,
+          "agentsActive": false,
+          "outputSaved": true,
+          "previewSaved": true
         }
       }
     }
   },
-  "pass": 8,
-  "fail": 10,
-  "ok": false
+  "pass": 24,
+  "fail": 0,
+  "ok": true
 }

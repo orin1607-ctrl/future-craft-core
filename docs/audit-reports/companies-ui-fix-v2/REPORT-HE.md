@@ -43,7 +43,8 @@
 - `🌐 צור אתר AI` -> פתיחת Builder בתוך המסך, ללא ערבוב פעולות.
 
 ## 9. Commit
-- יושלם לאחר commit/push.
+- `f42a021` (pushed ל-`origin/main`).
 
 ## 10. קישור Staging
-- `https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html`
+- URL בדיקה: `https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-companies-ui-fix-v2`
+- סטטוס אוטומציה: `PASS` (24/24, Desktop + iPhone 13).

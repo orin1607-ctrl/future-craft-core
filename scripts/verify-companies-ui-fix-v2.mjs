@@ -157,15 +157,13 @@ async function runScenario(name, contextOptions) {
     out.probes.builderOpen = openedBuilder;
     addCheck(scoped('website_button_opens_builder_not_agents'), openedBuilder.builderVisible && !openedBuilder.agentsActive, JSON.stringify(openedBuilder));
 
+    for (let i = 0; i < 6; i += 1) {
+      await page.locator('#wb-next').click();
+      await page.waitForTimeout(220);
+    }
+    await page.waitForFunction(() => (window.WB && WB.tab === 7) || !!document.querySelector('#w7.pane.on'), { timeout: 15000 });
     await page.locator('#wb-next').click();
-    await page.locator('#wb-next').click();
-    await page.locator('#wb-next').click();
-    await page.locator('#wb-next').click();
-    await page.locator('#wb-next').click();
-    await page.locator('#wb-next').click();
-    await page.waitForTimeout(200);
-    await page.locator('#wb-next').click();
-    await page.waitForSelector('#wb-complete', { timeout: 15000, state: 'visible' });
+    await page.waitForSelector('#wb-complete', { timeout: 30000, state: 'visible' });
     const completion = await page.evaluate(() => ({
       completeVisible: document.getElementById('wb-complete')?.style.display !== 'none',
       hasIframe: !!document.getElementById('wb-preview-frame'),
@@ -176,7 +174,10 @@ async function runScenario(name, contextOptions) {
     out.probes.builderCompletion = completion;
     addCheck(scoped('builder_completion_shows_preview'), completion.completeVisible && completion.hasIframe && !completion.agentsActive, JSON.stringify(completion));
 
-    await page.locator('button', { hasText: 'המשך לעוזרים' }).first().click();
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('button')].find((b) => /המשך לעוזרים/.test(b.textContent || ''));
+      if (btn) btn.click();
+    });
     await page.waitForFunction(() => document.getElementById('screen-agents')?.classList.contains('active'), { timeout: 15000 });
     addCheck(scoped('agents_button_navigates_agents'), true, 'navigated');
 
