@@ -159,6 +159,7 @@
           else if (typeof window.goScreen === 'function') goScreen('screen-hub');
           if (root) root.classList.add('coco-ready');
           if (window.CocoUnified && CocoUnified.init) CocoUnified.init();
+          if (window.SiteMarketingHub && SiteMarketingHub.hydrateOnBoot) SiteMarketingHub.hydrateOnBoot();
           var tab = new URLSearchParams(location.search).get('tab');
           if (tab === 'crm' && window.CocoMarketingCrm && CocoMarketingCrm.openTab) {
             setTimeout(function () { CocoMarketingCrm.openTab(); }, 400);
@@ -196,6 +197,7 @@
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-crm-bridge.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-module.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/pre-build-work-report-module.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/site-marketing-hub-module.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-wizard.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/client-site-template/template-engine.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/website-builder-module.js')); });

@@ -1,0 +1,150 @@
+{
+  "at": "2026-06-30T12:18:57.754Z",
+  "commit": "eb5c262",
+  "stagingUrl": "http://127.0.0.1:8765/ai-marketing-platform.html?v=local-full-flow",
+  "checks": {
+    "desktop_hub_active": {
+      "ok": true,
+      "detail": "hub"
+    },
+    "desktop_report_has_company": {
+      "ok": true,
+      "detail": "דליה פתרונות מימון ותחזוקה לרכב"
+    },
+    "desktop_report_has_profile": {
+      "ok": true,
+      "detail": "businessProfile"
+    },
+    "desktop_report_has_keywords": {
+      "ok": true,
+      "detail": "20"
+    },
+    "desktop_report_has_pages": {
+      "ok": true,
+      "detail": "6"
+    },
+    "desktop_report_has_fleet_page": {
+      "ok": true,
+      "detail": "fleet"
+    },
+    "desktop_flow_screen-agents": {
+      "ok": true,
+      "detail": "screen-agents"
+    },
+    "desktop_flow_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "desktop_flow_screen-actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "desktop_flow_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "desktop_preview_multipage": {
+      "ok": true,
+      "detail": "{\"pages\":7,\"hasNav\":true}"
+    },
+    "desktop_site_hub_activated": {
+      "ok": true,
+      "detail": "hub after approval"
+    },
+    "desktop_progress_tracked": {
+      "ok": true,
+      "detail": "טיפול ב-9 משימות בעדיפות גבוהה"
+    },
+    "desktop_tasks_generated": {
+      "ok": true,
+      "detail": "20"
+    },
+    "desktop_return_to_agents": {
+      "ok": true,
+      "detail": "ok"
+    },
+    "desktop_post_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "desktop_post_screen-actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "desktop_post_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "desktop_single_fab": {
+      "ok": true,
+      "detail": "1"
+    },
+    "desktop_console_clean": {
+      "ok": false,
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found) | Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    "iphone13_hub_active": {
+      "ok": true,
+      "detail": "hub"
+    },
+    "iphone13_report_has_company": {
+      "ok": true,
+      "detail": "דליה פתרונות מימון ותחזוקה לרכב"
+    },
+    "iphone13_report_has_profile": {
+      "ok": true,
+      "detail": "businessProfile"
+    },
+    "iphone13_report_has_keywords": {
+      "ok": true,
+      "detail": "20"
+    },
+    "iphone13_report_has_pages": {
+      "ok": true,
+      "detail": "6"
+    },
+    "iphone13_report_has_fleet_page": {
+      "ok": true,
+      "detail": "fleet"
+    },
+    "iphone13_flow_screen-agents": {
+      "ok": true,
+      "detail": "screen-agents"
+    },
+    "iphone13_flow_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "iphone13_flow_screen-actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "iphone13_flow_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "iphone13_preview_multipage": {
+      "ok": true,
+      "detail": "{\"pages\":7,\"hasNav\":true}"
+    },
+    "iphone13_site_hub_activated": {
+      "ok": true,
+      "detail": "hub after approval"
+    },
+    "iphone13_progress_tracked": {
+      "ok": true,
+      "detail": "טיפול ב-9 משימות בעדיפות גבוהה"
+    },
+    "iphone13_tasks_generated": {
+      "ok": true,
+      "detail": "20"
+    },
+    "iphone13_scenario_complete": {
+      "ok": false,
+      "detail": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('#wb-continue-btn')\n    - locator resolved to <button class=\"btn btn-p\" id=\"wb-continue-btn\" onclick=\"wbContinueToAgents()\">המשך לעוזרים</button>\n  - attempting click action\n    - waiting for element to be visible, enabled and stable\n    - element is visible, enabled and stable\n    - scrolling into view if needed\n    - done scrolling\n    - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n  - retrying click action\n    - waiting for element to be visible, enabled and stable\n    - element is visible, enabled and stable\n    - scrolling into view if needed\n    - done scrolling\n    - <div class=\"footer\">…</div> intercepts pointer events\n  - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    14 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n       - waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div class=\"footer\">…</div> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n       - waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n       - waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n    - waiting for element to be visible, enabled and stable\n    - element is visible, enabled and stable\n    - scrolling into view if needed\n    - done scrolling\n    - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n  - retrying click action\n    - waiting 500ms\n"
+    }
+  },
+  "pass": 33,
+  "fail": 2,
+  "ok": false
+}

@@ -105,7 +105,8 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
         </label>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-        <button class="btn btn-p" onclick="wbOpenFullPreview()">פתח אתר Preview מלא</button>
+        <button class="btn btn-p" onclick="wbOpenFullPreview()">פתח בטאב חדש</button>
+        <button class="btn btn-p" onclick="wbOpenPreviewNavigator()">ניווט מלא במסך</button>
         <button class="btn btn-p" id="wb-continue-btn" onclick="wbContinueToAgents()" disabled>המשך לעוזרים</button>
         <button class="btn btn-g" onclick="wbGo(7)">חזרה לסיכום</button>
       </div>
@@ -428,6 +429,30 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
     wbToast('✅ Preview מלא נוצר. בדוק/י ואשר/י לפני מעבר לעוזרים.');
   }
 
+  function wbToggleApproval(checked) {
+    WB.approved = !!checked;
+    if (WB.output && WB.output.previewSite) WB.output.previewSite.approved = WB.approved;
+    var btn = document.getElementById('wb-continue-btn');
+    if (btn) btn.disabled = !WB.approved;
+    persistOutput();
+    if (WB.approved && window.SiteMarketingHub && SiteMarketingHub.activateFromPreview) {
+      SiteMarketingHub.activateFromPreview(WB.output);
+    }
+  }
+
+  function wbContinueToAgents() {
+    if (!WB.approved) {
+      wbToast('יש לאשר preview לפני המשך לעוזרים.');
+      return;
+    }
+    persistOutput();
+    if (window.SiteMarketingHub && SiteMarketingHub.activateFromPreview) {
+      SiteMarketingHub.activateFromPreview(WB.output);
+    }
+    if (typeof goScreen === 'function') goScreen('screen-agents');
+    wbToast('🚀 Site Hub פעיל — העוזרים עובדים מול האתר החדש.');
+  }
+
   function wbOpenFullPreview() {
     if (!WB.previewSite || !Array.isArray(WB.previewSite.pages) || !WB.previewSite.pages.length) {
       wbToast('לא נמצא preview פתוח.');
@@ -438,25 +463,40 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
       wbToast('לא נמצא קובץ index ל-preview.');
       return;
     }
-    window.open(indexPage.blobUrl, '_blank', 'noopener');
+    var w = window.open(indexPage.blobUrl, '_blank', 'noopener');
+    if (!w) window.location.href = indexPage.blobUrl;
   }
 
-  function wbToggleApproval(checked) {
-    WB.approved = !!checked;
-    if (WB.output && WB.output.previewSite) WB.output.previewSite.approved = WB.approved;
-    var btn = document.getElementById('wb-continue-btn');
-    if (btn) btn.disabled = !WB.approved;
-    persistOutput();
-  }
-
-  function wbContinueToAgents() {
-    if (!WB.approved) {
-      wbToast('יש לאשר preview לפני המשך לעוזרים.');
+  function wbOpenPreviewNavigator() {
+    if (!WB.previewSite || !WB.previewSite.pages || !WB.previewSite.pages.length) {
+      wbToast('אין עמודים ב-preview.');
       return;
     }
-    persistOutput();
-    if (typeof goScreen === 'function') goScreen('screen-agents');
-    wbToast('🚀 הועבר לעוזרים לאחר אישור Preview.');
+    var navHtml = WB.previewSite.pages.map(function (p, i) {
+      return '<button type="button" data-idx="' + i + '" style="margin:4px;padding:8px 12px;border:0;border-radius:8px;background:#0b1735;color:#fff;cursor:pointer;">' + esc(p.title) + '</button>';
+    }).join('');
+    var overlay = document.getElementById('wb-preview-nav-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'wb-preview-nav-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#04091a;display:flex;flex-direction:column;';
+      overlay.innerHTML = '<div style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#0f172a;color:#fff;"><strong>Preview מלא</strong><span id="wb-nav-pages"></span><button type="button" id="wb-nav-close" style="margin-right:auto;padding:6px 12px;">סגור</button></div><iframe id="wb-nav-frame" style="flex:1;border:0;background:#fff;" title="site preview"></iframe>';
+      document.body.appendChild(overlay);
+      overlay.querySelector('#wb-nav-close').addEventListener('click', function () { overlay.style.display = 'none'; });
+    }
+    overlay.style.display = 'flex';
+    var pagesEl = overlay.querySelector('#wb-nav-pages');
+    pagesEl.innerHTML = navHtml;
+    var frame = overlay.querySelector('#wb-nav-frame');
+    pagesEl.querySelectorAll('button').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = Number(btn.getAttribute('data-idx'));
+        var pg = WB.previewSite.pages[idx];
+        if (pg && pg.blobUrl) frame.src = pg.blobUrl;
+      });
+    });
+    var first = WB.previewSite.pages[0];
+    if (first && first.blobUrl) frame.src = first.blobUrl;
   }
 
   function wbToast(msg) {
@@ -571,6 +611,7 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
   window.wbPrev = wbPrev;
   window.wbNext = wbNext;
   window.wbOpenFullPreview = wbOpenFullPreview;
+  window.wbOpenPreviewNavigator = wbOpenPreviewNavigator;
   window.wbToggleApproval = wbToggleApproval;
   window.wbContinueToAgents = wbContinueToAgents;
   window.closeWebsiteBuilder = closeBuilder;

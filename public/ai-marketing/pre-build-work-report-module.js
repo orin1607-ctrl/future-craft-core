@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   var REPORT_KEY = 'coco-pre-build-work-report-v1';
   var APPROVAL_KEY = 'coco-pre-build-report-approved-v1';
   var APPROVAL_AT_KEY = 'coco-pre-build-report-approved-at-v1';
@@ -207,6 +207,42 @@
       '8. Deploy לריפו/דומיין נפרד של הלקוח (לא דליה)',
     ];
 
+    var workOrderPostLaunch = [
+      '1. אישור Preview סופי מול הלקוח',
+      '2. תיקוני תוכן/SEO לפי הערות',
+      '3. יצירת ריפו Git זמני נפרד ללקוח',
+      '4. QA ביצועים ומהירות',
+      '5. חיבור Analytics + Search Console לאתר החדש',
+      '6. Deploy לדומיין/אחסון הלקוח (לא דליה)',
+      '7. מעקב שוטף: SEO, תוכן, Ads, GBP',
+    ];
+
+    var improvements = [
+      'מבנה אתר חדש עם ' + newPages.length + ' עמודים',
+      'SEO מותאם למילות מפתח מ-GSC ואסטרטגיה',
+      'עמוד FleetOS מרכזי לתוכנה',
+      'מהירות ו-UX — אתר נקי על Template קבוע',
+      'חיבור Analytics, GSC, GBP, Ads לאחר עלייה',
+    ];
+
+    var businessProfile = {
+      name: inputs.company,
+      sector: inputs.sector || (inputs.biz && inputs.biz.sector) || '',
+      mainService: (inputs.context && inputs.context.mainService) || (inputs.biz && inputs.biz.mainService) || '',
+      services: (inputs.biz && inputs.biz.services) || '',
+      competitors: inputs.competitors || [],
+      keywords: promoteKeywords,
+      site: inputs.site,
+      goal: (inputs.context && inputs.context.businessGoal) || (inputs.biz && inputs.biz.goal) || '',
+      differentiator: (inputs.context && inputs.context.differentiator) || (inputs.biz && inputs.biz.diff) || '',
+      recommendations: [
+        'בניית אתר חדש נפרד — לא תיקון האתר הישן',
+        'הדגשת FleetOS / תוכנת ניהול צי',
+        'מיפוי SEO לכל עמוד',
+        'Preview מלא לפני Deploy',
+      ],
+    };
+
     return {
       version: VERSION,
       reportId: 'PBWR-' + Date.now(),
@@ -233,7 +269,7 @@
         firstNewPage: newPages[0] ? newPages[0].title : 'בית',
         secondNewPage: newPages[1] ? newPages[1].title : FLEET_PAGE.title,
         pageDetails: newPages,
-        services: (inputs.context && inputs.context.mainService) ? [inputs.context.mainService] : [],
+        services: (inputs.biz && inputs.biz.services) ? String(inputs.biz.services).split(',').map(function (s) { return s.trim(); }).filter(Boolean) : ((inputs.context && inputs.context.mainService) ? [inputs.context.mainService] : []),
         goals: goals,
         actions: inputs.actions,
         toFix: weakPages.slice(0, 6).map(function (p) { return 'לא לתקן ישיר — ללמוד מ-' + p.path; }),
@@ -245,8 +281,11 @@
         ].filter(Boolean),
         platforms: platforms,
         workOrder: workOrder,
+        workOrderPostLaunch: workOrderPostLaunch,
+        improvements: improvements,
         fleetSoftwarePage: FLEET_PAGE,
       },
+      businessProfile: businessProfile,
       newSiteSitemap: newPages.map(function (p) { return { order: p.order, title: p.title, slug: p.slug }; }),
       rawInputsSummary: {
         actionsCount: inputs.actions.length,
@@ -267,6 +306,21 @@
       '<h1>דוח עבודה מלא לפני בניית אתר</h1>' +
       '<p class="meta">' + esc(model.company) + ' · ' + esc(model.site) + ' · ' + esc(model.generatedAt) + ' · ' + esc(model.reportId) + '</p>' +
       '<p><strong>עיקרון:</strong> ' + esc(model.principle) + '</p>';
+
+    if (model.businessProfile) {
+      var bp = model.businessProfile;
+      html += renderSectionHtml('פרופיל עסק (מחברות ועסקים)', '<table><tr><th>שדה</th><th>ערך</th></tr>' +
+        '<tr><td>שם עסק</td><td>' + esc(bp.name) + '</td></tr>' +
+        '<tr><td>תחום</td><td>' + esc(bp.sector) + '</td></tr>' +
+        '<tr><td>שירות מרכזי</td><td>' + esc(bp.mainService) + '</td></tr>' +
+        '<tr><td>שירותים</td><td>' + esc(bp.services) + '</td></tr>' +
+        '<tr><td>מתחרים</td><td>' + esc((bp.competitors || []).join(' · ')) + '</td></tr>' +
+        '<tr><td>יעד</td><td>' + esc(bp.goal) + '</td></tr>' +
+        '<tr><td>בידול</td><td>' + esc(bp.differentiator) + '</td></tr></table>');
+    }
+    if (s.improvements && s.improvements.length) {
+      html += renderSectionHtml('מה נשפר באתר החדש', '<ul>' + s.improvements.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>');
+    }
 
     html += renderSectionHtml('1. מצב האתר הקיים היום', '<p>עמודים: ' + s.currentSiteStatus.pageCount + ' · ציון ממוצע: ' + s.currentSiteStatus.avgScore + '</p><p>נכסים: ' + esc((s.currentSiteStatus.connectedAssets || []).join(', ')) + '</p>');
     html += renderSectionHtml('2. מה טוב באתר הקיים', '<ul>' + s.siteStrengths.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>');
@@ -290,7 +344,10 @@
     html += renderSectionHtml('16–17. מה לתקן / מה לבנות מחדש', '<p><strong>לא מתקנים אתר ישן.</strong></p><ul>' + s.toRebuild.map(function (x) { return '<li>בנייה מחדש: ' + esc(x) + '</li>'; }).join('') + '</ul>');
     html += renderSectionHtml('18. יעדים', '<ul>' + s.targets.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>');
     html += renderSectionHtml('19. פלטפורמות', '<p>' + esc(s.platforms.join(' · ')) + '</p>');
-    html += renderSectionHtml('20. סדר עבודה', '<ol>' + s.workOrder.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ol>');
+    html += renderSectionHtml('20. סדר עבודה (לפני build)', '<ol>' + s.workOrder.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ol>');
+    if (s.workOrderPostLaunch) {
+      html += renderSectionHtml('סדר עבודה לאחר עליית האתר', '<ol>' + s.workOrderPostLaunch.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ol>');
+    }
     html += renderSectionHtml('תוכנת FleetOS — עמוד מרכזי', '<p><strong>' + esc(FLEET_PAGE.title) + '</strong></p><ul>' + FLEET_PAGE.sections.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>');
     html += '<p class="meta">Staging · TEMP · אין Deploy לפרודקשן · אתר לקוח יושב בנפרד ממערכת דליה</p></body></html>';
     return html;
