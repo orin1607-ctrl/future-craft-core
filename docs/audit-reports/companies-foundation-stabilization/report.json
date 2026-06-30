@@ -1,7 +1,7 @@
 {
-  "at": "2026-06-30T10:09:16.435Z",
+  "at": "2026-06-30T11:46:54.494Z",
   "version": "companies-foundation-stabilization",
-  "stagingUrl": "http://127.0.0.1:4173/public/ai-marketing-platform.html?v=local-foundation",
+  "stagingUrl": "http://127.0.0.1:8765/ai-marketing-platform.html?v=local-pre-build-report",
   "checks": {
     "desktop_flow_screen-agents": {
       "ok": true,
@@ -23,6 +23,26 @@
       "ok": true,
       "detail": "returned"
     },
+    "desktop_pre_build_report_module": {
+      "ok": true,
+      "detail": "PreBuildWorkReport"
+    },
+    "desktop_pre_build_report_panel": {
+      "ok": true,
+      "detail": "panel mounted"
+    },
+    "desktop_builder_gated_before_approve": {
+      "ok": true,
+      "detail": "disabled until approve"
+    },
+    "desktop_pre_build_report_approved": {
+      "ok": true,
+      "detail": "approval stored"
+    },
+    "desktop_fleet_page_in_sitemap": {
+      "ok": true,
+      "detail": "FleetOS page"
+    },
     "desktop_builder_version_new": {
       "ok": true,
       "detail": "2.0.0-foundation-stabilized"
@@ -33,7 +53,7 @@
     },
     "desktop_preview_multipage_created": {
       "ok": true,
-      "detail": "{\"hasPreviewData\":true,\"pages\":5,\"hasIndex\":true}"
+      "detail": "{\"hasPreviewData\":true,\"pages\":7,\"hasIndex\":true}"
     },
     "desktop_approval_gate_enabled": {
       "ok": true,
@@ -71,6 +91,26 @@
       "ok": true,
       "detail": "returned"
     },
+    "iphone13_pre_build_report_module": {
+      "ok": true,
+      "detail": "PreBuildWorkReport"
+    },
+    "iphone13_pre_build_report_panel": {
+      "ok": true,
+      "detail": "panel mounted"
+    },
+    "iphone13_builder_gated_before_approve": {
+      "ok": true,
+      "detail": "disabled until approve"
+    },
+    "iphone13_pre_build_report_approved": {
+      "ok": true,
+      "detail": "approval stored"
+    },
+    "iphone13_fleet_page_in_sitemap": {
+      "ok": true,
+      "detail": "FleetOS page"
+    },
     "iphone13_builder_version_new": {
       "ok": true,
       "detail": "2.0.0-foundation-stabilized"
@@ -81,7 +121,7 @@
     },
     "iphone13_preview_multipage_created": {
       "ok": true,
-      "detail": "{\"hasPreviewData\":true,\"pages\":5,\"hasIndex\":true}"
+      "detail": "{\"hasPreviewData\":true,\"pages\":7,\"hasIndex\":true}"
     },
     "iphone13_approval_gate_enabled": {
       "ok": true,
@@ -114,7 +154,7 @@
       ]
     }
   },
-  "pass": 22,
+  "pass": 32,
   "fail": 2,
   "ok": false
 }

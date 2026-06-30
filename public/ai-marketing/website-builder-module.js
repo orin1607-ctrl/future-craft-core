@@ -151,7 +151,7 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
 
   function ensureMandatoryPages(rawPages) {
     var pages = rawPages.slice();
-    var required = ['בית', 'אודות', 'שירותים', 'צור קשר'];
+    var required = ['בית', 'תוכנת ניהול צי רכב לעסקים', 'שירותים', 'אודות', 'צור קשר'];
     required.forEach(function (title) {
       if (!pages.some(function (p) { return p.title === title; })) {
         pages.push({ title: title, slug: slugify(title) });
@@ -198,7 +198,10 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
   }
 
   function buildPlanFromCurrentInputs() {
-    var structureLines = parseLines(document.getElementById('wb-structure').value || '');
+    var preSitemap = parseLs('coco-pre-build-sitemap-v1');
+    var structureLines = preSitemap && preSitemap.length
+      ? preSitemap.map(function (p) { return p.title; })
+      : parseLines(document.getElementById('wb-structure').value || '');
     var contentLines = parseLines(document.getElementById('wb-content').value || '');
     var siteKeywords = unique(
       (WB.strategy && WB.strategy.strategy && WB.strategy.strategy.focusKeywords) ||
@@ -388,6 +391,9 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
       }));
       localStorage.setItem('coco-website-builder-preview-site-v1', JSON.stringify(WB.previewSite || null));
       localStorage.setItem('coco-website-builder-preview-site-slug-v1', (WB.previewSite && WB.previewSite.slug) || '');
+      if (window.PreBuildWorkReport && PreBuildWorkReport.syncPreviewToPlatform) {
+        PreBuildWorkReport.syncPreviewToPlatform(WB.output);
+      }
     } catch (e) { /* ignore */ }
   }
 
@@ -556,6 +562,7 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
   }
 
   function openBuilder() {
+    if (window.PreBuildWorkReport && !PreBuildWorkReport.assertBuildGate()) return Promise.resolve(false);
     if (typeof goScreen === 'function') goScreen('screen-business-strategy');
     return mountBuilder();
   }

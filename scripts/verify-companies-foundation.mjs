@@ -73,6 +73,40 @@ async function runScenario(name, contextOptions) {
     await page.locator('#btn-next').click();
     await page.locator('#btn-next').click();
     await page.waitForFunction(() => document.getElementById('exported')?.style.display !== 'none', { timeout: 15000 });
+
+    const reportModule = await page.evaluate(() => !!(window.PreBuildWorkReport && PreBuildWorkReport.VERSION));
+    addCheck(scoped('pre_build_report_module'), reportModule, 'PreBuildWorkReport');
+
+    const panelVisible = await page.evaluate(() => !!document.getElementById('pre-build-report-root')?.innerHTML?.length);
+    addCheck(scoped('pre_build_report_panel'), panelVisible, 'panel mounted');
+
+    const gatedBeforeApprove = await page.evaluate(() => {
+      const btn = document.querySelector('#exported button[data-pbr-gated="true"]');
+      return !!btn && btn.disabled === true;
+    });
+    addCheck(scoped('builder_gated_before_approve'), gatedBeforeApprove, 'disabled until approve');
+
+    await page.evaluate(() => {
+      if (window.PreBuildWorkReport) {
+        PreBuildWorkReport.exportPreBuildReportArtifacts();
+        PreBuildWorkReport.approveReport();
+        PreBuildWorkReport.updateBuildButtonsGate();
+      }
+    });
+    await page.waitForTimeout(200);
+
+    const approved = await page.evaluate(() => localStorage.getItem('coco-pre-build-report-approved-v1') === 'true');
+    addCheck(scoped('pre_build_report_approved'), approved, 'approval stored');
+
+    const fleetInSitemap = await page.evaluate(() => {
+      try {
+        const raw = localStorage.getItem('coco-pre-build-sitemap-v1');
+        const map = raw ? JSON.parse(raw) : [];
+        return map.some((p) => String(p.title || '').indexOf('צי רכב') >= 0);
+      } catch (e) { return false; }
+    });
+    addCheck(scoped('fleet_page_in_sitemap'), fleetInSitemap, 'FleetOS page');
+
     await page.locator('#exported button', { hasText: 'צור אתר AI' }).first().click();
     await page.waitForSelector('#website-builder-root .tb', { timeout: 15000 });
 

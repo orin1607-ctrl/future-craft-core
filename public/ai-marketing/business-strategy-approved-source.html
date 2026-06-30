@@ -465,10 +465,11 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
     </div>
  
     <div id="exported" style="display:none;margin-top:14px;">
-      <div class="alt alt-ok">✅ הדוח הועבר בהצלחה! העוזרים מתחילים. עבור למנהל השיווק AI לראות התקדמות.</div>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-        <button class="btn btn-go" onclick="openWebsiteBuilder()">🌐 צור אתר AI</button>
-        <button class="btn btn-p" onclick="showToast('🚀 עובר למנהל השיווק...')">פתח מנהל השיווק ←</button>
+      <div class="alt alt-ok">✅ הנתונים הועברו לעוזרים, מטרות ופעולות. לפני בניית אתר — הורידו ואשרו דוח עבודה מלא.</div>
+      <div id="pre-build-report-root"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;" class="biz-export-actions">
+        <button class="btn btn-go" data-pbr-gated="true" onclick="openWebsiteBuilder()">🌐 צור אתר AI</button>
+        <button class="btn btn-p" onclick="goToAgentsFromStrategy()">פתח מנהל השיווק / שלח לעוזרים</button>
         <button class="btn btn-g" onclick="showToast('📧 נשלח ל-Gmail')">📧 שלח ל-Gmail</button>
       </div>
     </div>
@@ -997,17 +998,32 @@ function buildFinal(){
 function exportData(){
   collect();
   try{localStorage.setItem('dalia_biz',JSON.stringify(S.data));}catch(e){}
+  var res = window.BusinessStrategyModule ? BusinessStrategyModule.exportToPlatform(S.data) : { ok: false };
+  if (!res.ok) { showToast('⚠️ שגיאה בהעברה'); return; }
   document.getElementById('exported').style.display='block';
   document.getElementById('btn-next').style.display='none';
-  showToast('🚀 הועבר לכל העוזרים!');
+  if(window.PreBuildWorkReport && PreBuildWorkReport.mountReportPanel){
+    PreBuildWorkReport.mountReportPanel('pre-build-report-root');
+  }
+  var exportedEl = document.getElementById('exported');
+  if (exportedEl && exportedEl.scrollIntoView) {
+    setTimeout(function(){ exportedEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+  }
+  showToast('🚀 הועבר לעוזרים, מטרות ופעולות — הורידו ואשרו דוח לפני בניית אתר');
 }
 
 function openWebsiteBuilder(){
+  if(window.PreBuildWorkReport && !PreBuildWorkReport.assertBuildGate()) return;
   if(window.WebsiteBuilderWizard && typeof WebsiteBuilderWizard.open==='function'){
     WebsiteBuilderWizard.open();
     return;
   }
   showToast('⚠️ מודול בניית אתר לא זמין כרגע');
+}
+
+function goToAgentsFromStrategy(){
+  if (typeof goScreen === 'function') goScreen('screen-agents');
+  showToast('🚀 נפתח מנהל השיווק (עוזרים)');
 }
  
 function parseBudget(b){
