@@ -111,6 +111,8 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
         <button class="btn btn-g" onclick="wbGo(7)">חזרה לסיכום</button>
       </div>
       <div id="wb-consultant-root" style="margin-top:10px;"></div>
+      <div id="wb-page-advisor-root" style="margin-top:10px;"></div>
+      <div id="wb-google-scores-root" style="margin-top:10px;"></div>
       <div id="wb-hub-consultant-root" style="margin-top:10px;"></div>
     </div>
   </div>
@@ -409,6 +411,17 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
     }
     if (window.MarketingLifecycle) MarketingLifecycle.advance('build', 'completed');
     if (window.SiteComparison) SiteComparison.build();
+    if (window.GooglePageQualityStandard) {
+      var googleEvals = GooglePageQualityStandard.evaluatePreviewSite(WB.previewSite);
+      var scoresRoot = document.getElementById('wb-google-scores-root');
+      if (scoresRoot && googleEvals.length) {
+        scoresRoot.innerHTML = '<div class="card" style="font-size:12px;color:var(--w80);"><strong>Google Page Quality</strong><ul style="margin:6px 0 0;padding-right:18px;">' +
+          googleEvals.map(function (ev) {
+            return '<li>' + ev.pageId + ': ' + ev.overallScore + '/100 ' + (ev.pass ? '✓' : '⚠') + '</li>';
+          }).join('') + '</ul></div>';
+      }
+    }
+    if (window.AiPageAdvisor) AiPageAdvisor.mountPreviewPanels('wb-page-advisor-root');
     mountWbConsultantPanels();
   }
 

@@ -105,6 +105,8 @@
   var _deepLinkHandled = false;
   var _litePreviewMode = 'after';
   var _fbSaveTimer = null;
+  var _isRendering = false;
+  var _pendingRerender = false;
 
   var WORK_MINUTES_BY_TYPE = {
     title: 15, meta: 20, h1: 25, h2: 30, content: 90, alt: 45, schema: 40,
@@ -553,14 +555,19 @@
   }
 
   function getPageStatusSummary(actions) {
+    if (!actions || !Array.isArray(actions)) return '—';
     var counts = {};
-    (actions || []).forEach(function (a) {
+    var cap = Math.min(actions.length, 500);
+    for (var i = 0; i < cap; i++) {
+      var a = actions[i];
+      if (!a || typeof a !== 'object') continue;
       var st = resolveActionStatus(a);
       counts[st] = (counts[st] || 0) + 1;
-    });
+    }
     var parts = Object.keys(counts).map(function (k) {
       return (STATUS_META[k] ? STATUS_META[k].label : k) + ' ×' + counts[k];
     });
+    if (actions.length > cap) parts.push('+' + (actions.length - cap) + ' נוספים');
     return parts.length ? parts.join(' · ') : '—';
   }
 
@@ -1386,6 +1393,10 @@
   }
 
   function rerender() {
+    if (_isRendering) {
+      _pendingRerender = true;
+      return;
+    }
     if (isUserScrolling()) {
       clearTimeout(_rerenderDebounceTimer);
       _rerenderDebounceTimer = setTimeout(function () { rerender(); }, SCROLL_IDLE_MS);
@@ -1654,6 +1665,22 @@
 
     if (!applyCtxFilter || !deriveActions || !setHtml) return 0;
 
+    if (_isRendering) {
+      _pendingRerender = true;
+      _lastBundle = bundle;
+      _renderDeps = {
+        applyCtxFilter: applyCtxFilter,
+        deriveActions: deriveActions,
+        setHtml: setHtml,
+        statusBadge: statusBadge,
+        emptyStatus: emptyStatus,
+        isLiveGoalsActionsMode: isLiveGoalsActionsMode,
+      };
+      return 0;
+    }
+    _isRendering = true;
+    _pendingRerender = false;
+
     _lastBundle = bundle;
     _renderDeps = {
       applyCtxFilter: applyCtxFilter,
@@ -1705,26 +1732,36 @@
           _expandedActionId = null;
           ensurePreviewSeed(deepPage, deepEntry.page, deepEntry.items);
           notifyWorkbenchReady(deepEntry.page, deepEntry.items);
-          if (typeof goScreen === 'function') {
-            try { goScreen('screen-actions'); } catch (e) { /* ignore */ }
-          }
+          setTimeout(function () {
+            if (typeof goScreen === 'function') {
+              try { goScreen('screen-actions'); } catch (e) { /* ignore */ }
+            }
+          }, 0);
         }
       }
     }
 
-    refreshPendingDom(setHtml, emptyStatus, wp, pageGroups, pending, done, statusBadge);
+    try {
+      refreshPendingDom(setHtml, emptyStatus, wp, pageGroups, pending, done, statusBadge);
 
-    var sub = document.querySelector('#screen-actions .page-subtitle');
-    if (sub && isLiveGoalsActionsMode && isLiveGoalsActionsMode()) {
-      sub.textContent = _view === 'workbench'
-        ? 'שולחן עבודה · ' + pending.length + ' פעולות (תצוגה בלבד)'
-        : pending.length + ' פעולות · ' + pageGroups.length + ' עמודים · מסך קל';
+      var sub = document.querySelector('#screen-actions .page-subtitle');
+      if (sub && isLiveGoalsActionsMode && isLiveGoalsActionsMode()) {
+        sub.textContent = _view === 'workbench'
+          ? 'שולחן עבודה · ' + pending.length + ' פעולות (תצוגה בלבד)'
+          : pending.length + ' פעולות · ' + pageGroups.length + ' עמודים · מסך קל';
+      }
+
+      bindWorkbenchEvents();
+      bindActionsScrollGuard();
+      ensureQaDemoSeed();
+      return pending.length;
+    } finally {
+      _isRendering = false;
+      if (_pendingRerender && _renderDeps) {
+        _pendingRerender = false;
+        setTimeout(function () { render(_lastBundle, _renderDeps); }, 0);
+      }
     }
-
-    bindWorkbenchEvents();
-    bindActionsScrollGuard();
-    ensureQaDemoSeed();
-    return pending.length;
   }
 
   function ensureQaDemoSeed() {

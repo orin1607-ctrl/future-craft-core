@@ -1,0 +1,253 @@
+{
+  "at": "2026-06-30T15:07:45.705Z",
+  "commit": "b11a774",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=b11a774",
+  "localUrl": "http://127.0.0.1:8766/ai-marketing-platform.html?v=qa-local",
+  "checks": {
+    "desktop_hub_active": {
+      "ok": true,
+      "detail": "hub"
+    },
+    "desktop_neg_business_summary_blocks": {
+      "ok": true,
+      "detail": "blocked"
+    },
+    "desktop_neg_gates_block_incomplete": {
+      "ok": true,
+      "detail": "{\"summary\":true,\"briefing\":true,\"materials\":true,\"seo\":true,\"report\":true}"
+    },
+    "desktop_business_summary_approved": {
+      "ok": true,
+      "detail": "approved"
+    },
+    "desktop_strategic_briefing_approved": {
+      "ok": true,
+      "detail": "briefing"
+    },
+    "desktop_materials_gate_ready": {
+      "ok": true,
+      "detail": "materials"
+    },
+    "desktop_seo_strategy_approved": {
+      "ok": true,
+      "detail": "seo"
+    },
+    "desktop_prebuild_report_approved": {
+      "ok": true,
+      "detail": "report"
+    },
+    "desktop_flow_screen-agents": {
+      "ok": true,
+      "detail": "screen-agents"
+    },
+    "desktop_flow_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "desktop_flow_screen_actions_no_crash": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "desktop_flow_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "desktop_google_standard_scores": {
+      "ok": true,
+      "detail": "{\"hasModule\":true,\"evalCount\":7,\"hasDom\":true}"
+    },
+    "desktop_ai_page_advisor": {
+      "ok": true,
+      "detail": "42"
+    },
+    "desktop_preview_multipage": {
+      "ok": true,
+      "detail": "{\"pages\":7}"
+    },
+    "desktop_return_to_agents": {
+      "ok": true,
+      "detail": "ok"
+    },
+    "desktop_single_fab": {
+      "ok": true,
+      "detail": "1"
+    },
+    "desktop_console_clean": {
+      "ok": true,
+      "detail": ""
+    },
+    "desktop_scenario_complete": {
+      "ok": true,
+      "detail": "ok"
+    },
+    "iphone13_hub_active": {
+      "ok": true,
+      "detail": "hub"
+    },
+    "iphone13_neg_business_summary_blocks": {
+      "ok": true,
+      "detail": "blocked"
+    },
+    "iphone13_neg_gates_block_incomplete": {
+      "ok": true,
+      "detail": "{\"summary\":true,\"briefing\":true,\"materials\":true,\"seo\":true,\"report\":true}"
+    },
+    "iphone13_business_summary_approved": {
+      "ok": true,
+      "detail": "approved"
+    },
+    "iphone13_strategic_briefing_approved": {
+      "ok": true,
+      "detail": "briefing"
+    },
+    "iphone13_materials_gate_ready": {
+      "ok": true,
+      "detail": "materials"
+    },
+    "iphone13_seo_strategy_approved": {
+      "ok": true,
+      "detail": "seo"
+    },
+    "iphone13_prebuild_report_approved": {
+      "ok": true,
+      "detail": "report"
+    },
+    "iphone13_flow_screen-agents": {
+      "ok": true,
+      "detail": "screen-agents"
+    },
+    "iphone13_flow_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "iphone13_flow_screen_actions_no_crash": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "iphone13_flow_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "iphone13_google_standard_scores": {
+      "ok": true,
+      "detail": "{\"hasModule\":true,\"evalCount\":7,\"hasDom\":true}"
+    },
+    "iphone13_ai_page_advisor": {
+      "ok": true,
+      "detail": "42"
+    },
+    "iphone13_preview_multipage": {
+      "ok": true,
+      "detail": "{\"pages\":7}"
+    },
+    "iphone13_return_to_agents": {
+      "ok": true,
+      "detail": "ok"
+    },
+    "iphone13_single_fab": {
+      "ok": true,
+      "detail": "1"
+    },
+    "iphone13_console_clean": {
+      "ok": true,
+      "detail": ""
+    },
+    "iphone13_scenario_complete": {
+      "ok": true,
+      "detail": "ok"
+    },
+    "android_hub_active": {
+      "ok": true,
+      "detail": "hub"
+    },
+    "android_neg_business_summary_blocks": {
+      "ok": true,
+      "detail": "blocked"
+    },
+    "android_neg_gates_block_incomplete": {
+      "ok": true,
+      "detail": "{\"summary\":true,\"briefing\":true,\"materials\":true,\"seo\":true,\"report\":true}"
+    },
+    "android_business_summary_approved": {
+      "ok": true,
+      "detail": "approved"
+    },
+    "android_strategic_briefing_approved": {
+      "ok": true,
+      "detail": "briefing"
+    },
+    "android_materials_gate_ready": {
+      "ok": true,
+      "detail": "materials"
+    },
+    "android_seo_strategy_approved": {
+      "ok": true,
+      "detail": "seo"
+    },
+    "android_prebuild_report_approved": {
+      "ok": true,
+      "detail": "report"
+    },
+    "android_flow_screen-agents": {
+      "ok": true,
+      "detail": "screen-agents"
+    },
+    "android_flow_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "android_flow_screen_actions_no_crash": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "android_flow_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "android_google_standard_scores": {
+      "ok": true,
+      "detail": "{\"hasModule\":true,\"evalCount\":7,\"hasDom\":true}"
+    },
+    "android_ai_page_advisor": {
+      "ok": true,
+      "detail": "42"
+    },
+    "android_preview_multipage": {
+      "ok": true,
+      "detail": "{\"pages\":7}"
+    },
+    "android_return_to_agents": {
+      "ok": true,
+      "detail": "ok"
+    },
+    "android_single_fab": {
+      "ok": true,
+      "detail": "1"
+    },
+    "android_console_clean": {
+      "ok": true,
+      "detail": ""
+    },
+    "android_scenario_complete": {
+      "ok": true,
+      "detail": "ok"
+    }
+  },
+  "pass": 57,
+  "fail": 0,
+  "byDevice": {
+    "desktop": {
+      "pass": 19,
+      "fail": 0
+    },
+    "iphone13": {
+      "pass": 19,
+      "fail": 0
+    },
+    "android": {
+      "pass": 19,
+      "fail": 0
+    }
+  },
+  "ok": true
+}

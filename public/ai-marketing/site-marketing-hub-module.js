@@ -192,6 +192,16 @@
     saveJson(HUB_KEY, hub);
 
     var tasks = buildPostLaunchTasks(hub);
+    if (window.GooglePageQualityStandard) {
+      var evals = GooglePageQualityStandard.evaluatePreviewSite(parseLs('coco-website-builder-preview-site-v1'));
+      var googleTasks = GooglePageQualityStandard.tasksFromFailedPages(evals);
+      googleTasks.forEach(function (t, i) {
+        t.id = 'google-std-' + Date.now() + '-' + i;
+        t.status = 'pending';
+        t.created_at = new Date().toISOString();
+        tasks.push(t);
+      });
+    }
     saveJson(TASKS_KEY, tasks);
     var allActions = mergeTasksIntoActions(tasks);
 

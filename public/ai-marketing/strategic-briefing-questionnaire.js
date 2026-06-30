@@ -219,6 +219,7 @@
   }
 
   function assertGate() {
+    if (window.BusinessSummaryApproval && !BusinessSummaryApproval.assertGate()) return false;
     if (!isReady()) {
       if (typeof showToast === 'function') showToast('⚠️ ' + MISSING_MSG);
       return false;

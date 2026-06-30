@@ -76,6 +76,7 @@
     };
 
     saveBlueprint(blueprint);
+    if (window.GooglePageQualityStandard) GooglePageQualityStandard.evaluateAllFromBlueprint(blueprint);
     if (window.MarketingActivityLog) MarketingActivityLog.log('blueprint_created', { blueprintId: blueprint.blueprintId, pages: blueprint.pageCount });
     return blueprint;
   }
@@ -147,9 +148,13 @@
       '<button type="button" class="btn btn-p" id="bp-download-inline" style="padding:4px 10px;font-size:11px;">⬇️ הורד Blueprint</button>' +
       '</div>' +
       (window.AiConsultant ? AiConsultant.panelHtml('blueprint', 'ac-panel-blueprint') : '') +
+      '<div id="bp-page-advisor-root"></div>' +
       '</div>';
 
     if (window.AiConsultant) AiConsultant.wireStage(container, 'blueprint', 'ac-btn-blueprint', 'ac-panel-blueprint');
+    if (window.AiPageAdvisor && bp && bp.pages && bp.pages[0]) {
+      AiPageAdvisor.mountBlueprintPanel('bp-page-advisor-root', bp.pages[0].slug);
+    }
     var dl = container.querySelector('#bp-download-inline');
     if (dl) dl.addEventListener('click', function () {
       if (!bp && window.PreBuildWorkReport) buildFromReport(PreBuildWorkReport.buildPreBuildReportModel());

@@ -466,6 +466,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
  
     <div id="exported" style="display:none;margin-top:14px;">
       <div class="alt alt-ok">✅ הנתונים הועברו לעוזרים, מטרות ופעולות. לפני בניית אתר — אשרו שאלון אסטרטגי, חומרים, SEO ודוח עבודה.</div>
+      <div id="business-summary-approval-root"></div>
       <div id="strategic-briefing-root"></div>
       <div id="materials-gate-root"></div>
       <div id="seo-strategy-root"></div>
@@ -1005,6 +1006,9 @@ function exportData(){
   if (!res.ok) { showToast('⚠️ שגיאה בהעברה'); return; }
   document.getElementById('exported').style.display='block';
   document.getElementById('btn-next').style.display='none';
+  if(window.BusinessSummaryApproval && BusinessSummaryApproval.mountPanel){
+    BusinessSummaryApproval.mountPanel('business-summary-approval-root');
+  }
   if(window.StrategicBriefing && StrategicBriefing.mountPanel){
     StrategicBriefing.mountPanel('strategic-briefing-root');
   }
@@ -1028,6 +1032,7 @@ function exportData(){
 }
 
 function openWebsiteBuilder(){
+  if(window.BusinessSummaryApproval && !BusinessSummaryApproval.assertGate()) return;
   if(window.StrategicBriefing && !StrategicBriefing.assertGate()) return;
   if(window.MaterialsReadinessGate && !MaterialsReadinessGate.assertGate()) return;
   if(window.SeoStrategy && !SeoStrategy.assertGate()) return;

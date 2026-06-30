@@ -44,7 +44,7 @@ async function runFlow(name, opts) {
   try {
     await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForFunction(() => typeof goScreen === 'function', { timeout: 90000 });
-    await page.waitForFunction(() => window.PreBuildWorkReport && window.SiteMarketingHub && window.WebsiteBuilderWizard && window.MaterialsReadinessGate && window.SeoStrategy && window.StrategicBriefing && window.AiConsultant, { timeout: 90000 });
+    await page.waitForFunction(() => window.PreBuildWorkReport && window.SiteMarketingHub && window.WebsiteBuilderWizard && window.MaterialsReadinessGate && window.SeoStrategy && window.StrategicBriefing && window.AiConsultant && window.BusinessSummaryApproval && window.GooglePageQualityStandard && window.AiPageAdvisor, { timeout: 90000 });
 
     // Hub scroll smoke
     await page.evaluate(() => goScreen('screen-hub'));
@@ -65,7 +65,9 @@ async function runFlow(name, opts) {
 
     // Gates block without completion
     const gatesBlock = await page.evaluate(() => {
-      var blocked = { briefing: false, materials: false, seo: false, report: false };
+      var blocked = { summary: false, briefing: false, materials: false, seo: false, report: false };
+      localStorage.removeItem('coco-business-summary-approved-v1');
+      if (window.BusinessSummaryApproval) blocked.summary = !BusinessSummaryApproval.assertGate();
       if (window.StrategicBriefing) {
         localStorage.removeItem('coco-strategic-briefing-approved-v1');
         blocked.briefing = !StrategicBriefing.assertGate();
@@ -75,7 +77,19 @@ async function runFlow(name, opts) {
       if (window.PreBuildWorkReport) blocked.report = !PreBuildWorkReport.assertBuildGate();
       return blocked;
     });
-    add(p('gates_block_incomplete'), gatesBlock.briefing && gatesBlock.materials && gatesBlock.seo && gatesBlock.report, JSON.stringify(gatesBlock));
+    add(p('gates_block_incomplete'), gatesBlock.summary && gatesBlock.briefing && gatesBlock.materials && gatesBlock.seo && gatesBlock.report, JSON.stringify(gatesBlock));
+
+    // Approve business summary
+    const summaryApproved = await page.evaluate(() => {
+      if (!window.BusinessSummaryApproval) return { ok: false };
+      var biz = JSON.parse(localStorage.getItem('dalia_biz') || '{}');
+      if (!biz.name && !biz.company) biz = { name: 'QA עסק', company: 'QA עסק', mainService: 'FleetOS' };
+      localStorage.setItem('dalia_biz', JSON.stringify(biz));
+      BusinessSummaryApproval.aggregateSummary();
+      var res = BusinessSummaryApproval.approveSummary();
+      return { ok: res.ok && BusinessSummaryApproval.isReady() };
+    });
+    add(p('business_summary_approved'), summaryApproved.ok, 'approved');
 
     // Fill strategic briefing
     const briefingDone = await page.evaluate(() => {
@@ -219,7 +233,14 @@ async function runFlow(name, opts) {
     // Flow screens (moved after gates)
     for (const sid of ['screen-agents', 'screen-goals', 'screen-actions', 'screen-history']) {
       await page.evaluate((id) => goScreen(id), sid);
-      await page.waitForTimeout(350);
+      await page.waitForTimeout(400);
+      if (sid === 'screen-actions') {
+        const actReady = await page.evaluate(() => {
+          var el = document.getElementById('coco-live-actions-pending');
+          return el && el.getAttribute('data-coco-act-ready') === 'true';
+        });
+        add(p('flow_screen_actions'), actReady, sid);
+      }
       add(p(`flow_${sid}`), await page.evaluate((id) => !!document.getElementById(id)?.classList.contains('active'), sid), sid);
     }
 
@@ -230,6 +251,23 @@ async function runFlow(name, opts) {
     for (let i = 0; i < 7; i++) { await page.locator('#wb-next').click(); await page.waitForTimeout(120); }
     await page.locator('#wb-next').click();
     await page.waitForSelector('#wb-complete', { state: 'visible', timeout: 30000 });
+
+    const googleScores = await page.evaluate(() => {
+      if (!window.GooglePageQualityStandard) return { ok: false };
+      var evals = GooglePageQualityStandard.evaluatePreviewSite();
+      return { ok: evals.length > 0, count: evals.length };
+    });
+    add(p('google_standard_scores'), googleScores.ok, String(googleScores.count));
+
+    const advisor = await page.evaluate(() => {
+      if (!window.AiPageAdvisor) return { ok: false };
+      var preview = JSON.parse(localStorage.getItem('coco-website-builder-preview-site-v1') || 'null');
+      var slug = preview?.pages?.[0]?.slug;
+      if (!slug) return { ok: false };
+      var a = AiPageAdvisor.advisePage(slug);
+      return { ok: a && a.score != null, score: a.score };
+    });
+    add(p('ai_page_advisor'), advisor.ok, String(advisor.score));
 
     const preview = await page.evaluate(() => {
       const raw = localStorage.getItem('coco-website-builder-preview-site-v1');
@@ -318,6 +356,7 @@ async function runFlow(name, opts) {
 
 await runFlow('desktop', { viewport: { width: 1366, height: 900 } });
 await runFlow('iphone13', { ...devices['iPhone 13'], locale: 'he-IL' });
+await runFlow('android', { ...devices['Pixel 5'], locale: 'he-IL' });
 
 report.ok = report.fail === 0;
 writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2));

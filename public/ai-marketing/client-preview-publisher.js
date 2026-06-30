@@ -60,6 +60,11 @@
   }
 
   function approvePage(slug, pageSlug) {
+    if (window.GooglePageQualityStandard && !GooglePageQualityStandard.assertPublishGate(pageSlug)) {
+      var ovChk = document.getElementById('cpp-override-' + pageSlug);
+      if (!ovChk || !ovChk.checked) return false;
+      GooglePageQualityStandard.setPublishOverride(pageSlug, true);
+    }
     var key = APPROVAL_PREFIX + slug + '-' + pageSlug;
     try {
       localStorage.setItem(key, JSON.stringify({ approved: true, at: new Date().toISOString() }));

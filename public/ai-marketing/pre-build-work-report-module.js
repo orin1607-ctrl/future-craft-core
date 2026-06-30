@@ -739,19 +739,21 @@
   }
 
   function allGatesReady() {
+    var summaryOk = !window.BusinessSummaryApproval || BusinessSummaryApproval.isReady();
     var briefingOk = !window.StrategicBriefing || StrategicBriefing.isReady();
     var materialsOk = !window.MaterialsReadinessGate || MaterialsReadinessGate.isReady();
     var seoOk = !window.SeoStrategy || SeoStrategy.isApproved();
-    return briefingOk && materialsOk && seoOk && isApproved();
+    return summaryOk && briefingOk && materialsOk && seoOk && isApproved();
   }
 
   function updateBuildButtonsGate() {
     var ready = allGatesReady();
+    var summaryOk = !window.BusinessSummaryApproval || BusinessSummaryApproval.isReady();
     var briefingOk = !window.StrategicBriefing || StrategicBriefing.isReady();
     var materialsOk = !window.MaterialsReadinessGate || MaterialsReadinessGate.isReady();
     var seoOk = !window.SeoStrategy || SeoStrategy.isApproved();
     var reportOk = isApproved();
-    var hint = !briefingOk ? 'יש לאשר שאלון אסטרטגי' : !materialsOk ? 'יש לאשר שער חומרים' : !seoOk ? 'יש לאשר אסטרטגיית SEO' : !reportOk ? 'יש לאשר דוח Pre-Build' : '';
+    var hint = !summaryOk ? 'יש לאשר סיכום עסקי' : !briefingOk ? 'יש לאשר שאלון אסטרטגי' : !materialsOk ? 'יש לאשר שער חומרים' : !seoOk ? 'יש לאשר אסטרטגיית SEO' : !reportOk ? 'יש לאשר דוח Pre-Build' : '';
     document.querySelectorAll('[data-pbr-gated="true"]').forEach(function (btn) {
       btn.disabled = !ready;
       btn.title = ready ? '' : hint;
@@ -766,6 +768,7 @@
   }
 
   function assertBuildGate() {
+    if (window.BusinessSummaryApproval && !BusinessSummaryApproval.assertGate()) return false;
     if (window.StrategicBriefing && !StrategicBriefing.assertGate()) return false;
     if (window.MaterialsReadinessGate && !MaterialsReadinessGate.assertGate()) return false;
     if (window.SeoStrategy && !SeoStrategy.assertGate()) return false;
