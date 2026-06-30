@@ -30,6 +30,21 @@
     'אתר', 'GSC', 'GA', 'GBP', 'Ads', 'Facebook', 'Instagram', 'LinkedIn', 'YouTube',
     'WhatsApp', 'CRM', 'Email', 'FleetOS', 'אפליקציה', 'אחר',
   ];
+  var SOFTWARE_OPTIONS = [
+    'FleetOS / תוכנת ניהול צי', 'GPS / טלמטיקה', 'CANBUS / חיישנים', 'AI בצי',
+    'דוחות והתראות', 'ניהול נהגים', 'אחר',
+  ];
+  var APP_OPTIONS = [
+    'FleetOS App', 'אפליקציית נהג', 'אפליקציית מנהל צי', 'אפליקציית לקוח', 'אחר',
+  ];
+
+  var FIELD_LABELS = {
+    buildType: 'סוג בנייה', buildTypeOther: 'פרט סוג בנייה', mainGoal: 'מטרה מרכזית',
+    mainGoalOther: 'פרט מטרה', services: 'שירותים', servicesOther: 'פרט שירותים',
+    software: 'תוכנה', softwareOther: 'פרט תוכנה', app: 'אפליקציה', appOther: 'פרט אפליקציה',
+    audience: 'קהל יעד', audienceOther: 'פרט קהל', regions: 'אזורים', regionDetail: 'פרט אזור',
+    competitorsManual: 'מתחרים', keywords: 'מילות מפתח', platforms: 'פלטפורמות', platformsOther: 'פרט פלטפורמות',
+  };
 
   var FLEET_KEYWORD_SEEDS = [
     'תוכנה לניהול צי רכב', 'מערכת לניהול צי רכב', 'FleetOS', 'Fleet Management',
@@ -58,6 +73,10 @@
       mainGoalOther: '',
       services: [],
       servicesOther: '',
+      software: [],
+      softwareOther: '',
+      app: [],
+      appOther: '',
       audience: [],
       audienceOther: '',
       regions: [],
@@ -117,6 +136,8 @@
     if (!state.keywordsApproved) state.keywordsApproved = [];
     if (!state.competitorsManual) state.competitorsManual = [];
     if (!state.keywordsManual) state.keywordsManual = [];
+    if (!state.software) state.software = [];
+    if (!state.app) state.app = [];
     return state;
   }
 
@@ -134,6 +155,10 @@
     if (state.mainGoal === 'אחר' && !String(state.mainGoalOther || '').trim()) missing.push('mainGoalOther');
     if (!state.services || !state.services.length) missing.push('services');
     if (state.services.indexOf('אחר') >= 0 && !String(state.servicesOther || '').trim()) missing.push('servicesOther');
+    if (!state.software || !state.software.length) missing.push('software');
+    if (state.software.indexOf('אחר') >= 0 && !String(state.softwareOther || '').trim()) missing.push('softwareOther');
+    if (!state.app || !state.app.length) missing.push('app');
+    if (state.app.indexOf('אחר') >= 0 && !String(state.appOther || '').trim()) missing.push('appOther');
     if (!state.audience || !state.audience.length) missing.push('audience');
     if (state.audience.indexOf('אחר') >= 0 && !String(state.audienceOther || '').trim()) missing.push('audienceOther');
     if (!state.regions || !state.regions.length) missing.push('regions');
@@ -198,6 +223,8 @@
       buildType: state.buildType,
       mainGoal: state.mainGoal,
       services: state.services,
+      software: state.software,
+      app: state.app,
       audience: state.audience,
       regions: state.regions,
       regionDetail: state.regionDetail,
@@ -247,6 +274,12 @@
     state.services = [];
     container.querySelectorAll('[data-sb-multi="services"]:checked').forEach(function (cb) { state.services.push(cb.value); });
     state.servicesOther = (container.querySelector('#sb-services-other') || {}).value || '';
+    state.software = [];
+    container.querySelectorAll('[data-sb-multi="software"]:checked').forEach(function (cb) { state.software.push(cb.value); });
+    state.softwareOther = (container.querySelector('#sb-software-other') || {}).value || '';
+    state.app = [];
+    container.querySelectorAll('[data-sb-multi="app"]:checked').forEach(function (cb) { state.app.push(cb.value); });
+    state.appOther = (container.querySelector('#sb-app-other') || {}).value || '';
     state.audience = [];
     container.querySelectorAll('[data-sb-multi="audience"]:checked').forEach(function (cb) { state.audience.push(cb.value); });
     state.audienceOther = (container.querySelector('#sb-audience-other') || {}).value || '';
@@ -283,11 +316,14 @@
       return '<span style="font-size:11px;color:var(--w80);">• ' + esc(k) + '</span>';
     }).join(' ');
 
+    var missingLabels = v.missing.map(function (k) { return FIELD_LABELS[k] || k; });
+
     container.innerHTML =
       '<div class="card" style="margin-top:12px;">' +
       '<div class="ph-t">📋 שאלון אסטרטגי — חובה לפני בניית אתר</div>' +
       '<div class="s">יש להשלים את כל השדות המסומנים ב-* ולאשר לפני המשך</div>' +
-      (!complete ? '<div class="alt alt-warn" style="margin-top:8px;">' + esc(MISSING_MSG) + '</div>' : '') +
+      (!complete ? '<div class="alt alt-warn" style="margin-top:8px;">' + esc(MISSING_MSG) +
+        (missingLabels.length ? '<br/><span style="font-size:11px;">חסר: ' + esc(missingLabels.join(', ')) + '</span>' : '') + '</div>' : '') +
 
       '<div style="margin-top:12px;"><label class="st">* מה אתה רוצה לבנות?</label>' +
       '<select id="sb-build-type" style="font-size:12px;padding:6px 8px;border-radius:6px;border:1px solid var(--w10);background:var(--bg4);color:var(--w);width:100%;max-width:320px;margin-top:4px;">' +
@@ -305,6 +341,12 @@
 
       '<div style="margin-top:12px;"><div class="st">* אילו שירותים/מוצרים לקדם?</div>' +
       '<div style="margin-top:4px;">' + renderMultiCheck('services', SERVICE_OPTIONS, state.services || [], 'services-other') + '</div></div>' +
+
+      '<div style="margin-top:12px;"><div class="st">* אילו תוכנות/מערכות לקדם?</div>' +
+      '<div style="margin-top:4px;">' + renderMultiCheck('software', SOFTWARE_OPTIONS, state.software || [], 'software-other') + '</div></div>' +
+
+      '<div style="margin-top:12px;"><div class="st">* אילו אפליקציות לקדם?</div>' +
+      '<div style="margin-top:4px;">' + renderMultiCheck('app', APP_OPTIONS, state.app || [], 'app-other') + '</div></div>' +
 
       '<div style="margin-top:12px;"><div class="st">* מי קהל היעד?</div>' +
       '<div style="margin-top:4px;">' + renderMultiCheck('audience', AUDIENCE_OPTIONS, state.audience || [], 'audience-other') + '</div></div>' +
@@ -346,6 +388,10 @@
     // Restore other field values
     var so = container.querySelector('#sb-services-other');
     if (so) so.value = state.servicesOther || '';
+    var sw = container.querySelector('#sb-software-other');
+    if (sw) sw.value = state.softwareOther || '';
+    var ap = container.querySelector('#sb-app-other');
+    if (ap) ap.value = state.appOther || '';
     var ao = container.querySelector('#sb-audience-other');
     if (ao) ao.value = state.audienceOther || '';
     var po = container.querySelector('#sb-platforms-other');
@@ -453,6 +499,8 @@
     if (isApproved()) scores.businessInfo += 25;
 
     if ((state.services || []).some(function (s) { return /FleetOS|תוכנ|אפליק/i.test(s); })) scores.softwareApp += 60;
+    if ((state.software || []).length) scores.softwareApp += 20;
+    if ((state.app || []).length) scores.softwareApp += 10;
     if (allKeywords(state).length >= 3) scores.softwareApp += 20;
     if (isApproved()) scores.softwareApp += 20;
 
@@ -490,6 +538,9 @@
     FLEET_KEYWORD_SEEDS: FLEET_KEYWORD_SEEDS,
     BUILD_TYPES: BUILD_TYPES,
     MAIN_GOALS: MAIN_GOALS,
+    SOFTWARE_OPTIONS: SOFTWARE_OPTIONS,
+    APP_OPTIONS: APP_OPTIONS,
+    FIELD_LABELS: FIELD_LABELS,
     get: get,
     validate: validate,
     isComplete: isComplete,

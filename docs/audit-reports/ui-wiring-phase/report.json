@@ -1,0 +1,54 @@
+{
+  "at": "2026-06-30T17:56:03.501Z",
+  "commit": "944dfd7",
+  "stagingUrl": "http://localhost:3456/ai-marketing-platform.html",
+  "checks": {
+    "exported_visible_on_open": {
+      "ok": true,
+      "detail": "block"
+    },
+    "all_gate_panels_mounted": {
+      "ok": true,
+      "detail": "{\"visible\":true,\"mounted\":true,\"exportedDisplay\":\"block\"}"
+    },
+    "ai_button_in_briefing": {
+      "ok": true,
+      "detail": "ac-btn-briefing"
+    },
+    "ai_buttons_multi_stage": {
+      "ok": true,
+      "detail": "[\"ac-btn-briefing\",\"ac-btn-materials\",\"ac-btn-seo\",\"ac-btn-google-readiness\",\"ac-btn-strategy-room\"]"
+    },
+    "gates_block_incomplete": {
+      "ok": true,
+      "detail": "{\"summary\":true,\"briefing\":true,\"materials\":true,\"seo\":true,\"build\":true}"
+    },
+    "google_readiness_panel": {
+      "ok": true,
+      "detail": "google-readiness-root"
+    },
+    "ai_strategy_room_panel": {
+      "ok": true,
+      "detail": "ai-strategy-room-root"
+    },
+    "briefing_mandatory_fields_visible": {
+      "ok": true,
+      "detail": "software/app/services/etc"
+    },
+    "ai_region_recommendations": {
+      "ok": true,
+      "detail": "buildRegionIdeas"
+    },
+    "gate_nav_anchors": {
+      "ok": true,
+      "detail": "scrollGate buttons"
+    },
+    "step1_mandatory_blocks": {
+      "ok": true,
+      "detail": "b-name + b-sector"
+    }
+  },
+  "pass": 11,
+  "fail": 0,
+  "ok": true
+}

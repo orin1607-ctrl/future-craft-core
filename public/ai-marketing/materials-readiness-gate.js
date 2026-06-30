@@ -121,7 +121,10 @@
     var briefingReady = !window.StrategicBriefing || StrategicBriefing.isReady();
     if (!briefingReady) {
       container.innerHTML = '<div class="card" style="margin-top:12px;"><div class="ph-t">📦 שער חומרים — חובה לפני בניית אתר</div>' +
-        '<div class="alt alt-warn">יש להשלים ולאשר את השאלון האסטרטגי לפני שער חומרים</div></div>';
+        '<div class="alt alt-warn">יש להשלים ולאשר את השאלון האסטרטגי לפני שער חומרים</div>' +
+        (window.AiConsultant ? '<div style="margin-top:8px;">' + AiConsultant.buttonHtml('materials', 'ac-btn-materials') + AiConsultant.panelHtml('materials', 'ac-panel-materials') + '</div>' : '') +
+        '</div>';
+      if (window.AiConsultant) AiConsultant.wireStage(container, 'materials', 'ac-btn-materials', 'ac-panel-materials');
       return;
     }
     var state = get();

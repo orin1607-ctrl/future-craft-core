@@ -67,16 +67,26 @@
   ];
 
   var SERVICE_IDEAS = [
-    { name: 'עמוד FleetOS / תוכנת ניהול צי', type: 'page', priority: 'גבוה' },
-    { name: 'חבילת הדגמה + POC', type: 'package', priority: 'גבוה' },
-    { name: 'שירות GPS וטלמטיקה', type: 'service', priority: 'גבוה' },
-    { name: 'תחזוקה מונעת לצי', type: 'service', priority: 'בינוני' },
-    { name: 'ייעוץ דיגיטציה לצי', type: 'consulting', priority: 'בינוני' },
-    { name: 'אינטגרציה CANBUS / חיישנים', type: 'product', priority: 'בינוני' },
-    { name: 'דוחות והתראות בזמן אמת', type: 'feature', priority: 'גבוה' },
-    { name: 'מחירון / הצעת מחיר אונליין', type: 'page', priority: 'בינוני' },
-    { name: 'בלוג מומחיות — ניהול צי', type: 'content', priority: 'בינוני' },
-    { name: 'מקרי בוחן לקוחות', type: 'content', priority: 'בינוני' },
+    { name: 'עמוד FleetOS / תוכנת ניהול צי', type: 'page', priority: 'גבוה', why: 'מילת מפתח מרכזית — Intent גבוה לרכישת תוכנה' },
+    { name: 'חבילת הדגמה + POC', type: 'package', priority: 'גבוה', why: 'מקצר מחזור מכירה B2B' },
+    { name: 'שירות GPS וטלמטיקה', type: 'service', priority: 'גבוה', why: 'השלמה ל-FleetOS — ערך מיידי ללקוח' },
+    { name: 'תחזוקה מונעת לצי', type: 'service', priority: 'בינוני', why: 'כאב מוכר — חיסכון בעלויות' },
+    { name: 'ייעוץ דיגיטציה לצי', type: 'consulting', priority: 'בינוני', why: 'Lead magnet לעסקים בתחילת דרך' },
+    { name: 'אינטגרציה CANBUS / חיישנים', type: 'product', priority: 'בינוני', why: 'בידול טכנולוגי מול מתחרים' },
+    { name: 'דוחות והתראות בזמן אמת', type: 'feature', priority: 'גבוה', why: 'USP — ערך תפעולי יומיומי' },
+    { name: 'מחירון / הצעת מחיר אונליין', type: 'page', priority: 'בינוני', why: 'מסנן לידים איכותיים' },
+    { name: 'בלוג מומחיות — ניהול צי', type: 'content', priority: 'בינוני', why: 'SEO long-tail + אמון' },
+    { name: 'מקרי בוחן לקוחות', type: 'content', priority: 'בינוני', why: 'Social proof ל-B2B' },
+  ];
+
+  var REGION_IDEAS = [
+    { region: 'מרכז (תל אביב, גוש דן)', why: 'ריכוז עסקים עם צי גדול — ביקוש גבוה' },
+    { region: 'השרון (רעננה, הרצליה, נתניה)', why: 'Hi-Tech + לוגיסטיקה — FleetOS SaaS' },
+    { region: 'חיפה והצפון', why: 'תעשייה, נמל, הובלות — צי רכב גדול' },
+    { region: 'באר שבע והדרום', why: 'התרחבות שוק — פחות תחרות מקומית' },
+    { region: 'ירושלים והסביבה', why: 'רשויות, ממשל, קבלנים' },
+    { region: 'כל הארץ', why: 'מוצר SaaS — אין הגבלה גיאוגרפית' },
+    { region: 'בינלאומי (EU/US)', why: 'Fleet Management — שוק גלובלי' },
   ];
 
   function parseLs(key) {
@@ -202,6 +212,37 @@
       existing: existing.length ? existing : MISSING,
       suggested: suggested.length ? suggested : MISSING,
       originalNote: 'סגמנטים מוצעים מניתוח תחום Fleet — לא מועתקים',
+    };
+  }
+
+  function buildRegionIdeas(ctx) {
+    var existing = (ctx.briefing.regions || []).slice();
+    if (ctx.briefing.regionDetail) existing.push(ctx.briefing.regionDetail);
+    var suggested = REGION_IDEAS.filter(function (r) {
+      return !existing.some(function (e) {
+        return String(e).indexOf(r.region) >= 0 || r.region.indexOf(e) >= 0;
+      });
+    });
+    return {
+      existing: existing.length ? existing : MISSING,
+      suggested: suggested.length ? suggested : MISSING,
+      originalNote: 'המלצות אזור מבוססות פרופיל עסק ושוק Fleet',
+    };
+  }
+
+  function buildPageIdeas(ctx) {
+    var pages = SERVICE_IDEAS.filter(function (s) { return s.type === 'page' || s.type === 'landing'; });
+    var existing = [];
+    if (ctx.blueprint && ctx.blueprint.pages) {
+      existing = ctx.blueprint.pages.map(function (p) { return p.title || p.slug; });
+    }
+    var suggested = pages.filter(function (p) {
+      return !existing.some(function (e) { return String(e).indexOf(p.name) >= 0 || p.name.indexOf(e) >= 0; });
+    });
+    return {
+      existing: existing.length ? existing : MISSING,
+      suggested: suggested.length ? suggested : MISSING,
+      originalNote: 'עמודים מומלצים לפי אסטרטגיית FleetOS',
     };
   }
 
@@ -365,6 +406,8 @@
       agentContributions: agentContributions(ctx),
       keywordIdeas: buildKeywordIdeas(ctx),
       targetAudienceIdeas: buildAudienceIdeas(ctx),
+      regionIdeas: buildRegionIdeas(ctx),
+      pageIdeas: buildPageIdeas(ctx),
       advertisingPlatformIdeas: buildPlatformIdeas(ctx),
       serviceIdeas: buildServiceIdeas(ctx),
       competitorResearch: buildCompetitorResearch(ctx),
@@ -423,16 +466,37 @@
     var kwHtml = '';
     if (Array.isArray(ideas.keywordIdeas.suggested)) {
       kwHtml = ideas.keywordIdeas.suggested.map(function (k) {
-        return '<span style="font-size:11px;color:var(--w80);margin:2px 4px;">• ' + esc(k) + '</span>';
+        return '<div style="font-size:11px;color:var(--w80);margin:2px 0;">• ' + esc(k) + ' — <span style="color:var(--w50);">למה: הרחבת כיסוי SEO</span></div>';
       }).join('');
     } else kwHtml = '<span class="s">' + esc(MISSING) + '</span>';
 
     var audHtml = '';
     if (Array.isArray(ideas.targetAudienceIdeas.suggested)) {
       audHtml = ideas.targetAudienceIdeas.suggested.map(function (a) {
-        return '<div style="font-size:11px;color:var(--w80);margin:2px 0;">• ' + esc(a.segment) + ' — ' + esc(a.why) + '</div>';
+        return '<div style="font-size:11px;color:var(--w80);margin:2px 0;">• ' + esc(a.segment) + ' — <strong>למה:</strong> ' + esc(a.why) + '</div>';
       }).join('');
     } else audHtml = '<span class="s">' + esc(MISSING) + '</span>';
+
+    var regHtml = '';
+    if (Array.isArray(ideas.regionIdeas.suggested)) {
+      regHtml = ideas.regionIdeas.suggested.map(function (r) {
+        return '<div style="font-size:11px;color:var(--w80);margin:2px 0;">• ' + esc(r.region) + ' — <strong>למה:</strong> ' + esc(r.why) + '</div>';
+      }).join('');
+    } else regHtml = '<span class="s">' + esc(MISSING) + '</span>';
+
+    var pageHtml = '';
+    if (Array.isArray(ideas.pageIdeas.suggested)) {
+      pageHtml = ideas.pageIdeas.suggested.map(function (p) {
+        return '<div style="font-size:11px;color:var(--w80);margin:2px 0;">• ' + esc(p.name) + ' — <strong>למה:</strong> ' + esc(p.why || 'עמוד אסטרטגי') + '</div>';
+      }).join('');
+    } else pageHtml = '<span class="s">' + esc(MISSING) + '</span>';
+
+    var svcHtml = '';
+    if (Array.isArray(ideas.serviceIdeas.suggested)) {
+      svcHtml = ideas.serviceIdeas.suggested.map(function (s) {
+        return '<div style="font-size:11px;color:var(--w80);margin:2px 0;">• ' + esc(s.name) + ' (' + esc(s.type) + ') — <strong>למה:</strong> ' + esc(s.why || 'הרחבת הצעת ערך') + '</div>';
+      }).join('');
+    } else svcHtml = '<span class="s">' + esc(MISSING) + '</span>';
 
     var platHtml = (ideas.advertisingPlatformIdeas.recommendations || []).slice(0, 5).map(function (p) {
       return '<div style="font-size:11px;color:var(--w80);margin:4px 0;"><strong>' + esc(p.platform) + '</strong>: ' + esc(p.why) + '</div>';
@@ -461,36 +525,38 @@
       (stageId === 'briefing' ? '<button type="button" class="btn btn-p" id="ac-apply-aud" style="padding:4px 10px;font-size:11px;margin-top:6px;">החל קהלים לשאלון</button>' : '') +
       '</div>' +
 
-      '<div style="margin-top:10px;"><div class="st">3. פלטפורמות פרסום</div>' + platHtml + '<div class="s" style="margin-top:4px;">+' + ((ideas.advertisingPlatformIdeas.recommendations || []).length - 5) + ' נוספות בייצוא</div></div>' +
+      '<div style="margin-top:10px;"><div class="st">3. אזורי פרסום מומלצים</div>' + regHtml + '</div>' +
 
-      '<div style="margin-top:10px;"><div class="st">4. רעיונות שירותים/עמודים</div>' +
-      renderList(Array.isArray(ideas.serviceIdeas.suggested) ? ideas.serviceIdeas.suggested.map(function (s) { return s.name + ' (' + s.type + ')'; }) : ideas.serviceIdeas.suggested) +
-      '</div>' +
+      '<div style="margin-top:10px;"><div class="st">4. פלטפורמות פרסום</div>' + platHtml + '<div class="s" style="margin-top:4px;">+' + ((ideas.advertisingPlatformIdeas.recommendations || []).length - 5) + ' נוספות בייצוא</div></div>' +
 
-      '<div style="margin-top:10px;"><div class="st">5. מחקר מתחרים</div>' +
+      '<div style="margin-top:10px;"><div class="st">5. עמודים מומלצים</div>' + pageHtml + '</div>' +
+
+      '<div style="margin-top:10px;"><div class="st">6. רעיונות שירותים/מוצרים</div>' + svcHtml + '</div>' +
+
+      '<div style="margin-top:10px;"><div class="st">7. מחקר מתחרים</div>' +
       (ideas.competitorResearch.competitors === MISSING ? '<div class="s">' + esc(MISSING) + '</div>' :
         renderList(ideas.competitorResearch.competitors, function (c) {
           return '<li><strong>' + esc(c.name) + '</strong> · יתרון שלנו: ' + esc(c.ourAdvantage) + '</li>';
         })) +
       '</div>' +
 
-      '<div style="margin-top:10px;"><div class="st">6. השראה מקורית (לא העתקה)</div>' +
+      '<div style="margin-top:10px;"><div class="st">8. השראה מקורית (לא העתקה)</div>' +
       renderList(ideas.competitorInspiration.concepts, function (c) {
         return '<li>' + esc(c.idea) + ' [' + esc(c.type) + ']</li>';
       }) +
       '<div class="s" style="margin-top:4px;">' + esc(ideas.competitorInspiration.disclaimer) + '</div></div>' +
 
-      '<div style="margin-top:10px;"><div class="st">7. השוואת שוק</div>' +
+      '<div style="margin-top:10px;"><div class="st">9. השוואת שוק</div>' +
       '<div style="font-size:11px;color:var(--w80);">מיקום: ' + esc(ideas.marketComparison.whereWeAreToday) + ' · פער: ' + esc(ideas.marketComparison.gap) + '</div></div>' +
 
-      '<div style="margin-top:10px;"><div class="st">8. תוכנית פעולה</div>' + actionHtml + '</div>' +
+      '<div style="margin-top:10px;"><div class="st">10. תוכנית פעולה</div>' + actionHtml + '</div>' +
 
-      '<div style="margin-top:10px;"><div class="st">9. תחזית</div>' +
+      '<div style="margin-top:10px;"><div class="st">11. תחזית</div>' +
       '<div style="font-size:11px;color:var(--w80);">קושי: ' + esc(ideas.forecast.difficulty) + ' · Top 10: ' + esc(ideas.forecast.estimatedTimeTop10) +
       ' · Top 3: ' + esc(ideas.forecast.estimatedTimeTop3) + ' · #1: ' + esc(ideas.forecast.estimatedTimeNumber1) + '</div>' +
       '<div class="alt alt-warn" style="margin-top:6px;font-size:11px;">' + esc(ideas.forecast.disclaimer) + '</div></div>' +
 
-      '<div style="margin-top:10px;"><div class="st">10. דוח אסטרטגי</div>' +
+      '<div style="margin-top:10px;"><div class="st">12. דוח אסטרטגי</div>' +
       '<div style="font-size:11px;color:var(--w80);">' + esc((ideas.strategicReport.executiveSummary || []).join(' · ')) + '</div></div>' +
 
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">' +
@@ -650,6 +716,8 @@
     STAGE_IDS: STAGE_IDS,
     generateIdeas: generateIdeas,
     getLatest: getLatest,
+    buildRegionIdeas: buildRegionIdeas,
+    buildPageIdeas: buildPageIdeas,
     renderIdeasPanel: renderIdeasPanel,
     exportStrategicReport: exportStrategicReport,
     renderStrategicReportHtml: renderStrategicReportHtml,

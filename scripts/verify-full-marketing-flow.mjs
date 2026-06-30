@@ -44,7 +44,7 @@ async function runFlow(name, opts) {
   try {
     await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForFunction(() => typeof goScreen === 'function', { timeout: 90000 });
-    await page.waitForFunction(() => window.PreBuildWorkReport && window.SiteMarketingHub && window.WebsiteBuilderWizard && window.MaterialsReadinessGate && window.SeoStrategy && window.StrategicBriefing && window.AiConsultant && window.BusinessSummaryApproval && window.GooglePageQualityStandard && window.AiPageAdvisor, { timeout: 90000 });
+    await page.waitForFunction(() => window.PreBuildWorkReport && window.SiteMarketingHub && window.WebsiteBuilderWizard && window.MaterialsReadinessGate && window.SeoStrategy && window.StrategicBriefing && window.AiConsultant && window.BusinessSummaryApproval && window.GooglePageQualityStandard && window.AiPageAdvisor && window.AiStrategyRoom, { timeout: 90000 });
 
     // Hub scroll smoke
     await page.evaluate(() => goScreen('screen-hub'));
@@ -98,6 +98,8 @@ async function runFlow(name, opts) {
       st.buildType = 'אתר';
       st.mainGoal = 'לידים';
       st.services = ['FleetOS / תוכנת ניהול צי', 'תפעול צי רכב'];
+      st.software = ['FleetOS / תוכנת ניהול צי'];
+      st.app = ['FleetOS App'];
       st.audience = ['עסקים עם צי רכב'];
       st.regions = ['כל הארץ'];
       st.competitorsManual = ['מתחרה QA'];

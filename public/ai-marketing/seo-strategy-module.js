@@ -385,12 +385,18 @@
     if (!container) return;
     var briefingReady = !window.StrategicBriefing || StrategicBriefing.isReady();
     if (!briefingReady) {
-      container.innerHTML = '<div class="card" style="margin-top:12px;"><div class="ph-t">🔎 אסטרטגיית SEO</div><div class="alt alt-warn">יש להשלים ולאשר את השאלון האסטרטגי לפני מודול SEO</div></div>';
+      container.innerHTML = '<div class="card" style="margin-top:12px;"><div class="ph-t">🔎 אסטרטגיית SEO</div><div class="alt alt-warn">יש להשלים ולאשר את השאלון האסטרטגי לפני מודול SEO</div>' +
+        (window.AiConsultant ? '<div style="margin-top:8px;">' + AiConsultant.buttonHtml('seo', 'ac-btn-seo') + AiConsultant.panelHtml('seo', 'ac-panel-seo') + '</div>' : '') +
+        '</div>';
+      if (window.AiConsultant) AiConsultant.wireStage(container, 'seo', 'ac-btn-seo', 'ac-panel-seo');
       return;
     }
     var materialsReady = !window.MaterialsReadinessGate || MaterialsReadinessGate.isReady();
     if (!materialsReady) {
-      container.innerHTML = '<div class="card" style="margin-top:12px;"><div class="ph-t">🔎 אסטרטגיית SEO</div><div class="alt alt-warn">יש להשלים שער חומרים לפני מודול SEO</div></div>';
+      container.innerHTML = '<div class="card" style="margin-top:12px;"><div class="ph-t">🔎 אסטרטגיית SEO</div><div class="alt alt-warn">יש להשלים שער חומרים לפני מודול SEO</div>' +
+        (window.AiConsultant ? '<div style="margin-top:8px;">' + AiConsultant.buttonHtml('seo', 'ac-btn-seo') + AiConsultant.panelHtml('seo', 'ac-panel-seo') + '</div>' : '') +
+        '</div>';
+      if (window.AiConsultant) AiConsultant.wireStage(container, 'seo', 'ac-btn-seo', 'ac-panel-seo');
       return;
     }
 

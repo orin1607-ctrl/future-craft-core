@@ -281,6 +281,75 @@
     return tasks;
   }
 
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function getEvaluations() {
+    var bp = window.SiteBlueprint && SiteBlueprint.get && SiteBlueprint.get();
+    if (bp && bp.pages && bp.pages.length) return evaluateAllFromBlueprint(bp);
+    var preview = parseLs('coco-website-builder-preview-site-v1');
+    if (preview && preview.pages && preview.pages.length) return evaluatePreviewSite(preview);
+    var report = parseLs('coco-pre-build-work-report-v1');
+    if (report && report.newSiteSitemap && report.newSiteSitemap.length) {
+      return report.newSiteSitemap.map(function (p, idx) {
+        return evaluatePage({
+          slug: p.slug || p.path || ('page-' + (idx + 1)),
+          title: p.title,
+          keywords: p.keywords || [],
+          contentPlan: p.sections || [],
+          purpose: p.purpose,
+          audience: p.audience,
+          aiReviewed: true,
+        });
+      });
+    }
+    return [evaluatePage({ slug: 'home', title: 'דף בית', keywords: ['FleetOS'], contentPlan: ['hero', 'services'], purpose: 'לידים', audience: 'עסקים' })];
+  }
+
+  function renderInlinePanel(container) {
+    if (!container) return;
+    var evals = getEvaluations();
+    var avg = evals.length ? Math.round(evals.reduce(function (s, e) { return s + e.overallScore; }, 0) / evals.length) : 0;
+    var passCount = evals.filter(function (e) { return e.pass; }).length;
+
+    var pagesHtml = evals.map(function (ev) {
+      var color = ev.pass ? 'var(--green)' : 'var(--yel)';
+      return '<div style="padding:8px 10px;background:var(--bg4);border-radius:8px;margin:6px 0;font-size:12px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        '<strong>' + esc(ev.pageId) + '</strong>' +
+        '<span style="color:' + color + ';font-weight:700;">' + ev.overallScore + '/' + PASS_THRESHOLD + '</span></div>' +
+        '<div style="font-size:11px;color:var(--w50);margin-top:4px;">' + ev.failCount + ' קריטריונים לשיפור</div></div>';
+    }).join('') || '<div class="s">' + esc(MISSING) + '</div>';
+
+    container.innerHTML =
+      '<div class="card" style="margin-top:12px;">' +
+      '<div class="ph-t">🔍 Google Readiness — איכות עמוד לפי סטנדרט Google</div>' +
+      '<div class="s">הערכה היוריסטית מ-Blueprint / Preview / דוח Pre-Build</div>' +
+      '<div style="margin-top:10px;font-size:13px;color:var(--w80);">ממוצע: <strong style="color:' + (avg >= PASS_THRESHOLD ? 'var(--green)' : 'var(--yel)') + ';">' + avg + '</strong> · ' +
+      passCount + '/' + evals.length + ' עמודים עוברים סף ' + PASS_THRESHOLD + '</div>' +
+      '<div style="margin-top:10px;">' + pagesHtml + '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">' +
+      (window.AiConsultant ? AiConsultant.buttonHtml('preview', 'ac-btn-google-readiness') : '') +
+      '<button type="button" class="btn btn-p" id="gpq-refresh" style="padding:4px 10px;font-size:11px;">🔄 רענן ציונים</button>' +
+      '</div>' +
+      (window.AiConsultant ? AiConsultant.panelHtml('preview', 'ac-panel-google-readiness') : '') +
+      '</div>';
+
+    if (window.AiConsultant) AiConsultant.wireStage(container, 'preview', 'ac-btn-google-readiness', 'ac-panel-google-readiness');
+    var refresh = container.querySelector('#gpq-refresh');
+    if (refresh) refresh.addEventListener('click', function () {
+      renderInlinePanel(container);
+      if (typeof showToast === 'function') showToast('🔄 ציוני Google Readiness עודכנו');
+    });
+  }
+
+  function mountPanel(rootId) {
+    var root = document.getElementById(rootId || 'google-readiness-root');
+    if (!root) return;
+    renderInlinePanel(root);
+  }
+
   window.GooglePageQualityStandard = {
     VERSION: VERSION,
     MISSING: MISSING,
@@ -294,5 +363,7 @@
     evaluateAllFromBlueprint: evaluateAllFromBlueprint,
     evaluatePreviewSite: evaluatePreviewSite,
     tasksFromFailedPages: tasksFromFailedPages,
+    getEvaluations: getEvaluations,
+    mountPanel: mountPanel,
   };
 })();
