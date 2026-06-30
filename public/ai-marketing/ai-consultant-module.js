@@ -388,7 +388,6 @@
     if (window.MarketingActivityLog) {
       MarketingActivityLog.log('ai_consultant_ideas', { stageId: stageId, keywords: (ideas.keywordIdeas.suggested || []).length || 0 });
     }
-    if (window.AiStageAdvisor) AiStageAdvisor.advise(mapStageToAdvisor(stageId));
 
     return ideas;
   }

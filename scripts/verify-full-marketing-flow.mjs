@@ -56,10 +56,11 @@ async function runFlow(name, opts) {
     await page.locator('#screen-hub .hub-card', { hasText: 'חברות ועסקים' }).first().click();
     await page.waitForSelector('#biz-strategy-root .tb', { timeout: 30000 });
 
-    for (let i = 0; i < 3; i++) await page.locator('#btn-next').click();
+    for (let i = 0; i < 3; i++) await page.evaluate(() => { if (typeof nextT === 'function') nextT(); });
+    await page.waitForTimeout(300);
     await page.evaluate(() => startAnalysis());
     await page.waitForFunction(() => document.getElementById('ana-done')?.style.display !== 'none', { timeout: 40000 });
-    for (let i = 0; i < 3; i++) await page.locator('#btn-next').click();
+    for (let i = 0; i < 3; i++) { await page.evaluate(() => { if (typeof nextT === 'function') nextT(); }); await page.waitForTimeout(200); }
     await page.waitForFunction(() => document.getElementById('exported')?.style.display !== 'none', { timeout: 15000 });
 
     // Gates block without completion
