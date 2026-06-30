@@ -50,6 +50,10 @@
     };
 
     try { localStorage.setItem(COMPARE_KEY, JSON.stringify(cmp)); } catch (e) {}
+    if (window.AiConsultant) {
+      cmp.aiConsultant = AiConsultant.getLatest() || AiConsultant.generateIdeas('hub');
+      cmp.marketComparison = cmp.aiConsultant.marketComparison;
+    }
     return cmp;
   }
 

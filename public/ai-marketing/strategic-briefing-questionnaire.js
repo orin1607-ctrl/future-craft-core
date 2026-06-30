@@ -333,7 +333,8 @@
       '<div style="margin-top:4px;">' + renderMultiCheck('platforms', PLATFORM_OPTIONS, state.platforms || [], 'platforms-other') + '</div></div>' +
 
       '<div style="margin-top:14px;border-top:1px solid var(--w10);padding-top:12px;">' +
-      '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--w80);">' +
+      (window.AiConsultant ? AiConsultant.buttonHtml('briefing', 'ac-btn-briefing') + AiConsultant.panelHtml('briefing', 'ac-panel-briefing') : '') +
+      '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--w80);margin-top:8px;">' +
       '<input type="checkbox" id="sb-approve-check" ' + (approved ? 'checked disabled' : '') + ' /> האם אתה מאשר שהמידע נכון ומלא?</label>' +
       '<button type="button" class="btn btn-go" id="sb-approve-btn" style="margin-top:8px;" ' + (approved ? 'disabled' : '') + '>✅ אשר שאלון והמשך לשער חומרים</button>' +
       '</div>' +
@@ -400,6 +401,8 @@
       if (inp) inp.value = '';
       renderInlinePanel(container);
     });
+
+    if (window.AiConsultant) AiConsultant.wireStage(container, 'briefing', 'ac-btn-briefing', 'ac-panel-briefing');
 
     var approveBtn = container.querySelector('#sb-approve-btn');
     if (approveBtn) approveBtn.addEventListener('click', function () {

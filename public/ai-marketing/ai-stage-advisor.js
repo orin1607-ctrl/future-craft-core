@@ -102,6 +102,12 @@
       gain: tpl.gain,
       priorities: tpl.priority,
     };
+    if (window.AiConsultant) {
+      var stageMap = { strategy: 'briefing', materials: 'materials', seo: 'seo', report: 'report', blueprint: 'blueprint', build: 'preview', manage: 'hub' };
+      var consultantStage = stageMap[stageId] || 'hub';
+      advice.aiConsultant = AiConsultant.generateIdeas(consultantStage);
+      advice.consultantSummary = AiConsultant.buildExecutiveSummary(advice.aiConsultant);
+    }
     var list = [];
     try { list = JSON.parse(localStorage.getItem(ADVICE_KEY) || '[]'); } catch (e) {}
     list.unshift(advice);

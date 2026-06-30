@@ -129,6 +129,45 @@
     return { ok: true, blueprint: bp };
   }
 
+  function renderInlinePanel(container) {
+    if (!container) return;
+    var bp = parseLs(BLUEPRINT_KEY);
+    if (!bp && window.PreBuildWorkReport) {
+      bp = buildFromReport(PreBuildWorkReport.buildPreBuildReportModel());
+    }
+    container.innerHTML =
+      '<div class="card" style="margin-top:12px;">' +
+      '<div class="ph-t">📐 Blueprint אתר</div>' +
+      '<div class="s">תוכנית בנייה: עמודים, תפריט, SEO, CTA</div>' +
+      '<div style="font-size:12px;color:var(--w80);margin-top:8px;">' +
+      (bp ? 'עמודים: <strong>' + bp.pageCount + '</strong> · ' + esc(bp.generatedAt || '') : 'אין Blueprint — אשר דוח Pre-Build תחילה') +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">' +
+      (window.AiConsultant ? AiConsultant.buttonHtml('blueprint', 'ac-btn-blueprint') : '') +
+      '<button type="button" class="btn btn-p" id="bp-download-inline" style="padding:4px 10px;font-size:11px;">⬇️ הורד Blueprint</button>' +
+      '</div>' +
+      (window.AiConsultant ? AiConsultant.panelHtml('blueprint', 'ac-panel-blueprint') : '') +
+      '</div>';
+
+    if (window.AiConsultant) AiConsultant.wireStage(container, 'blueprint', 'ac-btn-blueprint', 'ac-panel-blueprint');
+    var dl = container.querySelector('#bp-download-inline');
+    if (dl) dl.addEventListener('click', function () {
+      if (!bp && window.PreBuildWorkReport) buildFromReport(PreBuildWorkReport.buildPreBuildReportModel());
+      downloadBlueprint();
+      if (typeof showToast === 'function') showToast('📐 Blueprint הורד');
+    });
+  }
+
+  function mountPanel(rootId) {
+    var root = document.getElementById(rootId || 'site-blueprint-root');
+    if (!root) return;
+    renderInlinePanel(root);
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
   window.SiteBlueprint = {
     VERSION: VERSION,
     buildFromReport: buildFromReport,
@@ -137,5 +176,6 @@
     isBlueprintApproved: isBlueprintApproved,
     downloadBlueprint: downloadBlueprint,
     renderBlueprintHtml: renderBlueprintHtml,
+    mountPanel: mountPanel,
   };
 })();

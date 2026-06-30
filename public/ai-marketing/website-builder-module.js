@@ -110,6 +110,8 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
         <button class="btn btn-p" id="wb-continue-btn" onclick="wbContinueToAgents()" disabled>המשך לעוזרים</button>
         <button class="btn btn-g" onclick="wbGo(7)">חזרה לסיכום</button>
       </div>
+      <div id="wb-consultant-root" style="margin-top:10px;"></div>
+      <div id="wb-hub-consultant-root" style="margin-top:10px;"></div>
     </div>
   </div>
 </div>
@@ -407,6 +409,22 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
     }
     if (window.MarketingLifecycle) MarketingLifecycle.advance('build', 'completed');
     if (window.SiteComparison) SiteComparison.build();
+    mountWbConsultantPanels();
+  }
+
+  function mountWbConsultantPanels() {
+    var previewRoot = document.getElementById('wb-consultant-root');
+    if (previewRoot && window.AiConsultant) {
+      previewRoot.innerHTML = AiConsultant.buttonHtml('preview', 'ac-btn-preview') + AiConsultant.panelHtml('preview', 'ac-panel-preview');
+      AiConsultant.wireStage(previewRoot.parentElement || previewRoot, 'preview', 'ac-btn-preview', 'ac-panel-preview');
+    }
+    var hubRoot = document.getElementById('wb-hub-consultant-root');
+    if (hubRoot && window.SiteMarketingHub && SiteMarketingHub.mountPanel) {
+      SiteMarketingHub.mountPanel('wb-hub-consultant-root');
+    } else if (hubRoot && window.AiConsultant) {
+      hubRoot.innerHTML = AiConsultant.buttonHtml('hub', 'ac-btn-hub') + AiConsultant.panelHtml('hub', 'ac-panel-hub');
+      AiConsultant.wireStage(hubRoot.parentElement || hubRoot, 'hub', 'ac-btn-hub', 'ac-panel-hub');
+    }
   }
 
   function persistOutput() {

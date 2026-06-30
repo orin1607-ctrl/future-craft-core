@@ -273,6 +273,36 @@
     return hub;
   }
 
+  function renderHubPanel(container) {
+    if (!container) return;
+    var hub = getHub();
+    var progress = getProgress();
+    container.innerHTML =
+      '<div class="card" style="margin-top:12px;">' +
+      '<div class="ph-t">📊 Site Marketing Hub</div>' +
+      '<div class="s">ניהול שוטף לאחר Preview — SEO, תוכן, ביצועים</div>' +
+      '<div style="font-size:12px;color:var(--w80);margin-top:8px;">' +
+      (hub && hub.active ? 'פעיל · ' + esc(hub.company) + ' · ' + hub.pagesCount + ' עמודים' : 'Hub לא פעיל — אשר Preview תחילה') +
+      '</div>' +
+      (progress ? '<div style="font-size:11px;color:var(--w50);margin-top:4px;">המלצה: ' + esc(progress.aiRecommendation) + '</div>' : '') +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">' +
+      (window.AiConsultant ? AiConsultant.buttonHtml('hub', 'ac-btn-hub') : '') +
+      '</div>' +
+      (window.AiConsultant ? AiConsultant.panelHtml('hub', 'ac-panel-hub') : '') +
+      '</div>';
+    if (window.AiConsultant) AiConsultant.wireStage(container, 'hub', 'ac-btn-hub', 'ac-panel-hub');
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function mountPanel(rootId) {
+    var root = document.getElementById(rootId || 'site-marketing-hub-root');
+    if (!root) return;
+    renderHubPanel(root);
+  }
+
   window.SiteMarketingHub = {
     VERSION: VERSION,
     activateFromPreview: activateFromPreview,
@@ -281,6 +311,7 @@
     getProgress: getProgress,
     mergeTasks: mergeTasks,
     hydrateOnBoot: hydrateOnBoot,
+    mountPanel: mountPanel,
     TASK_CATEGORIES: TASK_CATEGORIES,
   };
 })();

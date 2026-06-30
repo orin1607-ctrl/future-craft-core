@@ -164,9 +164,11 @@
       '<input type="checkbox" id="mat-confirm-all" ' + (state.materialsConfirmed ? 'checked disabled' : '') + ' /> ' +
       'אני מאשר שאין כרגע מידע נוסף להעלות.' +
       '</label></div>' +
-      '<div style="margin-top:10px;">' +
+      '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+      (window.AiConsultant ? AiConsultant.buttonHtml('materials', 'ac-btn-materials') : '') +
       '<button type="button" class="btn btn-go" id="mat-confirm-btn" ' + (ready ? 'disabled' : '') + '>✅ אשר חומרים והמשך ל-SEO</button>' +
       '</div>' +
+      (window.AiConsultant ? AiConsultant.panelHtml('materials', 'ac-panel-materials') : '') +
       '<div id="mat-status" class="alt ' + (ready ? 'alt-ok' : 'alt-warn') + '" style="margin-top:10px;">' +
       (ready ? '✅ חומרים מאושרים — ניתן להמשיך למודול SEO' : (complete ? '⚠️ יש לענות על שאלת מידע נוסף ולאשר' : '⚠️ יש לסמן את כל סעיפי הרשימה')) +
       '</div></div>';
@@ -205,6 +207,8 @@
       if (nameEl) nameEl.value = '';
       renderInlinePanel(container);
     });
+
+    if (window.AiConsultant) AiConsultant.wireStage(container, 'materials', 'ac-btn-materials', 'ac-panel-materials');
 
     var confirmBtn = container.querySelector('#mat-confirm-btn');
     if (confirmBtn) confirmBtn.addEventListener('click', function () {

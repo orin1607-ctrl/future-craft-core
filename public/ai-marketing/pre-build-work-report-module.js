@@ -325,7 +325,7 @@
       ],
     };
 
-    return {
+    var model = {
       version: VERSION,
       reportId: 'PBWR-' + Date.now(),
       generatedAt: new Date().toISOString(),
@@ -400,6 +400,10 @@
         agentContributions: seoModel.agentContributions,
       } : { note: 'חסר מידע — אסטרטגיית SEO לא אושרה' },
     };
+    if (window.AiConsultant && AiConsultant.mergeIntoPreBuildReport) {
+      model = AiConsultant.mergeIntoPreBuildReport(model);
+    }
+    return model;
   }
 
   function renderSectionHtml(title, body) {
@@ -413,6 +417,13 @@
       '<h1>דוח עבודה מלא לפני בניית אתר</h1>' +
       '<p class="meta">' + esc(model.company) + ' · ' + esc(model.site) + ' · ' + esc(model.generatedAt) + ' · ' + esc(model.reportId) + '</p>' +
       '<p><strong>עיקרון:</strong> ' + esc(model.principle) + '</p>';
+
+    if (model.executiveSummary) {
+      var es = model.executiveSummary;
+      html += renderSectionHtml('סיכום מנהלים — AI Consultant', '<p>' + esc(es.text || '') + '</p>' +
+        (es.bullets ? '<ul>' + es.bullets.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul>' : '') +
+        '<p class="meta" style="color:#b45309;">' + esc(es.disclaimer || '') + '</p>');
+    }
 
     if (model.businessProfile) {
       var bp = model.businessProfile;
@@ -642,6 +653,7 @@
       '<div id="pbr-readiness" style="font-size:11px;color:var(--w80);line-height:1.7;margin-top:8px;padding:8px;background:var(--bg4);border-radius:6px;"></div>' +
       '<div id="pbr-summary" style="font-size:12px;color:var(--w80);line-height:1.8;margin-top:10px;"></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">' +
+      (window.AiConsultant ? AiConsultant.buttonHtml('report', 'ac-btn-report') : '') +
       '<button type="button" class="btn btn-p" id="pbr-download">⬇️ הורד דוח (HTML + JSON)</button>' +
       '<button type="button" class="btn btn-p" id="pbr-preview">👁️ תצוגה מקדימה</button>' +
       '<button type="button" class="btn btn-p" id="pbr-blueprint">📐 הורד Blueprint</button>' +
@@ -652,7 +664,13 @@
       '</div>' +
       '<div id="pbr-status" class="alt ' + (approved ? 'alt-ok' : 'alt-warn') + '" style="margin-top:10px;">' +
       (approved ? '✅ הדוח מאושר — ניתן לפתוח Website Builder' : (readinessOk ? '⚠️ יש להוריד, לעבור על הדוח ולאשר לפני בניית אתר' : '⚠️ ציון מוכנות נמוך — השלימ/י מידע או סמן/י override')) +
-      '</div></div>';
+      '</div>' +
+      (window.AiConsultant ? AiConsultant.panelHtml('report', 'ac-panel-report') : '') +
+      '<div id="site-blueprint-inline-root" style="margin-top:10px;"></div>' +
+      '</div>';
+
+    if (window.AiConsultant) AiConsultant.wireStage(container, 'report', 'ac-btn-report', 'ac-panel-report');
+    if (window.SiteBlueprint && SiteBlueprint.mountPanel) SiteBlueprint.mountPanel('site-blueprint-inline-root');
 
     var rd = container.querySelector('#pbr-readiness');
     if (rd) {

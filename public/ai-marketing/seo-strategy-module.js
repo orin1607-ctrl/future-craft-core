@@ -418,6 +418,7 @@
       '</div></div>' +
       '<div style="margin-top:12px;"><div class="st">מפת דרכים (חודש 1-4)</div>' + roadmapHtml + '</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">' +
+      (window.AiConsultant ? AiConsultant.buttonHtml('seo', 'ac-btn-seo') : '') +
       '<button type="button" class="btn btn-p" id="seo-refresh">🔄 רענן אסטרטגיה</button>' +
       '<button type="button" class="btn btn-p" id="seo-download">⬇️ הורד דוח SEO (JSON)</button>' +
       '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--w80);"><input type="checkbox" id="seo-approve-check" ' + (approved ? 'checked' : '') + ' /> אני מאשר/ת את אסטרטגיית ה-SEO</label>' +
@@ -425,7 +426,11 @@
       '</div>' +
       '<div id="seo-status" class="alt ' + (approved ? 'alt-ok' : 'alt-warn') + '" style="margin-top:10px;">' +
       (approved ? '✅ אסטרטגיית SEO מאושרת — ניתן להמשיך לדוח Pre-Build' : '⚠️ יש לרענן, לעבור על האסטרטגיה ולאשר') +
-      '</div></div>';
+      '</div>' +
+      (window.AiConsultant ? AiConsultant.panelHtml('seo', 'ac-panel-seo') : '') +
+      '</div>';
+
+    if (window.AiConsultant) AiConsultant.wireStage(container, 'seo', 'ac-btn-seo', 'ac-panel-seo');
 
     var addComp = container.querySelector('#seo-add-comp');
     if (addComp) addComp.addEventListener('click', function () {

@@ -44,7 +44,7 @@ async function runFlow(name, opts) {
   try {
     await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForFunction(() => typeof goScreen === 'function', { timeout: 90000 });
-    await page.waitForFunction(() => window.PreBuildWorkReport && window.SiteMarketingHub && window.WebsiteBuilderWizard && window.MaterialsReadinessGate && window.SeoStrategy && window.StrategicBriefing, { timeout: 90000 });
+    await page.waitForFunction(() => window.PreBuildWorkReport && window.SiteMarketingHub && window.WebsiteBuilderWizard && window.MaterialsReadinessGate && window.SeoStrategy && window.StrategicBriefing && window.AiConsultant, { timeout: 90000 });
 
     // Hub scroll smoke
     await page.evaluate(() => goScreen('screen-hub'));
@@ -94,6 +94,40 @@ async function runFlow(name, opts) {
       return { ok: res.ok && StrategicBriefing.isReady(), keywords: StrategicBriefing.allKeywords(st).length };
     });
     add(p('strategic_briefing_approved'), briefingDone.ok, String(briefingDone.keywords));
+
+    // AI Consultant — briefing + SEO stages
+    const consultantBriefing = await page.evaluate(() => {
+      if (!window.AiConsultant) return { ok: false };
+      const ideas = AiConsultant.generateIdeas('briefing');
+      const cats = ['keywordIdeas', 'targetAudienceIdeas', 'advertisingPlatformIdeas', 'serviceIdeas', 'competitorResearch', 'competitorInspiration', 'marketComparison', 'actionPlan', 'forecast', 'strategicReport'];
+      const missing = cats.filter((c) => !ideas[c]);
+      return { ok: missing.length === 0, categories: cats.length - missing.length, hasDisclaimer: !!(ideas.forecast && ideas.forecast.disclaimer) };
+    });
+    add(p('ai_consultant_briefing_10_cats'), consultantBriefing.ok, String(consultantBriefing.categories));
+    add(p('ai_consultant_forecast_disclaimer'), consultantBriefing.hasDisclaimer, 'disclaimer');
+
+    const consultantSeo = await page.evaluate(() => {
+      if (!window.AiConsultant) return { ok: false };
+      const ideas = AiConsultant.generateIdeas('seo');
+      return { ok: !!(ideas.keywordIdeas && ideas.actionPlan && ideas.competitorResearch) };
+    });
+    add(p('ai_consultant_seo'), consultantSeo.ok, 'seo stage');
+
+    const consultantExport = await page.evaluate(() => {
+      if (!window.AiConsultant) return { ok: false, htmlLen: 0 };
+      const res = AiConsultant.exportStrategicReport('html');
+      const html = res.html || AiConsultant.renderStrategicReportHtml();
+      return { ok: !!(html && html.length > 2000 && html.indexOf('<!DOCTYPE html>') >= 0), htmlLen: html ? html.length : 0 };
+    });
+    add(p('ai_consultant_export_html'), consultantExport.ok, String(consultantExport.htmlLen));
+
+    const consultantStored = await page.evaluate(() => {
+      const raw = localStorage.getItem('coco-ai-consultant-v1');
+      const hist = localStorage.getItem('coco-ai-consultant-history-v1');
+      return { ok: !!raw, history: !!(hist && JSON.parse(hist).length) };
+    });
+    add(p('ai_consultant_localStorage'), consultantStored.ok, 'stored');
+    add(p('ai_consultant_history'), consultantStored.history, 'history');
 
     // Report data check
     const reportData = await page.evaluate(() => {
@@ -165,6 +199,12 @@ async function runFlow(name, opts) {
     add(p('report_has_seo'), seoInReport.hasSeo || seoInReport.keywordCount > 0, JSON.stringify(seoInReport));
     add(p('report_has_keyword_chapters'), seoInReport.hasKeywordChapters, 'keyword chapters');
     add(p('report_has_marketing_strategy'), seoInReport.hasMarketingStrategy, 'marketing strategy');
+
+    const reportExecutive = await page.evaluate(() => {
+      const m = PreBuildWorkReport.buildPreBuildReportModel();
+      return { ok: !!(m.executiveSummary && m.aiConsultant), hasConsultant: !!m.aiConsultant };
+    });
+    add(p('report_ai_executive_summary'), reportExecutive.ok, 'executive summary');
 
     const blueprintSeo = await page.evaluate(() => {
       const report = PreBuildWorkReport.buildPreBuildReportModel();
