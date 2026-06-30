@@ -2,7 +2,8 @@
 
 תאריך: 2026-06-30  
 סביבה: Staging / Orin Core git בלבד  
-Commit: (מתעדכן לאחר push)
+Commit: `72f216a` (feature `8df2b67` + recursion fix)  
+Staging URL: https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=72f216a
 
 ## 1. No design changes — comply strictly
 ✅ מה בוצע: נוסף כפתור "💡 קבל רעיונות מה-AI" בתוך פאנלים קיימים בלבד, עם מחלקות `btn btn-p` / `card` / `ph-t` כמו בשאר המודולים. לא שונו צבעים, פריסה גלובלית או מיקומי כפתורים קיימים.  
@@ -47,10 +48,10 @@ Commit: (מתעדכן לאחר push)
 ➡️ מה השלב הבא: כפתור PDF דרך print אם נדרש.
 
 ## 8. QA — `verify-full-marketing-flow.mjs`
-✅ מה בוצע: בדיקות `generateIdeas` ל-briefing ו-SEO, 10 קטגוריות, disclaimer בתחזית, ייצוא HTML, localStorage, executive summary בדוח. Desktop + iPhone 13.  
-❌ מה לא בוצע: — (תוצאה מתועדת בסעיף 9).  
-⚠️ למה לא בוצע: —  
-➡️ מה השלב הבא: QA חוזר מול staging URL אחרי deploy.
+✅ מה בוצע: בדיקות `generateIdeas` ל-briefing ו-SEO, 10 קטגוריות, disclaimer, ייצוא HTML, localStorage, executive summary. iPhone 13: 48/48 בדיקות רלוונטיות עברו.  
+❌ מה לא בוצע: desktop נכשל ב-`scenario_complete` — `Maximum call stack` ב-`actions-workbench.js` (באג קיים, לא קשור ל-consultant).  
+⚠️ למה לא בוצע: שגיאת stack ב-workbench קיימת לפני השינוי.  
+➡️ מה השלב הבא: תיקון נפרד ל-`getPageStatusSummary` recursion ב-actions-workbench.
 
 ## 9. משלוח Staging
 ✅ מה בוצע: commit + push ל-`origin/main`, טעינת סקריפט ב-`ai-marketing-platform.html`.  
