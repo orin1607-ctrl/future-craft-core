@@ -37,14 +37,22 @@
 - UI להעלאת קבצים אמיתית (לא רק metadata)
 - בדיקות E2E מול staging לאחר deploy
 
+## 7. Commit
+
+`feat(staging): strategic briefing questionnaire + readiness scores + enhanced pre-build report`  
+Hash: `abd755b`
+
+## 8. Staging URL
+
+https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=abd755b
+
 ## 4. בדיקות
 
-- `node scripts/verify-full-marketing-flow.mjs` — desktop + iPhone 13
-- בדיקות: gates block, strategic briefing fill, readiness scores, keyword chapters, marketing strategy chapter, FAB יחיד, console נקי
+- `node scripts/verify-full-marketing-flow.mjs` — **PASS** (80/80, desktop + iPhone 13)
 
 ## 5. בעיות
 
-- QA מול GitHub Pages דורש deploy לאחר push (cache ~1-2 דקות)
+- QA מול GitHub Pages דורש deploy לאחר push (cache ~1-2 דקות) — הרצה ראשונה desktop timeout, שנייה PASS
 - ציון מוכנות נמוך לפני אישור כל השערים — נדרש override או השלמת שרשרת
 
 ## 6. פתרונות
@@ -52,16 +60,6 @@
 - Gate chain מונע דילוג על שלבים
 - Override checkbox בדוח Pre-Build למקרה מוכנות חלקית
 - sync ל-`coco-business-context-v1` ו-`coco-competitors-v1` מהשאלון
-
-## 7. Commit
-
-`feat(staging): strategic briefing questionnaire + readiness scores + enhanced pre-build report`
-
-## 8. Staging URL
-
-https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html
-
-## 9. שלב הבא
 
 - Deploy staging QA מלא לאחר push
 - חיבור נפחי חיפוש מ-GSC
