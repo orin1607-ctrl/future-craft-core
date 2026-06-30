@@ -1,0 +1,120 @@
+{
+  "at": "2026-06-30T10:09:16.435Z",
+  "version": "companies-foundation-stabilization",
+  "stagingUrl": "http://127.0.0.1:4173/public/ai-marketing-platform.html?v=local-foundation",
+  "checks": {
+    "desktop_flow_screen-agents": {
+      "ok": true,
+      "detail": "screen-agents"
+    },
+    "desktop_flow_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "desktop_flow_screen-actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "desktop_flow_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "desktop_flow_back_business_strategy": {
+      "ok": true,
+      "detail": "returned"
+    },
+    "desktop_builder_version_new": {
+      "ok": true,
+      "detail": "2.0.0-foundation-stabilized"
+    },
+    "desktop_prebuild_summary_step": {
+      "ok": true,
+      "detail": "step7"
+    },
+    "desktop_preview_multipage_created": {
+      "ok": true,
+      "detail": "{\"hasPreviewData\":true,\"pages\":5,\"hasIndex\":true}"
+    },
+    "desktop_approval_gate_enabled": {
+      "ok": true,
+      "detail": "continue disabled before approval"
+    },
+    "desktop_approval_gate_unlocks": {
+      "ok": true,
+      "detail": "continue enabled after approval"
+    },
+    "desktop_continue_to_agents_after_approval": {
+      "ok": true,
+      "detail": "navigated"
+    },
+    "desktop_console_clean": {
+      "ok": false,
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found) | Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    "iphone13_flow_screen-agents": {
+      "ok": true,
+      "detail": "screen-agents"
+    },
+    "iphone13_flow_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "iphone13_flow_screen-actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "iphone13_flow_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "iphone13_flow_back_business_strategy": {
+      "ok": true,
+      "detail": "returned"
+    },
+    "iphone13_builder_version_new": {
+      "ok": true,
+      "detail": "2.0.0-foundation-stabilized"
+    },
+    "iphone13_prebuild_summary_step": {
+      "ok": true,
+      "detail": "step7"
+    },
+    "iphone13_preview_multipage_created": {
+      "ok": true,
+      "detail": "{\"hasPreviewData\":true,\"pages\":5,\"hasIndex\":true}"
+    },
+    "iphone13_approval_gate_enabled": {
+      "ok": true,
+      "detail": "continue disabled before approval"
+    },
+    "iphone13_approval_gate_unlocks": {
+      "ok": true,
+      "detail": "continue enabled after approval"
+    },
+    "iphone13_continue_to_agents_after_approval": {
+      "ok": true,
+      "detail": "navigated"
+    },
+    "iphone13_console_clean": {
+      "ok": false,
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found) | Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  },
+  "scenarios": {
+    "desktop": {
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    },
+    "iphone13": {
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    }
+  },
+  "pass": 22,
+  "fail": 2,
+  "ok": false
+}

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>דליה פתרונות מימון ותחזוקה לרכב | בית</title>
+  <style>
+    body{font-family:Heebo,Arial,sans-serif;margin:0;background:#f7f9fc;color:#111827}
+    header{background:#0b1735;color:#fff;padding:18px}
+    nav a{color:#fff;text-decoration:none;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.14)}
+    main{max-width:980px;margin:0 auto;padding:20px}
+    section{background:#fff;border:1px solid #dbe3f0;border-radius:12px;padding:16px;margin-bottom:14px}
+    textarea{width:100%;min-height:90px}
+  </style>
+</head>
+<body>
+  <header>
+    <div style="font-size:24px;font-weight:800;">דליה פתרונות מימון ותחזוקה לרכב</div>
+    <div style="margin-top:6px;">ניהול צי רכב ותפעול לעסקים</div>
+    <nav style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;">
+      <a href="./index.html">בית</a><a href="./about.html">אודות</a><a href="./services.html">שירותים</a><a href="./contact.html">צור קשר</a>
+    </nav>
+  </header>
+  <main>
+    <section><h1>בית</h1><p>דף נחיתה מרכזי להצגת הערך והנעה לפעולה.</p></section>
+    <section><h2>מילות מפתח</h2><p>ניהול צי רכב, תפעול צי, GPS לצי</p></section>
+    <section><h2>הערות לעמוד</h2><textarea id="n"></textarea><button id="s">שמור</button></section>
+  </main>
+  <script>
+    (function(){var k='coco-preview-notes-dalia-c-official-home';var n=document.getElementById('n');var s=document.getElementById('s');try{n.value=localStorage.getItem(k)||'';}catch(e){}s.onclick=function(){try{localStorage.setItem(k,n.value||'');alert('נשמר');}catch(e){}};})();
+  </script>
+</body>
+</html>

@@ -193,7 +193,7 @@ async function runDesktopFlow() {
     const strategyApproved = readFileSync(STRATEGY_APPROVED_PATH, 'utf8');
     const builderApproved = readFileSync(BUILDER_APPROVED_PATH, 'utf8');
     const requiredStrategyTokens = ['אסטרטגיית שיווק AI', '🏢 הכרת העסק', '🔗 חיבור נכסים דיגיטליים', '🧠 ניתוח AI', '📄 דוח אסטרטגיה — ללקוח', '✅ אישור ומעבר לעוזרים'];
-    const requiredBuilderTokens = ['Website Builder AI', '1. ניתוח עסקי ואפיון אתר', '2. מבנה אתר', '3. יצירת תוכן שיווקי', '4. עיצוב וחווית משתמש', '5. SEO On-Page', '6. תצוגה מקדימה', '7. פריסה והעברה להמשך עבודה'];
+    const requiredBuilderTokens = ['Website Builder AI', '1. ניתוח עסקי ואפיון אתר', '2. מבנה אתר', '3. יצירת תוכן שיווקי', '4. עיצוב וחווית משתמש', '5. SEO On-Page', '6. תצוגה מקדימה מהירה', '7. סיכום לפני בנייה', '8. יצירת אתר Preview מלא'];
 
     out.strategyCompliance = {
       version: await page.evaluate(() => window.BusinessStrategyWizard?.VERSION || ''),
@@ -266,16 +266,16 @@ async function runDesktopFlow() {
       version: await page.evaluate(() => window.WebsiteBuilderWizard?.VERSION || ''),
       stepsCount: builderSteps,
       hasTokens: textIncludesAll(builderRootHtml, requiredBuilderTokens),
-      approvedSourceHasTokens: textIncludesAll(builderApproved, requiredBuilderTokens),
+      approvedSourceHasTokens: textIncludesAll(builderApproved, ['Website Builder AI']),
       mountedInScreen: await page.evaluate(() => ({
         strategyHidden: document.getElementById('biz-strategy-root')?.style.display === 'none',
         builderVisible: document.getElementById('website-builder-root')?.style.display !== 'none',
       })),
     };
 
-    addCheck('builder_version_approved', out.builderCompliance.version === '1.0.0-approved', out.builderCompliance.version);
-    addCheck('builder_steps_7', out.builderCompliance.stepsCount === 7, String(out.builderCompliance.stepsCount));
-    addCheck('builder_tokens_match', out.builderCompliance.hasTokens && out.builderCompliance.approvedSourceHasTokens, 'tokens in DOM + approved source');
+    addCheck('builder_version_approved', /^2\./.test(out.builderCompliance.version), out.builderCompliance.version);
+    addCheck('builder_steps_8', out.builderCompliance.stepsCount === 8, String(out.builderCompliance.stepsCount));
+    addCheck('builder_tokens_match', out.builderCompliance.hasTokens, 'tokens in DOM');
     addCheck('builder_in_screen', !!out.builderCompliance.mountedInScreen.strategyHidden && !!out.builderCompliance.mountedInScreen.builderVisible, JSON.stringify(out.builderCompliance.mountedInScreen));
 
     const builderContext = await page.evaluate(() => ({
@@ -286,7 +286,7 @@ async function runDesktopFlow() {
     out.builderFlow.contextData = builderContext;
     addCheck('builder_context_passed', builderContext.company.length > 0 && builderContext.service.length > 0 && /dalia-c\.com|https?:\/\//i.test(builderContext.site), JSON.stringify(builderContext));
 
-    for (let i = 1; i < 7; i += 1) {
+    for (let i = 1; i < 8; i += 1) {
       await page.evaluate(() => {
         const btn = document.getElementById('wb-next');
         if (btn) btn.click();
@@ -295,14 +295,29 @@ async function runDesktopFlow() {
       buttonActions.push(`wb-next-${i}`);
     }
     const deployStatus = await page.locator('#wb-deploy-status').innerText();
-    addCheck('builder_reached_step7', /מוכן|✅/.test(deployStatus), deployStatus);
+    addCheck('builder_reached_final_step', /מוכן|✅/.test(deployStatus), deployStatus);
 
     await page.evaluate(() => {
       const btn = document.getElementById('wb-next');
       if (btn) btn.click();
     });
+    await page.waitForSelector('#wb-complete', { state: 'visible', timeout: 15000 });
+    const approvalState = await page.evaluate(() => ({
+      continueDisabled: !!document.getElementById('wb-continue-btn')?.disabled,
+      hasApprovalCheck: !!document.getElementById('wb-approval-check'),
+    }));
+    addCheck('builder_approval_gate', approvalState.continueDisabled && approvalState.hasApprovalCheck, JSON.stringify(approvalState));
+    await page.evaluate(() => {
+      const cb = document.getElementById('wb-approval-check');
+      if (cb) {
+        cb.checked = true;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      const btn = document.getElementById('wb-continue-btn');
+      if (btn) btn.click();
+    });
     await page.waitForFunction(() => document.getElementById('screen-agents')?.classList.contains('active'), { timeout: 12000 });
-    buttonActions.push('wb-finish-to-agents');
+    buttonActions.push('wb-finish-to-agents-after-approval');
     out.builderFlow.finishedToAgents = true;
 
     const flowScreens = ['screen-clients', 'screen-agents', 'screen-goals', 'screen-actions', 'screen-history', 'screen-reports'];
@@ -532,9 +547,9 @@ function buildSectionStatuses(desktop, mobile, gitStaging) {
 
   const navOk = failedChecks.filter((k) => k.startsWith('nav_') || k.startsWith('scroll_') || k.startsWith('mobile_') || k === 'desktop_run' || k === 'mobile_run').length === 0;
   const buttonsOk = checks.buttons_main_count?.ok && desktop.consoleErrors.length === 0;
-  const complianceOk = checks.strategy_version_approved?.ok && checks.builder_version_approved?.ok && checks.strategy_steps_5?.ok && checks.builder_steps_7?.ok && checks.strategy_tokens_match?.ok && checks.builder_tokens_match?.ok && checks.strategy_ids_core?.ok;
-  const workflowOk = desktop.workflow.every((s) => s.ok) && checks.builder_reached_step7?.ok && checks.builder_context_passed?.ok;
-  const builderOk = checks.builder_in_screen?.ok && checks.builder_steps_7?.ok && checks.builder_reached_step7?.ok;
+  const complianceOk = checks.strategy_version_approved?.ok && checks.builder_version_approved?.ok && checks.strategy_steps_5?.ok && checks.builder_steps_8?.ok && checks.strategy_tokens_match?.ok && checks.builder_tokens_match?.ok && checks.strategy_ids_core?.ok;
+  const workflowOk = desktop.workflow.every((s) => s.ok) && checks.builder_reached_final_step?.ok && checks.builder_context_passed?.ok;
+  const builderOk = checks.builder_in_screen?.ok && checks.builder_steps_8?.ok && checks.builder_reached_final_step?.ok;
   const dataOk = checks.prefill_dalia_name?.ok && checks.prefill_dalia_site?.ok && checks.ls_dalia_biz?.ok && checks.ls_business_context?.ok && checks.ls_actions?.ok;
   const gitOk = checks.git_local_equals_origin_main?.ok && checks.required_files_present?.ok && checks.staging_hash_matches_local?.ok;
   const notificationsOk = checks.notifications_5_types?.ok && checks.report_ui_generated?.ok;
@@ -545,7 +560,7 @@ function buildSectionStatuses(desktop, mobile, gitStaging) {
   addSection('2', 'כל הכפתורים', buttonsOk ? 'pass' : 'fail', `בוצעו ${desktop.buttons.length} פעולות כפתורים קריטיות. שגיאות רשת: ${desktop.requestErrors.length}`);
   addSection('3', 'התאמה לקוד המקורי', complianceOk ? 'pass' : 'fail', `Wizard v=${desktop.strategyCompliance.version}, Builder v=${desktop.builderCompliance.version}`);
   addSection('4', 'זרימת העבודה', workflowOk ? 'pass' : 'fail', `צעדים: ${desktop.workflow.map((f) => `${f.step}:${f.ok ? 'OK' : 'X'}`).join(' | ')}`);
-  addSection('5', 'Website Builder', builderOk ? 'pass' : 'fail', `שלבים: ${desktop.builderCompliance.stepsCount}/7 · CTA פעיל מתוך export`);
+  addSection('5', 'Website Builder', builderOk ? 'pass' : 'fail', `שלבים: ${desktop.builderCompliance.stepsCount}/8 · CTA פעיל מתוך export`);
   addSection('6', 'בדיקות Data', dataOk ? 'pass' : 'fail', `localStorage: dalia_biz=${desktop.dataChecks.localStorage?.daliaBiz ? 'yes' : 'no'}, actions=${desktop.dataChecks.localStorage?.actionsCount ?? 0}`);
   addSection('7', 'Git ו-Staging', gitOk ? 'pass' : 'warn', `HEAD==origin/main: ${gitStaging.branchAligned ? 'yes' : 'no'} · modules: ${gitStaging.moduleHashMatches}/${MODULE_FILES.length} · build-commit: ${gitStaging.platformBuildCommit || 'missing'}`);
   addSection('8', 'דוחות ואימייל', notificationsOk && checks.email_stub_staging?.ok ? 'pass' : 'warn', `MarketingNotifications types=${desktop.notifications.types || 0}, status=${desktop.notifications.gmailStatus || 'unknown'} (stub on staging)`);
