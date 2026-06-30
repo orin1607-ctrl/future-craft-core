@@ -86,9 +86,8 @@
 
 ## 6. Commit
 
-```
-feat(staging): SEO strategy module + materials gate before build
-```
+**Hash:** `5035f4e`  
+**Message:** `feat(staging): SEO strategy module + materials gate before build`
 
 ---
 
