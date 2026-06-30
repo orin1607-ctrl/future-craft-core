@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.1.0';
+  var VERSION = '1.2.0';
   var REPORT_KEY = 'coco-pre-build-work-report-v1';
   var APPROVAL_KEY = 'coco-pre-build-report-approved-v1';
   var APPROVAL_AT_KEY = 'coco-pre-build-report-approved-at-v1';
@@ -196,15 +196,22 @@
     var platforms = (inputs.context && inputs.context.strategy && inputs.context.strategy.platforms) ||
       ['Google Search Console', 'Google Analytics 4', 'SEO אורגני', 'Google Business Profile'];
 
+    var seoModel = (window.SeoStrategy && SeoStrategy.get && SeoStrategy.get()) || null;
+    if (!seoModel && window.SeoStrategy && SeoStrategy.buildStrategyModel) {
+      seoModel = SeoStrategy.isApproved && SeoStrategy.isApproved() ? SeoStrategy.buildStrategyModel() : null;
+    }
+
     var workOrder = [
       '1. איסוף נתונים ותחקיר (הושלם)',
-      '2. מתחרים ומילות מפתח (הושלם)',
-      '3. מטרות ופעולות (הושלם)',
-      '4. דוח עבודה מלא — הורדה ואישור',
-      '5. בניית אתר חדש על Template קבוע',
-      '6. Preview מלא + הערות לקוח',
-      '7. אישור סופי',
-      '8. Deploy לריפו/דומיין נפרד של הלקוח (לא דליה)',
+      '2. שער חומרים — אישור (הושלם)',
+      '3. אסטרטגיית SEO — מחקר ואישור (הושלם)',
+      '4. מתחרים ומילות מפתח (הושלם)',
+      '5. מטרות ופעולות (הושלם)',
+      '6. דוח עבודה מלא — הורדה ואישור',
+      '7. בניית אתר חדש על Template קבוע',
+      '8. Preview מלא + הערות לקוח',
+      '9. אישור סופי',
+      '10. Deploy לריפו/דומיין נפרד של הלקוח (לא דליה)',
     ];
 
     var workOrderPostLaunch = [
@@ -302,6 +309,16 @@
         keywordsCount: promoteKeywords.length,
         competitorsCount: (inputs.competitors || []).length,
       },
+      seoStrategy: seoModel ? {
+        strategyId: seoModel.strategyId,
+        keywordCount: (seoModel.keywords || []).length,
+        competitors: (seoModel.competitors || []).map(function (c) { return c.name; }),
+        roadmap: seoModel.roadmap,
+        pageSeoMapping: seoModel.pageSeoMapping,
+        keywordGoals: seoModel.keywordGoals,
+        missingNote: seoModel.missingNote,
+        agentContributions: seoModel.agentContributions,
+      } : { note: 'חסר מידע — אסטרטגיית SEO לא אושרה' },
     };
   }
 
@@ -359,6 +376,16 @@
       html += renderSectionHtml('סדר עבודה לאחר עליית האתר', '<ol>' + s.workOrderPostLaunch.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ol>');
     }
     html += renderSectionHtml('תוכנת FleetOS — עמוד מרכזי', '<p><strong>' + esc(FLEET_PAGE.title) + '</strong></p><ul>' + FLEET_PAGE.sections.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>');
+    if (model.seoStrategy && model.seoStrategy.strategyId) {
+      var seo = model.seoStrategy;
+      html += renderSectionHtml('אסטרטגיית SEO', '<p>מילות מפתח: ' + (seo.keywordCount || 0) + ' · מתחרים: ' + esc((seo.competitors || []).join(' · ')) + '</p>' +
+        (seo.missingNote ? '<p style="color:#b45309;">' + esc(seo.missingNote) + '</p>' : '') +
+        '<h3>מפת דרכים</h3><ul>' + (seo.roadmap || []).map(function (m) { return '<li><strong>' + esc(m.label) + ':</strong> ' + esc((m.actions || []).join(', ')) + '</li>'; }).join('') + '</ul>' +
+        '<h3>יעדי דירוג</h3><table><tr><th>מילה</th><th>יעד</th><th>זמן משוער</th></tr>' +
+        (seo.keywordGoals || []).slice(0, 10).map(function (kg) {
+          return '<tr><td>' + esc(kg.keyword) + '</td><td>' + esc(kg.goal) + '</td><td>' + esc(kg.estimatedMonths) + ' חודשים</td></tr>';
+        }).join('') + '</table>');
+    }
     html += '<p class="meta">Staging · TEMP · אין Deploy לפרודקשן · אתר לקוח יושב בנפרד ממערכת דליה</p></body></html>';
     return html;
   }
@@ -389,6 +416,14 @@
   }
 
   function approveReport(model) {
+    if (window.MaterialsReadinessGate && !MaterialsReadinessGate.isReady()) {
+      if (typeof showToast === 'function') showToast('⚠️ יש לאשר שער חומרים לפני דוח Pre-Build');
+      return { ok: false, reason: 'materials_not_ready' };
+    }
+    if (window.SeoStrategy && !SeoStrategy.isApproved()) {
+      if (typeof showToast === 'function') showToast('⚠️ יש לאשר אסטרטגיית SEO לפני דוח Pre-Build');
+      return { ok: false, reason: 'seo_not_approved' };
+    }
     model = model || buildPreBuildReportModel();
     try {
       localStorage.setItem(REPORT_KEY, JSON.stringify(model));
@@ -466,10 +501,17 @@
   function renderInlinePanel(container) {
     if (!container) return;
     var model = buildPreBuildReportModel();
+    var materialsOk = !window.MaterialsReadinessGate || MaterialsReadinessGate.isReady();
+    var seoOk = !window.SeoStrategy || SeoStrategy.isApproved();
+    if (!materialsOk || !seoOk) {
+      container.innerHTML = '<div class="card" style="margin-top:12px;"><div class="ph-t">📋 דוח עבודה מלא לפני בניית אתר</div>' +
+        '<div class="alt alt-warn">' + (!materialsOk ? 'יש להשלים שער חומרים לפני דוח Pre-Build' : 'יש לאשר אסטרטגיית SEO לפני דוח Pre-Build') + '</div></div>';
+      return;
+    }
     var approved = isApproved();
     container.innerHTML =
       '<div class="card" style="margin-top:12px;">' +
-      '<div class="ph-t">📋 דוח עבודה מלא לפני בניית אתר</div>' +
+      '<div class="ph-t">📋 דוח עבודה מלא לפני בניית אתר (כולל SEO)</div>' +
       '<div class="s">20 סעיפים · הורדה למחשב · אישור חובה לפני 🌐 צור אתר AI</div>' +
       '<div id="pbr-summary" style="font-size:12px;color:var(--w80);line-height:1.8;margin-top:10px;"></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">' +
@@ -536,11 +578,21 @@
     });
   }
 
+  function allGatesReady() {
+    var materialsOk = !window.MaterialsReadinessGate || MaterialsReadinessGate.isReady();
+    var seoOk = !window.SeoStrategy || SeoStrategy.isApproved();
+    return materialsOk && seoOk && isApproved();
+  }
+
   function updateBuildButtonsGate() {
-    var approved = isApproved();
+    var ready = allGatesReady();
+    var materialsOk = !window.MaterialsReadinessGate || MaterialsReadinessGate.isReady();
+    var seoOk = !window.SeoStrategy || SeoStrategy.isApproved();
+    var reportOk = isApproved();
+    var hint = !materialsOk ? 'יש לאשר שער חומרים' : !seoOk ? 'יש לאשר אסטרטגיית SEO' : !reportOk ? 'יש לאשר דוח Pre-Build' : '';
     document.querySelectorAll('[data-pbr-gated="true"]').forEach(function (btn) {
-      btn.disabled = !approved;
-      btn.title = approved ? '' : 'יש לאשר דוח Pre-Build לפני בניית אתר';
+      btn.disabled = !ready;
+      btn.title = ready ? '' : hint;
     });
   }
 
@@ -552,6 +604,8 @@
   }
 
   function assertBuildGate() {
+    if (window.MaterialsReadinessGate && !MaterialsReadinessGate.assertGate()) return false;
+    if (window.SeoStrategy && !SeoStrategy.assertGate()) return false;
     if (!isApproved()) {
       if (typeof showToast === 'function') showToast('⚠️ יש להוריד ולאשר דוח Pre-Build לפני בניית אתר');
       return false;
@@ -572,6 +626,7 @@
     syncPreviewToPlatform: syncPreviewToPlatform,
     mountReportPanel: mountReportPanel,
     updateBuildButtonsGate: updateBuildButtonsGate,
+    allGatesReady: allGatesReady,
     assertBuildGate: assertBuildGate,
     FLEET_PAGE: FLEET_PAGE,
   };

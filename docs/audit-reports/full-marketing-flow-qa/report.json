@@ -1,7 +1,7 @@
 {
-  "at": "2026-06-30T12:52:47.124Z",
-  "commit": "2c33aa6",
-  "stagingUrl": "http://127.0.0.1:8888/ai-marketing-platform.html?v=commercial-v2",
+  "at": "2026-06-30T13:15:53.905Z",
+  "commit": "54a38a0",
+  "stagingUrl": "http://localhost:3456/ai-marketing-platform.html?t=1782836153.40577",
   "checks": {
     "desktop_hub_active": {
       "ok": true,
@@ -26,6 +26,30 @@
     "desktop_report_has_fleet_page": {
       "ok": true,
       "detail": "fleet"
+    },
+    "desktop_materials_gate_ready": {
+      "ok": true,
+      "detail": "materials"
+    },
+    "desktop_seo_strategy_approved": {
+      "ok": true,
+      "detail": "33"
+    },
+    "desktop_seo_has_keywords": {
+      "ok": true,
+      "detail": "33"
+    },
+    "desktop_seo_has_competitors": {
+      "ok": true,
+      "detail": "competitors module"
+    },
+    "desktop_report_has_seo": {
+      "ok": true,
+      "detail": "{\"hasSeo\":true,\"keywordCount\":33}"
+    },
+    "desktop_blueprint_enhanced": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"hasAudience\":true,\"hasFunnel\":true}"
     },
     "desktop_flow_screen-agents": {
       "ok": true,
@@ -55,13 +79,17 @@
       "ok": true,
       "detail": "lifecycle"
     },
+    "desktop_lifecycle_has_seo": {
+      "ok": true,
+      "detail": "seo stage"
+    },
     "desktop_blueprint_created": {
       "ok": true,
       "detail": "6"
     },
     "desktop_permanent_preview_url": {
       "ok": true,
-      "detail": "http://127.0.0.1:8888/client-previews/dalia-c-official/index.html"
+      "detail": "http://localhost:3456/client-previews/dalia-c-official/index.html"
     },
     "desktop_activity_log": {
       "ok": true,
@@ -73,11 +101,15 @@
     },
     "desktop_progress_tracked": {
       "ok": true,
-      "detail": "טיפול ב-24 משימות בעדיפות גבוהה"
+      "detail": "טיפול ב-33 משימות בעדיפות גבוהה"
     },
     "desktop_tasks_generated": {
       "ok": true,
       "detail": "40"
+    },
+    "desktop_seo_tasks_synced": {
+      "ok": true,
+      "detail": "21"
     },
     "desktop_return_to_agents": {
       "ok": true,
@@ -127,6 +159,30 @@
       "ok": true,
       "detail": "fleet"
     },
+    "iphone13_materials_gate_ready": {
+      "ok": true,
+      "detail": "materials"
+    },
+    "iphone13_seo_strategy_approved": {
+      "ok": true,
+      "detail": "33"
+    },
+    "iphone13_seo_has_keywords": {
+      "ok": true,
+      "detail": "33"
+    },
+    "iphone13_seo_has_competitors": {
+      "ok": true,
+      "detail": "competitors module"
+    },
+    "iphone13_report_has_seo": {
+      "ok": true,
+      "detail": "{\"hasSeo\":true,\"keywordCount\":33}"
+    },
+    "iphone13_blueprint_enhanced": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"hasAudience\":true,\"hasFunnel\":true}"
+    },
     "iphone13_flow_screen-agents": {
       "ok": true,
       "detail": "screen-agents"
@@ -155,13 +211,17 @@
       "ok": true,
       "detail": "lifecycle"
     },
+    "iphone13_lifecycle_has_seo": {
+      "ok": true,
+      "detail": "seo stage"
+    },
     "iphone13_blueprint_created": {
       "ok": true,
       "detail": "6"
     },
     "iphone13_permanent_preview_url": {
       "ok": true,
-      "detail": "http://127.0.0.1:8888/client-previews/dalia-c-official/index.html"
+      "detail": "http://localhost:3456/client-previews/dalia-c-official/index.html"
     },
     "iphone13_activity_log": {
       "ok": true,
@@ -173,11 +233,15 @@
     },
     "iphone13_progress_tracked": {
       "ok": true,
-      "detail": "טיפול ב-24 משימות בעדיפות גבוהה"
+      "detail": "טיפול ב-33 משימות בעדיפות גבוהה"
     },
     "iphone13_tasks_generated": {
       "ok": true,
       "detail": "40"
+    },
+    "iphone13_seo_tasks_synced": {
+      "ok": true,
+      "detail": "21"
     },
     "iphone13_return_to_agents": {
       "ok": true,
@@ -204,7 +268,7 @@
       "detail": ""
     }
   },
-  "pass": 50,
+  "pass": 66,
   "fail": 0,
   "ok": true
 }

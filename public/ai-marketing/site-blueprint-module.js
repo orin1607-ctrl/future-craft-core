@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   var BLUEPRINT_KEY = 'coco-site-blueprint-v1';
 
   function parseLs(key) {
@@ -24,6 +24,9 @@
       return { title: p.title, slug: p.slug, children: [] };
     });
 
+    var seoModel = (window.SeoStrategy && SeoStrategy.get && SeoStrategy.get()) || null;
+    var pageSeoMap = (seoModel && seoModel.pageSeoMapping) || [];
+
     var blueprint = {
       version: VERSION,
       blueprintId: 'BP-' + Date.now(),
@@ -32,17 +35,29 @@
       company: report.company,
       pageCount: pages.length,
       pages: pages.map(function (p) {
+        var seoPage = pageSeoMap.find(function (m) { return m.page === p.title || m.slug === p.slug; }) || {};
         return {
           order: p.order,
           title: p.title,
           slug: p.slug,
           purpose: p.purpose,
-          keywords: p.keywords || [],
+          audience: /FleetOS|תוכנ/i.test(p.title) ? 'מנהלי צי, בעלי עסקים עם מספר רכבים' : 'לקוחות B2B, מנהלי תפעול',
+          keywords: p.keywords || seoPage.keywords || [],
+          headings: p.headlines || [],
+          contentPlan: p.sections || [],
+          cta: p.cta || 'צור קשר',
+          images: ['תמונת Hero', 'אייקוני שירות', 'צילומי מסך FleetOS'].filter(function () { return true; }),
+          faq: seoPage.requiredActions && seoPage.requiredActions.indexOf('תוכן FAQ') >= 0 ? ['שאלות נפוצות — חסר מידע'] : [],
+          schema: ['Organization', 'WebPage', /FleetOS|תוכנ/i.test(p.title) ? 'SoftwareApplication' : 'Service'],
+          internalLinks: (pages || []).filter(function (x) { return x.slug !== p.slug; }).slice(0, 4).map(function (x) { return x.title; }),
+          funnelRole: p.order === 1 ? 'Awareness' : /צור קשר|contact/i.test(p.slug) ? 'Conversion' : /FleetOS|תוכנ/i.test(p.title) ? 'Consideration' : 'Interest',
           contentSections: p.sections || [],
           headlines: p.headlines || [],
-          cta: p.cta || 'צור קשר',
           forms: /צור קשר|contact/i.test(p.title) ? ['טופס יצירת קשר', 'WhatsApp'] : [],
           seoAreas: ['Title', 'Meta Description', 'H1', 'Schema', 'Internal Links'],
+          competingPages: seoPage.competingPages || 'חסר מידע',
+          outrankReason: seoPage.outrankReason || 'חסר מידע',
+          requiredSeoActions: seoPage.requiredActions || [],
           approved: false,
         };
       }),
@@ -51,6 +66,7 @@
       forms: ['טופס יצירת קשר', 'טופס הדגמת FleetOS', 'WhatsApp'],
       ctaButtons: ['צור קשר', 'קבלו הצעה', 'הדגמה לתוכנה', 'התקשרו עכשיו'],
       seoZones: ['Home', 'Services', 'Fleet Software', 'Blog/SEO pages', 'Contact'],
+      seoStrategyId: seoModel && seoModel.strategyId,
       futurePages: ['בלוג', 'מקרי בוחן', 'שאלות נוכחות', 'מחירון'],
       architecture: {
         onDaliaPlatform: false,

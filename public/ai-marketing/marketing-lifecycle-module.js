@@ -4,12 +4,14 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   var LIFECYCLE_KEY = 'coco-marketing-lifecycle-v1';
 
   var STAGES = [
     { id: 'research', label: 'מחקר ואיסוף נתונים' },
     { id: 'strategy', label: 'אסטרטגיית שיווק' },
+    { id: 'materials', label: 'שער חומרים' },
+    { id: 'seo', label: 'אסטרטגיית SEO' },
     { id: 'report', label: 'דוח Pre-Build' },
     { id: 'blueprint', label: 'Blueprint' },
     { id: 'build', label: 'בניית אתר' },

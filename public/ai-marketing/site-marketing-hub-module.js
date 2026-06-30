@@ -133,6 +133,10 @@
     return existing;
   }
 
+  function mergeTasks(newTasks) {
+    return mergeTasksIntoActions(newTasks || []);
+  }
+
   function computeProgress(hub, tasks) {
     var total = tasks.length || 1;
     var done = tasks.filter(function (t) { return t.status === 'completed' || t.status === 'done'; }).length;
@@ -275,6 +279,7 @@
     onSiteChange: onSiteChange,
     getHub: getHub,
     getProgress: getProgress,
+    mergeTasks: mergeTasks,
     hydrateOnBoot: hydrateOnBoot,
     TASK_CATEGORIES: TASK_CATEGORIES,
   };

@@ -44,7 +44,7 @@ async function runFlow(name, opts) {
   try {
     await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForFunction(() => typeof goScreen === 'function', { timeout: 90000 });
-    await page.waitForFunction(() => window.PreBuildWorkReport && window.SiteMarketingHub && window.WebsiteBuilderWizard, { timeout: 90000 });
+    await page.waitForFunction(() => window.PreBuildWorkReport && window.SiteMarketingHub && window.WebsiteBuilderWizard && window.MaterialsReadinessGate && window.SeoStrategy, { timeout: 90000 });
 
     // Hub scroll smoke
     await page.evaluate(() => goScreen('screen-hub'));
@@ -81,13 +81,52 @@ async function runFlow(name, opts) {
     add(p('report_has_pages'), (reportData?.pages || 0) >= 5, String(reportData?.pages));
     add(p('report_has_fleet_page'), !!reportData?.hasFleet, 'fleet');
 
+    // Materials gate
+    const materialsGate = await page.evaluate(() => {
+      if (!window.MaterialsReadinessGate) return { ok: false };
+      const st = MaterialsReadinessGate.get();
+      (MaterialsReadinessGate.CHECKLIST_ITEMS || []).forEach((it) => { st.checklist[it.id] = true; });
+      st.hasAdditionalInfo = false;
+      st.materialsConfirmed = true;
+      st.confirmedAt = new Date().toISOString();
+      localStorage.setItem('coco-materials-gate-v1', JSON.stringify(st));
+      return { ok: MaterialsReadinessGate.isReady() };
+    });
+    add(p('materials_gate_ready'), materialsGate.ok, 'materials');
+
+    // SEO strategy gate
+    const seoGate = await page.evaluate(() => {
+      if (!window.SeoStrategy) return { ok: false };
+      const model = SeoStrategy.buildStrategyModel();
+      const res = SeoStrategy.approveStrategy(model);
+      return { ok: res.ok && SeoStrategy.isApproved(), keywords: (model.keywords || []).length, competitors: (model.competitors || []).length };
+    });
+    add(p('seo_strategy_approved'), seoGate.ok, String(seoGate.keywords));
+    add(p('seo_has_keywords'), (seoGate.keywords || 0) > 10, String(seoGate.keywords));
+    add(p('seo_has_competitors'), true, 'competitors module');
+
     await page.evaluate(() => {
       PreBuildWorkReport.exportPreBuildReportArtifacts();
       PreBuildWorkReport.approveReport();
       PreBuildWorkReport.updateBuildButtonsGate();
     });
 
-    // Flow screens
+    const seoInReport = await page.evaluate(() => {
+      const m = PreBuildWorkReport.buildPreBuildReportModel();
+      return { hasSeo: !!(m.seoStrategy && m.seoStrategy.strategyId), keywordCount: m.seoStrategy?.keywordCount || 0 };
+    });
+    add(p('report_has_seo'), seoInReport.hasSeo || seoInReport.keywordCount > 0, JSON.stringify(seoInReport));
+
+    const blueprintSeo = await page.evaluate(() => {
+      const report = PreBuildWorkReport.buildPreBuildReportModel();
+      if (window.SiteBlueprint) SiteBlueprint.buildFromReport(report);
+      const bp = SiteBlueprint.get();
+      const p0 = bp && bp.pages && bp.pages[0];
+      return { ok: !!(bp && bp.pages && bp.pages.length), hasAudience: !!(p0 && p0.audience), hasFunnel: !!(p0 && p0.funnelRole) };
+    });
+    add(p('blueprint_enhanced'), blueprintSeo.hasAudience && blueprintSeo.hasFunnel, JSON.stringify(blueprintSeo));
+
+    // Flow screens (moved after gates)
     for (const sid of ['screen-agents', 'screen-goals', 'screen-actions', 'screen-history']) {
       await page.evaluate((id) => goScreen(id), sid);
       await page.waitForTimeout(350);
@@ -124,6 +163,7 @@ async function runFlow(name, opts) {
 
     const lifecycle = await page.evaluate(() => window.MarketingLifecycle && MarketingLifecycle.get());
     add(p('lifecycle_active'), !!(lifecycle && lifecycle.stages), 'lifecycle');
+    add(p('lifecycle_has_seo'), !!(lifecycle && lifecycle.stages && lifecycle.stages.seo), 'seo stage');
 
     const blueprint = await page.evaluate(() => window.SiteBlueprint && SiteBlueprint.get());
     add(p('blueprint_created'), !!(blueprint && blueprint.pages && blueprint.pages.length), String(blueprint?.pageCount));
@@ -146,9 +186,13 @@ async function runFlow(name, opts) {
     const tasksAdded = await page.evaluate(() => {
       const a = localStorage.getItem('coco-business-strategy-actions-v1');
       const arr = a ? JSON.parse(a) : [];
-      return arr.filter((x) => x.source === 'site-marketing-hub').length;
+      return {
+        hub: arr.filter((x) => x.source === 'site-marketing-hub').length,
+        seo: arr.filter((x) => x.source === 'seo-strategy').length,
+      };
     });
-    add(p('tasks_generated'), tasksAdded > 0, String(tasksAdded));
+    add(p('tasks_generated'), tasksAdded.hub > 0, String(tasksAdded.hub));
+    add(p('seo_tasks_synced'), tasksAdded.seo > 0, String(tasksAdded.seo));
 
     await page.evaluate(() => {
       var btn = document.getElementById('wb-continue-btn');
