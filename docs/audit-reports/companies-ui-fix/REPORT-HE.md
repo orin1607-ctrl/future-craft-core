@@ -43,7 +43,7 @@
 - Preview אמיתי לרמת עמודים, אישור משתמש, ורק אז Deploy.
 
 ## 10. Commit
-- `7d01d2d5add9b812f71b3bf1c1e781ee94bcbfb4`
+- `814b6edef34e883cf6fe742f682be4a1030d2db1`
 
 ## 11. קישור Staging
-- https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=7d01d2d
+- https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=814b6ed
