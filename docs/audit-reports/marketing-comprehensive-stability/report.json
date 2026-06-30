@@ -1,8 +1,8 @@
 {
-  "at": "2026-06-30T15:07:45.705Z",
-  "commit": "631b562",
-  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=631b562",
-  "localUrl": "http://127.0.0.1:8766/ai-marketing-platform.html?v=qa-local",
+  "at": "2026-06-30T15:28:53.759Z",
+  "commit": "6822247",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=6822247",
+  "localUrl": "http://127.0.0.1:8799/ai-marketing-platform.html?v=6822247",
   "checks": {
     "desktop_hub_active": {
       "ok": true,

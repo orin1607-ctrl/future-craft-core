@@ -1,11 +1,47 @@
 {
-  "at": "2026-06-30T13:15:53.905Z",
-  "commit": "54a38a0",
-  "stagingUrl": "http://localhost:3456/ai-marketing-platform.html?t=1782836153.40577",
+  "at": "2026-06-30T15:30:19.660Z",
+  "commit": "6822247",
+  "stagingUrl": "http://127.0.0.1:8799/ai-marketing-platform.html?v=6822247",
   "checks": {
     "desktop_hub_active": {
       "ok": true,
       "detail": "hub"
+    },
+    "desktop_gates_block_incomplete": {
+      "ok": true,
+      "detail": "{\"summary\":true,\"briefing\":true,\"materials\":true,\"seo\":true,\"report\":true}"
+    },
+    "desktop_business_summary_approved": {
+      "ok": true,
+      "detail": "approved"
+    },
+    "desktop_strategic_briefing_approved": {
+      "ok": true,
+      "detail": "6"
+    },
+    "desktop_ai_consultant_briefing_10_cats": {
+      "ok": true,
+      "detail": "10"
+    },
+    "desktop_ai_consultant_forecast_disclaimer": {
+      "ok": true,
+      "detail": "disclaimer"
+    },
+    "desktop_ai_consultant_seo": {
+      "ok": true,
+      "detail": "seo stage"
+    },
+    "desktop_ai_consultant_export_html": {
+      "ok": true,
+      "detail": "7664"
+    },
+    "desktop_ai_consultant_localStorage": {
+      "ok": true,
+      "detail": "stored"
+    },
+    "desktop_ai_consultant_history": {
+      "ok": true,
+      "detail": "history"
     },
     "desktop_report_has_company": {
       "ok": true,
@@ -17,7 +53,7 @@
     },
     "desktop_report_has_keywords": {
       "ok": true,
-      "detail": "20"
+      "detail": "6"
     },
     "desktop_report_has_pages": {
       "ok": true,
@@ -27,17 +63,29 @@
       "ok": true,
       "detail": "fleet"
     },
+    "desktop_readiness_scores_exist": {
+      "ok": true,
+      "detail": "{\"businessInfo\":100,\"softwareApp\":100,\"seo\":70,\"competitors\":80,\"audience\":50,\"platforms\":80,\"marketingMaterials\":0,\"siteBuildReady\":25,\"overall\":63,\"complete\":true,\"approved\":true,\"missingMsg\":null}"
+    },
+    "desktop_readiness_has_business": {
+      "ok": true,
+      "detail": "100"
+    },
+    "desktop_readiness_has_seo": {
+      "ok": true,
+      "detail": "70"
+    },
     "desktop_materials_gate_ready": {
       "ok": true,
       "detail": "materials"
     },
     "desktop_seo_strategy_approved": {
       "ok": true,
-      "detail": "33"
+      "detail": "28"
     },
     "desktop_seo_has_keywords": {
       "ok": true,
-      "detail": "33"
+      "detail": "28"
     },
     "desktop_seo_has_competitors": {
       "ok": true,
@@ -45,7 +93,19 @@
     },
     "desktop_report_has_seo": {
       "ok": true,
-      "detail": "{\"hasSeo\":true,\"keywordCount\":33}"
+      "detail": "{\"hasSeo\":true,\"keywordCount\":28,\"hasKeywordChapters\":true,\"hasMarketingStrategy\":true}"
+    },
+    "desktop_report_has_keyword_chapters": {
+      "ok": true,
+      "detail": "keyword chapters"
+    },
+    "desktop_report_has_marketing_strategy": {
+      "ok": true,
+      "detail": "marketing strategy"
+    },
+    "desktop_report_ai_executive_summary": {
+      "ok": true,
+      "detail": "executive summary"
     },
     "desktop_blueprint_enhanced": {
       "ok": true,
@@ -59,6 +119,10 @@
       "ok": true,
       "detail": "screen-goals"
     },
+    "desktop_flow_screen_actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
     "desktop_flow_screen-actions": {
       "ok": true,
       "detail": "screen-actions"
@@ -66,6 +130,14 @@
     "desktop_flow_screen-history": {
       "ok": true,
       "detail": "screen-history"
+    },
+    "desktop_google_standard_scores": {
+      "ok": true,
+      "detail": "7"
+    },
+    "desktop_ai_page_advisor": {
+      "ok": true,
+      "detail": "42"
     },
     "desktop_preview_multipage": {
       "ok": true,
@@ -89,7 +161,7 @@
     },
     "desktop_permanent_preview_url": {
       "ok": true,
-      "detail": "http://localhost:3456/client-previews/dalia-c-official/index.html"
+      "detail": "http://127.0.0.1:8799/client-previews/dalia-c-official/index.html"
     },
     "desktop_activity_log": {
       "ok": true,
@@ -101,7 +173,7 @@
     },
     "desktop_progress_tracked": {
       "ok": true,
-      "detail": "טיפול ב-33 משימות בעדיפות גבוהה"
+      "detail": "טיפול ב-47 משימות בעדיפות גבוהה"
     },
     "desktop_tasks_generated": {
       "ok": true,
@@ -139,6 +211,42 @@
       "ok": true,
       "detail": "hub"
     },
+    "iphone13_gates_block_incomplete": {
+      "ok": true,
+      "detail": "{\"summary\":true,\"briefing\":true,\"materials\":true,\"seo\":true,\"report\":true}"
+    },
+    "iphone13_business_summary_approved": {
+      "ok": true,
+      "detail": "approved"
+    },
+    "iphone13_strategic_briefing_approved": {
+      "ok": true,
+      "detail": "6"
+    },
+    "iphone13_ai_consultant_briefing_10_cats": {
+      "ok": true,
+      "detail": "10"
+    },
+    "iphone13_ai_consultant_forecast_disclaimer": {
+      "ok": true,
+      "detail": "disclaimer"
+    },
+    "iphone13_ai_consultant_seo": {
+      "ok": true,
+      "detail": "seo stage"
+    },
+    "iphone13_ai_consultant_export_html": {
+      "ok": true,
+      "detail": "7664"
+    },
+    "iphone13_ai_consultant_localStorage": {
+      "ok": true,
+      "detail": "stored"
+    },
+    "iphone13_ai_consultant_history": {
+      "ok": true,
+      "detail": "history"
+    },
     "iphone13_report_has_company": {
       "ok": true,
       "detail": "דליה פתרונות מימון ותחזוקה לרכב"
@@ -149,7 +257,7 @@
     },
     "iphone13_report_has_keywords": {
       "ok": true,
-      "detail": "20"
+      "detail": "6"
     },
     "iphone13_report_has_pages": {
       "ok": true,
@@ -159,17 +267,29 @@
       "ok": true,
       "detail": "fleet"
     },
+    "iphone13_readiness_scores_exist": {
+      "ok": true,
+      "detail": "{\"businessInfo\":100,\"softwareApp\":100,\"seo\":70,\"competitors\":80,\"audience\":50,\"platforms\":80,\"marketingMaterials\":0,\"siteBuildReady\":25,\"overall\":63,\"complete\":true,\"approved\":true,\"missingMsg\":null}"
+    },
+    "iphone13_readiness_has_business": {
+      "ok": true,
+      "detail": "100"
+    },
+    "iphone13_readiness_has_seo": {
+      "ok": true,
+      "detail": "70"
+    },
     "iphone13_materials_gate_ready": {
       "ok": true,
       "detail": "materials"
     },
     "iphone13_seo_strategy_approved": {
       "ok": true,
-      "detail": "33"
+      "detail": "28"
     },
     "iphone13_seo_has_keywords": {
       "ok": true,
-      "detail": "33"
+      "detail": "28"
     },
     "iphone13_seo_has_competitors": {
       "ok": true,
@@ -177,7 +297,19 @@
     },
     "iphone13_report_has_seo": {
       "ok": true,
-      "detail": "{\"hasSeo\":true,\"keywordCount\":33}"
+      "detail": "{\"hasSeo\":true,\"keywordCount\":28,\"hasKeywordChapters\":true,\"hasMarketingStrategy\":true}"
+    },
+    "iphone13_report_has_keyword_chapters": {
+      "ok": true,
+      "detail": "keyword chapters"
+    },
+    "iphone13_report_has_marketing_strategy": {
+      "ok": true,
+      "detail": "marketing strategy"
+    },
+    "iphone13_report_ai_executive_summary": {
+      "ok": true,
+      "detail": "executive summary"
     },
     "iphone13_blueprint_enhanced": {
       "ok": true,
@@ -191,6 +323,10 @@
       "ok": true,
       "detail": "screen-goals"
     },
+    "iphone13_flow_screen_actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
     "iphone13_flow_screen-actions": {
       "ok": true,
       "detail": "screen-actions"
@@ -198,6 +334,14 @@
     "iphone13_flow_screen-history": {
       "ok": true,
       "detail": "screen-history"
+    },
+    "iphone13_google_standard_scores": {
+      "ok": true,
+      "detail": "7"
+    },
+    "iphone13_ai_page_advisor": {
+      "ok": true,
+      "detail": "42"
     },
     "iphone13_preview_multipage": {
       "ok": true,
@@ -221,7 +365,7 @@
     },
     "iphone13_permanent_preview_url": {
       "ok": true,
-      "detail": "http://localhost:3456/client-previews/dalia-c-official/index.html"
+      "detail": "http://127.0.0.1:8799/client-previews/dalia-c-official/index.html"
     },
     "iphone13_activity_log": {
       "ok": true,
@@ -233,7 +377,7 @@
     },
     "iphone13_progress_tracked": {
       "ok": true,
-      "detail": "טיפול ב-33 משימות בעדיפות גבוהה"
+      "detail": "טיפול ב-47 משימות בעדיפות גבוהה"
     },
     "iphone13_tasks_generated": {
       "ok": true,
@@ -266,9 +410,213 @@
     "iphone13_console_clean": {
       "ok": true,
       "detail": ""
+    },
+    "android_hub_active": {
+      "ok": true,
+      "detail": "hub"
+    },
+    "android_gates_block_incomplete": {
+      "ok": true,
+      "detail": "{\"summary\":true,\"briefing\":true,\"materials\":true,\"seo\":true,\"report\":true}"
+    },
+    "android_business_summary_approved": {
+      "ok": true,
+      "detail": "approved"
+    },
+    "android_strategic_briefing_approved": {
+      "ok": true,
+      "detail": "6"
+    },
+    "android_ai_consultant_briefing_10_cats": {
+      "ok": true,
+      "detail": "10"
+    },
+    "android_ai_consultant_forecast_disclaimer": {
+      "ok": true,
+      "detail": "disclaimer"
+    },
+    "android_ai_consultant_seo": {
+      "ok": true,
+      "detail": "seo stage"
+    },
+    "android_ai_consultant_export_html": {
+      "ok": true,
+      "detail": "7664"
+    },
+    "android_ai_consultant_localStorage": {
+      "ok": true,
+      "detail": "stored"
+    },
+    "android_ai_consultant_history": {
+      "ok": true,
+      "detail": "history"
+    },
+    "android_report_has_company": {
+      "ok": true,
+      "detail": "דליה פתרונות מימון ותחזוקה לרכב"
+    },
+    "android_report_has_profile": {
+      "ok": true,
+      "detail": "businessProfile"
+    },
+    "android_report_has_keywords": {
+      "ok": true,
+      "detail": "6"
+    },
+    "android_report_has_pages": {
+      "ok": true,
+      "detail": "6"
+    },
+    "android_report_has_fleet_page": {
+      "ok": true,
+      "detail": "fleet"
+    },
+    "android_readiness_scores_exist": {
+      "ok": true,
+      "detail": "{\"businessInfo\":100,\"softwareApp\":100,\"seo\":70,\"competitors\":80,\"audience\":50,\"platforms\":80,\"marketingMaterials\":0,\"siteBuildReady\":25,\"overall\":63,\"complete\":true,\"approved\":true,\"missingMsg\":null}"
+    },
+    "android_readiness_has_business": {
+      "ok": true,
+      "detail": "100"
+    },
+    "android_readiness_has_seo": {
+      "ok": true,
+      "detail": "70"
+    },
+    "android_materials_gate_ready": {
+      "ok": true,
+      "detail": "materials"
+    },
+    "android_seo_strategy_approved": {
+      "ok": true,
+      "detail": "28"
+    },
+    "android_seo_has_keywords": {
+      "ok": true,
+      "detail": "28"
+    },
+    "android_seo_has_competitors": {
+      "ok": true,
+      "detail": "competitors module"
+    },
+    "android_report_has_seo": {
+      "ok": true,
+      "detail": "{\"hasSeo\":true,\"keywordCount\":28,\"hasKeywordChapters\":true,\"hasMarketingStrategy\":true}"
+    },
+    "android_report_has_keyword_chapters": {
+      "ok": true,
+      "detail": "keyword chapters"
+    },
+    "android_report_has_marketing_strategy": {
+      "ok": true,
+      "detail": "marketing strategy"
+    },
+    "android_report_ai_executive_summary": {
+      "ok": true,
+      "detail": "executive summary"
+    },
+    "android_blueprint_enhanced": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"hasAudience\":true,\"hasFunnel\":true}"
+    },
+    "android_flow_screen-agents": {
+      "ok": true,
+      "detail": "screen-agents"
+    },
+    "android_flow_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "android_flow_screen_actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "android_flow_screen-actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "android_flow_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "android_google_standard_scores": {
+      "ok": true,
+      "detail": "7"
+    },
+    "android_ai_page_advisor": {
+      "ok": true,
+      "detail": "42"
+    },
+    "android_preview_multipage": {
+      "ok": true,
+      "detail": "{\"pages\":7,\"hasNav\":true}"
+    },
+    "android_site_hub_activated": {
+      "ok": true,
+      "detail": "hub after approval"
+    },
+    "android_lifecycle_active": {
+      "ok": true,
+      "detail": "lifecycle"
+    },
+    "android_lifecycle_has_seo": {
+      "ok": true,
+      "detail": "seo stage"
+    },
+    "android_blueprint_created": {
+      "ok": true,
+      "detail": "6"
+    },
+    "android_permanent_preview_url": {
+      "ok": true,
+      "detail": "http://127.0.0.1:8799/client-previews/dalia-c-official/index.html"
+    },
+    "android_activity_log": {
+      "ok": true,
+      "detail": "3"
+    },
+    "android_ai_advisor": {
+      "ok": true,
+      "detail": "advisor"
+    },
+    "android_progress_tracked": {
+      "ok": true,
+      "detail": "טיפול ב-47 משימות בעדיפות גבוהה"
+    },
+    "android_tasks_generated": {
+      "ok": true,
+      "detail": "40"
+    },
+    "android_seo_tasks_synced": {
+      "ok": true,
+      "detail": "21"
+    },
+    "android_return_to_agents": {
+      "ok": true,
+      "detail": "ok"
+    },
+    "android_post_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "android_post_screen-actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "android_post_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "android_single_fab": {
+      "ok": true,
+      "detail": "1"
+    },
+    "android_console_clean": {
+      "ok": true,
+      "detail": ""
     }
   },
-  "pass": 66,
+  "pass": 153,
   "fail": 0,
   "ok": true
 }
