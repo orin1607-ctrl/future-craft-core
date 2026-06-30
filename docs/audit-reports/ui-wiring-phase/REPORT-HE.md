@@ -44,10 +44,10 @@
 ## Staging URL
 
 ```
-https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=COMMIT_HASH
+https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=ce361ac
 ```
 
-(החלף `COMMIT_HASH` ב-hash הקצר של הקומיט לאחר push — ראה `report.json` בשדה `commit`.)
+**Commit:** `ce361ac`
 
 ## קבצים שהשתנו
 
