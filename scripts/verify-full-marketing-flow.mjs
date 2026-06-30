@@ -44,7 +44,7 @@ async function runFlow(name, opts) {
   try {
     await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForFunction(() => typeof goScreen === 'function', { timeout: 90000 });
-    await page.waitForFunction(() => window.PreBuildWorkReport && window.SiteMarketingHub && window.WebsiteBuilderWizard && window.MaterialsReadinessGate && window.SeoStrategy, { timeout: 90000 });
+    await page.waitForFunction(() => window.PreBuildWorkReport && window.SiteMarketingHub && window.WebsiteBuilderWizard && window.MaterialsReadinessGate && window.SeoStrategy && window.StrategicBriefing, { timeout: 90000 });
 
     // Hub scroll smoke
     await page.evaluate(() => goScreen('screen-hub'));
@@ -61,6 +61,39 @@ async function runFlow(name, opts) {
     await page.waitForFunction(() => document.getElementById('ana-done')?.style.display !== 'none', { timeout: 40000 });
     for (let i = 0; i < 3; i++) await page.locator('#btn-next').click();
     await page.waitForFunction(() => document.getElementById('exported')?.style.display !== 'none', { timeout: 15000 });
+
+    // Gates block without completion
+    const gatesBlock = await page.evaluate(() => {
+      var blocked = { briefing: false, materials: false, seo: false, report: false };
+      if (window.StrategicBriefing) {
+        localStorage.removeItem('coco-strategic-briefing-approved-v1');
+        blocked.briefing = !StrategicBriefing.assertGate();
+      }
+      if (window.MaterialsReadinessGate) blocked.materials = !MaterialsReadinessGate.assertGate();
+      if (window.SeoStrategy) blocked.seo = !SeoStrategy.assertGate();
+      if (window.PreBuildWorkReport) blocked.report = !PreBuildWorkReport.assertBuildGate();
+      return blocked;
+    });
+    add(p('gates_block_incomplete'), gatesBlock.briefing && gatesBlock.materials && gatesBlock.seo && gatesBlock.report, JSON.stringify(gatesBlock));
+
+    // Fill strategic briefing
+    const briefingDone = await page.evaluate(() => {
+      if (!window.StrategicBriefing) return { ok: false };
+      var st = StrategicBriefing.get();
+      st.buildType = 'אתר';
+      st.mainGoal = 'לידים';
+      st.services = ['FleetOS / תוכנת ניהול צי', 'תפעול צי רכב'];
+      st.audience = ['עסקים עם צי רכב'];
+      st.regions = ['כל הארץ'];
+      st.competitorsManual = ['מתחרה QA'];
+      st.keywordsApproved = (st.keywordsSuggested || []).slice(0, 5);
+      st.keywordsManual = ['תוכנה לניהול צי'];
+      st.platforms = ['אתר', 'GSC', 'GA', 'FleetOS'];
+      localStorage.setItem('coco-strategic-briefing-v1', JSON.stringify(st));
+      var res = StrategicBriefing.approveBriefing(st);
+      return { ok: res.ok && StrategicBriefing.isReady(), keywords: StrategicBriefing.allKeywords(st).length };
+    });
+    add(p('strategic_briefing_approved'), briefingDone.ok, String(briefingDone.keywords));
 
     // Report data check
     const reportData = await page.evaluate(() => {
@@ -80,6 +113,15 @@ async function runFlow(name, opts) {
     add(p('report_has_keywords'), (reportData?.keywords || 0) > 0, String(reportData?.keywords));
     add(p('report_has_pages'), (reportData?.pages || 0) >= 5, String(reportData?.pages));
     add(p('report_has_fleet_page'), !!reportData?.hasFleet, 'fleet');
+
+    const readiness = await page.evaluate(() => {
+      if (!window.PreBuildWorkReport) return null;
+      var m = PreBuildWorkReport.buildPreBuildReportModel();
+      return m.readinessScores || PreBuildWorkReport.computeReadinessScores();
+    });
+    add(p('readiness_scores_exist'), !!(readiness && readiness.overall != null), JSON.stringify(readiness));
+    add(p('readiness_has_business'), (readiness?.businessInfo || 0) > 0, String(readiness?.businessInfo));
+    add(p('readiness_has_seo'), (readiness?.seo || 0) > 0, String(readiness?.seo));
 
     // Materials gate
     const materialsGate = await page.evaluate(() => {
@@ -113,9 +155,16 @@ async function runFlow(name, opts) {
 
     const seoInReport = await page.evaluate(() => {
       const m = PreBuildWorkReport.buildPreBuildReportModel();
-      return { hasSeo: !!(m.seoStrategy && m.seoStrategy.strategyId), keywordCount: m.seoStrategy?.keywordCount || 0 };
+      return {
+        hasSeo: !!(m.seoStrategy && m.seoStrategy.strategyId),
+        keywordCount: m.seoStrategy?.keywordCount || 0,
+        hasKeywordChapters: !!(m.seoStrategy && m.seoStrategy.keywordChapters && m.seoStrategy.keywordChapters.length),
+        hasMarketingStrategy: !!(m.sections && m.sections.marketingStrategy),
+      };
     });
     add(p('report_has_seo'), seoInReport.hasSeo || seoInReport.keywordCount > 0, JSON.stringify(seoInReport));
+    add(p('report_has_keyword_chapters'), seoInReport.hasKeywordChapters, 'keyword chapters');
+    add(p('report_has_marketing_strategy'), seoInReport.hasMarketingStrategy, 'marketing strategy');
 
     const blueprintSeo = await page.evaluate(() => {
       const report = PreBuildWorkReport.buildPreBuildReportModel();

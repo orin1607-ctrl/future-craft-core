@@ -5,10 +5,13 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.2.0';
+  var VERSION = '1.3.0';
   var REPORT_KEY = 'coco-pre-build-work-report-v1';
   var APPROVAL_KEY = 'coco-pre-build-report-approved-v1';
   var APPROVAL_AT_KEY = 'coco-pre-build-report-approved-at-v1';
+
+  var OVERRIDE_KEY = 'coco-pre-build-readiness-override-v1';
+  var MISSING = 'חסר מידע';
 
   var FLEET_PAGE = {
     title: 'תוכנת ניהול צי רכב לעסקים',
@@ -52,6 +55,71 @@
     return kw.slice(0, limit || 12).map(function (k) {
       return { query: k.query || k.keyword, clicks: k.clicks, impressions: k.impressions };
     }).filter(function (k) { return k.query; });
+  }
+
+  function buildMarketingStrategyChapter(inputs, briefing) {
+    briefing = briefing || (window.StrategicBriefing && StrategicBriefing.get && StrategicBriefing.get()) || parseLs('coco-strategic-briefing-v1') || {};
+    var ctx = inputs.context || {};
+    var connected = (ctx.connectedAssets || []).slice();
+    var selectedPlatforms = briefing.platforms || (ctx.strategy && ctx.strategy.platforms) || [];
+    var platformDetails = selectedPlatforms.map(function (p, i) {
+      var connectedFlag = connected.some(function (c) { return String(c).indexOf(p) >= 0 || String(p).indexOf(c) >= 0; });
+      return {
+        name: p,
+        active: connectedFlag,
+        connected: connectedFlag,
+        missingInfo: connectedFlag ? null : MISSING,
+        role: p === 'FleetOS' ? 'מוצר מרכזי — תוכנה ואפליקציה' : p === 'SEO' || p === 'GSC' ? 'תנועה אורגנית' : 'שיווק ומעורבות',
+        whenToUse: i < 3 ? 'שלב 1 — מיידי' : i < 6 ? 'שלב 2 — חודש 2-3' : 'עתידי',
+        phase: i < 3 ? 1 : i < 6 ? 2 : 'future',
+      };
+    });
+    return {
+      strategy: (briefing.mainGoal || ctx.businessGoal) ? ('מטרה: ' + (briefing.mainGoal || ctx.businessGoal) + ' · בנייה: ' + (briefing.buildType || 'אתר')) : MISSING,
+      goals: [briefing.mainGoal, briefing.buildType, 'FleetOS / ניהול צי'].filter(Boolean),
+      platforms: selectedPlatforms,
+      whyChosen: selectedPlatforms.map(function (p) { return p + ' — תומך ב-' + (briefing.mainGoal || 'מטרה עסקית'); }),
+      connected: connected,
+      missing: selectedPlatforms.filter(function (p) {
+        return !connected.some(function (c) { return String(c).indexOf(p) >= 0; });
+      }),
+      phase1: platformDetails.filter(function (x) { return x.phase === 1; }),
+      phase2: platformDetails.filter(function (x) { return x.phase === 2; }),
+      future: platformDetails.filter(function (x) { return x.phase === 'future'; }),
+      priorityOrder: selectedPlatforms,
+      platformDetails: platformDetails,
+    };
+  }
+
+  function computeReadinessScores(inputs) {
+    if (window.StrategicBriefing && StrategicBriefing.computeReadinessScore) {
+      return StrategicBriefing.computeReadinessScore();
+    }
+    return {
+      businessInfo: inputs && inputs.company ? 50 : 0,
+      softwareApp: 40,
+      seo: (inputs && inputs.keywords || []).length > 0 ? 40 : 0,
+      competitors: (inputs && inputs.competitors || []).length > 0 ? 50 : 0,
+      audience: 30,
+      platforms: 30,
+      marketingMaterials: window.MaterialsReadinessGate && MaterialsReadinessGate.isReady() ? 80 : 20,
+      siteBuildReady: 0,
+      overall: 30,
+    };
+  }
+
+  function isReadinessOverride() {
+    try { return localStorage.getItem(OVERRIDE_KEY) === 'true'; } catch (e) { return false; }
+  }
+
+  function setReadinessOverride(on) {
+    try { localStorage.setItem(OVERRIDE_KEY, on ? 'true' : 'false'); return true; } catch (e) { return false; }
+  }
+
+  function isReadinessAcceptable(scores) {
+    scores = scores || computeReadinessScores();
+    if (isReadinessOverride()) return true;
+    return (scores.overall || 0) >= 50 && (scores.siteBuildReady || 0) >= 50;
   }
 
   function collectPreBuildInputs() {
@@ -195,6 +263,11 @@
 
     var platforms = (inputs.context && inputs.context.strategy && inputs.context.strategy.platforms) ||
       ['Google Search Console', 'Google Analytics 4', 'SEO אורגני', 'Google Business Profile'];
+    var briefing = (window.StrategicBriefing && StrategicBriefing.get && StrategicBriefing.get()) || parseLs('coco-strategic-briefing-v1') || {};
+    if (briefing.platforms && briefing.platforms.length) platforms = briefing.platforms;
+
+    var marketingStrategy = buildMarketingStrategyChapter(inputs, briefing);
+    var readinessScores = computeReadinessScores(inputs);
 
     var seoModel = (window.SeoStrategy && SeoStrategy.get && SeoStrategy.get()) || null;
     if (!seoModel && window.SeoStrategy && SeoStrategy.buildStrategyModel) {
@@ -203,15 +276,17 @@
 
     var workOrder = [
       '1. איסוף נתונים ותחקיר (הושלם)',
-      '2. שער חומרים — אישור (הושלם)',
-      '3. אסטרטגיית SEO — מחקר ואישור (הושלם)',
-      '4. מתחרים ומילות מפתח (הושלם)',
-      '5. מטרות ופעולות (הושלם)',
-      '6. דוח עבודה מלא — הורדה ואישור',
-      '7. בניית אתר חדש על Template קבוע',
-      '8. Preview מלא + הערות לקוח',
-      '9. אישור סופי',
-      '10. Deploy לריפו/דומיין נפרד של הלקוח (לא דליה)',
+      '2. שאלון אסטרטגי — אישור (הושלם)',
+      '3. שער חומרים — אישור (הושלם)',
+      '4. אסטרטגיית SEO — מחקר ואישור (הושלם)',
+      '5. מתחרים ומילות מפתח (הושלם)',
+      '6. מטרות ופעולות (הושלם)',
+      '7. דוח עבודה מלא — הורדה ואישור',
+      '7. Blueprint',
+      '8. בניית אתר חדש על Template קבוע',
+      '9. Preview מלא + הערות לקוח',
+      '10. אישור סופי',
+      '11. Deploy לריפו/דומיין נפרד של הלקוח (לא דליה)',
     ];
 
     var workOrderPostLaunch = [
@@ -238,7 +313,7 @@
       mainService: (inputs.context && inputs.context.mainService) || (inputs.biz && inputs.biz.mainService) || '',
       services: (inputs.biz && inputs.biz.services) || '',
       competitors: inputs.competitors || [],
-      keywords: promoteKeywords,
+      keywords: (window.StrategicBriefing && StrategicBriefing.allKeywords) ? StrategicBriefing.allKeywords(briefing) : promoteKeywords,
       site: inputs.site,
       goal: (inputs.context && inputs.context.businessGoal) || (inputs.biz && inputs.biz.goal) || '',
       differentiator: (inputs.context && inputs.context.differentiator) || (inputs.biz && inputs.biz.diff) || '',
@@ -299,9 +374,13 @@
         competitorAnalysis: (inputs.competitors || []).map(function (c) {
           return { name: c, note: 'מקור מידע לאסטרטגיה' };
         }),
+        marketingStrategy: marketingStrategy,
         changesVsOld: improvements,
         fleetSoftwarePage: FLEET_PAGE,
+        strategicBriefing: briefing,
       },
+      readinessScores: readinessScores,
+      readinessAcceptable: isReadinessAcceptable(readinessScores),
       businessProfile: businessProfile,
       newSiteSitemap: newPages.map(function (p) { return { order: p.order, title: p.title, slug: p.slug }; }),
       rawInputsSummary: {
@@ -316,6 +395,7 @@
         roadmap: seoModel.roadmap,
         pageSeoMapping: seoModel.pageSeoMapping,
         keywordGoals: seoModel.keywordGoals,
+        keywordChapters: seoModel.keywordChapters,
         missingNote: seoModel.missingNote,
         agentContributions: seoModel.agentContributions,
       } : { note: 'חסר מידע — אסטרטגיית SEO לא אושרה' },
@@ -345,8 +425,36 @@
         '<tr><td>יעד</td><td>' + esc(bp.goal) + '</td></tr>' +
         '<tr><td>בידול</td><td>' + esc(bp.differentiator) + '</td></tr></table>');
     }
+    if (model.readinessScores) {
+      var rs = model.readinessScores;
+      html += renderSectionHtml('ציוני מוכנות (%)', '<table><tr><th>תחום</th><th>ציון</th></tr>' +
+        '<tr><td>מידע עסקי</td><td>' + (rs.businessInfo || 0) + '%</td></tr>' +
+        '<tr><td>תוכנה ואפליקציה</td><td>' + (rs.softwareApp || 0) + '%</td></tr>' +
+        '<tr><td>SEO</td><td>' + (rs.seo || 0) + '%</td></tr>' +
+        '<tr><td>מתחרים</td><td>' + (rs.competitors || 0) + '%</td></tr>' +
+        '<tr><td>קהל יעד</td><td>' + (rs.audience || 0) + '%</td></tr>' +
+        '<tr><td>פלטפורמות</td><td>' + (rs.platforms || 0) + '%</td></tr>' +
+        '<tr><td>חומרים שיווקיים</td><td>' + (rs.marketingMaterials || 0) + '%</td></tr>' +
+        '<tr><td>מוכנות לבניית אתר</td><td>' + (rs.siteBuildReady || 0) + '%</td></tr>' +
+        '<tr><td><strong>כללי</strong></td><td><strong>' + (rs.overall || 0) + '%</strong></td></tr></table>');
+    }
     if (s.improvements && s.improvements.length) {
       html += renderSectionHtml('מה נשפר באתר החדש', '<ul>' + s.improvements.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>');
+    }
+    if (s.marketingStrategy) {
+      var ms = s.marketingStrategy;
+      html += renderSectionHtml('אסטרטגיית השיווק והפלטפורמות', '<p><strong>אסטרטגיה:</strong> ' + esc(ms.strategy) + '</p>' +
+        '<p><strong>יעדים:</strong> ' + esc((ms.goals || []).join(' · ')) + '</p>' +
+        '<p><strong>פלטפורמות:</strong> ' + esc((ms.platforms || []).join(' · ')) + '</p>' +
+        '<p><strong>מחובר:</strong> ' + esc((ms.connected || []).join(' · ')) + '</p>' +
+        '<p><strong>חסר:</strong> ' + esc((ms.missing || []).join(' · ') || MISSING) + '</p>' +
+        '<h3>שלב 1</h3><ul>' + (ms.phase1 || []).map(function (p) { return '<li>' + esc(p.name) + ' — ' + esc(p.role) + '</li>'; }).join('') + '</ul>' +
+        '<h3>שלב 2</h3><ul>' + (ms.phase2 || []).map(function (p) { return '<li>' + esc(p.name) + ' — ' + esc(p.whenToUse) + '</li>'; }).join('') + '</ul>' +
+        '<h3>עתידי</h3><ul>' + (ms.future || []).map(function (p) { return '<li>' + esc(p.name) + '</li>'; }).join('') + '</ul>' +
+        '<table><tr><th>פלטפורמה</th><th>פעיל</th><th>מחובר</th><th>חסר</th><th>תפקיד</th><th>מתי</th></tr>' +
+        (ms.platformDetails || []).map(function (p) {
+          return '<tr><td>' + esc(p.name) + '</td><td>' + (p.active ? 'כן' : 'לא') + '</td><td>' + (p.connected ? 'כן' : 'לא') + '</td><td>' + esc(p.missingInfo || '—') + '</td><td>' + esc(p.role) + '</td><td>' + esc(p.whenToUse) + '</td></tr>';
+        }).join('') + '</table>');
     }
 
     html += renderSectionHtml('1. מצב האתר הקיים היום', '<p>עמודים: ' + s.currentSiteStatus.pageCount + ' · ציון ממוצע: ' + s.currentSiteStatus.avgScore + '</p><p>נכסים: ' + esc((s.currentSiteStatus.connectedAssets || []).join(', ')) + '</p>');
@@ -385,6 +493,12 @@
         (seo.keywordGoals || []).slice(0, 10).map(function (kg) {
           return '<tr><td>' + esc(kg.keyword) + '</td><td>' + esc(kg.goal) + '</td><td>' + esc(kg.estimatedMonths) + ' חודשים</td></tr>';
         }).join('') + '</table>');
+      if (seo.keywordChapters && seo.keywordChapters.length) {
+        html += renderSectionHtml('SEO לפי מילת מפתח', '<table><tr><th>מילה</th><th>תחרות</th><th>חשיבות</th><th>התאמה</th><th>נפח</th><th>עמוד</th><th>מתחרים</th><th>יעד</th><th>זמן</th><th>פעולות</th></tr>' +
+          seo.keywordChapters.map(function (kc) {
+            return '<tr><td>' + esc(kc.keyword) + '</td><td>' + esc(kc.competition) + '</td><td>' + esc(kc.businessImportance) + '</td><td>' + esc(kc.fit) + '</td><td>' + esc(kc.searchVolume) + '</td><td>' + esc(kc.targetPage) + '</td><td>' + esc((kc.competitors || []).join(', ')) + '</td><td>' + esc(kc.goal) + '</td><td>' + esc(kc.estimatedTime) + '</td><td>' + esc((kc.requiredActions || []).join(', ')) + '</td></tr>';
+          }).join('') + '</table>');
+      }
     }
     html += '<p class="meta">Staging · TEMP · אין Deploy לפרודקשן · אתר לקוח יושב בנפרד ממערכת דליה</p></body></html>';
     return html;
@@ -416,6 +530,10 @@
   }
 
   function approveReport(model) {
+    if (window.StrategicBriefing && !StrategicBriefing.isReady()) {
+      if (typeof showToast === 'function') showToast('⚠️ יש לאשר שאלון אסטרטגי לפני דוח Pre-Build');
+      return { ok: false, reason: 'briefing_not_ready' };
+    }
     if (window.MaterialsReadinessGate && !MaterialsReadinessGate.isReady()) {
       if (typeof showToast === 'function') showToast('⚠️ יש לאשר שער חומרים לפני דוח Pre-Build');
       return { ok: false, reason: 'materials_not_ready' };
@@ -425,6 +543,10 @@
       return { ok: false, reason: 'seo_not_approved' };
     }
     model = model || buildPreBuildReportModel();
+    if (!isReadinessAcceptable(model.readinessScores)) {
+      if (typeof showToast === 'function') showToast('⚠️ ציון מוכנות נמוך — סמן/י אישור override או השלימ/י מידע');
+      return { ok: false, reason: 'readiness_low' };
+    }
     try {
       localStorage.setItem(REPORT_KEY, JSON.stringify(model));
       localStorage.setItem(APPROVAL_KEY, 'true');
@@ -501,30 +623,41 @@
   function renderInlinePanel(container) {
     if (!container) return;
     var model = buildPreBuildReportModel();
+    var briefingOk = !window.StrategicBriefing || StrategicBriefing.isReady();
     var materialsOk = !window.MaterialsReadinessGate || MaterialsReadinessGate.isReady();
     var seoOk = !window.SeoStrategy || SeoStrategy.isApproved();
-    if (!materialsOk || !seoOk) {
+    if (!briefingOk || !materialsOk || !seoOk) {
+      var msg = !briefingOk ? 'יש להשלים ולאשר שאלון אסטרטגי לפני דוח Pre-Build' : !materialsOk ? 'יש להשלים שער חומרים לפני דוח Pre-Build' : 'יש לאשר אסטרטגיית SEO לפני דוח Pre-Build';
       container.innerHTML = '<div class="card" style="margin-top:12px;"><div class="ph-t">📋 דוח עבודה מלא לפני בניית אתר</div>' +
-        '<div class="alt alt-warn">' + (!materialsOk ? 'יש להשלים שער חומרים לפני דוח Pre-Build' : 'יש לאשר אסטרטגיית SEO לפני דוח Pre-Build') + '</div></div>';
+        '<div class="alt alt-warn">' + msg + '</div></div>';
       return;
     }
     var approved = isApproved();
+    var rs = model.readinessScores || {};
+    var readinessOk = isReadinessAcceptable(rs);
     container.innerHTML =
       '<div class="card" style="margin-top:12px;">' +
-      '<div class="ph-t">📋 דוח עבודה מלא לפני בניית אתר (כולל SEO)</div>' +
-      '<div class="s">20 סעיפים · הורדה למחשב · אישור חובה לפני 🌐 צור אתר AI</div>' +
+      '<div class="ph-t">📋 דוח עבודה מלא לפני בניית אתר (כולל SEO + מוכנות)</div>' +
+      '<div class="s">20+ סעיפים · הורדה למחשב · אישור חובה לפני 🌐 צור אתר AI</div>' +
+      '<div id="pbr-readiness" style="font-size:11px;color:var(--w80);line-height:1.7;margin-top:8px;padding:8px;background:var(--bg4);border-radius:6px;"></div>' +
       '<div id="pbr-summary" style="font-size:12px;color:var(--w80);line-height:1.8;margin-top:10px;"></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">' +
       '<button type="button" class="btn btn-p" id="pbr-download">⬇️ הורד דוח (HTML + JSON)</button>' +
       '<button type="button" class="btn btn-p" id="pbr-preview">👁️ תצוגה מקדימה</button>' +
       '<button type="button" class="btn btn-p" id="pbr-blueprint">📐 הורד Blueprint</button>' +
       '<button type="button" class="btn btn-g" id="pbr-pdf">🖨️ PDF (הדפסה)</button>' +
+      (!readinessOk ? '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--yel);"><input type="checkbox" id="pbr-override-check" ' + (isReadinessOverride() ? 'checked' : '') + ' /> אני מאשר/ת המשך למרות ציון מוכנות נמוך</label>' : '') +
       '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--w80);"><input type="checkbox" id="pbr-approve-check" ' + (approved ? 'checked' : '') + ' /> אני מאשר/ת את הדוח לבניית אתר חדש</label>' +
       '<button type="button" class="btn btn-go" id="pbr-approve-btn" ' + (approved ? 'disabled' : '') + '>✅ אשר דוח והפעל בנייה</button>' +
       '</div>' +
       '<div id="pbr-status" class="alt ' + (approved ? 'alt-ok' : 'alt-warn') + '" style="margin-top:10px;">' +
-      (approved ? '✅ הדוח מאושר — ניתן לפתוח Website Builder' : '⚠️ יש להוריד, לעבור על הדוח ולאשר לפני בניית אתר') +
+      (approved ? '✅ הדוח מאושר — ניתן לפתוח Website Builder' : (readinessOk ? '⚠️ יש להוריד, לעבור על הדוח ולאשר לפני בניית אתר' : '⚠️ ציון מוכנות נמוך — השלימ/י מידע או סמן/י override')) +
       '</div></div>';
+
+    var rd = container.querySelector('#pbr-readiness');
+    if (rd) {
+      rd.innerHTML = 'מידע עסקי: <strong>' + (rs.businessInfo || 0) + '%</strong> · תוכנה: <strong>' + (rs.softwareApp || 0) + '%</strong> · SEO: <strong>' + (rs.seo || 0) + '%</strong> · מתחרים: <strong>' + (rs.competitors || 0) + '%</strong> · קהל: <strong>' + (rs.audience || 0) + '%</strong> · פלטפורמות: <strong>' + (rs.platforms || 0) + '%</strong> · חומרים: <strong>' + (rs.marketingMaterials || 0) + '%</strong> · מוכנות build: <strong>' + (rs.siteBuildReady || 0) + '%</strong> · <strong>כללי: ' + (rs.overall || 0) + '%</strong>';
+    }
 
     var sum = container.querySelector('#pbr-summary');
     if (sum) {
@@ -565,13 +698,22 @@
     });
 
     var chk = container.querySelector('#pbr-approve-check');
+    var overrideChk = container.querySelector('#pbr-override-check');
+    if (overrideChk) overrideChk.addEventListener('change', function () {
+      setReadinessOverride(overrideChk.checked);
+      renderInlinePanel(container);
+    });
     var ab = container.querySelector('#pbr-approve-btn');
     if (ab) ab.addEventListener('click', function () {
       if (chk && !chk.checked) {
         if (typeof showToast === 'function') showToast('⚠️ סמן/י אישור דוח');
         return;
       }
-      approveReport(model);
+      var res = approveReport(model);
+      if (!res.ok) {
+        if (typeof showToast === 'function') showToast('⚠️ ' + (res.reason === 'readiness_low' ? 'ציון מוכנות נמוך — סמן override' : 'יש להשלים שלבים קודמים'));
+        return;
+      }
       if (typeof showToast === 'function') showToast('✅ הדוח מאושר — ניתן לפתוח Website Builder');
       renderInlinePanel(container);
       updateBuildButtonsGate();
@@ -579,17 +721,19 @@
   }
 
   function allGatesReady() {
+    var briefingOk = !window.StrategicBriefing || StrategicBriefing.isReady();
     var materialsOk = !window.MaterialsReadinessGate || MaterialsReadinessGate.isReady();
     var seoOk = !window.SeoStrategy || SeoStrategy.isApproved();
-    return materialsOk && seoOk && isApproved();
+    return briefingOk && materialsOk && seoOk && isApproved();
   }
 
   function updateBuildButtonsGate() {
     var ready = allGatesReady();
+    var briefingOk = !window.StrategicBriefing || StrategicBriefing.isReady();
     var materialsOk = !window.MaterialsReadinessGate || MaterialsReadinessGate.isReady();
     var seoOk = !window.SeoStrategy || SeoStrategy.isApproved();
     var reportOk = isApproved();
-    var hint = !materialsOk ? 'יש לאשר שער חומרים' : !seoOk ? 'יש לאשר אסטרטגיית SEO' : !reportOk ? 'יש לאשר דוח Pre-Build' : '';
+    var hint = !briefingOk ? 'יש לאשר שאלון אסטרטגי' : !materialsOk ? 'יש לאשר שער חומרים' : !seoOk ? 'יש לאשר אסטרטגיית SEO' : !reportOk ? 'יש לאשר דוח Pre-Build' : '';
     document.querySelectorAll('[data-pbr-gated="true"]').forEach(function (btn) {
       btn.disabled = !ready;
       btn.title = ready ? '' : hint;
@@ -604,6 +748,7 @@
   }
 
   function assertBuildGate() {
+    if (window.StrategicBriefing && !StrategicBriefing.assertGate()) return false;
     if (window.MaterialsReadinessGate && !MaterialsReadinessGate.assertGate()) return false;
     if (window.SeoStrategy && !SeoStrategy.assertGate()) return false;
     if (!isApproved()) {
@@ -624,6 +769,9 @@
     isApproved: isApproved,
     syncReportToPlatform: syncReportToPlatform,
     syncPreviewToPlatform: syncPreviewToPlatform,
+    computeReadinessScores: computeReadinessScores,
+    isReadinessAcceptable: isReadinessAcceptable,
+    setReadinessOverride: setReadinessOverride,
     mountReportPanel: mountReportPanel,
     updateBuildButtonsGate: updateBuildButtonsGate,
     allGatesReady: allGatesReady,

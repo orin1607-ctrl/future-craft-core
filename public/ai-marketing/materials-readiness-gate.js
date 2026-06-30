@@ -63,6 +63,7 @@
   }
 
   function isReady() {
+    if (window.StrategicBriefing && !StrategicBriefing.isReady()) return false;
     var state = get();
     if (!isChecklistComplete(state)) return false;
     if (state.hasAdditionalInfo === true && !state.materialsConfirmed) return false;
@@ -76,6 +77,9 @@
 
   function confirmMaterials(state) {
     state = state || get();
+    if (window.StrategicBriefing && !StrategicBriefing.isReady()) {
+      return { ok: false, reason: 'briefing_not_ready' };
+    }
     if (!isChecklistComplete(state)) return { ok: false, reason: 'checklist_incomplete' };
     if (state.hasAdditionalInfo === null) return { ok: false, reason: 'additional_info_unanswered' };
     state.materialsConfirmed = true;
@@ -104,6 +108,7 @@
   }
 
   function assertGate() {
+    if (window.StrategicBriefing && !StrategicBriefing.assertGate()) return false;
     if (!isReady()) {
       if (typeof showToast === 'function') showToast('⚠️ יש להשלים רשימת חומרים ולאשר לפני המשך');
       return false;
@@ -113,6 +118,12 @@
 
   function renderInlinePanel(container) {
     if (!container) return;
+    var briefingReady = !window.StrategicBriefing || StrategicBriefing.isReady();
+    if (!briefingReady) {
+      container.innerHTML = '<div class="card" style="margin-top:12px;"><div class="ph-t">📦 שער חומרים — חובה לפני בניית אתר</div>' +
+        '<div class="alt alt-warn">יש להשלים ולאשר את השאלון האסטרטגי לפני שער חומרים</div></div>';
+      return;
+    }
     var state = get();
     var complete = isChecklistComplete(state);
     var ready = isReady();
@@ -132,7 +143,7 @@
       '<div class="ph-t">📦 שער חומרים — חובה לפני בניית אתר</div>' +
       '<div class="s">יש לאשר את כל הסעיפים לפני מחקר SEO ובניית אתר</div>' +
       '<div id="mat-checklist" style="margin-top:10px;">' + checklistHtml + '</div>' +
-      '<div style="margin-top:12px;font-size:12px;color:var(--w80);font-weight:600;">האם יש מידע נוסף שעדיין לא הועלה למערכת?</div>' +
+      '<div style="margin-top:12px;font-size:12px;color:var(--w80);font-weight:600;">האם יש עוד חומר שלא הועלה?</div>' +
       '<div style="display:flex;gap:12px;margin-top:6px;">' +
       '<label style="font-size:12px;color:var(--w80);"><input type="radio" name="mat-additional" value="yes" ' + (state.hasAdditionalInfo === true ? 'checked' : '') + ' /> כן</label>' +
       '<label style="font-size:12px;color:var(--w80);"><input type="radio" name="mat-additional" value="no" ' + (state.hasAdditionalInfo === false ? 'checked' : '') + ' /> לא</label>' +
@@ -151,7 +162,7 @@
       '<div style="margin-top:10px;">' +
       '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--w80);">' +
       '<input type="checkbox" id="mat-confirm-all" ' + (state.materialsConfirmed ? 'checked disabled' : '') + ' /> ' +
-      'אני מאשר/ת שכל החומרים הנדרשים הועלו/תועדו במערכת' +
+      'אני מאשר שאין כרגע מידע נוסף להעלות.' +
       '</label></div>' +
       '<div style="margin-top:10px;">' +
       '<button type="button" class="btn btn-go" id="mat-confirm-btn" ' + (ready ? 'disabled' : '') + '>✅ אשר חומרים והמשך ל-SEO</button>' +

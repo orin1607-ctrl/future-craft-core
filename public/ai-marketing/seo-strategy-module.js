@@ -194,6 +194,7 @@
   function buildStrategyModel() {
     var ctx = parseLs('coco-business-context-v1') || {};
     var biz = parseLs('dalia_biz') || {};
+    var briefing = (window.StrategicBriefing && StrategicBriefing.get && StrategicBriefing.get()) || parseLs('coco-strategic-briefing-v1') || {};
     var competitors = getCompetitors();
     var compAnalysis = (competitors.list || []).map(analyzeCompetitor);
 
@@ -201,6 +202,11 @@
     var serviceKw = SERVICE_KEYWORD_SEEDS.slice();
     var articleKw = ARTICLE_KEYWORD_SEEDS.slice();
 
+    if (window.StrategicBriefing && StrategicBriefing.allKeywords) {
+      StrategicBriefing.allKeywords(briefing).forEach(function (k) {
+        if (k && coreKw.indexOf(k) < 0) coreKw.unshift(k);
+      });
+    }
     if (ctx.strategy && ctx.strategy.focusKeywords) {
       ctx.strategy.focusKeywords.forEach(function (k) {
         var s = typeof k === 'string' ? k : (k.query || k.keyword);
@@ -248,6 +254,7 @@
       },
       keywords: keywords,
       keywordGoals: keywordGoals,
+      keywordChapters: buildKeywordChapter(keywords, compAnalysis),
       roadmap: roadmap,
       pageSeoMapping: pageMapping,
       agentContributions: agentData,
@@ -268,7 +275,33 @@
     try { return localStorage.getItem(APPROVAL_KEY) === 'true'; } catch (e) { return false; }
   }
 
+  function buildKeywordChapter(keywords, competitors) {
+    var GOAL_RANKS = ['Top 10', 'Top 5', 'Top 3', '#1'];
+    return keywords.slice(0, 15).map(function (kw, i) {
+      var entry = typeof kw === 'string' ? { keyword: kw } : kw;
+      var comp = entry.competitionLevel || COMPETITION_LEVELS[i % COMPETITION_LEVELS.length];
+      var months = comp === 'נמוכה' ? '2-4' : comp === 'בינונית' ? '4-8' : comp === 'גבוהה' ? '8-12' : '12-18';
+      return {
+        keyword: entry.keyword,
+        competition: comp,
+        businessImportance: entry.tier === 'core' ? 'גבוהה' : entry.tier === 'service' ? 'בינונית' : 'נמוכה',
+        fit: entry.tier === 'core' ? 'מצוין — FleetOS / ניהול צי' : 'טוב',
+        searchVolume: MISSING,
+        targetPage: entry.targetPage || MISSING,
+        competitors: (competitors || []).slice(0, 3).map(function (c) { return c.name || c; }),
+        goal: GOAL_RANKS[Math.min(i % GOAL_RANKS.length, GOAL_RANKS.length - 1)],
+        estimatedTime: months + ' חודשים',
+        requiredActions: entry.tier === 'core'
+          ? ['אופטימיזציית Title/H1', 'תוכן FleetOS', 'Schema', 'קישורים פנימיים']
+          : ['תוכן ייעודי', 'FAQ', 'קישורים פנימיים'],
+      };
+    });
+  }
+
   function approveStrategy(model) {
+    if (window.StrategicBriefing && !StrategicBriefing.isReady()) {
+      return { ok: false, reason: 'briefing_not_ready' };
+    }
     if (window.MaterialsReadinessGate && !MaterialsReadinessGate.isReady()) {
       return { ok: false, reason: 'materials_not_ready' };
     }
@@ -329,6 +362,7 @@
   }
 
   function assertGate() {
+    if (window.StrategicBriefing && !StrategicBriefing.assertGate()) return false;
     if (window.MaterialsReadinessGate && !MaterialsReadinessGate.assertGate()) return false;
     if (!isApproved()) {
       if (typeof showToast === 'function') showToast('⚠️ יש לאשר אסטרטגיית SEO לפני המשך');
@@ -349,6 +383,11 @@
 
   function renderInlinePanel(container) {
     if (!container) return;
+    var briefingReady = !window.StrategicBriefing || StrategicBriefing.isReady();
+    if (!briefingReady) {
+      container.innerHTML = '<div class="card" style="margin-top:12px;"><div class="ph-t">🔎 אסטרטגיית SEO</div><div class="alt alt-warn">יש להשלים ולאשר את השאלון האסטרטגי לפני מודול SEO</div></div>';
+      return;
+    }
     var materialsReady = !window.MaterialsReadinessGate || MaterialsReadinessGate.isReady();
     if (!materialsReady) {
       container.innerHTML = '<div class="card" style="margin-top:12px;"><div class="ph-t">🔎 אסטרטגיית SEO</div><div class="alt alt-warn">יש להשלים שער חומרים לפני מודול SEO</div></div>';
@@ -443,6 +482,7 @@
     MISSING: MISSING,
     CORE_KEYWORD_SEEDS: CORE_KEYWORD_SEEDS,
     SERVICE_KEYWORD_SEEDS: SERVICE_KEYWORD_SEEDS,
+    buildKeywordChapter: buildKeywordChapter,
     buildStrategyModel: buildStrategyModel,
     get: get,
     getCompetitors: getCompetitors,

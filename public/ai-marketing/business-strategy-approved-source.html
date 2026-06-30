@@ -465,7 +465,8 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
     </div>
  
     <div id="exported" style="display:none;margin-top:14px;">
-      <div class="alt alt-ok">✅ הנתונים הועברו לעוזרים, מטרות ופעולות. לפני בניית אתר — אשרו חומרים, SEO ודוח עבודה.</div>
+      <div class="alt alt-ok">✅ הנתונים הועברו לעוזרים, מטרות ופעולות. לפני בניית אתר — אשרו שאלון אסטרטגי, חומרים, SEO ודוח עבודה.</div>
+      <div id="strategic-briefing-root"></div>
       <div id="materials-gate-root"></div>
       <div id="seo-strategy-root"></div>
       <div id="pre-build-report-root"></div>
@@ -1004,6 +1005,9 @@ function exportData(){
   if (!res.ok) { showToast('⚠️ שגיאה בהעברה'); return; }
   document.getElementById('exported').style.display='block';
   document.getElementById('btn-next').style.display='none';
+  if(window.StrategicBriefing && StrategicBriefing.mountPanel){
+    StrategicBriefing.mountPanel('strategic-briefing-root');
+  }
   if(window.MaterialsReadinessGate && MaterialsReadinessGate.mountPanel){
     MaterialsReadinessGate.mountPanel('materials-gate-root');
   }
@@ -1020,10 +1024,11 @@ function exportData(){
   if (exportedEl && exportedEl.scrollIntoView) {
     setTimeout(function(){ exportedEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
   }
-  showToast('🚀 הועבר לעוזרים — אשרו חומרים, SEO ודוח לפני בניית אתר');
+  showToast('🚀 הועבר לעוזרים — אשרו שאלון, חומרים, SEO ודוח לפני בניית אתר');
 }
 
 function openWebsiteBuilder(){
+  if(window.StrategicBriefing && !StrategicBriefing.assertGate()) return;
   if(window.MaterialsReadinessGate && !MaterialsReadinessGate.assertGate()) return;
   if(window.SeoStrategy && !SeoStrategy.assertGate()) return;
   if(window.PreBuildWorkReport && !PreBuildWorkReport.assertBuildGate()) return;
