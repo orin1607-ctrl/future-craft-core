@@ -1,0 +1,172 @@
+{
+  "at": "2026-06-30T16:29:46.850Z",
+  "commit": "f42a4a2",
+  "company": "דליה פתרונות תפעול ותחזוקה לרכב",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=f42a4a2",
+  "checks": {
+    "desktop_boot_ready": {
+      "ok": true,
+      "detail": "modules loaded"
+    },
+    "desktop_seed_applied": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"company\":\"דליה פתרונות תפעול ותחזוקה לרכב\",\"keywordCount\":31,\"serviceCount\":21}"
+    },
+    "desktop_biz_profile": {
+      "ok": true,
+      "detail": "{\"name\":\"דליה פתרונות תפעול ותחזוקה לרכב\",\"hasServices\":true,\"notGarage\":true}"
+    },
+    "desktop_neg_gates_block": {
+      "ok": true,
+      "detail": "{\"summary\":true,\"briefing\":true,\"materials\":true,\"seo\":true,\"report\":true}"
+    },
+    "desktop_business_summary": {
+      "ok": true,
+      "detail": "{\"hasCompany\":true,\"approved\":true}"
+    },
+    "desktop_strategic_briefing": {
+      "ok": true,
+      "detail": "31"
+    },
+    "desktop_ai_consultant_briefing": {
+      "ok": true,
+      "detail": "15"
+    },
+    "desktop_materials_gate": {
+      "ok": true,
+      "detail": "ready"
+    },
+    "desktop_seo_strategy": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"keywords\":53,\"ai\":true}"
+    },
+    "desktop_prebuild_report": {
+      "ok": true,
+      "detail": "{\"approved\":true,\"hasReadiness\":true,\"ai\":true}"
+    },
+    "desktop_report_20_sections": {
+      "ok": true,
+      "detail": "{\"sections\":20,\"htmlLen\":71123}"
+    },
+    "desktop_preview": {
+      "ok": true,
+      "detail": "{\"pages\":7,\"previewUrl\":\"http://127.0.0.1:8866/client-previews/dalia-c-official/index.html\"}"
+    },
+    "desktop_google_and_advisor": {
+      "ok": true,
+      "detail": "{\"google\":7,\"advisor\":true}"
+    },
+    "desktop_post_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "desktop_post_screen-actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "desktop_post_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "desktop_site_hub_active": {
+      "ok": true,
+      "detail": "hub"
+    },
+    "desktop_console_clean": {
+      "ok": true,
+      "detail": ""
+    },
+    "desktop_scenario_complete": {
+      "ok": true,
+      "detail": "ok"
+    },
+    "iphone13_boot_ready": {
+      "ok": true,
+      "detail": "modules loaded"
+    },
+    "iphone13_seed_applied": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"company\":\"דליה פתרונות תפעול ותחזוקה לרכב\",\"keywordCount\":31,\"serviceCount\":21}"
+    },
+    "iphone13_biz_profile": {
+      "ok": true,
+      "detail": "{\"name\":\"דליה פתרונות תפעול ותחזוקה לרכב\",\"hasServices\":true,\"notGarage\":true}"
+    },
+    "iphone13_neg_gates_block": {
+      "ok": true,
+      "detail": "{\"summary\":true,\"briefing\":true,\"materials\":true,\"seo\":true,\"report\":true}"
+    },
+    "iphone13_business_summary": {
+      "ok": true,
+      "detail": "{\"hasCompany\":true,\"approved\":true}"
+    },
+    "iphone13_strategic_briefing": {
+      "ok": true,
+      "detail": "31"
+    },
+    "iphone13_ai_consultant_briefing": {
+      "ok": true,
+      "detail": "15"
+    },
+    "iphone13_materials_gate": {
+      "ok": true,
+      "detail": "ready"
+    },
+    "iphone13_seo_strategy": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"keywords\":53,\"ai\":true}"
+    },
+    "iphone13_prebuild_report": {
+      "ok": true,
+      "detail": "{\"approved\":true,\"hasReadiness\":true,\"ai\":true}"
+    },
+    "iphone13_report_20_sections": {
+      "ok": true,
+      "detail": "{\"sections\":20,\"htmlLen\":71123}"
+    },
+    "iphone13_preview": {
+      "ok": true,
+      "detail": "{\"pages\":7,\"previewUrl\":\"http://127.0.0.1:8866/client-previews/dalia-c-official/index.html\"}"
+    },
+    "iphone13_google_and_advisor": {
+      "ok": true,
+      "detail": "{\"google\":7,\"advisor\":true}"
+    },
+    "iphone13_post_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "iphone13_post_screen-actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "iphone13_post_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "iphone13_site_hub_active": {
+      "ok": true,
+      "detail": "hub"
+    },
+    "iphone13_console_clean": {
+      "ok": true,
+      "detail": ""
+    },
+    "iphone13_scenario_complete": {
+      "ok": true,
+      "detail": "ok"
+    }
+  },
+  "pass": 38,
+  "fail": 0,
+  "simulation": {
+    "fullReport": {
+      "ok": true,
+      "sections": 20,
+      "htmlLen": 71123,
+      "jsonLen": 183177,
+      "company": "דליה פתרונות תפעול ותחזוקה לרכב"
+    }
+  },
+  "ok": true
+}

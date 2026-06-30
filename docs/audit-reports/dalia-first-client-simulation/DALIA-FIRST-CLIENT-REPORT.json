@@ -1,0 +1,6125 @@
+{
+  "generatedAt": "2026-06-30T16:30:02.944Z",
+  "company": "דליה פתרונות תפעול ותחזוקה לרכב",
+  "clientId": "dalia-c-official",
+  "sectionCount": 20,
+  "sections": [
+    {
+      "title": "1. ניתוח העסק",
+      "body": {
+        "company": "דליה פתרונות תפעול ותחזוקה לרכב",
+        "positioning": "ניהול, תפעול ותחזוקת ציי רכב — לא מוסך",
+        "model": "שירות חודשי + תוכנה",
+        "audience": "עסקים עם 5 רכבים ומעלה — לא מוסך",
+        "challenges": "מעבר ממיצג מימון/אתר ישן לחזון FleetOS ותפעול צי; SEO תחרותי בתחום ניהול צי"
+      }
+    },
+    {
+      "title": "2. ניתוח השירותים",
+      "body": {
+        "services": [
+          "תוכנת FleetOS",
+          "אפליקציה לניהול צי רכב",
+          "ניהול צי רכב",
+          "תפעול צי רכב",
+          "תחזוקת רכבים",
+          "ניהול נהגים",
+          "ניהול טיפולים",
+          "ניהול תקלות",
+          "דוחות",
+          "התראות",
+          "GPS",
+          "מצלמות",
+          "חיישנים",
+          "שינוע רכבים",
+          "שירותי דרך",
+          "מוקד שירות",
+          "מעקב טיפולים",
+          "מעקב ביטוחים",
+          "מעקב טסטים",
+          "ניהול ספקים",
+          "ניהול מוסכים"
+        ],
+        "count": 21
+      }
+    },
+    {
+      "title": "3. ניתוח התוכנה",
+      "body": {
+        "product": "FleetOS",
+        "capabilities": [
+          "ניהול צי",
+          "דוחות",
+          "התראות",
+          "GPS",
+          "טלמטיקה",
+          "AI"
+        ]
+      }
+    },
+    {
+      "title": "4. ניתוח האפליקציה",
+      "body": {
+        "apps": [
+          "אפליקציית מנהל",
+          "אפליקציית נהגים"
+        ],
+        "note": "FleetOS — תוכנה + אפליקציית נהגים"
+      }
+    },
+    {
+      "title": "5. ניתוח המתחרים",
+      "body": {
+        "list": [
+          "CarData",
+          "Pointer",
+          "Ituran",
+          "Otobus",
+          "Fleet Complete",
+          "מערכות ניהול צי ישראליות",
+          "ספקי GPS לצי רכב"
+        ],
+        "research": {
+          "competitors": [
+            {
+              "name": "CarData",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "נוכחות אורגנית — מבוסס GSC",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "Pointer",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "Ituran",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "Otobus",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "Fleet Complete",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "מערכות ניהול צי ישראליות",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "ספקי GPS לצי רכב",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            }
+          ],
+          "originalNote": "ניתוח מקצועי מקורי — לא העתקת תוכן מתחרים"
+        },
+        "comparison": "חסר מידע"
+      }
+    },
+    {
+      "title": "6. מחקר מילות מפתח",
+      "body": {
+        "keywords": [
+          "תוכנה לניהול צי רכב",
+          "מערכת לניהול צי רכב",
+          "אפליקציה לניהול צי רכב",
+          "מערכת תפעול ותחזוקת רכבים",
+          "ניהול צי רכב לעסקים",
+          "תחזוקת צי רכב",
+          "ניהול רכבי חברה",
+          "מערכת לניהול רכבי חברה",
+          "אפליקציה לניהול רכבים",
+          "Fleet Management",
+          "Fleet Management Software",
+          "FleetOS",
+          "ניהול נהגים",
+          "ניהול טיפולים",
+          "ניהול תקלות",
+          "תחזוקה מונעת",
+          "מערכת לניהול מוסכים וספקים",
+          "מעקב אחר רכבים",
+          "מערכת GPS לציי רכב",
+          "איתור רכבים",
+          "שליטה מרחוק על צי רכב",
+          "מצלמות לרכב",
+          "חיישנים לרכב",
+          "מערכת התראות",
+          "ניהול ביטוחים לרכב",
+          "ניהול טסטים",
+          "ניהול מסמכי רכב",
+          "מערכת לניהול צי רכב לעסקים",
+          "פתרונות לציי רכב",
+          "תפעול רכבים לעסקים",
+          "ניהול תחזוקת רכבים"
+        ],
+        "count": 31,
+        "tiers": {
+          "core": [
+            {
+              "keyword": "ניהול תחזוקת רכבים",
+              "tier": "core",
+              "competitionLevel": "נמוכה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "תפעול רכבים לעסקים",
+              "tier": "core",
+              "competitionLevel": "בינונית",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "פתרונות לציי רכב",
+              "tier": "core",
+              "competitionLevel": "גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מערכת לניהול צי רכב לעסקים",
+              "tier": "core",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול מסמכי רכב",
+              "tier": "core",
+              "competitionLevel": "נמוכה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול טסטים",
+              "tier": "core",
+              "competitionLevel": "בינונית",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול ביטוחים לרכב",
+              "tier": "core",
+              "competitionLevel": "גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מערכת התראות",
+              "tier": "core",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "חיישנים לרכב",
+              "tier": "core",
+              "competitionLevel": "נמוכה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מצלמות לרכב",
+              "tier": "core",
+              "competitionLevel": "בינונית",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "שליטה מרחוק על צי רכב",
+              "tier": "core",
+              "competitionLevel": "גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "איתור רכבים",
+              "tier": "core",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מערכת GPS לציי רכב",
+              "tier": "core",
+              "competitionLevel": "נמוכה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מעקב אחר רכבים",
+              "tier": "core",
+              "competitionLevel": "בינונית",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מערכת לניהול מוסכים וספקים",
+              "tier": "core",
+              "competitionLevel": "גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "תחזוקה מונעת",
+              "tier": "core",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול תקלות",
+              "tier": "core",
+              "competitionLevel": "נמוכה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול טיפולים",
+              "tier": "core",
+              "competitionLevel": "בינונית",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול נהגים",
+              "tier": "core",
+              "competitionLevel": "גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "Fleet Management Software",
+              "tier": "core",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "אפליקציה לניהול רכבים",
+              "tier": "core",
+              "competitionLevel": "נמוכה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מערכת לניהול רכבי חברה",
+              "tier": "core",
+              "competitionLevel": "בינונית",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול רכבי חברה",
+              "tier": "core",
+              "competitionLevel": "גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "תחזוקת צי רכב",
+              "tier": "core",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מערכת תפעול ותחזוקת רכבים",
+              "tier": "core",
+              "competitionLevel": "נמוכה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "אפליקציה לניהול צי רכב",
+              "tier": "core",
+              "competitionLevel": "בינונית",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "תוכנה לניהול צי רכב",
+              "tier": "core",
+              "competitionLevel": "גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מערכת לניהול צי רכב",
+              "tier": "core",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "FleetOS",
+              "tier": "core",
+              "competitionLevel": "נמוכה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "Fleet Management",
+              "tier": "core",
+              "competitionLevel": "בינונית",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול צי רכב לעסקים",
+              "tier": "core",
+              "competitionLevel": "גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "תוכנת FleetOS",
+              "tier": "core",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מערכת תפעול צי",
+              "tier": "core",
+              "competitionLevel": "נמוכה",
+              "priority": "גבוה",
+              "targetPage": "תוכנת ניהול צי רכב",
+              "promote": true,
+              "promotionPhase": "חודש 1",
+              "tailType": "short",
+              "dataSource": "seed"
+            }
+          ],
+          "service": [
+            {
+              "keyword": "תחזוקת צי רכב",
+              "tier": "service",
+              "competitionLevel": "נמוכה",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול נהגים",
+              "tier": "service",
+              "competitionLevel": "בינונית",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "GPS לצי",
+              "tier": "service",
+              "competitionLevel": "גבוהה",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "טלמטיקה",
+              "tier": "service",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מעקב רכבים בזמן אמת",
+              "tier": "service",
+              "competitionLevel": "נמוכה",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "מצלמות לרכב",
+              "tier": "service",
+              "competitionLevel": "בינונית",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "חיישנים לרכב",
+              "tier": "service",
+              "competitionLevel": "גבוהה",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "CANBUS",
+              "tier": "service",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "התראות תחזוקה",
+              "tier": "service",
+              "competitionLevel": "נמוכה",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "דוחות צי רכב",
+              "tier": "service",
+              "competitionLevel": "בינונית",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול רישיונות",
+              "tier": "service",
+              "competitionLevel": "גבוהה",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ביטוח רכב",
+              "tier": "service",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "טיפולים לרכב",
+              "tier": "service",
+              "competitionLevel": "נמוכה",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "קריאות שירות",
+              "tier": "service",
+              "competitionLevel": "בינונית",
+              "priority": "בינוני",
+              "targetPage": "שירותים",
+              "promote": true,
+              "promotionPhase": "חודש 2",
+              "tailType": "short",
+              "dataSource": "seed"
+            }
+          ],
+          "article": [
+            {
+              "keyword": "איך לנהל צי רכב",
+              "tier": "article",
+              "competitionLevel": "נמוכה",
+              "priority": "נמוך",
+              "targetPage": "בלוג/מאמרים",
+              "promote": true,
+              "promotionPhase": "חודש 3-4",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "חיסכון בתחזוקת צי",
+              "tier": "article",
+              "competitionLevel": "בינונית",
+              "priority": "נמוך",
+              "targetPage": "בלוג/מאמרים",
+              "promote": true,
+              "promotionPhase": "חודש 3-4",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "בחירת תוכנת ניהול צי",
+              "tier": "article",
+              "competitionLevel": "גבוהה",
+              "priority": "נמוך",
+              "targetPage": "בלוג/מאמרים",
+              "promote": true,
+              "promotionPhase": "חודש 3-4",
+              "tailType": "long",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "יתרונות טלמטיקה לעסק",
+              "tier": "article",
+              "competitionLevel": "מאוד גבוהה",
+              "priority": "נמוך",
+              "targetPage": "בלוג/מאמרים",
+              "promote": false,
+              "promotionPhase": "חודש 3-4",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "ניהול נהגים מרחוק",
+              "tier": "article",
+              "competitionLevel": "נמוכה",
+              "priority": "נמוך",
+              "targetPage": "בלוג/מאמרים",
+              "promote": false,
+              "promotionPhase": "חודש 3-4",
+              "tailType": "short",
+              "dataSource": "seed"
+            },
+            {
+              "keyword": "AI בניהול צי רכב",
+              "tier": "article",
+              "competitionLevel": "בינונית",
+              "priority": "נמוך",
+              "targetPage": "בלוג/מאמרים",
+              "promote": false,
+              "promotionPhase": "חודש 3-4",
+              "tailType": "long",
+              "dataSource": "seed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "title": "7. מיפוי מילת מפתח → עמוד",
+      "body": {
+        "mapping": [
+          {
+            "keyword": "ניהול תחזוקת רכבים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "תפעול רכבים לעסקים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "פתרונות לציי רכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "מערכת לניהול צי רכב לעסקים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "ניהול מסמכי רכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "ניהול טסטים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "ניהול ביטוחים לרכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "מערכת התראות",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "חיישנים לרכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "מצלמות לרכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "שליטה מרחוק על צי רכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "איתור רכבים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "מערכת GPS לציי רכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "מעקב אחר רכבים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "מערכת לניהול מוסכים וספקים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "תחזוקה מונעת",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "ניהול תקלות",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "ניהול טיפולים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "ניהול נהגים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "Fleet Management Software",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "אפליקציה לניהול רכבים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "מערכת לניהול רכבי חברה",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "ניהול רכבי חברה",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "תחזוקת צי רכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "מערכת תפעול ותחזוקת רכבים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "אפליקציה לניהול צי רכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "תוכנה לניהול צי רכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "מערכת לניהול צי רכב",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "FleetOS",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "Fleet Management",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "ניהול צי רכב לעסקים",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "תוכנת FleetOS",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "מערכת תפעול צי",
+            "page": "תוכנת ניהול צי רכב"
+          },
+          {
+            "keyword": "תחזוקת צי רכב",
+            "page": "שירותים"
+          },
+          {
+            "keyword": "ניהול נהגים",
+            "page": "שירותים"
+          },
+          {
+            "keyword": "GPS לצי",
+            "page": "שירותים"
+          },
+          {
+            "keyword": "טלמטיקה",
+            "page": "שירותים"
+          },
+          {
+            "keyword": "מעקב רכבים בזמן אמת",
+            "page": "שירותים"
+          },
+          {
+            "keyword": "מצלמות לרכב",
+            "page": "שירותים"
+          },
+          {
+            "keyword": "חיישנים לרכב",
+            "page": "שירותים"
+          }
+        ]
+      }
+    },
+    {
+      "title": "8. עמודים שייבנו",
+      "body": {
+        "pages": [
+          {
+            "title": "בית",
+            "path": "index",
+            "purpose": "דף נחיתה ראשי — הצגת הערך, שירותים מרכזיים והמרה."
+          },
+          {
+            "title": "תוכנת ניהול צי רכב לעסקים",
+            "path": "fleet-management-software",
+            "purpose": "עמוד מרכזי לתוכנת FleetOS — ניהול תפעול, תחזוקה, נהגים, תקלות, דוחות והתראות לעסקים עם מספר רכבים."
+          },
+          {
+            "title": "שירותים",
+            "path": "services",
+            "purpose": "פירוט שירותי התפעול, תחזוקה, GPS, מימון וליסינג."
+          },
+          {
+            "title": "אודות",
+            "path": "about",
+            "purpose": "אמון, ניסיון, היסטוריה ויתרון תחרותי."
+          },
+          {
+            "title": "צור קשר",
+            "path": "contact",
+            "purpose": "המרה לליד — טופס, טלפון, WhatsApp."
+          },
+          {
+            "title": "פתרונות SEO",
+            "path": "seo-solutions",
+            "purpose": "עמודי תמיכה למילות מפתח ארוכות זנב."
+          }
+        ],
+        "count": 6
+      }
+    },
+    {
+      "title": "9. עמודים מומלצים להוספה",
+      "body": {
+        "suggestions": {
+          "existing": [
+            "FleetOS / תוכנת ניהול צי",
+            "תפעול צי רכב",
+            "תחזוקה וטיפולים",
+            "GPS וטלמטיקה",
+            "מצלמות וחיישנים",
+            "ניהול נהגים",
+            "דוחות והתראות",
+            "AI בצי",
+            "תוכנת FleetOS",
+            "אפליקציה לניהול צי רכב",
+            "ניהול צי רכב",
+            "תפעול צי רכב",
+            "תחזוקת רכבים",
+            "ניהול נהגים",
+            "ניהול טיפולים",
+            "ניהול תקלות",
+            "דוחות",
+            "התראות",
+            "GPS",
+            "מצלמות",
+            "חיישנים",
+            "שינוע רכבים",
+            "שירותי דרך",
+            "מוקד שירות",
+            "מעקב טיפולים",
+            "מעקב ביטוחים",
+            "מעקב טסטים",
+            "ניהול ספקים",
+            "ניהול מוסכים"
+          ],
+          "suggested": [
+            {
+              "name": "חבילת הדגמה + POC",
+              "type": "package",
+              "priority": "גבוה"
+            },
+            {
+              "name": "תחזוקה מונעת לצי",
+              "type": "service",
+              "priority": "בינוני"
+            },
+            {
+              "name": "ייעוץ דיגיטציה לצי",
+              "type": "consulting",
+              "priority": "בינוני"
+            },
+            {
+              "name": "מחירון / הצעת מחיר אונליין",
+              "type": "page",
+              "priority": "בינוני"
+            },
+            {
+              "name": "בלוג מומחיות — ניהול צי",
+              "type": "content",
+              "priority": "בינוני"
+            },
+            {
+              "name": "מקרי בוחן לקוחות",
+              "type": "content",
+              "priority": "בינוני"
+            }
+          ],
+          "originalNote": "רעיונות שירות/עמוד מקוריים — לא העתקה"
+        },
+        "futurePages": [
+          "בלוג",
+          "מקרי בוחן",
+          "שאלות נוכחות",
+          "מחירון"
+        ]
+      }
+    },
+    {
+      "title": "10. אסטרטגיית SEO",
+      "body": {
+        "strategyId": "SEO-1782837002202",
+        "keywordCount": 53,
+        "competitors": [
+          "CarData",
+          "Pointer",
+          "Ituran",
+          "Otobus",
+          "Fleet Complete",
+          "מערכות ניהול צי ישראליות",
+          "ספקי GPS לצי רכב"
+        ],
+        "roadmap": [
+          {
+            "month": 1,
+            "label": "חודש 1",
+            "actions": [
+              "מיפוי מילות מפתח Core",
+              "אופטימיזציית עמוד FleetOS",
+              "תיקוני טכני בסיסיים",
+              "חיבור GSC + Analytics"
+            ]
+          },
+          {
+            "month": 2,
+            "label": "חודש 2",
+            "actions": [
+              "עמודי שירות (GPS, תחזוקה, טלמטיקה)",
+              "Schema markup",
+              "קישורים פנימיים",
+              "תוכן FAQ"
+            ]
+          },
+          {
+            "month": 3,
+            "label": "חודש 3",
+            "actions": [
+              "מאמרי בלוג לתנועה",
+              "שיפור Core Web Vitals",
+              "GBP אופטימיזציה",
+              "מעקב מתחרים"
+            ]
+          },
+          {
+            "month": 4,
+            "label": "חודש 4",
+            "actions": [
+              "הרחבת מילות Long-tail",
+              "A/B לדפי המרה",
+              "דוח ביצועים מלא",
+              "תכנון קמפיינים ממומנים"
+            ]
+          }
+        ],
+        "pageSeoMapping": [],
+        "keywordGoals": [
+          {
+            "keyword": "ניהול תחזוקת רכבים",
+            "goal": "Top 10",
+            "estimatedMonths": "2-4",
+            "competitionLevel": "נמוכה"
+          },
+          {
+            "keyword": "תפעול רכבים לעסקים",
+            "goal": "Top 5",
+            "estimatedMonths": "4-8",
+            "competitionLevel": "בינונית"
+          },
+          {
+            "keyword": "פתרונות לציי רכב",
+            "goal": "Top 3",
+            "estimatedMonths": "8-12",
+            "competitionLevel": "גבוהה"
+          },
+          {
+            "keyword": "מערכת לניהול צי רכב לעסקים",
+            "goal": "#1",
+            "estimatedMonths": "12-18",
+            "competitionLevel": "מאוד גבוהה"
+          },
+          {
+            "keyword": "ניהול מסמכי רכב",
+            "goal": "Top 10",
+            "estimatedMonths": "2-4",
+            "competitionLevel": "נמוכה"
+          },
+          {
+            "keyword": "ניהול טסטים",
+            "goal": "Top 5",
+            "estimatedMonths": "4-8",
+            "competitionLevel": "בינונית"
+          },
+          {
+            "keyword": "ניהול ביטוחים לרכב",
+            "goal": "Top 3",
+            "estimatedMonths": "8-12",
+            "competitionLevel": "גבוהה"
+          },
+          {
+            "keyword": "מערכת התראות",
+            "goal": "#1",
+            "estimatedMonths": "12-18",
+            "competitionLevel": "מאוד גבוהה"
+          },
+          {
+            "keyword": "חיישנים לרכב",
+            "goal": "Top 10",
+            "estimatedMonths": "2-4",
+            "competitionLevel": "נמוכה"
+          },
+          {
+            "keyword": "מצלמות לרכב",
+            "goal": "Top 5",
+            "estimatedMonths": "4-8",
+            "competitionLevel": "בינונית"
+          },
+          {
+            "keyword": "שליטה מרחוק על צי רכב",
+            "goal": "Top 3",
+            "estimatedMonths": "8-12",
+            "competitionLevel": "גבוהה"
+          },
+          {
+            "keyword": "איתור רכבים",
+            "goal": "#1",
+            "estimatedMonths": "12-18",
+            "competitionLevel": "מאוד גבוהה"
+          }
+        ],
+        "keywordChapters": [
+          {
+            "keyword": "ניהול תחזוקת רכבים",
+            "competition": "נמוכה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 10",
+            "estimatedTime": "2-4 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "תפעול רכבים לעסקים",
+            "competition": "בינונית",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 5",
+            "estimatedTime": "4-8 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "פתרונות לציי רכב",
+            "competition": "גבוהה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 3",
+            "estimatedTime": "8-12 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "מערכת לניהול צי רכב לעסקים",
+            "competition": "מאוד גבוהה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "#1",
+            "estimatedTime": "12-18 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "ניהול מסמכי רכב",
+            "competition": "נמוכה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 10",
+            "estimatedTime": "2-4 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "ניהול טסטים",
+            "competition": "בינונית",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 5",
+            "estimatedTime": "4-8 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "ניהול ביטוחים לרכב",
+            "competition": "גבוהה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 3",
+            "estimatedTime": "8-12 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "מערכת התראות",
+            "competition": "מאוד גבוהה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "#1",
+            "estimatedTime": "12-18 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "חיישנים לרכב",
+            "competition": "נמוכה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 10",
+            "estimatedTime": "2-4 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "מצלמות לרכב",
+            "competition": "בינונית",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 5",
+            "estimatedTime": "4-8 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "שליטה מרחוק על צי רכב",
+            "competition": "גבוהה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 3",
+            "estimatedTime": "8-12 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "איתור רכבים",
+            "competition": "מאוד גבוהה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "#1",
+            "estimatedTime": "12-18 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "מערכת GPS לציי רכב",
+            "competition": "נמוכה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 10",
+            "estimatedTime": "2-4 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "מעקב אחר רכבים",
+            "competition": "בינונית",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 5",
+            "estimatedTime": "4-8 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          },
+          {
+            "keyword": "מערכת לניהול מוסכים וספקים",
+            "competition": "גבוהה",
+            "businessImportance": "גבוהה",
+            "fit": "מצוין — FleetOS / ניהול צי",
+            "searchVolume": "חסר מידע",
+            "targetPage": "תוכנת ניהול צי רכב",
+            "competitors": [
+              "CarData",
+              "Pointer",
+              "Ituran"
+            ],
+            "goal": "Top 3",
+            "estimatedTime": "8-12 חודשים",
+            "requiredActions": [
+              "אופטימיזציית Title/H1",
+              "תוכן FleetOS",
+              "Schema",
+              "קישורים פנימיים"
+            ]
+          }
+        ],
+        "missingNote": "חסר מידע — נדרש קלט משתמש לשדות: gsc.clicks, gsc.impressions, analytics.sessions, analytics.conversions, analytics.bounceRate, gbp.views, gbp.reviews, gbp.rating",
+        "agentContributions": {
+          "gsc": {
+            "keywords": [
+              "seat tarraco",
+              "skoda anyak",
+              "האם יש חבילות צי רכבים לעסקים",
+              "הילה מוטורס",
+              "טראקו",
+              "יונדאי טוסון תא מטען",
+              "לאדה בישראל",
+              "מה הדרכים לנהל צי רכב בעסק בלי לקנות רכבים?",
+              "ניהול צי",
+              "ניהול צי טרקטורים"
+            ],
+            "clicks": "חסר מידע",
+            "impressions": "חסר מידע"
+          },
+          "analytics": {
+            "sessions": "חסר מידע",
+            "conversions": "חסר מידע",
+            "bounceRate": "חסר מידע"
+          },
+          "gbp": {
+            "views": "חסר מידע",
+            "reviews": "חסר מידע",
+            "rating": "חסר מידע"
+          },
+          "ads": {
+            "campaigns": "חסר מידע",
+            "spend": "חסר מידע",
+            "roas": "חסר מידע"
+          },
+          "pageSpeed": {
+            "score": "חסר מידע",
+            "lcp": "חסר מידע",
+            "cls": "חסר מידע"
+          },
+          "seo": {
+            "indexedPages": "חסר מידע",
+            "errors": "חסר מידע"
+          },
+          "ai": {
+            "recommendations": "טפל במשימות בעדיפות גבוהה."
+          }
+        }
+      }
+    },
+    {
+      "title": "11. אסטרטגיית שיווק",
+      "body": {
+        "strategy": "מטרה: מכירת תוכנה · בנייה: אתר",
+        "goals": [
+          "מכירת תוכנה",
+          "אתר",
+          "FleetOS / ניהול צי"
+        ],
+        "platforms": [
+          "אתר",
+          "GSC",
+          "GA",
+          "GBP",
+          "Ads",
+          "LinkedIn",
+          "YouTube",
+          "WhatsApp",
+          "FleetOS",
+          "אפליקציה"
+        ],
+        "whyChosen": [
+          "אתר — תומך ב-מכירת תוכנה",
+          "GSC — תומך ב-מכירת תוכנה",
+          "GA — תומך ב-מכירת תוכנה",
+          "GBP — תומך ב-מכירת תוכנה",
+          "Ads — תומך ב-מכירת תוכנה",
+          "LinkedIn — תומך ב-מכירת תוכנה",
+          "YouTube — תומך ב-מכירת תוכנה",
+          "WhatsApp — תומך ב-מכירת תוכנה",
+          "FleetOS — תומך ב-מכירת תוכנה",
+          "אפליקציה — תומך ב-מכירת תוכנה"
+        ],
+        "connected": [],
+        "missing": [
+          "אתר",
+          "GSC",
+          "GA",
+          "GBP",
+          "Ads",
+          "LinkedIn",
+          "YouTube",
+          "WhatsApp",
+          "FleetOS",
+          "אפליקציה"
+        ],
+        "phase1": [
+          {
+            "name": "אתר",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          },
+          {
+            "name": "GSC",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "תנועה אורגנית",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          },
+          {
+            "name": "GA",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          }
+        ],
+        "phase2": [
+          {
+            "name": "GBP",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          },
+          {
+            "name": "Ads",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          },
+          {
+            "name": "LinkedIn",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          }
+        ],
+        "future": [
+          {
+            "name": "YouTube",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "WhatsApp",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "FleetOS",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "מוצר מרכזי — תוכנה ואפליקציה",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "אפליקציה",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          }
+        ],
+        "priorityOrder": [
+          "אתר",
+          "GSC",
+          "GA",
+          "GBP",
+          "Ads",
+          "LinkedIn",
+          "YouTube",
+          "WhatsApp",
+          "FleetOS",
+          "אפליקציה"
+        ],
+        "platformDetails": [
+          {
+            "name": "אתר",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          },
+          {
+            "name": "GSC",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "תנועה אורגנית",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          },
+          {
+            "name": "GA",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          },
+          {
+            "name": "GBP",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          },
+          {
+            "name": "Ads",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          },
+          {
+            "name": "LinkedIn",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          },
+          {
+            "name": "YouTube",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "WhatsApp",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "FleetOS",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "מוצר מרכזי — תוכנה ואפליקציה",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "אפליקציה",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          }
+        ]
+      }
+    },
+    {
+      "title": "12. קהל יעד",
+      "body": {
+        "primary": "עסקים עם 5 רכבים ומעלה — לא מוסך",
+        "segments": [
+          "עסקים עם צי רכב (5 רכבים ומעלה)",
+          "חברות הובלה",
+          "חברות שליחויות",
+          "חברות ליסינג",
+          "חברות בנייה",
+          "חברות שירות",
+          "חברות השכרה",
+          "חברות הפצה"
+        ],
+        "aiIdeas": {
+          "existing": [
+            "עסקים עם צי רכב",
+            "חברות ליסינג",
+            "מפעילי הובלות",
+            "קבלנים",
+            "ארגונים גדולים",
+            "עסקים עם 5 רכבים ומעלה — לא מוסך"
+          ],
+          "suggested": [
+            {
+              "segment": "חברות הובלה ותובלה",
+              "why": "צי גדול, צורך בתפעול ותחזוקה",
+              "fit": "גבוה"
+            },
+            {
+              "segment": "חברות משלוחים ולוגיסטיקה",
+              "why": "מעקב GPS ונהגים בזמן אמת",
+              "fit": "גבוה"
+            },
+            {
+              "segment": "קבלני בנייה",
+              "why": "רכבי עבודה, ציוד ותחזוקה שטח",
+              "fit": "בינוני"
+            },
+            {
+              "segment": "רשויות מקומיות",
+              "why": "שקיפות, דוחות והתראות",
+              "fit": "בינוני"
+            },
+            {
+              "segment": "ארגוני שירות שטח",
+              "why": "ניהול נהגים והקצאת משימות",
+              "fit": "בינוני"
+            },
+            {
+              "segment": "סטארט-אפים בתחום Mobility",
+              "why": "FleetOS כמוצר SaaS",
+              "fit": "גבוה"
+            },
+            {
+              "segment": "מוסכים ומרכזי שירות",
+              "why": "שילוב תחזוקה ומעקב",
+              "fit": "בינוני"
+            }
+          ],
+          "originalNote": "סגמנטים מוצעים מניתוח תחום Fleet — לא מועתקים"
+        }
+      }
+    },
+    {
+      "title": "13. אזורי פעילות",
+      "body": {
+        "regions": [
+          "כל הארץ"
+        ],
+        "detail": "ישראל"
+      }
+    },
+    {
+      "title": "14. רמת התחרות",
+      "body": {
+        "level": "גבוהה",
+        "competitors": 7
+      }
+    },
+    {
+      "title": "15. יתרונות העסק",
+      "body": {
+        "items": [
+          "FleetOS מקומי",
+          "שירות חודשי + תוכנה",
+          "תפעול ותחזוקה מקצה לקצה",
+          "לא מוסך — ניהול צי"
+        ]
+      }
+    },
+    {
+      "title": "16. חסרונות / פערים",
+      "body": {
+        "items": [
+          "מיתוג ישן (מימון)",
+          "חיבורי API חיים — חסר מידע",
+          "Core Web Vitals — הערכה בלבד"
+        ]
+      }
+    },
+    {
+      "title": "17. הזדמנויות",
+      "body": {
+        "whereWeAreToday": "מוכנות טובה לבנייה ושיווק",
+        "readinessScore": 89,
+        "topPlayers": [
+          "CarData",
+          "Pointer"
+        ],
+        "competitorCount": 7,
+        "competitionLevel": "גבוה",
+        "gap": "פער בתוכן FleetOS ייעודי ודירוגים אורגניים — מבוסס נתונים חלקיים",
+        "actionsToOvertake": [
+          "פרסום עמוד FleetOS מלא",
+          "מיפוי 15+ מילות מפתח",
+          "תוכן שבועי (בלוג/וידאו)",
+          "GBP + ביקורות",
+          "קמפיין Ads למילות מסחריות",
+          "שיפור Core Web Vitals"
+        ],
+        "originalNote": "השוואת שוק מקורית — לא נתוני מתחרה מועתקים"
+      }
+    },
+    {
+      "title": "18. המלצות AI",
+      "body": {
+        "version": "1.0.0",
+        "stageId": "report",
+        "generatedAt": "2026-06-30T16:30:02.914Z",
+        "company": "דליה פתרונות תפעול ותחזוקה לרכב",
+        "agentContributions": [
+          {
+            "agent": "SEO Agent",
+            "status": "heuristic",
+            "note": "המלצות מבוססות כללים ונתוני localStorage"
+          },
+          {
+            "agent": "Marketing Agent",
+            "status": "heuristic",
+            "note": "המלצות מבוססות כללים ונתוני localStorage"
+          },
+          {
+            "agent": "Business Advisor",
+            "status": "heuristic",
+            "note": "המלצות מבוססות כללים ונתוני localStorage"
+          },
+          {
+            "agent": "GSC",
+            "status": "heuristic",
+            "note": "המלצות מבוססות כללים ונתוני localStorage"
+          },
+          {
+            "agent": "Analytics",
+            "status": "missing",
+            "note": "חסר מידע"
+          },
+          {
+            "agent": "GBP",
+            "status": "heuristic",
+            "note": "המלצות מבוססות כללים ונתוני localStorage"
+          },
+          {
+            "agent": "Ads",
+            "status": "heuristic",
+            "note": "המלצות מבוססות כללים ונתוני localStorage"
+          },
+          {
+            "agent": "PageSpeed",
+            "status": "partial",
+            "note": "חסר מידע — אין מדידה חיה; הערכה היוריסטית"
+          },
+          {
+            "agent": "Lighthouse",
+            "status": "partial",
+            "note": "חסר מידע — אין מדידה חיה; הערכה היוריסטית"
+          },
+          {
+            "agent": "AI Stage Advisor",
+            "status": "heuristic",
+            "note": "המלצות מבוססות כללים ונתוני localStorage"
+          },
+          {
+            "agent": "Site Comparison",
+            "status": "heuristic",
+            "note": "המלצות מבוססות כללים ונתוני localStorage"
+          }
+        ],
+        "keywordIdeas": {
+          "existing": [
+            "תוכנה לניהול צי רכב",
+            "מערכת לניהול צי רכב",
+            "אפליקציה לניהול צי רכב",
+            "מערכת תפעול ותחזוקת רכבים",
+            "ניהול צי רכב לעסקים",
+            "תחזוקת צי רכב",
+            "ניהול רכבי חברה",
+            "מערכת לניהול רכבי חברה",
+            "אפליקציה לניהול רכבים",
+            "Fleet Management",
+            "Fleet Management Software",
+            "FleetOS",
+            "ניהול נהגים",
+            "ניהול טיפולים",
+            "ניהול תקלות",
+            "תחזוקה מונעת",
+            "מערכת לניהול מוסכים וספקים",
+            "מעקב אחר רכבים",
+            "מערכת GPS לציי רכב",
+            "איתור רכבים",
+            "שליטה מרחוק על צי רכב",
+            "מצלמות לרכב",
+            "חיישנים לרכב",
+            "מערכת התראות",
+            "ניהול ביטוחים לרכב",
+            "ניהול טסטים",
+            "ניהול מסמכי רכב",
+            "מערכת לניהול צי רכב לעסקים",
+            "פתרונות לציי רכב",
+            "תפעול רכבים לעסקים",
+            "ניהול תחזוקת רכבים",
+            "תוכנת FleetOS",
+            "מערכת תפעול צי",
+            "GPS לצי",
+            "טלמטיקה",
+            "מעקב רכבים בזמן אמת",
+            "CANBUS",
+            "התראות תחזוקה",
+            "דוחות צי רכב",
+            "ניהול רישיונות",
+            "ביטוח רכב",
+            "טיפולים לרכב",
+            "קריאות שירות",
+            "איך לנהל צי רכב",
+            "חיסכון בתחזוקת צי",
+            "בחירת תוכנת ניהול צי",
+            "יתרונות טלמטיקה לעסק",
+            "ניהול נהגים מרחוק",
+            "AI בניהול צי רכב"
+          ],
+          "suggested": [
+            "איך לנהל צי רכב לעסק קטן",
+            "חיסכון בעלויות תחזוקת צי",
+            "ניהול צי הובלות",
+            "תוכנה לחברת ליסינג"
+          ],
+          "tiers": {
+            "core": [
+              "fleet management software"
+            ],
+            "service": [],
+            "longTail": [
+              "איך לנהל צי רכב לעסק קטן",
+              "חיסכון בעלויות תחזוקת צי",
+              "ניהול צי הובלות",
+              "תוכנה לחברת ליסינג"
+            ]
+          },
+          "source": "GSC + heuristics",
+          "originalNote": "המלצות מקוריות — לא מועתקות ממתחרים"
+        },
+        "targetAudienceIdeas": {
+          "existing": [
+            "עסקים עם צי רכב",
+            "חברות ליסינג",
+            "מפעילי הובלות",
+            "קבלנים",
+            "ארגונים גדולים",
+            "עסקים עם 5 רכבים ומעלה — לא מוסך"
+          ],
+          "suggested": [
+            {
+              "segment": "חברות הובלה ותובלה",
+              "why": "צי גדול, צורך בתפעול ותחזוקה",
+              "fit": "גבוה"
+            },
+            {
+              "segment": "חברות משלוחים ולוגיסטיקה",
+              "why": "מעקב GPS ונהגים בזמן אמת",
+              "fit": "גבוה"
+            },
+            {
+              "segment": "קבלני בנייה",
+              "why": "רכבי עבודה, ציוד ותחזוקה שטח",
+              "fit": "בינוני"
+            },
+            {
+              "segment": "רשויות מקומיות",
+              "why": "שקיפות, דוחות והתראות",
+              "fit": "בינוני"
+            },
+            {
+              "segment": "ארגוני שירות שטח",
+              "why": "ניהול נהגים והקצאת משימות",
+              "fit": "בינוני"
+            },
+            {
+              "segment": "סטארט-אפים בתחום Mobility",
+              "why": "FleetOS כמוצר SaaS",
+              "fit": "גבוה"
+            },
+            {
+              "segment": "מוסכים ומרכזי שירות",
+              "why": "שילוב תחזוקה ומעקב",
+              "fit": "בינוני"
+            }
+          ],
+          "originalNote": "סגמנטים מוצעים מניתוח תחום Fleet — לא מועתקים"
+        },
+        "advertisingPlatformIdeas": {
+          "selected": [
+            "אתר",
+            "GSC",
+            "GA",
+            "GBP",
+            "Ads",
+            "LinkedIn",
+            "YouTube",
+            "WhatsApp",
+            "FleetOS",
+            "אפליקציה"
+          ],
+          "recommendations": [
+            {
+              "platform": "Google Search / SEO",
+              "why": "תנועה אורגנית למילות FleetOS וניהול צי",
+              "whoFits": "B2B עם מחזור מכירה ארוך",
+              "pros": "עלות נמוכה לטווח ארוך, אמון",
+              "cons": "לוקח זמן",
+              "whenToUse": "מיידי — בסיס לכל אסטרטגיה",
+              "alreadySelected": false
+            },
+            {
+              "platform": "Google Business Profile",
+              "why": "נוכחות מקומית וחיפוש \"לידי\"",
+              "whoFits": "עסקים עם אזור שירות",
+              "pros": "ביקורות, מפות, חינם",
+              "cons": "תלוי באזור",
+              "whenToUse": "שלב 1 אם יש נוכחות פיזית",
+              "alreadySelected": false
+            },
+            {
+              "platform": "Google Ads",
+              "why": "לידים מהירים למילות מסחריות",
+              "whoFits": "תקציב פרסום ומטרת לידים",
+              "pros": "מדיד, מהיר",
+              "cons": "עלות לקליק",
+              "whenToUse": "לאחר דף נחיתה מוכן",
+              "alreadySelected": false
+            },
+            {
+              "platform": "Facebook",
+              "why": "הגעה לבעלי עסקים קטנים-בינוניים",
+              "whoFits": "קהל רחב, מודעות",
+              "pros": "טארגוט מפורט",
+              "cons": "פחות B2B ממוקד",
+              "whenToUse": "קמפיין מודעות + ריטרגטינג",
+              "alreadySelected": false
+            },
+            {
+              "platform": "Instagram",
+              "why": "תוכן ויזואלי — צי, טכנולוגיה",
+              "whoFits": "מותג ואמון",
+              "pros": "Engagement",
+              "cons": "פחות המרות ישירות B2B",
+              "whenToUse": "תוכן מותגי",
+              "alreadySelected": false
+            },
+            {
+              "platform": "LinkedIn",
+              "why": "מנהלי צי, קבלנים, ארגונים",
+              "whoFits": "B2B enterprise",
+              "pros": "קהל מקצועי",
+              "cons": "CPC גבוה",
+              "whenToUse": "לידים איכותיים + ABM",
+              "alreadySelected": true
+            },
+            {
+              "platform": "YouTube",
+              "why": "הדגמות FleetOS, tutorials",
+              "whoFits": "חינוך שוק",
+              "pros": "SEO וידאו, אמון",
+              "cons": "הפקה",
+              "whenToUse": "לאחר עמוד תוכנה",
+              "alreadySelected": true
+            },
+            {
+              "platform": "TikTok",
+              "why": "חשיפה לקהל צעיר בתחום לוגיסטיקה",
+              "whoFits": "מותג חדשני",
+              "pros": "ויראליות",
+              "cons": "פחות רלוונטי ל-B2B מסורתי",
+              "whenToUse": "אופציונלי — מותג",
+              "alreadySelected": false
+            },
+            {
+              "platform": "WhatsApp Business",
+              "why": "שיחות לידים מהירות",
+              "whoFits": "שוק ישראלי",
+              "pros": "המרה גבוהה",
+              "cons": "לא אוטומטי לחלוטין",
+              "whenToUse": "CTA בכל עמוד",
+              "alreadySelected": true
+            },
+            {
+              "platform": "Waze",
+              "why": "פרסום מיקומי לנהגים ועסקים",
+              "whoFits": "אזורי שירות",
+              "pros": "הקשר מיקום",
+              "cons": "מוגבל",
+              "whenToUse": "קמפיין מקומי",
+              "alreadySelected": false
+            },
+            {
+              "platform": "Microsoft Ads",
+              "why": "חיפוש Bing — פחות תחרות",
+              "whoFits": "השלמה ל-Google",
+              "pros": "CPC נמוך יותר",
+              "cons": "נפח נמוך",
+              "whenToUse": "הרחבה בשלב 2",
+              "alreadySelected": false
+            }
+          ],
+          "originalNote": "מטריצת פלטפורמות מקורית לפי פרופיל עסק"
+        },
+        "serviceIdeas": {
+          "existing": [
+            "FleetOS / תוכנת ניהול צי",
+            "תפעול צי רכב",
+            "תחזוקה וטיפולים",
+            "GPS וטלמטיקה",
+            "מצלמות וחיישנים",
+            "ניהול נהגים",
+            "דוחות והתראות",
+            "AI בצי",
+            "תוכנת FleetOS",
+            "אפליקציה לניהול צי רכב",
+            "ניהול צי רכב",
+            "תפעול צי רכב",
+            "תחזוקת רכבים",
+            "ניהול נהגים",
+            "ניהול טיפולים",
+            "ניהול תקלות",
+            "דוחות",
+            "התראות",
+            "GPS",
+            "מצלמות",
+            "חיישנים",
+            "שינוע רכבים",
+            "שירותי דרך",
+            "מוקד שירות",
+            "מעקב טיפולים",
+            "מעקב ביטוחים",
+            "מעקב טסטים",
+            "ניהול ספקים",
+            "ניהול מוסכים"
+          ],
+          "suggested": [
+            {
+              "name": "חבילת הדגמה + POC",
+              "type": "package",
+              "priority": "גבוה"
+            },
+            {
+              "name": "תחזוקה מונעת לצי",
+              "type": "service",
+              "priority": "בינוני"
+            },
+            {
+              "name": "ייעוץ דיגיטציה לצי",
+              "type": "consulting",
+              "priority": "בינוני"
+            },
+            {
+              "name": "מחירון / הצעת מחיר אונליין",
+              "type": "page",
+              "priority": "בינוני"
+            },
+            {
+              "name": "בלוג מומחיות — ניהול צי",
+              "type": "content",
+              "priority": "בינוני"
+            },
+            {
+              "name": "מקרי בוחן לקוחות",
+              "type": "content",
+              "priority": "בינוני"
+            }
+          ],
+          "originalNote": "רעיונות שירות/עמוד מקוריים — לא העתקה"
+        },
+        "competitorResearch": {
+          "competitors": [
+            {
+              "name": "CarData",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "נוכחות אורגנית — מבוסס GSC",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "Pointer",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "Ituran",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "Otobus",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "Fleet Complete",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "מערכות ניהול צי ישראליות",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            },
+            {
+              "name": "ספקי GPS לצי רכב",
+              "likelyKeywords": [
+                "seat tarraco",
+                "skoda anyak",
+                "האם יש חבילות צי רכבים לעסקים"
+              ],
+              "likelyPages": [
+                "בית",
+                "שירותים",
+                "תוכנה/מוצר",
+                "צור קשר"
+              ],
+              "strengths": "מותג מוכר בתחום",
+              "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+              "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+              "howToOutrank": [
+                "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+                "תוכן FAQ + מדריכים למילות long-tail",
+                "קישורים פנימיים מעמוד שירותים",
+                "מהירות אתר — Lighthouse"
+              ],
+              "dataGaps": []
+            }
+          ],
+          "originalNote": "ניתוח מקצועי מקורי — לא העתקת תוכן מתחרים"
+        },
+        "competitorInspiration": {
+          "concepts": [
+            {
+              "idea": "מבנה תפריט: בית → תוכנה → שירותים → משאבים → צור קשר",
+              "type": "structure",
+              "original": true
+            },
+            {
+              "idea": "דף השוואת תוכנות / \"למה FleetOS\"",
+              "type": "page",
+              "original": true
+            },
+            {
+              "idea": "CTA כפול: הדגמה + WhatsApp",
+              "type": "cta",
+              "original": true
+            },
+            {
+              "idea": "אזור לוגואי לקוחות + מספרים (צי, חיסכון)",
+              "type": "trust",
+              "original": true
+            },
+            {
+              "idea": "מרכז משאבים: מדריכים, וידאו, מחשבונים",
+              "type": "content-hub",
+              "original": true
+            },
+            {
+              "idea": "עמודי שירות לפי תעשייה (הובלות, ליסינג, קבלנים)",
+              "type": "landing",
+              "original": true
+            }
+          ],
+          "missingTopics": [
+            "ניהול צי לעיריות",
+            "אינטגרציית ERP",
+            "AI בחיזוי תחזוקה",
+            "מחירון שקוף",
+            "מקרי בוחן מספריים"
+          ],
+          "disclaimer": "השראה מקורית בלבד — אין העתקת תוכן או עיצוב מתחרים"
+        },
+        "marketComparison": {
+          "whereWeAreToday": "מוכנות טובה לבנייה ושיווק",
+          "readinessScore": 89,
+          "topPlayers": [
+            "CarData",
+            "Pointer"
+          ],
+          "competitorCount": 7,
+          "competitionLevel": "גבוה",
+          "gap": "פער בתוכן FleetOS ייעודי ודירוגים אורגניים — מבוסס נתונים חלקיים",
+          "actionsToOvertake": [
+            "פרסום עמוד FleetOS מלא",
+            "מיפוי 15+ מילות מפתח",
+            "תוכן שבועי (בלוג/וידאו)",
+            "GBP + ביקורות",
+            "קמפיין Ads למילות מסחריות",
+            "שיפור Core Web Vitals"
+          ],
+          "originalNote": "השוואת שוק מקורית — לא נתוני מתחרה מועתקים"
+        },
+        "actionPlan": {
+          "items": [
+            {
+              "priority": 1,
+              "area": "SEO",
+              "action": "אישור ומיפוי מילות מפתח לעמודים",
+              "stage": "seo"
+            },
+            {
+              "priority": 2,
+              "area": "תוכן",
+              "action": "עמוד FleetOS + FAQ",
+              "stage": "report"
+            },
+            {
+              "priority": 3,
+              "area": "עמודי שירות",
+              "action": "הובלות, ליסינג, GPS",
+              "stage": "blueprint"
+            },
+            {
+              "priority": 4,
+              "area": "קישורים פנימיים",
+              "action": "מהבית לתוכנה ולשירותים",
+              "stage": "blueprint"
+            },
+            {
+              "priority": 5,
+              "area": "מהירות",
+              "action": "אופטימיזציית תמונות ו-LCP",
+              "stage": "preview"
+            },
+            {
+              "priority": 6,
+              "area": "UX",
+              "action": "CTA ברור בכל עמוד",
+              "stage": "preview"
+            },
+            {
+              "priority": 7,
+              "area": "GBP",
+              "action": "עדכון פרופיל + פוסטים",
+              "stage": "hub"
+            },
+            {
+              "priority": 8,
+              "area": "Ads",
+              "action": "קמפיין חיפוש — מילות ליד",
+              "stage": "hub"
+            },
+            {
+              "priority": 9,
+              "area": "מאמרים",
+              "action": "3 מאמרי long-tail ראשונים",
+              "stage": "hub"
+            },
+            {
+              "priority": 10,
+              "area": "וידאו",
+              "action": "הדגמת FleetOS ב-YouTube",
+              "stage": "hub"
+            }
+          ],
+          "stageFocus": "report",
+          "prioritized": true
+        },
+        "forecast": {
+          "difficulty": "גבוהה",
+          "competitorCount": 7,
+          "competitionLevel": "high",
+          "estimatedTimeTop10": "9-12 חודשים",
+          "estimatedTimeTop3": "18-24 חודשים",
+          "estimatedTimeNumber1": "24-36+ חודשים (תלוי מילה)",
+          "disclaimer": "הערכות מבוססות על הנתונים הזמינים בלבד — אינן ערבות לתוצאות.",
+          "dataBasis": "GSC + מתחרים + מילות מאושרות"
+        },
+        "strategicReport": {
+          "executiveSummary": [
+            "עסק: דליה פתרונות תפעול ותחזוקה לרכב · תחום: ניהול צי / FleetOS",
+            "מילות מפתח פעילות: 49",
+            "מתחרים במעקב: 7",
+            "מוכנות כללית: 89%",
+            "פעולה מיידית: אישור ומיפוי מילות מפתח לעמודים"
+          ],
+          "sectionsIncluded": [
+            "business",
+            "services",
+            "software",
+            "app",
+            "competitors",
+            "keywords",
+            "audience",
+            "seo",
+            "marketing",
+            "content",
+            "platforms",
+            "blueprint",
+            "roadmap",
+            "tasks",
+            "goals",
+            "aiRecommendations",
+            "workOrder",
+            "readinessScore"
+          ],
+          "pageEquivalent": "10-20 עמודים (ייצוא HTML מלא)",
+          "originalNote": "דוח אסטרטגי מקורי — לא תוכן מתחרים"
+        }
+      }
+    },
+    {
+      "title": "19. Google Readiness",
+      "body": {
+        "pages": [],
+        "average": "חסר מידע"
+      }
+    },
+    {
+      "title": "20. תוכנית עבודה",
+      "body": {
+        "roadmap": [
+          {
+            "month": 1,
+            "label": "חודש 1",
+            "actions": [
+              "מיפוי מילות מפתח Core",
+              "אופטימיזציית עמוד FleetOS",
+              "תיקוני טכני בסיסיים",
+              "חיבור GSC + Analytics"
+            ]
+          },
+          {
+            "month": 2,
+            "label": "חודש 2",
+            "actions": [
+              "עמודי שירות (GPS, תחזוקה, טלמטיקה)",
+              "Schema markup",
+              "קישורים פנימיים",
+              "תוכן FAQ"
+            ]
+          },
+          {
+            "month": 3,
+            "label": "חודש 3",
+            "actions": [
+              "מאמרי בלוג לתנועה",
+              "שיפור Core Web Vitals",
+              "GBP אופטימיזציה",
+              "מעקב מתחרים"
+            ]
+          },
+          {
+            "month": 4,
+            "label": "חודש 4",
+            "actions": [
+              "הרחבת מילות Long-tail",
+              "A/B לדפי המרה",
+              "דוח ביצועים מלא",
+              "תכנון קמפיינים ממומנים"
+            ]
+          }
+        ],
+        "actionPlan": {
+          "items": [
+            {
+              "priority": 1,
+              "area": "SEO",
+              "action": "אישור ומיפוי מילות מפתח לעמודים",
+              "stage": "seo"
+            },
+            {
+              "priority": 2,
+              "area": "תוכן",
+              "action": "עמוד FleetOS + FAQ",
+              "stage": "report"
+            },
+            {
+              "priority": 3,
+              "area": "עמודי שירות",
+              "action": "הובלות, ליסינג, GPS",
+              "stage": "blueprint"
+            },
+            {
+              "priority": 4,
+              "area": "קישורים פנימיים",
+              "action": "מהבית לתוכנה ולשירותים",
+              "stage": "blueprint"
+            },
+            {
+              "priority": 5,
+              "area": "מהירות",
+              "action": "אופטימיזציית תמונות ו-LCP",
+              "stage": "preview"
+            },
+            {
+              "priority": 6,
+              "area": "UX",
+              "action": "CTA ברור בכל עמוד",
+              "stage": "preview"
+            },
+            {
+              "priority": 7,
+              "area": "GBP",
+              "action": "עדכון פרופיל + פוסטים",
+              "stage": "hub"
+            },
+            {
+              "priority": 8,
+              "area": "Ads",
+              "action": "קמפיין חיפוש — מילות ליד",
+              "stage": "hub"
+            },
+            {
+              "priority": 9,
+              "area": "מאמרים",
+              "action": "3 מאמרי long-tail ראשונים",
+              "stage": "hub"
+            },
+            {
+              "priority": 10,
+              "area": "וידאו",
+              "action": "הדגמת FleetOS ב-YouTube",
+              "stage": "hub"
+            }
+          ],
+          "stageFocus": "report",
+          "prioritized": true
+        },
+        "readiness": {
+          "businessInfo": 100,
+          "softwareApp": 100,
+          "seo": 85,
+          "competitors": 80,
+          "audience": 80,
+          "platforms": 80,
+          "marketingMaterials": 90,
+          "siteBuildReady": 100,
+          "overall": 89,
+          "complete": true,
+          "approved": true,
+          "missingMsg": null
+        }
+      }
+    }
+  ],
+  "preBuild": {
+    "version": "1.3.0",
+    "reportId": "PBWR-1782837002881",
+    "generatedAt": "2026-06-30T16:30:02.881Z",
+    "clientId": "dalia-c-official",
+    "company": "דליה פתרונות תפעול ותחזוקה לרכב",
+    "site": "https://dalia-c.com/",
+    "principle": "האתר הקיים (https://dalia-c.com/) — מקור מידע בלבד. בונים אתר חדש נפרד בשליטה מלאה.",
+    "sections": {
+      "currentSiteStatus": {
+        "site": "https://dalia-c.com/",
+        "pageCount": 28,
+        "avgScore": 5,
+        "connectedAssets": []
+      },
+      "siteStrengths": [],
+      "siteWeaknesses": [
+        "/ — ציון נמוך",
+        "/home — ציון נמוך",
+        "/our-app — ציון נמוך",
+        "/about — ציון נמוך",
+        "/contact — ציון נמוך",
+        "/catalog — ציון נמוך",
+        "/השירותים-שלנו — ציון נמוך",
+        "/צור-קשר-דליה — ציון נמוך"
+      ],
+      "sourcePages": [],
+      "discardPages": [
+        {
+          "path": "/",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/home",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/our-app",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/about",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/contact",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/catalog",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/השירותים-שלנו",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/צור-קשר-דליה",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/מה-עומד-מ",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/עמוד-ספק",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/79-shekels",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/שאלון-לקוח-פרטי-ועסקי-15",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/מגוון-חבילות",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/תחזוקת-רכבים-חכמה-לעסקים-שליטה-סדר-ו",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/ניהול-תחזוקת-רכבים-חכם-לעסקים-מערכת",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/service",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/how-it-works",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/האם-ליסינג-תפעולי-משתלם-כשאין-זמן-להתע",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/האם-כדאי-ליסינג-תפעולי-האמת-שעסקים-לא-ת",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/איך-חוסכים-בעלויות-תחזוקת-ציי-רכב",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/תפעול-רכבים-לחברות",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/שאלון-מתלבטים-בין-ליסינג-תפעולי-לניהו",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/שאלון-קצר-להתאמת-פתרון-ניהול-ותחזוקת-ר",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/card-provider-customer",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/המערכת-והאפליקציה-של-דליה",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/my-account",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        },
+        {
+          "path": "/registration",
+          "reason": "לא שווה המשך — ייבנה מחדש באתר החדש"
+        }
+      ],
+      "promoteKeywords": [
+        "seat tarraco",
+        "skoda anyak",
+        "האם יש חבילות צי רכבים לעסקים",
+        "הילה מוטורס",
+        "טראקו",
+        "יונדאי טוסון תא מטען",
+        "לאדה בישראל",
+        "מה הדרכים לנהל צי רכב בעסק בלי לקנות רכבים?",
+        "ניהול צי",
+        "ניהול צי טרקטורים",
+        "ניהול צי רכבים",
+        "נפח תא מטען יונדאי טוסון",
+        "סקודה אניאק",
+        "סקודה אנייק",
+        "תוכנה לניהול צי רכב",
+        "מערכת לניהול צי רכב",
+        "אפליקציה לניהול צי רכב",
+        "מערכת תפעול ותחזוקת רכבים",
+        "ניהול צי רכב לעסקים",
+        "תחזוקת צי רכב",
+        "ניהול רכבי חברה",
+        "מערכת לניהול רכבי חברה",
+        "אפליקציה לניהול רכבים",
+        "Fleet Management",
+        "Fleet Management Software",
+        "FleetOS",
+        "ניהול נהגים",
+        "ניהול טיפולים",
+        "ניהול תקלות",
+        "תחזוקה מונעת",
+        "מערכת לניהול מוסכים וספקים",
+        "מעקב אחר רכבים",
+        "מערכת GPS לציי רכב",
+        "איתור רכבים",
+        "שליטה מרחוק על צי רכב",
+        "מצלמות לרכב",
+        "חיישנים לרכב",
+        "מערכת התראות",
+        "ניהול ביטוחים לרכב",
+        "ניהול טסטים",
+        "ניהול מסמכי רכב",
+        "מערכת לניהול צי רכב לעסקים",
+        "פתרונות לציי רכב",
+        "תפעול רכבים לעסקים",
+        "ניהול תחזוקת רכבים"
+      ],
+      "keywordPageMap": [
+        {
+          "page": "בית",
+          "keywords": [
+            "seat tarraco",
+            "skoda anyak",
+            "האם יש חבילות צי רכבים לעסקים",
+            "הילה מוטורס"
+          ],
+          "primary": "seat tarraco"
+        },
+        {
+          "page": "תוכנת ניהול צי רכב לעסקים",
+          "keywords": [
+            "תוכנה לניהול צי רכב",
+            "אפליקציה לניהול צי רכב",
+            "מערכת תפעול ותחזוקה לרכבים",
+            "ניהול טיפולים",
+            "ניהול נהגים",
+            "ניהול תקלות"
+          ],
+          "primary": "תוכנה לניהול צי רכב"
+        },
+        {
+          "page": "שירותים",
+          "keywords": [
+            "האם יש חבילות צי רכבים לעסקים",
+            "הילה מוטורס",
+            "טראקו",
+            "יונדאי טוסון תא מטען",
+            "לאדה בישראל",
+            "מה הדרכים לנהל צי רכב בעסק בלי לקנות רכבים?"
+          ],
+          "primary": "האם יש חבילות צי רכבים לעסקים"
+        },
+        {
+          "page": "אודות",
+          "keywords": [
+            "טראקו",
+            "יונדאי טוסון תא מטען",
+            "לאדה בישראל"
+          ],
+          "primary": "טראקו"
+        },
+        {
+          "page": "צור קשר",
+          "keywords": [
+            "צור קשר דליה",
+            "ייעוץ ניהול צי"
+          ],
+          "primary": "צור קשר דליה"
+        },
+        {
+          "page": "פתרונות SEO",
+          "keywords": [
+            "לאדה בישראל",
+            "מה הדרכים לנהל צי רכב בעסק בלי לקנות רכבים?",
+            "ניהול צי",
+            "ניהול צי טרקטורים",
+            "ניהול צי רכבים",
+            "נפח תא מטען יונדאי טוסון"
+          ],
+          "primary": "לאדה בישראל"
+        }
+      ],
+      "firstNewPage": "בית",
+      "secondNewPage": "תוכנת ניהול צי רכב לעסקים",
+      "pageDetails": [
+        {
+          "order": 1,
+          "title": "בית",
+          "slug": "index",
+          "purpose": "דף נחיתה ראשי — הצגת הערך, שירותים מרכזיים והמרה.",
+          "keywords": [
+            "seat tarraco",
+            "skoda anyak",
+            "האם יש חבילות צי רכבים לעסקים",
+            "הילה מוטורס"
+          ],
+          "headlines": [
+            "פתרונות מקצועיים לניהול ותפעול צי רכב",
+            "דליה פתרונות תפעול ותחזוקה לרכב",
+            "שירות מקצועי בכל הארץ"
+          ],
+          "cta": "צרו קשר לייעוץ חינם",
+          "sections": [
+            "Hero",
+            "יתרונות",
+            "שירותים",
+            "הוכחות",
+            "CTA"
+          ]
+        },
+        {
+          "order": 2,
+          "title": "תוכנת ניהול צי רכב לעסקים",
+          "slug": "fleet-management-software",
+          "purpose": "עמוד מרכזי לתוכנת FleetOS — ניהול תפעול, תחזוקה, נהגים, תקלות, דוחות והתראות לעסקים עם מספר רכבים.",
+          "keywords": [
+            "תוכנה לניהול צי רכב",
+            "אפליקציה לניהול צי רכב",
+            "מערכת תפעול ותחזוקה לרכבים",
+            "ניהול טיפולים",
+            "ניהול נהגים",
+            "ניהול תקלות"
+          ],
+          "headlines": [
+            "מערכת מתקדמת לניהול צי רכב",
+            "שליטה מלאה בתפעול ותחזוקה",
+            "FleetOS — הפתרון לעסקים עם מספר רכבים"
+          ],
+          "cta": "קבלו הדגמה לתוכנה",
+          "sections": [
+            "ניהול רכבים מרובים במקום אחד",
+            "תחזוקה מונעת, טיפולים ותקלות",
+            "ניהול נהגים והרשאות",
+            "דוחות, התראות ומעקב בזמן אמת",
+            "מתאים לעסקים עם צי של מספר רכבים"
+          ]
+        },
+        {
+          "order": 3,
+          "title": "שירותים",
+          "slug": "services",
+          "purpose": "פירוט שירותי התפעול, תחזוקה, GPS, מימון וליסינג.",
+          "keywords": [
+            "האם יש חבילות צי רכבים לעסקים",
+            "הילה מוטורס",
+            "טראקו",
+            "יונדאי טוסון תא מטען",
+            "לאדה בישראל",
+            "מה הדרכים לנהל צי רכב בעסק בלי לקנות רכבים?"
+          ],
+          "headlines": [
+            "שירותי דליה לעסקים",
+            "תפעול צי מקצה לקצה"
+          ],
+          "cta": "קבלו הצעת מחיר",
+          "sections": [
+            "ניהול צי",
+            "תחזוקה",
+            "GPS",
+            "מימון",
+            "CTA"
+          ]
+        },
+        {
+          "order": 4,
+          "title": "אודות",
+          "slug": "about",
+          "purpose": "אמון, ניסיון, היסטוריה ויתרון תחרותי.",
+          "keywords": [
+            "טראקו",
+            "יונדאי טוסון תא מטען",
+            "לאדה בישראל"
+          ],
+          "headlines": [
+            "מעל 20 שנות ניסיון",
+            "שותף אמין לעסקים"
+          ],
+          "cta": "הכירו את הצוות",
+          "sections": [
+            "סיפור החברה",
+            "ערכים",
+            "ניסיון",
+            "CTA"
+          ]
+        },
+        {
+          "order": 5,
+          "title": "צור קשר",
+          "slug": "contact",
+          "purpose": "המרה לליד — טופס, טלפון, WhatsApp.",
+          "keywords": [
+            "צור קשר דליה",
+            "ייעוץ ניהול צי"
+          ],
+          "headlines": [
+            "דברו איתנו",
+            "נחזור אליכם בהקדם"
+          ],
+          "cta": "שלחו פנייה",
+          "sections": [
+            "טופס",
+            "פרטי קשר",
+            "CTA"
+          ]
+        },
+        {
+          "order": 6,
+          "title": "פתרונות SEO",
+          "slug": "seo-solutions",
+          "purpose": "עמודי תמיכה למילות מפתח ארוכות זנב.",
+          "keywords": [
+            "לאדה בישראל",
+            "מה הדרכים לנהל צי רכב בעסק בלי לקנות רכבים?",
+            "ניהול צי",
+            "ניהול צי טרקטורים",
+            "ניהול צי רכבים",
+            "נפח תא מטען יונדאי טוסון"
+          ],
+          "headlines": [
+            "לאדה בישראל",
+            "מה הדרכים לנהל צי רכב בעסק בלי לקנות רכבים?",
+            "ניהול צי"
+          ],
+          "cta": "למידע נוסף",
+          "sections": [
+            "מילות מפתח",
+            "תוכן",
+            "CTA"
+          ]
+        }
+      ],
+      "services": [
+        "תוכנת FleetOS",
+        "אפליקציה לניהול צי רכב",
+        "ניהול צי רכב",
+        "תפעול צי רכב",
+        "תחזוקת רכבים",
+        "ניהול נהגים",
+        "ניהול טיפולים",
+        "ניהול תקלות",
+        "דוחות",
+        "התראות",
+        "GPS",
+        "מצלמות",
+        "חיישנים",
+        "שינוע רכבים",
+        "שירותי דרך",
+        "מוקד שירות",
+        "מעקב טיפולים",
+        "מעקב ביטוחים",
+        "מעקב טסטים",
+        "ניהול ספקים",
+        "ניהול מוסכים"
+      ],
+      "goals": [
+        "מטרות work-plan: 28 עמודים",
+        "בניית אתר חדש נפרד — לא תיקון האתר הישן",
+        "הצגת FleetOS / תוכנת ניהול צי כעמוד מרכזי"
+      ],
+      "actions": [
+        {
+          "id": "biz-strat-1782837001375-1",
+          "name": "העברת Business Context לעוזרי AI",
+          "description": "פרופיל עסקי: דליה פתרונות מימון ותחזוקה לרכב · ניהול צי רכב ותפעול לעסקים",
+          "status": "in_progress",
+          "priority": "גבוה",
+          "source": "business-strategy",
+          "category": "strategy",
+          "clientId": "dalia-c-official",
+          "pagePath": "/",
+          "created_at": "2026-06-30T16:30:01.375Z"
+        },
+        {
+          "id": "biz-strat-1782837001375-2",
+          "name": "סנכרון מטרות SEO מ-work-plan",
+          "description": "28 מטרות עמוד מחוברות",
+          "status": "pending",
+          "priority": "גבוה",
+          "source": "business-strategy",
+          "category": "goals",
+          "clientId": "dalia-c-official",
+          "created_at": "2026-06-30T16:30:01.375Z"
+        },
+        {
+          "id": "biz-strat-1782837001375-p0",
+          "name": "אופטימיזציה: /",
+          "description": "alt tags for images · Alt לתמונות (25)",
+          "status": "pending_approval",
+          "priority": "גבוה",
+          "source": "business-strategy",
+          "category": "seo",
+          "clientId": "dalia-c-official",
+          "pageId": "page-01",
+          "pagePath": "/",
+          "pageUrl": "https://dalia-c.com/",
+          "created_at": "2026-06-30T16:30:01.376Z"
+        },
+        {
+          "id": "biz-strat-1782837001375-p1",
+          "name": "אופטימיזציה: /home",
+          "description": "h1",
+          "status": "pending_approval",
+          "priority": "גבוה",
+          "source": "business-strategy",
+          "category": "seo",
+          "clientId": "dalia-c-official",
+          "pageId": "page-02",
+          "pagePath": "/home",
+          "pageUrl": "https://dalia-c.com/home/",
+          "created_at": "2026-06-30T16:30:01.376Z"
+        },
+        {
+          "id": "biz-strat-1782837001375-p2",
+          "name": "אופטימיזציה: /79-shekels",
+          "description": "h1 · Alt לתמונות (13)",
+          "status": "pending_approval",
+          "priority": "גבוה",
+          "source": "business-strategy",
+          "category": "seo",
+          "clientId": "dalia-c-official",
+          "pageId": "page-12",
+          "pagePath": "/79-shekels",
+          "pageUrl": "https://dalia-c.com/79-shekels/",
+          "created_at": "2026-06-30T16:30:01.376Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-0-0",
+          "name": "SEO חודש 1: מיפוי מילות מפתח Core",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "גבוה",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-0-1",
+          "name": "SEO חודש 1: אופטימיזציית עמוד FleetOS",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "גבוה",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-0-2",
+          "name": "SEO חודש 1: תיקוני טכני בסיסיים",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "גבוה",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-0-3",
+          "name": "SEO חודש 1: חיבור GSC + Analytics",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "גבוה",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-1-0",
+          "name": "SEO חודש 2: עמודי שירות (GPS, תחזוקה, טלמטיקה)",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-1-1",
+          "name": "SEO חודש 2: Schema markup",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-1-2",
+          "name": "SEO חודש 2: קישורים פנימיים",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-1-3",
+          "name": "SEO חודש 2: תוכן FAQ",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-2-0",
+          "name": "SEO חודש 3: מאמרי בלוג לתנועה",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-2-1",
+          "name": "SEO חודש 3: שיפור Core Web Vitals",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-2-2",
+          "name": "SEO חודש 3: GBP אופטימיזציה",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-2-3",
+          "name": "SEO חודש 3: מעקב מתחרים",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-3-0",
+          "name": "SEO חודש 4: הרחבת מילות Long-tail",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-3-1",
+          "name": "SEO חודש 4: A/B לדפי המרה",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-3-2",
+          "name": "SEO חודש 4: דוח ביצועים מלא",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-roadmap-1782837002314-3-3",
+          "name": "SEO חודש 4: תכנון קמפיינים ממומנים",
+          "description": "משימה ממפת דרכים SEO",
+          "category": "seo",
+          "status": "pending",
+          "priority": "בינוני",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-kw-goal-1782837002314-0",
+          "name": "יעד Top 10: ניהול תחזוקת רכבים",
+          "description": "זמן משוער: 2-4 חודשים · תחרות: נמוכה",
+          "category": "seo",
+          "status": "pending",
+          "priority": "גבוה",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-kw-goal-1782837002314-1",
+          "name": "יעד Top 5: תפעול רכבים לעסקים",
+          "description": "זמן משוער: 4-8 חודשים · תחרות: בינונית",
+          "category": "seo",
+          "status": "pending",
+          "priority": "גבוה",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-kw-goal-1782837002314-2",
+          "name": "יעד Top 3: פתרונות לציי רכב",
+          "description": "זמן משוער: 8-12 חודשים · תחרות: גבוהה",
+          "category": "seo",
+          "status": "pending",
+          "priority": "גבוה",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-kw-goal-1782837002314-3",
+          "name": "יעד #1: מערכת לניהול צי רכב לעסקים",
+          "description": "זמן משוער: 12-18 חודשים · תחרות: מאוד גבוהה",
+          "category": "seo",
+          "status": "pending",
+          "priority": "גבוה",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "seo-kw-goal-1782837002314-4",
+          "name": "יעד Top 10: ניהול מסמכי רכב",
+          "description": "זמן משוער: 2-4 חודשים · תחרות: נמוכה",
+          "category": "seo",
+          "status": "pending",
+          "priority": "גבוה",
+          "source": "seo-strategy",
+          "created_at": "2026-06-30T16:30:02.314Z"
+        },
+        {
+          "id": "pre-build-report-1782837002538",
+          "name": "דוח Pre-Build מאושר — מוכן לבניית אתר",
+          "description": "בית → תוכנת ניהול צי רכב לעסקים → שירותים → אודות → צור קשר → פתרונות SEO",
+          "status": "report_defined",
+          "priority": "גבוה",
+          "source": "pre-build-report",
+          "category": "website-build",
+          "created_at": "2026-06-30T16:30:02.538Z"
+        }
+      ],
+      "toFix": [
+        "לא לתקן ישיר — ללמוד מ-/",
+        "לא לתקן ישיר — ללמוד מ-/home",
+        "לא לתקן ישיר — ללמוד מ-/our-app",
+        "לא לתקן ישיר — ללמוד מ-/about",
+        "לא לתקן ישיר — ללמוד מ-/contact",
+        "לא לתקן ישיר — ללמוד מ-/catalog"
+      ],
+      "toRebuild": [
+        "בית",
+        "תוכנת ניהול צי רכב לעסקים",
+        "שירותים",
+        "אודות",
+        "צור קשר",
+        "פתרונות SEO"
+      ],
+      "targets": [
+        "אתר חדש מהיר, SEO-ready, עם FleetOS בולט",
+        "Preview ללקוח לפני Deploy"
+      ],
+      "platforms": [
+        "אתר",
+        "GSC",
+        "GA",
+        "GBP",
+        "Ads",
+        "LinkedIn",
+        "YouTube",
+        "WhatsApp",
+        "FleetOS",
+        "אפליקציה"
+      ],
+      "workOrder": [
+        "1. איסוף נתונים ותחקיר (הושלם)",
+        "2. שאלון אסטרטגי — אישור (הושלם)",
+        "3. שער חומרים — אישור (הושלם)",
+        "4. אסטרטגיית SEO — מחקר ואישור (הושלם)",
+        "5. מתחרים ומילות מפתח (הושלם)",
+        "6. מטרות ופעולות (הושלם)",
+        "7. דוח עבודה מלא — הורדה ואישור",
+        "7. Blueprint",
+        "8. בניית אתר חדש על Template קבוע",
+        "9. Preview מלא + הערות לקוח",
+        "10. אישור סופי",
+        "11. Deploy לריפו/דומיין נפרד של הלקוח (לא דליה)"
+      ],
+      "workOrderPostLaunch": [
+        "1. אישור Preview סופי מול הלקוח",
+        "2. תיקוני תוכן/SEO לפי הערות",
+        "3. יצירת ריפו Git זמני נפרד ללקוח",
+        "4. QA ביצועים ומהירות",
+        "5. חיבור Analytics + Search Console לאתר החדש",
+        "6. Deploy לדומיין/אחסון הלקוח (לא דליה)",
+        "7. מעקב שוטף: SEO, תוכן, Ads, GBP"
+      ],
+      "improvements": [
+        "מבנה אתר חדש עם 6 עמודים",
+        "SEO מותאם למילות מפתח מ-GSC ואסטרטגיה",
+        "עמוד FleetOS מרכזי לתוכנה",
+        "מהירות ו-UX — אתר נקי על Template קבוע",
+        "חיבור Analytics, GSC, GBP, Ads לאחר עלייה"
+      ],
+      "opportunities": [
+        "עמוד FleetOS מרכזי — לא קיים מספיק באתר הישן",
+        "מיפוי SEO לכל עמוד חדש",
+        "אתר מהיר על Template קבוע",
+        "Preview ללקוח לפני Deploy"
+      ],
+      "competitorAnalysis": [
+        {
+          "name": "CarData",
+          "note": "מקור מידע לאסטרטגיה"
+        },
+        {
+          "name": "Pointer",
+          "note": "מקור מידע לאסטרטגיה"
+        },
+        {
+          "name": "Ituran",
+          "note": "מקור מידע לאסטרטגיה"
+        },
+        {
+          "name": "Otobus",
+          "note": "מקור מידע לאסטרטגיה"
+        },
+        {
+          "name": "Fleet Complete",
+          "note": "מקור מידע לאסטרטגיה"
+        },
+        {
+          "name": "מערכות ניהול צי ישראליות",
+          "note": "מקור מידע לאסטרטגיה"
+        },
+        {
+          "name": "ספקי GPS לצי רכב",
+          "note": "מקור מידע לאסטרטגיה"
+        }
+      ],
+      "marketingStrategy": {
+        "strategy": "מטרה: מכירת תוכנה · בנייה: אתר",
+        "goals": [
+          "מכירת תוכנה",
+          "אתר",
+          "FleetOS / ניהול צי"
+        ],
+        "platforms": [
+          "אתר",
+          "GSC",
+          "GA",
+          "GBP",
+          "Ads",
+          "LinkedIn",
+          "YouTube",
+          "WhatsApp",
+          "FleetOS",
+          "אפליקציה"
+        ],
+        "whyChosen": [
+          "אתר — תומך ב-מכירת תוכנה",
+          "GSC — תומך ב-מכירת תוכנה",
+          "GA — תומך ב-מכירת תוכנה",
+          "GBP — תומך ב-מכירת תוכנה",
+          "Ads — תומך ב-מכירת תוכנה",
+          "LinkedIn — תומך ב-מכירת תוכנה",
+          "YouTube — תומך ב-מכירת תוכנה",
+          "WhatsApp — תומך ב-מכירת תוכנה",
+          "FleetOS — תומך ב-מכירת תוכנה",
+          "אפליקציה — תומך ב-מכירת תוכנה"
+        ],
+        "connected": [],
+        "missing": [
+          "אתר",
+          "GSC",
+          "GA",
+          "GBP",
+          "Ads",
+          "LinkedIn",
+          "YouTube",
+          "WhatsApp",
+          "FleetOS",
+          "אפליקציה"
+        ],
+        "phase1": [
+          {
+            "name": "אתר",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          },
+          {
+            "name": "GSC",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "תנועה אורגנית",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          },
+          {
+            "name": "GA",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          }
+        ],
+        "phase2": [
+          {
+            "name": "GBP",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          },
+          {
+            "name": "Ads",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          },
+          {
+            "name": "LinkedIn",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          }
+        ],
+        "future": [
+          {
+            "name": "YouTube",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "WhatsApp",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "FleetOS",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "מוצר מרכזי — תוכנה ואפליקציה",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "אפליקציה",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          }
+        ],
+        "priorityOrder": [
+          "אתר",
+          "GSC",
+          "GA",
+          "GBP",
+          "Ads",
+          "LinkedIn",
+          "YouTube",
+          "WhatsApp",
+          "FleetOS",
+          "אפליקציה"
+        ],
+        "platformDetails": [
+          {
+            "name": "אתר",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          },
+          {
+            "name": "GSC",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "תנועה אורגנית",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          },
+          {
+            "name": "GA",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 1 — מיידי",
+            "phase": 1
+          },
+          {
+            "name": "GBP",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          },
+          {
+            "name": "Ads",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          },
+          {
+            "name": "LinkedIn",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "שלב 2 — חודש 2-3",
+            "phase": 2
+          },
+          {
+            "name": "YouTube",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "WhatsApp",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "FleetOS",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "מוצר מרכזי — תוכנה ואפליקציה",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          },
+          {
+            "name": "אפליקציה",
+            "active": false,
+            "connected": false,
+            "missingInfo": "חסר מידע",
+            "role": "שיווק ומעורבות",
+            "whenToUse": "עתידי",
+            "phase": "future"
+          }
+        ]
+      },
+      "changesVsOld": [
+        "מבנה אתר חדש עם 6 עמודים",
+        "SEO מותאם למילות מפתח מ-GSC ואסטרטגיה",
+        "עמוד FleetOS מרכזי לתוכנה",
+        "מהירות ו-UX — אתר נקי על Template קבוע",
+        "חיבור Analytics, GSC, GBP, Ads לאחר עלייה"
+      ],
+      "fleetSoftwarePage": {
+        "title": "תוכנת ניהול צי רכב לעסקים",
+        "slug": "fleet-management-software",
+        "purpose": "עמוד מרכזי לתוכנת FleetOS — ניהול תפעול, תחזוקה, נהגים, תקלות, דוחות והתראות לעסקים עם מספר רכבים.",
+        "keywords": [
+          "תוכנה לניהול צי רכב",
+          "אפליקציה לניהול צי רכב",
+          "מערכת תפעול ותחזוקה לרכבים",
+          "ניהול טיפולים",
+          "ניהול נהגים",
+          "ניהול תקלות"
+        ],
+        "headlines": [
+          "מערכת מתקדמת לניהול צי רכב",
+          "שליטה מלאה בתפעול ותחזוקה",
+          "FleetOS — הפתרון לעסקים עם מספר רכבים"
+        ],
+        "cta": "קבלו הדגמה לתוכנה",
+        "sections": [
+          "ניהול רכבים מרובים במקום אחד",
+          "תחזוקה מונעת, טיפולים ותקלות",
+          "ניהול נהגים והרשאות",
+          "דוחות, התראות ומעקב בזמן אמת",
+          "מתאים לעסקים עם צי של מספר רכבים"
+        ]
+      },
+      "strategicBriefing": {
+        "version": "1.0.0",
+        "buildType": "אתר",
+        "mainGoal": "מכירת תוכנה",
+        "services": [
+          "FleetOS / תוכנת ניהול צי",
+          "תפעול צי רכב",
+          "תחזוקה וטיפולים",
+          "GPS וטלמטיקה",
+          "מצלמות וחיישנים",
+          "ניהול נהגים",
+          "דוחות והתראות",
+          "AI בצי"
+        ],
+        "audience": [
+          "עסקים עם צי רכב",
+          "חברות ליסינג",
+          "מפעילי הובלות",
+          "קבלנים",
+          "ארגונים גדולים"
+        ],
+        "regions": [
+          "כל הארץ"
+        ],
+        "competitorsAuto": [
+          "CarData",
+          "Pointer",
+          "Ituran"
+        ],
+        "competitorsManual": [
+          "Otobus",
+          "Fleet Complete",
+          "מערכות ניהול צי ישראליות",
+          "ספקי GPS לצי רכב"
+        ],
+        "keywordsSuggested": [
+          "תוכנה לניהול צי רכב",
+          "מערכת לניהול צי רכב",
+          "אפליקציה לניהול צי רכב",
+          "מערכת תפעול ותחזוקת רכבים",
+          "ניהול צי רכב לעסקים",
+          "תחזוקת צי רכב",
+          "ניהול רכבי חברה",
+          "מערכת לניהול רכבי חברה",
+          "אפליקציה לניהול רכבים",
+          "Fleet Management",
+          "Fleet Management Software",
+          "FleetOS",
+          "ניהול נהגים",
+          "ניהול טיפולים",
+          "ניהול תקלות",
+          "תחזוקה מונעת",
+          "מערכת לניהול מוסכים וספקים",
+          "מעקב אחר רכבים",
+          "מערכת GPS לציי רכב",
+          "איתור רכבים",
+          "שליטה מרחוק על צי רכב",
+          "מצלמות לרכב",
+          "חיישנים לרכב",
+          "מערכת התראות",
+          "ניהול ביטוחים לרכב",
+          "ניהול טסטים",
+          "ניהול מסמכי רכב",
+          "מערכת לניהול צי רכב לעסקים",
+          "פתרונות לציי רכב",
+          "תפעול רכבים לעסקים",
+          "ניהול תחזוקת רכבים"
+        ],
+        "keywordsApproved": [
+          "תוכנה לניהול צי רכב",
+          "מערכת לניהול צי רכב",
+          "אפליקציה לניהול צי רכב",
+          "מערכת תפעול ותחזוקת רכבים",
+          "ניהול צי רכב לעסקים",
+          "תחזוקת צי רכב",
+          "ניהול רכבי חברה",
+          "מערכת לניהול רכבי חברה",
+          "אפליקציה לניהול רכבים",
+          "Fleet Management",
+          "Fleet Management Software",
+          "FleetOS",
+          "ניהול נהגים",
+          "ניהול טיפולים",
+          "ניהול תקלות",
+          "תחזוקה מונעת",
+          "מערכת לניהול מוסכים וספקים",
+          "מעקב אחר רכבים",
+          "מערכת GPS לציי רכב",
+          "איתור רכבים",
+          "שליטה מרחוק על צי רכב",
+          "מצלמות לרכב",
+          "חיישנים לרכב",
+          "מערכת התראות",
+          "ניהול ביטוחים לרכב",
+          "ניהול טסטים",
+          "ניהול מסמכי רכב",
+          "מערכת לניהול צי רכב לעסקים",
+          "פתרונות לציי רכב",
+          "תפעול רכבים לעסקים",
+          "ניהול תחזוקת רכבים"
+        ],
+        "keywordsManual": [],
+        "platforms": [
+          "אתר",
+          "GSC",
+          "GA",
+          "GBP",
+          "Ads",
+          "LinkedIn",
+          "YouTube",
+          "WhatsApp",
+          "FleetOS",
+          "אפליקציה"
+        ],
+        "updatedAt": "2026-06-30T16:30:02.025Z"
+      }
+    },
+    "readinessScores": {
+      "businessInfo": 100,
+      "softwareApp": 100,
+      "seo": 85,
+      "competitors": 80,
+      "audience": 80,
+      "platforms": 80,
+      "marketingMaterials": 90,
+      "siteBuildReady": 100,
+      "overall": 89,
+      "complete": true,
+      "approved": true,
+      "missingMsg": null
+    },
+    "readinessAcceptable": true,
+    "businessProfile": {
+      "name": "דליה פתרונות תפעול ותחזוקה לרכב",
+      "sector": "ניהול, תפעול ותחזוקת ציי רכב — לא מוסך",
+      "mainService": "שירות חודשי + תוכנת FleetOS לניהול צי",
+      "services": "תוכנת FleetOS, אפליקציה לניהול צי רכב, ניהול צי רכב, תפעול צי רכב, תחזוקת רכבים, ניהול נהגים, ניהול טיפולים, ניהול תקלות, דוחות, התראות, GPS, מצלמות, חיישנים, שינוע רכבים, שירותי דרך, מוקד שירות, מעקב טיפולים, מעקב ביטוחים, מעקב טסטים, ניהול ספקים, ניהול מוסכים",
+      "competitors": [
+        "CarData",
+        "Pointer",
+        "Ituran",
+        "Otobus",
+        "Fleet Complete",
+        "מערכות ניהול צי ישראליות",
+        "ספקי GPS לצי רכב"
+      ],
+      "keywords": [
+        "תוכנה לניהול צי רכב",
+        "מערכת לניהול צי רכב",
+        "אפליקציה לניהול צי רכב",
+        "מערכת תפעול ותחזוקת רכבים",
+        "ניהול צי רכב לעסקים",
+        "תחזוקת צי רכב",
+        "ניהול רכבי חברה",
+        "מערכת לניהול רכבי חברה",
+        "אפליקציה לניהול רכבים",
+        "Fleet Management",
+        "Fleet Management Software",
+        "FleetOS",
+        "ניהול נהגים",
+        "ניהול טיפולים",
+        "ניהול תקלות",
+        "תחזוקה מונעת",
+        "מערכת לניהול מוסכים וספקים",
+        "מעקב אחר רכבים",
+        "מערכת GPS לציי רכב",
+        "איתור רכבים",
+        "שליטה מרחוק על צי רכב",
+        "מצלמות לרכב",
+        "חיישנים לרכב",
+        "מערכת התראות",
+        "ניהול ביטוחים לרכב",
+        "ניהול טסטים",
+        "ניהול מסמכי רכב",
+        "מערכת לניהול צי רכב לעסקים",
+        "פתרונות לציי רכב",
+        "תפעול רכבים לעסקים",
+        "ניהול תחזוקת רכבים"
+      ],
+      "site": "https://dalia-c.com/",
+      "goal": "",
+      "differentiator": "",
+      "recommendations": [
+        "בניית אתר חדש נפרד — לא תיקון האתר הישן",
+        "הדגשת FleetOS / תוכנת ניהול צי",
+        "מיפוי SEO לכל עמוד",
+        "Preview מלא לפני Deploy"
+      ]
+    },
+    "newSiteSitemap": [
+      {
+        "order": 1,
+        "title": "בית",
+        "slug": "index"
+      },
+      {
+        "order": 2,
+        "title": "תוכנת ניהול צי רכב לעסקים",
+        "slug": "fleet-management-software"
+      },
+      {
+        "order": 3,
+        "title": "שירותים",
+        "slug": "services"
+      },
+      {
+        "order": 4,
+        "title": "אודות",
+        "slug": "about"
+      },
+      {
+        "order": 5,
+        "title": "צור קשר",
+        "slug": "contact"
+      },
+      {
+        "order": 6,
+        "title": "פתרונות SEO",
+        "slug": "seo-solutions"
+      }
+    ],
+    "rawInputsSummary": {
+      "actionsCount": 27,
+      "keywordsCount": 45,
+      "competitorsCount": 7
+    },
+    "seoStrategy": {
+      "strategyId": "SEO-1782837002202",
+      "keywordCount": 53,
+      "competitors": [
+        "CarData",
+        "Pointer",
+        "Ituran",
+        "Otobus",
+        "Fleet Complete",
+        "מערכות ניהול צי ישראליות",
+        "ספקי GPS לצי רכב"
+      ],
+      "roadmap": [
+        {
+          "month": 1,
+          "label": "חודש 1",
+          "actions": [
+            "מיפוי מילות מפתח Core",
+            "אופטימיזציית עמוד FleetOS",
+            "תיקוני טכני בסיסיים",
+            "חיבור GSC + Analytics"
+          ]
+        },
+        {
+          "month": 2,
+          "label": "חודש 2",
+          "actions": [
+            "עמודי שירות (GPS, תחזוקה, טלמטיקה)",
+            "Schema markup",
+            "קישורים פנימיים",
+            "תוכן FAQ"
+          ]
+        },
+        {
+          "month": 3,
+          "label": "חודש 3",
+          "actions": [
+            "מאמרי בלוג לתנועה",
+            "שיפור Core Web Vitals",
+            "GBP אופטימיזציה",
+            "מעקב מתחרים"
+          ]
+        },
+        {
+          "month": 4,
+          "label": "חודש 4",
+          "actions": [
+            "הרחבת מילות Long-tail",
+            "A/B לדפי המרה",
+            "דוח ביצועים מלא",
+            "תכנון קמפיינים ממומנים"
+          ]
+        }
+      ],
+      "pageSeoMapping": [],
+      "keywordGoals": [
+        {
+          "keyword": "ניהול תחזוקת רכבים",
+          "goal": "Top 10",
+          "estimatedMonths": "2-4",
+          "competitionLevel": "נמוכה"
+        },
+        {
+          "keyword": "תפעול רכבים לעסקים",
+          "goal": "Top 5",
+          "estimatedMonths": "4-8",
+          "competitionLevel": "בינונית"
+        },
+        {
+          "keyword": "פתרונות לציי רכב",
+          "goal": "Top 3",
+          "estimatedMonths": "8-12",
+          "competitionLevel": "גבוהה"
+        },
+        {
+          "keyword": "מערכת לניהול צי רכב לעסקים",
+          "goal": "#1",
+          "estimatedMonths": "12-18",
+          "competitionLevel": "מאוד גבוהה"
+        },
+        {
+          "keyword": "ניהול מסמכי רכב",
+          "goal": "Top 10",
+          "estimatedMonths": "2-4",
+          "competitionLevel": "נמוכה"
+        },
+        {
+          "keyword": "ניהול טסטים",
+          "goal": "Top 5",
+          "estimatedMonths": "4-8",
+          "competitionLevel": "בינונית"
+        },
+        {
+          "keyword": "ניהול ביטוחים לרכב",
+          "goal": "Top 3",
+          "estimatedMonths": "8-12",
+          "competitionLevel": "גבוהה"
+        },
+        {
+          "keyword": "מערכת התראות",
+          "goal": "#1",
+          "estimatedMonths": "12-18",
+          "competitionLevel": "מאוד גבוהה"
+        },
+        {
+          "keyword": "חיישנים לרכב",
+          "goal": "Top 10",
+          "estimatedMonths": "2-4",
+          "competitionLevel": "נמוכה"
+        },
+        {
+          "keyword": "מצלמות לרכב",
+          "goal": "Top 5",
+          "estimatedMonths": "4-8",
+          "competitionLevel": "בינונית"
+        },
+        {
+          "keyword": "שליטה מרחוק על צי רכב",
+          "goal": "Top 3",
+          "estimatedMonths": "8-12",
+          "competitionLevel": "גבוהה"
+        },
+        {
+          "keyword": "איתור רכבים",
+          "goal": "#1",
+          "estimatedMonths": "12-18",
+          "competitionLevel": "מאוד גבוהה"
+        }
+      ],
+      "keywordChapters": [
+        {
+          "keyword": "ניהול תחזוקת רכבים",
+          "competition": "נמוכה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 10",
+          "estimatedTime": "2-4 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "תפעול רכבים לעסקים",
+          "competition": "בינונית",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 5",
+          "estimatedTime": "4-8 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "פתרונות לציי רכב",
+          "competition": "גבוהה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 3",
+          "estimatedTime": "8-12 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "מערכת לניהול צי רכב לעסקים",
+          "competition": "מאוד גבוהה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "#1",
+          "estimatedTime": "12-18 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "ניהול מסמכי רכב",
+          "competition": "נמוכה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 10",
+          "estimatedTime": "2-4 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "ניהול טסטים",
+          "competition": "בינונית",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 5",
+          "estimatedTime": "4-8 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "ניהול ביטוחים לרכב",
+          "competition": "גבוהה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 3",
+          "estimatedTime": "8-12 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "מערכת התראות",
+          "competition": "מאוד גבוהה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "#1",
+          "estimatedTime": "12-18 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "חיישנים לרכב",
+          "competition": "נמוכה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 10",
+          "estimatedTime": "2-4 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "מצלמות לרכב",
+          "competition": "בינונית",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 5",
+          "estimatedTime": "4-8 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "שליטה מרחוק על צי רכב",
+          "competition": "גבוהה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 3",
+          "estimatedTime": "8-12 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "איתור רכבים",
+          "competition": "מאוד גבוהה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "#1",
+          "estimatedTime": "12-18 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "מערכת GPS לציי רכב",
+          "competition": "נמוכה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 10",
+          "estimatedTime": "2-4 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "מעקב אחר רכבים",
+          "competition": "בינונית",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 5",
+          "estimatedTime": "4-8 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        },
+        {
+          "keyword": "מערכת לניהול מוסכים וספקים",
+          "competition": "גבוהה",
+          "businessImportance": "גבוהה",
+          "fit": "מצוין — FleetOS / ניהול צי",
+          "searchVolume": "חסר מידע",
+          "targetPage": "תוכנת ניהול צי רכב",
+          "competitors": [
+            "CarData",
+            "Pointer",
+            "Ituran"
+          ],
+          "goal": "Top 3",
+          "estimatedTime": "8-12 חודשים",
+          "requiredActions": [
+            "אופטימיזציית Title/H1",
+            "תוכן FleetOS",
+            "Schema",
+            "קישורים פנימיים"
+          ]
+        }
+      ],
+      "missingNote": "חסר מידע — נדרש קלט משתמש לשדות: gsc.clicks, gsc.impressions, analytics.sessions, analytics.conversions, analytics.bounceRate, gbp.views, gbp.reviews, gbp.rating",
+      "agentContributions": {
+        "gsc": {
+          "keywords": [
+            "seat tarraco",
+            "skoda anyak",
+            "האם יש חבילות צי רכבים לעסקים",
+            "הילה מוטורס",
+            "טראקו",
+            "יונדאי טוסון תא מטען",
+            "לאדה בישראל",
+            "מה הדרכים לנהל צי רכב בעסק בלי לקנות רכבים?",
+            "ניהול צי",
+            "ניהול צי טרקטורים"
+          ],
+          "clicks": "חסר מידע",
+          "impressions": "חסר מידע"
+        },
+        "analytics": {
+          "sessions": "חסר מידע",
+          "conversions": "חסר מידע",
+          "bounceRate": "חסר מידע"
+        },
+        "gbp": {
+          "views": "חסר מידע",
+          "reviews": "חסר מידע",
+          "rating": "חסר מידע"
+        },
+        "ads": {
+          "campaigns": "חסר מידע",
+          "spend": "חסר מידע",
+          "roas": "חסר מידע"
+        },
+        "pageSpeed": {
+          "score": "חסר מידע",
+          "lcp": "חסר מידע",
+          "cls": "חסר מידע"
+        },
+        "seo": {
+          "indexedPages": "חסר מידע",
+          "errors": "חסר מידע"
+        },
+        "ai": {
+          "recommendations": "טפל במשימות בעדיפות גבוהה."
+        }
+      }
+    },
+    "aiConsultant": {
+      "version": "1.0.0",
+      "stageId": "report",
+      "generatedAt": "2026-06-30T16:30:02.882Z",
+      "company": "דליה פתרונות תפעול ותחזוקה לרכב",
+      "agentContributions": [
+        {
+          "agent": "SEO Agent",
+          "status": "heuristic",
+          "note": "המלצות מבוססות כללים ונתוני localStorage"
+        },
+        {
+          "agent": "Marketing Agent",
+          "status": "heuristic",
+          "note": "המלצות מבוססות כללים ונתוני localStorage"
+        },
+        {
+          "agent": "Business Advisor",
+          "status": "heuristic",
+          "note": "המלצות מבוססות כללים ונתוני localStorage"
+        },
+        {
+          "agent": "GSC",
+          "status": "heuristic",
+          "note": "המלצות מבוססות כללים ונתוני localStorage"
+        },
+        {
+          "agent": "Analytics",
+          "status": "missing",
+          "note": "חסר מידע"
+        },
+        {
+          "agent": "GBP",
+          "status": "heuristic",
+          "note": "המלצות מבוססות כללים ונתוני localStorage"
+        },
+        {
+          "agent": "Ads",
+          "status": "heuristic",
+          "note": "המלצות מבוססות כללים ונתוני localStorage"
+        },
+        {
+          "agent": "PageSpeed",
+          "status": "partial",
+          "note": "חסר מידע — אין מדידה חיה; הערכה היוריסטית"
+        },
+        {
+          "agent": "Lighthouse",
+          "status": "partial",
+          "note": "חסר מידע — אין מדידה חיה; הערכה היוריסטית"
+        },
+        {
+          "agent": "AI Stage Advisor",
+          "status": "heuristic",
+          "note": "המלצות מבוססות כללים ונתוני localStorage"
+        },
+        {
+          "agent": "Site Comparison",
+          "status": "heuristic",
+          "note": "המלצות מבוססות כללים ונתוני localStorage"
+        }
+      ],
+      "keywordIdeas": {
+        "existing": [
+          "תוכנה לניהול צי רכב",
+          "מערכת לניהול צי רכב",
+          "אפליקציה לניהול צי רכב",
+          "מערכת תפעול ותחזוקת רכבים",
+          "ניהול צי רכב לעסקים",
+          "תחזוקת צי רכב",
+          "ניהול רכבי חברה",
+          "מערכת לניהול רכבי חברה",
+          "אפליקציה לניהול רכבים",
+          "Fleet Management",
+          "Fleet Management Software",
+          "FleetOS",
+          "ניהול נהגים",
+          "ניהול טיפולים",
+          "ניהול תקלות",
+          "תחזוקה מונעת",
+          "מערכת לניהול מוסכים וספקים",
+          "מעקב אחר רכבים",
+          "מערכת GPS לציי רכב",
+          "איתור רכבים",
+          "שליטה מרחוק על צי רכב",
+          "מצלמות לרכב",
+          "חיישנים לרכב",
+          "מערכת התראות",
+          "ניהול ביטוחים לרכב",
+          "ניהול טסטים",
+          "ניהול מסמכי רכב",
+          "מערכת לניהול צי רכב לעסקים",
+          "פתרונות לציי רכב",
+          "תפעול רכבים לעסקים",
+          "ניהול תחזוקת רכבים",
+          "תוכנת FleetOS",
+          "מערכת תפעול צי",
+          "GPS לצי",
+          "טלמטיקה",
+          "מעקב רכבים בזמן אמת",
+          "CANBUS",
+          "התראות תחזוקה",
+          "דוחות צי רכב",
+          "ניהול רישיונות",
+          "ביטוח רכב",
+          "טיפולים לרכב",
+          "קריאות שירות",
+          "איך לנהל צי רכב",
+          "חיסכון בתחזוקת צי",
+          "בחירת תוכנת ניהול צי",
+          "יתרונות טלמטיקה לעסק",
+          "ניהול נהגים מרחוק",
+          "AI בניהול צי רכב"
+        ],
+        "suggested": [
+          "איך לנהל צי רכב לעסק קטן",
+          "חיסכון בעלויות תחזוקת צי",
+          "ניהול צי הובלות",
+          "תוכנה לחברת ליסינג"
+        ],
+        "tiers": {
+          "core": [
+            "fleet management software"
+          ],
+          "service": [],
+          "longTail": [
+            "איך לנהל צי רכב לעסק קטן",
+            "חיסכון בעלויות תחזוקת צי",
+            "ניהול צי הובלות",
+            "תוכנה לחברת ליסינג"
+          ]
+        },
+        "source": "GSC + heuristics",
+        "originalNote": "המלצות מקוריות — לא מועתקות ממתחרים"
+      },
+      "targetAudienceIdeas": {
+        "existing": [
+          "עסקים עם צי רכב",
+          "חברות ליסינג",
+          "מפעילי הובלות",
+          "קבלנים",
+          "ארגונים גדולים",
+          "עסקים עם 5 רכבים ומעלה — לא מוסך"
+        ],
+        "suggested": [
+          {
+            "segment": "חברות הובלה ותובלה",
+            "why": "צי גדול, צורך בתפעול ותחזוקה",
+            "fit": "גבוה"
+          },
+          {
+            "segment": "חברות משלוחים ולוגיסטיקה",
+            "why": "מעקב GPS ונהגים בזמן אמת",
+            "fit": "גבוה"
+          },
+          {
+            "segment": "קבלני בנייה",
+            "why": "רכבי עבודה, ציוד ותחזוקה שטח",
+            "fit": "בינוני"
+          },
+          {
+            "segment": "רשויות מקומיות",
+            "why": "שקיפות, דוחות והתראות",
+            "fit": "בינוני"
+          },
+          {
+            "segment": "ארגוני שירות שטח",
+            "why": "ניהול נהגים והקצאת משימות",
+            "fit": "בינוני"
+          },
+          {
+            "segment": "סטארט-אפים בתחום Mobility",
+            "why": "FleetOS כמוצר SaaS",
+            "fit": "גבוה"
+          },
+          {
+            "segment": "מוסכים ומרכזי שירות",
+            "why": "שילוב תחזוקה ומעקב",
+            "fit": "בינוני"
+          }
+        ],
+        "originalNote": "סגמנטים מוצעים מניתוח תחום Fleet — לא מועתקים"
+      },
+      "advertisingPlatformIdeas": {
+        "selected": [
+          "אתר",
+          "GSC",
+          "GA",
+          "GBP",
+          "Ads",
+          "LinkedIn",
+          "YouTube",
+          "WhatsApp",
+          "FleetOS",
+          "אפליקציה"
+        ],
+        "recommendations": [
+          {
+            "platform": "Google Search / SEO",
+            "why": "תנועה אורגנית למילות FleetOS וניהול צי",
+            "whoFits": "B2B עם מחזור מכירה ארוך",
+            "pros": "עלות נמוכה לטווח ארוך, אמון",
+            "cons": "לוקח זמן",
+            "whenToUse": "מיידי — בסיס לכל אסטרטגיה",
+            "alreadySelected": false
+          },
+          {
+            "platform": "Google Business Profile",
+            "why": "נוכחות מקומית וחיפוש \"לידי\"",
+            "whoFits": "עסקים עם אזור שירות",
+            "pros": "ביקורות, מפות, חינם",
+            "cons": "תלוי באזור",
+            "whenToUse": "שלב 1 אם יש נוכחות פיזית",
+            "alreadySelected": false
+          },
+          {
+            "platform": "Google Ads",
+            "why": "לידים מהירים למילות מסחריות",
+            "whoFits": "תקציב פרסום ומטרת לידים",
+            "pros": "מדיד, מהיר",
+            "cons": "עלות לקליק",
+            "whenToUse": "לאחר דף נחיתה מוכן",
+            "alreadySelected": false
+          },
+          {
+            "platform": "Facebook",
+            "why": "הגעה לבעלי עסקים קטנים-בינוניים",
+            "whoFits": "קהל רחב, מודעות",
+            "pros": "טארגוט מפורט",
+            "cons": "פחות B2B ממוקד",
+            "whenToUse": "קמפיין מודעות + ריטרגטינג",
+            "alreadySelected": false
+          },
+          {
+            "platform": "Instagram",
+            "why": "תוכן ויזואלי — צי, טכנולוגיה",
+            "whoFits": "מותג ואמון",
+            "pros": "Engagement",
+            "cons": "פחות המרות ישירות B2B",
+            "whenToUse": "תוכן מותגי",
+            "alreadySelected": false
+          },
+          {
+            "platform": "LinkedIn",
+            "why": "מנהלי צי, קבלנים, ארגונים",
+            "whoFits": "B2B enterprise",
+            "pros": "קהל מקצועי",
+            "cons": "CPC גבוה",
+            "whenToUse": "לידים איכותיים + ABM",
+            "alreadySelected": true
+          },
+          {
+            "platform": "YouTube",
+            "why": "הדגמות FleetOS, tutorials",
+            "whoFits": "חינוך שוק",
+            "pros": "SEO וידאו, אמון",
+            "cons": "הפקה",
+            "whenToUse": "לאחר עמוד תוכנה",
+            "alreadySelected": true
+          },
+          {
+            "platform": "TikTok",
+            "why": "חשיפה לקהל צעיר בתחום לוגיסטיקה",
+            "whoFits": "מותג חדשני",
+            "pros": "ויראליות",
+            "cons": "פחות רלוונטי ל-B2B מסורתי",
+            "whenToUse": "אופציונלי — מותג",
+            "alreadySelected": false
+          },
+          {
+            "platform": "WhatsApp Business",
+            "why": "שיחות לידים מהירות",
+            "whoFits": "שוק ישראלי",
+            "pros": "המרה גבוהה",
+            "cons": "לא אוטומטי לחלוטין",
+            "whenToUse": "CTA בכל עמוד",
+            "alreadySelected": true
+          },
+          {
+            "platform": "Waze",
+            "why": "פרסום מיקומי לנהגים ועסקים",
+            "whoFits": "אזורי שירות",
+            "pros": "הקשר מיקום",
+            "cons": "מוגבל",
+            "whenToUse": "קמפיין מקומי",
+            "alreadySelected": false
+          },
+          {
+            "platform": "Microsoft Ads",
+            "why": "חיפוש Bing — פחות תחרות",
+            "whoFits": "השלמה ל-Google",
+            "pros": "CPC נמוך יותר",
+            "cons": "נפח נמוך",
+            "whenToUse": "הרחבה בשלב 2",
+            "alreadySelected": false
+          }
+        ],
+        "originalNote": "מטריצת פלטפורמות מקורית לפי פרופיל עסק"
+      },
+      "serviceIdeas": {
+        "existing": [
+          "FleetOS / תוכנת ניהול צי",
+          "תפעול צי רכב",
+          "תחזוקה וטיפולים",
+          "GPS וטלמטיקה",
+          "מצלמות וחיישנים",
+          "ניהול נהגים",
+          "דוחות והתראות",
+          "AI בצי",
+          "תוכנת FleetOS",
+          "אפליקציה לניהול צי רכב",
+          "ניהול צי רכב",
+          "תפעול צי רכב",
+          "תחזוקת רכבים",
+          "ניהול נהגים",
+          "ניהול טיפולים",
+          "ניהול תקלות",
+          "דוחות",
+          "התראות",
+          "GPS",
+          "מצלמות",
+          "חיישנים",
+          "שינוע רכבים",
+          "שירותי דרך",
+          "מוקד שירות",
+          "מעקב טיפולים",
+          "מעקב ביטוחים",
+          "מעקב טסטים",
+          "ניהול ספקים",
+          "ניהול מוסכים"
+        ],
+        "suggested": [
+          {
+            "name": "חבילת הדגמה + POC",
+            "type": "package",
+            "priority": "גבוה"
+          },
+          {
+            "name": "תחזוקה מונעת לצי",
+            "type": "service",
+            "priority": "בינוני"
+          },
+          {
+            "name": "ייעוץ דיגיטציה לצי",
+            "type": "consulting",
+            "priority": "בינוני"
+          },
+          {
+            "name": "מחירון / הצעת מחיר אונליין",
+            "type": "page",
+            "priority": "בינוני"
+          },
+          {
+            "name": "בלוג מומחיות — ניהול צי",
+            "type": "content",
+            "priority": "בינוני"
+          },
+          {
+            "name": "מקרי בוחן לקוחות",
+            "type": "content",
+            "priority": "בינוני"
+          }
+        ],
+        "originalNote": "רעיונות שירות/עמוד מקוריים — לא העתקה"
+      },
+      "competitorResearch": {
+        "competitors": [
+          {
+            "name": "CarData",
+            "likelyKeywords": [
+              "seat tarraco",
+              "skoda anyak",
+              "האם יש חבילות צי רכבים לעסקים"
+            ],
+            "likelyPages": [
+              "בית",
+              "שירותים",
+              "תוכנה/מוצר",
+              "צור קשר"
+            ],
+            "strengths": "נוכחות אורגנית — מבוסס GSC",
+            "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+            "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+            "howToOutrank": [
+              "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+              "תוכן FAQ + מדריכים למילות long-tail",
+              "קישורים פנימיים מעמוד שירותים",
+              "מהירות אתר — Lighthouse"
+            ],
+            "dataGaps": []
+          },
+          {
+            "name": "Pointer",
+            "likelyKeywords": [
+              "seat tarraco",
+              "skoda anyak",
+              "האם יש חבילות צי רכבים לעסקים"
+            ],
+            "likelyPages": [
+              "בית",
+              "שירותים",
+              "תוכנה/מוצר",
+              "צור קשר"
+            ],
+            "strengths": "מותג מוכר בתחום",
+            "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+            "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+            "howToOutrank": [
+              "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+              "תוכן FAQ + מדריכים למילות long-tail",
+              "קישורים פנימיים מעמוד שירותים",
+              "מהירות אתר — Lighthouse"
+            ],
+            "dataGaps": []
+          },
+          {
+            "name": "Ituran",
+            "likelyKeywords": [
+              "seat tarraco",
+              "skoda anyak",
+              "האם יש חבילות צי רכבים לעסקים"
+            ],
+            "likelyPages": [
+              "בית",
+              "שירותים",
+              "תוכנה/מוצר",
+              "צור קשר"
+            ],
+            "strengths": "מותג מוכר בתחום",
+            "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+            "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+            "howToOutrank": [
+              "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+              "תוכן FAQ + מדריכים למילות long-tail",
+              "קישורים פנימיים מעמוד שירותים",
+              "מהירות אתר — Lighthouse"
+            ],
+            "dataGaps": []
+          },
+          {
+            "name": "Otobus",
+            "likelyKeywords": [
+              "seat tarraco",
+              "skoda anyak",
+              "האם יש חבילות צי רכבים לעסקים"
+            ],
+            "likelyPages": [
+              "בית",
+              "שירותים",
+              "תוכנה/מוצר",
+              "צור קשר"
+            ],
+            "strengths": "מותג מוכר בתחום",
+            "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+            "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+            "howToOutrank": [
+              "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+              "תוכן FAQ + מדריכים למילות long-tail",
+              "קישורים פנימיים מעמוד שירותים",
+              "מהירות אתר — Lighthouse"
+            ],
+            "dataGaps": []
+          },
+          {
+            "name": "Fleet Complete",
+            "likelyKeywords": [
+              "seat tarraco",
+              "skoda anyak",
+              "האם יש חבילות צי רכבים לעסקים"
+            ],
+            "likelyPages": [
+              "בית",
+              "שירותים",
+              "תוכנה/מוצר",
+              "צור קשר"
+            ],
+            "strengths": "מותג מוכר בתחום",
+            "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+            "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+            "howToOutrank": [
+              "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+              "תוכן FAQ + מדריכים למילות long-tail",
+              "קישורים פנימיים מעמוד שירותים",
+              "מהירות אתר — Lighthouse"
+            ],
+            "dataGaps": []
+          },
+          {
+            "name": "מערכות ניהול צי ישראליות",
+            "likelyKeywords": [
+              "seat tarraco",
+              "skoda anyak",
+              "האם יש חבילות צי רכבים לעסקים"
+            ],
+            "likelyPages": [
+              "בית",
+              "שירותים",
+              "תוכנה/מוצר",
+              "צור קשר"
+            ],
+            "strengths": "מותג מוכר בתחום",
+            "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+            "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+            "howToOutrank": [
+              "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+              "תוכן FAQ + מדריכים למילות long-tail",
+              "קישורים פנימיים מעמוד שירותים",
+              "מהירות אתר — Lighthouse"
+            ],
+            "dataGaps": []
+          },
+          {
+            "name": "ספקי GPS לצי רכב",
+            "likelyKeywords": [
+              "seat tarraco",
+              "skoda anyak",
+              "האם יש חבילות צי רכבים לעסקים"
+            ],
+            "likelyPages": [
+              "בית",
+              "שירותים",
+              "תוכנה/מוצר",
+              "צור קשר"
+            ],
+            "strengths": "מותג מוכר בתחום",
+            "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+            "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+            "howToOutrank": [
+              "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+              "תוכן FAQ + מדריכים למילות long-tail",
+              "קישורים פנימיים מעמוד שירותים",
+              "מהירות אתר — Lighthouse"
+            ],
+            "dataGaps": []
+          }
+        ],
+        "originalNote": "ניתוח מקצועי מקורי — לא העתקת תוכן מתחרים"
+      },
+      "competitorInspiration": {
+        "concepts": [
+          {
+            "idea": "מבנה תפריט: בית → תוכנה → שירותים → משאבים → צור קשר",
+            "type": "structure",
+            "original": true
+          },
+          {
+            "idea": "דף השוואת תוכנות / \"למה FleetOS\"",
+            "type": "page",
+            "original": true
+          },
+          {
+            "idea": "CTA כפול: הדגמה + WhatsApp",
+            "type": "cta",
+            "original": true
+          },
+          {
+            "idea": "אזור לוגואי לקוחות + מספרים (צי, חיסכון)",
+            "type": "trust",
+            "original": true
+          },
+          {
+            "idea": "מרכז משאבים: מדריכים, וידאו, מחשבונים",
+            "type": "content-hub",
+            "original": true
+          },
+          {
+            "idea": "עמודי שירות לפי תעשייה (הובלות, ליסינג, קבלנים)",
+            "type": "landing",
+            "original": true
+          }
+        ],
+        "missingTopics": [
+          "ניהול צי לעיריות",
+          "אינטגרציית ERP",
+          "AI בחיזוי תחזוקה",
+          "מחירון שקוף",
+          "מקרי בוחן מספריים"
+        ],
+        "disclaimer": "השראה מקורית בלבד — אין העתקת תוכן או עיצוב מתחרים"
+      },
+      "marketComparison": {
+        "whereWeAreToday": "מוכנות טובה לבנייה ושיווק",
+        "readinessScore": 89,
+        "topPlayers": [
+          "CarData",
+          "Pointer"
+        ],
+        "competitorCount": 7,
+        "competitionLevel": "גבוה",
+        "gap": "פער בתוכן FleetOS ייעודי ודירוגים אורגניים — מבוסס נתונים חלקיים",
+        "actionsToOvertake": [
+          "פרסום עמוד FleetOS מלא",
+          "מיפוי 15+ מילות מפתח",
+          "תוכן שבועי (בלוג/וידאו)",
+          "GBP + ביקורות",
+          "קמפיין Ads למילות מסחריות",
+          "שיפור Core Web Vitals"
+        ],
+        "originalNote": "השוואת שוק מקורית — לא נתוני מתחרה מועתקים"
+      },
+      "actionPlan": {
+        "items": [
+          {
+            "priority": 1,
+            "area": "SEO",
+            "action": "אישור ומיפוי מילות מפתח לעמודים",
+            "stage": "seo"
+          },
+          {
+            "priority": 2,
+            "area": "תוכן",
+            "action": "עמוד FleetOS + FAQ",
+            "stage": "report"
+          },
+          {
+            "priority": 3,
+            "area": "עמודי שירות",
+            "action": "הובלות, ליסינג, GPS",
+            "stage": "blueprint"
+          },
+          {
+            "priority": 4,
+            "area": "קישורים פנימיים",
+            "action": "מהבית לתוכנה ולשירותים",
+            "stage": "blueprint"
+          },
+          {
+            "priority": 5,
+            "area": "מהירות",
+            "action": "אופטימיזציית תמונות ו-LCP",
+            "stage": "preview"
+          },
+          {
+            "priority": 6,
+            "area": "UX",
+            "action": "CTA ברור בכל עמוד",
+            "stage": "preview"
+          },
+          {
+            "priority": 7,
+            "area": "GBP",
+            "action": "עדכון פרופיל + פוסטים",
+            "stage": "hub"
+          },
+          {
+            "priority": 8,
+            "area": "Ads",
+            "action": "קמפיין חיפוש — מילות ליד",
+            "stage": "hub"
+          },
+          {
+            "priority": 9,
+            "area": "מאמרים",
+            "action": "3 מאמרי long-tail ראשונים",
+            "stage": "hub"
+          },
+          {
+            "priority": 10,
+            "area": "וידאו",
+            "action": "הדגמת FleetOS ב-YouTube",
+            "stage": "hub"
+          }
+        ],
+        "stageFocus": "report",
+        "prioritized": true
+      },
+      "forecast": {
+        "difficulty": "גבוהה",
+        "competitorCount": 7,
+        "competitionLevel": "high",
+        "estimatedTimeTop10": "9-12 חודשים",
+        "estimatedTimeTop3": "18-24 חודשים",
+        "estimatedTimeNumber1": "24-36+ חודשים (תלוי מילה)",
+        "disclaimer": "הערכות מבוססות על הנתונים הזמינים בלבד — אינן ערבות לתוצאות.",
+        "dataBasis": "GSC + מתחרים + מילות מאושרות"
+      },
+      "strategicReport": {
+        "executiveSummary": [
+          "עסק: דליה פתרונות תפעול ותחזוקה לרכב · תחום: ניהול צי / FleetOS",
+          "מילות מפתח פעילות: 49",
+          "מתחרים במעקב: 7",
+          "מוכנות כללית: 89%",
+          "פעולה מיידית: אישור ומיפוי מילות מפתח לעמודים"
+        ],
+        "sectionsIncluded": [
+          "business",
+          "services",
+          "software",
+          "app",
+          "competitors",
+          "keywords",
+          "audience",
+          "seo",
+          "marketing",
+          "content",
+          "platforms",
+          "blueprint",
+          "roadmap",
+          "tasks",
+          "goals",
+          "aiRecommendations",
+          "workOrder",
+          "readinessScore"
+        ],
+        "pageEquivalent": "10-20 עמודים (ייצוא HTML מלא)",
+        "originalNote": "דוח אסטרטגי מקורי — לא תוכן מתחרים"
+      }
+    },
+    "executiveSummary": {
+      "text": "עסק: דליה פתרונות תפעול ותחזוקה לרכב · תחום: ניהול צי / FleetOS · מילות מפתח פעילות: 49 · מתחרים במעקב: 7 · מוכנות כללית: 89% · פעולה מיידית: אישור ומיפוי מילות מפתח לעמודים",
+      "bullets": [
+        "עסק: דליה פתרונות תפעול ותחזוקה לרכב · תחום: ניהול צי / FleetOS",
+        "מילות מפתח פעילות: 49",
+        "מתחרים במעקב: 7",
+        "מוכנות כללית: 89%",
+        "פעולה מיידית: אישור ומיפוי מילות מפתח לעמודים"
+      ],
+      "generatedAt": "2026-06-30T16:30:02.882Z",
+      "disclaimer": "הערכות מבוססות על הנתונים הזמינים בלבד — אינן ערבות לתוצאות."
+    }
+  },
+  "aiConsultant": {
+    "version": "1.0.0",
+    "stageId": "report",
+    "generatedAt": "2026-06-30T16:30:02.914Z",
+    "company": "דליה פתרונות תפעול ותחזוקה לרכב",
+    "agentContributions": [
+      {
+        "agent": "SEO Agent",
+        "status": "heuristic",
+        "note": "המלצות מבוססות כללים ונתוני localStorage"
+      },
+      {
+        "agent": "Marketing Agent",
+        "status": "heuristic",
+        "note": "המלצות מבוססות כללים ונתוני localStorage"
+      },
+      {
+        "agent": "Business Advisor",
+        "status": "heuristic",
+        "note": "המלצות מבוססות כללים ונתוני localStorage"
+      },
+      {
+        "agent": "GSC",
+        "status": "heuristic",
+        "note": "המלצות מבוססות כללים ונתוני localStorage"
+      },
+      {
+        "agent": "Analytics",
+        "status": "missing",
+        "note": "חסר מידע"
+      },
+      {
+        "agent": "GBP",
+        "status": "heuristic",
+        "note": "המלצות מבוססות כללים ונתוני localStorage"
+      },
+      {
+        "agent": "Ads",
+        "status": "heuristic",
+        "note": "המלצות מבוססות כללים ונתוני localStorage"
+      },
+      {
+        "agent": "PageSpeed",
+        "status": "partial",
+        "note": "חסר מידע — אין מדידה חיה; הערכה היוריסטית"
+      },
+      {
+        "agent": "Lighthouse",
+        "status": "partial",
+        "note": "חסר מידע — אין מדידה חיה; הערכה היוריסטית"
+      },
+      {
+        "agent": "AI Stage Advisor",
+        "status": "heuristic",
+        "note": "המלצות מבוססות כללים ונתוני localStorage"
+      },
+      {
+        "agent": "Site Comparison",
+        "status": "heuristic",
+        "note": "המלצות מבוססות כללים ונתוני localStorage"
+      }
+    ],
+    "keywordIdeas": {
+      "existing": [
+        "תוכנה לניהול צי רכב",
+        "מערכת לניהול צי רכב",
+        "אפליקציה לניהול צי רכב",
+        "מערכת תפעול ותחזוקת רכבים",
+        "ניהול צי רכב לעסקים",
+        "תחזוקת צי רכב",
+        "ניהול רכבי חברה",
+        "מערכת לניהול רכבי חברה",
+        "אפליקציה לניהול רכבים",
+        "Fleet Management",
+        "Fleet Management Software",
+        "FleetOS",
+        "ניהול נהגים",
+        "ניהול טיפולים",
+        "ניהול תקלות",
+        "תחזוקה מונעת",
+        "מערכת לניהול מוסכים וספקים",
+        "מעקב אחר רכבים",
+        "מערכת GPS לציי רכב",
+        "איתור רכבים",
+        "שליטה מרחוק על צי רכב",
+        "מצלמות לרכב",
+        "חיישנים לרכב",
+        "מערכת התראות",
+        "ניהול ביטוחים לרכב",
+        "ניהול טסטים",
+        "ניהול מסמכי רכב",
+        "מערכת לניהול צי רכב לעסקים",
+        "פתרונות לציי רכב",
+        "תפעול רכבים לעסקים",
+        "ניהול תחזוקת רכבים",
+        "תוכנת FleetOS",
+        "מערכת תפעול צי",
+        "GPS לצי",
+        "טלמטיקה",
+        "מעקב רכבים בזמן אמת",
+        "CANBUS",
+        "התראות תחזוקה",
+        "דוחות צי רכב",
+        "ניהול רישיונות",
+        "ביטוח רכב",
+        "טיפולים לרכב",
+        "קריאות שירות",
+        "איך לנהל צי רכב",
+        "חיסכון בתחזוקת צי",
+        "בחירת תוכנת ניהול צי",
+        "יתרונות טלמטיקה לעסק",
+        "ניהול נהגים מרחוק",
+        "AI בניהול צי רכב"
+      ],
+      "suggested": [
+        "איך לנהל צי רכב לעסק קטן",
+        "חיסכון בעלויות תחזוקת צי",
+        "ניהול צי הובלות",
+        "תוכנה לחברת ליסינג"
+      ],
+      "tiers": {
+        "core": [
+          "fleet management software"
+        ],
+        "service": [],
+        "longTail": [
+          "איך לנהל צי רכב לעסק קטן",
+          "חיסכון בעלויות תחזוקת צי",
+          "ניהול צי הובלות",
+          "תוכנה לחברת ליסינג"
+        ]
+      },
+      "source": "GSC + heuristics",
+      "originalNote": "המלצות מקוריות — לא מועתקות ממתחרים"
+    },
+    "targetAudienceIdeas": {
+      "existing": [
+        "עסקים עם צי רכב",
+        "חברות ליסינג",
+        "מפעילי הובלות",
+        "קבלנים",
+        "ארגונים גדולים",
+        "עסקים עם 5 רכבים ומעלה — לא מוסך"
+      ],
+      "suggested": [
+        {
+          "segment": "חברות הובלה ותובלה",
+          "why": "צי גדול, צורך בתפעול ותחזוקה",
+          "fit": "גבוה"
+        },
+        {
+          "segment": "חברות משלוחים ולוגיסטיקה",
+          "why": "מעקב GPS ונהגים בזמן אמת",
+          "fit": "גבוה"
+        },
+        {
+          "segment": "קבלני בנייה",
+          "why": "רכבי עבודה, ציוד ותחזוקה שטח",
+          "fit": "בינוני"
+        },
+        {
+          "segment": "רשויות מקומיות",
+          "why": "שקיפות, דוחות והתראות",
+          "fit": "בינוני"
+        },
+        {
+          "segment": "ארגוני שירות שטח",
+          "why": "ניהול נהגים והקצאת משימות",
+          "fit": "בינוני"
+        },
+        {
+          "segment": "סטארט-אפים בתחום Mobility",
+          "why": "FleetOS כמוצר SaaS",
+          "fit": "גבוה"
+        },
+        {
+          "segment": "מוסכים ומרכזי שירות",
+          "why": "שילוב תחזוקה ומעקב",
+          "fit": "בינוני"
+        }
+      ],
+      "originalNote": "סגמנטים מוצעים מניתוח תחום Fleet — לא מועתקים"
+    },
+    "advertisingPlatformIdeas": {
+      "selected": [
+        "אתר",
+        "GSC",
+        "GA",
+        "GBP",
+        "Ads",
+        "LinkedIn",
+        "YouTube",
+        "WhatsApp",
+        "FleetOS",
+        "אפליקציה"
+      ],
+      "recommendations": [
+        {
+          "platform": "Google Search / SEO",
+          "why": "תנועה אורגנית למילות FleetOS וניהול צי",
+          "whoFits": "B2B עם מחזור מכירה ארוך",
+          "pros": "עלות נמוכה לטווח ארוך, אמון",
+          "cons": "לוקח זמן",
+          "whenToUse": "מיידי — בסיס לכל אסטרטגיה",
+          "alreadySelected": false
+        },
+        {
+          "platform": "Google Business Profile",
+          "why": "נוכחות מקומית וחיפוש \"לידי\"",
+          "whoFits": "עסקים עם אזור שירות",
+          "pros": "ביקורות, מפות, חינם",
+          "cons": "תלוי באזור",
+          "whenToUse": "שלב 1 אם יש נוכחות פיזית",
+          "alreadySelected": false
+        },
+        {
+          "platform": "Google Ads",
+          "why": "לידים מהירים למילות מסחריות",
+          "whoFits": "תקציב פרסום ומטרת לידים",
+          "pros": "מדיד, מהיר",
+          "cons": "עלות לקליק",
+          "whenToUse": "לאחר דף נחיתה מוכן",
+          "alreadySelected": false
+        },
+        {
+          "platform": "Facebook",
+          "why": "הגעה לבעלי עסקים קטנים-בינוניים",
+          "whoFits": "קהל רחב, מודעות",
+          "pros": "טארגוט מפורט",
+          "cons": "פחות B2B ממוקד",
+          "whenToUse": "קמפיין מודעות + ריטרגטינג",
+          "alreadySelected": false
+        },
+        {
+          "platform": "Instagram",
+          "why": "תוכן ויזואלי — צי, טכנולוגיה",
+          "whoFits": "מותג ואמון",
+          "pros": "Engagement",
+          "cons": "פחות המרות ישירות B2B",
+          "whenToUse": "תוכן מותגי",
+          "alreadySelected": false
+        },
+        {
+          "platform": "LinkedIn",
+          "why": "מנהלי צי, קבלנים, ארגונים",
+          "whoFits": "B2B enterprise",
+          "pros": "קהל מקצועי",
+          "cons": "CPC גבוה",
+          "whenToUse": "לידים איכותיים + ABM",
+          "alreadySelected": true
+        },
+        {
+          "platform": "YouTube",
+          "why": "הדגמות FleetOS, tutorials",
+          "whoFits": "חינוך שוק",
+          "pros": "SEO וידאו, אמון",
+          "cons": "הפקה",
+          "whenToUse": "לאחר עמוד תוכנה",
+          "alreadySelected": true
+        },
+        {
+          "platform": "TikTok",
+          "why": "חשיפה לקהל צעיר בתחום לוגיסטיקה",
+          "whoFits": "מותג חדשני",
+          "pros": "ויראליות",
+          "cons": "פחות רלוונטי ל-B2B מסורתי",
+          "whenToUse": "אופציונלי — מותג",
+          "alreadySelected": false
+        },
+        {
+          "platform": "WhatsApp Business",
+          "why": "שיחות לידים מהירות",
+          "whoFits": "שוק ישראלי",
+          "pros": "המרה גבוהה",
+          "cons": "לא אוטומטי לחלוטין",
+          "whenToUse": "CTA בכל עמוד",
+          "alreadySelected": true
+        },
+        {
+          "platform": "Waze",
+          "why": "פרסום מיקומי לנהגים ועסקים",
+          "whoFits": "אזורי שירות",
+          "pros": "הקשר מיקום",
+          "cons": "מוגבל",
+          "whenToUse": "קמפיין מקומי",
+          "alreadySelected": false
+        },
+        {
+          "platform": "Microsoft Ads",
+          "why": "חיפוש Bing — פחות תחרות",
+          "whoFits": "השלמה ל-Google",
+          "pros": "CPC נמוך יותר",
+          "cons": "נפח נמוך",
+          "whenToUse": "הרחבה בשלב 2",
+          "alreadySelected": false
+        }
+      ],
+      "originalNote": "מטריצת פלטפורמות מקורית לפי פרופיל עסק"
+    },
+    "serviceIdeas": {
+      "existing": [
+        "FleetOS / תוכנת ניהול צי",
+        "תפעול צי רכב",
+        "תחזוקה וטיפולים",
+        "GPS וטלמטיקה",
+        "מצלמות וחיישנים",
+        "ניהול נהגים",
+        "דוחות והתראות",
+        "AI בצי",
+        "תוכנת FleetOS",
+        "אפליקציה לניהול צי רכב",
+        "ניהול צי רכב",
+        "תפעול צי רכב",
+        "תחזוקת רכבים",
+        "ניהול נהגים",
+        "ניהול טיפולים",
+        "ניהול תקלות",
+        "דוחות",
+        "התראות",
+        "GPS",
+        "מצלמות",
+        "חיישנים",
+        "שינוע רכבים",
+        "שירותי דרך",
+        "מוקד שירות",
+        "מעקב טיפולים",
+        "מעקב ביטוחים",
+        "מעקב טסטים",
+        "ניהול ספקים",
+        "ניהול מוסכים"
+      ],
+      "suggested": [
+        {
+          "name": "חבילת הדגמה + POC",
+          "type": "package",
+          "priority": "גבוה"
+        },
+        {
+          "name": "תחזוקה מונעת לצי",
+          "type": "service",
+          "priority": "בינוני"
+        },
+        {
+          "name": "ייעוץ דיגיטציה לצי",
+          "type": "consulting",
+          "priority": "בינוני"
+        },
+        {
+          "name": "מחירון / הצעת מחיר אונליין",
+          "type": "page",
+          "priority": "בינוני"
+        },
+        {
+          "name": "בלוג מומחיות — ניהול צי",
+          "type": "content",
+          "priority": "בינוני"
+        },
+        {
+          "name": "מקרי בוחן לקוחות",
+          "type": "content",
+          "priority": "בינוני"
+        }
+      ],
+      "originalNote": "רעיונות שירות/עמוד מקוריים — לא העתקה"
+    },
+    "competitorResearch": {
+      "competitors": [
+        {
+          "name": "CarData",
+          "likelyKeywords": [
+            "seat tarraco",
+            "skoda anyak",
+            "האם יש חבילות צי רכבים לעסקים"
+          ],
+          "likelyPages": [
+            "בית",
+            "שירותים",
+            "תוכנה/מוצר",
+            "צור קשר"
+          ],
+          "strengths": "נוכחות אורגנית — מבוסס GSC",
+          "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+          "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+          "howToOutrank": [
+            "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+            "תוכן FAQ + מדריכים למילות long-tail",
+            "קישורים פנימיים מעמוד שירותים",
+            "מהירות אתר — Lighthouse"
+          ],
+          "dataGaps": []
+        },
+        {
+          "name": "Pointer",
+          "likelyKeywords": [
+            "seat tarraco",
+            "skoda anyak",
+            "האם יש חבילות צי רכבים לעסקים"
+          ],
+          "likelyPages": [
+            "בית",
+            "שירותים",
+            "תוכנה/מוצר",
+            "צור קשר"
+          ],
+          "strengths": "מותג מוכר בתחום",
+          "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+          "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+          "howToOutrank": [
+            "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+            "תוכן FAQ + מדריכים למילות long-tail",
+            "קישורים פנימיים מעמוד שירותים",
+            "מהירות אתר — Lighthouse"
+          ],
+          "dataGaps": []
+        },
+        {
+          "name": "Ituran",
+          "likelyKeywords": [
+            "seat tarraco",
+            "skoda anyak",
+            "האם יש חבילות צי רכבים לעסקים"
+          ],
+          "likelyPages": [
+            "בית",
+            "שירותים",
+            "תוכנה/מוצר",
+            "צור קשר"
+          ],
+          "strengths": "מותג מוכר בתחום",
+          "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+          "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+          "howToOutrank": [
+            "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+            "תוכן FAQ + מדריכים למילות long-tail",
+            "קישורים פנימיים מעמוד שירותים",
+            "מהירות אתר — Lighthouse"
+          ],
+          "dataGaps": []
+        },
+        {
+          "name": "Otobus",
+          "likelyKeywords": [
+            "seat tarraco",
+            "skoda anyak",
+            "האם יש חבילות צי רכבים לעסקים"
+          ],
+          "likelyPages": [
+            "בית",
+            "שירותים",
+            "תוכנה/מוצר",
+            "צור קשר"
+          ],
+          "strengths": "מותג מוכר בתחום",
+          "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+          "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+          "howToOutrank": [
+            "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+            "תוכן FAQ + מדריכים למילות long-tail",
+            "קישורים פנימיים מעמוד שירותים",
+            "מהירות אתר — Lighthouse"
+          ],
+          "dataGaps": []
+        },
+        {
+          "name": "Fleet Complete",
+          "likelyKeywords": [
+            "seat tarraco",
+            "skoda anyak",
+            "האם יש חבילות צי רכבים לעסקים"
+          ],
+          "likelyPages": [
+            "בית",
+            "שירותים",
+            "תוכנה/מוצר",
+            "צור קשר"
+          ],
+          "strengths": "מותג מוכר בתחום",
+          "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+          "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+          "howToOutrank": [
+            "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+            "תוכן FAQ + מדריכים למילות long-tail",
+            "קישורים פנימיים מעמוד שירותים",
+            "מהירות אתר — Lighthouse"
+          ],
+          "dataGaps": []
+        },
+        {
+          "name": "מערכות ניהול צי ישראליות",
+          "likelyKeywords": [
+            "seat tarraco",
+            "skoda anyak",
+            "האם יש חבילות צי רכבים לעסקים"
+          ],
+          "likelyPages": [
+            "בית",
+            "שירותים",
+            "תוכנה/מוצר",
+            "צור קשר"
+          ],
+          "strengths": "מותג מוכר בתחום",
+          "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+          "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+          "howToOutrank": [
+            "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+            "תוכן FAQ + מדריכים למילות long-tail",
+            "קישורים פנימיים מעמוד שירותים",
+            "מהירות אתר — Lighthouse"
+          ],
+          "dataGaps": []
+        },
+        {
+          "name": "ספקי GPS לצי רכב",
+          "likelyKeywords": [
+            "seat tarraco",
+            "skoda anyak",
+            "האם יש חבילות צי רכבים לעסקים"
+          ],
+          "likelyPages": [
+            "בית",
+            "שירותים",
+            "תוכנה/מוצר",
+            "צור קשר"
+          ],
+          "strengths": "מותג מוכר בתחום",
+          "weaknesses": "חסר FleetOS ייעודי / תוכן עומק — הערכה מקורית",
+          "ourAdvantage": "FleetOS + שילוב תפעול, תחזוקה וטכנולוגיה",
+          "howToOutrank": [
+            "עמוד ייעודי FleetOS עם Schema SoftwareApplication",
+            "תוכן FAQ + מדריכים למילות long-tail",
+            "קישורים פנימיים מעמוד שירותים",
+            "מהירות אתר — Lighthouse"
+          ],
+          "dataGaps": []
+        }
+      ],
+      "originalNote": "ניתוח מקצועי מקורי — לא העתקת תוכן מתחרים"
+    },
+    "competitorInspiration": {
+      "concepts": [
+        {
+          "idea": "מבנה תפריט: בית → תוכנה → שירותים → משאבים → צור קשר",
+          "type": "structure",
+          "original": true
+        },
+        {
+          "idea": "דף השוואת תוכנות / \"למה FleetOS\"",
+          "type": "page",
+          "original": true
+        },
+        {
+          "idea": "CTA כפול: הדגמה + WhatsApp",
+          "type": "cta",
+          "original": true
+        },
+        {
+          "idea": "אזור לוגואי לקוחות + מספרים (צי, חיסכון)",
+          "type": "trust",
+          "original": true
+        },
+        {
+          "idea": "מרכז משאבים: מדריכים, וידאו, מחשבונים",
+          "type": "content-hub",
+          "original": true
+        },
+        {
+          "idea": "עמודי שירות לפי תעשייה (הובלות, ליסינג, קבלנים)",
+          "type": "landing",
+          "original": true
+        }
+      ],
+      "missingTopics": [
+        "ניהול צי לעיריות",
+        "אינטגרציית ERP",
+        "AI בחיזוי תחזוקה",
+        "מחירון שקוף",
+        "מקרי בוחן מספריים"
+      ],
+      "disclaimer": "השראה מקורית בלבד — אין העתקת תוכן או עיצוב מתחרים"
+    },
+    "marketComparison": {
+      "whereWeAreToday": "מוכנות טובה לבנייה ושיווק",
+      "readinessScore": 89,
+      "topPlayers": [
+        "CarData",
+        "Pointer"
+      ],
+      "competitorCount": 7,
+      "competitionLevel": "גבוה",
+      "gap": "פער בתוכן FleetOS ייעודי ודירוגים אורגניים — מבוסס נתונים חלקיים",
+      "actionsToOvertake": [
+        "פרסום עמוד FleetOS מלא",
+        "מיפוי 15+ מילות מפתח",
+        "תוכן שבועי (בלוג/וידאו)",
+        "GBP + ביקורות",
+        "קמפיין Ads למילות מסחריות",
+        "שיפור Core Web Vitals"
+      ],
+      "originalNote": "השוואת שוק מקורית — לא נתוני מתחרה מועתקים"
+    },
+    "actionPlan": {
+      "items": [
+        {
+          "priority": 1,
+          "area": "SEO",
+          "action": "אישור ומיפוי מילות מפתח לעמודים",
+          "stage": "seo"
+        },
+        {
+          "priority": 2,
+          "area": "תוכן",
+          "action": "עמוד FleetOS + FAQ",
+          "stage": "report"
+        },
+        {
+          "priority": 3,
+          "area": "עמודי שירות",
+          "action": "הובלות, ליסינג, GPS",
+          "stage": "blueprint"
+        },
+        {
+          "priority": 4,
+          "area": "קישורים פנימיים",
+          "action": "מהבית לתוכנה ולשירותים",
+          "stage": "blueprint"
+        },
+        {
+          "priority": 5,
+          "area": "מהירות",
+          "action": "אופטימיזציית תמונות ו-LCP",
+          "stage": "preview"
+        },
+        {
+          "priority": 6,
+          "area": "UX",
+          "action": "CTA ברור בכל עמוד",
+          "stage": "preview"
+        },
+        {
+          "priority": 7,
+          "area": "GBP",
+          "action": "עדכון פרופיל + פוסטים",
+          "stage": "hub"
+        },
+        {
+          "priority": 8,
+          "area": "Ads",
+          "action": "קמפיין חיפוש — מילות ליד",
+          "stage": "hub"
+        },
+        {
+          "priority": 9,
+          "area": "מאמרים",
+          "action": "3 מאמרי long-tail ראשונים",
+          "stage": "hub"
+        },
+        {
+          "priority": 10,
+          "area": "וידאו",
+          "action": "הדגמת FleetOS ב-YouTube",
+          "stage": "hub"
+        }
+      ],
+      "stageFocus": "report",
+      "prioritized": true
+    },
+    "forecast": {
+      "difficulty": "גבוהה",
+      "competitorCount": 7,
+      "competitionLevel": "high",
+      "estimatedTimeTop10": "9-12 חודשים",
+      "estimatedTimeTop3": "18-24 חודשים",
+      "estimatedTimeNumber1": "24-36+ חודשים (תלוי מילה)",
+      "disclaimer": "הערכות מבוססות על הנתונים הזמינים בלבד — אינן ערבות לתוצאות.",
+      "dataBasis": "GSC + מתחרים + מילות מאושרות"
+    },
+    "strategicReport": {
+      "executiveSummary": [
+        "עסק: דליה פתרונות תפעול ותחזוקה לרכב · תחום: ניהול צי / FleetOS",
+        "מילות מפתח פעילות: 49",
+        "מתחרים במעקב: 7",
+        "מוכנות כללית: 89%",
+        "פעולה מיידית: אישור ומיפוי מילות מפתח לעמודים"
+      ],
+      "sectionsIncluded": [
+        "business",
+        "services",
+        "software",
+        "app",
+        "competitors",
+        "keywords",
+        "audience",
+        "seo",
+        "marketing",
+        "content",
+        "platforms",
+        "blueprint",
+        "roadmap",
+        "tasks",
+        "goals",
+        "aiRecommendations",
+        "workOrder",
+        "readinessScore"
+      ],
+      "pageEquivalent": "10-20 עמודים (ייצוא HTML מלא)",
+      "originalNote": "דוח אסטרטגי מקורי — לא תוכן מתחרים"
+    }
+  }
+}

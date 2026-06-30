@@ -12,7 +12,7 @@
     url: 'https://dalia-c.com/',
     domain: 'dalia-c.com',
     name: 'דליה — dalia-c.com',
-    company: 'דליה פתרונות מימון ותחזוקה לרכב',
+    company: 'דליה פתרונות תפעול ותחזוקה לרכב',
     clientId: 'dalia-c-official',
     account: 'orin1607@gmail.com',
     superAdmin: 'יוני אטיאס',
