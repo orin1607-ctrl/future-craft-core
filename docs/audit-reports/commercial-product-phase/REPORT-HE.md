@@ -99,13 +99,13 @@
 
 ## 6. Commit hash
 
-`COMMIT_PLACEHOLDER`
+`fc51927`
 
 ---
 
 ## 7. קישור ל-Staging
 
-https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=COMMIT_PLACEHOLDER
+https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=fc51927
 
 Preview לדוגמה:  
 https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html
