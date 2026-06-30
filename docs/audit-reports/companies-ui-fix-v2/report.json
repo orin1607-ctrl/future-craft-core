@@ -1,0 +1,138 @@
+{
+  "at": "2026-06-30T06:32:16.389Z",
+  "version": "v3-companies-ui-fix-v2",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=v3-companies-ui-fix-v2",
+  "checks": {
+    "desktop_hub_smooth_scroll_mobile": {
+      "ok": false,
+      "detail": "{\"topbars\":0,\"scrollableCount\":0,\"downOk\":false,\"stuck\":false}"
+    },
+    "desktop_no_duplicate_header": {
+      "ok": false,
+      "detail": "topbars=0"
+    },
+    "desktop_no_extra_internal_scrollbar": {
+      "ok": true,
+      "detail": "scrollables=0"
+    },
+    "desktop_companies_smooth_scroll": {
+      "ok": false,
+      "detail": "{\"ok\":false,\"down\":0,\"up\":0}"
+    },
+    "desktop_strategy_wizard_smooth_scroll": {
+      "ok": false,
+      "detail": "{\"ok\":false,\"down\":0,\"up\":0}"
+    },
+    "desktop_website_button_visible": {
+      "ok": true,
+      "detail": "🌐 צור אתר AI"
+    },
+    "desktop_agents_button_separate": {
+      "ok": true,
+      "detail": "פתח מנהל השיווק ←"
+    },
+    "desktop_website_button_opens_builder_not_agents": {
+      "ok": true,
+      "detail": "{\"builderVisible\":true,\"strategyHidden\":true,\"agentsActive\":false}"
+    },
+    "desktop_scenario_completed": {
+      "ok": false,
+      "detail": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('#wb-complete') to be visible\n"
+    },
+    "iphone13_hub_smooth_scroll_mobile": {
+      "ok": false,
+      "detail": "{\"topbars\":0,\"scrollableCount\":0,\"downOk\":false,\"stuck\":false}"
+    },
+    "iphone13_no_duplicate_header": {
+      "ok": false,
+      "detail": "topbars=0"
+    },
+    "iphone13_no_extra_internal_scrollbar": {
+      "ok": true,
+      "detail": "scrollables=0"
+    },
+    "iphone13_companies_smooth_scroll": {
+      "ok": false,
+      "detail": "{\"ok\":false,\"down\":0,\"up\":0}"
+    },
+    "iphone13_strategy_wizard_smooth_scroll": {
+      "ok": false,
+      "detail": "{\"ok\":false,\"down\":0,\"up\":0}"
+    },
+    "iphone13_website_button_visible": {
+      "ok": true,
+      "detail": "🌐 צור אתר AI"
+    },
+    "iphone13_agents_button_separate": {
+      "ok": true,
+      "detail": "פתח מנהל השיווק ←"
+    },
+    "iphone13_website_button_opens_builder_not_agents": {
+      "ok": true,
+      "detail": "{\"builderVisible\":true,\"strategyHidden\":true,\"agentsActive\":false}"
+    },
+    "iphone13_scenario_completed": {
+      "ok": false,
+      "detail": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('#wb-complete') to be visible\n"
+    }
+  },
+  "scenarios": {
+    "desktop": {
+      "consoleErrors": [],
+      "probes": {
+        "hub": {
+          "topbars": 0,
+          "scrollableCount": 0,
+          "downOk": false,
+          "stuck": false
+        },
+        "strategyScroll": {
+          "ok": false,
+          "down": 0,
+          "up": 0
+        },
+        "exportedButtons": {
+          "wbVisible": true,
+          "agentsVisible": true,
+          "wbText": "🌐 צור אתר AI",
+          "agentsText": "פתח מנהל השיווק ←"
+        },
+        "builderOpen": {
+          "builderVisible": true,
+          "strategyHidden": true,
+          "agentsActive": false
+        }
+      }
+    },
+    "iphone13": {
+      "consoleErrors": [],
+      "probes": {
+        "hub": {
+          "topbars": 0,
+          "scrollableCount": 0,
+          "downOk": false,
+          "stuck": false
+        },
+        "strategyScroll": {
+          "ok": false,
+          "down": 0,
+          "up": 0
+        },
+        "exportedButtons": {
+          "wbVisible": true,
+          "agentsVisible": true,
+          "wbText": "🌐 צור אתר AI",
+          "agentsText": "פתח מנהל השיווק ←"
+        },
+        "builderOpen": {
+          "builderVisible": true,
+          "strategyHidden": true,
+          "agentsActive": false
+        }
+      }
+    }
+  },
+  "pass": 8,
+  "fail": 10,
+  "ok": false
+}

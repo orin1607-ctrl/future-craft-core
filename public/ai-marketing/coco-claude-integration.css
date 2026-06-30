@@ -19,7 +19,7 @@ body {
   z-index: 46;
   pointer-events: auto;
   max-width: 100vw;
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 #coco-gfc-chrome.coco-gfc-hidden {
   display: none !important;
@@ -225,6 +225,27 @@ body.prd-dalia-embedded .prd-dalia-exit-inline {
 }
 
 @media (max-width: 680px) {
+  html, body {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  #coco-claude-root {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  #coco-claude-root > .screen.active {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #coco-claude-root > .screen.active > .content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
   #coco-unified-context-bar .coco-cfc-toggle {
     display: inline-flex !important;
     flex-shrink: 0;

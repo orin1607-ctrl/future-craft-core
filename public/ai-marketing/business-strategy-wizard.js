@@ -563,6 +563,10 @@ function exportData(){
   if (!res.ok) { showToast('⚠️ שגיאה בהעברה'); return; }
   document.getElementById('exported').style.display='block';
   document.getElementById('btn-next').style.display='none';
+  var exportedEl = document.getElementById('exported');
+  if (exportedEl && exportedEl.scrollIntoView) {
+    setTimeout(function(){ exportedEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+  }
   showToast('🚀 הועבר לכל העוזרים!');
 }
 
@@ -572,6 +576,11 @@ function openWebsiteBuilder(){
     return;
   }
   showToast('⚠️ מודול בניית אתר לא זמין כרגע');
+}
+
+function goToAgentsFromStrategy(){
+  if (typeof goScreen === 'function') goScreen('screen-agents');
+  showToast('🚀 נפתח מנהל השיווק (עוזרים)');
 }
  
 function parseBudget(b){
@@ -595,7 +604,7 @@ function showToast(m){
   window.tc = tc; window.dov = dov; window.dlv = dlv; window.ddr = ddr; window.hf = hf;
   window.addUrl = addUrl; window.togglePlat = togglePlat; window.connectPlat = connectPlat;
   window.disconnectPlat = disconnectPlat; window.goT = goT; window.nextT = nextT; window.prevT = prevT;
-  window.startAnalysis = startAnalysis; window.exportData = exportData; window.openWebsiteBuilder = openWebsiteBuilder; window.showToast = showToast;
+  window.startAnalysis = startAnalysis; window.exportData = exportData; window.openWebsiteBuilder = openWebsiteBuilder; window.goToAgentsFromStrategy = goToAgentsFromStrategy; window.showToast = showToast;
 
   function mountWizard() {
     rootEl = document.getElementById('biz-strategy-root');
@@ -613,6 +622,17 @@ function showToast(m){
       buildWiz();
       buildPlats();
       buildAgents();
+      var exportedButtons = rootEl.querySelector('#exported');
+      if (exportedButtons) {
+        var btns = exportedButtons.querySelectorAll('button');
+        if (btns[0]) btns[0].textContent = '🌐 צור אתר AI';
+        if (btns[1]) {
+          btns[1].textContent = 'פתח מנהל השיווק / שלח לעוזרים';
+          btns[1].setAttribute('onclick', 'goToAgentsFromStrategy()');
+        }
+        var row = btns[0] && btns[0].parentElement;
+        if (row) row.classList.add('biz-export-actions');
+      }
       applySeedPrefill(BusinessStrategyModule.buildSeed());
       collect();
       goT(1);

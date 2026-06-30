@@ -163,3 +163,25 @@
 #biz-strategy-root .footer{z-index:510;}
 #screen-business-strategy.active{display:flex;flex-direction:column;}
 #screen-business-strategy .biz-strategy-root{flex:1;overflow:auto;}
+#biz-strategy-root .biz-export-actions{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+@media (max-width: 767px) {
+  #biz-strategy-root .biz-export-actions {
+    position: sticky;
+    bottom: 72px;
+    padding: 10px;
+    border: 1px solid var(--w10);
+    border-radius: 10px;
+    background: rgba(4, 9, 26, 0.96);
+    z-index: 25;
+  }
+  #biz-strategy-root .biz-export-actions .btn {
+    flex: 1 1 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
