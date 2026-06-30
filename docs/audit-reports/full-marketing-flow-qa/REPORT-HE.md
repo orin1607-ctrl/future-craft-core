@@ -1,8 +1,8 @@
 # דוח QA מלא — מערכת שיווק AI (מוצר ללקוחות)
 
 **תאריך:** 2026-06-30  
-**Commit:** `COMMIT_PLACEHOLDER`  
-**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=COMMIT_PLACEHOLDER
+**Commit:** `c609f75`  
+**Staging:** https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=c609f75
 
 ---
 
@@ -73,13 +73,13 @@
 
 ## 6. Commit
 
-`COMMIT_PLACEHOLDER`
+`c609f75`
 
 ---
 
 ## 7. קישור Staging
 
-https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=COMMIT_PLACEHOLDER
+https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=c609f75
 
 ---
 
