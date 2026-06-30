@@ -1,7 +1,7 @@
 {
-  "at": "2026-06-30T15:30:19.660Z",
-  "commit": "6822247",
-  "stagingUrl": "http://127.0.0.1:8799/ai-marketing-platform.html?v=6822247",
+  "at": "2026-06-30T15:34:52.327Z",
+  "commit": "c2e43c6",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=c2e43c6",
   "checks": {
     "desktop_hub_active": {
       "ok": true,
@@ -161,7 +161,7 @@
     },
     "desktop_permanent_preview_url": {
       "ok": true,
-      "detail": "http://127.0.0.1:8799/client-previews/dalia-c-official/index.html"
+      "detail": "https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html"
     },
     "desktop_activity_log": {
       "ok": true,
@@ -365,7 +365,7 @@
     },
     "iphone13_permanent_preview_url": {
       "ok": true,
-      "detail": "http://127.0.0.1:8799/client-previews/dalia-c-official/index.html"
+      "detail": "https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html"
     },
     "iphone13_activity_log": {
       "ok": true,
@@ -569,7 +569,7 @@
     },
     "android_permanent_preview_url": {
       "ok": true,
-      "detail": "http://127.0.0.1:8799/client-previews/dalia-c-official/index.html"
+      "detail": "https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html"
     },
     "android_activity_log": {
       "ok": true,
