@@ -332,6 +332,9 @@ tr:hover td { background: var(--white06); }
 .fab-ai:hover { transform: scale(1.08); box-shadow: 0 8px 30px rgba(37,99,235,0.5); }
 @media (min-width: 681px) { .fab-ai { bottom: 24px; } }
 
+/* Legacy in-screen FAB is disabled; keep only the global assistant FAB (#cocoAiFab). */
+.fab-ai { display: none !important; }
+
 /* color swatch */
 .swatch-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .swatch { width: 32px; height: 32px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; }

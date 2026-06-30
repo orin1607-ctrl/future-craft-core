@@ -414,8 +414,10 @@
       live.style.display = 'block';
       live.style.visibility = 'visible';
     }
-    if (window.CocoUnified && CocoUnified.ensureGfcVisible) CocoUnified.ensureGfcVisible();
-    if (window.CocoUnified && CocoUnified.placeContextBar) CocoUnified.placeContextBar(screenId);
+    if (window.CocoUnified && CocoUnified.placeContextBar) {
+      var activeId = document.querySelector('#coco-claude-root > .screen.active')?.id || screenId;
+      CocoUnified.placeContextBar(activeId);
+    }
   }
 
   function renderRecRowsMobile(recs) {

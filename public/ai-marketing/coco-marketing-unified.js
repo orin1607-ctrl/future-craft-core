@@ -14,11 +14,16 @@
     'screen-history', 'screen-assets', 'screen-ai-center', 'screen-reports', 'screen-crm',
     'screen-agents', 'screen-agent-dashboard', 'screen-crm-card', 'screen-ai-decisions',
   ];
+  var GFC_EXCLUDED_SCREENS = ['screen-business-strategy'];
 
   function isMarketingScreen(screenId) {
     if (!screenId) return false;
     if (MARKETING_SCREENS.indexOf(screenId) >= 0) return true;
     return /^screen-/.test(screenId);
+  }
+
+  function shouldShowGlobalChrome(screenId) {
+    return isMarketingScreen(screenId) && GFC_EXCLUDED_SCREENS.indexOf(screenId) < 0;
   }
 
   function isAuth() {
@@ -200,11 +205,11 @@
     if (chrome && bar.parentElement !== chrome) {
       chrome.appendChild(bar);
     }
-    var marketing = isMarketingScreen(screenId);
-    if (chrome) chrome.classList.toggle('coco-gfc-hidden', !marketing);
-    document.body.classList.toggle('coco-gfc-active', marketing);
-    document.body.dataset.gfcScreen = marketing ? screenId : '';
-    if (!marketing) return;
+    var showChrome = shouldShowGlobalChrome(screenId);
+    if (chrome) chrome.classList.toggle('coco-gfc-hidden', !showChrome);
+    document.body.classList.toggle('coco-gfc-active', showChrome);
+    document.body.dataset.gfcScreen = showChrome ? screenId : '';
+    if (!showChrome) return;
     ensureGfcVisible(bar);
     ensureGfcSlot(screenId);
     requestAnimationFrame(function () {
@@ -669,8 +674,8 @@
     if (window.goScreen && window.goScreen._cocoUnifiedHooked) return;
     var _go = window.goScreen;
     if (!_go) return;
-    window.goScreen = function (id) {
-      _go(id);
+    window.goScreen = function (id, opts) {
+      _go(id, opts);
       if (id === 'screen-crm') document.body.classList.add('coco-crm-active');
       else document.body.classList.remove('coco-crm-active');
       placeContextBar(id);

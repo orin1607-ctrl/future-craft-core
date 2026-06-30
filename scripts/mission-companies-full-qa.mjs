@@ -161,6 +161,34 @@ async function runDesktopFlow() {
     await page.waitForFunction(() => document.getElementById('screen-business-strategy')?.classList.contains('active'), { timeout: 30000 });
     await page.waitForSelector('#biz-strategy-root .tb', { timeout: 30000 });
 
+    const chromeAndFab = await page.evaluate(() => {
+      function isVisible(el) {
+        if (!el) return false;
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity || '1') === 0) return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      }
+      const activeScreen = document.querySelector('#coco-claude-root > .screen.active');
+      const activeId = activeScreen?.id || '';
+      const wizardHeaderVisible = isVisible(document.querySelector('#biz-strategy-root .tb'));
+      const legacyTopbarVisible = isVisible(activeScreen?.querySelector(':scope > .topbar'));
+      const globalChromeVisible = isVisible(document.getElementById('coco-gfc-chrome'));
+      const visibleFabs = [...document.querySelectorAll('#cocoAiFab, .fab-ai')]
+        .filter((el) => isVisible(el))
+        .map((el) => el.id || el.className || el.tagName);
+      return {
+        activeId,
+        wizardHeaderVisible,
+        legacyTopbarVisible,
+        globalChromeVisible,
+        visibleFabs,
+      };
+    });
+    out.nav.businessStrategyChrome = chromeAndFab;
+    addCheck('single_header_business_strategy', chromeAndFab.activeId === 'screen-business-strategy' && chromeAndFab.wizardHeaderVisible && !chromeAndFab.legacyTopbarVisible && !chromeAndFab.globalChromeVisible, JSON.stringify(chromeAndFab));
+    addCheck('single_ai_fab', chromeAndFab.visibleFabs.length === 1 && chromeAndFab.visibleFabs[0] === 'cocoAiFab', JSON.stringify(chromeAndFab.visibleFabs));
+
     const strategyRootHtml = await page.locator('#biz-strategy-root').innerHTML();
     const strategyApproved = readFileSync(STRATEGY_APPROVED_PATH, 'utf8');
     const builderApproved = readFileSync(BUILDER_APPROVED_PATH, 'utf8');
@@ -277,7 +305,7 @@ async function runDesktopFlow() {
     buttonActions.push('wb-finish-to-agents');
     out.builderFlow.finishedToAgents = true;
 
-    const flowScreens = ['screen-agents', 'screen-goals', 'screen-actions', 'screen-history', 'screen-reports'];
+    const flowScreens = ['screen-clients', 'screen-agents', 'screen-goals', 'screen-actions', 'screen-history', 'screen-reports'];
     for (const sid of flowScreens) {
       await page.evaluate((id) => goScreen(id), sid);
       await page.waitForTimeout(700);
@@ -381,7 +409,7 @@ async function runMobileChecks() {
     await page.locator('#screen-hub .hub-card', { hasText: 'חברות ועסקים' }).first().click();
     await page.waitForSelector('#biz-strategy-root .tb', { timeout: 30000 });
 
-    const screens = ['screen-business-strategy', 'screen-agents', 'screen-goals', 'screen-actions', 'screen-history', 'screen-reports'];
+    const screens = ['screen-clients', 'screen-business-strategy', 'screen-agents', 'screen-goals', 'screen-actions', 'screen-history', 'screen-reports'];
     for (const sid of screens) {
       if (sid !== 'screen-business-strategy') {
         await page.evaluate((id) => goScreen(id), sid);
@@ -408,15 +436,24 @@ async function runMobileChecks() {
         for (let i = 0; i < 10; i += 1) contentEl.scrollTop -= 220;
         const upOk = !scrollable || contentEl.scrollTop <= positions[positions.length - 1] - 20;
         const jumps = positions.slice(1).filter((p, i) => p < positions[i] - 50).length;
-        const fab = document.querySelector('.ai-fab, #coco-ai-fab, [class*="fab"]');
+        function vis(el) {
+          if (!el) return false;
+          const cs = getComputedStyle(el);
+          if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity || '1') === 0) return false;
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        }
+        const fabs = [...document.querySelectorAll('#cocoAiFab, .fab-ai')].filter(vis);
+        const fab = fabs[0];
         const fr = fab?.getBoundingClientRect();
         const cr = contentEl.getBoundingClientRect();
         const fabBlocks = !!fr && fr.bottom > cr.bottom - 8 && fr.top < cr.bottom;
-        return { active, scrollable, downOk, upOk, jumps, textLen, fabBlocks };
+        return { active, scrollable, downOk, upOk, jumps, textLen, fabBlocks, fabCount: fabs.length };
       }, sid);
       out.screenChecks[sid] = probe;
       addCheck(`mobile_${sid}_active`, probe.active, sid);
       addCheck(`mobile_${sid}_scroll`, probe.downOk && probe.upOk && probe.jumps === 0, JSON.stringify({ downOk: probe.downOk, upOk: probe.upOk, jumps: probe.jumps }));
+      addCheck(`mobile_${sid}_single_fab`, probe.fabCount === 1, String(probe.fabCount));
       if (probe.fabBlocks) out.fabBlocking = true;
     }
   } catch (e) {
