@@ -1,7 +1,7 @@
 {
-  "at": "2026-06-30T12:18:57.754Z",
-  "commit": "eb5c262",
-  "stagingUrl": "http://127.0.0.1:8765/ai-marketing-platform.html?v=local-full-flow",
+  "at": "2026-06-30T12:52:47.124Z",
+  "commit": "2c33aa6",
+  "stagingUrl": "http://127.0.0.1:8888/ai-marketing-platform.html?v=commercial-v2",
   "checks": {
     "desktop_hub_active": {
       "ok": true,
@@ -51,13 +51,33 @@
       "ok": true,
       "detail": "hub after approval"
     },
+    "desktop_lifecycle_active": {
+      "ok": true,
+      "detail": "lifecycle"
+    },
+    "desktop_blueprint_created": {
+      "ok": true,
+      "detail": "6"
+    },
+    "desktop_permanent_preview_url": {
+      "ok": true,
+      "detail": "http://127.0.0.1:8888/client-previews/dalia-c-official/index.html"
+    },
+    "desktop_activity_log": {
+      "ok": true,
+      "detail": "3"
+    },
+    "desktop_ai_advisor": {
+      "ok": true,
+      "detail": "advisor"
+    },
     "desktop_progress_tracked": {
       "ok": true,
-      "detail": "טיפול ב-9 משימות בעדיפות גבוהה"
+      "detail": "טיפול ב-24 משימות בעדיפות גבוהה"
     },
     "desktop_tasks_generated": {
       "ok": true,
-      "detail": "20"
+      "detail": "40"
     },
     "desktop_return_to_agents": {
       "ok": true,
@@ -80,8 +100,8 @@
       "detail": "1"
     },
     "desktop_console_clean": {
-      "ok": false,
-      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found) | Failed to load resource: the server responded with a status of 404 (Not Found)"
+      "ok": true,
+      "detail": ""
     },
     "iphone13_hub_active": {
       "ok": true,
@@ -131,20 +151,60 @@
       "ok": true,
       "detail": "hub after approval"
     },
+    "iphone13_lifecycle_active": {
+      "ok": true,
+      "detail": "lifecycle"
+    },
+    "iphone13_blueprint_created": {
+      "ok": true,
+      "detail": "6"
+    },
+    "iphone13_permanent_preview_url": {
+      "ok": true,
+      "detail": "http://127.0.0.1:8888/client-previews/dalia-c-official/index.html"
+    },
+    "iphone13_activity_log": {
+      "ok": true,
+      "detail": "3"
+    },
+    "iphone13_ai_advisor": {
+      "ok": true,
+      "detail": "advisor"
+    },
     "iphone13_progress_tracked": {
       "ok": true,
-      "detail": "טיפול ב-9 משימות בעדיפות גבוהה"
+      "detail": "טיפול ב-24 משימות בעדיפות גבוהה"
     },
     "iphone13_tasks_generated": {
       "ok": true,
-      "detail": "20"
+      "detail": "40"
     },
-    "iphone13_scenario_complete": {
-      "ok": false,
-      "detail": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('#wb-continue-btn')\n    - locator resolved to <button class=\"btn btn-p\" id=\"wb-continue-btn\" onclick=\"wbContinueToAgents()\">המשך לעוזרים</button>\n  - attempting click action\n    - waiting for element to be visible, enabled and stable\n    - element is visible, enabled and stable\n    - scrolling into view if needed\n    - done scrolling\n    - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n  - retrying click action\n    - waiting for element to be visible, enabled and stable\n    - element is visible, enabled and stable\n    - scrolling into view if needed\n    - done scrolling\n    - <div class=\"footer\">…</div> intercepts pointer events\n  - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    14 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n       - waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div class=\"footer\">…</div> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n       - waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n       - waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n    - waiting for element to be visible, enabled and stable\n    - element is visible, enabled and stable\n    - scrolling into view if needed\n    - done scrolling\n    - <div id=\"toast\">🏢 לקוח פעיל: דליה פתרונות מימון ותחזוקה לרכב</div> intercepts pointer events\n  - retrying click action\n    - waiting 500ms\n"
+    "iphone13_return_to_agents": {
+      "ok": true,
+      "detail": "ok"
+    },
+    "iphone13_post_screen-goals": {
+      "ok": true,
+      "detail": "screen-goals"
+    },
+    "iphone13_post_screen-actions": {
+      "ok": true,
+      "detail": "screen-actions"
+    },
+    "iphone13_post_screen-history": {
+      "ok": true,
+      "detail": "screen-history"
+    },
+    "iphone13_single_fab": {
+      "ok": true,
+      "detail": "1"
+    },
+    "iphone13_console_clean": {
+      "ok": true,
+      "detail": ""
     }
   },
-  "pass": 33,
-  "fail": 2,
-  "ok": false
+  "pass": 50,
+  "fail": 0,
+  "ok": true
 }

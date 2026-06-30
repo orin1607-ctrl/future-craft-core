@@ -283,6 +283,16 @@
         workOrder: workOrder,
         workOrderPostLaunch: workOrderPostLaunch,
         improvements: improvements,
+        opportunities: [
+          'עמוד FleetOS מרכזי — לא קיים מספיק באתר הישן',
+          'מיפוי SEO לכל עמוד חדש',
+          'אתר מהיר על Template קבוע',
+          'Preview ללקוח לפני Deploy',
+        ],
+        competitorAnalysis: (inputs.competitors || []).map(function (c) {
+          return { name: c, note: 'מקור מידע לאסטרטגיה' };
+        }),
+        changesVsOld: improvements,
         fleetSoftwarePage: FLEET_PAGE,
       },
       businessProfile: businessProfile,
@@ -387,6 +397,9 @@
       localStorage.setItem('coco-build-gate-v1', JSON.stringify({ approved: true, at: new Date().toISOString(), reportId: model.reportId }));
     } catch (e) { return { ok: false }; }
     syncReportToPlatform(model);
+    if (window.SiteBlueprint && SiteBlueprint.buildFromReport) SiteBlueprint.buildFromReport(model);
+    if (window.MarketingLifecycle) MarketingLifecycle.advance('report', 'completed');
+    if (window.AiStageAdvisor) AiStageAdvisor.advise('report');
     return { ok: true };
   }
 
@@ -462,6 +475,8 @@
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">' +
       '<button type="button" class="btn btn-p" id="pbr-download">⬇️ הורד דוח (HTML + JSON)</button>' +
       '<button type="button" class="btn btn-p" id="pbr-preview">👁️ תצוגה מקדימה</button>' +
+      '<button type="button" class="btn btn-p" id="pbr-blueprint">📐 הורד Blueprint</button>' +
+      '<button type="button" class="btn btn-g" id="pbr-pdf">🖨️ PDF (הדפסה)</button>' +
       '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--w80);"><input type="checkbox" id="pbr-approve-check" ' + (approved ? 'checked' : '') + ' /> אני מאשר/ת את הדוח לבניית אתר חדש</label>' +
       '<button type="button" class="btn btn-go" id="pbr-approve-btn" ' + (approved ? 'disabled' : '') + '>✅ אשר דוח והפעל בנייה</button>' +
       '</div>' +
@@ -486,6 +501,25 @@
     if (pv) pv.addEventListener('click', function () {
       var w = window.open('', '_blank');
       if (w) { w.document.write(renderPreBuildReportHtml(model)); w.document.close(); }
+    });
+
+    var bp = container.querySelector('#pbr-blueprint');
+    if (bp) bp.addEventListener('click', function () {
+      if (window.SiteBlueprint) {
+        SiteBlueprint.buildFromReport(model);
+        SiteBlueprint.downloadBlueprint();
+        if (typeof showToast === 'function') showToast('📐 Blueprint הורד');
+      }
+    });
+
+    var pdf = container.querySelector('#pbr-pdf');
+    if (pdf) pdf.addEventListener('click', function () {
+      var w = window.open('', '_blank');
+      if (w) {
+        w.document.write(renderPreBuildReportHtml(model));
+        w.document.close();
+        w.onload = function () { w.print(); };
+      }
     });
 
     var chk = container.querySelector('#pbr-approve-check');

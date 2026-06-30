@@ -89,6 +89,32 @@
       });
     });
 
+    var autoRules = [
+      { name: 'חסר תוכן בעמוד', category: 'content', priority: 'גבוה' },
+      { name: 'חסרה תמונה ראשית', category: 'content', priority: 'בינוני' },
+      { name: 'חסר Schema markup', category: 'seo', priority: 'גבוה' },
+      { name: 'מהירות נמוכה — Lighthouse', category: 'performance', priority: 'גבוה' },
+      { name: 'SEO חלש בעמוד', category: 'seo', priority: 'גבוה' },
+      { name: 'אין קישורים פנימיים', category: 'seo', priority: 'בינוני' },
+      { name: 'עמוד שלא מתקדם', category: 'seo', priority: 'בינוני' },
+      { name: 'מילות מפתח חדשות לטיפול', category: 'seo', priority: 'בינוני' },
+      { name: 'מתחרה עקף אותנו', category: 'seo', priority: 'גבוה' },
+      { name: 'שיפור UX', category: 'ux', priority: 'בינוני' },
+      { name: 'שיפור ביצועים', category: 'performance', priority: 'גבוה' },
+    ];
+    autoRules.forEach(function (rule, i) {
+      tasks.push({
+        id: 'site-auto-' + ts + '-' + i,
+        name: rule.name,
+        description: 'משימה אוטומטית מ-Site Hub',
+        category: rule.category,
+        status: 'pending',
+        priority: rule.priority,
+        source: 'site-marketing-hub-auto',
+        created_at: new Date().toISOString(),
+      });
+    });
+
     return tasks;
   }
 

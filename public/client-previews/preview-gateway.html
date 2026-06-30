@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview אתר לקוח</title>
+<style>
+body{font-family:Heebo,Arial,sans-serif;margin:0;background:#0f172a;color:#fff}
+.bar{padding:12px 16px;background:#1e293b;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar a{color:#93c5fd;margin-left:8px}
+iframe{border:0;width:100%;height:calc(100vh - 56px);background:#fff}
+.badge{font-size:11px;padding:4px 8px;border-radius:6px;background:rgba(245,158,11,.2);color:#fbbf24}
+</style>
+</head>
+<body>
+<div class="bar">
+  <strong id="title">Preview לקוח</strong>
+  <span class="badge">TEMP · לא Production</span>
+  <span id="nav"></span>
+  <span id="url" style="font-size:11px;color:#94a3b8;margin-right:auto"></span>
+</div>
+<iframe id="frame" title="client site preview"></iframe>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var slug = params.get('slug') || 'dalia-c-official';
+  var bundleKey = 'coco-client-preview-bundle-v1-' + slug;
+  var bundle = null;
+  try { bundle = JSON.parse(localStorage.getItem(bundleKey) || 'null'); } catch (e) {}
+
+  var frame = document.getElementById('frame');
+  var nav = document.getElementById('nav');
+  var title = document.getElementById('title');
+  var urlEl = document.getElementById('url');
+
+  function loadStatic(file) {
+    var base = location.pathname.replace(/preview-gateway\.html.*$/, '');
+    frame.src = base + slug + '/' + file;
+  }
+
+  if (bundle && bundle.pages && bundle.pages.length) {
+    title.textContent = bundle.company || 'Preview לקוח';
+    urlEl.textContent = bundle.permanentUrl || '';
+    bundle.pages.forEach(function (p, i) {
+      var btn = document.createElement('button');
+      btn.textContent = p.title;
+      btn.style.cssText = 'padding:6px 10px;border:0;border-radius:6px;background:#334155;color:#fff;cursor:pointer';
+      btn.onclick = function () {
+        var blob = new Blob([p.html], { type: 'text/html;charset=utf-8' });
+        frame.src = URL.createObjectURL(blob);
+      };
+      nav.appendChild(btn);
+      if (i === 0) btn.click();
+    });
+  } else {
+    loadStatic('index.html');
+    title.textContent = 'Preview סטטי: ' + slug;
+    urlEl.textContent = location.origin + location.pathname.replace('preview-gateway.html', slug + '/index.html');
+  }
+})();
+</script>
+</body>
+</html>

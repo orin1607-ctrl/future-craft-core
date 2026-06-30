@@ -9,6 +9,7 @@
   var MAX_ITEMS = 200;
   var EDGE_NAME = 'marketing-notify-email';
   var STAGING_SUPABASE_URL = 'https://usfeoerkpcafxxlyuldl.supabase.co';
+  var DEFAULT_APPROVAL_EMAIL = 'orin1607@gmail.com';
 
   var TYPES = {
     action_completed: { label: 'פעולה הושלמה', priority: 'normal' },
@@ -68,11 +69,11 @@
     var endpoint = base.replace(/\/$/, '') + '/functions/v1/' + EDGE_NAME;
     var payload = item.payload || {};
     var body = {
-      recipient: payload.recipient || payload.managerEmail || null,
+      recipient: payload.recipient || payload.managerEmail || DEFAULT_APPROVAL_EMAIL,
       approvalId: payload.approvalId || payload.pageId || item.id,
       subject: payload.emailSubject || ('📢 עמוד מוכן לאישור – ' + (payload.pageTitle || payload.pageName || 'עמוד')),
       html: payload.emailHtml || null,
-      dryRun: true,
+      dryRun: !payload.emailHtml,
     };
     if (!body.recipient || !body.html) {
       return Promise.resolve({

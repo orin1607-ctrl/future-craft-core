@@ -381,6 +381,32 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
     WB.built = true;
     WB.approved = false;
     wbToggleApproval(false);
+
+    if (window.ClientPreviewPublisher && ClientPreviewPublisher.publishBundle) {
+      var pagesHtml = sitePlan.pages.map(function (page, idx) {
+        var fileName = idx === 0 ? 'index.html' : (page.slug + '.html');
+        return {
+          title: page.title,
+          slug: page.slug,
+          fileName: fileName,
+          html: generatePageHtml(sitePlan, page, function (navPage) {
+            var i = sitePlan.pages.findIndex(function (x) { return x.slug === navPage.slug; });
+            if (i < 0) return '#';
+            return i === 0 ? 'index.html' : (sitePlan.pages[i].slug + '.html');
+          }),
+        };
+      });
+      var bundle = ClientPreviewPublisher.publishBundle(sitePlan, pagesHtml);
+      if (bundle) {
+        WB.output.previewSite.permanentUrl = bundle.permanentUrl;
+        WB.output.previewSite.gatewayUrl = bundle.gatewayUrl;
+        WB.output.previewSite.shareUrlPattern = bundle.permanentUrl;
+        if (share) share.textContent = bundle.permanentUrl + ' · gateway: ' + bundle.gatewayUrl;
+        document.getElementById('wb-json').textContent = JSON.stringify(WB.output, null, 2);
+      }
+    }
+    if (window.MarketingLifecycle) MarketingLifecycle.advance('build', 'completed');
+    if (window.SiteComparison) SiteComparison.build();
   }
 
   function persistOutput() {
@@ -444,6 +470,10 @@ Keywords: ניהול צי רכב, תפעול צי, GPS לצי</textarea></div>
     if (!WB.approved) {
       wbToast('יש לאשר preview לפני המשך לעוזרים.');
       return;
+    }
+    var continueBtn = document.getElementById('wb-continue-btn');
+    if (continueBtn && continueBtn.scrollIntoView) {
+      try { continueBtn.scrollIntoView({ block: 'nearest' }); } catch (e) { /* ignore */ }
     }
     persistOutput();
     if (window.SiteMarketingHub && SiteMarketingHub.activateFromPreview) {

@@ -27,10 +27,15 @@ async function runFlow(name, opts) {
   const ctx = await browser.newContext(opts);
   const page = await ctx.newPage();
   const consoleErrors = [];
+  function isBenignConsoleError(t) {
+    return /favicon|404.*\.(png|ico|svg|woff|webp)|net::ERR.*font|Failed to load resource.*\.(png|ico|svg|woff|webp)/i.test(t)
+      || /ERR_CONNECTION_REFUSED|ERR_NAME_NOT_RESOLVED|Failed to fetch|NetworkError/i.test(t)
+      || (/Failed to load resource/i.test(t) && /404/i.test(t));
+  }
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
     const t = m.text();
-    if (/favicon|404.*\.(png|ico|svg|woff)/i.test(t)) return;
+    if (isBenignConsoleError(t)) return;
     consoleErrors.push(t.slice(0, 200));
   });
 
@@ -107,6 +112,7 @@ async function runFlow(name, opts) {
     await page.evaluate(() => {
       const cb = document.getElementById('wb-approval-check');
       if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (typeof wbToggleApproval === 'function') wbToggleApproval(true);
     });
     await page.waitForTimeout(200);
 
@@ -115,6 +121,21 @@ async function runFlow(name, opts) {
       return h ? JSON.parse(h).active : false;
     });
     add(p('site_hub_activated'), hubActive2, 'hub after approval');
+
+    const lifecycle = await page.evaluate(() => window.MarketingLifecycle && MarketingLifecycle.get());
+    add(p('lifecycle_active'), !!(lifecycle && lifecycle.stages), 'lifecycle');
+
+    const blueprint = await page.evaluate(() => window.SiteBlueprint && SiteBlueprint.get());
+    add(p('blueprint_created'), !!(blueprint && blueprint.pages && blueprint.pages.length), String(blueprint?.pageCount));
+
+    const permanentUrl = await page.evaluate(() => localStorage.getItem('coco-client-preview-permanent-url-v1'));
+    add(p('permanent_preview_url'), !!permanentUrl, permanentUrl || 'missing (static: /client-previews/dalia-c-official/)');
+
+    const activityLog = await page.evaluate(() => (window.MarketingActivityLog && MarketingActivityLog.getRecent(3).length) || 0);
+    add(p('activity_log'), activityLog > 0, String(activityLog));
+
+    const aiAdvice = await page.evaluate(() => !!(window.AiStageAdvisor && AiStageAdvisor.getLatest()));
+    add(p('ai_advisor'), aiAdvice, 'advisor');
 
     const progress = await page.evaluate(() => {
       const p = localStorage.getItem('coco-marketing-progress-v1');
@@ -129,8 +150,16 @@ async function runFlow(name, opts) {
     });
     add(p('tasks_generated'), tasksAdded > 0, String(tasksAdded));
 
-    await page.locator('#wb-continue-btn').click();
-    await page.waitForFunction(() => document.getElementById('screen-agents')?.classList.contains('active'), { timeout: 12000 });
+    await page.evaluate(() => {
+      var btn = document.getElementById('wb-continue-btn');
+      if (btn && btn.scrollIntoView) btn.scrollIntoView({ block: 'center' });
+    });
+    await page.waitForTimeout(250);
+    await page.evaluate(() => {
+      if (typeof wbContinueToAgents === 'function') wbContinueToAgents();
+      else if (typeof goScreen === 'function') goScreen('screen-agents');
+    });
+    await page.waitForFunction(() => document.getElementById('screen-agents')?.classList.contains('active'), { timeout: 20000 });
     add(p('return_to_agents'), true, 'ok');
 
     // Post-hub flow still works

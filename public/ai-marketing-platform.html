@@ -160,6 +160,7 @@
           if (root) root.classList.add('coco-ready');
           if (window.CocoUnified && CocoUnified.init) CocoUnified.init();
           if (window.SiteMarketingHub && SiteMarketingHub.hydrateOnBoot) SiteMarketingHub.hydrateOnBoot();
+          if (window.MarketingLifecycle && MarketingLifecycle.hydrate) MarketingLifecycle.hydrate();
           var tab = new URLSearchParams(location.search).get('tab');
           if (tab === 'crm' && window.CocoMarketingCrm && CocoMarketingCrm.openTab) {
             setTimeout(function () { CocoMarketingCrm.openTab(); }, 400);
@@ -195,6 +196,12 @@
         .then(function () { return loadScript(assetUrl('ai-marketing/marketing-notifications.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/ai-control-center.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-crm-bridge.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/marketing-activity-log.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/marketing-lifecycle-module.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/site-blueprint-module.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/site-comparison-module.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/ai-stage-advisor.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/client-preview-publisher.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-module.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/pre-build-work-report-module.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/site-marketing-hub-module.js')); })
