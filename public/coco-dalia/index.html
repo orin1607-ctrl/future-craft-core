@@ -1,0 +1,2436 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+(function () {
+  var host = location.hostname;
+  var base = '/future-craft-core/';
+  if (host === 'localhost' || host === '127.0.0.1') {
+    var p = location.pathname || '';
+    var i = p.indexOf('coco-dalia/');
+    if (i < 0) i = p.indexOf('ai-marketing-platform');
+    base = i >= 0 ? p.substring(0, i) : (p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/'));
+  }
+  window.COCO_PAGES_BASE = base;
+  var b = document.createElement('base');
+  b.id = 'coco-pages-base';
+  b.href = base.charAt(0) === '/' ? (location.origin + base) : new URL(base, location.href).href;
+  document.head.appendChild(b);
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="coco-flow" content="phase0-staging">
+<title>CO.CO דליה – AI Marketing Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04091a;--bg2:#071022;--bg3:#0a1830;--bg4:#0d1f3c;
+  --acc:#2563eb;--acc2:#3b82f6;--glow:rgba(37,99,235,.14);
+  --w:#fff;--w80:rgba(255,255,255,.80);--w50:rgba(255,255,255,.50);
+  --w10:rgba(255,255,255,.10);--w06:rgba(255,255,255,.06);
+  --green:#22c55e;--red:#ef4444;--yel:#f59e0b;--pur:#8b5cf6;--cyan:#06b6d4;
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);}
+#abc-app{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+.brandbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--w10);display:flex;align-items:center;justify-content:space-between;padding:0 18px;flex-shrink:0;gap:10px;z-index:210;}
+.brand-logo{font-size:15px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.brand-logo em{color:var(--acc2);font-style:normal;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--acc2);animation:pulse 2s infinite;flex-shrink:0;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+.brand-sub{font-size:13px;font-weight:700;color:var(--w80);}
+.part-pill{font-size:10px;padding:4px 11px;border-radius:99px;background:rgba(37,99,235,.14);color:var(--acc2);border:1px solid rgba(37,99,235,.28);font-weight:700;white-space:nowrap;}
+
+.modnav{background:var(--bg2);border-bottom:1px solid var(--w10);flex-shrink:0;z-index:200;}
+.modtabs{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:1080px;margin:0 auto;}
+.modtab{flex:1;min-width:170px;padding:12px 16px;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;gap:10px;}
+.modtab:hover{background:var(--w06);}
+.modtab.active{border-bottom-color:var(--acc);background:rgba(37,99,235,.06);}
+.modtab-badge{width:22px;height:22px;border-radius:50%;background:var(--w10);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
+.modtab.active .modtab-badge{background:var(--acc);color:#fff;}
+.modtab-icon{font-size:16px;flex-shrink:0;}
+.modtab-txt{display:flex;flex-direction:column;gap:1px;}
+.modtab-t{font-size:12px;font-weight:700;color:var(--w80);}
+.modtab.active .modtab-t{color:var(--w);}
+.modtab-s{font-size:10px;color:var(--w50);}
+.modtab-lock{font-size:9px;color:var(--w50);margin-right:auto;}
+
+.frames{flex:1;position:relative;overflow:hidden;}
+.frames iframe{position:absolute;inset:0;width:100%;height:100%;border:none;display:none;background:var(--bg);}
+.frames iframe.on{display:block;}
+
+:root{
+  --bg:#04091a;--bg2:#071022;--bg3:#0a1830;--bg4:#0d1f3c;
+  --acc:#2563eb;--acc2:#3b82f6;--glow:rgba(37,99,235,.14);
+  --w:#fff;--w80:rgba(255,255,255,.80);--w50:rgba(255,255,255,.50);
+  --w10:rgba(255,255,255,.10);--w06:rgba(255,255,255,.06);
+  --green:#22c55e;--red:#ef4444;--yel:#f59e0b;--pur:#8b5cf6;--cyan:#06b6d4;
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-height:100vh;}
+.tb{height:52px;background:var(--bg2);border-bottom:1px solid var(--w10);display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;z-index:210;gap:10px;}
+.logo{font-size:13px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.logo em{color:var(--acc2);font-style:normal;}
+/* .dot + @keyframes pulse: identical rule already defined by the master shell above — not duplicated */
+.preview-badge{font-size:10px;padding:4px 11px;border-radius:99px;background:rgba(245,158,11,.14);color:var(--yel);border:1px solid rgba(245,158,11,.28);font-weight:800;white-space:nowrap;}
+
+/* ── Stepper ── */
+.stepper-wrap{background:var(--bg2);border-bottom:1px solid var(--w10);position:sticky;top:52px;z-index:200;}
+.stepper{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:920px;margin:0 auto;}
+.step-item{padding:9px 11px;font-size:10.5px;font-weight:700;color:var(--w50);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.step-item.active{color:var(--w);border-bottom-color:var(--acc);}
+.step-item.done{color:var(--green);border-bottom-color:rgba(34,197,94,.3);}
+.step-item.locked{opacity:.32;cursor:not-allowed;}
+.step-item.ext{opacity:.55;cursor:pointer;}
+.step-n{width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:800;background:var(--w10);flex-shrink:0;}
+.step-item.active .step-n{background:var(--acc);color:#fff;}
+.step-item.done .step-n,.step-item.ext .step-n{background:rgba(34,197,94,.2);color:var(--green);}
+.stepper-prog{height:2px;background:var(--w10);}
+.stepper-prog-f{height:100%;background:linear-gradient(90deg,var(--acc),var(--green));transition:width .3s;}
+
+.alt{display:flex;align-items:flex-start;gap:7px;padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.6;margin:14px 18px;}
+.alt-w{background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.22);color:var(--yel);}
+.alt-i{background:rgba(6,182,212,.10);border:1px solid rgba(6,182,212,.22);color:var(--cyan);}
+.alt-ok{background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.22);color:var(--green);}
+#db-status-banner{margin:0 18px 14px;}
+.db-badge{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;font-size:12px;line-height:1.6;}
+.db-badge.on{background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.28);color:var(--green);}
+.db-badge.off{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);color:var(--red);}
+.db-badge b{color:inherit;}
+.db-fields{font-size:11px;color:var(--w80);margin-top:6px;line-height:1.9;}
+.db-fields b{color:var(--w50);font-weight:700;}
+.main{max-width:860px;margin:0 auto;padding:0 0 130px;}
+.stage-head{padding:6px 18px 16px;}
+.stage-part{font-size:10px;font-weight:700;color:var(--acc2);letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:7px;}
+.stage-part::before{content:'';width:20px;height:2px;background:var(--acc2);}
+.stage-t{font-size:clamp(18px,4.3vw,25px);font-weight:900;margin-bottom:5px;}
+.stage-s{font-size:12.5px;color:var(--w50);line-height:1.7;}
+.stage-r{height:2px;background:linear-gradient(90deg,var(--acc),transparent);margin:12px 0 0;border:none;}
+.sec{padding:0 18px;}
+.progbar-wrap{padding:0 18px;margin-bottom:14px;}
+.progbar{height:6px;background:var(--w06);border-radius:99px;overflow:hidden;}
+.progbar-f{height:100%;background:linear-gradient(90deg,var(--acc),var(--green));width:0%;transition:width .25s;}
+.prog-lbl{font-size:11px;color:var(--w50);margin-top:6px;display:flex;justify-content:space-between;}
+
+.group{margin-bottom:14px;}
+.group-hd{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11.5px;font-weight:800;color:var(--w80);}
+.group-hd::after{content:'';flex:1;height:1px;background:var(--w10);}
+.group-count{font-size:10px;background:var(--w06);padding:2px 8px;border-radius:99px;color:var(--w50);}
+.arow{background:var(--bg3);border:1px solid var(--w10);border-radius:10px;padding:10px 12px;margin-bottom:6px;opacity:0;transform:translateY(4px);transition:all .3s;}
+.arow.show{opacity:1;transform:none;}
+.arow-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;}
+.arow-name{font-size:12px;font-weight:800;}
+.bd{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:99px;font-size:9.5px;font-weight:700;}
+.bd-g{background:rgba(34,197,94,.14);color:var(--green);}
+.bd-y{background:rgba(245,158,11,.14);color:var(--yel);}
+.bd-b{background:rgba(59,130,246,.14);color:var(--acc2);}
+.bd-r{background:rgba(239,68,68,.14);color:var(--red);}
+.bd-p{background:rgba(139,92,246,.14);color:var(--pur);}
+.arow-detail{font-size:11px;color:var(--w50);line-height:1.6;}
+.arow-detail b{color:var(--w80);font-weight:700;}
+.arow-find{font-size:11.5px;color:var(--w80);margin-top:4px;font-weight:600;}
+
+.report{margin:18px 0;background:var(--bg3);border:1px solid var(--w10);border-radius:14px;padding:16px;}
+.report-t{font-size:14px;font-weight:900;margin-bottom:10px;}
+.report-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--w06);font-size:12px;}
+.report-row:last-child{border-bottom:none;}
+.report-icon{font-size:16px;width:22px;text-align:center;flex-shrink:0;}
+.approve-wrap{text-align:center;margin-top:14px;}
+.btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;transition:all .18s;display:inline-flex;align-items:center;gap:6px;}
+.btn-p{background:var(--acc);color:#fff;}.btn-p:hover{background:var(--acc2);}
+.btn-p:disabled{opacity:.35;cursor:not-allowed;}
+.btn-go{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.btn-go:disabled{opacity:.5;cursor:not-allowed;}
+.btn-g{background:var(--w06);color:var(--w80);border:1px solid var(--w10);}
+.btn-g:disabled{opacity:.35;cursor:not-allowed;}
+.btn-sm{font-size:11px;padding:6px 12px;}
+
+.consultant{opacity:0;transform:translateY(6px);transition:all .4s;margin-bottom:12px;}
+.consultant.show{opacity:1;transform:none;}
+.card{background:var(--bg3);border:1px solid var(--w10);border-radius:12px;padding:14px;}
+.card.chief{border-color:rgba(37,99,235,.4);background:rgba(37,99,235,.06);}
+.c-hd{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.c-name{font-size:13.5px;font-weight:900;}
+.c-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:11.5px;margin-bottom:6px;}
+@media(max-width:520px){.c-grid{grid-template-columns:1fr;}}
+.c-field b{color:var(--w50);font-weight:700;display:block;font-size:10px;margin-bottom:2px;}
+.c-field span{color:var(--w80);}
+.typing{font-size:11px;color:var(--w50);padding:2px 4px 8px;}
+.typing .dots span{animation:blink 1.3s infinite;opacity:.2;}
+.typing .dots span:nth-child(2){animation-delay:.2s;}
+.typing .dots span:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+
+.qscores{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0;}
+@media(max-width:560px){.qscores{grid-template-columns:repeat(2,1fr);}}
+.qbox{background:var(--bg4);border:1px solid var(--w10);border-radius:10px;padding:10px;text-align:center;}
+.qbox-n{font-size:19px;font-weight:900;}
+.qbox-l{font-size:9.5px;color:var(--w50);margin-top:2px;}
+.qbox.overall{grid-column:1/-1;background:rgba(37,99,235,.1);border-color:rgba(37,99,235,.35);}
+.qbox.overall .qbox-n{font-size:26px;color:var(--acc2);}
+
+.eval-table{width:100%;font-size:11.5px;border-collapse:collapse;margin-bottom:14px;}
+.eval-table td{padding:8px 6px;border-bottom:1px solid var(--w06);}
+.eval-table td:first-child{color:var(--w50);width:38%;}
+.decision-box{background:rgba(139,92,246,.08);border:2px solid rgba(139,92,246,.35);border-radius:14px;padding:16px;margin-bottom:14px;}
+.decision-t{font-size:11px;color:var(--pur);font-weight:700;margin-bottom:6px;}
+.decision-v{font-size:15px;font-weight:900;margin-bottom:8px;}
+.decision-why{font-size:12px;color:var(--w80);line-height:1.7;}
+.roi-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+@media(max-width:560px){.roi-grid{grid-template-columns:1fr 1fr;}}
+.roi-box{background:var(--bg4);border:1px solid var(--w10);border-radius:10px;padding:10px;text-align:center;}
+.roi-n{font-size:16px;font-weight:900;color:var(--green);}
+.roi-l{font-size:9.5px;color:var(--w50);margin-top:2px;}
+
+.pages{display:flex;flex-direction:column;gap:10px;}
+.page-card{background:var(--bg3);border:1px solid var(--w10);border-radius:12px;padding:14px;opacity:0;transform:translateY(6px);transition:all .35s;}
+.page-card.show{opacity:1;transform:none;}
+.page-hd{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap;}
+.page-name{font-size:13px;font-weight:800;}
+.page-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:11px;}
+@media(max-width:480px){.page-grid{grid-template-columns:1fr;}}
+.page-field b{color:var(--w50);font-weight:700;display:block;font-size:9.5px;margin-bottom:2px;}
+.page-field span{color:var(--w80);}
+.structure{background:var(--bg4);border:1px solid var(--w10);border-radius:10px;padding:12px;margin-top:10px;font-size:11.5px;line-height:2;}
+.structure b{color:var(--acc2);}
+
+.explain-box{background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.22);border-radius:12px;padding:13px 15px;margin:0 18px 16px;font-size:12px;line-height:1.7;color:var(--w80);}
+
+/* ── engine comparison grid ── */
+.eng-grid-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:620px){.eng-grid-wrap{grid-template-columns:1fr;}}
+.eng-card{background:var(--bg3);border:2px solid var(--w10);border-radius:14px;padding:13px;opacity:.4;transition:all .4s;}
+.eng-card.active{opacity:1;border-color:var(--acc);}
+.eng-card.done{opacity:1;border-color:var(--w10);}
+.eng-card.selected{border-color:var(--green);background:rgba(34,197,94,.05);}
+.eng-card.future{opacity:.5;border-style:dashed;}
+.eng-hd2{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.eng-ico2{width:32px;height:32px;border-radius:8px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.eng-name2{font-size:12.5px;font-weight:800;flex:1;}
+.mini-mock{border-radius:8px;overflow:hidden;border:1px solid var(--w10);margin-bottom:9px;}
+.mini-nav{height:14px;background:var(--bg4);}
+.mini-hero{padding:12px 10px;text-align:center;background:var(--bg2);}
+.mini-hero-t{height:7px;width:70%;background:var(--w20,rgba(255,255,255,.2));border-radius:3px;margin:0 auto 6px;}
+.mini-cta{width:44px;height:12px;border-radius:5px;margin:0 auto;}
+.eng-scores{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:9px;}
+.esc{text-align:center;background:var(--bg4);border-radius:6px;padding:4px 2px;}
+.esc-n{font-size:12px;font-weight:900;}
+.esc-l{font-size:7.5px;color:var(--w50);}
+.eng-pc{font-size:10.5px;line-height:1.6;margin-bottom:5px;}
+.eng-pc b{font-size:9.5px;}
+.eng-ai{font-size:10.5px;color:var(--acc2);background:rgba(37,99,235,.08);border-radius:6px;padding:6px 8px;margin-bottom:8px;}
+.eng-actions{display:flex;gap:6px;}
+.eng-log{font-size:9.5px;color:var(--yel);margin-top:6px;}
+
+.revise-panel{background:var(--bg3);border:1px solid var(--w10);border-radius:12px;padding:14px;margin-top:16px;}
+.revise-panel select,.revise-panel textarea{width:100%;background:var(--bg4);border:1px solid var(--w10);border-radius:8px;color:var(--w);font-family:'Heebo',sans-serif;font-size:12px;padding:8px 10px;margin-bottom:8px;}
+.revise-panel textarea{min-height:56px;resize:vertical;}
+
+.preview-url{background:var(--bg4);border:1px dashed var(--w10);border-radius:9px;padding:10px 13px;font-family:monospace;font-size:11px;color:var(--acc2);margin:12px 0;text-align:center;}
+.mock-wrap{margin-top:6px;}
+.mock-toggle{display:flex;gap:6px;margin-bottom:10px;}
+.mtbtn{padding:7px 14px;border-radius:8px;border:1px solid var(--w10);background:var(--w06);color:var(--w80);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;}
+.mtbtn.on{background:var(--acc);color:#fff;border-color:var(--acc);}
+.mockup{border:1px solid var(--w10);border-radius:16px;overflow:hidden;background:var(--bg2);margin:0 auto;max-width:640px;}
+.mockup.mobile{max-width:300px;}
+.mockup-bar{height:26px;background:var(--bg4);display:flex;align-items:center;gap:5px;padding:0 10px;}
+.mockup-bar span{width:8px;height:8px;border-radius:50%;background:var(--w10);}
+.m-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--w10);}
+.m-logo{font-size:12px;font-weight:900;}
+.m-links{display:flex;gap:12px;font-size:10px;color:var(--w50);}
+.mockup.mobile .m-links{display:none;}
+.m-hero{text-align:center;padding:32px 20px;}
+.mockup.mobile .m-hero{padding:22px 14px;}
+.m-hero-t{font-size:19px;font-weight:900;margin-bottom:8px;line-height:1.4;}
+.mockup.mobile .m-hero-t{font-size:16px;}
+.m-hero-s{font-size:12px;color:var(--w50);margin-bottom:16px;}
+.m-cta{display:inline-block;background:var(--acc);color:#fff;font-size:12px;font-weight:800;padding:10px 24px;border-radius:9px;}
+.m-services{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:20px;border-top:1px solid var(--w10);}
+.mockup.mobile .m-services{grid-template-columns:1fr;}
+.m-svc{background:var(--bg3);border:1px solid var(--w10);border-radius:10px;padding:12px;text-align:center;}
+.m-svc-ico{font-size:20px;margin-bottom:6px;}
+.m-svc-t{font-size:11px;font-weight:700;margin-bottom:3px;}
+.m-svc-s{font-size:9.5px;color:var(--w50);}
+.m-trust{display:flex;justify-content:space-around;padding:16px 20px;border-top:1px solid var(--w10);flex-wrap:wrap;gap:10px;}
+.m-trust div{text-align:center;font-size:10px;color:var(--w50);}
+.m-trust .n{font-size:16px;font-weight:900;color:var(--w);display:block;}
+.m-form{border-top:1px solid var(--w10);padding:20px;}
+.m-form-t{font-size:12px;font-weight:800;margin-bottom:10px;text-align:center;}
+.m-form-f{background:var(--bg4);border:1px solid var(--w10);border-radius:7px;height:26px;margin-bottom:7px;}
+.m-form-btn{background:var(--green);color:#04091a;font-size:11px;font-weight:800;text-align:center;border-radius:7px;padding:8px;margin-top:4px;}
+
+.checklist{background:var(--bg3);border:1px solid var(--w10);border-radius:14px;padding:16px;margin-bottom:14px;}
+.chk-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--w06);font-size:12.5px;}
+.chk-row:last-child{border-bottom:none;}
+
+/* ── accordion tables (50 assistants / 10 consultants) ── */
+.tbl-wrap{overflow-x:auto;margin-bottom:14px;border:1px solid var(--w10);border-radius:12px;}
+table.dtbl{width:100%;border-collapse:collapse;font-size:11.3px;min-width:660px;}
+table.dtbl thead th{background:var(--bg4);color:var(--w50);text-align:right;padding:8px 7px;font-weight:700;font-size:10px;white-space:nowrap;border-bottom:1px solid var(--w10);position:sticky;top:0;}
+table.dtbl tbody tr.grp-hd td{background:var(--bg2);color:var(--acc2);font-weight:800;font-size:10.5px;padding:7px 8px;}
+table.dtbl tbody tr.row{cursor:pointer;transition:background .15s;background:var(--bg3);}
+table.dtbl tbody tr.row:hover td{background:var(--w06);}
+table.dtbl tbody tr.row td{padding:8px 7px;border-bottom:1px solid var(--w06);color:var(--w80);vertical-align:middle;white-space:nowrap;}
+table.dtbl tbody tr.row td.wrap{white-space:normal;}
+.chev{display:inline-block;transition:transform .2s;color:var(--w50);}
+.chev.open{transform:rotate(90deg);color:var(--acc2);}
+tr.detail-row td{padding:0;background:var(--bg2);border-bottom:1px solid var(--w10);}
+.detail-inner{display:none;padding:13px 15px;font-size:11.5px;line-height:1.9;}
+.detail-inner.open{display:block;}
+.detail-inner .dl{display:grid;grid-template-columns:110px 1fr;gap:6px;margin-bottom:6px;}
+.detail-inner .dl b{color:var(--w50);font-weight:700;font-size:10.5px;}
+.detail-inner .dl span{color:var(--w80);}
+.export-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;justify-content:center;}
+
+.publish-opts{display:flex;flex-direction:column;gap:9px;margin-top:14px;}
+.popt{background:var(--bg3);border:1px solid var(--w10);border-radius:11px;padding:13px;display:flex;align-items:center;gap:12px;cursor:pointer;}
+.popt-t{flex:1;}
+.popt-name{font-size:12.5px;font-weight:800;margin-bottom:2px;}
+.popt-s{font-size:11px;color:var(--w50);}
+.popt.selected{border-color:var(--green);background:rgba(34,197,94,.06);}
+
+.footer{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--w10);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:100;}
+.finfo{font-size:11px;color:var(--w50);flex:1;}
+</style>
+</head>
+<body>
+
+<div id="abc-app">
+<div class="brandbar">
+  <div class="brand-logo"><div class="dot"></div>CO.CO <em>דליה</em></div>
+  <div class="brand-sub">AI Marketing — Platform</div>
+  <span class="part-pill" id="part-pill">חלק א׳ — תכנון</span>
+  <a id="coco-legacy-back" href="#" style="font-size:11px;font-weight:700;color:#94a3b8;text-decoration:none;padding:6px 12px;border:1px solid rgba(255,255,255,.12);border-radius:8px;white-space:nowrap;">חזרה ל-legacy</a>
+</div>
+
+<div class="modnav">
+  <div class="modtabs" id="modtabs">
+    <div class="modtab active" id="mt-a" onclick="showPart('a')">
+      <div class="modtab-badge">1</div>
+      <div class="modtab-txt"><div class="modtab-t">מנוע התכנון</div><div class="modtab-s">Planning Engine — התחל כאן</div></div>
+    </div>
+    <div class="modtab" id="mt-b" onclick="showPart('b')">
+      <span class="modtab-icon">🌱</span>
+      <div class="modtab-txt"><div class="modtab-t">קידום אורגני SEO</div><div class="modtab-s" id="mt-b-sub">12 שלבים — נעול עד יצירת קמפיין</div></div>
+    </div>
+    <div class="modtab" id="mt-c" onclick="showPart('c')">
+      <span class="modtab-icon">📢</span>
+      <div class="modtab-txt"><div class="modtab-t">גוגל אדס</div><div class="modtab-s" id="mt-c-sub">Google Ads — 9 שלבים — נעול עד יצירת קמפיין</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="frames">
+  <iframe id="frame-a" class="on" title="חלק א׳ — מנוע התכנון" srcdoc="<!DOCTYPE html>
+<html lang=&quot;he&quot; dir=&quot;rtl&quot;>
+<head>
+<meta charset=&quot;UTF-8&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
+<title>CO.CO דליה – מנוע התכנון</title>
+<link href=&quot;https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&amp;display=swap&quot; rel=&quot;stylesheet&quot;>
+<style>
+:root{
+  --bg:#04091a;--bg2:#071022;--bg3:#0a1830;--bg4:#0d1f3c;
+  --acc:#2563eb;--acc2:#3b82f6;--glow:rgba(37,99,235,.14);
+  --w:#fff;--w80:rgba(255,255,255,.80);--w50:rgba(255,255,255,.50);
+  --w20:rgba(255,255,255,.20);--w10:rgba(255,255,255,.10);--w06:rgba(255,255,255,.06);
+  --green:#22c55e;--red:#ef4444;--yel:#f59e0b;--pur:#8b5cf6;--cyan:#06b6d4;
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-height:100vh;}
+.main{max-width:860px;margin:0 auto;padding:16px 0 96px;}
+.pane{display:none;}.pane.on{display:block;}
+.ph{padding:0 18px 0;}
+.ph-part{font-size:10px;font-weight:700;color:var(--acc2);letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;gap:7px;}
+.ph-part::before{content:'';width:20px;height:2px;background:var(--acc2);}
+.ph-t{font-size:clamp(18px,4.5vw,26px);font-weight:900;margin-bottom:4px;}
+.ph-s{font-size:12px;color:var(--w50);line-height:1.6;}
+.ph-r{height:2px;background:linear-gradient(90deg,var(--acc),transparent);margin:10px 0 0;border:none;}
+.sec{padding:16px 18px;}
+.card{background:var(--bg3);border:1px solid var(--w10);border-radius:var(--r);padding:14px;}
+.proj-card{background:var(--bg3);border:1px solid var(--w10);border-radius:16px;padding:22px;margin-bottom:14px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:16px;}
+.proj-card:hover{border-color:var(--acc);background:rgba(37,99,235,.05);transform:translateY(-1px);}
+.proj-card.selected{border-color:var(--acc);background:rgba(37,99,235,.08);box-shadow:0 0 0 1px var(--acc) inset;}
+.proj-ico{width:52px;height:52px;border-radius:12px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+.proj-txt{flex:1;}
+.proj-t{font-size:16px;font-weight:800;margin-bottom:4px;}
+.proj-s{font-size:12px;color:var(--w50);line-height:1.6;}
+.proj-chev{font-size:18px;color:var(--w50);flex-shrink:0;}
+.fl{display:flex;flex-direction:column;gap:3px;margin-bottom:9px;}
+.fl label{font-size:11px;color:var(--w50);font-weight:600;}
+.inp{padding:9px 12px;border-radius:8px;border:1px solid var(--w10);background:var(--bg4);color:var(--w);font-family:'Heebo',sans-serif;font-size:12px;outline:none;width:100%;transition:border-color .2s;}
+.inp:focus{border-color:var(--acc);}
+.inp::placeholder{color:var(--w50);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+@media(max-width:500px){.g2{grid-template-columns:1fr;}}
+.btn{padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;transition:all .18s;display:inline-flex;align-items:center;gap:6px;}
+.btn-p{background:var(--acc);color:#fff;}.btn-p:hover{background:var(--acc2);}
+.btn-p:disabled{opacity:.4;cursor:not-allowed;}
+.btn-g{background:var(--w06);color:var(--w80);border:1px solid var(--w10);}.btn-g:hover{background:var(--w10);}
+.btn-sm{font-size:11px;padding:6px 12px;}
+.bd{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;}
+.bd-g{background:rgba(34,197,94,.14);color:var(--green);}
+.bd-b{background:rgba(59,130,246,.14);color:var(--acc2);}
+.bd-x{background:var(--w06);color:var(--w50);}
+.type-card{background:var(--bg3);border:2px solid var(--w10);border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.type-card:hover{border-color:var(--acc);}
+.type-card.selected{border-color:var(--acc);background:rgba(37,99,235,.08);}
+.type-ico{width:44px;height:44px;border-radius:10px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.type-t{font-size:14px;font-weight:800;}
+.type-s{font-size:11px;color:var(--w50);margin-top:2px;}
+.footer{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--w10);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:100;}
+.finfo{font-size:11px;color:var(--w50);flex:1;}
+#toast{position:fixed;bottom:68px;right:16px;background:var(--bg3);border:1px solid var(--w10);border-radius:9px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--w);z-index:9999;transform:translateY(14px);opacity:0;transition:all .3s;pointer-events:none;max-width:250px;}
+</style>
+</head>
+<body>
+<div class=&quot;main&quot;>
+
+<!-- ══ שלב 1: בחירת פרויקט ══ -->
+<div class=&quot;pane on&quot; id=&quot;p1&quot;>
+  <div class=&quot;ph&quot;>
+    <div class=&quot;ph-part&quot;>מנוע התכנון • שלב 1</div>
+    <div class=&quot;ph-t&quot;>בחירת פרויקט</div>
+    <div class=&quot;ph-s&quot;>כל קמפיין שיווקי מתחיל בפרויקט. בחר פעולה כדי להתחיל.</div>
+    <hr class=&quot;ph-r&quot;>
+  </div>
+  <div class=&quot;sec&quot;>
+
+    <div class=&quot;proj-card&quot; id=&quot;pc-new&quot; onclick=&quot;selectProject('new')&quot;>
+      <div class=&quot;proj-ico&quot;>➕</div>
+      <div class=&quot;proj-txt&quot;>
+        <div class=&quot;proj-t&quot;>פרויקט חדש</div>
+        <div class=&quot;proj-s&quot;>בנה קמפיין שיווקי מאפס — מנוע ה-AI ינחה אותך בכל שלב</div>
+      </div>
+      <div class=&quot;proj-chev&quot;>‹</div>
+    </div>
+
+    <div class=&quot;proj-card&quot; id=&quot;pc-edit&quot; onclick=&quot;selectProject('edit')&quot;>
+      <div class=&quot;proj-ico&quot;>✏️</div>
+      <div class=&quot;proj-txt&quot;>
+        <div class=&quot;proj-t&quot;>עריכת פרויקט קיים</div>
+        <div class=&quot;proj-s&quot;>פתח פרויקט שמור ועדכן אותו</div>
+      </div>
+      <div class=&quot;proj-chev&quot;>‹</div>
+    </div>
+
+    <div class=&quot;proj-card&quot; id=&quot;pc-dup&quot; onclick=&quot;selectProject('dup')&quot;>
+      <div class=&quot;proj-ico&quot;>📄</div>
+      <div class=&quot;proj-txt&quot;>
+        <div class=&quot;proj-t&quot;>שכפול פרויקט קיים</div>
+        <div class=&quot;proj-s&quot;>השתמש בפרויקט קיים כבסיס לקמפיין חדש</div>
+      </div>
+      <div class=&quot;proj-chev&quot;>‹</div>
+    </div>
+
+    <div class=&quot;proj-card&quot; id=&quot;pc-open&quot; onclick=&quot;selectProject('open')&quot;>
+      <div class=&quot;proj-ico&quot;>📂</div>
+      <div class=&quot;proj-txt&quot;>
+        <div class=&quot;proj-t&quot;>פתח פרויקט שמור</div>
+        <div class=&quot;proj-s&quot;>המשך פרויקט שהתחלת בעבר מהנקודה שבה עצרת</div>
+      </div>
+      <div class=&quot;proj-chev&quot;>‹</div>
+    </div>
+
+    <!-- Dynamic sub-panel per selection -->
+    <div id=&quot;proj-subpanel&quot; style=&quot;display:none;margin-top:6px;&quot;></div>
+
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<div class=&quot;footer&quot;>
+  <div class=&quot;finfo&quot; id=&quot;finfo&quot;>בחר פרויקט כדי להתחיל</div>
+  <div style=&quot;display:flex;gap:7px;&quot;>
+    <button class=&quot;btn btn-p btn-sm&quot; id=&quot;btn-next&quot; onclick=&quot;nxt()&quot; disabled>הבא ←</button>
+  </div>
+</div>
+<div id=&quot;toast&quot;></div>
+
+<script>
+// ══ PART A — PLANNING ENGINE (STEP 1 of 13: PROJECT SELECTION) ══
+// &quot;New project&quot; flow now collects basic details + campaign type, then hands
+// off automatically to the full wizard of Part B (SEO) or Part C (Google Ads),
+// running inside the master shell (co-co-dalia-master.html). This module
+// never edits B/C directly — it only calls window.parent.launchModule().
+
+let SELECTED_MODE=null;
+let SELECTED_CAMPAIGN_TYPE=null; // 'seo' | 'ads'
+
+function selectProject(mode){
+  SELECTED_MODE=mode;
+  SELECTED_CAMPAIGN_TYPE=null;
+  ['pc-new','pc-edit','pc-dup','pc-open'].forEach(id=>document.getElementById(id).classList.remove('selected'));
+  document.getElementById('pc-'+({new:'new',edit:'edit',dup:'dup',open:'open'})[mode]).classList.add('selected');
+
+  const sub=document.getElementById('proj-subpanel');
+  sub.style.display='block';
+  const panels={
+    new:`
+      <div class=&quot;card&quot; style=&quot;margin-bottom:14px;&quot;>
+        <div class=&quot;fl&quot;><label>שם הפרויקט</label><input class=&quot;inp&quot; id=&quot;np-name&quot; placeholder=&quot;לדוגמה: קמפיין קיץ 2026 — ניהול צי&quot;></div>
+        <div class=&quot;g2&quot;><div class=&quot;fl&quot;><label>לקוח</label><input class=&quot;inp&quot; id=&quot;np-client&quot; placeholder=&quot;שם הלקוח / העסק&quot;></div>
+        <div class=&quot;fl&quot;><label>אתר</label><input class=&quot;inp&quot; id=&quot;np-site&quot; placeholder=&quot;https://&quot;></div></div>
+      </div>
+      <div style=&quot;font-size:11px;font-weight:700;color:var(--w50);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;&quot;>בחר סוג קמפיין</div>
+      <div class=&quot;type-card&quot; id=&quot;tc-ads&quot; onclick=&quot;selectCampaignType('ads')&quot;>
+        <div class=&quot;type-ico&quot;>📢</div>
+        <div style=&quot;flex:1;&quot;><div class=&quot;type-t&quot;>Google Ads — ממומן</div><div class=&quot;type-s&quot;>קמפיין חיפוש בתשלום. פותח את ה-Wizard המלא של חלק ג׳ (9 שלבים).</div></div>
+      </div>
+      <div class=&quot;type-card&quot; id=&quot;tc-seo&quot; onclick=&quot;selectCampaignType('seo')&quot;>
+        <div class=&quot;type-ico&quot;>🌱</div>
+        <div style=&quot;flex:1;&quot;><div class=&quot;type-t&quot;>Google SEO — אורגני</div><div class=&quot;type-s&quot;>קידום אורגני ללא תשלום לקליק. פותח את ה-Wizard המלא של חלק ב׳ (12 שלבים).</div></div>
+      </div>
+      <button class=&quot;btn btn-p&quot; id=&quot;btn-launch&quot; style=&quot;margin-top:10px;width:100%;justify-content:center;&quot; onclick=&quot;launchCampaign()&quot; disabled>🚀 צור קמפיין ופתח Wizard</button>
+    `,
+    edit:`<div class=&quot;card&quot;><div class=&quot;fl&quot;><label>בחר פרויקט קיים לעריכה</label><select class=&quot;inp&quot; id=&quot;ep-select&quot;><option>— טוען פרויקטים שמורים —</option></select></div></div>`,
+    dup:`<div class=&quot;card&quot;><div class=&quot;fl&quot;><label>שכפל מפרויקט</label><select class=&quot;inp&quot; id=&quot;dp-select&quot;><option>— טוען פרויקטים שמורים —</option></select></div>
+      <div class=&quot;fl&quot;><label>שם לפרויקט החדש</label><input class=&quot;inp&quot; id=&quot;dp-name&quot; placeholder=&quot;שם הפרויקט המשוכפל&quot;></div></div>`,
+    open:`<div class=&quot;card&quot;><div class=&quot;fl&quot;><label>פרויקטים שמורים</label><select class=&quot;inp&quot; id=&quot;op-select&quot;><option>— טוען פרויקטים שמורים —</option></select></div></div>`,
+  };
+  sub.innerHTML=panels[mode]||'';
+
+  const nextBtn=document.getElementById('btn-next');
+  if(mode==='new'){
+    // For &quot;new project&quot; the dedicated launch button below drives navigation;
+    // the fixed footer button stays as a secondary/disabled affordance.
+    nextBtn.disabled=true;
+    document.getElementById('finfo').textContent='מלא פרטים ובחר סוג קמפיין למטה';
+  } else {
+    nextBtn.disabled=false;
+    document.getElementById('finfo').textContent='פרויקט נבחר — לחץ &quot;הבא&quot; להמשיך';
+  }
+}
+
+function selectCampaignType(type){
+  SELECTED_CAMPAIGN_TYPE=type;
+  document.getElementById('tc-ads').classList.toggle('selected', type==='ads');
+  document.getElementById('tc-seo').classList.toggle('selected', type==='seo');
+  document.getElementById('btn-launch').disabled=false;
+  document.getElementById('finfo').textContent = type==='ads'
+    ? 'נבחר Google Ads — לחץ &quot;צור קמפיין&quot; לפתיחת ה-Wizard המלא'
+    : 'נבחר Google SEO — לחץ &quot;צור קמפיין&quot; לפתיחת ה-Wizard המלא';
+}
+
+function launchCampaign(){
+  if(SELECTED_MODE!=='new'||!SELECTED_CAMPAIGN_TYPE){toast('⚠️ בחר סוג קמפיין קודם');return;}
+  const name=document.getElementById('np-name')?.value.trim()||'';
+  const client=document.getElementById('np-client')?.value.trim()||'';
+  const site=document.getElementById('np-site')?.value.trim()||'';
+  // Persist context the same way loadCtx() in Part B already expects
+  try{
+    localStorage.setItem('dalia_part_a', JSON.stringify({
+      bizName: client || name,
+      name: name,
+      site: site,
+      campaignType: SELECTED_CAMPAIGN_TYPE,
+      ts: new Date().toISOString(),
+    }));
+  }catch(e){}
+  const target = SELECTED_CAMPAIGN_TYPE==='ads' ? 'c' : 'b';
+  if(window.parent &amp;&amp; typeof window.parent.launchModule==='function'){
+    toast('🚀 פותח את ה-Wizard המלא...');
+    window.parent.launchModule(target);
+  } else {
+    toast('⚠️ לא ניתן לפתוח את המודול — נסה דרך הטאב העליון');
+  }
+}
+
+function nxt(){
+  if(SELECTED_MODE==='new'){ launchCampaign(); return; }
+  if(!SELECTED_MODE){toast('⚠️ בחר פרויקט קודם');return;}
+  toast('⚠️ עריכה/שכפול/פתיחה של פרויקטים שמורים עדיין לא מחוברים לנתונים אמיתיים');
+}
+
+function toast(m){
+  const t=document.getElementById('toast');
+  t.textContent=m;t.style.opacity='1';t.style.transform='translateY(0)';
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(14px)';},3500);
+}
+</script>
+</body></html>
+"></iframe>
+  <iframe id="frame-b" title="חלק ב׳ — SEO אורגני" srcdoc="<!DOCTYPE html>
+<html lang=&quot;he&quot; dir=&quot;rtl&quot;>
+<head>
+<meta charset=&quot;UTF-8&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
+<title>CO.CO דליה – מנוע SEO אורגני</title>
+<link href=&quot;https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&amp;display=swap&quot; rel=&quot;stylesheet&quot;>
+<style>
+:root{
+  --bg:#04091a;--bg2:#071022;--bg3:#0a1830;--bg4:#0d1f3c;
+  --acc:#2563eb;--acc2:#3b82f6;--glow:rgba(37,99,235,.14);
+  --w:#fff;--w80:rgba(255,255,255,.80);--w50:rgba(255,255,255,.50);
+  --w20:rgba(255,255,255,.20);--w10:rgba(255,255,255,.10);--w06:rgba(255,255,255,.06);
+  --green:#22c55e;--red:#ef4444;--yel:#f59e0b;--pur:#8b5cf6;--cyan:#06b6d4;
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-height:100vh;}
+.tb{height:52px;background:var(--bg2);border-bottom:1px solid var(--w10);display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;z-index:200;gap:10px;}
+.logo{font-size:13px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.logo em{color:var(--green);font-style:normal;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+.wiz{background:var(--bg2);border-bottom:1px solid var(--w10);}
+.wsteps{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.ws{padding:10px 13px;font-size:11px;font-weight:600;color:var(--w50);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.ws.active{color:var(--w);border-bottom-color:var(--green);}
+.ws.done{color:var(--green);border-bottom-color:rgba(34,197,94,.3);}
+.ws.locked{opacity:.3;cursor:not-allowed;}
+.wsn{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:var(--w10);flex-shrink:0;}
+.ws.active .wsn{background:var(--green);color:#fff;}
+.ws.done .wsn{background:rgba(34,197,94,.2);color:var(--green);}
+.pb{height:2px;background:var(--w10);}
+.pf{height:100%;background:linear-gradient(90deg,var(--green),var(--acc2));transition:width .45s;}
+.main{max-width:860px;margin:0 auto;padding:0 0 96px;}
+.pane{display:none;}.pane.on{display:block;}
+.ph{padding:16px 18px 0;}
+.ph-part{font-size:10px;font-weight:700;color:var(--green);letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;gap:7px;}
+.ph-part::before{content:'';width:20px;height:2px;background:var(--green);}
+.ph-t{font-size:clamp(16px,4vw,22px);font-weight:900;margin-bottom:4px;}
+.ph-s{font-size:12px;color:var(--w50);line-height:1.6;}
+.ph-r{height:2px;background:linear-gradient(90deg,var(--green),transparent);margin:10px 0 0;border:none;}
+.sec{padding:14px 18px;}
+.st{font-size:10px;font-weight:700;color:var(--w50);letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.st::after{content:'';flex:1;height:1px;background:var(--w10);}
+.card{background:var(--bg3);border:1px solid var(--w10);border-radius:var(--r);padding:14px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+@media(max-width:500px){.g2,.g3{grid-template-columns:1fr;}}
+.fl{display:flex;flex-direction:column;gap:3px;margin-bottom:9px;}
+.fl label{font-size:11px;color:var(--w50);font-weight:600;}
+.inp{padding:8px 11px;border-radius:8px;border:1px solid var(--w10);background:var(--bg4);color:var(--w);font-family:'Heebo',sans-serif;font-size:12px;outline:none;width:100%;transition:border-color .2s;}
+.inp:focus{border-color:var(--green);}
+.inp::placeholder{color:var(--w50);}
+.ta{resize:vertical;min-height:72px;line-height:1.65;}
+.btn{padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;transition:all .18s;display:inline-flex;align-items:center;gap:5px;}
+.btn-p{background:var(--green);color:#fff;}.btn-p:hover{background:#16a34a;}
+.btn-g{background:var(--w06);color:var(--w80);border:1px solid var(--w10);}.btn-g:hover{background:var(--w10);}
+.btn-re{background:rgba(239,68,68,.13);color:var(--red);border:1px solid rgba(239,68,68,.22);}
+.btn-go{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+.btn-ye{background:rgba(245,158,11,.13);color:var(--yel);border:1px solid rgba(245,158,11,.22);}
+.btn-sm{font-size:10px;padding:4px 9px;}
+.bd{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;}
+.bd-g{background:rgba(34,197,94,.14);color:var(--green);}
+.bd-r{background:rgba(239,68,68,.14);color:var(--red);}
+.bd-y{background:rgba(245,158,11,.14);color:var(--yel);}
+.bd-b{background:rgba(59,130,246,.14);color:var(--acc2);}
+.bd-p{background:rgba(139,92,246,.14);color:var(--pur);}
+.bd-x{background:var(--w06);color:var(--w50);}
+.alt{display:flex;align-items:flex-start;gap:7px;padding:9px 11px;border-radius:8px;font-size:12px;line-height:1.6;margin-bottom:10px;}
+.alt-i{background:rgba(6,182,212,.10);border:1px solid rgba(6,182,212,.22);color:var(--cyan);}
+.alt-ok{background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.22);color:var(--green);}
+.alt-w{background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.22);color:var(--yel);}
+.alt-r{background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.22);color:var(--red);}
+.tw{overflow-x:auto;margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{text-align:right;padding:7px 8px;color:var(--w50);font-weight:700;border-bottom:1px solid var(--w10);white-space:nowrap;background:var(--bg4);}
+td{padding:7px 8px;border-bottom:1px solid var(--w06);color:var(--w80);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--w06);}
+.td-act{display:flex;gap:4px;flex-wrap:nowrap;}
+.goal-item{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--bg3);border:1px solid var(--w10);border-radius:9px;margin-bottom:6px;cursor:pointer;transition:all .2s;}
+.goal-item:hover{border-color:var(--green);}
+.goal-item.on{border-color:var(--green);background:rgba(34,197,94,.06);}
+.goal-item.removed{opacity:.3;text-decoration:line-through;}
+.ai-box{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:var(--r);padding:14px;display:none;}
+.ai-box.show{display:block;}
+.ai-hd{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--green);margin-bottom:10px;}
+.ai-line{font-size:12px;color:var(--w80);line-height:2;opacity:0;transform:translateY(3px);transition:all .35s;}
+.ai-line.show{opacity:1;transform:none;}
+.apbox{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.25);border-radius:var(--r);padding:14px;margin-top:14px;}
+.apbox-t{font-size:13px;font-weight:800;color:var(--green);margin-bottom:8px;}
+.score-ring{display:flex;flex-direction:column;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;border:3px solid var(--green);flex-shrink:0;}
+.score-num{font-size:24px;font-weight:900;}
+.score-lbl{font-size:9px;color:var(--w50);}
+.priority-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.p-high{background:var(--red);}
+.p-med{background:var(--yel);}
+.p-low{background:var(--green);}
+.footer{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--w10);padding:10px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:100;}
+.finfo{font-size:11px;color:var(--w50);flex:1;}
+#toast{position:fixed;bottom:68px;right:16px;background:var(--bg3);border:1px solid var(--w10);border-radius:9px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--w);z-index:9999;transform:translateY(14px);opacity:0;transition:all .3s;pointer-events:none;max-width:250px;}
+</style>
+</head>
+<body>
+<div class=&quot;tb&quot;>
+  <div class=&quot;logo&quot;><div class=&quot;dot&quot;></div>CO.CO <em>דליה</em> — מנוע SEO אורגני</div>
+  <div style=&quot;display:flex;gap:6px;align-items:center;&quot;>
+    <span id=&quot;tb-score&quot; class=&quot;bd bd-y&quot;>מתכנן</span>
+    <span style=&quot;font-size:10px;padding:2px 9px;border-radius:99px;background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.22);&quot;>חלק ב׳</span>
+    <button style=&quot;font-size:10px;padding:2px 9px;border-radius:99px;background:var(--w06);color:var(--w50);border:1px solid var(--w10);cursor:pointer;&quot; onclick=&quot;window.location.href='dalia-planning-engine.html'&quot;>← חלק א׳</button>
+  </div>
+</div>
+<div class=&quot;wiz&quot;><div class=&quot;wsteps&quot; id=&quot;wsteps&quot;></div><div class=&quot;pb&quot;><div class=&quot;pf&quot; id=&quot;pf&quot; style=&quot;width:7.7%&quot;></div></div></div>
+<div class=&quot;main&quot;>
+
+<!-- ══ שלב 1: הקשר עסקי ══ -->
+<div class=&quot;pane on&quot; id=&quot;p1&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 1</div><div class=&quot;ph-t&quot;>הקשר עסקי — מחלק א׳</div><div class=&quot;ph-s&quot;>כל הנתונים שנאספו בחלק א׳ נטענים אוטומטית. לא מזינים מחדש.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;alt alt-ok&quot;>✅ הקשר עסקי נטען אוטומטית ממנוע התכנון (חלק א׳). ה-AI ינתח את הנתונים ויבנה תוכנית SEO מקצועית.</div>
+    <div class=&quot;st&quot;>נתוני עסק שנטענו</div>
+    <div class=&quot;card&quot; style=&quot;margin-bottom:12px;&quot; id=&quot;ctx-display&quot;>
+      <div style=&quot;display:flex;flex-direction:column;gap:0;&quot; id=&quot;ctx-rows&quot;></div>
+      <div style=&quot;margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;&quot;>
+        <span class=&quot;bd bd-g&quot;>נטען מחלק א׳ ✓</span>
+        <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;toast('✏️ עריכה מוגבלת — שנה בחלק א׳')&quot;>✏️ ערוך בחלק א׳</button>
+      </div>
+    </div>
+    <div class=&quot;st&quot;>אתר לסריקה</div>
+    <div class=&quot;card&quot;>
+      <div class=&quot;fl&quot;><label>כתובת האתר הראשית</label><input class=&quot;inp&quot; id=&quot;site-url&quot; value=&quot;https://greentech.co.il&quot; placeholder=&quot;https://&quot;></div>
+      <div class=&quot;fl&quot;><label>Sitemap URL</label><input class=&quot;inp&quot; id=&quot;sitemap-url&quot; value=&quot;https://greentech.co.il/sitemap.xml&quot; placeholder=&quot;https://.../sitemap.xml&quot;></div>
+      <div class=&quot;fl&quot;><label>robots.txt URL</label><input class=&quot;inp&quot; id=&quot;robots-url&quot; value=&quot;https://greentech.co.il/robots.txt&quot;></div>
+      <div class=&quot;g2&quot;>
+        <div class=&quot;fl&quot;><label>Search Console Property</label><input class=&quot;inp&quot; id=&quot;gsc-prop&quot; placeholder=&quot;https://greentech.co.il&quot;></div>
+        <div class=&quot;fl&quot;><label>CMS / פלטפורמה</label><select class=&quot;inp&quot; id=&quot;cms&quot;><option>WordPress</option><option>Wix</option><option>Webflow</option><option>Shopify</option><option>קוד מותאם</option><option>אחר</option></select></div>
+      </div>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;runContextAnalysis()&quot;>🧠 הפעל ניתוח AI ראשוני</button>
+    </div>
+    <div class=&quot;ai-box&quot; id=&quot;ctx-ai&quot; style=&quot;margin-top:12px;&quot;>
+      <div class=&quot;ai-hd&quot;><div class=&quot;dot&quot;></div>AI לומד את ההקשר העסקי...</div>
+      <div id=&quot;ctx-ai-log&quot;></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 2: מטרות SEO ══ -->
+<div class=&quot;pane&quot; id=&quot;p2&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 2</div><div class=&quot;ph-t&quot;>מטרות SEO</div><div class=&quot;ph-s&quot;>ה-AI הציע מטרות על בסיס ניתוח העסק. אשר, ערוך, מחק או הוסף.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;alt alt-i&quot;>ℹ️ כל מטרה שתאשר תהפוך לאבן יסוד של תוכנית ה-SEO. המטרות קובעות מה נכלל בכל שלב הבא.</div>
+    <div class=&quot;st&quot;>מטרות מוצעות על-ידי AI</div>
+    <div id=&quot;goals-list&quot; style=&quot;display:flex;flex-direction:column;gap:0;margin-bottom:12px;&quot;></div>
+    <div style=&quot;display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;&quot;>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;approveAllGoals()&quot;>✅ אשר הכל</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;addGoal()&quot;>+ הוסף מטרה</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;runGoalsAI()&quot;>🔁 הצע מחדש</button>
+    </div>
+    <div class=&quot;apbox&quot;>
+      <div class=&quot;apbox-t&quot;>✅ אישור מטרות SEO</div>
+      <div style=&quot;font-size:12px;color:var(--w80);margin-bottom:10px;&quot;>לפחות 3 מטרות חייבות להיות מאושרות לפני המעבר לשלב הבא.</div>
+      <div id=&quot;goals-summary&quot; style=&quot;font-size:11px;color:var(--w50);margin-bottom:10px;&quot;>מאושרות: 0 מתוך 0</div>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;approveStep(2,'goals')&quot;>✅ אשר מטרות ועבור לשלב הבא</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 3: מילות מפתח אורגניות ══ -->
+<div class=&quot;pane&quot; id=&quot;p3&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 3</div><div class=&quot;ph-t&quot;>מילות מפתח אורגניות</div><div class=&quot;ph-s&quot;>AI מנתח כל מקור זמין ובונה טבלה מלאה. בדוק ואשר כל מילה.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;alt alt-i&quot;>ℹ️ מקורות: אתר הלקוח • קבצים שהועלו • מתחרים • תיאור עסק • שירותים • אזורי פעילות • AI</div>
+    <div style=&quot;display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;&quot;>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;runKWAnalysis()&quot;>🧠 נתח מילות מפתח AI</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;addKWRow()&quot;>+ הוסף ידנית</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;approveAllKW()&quot;>✅ אשר הכל</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;filterKW('primary')&quot;>ראשיות בלבד</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;filterKW('all')&quot;>הצג הכל</button>
+    </div>
+    <div class=&quot;ai-box&quot; id=&quot;kw-ai&quot; style=&quot;margin-bottom:10px;&quot;><div class=&quot;ai-hd&quot;><div class=&quot;dot&quot;></div>מנתח מילות מפתח...</div><div id=&quot;kw-ai-log&quot;></div></div>
+    <div class=&quot;tw&quot;><table id=&quot;kw-table&quot;>
+      <thead><tr>
+        <th>#</th><th>מילת מפתח</th><th>סוג</th><th>כוונה</th><th>אזור</th><th>שירות</th>
+        <th>עמוד קיים</th><th>עמוד חדש?</th><th>תחרות</th><th>עדיפות</th>
+        <th>התאמה</th><th>למה AI</th><th>סטטוס</th><th>פעולות</th>
+      </tr></thead>
+      <tbody id=&quot;kw-tbody&quot;></tbody>
+    </table></div>
+    <div id=&quot;kw-summary-row&quot; style=&quot;font-size:11px;color:var(--w50);margin-bottom:10px;&quot;>סה&quot;כ: 0 מילות מפתח | 0 אושרו</div>
+    <div class=&quot;apbox&quot;>
+      <div class=&quot;apbox-t&quot;>✅ אישור מילות מפתח</div>
+      <div style=&quot;font-size:12px;color:var(--w80);margin-bottom:10px;&quot;>חובה: לפחות 5 מילות מפתח ראשיות אושרו.</div>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;approveStep(3,'kw')&quot;>✅ אשר מילות מפתח</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 4: אזורי קידום ══ -->
+<div class=&quot;pane&quot; id=&quot;p4&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 4</div><div class=&quot;ph-t&quot;>אזורי קידום</div><div class=&quot;ph-s&quot;>ה-AI הציע אזורים לפי עסק, מתחרים ופוטנציאל. אשר, ערוך, הוסף.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;alt alt-i&quot;>ℹ️ מיקוד גיאוגרפי חשוב ל-Local SEO. עמוד אזורי = דף שירות + עיר ספציפית.</div>
+    <div style=&quot;display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;&quot;>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;runGeoAI()&quot;>🧠 הצע אזורים AI</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;addGeoRow()&quot;>+ הוסף אזור</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;approveAllGeo()&quot;>✅ אשר הכל</button>
+    </div>
+    <div class=&quot;ai-box&quot; id=&quot;geo-ai&quot; style=&quot;margin-bottom:10px;&quot;><div class=&quot;ai-hd&quot;><div class=&quot;dot&quot;></div>ממפה אזורי קידום...</div><div id=&quot;geo-ai-log&quot;></div></div>
+    <div class=&quot;tw&quot;><table>
+      <thead><tr><th>אזור</th><th>סוג</th><th>עדיפות</th><th>שירות</th><th>מילות מפתח</th><th>עמוד אזורי?</th><th>תחרות</th><th>פוטנציאל</th><th>למה AI</th><th>סטטוס</th><th>פעולות</th></tr></thead>
+      <tbody id=&quot;geo-tbody&quot;></tbody>
+    </table></div>
+    <div style=&quot;margin-top:8px;font-size:11px;color:var(--w50);&quot;>דוגמאות: &quot;ניהול צי רכב בתל אביב&quot; | &quot;שירות GPS לוגיסטיקה במרכז&quot;</div>
+    <div class=&quot;apbox&quot; style=&quot;margin-top:12px;&quot;>
+      <div class=&quot;apbox-t&quot;>✅ אישור אזורי קידום</div>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;approveStep(4,'geo')&quot;>✅ אשר אזורים</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 5: קהל יעד אורגני ══ -->
+<div class=&quot;pane&quot; id=&quot;p5&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 5</div><div class=&quot;ph-t&quot;>קהל יעד אורגני</div><div class=&quot;ph-s&quot;>הבנת כוונת החיפוש — מה הלקוח שואל בגוגל, מה גורם לו לפנות.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;alt alt-i&quot;>ℹ️ ב-SEO מקצועי: כוונת חיפוש (Search Intent) היא הגורם החשוב ביותר. תוכן שעונה לכוונה מדורג גבוה יותר.</div>
+    <div style=&quot;display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;&quot;>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;runAudienceAI()&quot;>🧠 הצע קהלים AI</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;addAudRow()&quot;>+ הוסף קהל</button>
+    </div>
+    <div class=&quot;ai-box&quot; id=&quot;aud-ai&quot; style=&quot;margin-bottom:10px;&quot;><div class=&quot;ai-hd&quot;><div class=&quot;dot&quot;></div>מנתח קהלי יעד...</div><div id=&quot;aud-ai-log&quot;></div></div>
+    <div class=&quot;tw&quot;><table>
+      <thead><tr><th>שם קהל</th><th>תיאור</th><th>כאבים</th><th>כוונת חיפוש</th><th>שאלות שואל</th><th>מילות מפתח</th><th>עמודים</th><th>תוכן</th><th>לא מתאים?</th><th>סטטוס</th><th>פעולות</th></tr></thead>
+      <tbody id=&quot;aud-tbody&quot;></tbody>
+    </table></div>
+    <div class=&quot;apbox&quot; style=&quot;margin-top:12px;&quot;>
+      <div class=&quot;apbox-t&quot;>✅ אישור קהלי יעד</div>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;approveStep(5,'aud')&quot;>✅ אשר קהלים</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 6: ניתוח מתחרים אורגני ══ -->
+<div class=&quot;pane&quot; id=&quot;p6&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 6</div><div class=&quot;ph-t&quot;>ניתוח מתחרים אורגני</div><div class=&quot;ph-s&quot;>הזן אתרי מתחרים — AI ינתח מה הם עושים ואיפה ההזדמנות שלך.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;card&quot; style=&quot;margin-bottom:12px;&quot;>
+      <div class=&quot;g2&quot;>
+        <div class=&quot;fl&quot;><label>אתר מתחרה</label><input class=&quot;inp&quot; id=&quot;comp-url&quot; placeholder=&quot;https://competitor.co.il&quot;></div>
+        <div class=&quot;fl&quot;><label>שם מתחרה</label><input class=&quot;inp&quot; id=&quot;comp-name&quot; placeholder=&quot;שם החברה&quot;></div>
+        <div class=&quot;fl&quot;><label>Google Business</label><input class=&quot;inp&quot; id=&quot;comp-gbp&quot; placeholder=&quot;קישור GBP&quot;></div>
+        <div class=&quot;fl&quot;><label>בלוג / מאמרים</label><input class=&quot;inp&quot; id=&quot;comp-blog&quot; placeholder=&quot;https://.../blog&quot;></div>
+        <div class=&quot;fl&quot;><label>דפי שירות ספציפיים</label><input class=&quot;inp&quot; id=&quot;comp-pages&quot; placeholder=&quot;URL1, URL2...&quot;></div>
+        <div class=&quot;fl&quot;><label>קישורים נוספים</label><input class=&quot;inp&quot; id=&quot;comp-other&quot; placeholder=&quot;דפי נחיתה, FAQ...&quot;></div>
+      </div>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;addComp()&quot;>+ הוסף מתחרה לניתוח</button>
+    </div>
+    <div class=&quot;st&quot;>טבלת ניתוח מתחרים</div>
+    <div style=&quot;display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;&quot;>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;runCompAI()&quot;>🧠 נתח מתחרים AI</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;approveAllComp()&quot;>✅ אשר הכל</button>
+    </div>
+    <div class=&quot;ai-box&quot; id=&quot;comp-ai&quot; style=&quot;margin-bottom:10px;&quot;><div class=&quot;ai-hd&quot;><div class=&quot;dot&quot;></div>מנתח מתחרים אורגניים...</div><div id=&quot;comp-ai-log&quot;></div></div>
+    <div class=&quot;tw&quot;><table>
+      <thead><tr><th>מתחרה</th><th>מילות מפתח</th><th>עמודים חזקים</th><th>עמודים חלשים</th><th>מה טוב</th><th>מה חסר</th><th>הזדמנות</th><th>עמודים לבנות</th><th>מילים לקחת</th><th>ציון</th><th>סטטוס</th><th>פעולות</th></tr></thead>
+      <tbody id=&quot;comp-tbody&quot;></tbody>
+    </table></div>
+    <div class=&quot;apbox&quot; style=&quot;margin-top:12px;&quot;>
+      <div class=&quot;apbox-t&quot;>✅ אישור ניתוח מתחרים</div>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;approveStep(6,'comp')&quot;>✅ אשר ניתוח מתחרים</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 7: מיפוי מילות מפתח לעמודים ══ -->
+<div class=&quot;pane&quot; id=&quot;p7&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 7</div><div class=&quot;ph-t&quot;>מיפוי מילות מפתח לעמודים</div><div class=&quot;ph-s&quot;>לכל מילת מפתח — עמוד ספציפי עם Title, Meta, H1 ו-CTA מוצעים.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;alt alt-i&quot;>ℹ️ עיקרון מרכזי: כל עמוד = מילת מפתח ראשית אחת. מניעת &quot;קניבליזציה&quot; — שני עמודים לא ידורגו על אותה מילה.</div>
+    <div style=&quot;display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;&quot;>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;runMappingAI()&quot;>🧠 בנה מיפוי AI</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;addMapRow()&quot;>+ הוסף ידנית</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;approveAllMap()&quot;>✅ אשר הכל</button>
+    </div>
+    <div class=&quot;ai-box&quot; id=&quot;map-ai&quot; style=&quot;margin-bottom:10px;&quot;><div class=&quot;ai-hd&quot;><div class=&quot;dot&quot;></div>ממפה מילות מפתח לעמודים...</div><div id=&quot;map-ai-log&quot;></div></div>
+    <div class=&quot;tw&quot;><table>
+      <thead><tr><th>מילת מפתח</th><th>אזור</th><th>שירות</th><th>קהל</th><th>עמוד קיים</th><th>עמוד חדש</th><th>סוג עמוד</th><th>Title מוצע</th><th>Meta מוצע</th><th>H1 מוצע</th><th>CTA</th><th>סטטוס</th><th>פעולות</th></tr></thead>
+      <tbody id=&quot;map-tbody&quot;></tbody>
+    </table></div>
+    <div class=&quot;apbox&quot; style=&quot;margin-top:12px;&quot;>
+      <div class=&quot;apbox-t&quot;>✅ אישור מיפוי</div>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;approveStep(7,'map')&quot;>✅ אשר מיפוי</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 8: תוכנית עמודים ══ -->
+<div class=&quot;pane&quot; id=&quot;p8&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 8</div><div class=&quot;ph-t&quot;>תוכנית עמודים</div><div class=&quot;ph-s&quot;>AI מציע אילו עמודים לבנות ואיך. לפי מיפוי, מתחרים והזדמנויות שזוהו.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;alt alt-i&quot;>ℹ️ סוגי עמודים: דף שירות | דף אזורי | מאמר | FAQ | השוואה | פתרון בעיה | קטגוריה | תמיכה</div>
+    <div style=&quot;display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;&quot;>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;runPagesAI()&quot;>🧠 הצע עמודים AI</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;addPageRow()&quot;>+ הוסף עמוד</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;approveAllPages()&quot;>✅ אשר הכל</button>
+    </div>
+    <div class=&quot;ai-box&quot; id=&quot;pages-ai&quot; style=&quot;margin-bottom:10px;&quot;><div class=&quot;ai-hd&quot;><div class=&quot;dot&quot;></div>בונה תוכנית עמודים...</div><div id=&quot;pages-ai-log&quot;></div></div>
+    <div id=&quot;pages-container&quot; style=&quot;display:flex;flex-direction:column;gap:10px;&quot;></div>
+    <div class=&quot;apbox&quot; style=&quot;margin-top:12px;&quot;>
+      <div class=&quot;apbox-t&quot;>✅ אישור תוכנית עמודים</div>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;approveStep(8,'pages')&quot;>✅ אשר תוכנית עמודים</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 9: On-Page SEO ══ -->
+<div class=&quot;pane&quot; id=&quot;p9&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 9</div><div class=&quot;ph-t&quot;>On-Page SEO</div><div class=&quot;ph-s&quot;>לכל עמוד — ניתוח מלא של כל רכיבי ה-SEO לפי Google Search Essentials.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;alt alt-i&quot;>ℹ️ Google Search Essentials: Title 50-60 תווים | Meta 150-160 תווים | H1 יחיד | תוכן מינימום 300 מילה | Alt לכל תמונה</div>
+    <div style=&quot;display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;&quot;>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;runOnPageAI()&quot;>🧠 נתח On-Page AI</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;addOnPageRow()&quot;>+ הוסף עמוד</button>
+    </div>
+    <div class=&quot;ai-box&quot; id=&quot;onpage-ai&quot; style=&quot;margin-bottom:10px;&quot;><div class=&quot;ai-hd&quot;><div class=&quot;dot&quot;></div>מנתח On-Page SEO...</div><div id=&quot;onpage-ai-log&quot;></div></div>
+    <div id=&quot;onpage-container&quot; style=&quot;display:flex;flex-direction:column;gap:10px;&quot;></div>
+    <div class=&quot;apbox&quot; style=&quot;margin-top:12px;&quot;>
+      <div class=&quot;apbox-t&quot;>✅ אישור On-Page SEO</div>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;approveStep(9,'onpage')&quot;>✅ אשר On-Page SEO</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 10: SEO טכני ══ -->
+<div class=&quot;pane&quot; id=&quot;p10&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 10</div><div class=&quot;ph-t&quot;>SEO טכני</div><div class=&quot;ph-s&quot;>בדיקת תשתית טכנית לפי Google Search Essentials ו-Core Web Vitals.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;alt alt-w&quot;>⚠️ SEO טכני הוא הבסיס. ללא תשתית תקינה, גם תוכן מצוין לא יתקדם.</div>
+    <div style=&quot;display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;&quot;>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;runTechAI()&quot;>🧠 הפעל בדיקה טכנית</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;approveAllTech()&quot;>✅ אשר תוצאות</button>
+    </div>
+    <div class=&quot;ai-box&quot; id=&quot;tech-ai&quot; style=&quot;margin-bottom:10px;&quot;><div class=&quot;ai-hd&quot;><div class=&quot;dot&quot;></div>בודק SEO טכני...</div><div id=&quot;tech-ai-log&quot;></div></div>
+    <div class=&quot;tw&quot;><table>
+      <thead><tr><th>בדיקה</th><th>חומרה</th><th>ממצא</th><th>למה חשוב</th><th>איך לתקן</th><th>חובה?</th><th>סטטוס</th><th>פעולות</th></tr></thead>
+      <tbody id=&quot;tech-tbody&quot;></tbody>
+    </table></div>
+    <div class=&quot;apbox&quot; style=&quot;margin-top:12px;&quot;>
+      <div class=&quot;apbox-t&quot;>✅ אישור SEO טכני</div>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;approveStep(10,'tech')&quot;>✅ אשר בדיקה טכנית</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 11: תוכנית עבודה ══ -->
+<div class=&quot;pane&quot; id=&quot;p11&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 11</div><div class=&quot;ph-t&quot;>תוכנית עבודה SEO</div><div class=&quot;ph-s&quot;>AI מסדר את כל המשימות לפי עדיפות — מה עושים קודם, מה אחר כך.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div class=&quot;alt alt-i&quot;>ℹ️ עדיפות גבוהה = משפיע על ביצועים מיידית | בינונית = חשוב לטווח ארוך | נמוכה = שיפורים אופציונליים</div>
+    <div style=&quot;display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;&quot;>
+      <button class=&quot;btn btn-p btn-sm&quot; onclick=&quot;runWorkplanAI()&quot;>🧠 בנה תוכנית AI</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;addTaskRow()&quot;>+ הוסף משימה</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;filterTasks('high')&quot;>דחוף</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;filterTasks('all')&quot;>הכל</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;approveAllTasks()&quot;>✅ אשר הכל</button>
+    </div>
+    <div class=&quot;ai-box&quot; id=&quot;wp-ai&quot; style=&quot;margin-bottom:10px;&quot;><div class=&quot;ai-hd&quot;><div class=&quot;dot&quot;></div>בונה תוכנית עבודה...</div><div id=&quot;wp-ai-log&quot;></div></div>
+    <div class=&quot;tw&quot;><table>
+      <thead><tr><th>משימה</th><th>תיאור</th><th>קטגוריה</th><th>עדיפות</th><th>עמוד</th><th>מילת מפתח</th><th>אזור</th><th>למה AI</th><th>סטטוס</th><th>פעולות</th></tr></thead>
+      <tbody id=&quot;wp-tbody&quot;></tbody>
+    </table></div>
+    <div class=&quot;apbox&quot; style=&quot;margin-top:12px;&quot;>
+      <div class=&quot;apbox-t&quot;>✅ אישור תוכנית עבודה</div>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;approveStep(11,'workplan')&quot;>✅ אשר תוכנית עבודה</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 12: דוח מוכנות ══ -->
+<div class=&quot;pane&quot; id=&quot;p12&quot;>
+  <div class=&quot;ph&quot;><div class=&quot;ph-part&quot;>SEO אורגני • שלב 12</div><div class=&quot;ph-t&quot;>דוח מוכנות SEO</div><div class=&quot;ph-s&quot;>סיכום חלק ב׳ — מה מוכן, מה חסר, מה ה-AI ממליץ. חובה לאשר לפני מעבר לחלק ג׳.</div><hr class=&quot;ph-r&quot;></div>
+  <div class=&quot;sec&quot;>
+    <div id=&quot;readiness-score-box&quot; style=&quot;display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:16px;&quot; class=&quot;card&quot;>
+      <div class=&quot;score-ring&quot;><div class=&quot;score-num&quot; id=&quot;readiness-score&quot;>—</div><div class=&quot;score-lbl&quot;>מוכנות SEO</div></div>
+      <div style=&quot;flex:1;&quot;>
+        <div style=&quot;font-size:15px;font-weight:800;margin-bottom:4px;&quot; id=&quot;readiness-label&quot;>מחשב...</div>
+        <div style=&quot;font-size:12px;color:var(--w50);&quot; id=&quot;readiness-sub&quot;>לחץ &quot;חשב דוח מוכנות&quot;</div>
+        <div style=&quot;display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;&quot; id=&quot;readiness-badges&quot;></div>
+      </div>
+    </div>
+    <div style=&quot;display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;&quot;>
+      <button class=&quot;btn btn-p&quot; onclick=&quot;calcReadiness()&quot;>▶ חשב דוח מוכנות</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;saveToLS()&quot;>💾 שמור טיוטה</button>
+      <button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;toast('📧 דוח נשלח...')&quot;>📧 שלח לאישור</button>
+    </div>
+    <div id=&quot;readiness-results&quot; style=&quot;display:flex;flex-direction:column;gap:8px;&quot;></div>
+
+    <!-- Final approval gate -->
+    <div id=&quot;final-gate&quot; style=&quot;display:none;margin-top:16px;&quot;>
+      <div class=&quot;apbox&quot;>
+        <div class=&quot;apbox-t&quot; id=&quot;gate-title&quot;>בדיקה...</div>
+        <div style=&quot;font-size:12px;color:var(--w80);margin-bottom:12px;&quot; id=&quot;gate-msg&quot;></div>
+        <div id=&quot;gate-btns&quot;></div>
+        <div style=&quot;font-size:11px;color:var(--w50);margin-top:8px;&quot;>⚠️ חלק ג׳ (ביצוע) יתחיל רק לאחר אישורך המפורש.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+<div class=&quot;footer&quot;>
+  <div class=&quot;finfo&quot; id=&quot;finfo&quot;>טוען נתוני עסק...</div>
+  <div style=&quot;display:flex;gap:7px;&quot;>
+    <button class=&quot;btn btn-g btn-sm&quot; id=&quot;btn-back&quot; style=&quot;display:none;&quot; onclick=&quot;prev()&quot;>← חזרה</button>
+    <button class=&quot;btn btn-p btn-sm&quot; id=&quot;btn-next&quot; onclick=&quot;nxt()&quot;>הבא ←</button>
+  </div>
+</div>
+<div id=&quot;toast&quot;></div>
+<script>
+// ══ SEO PART B — ORGANIC PLANNING ENGINE ══
+// No content published. No site changes. Planning only. Every decision requires user approval.
+
+const STEPS=[
+  {n:1,  lbl:'הקשר עסקי',    hint:'טוען נתונים מחלק א׳'},
+  {n:2,  lbl:'מטרות SEO',    hint:'אשר את מטרות הקידום האורגני'},
+  {n:3,  lbl:'מילות מפתח',   hint:'מינימום 5 מילות מפתח ראשיות חובה'},
+  {n:4,  lbl:'אזורי קידום',  hint:'אשר אזורים גיאוגרפיים'},
+  {n:5,  lbl:'קהל יעד',      hint:'כוונת חיפוש וקהלים אורגניים'},
+  {n:6,  lbl:'מתחרים',       hint:'ניתוח מתחרים אורגני'},
+  {n:7,  lbl:'מיפוי עמודים', hint:'מילת מפתח → עמוד'},
+  {n:8,  lbl:'תוכנית עמודים',hint:'אילו עמודים לבנות'},
+  {n:9,  lbl:'On-Page SEO',  hint:'Title, Meta, H1, Schema לכל עמוד'},
+  {n:10, lbl:'SEO טכני',     hint:'Core Web Vitals, Sitemap, Canonicals'},
+  {n:11, lbl:'תוכנית עבודה', hint:'משימות לפי עדיפות'},
+  {n:12, lbl:'דוח מוכנות',   hint:'אישור סופי לפני חלק ג׳'},
+];
+
+let CUR=1, MAX=1;
+// Track which steps have been approved
+const APPROVED = {};
+const BIZ_CTX = {
+  name:'גרין-טק פתרונות בע&quot;מ', sector:'ניהול צי רכב',
+  site:'greentech.co.il', mainService:'ניהול צי GPS לעסקים',
+  diff:'25 שנות ניסיון, שירות טכנאי בשטח', usp:'חיסכון ממוצע 23%',
+  ideal:'עסקים עם 5+ רכבים', goal:'להגדיל לקוחות מ-30 ל-80',
+  loc:'ישראל', competitors:['competitor-a.co.il','competitor-b.co.il'],
+};
+
+// ── WIZARD ──
+(function(){
+  const el=document.getElementById('wsteps');
+  el.innerHTML=STEPS.map(s=>`<div class=&quot;ws ${s.n===1?'active':'locked'}&quot; id=&quot;ws${s.n}&quot; onclick=&quot;jump(${s.n})&quot;><div class=&quot;wsn&quot;>${s.n}</div>${s.lbl}</div>`).join('');
+  loadCtx();
+})();
+
+function updWiz(){
+  STEPS.forEach(s=>{
+    const el=document.getElementById('ws'+s.n), sn=el.querySelector('.wsn');
+    el.className='ws '+(s.n<CUR?'done':s.n===CUR?'active':s.n<=MAX?'':'locked');
+    sn.textContent=s.n<CUR?'✓':s.n;
+  });
+  document.getElementById('pf').style.width=(CUR/12*100)+'%';
+  document.getElementById('btn-back').style.display=CUR>1?'':'none';
+  document.getElementById('btn-next').textContent=CUR===12?'▶ חשב מוכנות':'הבא ←';
+  document.getElementById('finfo').textContent=STEPS[CUR-1]?.hint||'';
+}
+
+function showStep(n){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p'+n)?.classList.add('on');
+  CUR=n; MAX=Math.max(MAX,n); updWiz();
+  if(n===2) initGoals();
+  window.scrollTo(0,0);
+}
+function jump(n){ if(n<=MAX) showStep(n); else toast('השלם ואשר את השלב הנוכחי קודם'); }
+function prev(){ if(CUR>1) showStep(CUR-1); }
+function nxt(){
+  if(CUR===12){calcReadiness();return;}
+  // Gate check per step — gates[N] guards ENTRY into step N, based on the
+  // approval collected in step N-1. Step 1→2 is always free (no planning
+  // approval exists yet at step 1); gating begins from step 2 onward.
+  const gates={
+    3:()=>Object.keys(APPROVED).includes('goals')||toast('⚠️ אשר מטרות SEO קודם'),
+    4:()=>Object.keys(APPROVED).includes('kw')||toast('⚠️ אשר מילות מפתח קודם'),
+    5:()=>Object.keys(APPROVED).includes('geo')||toast('⚠️ אשר אזורים קודם'),
+    6:()=>Object.keys(APPROVED).includes('aud')||toast('⚠️ אשר קהלי יעד קודם'),
+    7:()=>Object.keys(APPROVED).includes('comp'),
+    8:()=>Object.keys(APPROVED).includes('map')||toast('⚠️ אשר מיפוי עמודים קודם'),
+    9:()=>Object.keys(APPROVED).includes('pages')||toast('⚠️ אשר תוכנית עמודים קודם'),
+    10:()=>Object.keys(APPROVED).includes('onpage')||toast('⚠️ אשר On-Page SEO קודם'),
+    11:()=>Object.keys(APPROVED).includes('tech')||toast('⚠️ אשר SEO טכני קודם'),
+    12:()=>Object.keys(APPROVED).includes('workplan')||toast('⚠️ אשר תוכנית עבודה קודם'),
+  };
+  const gate=gates[CUR+1];
+  if(gate&&!gate()) return;
+  MAX=Math.max(MAX,CUR+1); showStep(CUR+1);
+}
+
+function approveStep(n, key){
+  APPROVED[key]=true;
+  toast('✅ שלב '+n+' אושר! ממשיכים לשלב הבא');
+  MAX=Math.max(MAX,n+1);
+  setTimeout(()=>showStep(n+1),700);
+}
+
+// ── STEP 1: LOAD CONTEXT ──
+function loadCtx(){
+  // Read context written by Part A (dalia-planning-engine)
+  try{
+    const raw=localStorage.getItem('dalia_part_a');
+    if(raw){
+      const d=JSON.parse(raw);
+      Object.assign(BIZ_CTX,{
+        name:     d.bizName  || d.name    || BIZ_CTX.name,
+        sector:   d.sector               || BIZ_CTX.sector,
+        site:     d.site                 || BIZ_CTX.site,
+        mainService: d.mainSvc || d.mainService || BIZ_CTX.mainService,
+        diff:     d.diff                 || BIZ_CTX.diff,
+        usp:      d.usp                  || BIZ_CTX.usp,
+        ideal:    d.ideal                || BIZ_CTX.ideal,
+        goal:     d.goal                 || BIZ_CTX.goal,
+      });
+    }
+  }catch(e){}
+  // Show context banner if came from Part A
+  const fromA = !!localStorage.getItem('dalia_part_a');
+  if(fromA){
+    const banner=document.createElement('div');
+    banner.className='alt alt-ok';
+    banner.style.cssText='margin:10px 18px 0;';
+    banner.innerHTML='✅ הקשר עסקי נטען מחלק א׳ — Planning Engine. ניתן להתחיל ישר משלב 2.';
+    document.querySelector('.main')?.prepend(banner);
+  }
+  // Populate display
+  const rows=document.getElementById('ctx-rows');
+  if(!rows) return;
+  const fields=[
+    {l:'שם עסק',    v:BIZ_CTX.name},
+    {l:'תחום',       v:BIZ_CTX.sector},
+    {l:'שירות מרכזי',v:BIZ_CTX.mainService},
+    {l:'אתר',        v:BIZ_CTX.site},
+    {l:'USP',        v:BIZ_CTX.usp},
+    {l:'קהל יעד',   v:BIZ_CTX.ideal},
+    {l:'מטרה עסקית',v:BIZ_CTX.goal},
+  ];
+  rows.innerHTML=fields.map(f=>`<div style=&quot;display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--w06);font-size:12px;&quot;><span style=&quot;color:var(--w50);min-width:100px;&quot;>${f.l}</span><span style=&quot;color:var(--w80);font-weight:600;&quot;>${f.v||'—'}</span></div>`).join('');
+  // Pre-fill site URL inputs if available
+  if(BIZ_CTX.site){
+    const su=document.getElementById('site-url');
+    if(su&&!su.value) su.value='https://'+BIZ_CTX.site.replace('https://','');
+  }
+}
+
+// ── STEP 1: AI CONTEXT ANALYSIS ──
+const CTX_LOG=['📖 קורא נתוני עסק מחלק א׳...','🌐 סורק את האתר...','🏢 מנתח תחום הפעילות...','🎯 מזהה קהלי יעד פוטנציאליים...','💡 מכין מטרות SEO מוצעות...','✅ הניתוח הושלם — מוכן לשלב 2'];
+function runContextAnalysis(){
+  const box=document.getElementById('ctx-ai');box.classList.add('show');
+  const log=document.getElementById('ctx-ai-log');
+  log.innerHTML=CTX_LOG.map((s,i)=>`<div class=&quot;ai-line&quot; id=&quot;cl${i}&quot;>${s}</div>`).join('');
+  CTX_LOG.forEach((_,i)=>setTimeout(()=>document.getElementById('cl'+i)?.classList.add('show'),i*600+200));
+  setTimeout(()=>{initGoals();MAX=Math.max(MAX,2);toast('✅ ניתוח הושלם!');},CTX_LOG.length*600+400);
+}
+
+// ── STEP 2: GOALS ──
+const GOALS_DATA=[
+  {icon:'🥇',text:'להגיע למקומות ראשונים בגוגל על מילות המפתח המרכזיות',why:'תוצאות Top 5 מקבלות 70% מהקליקים'},
+  {icon:'📈',text:'להגדיל כניסות אורגניות ב-50%',why:'תנועה אורגנית = ROI ארוך טווח ללא עלות קליק'},
+  {icon:'🎯',text:'להגדיל לידים אורגניים',why:'לקוחות שמחפשים באורגני ממירים טוב יותר'},
+  {icon:'🔑',text:'לחזק מילות מפתח ממוקדות',why:'מיקוד על מילות מפתח ספציפיות = פחות תחרות, יותר רלוונטיות'},
+  {icon:'📄',text:'לשפר עמודים קיימים',why:'עמודים חלשים גוזזים את כל הדומיין'},
+  {icon:'🆕',text:'לבנות עמודי שירות חסרים',why:'כל שירות שאין לו עמוד לא יימצא בגוגל'},
+  {icon:'📍',text:'לשפר Google Business Profile',why:'Local SEO = 46% מהחיפושים הם מקומיים'},
+  {icon:'⚡',text:'לשפר מהירות אתר (Core Web Vitals)',why:'LCP < 2.5s = גורם דירוג רשמי של גוגל'},
+  {icon:'📱',text:'לשפר חווית מובייל',why:'גוגל Mobile-First — מובייל קובע את הדירוג'},
+  {icon:'🏗️',text:'לשפר מבנה אתר ו-Internal Links',why:'מבנה טוב = גוגל מאנדקס יותר עמודים'},
+  {icon:'✍️',text:'לשפר איכות תוכן ו-E-E-A-T',why:'Helpful Content Update — תוכן מועיל > תוכן ממוקד קוורד'},
+  {icon:'🔗',text:'לחזק סמכות דומיין (DA)',why:'Backlinks מאיכות = אחד מ-3 הגורמים המרכזיים'},
+  {icon:'🧩',text:'לשפר Schema Markup',why:'Rich Results = CTR גבוה ב-30%+'},
+  {icon:'🏆',text:'לשפר E-E-A-T (ניסיון, מומחיות, אמינות, סמכות)',why:'גוגל EEAT Rater Guidelines — קריטי לענפים מקצועיים'},
+  {icon:'📊',text:'לעקוב ולמדוד ביצועי SEO',why:'מה שלא נמדד לא משתפר'},
+];
+
+function initGoals(){
+  const list=document.getElementById('goals-list');
+  if(!list||list.children.length>0) return;
+  GOALS_DATA.forEach((g,i)=>{
+    const d=document.createElement('div');d.className='goal-item on';d.id='goal-'+i;
+    d.innerHTML=`<span style=&quot;font-size:18px;&quot;>${g.icon}</span><div style=&quot;flex:1;&quot;><div style=&quot;font-size:12px;font-weight:700;&quot;>${g.text}</div><div style=&quot;font-size:10px;color:var(--w50);margin-top:2px;&quot;>💡 ${g.why}</div></div><span class=&quot;bd bd-g&quot; id=&quot;g-st-${i}&quot;>מאושר</span><button class=&quot;btn btn-re btn-sm&quot; onclick=&quot;toggleGoal(${i})&quot; style=&quot;flex-shrink:0;&quot;>✕ הסר</button>`;
+    d.onclick=()=>toggleGoal(i);
+    list.appendChild(d);
+  });
+  updGoalsSummary();
+}
+
+function toggleGoal(i){
+  const d=document.getElementById('goal-'+i);
+  const st=document.getElementById('g-st-'+i);
+  const isOn=d.classList.contains('on');
+  d.classList.toggle('on',!isOn);
+  d.classList.toggle('removed',isOn);
+  if(st){st.textContent=isOn?'הוסר':'מאושר';st.className='bd '+(isOn?'bd-x':'bd-g');}
+  updGoalsSummary();
+}
+function approveAllGoals(){GOALS_DATA.forEach((_,i)=>{const d=document.getElementById('goal-'+i);if(d){d.classList.add('on');d.classList.remove('removed');const s=document.getElementById('g-st-'+i);if(s){s.textContent='מאושר';s.className='bd bd-g';}}});updGoalsSummary();toast('✅ כל המטרות אושרו');}
+function addGoal(){const t=prompt('הזן מטרה חדשה:');if(!t)return;const i=GOALS_DATA.length;GOALS_DATA.push({icon:'✏️',text:t,why:'מטרה מותאמת אישית'});const list=document.getElementById('goals-list');const d=document.createElement('div');d.className='goal-item on';d.id='goal-'+i;d.innerHTML=`<span style=&quot;font-size:18px;&quot;>✏️</span><div style=&quot;flex:1;&quot;><div style=&quot;font-size:12px;font-weight:700;&quot;>${t}</div></div><span class=&quot;bd bd-g&quot; id=&quot;g-st-${i}&quot;>מאושר</span><button class=&quot;btn btn-re btn-sm&quot; onclick=&quot;toggleGoal(${i})&quot;>✕</button>`;list.appendChild(d);updGoalsSummary();}
+function updGoalsSummary(){const on=[...document.querySelectorAll('.goal-item.on')].length;const tot=GOALS_DATA.length;document.getElementById('goals-summary').textContent=`מאושרות: ${on} מתוך ${tot}`;}
+const GOALS_AI_LOG=['🧠 מנתח מטרות לפי סוג העסק...','📊 בודק מה נפוץ בתעשייה...','💡 מתאים לנקודות חוזק העסק...','✅ מטרות מוכנות!'];
+function runGoalsAI(){const b=document.getElementById('goals-ai');if(!b){initGoals();return;}toast('✅ מטרות מוחלפות!');}
+
+// ── STEP 3: KEYWORDS ──
+const KW_DATA=[
+  {kw:'ניהול צי רכב',type:'ראשית',intent:'מסחרית',area:'ישראל',svc:'ניהול צי',aud:'מנהלי לוגיסטיקה',pg:'דף הבית',new:'לא',comp:'גבוהה',pri:'גבוהה',fit:'95%',why:'מילה ראשית עם ביקוש גבוה'},
+  {kw:'ניהול צי GPS',type:'ראשית',intent:'מסחרית',area:'ישראל',svc:'GPS',aud:'מנהלי לוגיסטיקה',pg:'עמוד שירות GPS',new:'לא',comp:'גבוהה',pri:'גבוהה',fit:'93%',why:'כוונת קנייה ברורה'},
+  {kw:'ניהול צי רכב לעסקים',type:'ראשית',intent:'מסחרית',area:'ישראל',svc:'ניהול צי',aud:'בעלי עסקים',pg:'דף הבית',new:'לא',comp:'גבוהה',pri:'גבוהה',fit:'92%',why:'B2B מובהק'},
+  {kw:'ניהול צי רכב בתל אביב',type:'אזורית',intent:'מסחרית',area:'תל אביב',svc:'ניהול צי',aud:'בעלי עסקים',pg:'—',new:'כן',comp:'בינונית',pri:'גבוהה',fit:'88%',why:'Local SEO — פחות תחרות'},
+  {kw:'ניהול צי GPS לוגיסטיקה',type:'Long Tail',intent:'מסחרית',area:'ישראל',svc:'GPS',aud:'לוגיסטיקה',pg:'—',new:'כן',comp:'נמוכה',pri:'גבוהה',fit:'90%',why:'מאוד ספציפי, ממיר טוב'},
+  {kw:'עלות ניהול צי רכב',type:'Long Tail',intent:'מידעית',area:'ישראל',svc:'מחירון',aud:'בעלי עסקים',pg:'—',new:'כן',comp:'נמוכה',pri:'בינונית',fit:'82%',why:'שלב מחקר/השוואה'},
+  {kw:'מעקב GPS לרכב עסקי',type:'משנית',intent:'מסחרית',area:'ישראל',svc:'GPS',aud:'מנהלי רכש',pg:'עמוד GPS',new:'לא',comp:'גבוהה',pri:'בינונית',fit:'87%',why:'חלופה לביטוי ראשי'},
+  {kw:'תחזוקת צי רכב',type:'משנית',intent:'מסחרית',area:'ישראל',svc:'תחזוקה',aud:'מנהלי לוגיסטיקה',pg:'—',new:'כן',comp:'בינונית',pri:'בינונית',fit:'84%',why:'שירות נוסף שמקדמים'},
+  {kw:'ביטוח צי רכב',type:'משנית',intent:'מסחרית',area:'ישראל',svc:'ביטוח',aud:'מנהלי רכש',pg:'—',new:'כן',comp:'גבוהה',pri:'בינונית',fit:'83%',why:'שירות נלווה עם ביקוש'},
+  {kw:'איך לנהל צי רכב',type:'Long Tail',intent:'מידעית',area:'ישראל',svc:'כללי',aud:'מתחילים',pg:'—',new:'כן',comp:'נמוכה',pri:'נמוכה',fit:'70%',why:'בלוג / מאמר — בונה תדמית'},
+];
+
+function initKWTable(){ if(document.getElementById('kw-tbody').children.length) return; KW_DATA.forEach((k,i)=>renderKWRow(k,i+1)); updKWSummary(); }
+function renderKWRow(k,i){
+  const priCls=k.pri==='גבוהה'?'bd-r':k.pri==='בינונית'?'bd-y':'bd-g';
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${i}</td><td contenteditable=&quot;true&quot; style=&quot;font-weight:700;&quot;>${k.kw}</td><td><span class=&quot;bd bd-b&quot;>${k.type}</span></td><td>${k.intent}</td><td contenteditable=&quot;true&quot;>${k.area}</td><td contenteditable=&quot;true&quot;>${k.svc}</td><td contenteditable=&quot;true&quot;>${k.pg}</td><td>${k.new==='כן'?'<span class=&quot;bd bd-y&quot;>כן</span>':'לא'}</td><td><span class=&quot;bd ${k.comp==='גבוהה'?'bd-r':k.comp==='נמוכה'?'bd-g':'bd-y'}&quot;>${k.comp}</span></td><td><span class=&quot;bd ${priCls}&quot;>${k.pri}</span></td><td>${k.fit}</td><td contenteditable=&quot;true&quot; style=&quot;font-size:10px;color:var(--w50);&quot;>${k.why}</td><td><span class=&quot;bd bd-y&quot; id=&quot;kw-st-${i}&quot;>ממתין</span></td><td class=&quot;td-act&quot;><button class=&quot;btn btn-go btn-sm&quot; onclick=&quot;approveKW(this,${i})&quot;>✓</button><button class=&quot;btn btn-ye btn-sm&quot; onclick=&quot;toast('🔁 מרחיב...')&quot;>🔁</button><button class=&quot;btn btn-re btn-sm&quot; onclick=&quot;this.closest('tr').remove();updKWSummary()&quot;>✕</button></td>`;
+  document.getElementById('kw-tbody').appendChild(tr);
+}
+function addKWRow(){renderKWRow({kw:'מילה חדשה',type:'ראשית',intent:'מסחרית',area:'ישראל',svc:'',aud:'',pg:'—',new:'לא',comp:'—',pri:'בינונית',fit:'—',why:'ידני'},document.getElementById('kw-tbody').children.length+1);}
+function approveKW(btn,i){const s=document.getElementById('kw-st-'+i);if(s){s.textContent='אושר ✓';s.className='bd bd-g';}btn.remove();updKWSummary();}
+function approveAllKW(){document.querySelectorAll('[id^=&quot;kw-st-&quot;]').forEach(el=>{el.textContent='אושר ✓';el.className='bd bd-g';});document.querySelectorAll('#kw-tbody .btn-go').forEach(b=>b.remove());updKWSummary();toast('✅ כל מילות המפתח אושרו');}
+function updKWSummary(){const tot=document.getElementById('kw-tbody').children.length;const ap=[...document.querySelectorAll('[id^=&quot;kw-st-&quot;].bd-g')].length;document.getElementById('kw-summary-row').textContent=`סה&quot;כ: ${tot} מילות מפתח | ${ap} אושרו`;}
+function filterKW(t){const rows=document.querySelectorAll('#kw-tbody tr');rows.forEach(r=>{if(t==='all'){r.style.display='';}else{const badge=r.querySelector('.bd-b');r.style.display=(badge&&badge.textContent==='ראשית')?'':t==='all'?'':'none';}});}
+const KW_AI_LOG=['🌐 סורק את האתר...','📦 קורא קבצים שהועלו...','🏆 מנתח מילות מפתח מתחרים...','🗺️ מחיל מיקוד גיאוגרפי...','🧠 AI מציע מילות Long Tail...','📊 מדרג לפי עדיפות...','✅ מילות מפתח מוכנות!'];
+function runKWAnalysis(){const b=document.getElementById('kw-ai');b.classList.add('show');const l=document.getElementById('kw-ai-log');l.innerHTML=KW_AI_LOG.map((s,i)=>`<div class=&quot;ai-line&quot; id=&quot;kl${i}&quot;>${s}</div>`).join('');KW_AI_LOG.forEach((_,i)=>setTimeout(()=>document.getElementById('kl'+i)?.classList.add('show'),i*600+200));setTimeout(()=>{if(!document.getElementById('kw-tbody').children.length)initKWTable();toast('✅ מילות מפתח נוספו!');},KW_AI_LOG.length*600+300);}
+
+// ── STEP 4: GEO ──
+const GEO_DATA=[
+  {area:'ישראל (כל הארץ)',type:'מדינה',pri:'1',svc:'כל השירותים',kws:'ניהול צי רכב',page:'כן',comp:'גבוהה',pot:'גבוה מאוד',why:'שוק ראשי'},
+  {area:'תל אביב וגוש דן',type:'מחוז',pri:'1',svc:'ניהול צי',kws:'ניהול צי תל אביב',page:'כן',comp:'גבוהה',pot:'גבוה',why:'ריכוז עסקים הגבוה ביותר'},
+  {area:'ראשון לציון',type:'עיר',pri:'1',svc:'ניהול צי',kws:'ניהול צי ראשון לציון',page:'כן',comp:'בינונית',pot:'גבוה',why:'עיר עסקים גדולה, פחות תחרות'},
+  {area:'פתח תקווה',type:'עיר',pri:'2',svc:'ניהול צי',kws:'ניהול צי פתח תקווה',page:'כן',comp:'נמוכה',pot:'בינוני',why:'מרכז לוגיסטיקה'},
+  {area:'חיפה',type:'עיר',pri:'2',svc:'ניהול צי',kws:'ניהול צי חיפה',page:'כן',comp:'נמוכה',pot:'בינוני',why:'עיר תעשייה'},
+  {area:'באר שבע',type:'עיר',pri:'3',svc:'ניהול צי',kws:'ניהול צי באר שבע',page:'עתידי',comp:'נמוכה מאוד',pot:'נמוך-בינוני',why:'הרחבה עתידית'},
+];
+function initGeoTable(){if(document.getElementById('geo-tbody').children.length) return;GEO_DATA.forEach(g=>renderGeoRow(g));}
+function renderGeoRow(g){const priCls=g.pri==='1'?'bd-r':g.pri==='2'?'bd-y':'bd-x';const tr=document.createElement('tr');tr.innerHTML=`<td contenteditable=&quot;true&quot; style=&quot;font-weight:700;&quot;>${g.area}</td><td><span class=&quot;bd bd-b&quot;>${g.type}</span></td><td><span class=&quot;bd ${priCls}&quot;>עדיפות ${g.pri}</span></td><td contenteditable=&quot;true&quot;>${g.svc}</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>${g.kws}</td><td>${g.page==='כן'?'<span class=&quot;bd bd-g&quot;>כן</span>':g.page==='עתידי'?'<span class=&quot;bd bd-x&quot;>עתידי</span>':'לא'}</td><td><span class=&quot;bd ${g.comp==='גבוהה'?'bd-r':g.comp.includes('נמוכה')?'bd-g':'bd-y'}&quot;>${g.comp}</span></td><td><span class=&quot;bd ${g.pot.includes('גבוה')?'bd-g':'bd-y'}&quot;>${g.pot}</span></td><td style=&quot;font-size:10px;color:var(--w50);&quot;>${g.why}</td><td><span class=&quot;bd bd-y&quot;>ממתין</span></td><td class=&quot;td-act&quot;><button class=&quot;btn btn-go btn-sm&quot; onclick=&quot;apvRow(this)&quot;>✓</button><button class=&quot;btn btn-re btn-sm&quot; onclick=&quot;this.closest('tr').remove()&quot;>✕</button></td>`;document.getElementById('geo-tbody').appendChild(tr);}
+function addGeoRow(){renderGeoRow({area:'אזור חדש',type:'עיר',pri:'2',svc:'ניהול צי',kws:'',page:'כן',comp:'—',pot:'—',why:'ידני'});}
+function approveAllGeo(){document.querySelectorAll('#geo-tbody .bd-y').forEach(el=>{el.textContent='אושר ✓';el.className='bd bd-g';});document.querySelectorAll('#geo-tbody .btn-go').forEach(b=>b.remove());toast('✅ כל האזורים אושרו');}
+const GEO_AI_LOG=['📍 מנתח מיקום העסק...','🏆 בודק מתחרים באזורים...','📊 מעריך פוטנציאל ביקוש...','🗺️ ממפה ערים מומלצות...','✅ אזורים מוכנים!'];
+function runGeoAI(){const b=document.getElementById('geo-ai');b.classList.add('show');const l=document.getElementById('geo-ai-log');l.innerHTML=GEO_AI_LOG.map((s,i)=>`<div class=&quot;ai-line&quot; id=&quot;gl${i}&quot;>${s}</div>`).join('');GEO_AI_LOG.forEach((_,i)=>setTimeout(()=>document.getElementById('gl'+i)?.classList.add('show'),i*600+200));setTimeout(()=>{if(!document.getElementById('geo-tbody').children.length)initGeoTable();toast('✅ אזורים הוצעו!');},GEO_AI_LOG.length*600+300);}
+
+// ── STEP 5: AUDIENCE ──
+const AUD_DATA=[
+  {name:'מנהלי לוגיסטיקה',desc:'אחראים על ניהול הצי בחברות בינוניות-גדולות',pain:'עלויות גבוהות, חוסר שקיפות, תקלות בלתי צפויות',intent:'מסחרית',q:'מה עלות ניהול צי? איך מנהלים צי ביעילות?',kws:'ניהול צי GPS, מעקב רכבים',pages:'דף שירות GPS',content:'מקרי הצלחה, ROI'},
+  {name:'בעלי עסקים 5-50 רכב',desc:'עצמאים ובעלי עסקים קטנים-בינוניים',pain:'בזבוז זמן ניהולי, עלויות דלק גבוהות',intent:'מסחרית',q:'איך לחסוך בניהול הצי? ניהול צי קטן',kws:'ניהול צי לעסקים קטנים',pages:'דף הבית, תמחור',content:'מחשבון חיסכון, מחיר'},
+  {name:'מנהלי רכש תאגידיים',desc:'מנהלי רכש בחברות גדולות 100+ רכבים',pain:'ניהול ספקים, עמידה בתקנות, דיווח לחברה',intent:'מידעית→מסחרית',q:'מה הדרישות מחברת ניהול צי? ביטוח צי',kws:'ביטוח צי, ניהול צי תאגידי',pages:'עמוד ביטוח, אודות',content:'תיעוד, הסמכות, תקנות'},
+  {name:'לקוחות לא מתאימים — להחריג',desc:'עצמאים עם רכב אחד, לקוחות פרטיים',pain:'—',intent:'—',q:'ביטוח רכב פרטי, ניהול רכב פרטי',kws:'לא לקדם',pages:'—',content:'לא רלוונטי'},
+];
+function initAudTable(){if(document.getElementById('aud-tbody').children.length)return;AUD_DATA.forEach(a=>renderAudRow(a));}
+function renderAudRow(a){const isExcl=a.name.includes('להחריג');const tr=document.createElement('tr');tr.innerHTML=`<td style=&quot;font-weight:700;color:${isExcl?'var(--red)':'inherit'};&quot;>${a.name}</td><td style=&quot;font-size:11px;&quot;>${a.desc}</td><td style=&quot;font-size:11px;color:var(--red);&quot;>${a.pain}</td><td>${a.intent}</td><td style=&quot;font-size:11px;&quot;>${a.q}</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>${a.kws}</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>${a.pages}</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>${a.content}</td><td>${isExcl?'<span class=&quot;bd bd-r&quot;>כן</span>':'לא'}</td><td><span class=&quot;bd bd-y&quot;>ממתין</span></td><td class=&quot;td-act&quot;><button class=&quot;btn btn-go btn-sm&quot; onclick=&quot;apvRow(this)&quot;>✓</button><button class=&quot;btn btn-re btn-sm&quot; onclick=&quot;this.closest('tr').remove()&quot;>✕</button></td>`;document.getElementById('aud-tbody').appendChild(tr);}
+function addAudRow(){renderAudRow({name:'קהל חדש',desc:'',pain:'',intent:'מסחרית',q:'',kws:'',pages:'',content:''});}
+const AUD_AI_LOG=['🧠 מנתח פרופיל עסקי...','👥 בונה פרסונות לקוח...','🔍 מזהה כוונות חיפוש...','🚫 מזהה קהלים להחריג...','✅ קהלים מוכנים!'];
+function runAudienceAI(){const b=document.getElementById('aud-ai');b.classList.add('show');const l=document.getElementById('aud-ai-log');l.innerHTML=AUD_AI_LOG.map((s,i)=>`<div class=&quot;ai-line&quot; id=&quot;al${i}&quot;>${s}</div>`).join('');AUD_AI_LOG.forEach((_,i)=>setTimeout(()=>document.getElementById('al'+i)?.classList.add('show'),i*600+200));setTimeout(()=>{if(!document.getElementById('aud-tbody').children.length)initAudTable();toast('✅ קהלים הוצעו!');},AUD_AI_LOG.length*600+300);}
+
+// ── STEP 6: COMPETITORS ──
+function addComp(){const n=document.getElementById('comp-name').value.trim()||'מתחרה';const u=document.getElementById('comp-url').value.trim();if(!u){toast('⚠️ הזן URL');return;}const tr=document.createElement('tr');tr.innerHTML=`<td style=&quot;font-weight:700;&quot;><a style=&quot;color:var(--acc2);&quot; href=&quot;${u}&quot; target=&quot;_blank&quot;>${n}</a></td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>ניהול צי, GPS</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>דף הבית, GPS</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;color:var(--red);&quot;>FAQ, תמחור</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;color:var(--green);&quot;>תוכן עשיר</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;color:var(--red);&quot;>אין שירות בשטח</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;color:var(--acc2);&quot;>להדגיש שירות בשטח</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>עמוד תחזוקה</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>ניהול צי</td><td><span style=&quot;color:var(--yel);font-weight:800;&quot;>68</span></td><td><span class=&quot;bd bd-y&quot;>ממתין</span></td><td class=&quot;td-act&quot;><button class=&quot;btn btn-go btn-sm&quot; onclick=&quot;apvRow(this)&quot;>✓</button><button class=&quot;btn btn-re btn-sm&quot; onclick=&quot;this.closest('tr').remove()&quot;>✕</button></td>`;document.getElementById('comp-tbody').appendChild(tr);['comp-name','comp-url','comp-gbp','comp-blog','comp-pages','comp-other'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});toast('✅ מתחרה נוסף');}
+function approveAllComp(){document.querySelectorAll('#comp-tbody .bd-y').forEach(el=>{el.textContent='אושר ✓';el.className='bd bd-g';});document.querySelectorAll('#comp-tbody .btn-go').forEach(b=>b.remove());toast('✅ ניתוח מתחרים אושר');}
+const COMP_AI_LOG=['🌐 סורק אתרי מתחרים...','🔑 מנתח מילות מפתח...','📊 בודק עמודים חזקים...','💡 מזהה הזדמנויות...','✅ ניתוח הושלם!'];
+function runCompAI(){const b=document.getElementById('comp-ai');b.classList.add('show');const l=document.getElementById('comp-ai-log');l.innerHTML=COMP_AI_LOG.map((s,i)=>`<div class=&quot;ai-line&quot; id=&quot;cal${i}&quot;>${s}</div>`).join('');COMP_AI_LOG.forEach((_,i)=>setTimeout(()=>document.getElementById('cal'+i)?.classList.add('show'),i*600+200));setTimeout(()=>toast('✅ ניתוח מתחרים הושלם!'),COMP_AI_LOG.length*600+300);}
+
+// ── STEP 7: KEYWORD MAPPING ──
+const MAP_DATA=[
+  {kw:'ניהול צי רכב',area:'ישראל',svc:'ניהול צי',aud:'מנהלי לוגיסטיקה',exist:'דף הבית',newpg:'—',type:'דף הבית',title:'ניהול צי רכב מקצועי | גרין-טק פתרונות',meta:'ניהול צי רכב לעסקים עם GPS מתקדם. חיסכון מוכח, 25 שנות ניסיון. פנה עכשיו לייעוץ חינם.',h1:'ניהול צי רכב GPS לעסקים',cta:'קבל הצעת מחיר'},
+  {kw:'ניהול צי GPS לעסקים',area:'ישראל',svc:'GPS',aud:'בעלי עסקים',exist:'—',newpg:'כן',type:'דף שירות',title:'ניהול צי GPS | מעקב רכבים לעסקים | גרין-טק',meta:'מערכת GPS מתקדמת לניהול צי רכב עסקי. מעקב בזמן אמת, דוחות, חיסכון בדלק. נסה חינם.',h1:'ניהול צי GPS — מעקב רכבים בזמן אמת',cta:'נסה 30 יום חינם'},
+  {kw:'ניהול צי רכב בתל אביב',area:'תל אביב',svc:'ניהול צי',aud:'בעלי עסקים',exist:'—',newpg:'כן',type:'דף אזורי',title:'ניהול צי רכב בתל אביב | גרין-טק',meta:'שירות ניהול צי GPS לעסקים בתל אביב והמרכז. שירות בשטח, 25 שנות ניסיון. פנה עכשיו.',h1:'ניהול צי רכב בתל אביב — שירות בשטח',cta:'תיאום ייעוץ'},
+  {kw:'ביטוח צי רכב',area:'ישראל',svc:'ביטוח',aud:'מנהלי רכש',exist:'—',newpg:'כן',type:'דף שירות',title:'ביטוח צי רכב לעסקים | גרין-טק',meta:'ביטוח צי רכב מקיף לעסקים. כיסוי מותאם, מחיר תחרותי, ניהול תביעות. קבל הצעה.',h1:'ביטוח צי רכב לעסקים',cta:'קבל הצעת ביטוח'},
+];
+function initMappingTable(){if(document.getElementById('map-tbody').children.length)return;MAP_DATA.forEach(m=>renderMapRow(m));}
+function renderMapRow(m){const tr=document.createElement('tr');tr.innerHTML=`<td style=&quot;font-weight:700;&quot;>${m.kw}</td><td>${m.area}</td><td>${m.svc}</td><td>${m.aud}</td><td>${m.exist}</td><td>${m.newpg==='כן'?'<span class=&quot;bd bd-y&quot;>כן</span>':'—'}</td><td><span class=&quot;bd bd-b&quot;>${m.type}</span></td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>${m.title}</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>${m.meta}</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>${m.h1}</td><td contenteditable=&quot;true&quot;>${m.cta}</td><td><span class=&quot;bd bd-y&quot;>ממתין</span></td><td class=&quot;td-act&quot;><button class=&quot;btn btn-go btn-sm&quot; onclick=&quot;apvRow(this)&quot;>✓</button><button class=&quot;btn btn-re btn-sm&quot; onclick=&quot;this.closest('tr').remove()&quot;>✕</button></td>`;document.getElementById('map-tbody').appendChild(tr);}
+function addMapRow(){renderMapRow({kw:'',area:'',svc:'',aud:'',exist:'—',newpg:'כן',type:'דף שירות',title:'',meta:'',h1:'',cta:''});}
+function approveAllMap(){document.querySelectorAll('#map-tbody .bd-y').forEach(el=>{el.textContent='אושר ✓';el.className='bd bd-g';});document.querySelectorAll('#map-tbody .btn-go').forEach(b=>b.remove());toast('✅ מיפוי אושר');}
+const MAP_AI_LOG=['🔑 ממפה מילות מפתח...','📄 מציב לכל מילה עמוד...','✍️ מכין Title ו-Meta...','✅ מיפוי הושלם!'];
+function runMappingAI(){const b=document.getElementById('map-ai');b.classList.add('show');const l=document.getElementById('map-ai-log');l.innerHTML=MAP_AI_LOG.map((s,i)=>`<div class=&quot;ai-line&quot; id=&quot;ml${i}&quot;>${s}</div>`).join('');MAP_AI_LOG.forEach((_,i)=>setTimeout(()=>document.getElementById('ml'+i)?.classList.add('show'),i*600+200));setTimeout(()=>{if(!document.getElementById('map-tbody').children.length)initMappingTable();toast('✅ מיפוי הושלם!');},MAP_AI_LOG.length*600+300);}
+
+// ── STEP 8: PAGE PLAN ──
+const PAGES_DATA=[
+  {name:'ניהול צי GPS',kw:'ניהול צי GPS לעסקים',type:'דף שירות',goal:'המרות',schema:'Service',pri:'גבוהה',intl:'דף הבית, ביטוח, תחזוקה'},
+  {name:'ניהול צי בתל אביב',kw:'ניהול צי רכב בתל אביב',type:'דף אזורי',goal:'Local SEO',schema:'LocalBusiness',pri:'גבוהה',intl:'GPS, ביטוח, צור קשר'},
+  {name:'ניהול צי בראשון לציון',kw:'ניהול צי ראשון לציון',type:'דף אזורי',goal:'Local SEO',schema:'LocalBusiness',pri:'גבוהה',intl:'GPS, ביטוח'},
+  {name:'ביטוח צי רכב',kw:'ביטוח צי רכב',type:'דף שירות',goal:'המרות',schema:'Service',pri:'גבוהה',intl:'GPS, תחזוקה, צור קשר'},
+  {name:'תחזוקת צי רכב',kw:'תחזוקת צי רכב',type:'דף שירות',goal:'המרות',schema:'Service',pri:'גבוהה',intl:'GPS, ביטוח'},
+  {name:'מחיר ניהול צי',kw:'עלות ניהול צי רכב',type:'דף תמחור',goal:'מסחרית',schema:'FAQPage',pri:'בינונית',intl:'GPS, צור קשר'},
+  {name:'איך לנהל צי ביעילות',kw:'ניהול צי רכב לעסקים',type:'מאמר',goal:'תנועה מידעית',schema:'Article',pri:'בינונית',intl:'GPS, שירותים'},
+  {name:'שאלות נפוצות',kw:'שאלות על ניהול צי',type:'FAQ',goal:'תנועה + Rich Results',schema:'FAQPage',pri:'בינונית',intl:'כל העמודים'},
+];
+function initPagesTable(){if(document.getElementById('pages-container').children.length)return;PAGES_DATA.forEach(p=>renderPageCard(p));}
+function renderPageCard(p){const d=document.createElement('div');d.className='card';d.style.marginBottom='8px';d.innerHTML=`<div style=&quot;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;&quot;><div style=&quot;font-size:13px;font-weight:700;&quot;>${p.name}</div><span class=&quot;bd bd-b&quot;>${p.type}</span><span class=&quot;bd ${p.pri==='גבוהה'?'bd-r':'bd-y'}&quot;>${p.pri}</span><span class=&quot;bd bd-p&quot;>${p.schema}</span><button class=&quot;btn btn-re btn-sm&quot; onclick=&quot;this.closest('.card').remove()&quot; style=&quot;margin-right:auto;&quot;>✕</button></div><div class=&quot;g3&quot;><div class=&quot;fl&quot;><label>מילת מפתח ראשית</label><input class=&quot;inp&quot; value=&quot;${p.kw}&quot; style=&quot;font-size:11px;&quot;></div><div class=&quot;fl&quot;><label>מטרה</label><input class=&quot;inp&quot; value=&quot;${p.goal}&quot; style=&quot;font-size:11px;&quot;></div><div class=&quot;fl&quot;><label>קישורים פנימיים</label><input class=&quot;inp&quot; value=&quot;${p.intl}&quot; style=&quot;font-size:11px;&quot;></div></div><div style=&quot;display:flex;gap:6px;&quot;><button class=&quot;btn btn-go btn-sm&quot; onclick=&quot;this.closest('.card').style.borderColor='rgba(34,197,94,.4)';this.textContent='✓ אושר';this.disabled=true;&quot;>✓ אשר</button></div>`;document.getElementById('pages-container').appendChild(d);}
+function addPageRow(){renderPageCard({name:'עמוד חדש',kw:'',type:'דף שירות',goal:'המרות',schema:'Service',pri:'בינונית',intl:''});}
+function approveAllPages(){document.querySelectorAll('#pages-container .btn-go').forEach(b=>{if(!b.disabled){b.closest('.card').style.borderColor='rgba(34,197,94,.4)';b.textContent='✓ אושר';b.disabled=true;}});toast('✅ כל העמודים אושרו');}
+const PAGES_AI_LOG=['🗺️ ממפה הזדמנויות עמודים...','📊 בודק עמודים חסרים אצל מתחרים...','🔑 משייך מילות מפתח...','✅ תוכנית עמודים מוכנה!'];
+function runPagesAI(){const b=document.getElementById('pages-ai');b.classList.add('show');const l=document.getElementById('pages-ai-log');l.innerHTML=PAGES_AI_LOG.map((s,i)=>`<div class=&quot;ai-line&quot; id=&quot;pal${i}&quot;>${s}</div>`).join('');PAGES_AI_LOG.forEach((_,i)=>setTimeout(()=>document.getElementById('pal'+i)?.classList.add('show'),i*600+200));setTimeout(()=>{if(!document.getElementById('pages-container').children.length)initPagesTable();toast('✅ תוכנית עמודים הושלמה!');},PAGES_AI_LOG.length*600+300);}
+
+// ── STEP 9: ON-PAGE SEO ──
+const ONPAGE_DATA=[
+  {pg:'דף הבית',title:'ניהול צי רכב מקצועי | גרין-טק',titleLen:38,meta:'ניהול צי רכב לעסקים עם GPS. חיסכון מוכח, 25 שנות ניסיון. ייעוץ חינם.',metaLen:68,h1:'ניהול צי רכב GPS לעסקים',h2:['שירותי ניהול צי','יתרונות','לקוחות'],content:'800-1200 מילה',faq:'5 שאלות',cta:'קבל הצעת מחיר',schema:'Organization + LocalBusiness',score:72},
+  {pg:'GPS ניהול צי',title:'ניהול צי GPS | מעקב רכבים | גרין-טק',titleLen:42,meta:'מערכת GPS מתקדמת לניהול צי רכב עסקי. מעקב בזמן אמת, דוחות, חיסכון.',metaLen:70,h1:'ניהול צי GPS — מעקב בזמן אמת',h2:['יכולות המערכת','איך עובד','מחיר'],content:'600-800 מילה',faq:'3 שאלות',cta:'נסה 30 יום חינם',schema:'Service + FAQPage',score:68},
+];
+function initOnPageTable(){if(document.getElementById('onpage-container').children.length)return;ONPAGE_DATA.forEach(p=>renderOnPageCard(p));}
+function renderOnPageCard(p){const scoreColor=p.score>=80?'var(--green)':p.score>=60?'var(--yel)':'var(--red)';const d=document.createElement('div');d.className='card';d.style.marginBottom='10px';d.innerHTML=`<div style=&quot;display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;&quot;><div style=&quot;font-size:13px;font-weight:700;&quot;>${p.pg}</div><span style=&quot;background:var(--bg4);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:${scoreColor};border:2px solid ${scoreColor};&quot;>${p.score}</span><span style=&quot;font-size:10px;color:var(--w50);&quot;>ציון SEO</span><button class=&quot;btn btn-re btn-sm&quot; onclick=&quot;this.closest('.card').remove()&quot; style=&quot;margin-right:auto;&quot;>✕</button></div><div class=&quot;g2&quot;><div class=&quot;fl&quot;><label>Title (${p.titleLen}/60 תווים) ${p.titleLen>60?'<span style=&quot;color:var(--red)&quot;>⚠️ ארוך מדי</span>':''}</label><input class=&quot;inp&quot; value=&quot;${p.title}&quot; maxlength=&quot;60&quot; oninput=&quot;cc60(this)&quot; style=&quot;font-size:11px;&quot;></div><div class=&quot;fl&quot;><label>Meta Description (${p.metaLen}/160 תווים)</label><input class=&quot;inp&quot; value=&quot;${p.meta}&quot; maxlength=&quot;160&quot; style=&quot;font-size:11px;&quot;></div><div class=&quot;fl&quot;><label>H1 (יחיד)</label><input class=&quot;inp&quot; value=&quot;${p.h1}&quot; style=&quot;font-size:11px;&quot;></div><div class=&quot;fl&quot;><label>H2s (מופרד בפסיק)</label><input class=&quot;inp&quot; value=&quot;${p.h2.join(', ')}&quot; style=&quot;font-size:11px;&quot;></div><div class=&quot;fl&quot;><label>כמות תוכן מינימלית</label><input class=&quot;inp&quot; value=&quot;${p.content}&quot; style=&quot;font-size:11px;&quot;></div><div class=&quot;fl&quot;><label>FAQ</label><input class=&quot;inp&quot; value=&quot;${p.faq}&quot; style=&quot;font-size:11px;&quot;></div><div class=&quot;fl&quot;><label>CTA ראשי</label><input class=&quot;inp&quot; value=&quot;${p.cta}&quot; style=&quot;font-size:11px;&quot;></div><div class=&quot;fl&quot;><label>Schema Markup</label><input class=&quot;inp&quot; value=&quot;${p.schema}&quot; style=&quot;font-size:11px;&quot;></div></div><div style=&quot;margin-top:8px;display:flex;gap:6px;&quot;><button class=&quot;btn btn-go btn-sm&quot; onclick=&quot;this.closest('.card').style.borderColor='rgba(34,197,94,.4)';this.textContent='✓ אושר';this.disabled=true;&quot;>✓ אשר עמוד</button></div>`;document.getElementById('onpage-container').appendChild(d);}
+function addOnPageRow(){renderOnPageCard({pg:'עמוד חדש',title:'',titleLen:0,meta:'',metaLen:0,h1:'',h2:[],content:'600+ מילה',faq:'',cta:'',schema:'Service',score:0});}
+function cc60(inp){const l=inp.value.length;const note=inp.nextElementSibling;if(note&&note.tagName==='SMALL'){note.textContent=l+'/60';note.style.color=l>60?'var(--red)':'var(--green)';}}
+const ONPAGE_AI_LOG=['📄 מנתח כל עמוד...','✍️ מציע Title ו-Meta...','🏷️ מכין Schema...','✅ On-Page מוכן!'];
+function runOnPageAI(){const b=document.getElementById('onpage-ai');b.classList.add('show');const l=document.getElementById('onpage-ai-log');l.innerHTML=ONPAGE_AI_LOG.map((s,i)=>`<div class=&quot;ai-line&quot; id=&quot;ol${i}&quot;>${s}</div>`).join('');ONPAGE_AI_LOG.forEach((_,i)=>setTimeout(()=>document.getElementById('ol'+i)?.classList.add('show'),i*600+200));setTimeout(()=>{if(!document.getElementById('onpage-container').children.length)initOnPageTable();toast('✅ On-Page SEO הושלם!');},ONPAGE_AI_LOG.length*600+300);}
+
+// ── STEP 10: TECHNICAL SEO ──
+const TECH_DATA=[
+  {check:'Sitemap XML',sev:'גבוהה',find:'קיים, 28 URLים',why:'גוגל מסתמך על Sitemap לגילוי עמודים',fix:'אין — תקין ✓',req:'כן'},
+  {check:'robots.txt',sev:'גבוהה',find:'קיים',why:'שולט מה גוגל מאנדקס',fix:'בדוק שאין חסימות שגויות',req:'כן'},
+  {check:'HTTPS',sev:'קריטי',find:'תקין ✓',why:'גורם דירוג רשמי וביטחון',fix:'אין — תקין ✓',req:'כן'},
+  {check:'Core Web Vitals',sev:'גבוהה',find:'LCP: 4.2s ❌ | FID: OK | CLS: 0.12 ⚠️',why:'גורם דירוג Page Experience של גוגל',fix:'דחוס תמונות, הוסף Lazy Load, הפחת JavaScript',req:'כן'},
+  {check:'Mobile Friendly',sev:'קריטי',find:'ציון: 74/100 ⚠️',why:'Mobile-First Index — מובייל קובע דירוג',fix:'שפר Viewport, הגדל Font Size, רווחי Touch',req:'כן'},
+  {check:'כפילות תוכן',sev:'גבוהה',find:'3 עמודים ללא Canonical',why:'גוגל מבלבל אילו עמוד לדרג',fix:'הוסף Canonical URL לכל עמוד',req:'כן'},
+  {check:'דפים 404',sev:'בינונית',find:'7 לינקים שבורים',why:'פוגע בחווית משתמש ומבזבז Crawl Budget',fix:'הוסף Redirect 301 לכתובות החדשות',req:'כן'},
+  {check:'מהירות דסקטופ',sev:'בינונית',find:'ציון: 68/100',why:'מהירות = גורם UX וביצועים',fix:'דחוס CSS/JS, הוסף CDN',req:'לא'},
+  {check:'Internal Links',sev:'בינונית',find:'12 עמודים ללא קישורים פנימיים',why:'מפיץ PageRank בתוך האתר',fix:'הוסף 2-3 קישורים לכל עמוד',req:'לא'},
+  {check:'Hreflang',sev:'נמוכה',find:'לא מוגדר',why:'רלוונטי אם יש אתר בכמה שפות',fix:'הוסף אם נדרש',req:'לא'},
+  {check:'Structured Data',sev:'בינונית',find:'Schema חסר ב-8 עמודים',why:'Rich Results = CTR גבוה 30%+',fix:'הוסף JSON-LD לדפי שירות',req:'לא'},
+  {check:'Image Alt Tags',sev:'בינונית',find:'34 תמונות ללא Alt',why:'נגישות + אינדוקס תמונות',fix:'הוסף Alt תיאורי לכל תמונה',req:'לא'},
+];
+function initTechTable(){if(document.getElementById('tech-tbody').children.length)return;TECH_DATA.forEach(t=>renderTechRow(t));}
+function renderTechRow(t){const sevCls=t.sev==='קריטי'?'bd-r':t.sev==='גבוהה'?'bd-r':t.sev==='בינונית'?'bd-y':'bd-x';const tr=document.createElement('tr');tr.innerHTML=`<td style=&quot;font-weight:700;&quot;>${t.check}</td><td><span class=&quot;bd ${sevCls}&quot;>${t.sev}</span></td><td style=&quot;font-size:11px;&quot;>${t.find}</td><td style=&quot;font-size:11px;color:var(--w50);&quot;>${t.why}</td><td contenteditable=&quot;true&quot; style=&quot;font-size:11px;&quot;>${t.fix}</td><td>${t.req==='כן'?'<span class=&quot;bd bd-r&quot;>כן</span>':'<span class=&quot;bd bd-x&quot;>לא</span>'}</td><td><span class=&quot;bd bd-y&quot;>ממתין</span></td><td class=&quot;td-act&quot;><button class=&quot;btn btn-go btn-sm&quot; onclick=&quot;apvRow(this)&quot;>✓</button></td>`;document.getElementById('tech-tbody').appendChild(tr);}
+function approveAllTech(){document.querySelectorAll('#tech-tbody .bd-y').forEach(el=>{el.textContent='אושר ✓';el.className='bd bd-g';});document.querySelectorAll('#tech-tbody .btn-go').forEach(b=>b.remove());toast('✅ SEO טכני אושר');}
+const TECH_AI_LOG=['⚡ בודק PageSpeed...','🗺️ בודק Sitemap ו-robots...','🔗 סורק Internal Links...','📊 מנתח Core Web Vitals...','🔍 מחפש כפילויות...','✅ בדיקה הושלמה!'];
+function runTechAI(){const b=document.getElementById('tech-ai');b.classList.add('show');const l=document.getElementById('tech-ai-log');l.innerHTML=TECH_AI_LOG.map((s,i)=>`<div class=&quot;ai-line&quot; id=&quot;tl${i}&quot;>${s}</div>`).join('');TECH_AI_LOG.forEach((_,i)=>setTimeout(()=>document.getElementById('tl'+i)?.classList.add('show'),i*600+200));setTimeout(()=>{if(!document.getElementById('tech-tbody').children.length)initTechTable();toast('✅ SEO טכני נבדק!');},TECH_AI_LOG.length*600+300);}
+
+// ── STEP 11: WORKPLAN ──
+const WP_DATA=[
+  {task:'תקן Core Web Vitals',desc:'LCP < 2.5s, CLS < 0.1',cat:'SEO טכני',pri:'high',pg:'כל האתר',kw:'כללי',area:'—',why:'גורם דירוג קריטי'},
+  {task:'הוסף Canonical לכל עמוד',desc:'מניעת כפילות תוכן',cat:'SEO טכני',pri:'high',pg:'כל האתר',kw:'—',area:'—',why:'3 עמודים ללא Canonical'},
+  {task:'בנה עמוד ניהול צי GPS',desc:'דף שירות מלא + Schema',cat:'עמודים',pri:'high',pg:'GPS חדש',kw:'ניהול צי GPS',area:'ישראל',why:'מילת מפתח ראשית ללא עמוד ייעודי'},
+  {task:'בנה 3 עמודים אזוריים',desc:'תל אביב, ראשון, פ&quot;ת',cat:'עמודים',pri:'high',pg:'אזורי',kw:'ניהול צי [עיר]',area:'מרכז',why:'Local SEO — פחות תחרות'},
+  {task:'תקן Alt Tags — 34 תמונות',desc:'נגישות + אינדוקס',cat:'On-Page',pri:'med',pg:'כל האתר',kw:'—',area:'—',why:'34 תמונות ללא Alt'},
+  {task:'הוסף Schema לדפי שירות',desc:'Service + FAQPage JSON-LD',cat:'Schema',pri:'med',pg:'שירותים',kw:'—',area:'—',why:'Rich Results = +30% CTR'},
+  {task:'כתוב 2 מאמרי בלוג',desc:'איכות E-E-A-T, 800+ מילים',cat:'תוכן',pri:'med',pg:'בלוג',kw:'ניהול צי טיפים',area:'ישראל',why:'תנועה מידעית + סמכות'},
+  {task:'שפר Internal Links',desc:'12 עמודים ללא קישורים',cat:'On-Page',pri:'med',pg:'כל האתר',kw:'—',area:'—',why:'פיזור PageRank'},
+  {task:'שלח Sitemap ל-Search Console',desc:'ידני אחרי הגדרת GSC',cat:'SEO טכני',pri:'med',pg:'—',kw:'—',area:'—',why:'אינדוקס מהיר יותר'},
+  {task:'תקן 7 לינקים שבורים',desc:'Redirect 301',cat:'SEO טכני',pri:'med',pg:'כל האתר',kw:'—',area:'—',why:'Crawl Budget וחווית משתמש'},
+  {task:'בנה עמוד ביטוח צי',desc:'דף שירות + Schema',cat:'עמודים',pri:'low',pg:'ביטוח חדש',kw:'ביטוח צי רכב',area:'ישראל',why:'מילת מפתח עם ביקוש'},
+  {task:'קבל Backlinks מ-5 אתרים',desc:'PR + פרסומים בענף',cat:'Authority',pri:'low',pg:'—',kw:'—',area:'—',why:'DA 28 — מתחרה 34'},
+];
+function initWorkplan(){if(document.getElementById('wp-tbody').children.length)return;WP_DATA.forEach(t=>renderTaskRow(t));}
+function renderTaskRow(t){const priCls=t.pri==='high'?'bd-r':t.pri==='med'?'bd-y':'bd-g';const priLbl=t.pri==='high'?'דחוף':t.pri==='med'?'חשוב':'יכול לחכות';const tr=document.createElement('tr');tr.innerHTML=`<td style=&quot;font-weight:700;&quot;>${t.task}</td><td style=&quot;font-size:11px;&quot;>${t.desc}</td><td><span class=&quot;bd bd-b&quot;>${t.cat}</span></td><td><span class=&quot;bd ${priCls}&quot;>${priLbl}</span></td><td>${t.pg}</td><td style=&quot;font-size:11px;&quot;>${t.kw}</td><td>${t.area}</td><td style=&quot;font-size:11px;color:var(--w50);&quot;>${t.why}</td><td><span class=&quot;bd bd-y&quot;>ממתין</span></td><td class=&quot;td-act&quot;><button class=&quot;btn btn-go btn-sm&quot; onclick=&quot;apvRow(this)&quot;>✓</button><button class=&quot;btn btn-re btn-sm&quot; onclick=&quot;this.closest('tr').remove()&quot;>✕</button></td>`;document.getElementById('wp-tbody').appendChild(tr);}
+function addTaskRow(){renderTaskRow({task:'משימה חדשה',desc:'',cat:'SEO טכני',pri:'med',pg:'',kw:'',area:'',why:''});}
+function filterTasks(f){document.querySelectorAll('#wp-tbody tr').forEach(r=>{const badge=r.querySelector('.bd-r,.bd-y,.bd-g');if(f==='all'){r.style.display='';}else{r.style.display=(badge?.classList.contains('bd-r'))?'':'none';}});}
+function approveAllTasks(){document.querySelectorAll('#wp-tbody .bd-y').forEach(el=>{el.textContent='אושר ✓';el.className='bd bd-g';});document.querySelectorAll('#wp-tbody .btn-go').forEach(b=>b.remove());toast('✅ תוכנית עבודה אושרה');}
+const WP_AI_LOG=['📊 מסדר משימות לפי עדיפות...','⚡ מזהה משימות קריטיות...','📅 בונה לוח זמנים...','✅ תוכנית מוכנה!'];
+function runWorkplanAI(){const b=document.getElementById('wp-ai');b.classList.add('show');const l=document.getElementById('wp-ai-log');l.innerHTML=WP_AI_LOG.map((s,i)=>`<div class=&quot;ai-line&quot; id=&quot;wl${i}&quot;>${s}</div>`).join('');WP_AI_LOG.forEach((_,i)=>setTimeout(()=>document.getElementById('wl'+i)?.classList.add('show'),i*600+200));setTimeout(()=>{if(!document.getElementById('wp-tbody').children.length)initWorkplan();toast('✅ תוכנית עבודה נבנתה!');},WP_AI_LOG.length*600+300);}
+
+// ── STEP 12: READINESS REPORT ──
+const READINESS_CHECKS=[
+  {cat:'תכנון',req:true, lbl:'מטרות SEO אושרו',    fn:()=>!!APPROVED.goals},
+  {cat:'תכנון',req:true, lbl:'מילות מפתח אושרו',  fn:()=>!!APPROVED.kw},
+  {cat:'תכנון',req:true, lbl:'אזורים אושרו',       fn:()=>!!APPROVED.geo},
+  {cat:'תכנון',req:true, lbl:'קהלי יעד אושרו',    fn:()=>!!APPROVED.aud},
+  {cat:'תכנון',req:false,lbl:'מתחרים נותחו',       fn:()=>!!APPROVED.comp},
+  {cat:'מיפוי',req:true, lbl:'מיפוי מילות מפתח', fn:()=>!!APPROVED.map},
+  {cat:'מיפוי',req:true, lbl:'תוכנית עמודים',     fn:()=>!!APPROVED.pages},
+  {cat:'ביצוע',req:true, lbl:'On-Page SEO תוכנן', fn:()=>!!APPROVED.onpage},
+  {cat:'טכני', req:true, lbl:'SEO טכני נבדק',     fn:()=>!!APPROVED.tech},
+  {cat:'ביצוע',req:true, lbl:'תוכנית עבודה',      fn:()=>!!APPROVED.workplan},
+];
+function calcReadiness(){
+  const results=document.getElementById('readiness-results');
+  let passed=0,reqFailed=0;
+  const byCat={};
+  READINESS_CHECKS.forEach(r=>{if(!byCat[r.cat])byCat[r.cat]=[];const ok=r.fn();if(ok)passed++;if(r.req&&!ok)reqFailed++;byCat[r.cat].push({...r,ok});});
+  const score=Math.round((passed/READINESS_CHECKS.length)*100);
+  const scoreEl=document.getElementById('readiness-score');if(scoreEl){scoreEl.textContent=score;scoreEl.style.color=score>=80?'var(--green)':score>=60?'var(--yel)':'var(--red)';}
+  document.getElementById('readiness-label').textContent=score>=80?'מוכן לביצוע':score>=60?'כמעט מוכן — חסרים כמה אישורים':'לא מוכן — יש שלבים שלא הושלמו';
+  document.getElementById('readiness-sub').textContent=`${passed}/${READINESS_CHECKS.length} שלבים אושרו | ${reqFailed} חובה חסרים`;
+  const badges=document.getElementById('readiness-badges');
+  const bkws=document.getElementById('kw-tbody')?.children.length||0;
+  const bpg=document.getElementById('geo-tbody')?.children.length||0;
+  const bwp=document.getElementById('wp-tbody')?.children.length||0;
+  badges.innerHTML=`<span class=&quot;bd bd-b&quot;>${bkws} מילות מפתח</span><span class=&quot;bd bd-b&quot;>${bpg} אזורים</span><span class=&quot;bd bd-b&quot;>${bwp} משימות</span>`;
+  results.innerHTML=Object.entries(byCat).map(([cat,items])=>`<div class=&quot;card&quot;><div style=&quot;font-size:12px;font-weight:800;margin-bottom:8px;&quot;>${cat}</div>${items.map(r=>`<div style=&quot;display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--w06);font-size:11px;&quot;><span>${r.ok?'✅':r.req?'🔴':'⚠️'}</span><span style=&quot;flex:1;color:${r.ok?'var(--w80)':r.req?'var(--red)':'var(--yel)'};&quot;>${r.lbl}</span><span class=&quot;bd ${r.ok?'bd-g':'bd-x'}&quot;>${r.ok?'✓ אושר':'ממתין'}</span></div>`).join('')}</div>`).join('');
+  const gate=document.getElementById('final-gate'); gate.style.display='block';
+  if(reqFailed===0){
+    document.getElementById('gate-title').textContent='✅ חלק ב׳ הושלם — מוכן לחלק ג׳';
+    document.getElementById('gate-msg').textContent='כל השלבים החובה אושרו. ניתן לעבור לשלב הביצוע.';
+    document.getElementById('gate-btns').innerHTML=`<button class=&quot;btn btn-p&quot; onclick=&quot;finalApprove()&quot;>✅ אשר ועבור לחלק ג׳ (ביצוע)</button><button class=&quot;btn btn-g btn-sm&quot; onclick=&quot;saveToLS()&quot; style=&quot;margin-right:8px;&quot;>💾 שמור</button>`;
+    document.getElementById('tb-score').textContent=score+'% מוכן';document.getElementById('tb-score').className='bd bd-g';
+  } else {
+    document.getElementById('gate-title').textContent=`❌ ${reqFailed} שלבים חובה לא הושלמו`;
+    document.getElementById('gate-msg').textContent='לא ניתן לאשר מעבר לחלק ג׳ כל עוד שלבים חובה לא אושרו. חזור לשלבים הרלוונטיים.';
+    document.getElementById('gate-btns').innerHTML=`<button class=&quot;btn btn-g&quot; onclick=&quot;showStep(1)&quot;>חזור לתחילת חלק ב׳</button>`;
+    document.getElementById('tb-score').textContent='חסרים אישורים';document.getElementById('tb-score').className='bd bd-r';
+  }
+  toast(reqFailed===0?'✅ חלק ב׳ מוכן!':'⚠️ '+reqFailed+' שלבים חובה לא הושלמו');
+}
+function finalApprove(){try{localStorage.setItem('dalia_part_b',JSON.stringify({approved:true,kw_count:document.getElementById('kw-tbody')?.children.length,geo_count:document.getElementById('geo-tbody')?.children.length,ts:new Date().toISOString()}));}catch(e){}toast('🚀 חלק ב׳ אושר! מוכן לחלק ג׳ — ביצוע SEO.');}
+function saveToLS(){try{localStorage.setItem('dalia_seo_draft',JSON.stringify({approved:APPROVED,ts:new Date().toISOString()}));}catch(e){}toast('💾 טיוטה נשמרה');}
+
+// ── HELPERS ──
+function apvRow(btn){const st=btn.closest('tr')?.querySelector('.bd-y');if(st){st.textContent='אושר ✓';st.className='bd bd-g';}btn.remove();}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.opacity='1';t.style.transform='translateY(0)';setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(14px)';},3500);}
+
+// ── INIT ──
+showStep(1);
+</script>
+</body></html>
+"></iframe>
+  <iframe id="frame-c" title="חלק ג׳ — גוגל אדס" srcdoc="<!DOCTYPE html>
+<html lang=&quot;he&quot; dir=&quot;rtl&quot;>
+<head><meta charset=&quot;UTF-8&quot;><style>
+body{font-family:Heebo,sans-serif;background:#04091a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;padding:24px;}
+.box{max-width:520px;}
+.box h2{color:#f59e0b;margin-bottom:12px;}
+.box p{color:rgba(255,255,255,.7);line-height:1.7;font-size:14px;}
+code{background:#0a1830;padding:2px 6px;border-radius:4px;}
+</style></head>
+<body><div class=&quot;box&quot;>
+<h2>⚠️ חלק ג׳ לא נכלל במיזוג הזה</h2>
+<p>הקובץ שהועלה נחתך באמצע ה-CSS של חלק ג׳ (Google Ads), לפני שהגיע לתוכן ה-HTML/JS של 9 השלבים. כדי לא לאבד או להמציא תוכן, המקום הזה הושאר ריק בכוונה.</p>
+<p>יש להדביק כאן את קוד ה-<code>frame-c</code> המלא והמקורי (מתוך <code>coco-dalia-v2.html</code> העדכני שנמצא אצל מיקי / ב-Git) כדי שהמיזוג יהיה שלם.</p>
+</div></body></html>
+"></iframe>
+</div>
+</div><!-- /abc-app -->
+
+<script>
+// ══ MASTER SHELL — TOP NAV + MODULE ROUTER ══
+function showPart(part){
+  document.querySelectorAll('.frames iframe').forEach(f=>f.classList.remove('on'));
+  document.getElementById('frame-'+part).classList.add('on');
+  document.querySelectorAll('.modtab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('mt-'+part).classList.add('active');
+  const pill=document.getElementById('part-pill');
+  const labels={a:'חלק א׳ — תכנון',b:'חלק ב׳ — SEO אורגני',c:'חלק ג׳ — Google Ads'};
+  pill.textContent=labels[part]||'';
+}
+function launchModule(part){ showPart(part); }
+</script>
+
+<div id="dj-app"><!-- שלבים ד׳-י׳: המשך ישיר, גלילה רציפה, נוסף בשלב האיחוד -->
+<div class="tb">
+  <div class="logo"><div class="dot"></div>CO.CO <em>דליה</em> — תצוגה מקדימה</div>
+  <span class="preview-badge">⚠ תצוגה מקדימה בלבד</span>
+</div>
+
+<div class="stepper-wrap">
+  <div class="stepper" id="stepper"></div>
+  <div class="stepper-prog"><div class="stepper-prog-f" id="stepper-prog-f"></div></div>
+</div>
+
+<div class="alt alt-w">זו תצוגה מקדימה בלבד. שום דבר במערכת הקיימת לא משתנה, ולא מתבצע כאן פרסום אמיתי. אפשר לחזור לכל שלב שכבר ביקרת בו בכל רגע.</div>
+
+<div id="db-status-banner"></div>
+
+<div class="main">
+
+  <!-- ══ ד׳ — 50 עוזרים ══ -->
+  <div class="stage" id="stage-d">
+    <div class="stage-head">
+      <div class="stage-part">שלב ד׳</div>
+      <div class="stage-t">דוח 50 עוזרי AI</div>
+      <div class="stage-s">כל עוזר קיבל את כל המידע שנאסף בשלבים א׳–ג׳, בדק תחום אחד ספציפי, ומצא מה מוכן ומה חסר.</div>
+      <hr class="stage-r">
+    </div>
+    <div class="progbar-wrap">
+      <div class="progbar"><div class="progbar-f" id="d-prog"></div></div>
+      <div class="prog-lbl"><span id="d-count">0 מתוך 50 מוצגים</span><span>סטטוס | ציון ביטחון | מעבר ליועצים</span></div>
+    </div>
+    <div class="sec">
+      <div class="export-row" style="margin-top:0;margin-bottom:10px;justify-content:flex-start;">
+        <button class="btn btn-g btn-sm" onclick="expandAll('d')">🔽 פתח הכל</button>
+        <button class="btn btn-g btn-sm" onclick="collapseAll('d')">🔼 סגור הכל</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="dtbl">
+          <thead><tr>
+            <th></th><th>שם העוזר</th><th>התחום</th><th>ציון</th><th>סטטוס</th><th>ממצאים</th><th>משימות</th><th>ביטחון</th>
+          </tr></thead>
+          <tbody id="d-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sec"><div id="d-report"></div></div>
+  </div>
+
+  <!-- ══ ה׳ — 10 יועצים ══ -->
+  <div class="stage" id="stage-e" style="display:none;">
+    <div class="stage-head">
+      <div class="stage-part">שלב ה׳</div>
+      <div class="stage-t">דוח 10 יועצי AI</div>
+      <div class="stage-s">היועצים מקבלים את כל דוחות 50 העוזרים, ומחליטים איך צריך לבנות את האתר לפי עקרונות גוגל.</div>
+      <hr class="stage-r">
+    </div>
+    <div class="sec">
+      <div class="export-row" style="margin-top:0;margin-bottom:10px;justify-content:flex-start;">
+        <button class="btn btn-g btn-sm" onclick="expandAll('e')">🔽 פתח הכל</button>
+        <button class="btn btn-g btn-sm" onclick="collapseAll('e')">🔼 סגור הכל</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="dtbl">
+          <thead><tr>
+            <th></th><th>שם היועץ</th><th>תחום אחריות</th><th>ציון</th><th>סטטוס</th><th>ביטחון</th>
+          </tr></thead>
+          <tbody id="e-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sec"><div id="e-report"></div></div>
+  </div>
+
+  <!-- ══ ו׳ — תוכנית האתר (כולל הערכת האתר הקיים) ══ -->
+  <div class="stage" id="stage-f" style="display:none;">
+    <div class="stage-head">
+      <div class="stage-part">שלב ו׳</div>
+      <div class="stage-t">תוכנית האתר</div>
+      <div class="stage-s">קודם המערכת מחליטה אם לבנות אתר חדש או לשפר את הקיים, ואז בונה תוכנית מלאה, עמוד אחר עמוד.</div>
+      <hr class="stage-r">
+    </div>
+    <div class="sec" id="f-strategic"></div>
+    <div class="sec" id="f-pages-wrap" style="display:none;">
+      <div class="pages" id="f-pages"></div>
+      <div class="structure" id="f-structure"></div>
+      <div id="f-blocking-warning"></div>
+      <div class="approve-wrap">
+        <button class="btn btn-go" id="btn-approve-plan" onclick="approvePlan()" disabled>✅ אשר את תוכנית האתר והמשך למנועי הבנייה</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ז׳ — מנועי הבנייה (מקביל + תיקונים) ══ -->
+  <div class="stage" id="stage-g" style="display:none;">
+    <div class="stage-head">
+      <div class="stage-part">שלב ז׳</div>
+      <div class="stage-t">מנועי בניית האתר — תוצאות במקביל</div>
+      <div class="stage-s">אותה תוכנית אתר נשלחת בו-זמנית לכל המנועים. אפשר להשוות תוצאות, לבקש תיקונים ממנוע ספציפי, ולבחור את הגרסה הטובה ביותר.</div>
+      <hr class="stage-r">
+    </div>
+    <div class="explain-box">🧭 <b>חשוב להבין:</b> המנועים החיצוניים הם רק כלים שמבצעים את הבנייה בפועל. הם לא מחליטים כלום — כל החלטה כבר התקבלה על ידי המערכת שלנו. גם בקשות תיקון עוברות רק דרך המערכת שלנו אל המנוע הרלוונטי.</div>
+    <div class="sec">
+      <div class="eng-grid-wrap" id="g-engines"></div>
+      <div class="revise-panel" id="g-revise" style="display:none;">
+        <div style="font-size:12.5px;font-weight:800;margin-bottom:8px;">📤 שלח בקשת תיקון למנוע ספציפי</div>
+        <select id="rev-engine"></select>
+        <textarea id="rev-text" placeholder="לדוגמה: תעשה את הכפתור הראשי גדול יותר, ותוסיף יותר דגש על הניסיון של 25 שנה"></textarea>
+        <button class="btn btn-p btn-sm" onclick="sendRevision()">📤 שלח בקשת תיקון</button>
+      </div>
+      <div class="approve-wrap">
+        <button class="btn btn-go" id="btn-approve-engine" onclick="approveEngine()" disabled>✅ אשר את הגרסה הנבחרת והמשך ל-Preview</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ח׳ — Preview ══ -->
+  <div class="stage" id="stage-h" style="display:none;">
+    <div class="stage-head">
+      <div class="stage-part">שלב ח׳</div>
+      <div class="stage-t">תצוגה מקדימה מלאה</div>
+      <div class="stage-s" id="h-sub">התצוגה המלאה של הגרסה שנבחרה.</div>
+      <hr class="stage-r">
+    </div>
+    <div class="sec">
+      <div class="preview-url">🔗 https://preview.dalia-system.com/greentech/v1 <span style="color:var(--w50);">(כתובת זמנית להצגה בלבד)</span></div>
+      <div class="mock-wrap">
+        <div class="mock-toggle">
+          <button class="mtbtn on" id="mt-desktop" onclick="setMockMode('desktop')">💻 מחשב</button>
+          <button class="mtbtn" id="mt-mobile" onclick="setMockMode('mobile')">📱 נייד</button>
+        </div>
+        <div class="mockup" id="g-mockup">
+          <div class="mockup-bar"><span></span><span></span><span></span></div>
+          <div class="m-nav"><div class="m-logo" id="m-logo">גרין-טק פתרונות</div><div class="m-links"><span>בית</span><span>שירותים</span><span>אודות</span><span>צור קשר</span></div></div>
+          <div class="m-hero">
+            <div class="m-hero-t" id="m-hero-t">ניהול צי רכב חכם — בלי כאבי ראש</div>
+            <div class="m-hero-s" id="m-hero-s">מעקב GPS, תחזוקה וביטוח במקום אחד. חיסכון ממוצע של 23% בעלויות.</div>
+            <div class="m-cta">קבל הצעת מחיר</div>
+          </div>
+          <div class="m-services">
+            <div class="m-svc"><div class="m-svc-ico">📍</div><div class="m-svc-t">מעקב GPS</div><div class="m-svc-s">בזמן אמת</div></div>
+            <div class="m-svc"><div class="m-svc-ico">🛠️</div><div class="m-svc-t">תחזוקה</div><div class="m-svc-s">מתוזמנת</div></div>
+            <div class="m-svc"><div class="m-svc-ico">🛡️</div><div class="m-svc-t">ביטוח</div><div class="m-svc-s">מקיף</div></div>
+          </div>
+          <div class="m-trust">
+            <div><span class="n">25+</span>שנות ניסיון</div>
+            <div><span class="n">500+</span>לקוחות עסקיים</div>
+            <div><span class="n">23%</span>חיסכון ממוצע</div>
+          </div>
+          <div class="m-form">
+            <div class="m-form-t">רוצים לחסוך בעלויות הצי? השאירו פרטים</div>
+            <div class="m-form-f"></div><div class="m-form-f"></div><div class="m-form-f"></div>
+            <div class="m-form-btn">שליחה</div>
+          </div>
+        </div>
+      </div>
+      <div class="alt alt-i" style="margin-right:0;margin-left:0;">זו דוגמה להמחשה בלבד. שום אתר לא פורסם ולא נשמר באופן קבוע.</div>
+      <div class="approve-wrap">
+        <button class="btn btn-go" id="btn-approve-preview" onclick="approvePreview()">✅ הכול נראה טוב — המשך לאישור</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ט׳ — אישור ══ -->
+  <div class="stage" id="stage-i" style="display:none;">
+    <div class="stage-head">
+      <div class="stage-part">שלב ט׳</div>
+      <div class="stage-t">אישור סופי לפני פרסום</div>
+      <div class="stage-s">סיכום כל מה שאושר לאורך התהליך — לפני שממשיכים להחלטת הפרסום.</div>
+      <hr class="stage-r">
+    </div>
+    <div class="sec">
+      <div class="checklist" id="i-checklist"></div>
+      <div id="i-export"></div>
+      <div class="approve-wrap">
+        <button class="btn btn-go" onclick="approveFinal()">✅ אשר סופית והמשך לפרסום</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ י׳ — פרסום ══ -->
+  <div class="stage" id="stage-j" style="display:none;">
+    <div class="stage-head">
+      <div class="stage-part">שלב י׳</div>
+      <div class="stage-t">החלטת פרסום</div>
+      <div class="stage-s">האתר עדיין לא פורסם. זו ההחלטה האחרונה — מה עושים עם הגרסה המאושרת.</div>
+      <hr class="stage-r">
+    </div>
+    <div class="sec">
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:12.5px;font-weight:800;margin-bottom:4px;">📦 שלב ביניים — יצירת חבילת בנייה</div>
+        <div style="font-size:11.5px;color:var(--w50);line-height:1.7;margin-bottom:10px;">המערכת אורזת את כל האתר (עמודים, תוכן, SEO, תמונות, עיצוב) לחבילת בנייה, ומעלה אותה לסביבת בדיקה עם כתובת זמינה לצפייה — עדיין לא לאתר האמיתי.</div>
+        <button class="btn btn-p btn-sm" id="btn-build-package" onclick="createBuildPackage()">🚀 צור Build Package ל-Git + דומיין זמני</button>
+        <span style="font-size:10.5px;color:var(--yel);font-weight:700;margin-right:8px;">Preview בלבד — לא Production</span>
+        <div id="build-package-result" style="display:none;margin-top:10px;"></div>
+      </div>
+      <div class="publish-opts">
+        <div class="popt" id="popt-1" onclick="choosePublish(1)"><div class="popt-t"><div class="popt-name">🌐 לפרסם על הדומיין הקיים</div><div class="popt-s">האתר הישן יוחלף רק לאחר אישור נוסף ומפורש</div></div></div>
+        <div class="popt" id="popt-2" onclick="choosePublish(2)"><div class="popt-t"><div class="popt-name">🆕 להעביר לדומיין חדש</div><div class="popt-s">האתר הקיים ממשיך לפעול כרגיל בינתיים</div></div></div>
+        <div class="popt" id="popt-3" onclick="choosePublish(3)"><div class="popt-t"><div class="popt-name">⏸️ להשאיר כתצוגה מקדימה בלבד</div><div class="popt-s">להמשיך לבצע שינויים לפני כל החלטת פרסום</div></div></div>
+      </div>
+      <div id="publish-confirm" style="display:none;margin-top:12px;"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="footer">
+  <button class="btn btn-g btn-sm" id="btn-back" onclick="goBack()">← חזור</button>
+  <div class="finfo" id="finfo">מציג את דוח 50 העוזרים...</div>
+  <button class="btn btn-p btn-sm" id="btn-continue" onclick="goForward()" disabled>המשך ←</button>
+</div>
+
+<script>
+// ══ תצוגה מקדימה עצמאית עם ניווט מלא — ד׳→ה׳→ו׳→ז׳→ח׳→ט׳→י׳ ══
+// הדגמה בלבד. לא מחובר למערכת הקיימת (א׳-ג׳). אין פרסום אמיתי בשום שלב.
+
+const EXT_STEPS=[{k:'a',l:'א׳ למידת העסק'},{k:'b',l:'ב׳ SEO'},{k:'c',l:'ג׳ גוגל אדס'}];
+const STEPS=[
+ {k:'d',l:'ד׳ 50 עוזרי AI'},
+ {k:'e',l:'ה׳ 10 יועצי AI'},
+ {k:'f',l:'ו׳ תוכנית האתר'},
+ {k:'g',l:'ז׳ מנועי הבנייה'},
+ {k:'h',l:'ח׳ Preview'},
+ {k:'i',l:'ט׳ אישור'},
+ {k:'j',l:'י׳ פרסום'},
+];
+let CUR=0, MAX=0;
+const APPROVED={};
+const INIT={};
+
+function renderStepper(){
+  const el=document.getElementById('stepper');
+  let html=EXT_STEPS.map(s=>`<div class="step-item ext" onclick="scrollToABC()"><span class="step-n">✓</span>${s.l}</div>`).join('');
+  html+=STEPS.map((s,i)=>{
+    const cls=i===CUR?'active':i<CUR?'done':i<=MAX?'':'locked';
+    const num=i<CUR||APPROVED[s.k]?'✓':(i+1);
+    return `<div class="step-item ${cls}" onclick="jump(${i})"><span class="step-n">${num}</span>${s.l}</div>`;
+  }).join('');
+  el.innerHTML=html;
+  document.getElementById('stepper-prog-f').style.width=((CUR)/(STEPS.length-1)*100)+'%';
+}
+function jump(i){
+  if(i>MAX) { toast('צריך לאשר את השלב הנוכחי קודם'); return; }
+  showStage(i);
+}
+function goBack(){ if(CUR>0) showStage(CUR-1); else toast('חלקים א׳–ג׳ כבר קיימים במערכת הראשית'); }
+function goForward(){ if(CUR<MAX) showStage(CUR+1); else toast('צריך לאשר את השלב הנוכחי כדי להמשיך'); }
+
+function showStage(i){
+  STEPS.forEach((s,idx)=>document.getElementById('stage-'+s.k).style.display = idx===i?'block':'none');
+  CUR=i;
+  renderStepper();
+  document.getElementById('btn-back').disabled=false;
+  document.getElementById('btn-continue').disabled = !(i<MAX);
+  const s=STEPS[i];
+  if(!INIT[s.k]){
+    INIT[s.k]=true;
+    ({d:runStageD,e:runStageE,f:runStageF,g:runStageG,h:runStageH,i:runStageI,j:runStageJ})[s.k]();
+  } else {
+    document.getElementById('finfo').textContent='שלב '+s.l+' — כבר הושלם, ניתן לערוך ולאשר מחדש';
+  }
+  window.scrollTo(0,0);
+}
+function unlock(next){
+  MAX=Math.max(MAX,CUR+1);
+  document.getElementById('btn-continue').disabled=false;
+  renderStepper();
+}
+function toast(msg){
+  document.getElementById('finfo').textContent=msg;
+}
+
+// ── נתוני 50 העוזרים (כפי שהיו) ──
+const GROUPS = [
+ {name:'הבנת העסק והשוק', cat:'עסק ושוק', source:'נתוני העסק שהוזנו בשלב א׳ ומידע מהאתר הקיים', items:[
+   ['מומחה פרופיל עסקי','מרכיב תמונה כללית של העסק','העסק פועל בתחום ניהול צי רכב, 25+ שנות ניסיון'],
+   ['מומחה ניתוח שוק','בודק גודל וביקוש בשוק','זוהה ביקוש יציב לשירותי ניהול צי בישראל'],
+   ['מומחה מיפוי מתחרים','משווה מול המתחרים שנותחו בשלב ב׳','נמצאו 3 מתחרים מרכזיים עם נוכחות דיגיטלית חלשה'],
+   ['מומחה קהלי יעד','מזהה מי הלקוחות האמיתיים','זוהו 3 סוגי לקוחות: עסקים קטנים, מנהלי לוגיסטיקה ומנהלי רכש'],
+   ['מומחה יתרון תחרותי','מחפש מה מייחד את העסק','⚠️ יתרון "שירות בשטח" קיים אך לא מודגש באתר הנוכחי'],
+   ['מומחה נוכחות בגוגל','בודק את הפרופיל העסקי בגוגל','הפרופיל קיים אך חסרות תמונות עדכניות'],
+   ['מומחה יעדים עסקיים','בודק את יעד הגדילה שהוגדר','היעד: הגדלת לקוחות מ-30 ל-80 — נלקח בחשבון בתכנון']
+ ]},
+ {name:'מילות החיפוש', cat:'חיפוש בגוגל', source:'מילות המפתח שאושרו בשלב הקידום האורגני (ב׳)', items:[
+   ['מומחה מילות חיפוש','טוען את המילים שאושרו בשלב ב׳','נטענו 10 מילות חיפוש מרכזיות שכבר אושרו'],
+   ['מומחה כוונת חיפוש','בודק למה אנשים באמת מחפשים','רוב החיפושים מבטאים כוונה לקבל הצעת מחיר'],
+   ['מומחה נושאי תוכן','מקבץ מילים קרובות לנושאים','נבנו 4 נושאי תוכן סביב ניהול צי, ביטוח ותחזוקה'],
+   ['מומחה השוואה למתחרים','בודק על מה המתחרים מדורגים','⚠️ 2 מילות חיפוש שהמתחרים לא מנצלים כלל — הזדמנות'],
+   ['מומחה חיפוש מקומי','מתאים מילים לפי אזורי הפעילות שאושרו','נוספו התאמות לאזורי תל אביב והמרכז']
+ ]},
+ {name:'כתיבת התוכן', cat:'תוכן ומסרים', source:'פרופיל העסק ומילות החיפוש', items:[
+   ['מומחה מבנה תוכן','קובע מה יופיע בכל עמוד','נקבע מבנה אחיד: כותרת, פתרון, יתרונות, קריאה לפעולה'],
+   ['מומחה כתיבת עמודי שירות','כותב טיוטת תוכן לכל שירות','טיוטת תוכן הוכנה לעמודי GPS, תחזוקה וביטוח'],
+   ['מומחה כתיבת עמוד הבית','כותב את המסר המרכזי','נכתבה כותרת ראשית שמדגישה את החיסכון הכספי'],
+   ['מומחה אמינות ומומחיות','מוודא שהתוכן נשמע אמין','⚠️ הודגשו 25 שנות ניסיון, אך חסרות חוות דעת לקוחות אמיתיות'],
+   ['מומחה שאלות נפוצות','אוסף שאלות שלקוחות שואלים באמת','הוכנו 5 שאלות נפוצות מבוססות חיפושים אמיתיים'],
+   ['מומחה כותרות לגוגל','כותב כותרת ותקציר לכל עמוד','נכתבה כותרת ותקציר לכל אחד מ-7 העמודים'],
+   ['מומחה תוכן מקצועי','מציע רעיונות למאמרים','הוצעו 3 רעיונות למאמרים לחיזוק אמינות'],
+   ['מומחה טון כתיבה','שומר על סגנון אחיד','נקבע טון מקצועי וישיר, מותאם ל-B2B']
+ ]},
+ {name:'בדיקה טכנית של האתר', cat:'תשתית טכנית', source:'סריקת האתר הקיים', items:[
+   ['מומחה מהירות טעינה','בודק כמה זמן לוקח לעמוד להיטען','⚠️ נמצא צורך בשיפור מהירות טעינת תמונות'],
+   ['מומחה מפת אתר','בונה רשימת עמודים עבור גוגל','נבנתה מפת אתר מלאה לכל 7 העמודים'],
+   ['מומחה כפילויות תוכן','מוודא שאין שני עמודים על אותה מילה','לא נמצאה כפילות בין העמודים המתוכננים'],
+   ['מומחה מידע מובנה לגוגל','מכין מידע שגוגל מבין בקלות','הוכן מידע מובנה לכל סוגי העמודים'],
+   ['מומחה קישורים פנימיים','בודק שכל עמוד מקושר נכון','נקבע מבנה קישורים בין כל העמודים'],
+   ['מומחה קישורים שבורים','בודק שאין קישורים לא תקינים','לא נמצאו קישורים שבורים בתכנון'],
+   ['מומחה אבטחה בסיסית','בודק חיבור מאובטח לאתר','אושר שהאתר יפעל על חיבור מאובטח']
+ ]},
+ {name:'עיצוב וחוויית משתמש', cat:'עיצוב ושימושיות', source:'פרופיל קהל היעד', items:[
+   ['מומחה מבנה עמוד','קובע את סדר האזורים בעמוד','נקבע סדר קבוע: כותרת, יתרונות, שירותים, טופס'],
+   ['מומחה כפתורי פעולה','בוחר ניסוח ומיקום לכל כפתור','כל עמוד קיבל כפתור פעולה אחד וברור'],
+   ['מומחה טפסים','קובע אילו שדות לבקש מהלקוח','הוצע טופס קצר, בהמשך נדונה הכמות המדויקת עם היועצים'],
+   ['מומחה ניווט','בונה את התפריט הראשי','נבנה תפריט עם 4 קישורים ראשיים'],
+   ['מומחה נגישות','בודק התאמה למשתמשים עם מוגבלויות','המבנה שהוצע עומד בדרישות נגישות בסיסיות'],
+   ['מומחה חוויית נייד','בודק איך זה ייראה בטלפון','אושר שהעיצוב מותאם למסך נייד כברירת מחדל'],
+   ['מומחה זרימת משתמש','עוקב אחרי המסלול שהמשתמש עובר','זוהתה זרימה טבעית מכניסה ועד השארת פרטים'],
+   ['מומחה שיפור המרות','מציע רעיונות לבדיקות עתידיות','הוצעו 2 רעיונות לבדיקת ניסוח כפתורים בעתיד']
+ ]},
+ {name:'תמונות וקבצים', cat:'נכסים חזותיים', source:'תמונות וקבצים שהועלו', items:[
+   ['מומחה לוגו ומיתוג','בודק שהלוגו קיים ובאיכות טובה','הלוגו קיים ותקין לשימוש'],
+   ['מומחה תמונות שירות','משייך תמונה לכל שירות','נמצאה תמונה מתאימה ל-2 מתוך 3 שירותים'],
+   ['מומחה טקסט חלופי לתמונות','כותב תיאור לכל תמונה עבור גוגל ונגישות','נכתב תיאור לכל התמונות הקיימות'],
+   ['מומחה גודל קבצים','בודק שהתמונות לא כבדות מדי','⚠️ 2 תמונות סומנו כדורשות דחיסה'],
+   ['מומחה שמות קבצים','מוודא ששמות הקבצים ברורים לגוגל','שמות הקבצים הותאמו לתוכן שלהם'],
+   ['מומחה איתור תמונות חסרות','מסמן היכן אין תמונה אמיתית בכלל','⚠️ תמונה חסרה לשירות "ביטוח צי רכב" — לא הומצאה תמונה']
+ ]},
+ {name:'נוכחות מקומית בגוגל', cat:'גוגל עסקי שלי', source:'פרטי גוגל עסקי שלי ואזורי הפעילות', items:[
+   ['מומחה גוגל עסקי שלי','בודק את הפרופיל העסקי בגוגל','הפרופיל קיים, מומלץ לעדכן שעות פעילות'],
+   ['מומחה קידום מקומי','מתאים תוכן לאזורי הפעילות שאושרו','נבנו עמודים ייעודיים לתל אביב והמרכז'],
+   ['מומחה מידע מקומי לגוגל','מכין פרטי כתובת ואזור עבור גוגל','הוכן מידע מקומי לכל עמוד אזורי'],
+   ['מומחה ביקורות לקוחות','בודק את ניהול הביקורות הקיים','⚠️ מומלץ להוסיף תהליך קבוע למענה לביקורות'],
+   ['מומחה אזורי קידום','בודק התאמה בין אזורים למתחרים','אושרו 2 אזורים עם פוטנציאל גבוה ותחרות נמוכה']
+ ]},
+ {name:'התאמה לקמפיין הממומן', cat:'גוגל אדס', source:'נתוני קמפיין גוגל אדס הקיים (חלק ג׳)', items:[
+   ['מומחה התאמת דפי נחיתה','בודק שדף הנחיתה תואם למודעה','אושרה התאמה בין דפי הנחיתה המתוכננים למודעות הקיימות'],
+   ['מומחה יעדי המרה','מוודא שיש דרך למדוד הצלחה','נקבע שכל טופס יימדד כהמרה'],
+   ['מומחה תקציב ועלות פנייה','משווה מול נתוני הקמפיין הממומן','העלות המשוערת לפנייה תואמת את התקציב הקיים'],
+   ['מומחה דוח ביצועים מאוחד','מכין תשתית לדוח אחד לכל הערוצים','נבנתה תשתית לדוח אחד שיאחד קידום אורגני וממומן']
+ ]}
+];
+function confFor(i){ return 84 + (i*7)%14; }
+
+function runStageD(){
+  const tbody=document.getElementById('d-tbody');
+  let total=0, shown=0, warnings=0, critical=0;
+  const rows=[];
+  GROUPS.forEach(g=>{
+    const hd=document.createElement('tr'); hd.className='grp-hd';
+    hd.innerHTML=`<td colspan="8">${g.name} <span style="color:var(--w50);font-weight:600;">(${g.items.length} עוזרים)</span></td>`;
+    tbody.appendChild(hd);
+    g.items.forEach(([name,check,find])=>{
+      const isWarn = find.includes('⚠️');
+      const isCritical = find.includes('לא הומצאה תמונה');
+      if(isCritical) critical++; else if(isWarn) warnings++;
+      const score = isCritical?35:isWarn?60+(total%15):86+(total%12);
+      const conf=confFor(total);
+      const status = isCritical?'קריטי':isWarn?'דורש שיפור':'תקין';
+      const statusCls = isCritical?'bd-r':isWarn?'bd-y':'bd-g';
+      const findingsCount=1, tasksCount=(isWarn||isCritical)?1:0;
+      const rid='d-'+total;
+      const row=document.createElement('tr'); row.className='row'; row.id='row-'+rid;
+      row.style.opacity=0;
+      row.innerHTML=`
+        <td><span class="chev" id="chev-${rid}">▸</span></td>
+        <td class="wrap" style="font-weight:700;">${name}</td>
+        <td>${g.cat}</td>
+        <td><b>${score}</b></td>
+        <td><span class="bd ${statusCls}">${status}</span></td>
+        <td>${findingsCount}</td>
+        <td>${tasksCount}</td>
+        <td>${conf}%</td>`;
+      row.onclick=()=>toggleRow(rid);
+      const det=document.createElement('tr'); det.className='detail-row';
+      det.innerHTML=`<td colspan="8"><div class="detail-inner" id="det-${rid}">
+        <div class="dl"><b>מה נבדק</b><span>${check}</span></div>
+        <div class="dl"><b>מקור המידע</b><span>${g.source}</span></div>
+        <div class="dl"><b>ממצא</b><span>${find.replace('⚠️ ','')}</span></div>
+        <div class="dl"><b>למה זה חשוב</b><span>ממצא זה משפיע ישירות על תחום "${g.cat}" בתוכנית האתר הסופית.</span></div>
+        <div class="dl"><b>חוק Google</b><span>${isWarn||isCritical?'רלוונטי לדרישות איכות ותוכן של גוגל':'—'}</span></div>
+        <div class="dl"><b>המלצה</b><span>${isCritical?'להוסיף תמונה אמיתית לפני אישור העמוד':isWarn?'לטפל בממצא לפני מעבר לשלב היועצים':'אין צורך בפעולה נוספת'}</span></div>
+        <div class="dl"><b>משימות שנפתחו</b><span>${tasksCount?'1 משימה נפתחה ותועברה למעקב':'לא נפתחו משימות'}</span></div>
+      </div></td>`;
+      tbody.appendChild(row);
+      tbody.appendChild(det);
+      rows.push(row);
+      total++;
+    });
+  });
+  document.getElementById('d-count').textContent=`0 מתוך ${total} מוצגים`;
+  rows.forEach((row,i)=>{
+    setTimeout(()=>{
+      row.style.transition='opacity .25s'; row.style.opacity=1;
+      shown++;
+      document.getElementById('d-count').textContent=`${shown} מתוך ${total} מוצגים`;
+      document.getElementById('d-prog').style.width=(shown/total*100)+'%';
+      if(shown===total){
+        document.getElementById('finfo').textContent='כל 50 העוזרים הציגו את הדוח שלהם — לחץ על שורה כדי לראות פירוט';
+        document.getElementById('d-report').innerHTML=`
+          <div class="report">
+            <div class="report-t">📋 דוח סיכום 50 עוזרי AI</div>
+            <div class="report-row"><span class="report-icon">✅</span> ${total-warnings-critical} בדיקות עברו ללא הערות</div>
+            <div class="report-row"><span class="report-icon">⚠️</span> ${warnings} אזהרות שדורשות תשומת לב</div>
+            <div class="report-row"><span class="report-icon">🔴</span> ${critical} ממצא קריטי: תמונה חסרה לשירות "ביטוח צי רכב"</div>
+            <div class="report-row"><span class="report-icon">➡️</span> כל 50 הדוחות עוברים עכשיו ל-10 היועצים</div>
+          </div>
+          <div class="export-row">
+            <button class="btn btn-g btn-sm" onclick="generateReportWindow('assistants')">🖨️ הדפס / שמור כ-PDF</button>
+            <button class="btn btn-g btn-sm" onclick="exportCSV('assistants')">📊 ייצוא ל-Excel</button>
+            <button class="btn btn-g btn-sm" onclick="exportWord('assistants')">📝 ייצוא ל-Word</button>
+            <button class="btn btn-g btn-sm" onclick="mailtoExport('assistants')">✉️ שליחה במייל</button>
+            <button class="btn btn-g btn-sm" onclick="toast('שמירה קבועה במערכת תהיה זמינה רק לאחר חיבור לתשתית האמיתית — לא זמינה בהדגמה זו')">💾 שמירה במערכת</button>
+          </div>
+          <div class="approve-wrap">
+            <button class="btn btn-go" onclick="approveD()">✅ אשר דוח עוזרים והמשך ליועצים</button>
+          </div>`;
+      }
+    }, i*35);
+  });
+}
+function approveD(){ APPROVED.d=true; unlock(); document.getElementById('finfo').textContent='דוח העוזרים אושר — אפשר להמשיך ליועצים'; }
+
+// ── 10 היועצים ──
+const CONSULTANTS = [
+ {name:'יועץ SEO', domain:'מילות מפתח, מבנה URL, קישורים פנימיים', from:'קבוצת מילות החיפוש + קבוצת הבדיקה הטכנית', principle:'Google Search Essentials', decision:'מבנה האתר ומילות המפתח תומכים היטב במיקום בגוגל', dispute:'אין', rec:'7 עמודים, כל אחד ממוקד מילת מפתח אחת בלבד', must:'אין', nice:'להוסיף מאמר תומך אחד בעתיד', score:96},
+ {name:'יועץ תוכן', domain:'איכות תוכן, כותרות, שאלות נפוצות', from:'קבוצת כתיבת התוכן', principle:'Helpful Content', decision:'התוכן שהוכן עונה על צורך אמיתי, לא רק על מילות מפתח', dispute:'אין', rec:'לשמור על טון ישיר ומקצועי בכל עמוד', must:'אין', nice:'להוסיף שאלות נפוצות בכל עמוד שירות', score:90},
+ {name:'יועץ E-E-A-T ואמינות', domain:'אמינות, ניסיון, מומחיות', from:'קבוצת הבנת העסק + קבוצת התוכן', principle:'E-E-A-T', decision:'יש בסיס אמינות (25 שנות ניסיון), אך חסרים סימנים קונקרטיים', dispute:'אין', rec:'להוסיף חוות דעת לקוחות אמיתיות', must:'לציין ותק ומספר לקוחות בכל עמוד ראשי', nice:'תמונות צוות אמיתיות', score:84},
+ {name:'יועץ טכנולוגיה וביצועים', domain:'מהירות, Core Web Vitals, תשתית', from:'קבוצת הבדיקה הטכנית', principle:'Core Web Vitals', decision:'מהירות בגבולות התקן, תמונות דורשות דחיסה', dispute:'אין', rec:'לדחוס את כל התמונות לפני העלאה', must:'דחיסת 2 התמונות הכבדות שזוהו', nice:'טעינה מדורגת לתמונות', score:92},
+ {name:'יועץ UX/UI', domain:'מבנה עמוד, ניווט, נגישות, מובייל', from:'קבוצת עיצוב וחוויית משתמש', principle:'Page Experience / נגישות / Mobile-First', decision:'המבנה עומד בדרישות בסיס, מותאם מובייל כברירת מחדל', dispute:'אין', rec:'טקסט חלופי לכל תמונה כשתועלה', must:'טקסט חלופי לתמונה החסרה ברגע שתתווסף', nice:'ניגודיות צבעים גבוהה יותר בכפתורים', score:89},
+ {name:'יועץ CRO והמרות', domain:'טפסים, כפתורי פעולה, שיעורי המרה', from:'קבוצת עיצוב + קבוצת ההתאמה לקמפיין הממומן', principle:'Page Experience', decision:'נמצאה נקודת מחלוקת לגבי אורך הטופס מול יועץ ה-UX/UI', dispute:'כן — נפתרה בפשרה: טופס 4 שדות במקום 3', rec:'טופס עם 4 שדות, כפשרה בין נוחות לאיכות', must:'כפתור פעולה אחד וברור בכל עמוד', nice:'הוספת הוכחה חברתית ליד הטופס', score:87},
+ {name:'יועץ שיווק דיגיטלי', domain:'יישור SEO מול גוגל אדס, מדידה', from:'קבוצת מילות החיפוש + קבוצת ההתאמה לקמפיין הממומן', principle:'עקרונות מדידה (לא הנחיית Google ספציפית)', decision:'דפי הנחיתה המתוכננים תואמים למודעות הקיימות', dispute:'אין', rec:'לוודא שכל טופס נספר כהמרה בדיווח המאוחד', must:'אין', nice:'דוח ביצועים אחד לכל הערוצים', score:91},
+ {name:'יועץ מיתוג ועיצוב', domain:'עקביות חזותית, זהות מותג', from:'קבוצת עיצוב + קבוצת תמונות ונכסים', principle:'סטנדרט פנימי (לא הנחיית Google)', decision:'הלוגו והצבעים עקביים בכל העמודים המתוכננים', dispute:'אין', rec:'לשמור על אותה פלטת צבעים בכל תמונה עתידית', must:'אין', nice:'הנחיות מיתוג כתובות למי שיצטרף לפרויקט', score:88},
+ {name:'יועץ בקרת איכות (QA)', domain:'בדיקת שלמות סופית לפני אישור', from:'כל 9 היועצים האחרים', principle:'כל ההנחיות יחד', decision:'נבדקו כל 9 הדוחות — לא נמצאה דרישה שנשמטה', dispute:'אין', rec:'לאשר מעבר לתוכנית האתר לאחר תיקון התמונה החסרה', must:'תמונה חסרה לשירות הביטוח', nice:'—', score:97},
+ {name:'היועץ הראשי (Chief AI Architect)', domain:'סיכום, פתרון סתירות, אישור מעבר', chief:true, from:'כל 9 היועצים כולל ה-QA', principle:'סיכום כולל', decision:'כל ההמלצות אושרו, כולל הפשרה על אורך הטופס (4 שדות)', dispute:'טופל בסעיף יועץ ה-CRO', rec:'להמשיך להערכת האתר הקיים ולתוכנית האתר', must:'תיקון תמונה חסרה + מידע מובנה לעמוד הבית', nice:'כל שאר השיפורים שהוצעו', score:93},
+];
+
+function runStageE(){
+  const tbody=document.getElementById('e-tbody');
+  CONSULTANTS.forEach((c,i)=>{
+    setTimeout(()=>{
+      const rid='e-'+i;
+      const status = c.must==='אין'?'מאושר':'מאושר עם תיקון';
+      const statusCls = c.must==='אין'?'bd-g':'bd-y';
+      const conf=Math.min(99, c.score+((i%3)+1));
+      const row=document.createElement('tr'); row.className='row'; row.id='row-'+rid; row.style.opacity=0;
+      row.innerHTML=`
+        <td><span class="chev" id="chev-${rid}">▸</span></td>
+        <td class="wrap" style="font-weight:700;">${c.chief?'👑 ':''}${c.name}</td>
+        <td class="wrap">${c.domain}</td>
+        <td><b>${c.score}</b></td>
+        <td><span class="bd ${statusCls}">${status}</span></td>
+        <td>${conf}%</td>`;
+      row.onclick=()=>toggleRow(rid);
+      const det=document.createElement('tr'); det.className='detail-row';
+      det.innerHTML=`<td colspan="6"><div class="detail-inner" id="det-${rid}">
+        <div class="dl"><b>קיבל דוחות מ</b><span>${c.from}</span></div>
+        <div class="dl"><b>איך הגיע למסקנה</b><span>${c.decision}</span></div>
+        <div class="dl"><b>מחלוקת</b><span>${c.dispute}</span></div>
+        <div class="dl"><b>חוק Google</b><span>${c.principle}</span></div>
+        <div class="dl"><b>המלצה</b><span>${c.rec}</span></div>
+        <div class="dl"><b>חובה לתקן</b><span style="color:${c.must==='אין'?'var(--w80)':'var(--yel)'};">${c.must}</span></div>
+        <div class="dl"><b>מומלץ לשפר</b><span>${c.nice}</span></div>
+        <div class="dl"><b>ציון סופי</b><span>${c.score}/100</span></div>
+      </div></td>`;
+      tbody.appendChild(row);
+      tbody.appendChild(det);
+      requestAnimationFrame(()=>{row.style.transition='opacity .3s';row.style.opacity=1;});
+      if(i===CONSULTANTS.length-1){
+        document.getElementById('finfo').textContent='כל 10 היועצים סיימו — לחץ על שורה כדי לראות פירוט';
+        document.getElementById('e-report').innerHTML=`
+          <div class="report">
+            <div class="report-t">📋 דוח סיכום 10 יועצי AI</div>
+            <div class="report-row"><span class="report-icon">✅</span> כל ההמלצות מדוח העוזרים אושרו</div>
+            <div class="report-row"><span class="report-icon">🤝</span> נמצאה נקודת מחלוקת אחת (אורך הטופס) ונפתרה בפשרה</div>
+            <div class="report-row"><span class="report-icon">🔧</span> 2 תיקוני חובה נקבעו: תמונה חסרה + מידע מובנה לעמוד הבית</div>
+          </div>
+          <div class="qscores">
+            <div class="qbox"><div class="qbox-n">94</div><div class="qbox-l">SEO</div></div>
+            <div class="qbox"><div class="qbox-n">91</div><div class="qbox-l">תוכן</div></div>
+            <div class="qbox"><div class="qbox-n">88</div><div class="qbox-l">ביצועים</div></div>
+            <div class="qbox"><div class="qbox-n">95</div><div class="qbox-l">חוויית משתמש</div></div>
+            <div class="qbox"><div class="qbox-n">96</div><div class="qbox-l">התאמה למובייל</div></div>
+            <div class="qbox"><div class="qbox-n">93</div><div class="qbox-l">תקני גוגל</div></div>
+            <div class="qbox"><div class="qbox-n">94</div><div class="qbox-l">מוכנות לבנייה</div></div>
+            <div class="qbox overall"><div class="qbox-n">93</div><div class="qbox-l">ציון כללי לפרויקט</div></div>
+          </div>
+          <div class="export-row">
+            <button class="btn btn-g btn-sm" onclick="generateReportWindow('consultants')">🖨️ הדפס / שמור כ-PDF</button>
+            <button class="btn btn-g btn-sm" onclick="exportCSV('consultants')">📊 ייצוא ל-Excel</button>
+            <button class="btn btn-g btn-sm" onclick="exportWord('consultants')">📝 ייצוא ל-Word</button>
+            <button class="btn btn-g btn-sm" onclick="mailtoExport('consultants')">✉️ שליחה במייל</button>
+            <button class="btn btn-g btn-sm" onclick="toast('שמירה קבועה במערכת תהיה זמינה רק לאחר חיבור לתשתית האמיתית — לא זמינה בהדגמה זו')">💾 שמירה במערכת</button>
+          </div>
+          <div class="approve-wrap">
+            <button class="btn btn-go" onclick="approveE()">✅ אשר דוח יועצים והמשך</button>
+          </div>`;
+      }
+    }, i*420);
+  });
+}
+function approveE(){ APPROVED.e=true; unlock(); document.getElementById('finfo').textContent='דוח היועצים אושר'; }
+
+// ── Accordion toggle (default collapsed) ──
+function toggleRow(rid){
+  const det=document.getElementById('det-'+rid);
+  const chev=document.getElementById('chev-'+rid);
+  const isOpen=det.classList.toggle('open');
+  chev.classList.toggle('open', isOpen);
+}
+function expandAll(prefix){
+  document.querySelectorAll(`[id^="det-${prefix}-"]`).forEach(d=>d.classList.add('open'));
+  document.querySelectorAll(`[id^="chev-${prefix}-"]`).forEach(c=>c.classList.add('open'));
+}
+function collapseAll(prefix){
+  document.querySelectorAll(`[id^="det-${prefix}-"]`).forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll(`[id^="chev-${prefix}-"]`).forEach(c=>c.classList.remove('open'));
+}
+
+// ── ייצוא דוחות (עובד באמת: Excel/Word/הדפסה/מייל; שמירה במערכת דורשת תשתית אמיתית) ──
+function csvEscape(s){ return '"'+String(s).replace(/"/g,'""')+'"'; }
+
+function assistantDetailRows(){
+  const rows=[];
+  GROUPS.forEach(g=>g.items.forEach(([name,check,find])=>{
+    const isWarn=find.includes('⚠️'); const isCrit=find.includes('לא הומצאה תמונה');
+    const score=isCrit?35:isWarn?65:90;
+    const status=isCrit?'קריטי':isWarn?'דורש שיפור':'תקין';
+    rows.push({name,cat:g.cat,score,status,check,source:g.source,find:find.replace('⚠️ ',''),
+      rec: isCrit?'להוסיף תמונה אמיתית לפני אישור העמוד':isWarn?'לטפל בממצא לפני מעבר לשלב היועצים':'אין צורך בפעולה נוספת',
+      tasks: (isWarn||isCrit)?'1 משימה נפתחה':'לא נפתחו משימות'});
+  }));
+  return rows;
+}
+function exportCSV(type){
+  let rows=[], headers=[];
+  if(type==='assistants'){
+    headers=['שם העוזר','תחום','ציון','סטטוס','מה נבדק','מקור מידע','ממצא','המלצה','משימות'];
+    rows=assistantDetailRows().map(r=>[r.name,r.cat,r.score,r.status,r.check,r.source,r.find,r.rec,r.tasks]);
+  } else if(type==='consultants'){
+    headers=['שם היועץ','תחום אחריות','ציון','סטטוס','קיבל מ','החלטה','מחלוקת','חוק Google','המלצה','חובה לתקן','מומלץ לשפר'];
+    rows=CONSULTANTS.map(c=>[c.name,c.domain,c.score,c.must==='אין'?'מאושר':'מאושר עם תיקון',c.from,c.decision,c.dispute,c.principle,c.rec,c.must,c.nice]);
+  } else { // final
+    headers=['סעיף','פרט'];
+    rows=finalReportRows();
+  }
+  let csv='\uFEFF'+headers.map(csvEscape).join(',')+'\n'+rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  const names={assistants:'דוח-50-עוזרים',consultants:'דוח-10-יועצים',final:'דוח-סופי-לפרויקט'};
+  a.download=names[type]+'.csv'; a.click();
+  toast('קובץ Excel (CSV) הורד בהצלחה, כולל כל הפירוט');
+}
+function finalReportRows(){
+  const eng=ENGINES.find(e=>e.id===selectedEngine);
+  const blockingPages=PAGES.filter(p=>p.img==='missing').map(p=>p.name);
+  const engRevisions=eng?REVISIONS.filter(r=>r.engine===eng.name):[];
+  const rows=[
+    ['דוח עוזרים — סה"כ עוזרים','50'],
+    ['דוח עוזרים — תקינים', String(GROUPS.flatMap(g=>g.items).filter(([,,f])=>!f.includes('⚠️')).length)],
+    ['דוח עוזרים — אזהרות', String(GROUPS.flatMap(g=>g.items).filter(([,,f])=>f.includes('⚠️')&&!f.includes('לא הומצאה תמונה')).length)],
+    ['דוח עוזרים — קריטי', String(GROUPS.flatMap(g=>g.items).filter(([,,f])=>f.includes('לא הומצאה תמונה')).length)],
+    ['דוח יועצים — ציון כללי לפרויקט','93/100'],
+    ['דוח יועצים — מחלוקות שנפתרו','1 (אורך טופס יצירת קשר)'],
+    ['תוכנית האתר — מספר עמודים', String(PAGES.length)],
+    ['תוכנית האתר — עמודים חוסמים בנייה', blockingPages.length?blockingPages.join('; '):'אין'],
+    ['מנוע בנייה שנבחר', eng?eng.name:'טרם נבחר'],
+    ['למה נבחר', eng?eng.ai:'—'],
+    ['ציון כללי של המנוע', eng?String(eng.sq):'—'],
+    ['ציון SEO', eng?String(eng.seo):'—'],
+    ['ציון ביצועים', eng?String(eng.perf):'—'],
+    ['ציון מובייל', eng?String(eng.mob):'—'],
+    ['ציון התאמה לגוגל', eng?String(eng.ggl):'—'],
+    ['תיקונים שנשלחו למנוע שנבחר', engRevisions.length?engRevisions.map(r=>'סבב '+r.round+': '+r.text).join(' | '):'לא נשלחו תיקונים למנוע זה'],
+    ['מספר סבבי תיקון', eng?String((eng.round||1)-1):'0'],
+    ['תצוגה מקדימה (Preview URL)','https://preview.dalia-system.com/greentech/v1'],
+    ['החלטת פרסום', PUBLISH_DECISION||'טרם התקבלה'],
+  ];
+  return rows;
+}
+function reportHTML(type){
+  const date=new Date().toLocaleDateString('he-IL');
+  const titles={assistants:'דוח 50 עוזרי AI', consultants:'דוח 10 יועצי AI', final:'דוח סופי לפרויקט'};
+  const title=titles[type];
+  let body='';
+  if(type==='assistants'){
+    const rowsHtml=assistantDetailRows().map(r=>`
+      <tr><td><b>${r.name}</b></td><td>${r.cat}</td><td>${r.score}</td><td>${r.status}</td></tr>
+      <tr class="detail"><td colspan="4">
+        <b>מה נבדק:</b> ${r.check}<br><b>מקור מידע:</b> ${r.source}<br><b>ממצא:</b> ${r.find}<br><b>המלצה:</b> ${r.rec}<br><b>משימות:</b> ${r.tasks}
+      </td></tr>`).join('');
+    body=`<table><thead><tr><th>שם</th><th>תחום</th><th>ציון</th><th>סטטוס</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+  } else if(type==='consultants'){
+    const rowsHtml=CONSULTANTS.map(c=>`
+      <tr><td><b>${c.name}</b></td><td>${c.domain}</td><td>${c.score}</td><td>${c.must==='אין'?'מאושר':'מאושר עם תיקון'}</td></tr>
+      <tr class="detail"><td colspan="4">
+        <b>קיבל דוחות מ:</b> ${c.from}<br><b>החלטה:</b> ${c.decision}<br><b>מחלוקת:</b> ${c.dispute}<br><b>חוק Google:</b> ${c.principle}<br><b>המלצה:</b> ${c.rec}<br><b>חובה לתקן:</b> ${c.must}<br><b>מומלץ לשפר:</b> ${c.nice}
+      </td></tr>`).join('');
+    body=`<table><thead><tr><th>שם</th><th>תחום אחריות</th><th>ציון</th><th>סטטוס</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+  } else {
+    const rowsHtml=finalReportRows().map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td></tr>`).join('');
+    body=`<table><thead><tr><th>סעיף</th><th>פרט</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+  }
+  return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>${title}</title>
+  <style>body{font-family:Arial,sans-serif;padding:24px;color:#111;}h1{font-size:20px;}table{width:100%;border-collapse:collapse;margin-top:14px;}th,td{border:1px solid #ccc;padding:6px 8px;font-size:12px;text-align:right;}th{background:#f0f0f0;}tr.detail td{background:#fafafa;font-size:11px;line-height:1.8;}
+  .hdr{display:flex;justify-content:space-between;border-bottom:2px solid #2563eb;padding-bottom:10px;margin-bottom:14px;}
+  .meta{font-size:11px;color:#555;margin-bottom:4px;}</style></head><body>
+  <div class="hdr"><div><b style="font-size:18px;">CO.CO דליה</b></div><div style="text-align:left;">${title}</div></div>
+  <div class="meta">תאריך: ${date} &nbsp; | &nbsp; לקוח: גרין-טק פתרונות בע"מ &nbsp; | &nbsp; גרסה: 1.0</div>
+  <div class="meta">ציון כללי לפרויקט: 93/100</div>
+  ${body}
+  <p style="margin-top:16px;font-size:11px;color:#777;">מסמך הדגמה בלבד — הופק מתוך תצוגה מקדימה, לא ממערכת ייצור.</p>
+  </body></html>`;
+}
+function exportWord(type){
+  const blob=new Blob(['\ufeff'+reportHTML(type)],{type:'application/msword'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  const names={assistants:'דוח-50-עוזרים',consultants:'דוח-10-יועצים',final:'דוח-סופי-לפרויקט'};
+  a.download=names[type]+'.doc'; a.click();
+  toast('קובץ Word הורד בהצלחה, כולל כל הפירוט');
+}
+function generateReportWindow(type){
+  const w=window.open('','_blank');
+  if(!w){ toast('הדפדפן חסם את פתיחת החלון — אפשר חלונות קופצים ונסה שוב'); return; }
+  w.document.write(reportHTML(type));
+  w.document.close();
+  setTimeout(()=>w.print(),350);
+}
+function mailtoExport(type){
+  const titles={assistants:'דוח 50 עוזרי AI', consultants:'דוח 10 יועצי AI', final:'דוח סופי לפרויקט'};
+  const bodies={
+    assistants:'סיכום: 50 עוזרים נבדקו. רוב הבדיקות תקינות, נמצאו כמה אזהרות וממצא קריטי אחד (תמונה חסרה לשירות ביטוח צי רכב). לפירוט המלא יש לצפות בדוח במערכת.',
+    consultants:'סיכום: 10 יועצים ניתחו את דוחות העוזרים. ציון כללי לפרויקט: 93/100. נמצאה נקודת מחלוקת אחת שנפתרה בפשרה. לפירוט המלא יש לצפות בדוח במערכת.',
+    final:'מצורף סיכום מלא של הפרויקט: דוח עוזרים, דוח יועצים, תוכנית האתר, המנוע שנבחר, התיקונים שבוצעו, ה-Preview והחלטת הפרסום. לפירוט המלא יש לצפות בדוח במערכת.'
+  };
+  window.location.href=`mailto:?subject=${encodeURIComponent(titles[type]+' — גרין-טק פתרונות')}&body=${encodeURIComponent(bodies[type])}`;
+}
+
+// ── ו׳: הערכה אסטרטגית + תוכנית עמודים ──
+function runStageF(){
+  document.getElementById('f-strategic').innerHTML=`
+    <table class="eval-table">
+      <tr><td>מבנה האתר הקיים</td><td>🟡 בינוני — עמודים כלליים, לא ממוקדי מילת מפתח</td></tr>
+      <tr><td>איכות התוכן</td><td>🟠 נמוכה-בינונית — תוכן כללי מדי</td></tr>
+      <tr><td>SEO</td><td>🔴 חלש — אין התאמה למילות המפתח שאושרו</td></tr>
+      <tr><td>ביצועים ומהירות</td><td>🟡 בינוני — טעינה איטית יחסית</td></tr>
+      <tr><td>חוויית משתמש</td><td>🟡 בינוני — ניווט לא ברור</td></tr>
+      <tr><td>התאמה למובייל</td><td>🔴 חלשה — לא מותאם היטב</td></tr>
+      <tr><td>מה אפשר להשתמש בו שוב</td><td>כ-20% — תוכן טקסטואלי בסיסי ותמונות קיימות</td></tr>
+    </table>
+    <div class="decision-box">
+      <div class="decision-t">💡 המלצת המערכת</div>
+      <div class="decision-v">🏗️ מומלץ לבנות אתר חדש לחלוטין</div>
+      <div class="decision-why">האתר הקיים לא ממוקד למילות המפתח שאושרו, לא מותאם לנייד, ולא תומך ביעד הגדילה (מ-30 ל-80 לקוחות). שדרוג חלקי לא יספיק — עדיף בסיס חדש, תוך שימוש בתוכן ובתמונות שכן מתאימים.</div>
+    </div>
+    <div class="stage-part" style="margin-bottom:8px;">תחזית עסקית (הערכה בלבד — לא הבטחה)</div>
+    <div class="roi-grid">
+      <div class="roi-box"><div class="roi-n">250–450</div><div class="roi-l">כניסות אורגניות חודשיות (תוך 4-6 חודשים)</div></div>
+      <div class="roi-box"><div class="roi-n">15–25</div><div class="roi-l">לידים צפויים בחודש</div></div>
+      <div class="roi-box"><div class="roi-n">~3</div><div class="roi-l">חודשים עד תוצאות ראשונות</div></div>
+      <div class="roi-box"><div class="roi-n">5–8</div><div class="roi-l">חודשים משוערים להחזר השקעה</div></div>
+    </div>
+    <div class="approve-wrap"><button class="btn btn-go btn-sm" onclick="approveStrategic()">✅ אשר את ההחלטה והצג את תוכנית העמודים</button></div>`;
+}
+function approveStrategic(){
+  document.getElementById('f-pages-wrap').style.display='block';
+  buildPages();
+}
+const PAGES=[
+ {name:'עמוד הבית', purpose:'רושם ראשוני + הפניה לשירותים', audience:'כל המבקרים', kw:'ניהול צי רכב', kw2:'ניהול צי רכב לעסקים', h1:'ניהול צי רכב חכם — בלי כאבי ראש', title:'ניהול צי רכב | גרין-טק פתרונות', meta:'ניהול צי רכב לעסקים עם GPS, תחזוקה וביטוח. חיסכון ממוצע 23%.', structure:'כותרת → יתרונות → 3 שירותים → אמון → טופס', cta:'קבל הצעת מחיר', img:'ok', schema:'עסק + מקומי', links:'לכל עמודי השירות', mobile:'✓ מותאם', notes:'עומד בדרישות Search Essentials', missing:'—', approved:true},
+ {name:'עמוד שירות: ניהול צי GPS', purpose:'המרה — פנייה על שירות ה-GPS', audience:'מנהלי לוגיסטיקה', kw:'ניהול צי GPS לעסקים', kw2:'מעקב רכבים בזמן אמת', h1:'מעקב GPS בזמן אמת לכל הרכבים', title:'ניהול צי GPS | גרין-טק', meta:'מערכת GPS מתקדמת למעקב אחר כל רכבי העסק בזמן אמת.', structure:'כותרת → איך זה עובד → יתרונות → טופס', cta:'נסה 30 יום חינם', img:'ok', schema:'שירות', links:'לעמוד הבית וליצירת קשר', mobile:'✓ מותאם', notes:'תואם למודעת גוגל אדס קיימת', missing:'—', approved:true},
+ {name:'עמוד שירות: ביטוח צי רכב', purpose:'המרה — פנייה על ביטוח', audience:'מנהלי רכש', kw:'ביטוח צי רכב', kw2:'ביטוח רכב עסקי', h1:'ביטוח צי רכב מקיף לעסקים', title:'ביטוח צי רכב | גרין-טק', meta:'ביטוח צי רכב מקיף לעסקים, כיסוי מותאם ומחיר תחרותי.', structure:'כותרת → כיסויים → יתרונות → טופס', cta:'קבל הצעת ביטוח', img:'missing', schema:'שירות', links:'לעמוד הבית וליצירת קשר', mobile:'✓ מותאם', notes:'⚠ ממתין לתמונה לפני בנייה סופית', missing:'תמונה לשירות הביטוח', approved:false},
+ {name:'עמוד שירות: תחזוקת רכבים', purpose:'המרה — פנייה על תחזוקה', audience:'מנהלי לוגיסטיקה', kw:'תחזוקת צי רכב', kw2:'תחזוקה מתוזמנת לרכבי עסק', h1:'תחזוקה מתוזמנת שחוסכת כסף', title:'תחזוקת צי רכב | גרין-טק', meta:'תחזוקה מתוזמנת לצי הרכב שלך, מונעת תקלות.', structure:'כותרת → תהליך → יתרונות → טופס', cta:'תיאום שיחה', img:'ok', schema:'שירות', links:'לעמוד הבית וליצירת קשר', mobile:'✓ מותאם', notes:'תקין', missing:'—', approved:true},
+ {name:'עמוד: ניהול צי בתל אביב', purpose:'קידום מקומי באזור המרכז', audience:'עסקים באזור תל אביב', kw:'ניהול צי רכב בתל אביב', kw2:'שירות GPS לוגיסטיקה במרכז', h1:'שירות ניהול צי באזור המרכז', title:'ניהול צי בתל אביב | גרין-טק', meta:'שירות ניהול צי GPS לעסקים בתל אביב והמרכז.', structure:'כותרת → יתרון מקומי → שירותים → טופס', cta:'תיאום ייעוץ', img:'ok', schema:'עסק מקומי', links:'לעמוד הבית ולעמודי שירות', mobile:'✓ מותאם', notes:'תקין', missing:'—', approved:true},
+ {name:'עמוד אודות', purpose:'חיזוק אמון ואמינות', audience:'לקוחות בשלב השוואה', kw:'—', kw2:'—', h1:'25 שנות ניסיון בניהול צי רכב', title:'אודות גרין-טק פתרונות', meta:'הכירו את הצוות שמאחורי 25 שנות ניסיון.', structure:'סיפור החברה → ניסיון → צוות → אמון', cta:'הכירו אותנו', img:'ok', schema:'עסק', links:'לעמוד הבית וליצירת קשר', mobile:'✓ מותאם', notes:'⚠ מומלץ להוסיף חוות דעת לקוחות', missing:'חוות דעת לקוחות', approved:true},
+ {name:'עמוד יצירת קשר', purpose:'המרה סופית — קבלת פנייה', audience:'לקוחות מוכנים לפנות', kw:'—', kw2:'—', h1:'רוצים לחסוך בעלויות הצי? דברו איתנו', title:'צור קשר | גרין-טק פתרונות', meta:'השאירו פרטים ונחזור אליכם עם הצעת מחיר.', structure:'כותרת → טופס (4 שדות) → פרטי התקשרות', cta:'שליחת פנייה', img:'—', schema:'עסק', links:'מכל עמודי האתר', mobile:'✓ מותאם', notes:'אורך הטופס נקבע לפי הכרעת היועצים', missing:'—', approved:true},
+];
+function buildPages(){
+  const wrap=document.getElementById('f-pages');
+  if(wrap.children.length) return;
+  let approvedCount=0;
+  PAGES.forEach((p,i)=>{
+    setTimeout(()=>{
+      const el=document.createElement('div'); el.className='page-card';
+      const blocking = p.img==='missing';
+      const hasGap = !blocking && p.missing!=='—';
+      const statusHtml = blocking
+        ? '<span class="bd bd-r">🔴 חובה להשלים לפני בנייה</span>'
+        : hasGap
+          ? '<span class="bd bd-y">🟡 מאושר עם חסרים</span>'
+          : '<span class="bd bd-g">✓ מאושר במלואו</span>';
+      el.innerHTML=`
+        <div class="page-hd">
+          <span class="page-name">${p.name}</span>
+          <span class="bd bd-b">${p.purpose}</span>
+          ${statusHtml}
+        </div>
+        <div class="page-grid">
+          <div class="page-field"><b>קהל יעד</b><span>${p.audience}</span></div>
+          <div class="page-field"><b>מילת מפתח ראשית</b><span>${p.kw}</span></div>
+          <div class="page-field"><b>מילת מפתח משנית</b><span>${p.kw2}</span></div>
+          <div class="page-field"><b>כותרת ראשית (H1)</b><span>${p.h1}</span></div>
+          <div class="page-field"><b>כותרת לגוגל</b><span>${p.title}</span></div>
+          <div class="page-field"><b>תיאור לגוגל</b><span>${p.meta}</span></div>
+          <div class="page-field"><b>מבנה התוכן</b><span>${p.structure}</span></div>
+          <div class="page-field"><b>כפתור פעולה</b><span>${p.cta}</span></div>
+          <div class="page-field"><b>תמונה</b><span>${p.img==='ok'?'קיימת':p.img==='missing'?'חסרה — לא הומצאה':'לא נדרשת'}</span></div>
+          <div class="page-field"><b>מידע מובנה לגוגל</b><span>${p.schema}</span></div>
+          <div class="page-field"><b>קישורים פנימיים</b><span>${p.links}</span></div>
+          <div class="page-field"><b>התאמה למובייל</b><span>${p.mobile}</span></div>
+        </div>
+        <div class="arow-detail" style="margin-top:7px;"><b>הערת מערכת:</b> ${p.notes}${p.missing!=='—'?` · <span style="color:var(--yel);">חסר: ${p.missing}</span>`:''}</div>`;
+      wrap.appendChild(el);
+      requestAnimationFrame(()=>el.classList.add('show'));
+      if(p.img!=='missing') approvedCount++;
+      if(i===PAGES.length-1){
+        document.getElementById('f-structure').innerHTML=`
+          <b>מבנה האתר:</b><br>
+          עמוד הבית → שירותים (ניהול GPS, ביטוח, תחזוקה) → עמוד אזורי (תל אביב) → אודות → יצירת קשר<br>
+          כל עמוד שירות מקושר לעמוד יצירת קשר ולשירותים הקשורים אליו.`;
+        const blocking=PAGES.filter(p=>p.img==='missing');
+        if(blocking.length){
+          document.getElementById('f-blocking-warning').innerHTML=`
+            <div class="alt alt-w" style="margin-right:0;margin-left:0;">
+              🔴 <b>יש עמוד שמסומן "חובה להשלים לפני בנייה"</b> (${blocking.map(p=>p.name).join(', ')}).<br>
+              <b>בהדגמה בלבד ניתן להמשיך למרות החוסר</b> — כדי להמשיך ולהראות את שאר התהליך.<br>
+              <b>במערכת האמיתית לא יהיה ניתן להמשיך לבנייה עד השלמת החוסר</b> — זה לא אמור לעבור אוטומטית.
+            </div>`;
+        }
+        document.getElementById('finfo').textContent=`תוכנית האתר מוכנה — ${approvedCount} מתוך ${PAGES.length} עמודים מאושרים במלואם`;
+        document.getElementById('btn-approve-plan').disabled=false;
+      }
+    }, i*260);
+  });
+}
+function approvePlan(){
+  document.getElementById('btn-approve-plan').textContent='✓ תוכנית האתר אושרה';
+  document.getElementById('btn-approve-plan').disabled=true;
+  APPROVED.f=true; unlock();
+  document.getElementById('finfo').textContent='התוכנית אושרה — ממשיכים למנועי הבנייה';
+}
+
+// ── ז׳: מנועי בנייה במקביל + תיקונים ──
+const ENGINES=[
+ {id:'stitch', name:'Google Stitch', icon:'🎨', color:'#a855f7', sq:88, seo:82, perf:85, mob:90, ggl:84,
+  pros:['יצירה מהירה של מסכי עיצוב','טוב לחקירת כיוונים חזותיים'], cons:['פחות מותאם לקוד production'],
+  ai:'טוב לשלב עיצוב ראשוני, פחות מתאים כתוצר סופי.'},
+ {id:'v0', name:'Vercel v0', icon:'▲', color:'#3b82f6', sq:95, seo:93, perf:94, mob:95, ggl:93,
+  pros:['קוד נקי ומוכן לשימוש','ביצועים מהירים מאוד'], cons:['תלוי בתשתית Vercel'], 
+  ai:'ההתאמה הטובה ביותר לצרכים שזוהו — מומלץ.'},
+ {id:'builder', name:'Builder.io', icon:'🧩', color:'#f59e0b', sq:89, seo:88, perf:83, mob:87, ggl:88,
+  pros:['ניהול תוכן שוטף קל בעתיד','גמישות עריכה ויזואלית'], cons:['פחות מהיר לבניית קוד ראשוני'],
+  ai:'טוב אם מתכננים עדכוני תוכן תכופים בעתיד.'},
+ {id:'plasmic', name:'Plasmic', icon:'🔷', color:'#06b6d4', sq:90, seo:87, perf:88, mob:88, ggl:86,
+  pros:['קוד production מלא','גמיש לצמיחה עתידית'], cons:['עקומת למידה גבוהה יותר לצוות'],
+  ai:'אפשרות טובה אם צפויה הרחבה לאתר מורכב יותר.'},
+ {id:'figma', name:'Figma', icon:'✏️', color:'#ec4899', sq:75, seo:60, perf:60, mob:80, ggl:65,
+  pros:['נכסי עיצוב איכותיים ביותר'], cons:['לא בונה אתר עובד באופן ישיר'],
+  ai:'שימושי כמקור לעיצוב, לא כפתרון בנייה עצמאי.'},
+ {id:'internal', name:'מנוע פנימי שלנו', icon:'🛡️', color:'#22c55e', sq:80, seo:80, perf:80, mob:82, ggl:80,
+  pros:['זמין תמיד, לא תלוי בגורם חיצוני','שליטה מלאה'], cons:['פחות מתקדם ויזואלית מהמנועים הייעודיים'],
+  ai:'הגיבוי הבטוח ביותר — תמיד עובד, גם אם מנוע אחר נופל.'},
+];
+let selectedEngine=null;
+const REVISIONS=[];
+let PUBLISH_DECISION=null;
+
+function renderEngineCard(eng, isFuture){
+  return `
+  <div class="eng-card" id="eng-${eng.id}" data-id="${eng.id}">
+    <div class="eng-hd2"><div class="eng-ico2">${eng.icon}</div><div class="eng-name2">${eng.name}</div><span id="eng-status-${eng.id}" class="bd bd-y">ממתין</span></div>
+    <div class="arow-detail" style="margin-bottom:8px;"><b>מה נשלח אליו:</b> תוכנית אתר מלאה — תוכן, SEO, תמונות, עיצוב, CTA</div>
+    <div class="mini-mock" id="mini-${eng.id}">
+      <div class="mini-nav" style="background:${eng.color}22;"></div>
+      <div class="mini-hero"><div class="mini-hero-t" style="background:${eng.color}55;"></div><div class="mini-cta" style="background:${eng.color};"></div></div>
+    </div>
+    <div class="eng-scores">
+      <div class="esc"><div class="esc-n" id="sc-q-${eng.id}">–</div><div class="esc-l">כללי</div></div>
+      <div class="esc"><div class="esc-n" id="sc-s-${eng.id}">–</div><div class="esc-l">SEO</div></div>
+      <div class="esc"><div class="esc-n" id="sc-p-${eng.id}">–</div><div class="esc-l">ביצועים</div></div>
+      <div class="esc"><div class="esc-n" id="sc-m-${eng.id}">–</div><div class="esc-l">מובייל</div></div>
+      <div class="esc"><div class="esc-n" id="sc-g-${eng.id}">–</div><div class="esc-l">גוגל</div></div>
+    </div>
+    <div id="pc-${eng.id}"></div>
+    <div id="ai-${eng.id}"></div>
+    <div class="eng-actions" id="act-${eng.id}" style="display:none;">
+      <button class="btn btn-go btn-sm" onclick="selectEngine('${eng.id}')">✓ בחר גרסה זו</button>
+    </div>
+    <div id="log-${eng.id}"></div>
+  </div>`;
+}
+
+function runStageG(){
+  const wrap=document.getElementById('g-engines');
+  wrap.innerHTML = ENGINES.map(e=>renderEngineCard(e)).join('') + `
+    <div class="eng-card future">
+      <div class="eng-hd2"><div class="eng-ico2">🔌</div><div class="eng-name2">מנוע נוסף בעתיד</div></div>
+      <div style="font-size:11px;color:var(--w50);line-height:1.6;">ניתן לחבר בעתיד מנועי בנייה נוספים דרך אותו תהליך, בלי לשנות את שאר המערכת.</div>
+    </div>`;
+  document.getElementById('finfo').textContent='שולח את תוכנית האתר לכל המנועים במקביל...';
+  ENGINES.forEach((e,i)=>{
+    const card=document.getElementById('eng-'+e.id);
+    setTimeout(()=>{
+      card.classList.add('active');
+      document.getElementById('eng-status-'+e.id).textContent='🔄 מעבד';
+    }, 150);
+    setTimeout(()=>{
+      card.classList.remove('active'); card.classList.add('done');
+      document.getElementById('eng-status-'+e.id).innerHTML='<span style="color:var(--green);">✓ הושלם</span>';
+      document.getElementById('sc-q-'+e.id).textContent=e.sq;
+      document.getElementById('sc-s-'+e.id).textContent=e.seo;
+      document.getElementById('sc-p-'+e.id).textContent=e.perf;
+      document.getElementById('sc-m-'+e.id).textContent=e.mob;
+      document.getElementById('sc-g-'+e.id).textContent=e.ggl;
+      document.getElementById('pc-'+e.id).innerHTML=`
+        <div class="eng-pc"><b style="color:var(--green);">יתרונות:</b> ${e.pros.join(' · ')}</div>
+        <div class="eng-pc"><b style="color:var(--red);">חסרונות:</b> ${e.cons.join(' · ')}</div>`;
+      document.getElementById('ai-'+e.id).innerHTML=`<div class="eng-ai">🤖 המלצת המערכת: ${e.ai}</div>`;
+      document.getElementById('act-'+e.id).style.display='flex';
+      if(i===ENGINES.length-1){
+        document.getElementById('finfo').textContent='כל המנועים החזירו תוצאה — אפשר להשוות, לבקש תיקונים, ולבחור';
+        const sel=document.getElementById('rev-engine');
+        sel.innerHTML=ENGINES.map(e2=>`<option value="${e2.id}">${e2.name}</option>`).join('');
+        document.getElementById('g-revise').style.display='block';
+      }
+    }, 900+i*450);
+  });
+}
+function selectEngine(id){
+  ENGINES.forEach(e=>document.getElementById('eng-'+e.id).classList.remove('selected'));
+  document.getElementById('eng-'+id).classList.add('selected');
+  selectedEngine=id;
+  document.getElementById('btn-approve-engine').disabled=false;
+  const eng=ENGINES.find(e=>e.id===id);
+  document.getElementById('finfo').textContent='נבחרה הגרסה של '+eng.name;
+}
+function sendRevision(){
+  const id=document.getElementById('rev-engine').value;
+  const text=document.getElementById('rev-text').value.trim();
+  if(!text){ toast('כתוב מה צריך לתקן לפני שליחה'); return; }
+  const eng=ENGINES.find(e=>e.id===id);
+  eng.round=(eng.round||1)+1;
+  eng.sq=Math.min(99, eng.sq+3); eng.seo=Math.min(99,eng.seo+1); eng.perf=Math.min(99,eng.perf+1);
+  document.getElementById('sc-q-'+id).textContent=eng.sq;
+  document.getElementById('sc-s-'+id).textContent=eng.seo;
+  document.getElementById('sc-p-'+id).textContent=eng.perf;
+  document.getElementById('eng-status-'+id).innerHTML=`<span style="color:var(--green);">✓ סבב ${eng.round}</span>`;
+  document.getElementById('log-'+id).innerHTML+=`<div class="eng-log">📤 סבב ${eng.round}: "${text}" — עודכן</div>`;
+  REVISIONS.push({engine:eng.name, round:eng.round, text:text});
+  document.getElementById('rev-text').value='';
+  document.getElementById('finfo').textContent=`בקשת התיקון נשלחה רק ל-${eng.name} — שאר המנועים לא הושפעו`;
+}
+function approveEngine(){
+  if(!selectedEngine){ toast('בחר גרסה קודם'); return; }
+  APPROVED.g=true; unlock();
+  const eng=ENGINES.find(e=>e.id===selectedEngine);
+  document.getElementById('h-sub').textContent='התצוגה המלאה של הגרסה שנבחרה: '+eng.name+'.';
+  document.getElementById('finfo').textContent='הגרסה אושרה — ממשיכים ל-Preview';
+}
+
+// ── ח׳: Preview ──
+let mockMode='desktop';
+function setMockMode(m){
+  mockMode=m;
+  document.getElementById('mt-desktop').classList.toggle('on', m==='desktop');
+  document.getElementById('mt-mobile').classList.toggle('on', m==='mobile');
+  document.getElementById('g-mockup').classList.toggle('mobile', m==='mobile');
+}
+function runStageH(){}
+function approvePreview(){ APPROVED.h=true; unlock(); document.getElementById('finfo').textContent='ה-Preview אושר — ממשיכים לאישור הסופי'; }
+
+// ── ט׳: אישור ──
+function runStageI(){
+  const eng=ENGINES.find(e=>e.id===selectedEngine);
+  const blockingPages=PAGES.filter(p=>p.img==='missing');
+  const engRevisions=eng?REVISIONS.filter(r=>r.engine===eng.name):[];
+  document.getElementById('i-checklist').innerHTML=`
+    <div class="chk-row">✅ <b>דוח עוזרים:</b> 50/50 עוזרים סיימו — ${GROUPS.flatMap(g=>g.items).filter(([,,f])=>f.includes('לא הומצאה תמונה')).length} ממצא קריטי, שאר הבדיקות תקינות או עם אזהרה</div>
+    <div class="chk-row">✅ <b>דוח יועצים:</b> 10/10 יועצים סיימו — ציון כללי לפרויקט: 93/100</div>
+    <div class="chk-row">✅ <b>החלטה אסטרטגית:</b> מומלץ לבנות אתר חדש</div>
+    <div class="chk-row">${blockingPages.length?'⚠️':'✅'} <b>תוכנית האתר:</b> ${PAGES.length} עמודים — ${blockingPages.length?blockingPages.length+' עמוד חוסם בנייה ('+blockingPages.map(p=>p.name).join(', ')+')':'הכול מאושר'}</div>
+    <div class="chk-row" style="display:block;">✅ <b>מנוע בנייה שנבחר:</b> ${eng?eng.name:'—'}
+      ${eng?`<div style="margin-top:6px;padding-right:8px;font-size:11px;color:var(--w50);line-height:1.8;">
+        <b style="color:var(--w80);">למה נבחר:</b> ${eng.ai}<br>
+        <b style="color:var(--w80);">ציונים:</b> כללי ${eng.sq} · SEO ${eng.seo} · ביצועים ${eng.perf} · מובייל ${eng.mob} · גוגל ${eng.ggl}<br>
+        <b style="color:var(--w80);">תיקונים שנשלחו אליו:</b> ${engRevisions.length?engRevisions.map(r=>'סבב '+r.round+' — "'+r.text+'"').join('; '):'לא נשלחו תיקונים'}<br>
+        <b style="color:var(--w80);">מספר סבבי תיקון:</b> ${(eng.round||1)-1}
+      </div>`:''}
+    </div>
+    <div class="chk-row">✅ <b>תצוגה מקדימה (Preview URL):</b> https://preview.dalia-system.com/greentech/v1</div>`;
+  document.getElementById('i-export').innerHTML=`
+    <div class="export-row">
+      <button class="btn btn-g btn-sm" onclick="generateReportWindow('final')">🖨️ הדפס / שמור כ-PDF</button>
+      <button class="btn btn-g btn-sm" onclick="exportCSV('final')">📊 ייצוא ל-Excel</button>
+      <button class="btn btn-g btn-sm" onclick="exportWord('final')">📝 ייצוא ל-Word</button>
+      <button class="btn btn-g btn-sm" onclick="mailtoExport('final')">✉️ שליחה במייל</button>
+      <button class="btn btn-g btn-sm" onclick="toast('שמירה קבועה במערכת תהיה זמינה רק לאחר חיבור לתשתית האמיתית — לא זמינה בהדגמה זו')">💾 שמירה במערכת</button>
+    </div>`;
+}
+function approveFinal(){ APPROVED.i=true; unlock(); document.getElementById('finfo').textContent='אושר סופית — ממשיכים להחלטת הפרסום'; }
+
+// ── י׳: פרסום ──
+function runStageJ(){ document.getElementById('btn-continue').style.display='none'; }
+function createBuildPackage(){
+  const btn=document.getElementById('btn-build-package');
+  btn.disabled=true; btn.textContent='📦 אורז ומעלה...';
+  setTimeout(()=>{
+    btn.textContent='✓ חבילת הבנייה נוצרה';
+    document.getElementById('build-package-result').style.display='block';
+    document.getElementById('build-package-result').innerHTML=`
+      <div class="alt alt-ok" style="margin:0;">
+        ✅ חבילת הבנייה הועלתה לסביבת בדיקה (Git / Staging).<br>
+        🔗 כתובת זמנית לצפייה: <span style="font-family:monospace;">https://staging.dalia-system.com/greentech/build-1</span><br>
+        <b>Preview בלבד — לא Production.</b> האתר האמיתי לא השתנה. פרסום בפועל דורש את החלטת הפרסום למטה + אישור נפרד.
+      </div>`;
+  }, 1400);
+}
+function choosePublish(n){
+  ['popt-1','popt-2','popt-3'].forEach(id=>document.getElementById(id).classList.remove('selected'));
+  document.getElementById('popt-'+n).classList.add('selected');
+  const msgs={
+    1:'נבחר: פרסום על הדומיין הקיים. בפועל — זה ידרוש אישור נוסף ומפורש ולא יתבצע אוטומטית.',
+    2:'נבחר: העברה לדומיין חדש. האתר הקיים ימשיך לפעול כרגיל עד להחלטה סופית.',
+    3:'נבחר: השארה כתצוגה מקדימה בלבד להמשך עבודה ושיפורים.'
+  };
+  const labels={1:'פרסום על הדומיין הקיים',2:'העברה לדומיין חדש',3:'השארה כתצוגה מקדימה בלבד'};
+  PUBLISH_DECISION=labels[n];
+  document.getElementById('publish-confirm').style.display='block';
+  document.getElementById('publish-confirm').innerHTML=`<div class="alt alt-ok" style="margin:0;">${msgs[n]} זוהי בחירה להמחשה בלבד — שום פעולה אמיתית לא מתבצעת.</div>`;
+}
+
+// ── גשר לשכבת הנתונים של שלב 1 (localhost בלבד) ──
+// אם השרת המקומי (server.py) לא רץ, זה נכשל בשקט וממשיך עם הנתונים
+// הקבועים המקוריים — הקובץ הזה ממשיך לעבוד גם ללא השרת, בדיוק כמו קודם.
+async function connectToDataLayer(){
+  const banner=document.getElementById('db-status-banner');
+  try{
+    const res=await fetch('/api/project/baseline', {cache:'no-store'});
+    if(!res.ok) throw new Error('http '+res.status);
+    const payload=await res.json();
+    const p=payload.project;
+    const bp=p.business_profile||{};
+
+    banner.innerHTML=`
+      <div class="db-badge on">
+        <span>🟢</span>
+        <div>
+          <div><b>מחובר לשכבת הנתונים האמיתית (שלב 1)</b> — מקור: ${payload.source}</div>
+          <div class="db-fields">
+            <b>עסק:</b> ${bp.business_name||'—'} &nbsp;•&nbsp;
+            <b>תחום:</b> ${bp.sector||'—'} &nbsp;•&nbsp;
+            <b>שירותים:</b> ${p.services.length} &nbsp;•&nbsp;
+            <b>מילות מפתח:</b> ${p.keywords.length} &nbsp;•&nbsp;
+            <b>מתחרים:</b> ${p.competitors.length} &nbsp;•&nbsp;
+            <b>אזורי פעילות:</b> ${p.service_areas.length}
+          </div>
+        </div>
+      </div>`;
+
+    // מחליף בפועל את הטקסט הקבוע במוקאפ הסופי (שלב ח') בנתונים שהגיעו מה-DB —
+    // זה החלק שאמור להיות גלוי וניתן לאימות בעין בדפדפן.
+    const logoEl=document.getElementById('m-logo');
+    const heroTEl=document.getElementById('m-hero-t');
+    const heroSEl=document.getElementById('m-hero-s');
+    if(logoEl && bp.business_name) logoEl.textContent=bp.business_name;
+    if(heroTEl && bp.business_goal) heroTEl.textContent=bp.business_goal;
+    if(heroSEl && bp.usp) heroSEl.textContent=(bp.main_service?bp.main_service+'. ':'')+bp.usp;
+
+    document.getElementById('finfo').textContent='נטען בהצלחה מ-Database אמיתי (שלב 1) — לא ממשתני JS קבועים';
+  }catch(err){
+    banner.innerHTML=`
+      <div class="db-badge off">
+        <span>🔴</span>
+        <div>
+          <div><b>אין חיבור לשכבת הנתונים</b> — מוצגים נתוני ברירת מחדל קבועים (בדיוק כמו קודם)</div>
+          <div class="db-fields">כדי לראות נתונים אמיתיים: הפעל <code>python3 server.py</code> מתוך phase1_data_layer ופתח את הדף מהכתובת שהשרת מציג.</div>
+        </div>
+      </div>`;
+  }
+}
+
+// ── חדש: קישור לחלק א׳-ב׳-ג׳ (נוסף בשלב האיחוד — שום שורה קיימת של ד׳-י׳ לא הוסרה) ──
+function scrollToABC(){
+  const abc=document.getElementById('abc-app');
+  if(abc) abc.scrollIntoView({behavior:'smooth'});
+}
+
+// עוקב אחרי אישור סופי של חלק ב׳ (SEO) או חלק ג׳ (Google Ads) — כל אחד מהם
+// כבר כותב ל-localStorage בעצמו ('dalia_part_b' / 'dalia_part_c'), בדיוק כפי
+// שחלק א׳ כבר כותב 'dalia_part_a' וחלק ב׳ כבר קורא אותו. שום קובץ של א׳-ב׳-ג׳
+// לא נערך כדי לאפשר את זה — זו רק האזנה חד-כיוונית מבחוץ (polling).
+(function watchForABCApproval(){
+  let seenB = localStorage.getItem('dalia_part_b');
+  let seenC = localStorage.getItem('dalia_part_c');
+  let autoAdvanced = false;
+  setInterval(()=>{
+    if(autoAdvanced) return;
+    const curB = localStorage.getItem('dalia_part_b');
+    const curC = localStorage.getItem('dalia_part_c');
+    const justApprovedB = curB && curB !== seenB;
+    const justApprovedC = curC && curC !== seenC;
+    if(justApprovedB || justApprovedC){
+      autoAdvanced = true;
+      const target = document.getElementById('stage-d');
+      if(target) target.scrollIntoView({behavior:'smooth'});
+      toast('חלקים א׳–ב׳–ג׳ אושרו — ממשיכים אוטומטית לדוח 50 עוזרי ה-AI (שלב ד׳)');
+    }
+    seenB = curB; seenC = curC;
+  }, 600);
+})();
+
+// ── התחלה ──
+renderStepper();
+showStage(0);
+connectToDataLayer();
+</script>
+</div><!-- /dj-app -->
+
+<script src="../ai-marketing/marketing-api.js?v=coco-phase0"></script>
+<script src="../ai-marketing/coco-data-adapter.js?v=coco-phase0"></script>
+<script>
+(function () {
+  var base = window.COCO_PAGES_BASE || '/future-craft-core/';
+  var params = new URLSearchParams(location.search);
+  params.set('flow', 'legacy');
+  var legacyPath = base + 'ai-marketing-platform.html?' + params.toString();
+  var href = base.charAt(0) === '/' ? (location.origin + legacyPath) : new URL(legacyPath, location.href).href;
+  var link = document.getElementById('coco-legacy-back');
+  if (link) link.href = href;
+})();
+</script>
+</body>
+</html>

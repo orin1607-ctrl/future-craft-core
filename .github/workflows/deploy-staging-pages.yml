@@ -61,6 +61,7 @@ jobs:
           cp public/dalia-crm-platform.html dist/
           cp public/dalia-crm.html dist/
           cp -r public/ai-marketing dist/
+          cp -r public/coco-dalia dist/
           cp -r public/crm dist/
           cp dist/index.html dist/ai-marketing/index.html
           cp -r public/project-001-mockup dist/

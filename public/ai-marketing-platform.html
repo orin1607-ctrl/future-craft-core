@@ -14,6 +14,14 @@
   }
   window.COCO_PAGES_BASE = base;
   var bootParams = new URLSearchParams(location.search);
+  var flowMode = bootParams.get('flow');
+  if (flowMode === 'coco' && location.pathname.indexOf('coco-dalia/') < 0) {
+    var cocoQs = location.search || '';
+    var cocoUrl = base.charAt(0) === '/'
+      ? (location.origin + base + 'coco-dalia/index.html' + cocoQs)
+      : new URL(base + 'coco-dalia/index.html' + cocoQs, location.href).href;
+    location.replace(cocoUrl);
+  }
   if (bootParams.get('fullscreen') === '1') {
     try { sessionStorage.setItem('coco-mkt-fullscreen', '1'); } catch (e) { /* ignore */ }
   }
