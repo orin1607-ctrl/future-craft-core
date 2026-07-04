@@ -51,6 +51,8 @@ function checkLocalFiles() {
     ['breadcrumb', ux.includes('v2-breadcrumb')],
     ['companies entry', ux.includes('MOCK_CLIENTS')],
     ['Gate-A button', ux.includes('v2-btn-gate-a')],
+    ['A9 brief report', ux.includes('v2-brief-report')],
+    ['two campaigns only', ux.includes("id: 'ads'") && !ux.includes("id: 'both'")],
   ].forEach(([name, ok]) => (ok ? pass : fail)(`local: ux ${name}`));
 
   if (css.includes('#coco-v2-app') && css.includes('v2-stepper')) pass('local: workflow-v2-ux.css');
@@ -113,6 +115,7 @@ if (isLocal) {
 }
 
 runSubScript('scripts/verify-project-brief-phase1.mjs');
+runSubScript('scripts/verify-stage-a-discovery.mjs');
 runSubScript('scripts/verify-coco-phase0.mjs');
 
 console.log('\n' + JSON.stringify(report, null, 2));

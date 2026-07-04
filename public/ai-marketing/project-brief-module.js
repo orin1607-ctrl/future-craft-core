@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.1.0';
+  var VERSION = '1.2.0';
   var KEY = 'coco-project-brief-v1';
   var APPROVAL_KEY = 'coco-project-brief-approved-v1';
   var GATE_A_KEY = 'coco-gate-a-approved-v1';
@@ -118,6 +118,10 @@
         regions: envelope([], { source: 'manual', status: 'missing' }),
         summary: envelope('', { source: 'manual', status: 'missing' }),
         personalSummary: envelope('', { source: 'manual', status: 'missing' }),
+        weaknesses: envelope('', { source: 'manual', status: 'missing' }),
+        languages: envelope([], { source: 'manual', status: 'missing' }),
+        clientTypes: envelope([], { source: 'manual', status: 'missing' }),
+        advantages: envelope([], { source: 'manual', status: 'missing' }),
         contact: envelope({}, { source: 'manual', status: 'missing' }),
       },
       products: [],
@@ -133,26 +137,39 @@
       audience: {
         ideal: envelope([], { source: 'manual', status: 'missing' }),
         avoid: envelope([], { source: 'manual', status: 'missing' }),
+        intentNotes: envelope('', { source: 'manual', status: 'missing' }),
+        geographicFocus: envelope([], { source: 'manual', status: 'missing' }),
       },
       goals: {
         businessGoal: envelope('', { source: 'manual', status: 'missing' }),
         budget: envelope('', { source: 'manual', status: 'missing' }),
         challenges: envelope([], { source: 'manual', status: 'missing' }),
+        priorities: envelope([], { source: 'manual', status: 'missing' }),
       },
       freeContent: {
         managerNotes: envelope('', { source: 'manual', status: 'missing' }),
         aiMustKnow: envelope('', { source: 'manual', status: 'missing' }),
+        importantInfo: envelope('', { source: 'manual', status: 'missing' }),
+        highlights: envelope('', { source: 'manual', status: 'missing' }),
+        specialRequests: envelope('', { source: 'manual', status: 'missing' }),
+        mustPromote: envelope('', { source: 'manual', status: 'missing' }),
+        mustNotDo: envelope('', { source: 'manual', status: 'missing' }),
+        ownerFreeText: envelope('', { source: 'manual', status: 'missing' }),
       },
       files: {
         logo: envelope([], { source: 'manual', status: 'missing' }),
         images: envelope([], { source: 'manual', status: 'missing' }),
         videos: envelope([], { source: 'manual', status: 'missing' }),
         documents: envelope([], { source: 'manual', status: 'missing' }),
+        catalogs: envelope([], { source: 'manual', status: 'missing' }),
+        brochures: envelope([], { source: 'manual', status: 'missing' }),
         marketingMaterials: envelope([], { source: 'manual', status: 'missing' }),
       },
       assets: {
         website: envelope('', { source: 'manual', status: 'missing' }),
+        domains: envelope([], { source: 'manual', status: 'missing' }),
         social: envelope([], { source: 'manual', status: 'missing' }),
+        otherDigital: envelope([], { source: 'manual', status: 'missing' }),
         gbpUrl: envelope('', { source: 'manual', status: 'missing' }),
       },
       competitors: [],
@@ -160,6 +177,11 @@
         fromClient: envelope([], { source: 'manual', status: 'missing' }),
         fromAi: envelope([], { source: 'ai', status: 'missing' }),
         approved: envelope([], { source: 'manual', status: 'missing' }),
+        toPromote: envelope([], { source: 'manual', status: 'missing' }),
+        intentMap: envelope([], { source: 'manual', status: 'missing' }),
+        keyPhrases: envelope([], { source: 'manual', status: 'missing' }),
+        geoRegions: envelope([], { source: 'manual', status: 'missing' }),
+        coreTopics: envelope([], { source: 'manual', status: 'missing' }),
       },
       seoPack: {
         goals: envelope([], { source: 'manual', status: 'missing' }),
@@ -412,6 +434,7 @@
 
     req('שם עסק', !!envVal(brief.business.name));
     req('תחום', !!envVal(brief.business.sector));
+    req('סיכום עסק', !!envVal(brief.business.summary));
     req('אתר', !!envVal(brief.assets.website) || !!envVal(brief.business.site));
     req('שירות מרכזי', !!envVal(brief.services.main));
     req('USP', !!envVal(brief.services.usp));
@@ -420,7 +443,11 @@
     req('תקציב', !!envVal(brief.goals.budget));
 
     var approvedKw = envVal(brief.keywords.approved) || [];
-    req('מילות מפתח מאושרות (≥' + GATE_MIN_KEYWORDS + ')', approvedKw.length >= GATE_MIN_KEYWORDS);
+    var fromClientKw = envVal(brief.keywords.fromClient) || [];
+    req(
+      'מילות מפתח (≥' + GATE_MIN_KEYWORDS + ')',
+      approvedKw.length >= GATE_MIN_KEYWORDS || fromClientKw.length >= GATE_MIN_KEYWORDS
+    );
 
     var compCount = (brief.competitors || []).length;
     req('מתחרים (≥' + GATE_MIN_COMPETITORS + ')', compCount >= GATE_MIN_COMPETITORS);
