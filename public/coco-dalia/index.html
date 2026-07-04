@@ -20,9 +20,11 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="coco-flow" content="phase0-staging">
+<meta name="coco-flow" content="workflow-v2-ux">
+<meta name="ui-version" content="workflow-v2-ux">
 <title>CO.CO דליה – AI Marketing Platform</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../ai-marketing/workflow-v2-ux.css?v=workflow-v2-ux">
 <style>
 :root{
   --bg:#04091a;--bg2:#071022;--bg3:#0a1830;--bg4:#0d1f3c;
@@ -1453,68 +1455,87 @@ function showPart(part){
 function launchModule(part){ showPart(part); }
 </script>
 
-<div id="project-brief-app">
+<div id="project-brief-app" class="brief-mode-b">
 <div class="tb">
   <div class="logo"><div class="dot"></div>CO.CO <em>דליה</em> — תיק עסק (Project Brief)</div>
-  <span class="preview-badge" id="brief-gate-badge">🔒 Gate לפני שלב ד׳</span>
+  <span class="preview-badge" id="brief-gate-badge">🔒 Gate ד׳ לפני שלב ד׳</span>
 </div>
-<div class="alt alt-i" style="margin-top:14px;">תיק העסק הוא מקור האמת (SSOT). נתונים נאספים מחלקים א׳–ב׳–ג׳ ומ-Orin — חובה לאשר לפני המשך ל-50 העוזרים.</div>
+<div class="alt alt-i" style="margin-top:14px;">Workflow V2: Gate-A (היכרות) → Gate-B (קמפיין) → <b>Gate ד׳</b> (אישור סופי) → 50 עוזרים. תיק העסק = SSOT.</div>
 <div class="main" style="padding-top:8px;">
   <div class="stage-head">
-    <div class="stage-part">Gate — Project Brief</div>
-    <div class="stage-t">סיכום תיק העסק</div>
-    <div class="stage-s">בדוק פערים, חיבורים, ואשר שהמידע מלא ונכון לפני שלב ד׳.</div>
+    <div class="stage-part brief-gate-b-only">Gate ד׳ — Project Brief</div>
+    <div class="stage-part brief-gate-a-only">Gate-A — סקירת היכרות</div>
+    <div class="stage-t" id="brief-panel-title">סיכום תיק העסק — אישור סופי</div>
+    <div class="stage-s" id="brief-panel-sub">לאחר Gate-A + Gate-B + wizards — אשר Gate ד׳ לפני 50 העוזרים.</div>
     <hr class="stage-r">
+  </div>
+  <div class="sec brief-gate-a-only" id="brief-gate-a-actions">
+    <button class="btn btn-go btn-sm" onclick="if(window.CocoWorkflowV2)CocoWorkflowV2.goPhase('onboarding')">← חזור להיכרות</button>
   </div>
   <div class="sec" id="brief-summary"></div>
   <div class="sec brief-grid">
     <div class="brief-card"><h3>⚠️ פערים (Gaps)</h3><div id="brief-gaps"></div></div>
-    <div class="brief-card"><h3>🔌 חיבורים (Mock — FIELD-MAP)</h3><div id="brief-connections" class="conn-grid"></div></div>
+    <div class="brief-card"><h3>🔌 חיבורים (Mock)</h3><div id="brief-connections" class="conn-grid"></div></div>
   </div>
-  <div class="sec">
+  <div class="sec brief-gate-b-only">
     <div class="approve-wrap">
-      <button class="btn btn-go" id="btn-brief-approve" onclick="approveProjectBrief()">✅ אשר תיק עסק והמשך לשלב ד׳</button>
-      <button class="btn btn-g btn-sm" onclick="refreshProjectBrief()" style="margin-right:8px;">🔄 רענן מ-Orin</button>
+      <button class="btn btn-go" id="btn-brief-approve" onclick="approveProjectBrief()">✅ אשר Gate ד׳ — המשך ל-50 עוזרים</button>
+      <button class="btn btn-g btn-sm" onclick="refreshProjectBrief()" style="margin-right:8px;">🔄 רענן</button>
     </div>
     <div id="brief-gate-msg" class="alt alt-w" style="display:none;margin-top:12px;margin-right:0;margin-left:0;"></div>
   </div>
 </div>
 </div>
 
-<script src="../ai-marketing/project-brief-module.js?v=project-brief-phase1"></script>
+<script src="../ai-marketing/project-brief-module.js?v=workflow-v2-ux"></script>
+<script src="../ai-marketing/workflow-v2-ux.js?v=workflow-v2-ux"></script>
 <script src="../ai-marketing/marketing-api.js?v=project-brief-phase1"></script>
 <script src="../ai-marketing/coco-data-adapter.js?v=project-brief-phase1"></script>
 <script>
 function escBrief(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-function refreshProjectBrief(){
+function refreshProjectBrief(mode){
   if(!window.ProjectBrief) return;
   ProjectBrief.mergeFromLegacy();
   var brief=ProjectBrief.get();
-  var v=ProjectBrief.validate(brief);
   var ev=ProjectBrief.envVal;
+  var gateA=ProjectBrief.isGateAApproved();
+  var gateB=ProjectBrief.isGateBApproved();
+  var vA=ProjectBrief.validateGateA(brief);
+  var vB=ProjectBrief.validateGateB(brief);
+  var v=ProjectBrief.validate(brief);
+  var app=document.getElementById('project-brief-app');
+  if(app){
+    app.classList.toggle('brief-mode-a',!gateB);
+    app.classList.toggle('brief-mode-b',gateB||mode==='gate-b');
+  }
   var rows=[
+    {l:'Gate-A',v:gateA?'✅ אושר':'⏳ ממתין'},
+    {l:'Gate-B',v:gateB?'✅ אושר':'⏳ ממתין'},
     {l:'שם עסק',v:ev(brief.business.name)},
     {l:'תחום',v:ev(brief.business.sector)},
     {l:'אתר',v:ev(brief.assets.website)||ev(brief.business.site)},
-    {l:'קמפיין',v:ev(brief.business.campaignType)},
+    {l:'קמפיין',v:ev(brief.business.campaignType)||'— (Gate-B)'},
     {l:'שירות מרכזי',v:ev(brief.services.main)},
     {l:'USP',v:ev(brief.services.usp)},
     {l:'קהל יעד',v:(ev(brief.audience.ideal)||[]).join(', ')},
-    {l:'מילות מפתח מאושרות',v:(ev(brief.keywords.approved)||[]).length+' / '+ProjectBrief.GATE_MIN_KEYWORDS},
+    {l:'מילות מפתח',v:(ev(brief.keywords.approved)||[]).length+' / '+ProjectBrief.GATE_MIN_KEYWORDS},
     {l:'מתחרים',v:(brief.competitors||[]).length+' / '+ProjectBrief.GATE_MIN_COMPETITORS},
     {l:'לוגו',v:(ev(brief.files.logo)||[]).length?'✓':'חסר'},
     {l:'seoPack',v:ev(brief.seoPack.approvedAt)||'—'},
+    {l:'adsPack',v:ev(brief.adsPack.approvedAt)||'—'},
   ];
   document.getElementById('brief-summary').innerHTML='<div class="brief-card"><h3>📋 סיכום תיק</h3>'+
     rows.map(function(r){return '<div class="brief-row"><span class="brief-lbl">'+escBrief(r.l)+'</span><span class="brief-val">'+escBrief(r.v||'—')+'</span></div>';}).join('')+
     '</div>';
   var gapsEl=document.getElementById('brief-gaps');
-  if(v.missing.length){
-    gapsEl.innerHTML=v.missing.map(function(g){return '<div class="brief-gap">🔴 '+escBrief(g)+'</div>';}).join('');
+  var missing=!gateB?(vA.missing||[]):(!gateA?vA.missing:[]).concat(vB.missing||[],v.missing||[]);
+  var uniq=[]; missing.forEach(function(m){if(uniq.indexOf(m)<0)uniq.push(m);});
+  if(uniq.length){
+    gapsEl.innerHTML=uniq.map(function(g){return '<div class="brief-gap">🔴 '+escBrief(g)+'</div>';}).join('');
   } else {
-    gapsEl.innerHTML='<div class="brief-ok">✅ אין פערים — מוכן לאישור</div>';
+    gapsEl.innerHTML='<div class="brief-ok">✅ אין פערים — מוכן לאישור Gate ד׳</div>';
   }
   var connEl=document.getElementById('brief-connections');
   var labels={supabase:'Supabase',openai:'OpenAI',claude:'Claude',gemini:'Gemini',ga4:'GA4',gsc:'GSC',gads:'Google Ads',gbp:'GBP',gtm:'GTM',meta:'Meta',crm:'CRM'};
@@ -1524,15 +1545,22 @@ function refreshProjectBrief(){
   }).join('');
   var approved=ProjectBrief.isApproved();
   var btn=document.getElementById('btn-brief-approve');
-  if(btn) btn.disabled=approved||!v.ok;
+  var canFinal=gateA&&gateB&&v.ok;
+  if(btn) btn.disabled=approved||!canFinal;
   var badge=document.getElementById('brief-gate-badge');
-  if(badge) badge.textContent=approved?'✅ תיק מאושר — שלב ד׳ פתוח':'🔒 Gate לפני שלב ד׳';
+  if(badge) badge.textContent=approved?'✅ Gate ד׳ — שלב ד׳ פתוח':(!gateA?'🔒 Gate-A':(!gateB?'🔒 Gate-B':'🔒 Gate ד׳'));
   var msg=document.getElementById('brief-gate-msg');
   if(msg){
-    if(!v.ok){msg.style.display='block';msg.textContent='⚠️ חסר: '+v.missing.join(' · ');}
-    else if(!approved){msg.style.display='block';msg.textContent='ℹ️ המידע מלא — לחץ אשר להמשך לשלב ד׳';}
+    if(!gateA){msg.style.display='block';msg.textContent='ℹ️ השלם היכרות ואשר Gate-A לפני קמפיין.';}
+    else if(!gateB){msg.style.display='block';msg.textContent='ℹ️ בחר קמפיין והשלם wizards — אשר Gate-B.';}
+    else if(!canFinal){msg.style.display='block';msg.textContent='⚠️ חסר: '+uniq.join(' · ');}
+    else if(!approved){msg.style.display='block';msg.textContent='ℹ️ Gate-A+B ✓ — לחץ אשר Gate ד׳ לשלב ד׳';}
     else{msg.style.display='none';}
   }
+  var title=document.getElementById('brief-panel-title');
+  var sub=document.getElementById('brief-panel-sub');
+  if(title) title.textContent=gateB?'סיכום תיק — אישור Gate ד׳':'סקירת Gate-A (read-only)';
+  if(sub) sub.textContent=gateB?'אשר Gate ד׳ לפני 50 העוזרים.':'Gate-A אושר — המשך לבחירת קמפיין דרך ה-stepper.';
 }
 function approveProjectBrief(){
   if(!window.ProjectBrief) return;
@@ -1788,15 +1816,19 @@ refreshProjectBrief();
 // ══ תצוגה מקדימה עצמאית עם ניווט מלא — ד׳→ה׳→ו׳→ז׳→ח׳→ט׳→י׳ ══
 // הדגמה בלבד. לא מחובר למערכת הקיימת (א׳-ג׳). אין פרסום אמיתי בשום שלב.
 
-const EXT_STEPS=[{k:'a',l:'א׳ למידת העסק'},{k:'b',l:'ב׳ SEO'},{k:'c',l:'ג׳ גוגל אדס'}];
+const EXT_STEPS=[
+ {k:'onboard',l:'א׳ היכרות'},
+ {k:'picker',l:'ב׳ קמפיין'},
+ {k:'brief',l:'ג׳ Brief'}
+];
 const STEPS=[
- {k:'d',l:'ד׳ 50 עוזרי AI'},
- {k:'e',l:'ה׳ 10 יועצי AI'},
- {k:'f',l:'ו׳ תוכנית האתר'},
- {k:'g',l:'ז׳ מנועי הבנייה'},
- {k:'h',l:'ח׳ Preview'},
- {k:'i',l:'ט׳ אישור'},
- {k:'j',l:'י׳ פרסום'},
+ {k:'d',l:'ד׳ 50 עוזרים'},
+ {k:'e',l:'ה׳ 10 יועצים'},
+ {k:'f',l:'ו׳ Blueprint'},
+ {k:'g',l:'ז׳ Build Package'},
+ {k:'h',l:'ח׳ מנועי בנייה'},
+ {k:'i',l:'ט׳ Preview+QA'},
+ {k:'j',l:'י׳ אישור+פרסום'},
 ];
 let CUR=0, MAX=0;
 const APPROVED={};
@@ -1804,7 +1836,10 @@ const INIT={};
 
 function renderStepper(){
   const el=document.getElementById('stepper');
-  let html=EXT_STEPS.map(s=>`<div class="step-item ext" onclick="scrollToABC()"><span class="step-n">✓</span>${s.l}</div>`).join('');
+  let html=EXT_STEPS.map(function(s){
+    var fn=s.k==='onboard'?'v2GoOnboarding()':s.k==='picker'?'v2GoPicker()':'scrollToProjectBrief()';
+    return '<div class="step-item ext" onclick="'+fn+'"><span class="step-n">↩</span>'+s.l+'</div>';
+  }).join('');
   html+=STEPS.map((s,i)=>{
     const cls=i===CUR?'active':i<CUR?'done':i<=MAX?'':'locked';
     const num=i<CUR||APPROVED[s.k]?'✓':(i+1);
@@ -1815,10 +1850,10 @@ function renderStepper(){
 }
 function jump(i){
   if(i>MAX) { toast('צריך לאשר את השלב הנוכחי קודם'); return; }
-  if(i===0 && window.ProjectBrief && !ProjectBrief.isApproved()){
-    toast('⚠️ יש לאשר את תיק העסק (Project Brief) לפני שלב ד׳');
-    scrollToProjectBrief();
-    return;
+  if(i===0 && window.ProjectBrief){
+    if(!ProjectBrief.isGateAApproved()){ toast('⚠️ Gate-A — השלם היכרות'); if(window.CocoWorkflowV2)CocoWorkflowV2.goPhase('onboarding'); return; }
+    if(!ProjectBrief.isGateBApproved()){ toast('⚠️ Gate-B — בחר קמפיין'); if(window.CocoWorkflowV2)CocoWorkflowV2.goPhase('picker'); return; }
+    if(!ProjectBrief.isApproved()){ toast('⚠️ Gate ד׳ — אשר Brief'); scrollToProjectBrief(); return; }
   }
   showStage(i);
 }
@@ -1826,10 +1861,12 @@ function goBack(){ if(CUR>0) showStage(CUR-1); else toast('חלקים א׳–ג�
 function goForward(){ if(CUR<MAX) showStage(CUR+1); else toast('צריך לאשר את השלב הנוכחי כדי להמשיך'); }
 
 function showStage(i){
-  if(i===0 && window.ProjectBrief && !ProjectBrief.isApproved()){
-    toast('⚠️ יש לאשר את תיק העסק (Project Brief) לפני שלב ד׳');
-    scrollToProjectBrief();
-    return;
+  if(i===0 && window.ProjectBrief){
+    if(!ProjectBrief.isGateAApproved()||!ProjectBrief.isGateBApproved()||!ProjectBrief.isApproved()){
+      toast('⚠️ Gate-A → Gate-B → Gate ד׳ לפני שלב ד׳');
+      scrollToProjectBrief();
+      return;
+    }
   }
   STEPS.forEach((s,idx)=>document.getElementById('stage-'+s.k).style.display = idx===i?'block':'none');
   CUR=i;
@@ -2566,6 +2603,14 @@ async function connectToDataLayer(){
 function scrollToABC(){
   const abc=document.getElementById('abc-app');
   if(abc) abc.scrollIntoView({behavior:'smooth'});
+}
+function v2GoOnboarding(){
+  if(window.CocoWorkflowV2){ document.getElementById('coco-v2-app').style.display='flex'; document.body.classList.add('coco-v2-mode'); CocoWorkflowV2.goPhase('onboarding'); }
+  else scrollToABC();
+}
+function v2GoPicker(){
+  if(window.CocoWorkflowV2){ document.getElementById('coco-v2-app').style.display='flex'; document.body.classList.add('coco-v2-mode'); CocoWorkflowV2.goPhase('picker'); }
+  else scrollToABC();
 }
 
 // עוקב אחרי אישור סופי של חלק ב׳ (SEO) או חלק ג׳ (Google Ads) — כל אחד מהם

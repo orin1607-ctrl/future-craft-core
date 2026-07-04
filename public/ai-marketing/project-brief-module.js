@@ -5,9 +5,11 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   var KEY = 'coco-project-brief-v1';
   var APPROVAL_KEY = 'coco-project-brief-approved-v1';
+  var GATE_A_KEY = 'coco-gate-a-approved-v1';
+  var GATE_B_KEY = 'coco-gate-b-approved-v1';
   var GATE_MIN_KEYWORDS = 5;
   var GATE_MIN_COMPETITORS = 1;
 
@@ -114,7 +116,13 @@
         campaignType: envelope('', { source: 'manual', status: 'missing' }),
         location: envelope('', { source: 'manual', status: 'missing' }),
         regions: envelope([], { source: 'manual', status: 'missing' }),
+        summary: envelope('', { source: 'manual', status: 'missing' }),
+        personalSummary: envelope('', { source: 'manual', status: 'missing' }),
+        contact: envelope({}, { source: 'manual', status: 'missing' }),
       },
+      products: [],
+      campaigns: [],
+      campaign: { activeId: envelope('', { source: 'manual', status: 'missing' }) },
       services: {
         main: envelope('', { source: 'manual', status: 'missing' }),
         list: envelope([], { source: 'manual', status: 'missing' }),
@@ -138,10 +146,14 @@
       files: {
         logo: envelope([], { source: 'manual', status: 'missing' }),
         images: envelope([], { source: 'manual', status: 'missing' }),
+        videos: envelope([], { source: 'manual', status: 'missing' }),
         documents: envelope([], { source: 'manual', status: 'missing' }),
+        marketingMaterials: envelope([], { source: 'manual', status: 'missing' }),
       },
       assets: {
         website: envelope('', { source: 'manual', status: 'missing' }),
+        social: envelope([], { source: 'manual', status: 'missing' }),
+        gbpUrl: envelope('', { source: 'manual', status: 'missing' }),
       },
       competitors: [],
       keywords: {
@@ -172,6 +184,12 @@
         approvedAt: null,
         approvedBy: null,
         checklist: [],
+        gateAApproved: false,
+        gateAApprovedAt: null,
+        gateAApprovedBy: null,
+        gateBApproved: false,
+        gateBApprovedAt: null,
+        gateBApprovedBy: null,
       },
       assistantReports: [],
       consultantReports: [],
@@ -382,6 +400,68 @@
     return brief;
   }
 
+  function validateGateA(brief) {
+    brief = brief || get();
+    var missing = [];
+    var checklist = [];
+
+    function req(label, ok) {
+      checklist.push({ label: label, ok: !!ok, gate: 'A' });
+      if (!ok) missing.push(label);
+    }
+
+    req('שם עסק', !!envVal(brief.business.name));
+    req('תחום', !!envVal(brief.business.sector));
+    req('אתר', !!envVal(brief.assets.website) || !!envVal(brief.business.site));
+    req('שירות מרכזי', !!envVal(brief.services.main));
+    req('USP', !!envVal(brief.services.usp));
+    req('קהל יעד', (envVal(brief.audience.ideal) || []).length >= 1);
+    req('מטרה עסקית', !!envVal(brief.goals.businessGoal));
+    req('תקציב', !!envVal(brief.goals.budget));
+
+    var approvedKw = envVal(brief.keywords.approved) || [];
+    req('מילות מפתח מאושרות (≥' + GATE_MIN_KEYWORDS + ')', approvedKw.length >= GATE_MIN_KEYWORDS);
+
+    var compCount = (brief.competitors || []).length;
+    req('מתחרים (≥' + GATE_MIN_COMPETITORS + ')', compCount >= GATE_MIN_COMPETITORS);
+
+    var logos = envVal(brief.files.logo) || [];
+    req('לוגו (≥1)', logos.length >= 1);
+
+    brief.approval = brief.approval || {};
+    brief.approval.gateAChecklist = checklist;
+    brief.approval.isComplete = missing.length === 0;
+    saveLs(KEY, brief);
+    return { ok: missing.length === 0, missing: missing, checklist: checklist };
+  }
+
+  function validateGateB(brief) {
+    brief = brief || get();
+    var missing = [];
+    var checklist = [];
+
+    function req(label, ok) {
+      checklist.push({ label: label, ok: !!ok, gate: 'B' });
+      if (!ok) missing.push(label);
+    }
+
+    req('Gate-A עבר', !!(brief.approval && brief.approval.gateAApproved));
+    var camp = envVal(brief.business.campaignType);
+    req('סוג קמפיין', !!camp);
+
+    if (camp === 'seo' || camp === 'both' || camp === 'local' || camp === 'content') {
+      req('seoPack אושר', !!envVal(brief.seoPack.approvedAt));
+    }
+    if (camp === 'ads' || camp === 'both') {
+      req('adsPack אושר', !!envVal(brief.adsPack.approvedAt));
+    }
+
+    brief.approval = brief.approval || {};
+    brief.approval.gateBChecklist = checklist;
+    saveLs(KEY, brief);
+    return { ok: missing.length === 0, missing: missing, checklist: checklist };
+  }
+
   function validate(brief) {
     brief = brief || get();
     var missing = [];
@@ -430,6 +510,67 @@
     return validate().ok;
   }
 
+  function isGateAApproved() {
+    try {
+      if (localStorage.getItem(GATE_A_KEY) !== 'true') return false;
+    } catch (e) {
+      return false;
+    }
+    var brief = get();
+    return !!(brief.approval && brief.approval.gateAApproved);
+  }
+
+  function isGateBApproved() {
+    try {
+      if (localStorage.getItem(GATE_B_KEY) !== 'true') return false;
+    } catch (e) {
+      return false;
+    }
+    var brief = get();
+    return !!(brief.approval && brief.approval.gateBApproved);
+  }
+
+  function approveGateA(byUser) {
+    var brief = get();
+    var v = validateGateA(brief);
+    if (!v.ok) {
+      return { ok: false, reason: 'incomplete', missing: v.missing, message: 'חסר מידע — השלם את שלב ההיכרות לפני Gate-A' };
+    }
+    brief.approval.gateAApproved = true;
+    brief.approval.gateAApprovedAt = nowIso();
+    brief.approval.gateAApprovedBy = byUser || 'manager';
+    audit(brief, 'approveGateA', brief.approval.gateAApprovedBy);
+    saveLs(KEY, brief);
+    try {
+      localStorage.setItem(GATE_A_KEY, 'true');
+    } catch (e) {
+      return { ok: false, reason: 'storage' };
+    }
+    return { ok: true, brief: brief };
+  }
+
+  function approveGateB(byUser) {
+    var brief = get();
+    if (!isGateAApproved()) {
+      return { ok: false, reason: 'gate_a', message: 'יש לאשר Gate-A לפני Gate-B' };
+    }
+    var v = validateGateB(brief);
+    if (!v.ok) {
+      return { ok: false, reason: 'incomplete', missing: v.missing, message: 'חסר מידע — השלם קמפיין ו-wizards לפני Gate-B' };
+    }
+    brief.approval.gateBApproved = true;
+    brief.approval.gateBApprovedAt = nowIso();
+    brief.approval.gateBApprovedBy = byUser || 'manager';
+    audit(brief, 'approveGateB', brief.approval.gateBApprovedBy);
+    saveLs(KEY, brief);
+    try {
+      localStorage.setItem(GATE_B_KEY, 'true');
+    } catch (e) {
+      return { ok: false, reason: 'storage' };
+    }
+    return { ok: true, brief: brief };
+  }
+
   function isApproved() {
     try {
       if (localStorage.getItem(APPROVAL_KEY) !== 'true') return false;
@@ -446,6 +587,17 @@
     if (!v.ok) {
       return { ok: false, reason: 'incomplete', missing: v.missing, message: 'חסר מידע — השלם את התיק לפני אישור' };
     }
+    if (!isGateAApproved() || !isGateBApproved()) {
+      if (envVal(brief.business.campaignType) && v.ok) {
+        if (!isGateAApproved()) approveGateA(byUser);
+        if (!isGateBApproved()) approveGateB(byUser);
+      } else if (!isGateAApproved()) {
+        return { ok: false, reason: 'gate_a', message: 'יש לאשר Gate-A (היכרות) לפני אישור סופי' };
+      } else if (!isGateBApproved()) {
+        return { ok: false, reason: 'gate_b', message: 'יש לאשר Gate-B (קמפיין) לפני אישור סופי' };
+      }
+    }
+    brief = get();
     brief.approval.isComplete = true;
     brief.approval.isApproved = true;
     brief.approval.approvedAt = nowIso();
@@ -470,6 +622,27 @@
     try {
       localStorage.removeItem(APPROVAL_KEY);
     } catch (e) { /* ignore */ }
+    return { ok: true };
+  }
+
+  function revokeGateB() {
+    var brief = get();
+    brief.approval.gateBApproved = false;
+    brief.approval.gateBApprovedAt = null;
+    audit(brief, 'revokeGateB', '');
+    saveLs(KEY, brief);
+    try { localStorage.removeItem(GATE_B_KEY); } catch (e) { /* ignore */ }
+    return { ok: true };
+  }
+
+  function revokeGateA() {
+    revokeGateB();
+    var brief = get();
+    brief.approval.gateAApproved = false;
+    brief.approval.gateAApprovedAt = null;
+    audit(brief, 'revokeGateA', '');
+    saveLs(KEY, brief);
+    try { localStorage.removeItem(GATE_A_KEY); } catch (e) { /* ignore */ }
     return { ok: true };
   }
 
@@ -526,6 +699,8 @@
     VERSION: VERSION,
     KEY: KEY,
     APPROVAL_KEY: APPROVAL_KEY,
+    GATE_A_KEY: GATE_A_KEY,
+    GATE_B_KEY: GATE_B_KEY,
     GATE_MIN_KEYWORDS: GATE_MIN_KEYWORDS,
     GATE_MIN_COMPETITORS: GATE_MIN_COMPETITORS,
     envelope: envelope,
@@ -535,10 +710,18 @@
     setField: setField,
     mergeFromLegacy: mergeFromLegacy,
     validate: validate,
+    validateGateA: validateGateA,
+    validateGateB: validateGateB,
     isComplete: isComplete,
     isApproved: isApproved,
+    isGateAApproved: isGateAApproved,
+    isGateBApproved: isGateBApproved,
     approve: approve,
+    approveGateA: approveGateA,
+    approveGateB: approveGateB,
     revokeApproval: revokeApproval,
+    revokeGateA: revokeGateA,
+    revokeGateB: revokeGateB,
     exportForAssistant: exportForAssistant,
     applyAssistantReport: applyAssistantReport,
     envVal: envVal,

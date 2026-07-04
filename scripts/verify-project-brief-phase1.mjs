@@ -41,6 +41,8 @@ function checkLocalFiles() {
     ['envelope helper', mod.includes('function envelope')],
     ['mergeFromLegacy', mod.includes('mergeFromLegacy')],
     ['validate gate', mod.includes('GATE_MIN_KEYWORDS')],
+    ['validateGateA', mod.includes('validateGateA')],
+    ['validateGateB', mod.includes('validateGateB')],
     ['exportForAssistant', mod.includes('exportForAssistant')],
     ['applyAssistantReport stub', mod.includes('applyAssistantReport')],
     ['auditLog', mod.includes('auditLog')],
