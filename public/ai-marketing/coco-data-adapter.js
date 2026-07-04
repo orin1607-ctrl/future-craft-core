@@ -1,11 +1,20 @@
 /**
- * Phase 0 — minimal bridge between CO.CO shell (dalia_part_a) and Orin legacy (dalia_biz).
+ * Phase 0/1a — bridge CO.CO shell ↔ Orin legacy + Project Brief merge (Orin→Brief one-way).
  * Read-only MarketingApi.loadBundle when canRemote(); postMessage auth unchanged.
  */
 (function () {
   'use strict';
 
-  var KEYS = { partA: 'dalia_part_a', biz: 'dalia_biz' };
+  var KEYS = {
+    partA: 'dalia_part_a',
+    biz: 'dalia_biz',
+    partB: 'dalia_part_b',
+    partC: 'dalia_part_c',
+    strategic: 'coco-strategic-briefing-v1',
+    seoDraft: 'dalia_seo_draft',
+  };
+
+  var BRIEF_WATCH_KEYS = [KEYS.partA, KEYS.biz, KEYS.partB, KEYS.partC, KEYS.strategic, KEYS.seoDraft];
 
   function parseLs(key) {
     try {
@@ -108,10 +117,18 @@
     });
   }
 
+  function mergeBriefFromLegacy() {
+    if (window.ProjectBrief && typeof ProjectBrief.mergeFromLegacy === 'function') {
+      return ProjectBrief.mergeFromLegacy();
+    }
+    return null;
+  }
+
   function onStorage(e) {
     if (!e || !e.key) return;
     if (e.key === KEYS.partA) syncPartAToBiz();
     if (e.key === KEYS.biz) syncBizToPartA();
+    if (BRIEF_WATCH_KEYS.indexOf(e.key) >= 0) mergeBriefFromLegacy();
   }
 
   function initAuthListener() {
@@ -147,10 +164,12 @@
       var next = mergePartA(parseLs(KEYS.partA), data);
       saveLs(KEYS.partA, next);
       syncPartAToBiz();
+      mergeBriefFromLegacy();
       return next;
     },
     syncPartAToBiz: syncPartAToBiz,
     syncBizToPartA: syncBizToPartA,
+    mergeBriefFromLegacy: mergeBriefFromLegacy,
     loadFromApi: loadFromMarketingApi,
     onAuthReady: function () {
       var id = new URLSearchParams(location.search).get('customer');
@@ -160,6 +179,7 @@
 
   syncBizToPartA();
   syncPartAToBiz();
+  mergeBriefFromLegacy();
   window.addEventListener('storage', onStorage);
   initAuthListener();
 })();

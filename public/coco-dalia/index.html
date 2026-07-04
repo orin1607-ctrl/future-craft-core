@@ -296,6 +296,26 @@ tr.detail-row td{padding:0;background:var(--bg2);border-bottom:1px solid var(--w
 
 .footer{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--w10);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:100;}
 .finfo{font-size:11px;color:var(--w50);flex:1;}
+
+#project-brief-app{background:var(--bg);border-top:3px solid rgba(37,99,235,.35);padding-bottom:80px;}
+.brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+@media(max-width:640px){.brief-grid{grid-template-columns:1fr;}}
+.brief-card{background:var(--bg3);border:1px solid var(--w10);border-radius:12px;padding:14px;}
+.brief-card h3{font-size:12px;font-weight:800;margin-bottom:8px;color:var(--w80);}
+.brief-row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--w06);font-size:11.5px;}
+.brief-row:last-child{border-bottom:none;}
+.brief-lbl{color:var(--w50);}
+.brief-val{color:var(--w80);font-weight:600;text-align:left;}
+.brief-gap{color:var(--red);font-size:11px;padding:4px 0;}
+.brief-ok{color:var(--green);}
+.conn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+@media(max-width:520px){.conn-grid{grid-template-columns:repeat(2,1fr);}}
+.conn-item{font-size:10px;padding:6px 8px;border-radius:8px;background:var(--bg4);border:1px solid var(--w10);display:flex;flex-direction:column;gap:3px;}
+.conn-item b{font-size:9px;color:var(--w50);}
+.conn-st{font-weight:800;font-size:10px;}
+.conn-st.active{color:var(--green);}
+.conn-st.mock{color:var(--yel);}
+.conn-st.not_connected{color:var(--red);}
 </style>
 </head>
 <body>
@@ -533,6 +553,15 @@ function launchCampaign(){
       campaignType: SELECTED_CAMPAIGN_TYPE,
       ts: new Date().toISOString(),
     }));
+  }catch(e){}
+  try{
+    window.parent.postMessage({type:'dalia-coco-part-a-save',payload:{
+      bizName: client || name,
+      name: name,
+      site: site,
+      campaignType: SELECTED_CAMPAIGN_TYPE,
+      ts: new Date().toISOString(),
+    }},'*');
   }catch(e){}
   const target = SELECTED_CAMPAIGN_TYPE==='ads' ? 'c' : 'b';
   if(window.parent &amp;&amp; typeof window.parent.launchModule==='function'){
@@ -1360,7 +1389,27 @@ function calcReadiness(){
   }
   toast(reqFailed===0?'✅ חלק ב׳ מוכן!':'⚠️ '+reqFailed+' שלבים חובה לא הושלמו');
 }
-function finalApprove(){try{localStorage.setItem('dalia_part_b',JSON.stringify({approved:true,kw_count:document.getElementById('kw-tbody')?.children.length,geo_count:document.getElementById('geo-tbody')?.children.length,ts:new Date().toISOString()}));}catch(e){}toast('🚀 חלק ב׳ אושר! מוכן לחלק ג׳ — ביצוע SEO.');}
+function finalApprove(){
+  var kwCount=document.getElementById('kw-tbody')?.children.length||0;
+  var geoCount=document.getElementById('geo-tbody')?.children.length||0;
+  var payload={
+    approved:true,
+    kw_count:kwCount,
+    geo_count:geoCount,
+    ts:new Date().toISOString(),
+    seoPack:{
+      goals:[],
+      geo:[],
+      approvedAt:new Date().toISOString(),
+      kw_count:kwCount,
+      geo_count:geoCount,
+      readinessScore:kwCount>=5?85:60,
+    },
+  };
+  try{localStorage.setItem('dalia_part_b',JSON.stringify(payload));}catch(e){}
+  try{window.parent.postMessage({type:'dalia-coco-part-b-approve',payload:payload},'*');}catch(e){}
+  toast('🚀 חלק ב׳ אושר! מוכן לתיק העסק (Project Brief).');
+}
 function saveToLS(){try{localStorage.setItem('dalia_seo_draft',JSON.stringify({approved:APPROVED,ts:new Date().toISOString()}));}catch(e){}toast('💾 טיוטה נשמרה');}
 
 // ── HELPERS ──
@@ -1402,6 +1451,127 @@ function showPart(part){
   pill.textContent=labels[part]||'';
 }
 function launchModule(part){ showPart(part); }
+</script>
+
+<div id="project-brief-app">
+<div class="tb">
+  <div class="logo"><div class="dot"></div>CO.CO <em>דליה</em> — תיק עסק (Project Brief)</div>
+  <span class="preview-badge" id="brief-gate-badge">🔒 Gate לפני שלב ד׳</span>
+</div>
+<div class="alt alt-i" style="margin-top:14px;">תיק העסק הוא מקור האמת (SSOT). נתונים נאספים מחלקים א׳–ב׳–ג׳ ומ-Orin — חובה לאשר לפני המשך ל-50 העוזרים.</div>
+<div class="main" style="padding-top:8px;">
+  <div class="stage-head">
+    <div class="stage-part">Gate — Project Brief</div>
+    <div class="stage-t">סיכום תיק העסק</div>
+    <div class="stage-s">בדוק פערים, חיבורים, ואשר שהמידע מלא ונכון לפני שלב ד׳.</div>
+    <hr class="stage-r">
+  </div>
+  <div class="sec" id="brief-summary"></div>
+  <div class="sec brief-grid">
+    <div class="brief-card"><h3>⚠️ פערים (Gaps)</h3><div id="brief-gaps"></div></div>
+    <div class="brief-card"><h3>🔌 חיבורים (Mock — FIELD-MAP)</h3><div id="brief-connections" class="conn-grid"></div></div>
+  </div>
+  <div class="sec">
+    <div class="approve-wrap">
+      <button class="btn btn-go" id="btn-brief-approve" onclick="approveProjectBrief()">✅ אשר תיק עסק והמשך לשלב ד׳</button>
+      <button class="btn btn-g btn-sm" onclick="refreshProjectBrief()" style="margin-right:8px;">🔄 רענן מ-Orin</button>
+    </div>
+    <div id="brief-gate-msg" class="alt alt-w" style="display:none;margin-top:12px;margin-right:0;margin-left:0;"></div>
+  </div>
+</div>
+</div>
+
+<script src="../ai-marketing/project-brief-module.js?v=project-brief-phase1"></script>
+<script src="../ai-marketing/marketing-api.js?v=project-brief-phase1"></script>
+<script src="../ai-marketing/coco-data-adapter.js?v=project-brief-phase1"></script>
+<script>
+function escBrief(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function refreshProjectBrief(){
+  if(!window.ProjectBrief) return;
+  ProjectBrief.mergeFromLegacy();
+  var brief=ProjectBrief.get();
+  var v=ProjectBrief.validate(brief);
+  var ev=ProjectBrief.envVal;
+  var rows=[
+    {l:'שם עסק',v:ev(brief.business.name)},
+    {l:'תחום',v:ev(brief.business.sector)},
+    {l:'אתר',v:ev(brief.assets.website)||ev(brief.business.site)},
+    {l:'קמפיין',v:ev(brief.business.campaignType)},
+    {l:'שירות מרכזי',v:ev(brief.services.main)},
+    {l:'USP',v:ev(brief.services.usp)},
+    {l:'קהל יעד',v:(ev(brief.audience.ideal)||[]).join(', ')},
+    {l:'מילות מפתח מאושרות',v:(ev(brief.keywords.approved)||[]).length+' / '+ProjectBrief.GATE_MIN_KEYWORDS},
+    {l:'מתחרים',v:(brief.competitors||[]).length+' / '+ProjectBrief.GATE_MIN_COMPETITORS},
+    {l:'לוגו',v:(ev(brief.files.logo)||[]).length?'✓':'חסר'},
+    {l:'seoPack',v:ev(brief.seoPack.approvedAt)||'—'},
+  ];
+  document.getElementById('brief-summary').innerHTML='<div class="brief-card"><h3>📋 סיכום תיק</h3>'+
+    rows.map(function(r){return '<div class="brief-row"><span class="brief-lbl">'+escBrief(r.l)+'</span><span class="brief-val">'+escBrief(r.v||'—')+'</span></div>';}).join('')+
+    '</div>';
+  var gapsEl=document.getElementById('brief-gaps');
+  if(v.missing.length){
+    gapsEl.innerHTML=v.missing.map(function(g){return '<div class="brief-gap">🔴 '+escBrief(g)+'</div>';}).join('');
+  } else {
+    gapsEl.innerHTML='<div class="brief-ok">✅ אין פערים — מוכן לאישור</div>';
+  }
+  var connEl=document.getElementById('brief-connections');
+  var labels={supabase:'Supabase',openai:'OpenAI',claude:'Claude',gemini:'Gemini',ga4:'GA4',gsc:'GSC',gads:'Google Ads',gbp:'GBP',gtm:'GTM',meta:'Meta',crm:'CRM'};
+  connEl.innerHTML=Object.keys(ProjectBrief.CONNECTION_MOCK).map(function(k){
+    var st=ProjectBrief.CONNECTION_MOCK[k];
+    return '<div class="conn-item"><b>'+escBrief(labels[k]||k)+'</b><span class="conn-st '+st+'">'+escBrief(st)+'</span></div>';
+  }).join('');
+  var approved=ProjectBrief.isApproved();
+  var btn=document.getElementById('btn-brief-approve');
+  if(btn) btn.disabled=approved||!v.ok;
+  var badge=document.getElementById('brief-gate-badge');
+  if(badge) badge.textContent=approved?'✅ תיק מאושר — שלב ד׳ פתוח':'🔒 Gate לפני שלב ד׳';
+  var msg=document.getElementById('brief-gate-msg');
+  if(msg){
+    if(!v.ok){msg.style.display='block';msg.textContent='⚠️ חסר: '+v.missing.join(' · ');}
+    else if(!approved){msg.style.display='block';msg.textContent='ℹ️ המידע מלא — לחץ אשר להמשך לשלב ד׳';}
+    else{msg.style.display='none';}
+  }
+}
+function approveProjectBrief(){
+  if(!window.ProjectBrief) return;
+  var res=ProjectBrief.approve('manager');
+  if(!res.ok){
+    refreshProjectBrief();
+    var finfo=document.getElementById('finfo');
+    if(finfo) finfo.textContent=res.message||'לא ניתן לאשר — השלם פערים';
+    return;
+  }
+  refreshProjectBrief();
+  if(typeof toast==='function') toast('✅ תיק העסק אושר — ניתן להמשיך לשלב ד׳');
+  setTimeout(function(){
+    var target=document.getElementById('stage-d');
+    if(target) target.scrollIntoView({behavior:'smooth'});
+    if(typeof showStage==='function') showStage(0);
+  },600);
+}
+window.addEventListener('message',function(e){
+  var data=e.data;
+  if(!data||typeof data!=='object') return;
+  if(data.type==='dalia-coco-part-a-save'&&data.payload){
+    try{localStorage.setItem('dalia_part_a',JSON.stringify(data.payload));}catch(err){}
+    if(window.CocoDataAdapter&&CocoDataAdapter.syncPartAToBiz) CocoDataAdapter.syncPartAToBiz();
+    if(window.ProjectBrief) ProjectBrief.mergeFromLegacy();
+    refreshProjectBrief();
+  }
+  if(data.type==='dalia-coco-part-b-approve'&&data.payload){
+    try{localStorage.setItem('dalia_part_b',JSON.stringify(data.payload));}catch(err){}
+    if(window.ProjectBrief) ProjectBrief.mergeFromLegacy();
+    refreshProjectBrief();
+  }
+});
+window.addEventListener('storage',function(e){
+  if(e&&e.key&&['dalia_part_a','dalia_part_b','dalia_biz','coco-strategic-briefing-v1'].indexOf(e.key)>=0){
+    refreshProjectBrief();
+  }
+});
+refreshProjectBrief();
 </script>
 
 <div id="dj-app"><!-- שלבים ד׳-י׳: המשך ישיר, גלילה רציפה, נוסף בשלב האיחוד -->
@@ -1645,12 +1815,22 @@ function renderStepper(){
 }
 function jump(i){
   if(i>MAX) { toast('צריך לאשר את השלב הנוכחי קודם'); return; }
+  if(i===0 && window.ProjectBrief && !ProjectBrief.isApproved()){
+    toast('⚠️ יש לאשר את תיק העסק (Project Brief) לפני שלב ד׳');
+    scrollToProjectBrief();
+    return;
+  }
   showStage(i);
 }
 function goBack(){ if(CUR>0) showStage(CUR-1); else toast('חלקים א׳–ג׳ כבר קיימים במערכת הראשית'); }
 function goForward(){ if(CUR<MAX) showStage(CUR+1); else toast('צריך לאשר את השלב הנוכחי כדי להמשיך'); }
 
 function showStage(i){
+  if(i===0 && window.ProjectBrief && !ProjectBrief.isApproved()){
+    toast('⚠️ יש לאשר את תיק העסק (Project Brief) לפני שלב ד׳');
+    scrollToProjectBrief();
+    return;
+  }
   STEPS.forEach((s,idx)=>document.getElementById('stage-'+s.k).style.display = idx===i?'block':'none');
   CUR=i;
   renderStepper();
@@ -2404,13 +2584,19 @@ function scrollToABC(){
     const justApprovedC = curC && curC !== seenC;
     if(justApprovedB || justApprovedC){
       autoAdvanced = true;
-      const target = document.getElementById('stage-d');
-      if(target) target.scrollIntoView({behavior:'smooth'});
-      toast('חלקים א׳–ב׳–ג׳ אושרו — ממשיכים אוטומטית לדוח 50 עוזרי ה-AI (שלב ד׳)');
+      if(window.ProjectBrief) ProjectBrief.mergeFromLegacy();
+      if(typeof refreshProjectBrief==='function') refreshProjectBrief();
+      scrollToProjectBrief();
+      toast('חלקים א׳–ב׳–ג׳ אושרו — ממשיכים לתיק העסק (Project Brief) לפני שלב ד׳');
     }
     seenB = curB; seenC = curC;
   }, 600);
 })();
+
+function scrollToProjectBrief(){
+  const el=document.getElementById('project-brief-app');
+  if(el) el.scrollIntoView({behavior:'smooth'});
+}
 
 // ── התחלה ──
 renderStepper();
@@ -2419,8 +2605,6 @@ connectToDataLayer();
 </script>
 </div><!-- /dj-app -->
 
-<script src="../ai-marketing/marketing-api.js?v=coco-phase0"></script>
-<script src="../ai-marketing/coco-data-adapter.js?v=coco-phase0"></script>
 <script>
 (function () {
   var base = window.COCO_PAGES_BASE || '/future-craft-core/';
