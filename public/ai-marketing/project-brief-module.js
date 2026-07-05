@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.2.0';
+  var VERSION = '1.3.0';
   var KEY = 'coco-project-brief-v1';
   var APPROVAL_KEY = 'coco-project-brief-approved-v1';
   var GATE_A_KEY = 'coco-gate-a-approved-v1';
@@ -111,18 +111,33 @@
       },
       business: {
         name: envelope('', { source: 'manual', status: 'missing' }),
+        legalName: envelope('', { source: 'manual', status: 'missing' }),
         sector: envelope('', { source: 'manual', status: 'missing' }),
         site: envelope('', { source: 'manual', status: 'missing' }),
         campaignType: envelope('', { source: 'manual', status: 'missing' }),
         location: envelope('', { source: 'manual', status: 'missing' }),
         regions: envelope([], { source: 'manual', status: 'missing' }),
         summary: envelope('', { source: 'manual', status: 'missing' }),
+        shortDescription: envelope('', { source: 'manual', status: 'missing' }),
         personalSummary: envelope('', { source: 'manual', status: 'missing' }),
-        weaknesses: envelope('', { source: 'manual', status: 'missing' }),
+        story: envelope('', { source: 'manual', status: 'missing' }),
+        yearsInBusiness: envelope('', { source: 'manual', status: 'missing' }),
+        differentiator: envelope('', { source: 'manual', status: 'missing' }),
+        vision: envelope('', { source: 'manual', status: 'missing' }),
+        values: envelope([], { source: 'manual', status: 'missing' }),
+        advantages: envelope([], { source: 'manual', status: 'missing' }),
+        weaknesses: envelope([], { source: 'manual', status: 'missing' }),
+        strengths: envelope([], { source: 'manual', status: 'missing' }),
+        weakPoints: envelope([], { source: 'manual', status: 'missing' }),
         languages: envelope([], { source: 'manual', status: 'missing' }),
         clientTypes: envelope([], { source: 'manual', status: 'missing' }),
-        advantages: envelope([], { source: 'manual', status: 'missing' }),
-        contact: envelope({}, { source: 'manual', status: 'missing' }),
+        businessHours: envelope('', { source: 'manual', status: 'missing' }),
+        contact: {
+          phone: envelope('', { source: 'manual', status: 'missing' }),
+          email: envelope('', { source: 'manual', status: 'missing' }),
+          address: envelope('', { source: 'manual', status: 'missing' }),
+          whatsapp: envelope('', { source: 'manual', status: 'missing' }),
+        },
       },
       products: [],
       campaigns: [],
@@ -133,10 +148,19 @@
         usp: envelope('', { source: 'manual', status: 'missing' }),
         differentiator: envelope('', { source: 'manual', status: 'missing' }),
         painPoints: envelope('', { source: 'manual', status: 'missing' }),
+        priority: envelope([], { source: 'manual', status: 'missing' }),
+        profitable: envelope([], { source: 'manual', status: 'missing' }),
+        newServices: envelope([], { source: 'manual', status: 'missing' }),
+        toPromote: envelope([], { source: 'manual', status: 'missing' }),
+        notToPromote: envelope([], { source: 'manual', status: 'missing' }),
+        competitiveAdvantages: envelope('', { source: 'manual', status: 'missing' }),
+        averagePrice: envelope('', { source: 'manual', status: 'missing' }),
+        specialOffers: envelope([], { source: 'manual', status: 'missing' }),
       },
       audience: {
         ideal: envelope([], { source: 'manual', status: 'missing' }),
         avoid: envelope([], { source: 'manual', status: 'missing' }),
+        segments: envelope([], { source: 'manual', status: 'missing' }),
         intentNotes: envelope('', { source: 'manual', status: 'missing' }),
         geographicFocus: envelope([], { source: 'manual', status: 'missing' }),
       },
@@ -145,15 +169,20 @@
         budget: envelope('', { source: 'manual', status: 'missing' }),
         challenges: envelope([], { source: 'manual', status: 'missing' }),
         priorities: envelope([], { source: 'manual', status: 'missing' }),
+        yearlyTargets: envelope([], { source: 'manual', status: 'missing' }),
       },
       freeContent: {
         managerNotes: envelope('', { source: 'manual', status: 'missing' }),
         aiMustKnow: envelope('', { source: 'manual', status: 'missing' }),
         importantInfo: envelope('', { source: 'manual', status: 'missing' }),
+        notes: envelope('', { source: 'manual', status: 'missing' }),
         highlights: envelope('', { source: 'manual', status: 'missing' }),
         specialRequests: envelope('', { source: 'manual', status: 'missing' }),
         mustPromote: envelope('', { source: 'manual', status: 'missing' }),
         mustNotDo: envelope('', { source: 'manual', status: 'missing' }),
+        specialGoals: envelope('', { source: 'manual', status: 'missing' }),
+        ideas: envelope('', { source: 'manual', status: 'missing' }),
+        strategy: envelope('', { source: 'manual', status: 'missing' }),
         ownerFreeText: envelope('', { source: 'manual', status: 'missing' }),
       },
       files: {
@@ -163,12 +192,17 @@
         documents: envelope([], { source: 'manual', status: 'missing' }),
         catalogs: envelope([], { source: 'manual', status: 'missing' }),
         brochures: envelope([], { source: 'manual', status: 'missing' }),
+        presentations: envelope([], { source: 'manual', status: 'missing' }),
         marketingMaterials: envelope([], { source: 'manual', status: 'missing' }),
+        pdf: envelope([], { source: 'manual', status: 'missing' }),
+        word: envelope([], { source: 'manual', status: 'missing' }),
       },
       assets: {
         website: envelope('', { source: 'manual', status: 'missing' }),
         domains: envelope([], { source: 'manual', status: 'missing' }),
+        landingPages: envelope([], { source: 'manual', status: 'missing' }),
         social: envelope([], { source: 'manual', status: 'missing' }),
+        other: envelope([], { source: 'manual', status: 'missing' }),
         otherDigital: envelope([], { source: 'manual', status: 'missing' }),
         gbpUrl: envelope('', { source: 'manual', status: 'missing' }),
       },
@@ -178,10 +212,15 @@
         fromAi: envelope([], { source: 'ai', status: 'missing' }),
         approved: envelope([], { source: 'manual', status: 'missing' }),
         toPromote: envelope([], { source: 'manual', status: 'missing' }),
+        longTail: envelope([], { source: 'manual', status: 'missing' }),
+        local: envelope([], { source: 'manual', status: 'missing' }),
+        brand: envelope([], { source: 'manual', status: 'missing' }),
+        customerQuestions: envelope([], { source: 'manual', status: 'missing' }),
         intentMap: envelope([], { source: 'manual', status: 'missing' }),
         keyPhrases: envelope([], { source: 'manual', status: 'missing' }),
         geoRegions: envelope([], { source: 'manual', status: 'missing' }),
         coreTopics: envelope([], { source: 'manual', status: 'missing' }),
+        categories: envelope([], { source: 'manual', status: 'missing' }),
       },
       seoPack: {
         goals: envelope([], { source: 'manual', status: 'missing' }),
@@ -435,12 +474,11 @@
     req('שם עסק', !!envVal(brief.business.name));
     req('תחום', !!envVal(brief.business.sector));
     req('סיכום עסק', !!envVal(brief.business.summary));
-    req('אתר', !!envVal(brief.assets.website) || !!envVal(brief.business.site));
     req('שירות מרכזי', !!envVal(brief.services.main));
-    req('USP', !!envVal(brief.services.usp));
-    req('קהל יעד', (envVal(brief.audience.ideal) || []).length >= 1);
-    req('מטרה עסקית', !!envVal(brief.goals.businessGoal));
-    req('תקציב', !!envVal(brief.goals.budget));
+
+    var idealAud = envVal(brief.audience.ideal) || [];
+    var segments = envVal(brief.audience.segments) || [];
+    req('קהל יעד', idealAud.length >= 1 || segments.length >= 1);
 
     var approvedKw = envVal(brief.keywords.approved) || [];
     var fromClientKw = envVal(brief.keywords.fromClient) || [];
@@ -449,11 +487,10 @@
       approvedKw.length >= GATE_MIN_KEYWORDS || fromClientKw.length >= GATE_MIN_KEYWORDS
     );
 
-    var compCount = (brief.competitors || []).length;
+    var compCount = (brief.competitors || []).filter(function (c) {
+      return !!envVal(c && c.name);
+    }).length;
     req('מתחרים (≥' + GATE_MIN_COMPETITORS + ')', compCount >= GATE_MIN_COMPETITORS);
-
-    var logos = envVal(brief.files.logo) || [];
-    req('לוגו (≥1)', logos.length >= 1);
 
     brief.approval = brief.approval || {};
     brief.approval.gateAChecklist = checklist;

@@ -1,5 +1,5 @@
 /**
- * Stage א' Business Discovery smoke — Brief fields + wizard UX.
+ * Stage א' Business Discovery smoke — 9-tab wizard UX + Brief fields.
  * Usage: node scripts/verify-stage-a-discovery.mjs [baseUrl]
  */
 import { readFileSync } from 'node:fs';
@@ -32,31 +32,42 @@ function checkLocalFiles() {
   const mod = readFileSync(join(root, 'public/ai-marketing/project-brief-module.js'), 'utf8');
   const ux = readFileSync(join(root, 'public/ai-marketing/workflow-v2-ux.js'), 'utf8');
 
+  const gateABody = mod.slice(mod.indexOf('function validateGateA'), mod.indexOf('function validateGateB'));
+
   [
-    ['business.summary in default', mod.includes('summary: envelope')],
-    ['business.weaknesses', mod.includes('weaknesses: envelope')],
-    ['business.languages', mod.includes('languages: envelope')],
-    ['keywords.toPromote', mod.includes('toPromote: envelope')],
-    ['keywords.intentMap', mod.includes('intentMap: envelope')],
-    ['files.catalogs', mod.includes('catalogs: envelope')],
-    ['freeContent.ownerFreeText', mod.includes('ownerFreeText: envelope')],
-    ['assets.domains', mod.includes('domains: envelope')],
+    ['business.legalName', mod.includes('legalName: envelope')],
+    ['business.strengths', mod.includes('strengths: envelope')],
+    ['business.contact.phone', mod.includes('phone: envelope')],
+    ['services.priority', mod.includes('priority: envelope')],
+    ['audience.segments', mod.includes('segments: envelope')],
+    ['keywords.longTail', mod.includes('longTail: envelope')],
+    ['keywords.categories', mod.includes('categories: envelope')],
+    ['assets.landingPages', mod.includes('landingPages: envelope')],
+    ['files.presentations', mod.includes('presentations: envelope')],
+    ['freeContent.strategy', mod.includes('strategy: envelope')],
     ['validateGateA summary', mod.includes("req('סיכום עסק'")],
     ['validateGateA kw OR', mod.includes('fromClientKw.length >= GATE_MIN_KEYWORDS')],
+    ['validateGateA no logo req', !gateABody.includes("req('לוגו")],
   ].forEach(([name, ok]) => (ok ? pass : fail)(`local: brief ${name}`));
 
-  const gateABody = mod.slice(mod.indexOf('function validateGateA'), mod.indexOf('function validateGateB'));
   if (!gateABody.includes('campaignType')) pass('local: brief no campaignType in validateGateA');
   else fail('local: brief no campaignType in validateGateA');
 
   [
-    ['A1-A9 steps', ux.includes("'a9'") && ux.includes('A9 סיכום')],
-    ['Brief Report panel', ux.includes('v2-brief-report')],
+    ['9 tabs a1-a9', ux.includes("'a9'") && ux.includes('סיכום Project Brief')],
+    ['wizard stepper', ux.includes('v2-wizard-stepper')],
+    ['progress שלב מתוך', ux.includes('מתוך') && ux.includes('v2-progress')],
+    ['שמור והמשך', ux.includes('שמור והמשך')],
+    ['הקודם button', ux.includes('הקודם')],
+    ['אשר ושמור', ux.includes('אשר ושמור ל-Project Brief')],
+    ['tab order: assets before audience', ux.indexOf("'a3'") < ux.indexOf("'a4'")],
+    ['tab order: keywords before competitors', ux.indexOf("'a5'") < ux.indexOf("'a6'")],
+    ['audience segments', ux.includes('v2-add-segment')],
+    ['social telegram', ux.includes("id: 'telegram'")],
     ['dynamic competitors', ux.includes('v2-add-competitor')],
     ['file upload mock', ux.includes('v2-file-inp')],
     ['only SEO + Ads campaigns', ux.includes("id: 'seo'") && ux.includes("id: 'ads'") && !ux.includes("id: 'both'")],
-    ['campaign stub', ux.includes('createCampaignStub')],
-    ['save step button', ux.includes('v2-btn-save-step')],
+    ['saveCurrentStep', ux.includes('saveCurrentStep')],
     ['gate after gateA', ux.includes('isGateAApproved()')],
     ['breadcrumb היכרות', ux.includes('ניהול שיווק')],
   ].forEach(([name, ok]) => (ok ? pass : fail)(`local: ux ${name}`));
@@ -80,18 +91,12 @@ function checkGateARuntime() {
     return;
   }
 
-  const brief = PB.get();
   PB.setField('business.name', 'טסט Discovery');
   PB.setField('business.sector', 'שירותים');
   PB.setField('business.summary', 'סיכום עסק לבדיקה');
   PB.setField('services.main', 'שירות מרכזי');
-  PB.setField('services.usp', 'USP');
   PB.setField('audience.ideal', ['קהל א']);
-  PB.setField('goals.businessGoal', 'לידים');
-  PB.setField('goals.budget', '5000');
-  PB.setField('assets.website', 'https://example.co.il');
   PB.setField('keywords.fromClient', ['kw1', 'kw2', 'kw3', 'kw4', 'kw5']);
-  PB.setField('files.logo', [{ name: 'logo.png', type: 'logo', mock: true }]);
   const b2 = PB.get();
   b2.competitors = [{
     id: 'c1',
@@ -101,7 +106,7 @@ function checkGateARuntime() {
   PB.set(b2);
 
   const vA = PB.validateGateA();
-  if (vA.ok) pass('runtime: validateGateA complete (fromClient kw, no campaignType)');
+  if (vA.ok) pass('runtime: validateGateA (no logo, no USP/budget)');
   else fail('runtime: validateGateA', vA.missing.join(', '));
 
   const apA = PB.approveGateA('test');
@@ -110,10 +115,10 @@ function checkGateARuntime() {
 
   PB.setField('business.campaignType', 'seo');
   const vFinal = PB.validate(PB.get());
-  if (!vFinal.ok && vFinal.missing.some((m) => m.includes('seoPack'))) {
+  if (!vFinal.ok && vFinal.missing.some((m) => m.includes('seoPack') || m.includes('USP') || m.includes('לוגו'))) {
     pass('runtime: validate() still requires campaign extras before final gate');
   } else {
-    fail('runtime: validate() final gate behavior');
+    fail('runtime: validate() final gate behavior', vFinal.missing.join(', '));
   }
 }
 
@@ -123,10 +128,11 @@ checkGateARuntime();
 if (!isLocal) {
   try {
     const ux = await fetchText(`${BASE}/ai-marketing/workflow-v2-ux.js`);
-    if (ux.status === 200 && ux.text.includes('A9 סיכום')) pass('remote: stage-a wizard served');
-    else fail('remote: workflow-v2-ux.js stage-a');
+    if (ux.status === 200 && ux.text.includes('v2-wizard-stepper') && ux.text.includes('שמור והמשך')) {
+      pass('remote: stage-a wizard served');
+    } else fail('remote: workflow-v2-ux.js stage-a');
     const mod = await fetchText(`${BASE}/ai-marketing/project-brief-module.js`);
-    if (mod.status === 200 && mod.text.includes('ownerFreeText')) pass('remote: expanded brief module');
+    if (mod.status === 200 && mod.text.includes('audience.segments')) pass('remote: expanded brief module');
     else fail('remote: project-brief-module.js');
   } catch (e) {
     fail('remote checks', String(e.message || e));
