@@ -1848,12 +1848,22 @@ function renderStepper(){
   el.innerHTML=html;
   document.getElementById('stepper-prog-f').style.width=((CUR)/(STEPS.length-1)*100)+'%';
 }
+function cocoV2DirectAssistants(){
+  try{return localStorage.getItem('coco-v2-skip-gates-assistants-v1')==='true';}catch(e){return false;}
+}
+function gateOkForStageD(){
+  if(!window.ProjectBrief) return true;
+  if(cocoV2DirectAssistants()&&ProjectBrief.isGateAApproved()) return true;
+  return ProjectBrief.isGateAApproved()&&ProjectBrief.isGateBApproved()&&ProjectBrief.isApproved();
+}
 function jump(i){
   if(i>MAX) { toast('צריך לאשר את השלב הנוכחי קודם'); return; }
   if(i===0 && window.ProjectBrief){
     if(!ProjectBrief.isGateAApproved()){ toast('⚠️ Gate-A — השלם היכרות'); if(window.CocoWorkflowV2)CocoWorkflowV2.goPhase('onboarding'); return; }
-    if(!ProjectBrief.isGateBApproved()){ toast('⚠️ Gate-B — בחר קמפיין'); if(window.CocoWorkflowV2)CocoWorkflowV2.goPhase('picker'); return; }
-    if(!ProjectBrief.isApproved()){ toast('⚠️ Gate ד׳ — אשר Brief'); scrollToProjectBrief(); return; }
+    if(!cocoV2DirectAssistants()){
+      if(!ProjectBrief.isGateBApproved()){ toast('⚠️ Gate-B — בחר קמפיין'); if(window.CocoWorkflowV2)CocoWorkflowV2.goPhase('onboarding'); return; }
+      if(!ProjectBrief.isApproved()){ toast('⚠️ Gate ד׳ — אשר Brief'); scrollToProjectBrief(); return; }
+    }
   }
   showStage(i);
 }
@@ -1861,12 +1871,11 @@ function goBack(){ if(CUR>0) showStage(CUR-1); else toast('חלקים א׳–ג�
 function goForward(){ if(CUR<MAX) showStage(CUR+1); else toast('צריך לאשר את השלב הנוכחי כדי להמשיך'); }
 
 function showStage(i){
-  if(i===0 && window.ProjectBrief){
-    if(!ProjectBrief.isGateAApproved()||!ProjectBrief.isGateBApproved()||!ProjectBrief.isApproved()){
-      toast('⚠️ Gate-A → Gate-B → Gate ד׳ לפני שלב ד׳');
-      scrollToProjectBrief();
-      return;
-    }
+  if(i===0 && window.ProjectBrief && !gateOkForStageD()){
+    toast('⚠️ Gate-A (היכרות) לפני שלב ד׳');
+    if(!ProjectBrief.isGateAApproved()&&window.CocoWorkflowV2) CocoWorkflowV2.goPhase('onboarding');
+    else scrollToProjectBrief();
+    return;
   }
   STEPS.forEach((s,idx)=>document.getElementById('stage-'+s.k).style.display = idx===i?'block':'none');
   CUR=i;

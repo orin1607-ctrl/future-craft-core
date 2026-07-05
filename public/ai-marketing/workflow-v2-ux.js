@@ -966,7 +966,7 @@
     var saveBtn = document.getElementById('v2-btn-save-step');
     var nextBtn = document.getElementById('v2-btn-next');
     if (backBtn) {
-      backBtn.textContent = 'הקודם →';
+      backBtn.textContent = '← הקודם';
       backBtn.disabled = state.obStep <= 0 && state.phase === 'onboarding';
     }
     if (saveBtn) saveBtn.textContent = 'שמור והמשך';
@@ -1131,7 +1131,7 @@
       '<div class="v2-pane" id="v2-pane-onboarding"></div>' +
       '</div>' +
       '<div class="v2-footer">' +
-      '<button type="button" class="v2-btn v2-btn-g" id="v2-btn-back">הקודם →</button>' +
+      '<button type="button" class="v2-btn v2-btn-g" id="v2-btn-back">← הקודם</button>' +
       '<button type="button" class="v2-btn v2-btn-g" id="v2-btn-save-step">שמור והמשך</button>' +
       '<div class="v2-finfo" id="v2-finfo">בחר לקוח להתחלה</div>' +
       '<button type="button" class="v2-btn v2-btn-p" id="v2-btn-next" disabled>פתח לקוח ←</button></div>';
