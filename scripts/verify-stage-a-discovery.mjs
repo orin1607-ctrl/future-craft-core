@@ -54,9 +54,9 @@ function checkLocalFiles() {
   else fail('local: brief no campaignType in validateGateA');
 
   [
-    ['9 tabs a1-a9', ux.includes("'a9'") && ux.includes('סיכום Project Brief')],
-    ['wizard stepper', ux.includes('v2-wizard-stepper')],
-    ['progress שלב מתוך', ux.includes('מתוך') && ux.includes('v2-progress')],
+    ['9 tabs a1-a9', ux.includes("'a9'") && ux.includes('אשר ושמור ל-Project Brief')],
+    ['wizard stepper', ux.includes('v2-ob-stepper')],
+    ['progress tab X/9', ux.includes('/9')],
     ['שמור והמשך', ux.includes('שמור והמשך')],
     ['הקודם button', ux.includes('הקודם')],
     ['אשר ושמור', ux.includes('אשר ושמור ל-Project Brief')],
@@ -66,8 +66,8 @@ function checkLocalFiles() {
     ['social telegram', ux.includes("id: 'telegram'")],
     ['dynamic competitors', ux.includes('v2-add-competitor')],
     ['file upload mock', ux.includes('v2-file-inp')],
-    ['only SEO + Ads campaigns', ux.includes("id: 'seo'") && ux.includes("id: 'ads'") && !ux.includes("id: 'both'")],
-    ['saveCurrentStep', ux.includes('saveCurrentStep')],
+    ['skip picker to assistants', ux.includes('goToAssistantsAfterGateA')],
+    ['saveOnboardingFromForm', ux.includes('saveOnboardingFromForm')],
     ['gate after gateA', ux.includes('isGateAApproved()')],
     ['breadcrumb היכרות', ux.includes('ניהול שיווק')],
   ].forEach(([name, ok]) => (ok ? pass : fail)(`local: ux ${name}`));
@@ -128,7 +128,7 @@ checkGateARuntime();
 if (!isLocal) {
   try {
     const ux = await fetchText(`${BASE}/ai-marketing/workflow-v2-ux.js`);
-    if (ux.status === 200 && ux.text.includes('v2-wizard-stepper') && ux.text.includes('שמור והמשך')) {
+    if (ux.status === 200 && ux.text.includes('v2-ob-stepper') && ux.text.includes('שמור והמשך')) {
       pass('remote: stage-a wizard served');
     } else fail('remote: workflow-v2-ux.js stage-a');
     const mod = await fetchText(`${BASE}/ai-marketing/project-brief-module.js`);
