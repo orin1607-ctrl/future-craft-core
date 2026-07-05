@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CO.CO דליה – גוגל אדס Search</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04091a;--bg2:#071022;--bg3:#0a1830;--bg4:#0d1f3c;
+  --acc:#2563eb;--acc2:#3b82f6;--glow:rgba(37,99,235,.14);
+  --w:#fff;--w80:rgba(255,255,255,.80);--w50:rgba(255,255,255,.50);
+  --w20:rgba(255,255,255,.20);--w10:rgba(255,255,255,.10);--w06:rgba(255,255,255,.06);
+  --green:#22c55e;--red:#ef4444;--yel:#f59e0b;--pur:#8b5cf6;--cyan:#06b6d4;
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-height:100vh;}
+.tb{height:52px;background:var(--bg2);border-bottom:1px solid var(--w10);display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;z-index:200;gap:10px;}
+.logo{font-size:13px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.logo em{color:var(--acc2);font-style:normal;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--acc2);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+.wiz{background:var(--bg2);border-bottom:1px solid var(--w10);}
+.wsteps{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.ws{padding:11px 14px;font-size:11px;font-weight:600;color:var(--w50);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.ws.active{color:var(--w);border-bottom-color:var(--acc);}
+.ws.done{color:var(--green);border-bottom-color:rgba(34,197,94,.3);}
+.ws.locked{opacity:.3;cursor:not-allowed;}
+.wsn{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:var(--w10);flex-shrink:0;}
+.ws.active .wsn{background:var(--acc);color:#fff;}
+.ws.done .wsn{background:rgba(34,197,94,.2);color:var(--green);}
+.pb{height:2px;background:var(--w10);}
+.pf{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .45s;}
+.main{max-width:840px;margin:0 auto;padding:0 0 96px;}
+.pane{display:none;}.pane.on{display:block;}
+.ph{padding:16px 18px 0;}
+.ph-part{font-size:10px;font-weight:700;color:var(--acc2);letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;gap:7px;}
+.ph-part::before{content:'';width:20px;height:2px;background:var(--acc2);}
+.ph-t{font-size:clamp(16px,4vw,21px);font-weight:900;margin-bottom:4px;}
+.ph-s{font-size:12px;color:var(--w50);line-height:1.6;}
+.ph-r{height:2px;background:linear-gradient(90deg,var(--acc),transparent);margin:10px 0 0;border:none;}
+.sec{padding:14px 18px;}
+.st{font-size:10px;font-weight:700;color:var(--w50);letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.st::after{content:'';flex:1;height:1px;background:var(--w10);}
+.card{background:var(--bg3);border:1px solid var(--w10);border-radius:var(--r);padding:14px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+@media(max-width:500px){.g2,.g3{grid-template-columns:1fr;}}
+.fl{display:flex;flex-direction:column;gap:3px;margin-bottom:9px;}
+.fl label{font-size:11px;color:var(--w50);font-weight:600;}
+.req{color:var(--red);font-size:11px;}
+.rec{color:var(--yel);font-size:9px;background:rgba(245,158,11,.12);padding:1px 5px;border-radius:4px;}
+.inp{padding:8px 11px;border-radius:8px;border:1px solid var(--w10);background:var(--bg4);color:var(--w);font-family:'Heebo',sans-serif;font-size:12px;outline:none;width:100%;transition:border-color .2s;}
+.inp:focus{border-color:var(--acc);}
+.inp.err{border-color:var(--red)!important;}
+.inp.ok{border-color:rgba(34,197,94,.5)!important;}
+.inp::placeholder{color:var(--w50);}
+.err-msg{font-size:10px;color:var(--red);margin-top:2px;display:none;}
+.err-msg.show{display:block;}
+.btn{padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;transition:all .18s;display:inline-flex;align-items:center;gap:5px;}
+.btn-p{background:var(--acc);color:#fff;}.btn-p:hover{background:var(--acc2);}
+.btn-g{background:var(--w06);color:var(--w80);border:1px solid var(--w10);}.btn-g:hover{background:var(--w10);}
+.btn-go{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+.btn-re{background:rgba(239,68,68,.13);color:var(--red);border:1px solid rgba(239,68,68,.22);}
+.btn-sm{font-size:10px;padding:4px 9px;}
+.bd{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;}
+.bd-g{background:rgba(34,197,94,.14);color:var(--green);}
+.bd-r{background:rgba(239,68,68,.14);color:var(--red);}
+.bd-y{background:rgba(245,158,11,.14);color:var(--yel);}
+.bd-b{background:rgba(59,130,246,.14);color:var(--acc2);}
+.bd-x{background:var(--w06);color:var(--w50);}
+.alt{display:flex;align-items:flex-start;gap:7px;padding:9px 11px;border-radius:8px;font-size:12px;line-height:1.6;margin-bottom:10px;}
+.alt-i{background:rgba(6,182,212,.10);border:1px solid rgba(6,182,212,.22);color:var(--cyan);}
+.alt-ok{background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.22);color:var(--green);}
+.alt-w{background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.22);color:var(--yel);}
+.alt-r{background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.22);color:var(--red);}
+.tw{overflow-x:auto;margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{text-align:right;padding:7px 8px;color:var(--w50);font-weight:700;border-bottom:1px solid var(--w10);white-space:nowrap;background:var(--bg4);}
+td{padding:7px 8px;border-bottom:1px solid var(--w06);color:var(--w80);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--w06);}
+.td-act{display:flex;gap:4px;}
+.cc{font-size:10px;min-width:36px;text-align:left;}
+.cc.ok{color:var(--green);}
+.cc.warn{color:var(--yel);}
+.cc.over{color:var(--red);font-weight:700;}
+.hl-row{display:flex;align-items:center;gap:4px;margin-bottom:4px;}
+.hl-num{font-size:10px;color:var(--w50);min-width:28px;flex-shrink:0;}
+.footer{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--w10);padding:10px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:100;}
+.finfo{font-size:11px;color:var(--w50);flex:1;}
+.ready-badge{display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:var(--r);font-size:13px;font-weight:700;}
+.ready-badge.yes{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green);}
+.ready-badge.no{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red);}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+.chip{padding:3px 10px;border-radius:99px;font-size:11px;border:1px solid var(--w10);background:var(--bg4);color:var(--w80);cursor:pointer;transition:all .18s;}
+.chip.on{border-color:var(--acc);background:var(--glow);color:var(--acc2);}
+.sched-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;}
+.sched-day{background:var(--bg4);border:1px solid var(--w10);border-radius:6px;padding:5px;text-align:center;cursor:pointer;font-size:10px;transition:all .18s;}
+.sched-day.on{border-color:var(--acc);background:var(--glow);color:var(--acc2);}
+#toast{position:fixed;bottom:68px;right:16px;background:var(--bg3);border:1px solid var(--w10);border-radius:9px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--w);z-index:9999;transform:translateY(14px);opacity:0;transition:all .3s;pointer-events:none;max-width:250px;}
+</style>
+</head>
+<body>
+<div class="tb">
+  <div class="logo"><div class="dot"></div>CO.CO <em>דליה</em> — גוגל אדס Search</div>
+  <div style="display:flex;gap:6px;align-items:center;">
+    <span id="tb-status" class="bd bd-y">טיוטה</span>
+    <span id="tb-cid" style="font-size:11px;color:var(--w50);"></span>
+    <span style="font-size:10px;padding:2px 9px;border-radius:99px;background:rgba(37,99,235,.12);color:var(--acc2);border:1px solid rgba(37,99,235,.22);">חלק ג׳</span>
+    <button style="font-size:10px;padding:2px 9px;border-radius:99px;background:var(--w06);color:var(--w50);border:1px solid var(--w10);cursor:pointer;" onclick="window.location.href='dalia-planning-engine.html'">← חלק א׳</button>
+  </div>
+</div>
+<div class="wiz"><div class="wsteps" id="wsteps"></div><div class="pb"><div class="pf" id="pf" style="width:10%"></div></div></div>
+<div class="main">
+
+<!-- ══ שלב 1: חיבור חשבון גוגל אדס ══ -->
+<div class="pane on" id="p1">
+  <div class="ph"><div class="ph-part">גוגל אדס Search • שלב 1</div><div class="ph-t">חיבור חשבון גוגל אדס</div><div class="ph-s">הגדרת פרטי חשבון. חיבור OAuth אמיתי יתבצע בחלק ג' בלבד לאחר אישור מפורש.</div><hr class="ph-r"></div>
+  <div class="sec">
+    <div class="alt alt-w">⚠️ בשלב זה — הגדרת פרטים בלבד. אין חיבור ל-API. אין שליחת נתונים. Production רק לאחר אישורך.</div>
+    <div class="st">OAuth 2.0 — Google Ads API</div>
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;margin-bottom:12px;border-bottom:1px solid var(--w10);">
+        <div id="conn-dot" style="width:12px;height:12px;border-radius:50%;background:var(--red);flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div id="conn-label" style="font-size:13px;font-weight:700;">לא מחובר</div>
+          <div style="font-size:10px;color:var(--w50);margin-top:2px;">scope: https://www.googleapis.com/auth/adwords</div>
+        </div>
+        <button class="btn btn-p btn-sm" onclick="doConnect()">🔗 חבר חשבון גוגל אדס</button>
+      </div>
+      <div class="g2">
+        <div class="fl">
+          <label>כתובת אימייל Google <span class="req">*</span></label>
+          <input class="inp" id="ga-email" placeholder="manager@company.com" oninput="liveVal(this,'ga-email',v=>v.includes('@'))">
+          <div class="err-msg" id="err-ga-email">נדרש אימייל תקין</div>
+        </div>
+        <div class="fl">
+          <label>Customer ID — מזהה לקוח <span class="req">*</span></label>
+          <input class="inp" id="ga-cid" placeholder="123-456-7890" oninput="fmtCID(this)" maxlength="12">
+          <div style="font-size:10px;color:var(--w50);">פורמט: XXX-XXX-XXXX (10 ספרות)</div>
+          <div class="err-msg" id="err-ga-cid">מזהה חשבון לא תקין</div>
+        </div>
+        <div class="fl">
+          <label>Manager Account ID — MCC <span style="font-size:10px;color:var(--w50);">(אופציונלי)</span></label>
+          <input class="inp" id="ga-mcc" placeholder="987-654-3210" oninput="fmtCID(this)">
+          <div style="font-size:10px;color:var(--w50);">ל-Agency / Manager Account</div>
+        </div>
+        <div class="fl">
+          <label>Developer Token <span class="req">*</span></label>
+          <input class="inp" id="ga-token" type="password" placeholder="נדרש לשליחה עתידית ל-API">
+          <div style="font-size:10px;color:var(--w50);">נשמר מוצפן. לא נשלח כרגע.</div>
+        </div>
+        <div class="fl">
+          <label>Login Customer ID <span class="rec">מומלץ</span></label>
+          <input class="inp" id="ga-login-cid" placeholder="זהה ל-MCC אם יש, אחרת כ-CID">
+          <div style="font-size:10px;color:var(--w50);">API header: login-customer-id</div>
+        </div>
+        <div class="fl">
+          <label>API Version</label>
+          <select class="inp" id="ga-api-ver">
+            <option value="v18" selected>v18 (עדכני)</option>
+            <option value="v17">v17</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:7px;margin-top:4px;flex-wrap:wrap;">
+        <button class="btn btn-p btn-sm" onclick="doConnect()">🔗 אמת חיבור</button>
+        <button class="btn btn-g btn-sm" onclick="toast('📋 https://developers.google.com/google-ads/api/docs/oauth/overview')">📋 הוראות OAuth</button>
+      </div>
+      <div id="conn-result" style="display:none;margin-top:10px;"></div>
+    </div>
+    <div class="st">הרשאות API נדרשות</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border:1px solid var(--w10);border-radius:8px;font-size:12px;"><span>📢</span><div style="flex:1;"><div>ניהול קמפיינים (campaigns.write)</div><div style="font-size:10px;color:var(--w50);">יצירה, עריכה, השהיה</div></div><span class="bd bd-x" id="perm-camp">לא נבדק</span></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border:1px solid var(--w10);border-radius:8px;font-size:12px;"><span>📊</span><div style="flex:1;"><div>קריאת נתונים (reporting)</div><div style="font-size:10px;color:var(--w50);">דוחות ביצועים</div></div><span class="bd bd-x" id="perm-read">לא נבדק</span></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border:1px solid var(--w10);border-radius:8px;font-size:12px;"><span>💳</span><div style="flex:1;"><div>ניהול תקציב (budgets.write)</div><div style="font-size:10px;color:var(--w50);">CampaignBudget resource</div></div><span class="bd bd-x" id="perm-bud">לא נבדק</span></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border:1px solid var(--w10);border-radius:8px;font-size:12px;"><span>🎯</span><div style="flex:1;"><div>ניהול המרות (conversions.write)</div><div style="font-size:10px;color:var(--w50);">ConversionAction resource</div></div><span class="bd bd-x" id="perm-conv">לא נבדק</span></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border:1px solid var(--w10);border-radius:8px;font-size:12px;"><span>🔑</span><div style="flex:1;"><div>OAuth 2.0 scope מלא</div><div style="font-size:10px;color:var(--acc2);">https://www.googleapis.com/auth/adwords</div></div><span class="bd bd-x" id="perm-oauth">לא נבדק</span></div>
+    </div>
+    <div class="st">סטטוס מוכנות</div>
+    <div id="api-ready-status" class="ready-badge no" style="margin-bottom:12px;">❌ לא מוכן — הזן פרטי חשבון</div>
+    <div class="card" style="background:var(--bg4);">
+      <div style="font-size:11px;font-weight:700;color:var(--w50);margin-bottom:8px;">JSON שיישמר (meta-data בלבד — לא קוד):</div>
+      <pre id="conn-json" style="font-size:10px;color:var(--acc2);font-family:monospace;white-space:pre-wrap;line-height:1.8;">{
+  "customer_id": "",
+  "mcc_id": null,
+  "login_customer_id": "",
+  "api_version": "v18",
+  "connected": false,
+  "permissions": {},
+  "draft_status": "awaiting_connection"
+}</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 2: הגדרות קמפיין ══ -->
+<div class="pane" id="p2">
+  <div class="ph"><div class="ph-part">גוגל אדס Search • שלב 2</div><div class="ph-t">הגדרות קמפיין</div><div class="ph-s">API resource: Campaign | advertising_channel_type: SEARCH | v18</div><hr class="ph-r"></div>
+  <div class="sec">
+    <div class="alt alt-i">ℹ️ <span class="req">*</span> = חובה ב-API | <span class="rec">מומלץ</span> = שדה מומלץ על-ידי גוגל</div>
+    <div class="card">
+      <div class="g2">
+        <div class="fl">
+          <label>שם קמפיין <span class="req">*</span></label>
+          <input class="inp" id="c-name" placeholder="ניהול צי רכב | ישראל | חיפוש" maxlength="255" oninput="liveVal(this,'c-name',v=>v.trim().length>0)">
+          <div style="font-size:10px;color:var(--w50);">עד 255 תווים. ייחודי בחשבון. API: campaign.name</div>
+          <div class="err-msg" id="err-c-name">שם קמפיין חובה</div>
+        </div>
+        <div class="fl">
+          <label>סטטוס <span class="req">*</span></label>
+          <select class="inp" id="c-status">
+            <option value="PAUSED" selected>מושהה — PAUSED (מומלץ לטיוטה)</option>
+            <option value="ENABLED">פעיל — ENABLED</option>
+          </select>
+          <div style="font-size:10px;color:var(--yel);">⚠️ מומלץ PAUSED עד לאישור סופי</div>
+        </div>
+        <div class="fl">
+          <label>מטרת פרסום <span class="rec">מומלץ</span></label>
+          <select class="inp" id="c-goal">
+            <option value="LEADS" selected>לידים (LEADS)</option>
+            <option value="SALES">מכירות (SALES)</option>
+            <option value="WEBSITE_TRAFFIC">תנועה לאתר (WEBSITE_TRAFFIC)</option>
+            <option value="BRAND_AWARENESS_AND_REACH">מודעות מותג</option>
+            <option value="UNSPECIFIED">לא מוגדר</option>
+          </select>
+        </div>
+        <div class="fl">
+          <label>רשתות פרסום <span class="req">*</span></label>
+          <select class="inp" id="c-network">
+            <option value="SEARCH_ONLY" selected>חיפוש בלבד (מומלץ)</option>
+            <option value="SEARCH_AND_PARTNERS">חיפוש + שותפי חיפוש</option>
+          </select>
+          <div style="font-size:10px;color:var(--w50);">target_content_network: false לקמפיין Search</div>
+        </div>
+        <div class="fl">
+          <label>שפות <span class="req">*</span></label>
+          <div class="chips" id="lang-chips">
+            <div class="chip on" data-id="1027" onclick="tchip(this)">עברית (he)</div>
+            <div class="chip on" data-id="1000" onclick="tchip(this)">אנגלית (en)</div>
+            <div class="chip" data-id="1037" onclick="tchip(this)">ערבית (ar)</div>
+            <div class="chip" data-id="1032" onclick="tchip(this)">רוסית (ru)</div>
+          </div>
+          <div style="font-size:10px;color:var(--w50);margin-top:4px;">API: languageConstants["customers/*/languageConstants/1027"]</div>
+        </div>
+        <div class="fl">
+          <label>מכשירים <span class="req">*</span></label>
+          <div class="chips" id="device-chips">
+            <div class="chip on" data-dev="MOBILE" onclick="tchip(this)">📱 מובייל</div>
+            <div class="chip on" data-dev="DESKTOP" onclick="tchip(this)">💻 מחשב</div>
+            <div class="chip on" data-dev="TABLET" onclick="tchip(this)">📟 טאבלט</div>
+          </div>
+          <div style="font-size:10px;color:var(--w50);margin-top:4px;">הסרת מכשיר = bid_modifier: -100% (לא הסרה מלאה)</div>
+        </div>
+        <div class="fl">
+          <label>התאמת ביד — מובייל <span class="rec">מומלץ</span></label>
+          <select class="inp" id="c-mobile-bid">
+            <option value="0">ללא שינוי (0%)</option>
+            <option value="0.1">+10%</option>
+            <option value="0.2">+20%</option>
+            <option value="0.3">+30%</option>
+            <option value="-0.1">-10%</option>
+            <option value="-0.2">-20%</option>
+          </select>
+        </div>
+        <div class="fl">
+          <label>תאריך התחלה <span class="req">*</span></label>
+          <input class="inp" type="date" id="c-start" oninput="liveVal(this,'c-start',v=>!!v)">
+          <div style="font-size:10px;color:var(--w50);">פורמט API: YYYYMMDD</div>
+          <div class="err-msg" id="err-c-start">תאריך התחלה חובה</div>
+        </div>
+        <div class="fl">
+          <label>תאריך סיום <span style="font-size:10px;color:var(--w50);">(אופציונלי)</span></label>
+          <input class="inp" type="date" id="c-end">
+        </div>
+        <div class="fl">
+          <label>Frequency Cap <span class="rec">מומלץ</span></label>
+          <div style="display:flex;gap:5px;align-items:center;">
+            <input class="inp" id="c-freq-num" type="number" min="1" placeholder="3" style="width:70px;">
+            <select class="inp" id="c-freq-period" style="flex:1;">
+              <option value="DAY">ביום</option>
+              <option value="WEEK">בשבוע</option>
+              <option value="MONTH">בחודש</option>
+            </select>
+          </div>
+          <div style="font-size:10px;color:var(--w50);">מקסימום חשיפות למשתמש. API: frequency_caps</div>
+        </div>
+        <div class="fl">
+          <label>Ad Rotation <span class="rec">מומלץ</span></label>
+          <select class="inp" id="c-rotation">
+            <option value="OPTIMIZE" selected>אוטומטי — OPTIMIZE (מומלץ)</option>
+            <option value="ROTATE_FOREVER">רוטציה שווה — ROTATE_FOREVER</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- AD SCHEDULE -->
+    <div class="st" style="margin-top:14px;">לוח פרסום — Ad Schedule <span class="rec">מומלץ</span></div>
+    <div class="card">
+      <div style="font-size:11px;color:var(--w80);margin-bottom:8px;">לחץ על ימים לבחירה. ברירת מחדל: כל השבוע.</div>
+      <div class="sched-grid" id="sched-days">
+        <div class="sched-day on" data-d="SUNDAY">א׳</div>
+        <div class="sched-day on" data-d="MONDAY">ב׳</div>
+        <div class="sched-day on" data-d="TUESDAY">ג׳</div>
+        <div class="sched-day on" data-d="WEDNESDAY">ד׳</div>
+        <div class="sched-day on" data-d="THURSDAY">ה׳</div>
+        <div class="sched-day on" data-d="FRIDAY">ו׳</div>
+        <div class="sched-day" data-d="SATURDAY">ש׳</div>
+      </div>
+      <div class="g2" style="margin-top:8px;">
+        <div class="fl"><label>שעת התחלה</label><select class="inp" id="sched-start"><option value="0">00:00</option><option value="6">06:00</option><option value="7" selected>07:00</option><option value="8">08:00</option><option value="9">09:00</option></select></div>
+        <div class="fl"><label>שעת סיום</label><select class="inp" id="sched-end"><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20" selected>20:00</option><option value="24">24:00</option></select></div>
+      </div>
+      <div style="font-size:10px;color:var(--w50);">API: ad_schedule_targets[{day_of_week, start_hour, end_hour, start_minute, end_minute}]</div>
+    </div>
+
+    <!-- URL OPTIONS -->
+    <div class="st" style="margin-top:14px;">הגדרות URL — Campaign Level <span class="rec">מומלץ</span></div>
+    <div class="card">
+      <div class="fl"><label>URL Suffix (ValueTrack)</label><input class="inp" id="c-url-suffix" placeholder="gclid={gclid}&utm_source=google&utm_medium=cpc&utm_campaign={campaign}"><div style="font-size:10px;color:var(--w50);">API: url_expansion_opt_out | campaign.url_custom_parameters</div></div>
+      <div class="fl"><label>Tracking Template</label><input class="inp" id="c-tracking-tmpl" placeholder="{lpurl}?source=google&campaign={campaignid}"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 3: תקציב ואסטרטגיית הצעות ══ -->
+<div class="pane" id="p3">
+  <div class="ph"><div class="ph-part">גוגל אדס Search • שלב 3</div><div class="ph-t">תקציב ואסטרטגיית הצעות מחיר</div><div class="ph-s">API resource: CampaignBudget + BiddingStrategy. תקציב חובה לכל קמפיין.</div><hr class="ph-r"></div>
+  <div class="sec">
+    <div class="card" style="margin-bottom:12px;">
+      <div class="st">CampaignBudget</div>
+      <div class="g2">
+        <div class="fl">
+          <label>שם Budget Resource <span class="req">*</span></label>
+          <input class="inp" id="b-name" placeholder="Budget_ניהול_צי_2025" oninput="liveVal(this,'b-name',v=>v.trim().length>0)">
+          <div style="font-size:10px;color:var(--w50);">ייחודי בחשבון</div>
+          <div class="err-msg" id="err-b-name">שם תקציב חובה</div>
+        </div>
+        <div class="fl">
+          <label>תקציב יומי (₪) <span class="req">*</span></label>
+          <input class="inp" id="b-daily" type="number" min="1" step="1" placeholder="300" oninput="calcMicros()">
+          <div style="font-size:10px;color:var(--w50);">מינימום ₪1 | API: amount_micros = ₪×1,000,000</div>
+          <div class="err-msg" id="err-b-daily">תקציב יומי חובה (מינימום ₪1)</div>
+        </div>
+        <div class="fl">
+          <label>amount_micros (API)</label>
+          <input class="inp" id="b-micros" readonly style="color:var(--acc2);font-family:monospace;" placeholder="0">
+          <div style="font-size:10px;color:var(--w50);">ערך שיישלח ל-API</div>
+        </div>
+        <div class="fl">
+          <label>מטבע <span class="req">*</span></label>
+          <select class="inp" id="b-currency">
+            <option value="ILS" selected>₪ שקל (ILS)</option>
+            <option value="USD">$ דולר (USD)</option>
+            <option value="EUR">€ יורו (EUR)</option>
+          </select>
+          <div style="font-size:10px;color:var(--w50);">חייב להתאים למטבע החשבון</div>
+        </div>
+        <div class="fl">
+          <label>שיטת מסירה <span class="req">*</span></label>
+          <select class="inp" id="b-delivery">
+            <option value="STANDARD" selected>STANDARD (תקין)</option>
+            <option value="ACCELERATED" disabled>ACCELERATED (הוסר מ-API v10+)</option>
+          </select>
+          <div style="font-size:10px;color:var(--yel);">⚠️ ACCELERATED בוטל. רק STANDARD תקין ב-v18.</div>
+        </div>
+        <div class="fl">
+          <label>תקציב משותף? <span class="rec">מומלץ לא</span></label>
+          <select class="inp" id="b-shared">
+            <option value="false" selected>לא — תקציב ייחודי לקמפיין זה</option>
+            <option value="true">כן — SharedBudget</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="st">BiddingStrategy</div>
+      <div class="fl">
+        <label>אסטרטגיית הצעות מחיר <span class="req">*</span></label>
+        <select class="inp" id="bid-strategy" onchange="onBidChange()">
+          <option value="TARGET_CPA" selected>יעד עלות להמרה — Target CPA</option>
+          <option value="TARGET_ROAS">יעד החזר השקעה — Target ROAS</option>
+          <option value="MAXIMIZE_CONVERSIONS">מקסום המרות</option>
+          <option value="MAXIMIZE_CONVERSION_VALUE">מקסום ערך המרות</option>
+          <option value="MANUAL_CPC">CPC ידנית — Manual CPC</option>
+          <option value="ENHANCED_CPC">CPC משופרת — eCPC (בוטל בחלקו)</option>
+          <option value="TARGET_IMPRESSION_SHARE">נתח חשיפות יעד</option>
+        </select>
+      </div>
+      <div id="bid-note" class="alt alt-w" style="margin-bottom:8px;">⚠️ Target CPA דורש לפחות 30 המרות ב-30 יום קודמים</div>
+      <div id="bid-extra" class="g2"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 4: מיקוד גיאוגרפי ══ -->
+<div class="pane" id="p4">
+  <div class="ph"><div class="ph-part">גוגל אדס Search • שלב 4</div><div class="ph-t">מיקוד גיאוגרפי</div><div class="ph-s">API resource: GeoTargetConstant + CampaignCriterion. חובה: לפחות אזור אחד.</div><hr class="ph-r"></div>
+  <div class="sec">
+    <div class="card" style="margin-bottom:12px;">
+      <div class="fl">
+        <label>סוג מיקוד גיאוגרפי <span class="req">*</span></label>
+        <select class="inp" id="geo-type">
+          <option value="PRESENCE" selected>נוכחות פיזית — PRESENCE (מומלץ)</option>
+          <option value="PRESENCE_OR_INTEREST">נוכחות או עניין — PRESENCE_OR_INTEREST</option>
+          <option value="INTEREST">עניין בלבד — INTEREST</option>
+        </select>
+        <div style="font-size:10px;color:var(--w50);">API: geo_target_type_setting.positive_geo_target_type</div>
+      </div>
+    </div>
+    <div class="st">אזורים לכלול</div>
+    <div class="alt alt-i" style="margin-bottom:8px;">ℹ️ Criterion IDs מדויקים: ישראל=2376 | ת"א=1007040 | חיפה=1007196 | ירושלים=1007116 | ב"ש=1007046</div>
+    <div style="display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;">
+      <button class="btn btn-p btn-sm" onclick="addGeo('include')">+ הוסף אזור</button>
+      <button class="btn btn-re btn-sm" onclick="addGeo('exclude')">+ הוסף החרגה</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>מדינה</th><th>אזור/עיר</th><th>Criterion ID <span class="req">*</span></th><th>סוג</th><th>כלול/מוחרג <span class="req">*</span></th><th>סטטוס</th><th>פעולות</th></tr></thead>
+      <tbody id="geo-tbody">
+        <tr><td contenteditable="true">ישראל</td><td contenteditable="true">כל הארץ</td><td contenteditable="true" style="font-family:monospace;color:var(--acc2);">2376</td><td><span class="bd bd-b">מדינה</span></td><td><select class="inp" style="padding:2px 6px;font-size:10px;"><option>כלול — INCLUDE</option><option>מוחרג — EXCLUDE</option></select></td><td><span class="bd bd-y">ממתין</span></td><td class="td-act"><button class="btn btn-go btn-sm" onclick="apvRow(this)">✓</button><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td></tr>
+        <tr><td contenteditable="true">ישראל</td><td contenteditable="true">תל אביב</td><td contenteditable="true" style="font-family:monospace;color:var(--acc2);">1007040</td><td><span class="bd bd-b">עיר</span></td><td><select class="inp" style="padding:2px 6px;font-size:10px;"><option>כלול — INCLUDE</option><option>מוחרג — EXCLUDE</option></select></td><td><span class="bd bd-y">ממתין</span></td><td class="td-act"><button class="btn btn-go btn-sm" onclick="apvRow(this)">✓</button><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══ שלב 5: קבוצות מודעות ══ -->
+<div class="pane" id="p5">
+  <div class="ph"><div class="ph-part">גוגל אדס Search • שלב 5</div><div class="ph-t">קבוצות מודעות ומילות מפתח</div><div class="ph-s">API resource: AdGroup + AdGroupCriterion. חובה: קבוצה אחת + מילת מפתח אחת.</div><hr class="ph-r"></div>
+  <div class="sec">
+    <div class="alt alt-i">ℹ️ מגבלות API: עד 20,000 קבוצות/קמפיין | עד 20,000 מילות מפתח/קבוצה | מקסימום 10 מילים למילת מפתח | מילות שלילה: עד 5,000/קמפיין</div>
+    <button class="btn btn-p btn-sm" onclick="addAdGroup()" style="margin-bottom:10px;">+ הוסף קבוצת מודעות</button>
+    <div id="adgroups-container" style="display:flex;flex-direction:column;gap:12px;"></div>
+    <!-- Campaign-level negative keywords -->
+    <div class="st" style="margin-top:16px;">מילות שלילה ברמת קמפיין <span class="rec">מומלץ</span></div>
+    <div class="alt alt-i" style="margin-bottom:8px;">מילות שלילה אלו חלות על כל קבוצות המודעות בקמפיין. API: CampaignCriterion (negative=true)</div>
+    <div style="display:flex;gap:6px;margin-bottom:7px;"><button class="btn btn-g btn-sm" onclick="addCampNeg()">+ הוסף מילת שלילה לקמפיין</button></div>
+    <div class="tw"><table>
+      <thead><tr><th>מילת שלילה</th><th>סוג התאמה</th><th>רמה</th><th>פעולות</th></tr></thead>
+      <tbody id="camp-neg-tbody">
+        <tr><td contenteditable="true" style="color:var(--red);font-weight:600;">פרטי</td><td><select class="inp" style="padding:2px 5px;font-size:10px;"><option>BROAD</option><option>PHRASE</option><option>EXACT</option></select></td><td><span class="bd bd-b">קמפיין</span></td><td class="td-act"><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td></tr>
+        <tr><td contenteditable="true" style="color:var(--red);font-weight:600;">עצמאי</td><td><select class="inp" style="padding:2px 5px;font-size:10px;"><option>BROAD</option><option>PHRASE</option><option>EXACT</option></select></td><td><span class="bd bd-b">קמפיין</span></td><td class="td-act"><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td></tr>
+        <tr><td contenteditable="true" style="color:var(--red);font-weight:600;">חינם</td><td><select class="inp" style="padding:2px 5px;font-size:10px;"><option>BROAD</option><option>PHRASE</option><option>EXACT</option></select></td><td><span class="bd bd-b">קמפיין</span></td><td class="td-act"><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══ שלב 6: מודעות RSA ══ -->
+<div class="pane" id="p6">
+  <div class="ph"><div class="ph-part">גוגל אדס Search • שלב 6</div><div class="ph-t">מודעות — RSA</div><div class="ph-s">API resource: Ad (type: RESPONSIVE_SEARCH_AD). מינימום 3 כותרות + 2 תיאורים. מומלץ 15+4.</div><hr class="ph-r"></div>
+  <div class="sec">
+    <div class="alt alt-r">🔴 חוקי RSA: 3–20 כותרות ×30 תווים | 2–6 תיאורים ×90 תווים | Path1+Path2 ×15 תווים כל אחד | חובה: Final URL</div>
+    <div class="alt alt-i">ℹ️ ציון Ad Strength מחושב: Excellent>80 | Good 60-79 | Poor<60 | גוגל בוחרת עד 3 כותרות + 2 תיאורים לכל הצגה</div>
+    <div id="rsa-container" style="display:flex;flex-direction:column;gap:14px;"></div>
+    <button class="btn btn-p btn-sm" onclick="addRSA(false)" style="margin-top:10px;">+ הוסף מודעת RSA</button>
+  </div>
+</div>
+
+<!-- ══ שלב 7: נכסי מודעה ══ -->
+<div class="pane" id="p7">
+  <div class="ph"><div class="ph-part">גוגל אדס Search • שלב 7</div><div class="ph-t">נכסי מודעה — Assets</div><div class="ph-s">API resource: CampaignAsset / AdGroupAsset. לא חובה לשליחה, אך מגדילים CTR ב-15%+.</div><hr class="ph-r"></div>
+  <div class="sec">
+    <div class="alt alt-i">ℹ️ גוגל ממליצה: 4+ קישורי אתר | 4+ תוספי שיחה | 2+ תוספי מידע | תוסף טלפון | תוסף מיקום</div>
+    <!-- Sitelinks -->
+    <div class="st">קישורי אתר — Sitelink Assets <span class="rec">מומלץ מאוד</span></div>
+    <div class="alt alt-i" style="margin-bottom:7px;font-size:11px;">כותרת: עד 25 תווים | תיאור 1+2: עד 35 תווים כל אחד | URL: חובה</div>
+    <div id="sitelinks-container" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
+    <button class="btn btn-g btn-sm" onclick="addSitelink()" style="margin-bottom:16px;">+ קישור אתר</button>
+    <!-- Callouts -->
+    <div class="st">תוספי שיחה — Callout Assets <span class="rec">מומלץ</span></div>
+    <div class="alt alt-i" style="margin-bottom:7px;font-size:11px;">עד 25 תווים כל אחד | 4–10 מומלצים | ללא URL</div>
+    <div id="callouts-container" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+    <button class="btn btn-g btn-sm" onclick="addCallout()" style="margin-bottom:16px;">+ תוסף שיחה</button>
+    <!-- Structured Snippets -->
+    <div class="st">מידע מובנה — Structured Snippets <span class="rec">מומלץ</span></div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="g2">
+        <div class="fl"><label>כותרת רשימה (Header)</label>
+          <select class="inp" id="snip-hdr"><option>שירותים</option><option>מותגים</option><option>מוצרים</option><option>קורסים</option><option>יעדים</option><option>סוגים</option><option>דגמים</option></select></div>
+        <div class="fl"><label>ערכים (פסיק מפריד, עד 10 ערכים, כל אחד עד 25 תווים)</label>
+          <input class="inp" id="snip-vals" placeholder="ניהול GPS, ביטוח צי, תחזוקה, מימון רכב" oninput="chkSnippet(this)"></div>
+      </div>
+    </div>
+    <!-- Call Asset -->
+    <div class="st">תוסף טלפון — Call Asset <span class="rec">מומלץ</span></div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="g2">
+        <div class="fl"><label>מספר טלפון <span class="req">*</span></label><input class="inp" id="call-phone" placeholder="03-XXXXXXX או 05X-XXXXXXX"></div>
+        <div class="fl"><label>קוד מדינה (ISO)</label><input class="inp" id="call-cc" value="IL" maxlength="2"></div>
+        <div class="fl"><label>שעות מענה</label><input class="inp" id="call-hours" placeholder="א׳-ה׳ 09:00-18:00"></div>
+        <div class="fl"><label>ספירת המרת שיחה</label><select class="inp" id="call-conversion"><option value="CALL_DURATION">לפי משך שיחה (ברירת מחדל)</option><option value="ALWAYS">תמיד</option></select></div>
+      </div>
+    </div>
+    <!-- Location Asset -->
+    <div class="st">תוסף מיקום — Location Asset <span class="rec">מומלץ</span></div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="g2">
+        <div class="fl"><label>Business Profile ID (GBP)</label><input class="inp" id="loc-id" placeholder="מזהה Google Business"></div>
+        <div class="fl"><label>כתובת עסק</label><input class="inp" id="loc-addr" placeholder="רחוב המלאכה 1, תל אביב"></div>
+      </div>
+      <div style="font-size:10px;color:var(--w50);">API: LocationAsset — מחובר ל-Google Business Profile</div>
+    </div>
+    <!-- Price Asset -->
+    <div class="st">תוסף מחיר — Price Asset <span style="font-size:10px;color:var(--w50);">אופציונלי</span></div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="g2">
+        <div class="fl"><label>סוג</label><select class="inp" id="price-type"><option value="SERVICES">שירותים</option><option value="PRODUCTS">מוצרים</option><option value="BRANDS">מותגים</option></select></div>
+        <div class="fl"><label>מטבע</label><select class="inp" id="price-currency"><option value="ILS">₪ ILS</option><option value="USD">$ USD</option></select></div>
+      </div>
+      <div id="price-items" style="display:flex;flex-direction:column;gap:7px;"></div>
+      <button class="btn btn-g btn-sm" onclick="addPriceItem()" style="margin-top:7px;">+ פריט מחיר</button>
+      <div style="font-size:10px;color:var(--w50);margin-top:5px;">API: PriceAsset.price_offerings[] | כותרת עד 25 תווים | תיאור עד 25 תווים</div>
+    </div>
+    <!-- Image Asset (for future Display use, stored now) -->
+    <div class="st">נכסי תמונה — Image Assets <span style="font-size:10px;color:var(--w50);">לשימוש עתידי</span></div>
+    <div class="card">
+      <div class="alt alt-i" style="margin-bottom:8px;">ℹ️ תמונות לא נדרשות ל-Search Campaign, אך מאוחסנות לשימוש עתידי ב-Display / PMax.</div>
+      <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="handleImg(this)">
+      <button class="btn btn-g btn-sm" onclick="document.getElementById('img-upload').click()">📸 העלה תמונה</button>
+      <div id="img-list" style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ שלב 8: מעקב והמרות ══ -->
+<div class="pane" id="p8">
+  <div class="ph"><div class="ph-part">גוגל אדס Search • שלב 8</div><div class="ph-t">מעקב והמרות</div><div class="ph-s">API resource: ConversionAction + Campaign.url_custom_parameters. חובה לאסטרטגיות חכמות.</div><hr class="ph-r"></div>
+  <div class="sec">
+    <div class="alt alt-w">⚠️ Target CPA / Maximize Conversions דורשים לפחות 30 המרות ב-30 יום. בלי המרות — אסטרטגיות חכמות לא יעבדו.</div>
+    <!-- Final URL -->
+    <div class="st">כתובת יעד — Final URL <span class="req">*</span></div>
+    <div class="card" style="margin-bottom:12px;">
+      <div class="fl"><label>Final URL <span class="req">*</span></label>
+        <input class="inp" id="url-final" placeholder="https://greentech.co.il/contact" oninput="chkURL(this)">
+        <div class="err-msg" id="err-url-final">חובה URL תקין שמתחיל ב-https://</div></div>
+      <div class="fl"><label>Final Mobile URL <span class="rec">מומלץ</span></label>
+        <input class="inp" id="url-mobile" placeholder="https://greentech.co.il/m/contact"></div>
+      <div class="fl"><label>Tracking Template <span class="rec">מומלץ</span></label>
+        <input class="inp" id="url-tmpl" placeholder="{lpurl}?utm_source=google&utm_medium=cpc&utm_campaign={campaignid}&utm_content={adgroupid}&gclid={gclid}">
+        <div style="font-size:10px;color:var(--w50);">ValueTrack: {lpurl}, {campaignid}, {adgroupid}, {keyword}, {gclid}</div></div>
+      <div class="fl"><label>Custom Parameter</label>
+        <input class="inp" id="url-param" placeholder="{_camp}=fleet-gps&{_src}=search"></div>
+      <div class="fl"><label>Final URL Suffix (AdGroup level override)</label>
+        <input class="inp" id="url-suffix" placeholder="gclid={gclid}&placement={placement}"></div>
+    </div>
+    <!-- Google Tag -->
+    <div class="st">Google Tag — תג מעקב <span class="rec">מומלץ</span></div>
+    <div class="card" style="margin-bottom:12px;">
+      <div class="g2">
+        <div class="fl"><label>Google Tag ID (G-XXXXXXXXXX)</label><input class="inp" id="gtag-id" placeholder="G-XXXXXXXXXX"></div>
+        <div class="fl"><label>Conversion ID (AW-XXXXXXXXXX)</label><input class="inp" id="gtag-conv-id" placeholder="AW-XXXXXXXXXX"></div>
+      </div>
+      <div style="font-size:10px;color:var(--w50);">נדרש להגדרת conversion tracking ב-Google Ads</div>
+    </div>
+    <!-- Conversions -->
+    <div class="st">פעולות המרה — ConversionAction</div>
+    <button class="btn btn-g btn-sm" onclick="addConv()" style="margin-bottom:8px;">+ הוסף המרה</button>
+    <div class="tw"><table>
+      <thead><tr><th>שם <span class="req">*</span></th><th>קטגוריה <span class="req">*</span></th><th>ערך (₪)</th><th>חלון (ימים)</th><th>ספירה</th><th>View-Through</th><th>תג</th><th>סטטוס</th><th>פעולות</th></tr></thead>
+      <tbody id="conv-tbody">
+        <tr>
+          <td contenteditable="true">שליחת טופס</td>
+          <td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>SUBMIT_LEAD_FORM</option><option>PURCHASE</option><option>PHONE_CALL_LEAD</option><option>DOWNLOAD</option><option>PAGE_VIEW</option><option>SIGNUP</option></select></td>
+          <td contenteditable="true">250</td>
+          <td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>30</option><option>7</option><option>60</option><option>90</option></select></td>
+          <td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>ONE</option><option>MANY</option></select></td>
+          <td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>1</option><option>7</option><option>30</option></select></td>
+          <td><span class="bd bd-y">ממתין</span></td>
+          <td><span class="bd bd-y">ממתין</span></td>
+          <td class="td-act"><button class="btn btn-go btn-sm" onclick="apvRow(this)">✓</button><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td>
+        </tr>
+        <tr>
+          <td contenteditable="true">שיחת טלפון</td>
+          <td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>PHONE_CALL_LEAD</option><option>SUBMIT_LEAD_FORM</option></select></td>
+          <td contenteditable="true">150</td>
+          <td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>30</option><option>7</option></select></td>
+          <td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>ONE</option></select></td>
+          <td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>1</option><option>7</option></select></td>
+          <td><span class="bd bd-r">חסר</span></td>
+          <td><span class="bd bd-y">ממתין</span></td>
+          <td class="td-act"><button class="btn btn-go btn-sm" onclick="apvRow(this)">✓</button><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══ שלב 9: ולידציה ואישור ══ -->
+<div class="pane" id="p9">
+  <div class="ph"><div class="ph-part">גוגל אדס Search • שלב 9</div><div class="ph-t">ולידציה סופית ואישור</div><div class="ph-s">בדיקת כל 26 חוקי Google Ads API v18 לפני סימון "מוכן לשליחה".</div><hr class="ph-r"></div>
+  <div class="sec">
+    <div style="display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="btn btn-p" onclick="runValidation()">▶ הפעל ולידציה מלאה</button>
+      <button class="btn btn-g btn-sm" onclick="saveToLS()">💾 שמור טיוטה</button>
+      <button class="btn btn-g btn-sm" onclick="toast('📊 מייצא JSON...')">📊 ייצא JSON</button>
+    </div>
+    <div id="val-results" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div id="payload-section" style="display:none;margin-top:14px;">
+      <div class="st">מבנה API — JSON Preview</div>
+      <div class="card" style="background:var(--bg4);">
+        <pre id="api-json" style="font-size:10px;color:var(--acc2);font-family:monospace;white-space:pre-wrap;line-height:1.7;max-height:380px;overflow-y:auto;"></pre>
+      </div>
+    </div>
+    <div id="ready-section" style="display:none;margin-top:14px;">
+      <div class="ready-badge no" id="final-ready">❌ לא מוכן</div>
+      <div id="ready-actions" style="display:none;margin-top:10px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-go" style="font-size:13px;padding:10px 20px;" onclick="markReady()">🚀 סמן כמוכן לשליחה ל-API</button>
+          <button class="btn btn-g" onclick="toast('📧 נשלח לאישור יוני')">📧 שלח לאישור</button>
+        </div>
+        <div style="font-size:10px;color:var(--w50);margin-top:8px;">⚠️ שליחה ל-Google Ads API תתבצע בחלק ג' בלבד, לאחר אישור מפורש.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+<div class="footer">
+  <div class="finfo" id="finfo">הזן פרטי חשבון גוגל אדס</div>
+  <div style="display:flex;gap:7px;">
+    <button class="btn btn-g btn-sm" id="btn-back" style="display:none;" onclick="prev()">← חזרה</button>
+    <button class="btn btn-p btn-sm" id="btn-next" onclick="nxt()">הבא ←</button>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+// ══ GOOGLE ADS API v18 — SEARCH CAMPAIGN MODULE ══
+// All field names, formats, and validations match Google Ads API v18 spec
+
+const STEPS=[
+  {n:1,lbl:'חיבור חשבון',   hint:'הגדר פרטי חשבון גוגל אדס'},
+  {n:2,lbl:'הגדרות קמפיין', hint:'שם, מטרה, לוח זמנים, URL'},
+  {n:3,lbl:'תקציב והצעות',  hint:'CampaignBudget + BiddingStrategy'},
+  {n:4,lbl:'מיקוד גיאוגרפי',hint:'GeoTargetConstant + Criterion IDs'},
+  {n:5,lbl:'קבוצות מודעות', hint:'AdGroup + AdGroupCriterion + מילות שלילה'},
+  {n:6,lbl:'מודעות RSA',    hint:'ResponsiveSearchAd — כותרות ותיאורים'},
+  {n:7,lbl:'נכסי מודעה',    hint:'Sitelinks, Callouts, Call, Location, Price'},
+  {n:8,lbl:'מעקב המרות',    hint:'ConversionAction + Final URL + Google Tag'},
+  {n:9,lbl:'ולידציה ואישור',hint:'26 חוקי API — בדיקה לפני שליחה'},
+];
+
+let CUR=1, MAX=1;
+
+// ── WIZARD ──
+(function(){
+  const el=document.getElementById('wsteps');
+  el.innerHTML=STEPS.map(s=>`<div class="ws ${s.n===1?'active':'locked'}" id="ws${s.n}" onclick="jump(${s.n})"><div class="wsn">${s.n}</div>${s.lbl}</div>`).join('');
+})();
+
+function updWiz(){
+  STEPS.forEach(s=>{
+    const el=document.getElementById('ws'+s.n),sn=el.querySelector('.wsn');
+    el.className='ws '+(s.n<CUR?'done':s.n===CUR?'active':s.n<=MAX?'':'locked');
+    sn.textContent=s.n<CUR?'✓':s.n;
+  });
+  document.getElementById('pf').style.width=(CUR/9*100)+'%';
+  document.getElementById('btn-back').style.display=CUR>1?'':'none';
+  document.getElementById('btn-next').textContent=CUR===9?'▶ ולידציה':'הבא ←';
+  document.getElementById('finfo').textContent=STEPS[CUR-1]?.hint||'';
+}
+
+function showStep(n){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p'+n)?.classList.add('on');
+  CUR=n; MAX=Math.max(MAX,n); updWiz();
+  if(n===5&&!document.getElementById('adgroups-container').children.length) initAdGroups();
+  if(n===6&&!document.getElementById('rsa-container').children.length) initRSA();
+  if(n===7&&!document.getElementById('sitelinks-container').children.length) initAssets();
+  window.scrollTo(0,0);
+}
+function jump(n){ if(n<=MAX) showStep(n); else toast('השלם את השלב הנוכחי קודם'); }
+function prev(){ if(CUR>1) showStep(CUR-1); }
+function nxt(){
+  if(CUR===9){runValidation();return;}
+  MAX=Math.max(MAX,CUR+1); showStep(CUR+1);
+}
+
+// ── STEP 1: CONNECTION ──
+function fmtCID(inp){
+  let v=inp.value.replace(/\D/g,'').slice(0,10);
+  if(v.length>6) v=v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
+  else if(v.length>3) v=v.slice(0,3)+'-'+v.slice(3);
+  inp.value=v;
+  updConnJSON();
+}
+function doConnect(){
+  const email=document.getElementById('ga-email').value.trim();
+  const cid=document.getElementById('ga-cid').value.replace(/\D/g,'');
+  if(!email||!email.includes('@')){toast('⚠️ הזן אימייל תקין');return;}
+  if(cid.length!==10){toast('⚠️ Customer ID חייב להיות 10 ספרות');return;}
+  toast('🔗 מאמת פרטי חשבון...');
+  setTimeout(()=>{
+    document.getElementById('conn-dot').style.background='var(--green)';
+    document.getElementById('conn-label').textContent='פרטים אומתו ✓ (Staging — לא חיבור אמיתי)';
+    ['camp','read','bud','conv','oauth'].forEach(p=>{
+      const el=document.getElementById('perm-'+p);
+      if(el){el.textContent='מוכן ✓';el.className='bd bd-g';}
+    });
+    document.getElementById('api-ready-status').className='ready-badge yes';
+    document.getElementById('api-ready-status').textContent='✅ פרטי חשבון מוגדרים — ממתין לולידציה מלאה';
+    document.getElementById('conn-result').style.display='';
+    document.getElementById('conn-result').innerHTML='<div class="alt alt-ok">✅ Customer ID אומת | MCC: '+(document.getElementById('ga-mcc').value||'ללא')+' | API Version: v18</div>';
+    document.getElementById('tb-cid').textContent=document.getElementById('ga-cid').value;
+    updConnJSON();
+    toast('✅ פרטי חשבון הוגדרו!');
+  },1200);
+}
+function updConnJSON(){
+  const j={
+    customer_id: document.getElementById('ga-cid').value||'',
+    mcc_id: document.getElementById('ga-mcc').value||null,
+    login_customer_id: document.getElementById('ga-login-cid').value||document.getElementById('ga-cid').value||'',
+    api_version: document.getElementById('ga-api-ver').value||'v18',
+    oauth_scope: 'https://www.googleapis.com/auth/adwords',
+    connected: false,
+    permissions:{campaigns:'pending',reporting:'pending',budgets:'pending',conversions:'pending'},
+    draft_status:'awaiting_connection',
+    note:'Staging only — no real API call',
+  };
+  const el=document.getElementById('conn-json');
+  if(el) el.textContent=JSON.stringify(j,null,2);
+}
+
+// ── STEP 2: CAMPAIGN ──
+function tchip(el){el.classList.toggle('on');}
+document.querySelectorAll('.sched-day').forEach(d=>d.onclick=function(){this.classList.toggle('on');});
+
+// ── STEP 3: BUDGET ──
+function calcMicros(){
+  const v=parseFloat(document.getElementById('b-daily').value)||0;
+  document.getElementById('b-micros').value=v>0?(v*1000000).toFixed(0)+' micros':'0';
+  liveVal(document.getElementById('b-daily'),'b-daily',x=>parseFloat(x)>=1);
+}
+function onBidChange(){
+  const s=document.getElementById('bid-strategy').value;
+  const notes={
+    TARGET_CPA:'⚠️ Target CPA: דורש 30+ המרות ב-30 יום. target_cpa_micros = יעד × 1,000,000',
+    TARGET_ROAS:'⚠️ Target ROAS: דורש 50+ המרות ב-30 יום. target_roas = ערך שבר (3.0 = 300%)',
+    MAXIMIZE_CONVERSIONS:'✓ מקסום המרות: עובד גם בלי היסטוריה. מומלץ לחשבונות חדשים.',
+    MAXIMIZE_CONVERSION_VALUE:'✓ מקסום ערך: דורש ערכי המרה שונים להגדרה.',
+    MANUAL_CPC:'ℹ️ Manual CPC: cpc_bid_ceiling_micros. שליטה מלאה — מומלץ לחשבונות חדשים.',
+    ENHANCED_CPC:'⚠️ eCPC: הוסר בחלקו ב-Google. Manual CPC + enhanced_cpc_enabled: true',
+    TARGET_IMPRESSION_SHARE:'ℹ️ נתח חשיפות: target_impression_share.location = TOP_OF_PAGE / ABSOLUTE_TOP_OF_PAGE',
+  };
+  document.getElementById('bid-note').textContent=notes[s]||'';
+  let html='';
+  if(s==='TARGET_CPA') html=`<div class="fl"><label>יעד CPA (₪) <span class="req">*</span></label><input class="inp" id="bid-cpa" type="number" min="1" placeholder="250"><div style="font-size:10px;color:var(--w50);">API: target_cpa.target_cpa_micros = ₪×1,000,000</div></div>`;
+  else if(s==='TARGET_ROAS') html=`<div class="fl"><label>יעד ROAS (ערך, לא %) <span class="req">*</span></label><input class="inp" id="bid-roas" type="number" min="0.01" step="0.01" placeholder="3.0"><div style="font-size:10px;color:var(--w50);">3.0 = 300% ROAS. API: target_roas.target_roas</div></div>`;
+  else if(s==='MANUAL_CPC') html=`<div class="fl"><label>CPC מקסימלי (₪) <span class="req">*</span></label><input class="inp" id="bid-cpc" type="number" min="0.01" step="0.01" placeholder="8.00"><div style="font-size:10px;color:var(--w50);">API: manual_cpc.enhanced_cpc_enabled</div></div>`;
+  else if(s==='TARGET_IMPRESSION_SHARE') html=`<div class="fl"><label>נתח חשיפות יעד (%)</label><input class="inp" id="bid-is" type="number" min="1" max="100" placeholder="80"></div><div class="fl"><label>מיקום</label><select class="inp" id="bid-loc"><option value="ABSOLUTE_TOP_OF_PAGE">מעל לכולם</option><option value="TOP_OF_PAGE">בתחילת עמוד</option><option value="ANYWHERE_ON_PAGE">כל מקום</option></select></div>`;
+  document.getElementById('bid-extra').innerHTML=html;
+}
+
+// ── STEP 4: GEO ──
+function addGeo(type){
+  const tr=document.createElement('tr');
+  const isExcl=type==='exclude';
+  tr.innerHTML=`<td contenteditable="true">ישראל</td><td contenteditable="true">${isExcl?'עיר להחרגה':'עיר/אזור'}</td><td contenteditable="true" style="font-family:monospace;color:var(--acc2);">0</td><td><span class="bd bd-b">עיר</span></td><td><select class="inp" style="padding:2px 6px;font-size:10px;"><option ${isExcl?'':'selected'}>כלול — INCLUDE</option><option ${isExcl?'selected':''}>מוחרג — EXCLUDE</option></select></td><td><span class="bd bd-y">ממתין</span></td><td class="td-act"><button class="btn btn-go btn-sm" onclick="apvRow(this)">✓</button><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td>`;
+  document.getElementById('geo-tbody').appendChild(tr);
+}
+
+// ── STEP 5: AD GROUPS ──
+const KW_TYPES=[{v:'EXACT',l:'[מדויקת]'},{v:'PHRASE',l:'"ביטוי"'},{v:'BROAD',l:'רחבה'}];
+const DEMO_GROUPS=[
+  {name:'ניהול צי GPS',status:'PAUSED',cpc:8,kws:[{kw:'ניהול צי רכב',t:'EXACT',bid:8},{kw:'ניהול צי GPS',t:'EXACT',bid:9},{kw:'מעקב רכבים לעסקים',t:'PHRASE',bid:7},{kw:'ניהול צי לעסקים',t:'PHRASE',bid:6}],negs:[{kw:'פרטי',t:'BROAD'},{kw:'חינם',t:'BROAD'}]},
+  {name:'ביטוח צי',status:'PAUSED',cpc:12,kws:[{kw:'ביטוח צי רכב',t:'EXACT',bid:12},{kw:'ביטוח רכב עסקי',t:'PHRASE',bid:10}],negs:[{kw:'פרטי',t:'BROAD'}]},
+  {name:'תחזוקת רכבים',status:'PAUSED',cpc:7,kws:[{kw:'תחזוקת צי רכב',t:'EXACT',bid:7},{kw:'ניהול תחזוקה עסקי',t:'PHRASE',bid:6}],negs:[]},
+];
+
+function initAdGroups(){ DEMO_GROUPS.forEach(g=>renderAdGroup(g)); }
+function renderAdGroup(g){
+  const id='ag'+Date.now().toString(36);
+  const d=document.createElement('div'); d.className='card'; d.id=id;
+  d.innerHTML=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+    <input class="inp" value="${g.name}" placeholder="שם קבוצת מודעות" style="flex:1;font-weight:700;" maxlength="255">
+    <select class="inp" style="max-width:140px;font-size:11px;"><option value="PAUSED" selected>מושהה</option><option value="ENABLED">פעיל</option></select>
+    <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:10px;color:var(--w50);white-space:nowrap;">CPC מקס ₪</label><input class="inp" type="number" min="0.01" step="0.01" value="${g.cpc}" style="width:70px;font-size:11px;"></div>
+    <button class="btn btn-re btn-sm" onclick="this.closest('.card').remove()">✕</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div>
+      <div class="st" style="font-size:9px;">מילות מפתח <span class="req">*</span></div>
+      <table style="font-size:11px;width:100%;"><thead><tr><th>מילה</th><th>סוג</th><th>CPC ₪</th><th></th></tr></thead>
+      <tbody id="kw-${id}">${g.kws.map(k=>`<tr><td contenteditable="true" style="font-weight:600;">${k.kw}</td><td><select class="inp" style="padding:2px 4px;font-size:10px;">${KW_TYPES.map(t=>`<option value="${t.v}"${t.v===k.t?' selected':''}>${t.l}</option>`).join('')}</select></td><td contenteditable="true">${k.bid}</td><td><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td></tr>`).join('')}</tbody></table>
+      <button class="btn btn-g btn-sm" onclick="addKW('kw-${id}')" style="margin-top:4px;">+ מילת מפתח</button>
+    </div>
+    <div>
+      <div class="st" style="font-size:9px;">מילות שלילה לקבוצה</div>
+      <table style="font-size:11px;width:100%;"><thead><tr><th>מילת שלילה</th><th>סוג</th><th></th></tr></thead>
+      <tbody id="neg-${id}">${g.negs.map(n=>`<tr><td contenteditable="true" style="color:var(--red);">${n.kw}</td><td><select class="inp" style="padding:2px 4px;font-size:10px;">${KW_TYPES.map(t=>`<option value="${t.v}"${t.v===n.t?' selected':''}>${t.l}</option>`).join('')}</select></td><td><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td></tr>`).join('')}</tbody></table>
+      <button class="btn btn-g btn-sm" onclick="addNeg('neg-${id}')" style="margin-top:4px;">+ מילת שלילה</button>
+    </div>
+  </div>`;
+  document.getElementById('adgroups-container').appendChild(d);
+}
+function addAdGroup(){renderAdGroup({name:'קבוצה חדשה',status:'PAUSED',cpc:8,kws:[],negs:[]});}
+function addKW(id){ const tr=document.createElement('tr'); tr.innerHTML=`<td contenteditable="true">מילת מפתח</td><td><select class="inp" style="padding:2px 4px;font-size:10px;">${KW_TYPES.map(t=>`<option>${t.l}</option>`).join('')}</select></td><td contenteditable="true">5</td><td><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td>`; document.getElementById(id)?.appendChild(tr); }
+function addNeg(id){ const tr=document.createElement('tr'); tr.innerHTML=`<td contenteditable="true" style="color:var(--red);">מילת שלילה</td><td><select class="inp" style="padding:2px 4px;font-size:10px;">${KW_TYPES.map(t=>`<option>${t.l}</option>`).join('')}</select></td><td><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td>`; document.getElementById(id)?.appendChild(tr); }
+function addCampNeg(){ const tr=document.createElement('tr'); tr.innerHTML=`<td contenteditable="true" style="color:var(--red);font-weight:600;">מילת שלילה</td><td><select class="inp" style="padding:2px 5px;font-size:10px;">${KW_TYPES.map(t=>`<option>${t.l}</option>`).join('')}</select></td><td><span class="bd bd-b">קמפיין</span></td><td class="td-act"><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td>`; document.getElementById('camp-neg-tbody')?.appendChild(tr); }
+
+// ── STEP 6: RSA ──
+// Google RSA spec: 3-20 headlines ×30 chars | 2-6 descriptions ×90 chars | path1+path2 ×15 chars | Final URL required
+const HL_DEMO=['ניהול צי GPS לעסקים','חיסכון 23% בעלויות הצי','שירות טכנאי בשטח','25 שנות ניסיון מוכח','מעקב GPS בזמן אמת','ניהול תחזוקה מלא','ביטוח צי משולב','אפליקציה ייחודית','פנה לייעוץ חינם','הצעה תוך 24 שעות','ניהול צי מקצועי','לכל גודל צי','תמיכה 24/7','ניהול מרחוק','דוחות אוטומטיים'];
+const DESC_DEMO=['מערכת GPS מתקדמת לניהול צי רכב. מעקב בזמן אמת, דוחות תחזוקה, חיסכון מוכח. פנה עכשיו לייעוץ חינם.','ניסיון 25 שנה בניהול צי. שירות בשטח, אפליקציה ייחודית, תמיכה מלאה. קבל הצעה תוך 24 שעות.','חסוך עד 23% בעלויות הצי שלך. GPS, תחזוקה, ביטוח — הכל במקום אחד. פרטים עכשיו.','500+ עסקים מנהלים את הצי עם גרין-טק. ניסיון, אמינות, תוצאות. קבל הצעת מחיר חינם היום.'];
+
+function initRSA(){ addRSA(true); }
+function addRSA(demo){
+  const id='rsa'+Date.now().toString(36);
+  const hls=demo?HL_DEMO:['','',''];
+  const descs=demo?DESC_DEMO:['',''];
+  const d=document.createElement('div'); d.className='card'; d.id=id;
+  d.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+      <div><div style="font-size:12px;font-weight:700;color:var(--acc2);">מודעת RSA 1</div>
+        <div style="font-size:10px;color:var(--w50);">קבוצה: ניהול צי GPS | שירות: ניהול צי</div></div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span class="bd bd-b" id="${id}-str">ציון: —</span>
+        <button class="btn btn-go btn-sm" onclick="approveRSA('${id}')">✓ אשר</button>
+        <button class="btn btn-re btn-sm" onclick="this.closest('.card').remove()">✕</button>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:10px;">
+      <div class="fl"><label>Path 1 <span class="rec">מומלץ</span> (עד 15 תווים)</label><input class="inp" id="${id}-p1" maxlength="15" placeholder="ניהול-צי" oninput="cc(this)"><div class="cc ok" id="${id}-cc-p1">0/15</div></div>
+      <div class="fl"><label>Path 2 <span class="rec">מומלץ</span> (עד 15 תווים)</label><input class="inp" id="${id}-p2" maxlength="15" placeholder="GPS-ישראל" oninput="cc(this)"><div class="cc ok" id="${id}-cc-p2">0/15</div></div>
+    </div>
+    <div class="fl"><label>Final URL <span class="req">*</span></label><input class="inp" id="${id}-url" value="https://greentech.co.il/contact" oninput="chkURL(this)"></div>
+    <div style="font-size:10px;font-weight:700;color:var(--w50);margin:8px 0 5px;">כותרות — ${hls.length}/20 <span style="color:var(--red);">(מינימום 3 × 30 תווים)</span></div>
+    <div id="${id}-hls" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;">${hls.map((h,i)=>`<div class="hl-row"><div class="hl-num">כ׳${i+1}</div><input class="inp" maxlength="30" value="${h}" oninput="cc(this);calcAdStr('${id}')" style="flex:1;font-size:12px;"><div class="cc ${h.length>25?'warn':'ok'}">${h.length}/30</div><select style="padding:2px 4px;border:1px solid var(--w10);background:var(--bg4);color:var(--w50);font-size:9px;border-radius:5px;" title="Pin"><option value="">ללא Pin</option><option>P1</option><option>P2</option><option>P3</option></select><button class="btn btn-go btn-sm" onclick="this.textContent='✓✓';this.disabled=true;this.style.color='var(--green)';" style="font-size:9px;">✓</button></div>`).join('')}</div>
+    <button class="btn btn-g btn-sm" onclick="addHL('${id}-hls','${id}')" style="margin-bottom:10px;" id="${id}-add-hl">+ כותרת (${hls.length}/20)</button>
+    <div style="font-size:10px;font-weight:700;color:var(--w50);margin-bottom:5px;">תיאורים — ${descs.length}/6 <span style="color:var(--red);">(מינימום 2 × 90 תווים)</span></div>
+    <div id="${id}-descs" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;">${descs.map((d2,i)=>`<div class="hl-row"><div class="hl-num">ת׳${i+1}</div><input class="inp" maxlength="90" value="${d2}" oninput="cc(this);calcAdStr('${id}')" style="flex:1;font-size:12px;"><div class="cc ${d2.length>85?'warn':'ok'}">${d2.length}/90</div><select style="padding:2px 4px;border:1px solid var(--w10);background:var(--bg4);color:var(--w50);font-size:9px;border-radius:5px;" title="Pin"><option value="">ללא Pin</option><option>P1</option><option>P2</option></select><button class="btn btn-go btn-sm" onclick="this.textContent='✓✓';this.disabled=true;this.style.color='var(--green)';" style="font-size:9px;">✓</button></div>`).join('')}</div>
+    <button class="btn btn-g btn-sm" onclick="addDesc('${id}-descs','${id}')" style="margin-bottom:8px;">+ תיאור (${descs.length}/6)</button>`;
+  document.getElementById('rsa-container').appendChild(d);
+  if(demo) setTimeout(()=>calcAdStr(id),100);
+}
+
+function addHL(cid,rsaId){
+  const c=document.getElementById(cid); if(!c) return;
+  const n=c.children.length+1;
+  if(n>20){toast('⚠️ מקסימום 20 כותרות');return;}
+  const row=document.createElement('div'); row.className='hl-row';
+  row.innerHTML=`<div class="hl-num">כ׳${n}</div><input class="inp" maxlength="30" placeholder="עד 30 תווים" oninput="cc(this);calcAdStr('${rsaId}')" style="flex:1;font-size:12px;"><div class="cc ok">0/30</div><select style="padding:2px 4px;border:1px solid var(--w10);background:var(--bg4);color:var(--w50);font-size:9px;border-radius:5px;"><option value="">ללא Pin</option><option>P1</option><option>P2</option><option>P3</option></select><button class="btn btn-go btn-sm" onclick="this.textContent='✓✓';this.disabled=true;this.style.color='var(--green)';" style="font-size:9px;">✓</button>`;
+  c.appendChild(row);
+  const btn=document.getElementById(rsaId+'-add-hl');
+  if(btn) btn.textContent=`+ כותרת (${n}/20)`;
+}
+function addDesc(cid,rsaId){
+  const c=document.getElementById(cid); if(!c) return;
+  const n=c.children.length+1;
+  if(n>6){toast('⚠️ מקסימום 6 תיאורים');return;}
+  const row=document.createElement('div'); row.className='hl-row';
+  row.innerHTML=`<div class="hl-num">ת׳${n}</div><input class="inp" maxlength="90" placeholder="עד 90 תווים" oninput="cc(this);calcAdStr('${rsaId}')" style="flex:1;font-size:12px;"><div class="cc ok">0/90</div><select style="padding:2px 4px;border:1px solid var(--w10);background:var(--bg4);color:var(--w50);font-size:9px;border-radius:5px;"><option value="">ללא Pin</option><option>P1</option><option>P2</option></select><button class="btn btn-go btn-sm" onclick="this.textContent='✓✓';this.disabled=true;this.style.color='var(--green)';" style="font-size:9px;">✓</button>`;
+  c.appendChild(row);
+}
+function calcAdStr(id){
+  const hc=[...document.querySelectorAll(`#${id}-hls input`)].filter(i=>i.value.trim()).length;
+  const dc=[...document.querySelectorAll(`#${id}-descs input`)].filter(i=>i.value.trim()).length;
+  let score=0;
+  if(hc>=3)score+=25;if(hc>=10)score+=20;if(hc>=15)score+=15;
+  if(dc>=2)score+=20;if(dc>=4)score+=10;if(dc>=6)score+=5;
+  const p1=document.getElementById(id+'-p1')?.value.trim();
+  if(p1) score+=5;
+  const label=score>=80?'🟢 מצוין (Excellent)':score>=60?'🟡 טוב (Good)':score>=40?'🟠 ממוצע (Average)':'🔴 חלש (Poor)';
+  const el=document.getElementById(id+'-str');
+  if(el) el.textContent=`ציון: ${label}`;
+}
+function approveRSA(id){
+  const hc=[...document.querySelectorAll(`#${id}-hls input`)].filter(i=>i.value.trim()).length;
+  const dc=[...document.querySelectorAll(`#${id}-descs input`)].filter(i=>i.value.trim()).length;
+  if(hc<3){toast('⚠️ מינימום 3 כותרות');return;}
+  if(dc<2){toast('⚠️ מינימום 2 תיאורים');return;}
+  const url=document.getElementById(id+'-url')?.value;
+  if(!url?.startsWith('https://')){toast('⚠️ Final URL חובה (https://)');return;}
+  document.getElementById(id).style.borderColor='rgba(34,197,94,.5)';
+  toast('✅ מודעת RSA אושרה');
+}
+function cc(inp){
+  const max=parseInt(inp.maxLength)||30, len=inp.value.length;
+  const el=inp.nextElementSibling;
+  if(!el?.classList.contains('cc')) return;
+  el.textContent=len+'/'+max;
+  el.className='cc '+(len>max?'over':len>max*0.9?'warn':'ok');
+}
+
+// ── STEP 7: ASSETS ──
+const SL_DEMO=[
+  {t:'שירותי ניהול צי',d1:'GPS בזמן אמת',d2:'לניהול יעיל',u:'https://greentech.co.il/services'},
+  {t:'תמחור וחבילות',d1:'חבילות לכל גודל',d2:'תקציב גמיש',u:'https://greentech.co.il/pricing'},
+  {t:'צור קשר',d1:'ייעוץ חינם 24ש',d2:'שירות לקוחות',u:'https://greentech.co.il/contact'},
+  {t:'אודות גרין-טק',d1:'25 שנות ניסיון',d2:'500+ לקוחות',u:'https://greentech.co.il/about'},
+];
+const CO_DEMO=['25 שנות ניסיון','שירות בשטח 24/7','חיסכון מוכח','ניהול GPS','ביטוח צי','תמיכה מלאה'];
+function initAssets(){ SL_DEMO.forEach(s=>renderSL(s)); CO_DEMO.forEach(c=>renderCO(c)); }
+function renderSL(s){
+  const d=document.createElement('div'); d.className='card'; d.style.marginBottom='7px';
+  d.innerHTML=`<div class="g2"><div class="fl"><label>כותרת (25 תווים <span class="req">*</span>)</label><div style="display:flex;gap:4px;"><input class="inp" maxlength="25" value="${s.t}" oninput="cc(this)" style="flex:1;"><div class="cc ok">${s.t.length}/25</div></div></div><div class="fl"><label>URL סופי <span class="req">*</span></label><input class="inp" maxlength="2048" value="${s.u}" oninput="chkURL(this)"></div><div class="fl"><label>תיאור 1 (35 תווים)</label><div style="display:flex;gap:4px;"><input class="inp" maxlength="35" value="${s.d1}" oninput="cc(this)" style="flex:1;"><div class="cc ok">${s.d1.length}/35</div></div></div><div class="fl"><label>תיאור 2 (35 תווים)</label><div style="display:flex;gap:4px;"><input class="inp" maxlength="35" value="${s.d2}" oninput="cc(this)" style="flex:1;"><div class="cc ok">${s.d2.length}/35</div></div></div></div><button class="btn btn-re btn-sm" onclick="this.closest('.card').remove()">✕</button>`;
+  document.getElementById('sitelinks-container').appendChild(d);
+}
+function addSitelink(){ renderSL({t:'',d1:'',d2:'',u:'https://'}); }
+function renderCO(text){
+  const d=document.createElement('div'); d.style.cssText='display:flex;gap:5px;margin-bottom:5px;';
+  d.innerHTML=`<input class="inp" maxlength="25" value="${text}" placeholder="עד 25 תווים" oninput="cc(this)" style="flex:1;"><div class="cc ok">${text.length}/25</div><button class="btn btn-re btn-sm" onclick="this.closest('div').remove()">✕</button>`;
+  document.getElementById('callouts-container').appendChild(d);
+}
+function addCallout(){ renderCO(''); }
+function addPriceItem(){
+  const d=document.createElement('div'); d.className='card'; d.style.cssText='margin-bottom:6px;padding:10px;';
+  d.innerHTML=`<div class="g3"><div class="fl"><label>כותרת (25 תווים)</label><input class="inp" maxlength="25" placeholder="ניהול צי GPS" oninput="cc(this)"></div><div class="fl"><label>מחיר</label><input class="inp" type="number" min="0" placeholder="499"></div><div class="fl"><label>URL</label><input class="inp" placeholder="https://"></div></div><button class="btn btn-re btn-sm" onclick="this.closest('.card').remove()">✕</button>`;
+  document.getElementById('price-items').appendChild(d);
+}
+function handleImg(inp){ if(inp.files[0]) toast('📸 תמונה נוספה: '+inp.files[0].name); }
+function chkSnippet(inp){ if(inp.value.split(',').some(v=>v.trim().length>25)) toast('⚠️ כל ערך עד 25 תווים'); }
+
+// ── STEP 8: CONVERSIONS ──
+function chkURL(inp){
+  const ok=inp.value.startsWith('https://');
+  inp.classList.toggle('err',!ok&&inp.value.length>0);
+  inp.classList.toggle('ok',ok);
+}
+function addConv(){
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td contenteditable="true">המרה חדשה</td><td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>SUBMIT_LEAD_FORM</option><option>PURCHASE</option><option>PHONE_CALL_LEAD</option><option>PAGE_VIEW</option><option>SIGNUP</option></select></td><td contenteditable="true">100</td><td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>30</option><option>7</option><option>60</option><option>90</option></select></td><td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>ONE</option><option>MANY</option></select></td><td><select class="inp" style="padding:2px 4px;font-size:10px;"><option>1</option><option>7</option><option>30</option></select></td><td><span class="bd bd-r">חסר</span></td><td><span class="bd bd-y">ממתין</span></td><td class="td-act"><button class="btn btn-go btn-sm" onclick="apvRow(this)">✓</button><button class="btn btn-re btn-sm" onclick="delRow(this)">✕</button></td>`;
+  document.getElementById('conv-tbody').appendChild(tr);
+}
+
+// ── STEP 9: VALIDATION — 26 Google Ads API v18 rules ──
+const RULES=[
+  // ACCOUNT (חובה)
+  {cat:'חשבון',req:true,  lbl:'Customer ID מוגדר (10 ספרות)',                  fn:()=>document.getElementById('ga-cid')?.value.replace(/\D/g,'').length===10},
+  {cat:'חשבון',req:true,  lbl:'אימייל Google מוגדר',                            fn:()=>document.getElementById('ga-email')?.value.includes('@')},
+  {cat:'חשבון',req:true,  lbl:'Developer Token מוגדר',                          fn:()=>!!document.getElementById('ga-token')?.value.trim()},
+  // CAMPAIGN (חובה)
+  {cat:'קמפיין',req:true, lbl:'שם קמפיין (1–255 תווים)',                        fn:()=>{const n=document.getElementById('c-name')?.value.trim();return n&&n.length<=255;}},
+  {cat:'קמפיין',req:true, lbl:'תאריך התחלה מוגדר',                              fn:()=>!!document.getElementById('c-start')?.value},
+  {cat:'קמפיין',req:true, lbl:'שפה אחת לפחות נבחרה',                            fn:()=>[...document.querySelectorAll('#lang-chips .chip.on')].length>0},
+  {cat:'קמפיין',req:true, lbl:'מכשיר אחד לפחות נבחר',                          fn:()=>[...document.querySelectorAll('#device-chips .chip.on')].length>0},
+  {cat:'קמפיין',req:false,lbl:'Ad Rotation מוגדר',                              fn:()=>!!document.getElementById('c-rotation')?.value},
+  // BUDGET (חובה)
+  {cat:'תקציב',req:true,  lbl:'שם Budget Resource ייחודי',                      fn:()=>!!document.getElementById('b-name')?.value.trim()},
+  {cat:'תקציב',req:true,  lbl:'תקציב יומי ≥ ₪1',                               fn:()=>parseFloat(document.getElementById('b-daily')?.value||0)>=1},
+  {cat:'תקציב',req:true,  lbl:'Delivery Method: STANDARD בלבד',                fn:()=>document.getElementById('b-delivery')?.value==='STANDARD'},
+  {cat:'תקציב',req:true,  lbl:'אסטרטגיית הצעות מחיר נבחרה',                    fn:()=>!!document.getElementById('bid-strategy')?.value},
+  {cat:'תקציב',req:false, lbl:'Target CPA micros מוגדר (אם נבחר CPA)',          fn:()=>{if(document.getElementById('bid-strategy')?.value!=='TARGET_CPA')return true;return !!document.getElementById('bid-cpa')?.value;}},
+  // GEO (חובה)
+  {cat:'מיקוד',req:true,  lbl:'אזור גיאוגרפי אחד לפחות עם Criterion ID',       fn:()=>document.getElementById('geo-tbody')?.children.length>0},
+  {cat:'מיקוד',req:false, lbl:'Criterion IDs לא אפס',                           fn:()=>[...document.querySelectorAll('#geo-tbody [style*="monospace"]')].every(e=>e.textContent.trim()!=='0')},
+  // AD GROUPS + KEYWORDS (חובה)
+  {cat:'קבוצות מודעות',req:true,lbl:'קבוצת מודעות אחת לפחות',                  fn:()=>document.getElementById('adgroups-container')?.children.length>0},
+  {cat:'קבוצות מודעות',req:true,lbl:'מילת מפתח אחת לפחות בקבוצה',             fn:()=>document.querySelectorAll('[id^="kw-"] tr').length>0},
+  // RSA (חובה)
+  {cat:'מודעות RSA',req:true,lbl:'מודעת RSA אחת לפחות',                        fn:()=>document.getElementById('rsa-container')?.children.length>0},
+  {cat:'מודעות RSA',req:true,lbl:'לפחות 3 כותרות (Google API חובה)',            fn:()=>[...document.querySelectorAll('[id$="-hls"] input')].filter(i=>i.value.trim()).length>=3},
+  {cat:'מודעות RSA',req:true,lbl:'לפחות 2 תיאורים (Google API חובה)',           fn:()=>[...document.querySelectorAll('[id$="-descs"] input')].filter(i=>i.value.trim()).length>=2},
+  {cat:'מודעות RSA',req:true,lbl:'כל הכותרות ≤ 30 תווים',                      fn:()=>[...document.querySelectorAll('[id$="-hls"] input')].every(i=>i.value.length<=30)},
+  {cat:'מודעות RSA',req:true,lbl:'כל התיאורים ≤ 90 תווים',                     fn:()=>[...document.querySelectorAll('[id$="-descs"] input')].every(i=>i.value.length<=90)},
+  {cat:'מודעות RSA',req:false,lbl:'אין כותרות כפולות (מומלץ)',                  fn:()=>{const vals=[...document.querySelectorAll('[id$="-hls"] input')].map(i=>i.value.toLowerCase().trim()).filter(v=>v);return new Set(vals).size===vals.length;}},
+  // FINAL URL (חובה)
+  {cat:'URL ומעקב',req:true,lbl:'Final URL מוגדר ומתחיל ב-https://',            fn:()=>document.getElementById('url-final')?.value.startsWith('https://')},
+  // CONVERSIONS (מומלץ)
+  {cat:'המרות',req:false, lbl:'המרה אחת לפחות מוגדרת',                          fn:()=>document.getElementById('conv-tbody')?.children.length>0},
+  // POLICY (חובה)
+  {cat:'מדיניות גוגל',req:true,lbl:'סטטוס קמפיין: PAUSED בטיוטה',              fn:()=>document.getElementById('c-status')?.value==='PAUSED'},
+];
+
+function runValidation(){
+  const res=document.getElementById('val-results');
+  let allReqOk=true;
+  const byCat={};
+  RULES.forEach(r=>{
+    if(!byCat[r.cat]) byCat[r.cat]=[];
+    let ok=false;
+    try{ok=r.fn();}catch(e){ok=false;}
+    if(r.req&&!ok) allReqOk=false;
+    byCat[r.cat].push({...r,ok});
+  });
+  const reqFailed=RULES.filter(r=>r.req).filter(r=>{try{return !r.fn();}catch(e){return true;}}).length;
+  const recFailed=RULES.filter(r=>!r.req).filter(r=>{try{return !r.fn();}catch(e){return true;}}).length;
+  res.innerHTML=`<div class="card" style="background:${allReqOk?'rgba(34,197,94,.08)':'rgba(239,68,68,.08)'};border-color:${allReqOk?'rgba(34,197,94,.3)':'rgba(239,68,68,.3)'};">
+    <div style="font-size:13px;font-weight:800;margin-bottom:4px;">${allReqOk?'✅ כל שדות החובה תקינים':'❌ '+reqFailed+' שדות חובה נכשלו'}</div>
+    <div style="font-size:11px;color:var(--w50);">${RULES.length} כללים נבדקו | ${reqFailed} חובה נכשלו | ${recFailed} מומלץ חסרים</div>
+  </div>`+Object.entries(byCat).map(([cat,rules])=>`
+    <div class="card">
+      <div style="font-size:12px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:7px;">${cat}<span class="bd ${rules.every(r=>r.ok)?'bd-g':rules.filter(r=>r.req&&!r.ok).length?'bd-r':'bd-y'}" style="font-size:9px;">${rules.filter(r=>r.ok).length}/${rules.length}</span></div>
+      ${rules.map(r=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--w06);font-size:11px;">
+        <span style="font-size:14px;">${r.ok?'✅':r.req?'🔴':'⚠️'}</span>
+        <span style="flex:1;color:${r.ok?'var(--w80)':r.req?'var(--red)':'var(--yel)'};">${r.lbl}</span>
+        <span class="bd ${r.req?'bd-r':'bd-y'}" style="font-size:9px;">${r.req?'חובה':'מומלץ'}</span>
+        <span class="bd ${r.ok?'bd-g':'bd-x'}" style="font-size:9px;">${r.ok?'✓ עבר':'✗ נכשל'}</span>
+      </div>`).join('')}
+    </div>`).join('');
+
+  buildPayload();
+  document.getElementById('payload-section').style.display='block';
+  document.getElementById('ready-section').style.display='block';
+  const fr=document.getElementById('final-ready');
+  const ra=document.getElementById('ready-actions');
+  if(allReqOk){
+    fr.className='ready-badge yes';
+    fr.textContent='✅ כל 26 חוקי Google Ads API v18 עברו — הקמפיין מוכן לשליחה';
+    ra.style.display='block';
+    document.getElementById('tb-status').className='bd bd-g';
+    document.getElementById('tb-status').textContent='מוכן לשליחה';
+  } else {
+    fr.className='ready-badge no';
+    fr.textContent=`❌ ${reqFailed} שדות חובה לא הושלמו — לא ניתן לסמן כמוכן`;
+    ra.style.display='none';
+    document.getElementById('tb-status').className='bd bd-r';
+    document.getElementById('tb-status').textContent='שדות חסרים';
+  }
+  toast(allReqOk?'✅ ולידציה עברה!':'⚠️ '+reqFailed+' שדות חובה חסרים');
+}
+
+function buildPayload(){
+  const cid=document.getElementById('ga-cid')?.value||'';
+  const daily=parseFloat(document.getElementById('b-daily')?.value||0);
+  const langs=[...document.querySelectorAll('#lang-chips .chip.on')].map(c=>c.dataset.id||'1027');
+  const devs=[...document.querySelectorAll('#device-chips .chip.on')].map(c=>c.dataset.dev);
+  const geos=[...document.querySelectorAll('#geo-tbody tr')].map(tr=>{
+    const cells=tr.querySelectorAll('td');
+    return {country:cells[0]?.textContent?.trim(),location:cells[1]?.textContent?.trim(),criterion_id:parseInt(cells[2]?.textContent?.trim()||0),type:cells[4]?.querySelector('select')?.value?.includes('EXCLUDE')?'EXCLUDE':'ADD'};
+  });
+  const payload={
+    _api_spec:'Google Ads API v18',
+    _campaign_type:'SEARCH',
+    _status:'DRAFT — not sent to API. No real connection.',
+    _timestamp: new Date().toISOString(),
+    customer_resource:{
+      customer_id: cid,
+      login_customer_id: document.getElementById('ga-login-cid')?.value||cid,
+      mcc_id: document.getElementById('ga-mcc')?.value||null,
+    },
+    campaign_budget:{
+      resource_name:`customers/${cid}/campaignBudgets/PLACEHOLDER`,
+      name: document.getElementById('b-name')?.value||'',
+      amount_micros: daily*1000000,
+      delivery_method: 'STANDARD',
+    },
+    campaign:{
+      resource_name:`customers/${cid}/campaigns/PLACEHOLDER`,
+      name: document.getElementById('c-name')?.value||'',
+      status: document.getElementById('c-status')?.value||'PAUSED',
+      advertising_channel_type:'SEARCH',
+      campaign_budget:`customers/${cid}/campaignBudgets/PLACEHOLDER`,
+      start_date:(document.getElementById('c-start')?.value||'').replace(/-/g,''),
+      end_date:(document.getElementById('c-end')?.value||'').replace(/-/g,'')||null,
+      network_settings:{target_google_search:true,target_search_network:true,target_content_network:false,target_partner_search_network:false},
+      language_constants: langs.map(id=>`languageConstants/${id}`),
+      geo_target_type_setting:{positive_geo_target_type:document.getElementById('geo-type')?.value||'PRESENCE',negative_geo_target_type:'PRESENCE_OR_INTEREST'},
+      [document.getElementById('bid-strategy')?.value?.toLowerCase()||'target_cpa']:{},
+      ad_rotation:'OPTIMIZE',
+    },
+    geo_targets: geos,
+    ad_groups:[{name:'ניהול צי GPS',status:'PAUSED',cpc_bid_micros:8000000}],
+    ads:[{type:'RESPONSIVE_SEARCH_AD',headlines:document.querySelectorAll('[id$="-hls"] input').length,descriptions:document.querySelectorAll('[id$="-descs"] input').length}],
+    conversions: document.getElementById('conv-tbody')?.children.length||0,
+    tracking:{final_url:document.getElementById('url-final')?.value||'',tracking_template:document.getElementById('url-tmpl')?.value||''},
+  };
+  document.getElementById('api-json').textContent=JSON.stringify(payload,null,2);
+}
+
+function markReady(){
+  try{localStorage.setItem('dalia_part_a',JSON.stringify({gads_ready:true,cid:document.getElementById('ga-cid')?.value,ts:new Date().toISOString()}));}catch(e){}
+  document.getElementById('tb-status').textContent='מוכן לשליחה ✅';
+  document.getElementById('tb-status').className='bd bd-g';
+  toast('🚀 הקמפיין סומן כמוכן לשליחה ל-Google Ads API (ממתין לחיבור API אמיתי בחלק ג\')');
+}
+
+function saveToLS(){
+  try{localStorage.setItem('dalia_gads_draft',JSON.stringify({cid:document.getElementById('ga-cid')?.value,name:document.getElementById('c-name')?.value,ts:new Date().toISOString()}));}catch(e){}
+  toast('💾 טיוטה נשמרה ב-localStorage');
+}
+
+// ── HELPERS ──
+function apvRow(btn){
+  const st=btn.closest('tr')?.querySelector('.bd-y');
+  if(st){st.textContent='אושר ✓';st.className='bd bd-g';}
+  btn.remove();
+}
+function delRow(btn){ btn.closest('tr')?.remove(); }
+function liveVal(inp,errId,test){
+  const ok=test(inp.value);
+  inp.classList.toggle('err',!ok&&inp.value.length>0);
+  inp.classList.toggle('ok',ok);
+  const e=document.getElementById('err-'+errId);
+  if(e) e.classList.toggle('show',!ok&&inp.value.length>0);
+}
+function toast(m){
+  const t=document.getElementById('toast');
+  t.textContent=m;t.style.opacity='1';t.style.transform='translateY(0)';
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(14px)';},3500);
+}
+
+// ── INIT ──
+// Load context from Part A if available
+(function loadPartACtx(){
+  try{
+    const raw=localStorage.getItem('dalia_part_a');
+    if(!raw) return;
+    const d=JSON.parse(raw);
+    // Pre-fill campaign name with business name if empty
+    const cname=document.getElementById('c-name');
+    if(cname&&!cname.value&&d.bizName) cname.value=(d.bizName||'')+'| ישראל | חיפוש';
+    // Show context banner
+    const banner=document.createElement('div');
+    banner.style.cssText='margin:10px 18px 0;padding:9px 11px;border-radius:8px;font-size:12px;background:rgba(37,99,235,.10);border:1px solid rgba(37,99,235,.22);color:#60a5fa;';
+    banner.innerHTML=`📋 הקשר עסקי נטען מחלק א׳: <strong>${d.bizName||'—'}</strong> | ${d.sector||'—'} | <a style="color:#60a5fa;" href="dalia-planning-engine.html">← חזור לחלק א׳</a>`;
+    document.querySelector('.main')?.prepend(banner);
+  }catch(e){}
+})();
+
+showStep(1);
+document.getElementById('c-start').valueAsDate=new Date();
+onBidChange();
+</script>
+</body></html>

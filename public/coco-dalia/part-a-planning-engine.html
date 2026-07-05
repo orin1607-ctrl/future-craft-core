@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CO.CO דליה – מנוע התכנון</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04091a;--bg2:#071022;--bg3:#0a1830;--bg4:#0d1f3c;
+  --acc:#2563eb;--acc2:#3b82f6;--glow:rgba(37,99,235,.14);
+  --w:#fff;--w80:rgba(255,255,255,.80);--w50:rgba(255,255,255,.50);
+  --w20:rgba(255,255,255,.20);--w10:rgba(255,255,255,.10);--w06:rgba(255,255,255,.06);
+  --green:#22c55e;--red:#ef4444;--yel:#f59e0b;--pur:#8b5cf6;--cyan:#06b6d4;
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-height:100vh;}
+.main{max-width:860px;margin:0 auto;padding:16px 0 96px;}
+.pane{display:none;}.pane.on{display:block;}
+.ph{padding:0 18px 0;}
+.ph-part{font-size:10px;font-weight:700;color:var(--acc2);letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;gap:7px;}
+.ph-part::before{content:'';width:20px;height:2px;background:var(--acc2);}
+.ph-t{font-size:clamp(18px,4.5vw,26px);font-weight:900;margin-bottom:4px;}
+.ph-s{font-size:12px;color:var(--w50);line-height:1.6;}
+.ph-r{height:2px;background:linear-gradient(90deg,var(--acc),transparent);margin:10px 0 0;border:none;}
+.sec{padding:16px 18px;}
+.card{background:var(--bg3);border:1px solid var(--w10);border-radius:var(--r);padding:14px;}
+.proj-card{background:var(--bg3);border:1px solid var(--w10);border-radius:16px;padding:22px;margin-bottom:14px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:16px;}
+.proj-card:hover{border-color:var(--acc);background:rgba(37,99,235,.05);transform:translateY(-1px);}
+.proj-card.selected{border-color:var(--acc);background:rgba(37,99,235,.08);box-shadow:0 0 0 1px var(--acc) inset;}
+.proj-ico{width:52px;height:52px;border-radius:12px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+.proj-txt{flex:1;}
+.proj-t{font-size:16px;font-weight:800;margin-bottom:4px;}
+.proj-s{font-size:12px;color:var(--w50);line-height:1.6;}
+.proj-chev{font-size:18px;color:var(--w50);flex-shrink:0;}
+.fl{display:flex;flex-direction:column;gap:3px;margin-bottom:9px;}
+.fl label{font-size:11px;color:var(--w50);font-weight:600;}
+.inp{padding:9px 12px;border-radius:8px;border:1px solid var(--w10);background:var(--bg4);color:var(--w);font-family:'Heebo',sans-serif;font-size:12px;outline:none;width:100%;transition:border-color .2s;}
+.inp:focus{border-color:var(--acc);}
+.inp::placeholder{color:var(--w50);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+@media(max-width:500px){.g2{grid-template-columns:1fr;}}
+.btn{padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;transition:all .18s;display:inline-flex;align-items:center;gap:6px;}
+.btn-p{background:var(--acc);color:#fff;}.btn-p:hover{background:var(--acc2);}
+.btn-p:disabled{opacity:.4;cursor:not-allowed;}
+.btn-g{background:var(--w06);color:var(--w80);border:1px solid var(--w10);}.btn-g:hover{background:var(--w10);}
+.btn-sm{font-size:11px;padding:6px 12px;}
+.bd{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;}
+.bd-g{background:rgba(34,197,94,.14);color:var(--green);}
+.bd-b{background:rgba(59,130,246,.14);color:var(--acc2);}
+.bd-x{background:var(--w06);color:var(--w50);}
+.bd-y{background:rgba(245,158,11,.14);color:var(--yel);}
+.type-card{background:var(--bg3);border:2px solid var(--w10);border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.type-card:hover{border-color:var(--acc);}
+.type-card.selected{border-color:var(--acc);background:rgba(37,99,235,.08);}
+.type-ico{width:44px;height:44px;border-radius:10px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.type-t{font-size:14px;font-weight:800;}
+.type-s{font-size:11px;color:var(--w50);margin-top:2px;}
+.footer{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--w10);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:100;}
+.finfo{font-size:11px;color:var(--w50);flex:1;}
+#toast{position:fixed;bottom:68px;right:16px;background:var(--bg3);border:1px solid var(--w10);border-radius:9px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--w);z-index:9999;transform:translateY(14px);opacity:0;transition:all .3s;pointer-events:none;max-width:250px;}
+</style>
+</head>
+<body>
+<div class="main">
+ 
+<!-- ══ שלב 1: בחירת פרויקט ══ -->
+<div class="pane on" id="p1">
+  <div class="ph">
+    <div class="ph-part">מנוע התכנון • שלב 1</div>
+    <div class="ph-t">בחירת פרויקט</div>
+    <div class="ph-s">כל קמפיין שיווקי מתחיל בפרויקט. בחר פעולה כדי להתחיל.</div>
+    <hr class="ph-r">
+  </div>
+  <div class="sec">
+ 
+    <div class="proj-card" id="pc-new" onclick="selectProject('new')">
+      <div class="proj-ico">➕</div>
+      <div class="proj-txt">
+        <div class="proj-t">פרויקט חדש</div>
+        <div class="proj-s">בנה קמפיין שיווקי מאפס — מנוע ה-AI ינחה אותך בכל שלב</div>
+      </div>
+      <div class="proj-chev">‹</div>
+    </div>
+ 
+    <div class="proj-card" id="pc-edit" onclick="selectProject('edit')">
+      <div class="proj-ico">✏️</div>
+      <div class="proj-txt">
+        <div class="proj-t">עריכת פרויקט קיים</div>
+        <div class="proj-s">פתח פרויקט שמור ועדכן אותו</div>
+      </div>
+      <div class="proj-chev">‹</div>
+    </div>
+ 
+    <div class="proj-card" id="pc-dup" onclick="selectProject('dup')">
+      <div class="proj-ico">📄</div>
+      <div class="proj-txt">
+        <div class="proj-t">שכפול פרויקט קיים</div>
+        <div class="proj-s">השתמש בפרויקט קיים כבסיס לקמפיין חדש</div>
+      </div>
+      <div class="proj-chev">‹</div>
+    </div>
+ 
+    <div class="proj-card" id="pc-open" onclick="selectProject('open')">
+      <div class="proj-ico">📂</div>
+      <div class="proj-txt">
+        <div class="proj-t">פתח פרויקט שמור</div>
+        <div class="proj-s">המשך פרויקט שהתחלת בעבר מהנקודה שבה עצרת</div>
+      </div>
+      <div class="proj-chev">‹</div>
+    </div>
+ 
+    <!-- Dynamic sub-panel per selection -->
+    <div id="proj-subpanel" style="display:none;margin-top:6px;"></div>
+ 
+  </div>
+</div>
+ 
+<!-- ══ שלב 2: Business Discovery — 9 טאבים (חדש, נבנה לפי מסמך היישור) ══ -->
+<div class="pane" id="p2">
+  <div class="ph">
+    <div class="ph-part">מנוע התכנון • Business Discovery</div>
+    <div class="ph-t" id="bd-tab-title">פרטי העסק</div>
+    <div class="ph-s" id="bd-tab-sub">המערכת מכירה את העסק שלך לעומק — בדיוק כמו יועץ שיווק בכיר שיושב עם הלקוח כמה שעות.</div>
+    <hr class="ph-r">
+  </div>
+  <div class="sec">
+    <div id="bd-tabnav" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
+    <div id="bd-content"></div>
+  </div>
+</div>
+ 
+ 
+</div><!-- /main -->
+ 
+<div class="footer">
+  <div class="finfo" id="finfo">בחר פרויקט כדי להתחיל</div>
+  <div style="display:flex;gap:7px;">
+    <button class="btn btn-g btn-sm" id="btn-back" onclick="prevPane()" style="display:none;">← חזור</button>
+    <button class="btn btn-p btn-sm" id="btn-next" onclick="nxt()" disabled>הבא ←</button>
+  </div>
+</div>
+<div id="toast"></div>
+ 
+<script>
+// ══ PART A — PLANNING ENGINE ══
+// שלב 1 (בחירת פרויקט) ושלבי עריכה/שכפול/פתיחה של פרויקט קיים — ללא שינוי.
+// "פרויקט חדש" עובר עכשיו דרך אשף Business Discovery מלא (9 טאבים, לפי מסמך
+// היישור), ורק מתוך הטאב התשיעי (Project Brief) בוחרים סוג קמפיין ופותחים
+// את ה-Wizard המלא של חלק ב׳/ג׳ — בדיוק כמו קודם, דרך אותו localStorage bridge
+// ואותה window.parent.launchModule(), בלי לגעת בחלק ב׳/ג׳ בכלל.
+ 
+let SELECTED_MODE=null;
+let SELECTED_CAMPAIGN_TYPE=null; // 'seo' | 'ads'
+ 
+function selectProject(mode){
+  SELECTED_MODE=mode;
+  SELECTED_CAMPAIGN_TYPE=null;
+  ['pc-new','pc-edit','pc-dup','pc-open'].forEach(id=>document.getElementById(id).classList.remove('selected'));
+  document.getElementById('pc-'+({new:'new',edit:'edit',dup:'dup',open:'open'})[mode]).classList.add('selected');
+ 
+  if(mode==='new'){
+    // עובר לאשף Business Discovery (p2) — לא בונה שוב פאנל מוקטן בתוך p1.
+    document.getElementById('p1').classList.remove('on');
+    document.getElementById('p2').classList.add('on');
+    initBusinessDiscovery();
+    updFooterForBD();
+    return;
+  }
+ 
+  // edit / dup / open — בדיוק כפי שהיה, ללא שינוי.
+  const sub=document.getElementById('proj-subpanel');
+  sub.style.display='block';
+  const panels={
+    edit:`<div class="card"><div class="fl"><label>בחר פרויקט קיים לעריכה</label><select class="inp" id="ep-select"><option>— טוען פרויקטים שמורים —</option></select></div></div>`,
+    dup:`<div class="card"><div class="fl"><label>שכפל מפרויקט</label><select class="inp" id="dp-select"><option>— טוען פרויקטים שמורים —</option></select></div>
+      <div class="fl"><label>שם לפרויקט החדש</label><input class="inp" id="dp-name" placeholder="שם הפרויקט המשוכפל"></div></div>`,
+    open:`<div class="card"><div class="fl"><label>פרויקטים שמורים</label><select class="inp" id="op-select"><option>— טוען פרויקטים שמורים —</option></select></div></div>`,
+  };
+  sub.innerHTML=panels[mode]||'';
+ 
+  const nextBtn=document.getElementById('btn-next');
+  nextBtn.disabled=false;
+  document.getElementById('finfo').textContent='פרויקט נבחר — לחץ "הבא" להמשיך';
+}
+ 
+// ══════════════════════════════════════════════════════════════════════
+// Business Discovery — 9 טאבים
+// ══════════════════════════════════════════════════════════════════════
+ 
+const BIZ = {}; // כל הנתונים שנאספים לאורך הטאבים, לפי מפתח שדה
+const COMPETITORS = []; // רשימת מתחרים (טאב 6), כל אחד אובייקט שדות
+let BD_TAB = 1;
+const BD_TOTAL_TABS = 9;
+ 
+const BD_TABS = [
+  {id:1, label:'פרטי העסק', fields:[
+    ['bizName','שם העסק','text'],['companyName','שם החברה','text'],['sector','תחום העסק','text'],
+    ['summary','תקציר העסק','textarea'],['story','סיפור העסק','textarea'],['fullDesc','תיאור מלא','textarea'],
+    ['goals','מטרות העסק','textarea'],['vision','חזון','textarea'],['pros','יתרונות','textarea'],
+    ['cons','חסרונות','textarea'],['diff','בידול','textarea'],['bizType','סוג העסק','text'],
+    ['yearsActive','שנות פעילות','text'],['areas','אזורי פעילות','text'],['languages','שפות','text'],
+    ['customerTypes','סוגי לקוחות','text'],['contact','פרטי קשר','textarea'],
+  ]},
+  {id:2, label:'שירותים ומוצרים', fields:[
+    ['allServices','כל השירותים','textarea'],['allProducts','כל המוצרים','textarea'],
+    ['wantPromote','מה רוצים לקדם','textarea'],['dontPromote','מה לא רוצים לקדם','textarea'],
+    ['impServices','שירותים חשובים','textarea'],['impProducts','מוצרים חשובים','textarea'],
+    ['specialOffers','הצעות מיוחדות','textarea'],['competitorDiff','בידול מהמתחרים','textarea'],
+  ]},
+  {id:3, label:'נכסים דיגיטליים', fields:[
+    ['website','אתר','text'],['domains','דומיינים','text'],['facebook','Facebook','text'],
+    ['instagram','Instagram','text'],['gbp','Google Business Profile','text'],['linkedin','LinkedIn','text'],
+    ['youtube','YouTube','text'],['tiktok','TikTok','text'],['whatsapp','WhatsApp','text'],
+    ['otherAssets','נכס דיגיטלי נוסף','textarea'],
+  ]},
+  {id:4, label:'קהל יעד', fields:[
+    ['whoCustomers','מי הלקוחות','textarea'],['targetAudience','קהל יעד','textarea'],
+    ['idealCustomer','לקוח אידיאלי','textarea'],['custTypes2','סוגי לקוחות','text'],
+    ['serviceAreas','אזורי שירות','text'],['ages','גילאים','text'],['interests','תחומי עניין','textarea'],
+    ['painPoints','בעיות של הלקוחות','textarea'],['whyBuy','למה הם קונים','textarea'],
+    ['whatMatters','מה חשוב להם','textarea'],
+  ]},
+  {id:5, label:'מחקר מילות מפתח', fields:[
+    ['manualKw','מילות מפתח ידניות','textarea'],['promoteKw','מילות מפתח שרוצים לקדם','textarea'],
+    ['keyPhrases','ביטויים חשובים','textarea'],['longTail','ביטויי זנב ארוך','textarea'],
+    ['searchIntent','כוונת חיפוש','textarea'],['brandTerms','ביטויי מותג','text'],
+    ['geoAreas','אזורים גיאוגרפיים','text'],['mainTopics','נושאים מרכזיים','textarea'],
+  ]},
+  {id:6, label:'מתחרים', special:'competitors'},
+  {id:7, label:'קבצים', special:'files'},
+  {id:8, label:'מידע חופשי', fields:[
+    ['freeNotes','מידע חופשי — מטרות, בקשות מיוחדות, דגשים, מה חשוב לקדם, מה אסור לעשות, ומידע נוסף כלשהו','textarea'],
+  ]},
+  {id:9, label:'Project Brief', special:'brief'},
+];
+ 
+function initBusinessDiscovery(){
+  const nav=document.getElementById('bd-tabnav');
+  if(!nav.children.length){
+    nav.innerHTML = BD_TABS.map(t=>
+      `<button class="btn btn-g btn-sm" id="bd-nav-${t.id}" onclick="goToBDTab(${t.id})">${t.id}. ${t.label}</button>`
+    ).join('');
+  }
+  renderBDTab(BD_TAB);
+}
+ 
+function goToBDTab(n){
+  BD_TAB = n;
+  renderBDTab(n);
+}
+ 
+function renderBDTab(n){
+  const tab = BD_TABS.find(t=>t.id===n);
+  document.getElementById('bd-tab-title').textContent = `טאב ${n} מתוך ${BD_TOTAL_TABS} — ${tab.label}`;
+  BD_TABS.forEach(t=>{
+    const btn=document.getElementById('bd-nav-'+t.id);
+    btn.classList.toggle('btn-p', t.id===n);
+    btn.classList.toggle('btn-g', t.id!==n);
+  });
+ 
+  const content=document.getElementById('bd-content');
+  if(tab.special==='competitors'){ content.innerHTML=renderCompetitorsTab(); wireCompetitorsTab(); }
+  else if(tab.special==='files'){ content.innerHTML=renderFilesTab(); wireFilesTab(); }
+  else if(tab.special==='brief'){ content.innerHTML=renderBriefTab(); wireBriefTab(); }
+  else { content.innerHTML=renderFieldsTab(tab); wireFieldsTab(tab); }
+ 
+  updFooterForBD();
+  window.scrollTo(0,0);
+}
+ 
+function renderFieldsTab(tab){
+  return `<div class="card"><div class="g2">${
+    tab.fields.map(([key,label,type])=>{
+      const val = BIZ[key]||'';
+      const wide = type==='textarea' ? 'style="grid-column:1/-1;"' : '';
+      const control = type==='textarea'
+        ? `<textarea class="inp" id="bd-f-${key}" style="min-height:64px;resize:vertical;">${val}</textarea>`
+        : `<input class="inp" id="bd-f-${key}" value="${val}">`;
+      return `<div class="fl" ${wide}><label>${label}</label>${control}</div>`;
+    }).join('')
+  }</div></div>`;
+}
+function wireFieldsTab(tab){
+  tab.fields.forEach(([key])=>{
+    const el=document.getElementById('bd-f-'+key);
+    el.addEventListener('input', ()=>{ BIZ[key]=el.value; });
+  });
+}
+ 
+const COMPETITOR_FIELDS = [
+  ['name','שם'],['site','אתר'],['fb','Facebook'],['ig','Instagram'],['gbp','Google Business'],
+  ['pros','יתרונות'],['cons','חסרונות'],['kw','מילות מפתח'],['learn','מה אנחנו רוצים ללמוד ממנו'],['notes','הערות'],
+];
+function renderCompetitorsTab(){
+  const cards = COMPETITORS.map((c,i)=>`
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span class="bd bd-b">מתחרה ${i+1}</span>
+        <button class="btn btn-g btn-sm" onclick="removeCompetitor(${i})">✕ הסר</button>
+      </div>
+      <div class="g2">${COMPETITOR_FIELDS.map(([key,label])=>
+        `<div class="fl"><label>${label}</label><input class="inp" data-comp="${i}" data-key="${key}" value="${c[key]||''}"></div>`
+      ).join('')}</div>
+    </div>`).join('');
+  return `<div id="comp-list">${cards || '<div class="fl"><label>עדיין לא נוספו מתחרים</label></div>'}</div>
+    <button class="btn btn-g btn-sm" onclick="addCompetitor()">+ הוסף מתחרה</button>`;
+}
+function wireCompetitorsTab(){
+  document.querySelectorAll('#comp-list input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const i=+inp.dataset.comp, key=inp.dataset.key;
+      COMPETITORS[i][key]=inp.value;
+    });
+  });
+}
+function addCompetitor(){ COMPETITORS.push({}); renderBDTab(6); }
+function removeCompetitor(i){ COMPETITORS.splice(i,1); renderBDTab(6); }
+ 
+function renderFilesTab(){
+  return `<div class="card">
+    <div class="fl">
+      <label>העלאת קבצים — לוגו, תמונות, סרטונים, PDF, Word, Excel, מצגות, קטלוגים, ברושורים, חומר שיווקי, וכל קובץ נוסף</label>
+      <input type="file" id="bd-files" multiple>
+    </div>
+    <div id="bd-files-list" style="font-size:11px;color:var(--w50);margin-top:8px;line-height:1.8;">
+      ${(BIZ.fileNames||[]).length ? BIZ.fileNames.map(n=>'📎 '+n).join('<br>') : 'עדיין לא נבחרו קבצים'}
+    </div>
+  </div>`;
+}
+function wireFilesTab(){
+  document.getElementById('bd-files').addEventListener('change', (e)=>{
+    BIZ.fileNames = Array.from(e.target.files).map(f=>f.name);
+    document.getElementById('bd-files-list').innerHTML =
+      BIZ.fileNames.length ? BIZ.fileNames.map(n=>'📎 '+n).join('<br>') : 'עדיין לא נבחרו קבצים';
+  });
+}
+ 
+function briefRow(label, val){
+  return `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--w06);font-size:12px;"><span style="color:var(--w50);min-width:130px;">${label}</span><span style="color:var(--w80);font-weight:600;">${val||'—'}</span></div>`;
+}
+// תיקון: הודעת "שדות חסרים" הציגה מפתחות פנימיים באנגלית (למשל "website,
+// targetAudience") במקום שמות שדות קריאים בעברית + מספר הטאב שבו נמצא כל
+// שדה. זו הייתה הסיבה שהמסך נראה "נעול בלי הסבר" — עכשיו רואים בדיוק
+// לאיזה טאב לחזור ולמלא. שינוי טקסט/לוגיקה בלבד, אין כאן שום שינוי עיצוב.
+function fieldLabel(key){
+  for(const t of BD_TABS){
+    if(!t.fields) continue;
+    const f = t.fields.find(([k])=>k===key);
+    if(f) return `${f[1]} (טאב ${t.id} — ${t.label})`;
+  }
+  return key;
+}
+function renderBriefTab(){
+  const required = ['bizName','sector','summary','goals','website','targetAudience'];
+  const missing = required.filter(k=>!BIZ[k]);
+  const complete = missing.length===0;
+ 
+  const brief = `
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--w50);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">מי העסק</div>
+      ${briefRow('שם העסק', BIZ.bizName)}${briefRow('שם החברה', BIZ.companyName)}${briefRow('תחום', BIZ.sector)}${briefRow('תקציר', BIZ.summary)}${briefRow('מטרות', BIZ.goals)}${briefRow('חזון', BIZ.vision)}${briefRow('בידול', BIZ.diff)}
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--w50);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">השירותים והמוצרים</div>
+      ${briefRow('שירותים', BIZ.allServices)}${briefRow('מוצרים', BIZ.allProducts)}${briefRow('מה רוצים לקדם', BIZ.wantPromote)}${briefRow('הצעות מיוחדות', BIZ.specialOffers)}
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--w50);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">הנכסים הדיגיטליים</div>
+      ${briefRow('אתר', BIZ.website)}${briefRow('Facebook', BIZ.facebook)}${briefRow('Instagram', BIZ.instagram)}${briefRow('Google Business', BIZ.gbp)}
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--w50);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">קהל היעד</div>
+      ${briefRow('קהל יעד', BIZ.targetAudience)}${briefRow('לקוח אידיאלי', BIZ.idealCustomer)}${briefRow('בעיות', BIZ.painPoints)}${briefRow('למה קונים', BIZ.whyBuy)}
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--w50);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">מתחרים (${COMPETITORS.length})</div>
+      ${COMPETITORS.length ? COMPETITORS.map(c=>briefRow(c.name||'מתחרה', c.site)).join('') : briefRow('מתחרים','לא הוזנו')}
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--w50);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">מילות מפתח</div>
+      ${briefRow('מילות מפתח לקידום', BIZ.promoteKw)}${briefRow('ביטויי זנב ארוך', BIZ.longTail)}
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--w50);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">קבצים</div>
+      ${briefRow('קבצים שהועלו', (BIZ.fileNames||[]).join(', '))}
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span class="bd ${complete?'bd-g':'bd-x'}">${complete?'✓ הבריף מלא':'⚠ חסרים שדות'}</span>
+      </div>
+      <div style="font-size:11.5px;color:${missing.length?'var(--yel)':'var(--w50)'};line-height:1.9;">${missing.length ? '⚠ צריך למלא כדי להמשיך:<br>'+missing.map(fieldLabel).map(l=>'• '+l).join('<br>') : 'כל השדות המרכזיים מולאו'}</div>
+    </div>`;
+ 
+  // תיקון: חלק ג׳ (Google Ads) הוא עדיין placeholder בלבד (אין לו עדיין תוכן
+  // אמיתי במיזוג הזה). לפני התיקון, בחירה ב-"Google Ads" הייתה מנווטת אליו
+  // ומציגה מסך "לא נכלל במיזוג" — נראה כמו תקלה. עכשיו האפשרות נעולה מראש
+  // עם הסבר ברור, כדי שאי אפשר יהיה בכלל להגיע למסך הריק בטעות. ברגע
+  // שיתקבל התוכן האמיתי של חלק ג׳, מספיק להסיר את ה-title/aria-disabled
+  // ואת ה-guard בתוך selectCampaignType — שום דבר אחר לא צריך להשתנות.
+  const campaignChooser = `
+    <div id="brief-campaign-chooser" style="${complete?'':'opacity:.4;pointer-events:none;'}">
+      <div style="font-size:11px;font-weight:700;color:var(--w50);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">אישור ה-Project Brief ובחירת סוג קמפיין</div>
+      <div class="type-card" id="tc-ads" onclick="selectCampaignType('ads')">
+        <div class="type-ico">📢</div>
+        <div style="flex:1;"><div class="type-t">Google Ads — ממומן <span class="bd bd-y">Demo — טרם חובר לגמרי</span></div><div class="type-s">קמפיין חיפוש בתשלום. פותח את המסך של חלק ג׳ — לצפייה/הדגמה בלבד, עדיין ללא תוכן מלא מחובר.</div></div>
+      </div>
+      <div class="type-card" id="tc-seo" onclick="selectCampaignType('seo')">
+        <div class="type-ico">🌱</div>
+        <div style="flex:1;"><div class="type-t">Google SEO — אורגני</div><div class="type-s">קידום אורגני ללא תשלום לקליק. פותח את ה-Wizard המלא של חלק ב׳ (12 שלבים).</div></div>
+      </div>
+      <button class="btn btn-p" id="btn-launch" style="margin-top:10px;width:100%;justify-content:center;" onclick="launchCampaign()" disabled>🚀 אשר Project Brief וצור קמפיין</button>
+    </div>`;
+ 
+  return brief + campaignChooser;
+}
+function wireBriefTab(){ /* כל הלוגיקה כבר מחוברת דרך onclick ישירות, אין צורך בקישור נוסף */ }
+ 
+function selectCampaignType(type){
+  SELECTED_CAMPAIGN_TYPE=type;
+  document.getElementById('tc-ads').classList.toggle('selected', type==='ads');
+  document.getElementById('tc-seo').classList.toggle('selected', type==='seo');
+  document.getElementById('btn-launch').disabled=false;
+  document.getElementById('finfo').textContent = type==='ads'
+    ? 'נבחר Google Ads — לחץ לפתיחת ה-Wizard המלא'
+    : 'נבחר Google SEO — לחץ לפתיחת ה-Wizard המלא';
+}
+ 
+function launchCampaign(){
+  if(!SELECTED_CAMPAIGN_TYPE){toast('⚠️ בחר סוג קמפיין קודם');return;}
+  // מיפוי לשדות שחלק ב׳ (SEO) כבר יודע לקרוא מ-loadCtx() הקיים שלו — ללא כל שינוי שם.
+  try{
+    localStorage.setItem('dalia_part_a', JSON.stringify({
+      bizName: BIZ.bizName || BIZ.companyName || '',
+      name: BIZ.companyName || '',
+      site: BIZ.website || '',
+      sector: BIZ.sector || '',
+      mainSvc: BIZ.impServices || BIZ.allServices || '',
+      diff: BIZ.diff || BIZ.competitorDiff || '',
+      usp: BIZ.specialOffers || BIZ.pros || '',
+      ideal: BIZ.idealCustomer || BIZ.targetAudience || '',
+      goal: BIZ.goals || '',
+      campaignType: SELECTED_CAMPAIGN_TYPE,
+      ts: new Date().toISOString(),
+    }));
+    // הבריף המלא (9 הטאבים + מתחרים) נשמר בנפרד לשימוש עתידי (50 עוזרים / 10 יועצים),
+    // מבלי לגעת במפתח dalia_part_a שחלק ב׳ כבר תלוי בו.
+    localStorage.setItem('dalia_project_brief', JSON.stringify({biz:BIZ, competitors:COMPETITORS, ts:new Date().toISOString()}));
+  }catch(e){}
+  const target = SELECTED_CAMPAIGN_TYPE==='ads' ? 'c' : 'b';
+  if(window.parent && typeof window.parent.launchModule==='function'){
+    toast('🚀 פותח את ה-Wizard המלא...');
+    // תיקון: חלק ב׳/ג׳ קוראים את localStorage['dalia_part_a'] פעם אחת בלבד,
+    // מיד כשה-iframe שלהם נטען לראשונה (עוד לפני שחלק א׳ בכלל אסף נתונים).
+    // בלי הרענון הזה, הנתונים שהוזנו כרגע בשלב א׳ לא היו מגיעים לבאנר של
+    // חלק ב׳/ג׳ עד לרענון ידני של כל הדף. זו תוספת בתוך הפונקציה של חלק א׳
+    // בלבד — לא נערך שום קובץ/לוגיקה בתוך חלק ב׳ או חלק ג׳ עצמם.
+    try{
+      const targetFrame = window.parent.document.getElementById('frame-'+target);
+      if(targetFrame && targetFrame.contentWindow) targetFrame.contentWindow.location.reload();
+    }catch(e){}
+    window.parent.launchModule(target);
+  } else {
+    toast('⚠️ לא ניתן לפתוח את המודול — נסה דרך הטאב העליון');
+  }
+}
+ 
+// ══════════════════════════════════════════════════════════════════════
+// Footer (הבא/חזור) — משרת גם את p1 (ללא שינוי) וגם את אשף ה-Business Discovery
+// ══════════════════════════════════════════════════════════════════════
+ 
+function updFooterForBD(){
+  const backBtn=document.getElementById('btn-back');
+  const nextBtn=document.getElementById('btn-next');
+  if(document.getElementById('p2').classList.contains('on')){
+    backBtn.style.display='';
+    backBtn.disabled = false;
+    nextBtn.textContent = BD_TAB===BD_TOTAL_TABS ? 'סיום' : 'הבא ←';
+    nextBtn.disabled = BD_TAB===BD_TOTAL_TABS; // בטאב 9 ההמשך הוא רק דרך כפתור הלאונץ' הייעודי
+    document.getElementById('finfo').textContent = `Business Discovery — טאב ${BD_TAB} מתוך ${BD_TOTAL_TABS}`;
+  } else {
+    backBtn.style.display='none';
+  }
+}
+ 
+function prevPane(){
+  if(document.getElementById('p2').classList.contains('on')){
+    if(BD_TAB>1){ goToBDTab(BD_TAB-1); return; }
+    // חזרה מטאב 1 של האשף אל בחירת הפרויקט המקורית
+    document.getElementById('p2').classList.remove('on');
+    document.getElementById('p1').classList.add('on');
+    document.getElementById('btn-back').style.display='none';
+    document.getElementById('btn-next').disabled=true;
+    document.getElementById('finfo').textContent='בחר פרויקט כדי להתחיל';
+  }
+}
+ 
+function nxt(){
+  if(document.getElementById('p2').classList.contains('on')){
+    if(BD_TAB<BD_TOTAL_TABS) goToBDTab(BD_TAB+1);
+    return;
+  }
+  if(!SELECTED_MODE){toast('⚠️ בחר פרויקט קודם');return;}
+  toast('⚠️ עריכה/שכפול/פתיחה של פרויקטים שמורים עדיין לא מחוברים לנתונים אמיתיים');
+}
+ 
+function toast(m){
+  const t=document.getElementById('toast');
+  t.textContent=m;t.style.opacity='1';t.style.transform='translateY(0)';
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(14px)';},3500);
+}
+</script>
+</body></html>

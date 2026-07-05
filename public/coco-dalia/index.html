@@ -336,11 +336,11 @@ tr.detail-row td{padding:0;background:var(--bg2);border-bottom:1px solid var(--w
       <div class="modtab-badge">1</div>
       <div class="modtab-txt"><div class="modtab-t">מנוע התכנון</div><div class="modtab-s">Planning Engine — התחל כאן</div></div>
     </div>
-    <div class="modtab" id="mt-b" onclick="showPart('b')">
+    <div class="modtab" id="mt-b" onclick="showPart('b')" style="opacity:.45;pointer-events:none;">
       <span class="modtab-icon">🌱</span>
       <div class="modtab-txt"><div class="modtab-t">קידום אורגני SEO</div><div class="modtab-s" id="mt-b-sub">12 שלבים — נעול עד יצירת קמפיין</div></div>
     </div>
-    <div class="modtab" id="mt-c" onclick="showPart('c')">
+    <div class="modtab" id="mt-c" onclick="showPart('c')" style="opacity:.45;pointer-events:none;">
       <span class="modtab-icon">📢</span>
       <div class="modtab-txt"><div class="modtab-t">גוגל אדס</div><div class="modtab-s" id="mt-c-sub">Google Ads — 9 שלבים — נעול עד יצירת קמפיין</div></div>
     </div>
@@ -348,246 +348,7 @@ tr.detail-row td{padding:0;background:var(--bg2);border-bottom:1px solid var(--w
 </div>
 
 <div class="frames">
-  <iframe id="frame-a" class="on" title="חלק א׳ — מנוע התכנון" srcdoc="<!DOCTYPE html>
-<html lang=&quot;he&quot; dir=&quot;rtl&quot;>
-<head>
-<meta charset=&quot;UTF-8&quot;>
-<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
-<title>CO.CO דליה – מנוע התכנון</title>
-<link href=&quot;https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&amp;display=swap&quot; rel=&quot;stylesheet&quot;>
-<style>
-:root{
-  --bg:#04091a;--bg2:#071022;--bg3:#0a1830;--bg4:#0d1f3c;
-  --acc:#2563eb;--acc2:#3b82f6;--glow:rgba(37,99,235,.14);
-  --w:#fff;--w80:rgba(255,255,255,.80);--w50:rgba(255,255,255,.50);
-  --w20:rgba(255,255,255,.20);--w10:rgba(255,255,255,.10);--w06:rgba(255,255,255,.06);
-  --green:#22c55e;--red:#ef4444;--yel:#f59e0b;--pur:#8b5cf6;--cyan:#06b6d4;
-  --r:12px;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-height:100vh;}
-.main{max-width:860px;margin:0 auto;padding:16px 0 96px;}
-.pane{display:none;}.pane.on{display:block;}
-.ph{padding:0 18px 0;}
-.ph-part{font-size:10px;font-weight:700;color:var(--acc2);letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;gap:7px;}
-.ph-part::before{content:'';width:20px;height:2px;background:var(--acc2);}
-.ph-t{font-size:clamp(18px,4.5vw,26px);font-weight:900;margin-bottom:4px;}
-.ph-s{font-size:12px;color:var(--w50);line-height:1.6;}
-.ph-r{height:2px;background:linear-gradient(90deg,var(--acc),transparent);margin:10px 0 0;border:none;}
-.sec{padding:16px 18px;}
-.card{background:var(--bg3);border:1px solid var(--w10);border-radius:var(--r);padding:14px;}
-.proj-card{background:var(--bg3);border:1px solid var(--w10);border-radius:16px;padding:22px;margin-bottom:14px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:16px;}
-.proj-card:hover{border-color:var(--acc);background:rgba(37,99,235,.05);transform:translateY(-1px);}
-.proj-card.selected{border-color:var(--acc);background:rgba(37,99,235,.08);box-shadow:0 0 0 1px var(--acc) inset;}
-.proj-ico{width:52px;height:52px;border-radius:12px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
-.proj-txt{flex:1;}
-.proj-t{font-size:16px;font-weight:800;margin-bottom:4px;}
-.proj-s{font-size:12px;color:var(--w50);line-height:1.6;}
-.proj-chev{font-size:18px;color:var(--w50);flex-shrink:0;}
-.fl{display:flex;flex-direction:column;gap:3px;margin-bottom:9px;}
-.fl label{font-size:11px;color:var(--w50);font-weight:600;}
-.inp{padding:9px 12px;border-radius:8px;border:1px solid var(--w10);background:var(--bg4);color:var(--w);font-family:'Heebo',sans-serif;font-size:12px;outline:none;width:100%;transition:border-color .2s;}
-.inp:focus{border-color:var(--acc);}
-.inp::placeholder{color:var(--w50);}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
-@media(max-width:500px){.g2{grid-template-columns:1fr;}}
-.btn{padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;transition:all .18s;display:inline-flex;align-items:center;gap:6px;}
-.btn-p{background:var(--acc);color:#fff;}.btn-p:hover{background:var(--acc2);}
-.btn-p:disabled{opacity:.4;cursor:not-allowed;}
-.btn-g{background:var(--w06);color:var(--w80);border:1px solid var(--w10);}.btn-g:hover{background:var(--w10);}
-.btn-sm{font-size:11px;padding:6px 12px;}
-.bd{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;}
-.bd-g{background:rgba(34,197,94,.14);color:var(--green);}
-.bd-b{background:rgba(59,130,246,.14);color:var(--acc2);}
-.bd-x{background:var(--w06);color:var(--w50);}
-.type-card{background:var(--bg3);border:2px solid var(--w10);border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:14px;margin-bottom:10px;}
-.type-card:hover{border-color:var(--acc);}
-.type-card.selected{border-color:var(--acc);background:rgba(37,99,235,.08);}
-.type-ico{width:44px;height:44px;border-radius:10px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
-.type-t{font-size:14px;font-weight:800;}
-.type-s{font-size:11px;color:var(--w50);margin-top:2px;}
-.footer{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--w10);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:100;}
-.finfo{font-size:11px;color:var(--w50);flex:1;}
-#toast{position:fixed;bottom:68px;right:16px;background:var(--bg3);border:1px solid var(--w10);border-radius:9px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--w);z-index:9999;transform:translateY(14px);opacity:0;transition:all .3s;pointer-events:none;max-width:250px;}
-</style>
-</head>
-<body>
-<div class=&quot;main&quot;>
-
-<!-- ══ שלב 1: בחירת פרויקט ══ -->
-<div class=&quot;pane on&quot; id=&quot;p1&quot;>
-  <div class=&quot;ph&quot;>
-    <div class=&quot;ph-part&quot;>מנוע התכנון • שלב 1</div>
-    <div class=&quot;ph-t&quot;>בחירת פרויקט</div>
-    <div class=&quot;ph-s&quot;>כל קמפיין שיווקי מתחיל בפרויקט. בחר פעולה כדי להתחיל.</div>
-    <hr class=&quot;ph-r&quot;>
-  </div>
-  <div class=&quot;sec&quot;>
-
-    <div class=&quot;proj-card&quot; id=&quot;pc-new&quot; onclick=&quot;selectProject('new')&quot;>
-      <div class=&quot;proj-ico&quot;>➕</div>
-      <div class=&quot;proj-txt&quot;>
-        <div class=&quot;proj-t&quot;>פרויקט חדש</div>
-        <div class=&quot;proj-s&quot;>בנה קמפיין שיווקי מאפס — מנוע ה-AI ינחה אותך בכל שלב</div>
-      </div>
-      <div class=&quot;proj-chev&quot;>‹</div>
-    </div>
-
-    <div class=&quot;proj-card&quot; id=&quot;pc-edit&quot; onclick=&quot;selectProject('edit')&quot;>
-      <div class=&quot;proj-ico&quot;>✏️</div>
-      <div class=&quot;proj-txt&quot;>
-        <div class=&quot;proj-t&quot;>עריכת פרויקט קיים</div>
-        <div class=&quot;proj-s&quot;>פתח פרויקט שמור ועדכן אותו</div>
-      </div>
-      <div class=&quot;proj-chev&quot;>‹</div>
-    </div>
-
-    <div class=&quot;proj-card&quot; id=&quot;pc-dup&quot; onclick=&quot;selectProject('dup')&quot;>
-      <div class=&quot;proj-ico&quot;>📄</div>
-      <div class=&quot;proj-txt&quot;>
-        <div class=&quot;proj-t&quot;>שכפול פרויקט קיים</div>
-        <div class=&quot;proj-s&quot;>השתמש בפרויקט קיים כבסיס לקמפיין חדש</div>
-      </div>
-      <div class=&quot;proj-chev&quot;>‹</div>
-    </div>
-
-    <div class=&quot;proj-card&quot; id=&quot;pc-open&quot; onclick=&quot;selectProject('open')&quot;>
-      <div class=&quot;proj-ico&quot;>📂</div>
-      <div class=&quot;proj-txt&quot;>
-        <div class=&quot;proj-t&quot;>פתח פרויקט שמור</div>
-        <div class=&quot;proj-s&quot;>המשך פרויקט שהתחלת בעבר מהנקודה שבה עצרת</div>
-      </div>
-      <div class=&quot;proj-chev&quot;>‹</div>
-    </div>
-
-    <!-- Dynamic sub-panel per selection -->
-    <div id=&quot;proj-subpanel&quot; style=&quot;display:none;margin-top:6px;&quot;></div>
-
-  </div>
-</div>
-
-</div><!-- /main -->
-
-<div class=&quot;footer&quot;>
-  <div class=&quot;finfo&quot; id=&quot;finfo&quot;>בחר פרויקט כדי להתחיל</div>
-  <div style=&quot;display:flex;gap:7px;&quot;>
-    <button class=&quot;btn btn-p btn-sm&quot; id=&quot;btn-next&quot; onclick=&quot;nxt()&quot; disabled>הבא ←</button>
-  </div>
-</div>
-<div id=&quot;toast&quot;></div>
-
-<script>
-// ══ PART A — PLANNING ENGINE (STEP 1 of 13: PROJECT SELECTION) ══
-// &quot;New project&quot; flow now collects basic details + campaign type, then hands
-// off automatically to the full wizard of Part B (SEO) or Part C (Google Ads),
-// running inside the master shell (co-co-dalia-master.html). This module
-// never edits B/C directly — it only calls window.parent.launchModule().
-
-let SELECTED_MODE=null;
-let SELECTED_CAMPAIGN_TYPE=null; // 'seo' | 'ads'
-
-function selectProject(mode){
-  SELECTED_MODE=mode;
-  SELECTED_CAMPAIGN_TYPE=null;
-  ['pc-new','pc-edit','pc-dup','pc-open'].forEach(id=>document.getElementById(id).classList.remove('selected'));
-  document.getElementById('pc-'+({new:'new',edit:'edit',dup:'dup',open:'open'})[mode]).classList.add('selected');
-
-  const sub=document.getElementById('proj-subpanel');
-  sub.style.display='block';
-  const panels={
-    new:`
-      <div class=&quot;card&quot; style=&quot;margin-bottom:14px;&quot;>
-        <div class=&quot;fl&quot;><label>שם הפרויקט</label><input class=&quot;inp&quot; id=&quot;np-name&quot; placeholder=&quot;לדוגמה: קמפיין קיץ 2026 — ניהול צי&quot;></div>
-        <div class=&quot;g2&quot;><div class=&quot;fl&quot;><label>לקוח</label><input class=&quot;inp&quot; id=&quot;np-client&quot; placeholder=&quot;שם הלקוח / העסק&quot;></div>
-        <div class=&quot;fl&quot;><label>אתר</label><input class=&quot;inp&quot; id=&quot;np-site&quot; placeholder=&quot;https://&quot;></div></div>
-      </div>
-      <div style=&quot;font-size:11px;font-weight:700;color:var(--w50);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;&quot;>בחר סוג קמפיין</div>
-      <div class=&quot;type-card&quot; id=&quot;tc-ads&quot; onclick=&quot;selectCampaignType('ads')&quot;>
-        <div class=&quot;type-ico&quot;>📢</div>
-        <div style=&quot;flex:1;&quot;><div class=&quot;type-t&quot;>Google Ads — ממומן</div><div class=&quot;type-s&quot;>קמפיין חיפוש בתשלום. פותח את ה-Wizard המלא של חלק ג׳ (9 שלבים).</div></div>
-      </div>
-      <div class=&quot;type-card&quot; id=&quot;tc-seo&quot; onclick=&quot;selectCampaignType('seo')&quot;>
-        <div class=&quot;type-ico&quot;>🌱</div>
-        <div style=&quot;flex:1;&quot;><div class=&quot;type-t&quot;>Google SEO — אורגני</div><div class=&quot;type-s&quot;>קידום אורגני ללא תשלום לקליק. פותח את ה-Wizard המלא של חלק ב׳ (12 שלבים).</div></div>
-      </div>
-      <button class=&quot;btn btn-p&quot; id=&quot;btn-launch&quot; style=&quot;margin-top:10px;width:100%;justify-content:center;&quot; onclick=&quot;launchCampaign()&quot; disabled>🚀 צור קמפיין ופתח Wizard</button>
-    `,
-    edit:`<div class=&quot;card&quot;><div class=&quot;fl&quot;><label>בחר פרויקט קיים לעריכה</label><select class=&quot;inp&quot; id=&quot;ep-select&quot;><option>— טוען פרויקטים שמורים —</option></select></div></div>`,
-    dup:`<div class=&quot;card&quot;><div class=&quot;fl&quot;><label>שכפל מפרויקט</label><select class=&quot;inp&quot; id=&quot;dp-select&quot;><option>— טוען פרויקטים שמורים —</option></select></div>
-      <div class=&quot;fl&quot;><label>שם לפרויקט החדש</label><input class=&quot;inp&quot; id=&quot;dp-name&quot; placeholder=&quot;שם הפרויקט המשוכפל&quot;></div></div>`,
-    open:`<div class=&quot;card&quot;><div class=&quot;fl&quot;><label>פרויקטים שמורים</label><select class=&quot;inp&quot; id=&quot;op-select&quot;><option>— טוען פרויקטים שמורים —</option></select></div></div>`,
-  };
-  sub.innerHTML=panels[mode]||'';
-
-  const nextBtn=document.getElementById('btn-next');
-  if(mode==='new'){
-    // For &quot;new project&quot; the dedicated launch button below drives navigation;
-    // the fixed footer button stays as a secondary/disabled affordance.
-    nextBtn.disabled=true;
-    document.getElementById('finfo').textContent='מלא פרטים ובחר סוג קמפיין למטה';
-  } else {
-    nextBtn.disabled=false;
-    document.getElementById('finfo').textContent='פרויקט נבחר — לחץ &quot;הבא&quot; להמשיך';
-  }
-}
-
-function selectCampaignType(type){
-  SELECTED_CAMPAIGN_TYPE=type;
-  document.getElementById('tc-ads').classList.toggle('selected', type==='ads');
-  document.getElementById('tc-seo').classList.toggle('selected', type==='seo');
-  document.getElementById('btn-launch').disabled=false;
-  document.getElementById('finfo').textContent = type==='ads'
-    ? 'נבחר Google Ads — לחץ &quot;צור קמפיין&quot; לפתיחת ה-Wizard המלא'
-    : 'נבחר Google SEO — לחץ &quot;צור קמפיין&quot; לפתיחת ה-Wizard המלא';
-}
-
-function launchCampaign(){
-  if(SELECTED_MODE!=='new'||!SELECTED_CAMPAIGN_TYPE){toast('⚠️ בחר סוג קמפיין קודם');return;}
-  const name=document.getElementById('np-name')?.value.trim()||'';
-  const client=document.getElementById('np-client')?.value.trim()||'';
-  const site=document.getElementById('np-site')?.value.trim()||'';
-  // Persist context the same way loadCtx() in Part B already expects
-  try{
-    localStorage.setItem('dalia_part_a', JSON.stringify({
-      bizName: client || name,
-      name: name,
-      site: site,
-      campaignType: SELECTED_CAMPAIGN_TYPE,
-      ts: new Date().toISOString(),
-    }));
-  }catch(e){}
-  try{
-    window.parent.postMessage({type:'dalia-coco-part-a-save',payload:{
-      bizName: client || name,
-      name: name,
-      site: site,
-      campaignType: SELECTED_CAMPAIGN_TYPE,
-      ts: new Date().toISOString(),
-    }},'*');
-  }catch(e){}
-  const target = SELECTED_CAMPAIGN_TYPE==='ads' ? 'c' : 'b';
-  if(window.parent &amp;&amp; typeof window.parent.launchModule==='function'){
-    toast('🚀 פותח את ה-Wizard המלא...');
-    window.parent.launchModule(target);
-  } else {
-    toast('⚠️ לא ניתן לפתוח את המודול — נסה דרך הטאב העליון');
-  }
-}
-
-function nxt(){
-  if(SELECTED_MODE==='new'){ launchCampaign(); return; }
-  if(!SELECTED_MODE){toast('⚠️ בחר פרויקט קודם');return;}
-  toast('⚠️ עריכה/שכפול/פתיחה של פרויקטים שמורים עדיין לא מחוברים לנתונים אמיתיים');
-}
-
-function toast(m){
-  const t=document.getElementById('toast');
-  t.textContent=m;t.style.opacity='1';t.style.transform='translateY(0)';
-  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(14px)';},3500);
-}
-</script>
-</body></html>
-"></iframe>
+  <iframe id="frame-a" class="on" title="חלק א׳ — מנוע התכנון" src="part-a-planning-engine.html"></iframe>
   <iframe id="frame-b" title="חלק ב׳ — SEO אורגני" srcdoc="<!DOCTYPE html>
 <html lang=&quot;he&quot; dir=&quot;rtl&quot;>
 <head>
@@ -1423,36 +1184,31 @@ showStep(1);
 </script>
 </body></html>
 "></iframe>
-  <iframe id="frame-c" title="חלק ג׳ — גוגל אדס" srcdoc="<!DOCTYPE html>
-<html lang=&quot;he&quot; dir=&quot;rtl&quot;>
-<head><meta charset=&quot;UTF-8&quot;><style>
-body{font-family:Heebo,sans-serif;background:#04091a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;padding:24px;}
-.box{max-width:520px;}
-.box h2{color:#f59e0b;margin-bottom:12px;}
-.box p{color:rgba(255,255,255,.7);line-height:1.7;font-size:14px;}
-code{background:#0a1830;padding:2px 6px;border-radius:4px;}
-</style></head>
-<body><div class=&quot;box&quot;>
-<h2>⚠️ חלק ג׳ לא נכלל במיזוג הזה</h2>
-<p>הקובץ שהועלה נחתך באמצע ה-CSS של חלק ג׳ (Google Ads), לפני שהגיע לתוכן ה-HTML/JS של 9 השלבים. כדי לא לאבד או להמציא תוכן, המקום הזה הושאר ריק בכוונה.</p>
-<p>יש להדביק כאן את קוד ה-<code>frame-c</code> המלא והמקורי (מתוך <code>coco-dalia-v2.html</code> העדכני שנמצא אצל מיקי / ב-Git) כדי שהמיזוג יהיה שלם.</p>
-</div></body></html>
-"></iframe>
+  <iframe id="frame-c" title="חלק ג׳ — Google Ads" src="part-c-google-ads.html"></iframe>
 </div>
 </div><!-- /abc-app -->
 
 <script>
 // ══ MASTER SHELL — TOP NAV + MODULE ROUTER ══
-function showPart(part){
-  document.querySelectorAll('.frames iframe').forEach(f=>f.classList.remove('on'));
-  document.getElementById('frame-'+part).classList.add('on');
-  document.querySelectorAll('.modtab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('mt-'+part).classList.add('active');
-  const pill=document.getElementById('part-pill');
-  const labels={a:'חלק א׳ — תכנון',b:'חלק ב׳ — SEO אורגני',c:'חלק ג׳ — Google Ads'};
-  pill.textContent=labels[part]||'';
+const PILLS = {a:'חלק א׳ — תכנון', b:'חלק ב׳ — SEO אורגני', c:'חלק ג׳ — Google Ads'};
+let UNLOCKED = {a:true, b:false, c:false};
+function showPart(p){
+  if(!UNLOCKED[p]) return;
+  ['a','b','c'].forEach(k=>{
+    document.getElementById('frame-'+k).classList.toggle('on', k===p);
+    document.getElementById('mt-'+k).classList.toggle('active', k===p);
+  });
+  document.getElementById('part-pill').textContent = PILLS[p];
 }
-function launchModule(part){ showPart(part); }
+function launchModule(target){
+  if(target!=='b' && target!=='c') return;
+  UNLOCKED[target]=true;
+  const tab=document.getElementById('mt-'+target);
+  if(tab){ tab.style.opacity='1'; tab.style.pointerEvents='auto'; }
+  const sub=document.getElementById('mt-'+target+'-sub');
+  if(sub) sub.textContent = target==='b' ? '12 שלבים' : 'Google Ads — 9 שלבים';
+  showPart(target);
+}
 </script>
 
 <div id="project-brief-app" class="brief-mode-b">
