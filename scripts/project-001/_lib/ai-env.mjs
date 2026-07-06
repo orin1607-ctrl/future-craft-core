@@ -17,7 +17,7 @@ export function loadGeminiKey() {
 }
 
 export function loadAnthropicKey() {
-  return env.ANTHROPIC_API_KEY || env.MARKETING_ANTHROPIC_API_KEY || null;
+  return env.ANTHROPIC_API_KEY || env.MARKETING_ANTHROPIC_API_KEY || env.CLAUDE_API_KEY || null;
 }
 
 export function geminiKeyStatus() {

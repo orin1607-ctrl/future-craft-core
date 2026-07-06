@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     }
 
     const text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
-    return jsonResponse({ ok: true, text, model, provider: "gemini" });
+    return jsonResponse({ ok: true, text, reply: text, model, provider: "gemini" });
   } catch (e) {
     console.error("marketing-gemini-chat:", e);
     return jsonResponse(

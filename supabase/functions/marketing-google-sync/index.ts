@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
         status: Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") ? "connected" : "missing",
       },
       claude: {
-        status: Deno.env.get("ANTHROPIC_API_KEY") || Deno.env.get("MARKETING_ANTHROPIC_API_KEY") ? "connected" : "missing",
+        status: Deno.env.get("ANTHROPIC_API_KEY") || Deno.env.get("MARKETING_ANTHROPIC_API_KEY") || Deno.env.get("CLAUDE_API_KEY") ? "connected" : "missing",
         note: "Edge marketing-claude-chat",
       },
     };

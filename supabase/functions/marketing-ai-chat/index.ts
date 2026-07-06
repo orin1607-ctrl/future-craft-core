@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     }
 
     const text = data.choices?.[0]?.message?.content || "";
-    return jsonResponse({ ok: true, text, model: data.model || model });
+    return jsonResponse({ ok: true, text, reply: text, model: data.model || model });
   } catch (e) {
     console.error("marketing-ai-chat:", e);
     return jsonResponse(

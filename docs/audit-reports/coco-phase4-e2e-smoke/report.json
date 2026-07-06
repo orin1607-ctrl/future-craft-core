@@ -1,6 +1,6 @@
 {
-  "at": "2026-07-06T16:54:23.276Z",
-  "base": "http://127.0.0.1:8765",
+  "at": "2026-07-06T19:50:04.104Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
   "checks": [
     {
       "name": "Orin HTTP",
@@ -16,6 +16,16 @@
       "name": "Orin JS errors",
       "ok": true,
       "detail": "none"
+    },
+    {
+      "name": "Orin פרסום button",
+      "ok": true,
+      "detail": "screen-pirsum + hub card"
+    },
+    {
+      "name": "Orin CocoPirsumHub",
+      "ok": true,
+      "detail": "1.0.0"
     },
     {
       "name": "v5 HTTP",
@@ -40,12 +50,12 @@
     {
       "name": "v5 assistants engine",
       "ok": true,
-      "detail": "{\"assistantsActive\":39,\"assistantsDone\":31,\"consultantsActive\":9,\"total\":{\"assistants\":50,\"consultants\":10}}"
+      "detail": "{\"assistantsActive\":44,\"assistantsDone\":36,\"consultantsActive\":9,\"total\":{\"assistants\":50,\"consultants\":10}}"
     },
     {
       "name": "v5 reports engine",
       "ok": true,
-      "detail": "7 reports, 6 real"
+      "detail": "9 reports, 8 real"
     },
     {
       "name": "v5 google layer",
@@ -65,7 +75,7 @@
     {
       "name": "v5 build engines",
       "ok": true,
-      "detail": "{\"total\":13,\"ready\":0,\"done\":0,\"needsApiKey\":0,\"active\":0}"
+      "detail": "{\"total\":13,\"ready\":3,\"done\":1,\"needsApiKey\":10,\"active\":3}"
     },
     {
       "name": "v5 persistence module",
@@ -85,17 +95,37 @@
     {
       "name": "v5 reads WIRED LS",
       "ok": true,
-      "detail": "{\"hasBiz\":true,\"assistantsDone\":44}"
+      "detail": "{\"hasBiz\":true,\"assistantsDone\":50}"
     },
     {
       "name": "v5 → WIRED navigation",
       "ok": true,
-      "detail": "http://127.0.0.1:8765/coco-dalia/coco-dalia-full-A-J-WIRED%20(1)"
+      "detail": "https://orin1607-ctrl.github.io/future-craft-core/coco-dalia/coco-dalia-full-A-J-WIRED%20(1).html?part=a"
     },
     {
       "name": "WIRED → v5 navigation",
       "ok": true,
-      "detail": "http://127.0.0.1:8765/ai-marketing/ai-control-center-v5-STANDALONE"
+      "detail": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing/ai-control-center-v5-STANDALONE.html"
+    },
+    {
+      "name": "Pirsum HTTP",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "Pirsum hub tabs",
+      "ok": true,
+      "detail": "work + control"
+    },
+    {
+      "name": "Pirsum → control center",
+      "ok": true,
+      "detail": "iframe loaded"
+    },
+    {
+      "name": "Pirsum JS errors",
+      "ok": true,
+      "detail": "none"
     }
   ],
   "ok": true

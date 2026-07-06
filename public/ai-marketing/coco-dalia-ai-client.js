@@ -82,8 +82,8 @@
       '. ממצאים: ' + baseReport.found + '. פערים: ' + (baseReport.gaps || []).join(', ') +
       '. החזר JSON קצר: {improvements:[], urgency:"low|medium|high"}';
     return chat({ prompt: prompt, provider: 'auto', module: 'assistant-' + baseReport.id }).then(function (res) {
-      if (res && res.ok && res.reply) {
-        baseReport.recommended = res.reply.slice(0, 500);
+      if (res && res.ok && (res.reply || res.text)) {
+        baseReport.recommended = (res.reply || res.text).slice(0, 500);
         baseReport._aiEnhanced = true;
       }
       return baseReport;
