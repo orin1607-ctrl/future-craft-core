@@ -51,6 +51,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);display:
   <div class="brand-logo"><div class="dot"></div>CO.CO <em>דליה</em></div>
   <div class="brand-sub">AI Marketing — Platform</div>
   <span class="part-pill" id="part-pill">חלק א׳ — תכנון</span>
+  <button type="button" onclick="cocoNavigateToV5 && cocoNavigateToV5()" style="font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;padding:6px 12px;border-radius:9px;border:1px solid rgba(37,99,235,.35);background:rgba(37,99,235,.12);color:#3b82f6;cursor:pointer;white-space:nowrap;">📊 מרכז בקרה</button>
 </div>
 
 <div class="modnav">
@@ -4375,8 +4376,10 @@ connectToDataLayer();
   window.COCO_PAGES_BASE = base;
 })();
 </script>
-<script src="../ai-marketing/coco-data-adapter.js?v=phase1-integration"></script>
-<script src="../ai-marketing/coco-dalia-integration.js?v=phase1-integration"></script>
+<script src="../ai-marketing/coco-data-adapter.js?v=phase2-integration"></script>
+<script src="../ai-marketing/coco-dalia-api-reader.js?v=phase2-integration"></script>
+<script src="../ai-marketing/coco-dalia-integration.js?v=phase2-integration"></script>
+<script src="../ai-marketing/marketing-api.js?v=phase2-readonly"></script>
 
 <script>
 // The user always starts on Part A ("קמפיין חדש"). Choosing a campaign type
@@ -4414,6 +4417,7 @@ function launchModule(target){
 
 if (window.CocoDaliaIntegration) {
   CocoDaliaIntegration.initWiredShell({ unlocked: UNLOCKED, showPart: showPart });
+  window.cocoNavigateToV5 = CocoDaliaIntegration.navigateToV5;
 }
 </script>
 </body></html>

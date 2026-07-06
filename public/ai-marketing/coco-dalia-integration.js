@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0-phase1';
+  var VERSION = '2.0.0-phase2';
 
   var KEYS = {
     projectBrief: 'dalia_project_brief',
@@ -22,6 +22,8 @@
     schedule: 'coco-v5-schedule-v1',
     activeAsset: 'coco-active-asset-v1',
     pendingAssets: 'coco-pending-assets-v1',
+    progress: 'coco-dalia-progress-v1',
+    apiCache: 'coco-dalia-api-cache-v1',
   };
 
   var WIRED_FILE = 'coco-dalia-full-A-J-WIRED%20(1).html';
@@ -93,8 +95,65 @@
       parseLs(KEYS.projectBrief) ||
       parseLs(KEYS.partA) ||
       parseLs(KEYS.partB) ||
-      parseLs(KEYS.biz)
+      parseLs(KEYS.biz) ||
+      parseLs(KEYS.apiCache)
     );
+  }
+
+  /* ── Unified progress SSOT (WIRED writes → v5 reads) ── */
+  function publishProgress() {
+    var brief = parseLs(KEYS.projectBrief);
+    var partA = parseLs(KEYS.partA) || {};
+    var partB = parseLs(KEYS.partB);
+    var partC = parseLs(KEYS.partC);
+    var track = parseLs(KEYS.trackComplete);
+    var biz = readBiz();
+    var qa = loadQA();
+    var sched = loadSchedule();
+
+    var aStatus = brief ? 'completed' : (partA.bizName || partA.name ? 'in_progress' : 'pending');
+    var bStatus = partB && partB.approved ? 'completed' : (track && track.track === 'seo' ? 'completed' : 'pending');
+    var cStatus = partA.gads_ready ? 'ready' : (track && track.track === 'ads' ? 'completed' : 'pending');
+    var teamStatus = (partB && partB.approved) || (track && track.track) ? 'unlocked' : 'locked';
+
+    var qaCount = 0;
+    ['assistants', 'consultants'].forEach(function (b) {
+      var bucket = qa[b] || {};
+      Object.keys(bucket).forEach(function (id) {
+        var q = bucket[id];
+        if (q && (q.relevant != null || q.helped != null || q.quality_rating != null)) qaCount++;
+      });
+    });
+
+    var progress = {
+      version: 2,
+      updatedAt: new Date().toISOString(),
+      client: {
+        name: biz.companyName || biz.bizName || '',
+        site: biz.site || '',
+        sector: biz.sector || '',
+      },
+      parts: {
+        a: { status: aStatus, hasBrief: !!brief },
+        b: { status: bStatus, kw_count: partB && partB.kw_count, approved: !!(partB && partB.approved) },
+        c: { status: cStatus, gads_ready: !!partA.gads_ready },
+        team: { status: teamStatus },
+        d: { status: 'preview' },
+      },
+      track: track,
+      qaRated: qaCount,
+      schedule: sched,
+      competitors: (readCompetitors() || []).length,
+    };
+    saveLs(KEYS.progress, progress);
+    try {
+      window.dispatchEvent(new CustomEvent('coco:dalia-progress', { detail: progress }));
+    } catch (e) { /* ignore */ }
+    return progress;
+  }
+
+  function readProgress() {
+    return parseLs(KEYS.progress) || publishProgress();
   }
 
   function readBiz() {
@@ -209,16 +268,94 @@
     }
   }
 
-  function hydrateDashboard(data) {
-    if (!data || typeof data !== 'object') return data;
+  function mergeListByName(existing, incoming, key) {
+    key = key || 'name';
+    var map = {};
+    (existing || []).forEach(function (item) { map[item[key]] = item; });
+    (incoming || []).forEach(function (item) {
+      if (!item[key]) return;
+      map[item[key]] = Object.assign({}, map[item[key]] || {}, item);
+    });
+    return Object.keys(map).map(function (k) { return map[k]; });
+  }
+
+  function overlayFromApi(data, apiSnap) {
+    if (!apiSnap || !data) return;
+    if (apiSnap.integrations && apiSnap.integrations.length) {
+      data.integrations = mergeListByName(data.integrations, apiSnap.integrations, 'name');
+    }
+    if (apiSnap.assets && apiSnap.assets.length) {
+      data.assets = mergeListByName(data.assets, apiSnap.assets, 'name');
+    }
+    if (apiSnap.keywords && apiSnap.keywords.length) {
+      var wiredKws = data.keywords.filter(function (k) { return !k.source || k.source !== 'api'; });
+      data.keywords = wiredKws.concat(apiSnap.keywords);
+    }
+    if (apiSnap.seo_accordion && apiSnap.seo_accordion.length) {
+      data.seo_accordion = apiSnap.seo_accordion.concat(
+        data.seo_accordion.filter(function (s) { return /Mock|דמו/i.test(s.body); })
+      ).slice(0, 12);
+    }
+    if (apiSnap.ads_accordion && apiSnap.ads_accordion.length) {
+      data.ads_accordion = apiSnap.ads_accordion;
+    }
+    if (apiSnap.pages && apiSnap.pages.length) {
+      data.pages = mergeListByName(data.pages, apiSnap.pages, 'name');
+    }
+    if (apiSnap.stats) {
+      var st = apiSnap.stats;
+      data.kpis.forEach(function (k) {
+        if (k.id === 'kpi4' && st.avgPosition) k.value = '#' + st.avgPosition + ' ממוצע';
+        if (k.id === 'kpi13' && apiSnap.workPlan && apiSnap.workPlan.summary) {
+          k.value = apiSnap.workPlan.summary.actionsOpen || k.value;
+        }
+      });
+    }
+    if (apiSnap.clientFromDb && apiSnap.clientFromDb.name) {
+      data._liveClient = apiSnap.clientFromDb;
+    }
+  }
+
+  function overlayProgress(data, progress) {
+    if (!progress || !data) return;
+    var p = progress.parts || {};
+    data.kpis.forEach(function (k) {
+      if (k.id === 'kpi8' && p.b && p.b.status === 'completed') k.value = (p.b.kw_count || '') + ' KW · אושר';
+      if (k.id === 'kpi9' && progress.qaRated) k.value = progress.qaRated + ' דירוגי QA';
+      if (k.id === 'kpi12' && p.a && p.a.status === 'completed') k.value = 'Brief אושר';
+      if (k.id === 'kpi13' && p.b) k.value = p.b.approved ? 'SEO מאושר' : k.value;
+    });
+    if (progress.client && progress.client.name) {
+      data._clientLabel = progress.client.name;
+    }
+  }
+
+  function hydrateDashboard(data, apiSnap) {
+    if (!data || typeof data !== 'object') return { data: data, snap: buildLiveSnapshot(), live: false };
+    publishProgress();
     var snap = buildLiveSnapshot();
-    if (!snap.hasLive) return { data: data, snap: snap, live: false };
-    overlayKpis(data, snap);
-    overlayAudience(data, snap);
-    overlayCompetitors(data, snap);
-    overlayAssets(data, snap);
+    var progress = readProgress();
+    var hasWired = snap.hasLive;
+    var hasApi = !!(apiSnap && apiSnap.dashboard);
+
+    if (hasWired) {
+      overlayKpis(data, snap);
+      overlayAudience(data, snap);
+      overlayCompetitors(data, snap);
+      overlayAssets(data, snap);
+    }
+    if (hasApi) overlayFromApi(data, apiSnap);
+    overlayProgress(data, progress);
     applyQAToData(data);
-    return { data: data, snap: snap, live: true };
+
+    return {
+      data: data,
+      snap: snap,
+      progress: progress,
+      api: apiSnap,
+      live: hasWired || hasApi,
+      mode: hasWired && hasApi ? 'wired+api' : (hasApi ? 'api' : (hasWired ? 'wired' : 'mock')),
+    };
   }
 
   /* ── QA persistence ── */
@@ -341,15 +478,24 @@
     });
   }
 
-  function updateLiveBadge(live) {
+  function updateLiveBadge(result) {
     var badge = document.querySelector('.mockbadge');
     if (!badge) return;
-    if (live) {
-      badge.textContent = '🔗 מחובר · קריאה מ-LS';
+    var r = result || {};
+    if (r.live) {
+      var labels = { 'wired+api': '🔗 WIRED + API', api: '📡 API אמיתי', wired: '🔗 WIRED · LS' };
+      badge.textContent = labels[r.mode] || '🔗 מחובר';
       badge.style.background = 'rgba(34,197,94,.14)';
       badge.style.color = '#22c55e';
       badge.style.borderColor = 'rgba(34,197,94,.28)';
     }
+  }
+
+  function navigateToV5(opts) {
+    opts = opts || {};
+    var url = v5Url();
+    if (opts.newTab) window.open(url, '_blank', 'noopener');
+    else location.href = url;
   }
 
   function navigateToWired(opts) {
@@ -362,10 +508,35 @@
     }
   }
 
+  function refreshFromApis(data, hooks) {
+    hooks = hooks || {};
+    if (!window.CocoDaliaApiReader) {
+      var result = hydrateDashboard(data, parseLs(KEYS.apiCache));
+      updateLiveBadge(result);
+      return Promise.resolve(result);
+    }
+    return CocoDaliaApiReader.fetchAll({ force: false }).then(function (apiSnap) {
+      var result = hydrateDashboard(data, apiSnap);
+      updateLiveBadge(result);
+      populateV5FilterBar();
+      if (apiSnap.clientFromDb && apiSnap.clientFromDb.name) {
+        var f = readFilter();
+        if (!f.clientName) writeFilterFromV5({ client: apiSnap.clientFromDb.name });
+      }
+      if (typeof hooks.onRefresh === 'function') hooks.onRefresh();
+      return result;
+    }).catch(function () {
+      var result = hydrateDashboard(data, parseLs(KEYS.apiCache));
+      updateLiveBadge(result);
+      return result;
+    });
+  }
+
   function initV5Dashboard(data, hooks) {
     hooks = hooks || {};
-    var result = hydrateDashboard(data);
-    updateLiveBadge(result.live);
+    publishProgress();
+    var result = hydrateDashboard(data, parseLs(KEYS.apiCache));
+    updateLiveBadge(result);
     populateV5FilterBar();
 
     var sched = loadSchedule();
@@ -376,13 +547,22 @@
       if (status && sched.label) status.textContent = 'תזמון פעיל: ' + sched.label;
     }
 
+    refreshFromApis(data, hooks);
+
+    var watchKeys = [KEYS.projectBrief, KEYS.partA, KEYS.partB, KEYS.biz, KEYS.trackComplete, KEYS.globalFilter, KEYS.qa, KEYS.progress, KEYS.apiCache];
     window.addEventListener('storage', function (e) {
       if (!e || !e.key) return;
-      if ([KEYS.projectBrief, KEYS.partA, KEYS.partB, KEYS.biz, KEYS.trackComplete, KEYS.globalFilter, KEYS.qa].indexOf(e.key) >= 0) {
-        hydrateDashboard(data);
+      if (watchKeys.indexOf(e.key) >= 0) {
+        publishProgress();
+        hydrateDashboard(data, parseLs(KEYS.apiCache));
         populateV5FilterBar();
         if (typeof hooks.onRefresh === 'function') hooks.onRefresh();
       }
+    });
+
+    window.addEventListener('coco:dalia-progress', function () {
+      hydrateDashboard(data, parseLs(KEYS.apiCache));
+      if (typeof hooks.onRefresh === 'function') hooks.onRefresh();
     });
 
     return result;
@@ -415,6 +595,16 @@
     };
 
     window.cocoNavigateToWired = navigateToWired;
+    window.cocoNavigateToV5 = navigateToV5;
+  }
+
+  function initWiredProgressWatcher() {
+    publishProgress();
+    var watchKeys = [KEYS.projectBrief, KEYS.partA, KEYS.partB, KEYS.partC, KEYS.trackComplete, KEYS.seoDraft, KEYS.gadsDraft, KEYS.qa];
+    window.addEventListener('storage', function (e) {
+      if (e && e.key && watchKeys.indexOf(e.key) >= 0) publishProgress();
+    });
+    setInterval(publishProgress, 15000);
   }
 
   /* ── WIRED shell: unlock + deep link ── */
@@ -471,6 +661,7 @@
     if (window.CocoDataAdapter) {
       CocoDataAdapter.syncPartAToBiz();
     }
+    initWiredProgressWatcher();
   }
 
   function syncProjectBriefToLegacy() {
@@ -502,16 +693,21 @@
     v5Url: v5Url,
     hasLiveData: hasLiveData,
     buildLiveSnapshot: buildLiveSnapshot,
+    publishProgress: publishProgress,
+    readProgress: readProgress,
     hydrateDashboard: hydrateDashboard,
+    refreshFromApis: refreshFromApis,
     initV5Dashboard: initV5Dashboard,
     patchV5Handlers: patchV5Handlers,
     navigateToWired: navigateToWired,
+    navigateToV5: navigateToV5,
     populateV5FilterBar: populateV5FilterBar,
     saveQAEntry: saveQAEntry,
     loadQA: loadQA,
     saveScheduleState: saveScheduleState,
     loadSchedule: loadSchedule,
     initWiredShell: initWiredShell,
+    initWiredProgressWatcher: initWiredProgressWatcher,
     applyWiredUnlockState: applyWiredUnlockState,
     syncProjectBriefToLegacy: syncProjectBriefToLegacy,
     readFilter: readFilter,
