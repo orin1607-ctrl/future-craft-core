@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '2.0.0-readonly';
+  var VERSION = '3.0.0-readonly';
   var CACHE_KEY = 'coco-dalia-api-cache-v1';
   var CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -175,17 +175,88 @@
     ];
   }
 
-  function mapAdsAccordion(dashboard) {
+  function mapGoogleAdsReadOnly(dashboard) {
     var ads = (dashboard && dashboard.googleAdsData) || {};
-    var kpis = ads.kpis || {};
+    var meta = (dashboard && dashboard.googleAds) || {};
+    var kpis = ads.kpis || meta.summary || {};
     var conn = (dashboard && dashboard.connections && dashboard.connections.googleAds) || {};
-    return [
-      { t: 'סטטוס חיבור', body: connToStatus(conn) + (conn.note ? ' — ' + conn.note : '') },
-      { t: 'Customer ID', body: ads.customerId || (dashboard.googleAds && dashboard.googleAds.customerId) || '—' },
-      { t: 'קמפיינים', body: (kpis.campaignCount || 0) + ' קמפיינים (קריאה בלבד — ללא שליחה).' },
-      { t: 'ביצועים', body: 'חשיפות: ' + (kpis.impressions || 0) + ' · קליקים: ' + (kpis.clicks || 0) + ' · המרות: ' + (kpis.conversions || 0) },
+    var needsUser = /pending|403|permission|production_access|developer_token/i.test(
+      String(conn.status || '') + String(ads.lastError || meta.lastError || conn.note || '')
+    );
+    return {
+      connected: !!(conn.ok || meta.ok),
+      customerId: ads.customerId || meta.customerId || null,
+      status: conn.status || meta.status || 'unknown',
+      statusHe: connToStatus(conn),
+      needsUserApproval: needsUser,
+      userAction: needsUser
+        ? 'אישור Google Ads API / Developer Token Production — המערכת תמשיך לבד אחרי האישור'
+        : null,
+      kpis: {
+        impressions: kpis.impressions || 0,
+        clicks: kpis.clicks || 0,
+        conversions: kpis.conversions || 0,
+        campaignCount: kpis.campaignCount || 0,
+        cpc: kpis.cpc || 0,
+        currency: kpis.currency || 'ILS',
+      },
+      campaigns: ads.campaigns || [],
+      readOnly: true,
+      lastError: ads.lastError || meta.lastError || null,
+    };
+  }
+
+  function mapAdsAccordion(dashboard) {
+    var g = mapGoogleAdsReadOnly(dashboard);
+    var lines = [
+      { t: 'סטטוס חיבור', body: g.statusHe + (g.lastError ? ' — ' + g.lastError : '') },
+      { t: 'Customer ID', body: g.customerId || '—' },
+      { t: 'קמפיינים', body: g.kpis.campaignCount + ' קמפיינים (קריאה בלבד — ללא שליחה).' },
+      { t: 'ביצועים', body: 'חשיפות: ' + g.kpis.impressions + ' · קליקים: ' + g.kpis.clicks + ' · המרות: ' + g.kpis.conversions },
       { t: 'מדיניות', body: 'קריאה בלבד · אין שליחת קמפיינים מהממשק החדש.' },
     ];
+    if (g.needsUserApproval) {
+      lines.push({ t: 'נדרש ממך', body: g.userAction });
+    }
+    return lines;
+  }
+
+  function mapSupabaseIntegrations(bundle) {
+    if (!bundle || !bundle.connections) return [];
+    var label = {
+      google_analytics: 'Google Analytics 4',
+      google_search_console: 'Google Search Console',
+      google_ads: 'Google Ads',
+      google_business: 'Google Business Profile',
+      google_tag_manager: 'Google Tag Manager',
+      facebook: 'Meta / Facebook',
+      instagram: 'Instagram',
+      supabase: 'Supabase',
+    };
+    return (bundle.connections || []).map(function (c) {
+      var prov = c.provider || c.name || 'unknown';
+      var st = /connected|active|ok/i.test(String(c.status || '')) ? 'מחובר' : 'דורש התחברות';
+      return { name: label[prov] || prov, status: st, source: 'supabase-readonly', note: c.note || '' };
+    });
+  }
+
+  function mapWorkPlanProgress(workPlan) {
+    var sum = (workPlan && workPlan.summary) || {};
+    var total = sum.actionsTotal || 0;
+    var open = sum.actionsOpen || 0;
+    var done = sum.actionsDone || (total - open);
+    var pct = total ? Math.round((done / total) * 100) : 0;
+    return {
+      pageCount: sum.pageCount || 0,
+      actionsTotal: total,
+      actionsOpen: open,
+      actionsDone: done,
+      progressPercent: sum.progressPercent || pct,
+      pagesInProgress: sum.pagesInProgress || 0,
+      avgSeoScore: sum.avgSeoScore || null,
+      assistantsCompletedEstimate: Math.min(50, Math.round((pct / 100) * 50)),
+      consultantsCompletedEstimate: Math.min(10, Math.round((pct / 100) * 10)),
+    };
   }
 
   function mapPages(workPlan, limit) {
@@ -270,7 +341,12 @@
           connections: (supa.bundle.connections || []).length,
           source: 'supabase-readonly',
         };
+        var sbInt = mapSupabaseIntegrations(supa.bundle);
+        if (sbInt.length) payload.integrations = sbInt.concat(payload.integrations);
       }
+
+      payload.googleAds = dashboard ? mapGoogleAdsReadOnly(dashboard) : null;
+      payload.workPlanProgress = mapWorkPlanProgress(workPlan);
 
       return saveCache(payload);
     });
@@ -284,6 +360,9 @@
     loadCache: loadCache,
     connToStatus: connToStatus,
     mapIntegrations: mapIntegrations,
+    mapGoogleAdsReadOnly: mapGoogleAdsReadOnly,
+    mapSupabaseIntegrations: mapSupabaseIntegrations,
+    mapWorkPlanProgress: mapWorkPlanProgress,
     assetUrl: assetUrl,
   };
 })();

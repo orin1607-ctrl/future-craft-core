@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '2.0.0-phase2';
+  var VERSION = '3.0.0-phase3';
 
   var KEYS = {
     projectBrief: 'dalia_project_brief',
@@ -314,6 +314,38 @@
     if (apiSnap.clientFromDb && apiSnap.clientFromDb.name) {
       data._liveClient = apiSnap.clientFromDb;
     }
+    if (apiSnap.workPlanProgress) {
+      var wp = apiSnap.workPlanProgress;
+      data.kpis.forEach(function (k) {
+        if (k.id === 'kpi8' && wp.assistantsCompletedEstimate) {
+          k.value = wp.assistantsCompletedEstimate + ' הושלמו (work-plan)';
+        }
+        if (k.id === 'kpi9' && wp.consultantsCompletedEstimate) {
+          k.value = wp.consultantsCompletedEstimate + ' הושלמו (work-plan)';
+        }
+        if (k.id === 'kpi13' && wp.actionsOpen != null) {
+          k.value = wp.actionsOpen + ' פתוחות';
+        }
+      });
+      var doneCount = wp.assistantsCompletedEstimate || 0;
+      if (doneCount > 0 && data.assistants) {
+        data.assistants.forEach(function (a, i) {
+          if (i < doneCount && a.status === 'ממתין') a.status = 'הושלם';
+          else if (i < doneCount + 5 && a.status === 'ממתין') a.status = 'בתהליך';
+        });
+      }
+    }
+    if (apiSnap.googleAds) {
+      var g = apiSnap.googleAds;
+      data.kpis.forEach(function (k) {
+        if (k.id === 'kpi5') {
+          k.value = g.customerId
+            ? ('CID ' + g.customerId + ' · ' + g.statusHe)
+            : k.value;
+        }
+      });
+      data._googleAdsReadOnly = g;
+    }
   }
 
   function overlayProgress(data, progress) {
@@ -548,6 +580,15 @@
     }
 
     refreshFromApis(data, hooks);
+
+    if (window.CocoDaliaAuthBridge) {
+      CocoDaliaAuthBridge.onAuth(function () {
+        refreshFromApis(data, hooks);
+      });
+    }
+    window.addEventListener('coco:auth-ready', function () {
+      refreshFromApis(data, hooks);
+    });
 
     var watchKeys = [KEYS.projectBrief, KEYS.partA, KEYS.partB, KEYS.biz, KEYS.trackComplete, KEYS.globalFilter, KEYS.qa, KEYS.progress, KEYS.apiCache];
     window.addEventListener('storage', function (e) {
