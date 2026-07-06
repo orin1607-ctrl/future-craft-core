@@ -123,6 +123,22 @@
       });
     }
 
+    var engStore = parseLs('coco-dalia-engines-v1');
+    if (engStore && engStore.engines) {
+      var engReady = engStore.engines.filter(function (e) { return e.ready || e.status === 'מוכן' || e.status === 'הושלם'; }).length;
+      var engDone = engStore.engines.filter(function (e) { return e.status === 'הושלם'; }).length;
+      list.push({
+        id: 'r-engines',
+        name: 'דוח 13 מנועי בנייה',
+        type: 'Build Engines · שלב ג׳',
+        date: engStore.ranAt ? engStore.ranAt.slice(0, 10) : today(),
+        status: engDone >= 1 ? 'בתהליך' : (engReady >= 3 ? 'בתהליך' : 'ממתין'),
+        source: 'build-engines-engine',
+        real: true,
+        meta: { ready: engReady, done: engDone, total: 13 },
+      });
+    }
+
     list.push({
       id: 'r-final',
       name: 'דוח סיכום אסטרטגי · ' + bizName(),

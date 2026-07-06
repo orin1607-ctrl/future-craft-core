@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '4.0.0-assistants';
+  var VERSION = '5.0.0-assistants';
   var REPORTS_KEY = 'coco-dalia-assistant-reports-v1';
 
   var GROUPS = [
@@ -217,6 +217,11 @@
         ProjectBrief.applyAssistantReport(r);
       }
     });
+    consultants.forEach(function (r) {
+      if (window.ProjectBrief && ProjectBrief.applyConsultantReport) {
+        ProjectBrief.applyConsultantReport(r);
+      }
+    });
     return store;
   }
 
@@ -268,6 +273,19 @@
     return { assistantsActive: aDone + aProc, assistantsDone: aDone, consultantsActive: cDone, total: { assistants: 50, consultants: 10 } };
   }
 
+  function toPipelineState() {
+    var store = loadReports() || runAll();
+    var assistants = {};
+    var consultants = {};
+    (store.assistants || []).forEach(function (a) {
+      assistants[a.id] = { status: a.status, note: a.found };
+    });
+    (store.consultants || []).forEach(function (c) {
+      consultants[c.id] = { status: c.status, note: c.found };
+    });
+    return { assistants: assistants, consultants: consultants };
+  }
+
   window.CocoDaliaAssistantsEngine = {
     VERSION: VERSION,
     REGISTRY: REGISTRY,
@@ -277,5 +295,6 @@
     loadReports: loadReports,
     overlayToV5Data: overlayToV5Data,
     getActiveCounts: getActiveCounts,
+    toPipelineState: toPipelineState,
   };
 })();

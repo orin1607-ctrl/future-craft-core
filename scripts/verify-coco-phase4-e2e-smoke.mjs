@@ -10,7 +10,7 @@ const BASE = USE_LOCAL
   ? 'http://127.0.0.1:8765'
   : 'https://orin1607-ctrl.github.io/future-craft-core';
 const TS = Date.now();
-const CACHE_BUST = 'phase4-e2e-' + TS;
+const CACHE_BUST = 'phase5-full-' + TS;
 
 const URLS = {
   orin: `${BASE}/ai-marketing-platform.html?nocache=${CACHE_BUST}`,
@@ -73,11 +73,13 @@ await checkPage('v5', URLS.v5, async (page, errors) => {
     const apiOk = window.CocoDaliaApiReader
       ? await CocoDaliaApiReader.fetchAll({ force: true }).then((s) => !!(s && s.dashboard))
       : false;
-    const eng = window.CocoDaliaAssistantsEngine ? CocoDaliaAssistantsEngine.runAll() : null;
-    const counts = eng ? CocoDaliaAssistantsEngine.getActiveCounts() : null;
+    const asstRun = window.CocoDaliaAssistantsEngine ? CocoDaliaAssistantsEngine.runAll() : null;
+    const counts = asstRun ? CocoDaliaAssistantsEngine.getActiveCounts() : null;
     const reports = window.CocoDaliaReportsEngine ? CocoDaliaReportsEngine.buildReportsList() : [];
     const google = window.CocoDaliaGoogleLayer ? CocoDaliaGoogleLayer.getAllStatus() : [];
     const tenant = window.CocoDaliaTenantHub ? await CocoDaliaTenantHub.loadCustomers() : [];
+    const pipeline = window.CocoDaliaOrchestrator ? CocoDaliaOrchestrator.runPipeline(await (window.CocoDaliaApiReader ? CocoDaliaApiReader.fetchAll({ force: false }) : null)) : null;
+    const engineCounts = window.CocoDaliaBuildEnginesEngine ? CocoDaliaBuildEnginesEngine.getCounts() : null;
     return {
       integration: window.CocoDaliaIntegration && CocoDaliaIntegration.VERSION,
       apiOk,
@@ -87,11 +89,14 @@ await checkPage('v5', URLS.v5, async (page, errors) => {
       googleProviders: google.length,
       customers: tenant.length,
       persistence: window.CocoDaliaPersistence && CocoDaliaPersistence.VERSION,
+      orchestrator: window.CocoDaliaOrchestrator && CocoDaliaOrchestrator.VERSION,
+      engines: engineCounts,
+      pipelineGates: pipeline && pipeline.gates,
     };
   });
 
-  if (mods.integration && /^4\.0\.0/.test(mods.integration)) pass('v5 integration v4', mods.integration);
-  else fail('v5 integration v4', String(mods.integration));
+  if (mods.integration && /^5\.0\.0/.test(mods.integration)) pass('v5 integration v5', mods.integration);
+  else fail('v5 integration v5', String(mods.integration));
 
   if (mods.apiOk) pass('v5 API reader', 'dashboard ok');
   else fail('v5 API reader', 'failed');
@@ -108,6 +113,12 @@ await checkPage('v5', URLS.v5, async (page, errors) => {
 
   if (mods.customers >= 1) pass('v5 tenant hub', mods.customers + ' customers');
   else fail('v5 tenant hub', 'none');
+
+  if (mods.orchestrator) pass('v5 orchestrator', mods.orchestrator);
+  else fail('v5 orchestrator', 'missing');
+
+  if (mods.engines && mods.engines.total === 13) pass('v5 build engines', JSON.stringify(mods.engines));
+  else fail('v5 build engines', JSON.stringify(mods.engines));
 
   if (mods.persistence) pass('v5 persistence module', mods.persistence);
   else fail('v5 persistence module', 'missing');

@@ -3126,6 +3126,25 @@ function renderAll(){
   renderSummary();
 }
 
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'coco:sync-pipeline') return;
+  var st = e.data.state || {};
+  function mapSt(s) {
+    var m = {'הושלם':'אושר','בתהליך':'ממתין להשלמת מידע','ממתין':'ממתין','דולג':'אושר','אושר':'אושר','אושר עם תיקון':'תוקן','שגיאה':'הוחזרה שגיאה','מוכן':'אושר','דורש API Key':'ממתין להשלמת מידע'};
+    return m[s] || s;
+  }
+  ['assistants','consultants','engines'].forEach(function(bucket) {
+    var items = st[bucket] || {};
+    Object.keys(items).forEach(function(id) {
+      var item = items[id];
+      var stObj = initState(id);
+      if (item.status) stObj.status = mapSt(item.status);
+      if (item.note) stObj.log.push('[סנכרון] ' + item.note);
+    });
+  });
+  renderAll();
+});
+
 renderAll();
 </script>
 </body>
@@ -4376,17 +4395,22 @@ connectToDataLayer();
   window.COCO_PAGES_BASE = base;
 })();
 </script>
-<script src="../ai-marketing/coco-data-adapter.js?v=phase4-e2e"></script>
-<script src="../ai-marketing/project-brief-module.js?v=phase4-e2e"></script>
-<script src="../ai-marketing/coco-dalia-tenant-hub.js?v=phase4-e2e"></script>
-<script src="../ai-marketing/coco-dalia-persistence.js?v=phase4-e2e"></script>
-<script src="../ai-marketing/coco-dalia-api-reader.js?v=phase4-e2e"></script>
-<script src="../ai-marketing/coco-dalia-auth-bridge.js?v=phase4-e2e"></script>
-<script src="../ai-marketing/marketing-api.js?v=phase4-e2e"></script>
-<script src="../ai-marketing/coco-dalia-assistants-engine.js?v=phase4-e2e"></script>
-<script src="../ai-marketing/coco-dalia-reports-engine.js?v=phase4-e2e"></script>
-<script src="../ai-marketing/coco-dalia-google-layer.js?v=phase4-e2e"></script>
-<script src="../ai-marketing/coco-dalia-integration.js?v=phase4-e2e"></script>
+<script src="../ai-marketing/coco-data-adapter.js?v=phase5-full"></script>
+<script src="../ai-marketing/project-brief-module.js?v=phase5-full"></script>
+<script src="../ai-marketing/site-blueprint-module.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-tenant-hub.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-persistence.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-ai-client.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-api-reader.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-auth-bridge.js?v=phase5-full"></script>
+<script src="../ai-marketing/marketing-api.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-assistants-engine.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-build-engines-engine.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-orchestrator.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-reports-engine.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-google-layer.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-wired-sync.js?v=phase5-full"></script>
+<script src="../ai-marketing/coco-dalia-integration.js?v=phase5-full"></script>
 
 <script>
 // The user always starts on Part A ("קמפיין חדש"). Choosing a campaign type
@@ -4422,6 +4446,10 @@ function launchModule(target){
   showPart(target);
 }
 
+if (window.CocoDaliaWiredSync) {
+  CocoDaliaWiredSync.init({ showPart: showPart, unlocked: UNLOCKED });
+  if (window._cocoWiredShowPart) showPart = window._cocoWiredShowPart;
+}
 if (window.CocoDaliaIntegration) {
   CocoDaliaIntegration.initWiredShell({ unlocked: UNLOCKED, showPart: showPart });
   window.cocoNavigateToV5 = CocoDaliaIntegration.navigateToV5;

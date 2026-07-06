@@ -1,5 +1,5 @@
 {
-  "at": "2026-07-06T15:37:35.738Z",
+  "at": "2026-07-06T16:54:23.276Z",
   "base": "http://127.0.0.1:8765",
   "checks": [
     {
@@ -28,9 +28,9 @@
       "detail": "clean"
     },
     {
-      "name": "v5 integration v4",
+      "name": "v5 integration v5",
       "ok": true,
-      "detail": "4.0.0-e2e"
+      "detail": "5.0.0-e2e"
     },
     {
       "name": "v5 API reader",
@@ -45,7 +45,7 @@
     {
       "name": "v5 reports engine",
       "ok": true,
-      "detail": "6 reports, 5 real"
+      "detail": "7 reports, 6 real"
     },
     {
       "name": "v5 google layer",
@@ -56,6 +56,16 @@
       "name": "v5 tenant hub",
       "ok": true,
       "detail": "1 customers"
+    },
+    {
+      "name": "v5 orchestrator",
+      "ok": true,
+      "detail": "5.0.0-orchestrator"
+    },
+    {
+      "name": "v5 build engines",
+      "ok": true,
+      "detail": "{\"total\":13,\"ready\":0,\"done\":0,\"needsApiKey\":0,\"active\":0}"
     },
     {
       "name": "v5 persistence module",

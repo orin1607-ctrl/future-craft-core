@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '4.0.0-e2e';
+  var VERSION = '5.0.0-e2e';
 
   var KEYS = {
     projectBrief: 'dalia_project_brief',
@@ -394,6 +394,12 @@
       }
       if (window.CocoDaliaGoogleLayer && CocoDaliaGoogleLayer.overlayIntegrations) {
         CocoDaliaGoogleLayer.overlayIntegrations(data, apiSnap);
+      }
+      if (window.CocoDaliaOrchestrator && CocoDaliaOrchestrator.runPipeline) {
+        CocoDaliaOrchestrator.runPipeline(apiSnap, { silent: true });
+      }
+      if (window.CocoDaliaBuildEnginesEngine && CocoDaliaBuildEnginesEngine.overlayToV5Data) {
+        CocoDaliaBuildEnginesEngine.overlayToV5Data(data, apiSnap);
       }
 
       return {
