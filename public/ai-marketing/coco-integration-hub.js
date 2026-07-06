@@ -33,6 +33,7 @@
   var FLOW_SCREENS = [
     'screen-hub', 'screen-status', 'screen-clients', 'screen-agents', 'screen-goals',
     'screen-actions', 'screen-crm', 'screen-history', 'screen-assets', 'screen-ai-center', 'screen-reports',
+    'screen-pirsum',
   ];
 
   function esc(s) {

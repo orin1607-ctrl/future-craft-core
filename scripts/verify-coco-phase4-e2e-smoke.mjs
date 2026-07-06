@@ -16,6 +16,7 @@ const URLS = {
   orin: `${BASE}/ai-marketing-platform.html?nocache=${CACHE_BUST}`,
   wired: `${BASE}/coco-dalia/coco-dalia-full-A-J-WIRED%20(1).html?nocache=${CACHE_BUST}`,
   v5: `${BASE}/ai-marketing/ai-control-center-v5-STANDALONE.html?nocache=${CACHE_BUST}`,
+  pirsum: `${BASE}/coco-dalia/pirsum-hub.html?nocache=${CACHE_BUST}`,
 };
 
 const report = { at: new Date().toISOString(), base: BASE, checks: [], ok: true };
@@ -60,6 +61,18 @@ await checkPage('Orin', URLS.orin, async (page, errors) => {
   const stackErr = errors.filter((e) => /stack|overflow/i.test(e));
   if (stackErr.length) fail('Orin stack errors', stackErr.join(' | '));
   else pass('Orin JS errors', errors.length ? errors.slice(0, 2).join(' | ') : 'none');
+
+  await page.waitForSelector('#coco-claude-root.coco-ready', { timeout: 60000 }).catch(() => null);
+  const pirsumInHub = await page.evaluate(() => {
+    return !!(document.getElementById('screen-pirsum') && document.querySelector('.hub-card-pirsum'));
+  });
+  if (pirsumInHub) pass('Orin פרסום button', 'screen-pirsum + hub card');
+  else fail('Orin פרסום button', 'missing');
+
+  if (await page.evaluate(() => typeof window.CocoPirsumHub !== 'undefined')) {
+    const ver = await page.evaluate(() => window.CocoPirsumHub && CocoPirsumHub.VERSION);
+    pass('Orin CocoPirsumHub', ver || 'loaded');
+  } else fail('Orin CocoPirsumHub', 'missing');
 });
 
 // 2. v5 E2E modules
@@ -178,8 +191,29 @@ try {
   fail('LS + navigation flow', e.message);
 } finally {
   await page.close();
-  await browser.close();
 }
+
+// 4. Pirsum standalone hub
+await checkPage('Pirsum', URLS.pirsum, async (page, errors) => {
+  const hasTabs = await page.evaluate(() => {
+    return !!(document.getElementById('tab-work') && document.getElementById('tab-control'));
+  });
+  if (hasTabs) pass('Pirsum hub tabs', 'work + control');
+  else fail('Pirsum hub tabs', 'missing');
+  await page.click('#tab-control');
+  await page.waitForTimeout(2000);
+  const ctrlSrc = await page.evaluate(() => {
+    var f = document.getElementById('frame-control');
+    return f && f.src ? f.src : '';
+  });
+  if (/ai-control-center-v5/i.test(ctrlSrc)) pass('Pirsum → control center', 'iframe loaded');
+  else fail('Pirsum → control center', ctrlSrc || 'empty');
+  const stackErr = errors.filter((e) => /stack|overflow/i.test(e));
+  if (stackErr.length) fail('Pirsum stack errors', stackErr.join(' | '));
+  else pass('Pirsum JS errors', errors.length ? errors.slice(0, 2).join(' | ') : 'none');
+});
+
+await browser.close();
 
 const outDir = join(process.cwd(), 'docs', 'audit-reports', 'coco-phase4-e2e-smoke');
 mkdirSync(outDir, { recursive: true });

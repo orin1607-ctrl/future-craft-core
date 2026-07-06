@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+(function () {
+  var host = location.hostname;
+  var base = '/future-craft-core/';
+  if (host === 'localhost' || host === '127.0.0.1') {
+    var p = location.pathname || '';
+    var i = p.indexOf('coco-dalia');
+    base = i >= 0 ? p.substring(0, i) : (p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/'));
+  }
+  window.COCO_PAGES_BASE = base;
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>פרסום — CO.CO דליה</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#04091a;--bg2:#071022;--acc:#2563eb;--acc2:#3b82f6;--w:#fff;--w50:rgba(255,255,255,.5);--w10:rgba(255,255,255,.1);--green:#22c55e;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.brandbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--w10);display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:10px;flex-shrink:0;}
+.logo{font-size:14px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.logo em{color:var(--acc2);font-style:normal;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);}
+.badge{font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(37,99,235,.14);color:var(--acc2);border:1px solid rgba(37,99,235,.28);font-weight:700;}
+.tabs{display:flex;gap:8px;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--w10);flex-shrink:0;}
+.tab{font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;padding:8px 16px;border-radius:9px;border:1px solid var(--w10);background:transparent;color:var(--w50);cursor:pointer;transition:.2s;}
+.tab.active{background:rgba(37,99,235,.16);border-color:rgba(37,99,235,.4);color:var(--w);}
+.tab:hover:not(.active){background:rgba(255,255,255,.04);}
+.frames{flex:1;position:relative;overflow:hidden;}
+.frames iframe{position:absolute;inset:0;width:100%;height:100%;border:none;display:none;background:var(--bg);}
+.frames iframe.on{display:block;}
+.back{font-size:11px;color:var(--w50);text-decoration:none;padding:6px 10px;border:1px solid var(--w10);border-radius:8px;}
+.back:hover{color:var(--w);}
+</style>
+</head>
+<body>
+<div class="brandbar">
+  <div class="logo"><span class="dot"></span>CO.CO <em>דליה</em> — פרסום</div>
+  <span class="badge">Staging · Preview</span>
+  <a class="back" id="back-orin" href="#">← מנהל שיווק (Orin)</a>
+</div>
+<div class="tabs">
+  <button type="button" class="tab active" id="tab-work">⚙️ מרכז העבודה</button>
+  <button type="button" class="tab" id="tab-control">📊 מרכז השליטה</button>
+</div>
+<div class="frames">
+  <iframe id="frame-work" title="מרכז העבודה" src="about:blank"></iframe>
+  <iframe id="frame-control" title="מרכז השליטה" src="about:blank"></iframe>
+</div>
+<script src="../ai-marketing/coco-dalia-pirsum-launcher.js"></script>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var tab = params.get('tab') === 'control' ? 'control' : 'work';
+  var back = document.getElementById('back-orin');
+  if (back && window.CocoPirsumHub) {
+    var orin = (window.COCO_PAGES_BASE || '/future-craft-core/') + 'ai-marketing-platform.html?flow=legacy';
+    back.href = orin.charAt(0) === '/' ? (location.origin + orin) : orin;
+  }
+  function show(t) {
+    document.getElementById('tab-work').classList.toggle('active', t === 'work');
+    document.getElementById('tab-control').classList.toggle('active', t === 'control');
+    var wf = document.getElementById('frame-work');
+    var cf = document.getElementById('frame-control');
+    wf.classList.toggle('on', t === 'work');
+    cf.classList.toggle('on', t === 'control');
+    if (t === 'work' && (!wf.src || wf.src.indexOf('about:blank') >= 0)) wf.src = CocoPirsumHub.workUrl();
+    if (t === 'control' && (!cf.src || cf.src.indexOf('about:blank') >= 0)) cf.src = CocoPirsumHub.controlUrl();
+  }
+  document.getElementById('tab-work').onclick = function () { show('work'); };
+  document.getElementById('tab-control').onclick = function () { show('control'); };
+  show(tab);
+})();
+</script>
+</body>
+</html>

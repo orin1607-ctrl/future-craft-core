@@ -173,6 +173,9 @@
           if (tab === 'crm' && window.CocoMarketingCrm && CocoMarketingCrm.openTab) {
             setTimeout(function () { CocoMarketingCrm.openTab(); }, 400);
           }
+          if ((tab === 'pirsum' || new URLSearchParams(location.search).get('flow') === 'pirsum') && window.CocoPirsumHub) {
+            setTimeout(function () { CocoPirsumHub.open({ tab: new URLSearchParams(location.search).get('pirsumTab') || 'work' }); }, 400);
+          }
           return loadScript(assetUrl('ai-marketing/ai-assistant.js'));
         });
       }
@@ -225,7 +228,8 @@
         .then(function () { return loadScript(assetUrl('ai-marketing/site-marketing-hub-module.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-wizard.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/client-site-template/template-engine.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/website-builder-module.js')); });
+        .then(function () { return loadScript(assetUrl('ai-marketing/website-builder-module.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/coco-dalia-pirsum-launcher.js')); });
     })
     .then(boot)
     .catch(function (e) {

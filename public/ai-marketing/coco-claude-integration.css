@@ -1034,3 +1034,16 @@ body.coco-boot-active { background: #04091a; }
   min-height: 100vh;
   background: #04091a;
 }
+
+/* פרסום — מערכת חדשה (מרכז עבודה + מרכז שליטה) */
+#screen-pirsum { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+#screen-pirsum .topbar { flex-shrink: 0; }
+.pirsum-shell { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.pirsum-tabs { display: flex; gap: 8px; padding: 10px 16px; background: var(--bg2, #071022); border-bottom: 1px solid var(--border, rgba(255,255,255,.1)); flex-shrink: 0; }
+.pirsum-tab { font-family: 'Heebo', sans-serif; font-size: 12px; font-weight: 700; padding: 8px 16px; border-radius: 9px; border: 1px solid var(--border, rgba(255,255,255,.1)); background: transparent; color: var(--white50, rgba(255,255,255,.5)); cursor: pointer; transition: 0.2s; }
+.pirsum-tab.active { background: rgba(37,99,235,.16); border-color: rgba(37,99,235,.4); color: var(--white, #fff); }
+.pirsum-tab:hover:not(.active) { background: rgba(255,255,255,.04); }
+.pirsum-frames { flex: 1; position: relative; min-height: 0; overflow: hidden; }
+.pirsum-frames iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: none; background: #04091a; }
+.pirsum-frames iframe.on { display: block; }
+.hub-card-pirsum { grid-column: 1 / -1; cursor: pointer; }

@@ -72,9 +72,22 @@
       </div>
     </div>
 
+    <!-- פרסום — מערכת חדשה (מרכז עבודה + מרכז שליטה) -->
+    <div style="padding:16px 20px 0;">
+      <div class="sec-title">פרסום — מערכת חדשה</div>
+    </div>
+    <div style="padding:0 20px 0;">
+      <div class="hub-card hub-card-pirsum" onclick="goScreen('screen-pirsum')" style="border-color:rgba(37,99,235,.45);background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(34,197,94,.06));">
+        <div class="hub-icon">🚀</div>
+        <div class="hub-name">פרסום</div>
+        <div class="hub-desc">מרכז העבודה + מרכז השליטה — 50 עוזרים · 10 יועצים · 13 מנועים</div>
+        <div class="hub-count" style="color:var(--accent2);">מערכת חדשה · Staging</div>
+      </div>
+    </div>
+
     <!-- 6 Main buttons -->
     <div style="padding:16px 20px 0;">
-      <div class="sec-title">מודולים</div>
+      <div class="sec-title">מודולים — מנהל שיווק (Orin)</div>
     </div>
     <div class="hub-grid">
       <div class="hub-card" onclick="goScreen('screen-status')">
@@ -155,6 +168,30 @@
     <div class="bnav-btn" onclick="goScreen('screen-status')"><div class="icon">📊</div>מצב</div>
     <div class="bnav-btn" onclick="goScreen('screen-actions')"><div class="icon">⚙️</div>פעולות</div>
     <div class="bnav-btn" onclick="goScreen('screen-goals')"><div class="icon">🎯</div>מטרות</div>
+  </div>
+</div>
+
+<!-- ============================= SCREEN: פרסום (מערכת חדשה) ============================= -->
+<div class="screen" id="screen-pirsum">
+  <div class="topbar">
+    <div class="topbar-right">
+      <span class="topbar-logo">דליה <em>|</em> פרסום</span>
+      <span class="role-badge" style="background:rgba(37,99,235,.2);color:var(--accent2);">מערכת חדשה</span>
+    </div>
+    <div class="topbar-left">
+      <button class="btn btn-ghost btn-sm" type="button" onclick="CocoPirsumHub && CocoPirsumHub.openInNewTab('work')">↗ חלון נפרד</button>
+      <button class="btn btn-ghost btn-sm" type="button" onclick="goScreen('screen-hub')">← חזרה ל-Orin</button>
+    </div>
+  </div>
+  <div class="pirsum-shell">
+    <div class="pirsum-tabs">
+      <button type="button" class="pirsum-tab active" id="pirsum-tab-work" onclick="CocoPirsumHub && CocoPirsumHub.showTab('work')">⚙️ מרכז העבודה</button>
+      <button type="button" class="pirsum-tab" id="pirsum-tab-control" onclick="CocoPirsumHub && CocoPirsumHub.showTab('control')">📊 מרכז השליטה</button>
+    </div>
+    <div class="pirsum-frames">
+      <iframe id="pirsum-frame-work" class="on" title="מרכז העבודה — CO.CO דליה" src="about:blank" loading="lazy"></iframe>
+      <iframe id="pirsum-frame-control" title="מרכז השליטה — CO.CO דליה" src="about:blank" loading="lazy"></iframe>
+    </div>
   </div>
 </div>
 

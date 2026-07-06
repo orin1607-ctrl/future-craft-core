@@ -44,6 +44,7 @@
     { id: 'screen-assets', labelHe: 'נכסים דיגיטליים' },
     { id: 'screen-ai-center', labelHe: 'קבלת החלטות AI' },
     { id: 'screen-reports', labelHe: 'דוחות' },
+    { id: 'screen-pirsum', labelHe: 'פרסום — מערכת חדשה' },
     { id: 'screen-crm', labelHe: 'CRM' },
   ];
 
@@ -55,6 +56,7 @@
     register('screen-agent-dashboard', { needsFilter: true });
     register('screen-crm-card', { needsFilter: true });
     register('screen-ai-decisions', { needsFilter: false });
+    register('screen-pirsum', { needsFilter: false });
   }
 
   registerDefaults();
