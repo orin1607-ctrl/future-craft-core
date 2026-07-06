@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - main
+      - preview/dalia-mock-interfaces
 
 permissions:
   contents: read
@@ -25,10 +26,9 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout main branch
+      - name: Checkout branch
         uses: actions/checkout@v4
         with:
-          ref: main
           fetch-depth: 1
 
       - name: Setup Bun
@@ -62,6 +62,7 @@ jobs:
           cp public/dalia-crm.html dist/
           cp -r public/ai-marketing dist/
           cp -r public/coco-dalia dist/
+          cp -r public/dalia-mock-preview dist/
           cp -r public/crm dist/
           cp dist/index.html dist/ai-marketing/index.html
           cp -r public/project-001-mockup dist/
