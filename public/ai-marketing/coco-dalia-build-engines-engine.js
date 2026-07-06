@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '5.1.0-engines';
+  var VERSION = '5.2.0-engines';
   var ENGINES_KEY = 'coco-dalia-engines-v1';
   var BUILD_PKG_KEY = 'coco-dalia-build-package-v1';
 
@@ -147,12 +147,27 @@
     return { ok: false, reason: 'no-brief' };
   }
 
-  function runAll(apiSnap) {
+  function runAll(apiSnap, opts) {
+    opts = opts || {};
     var ctx = gatherBuildContext(apiSnap);
     var pkg = buildPackage(ctx);
     var engines = REGISTRY.map(function (e) { return evaluateEngine(e, ctx); });
+
+    function applyRunnerResult(id, result) {
+      if (!result) return;
+      var eng = engines.find(function (e) { return e.id === id; });
+      if (!eng) return;
+      if (result.status) eng.status = result.status;
+      if (result.ready != null) eng.ready = result.ready;
+      if (result.note) eng.note = result.note;
+      if (result.previewPath) eng.previewPath = result.previewPath;
+      if (result.needsKey) eng.needsKey = result.needsKey;
+      eng.ownerAction = result.ownerAction || null;
+      eng.lastRun = result.ranAt || new Date().toISOString();
+    }
+
     var c13 = engines.find(function (e) { return e.id === 'c13'; });
-    if (c13 && c13.ready) {
+    if (c13 && c13.ready && !opts.skipLocal) {
       var internal = runInternalEngine(pkg);
       if (internal.ok) {
         c13.status = 'הושלם';
@@ -160,8 +175,25 @@
         c13.previewPath = internal.previewPath;
       }
     }
+
     var store = { engines: engines, buildPackage: pkg, ranAt: new Date().toISOString(), version: VERSION, context: ctx };
     saveLs(ENGINES_KEY, store);
+
+    if (!opts.skipParallel && window.CocoDaliaBuildEnginesRunner) {
+      CocoDaliaBuildEnginesRunner.runAllParallel(ctx, pkg).then(function (batch) {
+        (batch.results || []).forEach(function (row) {
+          applyRunnerResult(row.id, row.result);
+        });
+        store.engines = engines;
+        store.parallelAt = new Date().toISOString();
+        store.ownerPending = CocoDaliaBuildEnginesRunner.getOwnerActions();
+        saveLs(ENGINES_KEY, store);
+        try {
+          window.dispatchEvent(new CustomEvent('coco:engines-updated', { detail: store }));
+        } catch (e) { /* ignore */ }
+      });
+    }
+
     return store;
   }
 

@@ -175,6 +175,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
       </div>
     </div>
     <div id="ws-preview-area"></div>
+    <div id="coco-build-engines-hub"></div>
     <div class="cat-title" style="margin-top:16px;">רשימת כל העמודים (מבט מהיר)</div>
     <div id="pages-list"></div>
   </div>
@@ -257,7 +258,10 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
 <script src="coco-dalia-auth-bridge.js?v=phase5-full"></script>
 <script src="marketing-api.js?v=phase5-full"></script>
 <script src="coco-dalia-assistants-engine.js?v=phase5-full"></script>
-<script src="coco-dalia-build-engines-engine.js?v=phase5-full"></script>
+<script src="client-site-template/template-engine.js?v=phase5-engines"></script>
+<script src="coco-dalia-build-engines-runner.js?v=phase5-engines"></script>
+<script src="coco-dalia-build-engines-engine.js?v=phase5-engines"></script>
+<script src="coco-dalia-build-engines-hub.js?v=phase5-engines"></script>
 <script src="coco-dalia-orchestrator.js?v=phase5-full"></script>
 <script src="coco-dalia-reports-engine.js?v=phase5-full"></script>
 <script src="coco-dalia-google-layer.js?v=phase5-full"></script>
@@ -571,6 +575,10 @@ function renderAll(){
   renderAdsAccordion();
   renderIntegrations();
   initWorkspaceSelectors();
+  if (window.CocoDaliaBuildEnginesHub) CocoDaliaBuildEnginesHub.mount('coco-build-engines-hub');
+  if (window.CocoDaliaBuildEnginesEngine && window.CocoDaliaBuildEnginesRunner) {
+    CocoDaliaBuildEnginesEngine.runAll(null, {});
+  }
   reapplyOpenState();
 }
 if (window.CocoDaliaIntegration) {

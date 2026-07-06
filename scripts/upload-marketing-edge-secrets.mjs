@@ -40,6 +40,7 @@ const config = loadJson(join('integrations/google/config.json')) || {};
 const openai = parseEnv('.env.openai');
 const local = parseEnv('.env.local');
 const ads = parseEnv('.env.ads');
+const build = parseEnv('.env.build');
 
 const secrets = {
   GOOGLE_CLIENT_ID: creds?.installed?.client_id || creds?.web?.client_id,
@@ -56,6 +57,19 @@ const secrets = {
   ANTHROPIC_API_KEY: openai.ANTHROPIC_API_KEY || local.ANTHROPIC_API_KEY,
   MARKETING_ANTHROPIC_API_KEY: openai.ANTHROPIC_API_KEY || local.ANTHROPIC_API_KEY,
   CLAUDE_API_KEY: openai.ANTHROPIC_API_KEY || local.ANTHROPIC_API_KEY || openai.CLAUDE_API_KEY || local.CLAUDE_API_KEY,
+  V0_API_KEY: build.V0_API_KEY || build.VERCEL_V0_API_KEY,
+  WORDPRESS_SITE_URL: build.WORDPRESS_SITE_URL,
+  WORDPRESS_USERNAME: build.WORDPRESS_USERNAME,
+  WORDPRESS_APP_PASSWORD: build.WORDPRESS_APP_PASSWORD,
+  FIGMA_ACCESS_TOKEN: build.FIGMA_ACCESS_TOKEN,
+  FIGMA_FILE_KEY: build.FIGMA_FILE_KEY,
+  WEBFLOW_API_TOKEN: build.WEBFLOW_API_TOKEN,
+  WEBFLOW_SITE_ID: build.WEBFLOW_SITE_ID,
+  BUILDER_IO_API_KEY: build.BUILDER_IO_API_KEY,
+  PLASMIC_API_TOKEN: build.PLASMIC_API_TOKEN,
+  PLASMIC_PROJECT_ID: build.PLASMIC_PROJECT_ID,
+  RUNWAY_API_KEY: build.RUNWAY_API_KEY,
+  GOOGLE_STITCH_API_KEY: build.GOOGLE_STITCH_API_KEY || build.GEMINI_API_KEY,
 };
 
 const results = [];

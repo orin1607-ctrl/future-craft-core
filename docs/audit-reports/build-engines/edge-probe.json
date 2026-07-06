@@ -1,0 +1,76 @@
+{
+  "at": "2026-07-06T20:18:27.956Z",
+  "edge": {
+    "status": {
+      "ok": true,
+      "secrets": {
+        "openai": true,
+        "v0": false,
+        "wordpress": false,
+        "figma": false,
+        "webflow": false,
+        "builder": false,
+        "plasmic": false,
+        "stitch": true,
+        "runway": false
+      }
+    }
+  },
+  "probes": {
+    "images": {
+      "http": 200,
+      "ok": true,
+      "needsKey": null,
+      "error": null
+    },
+    "v0": {
+      "http": 503,
+      "ok": false,
+      "needsKey": "v0",
+      "error": "V0_API_KEY missing"
+    },
+    "wordpress": {
+      "http": 503,
+      "ok": false,
+      "needsKey": "wordpress",
+      "error": "WORDPRESS_SITE_URL / USERNAME / APP_PASSWORD missing"
+    },
+    "figma": {
+      "http": 503,
+      "ok": false,
+      "needsKey": "figma",
+      "error": "FIGMA_ACCESS_TOKEN missing"
+    },
+    "webflow": {
+      "http": 503,
+      "ok": false,
+      "needsKey": "webflow",
+      "error": "WEBFLOW_API_TOKEN missing"
+    },
+    "builder": {
+      "http": 503,
+      "ok": false,
+      "needsKey": "builder",
+      "error": "BUILDER_IO_API_KEY missing"
+    },
+    "plasmic": {
+      "http": 503,
+      "ok": false,
+      "needsKey": "plasmic",
+      "error": "PLASMIC_API_TOKEN / PLASMIC_PROJECT_ID missing"
+    },
+    "stitch": {
+      "http": 502,
+      "ok": false,
+      "needsKey": null,
+      "error": "Your prepayment credits are depleted. Please go to AI Studio at https://ai.studio/projects to manage your project and billing. Learn more at https://ai.google.dev/gemini-api/docs/billing#prepay. "
+    },
+    "runway": {
+      "http": 503,
+      "ok": false,
+      "needsKey": "runway",
+      "error": "RUNWAY_API_KEY missing"
+    }
+  },
+  "ok": true
+}
