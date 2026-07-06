@@ -9,18 +9,20 @@
   var VERSION = '3.0.0-auth-readonly';
   var _ready = false;
   var _listeners = [];
+  var _emitting = false;
 
   function emitAuthReady() {
-    _listeners.forEach(function (fn) {
-      try { fn(window.COCO_STAGING); } catch (e) { console.warn('[CocoAuthBridge]', e); }
-    });
+    if (_emitting) return;
+    _emitting = true;
     try {
-      window.dispatchEvent(new CustomEvent('coco:auth-ready', { detail: window.COCO_STAGING || null }));
-    } catch (e2) { /* ignore */ }
-    if (window.CocoDaliaIntegration && CocoDaliaIntegration.refreshFromApis && window.DATA) {
-      CocoDaliaIntegration.refreshFromApis(window.DATA, { onRefresh: window._cocoV5RenderAll });
-    } else if (window.CocoDaliaIntegration && CocoDaliaIntegration.refreshFromApis) {
-      CocoDaliaIntegration.refreshFromApis({}, {});
+      _listeners.forEach(function (fn) {
+        try { fn(window.COCO_STAGING); } catch (e) { console.warn('[CocoAuthBridge]', e); }
+      });
+      try {
+        window.dispatchEvent(new CustomEvent('coco:auth-ready', { detail: window.COCO_STAGING || null }));
+      } catch (e2) { /* ignore */ }
+    } finally {
+      _emitting = false;
     }
   }
 

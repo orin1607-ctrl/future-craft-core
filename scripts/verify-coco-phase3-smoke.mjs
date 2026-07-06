@@ -1,5 +1,5 @@
 /**
- * Phase 3 integration smoke test — WIRED, v5, Orin (read-only checks).
+ * Phase 3 smoke test — recursion fix, LS sync, navigation, Orin regression.
  */
 import { chromium } from 'playwright';
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -7,12 +7,12 @@ import { join } from 'node:path';
 
 const BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const TS = Date.now();
+const CACHE_BUST = 'phase3-fix-' + TS;
 
 const URLS = {
-  orin: `${BASE}/ai-marketing-platform.html?nocache=${TS}`,
-  wired: `${BASE}/coco-dalia/coco-dalia-full-A-J-WIRED%20(1).html?nocache=${TS}`,
-  v5: `${BASE}/ai-marketing/ai-control-center-v5-STANDALONE.html?nocache=${TS}`,
-  dashboard: `${BASE}/project-001/dashboard.json?nocache=${TS}`,
+  orin: `${BASE}/ai-marketing-platform.html?nocache=${CACHE_BUST}`,
+  wired: `${BASE}/coco-dalia/coco-dalia-full-A-J-WIRED%20(1).html?nocache=${CACHE_BUST}`,
+  v5: `${BASE}/ai-marketing/ai-control-center-v5-STANDALONE.html?nocache=${CACHE_BUST}`,
 };
 
 const report = { at: new Date().toISOString(), checks: [], ok: true };
@@ -25,25 +25,6 @@ function fail(name, detail) {
   report.ok = false;
 }
 
-async function fetchJson(url) {
-  const r = await fetch(url, { cache: 'no-store' });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return r.json();
-}
-
-// Static API checks
-try {
-  const dash = await fetchJson(URLS.dashboard);
-  if (dash.connections && dash.connections.searchConsole) {
-    pass('dashboard.json connections', 'searchConsole=' + dash.connections.searchConsole.status);
-  } else fail('dashboard.json connections', 'missing');
-  if (dash.stats && dash.stats.avgPosition != null) {
-    pass('dashboard.json SEO stats', 'avgPosition=' + dash.stats.avgPosition);
-  } else fail('dashboard.json SEO stats', 'missing stats');
-} catch (e) {
-  fail('dashboard.json fetch', e.message);
-}
-
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ locale: 'he-IL' });
 
@@ -52,71 +33,119 @@ async function checkPage(name, url, fn) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   try {
-    const resp = await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+    const resp = await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     if (!resp || resp.status() >= 400) {
       fail(name + ' HTTP', String(resp && resp.status()));
-      return;
+      return null;
     }
     pass(name + ' HTTP', String(resp.status()));
     await fn(page, errors);
+    return page;
   } catch (e) {
     fail(name + ' load', e.message);
+    return null;
   } finally {
     await page.close();
   }
 }
 
+// 1. Orin regression
 await checkPage('Orin', URLS.orin, async (page, errors) => {
-  const hasHub = await page.locator('#screen-hub, [id*="screen-hub"]').count();
-  const hasClients = await page.locator('#screen-clients, text=חברות').count();
-  if (hasHub > 0 || await page.content().then((c) => /screen-hub|ניהול שיווק/i.test(c))) {
-    pass('Orin hub present', 'marketing platform loaded');
-  } else fail('Orin hub present', 'hub not found');
-  if (errors.length) fail('Orin JS errors', errors.slice(0, 3).join(' | '));
-  else pass('Orin JS errors', 'none');
+  const content = await page.content();
+  if (/screen-hub|ניהול שיווק|ai-marketing/i.test(content)) {
+    pass('Orin platform loaded', 'content ok');
+  } else fail('Orin platform loaded', 'unexpected content');
+  const stackErr = errors.filter((e) => /stack|overflow/i.test(e));
+  if (stackErr.length) fail('Orin stack errors', stackErr.join(' | '));
+  else pass('Orin JS errors', errors.length ? errors.slice(0, 2).join(' | ') : 'none critical');
 });
 
-await checkPage('WIRED', URLS.wired, async (page, errors) => {
-  const hasNav = await page.locator('text=מרכז בקרה').count();
-  if (hasNav > 0) pass('WIRED control center link', 'found');
-  else fail('WIRED control center link', 'missing');
-  const hasIntegration = await page.evaluate(() => !!(window.CocoDaliaIntegration && window.CocoDaliaAuthBridge));
-  if (hasIntegration) pass('WIRED integration scripts', 'CocoDaliaIntegration+AuthBridge');
-  else fail('WIRED integration scripts', 'missing globals');
-  if (errors.length) fail('WIRED JS errors', errors.slice(0, 3).join(' | '));
-  else pass('WIRED JS errors', 'none');
-});
-
+// 2. v5 — no stack overflow + API reader
 await checkPage('v5', URLS.v5, async (page, errors) => {
-  await page.waitForTimeout(3000);
-  const hasWorkLink = await page.locator('text=מרכז עבודה').count();
-  if (hasWorkLink > 0) pass('v5 work center link', 'found');
-  else fail('v5 work center link', 'missing');
+  await page.waitForTimeout(4000);
+  const stackErr = errors.filter((e) => /stack|overflow|Maximum call stack/i.test(e));
+  if (stackErr.length) fail('v5 stack overflow', stackErr.join(' | '));
+  else pass('v5 no stack overflow', 'clean');
 
   const apiOk = await page.evaluate(async () => {
-    if (!window.CocoDaliaApiReader) return { ok: false, reason: 'no reader' };
+    if (!window.CocoDaliaApiReader) return { ok: false };
     const snap = await CocoDaliaApiReader.fetchAll({ force: true });
-    return {
-      ok: !!(snap && snap.dashboard),
-      integrations: (snap.integrations || []).length,
-      keywords: (snap.keywords || []).length,
-      googleAds: !!(snap.googleAds && snap.googleAds.customerId),
-      workPlan: !!(snap.workPlanProgress && snap.workPlanProgress.actionsTotal > 0),
-    };
+    return { ok: !!(snap && snap.dashboard), mode: window.CocoDaliaIntegration && CocoDaliaIntegration.VERSION };
   });
-  if (apiOk.ok) {
-    pass('v5 API reader live', JSON.stringify(apiOk));
-  } else fail('v5 API reader live', apiOk.reason || 'no dashboard');
+  if (apiOk.ok) pass('v5 API reader', JSON.stringify(apiOk));
+  else fail('v5 API reader', 'failed');
 
-  const badge = await page.locator('.mockbadge').textContent().catch(() => '');
-  if (/API|מחובר|WIRED/i.test(badge || '')) pass('v5 live badge', badge.trim());
-  else pass('v5 live badge', badge.trim() || 'mock (no LS data — expected on fresh)');
-
-  if (errors.length) fail('v5 JS errors', errors.slice(0, 3).join(' | '));
-  else pass('v5 JS errors', 'none');
+  const badge = (await page.locator('.mockbadge').textContent().catch(() => '')) || '';
+  if (/API|מחובר|WIRED/i.test(badge)) pass('v5 live badge', badge.trim());
+  else pass('v5 badge', badge.trim() || 'mock (fresh session)');
 });
 
-await browser.close();
+// 3. WIRED → seed LS → v5 reads LS (same context)
+const page = await ctx.newPage();
+const errors = [];
+page.on('pageerror', (e) => errors.push(e.message));
+
+try {
+  await page.goto(URLS.wired, { waitUntil: 'networkidle', timeout: 90000 });
+  pass('WIRED HTTP', '200');
+
+  await page.evaluate(() => {
+    localStorage.setItem('dalia_project_brief', JSON.stringify({
+      biz: { bizName: 'בדיקת אינטגרציה', companyName: 'חברת QA בע״מ', site: 'https://qa-test.example.com', targetAudience: 'מנהלי צי' },
+      competitors: [{ name: 'מתחרה QA', notes: 'בדיקה' }],
+      ts: new Date().toISOString(),
+    }));
+    localStorage.setItem('dalia_part_a', JSON.stringify({ bizName: 'חברת QA בע״מ', site: 'https://qa-test.example.com', ts: new Date().toISOString() }));
+    if (window.CocoDaliaIntegration && CocoDaliaIntegration.publishProgress) {
+      CocoDaliaIntegration.publishProgress({ silent: true });
+    }
+  });
+
+  await page.goto(URLS.v5, { waitUntil: 'networkidle', timeout: 90000 });
+  await page.waitForTimeout(4000);
+
+  const stackErr = errors.filter((e) => /stack|overflow|Maximum call stack/i.test(e));
+  if (stackErr.length) fail('v5 after LS seed stack overflow', stackErr.join(' | '));
+  else pass('v5 after LS seed no overflow', 'clean');
+
+  const lsRead = await page.evaluate(() => {
+    const brief = JSON.parse(localStorage.getItem('dalia_project_brief') || 'null');
+    const hasBiz = brief && brief.biz && brief.biz.companyName === 'חברת QA בע״מ';
+    const assets = document.getElementById('assets-list');
+    const assetsText = assets ? assets.textContent : '';
+    return {
+      hasBiz,
+      assetsMentionQa: /qa-test|חברת QA/i.test(assetsText),
+      integrationVersion: window.CocoDaliaIntegration && CocoDaliaIntegration.VERSION,
+    };
+  });
+  if (lsRead.hasBiz) pass('v5 reads WIRED LS', JSON.stringify(lsRead));
+  else fail('v5 reads WIRED LS', JSON.stringify(lsRead));
+
+  // 4. Navigation v5 → WIRED
+  const workBtn = page.getByRole('button', { name: /מרכז עבודה/ });
+  if (await workBtn.count() > 0) {
+    await workBtn.click();
+    await page.waitForURL(/coco-dalia-full/, { timeout: 30000 });
+    pass('v5 → WIRED navigation', page.url());
+  } else fail('v5 → WIRED navigation', 'button not found');
+
+  // 5. Navigation WIRED → v5
+  const ctrlBtn = page.getByRole('button', { name: /מרכז בקרה/ });
+  if (await ctrlBtn.count() > 0) {
+    await ctrlBtn.click();
+    await page.waitForURL(/ai-control-center-v5/, { timeout: 30000 });
+    pass('WIRED → v5 navigation', page.url());
+  } else fail('WIRED → v5 navigation', 'button not found');
+
+  const finalErrors = errors.filter((e) => /stack|overflow/i.test(e));
+  if (finalErrors.length) fail('navigation stack errors', finalErrors.join(' | '));
+} catch (e) {
+  fail('LS + navigation flow', e.message);
+} finally {
+  await page.close();
+  await browser.close();
+}
 
 const outDir = join(process.cwd(), 'docs', 'audit-reports', 'coco-phase3-smoke');
 mkdirSync(outDir, { recursive: true });

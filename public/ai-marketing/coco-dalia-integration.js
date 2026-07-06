@@ -28,6 +28,7 @@
 
   var WIRED_FILE = 'coco-dalia-full-A-J-WIRED%20(1).html';
   var V5_FILE = 'ai-control-center-v5-STANDALONE.html';
+  var _busy = { hydrate: false, refresh: false };
 
   function parseLs(key) {
     try {
@@ -101,7 +102,8 @@
   }
 
   /* ── Unified progress SSOT (WIRED writes → v5 reads) ── */
-  function publishProgress() {
+  function publishProgress(opts) {
+    opts = opts || {};
     var brief = parseLs(KEYS.projectBrief);
     var partA = parseLs(KEYS.partA) || {};
     var partB = parseLs(KEYS.partB);
@@ -146,9 +148,11 @@
       competitors: (readCompetitors() || []).length,
     };
     saveLs(KEYS.progress, progress);
-    try {
-      window.dispatchEvent(new CustomEvent('coco:dalia-progress', { detail: progress }));
-    } catch (e) { /* ignore */ }
+    if (!opts.silent) {
+      try {
+        window.dispatchEvent(new CustomEvent('coco:dalia-progress', { detail: progress }));
+      } catch (e) { /* ignore */ }
+    }
     return progress;
   }
 
@@ -364,30 +368,36 @@
 
   function hydrateDashboard(data, apiSnap) {
     if (!data || typeof data !== 'object') return { data: data, snap: buildLiveSnapshot(), live: false };
-    publishProgress();
-    var snap = buildLiveSnapshot();
-    var progress = readProgress();
+    if (_busy.hydrate) return { data: data, snap: buildLiveSnapshot(), live: false, skipped: true };
+    _busy.hydrate = true;
+    try {
+      var snap = buildLiveSnapshot();
+      var progress = readProgress();
+      if (!progress) progress = publishProgress({ silent: true });
     var hasWired = snap.hasLive;
-    var hasApi = !!(apiSnap && apiSnap.dashboard);
+      var hasApi = !!(apiSnap && apiSnap.dashboard);
 
-    if (hasWired) {
-      overlayKpis(data, snap);
-      overlayAudience(data, snap);
-      overlayCompetitors(data, snap);
-      overlayAssets(data, snap);
+      if (hasWired) {
+        overlayKpis(data, snap);
+        overlayAudience(data, snap);
+        overlayCompetitors(data, snap);
+        overlayAssets(data, snap);
+      }
+      if (hasApi) overlayFromApi(data, apiSnap);
+      overlayProgress(data, progress);
+      applyQAToData(data);
+
+      return {
+        data: data,
+        snap: snap,
+        progress: progress,
+        api: apiSnap,
+        live: hasWired || hasApi,
+        mode: hasWired && hasApi ? 'wired+api' : (hasApi ? 'api' : (hasWired ? 'wired' : 'mock')),
+      };
+    } finally {
+      _busy.hydrate = false;
     }
-    if (hasApi) overlayFromApi(data, apiSnap);
-    overlayProgress(data, progress);
-    applyQAToData(data);
-
-    return {
-      data: data,
-      snap: snap,
-      progress: progress,
-      api: apiSnap,
-      live: hasWired || hasApi,
-      mode: hasWired && hasApi ? 'wired+api' : (hasApi ? 'api' : (hasWired ? 'wired' : 'mock')),
-    };
   }
 
   /* ── QA persistence ── */
@@ -542,10 +552,16 @@
 
   function refreshFromApis(data, hooks) {
     hooks = hooks || {};
+    if (_busy.refresh) return Promise.resolve({ skipped: true });
+    _busy.refresh = true;
+    var done = function (result) {
+      _busy.refresh = false;
+      return result;
+    };
     if (!window.CocoDaliaApiReader) {
       var result = hydrateDashboard(data, parseLs(KEYS.apiCache));
       updateLiveBadge(result);
-      return Promise.resolve(result);
+      return Promise.resolve(done(result));
     }
     return CocoDaliaApiReader.fetchAll({ force: false }).then(function (apiSnap) {
       var result = hydrateDashboard(data, apiSnap);
@@ -556,17 +572,17 @@
         if (!f.clientName) writeFilterFromV5({ client: apiSnap.clientFromDb.name });
       }
       if (typeof hooks.onRefresh === 'function') hooks.onRefresh();
-      return result;
+      return done(result);
     }).catch(function () {
       var result = hydrateDashboard(data, parseLs(KEYS.apiCache));
       updateLiveBadge(result);
-      return result;
+      return done(result);
     });
   }
 
   function initV5Dashboard(data, hooks) {
     hooks = hooks || {};
-    publishProgress();
+    publishProgress({ silent: true });
     var result = hydrateDashboard(data, parseLs(KEYS.apiCache));
     updateLiveBadge(result);
     populateV5FilterBar();
@@ -581,12 +597,8 @@
 
     refreshFromApis(data, hooks);
 
-    if (window.CocoDaliaAuthBridge) {
-      CocoDaliaAuthBridge.onAuth(function () {
-        refreshFromApis(data, hooks);
-      });
-    }
     window.addEventListener('coco:auth-ready', function () {
+      if (_busy.refresh) return;
       refreshFromApis(data, hooks);
     });
 
@@ -594,7 +606,8 @@
     window.addEventListener('storage', function (e) {
       if (!e || !e.key) return;
       if (watchKeys.indexOf(e.key) >= 0) {
-        publishProgress();
+        if (_busy.hydrate || _busy.refresh) return;
+        publishProgress({ silent: true });
         hydrateDashboard(data, parseLs(KEYS.apiCache));
         populateV5FilterBar();
         if (typeof hooks.onRefresh === 'function') hooks.onRefresh();
@@ -602,6 +615,7 @@
     });
 
     window.addEventListener('coco:dalia-progress', function () {
+      if (_busy.hydrate || _busy.refresh) return;
       hydrateDashboard(data, parseLs(KEYS.apiCache));
       if (typeof hooks.onRefresh === 'function') hooks.onRefresh();
     });
