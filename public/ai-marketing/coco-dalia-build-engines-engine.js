@@ -76,8 +76,8 @@
     var gaps = [];
     var ready = false;
 
-    if (!ctx.hasBrief) {
-      gaps.push('חסר Brief עסקי');
+    if (!ctx.hasBrief && !ctx.hasWorkPlan) {
+      gaps.push('חסר Brief עסקי / תוכנית עבודה');
       status = 'ממתין';
     } else if (!ctx.chiefReady && !ctx.hasBlueprint && !ctx.hasWorkPlan) {
       gaps.push('ממתין לאישור יועצים / Blueprint');
