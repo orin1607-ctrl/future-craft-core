@@ -148,7 +148,7 @@
       competitors: (readCompetitors() || []).length,
     };
     saveLs(KEYS.progress, progress);
-    if (!opts.silent) {
+    if (opts.emit) {
       try {
         window.dispatchEvent(new CustomEvent('coco:dalia-progress', { detail: progress }));
       } catch (e) { /* ignore */ }
@@ -157,7 +157,7 @@
   }
 
   function readProgress() {
-    return parseLs(KEYS.progress) || publishProgress();
+    return parseLs(KEYS.progress);
   }
 
   function readBiz() {
@@ -614,12 +614,6 @@
       }
     });
 
-    window.addEventListener('coco:dalia-progress', function () {
-      if (_busy.hydrate || _busy.refresh) return;
-      hydrateDashboard(data, parseLs(KEYS.apiCache));
-      if (typeof hooks.onRefresh === 'function') hooks.onRefresh();
-    });
-
     return result;
   }
 
@@ -654,12 +648,12 @@
   }
 
   function initWiredProgressWatcher() {
-    publishProgress();
+    publishProgress({ silent: true });
     var watchKeys = [KEYS.projectBrief, KEYS.partA, KEYS.partB, KEYS.partC, KEYS.trackComplete, KEYS.seoDraft, KEYS.gadsDraft, KEYS.qa];
     window.addEventListener('storage', function (e) {
-      if (e && e.key && watchKeys.indexOf(e.key) >= 0) publishProgress();
+      if (e && e.key && watchKeys.indexOf(e.key) >= 0) publishProgress({ silent: true });
     });
-    setInterval(publishProgress, 15000);
+    setInterval(function () { publishProgress({ silent: true }); }, 15000);
   }
 
   /* ── WIRED shell: unlock + deep link ── */
