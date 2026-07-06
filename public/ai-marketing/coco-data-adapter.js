@@ -186,6 +186,9 @@
       saveLs(KEYS.partA, next);
       syncPartAToBiz();
       mergeBriefFromLegacy();
+      if (window.CocoDaliaPersistence && CocoDaliaPersistence.scheduleSync) {
+        CocoDaliaPersistence.scheduleSync();
+      }
       return next;
     },
     syncPartAToBiz: syncPartAToBiz,

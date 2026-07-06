@@ -781,8 +781,50 @@
   }
 
   function applyAssistantReport(report) {
-    console.warn('[ProjectBrief] applyAssistantReport stub — Phase 1b', report);
-    return { ok: false, reason: 'not_implemented', message: 'Phase 1a — assistant merge not active yet' };
+    if (!report || !report.id) return { ok: false, reason: 'invalid_report' };
+    var brief = get();
+    if (!brief.assistantReports) brief.assistantReports = [];
+    var idx = brief.assistantReports.findIndex(function (r) { return r.id === report.id; });
+    var entry = {
+      id: report.id,
+      specId: report.specId || report.id,
+      status: report.status,
+      gaps: report.gaps || [],
+      found: report.found,
+      recommended: report.recommended,
+      confidence: report.confidence || 0,
+      updatedAt: report.updatedAt || new Date().toISOString(),
+    };
+    if (idx >= 0) brief.assistantReports[idx] = Object.assign(brief.assistantReports[idx], entry);
+    else brief.assistantReports.push(entry);
+    if (report.gaps && report.gaps.length) {
+      if (!brief.gaps) brief.gaps = {};
+      brief.gaps['assistant_' + report.id] = report.gaps;
+    }
+    set(brief);
+    return { ok: true, id: report.id, total: brief.assistantReports.length };
+  }
+
+  function applyConsultantReport(report) {
+    if (!report || !report.id) return { ok: false, reason: 'invalid_report' };
+    var brief = get();
+    if (!brief.consultantReports) brief.consultantReports = [];
+    var idx = brief.consultantReports.findIndex(function (r) { return r.id === report.id; });
+    var entry = {
+      id: report.id,
+      specId: report.specId || report.id,
+      status: report.status,
+      score: report.score,
+      mustFix: report.mustFix,
+      recommended: report.recommended,
+      updatedAt: report.updatedAt || new Date().toISOString(),
+    };
+    if (idx >= 0) brief.consultantReports[idx] = Object.assign(brief.consultantReports[idx], entry);
+    else brief.consultantReports.push(entry);
+    if (!brief.decisions) brief.decisions = {};
+    brief.decisions[report.specId || report.id] = report.recommended;
+    set(brief);
+    return { ok: true, id: report.id, total: brief.consultantReports.length };
   }
 
   window.ProjectBrief = {
@@ -814,6 +856,7 @@
     revokeGateB: revokeGateB,
     exportForAssistant: exportForAssistant,
     applyAssistantReport: applyAssistantReport,
+    applyConsultantReport: applyConsultantReport,
     envVal: envVal,
     CONNECTION_MOCK: CONNECTION_MOCK,
   };

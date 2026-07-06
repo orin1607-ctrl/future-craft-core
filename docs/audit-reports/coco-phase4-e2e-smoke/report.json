@@ -1,0 +1,92 @@
+{
+  "at": "2026-07-06T15:37:35.738Z",
+  "base": "http://127.0.0.1:8765",
+  "checks": [
+    {
+      "name": "Orin HTTP",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "Orin platform loaded",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "Orin JS errors",
+      "ok": true,
+      "detail": "none"
+    },
+    {
+      "name": "v5 HTTP",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "v5 no stack overflow",
+      "ok": true,
+      "detail": "clean"
+    },
+    {
+      "name": "v5 integration v4",
+      "ok": true,
+      "detail": "4.0.0-e2e"
+    },
+    {
+      "name": "v5 API reader",
+      "ok": true,
+      "detail": "dashboard ok"
+    },
+    {
+      "name": "v5 assistants engine",
+      "ok": true,
+      "detail": "{\"assistantsActive\":39,\"assistantsDone\":31,\"consultantsActive\":9,\"total\":{\"assistants\":50,\"consultants\":10}}"
+    },
+    {
+      "name": "v5 reports engine",
+      "ok": true,
+      "detail": "6 reports, 5 real"
+    },
+    {
+      "name": "v5 google layer",
+      "ok": true,
+      "detail": "8 providers"
+    },
+    {
+      "name": "v5 tenant hub",
+      "ok": true,
+      "detail": "1 customers"
+    },
+    {
+      "name": "v5 persistence module",
+      "ok": true,
+      "detail": "4.0.0-persist"
+    },
+    {
+      "name": "WIRED HTTP",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "v5 after seed no overflow",
+      "ok": true,
+      "detail": "clean"
+    },
+    {
+      "name": "v5 reads WIRED LS",
+      "ok": true,
+      "detail": "{\"hasBiz\":true,\"assistantsDone\":44}"
+    },
+    {
+      "name": "v5 → WIRED navigation",
+      "ok": true,
+      "detail": "http://127.0.0.1:8765/coco-dalia/coco-dalia-full-A-J-WIRED%20(1)"
+    },
+    {
+      "name": "WIRED → v5 navigation",
+      "ok": true,
+      "detail": "http://127.0.0.1:8765/ai-marketing/ai-control-center-v5-STANDALONE"
+    }
+  ],
+  "ok": true
+}

@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '3.0.0-auth-readonly';
+  var VERSION = '4.0.0-auth';
   var _ready = false;
   var _listeners = [];
   var _emitting = false;

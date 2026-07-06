@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '3.0.0-phase3';
+  var VERSION = '4.0.0-e2e';
 
   var KEYS = {
     projectBrief: 'dalia_project_brief',
@@ -386,6 +386,15 @@
       if (hasApi) overlayFromApi(data, apiSnap);
       overlayProgress(data, progress);
       applyQAToData(data);
+      if (window.CocoDaliaAssistantsEngine && CocoDaliaAssistantsEngine.overlayToV5Data) {
+        CocoDaliaAssistantsEngine.overlayToV5Data(data, apiSnap);
+      }
+      if (window.CocoDaliaReportsEngine && CocoDaliaReportsEngine.overlayToV5Data) {
+        CocoDaliaReportsEngine.overlayToV5Data(data, apiSnap);
+      }
+      if (window.CocoDaliaGoogleLayer && CocoDaliaGoogleLayer.overlayIntegrations) {
+        CocoDaliaGoogleLayer.overlayIntegrations(data, apiSnap);
+      }
 
       return {
         data: data,
@@ -499,7 +508,11 @@
     var clientName = f.clientName || biz.companyName || biz.bizName;
     var campaign = f.campaignName || (parseLs(KEYS.partA) || {}).campaignType;
     var asset = f.assetLabel || biz.site;
-    if (clientName) ensureOption(clientSel, clientName);
+    if (window.CocoDaliaTenantHub && CocoDaliaTenantHub.populateCustomerPicker) {
+      CocoDaliaTenantHub.populateCustomerPicker('f-client');
+    } else if (clientName) {
+      ensureOption(clientSel, clientName);
+    }
     if (campaign) ensureOption(campSel, campaign);
     if (asset) ensureOption(assetSel, asset.replace(/^https?:\/\//, '').split('/')[0]);
     if (fromEl && f.dateRange && f.dateRange.from) fromEl.value = f.dateRange.from;
@@ -596,6 +609,10 @@
     }
 
     refreshFromApis(data, hooks);
+
+    if (window.CocoDaliaPersistence && CocoDaliaPersistence.scheduleSync) {
+      CocoDaliaPersistence.scheduleSync();
+    }
 
     window.addEventListener('coco:auth-ready', function () {
       if (_busy.refresh) return;

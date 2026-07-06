@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '3.0.0-readonly';
+  var VERSION = '4.0.0-readonly';
   var CACHE_KEY = 'coco-dalia-api-cache-v1';
   var CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -276,16 +276,24 @@
     });
   }
 
+  function getActiveCustomerId() {
+    if (window.CocoDaliaTenantHub && CocoDaliaTenantHub.getActiveCustomerId) {
+      return CocoDaliaTenantHub.getActiveCustomerId();
+    }
+    return OFFICIAL_CLIENT.id;
+  }
+
   function fetchSupabaseReadOnly() {
     var api = window.MarketingApi;
     if (!api || !api.canRemote || !api.canRemote()) {
       return Promise.resolve({ customers: [], bundle: null, source: 'no-auth' });
     }
+    var activeId = getActiveCustomerId();
     return api.listMarketingCustomers().then(function (rows) {
-      var first = rows && rows[0];
-      if (!first) return { customers: rows || [], bundle: null, source: 'supabase' };
-      return api.loadBundle(first.id).then(function (bundle) {
-        return { customers: rows, bundle: bundle, source: 'supabase', customerId: first.id };
+      var target = (rows || []).find(function (r) { return r.id === activeId; }) || (rows && rows[0]);
+      if (!target) return { customers: rows || [], bundle: null, source: 'supabase' };
+      return api.loadBundle(target.id).then(function (bundle) {
+        return { customers: rows, bundle: bundle, source: 'supabase', customerId: target.id };
       });
     }).catch(function () {
       return { customers: [], bundle: null, source: 'supabase-error' };
