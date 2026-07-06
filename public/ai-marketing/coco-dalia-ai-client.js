@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '5.0.0-ai';
+  var VERSION = '5.1.0-ai';
 
   function staging() {
     return window.COCO_STAGING || {};
@@ -35,20 +35,42 @@
       clientContext: opts.clientContext || {},
       history: opts.history || [],
     };
-    var provider = opts.provider || 'claude';
-    var url = provider === 'openai'
-      ? (edgeUrl('marketing-ai-chat') || s.marketingChatUrl)
-      : (edgeUrl('marketing-claude-chat') || s.marketingClaudeChatUrl);
-    if (!url) return Promise.resolve({ ok: false, reason: 'no-edge-url' });
-    return fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + s.accessToken,
-        'Content-Type': 'application/json',
-        apikey: s.anonKey || '',
-      },
-      body: JSON.stringify(body),
-    }).then(function (r) { return r.json(); }).catch(function (err) {
+    var provider = opts.provider || 'auto';
+    function callEdge(name, fallbackUrl) {
+      var url = edgeUrl(name) || fallbackUrl;
+      if (!url) return Promise.resolve({ ok: false, reason: 'no-edge-url' });
+      return fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + s.accessToken,
+          'Content-Type': 'application/json',
+          apikey: s.anonKey || '',
+        },
+        body: JSON.stringify(body),
+      }).then(function (r) { return r.json(); });
+    }
+    if (provider === 'openai') {
+      return callEdge('marketing-ai-chat', s.marketingChatUrl).catch(function (err) {
+        return { ok: false, reason: err.message || 'fetch-failed' };
+      });
+    }
+    if (provider === 'gemini') {
+      return callEdge('marketing-gemini-chat', s.marketingGeminiChatUrl).catch(function (err) {
+        return { ok: false, reason: err.message || 'fetch-failed' };
+      });
+    }
+    if (provider === 'claude') {
+      return callEdge('marketing-claude-chat', s.marketingClaudeChatUrl).catch(function (err) {
+        return { ok: false, reason: err.message || 'fetch-failed' };
+      });
+    }
+    return callEdge('marketing-ai-chat', s.marketingChatUrl).then(function (res) {
+      if (res && res.ok) return res;
+      return callEdge('marketing-gemini-chat', s.marketingGeminiChatUrl);
+    }).then(function (res) {
+      if (res && res.ok) return res;
+      return callEdge('marketing-claude-chat', s.marketingClaudeChatUrl);
+    }).catch(function (err) {
       return { ok: false, reason: err.message || 'fetch-failed' };
     });
   }
@@ -59,7 +81,7 @@
       ((ctx.biz && (ctx.biz.companyName || ctx.biz.bizName)) || 'לא ידוע') +
       '. ממצאים: ' + baseReport.found + '. פערים: ' + (baseReport.gaps || []).join(', ') +
       '. החזר JSON קצר: {improvements:[], urgency:"low|medium|high"}';
-    return chat({ prompt: prompt, provider: 'claude', module: 'assistant-' + baseReport.id }).then(function (res) {
+    return chat({ prompt: prompt, provider: 'auto', module: 'assistant-' + baseReport.id }).then(function (res) {
       if (res && res.ok && res.reply) {
         baseReport.recommended = res.reply.slice(0, 500);
         baseReport._aiEnhanced = true;

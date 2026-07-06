@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-07-06T17:40:23.922Z",
+  "generatedAt": "2026-07-06T18:41:57.135Z",
   "project": {
     "id": "project001aimarketing",
     "name": "Project001AIMarketing",
@@ -12,7 +12,7 @@
     "ok": true,
     "scopeCount": 21,
     "hasRefresh": true,
-    "expiry": "2026-07-06T18:34:20.316Z"
+    "expiry": "2026-07-06T19:33:35.280Z"
   },
   "connections": {
     "searchConsole": {
@@ -26,9 +26,9 @@
       "note": null
     },
     "businessProfile": {
-      "status": "pending_google_api_approval",
-      "ok": false,
-      "note": "Pending Google API Approval — Basic API Access (quota=0). לא חוסם את הפרויקט."
+      "status": "oauth_connected",
+      "ok": true,
+      "note": "OAuth מחובר — נתוני API ייפתחו לאחר אישור Google Basic API Access (בקשה הוגשה)"
     },
     "googleAds": {
       "status": "pending_production_access",
@@ -74,8 +74,8 @@
   },
   "gbp": {
     "ok": false,
-    "status": "pending_google_api_approval",
-    "pendingApproval": true,
+    "status": "oauth_connected",
+    "pendingApproval": false,
     "matchedBusiness": null,
     "locations": 0,
     "hint": "דליה פתרונות מימון ותחזוקה לרכב",
@@ -84,9 +84,9 @@
   },
   "businessProfileData": {
     "ok": false,
-    "status": "pending_google_api_approval",
-    "pendingApproval": true,
-    "syncedAt": "2026-07-06T17:40:04.077Z",
+    "status": "oauth_connected",
+    "pendingApproval": false,
+    "syncedAt": "2026-07-06T18:33:35.875Z",
     "location": null,
     "profile": null,
     "kpis": {
@@ -1134,6 +1134,32 @@
     ],
     "ai": [
       {
+        "id": "ai-1783363317121",
+        "timestamp": "2026-07-06T18:41:57.121Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "medium",
+            "title": "שפר עמוד: /%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
+            "detail": "CTR נמוך ומיקום גבוה ב-SERP. 53 חשיפות, CTR 0.0%, מיקום 27.1.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
+        "id": "ai-1783362823633",
+        "timestamp": "2026-07-06T18:33:43.633Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "medium",
+            "title": "שפר עמוד: /%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
+            "detail": "CTR נמוך ומיקום גבוה ב-SERP. 53 חשיפות, CTR 0.0%, מיקום 27.1.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
         "id": "ai-1783359623897",
         "timestamp": "2026-07-06T17:40:23.897Z",
         "count": 1,
@@ -1236,39 +1262,13 @@
             "status": "recommendation_only"
           }
         ]
-      },
-      {
-        "id": "ai-1782367342134",
-        "timestamp": "2026-06-25T06:02:22.134Z",
-        "count": 1,
-        "items": [
-          {
-            "priority": "low",
-            "title": "ממתין לנתוני GSC",
-            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
-            "status": "recommendation_only"
-          }
-        ]
-      },
-      {
-        "id": "ai-1782366651568",
-        "timestamp": "2026-06-25T05:50:51.568Z",
-        "count": 1,
-        "items": [
-          {
-            "priority": "low",
-            "title": "ממתין לנתוני GSC",
-            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
-            "status": "recommendation_only"
-          }
-        ]
       }
     ],
     "drafts": []
   },
   "activityLog": [
     {
-      "timestamp": "2026-07-06T17:40:04.077Z",
+      "timestamp": "2026-07-06T18:33:35.875Z",
       "action": "GBP probe",
       "status": "warning",
       "detail": "No match",

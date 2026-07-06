@@ -81,6 +81,32 @@
       });
     }
 
+    if (dash && dash.stats) {
+      var st = dash.stats;
+      list.push({
+        id: 'r-gsc-live',
+        name: 'דוח Search Console חי',
+        type: 'GSC · 28 ימים',
+        date: today(),
+        status: (st.totalClicks || 0) > 0 ? 'אושר' : 'בתהליך',
+        source: 'dashboard.json',
+        real: true,
+        meta: { clicks: st.totalClicks, impressions: st.totalImpressions, keywords: st.keywordCount },
+      });
+      if (st.ga4Sessions != null) {
+        list.push({
+          id: 'r-ga4-live',
+          name: 'דוח Analytics 4 חי',
+          type: 'GA4 · סשנים',
+          date: today(),
+          status: 'אושר',
+          source: 'dashboard.json',
+          real: true,
+          meta: { sessions: st.ga4Sessions, users: st.ga4Users },
+        });
+      }
+    }
+
     var preBuild = parseLs('coco-pre-build-work-report-v1');
     if (preBuild) {
       list.push({

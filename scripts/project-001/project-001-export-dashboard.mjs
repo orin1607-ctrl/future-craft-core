@@ -37,14 +37,31 @@ function connectionStatus(conn, key) {
   };
 }
 
-function resolveGbpConnection(conn, gbp, gbpSync) {
+function resolveGbpConnection(conn, gbp, gbpSync, tokenMeta) {
   if (gbpSync?.ok && gbpSync?.summary) {
     return { status: 'connected', ok: true, note: gbpSync.location?.title || null };
   }
   if (conn?.connections?.gbp_accounts?.ok) {
     return { status: 'connected', ok: true, note: null };
   }
-  const err = conn?.connections?.gbp_accounts?.error || gbp?.errors?.[0]?.error || '';
+  const hasOAuth =
+    gbpSync?.oauth?.hasBusinessManage ||
+    gbp?.oauth?.hasBusinessManage ||
+    (tokenMeta?.ok && tokenMeta?.scopeCount >= 15);
+  const err = conn?.connections?.gbp_accounts?.error || gbp?.errors?.[0]?.error || gbpSync?.errors?.[0]?.message || '';
+  if (
+    hasOAuth &&
+    (err.includes('Quota exceeded') ||
+      err.includes('quota_limit_value') ||
+      err.includes('484351148380') ||
+      gbpSync?.gaps?.includes('no_location_match'))
+  ) {
+    return {
+      status: 'oauth_connected',
+      ok: true,
+      note: 'OAuth מחובר — נתוני API ייפתחו לאחר אישור Google Basic API Access (בקשה הוגשה)',
+    };
+  }
   if (
     err.includes('Quota exceeded') ||
     err.includes('quota_limit_value') ||
@@ -509,7 +526,7 @@ async function main() {
   const topKeywords = [...keywords].sort((a, b) => b.clicks - a.clicks).slice(0, 50);
   const topPages = [...gscPages].sort((a, b) => b.clicks - a.clicks).slice(0, 50);
   const stats = computeStats(topKeywords, topPages, ga4Summary, suggestions, drafts, needing);
-  const gbpConn = resolveGbpConnection(conn, gbp, gbpSync);
+  const gbpConn = resolveGbpConnection(conn, gbp, gbpSync, tokenMeta);
   const businessProfileData = buildGbpDashboardSlice(gbpSync, gbpConn);
   const adsConn = resolveAdsConnection(adsProbe, adsSync);
   const googleAdsData = buildAdsDashboardSlice(adsSync, adsConn);

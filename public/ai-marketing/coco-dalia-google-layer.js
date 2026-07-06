@@ -29,7 +29,7 @@
 
   function statusHe(conn) {
     if (!conn) return 'ממתין';
-    if (conn.ok || conn.status === 'connected') return 'מחובר';
+    if (conn.ok || conn.status === 'connected' || conn.status === 'oauth_connected') return 'מחובר';
     if (/pending|approval|production_access/i.test(String(conn.status || ''))) return 'דורש אישור';
     if (/error|fail|403|denied/i.test(String(conn.lastError || conn.note || ''))) return 'שגיאה';
     return 'ממתין';
@@ -84,7 +84,7 @@
       googleAds: { screen: 'Google Cloud Console → APIs → OAuth', action: 'אשר Developer Token + חבר חשבון Ads' },
       searchConsole: { screen: 'Search Console → הגדרות → משתמשים', action: 'הוסף Service Account או OAuth' },
       analytics4: { screen: 'GA4 → Admin → Property Access', action: 'הענק הרשאות קריאה' },
-      businessProfile: { screen: 'Google Business Profile API', action: 'ממתין לאישור Google API' },
+      businessProfile: { screen: 'Google Business Profile', action: 'OAuth מחובר — ממתין לאישור API quota' },
     };
     return hints[provider] || { screen: 'הגדרות אינטגרציות', action: 'התחבר דרך דליה parent או Orin' };
   }

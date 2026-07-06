@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '5.0.0-engines';
+  var VERSION = '5.1.0-engines';
   var ENGINES_KEY = 'coco-dalia-engines-v1';
   var BUILD_PKG_KEY = 'coco-dalia-build-package-v1';
 
@@ -70,6 +70,10 @@
     return pkg;
   }
 
+  function hasEdgeAi() {
+    return !!(window.CocoDaliaAiClient && CocoDaliaAiClient.hasAuth && CocoDaliaAiClient.hasAuth());
+  }
+
   function evaluateEngine(eng, ctx) {
     var status = 'ממתין';
     var note = '';
@@ -90,10 +94,14 @@
       status = 'מוכן';
       ready = true;
       note = 'HTML סטטי — אין תלות API חיצוני';
-    } else if (eng.id === 'c10' && window.CocoDaliaAiClient && CocoDaliaAiClient.hasAuth()) {
+    } else if (eng.id === 'c10') {
       status = 'מוכן';
       ready = true;
-      note = 'תוכן AI — auth זמין';
+      note = hasEdgeAi() ? 'תוכן AI — Edge auth' : 'תוכן rule-based — ללא API חיצוני';
+    } else if (eng.provider && hasEdgeAi() && (eng.provider === 'openai' || eng.provider === 'claude' || eng.provider === 'gemini')) {
+      status = 'מוכן';
+      ready = true;
+      note = 'AI דרך Supabase Edge (' + eng.provider + ')';
     } else if (eng.needsApiKey) {
       status = 'דורש API Key';
       note = 'נדרש חיבור: ' + eng.needsApiKey;
