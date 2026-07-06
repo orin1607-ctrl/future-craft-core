@@ -336,6 +336,7 @@
     var partB = parseLs('dalia_part_b') || {};
     var seoDraft = parseLs('dalia_seo_draft') || {};
     var strategic = parseLs('coco-strategic-briefing-v1') || {};
+    var wiredBrief = parseLs('dalia_project_brief') || {};
     var changed = false;
 
     function mergeEnv(path, value, meta) {
@@ -353,6 +354,31 @@
     }
     if (partA.campaignType) {
       mergeEnv('business.campaignType', partA.campaignType, { source: 'manual', status: 'from_client', updatedBy: 'dalia_part_a' });
+    }
+
+    if (wiredBrief.biz && typeof wiredBrief.biz === 'object') {
+      var wb = wiredBrief.biz;
+      if (wb.bizName || wb.companyName) mergeEnv('business.name', wb.companyName || wb.bizName, { source: 'manual', status: 'from_client', updatedBy: 'dalia_project_brief' });
+      if (wb.sector) mergeEnv('business.sector', wb.sector, { source: 'manual', status: 'from_client', updatedBy: 'dalia_project_brief' });
+      if (wb.site || wb.website) {
+        mergeEnv('business.site', wb.site || wb.website, { source: 'manual', status: 'from_client', updatedBy: 'dalia_project_brief' });
+        mergeEnv('assets.website', wb.site || wb.website, { source: 'manual', status: 'from_client', updatedBy: 'dalia_project_brief' });
+      }
+      if (wb.targetAudience) mergeEnv('audience.ideal', [wb.targetAudience], { source: 'manual', status: 'from_client', updatedBy: 'dalia_project_brief' });
+      if (wb.summary) mergeEnv('freeContent.managerNotes', wb.summary, { source: 'manual', status: 'from_client', updatedBy: 'dalia_project_brief' });
+      if (wb.goals) mergeEnv('goals.businessGoal', wb.goals, { source: 'manual', status: 'from_client', updatedBy: 'dalia_project_brief' });
+      if (wb.diff) mergeEnv('services.differentiator', wb.diff, { source: 'manual', status: 'from_client', updatedBy: 'dalia_project_brief' });
+    }
+    if (wiredBrief.competitors && wiredBrief.competitors.length && (!brief.competitors || !brief.competitors.length)) {
+      brief.competitors = wiredBrief.competitors.map(function (c, idx) {
+        var name = c.name || c.bizName || c.companyName || ('מתחרה ' + (idx + 1));
+        return {
+          id: 'comp-wired-' + idx,
+          name: envelope(name, { source: 'manual', status: 'from_client', updatedBy: 'dalia_project_brief' }),
+          website: envelope(c.site || c.url || '', { source: 'manual', status: c.site ? 'unverified' : 'missing', updatedBy: 'dalia_project_brief' }),
+        };
+      });
+      changed = true;
     }
 
     if (biz.name && biz.name !== '—') mergeEnv('business.name', biz.name, { source: 'manual', status: 'from_client', updatedBy: 'dalia_biz' });

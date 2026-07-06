@@ -20,11 +20,11 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="coco-flow" content="stage-a-wizard-ux">
-<meta name="ui-version" content="stage-a-wizard-ux">
+<meta name="coco-flow" content="workflow-v2-full-ux">
+<meta name="ui-version" content="workflow-v2-full-ux">
 <title>CO.CO דליה – AI Marketing Platform</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../ai-marketing/workflow-v2-ux.css?v=stage-a-wizard-ux">
+<link rel="stylesheet" href="../ai-marketing/workflow-v2-ux.css?v=workflow-v2-full-ux">
 <style>
 :root{
   --bg:#04091a;--bg2:#071022;--bg3:#0a1830;--bg4:#0d1f3c;
@@ -1243,10 +1243,11 @@ function launchModule(target){
 </div>
 </div>
 
-<script src="../ai-marketing/project-brief-module.js?v=stage-a-wizard-ux"></script>
-<script src="../ai-marketing/workflow-v2-ux.js?v=stage-a-wizard-ux"></script>
+<script src="../ai-marketing/project-brief-module.js?v=workflow-v2-full-ux"></script>
+<script src="../ai-marketing/workflow-v2-ux.js?v=workflow-v2-full-ux"></script>
 <script src="../ai-marketing/marketing-api.js?v=project-brief-phase1"></script>
 <script src="../ai-marketing/coco-data-adapter.js?v=project-brief-phase1"></script>
+<script src="../ai-marketing/coco-dalia-integration.js?v=phase1-integration"></script>
 <script>
 function escBrief(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1593,7 +1594,7 @@ const INIT={};
 function renderStepper(){
   const el=document.getElementById('stepper');
   let html=EXT_STEPS.map(function(s){
-    var fn=s.k==='onboard'?'v2GoOnboarding()':s.k==='picker'?'v2GoPicker()':'scrollToProjectBrief()';
+    var fn=s.k==='onboard'?'v2GoOnboarding()':s.k==='picker'?'v2GoPicker()':'v2GoBrief()';
     return '<div class="step-item ext" onclick="'+fn+'"><span class="step-n">↩</span>'+s.l+'</div>';
   }).join('');
   html+=STEPS.map((s,i)=>{
@@ -1604,22 +1605,16 @@ function renderStepper(){
   el.innerHTML=html;
   document.getElementById('stepper-prog-f').style.width=((CUR)/(STEPS.length-1)*100)+'%';
 }
-function cocoV2DirectAssistants(){
-  try{return localStorage.getItem('coco-v2-skip-gates-assistants-v1')==='true';}catch(e){return false;}
-}
 function gateOkForStageD(){
   if(!window.ProjectBrief) return true;
-  if(cocoV2DirectAssistants()&&ProjectBrief.isGateAApproved()) return true;
   return ProjectBrief.isGateAApproved()&&ProjectBrief.isGateBApproved()&&ProjectBrief.isApproved();
 }
 function jump(i){
   if(i>MAX) { toast('צריך לאשר את השלב הנוכחי קודם'); return; }
   if(i===0 && window.ProjectBrief){
     if(!ProjectBrief.isGateAApproved()){ toast('⚠️ Gate-A — השלם היכרות'); if(window.CocoWorkflowV2)CocoWorkflowV2.goPhase('onboarding'); return; }
-    if(!cocoV2DirectAssistants()){
-      if(!ProjectBrief.isGateBApproved()){ toast('⚠️ Gate-B — בחר קמפיין'); if(window.CocoWorkflowV2)CocoWorkflowV2.goPhase('onboarding'); return; }
-      if(!ProjectBrief.isApproved()){ toast('⚠️ Gate ד׳ — אשר Brief'); scrollToProjectBrief(); return; }
-    }
+    if(!ProjectBrief.isGateBApproved()){ toast('⚠️ Gate-B — בחר קמפיין'); if(window.CocoWorkflowV2){ document.getElementById('coco-v2-app').style.display='flex'; document.body.classList.add('coco-v2-mode'); CocoWorkflowV2.goPhase('picker'); } return; }
+    if(!ProjectBrief.isApproved()){ toast('⚠️ Gate ד׳ — אשר Brief'); if(window.CocoWorkflowV2)CocoWorkflowV2.goPhase('brief'); else scrollToProjectBrief(); return; }
   }
   showStage(i);
 }
@@ -2377,6 +2372,10 @@ function v2GoPicker(){
   if(window.CocoWorkflowV2){ document.getElementById('coco-v2-app').style.display='flex'; document.body.classList.add('coco-v2-mode'); CocoWorkflowV2.goPhase('picker'); }
   else scrollToABC();
 }
+function v2GoBrief(){
+  if(window.CocoWorkflowV2){ document.getElementById('coco-v2-app').style.display='flex'; document.body.classList.add('coco-v2-mode'); CocoWorkflowV2.goPhase('brief'); }
+  else scrollToProjectBrief();
+}
 
 // עוקב אחרי אישור סופי של חלק ב׳ (SEO) או חלק ג׳ (Google Ads) — כל אחד מהם
 // כבר כותב ל-localStorage בעצמו ('dalia_part_b' / 'dalia_part_c'), בדיוק כפי
@@ -2410,7 +2409,7 @@ function scrollToProjectBrief(){
 
 // ── התחלה ──
 renderStepper();
-showStage(0);
+if(!(window.CocoWorkflowV2&&window.CocoWorkflowV2.isActive&&window.CocoWorkflowV2.isActive())) showStage(0);
 connectToDataLayer();
 </script>
 </div><!-- /dj-app -->

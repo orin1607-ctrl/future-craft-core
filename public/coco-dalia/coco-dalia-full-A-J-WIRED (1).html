@@ -4364,6 +4364,21 @@ connectToDataLayer();
 </div>
 
 <script>
+(function () {
+  var host = location.hostname;
+  var base = '/future-craft-core/';
+  if (host === 'localhost' || host === '127.0.0.1') {
+    var p = location.pathname || '';
+    var i = p.indexOf('coco-dalia');
+    if (i >= 0) base = p.substring(0, i);
+  }
+  window.COCO_PAGES_BASE = base;
+})();
+</script>
+<script src="../ai-marketing/coco-data-adapter.js?v=phase1-integration"></script>
+<script src="../ai-marketing/coco-dalia-integration.js?v=phase1-integration"></script>
+
+<script>
 // The user always starts on Part A ("קמפיין חדש"). Choosing a campaign type
 // there calls launchModule(), which is the ONLY way B/C get unlocked and
 // auto-opened with their full existing wizard. The top tabs remain visible
@@ -4391,10 +4406,14 @@ function launchModule(target){
     if(sub) sub.textContent = target==='b' ? '12 שלבים' : 'Google Ads — 9 שלבים';
   } else if(target==='team'){
     const sub=document.getElementById('mt-team-sub');
-    if(sub) sub.textContent = '50 עוזרים · 10 יועצים · 13 מנועים — פעיל (נתוני Mock בלבד)';
+    if(sub) sub.textContent = '50 עוזרים · 10 יועצים · 13 מנועים — פעיל';
   }
   document.getElementById('mt-'+target).style.opacity='1';
   showPart(target);
+}
+
+if (window.CocoDaliaIntegration) {
+  CocoDaliaIntegration.initWiredShell({ unlocked: UNLOCKED, showPart: showPart });
 }
 </script>
 </body></html>

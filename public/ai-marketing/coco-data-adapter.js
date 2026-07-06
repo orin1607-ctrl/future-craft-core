@@ -10,11 +10,14 @@
     biz: 'dalia_biz',
     partB: 'dalia_part_b',
     partC: 'dalia_part_c',
+    projectBrief: 'dalia_project_brief',
+    trackComplete: 'dalia_track_complete',
     strategic: 'coco-strategic-briefing-v1',
     seoDraft: 'dalia_seo_draft',
+    gadsDraft: 'dalia_gads_draft',
   };
 
-  var BRIEF_WATCH_KEYS = [KEYS.partA, KEYS.biz, KEYS.partB, KEYS.partC, KEYS.strategic, KEYS.seoDraft];
+  var BRIEF_WATCH_KEYS = [KEYS.partA, KEYS.biz, KEYS.partB, KEYS.partC, KEYS.projectBrief, KEYS.strategic, KEYS.seoDraft, KEYS.gadsDraft, KEYS.trackComplete];
 
   function parseLs(key) {
     try {
@@ -124,10 +127,28 @@
     return null;
   }
 
+  function syncProjectBriefToPartA() {
+    var brief = parseLs(KEYS.projectBrief);
+    if (!brief || !brief.biz) return null;
+    var biz = brief.biz;
+    var patch = {
+      name: biz.contact || biz.bizName || '',
+      bizName: biz.companyName || biz.bizName || '',
+      site: biz.site || biz.website || '',
+      ts: brief.ts || new Date().toISOString(),
+      _source: 'dalia_project_brief',
+    };
+    var next = mergePartA(parseLs(KEYS.partA), patch);
+    saveLs(KEYS.partA, next);
+    syncPartAToBiz();
+    return next;
+  }
+
   function onStorage(e) {
     if (!e || !e.key) return;
     if (e.key === KEYS.partA) syncPartAToBiz();
     if (e.key === KEYS.biz) syncBizToPartA();
+    if (e.key === KEYS.projectBrief) syncProjectBriefToPartA();
     if (BRIEF_WATCH_KEYS.indexOf(e.key) >= 0) mergeBriefFromLegacy();
   }
 
@@ -170,6 +191,8 @@
     syncPartAToBiz: syncPartAToBiz,
     syncBizToPartA: syncBizToPartA,
     mergeBriefFromLegacy: mergeBriefFromLegacy,
+    syncProjectBriefToPartA: syncProjectBriefToPartA,
+    readProjectBrief: function () { return parseLs(KEYS.projectBrief); },
     loadFromApi: loadFromMarketingApi,
     onAuthReady: function () {
       var id = new URLSearchParams(location.search).get('customer');
@@ -179,6 +202,7 @@
 
   syncBizToPartA();
   syncPartAToBiz();
+  syncProjectBriefToPartA();
   mergeBriefFromLegacy();
   window.addEventListener('storage', onStorage);
   initAuthListener();

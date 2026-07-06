@@ -1,0 +1,525 @@
+/**
+ * CO.CO דליה — Integration Layer (Phase 1)
+ * Bridges WIRED main system ↔ Control Center v5 ↔ Orin legacy (read-only overlay).
+ * Does NOT modify Orin screens; uses localStorage SSOT + optional GlobalFilterContext.
+ */
+(function () {
+  'use strict';
+
+  var VERSION = '1.0.0-phase1';
+
+  var KEYS = {
+    projectBrief: 'dalia_project_brief',
+    partA: 'dalia_part_a',
+    partB: 'dalia_part_b',
+    partC: 'dalia_part_c',
+    biz: 'dalia_biz',
+    trackComplete: 'dalia_track_complete',
+    seoDraft: 'dalia_seo_draft',
+    gadsDraft: 'dalia_gads_draft',
+    globalFilter: 'coco-global-filter-v3',
+    qa: 'coco-v5-qa-v1',
+    schedule: 'coco-v5-schedule-v1',
+    activeAsset: 'coco-active-asset-v1',
+    pendingAssets: 'coco-pending-assets-v1',
+  };
+
+  var WIRED_FILE = 'coco-dalia-full-A-J-WIRED%20(1).html';
+  var V5_FILE = 'ai-control-center-v5-STANDALONE.html';
+
+  function parseLs(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveLs(key, obj) {
+    try {
+      localStorage.setItem(key, JSON.stringify(obj));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function getBasePath() {
+    if (window.COCO_PAGES_BASE) {
+      var b = window.COCO_PAGES_BASE;
+      return b.charAt(0) === '/' ? b : (b.endsWith('/') ? b : b + '/');
+    }
+    var host = location.hostname;
+    if (/orin1607-ctrl\.github\.io/i.test(host)) return '/future-craft-core/';
+    if (host === 'localhost' || host === '127.0.0.1') {
+      var p = location.pathname || '';
+      var i = p.indexOf('/public/');
+      if (i >= 0) return p.substring(0, i + 8);
+      i = p.indexOf('ai-marketing');
+      if (i >= 0) return p.substring(0, i);
+      i = p.indexOf('coco-dalia');
+      if (i >= 0) return p.substring(0, i);
+    }
+    return '/future-craft-core/';
+  }
+
+  function absUrl(rel) {
+    var base = getBasePath();
+    if (base.charAt(0) === '/') return location.origin + base + rel;
+    try {
+      return new URL(rel, base).href;
+    } catch (e) {
+      return rel;
+    }
+  }
+
+  function wiredUrl(opts) {
+    opts = opts || {};
+    var url = absUrl('coco-dalia/' + WIRED_FILE);
+    var qs = [];
+    if (opts.part) qs.push('part=' + encodeURIComponent(opts.part));
+    if (opts.tab) qs.push('tab=' + encodeURIComponent(opts.tab));
+    if (qs.length) url += '?' + qs.join('&');
+    return url;
+  }
+
+  function v5Url() {
+    return absUrl('ai-marketing/' + V5_FILE);
+  }
+
+  function hasLiveData() {
+    return !!(
+      parseLs(KEYS.projectBrief) ||
+      parseLs(KEYS.partA) ||
+      parseLs(KEYS.partB) ||
+      parseLs(KEYS.biz)
+    );
+  }
+
+  function readBiz() {
+    var brief = parseLs(KEYS.projectBrief);
+    if (brief && brief.biz) return brief.biz;
+    var a = parseLs(KEYS.partA) || {};
+    var b = parseLs(KEYS.biz) || {};
+    return {
+      bizName: a.bizName || b.company || b.name || '',
+      companyName: a.bizName || b.company || '',
+      sector: b.sector || '',
+      site: a.site || b.site || b.website || '',
+      targetAudience: b.ideal || '',
+      summary: b.summary || '',
+      goals: b.goal || b.goals || '',
+    };
+  }
+
+  function readCompetitors() {
+    var brief = parseLs(KEYS.projectBrief);
+    if (brief && Array.isArray(brief.competitors)) return brief.competitors;
+    return [];
+  }
+
+  function readActiveAsset() {
+    return parseLs(KEYS.activeAsset);
+  }
+
+  function buildLiveSnapshot() {
+    var biz = readBiz();
+    var partB = parseLs(KEYS.partB);
+    var partA = parseLs(KEYS.partA) || {};
+    var track = parseLs(KEYS.trackComplete);
+    var asset = readActiveAsset();
+    var gfc = parseLs(KEYS.globalFilter) || {};
+    return {
+      at: new Date().toISOString(),
+      hasLive: hasLiveData(),
+      biz: biz,
+      competitors: readCompetitors(),
+      partA: partA,
+      partB: partB,
+      track: track,
+      asset: asset,
+      filter: gfc,
+      clientName: gfc.clientName || biz.companyName || biz.bizName || '',
+      campaignName: gfc.campaignName || partA.campaignType || '',
+      assetLabel: gfc.assetLabel || asset && (asset.label || asset.url || asset.domain) || biz.site || '',
+    };
+  }
+
+  function overlayKpis(data, snap) {
+    if (!snap.hasLive) return;
+    var biz = snap.biz || {};
+    var partA = snap.partA || {};
+    var partB = snap.partB;
+    var track = snap.track;
+
+    data.kpis.forEach(function (k) {
+      if (k.id === 'kpi6' && biz.site) {
+        k.value = biz.site.replace(/^https?:\/\//, '').split('/')[0] || k.value;
+      }
+      if (k.id === 'kpi4' && partB && partB.approved && partB.kw_count) {
+        k.value = partB.kw_count + ' מילות מפתח';
+      }
+      if (k.id === 'kpi5' && (partA.gads_ready || (track && track.track === 'ads'))) {
+        k.value = 'מוכן להגדרה';
+      }
+      if (k.id === 'kpi8' && track) {
+        k.value = track.track === 'seo' ? 'SEO הושלם' : k.value;
+      }
+    });
+  }
+
+  function overlayAudience(data, snap) {
+    var biz = snap.biz || {};
+    if (!biz.targetAudience && !biz.summary) return;
+    var acc = data.audience_acc || [];
+    acc.forEach(function (item) {
+      if (item.t === 'קהלי יעד' && biz.targetAudience) {
+        item.body = biz.targetAudience;
+      }
+    });
+  }
+
+  function overlayCompetitors(data, snap) {
+    var comps = snap.competitors || [];
+    if (!comps.length) return;
+    data.competitors_accordion = comps.map(function (c, i) {
+      var name = c.name || c.bizName || c.companyName || ('מתחרה ' + (i + 1));
+      var note = c.strengths || c.weaknesses || c.notes || c.summary || '';
+      return { t: name, body: note || 'נתונים מ-Business Discovery (חלק א׳)' };
+    });
+  }
+
+  function overlayAssets(data, snap) {
+    var biz = snap.biz || {};
+    var asset = snap.asset;
+    if (biz.site) {
+      var host = biz.site.replace(/^https?:\/\//, '').split('/')[0];
+      var exists = data.assets.some(function (a) { return a.name === host; });
+      if (!exists && host) {
+        data.assets.unshift({ icon: '🌐', name: host, type: 'אתר (מחלק א׳)', status: 'מחובר' });
+      }
+    }
+    if (asset && (asset.url || asset.domain || asset.label)) {
+      var label = asset.label || asset.url || asset.domain;
+      var ex2 = data.assets.some(function (a) { return a.name === label; });
+      if (!ex2) {
+        data.assets.unshift({ icon: '⭐', name: label, type: 'נכס פעיל', status: 'נבחר' });
+      }
+    }
+  }
+
+  function hydrateDashboard(data) {
+    if (!data || typeof data !== 'object') return data;
+    var snap = buildLiveSnapshot();
+    if (!snap.hasLive) return { data: data, snap: snap, live: false };
+    overlayKpis(data, snap);
+    overlayAudience(data, snap);
+    overlayCompetitors(data, snap);
+    overlayAssets(data, snap);
+    applyQAToData(data);
+    return { data: data, snap: snap, live: true };
+  }
+
+  /* ── QA persistence ── */
+  function loadQA() {
+    return parseLs(KEYS.qa) || { assistants: {}, consultants: {} };
+  }
+
+  function saveQAEntry(kind, id, field, value) {
+    var store = loadQA();
+    var bucket = kind === 'a' ? 'assistants' : 'consultants';
+    if (!store[bucket]) store[bucket] = {};
+    if (!store[bucket][id]) store[bucket][id] = {};
+    store[bucket][id][field] = value;
+    store.updatedAt = new Date().toISOString();
+    saveLs(KEYS.qa, store);
+    return store;
+  }
+
+  function applyQAToData(data) {
+    var store = loadQA();
+    ['assistants', 'consultants'].forEach(function (bucket) {
+      var list = bucket === 'assistants' ? data.assistants : data.consultants;
+      var saved = store[bucket] || {};
+      list.forEach(function (item) {
+        if (saved[item.id]) {
+          Object.assign(item.qa || (item.qa = {}), saved[item.id]);
+        }
+      });
+    });
+  }
+
+  /* ── Schedule persistence ── */
+  function loadSchedule() {
+    return parseLs(KEYS.schedule);
+  }
+
+  function saveScheduleState(state) {
+    state = state || {};
+    state.updatedAt = new Date().toISOString();
+    saveLs(KEYS.schedule, state);
+    return state;
+  }
+
+  /* ── Global filter (v5 ↔ GFC) ── */
+  function readFilter() {
+    if (window.GlobalFilterContext && GlobalFilterContext.get) {
+      return GlobalFilterContext.get();
+    }
+    return parseLs(KEYS.globalFilter) || {};
+  }
+
+  function writeFilterFromV5(fields) {
+    fields = fields || {};
+    var partial = {
+      clientName: fields.client || '',
+      campaignName: fields.campaign || '',
+      assetLabel: fields.asset || '',
+      dateRange: {
+        preset: 'custom',
+        from: fields.dateFrom || '',
+        to: fields.dateTo || '',
+      },
+    };
+    if (window.GlobalFilterContext && GlobalFilterContext.set) {
+      return GlobalFilterContext.set(partial, { source: 'v5-dashboard', skipCascade: true });
+    }
+    var cur = parseLs(KEYS.globalFilter) || {};
+    Object.assign(cur, partial);
+    cur.version = 3;
+    saveLs(KEYS.globalFilter, cur);
+    return { ok: true };
+  }
+
+  function populateV5FilterBar() {
+    var f = readFilter();
+    var biz = readBiz();
+    var clientSel = document.getElementById('f-client');
+    var campSel = document.getElementById('f-campaign');
+    var assetSel = document.getElementById('f-asset');
+    var fromEl = document.getElementById('f-date-from');
+    var toEl = document.getElementById('f-date-to');
+    if (!clientSel) return;
+
+    function ensureOption(sel, val) {
+      if (!val) return;
+      var found = false;
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].text === val || sel.options[i].value === val) { found = true; break; }
+      }
+      if (!found) {
+        var opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        sel.appendChild(opt);
+      }
+      sel.value = val;
+    }
+
+    var clientName = f.clientName || biz.companyName || biz.bizName;
+    var campaign = f.campaignName || (parseLs(KEYS.partA) || {}).campaignType;
+    var asset = f.assetLabel || biz.site;
+    if (clientName) ensureOption(clientSel, clientName);
+    if (campaign) ensureOption(campSel, campaign);
+    if (asset) ensureOption(assetSel, asset.replace(/^https?:\/\//, '').split('/')[0]);
+    if (fromEl && f.dateRange && f.dateRange.from) fromEl.value = f.dateRange.from;
+    if (toEl && f.dateRange && f.dateRange.to) toEl.value = f.dateRange.to;
+
+    [clientSel, campSel, assetSel, fromEl, toEl].forEach(function (el) {
+      if (!el || el._cocoFilterBound) return;
+      el._cocoFilterBound = true;
+      el.addEventListener('change', function () {
+        writeFilterFromV5({
+          client: clientSel.value,
+          campaign: campSel.value,
+          asset: assetSel.value,
+          dateFrom: fromEl ? fromEl.value : '',
+          dateTo: toEl ? toEl.value : '',
+        });
+      });
+    });
+  }
+
+  function updateLiveBadge(live) {
+    var badge = document.querySelector('.mockbadge');
+    if (!badge) return;
+    if (live) {
+      badge.textContent = '🔗 מחובר · קריאה מ-LS';
+      badge.style.background = 'rgba(34,197,94,.14)';
+      badge.style.color = '#22c55e';
+      badge.style.borderColor = 'rgba(34,197,94,.28)';
+    }
+  }
+
+  function navigateToWired(opts) {
+    opts = opts || {};
+    var url = wiredUrl(opts);
+    if (opts.newTab) {
+      window.open(url, '_blank', 'noopener');
+    } else {
+      location.href = url;
+    }
+  }
+
+  function initV5Dashboard(data, hooks) {
+    hooks = hooks || {};
+    var result = hydrateDashboard(data);
+    updateLiveBadge(result.live);
+    populateV5FilterBar();
+
+    var sched = loadSchedule();
+    if (sched && sched.preset) {
+      var sel = document.getElementById('sched-select');
+      if (sel) sel.value = sched.preset;
+      var status = document.getElementById('schedule-status');
+      if (status && sched.label) status.textContent = 'תזמון פעיל: ' + sched.label;
+    }
+
+    window.addEventListener('storage', function (e) {
+      if (!e || !e.key) return;
+      if ([KEYS.projectBrief, KEYS.partA, KEYS.partB, KEYS.biz, KEYS.trackComplete, KEYS.globalFilter, KEYS.qa].indexOf(e.key) >= 0) {
+        hydrateDashboard(data);
+        populateV5FilterBar();
+        if (typeof hooks.onRefresh === 'function') hooks.onRefresh();
+      }
+    });
+
+    return result;
+  }
+
+  function patchV5Handlers(data, renderAll) {
+    var origUpdateQA = window.updateQA;
+    window.updateQA = function (id, kind, field, value) {
+      if (origUpdateQA) origUpdateQA(id, kind, field, value);
+      else {
+        var list = kind === 'a' ? data.assistants : data.consultants;
+        var item = list.find(function (x) { return x.id === id; });
+        if (item) {
+          if (value === 'true') value = true;
+          else if (value === 'false') value = false;
+          else if (value === 'null') value = null;
+          else if (field === 'quality_rating') value = value ? parseInt(value, 10) : null;
+          item.qa[field] = value;
+        }
+      }
+      saveQAEntry(kind, id, field, value);
+    };
+
+    var origSaveSchedule = window.saveSchedule;
+    window.saveSchedule = function () {
+      var preset = window.CURRENT_SCHEDULE || 'once';
+      var labels = { once: 'חד פעמי', daily: 'כל יום', weekly: 'כל שבוע', monthly: 'כל חודש', custom: 'מותאם אישית' };
+      saveScheduleState({ preset: preset, label: labels[preset] || preset });
+      if (origSaveSchedule) origSaveSchedule();
+    };
+
+    window.cocoNavigateToWired = navigateToWired;
+  }
+
+  /* ── WIRED shell: unlock + deep link ── */
+  function applyWiredUnlockState(unlocked) {
+    if (!unlocked || typeof unlocked !== 'object') return;
+    var partA = parseLs(KEYS.partA);
+    var partB = parseLs(KEYS.partB);
+    var track = parseLs(KEYS.trackComplete);
+    var brief = parseLs(KEYS.projectBrief);
+
+    if (brief || partA) unlocked.a = true;
+    if (partB && partB.approved) unlocked.b = true;
+    if (partA && partA.gads_ready) unlocked.c = true;
+    if (track) {
+      if (track.track === 'seo') unlocked.b = true;
+      if (track.track === 'ads') unlocked.c = true;
+      unlocked.team = true;
+    }
+    if (partB && partB.approved) unlocked.team = true;
+    unlocked.d = true;
+  }
+
+  function initWiredShell(opts) {
+    opts = opts || {};
+    var unlocked = opts.unlocked;
+    if (unlocked) {
+      applyWiredUnlockState(unlocked);
+      ['b', 'c', 'team'].forEach(function (p) {
+        if (unlocked[p]) {
+          var mt = document.getElementById('mt-' + p);
+          if (mt) mt.style.opacity = '1';
+        }
+      });
+    }
+
+    var params = new URLSearchParams(location.search);
+    var part = params.get('part');
+    if (part && typeof opts.showPart === 'function' && unlocked && unlocked[part]) {
+      if (part === 'b' || part === 'c' || part === 'team') {
+        unlocked[part] = true;
+        var mt = document.getElementById('mt-' + part);
+        if (mt) mt.style.opacity = '1';
+      }
+      opts.showPart(part);
+    }
+
+    window.addEventListener('storage', function (e) {
+      if (!e || !e.key || !unlocked) return;
+      if ([KEYS.partB, KEYS.trackComplete, KEYS.partA].indexOf(e.key) >= 0) {
+        applyWiredUnlockState(unlocked);
+      }
+    });
+
+    if (window.CocoDataAdapter) {
+      CocoDataAdapter.syncPartAToBiz();
+    }
+  }
+
+  function syncProjectBriefToLegacy() {
+    var brief = parseLs(KEYS.projectBrief);
+    if (!brief || !brief.biz) return null;
+    var biz = brief.biz;
+    var partA = {
+      name: biz.contact || biz.bizName || '',
+      bizName: biz.companyName || biz.bizName || '',
+      site: biz.site || biz.website || '',
+      ts: brief.ts || new Date().toISOString(),
+      _source: 'dalia_project_brief',
+    };
+    saveLs(KEYS.partA, Object.assign(parseLs(KEYS.partA) || {}, partA));
+    if (window.CocoDataAdapter && CocoDataAdapter.syncPartAToBiz) {
+      CocoDataAdapter.syncPartAToBiz();
+    }
+    if (window.ProjectBrief && ProjectBrief.mergeFromLegacy) {
+      ProjectBrief.mergeFromLegacy();
+    }
+    return partA;
+  }
+
+  window.CocoDaliaIntegration = {
+    VERSION: VERSION,
+    KEYS: KEYS,
+    getBasePath: getBasePath,
+    wiredUrl: wiredUrl,
+    v5Url: v5Url,
+    hasLiveData: hasLiveData,
+    buildLiveSnapshot: buildLiveSnapshot,
+    hydrateDashboard: hydrateDashboard,
+    initV5Dashboard: initV5Dashboard,
+    patchV5Handlers: patchV5Handlers,
+    navigateToWired: navigateToWired,
+    populateV5FilterBar: populateV5FilterBar,
+    saveQAEntry: saveQAEntry,
+    loadQA: loadQA,
+    saveScheduleState: saveScheduleState,
+    loadSchedule: loadSchedule,
+    initWiredShell: initWiredShell,
+    applyWiredUnlockState: applyWiredUnlockState,
+    syncProjectBriefToLegacy: syncProjectBriefToLegacy,
+    readFilter: readFilter,
+    writeFilterFromV5: writeFilterFromV5,
+  };
+
+  window.addEventListener('storage', function (e) {
+    if (e && e.key === KEYS.projectBrief) syncProjectBriefToLegacy();
+  });
+  if (parseLs(KEYS.projectBrief)) syncProjectBriefToLegacy();
+})();
