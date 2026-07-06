@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google OAuth — CO.CO דליה</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Heebo',sans-serif;background:#04091a;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;margin:0;}
+.card{max-width:480px;background:#071022;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:28px;text-align:center;}
+h1{font-size:20px;margin:0 0 8px;}
+p{font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;margin:0 0 16px;}
+.ok{color:#22c55e;font-weight:700;}
+.err{color:#ef4444;font-weight:700;}
+.btn{display:inline-block;margin-top:12px;padding:10px 18px;border-radius:9px;background:#2563eb;color:#fff;text-decoration:none;font-size:13px;font-weight:700;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1 id="title">מעבד חיבור Google…</h1>
+  <p id="msg">אנא המתן</p>
+  <a id="back" class="btn" href="../ai-marketing-platform.html?tab=pirsum" style="display:none">חזרה למערכת</a>
+</div>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var err = params.get('error');
+  var code = params.get('code');
+  var title = document.getElementById('title');
+  var msg = document.getElementById('msg');
+  var back = document.getElementById('back');
+
+  function finish(ok, text) {
+    title.textContent = ok ? 'החיבור הצליח' : 'שגיאה בחיבור';
+    title.className = ok ? 'ok' : 'err';
+    msg.textContent = text;
+    back.style.display = 'inline-block';
+  }
+
+  if (err) {
+    finish(false, 'Google החזיר שגיאה: ' + err + (err === 'access_denied' ? ' — לא אושרו ההרשאות' : ''));
+    return;
+  }
+  if (!code) {
+    finish(false, 'חסר קוד אישור מ-Google');
+    return;
+  }
+
+  var staging = null;
+  try { staging = JSON.parse(sessionStorage.getItem('coco-google-oauth-pending') || 'null'); } catch (e) { /* ignore */ }
+
+  if (!staging || !staging.edgeUrl || !staging.accessToken) {
+    finish(true, 'קוד OAuth התקבל. חזור למערכת דליה (Super Admin) ולחץ שוב על "חבר אוטומטית" — או הרץ npm run project-001:auth במחשב הבעלים.');
+    sessionStorage.setItem('coco-google-oauth-code', code);
+    return;
+  }
+
+  fetch(staging.edgeUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + staging.accessToken,
+      'Content-Type': 'application/json',
+      'apikey': staging.anonKey || ''
+    },
+    body: JSON.stringify({
+      action: 'exchange',
+      code: code,
+      redirectUri: location.origin + location.pathname
+    })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    sessionStorage.removeItem('coco-google-oauth-pending');
+    if (data.ok) {
+      finish(true, 'חשבון Google מחובר' + (data.email ? ' (' + data.email + ')' : '') + '. אפשר לסגור ולחזור למערכת.');
+      if (window.opener && window.opener.CocoGoogleOAuth) {
+        try { window.opener.CocoGoogleOAuth.onConnected(data); } catch (e) { /* ignore */ }
+      }
+    } else {
+      finish(false, data.error || data.note || 'החלפת קוד נכשלה');
+    }
+  }).catch(function (e) {
+    finish(false, 'שגיאת רשת: ' + e.message);
+  });
+})();
+</script>
+</body>
+</html>

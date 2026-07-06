@@ -229,7 +229,8 @@
         .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-wizard.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/client-site-template/template-engine.js')); })
         .then(function () { return loadScript(assetUrl('ai-marketing/website-builder-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/coco-dalia-pirsum-launcher.js')); });
+        .then(function () { return loadScript(assetUrl('ai-marketing/coco-dalia-pirsum-launcher.js')); })
+        .then(function () { return loadScript(assetUrl('ai-marketing/coco-google-oauth-bridge.js')); });
     })
     .then(boot)
     .catch(function (e) {
