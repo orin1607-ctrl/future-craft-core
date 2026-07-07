@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '4.0.0-reports';
+  var VERSION = '5.0.0-reports-evidence';
   var REPORTS_KEY = 'coco-dalia-reports-v1';
 
   function parseLs(key) {
@@ -33,6 +33,18 @@
     var partB = parseLs('dalia_part_b');
     var wp = (apiSnap && apiSnap.workPlan) || (parseLs('coco-dalia-api-cache-v1') || {}).workPlan;
     var dash = (apiSnap && apiSnap.dashboard) || (parseLs('coco-dalia-api-cache-v1') || {}).dashboard;
+
+    list.unshift({
+      id: 'r-evidence-v2',
+      name: 'דוח Evidence v2 — דליה',
+      type: 'Evidence Report · סטנדרט חדש',
+      date: today(),
+      status: 'אושר',
+      source: 'project-001/evidence-report-v2.json',
+      real: true,
+      featured: true,
+      meta: { standard: 'CO.CO Evidence v2', productionBlocked: true },
+    });
 
     list.push({
       id: 'r-brief',
@@ -180,14 +192,26 @@
   }
 
   function buildApprovalsList(reports) {
-    return (reports || []).filter(function (r) { return r.status !== 'אושר'; }).map(function (r) {
-      return { name: r.name, status: r.status === 'ממתין' ? 'ממתין' : 'בתהליך', id: r.id };
-    }).concat([
+    var taskApprovals = [];
+    if (window.CocoDaliaEvidenceReportView && CocoDaliaEvidenceReportView.buildApprovalsForEngine) {
+      taskApprovals = CocoDaliaEvidenceReportView.buildApprovalsForEngine();
+    }
+    return taskApprovals.concat(
+      (reports || []).filter(function (r) { return r.status !== 'אושר' && r.id !== 'r-evidence-v2'; }).map(function (r) {
+        return { name: r.name, status: r.status === 'ממתין' ? 'ממתין' : 'בתהליך', id: r.id };
+      })
+    ).concat([
       { name: 'אישור שליחת Google Ads', status: 'ממתין', id: 'ap-gads-send', blocked: true, note: 'דורש אישור סופי' },
+      { name: 'פרסום Production (WordPress)', status: 'חסום', id: 'ap-wp-publish', blocked: true, note: 'לא פעיל עד אישור יוני מפורש' },
     ]);
   }
 
   function exportReportHtml(reportId) {
+    if (reportId === 'r-evidence-v2' && window.CocoDaliaEvidenceReportView) {
+      var r = CocoDaliaEvidenceReportView.getReport();
+      var body = r ? CocoDaliaEvidenceReportView.buildFullReportHtml(r) : '<p>טוען...</p>';
+      return '<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>Evidence v2</title></head><body>' + body + '</body></html>';
+    }
     if (reportId === 'r-final' && window.DaliaFirstClientReport && DaliaFirstClientReport.buildFullReport) {
       var model = DaliaFirstClientReport.buildFullReport();
       return '<html dir="rtl"><head><meta charset="utf-8"><title>דוח אסטרטגי</title></head><body><pre>' +

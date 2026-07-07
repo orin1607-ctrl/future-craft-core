@@ -392,6 +392,17 @@
       if (window.CocoDaliaReportsEngine && CocoDaliaReportsEngine.overlayToV5Data) {
         CocoDaliaReportsEngine.overlayToV5Data(data, apiSnap);
       }
+      if (window.CocoMissionControl && CocoMissionControl.init) {
+        CocoMissionControl.init(apiSnap);
+      }
+      if (window.CocoDaliaEvidenceReportView && CocoDaliaEvidenceReportView.init) {
+        CocoDaliaEvidenceReportView.init().then(function () {
+          if (window.CocoDaliaReportsEngine && CocoDaliaReportsEngine.overlayToV5Data) {
+            CocoDaliaReportsEngine.overlayToV5Data(data, apiSnap);
+          }
+          if (typeof window._cocoV5RenderReports === 'function') window._cocoV5RenderReports();
+        }).catch(function () { /* report file optional until generated */ });
+      }
       if (window.CocoDaliaGoogleLayer && CocoDaliaGoogleLayer.overlayIntegrations) {
         CocoDaliaGoogleLayer.overlayIntegrations(data, apiSnap);
       }

@@ -12,6 +12,7 @@
   var PATHS = {
     dashboard: 'project-001/dashboard.json',
     workPlan: 'project-001/site-work-plan.json',
+    evidenceReport: 'project-001/evidence-report-v2.json',
   };
 
   var OFFICIAL_CLIENT = {

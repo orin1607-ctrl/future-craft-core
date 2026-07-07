@@ -17,6 +17,7 @@
   /** נתיב יחיד לנתוני Google אחרי sync מהבית */
   var DATA_PATHS = {
     dashboard: 'project-001/dashboard.json',
+    evidenceReport: 'project-001/evidence-report-v2.json',
     siteCrawl: 'project-001/site-crawl-lite.json',
     sitePagesIndex: 'project-001/site-pages-index.json',
     siteWorkPlan: 'project-001/site-work-plan.json',

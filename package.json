@@ -55,6 +55,7 @@
     "project-001:prepare-gbp-ads": "node scripts/project-001/project-001-prepare-gbp-ads.mjs",
     "project-001:final-report": "node scripts/project-001/project-001-final-report.mjs",
     "project-001:export-dashboard": "node scripts/project-001/project-001-export-dashboard.mjs",
+    "project-001:evidence-report": "node scripts/generate-coco-evidence-report.mjs",
     "project-001:sync-and-export": "node scripts/project-001/project-001-sync-and-export.mjs",
     "project-001:gsc-diagnose": "node scripts/project-001/project-001-gsc-diagnose.mjs",
     "project-001:ga4-url-audit": "node scripts/project-001/project-001-ga4-url-audit.mjs",

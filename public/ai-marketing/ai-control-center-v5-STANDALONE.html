@@ -96,6 +96,64 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
 
 #toast{position:fixed;bottom:16px;right:12px;left:12px;background:var(--bg3);border:1px solid var(--w10);border-radius:10px;padding:12px 14px;font-size:12.5px;font-weight:600;color:var(--w);z-index:9999;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none;text-align:center;}
 @media(min-width:420px){#toast{right:16px;left:auto;max-width:280px;}}
+
+/* Evidence Report v2 */
+.ev-featured-card{background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(6,182,212,.08));border:1px solid rgba(37,99,235,.35);border-radius:14px;padding:14px;margin-bottom:12px;}
+.ev-featured-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.ev-featured-title{font-size:14px;font-weight:900;}
+.ev-featured-sub{font-size:10.5px;color:var(--w50);margin-top:3px;}
+.ev-featured-stats{font-size:11px;color:var(--w80);margin-bottom:10px;}
+.ev-warn{color:var(--red);font-weight:700;}
+.ev-featured-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.ev-queue{margin-top:4px;}
+.ev-queue-head{margin-bottom:10px;}
+.ev-queue-title{font-size:13px;font-weight:900;}
+.ev-queue-sub{font-size:10.5px;color:var(--w50);margin-top:3px;}
+.ev-task-card{background:var(--bg4);border:1px solid var(--w10);border-radius:12px;padding:12px;margin-bottom:10px;}
+.ev-task-head{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px;}
+.ev-task-id{font-size:10px;font-weight:800;color:var(--cyan);}
+.ev-task-title{font-size:13px;font-weight:800;margin-bottom:8px;}
+.ev-task-row{font-size:11px;margin-bottom:5px;line-height:1.5;}
+.ev-lbl{color:var(--w50);margin-left:6px;}
+.ev-val{display:block;background:var(--bg3);padding:6px 8px;border-radius:6px;font-size:10.5px;margin-top:3px;word-break:break-word;}
+.ev-rec{color:var(--green)!important;border:1px solid rgba(34,197,94,.25);}
+.ev-task-meta,.ev-task-src{font-size:10px;color:var(--w50);margin-top:6px;}
+.ev-task-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;}
+.ev-publish-note{font-size:9.5px;color:var(--yel);margin-top:8px;padding:6px 8px;background:rgba(245,158,11,.08);border-radius:6px;}
+.ev-modal-box{max-height:92vh;}
+.ev-doc{font-size:12px;line-height:1.65;}
+.ev-header{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--w10);}
+.ev-h1{font-size:18px;font-weight:900;}
+.ev-client{font-size:13px;color:var(--acc2);margin-top:4px;}
+.ev-meta{font-size:10.5px;color:var(--w50);margin-top:6px;}
+.ev-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.ev-sec{margin-bottom:18px;}
+.ev-sec-t{font-size:13px;font-weight:900;margin-bottom:8px;color:var(--acc2);}
+.ev-ul{padding-right:18px;margin:6px 0;}
+.ev-ul li{margin-bottom:4px;}
+.ev-src{color:var(--w50);font-size:10px;}
+.ev-compare{display:grid;gap:8px;}
+.ev-table-wrap{overflow-x:auto;}
+.ev-table{width:100%;border-collapse:collapse;font-size:10px;}
+.ev-table th,.ev-table td{border:1px solid var(--w10);padding:5px 7px;text-align:right;}
+.ev-table th{background:var(--bg4);color:var(--w50);}
+.ev-src-note,.ev-muted{font-size:10px;color:var(--w50);margin-top:6px;}
+.ev-p{margin-bottom:8px;}
+.ev-sub{font-size:10.5px;font-weight:800;color:var(--w50);margin:8px 0 4px;}
+.bd-b{background:rgba(37,99,235,.14);color:var(--acc2);}
+
+/* Mission Control */
+.mc-hero{background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(37,99,235,.1));border:1px solid rgba(139,92,246,.35);border-radius:14px;padding:14px;margin-bottom:14px;}
+.mc-hero-title{font-size:15px;font-weight:900;}
+.mc-hero-sub{font-size:10.5px;color:var(--w50);margin-top:4px;}
+.mc-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.mc-stages{margin-bottom:16px;}
+.mc-stage{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg3);border:1px solid var(--w10);border-radius:10px;margin-bottom:6px;font-size:11.5px;}
+.mc-stage-name{font-weight:700;flex:1;padding-left:8px;}
+.mc-cap-row{margin-bottom:8px;font-size:11px;line-height:1.55;}
+.mc-ol{padding-right:18px;margin:4px 0;}
+.mc-changelog{margin-bottom:20px;}
+.cat-tile.mc-tile{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08);}}
 </style>
 </head>
 <body>
@@ -121,8 +179,20 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
   <div id="home" class="screen on">
     <div class="exec-title">תמונת מצב</div>
     <div class="kpi-grid" id="kpi-grid"></div>
+    <div class="cat-title">משימה ראשית</div>
+    <div class="cat-grid" style="margin-bottom:16px;">
+      <div class="cat-tile mc-tile" style="grid-column:1/-1;min-height:64px;" onclick="openScreen('mission')">
+        <div class="cat-ico">🚀</div>
+        <div class="cat-lbl">מרכז משימה — דליה מתמשכת</div>
+      </div>
+    </div>
     <div class="cat-title">קטגוריות</div>
     <div class="cat-grid" id="cat-grid"></div>
+  </div>
+
+  <div id="screen-mission" class="screen">
+    <div class="screen-head"><button class="back-btn" onclick="goHome()">← חזרה</button><div class="screen-t">🚀 מרכז משימה</div></div>
+    <div id="mission-control-root"><p style="font-size:11px;color:var(--w50);">טוען...</p></div>
   </div>
 
   <div id="screen-assets" class="screen">
@@ -160,9 +230,12 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
 
   <div id="screen-reports" class="screen">
     <div class="screen-head"><button class="back-btn" onclick="goHome()">← חזרה</button><div class="screen-t">📊 דוחות ואישורים</div></div>
-    <div class="cat-title" style="margin-top:0;">דוחות</div>
+    <div id="evidence-report-banner"></div>
+    <div class="cat-title" style="margin-top:0;">תור אישור — עמוד הבית</div>
+    <div id="evidence-approval-queue"></div>
+    <div class="cat-title">דוחות</div>
     <div id="reports-list"></div>
-    <div class="cat-title">אישורים</div>
+    <div class="cat-title">אישורים נוספים</div>
     <div id="approvals-list"></div>
   </div>
 
@@ -223,6 +296,16 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
 
 </div>
 
+<div class="modal-overlay" id="evidence-report-modal">
+  <div class="modal-box ev-modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:15px;font-weight:900;">📊 Evidence Report v2</div>
+      <button type="button" class="btn btn-g btn-sm" onclick="closeEvidenceReport()">✕ סגור</button>
+    </div>
+    <div id="evidence-report-content"><p class="ev-muted">טוען...</p></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="retest-modal">
   <div class="modal-box">
     <div style="font-size:15px;font-weight:900;margin-bottom:10px;">🔄 בחר בדיקות להרצה</div>
@@ -263,7 +346,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
 <script src="coco-dalia-build-engines-engine.js?v=phase5-engines"></script>
 <script src="coco-dalia-build-engines-hub.js?v=phase5-engines"></script>
 <script src="coco-dalia-orchestrator.js?v=phase5-full"></script>
-<script src="coco-dalia-reports-engine.js?v=phase5-full"></script>
+<script src="coco-dalia-reports-engine.js?v=phase5-evidence"></script>
+<script src="coco-dalia-evidence-report-view.js?v=phase5-evidence"></script>
+<script src="coco-mission-control.js?v=phase5-mission"></script>
 <script src="coco-dalia-google-layer.js?v=phase5-full"></script>
 <script src="coco-dalia-wired-sync.js?v=phase5-full"></script>
 <script src="coco-dalia-integration.js?v=phase5-full"></script>
@@ -277,7 +362,7 @@ function toast(m){
   setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(20px)';},2500);
 }
 
-const SCREENS = ['assets','seo','content','competitors','assistants','consultants','reports','workspace','retest','schedule','keywords','audience','ads','integrations'];
+const SCREENS = ['mission','assets','seo','content','competitors','assistants','consultants','reports','workspace','retest','schedule','keywords','audience','ads','integrations'];
 function goHome(){
   document.getElementById('home').classList.add('on');
   SCREENS.forEach(s=>document.getElementById('screen-'+s).classList.remove('on'));
@@ -285,6 +370,7 @@ function goHome(){
 function openScreen(id){
   document.getElementById('home').classList.remove('on');
   SCREENS.forEach(s=>document.getElementById('screen-'+s).classList.toggle('on', s===id));
+  if (id === 'mission' && window.CocoMissionControl) CocoMissionControl.mount();
   window.scrollTo(0,0);
 }
 
@@ -430,13 +516,37 @@ function renderPages(){
 function renderReports(){
   document.getElementById('reports-list').innerHTML = DATA.reports_data.reports.map(r=>{
     const cls = r.status==='אושר'?'bd-g':r.status==='בתהליך'?'bd-y':'bd-x';
-    return `<div class="simple-row" style="cursor:default;"><span class="simple-name">${r.name}<div style="font-size:10px;color:var(--w50);font-weight:400;">${r.type} · ${r.date}</div></span><span class="bd ${cls}">${r.status}</span></div>`;
+    const featured = r.id==='r-evidence-v2' ? ' ev-report-row' : '';
+    const click = r.id==='r-evidence-v2' ? 'onclick="openEvidenceReport()"' : '';
+    const meta = r.meta ? `<div style="font-size:10px;color:var(--w50);font-weight:400;">${r.type} · ${r.date}${r.meta.productionBlocked?' · 🔒 Production חסום':''}</div>` : `<div style="font-size:10px;color:var(--w50);font-weight:400;">${r.type} · ${r.date}</div>`;
+    return `<div class="simple-row${featured}" style="cursor:${r.id==='r-evidence-v2'?'pointer':'default'};" ${click}><span class="simple-name">${r.name}${meta}</span><span class="bd ${cls}">${r.status}</span>${r.id==='r-evidence-v2'?'<span class="bd bd-b">פתח ›</span>':''}</div>`;
   }).join('');
   document.getElementById('approvals-list').innerHTML = DATA.reports_data.approvals.map((ap,i)=>{
-    const cls = ap.status==='אושר'?'bd-g':ap.status==='נדחה'?'bd-r':'bd-y';
-    return `<div class="simple-row" style="cursor:default;"><span class="simple-name">${ap.name}</span><span class="bd ${cls}">${ap.status}</span>
-      ${ap.status==='ממתין'?`<button class="btn btn-go btn-sm" onclick="event.stopPropagation();approveItem(${i})">✅</button>`:''}</div>`;
+    const cls = ap.status==='אושר' || (ap.status && ap.status.indexOf('מאושר')===0)?'bd-g':ap.status==='נדחה' || ap.status==='חסום'?'bd-r':'bd-y';
+    const note = ap.note ? `<div style="font-size:9.5px;color:var(--w50);font-weight:400;">${ap.note}</div>` : '';
+    const ready = ap.readyToExecute ? '<span class="bd bd-g" style="margin-left:4px;">מוכן</span>' : '';
+    const owner = ap.requiresOwner ? '<span class="bd bd-y" style="margin-left:4px;">יוני</span>' : '';
+    const canApprove = ap.status==='ממתין לאישור יוני' && ap.taskId;
+    return `<div class="simple-row" style="cursor:default;"><span class="simple-name">${ap.name}${note}</span>${ready}${owner}<span class="bd ${cls}">${ap.status}</span>
+      ${canApprove?`<button class="btn btn-go btn-sm" onclick="event.stopPropagation();approveEvidenceTask('${ap.taskId}')">✅</button>`:''}</div>`;
   }).join('');
+  if (window.CocoDaliaEvidenceReportView) CocoDaliaEvidenceReportView.mountReportsScreen();
+}
+window._cocoV5RenderReports = renderReports;
+function openEvidenceReport(){
+  if (window.CocoDaliaEvidenceReportView) CocoDaliaEvidenceReportView.openViewer();
+}
+function closeEvidenceReport(){
+  if (window.CocoDaliaEvidenceReportView) CocoDaliaEvidenceReportView.closeViewer();
+}
+function approveEvidenceTask(taskId){
+  if (!window.CocoDaliaEvidenceReportView) return;
+  const res = CocoDaliaEvidenceReportView.approveTask(taskId);
+  if (res.ok) {
+    toast('✅ '+taskId+' אושר לביצוע — לא פורסם ב-Production');
+    if (window.CocoDaliaReportsEngine) CocoDaliaReportsEngine.overlayToV5Data(DATA, null);
+    renderReports();
+  } else toast('⚠️ '+(res.error||'שגיאה'));
 }
 function approveItem(i){ DATA.reports_data.approvals[i].status='אושר'; renderReports(); toast('✅ אושר'); }
 
@@ -585,6 +695,17 @@ if (window.CocoDaliaIntegration) {
   CocoDaliaIntegration.patchV5Handlers(DATA, renderAll);
   window._cocoV5RenderAll = function () { renderAll(); reapplyOpenState(); };
   CocoDaliaIntegration.initV5Dashboard(DATA, { onRefresh: window._cocoV5RenderAll });
+}
+if (window.CocoMissionControl) {
+  CocoMissionControl.init().then(function () {
+    if (window.CocoDaliaReportsEngine) CocoDaliaReportsEngine.overlayToV5Data(DATA, null);
+    renderReports();
+  });
+} else if (window.CocoDaliaEvidenceReportView) {
+  CocoDaliaEvidenceReportView.init().then(function () {
+    if (window.CocoDaliaReportsEngine) CocoDaliaReportsEngine.overlayToV5Data(DATA, null);
+    renderReports();
+  }).catch(function () { /* json not generated yet */ });
 }
 renderAll();
 </script>

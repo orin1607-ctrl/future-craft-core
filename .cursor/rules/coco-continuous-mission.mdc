@@ -1,0 +1,40 @@
+---
+description: CO.CO continuous mission workflow — one big task, staging only, fixed update report
+alwaysApply: true
+---
+
+# CO.CO — משימה מתמשכת אחת
+
+## עקרונות
+
+1. **משימה אחת גדולה** — דליה / CO.CO full stack. לא משימות קטנות נפרדות.
+2. **הכל בתוך המערכת** — Orin Staging (`future-craft-core-STAGING`). לא דוחות חיצוניים כ-deliverable; JSON ב-`public/project-001/` רק כנתוני מערכת.
+3. **אחרי כל שלב**: הוסף למערכת → בדיקה → commit + push ל-Staging → המשך מיד לשלב הבא.
+4. **עצור רק עבור**: OAuth, API Key, Billing, הרשאת Google, אישור Owner, החלטה עסקית.
+5. **ללא Production** — לא WordPress live, לא Hostinger, לא dalia-c.com publish עד אישור מפורש.
+
+## מבנה דוח עדכון קבוע (בסוף כל תור)
+
+```
+מה נבנה
+איפה זה נמצא
+איך משתמשים
+איך זה עובד
+מה השתנה לעומת אתמול
+מה אתה עושה עכשיו
+מה מחכה לי (רק אם נדרש)
+```
+
+## נקודות כניסה במערכת
+
+- **מרכז משימה**: `ai-control-center-v5-STANDALONE.html` → 🚀 מרכז משימה
+- **Evidence v2**: דוחות → Evidence v2
+- **עוזרים/יועצים**: קטגוריות במרכז שליטה
+- **מנועים**: סביבת עבודה → Build Engines Hub
+
+## קבצי ליבה
+
+- `public/ai-marketing/coco-mission-control.js`
+- `public/ai-marketing/coco-dalia-evidence-report-view.js`
+- `public/ai-marketing/coco-dalia-orchestrator.js`
+- `scripts/generate-coco-evidence-report.mjs` → `public/project-001/evidence-report-v2.json`
