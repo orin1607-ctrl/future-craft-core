@@ -22,7 +22,13 @@
     return /^screen-/.test(screenId);
   }
 
+  function isHubLite() {
+    return document.body.classList.contains('coco-hub-lite') ||
+      (window.CocoHubLite && CocoHubLite.isActive && CocoHubLite.isActive());
+  }
+
   function shouldShowGlobalChrome(screenId) {
+    if (isHubLite()) return false;
     return isMarketingScreen(screenId) && GFC_EXCLUDED_SCREENS.indexOf(screenId) < 0;
   }
 
@@ -66,6 +72,7 @@
   }
 
   function ensureLiveMounts() {
+    if (isHubLite()) return;
     var clientsSection = document.querySelector('#tab-clients-list .section');
     if (clientsSection) {
       var listWrap = clientsSection.querySelector('div[style*="flex-direction:column"]');
@@ -758,11 +765,16 @@
     isMarketingScreen: isMarketingScreen,
     marketingScreens: function () { return MARKETING_SCREENS.slice(); },
     init: function () {
-      ensureLiveMounts();
       hookInit();
       hookNavigation();
       hookContext();
       hookBridgeContext();
+      if (isHubLite()) {
+        placeContextBar(getActiveScreenId());
+        if (window.CocoHubLite && CocoHubLite.hideGlobalChrome) CocoHubLite.hideGlobalChrome();
+        return;
+      }
+      ensureLiveMounts();
       updateContextBar();
       if (isAuth()) onAuthReady();
     },

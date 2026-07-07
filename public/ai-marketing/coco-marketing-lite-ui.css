@@ -1,0 +1,36 @@
+/* CO.CO Hub Lite — visual cleanup (Orin Staging). Restore: ?hub=full */
+
+body.coco-hub-lite #coco-gfc-chrome,
+body.coco-hub-lite #coco-unified-context-bar {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+body.coco-hub-lite .gfc-slot,
+body.coco-hub-lite .coco-unified-bar {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.coco-hub-lite .coco-lite-hide {
+  display: none !important;
+}
+
+body.coco-hub-lite #screen-hub .content {
+  padding-top: 8px;
+}
+
+body.coco-hub-lite #screen-hub .hub-card-pirsum {
+  margin-top: 4px;
+}
+
+body.coco-hub-lite #screen-pirsum .pirsum-shell {
+  min-height: calc(100vh - 56px);
+}

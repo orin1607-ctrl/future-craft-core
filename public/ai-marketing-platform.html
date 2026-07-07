@@ -47,6 +47,8 @@
 <link rel="stylesheet" href="./ai-marketing/ai-assistant.css?v=v3-live-demo-3">
 <link rel="stylesheet" href="./ai-marketing/business-strategy-wizard.css?v=v3-live-demo-3">
 <link rel="stylesheet" href="./ai-marketing/website-builder-wizard.css?v=v3-live-demo-3">
+<link rel="stylesheet" href="./ai-marketing/coco-marketing-lite-ui.css?v=v3-live-demo-3">
+<script src="./ai-marketing/coco-marketing-lite-mode.js?v=v3-live-demo-3"></script>
 </head>
 <body>
 <div id="cocoToast" class="coco-toast" aria-live="polite"></div>
@@ -155,6 +157,10 @@
       showBootError('מסכי Claude לא נטענו');
       return;
     }
+    var hubLite = window.CocoHubLite && CocoHubLite.isActive && CocoHubLite.isActive();
+    if (hubLite && window.CocoHubLite) {
+      CocoHubLite.applyBoot();
+    }
     return loadScript(assetUrl('ai-marketing/prd-dalia-nav.js')).then(function () {
       root.classList.remove('coco-boot-active');
       document.body.classList.remove('coco-boot-active');
@@ -167,19 +173,71 @@
           else if (typeof window.goScreen === 'function') goScreen('screen-hub');
           if (root) root.classList.add('coco-ready');
           if (window.CocoUnified && CocoUnified.init) CocoUnified.init();
-          if (window.SiteMarketingHub && SiteMarketingHub.hydrateOnBoot) SiteMarketingHub.hydrateOnBoot();
-          if (window.MarketingLifecycle && MarketingLifecycle.hydrate) MarketingLifecycle.hydrate();
-          var tab = new URLSearchParams(location.search).get('tab');
-          if (tab === 'crm' && window.CocoMarketingCrm && CocoMarketingCrm.openTab) {
-            setTimeout(function () { CocoMarketingCrm.openTab(); }, 400);
+          if (!hubLite) {
+            if (window.SiteMarketingHub && SiteMarketingHub.hydrateOnBoot) SiteMarketingHub.hydrateOnBoot();
+            if (window.MarketingLifecycle && MarketingLifecycle.hydrate) MarketingLifecycle.hydrate();
+            var tab = new URLSearchParams(location.search).get('tab');
+            if (tab === 'crm' && window.CocoMarketingCrm && CocoMarketingCrm.openTab) {
+              setTimeout(function () { CocoMarketingCrm.openTab(); }, 400);
+            }
           }
-          if ((tab === 'pirsum' || new URLSearchParams(location.search).get('flow') === 'pirsum') && window.CocoPirsumHub) {
-            setTimeout(function () { CocoPirsumHub.open({ tab: new URLSearchParams(location.search).get('pirsumTab') || 'work' }); }, 400);
+          if ((new URLSearchParams(location.search).get('tab') === 'pirsum' ||
+              new URLSearchParams(location.search).get('flow') === 'pirsum') && window.CocoPirsumHub) {
+            setTimeout(function () {
+              CocoPirsumHub.open({ tab: new URLSearchParams(location.search).get('pirsumTab') || 'work' });
+            }, 400);
           }
+      if (hubLite && window.CocoHubLite && CocoHubLite.finalizePatches) {
+            CocoHubLite.finalizePatches();
+          }
+          if (hubLite && window.CocoHubLite) CocoHubLite.applyBoot();
           return loadScript(assetUrl('ai-marketing/ai-assistant.js'));
         });
       }
     });
+  }
+
+  function loadCoreScripts() {
+    return loadScript(assetUrl('ai-marketing/coco-claude-main.js'))
+      .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-data.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-bridge.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-unified.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/coco-dalia-pirsum-launcher.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/coco-google-oauth-bridge.js')); });
+  }
+
+  function loadLegacyScripts() {
+    return loadScript(assetUrl('ai-marketing/actions-demo-code.js'))
+      .then(function () { return loadScript(assetUrl('ai-marketing/daily-engine.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/actions-workbench.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/multi-ai-orchestrator.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/ai-question-engine.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/ai-control-center-bridge.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/marketing-notifications.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/ai-control-center.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-crm-bridge.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/marketing-activity-log.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/ai-consultant-module.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/marketing-lifecycle-module.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/dalia-first-client-seed.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/dalia-first-client-report.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/business-summary-approval-gate.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/strategic-briefing-questionnaire.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/materials-readiness-gate.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/seo-strategy-module.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/google-page-quality-standard.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/site-blueprint-module.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/site-comparison-module.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/ai-stage-advisor.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/ai-page-advisor.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/client-preview-publisher.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-module.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/pre-build-work-report-module.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/ai-strategy-room-module.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/site-marketing-hub-module.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-wizard.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/client-site-template/template-engine.js')); })
+      .then(function () { return loadScript(assetUrl('ai-marketing/website-builder-module.js')); });
   }
 
   if (!root) return;
@@ -187,50 +245,24 @@
   fetch(assetUrl('ai-marketing/coco-claude-screens.html'), { cache: 'no-store' })
     .then(function (r) { if (!r.ok) throw new Error('screens HTTP ' + r.status); return r.text(); })
     .then(function (html) {
+      var hubLite = window.CocoHubLite && CocoHubLite.isActive && CocoHubLite.isActive();
       if (!html || html.length < 5000) throw new Error('screens truncated');
+      if (hubLite && window.CocoHubLite && CocoHubLite.filterScreensHtml) {
+        html = CocoHubLite.filterScreensHtml(html);
+        if (!html || html.length < 400) throw new Error('lite screens truncated');
+      }
       root.innerHTML = html;
       root.querySelectorAll('.screen.active').forEach(function (s) { s.classList.remove('active'); });
       if (window.DaliaSite) {
         if (DaliaSite.applySiteLabels) DaliaSite.applySiteLabels();
         if (DaliaSite.scrubDemoUi) DaliaSite.scrubDemoUi();
       }
-      return loadScript(assetUrl('ai-marketing/coco-claude-main.js'))
-        .then(function () { return loadScript(assetUrl('ai-marketing/actions-demo-code.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/daily-engine.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/actions-workbench.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-data.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-bridge.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-unified.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/multi-ai-orchestrator.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/ai-question-engine.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/ai-control-center-bridge.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/marketing-notifications.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/ai-control-center.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-crm-bridge.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/marketing-activity-log.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/ai-consultant-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/marketing-lifecycle-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/dalia-first-client-seed.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/dalia-first-client-report.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/business-summary-approval-gate.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/strategic-briefing-questionnaire.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/materials-readiness-gate.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/seo-strategy-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/google-page-quality-standard.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/site-blueprint-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/site-comparison-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/ai-stage-advisor.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/ai-page-advisor.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/client-preview-publisher.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/pre-build-work-report-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/ai-strategy-room-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/site-marketing-hub-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/business-strategy-wizard.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/client-site-template/template-engine.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/website-builder-module.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/coco-dalia-pirsum-launcher.js')); })
-        .then(function () { return loadScript(assetUrl('ai-marketing/coco-google-oauth-bridge.js')); });
+      if (hubLite && window.CocoHubLite && CocoHubLite.afterScreensInjected) {
+        CocoHubLite.afterScreensInjected();
+      }
+      var chain = loadCoreScripts();
+      if (!hubLite) chain = chain.then(loadLegacyScripts);
+      return chain;
     })
     .then(boot)
     .catch(function (e) {
