@@ -105,11 +105,10 @@ report.stress.tabMax = Math.max(...tabStress.map((x) => x.toCtrl + x.toWork));
 
 report.phases.afterStress = await metrics(page);
 report.phases.afterStressIframes = await iframeMetrics(page);
-report.singleIframeOk = report.phases.afterStressIframes.length <= 1;
-report.errors = errors.slice(0, 20);
-report.passed = report.singleIframeOk && report.stress.tabMax < 3000 && report.phases.boot.screens?.join(',') === 'screen-hub,screen-pirsum';
+report.tabCacheOk = report.stress.tabMax < 2000;
+report.passed = report.tabCacheOk && report.stress.tabAvg < 1000 && report.phases.boot.screens?.join(',') === 'screen-hub,screen-pirsum';
 
 writeFileSync(join(OUT, 'profile-fast.json'), JSON.stringify(report, null, 2));
 await browser.close();
-console.log(JSON.stringify({ passed: report.passed, bootMs: report.phases.bootMs, workIframeMs: report.phases.workIframeMs, controlIframeMs: report.phases.controlIframeMs, tabAvg: report.stress.tabAvg, tabMax: report.stress.tabMax, singleIframeOk: report.singleIframeOk }, null, 2));
+console.log(JSON.stringify({ passed: report.passed, bootMs: report.phases.bootMs, workIframeMs: report.phases.workIframeMs, controlIframeMs: report.phases.controlIframeMs, tabAvg: report.stress.tabAvg, tabMax: report.stress.tabMax, tabCacheOk: report.tabCacheOk }, null, 2));
 process.exit(report.passed ? 0 : 1);

@@ -114,3 +114,15 @@ body.coco-hub-lite .pirsum-frames iframe {
   border: none;
   min-height: calc(100vh - 42px);
 }
+
+body.coco-hub-lite .pirsum-frames iframe:not(.on) {
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.coco-hub-lite .pirsum-frames iframe.on {
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
+}

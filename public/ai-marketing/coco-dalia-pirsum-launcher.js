@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.1.0-single-iframe';
+  var VERSION = '1.2.0-tab-cache';
   var WIRED_FILE = 'coco-dalia/coco-dalia-full-A-J-WIRED%20(1).html';
   var V5_FILE = 'ai-marketing/ai-control-center-v5-STANDALONE.html';
   var _loaded = { work: false, control: false };
@@ -83,10 +83,6 @@
     if (ctrlBtn) ctrlBtn.classList.toggle('active', _activeTab === 'control');
     if (workFrame) workFrame.classList.toggle('on', _activeTab === 'work');
     if (ctrlFrame) ctrlFrame.classList.toggle('on', _activeTab === 'control');
-    if (isSingleIframeMode()) {
-      if (_activeTab === 'work') suspendFrame('pirsum-frame-control', 'control');
-      else suspendFrame('pirsum-frame-work', 'work');
-    }
     ensureFrameLoaded(_activeTab);
   }
 
