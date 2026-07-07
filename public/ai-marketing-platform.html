@@ -47,8 +47,8 @@
 <link rel="stylesheet" href="./ai-marketing/ai-assistant.css?v=v3-live-demo-3">
 <link rel="stylesheet" href="./ai-marketing/business-strategy-wizard.css?v=v3-live-demo-3">
 <link rel="stylesheet" href="./ai-marketing/website-builder-wizard.css?v=v3-live-demo-3">
-<link rel="stylesheet" href="./ai-marketing/coco-marketing-lite-ui.css?v=v3-live-demo-3">
-<script src="./ai-marketing/coco-marketing-lite-mode.js?v=v3-live-demo-3"></script>
+<link rel="stylesheet" href="./ai-marketing/coco-marketing-lite-ui.css?v=hub-lite-1">
+<script src="./ai-marketing/coco-marketing-lite-mode.js?v=hub-lite-1"></script>
 </head>
 <body>
 <div id="cocoToast" class="coco-toast" aria-live="polite"></div>
@@ -113,6 +113,19 @@
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
   var ver = 'v3-live-demo-3';
+  function hubLiteActive() {
+    if (window.CocoHubLite && CocoHubLite.isActive) return CocoHubLite.isActive();
+    try {
+      var p = new URLSearchParams(location.search);
+      if (p.get('hub') === 'full') return false;
+      if (p.get('hub') === 'lite') return true;
+      var s = localStorage.getItem('coco-hub-lite');
+      if (s === '0') return false;
+      if (s === '1') return true;
+    } catch (e) { /* ignore */ }
+    var h = location.hostname || '';
+    return /orin1607-ctrl\.github\.io/i.test(h) || h === 'localhost' || h === '127.0.0.1';
+  }
   try {
     var bootB = new URLSearchParams(location.search).get('b');
     if (bootB) ver = 'v3-unified-3j-' + bootB.slice(0, 12);
@@ -157,7 +170,7 @@
       showBootError('מסכי Claude לא נטענו');
       return;
     }
-    var hubLite = window.CocoHubLite && CocoHubLite.isActive && CocoHubLite.isActive();
+    var hubLite = hubLiteActive();
     if (hubLite && window.CocoHubLite) {
       CocoHubLite.applyBoot();
     }
@@ -245,7 +258,7 @@
   fetch(assetUrl('ai-marketing/coco-claude-screens.html'), { cache: 'no-store' })
     .then(function (r) { if (!r.ok) throw new Error('screens HTTP ' + r.status); return r.text(); })
     .then(function (html) {
-      var hubLite = window.CocoHubLite && CocoHubLite.isActive && CocoHubLite.isActive();
+      var hubLite = hubLiteActive();
       if (!html || html.length < 5000) throw new Error('screens truncated');
       if (hubLite && window.CocoHubLite && CocoHubLite.filterScreensHtml) {
         html = CocoHubLite.filterScreensHtml(html);

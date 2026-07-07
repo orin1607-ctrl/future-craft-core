@@ -44,8 +44,13 @@
   }
 
   function applyBodyClass() {
-    if (isActive()) document.body.classList.add('coco-hub-lite');
-    else document.body.classList.remove('coco-hub-lite');
+    function apply() {
+      if (!document.body) return;
+      if (isActive()) document.body.classList.add('coco-hub-lite');
+      else document.body.classList.remove('coco-hub-lite');
+    }
+    if (document.body) apply();
+    else document.addEventListener('DOMContentLoaded', apply);
   }
 
   function filterScreensHtml(html) {
