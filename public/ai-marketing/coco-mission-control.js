@@ -211,6 +211,25 @@
     );
   }
 
+  function buildFixedUpdateReportHtml() {
+    var m = getLiveMetrics();
+    var latest = (getState().changelog || [])[0];
+    return (
+      '<div class="mc-update-report">' +
+        '<div class="cat-title">דוח עדכון אחרון</div>' +
+        '<div class="card" style="font-size:11px;line-height:1.65;">' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>מרכז משימה מתמשכת + Evidence v2 בתוך דוחות + תור אישור Owner</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>AI Control Center → 🚀 מרכז משימה · דוחות → Evidence v2</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>1. פתח Staging 2. מרכז משימה 3. לחץ יכולת → פתח במערכת 4. דוחות לאישורים</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Mission Control מאחד שלבים; Evidence נטען מ-JSON במערכת; אישורים ב-localStorage בלבד</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'מרכז משימה חדש') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>GSC ' + esc(m.gscKeywords) + ' KW · GA4 ' + esc(m.ga4Sessions) + ' · ' + esc(m.approvalsPending) + ' אישורים ממתינים</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אישור TASK-0014–0016 (לא פרסום Production)</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
   function buildMissionHtml() {
     var m = getLiveMetrics();
     return (
@@ -229,7 +248,8 @@
       '<div class="cat-title">יכולות במערכת — מדריך שימוש</div>' +
       '<div id="mc-capabilities">' + CAPABILITIES.map(buildCapabilityCard).join('') + '</div>' +
       '<div class="cat-title">עדכונים אחרונים</div>' +
-      '<div class="mc-changelog">' + buildChangelogHtml() + '</div>'
+      '<div class="mc-changelog">' + buildChangelogHtml() + '</div>' +
+      buildFixedUpdateReportHtml()
     );
   }
 
