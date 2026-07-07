@@ -47,8 +47,8 @@
 <link rel="stylesheet" href="./ai-marketing/ai-assistant.css?v=v3-live-demo-3">
 <link rel="stylesheet" href="./ai-marketing/business-strategy-wizard.css?v=v3-live-demo-3">
 <link rel="stylesheet" href="./ai-marketing/website-builder-wizard.css?v=v3-live-demo-3">
-<link rel="stylesheet" href="./ai-marketing/coco-marketing-lite-ui.css?v=hub-lite-2">
-<script src="./ai-marketing/coco-marketing-lite-mode.js?v=hub-lite-2"></script>
+<link rel="stylesheet" href="./ai-marketing/coco-marketing-lite-ui.css?v=hub-lite-3">
+<script src="./ai-marketing/coco-marketing-lite-mode.js?v=hub-lite-3"></script>
 </head>
 <body>
 <div id="cocoToast" class="coco-toast" aria-live="polite"></div>
@@ -126,6 +126,26 @@
     var h = location.hostname || '';
     return /orin1607-ctrl\.github\.io/i.test(h) || h === 'localhost' || h === '127.0.0.1';
   }
+
+  function filterScreensLite(html) {
+    if (!hubLiteActive() || !html) return html;
+    if (window.CocoHubLite && CocoHubLite.filterScreensHtml) return CocoHubLite.filterScreensHtml(html);
+    var wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.screen').forEach(function (s) {
+      if (s.id !== 'screen-hub' && s.id !== 'screen-pirsum') s.remove();
+    });
+    wrap.querySelectorAll('.overlay').forEach(function (o) {
+      if (o.id !== 'modal-notif') o.remove();
+    });
+    return wrap.innerHTML;
+  }
+
+  function applyHubLiteClass() {
+    if (hubLiteActive()) document.body.classList.add('coco-hub-lite');
+    else document.body.classList.remove('coco-hub-lite');
+  }
+  applyHubLiteClass();
   try {
     var bootB = new URLSearchParams(location.search).get('b');
     if (bootB) ver = 'v3-unified-3j-' + bootB.slice(0, 12);
@@ -266,10 +286,8 @@
     .then(function (html) {
       var hubLite = hubLiteActive();
       if (!html || html.length < 5000) throw new Error('screens truncated');
-      if (hubLite && window.CocoHubLite && CocoHubLite.filterScreensHtml) {
-        html = CocoHubLite.filterScreensHtml(html);
-        if (!html || html.length < 400) throw new Error('lite screens truncated');
-      }
+      if (hubLite) html = filterScreensLite(html);
+      if (hubLite && (!html || html.length < 400)) throw new Error('lite screens truncated');
       root.innerHTML = html;
       root.querySelectorAll('.screen.active').forEach(function (s) { s.classList.remove('active'); });
       if (window.DaliaSite) {

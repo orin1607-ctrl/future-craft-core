@@ -1,0 +1,62 @@
+{
+  "lite": {
+    "bootMs": 4473,
+    "metrics": {
+      "heapMb": 9.5,
+      "dom": 5785,
+      "scripts": 24,
+      "styles": 8,
+      "screens": [
+        "screen-hub",
+        "screen-pirsum",
+        "screen-business-strategy",
+        "screen-status",
+        "screen-clients",
+        "screen-agents",
+        "screen-agent-dashboard",
+        "screen-goals",
+        "screen-actions",
+        "screen-crm",
+        "screen-crm-card",
+        "screen-assets",
+        "screen-ai-center",
+        "screen-history",
+        "screen-reports"
+      ],
+      "lite": false
+    },
+    "scriptRequests": 24,
+    "cssRequests": 8,
+    "totalRequests": 46
+  },
+  "full": {
+    "bootMs": 8227,
+    "metrics": {
+      "heapMb": 9.5,
+      "dom": 5855,
+      "scripts": 55,
+      "styles": 8,
+      "screens": [
+        "screen-hub",
+        "screen-pirsum",
+        "screen-business-strategy",
+        "screen-status",
+        "screen-clients",
+        "screen-agents",
+        "screen-agent-dashboard",
+        "screen-goals",
+        "screen-actions",
+        "screen-crm",
+        "screen-crm-card",
+        "screen-assets",
+        "screen-ai-center",
+        "screen-history",
+        "screen-reports"
+      ],
+      "lite": false
+    },
+    "scriptRequests": 55,
+    "cssRequests": 8,
+    "totalRequests": 77
+  }
+}

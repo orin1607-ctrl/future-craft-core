@@ -52,7 +52,11 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 const t0 = Date.now();
 await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
-await page.waitForFunction(() => document.body.classList.contains('coco-pirsum-active') || document.getElementById('screen-pirsum')?.classList.contains('active'), { timeout: 60000 });
+await page.waitForFunction(() => document.getElementById('screen-hub') && !document.body.classList.contains('coco-boot-active'), { timeout: 120000 });
+await page.waitForTimeout(2500);
+const onPirsum = await page.evaluate(() => document.getElementById('screen-pirsum')?.classList.contains('active'));
+if (!onPirsum) await page.click('#screen-hub .hub-card-pirsum');
+await page.waitForSelector('#screen-pirsum.active', { timeout: 60000 });
 report.phases.bootMs = Date.now() - t0;
 report.phases.boot = await metrics(page);
 
