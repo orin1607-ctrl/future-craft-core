@@ -1,0 +1,217 @@
+{
+  "url": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?hub=lite&perf=1783453188562",
+  "at": "2026-07-07T19:39:48.563Z",
+  "phases": {
+    "bootMs": 3311,
+    "boot": {
+      "heapMb": 9.5,
+      "dom": 366,
+      "scripts": 24,
+      "lite": true,
+      "pirsumActive": true,
+      "screens": [
+        "screen-hub",
+        "screen-pirsum"
+      ],
+      "iframes": [
+        {
+          "id": "pirsum-frame-work",
+          "src": "https://orin1607-ctrl.github.io/future-craft-core/coco-dalia/coco-dalia-full-A-J-WIRED%20(1).html?embedded=1",
+          "loaded": true
+        },
+        {
+          "id": "pirsum-frame-control",
+          "src": "about:blank",
+          "loaded": false
+        }
+      ],
+      "clientId": "dalia-c-official"
+    },
+    "workIframeMs": 45,
+    "work": {
+      "heapMb": 9.5,
+      "dom": 366,
+      "scripts": 24,
+      "lite": true,
+      "pirsumActive": true,
+      "screens": [
+        "screen-hub",
+        "screen-pirsum"
+      ],
+      "iframes": [
+        {
+          "id": "pirsum-frame-work",
+          "src": "https://orin1607-ctrl.github.io/future-craft-core/coco-dalia/coco-dalia-full-A-J-WIRED%20(1).html?embedded=1",
+          "loaded": true
+        },
+        {
+          "id": "pirsum-frame-control",
+          "src": "about:blank",
+          "loaded": false
+        }
+      ],
+      "clientId": "dalia-c-official"
+    },
+    "workIframes": [],
+    "controlIframeMs": 56,
+    "control": {
+      "heapMb": 9.5,
+      "dom": 366,
+      "scripts": 24,
+      "lite": true,
+      "pirsumActive": true,
+      "screens": [
+        "screen-hub",
+        "screen-pirsum"
+      ],
+      "iframes": [
+        {
+          "id": "pirsum-frame-work",
+          "src": "about:blank",
+          "loaded": false
+        },
+        {
+          "id": "pirsum-frame-control",
+          "src": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing/ai-control-center-v5-STANDALONE.html?embedded=1",
+          "loaded": true
+        }
+      ],
+      "clientId": "dalia-c-official"
+    },
+    "controlIframes": [],
+    "afterStress": {
+      "heapMb": 9.5,
+      "dom": 366,
+      "scripts": 24,
+      "lite": true,
+      "pirsumActive": true,
+      "screens": [
+        "screen-hub",
+        "screen-pirsum"
+      ],
+      "iframes": [
+        {
+          "id": "pirsum-frame-work",
+          "src": "https://orin1607-ctrl.github.io/future-craft-core/coco-dalia/coco-dalia-full-A-J-WIRED%20(1).html?embedded=1",
+          "loaded": true
+        },
+        {
+          "id": "pirsum-frame-control",
+          "src": "about:blank",
+          "loaded": false
+        }
+      ],
+      "clientId": "dalia-c-official"
+    },
+    "afterStressIframes": []
+  },
+  "stress": {
+    "tabSwitch": [
+      {
+        "i": 0,
+        "toCtrl": 28,
+        "toWork": 19
+      },
+      {
+        "i": 1,
+        "toCtrl": 11,
+        "toWork": 25
+      },
+      {
+        "i": 2,
+        "toCtrl": 31,
+        "toWork": 22
+      },
+      {
+        "i": 3,
+        "toCtrl": 32,
+        "toWork": 31
+      },
+      {
+        "i": 4,
+        "toCtrl": 31,
+        "toWork": 29
+      },
+      {
+        "i": 5,
+        "toCtrl": 25,
+        "toWork": 32
+      },
+      {
+        "i": 6,
+        "toCtrl": 31,
+        "toWork": 32
+      },
+      {
+        "i": 7,
+        "toCtrl": 33,
+        "toWork": 26
+      },
+      {
+        "i": 8,
+        "toCtrl": 26,
+        "toWork": 33
+      },
+      {
+        "i": 9,
+        "toCtrl": 34,
+        "toWork": 27
+      },
+      {
+        "i": 10,
+        "toCtrl": 26,
+        "toWork": 36
+      },
+      {
+        "i": 11,
+        "toCtrl": 27,
+        "toWork": 32
+      },
+      {
+        "i": 12,
+        "toCtrl": 36,
+        "toWork": 39
+      },
+      {
+        "i": 13,
+        "toCtrl": 34,
+        "toWork": 38
+      },
+      {
+        "i": 14,
+        "toCtrl": 27,
+        "toWork": 42
+      },
+      {
+        "i": 15,
+        "toCtrl": 34,
+        "toWork": 33
+      },
+      {
+        "i": 16,
+        "toCtrl": 34,
+        "toWork": 36
+      },
+      {
+        "i": 17,
+        "toCtrl": 35,
+        "toWork": 14
+      },
+      {
+        "i": 18,
+        "toCtrl": 28,
+        "toWork": 29
+      },
+      {
+        "i": 19,
+        "toCtrl": 29,
+        "toWork": 34
+      }
+    ],
+    "tabAvg": 60,
+    "tabMax": 75
+  },
+  "singleIframeOk": true,
+  "errors": [],
+  "passed": true
+}

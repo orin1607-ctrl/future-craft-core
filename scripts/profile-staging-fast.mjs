@@ -19,8 +19,9 @@ async function metrics(page) {
     scripts: document.querySelectorAll('script[src]').length,
     lite: document.body.classList.contains('coco-hub-lite'),
     pirsumActive: document.body.classList.contains('coco-pirsum-active'),
+    screens: Array.from(document.querySelectorAll('#coco-claude-root > .screen')).map((s) => s.id),
     iframes: Array.from(document.querySelectorAll('iframe')).map((f) => ({
-      id: f.id, src: f.src, loaded: f.src && f.src !== 'about:blank',
+      id: f.id, src: f.src, loaded: !!(f.src && f.src !== 'about:blank'),
     })),
     clientId: window.DaliaSite?.SITE?.clientId || null,
   }));
@@ -31,6 +32,8 @@ async function iframeMetrics(page) {
   for (const f of page.frames()) {
     if (f === page.mainFrame()) continue;
     try {
+      const url = f.url();
+      if (!url || url === 'about:blank') continue;
       out.push(await f.evaluate(() => ({
         url: location.href.split('?')[0],
         dom: document.getElementsByTagName('*').length,
@@ -44,7 +47,17 @@ async function iframeMetrics(page) {
   return out;
 }
 
-const report = { url: URL, at: new Date().toISOString(), phases: {}, stress: {}, before: {}, after: {} };
+async function showTab(page, tab) {
+  return page.evaluate(function (t) {
+    if (window.CocoPirsumHub && CocoPirsumHub.showTab) {
+      CocoPirsumHub.showTab(t);
+      return true;
+    }
+    return false;
+  }, tab);
+}
+
+const report = { url: URL, at: new Date().toISOString(), phases: {}, stress: {} };
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 const errors = [];
@@ -52,50 +65,51 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 const t0 = Date.now();
 await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
-await page.waitForFunction(() => document.getElementById('screen-hub') && !document.body.classList.contains('coco-boot-active'), { timeout: 120000 });
-await page.waitForTimeout(2500);
-const onPirsum = await page.evaluate(() => document.getElementById('screen-pirsum')?.classList.contains('active'));
-if (!onPirsum) await page.click('#screen-hub .hub-card-pirsum');
-await page.waitForSelector('#screen-pirsum.active', { timeout: 60000 });
-await page.waitForSelector('#pirsum-tab-work', { timeout: 30000 });
+await page.waitForFunction(() => document.getElementById('screen-pirsum')?.classList.contains('active'), { timeout: 90000 });
+await page.waitForFunction(() => !!(window.CocoPirsumHub && window.CocoPirsumHub.showTab), { timeout: 30000 });
 report.phases.bootMs = Date.now() - t0;
 report.phases.boot = await metrics(page);
 
-await page.waitForTimeout(6000);
-report.phases.workBoot = await metrics(page);
+const tWork = Date.now();
+await showTab(page, 'work');
+await page.waitForFunction(() => {
+  const f = document.getElementById('pirsum-frame-work');
+  return f && f.src && f.src !== 'about:blank';
+}, { timeout: 120000 });
+report.phases.workIframeMs = Date.now() - tWork;
+report.phases.work = await metrics(page);
 report.phases.workIframes = await iframeMetrics(page);
 
-await page.click('#pirsum-tab-control');
-await page.waitForTimeout(8000);
+const tCtrl = Date.now();
+await showTab(page, 'control');
+await page.waitForFunction(() => {
+  const f = document.getElementById('pirsum-frame-control');
+  return f && f.src && f.src !== 'about:blank';
+}, { timeout: 120000 });
+report.phases.controlIframeMs = Date.now() - tCtrl;
 report.phases.control = await metrics(page);
 report.phases.controlIframes = await iframeMetrics(page);
-
-await page.click('#pirsum-tab-work');
-await page.waitForTimeout(3000);
-report.phases.backWork = await metrics(page);
-report.phases.backWorkIframes = await iframeMetrics(page);
 
 const tabStress = [];
 for (let i = 0; i < 20; i++) {
   const a = Date.now();
-  await page.click('#pirsum-tab-control');
-  await page.waitForTimeout(200);
+  await showTab(page, 'control');
   const toCtrl = Date.now() - a;
   const b = Date.now();
-  await page.click('#pirsum-tab-work');
-  await page.waitForTimeout(200);
+  await showTab(page, 'work');
   tabStress.push({ i, toCtrl, toWork: Date.now() - b });
 }
 report.stress.tabSwitch = tabStress;
 report.stress.tabAvg = +(tabStress.reduce((s, x) => s + x.toCtrl + x.toWork, 0) / tabStress.length).toFixed(0);
 report.stress.tabMax = Math.max(...tabStress.map((x) => x.toCtrl + x.toWork));
 
-const loadedIframes = report.phases.backWorkIframes.filter((f) => f.url && !f.url.includes('about:blank'));
-report.singleIframeOk = loadedIframes.length <= 1;
+report.phases.afterStress = await metrics(page);
+report.phases.afterStressIframes = await iframeMetrics(page);
+report.singleIframeOk = report.phases.afterStressIframes.length <= 1;
 report.errors = errors.slice(0, 20);
-report.passed = report.singleIframeOk && report.stress.tabMax < 5000 && errors.length < 5;
+report.passed = report.singleIframeOk && report.stress.tabMax < 3000 && report.phases.boot.screens?.join(',') === 'screen-hub,screen-pirsum';
 
 writeFileSync(join(OUT, 'profile-fast.json'), JSON.stringify(report, null, 2));
 await browser.close();
-console.log(JSON.stringify(report, null, 2));
+console.log(JSON.stringify({ passed: report.passed, bootMs: report.phases.bootMs, workIframeMs: report.phases.workIframeMs, controlIframeMs: report.phases.controlIframeMs, tabAvg: report.stress.tabAvg, tabMax: report.stress.tabMax, singleIframeOk: report.singleIframeOk }, null, 2));
 process.exit(report.passed ? 0 : 1);

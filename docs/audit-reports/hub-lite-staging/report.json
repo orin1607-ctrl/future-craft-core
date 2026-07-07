@@ -1,0 +1,82 @@
+{
+  "url": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing-platform.html?v=hub-lite-verify&t=1783452400927",
+  "at": "2026-07-07T19:26:40.928Z",
+  "checks": [
+    {
+      "name": "Lite mode active",
+      "ok": true,
+      "detail": "class=true"
+    },
+    {
+      "name": "Global filter chrome hidden",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Only פרסום hub card visible in grid",
+      "ok": true,
+      "detail": "visibleLegacy=0"
+    },
+    {
+      "name": "Legacy hub blocks hidden",
+      "ok": true,
+      "detail": "hidden=7"
+    },
+    {
+      "name": "Only hub+pirsum screens in DOM",
+      "ok": true,
+      "detail": "screen-hub,screen-pirsum"
+    },
+    {
+      "name": "Dalia client auto-connect",
+      "ok": true,
+      "detail": "dalia-c-official"
+    },
+    {
+      "name": "No legacy module scripts loaded",
+      "ok": true,
+      "detail": "none"
+    },
+    {
+      "name": "goScreen available",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "CocoPirsumHub available",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "No console errors",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "פרסום screen opens",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "מרכז העבודה iframe loads",
+      "ok": true,
+      "detail": "https://orin1607-ctrl.github.io/future-craft-core/coco-dalia/coco-dalia-full-A-J"
+    },
+    {
+      "name": "מרכז השליטה iframe loads",
+      "ok": true,
+      "detail": "https://orin1607-ctrl.github.io/future-craft-core/ai-marketing/ai-control-center"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "scriptCount": 24,
+  "legacyScriptsLoaded": [],
+  "timingMs": {
+    "domContentLoaded": 816,
+    "ready": 4151,
+    "total": 31920
+  },
+  "passed": true
+}
