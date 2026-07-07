@@ -196,6 +196,8 @@
         onScreenChange('screen-pirsum');
       }
     }, 350);
+  }
+
   function applyBoot() {
     if (!isActive()) return;
     installLegacyStubs();

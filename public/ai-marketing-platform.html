@@ -47,8 +47,8 @@
 <link rel="stylesheet" href="./ai-marketing/ai-assistant.css?v=v3-live-demo-3">
 <link rel="stylesheet" href="./ai-marketing/business-strategy-wizard.css?v=v3-live-demo-3">
 <link rel="stylesheet" href="./ai-marketing/website-builder-wizard.css?v=v3-live-demo-3">
-<link rel="stylesheet" href="./ai-marketing/coco-marketing-lite-ui.css?v=hub-lite-3">
-<script src="./ai-marketing/coco-marketing-lite-mode.js?v=hub-lite-3"></script>
+<link rel="stylesheet" href="./ai-marketing/coco-marketing-lite-ui.css?v=hub-lite-4">
+<script src="./ai-marketing/coco-marketing-lite-mode.js?v=hub-lite-4"></script>
 </head>
 <body>
 <div id="cocoToast" class="coco-toast" aria-live="polite"></div>
@@ -146,6 +146,23 @@
     else document.body.classList.remove('coco-hub-lite');
   }
   applyHubLiteClass();
+
+  function markHubLiteUiInline() {
+    if (!hubLiteActive()) return;
+    var hub = document.getElementById('screen-hub');
+    if (!hub) return;
+    var content = hub.querySelector('.content');
+    if (content) {
+      Array.prototype.forEach.call(content.children, function (el) {
+        var hasPirsum = el.querySelector && el.querySelector('.hub-card-pirsum');
+        var isPirsumTitle = el.querySelector && el.querySelector('.sec-title') && /פרסום/.test(el.textContent || '');
+        if (hasPirsum || isPirsumTitle) return;
+        el.classList.add('coco-lite-hide');
+      });
+    }
+    var bottomNav = hub.querySelector('.bottom-nav');
+    if (bottomNav) bottomNav.classList.add('coco-lite-hide');
+  }
   try {
     var bootB = new URLSearchParams(location.search).get('b');
     if (bootB) ver = 'v3-unified-3j-' + bootB.slice(0, 12);
@@ -220,8 +237,14 @@
               CocoPirsumHub.open({ tab: new URLSearchParams(location.search).get('pirsumTab') || 'work' });
             }, 400);
           }
+          if (hubLite) markHubLiteUiInline();
           if (hubLite && window.CocoHubLite && CocoHubLite.finalizePatches) {
             CocoHubLite.finalizePatches();
+          } else if (hubLite && window.CocoPirsumHub) {
+            setTimeout(function () {
+              CocoPirsumHub.open({ tab: 'work' });
+              document.body.classList.add('coco-pirsum-active');
+            }, 400);
           }
           if (hubLite && window.CocoHubLite) CocoHubLite.applyBoot();
           if (hubLite) {
@@ -294,6 +317,7 @@
         if (DaliaSite.applySiteLabels) DaliaSite.applySiteLabels();
         if (DaliaSite.scrubDemoUi) DaliaSite.scrubDemoUi();
       }
+      if (hubLite) markHubLiteUiInline();
       if (hubLite && window.CocoHubLite && CocoHubLite.afterScreensInjected) {
         CocoHubLite.afterScreensInjected();
       }

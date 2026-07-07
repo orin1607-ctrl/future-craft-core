@@ -57,6 +57,7 @@ await page.waitForTimeout(2500);
 const onPirsum = await page.evaluate(() => document.getElementById('screen-pirsum')?.classList.contains('active'));
 if (!onPirsum) await page.click('#screen-hub .hub-card-pirsum');
 await page.waitForSelector('#screen-pirsum.active', { timeout: 60000 });
+await page.waitForSelector('#pirsum-tab-work', { timeout: 30000 });
 report.phases.bootMs = Date.now() - t0;
 report.phases.boot = await metrics(page);
 
