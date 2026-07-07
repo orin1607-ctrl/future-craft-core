@@ -131,9 +131,19 @@
       };
       window.goScreen.__cocoLiteOuter = true;
     }
+    var currentGo = window.goScreen;
+    if (typeof currentGo === 'function' && !currentGo.__cocoLiteScreenTrack) {
+      window.goScreen = function (id, opts) {
+        onScreenChange(id);
+        return currentGo(id, opts);
+      };
+      window.goScreen.__cocoLiteScreenTrack = true;
+      window.goScreen.__cocoLiteOuter = true;
+    }
     patchGotoSc();
     hideGlobalChrome();
     markHubLiteUi();
+    maybeAutoOpenPirsum();
   }
 
   function patchGotoSc() {
@@ -167,6 +177,25 @@
     };
   }
 
+  function onScreenChange(id) {
+    if (!document.body) return;
+    document.body.classList.toggle('coco-pirsum-active', id === 'screen-pirsum');
+  }
+
+  function maybeAutoOpenPirsum() {
+    if (!isActive()) return;
+    try {
+      var p = new URLSearchParams(location.search);
+      if (p.get('tab') === 'pirsum' || p.get('flow') === 'pirsum') return;
+      if (p.get('hub') === 'full') return;
+      if (p.get('stay') === 'hub') return;
+    } catch (e) { /* ignore */ }
+    setTimeout(function () {
+      if (window.CocoPirsumHub && CocoPirsumHub.open) {
+        CocoPirsumHub.open({ tab: 'work' });
+        onScreenChange('screen-pirsum');
+      }
+    }, 350);
   function applyBoot() {
     if (!isActive()) return;
     installLegacyStubs();

@@ -5,11 +5,25 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0-single-iframe';
   var WIRED_FILE = 'coco-dalia/coco-dalia-full-A-J-WIRED%20(1).html';
   var V5_FILE = 'ai-marketing/ai-control-center-v5-STANDALONE.html';
   var _loaded = { work: false, control: false };
   var _activeTab = 'work';
+
+  function isSingleIframeMode() {
+    return document.body.classList.contains('coco-hub-lite') ||
+      (window.CocoHubLite && CocoHubLite.isActive && CocoHubLite.isActive());
+  }
+
+  function suspendFrame(frameId, key) {
+    var f = getFrame(frameId);
+    if (!f) return;
+    try {
+      f.src = 'about:blank';
+    } catch (e) { /* ignore */ }
+    _loaded[key] = false;
+  }
 
   function getBasePath() {
     if (window.COCO_PAGES_BASE) {
@@ -69,6 +83,10 @@
     if (ctrlBtn) ctrlBtn.classList.toggle('active', _activeTab === 'control');
     if (workFrame) workFrame.classList.toggle('on', _activeTab === 'work');
     if (ctrlFrame) ctrlFrame.classList.toggle('on', _activeTab === 'control');
+    if (isSingleIframeMode()) {
+      if (_activeTab === 'work') suspendFrame('pirsum-frame-control', 'control');
+      else suspendFrame('pirsum-frame-work', 'work');
+    }
     ensureFrameLoaded(_activeTab);
   }
 
@@ -89,6 +107,12 @@
     }
   }
 
+  function leavePirsum() {
+    if (!isSingleIframeMode()) return;
+    suspendFrame('pirsum-frame-work', 'work');
+    suspendFrame('pirsum-frame-control', 'control');
+  }
+
   function openHub(opts) {
     opts = opts || {};
     if (typeof window.goScreen === 'function') {
@@ -107,6 +131,7 @@
     var orig = window.goScreen;
     if (typeof orig !== 'function') return;
     window.goScreen = function (id, opts) {
+      if (id !== 'screen-pirsum' && isSingleIframeMode()) leavePirsum();
       var r = orig(id, opts);
       if (id === 'screen-pirsum') {
         setTimeout(function () { openHub({ tab: _activeTab }); }, 0);
@@ -140,6 +165,7 @@
     workUrl: workUrl,
     controlUrl: controlUrl,
     standaloneHubUrl: standaloneHubUrl,
+    leavePirsum: leavePirsum,
     init: init,
   };
 
