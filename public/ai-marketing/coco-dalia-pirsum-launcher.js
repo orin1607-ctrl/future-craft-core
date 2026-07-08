@@ -1,25 +1,46 @@
 /**
  * CO.CO דליה — פרסום Hub Launcher
- * Opens the new system (מרכז העבודה + מרכז השליטה) without replacing legacy Orin.
+ * Lite: light work shell (no WIRED srcdoc). Only one heavy iframe alive at a time.
  */
 (function () {
   'use strict';
 
-  var VERSION = '1.2.0-tab-cache';
+  var VERSION = '1.3.0-work-lite';
   var WIRED_FILE = 'coco-dalia/coco-dalia-full-A-J-WIRED%20(1).html';
+  var WORK_LITE_FILE = 'coco-dalia/work-center-lite.html';
   var V5_FILE = 'ai-marketing/ai-control-center-v5-STANDALONE.html';
   var _loaded = { work: false, control: false };
   var _activeTab = 'work';
+  var _lastWorkSrc = '';
+  var _lastControlSrc = '';
 
-  function isSingleIframeMode() {
+  function isHubLite() {
     return document.body.classList.contains('coco-hub-lite') ||
       (window.CocoHubLite && CocoHubLite.isActive && CocoHubLite.isActive());
+  }
+
+  function forceWiredWork() {
+    try {
+      return new URLSearchParams(location.search).get('work') === 'wired';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function useLiteWorkShell() {
+    return isHubLite() && !forceWiredWork();
+  }
+
+  function isSingleIframeMode() {
+    return isHubLite();
   }
 
   function suspendFrame(frameId, key) {
     var f = getFrame(frameId);
     if (!f) return;
     try {
+      if (key === 'work' && f.src && f.src !== 'about:blank') _lastWorkSrc = f.src;
+      if (key === 'control' && f.src && f.src !== 'about:blank') _lastControlSrc = f.src;
       f.src = 'about:blank';
     } catch (e) { /* ignore */ }
     _loaded[key] = false;
@@ -54,9 +75,11 @@
 
   function workUrl(opts) {
     opts = opts || {};
-    var url = absUrl(WIRED_FILE);
+    var file = useLiteWorkShell() ? WORK_LITE_FILE : WIRED_FILE;
+    var url = absUrl(file);
     var qs = ['embedded=1'];
     if (opts.part) qs.push('part=' + encodeURIComponent(opts.part));
+    if (useLiteWorkShell()) qs.push('shell=lite');
     return url + '?' + qs.join('&');
   }
 
@@ -73,6 +96,16 @@
     return document.getElementById(id);
   }
 
+  /** Only one heavy pirsum iframe alive — suspend the other on tab switch (Lite). */
+  function enforceSingleAlive(activeTab) {
+    if (!isSingleIframeMode()) return;
+    if (activeTab === 'work') {
+      suspendFrame('pirsum-frame-control', 'control');
+    } else if (activeTab === 'control') {
+      suspendFrame('pirsum-frame-work', 'work');
+    }
+  }
+
   function setTabActive(tab) {
     _activeTab = tab === 'control' ? 'control' : 'work';
     var workBtn = document.getElementById('pirsum-tab-work');
@@ -83,6 +116,7 @@
     if (ctrlBtn) ctrlBtn.classList.toggle('active', _activeTab === 'control');
     if (workFrame) workFrame.classList.toggle('on', _activeTab === 'work');
     if (ctrlFrame) ctrlFrame.classList.toggle('on', _activeTab === 'control');
+    if (isSingleIframeMode()) enforceSingleAlive(_activeTab);
     ensureFrameLoaded(_activeTab);
   }
 
@@ -91,6 +125,7 @@
       var f = getFrame('pirsum-frame-work');
       if (f && (!f.src || f.src === 'about:blank')) {
         f.src = workUrl();
+        _lastWorkSrc = f.src;
         _loaded.work = true;
       }
     }
@@ -98,6 +133,7 @@
       var c = getFrame('pirsum-frame-control');
       if (c && (!c.src || c.src === 'about:blank')) {
         c.src = controlUrl();
+        _lastControlSrc = c.src;
         _loaded.control = true;
       }
     }
@@ -162,6 +198,7 @@
     controlUrl: controlUrl,
     standaloneHubUrl: standaloneHubUrl,
     leavePirsum: leavePirsum,
+    useLiteWorkShell: useLiteWorkShell,
     init: init,
   };
 

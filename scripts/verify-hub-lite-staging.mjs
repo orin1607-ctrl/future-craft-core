@@ -109,16 +109,24 @@ const workFrame = await page.evaluate(() => {
   const f = document.getElementById('pirsum-frame-work');
   return { src: f?.src || '', loaded: !!(f?.src && f.src !== 'about:blank') };
 });
-check('מרכז העבודה iframe loads', workFrame.loaded, workFrame.src.slice(0, 80));
+check('מרכז העבודה iframe loads', workFrame.loaded && /work-center-lite|WIRED/.test(workFrame.src), workFrame.src.slice(0, 100));
+check('מרכז העבודה uses lite shell', /work-center-lite/.test(workFrame.src), workFrame.src.slice(0, 100));
+check('CocoPirsumHub lite version', await page.evaluate(() => (window.CocoPirsumHub?.VERSION || '').indexOf('work-lite') >= 0));
 
 // Control center tab
 await page.click('#pirsum-tab-control');
 await page.waitForTimeout(5000);
 const ctrlFrame = await page.evaluate(() => {
   const f = document.getElementById('pirsum-frame-control');
-  return { src: f?.src || '', loaded: !!(f?.src && f.src !== 'about:blank') };
+  const w = document.getElementById('pirsum-frame-work');
+  return {
+    src: f?.src || '',
+    loaded: !!(f?.src && f.src !== 'about:blank'),
+    workSuspended: !w?.src || w.src === 'about:blank',
+  };
 });
 check('מרכז השליטה iframe loads', ctrlFrame.loaded, ctrlFrame.src.slice(0, 80));
+check('רק iframe אחד חי (שליטה)', ctrlFrame.workSuspended, `work=${ctrlFrame.workSuspended}`);
 
 await page.screenshot({ path: join(OUT, 'hub-lite-pirsum.png'), fullPage: false, timeout: 10000 }).catch(() => {});
 report.timingMs.total = Date.now() - t0;

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+(function () {
+  var host = location.hostname;
+  var base = '/future-craft-core/';
+  if (host === 'localhost' || host === '127.0.0.1') {
+    var p = location.pathname || '';
+    var i = p.indexOf('coco-dalia');
+    base = i >= 0 ? p.substring(0, i) : (p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/'));
+  }
+  window.COCO_PAGES_BASE = base;
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="coco-work-shell" content="lite-v1">
+<title>מרכז העבודה — CO.CO דליה (Lite)</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04091a;--bg2:#071022;--bg3:#0a1830;
+  --acc:#2563eb;--acc2:#3b82f6;
+  --w:#fff;--w80:rgba(255,255,255,.8);--w50:rgba(255,255,255,.5);--w10:rgba(255,255,255,.1);--w06:rgba(255,255,255,.06);
+  --green:#22c55e;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.brandbar{height:48px;background:var(--bg2);border-bottom:1px solid var(--w10);display:flex;align-items:center;justify-content:space-between;padding:0 14px;gap:10px;flex-shrink:0;}
+.logo{font-size:13px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.logo em{color:var(--acc2);font-style:normal;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
+.pill{font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(37,99,235,.14);color:var(--acc2);border:1px solid rgba(37,99,235,.28);font-weight:700;}
+.modnav{background:var(--bg2);border-bottom:1px solid var(--w10);flex-shrink:0;}
+.modtabs{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.modtab{flex:1;min-width:120px;padding:10px 12px;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px;transition:.15s;background:transparent;border-top:none;border-left:none;border-right:none;color:inherit;font-family:inherit;text-align:right;}
+.modtab:hover{background:var(--w06);}
+.modtab.active{border-bottom-color:var(--acc);background:rgba(37,99,235,.06);}
+.modtab[disabled]{opacity:.4;cursor:not-allowed;}
+.modtab-badge{width:20px;height:20px;border-radius:50%;background:var(--w10);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
+.modtab.active .modtab-badge{background:var(--acc);color:#fff;}
+.modtab-t{font-size:12px;font-weight:700;color:var(--w80);}
+.modtab.active .modtab-t{color:var(--w);}
+.modtab-s{font-size:10px;color:var(--w50);}
+.frames{flex:1;position:relative;overflow:hidden;background:var(--bg);}
+.frames iframe{position:absolute;inset:0;width:100%;height:100%;border:none;display:none;background:var(--bg);}
+.frames iframe.on{display:block;}
+.hint{font-size:10px;color:var(--w50);padding:0 8px;white-space:nowrap;}
+</style>
+</head>
+<body>
+<div class="brandbar">
+  <div class="logo"><span class="dot"></span>CO.CO <em>דליה</em> — מרכז העבודה</div>
+  <span class="pill" id="part-pill">חלק א׳ — תכנון</span>
+  <span class="hint">Lite shell · בלי srcdoc</span>
+</div>
+
+<nav class="modnav" aria-label="מודולי עבודה">
+  <div class="modtabs" id="modtabs">
+    <button type="button" class="modtab active" id="mt-a" data-part="a">
+      <span class="modtab-badge">1</span>
+      <span><div class="modtab-t">מנוע התכנון</div><div class="modtab-s">Planning Engine</div></span>
+    </button>
+    <button type="button" class="modtab" id="mt-b" data-part="b" disabled>
+      <span class="modtab-badge">2</span>
+      <span><div class="modtab-t">קידום אורגני SEO</div><div class="modtab-s" id="mt-b-sub">נעול עד יצירת קמפיין</div></span>
+    </button>
+    <button type="button" class="modtab" id="mt-c" data-part="c" disabled>
+      <span class="modtab-badge">3</span>
+      <span><div class="modtab-t">גוגל אדס</div><div class="modtab-s" id="mt-c-sub">נעול עד יצירת קמפיין</div></span>
+    </button>
+  </div>
+</nav>
+
+<div class="frames">
+  <iframe id="frame-a" class="on" title="חלק א׳ — מנוע התכנון" src="about:blank" loading="eager"></iframe>
+  <iframe id="frame-b" title="חלק ב׳ — SEO" src="about:blank" loading="lazy"></iframe>
+  <iframe id="frame-c" title="חלק ג׳ — Google Ads" src="about:blank" loading="lazy"></iframe>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var VERSION = '1.0.0-lite-shell';
+  var PILLS = { a: 'חלק א׳ — תכנון', b: 'חלק ב׳ — SEO אורגני', c: 'חלק ג׳ — Google Ads' };
+  var PART_SRC = {
+    a: 'part-a-planning-engine.html',
+    b: 'part-b-seo-organic.html',
+    c: 'part-c-google-ads.html',
+  };
+  var UNLOCKED = { a: true, b: false, c: false };
+  var _loaded = { a: false, b: false, c: false };
+  var _active = 'a';
+
+  function parseLs(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function applyUnlockFromStorage() {
+    var partA = parseLs('dalia_part_a');
+    var partB = parseLs('dalia_part_b');
+    var track = parseLs('dalia_track_complete');
+    var brief = parseLs('dalia_project_brief');
+    if (brief || partA) UNLOCKED.a = true;
+    if (partB && partB.approved) UNLOCKED.b = true;
+    if (partA && partA.gads_ready) UNLOCKED.c = true;
+    if (track) {
+      if (track.track === 'seo') UNLOCKED.b = true;
+      if (track.track === 'ads') UNLOCKED.c = true;
+    }
+    ['b', 'c'].forEach(function (p) {
+      var btn = document.getElementById('mt-' + p);
+      if (!btn) return;
+      if (UNLOCKED[p]) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    });
+  }
+
+  function ensurePartLoaded(part) {
+    if (_loaded[part]) return;
+    var frame = document.getElementById('frame-' + part);
+    if (!frame) return;
+    var src = PART_SRC[part];
+    if (!src) return;
+    frame.src = src + (src.indexOf('?') >= 0 ? '&' : '?') + 'embedded=1&shell=lite';
+    _loaded[part] = true;
+  }
+
+  function showPart(p) {
+    if (!UNLOCKED[p]) return;
+    _active = p;
+    ensurePartLoaded(p);
+    ['a', 'b', 'c'].forEach(function (k) {
+      var frame = document.getElementById('frame-' + k);
+      var tab = document.getElementById('mt-' + k);
+      if (frame) frame.classList.toggle('on', k === p);
+      if (tab) tab.classList.toggle('active', k === p);
+    });
+    var pill = document.getElementById('part-pill');
+    if (pill) pill.textContent = PILLS[p] || p;
+  }
+
+  function launchModule(target) {
+    if (target !== 'b' && target !== 'c') return;
+    UNLOCKED[target] = true;
+    var tab = document.getElementById('mt-' + target);
+    if (tab) {
+      tab.disabled = false;
+      tab.style.opacity = '1';
+      tab.style.pointerEvents = 'auto';
+    }
+    var sub = document.getElementById('mt-' + target + '-sub');
+    if (sub) sub.textContent = target === 'b' ? '12 שלבים' : 'Google Ads — 9 שלבים';
+    showPart(target);
+  }
+
+  function softResetFrame(part) {
+    var frame = document.getElementById('frame-' + part);
+    if (!frame) return;
+    var src = PART_SRC[part] + '?embedded=1&shell=lite&t=' + Date.now();
+    frame.src = src;
+    _loaded[part] = true;
+  }
+
+  document.querySelectorAll('.modtab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.disabled) return;
+      showPart(btn.getAttribute('data-part'));
+    });
+  });
+
+  window.launchModule = launchModule;
+  window.showPart = showPart;
+  window.CocoWorkShellLite = {
+    VERSION: VERSION,
+    showPart: showPart,
+    launchModule: launchModule,
+    softResetFrame: softResetFrame,
+    unlocked: UNLOCKED,
+  };
+
+  window.addEventListener('message', function (e) {
+    var data = e && e.data;
+    if (!data || typeof data !== 'object') return;
+    if (data.type === 'dalia-coco-launch' && data.target) launchModule(data.target);
+  });
+
+  applyUnlockFromStorage();
+  var params = new URLSearchParams(location.search);
+  var part = params.get('part');
+  if (part && UNLOCKED[part]) showPart(part);
+  else showPart('a');
+})();
+</script>
+</body>
+</html>
