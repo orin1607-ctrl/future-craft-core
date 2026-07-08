@@ -1,0 +1,209 @@
+{
+  "at": "2026-07-08T15:56:36.324Z",
+  "checks": [
+    {
+      "name": "Orin boots to hub (not auto-pirsum)",
+      "ok": true,
+      "detail": "screen-hub"
+    },
+    {
+      "name": "openPirsumStandalone available",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "פרסום card visible",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Old launcher NOT loaded in Orin",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Client context present",
+      "ok": true,
+      "detail": "dalia-c-official"
+    },
+    {
+      "name": "Landed on pirsum-home",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Home shows client name",
+      "ok": true,
+      "detail": "דליה פתרונות מימון ותחזוקה לרכב"
+    },
+    {
+      "name": "Home shows clientId",
+      "ok": true,
+      "detail": "Client ID: dalia-c-official · dalia-c.com · https://dalia-c.com/"
+    },
+    {
+      "name": "Home has no Orin root",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Home has no old launcher",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Home has no iframes",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "Home scripts are minimal (inline only)",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "Work link is work-center-lite",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Control link is v5 standalone",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Work link carries clientId",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Control link carries clientId",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Work opens as own page",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Work keeps client context (query or LS)",
+      "ok": true,
+      "detail": "q=false ls=dalia-c-official"
+    },
+    {
+      "name": "Control opens as own page",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Control keeps client context (query or LS)",
+      "ok": true,
+      "detail": "q=false ls=dalia-c-official"
+    },
+    {
+      "name": "5 work↔control navigations completed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "No hang (switchMax < 120s)",
+      "ok": true,
+      "detail": "46651"
+    },
+    {
+      "name": "Home stays lightweight (scripts=0)",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "Home heap modest (<40MB)",
+      "ok": true,
+      "detail": "9.5"
+    },
+    {
+      "name": "No critical console pageerrors blocking",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "phases": {
+    "orinBootMs": 2350,
+    "orin": {
+      "url": "http://127.0.0.1:4173/ai-marketing-platform?customer=dalia-c-official&v=v3-pirsum-standalone-1",
+      "hasOpenFn": true,
+      "hasPirsumCard": true,
+      "launcherLoaded": false,
+      "clientId": "dalia-c-official",
+      "scripts": 23,
+      "heapMb": 9.5,
+      "pirsumActive": false,
+      "activeScreen": "screen-hub"
+    },
+    "homeOpenMs": 1042,
+    "home": {
+      "url": "http://127.0.0.1:4173/coco-dalia/pirsum-home",
+      "title": "פרסום — CO.CO דליה",
+      "clientName": "דליה פתרונות מימון ותחזוקה לרכב",
+      "clientMeta": "Client ID: dalia-c-official · dalia-c.com · https://dalia-c.com/",
+      "workHref": "http://127.0.0.1:4173/coco-dalia/work-center-lite.html?clientId=dalia-c-official&clientName=%D7%93%D7%9C%D7%99%D7%94%20%D7%A4%D7%AA%D7%A8%D7%95%D7%A0%D7%95%D7%AA%20%D7%9E%D7%99%D7%9E%D7%95%D7%9F%20%D7%95%D7%AA%D7%97%D7%96%D7%95%D7%A7%D7%94%20%D7%9C%D7%A8%D7%9B%D7%91&site=dalia-c.com&domain=dalia-c.com&embedded=0&from=pirsum-home",
+      "controlHref": "http://127.0.0.1:4173/ai-marketing/ai-control-center-v5-STANDALONE.html?clientId=dalia-c-official&clientName=%D7%93%D7%9C%D7%99%D7%94%20%D7%A4%D7%AA%D7%A8%D7%95%D7%A0%D7%95%D7%AA%20%D7%9E%D7%99%D7%9E%D7%95%D7%9F%20%D7%95%D7%AA%D7%97%D7%96%D7%95%D7%A7%D7%94%20%D7%9C%D7%A8%D7%9B%D7%91&site=dalia-c.com&domain=dalia-c.com&embedded=0&from=pirsum-home",
+      "scripts": 0,
+      "hasOrinRoot": false,
+      "hasLauncher": false,
+      "heapMb": 9.5,
+      "iframeCount": 0
+    },
+    "workOpenMs": 1612,
+    "work": {
+      "url": "http://127.0.0.1:4173/coco-dalia/work-center-lite",
+      "shell": true,
+      "scripts": 0,
+      "heapMb": 9.5,
+      "hasClientId": false,
+      "lsClient": "dalia-c-official"
+    },
+    "controlOpenMs": 2869,
+    "control": {
+      "url": "http://127.0.0.1:4173/ai-marketing/ai-control-center-v5-STANDALONE",
+      "scripts": 21,
+      "heapMb": 9.5,
+      "hasClientId": false,
+      "lsClient": "dalia-c-official",
+      "title": "AI Control Center - מרכז שליטה AI"
+    },
+    "switchTimes": [
+      {
+        "toWork": 215,
+        "toCtrl": 214
+      },
+      {
+        "toWork": 46442,
+        "toCtrl": 209
+      },
+      {
+        "toWork": 45791,
+        "toCtrl": 214
+      },
+      {
+        "toWork": 46035,
+        "toCtrl": 220
+      },
+      {
+        "toWork": 46197,
+        "toCtrl": 220
+      }
+    ],
+    "switchAvg": 37151,
+    "switchMax": 46651
+  },
+  "console": {
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "PAGE:Cannot read properties of null (reading 'addEventListener')"
+    ],
+    "count": 3
+  },
+  "networkFailed": [],
+  "passed": true
+}

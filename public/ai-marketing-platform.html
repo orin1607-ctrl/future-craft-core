@@ -35,20 +35,20 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="ui-version" content="v3-work-lite-1">
+<meta name="ui-version" content="v3-pirsum-standalone-1">
 <meta name="build-commit" content="STAGING">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>ניהול שיווק AI – דליה</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=v3-work-lite-1">
-<link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=v3-work-lite-1">
-<link rel="stylesheet" href="./ai-marketing/home-prd.css?v=v3-work-lite-1">
-<link rel="stylesheet" href="./ai-marketing/ai-assistant.css?v=v3-work-lite-1">
-<link rel="stylesheet" href="./ai-marketing/business-strategy-wizard.css?v=v3-work-lite-1">
-<link rel="stylesheet" href="./ai-marketing/website-builder-wizard.css?v=v3-work-lite-1">
-<link rel="stylesheet" href="./ai-marketing/coco-marketing-lite-ui.css?v=hub-lite-6">
-<script src="./ai-marketing/coco-marketing-lite-mode.js?v=hub-lite-6"></script>
+<link rel="stylesheet" href="./ai-marketing/coco-claude-main.css?v=v3-pirsum-standalone-1">
+<link rel="stylesheet" href="./ai-marketing/coco-claude-integration.css?v=v3-pirsum-standalone-1">
+<link rel="stylesheet" href="./ai-marketing/home-prd.css?v=v3-pirsum-standalone-1">
+<link rel="stylesheet" href="./ai-marketing/ai-assistant.css?v=v3-pirsum-standalone-1">
+<link rel="stylesheet" href="./ai-marketing/business-strategy-wizard.css?v=v3-pirsum-standalone-1">
+<link rel="stylesheet" href="./ai-marketing/website-builder-wizard.css?v=v3-pirsum-standalone-1">
+<link rel="stylesheet" href="./ai-marketing/coco-marketing-lite-ui.css?v=hub-lite-7">
+<script src="./ai-marketing/coco-marketing-lite-mode.js?v=hub-lite-7"></script>
 </head>
 <body>
 <div id="cocoToast" class="coco-toast" aria-live="polite"></div>
@@ -112,7 +112,7 @@
 <script>
 (function initCocoClaude() {
   var root = document.getElementById('coco-claude-root');
-  var ver = 'v3-work-lite-1';
+  var ver = 'v3-pirsum-standalone-1';
   function hubLiteActive() {
     if (window.CocoHubLite && CocoHubLite.isActive) return CocoHubLite.isActive();
     try {
@@ -231,20 +231,17 @@
               setTimeout(function () { CocoMarketingCrm.openTab(); }, 400);
             }
           }
-          if ((new URLSearchParams(location.search).get('tab') === 'pirsum' ||
-              new URLSearchParams(location.search).get('flow') === 'pirsum') && window.CocoPirsumHub) {
-            setTimeout(function () {
-              CocoPirsumHub.open({ tab: new URLSearchParams(location.search).get('pirsumTab') || 'work' });
-            }, 400);
-          }
+          // פרסום standalone: ?tab=pirsum / ?flow=pirsum → עמוד עצמאי עם client context
+          try {
+            var bootP = new URLSearchParams(location.search);
+            if ((bootP.get('tab') === 'pirsum' || bootP.get('flow') === 'pirsum') && window.openPirsumStandalone) {
+              setTimeout(function () { openPirsumStandalone(); }, 200);
+              return;
+            }
+          } catch (ePirsum) { /* ignore */ }
           if (hubLite) markHubLiteUiInline();
           if (hubLite && window.CocoHubLite && CocoHubLite.finalizePatches) {
             CocoHubLite.finalizePatches();
-          } else if (hubLite && window.CocoPirsumHub) {
-            setTimeout(function () {
-              CocoPirsumHub.open({ tab: 'work' });
-              document.body.classList.add('coco-pirsum-active');
-            }, 400);
           }
           if (hubLite && window.CocoHubLite) CocoHubLite.applyBoot();
           if (hubLite) {
@@ -264,7 +261,6 @@
       .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-data.js')); })
       .then(function () { return loadScript(assetUrl('ai-marketing/coco-claude-bridge.js')); })
       .then(function () { return loadScript(assetUrl('ai-marketing/coco-marketing-unified.js')); })
-      .then(function () { return loadScript(assetUrl('ai-marketing/coco-dalia-pirsum-launcher.js')); })
       .then(function () { return loadScript(assetUrl('ai-marketing/coco-google-oauth-bridge.js')); });
   }
 

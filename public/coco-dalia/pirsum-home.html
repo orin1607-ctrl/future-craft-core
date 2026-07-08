@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+(function () {
+  var host = location.hostname;
+  var base = '/future-craft-core/';
+  if (host === 'localhost' || host === '127.0.0.1') {
+    var p = location.pathname || '';
+    var i = p.indexOf('coco-dalia');
+    base = i >= 0 ? p.substring(0, i) : (p.endsWith('/') ? p : p.replace(/\/[^/]*$/, '/'));
+  }
+  window.COCO_PAGES_BASE = base;
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="coco-pirsum-standalone" content="1">
+<meta name="ui-version" content="pirsum-standalone-1">
+<title>פרסום — CO.CO דליה</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04091a;--bg2:#071022;--bg3:#0a1830;
+  --acc:#2563eb;--acc2:#3b82f6;
+  --w:#fff;--w80:rgba(255,255,255,.8);--w50:rgba(255,255,255,.5);--w10:rgba(255,255,255,.1);
+  --green:#22c55e;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);
+  min-height:100vh;display:flex;flex-direction:column;
+}
+.bar{
+  height:52px;background:var(--bg2);border-bottom:1px solid var(--w10);
+  display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:10px;flex-shrink:0;
+}
+.logo{font-size:14px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.logo em{color:var(--acc2);font-style:normal;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);}
+.badge{font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(37,99,235,.14);color:var(--acc2);border:1px solid rgba(37,99,235,.28);font-weight:700;}
+.back{
+  font-size:11px;color:var(--w50);text-decoration:none;padding:6px 10px;
+  border:1px solid var(--w10);border-radius:8px;white-space:nowrap;
+}
+.back:hover{color:var(--w);}
+.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 18px 40px;gap:18px;}
+.client{
+  width:100%;max-width:520px;background:var(--bg3);border:1px solid var(--w10);
+  border-radius:14px;padding:14px 16px;
+}
+.client-k{font-size:10px;font-weight:700;color:var(--w50);letter-spacing:.4px;margin-bottom:4px;}
+.client-n{font-size:16px;font-weight:800;}
+.client-m{font-size:12px;color:var(--w50);margin-top:4px;line-height:1.5;}
+.h1{font-size:22px;font-weight:900;text-align:center;}
+.sub{font-size:13px;color:var(--w50);text-align:center;max-width:420px;line-height:1.6;}
+.cards{width:100%;max-width:520px;display:flex;flex-direction:column;gap:12px;}
+.card{
+  display:block;text-decoration:none;color:inherit;
+  background:var(--bg3);border:1px solid rgba(37,99,235,.35);
+  border-radius:14px;padding:18px 16px;transition:.15s;
+}
+.card:hover{border-color:rgba(37,99,235,.65);background:rgba(37,99,235,.08);}
+.card-ico{font-size:22px;margin-bottom:6px;}
+.card-t{font-size:16px;font-weight:800;}
+.card-s{font-size:12px;color:var(--w50);margin-top:4px;line-height:1.5;}
+.warn{font-size:11px;color:#f59e0b;text-align:center;max-width:520px;line-height:1.5;display:none;}
+.warn.on{display:block;}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="logo"><span class="dot"></span>CO.CO <em>דליה</em> — פרסום</div>
+  <span class="badge">Standalone · Staging</span>
+  <a class="back" id="back-orin" href="../ai-marketing-platform.html?stay=hub">← חזרה ל-Orin</a>
+</header>
+
+<main class="main">
+  <div class="client" id="client-box">
+    <div class="client-k">לקוח פעיל</div>
+    <div class="client-n" id="client-name">טוען…</div>
+    <div class="client-m" id="client-meta"></div>
+  </div>
+
+  <h1 class="h1">פרסום</h1>
+  <p class="sub">בחר מרכז. כל מסך נפתח כעמוד עצמאי — בלי מנהל השיווק הישן, בלי iframe של Orin.</p>
+  <p class="warn" id="no-client-warn">לא זוהה לקוח. חוזרים להקשר הרשמי של דליה (dalia-c-official). מומלץ לפתוח מתוך Orin אחרי בחירת לקוח.</p>
+
+  <div class="cards">
+    <a class="card" id="link-work" href="#">
+      <div class="card-ico">⚙️</div>
+      <div class="card-t">מרכז העבודה</div>
+      <div class="card-s">תכנון · SEO · Google Ads — לפי הלקוח הפעיל</div>
+    </a>
+    <a class="card" id="link-control" href="#">
+      <div class="card-ico">📊</div>
+      <div class="card-t">מרכז השליטה</div>
+      <div class="card-s">שליטה · דוחות · מנועים — לפי הלקוח הפעיל</div>
+    </a>
+  </div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var FALLBACK = {
+    clientId: 'dalia-c-official',
+    clientName: 'דליה פתרונות מימון ותחזוקה לרכב',
+    company: 'דליה פתרונות מימון ותחזוקה לרכב',
+    site: 'dalia-c.com',
+    domain: 'dalia-c.com',
+    url: 'https://dalia-c.com/',
+  };
+
+  function pagesBase() {
+    var b = window.COCO_PAGES_BASE || '/future-craft-core/';
+    if (b.charAt(0) === '/') return location.origin + b;
+    try { return new URL(b, location.href).href; } catch (e) { return location.origin + '/future-craft-core/'; }
+  }
+
+  function abs(rel) {
+    var base = pagesBase();
+    return base.replace(/\/?$/, '/') + rel.replace(/^\//, '');
+  }
+
+  function readJson(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function resolveClient() {
+    var q = new URLSearchParams(location.search);
+    var fromLs = readJson('coco-pirsum-client-v1') || {};
+    var flow = readJson('coco-flow-context-v2') || {};
+    var clientId = q.get('clientId') || fromLs.clientId || flow.clientId || FALLBACK.clientId;
+    var clientName = q.get('clientName') || fromLs.clientName || fromLs.company || flow.clientName || flow.company || FALLBACK.clientName;
+    var site = q.get('site') || fromLs.site || fromLs.domain || flow.site || flow.domain || FALLBACK.site;
+    var domain = q.get('domain') || fromLs.domain || flow.domain || site || FALLBACK.domain;
+    var url = q.get('url') || fromLs.url || flow.url || FALLBACK.url;
+    var missing = !(q.get('clientId') || fromLs.clientId || flow.clientId);
+    return {
+      clientId: clientId,
+      clientName: clientName,
+      company: clientName,
+      site: site,
+      domain: domain,
+      url: url,
+      missing: missing,
+    };
+  }
+
+  function persist(ctx) {
+    try {
+      localStorage.setItem('coco-pirsum-client-v1', JSON.stringify(ctx));
+    } catch (e) { /* ignore */ }
+    try {
+      var flow = readJson('coco-flow-context-v2') || {};
+      localStorage.setItem('coco-flow-context-v2', JSON.stringify(Object.assign({}, flow, {
+        clientId: ctx.clientId,
+        clientName: ctx.clientName,
+        company: ctx.company,
+        site: ctx.site,
+        domain: ctx.domain,
+      })));
+    } catch (e) { /* ignore */ }
+  }
+
+  function qs(ctx) {
+    return [
+      'clientId=' + encodeURIComponent(ctx.clientId || ''),
+      'clientName=' + encodeURIComponent(ctx.clientName || ''),
+      'site=' + encodeURIComponent(ctx.site || ''),
+      'domain=' + encodeURIComponent(ctx.domain || ''),
+      'embedded=0',
+      'from=pirsum-home',
+    ].join('&');
+  }
+
+  var ctx = resolveClient();
+  persist(ctx);
+
+  document.getElementById('client-name').textContent = ctx.clientName || ctx.company || ctx.clientId;
+  document.getElementById('client-meta').textContent =
+    'Client ID: ' + ctx.clientId + ' · ' + (ctx.domain || ctx.site || '') +
+    (ctx.url ? ' · ' + ctx.url : '');
+  if (ctx.missing) document.getElementById('no-client-warn').classList.add('on');
+
+  document.getElementById('link-work').href = abs('coco-dalia/work-center-lite.html') + '?' + qs(ctx);
+  document.getElementById('link-control').href = abs('ai-marketing/ai-control-center-v5-STANDALONE.html') + '?' + qs(ctx);
+
+  var back = document.getElementById('back-orin');
+  back.href = abs('ai-marketing-platform.html') + '?stay=hub&clientId=' + encodeURIComponent(ctx.clientId);
+})();
+</script>
+</body>
+</html>

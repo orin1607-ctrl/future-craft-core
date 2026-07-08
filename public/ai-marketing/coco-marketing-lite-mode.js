@@ -183,19 +183,8 @@
   }
 
   function maybeAutoOpenPirsum() {
-    if (!isActive()) return;
-    try {
-      var p = new URLSearchParams(location.search);
-      if (p.get('tab') === 'pirsum' || p.get('flow') === 'pirsum') return;
-      if (p.get('hub') === 'full') return;
-      if (p.get('stay') === 'hub') return;
-    } catch (e) { /* ignore */ }
-    setTimeout(function () {
-      if (window.CocoPirsumHub && CocoPirsumHub.open) {
-        CocoPirsumHub.open({ tab: 'work' });
-        onScreenChange('screen-pirsum');
-      }
-    }, 350);
+    /* Standalone פרסום: never auto-open screen-pirsum / old launcher inside Orin. */
+    return;
   }
 
   function applyBoot() {

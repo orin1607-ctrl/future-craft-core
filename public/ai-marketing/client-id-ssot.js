@@ -119,6 +119,56 @@
     return { ok: issues.length === 0, issues: issues, official: OFFICIAL.clientId };
   }
 
+  function pagesBase() {
+    if (window.COCO_PAGES_BASE) {
+      var b = window.COCO_PAGES_BASE;
+      return b.charAt(0) === '/' ? (location.origin + b) : b;
+    }
+    if (/orin1607-ctrl\.github\.io/i.test(location.hostname || '')) {
+      return location.origin + '/future-craft-core/';
+    }
+    return location.origin + '/future-craft-core/';
+  }
+
+  function absUrl(rel) {
+    var base = pagesBase().replace(/\/?$/, '/');
+    try {
+      return new URL(rel.replace(/^\//, ''), base).href;
+    } catch (e) {
+      return base + rel.replace(/^\//, '');
+    }
+  }
+
+  /** Navigate to standalone פרסום (outside Orin), preserving client context. */
+  function openPirsumStandalone() {
+    var ctx = (window.COCO && COCO.flowContext) || {};
+    var site = (window.DaliaSite && DaliaSite.SITE) || OFFICIAL;
+    var clientId = normalizeClientId(ctx.clientId || site.clientId || OFFICIAL.clientId);
+    var clientName = ctx.clientName || ctx.company || site.company || OFFICIAL.company;
+    var domain = ctx.domain || ctx.site || site.domain || OFFICIAL.domain;
+    var url = site.url || OFFICIAL.url;
+    var payload = {
+      clientId: clientId,
+      clientName: clientName,
+      company: clientName,
+      site: domain,
+      domain: domain,
+      url: url,
+      at: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem('coco-pirsum-client-v1', JSON.stringify(payload));
+      localStorage.setItem('coco-flow-context-v2', JSON.stringify(Object.assign({}, ctx, payload)));
+    } catch (e) { /* ignore */ }
+    var qs = [
+      'clientId=' + encodeURIComponent(payload.clientId),
+      'clientName=' + encodeURIComponent(payload.clientName),
+      'site=' + encodeURIComponent(payload.site),
+      'domain=' + encodeURIComponent(payload.domain),
+    ].join('&');
+    location.href = absUrl('coco-dalia/pirsum-home.html') + '?' + qs;
+  }
+
   window.ClientIdSsot = {
     OFFICIAL: OFFICIAL,
     DATA_PATHS: DATA_PATHS,
@@ -127,7 +177,10 @@
     isOfficialClientId: isOfficialClientId,
     normalizeClientId: normalizeClientId,
     assertUnified: assertUnified,
+    openPirsumStandalone: openPirsumStandalone,
   };
+
+  window.openPirsumStandalone = openPirsumStandalone;
 
   applyFlowContext();
 })();
