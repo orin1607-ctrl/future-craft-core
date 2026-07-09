@@ -801,6 +801,46 @@ function calcReadiness(){
   }
   toast(reqFailed===0?'✅ חלק ב׳ מוכן!':'⚠️ '+reqFailed+' שלבים חובה לא הושלמו');
 }
+/** Standalone bridge: Part B → Control Center (50 assistants pipeline). No WIRED / team iframe. */
+function bridgeToControlCenter(track){
+  track=track||'seo';
+  try{localStorage.setItem('dalia_track_complete',JSON.stringify({track:track,ts:new Date().toISOString()}));}catch(e){}
+  var ctx={};
+  try{ctx=JSON.parse(localStorage.getItem('coco-pirsum-client-v1')||'{}');}catch(e){ctx={};}
+  try{
+    var flow=JSON.parse(localStorage.getItem('coco-flow-context-v2')||'{}');
+    ctx=Object.assign({},flow,ctx);
+    localStorage.setItem('coco-flow-context-v2',JSON.stringify(ctx));
+  }catch(e2){}
+  if(!ctx.clientId)ctx.clientId='dalia-c-official';
+  try{localStorage.setItem('coco-pirsum-client-v1',JSON.stringify(ctx));}catch(e3){}
+  var qs=[
+    'clientId='+encodeURIComponent(ctx.clientId),
+    'openScreen=assistants',
+    'runPipeline=1',
+    'from=part-b',
+  ];
+  if(ctx.clientName)qs.push('clientName='+encodeURIComponent(ctx.clientName));
+  if(ctx.site||ctx.domain)qs.push('site='+encodeURIComponent(ctx.site||ctx.domain));
+  var base='';
+  try{
+    var pagesBase=window.top&&window.top.COCO_PAGES_BASE;
+    if(pagesBase){
+      base=pagesBase.charAt(0)==='/'?(location.origin+pagesBase):pagesBase;
+    }
+  }catch(e4){}
+  if(!base){
+    var p=location.pathname||'';
+    var i=p.indexOf('coco-dalia');
+    base=location.origin+(i>=0?p.substring(0,i):'/future-craft-core/');
+  }
+  var url=base.replace(/\/?$/,'/')+'ai-marketing/ai-control-center-v5-STANDALONE.html?'+qs.join('&');
+  try{sessionStorage.setItem('coco-bridge-open-assistants','1');sessionStorage.setItem('coco-bridge-run-pipeline','1');}catch(e5){}
+  toast('🚀 חלק ב׳ אושר — ממשיכים למרכז השליטה…');
+  setTimeout(function(){
+    try{window.top.location.href=url;}catch(e6){location.href=url;}
+  },700);
+}
 function finalApprove(){
   var kwCount=document.getElementById('kw-tbody')?.children.length||0;
   var geoCount=document.getElementById('geo-tbody')?.children.length||0;
@@ -820,7 +860,7 @@ function finalApprove(){
   };
   try{localStorage.setItem('dalia_part_b',JSON.stringify(payload));}catch(e){}
   try{window.parent.postMessage({type:'dalia-coco-part-b-approve',payload:payload},'*');}catch(e){}
-  toast('🚀 חלק ב׳ אושר! מוכן לתיק העסק (Project Brief).');
+  bridgeToControlCenter('seo');
 }
 function saveToLS(){try{localStorage.setItem('dalia_seo_draft',JSON.stringify({approved:APPROVED,ts:new Date().toISOString()}));}catch(e){}toast('💾 טיוטה נשמרה');}
 

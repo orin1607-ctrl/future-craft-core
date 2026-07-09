@@ -728,6 +728,31 @@ if (window.CocoMissionControl) {
   }).catch(function () { /* json not generated yet */ });
 }
 renderAll();
+
+function applyPartBBridgeEntry(){
+  try{
+    var q=new URLSearchParams(location.search);
+    var fromBridge=false;
+    try{fromBridge=sessionStorage.getItem('coco-bridge-open-assistants')==='1';}catch(e0){}
+    if(q.get('openScreen')!=='assistants'&&q.get('from')!=='part-b'&&!fromBridge)return;
+    try{sessionStorage.removeItem('coco-bridge-open-assistants');}catch(e1){}
+    var runPipeline=false;
+    try{runPipeline=sessionStorage.getItem('coco-bridge-run-pipeline')==='1';sessionStorage.removeItem('coco-bridge-run-pipeline');}catch(e2){}
+    var run=function(){
+      if(typeof openScreen==='function')openScreen('assistants');
+      if(window.CocoDaliaAssistantsEngine&&CocoDaliaAssistantsEngine.runAll){
+        CocoDaliaAssistantsEngine.runAll(null);
+      }
+      if(runPipeline&&window.CocoDaliaOrchestrator&&CocoDaliaOrchestrator.runPipeline){
+        CocoDaliaOrchestrator.runPipeline(null,{silent:true});
+      }
+      if(typeof window._cocoV5RenderAll==='function')window._cocoV5RenderAll();
+    };
+    if(window.requestAnimationFrame)requestAnimationFrame(function(){setTimeout(run,150);});
+    else setTimeout(run,200);
+  }catch(e){/* ignore */}
+}
+applyPartBBridgeEntry();
 </script>
 </body>
 </html>

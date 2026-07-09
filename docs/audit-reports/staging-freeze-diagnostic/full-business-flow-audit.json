@@ -1,0 +1,209 @@
+{
+  "at": "2026-07-09T05:24:40.499Z",
+  "base": "http://127.0.0.1:4173",
+  "stoppedAt": null,
+  "steps": [
+    {
+      "id": "S0",
+      "name": "Orin boot + client context",
+      "ok": true,
+      "detail": "clientId=dalia-c-official",
+      "at": "2026-07-09T05:24:32.306Z",
+      "orin": {
+        "clientId": "dalia-c-official",
+        "hasPirsum": true,
+        "launcher": false
+      }
+    },
+    {
+      "id": "S1",
+      "name": "Orin → Pirsum (client preserved)",
+      "ok": true,
+      "detail": "{\"client\":\"דליה פתרונות מימון ותחזוקה לרכב\",\"workHref\":\"http://127.0.0.1:4173/coco-dalia/work-center-lite.html?clientId=dalia-c-official&clientName=%D7%93%D7%9C%D7%99%D7%94%20%D7%A4%D7%AA%D7%A8%D7%95%D7%A0%D7%95%D7%AA%20%D7%9E%D7%99%D7%9E%D7%95%D7%9F%20%D7%95%D7%AA%D7%97%D7%96%D7%95%D7%A7%D7%94%20%D7%9C%D7%A8%D7%9B%D7%91&site=dalia-c.com&domain=dalia-c.com&embedded=0&from=pirsum-home\",\"controlHref\":\"http://127.0.0.1:4173/ai-marketing/ai-control-center-v5-STANDALONE.html?clientId=dalia-c-official&clientName=%D7%93%D7%9C%D7%99%D7%94%20%D7%A4%D7%AA%D7%A8%D7%95%D7%A0%D7%95%D7%AA%20%D7%9E%D7%99%D7%9E%D7%95%D7%9F%20%D7%95%D7%AA%D7%97%D7%96%D7%95%D7%A7%D7%94%20%D7%9C%D7%A8%D7%9B%D7%91&site=dalia-c.com&domain=dalia-c.com&embedded=0&from=pirsum-home\",\"workIsHash\":false}",
+      "at": "2026-07-09T05:24:32.485Z"
+    },
+    {
+      "id": "S2a",
+      "name": "Work shell loads",
+      "ok": true,
+      "detail": "unlocked={\"a\":true,\"b\":false,\"c\":false}",
+      "at": "2026-07-09T05:24:33.400Z",
+      "shell": {
+        "unlocked": {
+          "a": true,
+          "b": false,
+          "c": false
+        },
+        "acceptsTeam": true
+      }
+    },
+    {
+      "id": "S2b",
+      "name": "launchModule(team) supported (expected gap in standalone)",
+      "ok": true,
+      "detail": "team=undefined — standalone has no team tab",
+      "at": "2026-07-09T05:24:33.400Z",
+      "module": "work-center-lite.html",
+      "issue": "launchModule only accepts b|c — team tab does not exist in standalone shell",
+      "type": "architecture_gap",
+      "blocksFlow": true
+    },
+    {
+      "id": "S3",
+      "name": "Part A — brief saved + launchCampaign(seo)",
+      "ok": true,
+      "detail": "{\"partA\":{\"launched\":true,\"selected\":\"seo\"},\"afterA\":{\"partA\":true,\"campaignType\":\"seo\",\"brief\":true,\"tabBDisabled\":false,\"tabBActive\":true,\"frameBLoaded\":true}}",
+      "at": "2026-07-09T05:24:36.481Z",
+      "files": [
+        "part-a-planning-engine.html",
+        "work-center-lite.html"
+      ],
+      "gates": [
+        "required BIZ fields",
+        "selectCampaignType",
+        "launchModule(b)"
+      ]
+    },
+    {
+      "id": "S3b",
+      "name": "Part A → Part B tab unlocked",
+      "ok": true,
+      "detail": "tabB disabled=false",
+      "at": "2026-07-09T05:24:36.481Z",
+      "module": "work-center-lite.html launchModule"
+    },
+    {
+      "id": "S4a",
+      "name": "Part B — finalApprove saves dalia_part_b",
+      "ok": true,
+      "detail": "{\"approved\":{\"goals\":true,\"kw\":true,\"geo\":true,\"aud\":true,\"comp\":true,\"map\":true,\"pages\":true,\"onpage\":true,\"tech\":true,\"workplan\":true}}",
+      "at": "2026-07-09T05:24:38.147Z",
+      "files": [
+        "part-b-seo-organic.html"
+      ],
+      "gates": [
+        "READINESS_CHECKS all APPROVED.* true",
+        "finalApprove()"
+      ]
+    },
+    {
+      "id": "S4b",
+      "name": "Part B → auto bridge to Control Center",
+      "ok": true,
+      "detail": "{\"partBApproved\":true,\"trackComplete\":{\"track\":\"seo\",\"ts\":\"2026-07-09T05:24:36.520Z\"},\"url\":\"http://127.0.0.1:4173/ai-marketing/ai-control-center-v5-STANDALONE\",\"onControl\":true,\"openScreenAssistants\":false,\"bridgeFlag\":null,\"assistantsScreenOn\":true}",
+      "at": "2026-07-09T05:24:38.147Z",
+      "type": "bridge",
+      "module": "part-b-seo-organic.html bridgeToControlCenter",
+      "files": [
+        "part-b-seo-organic.html",
+        "ai-control-center-v5-STANDALONE.html"
+      ]
+    },
+    {
+      "id": "S4c",
+      "name": "Control opens assistants screen from bridge",
+      "ok": true,
+      "detail": "{\"partBApproved\":true,\"trackComplete\":{\"track\":\"seo\",\"ts\":\"2026-07-09T05:24:36.520Z\"},\"url\":\"http://127.0.0.1:4173/ai-marketing/ai-control-center-v5-STANDALONE\",\"onControl\":true,\"openScreenAssistants\":false,\"bridgeFlag\":null,\"assistantsScreenOn\":true}",
+      "at": "2026-07-09T05:24:38.147Z",
+      "module": "ai-control-center-v5-STANDALONE.html applyPartBBridgeEntry"
+    },
+    {
+      "id": "S5",
+      "name": "Control Center boot after Part B bridge",
+      "ok": true,
+      "detail": "boot=true",
+      "at": "2026-07-09T05:24:38.150Z",
+      "files": [
+        "ai-control-center-v5-STANDALONE.html"
+      ],
+      "note": "Automatic via bridgeToControlCenter — no manual pirsum-home navigation"
+    },
+    {
+      "id": "S6",
+      "name": "50 Assistants engine runs",
+      "ok": true,
+      "detail": "{\"engineRan\":true,\"total\":50,\"done\":50,\"waiting\":0,\"consultants\":10}",
+      "at": "2026-07-09T05:24:38.183Z",
+      "files": [
+        "coco-dalia-assistants-engine.js"
+      ],
+      "gates": [
+        "dalia_project_brief",
+        "dalia_part_a",
+        "dalia_part_b in gatherContext"
+      ],
+      "type": "ok",
+      "issue": null
+    },
+    {
+      "id": "S7",
+      "name": "10 Consultants derived",
+      "ok": true,
+      "detail": "count=10",
+      "at": "2026-07-09T05:24:38.183Z",
+      "files": [
+        "coco-dalia-assistants-engine.js analyzeConsultant"
+      ],
+      "gates": [
+        "consultant score from related assistants — chief b10 needs score>=80 for אושר"
+      ]
+    },
+    {
+      "id": "S8a",
+      "name": "Orchestrator stageD (assistants>=35)",
+      "ok": true,
+      "detail": "{\"stageD\":true,\"stageE\":true,\"enginesReady\":true}",
+      "at": "2026-07-09T05:24:38.647Z",
+      "files": [
+        "coco-dalia-orchestrator.js"
+      ],
+      "type": "gate",
+      "threshold": "assistantsDone >= 35"
+    },
+    {
+      "id": "S8b",
+      "name": "Orchestrator stageE (chief אושר)",
+      "ok": true,
+      "detail": "{\"stageD\":true,\"stageE\":true,\"enginesReady\":true}",
+      "at": "2026-07-09T05:24:38.647Z",
+      "files": [
+        "coco-dalia-orchestrator.js"
+      ],
+      "type": "gate",
+      "threshold": "consultant b10 status אושר"
+    },
+    {
+      "id": "S9",
+      "name": "Build engines run",
+      "ok": true,
+      "detail": "{\"ran\":true}",
+      "at": "2026-07-09T05:24:39.990Z",
+      "files": [
+        "coco-dalia-build-engines-engine.js",
+        "coco-dalia-build-engines-runner.js"
+      ],
+      "type": "ok",
+      "gates": [
+        "chiefReady (b10 אושר)",
+        "brief/workPlan for evaluateEngine"
+      ],
+      "issue": null
+    },
+    {
+      "id": "S10",
+      "name": "Reports screen accessible",
+      "ok": true,
+      "detail": "{\"reportsList\":11,\"evidenceBanner\":true,\"hasReportsEngine\":true}",
+      "at": "2026-07-09T05:24:40.499Z",
+      "files": [
+        "coco-dalia-reports-engine.js",
+        "coco-dalia-evidence-report-view.js"
+      ]
+    }
+  ],
+  "passedAll": true,
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Cannot read properties of null (reading 'addEventListener')"
+  ]
+}
