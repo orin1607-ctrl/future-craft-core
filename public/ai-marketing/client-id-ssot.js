@@ -141,6 +141,7 @@
 
   /** Navigate to standalone פרסום (outside Orin), preserving client context. */
   function openPirsumStandalone() {
+    if (document.body) document.body.classList.add('coco-nav-busy');
     var ctx = (window.COCO && COCO.flowContext) || {};
     var site = (window.DaliaSite && DaliaSite.SITE) || OFFICIAL;
     var clientId = normalizeClientId(ctx.clientId || site.clientId || OFFICIAL.clientId);

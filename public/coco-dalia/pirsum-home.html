@@ -14,10 +14,12 @@
   window.COCO_PAGES_BASE = base;
 })();
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="coco-pirsum-standalone" content="1">
-<meta name="ui-version" content="pirsum-standalone-1">
+<meta name="ui-version" content="pirsum-standalone-2-mobile">
 <title>פרסום — CO.CO דליה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -26,48 +28,120 @@
   --w:#fff;--w80:rgba(255,255,255,.8);--w50:rgba(255,255,255,.5);--w10:rgba(255,255,255,.1);
   --green:#22c55e;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;}
 body{
   font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);
-  min-height:100vh;display:flex;flex-direction:column;
+  min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
+  touch-action:manipulation;
+}
+body.nav-busy{pointer-events:none;}
+body.nav-busy::after{
+  content:'טוען…';position:fixed;inset:0;z-index:99999;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(4,9,26,.72);font-size:18px;font-weight:800;
 }
 .bar{
-  height:52px;background:var(--bg2);border-bottom:1px solid var(--w10);
-  display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:10px;flex-shrink:0;
+  min-height:52px;background:var(--bg2);border-bottom:1px solid var(--w10);
+  display:flex;align-items:center;justify-content:space-between;padding:8px 12px;padding-top:max(8px, env(safe-area-inset-top));
+  gap:8px;flex-shrink:0;flex-wrap:wrap;
 }
-.logo{font-size:14px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.logo{font-size:14px;font-weight:800;display:flex;align-items:center;gap:7px;flex:1;min-width:0;}
 .logo em{color:var(--acc2);font-style:normal;}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--green);}
-.badge{font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(37,99,235,.14);color:var(--acc2);border:1px solid rgba(37,99,235,.28);font-weight:700;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.badge{font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(37,99,235,.14);color:var(--acc2);border:1px solid rgba(37,99,235,.28);font-weight:700;white-space:nowrap;}
 .back{
-  font-size:11px;color:var(--w50);text-decoration:none;padding:6px 10px;
+  font-size:11px;color:var(--w50);text-decoration:none;padding:10px 12px;min-height:44px;
   border:1px solid var(--w10);border-radius:8px;white-space:nowrap;
+  display:inline-flex;align-items:center;touch-action:manipulation;cursor:pointer;
 }
-.back:hover{color:var(--w);}
-.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 18px 40px;gap:18px;}
+.back:active{background:rgba(255,255,255,.06);color:var(--w);}
+.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px 40px;padding-bottom:max(40px, env(safe-area-inset-bottom));gap:16px;}
 .client{
   width:100%;max-width:520px;background:var(--bg3);border:1px solid var(--w10);
   border-radius:14px;padding:14px 16px;
 }
 .client-k{font-size:10px;font-weight:700;color:var(--w50);letter-spacing:.4px;margin-bottom:4px;}
-.client-n{font-size:16px;font-weight:800;}
-.client-m{font-size:12px;color:var(--w50);margin-top:4px;line-height:1.5;}
+.client-n{font-size:16px;font-weight:800;line-height:1.35;}
+.client-m{font-size:12px;color:var(--w50);margin-top:4px;line-height:1.5;word-break:break-word;}
 .h1{font-size:22px;font-weight:900;text-align:center;}
 .sub{font-size:13px;color:var(--w50);text-align:center;max-width:420px;line-height:1.6;}
-.cards{width:100%;max-width:520px;display:flex;flex-direction:column;gap:12px;}
+.cards{width:100%;max-width:520px;display:flex;flex-direction:column;gap:12px;position:relative;z-index:1;}
 .card{
-  display:block;text-decoration:none;color:inherit;
+  display:block;text-decoration:none;color:inherit;position:relative;z-index:2;
   background:var(--bg3);border:1px solid rgba(37,99,235,.35);
-  border-radius:14px;padding:18px 16px;transition:.15s;
+  border-radius:14px;padding:18px 16px;min-height:88px;
+  touch-action:manipulation;cursor:pointer;-webkit-user-select:none;user-select:none;
+  transition:transform .12s ease, background .12s ease, border-color .12s ease;
 }
-.card:hover{border-color:rgba(37,99,235,.65);background:rgba(37,99,235,.08);}
-.card-ico{font-size:22px;margin-bottom:6px;}
-.card-t{font-size:16px;font-weight:800;}
-.card-s{font-size:12px;color:var(--w50);margin-top:4px;line-height:1.5;}
+.card:active{transform:scale(0.98);border-color:rgba(37,99,235,.65);background:rgba(37,99,235,.12);}
+.card-ico{font-size:22px;margin-bottom:6px;pointer-events:none;}
+.card-t{font-size:16px;font-weight:800;pointer-events:none;}
+.card-s{font-size:12px;color:var(--w50);margin-top:4px;line-height:1.5;pointer-events:none;}
 .warn{font-size:11px;color:#f59e0b;text-align:center;max-width:520px;line-height:1.5;display:none;}
 .warn.on{display:block;}
+@media (max-width:520px){ .badge{display:none;} .logo{font-size:13px;} }
 </style>
+<script>
+(function () {
+  'use strict';
+  var FALLBACK = {
+    clientId: 'dalia-c-official',
+    clientName: 'דליה פתרונות מימון ותחזוקה לרכב',
+    company: 'דליה פתרונות מימון ותחזוקה לרכב',
+    site: 'dalia-c.com',
+    domain: 'dalia-c.com',
+    url: 'https://dalia-c.com/',
+  };
+  function pagesBase() {
+    var b = window.COCO_PAGES_BASE || '/future-craft-core/';
+    if (b.charAt(0) === '/') return location.origin + b;
+    try { return new URL(b, location.href).href; } catch (e) { return location.origin + '/future-craft-core/'; }
+  }
+  function abs(rel) {
+    return pagesBase().replace(/\/?$/, '/') + rel.replace(/^\//, '');
+  }
+  function readJson(key) {
+    try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+  function resolveClient() {
+    var q = new URLSearchParams(location.search);
+    var fromLs = readJson('coco-pirsum-client-v1') || {};
+    var flow = readJson('coco-flow-context-v2') || {};
+    var clientId = q.get('clientId') || fromLs.clientId || flow.clientId || FALLBACK.clientId;
+    var clientName = q.get('clientName') || fromLs.clientName || fromLs.company || flow.clientName || flow.company || FALLBACK.clientName;
+    var site = q.get('site') || fromLs.site || fromLs.domain || flow.site || flow.domain || FALLBACK.site;
+    var domain = q.get('domain') || fromLs.domain || flow.domain || site || FALLBACK.domain;
+    var url = q.get('url') || fromLs.url || flow.url || FALLBACK.url;
+    return {
+      clientId: clientId,
+      clientName: clientName,
+      company: clientName,
+      site: site,
+      domain: domain,
+      url: url,
+      missing: !(q.get('clientId') || fromLs.clientId || flow.clientId),
+    };
+  }
+  function qs(ctx) {
+    return [
+      'clientId=' + encodeURIComponent(ctx.clientId || ''),
+      'clientName=' + encodeURIComponent(ctx.clientName || ''),
+      'site=' + encodeURIComponent(ctx.site || ''),
+      'domain=' + encodeURIComponent(ctx.domain || ''),
+      'embedded=0',
+      'from=pirsum-home',
+    ].join('&');
+  }
+  var ctx = resolveClient();
+  window.__PIRSUM_CTX = ctx;
+  window.__PIRSUM_LINKS = {
+    work: abs('coco-dalia/work-center-lite.html') + '?' + qs(ctx),
+    control: abs('ai-marketing/ai-control-center-v5-STANDALONE.html') + '?' + qs(ctx),
+    orin: abs('ai-marketing-platform.html') + '?stay=hub&clientId=' + encodeURIComponent(ctx.clientId),
+  };
+})();
+</script>
 </head>
 <body>
 <header class="bar">
@@ -88,12 +162,12 @@ body{
   <p class="warn" id="no-client-warn">לא זוהה לקוח. חוזרים להקשר הרשמי של דליה (dalia-c-official). מומלץ לפתוח מתוך Orin אחרי בחירת לקוח.</p>
 
   <div class="cards">
-    <a class="card" id="link-work" href="#">
+    <a class="card" id="link-work" href="work-center-lite.html?clientId=dalia-c-official&from=pirsum-home&embedded=0">
       <div class="card-ico">⚙️</div>
       <div class="card-t">מרכז העבודה</div>
       <div class="card-s">תכנון · SEO · Google Ads — לפי הלקוח הפעיל</div>
     </a>
-    <a class="card" id="link-control" href="#">
+    <a class="card" id="link-control" href="../ai-marketing/ai-control-center-v5-STANDALONE.html?clientId=dalia-c-official&from=pirsum-home&embedded=0">
       <div class="card-ico">📊</div>
       <div class="card-t">מרכז השליטה</div>
       <div class="card-s">שליטה · דוחות · מנועים — לפי הלקוח הפעיל</div>
@@ -104,60 +178,14 @@ body{
 <script>
 (function () {
   'use strict';
-  var FALLBACK = {
-    clientId: 'dalia-c-official',
-    clientName: 'דליה פתרונות מימון ותחזוקה לרכב',
-    company: 'דליה פתרונות מימון ותחזוקה לרכב',
-    site: 'dalia-c.com',
-    domain: 'dalia-c.com',
-    url: 'https://dalia-c.com/',
-  };
-
-  function pagesBase() {
-    var b = window.COCO_PAGES_BASE || '/future-craft-core/';
-    if (b.charAt(0) === '/') return location.origin + b;
-    try { return new URL(b, location.href).href; } catch (e) { return location.origin + '/future-craft-core/'; }
-  }
-
-  function abs(rel) {
-    var base = pagesBase();
-    return base.replace(/\/?$/, '/') + rel.replace(/^\//, '');
-  }
-
-  function readJson(key) {
-    try {
-      var raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) { return null; }
-  }
-
-  function resolveClient() {
-    var q = new URLSearchParams(location.search);
-    var fromLs = readJson('coco-pirsum-client-v1') || {};
-    var flow = readJson('coco-flow-context-v2') || {};
-    var clientId = q.get('clientId') || fromLs.clientId || flow.clientId || FALLBACK.clientId;
-    var clientName = q.get('clientName') || fromLs.clientName || fromLs.company || flow.clientName || flow.company || FALLBACK.clientName;
-    var site = q.get('site') || fromLs.site || fromLs.domain || flow.site || flow.domain || FALLBACK.site;
-    var domain = q.get('domain') || fromLs.domain || flow.domain || site || FALLBACK.domain;
-    var url = q.get('url') || fromLs.url || flow.url || FALLBACK.url;
-    var missing = !(q.get('clientId') || fromLs.clientId || flow.clientId);
-    return {
-      clientId: clientId,
-      clientName: clientName,
-      company: clientName,
-      site: site,
-      domain: domain,
-      url: url,
-      missing: missing,
-    };
-  }
+  var ctx = window.__PIRSUM_CTX || {};
+  var links = window.__PIRSUM_LINKS || {};
 
   function persist(ctx) {
+    try { localStorage.setItem('coco-pirsum-client-v1', JSON.stringify(ctx)); } catch (e) { /* ignore */ }
     try {
-      localStorage.setItem('coco-pirsum-client-v1', JSON.stringify(ctx));
-    } catch (e) { /* ignore */ }
-    try {
-      var flow = readJson('coco-flow-context-v2') || {};
+      var flow = {};
+      try { flow = JSON.parse(localStorage.getItem('coco-flow-context-v2') || '{}'); } catch (e2) { flow = {}; }
       localStorage.setItem('coco-flow-context-v2', JSON.stringify(Object.assign({}, flow, {
         clientId: ctx.clientId,
         clientName: ctx.clientName,
@@ -168,31 +196,35 @@ body{
     } catch (e) { /* ignore */ }
   }
 
-  function qs(ctx) {
-    return [
-      'clientId=' + encodeURIComponent(ctx.clientId || ''),
-      'clientName=' + encodeURIComponent(ctx.clientName || ''),
-      'site=' + encodeURIComponent(ctx.site || ''),
-      'domain=' + encodeURIComponent(ctx.domain || ''),
-      'embedded=0',
-      'from=pirsum-home',
-    ].join('&');
-  }
-
-  var ctx = resolveClient();
   persist(ctx);
 
-  document.getElementById('client-name').textContent = ctx.clientName || ctx.company || ctx.clientId;
+  document.getElementById('client-name').textContent = ctx.clientName || ctx.company || ctx.clientId || 'דליה';
   document.getElementById('client-meta').textContent =
-    'Client ID: ' + ctx.clientId + ' · ' + (ctx.domain || ctx.site || '') +
+    'Client ID: ' + (ctx.clientId || '') + ' · ' + (ctx.domain || ctx.site || '') +
     (ctx.url ? ' · ' + ctx.url : '');
   if (ctx.missing) document.getElementById('no-client-warn').classList.add('on');
 
-  document.getElementById('link-work').href = abs('coco-dalia/work-center-lite.html') + '?' + qs(ctx);
-  document.getElementById('link-control').href = abs('ai-marketing/ai-control-center-v5-STANDALONE.html') + '?' + qs(ctx);
-
+  var work = document.getElementById('link-work');
+  var control = document.getElementById('link-control');
   var back = document.getElementById('back-orin');
-  back.href = abs('ai-marketing-platform.html') + '?stay=hub&clientId=' + encodeURIComponent(ctx.clientId);
+  if (links.work) work.href = links.work;
+  if (links.control) control.href = links.control;
+  if (links.orin) back.href = links.orin;
+
+  var navLock = false;
+  function armNav(el) {
+    if (!el) return;
+    el.addEventListener('click', function () {
+      if (navLock) return;
+      navLock = true;
+      document.body.classList.add('nav-busy');
+      setTimeout(function () {
+        navLock = false;
+        document.body.classList.remove('nav-busy');
+      }, 15000);
+    });
+  }
+  [work, control, back].forEach(armNav);
 })();
 </script>
 </body>

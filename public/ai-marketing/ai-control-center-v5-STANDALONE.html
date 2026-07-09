@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
 <title>AI Control Center - מרכז שליטה AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -15,7 +15,9 @@
   --r:12px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-height:100vh;max-width:100vw;overflow-x:hidden;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-height:100vh;min-height:100dvh;max-width:100vw;overflow-x:hidden;touch-action:manipulation;}
+body.coco-v5-booting .kpi-grid,
+body.coco-v5-booting .cat-grid{opacity:.92;}
 
 .tb{height:50px;background:var(--bg2);border-bottom:1px solid var(--w10);display:flex;align-items:center;justify-content:space-between;padding:0 12px;position:sticky;top:0;z-index:230;}
 .logo{font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px;}
@@ -160,7 +162,8 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--w);min-heig
 
 <div class="tb">
   <div class="logo"><div class="dot"></div>AI Control Center</div>
-  <div style="display:flex;gap:6px;align-items:center;">
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+    <a class="btn btn-g btn-sm" id="back-pirsum" href="../coco-dalia/pirsum-home.html" style="padding:6px 10px;font-size:10px;text-decoration:none;min-height:36px;display:inline-flex;align-items:center;touch-action:manipulation;">← פרסום</a>
     <button type="button" class="btn btn-g btn-sm" onclick="cocoNavigateToWired({part:'a'})" style="padding:4px 10px;font-size:10px;">⚙️ מרכז עבודה</button>
     <span class="mockbadge">⚠ Mock בלבד</span>
   </div>
@@ -668,9 +671,7 @@ function onWorkspacePageChange(){
   reapplyOpenState();
 }
 
-function renderAll(){
-  renderKPIs();
-  renderCategories();
+function renderAllHeavy(){
   renderAssets();
   renderAccordion('seo-acc', DATA.seo_accordion, 'seo');
   renderAccordion('content-acc', DATA.content_accordion, 'cnt');
@@ -691,6 +692,25 @@ function renderAll(){
   }
   reapplyOpenState();
 }
+function renderAll(){
+  renderKPIs();
+  renderCategories();
+  document.body.classList.remove('coco-v5-booting');
+  var runHeavy = function () { renderAllHeavy(); };
+  if (window.requestIdleCallback) requestIdleCallback(runHeavy, { timeout: 1200 });
+  else setTimeout(runHeavy, 0);
+}
+function initPirsumBackLink(){
+  var el = document.getElementById('back-pirsum');
+  if (!el) return;
+  var ctx = {};
+  try { ctx = JSON.parse(localStorage.getItem('coco-pirsum-client-v1') || '{}'); } catch (e) { ctx = {}; }
+  var qs = 'clientId=' + encodeURIComponent(ctx.clientId || 'dalia-c-official');
+  if (ctx.clientName) qs += '&clientName=' + encodeURIComponent(ctx.clientName);
+  el.href = '../coco-dalia/pirsum-home.html?' + qs;
+}
+document.body.classList.add('coco-v5-booting');
+initPirsumBackLink();
 if (window.CocoDaliaIntegration) {
   CocoDaliaIntegration.patchV5Handlers(DATA, renderAll);
   window._cocoV5RenderAll = function () { renderAll(); reapplyOpenState(); };

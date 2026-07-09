@@ -115,6 +115,36 @@
     window.goScreen.__cocoLitePatch = true;
   }
 
+  function wirePirsumTouch() {
+    var card = document.querySelector('.hub-card-pirsum');
+    if (!card || card.__cocoPirsumTouch) return;
+    card.__cocoPirsumTouch = true;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.style.touchAction = 'manipulation';
+    var touchOpened = false;
+    function open(e) {
+      if (!window.openPirsumStandalone) return;
+      if (e) e.preventDefault();
+      openPirsumStandalone();
+    }
+    card.addEventListener('touchend', function (e) {
+      touchOpened = true;
+      open(e);
+      setTimeout(function () { touchOpened = false; }, 400);
+    }, { passive: false });
+    card.addEventListener('click', function (e) {
+      if (touchOpened) {
+        e.preventDefault();
+        return;
+      }
+      open(e);
+    });
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') open(e);
+    });
+  }
+
   function finalizePatches() {
     if (!isActive()) return;
     var current = window.goScreen;
@@ -143,6 +173,7 @@
     patchGotoSc();
     hideGlobalChrome();
     markHubLiteUi();
+    wirePirsumTouch();
     maybeAutoOpenPirsum();
   }
 
@@ -194,6 +225,7 @@
     hideGlobalChrome();
     patchGoScreen();
     patchGotoSc();
+    wirePirsumTouch();
     setTimeout(hideGlobalChrome, 100);
     setTimeout(hideGlobalChrome, 600);
   }
