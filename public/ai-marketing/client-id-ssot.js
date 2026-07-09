@@ -10,7 +10,7 @@
     slug: 'dalia-c-official',
     domain: 'dalia-c.com',
     url: 'https://dalia-c.com/',
-    company: 'דליה פתרונות מימון ותחזוקה לרכב',
+    company: 'דליה פתרונות תפעול ותחזוקה לרכב',
     account: 'orin1607@gmail.com',
   };
 

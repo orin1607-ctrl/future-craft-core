@@ -197,6 +197,48 @@ try {
     note: 'Automatic via bridgeToControlCenter — no manual pirsum-home navigation',
   })) throw new Error('S5');
 
+  // ── 5b. Full pipeline continuation (assistants → consultants → workspace → preview) ──
+  await page.waitForFunction(() => {
+    try { return sessionStorage.getItem('coco-bridge-continuation-done') === '1'; } catch (e) { return false; }
+  }, { timeout: 15000 }).catch(() => null);
+  await sleep(600);
+
+  const continuation = await page.evaluate(() => {
+    var wsOn = !!document.getElementById('screen-workspace')?.classList.contains('on');
+    var consOn = !!document.getElementById('screen-consultants')?.classList.contains('on');
+    var astOn = !!document.getElementById('screen-assistants')?.classList.contains('on');
+    var previewLink = document.getElementById('coco-preview-open-link') || document.getElementById('coco-ws-preview-link') || document.getElementById('be-open-preview');
+    var enginesList = document.getElementById('be-engines-list')?.children?.length || 0;
+    var bridgeDone = false;
+    try { bridgeDone = sessionStorage.getItem('coco-bridge-continuation-done') === '1'; } catch (e) {}
+    var previewStored = null;
+    try { previewStored = JSON.parse(localStorage.getItem('coco-dalia-preview-link-v1') || 'null'); } catch (e) {}
+    return {
+      bridgeDone,
+      workspaceOn: wsOn,
+      consultantsVisited: consOn || wsOn,
+      assistantsVisited: astOn || consOn || wsOn,
+      previewHref: previewLink?.href || previewStored?.urls?.indexUrl || null,
+      enginesRendered: enginesList,
+      hasBridge: !!window.CocoPipelineBridge,
+    };
+  });
+
+  step('S5b', 'Pipeline bridge → workspace (full continuation)', continuation.bridgeDone && continuation.workspaceOn, JSON.stringify(continuation), {
+    files: ['coco-dalia-pipeline-bridge.js', 'ai-control-center-v5-STANDALONE.html'],
+    type: 'bridge',
+    flow: '50 assistants → 10 consultants → orchestrator → 13 engines → workspace',
+  });
+
+  step('S5c', '13 Build engines hub rendered in workspace', continuation.enginesRendered >= 13, `engines=${continuation.enginesRendered}`, {
+    files: ['coco-dalia-build-engines-hub.js', 'coco-dalia-build-engines-engine.js'],
+  });
+
+  step('S5d', 'Preview link available (Staging URL, no download)', !!continuation.previewHref && /client-previews\//.test(continuation.previewHref), continuation.previewHref || 'missing', {
+    files: ['coco-dalia-pipeline-bridge.js', 'client-previews/dalia-c-official/index.html'],
+    note: 'Link-only preview — no file downloads',
+  });
+
   // ── 6. 50 Assistants engine ──
   const assistants = await page.evaluate(() => {
     var snap = null;

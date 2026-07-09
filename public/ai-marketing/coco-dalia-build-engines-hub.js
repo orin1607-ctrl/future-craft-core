@@ -52,22 +52,36 @@
       }).join('');
   }
 
+  function resolveHubPreviewUrl() {
+    if (window.CocoPipelineBridge && CocoPipelineBridge.resolvePreviewUrls) {
+      return CocoPipelineBridge.resolvePreviewUrls();
+    }
+    var ctx = {};
+    try { ctx = JSON.parse(localStorage.getItem('coco-pirsum-client-v1') || '{}'); } catch (e) { ctx = {}; }
+    var slug = String(ctx.clientId || 'dalia-c-official').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+    var base = window.COCO_PAGES_BASE || '/';
+    if (base.charAt(0) === '/') base = location.origin + base;
+    if (base.charAt(base.length - 1) !== '/') base += '/';
+    return { indexUrl: base + 'client-previews/' + slug + '/index.html', gatewayUrl: base + 'client-previews/preview-gateway.html?slug=' + encodeURIComponent(slug) };
+  }
+
   function mount(rootId) {
     var root = document.getElementById(rootId || 'coco-build-engines-hub');
     if (!root) return;
 
     var store = (window.CocoDaliaBuildEnginesEngine && CocoDaliaBuildEnginesEngine.loadEngines()) || null;
     var pending = (window.CocoDaliaBuildEnginesRunner && CocoDaliaBuildEnginesRunner.getOwnerActions()) || [];
+    var preview = resolveHubPreviewUrl();
 
     root.innerHTML =
       '<div class="card" style="margin-top:10px;">' +
       '<div class="ph-t">🛠️ מנועי בניית אתרים (13)</div>' +
-      '<div class="s">הרצה מקבילית — c13 → c12</div>' +
+      '<div class="s">הרצה מקבילית — c13 → c12 · Preview בקישור בלבד (Staging)</div>' +
       '<div id="be-owner-pending" style="margin:8px 0;">' + renderOwnerBlock(pending) + '</div>' +
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">' +
       '<button type="button" class="btn btn-p btn-sm" id="be-run-all">▶ הרץ את כל המנועים</button>' +
-      '<button type="button" class="btn btn-o btn-sm" id="be-dl-c13">⬇ הורד HTML (c13)</button>' +
-      '<button type="button" class="btn btn-o btn-sm" id="be-dl-c3">⬇ הורד HTML (c3)</button>' +
+      '<a class="btn btn-p btn-sm" id="be-open-preview" href="' + esc(preview.indexUrl) + '" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">🔗 פתח Preview לבדיקה ↗</a>' +
+      '<a class="btn btn-o btn-sm" id="be-open-gateway" href="' + esc(preview.gatewayUrl) + '" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">🌐 Gateway</a>' +
       '</div>' +
       '<div id="be-engines-list">' + renderEnginesList(store) + '</div>' +
       '</div>';
@@ -77,26 +91,6 @@
         CocoDaliaBuildEnginesEngine.runAll(null, {});
         if (typeof toast === 'function') toast('▶ מנועים רצים במקביל…');
         setTimeout(function () { mount(rootId); }, 2500);
-      }
-    });
-
-    root.querySelector('#be-dl-c13').addEventListener('click', function () {
-      var files = null;
-      try { files = JSON.parse(localStorage.getItem('coco-dalia-c13-site-files-v1') || '{}').files; } catch (e) { /* */ }
-      if (files && window.CocoDaliaBuildEnginesRunner) {
-        CocoDaliaBuildEnginesRunner.downloadTextFiles(files, 'coco-c13');
-        if (typeof toast === 'function') toast('⬇ הורדת c13');
-      } else if (window.SiteBlueprint) {
-        SiteBlueprint.downloadBlueprint();
-      }
-    });
-
-    root.querySelector('#be-dl-c3').addEventListener('click', function () {
-      var files = null;
-      try { files = JSON.parse(localStorage.getItem('coco-dalia-c3-site-files-v1') || '{}').files; } catch (e) { /* */ }
-      if (files && window.CocoDaliaBuildEnginesRunner) {
-        CocoDaliaBuildEnginesRunner.downloadTextFiles(files, 'coco-c3');
-        if (typeof toast === 'function') toast('⬇ הורדת c3');
       }
     });
 

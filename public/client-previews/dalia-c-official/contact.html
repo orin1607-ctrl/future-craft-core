@@ -1,1 +1,115 @@
-<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>צור קשר</title></head><body><h1>צור קשר</h1><a href="index.html">חזרה</a></body></html>
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>צור קשר | דליה פתרונות תפעול ותחזוקה לרכב</title>
+  <meta name="description" content="צרו קשר עם דליה לקבלת הצעה והדגמת FleetOS. ניהול ותחזוקת צי רכב לעסקים — מענה מהיר וללא התחייבות.">
+  <meta name="keywords" content="צור קשר דליה, הדגמת FleetOS, הצעת מחיר ניהול צי">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"ContactPage","name":"צור קשר — דליה","mainEntity":{"@type":"Organization","name":"דליה פתרונות תפעול ותחזוקה לרכב","contactPoint":{"@type":"ContactPoint","contactType":"sales","areaServed":"IL","availableLanguage":"Hebrew"}}}
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand" style="color:#fff;text-decoration:none">
+        <span class="brand-dot"></span>
+        <div><div class="brand-name">דליה פתרונות תפעול ותחזוקה לרכב</div><div class="brand-tag">נשמח לשמוע מכם</div></div>
+      </a>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-label="תפריט">☰</button>
+      <nav class="main-nav" id="main-nav">
+        <a href="index.html">בית</a><a href="services.html">שירותים</a><a href="fleet-management-software.html">FleetOS</a><a href="about.html">אודות</a><a href="contact.html">צור קשר</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="page-hero">
+    <div class="container">
+      <h1>צור קשר</h1>
+      <p>השאירו פרטים ונחזור אליכם עם הדגמה והצעה מותאמת לגודל הצי שלכם — ללא התחייבות.</p>
+    </div>
+  </div>
+
+  <main class="container" style="padding:40px 20px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+      <article class="content-block">
+        <h2>טופס יצירת קשר</h2>
+        <p style="color:var(--muted);font-size:.9rem;margin-bottom:20px">Preview Staging — הטופס לבדיקה בלבד. לא נשלח ל-Production.</p>
+        <form id="contact-form" onsubmit="return handleSubmit(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="name">שם מלא *</label>
+              <input type="text" id="name" name="name" required placeholder="ישראל ישראלי">
+            </div>
+            <div class="form-group">
+              <label for="company">שם החברה *</label>
+              <input type="text" id="company" name="company" required placeholder="חברת הובלות בע״מ">
+            </div>
+            <div class="form-group">
+              <label for="phone">טלפון *</label>
+              <input type="tel" id="phone" name="phone" required placeholder="050-0000000">
+            </div>
+            <div class="form-group">
+              <label for="fleet">גודל הצי (מספר רכבים)</label>
+              <select id="fleet" name="fleet">
+                <option value="">בחרו...</option>
+                <option>5–15</option>
+                <option>16–50</option>
+                <option>51–100</option>
+                <option>100+</option>
+              </select>
+            </div>
+            <div class="form-group form-full">
+              <label for="message">מה האתגר המרכזי?</label>
+              <textarea id="message" name="message" placeholder="למשל: מעקב תחזוקה, עלויות דלק, ניהול נהגים..."></textarea>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-dark">שלחו בקשה להדגמה</button>
+        </form>
+        <p id="form-success" style="display:none;color:var(--teal);font-weight:700;margin-top:16px">✓ הבקשה נשמרה לבדיקה (Preview). נציג יחזור אליכם בהדגמה אמיתית.</p>
+      </article>
+
+      <div>
+        <article class="content-block">
+          <h2>דרכי התקשרות</h2>
+          <p><strong>אזור שירות:</strong> כל הארץ</p>
+          <p><strong>שעות פעילות:</strong> א׳–ה׳ 08:00–18:00</p>
+          <p><strong>הדגמת FleetOS:</strong> בזום או בפגישה — לפי בחירתכם</p>
+        </article>
+        <article class="content-block">
+          <h2>קישורים מהירים</h2>
+          <p><a href="fleet-management-software.html">← גלו את FleetOS</a></p>
+          <p><a href="services.html">← כל השירותים</a></p>
+          <p><a href="about.html">← אודות דליה</a></p>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container"><div class="footer-bottom">© דליה · Preview Staging · טופס לבדיקה בלבד</div></div>
+  </footer>
+  <script src="site.js"></script>
+  <script>
+  function handleSubmit(e) {
+    e.preventDefault();
+    var data = {
+      name: document.getElementById('name').value,
+      company: document.getElementById('company').value,
+      phone: document.getElementById('phone').value,
+      fleet: document.getElementById('fleet').value,
+      message: document.getElementById('message').value,
+      at: new Date().toISOString()
+    };
+    try { localStorage.setItem('coco-preview-contact-dalia-c-official', JSON.stringify(data)); } catch (err) {}
+    document.getElementById('form-success').style.display = 'block';
+    document.getElementById('contact-form').reset();
+    return false;
+  }
+  </script>
+  <style>@media(max-width:768px){main .container > div{grid-template-columns:1fr!important}}</style>
+</body>
+</html>
