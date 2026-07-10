@@ -1,6 +1,5 @@
 /**
- * Verify Daily Progress Report sample (Dalia) — local Staging artifacts.
- * Read-only checks; does not run pipeline / send email / touch production.
+ * Verify Phase 1 Daily BI sample (Dalia) — local artifacts only.
  */
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
@@ -9,70 +8,49 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const DAILY = join(ROOT, 'public', 'coco-reports', 'dalia-c-official', 'daily');
-
 const checks = [];
 function ok(name, pass, detail) {
   checks.push({ name, pass: !!pass, detail: detail || '' });
 }
 
 function main() {
-  const latestJson = join(DAILY, 'latest.json');
-  const latestHtml = join(DAILY, 'latest.html');
-  const indexPath = join(DAILY, 'index.json');
+  ok('latest.html', existsSync(join(DAILY, 'latest.html')));
+  ok('latest.json', existsSync(join(DAILY, 'latest.json')));
+  ok('latest.pdf', existsSync(join(DAILY, 'latest.pdf')));
+  ok('index.json', existsSync(join(DAILY, 'index.json')));
+  ok('report-sequence.json', existsSync(join(DAILY, 'report-sequence.json')));
 
-  ok('latest.json exists', existsSync(latestJson));
-  ok('latest.html exists', existsSync(latestHtml));
-  ok('index.json exists', existsSync(indexPath));
+  const report = JSON.parse(readFileSync(join(DAILY, 'latest.json'), 'utf8'));
+  const index = JSON.parse(readFileSync(join(DAILY, 'index.json'), 'utf8'));
+  const html = readFileSync(join(DAILY, 'latest.html'), 'utf8');
 
-  if (!existsSync(latestJson)) {
-    console.log(JSON.stringify({ ok: false, checks }, null, 2));
-    process.exit(1);
-  }
+  ok('phase 1', report.meta?.phase === 1);
+  ok('report number', !!report.meta?.reportNumberPadded);
+  ok('pdf file name pattern', /^COCO-Daily-Report-\d{4}-\d{4}-\d{2}-\d{2}\.pdf$/.test(report.meta?.pdfFileName || ''));
+  ok('pdf exists', existsSync(join(DAILY, report.meta.pdfFileName)));
+  ok('email dry_run', report.email?.status === 'dry_run');
+  ok('no real email', report.readOnlyGuarantees?.realEmailSent === false);
+  ok('no cron', report.readOnlyGuarantees?.cronEnabled === false);
+  ok('no gsc live', report.readOnlyGuarantees?.gscLive === false);
+  ok('pipeline false', report.meta?.pipelineRan === false);
+  ok('dashboard present', !!report.dashboard?.googleStatus);
+  ok('health >= 20', (report.healthChecks || []).length >= 20, String(report.healthChecks?.length));
+  ok('html has Download PDF', /הורד PDF/.test(html));
+  ok('html has page1', /id="page1"/.test(html));
+  ok('html truth tags', /tag-missing/.test(html) && /tag-ai_estimate|tag-internal/.test(html));
+  ok('index latest only', !!index.latest && !index.reports);
+  ok('metric has reliability', report.dashboard.avgPosition?.reliability === 'missing');
 
-  const report = JSON.parse(readFileSync(latestJson, 'utf8'));
-  const html = readFileSync(latestHtml, 'utf8');
-  const index = JSON.parse(readFileSync(indexPath, 'utf8'));
-
-  ok('meta.readOnly', report.meta?.readOnly === true);
-  ok('meta.pipelineRan=false', report.meta?.pipelineRan === false);
-  ok('meta.imagesGenerated=false', report.meta?.imagesGenerated === false);
-  ok('meta.secretsChanged=false', report.meta?.secretsChanged === false);
-  ok('clientId dalia', report.client?.clientId === 'dalia-c-official');
-  ok('company name', /דליה/.test(report.client?.company || ''));
-  ok('healthChecks >= 18', (report.healthChecks || []).length >= 18, String(report.healthChecks?.length));
-  ok('seo keywords present', (report.seoIntelligence?.keywords || []).length >= 3);
-  ok('email dry_run', report.email?.status === 'dry_run' && report.email?.previewOnly === true);
-  ok('guarantees all false side-effects', Object.values(report.readOnlyGuarantees || {}).every((v) => v === false));
-  ok('html has Read Only', /Read Only/.test(html));
-  ok('html no pipeline claim', !/Pipeline הורץ|pipelineRan.:.?true/.test(html));
-  ok('index has reports', (index.reports || []).length >= 1);
-
-  const emailPreview = join(DAILY, `${report.meta.reportDate}-email-preview.html`);
-  ok('email preview exists', existsSync(emailPreview));
-
-  // No תקין without live source
-  const badOk = (report.healthChecks || []).filter((h) => h.status === 'תקין' && h.sourceType !== 'live');
-  ok('no תקין without live', badOk.length === 0, badOk.map((x) => x.name).join(',') || 'none');
-
-  const openai = (report.healthChecks || []).find((h) => h.name === 'OpenAI');
-  ok('OpenAI not config-error', openai && !/^שגיאה$/.test(openai.status) && /quota|אזהרה/.test(openai.status), openai?.status);
-  ok('OpenAI cache source', openai?.sourceType === 'cache');
-
-  const domain = (report.healthChecks || []).find((h) => h.name === 'Domain');
-  const dnsRow = (report.healthChecks || []).find((h) => h.name === 'DNS');
-  ok('Domain not false site error', domain && domain.status !== 'שגיאה', domain?.status);
-  ok('DNS not false site error', dnsRow && dnsRow.status !== 'שגיאה', dnsRow?.status);
   const failed = checks.filter((c) => !c.pass);
-  const result = {
+  console.log(JSON.stringify({
     ok: failed.length === 0,
-    reportDate: report.meta?.reportDate,
-    scores: report.scores,
+    reportNumber: report.meta?.reportNumberDisplay,
+    pdfFileName: report.meta?.pdfFileName,
     healthScore: report.healthScore,
-    healthSummary: report.healthSummary,
+    projectScore: report.scores?.projectScore?.value,
     checks,
     failed: failed.map((f) => f.name),
-  };
-  console.log(JSON.stringify(result, null, 2));
+  }, null, 2));
   process.exit(failed.length ? 1 : 0);
 }
 

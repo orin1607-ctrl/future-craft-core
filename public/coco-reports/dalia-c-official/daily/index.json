@@ -1,14 +1,28 @@
 {
   "clientSlug": "dalia-c-official",
-  "reports": [
+  "policy": "latest-in-ui; prior reports kept on disk (no auto-delete); email is long-term archive",
+  "latest": {
+    "reportNumber": "0001",
+    "reportNumberDisplay": "#0001",
+    "date": "2026-07-11",
+    "html": "latest.html",
+    "json": "latest.json",
+    "pdf": "latest.pdf",
+    "pdfFileName": "COCO-Daily-Report-0001-2026-07-11.pdf",
+    "emailPreview": "COCO-Daily-Report-0001-2026-07-11-email-preview.html",
+    "page1Screenshot": "COCO-Daily-Report-0001-2026-07-11-page1.png",
+    "projectScore": 85,
+    "healthScore": 27
+  },
+  "archiveKept": [
     {
-      "date": "2026-07-10",
-      "json": "2026-07-10.json",
       "html": "2026-07-10.html",
-      "emailPreview": "2026-07-10-email-preview.html",
-      "projectScore": 85,
-      "healthScore": 25
+      "kept": true
+    },
+    {
+      "html": "COCO-Daily-Report-0001-2026-07-11.html",
+      "kept": true
     }
   ],
-  "updatedAt": "2026-07-10T16:21:49.925Z"
+  "updatedAt": "2026-07-10T22:05:30.584Z"
 }

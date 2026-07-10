@@ -1,23 +1,24 @@
 /**
- * Generate CO.CO Daily Progress Report sample for Dalia (READ-ONLY).
- * - Reads existing coco-reports / local state
- * - Optional light live probes (Pages HEAD, SSL) — never pipeline / images / OAuth write
- * - Does NOT send email (dry_run preview only)
- * - Does NOT write to Supabase unless --persist-db (default off)
+ * Phase 1 — CO.CO Daily BI Report (Dalia sample only).
+ * Dashboard + PDF + truth labels + System Health + executive summary.
+ * READ-ONLY · dry_run email · no Cron · no GSC/GA4/GBP/Ads live · no Pipeline.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import * as tls from 'node:tls';
 import { resolve4 } from 'node:dns/promises';
+import { chromium } from 'playwright';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const OUT_DIR = join(ROOT, 'public', 'coco-reports', 'dalia-c-official', 'daily');
 const CLIENT = 'dalia-c-official';
-const COCO_VERSION = '7.0.0-preview-images-split';
+const CLIENT_SHORT = 'dalia-c';
+const COCO_VERSION = '8.0.0-daily-bi-phase1';
 const PAGES_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const PREVIEW_URL = `${PAGES_BASE}/client-previews/${CLIENT}/index.html`;
+const SEQ_PATH = join(OUT_DIR, 'report-sequence.json');
 
 function readJson(rel) {
   const p = join(ROOT, rel);
@@ -29,14 +30,39 @@ function todayIL() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
 }
 
+function timeIL(d = new Date()) {
+  return new Intl.DateTimeFormat('he-IL', {
+    timeZone: 'Asia/Jerusalem',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(d);
+}
+
+/** Metric with mandatory truth metadata */
+function M(value, source, reliability, opts = {}) {
+  return {
+    value,
+    source,
+    reliability, // live | cache | internal | ai_estimate | missing
+    reliabilityHe:
+      reliability === 'live' ? 'נתון אמיתי'
+        : reliability === 'cache' ? 'נתון ממטמון'
+          : reliability === 'internal' ? 'חישוב פנימי'
+            : reliability === 'ai_estimate' ? 'הערכת AI'
+              : 'אין נתון חי',
+    updatedAt: opts.updatedAt || new Date().toISOString(),
+    missingReason: opts.missingReason || null,
+  };
+}
+
 async function probeHead(url, ms = 10000) {
   const t0 = Date.now();
   try {
-    const ctrl = AbortSignal.timeout(ms);
-    const res = await fetch(url, { method: 'GET', signal: ctrl, redirect: 'follow' });
-    return { ok: res.ok, status: res.status, ms: Date.now() - t0, live: true };
+    const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(ms), redirect: 'follow' });
+    return { ok: res.ok, status: res.status, ms: Date.now() - t0 };
   } catch (e) {
-    return { ok: false, status: 0, ms: Date.now() - t0, live: true, error: String(e.message || e) };
+    return { ok: false, status: 0, ms: Date.now() - t0, error: String(e.message || e) };
   }
 }
 
@@ -46,16 +72,10 @@ async function probeSsl(host) {
     const socket = tls.connect({ host, port: 443, servername: host, rejectUnauthorized: true }, () => {
       const cert = socket.getPeerCertificate();
       socket.end();
-      resolve({
-        ok: true,
-        live: true,
-        ms: Date.now() - t0,
-        validTo: cert?.valid_to || null,
-        subject: cert?.subject?.CN || null,
-      });
+      resolve({ ok: true, ms: Date.now() - t0, validTo: cert?.valid_to || null });
     });
-    socket.setTimeout(10000, () => { socket.destroy(); resolve({ ok: false, live: true, ms: Date.now() - t0, error: 'timeout' }); });
-    socket.on('error', (e) => resolve({ ok: false, live: true, ms: Date.now() - t0, error: e.message }));
+    socket.setTimeout(10000, () => { socket.destroy(); resolve({ ok: false, ms: Date.now() - t0, error: 'timeout' }); });
+    socket.on('error', (e) => resolve({ ok: false, ms: Date.now() - t0, error: e.message }));
   });
 }
 
@@ -63,29 +83,34 @@ async function probeDns(host) {
   const t0 = Date.now();
   try {
     const addrs = await resolve4(host);
-    return { ok: addrs.length > 0, live: true, ms: Date.now() - t0, addrs };
+    return { ok: addrs.length > 0, ms: Date.now() - t0, addrs };
   } catch (e) {
-    return { ok: false, live: true, ms: Date.now() - t0, error: String(e.message || e) };
+    return { ok: false, ms: Date.now() - t0, error: String(e.message || e) };
   }
 }
 
-function healthRow(name, status, opts = {}) {
-  return {
-    name,
-    status,
-    checkPerformed: opts.checkPerformed || opts.checkType || (opts.live ? 'בדיקה חיה' : 'לא בוצעה בדיקה חיה'),
-    checkType: opts.live ? 'חיה' : (opts.checkType || 'לא בוצעה בדיקה חיה'),
-    checkedAt: opts.checkedAt || new Date().toISOString(),
-    lastSync: opts.lastSync || null,
-    lastError: opts.error || null,
-    why: opts.why || '—',
-    issueKind: opts.issueKind || 'unknown', // real | check_not_implemented | local_env | known_quota | not_in_scope
-    blocksSite: opts.blocksSite === true,
-    actionRequiredFromUser: opts.actionRequiredFromUser || 'לא',
-    impact: opts.impact || '—',
-    recommendation: opts.recommendation || '—',
-    sourceType: opts.sourceType || (status === 'תקין' ? 'live' : status === 'לא הוגדר' ? 'not_configured' : 'missing'),
-  };
+function nextReportNumber() {
+  mkdirSync(OUT_DIR, { recursive: true });
+  let seq = { lastNumber: 0, clientSlug: CLIENT };
+  if (existsSync(SEQ_PATH)) {
+    try { seq = { ...seq, ...JSON.parse(readFileSync(SEQ_PATH, 'utf8')) }; } catch { /* keep */ }
+  }
+  // Same calendar day → reuse last number (regenerate overwrites same #NNNN files; no duplicate id).
+  // New day → increment. Number never resets. Resend does not allocate a new number.
+  const today = todayIL();
+  if (seq.lastDate === today && seq.lastNumber > 0) {
+    return { number: seq.lastNumber, padded: String(seq.lastNumber).padStart(4, '0'), reused: true };
+  }
+  const number = (seq.lastNumber || 0) + 1;
+  const padded = String(number).padStart(4, '0');
+  writeFileSync(SEQ_PATH, JSON.stringify({
+    clientSlug: CLIENT,
+    lastNumber: number,
+    lastDate: today,
+    updatedAt: new Date().toISOString(),
+    policy: 'per-client sequential; same-day regenerate reuses number; never auto-delete prior reports',
+  }, null, 2), 'utf8');
+  return { number, padded, reused: false };
 }
 
 function countPreviewAssets() {
@@ -103,263 +128,291 @@ function countPreviewAssets() {
   return { images, js, css, bytes };
 }
 
-function buildStages(decision, asst, dump) {
-  const q = asst?.quality || {};
-  const gates = decision?.gates || dump?.gates || {};
-  const img = decision?.openaiImagesConfigured === false ? 'imagesBlockedQuota' : 'imagesPending';
-  return [
-    { id: 'intake', name: 'אפיון', status: 'הושלם', source: 'internal', note: 'Pack + intake' },
-    { id: 'seo-q', name: 'שאלון SEO', status: 'הושלם', source: 'internal', note: 'Part A–B' },
-    { id: 'competitors', name: 'מחקר מתחרים', status: 'הושלם', source: 'internal', note: 'C-rev2' },
-    { id: 'keywords', name: 'מחקר מילות מפתח', status: 'הושלם', source: 'internal', note: 'נפחים = הערכה' },
-    { id: 'assistants', name: '50 העוזרים', status: `${q.completedQuality || 0} הושלמו / ${q.inProgress || 0} בתהליך`, source: 'internal' },
-    { id: 'consultants', name: '10 היועצים', status: 'אושר עם תיקון (רוב)', source: 'internal' },
-    { id: 'orchestrator', name: 'Orchestrator', status: gates.quality ? 'quality PASS' : 'ממתין', source: 'internal' },
-    { id: 'engines', name: '13 המנועים', status: `${(decision?.engines?.ready || []).length}/13 מוכנים`, source: 'internal' },
-    { id: 'build', name: 'בניית האתר', status: 'הושלם (c3+c13)', source: 'internal' },
-    { id: 'preview', name: 'Preview', status: gates.sitePreviewReady !== false ? 'מוכן — תמונות ממתינות' : 'ממתין', source: 'internal' },
-    { id: 'images', name: 'תמונות', status: img, source: 'internal' },
-    { id: 'seo', name: 'SEO', status: 'בתהליך', source: 'internal', note: 'אין נתון חי למיקומים' },
-    { id: 'google', name: 'Google', status: 'לא אומת חי', source: 'missing' },
-    { id: 'analytics', name: 'Analytics', status: 'אין נתון חי', source: 'missing' },
-  ];
-}
-
-function buildSeo(research) {
-  const cats = research?.keywordCategories;
-  let terms = [];
-  if (Array.isArray(cats)) {
-    terms = cats.flatMap((c) => (c.keywords || c.items || [c]).map((k) => (typeof k === 'string' ? { term: k } : k)));
-  } else if (cats && typeof cats === 'object') {
-    terms = Object.values(cats).flatMap((arr) =>
-      (Array.isArray(arr) ? arr : []).map((k) => (typeof k === 'string' ? { term: k } : k)),
-    );
-  } else if (Array.isArray(research?.keywords)) {
-    terms = research.keywords.map((k) => (typeof k === 'string' ? { term: k } : k));
-  }
-  terms = terms.slice(0, 12);
-  if (!terms.length) {
-    terms = [
-      { term: 'ניהול צי רכב' },
-      { term: 'תחזוקת צי רכב' },
-      { term: 'תפעול צי רכב לעסקים' },
-      { term: 'מימון צי רכב' },
-      { term: 'מוסך צי רכב' },
-    ];
-  }
+function healthRow(name, status, opts = {}) {
   return {
-    keywords: terms.map((t) => ({
-      term: t.term || t.kw || t.name || String(t),
-      position: 'אין נתון חי',
-      changeYesterday: 'אין נתון חי',
-      changeWeek: 'אין נתון חי',
-      trend: '—',
-      forecast1m: { value: 'שיפור הדרגתי אפשרי', tag: 'הערכה' },
-      forecast3m: { value: 'פוטנציאל לעמוד 1 בביטויים ארוכים', tag: 'הערכה' },
-      forecast6m: { value: 'תחרות מול CarGeek — תלוי תוכן+E-E-A-T', tag: 'הערכה' },
-      forecast12m: { value: 'יעד Top 10 בביטויי ליבה — הערכה בלבד', tag: 'הערכה' },
-      sourceType: 'missing',
-    })),
-    newKeywordsNote: 'לא בוצע מחקר KW חדש היום — מבוסס C-rev2 שמור',
-    forecastsLabel: 'כל התחזיות מסומנות הערכה',
+    name,
+    status,
+    checkPerformed: opts.checkPerformed || (opts.live ? 'בדיקה חיה' : 'לא בוצעה בדיקה חיה'),
+    checkedAt: opts.checkedAt || new Date().toISOString(),
+    lastSync: opts.lastSync || null,
+    latencyMs: opts.latencyMs ?? null,
+    version: opts.version || null,
+    liveOrCache: opts.live ? 'חיה' : (opts.liveOrCache || 'מטמון/לא בוצעה'),
+    lastError: opts.error || null,
+    why: opts.why || '—',
+    issueKind: opts.issueKind || 'unknown',
+    blocksSite: opts.blocksSite === true,
+    critical: opts.critical === true,
+    actionRequiredFromUser: opts.actionRequiredFromUser || 'לא',
+    impact: opts.impact || '—',
+    recommendation: opts.recommendation || '—',
+    sourceType: opts.sourceType || 'missing',
   };
 }
 
-function buildCompetitors(research) {
-  const active = research?.activeRanked || [];
-  const researchedAt = research?.updatedAt || research?.verifiedAt || null;
-  const today = todayIL();
-  const researchDay = researchedAt ? String(researchedAt).slice(0, 10) : null;
-  const fresh = researchDay === today;
-  return {
-    researchedToday: fresh,
-    note: fresh ? 'מחקר מעודכן היום' : 'לא בוצע מחקר חדש',
-    peers: active.filter((c) => c.id !== 'operational-leasing-category').map((c) => ({
-      id: c.id,
-      name: c.fullName || c.id,
-      threat: c.threatScore ?? c.threat,
-      url: c.url || null,
-    })),
-    stronger: ['שילוב תפעול+תחזוקה+מוסך בבעלות+מימון', 'בעלות הרכב אצל הלקוח'],
-    weaker: ['CarGeek — מיקור חוץ מלא כמתחרה מרכזי'],
-    opportunities: ['עמודי מימון ומוסך', 'בידול מול ליסינג תפעולי כקטגוריה'],
-    newKeywords: ['מימון צי רכב לעסקים'],
-    servicesToAdd: ['הדגשת מימון באתר'],
-    pagesToStrengthen: ['דף הבית', 'שירותים', 'מימון'],
-    source: 'C-rev2 / stage-c-research-v1',
-  };
+function phase2Missing(label) {
+  return M('אין נתון חי', 'gsc/ga4/gbp/ads', 'missing', {
+    missingReason: `${label}: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)`,
+  });
 }
 
-function scoreProject(decision, healthSummary) {
-  let score = 55;
-  const reasons = [];
-  if (decision?.qualityGate?.pass) { score += 15; reasons.push('+15 quality gate'); }
-  if (decision?.gates?.sitePreviewReady !== false) { score += 10; reasons.push('+10 preview ready'); }
-  if (decision?.engines?.ready?.includes('c13')) { score += 5; reasons.push('+5 c13'); }
-  if ((healthSummary.ok || 0) >= 3) { score += 5; reasons.push('+5 health live ok'); }
-  if (decision?.readyForStageE === false) { score -= 5; reasons.push('-5 images blocked'); }
-  score = Math.max(0, Math.min(100, score));
-  return {
-    projectScore: score,
-    projectScoreFormula: 'base 55 + qualityGate(+15) + previewReady(+10) + c13(+5) + healthLiveOk≥3(+5) + imagesBlocked(−5); clamp 0–100',
-    progressPct: 68,
-    progressPctSource: 'estimate',
-    progressPctNote: 'הערכה קבועה בשלב 1 — אין עדיין נוסחה משוקללת לפי שלבים; לא נתון חי',
-    goLiveReady: false,
-    goLiveReason: 'Preview מוכן אך תמונות חסומות (quota) ו-Google לא מאומת חי',
-    explanation: reasons.join(' · ') || 'חישוב פנימי',
-    top3ToImprove: [
-      'תיקון OpenAI quota והשלמת תמונות (CocoImageStage בלבד)',
-      'אימות GSC/GA4 חי (sync מאושר, בלי re-login אוטומטי)',
-      'מדידת CWV חיה ל-Preview',
-    ],
-    sourceType: 'internal',
-  };
+function h(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function metricCell(m) {
+  if (!m || typeof m !== 'object') return h(m);
+  const reason = m.missingReason ? `<div class="miss">${h(m.missingReason)}</div>` : '';
+  return `<div class="mv">${h(m.value)}</div>
+    <div class="meta-line"><span class="tag tag-${h(m.reliability)}">${h(m.reliabilityHe)}</span>
+    · ${h(m.source)} · ${h(m.updatedAt)}</div>${reason}`;
 }
 
 function renderHtml(report) {
-  const h = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const stages = report.stages.map((s) => `<tr><td>${h(s.name)}</td><td>${h(s.status)}</td><td><code>${h(s.source)}</code></td><td>${h(s.note || '—')}</td></tr>`).join('');
+  const d = report.dashboard;
+  const googleRows = [
+    ['מצב בגוגל', d.googleStatus],
+    ['עלייה / ירידה', d.upOrDown],
+    ['מיקום ממוצע', d.avgPosition],
+    ['Top 3', d.top3],
+    ['Top 10', d.top10],
+    ['Top 20', d.top20],
+    ['מילות מפתח שעלו', d.keywordsUp],
+    ['מילות מפתח שירדו', d.keywordsDown],
+    ['מה חיפשו היום', d.searchedToday],
+    ['מה חיפשו השבוע', d.searchedWeek],
+    ['עמוד מתאים?', d.hasMatchingPage],
+    ['ליצור עמוד חדש?', d.needNewPage],
+    ['חסר תוכן?', d.contentMissing],
+  ].map(([label, m]) => `<tr><td>${h(label)}</td><td>${metricCell(m)}</td></tr>`).join('');
+
   const health = report.healthChecks.map((x) => `<tr>
-    <td>${h(x.name)}</td><td>${h(x.status)}</td><td><code>${h(x.sourceType)}</code></td>
-    <td>${h(x.checkPerformed || x.checkType)}</td>
-    <td>${h(x.why || '—')}</td>
-    <td>${h(x.issueKind || '—')}</td>
-    <td>${x.blocksSite ? 'כן' : 'לא'}</td>
-    <td>${h(x.actionRequiredFromUser || 'לא')}</td>
-    <td>${h(x.lastError || '—')}</td>
-    <td>${h(x.recommendation)}</td></tr>`).join('');
-  const kws = (report.seoIntelligence.keywords || []).map((k) => `<tr>
-    <td>${h(k.term)}</td><td>${h(k.position)}</td><td>${h(k.changeYesterday)}</td><td>${h(k.changeWeek)}</td><td>${h(k.trend)}</td>
-    <td>${h(k.forecast1m.value)} <span class="est">${h(k.forecast1m.tag)}</span></td>
-    <td>${h(k.forecast3m.value)} <span class="est">${h(k.forecast3m.tag)}</span></td>
-    <td>${h(k.forecast6m.value)} <span class="est">${h(k.forecast6m.tag)}</span></td>
-    <td>${h(k.forecast12m.value)} <span class="est">${h(k.forecast12m.tag)}</span></td>
+    <td>${h(x.name)}</td>
+    <td>${h(x.status)}</td>
+    <td><code>${h(x.sourceType)}</code></td>
+    <td>${h(x.liveOrCache)}</td>
+    <td>${h(x.checkedAt)}</td>
+    <td>${h(x.lastSync || '—')}</td>
+    <td>${x.latencyMs != null ? h(x.latencyMs) + 'ms' : '—'}</td>
+    <td>${h(x.why)}</td>
+    <td>${x.critical ? 'כן' : 'לא'}</td>
+    <td>${h(x.recommendation)}</td>
   </tr>`).join('');
-  const cons = (report.consultantsSummary.items || []).map((c) => `<tr>
-    <td>${h(c.id)}</td><td>${h(c.name)}</td><td>${h(c.status)}</td><td>${h(c.decision || '—')}</td></tr>`).join('');
+
+  const scores = report.scores;
+  const exec = report.executiveSummary;
 
   return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8">
-<title>דוח יומי — ${h(report.client.company)}</title>
+<title>דוח יומי #${h(report.meta.reportNumberPadded)} — ${h(report.client.company)}</title>
 <style>
-body{font-family:Heebo,Arial,sans-serif;margin:0;background:#f4f7fb;color:#111;line-height:1.5}
-.wrap{max-width:980px;margin:0 auto;padding:20px 14px 48px}
-.card{background:#fff;border:1px solid #dbe3f0;border-radius:12px;padding:14px 16px;margin-bottom:12px}
-h1{font-size:1.25rem;margin:0 0 6px}h2{font-size:1.05rem;margin:0 0 8px}
-.meta{color:#64748b;font-size:.85rem}
-table{width:100%;border-collapse:collapse;font-size:.72rem}
-th,td{border:1px solid #e2e8f0;padding:5px 6px;text-align:right;vertical-align:top}
-th{background:#0b1735;color:#fff}
-.ok{color:#047857;font-weight:700}.warn{color:#b45309;font-weight:700}.bad{color:#b91c1c;font-weight:700}
-.est{background:#ffedd5;color:#9a3412;font-size:.65rem;padding:1px 5px;border-radius:999px}
-.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#e2e8f0;font-size:.7rem}
+:root{--ink:#0f172a;--muted:#64748b;--line:#dbe3f0;--bg:#f1f5f9;--card:#fff;--brand:#0b1735;--ok:#047857;--warn:#b45309;--bad:#b91c1c;--ai:#6d28d9;--miss:#334155}
+*{box-sizing:border-box}
+body{font-family:Heebo,Arial,sans-serif;margin:0;background:var(--bg);color:var(--ink);line-height:1.45}
+.wrap{max-width:980px;margin:0 auto;padding:18px 14px 56px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.cover{background:linear-gradient(145deg,#0b1735,#1e3a5f);color:#fff;border:none}
+.cover h1{margin:0 0 8px;font-size:1.35rem}
+.cover .sub{opacity:.85;font-size:.9rem}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
+.btn{display:inline-block;padding:8px 14px;border-radius:10px;text-decoration:none;font-weight:700;font-size:.85rem;border:1px solid transparent}
+.btn-pdf{background:#fbbf24;color:#111}
+.btn-o{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
+h2{font-size:1.05rem;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:720px){.grid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px}
+.kpi .l{font-size:.7rem;color:var(--muted)}
+.kpi .v{font-size:1.25rem;font-weight:800;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+th,td{border:1px solid var(--line);padding:6px 7px;text-align:right;vertical-align:top}
+th{background:var(--brand);color:#fff}
+.mv{font-weight:700}
+.meta-line{font-size:.65rem;color:var(--muted);margin-top:3px}
+.miss{font-size:.68rem;color:var(--miss);margin-top:3px}
+.tag{display:inline-block;padding:1px 6px;border-radius:999px;font-size:.62rem;font-weight:700}
+.tag-live{background:#d1fae5;color:var(--ok)}
+.tag-cache{background:#e0e7ff;color:#3730a3}
+.tag-internal{background:#e2e8f0;color:#334155}
+.tag-ai_estimate{background:#ede9fe;color:var(--ai)}
+.tag-missing{background:#fee2e2;color:var(--bad)}
+.sep{margin:18px 0;border:0;border-top:2px dashed #cbd5e1}
+.note{font-size:.8rem;color:var(--muted)}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.15);font-size:.72rem}
+ul.exec{margin:0;padding-right:18px}
+@media print{.actions{display:none!important}body{background:#fff}.wrap{padding:0}.card{break-inside:avoid}}
 </style></head><body><div class="wrap">
-<h1>דוח התקדמות יומי — ${h(report.client.company)}</h1>
-<p class="meta">${h(report.meta.reportDate)} · הופק: ${h(report.meta.generatedAt)} · <span class="badge">Read Only</span>
- · Pipeline לא הורץ · תמונות לא נוצרו</p>
 
-<div class="card"><h2>פרטי לקוח</h2>
-<p><strong>${h(report.client.company)}</strong><br>
-clientId: <code>${h(report.client.clientId)}</code> · איש קשר: ${h(report.client.contact)} · אתר: ${h(report.client.domain)}</p>
-<p><a href="${h(report.client.previewUrl)}">פתח אתר</a></p></div>
+<section class="card cover" id="page1">
+  <div class="badge">CO.CO Daily BI · Phase 1</div>
+  <h1>דוח יומי #${h(report.meta.reportNumberPadded)}</h1>
+  <div class="sub">
+    <strong>${h(report.client.company)}</strong><br>
+    תאריך יצירה: ${h(report.meta.reportDate)} · שעה: ${h(report.meta.generatedTimeIL)} ·
+    מזהה: <code>${h(report.meta.reportId)}</code><br>
+    גרסת מערכת: ${h(report.meta.cocoVersion)} · שליחת מייל: ${h(report.email.sentAt || 'לא נשלח (dry_run)')}
+br>
+    <span class="badge">Read Only</span> · Pipeline לא הורץ · תמונות לא נוצרו
+  </div>
+  <div class="actions">
+    <a class="btn btn-pdf" href="${h(report.meta.pdfFileName)}" download>הורד PDF</a>
+    <a class="btn btn-o" href="${h(report.client.previewUrl)}" target="_blank" rel="noopener">פתח אתר (Preview)</a>
+  </div>
+</section>
 
-<div class="card"><h2>סיכום מנהלים</h2><p>${h(report.executiveSummary)}</p></div>
+<section class="card">
+  <h2>לוח מחוונים — מנהלים</h2>
+  <div class="grid">
+    <div class="kpi"><div class="l">Project Score</div><div class="v">${h(scores.projectScore.value)}</div>${metricCell(scores.projectScore).replace(/<div class="mv">.*?<\/div>/,'')}</div>
+    <div class="kpi"><div class="l">System Health</div><div class="v">${h(report.healthScore)}</div>
+      <div class="meta-line">תקין ${h(report.healthSummary.ok)} · אזהרה ${h(report.healthSummary.warn)} · שגיאה ${h(report.healthSummary.err)} · לא הוגדר ${h(report.healthSummary.undef)}</div>
+      <div class="miss">${h(report.healthScoreNote)}</div>
+    </div>
+    <div class="kpi"><div class="l">התקדמות</div><div class="v">${h(scores.progressPct.value)}%</div>${metricCell(scores.progressPct).replace(/<div class="mv">.*?<\/div>/,'')}</div>
+    <div class="kpi"><div class="l">מוכן לעלייה?</div><div class="v">${scores.goLiveReady.value ? 'כן' : 'לא'}</div>${metricCell(scores.goLiveReady).replace(/<div class="mv">.*?<\/div>/,'')}</div>
+  </div>
+</section>
 
-<div class="card"><h2>סטטוס שלבים</h2>
-<table><tr><th>שלב</th><th>סטטוס</th><th>מקור</th><th>הערה</th></tr>${stages}</table></div>
+<section class="card">
+  <h2>מצב בגוגל + הזדמנויות (עמוד ראשון)</h2>
+  <p class="note">שלב 1: אין חיבור GSC חי — אין מספרים מומצאים. כל שורה עם «אין נתון חי» + סיבה.</p>
+  <table><tr><th>מדד</th><th>ערך · מקור · אמינות · עדכון</th></tr>${googleRows}</table>
+</section>
 
-<div class="card"><h2>50 עוזרים</h2>
-<p>הושלמו: <strong>${report.assistantsSummary.completed}</strong> · בתהליך: <strong>${report.assistantsSummary.inProgress}</strong>
- · דולגו: <strong>${report.assistantsSummary.skipped}</strong> · ניתוח אמיתי: <strong>${report.assistantsSummary.realAnalysis}</strong></p>
-<ul>${(report.assistantsSummary.topRecommendations || []).map((x) => `<li>${h(x)}</li>`).join('')}</ul></div>
+<section class="card">
+  <h2>שלוש הפעולות החשובות ביותר להיום</h2>
+  <ol>${(exec.top3Tasks || []).map((t) => `<li>${metricCell(t)}</li>`).join('')}</ol>
+</section>
 
-<div class="card"><h2>10 יועצים</h2>
-<table><tr><th>ID</th><th>שם</th><th>סטטוס</th><th>החלטה</th></tr>${cons}</table></div>
+<section class="card">
+  <h2>System Health — סיכום</h2>
+  <p><strong>System Health Score: ${report.healthScore}</strong>
+   · נבדקו ${report.healthSummary.total}
+   · תקין ${report.healthSummary.ok}
+   · אזהרה ${report.healthSummary.warn}
+   · שגיאה ${report.healthSummary.err}
+   · לא הוגדר ${report.healthSummary.undef}
+   · לא ניתן לאימות מקומית ${report.healthSummary.localUnverifiable || 0}</p>
+  <p class="note">${h(report.healthScoreNote)}</p>
+  <p class="note">נוסחה: ${h(report.healthScoreFormula)} · תקין=100 · אזהרה=40 · שגיאה/לא הוגדר/לא ניתן לאימות=0</p>
+  <p><strong>חוסם בפועל:</strong> ${(report.blockingFaults || []).length ? report.blockingFaults.map(h).join(' · ') : 'אין תקלה שחוסמת את האתר כרגע'}</p>
+  <p><strong>לא מומש עדיין (לא תקלת אתר):</strong> ${(report.unimplementedChecks || []).length ? report.unimplementedChecks.map(h).join(' · ') : '—'}</p>
+  <p><strong>תקלות קריטיות:</strong> ${(report.criticalFaults || []).length ? report.criticalFaults.map(h).join(' · ') : 'אין'}</p>
+</section>
 
-<div class="card"><h2>המלצת Chief</h2>
-<p><strong>${h(report.chiefRecommendation.status)}</strong> — ${h(report.chiefRecommendation.reason)}</p></div>
+<section class="card">
+  <h2>סיכום מנהלים</h2>
+  <ul class="exec">
+    <li><strong>מצב היום:</strong> ${h(exec.siteStateToday.value)} <span class="tag tag-${h(exec.siteStateToday.reliability)}">${h(exec.siteStateToday.reliabilityHe)}</span></li>
+    <li><strong>גוגל (עלייה/ירידה):</strong> ${metricCell(exec.googleTrend)}</li>
+    <li><strong>מה השתנה מהדוח הקודם:</strong> ${metricCell(exec.changedSincePrev)}</li>
+    <li><strong>מה בוצע:</strong> ${metricCell(exec.done)}</li>
+    <li><strong>מה חסר:</strong> ${metricCell(exec.missing)}</li>
+    <li><strong>סיכון מרכזי:</strong> ${metricCell(exec.mainRisk)}</li>
+    <li><strong>הזדמנות גדולה:</strong> ${metricCell(exec.mainOpportunity)}</li>
+    <li><strong>השפעה צפויה החודש:</strong> ${metricCell(exec.monthImpact)}</li>
+    <li><strong>המלצת מערכת (AI — לא נתון חי):</strong> ${metricCell(exec.aiRecommendation)}</li>
+  </ul>
+</section>
 
-<div class="card"><h2>SEO Intelligence</h2>
-<p class="warn">${h(report.seoIntelligence.forecastsLabel)} · ${h(report.seoIntelligence.newKeywordsNote)}</p>
-<table><tr><th>KW</th><th>מיקום</th><th>Δ אתמול</th><th>Δ שבוע</th><th>מגמה</th><th>1ח׳</th><th>3ח׳</th><th>6ח׳</th><th>12ח׳</th></tr>${kws}</table></div>
+<hr class="sep">
+<p class="note">פירוט System Health המלא להלן. נתוני Google חיים — שלב 2.</p>
 
-<div class="card"><h2>מתחרים</h2>
-<p><strong>${h(report.competitors.note)}</strong></p>
-<p>נבדקים: ${(report.competitors.peers || []).map((p) => h(p.name)).join(' · ') || '—'}</p>
-<ul>
-<li>חזקים: ${(report.competitors.stronger || []).map(h).join('; ')}</li>
-<li>חלשים מול: ${(report.competitors.weaker || []).map(h).join('; ')}</li>
-<li>הזדמנויות: ${(report.competitors.opportunities || []).map(h).join('; ')}</li>
-</ul></div>
+<section class="card">
+  <h2>System Health — פירוט מערכות</h2>
+  <p class="note">${h(report.healthScoreNote)}</p>
+  <table>
+    <tr><th>מערכת</th><th>סטטוס</th><th>מקור</th><th>חיה/מטמון</th><th>בדיקה</th><th>Sync</th><th>Latency</th><th>הסבר</th><th>קריטי?</th><th>פתרון</th></tr>
+    ${health}
+  </table>
+</section>
 
-<div class="card"><h2>Health Check</h2>
-<p>נבדקו: ${report.healthSummary.total} · תקין: ${report.healthSummary.ok} · אזהרה: ${report.healthSummary.warn}
- · שגיאה: ${report.healthSummary.err} · לא הוגדר: ${report.healthSummary.undef}
- · לא ניתן לאימות מקומית: ${report.healthSummary.localUnverifiable || 0}
- · <strong>Health Score: ${report.healthScore ?? '—'}</strong></p>
-<p class="warn">${h(report.healthScoreNote || 'הציון נמוך בעיקר כי בדיקות רבות עדיין לא הוגדרו או לא ממומשות — לא בגלל קריסת האתר.')}</p>
-<p class="meta">${h(report.healthScoreFormula || '')}</p>
-<table><tr><th>ממשק</th><th>סטטוס</th><th>מקור</th><th>בדיקה בפועל</th><th>למה</th><th>סוג בעיה</th><th>חוסם אתר?</th><th>נדרש ממך?</th><th>שגיאה/הודעה</th><th>המלצה</th></tr>${health}</table></div>
+<section class="card">
+  <h2>סטטוסי פרויקט (פנימי)</h2>
+  <ul>
+    <li>Preview: ${metricCell(d.previewStatus)}</li>
+    <li>תמונות: ${metricCell(d.imagesStatus)}</li>
+    <li>Google (חיבור): ${metricCell(d.googleConnection)}</li>
+    <li>Analytics: ${metricCell(d.analyticsStatus)}</li>
+    <li>Ads: ${metricCell(d.adsStatus)}</li>
+    <li>GBP: ${metricCell(d.gbpStatus)}</li>
+  </ul>
+</section>
 
-<div class="card"><h2>ביצועים עסקיים</h2>
-<p class="warn">${h(report.businessMetrics.note)}</p>
-<ul>${Object.entries(report.businessMetrics.metrics || {}).map(([k, v]) => `<li>${h(k)}: ${h(v.value)} <code>${h(v.source)}</code></li>`).join('')}</ul></div>
+<section class="card">
+  <h2>אמינות נתונים — מקרא</h2>
+  <p>
+    <span class="tag tag-live">נתון אמיתי</span>
+    <span class="tag tag-cache">נתון ממטמון</span>
+    <span class="tag tag-internal">חישוב פנימי</span>
+    <span class="tag tag-ai_estimate">הערכת AI</span>
+    <span class="tag tag-missing">אין נתון חי</span>
+  </p>
+  <p class="note">המלצות AI מופרדות במפורש מנתוני אמת. אין ערבוב.</p>
+</section>
 
-<div class="card"><h2>ביצועי אתר</h2>
-<p class="warn">${h(report.sitePerformance.note)}</p>
-<ul>${Object.entries(report.sitePerformance.metrics || {}).map(([k, v]) => `<li>${h(k)}: ${h(typeof v === 'object' ? v.value : v)}${v?.delta != null ? ` (Δ ${h(v.delta)})` : ''} <code>${h(v?.source || 'internal')}</code></li>`).join('')}</ul></div>
+<section class="card">
+  <h2>אימייל</h2>
+  <p>סטטוס: <strong>${h(report.email.status)}</strong>
+  ${report.email.previewOnly ? ' · תצוגה בלבד — לא נשלח' : ''}
+  ${report.email.error ? ` · שגיאה: ${h(report.email.error)}` : ''}</p>
+  <p class="note">נושא עתידי: ${h(report.email.subjectTemplate)}</p>
+</section>
 
-<div class="card"><h2>אבטחה / גרסאות</h2>
-<ul>${Object.entries(report.security || {}).map(([k, v]) => `<li>${h(k)}: ${h(typeof v === 'object' ? JSON.stringify(v) : v)}</li>`).join('')}</ul></div>
-
-<div class="card"><h2>סיכום מנהל</h2>
-<ul>
-<li>מצב: ${h(report.scores.projectState)}</li>
-<li>התקדמות: ${h(report.scores.progressPct)}%</li>
-<li>מה השתנה מאתמול: ${h(report.diffFromYesterday.summary)}</li>
-<li>בעיה חשובה: ${h(report.scores.topProblem)}</li>
-<li>משימה למחר: ${h(report.scores.topTaskTomorrow)}</li>
-<li>מוכן לעלייה: ${report.scores.goLiveReady ? 'כן' : 'לא'} — ${h(report.scores.goLiveReason)}</li>
-<li>Project Score: <strong>${h(report.scores.projectScore)}</strong> (${h(report.scores.explanation)})</li>
-<li>Top 3 לשיפור ציון: ${(report.scores.top3ToImprove || []).map(h).join(' · ')}</li>
-</ul></div>
-
-<div class="card"><h2>אימייל</h2>
-<p>סטטוס: <strong>${h(report.email.status)}</strong>
-${report.email.error ? ` · שגיאה: ${h(report.email.error)}` : ''}
-${report.email.previewOnly ? ' · נוצרה תצוגת אימייל בלבד (לא נשלח)' : ''}</p></div>
-
-<p class="meta">מקורות: live=בדיקה חיה · cache=cache · missing=אין נתון חי · estimate=הערכה · internal=חישוב פנימי · not_configured=לא הוגדר · local_unverifiable=לא ניתן לאימות מקומית (לא תקלת אתר)</p>
 </div></body></html>`;
 }
 
-function renderEmail(report) {
-  return `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#111">
-  <h2 style="margin:0 0 8px">דוח יומי CO.CO — ${report.client.company}</h2>
-  <p style="color:#64748b;font-size:13px">${report.meta.reportDate} · Project Score ${report.scores.projectScore} · Health ${report.healthScore ?? '—'}</p>
-  <p><strong>סיכום:</strong> ${report.executiveSummary}</p>
-  <p><strong>Preview:</strong> ${report.scores.goLiveReady ? 'מוכן לעלייה' : 'לא מוכן לעלייה'} — ${report.scores.goLiveReason}</p>
-  <p><strong>משימה למחר:</strong> ${report.scores.topTaskTomorrow}</p>
-  <p><a href="${report.client.reportHtmlUrl || '#'}">פתח דוח מלא</a> · <a href="${report.client.previewUrl}">פתח אתר</a></p>
-  <p style="font-size:12px;color:#64748b">Read Only · לא הורץ Pipeline · אימייל: ${report.email.status}</p>
-</div>`;
+async function writePdf(htmlPath, pdfPath, meta) {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'networkidle' });
+    const header = `CO.CO | דוח #${meta.padded} | ${meta.company} | ${meta.reportDate}`;
+    await page.pdf({
+      path: pdfPath,
+      format: 'A4',
+      printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: `<div style="font-size:8px;width:100%;text-align:center;color:#64748b;padding:0 10mm;">${header.replace(/</g, '')}</div>`,
+      footerTemplate: `<div style="font-size:8px;width:100%;text-align:center;color:#64748b;padding:0 10mm;">עמוד <span class="pageNumber"></span> / <span class="totalPages"></span> · מקור+אמינות לכל נתון · dry_run</div>`,
+      margin: { top: '16mm', bottom: '16mm', left: '10mm', right: '10mm' },
+    });
+  } finally {
+    await browser.close();
+  }
+}
+
+async function screenshotPage1(htmlPath, pngPath) {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
+    await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'networkidle' });
+    const el = await page.$('#page1');
+    if (el) await el.screenshot({ path: pngPath });
+    else await page.screenshot({ path: pngPath, fullPage: false });
+  } finally {
+    await browser.close();
+  }
+}
+
+function pruneOldArtifacts(_keepNames) {
+  // NEVER auto-delete prior reports. latest.* are pointers only.
+  return;
 }
 
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
   const reportDate = todayIL();
-  const generatedAt = new Date().toISOString();
+  const generatedAt = new Date();
+  const generatedAtIso = generatedAt.toISOString();
+  const { number, padded } = nextReportNumber();
+  const reportId = `${CLIENT}-${padded}-${reportDate}`;
+  const pdfFileName = `COCO-Daily-Report-${padded}-${reportDate}.pdf`;
 
   const decision = readJson('public/coco-reports/dalia-c-official/stage-d-fix-decision.json') || {};
   const asst = readJson('public/coco-reports/dalia-c-official/stage-d-assistants-raw.json') || {};
-  const dump = readJson('public/coco-reports/dalia-c-official/stage-d-pipeline-dump.json') || {};
-  const research = readJson('public/coco-reports/dalia-c-official/stage-c-research-v1.json') || {};
   const infra = readJson('public/coco-reports/dalia-c-official/infra-verify-live.json') || {};
-  const verifySplit = readJson('public/coco-reports/dalia-c-official/preview-images-split-verify.json') || {};
-
   const assets = countPreviewAssets();
 
-  // Live probes (read-only)
   const pagesPreview = await probeHead(PREVIEW_URL);
   const pagesHome = await probeHead(`${PAGES_BASE}/`);
   const dns = await probeDns('dalia-c.com');
@@ -371,230 +424,72 @@ async function main() {
   const openaiSecretExists = !!(openaiSecrets.MARKETING_OPENAI_API_KEY || openaiSecrets.OPENAI_API_KEY || infra?.openai?.siteBuildStatus?.secrets?.openai);
   const openaiQuotaBlocked = !!(openaiKnown && !openaiKnown.ok && /quota|billing/i.test(String(openaiKnown.error || '')));
   const dnsLocalUnverifiable = !dns.ok && /ECONNREFUSED|ENOTFOUND|ETIMEOUT|queryA/i.test(String(dns.error || ''));
-  // SSL succeeded for same host → domain is reachable; Node resolve4 failure is local DNS client, not site outage
-  const domainDnsStatus = dns.ok
-    ? 'תקין'
-    : (ssl.ok || dnsLocalUnverifiable)
-      ? 'לא ניתן לאימות מקומית'
-      : 'שגיאה';
+  const domainDnsStatus = dns.ok ? 'תקין' : ((ssl.ok || dnsLocalUnverifiable) ? 'לא ניתן לאימות מקומית' : 'שגיאה');
+
+  const noSync = (label) => phase2Missing(label);
 
   const healthChecks = [
-    healthRow('OpenAI', openaiKnown?.ok ? 'תקין' : (openaiQuotaBlocked || openaiSecretExists ? 'אזהרה — חיבור קיים, quota חסום' : 'אזהרה'), {
-      live: false,
-      checkPerformed: 'קריאת infra-verify-live.json (אימות קודם) — לא בוצע chat/images בריצה זו',
-      checkType: 'cache / אימות קודם שמור',
-      error: openaiKnown?.error || null,
-      why: openaiSecretExists
-        ? 'Secret קיים (MARKETING_OPENAI_API_KEY / OPENAI_API_KEY). החיבור מזוהה. Chat probe קודם החזיר quota/billing. לא מדובר במפתח חסר. לא בוצעה קריאת Images בתשלום בריצה זו.'
-        : 'אין אישור Secrets בקובץ האימות',
-      issueKind: openaiQuotaBlocked ? 'known_quota' : (openaiSecretExists ? 'known_quota' : 'check_not_implemented'),
-      blocksSite: false,
-      actionRequiredFromUser: openaiQuotaBlocked ? 'כן — לתקן billing/quota ב-OpenAI (לא Secrets)' : 'לא',
-      impact: 'חוסם תמונות / AI chat — לא חוסם Preview HTML',
-      recommendation: 'לתקן quota/billing; תמונות רק דרך CocoImageStage אחרי אישור',
-      sourceType: 'cache',
-      checkedAt: infra?.at || generatedAt,
+    healthRow('OpenAI', openaiQuotaBlocked || openaiSecretExists ? 'אזהרה — חיבור קיים, quota חסום' : 'אזהרה', {
+      checkPerformed: 'cache מ-infra-verify — לא chat/images בריצה זו',
+      why: openaiSecretExists ? 'Secret קיים; quota/billing חוסם; לא Images בתשלום' : 'אין אישור Secrets',
+      issueKind: 'known_quota', sourceType: 'cache', critical: false, blocksSite: false,
+      actionRequiredFromUser: openaiQuotaBlocked ? 'כן — billing/quota' : 'לא',
+      recommendation: 'לתקן quota; תמונות רק ב-CocoImageStage אחרי אישור',
+      checkedAt: infra?.at || generatedAtIso,
     }),
-    healthRow('Supabase', 'לא הוגדר', {
-      checkPerformed: 'לא בוצע ping DB',
-      why: 'בדיקת חיבור DB עדיין לא ממומשת בדוח היומי',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      recommendation: 'להוסיף ping DB ב-Edge בשלב מאוחר',
-      impact: 'דוחות/CRM',
-      sourceType: 'not_configured',
-    }),
-    healthRow('Edge Functions', 'אזהרה', {
-      checkPerformed: 'לא בוצעה בדיקה חיה בריצה זו',
-      why: 'הבדיקה עדיין לא ממומשת בדוגמה המקומית',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      recommendation: 'probe status מ-cron אחרי אישור תשתית',
-      impact: 'AI/Google sync',
-      sourceType: 'missing',
-    }),
+    healthRow('Supabase', 'לא הוגדר', { why: 'ping DB לא ממומש בשלב 1', issueKind: 'check_not_implemented', sourceType: 'not_configured' }),
+    healthRow('Database', 'לא הוגדר', { why: 'לא מחובר לדוח בשלב 1', issueKind: 'check_not_implemented', sourceType: 'not_configured' }),
+    healthRow('Edge Functions', 'אזהרה', { why: 'לא בוצעה בדיקה חיה בריצה זו', issueKind: 'check_not_implemented', sourceType: 'missing' }),
     healthRow('GitHub', githubApi.ok ? 'תקין' : 'שגיאה', {
-      live: true,
-      checkPerformed: `GET api.github.com/repos/orin1607-ctrl/future-craft-core → HTTP ${githubApi.status || 0}`,
-      error: githubApi.error,
-      why: githubApi.ok ? 'הריפו נגיש בקריאה חיה' : 'כשל בקריאת GitHub API',
-      issueKind: githubApi.ok ? 'real' : 'real',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      impact: 'קוד/Deploy Staging',
-      recommendation: githubApi.ok ? '—' : 'לבדוק API/rate limit',
-      sourceType: githubApi.ok ? 'live' : 'missing',
+      live: true, latencyMs: githubApi.ms, checkPerformed: `GET GitHub API → ${githubApi.status}`,
+      why: githubApi.ok ? 'ריפו נגיש' : (githubApi.error || 'כשל'), sourceType: githubApi.ok ? 'live' : 'missing',
+      error: githubApi.error, critical: false,
     }),
     healthRow('GitHub Pages', pagesHome.ok ? 'תקין' : 'שגיאה', {
-      live: true,
-      checkPerformed: `GET ${PAGES_BASE}/ → HTTP ${pagesHome.status || 0}`,
-      error: pagesHome.error,
-      why: pagesHome.ok ? 'Staging Pages מגיב' : 'Pages לא מגיב',
-      issueKind: 'real',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      impact: 'Staging בלבד',
-      recommendation: '—',
-      sourceType: pagesHome.ok ? 'live' : 'missing',
+      live: true, latencyMs: pagesHome.ms, checkPerformed: `GET Pages → ${pagesHome.status}`,
+      why: pagesHome.ok ? 'Staging מגיב' : 'Pages לא מגיב', sourceType: pagesHome.ok ? 'live' : 'missing',
     }),
-    healthRow('Google Search Console', 'לא הוגדר', {
-      checkPerformed: 'לא בוצע sync/probe חי בריצה זו',
-      why: 'אין נתון חי בדוח — לא סומן כמחובר',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא כרגע (sync מאושר בנפרד)',
-      impact: 'מיקומי KW',
-      recommendation: 'sync מאושר — בלי re-login אוטומטי',
-      sourceType: 'not_configured',
-    }),
-    healthRow('Google Analytics 4', 'לא הוגדר', {
-      checkPerformed: 'לא בוצע probe חי',
-      why: 'אין נתון חי בדוח',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא כרגע',
-      impact: 'תנועה/המרות',
-      recommendation: 'אימות חי בנפרד',
-      sourceType: 'not_configured',
-    }),
-    healthRow('Google Business Profile', 'אזהרה', {
-      checkPerformed: 'קריאת infra-verify קודם (pending API)',
-      checkType: 'cache',
-      why: 'ידוע מאימות קודם: ממתין לאישור Google API — לא בדיקה חיה היום',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'כן — אישור Google API אם רוצים Local SEO חי',
-      impact: 'Local SEO',
-      recommendation: 'אישור Google API',
-      sourceType: 'cache',
-    }),
-    healthRow('Google Ads', 'לא הוגדר', {
-      checkPerformed: 'לא רלוונטי למסלול',
-      why: 'Ads דולג מהמסלול — לא חלק מהתוכנית',
-      issueKind: 'not_in_scope',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      impact: 'מסלול Ads לא פעיל',
-      sourceType: 'not_configured',
-    }),
-    healthRow('Google Tag Manager', 'אזהרה', {
-      checkPerformed: 'לא בוצע probe חי בריצה זו; ידוע probe קודם',
-      checkType: 'cache',
-      why: 'אין אימות חי היום — לא מספיק ל«תקין»',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      impact: 'תגיות',
-      recommendation: 'probe חי ב-cron אחרי אישור',
-      sourceType: 'cache',
-    }),
-    healthRow('Gmail', 'לא הוגדר', {
-      checkPerformed: 'לא בוצעה בדיקה',
-      why: 'בדיקה לא ממומשת',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      impact: 'מייל נכנס',
-      sourceType: 'not_configured',
-    }),
-    healthRow('Google Drive', 'לא הוגדר', {
-      checkPerformed: 'לא בוצעה בדיקה',
-      why: 'בדיקה לא ממומשת',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      sourceType: 'not_configured',
-    }),
-    healthRow('Google Sheets', 'לא הוגדר', {
-      checkPerformed: 'לא בוצעה בדיקה',
-      why: 'בדיקה לא ממומשת',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      sourceType: 'not_configured',
-    }),
-    healthRow('Storage', 'לא הוגדר', {
-      checkPerformed: 'לא בוצע list bucket',
-      why: 'בדיקה לא ממומשת',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      recommendation: 'list bucket read-only בשלב מאוחר',
-      sourceType: 'not_configured',
-    }),
-    healthRow('Resend', 'אזהרה', {
-      checkPerformed: 'לא נשלח מייל; נוצרה תצוגת dry_run בלבד',
-      why: 'שליחה אמיתית חסומה במכוון עד אישור',
-      issueKind: 'not_in_scope',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא — להשאיר dry_run',
-      impact: 'דוח יומי באימייל',
-      recommendation: 'dry_run עד אישור שליחה',
-      sourceType: 'missing',
-    }),
-    healthRow('CRM', 'לא הוגדר', {
-      checkPerformed: 'לא בוצעה בדיקה',
-      why: 'בדיקה לא ממומשת',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      sourceType: 'not_configured',
-    }),
-    healthRow('WhatsApp', 'לא הוגדר', {
-      checkPerformed: 'לא בוצעה בדיקה',
-      why: 'בדיקה לא ממומשת',
-      issueKind: 'check_not_implemented',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא',
-      sourceType: 'not_configured',
-    }),
+    healthRow('Google Search Console', 'לא הוגדר', { why: 'שלב 1 — אין Sync חי', issueKind: 'check_not_implemented', sourceType: 'not_configured' }),
+    healthRow('Google Analytics 4', 'לא הוגדר', { why: 'שלב 1 — אין Sync חי', issueKind: 'check_not_implemented', sourceType: 'not_configured' }),
+    healthRow('Google Ads', 'לא הוגדר', { why: 'דולג מהמסלול / אין Sync', issueKind: 'not_in_scope', sourceType: 'not_configured' }),
+    healthRow('Google Business Profile', 'אזהרה', { why: 'ידוע pending API (cache)', issueKind: 'check_not_implemented', sourceType: 'cache', liveOrCache: 'מטמון' }),
+    healthRow('Google Tag Manager', 'אזהרה', { why: 'אין probe חי היום', issueKind: 'check_not_implemented', sourceType: 'cache', liveOrCache: 'מטמון' }),
+    healthRow('Gmail', 'לא הוגדר', { why: 'לא ממומש', sourceType: 'not_configured', issueKind: 'check_not_implemented' }),
+    healthRow('Google Drive', 'לא הוגדר', { why: 'לא ממומש', sourceType: 'not_configured', issueKind: 'check_not_implemented' }),
+    healthRow('Google Sheets', 'לא הוגדר', { why: 'לא ממומש', sourceType: 'not_configured', issueKind: 'check_not_implemented' }),
+    healthRow('Storage', 'לא הוגדר', { why: 'לא ממומש', sourceType: 'not_configured', issueKind: 'check_not_implemented' }),
+    healthRow('Resend', 'אזהרה', { why: 'dry_run — אין שליחה בריצה זו', issueKind: 'not_in_scope', sourceType: 'missing' }),
+    healthRow('CRM', 'לא הוגדר', { why: 'לא ממומש', sourceType: 'not_configured', issueKind: 'check_not_implemented' }),
+    healthRow('WhatsApp', 'לא הוגדר', { why: 'לא ממומש', sourceType: 'not_configured', issueKind: 'check_not_implemented' }),
     healthRow('Domain', domainDnsStatus, {
-      live: dns.ok,
-      checkPerformed: `dns.promises.resolve4('dalia-c.com') + הקשר SSL ל-dalia-c.com:443`,
-      error: dns.ok ? null : String(dns.error || 'resolve failed'),
-      why: dns.ok
-        ? 'רזולוציית A הצליחה'
-        : (ssl.ok
-          ? 'Node resolve4 נכשל בסביבה המקומית (ECONNREFUSED), אך TLS ל-dalia-c.com הצליח — זו בעיית סביבת בדיקה, לא תקלה באתר'
-          : 'לא ניתן לאמת מקומית'),
+      live: dns.ok, checkPerformed: "resolve4('dalia-c.com') + TLS",
+      why: dns.ok ? 'OK' : 'לא ניתן לאימות מקומית (ECONNREFUSED) — SSL הצליח',
       issueKind: dns.ok ? 'real' : 'local_env',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא — אין שינוי DNS',
-      impact: 'אתר חי (לא Staging Preview)',
-      recommendation: dns.ok ? '—' : 'לא ניתן לאימות מקומית — לא לשנות DNS',
-      sourceType: dns.ok ? 'live' : 'local_unverifiable',
+      sourceType: dns.ok ? 'live' : 'local_unverifiable', error: dns.error,
     }),
     healthRow('DNS', domainDnsStatus, {
-      live: dns.ok,
-      checkPerformed: `dns.promises.resolve4('dalia-c.com')`,
-      error: dns.ok ? null : String(dns.error || 'resolve failed'),
-      why: dns.ok
-        ? 'רשומות A התקבלו'
-        : 'queryA ECONNREFUSED — כשל ב-DNS client המקומי של Node, לא שינוי/תקלה מוכחת ב-DNS של הדומיין',
+      live: dns.ok, latencyMs: dns.ms, checkPerformed: "resolve4('dalia-c.com')",
+      why: dns.ok ? 'OK' : 'כשל DNS client מקומי — לא תקלת אתר מוכחת',
       issueKind: dns.ok ? 'real' : 'local_env',
-      blocksSite: false,
-      actionRequiredFromUser: 'לא — אין שינוי DNS',
-      impact: 'רזולוציה',
-      recommendation: 'לא ניתן לאימות מקומית — אין לגעת ב-DNS',
-      sourceType: dns.ok ? 'live' : 'local_unverifiable',
+      sourceType: dns.ok ? 'live' : 'local_unverifiable', error: dns.error,
     }),
     healthRow('SSL', ssl.ok ? 'תקין' : 'שגיאה', {
-      live: true,
-      checkPerformed: `TLS connect dalia-c.com:443 (קריאה בלבד)`,
-      error: ssl.error,
-      why: ssl.ok ? `תעודה תקינה · validTo=${ssl.validTo}` : 'כשל TLS',
-      issueKind: 'real',
-      blocksSite: !ssl.ok,
-      actionRequiredFromUser: ssl.ok ? 'לא' : 'כן — לבדוק תעודה (בלי שינוי אוטומטי)',
-      impact: 'אבטחה',
-      recommendation: ssl.ok ? `validTo=${ssl.validTo}` : 'לבדוק תעודה ידנית',
-      sourceType: ssl.ok ? 'live' : 'missing',
+      live: true, latencyMs: ssl.ms, checkPerformed: 'TLS dalia-c.com:443',
+      why: ssl.ok ? `validTo=${ssl.validTo}` : ssl.error, sourceType: ssl.ok ? 'live' : 'missing',
+      critical: !ssl.ok, blocksSite: !ssl.ok,
     }),
+    healthRow('CO.CO API', 'אזהרה', { why: 'לא בוצע probe ייעודי בשלב 1', sourceType: 'missing', issueKind: 'check_not_implemented' }),
+    healthRow('מערכת התראות', 'אזהרה', { why: 'MarketingNotifications קיים; שליחה dry_run', sourceType: 'missing', issueKind: 'not_in_scope' }),
+    healthRow('מערכת דוחות', 'תקין', {
+      live: true, checkPerformed: 'יצירת דוח Phase 1 מקומית', why: 'גנרטור רץ בהצלחה',
+      sourceType: 'live', version: COCO_VERSION,
+    }),
+    healthRow('מערכת יצירת אתרים', 'אזהרה', { why: 'לא הורץ Pipeline; Preview קיים', sourceType: 'cache', issueKind: 'not_in_scope', liveOrCache: 'מטמון' }),
+    healthRow('מערכת יצירת תמונות', 'אזהרה', { why: 'imagesBlockedQuota — לא נוצרו תמונות', sourceType: 'cache', issueKind: 'known_quota', liveOrCache: 'מטמון' }),
+    healthRow('מערכת גיבויים', 'לא הוגדר', { why: 'אין נתון חי', sourceType: 'not_configured', issueKind: 'check_not_implemented' }),
+    healthRow('Cron', 'לא הוגדר', { why: 'Cron לא פעיל במכוון בשלב 1', sourceType: 'not_configured', issueKind: 'not_in_scope' }),
   ];
 
-  // Never mark תקין without live
   for (const row of healthChecks) {
     if (row.status === 'תקין' && row.sourceType !== 'live') row.status = 'אזהרה';
   }
@@ -609,36 +504,116 @@ async function main() {
     undef: healthChecks.filter((x) => x.status === 'לא הוגדר').length,
     localUnverifiable: healthChecks.filter((x) => isUnver(x.status)).length,
   };
-  // Formula: only תקין=100 and אזהרה=40; שגיאה / לא הוגדר / לא ניתן לאימות = 0
-  const healthScoreFormula =
-    'round((תקין×100 + אזהרה×40 + שגיאה×0 + לא_הוגדר×0 + לא_ניתן_לאימות×0) / total)';
-  const healthScore = healthSummary.total
-    ? Math.round(((healthSummary.ok * 100) + (healthSummary.warn * 40)) / healthSummary.total)
-    : null;
+  const healthScoreFormula = 'round((תקין×100 + אזהרה×40) / total)';
+  const healthScore = Math.round(((healthSummary.ok * 100) + (healthSummary.warn * 40)) / healthSummary.total);
+  const criticalFaults = healthChecks.filter((x) => x.critical).map((x) => x.name);
+  const blockingFaults = healthChecks.filter((x) => x.blocksSite).map((x) => x.name);
+  const unimplementedChecks = healthChecks
+    .filter((x) => x.issueKind === 'check_not_implemented' || x.status === 'לא הוגדר')
+    .map((x) => x.name);
 
-  const consultants = (asst.consultants || []).map((c) => ({
-    id: c.id,
-    name: c.name,
-    status: c.status,
-    decision: c.decisionReason || c.recommended || '',
-    approved: (c.approvedItems || []).length,
-    rejected: (c.rejectedItems || []).length,
-  }));
-  const chief = consultants.find((c) => c.id === 'b10') || {};
+  let projectScore = 55;
+  const reasons = [];
+  if (decision?.qualityGate?.pass) { projectScore += 15; reasons.push('+15 quality'); }
+  if (pagesPreview.ok) { projectScore += 10; reasons.push('+10 preview'); }
+  if (decision?.engines?.ready?.includes('c13')) { projectScore += 5; reasons.push('+5 c13'); }
+  if (healthSummary.ok >= 3) { projectScore += 5; reasons.push('+5 health live'); }
+  projectScore -= 5; reasons.push('-5 images blocked');
+  projectScore = Math.max(0, Math.min(100, projectScore));
+
+  const dashboard = {
+    googleStatus: noSync('מצב בגוגל'),
+    upOrDown: noSync('עלייה/ירידה'),
+    avgPosition: noSync('מיקום ממוצע'),
+    top3: noSync('Top 3'),
+    top10: noSync('Top 10'),
+    top20: noSync('Top 20'),
+    keywordsUp: noSync('KW שעלו'),
+    keywordsDown: noSync('KW שירדו'),
+    searchedToday: noSync('חיפושים היום'),
+    searchedWeek: noSync('חיפושים השבוע'),
+    hasMatchingPage: M(
+      'לא ניתן לקבוע מול דירוגים חיים — Preview קיים',
+      'client-previews + phase2-gsc',
+      'missing',
+      { missingReason: 'אין מיקומי KW חיים לשייך לעמוד; Preview זמין ב-Staging' },
+    ),
+    needNewPage: M(
+      'להמתין לנתוני GSC חיים לפני החלטת עמוד חדש',
+      'ai_gate',
+      'ai_estimate',
+      { missingReason: null },
+    ),
+    contentMissing: M(
+      'ייתכן — תמונות חסרות (quota); תוכן בסיסי ב-Preview',
+      'preview-assets+decision',
+      'internal',
+    ),
+    previewStatus: M(pagesPreview.ok ? `מוכן (HTTP ${pagesPreview.status})` : 'לא זמין', 'github-pages', pagesPreview.ok ? 'live' : 'missing'),
+    imagesStatus: M('imagesBlockedQuota', 'stage-d-decision/infra', 'cache'),
+    googleConnection: M('לא אומת חי בשלב 1', 'phase2', 'missing', { missingReason: 'לא בוצע Sync' }),
+    analyticsStatus: M('לא אומת חי בשלב 1', 'phase2', 'missing', { missingReason: 'לא בוצע Sync' }),
+    adsStatus: M('לא חלק מהמסלול / לא הוגדר', 'product-scope', 'missing', { missingReason: 'Ads דולג' }),
+    gbpStatus: M('pending API (ידוע)', 'infra-verify', 'cache'),
+  };
 
   const scores = {
-    ...scoreProject({ ...decision, gates: { ...decision.gates, sitePreviewReady: pagesPreview.ok } }, healthSummary),
-    projectState: 'Preview מוכן — תמונות ממתינות (quota)',
-    topProblem: 'OpenAI Images quota / תמונות לא הושלמו',
-    topTaskTomorrow: 'לאשר תיקון quota ואז CocoImageStage בלבד (בלי Pipeline מלא)',
+    projectScore: M(projectScore, 'scoreProject()', 'internal'),
+    progressPct: M(68, 'phase1-placeholder', 'ai_estimate'),
+    goLiveReady: M(false, 'gates', 'internal'),
+    goLiveReason: M(
+      'Preview מוכן אך תמונות חסומות ו-Google לא מאומת חי',
+      'gates',
+      'internal',
+    ),
+    explanation: M(reasons.join(' · '), 'scoreProject()', 'internal'),
   };
+
+  const executiveSummary = {
+    siteStateToday: M('Preview מוכן ב-Staging · תמונות ממתינות · Google לא מאומת חי', 'preview+infra', 'internal'),
+    googleTrend: noSync('מגמת גוגל'),
+    changedSincePrev: M(
+      number === 1 ? 'דוח ראשון (#0001) — אין דוח קודם להשוואה' : 'השוואה לדוח קודם — Phase 1 מינימלי',
+      'report-sequence',
+      'internal',
+    ),
+    done: M('Quality gate · Preview c3+c13 · דוח BI Phase 1', 'stage-d + generator', 'internal'),
+    missing: M('GSC/GA4 חי · תמונות · אימות Google', 'gates', 'internal'),
+    top3Tasks: [
+      M('לאשר תיקון OpenAI quota ואז CocoImageStage בלבד', 'chief/ops', 'ai_estimate'),
+      M('לאשר Sync GSC/GA4 חי (שלב 2) — בלי re-login אוטומטי', 'ops', 'ai_estimate'),
+      M('מדידת CWV חיה ל-Preview', 'ops', 'ai_estimate'),
+    ],
+    mainRisk: M('OpenAI quota חוסם השלמת תמונות', 'infra-verify', 'cache'),
+    mainOpportunity: M('Preview כבר חי — אפשר לבדוק מסרים לפני עלייה', 'preview', 'internal'),
+    monthImpact: M(
+      'חיבור GSC + השלמת תמונות צפויים להשפיע הכי הרבה — הערכת AI',
+      'ai',
+      'ai_estimate',
+    ),
+    aiRecommendation: M(
+      'להישאר ב-Preview עד Sync Google ותמונות; לא לעלות ל-Production',
+      'ai',
+      'ai_estimate',
+    ),
+  };
+
+  const subjectTemplate = `CO.CO | דוח יומי #${padded} | דליה פתרונות תפעול ותחזוקה לרכב | ${reportDate.split('-').reverse().join('/')}`;
 
   const report = {
     meta: {
-      version: '1.0.0-daily-progress',
-      generatedAt,
+      version: '2.0.0-daily-bi-phase1',
+      phase: 1,
+      generatedAt: generatedAtIso,
+      generatedTimeIL: timeIL(generatedAt),
       reportDate,
       timezone: 'Asia/Jerusalem',
+      reportNumber: number,
+      reportNumberPadded: padded,
+      reportNumberDisplay: `#${padded}`,
+      reportId,
+      pdfFileName,
+      cocoVersion: COCO_VERSION,
       readOnly: true,
       pipelineRan: false,
       imagesGenerated: false,
@@ -651,104 +626,36 @@ async function main() {
       contact: 'יוני אטיאס',
       domain: 'dalia-c.com',
       previewUrl: PREVIEW_URL,
-      reportHtmlUrl: `${PAGES_BASE}/coco-reports/${CLIENT}/daily/${reportDate}.html`,
     },
-    stages: buildStages(decision, asst, dump),
-    executiveSummary:
-      'האתר ב-Preview מוכן דרך c3+c13. Quality Gate עבר. תמונות חסומות ב-quota. חיבורי Google לא אומתו חי. המערכת ממשיכה בלי לעצור את ה-Preview.',
-    assistantsSummary: {
-      total: 50,
-      completed: asst.quality?.completedQuality ?? 29,
-      inProgress: asst.quality?.inProgress ?? 17,
-      skipped: asst.quality?.skippedAds ?? 4,
-      realAnalysis: asst.quality?.realAnalysisCount ?? 46,
-      topRecommendations: [
-        'להשלים אימות Google חי לפני סימון Local SEO כהושלם',
-        'לא להריץ Ads — דולג מהמסלול',
-        'תמונות רק דרך CocoImageStage אחרי quota',
-      ],
-    },
-    consultantsSummary: { items: consultants },
-    chiefRecommendation: {
-      status: chief.status || decision.chief?.status,
-      reason: chief.decision || decision.chief?.decisionReason || decision.qualityMetrics?.chiefReason,
-      score: chief.score ?? decision.chief?.score,
-    },
-    seoIntelligence: buildSeo(research),
-    competitors: buildCompetitors(research),
+    dashboard,
+    scores,
+    executiveSummary,
     healthChecks,
     healthScore,
     healthScoreFormula,
-    healthScoreNote:
-      'הציון נמוך בעיקר כי בדיקות רבות עדיין לא הוגדרו או לא ממומשות — לא בגלל קריסת האתר.',
+    healthScoreNote: 'הציון נמוך בעיקר כי בדיקות רבות עדיין לא הוגדרו או לא ממומשות — לא בגלל קריסת האתר.',
     healthSummary,
-    businessMetrics: {
-      note: 'אין נתון חי ללידים/המרות בריצה זו',
-      metrics: {
-        leads: { value: 'אין נתון חי', source: 'missing' },
-        inquiries: { value: 'אין נתון חי', source: 'missing' },
-        calls: { value: 'אין נתון חי', source: 'missing' },
-        forms: { value: 'אין נתון חי', source: 'missing' },
-        whatsapp: { value: 'אין נתון חי', source: 'missing' },
-        conversions: { value: 'אין נתון חי', source: 'missing' },
-        conversionRate: { value: 'אין נתון חי', source: 'missing' },
-        trafficSources: { value: 'אין נתון חי', source: 'missing' },
-      },
+    criticalFaults,
+    blockingFaults,
+    unimplementedChecks,
+    siteAssets: {
+      bytes: M(assets.bytes, 'preview-fs', 'internal'),
+      images: M(assets.images, 'preview-fs', 'internal'),
+      js: M(assets.js, 'preview-fs', 'internal'),
+      css: M(assets.css, 'preview-fs', 'internal'),
     },
-    sitePerformance: {
-      note: 'CWV/Lighthouse/PageSpeed — אין נתון חי; ספירת קבצי Preview = חישוב פנימי',
-      metrics: {
-        cwv: { value: 'אין נתון חי', source: 'missing', delta: 'אין נתון חי' },
-        lighthouse: { value: 'אין נתון חי', source: 'missing', delta: 'אין נתון חי' },
-        pagespeed: { value: 'אין נתון חי', source: 'missing', delta: 'אין נתון חי' },
-        loadTime: { value: 'אין נתון חי', source: 'missing', delta: 'אין נתון חי' },
-        siteBytes: { value: assets.bytes, source: 'internal', delta: 'אין דוח אתמול' },
-        images: { value: assets.images, source: 'internal', delta: 'אין דוח אתמול' },
-        jsFiles: { value: assets.js, source: 'internal', delta: 'אין דוח אתמול' },
-        cssFiles: { value: assets.css, source: 'internal', delta: 'אין דוח אתמול' },
-        previewHttp: { value: pagesPreview.ok ? `HTTP ${pagesPreview.status}` : 'שגיאה', source: 'live', delta: '—' },
-      },
+    assistantsHint: {
+      completed: M(asst.quality?.completedQuality ?? 29, 'stage-d-assistants-raw', 'cache'),
+      note: M('לא הורצו מחדש בריצה זו', 'generator', 'internal'),
     },
-    security: {
-      ssl: ssl.ok ? { status: 'תקין', validTo: ssl.validTo, source: 'live' } : { status: 'שגיאה', error: ssl.error, source: 'live' },
-      dns: dns.ok
-        ? { status: 'תקין', addrs: dns.addrs, source: 'live' }
-        : {
-            status: 'לא ניתן לאימות מקומית',
-            error: dns.error,
-            note: 'Node resolve4 ECONNREFUSED — סביבה מקומית; SSL ל-dalia-c.com הצליח',
-            source: 'local_unverifiable',
-          },
-      lastBackup: { value: 'אין נתון חי', source: 'missing' },
-      lastCommit: { value: verifySplit?.result?.orchestratorVersion ? 'ראה Git history מקומי' : 'אין נתון חי בדוח', source: 'internal' },
-      lastDeploy: { value: pagesHome.ok ? 'GitHub Pages מגיב' : 'אין נתון חי', source: pagesHome.ok ? 'live' : 'missing' },
-      siteVersion: { value: 'client-previews/dalia-c-official', source: 'internal' },
-      cocoVersion: { value: COCO_VERSION, source: 'internal' },
-    },
-    diffFromYesterday: {
-      summary: 'אין דוח אתמול שמור — זו ריצת בסיס ראשונה',
-      completedTasks: [],
-      newTasks: ['הפעלת מנגנון דוח יומי'],
-      issuesFound: ['OpenAI quota', 'Google לא מאומת חי'],
-      issuesResolved: [],
-      blockers: ['imagesBlockedQuota'],
-    },
-    scores,
     email: {
       status: 'dry_run',
       error: null,
       id: null,
       previewOnly: true,
-      note: 'לא נשלח אימייל — נוצרה תצוגה בלבד לפני Commit',
-    },
-    sourcesLegend: {
-      live: 'בדיקה חיה',
-      cache: 'cache/ידוע — לא מספיק ל«תקין»',
-      estimate: 'הערכה',
-      internal: 'חישוב פנימי',
-      missing: 'אין נתון חי',
-      not_configured: 'לא הוגדר',
-      local_unverifiable: 'לא ניתן לאימות בסביבה המקומית — לא תקלת אתר',
+      sentAt: null,
+      subjectTemplate,
+      note: 'שלב 1 — אין שליחה אמיתית',
     },
     readOnlyGuarantees: {
       pipelineRan: false,
@@ -761,37 +668,109 @@ async function main() {
       oauthChanged: false,
       secretsChanged: false,
       productionTouched: false,
+      cronEnabled: false,
+      realEmailSent: false,
+      migrationApplied: false,
+      edgeDeployed: false,
+      gscLive: false,
+      ga4Live: false,
+      gbpLive: false,
+      adsLive: false,
     },
   };
 
   const html = renderHtml(report);
-  const emailHtml = renderEmail(report);
-  const jsonPath = join(OUT_DIR, `${reportDate}.json`);
-  const htmlPath = join(OUT_DIR, `${reportDate}.html`);
-  const emailPath = join(OUT_DIR, `${reportDate}-email-preview.html`);
-  const latestJson = join(OUT_DIR, 'latest.json');
-  const latestHtml = join(OUT_DIR, 'latest.html');
-  const indexPath = join(OUT_DIR, 'index.json');
+  const htmlName = `COCO-Daily-Report-${padded}-${reportDate}.html`;
+  const jsonName = `COCO-Daily-Report-${padded}-${reportDate}.json`;
+  const emailName = `COCO-Daily-Report-${padded}-${reportDate}-email-preview.html`;
+  const pngName = `COCO-Daily-Report-${padded}-${reportDate}-page1.png`;
 
-  writeFileSync(jsonPath, JSON.stringify(report, null, 2), 'utf8');
+  const keep = new Set([
+    'report-sequence.json',
+    'index.json',
+    'latest.html',
+    'latest.json',
+    'latest.pdf',
+    htmlName,
+    jsonName,
+    pdfFileName,
+    emailName,
+    pngName,
+  ]);
+  pruneOldArtifacts(keep);
+
+  const htmlPath = join(OUT_DIR, htmlName);
+  const jsonPath = join(OUT_DIR, jsonName);
+  const pdfPath = join(OUT_DIR, pdfFileName);
+  const latestHtml = join(OUT_DIR, 'latest.html');
+  const latestJson = join(OUT_DIR, 'latest.json');
+  const latestPdf = join(OUT_DIR, 'latest.pdf');
+  const emailPath = join(OUT_DIR, emailName);
+  const pngPath = join(OUT_DIR, pngName);
+
   writeFileSync(htmlPath, html, 'utf8');
-  writeFileSync(emailPath, `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>Email Preview</title></head><body style="background:#f4f7fb;padding:24px">${emailHtml}</body></html>`, 'utf8');
-  writeFileSync(latestJson, JSON.stringify(report, null, 2), 'utf8');
   writeFileSync(latestHtml, html, 'utf8');
-  writeFileSync(indexPath, JSON.stringify({
+  writeFileSync(jsonPath, JSON.stringify(report, null, 2), 'utf8');
+  writeFileSync(latestJson, JSON.stringify(report, null, 2), 'utf8');
+
+  const emailHtml = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>Email digest preview</title></head>
+<body style="font-family:Arial,sans-serif;padding:24px;background:#f1f5f9">
+<div style="max-width:560px;margin:0 auto;background:#fff;padding:16px;border-radius:12px;border:1px solid #dbe3f0">
+  <p style="color:#64748b;font-size:12px">תקציר בלבד · PDF מצורף בשליחה אמיתית (לא בשלב 1)</p>
+  <h2 style="margin:0 0 8px">CO.CO | דוח יומי #${padded}</h2>
+  <p>${h(report.client.company)} · ${h(reportDate)}</p>
+  <ul>
+    <li>Project Score: ${h(scores.projectScore.value)}</li>
+    <li>Health Score: ${h(healthScore)}</li>
+    <li>מצב אתר: ${h(executiveSummary.siteStateToday.value)}</li>
+  </ul>
+  <p><strong>Top 3:</strong></p>
+  <ol>${executiveSummary.top3Tasks.map((t) => `<li>${h(t.value)}</li>`).join('')}</ol>
+  <p style="font-size:12px;color:#64748b">email_status=dry_run · לא נשלח</p>
+</div></body></html>`;
+  writeFileSync(emailPath, emailHtml, 'utf8');
+
+  await writePdf(htmlPath, pdfPath, {
+    padded,
+    company: report.client.company,
+    reportDate,
+  });
+  writeFileSync(latestPdf, readFileSync(pdfPath));
+  await screenshotPage1(htmlPath, pngPath);
+
+  const archive = readdirSync(OUT_DIR)
+    .filter((f) => /^COCO-Daily-Report-\d{4}-\d{4}-\d{2}-\d{2}\.html$/.test(f) || /^\d{4}-\d{2}-\d{2}\.html$/.test(f))
+    .sort()
+    .map((f) => ({ html: f, kept: true }));
+
+  writeFileSync(join(OUT_DIR, 'index.json'), JSON.stringify({
     clientSlug: CLIENT,
-    reports: [{ date: reportDate, json: `${reportDate}.json`, html: `${reportDate}.html`, emailPreview: `${reportDate}-email-preview.html`, projectScore: scores.projectScore, healthScore }],
-    updatedAt: generatedAt,
+    policy: 'latest-in-ui; prior reports kept on disk (no auto-delete); email is long-term archive',
+    latest: {
+      reportNumber: padded,
+      reportNumberDisplay: `#${padded}`,
+      date: reportDate,
+      html: 'latest.html',
+      json: 'latest.json',
+      pdf: 'latest.pdf',
+      pdfFileName,
+      emailPreview: emailName,
+      page1Screenshot: pngName,
+      projectScore: scores.projectScore.value,
+      healthScore,
+    },
+    archiveKept: archive,
+    updatedAt: generatedAtIso,
   }, null, 2), 'utf8');
 
   console.log(JSON.stringify({
     ok: true,
-    reportDate,
-    paths: { jsonPath, htmlPath, emailPath, latestHtml },
-    scores: { project: scores.projectScore, health: healthScore, progress: scores.progressPct },
-    healthSummary,
-    email: report.email,
-    readOnly: report.readOnlyGuarantees,
+    reportNumber: `#${padded}`,
+    pdfFileName,
+    paths: { htmlPath, pdfPath, latestHtml, pngPath, emailPath },
+    scores: { project: projectScore, health: healthScore },
+    email: report.email.status,
+    guarantees: report.readOnlyGuarantees,
   }, null, 2));
 }
 

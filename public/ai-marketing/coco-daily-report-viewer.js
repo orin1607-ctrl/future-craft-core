@@ -1,10 +1,11 @@
 /**
- * CO.CO — Daily Progress Report Viewer (history UI, read-only)
+ * CO.CO — Daily Progress Report Viewer (Phase 1)
+ * Shows LATEST report only: number, date, open, download PDF, resend (gated dry_run).
  */
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0-daily-viewer';
+  var VERSION = '2.0.0-daily-viewer-phase1';
   var ROOT_ID = 'coco-daily-report-root';
 
   function pagesBase() {
@@ -30,38 +31,50 @@
     if (!root) return;
     var slug = clientSlug();
     var base = pagesBase() + 'coco-reports/' + encodeURIComponent(slug) + '/daily/';
+
     root.innerHTML =
       '<div class="card" style="margin-top:10px;">' +
-      '<div class="ph-t">📅 דוחות התקדמות יומיים</div>' +
-      '<div class="s">Read Only · היסטוריה לפי תאריך · ללא Pipeline</div>' +
-      '<div id="coco-daily-list" style="font-size:12px;margin-top:8px;">טוען…</div>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">' +
-      '<a class="btn btn-p btn-sm" href="' + base + 'latest.html" target="_blank" rel="noopener">דוח אחרון</a>' +
-      '<a class="btn btn-o btn-sm" href="' + base + 'latest.json" target="_blank" rel="noopener">JSON</a>' +
-      '</div></div>';
+      '<div class="ph-t">📅 דוח יומי (אחרון)</div>' +
+      '<div class="s">Phase 1 · דוח אחרון בממשק · ארכיון נשמר בדיסק · PDF · dry_run</div>' +
+      '<div id="coco-daily-latest" style="font-size:12px;margin-top:8px;">טוען…</div>' +
+      '<div id="coco-daily-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>' +
+      '</div>';
 
     fetch(base + 'index.json?t=' + Date.now())
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (idx) {
-        var el = document.getElementById('coco-daily-list');
-        if (!el) return;
-        if (!idx || !idx.reports || !idx.reports.length) {
-          el.textContent = 'אין דוחות עדיין ללקוח ' + slug;
+        var el = document.getElementById('coco-daily-latest');
+        var actions = document.getElementById('coco-daily-actions');
+        if (!el || !actions) return;
+        if (!idx || !idx.latest) {
+          el.textContent = 'אין דוח אחרון ללקוח ' + slug;
           return;
         }
-        el.innerHTML = idx.reports.map(function (r) {
-          return '<div style="padding:6px 0;border-bottom:1px solid var(--w10,#e2e8f0);">' +
-            '<strong>' + r.date + '</strong> · Score ' + (r.projectScore ?? '—') +
-            ' · Health ' + (r.healthScore ?? '—') +
-            ' · <a href="' + base + r.html + '" target="_blank" rel="noopener">HTML</a>' +
-            ' · <a href="' + base + r.json + '" target="_blank" rel="noopener">JSON</a>' +
-            (r.emailPreview ? ' · <a href="' + base + r.emailPreview + '" target="_blank" rel="noopener">אימייל</a>' : '') +
-            '</div>';
-        }).join('');
+        var L = idx.latest;
+        el.innerHTML =
+          '<div><strong>מספר דוח:</strong> ' + (L.reportNumberDisplay || ('#' + L.reportNumber)) + '</div>' +
+          '<div><strong>תאריך:</strong> ' + (L.date || '—') + '</div>' +
+          '<div><strong>Project Score:</strong> ' + (L.projectScore ?? '—') +
+          ' · <strong>Health:</strong> ' + (L.healthScore ?? '—') + '</div>';
+
+        var pdfHref = base + (L.pdf || 'latest.pdf');
+        var htmlHref = base + (L.html || 'latest.html');
+        actions.innerHTML =
+          '<a class="btn btn-p btn-sm" href="' + htmlHref + '" target="_blank" rel="noopener">פתח דוח</a>' +
+          '<a class="btn btn-o btn-sm" href="' + pdfHref + '" download="' + (L.pdfFileName || 'report.pdf') + '">הורד PDF</a>' +
+          '<button type="button" class="btn btn-o btn-sm" id="coco-daily-resend">שלח שוב למייל</button>';
+
+        var btn = document.getElementById('coco-daily-resend');
+        if (btn) {
+          btn.addEventListener('click', function () {
+            // dry_run gate: no network, no status change, no new report, no retry
+            window.alert('שליחה חוזרת חסומה בשלב 1 (dry_run).\nלא נשלח מייל.\nלא שונה email_status.\nלא נוצר דוח חדש.\nאין retry.');
+          });
+        }
       })
       .catch(function () {
-        var el = document.getElementById('coco-daily-list');
-        if (el) el.textContent = 'לא ניתן לטעון היסטוריה (ייתכן שטרם פורסם ל-Pages)';
+        var el = document.getElementById('coco-daily-latest');
+        if (el) el.textContent = 'לא ניתן לטעון דוח אחרון (ייתכן שטרם פורסם)';
       });
   }
 
