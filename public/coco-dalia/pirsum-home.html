@@ -89,6 +89,7 @@ body.nav-busy::after{
     clientId: 'dalia-c-official',
     clientName: 'דליה פתרונות תפעול ותחזוקה לרכב',
     company: 'דליה פתרונות תפעול ותחזוקה לרכב',
+    contactName: 'יוני אטיאס',
     site: 'dalia-c.com',
     domain: 'dalia-c.com',
     url: 'https://dalia-c.com/',
@@ -104,6 +105,9 @@ body.nav-busy::after{
   function readJson(key) {
     try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
   }
+  function slugifyClientId(id) {
+    return String(id || '').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+  }
   function resolveClient() {
     var q = new URLSearchParams(location.search);
     var fromLs = readJson('coco-pirsum-client-v1') || {};
@@ -113,6 +117,7 @@ body.nav-busy::after{
     var site = q.get('site') || fromLs.site || fromLs.domain || flow.site || flow.domain || FALLBACK.site;
     var domain = q.get('domain') || fromLs.domain || flow.domain || site || FALLBACK.domain;
     var url = q.get('url') || fromLs.url || flow.url || FALLBACK.url;
+    var previewUrl = q.get('previewUrl') || fromLs.previewUrl || flow.previewUrl || null;
     return {
       clientId: clientId,
       clientName: clientName,
@@ -120,8 +125,30 @@ body.nav-busy::after{
       site: site,
       domain: domain,
       url: url,
+      previewUrl: previewUrl,
       missing: !(q.get('clientId') || fromLs.clientId || flow.clientId),
     };
+  }
+  /** Site URL for active client — never hardcode a single client. */
+  function resolveClientSiteUrl(ctx) {
+    var explicit = ctx && ctx.previewUrl;
+    if (explicit) {
+      if (/^https?:\/\//i.test(explicit)) return explicit;
+      return abs(String(explicit).replace(/^\//, ''));
+    }
+    try {
+      var stored = readJson('coco-dalia-preview-link-v1');
+      var storedUrl = stored && stored.urls && (stored.urls.indexUrl || stored.urls.externalUrl);
+      if (storedUrl && stored.clientId && ctx.clientId && stored.clientId === ctx.clientId) {
+        return storedUrl;
+      }
+      if (storedUrl && !stored.clientId && stored.urls && stored.urls.slug === slugifyClientId(ctx.clientId)) {
+        return storedUrl;
+      }
+    } catch (e) { /* ignore */ }
+    var slug = slugifyClientId(ctx && ctx.clientId);
+    if (!slug) return '';
+    return abs('client-previews/' + slug + '/index.html');
   }
   function qs(ctx) {
     return [
@@ -139,6 +166,7 @@ body.nav-busy::after{
     work: abs('coco-dalia/work-center-lite.html') + '?' + qs(ctx),
     control: abs('ai-marketing/ai-control-center-v5-STANDALONE.html') + '?' + qs(ctx),
     orin: abs('ai-marketing-platform.html') + '?stay=hub&clientId=' + encodeURIComponent(ctx.clientId),
+    site: resolveClientSiteUrl(ctx),
   };
 })();
 </script>
@@ -171,6 +199,11 @@ body.nav-busy::after{
       <div class="card-ico">📊</div>
       <div class="card-t">מרכז השליטה</div>
       <div class="card-s">שליטה · דוחות · מנועים — לפי הלקוח הפעיל</div>
+    </a>
+    <a class="card" id="link-site" href="#" target="_blank" rel="noopener">
+      <div class="card-ico">🌐</div>
+      <div class="card-t">פתח אתר</div>
+      <div class="card-s">האתר של הלקוח הפעיל</div>
     </a>
   </div>
 </main>
@@ -206,15 +239,26 @@ body.nav-busy::after{
 
   var work = document.getElementById('link-work');
   var control = document.getElementById('link-control');
+  var site = document.getElementById('link-site');
   var back = document.getElementById('back-orin');
   if (links.work) work.href = links.work;
   if (links.control) control.href = links.control;
   if (links.orin) back.href = links.orin;
+  if (site) {
+    if (links.site) {
+      site.href = links.site;
+      site.style.display = '';
+    } else {
+      site.style.display = 'none';
+    }
+  }
 
   var navLock = false;
-  function armNav(el) {
+  function armNav(el, opts) {
     if (!el) return;
+    opts = opts || {};
     el.addEventListener('click', function () {
+      if (opts.skipBusy) return;
       if (navLock) return;
       navLock = true;
       document.body.classList.add('nav-busy');
@@ -224,7 +268,8 @@ body.nav-busy::after{
       }, 15000);
     });
   }
-  [work, control, back].forEach(armNav);
+  [work, control, back].forEach(function (el) { armNav(el); });
+  armNav(site, { skipBusy: true });
 })();
 </script>
 </body>
