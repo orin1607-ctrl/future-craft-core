@@ -205,8 +205,15 @@ body.nav-busy::after{
       <div class="card-t">פתח אתר</div>
       <div class="card-s">האתר של הלקוח הפעיל</div>
     </a>
+    <a class="card" id="link-daily" href="#" target="_blank" rel="noopener">
+      <div class="card-ico">📅</div>
+      <div class="card-t">דוח יומי</div>
+      <div class="card-s">התקדמות · Health · SEO — Read Only</div>
+    </a>
   </div>
+  <div id="coco-daily-report-root" style="width:100%;max-width:520px;margin-top:8px;position:relative;z-index:1;"></div>
 </main>
+<script src="../ai-marketing/coco-daily-report-viewer.js?v=daily-1"></script>
 
 <script>
 (function () {
@@ -240,6 +247,7 @@ body.nav-busy::after{
   var work = document.getElementById('link-work');
   var control = document.getElementById('link-control');
   var site = document.getElementById('link-site');
+  var daily = document.getElementById('link-daily');
   var back = document.getElementById('back-orin');
   if (links.work) work.href = links.work;
   if (links.control) control.href = links.control;
@@ -251,6 +259,16 @@ body.nav-busy::after{
     } else {
       site.style.display = 'none';
     }
+  }
+  if (daily) {
+    var pagesBase = (window.COCO_PAGES_BASE || '/');
+    if (pagesBase.charAt(0) === '/') pagesBase = location.origin + pagesBase;
+    if (pagesBase.charAt(pagesBase.length - 1) !== '/') pagesBase += '/';
+    var slug = ctx.clientId || 'dalia-c-official';
+    daily.href = pagesBase + 'coco-reports/' + encodeURIComponent(slug) + '/daily/latest.html';
+  }
+  if (window.CocoDailyReportViewer && typeof window.CocoDailyReportViewer.mount === 'function') {
+    try { window.CocoDailyReportViewer.mount('coco-daily-report-root'); } catch (eDaily) { /* ignore */ }
   }
 
   var navLock = false;

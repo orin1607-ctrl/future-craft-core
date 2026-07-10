@@ -46,6 +46,17 @@
       meta: { standard: 'CO.CO Evidence v2', productionBlocked: true },
     });
 
+    list.unshift({
+      id: 'r-daily-progress',
+      name: 'דוח התקדמות יומי',
+      type: 'Daily Progress · Read Only',
+      date: today(),
+      status: 'מוכן',
+      source: 'coco-reports/.../daily/latest.html',
+      real: true,
+      meta: { readOnly: true, pipeline: false },
+    });
+
     list.push({
       id: 'r-brief',
       name: 'דוח Business Discovery',

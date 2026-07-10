@@ -238,6 +238,8 @@ body.coco-v5-booting .cat-grid{opacity:.92;}
     <div id="evidence-approval-queue"></div>
     <div class="cat-title">דוחות</div>
     <div id="reports-list"></div>
+    <div class="cat-title">דוחות התקדמות יומיים (Read Only)</div>
+    <div id="coco-daily-report-root"></div>
     <div class="cat-title">אישורים נוספים</div>
     <div id="approvals-list"></div>
   </div>
@@ -351,6 +353,7 @@ body.coco-v5-booting .cat-grid{opacity:.92;}
 <script src="coco-dalia-build-engines-hub.js?v=preview-split-1"></script>
 <script src="coco-dalia-orchestrator.js?v=preview-split-1"></script>
 <script src="coco-dalia-reports-engine.js?v=phase5-evidence"></script>
+<script src="coco-daily-report-viewer.js?v=daily-1"></script>
 <script src="coco-dalia-evidence-report-view.js?v=phase5-evidence"></script>
 <script src="coco-mission-control.js?v=phase5-mission"></script>
 <script src="coco-dalia-google-layer.js?v=phase5-full"></script>
@@ -537,6 +540,9 @@ function renderReports(){
       ${canApprove?`<button class="btn btn-go btn-sm" onclick="event.stopPropagation();approveEvidenceTask('${ap.taskId}')">✅</button>`:''}</div>`;
   }).join('');
   if (window.CocoDaliaEvidenceReportView) CocoDaliaEvidenceReportView.mountReportsScreen();
+  if (window.CocoDailyReportViewer && typeof window.CocoDailyReportViewer.mount === 'function') {
+    try { window.CocoDailyReportViewer.mount('coco-daily-report-root'); } catch (eDaily) { /* ignore */ }
+  }
 }
 window._cocoV5RenderReports = renderReports;
 function openEvidenceReport(){

@@ -1,0 +1,14 @@
+{
+  "clientSlug": "dalia-c-official",
+  "reports": [
+    {
+      "date": "2026-07-10",
+      "json": "2026-07-10.json",
+      "html": "2026-07-10.html",
+      "emailPreview": "2026-07-10-email-preview.html",
+      "projectScore": 85,
+      "healthScore": 25
+    }
+  ],
+  "updatedAt": "2026-07-10T16:21:49.925Z"
+}

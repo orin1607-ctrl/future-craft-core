@@ -1,0 +1,1094 @@
+{
+  "meta": {
+    "version": "1.0.0-daily-progress",
+    "generatedAt": "2026-07-10T16:21:49.925Z",
+    "reportDate": "2026-07-10",
+    "timezone": "Asia/Jerusalem",
+    "readOnly": true,
+    "pipelineRan": false,
+    "imagesGenerated": false,
+    "secretsChanged": false,
+    "clientSlug": "dalia-c-official"
+  },
+  "client": {
+    "clientId": "dalia-c-official",
+    "company": "דליה פתרונות תפעול ותחזוקה לרכב",
+    "contact": "יוני אטיאס",
+    "domain": "dalia-c.com",
+    "previewUrl": "https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html",
+    "reportHtmlUrl": "https://orin1607-ctrl.github.io/future-craft-core/coco-reports/dalia-c-official/daily/2026-07-10.html"
+  },
+  "stages": [
+    {
+      "id": "intake",
+      "name": "אפיון",
+      "status": "הושלם",
+      "source": "internal",
+      "note": "Pack + intake"
+    },
+    {
+      "id": "seo-q",
+      "name": "שאלון SEO",
+      "status": "הושלם",
+      "source": "internal",
+      "note": "Part A–B"
+    },
+    {
+      "id": "competitors",
+      "name": "מחקר מתחרים",
+      "status": "הושלם",
+      "source": "internal",
+      "note": "C-rev2"
+    },
+    {
+      "id": "keywords",
+      "name": "מחקר מילות מפתח",
+      "status": "הושלם",
+      "source": "internal",
+      "note": "נפחים = הערכה"
+    },
+    {
+      "id": "assistants",
+      "name": "50 העוזרים",
+      "status": "29 הושלמו / 17 בתהליך",
+      "source": "internal"
+    },
+    {
+      "id": "consultants",
+      "name": "10 היועצים",
+      "status": "אושר עם תיקון (רוב)",
+      "source": "internal"
+    },
+    {
+      "id": "orchestrator",
+      "name": "Orchestrator",
+      "status": "quality PASS",
+      "source": "internal"
+    },
+    {
+      "id": "engines",
+      "name": "13 המנועים",
+      "status": "3/13 מוכנים",
+      "source": "internal"
+    },
+    {
+      "id": "build",
+      "name": "בניית האתר",
+      "status": "הושלם (c3+c13)",
+      "source": "internal"
+    },
+    {
+      "id": "preview",
+      "name": "Preview",
+      "status": "מוכן — תמונות ממתינות",
+      "source": "internal"
+    },
+    {
+      "id": "images",
+      "name": "תמונות",
+      "status": "imagesBlockedQuota",
+      "source": "internal"
+    },
+    {
+      "id": "seo",
+      "name": "SEO",
+      "status": "בתהליך",
+      "source": "internal",
+      "note": "אין נתון חי למיקומים"
+    },
+    {
+      "id": "google",
+      "name": "Google",
+      "status": "לא אומת חי",
+      "source": "missing"
+    },
+    {
+      "id": "analytics",
+      "name": "Analytics",
+      "status": "אין נתון חי",
+      "source": "missing"
+    }
+  ],
+  "executiveSummary": "האתר ב-Preview מוכן דרך c3+c13. Quality Gate עבר. תמונות חסומות ב-quota. חיבורי Google לא אומתו חי. המערכת ממשיכה בלי לעצור את ה-Preview.",
+  "assistantsSummary": {
+    "total": 50,
+    "completed": 29,
+    "inProgress": 17,
+    "skipped": 4,
+    "realAnalysis": 46,
+    "topRecommendations": [
+      "להשלים אימות Google חי לפני סימון Local SEO כהושלם",
+      "לא להריץ Ads — דולג מהמסלול",
+      "תמונות רק דרך CocoImageStage אחרי quota"
+    ]
+  },
+  "consultantsSummary": {
+    "items": [
+      {
+        "id": "b1",
+        "name": "יועץ SEO",
+        "status": "אושר עם תיקון",
+        "decision": "אושר חלקית: ניתוחים אמיתיים בוצעו; פערים שנותרו הם אימות/מדידה — לא המצאת נתונים",
+        "approved": 4,
+        "rejected": 8
+      },
+      {
+        "id": "b2",
+        "name": "יועץ תוכן",
+        "status": "אושר עם תיקון",
+        "decision": "אושר חלקית: ניתוחים אמיתיים בוצעו; פערים שנותרו הם אימות/מדידה — לא המצאת נתונים",
+        "approved": 8,
+        "rejected": 0
+      },
+      {
+        "id": "b3",
+        "name": "יועץ E-E-A-T",
+        "status": "אושר עם תיקון",
+        "decision": "אושר חלקית: ניתוחים אמיתיים בוצעו; פערים שנותרו הם אימות/מדידה — לא המצאת נתונים",
+        "approved": 12,
+        "rejected": 1
+      },
+      {
+        "id": "b4",
+        "name": "יועץ טכנולוגיה",
+        "status": "ממתין",
+        "decision": "ממתין להשלמת ניתוחי איכות בעוזרים",
+        "approved": 0,
+        "rejected": 7
+      },
+      {
+        "id": "b5",
+        "name": "יועץ UX/UI",
+        "status": "אושר עם תיקון",
+        "decision": "אושר חלקית: ניתוחים אמיתיים בוצעו; פערים שנותרו הם אימות/מדידה — לא המצאת נתונים",
+        "approved": 11,
+        "rejected": 3
+      },
+      {
+        "id": "b6",
+        "name": "יועץ CRO",
+        "status": "אושר עם תיקון",
+        "decision": "אושר חלקית: ניתוחים אמיתיים בוצעו; פערים שנותרו הם אימות/מדידה — לא המצאת נתונים",
+        "approved": 8,
+        "rejected": 0
+      },
+      {
+        "id": "b7",
+        "name": "יועץ שיווק דיגיטלי",
+        "status": "אושר עם תיקון",
+        "decision": "אושר חלקית: ניתוחים אמיתיים בוצעו; פערים שנותרו הם אימות/מדידה — לא המצאת נתונים",
+        "approved": 4,
+        "rejected": 1
+      },
+      {
+        "id": "b8",
+        "name": "יועץ מיתוג",
+        "status": "אושר עם תיקון",
+        "decision": "אושר חלקית: ניתוחים אמיתיים בוצעו; פערים שנותרו הם אימות/מדידה — לא המצאת נתונים",
+        "approved": 11,
+        "rejected": 3
+      },
+      {
+        "id": "b9",
+        "name": "יועץ QA",
+        "status": "אושר עם תיקון",
+        "decision": "אושר חלקית: ניתוחים אמיתיים בוצעו; פערים שנותרו הם אימות/מדידה — לא המצאת נתונים",
+        "approved": 12,
+        "rejected": 12
+      },
+      {
+        "id": "b10",
+        "name": "Chief AI Architect",
+        "status": "אושר עם תיקון",
+        "decision": "Chief: אין סתירות קריטיות ו-C-rev2 הבסיסי עומד; נותרו פערים של אימות Google/טכני/תמונות — לא אישור מלא ל-E",
+        "approved": 12,
+        "rejected": 12
+      }
+    ]
+  },
+  "chiefRecommendation": {
+    "status": "אושר עם תיקון",
+    "reason": "Chief: אין סתירות קריטיות ו-C-rev2 הבסיסי עומד; נותרו פערים של אימות Google/טכני/תמונות — לא אישור מלא ל-E",
+    "score": 63
+  },
+  "seoIntelligence": {
+    "keywords": [
+      {
+        "term": "ניהול צי רכב לעסקים",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "תפעול רכבים לעסקים",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "תחזוקת צי רכב",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "מערכת לניהול צי רכב",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "אפליקציה לניהול צי רכב",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "מימון רכב לעסקים",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "חבילת תחזוקה לרכב לעסקים",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "תפעול ותחזוקת רכבים הכל כלול",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "הלוואה לרכב לעסקים ללא תפיסת מסגרת",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "פחחות מסובסדת לעסקים",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "דוח שנתי לניהול צי רכב",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      },
+      {
+        "term": "ניהול צי רכב במיקור חוץ",
+        "position": "אין נתון חי",
+        "changeYesterday": "אין נתון חי",
+        "changeWeek": "אין נתון חי",
+        "trend": "—",
+        "forecast1m": {
+          "value": "שיפור הדרגתי אפשרי",
+          "tag": "הערכה"
+        },
+        "forecast3m": {
+          "value": "פוטנציאל לעמוד 1 בביטויים ארוכים",
+          "tag": "הערכה"
+        },
+        "forecast6m": {
+          "value": "תחרות מול CarGeek — תלוי תוכן+E-E-A-T",
+          "tag": "הערכה"
+        },
+        "forecast12m": {
+          "value": "יעד Top 10 בביטויי ליבה — הערכה בלבד",
+          "tag": "הערכה"
+        },
+        "sourceType": "missing"
+      }
+    ],
+    "newKeywordsNote": "לא בוצע מחקר KW חדש היום — מבוסס C-rev2 שמור",
+    "forecastsLabel": "כל התחזיות מסומנות הערכה"
+  },
+  "competitors": {
+    "researchedToday": true,
+    "note": "מחקר מעודכן היום",
+    "peers": [
+      {
+        "id": "cargeek",
+        "name": "cargeek",
+        "threat": 9,
+        "url": "https://cargeek.co.il/"
+      },
+      {
+        "id": "carlog",
+        "name": "carlog",
+        "threat": 7,
+        "url": "https://carlog.co.il/"
+      },
+      {
+        "id": "tzi-kal",
+        "name": "tzi-kal",
+        "threat": 6.5,
+        "url": "https://tzi-kal.com/"
+      },
+      {
+        "id": "pointer",
+        "name": "pointer",
+        "threat": 5,
+        "url": "https://pointer4u.co.il/"
+      },
+      {
+        "id": "ituran",
+        "name": "ituran",
+        "threat": 5,
+        "url": "https://www.ituran.co.il/ituranfront/fleet-management/"
+      },
+      {
+        "id": "carpro",
+        "name": "carpro",
+        "threat": 4,
+        "url": "https://carpro.co.il/"
+      },
+      {
+        "id": "powerfleet",
+        "name": "powerfleet",
+        "threat": 2,
+        "url": "https://www.fleetcomplete.com/"
+      }
+    ],
+    "stronger": [
+      "שילוב תפעול+תחזוקה+מוסך בבעלות+מימון",
+      "בעלות הרכב אצל הלקוח"
+    ],
+    "weaker": [
+      "CarGeek — מיקור חוץ מלא כמתחרה מרכזי"
+    ],
+    "opportunities": [
+      "עמודי מימון ומוסך",
+      "בידול מול ליסינג תפעולי כקטגוריה"
+    ],
+    "newKeywords": [
+      "מימון צי רכב לעסקים"
+    ],
+    "servicesToAdd": [
+      "הדגשת מימון באתר"
+    ],
+    "pagesToStrengthen": [
+      "דף הבית",
+      "שירותים",
+      "מימון"
+    ],
+    "source": "C-rev2 / stage-c-research-v1"
+  },
+  "healthChecks": [
+    {
+      "name": "OpenAI",
+      "status": "אזהרה — חיבור קיים, quota חסום",
+      "checkPerformed": "קריאת infra-verify-live.json (אימות קודם) — לא בוצע chat/images בריצה זו",
+      "checkType": "cache / אימות קודם שמור",
+      "checkedAt": "2026-07-10T11:46:12.683Z",
+      "lastSync": null,
+      "lastError": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.",
+      "why": "Secret קיים (MARKETING_OPENAI_API_KEY / OPENAI_API_KEY). החיבור מזוהה. Chat probe קודם החזיר quota/billing. לא מדובר במפתח חסר. לא בוצעה קריאת Images בתשלום בריצה זו.",
+      "issueKind": "known_quota",
+      "blocksSite": false,
+      "actionRequiredFromUser": "כן — לתקן billing/quota ב-OpenAI (לא Secrets)",
+      "impact": "חוסם תמונות / AI chat — לא חוסם Preview HTML",
+      "recommendation": "לתקן quota/billing; תמונות רק דרך CocoImageStage אחרי אישור",
+      "sourceType": "cache"
+    },
+    {
+      "name": "Supabase",
+      "status": "לא הוגדר",
+      "checkPerformed": "לא בוצע ping DB",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.178Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "בדיקת חיבור DB עדיין לא ממומשת בדוח היומי",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "דוחות/CRM",
+      "recommendation": "להוסיף ping DB ב-Edge בשלב מאוחר",
+      "sourceType": "not_configured"
+    },
+    {
+      "name": "Edge Functions",
+      "status": "אזהרה",
+      "checkPerformed": "לא בוצעה בדיקה חיה בריצה זו",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.178Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "הבדיקה עדיין לא ממומשת בדוגמה המקומית",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "AI/Google sync",
+      "recommendation": "probe status מ-cron אחרי אישור תשתית",
+      "sourceType": "missing"
+    },
+    {
+      "name": "GitHub",
+      "status": "תקין",
+      "checkPerformed": "GET api.github.com/repos/orin1607-ctrl/future-craft-core → HTTP 200",
+      "checkType": "חיה",
+      "checkedAt": "2026-07-10T16:21:51.178Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "הריפו נגיש בקריאה חיה",
+      "issueKind": "real",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "קוד/Deploy Staging",
+      "recommendation": "—",
+      "sourceType": "live"
+    },
+    {
+      "name": "GitHub Pages",
+      "status": "תקין",
+      "checkPerformed": "GET https://orin1607-ctrl.github.io/future-craft-core/ → HTTP 200",
+      "checkType": "חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "Staging Pages מגיב",
+      "issueKind": "real",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "Staging בלבד",
+      "recommendation": "—",
+      "sourceType": "live"
+    },
+    {
+      "name": "Google Search Console",
+      "status": "לא הוגדר",
+      "checkPerformed": "לא בוצע sync/probe חי בריצה זו",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "אין נתון חי בדוח — לא סומן כמחובר",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא כרגע (sync מאושר בנפרד)",
+      "impact": "מיקומי KW",
+      "recommendation": "sync מאושר — בלי re-login אוטומטי",
+      "sourceType": "not_configured"
+    },
+    {
+      "name": "Google Analytics 4",
+      "status": "לא הוגדר",
+      "checkPerformed": "לא בוצע probe חי",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "אין נתון חי בדוח",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא כרגע",
+      "impact": "תנועה/המרות",
+      "recommendation": "אימות חי בנפרד",
+      "sourceType": "not_configured"
+    },
+    {
+      "name": "Google Business Profile",
+      "status": "אזהרה",
+      "checkPerformed": "קריאת infra-verify קודם (pending API)",
+      "checkType": "cache",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "ידוע מאימות קודם: ממתין לאישור Google API — לא בדיקה חיה היום",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "כן — אישור Google API אם רוצים Local SEO חי",
+      "impact": "Local SEO",
+      "recommendation": "אישור Google API",
+      "sourceType": "cache"
+    },
+    {
+      "name": "Google Ads",
+      "status": "לא הוגדר",
+      "checkPerformed": "לא רלוונטי למסלול",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "Ads דולג מהמסלול — לא חלק מהתוכנית",
+      "issueKind": "not_in_scope",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "מסלול Ads לא פעיל",
+      "recommendation": "—",
+      "sourceType": "not_configured"
+    },
+    {
+      "name": "Google Tag Manager",
+      "status": "אזהרה",
+      "checkPerformed": "לא בוצע probe חי בריצה זו; ידוע probe קודם",
+      "checkType": "cache",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "אין אימות חי היום — לא מספיק ל«תקין»",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "תגיות",
+      "recommendation": "probe חי ב-cron אחרי אישור",
+      "sourceType": "cache"
+    },
+    {
+      "name": "Gmail",
+      "status": "לא הוגדר",
+      "checkPerformed": "לא בוצעה בדיקה",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "בדיקה לא ממומשת",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "מייל נכנס",
+      "recommendation": "—",
+      "sourceType": "not_configured"
+    },
+    {
+      "name": "Google Drive",
+      "status": "לא הוגדר",
+      "checkPerformed": "לא בוצעה בדיקה",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "בדיקה לא ממומשת",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "—",
+      "recommendation": "—",
+      "sourceType": "not_configured"
+    },
+    {
+      "name": "Google Sheets",
+      "status": "לא הוגדר",
+      "checkPerformed": "לא בוצעה בדיקה",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "בדיקה לא ממומשת",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "—",
+      "recommendation": "—",
+      "sourceType": "not_configured"
+    },
+    {
+      "name": "Storage",
+      "status": "לא הוגדר",
+      "checkPerformed": "לא בוצע list bucket",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "בדיקה לא ממומשת",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "—",
+      "recommendation": "list bucket read-only בשלב מאוחר",
+      "sourceType": "not_configured"
+    },
+    {
+      "name": "Resend",
+      "status": "אזהרה",
+      "checkPerformed": "לא נשלח מייל; נוצרה תצוגת dry_run בלבד",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "שליחה אמיתית חסומה במכוון עד אישור",
+      "issueKind": "not_in_scope",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא — להשאיר dry_run",
+      "impact": "דוח יומי באימייל",
+      "recommendation": "dry_run עד אישור שליחה",
+      "sourceType": "missing"
+    },
+    {
+      "name": "CRM",
+      "status": "לא הוגדר",
+      "checkPerformed": "לא בוצעה בדיקה",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "בדיקה לא ממומשת",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "—",
+      "recommendation": "—",
+      "sourceType": "not_configured"
+    },
+    {
+      "name": "WhatsApp",
+      "status": "לא הוגדר",
+      "checkPerformed": "לא בוצעה בדיקה",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "בדיקה לא ממומשת",
+      "issueKind": "check_not_implemented",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "—",
+      "recommendation": "—",
+      "sourceType": "not_configured"
+    },
+    {
+      "name": "Domain",
+      "status": "לא ניתן לאימות מקומית",
+      "checkPerformed": "dns.promises.resolve4('dalia-c.com') + הקשר SSL ל-dalia-c.com:443",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": "queryA ECONNREFUSED dalia-c.com",
+      "why": "Node resolve4 נכשל בסביבה המקומית (ECONNREFUSED), אך TLS ל-dalia-c.com הצליח — זו בעיית סביבת בדיקה, לא תקלה באתר",
+      "issueKind": "local_env",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא — אין שינוי DNS",
+      "impact": "אתר חי (לא Staging Preview)",
+      "recommendation": "לא ניתן לאימות מקומית — לא לשנות DNS",
+      "sourceType": "local_unverifiable"
+    },
+    {
+      "name": "DNS",
+      "status": "לא ניתן לאימות מקומית",
+      "checkPerformed": "dns.promises.resolve4('dalia-c.com')",
+      "checkType": "לא בוצעה בדיקה חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": "queryA ECONNREFUSED dalia-c.com",
+      "why": "queryA ECONNREFUSED — כשל ב-DNS client המקומי של Node, לא שינוי/תקלה מוכחת ב-DNS של הדומיין",
+      "issueKind": "local_env",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא — אין שינוי DNS",
+      "impact": "רזולוציה",
+      "recommendation": "לא ניתן לאימות מקומית — אין לגעת ב-DNS",
+      "sourceType": "local_unverifiable"
+    },
+    {
+      "name": "SSL",
+      "status": "תקין",
+      "checkPerformed": "TLS connect dalia-c.com:443 (קריאה בלבד)",
+      "checkType": "חיה",
+      "checkedAt": "2026-07-10T16:21:51.179Z",
+      "lastSync": null,
+      "lastError": null,
+      "why": "תעודה תקינה · validTo=Sep  6 15:06:50 2026 GMT",
+      "issueKind": "real",
+      "blocksSite": false,
+      "actionRequiredFromUser": "לא",
+      "impact": "אבטחה",
+      "recommendation": "validTo=Sep  6 15:06:50 2026 GMT",
+      "sourceType": "live"
+    }
+  ],
+  "healthScore": 25,
+  "healthScoreFormula": "round((תקין×100 + אזהרה×40 + שגיאה×0 + לא_הוגדר×0 + לא_ניתן_לאימות×0) / total)",
+  "healthScoreNote": "הציון נמוך בעיקר כי בדיקות רבות עדיין לא הוגדרו או לא ממומשות — לא בגלל קריסת האתר.",
+  "healthSummary": {
+    "total": 20,
+    "ok": 3,
+    "warn": 5,
+    "err": 0,
+    "undef": 10,
+    "localUnverifiable": 2
+  },
+  "businessMetrics": {
+    "note": "אין נתון חי ללידים/המרות בריצה זו",
+    "metrics": {
+      "leads": {
+        "value": "אין נתון חי",
+        "source": "missing"
+      },
+      "inquiries": {
+        "value": "אין נתון חי",
+        "source": "missing"
+      },
+      "calls": {
+        "value": "אין נתון חי",
+        "source": "missing"
+      },
+      "forms": {
+        "value": "אין נתון חי",
+        "source": "missing"
+      },
+      "whatsapp": {
+        "value": "אין נתון חי",
+        "source": "missing"
+      },
+      "conversions": {
+        "value": "אין נתון חי",
+        "source": "missing"
+      },
+      "conversionRate": {
+        "value": "אין נתון חי",
+        "source": "missing"
+      },
+      "trafficSources": {
+        "value": "אין נתון חי",
+        "source": "missing"
+      }
+    }
+  },
+  "sitePerformance": {
+    "note": "CWV/Lighthouse/PageSpeed — אין נתון חי; ספירת קבצי Preview = חישוב פנימי",
+    "metrics": {
+      "cwv": {
+        "value": "אין נתון חי",
+        "source": "missing",
+        "delta": "אין נתון חי"
+      },
+      "lighthouse": {
+        "value": "אין נתון חי",
+        "source": "missing",
+        "delta": "אין נתון חי"
+      },
+      "pagespeed": {
+        "value": "אין נתון חי",
+        "source": "missing",
+        "delta": "אין נתון חי"
+      },
+      "loadTime": {
+        "value": "אין נתון חי",
+        "source": "missing",
+        "delta": "אין נתון חי"
+      },
+      "siteBytes": {
+        "value": 42033,
+        "source": "internal",
+        "delta": "אין דוח אתמול"
+      },
+      "images": {
+        "value": 0,
+        "source": "internal",
+        "delta": "אין דוח אתמול"
+      },
+      "jsFiles": {
+        "value": 1,
+        "source": "internal",
+        "delta": "אין דוח אתמול"
+      },
+      "cssFiles": {
+        "value": 1,
+        "source": "internal",
+        "delta": "אין דוח אתמול"
+      },
+      "previewHttp": {
+        "value": "HTTP 200",
+        "source": "live",
+        "delta": "—"
+      }
+    }
+  },
+  "security": {
+    "ssl": {
+      "status": "תקין",
+      "validTo": "Sep  6 15:06:50 2026 GMT",
+      "source": "live"
+    },
+    "dns": {
+      "status": "לא ניתן לאימות מקומית",
+      "error": "queryA ECONNREFUSED dalia-c.com",
+      "note": "Node resolve4 ECONNREFUSED — סביבה מקומית; SSL ל-dalia-c.com הצליח",
+      "source": "local_unverifiable"
+    },
+    "lastBackup": {
+      "value": "אין נתון חי",
+      "source": "missing"
+    },
+    "lastCommit": {
+      "value": "ראה Git history מקומי",
+      "source": "internal"
+    },
+    "lastDeploy": {
+      "value": "GitHub Pages מגיב",
+      "source": "live"
+    },
+    "siteVersion": {
+      "value": "client-previews/dalia-c-official",
+      "source": "internal"
+    },
+    "cocoVersion": {
+      "value": "7.0.0-preview-images-split",
+      "source": "internal"
+    }
+  },
+  "diffFromYesterday": {
+    "summary": "אין דוח אתמול שמור — זו ריצת בסיס ראשונה",
+    "completedTasks": [],
+    "newTasks": [
+      "הפעלת מנגנון דוח יומי"
+    ],
+    "issuesFound": [
+      "OpenAI quota",
+      "Google לא מאומת חי"
+    ],
+    "issuesResolved": [],
+    "blockers": [
+      "imagesBlockedQuota"
+    ]
+  },
+  "scores": {
+    "projectScore": 85,
+    "projectScoreFormula": "base 55 + qualityGate(+15) + previewReady(+10) + c13(+5) + healthLiveOk≥3(+5) + imagesBlocked(−5); clamp 0–100",
+    "progressPct": 68,
+    "progressPctSource": "estimate",
+    "progressPctNote": "הערכה קבועה בשלב 1 — אין עדיין נוסחה משוקללת לפי שלבים; לא נתון חי",
+    "goLiveReady": false,
+    "goLiveReason": "Preview מוכן אך תמונות חסומות (quota) ו-Google לא מאומת חי",
+    "explanation": "+15 quality gate · +10 preview ready · +5 c13 · +5 health live ok · -5 images blocked",
+    "top3ToImprove": [
+      "תיקון OpenAI quota והשלמת תמונות (CocoImageStage בלבד)",
+      "אימות GSC/GA4 חי (sync מאושר, בלי re-login אוטומטי)",
+      "מדידת CWV חיה ל-Preview"
+    ],
+    "sourceType": "internal",
+    "projectState": "Preview מוכן — תמונות ממתינות (quota)",
+    "topProblem": "OpenAI Images quota / תמונות לא הושלמו",
+    "topTaskTomorrow": "לאשר תיקון quota ואז CocoImageStage בלבד (בלי Pipeline מלא)"
+  },
+  "email": {
+    "status": "dry_run",
+    "error": null,
+    "id": null,
+    "previewOnly": true,
+    "note": "לא נשלח אימייל — נוצרה תצוגה בלבד לפני Commit"
+  },
+  "sourcesLegend": {
+    "live": "בדיקה חיה",
+    "cache": "cache/ידוע — לא מספיק ל«תקין»",
+    "estimate": "הערכה",
+    "internal": "חישוב פנימי",
+    "missing": "אין נתון חי",
+    "not_configured": "לא הוגדר",
+    "local_unverifiable": "לא ניתן לאימות בסביבה המקומית — לא תקלת אתר"
+  },
+  "readOnlyGuarantees": {
+    "pipelineRan": false,
+    "assistantsReran": false,
+    "consultantsReran": false,
+    "enginesReran": false,
+    "imagesGenerated": false,
+    "seoChanged": false,
+    "siteChanged": false,
+    "oauthChanged": false,
+    "secretsChanged": false,
+    "productionTouched": false
+  }
+}
