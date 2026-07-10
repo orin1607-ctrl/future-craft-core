@@ -4,8 +4,9 @@
 (function () {
   'use strict';
 
-  var VERSION = '5.2.0-runner';
+  var VERSION = '6.0.0-runner-no-paid-images';
   var OUTPUT_KEY = 'coco-dalia-engine-outputs-v1';
+  var PAID_IMAGE_IDS = { c6: true, c11: true };
 
   var OWNER = {
     v0: {
@@ -258,10 +259,24 @@
     c3: function (ctx) { return Promise.resolve(runC3(ctx)); },
     c10: function (ctx) { return runC10(ctx); },
     c6: function (ctx) {
-      return runEdgeEngine('c6', 'images', 'עיצוב גרפי מקצועי לאתר B2B ' + briefCompany(ctx), 'openai');
+      // Paid images disabled in default pipeline — use CocoImageStage only
+      return Promise.resolve({
+        ok: false,
+        status: 'ממתין לשלב תמונות',
+        ready: false,
+        note: 'דולג — CocoImageStage בלבד (אין קריאת Images API)',
+        skippedPaid: true,
+      });
     },
     c11: function (ctx) {
-      return runEdgeEngine('c11', 'images', 'תמונת Hero לאתר ' + briefCompany(ctx), 'openai');
+      return Promise.resolve({
+        ok: false,
+        status: 'תמונות — quota / ממתין',
+        ready: false,
+        note: 'דולג — אין יצירת תמונות ב-Pipeline; imagesBlockedQuota או Pending',
+        skippedPaid: true,
+        imagesStatus: 'imagesBlockedQuota',
+      });
     },
     c8: function (ctx) {
       return runEdgeEngine('c8', 'wordpress', 'עמוד שירותים', 'wordpress');
@@ -287,8 +302,14 @@
     return fn(ctx, pkg);
   }
 
-  function runAllParallel(ctx, pkg) {
-    var ids = Object.keys(RUNNERS);
+  function runAllParallel(ctx, pkg, opts) {
+    opts = opts || {};
+    var ids = opts.onlyIds && opts.onlyIds.length
+      ? opts.onlyIds.slice()
+      : Object.keys(RUNNERS);
+    if (opts.skipPaidImages !== false) {
+      ids = ids.filter(function (id) { return !PAID_IMAGE_IDS[id]; });
+    }
     var outputs = parseLs(OUTPUT_KEY) || { engines: {}, at: null };
     return Promise.all(ids.map(function (id) {
       return runOne(id, ctx, pkg).then(function (result) {
@@ -296,8 +317,21 @@
         return { id: id, result: result };
       });
     })).then(function (results) {
+      // Record deferred image engines without API calls
+      ['c6', 'c11'].forEach(function (id) {
+        if (outputs.engines[id]) return;
+        outputs.engines[id] = {
+          ranAt: new Date().toISOString(),
+          ok: false,
+          status: 'ממתין לשלב תמונות',
+          ready: false,
+          note: 'דולג מ-parallel — CocoImageStage',
+          skippedPaid: true,
+        };
+      });
       outputs.at = new Date().toISOString();
       outputs.version = VERSION;
+      outputs.skipPaidImages = opts.skipPaidImages !== false;
       saveLs(OUTPUT_KEY, outputs);
       try {
         window.dispatchEvent(new CustomEvent('coco:engines-outputs-updated', { detail: outputs }));

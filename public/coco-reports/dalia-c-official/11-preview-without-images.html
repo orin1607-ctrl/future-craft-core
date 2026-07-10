@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Preview מוכן — תמונות ממתינות | דליה</title>
+<style>
+body{font-family:Heebo,Arial,sans-serif;margin:0;background:#f4f7fb;color:#111;line-height:1.55}
+.wrap{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+.card{background:#fff;border:1px solid #dbe3f0;border-radius:12px;padding:16px;margin-bottom:14px}
+.ok{color:#047857;font-weight:700}.warn{color:#b45309;font-weight:700}.bad{color:#b91c1c;font-weight:700}
+a{color:#0d9488} code{background:#f1f5f9;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>דוח: Preview מופרד מתמונות</h1>
+<p class="meta" style="color:#64748b;font-size:.9rem;">אין Commit · אין Push · אין יצירת תמונות · אין קריאת Images API</p>
+
+<div class="card">
+<h2>סטטוס למשתמש</h2>
+<ul>
+<li class="ok">האתר נבנה בהצלחה</li>
+<li class="ok">Preview זמין</li>
+<li class="warn">תמונות ממתינות בגלל quota (<code>imagesBlockedQuota</code>)</li>
+<li>אין צורך להזין שוב נתונים</li>
+<li>אין צורך להריץ מחדש את כל ה-Pipeline</li>
+</ul>
+<p><strong>קישור Preview:</strong><br>
+<a href="https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html" target="_blank" rel="noopener">
+https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html
+</a></p>
+</div>
+
+<div class="card">
+<h2>Gates</h2>
+<ul>
+<li><code>sitePreviewReady</code> = PASS (c3 + c13)</li>
+<li><code>imagesReady</code> = FAIL</li>
+<li><code>finalSiteReady</code> = FAIL</li>
+<li>תווית: <strong>Preview מוכן — תמונות ממתינות</strong></li>
+</ul>
+</div>
+
+<div class="card">
+<h2>CocoImageStage</h2>
+<p>שלב עצמאי. <code>runImagesOnly</code> / כפתור «תמונות בלבד» — לא מריץ 50 עוזרים, יועצים, Orchestrator מלא, 13 מנועים או בניית אתר מחדש.</p>
+<p class="ok">יצירה כבויה (<code>generate:false</code>) — אין קריאה בתשלום.</p>
+</div>
+</div>
+</body>
+</html>

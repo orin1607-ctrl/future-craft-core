@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '5.2.0-hub';
+  var VERSION = '6.0.0-hub-preview-split';
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -12,7 +12,7 @@
 
   function statusClass(st) {
     if (st === 'הושלם' || st === 'מוכן') return 'bd-g';
-    if (st === 'ממתין למפתח' || st === 'דורש API Key') return 'bd-y';
+    if (st === 'ממתין למפתח' || st === 'דורש API Key' || /תמונות|ממתין לשלב/.test(st)) return 'bd-y';
     if (st === 'שגיאה') return 'bd-r';
     return 'bd-x';
   }
@@ -62,7 +62,12 @@
     var base = window.COCO_PAGES_BASE || '/';
     if (base.charAt(0) === '/') base = location.origin + base;
     if (base.charAt(base.length - 1) !== '/') base += '/';
-    return { indexUrl: base + 'client-previews/' + slug + '/index.html', gatewayUrl: base + 'client-previews/preview-gateway.html?slug=' + encodeURIComponent(slug) };
+    var external = 'https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html';
+    return {
+      indexUrl: base + 'client-previews/' + slug + '/index.html',
+      gatewayUrl: base + 'client-previews/preview-gateway.html?slug=' + encodeURIComponent(slug),
+      externalUrl: external,
+    };
   }
 
   function mount(rootId) {
@@ -72,15 +77,28 @@
     var store = (window.CocoDaliaBuildEnginesEngine && CocoDaliaBuildEnginesEngine.loadEngines()) || null;
     var pending = (window.CocoDaliaBuildEnginesRunner && CocoDaliaBuildEnginesRunner.getOwnerActions()) || [];
     var preview = resolveHubPreviewUrl();
+    var ext = (preview.externalUrl) || (window.CocoPipelineBridge && CocoPipelineBridge.EXTERNAL_PREVIEW) ||
+      'https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html';
+    var imgSt = (window.CocoImageStage && CocoImageStage.getStatus) ? CocoImageStage.getStatus() : {};
+    var gates = {};
+    try { gates = (JSON.parse(localStorage.getItem('coco-dalia-pipeline-v1') || '{}').gates) || {}; } catch (e) { gates = {}; }
 
     root.innerHTML =
       '<div class="card" style="margin-top:10px;">' +
       '<div class="ph-t">🛠️ מנועי בניית אתרים (13)</div>' +
-      '<div class="s">הרצה מקבילית — c13 → c12 · Preview בקישור בלבד (Staging)</div>' +
+      '<div class="s">Preview בלי תמונות · c3+c13 · CocoImageStage נפרד</div>' +
+      '<div style="font-size:11px;margin:8px 0;padding:8px;border-radius:8px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);">' +
+      '<div><b>sitePreviewReady:</b> ' + (gates.sitePreviewReady ? 'PASS' : '—') +
+      ' · <b>imagesReady:</b> ' + (gates.imagesReady ? 'PASS' : 'FAIL') +
+      ' · <b>finalSiteReady:</b> ' + (gates.finalSiteReady ? 'PASS' : 'FAIL') + '</div>' +
+      '<div style="margin-top:4px;color:var(--w70);">סטטוס תמונות: ' + esc(imgSt.status || 'imagesPending') +
+      ' — האתר נבנה · Preview זמין · אין צורך ב-Pipeline מלא ל-retry תמונות</div>' +
+      '</div>' +
       '<div id="be-owner-pending" style="margin:8px 0;">' + renderOwnerBlock(pending) + '</div>' +
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">' +
-      '<button type="button" class="btn btn-p btn-sm" id="be-run-all">▶ הרץ את כל המנועים</button>' +
-      '<a class="btn btn-p btn-sm" id="be-open-preview" href="' + esc(preview.indexUrl) + '" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">🔗 פתח Preview לבדיקה ↗</a>' +
+      '<button type="button" class="btn btn-p btn-sm" id="be-run-all">▶ הרץ מנועי Preview (ללא Images)</button>' +
+      '<button type="button" class="btn btn-o btn-sm" id="be-run-images-only">🖼️ תמונות בלבד</button>' +
+      '<a class="btn btn-p btn-sm" id="be-open-preview" href="' + esc(ext) + '" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">🔗 Preview דליה ↗</a>' +
       '<a class="btn btn-o btn-sm" id="be-open-gateway" href="' + esc(preview.gatewayUrl) + '" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">🌐 Gateway</a>' +
       '</div>' +
       '<div id="be-engines-list">' + renderEnginesList(store) + '</div>' +
@@ -88,14 +106,23 @@
 
     root.querySelector('#be-run-all').addEventListener('click', function () {
       if (window.CocoDaliaBuildEnginesEngine) {
-        CocoDaliaBuildEnginesEngine.runAll(null, {});
-        if (typeof toast === 'function') toast('▶ מנועים רצים במקביל…');
+        CocoDaliaBuildEnginesEngine.runAll(null, { skipPaidImages: true });
+        if (typeof toast === 'function') toast('▶ Preview engines (ללא Images API)…');
         setTimeout(function () { mount(rootId); }, 2500);
+      }
+    });
+    root.querySelector('#be-run-images-only').addEventListener('click', function () {
+      if (window.CocoDaliaOrchestrator && CocoDaliaOrchestrator.runImagesOnly) {
+        CocoDaliaOrchestrator.runImagesOnly({ generate: false, forceQuotaBlocked: true }).then(function () {
+          if (typeof toast === 'function') toast('Images-only — ללא Pipeline מלא');
+          mount(rootId);
+        });
       }
     });
 
     window.addEventListener('coco:engines-updated', function () { mount(rootId); });
     window.addEventListener('coco:engines-outputs-updated', function () { mount(rootId); });
+    window.addEventListener('coco:image-stage-updated', function () { mount(rootId); });
   }
 
   window.CocoDaliaBuildEnginesHub = { VERSION: VERSION, mount: mount };

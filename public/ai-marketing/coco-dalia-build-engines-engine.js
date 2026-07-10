@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '5.2.0-engines';
+  var VERSION = '6.0.0-preview-without-images';
   var ENGINES_KEY = 'coco-dalia-engines-v1';
   var BUILD_PKG_KEY = 'coco-dalia-build-package-v1';
 
@@ -98,6 +98,16 @@
       status = 'מוכן';
       ready = true;
       note = hasEdgeAi() ? 'תוכן AI — Edge auth' : 'תוכן rule-based — ללא API חיצוני';
+    } else if (eng.id === 'c11' || eng.id === 'c6') {
+      // Images/design engines never block Preview (c3/c13)
+      var imgSt = (window.CocoImageStage && CocoImageStage.getStatus) ? CocoImageStage.getStatus() : null;
+      var blockedQuota = imgSt && imgSt.status === 'imagesBlockedQuota';
+      status = blockedQuota ? 'תמונות — quota' : 'ממתין לשלב תמונות';
+      ready = false;
+      note = blockedQuota
+        ? 'imagesBlockedQuota — Preview ממשיך בלי תמונות'
+        : 'CocoImageStage נפרד — לא חוסם c3/c13';
+      gaps.push(blockedQuota ? 'imagesBlockedQuota' : 'imagesPending');
     } else if (eng.provider && hasEdgeAi() && (eng.provider === 'openai' || eng.provider === 'claude' || eng.provider === 'gemini')) {
       status = 'מוכן';
       ready = true;
@@ -176,13 +186,37 @@
       }
     }
 
-    var store = { engines: engines, buildPackage: pkg, ranAt: new Date().toISOString(), version: VERSION, context: ctx };
+    var store = {
+      engines: engines,
+      buildPackage: pkg,
+      ranAt: new Date().toISOString(),
+      version: VERSION,
+      context: ctx,
+      previewWithoutImages: true,
+      continueOnImagesFailure: opts.continueOnImagesFailure !== false,
+    };
     saveLs(ENGINES_KEY, store);
 
+    // Default: only local preview engines in parallel — never paid images (c6/c11)
     if (!opts.skipParallel && window.CocoDaliaBuildEnginesRunner) {
-      CocoDaliaBuildEnginesRunner.runAllParallel(ctx, pkg).then(function (batch) {
+      var parallelOpts = {
+        onlyIds: opts.onlyIds || ['c3', 'c10', 'c13'],
+        skipPaidImages: opts.skipPaidImages !== false,
+      };
+      CocoDaliaBuildEnginesRunner.runAllParallel(ctx, pkg, parallelOpts).then(function (batch) {
         (batch.results || []).forEach(function (row) {
           applyRunnerResult(row.id, row.result);
+        });
+        // Keep c11/c6 as deferred even after parallel
+        ['c11', 'c6'].forEach(function (id) {
+          var eng = engines.find(function (e) { return e.id === id; });
+          if (!eng) return;
+          var imgSt = (window.CocoImageStage && CocoImageStage.getStatus) ? CocoImageStage.getStatus() : null;
+          if (imgSt && imgSt.status === 'imagesBlockedQuota') {
+            eng.status = 'תמונות — quota';
+            eng.note = 'imagesBlockedQuota — לא נקרא API';
+            eng.ready = false;
+          }
         });
         store.engines = engines;
         store.parallelAt = new Date().toISOString();

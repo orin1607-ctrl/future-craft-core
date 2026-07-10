@@ -1,0 +1,97 @@
+{
+  "at": "2026-07-10T13:33:32.893Z",
+  "previewFileExists": true,
+  "externalPreview": "https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html",
+  "paidImageApiCallsDetected": 0,
+  "paidCalls": [],
+  "result": {
+    "modules": {
+      "imageStage": true,
+      "orchestrator": true,
+      "runImagesOnly": true
+    },
+    "gates": {
+      "stageD": true,
+      "stageE": false,
+      "enginesReady": true,
+      "quality": true,
+      "sitePreviewReady": true,
+      "imagesReady": false,
+      "finalSiteReady": false,
+      "imagesStatus": "imagesBlockedQuota"
+    },
+    "siteLabelHe": "Preview מוכן — תמונות ממתינות",
+    "userMessages": [
+      "האתר נבנה בהצלחה",
+      "Preview זמין",
+      "תמונות ממתינות בגלל quota",
+      "אין צורך להזין שוב נתונים",
+      "אין צורך להריץ מחדש את כל ה-Pipeline"
+    ],
+    "previewUrl": "https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html",
+    "engines": {
+      "c3": {
+        "status": "מוכן",
+        "ready": true
+      },
+      "c13": {
+        "status": "הושלם",
+        "ready": true,
+        "note": "Blueprint פנימי נוצר · LS"
+      },
+      "c11": {
+        "status": "תמונות — quota",
+        "ready": false,
+        "note": "imagesBlockedQuota — Preview ממשיך בלי תמונות"
+      }
+    },
+    "imagesOnly": {
+      "ok": true,
+      "imagesOnly": true,
+      "status": "imagesBlockedQuota",
+      "paidApiCalled": false,
+      "skippedPipeline": true,
+      "skippedAssistants": true,
+      "generateRequested": false
+    },
+    "imageStage": {
+      "version": "1.0.0-image-stage",
+      "ranAt": "2026-07-10T13:33:32.599Z",
+      "mode": "imagesOnly",
+      "skippedPipeline": true,
+      "skippedAssistants": true,
+      "skippedConsultants": true,
+      "skippedOrchestratorFull": true,
+      "skippedEnginesAll": true,
+      "skippedSiteRebuild": true,
+      "reusePreview": true,
+      "generateRequested": false,
+      "paidApiCalled": false,
+      "imagesCreated": 0,
+      "previewUrl": "https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html",
+      "status": "imagesBlockedQuota",
+      "imagesReady": false,
+      "messageHe": "תמונות ממתינות בגלל quota — לא בוצעה קריאת API",
+      "userMessages": [
+        "האתר נבנה בהצלחה",
+        "Preview זמין",
+        "תמונות ממתינות בגלל quota",
+        "אין צורך להזין שוב נתונים",
+        "אין צורך להריץ מחדש את כל ה-Pipeline"
+      ]
+    },
+    "orchestratorVersion": "7.0.0-preview-images-split"
+  },
+  "assertions": {
+    "sitePreviewReady": true,
+    "imagesReadyFalse": true,
+    "finalSiteReadyFalse": true,
+    "imagesBlockedQuota": true,
+    "c3Ready": true,
+    "c13Done": true,
+    "imagesOnlySkipsPipeline": true,
+    "noPaidApi": true,
+    "noGenerate": true
+  },
+  "ok": true
+}
