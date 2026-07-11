@@ -95,6 +95,7 @@ export default function Customers() {
   useEffect(() => { loadData(); }, []);
 
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
+  const isOwner = user?.role === 'super_admin';
   const filtered = customers.filter(c => !search || c.name?.includes(search) || c.contact_person?.includes(search) || c.phone?.includes(search) || c.customer_number?.includes(search));
 
   const handleDelete = async (id: string) => {
@@ -343,17 +344,19 @@ function CustomerDetail({ customer: c, isManager, user, onBack, onEdit, onDelete
           <p className="text-xs text-muted-foreground mt-2">לפי סוג השירות נקבע אם נפתח כרטיס ניהול שיווק</p>
         </div>
 
-        <div className="mb-4 p-4 rounded-xl border-2 border-violet-200 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-800">
-          <p className="text-sm text-muted-foreground mb-2">ניהול שיווק — מערכת אחת · Client ID: {c.id.slice(0, 8)}…</p>
-          <Link
-            to={`/ai-marketing?customer=${c.id}&tab=crm`}
-            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 rounded-xl bg-violet-600 text-white font-bold min-h-[48px] hover:opacity-90"
-          >
-            פתח במנהל השיווק
-          </Link>
-        </div>
+        {isOwner && (
+          <div className="mb-4 p-4 rounded-xl border-2 border-violet-200 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-800">
+            <p className="text-sm text-muted-foreground mb-2">ניהול שיווק — Owner בלבד · Client ID: {c.id.slice(0, 8)}…</p>
+            <Link
+              to={`/ai-marketing?customer=${c.id}&tab=crm`}
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 rounded-xl bg-violet-600 text-white font-bold min-h-[48px] hover:opacity-90"
+            >
+              פתח במנהל השיווק
+            </Link>
+          </div>
+        )}
 
-        {hasMarketingService(c.service_type) && (
+        {isOwner && hasMarketingService(c.service_type) && (
           <div className="mb-4 p-4 rounded-xl border-2 border-violet-200/60 bg-violet-50/50 dark:bg-violet-950/20 dark:border-violet-800/60">
             <p className="text-sm text-muted-foreground mb-2">כרטיס שיווק מחובר לדליה — מקור אמת אחד</p>
             <Link

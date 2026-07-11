@@ -5,8 +5,10 @@
 <script>
 (function () {
   var host = location.hostname;
-  var base = '/future-craft-core/';
-  if (host === 'localhost' || host === '127.0.0.1') {
+  var base = '/';
+  if (host.indexOf('github.io') >= 0) {
+    base = '/future-craft-core/';
+  } else if (host === 'localhost' || host === '127.0.0.1') {
     var p = location.pathname || '';
     var i = p.indexOf('ai-marketing-platform');
     if (i < 0) i = p.indexOf('coco-marketing-platform');
