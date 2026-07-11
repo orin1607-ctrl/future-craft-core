@@ -1,6 +1,7 @@
 /**
  * Business-facing HTML for CO.CO daily report (manager language, same visual language).
- * Smart filter: date · report # · סוג נכס → on select opens popup with categories for that asset only.
+ * Compact filter: date · report # · סוג נכס + small button → popup with multi asset checkboxes
+ * and categories for the focused asset only.
  */
 function h(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -33,15 +34,11 @@ export function renderBusinessHtml(report) {
   const catalog = report.assetCatalog || [];
   const healthBiz = report.healthBusiness;
 
-  const assetOptions = [
-    `<option value="" disabled selected>— בחרו סוג נכס —</option>`,
-    ...catalog.map((a) => `<option value="${h(a.id)}">${h(a.labelHe)}</option>`),
-  ].join('');
-
-  const extraAssetChecks = catalog.map((a) => {
+  const assetChecks = catalog.map((a) => {
+    const checked = a.defaultSelected ? 'checked' : '';
     const soon = a.hasLiveData === false ? ' <span class="soon">(אין נתונים חיים עדיין)</span>' : '';
     return `<label class="chk asset-pick" data-pick="${h(a.id)}">
-      <input type="checkbox" name="asset" value="${h(a.id)}" data-asset="${h(a.id)}">
+      <input type="checkbox" name="asset" value="${h(a.id)}" data-asset="${h(a.id)}" ${checked}>
       ${h(a.labelHe)}${soon}
     </label>`;
   }).join('');
@@ -90,7 +87,7 @@ body.modal-open{overflow:hidden;touch-action:none}
 .btn-pdf{background:#fbbf24;color:#111}
 .btn-o{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
 .btn-go{background:#2563eb;color:#fff;border:0}
-.btn-assets{background:#0b1735;color:#fff;border:0}
+.btn-assets{background:#0b1735;color:#fff;border:0;padding:6px 10px;font-size:.78rem;font-weight:700;min-height:36px;width:auto;align-self:flex-start;white-space:nowrap}
 h2{font-size:1.05rem;margin:0 0 10px}.h3{font-size:.92rem;margin:12px 0 6px;color:#334155}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -107,9 +104,9 @@ h2{font-size:1.05rem;margin:0 0 10px}.h3{font-size:.92rem;margin:12px 0 6px;colo
 ul.exec{margin:0;padding-right:18px}
 .filter{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
 .filter label,.filter-asset{font-size:.72rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
-.filter input,.filter select{padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;min-width:130px;min-height:44px;touch-action:manipulation}
-.filter-asset .btn-assets{align-self:stretch}
-#fAssetType{font-weight:700;color:var(--ink);background:#fff;cursor:pointer}
+.filter input{padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;min-width:130px;min-height:44px;touch-action:manipulation}
+.filter-asset{flex-direction:row;align-items:center;gap:8px;min-height:44px}
+.filter-asset > span{white-space:nowrap}
 .chk{display:flex;align-items:center;gap:8px;padding:8px 0;font-size:.88rem;min-height:44px}.soon{color:var(--muted);font-size:.75rem}
 .trend{font-size:1.05rem;font-weight:800;margin-bottom:4px}
 .decision li{margin-bottom:8px}
@@ -129,10 +126,12 @@ ul.exec{margin:0;padding-right:18px}
 .modal-actions{display:flex;gap:8px;margin-top:12px;justify-content:stretch;flex-shrink:0;background:#fff;padding-top:8px;border-top:1px solid var(--line)}
 .modal-actions .btn{flex:1;min-height:44px}
 @media(max-width:720px){
-  .filter{flex-direction:column;align-items:stretch}
-  .filter label,.filter-asset{width:100%}
-  .filter input,.filter select{min-width:0;width:100%;min-height:48px;font-size:1rem}
-  .btn-assets,.btn-go{width:100%;min-height:48px;font-size:.95rem}
+  .filter{flex-wrap:wrap;align-items:end}
+  .filter label{flex:1 1 140px;min-width:0}
+  .filter input{min-width:0;width:100%;min-height:44px;font-size:1rem}
+  .filter-asset{flex:0 0 auto;width:auto}
+  .btn-assets{width:auto;min-width:0;min-height:36px;padding:6px 10px;font-size:.78rem}
+  .btn-go{min-height:44px;font-size:.9rem}
   .grid{grid-template-columns:1fr 1fr}
   .modal{max-width:100%;border-radius:16px 16px 0 0}
 }
@@ -162,12 +161,13 @@ ul.exec{margin:0;padding-right:18px}
   <div class="filter">
     <label>תאריך<input type="date" id="fDate" value="${h(report.meta.reportDate)}"></label>
     <label>מספר דוח<input type="text" id="fNum" value="${h(report.meta.reportNumberDisplay)}" readonly></label>
-    <label class="filter-asset">סוג נכס
-      <select id="fAssetType" aria-label="סוג נכס">${assetOptions}</select>
-    </label>
+    <div class="filter-asset">
+      <span>סוג נכס</span>
+      <button type="button" class="btn btn-assets" id="btnAssets" aria-haspopup="dialog" aria-controls="assetModal">בחירה…</button>
+    </div>
     <button type="button" class="btn btn-go" id="btnApply">הצג דוח</button>
   </div>
-  <p class="note" id="selHint">בחרו סוג נכס — נפתח חלון קטן עם הקטגוריות שלו בלבד. אפשר להוסיף נכסים נוספים מתוך החלון.</p>
+  <p class="note" id="selHint">ברירת מחדל: אתר ראשי. לחצו «בחירה…» לבחירת נכסים וקטגוריות.</p>
   <div id="selSummary"></div>
 </section>
 
@@ -246,14 +246,14 @@ ${assetSections}
 
 <div class="modal-bg" id="assetModal" aria-hidden="true">
   <div class="modal" role="dialog" aria-labelledby="assetModalTitle" aria-modal="true">
-    <h3 id="assetModalTitle">קטגוריות הנכס</h3>
-    <p class="note" id="assetModalNote">רק הקטגוריות של הנכס שנבחר — בלי לערבב נושאים.</p>
+    <h3 id="assetModalTitle">בחירת נכסים וקטגוריות</h3>
+    <p class="note" id="assetModalNote">סמנו נכס אחד או יותר. הקטגוריות למטה הן של הנכס הממוקד בלבד.</p>
     <div class="modal-body">
-      <div class="sec-title">קטגוריות</div>
+      <div class="sec-title">1. נכסים</div>
+      <div class="cats" id="assetList">${assetChecks}</div>
+      <div class="sec-title">2. קטגוריות של הנכס הממוקד</div>
       <div class="asset-tabs" id="assetTabs" hidden></div>
       <div class="cats-panel" id="catsPanel" data-focus-asset=""></div>
-      <div class="sec-title">נכסים נוספים (אופציונלי)</div>
-      <div class="cats" id="assetList">${extraAssetChecks}</div>
     </div>
     <div class="modal-actions">
       <button type="button" class="btn" id="modalCancel">סגור</button>
@@ -274,7 +274,7 @@ ${assetSections}
   });
 
   var modal = document.getElementById('assetModal');
-  var assetSelect = document.getElementById('fAssetType');
+  var btn = document.getElementById('btnAssets');
   var ok = document.getElementById('modalOk');
   var cancel = document.getElementById('modalCancel');
   var apply = document.getElementById('btnApply');
@@ -282,11 +282,8 @@ ${assetSections}
   var summary = document.getElementById('selSummary');
   var tabs = document.getElementById('assetTabs');
   var catsPanel = document.getElementById('catsPanel');
-  var modalTitle = document.getElementById('assetModalTitle');
   var modalNote = document.getElementById('assetModalNote');
   var focusAsset = 'site-main';
-  var selectedSet = { 'site-main': true };
-  var userPickedAsset = false;
   var compareData = ${JSON.stringify({
     singleSummary: comparison.summarySingle || comparison.summary,
     multiSummary: comparison.summaryMulti || 'השוואה בין הנכסים שנבחרו — בשפת החלטה עסקית:',
@@ -295,23 +292,16 @@ ${assetSections}
   })};
 
   function selectedAssets(){
-    return catalog.map(function(a){ return a.id; }).filter(function(id){ return !!selectedSet[id]; });
+    return Array.prototype.slice.call(document.querySelectorAll('input[name=asset]:checked')).map(function(i){ return i.value; });
   }
 
   function ensureDefault(){
     var sel = selectedAssets();
     if(!sel.length){
-      selectedSet['site-main'] = true;
-      sel = ['site-main'];
-      if(assetSelect) assetSelect.value = 'site-main';
+      var main = document.querySelector('input[name=asset][value="site-main"]');
+      if(main){ main.checked = true; sel = ['site-main']; }
     }
     return sel;
-  }
-
-  function syncCheckboxes(){
-    document.querySelectorAll('input[name=asset]').forEach(function(inp){
-      inp.checked = !!selectedSet[inp.value];
-    });
   }
 
   function labelOf(id){
@@ -327,23 +317,18 @@ ${assetSections}
     return full.split(' ')[0] || full;
   }
 
-  function updateSelectDisplay(){
-    if(!assetSelect) return;
-    var sel = ensureDefault();
-    if(sel.indexOf(focusAsset) < 0) focusAsset = sel[0];
-    // Keep placeholder until the user picks; after pick show focused asset.
-    if(userPickedAsset) assetSelect.value = focusAsset;
-  }
-
   function renderCatsPanel(){
     var sel = ensureDefault();
     if(sel.indexOf(focusAsset) < 0) focusAsset = sel[0];
-    syncCheckboxes();
 
-    if(modalTitle) modalTitle.textContent = 'קטגוריות — ' + labelOf(focusAsset);
+    document.querySelectorAll('.asset-pick').forEach(function(lab){
+      var id = lab.getAttribute('data-pick');
+      lab.classList.toggle('on', id === focusAsset);
+    });
+
     if(modalNote){
       modalNote.textContent = sel.length > 1
-        ? ('מוצגות הקטגוריות של «' + labelOf(focusAsset) + '» בלבד. אפשר לעבור בין הנכסים שנבחרו.')
+        ? ('מוצגות הקטגוריות של «' + labelOf(focusAsset) + '» בלבד. עברו בין הנכסים שנבחרו עם הלשוניות.')
         : ('רק הקטגוריות של «' + labelOf(focusAsset) + '» — בלי לערבב נושאים.');
     }
 
@@ -355,7 +340,7 @@ ${assetSections}
         b.type = 'button';
         b.textContent = shortLabel(id);
         if(id === focusAsset) b.className = 'on';
-        b.onclick = function(){ focusAsset = id; if(assetSelect) assetSelect.value = id; renderCatsPanel(); };
+        b.onclick = function(){ focusAsset = id; renderCatsPanel(); };
         tabs.appendChild(b);
       });
     }
@@ -385,7 +370,6 @@ ${assetSections}
 
   function applyFilter(){
     var sel = ensureDefault();
-    updateSelectDisplay();
     document.querySelectorAll('[data-asset-section]').forEach(function(el){
       var id = el.getAttribute('data-asset-section');
       el.style.display = sel.indexOf(id) >= 0 ? '' : 'none';
@@ -429,16 +413,15 @@ ${assetSections}
         return labelOf(id) + ' (' + on.length + ' קטגוריות)';
       }).join(' · ');
     }
+    if(btn){
+      btn.textContent = sel.length > 1 ? ('בחירה… (' + sel.length + ')') : 'בחירה…';
+    }
   }
 
-  function openModal(forAsset){
-    if(forAsset){
-      focusAsset = forAsset;
-      selectedSet[forAsset] = true;
-      userPickedAsset = true;
-    }
+  function openModal(){
     ensureDefault();
-    if(assetSelect && userPickedAsset) assetSelect.value = focusAsset;
+    var sel = selectedAssets();
+    if(sel.indexOf(focusAsset) < 0) focusAsset = sel[0] || 'site-main';
     renderCatsPanel();
     modal.classList.add('on');
     modal.setAttribute('aria-hidden', 'false');
@@ -447,56 +430,30 @@ ${assetSections}
 
   function closeModal(){
     modal.classList.remove('on');
-    modal.setAttribute('aria-hidden','true');
+    modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('modal-open');
-  }
-
-  function onAssetTypePicked(){
-    var id = assetSelect ? assetSelect.value : '';
-    if(!id) return;
-    userPickedAsset = true;
-    // Selecting from סוג נכס focuses that asset and opens its category-only popup.
-    // Other checked extras stay; newly chosen asset is always included.
-    selectedSet[id] = true;
-    focusAsset = id;
-    openModal(id);
   }
 
   document.querySelectorAll('input[name=asset]').forEach(function(inp){
     inp.addEventListener('change', function(){
-      if(inp.checked){
-        selectedSet[inp.value] = true;
-        focusAsset = inp.value;
-        if(assetSelect) assetSelect.value = inp.value;
-      } else {
-        var sel = selectedAssets();
-        if(sel.length <= 1 && selectedSet[inp.value]){
-          inp.checked = true;
-          return;
-        }
-        delete selectedSet[inp.value];
-        sel = selectedAssets();
-        if(sel.indexOf(focusAsset) < 0) focusAsset = sel[0];
-        if(assetSelect) assetSelect.value = focusAsset;
+      var sel = selectedAssets();
+      if(!sel.length){
+        inp.checked = true;
+        return;
       }
+      if(inp.checked) focusAsset = inp.value;
+      else if(sel.indexOf(focusAsset) < 0) focusAsset = sel[0];
       renderCatsPanel();
     });
   });
 
-  if(assetSelect){
-    assetSelect.addEventListener('change', function(){ onAssetTypePicked(); });
-    // Mobile: tapping the control after a value is set should still open the popup reliably.
-    assetSelect.addEventListener('click', function(){
-      // Defer so native picker can open; if user cancels without change, still allow reopen via second path.
-    });
-  }
+  if(btn) btn.addEventListener('click', openModal);
   if(cancel) cancel.addEventListener('click', closeModal);
   if(ok) ok.addEventListener('click', function(){ closeModal(); applyFilter(); });
   if(apply) apply.addEventListener('click', function(){ applyFilter(); });
   if(modal) modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
 
-  // Expose for Playwright / reopen same asset categories
-  window.__openSmartCats = function(id){ openModal(id || focusAsset); };
+  window.__openSmartCats = function(){ openModal(); };
   window.__smartFocusAsset = function(){ return focusAsset; };
 
   applyFilter();

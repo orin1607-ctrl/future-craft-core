@@ -1,5 +1,5 @@
 {
-  "at": "2026-07-11T16:10:41.304Z",
+  "at": "2026-07-11T16:33:14.905Z",
   "target": "file:///C:/Users/%D7%90%D7%9C%D7%99%D7%90%D7%91/OneDrive/%D7%9E%D7%A1%D7%9E%D7%9B%D7%99%D7%9D/future-craft-core-STAGING/public/coco-reports/dalia-c-official/daily/latest.html",
   "screenshots": {
     "site": "public/coco-reports/dalia-c-official/daily/mobile-smart-popup-site.png",
@@ -13,14 +13,44 @@
       "detail": "width=device-width, initial-scale=1, viewport-fit=cover"
     },
     {
+      "name": "no fAssetType select",
+      "pass": true,
+      "detail": "{\"hasSelect\":false,\"radioCount\":0,\"btnText\":\"בחירה…\",\"btnWidth\":65,\"viewportWidth\":390}"
+    },
+    {
+      "name": "no radios in page",
+      "pass": true,
+      "detail": "0"
+    },
+    {
+      "name": "small button text",
+      "pass": true,
+      "detail": "בחירה…"
+    },
+    {
+      "name": "button not full-width",
+      "pass": true,
+      "detail": "65/390"
+    },
+    {
       "name": "site modal open",
       "pass": true,
-      "detail": "{\"on\":true,\"focus\":\"site-main\",\"labels\":[\"מצב בגוגל\",\"מילות מפתח\",\"אינדוקס\",\"תוכן\",\"GSC\",\"GA\",\"Google Business\",\"בריאות המערכת\",\"המלצות\"],\"visible\":true,\"title\":\"קטגוריות — אתר ראשי (קידום אורגני)\"}"
+      "detail": "{\"on\":true,\"focus\":\"site-main\",\"labels\":[\"מצב בגוגל\",\"מילות מפתח\",\"אינדוקס\",\"תוכן\",\"GSC\",\"GA\",\"Google Business\",\"בריאות המערכת\",\"המלצות\"],\"assetCheckboxCount\":6,\"assetAllCheckbox\":true,\"catAllCheckbox\":true,\"visible\":true,\"title\":\"בחירת נכסים וקטגוריות\"}"
     },
     {
       "name": "site focus",
       "pass": true,
       "detail": "site-main"
+    },
+    {
+      "name": "multi asset checkboxes",
+      "pass": true,
+      "detail": "6"
+    },
+    {
+      "name": "category checkboxes",
+      "pass": true,
+      "detail": "מצב בגוגל|מילות מפתח|אינדוקס|תוכן|GSC|GA|Google Business|בריאות המערכת|המלצות"
     },
     {
       "name": "site has keyword cats",
@@ -33,14 +63,19 @@
       "detail": "מצב בגוגל|מילות מפתח|אינדוקס|תוכן|GSC|GA|Google Business|בריאות המערכת|המלצות"
     },
     {
-      "name": "ads modal open",
-      "pass": true,
-      "detail": "קטגוריות — Google Ads"
-    },
-    {
-      "name": "ads focus",
+      "name": "ads focus after check",
       "pass": true,
       "detail": "google-ads"
+    },
+    {
+      "name": "multi assets checked",
+      "pass": true,
+      "detail": "site-main,google-ads"
+    },
+    {
+      "name": "tabs for multi",
+      "pass": true,
+      "detail": "אתר|Ads"
     },
     {
       "name": "ads has ads cats",
@@ -48,14 +83,24 @@
       "detail": "מצב הקמפיינים|לידים ממודעות|השקעה מול תוצאה|מילות מפתח במודעות|המלצות לשיפור"
     },
     {
-      "name": "ads no site keyword section",
+      "name": "ads no site-only cats",
       "pass": true,
       "detail": "מצב הקמפיינים|לידים ממודעות|השקעה מול תוצאה|מילות מפתח במודעות|המלצות לשיפור"
     },
     {
-      "name": "multi asset UI ready",
+      "name": "both assets shown after OK",
       "pass": true,
-      "detail": "assetList"
+      "detail": "site-main,google-ads"
+    },
+    {
+      "name": "unchecked category hidden",
+      "pass": true,
+      "detail": "{\"sections\":[\"site-main\",\"google-ads\"],\"leadHidden\":true,\"compareVisible\":true}"
+    },
+    {
+      "name": "compare when multi",
+      "pass": true,
+      "detail": "{\"sections\":[\"site-main\",\"google-ads\"],\"leadHidden\":true,\"compareVisible\":true}"
     }
   ],
   "siteLabels": [
