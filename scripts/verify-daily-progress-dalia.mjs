@@ -39,11 +39,12 @@ function main() {
   ok('trend present', !!report.assets?.[0]?.trend?.level);
   ok('hebrew reliability', report.dashboard?.avgPosition?.reliabilityHe === 'אין נתון חי');
   ok('html has viewport', /name="viewport"[^>]*width=device-width/.test(html));
-  ok('html has assets button class', /id="btnAssets"/.test(html) && /btn-assets/.test(html));
+  ok('html has asset type select', /id="fAssetType"/.test(html) && /סוג נכס/.test(html));
+  ok('html opens cats on asset change', /onAssetTypePicked|fAssetType/.test(html) && /openModal/.test(html));
   ok('html has decision card', /מה חשוב לדעת עכשיו/.test(html));
-  ok('html has asset filter', /בחירת נכסים וקטגוריות/.test(html));
-  ok('html has smart categories', /קטגוריות של הנכס שנבחר/.test(html));
-  ok('html has site categories', /מילות מפתח/.test(html) && /אינדוקס/.test(html));
+  ok('html has category popup', /id="assetModal"/.test(html) && /קטגוריות —|קטגוריות הנכס/.test(html));
+  ok('html has extra assets multi', /נכסים נוספים/.test(html));
+  ok('html has site categories', /מילות מפתח/.test(html) && /אינדוקס/.test(html) && /בריאות המערכת/.test(html));
   ok('html has ads categories defs', /Google Ads/.test(html) && /לידים ממודעות/.test(html));
   ok('multi asset ready', (report.assets || []).length >= 3);
   ok('html no LCP jargon', !/\bLCP\b|\bTTFB\b|\bLatency\b/.test(html));

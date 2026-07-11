@@ -645,18 +645,18 @@ async function main() {
 
   const assetCategoryDefs = {
     'site-main': [
-      { id: 'google-presence', labelHe: 'מצב האתר בגוגל' },
+      { id: 'google-presence', labelHe: 'מצב בגוגל' },
       { id: 'keywords', labelHe: 'מילות מפתח' },
       { id: 'indexing', labelHe: 'אינדוקס' },
       { id: 'content', labelHe: 'תוכן' },
-      { id: 'gsc', labelHe: 'Google Search Console' },
-      { id: 'ga', labelHe: 'Google Analytics' },
+      { id: 'gsc', labelHe: 'GSC' },
+      { id: 'ga', labelHe: 'GA' },
       { id: 'gbp-local', labelHe: 'Google Business' },
-      { id: 'site-health', labelHe: 'בריאות האתר' },
+      { id: 'site-health', labelHe: 'בריאות המערכת' },
       { id: 'recommendations', labelHe: 'המלצות' },
     ],
     'site-extra': [
-      { id: 'google-presence', labelHe: 'מצב האתר בגוגל' },
+      { id: 'google-presence', labelHe: 'מצב בגוגל' },
       { id: 'keywords', labelHe: 'מילות מפתח' },
       { id: 'content', labelHe: 'תוכן' },
       { id: 'recommendations', labelHe: 'המלצות' },
@@ -716,7 +716,7 @@ async function main() {
     categories: [
       {
         id: 'google-presence',
-        labelHe: 'מצב האתר בגוגל',
+        labelHe: 'מצב בגוגל',
         items: [
           noSync('מיקום ממוצע בגוגל'),
           M(pagesPreview.ok ? 'האתר מוצג בתצוגה מקדימה ומוכן לבדיקה עסקית' : 'אין תצוגה', 'preview', pagesPreview.ok ? 'live' : 'missing'),
@@ -742,12 +742,12 @@ async function main() {
       },
       {
         id: 'gsc',
-        labelHe: 'Google Search Console',
+        labelHe: 'GSC',
         items: [miss('חיפושים וקליקים', 'לא בוצע Sync ל-Google Search Console')],
       },
       {
         id: 'ga',
-        labelHe: 'Google Analytics',
+        labelHe: 'GA',
         items: [miss('כניסות ולידים מהאתר', 'אין חיבור Analytics חי')],
       },
       {
@@ -757,7 +757,7 @@ async function main() {
       },
       {
         id: 'site-health',
-        labelHe: 'בריאות האתר',
+        labelHe: 'בריאות המערכת',
         items: [
           M(blockingFaults.length ? 'יש תקלה שעלולה לחסום' : 'האתר לא חסום כרגע; יש פערי חיבור', 'health-check', 'internal'),
         ],

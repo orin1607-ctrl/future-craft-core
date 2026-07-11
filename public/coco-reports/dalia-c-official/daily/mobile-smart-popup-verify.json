@@ -1,0 +1,80 @@
+{
+  "at": "2026-07-11T16:10:41.304Z",
+  "target": "file:///C:/Users/%D7%90%D7%9C%D7%99%D7%90%D7%91/OneDrive/%D7%9E%D7%A1%D7%9E%D7%9B%D7%99%D7%9D/future-craft-core-STAGING/public/coco-reports/dalia-c-official/daily/latest.html",
+  "screenshots": {
+    "site": "public/coco-reports/dalia-c-official/daily/mobile-smart-popup-site.png",
+    "ads": "public/coco-reports/dalia-c-official/daily/mobile-smart-popup-ads.png"
+  },
+  "label": "local",
+  "checks": [
+    {
+      "name": "viewport",
+      "pass": true,
+      "detail": "width=device-width, initial-scale=1, viewport-fit=cover"
+    },
+    {
+      "name": "site modal open",
+      "pass": true,
+      "detail": "{\"on\":true,\"focus\":\"site-main\",\"labels\":[\"מצב בגוגל\",\"מילות מפתח\",\"אינדוקס\",\"תוכן\",\"GSC\",\"GA\",\"Google Business\",\"בריאות המערכת\",\"המלצות\"],\"visible\":true,\"title\":\"קטגוריות — אתר ראשי (קידום אורגני)\"}"
+    },
+    {
+      "name": "site focus",
+      "pass": true,
+      "detail": "site-main"
+    },
+    {
+      "name": "site has keyword cats",
+      "pass": true,
+      "detail": "מצב בגוגל|מילות מפתח|אינדוקס|תוכן|GSC|GA|Google Business|בריאות המערכת|המלצות"
+    },
+    {
+      "name": "site no ads-only lead cat",
+      "pass": true,
+      "detail": "מצב בגוגל|מילות מפתח|אינדוקס|תוכן|GSC|GA|Google Business|בריאות המערכת|המלצות"
+    },
+    {
+      "name": "ads modal open",
+      "pass": true,
+      "detail": "קטגוריות — Google Ads"
+    },
+    {
+      "name": "ads focus",
+      "pass": true,
+      "detail": "google-ads"
+    },
+    {
+      "name": "ads has ads cats",
+      "pass": true,
+      "detail": "מצב הקמפיינים|לידים ממודעות|השקעה מול תוצאה|מילות מפתח במודעות|המלצות לשיפור"
+    },
+    {
+      "name": "ads no site keyword section",
+      "pass": true,
+      "detail": "מצב הקמפיינים|לידים ממודעות|השקעה מול תוצאה|מילות מפתח במודעות|המלצות לשיפור"
+    },
+    {
+      "name": "multi asset UI ready",
+      "pass": true,
+      "detail": "assetList"
+    }
+  ],
+  "siteLabels": [
+    "מצב בגוגל",
+    "מילות מפתח",
+    "אינדוקס",
+    "תוכן",
+    "GSC",
+    "GA",
+    "Google Business",
+    "בריאות המערכת",
+    "המלצות"
+  ],
+  "adsLabels": [
+    "מצב הקמפיינים",
+    "לידים ממודעות",
+    "השקעה מול תוצאה",
+    "מילות מפתח במודעות",
+    "המלצות לשיפור"
+  ],
+  "ok": true
+}
