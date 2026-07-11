@@ -44,3 +44,9 @@ integrations/project-001/config.json
 *.njsproj
 *.sln
 *.sw?
+
+.tmp/
+public/coco-media/**/*.png
+public/coco-media/**/*.jpg
+public/coco-media/**/*.webp
+!.gitkeep

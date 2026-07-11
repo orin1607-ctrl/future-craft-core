@@ -1,0 +1,77 @@
+{
+  "customerId": "dalia-c-official",
+  "websiteId": "main",
+  "createdAt": "2026-07-11T17:20:00.000Z",
+  "source": {
+    "business": "דליה פתרונות תפעול ותחזוקה לרכב",
+    "contact": "יוני אטיאס",
+    "positioning": "שותף תפעולי לצי רכב B2B — לא מוסך; תפעול + תחזוקה + FleetOS",
+    "audience": ["מנהלי לוגיסטיקה", "בעלי עסקים עם 5+ רכבים", "חברות הובלה והפצה", "קבלנים"],
+    "palette": { "navy": "#0b1735", "teal": "#0d9488", "bg": "#f4f7fb" },
+    "consultants": [
+      { "id": "b8", "name": "יועץ מיתוג ועיצוב", "rec": "קו ויזואלי אחיד navy/teal, מקצועי B2B, בלי לוגואים מומצאים" },
+      { "id": "b5", "name": "יועץ UX/UI", "rec": "Hero ויזואלי חזק + תמונות שירות שתומכות בסריקה מהירה" },
+      { "id": "a37", "name": "מומחה תמונות שירות", "rec": "תמונות שירות אמיתיות לעולם צי רכב — לא סטוק כללי" },
+      { "id": "a41", "name": "מומחה איתור תמונות חסרות", "rec": "השלמת תמונות חסרות בעמודי שירות ו-FleetOS לפני עלייה" },
+      { "id": "b10", "name": "Chief AI Architect", "rec": "אושר עם תיקון — פער תמונות נשאר לסגירה ב-Preview" }
+    ]
+  },
+  "slots": [
+    {
+      "id": "hero",
+      "page": "index.html",
+      "region": "Hero — צד ויזואלי ליד הכותרת",
+      "purpose": "לבנות אמון מיידי: ניהול צי מקצועי, שליטה ועסק B2B",
+      "message": "הצי בשליטה — תפעול, תחזוקה וטכנולוגיה במקום אחד",
+      "aspect": "4:3",
+      "size": "1536x1024",
+      "alt": "מרכז בקרה לניהול צי רכב לעסקים — מסכי מעקב ותפעול מקצועיים",
+      "consultantLead": "יועץ UX/UI + יועץ מיתוג",
+      "why": "עמוד הבית נפתח בטקסט בלבד; חסרה עוגן ויזואלי שממחיש שליטה תפעולית",
+      "supportsContent": "מחבר את ה-H1 על ניהול צי חכם לדימוי של מרכז בקרה עסקי",
+      "styleRules": "no text, no logos, no watermarks, photoreal, modern Israeli B2B, navy and teal accents, clean desks and fleet ops screens soft-focus, professional lighting"
+    },
+    {
+      "id": "service",
+      "page": "services.html",
+      "region": "שירותים — בלוק תפעול ותחזוקה שוטפת",
+      "purpose": "להמחיש שירות תחזוקה ותפעול בשטח לעסקים",
+      "message": "תחזוקה מונעת וטיפול בתקלות — צי זמין ובטוח",
+      "aspect": "16:9",
+      "size": "1536x1024",
+      "alt": "צוות תפעול מקצועי מתחזק רכב צי עסקי בחניה מסודרת",
+      "consultantLead": "מומחה תמונות שירות",
+      "why": "עמוד השירותים מתאר תחזוקה בלי דימוי שמחזק אמינות בשטח",
+      "supportsContent": "תומך בסעיף תפעול ותחזוקה שוטפת ובמסר 'לא מוסך — שותף תפעולי'",
+      "styleRules": "no text, no logos, commercial van or light truck in clean yard, technician with tablet, daylight, professional B2B fleet maintenance, realistic Israel setting, no cartoon"
+    },
+    {
+      "id": "fleetos",
+      "page": "fleet-management-software.html",
+      "region": "Hero של FleetOS — צד ויזואלי",
+      "purpose": "להראות תוכנת ניהול צי (דשבורד) ולא רק GPS",
+      "message": "FleetOS — דשבורד ניהולי בזמן אמת לצי",
+      "aspect": "4:3",
+      "size": "1536x1024",
+      "alt": "מסך דשבורד לניהול צי רכב עם מפות, התראות וסטטוס רכבים",
+      "consultantLead": "יועץ מיתוג + מומחה איתור תמונות חסרות",
+      "why": "עמוד FleetOS מסביר יכולות בטבלה; חסר דימוי מוצר שמרגיש כמו תוכנה אמיתית",
+      "supportsContent": "מחזק את ההבדל מול GPS בלבד — תפעול מלא על מסך אחד",
+      "styleRules": "no readable fake brand text, abstract UI dashboard with map pins and status cards, teal highlights on dark navy UI, laptop on desk, photoreal product photography style, no logos"
+    },
+    {
+      "id": "cta",
+      "page": "index.html",
+      "region": "CTA תחתון — מוכנים לשלוט בצי",
+      "purpose": "לחזק המרה להדגמה / יצירת קשר",
+      "message": "הגיע הזמן לשליטה אמיתית בצי — בואו להדגמה",
+      "aspect": "21:9",
+      "size": "1536x1024",
+      "alt": "צי רכבים עסקיים מסודר בחניה — מוכנים להדגמת ניהול צי",
+      "consultantLead": "יועץ CRO + יועץ שיווק דיגיטלי",
+      "why": "רצועת ה-CTA חזקה טקסטואלית אך חסר רקע ויזואלי שמעודד פעולה",
+      "supportsContent": "תומך בקריאה להדגמה מותאמת לגודל הצי",
+      "styleRules": "wide cinematic photo of neat commercial fleet parked in rows, soft morning light, professional B2B mood, navy-teal grade, no text, no logos, no people faces close-up"
+    }
+  ]
+}

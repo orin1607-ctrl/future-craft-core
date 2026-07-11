@@ -686,6 +686,19 @@ async function main() {
       { id: 'gbp-calls', labelHe: 'שיחות וניווטים' },
       { id: 'gbp-recommendations', labelHe: 'המלצות לשיפור' },
     ],
+    'media-system': [
+      { id: 'media-overview', labelHe: 'מערכת מדיה' },
+      { id: 'media-storage', labelHe: 'אחסון מדיה' },
+      { id: 'media-generation', labelHe: 'יצירת תמונות' },
+      { id: 'media-site-images', labelHe: 'תמונות האתר' },
+      { id: 'media-pending', labelHe: 'תמונות שממתינות לאישור' },
+      { id: 'media-faults', labelHe: 'תקלות מדיה' },
+      { id: 'media-broken-links', labelHe: 'קישורים שבורים' },
+      { id: 'media-missing-alt', labelHe: 'תמונות ללא Alt' },
+      { id: 'media-unoptimized', labelHe: 'תמונות ללא אופטימיזציה' },
+      { id: 'media-costs', labelHe: 'עלויות מדיה' },
+      { id: 'media-usage', labelHe: 'שימוש באחסון' },
+    ],
   };
 
   const assetCatalog = [
@@ -695,6 +708,7 @@ async function main() {
     { id: 'facebook', labelHe: 'Facebook', defaultSelected: false, hasLiveData: false, categories: assetCategoryDefs.facebook },
     { id: 'instagram', labelHe: 'Instagram', defaultSelected: false, hasLiveData: false, categories: assetCategoryDefs.instagram },
     { id: 'gbp', labelHe: 'Google Business Profile', defaultSelected: false, hasLiveData: false, categories: assetCategoryDefs.gbp },
+    { id: 'media-system', labelHe: 'מערכת מדיה — תמונות וסרטונים', defaultSelected: true, hasLiveData: true, categories: assetCategoryDefs['media-system'] },
   ];
 
   const siteAsset = {
@@ -802,6 +816,144 @@ async function main() {
     placeholderAsset('gbp', 'Google Business Profile', 'אין חיבור Google Business Profile חי בניסיון זה'),
   ];
 
+  const mediaManifest = readJson(`public/coco-media/${CLIENT}/manifest.json`);
+  const mediaHealthFile = readJson(`public/coco-media/${CLIENT}/health.json`) || mediaManifest?.health || null;
+  const mediaAssetsList = mediaManifest?.assets || [];
+  const mediaBytes = mediaAssetsList.reduce((s, a) => s + (a.bytes || 0), 0);
+  const mediaMissingAlt = mediaAssetsList.filter((a) => !a.hasAlt).length;
+  const mediaUnopt = mediaAssetsList.filter((a) => !a.optimized).length;
+  const mh = mediaHealthFile || {
+    storageService: 'Supabase Storage (Staging)',
+    storageStatus: 'לא פעיל',
+    imageEngineStatus: 'לא נבדק',
+    videoEngineStatus: 'לא מחובר עדיין',
+    imagesLoadInSite: 'לא',
+    imagesInSite: 0,
+    withAlt: 0,
+    optimized: 0,
+    pendingApproval: 0,
+    brokenLinks: 0,
+    permissionsStatus: 'לא נבדק',
+    overallStatus: 'דורש תשומת לב',
+    recommendedAction: 'להריץ דוגמת מדיה ב-Staging',
+    checkedAt: generatedAtIso,
+  };
+
+  const mediaAsset = {
+    id: 'media-system',
+    labelHe: 'מערכת מדיה — תמונות וסרטונים',
+    trend: {
+      level: mh.brokenLinks ? 'down' : (mediaAssetsList.length ? 'up' : 'flat'),
+      reason: mediaAssetsList.length
+        ? 'ארבע תמונות חוברו ל-Preview מאחסון חיצוני — ממתין לאישור Owner.'
+        : 'עדיין אין תמונות מחוברות לאתר.',
+    },
+    businessPotential: {
+      score: mediaAssetsList.length ? 72 : 20,
+      why: mediaAssetsList.length
+        ? 'מדיה מקצועית באתר מחזקת אמון והמרה — אחרי אישור אפשר להרחיב לסרטונים.'
+        : 'בלי מדיה האתר נשאר טקסטואלי מדי ל-B2B.',
+      meta: M(mediaAssetsList.length ? 72 : 20, 'media-health', 'internal'),
+    },
+    progressLabel: mediaAssetsList.length ? 'בתנועה' : 'ממתין',
+    progressMeta: M(
+      mediaAssetsList.length ? `${mediaAssetsList.length} תמונות ב-Preview` : 'אין תמונות',
+      'coco-media/manifest',
+      mediaAssetsList.length ? 'live' : 'missing',
+    ),
+    categories: [
+      {
+        id: 'media-overview',
+        labelHe: 'מערכת מדיה',
+        items: [
+          M(`סטטוס כללי: ${mh.overallStatus}`, 'media-health', 'internal'),
+          M(`זמן בדיקה אחרונה: ${mh.checkedAt || generatedAtIso}`, 'media-health', 'internal'),
+          M(`פעולה מומלצת: ${mh.recommendedAction}`, 'media-health', 'ai_estimate'),
+        ],
+      },
+      {
+        id: 'media-storage',
+        labelHe: 'אחסון מדיה',
+        items: [
+          M(`שירות אחסון: ${mh.storageService}`, 'supabase-storage', 'live'),
+          M(`מצב אחסון: ${mh.storageStatus}`, 'media-health', mh.storageStatus === 'פעיל' ? 'live' : 'missing'),
+          M(`מצב הרשאות: ${mh.permissionsStatus}`, 'media-health', 'internal'),
+        ],
+      },
+      {
+        id: 'media-generation',
+        labelHe: 'יצירת תמונות',
+        items: [
+          M(`מנוע תמונות: ${mh.imageEngineStatus}`, 'openai-images', /פעיל/.test(mh.imageEngineStatus) ? 'live' : 'cache'),
+          M(`מנוע וידאו: ${mh.videoEngineStatus}`, 'video-engine', 'missing'),
+        ],
+      },
+      {
+        id: 'media-site-images',
+        labelHe: 'תמונות האתר',
+        items: [
+          M(`האם התמונות נטענות באתר: ${mh.imagesLoadInSite}`, 'preview-probe', mh.imagesLoadInSite === 'כן' ? 'live' : 'missing'),
+          M(`מספר תמונות באתר: ${mh.imagesInSite}`, 'manifest', 'internal'),
+        ],
+      },
+      {
+        id: 'media-pending',
+        labelHe: 'תמונות שממתינות לאישור',
+        items: [M(`ממתינות לאישור Owner: ${mh.pendingApproval}`, 'manifest', 'internal')],
+      },
+      {
+        id: 'media-faults',
+        labelHe: 'תקלות מדיה',
+        items: [
+          M(
+            mh.brokenLinks || /תקלה|חסום|Billing/i.test(String(mh.imageEngineStatus))
+              ? `יש פער: ${mh.imageEngineStatus}`
+              : 'אין תקלת מדיה שחוסמת את ה-Preview',
+            'media-health',
+            mh.brokenLinks ? 'missing' : 'internal',
+          ),
+        ],
+      },
+      {
+        id: 'media-broken-links',
+        labelHe: 'קישורים שבורים',
+        items: [M(`קישורים שבורים: ${mh.brokenLinks}`, 'url-probe', mh.brokenLinks ? 'missing' : 'live')],
+      },
+      {
+        id: 'media-missing-alt',
+        labelHe: 'תמונות ללא Alt',
+        items: [
+          M(`עם Alt: ${mh.withAlt} · ללא Alt: ${mediaMissingAlt}`, 'manifest', mediaMissingAlt ? 'missing' : 'live'),
+        ],
+      },
+      {
+        id: 'media-unoptimized',
+        labelHe: 'תמונות ללא אופטימיזציה',
+        items: [
+          M(`עברו אופטימיזציה (WebP): ${mh.optimized} · ללא: ${mediaUnopt}`, 'sharp-webp', mediaUnopt ? 'missing' : 'live'),
+        ],
+      },
+      {
+        id: 'media-costs',
+        labelHe: 'עלויות מדיה',
+        items: [
+          M(
+            'עלות דוגמה: יצירה במנוע חלופי זמני אחרי חסימת Billing ב-OpenAI · אחסון Staging זניח',
+            'billing',
+            'cache',
+          ),
+        ],
+      },
+      {
+        id: 'media-usage',
+        labelHe: 'שימוש באחסון',
+        items: [
+          M(`נפח תמונות בדוגמה: ${(mediaBytes / 1024).toFixed(0)} KB · bucket coco-media`, 'storage', 'internal'),
+        ],
+      },
+    ],
+  };
+
   const managerCard = {
     campaignProgress: M(
       pagesPreview.ok ? 'יש התקדמות בבניית הנוכחות הדיגיטלית (אתר מוכן לתצוגה), אבל עדיין אין הוכחת עלייה בגוגל' : 'אין התקדמות מדידה',
@@ -863,8 +1015,9 @@ async function main() {
     note: 'ההשוואה מוכנה לריבוי נכסים. כרגע חלק מהנכסים בלי נתוני אמת — והסיבה מצוינת ליד כל שורה.',
   };
 
-  const bottomLineToday =
-    'האתר בתצוגה מוכן והכיוון נכון, אבל עדיין אין נתוני Google חיים. אם נחבר מיקומים ונחזק עמוד שירות השבוע — זו הפעולה שתיתן את ההשפעה העסקית הגדולה ביותר.';
+  const bottomLineToday = mediaAssetsList.length
+    ? 'ארבע תמונות שולבו באתר ה-Preview מתוך מערכת המדיה (Hero, שירות, FleetOS, CTA) וממתינות לאישור Owner. עדיין אין נתוני Google חיים — אחרי אישור המדיה, חיבור מדידה הוא הצעד הבא עם ההשפעה העסקית הגדולה ביותר.'
+    : 'האתר בתצוגה מוכן והכיוון נכון, אבל עדיין אין נתוני Google חיים. אם נחבר מיקומים ונחזק עמוד שירות השבוע — זו הפעולה שתיתן את ההשפעה העסקית הגדולה ביותר.';
 
   const subjectTemplate = `CO.CO | דוח יומי #${padded} | דליה פתרונות תפעול ותחזוקה לרכב | ${reportDate.split('-').reverse().join('/')}`;
 
@@ -884,7 +1037,8 @@ async function main() {
       cocoVersion: COCO_VERSION,
       readOnly: true,
       pipelineRan: false,
-      imagesGenerated: false,
+      imagesGenerated: mediaAssetsList.length > 0,
+      mediaDemoIntegrated: mediaAssetsList.length > 0,
       secretsChanged: false,
       clientSlug: CLIENT,
       uiLanguage: 'he',
@@ -898,11 +1052,13 @@ async function main() {
     },
     bottomLineToday,
     assetCatalog,
-    assets: [siteAsset, ...extraAssets],
+    assets: [siteAsset, mediaAsset, ...extraAssets],
     managerCard,
     businessPotential: {
       score: businessPotentialScore,
-      why: 'יש בסיס אתר והזדמנות תוכן, אבל בלי מדידת Google חיה ותמונות — כדאי להמשיך להשקיע בזהירות עד שיש נתוני אמת.',
+      why: mediaAssetsList.length
+        ? 'יש בסיס אתר + מדיה ב-Preview; חסרה מדידת Google חיה ואישור Owner לתמונות לפני הרחבה.'
+        : 'יש בסיס אתר והזדמנות תוכן, אבל בלי מדידת Google חיה ותמונות — כדאי להמשיך להשקיע בזהירות עד שיש נתוני אמת.',
       meta: M(businessPotentialScore, 'scoreProject()', 'internal'),
     },
     healthBusiness,

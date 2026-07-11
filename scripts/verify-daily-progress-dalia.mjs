@@ -50,6 +50,10 @@ function main() {
   ok('html has site categories', /מילות מפתח/.test(html) && /אינדוקס/.test(html) && /בריאות המערכת/.test(html));
   ok('html has Google Search Console label', /Google Search Console/.test(html));
   ok('html has ads categories defs', /Google Ads/.test(html) && /לידים ממודעות/.test(html));
+  ok('html has media system asset', /מערכת מדיה — תמונות וסרטונים/.test(html) && /media-system/.test(html));
+  ok('html has media filter categories', /אחסון מדיה/.test(html) && /תמונות ללא Alt/.test(html) && /קישורים שבורים/.test(html));
+  ok('media manifest present', existsSync(join(ROOT, 'public', 'coco-media', 'dalia-c-official', 'manifest.json')));
+  ok('media health present', existsSync(join(ROOT, 'public', 'coco-media', 'dalia-c-official', 'health.json')));
   ok('multi asset ready', (report.assets || []).length >= 3);
   ok('html no LCP jargon', !/\bLCP\b|\bTTFB\b|\bLatency\b/.test(html));
   ok('bottom line today', !!report.bottomLineToday && /בשורה התחתונה להיום/.test(html));

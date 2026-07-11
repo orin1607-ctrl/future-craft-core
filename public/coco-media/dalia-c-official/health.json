@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-07-11T17:28:21.920Z",
+  "storageService": "Supabase Storage (Staging)",
+  "storageStatus": "פעיל",
+  "imageEngineStatus": "OpenAI חסום ב-Billing · דוגמה הושלמה במנוע חלופי זמני",
+  "videoEngineStatus": "לא מחובר עדיין",
+  "imagesLoadInSite": "כן",
+  "imagesInSite": 4,
+  "withAlt": 4,
+  "optimized": 4,
+  "pendingApproval": 4,
+  "brokenLinks": 0,
+  "permissionsStatus": "קריאה ציבורית · כתיבה רק דרך שרת (service role)",
+  "overallStatus": "תקין ל-Preview",
+  "recommendedAction": "לבדוק את האתר ב-Preview ולאשר תמונות · להסיר מגבלת Billing ב-OpenAI להמשך אוטומציה"
+}
