@@ -1,5 +1,6 @@
 /**
  * Business-facing HTML for CO.CO daily report (manager language, same visual language).
+ * Smart filter: date · report # · assets → popup with categories per selected asset only.
  */
 function h(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -18,6 +19,14 @@ function trendBadge(t) {
   return `<div class="trend">${map[t.level] || t.level}</div><div class="note">${h(t.reason)}</div>`;
 }
 
+function renderCategoryBlock(assetId, cat) {
+  const items = (cat.items || []).map((x) => `<li>${metricCell(x)}</li>`).join('');
+  return `<div class="cat-block" data-asset-cat="${h(assetId)}" data-cat="${h(cat.id)}">
+  <h3 class="h3">${h(cat.labelHe)}</h3>
+  <ul class="exec">${items || `<li class="note">אין פריטים להצגה</li>`}</ul>
+</div>`;
+}
+
 export function renderBusinessHtml(report) {
   const mc = report.managerCard;
   const assets = report.assets || [];
@@ -25,13 +34,17 @@ export function renderBusinessHtml(report) {
   const healthBiz = report.healthBusiness;
 
   const assetChecks = catalog.map((a) => {
-    const disabled = a.available === false ? 'disabled' : '';
-    const checked = a.id === 'site-main' ? 'checked' : '';
-    const soon = a.available === false ? ' <span class="soon">(בקרוב)</span>' : '';
-    return `<label class="chk"><input type="checkbox" name="asset" value="${h(a.id)}" data-asset="${h(a.id)}" ${checked} ${disabled}> ${h(a.labelHe)}${soon}</label>`;
+    const checked = a.defaultSelected ? 'checked' : '';
+    const soon = a.hasLiveData === false ? ' <span class="soon">(אין נתונים חיים עדיין)</span>' : '';
+    return `<label class="chk asset-pick" data-pick="${h(a.id)}">
+      <input type="checkbox" name="asset" value="${h(a.id)}" data-asset="${h(a.id)}" ${checked}>
+      ${h(a.labelHe)}${soon}
+    </label>`;
   }).join('');
 
-  const assetSections = assets.map((a) => `
+  const assetSections = assets.map((a) => {
+    const cats = (a.categories || []).map((c) => renderCategoryBlock(a.id, c)).join('');
+    return `
 <section class="card asset-block" data-asset-section="${h(a.id)}">
   <h2>${h(a.labelHe)}</h2>
   <div class="trend-wrap">${trendBadge(a.trend)}</div>
@@ -44,17 +57,16 @@ export function renderBusinessHtml(report) {
       ${metricCell(a.progressMeta)}
     </div>
   </div>
-  <h3 class="h3">איפה אנחנו היום</h3>
-  <ul class="exec">${(a.whereToday || []).map((x) => `<li>${metricCell(x)}</li>`).join('')}</ul>
-  <h3 class="h3">מה השתנה</h3>
-  <ul class="exec">${(a.whatChanged || []).map((x) => `<li>${metricCell(x)}</li>`).join('')}</ul>
-  <h3 class="h3">מה חסר</h3>
-  <ul class="exec">${(a.whatsMissing || []).map((x) => `<li>${metricCell(x)}</li>`).join('')}</ul>
-  <h3 class="h3">שלוש פעולות חשובות</h3>
-  <ol>${(a.top3 || []).map((x) => `<li>${metricCell(x)}</li>`).join('')}</ol>
-</section>`).join('');
+  ${cats}
+</section>`;
+  }).join('');
 
   const comparison = report.comparison;
+  const catalogJson = JSON.stringify(catalog.map((a) => ({
+    id: a.id,
+    labelHe: a.labelHe,
+    categories: (a.categories || []).map((c) => ({ id: c.id, labelHe: c.labelHe })),
+  }))).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8">
 <title>דוח יומי #${h(report.meta.reportNumberPadded)} — ${h(report.client.company)}</title>
@@ -94,9 +106,15 @@ ul.exec{margin:0;padding-right:18px}
 .decision li{margin-bottom:8px}
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:40;align-items:center;justify-content:center;padding:16px}
 .modal-bg.on{display:flex}
-.modal{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:16px;border:1px solid var(--line)}
-.modal h3{margin:0 0 10px;font-size:1rem}
-.cats label{display:block;padding:6px 0;font-size:.88rem}
+.modal{background:#fff;border-radius:14px;max-width:460px;width:100%;padding:16px;border:1px solid var(--line);max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 8px;font-size:1rem}
+.modal .sec-title{font-size:.72rem;color:var(--muted);margin:12px 0 6px;font-weight:700}
+.asset-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.asset-tabs button{border:1px solid var(--line);background:#f8fafc;border-radius:999px;padding:5px 10px;font-size:.78rem;cursor:pointer}
+.asset-tabs button.on{background:#0b1735;color:#fff;border-color:#0b1735}
+.cats-panel label{display:block;padding:5px 0;font-size:.88rem}
+.asset-pick.on{background:#f1f5f9;border-radius:8px;padding-right:6px}
+#selSummary{font-size:.78rem;color:var(--muted);margin-top:6px}
 @media print{.filter,.actions,#assetModal,.no-print{display:none!important}.card{break-inside:avoid}}
 </style></head><body><div class="wrap">
 
@@ -122,12 +140,13 @@ ul.exec{margin:0;padding-right:18px}
   <div class="filter">
     <label>תאריך<input type="date" id="fDate" value="${h(report.meta.reportDate)}"></label>
     <label>מספר דוח<input type="text" id="fNum" value="${h(report.meta.reportNumberDisplay)}" readonly></label>
-    <label>סוג נכס / קמפיין
-      <button type="button" class="btn" id="btnAssets" style="margin-top:0">בחירת נכסים…</button>
+    <label>סוג נכס / סוג קמפיין
+      <button type="button" class="btn" id="btnAssets" style="margin-top:0">בחירת נכסים וקטגוריות…</button>
     </label>
     <button type="button" class="btn btn-go" id="btnApply">הצג דוח</button>
   </div>
-  <p class="note" id="selHint">ברירת מחדל: אתר ראשי (קידום אורגני). אפשר לבחור כמה נכסים.</p>
+  <p class="note" id="selHint">ברירת מחדל: אתר ראשי. אפשר לבחור כמה נכסים — לכל נכס רק הקטגוריות שלו.</p>
+  <div id="selSummary"></div>
 </section>
 
 <section class="card" id="decisionCard">
@@ -172,8 +191,8 @@ ${assetSections}
 
 <section class="card" id="compareBlock" data-compare="1">
   <h2>השוואה בין נכסים</h2>
-  <p>${h(comparison.summary)}</p>
-  <ul class="exec">${(comparison.bullets || []).map((b) => `<li>${h(b)}</li>`).join('')}</ul>
+  <p id="compareSummary">${h(comparison.summary)}</p>
+  <ul class="exec" id="compareBullets">${(comparison.bullets || []).map((b) => `<li>${h(b)}</li>`).join('')}</ul>
   <p class="note">${h(comparison.note)}</p>
 </section>
 
@@ -205,9 +224,13 @@ ${assetSections}
 
 <div class="modal-bg" id="assetModal" aria-hidden="true">
   <div class="modal" role="dialog" aria-labelledby="assetModalTitle">
-    <h3 id="assetModalTitle">בחירת נכסים / קמפיינים</h3>
-    <div class="cats">${assetChecks}</div>
-    <p class="note">ברירת מחדל: נכס אחד. אפשר לסמן כמה — הדוח יוצג לפי הבחירה, בלי לערבב נתונים.</p>
+    <h3 id="assetModalTitle">בחירת נכסים וקטגוריות</h3>
+    <p class="note">סמנו נכס אחד או יותר. הקטגוריות למטה משתנות לפי הנכס שנבחר — בלי לערבב נושאים.</p>
+    <div class="sec-title">1. נכסים / קמפיינים</div>
+    <div class="cats" id="assetList">${assetChecks}</div>
+    <div class="sec-title">2. קטגוריות של הנכס שנבחר</div>
+    <div class="asset-tabs" id="assetTabs" hidden></div>
+    <div class="cats-panel" id="catsPanel"></div>
     <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
       <button type="button" class="btn" id="modalCancel">סגור</button>
       <button type="button" class="btn btn-go" id="modalOk">אישור</button>
@@ -215,34 +238,161 @@ ${assetSections}
   </div>
 </div>
 
+<script type="application/json" id="assetCatalogJson">${catalogJson}</script>
 <script>
 (function(){
-  var modal=document.getElementById('assetModal');
-  var btn=document.getElementById('btnAssets');
-  var ok=document.getElementById('modalOk');
-  var cancel=document.getElementById('modalCancel');
-  var apply=document.getElementById('btnApply');
-  var hint=document.getElementById('selHint');
-  function selected(){
-    return Array.prototype.slice.call(document.querySelectorAll('input[name=asset]:checked')).map(function(i){return i.value;});
+  var catalog = [];
+  try { catalog = JSON.parse(document.getElementById('assetCatalogJson').textContent || '[]'); } catch(e) { catalog = []; }
+  var catState = {};
+  catalog.forEach(function(a){
+    catState[a.id] = {};
+    (a.categories || []).forEach(function(c){ catState[a.id][c.id] = true; });
+  });
+
+  var modal = document.getElementById('assetModal');
+  var btn = document.getElementById('btnAssets');
+  var ok = document.getElementById('modalOk');
+  var cancel = document.getElementById('modalCancel');
+  var apply = document.getElementById('btnApply');
+  var hint = document.getElementById('selHint');
+  var summary = document.getElementById('selSummary');
+  var tabs = document.getElementById('assetTabs');
+  var catsPanel = document.getElementById('catsPanel');
+  var focusAsset = 'site-main';
+  var compareData = ${JSON.stringify({
+    singleSummary: comparison.summarySingle || comparison.summary,
+    multiSummary: comparison.summaryMulti || 'השוואה בין הנכסים שנבחרו — בשפת החלטה עסקית:',
+    bullets: comparison.bullets || [],
+    note: comparison.note || '',
+  })};
+
+  function selectedAssets(){
+    return Array.prototype.slice.call(document.querySelectorAll('input[name=asset]:checked')).map(function(i){ return i.value; });
   }
-  function applyFilter(){
-    var sel=selected();
+
+  function ensureDefault(){
+    var sel = selectedAssets();
     if(!sel.length){
-      var main=document.querySelector('input[value=site-main]');
-      if(main){ main.checked=true; sel=['site-main']; }
+      var main = document.querySelector('input[value=site-main]');
+      if(main){ main.checked = true; sel = ['site-main']; }
     }
-    document.querySelectorAll('[data-asset-section]').forEach(function(el){
-      el.style.display = sel.indexOf(el.getAttribute('data-asset-section'))>=0 ? '' : 'none';
-    });
-    var cmp=document.getElementById('compareBlock');
-    if(cmp) cmp.style.display = sel.length>1 ? '' : 'none';
-    if(hint) hint.textContent = 'נבחרו: '+sel.length+' נכס/ים · הדוח מציג רק אותם';
+    return sel;
   }
-  if(btn) btn.onclick=function(){ modal.classList.add('on'); modal.setAttribute('aria-hidden','false'); };
-  if(cancel) cancel.onclick=function(){ modal.classList.remove('on'); };
-  if(ok) ok.onclick=function(){ modal.classList.remove('on'); applyFilter(); };
-  if(apply) apply.onclick=applyFilter;
+
+  function labelOf(id){
+    var a = catalog.find(function(x){ return x.id === id; });
+    return a ? a.labelHe : id;
+  }
+
+  function renderCatsPanel(){
+    var sel = ensureDefault();
+    if(sel.indexOf(focusAsset) < 0) focusAsset = sel[0];
+
+    tabs.hidden = sel.length < 2;
+    tabs.innerHTML = '';
+    if(sel.length > 1){
+      sel.forEach(function(id){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = labelOf(id);
+        if(id === focusAsset) b.className = 'on';
+        b.onclick = function(){ focusAsset = id; renderCatsPanel(); };
+        tabs.appendChild(b);
+      });
+    }
+
+    var asset = catalog.find(function(x){ return x.id === focusAsset; }) || { categories: [] };
+    catsPanel.innerHTML = '';
+    if(!(asset.categories || []).length){
+      catsPanel.innerHTML = '<p class="note">אין קטגוריות לנכס זה.</p>';
+      return;
+    }
+    asset.categories.forEach(function(c){
+      var lab = document.createElement('label');
+      var inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.checked = !!(catState[focusAsset] && catState[focusAsset][c.id]);
+      inp.onchange = function(){
+        if(!catState[focusAsset]) catState[focusAsset] = {};
+        catState[focusAsset][c.id] = inp.checked;
+      };
+      lab.appendChild(inp);
+      lab.appendChild(document.createTextNode(' ' + c.labelHe));
+      catsPanel.appendChild(lab);
+    });
+  }
+
+  function applyFilter(){
+    var sel = ensureDefault();
+    document.querySelectorAll('[data-asset-section]').forEach(function(el){
+      var id = el.getAttribute('data-asset-section');
+      el.style.display = sel.indexOf(id) >= 0 ? '' : 'none';
+    });
+    document.querySelectorAll('.cat-block').forEach(function(el){
+      var aid = el.getAttribute('data-asset-cat');
+      var cid = el.getAttribute('data-cat');
+      var assetOn = sel.indexOf(aid) >= 0;
+      var catOn = !!(catState[aid] && catState[aid][cid]);
+      el.style.display = assetOn && catOn ? '' : 'none';
+    });
+
+    var cmp = document.getElementById('compareBlock');
+    var cmpSum = document.getElementById('compareSummary');
+    var cmpUl = document.getElementById('compareBullets');
+    if(cmp){
+      if(sel.length > 1){
+        cmp.style.display = '';
+        if(cmpSum) cmpSum.textContent = compareData.multiSummary;
+        if(cmpUl){
+          cmpUl.innerHTML = '';
+          (compareData.bullets || []).forEach(function(line){
+            var li = document.createElement('li');
+            li.textContent = line;
+            cmpUl.appendChild(li);
+          });
+        }
+      } else {
+        cmp.style.display = 'none';
+      }
+    }
+
+    var names = sel.map(labelOf);
+    if(hint) hint.textContent = names.length > 1
+      ? ('נבחרו ' + names.length + ' נכסים. כל נכס מוצג בנפרד, ובסוף מופיעה השוואה.')
+      : ('מוצג: ' + names[0] + ' — רק הקטגוריות שסומנו בחלון הבחירה.');
+    if(summary){
+      summary.textContent = sel.map(function(id){
+        var on = Object.keys(catState[id] || {}).filter(function(k){ return catState[id][k]; });
+        return labelOf(id) + ' (' + on.length + ' קטגוריות)';
+      }).join(' · ');
+    }
+  }
+
+  function openModal(){
+    ensureDefault();
+    focusAsset = selectedAssets()[0] || 'site-main';
+    renderCatsPanel();
+    modal.classList.add('on');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  document.querySelectorAll('input[name=asset]').forEach(function(inp){
+    inp.addEventListener('change', function(){
+      var sel = selectedAssets();
+      if(!sel.length){
+        inp.checked = true;
+        return;
+      }
+      if(inp.checked) focusAsset = inp.value;
+      else if(sel.indexOf(focusAsset) < 0) focusAsset = sel[0];
+      renderCatsPanel();
+    });
+  });
+
+  if(btn) btn.onclick = openModal;
+  if(cancel) cancel.onclick = function(){ modal.classList.remove('on'); modal.setAttribute('aria-hidden','true'); };
+  if(ok) ok.onclick = function(){ modal.classList.remove('on'); modal.setAttribute('aria-hidden','true'); applyFilter(); };
+  if(apply) apply.onclick = applyFilter;
   applyFilter();
 })();
 </script>

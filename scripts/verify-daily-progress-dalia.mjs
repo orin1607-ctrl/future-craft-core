@@ -39,10 +39,15 @@ function main() {
   ok('trend present', !!report.assets?.[0]?.trend?.level);
   ok('hebrew reliability', report.dashboard?.avgPosition?.reliabilityHe === 'אין נתון חי');
   ok('html has decision card', /מה חשוב לדעת עכשיו/.test(html));
-  ok('html has asset filter', /בחירת נכסים/.test(html));
+  ok('html has asset filter', /בחירת נכסים וקטגוריות/.test(html));
+  ok('html has smart categories', /קטגוריות של הנכס שנבחר/.test(html));
+  ok('html has site categories', /מילות מפתח/.test(html) && /אינדוקס/.test(html));
+  ok('html has ads categories defs', /Google Ads/.test(html) && /לידים ממודעות/.test(html));
+  ok('multi asset ready', (report.assets || []).length >= 3);
   ok('html no LCP jargon', !/\bLCP\b|\bTTFB\b|\bLatency\b/.test(html));
   ok('bottom line today', !!report.bottomLineToday && /בשורה התחתונה להיום/.test(html));
-  ok('decision before health', html.indexOf('מה חשוב לדעת עכשיו') < html.indexOf('בריאות המערכת'));  const failed = checks.filter((c) => !c.pass);
+  ok('decision before health', html.indexOf('מה חשוב לדעת עכשיו') < html.indexOf('בריאות המערכת'));
+  const failed = checks.filter((c) => !c.pass);
   console.log(JSON.stringify({
     ok: failed.length === 0,
     reportNumber: report.meta?.reportNumberDisplay,

@@ -15,7 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const OUT_DIR = join(ROOT, 'public', 'coco-reports', 'dalia-c-official', 'daily');
 const CLIENT = 'dalia-c-official';
-const COCO_VERSION = '8.1.0-business-manager-trial';
+const COCO_VERSION = '8.1.1-smart-filter';
 const PAGES_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const PREVIEW_URL = `${PAGES_BASE}/client-previews/${CLIENT}/index.html`;
 const SEQ_PATH = join(OUT_DIR, 'report-sequence.json');
@@ -641,13 +641,60 @@ async function main() {
     - 10 // images blocked
   ));
 
+  const miss = (label, reason) => M(label, 'phase2', 'missing', { missingReason: reason });
+
+  const assetCategoryDefs = {
+    'site-main': [
+      { id: 'google-presence', labelHe: 'מצב האתר בגוגל' },
+      { id: 'keywords', labelHe: 'מילות מפתח' },
+      { id: 'indexing', labelHe: 'אינדוקס' },
+      { id: 'content', labelHe: 'תוכן' },
+      { id: 'gsc', labelHe: 'Google Search Console' },
+      { id: 'ga', labelHe: 'Google Analytics' },
+      { id: 'gbp-local', labelHe: 'Google Business' },
+      { id: 'site-health', labelHe: 'בריאות האתר' },
+      { id: 'recommendations', labelHe: 'המלצות' },
+    ],
+    'site-extra': [
+      { id: 'google-presence', labelHe: 'מצב האתר בגוגל' },
+      { id: 'keywords', labelHe: 'מילות מפתח' },
+      { id: 'content', labelHe: 'תוכן' },
+      { id: 'recommendations', labelHe: 'המלצות' },
+    ],
+    'google-ads': [
+      { id: 'ads-campaigns', labelHe: 'מצב הקמפיינים' },
+      { id: 'ads-leads', labelHe: 'לידים ממודעות' },
+      { id: 'ads-spend', labelHe: 'השקעה מול תוצאה' },
+      { id: 'ads-keywords', labelHe: 'מילות מפתח במודעות' },
+      { id: 'ads-recommendations', labelHe: 'המלצות לשיפור' },
+    ],
+    facebook: [
+      { id: 'fb-reach', labelHe: 'חשיפה וקהל' },
+      { id: 'fb-leads', labelHe: 'לידים מפייסבוק' },
+      { id: 'fb-ads', labelHe: 'מודעות פעילות' },
+      { id: 'fb-recommendations', labelHe: 'המלצות לשיפור' },
+    ],
+    instagram: [
+      { id: 'ig-reach', labelHe: 'חשיפה ותוכן' },
+      { id: 'ig-leads', labelHe: 'פניות מאינסטגרם' },
+      { id: 'ig-ads', labelHe: 'קידום ממומן' },
+      { id: 'ig-recommendations', labelHe: 'המלצות לשיפור' },
+    ],
+    gbp: [
+      { id: 'gbp-profile', labelHe: 'פרופיל העסק' },
+      { id: 'gbp-reviews', labelHe: 'ביקורות ודירוג' },
+      { id: 'gbp-calls', labelHe: 'שיחות וניווטים' },
+      { id: 'gbp-recommendations', labelHe: 'המלצות לשיפור' },
+    ],
+  };
+
   const assetCatalog = [
-    { id: 'site-main', labelHe: 'אתר ראשי (קידום אורגני)', available: true },
-    { id: 'site-extra', labelHe: 'אתר נוסף', available: false },
-    { id: 'google-ads', labelHe: 'Google Ads', available: false },
-    { id: 'facebook', labelHe: 'Facebook', available: false },
-    { id: 'instagram', labelHe: 'Instagram', available: false },
-    { id: 'gbp', labelHe: 'Google Business Profile', available: false },
+    { id: 'site-main', labelHe: 'אתר ראשי (קידום אורגני)', defaultSelected: true, hasLiveData: true, categories: assetCategoryDefs['site-main'] },
+    { id: 'site-extra', labelHe: 'אתר נוסף', defaultSelected: false, hasLiveData: false, categories: assetCategoryDefs['site-extra'] },
+    { id: 'google-ads', labelHe: 'Google Ads', defaultSelected: false, hasLiveData: false, categories: assetCategoryDefs['google-ads'] },
+    { id: 'facebook', labelHe: 'Facebook', defaultSelected: false, hasLiveData: false, categories: assetCategoryDefs.facebook },
+    { id: 'instagram', labelHe: 'Instagram', defaultSelected: false, hasLiveData: false, categories: assetCategoryDefs.instagram },
+    { id: 'gbp', labelHe: 'Google Business Profile', defaultSelected: false, hasLiveData: false, categories: assetCategoryDefs.gbp },
   ];
 
   const siteAsset = {
@@ -666,21 +713,94 @@ async function main() {
     },
     progressLabel: pagesPreview.ok ? 'בתנועה' : 'עצור',
     progressMeta: M(pagesPreview.ok ? 'יש תצוגת אתר פעילה' : 'אין תצוגה', 'preview', pagesPreview.ok ? 'live' : 'missing'),
-    whereToday: [
-      M(pagesPreview.ok ? 'האתר מוצג בתצוגה מקדימה ומוכן לבדיקה עסקית' : 'אין תצוגה', 'preview', pagesPreview.ok ? 'live' : 'missing'),
-      noSync('מיקום ממוצע בגוגל'),
-      M('תמונות האתר עדיין לא הושלמו', 'stage-d-decision/infra', 'cache'),
+    categories: [
+      {
+        id: 'google-presence',
+        labelHe: 'מצב האתר בגוגל',
+        items: [
+          noSync('מיקום ממוצע בגוגל'),
+          M(pagesPreview.ok ? 'האתר מוצג בתצוגה מקדימה ומוכן לבדיקה עסקית' : 'אין תצוגה', 'preview', pagesPreview.ok ? 'live' : 'missing'),
+        ],
+      },
+      {
+        id: 'keywords',
+        labelHe: 'מילות מפתח',
+        items: [miss('דירוג מילות מפתח', 'אין חיבור חי למיקומים — יגיע אחרי חיבור Google Search Console')],
+      },
+      {
+        id: 'indexing',
+        labelHe: 'אינדוקס',
+        items: [miss('כמה עמודים בגוגל', 'לא בוצע Sync ל-Google Search Console')],
+      },
+      {
+        id: 'content',
+        labelHe: 'תוכן',
+        items: [
+          M('יש בסיס תוכן בתצוגה; עמודי שירות ומימון עדיין דורשים חיזוק', 'preview+research', 'cache'),
+          M('תמונות האתר עדיין לא הושלמו', 'stage-d-decision/infra', 'cache'),
+        ],
+      },
+      {
+        id: 'gsc',
+        labelHe: 'Google Search Console',
+        items: [miss('חיפושים וקליקים', 'לא בוצע Sync ל-Google Search Console')],
+      },
+      {
+        id: 'ga',
+        labelHe: 'Google Analytics',
+        items: [miss('כניסות ולידים מהאתר', 'אין חיבור Analytics חי')],
+      },
+      {
+        id: 'gbp-local',
+        labelHe: 'Google Business',
+        items: [miss('פעילות בפרופיל העסק', 'אין חיבור Google Business Profile חי בדוח זה')],
+      },
+      {
+        id: 'site-health',
+        labelHe: 'בריאות האתר',
+        items: [
+          M(blockingFaults.length ? 'יש תקלה שעלולה לחסום' : 'האתר לא חסום כרגע; יש פערי חיבור', 'health-check', 'internal'),
+        ],
+      },
+      {
+        id: 'recommendations',
+        labelHe: 'המלצות',
+        items: top3Biz,
+      },
     ],
-    whatChanged: [
-      M(number === 1 ? 'זה הדוח הראשון במספור החדש — אין השוואה לדוח קודם' : 'יש דוח קודם להשוואה', 'report-sequence', 'internal'),
-    ],
-    whatsMissing: [
-      M('אין חיבור חי למיקומים וחיפושים בגוגל', 'phase2', 'missing', { missingReason: 'לא בוצע Sync ל-Google Search Console' }),
-      M('חסרות תמונות מקצועיות באתר', 'stage-d-decision/infra', 'cache'),
-      M('אין עדיין מדידת לידים חיה', 'phase2', 'missing', { missingReason: 'אין חיבור Analytics / טפסים חי' }),
-    ],
-    top3: top3Biz,
   };
+
+  function placeholderAsset(id, labelHe, whySoon) {
+    const cats = (assetCategoryDefs[id] || []).map((c) => ({
+      id: c.id,
+      labelHe: c.labelHe,
+      items: [miss(`אין נתון חי עבור «${c.labelHe}»`, whySoon)],
+    }));
+    return {
+      id,
+      labelHe,
+      trend: {
+        level: 'flat',
+        reason: 'הנכס מוכן בסינון, אבל עדיין אין נתוני אמת — לכן אין מגמת שיפור למדוד.',
+      },
+      businessPotential: {
+        score: 0,
+        why: whySoon,
+        meta: miss('פוטנציאל עסקי', whySoon),
+      },
+      progressLabel: 'ממתין לחיבור',
+      progressMeta: miss('התקדמות', whySoon),
+      categories: cats,
+    };
+  }
+
+  const extraAssets = [
+    placeholderAsset('site-extra', 'אתר נוסף', 'עדיין לא הוגדר אתר נוסף ללקוח זה'),
+    placeholderAsset('google-ads', 'Google Ads', 'אין חיבור Google Ads חי בניסיון זה'),
+    placeholderAsset('facebook', 'Facebook', 'אין חיבור Facebook חי בניסיון זה'),
+    placeholderAsset('instagram', 'Instagram', 'אין חיבור Instagram חי בניסיון זה'),
+    placeholderAsset('gbp', 'Google Business Profile', 'אין חיבור Google Business Profile חי בניסיון זה'),
+  ];
 
   const managerCard = {
     campaignProgress: M(
@@ -731,11 +851,16 @@ async function main() {
   };
 
   const comparison = {
-    summary: 'נבחר נכס אחד כברירת מחדל — אין השוואה בין נכסים בדוח זה.',
+    summary: 'נבחר נכס אחד — אין צורך בהשוואה.',
+    summarySingle: 'נבחר נכס אחד — אין צורך בהשוואה.',
+    summaryMulti: 'השוואה בין הנכסים שנבחרו — מה חשוב להחלטה עכשיו:',
     bullets: [
-      'כשתסמן יותר מנכס אחד בסינון, תופיע כאן השוואה קצרה: מי מביא יותר לידים, מי מתקדם מהר, ומי דורש יותר עבודה.',
+      'מי מביא יותר לידים עכשיו: עדיין אין נתון חי להשוואה — אחרי חיבור המדידה נוכל לדרג בין הנכסים.',
+      'מי מתקדם יותר: האתר הראשי הוא היחיד עם תצוגה פעילה; שאר הנכסים ממתינים לחיבור.',
+      'מי נותן יותר ערך כרגע: השקעה באתר + חיבור Google תיתן את התמונה העסקית המהירה ביותר.',
+      'איפה כדאי להשקיע עכשיו: לחבר נתוני אמת לאתר, ורק אחר כך להרחיב ל-Ads / רשתות / Google Business.',
     ],
-    note: 'מוכן לעתיד: Google Ads / Facebook / Instagram / Google Business — כרגע מסומנים «בקרוב».',
+    note: 'ההשוואה מוכנה לריבוי נכסים. כרגע חלק מהנכסים בלי נתוני אמת — והסיבה מצוינת ליד כל שורה.',
   };
 
   const bottomLineToday =
@@ -773,7 +898,7 @@ async function main() {
     },
     bottomLineToday,
     assetCatalog,
-    assets: [siteAsset],
+    assets: [siteAsset, ...extraAssets],
     managerCard,
     businessPotential: {
       score: businessPotentialScore,
