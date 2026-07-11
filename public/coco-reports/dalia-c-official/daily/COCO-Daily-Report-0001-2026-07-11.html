@@ -10,522 +10,267 @@ body{font-family:Heebo,Arial,sans-serif;margin:0;background:var(--bg);color:var(
 .cover h1{margin:0 0 8px;font-size:1.35rem}
 .cover .sub{opacity:.85;font-size:.9rem}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
-.btn{display:inline-block;padding:8px 14px;border-radius:10px;text-decoration:none;font-weight:700;font-size:.85rem;border:1px solid transparent}
+.btn{display:inline-block;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700;font-size:.85rem;border:1px solid transparent;cursor:pointer;background:#e2e8f0;color:#0f172a}
 .btn-pdf{background:#fbbf24;color:#111}
 .btn-o{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
-h2{font-size:1.05rem;margin:0 0 10px}
+.btn-go{background:#2563eb;color:#fff;border:0}
+h2{font-size:1.05rem;margin:0 0 10px}.h3{font-size:.92rem;margin:12px 0 6px;color:#334155}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-@media(max-width:720px){.grid{grid-template-columns:repeat(2,1fr)}}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:720px){.grid,.grid2{grid-template-columns:1fr 1fr}}
 .kpi{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px}
-.kpi .l{font-size:.7rem;color:var(--muted)}
-.kpi .v{font-size:1.25rem;font-weight:800;margin-top:2px}
-table{width:100%;border-collapse:collapse;font-size:.78rem}
-th,td{border:1px solid var(--line);padding:6px 7px;text-align:right;vertical-align:top}
-th{background:var(--brand);color:#fff}
-.mv{font-weight:700}
-.meta-line{font-size:.65rem;color:var(--muted);margin-top:3px}
+.kpi .l{font-size:.7rem;color:var(--muted)}.kpi .v{font-size:1.2rem;font-weight:800;margin-top:2px}
+.mv{font-weight:700}.meta-line{font-size:.65rem;color:var(--muted);margin-top:3px}
 .miss{font-size:.68rem;color:var(--miss);margin-top:3px}
 .tag{display:inline-block;padding:1px 6px;border-radius:999px;font-size:.62rem;font-weight:700}
-.tag-live{background:#d1fae5;color:var(--ok)}
-.tag-cache{background:#e0e7ff;color:#3730a3}
-.tag-internal{background:#e2e8f0;color:#334155}
-.tag-ai_estimate{background:#ede9fe;color:var(--ai)}
+.tag-live{background:#d1fae5;color:var(--ok)}.tag-cache{background:#e0e7ff;color:#3730a3}
+.tag-internal{background:#e2e8f0;color:#334155}.tag-ai_estimate{background:#ede9fe;color:var(--ai)}
 .tag-missing{background:#fee2e2;color:var(--bad)}
-.sep{margin:18px 0;border:0;border-top:2px dashed #cbd5e1}
-.note{font-size:.8rem;color:var(--muted)}
-.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.15);font-size:.72rem}
+.note{font-size:.8rem;color:var(--muted)}.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.15);font-size:.72rem}
 ul.exec{margin:0;padding-right:18px}
-@media print{.actions{display:none!important}body{background:#fff}.wrap{padding:0}.card{break-inside:avoid}}
+.filter{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.filter label{font-size:.72rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.filter input,.filter select{padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;min-width:130px}
+.chk{display:block;padding:6px 0;font-size:.88rem}.soon{color:var(--muted);font-size:.75rem}
+.trend{font-size:1.05rem;font-weight:800;margin-bottom:4px}
+.decision li{margin-bottom:8px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:40;align-items:center;justify-content:center;padding:16px}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:16px;border:1px solid var(--line)}
+.modal h3{margin:0 0 10px;font-size:1rem}
+.cats label{display:block;padding:6px 0;font-size:.88rem}
+@media print{.filter,.actions,#assetModal,.no-print{display:none!important}.card{break-inside:avoid}}
 </style></head><body><div class="wrap">
 
 <section class="card cover" id="page1">
-  <div class="badge">CO.CO Daily BI · Phase 1</div>
+  <div class="badge">דוח יומי לעסק · ניסיון דליה</div>
   <h1>דוח יומי #0001</h1>
   <div class="sub">
-    <strong>דליה פתרונות תפעול ותחזוקה לרכב</strong><br>
-    תאריך יצירה: 2026-07-11 · שעה: 01:05:30 ·
-    מזהה: <code>dalia-c-official-0001-2026-07-11</code><br>
-    גרסת מערכת: 8.0.0-daily-bi-phase1 · שליחת מייל: לא נשלח (dry_run)
-br>
-    <span class="badge">Read Only</span> · Pipeline לא הורץ · תמונות לא נוצרו
+    2026-07-11 · 17:46:03 ·
+    מייל: לא נשלח (תצוגה בלבד)
+  </div>
+  <div style="margin-top:12px;padding:10px 12px;background:rgba(255,255,255,.12);border-radius:10px;border:1px solid rgba(255,255,255,.2)">
+    <div style="font-size:.72rem;opacity:.85;margin-bottom:4px">בשורה התחתונה להיום</div>
+    <div style="font-size:.98rem;font-weight:700;line-height:1.45">האתר בתצוגה מוכן והכיוון נכון, אבל עדיין אין נתוני Google חיים. אם נחבר מיקומים ונחזק עמוד שירות השבוע — זו הפעולה שתיתן את ההשפעה העסקית הגדולה ביותר.</div>
   </div>
   <div class="actions">
     <a class="btn btn-pdf" href="COCO-Daily-Report-0001-2026-07-11.pdf" download>הורד PDF</a>
-    <a class="btn btn-o" href="https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html" target="_blank" rel="noopener">פתח אתר (Preview)</a>
+    <a class="btn btn-o" href="https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html" target="_blank" rel="noopener">פתח אתר</a>
   </div>
 </section>
 
+<section class="card no-print">
+  <h2>סינון מהיר</h2>
+  <div class="filter">
+    <label>תאריך<input type="date" id="fDate" value="2026-07-11"></label>
+    <label>מספר דוח<input type="text" id="fNum" value="#0001" readonly></label>
+    <label>סוג נכס / קמפיין
+      <button type="button" class="btn" id="btnAssets" style="margin-top:0">בחירת נכסים…</button>
+    </label>
+    <button type="button" class="btn btn-go" id="btnApply">הצג דוח</button>
+  </div>
+  <p class="note" id="selHint">ברירת מחדל: אתר ראשי (קידום אורגני). אפשר לבחור כמה נכסים.</p>
+</section>
+
+<section class="card" id="decisionCard">
+  <h2>מה חשוב לדעת עכשיו</h2>
+  <ol class="decision">
+    <li><strong>האם הקמפיין מתקדם?</strong><br><div class="mv">יש התקדמות בבניית הנוכחות הדיגיטלית (אתר מוכן לתצוגה), אבל עדיין אין הוכחת עלייה בגוגל</div>
+    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
+    · תצוגת אתר + בדיקות · עודכן: 11.7.2026, 17:46</div></li>
+    <li><strong>האם אנחנו מתקדמים לעבר המטרה?</strong><br><div class="mv">מתקדמים לעבר נוכחות דיגיטלית, אך המטרה העסקית (לידים/מקום ראשון) עדיין לא נמדדת בנתוני אמת</div>
+    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
+    · סטטוס מוכנות פנימי · עודכן: 11.7.2026, 17:46</div></li>
+    <li><strong>האם המיקום השתפר?</strong><br><div class="mv">אין נתון חי</div>
+    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
+    · מערכות Google (עדיין לא חובר חי) · עודכן: 11.7.2026, 17:46</div><div class="miss">השתפרות מיקום בגוגל: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></li>
+    <li><strong>האם מביאים יותר לידים?</strong><br><div class="mv">אין נתון חי על לידים</div>
+    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
+    · שלב הבא — חיבור נתונים חיים · עודכן: 11.7.2026, 17:46</div><div class="miss">אין חיבור למדידת לידים / Analytics</div></li>
+    <li><strong>יש בעיה שמעכבת?</strong><br><div class="mv">שתי חסימות עיקריות: מכסת AI לתמונות, וחיבור Google שעדיין לא אומת חי</div>
+    <div class="meta-line"><span class="tag tag-cache">נתון ממטמון</span>
+    · בדיקת תשתית קודמת · עודכן: 11.7.2026, 17:46</div></li>
+    <li><strong>שלוש פעולות חשובות עכשיו</strong>
+      <ol><li><div class="mv">לחבר נתוני Google חיים (מיקומים וחיפושים) כדי לדעת אם עולים או יורדים</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · המלצת מערכת · עודכן: 11.7.2026, 17:46</div></li><li><div class="mv">להשלים תמונות לאתר אחרי תיקון מכסת OpenAI — בלי להריץ מחדש את כל המערכת</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · המלצת מערכת · עודכן: 11.7.2026, 17:46</div></li><li><div class="mv">לחזק עמודי שירות ומימון באתר — הזדמנות תוכן ברורה מהמחקר</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · הערכת AI · עודכן: 11.7.2026, 17:46</div></li></ol>
+    </li>
+  </ol>
+</section>
+
 <section class="card">
-  <h2>לוח מחוונים — מנהלים</h2>
+  <h2>בריאות המערכת</h2>
   <div class="grid">
-    <div class="kpi"><div class="l">Project Score</div><div class="v">85</div>
-    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
-    · scoreProject() · 2026-07-10T22:05:31.666Z</div></div>
-    <div class="kpi"><div class="l">System Health</div><div class="v">27</div>
-      <div class="meta-line">תקין 4 · אזהרה 9 · שגיאה 0 · לא הוגדר 13</div>
-      <div class="miss">הציון נמוך בעיקר כי בדיקות רבות עדיין לא הוגדרו או לא ממומשות — לא בגלל קריסת האתר.</div>
+    <div class="kpi"><div class="l">מצב כללי</div><div class="v">תקין עם פערי חיבור</div><div class="note">אין תקלה שחוסמת את האתר כרגע. חלק מהחיבורים עדיין לא הוגדרו — זה לא אומר שהאתר קרס.</div></div>
+    <div class="kpi"><div class="l">ציון בריאות המערכת</div><div class="v">27</div>
+      <div class="meta-line">תקין 4 · דורש תשומת לב 9 · לא הוגדר 13</div>
     </div>
-    <div class="kpi"><div class="l">התקדמות</div><div class="v">68%</div>
-    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
-    · phase1-placeholder · 2026-07-10T22:05:31.666Z</div></div>
-    <div class="kpi"><div class="l">מוכן לעלייה?</div><div class="v">לא</div>
+    <div class="kpi"><div class="l">50 העוזרים</div><div class="v">29 הושלמו</div><div class="mv">לא הורצו מחדש בדוח הזה</div>
+    <div class="meta-line"><span class="tag tag-cache">נתון ממטמון</span>
+    · סטטוס עוזרים שמור · עודכן: 11.7.2026, 17:46</div></div>
+    <div class="kpi"><div class="l">יועצים ומנועים</div><div class="v">פעילים חלקית</div><div class="mv">מנועי בנייה השלימו תצוגה; לא הורצו מחדש היום</div>
+    <div class="meta-line"><span class="tag tag-cache">נתון ממטמון</span>
+    · התקדמות פרויקט שמורה · עודכן: 11.7.2026, 17:46</div></div>
+  </div>
+  <p class="note">פירוט טכני מלא נשמר במערכת ולא מוצג כאן כדי לשמור על קריאה עסקית מהירה.</p>
+</section>
+
+<section class="card">
+  <h2>ציונים</h2>
+  <div class="grid">
+    <div class="kpi"><div class="l">ציון הפרויקט</div><div class="v">85</div><div class="mv">85</div>
     <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
-    · gates · 2026-07-10T22:05:31.666Z</div></div>
+    · חישוב פנימי של המערכת · עודכן: 11.7.2026, 17:46</div></div>
+    <div class="kpi"><div class="l">פוטנציאל עסקי</div><div class="v">60</div>
+      <div class="note">יש בסיס אתר והזדמנות תוכן, אבל בלי מדידת Google חיה ותמונות — כדאי להמשיך להשקיע בזהירות עד שיש נתוני אמת.</div><div class="mv">60</div>
+    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
+    · חישוב פנימי של המערכת · עודכן: 11.7.2026, 17:46</div></div>
+    <div class="kpi"><div class="l">התקדמות</div><div class="v">68%</div><div class="mv">68</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · הערכה זמנית · עודכן: 11.7.2026, 17:46</div></div>
+    <div class="kpi"><div class="l">מוכן לעלייה?</div><div class="v">לא</div><div class="mv">false</div>
+    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
+    · סטטוס מוכנות פנימי · עודכן: 11.7.2026, 17:46</div></div>
   </div>
 </section>
 
-<section class="card">
-  <h2>מצב בגוגל + הזדמנויות (עמוד ראשון)</h2>
-  <p class="note">שלב 1: אין חיבור GSC חי — אין מספרים מומצאים. כל שורה עם «אין נתון חי» + סיבה.</p>
-  <table><tr><th>מדד</th><th>ערך · מקור · אמינות · עדכון</th></tr><tr><td>מצב בגוגל</td><td><div class="mv">אין נתון חי</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">מצב בגוגל: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></td></tr><tr><td>עלייה / ירידה</td><td><div class="mv">אין נתון חי</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">עלייה/ירידה: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></td></tr><tr><td>מיקום ממוצע</td><td><div class="mv">אין נתון חי</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">מיקום ממוצע: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></td></tr><tr><td>Top 3</td><td><div class="mv">אין נתון חי</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">Top 3: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></td></tr><tr><td>Top 10</td><td><div class="mv">אין נתון חי</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">Top 10: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></td></tr><tr><td>Top 20</td><td><div class="mv">אין נתון חי</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">Top 20: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></td></tr><tr><td>מילות מפתח שעלו</td><td><div class="mv">אין נתון חי</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">KW שעלו: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></td></tr><tr><td>מילות מפתח שירדו</td><td><div class="mv">אין נתון חי</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">KW שירדו: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></td></tr><tr><td>מה חיפשו היום</td><td><div class="mv">אין נתון חי</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">חיפושים היום: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></td></tr><tr><td>מה חיפשו השבוע</td><td><div class="mv">אין נתון חי</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">חיפושים השבוע: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></td></tr><tr><td>עמוד מתאים?</td><td><div class="mv">לא ניתן לקבוע מול דירוגים חיים — Preview קיים</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · client-previews + phase2-gsc · 2026-07-10T22:05:31.666Z</div><div class="miss">אין מיקומי KW חיים לשייך לעמוד; Preview זמין ב-Staging</div></td></tr><tr><td>ליצור עמוד חדש?</td><td><div class="mv">להמתין לנתוני GSC חיים לפני החלטת עמוד חדש</div>
-    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
-    · ai_gate · 2026-07-10T22:05:31.666Z</div></td></tr><tr><td>חסר תוכן?</td><td><div class="mv">ייתכן — תמונות חסרות (quota); תוכן בסיסי ב-Preview</div>
-    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
-    · preview-assets+decision · 2026-07-10T22:05:31.666Z</div></td></tr></table>
-</section>
 
-<section class="card">
-  <h2>שלוש הפעולות החשובות ביותר להיום</h2>
-  <ol><li><div class="mv">לאשר תיקון OpenAI quota ואז CocoImageStage בלבד</div>
-    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
-    · chief/ops · 2026-07-10T22:05:31.666Z</div></li><li><div class="mv">לאשר Sync GSC/GA4 חי (שלב 2) — בלי re-login אוטומטי</div>
-    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
-    · ops · 2026-07-10T22:05:31.666Z</div></li><li><div class="mv">מדידת CWV חיה ל-Preview</div>
-    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
-    · ops · 2026-07-10T22:05:31.666Z</div></li></ol>
-</section>
-
-<section class="card">
-  <h2>System Health — סיכום</h2>
-  <p><strong>System Health Score: 27</strong>
-   · נבדקו 28
-   · תקין 4
-   · אזהרה 9
-   · שגיאה 0
-   · לא הוגדר 13
-   · לא ניתן לאימות מקומית 2</p>
-  <p class="note">הציון נמוך בעיקר כי בדיקות רבות עדיין לא הוגדרו או לא ממומשות — לא בגלל קריסת האתר.</p>
-  <p class="note">נוסחה: round((תקין×100 + אזהרה×40) / total) · תקין=100 · אזהרה=40 · שגיאה/לא הוגדר/לא ניתן לאימות=0</p>
-  <p><strong>חוסם בפועל:</strong> אין תקלה שחוסמת את האתר כרגע</p>
-  <p><strong>לא מומש עדיין (לא תקלת אתר):</strong> Supabase · Database · Edge Functions · Google Search Console · Google Analytics 4 · Google Ads · Google Business Profile · Google Tag Manager · Gmail · Google Drive · Google Sheets · Storage · CRM · WhatsApp · CO.CO API · מערכת גיבויים · Cron</p>
-  <p><strong>תקלות קריטיות:</strong> אין</p>
-</section>
-
-<section class="card">
-  <h2>סיכום מנהלים</h2>
-  <ul class="exec">
-    <li><strong>מצב היום:</strong> Preview מוכן ב-Staging · תמונות ממתינות · Google לא מאומת חי <span class="tag tag-internal">חישוב פנימי</span></li>
-    <li><strong>גוגל (עלייה/ירידה):</strong> <div class="mv">אין נתון חי</div>
+<section class="card asset-block" data-asset-section="site-main">
+  <h2>אתר ראשי (קידום אורגני)</h2>
+  <div class="trend-wrap"><div class="trend">🟡 יציב</div><div class="note">האתר בתצוגה מוכן, אבל אין עדיין נתוני מיקומים חיים — לכן המגמה מסומנת יציבה ולא «משתפר».</div></div>
+  <div class="grid2">
+    <div class="kpi"><div class="l">פוטנציאל עסקי</div><div class="v">60</div>
+      <div class="note">יש בסיס אתר מוכן והזדמנות תוכן, אך בלי נתוני Google חיים ותמונות — הפוטנציאל חלקי.</div>
+      <div class="mv">60</div>
+    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
+    · חישוב פנימי של המערכת · עודכן: 11.7.2026, 17:46</div>
+    </div>
+    <div class="kpi"><div class="l">התקדמות לקמפיין</div><div class="v">בתנועה</div>
+      <div class="mv">יש תצוגת אתר פעילה</div>
+    <div class="meta-line"><span class="tag tag-live">נתון חי</span>
+    · תצוגת האתר · עודכן: 11.7.2026, 17:46</div>
+    </div>
+  </div>
+  <h3 class="h3">איפה אנחנו היום</h3>
+  <ul class="exec"><li><div class="mv">האתר מוצג בתצוגה מקדימה ומוכן לבדיקה עסקית</div>
+    <div class="meta-line"><span class="tag tag-live">נתון חי</span>
+    · תצוגת האתר · עודכן: 11.7.2026, 17:46</div></li><li><div class="mv">אין נתון חי</div>
     <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · gsc/ga4/gbp/ads · 2026-07-10T22:05:31.666Z</div><div class="miss">מגמת גוגל: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></li>
-    <li><strong>מה השתנה מהדוח הקודם:</strong> <div class="mv">דוח ראשון (#0001) — אין דוח קודם להשוואה</div>
-    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
-    · report-sequence · 2026-07-10T22:05:31.666Z</div></li>
-    <li><strong>מה בוצע:</strong> <div class="mv">Quality gate · Preview c3+c13 · דוח BI Phase 1</div>
-    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
-    · stage-d + generator · 2026-07-10T22:05:31.666Z</div></li>
-    <li><strong>מה חסר:</strong> <div class="mv">GSC/GA4 חי · תמונות · אימות Google</div>
-    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
-    · gates · 2026-07-10T22:05:31.666Z</div></li>
-    <li><strong>סיכון מרכזי:</strong> <div class="mv">OpenAI quota חוסם השלמת תמונות</div>
+    · מערכות Google (עדיין לא חובר חי) · עודכן: 11.7.2026, 17:46</div><div class="miss">מיקום ממוצע בגוגל: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)</div></li><li><div class="mv">תמונות האתר עדיין לא הושלמו</div>
     <div class="meta-line"><span class="tag tag-cache">נתון ממטמון</span>
-    · infra-verify · 2026-07-10T22:05:31.666Z</div></li>
-    <li><strong>הזדמנות גדולה:</strong> <div class="mv">Preview כבר חי — אפשר לבדוק מסרים לפני עלייה</div>
+    · סטטוס שמור במערכת · עודכן: 11.7.2026, 17:46</div></li></ul>
+  <h3 class="h3">מה השתנה</h3>
+  <ul class="exec"><li><div class="mv">זה הדוח הראשון במספור החדש — אין השוואה לדוח קודם</div>
     <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
-    · preview · 2026-07-10T22:05:31.666Z</div></li>
-    <li><strong>השפעה צפויה החודש:</strong> <div class="mv">חיבור GSC + השלמת תמונות צפויים להשפיע הכי הרבה — הערכת AI</div>
-    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
-    · ai · 2026-07-10T22:05:31.666Z</div></li>
-    <li><strong>המלצת מערכת (AI — לא נתון חי):</strong> <div class="mv">להישאר ב-Preview עד Sync Google ותמונות; לא לעלות ל-Production</div>
-    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
-    · ai · 2026-07-10T22:05:31.666Z</div></li>
-  </ul>
-</section>
-
-<hr class="sep">
-<p class="note">פירוט System Health המלא להלן. נתוני Google חיים — שלב 2.</p>
-
-<section class="card">
-  <h2>System Health — פירוט מערכות</h2>
-  <p class="note">הציון נמוך בעיקר כי בדיקות רבות עדיין לא הוגדרו או לא ממומשות — לא בגלל קריסת האתר.</p>
-  <table>
-    <tr><th>מערכת</th><th>סטטוס</th><th>מקור</th><th>חיה/מטמון</th><th>בדיקה</th><th>Sync</th><th>Latency</th><th>הסבר</th><th>קריטי?</th><th>פתרון</th></tr>
-    <tr>
-    <td>OpenAI</td>
-    <td>אזהרה — חיבור קיים, quota חסום</td>
-    <td><code>cache</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T11:46:12.683Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>Secret קיים; quota/billing חוסם; לא Images בתשלום</td>
-    <td>לא</td>
-    <td>לתקן quota; תמונות רק ב-CocoImageStage אחרי אישור</td>
-  </tr><tr>
-    <td>Supabase</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>ping DB לא ממומש בשלב 1</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Database</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא מחובר לדוח בשלב 1</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Edge Functions</td>
-    <td>אזהרה</td>
-    <td><code>missing</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא בוצעה בדיקה חיה בריצה זו</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>GitHub</td>
-    <td>תקין</td>
-    <td><code>live</code></td>
-    <td>חיה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>284ms</td>
-    <td>ריפו נגיש</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>GitHub Pages</td>
-    <td>תקין</td>
-    <td><code>live</code></td>
-    <td>חיה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>298ms</td>
-    <td>Staging מגיב</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Google Search Console</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>שלב 1 — אין Sync חי</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Google Analytics 4</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>שלב 1 — אין Sync חי</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Google Ads</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>דולג מהמסלול / אין Sync</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Google Business Profile</td>
-    <td>אזהרה</td>
-    <td><code>cache</code></td>
-    <td>מטמון</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>ידוע pending API (cache)</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Google Tag Manager</td>
-    <td>אזהרה</td>
-    <td><code>cache</code></td>
-    <td>מטמון</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>אין probe חי היום</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Gmail</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא ממומש</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Google Drive</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא ממומש</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Google Sheets</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא ממומש</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Storage</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא ממומש</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Resend</td>
-    <td>אזהרה</td>
-    <td><code>missing</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>dry_run — אין שליחה בריצה זו</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>CRM</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.665Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא ממומש</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>WhatsApp</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא ממומש</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Domain</td>
-    <td>לא ניתן לאימות מקומית</td>
-    <td><code>local_unverifiable</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא ניתן לאימות מקומית (ECONNREFUSED) — SSL הצליח</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>DNS</td>
-    <td>לא ניתן לאימות מקומית</td>
-    <td><code>local_unverifiable</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>9ms</td>
-    <td>כשל DNS client מקומי — לא תקלת אתר מוכחת</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>SSL</td>
-    <td>תקין</td>
-    <td><code>live</code></td>
-    <td>חיה</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>49ms</td>
-    <td>validTo=Sep  6 15:06:50 2026 GMT</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>CO.CO API</td>
-    <td>אזהרה</td>
-    <td><code>missing</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא בוצע probe ייעודי בשלב 1</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>מערכת התראות</td>
-    <td>אזהרה</td>
-    <td><code>missing</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>MarketingNotifications קיים; שליחה dry_run</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>מערכת דוחות</td>
-    <td>תקין</td>
-    <td><code>live</code></td>
-    <td>חיה</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>גנרטור רץ בהצלחה</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>מערכת יצירת אתרים</td>
-    <td>אזהרה</td>
-    <td><code>cache</code></td>
-    <td>מטמון</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>לא הורץ Pipeline; Preview קיים</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>מערכת יצירת תמונות</td>
-    <td>אזהרה</td>
-    <td><code>cache</code></td>
-    <td>מטמון</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>imagesBlockedQuota — לא נוצרו תמונות</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>מערכת גיבויים</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>אין נתון חי</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr><tr>
-    <td>Cron</td>
-    <td>לא הוגדר</td>
-    <td><code>not_configured</code></td>
-    <td>מטמון/לא בוצעה</td>
-    <td>2026-07-10T22:05:31.666Z</td>
-    <td>—</td>
-    <td>—</td>
-    <td>Cron לא פעיל במכוון בשלב 1</td>
-    <td>לא</td>
-    <td>—</td>
-  </tr>
-  </table>
-</section>
-
-<section class="card">
-  <h2>סטטוסי פרויקט (פנימי)</h2>
-  <ul>
-    <li>Preview: <div class="mv">מוכן (HTTP 200)</div>
-    <div class="meta-line"><span class="tag tag-live">נתון אמיתי</span>
-    · github-pages · 2026-07-10T22:05:31.666Z</div></li>
-    <li>תמונות: <div class="mv">imagesBlockedQuota</div>
+    · היסטוריית דוחות · עודכן: 11.7.2026, 17:46</div></li></ul>
+  <h3 class="h3">מה חסר</h3>
+  <ul class="exec"><li><div class="mv">אין חיבור חי למיקומים וחיפושים בגוגל</div>
+    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
+    · שלב הבא — חיבור נתונים חיים · עודכן: 11.7.2026, 17:46</div><div class="miss">לא בוצע Sync ל-Google Search Console</div></li><li><div class="mv">חסרות תמונות מקצועיות באתר</div>
     <div class="meta-line"><span class="tag tag-cache">נתון ממטמון</span>
-    · stage-d-decision/infra · 2026-07-10T22:05:31.666Z</div></li>
-    <li>Google (חיבור): <div class="mv">לא אומת חי בשלב 1</div>
+    · סטטוס שמור במערכת · עודכן: 11.7.2026, 17:46</div></li><li><div class="mv">אין עדיין מדידת לידים חיה</div>
     <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · phase2 · 2026-07-10T22:05:31.666Z</div><div class="miss">לא בוצע Sync</div></li>
-    <li>Analytics: <div class="mv">לא אומת חי בשלב 1</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · phase2 · 2026-07-10T22:05:31.666Z</div><div class="miss">לא בוצע Sync</div></li>
-    <li>Ads: <div class="mv">לא חלק מהמסלול / לא הוגדר</div>
-    <div class="meta-line"><span class="tag tag-missing">אין נתון חי</span>
-    · product-scope · 2026-07-10T22:05:31.666Z</div><div class="miss">Ads דולג</div></li>
-    <li>GBP: <div class="mv">pending API (ידוע)</div>
-    <div class="meta-line"><span class="tag tag-cache">נתון ממטמון</span>
-    · infra-verify · 2026-07-10T22:05:31.666Z</div></li>
-  </ul>
+    · שלב הבא — חיבור נתונים חיים · עודכן: 11.7.2026, 17:46</div><div class="miss">אין חיבור Analytics / טפסים חי</div></li></ul>
+  <h3 class="h3">שלוש פעולות חשובות</h3>
+  <ol><li><div class="mv">לחבר נתוני Google חיים (מיקומים וחיפושים) כדי לדעת אם עולים או יורדים</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · המלצת מערכת · עודכן: 11.7.2026, 17:46</div></li><li><div class="mv">להשלים תמונות לאתר אחרי תיקון מכסת OpenAI — בלי להריץ מחדש את כל המערכת</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · המלצת מערכת · עודכן: 11.7.2026, 17:46</div></li><li><div class="mv">לחזק עמודי שירות ומימון באתר — הזדמנות תוכן ברורה מהמחקר</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · הערכת AI · עודכן: 11.7.2026, 17:46</div></li></ol>
+</section>
+
+<section class="card" id="compareBlock" data-compare="1">
+  <h2>השוואה בין נכסים</h2>
+  <p>נבחר נכס אחד כברירת מחדל — אין השוואה בין נכסים בדוח זה.</p>
+  <ul class="exec"><li>כשתסמן יותר מנכס אחד בסינון, תופיע כאן השוואה קצרה: מי מביא יותר לידים, מי מתקדם מהר, ומי דורש יותר עבודה.</li></ul>
+  <p class="note">מוכן לעתיד: Google Ads / Facebook / Instagram / Google Business — כרגע מסומנים «בקרוב».</p>
 </section>
 
 <section class="card">
-  <h2>אמינות נתונים — מקרא</h2>
+  <h2>ארבע תשובות לסיום</h2>
+  <ol>
+    <li><strong>איפה אנחנו היום?</strong><br><div class="mv">אתר בתצוגה מוכן · קידום אורגני ממתין לנתוני Google חיים · תמונות ממתינות</div>
+    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
+    · תצוגת אתר + בדיקות · עודכן: 11.7.2026, 17:46</div></li>
+    <li><strong>האם התקדמנו מאז הדוח הקודם?</strong><br><div class="mv">אין דוח קודם להשוואה (דוח #0001)</div>
+    <div class="meta-line"><span class="tag tag-internal">חישוב פנימי</span>
+    · היסטוריית דוחות · עודכן: 11.7.2026, 17:46</div></li>
+    <li><strong>מה חסר כדי להתקדם חזק יותר?</strong><br><div class="mv">נתוני מיקומים חיים, השלמת תמונות, וחיזוק עמודי שירות/מימון</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · הערכת AI · עודכן: 11.7.2026, 17:46</div></li>
+    <li><strong>שלוש פעולות חשובות עכשיו</strong>
+      <ol><li><div class="mv">לחבר נתוני Google חיים (מיקומים וחיפושים) כדי לדעת אם עולים או יורדים</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · המלצת מערכת · עודכן: 11.7.2026, 17:46</div></li><li><div class="mv">להשלים תמונות לאתר אחרי תיקון מכסת OpenAI — בלי להריץ מחדש את כל המערכת</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · המלצת מערכת · עודכן: 11.7.2026, 17:46</div></li><li><div class="mv">לחזק עמודי שירות ומימון באתר — הזדמנות תוכן ברורה מהמחקר</div>
+    <div class="meta-line"><span class="tag tag-ai_estimate">הערכת AI</span>
+    · הערכת AI · עודכן: 11.7.2026, 17:46</div></li></ol>
+    </li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>מקרא אמינות</h2>
   <p>
-    <span class="tag tag-live">נתון אמיתי</span>
+    <span class="tag tag-live">נתון חי</span>
     <span class="tag tag-cache">נתון ממטמון</span>
     <span class="tag tag-internal">חישוב פנימי</span>
     <span class="tag tag-ai_estimate">הערכת AI</span>
     <span class="tag tag-missing">אין נתון חי</span>
   </p>
-  <p class="note">המלצות AI מופרדות במפורש מנתוני אמת. אין ערבוב.</p>
+  <p class="note">המלצות AI מסומנות בבירור ואינן מוצגות כנתון חי.</p>
 </section>
 
-<section class="card">
-  <h2>אימייל</h2>
-  <p>סטטוס: <strong>dry_run</strong>
-   · תצוגה בלבד — לא נשלח
-  </p>
-  <p class="note">נושא עתידי: CO.CO | דוח יומי #0001 | דליה פתרונות תפעול ותחזוקה לרכב | 11/07/2026</p>
-</section>
+</div>
 
-</div></body></html>
+<div class="modal-bg" id="assetModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-labelledby="assetModalTitle">
+    <h3 id="assetModalTitle">בחירת נכסים / קמפיינים</h3>
+    <div class="cats"><label class="chk"><input type="checkbox" name="asset" value="site-main" data-asset="site-main" checked > אתר ראשי (קידום אורגני)</label><label class="chk"><input type="checkbox" name="asset" value="site-extra" data-asset="site-extra"  disabled> אתר נוסף <span class="soon">(בקרוב)</span></label><label class="chk"><input type="checkbox" name="asset" value="google-ads" data-asset="google-ads"  disabled> Google Ads <span class="soon">(בקרוב)</span></label><label class="chk"><input type="checkbox" name="asset" value="facebook" data-asset="facebook"  disabled> Facebook <span class="soon">(בקרוב)</span></label><label class="chk"><input type="checkbox" name="asset" value="instagram" data-asset="instagram"  disabled> Instagram <span class="soon">(בקרוב)</span></label><label class="chk"><input type="checkbox" name="asset" value="gbp" data-asset="gbp"  disabled> Google Business Profile <span class="soon">(בקרוב)</span></label></div>
+    <p class="note">ברירת מחדל: נכס אחד. אפשר לסמן כמה — הדוח יוצג לפי הבחירה, בלי לערבב נתונים.</p>
+    <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+      <button type="button" class="btn" id="modalCancel">סגור</button>
+      <button type="button" class="btn btn-go" id="modalOk">אישור</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var modal=document.getElementById('assetModal');
+  var btn=document.getElementById('btnAssets');
+  var ok=document.getElementById('modalOk');
+  var cancel=document.getElementById('modalCancel');
+  var apply=document.getElementById('btnApply');
+  var hint=document.getElementById('selHint');
+  function selected(){
+    return Array.prototype.slice.call(document.querySelectorAll('input[name=asset]:checked')).map(function(i){return i.value;});
+  }
+  function applyFilter(){
+    var sel=selected();
+    if(!sel.length){
+      var main=document.querySelector('input[value=site-main]');
+      if(main){ main.checked=true; sel=['site-main']; }
+    }
+    document.querySelectorAll('[data-asset-section]').forEach(function(el){
+      el.style.display = sel.indexOf(el.getAttribute('data-asset-section'))>=0 ? '' : 'none';
+    });
+    var cmp=document.getElementById('compareBlock');
+    if(cmp) cmp.style.display = sel.length>1 ? '' : 'none';
+    if(hint) hint.textContent = 'נבחרו: '+sel.length+' נכס/ים · הדוח מציג רק אותם';
+  }
+  if(btn) btn.onclick=function(){ modal.classList.add('on'); modal.setAttribute('aria-hidden','false'); };
+  if(cancel) cancel.onclick=function(){ modal.classList.remove('on'); };
+  if(ok) ok.onclick=function(){ modal.classList.remove('on'); applyFilter(); };
+  if(apply) apply.onclick=applyFilter;
+  applyFilter();
+})();
+</script>
+</body></html>

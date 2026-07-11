@@ -1,9 +1,9 @@
 {
   "meta": {
-    "version": "2.0.0-daily-bi-phase1",
+    "version": "2.1.0-business-manager-trial",
     "phase": 1,
-    "generatedAt": "2026-07-10T22:05:30.584Z",
-    "generatedTimeIL": "01:05:30",
+    "generatedAt": "2026-07-11T14:46:03.943Z",
+    "generatedTimeIL": "17:46:03",
     "reportDate": "2026-07-11",
     "timezone": "Asia/Jerusalem",
     "reportNumber": 1,
@@ -11,12 +11,13 @@
     "reportNumberDisplay": "#0001",
     "reportId": "dalia-c-official-0001-2026-07-11",
     "pdfFileName": "COCO-Daily-Report-0001-2026-07-11.pdf",
-    "cocoVersion": "8.0.0-daily-bi-phase1",
+    "cocoVersion": "8.1.0-business-manager-trial",
     "readOnly": true,
     "pipelineRan": false,
     "imagesGenerated": false,
     "secretsChanged": false,
-    "clientSlug": "dalia-c-official"
+    "clientSlug": "dalia-c-official",
+    "uiLanguage": "he"
   },
   "client": {
     "clientId": "dalia-c-official",
@@ -25,157 +26,567 @@
     "domain": "dalia-c.com",
     "previewUrl": "https://orin1607-ctrl.github.io/future-craft-core/client-previews/dalia-c-official/index.html"
   },
+  "bottomLineToday": "האתר בתצוגה מוכן והכיוון נכון, אבל עדיין אין נתוני Google חיים. אם נחבר מיקומים ונחזק עמוד שירות השבוע — זו הפעולה שתיתן את ההשפעה העסקית הגדולה ביותר.",
+  "assetCatalog": [
+    {
+      "id": "site-main",
+      "labelHe": "אתר ראשי (קידום אורגני)",
+      "available": true
+    },
+    {
+      "id": "site-extra",
+      "labelHe": "אתר נוסף",
+      "available": false
+    },
+    {
+      "id": "google-ads",
+      "labelHe": "Google Ads",
+      "available": false
+    },
+    {
+      "id": "facebook",
+      "labelHe": "Facebook",
+      "available": false
+    },
+    {
+      "id": "instagram",
+      "labelHe": "Instagram",
+      "available": false
+    },
+    {
+      "id": "gbp",
+      "labelHe": "Google Business Profile",
+      "available": false
+    }
+  ],
+  "assets": [
+    {
+      "id": "site-main",
+      "labelHe": "אתר ראשי (קידום אורגני)",
+      "trend": {
+        "level": "flat",
+        "reason": "האתר בתצוגה מוכן, אבל אין עדיין נתוני מיקומים חיים — לכן המגמה מסומנת יציבה ולא «משתפר»."
+      },
+      "businessPotential": {
+        "score": 60,
+        "why": "יש בסיס אתר מוכן והזדמנות תוכן, אך בלי נתוני Google חיים ותמונות — הפוטנציאל חלקי.",
+        "meta": {
+          "value": 60,
+          "source": "scoreProject()",
+          "sourceHe": "חישוב פנימי של המערכת",
+          "reliability": "internal",
+          "reliabilityHe": "חישוב פנימי",
+          "updatedAt": "2026-07-11T14:46:05.161Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": null
+        }
+      },
+      "progressLabel": "בתנועה",
+      "progressMeta": {
+        "value": "יש תצוגת אתר פעילה",
+        "source": "preview",
+        "sourceHe": "תצוגת האתר",
+        "reliability": "live",
+        "reliabilityHe": "נתון חי",
+        "updatedAt": "2026-07-11T14:46:05.161Z",
+        "updatedAtHe": "11.7.2026, 17:46",
+        "missingReason": null
+      },
+      "whereToday": [
+        {
+          "value": "האתר מוצג בתצוגה מקדימה ומוכן לבדיקה עסקית",
+          "source": "preview",
+          "sourceHe": "תצוגת האתר",
+          "reliability": "live",
+          "reliabilityHe": "נתון חי",
+          "updatedAt": "2026-07-11T14:46:05.162Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": null
+        },
+        {
+          "value": "אין נתון חי",
+          "source": "gsc/ga4/gbp/ads",
+          "sourceHe": "מערכות Google (עדיין לא חובר חי)",
+          "reliability": "missing",
+          "reliabilityHe": "אין נתון חי",
+          "updatedAt": "2026-07-11T14:46:05.162Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": "מיקום ממוצע בגוגל: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
+        },
+        {
+          "value": "תמונות האתר עדיין לא הושלמו",
+          "source": "stage-d-decision/infra",
+          "sourceHe": "סטטוס שמור במערכת",
+          "reliability": "cache",
+          "reliabilityHe": "נתון ממטמון",
+          "updatedAt": "2026-07-11T14:46:05.162Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": null
+        }
+      ],
+      "whatChanged": [
+        {
+          "value": "זה הדוח הראשון במספור החדש — אין השוואה לדוח קודם",
+          "source": "report-sequence",
+          "sourceHe": "היסטוריית דוחות",
+          "reliability": "internal",
+          "reliabilityHe": "חישוב פנימי",
+          "updatedAt": "2026-07-11T14:46:05.163Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": null
+        }
+      ],
+      "whatsMissing": [
+        {
+          "value": "אין חיבור חי למיקומים וחיפושים בגוגל",
+          "source": "phase2",
+          "sourceHe": "שלב הבא — חיבור נתונים חיים",
+          "reliability": "missing",
+          "reliabilityHe": "אין נתון חי",
+          "updatedAt": "2026-07-11T14:46:05.163Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": "לא בוצע Sync ל-Google Search Console"
+        },
+        {
+          "value": "חסרות תמונות מקצועיות באתר",
+          "source": "stage-d-decision/infra",
+          "sourceHe": "סטטוס שמור במערכת",
+          "reliability": "cache",
+          "reliabilityHe": "נתון ממטמון",
+          "updatedAt": "2026-07-11T14:46:05.163Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": null
+        },
+        {
+          "value": "אין עדיין מדידת לידים חיה",
+          "source": "phase2",
+          "sourceHe": "שלב הבא — חיבור נתונים חיים",
+          "reliability": "missing",
+          "reliabilityHe": "אין נתון חי",
+          "updatedAt": "2026-07-11T14:46:05.163Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": "אין חיבור Analytics / טפסים חי"
+        }
+      ],
+      "top3": [
+        {
+          "value": "לחבר נתוני Google חיים (מיקומים וחיפושים) כדי לדעת אם עולים או יורדים",
+          "source": "ops",
+          "sourceHe": "המלצת מערכת",
+          "reliability": "ai_estimate",
+          "reliabilityHe": "הערכת AI",
+          "updatedAt": "2026-07-11T14:46:05.160Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": null
+        },
+        {
+          "value": "להשלים תמונות לאתר אחרי תיקון מכסת OpenAI — בלי להריץ מחדש את כל המערכת",
+          "source": "chief/ops",
+          "sourceHe": "המלצת מערכת",
+          "reliability": "ai_estimate",
+          "reliabilityHe": "הערכת AI",
+          "updatedAt": "2026-07-11T14:46:05.160Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": null
+        },
+        {
+          "value": "לחזק עמודי שירות ומימון באתר — הזדמנות תוכן ברורה מהמחקר",
+          "source": "ai",
+          "sourceHe": "הערכת AI",
+          "reliability": "ai_estimate",
+          "reliabilityHe": "הערכת AI",
+          "updatedAt": "2026-07-11T14:46:05.160Z",
+          "updatedAtHe": "11.7.2026, 17:46",
+          "missingReason": null
+        }
+      ]
+    }
+  ],
+  "managerCard": {
+    "campaignProgress": {
+      "value": "יש התקדמות בבניית הנוכחות הדיגיטלית (אתר מוכן לתצוגה), אבל עדיין אין הוכחת עלייה בגוגל",
+      "source": "preview+infra",
+      "sourceHe": "תצוגת אתר + בדיקות",
+      "reliability": "internal",
+      "reliabilityHe": "חישוב פנימי",
+      "updatedAt": "2026-07-11T14:46:05.164Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": null
+    },
+    "towardGoal": {
+      "value": "מתקדמים לעבר נוכחות דיגיטלית, אך המטרה העסקית (לידים/מקום ראשון) עדיין לא נמדדת בנתוני אמת",
+      "source": "gates",
+      "sourceHe": "סטטוס מוכנות פנימי",
+      "reliability": "internal",
+      "reliabilityHe": "חישוב פנימי",
+      "updatedAt": "2026-07-11T14:46:05.164Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": null
+    },
+    "rankingImproved": {
+      "value": "אין נתון חי",
+      "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
+      "reliability": "missing",
+      "reliabilityHe": "אין נתון חי",
+      "updatedAt": "2026-07-11T14:46:05.164Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": "השתפרות מיקום בגוגל: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
+    },
+    "moreLeads": {
+      "value": "אין נתון חי על לידים",
+      "source": "phase2",
+      "sourceHe": "שלב הבא — חיבור נתונים חיים",
+      "reliability": "missing",
+      "reliabilityHe": "אין נתון חי",
+      "updatedAt": "2026-07-11T14:46:05.164Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": "אין חיבור למדידת לידים / Analytics"
+    },
+    "blocker": {
+      "value": "שתי חסימות עיקריות: מכסת AI לתמונות, וחיבור Google שעדיין לא אומת חי",
+      "source": "infra-verify",
+      "sourceHe": "בדיקת תשתית קודמת",
+      "reliability": "cache",
+      "reliabilityHe": "נתון ממטמון",
+      "updatedAt": "2026-07-11T14:46:05.164Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": null
+    },
+    "top3": [
+      {
+        "value": "לחבר נתוני Google חיים (מיקומים וחיפושים) כדי לדעת אם עולים או יורדים",
+        "source": "ops",
+        "sourceHe": "המלצת מערכת",
+        "reliability": "ai_estimate",
+        "reliabilityHe": "הערכת AI",
+        "updatedAt": "2026-07-11T14:46:05.160Z",
+        "updatedAtHe": "11.7.2026, 17:46",
+        "missingReason": null
+      },
+      {
+        "value": "להשלים תמונות לאתר אחרי תיקון מכסת OpenAI — בלי להריץ מחדש את כל המערכת",
+        "source": "chief/ops",
+        "sourceHe": "המלצת מערכת",
+        "reliability": "ai_estimate",
+        "reliabilityHe": "הערכת AI",
+        "updatedAt": "2026-07-11T14:46:05.160Z",
+        "updatedAtHe": "11.7.2026, 17:46",
+        "missingReason": null
+      },
+      {
+        "value": "לחזק עמודי שירות ומימון באתר — הזדמנות תוכן ברורה מהמחקר",
+        "source": "ai",
+        "sourceHe": "הערכת AI",
+        "reliability": "ai_estimate",
+        "reliabilityHe": "הערכת AI",
+        "updatedAt": "2026-07-11T14:46:05.160Z",
+        "updatedAtHe": "11.7.2026, 17:46",
+        "missingReason": null
+      }
+    ]
+  },
+  "businessPotential": {
+    "score": 60,
+    "why": "יש בסיס אתר והזדמנות תוכן, אבל בלי מדידת Google חיה ותמונות — כדאי להמשיך להשקיע בזהירות עד שיש נתוני אמת.",
+    "meta": {
+      "value": 60,
+      "source": "scoreProject()",
+      "sourceHe": "חישוב פנימי של המערכת",
+      "reliability": "internal",
+      "reliabilityHe": "חישוב פנימי",
+      "updatedAt": "2026-07-11T14:46:05.166Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": null
+    }
+  },
+  "healthBusiness": {
+    "statusLabel": "תקין עם פערי חיבור",
+    "statusWhy": "אין תקלה שחוסמת את האתר כרגע. חלק מהחיבורים עדיין לא הוגדרו — זה לא אומר שהאתר קרס.",
+    "assistantsLabel": "29 הושלמו",
+    "assistantsMeta": {
+      "value": "לא הורצו מחדש בדוח הזה",
+      "source": "stage-d-assistants-raw",
+      "sourceHe": "סטטוס עוזרים שמור",
+      "reliability": "cache",
+      "reliabilityHe": "נתון ממטמון",
+      "updatedAt": "2026-07-11T14:46:05.164Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": null
+    },
+    "enginesLabel": "פעילים חלקית",
+    "enginesMeta": {
+      "value": "מנועי בנייה השלימו תצוגה; לא הורצו מחדש היום",
+      "source": "stage-d + generator",
+      "sourceHe": "התקדמות פרויקט שמורה",
+      "reliability": "cache",
+      "reliabilityHe": "נתון ממטמון",
+      "updatedAt": "2026-07-11T14:46:05.165Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": null
+    },
+    "detailNote": "פירוט טכני מלא נשמר במערכת ולא מוצג כאן כדי לשמור על קריאה עסקית מהירה."
+  },
+  "fourAnswers": {
+    "whereToday": {
+      "value": "אתר בתצוגה מוכן · קידום אורגני ממתין לנתוני Google חיים · תמונות ממתינות",
+      "source": "preview+infra",
+      "sourceHe": "תצוגת אתר + בדיקות",
+      "reliability": "internal",
+      "reliabilityHe": "חישוב פנימי",
+      "updatedAt": "2026-07-11T14:46:05.165Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": null
+    },
+    "progressSincePrev": {
+      "value": "אין דוח קודם להשוואה (דוח #0001)",
+      "source": "report-sequence",
+      "sourceHe": "היסטוריית דוחות",
+      "reliability": "internal",
+      "reliabilityHe": "חישוב פנימי",
+      "updatedAt": "2026-07-11T14:46:05.165Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": null
+    },
+    "whatsMissingForFirst": {
+      "value": "נתוני מיקומים חיים, השלמת תמונות, וחיזוק עמודי שירות/מימון",
+      "source": "ai",
+      "sourceHe": "הערכת AI",
+      "reliability": "ai_estimate",
+      "reliabilityHe": "הערכת AI",
+      "updatedAt": "2026-07-11T14:46:05.165Z",
+      "updatedAtHe": "11.7.2026, 17:46",
+      "missingReason": null
+    },
+    "top3": [
+      {
+        "value": "לחבר נתוני Google חיים (מיקומים וחיפושים) כדי לדעת אם עולים או יורדים",
+        "source": "ops",
+        "sourceHe": "המלצת מערכת",
+        "reliability": "ai_estimate",
+        "reliabilityHe": "הערכת AI",
+        "updatedAt": "2026-07-11T14:46:05.160Z",
+        "updatedAtHe": "11.7.2026, 17:46",
+        "missingReason": null
+      },
+      {
+        "value": "להשלים תמונות לאתר אחרי תיקון מכסת OpenAI — בלי להריץ מחדש את כל המערכת",
+        "source": "chief/ops",
+        "sourceHe": "המלצת מערכת",
+        "reliability": "ai_estimate",
+        "reliabilityHe": "הערכת AI",
+        "updatedAt": "2026-07-11T14:46:05.160Z",
+        "updatedAtHe": "11.7.2026, 17:46",
+        "missingReason": null
+      },
+      {
+        "value": "לחזק עמודי שירות ומימון באתר — הזדמנות תוכן ברורה מהמחקר",
+        "source": "ai",
+        "sourceHe": "הערכת AI",
+        "reliability": "ai_estimate",
+        "reliabilityHe": "הערכת AI",
+        "updatedAt": "2026-07-11T14:46:05.160Z",
+        "updatedAtHe": "11.7.2026, 17:46",
+        "missingReason": null
+      }
+    ]
+  },
+  "comparison": {
+    "summary": "נבחר נכס אחד כברירת מחדל — אין השוואה בין נכסים בדוח זה.",
+    "bullets": [
+      "כשתסמן יותר מנכס אחד בסינון, תופיע כאן השוואה קצרה: מי מביא יותר לידים, מי מתקדם מהר, ומי דורש יותר עבודה."
+    ],
+    "note": "מוכן לעתיד: Google Ads / Facebook / Instagram / Google Business — כרגע מסומנים «בקרוב»."
+  },
   "dashboard": {
     "googleStatus": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.150Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "מצב בגוגל: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "upOrDown": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.155Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "עלייה/ירידה: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "avgPosition": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.155Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "מיקום ממוצע: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "top3": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.155Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "Top 3: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "top10": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.156Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "Top 10: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "top20": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.156Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "Top 20: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "keywordsUp": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.156Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "KW שעלו: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "keywordsDown": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.156Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "KW שירדו: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "searchedToday": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.156Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "חיפושים היום: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "searchedWeek": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.156Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "חיפושים השבוע: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "hasMatchingPage": {
       "value": "לא ניתן לקבוע מול דירוגים חיים — Preview קיים",
       "source": "client-previews + phase2-gsc",
+      "sourceHe": "תצוגת האתר + חיבור Google (ממתין)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.156Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "אין מיקומי KW חיים לשייך לעמוד; Preview זמין ב-Staging"
     },
     "needNewPage": {
       "value": "להמתין לנתוני GSC חיים לפני החלטת עמוד חדש",
       "source": "ai_gate",
+      "sourceHe": "הערכת AI",
       "reliability": "ai_estimate",
       "reliabilityHe": "הערכת AI",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.157Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "contentMissing": {
       "value": "ייתכן — תמונות חסרות (quota); תוכן בסיסי ב-Preview",
       "source": "preview-assets+decision",
+      "sourceHe": "בדיקת האתר + סטטוס פנימי",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.157Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "previewStatus": {
       "value": "מוכן (HTTP 200)",
       "source": "github-pages",
+      "sourceHe": "אתר Staging",
       "reliability": "live",
-      "reliabilityHe": "נתון אמיתי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "reliabilityHe": "נתון חי",
+      "updatedAt": "2026-07-11T14:46:05.157Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "imagesStatus": {
       "value": "imagesBlockedQuota",
       "source": "stage-d-decision/infra",
+      "sourceHe": "סטטוס שמור במערכת",
       "reliability": "cache",
       "reliabilityHe": "נתון ממטמון",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.157Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "googleConnection": {
       "value": "לא אומת חי בשלב 1",
       "source": "phase2",
+      "sourceHe": "שלב הבא — חיבור נתונים חיים",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.157Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "לא בוצע Sync"
     },
     "analyticsStatus": {
       "value": "לא אומת חי בשלב 1",
       "source": "phase2",
+      "sourceHe": "שלב הבא — חיבור נתונים חיים",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.157Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "לא בוצע Sync"
     },
     "adsStatus": {
       "value": "לא חלק מהמסלול / לא הוגדר",
       "source": "product-scope",
+      "sourceHe": "לא חלק מהמסלול הנוכחי",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.157Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "Ads דולג"
     },
     "gbpStatus": {
       "value": "pending API (ידוע)",
       "source": "infra-verify",
+      "sourceHe": "בדיקת תשתית קודמת",
       "reliability": "cache",
       "reliabilityHe": "נתון ממטמון",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.158Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     }
   },
@@ -183,41 +594,51 @@
     "projectScore": {
       "value": 85,
       "source": "scoreProject()",
+      "sourceHe": "חישוב פנימי של המערכת",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.158Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "progressPct": {
       "value": 68,
       "source": "phase1-placeholder",
+      "sourceHe": "הערכה זמנית",
       "reliability": "ai_estimate",
       "reliabilityHe": "הערכת AI",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.158Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "goLiveReady": {
       "value": false,
       "source": "gates",
+      "sourceHe": "סטטוס מוכנות פנימי",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.158Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "goLiveReason": {
       "value": "Preview מוכן אך תמונות חסומות ו-Google לא מאומת חי",
       "source": "gates",
+      "sourceHe": "סטטוס מוכנות פנימי",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.158Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "explanation": {
       "value": "+15 quality · +10 preview · +5 c13 · +5 health live · -5 images blocked",
       "source": "scoreProject()",
+      "sourceHe": "חישוב פנימי של המערכת",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.158Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     }
   },
@@ -225,99 +646,123 @@
     "siteStateToday": {
       "value": "Preview מוכן ב-Staging · תמונות ממתינות · Google לא מאומת חי",
       "source": "preview+infra",
+      "sourceHe": "תצוגת אתר + בדיקות",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.158Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "googleTrend": {
       "value": "אין נתון חי",
       "source": "gsc/ga4/gbp/ads",
+      "sourceHe": "מערכות Google (עדיין לא חובר חי)",
       "reliability": "missing",
       "reliabilityHe": "אין נתון חי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.158Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": "מגמת גוגל: לא חובר חי בשלב 1 — ממתין לשלב 2 (Sync מאושר)"
     },
     "changedSincePrev": {
       "value": "דוח ראשון (#0001) — אין דוח קודם להשוואה",
       "source": "report-sequence",
+      "sourceHe": "היסטוריית דוחות",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.159Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "done": {
       "value": "Quality gate · Preview c3+c13 · דוח BI Phase 1",
       "source": "stage-d + generator",
+      "sourceHe": "התקדמות פרויקט שמורה",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.159Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "missing": {
       "value": "GSC/GA4 חי · תמונות · אימות Google",
       "source": "gates",
+      "sourceHe": "סטטוס מוכנות פנימי",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.159Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "top3Tasks": [
       {
         "value": "לאשר תיקון OpenAI quota ואז CocoImageStage בלבד",
         "source": "chief/ops",
+        "sourceHe": "המלצת מערכת",
         "reliability": "ai_estimate",
         "reliabilityHe": "הערכת AI",
-        "updatedAt": "2026-07-10T22:05:31.666Z",
+        "updatedAt": "2026-07-11T14:46:05.159Z",
+        "updatedAtHe": "11.7.2026, 17:46",
         "missingReason": null
       },
       {
         "value": "לאשר Sync GSC/GA4 חי (שלב 2) — בלי re-login אוטומטי",
         "source": "ops",
+        "sourceHe": "המלצת מערכת",
         "reliability": "ai_estimate",
         "reliabilityHe": "הערכת AI",
-        "updatedAt": "2026-07-10T22:05:31.666Z",
+        "updatedAt": "2026-07-11T14:46:05.159Z",
+        "updatedAtHe": "11.7.2026, 17:46",
         "missingReason": null
       },
       {
         "value": "מדידת CWV חיה ל-Preview",
         "source": "ops",
+        "sourceHe": "המלצת מערכת",
         "reliability": "ai_estimate",
         "reliabilityHe": "הערכת AI",
-        "updatedAt": "2026-07-10T22:05:31.666Z",
+        "updatedAt": "2026-07-11T14:46:05.159Z",
+        "updatedAtHe": "11.7.2026, 17:46",
         "missingReason": null
       }
     ],
     "mainRisk": {
       "value": "OpenAI quota חוסם השלמת תמונות",
       "source": "infra-verify",
+      "sourceHe": "בדיקת תשתית קודמת",
       "reliability": "cache",
       "reliabilityHe": "נתון ממטמון",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.160Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "mainOpportunity": {
       "value": "Preview כבר חי — אפשר לבדוק מסרים לפני עלייה",
       "source": "preview",
+      "sourceHe": "תצוגת האתר",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.160Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "monthImpact": {
       "value": "חיבור GSC + השלמת תמונות צפויים להשפיע הכי הרבה — הערכת AI",
       "source": "ai",
+      "sourceHe": "הערכת AI",
       "reliability": "ai_estimate",
       "reliabilityHe": "הערכת AI",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.160Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "aiRecommendation": {
       "value": "להישאר ב-Preview עד Sync Google ותמונות; לא לעלות ל-Production",
       "source": "ai",
+      "sourceHe": "הערכת AI",
       "reliability": "ai_estimate",
       "reliabilityHe": "הערכת AI",
-      "updatedAt": "2026-07-10T22:05:31.666Z",
+      "updatedAt": "2026-07-11T14:46:05.160Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     }
   },
@@ -345,7 +790,7 @@
       "name": "Supabase",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -364,7 +809,7 @@
       "name": "Database",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -383,7 +828,7 @@
       "name": "Edge Functions",
       "status": "אזהרה",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -402,9 +847,9 @@
       "name": "GitHub",
       "status": "תקין",
       "checkPerformed": "GET GitHub API → 200",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
-      "latencyMs": 284,
+      "latencyMs": 327,
       "version": null,
       "liveOrCache": "חיה",
       "lastError": null,
@@ -421,9 +866,9 @@
       "name": "GitHub Pages",
       "status": "תקין",
       "checkPerformed": "GET Pages → 200",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
-      "latencyMs": 298,
+      "latencyMs": 367,
       "version": null,
       "liveOrCache": "חיה",
       "lastError": null,
@@ -440,7 +885,7 @@
       "name": "Google Search Console",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -459,7 +904,7 @@
       "name": "Google Analytics 4",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -478,7 +923,7 @@
       "name": "Google Ads",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -497,7 +942,7 @@
       "name": "Google Business Profile",
       "status": "אזהרה",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -516,7 +961,7 @@
       "name": "Google Tag Manager",
       "status": "אזהרה",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -535,7 +980,7 @@
       "name": "Gmail",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.149Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -554,7 +999,7 @@
       "name": "Google Drive",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -573,7 +1018,7 @@
       "name": "Google Sheets",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -592,7 +1037,7 @@
       "name": "Storage",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -611,7 +1056,7 @@
       "name": "Resend",
       "status": "אזהרה",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -630,7 +1075,7 @@
       "name": "CRM",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.665Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -649,7 +1094,7 @@
       "name": "WhatsApp",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -668,7 +1113,7 @@
       "name": "Domain",
       "status": "לא ניתן לאימות מקומית",
       "checkPerformed": "resolve4('dalia-c.com') + TLS",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -687,9 +1132,9 @@
       "name": "DNS",
       "status": "לא ניתן לאימות מקומית",
       "checkPerformed": "resolve4('dalia-c.com')",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
-      "latencyMs": 9,
+      "latencyMs": 2,
       "version": null,
       "liveOrCache": "מטמון/לא בוצעה",
       "lastError": "queryA ECONNREFUSED dalia-c.com",
@@ -706,9 +1151,9 @@
       "name": "SSL",
       "status": "תקין",
       "checkPerformed": "TLS dalia-c.com:443",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
-      "latencyMs": 49,
+      "latencyMs": 65,
       "version": null,
       "liveOrCache": "חיה",
       "lastError": null,
@@ -725,7 +1170,7 @@
       "name": "CO.CO API",
       "status": "אזהרה",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -744,7 +1189,7 @@
       "name": "מערכת התראות",
       "status": "אזהרה",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -763,10 +1208,10 @@
       "name": "מערכת דוחות",
       "status": "תקין",
       "checkPerformed": "יצירת דוח Phase 1 מקומית",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
-      "version": "8.0.0-daily-bi-phase1",
+      "version": "8.1.0-business-manager-trial",
       "liveOrCache": "חיה",
       "lastError": null,
       "why": "גנרטור רץ בהצלחה",
@@ -782,7 +1227,7 @@
       "name": "מערכת יצירת אתרים",
       "status": "אזהרה",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -801,7 +1246,7 @@
       "name": "מערכת יצירת תמונות",
       "status": "אזהרה",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -820,7 +1265,7 @@
       "name": "מערכת גיבויים",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -839,7 +1284,7 @@
       "name": "Cron",
       "status": "לא הוגדר",
       "checkPerformed": "לא בוצעה בדיקה חיה",
-      "checkedAt": "2026-07-10T22:05:31.666Z",
+      "checkedAt": "2026-07-11T14:46:05.150Z",
       "lastSync": null,
       "latencyMs": null,
       "version": null,
@@ -857,7 +1302,7 @@
   ],
   "healthScore": 27,
   "healthScoreFormula": "round((תקין×100 + אזהרה×40) / total)",
-  "healthScoreNote": "הציון נמוך בעיקר כי בדיקות רבות עדיין לא הוגדרו או לא ממומשות — לא בגלל קריסת האתר.",
+  "healthScoreNote": "הציון נמוך בעיקר כי חיבורים רבים עדיין לא הוגדרו — לא בגלל קריסת האתר.",
   "healthSummary": {
     "total": 28,
     "ok": 4,
@@ -891,33 +1336,41 @@
     "bytes": {
       "value": 42033,
       "source": "preview-fs",
+      "sourceHe": "קבצי האתר",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.669Z",
+      "updatedAt": "2026-07-11T14:46:05.166Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "images": {
       "value": 0,
       "source": "preview-fs",
+      "sourceHe": "קבצי האתר",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.669Z",
+      "updatedAt": "2026-07-11T14:46:05.166Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "js": {
       "value": 1,
       "source": "preview-fs",
+      "sourceHe": "קבצי האתר",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.669Z",
+      "updatedAt": "2026-07-11T14:46:05.166Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "css": {
       "value": 1,
       "source": "preview-fs",
+      "sourceHe": "קבצי האתר",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.669Z",
+      "updatedAt": "2026-07-11T14:46:05.166Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     }
   },
@@ -925,17 +1378,21 @@
     "completed": {
       "value": 29,
       "source": "stage-d-assistants-raw",
+      "sourceHe": "סטטוס עוזרים שמור",
       "reliability": "cache",
       "reliabilityHe": "נתון ממטמון",
-      "updatedAt": "2026-07-10T22:05:31.669Z",
+      "updatedAt": "2026-07-11T14:46:05.166Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     },
     "note": {
       "value": "לא הורצו מחדש בריצה זו",
       "source": "generator",
+      "sourceHe": "מערכת הדוחות",
       "reliability": "internal",
       "reliabilityHe": "חישוב פנימי",
-      "updatedAt": "2026-07-10T22:05:31.669Z",
+      "updatedAt": "2026-07-11T14:46:05.166Z",
+      "updatedAtHe": "11.7.2026, 17:46",
       "missingReason": null
     }
   },
@@ -946,7 +1403,7 @@
     "previewOnly": true,
     "sentAt": null,
     "subjectTemplate": "CO.CO | דוח יומי #0001 | דליה פתרונות תפעול ותחזוקה לרכב | 11/07/2026",
-    "note": "שלב 1 — אין שליחה אמיתית"
+    "note": "תצוגה בלבד — אין שליחה אמיתית"
   },
   "readOnlyGuarantees": {
     "pipelineRan": false,

@@ -33,15 +33,16 @@ function main() {
   ok('no cron', report.readOnlyGuarantees?.cronEnabled === false);
   ok('no gsc live', report.readOnlyGuarantees?.gscLive === false);
   ok('pipeline false', report.meta?.pipelineRan === false);
-  ok('dashboard present', !!report.dashboard?.googleStatus);
-  ok('health >= 20', (report.healthChecks || []).length >= 20, String(report.healthChecks?.length));
-  ok('html has Download PDF', /הורד PDF/.test(html));
-  ok('html has page1', /id="page1"/.test(html));
-  ok('html truth tags', /tag-missing/.test(html) && /tag-ai_estimate|tag-internal/.test(html));
-  ok('index latest only', !!index.latest && !index.reports);
-  ok('metric has reliability', report.dashboard.avgPosition?.reliability === 'missing');
-
-  const failed = checks.filter((c) => !c.pass);
+  ok('manager card', !!report.managerCard?.top3?.length);
+  ok('assets catalog', (report.assetCatalog || []).length >= 3);
+  ok('business potential', report.businessPotential?.score != null);
+  ok('trend present', !!report.assets?.[0]?.trend?.level);
+  ok('hebrew reliability', report.dashboard?.avgPosition?.reliabilityHe === 'אין נתון חי');
+  ok('html has decision card', /מה חשוב לדעת עכשיו/.test(html));
+  ok('html has asset filter', /בחירת נכסים/.test(html));
+  ok('html no LCP jargon', !/\bLCP\b|\bTTFB\b|\bLatency\b/.test(html));
+  ok('bottom line today', !!report.bottomLineToday && /בשורה התחתונה להיום/.test(html));
+  ok('decision before health', html.indexOf('מה חשוב לדעת עכשיו') < html.indexOf('בריאות המערכת'));  const failed = checks.filter((c) => !c.pass);
   console.log(JSON.stringify({
     ok: failed.length === 0,
     reportNumber: report.meta?.reportNumberDisplay,

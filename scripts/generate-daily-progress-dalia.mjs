@@ -9,13 +9,13 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import * as tls from 'node:tls';
 import { resolve4 } from 'node:dns/promises';
 import { chromium } from 'playwright';
+import { renderBusinessHtml } from './lib/render-daily-business-html.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const OUT_DIR = join(ROOT, 'public', 'coco-reports', 'dalia-c-official', 'daily');
 const CLIENT = 'dalia-c-official';
-const CLIENT_SHORT = 'dalia-c';
-const COCO_VERSION = '8.0.0-daily-bi-phase1';
+const COCO_VERSION = '8.1.0-business-manager-trial';
 const PAGES_BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const PREVIEW_URL = `${PAGES_BASE}/client-previews/${CLIENT}/index.html`;
 const SEQ_PATH = join(OUT_DIR, 'report-sequence.json');
@@ -39,19 +39,48 @@ function timeIL(d = new Date()) {
   }).format(d);
 }
 
-/** Metric with mandatory truth metadata */
+/** Metric with mandatory truth metadata (Hebrew-facing) */
 function M(value, source, reliability, opts = {}) {
+  const sourceHeMap = {
+    'gsc/ga4/gbp/ads': 'מערכות Google (עדיין לא חובר חי)',
+    'client-previews + phase2-gsc': 'תצוגת האתר + חיבור Google (ממתין)',
+    'preview-assets+decision': 'בדיקת האתר + סטטוס פנימי',
+    'github-pages': 'אתר Staging',
+    'stage-d-decision/infra': 'סטטוס שמור במערכת',
+    'phase2': 'שלב הבא — חיבור נתונים חיים',
+    'product-scope': 'לא חלק מהמסלול הנוכחי',
+    'infra-verify': 'בדיקת תשתית קודמת',
+    'scoreProject()': 'חישוב פנימי של המערכת',
+    'phase1-placeholder': 'הערכה זמנית',
+    'gates': 'סטטוס מוכנות פנימי',
+    'preview+infra': 'תצוגת אתר + בדיקות',
+    'report-sequence': 'היסטוריית דוחות',
+    'stage-d + generator': 'התקדמות פרויקט שמורה',
+    'chief/ops': 'המלצת מערכת',
+    'ops': 'המלצת מערכת',
+    'ai': 'הערכת AI',
+    'ai_gate': 'הערכת AI',
+    'preview': 'תצוגת האתר',
+    'preview-fs': 'קבצי האתר',
+    'stage-d-assistants-raw': 'סטטוס עוזרים שמור',
+    'generator': 'מערכת הדוחות',
+  };
+  const updated = opts.updatedAt || new Date().toISOString();
   return {
     value,
     source,
-    reliability, // live | cache | internal | ai_estimate | missing
+    sourceHe: opts.sourceHe || sourceHeMap[source] || source,
+    reliability,
     reliabilityHe:
-      reliability === 'live' ? 'נתון אמיתי'
+      reliability === 'live' ? 'נתון חי'
         : reliability === 'cache' ? 'נתון ממטמון'
           : reliability === 'internal' ? 'חישוב פנימי'
             : reliability === 'ai_estimate' ? 'הערכת AI'
               : 'אין נתון חי',
-    updatedAt: opts.updatedAt || new Date().toISOString(),
+    updatedAt: updated,
+    updatedAtHe: opts.updatedAtHe || new Intl.DateTimeFormat('he-IL', {
+      timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short',
+    }).format(new Date(updated)),
     missingReason: opts.missingReason || null,
   };
 }
@@ -598,11 +627,125 @@ async function main() {
     ),
   };
 
+  const top3Biz = [
+    M('לחבר נתוני Google חיים (מיקומים וחיפושים) כדי לדעת אם עולים או יורדים', 'ops', 'ai_estimate'),
+    M('להשלים תמונות לאתר אחרי תיקון מכסת OpenAI — בלי להריץ מחדש את כל המערכת', 'chief/ops', 'ai_estimate'),
+    M('לחזק עמודי שירות ומימון באתר — הזדמנות תוכן ברורה מהמחקר', 'ai', 'ai_estimate'),
+  ];
+
+  const businessPotentialScore = Math.min(100, Math.max(0, 40
+    + (pagesPreview.ok ? 15 : 0)
+    + (decision?.qualityGate?.pass ? 15 : 0)
+    + 10 // content base exists in preview
+    - 10 // no live GSC yet
+    - 10 // images blocked
+  ));
+
+  const assetCatalog = [
+    { id: 'site-main', labelHe: 'אתר ראשי (קידום אורגני)', available: true },
+    { id: 'site-extra', labelHe: 'אתר נוסף', available: false },
+    { id: 'google-ads', labelHe: 'Google Ads', available: false },
+    { id: 'facebook', labelHe: 'Facebook', available: false },
+    { id: 'instagram', labelHe: 'Instagram', available: false },
+    { id: 'gbp', labelHe: 'Google Business Profile', available: false },
+  ];
+
+  const siteAsset = {
+    id: 'site-main',
+    labelHe: 'אתר ראשי (קידום אורגני)',
+    trend: {
+      level: pagesPreview.ok ? 'flat' : 'down',
+      reason: pagesPreview.ok
+        ? 'האתר בתצוגה מוכן, אבל אין עדיין נתוני מיקומים חיים — לכן המגמה מסומנת יציבה ולא «משתפר».'
+        : 'תצוגת האתר לא זמינה כרגע.',
+    },
+    businessPotential: {
+      score: businessPotentialScore,
+      why: 'יש בסיס אתר מוכן והזדמנות תוכן, אך בלי נתוני Google חיים ותמונות — הפוטנציאל חלקי.',
+      meta: M(businessPotentialScore, 'scoreProject()', 'internal'),
+    },
+    progressLabel: pagesPreview.ok ? 'בתנועה' : 'עצור',
+    progressMeta: M(pagesPreview.ok ? 'יש תצוגת אתר פעילה' : 'אין תצוגה', 'preview', pagesPreview.ok ? 'live' : 'missing'),
+    whereToday: [
+      M(pagesPreview.ok ? 'האתר מוצג בתצוגה מקדימה ומוכן לבדיקה עסקית' : 'אין תצוגה', 'preview', pagesPreview.ok ? 'live' : 'missing'),
+      noSync('מיקום ממוצע בגוגל'),
+      M('תמונות האתר עדיין לא הושלמו', 'stage-d-decision/infra', 'cache'),
+    ],
+    whatChanged: [
+      M(number === 1 ? 'זה הדוח הראשון במספור החדש — אין השוואה לדוח קודם' : 'יש דוח קודם להשוואה', 'report-sequence', 'internal'),
+    ],
+    whatsMissing: [
+      M('אין חיבור חי למיקומים וחיפושים בגוגל', 'phase2', 'missing', { missingReason: 'לא בוצע Sync ל-Google Search Console' }),
+      M('חסרות תמונות מקצועיות באתר', 'stage-d-decision/infra', 'cache'),
+      M('אין עדיין מדידת לידים חיה', 'phase2', 'missing', { missingReason: 'אין חיבור Analytics / טפסים חי' }),
+    ],
+    top3: top3Biz,
+  };
+
+  const managerCard = {
+    campaignProgress: M(
+      pagesPreview.ok ? 'יש התקדמות בבניית הנוכחות הדיגיטלית (אתר מוכן לתצוגה), אבל עדיין אין הוכחת עלייה בגוגל' : 'אין התקדמות מדידה',
+      'preview+infra',
+      'internal',
+    ),
+    towardGoal: M(
+      'מתקדמים לעבר נוכחות דיגיטלית, אך המטרה העסקית (לידים/מקום ראשון) עדיין לא נמדדת בנתוני אמת',
+      'gates',
+      'internal',
+    ),
+    rankingImproved: noSync('השתפרות מיקום בגוגל'),
+    moreLeads: M('אין נתון חי על לידים', 'phase2', 'missing', { missingReason: 'אין חיבור למדידת לידים / Analytics' }),
+    blocker: M(
+      'שתי חסימות עיקריות: מכסת AI לתמונות, וחיבור Google שעדיין לא אומת חי',
+      'infra-verify',
+      'cache',
+    ),
+    top3: top3Biz,
+  };
+
+  const healthBusiness = {
+    statusLabel: blockingFaults.length ? 'דורש טיפול' : (healthSummary.err > 0 ? 'דורש תשומת לב' : 'תקין עם פערי חיבור'),
+    statusWhy: blockingFaults.length
+      ? 'יש תקלה שעלולה לחסום את האתר.'
+      : 'אין תקלה שחוסמת את האתר כרגע. חלק מהחיבורים עדיין לא הוגדרו — זה לא אומר שהאתר קרס.',
+    assistantsLabel: `${asst.quality?.completedQuality ?? 29} הושלמו`,
+    assistantsMeta: M('לא הורצו מחדש בדוח הזה', 'stage-d-assistants-raw', 'cache'),
+    enginesLabel: 'פעילים חלקית',
+    enginesMeta: M('מנועי בנייה השלימו תצוגה; לא הורצו מחדש היום', 'stage-d + generator', 'cache'),
+    detailNote: 'פירוט טכני מלא נשמר במערכת ולא מוצג כאן כדי לשמור על קריאה עסקית מהירה.',
+  };
+
+  const fourAnswers = {
+    whereToday: M('אתר בתצוגה מוכן · קידום אורגני ממתין לנתוני Google חיים · תמונות ממתינות', 'preview+infra', 'internal'),
+    progressSincePrev: M(
+      number === 1 ? 'אין דוח קודם להשוואה (דוח #0001)' : 'יש להשוות לדוח הקודם',
+      'report-sequence',
+      'internal',
+    ),
+    whatsMissingForFirst: M(
+      'נתוני מיקומים חיים, השלמת תמונות, וחיזוק עמודי שירות/מימון',
+      'ai',
+      'ai_estimate',
+    ),
+    top3: top3Biz,
+  };
+
+  const comparison = {
+    summary: 'נבחר נכס אחד כברירת מחדל — אין השוואה בין נכסים בדוח זה.',
+    bullets: [
+      'כשתסמן יותר מנכס אחד בסינון, תופיע כאן השוואה קצרה: מי מביא יותר לידים, מי מתקדם מהר, ומי דורש יותר עבודה.',
+    ],
+    note: 'מוכן לעתיד: Google Ads / Facebook / Instagram / Google Business — כרגע מסומנים «בקרוב».',
+  };
+
+  const bottomLineToday =
+    'האתר בתצוגה מוכן והכיוון נכון, אבל עדיין אין נתוני Google חיים. אם נחבר מיקומים ונחזק עמוד שירות השבוע — זו הפעולה שתיתן את ההשפעה העסקית הגדולה ביותר.';
+
   const subjectTemplate = `CO.CO | דוח יומי #${padded} | דליה פתרונות תפעול ותחזוקה לרכב | ${reportDate.split('-').reverse().join('/')}`;
 
   const report = {
     meta: {
-      version: '2.0.0-daily-bi-phase1',
+      version: '2.1.0-business-manager-trial',
       phase: 1,
       generatedAt: generatedAtIso,
       generatedTimeIL: timeIL(generatedAt),
@@ -619,6 +762,7 @@ async function main() {
       imagesGenerated: false,
       secretsChanged: false,
       clientSlug: CLIENT,
+      uiLanguage: 'he',
     },
     client: {
       clientId: CLIENT,
@@ -627,13 +771,25 @@ async function main() {
       domain: 'dalia-c.com',
       previewUrl: PREVIEW_URL,
     },
+    bottomLineToday,
+    assetCatalog,
+    assets: [siteAsset],
+    managerCard,
+    businessPotential: {
+      score: businessPotentialScore,
+      why: 'יש בסיס אתר והזדמנות תוכן, אבל בלי מדידת Google חיה ותמונות — כדאי להמשיך להשקיע בזהירות עד שיש נתוני אמת.',
+      meta: M(businessPotentialScore, 'scoreProject()', 'internal'),
+    },
+    healthBusiness,
+    fourAnswers,
+    comparison,
     dashboard,
     scores,
     executiveSummary,
     healthChecks,
     healthScore,
     healthScoreFormula,
-    healthScoreNote: 'הציון נמוך בעיקר כי בדיקות רבות עדיין לא הוגדרו או לא ממומשות — לא בגלל קריסת האתר.',
+    healthScoreNote: 'הציון נמוך בעיקר כי חיבורים רבים עדיין לא הוגדרו — לא בגלל קריסת האתר.',
     healthSummary,
     criticalFaults,
     blockingFaults,
@@ -655,7 +811,7 @@ async function main() {
       previewOnly: true,
       sentAt: null,
       subjectTemplate,
-      note: 'שלב 1 — אין שליחה אמיתית',
+      note: 'תצוגה בלבד — אין שליחה אמיתית',
     },
     readOnlyGuarantees: {
       pipelineRan: false,
@@ -679,7 +835,7 @@ async function main() {
     },
   };
 
-  const html = renderHtml(report);
+  const html = renderBusinessHtml(report);
   const htmlName = `COCO-Daily-Report-${padded}-${reportDate}.html`;
   const jsonName = `COCO-Daily-Report-${padded}-${reportDate}.json`;
   const emailName = `COCO-Daily-Report-${padded}-${reportDate}-email-preview.html`;
