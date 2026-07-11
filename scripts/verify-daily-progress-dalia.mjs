@@ -38,6 +38,8 @@ function main() {
   ok('business potential', report.businessPotential?.score != null);
   ok('trend present', !!report.assets?.[0]?.trend?.level);
   ok('hebrew reliability', report.dashboard?.avgPosition?.reliabilityHe === 'אין נתון חי');
+  ok('html has viewport', /name="viewport"[^>]*width=device-width/.test(html));
+  ok('html has assets button class', /id="btnAssets"/.test(html) && /btn-assets/.test(html));
   ok('html has decision card', /מה חשוב לדעת עכשיו/.test(html));
   ok('html has asset filter', /בחירת נכסים וקטגוריות/.test(html));
   ok('html has smart categories', /קטגוריות של הנכס שנבחר/.test(html));

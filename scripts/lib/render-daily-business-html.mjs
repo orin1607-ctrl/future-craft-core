@@ -69,21 +69,24 @@ export function renderBusinessHtml(report) {
   }))).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>דוח יומי #${h(report.meta.reportNumberPadded)} — ${h(report.client.company)}</title>
 <style>
 :root{--ink:#0f172a;--muted:#64748b;--line:#dbe3f0;--bg:#f1f5f9;--card:#fff;--brand:#0b1735;--ok:#047857;--warn:#b45309;--bad:#b91c1c;--ai:#6d28d9;--miss:#334155}
 *{box-sizing:border-box}
-body{font-family:Heebo,Arial,sans-serif;margin:0;background:var(--bg);color:var(--ink);line-height:1.45}
+body{font-family:Heebo,Arial,sans-serif;margin:0;background:var(--bg);color:var(--ink);line-height:1.45;-webkit-text-size-adjust:100%}
+body.modal-open{overflow:hidden;touch-action:none}
 .wrap{max-width:980px;margin:0 auto;padding:18px 14px 56px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
 .cover{background:linear-gradient(145deg,#0b1735,#1e3a5f);color:#fff;border:none}
 .cover h1{margin:0 0 8px;font-size:1.35rem}
 .cover .sub{opacity:.85;font-size:.9rem}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
-.btn{display:inline-block;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700;font-size:.85rem;border:1px solid transparent;cursor:pointer;background:#e2e8f0;color:#0f172a}
+.btn{display:inline-block;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700;font-size:.85rem;border:1px solid transparent;cursor:pointer;background:#e2e8f0;color:#0f172a;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn-pdf{background:#fbbf24;color:#111}
 .btn-o{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
 .btn-go{background:#2563eb;color:#fff;border:0}
+.btn-assets{background:#0b1735;color:#fff;border:0}
 h2{font-size:1.05rem;margin:0 0 10px}.h3{font-size:.92rem;margin:12px 0 6px;color:#334155}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -99,22 +102,35 @@ h2{font-size:1.05rem;margin:0 0 10px}.h3{font-size:.92rem;margin:12px 0 6px;colo
 .note{font-size:.8rem;color:var(--muted)}.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.15);font-size:.72rem}
 ul.exec{margin:0;padding-right:18px}
 .filter{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
-.filter label{font-size:.72rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.filter label,.filter-asset{font-size:.72rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
 .filter input,.filter select{padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;min-width:130px}
-.chk{display:block;padding:6px 0;font-size:.88rem}.soon{color:var(--muted);font-size:.75rem}
+.filter-asset .btn-assets{align-self:stretch}
+.chk{display:flex;align-items:center;gap:8px;padding:8px 0;font-size:.88rem;min-height:44px}.soon{color:var(--muted);font-size:.75rem}
 .trend{font-size:1.05rem;font-weight:800;margin-bottom:4px}
 .decision li{margin-bottom:8px}
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:40;align-items:center;justify-content:center;padding:16px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;align-items:flex-end;justify-content:center;padding:12px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
 .modal-bg.on{display:flex}
-.modal{background:#fff;border-radius:14px;max-width:460px;width:100%;padding:16px;border:1px solid var(--line);max-height:90vh;overflow:auto}
-.modal h3{margin:0 0 8px;font-size:1rem}
+.modal{background:#fff;border-radius:14px;max-width:460px;width:100%;padding:16px;border:1px solid var(--line);max-height:min(92vh,calc(100dvh - 24px));display:flex;flex-direction:column;overflow:hidden}
+.modal h3{margin:0 0 8px;font-size:1rem;flex-shrink:0}
+.modal > .note{flex-shrink:0}
 .modal .sec-title{font-size:.72rem;color:var(--muted);margin:12px 0 6px;font-weight:700}
+.modal-body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}
 .asset-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
-.asset-tabs button{border:1px solid var(--line);background:#f8fafc;border-radius:999px;padding:5px 10px;font-size:.78rem;cursor:pointer}
+.asset-tabs button{border:1px solid var(--line);background:#f8fafc;border-radius:999px;padding:8px 12px;font-size:.78rem;cursor:pointer;min-height:40px;touch-action:manipulation}
 .asset-tabs button.on{background:#0b1735;color:#fff;border-color:#0b1735}
-.cats-panel label{display:block;padding:5px 0;font-size:.88rem}
+.cats-panel label{display:flex;align-items:center;gap:8px;padding:8px 0;font-size:.88rem;min-height:44px}
 .asset-pick.on{background:#f1f5f9;border-radius:8px;padding-right:6px}
 #selSummary{font-size:.78rem;color:var(--muted);margin-top:6px}
+.modal-actions{display:flex;gap:8px;margin-top:12px;justify-content:stretch;flex-shrink:0;background:#fff;padding-top:8px;border-top:1px solid var(--line)}
+.modal-actions .btn{flex:1;min-height:44px}
+@media(max-width:720px){
+  .filter{flex-direction:column;align-items:stretch}
+  .filter label,.filter-asset{width:100%}
+  .filter input,.filter select{min-width:0;width:100%}
+  .btn-assets,.btn-go{width:100%;min-height:48px;font-size:.95rem}
+  .grid{grid-template-columns:1fr 1fr}
+}
+@media(min-width:721px){.modal-bg{align-items:center;padding:16px}}
 @media print{.filter,.actions,#assetModal,.no-print{display:none!important}.card{break-inside:avoid}}
 </style></head><body><div class="wrap">
 
@@ -135,14 +151,15 @@ ul.exec{margin:0;padding-right:18px}
   </div>
 </section>
 
-<section class="card no-print">
+<section class="card no-print" id="filterCard">
   <h2>סינון מהיר</h2>
   <div class="filter">
     <label>תאריך<input type="date" id="fDate" value="${h(report.meta.reportDate)}"></label>
     <label>מספר דוח<input type="text" id="fNum" value="${h(report.meta.reportNumberDisplay)}" readonly></label>
-    <label>סוג נכס / סוג קמפיין
-      <button type="button" class="btn" id="btnAssets" style="margin-top:0">בחירת נכסים וקטגוריות…</button>
-    </label>
+    <div class="filter-asset">
+      <span>סוג נכס / סוג קמפיין</span>
+      <button type="button" class="btn btn-assets" id="btnAssets">בחירת נכסים וקטגוריות…</button>
+    </div>
     <button type="button" class="btn btn-go" id="btnApply">הצג דוח</button>
   </div>
   <p class="note" id="selHint">ברירת מחדל: אתר ראשי. אפשר לבחור כמה נכסים — לכל נכס רק הקטגוריות שלו.</p>
@@ -226,12 +243,14 @@ ${assetSections}
   <div class="modal" role="dialog" aria-labelledby="assetModalTitle">
     <h3 id="assetModalTitle">בחירת נכסים וקטגוריות</h3>
     <p class="note">סמנו נכס אחד או יותר. הקטגוריות למטה משתנות לפי הנכס שנבחר — בלי לערבב נושאים.</p>
-    <div class="sec-title">1. נכסים / קמפיינים</div>
-    <div class="cats" id="assetList">${assetChecks}</div>
-    <div class="sec-title">2. קטגוריות של הנכס שנבחר</div>
-    <div class="asset-tabs" id="assetTabs" hidden></div>
-    <div class="cats-panel" id="catsPanel"></div>
-    <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+    <div class="modal-body">
+      <div class="sec-title">1. נכסים / קמפיינים</div>
+      <div class="cats" id="assetList">${assetChecks}</div>
+      <div class="sec-title">2. קטגוריות של הנכס שנבחר</div>
+      <div class="asset-tabs" id="assetTabs" hidden></div>
+      <div class="cats-panel" id="catsPanel"></div>
+    </div>
+    <div class="modal-actions">
       <button type="button" class="btn" id="modalCancel">סגור</button>
       <button type="button" class="btn btn-go" id="modalOk">אישור</button>
     </div>
@@ -374,6 +393,13 @@ ${assetSections}
     renderCatsPanel();
     modal.classList.add('on');
     modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeModal(){
+    modal.classList.remove('on');
+    modal.setAttribute('aria-hidden','true');
+    document.body.classList.remove('modal-open');
   }
 
   document.querySelectorAll('input[name=asset]').forEach(function(inp){
@@ -389,10 +415,11 @@ ${assetSections}
     });
   });
 
-  if(btn) btn.onclick = openModal;
-  if(cancel) cancel.onclick = function(){ modal.classList.remove('on'); modal.setAttribute('aria-hidden','true'); };
-  if(ok) ok.onclick = function(){ modal.classList.remove('on'); modal.setAttribute('aria-hidden','true'); applyFilter(); };
-  if(apply) apply.onclick = applyFilter;
+  if(btn) btn.addEventListener('click', function(e){ e.preventDefault(); openModal(); });
+  if(cancel) cancel.addEventListener('click', closeModal);
+  if(ok) ok.addEventListener('click', function(){ closeModal(); applyFilter(); });
+  if(apply) apply.addEventListener('click', applyFilter);
+  if(modal) modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
   applyFilter();
 })();
 </script>

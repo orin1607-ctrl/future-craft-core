@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '2.1.0-daily-viewer-business';
+  var VERSION = '2.1.1-daily-viewer-html-first';
   var ROOT_ID = 'coco-daily-report-root';
 
   function pagesBase() {
@@ -35,7 +35,7 @@
     root.innerHTML =
       '<div class="card" style="margin-top:10px;">' +
       '<div class="ph-t">📅 דוח יומי (אחרון)</div>' +
-      '<div class="s">תצוגה למנהל עסק · PDF · שליחה חסומה כרגע</div>' +
+      '<div class="s">תצוגה למנהל עסק · פתחו HTML לסינון חכם · שליחה חסומה כרגע</div>' +
       '<div id="coco-daily-latest" style="font-size:12px;margin-top:8px;">טוען…</div>' +
       '<div id="coco-daily-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>' +
       '</div>';
@@ -60,7 +60,7 @@
         var pdfHref = base + (L.pdf || 'latest.pdf');
         var htmlHref = base + (L.html || 'latest.html');
         actions.innerHTML =
-          '<a class="btn btn-p btn-sm" href="' + htmlHref + '" target="_blank" rel="noopener">פתח דוח</a>' +
+          '<a class="btn btn-p btn-sm" href="' + htmlHref + '" target="_blank" rel="noopener">פתח דוח HTML (סינון)</a>' +
           '<a class="btn btn-o btn-sm" href="' + pdfHref + '" download="' + (L.pdfFileName || 'report.pdf') + '">הורד PDF</a>' +
           '<button type="button" class="btn btn-o btn-sm" id="coco-daily-resend">שלח שוב למייל</button>';
 
