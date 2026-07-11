@@ -43,9 +43,12 @@ function main() {
   ok('html no single-select asset control', !/id="fAssetType"/.test(html) && !/<select[^>]*asset/i.test(html) && !/type="radio"/.test(html));
   ok('html has multi asset checkboxes', /type="checkbox"[^>]*name="asset"/.test(html) || /name="asset"[^>]*type="checkbox"/.test(html));
   ok('html opens popup from button', /btnAssets/.test(html) && /openModal/.test(html));
+  ok('html has client identity', /id="clientIdentity"/.test(html) && /יוני אטיאס/.test(html) && /דליה פתרונות תפעול ותחזוקה לרכב/.test(html));
+  ok('html filter controls report sections', /data-report-section="overview"/.test(html) && /id="healthCard"/.test(html) && /isFullReportView/.test(html));
   ok('html has decision card', /מה חשוב לדעת עכשיו/.test(html));
   ok('html has category popup', /id="assetModal"/.test(html) && /בחירת נכסים וקטגוריות/.test(html));
   ok('html has site categories', /מילות מפתח/.test(html) && /אינדוקס/.test(html) && /בריאות המערכת/.test(html));
+  ok('html has Google Search Console label', /Google Search Console/.test(html));
   ok('html has ads categories defs', /Google Ads/.test(html) && /לידים ממודעות/.test(html));
   ok('multi asset ready', (report.assets || []).length >= 3);
   ok('html no LCP jargon', !/\bLCP\b|\bTTFB\b|\bLatency\b/.test(html));

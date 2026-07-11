@@ -649,7 +649,7 @@ async function main() {
       { id: 'keywords', labelHe: 'מילות מפתח' },
       { id: 'indexing', labelHe: 'אינדוקס' },
       { id: 'content', labelHe: 'תוכן' },
-      { id: 'gsc', labelHe: 'GSC' },
+      { id: 'gsc', labelHe: 'Google Search Console' },
       { id: 'ga', labelHe: 'GA' },
       { id: 'gbp-local', labelHe: 'Google Business' },
       { id: 'site-health', labelHe: 'בריאות המערכת' },
@@ -742,7 +742,7 @@ async function main() {
       },
       {
         id: 'gsc',
-        labelHe: 'GSC',
+        labelHe: 'Google Search Console',
         items: [miss('חיפושים וקליקים', 'לא בוצע Sync ל-Google Search Console')],
       },
       {

@@ -48,14 +48,16 @@ export function renderBusinessHtml(report) {
     return `
 <section class="card asset-block" data-asset-section="${h(a.id)}">
   <h2>${h(a.labelHe)}</h2>
-  <div class="trend-wrap">${trendBadge(a.trend)}</div>
-  <div class="grid2">
-    <div class="kpi"><div class="l">פוטנציאל עסקי</div><div class="v">${h(a.businessPotential.score)}</div>
-      <div class="note">${h(a.businessPotential.why)}</div>
-      ${metricCell(a.businessPotential.meta)}
-    </div>
-    <div class="kpi"><div class="l">התקדמות לקמפיין</div><div class="v">${h(a.progressLabel)}</div>
-      ${metricCell(a.progressMeta)}
+  <div class="asset-overview">
+    <div class="trend-wrap">${trendBadge(a.trend)}</div>
+    <div class="grid2">
+      <div class="kpi"><div class="l">פוטנציאל עסקי</div><div class="v">${h(a.businessPotential.score)}</div>
+        <div class="note">${h(a.businessPotential.why)}</div>
+        ${metricCell(a.businessPotential.meta)}
+      </div>
+      <div class="kpi"><div class="l">התקדמות לקמפיין</div><div class="v">${h(a.progressLabel)}</div>
+        ${metricCell(a.progressMeta)}
+      </div>
     </div>
   </div>
   ${cats}
@@ -82,6 +84,10 @@ body.modal-open{overflow:hidden;touch-action:none}
 .cover{background:linear-gradient(145deg,#0b1735,#1e3a5f);color:#fff;border:none}
 .cover h1{margin:0 0 8px;font-size:1.35rem}
 .cover .sub{opacity:.85;font-size:.9rem}
+.client-id{margin:10px 0 12px;padding:10px 12px;background:rgba(255,255,255,.12);border-radius:10px;border:1px solid rgba(255,255,255,.22)}
+.client-id .client-name{font-size:1.15rem;font-weight:800;line-height:1.3}
+.client-id .client-company{font-size:.92rem;opacity:.92;margin-top:2px;line-height:1.35}
+.asset-block .asset-overview{margin-bottom:4px}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
 .btn{display:inline-block;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700;font-size:.85rem;border:1px solid transparent;cursor:pointer;background:#e2e8f0;color:#0f172a;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn-pdf{background:#fbbf24;color:#111}
@@ -141,6 +147,10 @@ ul.exec{margin:0;padding-right:18px}
 
 <section class="card cover" id="page1">
   <div class="badge">דוח יומי לעסק · ניסיון דליה</div>
+  <div class="client-id" id="clientIdentity">
+    <div class="client-name">${h(report.client.contact || 'יוני אטיאס')}</div>
+    <div class="client-company">${h(report.client.company || 'דליה פתרונות תפעול ותחזוקה לרכב')}</div>
+  </div>
   <h1>דוח יומי #${h(report.meta.reportNumberPadded)}</h1>
   <div class="sub">
     ${h(report.meta.reportDate)} · ${h(report.meta.generatedTimeIL)} ·
@@ -171,7 +181,7 @@ ul.exec{margin:0;padding-right:18px}
   <div id="selSummary"></div>
 </section>
 
-<section class="card" id="decisionCard">
+<section class="card" id="decisionCard" data-report-section="overview">
   <h2>מה חשוב לדעת עכשיו</h2>
   <ol class="decision">
     <li><strong>האם הקמפיין מתקדם?</strong><br>${metricCell(mc.campaignProgress)}</li>
@@ -185,7 +195,7 @@ ul.exec{margin:0;padding-right:18px}
   </ol>
 </section>
 
-<section class="card">
+<section class="card" id="healthCard" data-report-section="health">
   <h2>בריאות המערכת</h2>
   <div class="grid">
     <div class="kpi"><div class="l">מצב כללי</div><div class="v">${h(healthBiz.statusLabel)}</div><div class="note">${h(healthBiz.statusWhy)}</div></div>
@@ -198,7 +208,7 @@ ul.exec{margin:0;padding-right:18px}
   <p class="note">${h(healthBiz.detailNote)}</p>
 </section>
 
-<section class="card">
+<section class="card" id="scoresCard" data-report-section="overview">
   <h2>ציונים</h2>
   <div class="grid">
     <div class="kpi"><div class="l">ציון הפרויקט</div><div class="v">${h(report.scores.projectScore.value)}</div>${metricCell(report.scores.projectScore)}</div>
@@ -218,7 +228,7 @@ ${assetSections}
   <p class="note">${h(comparison.note)}</p>
 </section>
 
-<section class="card">
+<section class="card" id="fourAnswersCard" data-report-section="overview">
   <h2>ארבע תשובות לסיום</h2>
   <ol>
     <li><strong>איפה אנחנו היום?</strong><br>${metricCell(report.fourAnswers.whereToday)}</li>
@@ -230,7 +240,7 @@ ${assetSections}
   </ol>
 </section>
 
-<section class="card">
+<section class="card" id="legendCard" data-report-section="overview">
   <h2>מקרא אמינות</h2>
   <p>
     <span class="tag tag-live">נתון חי</span>
@@ -368,12 +378,47 @@ ${assetSections}
     });
   }
 
+  function allCatsOn(assetId){
+    var asset = catalog.find(function(x){ return x.id === assetId; });
+    var cats = (asset && asset.categories) || [];
+    if(!cats.length) return true;
+    return cats.every(function(c){ return !!(catState[assetId] && catState[assetId][c.id]); });
+  }
+
+  function selectedCats(assetId){
+    return Object.keys(catState[assetId] || {}).filter(function(k){ return catState[assetId][k]; });
+  }
+
+  function isFullReportView(sel){
+    if(sel.length !== 1 || sel[0] !== 'site-main') return false;
+    return allCatsOn('site-main');
+  }
+
+  function healthWanted(sel){
+    return sel.some(function(id){ return !!(catState[id] && catState[id]['site-health']); });
+  }
+
   function applyFilter(){
     var sel = ensureDefault();
+    var full = isFullReportView(sel);
+
+    document.querySelectorAll('[data-report-section="overview"]').forEach(function(el){
+      el.style.display = full ? '' : 'none';
+    });
+
+    var healthCard = document.getElementById('healthCard');
+    if(healthCard){
+      healthCard.style.display = (full || healthWanted(sel)) ? '' : 'none';
+    }
+
     document.querySelectorAll('[data-asset-section]').forEach(function(el){
       var id = el.getAttribute('data-asset-section');
-      el.style.display = sel.indexOf(id) >= 0 ? '' : 'none';
+      var assetOn = sel.indexOf(id) >= 0 && selectedCats(id).length > 0;
+      el.style.display = assetOn ? '' : 'none';
+      var overview = el.querySelector('.asset-overview');
+      if(overview) overview.style.display = (assetOn && allCatsOn(id)) ? '' : 'none';
     });
+
     document.querySelectorAll('.cat-block').forEach(function(el){
       var aid = el.getAttribute('data-asset-cat');
       var cid = el.getAttribute('data-cat');
@@ -404,17 +449,27 @@ ${assetSections}
 
     var names = sel.map(labelOf);
     var shorts = sel.map(shortLabel);
-    if(hint) hint.textContent = names.length > 1
-      ? ('נבחרו: ' + shorts.join(' + ') + '. כל נכס מוצג בנפרד, ובסוף מופיעה השוואה.')
-      : ('מוצג: ' + names[0] + ' — רק הקטגוריות שסומנו בחלון.');
-    if(summary){
-      summary.textContent = sel.map(function(id){
-        var on = Object.keys(catState[id] || {}).filter(function(k){ return catState[id][k]; });
-        return labelOf(id) + ' (' + on.length + ' קטגוריות)';
-      }).join(' · ');
+    var catBits = sel.map(function(id){
+      var on = selectedCats(id);
+      var asset = catalog.find(function(x){ return x.id === id; }) || { categories: [] };
+      if(on.length === (asset.categories || []).length) return labelOf(id) + ' (הכול)';
+      var labels = on.map(function(cid){
+        var c = (asset.categories || []).find(function(x){ return x.id === cid; });
+        return c ? c.labelHe : cid;
+      });
+      return labelOf(id) + ': ' + labels.join(', ');
+    });
+    if(hint){
+      if(full) hint.textContent = 'מוצג דוח מלא של האתר הראשי. לחצו «בחירה…» כדי להציג רק סעיפים נבחרים.';
+      else if(names.length > 1) hint.textContent = 'נבחרו: ' + shorts.join(' + ') + ' — מוצגים רק הסעיפים שסומנו.';
+      else hint.textContent = 'מוצג מסונן: ' + (catBits[0] || names[0]) + ' — שאר הסעיפים מוסתרים.';
     }
-    if(btn){
-      btn.textContent = sel.length > 1 ? ('בחירה… (' + sel.length + ')') : 'בחירה…';
+    if(summary) summary.textContent = catBits.join(' · ');
+    if(btn) btn.textContent = sel.length > 1 ? ('בחירה… (' + sel.length + ')') : 'בחירה…';
+
+    var firstVisible = document.querySelector('[data-asset-section]:not([style*="display: none"]), #healthCard:not([style*="display: none"]), [data-report-section="overview"]:not([style*="display: none"])');
+    if(firstVisible && !full && document.activeElement && document.activeElement.id === 'modalOk'){
+      try { firstVisible.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e) {}
     }
   }
 
@@ -449,7 +504,14 @@ ${assetSections}
 
   if(btn) btn.addEventListener('click', openModal);
   if(cancel) cancel.addEventListener('click', closeModal);
-  if(ok) ok.addEventListener('click', function(){ closeModal(); applyFilter(); });
+  if(ok) ok.addEventListener('click', function(){
+    closeModal();
+    applyFilter();
+    var target = document.querySelector('.cat-block[style=""], .cat-block:not([style*="display: none"]), #healthCard:not([style*="display: none"]), [data-asset-section]:not([style*="display: none"])');
+    if(target){
+      try { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e) {}
+    }
+  });
   if(apply) apply.addEventListener('click', function(){ applyFilter(); });
   if(modal) modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
 
