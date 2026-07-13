@@ -1,0 +1,127 @@
+{
+  "at": "2026-07-13T08:00:48.363Z",
+  "errors": [],
+  "proof": {
+    "registryOk": true,
+    "assets": [
+      {
+        "id": "dalia-c-com",
+        "label": "dalia-c.com — האתר הישן",
+        "url": "https://dalia-c.com/",
+        "isMock": false
+      },
+      {
+        "id": "dalia-car-app",
+        "label": "אפליקציית דליה",
+        "url": "https://dalia-car.online/",
+        "isMock": false
+      },
+      {
+        "id": "dalia-brand-site",
+        "label": "אתר התדמית החדש",
+        "url": "https://dalia-car.online/site/",
+        "isMock": false
+      }
+    ],
+    "modes": {
+      "single": {
+        "mode": "single",
+        "n": 3,
+        "hasBrand": true
+      },
+      "compare": {
+        "mode": "compare",
+        "n": 3,
+        "hasBrand": true
+      },
+      "portfolio": {
+        "mode": "portfolio",
+        "n": 3,
+        "hasBrand": true
+      }
+    },
+    "ai": {
+      "active": "dalia-brand-site",
+      "ctxMode": "portfolio",
+      "ctxN": 3,
+      "brandInCtx": true,
+      "brandUrl": "https://dalia-car.online/site/"
+    },
+    "engine": {
+      "missing": true,
+      "globals": [
+        "COCO_PAGES_BASE",
+        "__COCO_AI_CONTEXT"
+      ]
+    },
+    "dualHardcodeScan": {
+      "hasOnlyTwoSitesPhrase": false,
+      "assetRegistryPresent": false
+    },
+    "countLive": 3,
+    "mock4": {
+      "enabledCount": 4,
+      "listLen": 4
+    }
+  },
+  "assistantsPage": {
+    "url": "https://dalia-car.online/orin-marketing/coco-dalia/pirsum-home.html?asset=dalia-brand-site&panel=assistants",
+    "hasEngine": false,
+    "assistants": null,
+    "consultants": null,
+    "brandInCtx": true,
+    "totals": null,
+    "realAnalysis": null
+  },
+  "dualScan": {
+    "https://dalia-car.online/ai-marketing/asset-registry-ssot.js": {
+      "status": 200,
+      "len": 9578,
+      "mentionsBrand": true,
+      "hardTwo": false,
+      "usesAssetRegistry": true,
+      "usesListN": false
+    },
+    "https://dalia-car.online/ai-marketing/coco-dalia-assistants-engine.js": {
+      "status": 200,
+      "len": 33392,
+      "mentionsBrand": false,
+      "hardTwo": false,
+      "usesAssetRegistry": true,
+      "usesListN": true
+    },
+    "https://dalia-car.online/ai-marketing/asset-flow-ssot.js": {
+      "status": 200,
+      "len": 16094,
+      "mentionsBrand": false,
+      "hardTwo": false,
+      "usesAssetRegistry": true,
+      "usesListN": true
+    },
+    "https://dalia-car.online/ai-marketing/marketing-ssot.js": {
+      "status": 200,
+      "len": 13978,
+      "mentionsBrand": false,
+      "hardTwo": false,
+      "usesAssetRegistry": true,
+      "usesListN": true
+    },
+    "https://dalia-car.online/ai-marketing/dalia-site-config.js": {
+      "status": 200,
+      "len": 52963,
+      "mentionsBrand": true,
+      "hardTwo": false,
+      "usesAssetRegistry": true,
+      "usesListN": true
+    }
+  },
+  "verdict": {
+    "threeAssets": true,
+    "brandPresent": true,
+    "mockFourth": true,
+    "modesOk": true,
+    "assistants50": false,
+    "consultants10": false,
+    "brandSelectable": true
+  }
+}

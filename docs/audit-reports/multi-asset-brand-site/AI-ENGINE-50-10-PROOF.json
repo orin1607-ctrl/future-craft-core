@@ -1,0 +1,53 @@
+{
+  "version": "6.0.0-quality",
+  "assistants": 50,
+  "consultants": 10,
+  "counts": {
+    "assistantsActive": 36,
+    "assistantsDone": 3,
+    "assistantsRealAnalysis": 46,
+    "consultantsActive": 0,
+    "total": {
+      "assistants": 50,
+      "consultants": 10
+    },
+    "quality": {
+      "realAnalysisCount": 46,
+      "completedQuality": 3,
+      "inProgress": 33,
+      "skippedAds": 4,
+      "contradictions": 0
+    }
+  },
+  "brandInCtx": true,
+  "assetsN": 3,
+  "mode": "compare",
+  "active": "dalia-brand-site",
+  "sampleA": [
+    {
+      "id": "a1",
+      "status": "ממתין",
+      "real": true,
+      "found": "אין ממצאים מאומתים"
+    },
+    {
+      "id": "a2",
+      "status": "בתהליך",
+      "real": true,
+      "found": "שוק: ניהול צי + תפעול/תחזוקה + מיקור חוץ + ליסינג כקטגוריה"
+    }
+  ],
+  "sampleC": [
+    {
+      "id": "b1",
+      "status": "ממתין"
+    },
+    {
+      "id": "b2",
+      "status": "ממתין"
+    }
+  ],
+  "allAssistantsHaveBrandContext": true,
+  "allConsultantsHaveBrandContext": true,
+  "mock4": 4
+}

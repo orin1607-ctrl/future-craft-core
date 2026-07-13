@@ -22,7 +22,7 @@ concurrency:
 env:
   PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
   PROD_SUPABASE_PROJECT_ID: qasomfndnjuixgjmjwcm
-  WEB_ROOT: /var/www/future-craft-core
+  WEB_ROOT: /root/future-craft-core/dist
   PRODUCTION_URL: https://dalia-car.online
 
 jobs:
@@ -71,14 +71,41 @@ jobs:
           BACKUP="/root/pre-deploy-dist-${STAMP}.tgz"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "tar czf ${BACKUP} -C /var/www future-craft-core && echo ${BACKUP}"
+            "tar czf ${BACKUP} -C /root/future-craft-core dist && echo ${BACKUP}"
           echo "path=${BACKUP}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy to production
         run: |
           rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-            --delete dist/ \
+            --delete \
+            --filter="P orin-marketing/" \
+            --filter="P orin-owner-gate.js" \
+            dist/ \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.WEB_ROOT }}/
+
+      # Brand site lives OUTSIDE dist so SPA --delete cannot wipe it.
+      - name: Sync brand site (/site/) outside dist
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "mkdir -p /root/future-craft-core/site-static"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            public/site/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/future-craft-core/site-static/
+
+      - name: Assert nginx brand + marketing paths present in repo
+        run: |
+          grep -q 'location ^~ /site/' nginx.conf
+          grep -q 'location ^~ /orin-marketing/' nginx.conf
+          grep -q 'client-previews/dalia-c-official' nginx.conf
+          grep -q 'site-static' nginx.conf
+
+      - name: Assert permanent pirsum
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "python3 -c \"from pathlib import Path; import re; html=Path('/root/future-craft-core/dist/index.html').read_text(); assert 'pirsum-btn' not in html.lower(); m=re.search(r'/assets/(index-[^\\"\\']+\\.js)', html); t=(Path('/root/future-craft-core/dist/assets')/m.group(1)).read_text(encoding='utf-8',errors='ignore'); assert 'title:\\"פרסום\\"' in t; assert 'path:\\"/orin-marketing\\"' in t or 'href:\\"/orin-marketing/\\"' in t; print('ok')\""
+
 
       - name: Reload nginx
         run: |

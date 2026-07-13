@@ -1,0 +1,176 @@
+{
+  "at": "2026-07-13T08:00:37.058Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "customer_id": "e244b5af-2778-4ca1-93c8-b4fa7c2f144e",
+  "asset_id": "dalia-brand-site",
+  "website_id": "e9b2bbf1-1276-4fce-8756-99060a47a44e",
+  "domain": "dalia-car.online/site",
+  "site_url": "https://dalia-car.online/site/",
+  "oauth_connection_id": "3d86e6ab-8f22-4515-a2e4-7927826589e9",
+  "websitesForCustomer": [
+    {
+      "id": "46cea552-119b-496f-b538-592c656f659a",
+      "domain": "dalia-c.com",
+      "site_url": "https://dalia-c.com/",
+      "site_role": "primary_legacy",
+      "external_slug": "dalia-c-official-legacy"
+    },
+    {
+      "id": "d2deb17d-3b25-42ce-a2c2-5339ffd854dc",
+      "domain": "dalia-car.online",
+      "site_url": "https://dalia-car.online/",
+      "site_role": "primary_new",
+      "external_slug": "dalia-c-official-new"
+    },
+    {
+      "id": "e9b2bbf1-1276-4fce-8756-99060a47a44e",
+      "domain": "dalia-car.online/site",
+      "site_url": "https://dalia-car.online/site/",
+      "site_role": "landing",
+      "external_slug": "dalia-brand-site"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "936fa564-3124-4bc8-82db-acdf64276bfc",
+      "website_id": "e9b2bbf1-1276-4fce-8756-99060a47a44e",
+      "provider": "google_analytics",
+      "measurement_id": "G-KYDLXY9C39",
+      "container_id": "",
+      "property_id": "properties/545281140",
+      "location_id": "",
+      "ads_customer_id": "",
+      "connection_status": "connected",
+      "data_freshness": "LIVE",
+      "health_status": "healthy"
+    },
+    {
+      "id": "c4fafd91-d2d6-4472-bd91-b9ed742327e7",
+      "website_id": "e9b2bbf1-1276-4fce-8756-99060a47a44e",
+      "provider": "google_tag_manager",
+      "measurement_id": "",
+      "container_id": "GTM-KH38DZ6J",
+      "property_id": "",
+      "location_id": "",
+      "ads_customer_id": "",
+      "connection_status": "connected",
+      "data_freshness": "STALE",
+      "health_status": "degraded"
+    },
+    {
+      "id": "d640fd72-6531-4eb7-95eb-37f9bb293b7f",
+      "website_id": "e9b2bbf1-1276-4fce-8756-99060a47a44e",
+      "provider": "google_search_console",
+      "measurement_id": "",
+      "container_id": "",
+      "property_id": "https://dalia-car.online/site/",
+      "location_id": "",
+      "ads_customer_id": "",
+      "connection_status": "connected",
+      "data_freshness": "LIVE",
+      "health_status": "healthy"
+    },
+    {
+      "id": "48d9e8ab-d610-4055-87cf-7df0bb3a6e6f",
+      "website_id": "e9b2bbf1-1276-4fce-8756-99060a47a44e",
+      "provider": "google_business",
+      "measurement_id": "",
+      "container_id": "",
+      "property_id": "",
+      "location_id": "locations/18079880828372396175",
+      "ads_customer_id": "",
+      "connection_status": "connected",
+      "data_freshness": "LIVE",
+      "health_status": "healthy"
+    },
+    {
+      "id": "f7dbd0c5-bdbd-4e06-9b25-af6fe2b3eb04",
+      "website_id": "e9b2bbf1-1276-4fce-8756-99060a47a44e",
+      "provider": "google_pagespeed",
+      "measurement_id": "",
+      "container_id": "",
+      "property_id": "https://dalia-car.online/site/",
+      "location_id": "",
+      "ads_customer_id": "",
+      "connection_status": "connected",
+      "data_freshness": "MISSING",
+      "health_status": "unknown"
+    },
+    {
+      "id": "2951db28-a89c-4d86-b24b-50f51434ae80",
+      "website_id": "e9b2bbf1-1276-4fce-8756-99060a47a44e",
+      "provider": "google_ads",
+      "measurement_id": "",
+      "container_id": "",
+      "property_id": "",
+      "location_id": "",
+      "ads_customer_id": "8957638890",
+      "connection_status": "blocked_external",
+      "data_freshness": "BLOCKED",
+      "health_status": "blocked_external"
+    }
+  ],
+  "readByWebsiteId": [
+    {
+      "provider": "google_analytics",
+      "measurement_id": "G-KYDLXY9C39",
+      "container_id": "",
+      "property_id": "properties/545281140",
+      "connection_status": "connected",
+      "data_freshness": "LIVE"
+    },
+    {
+      "provider": "google_tag_manager",
+      "measurement_id": "",
+      "container_id": "GTM-KH38DZ6J",
+      "property_id": "",
+      "connection_status": "connected",
+      "data_freshness": "STALE"
+    },
+    {
+      "provider": "google_search_console",
+      "measurement_id": "",
+      "container_id": "",
+      "property_id": "https://dalia-car.online/site/",
+      "connection_status": "connected",
+      "data_freshness": "LIVE"
+    },
+    {
+      "provider": "google_business",
+      "measurement_id": "",
+      "container_id": "",
+      "property_id": "",
+      "connection_status": "connected",
+      "data_freshness": "LIVE"
+    },
+    {
+      "provider": "google_pagespeed",
+      "measurement_id": "",
+      "container_id": "",
+      "property_id": "https://dalia-car.online/site/",
+      "connection_status": "connected",
+      "data_freshness": "MISSING"
+    },
+    {
+      "provider": "google_ads",
+      "measurement_id": "",
+      "container_id": "",
+      "property_id": "",
+      "connection_status": "blocked_external",
+      "data_freshness": "BLOCKED"
+    }
+  ],
+  "proof": {
+    "websiteCreated": true,
+    "bindingCount": 6,
+    "providers": [
+      "google_analytics",
+      "google_tag_manager",
+      "google_search_console",
+      "google_business",
+      "google_pagespeed",
+      "google_ads"
+    ],
+    "noLocalConfigOnly": true
+  }
+}

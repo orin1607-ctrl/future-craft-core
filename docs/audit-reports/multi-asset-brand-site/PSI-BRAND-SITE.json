@@ -1,0 +1,54 @@
+{
+  "at": "2026-07-13T08:01:52.227Z",
+  "url": "https://dalia-car.online/site/",
+  "results": {
+    "mobile": {
+      "status": 200,
+      "scores": {
+        "performance": 79,
+        "accessibility": 90,
+        "bestPractices": 100,
+        "seo": 100
+      },
+      "cwv": {
+        "LCP": "4.5 s",
+        "CLS": "0",
+        "TBT": "0 ms",
+        "FCP": "2.7 s",
+        "SI": "3.0 s"
+      },
+      "topOpps": [
+        {
+          "id": "unused-javascript",
+          "title": "Reduce unused JavaScript",
+          "displayValue": "Est savings of 136 KiB",
+          "score": 0
+        }
+      ]
+    },
+    "desktop": {
+      "status": 200,
+      "scores": {
+        "performance": 79,
+        "accessibility": 83,
+        "bestPractices": 100,
+        "seo": 100
+      },
+      "cwv": {
+        "LCP": "1.3 s",
+        "CLS": "0.03",
+        "TBT": "390 ms",
+        "FCP": "0.7 s",
+        "SI": "0.8 s"
+      },
+      "topOpps": [
+        {
+          "id": "unused-javascript",
+          "title": "Reduce unused JavaScript",
+          "displayValue": "Est savings of 133 KiB",
+          "score": 0
+        }
+      ]
+    }
+  }
+}
