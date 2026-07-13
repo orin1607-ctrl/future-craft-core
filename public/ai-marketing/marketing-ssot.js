@@ -109,25 +109,35 @@
   }
 
   function getConnectedAssets() {
-    if (window.AssetFlowSsot && AssetFlowSsot.getActiveAsset) {
-      var a = AssetFlowSsot.getActiveAsset();
-      if (a && a.live !== false) {
-        return [{
-          id: a.id || 'site-primary',
-          icon: a.icon || '🌐',
-          name: a.domain || a.label || 'dalia-c.com',
-          url: a.url || ('https://' + (a.domain || 'dalia-c.com') + '/'),
-          status: 'active',
-        }];
-      }
+    if (window.AssetRegistry && AssetRegistry.list) {
+      return AssetRegistry.list()
+        .filter(function (a) { return !a.isMock; })
+        .map(function (a) {
+          return {
+            id: a.id || 'site',
+            icon: a.icon || '🌐',
+            name: a.shortLabel || a.label || a.domain || 'site',
+            url: a.mySiteUrl || a.url || '',
+            status: a.status === 'live' || a.live ? 'active' : 'pending',
+            detail: a.measurementId ? (a.measurementId + ' · ' + (a.gtm || '')) : (a.dataNote || ''),
+          };
+        });
     }
-    return [{
-      id: 'site-primary',
-      icon: '🌐',
-      name: (state.site && state.site.domain) || 'dalia-c.com',
-      url: (state.site && state.site.url) || 'https://dalia-c.com/',
-      status: 'active',
-    }];
+    if (window.AssetFlowSsot && AssetFlowSsot.getAssets) {
+      return AssetFlowSsot.getAssets()
+        .filter(function (a) { return a.live !== false && a.status !== 'draft' && !a.isMock; })
+        .map(function (a) {
+          return {
+            id: a.id || 'site',
+            icon: a.icon || '🌐',
+            name: a.shortLabel || a.domain || a.label || 'site',
+            url: a.mySiteUrl || a.url || '',
+            status: 'active',
+            detail: a.measurementId ? (a.measurementId + ' · ' + (a.gtm || '')) : '',
+          };
+        });
+    }
+    return [];
   }
 
   function countActiveAiAssistants() {

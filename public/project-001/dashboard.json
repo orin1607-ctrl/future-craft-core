@@ -1,12 +1,41 @@
 {
   "version": 2,
-  "generatedAt": "2026-07-06T18:41:57.135Z",
+  "generatedAt": "2026-07-12T21:30:00.000Z",
   "project": {
     "id": "project001aimarketing",
     "name": "Project001AIMarketing",
     "account": "orin1607@gmail.com",
     "site": "https://dalia-c.com/",
-    "ga4Property": "properties/427711798"
+    "ga4Property": "properties/545246030",
+    "sites": {
+      "dalia-c.com": {
+        "ga4": "properties/545246030",
+        "measurementId": "G-73K6EDC6LV",
+        "gtm": "GTM-P5BWSBR",
+        "status": "live",
+        "label": "dalia-c.com — האתר הישן",
+        "assetId": "dalia-c-com"
+      },
+      "dalia-car.online": {
+        "ga4": "properties/545217370",
+        "measurementId": "G-KGTK4YCD8F",
+        "gtm": "GTM-KFMHS49G",
+        "status": "live",
+        "label": "אפליקציית דליה",
+        "assetId": "dalia-car-app"
+      },
+      "dalia-car.online/site": {
+        "ga4": "properties/545281140",
+        "measurementId": "G-KYDLXY9C39",
+        "gtm": "GTM-KH38DZ6J",
+        "status": "live",
+        "label": "אתר התדמית החדש",
+        "assetId": "dalia-brand-site",
+        "url": "https://dalia-car.online/site/",
+        "gsc": "https://dalia-car.online/site/",
+        "notes": "GTM publish pending tagmanager.publish scope; GA4 via gtag live"
+      }
+    }
   },
   "token": {
     "ok": true,
@@ -26,19 +55,19 @@
       "note": null
     },
     "businessProfile": {
-      "status": "oauth_connected",
+      "status": "connected",
       "ok": true,
-      "note": "OAuth מחובר — נתוני API ייפתחו לאחר אישור Google Basic API Access (בקשה הוגשה)"
+      "note": "LIVE — דליה פתרונות מימון ותחזוקה לרכב · locations/18079880828372396175 · website=dalia-c.com"
     },
     "googleAds": {
-      "status": "pending_production_access",
+      "status": "pending_google_api_approval",
       "ok": false,
-      "note": "Developer Token Test — בקש Basic/Standard access ב-API Center או הגדר GOOGLE_ADS_LOGIN_CUSTOMER_ID"
+      "note": "Pending — ממתין לאישור Google Ads Basic Access (DEVELOPER_TOKEN_NOT_APPROVED). לא להגיש בקשה חדשה."
     },
     "googleTagManager": {
       "status": "connected",
       "ok": true,
-      "note": "GTM-T8LKW58K — yoni191177@gmail.com"
+      "note": "GTM-P5BWSBR (dalia-c.com) · GTM-KFMHS49G (dalia-car.online)"
     },
     "drive": {
       "status": "connected",
@@ -70,17 +99,17 @@
     "gscSites": 3,
     "ga4Properties": 0,
     "configuredGsc": "https://dalia-c.com/",
-    "configuredGa4": "properties/427711798"
+    "configuredGa4": "properties/545246030"
   },
   "gbp": {
-    "ok": false,
-    "status": "oauth_connected",
+    "ok": true,
+    "status": "connected",
     "pendingApproval": false,
-    "matchedBusiness": null,
-    "locations": 0,
+    "matchedBusiness": "דליה פתרונות מימון ותחזוקה לרכב",
+    "locations": 1,
     "hint": "דליה פתרונות מימון ותחזוקה לרכב",
-    "lastError": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:484351148380'.",
-    "summary": null
+    "lastError": null,
+    "summary": "CONNECTED / LIVE · locations/18079880828372396175 · website=https://dalia-c.com/"
   },
   "businessProfileData": {
     "ok": false,
@@ -1134,6 +1163,19 @@
     ],
     "ai": [
       {
+        "id": "ai-1783370733785",
+        "timestamp": "2026-07-06T20:45:33.785Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "medium",
+            "title": "שפר עמוד: /%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
+            "detail": "CTR נמוך ומיקום גבוה ב-SERP. 53 חשיפות, CTR 0.0%, מיקום 27.1.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
         "id": "ai-1783363317121",
         "timestamp": "2026-07-06T18:41:57.121Z",
         "count": 1,
@@ -1240,19 +1282,6 @@
       {
         "id": "ai-1782367742440",
         "timestamp": "2026-06-25T06:09:02.441Z",
-        "count": 1,
-        "items": [
-          {
-            "priority": "low",
-            "title": "ממתין לנתוני GSC",
-            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
-            "status": "recommendation_only"
-          }
-        ]
-      },
-      {
-        "id": "ai-1782367505355",
-        "timestamp": "2026-06-25T06:05:05.355Z",
         "count": 1,
         "items": [
           {

@@ -1,0 +1,28 @@
+{
+  "at": "2026-07-13T06:31:56.314Z",
+  "checks": [
+    {
+      "name": "site",
+      "status": 200,
+      "location": null
+    },
+    {
+      "name": "preview_301",
+      "status": 301,
+      "location": "https://dalia-car.online/site/"
+    },
+    {
+      "name": "preview_index_301",
+      "status": 301,
+      "location": "https://dalia-car.online/site/index.html"
+    }
+  ],
+  "hasGtag": true,
+  "hasGtm": true,
+  "noPreviewBadge": true,
+  "registryHas3": 4,
+  "hasBrand": false,
+  "hasMock4Fn": true,
+  "psiMobile": null,
+  "psiDesktop": null
+}

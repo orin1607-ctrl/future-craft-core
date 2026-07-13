@@ -43,24 +43,6 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  function primaryAsset() {
-    var off = window.ClientIdSsot && ClientIdSsot.OFFICIAL;
-    var camp = window.ClientIdSsot && ClientIdSsot.PRIMARY_CAMPAIGN;
-    return {
-      id: 'asset-dalia-c-com',
-      type: 'website',
-      icon: '🌐',
-      label: (off && off.domain) || 'dalia-c.com',
-      domain: (off && off.domain) || 'dalia-c.com',
-      url: (off && off.url) || 'https://dalia-c.com/',
-      status: 'active',
-      clientId: (off && off.clientId) || 'dalia-c-official',
-      campaignId: (camp && camp.id) || 'campaign-dalia-seo-primary',
-      campaignName: (camp && camp.name) || 'דליה — קידום dalia-c.com',
-      live: true,
-    };
-  }
-
   function readPendingAssets() {
     try {
       var raw = localStorage.getItem(PENDING_ASSETS_KEY);
@@ -76,22 +58,46 @@
     } catch (e) { /* ignore */ }
   }
 
+  /** Multi-Asset: prefer AssetRegistry (N unlimited). No primary/secondary. */
   function getAssets() {
-    return [primaryAsset()].concat(readPendingAssets());
+    if (window.AssetRegistry && AssetRegistry.list) {
+      return AssetRegistry.list().map(function (a) {
+        return Object.assign({}, a, {
+          status: a.status === 'live' || a.live ? 'active' : (a.status || 'pending'),
+          label: a.shortLabel || a.label,
+        });
+      });
+    }
+    return readPendingAssets();
   }
 
   function getActiveAssetId() {
+    if (window.AssetRegistry && AssetRegistry.getActiveId) return AssetRegistry.getActiveId();
     try {
-      return localStorage.getItem(STORAGE_KEY) || primaryAsset().id;
+      return localStorage.getItem(STORAGE_KEY) || (getAssets()[0] || {}).id;
     } catch (e) {
-      return primaryAsset().id;
+      return (getAssets()[0] || {}).id;
     }
   }
 
   function getActiveAsset() {
+    if (window.AssetRegistry && AssetRegistry.getActive) {
+      var a = AssetRegistry.getActive();
+      if (a) {
+        return Object.assign({}, a, {
+          status: a.status === 'live' || a.live ? 'active' : (a.status || 'pending'),
+          label: a.shortLabel || a.label,
+        });
+      }
+    }
     var id = getActiveAssetId();
-    var found = getAssets().filter(function (a) { return a.id === id; })[0];
-    return found || primaryAsset();
+    var found = getAssets().filter(function (x) { return x.id === id; })[0];
+    return found || getAssets()[0];
+  }
+
+  /** @deprecated — use getAssets()[0]; kept for back-compat only */
+  function primaryAsset() {
+    return getAssets()[0];
   }
 
   function applyToFlowContext(asset) {
@@ -149,12 +155,10 @@
   function selectActiveAsset(assetId) {
     var asset = getAssets().filter(function (a) { return a.id === assetId; })[0];
     if (!asset) return;
-    if (asset.status === 'draft' || asset.status === 'pending') {
-      if (typeof showToast === 'function') {
-        showToast('⏳ הנכס «' + asset.label + '» ממתין לחיבור — בחר נכס פעיל');
-      }
-      return;
+    if (asset.isMock) {
+      if (typeof showToast === 'function') showToast('🧪 נכס מדומה — לבדיקת Multi-Asset בלבד');
     }
+    if (window.AssetRegistry && AssetRegistry.setActive) AssetRegistry.setActive(assetId);
     applyToFlowContext(asset);
     refreshAllScreens();
     if (typeof showToast === 'function') {

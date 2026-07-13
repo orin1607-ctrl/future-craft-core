@@ -6,8 +6,10 @@
 
   var SITE = window.ClientIdSsot ? Object.assign({}, ClientIdSsot.OFFICIAL, {
     name: 'דליה — dalia-c.com',
-    ga4Property: 'properties/427711798',
-    superAdmin: 'יוני אטיאס',
+    ga4Property: 'properties/545246030',
+    measurementId: 'G-73K6EDC6LV',
+    gtm: 'GTM-P5BWSBR',
+    superAdmin: 'orin1607@gmail.com',
   }) : {
     url: 'https://dalia-c.com/',
     domain: 'dalia-c.com',
@@ -15,12 +17,67 @@
     company: 'דליה פתרונות תפעול ותחזוקה לרכב',
     clientId: 'dalia-c-official',
     account: 'orin1607@gmail.com',
-    superAdmin: 'יוני אטיאס',
-    ga4Property: 'properties/427711798',
+    superAdmin: 'orin1607@gmail.com',
+    ga4Property: 'properties/545246030',
+    measurementId: 'G-73K6EDC6LV',
+    gtm: 'GTM-P5BWSBR',
   };
 
-  var PENDING = 'ממתין לחיבור';
-  var NO_DATA = '—';
+  /** Multi-Asset sites map — prefer AssetRegistry when present */
+  var SITES = {
+    'dalia-c.com': {
+      domain: 'dalia-c.com',
+      url: 'https://dalia-c.com/',
+      ga4Property: 'properties/545246030',
+      measurementId: 'G-73K6EDC6LV',
+      gtm: 'GTM-P5BWSBR',
+      status: 'live',
+      label: 'dalia-c.com — האתר הישן',
+      assetId: 'dalia-c-com',
+    },
+    'dalia-car.online': {
+      domain: 'dalia-car.online',
+      url: 'https://dalia-car.online/',
+      ga4Property: 'properties/545217370',
+      measurementId: 'G-KGTK4YCD8F',
+      gtm: 'GTM-KFMHS49G',
+      status: 'live',
+      label: 'אפליקציית דליה',
+      assetId: 'dalia-car-app',
+    },
+    'dalia-car.online/site': {
+      domain: 'dalia-car.online/site',
+      url: 'https://dalia-car.online/site/',
+      ga4Property: 'properties/545281140',
+      measurementId: 'G-KYDLXY9C39',
+      gtm: 'GTM-KH38DZ6J',
+      status: 'live',
+      label: 'אתר התדמית החדש',
+      assetId: 'dalia-brand-site',
+    },
+  };
+
+  function sitesFromRegistry() {
+    if (!window.AssetRegistry || !AssetRegistry.list) return SITES;
+    var map = {};
+    AssetRegistry.list().forEach(function (a) {
+      if (a.isMock) return;
+      map[a.domain || a.id] = {
+        domain: a.domain,
+        url: a.url,
+        ga4Property: a.ga4,
+        measurementId: a.measurementId,
+        gtm: a.gtm,
+        status: a.status || 'pending',
+        label: a.label,
+        assetId: a.id,
+      };
+    });
+    return Object.keys(map).length ? map : SITES;
+  }
+
+  var PENDING = 'Pending';
+  var NO_DATA = 'Pending — מחובר, ממתין לצבירת נתונים';
 
   var state = { dashboard: null, crawl: null, pagesIndex: null, workPlan: null, loadedAt: null };
 
@@ -318,15 +375,15 @@
       tableBox('🔍 Top Queries (GSC)', ['מילה', 'קליקים', 'חשיפות', 'מיקום'],
         keywords.slice(0, 15).map(function (k) {
           return [k.query, fmt(k.clicks), fmt(k.impressions), k.position != null ? Number(k.position).toFixed(1) : NO_DATA];
-        }), keywords.length ? '' : '<tr><td colspan="4">אין נתוני GSC בטווח — האתר מחובר</td></tr>') +
+        }),         keywords.length ? '' : '<tr><td colspan="4">Pending — GSC מחובר, ממתין לצבירת שאילתות בטווח</td></tr>') +
       tableBox('📄 Top Pages (GA4)', ['עמוד', 'סשנים', 'צפיות'],
         topGa4.slice(0, 12).map(function (p) {
           return [p.pagePath, fmt(p.sessions), fmt(p.screenPageViews)];
-        }), topGa4.length ? '' : '<tr><td colspan="3">אין נתוני GA4</td></tr>') +
+        }), topGa4.length ? '' : '<tr><td colspan="3">Pending — GA4 מחובר (COCO), ממתין לצבירת sessions</td></tr>') +
       tableBox('📄 דפים (Search Console)', ['URL', 'קליקים', 'חשיפות', 'CTR'],
         pages.slice(0, 12).map(function (p) {
           return [shortUrl(p.page), fmt(p.clicks), fmt(p.impressions), p.ctr != null ? (p.ctr * 100).toFixed(1) + '%' : NO_DATA];
-        }), pages.length ? '' : '<tr><td colspan="4">אין דפים ב-GSC בטווח</td></tr>') +
+        }), pages.length ? '' : '<tr><td colspan="4">Pending — GSC מחובר, ממתין לדפים בטווח</td></tr>') +
       connectionsBox(raw) +
       '</div>';
   }
@@ -983,6 +1040,8 @@
 
   window.DaliaSite = {
     SITE: SITE,
+    SITES: SITES,
+    sitesFromRegistry: sitesFromRegistry,
     PENDING: PENDING,
     NO_DATA: NO_DATA,
     initOfficial: initOfficial,

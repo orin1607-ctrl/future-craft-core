@@ -1,0 +1,78 @@
+{
+  "at": "2026-07-13T06:27:33.908Z",
+  "assetId": "dalia-brand-site",
+  "siteUrl": "https://dalia-car.online/site/",
+  "steps": [
+    {
+      "step": "list_ga4_accounts",
+      "status": 200,
+      "ok": true,
+      "count": 2
+    },
+    {
+      "step": "list_properties",
+      "status": 200,
+      "ok": true,
+      "count": 2
+    },
+    {
+      "step": "create_ga4_property",
+      "status": 200,
+      "ok": true,
+      "name": "properties/545281140"
+    },
+    {
+      "step": "list_streams",
+      "status": 200,
+      "ok": true,
+      "count": 0
+    },
+    {
+      "step": "create_web_stream",
+      "status": 200,
+      "ok": true,
+      "measurementId": "G-KYDLXY9C39"
+    },
+    {
+      "step": "list_gtm_containers",
+      "status": 200,
+      "ok": true,
+      "count": 1
+    },
+    {
+      "step": "create_gtm_container",
+      "status": 404,
+      "ok": false,
+      "err": "Not found or permission denied."
+    },
+    {
+      "step": "gsc_add_site",
+      "status": 204,
+      "ok": true
+    },
+    {
+      "step": "gsc_submit_sitemap",
+      "status": 204,
+      "ok": true
+    }
+  ],
+  "blockers": [],
+  "ga4": {
+    "account": "accounts/400820652",
+    "property": "properties/545281140",
+    "measurementId": "G-KYDLXY9C39",
+    "streamName": "properties/545281140/dataStreams/15246513921"
+  },
+  "gtm": null,
+  "gsc": {
+    "siteUrl": "https://dalia-car.online/site/",
+    "status": "added_or_exists"
+  },
+  "needsOwnerAction": [
+    {
+      "what": "Create GTM container Dalia Brand Site",
+      "err": "Not found or permission denied.",
+      "url": "https://tagmanager.google.com/#/container/accounts/6052486269/containers"
+    }
+  ]
+}

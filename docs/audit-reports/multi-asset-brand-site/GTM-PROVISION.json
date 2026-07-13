@@ -1,0 +1,15 @@
+{
+  "at": "2026-07-13T06:28:40.183Z",
+  "ga4": {
+    "property": "properties/545281140",
+    "measurementId": "G-KYDLXY9C39"
+  },
+  "gtm": {
+    "accountId": "6239197284",
+    "publicId": "GTM-KH38DZ6J",
+    "containerId": "258130829",
+    "path": "accounts/6239197284/containers/258130829"
+  },
+  "tagOk": true,
+  "publishOk": false
+}

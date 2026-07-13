@@ -1,0 +1,3 @@
+﻿User-agent: *
+Allow: /site/
+Sitemap: https://dalia-car.online/site/sitemap.xml

@@ -1,0 +1,41 @@
+{
+  "at": "2026-07-13T07:40:42.786Z",
+  "errors": [],
+  "snap": {
+    "labels": [
+      "dalia-c.com",
+      "אפליקציית דליה",
+      "אתר התדמית החדש"
+    ],
+    "ids": [
+      "dalia-c-com",
+      "dalia-car-app",
+      "dalia-brand-site"
+    ],
+    "count": 3,
+    "mockEnabledCount": 4,
+    "afterMockCount": 4,
+    "hasBrand": true,
+    "hasApp": true,
+    "hasOld": true,
+    "modeBar": true,
+    "siteHref": "https://dalia-c.com/",
+    "aiCtx": {
+      "mode": "single",
+      "n": 3
+    },
+    "compareRows": 9
+  },
+  "mySite": {
+    "brandLink": "https://dalia-car.online/site/",
+    "appLink": "https://dalia-car.online/",
+    "oldLink": "https://dalia-c.com/",
+    "redirUrl": "https://dalia-car.online/orin-marketing/coco-dalia/pirsum-home.html?asset=dalia-brand-site&v=qa3",
+    "redirHref": "https://dalia-car.online/site/"
+  },
+  "siteSnap": {
+    "title": "דליה פתרונות תפעול ותחזוקה לרכב | ניהול צי רכב חכם ו-FleetOS",
+    "hasGtag": true,
+    "hasGtm": true
+  }
+}
