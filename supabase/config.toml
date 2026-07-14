@@ -70,3 +70,13 @@ verify_jwt = true
 
 [functions.check-driver-availability]
 verify_jwt = true
+
+[functions.marketing-daily-progress-report]
+verify_jwt = false
+
+[functions.marketing-notify-email]
+verify_jwt = false
+
+# Public token upload + authenticated create (JWT checked inside handler)
+[functions.document-request]
+verify_jwt = false

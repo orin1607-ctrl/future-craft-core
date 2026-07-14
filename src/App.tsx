@@ -67,8 +67,6 @@ import DevFleetOSModule1Preview from "@/pages/DevFleetOSModule1Preview";
 import DevFleetOSDashboardPreview from "@/pages/DevFleetOSDashboardPreview";
 import DevFleetOSSettingsPreview from "@/pages/DevFleetOSSettingsPreview";
 import Project001Dashboard from "@/pages/Project001Dashboard";
-import AiMarketingPage from "@/pages/AiMarketingPage";
-import DaliaCrmPage from "@/pages/DaliaCrmPage";
 import {
   ModuleAdminHub,
   ModuleRequiredFieldsPage,
@@ -77,6 +75,19 @@ import {
 import AdminModulesHub from "@/pages/admin/AdminModulesHub";
 import VehicleModuleAdmin from "@/pages/admin/VehicleModuleAdmin";
 import VehicleTypesSettings from "@/pages/admin/VehicleTypesSettings";
+import { useEffect } from "react";
+
+/** Old ניהול שיווק SPA entry → permanent Orin פרסום (nginx static). */
+function LegacyMarketingRedirect() {
+  useEffect(() => {
+    window.location.replace("/orin-marketing/");
+  }, []);
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <p className="text-muted-foreground text-lg">מעביר לפרסום…</p>
+    </div>
+  );
+}
 
 // New pages
 import Companions from "@/pages/Companions";
@@ -94,6 +105,7 @@ import EmergencySettings from "@/pages/EmergencySettings";
 import CustomerDocs from "@/pages/CustomerDocs";
 import DriverDeclarations from "@/pages/DriverDeclarations";
 import SignDeclaration from "@/pages/SignDeclaration";
+import UploadDocumentRequest from "@/pages/UploadDocumentRequest";
 
 import ServiceOrderHistory from "@/pages/ServiceOrderHistory";
 import TakeDrivingExam from "@/pages/TakeDrivingExam";
@@ -150,6 +162,7 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/sign-declaration" element={<SignDeclaration />} />
         <Route path="/take-exam" element={<TakeDrivingExam />} />
+        <Route path="/upload-request" element={<UploadDocumentRequest />} />
         <Route path="*" element={<About />} />
       </Routes>
     );
@@ -176,9 +189,14 @@ function AppRoutes() {
       <Route path="/dev/project-001/dashboard" element={<Project001Dashboard />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-      {/* Marketing AI — fullscreen, outside Dalia chrome */}
-      <Route path="/ai-marketing" element={<AiMarketingPage />} />
-      <Route path="/dalia-crm" element={<DaliaCrmPage />} />
+      {/* Legacy marketing route → permanent Orin פרסום (static nginx path) */}
+      <Route
+        path="/ai-marketing"
+        element={
+          <LegacyMarketingRedirect />
+        }
+      />
+      <Route path="/dalia-crm" element={<LegacyMarketingRedirect />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
@@ -261,6 +279,7 @@ function AppRoutes() {
         <Route path="/sign-declaration" element={<SignDeclaration />} />
         <Route path="/take-exam" element={<TakeDrivingExam />} />
         <Route path="/driving-exam/:id" element={<TakeDrivingExam />} />
+        <Route path="/upload-request" element={<UploadDocumentRequest />} />
         <Route path="/voice" element={<Voice />} />
         <Route path="/pickup-appointments" element={<PickupAppointments />} />
       </Route>

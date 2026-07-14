@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Phone, Truck } from 'lucide-react';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
+import EntityDocumentRequestsPanel from '@/components/documents/EntityDocumentRequestsPanel';
 import VehicleAccordionSection from '@/components/vehicles/VehicleAccordionSection';
 import { supabase } from '@/integrations/supabase/client';
 import { getThirdPartyInsuranceExpiry, getThirdPartyInsuranceDocUrl } from '@/lib/vehicleInsuranceUtils';
@@ -248,8 +249,15 @@ export default function VehicleDetailsPanel({
       </AccordionSection>
 
       {isManager && (
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-2">
           <NotificationsAndSendsButton vehicleId={v.id} vehiclePlate={v.license_plate} />
+          <EntityDocumentRequestsPanel
+            entityType="vehicle"
+            entityId={v.id}
+            entityLabel={v.license_plate}
+            recipientName={driverName || ''}
+            recipientPhone={driverPhone || ''}
+          />
         </div>
       )}
     </div>

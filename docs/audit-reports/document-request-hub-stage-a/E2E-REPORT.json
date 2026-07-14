@@ -1,0 +1,89 @@
+{
+  "env": {
+    "staging": "usfeoerkpcafxxlyuldl",
+    "linked": "usfeoerkpcafxxlyuldl",
+    "production_ref_forbidden": "qasomfndnjuixgjmjwcm"
+  },
+  "actor": {
+    "email": "orina1607@gmail.com",
+    "id": "47d0cca1-e310-42b9-8aae-ab8b85801310"
+  },
+  "driver": {
+    "id": "8f0f4047-8498-4e23-9eb8-94b6bc07b412",
+    "name": "נהג 2"
+  },
+  "vehicle": {
+    "id": "647239d9-f310-4ab9-928a-315c91d6108b",
+    "plate": "2000001"
+  },
+  "steps": {
+    "create_driver": {
+      "status": 200,
+      "success": true,
+      "request_id": "c4ec53f9-34d2-4065-9ef0-c5e4c1b4b417",
+      "upload_url": "http://127.0.0.1:5173/upload-request?t=d3bd3247ed122c2fa34a696615b9c6da5ef8afe494c3164a9ff9880214922faa"
+    },
+    "open_driver": {
+      "status": 200,
+      "request_status": "opened"
+    },
+    "upload_driver": {
+      "status": 200,
+      "success": true,
+      "statusField": "pending_approval",
+      "version_no": 1
+    },
+    "driver_db": {
+      "request_status": "pending_approval",
+      "sent_at": "2026-07-14T07:12:07.503+00:00",
+      "opened_at": "2026-07-14T07:12:08.126+00:00",
+      "uploaded_at": "2026-07-14T07:12:10.26+00:00",
+      "requested_by_name": "orina1607@gmail.com",
+      "versions": 1,
+      "events": [
+        "created",
+        "sent",
+        "opened",
+        "uploaded",
+        "pending_approval"
+      ],
+      "license_image_url_set": true,
+      "metadata_category": "driver-license"
+    },
+    "upload_driver_second_blocked": {
+      "status": 409,
+      "error": "already_uploaded"
+    },
+    "create_vehicle": {
+      "status": 200,
+      "success": true,
+      "request_id": "9fef063f-e405-4dad-8c8f-4db8de656f16",
+      "upload_url": "http://127.0.0.1:5173/upload-request?t=84ec8460a21d1c370c2769391cccf19bf523a9ac18c68916f1c7cdf98bfa7741"
+    },
+    "upload_vehicle": {
+      "status": 200,
+      "success": true,
+      "statusField": "pending_approval"
+    },
+    "vehicle_db": {
+      "request_status": "pending_approval",
+      "sent_at": "2026-07-14T07:12:13.732+00:00",
+      "opened_at": "2026-07-14T07:12:14.381+00:00",
+      "uploaded_at": "2026-07-14T07:12:16.943+00:00",
+      "requested_by_name": "orina1607@gmail.com",
+      "events": [
+        "created",
+        "sent",
+        "opened",
+        "uploaded",
+        "pending_approval"
+      ],
+      "license_doc_url_set": true
+    }
+  },
+  "production_untouched": {
+    "document_type_defs_status": 404,
+    "ok": true
+  },
+  "ok": true
+}

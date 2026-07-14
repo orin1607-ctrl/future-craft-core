@@ -16,6 +16,7 @@ import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { uploadDocument } from '@/lib/uploadDocument';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
+import EntityDocumentRequestsPanel from '@/components/documents/EntityDocumentRequestsPanel';
 
 interface DriverRow {
   id: string;
@@ -223,6 +224,16 @@ export default function Drivers() {
             <div className="mt-4 pt-4 border-t border-border">
               <NotificationsAndSendsButton driverId={d.id} driverName={d.full_name} />
             </div>
+          )}
+          {user?.role !== 'driver' && (
+            <EntityDocumentRequestsPanel
+              entityType="driver"
+              entityId={d.id}
+              entityLabel={d.full_name}
+              recipientName={d.full_name}
+              recipientPhone={d.phone}
+              recipientEmail={d.email}
+            />
           )}
           {/* Archive button */}
           {user?.role !== 'driver' && d.status !== 'archived' && (
