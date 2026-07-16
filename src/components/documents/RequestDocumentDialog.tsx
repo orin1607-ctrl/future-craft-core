@@ -111,9 +111,9 @@ export default function RequestDocumentDialog({
         setWaMeUrl(notify.waMeUrl);
         setMailtoUrl(notify.mailtoUrl);
         const apiTried = notify.results.find((r) => r.channel === 'whatsapp_api' && !r.skipped);
-        if (apiTried?.ok) toast.success('WhatsApp נשלח (Staging)');
+        if (apiTried?.ok) toast.success('WhatsApp נשלח');
         else if (apiTried && !apiTried.ok) toast.warning(`WhatsApp API נכשל — השתמשו ב-wa.me: ${apiTried.detail}`);
-        else toast.success('הבקשה נוצרה — קישור + התראה פנימית (WhatsApp אמיתי כבוי)');
+        else toast.success('הבקשה נוצרה — קישור + התראה פנימית (WhatsApp אמיתי כבוי כברירת מחדל)');
       } else {
         toast.success('הבקשה נוצרה — העתק/י את הקישור לנמען');
       }
@@ -197,7 +197,7 @@ export default function RequestDocumentDialog({
                       onChange={(e) => setTryRealWhatsApp(e.target.checked)}
                     />
                     <span>
-                      נסה שליחת Gupshup אמיתית (רק אם VITE_ALLOW_REAL_WHATSAPP_STAGING=true — דורש אישור מפורש)
+                      נסה שליחת Gupshup אמיתית (רק אם VITE_ALLOW_REAL_WHATSAPP=true — דורש אישור מפורש)
                     </span>
                   </label>
                 </div>
