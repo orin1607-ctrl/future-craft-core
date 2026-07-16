@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Copy, FilePlus2, Link2 } from 'lucide-react';
+import { Copy, FilePlus2, Link2, Mail, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -16,6 +16,10 @@ import {
   type DocumentEntityType,
   type DocumentTypeDef,
 } from '@/lib/documentRequestClient';
+import {
+  allowRealWhatsApp,
+  notifyAfterDocumentRequestCreated,
+} from '@/lib/driverOutboundNotify';
 
 type Props = {
   open: boolean;
@@ -47,12 +51,19 @@ export default function RequestDocumentDialog({
   const [submitting, setSubmitting] = useState(false);
   const [resultUrl, setResultUrl] = useState('');
   const [messagePreview, setMessagePreview] = useState('');
+  const [waMeUrl, setWaMeUrl] = useState<string | null>(null);
+  const [mailtoUrl, setMailtoUrl] = useState<string | null>(null);
+  const [openWaMeAfterCreate, setOpenWaMeAfterCreate] = useState(true);
+  const [tryRealWhatsApp, setTryRealWhatsApp] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setResultUrl('');
     setMessagePreview('');
     setNotes('');
+    setWaMeUrl(null);
+    setMailtoUrl(null);
+    setTryRealWhatsApp(false);
     setLoadingTypes(true);
     listDocumentTypes(entityType)
       .then((list) => {
@@ -62,6 +73,8 @@ export default function RequestDocumentDialog({
       .catch((err) => toast.error(err.message || 'שגיאה בטעינת סוגי מסמך'))
       .finally(() => setLoadingTypes(false));
   }, [open, entityType]);
+
+  const selectedLabel = types.find((t) => t.key === docKey)?.label_he || docKey;
 
   const submit = async () => {
     if (!docKey) {
@@ -83,7 +96,27 @@ export default function RequestDocumentDialog({
       });
       setResultUrl(res.upload_url);
       setMessagePreview(res.message_preview);
-      toast.success('הבקשה נוצרה — העתק/י את הקישור לנמען');
+
+      if (entityType === 'driver') {
+        const notify = await notifyAfterDocumentRequestCreated({
+          driverEntityId: entityId,
+          recipientPhone,
+          recipientEmail,
+          messagePreview: res.message_preview,
+          uploadUrl: res.upload_url,
+          documentLabel: selectedLabel,
+          openWaMe: openWaMeAfterCreate && Boolean(recipientPhone),
+          tryRealWhatsApp: tryRealWhatsApp && allowRealWhatsApp(),
+        });
+        setWaMeUrl(notify.waMeUrl);
+        setMailtoUrl(notify.mailtoUrl);
+        const apiTried = notify.results.find((r) => r.channel === 'whatsapp_api' && !r.skipped);
+        if (apiTried?.ok) toast.success('WhatsApp נשלח (Staging)');
+        else if (apiTried && !apiTried.ok) toast.warning(`WhatsApp API נכשל — השתמשו ב-wa.me: ${apiTried.detail}`);
+        else toast.success('הבקשה נוצרה — קישור + התראה פנימית (WhatsApp אמיתי כבוי)');
+      } else {
+        toast.success('הבקשה נוצרה — העתק/י את הקישור לנמען');
+      }
       onCreated?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'שגיאה ביצירת בקשה');
@@ -142,9 +175,35 @@ export default function RequestDocumentDialog({
                   className="mt-1 w-full p-3 rounded-xl border-2 border-input bg-background text-sm resize-none"
                 />
               </div>
+              {entityType === 'driver' && (
+                <div className="space-y-2 rounded-xl border border-border p-3 bg-muted/30">
+                  <label className="flex items-start gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={openWaMeAfterCreate}
+                      onChange={(e) => setOpenWaMeAfterCreate(e.target.checked)}
+                    />
+                    <span>פתח WhatsApp ידני (wa.me) עם הקישור — ברירת מחדל בטוחה באזור העבודה</span>
+                  </label>
+                  <label
+                    className={`flex items-start gap-2 text-xs ${allowRealWhatsApp() ? 'cursor-pointer' : 'opacity-50'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={tryRealWhatsApp}
+                      disabled={!allowRealWhatsApp()}
+                      onChange={(e) => setTryRealWhatsApp(e.target.checked)}
+                    />
+                    <span>
+                      נסה שליחת Gupshup אמיתית (רק אם VITE_ALLOW_REAL_WHATSAPP_STAGING=true — דורש אישור מפורש)
+                    </span>
+                  </label>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground leading-relaxed">
-                ייווצר קישור אישי ומאובטח להעלאה. בשלב A השליחה היא דרך העתקת הקישור.
-                WhatsApp יחובר בשלב B — בלי קבלת קבצים בצ׳אט.
+                Staging / אזור עבודה בלבד. לא נוצר קישור ל-Production. אין שליחה ללקוחות אמיתיים בלי אישור.
               </p>
             </>
           ) : (
@@ -166,6 +225,22 @@ export default function RequestDocumentDialog({
                 <Copy size={16} />
                 העתק קישור
               </Button>
+              {waMeUrl && (
+                <Button type="button" variant="outline" className="w-full gap-2" asChild>
+                  <a href={waMeUrl} target="_blank" rel="noreferrer">
+                    <MessageCircle size={16} />
+                    פתח WhatsApp (wa.me)
+                  </a>
+                </Button>
+              )}
+              {mailtoUrl && (
+                <Button type="button" variant="outline" className="w-full gap-2" asChild>
+                  <a href={mailtoUrl}>
+                    <Mail size={16} />
+                    שלח במייל (mailto)
+                  </a>
+                </Button>
+              )}
             </div>
           )}
         </div>

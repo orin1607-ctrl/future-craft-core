@@ -1,8 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const STAGING_REF = 'usfeoerkpcafxxlyuldl';
-const PROD_REF = 'qasomfndnjuixgjmjwcm';
-
 export type DocumentEntityType =
   | 'driver'
   | 'vehicle'
@@ -61,20 +58,6 @@ export type DocumentVersionRow = {
   request_id: string | null;
 };
 
-function assertClientStaging() {
-  const url = import.meta.env.VITE_SUPABASE_URL || '';
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || '';
-  if (url.includes(PROD_REF) || projectId === PROD_REF) {
-    throw new Error('REFUSED: Document Request Hub is Staging-only (Production URL detected)');
-  }
-  if (projectId && projectId !== STAGING_REF && !url.includes(STAGING_REF)) {
-    // allow local override only if URL is staging
-    if (!url.includes(STAGING_REF)) {
-      throw new Error(`REFUSED: unexpected Supabase project (${projectId || url})`);
-    }
-  }
-}
-
 function publicAppOrigin(): string {
   const origin = window.location.origin;
   const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
@@ -84,7 +67,6 @@ function publicAppOrigin(): string {
 }
 
 async function invoke(body: Record<string, unknown> | FormData) {
-  assertClientStaging();
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
   const headers: Record<string, string> = {
@@ -123,9 +105,6 @@ export async function createDocumentRequest(input: {
   expires_hours?: number;
 }) {
   const origin = publicAppOrigin();
-  if (origin.includes('dalia-car.online')) {
-    throw new Error('REFUSED: cannot create upload links pointing to Production');
-  }
   return invoke({
     action: 'create',
     ...input,
@@ -203,6 +182,18 @@ export async function publicUploadDocumentRequest(params: {
   const json = await res.json();
   if (!res.ok || json.success === false) throw new Error(json.error || 'upload_failed');
   return json;
+}
+
+export async function decideDocumentRequest(params: {
+  request_id: string;
+  decision: 'approve' | 'reject';
+  note?: string;
+}) {
+  return invoke({
+    action: params.decision,
+    request_id: params.request_id,
+    note: params.note || '',
+  }) as Promise<{ success: true; request_id: string; status: string }>;
 }
 
 export const REQUEST_STATUS_LABELS: Record<string, string> = {

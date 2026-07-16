@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FilePlus2, History, RefreshCw } from 'lucide-react';
+import { Check, FilePlus2, History, RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import RequestDocumentDialog from '@/components/documents/RequestDocumentDialog';
 import {
+  decideDocumentRequest,
   listEntityDocumentHistory,
   REQUEST_STATUS_LABELS,
   type DocumentEntityType,
@@ -11,6 +12,7 @@ import {
 } from '@/lib/documentRequestClient';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 type Props = {
   entityType: DocumentEntityType;
@@ -33,6 +35,7 @@ export default function EntityDocumentRequestsPanel({
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<DocumentRequestRow[]>([]);
   const [versions, setVersions] = useState<DocumentVersionRow[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,6 +54,30 @@ export default function EntityDocumentRequestsPanel({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const onDecide = async (requestId: string, decision: 'approve' | 'reject') => {
+    const note =
+      decision === 'reject'
+        ? window.prompt('סיבת הדחייה (תופיע בהיסטוריה):', '') || ''
+        : window.prompt('הערת אישור (אופציונלי):', '') || '';
+    if (decision === 'reject' && !note.trim()) {
+      toast.error('חובה לציין סיבת דחייה');
+      return;
+    }
+    setBusyId(requestId);
+    try {
+      await decideDocumentRequest({ request_id: requestId, decision, note });
+      toast.success(decision === 'approve' ? 'המסמך אושר' : 'המסמך נדחה');
+      await load();
+      if (decision === 'reject') {
+        toast.message('ניתן ללחוץ «בקש מסמך» לשליחה מחדש עם הערה');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'שגיאה בעדכון סטטוס');
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   return (
     <div className="mt-6 pt-6 border-t border-border space-y-4">
@@ -81,7 +108,7 @@ export default function EntityDocumentRequestsPanel({
         <div className="space-y-2">
           <p className="text-sm font-medium">בקשות</p>
           {requests.slice(0, 10).map((r) => (
-            <div key={r.id} className="rounded-xl border border-border p-3 text-sm space-y-1">
+            <div key={r.id} className="rounded-xl border border-border p-3 text-sm space-y-2">
               <div className="flex flex-wrap items-center gap-2 justify-between">
                 <span className="font-bold">{r.document_type_key}</span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
@@ -91,6 +118,7 @@ export default function EntityDocumentRequestsPanel({
               <p className="text-xs text-muted-foreground">
                 נוצר: {format(new Date(r.created_at), 'dd/MM/yyyy HH:mm', { locale: he })}
                 {r.requested_by_name ? ` · ע״י ${r.requested_by_name}` : ''}
+                {r.channel ? ` · ערוץ: ${r.channel}` : ''}
               </p>
               <p className="text-xs text-muted-foreground">
                 נשלח: {r.sent_at ? format(new Date(r.sent_at), 'dd/MM/yyyy HH:mm', { locale: he }) : '—'}
@@ -99,6 +127,31 @@ export default function EntityDocumentRequestsPanel({
                 {' · '}
                 הועלה: {r.uploaded_at ? format(new Date(r.uploaded_at), 'dd/MM/yyyy HH:mm', { locale: he }) : '—'}
               </p>
+              {['pending_approval', 'uploaded'].includes(r.status) && (
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1"
+                    disabled={busyId === r.id}
+                    onClick={() => void onDecide(r.id, 'approve')}
+                  >
+                    <Check size={14} />
+                    אשר
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    disabled={busyId === r.id}
+                    onClick={() => void onDecide(r.id, 'reject')}
+                  >
+                    <X size={14} />
+                    דחה
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>

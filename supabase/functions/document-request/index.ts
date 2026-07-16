@@ -1,6 +1,6 @@
 /**
- * Document Request Hub — Stage A
- * Staging only (usfeoerkpcafxxlyuldl). Refuses Production.
+ * Document Request Hub — Stage A + approve/reject
+ * Enabled on Staging and Production (go-live Stage 1: driver card / document request).
  *
  * Actions:
  *  - create (auth) — create request + token + link
@@ -9,28 +9,11 @@
  *  - upload (public token + multipart) — store file + version + history
  *  - list_for_entity (auth) — history for driver/vehicle card
  *  - list_types (auth) — catalog
+ *  - approve (auth) — mark request approved
+ *  - reject (auth) — mark rejected + optional note; may create follow-up request
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
-
-const STAGING_REF_EXPECTED = "usfeoerkpcafxxlyuldl";
-const PROD_REF_FORBIDDEN = "qasomfndnjuixgjmjwcm";
-
-function assertStagingOnly(): string | null {
-  const url = Deno.env.get("SUPABASE_URL") || "";
-  if (url.includes(PROD_REF_FORBIDDEN)) {
-    return "REFUSED: Production Supabase project — document-request is Staging-only";
-  }
-  if (
-    url &&
-    !url.includes(STAGING_REF_EXPECTED) &&
-    !url.includes("127.0.0.1") &&
-    !url.includes("localhost")
-  ) {
-    return `REFUSED: unexpected SUPABASE_URL host (${url})`;
-  }
-  return null;
-}
 
 function admin() {
   return createClient(
@@ -103,9 +86,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: edgeCorsHeaders });
   }
-
-  const stagingErr = assertStagingOnly();
-  if (stagingErr) return jsonResponse({ success: false, error: stagingErr }, 403);
 
   const supabase = admin();
   const url = new URL(req.url);
@@ -440,11 +420,8 @@ Deno.serve(async (req) => {
       if (!documentTypeKey || !entityType || !entityId) {
         return jsonResponse({ success: false, error: "missing_fields" }, 400);
       }
-      if (publicAppOrigin.includes("dalia-car.online")) {
-        return jsonResponse({
-          success: false,
-          error: "REFUSED: public_app_origin points to Production",
-        }, 403);
+      if (!publicAppOrigin || !/^https?:\/\//i.test(publicAppOrigin)) {
+        return jsonResponse({ success: false, error: "invalid_public_app_origin" }, 400);
       }
 
       const { data: typeDef, error: typeErr } = await supabase
@@ -545,7 +522,84 @@ Deno.serve(async (req) => {
         token_expires_at: expiresAt,
         message_preview: messagePreview,
         whatsapp_hint:
-          "שלב A: העתק/י את הקישור. שליחת WhatsApp אמיתית תחובר אחרי שההעלאה עובדת (שלב B). אין לשלוח/לקבל קבצים בצ׳אט WhatsApp.",
+          "Staging: העתק/י קישור או wa.me. שליחת Gupshup אמיתית רק עם VITE_ALLOW_REAL_WHATSAPP_STAGING=true ואישור מפורש.",
+      });
+    }
+
+    if (action === "approve" || action === "reject") {
+      const ctx = await requireAuth(req, { roles: ["super_admin", "fleet_manager"] });
+      if (ctx instanceof Response) return ctx;
+
+      const requestId = String(body.request_id || "");
+      const decisionNote = String(body.note || body.notes || "");
+      if (!requestId) {
+        return jsonResponse({ success: false, error: "missing_request_id" }, 400);
+      }
+
+      const { data: row, error: fetchErr } = await supabase
+        .from("document_requests")
+        .select("*")
+        .eq("id", requestId)
+        .maybeSingle();
+      if (fetchErr || !row) {
+        return jsonResponse({ success: false, error: "not_found" }, 404);
+      }
+      if (ctx.role !== "super_admin" && ctx.companyName && row.company_name && row.company_name !== ctx.companyName) {
+        return jsonResponse({ success: false, error: "company_mismatch" }, 403);
+      }
+      if (!["pending_approval", "uploaded"].includes(row.status)) {
+        return jsonResponse({
+          success: false,
+          error: "invalid_status_for_decision",
+          status: row.status,
+        }, 409);
+      }
+
+      const actorName = ctx.user.email || ctx.user.id;
+      const now = new Date().toISOString();
+
+      if (action === "approve") {
+        const { error: upErr } = await supabase
+          .from("document_requests")
+          .update({
+            status: "approved",
+            approved_at: now,
+            approved_by: ctx.user.id,
+            updated_at: now,
+            notes: decisionNote ? `${row.notes || ""}\n[אישור] ${decisionNote}`.trim() : row.notes,
+          })
+          .eq("id", requestId);
+        if (upErr) {
+          return jsonResponse({ success: false, error: upErr.message }, 500);
+        }
+        await insertEvent(supabase, requestId, "approved", ctx.user.id, actorName, {
+          note: decisionNote || null,
+        });
+        return jsonResponse({ success: true, request_id: requestId, status: "approved" });
+      }
+
+      const { error: rejErr } = await supabase
+        .from("document_requests")
+        .update({
+          status: "rejected",
+          updated_at: now,
+          rejection_reason: decisionNote || "נדחה",
+          notes: decisionNote
+            ? `${row.notes || ""}\n[דחייה] ${decisionNote}`.trim()
+            : row.notes,
+        })
+        .eq("id", requestId);
+      if (rejErr) {
+        return jsonResponse({ success: false, error: rejErr.message }, 500);
+      }
+      await insertEvent(supabase, requestId, "rejected", ctx.user.id, actorName, {
+        note: decisionNote || null,
+      });
+      return jsonResponse({
+        success: true,
+        request_id: requestId,
+        status: "rejected",
+        hint: "ניתן ליצור בקשה חדשה מכרטיס הנהג עם אותה סיבה בהערות",
       });
     }
 
