@@ -6,7 +6,9 @@
 (function () {
   var host = location.hostname;
   var base = '/';
-  if (host.indexOf('github.io') >= 0) {
+  if (location.pathname.indexOf('/orin-marketing/') === 0) {
+    base = '/orin-marketing/';
+  } else if (host.indexOf('github.io') >= 0) {
     base = '/future-craft-core/';
   } else if (host === 'localhost' || host === '127.0.0.1') {
     var p = location.pathname || '';
@@ -177,7 +179,7 @@
   if (root) root.classList.add('coco-boot-active');
 
   function assetUrl(rel) {
-    var base = window.COCO_PAGES_BASE || '/future-craft-core/';
+    var base = window.COCO_PAGES_BASE || (location.pathname.indexOf('/orin-marketing/') === 0 ? '/orin-marketing/' : '/');
     if (base.charAt(0) !== '/') base = '/' + base.replace(/^\.\//, '');
     return location.origin + base + rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(ver);
   }
