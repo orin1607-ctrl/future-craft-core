@@ -3418,6 +3418,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      allocate_incident_event_number: {
+        Args: { p_company: string; p_prefix: string }
+        Returns: string
+      }
       export_schema_ddl: { Args: never; Returns: string }
       get_user_company: { Args: { _user_id: string }; Returns: string }
       get_user_role: {

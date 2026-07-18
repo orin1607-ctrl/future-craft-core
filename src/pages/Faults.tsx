@@ -17,14 +17,22 @@ import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/li
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
+import { FAULT_TYPE_PICKER, faultTypeDisplay } from '@/lib/faultTypes';
+import { createFaultIncident } from '@/lib/incidentCreate';
+import IncidentSubmitSuccess from '@/components/incidents/IncidentSubmitSuccess';
+import { useDriverVehicle } from '@/hooks/useDriverVehicle';
+import { useSearchParams } from 'react-router-dom';
+import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
 
 interface FaultRow {
   id: string;
   serial_id: string;
+  event_number?: string | null;
   date: string;
   driver_name: string;
   vehicle_plate: string;
   fault_type: string;
+  fault_type_other?: string | null;
   description: string;
   urgency: string;
   status: string;
@@ -32,6 +40,11 @@ interface FaultRow {
   images: string;
   created_at: string;
   company_name: string;
+  vehicle_id?: string | null;
+  driver_id?: string | null;
+  opened_by_role?: string | null;
+  assignee_id?: string | null;
+  assignee_name?: string | null;
   towing_required: boolean;
   towing_approved: boolean | null;
   towing_approved_by: string;
@@ -87,9 +100,7 @@ const statusBorderColors: Record<string, string> = {
   resolved: 'border-l-[hsl(var(--success))]',
 };
 
-const faultTypes = ['מנוע', 'בלמים', 'צמיגים', 'חשמל', 'מיזוג', 'פחחות', 'תאורה', 'אחר'];
-
-type ViewMode = 'list' | 'detail' | 'form';
+type ViewMode = 'list' | 'detail' | 'form' | 'success';
 
 function parseImages(images: string | null): string[] {
   if (!images) return [];
@@ -175,6 +186,7 @@ function StatusCounters({ faults, onFilter, activeFilter }: { faults: FaultRow[]
 export default function Faults() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const [searchParams] = useSearchParams();
   const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked, clearContext } =
     useVehicleUrlContext();
   const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
@@ -189,6 +201,14 @@ export default function Faults() {
   const [editFault, setEditFault] = useState<FaultRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [successPayload, setSuccessPayload] = useState<{
+    eventNumber: string;
+    id: string;
+    createdAt?: string;
+    whatsappPreview?: string;
+    emailSubject?: string;
+    emailHtml?: string;
+  } | null>(null);
 
   const loadFaults = async () => {
     setLoading(true);
@@ -207,10 +227,20 @@ export default function Faults() {
     if (contextAction === 'new') setViewMode('form');
   }, [contextPlate, contextAction]);
 
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (!id || faults.length === 0) return;
+    const found = faults.find((f) => f.id === id);
+    if (found) {
+      setSelectedFault(found);
+      setViewMode('detail');
+    }
+  }, [searchParams, faults]);
+
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
   const filtered = faults.filter(f => {
-    const matchSearch = !search || f.driver_name?.includes(search) || plateMatches(f.vehicle_plate, search) || f.fault_type?.includes(search) || f.description?.includes(search) || f.serial_id?.includes(search);
+    const matchSearch = !search || f.driver_name?.includes(search) || plateMatches(f.vehicle_plate, search) || f.fault_type?.includes(search) || f.description?.includes(search) || f.serial_id?.includes(search) || (f.event_number || '').includes(search);
     const matchStatus = !filterStatus || f.status === filterStatus;
     const matchUrgency = !filterUrgency || f.urgency === filterUrgency;
     // Quick filter
@@ -237,6 +267,47 @@ export default function Faults() {
     loadFaults();
   };
 
+  const handleTakeTreatment = async (f: FaultRow) => {
+    const { error } = await supabase.from('faults').update({
+      status: 'in_treatment',
+      assignee_id: user?.id,
+      assignee_name: user?.full_name || '',
+    }).eq('id', f.id);
+    if (error) { toast.error('שגיאה'); return; }
+    await supabase.from('fault_status_log').insert({
+      fault_id: f.id,
+      old_status: f.status,
+      new_status: 'in_treatment',
+      changed_by: user?.id,
+      changed_by_name: user?.full_name || '',
+      company_name: f.company_name || '',
+      notes: 'לקחתי לטיפול',
+    });
+    toast.success('התקלה בטיפול שלך');
+    loadFaults();
+    setSelectedFault({ ...f, status: 'in_treatment', assignee_id: user?.id, assignee_name: user?.full_name || '' });
+  };
+
+  if (viewMode === 'success' && successPayload) {
+    return (
+      <IncidentSubmitSuccess
+        kind="fault"
+        eventNumber={successPayload.eventNumber}
+        createdAt={successPayload.createdAt}
+        statusLabel="נפתחה"
+        viewPath={`/faults?id=${successPayload.id}`}
+        whatsappPreview={successPayload.whatsappPreview}
+        emailSubject={successPayload.emailSubject}
+        emailHtml={successPayload.emailHtml}
+        onClose={() => {
+          setSuccessPayload(null);
+          setViewMode('list');
+          loadFaults();
+        }}
+      />
+    );
+  }
+
   if (viewMode === 'form') {
     return (
       <>
@@ -252,6 +323,12 @@ export default function Faults() {
           hubVehicleId={vehicleScoped ? contextVehicleId : undefined}
           fromVehicleHub={vehicleScoped}
           onDone={() => { setViewMode('list'); setEditFault(null); loadFaults(); }}
+          onCreated={(payload) => {
+            setEditFault(null);
+            setSuccessPayload(payload);
+            setViewMode('success');
+            loadFaults();
+          }}
           onBack={() => { setViewMode('list'); setEditFault(null); }}
           user={user}
         />
@@ -281,9 +358,18 @@ export default function Faults() {
             <ArrowRight size={20} /> חזרה לרשימה
           </button>
           {isManager && !isClosed && (
-            <button onClick={() => { setEditFault(f); setViewMode('form'); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary font-medium">
-              <Edit2 size={16} /> עריכה
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleTakeTreatment(f)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-warning/15 text-foreground font-medium min-h-[44px]"
+              >
+                לקחתי לטיפול
+              </button>
+              <button onClick={() => { setEditFault(f); setViewMode('form'); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary font-medium">
+                <Edit2 size={16} /> עריכה
+              </button>
+            </div>
           )}
         </div>
 
@@ -293,10 +379,12 @@ export default function Faults() {
           <div className={`px-5 py-3 flex items-center justify-between ${
             f.urgency === 'critical' ? 'bg-destructive/10' : f.urgency === 'urgent' ? 'bg-warning/10' : 'bg-info/10'
           }`}>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {f.urgency === 'critical' && <AlertTriangle size={20} className="text-destructive" />}
-              <span className="font-bold text-lg">{f.fault_type}</span>
-              {f.serial_id && <span className="text-sm text-muted-foreground">#{f.serial_id}</span>}
+              <span className="font-bold text-lg">{faultTypeDisplay(f.fault_type, f.fault_type_other)}</span>
+              {(f.event_number || f.serial_id) && (
+                <span className="text-sm font-mono text-muted-foreground">{f.event_number || f.serial_id}</span>
+              )}
             </div>
             <div className="flex gap-2">
               <span className={`status-badge ${urg.cls}`}>{urg.text}</span>
@@ -327,16 +415,25 @@ export default function Faults() {
               <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
                 <Calendar size={18} className="text-muted-foreground shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">תאריך</p>
-                  <p className="font-bold">{f.date ? new Date(f.date).toLocaleDateString('he-IL') : '—'}</p>
+                  <p className="text-xs text-muted-foreground">תאריך ושעה</p>
+                  <p className="font-bold">{formatIsraelDateTime(f.date || f.created_at)}</p>
                 </div>
               </div>
-              {f.serial_id && (
+              {(f.event_number || f.serial_id) && (
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
                   <Hash size={18} className="text-muted-foreground shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">מספר סידורי</p>
-                    <p className="font-bold">{f.serial_id}</p>
+                    <p className="text-xs text-muted-foreground">מספר אירוע</p>
+                    <p className="font-bold font-mono">{f.event_number || f.serial_id}</p>
+                  </div>
+                </div>
+              )}
+              {f.assignee_name && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+                  <User size={18} className="text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">מטפל</p>
+                    <p className="font-bold">{f.assignee_name}</p>
                   </div>
                 </div>
               )}
@@ -543,8 +640,10 @@ export default function Faults() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-lg font-bold truncate">{f.fault_type}</p>
-                        {f.serial_id && <span className="text-xs text-muted-foreground">#{f.serial_id}</span>}
+                        <p className="text-lg font-bold truncate">{faultTypeDisplay(f.fault_type, f.fault_type_other)}</p>
+                        {(f.event_number || f.serial_id) && (
+                          <span className="text-xs font-mono text-muted-foreground">{f.event_number || f.serial_id}</span>
+                        )}
                       </div>
                       <div className="flex gap-1.5 shrink-0">
                         <span className={`status-badge text-xs ${urg.cls}`}>{urg.text}</span>
@@ -588,6 +687,7 @@ function FaultForm({
   hubVehicleId,
   fromVehicleHub = false,
   onDone,
+  onCreated,
   onBack,
   user,
 }: {
@@ -596,107 +696,241 @@ function FaultForm({
   hubVehicleId?: string;
   fromVehicleHub?: boolean;
   onDone: () => void;
+  onCreated?: (payload: {
+    eventNumber: string;
+    id: string;
+    createdAt?: string;
+    whatsappPreview?: string;
+    emailSubject?: string;
+    emailHtml?: string;
+  }) => void;
   onBack: () => void;
   user: any;
 }) {
   const isEdit = !!fault;
+  const { vehicle, vehicles, isDriver, hasNoVehicle, phone } = useDriverVehicle();
   const [vehiclePlate, setVehiclePlate] = useState(fault?.vehicle_plate || initialVehiclePlate);
+  const [vehicleId, setVehicleId] = useState(hubVehicleId || '');
   const [driverName, setDriverName] = useState(fault?.driver_name || '');
   const [faultType, setFaultType] = useState(fault?.fault_type || '');
+  const [faultTypeOther, setFaultTypeOther] = useState(fault?.fault_type_other || '');
   const [description, setDescription] = useState(fault?.description || '');
   const [urgency, setUrgency] = useState(fault?.urgency || 'normal');
   const [notes, setNotes] = useState(fault?.notes || '');
   const [imageUrls, setImageUrls] = useState<string[]>(parseImages(fault?.images || ''));
   const [loading, setLoading] = useState(false);
 
-  const [vehicles, setVehicles] = useState<{ license_plate: string; manufacturer: string; model: string }[]>([]);
-  const [drivers, setDrivers] = useState<{ full_name: string }[]>([]);
+  const [allVehicles, setAllVehicles] = useState<{ id: string; license_plate: string; manufacturer: string; model: string; internal_number: string | null }[]>([]);
+  const [drivers, setDrivers] = useState<{ id: string; full_name: string }[]>([]);
+  const [driverId, setDriverId] = useState('');
 
   useEffect(() => {
+    if (isDriver) return;
     Promise.all([
-      supabase.from('vehicles').select('license_plate, manufacturer, model'),
-      supabase.from('drivers').select('full_name'),
+      supabase.from('vehicles').select('id, license_plate, manufacturer, model, internal_number'),
+      supabase.from('drivers').select('id, full_name'),
     ]).then(([v, d]) => {
-      if (v.data) setVehicles(v.data);
-      if (d.data) setDrivers(d.data);
+      if (v.data) setAllVehicles(v.data as typeof allVehicles);
+      if (d.data) setDrivers(d.data as typeof drivers);
     });
-  }, []);
+  }, [isDriver]);
 
-  const isValid = vehiclePlate && driverName && faultType && description;
+  useEffect(() => {
+    if (isEdit || !isDriver) return;
+    if (user?.full_name) setDriverName(user.full_name);
+    if (vehicles.length === 1) {
+      setVehiclePlate(vehicles[0].license_plate);
+      setVehicleId(vehicles[0].id);
+    } else if (initialVehiclePlate && vehicles.length > 1) {
+      const match = vehicles.find((v) => v.license_plate === initialVehiclePlate);
+      if (match) {
+        setVehiclePlate(match.license_plate);
+        setVehicleId(match.id);
+      }
+    } else if (hubVehicleId) {
+      setVehicleId(hubVehicleId);
+    }
+  }, [isDriver, vehicles, user, isEdit, initialVehiclePlate, hubVehicleId]);
+
+  const vehicleOptions = isDriver
+    ? vehicles.map((v) => ({
+        id: v.id,
+        license_plate: v.license_plate,
+        manufacturer: v.manufacturer || '',
+        model: v.model || '',
+        internal_number: v.internal_number,
+      }))
+    : allVehicles;
+
+  const isValid =
+    !!vehiclePlate &&
+    !!driverName &&
+    !!faultType &&
+    !!description &&
+    (faultType !== 'אחר' || !!faultTypeOther.trim()) &&
+    !(isDriver && hasNoVehicle);
+
   const inputClass = "w-full p-4 text-lg rounded-2xl border-2 border-input bg-background focus:border-primary focus:outline-none transition-colors";
 
   const handleSubmit = async () => {
-    if (!isValid) return;
+    if (!isValid || loading) return;
     setLoading(true);
-    const payload = {
-      vehicle_plate: vehiclePlate,
-      driver_name: driverName,
-      fault_type: faultType,
+
+    if (isEdit) {
+      const payload = {
+        vehicle_plate: vehiclePlate,
+        driver_name: driverName,
+        fault_type: faultType,
+        fault_type_other: faultType === 'אחר' ? faultTypeOther : '',
+        description,
+        urgency,
+        notes,
+        images: imageUrls.length > 0 ? JSON.stringify(imageUrls) : '',
+      };
+      const { error } = await supabase.from('faults').update(payload).eq('id', fault!.id);
+      setLoading(false);
+      if (error) { toast.error('שגיאה בשמירה'); console.error(error); }
+      else { toast.success('התקלה עודכנה'); onDone(); }
+      return;
+    }
+
+    const result = await createFaultIncident({
+      user: {
+        id: user?.id,
+        role: user?.role,
+        company_name: user?.company_name,
+        full_name: user?.full_name,
+        phone: phone || user?.phone,
+      },
+      vehiclePlate,
+      vehicleId: vehicleId || hubVehicleId,
+      driverName,
+      driverId: driverId || undefined,
+      faultType,
+      faultTypeOther,
       description,
       urgency,
       notes,
-      images: imageUrls.length > 0 ? JSON.stringify(imageUrls) : '',
-    };
-    let error;
-    if (isEdit) {
-      ({ error } = await supabase.from('faults').update(payload).eq('id', fault!.id));
-    } else {
-      const insertPayload = { ...payload, status: 'opened', company_name: user?.company_name || '', created_by: user?.id };
-      ({ error } = await supabase.from('faults').insert(insertPayload));
-      if (!error) {
-        if (urgency === 'urgent' || urgency === 'critical') {
-          supabase.functions.invoke('notify-accident-email', { body: { record: insertPayload, type: 'fault' } }).catch(console.error);
-        }
-        if (fromVehicleHub) {
-          await recordVehicleHubAction({
-            vehicleId: hubVehicleId,
-            vehiclePlate: vehiclePlate,
-            companyName: user?.company_name || '',
-            action: 'דיווח תקלה',
-            details: `${faultType}: ${description}`,
-            userId: user?.id,
-            userName: user?.full_name,
-          });
-        }
-      }
+      images: imageUrls,
+      dryRunNotify: true,
+    });
+
+    if (!result.error && result.data && fromVehicleHub) {
+      await recordVehicleHubAction({
+        vehicleId: hubVehicleId || result.vehicle?.id,
+        vehiclePlate,
+        companyName: user?.company_name || '',
+        action: 'דיווח תקלה',
+        details: `${faultTypeDisplay(faultType, faultTypeOther)}: ${description}`,
+        userId: user?.id,
+        userName: user?.full_name,
+      });
     }
+
     setLoading(false);
-    if (error) { toast.error('שגיאה בשמירה'); console.error(error); }
-    else { toast.success(isEdit ? 'התקלה עודכנה' : 'התקלה נוספה'); onDone(); }
+    if (result.error) {
+      toast.error('שגיאה בשמירה');
+      console.error(result.error);
+      return;
+    }
+
+    toast.success('התקלה נשמרה');
+    onCreated?.({
+      eventNumber: result.data.event_number || result.data.serial_id || '',
+      id: result.data.id,
+      createdAt: result.data.created_at || result.data.date,
+      whatsappPreview: result.notify?.whatsappPreview,
+      emailSubject: result.notify?.emailSubject,
+      emailHtml: result.notify?.emailHtml,
+    });
   };
 
   return (
     <div className="animate-fade-in">
-      <button onClick={onBack} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]"><ArrowRight size={20} /> חזרה</button>
-      <h1 className="text-2xl font-bold mb-6">{isEdit ? 'עריכת תקלה' : '📋 דיווח תקלה חדשה'}</h1>
+      <button type="button" onClick={onBack} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]"><ArrowRight size={20} /> חזרה</button>
+      <h1 className="text-2xl font-bold mb-6">{isEdit ? 'עריכת תקלה' : 'דיווח תקלה חדשה'}</h1>
+      {isDriver && hasNoVehicle && (
+        <div className="mb-4 rounded-2xl border-2 border-destructive/40 bg-destructive/10 p-4 text-destructive font-medium">
+          אין רכב מורשה לדיווח. פנה למנהל הצי לפני פתיחת תקלה.
+        </div>
+      )}
       <div className="space-y-5">
         <div>
-          <label className="block text-lg font-medium mb-2">🚗 רכב *</label>
-          <select value={vehiclePlate} onChange={e => setVehiclePlate(e.target.value)} className={inputClass}>
+          <label className="block text-lg font-medium mb-2">רכב *</label>
+          <select
+            value={vehiclePlate}
+            disabled={!!hubVehicleId && !isEdit}
+            onChange={(e) => {
+              const plate = e.target.value;
+              setVehiclePlate(plate);
+              const match = vehicleOptions.find((v) => v.license_plate === plate);
+              setVehicleId(match?.id || '');
+            }}
+            className={inputClass}
+          >
             <option value="">בחר רכב...</option>
-            {vehicles.map(v => <option key={v.license_plate} value={v.license_plate}>{v.license_plate} - {v.manufacturer} {v.model}</option>)}
+            {vehicleOptions.map((v) => (
+              <option key={v.id || v.license_plate} value={v.license_plate}>
+                {v.license_plate}
+                {v.internal_number ? ` · פנימי ${v.internal_number}` : ''}
+                {v.manufacturer || v.model ? ` — ${v.manufacturer || ''} ${v.model || ''}` : ''}
+              </option>
+            ))}
           </select>
         </div>
         <div>
-          <label className="block text-lg font-medium mb-2">👤 נהג <span className="text-destructive">*</span></label>
-          <select value={driverName} onChange={e => setDriverName(e.target.value)} className={inputClass}>
-            <option value="">בחר נהג...</option>
-            {drivers.map(d => <option key={d.full_name} value={d.full_name}>{d.full_name}</option>)}
-          </select>
+          <label className="block text-lg font-medium mb-2">נהג *</label>
+          {isDriver ? (
+            <input value={driverName} readOnly className={`${inputClass} bg-muted`} />
+          ) : (
+            <select
+              value={driverName}
+              onChange={(e) => {
+                setDriverName(e.target.value);
+                const d = drivers.find((x) => x.full_name === e.target.value);
+                setDriverId(d?.id || '');
+              }}
+              className={inputClass}
+            >
+              <option value="">בחר נהג...</option>
+              {drivers.map((d) => (
+                <option key={d.id} value={d.full_name}>{d.full_name}</option>
+              ))}
+            </select>
+          )}
         </div>
+        {isDriver && (
+          <div>
+            <label className="block text-lg font-medium mb-2">טלפון</label>
+            <input value={phone || user?.phone || ''} readOnly className={`${inputClass} bg-muted`} />
+          </div>
+        )}
         <div>
-          <label className="block text-lg font-medium mb-2">🔧 סוג תקלה *</label>
-          <select value={faultType} onChange={e => setFaultType(e.target.value)} className={inputClass}>
+          <label className="block text-lg font-medium mb-2">סוג תקלה *</label>
+          <select value={faultType} onChange={(e) => setFaultType(e.target.value)} className={inputClass}>
             <option value="">בחר סוג...</option>
-            {faultTypes.map(t => <option key={t} value={t}>{t}</option>)}
+            {FAULT_TYPE_PICKER.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
           </select>
         </div>
+        {faultType === 'אחר' && (
+          <div>
+            <label className="block text-lg font-medium mb-2">פירוט תקלה *</label>
+            <input
+              value={faultTypeOther}
+              onChange={(e) => setFaultTypeOther(e.target.value)}
+              placeholder="כתוב מה התקלה..."
+              className={inputClass}
+            />
+          </div>
+        )}
         <div>
-          <label className="block text-lg font-medium mb-2">📝 תיאור *</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="תאר את התקלה..." className={`${inputClass} resize-none`} />
+          <label className="block text-lg font-medium mb-2">תיאור *</label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="תאר את התקלה..." className={`${inputClass} resize-none`} />
         </div>
         <div>
-          <label className="block text-lg font-medium mb-2">⚠️ דחיפות</label>
+          <label className="block text-lg font-medium mb-2">דחיפות</label>
           <div className="flex gap-3">
             {Object.entries(urgencyLabels).map(([key, { text, icon }]) => (
               <button key={key} type="button" onClick={() => setUrgency(key)}
@@ -707,13 +941,13 @@ function FaultForm({
           </div>
         </div>
         <div>
-          <label className="block text-lg font-medium mb-2">💬 הערות</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="הערות..." className={`${inputClass} resize-none`} />
+          <label className="block text-lg font-medium mb-2">הערות</label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="הערות..." className={`${inputClass} resize-none`} />
         </div>
-        <MultiImageUpload label="📷 תמונות תקלה" imageUrls={imageUrls} onImagesChanged={setImageUrls} folder="faults" max={5} />
-        <button onClick={handleSubmit} disabled={!isValid || loading}
+        <MultiImageUpload label="תמונות תקלה (אופציונלי)" imageUrls={imageUrls} onImagesChanged={setImageUrls} folder="faults" max={5} />
+        <button type="button" onClick={handleSubmit} disabled={!isValid || loading}
           className={`w-full py-5 rounded-2xl text-xl font-bold transition-all ${isValid && !loading ? 'bg-primary text-primary-foreground shadow-lg hover:shadow-xl' : 'bg-muted text-muted-foreground cursor-not-allowed'}`}>
-          {loading ? 'שומר...' : isEdit ? '💾 עדכן תקלה' : '💾 שמור תקלה'}
+          {loading ? 'שולח...' : isEdit ? 'עדכן תקלה' : 'שלח דיווח'}
         </button>
       </div>
     </div>

@@ -102,6 +102,9 @@ export default function DriverDashboard({
   const [pendingAssignments, setPendingAssignments] = useState<PendingAssignment[]>([]);
   const [displayName, setDisplayName] = useState('');
   const [displayCompany, setDisplayCompany] = useState('');
+  const [recentIncidents, setRecentIncidents] = useState<
+    { id: string; kind: 'fault' | 'accident'; eventNumber: string; plate: string; status: string; date: string; label: string }[]
+  >([]);
 
   useEffect(() => {
     const subjectId = managerView ? scopedDriverId : user?.id;
@@ -181,6 +184,51 @@ export default function DriverDashboard({
           }
         : null;
       setVehicle(assignedVehicle);
+
+      // Recent faults/accidents for this driver
+      const company = driverCompany || user?.company_name || '';
+      let faultsQ = supabase
+        .from('faults')
+        .select('id, event_number, serial_id, vehicle_plate, status, created_at, fault_type, driver_name, created_by')
+        .order('created_at', { ascending: false })
+        .limit(8);
+      let accidentsQ = supabase
+        .from('accidents')
+        .select('id, event_number, vehicle_plate, status, created_at, description, driver_name, created_by')
+        .order('created_at', { ascending: false })
+        .limit(8);
+      if (company) {
+        faultsQ = faultsQ.eq('company_name', company);
+        accidentsQ = accidentsQ.eq('company_name', company);
+      }
+      if (driverFullName) {
+        faultsQ = faultsQ.eq('driver_name', driverFullName);
+        accidentsQ = accidentsQ.eq('driver_name', driverFullName);
+      }
+      const [faultsInc, accidentsInc] = await Promise.all([faultsQ, accidentsQ]);
+      const merged = [
+        ...(faultsInc.data || []).map((f) => ({
+          id: f.id,
+          kind: 'fault' as const,
+          eventNumber: f.event_number || f.serial_id || '—',
+          plate: f.vehicle_plate || '—',
+          status: f.status || '',
+          date: f.created_at || '',
+          label: f.fault_type || 'תקלה',
+        })),
+        ...(accidentsInc.data || []).map((a) => ({
+          id: a.id,
+          kind: 'accident' as const,
+          eventNumber: a.event_number || '—',
+          plate: a.vehicle_plate || '—',
+          status: a.status || '',
+          date: a.created_at || '',
+          label: 'תאונה',
+        })),
+      ]
+        .sort((a, b) => (a.date < b.date ? 1 : -1))
+        .slice(0, 6);
+      setRecentIncidents(merged);
 
       // Build alerts
       const allOrders = (serviceOrdersRes.data || []).filter(
@@ -475,6 +523,29 @@ export default function DriverDashboard({
           );
         })}
       </section>
+
+      {recentIncidents.length > 0 && (
+        <section className="card-elevated space-y-3">
+          <h2 className="text-lg font-bold">הדיווחים האחרונים שלי</h2>
+          <p className="text-sm text-muted-foreground">נציג יחזור אליך בהקדם על דיווחים פתוחים.</p>
+          <div className="space-y-2">
+            {recentIncidents.map((inc) => (
+              <Link
+                key={`${inc.kind}-${inc.id}`}
+                to={inc.kind === 'fault' ? `/faults?id=${inc.id}` : `/accidents?id=${inc.id}`}
+                className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border hover:bg-muted/40"
+              >
+                <div className="text-right">
+                  <p className="font-mono text-sm font-bold">{inc.eventNumber}</p>
+                  <p className="text-sm">{inc.label} · {inc.plate}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(inc.date)} · {inc.status}</p>
+                </div>
+                <span className="text-primary text-sm font-medium">צפייה</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

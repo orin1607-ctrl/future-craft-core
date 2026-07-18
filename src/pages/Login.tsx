@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import logo from '@/assets/logo.png';
-import OtpVerifyStep from '@/components/auth/OtpVerifyStep';
+import { consumePostLoginRedirect } from '@/lib/postLoginRedirect';
 import {
   ACCOUNT_LOCKOUT_MESSAGE,
   applyAuthSession,
@@ -80,7 +80,7 @@ export default function Login() {
     if (result.session) {
       const { error: sessionError } = await completeLoginSession(result.session);
       if (sessionError) setError(sessionError);
-      else navigate('/dashboard');
+      else navigate(consumePostLoginRedirect('/dashboard'));
       return;
     }
 
@@ -106,7 +106,7 @@ export default function Login() {
 
     const { error: sessionError } = await completeLoginSession(result.session);
     if (sessionError) setError(sessionError);
-    else navigate('/dashboard');
+    else navigate(consumePostLoginRedirect('/dashboard'));
   };
 
   const handleOtpResend = async () => {

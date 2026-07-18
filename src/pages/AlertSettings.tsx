@@ -24,6 +24,11 @@ interface CompanyAlertConfig {
   hidden_buttons: string[];
   module_transport_enabled: boolean;
   transport_hidden_features: string[];
+  incident_notify_in_app?: boolean;
+  incident_notify_email?: boolean;
+  incident_notify_whatsapp?: boolean;
+  incident_email_recipients?: string;
+  incident_whatsapp_recipients?: string;
 }
 
 interface ProfileCompany {
@@ -51,7 +56,7 @@ export default function AlertSettings() {
     // Load all company settings
     const { data: settingsData } = await supabase
       .from('company_settings')
-      .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons, module_transport_enabled, transport_hidden_features');
+      .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons, module_transport_enabled, transport_hidden_features, incident_notify_in_app, incident_notify_email, incident_notify_whatsapp, incident_email_recipients, incident_whatsapp_recipients');
     
     if (settingsData) {
       setConfigs(
@@ -131,6 +136,11 @@ export default function AlertSettings() {
       hidden_buttons: activeConfig.hidden_buttons || [],
       module_transport_enabled: activeConfig.module_transport_enabled,
       transport_hidden_features: activeConfig.transport_hidden_features || [],
+      incident_notify_in_app: activeConfig.incident_notify_in_app ?? true,
+      incident_notify_email: activeConfig.incident_notify_email ?? true,
+      incident_notify_whatsapp: activeConfig.incident_notify_whatsapp ?? false,
+      incident_email_recipients: activeConfig.incident_email_recipients || 'fleet_managers',
+      incident_whatsapp_recipients: activeConfig.incident_whatsapp_recipients || 'dalia',
     }).eq('id', activeConfig.id);
     setSaving(false);
     if (error) toast.error('שגיאה בשמירה');
@@ -304,6 +314,103 @@ export default function AlertSettings() {
                       <span className="text-base font-medium">{label}</span>
                     </label>
                   ))}
+                </div>
+              </div>
+
+              {/* Incident alert settings — faults / accidents */}
+              <div className="border-t border-border pt-4 space-y-3">
+                <h3 className="font-bold text-lg">הגדרות התראות על תאונות ותקלות</h3>
+                <p className="text-sm text-muted-foreground">
+                  WhatsApp נשלח רק אם גם המתג whatsapp_enabled פעיל לחברה (תוספת בתשלום / חירום).
+                </p>
+                <div className="space-y-2">
+                  {[
+                    { key: 'incident_notify_in_app', label: 'בתוך המערכת' },
+                    { key: 'incident_notify_email', label: 'Email' },
+                    { key: 'incident_notify_whatsapp', label: 'WhatsApp (דורש whatsapp_enabled)' },
+                  ].map(({ key, label }) => (
+                    <label key={key} className="flex items-center gap-3 p-3 rounded-xl bg-muted cursor-pointer hover:bg-muted/80 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={Boolean((activeConfig as any)[key] ?? (key === 'incident_notify_whatsapp' ? false : true))}
+                        onChange={(e) => updateConfig(key, e.target.checked)}
+                        className="rounded w-5 h-5 accent-primary"
+                      />
+                      <span className="text-base font-medium">{label}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">נמעני Email</label>
+                    <select
+                      value={(activeConfig as any).incident_email_recipients || 'fleet_managers'}
+                      onChange={(e) => updateConfig('incident_email_recipients', e.target.value)}
+                      className="w-full p-3 rounded-xl border-2 border-input bg-background"
+                    >
+                      <option value="fleet_managers">כל מנהלי הצי</option>
+                      <option value="dalia">דליה בלבד</option>
+                      <option value="both">מנהלי הצי + דליה</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">נמעני WhatsApp</label>
+                    <select
+                      value={(activeConfig as any).incident_whatsapp_recipients || 'dalia'}
+                      onChange={(e) => updateConfig('incident_whatsapp_recipients', e.target.value)}
+                      className="w-full p-3 rounded-xl border-2 border-input bg-background"
+                    >
+                      <option value="fleet_managers">כל מנהלי הצי</option>
+                      <option value="dalia">דליה בלבד</option>
+                      <option value="both">מנהלי הצי + דליה</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="px-3 py-2 rounded-lg border text-sm"
+                    onClick={() => {
+                      updateConfig('incident_notify_in_app', true);
+                      updateConfig('incident_notify_email', false);
+                      updateConfig('incident_notify_whatsapp', false);
+                    }}
+                  >
+                    בתוך המערכת בלבד
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-2 rounded-lg border text-sm"
+                    onClick={() => {
+                      updateConfig('incident_notify_in_app', false);
+                      updateConfig('incident_notify_email', true);
+                      updateConfig('incident_notify_whatsapp', false);
+                    }}
+                  >
+                    Email בלבד
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-2 rounded-lg border text-sm"
+                    onClick={() => {
+                      updateConfig('incident_notify_in_app', false);
+                      updateConfig('incident_notify_email', false);
+                      updateConfig('incident_notify_whatsapp', true);
+                    }}
+                  >
+                    WhatsApp בלבד
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-2 rounded-lg border text-sm"
+                    onClick={() => {
+                      updateConfig('incident_notify_in_app', true);
+                      updateConfig('incident_notify_email', true);
+                      updateConfig('incident_notify_whatsapp', true);
+                    }}
+                  >
+                    Email + WhatsApp
+                  </button>
                 </div>
               </div>
 
