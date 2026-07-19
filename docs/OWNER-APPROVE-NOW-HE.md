@@ -35,7 +35,7 @@
 
 **קישור ישיר (יעודכן בהרצה האחרונה אחרי התיקון):**
 
-→ https://github.com/orin1607-ctrl/future-craft-core/actions/workflows/deploy-production-vps.yml  
+→ https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29697469046  
 
 בחר את ההרצה במצב **Waiting** → **Review deployments** → **Approve and deploy**
 
