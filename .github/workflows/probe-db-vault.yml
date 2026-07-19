@@ -1,0 +1,46 @@
+name: Probe DB vault and extensions for notify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-db-vault.yml'
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: Probe vault/extensions (names only)
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          set -a; source /root/dalia-ops/.env; set +a
+          DB_URL=$(python3 - <<'PY'
+          import os, urllib.parse
+          pwd=os.environ["SUPABASE_DB_PASSWORD"]
+          host=os.environ.get("SUPABASE_POOLER_HOST","aws-1-ap-south-1.pooler.supabase.com")
+          ref=os.environ.get("SUPABASE_PROJECT_REF","qasomfndnjuixgjmjwcm")
+          print(f"postgresql://postgres.{ref}:{urllib.parse.quote(pwd)}@{host}:5432/postgres")
+          PY
+          )
+          echo "=== extensions ==="
+          psql "$DB_URL" -c "select extname from pg_extension order by 1;" | head -40
+          echo "=== schemas ==="
+          psql "$DB_URL" -c "select schema_name from information_schema.schemata order by 1;" | head -40
+          echo "=== vault secret NAMES only ==="
+          psql "$DB_URL" -c "select name, description, created_at from vault.secrets order by name;" 2>&1 | head -40 || echo "no vault.secrets"
+          echo "=== supabase_functions tables ==="
+          psql "$DB_URL" -c "select table_schema, table_name from information_schema.tables where table_schema like '%function%' or table_name like '%function%' order by 1,2;" 2>&1 | head -40
+          echo "=== storage buckets related ==="
+          psql "$DB_URL" -c "select id, name from storage.buckets limit 20;" 2>&1 | head -30
+          echo "=== pg_net / http ==="
+          psql "$DB_URL" -c "select proname from pg_proc where pronamespace = (select oid from pg_namespace where nspname='net') limit 20;" 2>&1 | head -30
+          echo DONE
+          REMOTE
