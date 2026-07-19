@@ -29,9 +29,9 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # Note: do NOT bind job to environment `github-pages` here — that environment
+    # only allows branch `main`, which blocks Owner-approved feature-branch Staging deploys.
+    # Pages deploy still uses pages:write + id-token (below at workflow level).
     steps:
       - name: Resolve deploy ref
         id: ref
