@@ -1,0 +1,98 @@
+name: Test super_admin session for WhatsApp edge
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-wa-session-bridge.yml']
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bridge session + dry_run WhatsApp
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          REF=qasomfndnjuixgjmjwcm
+          URL=https://$REF.supabase.co
+          # Find super_admin emails (no secrets printed beyond emails)
+          curl -s "$URL/rest/v1/user_roles?role=eq.super_admin&select=user_id" \
+            -H "apikey: $SRK" -H "Authorization: Bearer $SRK" > /tmp/roles.json
+          echo "SUPER_ADMIN_COUNT=$(python3 -c 'import json;print(len(json.load(open("/tmp/roles.json"))))')"
+          # Get profile emails
+          python3 <<'PY'
+          import json,urllib.request,os
+          srk=os.environ['SRK']
+          url='https://qasomfndnjuixgjmjwcm.supabase.co'
+          roles=json.load(open('/tmp/roles.json'))
+          ids=[r['user_id'] for r in roles][:5]
+          print('IDS', len(ids))
+          req=urllib.request.Request(url+'/rest/v1/profiles?select=id,full_name,company_name&id=in.('+','.join(ids)+')',
+            headers={'apikey':srk,'Authorization':'Bearer '+srk})
+          profiles=json.load(urllib.request.urlopen(req))
+          print('PROFILES', [(p.get('full_name'), p.get('company_name')) for p in profiles])
+          # list users via auth admin
+          req=urllib.request.Request(url+'/auth/v1/admin/users?page=1&per_page=50',
+            headers={'apikey':srk,'Authorization':'Bearer '+srk})
+          users=json.load(urllib.request.urlopen(req))
+          ulist=users.get('users',users if isinstance(users,list) else [])
+          sa=set(ids)
+          matches=[(u.get('email'), u.get('id')) for u in ulist if u.get('id') in sa]
+          print('SA_EMAILS', [m[0] for m in matches])
+          open('/tmp/sa.json','w').write(json.dumps(matches))
+          PY
+
+          # Generate magic link for first super_admin with email
+          python3 <<'PY'
+          import json,urllib.request,os,urllib.error
+          srk=os.environ['SRK']
+          url='https://qasomfndnjuixgjmjwcm.supabase.co'
+          matches=json.load(open('/tmp/sa.json'))
+          email=None
+          for e,i in matches:
+            if e: email=e; uid=i; break
+          if not email:
+            print('NO_SA_EMAIL'); raise SystemExit(1)
+          print('USING_EMAIL', email)
+          body=json.dumps({'type':'magiclink','email':email}).encode()
+          req=urllib.request.Request(url+'/auth/v1/admin/generate_link', data=body,
+            headers={'apikey':srk,'Authorization':'Bearer '+srk,'Content-Type':'application/json'})
+          try:
+            resp=json.load(urllib.request.urlopen(req))
+          except urllib.error.HTTPError as e:
+            print('GEN_FAIL', e.code, e.read()[:300]); raise
+          props=resp.get('properties') or {}
+          # Prefer email_otp
+          otp=props.get('email_otp') or props.get('hashed_token')
+          print('HAS_OTP', bool(props.get('email_otp')), 'HAS_HASH', bool(props.get('hashed_token')))
+          # verify
+          vbody=json.dumps({'type':'magiclink','email':email,'token':props.get('email_otp')}).encode()
+          if not props.get('email_otp'):
+            print('NO_EMAIL_OTP_KEYS', list(props.keys())[:20])
+            # try token_hash verify
+            vbody=json.dumps({'type':'magiclink','token_hash':props.get('hashed_token')}).encode()
+          req=urllib.request.Request(url+'/auth/v1/verify', data=vbody,
+            headers={'apikey':srk,'Authorization':'Bearer '+srk,'Content-Type':'application/json'})
+          try:
+            vresp=json.load(urllib.request.urlopen(req))
+          except urllib.error.HTTPError as e:
+            print('VERIFY_FAIL', e.code, e.read()[:400]); raise
+          at=vresp.get('access_token') or (vresp.get('session') or {}).get('access_token')
+          print('HAS_ACCESS_TOKEN', bool(at), 'LEN', len(at or ''))
+          open('/tmp/at.txt','w').write(at or '')
+          PY
+
+          AT=$(cat /tmp/at.txt)
+          echo "=== dry_run send-whatsapp-message ==="
+          curl -s -X POST "$URL/functions/v1/send-whatsapp-message" \
+            -H "apikey: $SRK" -H "Authorization: Bearer $AT" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"send","dry_run":true,"destination":"0534338601","message":"probe dry run incident"}' | head -c 500
+          echo
+          echo "=== check_connection ==="
+          curl -s -X POST "$URL/functions/v1/send-whatsapp-message" \
+            -H "apikey: $SRK" -H "Authorization: Bearer $AT" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"check_connection"}' | head -c 600
+          echo
+          echo DONE
