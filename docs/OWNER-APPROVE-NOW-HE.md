@@ -30,18 +30,14 @@
 
 ## שער C — Approve Frontend Production (GitHub Environment)
 
-הרצה ממתינה (או האחרונה אחרי cancel concurrency):
+**קישור ישיר להרצה שממתינה עכשיו (commit `75106c6`):**
 
-→ https://github.com/orin1607-ctrl/future-craft-core/actions/workflows/deploy-production-vps.yml  
+→ https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29697415073  
 
-או הרצה הספציפית (אם עדיין waiting):
-
-→ https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29678008354  
-
-1. לחץ **Review deployments** → **Approve**  
-2. מה מאשרים: העלאת Frontend ל-https://dalia-car.online  
+1. לחץ **Review deployments** → **Approve and deploy**  
+2. מה מאשרים: העלאת Frontend ל-https://dalia-car.online מה-commit האחרון  
 3. אחרי: build + rsync ל-`/root/future-craft-core/dist` (~3–5 דק')  
-4. אם יש הרצה ישנה + חדשה: אשר את **החדשה ביותר** (או Reject לישנה)
+4. הרצות ישנות בוטלו אוטומטית (concurrency)
 
 ---
 
