@@ -15,10 +15,11 @@ on:
         options:
           - staging
           - production
-  # Register workflow on push to main (no-op job skipped unless dispatch)
   push:
     branches: [main]
     paths:
+      - 'supabase/functions/notify-accident-email/**'
+      - 'supabase/migrations/**incident**'
       - '.github/workflows/deploy-edge-incident-notify.yml'
 
 permissions:

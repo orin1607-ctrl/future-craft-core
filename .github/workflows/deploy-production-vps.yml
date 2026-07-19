@@ -1,9 +1,12 @@
 name: Deploy Production (dalia-car.online)
 
-# Triggered only by workflow_dispatch or deploy-control edge function.
-# Requires GitHub Environment "production" approval.
+# Triggered by workflow_dispatch, push to main (Owner-approved Production go-live),
+# or deploy-control edge function.
+# Requires GitHub Environment "production" approval before the job runs.
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       commit_sha:
