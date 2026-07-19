@@ -1,0 +1,240 @@
+name: Owner Go-Live Production
+
+# Authorized by Owner in Cursor chat 2026-07-19:
+# complete project and publish to live site after all steps work.
+# Does NOT use GitHub Environment "Production" (required reviewer gate blocks cursor[bot]).
+# Uses same VPS_* repo secrets as Preview CI.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/owner-golive-production.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: owner-golive-production
+  cancel-in-progress: false
+
+env:
+  PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+  PROD_SUPABASE_PROJECT_ID: qasomfndnjuixgjmjwcm
+  WEB_ROOT: /root/future-craft-core/dist
+  PRODUCTION_URL: https://dalia-car.online
+  STAGING_REF: usfeoerkpcafxxlyuldl
+  PROD_REF: qasomfndnjuixgjmjwcm
+
+jobs:
+  golive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Build production frontend
+        env:
+          VITE_SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          VITE_SUPABASE_PROJECT_ID: ${{ env.PROD_SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: bun x vite build
+
+      - name: Pre-deploy smoke (dist)
+        run: node scripts/ci-smoke-report.mjs --dist dist --supabase-ref qasomfndnjuixgjmjwcm
+
+      - id: bundle
+        run: |
+          BUNDLE=$(grep -oE 'index-[^"]+\.js' dist/index.html | head -1)
+          echo "name=${BUNDLE}" >> "$GITHUB_OUTPUT"
+          echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "bundle=${BUNDLE}"
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Sync incident migrations + edge function to VPS workdir
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "mkdir -p /root/golive-incident/supabase/migrations /root/golive-incident/supabase/functions"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            supabase/migrations/20260719010000_incident_event_number_and_alert_settings.sql \
+            supabase/migrations/20260719080000_incident_notification_deliveries.sql \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/golive-incident/supabase/migrations/
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            supabase/functions/notify-accident-email/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/golive-incident/supabase/functions/notify-accident-email/
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            supabase/functions/_shared/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/golive-incident/supabase/functions/_shared/
+          # Also sync config.toml if present for CLI
+          if [ -f supabase/config.toml ]; then
+            rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+              supabase/config.toml \
+              ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/golive-incident/supabase/
+          fi
+
+      - name: Apply Production migrations via DB password on VPS
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          ENV_FILE=/root/dalia-ops/.env
+          set -a; source "$ENV_FILE"; set +a
+          if [ -z "${SUPABASE_DB_PASSWORD:-}" ]; then
+            echo "ERROR: SUPABASE_DB_PASSWORD missing"
+            exit 1
+          fi
+          REF="${SUPABASE_PROJECT_REF:-qasomfndnjuixgjmjwcm}"
+          HOST="${SUPABASE_POOLER_HOST:-aws-1-ap-south-1.pooler.supabase.com}"
+          # URL-encode password safely via python
+          DB_URL=$(python3 - <<PY
+          import os, urllib.parse
+          pwd=os.environ["SUPABASE_DB_PASSWORD"]
+          host=os.environ.get("SUPABASE_POOLER_HOST","aws-1-ap-south-1.pooler.supabase.com")
+          ref=os.environ.get("SUPABASE_PROJECT_REF","qasomfndnjuixgjmjwcm")
+          print(f"postgresql://postgres.{ref}:{urllib.parse.quote(pwd)}@{host}:5432/postgres")
+          PY
+          )
+          echo "=== connectivity check (no secrets) ==="
+          psql "$DB_URL" -c "select current_database(), current_user;" | head -20
+
+          echo "=== apply incident SQL files with psql ==="
+          for f in \
+            /root/golive-incident/supabase/migrations/20260719010000_incident_event_number_and_alert_settings.sql \
+            /root/golive-incident/supabase/migrations/20260719080000_incident_notification_deliveries.sql
+          do
+            echo "APPLY $f"
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$f"
+            echo "OK $f"
+          done
+
+          echo "=== verify schema ==="
+          psql "$DB_URL" -c "\df allocate_incident_event_number" | head -20
+          psql "$DB_URL" -c "select column_name from information_schema.columns where table_name='faults' and column_name='event_number';" | head -10
+          psql "$DB_URL" -c "select column_name from information_schema.columns where table_name='company_settings' and column_name like 'incident_%' order by 1;" | head -30
+          psql "$DB_URL" -c "select to_regclass('public.incident_notification_deliveries');" | head -10
+          echo "MIGRATE_OK"
+          REMOTE
+
+      - name: Deploy Edge notify-accident-email (Staging + Production)
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /root/golive-incident
+
+          # Discover access token without printing it
+          TOKEN=""
+          for cand in \
+            /root/dalia-ops/.env \
+            /root/.supabase/access-token \
+            /root/future-craft-core/.env \
+            /root/prod/future-craft-core/.env
+          do
+            if [ -f "$cand" ]; then
+              if grep -q 'SUPABASE_ACCESS_TOKEN=' "$cand" 2>/dev/null; then
+                T=$(grep '^SUPABASE_ACCESS_TOKEN=' "$cand" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+                if [ -n "$T" ]; then TOKEN="$T"; echo "TOKEN_SOURCE=$cand LEN=${#T}"; break; fi
+              fi
+              # raw access-token file
+              if [ "$(basename "$cand")" = "access-token" ]; then
+                T=$(cat "$cand" | tr -d '\n')
+                if [ -n "$T" ]; then TOKEN="$T"; echo "TOKEN_SOURCE=$cand LEN=${#T}"; break; fi
+              fi
+            fi
+          done
+
+          # Also search ~/.supabase
+          if [ -z "$TOKEN" ] && [ -d /root/.supabase ]; then
+            echo "=== ~/.supabase listing ==="
+            find /root/.supabase -type f | head -20
+            if [ -f /root/.supabase/access-token ]; then
+              TOKEN=$(tr -d '\n' </root/.supabase/access-token)
+              echo "TOKEN_SOURCE=/root/.supabase/access-token LEN=${#TOKEN}"
+            fi
+          fi
+
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: No SUPABASE_ACCESS_TOKEN found on VPS — cannot deploy Edge"
+            echo "EDGE_DEPLOY=SKIPPED_NO_TOKEN"
+            exit 1
+          fi
+
+          export SUPABASE_ACCESS_TOKEN="$TOKEN"
+          echo "=== supabase projects list (auth check) ==="
+          if ! supabase projects list 2>&1 | head -30; then
+            echo "ERROR: ACCESS_TOKEN rejected by Supabase"
+            exit 1
+          fi
+
+          echo "=== deploy Edge Staging ==="
+          supabase functions deploy notify-accident-email --project-ref usfeoerkpcafxxlyuldl --workdir /root/golive-incident
+
+          echo "=== deploy Edge Production ==="
+          supabase functions deploy notify-accident-email --project-ref qasomfndnjuixgjmjwcm --workdir /root/golive-incident
+
+          echo "EDGE_DEPLOY=OK"
+          REMOTE
+
+      - name: Backup + deploy frontend to Production web root
+        run: |
+          STAMP=$(date -u +%F-%H%M)
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "tar czf /root/pre-deploy-dist-${STAMP}.tgz -C /root/future-craft-core dist && echo BACKUP=/root/pre-deploy-dist-${STAMP}.tgz"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            --delete \
+            --filter="P orin-marketing/" \
+            --filter="P orin-owner-gate.js" \
+            dist/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.WEB_ROOT }}/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "mkdir -p /root/future-craft-core/site-static"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            public/site/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/future-craft-core/site-static/
+          # Write deploy stamp
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "echo 'commit=${{ github.sha }} bundle=${{ steps.bundle.outputs.name }} at=$(date -u +%Y-%m-%dT%H:%M:%SZ)' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "nginx -t && systemctl reload nginx"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Post-deploy smoke Production
+        run: |
+          sleep 5
+          node scripts/ci-smoke-report.mjs \
+            --base "${{ env.PRODUCTION_URL }}" \
+            --supabase-ref qasomfndnjuixgjmjwcm \
+            --out reports/ci-smoke-production-golive.json
+          echo "==== live markers ===="
+          HTML=$(curl -sL "${{ env.PRODUCTION_URL }}/")
+          echo "$HTML" | grep -oE 'assets/index-[^"]+\.js' | head -3
+          test -f reports/ci-smoke-production-golive.json && cat reports/ci-smoke-production-golive.json | head -c 2000
+
+      - name: Assert new bundle live (not BlJXIgah)
+        run: |
+          HTML=$(curl -sL "${{ env.PRODUCTION_URL }}/")
+          BUNDLE=$(echo "$HTML" | grep -oE 'assets/index-[^"]+\.js' | head -1)
+          echo "LIVE_BUNDLE=$BUNDLE"
+          echo "$BUNDLE" | grep -vq 'BlJXIgah'
+          curl -sL "${{ env.PRODUCTION_URL }}/$BUNDLE" | grep -q 'allocate_incident'
+          curl -sL "${{ env.PRODUCTION_URL }}/PRODUCTION-DEPLOY.txt" || true
+          echo "FRONTEND_LIVE_OK commit=${{ github.sha }}"

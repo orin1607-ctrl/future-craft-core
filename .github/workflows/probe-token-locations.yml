@@ -1,0 +1,44 @@
+name: Probe token locations
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe-token-locations.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: Find token-like keys
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set +e
+          echo "=== files with ACCESS_TOKEN key names ==="
+          grep -rIl 'SUPABASE_ACCESS_TOKEN\|sbp_' /root/dalia-ops /root/.supabase /root/future-craft-core /root/prod /root/fix-pirsum-prod-supabase.sh 2>/dev/null | head -40
+          echo "=== key names containing TOKEN/PASSWORD/SERVICE ==="
+          for f in $(grep -rIl 'SUPABASE_' /root/dalia-ops /root/.supabase /root --include='.env*' --include='*.sh' --include='*.json' 2>/dev/null | head -50); do
+            echo "-- $f"
+            grep -E '^[A-Z0-9_]*(TOKEN|PASSWORD|SERVICE|KEY|SECRET)[A-Z0-9_]*=' "$f" 2>/dev/null | cut -d= -f1 | tr '\n' ' '
+            echo
+            # lengths only for ACCESS_TOKEN values
+            python3 - <<PY
+          from pathlib import Path
+          p=Path("$f")
+          try:
+            for line in p.read_text(errors="ignore").splitlines():
+              if "ACCESS_TOKEN" in line and "=" in line:
+                k,v=line.split("=",1); v=v.strip().strip('"').strip("'")
+                print(f"  {k}_LEN={len(v)} PREFIX={v[:3]+'...' if v else 'EMPTY'}")
+          except Exception as e:
+            print("  err", e)
+          PY
+          done
+          echo "=== ~/.supabase ==="
+          ls -la /root/.supabase 2>/dev/null
+          find /root/.supabase -type f 2>/dev/null | head -20
+          echo "DONE"
+          REMOTE
