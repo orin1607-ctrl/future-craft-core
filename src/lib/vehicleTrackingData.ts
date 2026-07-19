@@ -4,9 +4,24 @@ import { daysUntil, statusLabel } from '@/components/vehicles/vehicleHubUtils';
 import { isHistoryLogTask } from '@/lib/vehicleEventLog';
 import { loadVehicleHistory, type VehicleHistoryEntry } from '@/lib/vehicleHistory';
 
-const OPEN_FAULT = ['new', 'open', 'in_progress', 'pending', 'חדש', 'פתוח', 'בטיפול'];
+/** Include form default `opened` so new faults appear immediately in מעקב רכבים → תקלות */
+const OPEN_FAULT = [
+  'new',
+  'open',
+  'opened',
+  'in_progress',
+  'in_treatment',
+  'pending',
+  'pending_approval',
+  'approved',
+  'referred_to_provider',
+  'towing_done',
+  'חדש',
+  'פתוח',
+  'בטיפול',
+];
 const OPEN_TASK = ['open', 'in_progress', 'pending', 'פתוח', 'בטיפול'];
-const OPEN_ACCIDENT = ['open', 'new', 'in_progress', 'פתוח', 'חדש', 'בטיפול'];
+const OPEN_ACCIDENT = ['open', 'new', 'opened', 'in_progress', 'פתוח', 'חדש', 'בטיפול'];
 const OPEN_SERVICE = ['new', 'open', 'in_progress', 'pending', 'pending_approval', 'חדש', 'פתוח', 'בטיפול'];
 const GARAGE_STATUS = ['in_service', 'maintenance', 'בתחזוקה', 'בטיפול'];
 

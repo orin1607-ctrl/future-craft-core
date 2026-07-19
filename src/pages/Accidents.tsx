@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Plus, ArrowRight, Search, Edit2, Mail, Share2, Download, ExternalLink } from 'lucide-react';
 import { exportToCsv } from '@/utils/exportCsv';
 import { toast } from 'sonner';
@@ -13,6 +13,9 @@ import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrl
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
+import { createAccidentIncident } from '@/lib/incidentCreate';
+import IncidentSubmitSuccess from '@/components/incidents/IncidentSubmitSuccess';
+import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
 
 interface AccidentRow {
   id: string;
@@ -27,20 +30,26 @@ interface AccidentRow {
   status: string;
   notes: string;
   images: string;
+  event_number?: string | null;
+  created_at?: string;
+  company_name?: string;
+  assignee_name?: string | null;
 }
 
 const statusLabels: Record<string, { text: string; cls: string }> = {
   open: { text: 'פתוח', cls: 'status-urgent' },
+  opened: { text: 'פתוח', cls: 'status-urgent' },
   in_progress: { text: 'בטיפול', cls: 'status-pending' },
   closed: { text: 'סגור', cls: 'status-active' },
 };
 
-type ViewMode = 'list' | 'detail' | 'form';
+type ViewMode = 'list' | 'detail' | 'form' | 'success';
 
 export default function Accidents() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const [searchParams] = useSearchParams();
   const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked } = useVehicleUrlContext();
   const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
 
@@ -77,6 +86,14 @@ export default function Accidents() {
   const [selected, setSelected] = useState<AccidentRow | null>(null);
   const [editItem, setEditItem] = useState<AccidentRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const [successPayload, setSuccessPayload] = useState<{
+    eventNumber: string;
+    id: string;
+    createdAt?: string;
+    whatsappPreview?: string;
+    emailSubject?: string;
+    emailHtml?: string;
+  } | null>(null);
 
   const loadAccidents = async () => {
     setLoading(true);
@@ -98,10 +115,39 @@ export default function Accidents() {
     }
   }, [contextPlate, contextAction]);
 
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (!id || accidents.length === 0) return;
+    const found = accidents.find((a) => a.id === id);
+    if (found) {
+      setSelected(found);
+      setViewMode('detail');
+    }
+  }, [searchParams, accidents]);
+
+  if (viewMode === 'success' && successPayload) {
+    return (
+      <IncidentSubmitSuccess
+        kind="accident"
+        eventNumber={successPayload.eventNumber}
+        createdAt={successPayload.createdAt}
+        statusLabel="פתוח"
+        viewPath={`/accidents?id=${successPayload.id}`}
+        whatsappPreview={successPayload.whatsappPreview}
+        emailSubject={successPayload.emailSubject}
+        emailHtml={successPayload.emailHtml}
+        onClose={() => {
+          setSuccessPayload(null);
+          afterFormSave();
+        }}
+      />
+    );
+  }
+
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
   const filtered = accidents.filter(a => {
-    const matchSearch = !search || a.driver_name?.includes(search) || plateMatches(a.vehicle_plate, search) || a.description?.includes(search);
+    const matchSearch = !search || a.driver_name?.includes(search) || plateMatches(a.vehicle_plate, search) || a.description?.includes(search) || (a.event_number || '').includes(search);
     const matchStatus = !filterStatus || a.status === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -109,6 +155,20 @@ export default function Accidents() {
   const handleStatusChange = async (id: string, newStatus: string) => {
     const { error } = await supabase.from('accidents').update({ status: newStatus }).eq('id', id);
     if (error) { toast.error('שגיאה'); } else { toast.success('סטטוס עודכן'); loadAccidents(); }
+  };
+
+  const handleTakeTreatment = async (a: AccidentRow) => {
+    const { error } = await supabase.from('accidents').update({
+      status: 'in_progress',
+      assignee_id: user?.id,
+      assignee_name: user?.full_name || '',
+    }).eq('id', a.id);
+    if (error) toast.error('שגיאה');
+    else {
+      toast.success('התאונה בטיפול שלך');
+      loadAccidents();
+      setSelected({ ...a, status: 'in_progress', assignee_name: user?.full_name || '' });
+    }
   };
 
   if (viewMode === 'form') {
@@ -126,6 +186,12 @@ export default function Accidents() {
           plateLocked={vehicleScoped && !!initialVehiclePlate}
           hubVehicleId={vehicleScoped ? contextVehicleId : undefined}
           onDone={afterFormSave}
+          onCreated={(payload) => {
+            setEditItem(null);
+            setSuccessPayload(payload);
+            setViewMode('success');
+            loadAccidents();
+          }}
           onBack={exitFormOrDetail}
           user={user}
         />
@@ -333,6 +399,7 @@ function AccidentForm({
   plateLocked = false,
   hubVehicleId,
   onDone,
+  onCreated,
   onBack,
   user,
 }: {
@@ -341,13 +408,22 @@ function AccidentForm({
   plateLocked?: boolean;
   hubVehicleId?: string;
   onDone: () => void;
+  onCreated?: (payload: {
+    eventNumber: string;
+    id: string;
+    createdAt?: string;
+    whatsappPreview?: string;
+    emailSubject?: string;
+    emailHtml?: string;
+  }) => void;
   onBack: () => void;
   user: any;
 }) {
   const isEdit = !!accident;
-  const { vehicle, isDriver } = useDriverVehicle();
+  const { vehicle, vehicles, isDriver, hasNoVehicle, phone } = useDriverVehicle();
   
   const [vehiclePlate, setVehiclePlate] = useState(accident?.vehicle_plate || initialVehiclePlate);
+  const [vehicleId, setVehicleId] = useState(hubVehicleId || '');
   const [driverName, setDriverName] = useState(accident?.driver_name || user?.full_name || '');
   const [location, setLocation] = useState(accident?.location || '');
   const [description, setDescription] = useState(accident?.description || '');
@@ -361,115 +437,207 @@ function AccidentForm({
   });
   const [loading, setLoading] = useState(false);
 
-  const [vehicles, setVehicles] = useState<{ license_plate: string; manufacturer: string; model: string }[]>([]);
+  const [allVehicles, setAllVehicles] = useState<{ id: string; license_plate: string; manufacturer: string; model: string; internal_number: string | null }[]>([]);
   useEffect(() => {
     if (!isDriver) {
-      supabase.from('vehicles').select('license_plate, manufacturer, model').then(({ data }) => { if (data) setVehicles(data); });
+      supabase.from('vehicles').select('id, license_plate, manufacturer, model, internal_number').then(({ data }) => {
+        if (data) setAllVehicles(data as typeof allVehicles);
+      });
     }
   }, [isDriver]);
 
-  // Auto-fill for drivers
   useEffect(() => {
-    if (isDriver && !isEdit && vehicle) {
-      setVehiclePlate(vehicle.license_plate);
+    if (isDriver && !isEdit) {
+      if (vehicles.length === 1) {
+        setVehiclePlate(vehicles[0].license_plate);
+        setVehicleId(vehicles[0].id);
+      } else if (initialVehiclePlate) {
+        const m = vehicles.find((v) => v.license_plate === initialVehiclePlate);
+        if (m) {
+          setVehiclePlate(m.license_plate);
+          setVehicleId(m.id);
+        }
+      }
+      if (user?.full_name) setDriverName(user.full_name);
     }
-  }, [isDriver, vehicle, isEdit]);
+  }, [isDriver, vehicles, isEdit, user, initialVehiclePlate]);
 
-  useEffect(() => {
-    if (isDriver && !isEdit && user) {
-      setDriverName(user.full_name);
-    }
-  }, [isDriver, user, isEdit]);
+  const vehicleOptions = isDriver
+    ? vehicles.map((v) => ({
+        id: v.id,
+        license_plate: v.license_plate,
+        manufacturer: v.manufacturer || '',
+        model: v.model || '',
+        internal_number: v.internal_number,
+      }))
+    : allVehicles;
 
-  const isValid = vehiclePlate && driverName && description;
+  const isValid = !!vehiclePlate && !!driverName && !!description && !(isDriver && hasNoVehicle);
   const inputClass = "w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
 
   const handleSubmit = async () => {
-    if (!isValid) return;
+    if (!isValid || loading) return;
     setLoading(true);
-    const payload = { vehicle_plate: vehiclePlate, driver_name: driverName, location, description, has_insurance: hasInsurance, third_party: thirdParty, estimated_cost: parseFloat(estimatedCost) || 0, notes, images: JSON.stringify(imageUrls) };
-    let error;
-    if (isEdit) { ({ error } = await supabase.from('accidents').update(payload).eq('id', accident!.id)); }
-    else {
-      const insertPayload = { ...payload, company_name: user?.company_name || '', created_by: user?.id, date: new Date().toISOString().split('T')[0] };
-      ({ error } = await supabase.from('accidents').insert(insertPayload));
-      if (!error) {
-        supabase.functions.invoke('notify-accident-email', { body: { record: insertPayload } }).catch(console.error);
-        if (hubVehicleId) {
-          await recordVehicleHubAction({
-            vehicleId: hubVehicleId,
-            vehiclePlate: vehiclePlate,
-            companyName: user?.company_name || '',
-            action: 'דיווח תאונה',
-            details: description,
-            userId: user?.id,
-            userName: user?.full_name,
-          });
-        }
-      }
+    if (isEdit) {
+      const payload = {
+        vehicle_plate: vehiclePlate,
+        driver_name: driverName,
+        location,
+        description,
+        has_insurance: hasInsurance,
+        third_party: thirdParty,
+        estimated_cost: parseFloat(estimatedCost) || 0,
+        notes,
+        images: JSON.stringify(imageUrls),
+      };
+      const { error } = await supabase.from('accidents').update(payload).eq('id', accident!.id);
+      setLoading(false);
+      if (error) toast.error('שגיאה');
+      else { toast.success('עודכן'); onDone(); }
+      return;
     }
+
+    const result = await createAccidentIncident({
+      user: {
+        id: user?.id,
+        role: user?.role,
+        company_name: user?.company_name,
+        full_name: user?.full_name,
+        phone: phone || user?.phone,
+      },
+      vehiclePlate,
+      vehicleId: vehicleId || hubVehicleId,
+      driverName,
+      location,
+      description,
+      hasInsurance,
+      thirdParty,
+      estimatedCost: parseFloat(estimatedCost) || 0,
+      notes,
+      images: imageUrls,
+      dryRunNotify: false,
+    });
+
+    if (!result.error && result.data && hubVehicleId) {
+      await recordVehicleHubAction({
+        vehicleId: hubVehicleId || result.vehicle?.id,
+        vehiclePlate,
+        companyName: user?.company_name || '',
+        action: 'דיווח תאונה',
+        details: description,
+        userId: user?.id,
+        userName: user?.full_name,
+      });
+    }
+
     setLoading(false);
-    if (error) { toast.error('שגיאה'); } else { toast.success(isEdit ? 'עודכן' : 'דיווח נשלח'); onDone(); }
+    if (result.error) {
+      toast.error('שגיאה');
+      console.error(result.error);
+      return;
+    }
+    toast.success('דיווח נשמר');
+    onCreated?.({
+      eventNumber: result.data.event_number || '',
+      id: result.data.id,
+      createdAt: result.data.created_at || result.data.date,
+      whatsappPreview: result.notify?.whatsappPreview,
+      emailSubject: result.notify?.emailSubject,
+      emailHtml: result.notify?.emailHtml,
+    });
   };
 
   return (
     <div className="animate-fade-in">
-      <button onClick={onBack} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]"><ArrowRight size={20} /> חזרה</button>
+      <button type="button" onClick={onBack} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]"><ArrowRight size={20} /> חזרה</button>
       <h1 className="text-2xl font-bold mb-6">{isEdit ? 'עריכת תאונה' : 'דיווח תאונה'}</h1>
+      {isDriver && hasNoVehicle && (
+        <div className="mb-4 rounded-2xl border-2 border-destructive/40 bg-destructive/10 p-4 text-destructive font-medium">
+          אין רכב מורשה לדיווח. פנה למנהל הצי.
+        </div>
+      )}
       <div className="space-y-5">
-        {/* Vehicle */}
-        {(isDriver && vehicle && !isEdit) || (plateLocked && !isEdit) ? (
+        {(isDriver && vehicle && !isEdit && vehicles.length === 1) || (plateLocked && !isEdit) ? (
           <div>
             <label className="block text-lg font-medium mb-2">רכב משויך</label>
             <div className="w-full p-4 text-lg rounded-xl border-2 border-input bg-muted/50">
               <p className="font-bold">{vehiclePlate}</p>
+              {vehicle?.internal_number && (
+                <p className="text-sm text-muted-foreground">מספר פנימי: {vehicle.internal_number}</p>
+              )}
               {!plateLocked && vehicle && (
-                <p className="text-sm text-muted-foreground">{vehicle.manufacturer} {vehicle.model} {vehicle.year ? `(${vehicle.year})` : ''}</p>
+                <p className="text-sm text-muted-foreground">{vehicle.manufacturer} {vehicle.model}</p>
               )}
             </div>
           </div>
         ) : (
-          <div><label className="block text-lg font-medium mb-2">רכב *</label>
-            <select value={vehiclePlate} onChange={e => setVehiclePlate(e.target.value)} className={inputClass}>
+          <div>
+            <label className="block text-lg font-medium mb-2">רכב *</label>
+            <select
+              value={vehiclePlate}
+              onChange={(e) => {
+                setVehiclePlate(e.target.value);
+                const m = vehicleOptions.find((v) => v.license_plate === e.target.value);
+                setVehicleId(m?.id || '');
+              }}
+              className={inputClass}
+            >
               <option value="">בחר...</option>
-              {vehicles.map(v => <option key={v.license_plate} value={v.license_plate}>{v.license_plate} - {v.manufacturer} {v.model}</option>)}
+              {vehicleOptions.map((v) => (
+                <option key={v.id || v.license_plate} value={v.license_plate}>
+                  {v.license_plate}
+                  {v.internal_number ? ` · פנימי ${v.internal_number}` : ''}
+                  {` — ${v.manufacturer || ''} ${v.model || ''}`}
+                </option>
+              ))}
             </select>
           </div>
         )}
-        
-        {/* Driver */}
+
         {isDriver && !isEdit ? (
           <div>
             <label className="block text-lg font-medium mb-2">נהג</label>
             <div className="w-full p-4 text-lg rounded-xl border-2 border-input bg-muted/50 font-bold">{driverName}</div>
+            <label className="block text-lg font-medium mb-2 mt-3">טלפון</label>
+            <div className="w-full p-4 text-lg rounded-xl border-2 border-input bg-muted/50">{phone || user?.phone || '—'}</div>
           </div>
         ) : (
-          <div><label className="block text-lg font-medium mb-2">נהג *</label>
-            <input value={driverName} onChange={e => setDriverName(e.target.value)} className={inputClass} /></div>
+          <div>
+            <label className="block text-lg font-medium mb-2">נהג *</label>
+            <input value={driverName} onChange={(e) => setDriverName(e.target.value)} className={inputClass} />
+          </div>
         )}
 
-        <div><label className="block text-lg font-medium mb-2">מיקום</label>
-          <input value={location} onChange={e => setLocation(e.target.value)} placeholder="כתובת / צומת..." className={inputClass} /></div>
-        <div><label className="block text-lg font-medium mb-2">תיאור *</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder="תאר את האירוע..." className={`${inputClass} resize-none`} /></div>
-        <div><label className="block text-lg font-medium mb-2">עלות משוערת (₪)</label>
-          <input type="number" value={estimatedCost} onChange={e => setEstimatedCost(e.target.value)} placeholder="0" className={inputClass} /></div>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-3 flex-1 p-4 rounded-xl border-2 border-input cursor-pointer">
-            <input type="checkbox" checked={hasInsurance} onChange={e => setHasInsurance(e.target.checked)} className="w-6 h-6 rounded" />
-            <span className="text-lg font-medium">יש ביטוח</span>
+        <div>
+          <label className="block text-lg font-medium mb-2">מיקום</label>
+          <input value={location} onChange={(e) => setLocation(e.target.value)} className={inputClass} placeholder="כתובת / מקום האירוע" />
+        </div>
+        <div>
+          <label className="block text-lg font-medium mb-2">תיאור *</label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={`${inputClass} resize-none`} />
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <label className="flex items-center gap-2 text-lg">
+            <input type="checkbox" checked={hasInsurance} onChange={(e) => setHasInsurance(e.target.checked)} />
+            יש ביטוח
           </label>
-          <label className="flex items-center gap-3 flex-1 p-4 rounded-xl border-2 border-input cursor-pointer">
-            <input type="checkbox" checked={thirdParty} onChange={e => setThirdParty(e.target.checked)} className="w-6 h-6 rounded" />
-            <span className="text-lg font-medium">צד ג׳</span>
+          <label className="flex items-center gap-2 text-lg">
+            <input type="checkbox" checked={thirdParty} onChange={(e) => setThirdParty(e.target.checked)} />
+            מעורבות צד ג׳
           </label>
         </div>
-        <MultiImageUpload label="תמונות מהתאונה" folder="accidents" imageUrls={imageUrls} onImagesChanged={setImageUrls} max={10} />
-        <div><label className="block text-lg font-medium mb-2">הערות</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className={`${inputClass} resize-none`} /></div>
-        <button onClick={handleSubmit} disabled={!isValid || loading}
-          className={`w-full py-5 rounded-xl text-xl font-bold transition-colors ${isValid && !loading ? 'bg-destructive text-destructive-foreground' : 'bg-muted text-muted-foreground cursor-not-allowed'}`}>
-          {loading ? 'שולח...' : isEdit ? '💾 עדכן' : '🚨 שלח דיווח'}
+        <div>
+          <label className="block text-lg font-medium mb-2">עלות משוערת</label>
+          <input value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} type="number" className={inputClass} />
+        </div>
+        <div>
+          <label className="block text-lg font-medium mb-2">הערות</label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={`${inputClass} resize-none`} />
+        </div>
+        <MultiImageUpload label="תמונות (אופציונלי)" imageUrls={imageUrls} onImagesChanged={setImageUrls} folder="accidents" max={10} />
+        <button type="button" onClick={handleSubmit} disabled={!isValid || loading}
+          className={`w-full py-5 rounded-2xl text-xl font-bold transition-all ${isValid && !loading ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-muted text-muted-foreground cursor-not-allowed'}`}>
+          {loading ? 'שולח...' : isEdit ? 'עדכן' : 'שלח דיווח'}
         </button>
       </div>
     </div>

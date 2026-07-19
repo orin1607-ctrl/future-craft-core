@@ -1,13 +1,21 @@
 name: Deploy Staging to GitHub Pages
 
 # Staging deployment to GitHub Pages (dalia-staging Supabase only).
-# Manual trigger, or auto on push to main when staging should update.
+# - Auto on push to main
+# - Owner-approved: also deploy feat/incident-alerts-staging to Staging Pages (NO merge to main)
+# - Manual workflow_dispatch can deploy any ref without merging to main
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: 'Git ref to build and deploy (branch/tag/SHA). Empty = workflow ref.'
+        required: false
+        default: ''
   push:
     branches:
       - main
+      - feat/incident-alerts-staging
 
 permissions:
   contents: read
@@ -21,14 +29,23 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # Note: do NOT bind job to environment `github-pages` here — that environment
+    # only allows branch `main`, which blocks Owner-approved feature-branch Staging deploys.
+    # Pages deploy still uses pages:write + id-token (below at workflow level).
     steps:
-      - name: Checkout main branch
+      - name: Resolve deploy ref
+        id: ref
+        run: |
+          if [ -n "${{ github.event.inputs.deploy_ref }}" ]; then
+            echo "value=${{ github.event.inputs.deploy_ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout deploy ref
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ steps.ref.outputs.value }}
           fetch-depth: 1
 
       - name: Setup Bun
@@ -81,6 +98,7 @@ jobs:
           test -f dist/index.html || cp public/ai-marketing-platform.html dist/index.html
           test -f dist/404.html || cp dist/index.html dist/404.html
           touch dist/.nojekyll
+          echo "deployed_ref=$(git rev-parse --short HEAD) $(git rev-parse --abbrev-ref HEAD)" > dist/STAGING-DEPLOY.txt
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

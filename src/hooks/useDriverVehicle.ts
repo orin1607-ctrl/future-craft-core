@@ -1,39 +1,41 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface AssignedVehicle {
-  license_plate: string;
-  manufacturer: string;
-  model: string;
-  year: number | null;
-  company_name: string;
-  odometer: number;
-}
+import { listDriverVehicles, type ResolvedVehicle } from '@/lib/incidentResolve';
 
 /**
- * For drivers: returns the vehicle assigned to them (assigned_driver_id = user.id).
- * For managers: returns null (they pick manually).
+ * For drivers: returns vehicles assigned to them (assigned_driver_id = user.id).
+ * Supports one or many vehicles. Managers: empty list.
  */
 export function useDriverVehicle() {
   const { user } = useAuth();
-  const [vehicle, setVehicle] = useState<AssignedVehicle | null>(null);
+  const [vehicles, setVehicles] = useState<ResolvedVehicle[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    if (user.role !== 'driver' && user.role !== 'private_customer') { setLoading(false); return; }
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    if (user.role !== 'driver' && user.role !== 'private_customer') {
+      setLoading(false);
+      return;
+    }
 
-    supabase
-      .from('vehicles')
-      .select('license_plate, manufacturer, model, year, company_name, odometer')
-      .eq('assigned_driver_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setVehicle(data as AssignedVehicle | null);
-        setLoading(false);
-      });
-  }, [user?.id, user?.role]);
+    listDriverVehicles(user.id, user.company_name).then((rows) => {
+      setVehicles(rows);
+      setLoading(false);
+    });
+  }, [user?.id, user?.role, user?.company_name]);
 
-  return { vehicle, loading, isDriver: user?.role === 'driver' };
+  const vehicle = vehicles.length === 1 ? vehicles[0] : vehicles[0] || null;
+
+  return {
+    vehicle,
+    vehicles,
+    loading,
+    isDriver: user?.role === 'driver',
+    hasNoVehicle: !loading && (user?.role === 'driver' || user?.role === 'private_customer') && vehicles.length === 0,
+    phone: (user as { phone?: string } | null)?.phone || '',
+  };
 }

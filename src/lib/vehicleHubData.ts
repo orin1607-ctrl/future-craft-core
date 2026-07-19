@@ -35,6 +35,8 @@ export interface FaultRow {
   status: string;
   date: string | null;
   created_at: string;
+  event_number?: string;
+  driver_name?: string;
 }
 
 export interface ServiceOrderRow {
@@ -54,6 +56,8 @@ export interface AccidentRow {
   status: string | null;
   date: string | null;
   created_at: string;
+  event_number?: string;
+  driver_name?: string;
 }
 
 export interface InspectionRow {
@@ -168,6 +172,8 @@ export async function loadVehicleHubData(
     status: f.status || '',
     date: f.date,
     created_at: f.created_at,
+    event_number: f.event_number || f.serial_id || '',
+    driver_name: f.driver_name || '',
   }));
 
   const services: ServiceOrderRow[] = (servicesRes.data || []).map((s: Record<string, string>) => ({
@@ -187,6 +193,8 @@ export async function loadVehicleHubData(
     status: a.status,
     date: a.date,
     created_at: a.created_at,
+    event_number: a.event_number || '',
+    driver_name: a.driver_name || '',
   }));
 
   const inspections: InspectionRow[] = (inspectionsRes.data || []).map((i: Record<string, string>) => ({

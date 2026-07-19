@@ -63,6 +63,7 @@ import DevFaultsScopedPreview from "@/pages/DevFaultsScopedPreview";
 import DevDocumentsScopedPreview from "@/pages/DevDocumentsScopedPreview";
 import DevDocumentUxPreview from "@/pages/DevDocumentUxPreview";
 import DevStagingProofFlow from "@/pages/DevStagingProofFlow";
+import DevIncidentAlertsProof from "@/pages/DevIncidentAlertsProof";
 import DevFleetOSModule1Preview from "@/pages/DevFleetOSModule1Preview";
 import DevFleetOSDashboardPreview from "@/pages/DevFleetOSDashboardPreview";
 import DevFleetOSSettingsPreview from "@/pages/DevFleetOSSettingsPreview";
@@ -76,6 +77,7 @@ import AdminModulesHub from "@/pages/admin/AdminModulesHub";
 import VehicleModuleAdmin from "@/pages/admin/VehicleModuleAdmin";
 import VehicleTypesSettings from "@/pages/admin/VehicleTypesSettings";
 import { useEffect } from "react";
+import { captureCurrentPathForLogin } from "@/lib/postLoginRedirect";
 
 /** Old ניהול שיווק SPA entry → permanent Orin פרסום (nginx static). */
 function LegacyMarketingRedirect() {
@@ -134,8 +136,19 @@ function AppRoutes() {
   }
 
   if (!isAuthenticated) {
+    // Deep links to faults/accidents → capture path then Login
+    const path = typeof window !== 'undefined'
+      ? `${window.location.pathname}${window.location.search}`
+      : '';
+    const isIncidentDeepLink = /\/(faults|accidents)(\?|$)/.test(path);
+    if (isIncidentDeepLink) {
+      captureCurrentPathForLogin();
+    }
+
     return (
       <Routes>
+        <Route path="/faults" element={<Login />} />
+        <Route path="/accidents" element={<Login />} />
         <Route path="/dev/vehicle-card" element={<DevVehicleHubPreview />} />
         <Route path="/dev/vehicle-flows" element={<DevVehicleFlowsPreview />} />
         <Route path="/dev/vehicle-new-form" element={<DevVehicleNewFormPreview />} />
@@ -149,6 +162,7 @@ function AppRoutes() {
         <Route path="/dev/documents-scoped" element={<DevDocumentsScopedPreview />} />
         <Route path="/dev/document-ux-preview" element={<DevDocumentUxPreview />} />
         <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
+        <Route path="/dev/incident-alerts-proof" element={<DevIncidentAlertsProof />} />
         <Route path="/dev/vehicles-list" element={<DevVehiclesListPreview />} />
         <Route path="/dev/fleet-manager-driver-flow" element={<DevFleetManagerDriverFlow />} />
         <Route path="/dev/fleetos-module1" element={<DevFleetOSModule1Preview />} />
@@ -181,6 +195,7 @@ function AppRoutes() {
       <Route path="/dev/faults-scoped" element={<DevFaultsScopedPreview />} />
       <Route path="/dev/documents-scoped" element={<DevDocumentsScopedPreview />} />
       <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
+      <Route path="/dev/incident-alerts-proof" element={<DevIncidentAlertsProof />} />
       <Route path="/dev/vehicles-list" element={<DevVehiclesListPreview />} />
       <Route path="/dev/fleet-manager-driver-flow" element={<DevFleetManagerDriverFlow />} />
       <Route path="/dev/fleetos-module1" element={<DevFleetOSModule1Preview />} />

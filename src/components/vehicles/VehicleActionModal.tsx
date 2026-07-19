@@ -158,17 +158,25 @@ export default function VehicleActionModal({
       } else if (category === 'תקלה') {
         const urgency =
           severity === 'גבוהה' ? 'urgent' : severity === 'נמוכה' ? 'low' : 'normal';
-        ({ error } = await supabase.from('faults').insert({
-          vehicle_plate: vehicle.license_plate,
-          driver_name: driverName,
-          fault_type: subType,
+        const { createFaultIncident } = await import('@/lib/incidentCreate');
+        const result = await createFaultIncident({
+          user: {
+            id: user?.id || '',
+            role: user?.role,
+            company_name: vehicle.company_name || user?.company_name,
+            full_name: user?.full_name,
+            phone: user?.phone,
+          },
+          vehiclePlate: vehicle.license_plate,
+          vehicleId: vehicle.id,
+          driverName: driverName || user?.full_name || '',
+          faultType: subType || 'אחר',
+          faultTypeOther: subType ? '' : description,
           description: description || subType,
           urgency,
-          status: 'opened',
-          company_name: vehicle.company_name || user?.company_name || '',
-          created_by: user?.id,
-          date: date || null,
-        }));
+          dryRunNotify: false,
+        });
+        error = result.error;
       } else if (category === 'טיפול' || category === 'הזמנת שירות') {
         ({ error } = await supabase.from('service_orders').insert({
           service_category: category === 'טיפול' ? subType : `${category} – ${subType}`,
@@ -188,15 +196,23 @@ export default function VehicleActionModal({
           ordering_user: user?.full_name || '',
         }));
       } else if (category === 'תאונה') {
-        ({ error } = await supabase.from('accidents').insert({
-          vehicle_plate: vehicle.license_plate,
-          driver_name: driverName,
-          location: location || null,
+        const { createAccidentIncident } = await import('@/lib/incidentCreate');
+        const result = await createAccidentIncident({
+          user: {
+            id: user?.id || '',
+            role: user?.role,
+            company_name: vehicle.company_name || user?.company_name,
+            full_name: user?.full_name,
+            phone: user?.phone,
+          },
+          vehiclePlate: vehicle.license_plate,
+          vehicleId: vehicle.id,
+          driverName: driverName || user?.full_name || '',
+          location: location || '',
           description: description || subType,
-          company_name: vehicle.company_name || user?.company_name || '',
-          created_by: user?.id,
-          date: date || null,
-        }));
+          dryRunNotify: false,
+        });
+        error = result.error;
       } else if (category === 'בדיקה') {
         const typeMap: Record<string, string> = {
           'תלת שנתית': 'tri_semi_annual',

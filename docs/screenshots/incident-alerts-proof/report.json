@@ -1,0 +1,19 @@
+{
+  "at": "2026-07-19T06:33:03.833Z",
+  "base": "http://127.0.0.1:4173/future-craft-core",
+  "shots": [
+    "00-full-page.png",
+    "01-fault-form.png",
+    "02-accident-form.png",
+    "03-success-event-number.png",
+    "04-vehicle-tracking.png",
+    "05-vehicle-card-hub.png",
+    "06-driver-card.png",
+    "07-fleet-manager-dashboard.png",
+    "08-driver-dashboard.png",
+    "09-alert-settings.png",
+    "10-whatsapp-preview.png",
+    "11-email-preview.png",
+    "00-full-page-desktop.png"
+  ]
+}

@@ -526,6 +526,7 @@ export default function VehicleHub({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground text-xs">
+                    <th className="p-2 text-right">מספר אירוע</th>
                     <th className="p-2 text-right">תיאור</th>
                     <th className="p-2 text-right">סוג</th>
                     <th className="p-2 text-right">תאריך</th>
@@ -535,6 +536,7 @@ export default function VehicleHub({
                 <tbody>
                   {data.tasks.map((t) => (
                     <tr key={`task-${t.id}`} className="border-b border-border/50">
+                      <td className="p-2 text-muted-foreground">—</td>
                       <td className="p-2">{t.description || t.title}</td>
                       <td className="p-2"><span className="status-badge status-pending text-xs">ליקוי</span></td>
                       <td className="p-2 text-muted-foreground">{formatHubDate(t.created_at)}</td>
@@ -548,6 +550,7 @@ export default function VehicleHub({
                   ))}
                   {data.faults.map((f) => (
                     <tr key={`fault-${f.id}`} className="border-b border-border/50">
+                      <td className="p-2 font-mono text-xs">{f.event_number || '—'}</td>
                       <td className="p-2">{f.description}</td>
                       <td className="p-2"><span className={`status-badge text-xs ${urgencyLabel(f.urgency).cls}`}>{f.fault_type}</span></td>
                       <td className="p-2 text-muted-foreground">{formatHubDate(f.date || f.created_at)}</td>
