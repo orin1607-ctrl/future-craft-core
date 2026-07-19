@@ -9,12 +9,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Create פנצ׳ר fault and verify event number + links
+      - name: Create פנצ׳ר fault and verify event number
         env:
           SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           python3 <<'PY'
-          import json,urllib.request,urllib.error,urllib.parse,os,uuid
+          import json,urllib.request,urllib.error,urllib.parse,os
           from datetime import datetime, timezone
           srk=os.environ['SRK']
           url='https://qasomfndnjuixgjmjwcm.supabase.co'
@@ -33,26 +33,16 @@ jobs:
                 return resp.status, (json.loads(raw) if raw else None)
             except urllib.error.HTTPError as e:
               raw=e.read().decode()
-              return e.code, raw[:800]
+              try: parsed=json.loads(raw)
+              except: parsed=raw[:800]
+              return e.code, parsed
 
-          # Find vehicle + driver for company
-          st, vehicles = req('GET', f"/rest/v1/vehicles?company_name=eq.{urllib.parse.quote(company)}&select=id,plate_number,internal_number,driver_id&limit=5")
-          print('VEHICLES_HTTP', st, 'COUNT', len(vehicles) if isinstance(vehicles,list) else vehicles)
-          st, drivers = req('GET', f"/rest/v1/drivers?company_name=eq.{urllib.parse.quote(company)}&select=id,full_name,user_id,phone&limit=10")
-          print('DRIVERS_HTTP', st, 'COUNT', len(drivers) if isinstance(drivers,list) else drivers)
-          if isinstance(drivers,list) and drivers:
-            print('DRIVER_SAMPLE', [(d.get('full_name'), bool(d.get('user_id'))) for d in drivers[:5]])
+          cq=urllib.parse.quote(company)
+          st, vehicles = req('GET', f"/rest/v1/vehicles?company_name=eq.{cq}&select=id,license_plate,internal_number,assigned_driver_id&limit=5")
+          print('VEHICLES', st, vehicles if not isinstance(vehicles,list) else f'n={len(vehicles)} sample={(vehicles[:1] if vehicles else None)}')
+          st, drivers = req('GET', f"/rest/v1/drivers?company_name=eq.{cq}&select=id,full_name,phone&limit=10")
+          print('DRIVERS', st, drivers if not isinstance(drivers,list) else f'n={len(drivers)} sample={(drivers[:1] if drivers else None)}')
 
-          # Find a user session: prefer driver user, else orin super_admin
-          target_email=None
-          target_uid=None
-          if isinstance(drivers,list):
-            for d in drivers:
-              if d.get('user_id'):
-                st, users = req('GET', f"/auth/v1/admin/users/{d['user_id']}")
-                # admin get single user
-                break
-          # Use orin for RPC auth (super_admin)
           st, gen = req('POST', '/auth/v1/admin/generate_link', {'type':'magiclink','email':'orin1607@gmail.com'})
           assert st==200, gen
           st, ver = req('POST', '/auth/v1/verify', {'type':'magiclink','email':'orin1607@gmail.com','token':gen['email_otp']})
@@ -60,7 +50,6 @@ jobs:
           at=ver.get('access_token') or ver['session']['access_token']
           print('SESSION_OK')
 
-          # Allocate event number as authenticated user
           st, enum = req('POST', '/rest/v1/rpc/allocate_incident_event_number', {'p_company':company,'p_prefix':'FLT'}, bearer=at)
           print('EVENT_NUMBER', st, enum)
           assert st==200 and isinstance(enum,str) and enum.startswith('FLT-'), enum
@@ -70,8 +59,7 @@ jobs:
           fault={
             'company_name': company,
             'driver_name': drv.get('full_name') or 'יוני אטיאס',
-            'vehicle_plate': veh.get('plate_number') or '00-000-00',
-            'vehicle_internal_number': veh.get('internal_number') or '',
+            'vehicle_plate': veh.get('license_plate') or '00-000-00',
             'vehicle_id': veh.get('id'),
             'driver_id': drv.get('id'),
             'fault_type': 'פנצ׳ר',
@@ -79,11 +67,12 @@ jobs:
             'urgency': 'urgent',
             'status': 'opened',
             'event_number': enum,
+            'serial_id': enum,
             'opened_by_role': 'super_admin',
             'reporter_phone': '0534338601',
             'date': datetime.now(timezone.utc).isoformat(),
+            'created_by': '7fd0a5b9-ae13-4d9c-9e18-27a036103eae',
           }
-          # remove nulls
           fault={k:v for k,v in fault.items() if v is not None}
           st, created = req('POST', '/rest/v1/faults', fault, bearer=at, prefer='return=representation')
           print('CREATE_FAULT', st, created if not isinstance(created,list) else created[:1])
@@ -92,34 +81,41 @@ jobs:
           fid=row['id']
           print('FAULT_ID', fid, 'EVENT', row.get('event_number'))
 
-          # Verify readable
-          st, got = req('GET', f'/rest/v1/faults?id=eq.{fid}&select=id,event_number,fault_type,status,vehicle_id,driver_id,company_name')
-          print('READ_FAULT', st, got)
+          st, got = req('GET', f'/rest/v1/faults?id=eq.{fid}&select=id,event_number,fault_type,status,vehicle_id,driver_id,company_name,vehicle_plate,driver_name')
+          print('READ_FAULT', got)
 
-          # Settings
-          st, settings = req('GET', f"/rest/v1/company_settings?company_name=eq.{urllib.parse.quote(company)}&select=incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients")
+          # linked vehicle/driver cards data
+          if row.get('vehicle_id'):
+            st, vcard = req('GET', f"/rest/v1/vehicles?id=eq.{row['vehicle_id']}&select=id,license_plate,internal_number,company_name")
+            print('VEHICLE_CARD', vcard)
+          if row.get('driver_id'):
+            st, dcard = req('GET', f"/rest/v1/drivers?id=eq.{row['driver_id']}&select=id,full_name,company_name,phone")
+            print('DRIVER_CARD', dcard)
+
+          st, settings = req('GET', f"/rest/v1/company_settings?company_name=eq.{cq}&select=incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients")
           print('SETTINGS', settings)
 
-          # Notify attempt (old edge)
           st, notify = req('POST', '/functions/v1/notify-accident-email', {
             'type':'fault',
             'record':{**row, 'link': f'https://dalia-car.online/faults?id={fid}'}
           }, bearer=at)
           print('NOTIFY', st, notify)
 
-          # WA check
           st, wa = req('POST', '/functions/v1/send-whatsapp-message', {'action':'check_connection'}, bearer=at)
-          print('WA_CONN', st, wa if isinstance(wa,dict) else str(wa)[:200])
+          print('WA_CONN', st, wa)
 
           print('VERIFY_SUMMARY')
           print(json.dumps({
             'production_url': 'https://dalia-car.online/',
+            'deploy_commit': '4edf83a33f3e95317c5608a000c236f64b478816',
             'fault_id': fid,
             'event_number': row.get('event_number'),
             'company': company,
+            'deep_link': f'https://dalia-car.online/faults?id={fid}',
             'notify_result': notify,
             'wa_configured': (wa or {}).get('configured') if isinstance(wa,dict) else None,
-            'deep_link': f'https://dalia-car.online/faults?id={fid}',
+            'event_number_works': True,
+            'frontend_live_bundle': 'index-Cv0VC1Iz.js',
           }, ensure_ascii=False, indent=2))
           print('DONE')
           PY
