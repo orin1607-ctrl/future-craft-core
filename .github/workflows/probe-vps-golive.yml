@@ -1,0 +1,48 @@
+name: Probe VPS for go-live readiness
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-vps-golive.yml'
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Inventory VPS (no secrets printed)
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set -e
+          echo "HOST=$(hostname)"
+          echo "DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "==== WEB ROOT ===="
+          ls -la /root/future-craft-core/dist/index.html 2>/dev/null || echo "no dist index"
+          grep -oE 'assets/index-[^"]+\.js' /root/future-craft-core/dist/index.html 2>/dev/null | head -3
+          echo "==== PREVIEW ROOT ===="
+          ls -la /var/www/future-craft-core-preview/index.html 2>/dev/null || echo "no preview"
+          grep -oE 'assets/index-[^"]+\.js' /var/www/future-craft-core-preview/index.html 2>/dev/null | head -3
+          echo "==== ENV FILES PRESENT (names only) ===="
+          find /root /var/www /home -maxdepth 4 \( -name '.env' -o -name '.env.*' -o -name '*supabase*' \) 2>/dev/null | head -40
+          echo "==== KEY NAMES IN ENV FILES (values redacted) ===="
+          for f in $(find /root /var/www -maxdepth 4 -name '.env*' 2>/dev/null | head -20); do
+            echo "-- $f"
+            grep -E '^[A-Z0-9_]+=' "$f" 2>/dev/null | cut -d= -f1 | sort -u | tr '\n' ' '
+            echo
+          done
+          echo "==== WHICH TOOLS ===="
+          which psql supabase node npm bun docker 2>/dev/null || true
+          ls /root/future-craft-core 2>/dev/null | head -30
+          echo "==== NGINX sites ===="
+          ls /etc/nginx/sites-enabled 2>/dev/null || ls /etc/nginx/conf.d 2>/dev/null || true
+          echo "==== DONE ===="
+          REMOTE
