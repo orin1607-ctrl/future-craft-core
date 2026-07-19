@@ -1,0 +1,157 @@
+name: Production controlled demo preflight
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prod-controlled-demo-preflight.yml']
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Full Production readiness check
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 <<'PY'
+          import json,urllib.request,urllib.error,os,urllib.parse
+          srk=os.environ['SRK']
+          url='https://qasomfndnjuixgjmjwcm.supabase.co'
+          report={}
+
+          def req(method, path, body=None, bearer=None):
+            h={'apikey':srk,'Authorization':'Bearer '+(bearer or srk)}
+            if body is not None: h['Content-Type']='application/json'
+            data=None if body is None else json.dumps(body).encode()
+            r=urllib.request.Request(url+path, data=data, headers=h, method=method)
+            try:
+              with urllib.request.urlopen(r) as resp:
+                raw=resp.read().decode()
+                return resp.status, (json.loads(raw) if raw else None)
+            except urllib.error.HTTPError as e:
+              raw=e.read().decode()
+              try: return e.code, json.loads(raw)
+              except: return e.code, raw[:500]
+
+          # 1) Session for orin
+          st, gen = req('POST','/auth/v1/admin/generate_link',{'type':'magiclink','email':'orin1607@gmail.com'})
+          assert st==200, gen
+          st, ver = req('POST','/auth/v1/verify',{'type':'magiclink','email':'orin1607@gmail.com','token':gen['email_otp']})
+          assert st==200, ver
+          at=ver.get('access_token') or ver['session']['access_token']
+          report['session']='ok'
+
+          # 2) Edge version signature
+          st, edge = req('POST','/functions/v1/notify-accident-email',{}, bearer=at)
+          report['edge_probe_status']=st
+          report['edge_probe_body']=edge
+          # New code: Missing record data OR looks for incident_notify; with empty {} Missing record
+          # Detect new by dry_run response shape
+          st2, edge2 = req('POST','/functions/v1/notify-accident-email',{
+            'dry_run': True,
+            'type':'fault',
+            'record':{'id':'00000000-0000-0000-0000-000000000099','company_name':'אילנה אטיאס','event_number':'FLT-TEST'}
+          }, bearer=at)
+          report['edge_dry_run_status']=st2
+          report['edge_dry_run_body']=edge2
+          body_s=json.dumps(edge2, ensure_ascii=False) if not isinstance(edge2,str) else edge2
+          report['edge_is_new'] = ('dry_run' in body_s) or ('incident_notify' in body_s) or ('channels' in body_s and 'whatsapp' in body_s.lower())
+          report['edge_looks_old'] = (isinstance(edge2,dict) and 'sent' in edge2 and 'dry_run' not in edge2)
+
+          # 3) GUPSHUP
+          st, wa = req('POST','/functions/v1/send-whatsapp-message',{'action':'check_connection'}, bearer=at)
+          report['gupshup_http']=st
+          report['gupshup_configured']=(wa or {}).get('configured') if isinstance(wa,dict) else None
+          report['gupshup_success']=(wa or {}).get('success') if isinstance(wa,dict) else None
+          report['gupshup_message']=(wa or {}).get('message') if isinstance(wa,dict) else str(wa)[:200]
+
+          # 4) Find יוני אטיאס driver + vehicle
+          st, drivers = req('GET','/rest/v1/drivers?select=id,full_name,phone,company_name,assigned_vehicle_id&full_name=ilike.*יוני*&limit=50')
+          report['drivers_yoni_count']=len(drivers) if isinstance(drivers,list) else 0
+          yoni_hits=[]
+          if isinstance(drivers,list):
+            for d in drivers:
+              name=d.get('full_name') or ''
+              if 'אטיאס' in name or 'Atias' in name or 'atias' in name.lower() or name.strip() in ('יוני','Yoni'):
+                yoni_hits.append(d)
+              elif 'יוני' in name:
+                yoni_hits.append(d)
+          report['yoni_candidates']=[{k:d.get(k) for k in ('id','full_name','phone','company_name','assigned_vehicle_id')} for d in yoni_hits[:10]]
+
+          # Also search exact
+          st, d2 = req('GET','/rest/v1/drivers?select=id,full_name,phone,company_name&full_name=eq.'+urllib.parse.quote('יוני אטיאס')+'&limit=5')
+          report['exact_yoni']=d2
+
+          # Vehicles with company matching settings that have אטיאס
+          st, settings = req('GET','/rest/v1/company_settings?select=company_name,incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients&or=(company_name.ilike.*אטיאס*,company_name.ilike.*Yoni*,company_name.ilike.*יוני*)&limit=20')
+          report['alert_settings']=settings
+
+          # Find any vehicle+driver pair for companies with alerts
+          pairs=[]
+          if isinstance(settings,list):
+            for s in settings:
+              cn=s['company_name']
+              cq=urllib.parse.quote(cn)
+              st, vs = req('GET', f'/rest/v1/vehicles?company_name=eq.{cq}&select=id,license_plate,internal_number,assigned_driver_id,company_name&limit=5')
+              st, ds = req('GET', f'/rest/v1/drivers?company_name=eq.{cq}&select=id,full_name,phone,company_name&limit=10')
+              pairs.append({'company':cn,'settings':s,'vehicles_n':len(vs) if isinstance(vs,list) else vs,'drivers_n':len(ds) if isinstance(ds,list) else ds,
+                            'vehicles':vs[:3] if isinstance(vs,list) else None,
+                            'drivers':[{k:x.get(k) for k in ('id','full_name','phone')} for x in (ds[:5] if isinstance(ds,list) else [])]})
+          report['company_fleet']=pairs
+
+          # Broader: any driver named יוני with vehicle via assigned_driver_id reverse
+          st, all_yoni = req('GET','/rest/v1/drivers?select=id,full_name,phone,company_name&full_name=ilike.*יוני אטיאס*&limit=20')
+          report['all_yoni_atias']=all_yoni
+          st, all_yoni2 = req('GET','/rest/v1/drivers?select=id,full_name,phone,company_name&full_name=ilike.*Yoni*&limit=20')
+          report['all_yoni_latin']=all_yoni2
+
+          # ACCESS TOKEN check
+          tok=os.environ.get('SUPABASE_ACCESS_TOKEN') or ''
+          report['access_token_len']=len(tok)
+          report['access_token_prefix']=(tok[:4]+'...') if tok else 'EMPTY'
+
+          print(json.dumps(report, ensure_ascii=False, indent=2)[:8000])
+          print('---PREFLIGHT_DONE---')
+          PY
+
+      - name: Test ACCESS_TOKEN still valid?
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          echo "LEN=${#SUPABASE_ACCESS_TOKEN}"
+          npx supabase projects list 2>&1 | head -15 || true
+
+      - name: Search VPS for GUPSHUP without printing values
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -o ConnectTimeout=20 -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE' || echo "SSH_FAIL=$?"
+          set +e
+          echo "=== GUPSHUP key presence (lengths only) ==="
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          roots=[Path('/root/dalia-ops'), Path('/root'), Path('/etc')]
+          found=0
+          for root in roots:
+            if not root.exists(): continue
+            for p in root.rglob('*'):
+              if p.is_file() and p.stat().st_size < 500_000:
+                try:
+                  t=p.read_text(errors='ignore')
+                except Exception:
+                  continue
+                if re.search(r'GUPSHUP_API_KEY\s*=', t):
+                  for line in t.splitlines():
+                    if 'GUPSHUP_API_KEY' in line and '=' in line:
+                      k,v=line.split('=',1); v=v.strip().strip('"').strip("'")
+                      print(f'FILE={p} LEN={len(v)} EMPTY={len(v)==0}')
+                      found+=1
+          print('FOUND_COUNT', found)
+          PY
+          echo DONE
+          REMOTE
