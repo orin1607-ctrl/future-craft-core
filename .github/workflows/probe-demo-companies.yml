@@ -1,0 +1,34 @@
+name: Probe company names for Demo fleet
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe-demo-companies.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List companies with vehicles/drivers
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 <<'PY'
+          import json,urllib.request,os,urllib.parse
+          srk=os.environ['SRK']
+          url='https://qasomfndnjuixgjmjwcm.supabase.co'
+          def get(path):
+            req=urllib.request.Request(url+path, headers={'apikey':srk,'Authorization':'Bearer '+srk})
+            return json.load(urllib.request.urlopen(req))
+          # distinct company names from settings, vehicles, drivers, faults
+          for table,col in [('company_settings','company_name'),('vehicles','company_name'),('drivers','company_name'),('faults','company_name')]:
+            rows=get(f'/rest/v1/{table}?select={col}&limit=1000')
+            names=sorted({r.get(col) for r in rows if r.get(col)})
+            print(table, 'n_distinct', len(names))
+            for n in names:
+              if any(x in n for x in ['אילנה','אטיאס','Demo','demo','דמו','Yoni','יוני']):
+                print(' ', table, repr(n))
+          # recent faults with event_number
+          faults=get('/rest/v1/faults?select=id,event_number,company_name,fault_type,vehicle_plate,driver_name,created_at&event_number=neq.&order=created_at.desc&limit=5')
+          print('RECENT_NUMBERED_FAULTS', json.dumps(faults, ensure_ascii=False, indent=2)[:1500])
+          print('DONE')
+          PY
