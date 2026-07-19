@@ -1,0 +1,21 @@
+name: Probe existing edge functions
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe-edge-functions-exist.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe function gateway existence
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          REF=qasomfndnjuixgjmjwcm
+          BASE="https://$REF.supabase.co/functions/v1"
+          for fn in notify-accident-email send-whatsapp-message marketing-notify-email notify-service-order-email send-supplier-order-email send-user-access-code; do
+            code=$(curl -s -o /tmp/out.txt -w "%{http_code}" -X POST "$BASE/$fn" \
+              -H "apikey: $SRK" -H "Authorization: Bearer $SRK" \
+              -H "Content-Type: application/json" -d '{}')
+            echo "$fn HTTP=$code BODY=$(head -c 180 /tmp/out.txt | tr '\n' ' ')"
+          done
