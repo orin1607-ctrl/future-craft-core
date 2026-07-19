@@ -20,7 +20,8 @@ on:
 
 concurrency:
   group: dalia-production-deploy
-  cancel-in-progress: false
+  # Newest push supersedes older waiting Approves so Owner always reviews latest SHA
+  cancel-in-progress: true
 
 env:
   PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co

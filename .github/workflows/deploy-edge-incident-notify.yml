@@ -2,7 +2,7 @@ name: Deploy Edge — incident notify
 
 # Deploys notify-accident-email + best-effort migrations.
 # Requires secret: SUPABASE_ACCESS_TOKEN (must pass Management API preflight).
-# Frontend Hostinger deploy: use deploy-production-vps.yml separately.
+# On push to main (matching paths): Staging auto + Production queued behind Environment gate.
 # Canonical secrets map: docs/ENVIRONMENT-AND-SECRETS-HE.md
 
 on:
@@ -22,9 +22,14 @@ on:
       - 'supabase/functions/notify-accident-email/**'
       - 'supabase/migrations/**incident**'
       - '.github/workflows/deploy-edge-incident-notify.yml'
+      - 'public/project-001/edge-deploy-queue.json'
 
 permissions:
   contents: read
+
+concurrency:
+  group: deploy-edge-incident-notify
+  cancel-in-progress: true
 
 jobs:
   preflight-token:
@@ -41,8 +46,8 @@ jobs:
           set -euo pipefail
           if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
             echo "valid=false" >> "$GITHUB_OUTPUT"
-            echo "::error::SUPABASE_ACCESS_TOKEN missing. Set GitHub Secret, then re-run. See docs/ENVIRONMENT-AND-SECRETS-HE.md"
-            exit 1
+            echo "::error::SUPABASE_ACCESS_TOKEN missing. Rotate at https://supabase.com/dashboard/account/tokens then update GitHub Secret."
+            exit 0
           fi
           CODE=$(curl -sS -o /tmp/mgmt.json -w "%{http_code}" \
             -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
@@ -54,12 +59,23 @@ jobs:
           else
             echo "valid=false" >> "$GITHUB_OUTPUT"
             echo "::error::SUPABASE_ACCESS_TOKEN rejected (HTTP $CODE). Rotate at https://supabase.com/dashboard/account/tokens and update the GitHub Secret."
-            exit 1
+            exit 0
           fi
+
+  token-gate-report:
+    needs: preflight-token
+    if: needs.preflight-token.outputs.valid != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Owner must rotate SUPABASE_ACCESS_TOKEN
+        run: |
+          echo "::error::Edge deploy blocked until Owner rotates SUPABASE_ACCESS_TOKEN (GitHub Secret)."
+          echo "After update: re-push or re-run this workflow — Staging deploys automatically; Production waits for Environment Approve."
+          exit 1
 
   deploy-edge-staging:
     needs: preflight-token
-    if: github.event_name == 'workflow_dispatch' && inputs.target == 'staging' && needs.preflight-token.outputs.valid == 'true'
+    if: needs.preflight-token.outputs.valid == 'true' && ((github.event_name == 'workflow_dispatch' && inputs.target == 'staging') || github.event_name == 'push')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,11 +88,18 @@ jobs:
           npx supabase link --project-ref usfeoerkpcafxxlyuldl || true
           npx supabase db push --include-all || echo "::warning::Apply migrations manually on Staging"
 
+  # Production: Environment gate → Owner Approve → deploy
   deploy-edge-production:
-    needs: preflight-token
-    if: github.event_name == 'workflow_dispatch' && inputs.target == 'production' && needs.preflight-token.outputs.valid == 'true'
+    needs: [preflight-token, deploy-edge-staging]
+    if: |
+      always() &&
+      needs.preflight-token.outputs.valid == 'true' &&
+      (needs.deploy-edge-staging.result == 'success' || needs.deploy-edge-staging.result == 'skipped') &&
+      ((github.event_name == 'workflow_dispatch' && inputs.target == 'production') || github.event_name == 'push')
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      url: https://qasomfndnjuixgjmjwcm.supabase.co/functions/v1/notify-accident-email
     steps:
       - uses: actions/checkout@v4
       - name: Deploy Edge to Production
@@ -87,19 +110,3 @@ jobs:
           npx supabase functions deploy notify-accident-email --project-ref qasomfndnjuixgjmjwcm
           npx supabase link --project-ref qasomfndnjuixgjmjwcm || true
           npx supabase db push --include-all || echo "::warning::Apply migrations manually on Production"
-
-  # On push to main: auto-deploy Edge to Staging only (no Production env gate)
-  deploy-edge-staging-on-push:
-    needs: preflight-token
-    if: github.event_name == 'push' && needs.preflight-token.outputs.valid == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy Edge to Staging (push)
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          set -euo pipefail
-          npx supabase functions deploy notify-accident-email --project-ref usfeoerkpcafxxlyuldl
-          npx supabase link --project-ref usfeoerkpcafxxlyuldl || true
-          npx supabase db push --include-all || echo "::warning::Apply Staging migrations manually"

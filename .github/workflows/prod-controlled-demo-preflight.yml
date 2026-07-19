@@ -1,7 +1,13 @@
 name: Production controlled demo preflight
 
+# Readiness for live WA/Email (no send). Triggered by push of queue marker or manually.
 on:
   workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'public/project-001/wa-email-preflight-queue.json'
+      - '.github/workflows/prod-controlled-demo-preflight.yml'
 
 jobs:
   preflight:

@@ -1,0 +1,8 @@
+{
+  "id": "wa-email-preflight-queue",
+  "requestedAt": "2026-07-19T17:45:00.000Z",
+  "requestedBy": "cursor-agent",
+  "mode": "preflight_no_send",
+  "channels": ["whatsapp", "email"],
+  "note": "Triggers Production controlled demo preflight. Real send only after Owner explicit chat approval."
+}
