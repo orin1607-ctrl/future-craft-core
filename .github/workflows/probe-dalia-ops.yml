@@ -1,0 +1,66 @@
+name: Probe dalia-ops scripts (no secrets)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-dalia-ops.yml'
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Inspect dalia-ops (redacted)
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set -e
+          echo "==== dalia-ops tree ===="
+          ls -la /root/dalia-ops/ 2>/dev/null | head -40
+          echo "==== OPS script paths (from env keys only) ===="
+          # Print non-secret OPS_* values only
+          if [ -f /root/dalia-ops/.env ]; then
+            grep -E '^OPS_|^SUPABASE_PROJECT' /root/dalia-ops/.env | sed -E 's/(TOKEN|PASSWORD|SECRET|KEY)=.*/\1=***REDACTED***/'
+          fi
+          echo "==== ACCESS_TOKEN present? ===="
+          python3 - <<'PY'
+          from pathlib import Path
+          env = Path('/root/dalia-ops/.env').read_text()
+          vals = {}
+          for line in env.splitlines():
+            line=line.strip()
+            if not line or line.startswith('#') or '=' not in line: continue
+            k,v=line.split('=',1)
+            vals[k]=v.strip().strip('"').strip("'")
+          tok=vals.get('SUPABASE_ACCESS_TOKEN','')
+          pwd=vals.get('SUPABASE_DB_PASSWORD','')
+          print('TOKEN_LEN', len(tok))
+          print('TOKEN_PREFIX', tok[:4]+'...' if tok else 'EMPTY')
+          print('DB_PASSWORD_LEN', len(pwd))
+          print('OPS_MIGRATE_SCRIPT', vals.get('OPS_MIGRATE_SCRIPT'))
+          print('OPS_DEPLOY_SCRIPT', vals.get('OPS_DEPLOY_SCRIPT'))
+          print('OPS_REPO_DIR', vals.get('OPS_REPO_DIR'))
+          print('OPS_PRODUCTION_BRANCH', vals.get('OPS_PRODUCTION_BRANCH'))
+          PY
+          echo "==== migrate/deploy script heads ===="
+          MIG=$(grep '^OPS_MIGRATE_SCRIPT=' /root/dalia-ops/.env | cut -d= -f2- | tr -d '"' | tr -d "'")
+          DEP=$(grep '^OPS_DEPLOY_SCRIPT=' /root/dalia-ops/.env | cut -d= -f2- | tr -d '"' | tr -d "'")
+          echo "MIG=$MIG"
+          echo "DEP=$DEP"
+          [ -n "$MIG" ] && [ -f "$MIG" ] && head -60 "$MIG" || echo "migrate script missing"
+          [ -n "$DEP" ] && [ -f "$DEP" ] && head -60 "$DEP" || echo "deploy script missing"
+          echo "==== fix-pirsum script head ===="
+          head -40 /root/fix-pirsum-prod-supabase.sh 2>/dev/null || true
+          echo "==== supabase auth status (no token print) ===="
+          export SUPABASE_ACCESS_TOKEN="$(grep '^SUPABASE_ACCESS_TOKEN=' /root/dalia-ops/.env | cut -d= -f2- | tr -d '"' | tr -d "'")"
+          supabase projects list 2>&1 | head -20 || true
+          echo "==== DONE ===="
+          REMOTE
