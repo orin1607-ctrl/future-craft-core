@@ -1,10 +1,6 @@
 name: Probe dalia-ops scripts (no secrets)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/probe-dalia-ops.yml'
   workflow_dispatch: {}
 
 jobs:

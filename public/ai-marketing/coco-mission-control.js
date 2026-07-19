@@ -127,6 +127,23 @@
       howTo: ['ממשקים', 'בדוק סטטוס ירוק/צהוב/אדום'],
       status: 'live',
     },
+    {
+      id: 'environment-ops',
+      icon: '🛠️',
+      name: 'סביבת עבודה · Secrets · Deploy',
+      screen: 'workspace',
+      where: 'docs/ENVIRONMENT-AND-SECRETS-HE.md + project-001/environment-status.json',
+      dataFrom: 'GitHub Secrets, Supabase Edge Secrets, VPS dalia-ops (שמות בלבד)',
+      decides: 'Staging vs Preview vs Production; מה חסר לפריסה בלי עצירות',
+      returns: 'מטריצת Secrets + npm run env:health + Actions Environment Health',
+      howTo: [
+        'קרא docs/ENVIRONMENT-AND-SECRETS-HE.md',
+        'הרץ npm run env:health',
+        'Actions → Environment Health',
+        'Owner: רוטציית SUPABASE_ACCESS_TOKEN + GUPSHUP ב-Production Edge',
+      ],
+      status: 'partial',
+    },
   ];
 
   function parseLs(key) {

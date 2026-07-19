@@ -1,9 +1,8 @@
 name: Test WA session bridge v2 (orin1607)
 
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/test-wa-session-bridge-v2.yml']
+  workflow_dispatch: {}
+
 jobs:
   test:
     runs-on: ubuntu-latest

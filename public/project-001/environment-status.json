@@ -1,0 +1,89 @@
+{
+  "id": "environment-status",
+  "version": "2026-07-19",
+  "title": "סביבת עבודה — סטטוס קבוע",
+  "canonicalDoc": "docs/ENVIRONMENT-AND-SECRETS-HE.md",
+  "healthScript": "scripts/check-environment-health.mjs",
+  "healthWorkflow": ".github/workflows/environment-health.yml",
+  "npmScript": "npm run env:health",
+  "environments": {
+    "staging": {
+      "frontend": "https://orin1607-ctrl.github.io/future-craft-core/",
+      "supabaseRef": "usfeoerkpcafxxlyuldl",
+      "role": "פיתוח ואימות Incident/Alerts"
+    },
+    "preview": {
+      "frontend": "http://preview.dalia-car.online",
+      "supabaseRef": "qasomfndnjuixgjmjwcm",
+      "role": "בילד Production על VPS נפרד"
+    },
+    "production": {
+      "frontend": "https://dalia-car.online",
+      "supabaseRef": "qasomfndnjuixgjmjwcm",
+      "role": "Hostinger live"
+    },
+    "legacy": {
+      "supabaseRef": "kuenhflklivaxrmqbsee",
+      "role": "לא לשימוש"
+    }
+  },
+  "secretsMatrix": [
+    {
+      "name": "SUPABASE_ACCESS_TOKEN",
+      "where": "GitHub Secrets (+ אופציונלי VPS dalia-ops)",
+      "usedBy": "deploy-edge-incident-notify, environment-health, supabase CLI",
+      "purpose": "Management API / functions deploy",
+      "status": "needs_attention",
+      "note": "קיים אך 401 — נדרש רוטציה"
+    },
+    {
+      "name": "GUPSHUP_API_KEY",
+      "where": "Supabase Edge Secrets (Staging + Production)",
+      "usedBy": "send-whatsapp-message, notify-accident-email",
+      "purpose": "WhatsApp דרך Gupshup",
+      "status": "needs_attention",
+      "note": "חסר ב-Production Edge"
+    },
+    {
+      "name": "RESEND_API_KEY",
+      "where": "Supabase Edge Secrets (Staging + Production)",
+      "usedBy": "notify-accident-email / email edges",
+      "purpose": "Email",
+      "status": "likely_ok",
+      "note": "Production Edge ישן עובר בדיקת מפתח"
+    },
+    {
+      "name": "VPS_HOST / VPS_USER / VPS_SSH_KEY",
+      "where": "GitHub Secrets",
+      "usedBy": "dalia-ci-preview, deploy-production-vps",
+      "purpose": "rsync ל-Preview/Hostinger",
+      "status": "ok"
+    },
+    {
+      "name": "VITE_ENV_STAGING / VITE_ENV_PRODUCTION",
+      "where": "GitHub Secrets",
+      "usedBy": "Staging Pages / Production builds",
+      "purpose": "VITE_SUPABASE_* בבילד",
+      "status": "ok"
+    },
+    {
+      "name": "SUPABASE_DB_PASSWORD",
+      "where": "VPS /root/dalia-ops/.env",
+      "usedBy": "migrations via pooler",
+      "purpose": "psql / migrate",
+      "status": "ok"
+    }
+  ],
+  "ownerOneTimeActions": [
+    "Rotate SUPABASE_ACCESS_TOKEN → update GitHub Secret",
+    "Set Production Edge GUPSHUP_* from Staging Dashboard (not chat)",
+    "Deploy Edge notify-accident-email to Staging then Production",
+    "Optional: align GitHub default branch to main"
+  ],
+  "git": {
+    "workBranch": "main",
+    "githubDefaultBranch": "production",
+    "note": "CI רץ על main; default branch היסטורי לא לבלבל עם Production site"
+  },
+  "updatedAt": "2026-07-19T17:30:00.000Z"
+}

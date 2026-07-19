@@ -1,8 +1,7 @@
 name: Probe fault/vehicle columns
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/probe-fault-columns.yml']
+  workflow_dispatch: {}
+
 jobs:
   probe:
     runs-on: ubuntu-latest

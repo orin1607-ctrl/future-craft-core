@@ -1,9 +1,7 @@
 name: Test Production email via old notify
 
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/test-prod-email-notify.yml']
+  workflow_dispatch: {}
 
 jobs:
   test:

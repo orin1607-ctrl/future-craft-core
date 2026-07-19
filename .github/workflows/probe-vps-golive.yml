@@ -1,10 +1,6 @@
 name: Probe VPS for go-live readiness
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/probe-vps-golive.yml'
   workflow_dispatch: {}
 
 jobs:

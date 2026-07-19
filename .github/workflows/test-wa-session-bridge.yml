@@ -1,9 +1,8 @@
 name: Test super_admin session for WhatsApp edge
 
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/test-wa-session-bridge.yml']
+  workflow_dispatch: {}
+
 jobs:
   test:
     runs-on: ubuntu-latest

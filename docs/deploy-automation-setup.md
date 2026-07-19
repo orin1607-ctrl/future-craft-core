@@ -2,15 +2,21 @@
 
 תהליך: **פיתוח → push `main` → Staging (GitHub Pages) → CI + Preview → אישור במסך Deploy → Production**
 
+> **מקור אמת לסביבות + Secrets (שמות בלבד, סטטוס, בדיקות):**  
+> [`docs/ENVIRONMENT-AND-SECRETS-HE.md`](./ENVIRONMENT-AND-SECRETS-HE.md)  
+> בדיקת בריאות: `node scripts/check-environment-health.mjs` או Actions → **Environment Health**.
+
 ## 1. GitHub Secrets (Repository Settings → Secrets)
 
-| Secret | ערך |
-|--------|-----|
-| `VPS_HOST` | `72.60.36.182` |
-| `VPS_USER` | `root` |
+| Secret | ערך (לא לשמור בצ'אט) |
+|--------|----------------------|
+| `VPS_HOST` | כתובת VPS Hostinger |
+| `VPS_USER` | משתמש SSH (לרוב `root`) |
 | `VPS_SSH_KEY` | מפתח פרטי SSH ל-VPS |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | anon key של `qasomfndnjuixgjmjwcm` |
+| `VITE_ENV_STAGING` / `VITE_ENV_PRODUCTION` | תוכן `.env` לבילד (ראה `.env.*.example`) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | anon key של Production `qasomfndnjuixgjmjwcm` (אם בשימוש ב-CI) |
 | `SUPABASE_SERVICE_ROLE_KEY` | service role production (לרישום deploy_runs) |
+| `SUPABASE_ACCESS_TOKEN` | Personal Access Token של Supabase (CLI / Edge deploy) — חייב לעבור Management API |
 | `GITHUB_PAT` | Personal Access Token עם `actions:write` (ל-edge function deploy-control) |
 
 ## 2. GitHub Environment `production`
@@ -46,8 +52,23 @@ Secrets ב-Edge Functions:
 |------|--------|
 | `deploy-staging-pages.yml` | push `main` → GitHub Pages (Staging) |
 | `dalia-ci-preview.yml` | push `main` → build + smoke + Preview VPS |
-| `deploy-production-vps.yml` | workflow_dispatch / כפתור Deploy |
-| `rollback-production-vps.yml` | workflow_dispatch / כפתור Rollback |
+| `deploy-production-vps.yml` | push `main` + Environment Approve / Deploy UI |
+| `deploy-edge-incident-notify.yml` | paths על Edge/migrations או `workflow_dispatch` (עם preflight Token) |
+| `environment-health.yml` | push `main` + ידני — בדיקת Secrets/Edge בלי ערכים |
+| `rollback-production-vps.yml` | `workflow_dispatch` / כפתור Rollback |
+| `owner-golive-production.yml` | **ידני בלבד** — מסלול חירום מאושר Owner |
+| `probe-*` / `test-*` | **ידני בלבד** — לא רצים על push |
+
+## 5b. Edge Secrets (Staging + Production)
+
+Dashboard → Project → Edge Functions → Secrets:
+
+| Secret | Staging | Production |
+|--------|---------|------------|
+| `GUPSHUP_API_KEY` (+ SOURCE/APP) | נדרש ל-WA | **חובה** ל-WA חי |
+| `RESEND_API_KEY` (+ FROM) | נדרש ל-Email | נדרש ל-Email חי |
+
+פירוט מלא: `docs/ENVIRONMENT-AND-SECRETS-HE.md` §3.
 
 ## 6. מסך Deploy
 

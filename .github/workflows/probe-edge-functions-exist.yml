@@ -1,8 +1,7 @@
 name: Probe existing edge functions
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/probe-edge-functions-exist.yml']
+  workflow_dispatch: {}
+
 jobs:
   probe:
     runs-on: ubuntu-latest

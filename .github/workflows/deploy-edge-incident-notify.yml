@@ -1,8 +1,9 @@
 name: Deploy Edge — incident notify
 
 # Deploys notify-accident-email + best-effort migrations.
-# Requires secret: SUPABASE_ACCESS_TOKEN
+# Requires secret: SUPABASE_ACCESS_TOKEN (must pass Management API preflight).
 # Frontend Hostinger deploy: use deploy-production-vps.yml separately.
+# Canonical secrets map: docs/ENVIRONMENT-AND-SECRETS-HE.md
 
 on:
   workflow_dispatch:
@@ -26,8 +27,39 @@ permissions:
   contents: read
 
 jobs:
+  preflight-token:
+    name: Preflight SUPABASE_ACCESS_TOKEN
+    runs-on: ubuntu-latest
+    outputs:
+      valid: ${{ steps.check.outputs.valid }}
+    steps:
+      - name: Validate Management API token
+        id: check
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "::error::SUPABASE_ACCESS_TOKEN missing. Set GitHub Secret, then re-run. See docs/ENVIRONMENT-AND-SECRETS-HE.md"
+            exit 1
+          fi
+          CODE=$(curl -sS -o /tmp/mgmt.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects" || echo "000")
+          echo "Management API HTTP: $CODE"
+          if [ "$CODE" = "200" ]; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Token accepted"
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "::error::SUPABASE_ACCESS_TOKEN rejected (HTTP $CODE). Rotate at https://supabase.com/dashboard/account/tokens and update the GitHub Secret."
+            exit 1
+          fi
+
   deploy-edge-staging:
-    if: github.event_name == 'workflow_dispatch' && inputs.target == 'staging'
+    needs: preflight-token
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'staging' && needs.preflight-token.outputs.valid == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,13 +67,14 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "Missing SUPABASE_ACCESS_TOKEN"; exit 1; }
+          set -euo pipefail
           npx supabase functions deploy notify-accident-email --project-ref usfeoerkpcafxxlyuldl
           npx supabase link --project-ref usfeoerkpcafxxlyuldl || true
           npx supabase db push --include-all || echo "::warning::Apply migrations manually on Staging"
 
   deploy-edge-production:
-    if: github.event_name == 'workflow_dispatch' && inputs.target == 'production'
+    needs: preflight-token
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'production' && needs.preflight-token.outputs.valid == 'true'
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -50,14 +83,15 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "Missing SUPABASE_ACCESS_TOKEN"; exit 1; }
+          set -euo pipefail
           npx supabase functions deploy notify-accident-email --project-ref qasomfndnjuixgjmjwcm
           npx supabase link --project-ref qasomfndnjuixgjmjwcm || true
           npx supabase db push --include-all || echo "::warning::Apply migrations manually on Production"
 
-  # On push to main: auto-deploy Edge to Staging (no Production env gate)
+  # On push to main: auto-deploy Edge to Staging only (no Production env gate)
   deploy-edge-staging-on-push:
-    if: github.event_name == 'push'
+    needs: preflight-token
+    if: github.event_name == 'push' && needs.preflight-token.outputs.valid == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,10 +99,7 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-            echo "::warning::SUPABASE_ACCESS_TOKEN missing — Staging Edge not deployed"
-            exit 0
-          fi
+          set -euo pipefail
           npx supabase functions deploy notify-accident-email --project-ref usfeoerkpcafxxlyuldl
           npx supabase link --project-ref usfeoerkpcafxxlyuldl || true
           npx supabase db push --include-all || echo "::warning::Apply Staging migrations manually"

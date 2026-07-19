@@ -1,8 +1,7 @@
 name: Probe Gupshup key anywhere on VPS
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/probe-gupshup-anywhere.yml']
+  workflow_dispatch: {}
+
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -21,9 +20,7 @@ jobs:
           grep -rIl -i 'gupshup' /root --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=assets 2>/dev/null | head -40
           echo "=== key assignment lengths ==="
           grep -ri 'GUPSHUP' /root --include='*.env*' --include='*.sh' --include='*.json' --include='*.yml' --exclude-dir=node_modules 2>/dev/null | head -30 | while read -r line; do
-            echo "$line" | python3 -c "import sys,re; s=sys.stdin.read();
-m=re.search(r'(GUPSHUP[A-Z0-9_]*)\s*[=:]\s*[\"']?([^\"'\s]+)', s, re.I)
-print('HIT', m.group(1) if m else '?', 'LEN', len(m.group(2)) if m else 0, 'FILE_HINT', s.split(':',1)[0][:80])"
+            echo "$line" | python3 -c "import sys,re; s=sys.stdin.read(); m=re.search(r'(GUPSHUP[A-Z0-9_]*)\s*[=:]\s*[\"']?([^\"'\s]+)', s, re.I); print('HIT', m.group(1) if m else '?', 'LEN', len(m.group(2)) if m else 0, 'FILE_HINT', s.split(':',1)[0][:80])"
           done
           echo DONE
           REMOTE

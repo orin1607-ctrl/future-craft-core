@@ -1,0 +1,169 @@
+# Environment health — secrets presence + Edge dry_run (no secret values printed).
+# Run after every main push and on demand. Does not deploy.
+
+name: Environment Health
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "staging | production | both"
+        required: false
+        default: both
+        type: choice
+        options: [staging, production, both]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: environment-health-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Secrets + Edge health
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --ignore-scripts
+
+      - name: Preflight — required GitHub secrets (names only)
+        env:
+          HAS_SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+          HAS_VITE_ENV_STAGING: ${{ secrets.VITE_ENV_STAGING != '' }}
+          HAS_VITE_ENV_PRODUCTION: ${{ secrets.VITE_ENV_PRODUCTION != '' }}
+          HAS_VPS_HOST: ${{ secrets.VPS_HOST != '' }}
+          HAS_VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY != '' }}
+          HAS_VPS_USER: ${{ secrets.VPS_USER != '' }}
+        run: |
+          set -euo pipefail
+          echo "## GitHub Secrets presence"
+          echo "SUPABASE_ACCESS_TOKEN: $HAS_SUPABASE_ACCESS_TOKEN"
+          echo "VITE_ENV_STAGING: $HAS_VITE_ENV_STAGING"
+          echo "VITE_ENV_PRODUCTION: $HAS_VITE_ENV_PRODUCTION"
+          echo "VPS_HOST: $HAS_VPS_HOST"
+          echo "VPS_SSH_KEY: $HAS_VPS_SSH_KEY"
+          echo "VPS_USER: $HAS_VPS_USER"
+          FAIL=0
+          if [ "$HAS_SUPABASE_ACCESS_TOKEN" != "true" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN missing — Edge deploy will fail"
+            FAIL=1
+          fi
+          if [ "$HAS_VITE_ENV_STAGING" != "true" ]; then
+            echo "::warning::VITE_ENV_STAGING missing — Staging Pages may fail"
+          fi
+          if [ "$HAS_VITE_ENV_PRODUCTION" != "true" ]; then
+            echo "::warning::VITE_ENV_PRODUCTION missing — Preview/Production builds may fail"
+          fi
+          if [ "$HAS_VPS_HOST" != "true" ] || [ "$HAS_VPS_SSH_KEY" != "true" ]; then
+            echo "::warning::VPS_* incomplete — Preview/Production VPS deploy may fail"
+          fi
+          exit "$FAIL"
+
+      - name: Validate SUPABASE_ACCESS_TOKEN against Management API
+        id: token
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Token empty"
+            exit 1
+          fi
+          CODE=$(curl -sS -o /tmp/mgmt.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects" || echo "000")
+          echo "Management API HTTP: $CODE"
+          if [ "$CODE" = "200" ]; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+            echo "✅ SUPABASE_ACCESS_TOKEN accepted by Management API"
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "::error::SUPABASE_ACCESS_TOKEN rejected (HTTP $CODE). Rotate at https://supabase.com/dashboard/account/tokens and update GitHub Secret."
+            exit 1
+          fi
+
+      - name: Edge dry_run health (Staging + Production)
+        if: steps.token.outputs.valid == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TARGET: ${{ github.event.inputs.target || 'both' }}
+          STAGING_REF: usfeoerkpcafxxlyuldl
+          PROD_REF: qasomfndnjuixgjmjwcm
+        run: |
+          set -euo pipefail
+          FAIL=0
+          check_one() {
+            local NAME="$1" REF="$2"
+            echo ""
+            echo "=== $NAME ($REF) ==="
+            # Fetch anon key via Management API (not printed)
+            KEYS_JSON=$(curl -sS -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+              "https://api.supabase.com/v1/projects/${REF}/api-keys" || echo "[]")
+            ANON=$(node -e '
+              const j=JSON.parse(process.argv[1]||"[]");
+              const a=(Array.isArray(j)?j:[]).find(k=>k.name==="anon"||k.name==="publishable");
+              if(!a||!a.api_key){process.exit(2)}
+              process.stdout.write(a.api_key);
+            ' "$KEYS_JSON") || {
+              echo "::error::$NAME: cannot read anon key via Management API"
+              FAIL=1
+              return
+            }
+            BODY=$(curl -sS -X POST \
+              "https://${REF}.supabase.co/functions/v1/notify-accident-email" \
+              -H "Authorization: Bearer ${ANON}" \
+              -H "apikey: ${ANON}" \
+              -H "Content-Type: application/json" \
+              -d '{"dry_run":true,"incident_type":"fault","incident_id":"00000000-0000-4000-8000-000000000001"}' \
+              || echo '{}')
+            echo "dry_run keys: $(node -e 'const o=JSON.parse(process.argv[1]||"{}"); console.log(Object.keys(o).join(","))' "$BODY")"
+            NEW=$(node -e '
+              const o=JSON.parse(process.argv[1]||"{}");
+              const ok = o && typeof o==="object" && (
+                "channels" in o || "would_send" in o || "recipient_plan" in o || "delivery_log" in o
+              );
+              console.log(ok?"true":"false");
+            ' "$BODY")
+            if [ "$NEW" = "true" ]; then
+              echo "✅ $NAME Edge looks NEW (incident-alerts shape)"
+            else
+              echo "::error::$NAME Edge looks OLD or unreachable — deploy notify-accident-email"
+              FAIL=1
+            fi
+            # Probe WhatsApp secret presence via send-whatsapp (expect configured vs missing message)
+            WA=$(curl -sS -X POST \
+              "https://${REF}.supabase.co/functions/v1/send-whatsapp-message" \
+              -H "Authorization: Bearer ${ANON}" \
+              -H "apikey: ${ANON}" \
+              -H "Content-Type: application/json" \
+              -d '{"to":"0000000000","message":"health-check","dry_run":true}' \
+              || echo '{}')
+            if echo "$WA" | grep -qi 'GUPSHUP_API_KEY is not configured'; then
+              echo "::warning::$NAME: GUPSHUP_API_KEY missing on Edge Secrets"
+              FAIL=1
+            else
+              echo "ℹ️ $NAME WhatsApp probe response (no secret values): $(node -e 'const o=JSON.parse(process.argv[1]||"{}"); console.log(JSON.stringify({error:o.error,ok:o.ok,configured:o.configured}).slice(0,200))' "$WA")"
+            fi
+          }
+          if [ "$TARGET" = "staging" ] || [ "$TARGET" = "both" ]; then
+            check_one "Staging" "$STAGING_REF"
+          fi
+          if [ "$TARGET" = "production" ] || [ "$TARGET" = "both" ]; then
+            check_one "Production" "$PROD_REF"
+          fi
+          exit "$FAIL"

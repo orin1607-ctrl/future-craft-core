@@ -1,8 +1,7 @@
 name: Probe service-role paths
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/probe-service-role-paths.yml']
+  workflow_dispatch: {}
+
 jobs:
   probe:
     runs-on: ubuntu-latest

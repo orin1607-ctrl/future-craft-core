@@ -1,8 +1,7 @@
 name: Probe token locations
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/probe-token-locations.yml']
+  workflow_dispatch: {}
+
 jobs:
   probe:
     runs-on: ubuntu-latest
