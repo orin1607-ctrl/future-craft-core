@@ -2,7 +2,8 @@ name: Deploy Staging to GitHub Pages
 
 # Staging deployment to GitHub Pages (dalia-staging Supabase only).
 # - Auto on push to main
-# - Manual workflow_dispatch can deploy any ref (e.g. feature branch) WITHOUT merging to main
+# - Owner-approved: also deploy feat/incident-alerts-staging to Staging Pages (NO merge to main)
+# - Manual workflow_dispatch can deploy any ref without merging to main
 
 on:
   workflow_dispatch:
@@ -14,6 +15,7 @@ on:
   push:
     branches:
       - main
+      - feat/incident-alerts-staging
 
 permissions:
   contents: read
