@@ -1,0 +1,63 @@
+name: Probe service-role paths
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe-service-role-paths.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: Inspect helper scripts (no secret values)
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set +e
+          echo "=== find-service-role-keyname.sh ==="
+          sed -n '1,80p' /root/find-service-role-keyname.sh
+          echo "=== unlock-owner-lockout.sh (redact long tokens) ==="
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          t=Path('/root/unlock-owner-lockout.sh').read_text(errors='ignore')
+          t=re.sub(r'(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)','JWT_REDACTED',t)
+          t=re.sub(r'(sbp_[A-Za-z0-9]+)','SBP_REDACTED',t)
+          print('\n'.join(t.splitlines()[:80]))
+          PY
+          echo "=== marketing-notify / send-whatsapp on disk? ==="
+          ls /root/future-craft-core/supabase/functions/ | head -40
+          ls /root/golive-incident/supabase/functions/ 2>/dev/null
+          echo "=== try list edge secrets via management with empty ==="
+          echo DONE
+          REMOTE
+      - name: Can SERVICE_ROLE call Management API?
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "SRK_LEN=${#SRK} PREFIX=${SRK:0:5}..."
+          # Decode JWT ref
+          python3 - <<'PY'
+          import os,base64,json
+          k=os.environ.get('SRK','')
+          if not k:
+            print('NO_SRK'); raise SystemExit
+          payload=json.loads(base64.urlsafe_b64decode(k.split('.')[1]+'=='))
+          print('role', payload.get('role'), 'ref', payload.get('ref'))
+          PY
+          # Try management endpoints (expect fail)
+          curl -s -o /tmp/m1.txt -w "%{http_code}" -H "Authorization: Bearer $SRK" \
+            "https://api.supabase.com/v1/projects/qasomfndnjuixgjmjwcm/functions" 
+          echo " mgmt_functions"
+          head -c 200 /tmp/m1.txt; echo
+          # Try project API with service role for secrets - won't work
+          curl -s -o /tmp/m2.txt -w "%{http_code}" \
+            -H "apikey: $SRK" -H "Authorization: Bearer $SRK" \
+            "https://qasomfndnjuixgjmjwcm.supabase.co/functions/v1/notify-accident-email" \
+            -H "Content-Type: application/json" \
+            -d '{"dry_run":true,"record":{"id":"00000000-0000-0000-0000-000000000001","company_name":"Demo"},"type":"fault"}'
+          echo " edge_invoke"
+          head -c 400 /tmp/m2.txt; echo
