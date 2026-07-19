@@ -1,0 +1,55 @@
+name: Test Production email via old notify
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-prod-email-notify.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Session + notify email probe
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 <<'PY'
+          import json,urllib.request,urllib.error,os,uuid
+          srk=os.environ['SRK']
+          url='https://qasomfndnjuixgjmjwcm.supabase.co'
+
+          def post(path, body, bearer=None):
+            h={'apikey':srk,'Authorization':'Bearer '+(bearer or srk),'Content-Type':'application/json'}
+            req=urllib.request.Request(url+path, data=json.dumps(body).encode(), headers=h)
+            try:
+              return json.load(urllib.request.urlopen(req)), None
+            except urllib.error.HTTPError as e:
+              return None, (e.code, e.read().decode()[:600])
+
+          resp,err=post('/auth/v1/admin/generate_link',{'type':'magiclink','email':'orin1607@gmail.com'})
+          assert not err, err
+          vresp,verr=post('/auth/v1/verify',{'type':'magiclink','email':'orin1607@gmail.com','token':resp['email_otp']})
+          assert not verr, verr
+          at=vresp.get('access_token') or vresp['session']['access_token']
+          print('SESSION_OK', len(at))
+
+          rid=str(uuid.uuid4())
+          body={
+            'type':'fault',
+            'record':{
+              'id': rid,
+              'company_name': 'אילנה אטיאס',
+              'driver_name': 'יוני אטיאס',
+              'vehicle_plate': '12-345-67',
+              'fault_type': 'פנצ׳ר',
+              'description': 'בדיקת Email Production go-live',
+              'urgency': 'urgent',
+              'status': 'opened',
+              'event_number': 'FLT-2026-TEST01',
+              'link': f'https://dalia-car.online/faults?id={rid}',
+            }
+          }
+          r,e=post('/functions/v1/notify-accident-email', body, bearer=at)
+          print('NOTIFY', r if r else e)
+          print('DONE')
+          PY

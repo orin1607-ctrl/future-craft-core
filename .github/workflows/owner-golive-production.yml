@@ -127,65 +127,58 @@ jobs:
           echo "MIGRATE_OK"
           REMOTE
 
-      - name: Deploy Edge notify-accident-email (Staging + Production)
+      - name: Enable Demo company incident alerts (אילנה אטיאס)
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
           set -euo pipefail
-          cd /root/golive-incident
-
-          # Discover access token without printing it
-          TOKEN=""
-          for cand in \
-            /root/dalia-ops/.env \
-            /root/.supabase/access-token \
-            /root/future-craft-core/.env \
-            /root/prod/future-craft-core/.env
-          do
-            if [ -f "$cand" ]; then
-              if grep -q 'SUPABASE_ACCESS_TOKEN=' "$cand" 2>/dev/null; then
-                T=$(grep '^SUPABASE_ACCESS_TOKEN=' "$cand" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")
-                if [ -n "$T" ]; then TOKEN="$T"; echo "TOKEN_SOURCE=$cand LEN=${#T}"; break; fi
-              fi
-              # raw access-token file
-              if [ "$(basename "$cand")" = "access-token" ]; then
-                T=$(cat "$cand" | tr -d '\n')
-                if [ -n "$T" ]; then TOKEN="$T"; echo "TOKEN_SOURCE=$cand LEN=${#T}"; break; fi
-              fi
-            fi
-          done
-
-          # Also search ~/.supabase
-          if [ -z "$TOKEN" ] && [ -d /root/.supabase ]; then
-            echo "=== ~/.supabase listing ==="
-            find /root/.supabase -type f | head -20
-            if [ -f /root/.supabase/access-token ]; then
-              TOKEN=$(tr -d '\n' </root/.supabase/access-token)
-              echo "TOKEN_SOURCE=/root/.supabase/access-token LEN=${#TOKEN}"
-            fi
-          fi
-
-          if [ -z "$TOKEN" ]; then
-            echo "ERROR: No SUPABASE_ACCESS_TOKEN found on VPS — cannot deploy Edge"
-            echo "EDGE_DEPLOY=SKIPPED_NO_TOKEN"
-            exit 1
-          fi
-
-          export SUPABASE_ACCESS_TOKEN="$TOKEN"
-          echo "=== supabase projects list (auth check) ==="
-          if ! supabase projects list 2>&1 | head -30; then
-            echo "ERROR: ACCESS_TOKEN rejected by Supabase"
-            exit 1
-          fi
-
-          echo "=== deploy Edge Staging ==="
-          supabase functions deploy notify-accident-email --project-ref usfeoerkpcafxxlyuldl --workdir /root/golive-incident
-
-          echo "=== deploy Edge Production ==="
-          supabase functions deploy notify-accident-email --project-ref qasomfndnjuixgjmjwcm --workdir /root/golive-incident
-
-          echo "EDGE_DEPLOY=OK"
+          set -a; source /root/dalia-ops/.env; set +a
+          DB_URL=$(python3 - <<'PY'
+          import os, urllib.parse
+          pwd=os.environ["SUPABASE_DB_PASSWORD"]
+          host=os.environ.get("SUPABASE_POOLER_HOST","aws-1-ap-south-1.pooler.supabase.com")
+          ref=os.environ.get("SUPABASE_PROJECT_REF","qasomfndnjuixgjmjwcm")
+          print(f"postgresql://postgres.{ref}:{urllib.parse.quote(pwd)}@{host}:5432/postgres")
+          PY
+          )
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          UPDATE public.company_settings
+          SET
+            incident_notify_in_app = true,
+            incident_notify_email = true,
+            incident_notify_whatsapp = true,
+            incident_email_recipients = 'both',
+            incident_whatsapp_recipients = 'dalia'
+          WHERE company_name = 'אילנה אטיאס';
+          SELECT company_name, incident_notify_email, incident_notify_whatsapp,
+                 incident_email_recipients, incident_whatsapp_recipients
+          FROM public.company_settings
+          WHERE company_name = 'אילנה אטיאס';
+          SQL
+          echo "SETTINGS_OK"
           REMOTE
+
+      - name: Deploy Edge notify-accident-email (best-effort)
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set +e
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "EDGE_DEPLOY=SKIPPED_NO_GH_TOKEN"
+            exit 0
+          fi
+          echo "GH_TOKEN_LEN=${#SUPABASE_ACCESS_TOKEN}"
+          npx supabase functions deploy notify-accident-email --project-ref usfeoerkpcafxxlyuldl
+          ST=$?
+          npx supabase functions deploy notify-accident-email --project-ref qasomfndnjuixgjmjwcm
+          PR=$?
+          echo "EDGE_STAGING_EXIT=$ST EDGE_PROD_EXIT=$PR"
+          if [ "$ST" != "0" ] || [ "$PR" != "0" ]; then
+            echo "EDGE_DEPLOY=FAILED_UNAUTHORIZED_OR_ERROR"
+            exit 1
+          fi
+          echo "EDGE_DEPLOY=OK"
 
       - name: Backup + deploy frontend to Production web root
         run: |
