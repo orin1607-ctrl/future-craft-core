@@ -1,0 +1,61 @@
+name: Deploy Edge — incident notify (Staging/Production)
+
+# Deploys notify-accident-email + applies delivery-log migration.
+# Requires secrets: SUPABASE_ACCESS_TOKEN
+# Does NOT deploy Hostinger frontend (use deploy-production-vps for that).
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'staging | production'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-edge:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target == 'production' && 'production' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Resolve project ref
+        id: ref
+        run: |
+          if [ "${{ inputs.target }}" = "production" ]; then
+            echo "project=qasomfndnjuixgjmjwcm" >> "$GITHUB_OUTPUT"
+          else
+            echo "project=usfeoerkpcafxxlyuldl" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy notify-accident-email
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "SUPABASE_ACCESS_TOKEN missing — cannot deploy Edge"
+            exit 1
+          fi
+          npx supabase functions deploy notify-accident-email \
+            --project-ref ${{ steps.ref.outputs.project }} \
+            --no-verify-jwt=false
+
+      - name: Apply incident delivery migration (SQL via Management API)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          # Best-effort: push pending migrations for linked project
+          npx supabase link --project-ref ${{ steps.ref.outputs.project }} || true
+          npx supabase db push --include-all || {
+            echo "::warning::db push failed — apply supabase/migrations/20260719080000_incident_notification_deliveries.sql manually in SQL Editor"
+            exit 0
+          }

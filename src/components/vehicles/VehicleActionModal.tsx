@@ -174,7 +174,7 @@ export default function VehicleActionModal({
           faultTypeOther: subType ? '' : description,
           description: description || subType,
           urgency,
-          dryRunNotify: true,
+          dryRunNotify: false,
         });
         error = result.error;
       } else if (category === 'טיפול' || category === 'הזמנת שירות') {
@@ -210,7 +210,7 @@ export default function VehicleActionModal({
           driverName: driverName || user?.full_name || '',
           location: location || '',
           description: description || subType,
-          dryRunNotify: true,
+          dryRunNotify: false,
         });
         error = result.error;
       } else if (category === 'בדיקה') {

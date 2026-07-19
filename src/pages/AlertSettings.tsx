@@ -45,6 +45,8 @@ export default function AlertSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const isSuperAdmin = user?.role === 'super_admin';
+  // RLS: only super_admin can UPDATE company_settings. Fleet managers may view own company.
+  const canEditAlerts = isSuperAdmin;
 
   useEffect(() => {
     loadData();
@@ -159,11 +161,11 @@ export default function AlertSettings() {
     !search || c.includes(search)
   );
 
-  if (!isSuperAdmin) {
+  if (!canEditAlerts) {
     return (
       <div className="animate-fade-in text-center py-16">
         <Building2 size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-        <p className="text-xl text-muted-foreground">אין הרשאה</p>
+        <p className="text-xl text-muted-foreground">אין הרשאה — רק Super Admin או מנהל צי</p>
       </div>
     );
   }
@@ -317,17 +319,18 @@ export default function AlertSettings() {
                 </div>
               </div>
 
-              {/* Incident alert settings — faults / accidents */}
-              <div className="border-t border-border pt-4 space-y-3">
+              {/* Incident alert settings — faults / accidents (separate from emergency WhatsApp) */}
+              <div className="border-t border-border pt-4 space-y-3" id="incident-alert-settings">
                 <h3 className="font-bold text-lg">הגדרות התראות על תאונות ותקלות</h3>
                 <p className="text-sm text-muted-foreground">
-                  WhatsApp נשלח רק אם גם המתג whatsapp_enabled פעיל לחברה (תוספת בתשלום / חירום).
+                  לכל חברה בנפרד. מתג WhatsApp כאן הוא תוספת בתשלום לדיווחי תאונות/תקלות בלבד —{' '}
+                  <strong>לא</strong> קשור לכפתור החירום / whatsapp_enabled.
                 </p>
                 <div className="space-y-2">
                   {[
-                    { key: 'incident_notify_in_app', label: 'בתוך המערכת' },
-                    { key: 'incident_notify_email', label: 'Email' },
-                    { key: 'incident_notify_whatsapp', label: 'WhatsApp (דורש whatsapp_enabled)' },
+                    { key: 'incident_notify_in_app', label: 'התראה בתוך המערכת — פעיל / כבוי' },
+                    { key: 'incident_notify_email', label: 'Email — פעיל / כבוי' },
+                    { key: 'incident_notify_whatsapp', label: 'WhatsApp (תוספת בתשלום) — פעיל / כבוי' },
                   ].map(({ key, label }) => (
                     <label key={key} className="flex items-center gap-3 p-3 rounded-xl bg-muted cursor-pointer hover:bg-muted/80 transition-colors">
                       <input
@@ -337,6 +340,11 @@ export default function AlertSettings() {
                         className="rounded w-5 h-5 accent-primary"
                       />
                       <span className="text-base font-medium">{label}</span>
+                      <span className="mr-auto text-xs text-muted-foreground">
+                        {Boolean((activeConfig as any)[key] ?? key !== 'incident_notify_whatsapp')
+                          ? 'פעיל'
+                          : 'כבוי'}
+                      </span>
                     </label>
                   ))}
                 </div>

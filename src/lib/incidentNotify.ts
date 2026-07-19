@@ -20,6 +20,7 @@ export type IncidentNotifyRecord = {
   fault_type_other?: string | null;
   description?: string | null;
   urgency?: string | null;
+  status?: string | null;
   created_at?: string | null;
   date?: string | null;
   images?: string | null;
@@ -32,7 +33,6 @@ export type CompanyIncidentNotifySettings = {
   incident_notify_whatsapp: boolean;
   incident_email_recipients: IncidentRecipientMode;
   incident_whatsapp_recipients: IncidentRecipientMode;
-  whatsapp_enabled: boolean | null;
 };
 
 const DEFAULT_SETTINGS: CompanyIncidentNotifySettings = {
@@ -41,7 +41,6 @@ const DEFAULT_SETTINGS: CompanyIncidentNotifySettings = {
   incident_notify_whatsapp: false,
   incident_email_recipients: 'fleet_managers',
   incident_whatsapp_recipients: 'dalia',
-  whatsapp_enabled: false,
 };
 
 export async function fetchIncidentNotifySettings(
@@ -51,7 +50,7 @@ export async function fetchIncidentNotifySettings(
   const { data } = await supabase
     .from('company_settings')
     .select(
-      'incident_notify_in_app, incident_notify_email, incident_notify_whatsapp, incident_email_recipients, incident_whatsapp_recipients, whatsapp_enabled',
+      'incident_notify_in_app, incident_notify_email, incident_notify_whatsapp, incident_email_recipients, incident_whatsapp_recipients',
     )
     .eq('company_name', companyName)
     .maybeSingle();
@@ -63,7 +62,6 @@ export async function fetchIncidentNotifySettings(
     incident_email_recipients: (data.incident_email_recipients as IncidentRecipientMode) || 'fleet_managers',
     incident_whatsapp_recipients:
       (data.incident_whatsapp_recipients as IncidentRecipientMode) || 'dalia',
-    whatsapp_enabled: data.whatsapp_enabled,
   };
 }
 
@@ -83,38 +81,30 @@ export function buildIncidentAbsoluteUrl(kind: IncidentKind, id: string): string
 
 export function buildWhatsAppPreview(kind: IncidentKind, record: IncidentNotifyRecord, link: string): string {
   const when = formatIsraelDateTime(record.created_at || record.date);
-  const plateLine = record.vehicle_internal_number
-    ? `${record.vehicle_plate || '—'} (פנימי: ${record.vehicle_internal_number})`
-    : record.vehicle_plate || '—';
+  const status = record.status || (kind === 'fault' ? 'opened' : 'open');
+  const plate = record.vehicle_plate || '—';
+  const internal = record.vehicle_internal_number || '';
 
-  if (kind === 'fault') {
-    return [
-      'דיווח תקלה חדש',
-      `מספר אירוע: ${record.event_number || '—'}`,
-      `חברה: ${record.company_name || '—'}`,
-      `נהג: ${record.driver_name || '—'}`,
-      `רכב: ${plateLine}`,
-      `סוג תקלה: ${faultTypeDisplay(record.fault_type, record.fault_type_other)}`,
-      `תאריך ושעה: ${when}`,
-      `תיאור: ${(record.description || '—').slice(0, 200)}`,
-      'נציג דליה יחזור לנהג בהקדם.',
-      `קישור לצפייה באירוע:`,
-      link,
-    ].join('\n');
-  }
-
-  return [
-    'דיווח תאונה חדש',
+  const lines = [
+    kind === 'fault' ? 'דיווח תקלה חדש' : 'דיווח תאונה חדש',
     `מספר אירוע: ${record.event_number || '—'}`,
     `חברה: ${record.company_name || '—'}`,
     `נהג: ${record.driver_name || '—'}`,
-    `רכב: ${plateLine}`,
+    `טלפון נהג: ${record.reporter_phone || '—'}`,
+    `מספר רישוי: ${plate}`,
+    ...(internal ? [`מספר פנימי: ${internal}`] : []),
+    `סוג אירוע: ${kind === 'fault' ? 'תקלה' : 'תאונה'}`,
+    ...(kind === 'fault'
+      ? [`סוג תקלה: ${faultTypeDisplay(record.fault_type, record.fault_type_other)}`]
+      : []),
     `תאריך ושעה: ${when}`,
     `תיאור: ${(record.description || '—').slice(0, 200)}`,
+    `סטטוס ראשוני: ${status}`,
     'נציג דליה יחזור לנהג בהקדם.',
-    `קישור לצפייה באירוע:`,
+    'קישור לצפייה באירוע:',
     link,
-  ].join('\n');
+  ];
+  return lines.join('\n');
 }
 
 export function buildEmailSubject(kind: IncidentKind, record: IncidentNotifyRecord): string {
@@ -123,38 +113,20 @@ export function buildEmailSubject(kind: IncidentKind, record: IncidentNotifyReco
 }
 
 export function buildEmailPreviewHtml(kind: IncidentKind, record: IncidentNotifyRecord, link: string): string {
-  const when = formatIsraelDateTime(record.created_at || record.date);
-  const hasImage = !!(record.images && record.images !== '' && record.images !== '[]');
-  const plateLine = record.vehicle_internal_number
-    ? `${record.vehicle_plate || '—'} (מספר פנימי: ${record.vehicle_internal_number})`
-    : record.vehicle_plate || '—';
-  const typeRow =
-    kind === 'fault'
-      ? `<tr><td style="padding:8px;font-weight:bold">סוג תקלה</td><td style="padding:8px">${faultTypeDisplay(record.fault_type, record.fault_type_other)}</td></tr>`
-      : '';
-
+  const text = buildWhatsAppPreview(kind, record, link).replace(/\n/g, '<br/>');
   return `
 <div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px">
   <h2>${kind === 'fault' ? 'דיווח תקלה חדש' : 'דיווח תאונה חדש'}</h2>
-  <table style="width:100%;border-collapse:collapse">
-    <tr><td style="padding:8px;font-weight:bold">מספר אירוע</td><td style="padding:8px">${record.event_number || '—'}</td></tr>
-    <tr><td style="padding:8px;font-weight:bold">חברה</td><td style="padding:8px">${record.company_name || '—'}</td></tr>
-    <tr><td style="padding:8px;font-weight:bold">נהג</td><td style="padding:8px">${record.driver_name || '—'}</td></tr>
-    <tr><td style="padding:8px;font-weight:bold">טלפון נהג</td><td style="padding:8px">${record.reporter_phone || '—'}</td></tr>
-    <tr><td style="padding:8px;font-weight:bold">רכב</td><td style="padding:8px">${plateLine}</td></tr>
-    ${typeRow}
-    <tr><td style="padding:8px;font-weight:bold">תאריך ושעה</td><td style="padding:8px">${when}</td></tr>
-    <tr><td style="padding:8px;font-weight:bold">תיאור</td><td style="padding:8px">${record.description || '—'}</td></tr>
-    <tr><td style="padding:8px;font-weight:bold">צורפה תמונה</td><td style="padding:8px">${hasImage ? 'כן' : 'לא'}</td></tr>
-  </table>
+  <div style="line-height:1.6">${text}</div>
   <p><a href="${link}">פתיחת האירוע במערכת</a></p>
-  <p style="color:#666;font-size:12px">נמען לדוגמה לדליה: ${DALIA_INCIDENT_CONTACTS.email} · WA: ${DALIA_INCIDENT_CONTACTS.whatsappPhone}</p>
+  <p style="color:#666;font-size:12px">דליה: ${DALIA_INCIDENT_CONTACTS.email} · WA: ${DALIA_INCIDENT_CONTACTS.whatsappPhone}</p>
 </div>`.trim();
 }
 
 /**
  * Dispatch notifications after successful save.
- * dryRun=true (default in staging UI) → no real Email/WhatsApp; returns previews.
+ * dryRun=false (default) → real Email/WhatsApp per company settings.
+ * Failures are soft — never throw; caller must still treat save as success.
  */
 export async function dispatchIncidentNotifications(opts: {
   kind: IncidentKind;
@@ -168,11 +140,22 @@ export async function dispatchIncidentNotifications(opts: {
   link: string;
   wouldSendWhatsApp: boolean;
   wouldSendEmail: boolean;
+  wouldSendInApp: boolean;
   edgeResult?: unknown;
+  notifyError?: string | null;
 }> {
   const { kind, record } = opts;
-  const dryRun = opts.dryRun !== false; // default true — safe until user approves live send
-  const settings = await fetchIncidentNotifySettings(record.company_name || '');
+  const dryRun = opts.dryRun === true; // default LIVE
+  let settings = DEFAULT_SETTINGS;
+  let notifyError: string | null = null;
+  let edgeResult: unknown;
+
+  try {
+    settings = await fetchIncidentNotifySettings(record.company_name || '');
+  } catch (e) {
+    notifyError = e instanceof Error ? e.message : 'settings fetch failed';
+  }
+
   const link = record.id
     ? buildIncidentAbsoluteUrl(kind, record.id)
     : buildIncidentAppPath(kind, 'pending');
@@ -181,32 +164,39 @@ export async function dispatchIncidentNotifications(opts: {
   const emailSubject = buildEmailSubject(kind, record);
   const emailHtml = buildEmailPreviewHtml(kind, record, link);
 
-  const waAllowed =
-    settings.incident_notify_whatsapp && settings.whatsapp_enabled === true;
-  const wouldSendWhatsApp = waAllowed;
+  // Incident WhatsApp is independent of emergency whatsapp_enabled
+  const wouldSendWhatsApp = settings.incident_notify_whatsapp === true;
   const wouldSendEmail = settings.incident_notify_email === true;
+  const wouldSendInApp = settings.incident_notify_in_app === true;
 
-  let edgeResult: unknown;
-  if (!dryRun && (wouldSendEmail || wouldSendWhatsApp)) {
-    const { data, error } = await supabase.functions.invoke('notify-accident-email', {
-      body: {
-        record: {
-          ...record,
-          event_number: record.event_number,
-          link,
+  if (!dryRun && (wouldSendEmail || wouldSendWhatsApp || wouldSendInApp)) {
+    try {
+      const { data, error } = await supabase.functions.invoke('notify-accident-email', {
+        body: {
+          record: {
+            ...record,
+            event_number: record.event_number,
+            status: record.status,
+            link,
+          },
+          type: kind === 'fault' ? 'fault' : 'accident',
+          channels: {
+            in_app: wouldSendInApp,
+            email: wouldSendEmail,
+            whatsapp: wouldSendWhatsApp,
+            emailRecipients: settings.incident_email_recipients,
+            whatsappRecipients: settings.incident_whatsapp_recipients,
+          },
+          dry_run: false,
+          dalia: DALIA_INCIDENT_CONTACTS,
         },
-        type: kind === 'fault' ? 'fault' : 'accident',
-        channels: {
-          email: wouldSendEmail,
-          whatsapp: wouldSendWhatsApp,
-          emailRecipients: settings.incident_email_recipients,
-          whatsappRecipients: settings.incident_whatsapp_recipients,
-        },
-        dry_run: false,
-        dalia: DALIA_INCIDENT_CONTACTS,
-      },
-    });
-    edgeResult = error || data;
+      });
+      edgeResult = error ? { error: error.message || String(error), data } : data;
+      if (error) notifyError = error.message || 'notify invoke failed';
+    } catch (e) {
+      notifyError = e instanceof Error ? e.message : 'notify invoke threw';
+      edgeResult = { error: notifyError };
+    }
   }
 
   return {
@@ -217,6 +207,8 @@ export async function dispatchIncidentNotifications(opts: {
     link,
     wouldSendWhatsApp,
     wouldSendEmail,
+    wouldSendInApp,
     edgeResult,
+    notifyError,
   };
 }

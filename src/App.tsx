@@ -77,6 +77,7 @@ import AdminModulesHub from "@/pages/admin/AdminModulesHub";
 import VehicleModuleAdmin from "@/pages/admin/VehicleModuleAdmin";
 import VehicleTypesSettings from "@/pages/admin/VehicleTypesSettings";
 import { useEffect } from "react";
+import { captureCurrentPathForLogin } from "@/lib/postLoginRedirect";
 
 /** Old ניהול שיווק SPA entry → permanent Orin פרסום (nginx static). */
 function LegacyMarketingRedirect() {
@@ -135,8 +136,19 @@ function AppRoutes() {
   }
 
   if (!isAuthenticated) {
+    // Deep links to faults/accidents → capture path then Login
+    const path = typeof window !== 'undefined'
+      ? `${window.location.pathname}${window.location.search}`
+      : '';
+    const isIncidentDeepLink = /\/(faults|accidents)(\?|$)/.test(path);
+    if (isIncidentDeepLink) {
+      captureCurrentPathForLogin();
+    }
+
     return (
       <Routes>
+        <Route path="/faults" element={<Login />} />
+        <Route path="/accidents" element={<Login />} />
         <Route path="/dev/vehicle-card" element={<DevVehicleHubPreview />} />
         <Route path="/dev/vehicle-flows" element={<DevVehicleFlowsPreview />} />
         <Route path="/dev/vehicle-new-form" element={<DevVehicleNewFormPreview />} />

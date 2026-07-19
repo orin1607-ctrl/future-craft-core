@@ -68,9 +68,10 @@ export default function IncidentSubmitSuccess({
 
       {showNotifyPreview && (whatsappPreview || emailHtml) && (
         <div className="space-y-4">
-          <h2 className="text-lg font-bold">תצוגה מקדימה של התראות (לא נשלח)</h2>
+          <h2 className="text-lg font-bold">תצוגה מקדימה של התראות</h2>
           <p className="text-sm text-muted-foreground">
-            שליחה אמיתית למייל/WhatsApp כבויה בבדיקה. לאחר אישורך ניתן להפעיל שליחת Staging.
+            השליחה בפועל מתבצעת לפי הגדרות החברה ב-AlertSettings (Email / WhatsApp / בתוך המערכת).
+            כישלון בשליחה אינו מבטל את שמירת האירוע.
           </p>
           {whatsappPreview && (
             <div className="card-elevated">

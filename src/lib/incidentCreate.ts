@@ -66,16 +66,24 @@ export async function createFaultIncident(opts: {
   const { data, error } = await supabase.from('faults').insert(insertPayload).select('*').single();
   if (error) return { error, data: null, notify: null };
 
-  const notify = await dispatchIncidentNotifications({
-    kind: 'fault',
-    record: {
-      ...data,
-      vehicle_internal_number: vehicle?.internal_number || null,
-      fault_type: data.fault_type,
-      fault_type_other: data.fault_type_other,
-    },
-    dryRun: opts.dryRunNotify !== false,
-  });
+  // Notify is best-effort — never fail the saved incident
+  let notify = null;
+  try {
+    notify = await dispatchIncidentNotifications({
+      kind: 'fault',
+      record: {
+        ...data,
+        vehicle_internal_number: vehicle?.internal_number || null,
+        fault_type: data.fault_type,
+        fault_type_other: data.fault_type_other,
+        status: data.status,
+      },
+      dryRun: opts.dryRunNotify === true,
+    });
+  } catch (e) {
+    console.error('fault notify soft-fail', e);
+    notify = { notifyError: e instanceof Error ? e.message : 'notify failed' } as never;
+  }
 
   return { error: null, data, notify, vehicle, displayType: faultTypeDisplay(opts.faultType, opts.faultTypeOther) };
 }
@@ -135,14 +143,21 @@ export async function createAccidentIncident(opts: {
   const { data, error } = await supabase.from('accidents').insert(insertPayload).select('*').single();
   if (error) return { error, data: null, notify: null };
 
-  const notify = await dispatchIncidentNotifications({
-    kind: 'accident',
-    record: {
-      ...data,
-      vehicle_internal_number: vehicle?.internal_number || null,
-    },
-    dryRun: opts.dryRunNotify !== false,
-  });
+  let notify = null;
+  try {
+    notify = await dispatchIncidentNotifications({
+      kind: 'accident',
+      record: {
+        ...data,
+        vehicle_internal_number: vehicle?.internal_number || null,
+        status: data.status,
+      },
+      dryRun: opts.dryRunNotify === true,
+    });
+  } catch (e) {
+    console.error('accident notify soft-fail', e);
+    notify = { notifyError: e instanceof Error ? e.message : 'notify failed' } as never;
+  }
 
   return { error: null, data, notify, vehicle };
 }

@@ -243,12 +243,12 @@ export default function DevIncidentAlertsProof() {
           <div className="space-y-3 max-w-lg">
             <h3 className="font-bold text-lg">הגדרות התראות על תאונות ותקלות</h3>
             <p className="text-sm text-muted-foreground">
-              WhatsApp נשלח רק אם גם המתג whatsapp_enabled פעיל לחברה.
+              מתג WhatsApp נפרד ממתג החירום — תוספת בתשלום לדיווחי תאונות/תקלות בלבד.
             </p>
             {[
-              ['בתוך המערכת', true],
-              ['Email', true],
-              ['WhatsApp (דורש whatsapp_enabled)', false],
+              ['התראה בתוך המערכת — פעיל', true],
+              ['Email — פעיל', true],
+              ['WhatsApp (תוספת בתשלום) — כבוי', false],
             ].map(([label, on]) => (
               <label key={String(label)} className="flex items-center gap-3 p-3 rounded-xl bg-muted">
                 <input type="checkbox" checked={Boolean(on)} readOnly className="rounded w-5 h-5 accent-primary" />

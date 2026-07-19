@@ -812,7 +812,7 @@ function FaultForm({
       urgency,
       notes,
       images: imageUrls,
-      dryRunNotify: true,
+      dryRunNotify: false,
     });
 
     if (!result.error && result.data && fromVehicleHub) {

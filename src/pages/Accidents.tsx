@@ -515,7 +515,7 @@ function AccidentForm({
       estimatedCost: parseFloat(estimatedCost) || 0,
       notes,
       images: imageUrls,
-      dryRunNotify: true,
+      dryRunNotify: false,
     });
 
     if (!result.error && result.data && hubVehicleId) {
