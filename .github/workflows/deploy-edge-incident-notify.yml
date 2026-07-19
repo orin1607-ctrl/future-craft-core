@@ -55,8 +55,20 @@ jobs:
           npx supabase link --project-ref qasomfndnjuixgjmjwcm || true
           npx supabase db push --include-all || echo "::warning::Apply migrations manually on Production"
 
-  register-only:
+  # On push to main: auto-deploy Edge to Staging (no Production env gate)
+  deploy-edge-staging-on-push:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Workflow registered on main — use workflow_dispatch to deploy Edge"
+      - uses: actions/checkout@v4
+      - name: Deploy Edge to Staging (push)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::warning::SUPABASE_ACCESS_TOKEN missing — Staging Edge not deployed"
+            exit 0
+          fi
+          npx supabase functions deploy notify-accident-email --project-ref usfeoerkpcafxxlyuldl
+          npx supabase link --project-ref usfeoerkpcafxxlyuldl || true
+          npx supabase db push --include-all || echo "::warning::Apply Staging migrations manually"
