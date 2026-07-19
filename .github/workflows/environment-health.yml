@@ -43,17 +43,17 @@ jobs:
       - name: Preflight — required GitHub secrets (names only)
         env:
           HAS_SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
-          HAS_VITE_ENV_STAGING: ${{ secrets.VITE_ENV_STAGING != '' }}
-          HAS_VITE_ENV_PRODUCTION: ${{ secrets.VITE_ENV_PRODUCTION != '' }}
+          HAS_VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY != '' }}
+          HAS_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
           HAS_VPS_HOST: ${{ secrets.VPS_HOST != '' }}
           HAS_VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY != '' }}
           HAS_VPS_USER: ${{ secrets.VPS_USER != '' }}
         run: |
           set -euo pipefail
-          echo "## GitHub Secrets presence"
+          echo "## GitHub Secrets presence (names match real CI workflows)"
           echo "SUPABASE_ACCESS_TOKEN: $HAS_SUPABASE_ACCESS_TOKEN"
-          echo "VITE_ENV_STAGING: $HAS_VITE_ENV_STAGING"
-          echo "VITE_ENV_PRODUCTION: $HAS_VITE_ENV_PRODUCTION"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY: $HAS_VITE_SUPABASE_PUBLISHABLE_KEY"
+          echo "SUPABASE_SERVICE_ROLE_KEY: $HAS_SUPABASE_SERVICE_ROLE_KEY"
           echo "VPS_HOST: $HAS_VPS_HOST"
           echo "VPS_SSH_KEY: $HAS_VPS_SSH_KEY"
           echo "VPS_USER: $HAS_VPS_USER"
@@ -62,14 +62,16 @@ jobs:
             echo "::error::SUPABASE_ACCESS_TOKEN missing — Edge deploy will fail"
             FAIL=1
           fi
-          if [ "$HAS_VITE_ENV_STAGING" != "true" ]; then
-            echo "::warning::VITE_ENV_STAGING missing — Staging Pages may fail"
+          if [ "$HAS_VITE_SUPABASE_PUBLISHABLE_KEY" != "true" ]; then
+            echo "::error::VITE_SUPABASE_PUBLISHABLE_KEY missing — Preview/Production builds will fail"
+            FAIL=1
           fi
-          if [ "$HAS_VITE_ENV_PRODUCTION" != "true" ]; then
-            echo "::warning::VITE_ENV_PRODUCTION missing — Preview/Production builds may fail"
+          if [ "$HAS_SUPABASE_SERVICE_ROLE_KEY" != "true" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY missing — deploy_runs / finalize may fail"
           fi
-          if [ "$HAS_VPS_HOST" != "true" ] || [ "$HAS_VPS_SSH_KEY" != "true" ]; then
-            echo "::warning::VPS_* incomplete — Preview/Production VPS deploy may fail"
+          if [ "$HAS_VPS_HOST" != "true" ] || [ "$HAS_VPS_SSH_KEY" != "true" ] || [ "$HAS_VPS_USER" != "true" ]; then
+            echo "::error::VPS_* incomplete — Preview/Production VPS deploy will fail"
+            FAIL=1
           fi
           exit "$FAIL"
 

@@ -13,8 +13,7 @@
 | `VPS_HOST` | כתובת VPS Hostinger |
 | `VPS_USER` | משתמש SSH (לרוב `root`) |
 | `VPS_SSH_KEY` | מפתח פרטי SSH ל-VPS |
-| `VITE_ENV_STAGING` / `VITE_ENV_PRODUCTION` | תוכן `.env` לבילד (ראה `.env.*.example`) |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | anon key של Production `qasomfndnjuixgjmjwcm` (אם בשימוש ב-CI) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | anon/publishable key של Production `qasomfndnjuixgjmjwcm` (Preview + Production builds) |
 | `SUPABASE_SERVICE_ROLE_KEY` | service role production (לרישום deploy_runs) |
 | `SUPABASE_ACCESS_TOKEN` | Personal Access Token של Supabase (CLI / Edge deploy) — חייב לעבור Management API |
 | `GITHUB_PAT` | Personal Access Token עם `actions:write` (ל-edge function deploy-control) |
@@ -43,7 +42,8 @@ Secrets ב-Edge Functions:
 ## 4. VPS (כבר קיים)
 
 - Preview: `/var/www/future-craft-core-preview` → `preview.dalia-car.online`
-- Production: `/var/www/future-craft-core` → `dalia-car.online`
+- Production web root: `/root/future-craft-core/dist` → `dalia-car.online` (כפי ב-nginx + `deploy-production-vps.yml`)
+- Backups לפני deploy: `/root/pre-deploy-dist-*.tgz`
 - nginx SPA fallback על שני ה-vhosts
 
 ## 5. Workflows

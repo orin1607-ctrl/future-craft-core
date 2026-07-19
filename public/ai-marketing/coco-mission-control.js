@@ -140,7 +140,7 @@
         'קרא docs/ENVIRONMENT-AND-SECRETS-HE.md',
         'הרץ npm run env:health',
         'Actions → Environment Health',
-        'Owner: רוטציית SUPABASE_ACCESS_TOKEN + GUPSHUP ב-Production Edge',
+        'Owner Actions בלבד: docs/OWNER-ACTIONS-FINAL-HE.md',
       ],
       status: 'partial',
     },

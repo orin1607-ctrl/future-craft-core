@@ -1,5 +1,9 @@
 name: Rollback Production
 
+# Restores Production web root from a pre-deploy tarball on the VPS.
+# Must match deploy-production-vps.yml: WEB_ROOT=/root/future-craft-core/dist
+# Backups: /root/pre-deploy-dist-*.tgz (created as tar of `dist` under /root/future-craft-core)
+
 on:
   workflow_dispatch:
     inputs:
@@ -29,28 +33,37 @@ jobs:
         env:
           BACKUP_INPUT: ${{ inputs.backup_path }}
         run: |
+          set -euo pipefail
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "bash -s" << 'REMOTE'
+            "BACKUP_INPUT=$(printf '%q' "${BACKUP_INPUT}") bash -s" << 'REMOTE'
           set -euo pipefail
+          WEB_ROOT="/root/future-craft-core/dist"
           BACKUP="${BACKUP_INPUT:-}"
           if [ -z "$BACKUP" ]; then
-            BACKUP=$(ls -1t /root/pre-deploy-dist-*.tgz 2>/dev/null | head -1)
+            BACKUP=$(ls -1t /root/pre-deploy-dist-*.tgz 2>/dev/null | head -1 || true)
           fi
           if [ -z "$BACKUP" ] || [ ! -f "$BACKUP" ]; then
-            echo "No backup found" >&2
+            echo "No backup found under /root/pre-deploy-dist-*.tgz" >&2
             exit 1
           fi
           STAMP=$(date -u +%F-%H%M)
           SAFETY="/root/pre-rollback-safety-${STAMP}.tgz"
-          tar czf "$SAFETY" -C /var/www future-craft-core
-          rm -rf /var/www/future-craft-core/*
-          tar xzf "$BACKUP" -C /var/www --strip-components=1 2>/dev/null || \
-            (cd /var/www && rm -rf future-craft-core && mkdir future-craft-core && tar xzf "$BACKUP" -C /var/www)
+          mkdir -p /root/future-craft-core
+          tar czf "$SAFETY" -C /root/future-craft-core dist
+          rm -rf "${WEB_ROOT}"
+          mkdir -p "${WEB_ROOT}"
+          # Backup was created as: tar czf … -C /root/future-craft-core dist
+          # → extract restores a `dist/` directory
+          tar xzf "$BACKUP" -C /root/future-craft-core
+          if [ ! -f "${WEB_ROOT}/index.html" ]; then
+            echo "Rollback extract did not produce ${WEB_ROOT}/index.html" >&2
+            exit 1
+          fi
           nginx -t && systemctl reload nginx
           echo "restored_from=$BACKUP"
           echo "safety_backup=$SAFETY"
-          grep -o 'index-[^\"']*\.js' /var/www/future-craft-core/index.html | head -1
+          grep -oE 'index-[^"'\''/]+\.js' "${WEB_ROOT}/index.html" | head -1 || true
           REMOTE
           echo "done=true" >> "$GITHUB_OUTPUT"
 

@@ -1,11 +1,13 @@
 {
   "id": "environment-status",
-  "version": "2026-07-19",
+  "version": "2026-07-19b",
   "title": "סביבת עבודה — סטטוס קבוע",
   "canonicalDoc": "docs/ENVIRONMENT-AND-SECRETS-HE.md",
+  "ownerActionsFinal": "docs/OWNER-ACTIONS-FINAL-HE.md",
   "healthScript": "scripts/check-environment-health.mjs",
   "healthWorkflow": ".github/workflows/environment-health.yml",
   "npmScript": "npm run env:health",
+  "agentControlledReady": true,
   "environments": {
     "staging": {
       "frontend": "https://orin1607-ctrl.github.io/future-craft-core/",
@@ -20,7 +22,7 @@
     "production": {
       "frontend": "https://dalia-car.online",
       "supabaseRef": "qasomfndnjuixgjmjwcm",
-      "role": "Hostinger live"
+      "role": "Hostinger live — web root /root/future-craft-core/dist"
     },
     "legacy": {
       "supabaseRef": "kuenhflklivaxrmqbsee",
@@ -34,7 +36,7 @@
       "usedBy": "deploy-edge-incident-notify, environment-health, supabase CLI",
       "purpose": "Management API / functions deploy",
       "status": "needs_attention",
-      "note": "קיים אך 401 — נדרש רוטציה"
+      "note": "קיים אך 401 — Owner Action #1"
     },
     {
       "name": "GUPSHUP_API_KEY",
@@ -42,7 +44,7 @@
       "usedBy": "send-whatsapp-message, notify-accident-email",
       "purpose": "WhatsApp דרך Gupshup",
       "status": "needs_attention",
-      "note": "חסר ב-Production Edge"
+      "note": "חסר ב-Production Edge — Owner Action #2"
     },
     {
       "name": "RESEND_API_KEY",
@@ -50,20 +52,20 @@
       "usedBy": "notify-accident-email / email edges",
       "purpose": "Email",
       "status": "likely_ok",
-      "note": "Production Edge ישן עובר בדיקת מפתח"
+      "note": "אין פעולת Owner אלא אם Health מדווח missing"
     },
     {
       "name": "VPS_HOST / VPS_USER / VPS_SSH_KEY",
       "where": "GitHub Secrets",
-      "usedBy": "dalia-ci-preview, deploy-production-vps",
-      "purpose": "rsync ל-Preview/Hostinger",
+      "usedBy": "dalia-ci-preview, deploy-production-vps, rollback",
+      "purpose": "rsync / SSH ל-Preview ו-Production",
       "status": "ok"
     },
     {
-      "name": "VITE_ENV_STAGING / VITE_ENV_PRODUCTION",
+      "name": "VITE_SUPABASE_PUBLISHABLE_KEY",
       "where": "GitHub Secrets",
-      "usedBy": "Staging Pages / Production builds",
-      "purpose": "VITE_SUPABASE_* בבילד",
+      "usedBy": "dalia-ci-preview, deploy-production-vps, owner-golive",
+      "purpose": "anon key של Production בבילד Frontend",
       "status": "ok"
     },
     {
@@ -74,16 +76,11 @@
       "status": "ok"
     }
   ],
-  "ownerOneTimeActions": [
-    "Rotate SUPABASE_ACCESS_TOKEN → update GitHub Secret",
-    "Set Production Edge GUPSHUP_* from Staging Dashboard (not chat)",
-    "Deploy Edge notify-accident-email to Staging then Production",
-    "Optional: align GitHub default branch to main"
-  ],
+  "ownerOneTimeActionsDoc": "docs/OWNER-ACTIONS-FINAL-HE.md",
   "git": {
     "workBranch": "main",
     "githubDefaultBranch": "production",
     "note": "CI רץ על main; default branch היסטורי לא לבלבל עם Production site"
   },
-  "updatedAt": "2026-07-19T17:30:00.000Z"
+  "updatedAt": "2026-07-19T17:40:00.000Z"
 }

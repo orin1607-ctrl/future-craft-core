@@ -54,11 +54,14 @@
 | `dalia-ci-preview.yml` | push `main` | Build Prod + Preview VPS |
 | `deploy-production-vps.yml` | push `main` + Environment | Production Hostinger |
 | `deploy-edge-incident-notify.yml` | paths / `workflow_dispatch` | Edge `notify-accident-email` |
-| `rollback-production-vps.yml` | `workflow_dispatch` | Rollback |
+| `rollback-production-vps.yml` | `workflow_dispatch` + Environment | Rollback ל-`/root/future-craft-core/dist` |
 | `environment-health.yml` | push `main` + ידני | בדיקת תקינות Secrets (בלי ערכים) |
+| `owner-golive-production.yml` | **ידני בלבד** | מסלול חירום (לא ברירת מחדל) |
 | `daily-marketing-engine.yml` | cron | שיווק |
 
-Workflows מסוג `probe-*` / `test-wa-*` / ניסויים — **ידניים בלבד** (`workflow_dispatch`), לא רצים על כל push.
+Workflows מסוג `probe-*` / `test-*` / ניסויים — **ידניים בלבד** (`workflow_dispatch`), לא רצים על כל push.
+
+**פעולות Owner סופיות (רק מה שאתה חייב):** [`docs/OWNER-ACTIONS-FINAL-HE.md`](./OWNER-ACTIONS-FINAL-HE.md)
 
 ---
 
@@ -150,29 +153,12 @@ Workflows מסוג `probe-*` / `test-wa-*` / ניסויים — **ידניים �
 
 ---
 
-## 6) מה נשאר לטפל (Owner — פעם אחת, קבוע)
+## 6) מה נשאר לטפל (Owner)
 
-### חובה לפריסת Edge + WhatsApp Production
+רשימה סופית ומצומצמת — רק פעולות שדורשות את חשבון ה-Owner:  
+→ **[`docs/OWNER-ACTIONS-FINAL-HE.md`](./OWNER-ACTIONS-FINAL-HE.md)**
 
-1. **Supabase Account → Access Tokens → Generate**  
-   עדכן GitHub Secret `SUPABASE_ACCESS_TOKEN` (ואופציונלי VPS `dalia-ops/.env`).  
-   בדיקה: Actions → Environment Health → Access Token = OK.
-
-2. **Production Edge Secrets**  
-   העתק מ-Staging (ב-Dashboard, לא דרך צ'אט) את:  
-   `GUPSHUP_API_KEY`, `GUPSHUP_SOURCE`, `GUPSHUP_APP_NAME`  
-   וודא `RESEND_API_KEY`.  
-   בדיקה: `send-whatsapp-message` / `check_connection` → `configured: true`.
-
-3. **פריסת Edge חדש**  
-   Actions → Deploy Edge — incident notify → `production` (אחרי Approve אם נדרש)  
-   או Staging קודם ואז Production.
-
-### מומלץ ליציבות
-
-4. ליישר Default branch ל-`main` **או** לתעד במפורש ש-`production` הוא רק archive.  
-5. במחשב Orin: `.env.local` לפי `.env.staging.example` + `supabase login`.  
-6. להוסיף GitHub Secret נפרד `STAGING_SUPABASE_SERVICE_ROLE_KEY` אם רוצים בדיקות Staging מ-CI (אופציונלי).
+כל השאר (Git, Workflows, Docs, Health, Rollback, Staging Pages, סידור סביבה) כבר מסודר בקוד.
 
 ---
 
