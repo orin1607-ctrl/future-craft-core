@@ -66,51 +66,58 @@ jobs:
           report['gupshup_success']=(wa or {}).get('success') if isinstance(wa,dict) else None
           report['gupshup_message']=(wa or {}).get('message') if isinstance(wa,dict) else str(wa)[:200]
 
-          # 4) Find יוני אטיאס driver + vehicle
-          st, drivers = req('GET','/rest/v1/drivers?select=id,full_name,phone,company_name,assigned_vehicle_id&full_name=ilike.*יוני*&limit=50')
-          report['drivers_yoni_count']=len(drivers) if isinstance(drivers,list) else 0
+          # 4) Find יוני אטיאס driver + vehicle (encode Hebrew in query)
+          def q(s): return urllib.parse.quote(s, safe='')
+          st, drivers = req('GET','/rest/v1/drivers?select=id,full_name,phone,company_name&limit=500')
+          # detect assigned_vehicle_id column separately if needed
+          report['drivers_total']=len(drivers) if isinstance(drivers,list) else str(drivers)[:120]
           yoni_hits=[]
           if isinstance(drivers,list):
             for d in drivers:
               name=d.get('full_name') or ''
-              if 'אטיאס' in name or 'Atias' in name or 'atias' in name.lower() or name.strip() in ('יוני','Yoni'):
+              if 'יוני' in name or 'Yoni' in name or 'yoni' in name.lower():
                 yoni_hits.append(d)
-              elif 'יוני' in name:
-                yoni_hits.append(d)
-          report['yoni_candidates']=[{k:d.get(k) for k in ('id','full_name','phone','company_name','assigned_vehicle_id')} for d in yoni_hits[:10]]
+          report['yoni_candidates']=[{k:d.get(k) for k in ('id','full_name','phone','company_name')} for d in yoni_hits[:20]]
+          report['exact_yoni']=[d for d in yoni_hits if (d.get('full_name') or '').strip()=='יוני אטיאס']
 
-          # Also search exact
-          st, d2 = req('GET','/rest/v1/drivers?select=id,full_name,phone,company_name&full_name=eq.'+urllib.parse.quote('יוני אטיאס')+'&limit=5')
-          report['exact_yoni']=d2
-
-          # Vehicles with company matching settings that have אטיאס
-          st, settings = req('GET','/rest/v1/company_settings?select=company_name,incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients&or=(company_name.ilike.*אטיאס*,company_name.ilike.*Yoni*,company_name.ilike.*יוני*)&limit=20')
+          st, settings_all = req('GET','/rest/v1/company_settings?select=company_name,incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients&limit=200')
+          settings=[]
+          if isinstance(settings_all,list):
+            for s in settings_all:
+              cn=s.get('company_name') or ''
+              if any(x in cn for x in ['אטיאס','Yoni','יוני','Demo','דמו']):
+                settings.append(s)
           report['alert_settings']=settings
 
-          # Find any vehicle+driver pair for companies with alerts
           pairs=[]
-          if isinstance(settings,list):
-            for s in settings:
-              cn=s['company_name']
-              cq=urllib.parse.quote(cn)
-              st, vs = req('GET', f'/rest/v1/vehicles?company_name=eq.{cq}&select=id,license_plate,internal_number,assigned_driver_id,company_name&limit=5')
-              st, ds = req('GET', f'/rest/v1/drivers?company_name=eq.{cq}&select=id,full_name,phone,company_name&limit=10')
-              pairs.append({'company':cn,'settings':s,'vehicles_n':len(vs) if isinstance(vs,list) else vs,'drivers_n':len(ds) if isinstance(ds,list) else ds,
-                            'vehicles':vs[:3] if isinstance(vs,list) else None,
-                            'drivers':[{k:x.get(k) for k in ('id','full_name','phone')} for x in (ds[:5] if isinstance(ds,list) else [])]})
+          for s in settings:
+            cn=s['company_name']
+            cq=q(cn)
+            st, vs = req('GET', f'/rest/v1/vehicles?company_name=eq.{cq}&select=id,license_plate,internal_number,assigned_driver_id,company_name&limit=10')
+            st, ds = req('GET', f'/rest/v1/drivers?company_name=eq.{cq}&select=id,full_name,phone,company_name&limit=20')
+            pairs.append({
+              'company':cn,'settings':s,
+              'vehicles_n':len(vs) if isinstance(vs,list) else vs,
+              'drivers_n':len(ds) if isinstance(ds,list) else ds,
+              'vehicles':vs[:5] if isinstance(vs,list) else None,
+              'drivers':[{k:x.get(k) for k in ('id','full_name','phone')} for x in (ds[:8] if isinstance(ds,list) else [])],
+            })
           report['company_fleet']=pairs
 
-          # Broader: any driver named יוני with vehicle via assigned_driver_id reverse
-          st, all_yoni = req('GET','/rest/v1/drivers?select=id,full_name,phone,company_name&full_name=ilike.*יוני אטיאס*&limit=20')
-          report['all_yoni_atias']=all_yoni
-          st, all_yoni2 = req('GET','/rest/v1/drivers?select=id,full_name,phone,company_name&full_name=ilike.*Yoni*&limit=20')
-          report['all_yoni_latin']=all_yoni2
+          # Also: vehicles assigned to yoni candidates
+          vehicle_links=[]
+          for d in yoni_hits[:15]:
+            did=d.get('id')
+            if not did: continue
+            st, vs = req('GET', f'/rest/v1/vehicles?assigned_driver_id=eq.{did}&select=id,license_plate,internal_number,company_name,assigned_driver_id&limit=5')
+            if isinstance(vs,list) and vs:
+              vehicle_links.append({'driver':d.get('full_name'),'driver_id':did,'company':d.get('company_name'),'vehicles':vs})
+          report['yoni_vehicle_links']=vehicle_links
 
           # ACCESS TOKEN check
           tok=os.environ.get('SUPABASE_ACCESS_TOKEN') or ''
           report['access_token_len']=len(tok)
           report['access_token_prefix']=(tok[:4]+'...') if tok else 'EMPTY'
-
           print(json.dumps(report, ensure_ascii=False, indent=2)[:8000])
           print('---PREFLIGHT_DONE---')
           PY
