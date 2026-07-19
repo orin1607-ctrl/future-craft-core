@@ -95,10 +95,7 @@ jobs:
             echo "ERROR: SUPABASE_DB_PASSWORD missing"
             exit 1
           fi
-          REF="${SUPABASE_PROJECT_REF:-qasomfndnjuixgjmjwcm}"
-          HOST="${SUPABASE_POOLER_HOST:-aws-1-ap-south-1.pooler.supabase.com}"
-          # URL-encode password safely via python
-          DB_URL=$(python3 - <<PY
+          DB_URL=$(python3 - <<'PY'
           import os, urllib.parse
           pwd=os.environ["SUPABASE_DB_PASSWORD"]
           host=os.environ.get("SUPABASE_POOLER_HOST","aws-1-ap-south-1.pooler.supabase.com")
@@ -109,21 +106,30 @@ jobs:
           echo "=== connectivity check (no secrets) ==="
           psql "$DB_URL" -c "select current_database(), current_user;" | head -20
 
-          echo "=== apply incident SQL files with psql ==="
-          for f in \
-            /root/golive-incident/supabase/migrations/20260719010000_incident_event_number_and_alert_settings.sql \
-            /root/golive-incident/supabase/migrations/20260719080000_incident_notification_deliveries.sql
-          do
-            echo "APPLY $f"
-            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$f"
-            echo "OK $f"
-          done
+          ALREADY=$(psql "$DB_URL" -tAc "select to_regclass('public.incident_notification_deliveries');")
+          if [ "$ALREADY" = "incident_notification_deliveries" ]; then
+            echo "=== migrations already applied — skip SQL files ==="
+          else
+            echo "=== apply incident SQL files with psql ==="
+            for f in \
+              /root/golive-incident/supabase/migrations/20260719010000_incident_event_number_and_alert_settings.sql \
+              /root/golive-incident/supabase/migrations/20260719080000_incident_notification_deliveries.sql
+            do
+              echo "APPLY $f"
+              # Idempotent: drop known policies before re-create
+              psql "$DB_URL" -v ON_ERROR_STOP=0 -c "DROP POLICY IF EXISTS \"Super admins manage incident counters\" ON public.incident_event_counters;" || true
+              psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$f"
+              echo "OK $f"
+            done
+          fi
 
           echo "=== verify schema ==="
           psql "$DB_URL" -c "\df allocate_incident_event_number" | head -20
           psql "$DB_URL" -c "select column_name from information_schema.columns where table_name='faults' and column_name='event_number';" | head -10
           psql "$DB_URL" -c "select column_name from information_schema.columns where table_name='company_settings' and column_name like 'incident_%' order by 1;" | head -30
           psql "$DB_URL" -c "select to_regclass('public.incident_notification_deliveries');" | head -10
+          # Fail if core pieces missing
+          psql "$DB_URL" -tAc "select 1 from information_schema.columns where table_name='faults' and column_name='event_number';" | grep -q 1
           echo "MIGRATE_OK"
           REMOTE
 
