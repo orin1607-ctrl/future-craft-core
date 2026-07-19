@@ -1,0 +1,44 @@
+name: Try edge deploy via DB credentials
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/try-edge-deploy-via-db.yml']
+jobs:
+  try:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: Sync function + try deploy methods
+        run: |
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            supabase/functions/notify-accident-email/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/golive-incident/supabase/functions/notify-accident-email/
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            supabase/functions/_shared/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/golive-incident/supabase/functions/_shared/
+          # Pass GH access token to VPS temp file for one attempt (never echo value)
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "mkdir -p /root/golive-incident && umask 077"
+          # Write token via stdin to avoid shell history
+          printf '%s' "${{ secrets.SUPABASE_ACCESS_TOKEN }}" | ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'cat > /root/golive-incident/.access_token && chmod 600 /root/golive-incident/.access_token && echo WROTE_LEN=$(wc -c </root/golive-incident/.access_token)'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set +e
+          cd /root/golive-incident
+          export SUPABASE_ACCESS_TOKEN="$(cat .access_token)"
+          echo "=== method1: functions deploy with GH token ==="
+          supabase functions deploy notify-accident-email --project-ref qasomfndnjuixgjmjwcm 2>&1 | tail -20
+          echo EXIT1=$?
+          echo "=== method2: projects list ==="
+          supabase projects list 2>&1 | tail -10
+          echo EXIT2=$?
+          # cleanup token file
+          shred -u .access_token 2>/dev/null || rm -f .access_token
+          echo DONE
+          REMOTE

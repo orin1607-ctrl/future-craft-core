@@ -1,0 +1,39 @@
+name: Probe internal schemas for edge deploy path
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe-internal-schemas.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: List unusual schemas/tables
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          set -a; source /root/dalia-ops/.env; set +a
+          DB_URL=$(python3 - <<'PY'
+          import os, urllib.parse
+          pwd=os.environ["SUPABASE_DB_PASSWORD"]
+          host=os.environ.get("SUPABASE_POOLER_HOST","aws-1-ap-south-1.pooler.supabase.com")
+          ref=os.environ.get("SUPABASE_PROJECT_REF","qasomfndnjuixgjmjwcm")
+          print(f"postgresql://postgres.{ref}:{urllib.parse.quote(pwd)}@{host}:5432/postgres")
+          PY
+          )
+          echo "=== all non-pg schemas ==="
+          psql "$DB_URL" -tAc "select nspname from pg_namespace where nspname not like 'pg_%' and nspname <> 'information_schema' order by 1;"
+          echo "=== tables in supabase_functions / realtime / vault ==="
+          psql "$DB_URL" -c "select schemaname, tablename from pg_tables where schemaname in ('supabase_functions','vault','realtime','net','storage','auth') order by 1,2;" | head -60
+          echo "=== company_settings Demo row ==="
+          psql "$DB_URL" -c "select company_name, incident_notify_email, incident_notify_whatsapp, incident_email_recipients, incident_whatsapp_recipients from company_settings where company_name ilike '%demo%' or company_name ilike '%דמו%' or company_name ilike '%אטיאס%' limit 10;"
+          echo "=== sample companies ==="
+          psql "$DB_URL" -c "select company_name from company_settings order by company_name limit 20;"
+          echo DONE
+          REMOTE
