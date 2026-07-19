@@ -1,0 +1,29 @@
+name: Probe Gupshup key anywhere on VPS
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe-gupshup-anywhere.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: Search
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set +e
+          echo "=== files mentioning gupshup (case insensitive) ==="
+          grep -rIl -i 'gupshup' /root --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=assets 2>/dev/null | head -40
+          echo "=== key assignment lengths ==="
+          grep -ri 'GUPSHUP' /root --include='*.env*' --include='*.sh' --include='*.json' --include='*.yml' --exclude-dir=node_modules 2>/dev/null | head -30 | while read -r line; do
+            echo "$line" | python3 -c "import sys,re; s=sys.stdin.read();
+m=re.search(r'(GUPSHUP[A-Z0-9_]*)\s*[=:]\s*[\"']?([^\"'\s]+)', s, re.I)
+print('HIT', m.group(1) if m else '?', 'LEN', len(m.group(2)) if m else 0, 'FILE_HINT', s.split(':',1)[0][:80])"
+          done
+          echo DONE
+          REMOTE
