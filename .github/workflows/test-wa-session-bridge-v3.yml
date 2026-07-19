@@ -1,0 +1,102 @@
+name: Test WA session bridge v3
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-wa-session-bridge-v3.yml']
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find SA + verify OTP + WA probe
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 <<'PY'
+          import json,urllib.request,urllib.error,os,urllib.parse
+          srk=os.environ['SRK']
+          url='https://qasomfndnjuixgjmjwcm.supabase.co'
+
+          def get(path, headers=None):
+            h={'apikey':srk,'Authorization':'Bearer '+srk}
+            if headers: h.update(headers)
+            req=urllib.request.Request(url+path, headers=h)
+            return json.load(urllib.request.urlopen(req))
+
+          def post(path, body, bearer=None):
+            h={'apikey':srk,'Authorization':'Bearer '+(bearer or srk),'Content-Type':'application/json'}
+            req=urllib.request.Request(url+path, data=json.dumps(body).encode(), headers=h)
+            try:
+              return json.load(urllib.request.urlopen(req)), None
+            except urllib.error.HTTPError as e:
+              return None, (e.code, e.read().decode()[:500])
+
+          # Load all super_admin user_ids
+          roles=get('/rest/v1/user_roles?role=eq.super_admin&select=user_id')
+          sa_ids={r['user_id'] for r in roles}
+          print('SA_COUNT', len(sa_ids))
+
+          # Page users until we have SA with real gmail
+          candidates=[]
+          orin=None
+          for page in range(1,30):
+            data=get(f'/auth/v1/admin/users?page={page}&per_page=200')
+            users=data.get('users') or []
+            if not users: break
+            for u in users:
+              em=(u.get('email') or '')
+              if em.lower()=='orin1607@gmail.com':
+                orin=u
+              if u.get('id') in sa_ids and em and not em.endswith('.local') and '@' in em:
+                candidates.append(u)
+            if orin and len(candidates)>=3:
+              break
+
+          print('ORIN1607', (orin or {}).get('email'), (orin or {}).get('id'))
+          if orin:
+            r=get(f"/rest/v1/user_roles?user_id=eq.{orin['id']}&select=role")
+            print('ORIN_ROLES', r)
+
+          # Prefer orin if SA, else first real SA email
+          target=None
+          if orin and orin['id'] in sa_ids:
+            target=orin
+          elif candidates:
+            # prefer emails containing orin or ilana
+            for u in candidates:
+              if 'orin' in (u.get('email') or '').lower() or 'ilana' in (u.get('email') or '').lower():
+                target=u; break
+            target=target or candidates[0]
+          print('TARGET', (target or {}).get('email'), (target or {}).get('id'))
+          print('CANDIDATE_EMAILS', [u.get('email') for u in candidates[:10]])
+          if not target:
+            raise SystemExit('no target')
+
+          resp, err = post('/auth/v1/admin/generate_link', {'type':'magiclink','email':target['email']})
+          if err:
+            print('GEN_FAIL', err); raise SystemExit(1)
+          print('TOP_KEYS', sorted(resp.keys()))
+          email_otp=resp.get('email_otp')
+          hashed=resp.get('hashed_token')
+          print('HAS_EMAIL_OTP', bool(email_otp), 'HAS_HASHED', bool(hashed))
+
+          # Try verify with email_otp
+          vresp, verr = post('/auth/v1/verify', {'type':'magiclink','email':target['email'],'token':email_otp})
+          if verr:
+            print('VERIFY_OTP_FAIL', verr)
+            vresp, verr = post('/auth/v1/verify', {'type':'magiclink','token_hash':hashed})
+            if verr:
+              print('VERIFY_HASH_FAIL', verr); raise SystemExit(1)
+          at=vresp.get('access_token') or (vresp.get('session') or {}).get('access_token')
+          print('ACCESS_LEN', len(at or ''))
+
+          # dry_run + check_connection
+          for body in [
+            {'action':'send','dry_run':True,'destination':'0534338601','message':'dry'},
+            {'action':'check_connection'},
+          ]:
+            r,e=post('/functions/v1/send-whatsapp-message', body, bearer=at)
+            print('CALL', body['action'], 'OK' if r else e)
+            if r: print(json.dumps(r)[:400])
+          print('DONE')
+          PY
