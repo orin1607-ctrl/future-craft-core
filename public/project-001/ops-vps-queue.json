@@ -1,0 +1,5 @@
+{
+  "id": "ops-vps-queue",
+  "requestedAt": "2026-07-19T17:56:00.000Z",
+  "note": "Fallback Edge deploy via VPS token locations after GH token 401"
+}

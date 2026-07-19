@@ -1,11 +1,11 @@
 {
   "id": "wa-email-preflight-queue",
-  "requestedAt": "2026-07-19T17:50:58.249488Z",
+  "requestedAt": "2026-07-19T17:54:05.132966+00:00",
   "requestedBy": "cursor-agent",
   "mode": "preflight_no_send",
   "channels": [
     "whatsapp",
     "email"
   ],
-  "note": "Owner secrets updated \u2014 re-run preflight before live send"
+  "note": "Re-check Gupshup after Owner said secrets updated"
 }
