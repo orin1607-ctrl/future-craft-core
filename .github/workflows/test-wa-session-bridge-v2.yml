@@ -1,0 +1,102 @@
+name: Test WA session bridge v2 (orin1607)
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-wa-session-bridge-v2.yml']
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bridge orin1607 session
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json,urllib.request,urllib.error,os
+          srk=os.environ['SRK']
+          url='https://qasomfndnjuixgjmjwcm.supabase.co'
+          # Find orin1607 via admin users pages
+          target=None
+          for page in range(1,20):
+            req=urllib.request.Request(f'{url}/auth/v1/admin/users?page={page}&per_page=200',
+              headers={'apikey':srk,'Authorization':'Bearer '+srk})
+            data=json.load(urllib.request.urlopen(req))
+            users=data.get('users') or []
+            if not users: break
+            for u in users:
+              em=(u.get('email') or '').lower()
+              if em=='orin1607@gmail.com' or 'orin1607' in em:
+                target=u; break
+            if target: break
+          if not target:
+            print('ORIN_NOT_FOUND')
+            raise SystemExit(1)
+          print('FOUND', target.get('email'), target.get('id'))
+          # confirm role
+          uid=target['id']
+          req=urllib.request.Request(f'{url}/rest/v1/user_roles?user_id=eq.{uid}&select=role',
+            headers={'apikey':srk,'Authorization':'Bearer '+srk})
+          roles=json.load(urllib.request.urlopen(req))
+          print('ROLES', roles)
+
+          body=json.dumps({'type':'magiclink','email':target['email']}).encode()
+          req=urllib.request.Request(url+'/auth/v1/admin/generate_link', data=body,
+            headers={'apikey':srk,'Authorization':'Bearer '+srk,'Content-Type':'application/json'})
+          resp=json.load(urllib.request.urlopen(req))
+          print('GEN_KEYS', list(resp.keys()))
+          props=resp.get('properties') or {}
+          print('PROP_KEYS', list(props.keys()))
+          # action_link may contain token
+          al=props.get('action_link') or resp.get('action_link') or ''
+          print('HAS_ACTION_LINK', bool(al), 'LEN', len(al))
+          # extract token from query
+          import urllib.parse
+          token=props.get('email_otp')
+          token_hash=props.get('hashed_token')
+          if not token and al:
+            q=urllib.parse.urlparse(al)
+            qs=urllib.parse.parse_qs(q.query)
+            # also hash in fragment sometimes
+            print('LINK_QS_KEYS', list(qs.keys()))
+            token= (qs.get('token') or [None])[0]
+            token_hash=token_hash or (qs.get('token_hash') or [None])[0]
+          print('TOKEN_PRESENT', bool(token), 'HASH_PRESENT', bool(token_hash))
+
+          vpayload={}
+          if token:
+            vpayload={'type':'magiclink','email':target['email'],'token':token}
+          elif token_hash:
+            vpayload={'type':'magiclink','token_hash':token_hash}
+          else:
+            print('NO_TOKEN_TO_VERIFY'); print(json.dumps({k: (str(v)[:80] if not isinstance(v,dict) else list(v.keys())) for k,v in resp.items()})[:500]); raise SystemExit(2)
+
+          req=urllib.request.Request(url+'/auth/v1/verify', data=json.dumps(vpayload).encode(),
+            headers={'apikey':srk,'Authorization':'Bearer '+srk,'Content-Type':'application/json'})
+          try:
+            vresp=json.load(urllib.request.urlopen(req))
+          except urllib.error.HTTPError as e:
+            print('VERIFY_FAIL', e.code, e.read()[:500]); raise
+          at=vresp.get('access_token') or (vresp.get('session') or {}).get('access_token')
+          print('ACCESS_LEN', len(at or ''))
+          open('/tmp/at.txt','w').write(at or '')
+
+          # dry_run WA
+          body=json.dumps({'action':'send','dry_run':True,'destination':'0534338601','message':'dry'}).encode()
+          req=urllib.request.Request(url+'/functions/v1/send-whatsapp-message', data=body,
+            headers={'apikey':srk,'Authorization':'Bearer '+at,'Content-Type':'application/json'})
+          try:
+            r=urllib.request.urlopen(req); print('DRY', r.status, r.read()[:300])
+          except urllib.error.HTTPError as e:
+            print('DRY_FAIL', e.code, e.read()[:300])
+
+          body=json.dumps({'action':'check_connection'}).encode()
+          req=urllib.request.Request(url+'/functions/v1/send-whatsapp-message', data=body,
+            headers={'apikey':srk,'Authorization':'Bearer '+at,'Content-Type':'application/json'})
+          try:
+            r=urllib.request.urlopen(req); print('CONN', r.status, r.read()[:400])
+          except urllib.error.HTTPError as e:
+            print('CONN_FAIL', e.code, e.read()[:400])
+          print('DONE')
+          PY
