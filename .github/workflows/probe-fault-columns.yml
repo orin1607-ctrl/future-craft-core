@@ -1,0 +1,32 @@
+name: Probe fault/vehicle columns
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe-fault-columns.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: Columns
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set -a; source /root/dalia-ops/.env; set +a
+          DB_URL=$(python3 - <<'PY'
+          import os,urllib.parse
+          print(f"postgresql://postgres.{os.environ.get('SUPABASE_PROJECT_REF','qasomfndnjuixgjmjwcm')}:{urllib.parse.quote(os.environ['SUPABASE_DB_PASSWORD'])}@{os.environ.get('SUPABASE_POOLER_HOST','aws-1-ap-south-1.pooler.supabase.com')}:5432/postgres")
+          PY
+          )
+          echo "=== faults columns ==="
+          psql "$DB_URL" -c "select column_name,data_type from information_schema.columns where table_schema='public' and table_name='faults' order by ordinal_position;" | head -60
+          echo "=== vehicles columns ==="
+          psql "$DB_URL" -c "select column_name from information_schema.columns where table_schema='public' and table_name='vehicles' order by 1;" | head -40
+          echo "=== drivers columns ==="
+          psql "$DB_URL" -c "select column_name from information_schema.columns where table_schema='public' and table_name='drivers' order by 1;" | head -40
+          echo DONE
+          REMOTE
