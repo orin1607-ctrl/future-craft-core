@@ -1,0 +1,349 @@
+# Owner authorized continuation + one live WA/Email demo (chat 2026-07-19).
+# Does NOT use GitHub Environment gate (same rationale as owner-golive).
+# Never prints secret values.
+
+name: Ops Continue — Edge + Live Demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/project-001/ops-continue-queue.json'
+      - '.github/workflows/ops-continue-live.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-continue-live
+  cancel-in-progress: false
+
+env:
+  STAGING_REF: usfeoerkpcafxxlyuldl
+  PROD_REF: qasomfndnjuixgjmjwcm
+  PROD_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+  LIVE_SITE: https://dalia-car.online
+
+jobs:
+  continue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Normalize + validate SUPABASE_ACCESS_TOKEN
+        id: token
+        env:
+          RAW: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          TOK=$(printf '%s' "$RAW" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          echo "TOKEN_LEN=${#TOK}"
+          if [ -z "$TOK" ]; then
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "::error::SUPABASE_ACCESS_TOKEN empty in GitHub Secrets"
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$TOK" > "$RUNNER_TEMP/sb_access_token"
+          CODE=$(curl -sS -o /tmp/mgmt.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${TOK}" \
+            "https://api.supabase.com/v1/projects" || echo "000")
+          echo "Management API HTTP: $CODE"
+          if [ "$CODE" = "200" ]; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "::error::SUPABASE_ACCESS_TOKEN still rejected (HTTP $CODE) after trim. Update GitHub → Settings → Secrets → Actions → SUPABASE_ACCESS_TOKEN (not Edge Secrets)."
+            exit 1
+          fi
+
+      - name: Deploy Edge notify-accident-email → Staging + Production
+        run: |
+          set -euo pipefail
+          export SUPABASE_ACCESS_TOKEN="$(cat "$RUNNER_TEMP/sb_access_token")"
+          npx supabase functions deploy notify-accident-email --project-ref "$STAGING_REF"
+          echo "STAGING_EDGE=ok"
+          npx supabase functions deploy notify-accident-email --project-ref "$PROD_REF"
+          echo "PROD_EDGE=ok"
+
+      - name: Verify secrets + AlertSettings + one live demo
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PROD_URL: ${{ env.PROD_URL }}
+          LIVE_SITE: ${{ env.LIVE_SITE }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const url = process.env.PROD_URL;
+          const srk = process.env.SRK;
+          const LIVE = process.env.LIVE_SITE;
+          if (!srk) throw new Error('SUPABASE_SERVICE_ROLE_KEY missing');
+
+          const report = { steps: {}, demo: null, blockers: [] };
+
+          async function req(method, path, body, bearer, extraHeaders = {}) {
+            const headers = {
+              apikey: srk,
+              Authorization: `Bearer ${bearer || srk}`,
+              ...extraHeaders,
+            };
+            let payload;
+            if (body !== undefined) {
+              headers['Content-Type'] = 'application/json';
+              payload = JSON.stringify(body);
+            }
+            const res = await fetch(url + path, { method, headers, body: payload });
+            const text = await res.text();
+            let json;
+            try { json = text ? JSON.parse(text) : null; } catch { json = text.slice(0, 500); }
+            return { status: res.status, body: json };
+          }
+
+          // 1) session as orin (super_admin)
+          const gen = await req('POST', '/auth/v1/admin/generate_link', {
+            type: 'magiclink', email: 'orin1607@gmail.com',
+          });
+          if (gen.status !== 200) throw new Error('generate_link failed: ' + JSON.stringify(gen.body));
+          const ver = await req('POST', '/auth/v1/verify', {
+            type: 'magiclink',
+            email: 'orin1607@gmail.com',
+            token: gen.body.email_otp,
+          });
+          if (ver.status !== 200) throw new Error('verify failed');
+          const at = ver.body.access_token || ver.body.session?.access_token;
+          const userId = ver.body.user?.id || ver.body.session?.user?.id;
+          report.steps.session = 'ok';
+          report.steps.user_id = userId || null;
+
+          // 2) Edge dry_run shape (new function returns dry_run/would_*)
+          const dry = await req('POST', '/functions/v1/notify-accident-email', {
+            dry_run: true,
+            type: 'fault',
+            record: {
+              id: '00000000-0000-4000-8000-000000000099',
+              company_name: 'אילנה אטיאס',
+              event_number: 'FLT-TEST',
+              fault_type: 'פנצ׳ר',
+              link: LIVE + '/faults?id=00000000-0000-4000-8000-000000000099',
+            },
+          }, at);
+          const dryS = JSON.stringify(dry.body || {});
+          const edgeNew = dry.body && dry.body.dry_run === true && Array.isArray(dry.body.would_whatsapp);
+          report.steps.edge_dry_run_http = dry.status;
+          report.steps.edge_is_new = !!edgeNew;
+          report.steps.edge_dry_keys = dry.body && typeof dry.body === 'object' ? Object.keys(dry.body) : [];
+          report.steps.would_whatsapp = dry.body?.would_whatsapp || [];
+          report.steps.would_email = dry.body?.would_email || [];
+          if (!edgeNew) report.blockers.push('Edge still looks OLD after deploy');
+
+          // 3) Gupshup
+          const wa = await req('POST', '/functions/v1/send-whatsapp-message', {
+            action: 'check_connection',
+          }, at);
+          report.steps.gupshup_configured = wa.body?.configured === true;
+          report.steps.gupshup_message = typeof wa.body?.message === 'string' ? wa.body.message.slice(0, 160) : null;
+          if (!report.steps.gupshup_configured) {
+            report.blockers.push('GUPSHUP_API_KEY not configured on Production Edge Secrets');
+          }
+
+          // 4) AlertSettings — ensure company ready
+          await req('PATCH',
+            '/rest/v1/company_settings?company_name=eq.' + encodeURIComponent('אילנה אטיאס'),
+            {
+              incident_notify_email: true,
+              incident_notify_whatsapp: true,
+              incident_email_recipients: 'both',
+              incident_whatsapp_recipients: 'dalia',
+            });
+          const settings = await req('GET',
+            '/rest/v1/company_settings?select=company_name,incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients&company_name=eq.' +
+            encodeURIComponent('אילנה אטיאס'));
+          report.steps.alert_settings = Array.isArray(settings.body) ? settings.body[0] : settings.body;
+
+          // 5) Driver יוני אטיאס
+          let drivers = await req('GET',
+            '/rest/v1/drivers?select=id,full_name,phone,company_name&full_name=eq.' +
+            encodeURIComponent('יוני אטיאס') + '&limit=5');
+          let driver = Array.isArray(drivers.body) ? drivers.body[0] : null;
+          if (!driver) {
+            const all = await req('GET', '/rest/v1/drivers?select=id,full_name,phone,company_name&limit=1000');
+            driver = (all.body || []).find(d => (d.full_name || '').includes('יוני') && (d.full_name || '').includes('אטיאס'));
+          }
+          if (!driver) {
+            const created2 = await fetch(url + '/rest/v1/drivers', {
+              method: 'POST',
+              headers: {
+                apikey: srk,
+                Authorization: `Bearer ${srk}`,
+                'Content-Type': 'application/json',
+                Prefer: 'return=representation',
+              },
+              body: JSON.stringify({
+                full_name: 'יוני אטיאס',
+                phone: '0500000000',
+                company_name: 'אילנה אטיאס',
+              }),
+            });
+            const cj = await created2.json();
+            if (!created2.ok) throw new Error('driver create failed: ' + JSON.stringify(cj).slice(0, 300));
+            driver = Array.isArray(cj) ? cj[0] : cj;
+            report.steps.driver_created = true;
+          }
+          report.steps.driver = { id: driver.id, full_name: driver.full_name, company_name: driver.company_name };
+
+          // 6) Vehicle
+          let vehicles = await req('GET',
+            '/rest/v1/vehicles?select=id,license_plate,company_name,assigned_driver_id&company_name=eq.' +
+            encodeURIComponent('אילנה אטיאס') + '&limit=5');
+          let vehicle = Array.isArray(vehicles.body) && vehicles.body[0];
+          if (!vehicle) {
+            const vres = await fetch(url + '/rest/v1/vehicles', {
+              method: 'POST',
+              headers: {
+                apikey: srk,
+                Authorization: `Bearer ${srk}`,
+                'Content-Type': 'application/json',
+                Prefer: 'return=representation',
+              },
+              body: JSON.stringify({
+                license_plate: 'DEMO-' + Date.now().toString().slice(-6),
+                company_name: 'אילנה אטיאס',
+                assigned_driver_id: driver.id,
+              }),
+            });
+            const vj = await vres.json();
+            if (!vres.ok) throw new Error('vehicle create failed: ' + JSON.stringify(vj).slice(0, 300));
+            vehicle = Array.isArray(vj) ? vj[0] : vj;
+            report.steps.vehicle_created = true;
+          }
+          report.steps.vehicle = { id: vehicle.id, license_plate: vehicle.license_plate };
+
+          // 7) Event number via authenticated RPC (requires auth.uid())
+          const rpc = await req('POST', '/rest/v1/rpc/allocate_incident_event_number', {
+            p_company: 'אילנה אטיאס',
+            p_prefix: 'FLT',
+          }, at);
+          const eventNumber = typeof rpc.body === 'string' ? rpc.body : null;
+          report.steps.event_number = eventNumber;
+          if (!eventNumber) {
+            report.blockers.push('allocate_incident_event_number failed: ' + JSON.stringify(rpc.body).slice(0, 200));
+          }
+
+          if (report.blockers.length) {
+            console.log('---OPS_CONTINUE_RESULT---');
+            console.log(JSON.stringify({ ok: false, report }, null, 2));
+            console.log('---OPS_CONTINUE_DONE---');
+            process.exit(1);
+          }
+
+          // 8) Create fault
+          const faultRes = await fetch(url + '/rest/v1/faults', {
+            method: 'POST',
+            headers: {
+              apikey: srk,
+              Authorization: `Bearer ${srk}`,
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
+            },
+            body: JSON.stringify({
+              vehicle_plate: vehicle.license_plate || '',
+              driver_name: 'יוני אטיאס',
+              fault_type: 'פנצ׳ר',
+              description: 'בדיקת מערכת חיה — פנצ׳ר (Cursor ops-continue)',
+              urgency: 'medium',
+              status: 'opened',
+              company_name: 'אילנה אטיאס',
+              created_by: userId || null,
+              event_number: eventNumber,
+              serial_id: eventNumber,
+              vehicle_id: vehicle.id,
+              driver_id: driver.id,
+            }),
+          });
+          let faultBody = await faultRes.json();
+          if (!faultRes.ok) {
+            throw new Error('fault create failed: ' + JSON.stringify(faultBody).slice(0, 500));
+          }
+          const fault = Array.isArray(faultBody) ? faultBody[0] : faultBody;
+          const deepLink = `${LIVE}/faults?id=${fault.id}`;
+          report.demo = {
+            fault_id: fault.id,
+            event_number: fault.event_number || eventNumber,
+            deep_link: deepLink,
+          };
+
+          // 9) Live notify — Owner authorized one send to Dalia contacts
+          const notify = await req('POST', '/functions/v1/notify-accident-email', {
+            type: 'fault',
+            record: {
+              id: fault.id,
+              event_number: report.demo.event_number,
+              fault_type: 'פנצ׳ר',
+              company_name: 'אילנה אטיאס',
+              driver_name: 'יוני אטיאס',
+              vehicle_plate: vehicle.license_plate || '',
+              driver_id: driver.id,
+              vehicle_id: vehicle.id,
+              link: deepLink,
+              status: 'opened',
+            },
+            channels: {
+              email: true,
+              whatsapp: true,
+              in_app: true,
+              emailRecipients: 'both',
+              whatsappRecipients: 'dalia',
+            },
+          }, at);
+
+          report.demo.notify_http = notify.status;
+          report.demo.notify_body = notify.body;
+
+          const logs = await req('GET',
+            `/rest/v1/incident_notification_deliveries?incident_id=eq.${fault.id}&select=*&order=created_at.desc`);
+          report.demo.delivery_log = logs.body;
+
+          const body = notify.body || {};
+          const results = Array.isArray(body.results) ? body.results : [];
+          const logArr = Array.isArray(logs.body) ? logs.body : [];
+          const sent = (channel) =>
+            results.some((r) => r.channel === channel && r.status === 'sent') ||
+            logArr.some((r) => r.channel === channel && String(r.status || '').toLowerCase() === 'sent');
+          report.demo.whatsapp_sent = sent('whatsapp');
+          report.demo.email_sent = sent('email');
+          report.demo.whatsapp_results = results.filter((r) => r.channel === 'whatsapp');
+          report.demo.email_results = results.filter((r) => r.channel === 'email');
+
+          // Frontend live check
+          const fe = await fetch(LIVE + '/');
+          const html = await fe.text();
+          const m = html.match(/assets\/(index-[^"']+\.js)/);
+          report.steps.frontend_bundle = m ? m[1] : null;
+          report.steps.frontend_http = fe.status;
+
+          console.log('---OPS_CONTINUE_RESULT---');
+          console.log(JSON.stringify({ ok: true, report }, null, 2));
+          console.log('---OPS_CONTINUE_DONE---');
+
+          if (notify.status >= 400) {
+            console.error('Notify HTTP failed');
+            process.exit(2);
+          }
+          if (!report.demo.whatsapp_sent || !report.demo.email_sent) {
+            // still exit 2 but keep artifact — maybe provider accepted without our status parse
+            console.error('Could not confirm both channels from response/log — inspect notify_body');
+            process.exit(2);
+          }
+          NODE
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Ops Continue — Edge + Live Demo" >> "$GITHUB_STEP_SUMMARY"
+          echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"

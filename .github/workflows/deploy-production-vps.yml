@@ -10,6 +10,7 @@ on:
     paths:
       - 'src/**'
       - 'public/**'
+      - '!public/project-001/**'
       - 'index.html'
       - 'package.json'
       - 'bun.lockb'

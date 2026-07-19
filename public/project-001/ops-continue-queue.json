@@ -1,0 +1,12 @@
+{
+  "id": "ops-continue-queue",
+  "requestedAt": "2026-07-19T17:55:00.000Z",
+  "requestedBy": "cursor-agent",
+  "ownerMessage": "סיימתי לחבר ולעדכן — המשך אוטומטי + דוגמה חיה אחת",
+  "actions": [
+    "validate trimmed SUPABASE_ACCESS_TOKEN",
+    "deploy notify-accident-email staging+production",
+    "verify GUPSHUP + AlertSettings",
+    "one live fault פנצ׳ר for יוני אטיאס → WA 0534338601 + Email orin1607@gmail.com"
+  ]
+}
