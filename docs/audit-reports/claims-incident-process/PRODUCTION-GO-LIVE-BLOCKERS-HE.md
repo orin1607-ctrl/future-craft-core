@@ -1,79 +1,35 @@
-# Production Go-Live — סטטוס אמת + חסמים שנותרו
+# Production Go-Live — סטטוס אמת
 
-**תאריך:** 2026-07-19T15:40Z  
-**Commit tip (main):** יתעדכן בפריסה  
-**אתר פעיל:** https://dalia-car.online/
-
----
-
-## מה כבר הושלם בפועל
-
-| רכיב | סטטוס | ראיה |
-|------|--------|------|
-| Merge קוד Incident Alerts → `main` | ✅ | היסטוריית git |
-| Staging GitHub Pages | ✅ | `index-Ng310Mry.js` |
-| Preview VPS | ✅ | `preview.dalia-car.online` עם markers |
-| **Production DB migrations** | ✅ | `allocate_incident_event_number`, `faults.event_number`, `incident_notify_*`, `incident_notification_deliveries` |
-| Production Frontend (Hostinger) | ⏳ בפריסה עכשיו דרך `owner-golive-production` | — |
-| Edge `notify-accident-email` (גרסה חדשה) | ❌ | `SUPABASE_ACCESS_TOKEN` ב-GitHub → **401 Unauthorized** |
-| WhatsApp אמיתי ב-Production | ❌ | `GUPSHUP_API_KEY` **לא מוגדר** ב-Edge Secrets של Production |
-| Email ב-Production (Edge ישן) | 🟡 | `RESEND_API_KEY` קיים (הפונקציה הישנה עוברת את בדיקת המפתח) |
+**פריסת Frontend:** 2026-07-19T15:43:51Z  
+**Commit שפורסם:** `4edf83a33f3e95317c5608a000c236f64b478816`  
+**Bundle:** `assets/index-Cv0VC1Iz.js`  
+**אתר:** https://dalia-car.online/  
+**PRODUCTION-DEPLOY.txt:** על השרת
 
 ---
 
-## למה Deploy Environment עדיין ממתין
+## מה עובד עכשיו באתר הפעיל
 
-Workflow `deploy-production-vps.yml` משתמש ב-GitHub Environment **Production** עם Required reviewer: **`orin1607-ctrl` בלבד**.  
-הסוכן (`cursor[bot]`) מקבל `current_user_can_approve: false`.
-
-לכן נוצר מסלול מאושר-Owner: `.github/workflows/owner-golive-production.yml`  
-(בלי Environment gate — משתמש באותם `VPS_*` כמו Preview).
-
----
-
-## שני חסמים שרק Owner יכול לפתוח (חובה ל-WhatsApp מלא)
-
-### 1) `GUPSHUP_API_KEY` ב-Production Supabase
-
-נבדק עם session של `orin1607@gmail.com` (super_admin):
-
-```
-send-whatsapp-message → 503
-"GUPSHUP_API_KEY is not configured in Supabase Secrets"
-```
-
-**פעולה:**  
-Supabase Dashboard → Project `qasomfndnjuixgjmjwcm` → Edge Functions → Secrets  
-→ הוסף/עדכן `GUPSHUP_API_KEY` (אותו מפתח כמו ב-Staging אם קיים).
-
-אופציונלי: `GUPSHUP_SOURCE=972546500305`, `GUPSHUP_APP_NAME=DaliaVehicle`
-
-### 2) `SUPABASE_ACCESS_TOKEN` תקף
-
-ה-Secret ב-GitHub קיים (`sbp_…` אורך 44) אבל Supabase Management API מחזיר **Unauthorized**.  
-בלי זה אי אפשר לפרוס את Edge החדש (`incident_notify_*`, delivery log, anti-dup, נמעני Dalia).
-
-**פעולה:**  
-1. https://supabase.com/dashboard/account/tokens → Generate new token  
-2. GitHub → Settings → Secrets → `SUPABASE_ACCESS_TOKEN` = הטוקן החדש  
-3. (מומלץ) גם ב-VPS: `/root/dalia-ops/.env` → `SUPABASE_ACCESS_TOKEN=...`  
-4. Push קטן ל-`main` או הרצת `Deploy Edge — incident notify`
+| רכיב | סטטוס |
+|------|--------|
+| Frontend חדש (לא BlJXIgah) | ✅ |
+| Migrations (event_number, counters, deliveries, alert settings) | ✅ |
+| הגדרות התראות לחברת «אילנה אטיאס» (Email+WA+both/dalia) | ✅ DB |
+| Edge `notify-accident-email` גרסה חדשה | ❌ 401 על ACCESS_TOKEN |
+| GUPSHUP_API_KEY ב-Production | ❌ לא מוגדר → WhatsApp לא יכול לצאת |
+| Email דרך Edge ישן לנמעני Dalia | ❌ Edge ישן שולח רק ל-fleet_managers (בדיקה החזירה `sent:0`) |
 
 ---
 
-## אחרי שהחסמים ייפתחו
+## שני חסמים Owner — חובה לפני אישור 9 הסעיפים
 
-הסוכן / Owner Go-Live ישלים:
+### 1. GUPSHUP_API_KEY
+Supabase → `qasomfndnjuixgjmjwcm` → Edge Functions → Secrets → הוסף `GUPSHUP_API_KEY`
 
-1. פריסת Edge ל-Staging + Production  
-2. בדיקת פנצ׳ר אמיתית (אירוע, מעקב, כרטיסים, דשבורדים)  
-3. WhatsApp ל-`0534338601` + Email ל-`orin1607@gmail.com`  
-4. דוח 9 הסעיפים עם אישור מפורש
+### 2. SUPABASE_ACCESS_TOKEN תקף
+1. https://supabase.com/dashboard/account/tokens → Generate  
+2. GitHub Secret `SUPABASE_ACCESS_TOKEN` = טוקן חדש  
+3. אופציונלי: `/root/dalia-ops/.env`  
+4. לאחר מכן: push ל-`main` / הרצת Owner Go-Live / Deploy Edge
 
----
-
-## מה לא עוקפים
-
-- לא מנחשים מפתחות  
-- לא מדפיסים Secrets  
-- לא מפרסמים ל-Production בלי migrations (כבר הוחלו)
+אחרי שני אלה הסוכן ישלים: פריסת Edge החדש + בדיקת פנצ׳ר אמיתית (WA+Email+קישור+לוגים) + דוח 9 סעיפים מלא.

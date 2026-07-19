@@ -1,0 +1,125 @@
+name: Production live fault API verification
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prod-live-fault-verify.yml']
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create פנצ׳ר fault and verify event number + links
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 <<'PY'
+          import json,urllib.request,urllib.error,urllib.parse,os,uuid
+          from datetime import datetime, timezone
+          srk=os.environ['SRK']
+          url='https://qasomfndnjuixgjmjwcm.supabase.co'
+          company='אילנה אטיאס'
+
+          def req(method, path, body=None, bearer=None, prefer=None):
+            h={'apikey':srk,'Authorization':'Bearer '+(bearer or srk)}
+            if body is not None:
+              h['Content-Type']='application/json'
+            if prefer: h['Prefer']=prefer
+            data=None if body is None else json.dumps(body).encode()
+            r=urllib.request.Request(url+path, data=data, headers=h, method=method)
+            try:
+              with urllib.request.urlopen(r) as resp:
+                raw=resp.read().decode()
+                return resp.status, (json.loads(raw) if raw else None)
+            except urllib.error.HTTPError as e:
+              raw=e.read().decode()
+              return e.code, raw[:800]
+
+          # Find vehicle + driver for company
+          st, vehicles = req('GET', f"/rest/v1/vehicles?company_name=eq.{urllib.parse.quote(company)}&select=id,plate_number,internal_number,driver_id&limit=5")
+          print('VEHICLES_HTTP', st, 'COUNT', len(vehicles) if isinstance(vehicles,list) else vehicles)
+          st, drivers = req('GET', f"/rest/v1/drivers?company_name=eq.{urllib.parse.quote(company)}&select=id,full_name,user_id,phone&limit=10")
+          print('DRIVERS_HTTP', st, 'COUNT', len(drivers) if isinstance(drivers,list) else drivers)
+          if isinstance(drivers,list) and drivers:
+            print('DRIVER_SAMPLE', [(d.get('full_name'), bool(d.get('user_id'))) for d in drivers[:5]])
+
+          # Find a user session: prefer driver user, else orin super_admin
+          target_email=None
+          target_uid=None
+          if isinstance(drivers,list):
+            for d in drivers:
+              if d.get('user_id'):
+                st, users = req('GET', f"/auth/v1/admin/users/{d['user_id']}")
+                # admin get single user
+                break
+          # Use orin for RPC auth (super_admin)
+          st, gen = req('POST', '/auth/v1/admin/generate_link', {'type':'magiclink','email':'orin1607@gmail.com'})
+          assert st==200, gen
+          st, ver = req('POST', '/auth/v1/verify', {'type':'magiclink','email':'orin1607@gmail.com','token':gen['email_otp']})
+          assert st==200, ver
+          at=ver.get('access_token') or ver['session']['access_token']
+          print('SESSION_OK')
+
+          # Allocate event number as authenticated user
+          st, enum = req('POST', '/rest/v1/rpc/allocate_incident_event_number', {'p_company':company,'p_prefix':'FLT'}, bearer=at)
+          print('EVENT_NUMBER', st, enum)
+          assert st==200 and isinstance(enum,str) and enum.startswith('FLT-'), enum
+
+          veh = (vehicles[0] if isinstance(vehicles,list) and vehicles else {})
+          drv = (drivers[0] if isinstance(drivers,list) and drivers else {})
+          fault={
+            'company_name': company,
+            'driver_name': drv.get('full_name') or 'יוני אטיאס',
+            'vehicle_plate': veh.get('plate_number') or '00-000-00',
+            'vehicle_internal_number': veh.get('internal_number') or '',
+            'vehicle_id': veh.get('id'),
+            'driver_id': drv.get('id'),
+            'fault_type': 'פנצ׳ר',
+            'description': 'בדיקת אמת Production go-live — פנצ׳ר',
+            'urgency': 'urgent',
+            'status': 'opened',
+            'event_number': enum,
+            'opened_by_role': 'super_admin',
+            'reporter_phone': '0534338601',
+            'date': datetime.now(timezone.utc).isoformat(),
+          }
+          # remove nulls
+          fault={k:v for k,v in fault.items() if v is not None}
+          st, created = req('POST', '/rest/v1/faults', fault, bearer=at, prefer='return=representation')
+          print('CREATE_FAULT', st, created if not isinstance(created,list) else created[:1])
+          assert st in (200,201), created
+          row = created[0] if isinstance(created,list) else created
+          fid=row['id']
+          print('FAULT_ID', fid, 'EVENT', row.get('event_number'))
+
+          # Verify readable
+          st, got = req('GET', f'/rest/v1/faults?id=eq.{fid}&select=id,event_number,fault_type,status,vehicle_id,driver_id,company_name')
+          print('READ_FAULT', st, got)
+
+          # Settings
+          st, settings = req('GET', f"/rest/v1/company_settings?company_name=eq.{urllib.parse.quote(company)}&select=incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients")
+          print('SETTINGS', settings)
+
+          # Notify attempt (old edge)
+          st, notify = req('POST', '/functions/v1/notify-accident-email', {
+            'type':'fault',
+            'record':{**row, 'link': f'https://dalia-car.online/faults?id={fid}'}
+          }, bearer=at)
+          print('NOTIFY', st, notify)
+
+          # WA check
+          st, wa = req('POST', '/functions/v1/send-whatsapp-message', {'action':'check_connection'}, bearer=at)
+          print('WA_CONN', st, wa if isinstance(wa,dict) else str(wa)[:200])
+
+          print('VERIFY_SUMMARY')
+          print(json.dumps({
+            'production_url': 'https://dalia-car.online/',
+            'fault_id': fid,
+            'event_number': row.get('event_number'),
+            'company': company,
+            'notify_result': notify,
+            'wa_configured': (wa or {}).get('configured') if isinstance(wa,dict) else None,
+            'deep_link': f'https://dalia-car.online/faults?id={fid}',
+          }, ensure_ascii=False, indent=2))
+          print('DONE')
+          PY
