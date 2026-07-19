@@ -1,12 +1,23 @@
 name: Deploy Production (dalia-car.online)
 
-# Triggered by workflow_dispatch, push to main (Owner-approved Production go-live),
-# or deploy-control edge function.
+# Triggered by workflow_dispatch, path-filtered push to main, or queue marker.
+# Docs-only commits do NOT re-queue Approve (avoids cancelling waiting reviews).
 # Requires GitHub Environment "production" approval before the job runs.
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'bun.lockb'
+      - 'vite.config.*'
+      - 'tailwind.config.*'
+      - 'tsconfig*.json'
+      - '.github/workflows/deploy-production-vps.yml'
+      - 'public/project-001/production-deploy-queue.json'
   workflow_dispatch:
     inputs:
       commit_sha:

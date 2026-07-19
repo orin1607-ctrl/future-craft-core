@@ -1,74 +1,80 @@
 # Owner — אשר עכשיו (קישורים ישירים)
 
-הסוכן הפעיל את כל מה שבשליטתו. `workflow_dispatch` חסום ל-bot (403) — ההפעלה היא דרך push ל-`main`.
+הסוכן הפעיל את כל מה שבשליטתו.  
+`workflow_dispatch` חסום ל-bot (403) — ההפעלה היא דרך push ל-`main`.
+
+**אחרי שתסיים שער — כתוב בצ'אט «אושר» / «סיימתי» ואמשיך אוטומטית לשלב הבא.**
 
 ---
 
-## שער A — רוטציית Token (לא GitHub Approve)
+## שער A — רוטציית Token (Dashboard — לא GitHub Approve)
 
 **חובה לפני Edge.**
 
-1. קישור: https://supabase.com/dashboard/account/tokens  
+1. **קישור:** https://supabase.com/dashboard/account/tokens  
 2. Generate → העתק  
-3. עדכן: https://github.com/orin1607-ctrl/future-craft-core/settings/secrets/actions → `SUPABASE_ACCESS_TOKEN`  
-4. מה מאשרים: חידוש Access Token ל-Management API  
-5. אחרי: Edge Staging ייפרס אוטומטית ב-push הבא / בהרצה הבאה; Health יעבור Token  
-6. זמן: ~2–3 דק'
+3. **עדכון Secret:** https://github.com/orin1607-ctrl/future-craft-core/settings/secrets/actions → `SUPABASE_ACCESS_TOKEN`  
+4. **מה מאשרים / מה עושים:** חידוש Access Token ל-Management API (הנוכחי מחזיר 401)  
+5. **מיד אחרי:** כתוב «Token עודכן» — אפרוס Edge Staging אוטומטית ואפתח Approve ל-Edge Production  
+6. **זמן:** ~2–3 דקות
 
 ---
 
 ## שער B — Gupshup ב-Production Edge (Dashboard)
 
-1. Staging secrets: https://supabase.com/dashboard/project/usfeoerkpcafxxlyuldl/settings/functions  
-2. Production secrets: https://supabase.com/dashboard/project/qasomfndnjuixgjmjwcm/settings/functions  
+1. **Staging secrets:** https://supabase.com/dashboard/project/usfeoerkpcafxxlyuldl/settings/functions  
+2. **Production secrets:** https://supabase.com/dashboard/project/qasomfndnjuixgjmjwcm/settings/functions  
 3. העתק: `GUPSHUP_API_KEY`, `GUPSHUP_SOURCE`, `GUPSHUP_APP_NAME`  
-4. מה מאשרים: הגדרת WhatsApp ב-Production  
-5. אחרי: בדיקות WA לא יחזירו «not configured»  
-6. זמן: ~3–5 דק'
+4. **מה זה:** הגדרת WhatsApp ב-Production (כרגע `configured: false`)  
+5. **מיד אחרי:** Preflight WA יעבור; מוכן לשליחת בדיקה אחרי Edge חדש  
+6. **זמן:** ~3–5 דקות
 
 ---
 
-## שער C — Approve Frontend Production (GitHub Environment)
+## שער C — Approve Frontend Production (GitHub) ← ממתינים עכשיו
 
-**קישור ישיר להרצה שממתינה עכשיו (commit `75106c6`):**
+**קישור ישיר (יעודכן בהרצה האחרונה אחרי התיקון):**
 
-→ https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29697415073  
+→ https://github.com/orin1607-ctrl/future-craft-core/actions/workflows/deploy-production-vps.yml  
 
-1. לחץ **Review deployments** → **Approve and deploy**  
-2. מה מאשרים: העלאת Frontend ל-https://dalia-car.online מה-commit האחרון  
-3. אחרי: build + rsync ל-`/root/future-craft-core/dist` (~3–5 דק')  
-4. הרצות ישנות בוטלו אוטומטית (concurrency)
+בחר את ההרצה במצב **Waiting** → **Review deployments** → **Approve and deploy**
+
+1. **מה מאשרים:** העלאת Frontend ל-https://dalia-car.online  
+2. **מיד אחרי:** build + rsync (~3–5 דק') — אמשיך לאימות שהאתר עלה  
+3. **זמן Approve:** ~30 שניות
+
+> מעתה: שינויי docs בלבד **לא** מבטלים Approve ממתין.
 
 ---
 
 ## שער D — Approve Edge Production (אחרי שער A)
 
-אחרי Token תקף + הרצת Deploy Edge:
+יופיע אחרי Token תקף + הרצת Deploy Edge:
 
 → https://github.com/orin1607-ctrl/future-craft-core/actions/workflows/deploy-edge-incident-notify.yml  
 
 1. **Review deployments** → **Approve** על job Production  
-2. מה מאשרים: פריסת `notify-accident-email` ל-Production Supabase  
-3. אחרי: Edge חדש חי; אפשר Preflight WA/Email  
-4. זמן: ~1–2 דק' אחרי Approve
+2. **מה מאשרים:** פריסת `notify-accident-email` ל-Production  
+3. **מיד אחרי:** Edge חדש; מריץ Health + Preflight WA/Email  
+4. **זמן:** ~1–2 דק' אחרי Approve
 
 ---
 
-## שער E — אישור שליחה חיה (צ'אט)
+## שער E — אישור שליחה חיה (צ'אט בלבד)
 
-רק אחרי Health ירוק + Edge חדש. כתוב בצ'אט:
+רק אחרי Health ירוק. כתוב:
 
 `מאשר שליחת בדיקה אחת: WhatsApp + Email`
 
 ---
 
-## מה הסוכן כבר הפעיל / מפעיל
+## מה כבר רץ (בשליטת הסוכן)
 
-| פעולה | סטטוס |
+| פעולה | תוצאה |
 |--------|--------|
-| Staging Pages | רץ על push (הצליח) |
-| Preview CI | רץ על push (הצליח) |
-| Environment Health | רץ — נכשל על Token 401 (צפוי עד שער A) |
-| Production Frontend queue | ממתינה ל-Approve (שער C) |
-| Edge queue | מופעל ב-push (Staging אוטומטי אחרי A; Production = שער D) |
-| WA/Email preflight | מופעל ב-push (ללא שליחה) |
+| Staging Pages | ✅ success |
+| Preview CI | ✅ רץ / הצליח |
+| Environment Health | ❌ Token 401 (צפוי עד שער A) |
+| Edge deploy | ❌ נחסם עד Token (שער A) — אז Staging אוטומטי + Approve ל-Prod |
+| Production Frontend | ⏳ Waiting — שער C |
+| WA/Email preflight | ✅ רץ (ללא שליחה): Edge ישן, GUPSHUP לא מוגדר ב-Prod |

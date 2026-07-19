@@ -1,0 +1,7 @@
+{
+  "id": "production-deploy-queue",
+  "requestedAt": "2026-07-19T17:46:00.000Z",
+  "requestedBy": "cursor-agent",
+  "target": "https://dalia-car.online",
+  "note": "Push of this file queues Deploy Production behind Environment Approve. Docs-only commits no longer re-queue."
+}
