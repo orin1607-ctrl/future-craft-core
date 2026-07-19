@@ -1,8 +1,11 @@
 {
   "id": "edge-deploy-queue",
-  "requestedAt": "2026-07-19T17:45:00.000Z",
+  "requestedAt": "2026-07-19T17:50:58.249488Z",
   "requestedBy": "cursor-agent",
-  "targets": ["staging", "production"],
+  "targets": [
+    "staging",
+    "production"
+  ],
   "function": "notify-accident-email",
-  "note": "Push of this file queues Edge deploy workflow. Production waits for Owner Environment Approve after token is valid."
+  "note": "Owner secrets updated \u2014 redeploy Edge Staging+Production"
 }
