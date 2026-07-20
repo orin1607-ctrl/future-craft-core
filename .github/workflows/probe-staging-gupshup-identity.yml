@@ -1,0 +1,222 @@
+name: Probe Staging Gupshup identity
+
+# Live Staging check: does existing Edge key still auth to Gupshup App ID?
+# No WhatsApp send. Never prints secret values.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-staging-gupshup-identity.yml'
+      - 'public/project-001/gupshup-identity-probe-queue.json'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Staging identity probe (no send, no secret values)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+          const STAGING = 'usfeoerkpcafxxlyuldl';
+          const PROD = 'qasomfndnjuixgjmjwcm';
+          const OWNER_EMAIL = 'orin1607@gmail.com';
+          const APP_ID_DEFAULT = '496709e8-b5fc-4de9-9c75-bc87455482dd';
+
+          const out = {
+            purpose: 'Validate Staging GUPSHUP key against App DaliaVehicle / App ID — no send',
+            access_token_ok: false,
+            secrets_names: {},
+            staging_wa: null,
+            staging_inspect: null,
+            production_wa: null,
+            verdict: null,
+            owner_hint: null,
+          };
+
+          async function mgmt(path) {
+            const res = await fetch(`https://api.supabase.com/v1${path}`, {
+              headers: { Authorization: `Bearer ${token}`, apikey: token },
+            });
+            const text = await res.text();
+            let json = null;
+            try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+            return { status: res.status, json };
+          }
+
+          async function post(base, path, body, bearer, apikey) {
+            const res = await fetch(base + path, {
+              method: 'POST',
+              headers: {
+                apikey: apikey || bearer,
+                Authorization: `Bearer ${bearer}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(body),
+            });
+            return { status: res.status, body: await res.json().catch(() => ({})) };
+          }
+
+          if (!token) {
+            out.verdict = 'MISSING_ACCESS_TOKEN';
+            console.log(JSON.stringify(out, null, 2));
+            process.exit(0);
+          }
+
+          const projects = await mgmt('/projects');
+          out.access_token_ok = projects.status === 200;
+          if (!out.access_token_ok) {
+            out.verdict = 'INVALID_ACCESS_TOKEN';
+            console.log(JSON.stringify(out, null, 2));
+            process.exit(0);
+          }
+
+          const GUPSHUP_NAMES = ['GUPSHUP_API_KEY', 'GUPSHUP_APP_NAME', 'GUPSHUP_SOURCE', 'GUPSHUP_APP_ID'];
+          for (const ref of [STAGING, PROD]) {
+            const listed = await mgmt(`/projects/${ref}/secrets`);
+            const names = Array.isArray(listed.json)
+              ? listed.json.map((s) => s.name || s).filter(Boolean)
+              : [];
+            const present = {};
+            for (const n of GUPSHUP_NAMES) present[n] = names.includes(n);
+            out.secrets_names[ref] = { http: listed.status, present };
+          }
+
+          // Fetch Staging API keys (service_role) — never log values
+          const keys = await mgmt(`/projects/${STAGING}/api-keys`);
+          const stagingSrk = Array.isArray(keys.json)
+            ? (keys.json.find((k) => k.name === 'service_role' || k.tags?.includes('service_role'))?.api_key
+              || keys.json.find((k) => String(k.name || '').includes('service'))?.api_key)
+            : null;
+          const stagingAnon = Array.isArray(keys.json)
+            ? (keys.json.find((k) => k.name === 'anon' || k.tags?.includes('anon'))?.api_key
+              || keys.json.find((k) => k.name === 'anon'))?.api_key
+            : null;
+
+          out.staging_api_keys_fetched = {
+            http: keys.status,
+            has_service_role: Boolean(stagingSrk),
+            has_anon: Boolean(stagingAnon),
+            // lengths only
+            service_role_len: stagingSrk ? stagingSrk.length : 0,
+            anon_len: stagingAnon ? stagingAnon.length : 0,
+          };
+
+          if (!stagingSrk) {
+            out.verdict = 'COULD_NOT_FETCH_STAGING_SERVICE_ROLE';
+            console.log(JSON.stringify(out, null, 2));
+            process.exit(0);
+          }
+
+          const base = `https://${STAGING}.supabase.co`;
+          const gen = await post(base, '/auth/v1/admin/generate_link', { type: 'magiclink', email: OWNER_EMAIL }, stagingSrk, stagingSrk);
+          const otp = gen.body?.email_otp;
+          const ver = otp
+            ? await post(base, '/auth/v1/verify', { type: 'magiclink', email: OWNER_EMAIL, token: otp }, stagingAnon || stagingSrk, stagingAnon || stagingSrk)
+            : { status: 0, body: {} };
+          const at = ver.body?.access_token || ver.body?.session?.access_token;
+
+          if (!at) {
+            out.staging_wa = { error: 'auth_failed', gen: gen.status, ver: ver.status };
+            out.verdict = 'STAGING_AUTH_FAILED';
+            console.log(JSON.stringify(out, null, 2));
+            process.exit(0);
+          }
+
+          const wa = await post(base, '/functions/v1/send-whatsapp-message', { action: 'check_connection' }, at, stagingAnon || stagingSrk);
+          out.staging_wa = {
+            http: wa.status,
+            configured: wa.body?.configured ?? null,
+            success: wa.body?.success ?? null,
+            gupshup_verified: wa.body?.gupshup_verified ?? null,
+            gupshup_status: wa.body?.gupshup_status ?? null,
+            app_name: wa.body?.app_name ?? null,
+            source: wa.body?.source ?? null,
+            message: typeof wa.body?.message === 'string' ? wa.body.message.slice(0, 200) : null,
+            error: typeof wa.body?.error === 'string' ? wa.body.error.slice(0, 200) : null,
+          };
+
+          const insp = await post(base, '/functions/v1/send-whatsapp-message', { action: 'inspect_outbound_permissions' }, at, stagingAnon || stagingSrk);
+          const app = insp.body?.app || {};
+          const probes = insp.body?.probes || {};
+          const apiKeyMeta = insp.body?.api_key || {};
+          const tpl = probes.list_approved_templates || {};
+          const sess = probes.session_msg_auth_probe || {};
+          const analysis = insp.body?.analysis || {};
+          out.staging_inspect = {
+            http: insp.status,
+            app: {
+              name: app.name ?? null,
+              id: app.id ?? null,
+              source_used: app.source_used ?? null,
+              source_expected: app.source_expected ?? null,
+              source_match: app.source_match ?? null,
+            },
+            api_key: {
+              configured: apiKeyMeta.configured ?? null,
+              length: apiKeyMeta.length ?? null, // length only — not value
+            },
+            templates_probe: {
+              http: tpl.http_status ?? null,
+              api_key_accepted_for_app: tpl.api_key_accepted_for_app ?? null,
+              approved_template_count: tpl.approved_template_count ?? null,
+            },
+            session_auth_probe: {
+              http: sess.http_status ?? null,
+              outbound_session_api_authorized: sess.outbound_session_api_authorized ?? null,
+            },
+            analysis: {
+              api_key_belongs_to_dalia_vehicle_app: analysis.api_key_belongs_to_dalia_vehicle_app ?? null,
+              outbound_session_api_blocked: analysis.outbound_session_api_blocked ?? null,
+            },
+            probe_keys: Object.keys(probes).slice(0, 20),
+            app_id_matches_default: (app.id || null) === APP_ID_DEFAULT,
+          };
+
+          // Production configured? (GH SRK is Production)
+          // Skip if we don't have prod SRK in this job — optional via env not set
+          out.production_note = 'Production GUPSHUP still expected missing; this job focuses on Staging identity';
+
+          const cfg = out.staging_wa.configured;
+          const verified = out.staging_wa.gupshup_verified;
+          const keyBelongs = out.staging_inspect.analysis?.api_key_belongs_to_dalia_vehicle_app;
+          const tplHttp = out.staging_inspect.templates_probe?.http;
+
+          if (cfg && (verified === true || keyBelongs === true)) {
+            out.verdict = 'STAGING_KEY_VALID_APP_ALIVE';
+            out.owner_hint = {
+              he: 'מפתח Staging עדיין תקף מול Gupshup — האפליקציה קיימת. אפשר להעתיק Secrets מ-Staging Dashboard → Production (ערכים לא נראים לסוכן). חשבון הפורטל עדיין לא ידוע מהריפו.',
+              action: 'Copy Staging Edge Secrets GUPSHUP_* → Production in Dashboard UI, or recreate if portal access lost',
+            };
+          } else if (cfg && (verified === false || keyBelongs === false || (tplHttp && tplHttp >= 400))) {
+            out.verdict = 'STAGING_KEY_PRESENT_BUT_REJECTED';
+            out.owner_hint = {
+              he: 'יש Secret ב-Staging אבל Gupshup דוחה אותו (מפתח ישן/חשבון לא נגיש). מומלץ ליצור אפליקציה חדשה ב-Gupshup ולהגדיר מחדש Staging+Production.',
+              action: 'Recreate Gupshup app → set Edge Secrets on Staging + Production',
+            };
+          } else if (!cfg) {
+            out.verdict = 'STAGING_KEY_MISSING';
+            out.owner_hint = {
+              he: 'גם ב-Staging אין מפתח פעיל — צריך ליצור אפליקציה ב-Gupshup ולהגדיר Secrets.',
+              action: 'Create new Gupshup app → set Edge Secrets',
+            };
+          } else {
+            out.verdict = 'STAGING_INCONCLUSIVE';
+            out.owner_hint = { he: 'תוצאה לא חד-משמעית — ראה staging_wa / staging_inspect.', action: 'Review probe JSON' };
+          }
+
+          console.log('---GUP_SHUP_IDENTITY---');
+          console.log(JSON.stringify(out, null, 2));
+          console.log('---GUP_SHUP_IDENTITY_DONE---');
+          NODE

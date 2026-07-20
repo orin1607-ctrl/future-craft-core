@@ -1,0 +1,6 @@
+{
+  "id": "gupshup-identity-probe-queue",
+  "requestedAt": "2026-07-20T21:00:00.000Z",
+  "requestedBy": "cursor-agent",
+  "note": "Live Staging GUPSHUP key vs App ID DaliaVehicle — no send"
+}
