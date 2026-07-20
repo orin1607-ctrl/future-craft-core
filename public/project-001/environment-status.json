@@ -41,5 +41,15 @@
     "frontend_production": "up"
   },
   "blocker": "Add GUPSHUP_API_KEY (+ SOURCE/APP) to Production Edge Secrets from Gupshup portal",
-  "updatedAt": "2026-07-20T06:42:30.000Z"
+  "gupshupAccountHunt": "public/project-001/gupshup-account-hunt.json",
+  "gupshupAccountHuntDoc": "docs/audit-reports/claims-incident-process/GUPSHUP-ACCOUNT-HUNT-HE.md",
+  "gupshupIdentityClues": {
+    "app_name": "DaliaVehicle",
+    "app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+    "source": "972546500305",
+    "login_email": null,
+    "workspace_id": null,
+    "account_id": null
+  },
+  "updatedAt": "2026-07-20T20:40:00.000Z"
 }

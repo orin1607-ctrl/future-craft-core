@@ -1,0 +1,105 @@
+{
+  "generated_at": "2026-07-20T20:40:00Z",
+  "purpose": "Last-search before recreate: Gupshup account identity clues (NOT API key values)",
+  "verdict": "NO_LOGIN_EMAIL_FOUND",
+  "summary_he": "לא נמצא אימייל התחברות ל-Gupshup, Workspace ID או Account ID בשום מקום בפרויקט/היסטוריה. כן נמצאו מזהי אפליקציה חזקים: App Name, App ID, ומספר מקור.",
+  "identity_clues_found": {
+    "app_name": "DaliaVehicle",
+    "app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+    "source_e164": "972546500305",
+    "source_local_il": "054-650-0305",
+    "secret_names_used": [
+      "GUPSHUP_API_KEY",
+      "GUPSHUP_APP_NAME",
+      "GUPSHUP_SOURCE",
+      "GUPSHUP_APP_ID"
+    ]
+  },
+  "not_found": [
+    "Gupshup login / portal email",
+    "Gupshup Workspace ID",
+    "Gupshup Account ID / Partner ID",
+    "API key values (intentionally excluded)",
+    "docs/audit-reports/gupshup-whatsapp-real-send-test.json (cited in FULL-AUDIT but never present in git)"
+  ],
+  "searched": [
+    "git history (all branches)",
+    "GitHub Actions workflows + recent run logs",
+    "supabase/migrations",
+    "docs + README",
+    "scripts",
+    "deploy / VPS probe workflows",
+    "config files (.env*, config.toml, workflows, package.json)"
+  ],
+  "provenance": {
+    "ui_defaults_first_commit": {
+      "sha": "1081c6550ec72278b96643f82b2fbba71a346eca",
+      "date": "2026-06-10",
+      "author": "Naeem Dosh <m.naeem.uet.cs@gmail.com>",
+      "file": "src/components/settings/GupshupWhatsAppSection.tsx",
+      "introduced": ["DaliaVehicle", "972546500305"]
+    },
+    "edge_function_and_app_id_first_commit": {
+      "sha": "83b8ee600d4909769163b3358e28925ca5a9d350",
+      "date": "2026-07-16",
+      "author": "orin1607-ctrl <orin1607@gmail.com>",
+      "co_authored_by": "Cursor <cursoragent@cursor.com>",
+      "file": "supabase/functions/send-whatsapp-message/index.ts",
+      "introduced": [
+        "DEFAULT_APP_NAME=DaliaVehicle",
+        "DEFAULT_SOURCE=972546500305",
+        "GUPSHUP_APP_ID default=496709e8-b5fc-4de9-9c75-bc87455482dd"
+      ]
+    },
+    "pre_git_staging_note": {
+      "source": "docs/audit-reports/nightly-audit-2026-06-10.json",
+      "at": "2026-06-09T19:37:26Z",
+      "function_on_staging": true,
+      "source_in_git_then": false,
+      "secret_configured": true,
+      "gupshup_status": 401,
+      "error": "Authentication Failed"
+    }
+  },
+  "live_secrets_names_only": {
+    "staging_usfeoerkpcafxxlyuldl": {
+      "GUPSHUP_API_KEY": true,
+      "GUPSHUP_APP_NAME": true,
+      "GUPSHUP_SOURCE": false,
+      "note": "Values write-only via Management API; cannot read login email from secrets"
+    },
+    "production_qasomfndnjuixgjmjwcm": {
+      "GUPSHUP_API_KEY": false,
+      "GUPSHUP_APP_NAME": false,
+      "GUPSHUP_SOURCE": false
+    }
+  },
+  "vps_probe": {
+    "workflow": ".github/workflows/probe-gupshup-anywhere.yml",
+    "historical_result": "FOUND_COUNT 0 / no GUPSHUP env files with credentials on VPS"
+  },
+  "people_who_may_know_the_portal_account": [
+    {
+      "email": "orin1607@gmail.com",
+      "role": "Owner / authored APP_ID commit",
+      "likelihood": "high — search Gmail for Gupshup + DaliaVehicle + 496709e8"
+    },
+    {
+      "email": "m.naeem.uet.cs@gmail.com",
+      "role": "Developer — first hardcoded App Name + Source in UI (2026-06-10)",
+      "likelihood": "high — likely set Staging Edge secrets or created the app"
+    }
+  ],
+  "how_to_find_account_outside_repo": [
+    "Gmail search: gupshup, DaliaVehicle, 496709e8-b5fc-4de9-9c75-bc87455482dd, 0546500305",
+    "Password manager search: Gupshup / DaliaVehicle",
+    "Ask Naeem which Gupshup login created app DaliaVehicle",
+    "WhatsApp Business / Meta Business Manager tied to number 054-650-0305",
+    "If Staging Edge still has a working key: open Staging Dashboard → Edge Secrets UI (Owner only) — still no email, but confirms app still exists",
+    "Gupshup support: provide App ID 496709e8-b5fc-4de9-9c75-bc87455482dd to recover owning account email"
+  ],
+  "recreate_guidance": {
+    "if_account_lost": "Safe to create new Gupshup app; update Staging+Production Edge Secrets GUPSHUP_API_KEY (+ APP_NAME/SOURCE/APP_ID); update code defaults or override via secrets",
+    "keep_same_number_if_possible": "972546500305 / 054-650-0305 — if that WA Business number is still owned"
+  }
+}
