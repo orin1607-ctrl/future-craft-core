@@ -88,7 +88,7 @@ jobs:
         run: |
           set -euo pipefail
           export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-          npx supabase functions deploy notify-accident-email --project-ref usfeoerkpcafxxlyuldl
+          npx supabase functions deploy notify-accident-email --project-ref usfeoerkpcafxxlyuldl --use-api
           npx supabase link --project-ref usfeoerkpcafxxlyuldl || true
           npx supabase db push --include-all || echo "::warning::Apply migrations manually on Staging"
 
@@ -112,6 +112,6 @@ jobs:
         run: |
           set -euo pipefail
           export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-          npx supabase functions deploy notify-accident-email --project-ref qasomfndnjuixgjmjwcm
+          npx supabase functions deploy notify-accident-email --project-ref qasomfndnjuixgjmjwcm --use-api
           npx supabase link --project-ref qasomfndnjuixgjmjwcm || true
           npx supabase db push --include-all || echo "::warning::Apply migrations manually on Production"

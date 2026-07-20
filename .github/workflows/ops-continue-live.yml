@@ -67,9 +67,10 @@ jobs:
         run: |
           set -euo pipefail
           export SUPABASE_ACCESS_TOKEN="$(cat "$RUNNER_TEMP/sb_access_token")"
-          npx supabase functions deploy notify-accident-email --project-ref "$STAGING_REF"
+          # --use-api: bundle on Supabase side (avoids flaky esm.sh 522 on runner)
+          npx supabase functions deploy notify-accident-email --project-ref "$STAGING_REF" --use-api
           echo "STAGING_EDGE=ok"
-          npx supabase functions deploy notify-accident-email --project-ref "$PROD_REF"
+          npx supabase functions deploy notify-accident-email --project-ref "$PROD_REF" --use-api
           echo "PROD_EDGE=ok"
 
       - name: Verify secrets + AlertSettings (+ optional live demo)
