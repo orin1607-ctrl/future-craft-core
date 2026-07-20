@@ -138,6 +138,8 @@
       returns: 'מטריצת Secrets + npm run env:health + Actions Environment Health',
       howTo: [
         'קרא docs/ENVIRONMENT-AND-SECRETS-HE.md',
+        'Gupshup חסום? docs/OWNER-GUPSHUP-RECREATE-OR-RECOVER-HE.md',
+        'רמזי חשבון: project-001/gupshup-account-hunt.json',
         'הרץ npm run env:health',
         'Actions → Environment Health',
         'Owner Actions בלבד: docs/OWNER-ACTIONS-FINAL-HE.md',
