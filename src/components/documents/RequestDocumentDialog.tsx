@@ -203,7 +203,7 @@ export default function RequestDocumentDialog({
                 </div>
               )}
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Staging / אזור עבודה בלבד. לא נוצר קישור ל-Production. אין שליחה ללקוחות אמיתיים בלי אישור.
+                נוצר קישור אישי להעלאה. ברירת המחדל היא פתיחת WhatsApp ידני (wa.me). שליחת Gupshup אמיתית רק עם אישור מפורש.
               </p>
             </>
           ) : (
