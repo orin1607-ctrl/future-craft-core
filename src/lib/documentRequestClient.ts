@@ -136,7 +136,6 @@ export async function listEntityDocumentHistory(entityType: DocumentEntityType, 
 
 /** Public (no login) — used by /upload-request page */
 export async function publicGetDocumentRequest(token: string) {
-  assertClientStaging();
   const res = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-request?action=get&token=${encodeURIComponent(token)}`,
     {
@@ -149,7 +148,6 @@ export async function publicGetDocumentRequest(token: string) {
 }
 
 export async function publicOpenDocumentRequest(token: string) {
-  assertClientStaging();
   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-request`, {
     method: 'POST',
     headers: {
@@ -168,7 +166,6 @@ export async function publicUploadDocumentRequest(params: {
   file: File;
   expiry_date?: string;
 }) {
-  assertClientStaging();
   const form = new FormData();
   form.set('action', 'upload');
   form.set('token', params.token);
