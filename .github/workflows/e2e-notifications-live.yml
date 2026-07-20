@@ -1,0 +1,68 @@
+name: E2E Notifications Live (WA + Email)
+
+# Owner-authorized live notification test to:
+#   WhatsApp 053-4338601 · Email orin1607@gmail.com
+# Triggered by push of this workflow / script to main.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/e2e-notifications-live.mjs'
+      - '.github/workflows/e2e-notifications-live.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-production:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Live E2E WhatsApp + Email + scheduled path
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: node scripts/e2e-notifications-live.mjs
+
+  refresh-wa-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fresh Production WA configured probe
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          node <<'NODE'
+          const srk = process.env.SRK;
+          const anon = process.env.ANON;
+          const url = 'https://qasomfndnjuixgjmjwcm.supabase.co';
+          async function post(path, body, bearer) {
+            const res = await fetch(url + path, {
+              method: 'POST',
+              headers: {
+                apikey: bearer === srk ? srk : anon,
+                Authorization: `Bearer ${bearer}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(body),
+            });
+            return { status: res.status, body: await res.json().catch(() => ({})) };
+          }
+          const gen = await post('/auth/v1/admin/generate_link', { type: 'magiclink', email: 'orin1607@gmail.com' }, srk);
+          const ver = await post('/auth/v1/verify', { type: 'magiclink', email: 'orin1607@gmail.com', token: gen.body.email_otp }, anon);
+          const at = ver.body.access_token || ver.body.session?.access_token;
+          const wa = await post('/functions/v1/send-whatsapp-message', { action: 'check_connection' }, at);
+          console.log(JSON.stringify({
+            wa_http: wa.status,
+            configured: wa.body.configured,
+            success: wa.body.success,
+            message: String(wa.body.message || '').slice(0, 200),
+          }, null, 2));
+          NODE
