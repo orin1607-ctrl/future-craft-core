@@ -9,13 +9,16 @@
 **לא נמצא** אימייל התחברות ל-Gupshup, Workspace ID או Account ID  
 בשום מקום: git history, Actions, migrations, docs, README, scripts, deploy/VPS, configs.
 
-**כן נמצאו** מזהי אפליקציה חזקים (מספיקים לפנייה ל-Gupshup Support / חיפוש במייל):
+**בדיקה חיה (Staging):** המפתח **תקף** והאפליקציה **חיה**  
+(`STAGING_KEY_VALID_APP_ALIVE` — run [29778527080](https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29778527080)).
 
 | שדה | ערך |
 |-----|------|
 | App Name | `DaliaVehicle` |
 | App ID | `496709e8-b5fc-4de9-9c75-bc87455482dd` |
 | Source (WA) | `972546500305` (= `054-650-0305`) |
+| Templates | מפתח מתקבל · תבנית מאושרת ×1 |
+| Production | אין Secrets |
 
 ## מאיפה זה הגיע
 
@@ -52,8 +55,10 @@
    `Gupshup`, `DaliaVehicle`, `496709e8`, `0546500305`
 2. **Naeem** (`m.naeem.uet.cs@gmail.com`) — בנה את מסך ההגדרות עם שם האפליקציה והמספר
 
-## אם מחליטים להגדיר מחדש
+## אם מחליטים מה הלאה
 
-אין חסימה טכנית מחיפוש זה. אפשר ליצור אפליקציה חדשה ב-Gupshup,  
-להגדיר Edge Secrets ב-Staging+Production, ולעדכן defaults / secrets.  
-אם המספר `054-650-0305` עדיין בבעלותך — עדיף לשמור אותו כ-Source.
+**מומלץ:** למצוא את פורטל Gupshup של `DaliaVehicle` (האפליקציה חיה) ולהעתיק API Key ל-Production.  
+**גיבוי:** יצירה מחדש רק אם אין גישה לפורטל — ואז לדרוס Secrets ב-Staging+Production.
+
+מדריך Owner: `docs/OWNER-GUPSHUP-RECREATE-OR-RECOVER-HE.md`  
+העתקה אוטומטית Staging→Production **לא אפשרית** (Secrets write-only).

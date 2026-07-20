@@ -40,11 +40,20 @@
     "alert_settings_ilana": "ok",
     "frontend_production": "up"
   },
-  "blocker": "Owner: recover Gupshup portal OR recreate app — then set Edge Secrets Staging+Production",
+  "blocker": "Staging GUPSHUP alive — Owner must set Production Edge Secrets from Gupshup portal (copy via API impossible)",
   "ownerGupshupPlaybook": "docs/OWNER-GUPSHUP-RECREATE-OR-RECOVER-HE.md",
   "gupshupAccountHunt": "public/project-001/gupshup-account-hunt.json",
   "gupshupAccountHuntDoc": "docs/audit-reports/claims-incident-process/GUPSHUP-ACCOUNT-HUNT-HE.md",
   "gupshupIdentityProbeWorkflow": ".github/workflows/probe-staging-gupshup-identity.yml",
+  "gupshupIdentityProbeRun": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29778527080",
+  "gupshupStagingLive": {
+    "configured": true,
+    "verified": true,
+    "app_name": "DaliaVehicle",
+    "app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+    "source": "972546500305",
+    "verdict": "STAGING_KEY_VALID_APP_ALIVE"
+  },
   "gupshupIdentityClues": {
     "app_name": "DaliaVehicle",
     "app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd",
@@ -53,5 +62,5 @@
     "workspace_id": null,
     "account_id": null
   },
-  "updatedAt": "2026-07-20T21:00:00.000Z"
+  "updatedAt": "2026-07-20T21:05:00.000Z"
 }
