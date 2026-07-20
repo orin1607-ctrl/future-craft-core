@@ -1,0 +1,108 @@
+# Probe: Staging vs Production WhatsApp paths (no secret values printed)
+
+name: Probe WA paths Staging vs Prod
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/project-001/wa-path-probe-queue.json'
+      - '.github/workflows/probe-wa-paths.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compare Staging vs Production WA readiness
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const srk = process.env.SRK;
+          if (!srk) throw new Error('missing SRK');
+
+          const projects = [
+            { name: 'staging', url: 'https://usfeoerkpcafxxlyuldl.supabase.co' },
+            { name: 'production', url: 'https://qasomfndnjuixgjmjwcm.supabase.co' },
+          ];
+
+          async function req(base, method, path, body, bearer) {
+            const headers = { apikey: srk, Authorization: `Bearer ${bearer || srk}` };
+            let payload;
+            if (body !== undefined) {
+              headers['Content-Type'] = 'application/json';
+              payload = JSON.stringify(body);
+            }
+            const res = await fetch(base + path, { method, headers, body: payload });
+            const text = await res.text();
+            let json; try { json = text ? JSON.parse(text) : null; } catch { json = text.slice(0, 300); }
+            return { status: res.status, body: json };
+          }
+
+          const out = {};
+          for (const p of projects) {
+            // session as orin
+            const gen = await req(p.url, 'POST', '/auth/v1/admin/generate_link', {
+              type: 'magiclink', email: 'orin1607@gmail.com',
+            });
+            if (gen.status !== 200) {
+              out[p.name] = { error: 'generate_link failed', status: gen.status };
+              continue;
+            }
+            const ver = await req(p.url, 'POST', '/auth/v1/verify', {
+              type: 'magiclink', email: 'orin1607@gmail.com', token: gen.body.email_otp,
+            });
+            const at = ver.body?.access_token || ver.body?.session?.access_token;
+            if (!at) {
+              out[p.name] = { error: 'no access token', verify: ver.status };
+              continue;
+            }
+
+            const wa = await req(p.url, 'POST', '/functions/v1/send-whatsapp-message', {
+              action: 'check_connection',
+            }, at);
+
+            const dry = await req(p.url, 'POST', '/functions/v1/notify-accident-email', {
+              dry_run: true,
+              type: 'fault',
+              record: {
+                id: '00000000-0000-4000-8000-000000000099',
+                company_name: 'אילנה אטיאס',
+                event_number: 'FLT-TEST',
+                fault_type: 'פנצ׳ר',
+                link: 'https://example.com/faults?id=x',
+              },
+              channels: { email: true, whatsapp: true, in_app: false, emailRecipients: 'dalia', whatsappRecipients: 'dalia' },
+            }, at);
+
+            out[p.name] = {
+              send_whatsapp_message: {
+                http: wa.status,
+                configured: wa.body?.configured ?? null,
+                success: wa.body?.success ?? null,
+                message: typeof wa.body?.message === 'string' ? wa.body.message.slice(0, 120) : null,
+                app_name: wa.body?.app_name ?? null,
+                source: wa.body?.source ?? null,
+                // same secret name both functions use:
+                secret_name: wa.body?.secret_name ?? 'GUPSHUP_API_KEY',
+              },
+              notify_accident_email_dry_run: {
+                http: dry.status,
+                is_new: !!(dry.body && dry.body.dry_run === true),
+                would_whatsapp: dry.body?.would_whatsapp ?? null,
+                would_email: dry.body?.would_email ?? null,
+                keys: dry.body && typeof dry.body === 'object' ? Object.keys(dry.body) : [],
+              },
+              note: 'Both Edge functions read the SAME project Edge Secret GUPSHUP_API_KEY. wa.me UI buttons do NOT use this secret.',
+            };
+          }
+
+          console.log('---WA_PATH_PROBE---');
+          console.log(JSON.stringify(out, null, 2));
+          console.log('---WA_PATH_PROBE_DONE---');
+          NODE
