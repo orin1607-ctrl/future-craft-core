@@ -138,10 +138,11 @@ async function publicOpen(token) {
   return { status: res.status, json: await res.json().catch(() => ({})) };
 }
 
-async function publicUpload(token, bytes, fileName, mime) {
+async function publicUpload(token, bytes, fileName, mime, expiryDate) {
   const form = new FormData();
   form.set('action', 'upload');
   form.set('token', token);
+  if (expiryDate) form.set('expiry_date', expiryDate);
   form.set('file', new Blob([bytes], { type: mime }), fileName);
   const res = await fetch(`${SB}/functions/v1/document-request`, {
     method: 'POST',
@@ -256,11 +257,13 @@ try {
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
     'base64',
   );
+  const expiry = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().slice(0, 10);
   const uploaded = await publicUpload(
     token,
     png,
     `e2e-license-${randomBytes(4).toString('hex')}.png`,
     'image/png',
+    expiry,
   );
   report.steps.upload = {
     status: uploaded.status,
