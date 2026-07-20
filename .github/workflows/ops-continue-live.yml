@@ -72,20 +72,24 @@ jobs:
           npx supabase functions deploy notify-accident-email --project-ref "$PROD_REF"
           echo "PROD_EDGE=ok"
 
-      - name: Verify secrets + AlertSettings + one live demo
+      - name: Verify secrets + AlertSettings (+ optional live demo)
         env:
           SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PROD_URL: ${{ env.PROD_URL }}
           LIVE_SITE: ${{ env.LIVE_SITE }}
         run: |
           set -euo pipefail
+          LIVE_SEND=$(node -e 'const d=require("./public/project-001/ops-continue-queue.json"); process.stdout.write(d.liveSend===true?"true":"false")')
+          echo "LIVE_SEND=$LIVE_SEND"
+          export LIVE_SEND
           node <<'NODE'
           const url = process.env.PROD_URL;
           const srk = process.env.SRK;
           const LIVE = process.env.LIVE_SITE;
+          const LIVE_SEND = process.env.LIVE_SEND === 'true';
           if (!srk) throw new Error('SUPABASE_SERVICE_ROLE_KEY missing');
 
-          const report = { steps: {}, demo: null, blockers: [] };
+          const report = { steps: { live_send_requested: LIVE_SEND }, demo: null, blockers: [] };
 
           async function req(method, path, body, bearer, extraHeaders = {}) {
             const headers = {
@@ -165,6 +169,30 @@ jobs:
             '/rest/v1/company_settings?select=company_name,incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients&company_name=eq.' +
             encodeURIComponent('אילנה אטיאס'));
           report.steps.alert_settings = Array.isArray(settings.body) ? settings.body[0] : settings.body;
+
+          // Frontend check early
+          const fe = await fetch(LIVE + '/');
+          const html = await fe.text();
+          const m = html.match(/assets\/(index-[^"']+\.js)/);
+          report.steps.frontend_bundle = m ? m[1] : null;
+          report.steps.frontend_http = fe.status;
+
+          // Verify-only mode: no fault create / no live send
+          if (!LIVE_SEND) {
+            // Email readiness: dry_run would_email when edge is new
+            report.steps.email_ready = !!(edgeNew && Array.isArray(dry.body?.would_email));
+            report.steps.whatsapp_ready = !!(edgeNew && report.steps.gupshup_configured);
+            console.log('---OPS_CONTINUE_RESULT---');
+            console.log(JSON.stringify({
+              ok: report.blockers.length === 0,
+              mode: 'verify_only',
+              report,
+            }, null, 2));
+            console.log('---OPS_CONTINUE_DONE---');
+            // Soft: edge must be new; gupshup missing is reported but exit 0 so deploy result is visible
+            if (!edgeNew) process.exit(1);
+            process.exit(0);
+          }
 
           // 5) Driver יוני אטיאס
           let drivers = await req('GET',
@@ -320,13 +348,6 @@ jobs:
           report.demo.whatsapp_results = results.filter((r) => r.channel === 'whatsapp');
           report.demo.email_results = results.filter((r) => r.channel === 'email');
 
-          // Frontend live check
-          const fe = await fetch(LIVE + '/');
-          const html = await fe.text();
-          const m = html.match(/assets\/(index-[^"']+\.js)/);
-          report.steps.frontend_bundle = m ? m[1] : null;
-          report.steps.frontend_http = fe.status;
-
           console.log('---OPS_CONTINUE_RESULT---');
           console.log(JSON.stringify({ ok: true, report }, null, 2));
           console.log('---OPS_CONTINUE_DONE---');
@@ -336,7 +357,6 @@ jobs:
             process.exit(2);
           }
           if (!report.demo.whatsapp_sent || !report.demo.email_sent) {
-            // still exit 2 but keep artifact — maybe provider accepted without our status parse
             console.error('Could not confirm both channels from response/log — inspect notify_body');
             process.exit(2);
           }

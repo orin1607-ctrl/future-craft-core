@@ -1,11 +1,11 @@
 {
   "id": "edge-deploy-queue",
-  "requestedAt": "2026-07-19T17:50:58.249488Z",
+  "requestedAt": "2026-07-20T06:38:32.824302+00:00",
   "requestedBy": "cursor-agent",
   "targets": [
     "staging",
     "production"
   ],
   "function": "notify-accident-email",
-  "note": "Owner secrets updated \u2014 redeploy Edge Staging+Production"
+  "note": "Token updated \u2014 deploy Edge Staging+Production"
 }
