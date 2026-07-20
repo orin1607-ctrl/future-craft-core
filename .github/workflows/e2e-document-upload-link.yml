@@ -1,0 +1,49 @@
+name: E2E Document Upload Link Verify
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/e2e-document-upload-link.mjs'
+      - '.github/workflows/e2e-document-upload-link.yml'
+      - 'src/lib/documentRequestClient.ts'
+  workflow_run:
+    workflows: ["Deploy Production Frontend (no gate)"]
+    types: [completed]
+
+jobs:
+  verify-production:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install supabase-js
+        run: npm install @supabase/supabase-js@2 --no-save
+      - name: Production E2E create → open → upload → status
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: node scripts/e2e-document-upload-link.mjs --env production
+
+  verify-staging-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Staging public page + bundle assert
+        run: |
+          set -euo pipefail
+          HTML=$(curl -sL "https://orin1607-ctrl.github.io/future-craft-core/")
+          JS=$(echo "$HTML" | grep -oE 'assets/index-[^"]+\.js' | head -1)
+          echo "STG_BUNDLE=$JS"
+          curl -sL "https://orin1607-ctrl.github.io/future-craft-core/$JS" -o /tmp/stg.js
+          ! grep -q 'assertClientStaging' /tmp/stg.js
+          grep -q 'upload-request' /tmp/stg.js
+          PAGE=$(curl -sL "https://orin1607-ctrl.github.io/future-craft-core/upload-request?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+          echo "$PAGE" | grep -q 'id="root"'
+          curl -sL "https://orin1607-ctrl.github.io/future-craft-core/STAGING-DEPLOY.txt" || true
+          echo "STAGING_BUNDLE_AND_ROUTE_OK"
