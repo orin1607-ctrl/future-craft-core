@@ -1,12 +1,9 @@
 /**
  * E2E: Document Request Hub public upload link
- * create → open → get → upload → status (pending_approval/uploaded)
+ * create → open → get → upload → status
  *
- * Usage:
  *   SRK=... ANON=... node scripts/e2e-document-upload-link.mjs --env production
- *   SRK=... ANON=... node scripts/e2e-document-upload-link.mjs --env staging
  */
-import { createClient } from '@supabase/supabase-js';
 import { randomBytes } from 'crypto';
 
 const envName = process.argv.includes('--env')
@@ -33,26 +30,44 @@ if (!srk) throw new Error('SRK / SUPABASE_SERVICE_ROLE_KEY required');
 if (!anon) throw new Error('ANON / VITE_SUPABASE_PUBLISHABLE_KEY required');
 
 const SB = `https://${cfg.ref}.supabase.co`;
-const admin = createClient(SB, srk, { auth: { persistSession: false, autoRefreshToken: false } });
 
 function log(step, data) {
   console.log(JSON.stringify({ step, ...data }));
 }
 
+async function rest(path, { method = 'GET', body, bearer = srk, prefer } = {}) {
+  const headers = {
+    apikey: srk,
+    Authorization: `Bearer ${bearer}`,
+  };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (prefer) headers.Prefer = prefer;
+  const res = await fetch(`${SB}${path}`, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  let json = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = { raw: text.slice(0, 500) };
+  }
+  if (!res.ok) {
+    throw new Error(`${method} ${path} → ${res.status} ${text.slice(0, 400)}`);
+  }
+  return json;
+}
+
 async function getSuperAdminSession() {
-  const { data: roles, error: rolesErr } = await admin
-    .from('user_roles')
-    .select('user_id, role')
-    .eq('role', 'super_admin')
-    .limit(20);
-  if (rolesErr) throw rolesErr;
+  const roles = await rest('/rest/v1/user_roles?role=eq.super_admin&select=user_id');
   const saIds = new Set((roles || []).map((r) => r.user_id));
   if (!saIds.size) throw new Error('no super_admin');
 
   let target = null;
   for (let page = 1; page <= 20; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) throw error;
+    const data = await rest(`/auth/v1/admin/users?page=${page}&per_page=200`);
     const users = data?.users || [];
     if (!users.length) break;
     for (const u of users) {
@@ -68,20 +83,27 @@ async function getSuperAdminSession() {
   }
   if (!target?.email) throw new Error('no target super_admin email');
 
-  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-    type: 'magiclink',
-    email: target.email,
+  const linkData = await rest('/auth/v1/admin/generate_link', {
+    method: 'POST',
+    body: { type: 'magiclink', email: target.email },
   });
-  if (linkErr) throw linkErr;
-  const hashed = linkData?.properties?.hashed_token;
-  if (!hashed) throw new Error('no hashed_token from generateLink');
+  const hashed = linkData?.hashed_token || linkData?.properties?.hashed_token;
+  if (!hashed) throw new Error(`no hashed_token: ${JSON.stringify(Object.keys(linkData || {}))}`);
 
-  const userClient = createClient(SB, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-  let otp = await userClient.auth.verifyOtp({ token_hash: hashed, type: 'magiclink' });
-  if (otp.error) otp = await userClient.auth.verifyOtp({ token_hash: hashed, type: 'email' });
-  if (otp.error) throw otp.error;
-  const accessToken = otp.data.session?.access_token;
-  if (!accessToken) throw new Error('no access_token');
+  async function verify(type) {
+    const res = await fetch(`${SB}/auth/v1/verify`, {
+      method: 'POST',
+      headers: { apikey: anon, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, token_hash: hashed }),
+    });
+    const json = await res.json().catch(() => ({}));
+    return { ok: res.ok, json };
+  }
+
+  let otp = await verify('magiclink');
+  if (!otp.ok) otp = await verify('email');
+  const accessToken = otp.json?.access_token || otp.json?.session?.access_token;
+  if (!accessToken) throw new Error(`verifyOtp failed: ${JSON.stringify(otp.json).slice(0, 300)}`);
   return { accessToken, email: target.email, userId: target.id };
 }
 
@@ -142,27 +164,25 @@ async function assertFrontendLive() {
     `${cfg.publicOrigin}/upload-request?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
   ).then((r) => r.text());
   if (!page.includes('id="root"') && !page.includes('העלאת מסמך')) {
-    // GH Pages may serve SPA via 404.html — still expect app shell
     throw new Error('upload-request page did not return app shell');
   }
   log('frontend_live', { ok: true, bundle: m[1], origin: cfg.publicOrigin });
+  return m[1];
 }
 
 const report = { env: envName, ref: cfg.ref, ok: false, steps: {} };
 
 try {
-  await assertFrontendLive();
+  report.bundle = await assertFrontendLive();
 
   const session = await getSuperAdminSession();
   log('auth', { email: session.email, userId: session.userId });
 
-  const { data: driver, error: driverErr } = await admin
-    .from('drivers')
-    .select('id, full_name, phone, email, company_name')
-    .neq('full_name', '')
-    .limit(1)
-    .maybeSingle();
-  if (driverErr || !driver) throw new Error(`no driver: ${driverErr?.message || 'empty'}`);
+  const drivers = await rest(
+    '/rest/v1/drivers?select=id,full_name,phone,email,company_name&full_name=neq.&limit=1',
+  );
+  const driver = drivers?.[0];
+  if (!driver) throw new Error('no driver');
   report.driver = { id: driver.id, name: driver.full_name };
 
   const created = await invokeJson(
@@ -200,7 +220,6 @@ try {
     throw new Error(`upload_url path mismatch: ${uploadUrl}`);
   }
 
-  // Simulate customer opening the WhatsApp link (SPA shell)
   const openedRes = await fetch(uploadUrl);
   const openedText = await openedRes.text();
   report.steps.open_page = {
@@ -214,27 +233,35 @@ try {
 
   const token = created.json.token;
   const opened = await publicOpen(token);
-  report.steps.open_api = { status: opened.status, success: opened.json.success, status_field: opened.json.request?.status, error: opened.json.error };
+  report.steps.open_api = {
+    status: opened.status,
+    success: opened.json.success,
+    status_field: opened.json.request?.status,
+    error: opened.json.error,
+  };
   log('open_api', report.steps.open_api);
   if (!opened.json.success) throw new Error(`open failed: ${JSON.stringify(opened.json)}`);
 
   const got = await publicGet(token);
-  report.steps.get = { status: got.status, success: got.json.success, req_status: got.json.request?.status, error: got.json.error };
+  report.steps.get = {
+    status: got.status,
+    success: got.json.success,
+    req_status: got.json.request?.status,
+    error: got.json.error,
+  };
   log('get', report.steps.get);
   if (!got.json.success) throw new Error(`get failed: ${JSON.stringify(got.json)}`);
 
-  // Minimal valid JPEG
-  const jpeg = Buffer.from(
-    '/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFRUVFRUVFRUVFRUWFxUVFRUYHSggGBolGxUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBIgACEQEDEQH/xAAbAAACAwEBAQAAAAAAAAAAAAADBAECBQYAB//EABUBAQEAAAAAAAAAAAAAAAAAAAAB/8QAFgEBAQEAAAAAAAAAAAAAAAAAAAEC/9oADAMBAAIQAxAAAAGhQf/EABQQAQAAAAAAAAAAAAAAAAAAAD/aAAgBAQABBQJf/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJf/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyFf/9oADAMBAAIQAxAAAAGhQf/EABQQAQAAAAAAAAAAAAAAAAAAAD/aAAgBAQABBQJf/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJf/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyFf/9k=',
-    'base64',
-  );
-  // Prefer tiny PNG to avoid jpeg parse issues
   const png = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
     'base64',
   );
-
-  const uploaded = await publicUpload(token, png, `e2e-license-${randomBytes(4).toString('hex')}.png`, 'image/png');
+  const uploaded = await publicUpload(
+    token,
+    png,
+    `e2e-license-${randomBytes(4).toString('hex')}.png`,
+    'image/png',
+  );
   report.steps.upload = {
     status: uploaded.status,
     success: uploaded.json.success,
@@ -252,19 +279,30 @@ try {
     throw new Error(`unexpected final status: ${finalStatus}`);
   }
 
-  // Confirm DB row
-  const { data: row } = await admin
-    .from('document_requests')
-    .select('id, status, opened_at, uploaded_at')
-    .eq('id', created.json.request_id)
-    .maybeSingle();
+  const rows = await rest(
+    `/rest/v1/document_requests?id=eq.${created.json.request_id}&select=id,status,opened_at,uploaded_at`,
+  );
+  const row = rows?.[0];
   report.steps.db_row = row;
   log('db_row', row || {});
   if (!row || row.status !== finalStatus) throw new Error('db status mismatch');
 
   report.ok = true;
   report.upload_url = uploadUrl;
-  console.log(JSON.stringify({ ok: true, env: envName, upload_url: uploadUrl, final_status: finalStatus, request_id: created.json.request_id }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        env: envName,
+        upload_url: uploadUrl,
+        final_status: finalStatus,
+        request_id: created.json.request_id,
+        bundle: report.bundle,
+      },
+      null,
+      2,
+    ),
+  );
   process.exit(0);
 } catch (e) {
   report.ok = false;

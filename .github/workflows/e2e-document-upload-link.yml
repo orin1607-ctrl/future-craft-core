@@ -22,9 +22,7 @@ jobs:
           ref: main
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - name: Install supabase-js
-        run: npm install @supabase/supabase-js@2 --no-save
+          node-version: '22'
       - name: Production E2E create → open → upload → status
         env:
           SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
