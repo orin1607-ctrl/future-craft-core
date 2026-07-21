@@ -1,0 +1,212 @@
+{
+  "id": "make-queue-clear-and-e2e",
+  "at": "2026-07-21T12:55:19.411Z",
+  "env": "staging",
+  "production_touched": false,
+  "production_go_live": false,
+  "deleted_scenarios": false,
+  "deleted_webhooks": false,
+  "deleted_settings": false,
+  "only_deleted_incomings": true,
+  "queue_before": {
+    "stats_http": 200,
+    "stats_queue": 15,
+    "list_count": 15,
+    "hook_queueCount": 15,
+    "ids": [
+      "41d77cc2ae8e057d415114a1f1d19a40",
+      "00d5bad5c5b9e3d16120934c19d1cb19",
+      "84ed71e488f115385ccf8b3df66ee2b2",
+      "76934ad3a109af60cdca0087c8cfc317",
+      "2905d57feb3f6ba1e5292948390e7c2e",
+      "224e8fb8c447bc787044d2f04e130fe4",
+      "2c35566bc473d32683d720591616015d",
+      "e9465d17266ffcf2884e3c82db1fa0b1",
+      "8a0029bd56de6ed2cdf8f53efd596096",
+      "1d73912fab5d3474f2f580c273ec1a9a",
+      "92fd93f56f1c06f6c2ccd79dedd02846",
+      "6cc8d7ea53724643302407b9fd1c84cf",
+      "c22e660a15f309d4abeb1db30a46da1e",
+      "4e0d4a0960c84a43f90abdda86c35fb9",
+      "254666e7b1e824785e016870ee61000d"
+    ]
+  },
+  "delete": {
+    "http": 200,
+    "requested_ids_count": 15,
+    "used_all": false,
+    "response_keys": [
+      "incomings"
+    ],
+    "deleted": [
+      "6cc8d7ea53724643302407b9fd1c84cf",
+      "c22e660a15f309d4abeb1db30a46da1e",
+      "4e0d4a0960c84a43f90abdda86c35fb9",
+      "254666e7b1e824785e016870ee61000d",
+      "2905d57feb3f6ba1e5292948390e7c2e",
+      "224e8fb8c447bc787044d2f04e130fe4",
+      "2c35566bc473d32683d720591616015d",
+      "76934ad3a109af60cdca0087c8cfc317",
+      "41d77cc2ae8e057d415114a1f1d19a40",
+      "1d73912fab5d3474f2f580c273ec1a9a",
+      "8a0029bd56de6ed2cdf8f53efd596096",
+      "84ed71e488f115385ccf8b3df66ee2b2",
+      "92fd93f56f1c06f6c2ccd79dedd02846",
+      "00d5bad5c5b9e3d16120934c19d1cb19",
+      "e9465d17266ffcf2884e3c82db1fa0b1"
+    ],
+    "error": null,
+    "ok": true
+  },
+  "queue_after": {
+    "stats_http": 200,
+    "stats_queue": 0,
+    "list_count": 0,
+    "hook_queueCount": 0,
+    "ids": []
+  },
+  "queue_empty": true,
+  "scenario_before": {
+    "isActive": false,
+    "islinked": false,
+    "name": "Whatsapp Bot"
+  },
+  "scenario_activate": {
+    "start_http": 200,
+    "ok": true
+  },
+  "scenario_after": {
+    "isActive": true,
+    "islinked": true,
+    "name": "Whatsapp Bot"
+  },
+  "deploy_ok": true,
+  "preflight": {
+    "configured": true,
+    "gupshup_verified": true,
+    "app_name": "DaliaVehicle",
+    "source": "972546500305"
+  },
+  "send": {
+    "success": true,
+    "edge_http": 200,
+    "gupshup_http": 202,
+    "submitted": true,
+    "message_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+    "destination": "972534338601",
+    "error": null,
+    "only_one_send": true
+  },
+  "make_dlr_statuses": [
+    {
+      "loggedAt": "2026-07-21T12:55:43.445Z",
+      "status": "sent",
+      "gs_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+      "error_code": null,
+      "error_details": null,
+      "conversation_origin": "service",
+      "pricing_type": "free_customer_service"
+    }
+  ],
+  "path_check": {
+    "supabase": true,
+    "edge_send": true,
+    "edge_webhook": true,
+    "gupshup": true,
+    "meta": true,
+    "make": true,
+    "dlr": true
+  },
+  "report": {
+    "message_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+    "submitted": true,
+    "sent": true,
+    "delivered": false,
+    "read": false,
+    "failed": false,
+    "final_status": "sent",
+    "dlr_error_code": null,
+    "error_message": null,
+    "status_history_db": [
+      {
+        "at": "2026-07-21T12:55:39.794Z",
+        "status": "submitted",
+        "dlr_event": "submitted",
+        "error_code": null,
+        "gupshup_http": 202,
+        "error_message": null
+      }
+    ],
+    "statuses_make": [
+      "sent"
+    ],
+    "phone_likely_received": "likely_sent_await_delivered_or_owner_confirm"
+  },
+  "queue_final": {
+    "stats_http": 200,
+    "stats_queue": 3,
+    "list_count": 3,
+    "hook_queueCount": 3,
+    "ids": [
+      "3b7d560cec72a983b7c215a99e39cb88",
+      "5b5f8d3d29b7c330c58ae993d66f2bb1",
+      "fbca15a2fa92f99fbcfd3abd15740749"
+    ]
+  },
+  "peer_review": {
+    "scope": "WhatsApp full path Staging (no Production)",
+    "checklist": [
+      {
+        "item": "Make queue cleared (incomings only)",
+        "pass": true
+      },
+      {
+        "item": "Scenarios/webhooks/settings untouched",
+        "pass": true
+      },
+      {
+        "item": "Whatsapp Bot Active",
+        "pass": true
+      },
+      {
+        "item": "Staging send via Edge+Gupshup",
+        "pass": true
+      },
+      {
+        "item": "Gupshup ACK 202 submitted",
+        "pass": true
+      },
+      {
+        "item": "Make received DLR for message",
+        "pass": true
+      },
+      {
+        "item": "Meta progressed beyond submitted (sent/delivered/read/failed)",
+        "pass": true
+      },
+      {
+        "item": "No Production deploy/touch",
+        "pass": true
+      },
+      {
+        "item": "Single send only",
+        "pass": true
+      }
+    ],
+    "pass_count": 9,
+    "total": 9,
+    "verdict": "READY_FOR_OWNER_PRODUCTION_APPROVAL"
+  },
+  "production_readiness": {
+    "go_live_allowed": false,
+    "requires_owner_phrase": "אשר Production",
+    "staging_ok": true,
+    "blockers": [
+      "delivered/read not observed yet — ask Owner if phone received"
+    ],
+    "notes": [
+      "Production Supabase/Hostinger/WordPress not touched",
+      "Make forward to Supabase Staging may lag DB vs Make hook truth — trust Make statuses for Meta path"
+    ]
+  }
+}

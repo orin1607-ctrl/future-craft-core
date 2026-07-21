@@ -1,0 +1,23 @@
+name: Make residual queue clear
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/make-queue-residual-clear.mjs'
+      - 'public/project-001/make-residual-clear-queue.json'
+      - '.github/workflows/make-queue-residual-clear.yml'
+permissions:
+  contents: read
+jobs:
+  clear:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Clear residual incomings
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+        run: node scripts/make-queue-residual-clear.mjs
