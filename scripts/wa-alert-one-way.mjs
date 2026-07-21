@@ -368,8 +368,8 @@ function applyOneWayPatch(bp) {
       headers: [{ name: 'Accept', value: 'application/json' }],
       qs: [
         { name: 'check_system_alert', value: '1' },
-        { name: 'gsId', value: `{{ifempty(${wh.id}.payload.context.gsId; ifempty(${wh.id}.reply_gsid; ifempty(${wh.id}.context.gsId; __none__)))}}` },
-        { name: 'waId', value: `{{ifempty(${wh.id}.payload.context.id; ifempty(${wh.id}.reply_waid; ifempty(${wh.id}.entry[].changes[].value.messages[].context.id; __none__)))}}` },
+        { name: 'gsId', value: `{{ifempty(${wh.id}.reply_gsid; ifempty(${wh.id}.payload.context.gsId; ifempty(get(${wh.id}; "reply_gsid"); ifempty(get(${wh.id}.payload.context; "gsId"); ifempty(get(parseJSON(${wh.id}); "payload.context.gsId"); __none__)))))}}` },
+        { name: 'waId', value: `{{ifempty(${wh.id}.reply_waid; ifempty(${wh.id}.payload.context.id; ifempty(get(${wh.id}.payload.context; "id"); __none__)))}}` },
       ],
       bodyType: 'raw',
       parseResponse: true,
@@ -406,20 +406,10 @@ function applyOneWayPatch(bp) {
     filter: {
       name: 'Reply to system alert Message ID',
       conditions: [
-        [
-          {
-            a: `{{${lookupId}.is_system_alert_flag}}`,
-            b: 'yes',
-            o: 'text:equal',
-          },
-        ],
-        [
-          {
-            a: `{{${lookupId}.is_system_alert}}`,
-            b: 'true',
-            o: 'text:equal',
-          },
-        ],
+        [{ a: `{{${lookupId}.is_system_alert_flag}}`, b: 'yes', o: 'text:equal' }],
+        [{ a: `{{${lookupId}.data.is_system_alert_flag}}`, b: 'yes', o: 'text:equal' }],
+        [{ a: `{{${lookupId}.is_system_alert}}`, b: 'true', o: 'text:equal' }],
+        [{ a: `{{${lookupId}.data.is_system_alert}}`, b: 'true', o: 'text:equal' }],
       ],
     },
     metadata: {
@@ -590,6 +580,11 @@ async function main() {
     udtType: hookObj.udtType || hookObj.typeName || null,
     keys: Object.keys(hookObj).slice(0, 40),
   };
+  must(out.verify_blueprint.has_ignore_marker, 'Ignore marker missing after patch');
+  must(out.verify_blueprint.has_lookup, 'Lookup module missing after patch');
+  must(out.verify_blueprint.has_router, 'Router missing after patch');
+  must(out.verify_blueprint.has_ai, 'AI path lost after patch');
+  must(out.verify_blueprint.has_gupshup_87, 'Gupshup send path lost after patch');
 
   out.activate = await activateBot();
   must(out.activate.isActive, 'Bot not Active after activate');
@@ -716,11 +711,13 @@ async function main() {
   await sleep(1500);
   const logs87AfterReply = await moduleLogs(87, 8);
   const logs84AfterReply = await moduleLogs(84, 8);
+  const logs63AfterReply = await moduleLogs(63, 8);
   const logsIgnore = ignoreId != null ? await moduleLogs(ignoreId, 8) : [];
   const logsLookup = lookupId != null ? await moduleLogs(lookupId, 8) : [];
 
   const replyHit87 = Boolean(recentModuleHit(logs87AfterReply, t1));
   const replyHit84 = Boolean(recentModuleHit(logs84AfterReply, t1));
+  const replyHit63 = Boolean(recentModuleHit(logs63AfterReply, t1));
   const replyHitIgnore = Boolean(recentModuleHit(logsIgnore, t1));
   const replyHitLookup = Boolean(recentModuleHit(logsLookup, t1));
 
@@ -729,13 +726,14 @@ async function main() {
     hit_lookup: replyHitLookup,
     hit_ignore: replyHitIgnore,
     hit_ai_84: replyHit84,
+    hit_ai_63: replyHit63,
     hit_gupshup_87: replyHit87,
     ignore_module_id: ignoreId,
     lookup_module_id: lookupId,
+    lookup_logs: logsLookup.slice(0, 3),
   };
-  must(!replyHit84, 'Reply-to-alert reached AI 84 — should Ignore');
+  must(!replyHit84 && !replyHit63, 'Reply-to-alert reached AI — should Ignore');
   must(!replyHit87, 'Reply-to-alert reached Gupshup 87 — should Ignore');
-  // Prefer Ignore hit; if ops sparse, require short duration + no AI/87
   if (!replyHitIgnore) {
     must(
       typeof replyLog.duration === 'number' && replyLog.duration < 4000,
