@@ -1,6 +1,6 @@
 {
   "id": "wa-alert-one-way",
-  "at": "2026-07-21T20:32:53.896Z",
+  "at": "2026-07-21T20:35:15.204Z",
   "env": "staging_only",
   "production_touched": false,
   "new_mechanism": false,
@@ -39,11 +39,92 @@
     "has_lookup": true,
     "has_router": true,
     "has_ai": true,
-    "has_gupshup_87": true
+    "has_gupshup_87": true,
+    "webhook_params": {
+      "hook": 2567320,
+      "maxResults": 1
+    },
+    "ai_input_preview": [
+      {
+        "id": 84,
+        "mapper_keys": [
+          "agent",
+          "timeout",
+          "messages",
+          "threadID",
+          "outputType",
+          "additionalSystemPrompt"
+        ],
+        "refs": [
+          "{{1.entry[].changes[].value.messages[].text.body}}",
+          "{{1.entry[].changes[].value.messages[].from}}"
+        ]
+      },
+      {
+        "id": 63,
+        "mapper_keys": [
+          "agent",
+          "timeout",
+          "messages",
+          "threadID",
+          "outputType",
+          "additionalSystemPrompt"
+        ],
+        "refs": [
+          "{{1.entry[].changes[].value.messages[].text.body}}",
+          "{{1.entry[].changes[].value.messages[].from}}"
+        ]
+      }
+    ],
+    "lookup_qs": [
+      {
+        "name": "check_system_alert",
+        "value": "1"
+      },
+      {
+        "name": "gsId",
+        "value": "{{ifempty(1.reply_gsid; ifempty(1.payload.context.gsId; ifempty(get(1; \"reply_gsid\"); ifempty(get(1.payload.context; \"gsId\"); ifempty(get(parseJSON(1); \"payload.context.gsId\"); __none__)))))}}"
+      },
+      {
+        "name": "waId",
+        "value": "{{ifempty(1.reply_waid; ifempty(1.payload.context.id; ifempty(get(1.payload.context; \"id\"); __none__)))}}"
+      }
+    ]
+  },
+  "hook_info": {
+    "http": 200,
+    "stringify": null,
+    "method": null,
+    "headers": null,
+    "udtType": "gateway-webhook",
+    "keys": [
+      "id",
+      "name",
+      "teamId",
+      "organizationId",
+      "udid",
+      "type",
+      "packageName",
+      "theme",
+      "editable",
+      "flags",
+      "queueCount",
+      "queueLimit",
+      "enabled",
+      "gone",
+      "typeName",
+      "typeAppName",
+      "data",
+      "scenarioId",
+      "scenarioName",
+      "scenarioIsActive",
+      "scenarioIsConfidential",
+      "relay",
+      "url"
+    ]
   },
   "activate": {
-    "already": false,
-    "start_http": 200,
+    "already": true,
     "http": 200,
     "isActive": true,
     "islinked": true,
@@ -51,9 +132,8 @@
     "hookId": 2567320
   },
   "queue_clear": {
-    "before": 1,
-    "deleted": 1,
-    "delete_http": 200,
+    "before": 0,
+    "deleted": 0,
     "ok": true
   },
   "hook_url_host": "hook.eu2.make.com",
@@ -79,29 +159,21 @@
       "status": 200,
       "body": "Accepted"
     },
-    "log": {
-      "id": "04c27ba726f84085ab517e3116a5a461",
-      "status": 1,
-      "timestamp": "2026-07-21T20:33:16.015Z",
-      "error": null,
-      "duration": 13227
-    },
+    "log": null,
     "log_any": {
-      "id": "04c27ba726f84085ab517e3116a5a461",
-      "status": 1,
-      "timestamp": "2026-07-21T20:33:16.015Z",
-      "error": null,
-      "duration": 13227
+      "id": "f0d52f4275ba40b3ac454951a4904fbc",
+      "status": 3,
+      "timestamp": "2026-07-21T20:35:29.695Z",
+      "error": "Misplaced directive 'builtin:Ignore' outside of an error handler",
+      "duration": 1250
     },
-    "analysis": {
-      "duration_ms": 13227,
-      "hit_lookup": true,
-      "hit_ignore": false,
-      "hit_ai_84": false,
-      "hit_gupshup_87": false,
-      "ignore_module_id": 101,
-      "lookup_module_id": 99
+    "failed_execution": {
+      "id": "f0d52f4275ba40b3ac454951a4904fbc",
+      "status": 3,
+      "timestamp": "2026-07-21T20:35:29.695Z",
+      "error": "Misplaced directive 'builtin:Ignore' outside of an error handler",
+      "duration": 1250
     }
   },
-  "error": "Reply path too slow (13227ms) without Ignore — likely bot path"
+  "error": "Reply execution not success: status=3 error=Misplaced directive 'builtin:Ignore' outside of an error handler"
 }
