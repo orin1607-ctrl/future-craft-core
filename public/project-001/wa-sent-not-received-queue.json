@@ -1,0 +1,7 @@
+{
+  "id": "wa-sent-not-received-queue",
+  "requestedAt": "2026-07-21T13:25:00.000Z",
+  "requestedBy": "owner",
+  "message_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+  "note": "Owner did not receive WA despite Meta sent — diagnose, no Production, no new send"
+}
