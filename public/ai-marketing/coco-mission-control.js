@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'דוח פריסה סופי מוכן — ממתין ל«אשר Production» (אין פריסה)',
+    latestFocus: 'Secrets Prod: GUPSHUP חסר — אחרי סיימתי Gupshup נאשר מוכנות (אין פריסה)',
   };
 
   var STAGES = [
@@ -255,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>דוח פריסה סופי ל-Production (ללא ביצוע) — רכיבים · Secrets · Rollback · Checklist</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../PRODUCTION-DEPLOY-READINESS-FINAL-HE.md · project-001/production-deploy-readiness-final.json</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>לקרוא דוח → להשלים Secrets → לכתוב «אשר Production» רק כשמוכן</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Staging הושלם; Make Bot כבר חי; Prod Edge/Frontend/Secrets ממתינים לאישור</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'אין פריסת Production — דוח מוכנות בלבד') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>Staging one-way OK · תביעות: לא שונה · מנגנון חדש: לא</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>GUPSHUP_API_KEY ב-Prod + אימות token; ואז במפורש: אשר Production</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>אימות Secrets ב-Production (CI) — token תקין · Resend OK · GUPSHUP חסר</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../PROD-SECRETS-VERIFY-HE.md · project-001/prod-secrets-verify-summary.json</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>להדביק GUPSHUP_API_KEY ב-Prod Dashboard → «סיימתי Gupshup» → רק אז «אשר Production»</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Management API בודק שמות Secrets + פרוב WA; ערכים לא נקראים ולא מודפסים</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'חסם יחיד: GUPSHUP_API_KEY ב-Prod') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>ready_for_production_deploy: false · RESEND OK · token OK</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>GUPSHUP_API_KEY ב-Prod (DaliaVehicle) — לא בצ׳אט; אחר כך סיימתי Gupshup</div>' +
         '</div>' +
       '</div>'
     );

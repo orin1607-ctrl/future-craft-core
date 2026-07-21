@@ -2,7 +2,9 @@
 
 **תאריך:** 2026-07-21  
 **סטטוס:** Staging הושלם בהצלחה · **פריסת Production לא בוצעה**  
-**תנאי מעבר:** רק אחרי שה-Owner כותב במפורש: **`אשר Production`**
+**אימות Secrets (2026-07-21):** `SUPABASE_ACCESS_TOKEN` תקין · `RESEND_API_KEY` קיים · **`GUPSHUP_API_KEY` חסר ב-Prod** → עדיין **לא** ready  
+**פירוט:** `PROD-SECRETS-VERIFY-HE.md` · Actions run `29868047586`  
+**תנאי מעבר:** השלמת GUPSHUP ב-Prod + אימות חוזר, ואז Owner כותב במפורש: **`אשר Production`**
 
 ---
 
