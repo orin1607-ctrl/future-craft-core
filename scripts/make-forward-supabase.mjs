@@ -86,8 +86,7 @@ function findWebhookModule(mods) {
 }
 
 function insertHttpAfterWebhook(blueprint) {
-  // blueprint may be { flow: [...] } or { response: { blueprint... } } already unwrapped
-  const bp = blueprint.flow ? blueprint : (blueprint.blueprint || blueprint);
+  const bp = blueprint.flow ? structuredClone(blueprint) : structuredClone(blueprint.blueprint || blueprint);
   must(bp && Array.isArray(bp.flow), 'Blueprint has no top-level flow array — unsupported shape');
 
   const mods = walkModules(bp);
@@ -100,7 +99,7 @@ function insertHttpAfterWebhook(blueprint) {
 
   const newId = maxModuleId(mods) + 1;
   const whId = wh.id;
-  // Prefer raw JSON pass-through field names used by Make webhooks
+  // Make webhook JSON pass-through uses `.value`; otherwise entire bundle via toJSON if available
   const dataExpr = `{{${whId}.value}}`;
 
   const httpModule = {
@@ -132,40 +131,38 @@ function insertHttpAfterWebhook(blueprint) {
       gzip: true,
       useMtls: false,
       contentType: 'application/json',
-      inputRaw: dataExpr,
       data: dataExpr,
       followAllRedirects: false,
     },
     metadata: {
       designer: {
-        x: (wh.metadata?.designer?.x || 0) + 300,
-        y: (wh.metadata?.designer?.y || 0) + 80,
+        x: (wh.metadata?.designer?.x || 300) + 300,
+        y: (wh.metadata?.designer?.y || 0),
         name: 'Forward DLR to Supabase Staging',
       },
-      restore: {
-        expect: {
-          contentType: { mode: 'chose' },
-        },
-      },
-      parameters: [
-        {
-          name: 'handleErrors',
-          type: 'boolean',
-          label: 'Evaluate all states as errors (except for 2xx and 3xx )',
-          required: true,
-        },
-      ],
     },
   };
 
-  // Insert immediately after webhook module in the same flow array
-  const idx = bp.flow.findIndex((m) => m && m.id === whId);
-  if (idx >= 0) {
-    bp.flow.splice(idx + 1, 0, httpModule);
-  } else {
-    // webhook nested deeper — append to top flow as best-effort
-    bp.flow.push(httpModule);
+  function insertInFlow(flow) {
+    if (!Array.isArray(flow)) return false;
+    const idx = flow.findIndex((m) => m && m.id === whId);
+    if (idx >= 0) {
+      flow.splice(idx + 1, 0, httpModule);
+      return true;
+    }
+    for (const m of flow) {
+      if (Array.isArray(m?.routes)) {
+        for (const r of m.routes) {
+          if (insertInFlow(r?.flow)) return true;
+        }
+      }
+      if (Array.isArray(m?.flow) && insertInFlow(m.flow)) return true;
+    }
+    return false;
   }
+
+  const inserted = insertInFlow(bp.flow);
+  if (!inserted) bp.flow.push(httpModule);
 
   return { bp, changed: true, webhook_module_id: whId, http_module_id: newId };
 }
