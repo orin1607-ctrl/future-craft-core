@@ -1,0 +1,124 @@
+{
+  "id": "wa-ui-alert-e2e",
+  "at": "2026-07-21T17:31:46.472Z",
+  "env": "staging_only",
+  "production_touched": false,
+  "via_software_ui": true,
+  "no_direct_edge_invoke_from_script": true,
+  "actor": {
+    "email": "orin1607@gmail.com",
+    "name": "יוני אטיאס",
+    "role": "מנהל על"
+  },
+  "recipients": {
+    "whatsapp": "0534338601",
+    "email": "orin1607@gmail.com"
+  },
+  "staging_ref": "usfeoerkpcafxxlyuldl",
+  "app_url": "https://orin1607-ctrl.github.io/future-craft-core",
+  "auth": {
+    "ok": true,
+    "user_id": "7fd0a5b9-ae13-4d9c-9e18-27a036103eae",
+    "email": "orin1607@gmail.com",
+    "method": "magiclink_then_ui_session_inject"
+  },
+  "profile": {
+    "code": "42703",
+    "details": null,
+    "hint": null,
+    "message": "column profiles.role does not exist"
+  },
+  "ui_after_auth_url": "https://orin1607-ctrl.github.io/future-craft-core/dashboard",
+  "alert_settings_done": true,
+  "fault_form_opened": true,
+  "ui_success_visible": true,
+  "edge_calls_from_browser": [
+    {
+      "url": "/functions/v1/notify-accident-email",
+      "status": 200,
+      "body": {
+        "success": true,
+        "sent": 0,
+        "failed": 0,
+        "skipped": 0,
+        "results": [],
+        "channels": {
+          "in_app": true,
+          "email": true,
+          "whatsapp": false
+        }
+      },
+      "at": "2026-07-21T17:32:11.479Z"
+    }
+  ],
+  "fault_saved": {
+    "id": "1c9b64ad-af31-42cf-953b-786445ddabd2",
+    "event_number": "FLT-2026-000002",
+    "company_name": "אכבים",
+    "created_at": "2026-07-21T17:32:06.014296+00:00",
+    "description": "בדיקת E2E UI התראות Staging — מנהל על יוני אטיאס — 2026-07-21T17:32:04.328Z — WA 0534338601 · Email orin1607@gmail.com"
+  },
+  "deliveries": [],
+  "driver_notifications_sample": [
+    {
+      "id": "0dfab314-3150-4858-b2ca-11678faa5a3b",
+      "title": "📝 מבחן כשירות נהיגה חדש",
+      "created_at": "2026-06-10T15:40:21.173038+00:00",
+      "user_id": "18598687-4f7e-4345-86c6-fe6c34bdce5b"
+    },
+    {
+      "id": "125edf20-ef82-43c4-9036-5cd3bc8550d7",
+      "title": "📝 מבחן כשירות נהיגה חדש",
+      "created_at": "2026-06-10T15:40:17.027601+00:00",
+      "user_id": "18598687-4f7e-4345-86c6-fe6c34bdce5b"
+    },
+    {
+      "id": "d91c0302-a019-4548-be0f-0477252b0e24",
+      "title": "🚨 תאונה חדשה דווחה",
+      "created_at": "2026-06-09T09:23:07.754845+00:00",
+      "user_id": "6f7c488b-e248-45b9-8753-11a43da46bd2"
+    },
+    {
+      "id": "a2ea76b3-cb3c-40b9-8b77-5af66f512378",
+      "title": "🚨 תאונה חדשה דווחה",
+      "created_at": "2026-06-09T09:23:07.754845+00:00",
+      "user_id": "bbb9633f-46ea-41f0-96f4-b57fa18f48d7"
+    },
+    {
+      "id": "f1f89808-572a-4c5b-9808-58ad15865fd8",
+      "title": "🚨 תאונה חדשה דווחה",
+      "created_at": "2026-06-09T09:23:07.754845+00:00",
+      "user_id": "9e44f90b-7783-474e-8e5a-20471fe92c46"
+    }
+  ],
+  "appears_on_faults_screen": true,
+  "answers": {
+    "1_created_in_system_ui": true,
+    "2_saved_in_db": true,
+    "3_whatsapp_sent": false,
+    "4_email_sent": false,
+    "5_appears_on_screens": true,
+    "edge_function": "notify-accident-email",
+    "edge_invoked_by_browser": true,
+    "whatsapp": {
+      "recipient": "0534338601",
+      "message_id": null,
+      "status": null,
+      "error": null,
+      "submitted": false,
+      "sent": false,
+      "delivered_or_failed": null,
+      "received_on_phone_he": "סטטוס delivered במערכת = אינדיקציה חזקה; אישור קבלה בפועל בטלפון — אצל Owner"
+    },
+    "email": {
+      "recipient": "orin1607@gmail.com",
+      "status": null,
+      "provider_message_id": null,
+      "error": null,
+      "sent_to_orin1607": false,
+      "inbox_receipt_he": "Resend status=sent אומר שנשלח; קבלה בתיבה — Owner מאשר"
+    },
+    "in_app": null,
+    "full_path_ok": false
+  }
+}

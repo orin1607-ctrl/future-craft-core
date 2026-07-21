@@ -1,0 +1,27 @@
+{
+  "id": "wa-ui-alert-e2e-summary",
+  "at": "2026-07-21T17:31:46.472Z",
+  "production_touched": false,
+  "via_software_ui": true,
+  "actor": "יוני אטיאס",
+  "edge_function": "notify-accident-email",
+  "fault": {
+    "id": "1c9b64ad-af31-42cf-953b-786445ddabd2",
+    "event_number": "FLT-2026-000002",
+    "company_name": "אכבים",
+    "created_at": "2026-07-21T17:32:06.014296+00:00",
+    "description": "בדיקת E2E UI התראות Staging — מנהל על יוני אטיאס — 2026-07-21T17:32:04.328Z — WA 0534338601 · Email orin1607@gmail.com"
+  },
+  "whatsapp_message_id": null,
+  "whatsapp_status": null,
+  "email_status": null,
+  "steps": {
+    "ui_create": true,
+    "db_saved": true,
+    "whatsapp": false,
+    "email": false,
+    "screens": true,
+    "full_path_ok": false
+  },
+  "report_doc": "docs/audit-reports/claims-incident-process/WA-UI-ALERT-E2E-HE.md"
+}
