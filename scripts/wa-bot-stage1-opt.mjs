@@ -303,20 +303,25 @@ async function postHook(url, payload) {
   return { status: res.status, body: body.slice(0, 200) };
 }
 
-async function waitSuccess(beforeIds, sinceMs, attempts = 28, gapMs = 5000) {
+async function waitSuccess(beforeIds, sinceMs, attempts = 36, gapMs = 5000) {
+  const seen = [];
   for (let i = 0; i < attempts; i++) {
     await new Promise((r) => setTimeout(r, gapMs));
-    const logs = await recentLogs(20);
+    const logs = await recentLogs(25);
+    for (const x of logs) {
+      if (!x.id || beforeIds.has(x.id)) continue;
+      if (!seen.find((s) => s.id === x.id)) seen.push(x);
+    }
     const hit = logs.find((x) => {
       if (!x.id || beforeIds.has(x.id)) return false;
       if (x.error) return false;
-      if (!(x.status === 1 || x.status === 2)) return false;
-      if (x.timestamp && Date.parse(x.timestamp) < sinceMs - 8000) return false;
+      if (!(x.status === 1 || x.status === 2 || x.status === 'SUCCESS')) return false;
+      if (x.timestamp && Date.parse(x.timestamp) < sinceMs - 15000) return false;
       return true;
     });
-    if (hit) return hit;
+    if (hit) return { hit, seen };
   }
-  return null;
+  return { hit: null, seen };
 }
 
 function avg(nums) {
@@ -381,16 +386,21 @@ async function main() {
     })(),
   };
 
+  const sleepAlreadyGone = sleepHits.length === 0;
   const sleepSafe =
+    !sleepAlreadyGone &&
     out.sleep_analysis.all_are_function_sleep &&
     out.sleep_analysis.all_terminal_in_flow &&
     out.sleep_analysis.references_to_sleep_outputs.length === 0 &&
     sleepHits.length === SLEEP_IDS.length;
 
-  out.sleep_analysis.safe_to_remove = sleepSafe;
-  out.sleep_analysis.rationale_he = sleepSafe
-    ? 'Sleep 88/77 הם מודולי השהייה 1ש׳ בסוף מסלול, אחרי Gupshup send, בלי מודול אחריהם ובלי הפניות לפלט שלהם — הסרה לא משנה לוגיקת שיחה/AI/Sheets, רק מקצרת ריצה.'
-    : 'לא בטוח להסיר אוטומטית — חסר תנאי בטיחות (לא טרמינלי / יש הפניות / לא נמצא).';
+  out.sleep_analysis.already_removed = sleepAlreadyGone;
+  out.sleep_analysis.safe_to_remove = sleepSafe || sleepAlreadyGone;
+  out.sleep_analysis.rationale_he = sleepAlreadyGone
+    ? 'Sleep 88/77 כבר לא ב-blueprint (הוסרו קודם) — ממשיכים ל-E2E בלבד.'
+    : sleepSafe
+      ? 'Sleep 88/77 הם מודולי השהייה 1ש׳ בסוף מסלול, אחרי Gupshup send, בלי מודול אחריהם ובלי הפניות לפלט שלהם — הסרה לא משנה לוגיקת שיחה/AI/Sheets, רק מקצרת ריצה.'
+      : 'לא בטוח להסיר אוטומטית — חסר תנאי בטיחות (לא טרמינלי / יש הפניות / לא נמצא).';
 
   // --- Module 58 diagnosis (no mapper change) ---
   const m58 = byId[58];
@@ -441,8 +451,11 @@ async function main() {
   out.logic_fingerprint_before = { ai: aiBefore, sheets: sheetsBefore, gupshup_msg: gupBefore, sleep: SLEEP_IDS };
 
   // --- Apply Sleep removal if safe ---
-  out.patch = { attempted: false, removed: [], skipped: !sleepSafe };
-  if (sleepSafe) {
+  out.patch = { attempted: false, removed: [], skipped: sleepAlreadyGone, already_removed: sleepAlreadyGone };
+  if (sleepAlreadyGone) {
+    out.patch.ok = true;
+    out.patch.note = 'Sleep already absent — no PATCH';
+  } else if (sleepSafe) {
     const removed = removeModuleIds(bp, SLEEP_IDS);
     out.patch.attempted = true;
     out.patch.removed = removed;
@@ -454,6 +467,9 @@ async function main() {
   } else {
     must(false, 'Sleep removal blocked by safety checks — aborting Stage 1 without changes');
   }
+
+  // Persist mid-run so CI can commit even if E2E fails later
+  fs.writeFileSync(OUT, JSON.stringify(out, null, 2));
 
   // Verify after
   const bp2 = await getBlueprint();
@@ -503,23 +519,37 @@ async function main() {
   const r1 = await postHook(hookUrl, buildInbound('היי', 'hi'));
   out.e2e_msg1 = { text: 'היי', post: r1, at: new Date(t1).toISOString() };
   must(r1.status >= 200 && r1.status < 300, `msg1 webhook ${r1.status}`);
-  const exec1 = await waitSuccess(beforeIds, t1);
-  out.e2e_msg1.execution = exec1;
-  must(exec1, 'E2E msg1: no successful Make execution');
-  beforeIds.add(exec1.id);
+  const w1 = await waitSuccess(beforeIds, t1);
+  out.e2e_msg1.execution = w1.hit;
+  out.e2e_msg1.seen_logs = w1.seen.slice(0, 12);
+  must(w1.hit, 'E2E msg1: no successful Make execution');
+  beforeIds.add(w1.hit.id);
+  for (const s of w1.seen) if (s.id) beforeIds.add(s.id);
+  fs.writeFileSync(OUT, JSON.stringify(out, null, 2));
 
   out.queue_cleared_between = await clearQueue();
-  await activateIfNeeded();
-  await new Promise((r) => setTimeout(r, 4000));
+  const midBot = await activateIfNeeded();
+  out.between_messages_bot = midBot;
+  must(midBot.isActive, 'Bot not Active between messages');
+  await new Promise((r) => setTimeout(r, 5000));
 
   // --- E2E msg2 ---
   const t2 = Date.now();
   const r2 = await postHook(hookUrl, buildInbound('יוני', 'name'));
   out.e2e_msg2 = { text: 'יוני', post: r2, at: new Date(t2).toISOString() };
   must(r2.status >= 200 && r2.status < 300, `msg2 webhook ${r2.status}`);
-  const exec2 = await waitSuccess(beforeIds, t2, 36);
-  out.e2e_msg2.execution = exec2;
-  must(exec2, 'E2E msg2: no successful Make execution');
+  const w2 = await waitSuccess(beforeIds, t2, 40, 5000);
+  out.e2e_msg2.execution = w2.hit;
+  out.e2e_msg2.seen_logs = w2.seen.slice(0, 20);
+  out.e2e_msg2.hook_queue_after = await (async () => {
+    const q = await make(`/hooks/${HOOK_ID}/incomings?pg[limit]=20`);
+    const items = q.json?.hookIncomings || q.json?.incomings || [];
+    return Array.isArray(items) ? items.length : null;
+  })();
+  fs.writeFileSync(OUT, JSON.stringify(out, null, 2));
+  must(w2.hit, 'E2E msg2: no successful Make execution');
+  const exec1 = w1.hit;
+  const exec2 = w2.hit;
 
   // Post-E2E module statuses
   out.after_module_logs = {
@@ -617,6 +647,25 @@ main().catch((e) => {
   out.error = String(e.message || e);
   try {
     fs.writeFileSync(OUT, JSON.stringify(out, null, 2));
+    const summary = {
+      id: 'wa-bot-stage1-opt-summary',
+      at: new Date().toISOString(),
+      error: out.error,
+      sleep_removed: out.patch?.removed?.map((r) => r.id) || [],
+      sleep_already_removed: out.sleep_analysis?.already_removed || false,
+      patch_ok: out.patch?.ok || false,
+      e2e_msg1: out.e2e_msg1?.execution || null,
+      e2e_msg2: out.e2e_msg2?.execution || null,
+      module_58: out.module_58_analysis
+        ? {
+            still_in_use: out.module_58_analysis.still_in_use,
+            verdict_he: out.module_58_analysis.verdict_he,
+            action: 'diagnose_only',
+          }
+        : null,
+      production_touched: false,
+    };
+    fs.writeFileSync(SUMMARY, JSON.stringify(summary, null, 2));
   } catch {
     /* ignore */
   }

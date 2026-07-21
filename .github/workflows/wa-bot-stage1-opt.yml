@@ -28,8 +28,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/project-001/wa-bot-stage1-opt-result.json \
-                  public/project-001/wa-bot-stage1-opt-summary.json || true
+          ls -la public/project-001/wa-bot-stage1-opt*.json || true
+          git add -f public/project-001/wa-bot-stage1-opt-result.json || true
+          git add -f public/project-001/wa-bot-stage1-opt-summary.json || true
           git diff --cached --quiet && echo "no changes" && exit 0
+          git pull --rebase origin main || true
           git commit -m "ci: WA Bot Stage-1 opt — Sleep removed + E2E (no AI/Sheets)"
           git push

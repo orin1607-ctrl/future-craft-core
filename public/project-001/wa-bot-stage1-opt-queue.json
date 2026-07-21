@@ -7,5 +7,7 @@
   "no_ai_changes": true,
   "no_sheets_cache": true,
   "no_production": true,
-  "e2e_two_messages": true
+  "e2e_two_messages": true,
+  "retry": 2,
+  "note": "Re-run after msg2 wait fix; Sleep may already be removed on Make"
 }
