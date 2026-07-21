@@ -1,0 +1,11 @@
+{
+  "id": "wa-peer-compare-queue",
+  "armed": false,
+  "env": "staging",
+  "production_forbidden": true,
+  "destination_local": null,
+  "destination_e164": null,
+  "message_prefix": "CO.CO peer-compare Staging",
+  "poll_seconds": 180,
+  "notes": "Set destination_local after Owner phrase «מספר בדיקה מאושר: 05…» then arm=true and push to run Actions, OR pass WA_COMPARE_DEST env to the script."
+}

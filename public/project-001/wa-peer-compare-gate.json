@@ -1,0 +1,48 @@
+{
+  "id": "wa-peer-compare-gate",
+  "at": "2026-07-21T13:40:00.000Z",
+  "env": "staging",
+  "production_touched": false,
+  "requested": "One Staging comparison send to a different active WhatsApp number (not 0534338601) to isolate device vs pipeline",
+  "status": "blocked_waiting_owner_phone",
+  "send_executed": false,
+  "reason": "No second approved WhatsApp recipient exists in repo docs, secrets inventory, Staging send history, or Make DLR dumps. Only approved destination on record is Owner 0534338601 (=972534338601). Business source remains 972546500305.",
+  "searched": [
+    "docs/ENVIRONMENT-AND-SECRETS-HE.md",
+    "docs/OWNER-*.md",
+    "public/project-001/*wa* / *e2e* / *dlr*",
+    "Make hook diagnose dumps (inbound + DLR recipient_id)",
+    "AlertSettings incident_whatsapp_recipients (preset 'dalia' → Owner only)"
+  ],
+  "only_known_destination": {
+    "local": "0534338601",
+    "e164": "972534338601",
+    "role": "Owner"
+  },
+  "business_source": {
+    "local": "0546500305",
+    "e164": "972546500305",
+    "app": "DaliaVehicle"
+  },
+  "baseline_owner_send": {
+    "message_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+    "destination": "972534338601",
+    "make_dlr": "sent_yes delivered_no read_no failed_no",
+    "owner_phone_received": false
+  },
+  "comparison_logic": {
+    "if_alt_also_sent_only": "Problem is NOT Owner device — pipeline/Meta/business account",
+    "if_alt_gets_delivered": "Problem likely specific to 0534338601 (device/account/block/SIM)"
+  },
+  "owner_action_required": {
+    "phrase": "מספר בדיקה מאושר: 05XXXXXXXX",
+    "constraints": [
+      "Active WhatsApp on that number",
+      "Person consents to one Staging test message from 054-650-0305",
+      "Preferably: they message 054-650-0305 first to open 24h session window",
+      "No Production"
+    ]
+  },
+  "ready_script": "scripts/wa-peer-compare-send.mjs",
+  "ready_queue": "public/project-001/wa-peer-compare-queue.json"
+}
