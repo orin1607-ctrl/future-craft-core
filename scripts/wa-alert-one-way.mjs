@@ -414,9 +414,6 @@ function applyOneWayPatch(bp) {
       name: 'Reply to system alert Message ID',
       conditions: [
         [{ a: `{{${lookupId}.is_system_alert_flag}}`, b: 'yes', o: 'text:equal' }],
-        [{ a: `{{${lookupId}.data.is_system_alert_flag}}`, b: 'yes', o: 'text:equal' }],
-        [{ a: `{{${lookupId}.is_system_alert}}`, b: 'true', o: 'text:equal' }],
-        [{ a: `{{${lookupId}.data.is_system_alert}}`, b: 'true', o: 'text:equal' }],
       ],
     },
     metadata: {
@@ -443,11 +440,9 @@ function applyOneWayPatch(bp) {
     },
     filter: {
       name: 'Not a system-alert Reply',
+      // Single AND group — OR groups would let empty data.* paths reopen the bot route
       conditions: [
         [{ a: `{{${lookupId}.is_system_alert_flag}}`, b: 'yes', o: 'text:notequal' }],
-        [{ a: `{{${lookupId}.data.is_system_alert_flag}}`, b: 'yes', o: 'text:notequal' }],
-        [{ a: `{{${lookupId}.is_system_alert_flag}}`, b: 'no', o: 'text:equal' }],
-        [{ a: `{{${lookupId}.is_system_alert}}`, b: 'true', o: 'text:notequal' }],
       ],
     },
     metadata: {

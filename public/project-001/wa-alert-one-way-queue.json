@@ -1,11 +1,9 @@
 {
   "id": "wa-alert-one-way-queue",
-  "armed": false,
+  "armed": true,
   "staging_only": true,
   "production_touched": false,
   "approve_owner": "A",
-  "retry": 6,
-  "note": "Re-arm: gate bot route with NOT system-alert filter (Make runs unfiltered routes always)",
-  "completed": true,
-  "at": "2026-07-21T20:38:59.856Z"
+  "retry": 7,
+  "note": "Re-arm: single-condition filters (no OR that reopens bot on empty data.*)"
 }
