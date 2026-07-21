@@ -1,5 +1,5 @@
 {
   "id": "make-dedicated-dlr-queue",
-  "requestedAt": "2026-07-21T08:55:00.000Z",
-  "note": "Create dedicated Make DLR→Staging scenario after zero hook traffic diagnosis"
+  "requestedAt": "2026-07-21T08:56:33Z",
+  "note": "Retry create hook with method/headers/stringify required fields"
 }

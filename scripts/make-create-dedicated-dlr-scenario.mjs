@@ -84,12 +84,14 @@ async function main() {
   let hookId = existing?.hookId || null;
 
   if (!scenarioId) {
-    // Create hook first
+    // Create hook first (method/headers/stringify are required booleans)
     const hookBody = {
       teamId,
       name: 'coco-dalia-dlr-staging',
       typeName: 'gateway-webhook',
-      // JSON pass-through / flexible
+      method: false,
+      headers: false,
+      stringify: true, // JSON body as string → easier raw forward
     };
     const hr = await make('/hooks', { method: 'POST', body: hookBody });
     out.hook_create = { http: hr.status, error: hr.status >= 300 ? hr.text.slice(0, 300) : null };
