@@ -1,0 +1,3021 @@
+{
+  "id": "wa-bot-latency",
+  "at": "2026-07-21T16:11:34.514Z",
+  "env": "staging_make_only",
+  "production_touched": false,
+  "logic_unchanged": true,
+  "no_blueprint_patch": true,
+  "blueprint_modules": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": true,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": []
+    },
+    {
+      "id": 78,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "name",
+        "scope",
+        "value"
+      ]
+    },
+    {
+      "id": 79,
+      "module": "google-sheets:filterRows",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": true,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "from",
+        "limit",
+        "filter",
+        "sheetId",
+        "sortOrder",
+        "spreadsheetId",
+        "tableFirstRow",
+        "includesHeaders",
+        "valueRenderOption",
+        "dateTimeRenderOption"
+      ]
+    },
+    {
+      "id": 93,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "name",
+        "scope",
+        "value"
+      ]
+    },
+    {
+      "id": 80,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "name",
+        "scope",
+        "value"
+      ]
+    },
+    {
+      "id": 94,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "name",
+        "scope",
+        "value"
+      ]
+    },
+    {
+      "id": 81,
+      "module": "builtin:BasicRouter",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": true,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": []
+    },
+    {
+      "id": 82,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": true,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "from",
+        "mode",
+        "values",
+        "sheetId",
+        "rowNumber",
+        "spreadsheetId",
+        "includesHeaders",
+        "valueInputOption"
+      ]
+    },
+    {
+      "id": 84,
+      "module": "ai-agent:RunAnAIAgent",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": true,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "agent",
+        "timeout",
+        "messages",
+        "threadID",
+        "outputType",
+        "additionalSystemPrompt"
+      ]
+    },
+    {
+      "id": 85,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "name",
+        "scope",
+        "value"
+      ]
+    },
+    {
+      "id": 86,
+      "module": "builtin:BasicFeeder",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": true,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "array"
+      ]
+    },
+    {
+      "id": 91,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "name",
+        "scope",
+        "value"
+      ]
+    },
+    {
+      "id": 97,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "name",
+        "scope",
+        "value"
+      ]
+    },
+    {
+      "id": 92,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": true,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "from",
+        "mode",
+        "values",
+        "sheetId",
+        "rowNumber",
+        "spreadsheetId",
+        "includesHeaders",
+        "valueInputOption"
+      ]
+    },
+    {
+      "id": 87,
+      "module": "http:ActionSendData",
+      "name": null,
+      "url_host": "api.gupshup.io",
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": true,
+        "sheets": false,
+        "gupshupSend": true,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "ca",
+        "qs",
+        "url",
+        "gzip",
+        "method",
+        "headers",
+        "timeout",
+        "useMtls",
+        "authPass",
+        "authUser",
+        "bodyType",
+        "formFields",
+        "serializeUrl",
+        "shareCookies",
+        "parseResponse",
+        "followRedirect",
+        "useQuerystring",
+        "followAllRedirects",
+        "rejectUnauthorized"
+      ]
+    },
+    {
+      "id": 88,
+      "module": "util:FunctionSleep",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": true,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": 1,
+      "mapper_keys": [
+        "duration"
+      ]
+    },
+    {
+      "id": 83,
+      "module": "google-sheets:addRow",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": true,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "from",
+        "mode",
+        "values",
+        "sheetId",
+        "spreadsheetId",
+        "includesHeaders",
+        "insertDataOption",
+        "valueInputOption",
+        "insertUnformatted"
+      ]
+    },
+    {
+      "id": 63,
+      "module": "ai-agent:RunAnAIAgent",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": true,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "agent",
+        "timeout",
+        "messages",
+        "threadID",
+        "outputType",
+        "additionalSystemPrompt"
+      ]
+    },
+    {
+      "id": 72,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "name",
+        "scope",
+        "value"
+      ]
+    },
+    {
+      "id": 76,
+      "module": "builtin:BasicFeeder",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": true,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "array"
+      ]
+    },
+    {
+      "id": 89,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "name",
+        "scope",
+        "value"
+      ]
+    },
+    {
+      "id": 95,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "name",
+        "scope",
+        "value"
+      ]
+    },
+    {
+      "id": 90,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": false,
+        "sheets": true,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "from",
+        "mode",
+        "values",
+        "sheetId",
+        "rowNumber",
+        "spreadsheetId",
+        "includesHeaders",
+        "valueInputOption"
+      ]
+    },
+    {
+      "id": 58,
+      "module": "http:ActionSendData",
+      "name": null,
+      "url_host": "api.gupshup.io",
+      "flags": {
+        "delay": false,
+        "ai": false,
+        "http": true,
+        "sheets": false,
+        "gupshupSend": true,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": null,
+      "mapper_keys": [
+        "ca",
+        "qs",
+        "url",
+        "gzip",
+        "method",
+        "headers",
+        "timeout",
+        "useMtls",
+        "authPass",
+        "authUser",
+        "bodyType",
+        "formFields",
+        "serializeUrl",
+        "shareCookies",
+        "parseResponse",
+        "followRedirect",
+        "useQuerystring",
+        "followAllRedirects",
+        "rejectUnauthorized"
+      ]
+    },
+    {
+      "id": 77,
+      "module": "util:FunctionSleep",
+      "name": null,
+      "url_host": null,
+      "flags": {
+        "delay": true,
+        "ai": false,
+        "http": false,
+        "sheets": false,
+        "gupshupSend": false,
+        "webhook": false,
+        "router": false,
+        "feeder": false,
+        "retry": false
+      },
+      "sleep_ms_configured": 1,
+      "mapper_keys": [
+        "duration"
+      ]
+    }
+  ],
+  "static_findings": {
+    "sleep_delay_modules": [
+      {
+        "id": 88,
+        "module": "util:FunctionSleep",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": true,
+          "ai": false,
+          "http": false,
+          "sheets": false,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": 1,
+        "mapper_keys": [
+          "duration"
+        ]
+      },
+      {
+        "id": 77,
+        "module": "util:FunctionSleep",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": true,
+          "ai": false,
+          "http": false,
+          "sheets": false,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": 1,
+        "mapper_keys": [
+          "duration"
+        ]
+      }
+    ],
+    "ai_modules": [
+      {
+        "id": 84,
+        "module": "ai-agent:RunAnAIAgent",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": false,
+          "ai": true,
+          "http": false,
+          "sheets": false,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "agent",
+          "timeout",
+          "messages",
+          "threadID",
+          "outputType",
+          "additionalSystemPrompt"
+        ]
+      },
+      {
+        "id": 63,
+        "module": "ai-agent:RunAnAIAgent",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": false,
+          "ai": true,
+          "http": false,
+          "sheets": false,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "agent",
+          "timeout",
+          "messages",
+          "threadID",
+          "outputType",
+          "additionalSystemPrompt"
+        ]
+      }
+    ],
+    "gupshup_send_modules": [
+      {
+        "id": 87,
+        "module": "http:ActionSendData",
+        "name": null,
+        "url_host": "api.gupshup.io",
+        "flags": {
+          "delay": false,
+          "ai": false,
+          "http": true,
+          "sheets": false,
+          "gupshupSend": true,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "ca",
+          "qs",
+          "url",
+          "gzip",
+          "method",
+          "headers",
+          "timeout",
+          "useMtls",
+          "authPass",
+          "authUser",
+          "bodyType",
+          "formFields",
+          "serializeUrl",
+          "shareCookies",
+          "parseResponse",
+          "followRedirect",
+          "useQuerystring",
+          "followAllRedirects",
+          "rejectUnauthorized"
+        ]
+      },
+      {
+        "id": 58,
+        "module": "http:ActionSendData",
+        "name": null,
+        "url_host": "api.gupshup.io",
+        "flags": {
+          "delay": false,
+          "ai": false,
+          "http": true,
+          "sheets": false,
+          "gupshupSend": true,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "ca",
+          "qs",
+          "url",
+          "gzip",
+          "method",
+          "headers",
+          "timeout",
+          "useMtls",
+          "authPass",
+          "authUser",
+          "bodyType",
+          "formFields",
+          "serializeUrl",
+          "shareCookies",
+          "parseResponse",
+          "followRedirect",
+          "useQuerystring",
+          "followAllRedirects",
+          "rejectUnauthorized"
+        ]
+      }
+    ],
+    "http_other": [],
+    "sheets_modules": [
+      {
+        "id": 79,
+        "module": "google-sheets:filterRows",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": false,
+          "ai": false,
+          "http": false,
+          "sheets": true,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "from",
+          "limit",
+          "filter",
+          "sheetId",
+          "sortOrder",
+          "spreadsheetId",
+          "tableFirstRow",
+          "includesHeaders",
+          "valueRenderOption",
+          "dateTimeRenderOption"
+        ]
+      },
+      {
+        "id": 82,
+        "module": "google-sheets:updateRow",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": false,
+          "ai": false,
+          "http": false,
+          "sheets": true,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "from",
+          "mode",
+          "values",
+          "sheetId",
+          "rowNumber",
+          "spreadsheetId",
+          "includesHeaders",
+          "valueInputOption"
+        ]
+      },
+      {
+        "id": 92,
+        "module": "google-sheets:updateRow",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": false,
+          "ai": false,
+          "http": false,
+          "sheets": true,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "from",
+          "mode",
+          "values",
+          "sheetId",
+          "rowNumber",
+          "spreadsheetId",
+          "includesHeaders",
+          "valueInputOption"
+        ]
+      },
+      {
+        "id": 83,
+        "module": "google-sheets:addRow",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": false,
+          "ai": false,
+          "http": false,
+          "sheets": true,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "from",
+          "mode",
+          "values",
+          "sheetId",
+          "spreadsheetId",
+          "includesHeaders",
+          "insertDataOption",
+          "valueInputOption",
+          "insertUnformatted"
+        ]
+      },
+      {
+        "id": 90,
+        "module": "google-sheets:updateRow",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": false,
+          "ai": false,
+          "http": false,
+          "sheets": true,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "from",
+          "mode",
+          "values",
+          "sheetId",
+          "rowNumber",
+          "spreadsheetId",
+          "includesHeaders",
+          "valueInputOption"
+        ]
+      }
+    ],
+    "router_feeder": [
+      {
+        "id": 81,
+        "module": "builtin:BasicRouter",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": false,
+          "ai": false,
+          "http": false,
+          "sheets": false,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": true,
+          "feeder": false,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": []
+      },
+      {
+        "id": 86,
+        "module": "builtin:BasicFeeder",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": false,
+          "ai": false,
+          "http": false,
+          "sheets": false,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": true,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "array"
+        ]
+      },
+      {
+        "id": 76,
+        "module": "builtin:BasicFeeder",
+        "name": null,
+        "url_host": null,
+        "flags": {
+          "delay": false,
+          "ai": false,
+          "http": false,
+          "sheets": false,
+          "gupshupSend": false,
+          "webhook": false,
+          "router": false,
+          "feeder": true,
+          "retry": false
+        },
+        "sleep_ms_configured": null,
+        "mapper_keys": [
+          "array"
+        ]
+      }
+    ],
+    "total_configured_sleep_ms": 2,
+    "scenario_metadata": {
+      "instant": true,
+      "version": 1,
+      "designer": {
+        "orphans": [],
+        "samples": {
+          "1": {
+            "entry": [
+              {
+                "id": "1192839012642441",
+                "changes": [
+                  {
+                    "field": "messages",
+                    "value": {
+                      "contacts": [
+                        {
+                          "wa_id": "972534338601",
+                          "profile": {
+                            "name": "יוני"
+                          }
+                        }
+                      ],
+                      "messages": [
+                        {
+                          "id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUMxOUVGMDI3MTExRkZDRDk3RjBGMzE2MUJGRUUzMjIA",
+                          "from": "972534338601",
+                          "text": {
+                            "body": "היי"
+                          },
+                          "type": "text",
+                          "timestamp": "1758087313"
+                        }
+                      ],
+                      "metadata": {
+                        "phone_number_id": "689295480929918",
+                        "display_phone_number": "972546500305"
+                      },
+                      "messaging_product": "whatsapp"
+                    }
+                  }
+                ]
+              }
+            ],
+            "object": "whatsapp_business_account",
+            "gs_app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd"
+          },
+          "58": {
+            "data": {
+              "status": "submitted",
+              "messageId": "bf2fdecb-9bc6-4dc6-a237-4e1e48928bcf"
+            },
+            "headers": [
+              {
+                "name": "server",
+                "value": "GupShup-Webserver"
+              }
+            ],
+            "fileSize": 73,
+            "statusCode": 202,
+            "cookieHeaders": []
+          },
+          "63": {
+            "response": "שלום 👋 תודה שהגעת אל דליה – פתרונות תפעול ותחזוקה לרכב.  \nמה השם שלך? ✍️",
+            "threadId": "972534338601",
+            "executionSteps": [
+              {
+                "id": "chatcmpl-CGf6xDNrGOkAftp8apDphFTUeguz5",
+                "role": "assistant",
+                "index": 23,
+                "content": "שלום 👋 תודה שהגעת אל דליה – פתרונות תפעול ותחזוקה לרכב.  \nמה השם שלך? ✍️",
+                "tokenUsage": {
+                  "totalTokens": 884,
+                  "promptTokens": 851,
+                  "completionTokens": 33
+                },
+                "executionTimeMs": 932,
+                "agentIterationId": "54dcb63a-d6f5-4786-9ce1-25db7ca09d91"
+              }
+            ],
+            "executionTimeMs": 981,
+            "tokenUsageSummary": {
+              "totalTokens": 884,
+              "promptTokens": 851,
+              "completionTokens": 33
+            },
+            "lastAgentIterationId": "54dcb63a-d6f5-4786-9ce1-25db7ca09d91"
+          },
+          "72": {
+            "Packages": [
+              "📦 Package 1 – Basic | 35 ₪ / month\nAutomatic reminders for services and routine checks\nPeriodic ins..."
+            ]
+          }
+        }
+      },
+      "scenario": {
+        "dlq": false,
+        "slots": null,
+        "dataloss": false,
+        "maxErrors": 19,
+        "autoCommit": true,
+        "roundtrips": 1,
+        "sequential": false,
+        "confidential": false,
+        "freshVariables": false,
+        "autoCommitTriggerLast": true
+      }
+    }
+  },
+  "recent_executions": [
+    {
+      "timestamp": "2026-07-21T16:05:48.168Z",
+      "duration_ms": null,
+      "operations": null,
+      "transfer": null,
+      "error": null,
+      "instant": null
+    },
+    {
+      "id": "8fa603d639db4d4db5f39dfa19287ca5",
+      "status": 3,
+      "timestamp": "2026-07-21T16:05:43.828Z",
+      "duration_ms": 4304,
+      "operations": 14,
+      "transfer": 13226,
+      "error": "Error: 400 Bad Request",
+      "instant": true
+    },
+    {
+      "id": "2f1e09a7b6b9426c8fbdf935de90537b",
+      "status": 1,
+      "timestamp": "2026-07-21T16:05:36.183Z",
+      "duration_ms": 4886,
+      "operations": 15,
+      "transfer": 36609,
+      "error": null,
+      "instant": true
+    },
+    {
+      "id": "75303990",
+      "timestamp": "2026-07-21T16:05:27.866Z",
+      "duration_ms": null,
+      "operations": null,
+      "transfer": null,
+      "error": null,
+      "instant": null
+    },
+    {
+      "timestamp": "2026-07-21T16:05:21.510Z",
+      "duration_ms": null,
+      "operations": null,
+      "transfer": null,
+      "error": null,
+      "instant": null
+    },
+    {
+      "id": "60b9df2aeb984d839c371acc31c6d1fd",
+      "status": 1,
+      "timestamp": "2026-07-21T16:05:17.103Z",
+      "duration_ms": 6534,
+      "operations": 15,
+      "transfer": 34647,
+      "error": null,
+      "instant": true
+    },
+    {
+      "id": "60470f47574f43049a79e088d72c06ed",
+      "status": 3,
+      "timestamp": "2026-07-21T16:05:17.084Z",
+      "duration_ms": 9046,
+      "operations": 14,
+      "transfer": 13412,
+      "error": "Error: 400 Bad Request",
+      "instant": true
+    },
+    {
+      "id": "2e7f910a10a7497fa7ad78e9fdc45f48",
+      "status": 3,
+      "timestamp": "2026-07-21T16:05:17.064Z",
+      "duration_ms": 5166,
+      "operations": 14,
+      "transfer": 13474,
+      "error": "Error: 400 Bad Request",
+      "instant": true
+    },
+    {
+      "id": "ea2d9b4583fd49839b6b5999d4bba0ce",
+      "status": 3,
+      "timestamp": "2026-07-21T16:05:17.045Z",
+      "duration_ms": 5010,
+      "operations": 14,
+      "transfer": 13474,
+      "error": "Error: 400 Bad Request",
+      "instant": true
+    },
+    {
+      "id": "165a7b7bf3fe4a57b391c879b651333c",
+      "status": 3,
+      "timestamp": "2026-07-21T16:05:17.020Z",
+      "duration_ms": 5655,
+      "operations": 14,
+      "transfer": 13418,
+      "error": "Error: 400 Bad Request",
+      "instant": true
+    },
+    {
+      "id": "8b6068ae88544949a49e7c1b4f8b3deb",
+      "status": 3,
+      "timestamp": "2026-07-21T16:05:17.006Z",
+      "duration_ms": 7036,
+      "operations": 14,
+      "transfer": 13430,
+      "error": "Error: 400 Bad Request",
+      "instant": true
+    },
+    {
+      "id": "a72dabe30e854864a1a8248aa30dda58",
+      "status": 3,
+      "timestamp": "2026-07-21T16:05:16.985Z",
+      "duration_ms": 6027,
+      "operations": 14,
+      "transfer": 13430,
+      "error": "Error: 400 Bad Request",
+      "instant": true
+    },
+    {
+      "id": "778c59f5d68f4c8cb906cb7bf812f6da",
+      "status": 1,
+      "timestamp": "2026-07-21T16:05:16.963Z",
+      "duration_ms": 6070,
+      "operations": 15,
+      "transfer": 34203,
+      "error": null,
+      "instant": true
+    },
+    {
+      "id": "32df62ed0d3741769fdabb6b402b688d",
+      "status": 3,
+      "timestamp": "2026-07-21T16:05:16.950Z",
+      "duration_ms": 5009,
+      "operations": 14,
+      "transfer": 13870,
+      "error": "Error: 400 Bad Request",
+      "instant": true
+    },
+    {
+      "id": "7615953a8929417587069fdd17a5c8cd",
+      "status": 3,
+      "timestamp": "2026-07-21T16:05:16.930Z",
+      "duration_ms": 4547,
+      "operations": 14,
+      "transfer": 13430,
+      "error": "Error: 400 Bad Request",
+      "instant": true
+    },
+    {
+      "id": "68d2d34459e94f13a9a97ef1478bd157",
+      "status": 1,
+      "timestamp": "2026-07-21T16:05:16.794Z",
+      "duration_ms": 6940,
+      "operations": 15,
+      "transfer": 34459,
+      "error": null,
+      "instant": true
+    },
+    {
+      "id": "75303975",
+      "timestamp": "2026-07-21T16:05:13.816Z",
+      "duration_ms": null,
+      "operations": null,
+      "transfer": null,
+      "error": null,
+      "instant": null
+    },
+    {
+      "timestamp": "2026-07-21T16:01:13.976Z",
+      "duration_ms": null,
+      "operations": null,
+      "transfer": null,
+      "error": null,
+      "instant": null
+    },
+    {
+      "id": "a6917f0e7d3b4aefa9d1ae166fddfb33",
+      "status": 1,
+      "timestamp": "2026-07-21T16:01:10.615Z",
+      "duration_ms": 6576,
+      "operations": 15,
+      "transfer": 32608,
+      "error": null,
+      "instant": true
+    },
+    {
+      "id": "c19c369453e7465c81a55bbf387edb67",
+      "status": 3,
+      "timestamp": "2026-07-21T16:01:09.745Z",
+      "duration_ms": 8481,
+      "operations": 14,
+      "transfer": 13265,
+      "error": "Error: 400 Bad Request",
+      "instant": true
+    }
+  ],
+  "execution_stats": {
+    "success_count": 5,
+    "duration_ms_samples": [
+      4886,
+      6534,
+      6070,
+      6940,
+      6576
+    ],
+    "avg_ms": 6201,
+    "min_ms": 4886,
+    "max_ms": 6940,
+    "p50_ms": 6534
+  },
+  "execution_details": [
+    {
+      "execution_id": "2f1e09a7b6b9426c8fbdf935de90537b",
+      "total_duration_ms": 4886,
+      "timestamp": "2026-07-21T16:05:36.183Z",
+      "source_path": "/scenarios/5797671/logs/2f1e09a7b6b9426c8fbdf935de90537b",
+      "operations": null,
+      "partial": {
+        "status": 1,
+        "duration": 4886,
+        "error": null,
+        "keys": [
+          "imtId",
+          "eventType",
+          "id",
+          "@kindId",
+          "timestamp",
+          "type",
+          "instant",
+          "authorId",
+          "teamId",
+          "organizationId",
+          "replayOfExecutionId",
+          "replayOfExecutionName",
+          "replayOfExecutionTimestamp",
+          "@scenarioId",
+          "scenarioName",
+          "scenarioId",
+          "duration",
+          "centicredits",
+          "operations",
+          "transfer",
+          "status",
+          "isReplayable"
+        ]
+      },
+      "probes": {
+        "/scenarios/5797671/logs/2f1e09a7b6b9426c8fbdf935de90537b": {
+          "http": 200,
+          "keys": [
+            "scenarioLog"
+          ]
+        },
+        "/scenarios/5797671/executions/2f1e09a7b6b9426c8fbdf935de90537b": {
+          "http": 200,
+          "keys": [
+            "status"
+          ]
+        },
+        "/execlogs/2f1e09a7b6b9426c8fbdf935de90537b": {
+          "http": 404,
+          "keys": [
+            "message"
+          ]
+        }
+      }
+    },
+    {
+      "execution_id": "60b9df2aeb984d839c371acc31c6d1fd",
+      "total_duration_ms": 6534,
+      "timestamp": "2026-07-21T16:05:17.103Z",
+      "source_path": "/scenarios/5797671/logs/60b9df2aeb984d839c371acc31c6d1fd",
+      "operations": null,
+      "partial": {
+        "status": 1,
+        "duration": 6534,
+        "error": null,
+        "keys": [
+          "imtId",
+          "eventType",
+          "id",
+          "@kindId",
+          "timestamp",
+          "type",
+          "instant",
+          "authorId",
+          "teamId",
+          "organizationId",
+          "replayOfExecutionId",
+          "replayOfExecutionName",
+          "replayOfExecutionTimestamp",
+          "@scenarioId",
+          "scenarioName",
+          "scenarioId",
+          "duration",
+          "centicredits",
+          "operations",
+          "transfer",
+          "status",
+          "isReplayable"
+        ]
+      },
+      "probes": {
+        "/scenarios/5797671/logs/60b9df2aeb984d839c371acc31c6d1fd": {
+          "http": 200,
+          "keys": [
+            "scenarioLog"
+          ]
+        },
+        "/scenarios/5797671/executions/60b9df2aeb984d839c371acc31c6d1fd": {
+          "http": 200,
+          "keys": [
+            "status"
+          ]
+        },
+        "/execlogs/60b9df2aeb984d839c371acc31c6d1fd": {
+          "http": 404,
+          "keys": [
+            "message"
+          ]
+        }
+      }
+    },
+    {
+      "execution_id": "778c59f5d68f4c8cb906cb7bf812f6da",
+      "total_duration_ms": 6070,
+      "timestamp": "2026-07-21T16:05:16.963Z",
+      "source_path": "/scenarios/5797671/logs/778c59f5d68f4c8cb906cb7bf812f6da",
+      "operations": null,
+      "partial": {
+        "status": 1,
+        "duration": 6070,
+        "error": null,
+        "keys": [
+          "imtId",
+          "eventType",
+          "id",
+          "@kindId",
+          "timestamp",
+          "type",
+          "instant",
+          "authorId",
+          "teamId",
+          "organizationId",
+          "replayOfExecutionId",
+          "replayOfExecutionName",
+          "replayOfExecutionTimestamp",
+          "@scenarioId",
+          "scenarioName",
+          "scenarioId",
+          "duration",
+          "centicredits",
+          "operations",
+          "transfer",
+          "status",
+          "isReplayable"
+        ]
+      },
+      "probes": {
+        "/scenarios/5797671/logs/778c59f5d68f4c8cb906cb7bf812f6da": {
+          "http": 200,
+          "keys": [
+            "scenarioLog"
+          ]
+        },
+        "/scenarios/5797671/executions/778c59f5d68f4c8cb906cb7bf812f6da": {
+          "http": 200,
+          "keys": [
+            "status"
+          ]
+        },
+        "/execlogs/778c59f5d68f4c8cb906cb7bf812f6da": {
+          "http": 404,
+          "keys": [
+            "message"
+          ]
+        }
+      }
+    },
+    {
+      "execution_id": "68d2d34459e94f13a9a97ef1478bd157",
+      "total_duration_ms": 6940,
+      "timestamp": "2026-07-21T16:05:16.794Z",
+      "source_path": "/scenarios/5797671/logs/68d2d34459e94f13a9a97ef1478bd157",
+      "operations": null,
+      "partial": {
+        "status": 1,
+        "duration": 6940,
+        "error": null,
+        "keys": [
+          "imtId",
+          "eventType",
+          "id",
+          "@kindId",
+          "timestamp",
+          "type",
+          "instant",
+          "authorId",
+          "teamId",
+          "organizationId",
+          "replayOfExecutionId",
+          "replayOfExecutionName",
+          "replayOfExecutionTimestamp",
+          "@scenarioId",
+          "scenarioName",
+          "scenarioId",
+          "duration",
+          "centicredits",
+          "operations",
+          "transfer",
+          "status",
+          "isReplayable"
+        ]
+      },
+      "probes": {
+        "/scenarios/5797671/logs/68d2d34459e94f13a9a97ef1478bd157": {
+          "http": 200,
+          "keys": [
+            "scenarioLog"
+          ]
+        },
+        "/scenarios/5797671/executions/68d2d34459e94f13a9a97ef1478bd157": {
+          "http": 200,
+          "keys": [
+            "status"
+          ]
+        },
+        "/execlogs/68d2d34459e94f13a9a97ef1478bd157": {
+          "http": 404,
+          "keys": [
+            "message"
+          ]
+        }
+      }
+    },
+    {
+      "execution_id": "a6917f0e7d3b4aefa9d1ae166fddfb33",
+      "total_duration_ms": 6576,
+      "timestamp": "2026-07-21T16:01:10.615Z",
+      "source_path": "/scenarios/5797671/logs/a6917f0e7d3b4aefa9d1ae166fddfb33",
+      "operations": null,
+      "partial": {
+        "status": 1,
+        "duration": 6576,
+        "error": null,
+        "keys": [
+          "imtId",
+          "eventType",
+          "id",
+          "@kindId",
+          "timestamp",
+          "type",
+          "instant",
+          "authorId",
+          "teamId",
+          "organizationId",
+          "replayOfExecutionId",
+          "replayOfExecutionName",
+          "replayOfExecutionTimestamp",
+          "@scenarioId",
+          "scenarioName",
+          "scenarioId",
+          "duration",
+          "centicredits",
+          "operations",
+          "transfer",
+          "status",
+          "isReplayable"
+        ]
+      },
+      "probes": {
+        "/scenarios/5797671/logs/a6917f0e7d3b4aefa9d1ae166fddfb33": {
+          "http": 200,
+          "keys": [
+            "scenarioLog"
+          ]
+        },
+        "/scenarios/5797671/executions/a6917f0e7d3b4aefa9d1ae166fddfb33": {
+          "http": 200,
+          "keys": [
+            "status"
+          ]
+        },
+        "/execlogs/a6917f0e7d3b4aefa9d1ae166fddfb33": {
+          "http": 404,
+          "keys": [
+            "message"
+          ]
+        }
+      }
+    }
+  ],
+  "modules_aggregate": {
+    "http": 404,
+    "body_keys": [
+      "message"
+    ],
+    "excerpt": "{\"message\":\"Not found\"}"
+  },
+  "module_log_probes": {
+    "58": {
+      "http": 200,
+      "count": 10,
+      "sample": [
+        {
+          "status": 3,
+          "timestamp": "2026-07-21T16:05:48.107Z",
+          "duration_ms": null,
+          "error": "Error: 400 Bad Request",
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "error",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 3,
+          "timestamp": "2026-07-21T16:05:26.094Z",
+          "duration_ms": null,
+          "error": "Error: 400 Bad Request",
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "error",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 3,
+          "timestamp": "2026-07-21T16:05:24.026Z",
+          "duration_ms": null,
+          "error": "Error: 400 Bad Request",
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "error",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 3,
+          "timestamp": "2026-07-21T16:05:22.993Z",
+          "duration_ms": null,
+          "error": "Error: 400 Bad Request",
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "error",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 3,
+          "timestamp": "2026-07-21T16:05:22.654Z",
+          "duration_ms": null,
+          "error": "Error: 400 Bad Request",
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "error",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        }
+      ]
+    },
+    "63": {
+      "http": 200,
+      "count": 10,
+      "sample": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:47.248Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:25.366Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:23.329Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:22.252Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.904Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        }
+      ]
+    },
+    "77": {
+      "http": 200,
+      "count": 0,
+      "sample": []
+    },
+    "79": {
+      "http": 200,
+      "count": 10,
+      "sample": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:44.329Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:37.084Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:17.831Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:17.829Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:17.826Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        }
+      ]
+    },
+    "82": {
+      "http": 200,
+      "count": 9,
+      "sample": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:37.374Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:19.218Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:19.211Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:19.052Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:01:11.793Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        }
+      ]
+    },
+    "83": {
+      "http": 200,
+      "count": 10,
+      "sample": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:45.335Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:19.293Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:18.987Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:18.899Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:18.535Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        }
+      ]
+    },
+    "84": {
+      "http": 200,
+      "count": 9,
+      "sample": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:39.298Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.924Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.858Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.254Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:01:15.386Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        }
+      ]
+    },
+    "87": {
+      "http": 200,
+      "count": 9,
+      "sample": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:40.050Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:22.713Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:22.614Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:22.012Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:01:16.163Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        }
+      ]
+    },
+    "88": {
+      "http": 200,
+      "count": 9,
+      "sample": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:41.053Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:23.716Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:23.616Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:23.014Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:01:17.167Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        }
+      ]
+    },
+    "90": {
+      "http": 200,
+      "count": 10,
+      "sample": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:47.627Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:25.630Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:23.570Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:22.515Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:22.179Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        }
+      ]
+    },
+    "92": {
+      "http": 200,
+      "count": 9,
+      "sample": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:39.572Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:22.237Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:22.138Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.523Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:01:15.677Z",
+          "duration_ms": null,
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        }
+      ]
+    }
+  },
+  "live_probe": {
+    "webhook_http": 200,
+    "webhook_accept_ms": 297,
+    "execution": null,
+    "wall_clock_inbound_to_success_ms": null,
+    "note": "Wall clock ≈ webhook accept + Make run until success log visible (reply send is inside duration_ms)"
+  },
+  "per_module_avg_from_logs": {},
+  "answers": {
+    "1_inbound_to_reply_ms": {
+      "recent_avg_execution_ms": 6201,
+      "recent_min_ms": 4886,
+      "recent_max_ms": 6940,
+      "live_probe_wall_ms": null,
+      "live_probe_make_duration_ms": null,
+      "interpretation": "Make duration_ms is time inside scenario until finish (includes AI + Gupshup send). Wall clock adds webhook delivery + log visibility lag."
+    },
+    "2_per_module": {
+      "from_module_logs": [],
+      "execution_operation_breakdowns": [
+        {
+          "id": "2f1e09a7b6b9426c8fbdf935de90537b",
+          "total_ms": 4886,
+          "ops": null
+        },
+        {
+          "id": "60b9df2aeb984d839c371acc31c6d1fd",
+          "total_ms": 6534,
+          "ops": null
+        },
+        {
+          "id": "778c59f5d68f4c8cb906cb7bf812f6da",
+          "total_ms": 6070,
+          "ops": null
+        },
+        {
+          "id": "68d2d34459e94f13a9a97ef1478bd157",
+          "total_ms": 6940,
+          "ops": null
+        },
+        {
+          "id": "a6917f0e7d3b4aefa9d1ae166fddfb33",
+          "total_ms": 6576,
+          "ops": null
+        }
+      ]
+    },
+    "3_delay_sleep_retry": {
+      "sleep_modules": [
+        {
+          "id": 88,
+          "module": "util:FunctionSleep",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": true,
+            "ai": false,
+            "http": false,
+            "sheets": false,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": 1,
+          "mapper_keys": [
+            "duration"
+          ]
+        },
+        {
+          "id": 77,
+          "module": "util:FunctionSleep",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": true,
+            "ai": false,
+            "http": false,
+            "sheets": false,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": 1,
+          "mapper_keys": [
+            "duration"
+          ]
+        }
+      ],
+      "total_configured_sleep_ms": 2,
+      "retry_flags_seen": [],
+      "verdict": "Found 2 Sleep/Delay module(s) — likely intentional pacing; sum configured≈2ms"
+    },
+    "4_openai_api": {
+      "ai_modules": [
+        {
+          "id": 84,
+          "module": "ai-agent:RunAnAIAgent",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": false,
+            "ai": true,
+            "http": false,
+            "sheets": false,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "agent",
+            "timeout",
+            "messages",
+            "threadID",
+            "outputType",
+            "additionalSystemPrompt"
+          ]
+        },
+        {
+          "id": 63,
+          "module": "ai-agent:RunAnAIAgent",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": false,
+            "ai": true,
+            "http": false,
+            "sheets": false,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "agent",
+            "timeout",
+            "messages",
+            "threadID",
+            "outputType",
+            "additionalSystemPrompt"
+          ]
+        }
+      ],
+      "gupshup_http": [
+        {
+          "id": 87,
+          "module": "http:ActionSendData",
+          "name": null,
+          "url_host": "api.gupshup.io",
+          "flags": {
+            "delay": false,
+            "ai": false,
+            "http": true,
+            "sheets": false,
+            "gupshupSend": true,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "ca",
+            "qs",
+            "url",
+            "gzip",
+            "method",
+            "headers",
+            "timeout",
+            "useMtls",
+            "authPass",
+            "authUser",
+            "bodyType",
+            "formFields",
+            "serializeUrl",
+            "shareCookies",
+            "parseResponse",
+            "followRedirect",
+            "useQuerystring",
+            "followAllRedirects",
+            "rejectUnauthorized"
+          ]
+        },
+        {
+          "id": 58,
+          "module": "http:ActionSendData",
+          "name": null,
+          "url_host": "api.gupshup.io",
+          "flags": {
+            "delay": false,
+            "ai": false,
+            "http": true,
+            "sheets": false,
+            "gupshupSend": true,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "ca",
+            "qs",
+            "url",
+            "gzip",
+            "method",
+            "headers",
+            "timeout",
+            "useMtls",
+            "authPass",
+            "authUser",
+            "bodyType",
+            "formFields",
+            "serializeUrl",
+            "shareCookies",
+            "parseResponse",
+            "followRedirect",
+            "useQuerystring",
+            "followAllRedirects",
+            "rejectUnauthorized"
+          ]
+        }
+      ],
+      "sheets": [
+        {
+          "id": 79,
+          "module": "google-sheets:filterRows",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": false,
+            "ai": false,
+            "http": false,
+            "sheets": true,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "from",
+            "limit",
+            "filter",
+            "sheetId",
+            "sortOrder",
+            "spreadsheetId",
+            "tableFirstRow",
+            "includesHeaders",
+            "valueRenderOption",
+            "dateTimeRenderOption"
+          ]
+        },
+        {
+          "id": 82,
+          "module": "google-sheets:updateRow",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": false,
+            "ai": false,
+            "http": false,
+            "sheets": true,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "from",
+            "mode",
+            "values",
+            "sheetId",
+            "rowNumber",
+            "spreadsheetId",
+            "includesHeaders",
+            "valueInputOption"
+          ]
+        },
+        {
+          "id": 92,
+          "module": "google-sheets:updateRow",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": false,
+            "ai": false,
+            "http": false,
+            "sheets": true,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "from",
+            "mode",
+            "values",
+            "sheetId",
+            "rowNumber",
+            "spreadsheetId",
+            "includesHeaders",
+            "valueInputOption"
+          ]
+        },
+        {
+          "id": 83,
+          "module": "google-sheets:addRow",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": false,
+            "ai": false,
+            "http": false,
+            "sheets": true,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "from",
+            "mode",
+            "values",
+            "sheetId",
+            "spreadsheetId",
+            "includesHeaders",
+            "insertDataOption",
+            "valueInputOption",
+            "insertUnformatted"
+          ]
+        },
+        {
+          "id": 90,
+          "module": "google-sheets:updateRow",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": false,
+            "ai": false,
+            "http": false,
+            "sheets": true,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "from",
+            "mode",
+            "values",
+            "sheetId",
+            "rowNumber",
+            "spreadsheetId",
+            "includesHeaders",
+            "valueInputOption"
+          ]
+        }
+      ],
+      "note": "AI Agent (Make) usually calls LLM under the hood — often the largest share of 6–10s runs"
+    },
+    "5_bottleneck": {
+      "inferred": true,
+      "reason": "No per-module durations from API; AI Agent modules typically dominate 5–15s runs",
+      "modules": [
+        {
+          "id": 84,
+          "module": "ai-agent:RunAnAIAgent",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": false,
+            "ai": true,
+            "http": false,
+            "sheets": false,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "agent",
+            "timeout",
+            "messages",
+            "threadID",
+            "outputType",
+            "additionalSystemPrompt"
+          ]
+        },
+        {
+          "id": 63,
+          "module": "ai-agent:RunAnAIAgent",
+          "name": null,
+          "url_host": null,
+          "flags": {
+            "delay": false,
+            "ai": true,
+            "http": false,
+            "sheets": false,
+            "gupshupSend": false,
+            "webhook": false,
+            "router": false,
+            "feeder": false,
+            "retry": false
+          },
+          "sleep_ms_configured": null,
+          "mapper_keys": [
+            "agent",
+            "timeout",
+            "messages",
+            "threadID",
+            "outputType",
+            "additionalSystemPrompt"
+          ]
+        }
+      ]
+    }
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "he": "לבדוק/להקטין מודולי Sleep (אם קיימים) — הורדה מיידית של שניות קבועות בלי לגעת בלוגיקת AI",
+      "risk": "low"
+    },
+    {
+      "priority": 2,
+      "he": "AI Agent: מודל מהיר יותר / פחות tokens / system prompt קצר יותר — צוואר בקבוק עיקרי בריצות ~6–8ש׳",
+      "risk": "medium — עלול לשנות איכות תשובה; לא לשנות לוגיקה בלי אישור"
+    },
+    {
+      "priority": 3,
+      "he": "Google Sheets: cache / Data Store במקום filterRows בכל הודעה אם יש קריאות חוזרות",
+      "risk": "medium"
+    },
+    {
+      "priority": 4,
+      "he": "Router מוקדם: DLR/statuses → יציאה מיידית בלי AI (חוסך תורים ורעש)",
+      "risk": "low-medium"
+    },
+    {
+      "priority": 5,
+      "he": "לא להריץ E2E/Forward על אותו Hook — מפחית תור ומרוצי ריצה",
+      "risk": "already_done"
+    }
+  ],
+  "report_he": {
+    "avg_make_ms": 6201,
+    "sleep_count": 2,
+    "ai_count": 2,
+    "bottleneck_summary": "No per-module durations from API; AI Agent modules typically dominate 5–15s runs"
+  }
+}
