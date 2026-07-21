@@ -8,6 +8,6 @@
   "no_sheets_cache": true,
   "no_production": true,
   "e2e_two_messages": true,
-  "retry": 2,
-  "note": "Re-run after msg2 wait fix; Sleep may already be removed on Make"
+  "retry": 3,
+  "note": "Re-run: drain queue + keep Active between msgs; Sleep already removed"
 }

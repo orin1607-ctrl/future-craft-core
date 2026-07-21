@@ -228,11 +228,24 @@ async function scenarioState() {
 
 async function activateIfNeeded() {
   let st = await scenarioState();
-  if (st.isActive) return { already: true, ...st };
-  await make(`/scenarios/${BOT_ID}/start`, { method: 'POST', body: {} });
-  await new Promise((r) => setTimeout(r, 2000));
+  if (st.isActive && st.islinked) return { already: true, ...st };
+  if (!st.isActive) {
+    await make(`/scenarios/${BOT_ID}/start`, { method: 'POST', body: {} });
+  }
+  await new Promise((r) => setTimeout(r, 3000));
   st = await scenarioState();
   return { already: false, ...st };
+}
+
+async function clearQueueUntilEmpty(rounds = 4) {
+  let total = 0;
+  for (let i = 0; i < rounds; i++) {
+    const n = await clearQueue();
+    total += n;
+    if (n === 0) break;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return total;
 }
 
 async function recentLogs(limit = 20) {
@@ -504,17 +517,21 @@ async function main() {
   must(out.bot.isActive, 'Bot not Active after patch');
 
   // Clear queue before E2E
-  out.queue_cleared_before_e2e = await clearQueue();
+  out.queue_cleared_before_e2e = await clearQueueUntilEmpty();
 
   const h = await make(`/hooks/${HOOK_ID}`);
   const hook = h.json?.hook || h.json || {};
   const hookUrl = hook.url || hook.hookUrl;
   must(hookUrl, 'No hook URL');
 
+  // Snapshot success ids only (do not poison with parallel failed DLRs)
   const beforeLogs = await recentLogs(25);
-  const beforeIds = new Set(beforeLogs.map((x) => x.id).filter(Boolean));
+  const beforeIds = new Set(
+    beforeLogs.filter((x) => x.id && (x.status === 1 || x.status === 2)).map((x) => x.id),
+  );
 
   // --- E2E msg1 ---
+  await activateIfNeeded();
   const t1 = Date.now();
   const r1 = await postHook(hookUrl, buildInbound('היי', 'hi'));
   out.e2e_msg1 = { text: 'היי', post: r1, at: new Date(t1).toISOString() };
@@ -524,21 +541,32 @@ async function main() {
   out.e2e_msg1.seen_logs = w1.seen.slice(0, 12);
   must(w1.hit, 'E2E msg1: no successful Make execution');
   beforeIds.add(w1.hit.id);
-  for (const s of w1.seen) if (s.id) beforeIds.add(s.id);
   fs.writeFileSync(OUT, JSON.stringify(out, null, 2));
 
-  out.queue_cleared_between = await clearQueue();
+  // Drain queue + ensure Active before msg2 (DLR/400 noise can leave leftovers or pause scenario)
+  out.queue_cleared_between = await clearQueueUntilEmpty(6);
   const midBot = await activateIfNeeded();
   out.between_messages_bot = midBot;
-  must(midBot.isActive, 'Bot not Active between messages');
-  await new Promise((r) => setTimeout(r, 5000));
+  must(midBot.isActive && midBot.islinked, 'Bot not Active/linked between messages');
+  await new Promise((r) => setTimeout(r, 8000));
+  // second drain after settle
+  out.queue_cleared_between_2 = await clearQueueUntilEmpty(3);
 
   // --- E2E msg2 ---
+  await activateIfNeeded();
   const t2 = Date.now();
   const r2 = await postHook(hookUrl, buildInbound('יוני', 'name'));
   out.e2e_msg2 = { text: 'יוני', post: r2, at: new Date(t2).toISOString() };
   must(r2.status >= 200 && r2.status < 300, `msg2 webhook ${r2.status}`);
-  const w2 = await waitSuccess(beforeIds, t2, 40, 5000);
+
+  // If queue not draining, re-activate mid-wait once
+  let w2 = { hit: null, seen: [] };
+  for (let wave = 0; wave < 2 && !w2.hit; wave++) {
+    if (wave === 1) {
+      out.e2e_msg2.reactivate_mid_wait = await activateIfNeeded();
+    }
+    w2 = await waitSuccess(beforeIds, t2, wave === 0 ? 24 : 24, 5000);
+  }
   out.e2e_msg2.execution = w2.hit;
   out.e2e_msg2.seen_logs = w2.seen.slice(0, 20);
   out.e2e_msg2.hook_queue_after = await (async () => {
@@ -546,6 +574,7 @@ async function main() {
     const items = q.json?.hookIncomings || q.json?.incomings || [];
     return Array.isArray(items) ? items.length : null;
   })();
+  out.e2e_msg2.any_status3 = (w2.seen || []).filter((x) => x.status === 3);
   fs.writeFileSync(OUT, JSON.stringify(out, null, 2));
   must(w2.hit, 'E2E msg2: no successful Make execution');
   const exec1 = w1.hit;
