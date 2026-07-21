@@ -1,6 +1,19 @@
 {
   "id": "make-forward-execute-queue",
-  "requestedAt": "2026-07-21T08:38:00.000Z",
+  "requestedAt": "2026-07-21T08:48:00.000Z",
   "requestedBy": "owner",
-  "note": "Owner confirmed MAKE_API_TOKEN + MAKE_ZONE — execute Make forward + one Staging live E2E"
+  "note": "Token ready — diagnose Make hooks + remap toJSON body + Staging live DLR E2E retry",
+  "previous_runs": {
+    "run_29815210424": {
+      "chosen": "Whatsapp Bot (5797671)",
+      "patch_ok": true,
+      "message_id": "1c3daa04-93f0-4c7d-96e0-75f326b3b364",
+      "final_status": "submitted"
+    },
+    "run_29815243224": {
+      "already_forward": true,
+      "message_id": "2ff738df-6731-40c1-928e-1da9f573c100",
+      "final_status": "submitted"
+    }
+  }
 }
