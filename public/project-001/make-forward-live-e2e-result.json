@@ -1,0 +1,75 @@
+{
+  "id": "make-forward-live-e2e-result",
+  "at": "2026-07-21T08:51:40Z",
+  "make_auth_ok": true,
+  "chosen": {
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "teamId": 1939972,
+    "teamName": "My Team",
+    "already": true,
+    "score": 95,
+    "hookId": 2567320,
+    "dlr_hits": 0
+  },
+  "make_configure": {
+    "changed": true,
+    "reason": "remapped_forward_body_toJSON",
+    "remapped": 1,
+    "patch_http": 200,
+    "webhook_module_id": 1,
+    "http_module_id": 98,
+    "ok": true,
+    "error": null,
+    "data_expr": "{{toJSON(1)}}",
+    "fallback_expr": "{{1.value}}"
+  },
+  "hooks_total": 12,
+  "hooks_with_recent_logs": 0,
+  "hooks_with_dlr_hits": 0,
+  "send": {
+    "success": true,
+    "edge_http": 200,
+    "gupshup_http": 202,
+    "submitted": true,
+    "message_id": "c63d5951-0c0c-4455-ab48-95d7a4968ce5",
+    "destination": "972534338601",
+    "error": null,
+    "delivery_log": {
+      "ok": true,
+      "incident_id": "62c8e1a4-216e-48c3-bc99-dfbc372f8a7a"
+    }
+  },
+  "make_hook_after_send": {
+    "hookId": 2567320,
+    "recent_count": 0,
+    "dlr_hits": 0,
+    "message_id_seen_in_hook_logs": false,
+    "samples": []
+  },
+  "report": {
+    "message_id": "c63d5951-0c0c-4455-ab48-95d7a4968ce5",
+    "submitted": true,
+    "sent": false,
+    "delivered": false,
+    "read": false,
+    "failed": false,
+    "final_status": "submitted",
+    "status_history": [
+      {
+        "at": "2026-07-21T08:48:23.355Z",
+        "status": "submitted",
+        "dlr_event": "submitted",
+        "error_code": null,
+        "gupshup_http": 202,
+        "error_message": null
+      }
+    ],
+    "dlr_error_code": null,
+    "error_message": null,
+    "phone_likely_received": "unknown_still_submitted_check_make_forward"
+  },
+  "diagnosis": "NO_MAKE_HOOK_TRAFFIC — Gupshup Delivery not hitting this Make account hooks",
+  "gate": "docs/OWNER-MAKE-DLR-GATE-HE.md",
+  "production_touched": false
+}

@@ -1,0 +1,32 @@
+name: Make create dedicated DLR scenario
+
+# Creates Make scenario: Webhook → Staging gupshup-webhook.
+# Does NOT change Gupshup. Does NOT send WhatsApp.
+# Owner must point Gupshup Delivery URL or confirm hook match.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/make-create-dedicated-dlr-scenario.mjs'
+      - 'public/project-001/make-dedicated-dlr-queue.json'
+      - '.github/workflows/make-create-dedicated-dlr-scenario.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Create dedicated Make DLR scenario
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+        run: node scripts/make-create-dedicated-dlr-scenario.mjs

@@ -1,8 +1,10 @@
 # Make.com → Supabase — הוראות מדויקות (אפשרות B)
 
 **אין שינוי ב-Gupshup.**  
-**אין שינוי ב-Production.**  
-הסוכן **לא** יכול להיכנס ל-Make.com (אין API Token / session) — הצעד הבא אצלך (~2 דק').
+**אין שינוי ב-Production.**
+
+> עדכון 2026-07-21: עם `MAKE_API_TOKEN` הסוכן התחבר ל-Make, הוסיף HTTP forward לתרחיש **Whatsapp Bot**, אבל **אין תעבורת DLR** ל-Hooks בחשבון.  
+> ראה שער Owner: `docs/OWNER-MAKE-DLR-GATE-HE.md` (`MATCH` / `מאשר A` / `מאשר A-Make`).
 
 ## מטרה
 Gupshup ממשיך לשלוח ל-Webhook הקיים **make.com** כמו היום.  
