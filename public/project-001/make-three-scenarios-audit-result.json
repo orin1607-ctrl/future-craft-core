@@ -570,10 +570,12 @@
   "owner_next": {
     "ask_hey": false,
     "blockers": [
-      "whatsapp_bot_active",
-      "whatsapp_bot_linked"
+      "whatsapp_bot_5797671_still_inactive",
+      "gupshup_callback_still_plyk4s_not_integration_webhooks",
+      "dedicated_dlr_still_has_toJSON_mapper",
+      "queue_has_old_inbound_held"
     ],
-    "phrase_he": "עדיין לא מוכן ל-«היי». יש לתקן את ה-blockers לפני בדיקת זמן-אמת."
+    "phrase_he": "עדיין לא מוכן ל-«היי». הפעל Whatsapp Bot (או MATCH את Gupshup ל-Integration Webhooks), ואז אבדוק שוב."
   },
   "answers": {
     "1_three_active_scenarios": [
@@ -701,5 +703,16 @@
       ],
       "phrase_he": "עדיין לא מוכן ל-«היי». יש לתקן את ה-blockers לפני בדיקת זמן-אמת."
     }
+  },
+  "owner_facing_summary": {
+    "active_count_found": 2,
+    "expected_by_owner": 3,
+    "whatsapp_bot_5797671": "OFF — but Gupshup callback …plyk4s still points here",
+    "active_1": "CO.CO Dalia DLR → Staging (9553017) — DLR only, hook …25kumdfy, still has toJSON(1)",
+    "active_2": "Integration Webhooks (5474839) — AI+Gupshup reply, hook …vd9j6vbw — NOT Gupshup live URL",
+    "ask_hey_now": false,
+    "reason": "Live Gupshup traffic lands on inactive Whatsapp Bot queue; chatbot Active is on a different hook",
+    "queue_held": 4,
+    "no_old_replies_sent": true
   }
 }
