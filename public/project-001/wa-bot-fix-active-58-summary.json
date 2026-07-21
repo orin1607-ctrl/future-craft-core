@@ -1,14 +1,12 @@
 {
   "id": "wa-bot-fix-active-58-summary",
-  "at": "2026-07-21T16:47:10.637Z",
+  "at": "2026-07-21T16:49:16.063Z",
   "production_touched": false,
-  "diagnosis_he": "התרחיש כבוי; לוגים אחרונים של מודול 58 מראים HTTP 400 — זו אותה בעיה שזוהתה ב-Stage-1.",
+  "diagnosis_he": "התרחיש כרגע Active, אבל מודול 58 ממשיך להיכשל ב-400 (סיכון לכיבוי חוזר).",
   "same_module_58_http_400": true,
   "stopped_because_of_58": true,
   "fix": [
-    "parameters.handleErrors=false",
-    "onerror builtin:Ignore id=98",
-    "metadata.scenario.maxErrors 19→50"
+    "Ignore handler already present"
   ],
   "e2e_ok": true,
   "stays_active": true,
