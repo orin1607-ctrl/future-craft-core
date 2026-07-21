@@ -1,0 +1,28 @@
+name: Make queue diagnose (no WA)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/make-queue-diagnose.mjs'
+      - 'public/project-001/make-queue-diagnose-queue.json'
+      - '.github/workflows/make-queue-diagnose.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Diagnose Make webhook queue
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+        run: node scripts/make-queue-diagnose.mjs

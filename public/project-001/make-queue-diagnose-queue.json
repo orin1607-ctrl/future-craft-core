@@ -1,0 +1,6 @@
+{
+  "id": "make-queue-diagnose-queue",
+  "requestedAt": "2026-07-21T12:48:00.000Z",
+  "requestedBy": "owner",
+  "note": "Why 15 incomings stuck; old?; safe delete?; Production impact — no WA send"
+}
