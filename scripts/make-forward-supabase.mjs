@@ -16,11 +16,13 @@ const SUPABASE_HOOK = `https://${STAGING}.supabase.co/functions/v1/gupshup-webho
 const OWNER_EMAIL = 'orin1607@gmail.com';
 const WA_DEST = '0534338601';
 const MAKE_BASE = `https://${zone}.make.com/api/v2`;
-/** Owner MATCH 2026-07-21: Gupshup make.com callback → Whatsapp Bot hook */
+/** Gupshup callback hook is Whatsapp Bot — do NOT re-inject HTTP Forward there (breaks AI replies). */
 const MATCHED_HOOK_ID = Number(process.env.MAKE_MATCHED_HOOK_ID || 2567320);
-const MATCHED_SCENARIO_ID = Number(process.env.MAKE_MATCHED_SCENARIO_ID || 5797671);
+const WHATSAPP_BOT_SCENARIO_ID = 5797671;
+/** Prefer dedicated DLR scenario for Supabase forward patches. */
+const MATCHED_SCENARIO_ID = Number(process.env.MAKE_MATCHED_SCENARIO_ID || 9553017);
 const MATCHED_URL_TIP = (process.env.MAKE_MATCHED_URL_TIP || 'plyk4s').toLowerCase();
-/** Make IML: createJSON() stringifies a collection. toJSON() does NOT exist (DataError). */
+/** toJSON/createJSON both failed in Bot HTTP module — keep Forward off Whatsapp Bot. */
 const DATA_EXPR_PREFERRED = (whId) => `{{createJSON(${whId})}}`;
 const DATA_EXPR_FALLBACK = (whId) => `{{${whId}.value}}`;
 
@@ -458,17 +460,33 @@ async function configureMake() {
   out.candidates = candidates.slice(0, 20);
   must(candidates.length, 'No scenarios with webhook modules found');
 
-  // Owner MATCH pin: Gupshup callback → Whatsapp Bot (not the dedicated unused scenario)
+  // Owner MATCH pin: prefer dedicated DLR scenario — never re-inject Forward into Whatsapp Bot
   let chosen =
     candidates.find((c) => c.id === MATCHED_SCENARIO_ID) ||
-    candidates.find((c) => c.hookId === MATCHED_HOOK_ID) ||
+    candidates.find((c) => /CO\.CO Dalia DLR/i.test(c.name || '')) ||
+    candidates.find((c) => c.hookId === MATCHED_HOOK_ID && c.id !== WHATSAPP_BOT_SCENARIO_ID) ||
     candidates.find((c) => {
       const tip = (hookIndex.find((h) => h.id === c.hookId)?.url_redacted || '').toLowerCase();
-      return tip.includes(MATCHED_URL_TIP);
+      return tip.includes(MATCHED_URL_TIP) && c.id !== WHATSAPP_BOT_SCENARIO_ID;
     }) ||
-    candidates.find((c) => c.dlr_hits > 0) ||
-    candidates.find((c) => c.already && /whatsapp bot/i.test(c.name || '')) ||
+    candidates.find((c) => c.dlr_hits > 0 && c.id !== WHATSAPP_BOT_SCENARIO_ID) ||
+    candidates.find((c) => c.already && /dlr/i.test(c.name || '')) ||
+    candidates.find((c) => c.id !== WHATSAPP_BOT_SCENARIO_ID) ||
     candidates[0];
+
+  if (chosen.id === WHATSAPP_BOT_SCENARIO_ID) {
+    out.make_configure = {
+      changed: false,
+      reason: 'skip_whatsapp_bot_forward_injection',
+      note: 'Whatsapp Bot must stay free of broken HTTP Forward so AI→Gupshup replies work',
+    };
+    out.chosen = {
+      id: chosen.id,
+      name: chosen.name,
+      skipped_forward_patch: true,
+    };
+    return chosen;
+  }
 
   out.chosen = {
     id: chosen.id,
@@ -482,7 +500,7 @@ async function configureMake() {
     pinned_match: chosen.id === MATCHED_SCENARIO_ID || chosen.hookId === MATCHED_HOOK_ID,
   };
 
-  // Always force remap of body to toJSON if forward exists with wrong expr
+  // Always force remap of body if forward exists with wrong expr
   const br = await make(`/scenarios/${chosen.id}/blueprint`);
   must(br.status === 200, `Get blueprint failed HTTP ${br.status}`);
   let bp = br.json?.response?.blueprint || br.json?.blueprint || br.json;
