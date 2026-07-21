@@ -238,12 +238,17 @@ function buildGupshupInbound({ text, contextGsId = null, contextWaId = null, suf
     if (contextWaId) payload.context.id = contextWaId;
     if (contextGsId) payload.context.gsId = contextGsId;
   }
+  // Flat aliases so Make Custom Webhook maps Message IDs even if nested UDT is incomplete
+  const flat = {};
+  if (contextGsId) flat.reply_gsid = contextGsId;
+  if (contextWaId || contextGsId) flat.reply_waid = contextWaId || contextGsId;
   return {
     app: 'DaliaVehicle',
     timestamp: ts,
     version: 2,
     type: 'message',
     payload,
+    ...flat,
   };
 }
 
@@ -346,8 +351,8 @@ function applyOneWayPatch(bp) {
   const routerId = nextId++;
   const ignoreId = nextId++;
 
-  // POST full webhook bundle → Edge deep-finds Reply context Message IDs
-  const dataExpr = `{{createJSON(${wh.id})}}`;
+  // GET lookup — Message ID only (no createJSON; it breaks this Bot scenario).
+  // qs covers Gupshup nested context + flat aliases used in Staging probes.
   const lookup = {
     id: lookupId,
     module: 'http:ActionSendData',
@@ -359,17 +364,12 @@ function applyOneWayPatch(bp) {
     mapper: {
       url: SUPABASE_HOOK,
       serializeUrl: false,
-      method: 'post',
-      headers: [
-        { name: 'Accept', value: 'application/json' },
-        { name: 'Content-Type', value: 'application/json' },
-      ],
+      method: 'get',
+      headers: [{ name: 'Accept', value: 'application/json' }],
       qs: [
         { name: 'check_system_alert', value: '1' },
-        // Backups if createJSON body fails — Message ID paths only (not phone/text)
-        { name: 'gsId', value: `{{${wh.id}.payload.context.gsId}}` },
-        { name: 'waId', value: `{{${wh.id}.payload.context.id}}` },
-        { name: 'id', value: `{{${wh.id}.entry[].changes[].value.messages[].context.id}}` },
+        { name: 'gsId', value: `{{ifempty(${wh.id}.payload.context.gsId; ifempty(${wh.id}.reply_gsid; ifempty(${wh.id}.context.gsId; __none__)))}}` },
+        { name: 'waId', value: `{{ifempty(${wh.id}.payload.context.id; ifempty(${wh.id}.reply_waid; ifempty(${wh.id}.entry[].changes[].value.messages[].context.id; __none__)))}}` },
       ],
       bodyType: 'raw',
       parseResponse: true,
@@ -384,8 +384,8 @@ function applyOneWayPatch(bp) {
       gzip: true,
       useMtls: false,
       contentType: 'application/json',
-      data: dataExpr,
-      inputRaw: dataExpr,
+      data: '',
+      inputRaw: '',
       followAllRedirects: false,
     },
     metadata: {
@@ -458,7 +458,7 @@ function applyOneWayPatch(bp) {
   return {
     skipped: false,
     unwrap,
-    data_expr: dataExpr,
+    data_expr: 'GET qs Message ID (no createJSON)',
     ids: {
       lookup: lookupId,
       router: routerId,
@@ -676,13 +676,22 @@ async function main() {
   must(out.e2e_reply.post.status >= 200 && out.e2e_reply.post.status < 300, 'Reply post failed');
 
   let replyLog = null;
+  let replyLogAny = null;
   for (let i = 0; i < 24; i++) {
     await sleep(2000);
     const logs = await recentLogs(20);
+    replyLogAny =
+      logs.find((x) => !beforeIds1.has(x.id) && (!x.timestamp || Date.parse(x.timestamp) >= t1 - 15000)) ||
+      replyLogAny;
     replyLog = waitForNewLog(beforeIds1, t1, logs, { requireSuccess: true });
     if (replyLog) break;
   }
   out.e2e_reply.log = replyLog || null;
+  out.e2e_reply.log_any = replyLogAny || null;
+  if (!replyLog && replyLogAny) {
+    out.e2e_reply.failed_execution = replyLogAny;
+    must(false, `Reply execution not success: status=${replyLogAny.status} error=${replyLogAny.error}`);
+  }
   must(replyLog, 'No Make execution for Reply-to-alert');
 
   await sleep(1500);
