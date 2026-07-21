@@ -1,6 +1,6 @@
 {
   "id": "wa-bot-two-message",
-  "at": "2026-07-21T15:59:32.391Z",
+  "at": "2026-07-21T16:01:09.810Z",
   "env": "staging_make_only",
   "production_touched": false,
   "no_edge_wa_send": true,
@@ -32,13 +32,13 @@
       "status": 200,
       "body": "Accepted"
     },
-    "at": "2026-07-21T15:59:33.658Z",
+    "at": "2026-07-21T16:01:10.478Z",
     "execution": {
-      "id": "5cc1a8aafdfe49df8c0b01500fc0801d",
+      "id": "a6917f0e7d3b4aefa9d1ae166fddfb33",
       "status": 1,
-      "timestamp": "2026-07-21T15:59:33.819Z",
+      "timestamp": "2026-07-21T16:01:10.615Z",
       "error": null,
-      "duration": 6711
+      "duration": 6576
     }
   },
   "msg2": {
@@ -47,14 +47,7 @@
       "status": 200,
       "body": "Accepted"
     },
-    "at": "2026-07-21T15:59:47.570Z",
-    "error_exec": {
-      "id": "a8f0f74b1cc44c0d855413cfa710795e",
-      "status": 3,
-      "timestamp": "2026-07-21T15:59:33.587Z",
-      "error": "Error: 400 Bad Request",
-      "duration": 4876
-    }
+    "at": "2026-07-21T16:01:29.137Z"
   },
   "error": "No successful Make execution after message 2"
 }
