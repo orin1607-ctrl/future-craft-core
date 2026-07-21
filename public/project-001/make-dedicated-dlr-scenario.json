@@ -1,0 +1,12 @@
+{
+  "id": "make-dedicated-dlr-scenario",
+  "at": "2026-07-21T08:56:53Z",
+  "scenario_name": "CO.CO Dalia DLR → Staging",
+  "scenario_id": 9553017,
+  "hook_id": 4270688,
+  "hook_url_last8": "25kumdfy",
+  "supabase_hook": "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/gupshup-webhook",
+  "gupshup_portal_untouched": true,
+  "production_touched": false,
+  "note": "Open Make → scenario CO.CO Dalia DLR → Staging → copy Custom Webhook URL for A-Make, or MATCH existing Gupshup URL last8"
+}

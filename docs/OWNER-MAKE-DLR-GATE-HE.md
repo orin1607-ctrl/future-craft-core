@@ -53,9 +53,18 @@ https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/gupshup-webhook
 ⚠️ make.com **יפסיק** לקבל Delivery מ-Gupshup.
 
 ### 3) `מאשר A-Make` — החלף לתרחיש Make ייעודי
-הסוכן יוצר/יצר תרחיש **CO.CO Dalia DLR → Staging** (Webhook → Supabase).  
-אחרי שה-URL מופיע בלוג Actions / ב-Make UI — הדבק אותו כ-Delivery Callback ב-Gupshup  
-(גם כאן: מחליף את make.com ל-Delivery).
+נוצר תרחיש Make (ON):
+
+| שדה | ערך |
+|-----|-----|
+| שם | **CO.CO Dalia DLR → Staging** |
+| Scenario ID | `9553017` |
+| Hook ID | `4270688` |
+| URL (סיומת) | `…25kumdfy` |
+
+1. ב-Make: פתח את התרחיש → העתק את כתובת ה-Custom Webhook המלאה  
+2. ב-Gupshup: Webhook Delivery → הדבק כ-Callback URL (מחליף את make.com ל-Delivery)  
+3. שלח בצ'אט: `מאשר A-Make`
 
 ---
 
