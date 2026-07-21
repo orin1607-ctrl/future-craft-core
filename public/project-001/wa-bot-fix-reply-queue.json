@@ -1,0 +1,7 @@
+{
+  "id": "wa-bot-fix-reply-queue",
+  "armed": true,
+  "no_edge_send": true,
+  "no_production": true,
+  "one_inbound_hey": true
+}
