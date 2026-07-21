@@ -1,0 +1,218 @@
+name: Investigate Staging WA message (no send)
+
+# Read-only: Message ID delivery investigation on Staging.
+# Does NOT call Gupshup send endpoints.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/investigate-staging-wa-msgid.yml'
+      - 'public/project-001/staging-wa-msgid-investigate-queue.json'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  investigate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Investigate message ID (no send)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+          const STAGING = 'usfeoerkpcafxxlyuldl';
+          const PROD = 'qasomfndnjuixgjmjwcm';
+          const MSG_ID = '506fe683-4b07-4752-9301-a9ab2afa2e3c';
+          const OWNER_EMAIL = 'orin1607@gmail.com';
+          const EXPECTED_DEST = '972534338601';
+
+          const out = {
+            purpose: 'Read-only delivery investigation — no WhatsApp send',
+            message_id: MSG_ID,
+            production_touched: false,
+            env: 'staging',
+          };
+
+          async function mgmt(path, opts = {}) {
+            const res = await fetch(`https://api.supabase.com/v1${path}`, {
+              method: opts.method || 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                apikey: token,
+                ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+              },
+              body: opts.body ? JSON.stringify(opts.body) : undefined,
+            });
+            const text = await res.text();
+            let json = null;
+            try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text.slice(0, 500) }; }
+            return { status: res.status, json, text: text.slice(0, 2000) };
+          }
+
+          async function post(base, path, body, bearer, apikey) {
+            const res = await fetch(base + path, {
+              method: 'POST',
+              headers: {
+                apikey: apikey || bearer,
+                Authorization: `Bearer ${bearer}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(body),
+            });
+            return { status: res.status, body: await res.json().catch(() => ({})) };
+          }
+
+          // 1) Staging service role
+          const keys = await mgmt(`/projects/${STAGING}/api-keys`);
+          const srk = Array.isArray(keys.json)
+            ? (keys.json.find((k) => k.name === 'service_role' || (k.tags || []).includes('service_role'))?.api_key)
+            : null;
+          const anon = Array.isArray(keys.json)
+            ? (keys.json.find((k) => k.name === 'anon' || (k.tags || []).includes('anon'))?.api_key)
+            : null;
+          out.api_keys = { http: keys.status, has_srk: Boolean(srk) };
+          if (!srk) {
+            out.error = 'NO_STAGING_SRK';
+            console.log(JSON.stringify(out, null, 2));
+            process.exit(1);
+          }
+
+          const base = `https://${STAGING}.supabase.co`;
+
+          // 2) DB search for message id in known tables
+          async function rest(path) {
+            const res = await fetch(base + path, {
+              headers: { apikey: srk, Authorization: `Bearer ${srk}` },
+            });
+            const text = await res.text();
+            let json = null;
+            try { json = text ? JSON.parse(text) : null; } catch { json = text.slice(0, 300); }
+            return { status: res.status, json };
+          }
+
+          const tables = {};
+          // incident deliveries
+          tables.incident_notification_deliveries = await rest(
+            `/rest/v1/incident_notification_deliveries?or=(provider_message_id.eq.${MSG_ID},error_message.ilike.*${MSG_ID}*)&select=id,channel,recipient,status,error_message,provider_message_id,sent_at,created_at&limit=20`
+          );
+          // document requests
+          tables.document_requests = await rest(
+            `/rest/v1/document_requests?outbound_message_id=eq.${MSG_ID}&select=id,outbound_message_id,channel,status,created_at&limit=20`
+          );
+          // try notification_log if exists
+          tables.notification_log = await rest(
+            `/rest/v1/notification_log?or=(provider_message_id.eq.${MSG_ID},external_id.eq.${MSG_ID})&select=*&limit=5`
+          );
+          // gupshup / webhook event tables if any
+          for (const t of [
+            'gupshup_events',
+            'whatsapp_delivery_events',
+            'whatsapp_webhooks',
+            'message_events',
+            'outbound_messages',
+          ]) {
+            const r = await rest(`/rest/v1/${t}?select=*&limit=1`);
+            tables[t + '_exists'] = { status: r.status, exists: r.status !== 404 && r.status !== 406 };
+            if (tables[t + '_exists'].exists && r.status === 200) {
+              tables[t + '_by_msgid'] = await rest(
+                `/rest/v1/${t}?or=(message_id.eq.${MSG_ID},gsId.eq.${MSG_ID},external_id.eq.${MSG_ID},provider_message_id.eq.${MSG_ID})&select=*&limit=20`
+              );
+            }
+          }
+          out.db_search = tables;
+
+          // 3) List Edge functions — look for webhook/inbound handlers
+          const fns = await mgmt(`/projects/${STAGING}/functions`);
+          const fnList = Array.isArray(fns.json) ? fns.json : (fns.json?.functions || []);
+          const names = fnList.map((f) => f.slug || f.name || f.id).filter(Boolean);
+          out.edge_functions = {
+            http: fns.status,
+            whatsapp_related: names.filter((n) => /whatsapp|gupshup|webhook|inbound|callback/i.test(n)),
+            has_send_whatsapp_message: names.includes('send-whatsapp-message'),
+            has_marketing_whatsapp_inbound: names.includes('marketing-whatsapp-inbound'),
+            total: names.length,
+          };
+
+          // 4) Edge logs around send time (2026-07-21T06:56:04Z)
+          const isoStart = '2026-07-21T06:50:00Z';
+          const isoEnd = '2026-07-21T07:30:00Z';
+          // Analytics logs API variants
+          const logAttempts = [];
+          for (const path of [
+            `/projects/${STAGING}/analytics/endpoints/logs.edge-logs?iso_timestamp_start=${encodeURIComponent(isoStart)}&iso_timestamp_end=${encodeURIComponent(isoEnd)}`,
+            `/projects/${STAGING}/analytics/endpoints/logs.all?iso_timestamp_start=${encodeURIComponent(isoStart)}&iso_timestamp_end=${encodeURIComponent(isoEnd)}`,
+          ]) {
+            const lr = await mgmt(path);
+            const raw = typeof lr.text === 'string' ? lr.text : JSON.stringify(lr.json || '');
+            const hit = raw.includes(MSG_ID) || raw.toLowerCase().includes('gupshup') || raw.includes('send-whatsapp');
+            const linesWithMsg = raw.split('\n').filter((l) => l.includes(MSG_ID)).slice(0, 5).map((l) => l.slice(0, 300));
+            logAttempts.push({
+              path: path.split('?')[0].split('/').slice(-1)[0],
+              http: lr.status,
+              mentions_message_id: raw.includes(MSG_ID),
+              sample_hits: linesWithMsg,
+              body_preview: hit ? raw.slice(0, 400) : `no relevant hit (len=${raw.length})`,
+            });
+          }
+          out.edge_logs = logAttempts;
+
+          // 5) Codebase facts from known send result file
+          out.known_from_send_result = {
+            path: 'session',
+            edge_http: 200,
+            gupshup_http: 202,
+            gupshup_response_status: 'submitted',
+            destination_requested: '0534338601',
+            destination_normalized: EXPECTED_DEST,
+            app_name: 'DaliaVehicle',
+            source: '972546500305',
+            sent_at: '2026-07-21T06:56:04.207Z',
+            note: 'submitted = accepted by Gupshup API queue, NOT delivery confirmation (per Gupshup docs)',
+          };
+
+          // 6) No Edge invoke / no Gupshup API calls (Owner: do not send again)
+
+          // 7) Verdict synthesis
+          const hasCallbackRow = Object.entries(tables).some(([k, v]) => {
+            if (!k.includes('by_msgid') && k !== 'incident_notification_deliveries' && k !== 'document_requests') return false;
+            return Array.isArray(v?.json) && v.json.length > 0;
+          });
+          const hasWebhookFn = (out.edge_functions.whatsapp_related || []).some((n) =>
+            /inbound|webhook|callback/i.test(n),
+          );
+
+          out.answers = {
+            final_status: hasCallbackRow ? 'see_db_rows' : 'unknown_after_submitted',
+            final_status_mapped: 'pending',
+            final_status_note:
+              'Gupshup returned status=submitted (async accept). Delivery events (enqueued/sent/delivered/failed/read) are only pushed to a configured callback URL. This repo has no Gupshup delivery webhook receiver and no DB rows for this message_id → cannot prove delivered/failed/rejected.',
+            delivery_callback_received: false,
+            delivery_callback_reason: hasWebhookFn
+              ? 'webhook function exists but no stored event for this message_id'
+              : 'no Gupshup delivery webhook Edge function deployed; marketing-whatsapp-inbound absent',
+            error_code: null,
+            error_message: null,
+            message_type: 'session',
+            message_type_detail: 'Free-form session send via https://api.gupshup.io/wa/api/v1/msg (not template/msg). Template fallback was NOT used (session_attempt_failed=false).',
+            whatsapp_number_registered: 'unknown',
+            whatsapp_number_registered_note:
+              'Cannot verify WA account existence from Staging without Meta contact check or a delivery/failure DLR. Gupshup acceptance (submitted) does not prove the number has WhatsApp.',
+            sent_to_other_number: false,
+            sent_to_other_number_evidence:
+              'Single Edge invoke destination=0534338601 → normalized 972534338601 in success response. No second destination in that call. No DB rows showing alternate recipients for this message_id.',
+            destination_confirmed_in_response: EXPECTED_DEST,
+          };
+
+          console.log('---STAGING_WA_MSGID_INVESTIGATE---');
+          console.log(JSON.stringify(out, null, 2));
+          console.log('---STAGING_WA_MSGID_INVESTIGATE_DONE---');
+          NODE

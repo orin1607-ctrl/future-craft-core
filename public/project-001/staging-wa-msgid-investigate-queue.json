@@ -1,0 +1,8 @@
+{
+  "id": "staging-wa-msgid-investigate-queue",
+  "requestedAt": "2026-07-21T07:06:00.000Z",
+  "message_id": "506fe683-4b07-4752-9301-a9ab2afa2e3c",
+  "env": "staging",
+  "no_send": true,
+  "note": "Read-only delivery investigation — do not resend"
+}
