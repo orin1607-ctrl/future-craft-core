@@ -428,6 +428,37 @@ function applyOneWayPatch(bp) {
     },
   };
 
+  // Make BasicRouter: routes WITHOUT filters ALWAYS run (parallel with matching routes).
+  // Gate the bot path so it only runs when NOT a system-alert reply.
+  const continueId = nextId++;
+  const continueChat = {
+    id: continueId,
+    module: 'util:SetVariable2',
+    version: 1,
+    parameters: {},
+    mapper: {
+      name: 'continue_bot_chat',
+      scope: 'roundtrip',
+      value: '1',
+    },
+    filter: {
+      name: 'Not a system-alert Reply',
+      conditions: [
+        [{ a: `{{${lookupId}.is_system_alert_flag}}`, b: 'yes', o: 'text:notequal' }],
+        [{ a: `{{${lookupId}.data.is_system_alert_flag}}`, b: 'yes', o: 'text:notequal' }],
+        [{ a: `{{${lookupId}.is_system_alert_flag}}`, b: 'no', o: 'text:equal' }],
+        [{ a: `{{${lookupId}.is_system_alert}}`, b: 'true', o: 'text:notequal' }],
+      ],
+    },
+    metadata: {
+      designer: {
+        x: (wh.metadata?.designer?.x || 0) + 900,
+        y: (wh.metadata?.designer?.y || 0) + 120,
+        name: 'Continue bot chat (non-alert)',
+      },
+    },
+  };
+
   const router = {
     id: routerId,
     module: 'builtin:BasicRouter',
@@ -446,7 +477,7 @@ function applyOneWayPatch(bp) {
         flow: [skipMod],
       },
       {
-        flow: rest,
+        flow: [continueChat, ...rest],
       },
     ],
   };
@@ -461,6 +492,7 @@ function applyOneWayPatch(bp) {
       router: routerId,
       ignore: ignoreId,
       skip: ignoreId,
+      continue: continueId,
     },
     rest_modules_moved: rest.length,
   };
@@ -790,8 +822,9 @@ async function main() {
   );
 
   out.checks = {
-    reply_no_ai: !replyHit84,
+    reply_no_ai: !replyHit84 && !replyHit63,
     reply_no_gupshup_send: !replyHit87,
+    reply_skipped: replyHitIgnore === true,
     hi_bot_path: Boolean(hiHit84 || hiHit87),
     scenario_active: out.scenario_final.isActive === true,
     queue_empty: out.queue_final.queueCount === 0 || out.queue_final.queueCount === null,

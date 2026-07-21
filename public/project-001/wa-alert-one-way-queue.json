@@ -1,11 +1,9 @@
 {
   "id": "wa-alert-one-way-queue",
-  "armed": false,
+  "armed": true,
   "staging_only": true,
   "production_touched": false,
   "approve_owner": "A",
-  "retry": 5,
-  "note": "Re-arm: SetVariable skip (not Ignore) + Meta context Message ID paths",
-  "completed": true,
-  "at": "2026-07-21T20:37:31.800Z"
+  "retry": 6,
+  "note": "Re-arm: gate bot route with NOT system-alert filter (Make runs unfiltered routes always)"
 }
