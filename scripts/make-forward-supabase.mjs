@@ -16,6 +16,10 @@ const SUPABASE_HOOK = `https://${STAGING}.supabase.co/functions/v1/gupshup-webho
 const OWNER_EMAIL = 'orin1607@gmail.com';
 const WA_DEST = '0534338601';
 const MAKE_BASE = `https://${zone}.make.com/api/v2`;
+/** Owner MATCH 2026-07-21: Gupshup make.com callback → Whatsapp Bot hook */
+const MATCHED_HOOK_ID = Number(process.env.MAKE_MATCHED_HOOK_ID || 2567320);
+const MATCHED_SCENARIO_ID = Number(process.env.MAKE_MATCHED_SCENARIO_ID || 5797671);
+const MATCHED_URL_TIP = (process.env.MAKE_MATCHED_URL_TIP || 'plyk4s').toLowerCase();
 /** Prefer full webhook bundle as JSON — works with structured Custom Webhook (not only .value pass-through). */
 const DATA_EXPR_PREFERRED = (whId) => `{{toJSON(${whId})}}`;
 const DATA_EXPR_FALLBACK = (whId) => `{{${whId}.value}}`;
@@ -311,6 +315,18 @@ function scoreHookLogPayload(text) {
   return score;
 }
 
+function extractLogBody(log) {
+  const data = log?.data || {};
+  const req = data.request || data;
+  let body = req?.body ?? req?.parsed ?? data.body ?? data.payload ?? '';
+  if (body && typeof body === 'object') body = JSON.stringify(body);
+  if ((!body || body === '{}' || body === '') && log?.request) {
+    const b2 = log.request.body ?? log.request.parsed ?? '';
+    body = typeof b2 === 'string' ? b2 : JSON.stringify(b2 || '');
+  }
+  return String(body || '');
+}
+
 async function inspectHookLogs(hookId, fromMs) {
   const r = await make(
     `/hooks/${hookId}/logs?from=${fromMs}&pg[limit]=25&pg[sortBy]=loggedAt&pg[sortDir]=desc`,
@@ -320,10 +336,13 @@ async function inspectHookLogs(hookId, fromMs) {
   let dlrHits = 0;
   const samples = [];
   for (const log of logs.slice(0, 15)) {
-    const data = log.data || {};
-    const req = data.request || data;
-    const body = req?.body ?? req?.parsed ?? data.body ?? '';
-    const bodyStr = typeof body === 'string' ? body : JSON.stringify(body || '');
+    let bodyStr = extractLogBody(log);
+    // List endpoint often omits body — fetch log detail
+    if ((!bodyStr || bodyStr === '{}') && log.id != null) {
+      const detail = await make(`/hooks/${hookId}/logs/${log.id}`);
+      const dlog = detail.json?.hookLog || detail.json?.log || detail.json;
+      bodyStr = extractLogBody(dlog) || bodyStr;
+    }
     const sc = scoreHookLogPayload(bodyStr);
     if (sc >= 20) dlrHits += 1;
     if (samples.length < 5) {
@@ -332,7 +351,7 @@ async function inspectHookLogs(hookId, fromMs) {
         loggedAt: log.loggedAt,
         statusId: log.statusId,
         score: sc,
-        body_excerpt: bodyStr.slice(0, 180).replace(/\s+/g, ' '),
+        body_excerpt: bodyStr.slice(0, 220).replace(/\s+/g, ' '),
       });
     }
   }
@@ -439,15 +458,17 @@ async function configureMake() {
   out.candidates = candidates.slice(0, 20);
   must(candidates.length, 'No scenarios with webhook modules found');
 
-  // Prefer hooks that actually received DLR-like payloads recently
+  // Owner MATCH pin: Gupshup callback → Whatsapp Bot (not the dedicated unused scenario)
   let chosen =
+    candidates.find((c) => c.id === MATCHED_SCENARIO_ID) ||
+    candidates.find((c) => c.hookId === MATCHED_HOOK_ID) ||
+    candidates.find((c) => {
+      const tip = (hookIndex.find((h) => h.id === c.hookId)?.url_redacted || '').toLowerCase();
+      return tip.includes(MATCHED_URL_TIP);
+    }) ||
     candidates.find((c) => c.dlr_hits > 0) ||
-    candidates.find((c) => c.already) ||
+    candidates.find((c) => c.already && /whatsapp bot/i.test(c.name || '')) ||
     candidates[0];
-  const named = candidates.find((c) => /gupshup|dalia|whatsapp|delivery|dlr/i.test(c.name || ''));
-  if (named && named.dlr_hits >= (chosen.dlr_hits || 0) && named.score >= chosen.score - 30) {
-    chosen = named;
-  }
 
   out.chosen = {
     id: chosen.id,
@@ -458,6 +479,7 @@ async function configureMake() {
     score: chosen.score,
     hookId: chosen.hookId,
     dlr_hits: chosen.dlr_hits,
+    pinned_match: chosen.id === MATCHED_SCENARIO_ID || chosen.hookId === MATCHED_HOOK_ID,
   };
 
   // Always force remap of body to toJSON if forward exists with wrong expr
@@ -652,18 +674,22 @@ async function stagingLiveE2e(chosen) {
   }
   out.polls_summary = { count: polls.length, last: polls[polls.length - 1] || null };
 
-  // After poll: did Make hook receive this message id?
-  if (chosen?.hookId) {
-    const logs = await inspectHookLogs(chosen.hookId, sendAt - 5000);
+  // After poll: inspect MATCHED hook (and chosen) for this message id
+  const hooksToCheck = [...new Set([MATCHED_HOOK_ID, chosen?.hookId].filter(Boolean))];
+  const after = [];
+  for (const hid of hooksToCheck) {
+    const logs = await inspectHookLogs(hid, sendAt - 5000);
     const hit = (logs.samples || []).some((s) => (s.body_excerpt || '').includes(messageId));
-    out.make_hook_after_send = {
-      hookId: chosen.hookId,
+    after.push({
+      hookId: hid,
       recent_count: logs.count,
       dlr_hits: logs.dlr_hits,
       message_id_seen_in_hook_logs: hit,
       samples: logs.samples,
-    };
+    });
   }
+  out.make_hook_after_send = after.find((a) => a.hookId === MATCHED_HOOK_ID) || after[0] || null;
+  out.make_hooks_after_send = after;
 
   const history = Array.isArray(row?.status_history) ? row.status_history : [];
   const has = (s) => history.some((h) => h?.status === s) || row?.status === s;
