@@ -393,10 +393,11 @@
         "feeder": false,
         "retry": false
       },
-      "sleep_ms_configured": 1,
+      "sleep_ms_configured": 1000,
       "mapper_keys": [
         "duration"
-      ]
+      ],
+      "sleep_seconds_configured": 1
     },
     {
       "id": 83,
@@ -626,10 +627,11 @@
         "feeder": false,
         "retry": false
       },
-      "sleep_ms_configured": 1,
+      "sleep_ms_configured": 1000,
       "mapper_keys": [
         "duration"
-      ]
+      ],
+      "sleep_seconds_configured": 1
     }
   ],
   "static_findings": {
@@ -650,10 +652,11 @@
           "feeder": false,
           "retry": false
         },
-        "sleep_ms_configured": 1,
+        "sleep_ms_configured": 1000,
         "mapper_keys": [
           "duration"
-        ]
+        ],
+        "sleep_seconds_configured": 1
       },
       {
         "id": 77,
@@ -671,10 +674,11 @@
           "feeder": false,
           "retry": false
         },
-        "sleep_ms_configured": 1,
+        "sleep_ms_configured": 1000,
         "mapper_keys": [
           "duration"
-        ]
+        ],
+        "sleep_seconds_configured": 1
       }
     ],
     "ai_modules": [
@@ -1020,7 +1024,7 @@
         ]
       }
     ],
-    "total_configured_sleep_ms": 2,
+    "total_configured_sleep_ms": 2000,
     "scenario_metadata": {
       "instant": true,
       "version": 1,
@@ -1127,7 +1131,10 @@
         "freshVariables": false,
         "autoCommitTriggerLast": true
       }
-    }
+    },
+    "sleep_unit": "seconds (Make Tools Sleep; duration:1 = 1000ms)",
+    "total_configured_sleep_seconds": 2,
+    "note_sleep_after_send": "Sleep modules 88/77 sit AFTER Gupshup send — do not delay that WhatsApp reply; extend scenario ~1s and can delay next queued run"
   },
   "recent_executions": [
     {
@@ -2561,12 +2568,348 @@
       "recent_avg_execution_ms": 6201,
       "recent_min_ms": 4886,
       "recent_max_ms": 6940,
+      "recent_p50_ms": 6534,
       "live_probe_wall_ms": null,
       "live_probe_make_duration_ms": null,
-      "interpretation": "Make duration_ms is time inside scenario until finish (includes AI + Gupshup send). Wall clock adds webhook delivery + log visibility lag."
+      "webhook_accept_ms": 297,
+      "estimated_time_to_gupshup_send_ms": {
+        "samples": [
+          4370,
+          4186,
+          2966
+        ],
+        "avg": 3841,
+        "note": "first focus module → Gupshup 87 success"
+      },
+      "interpretation": "Make duration includes post-send Sleep. User-visible ≈ until Gupshup 87."
     },
     "2_per_module": {
       "from_module_logs": [],
+      "from_timeline_gaps": [
+        {
+          "id": "84",
+          "avg_ms": 2573,
+          "n": 3,
+          "name": "ai-agent:RunAnAIAgent"
+        },
+        {
+          "id": "83",
+          "avg_ms": 2496,
+          "n": 2,
+          "name": "google-sheets:addRow"
+        },
+        {
+          "id": "63",
+          "avg_ms": 1147,
+          "n": 2,
+          "name": "ai-agent:RunAnAIAgent"
+        },
+        {
+          "id": "88",
+          "avg_ms": 789,
+          "n": 3,
+          "name": "util:FunctionSleep"
+        },
+        {
+          "id": "58",
+          "avg_ms": 478,
+          "n": 2,
+          "name": "http:ActionSendData"
+        },
+        {
+          "id": "82",
+          "avg_ms": 404,
+          "n": 2,
+          "name": "google-sheets:updateRow"
+        },
+        {
+          "id": "87",
+          "avg_ms": 357,
+          "n": 3,
+          "name": "http:ActionSendData"
+        },
+        {
+          "id": "92",
+          "avg_ms": 278,
+          "n": 3,
+          "name": "google-sheets:updateRow"
+        },
+        {
+          "id": "90",
+          "avg_ms": 273,
+          "n": 2,
+          "name": "google-sheets:updateRow"
+        }
+      ],
+      "reconstructed_timelines": [
+        {
+          "cluster_index": 0,
+          "start": "2026-07-21T16:01:11.793Z",
+          "span_ms": 5374,
+          "event_count": 5,
+          "stages": [
+            {
+              "module_id": 82,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 0,
+              "gap_from_prev_ms": 0,
+              "timestamp": "2026-07-21T16:01:11.793Z"
+            },
+            {
+              "module_id": 84,
+              "module": "ai-agent:RunAnAIAgent",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 3593,
+              "gap_from_prev_ms": 3593,
+              "timestamp": "2026-07-21T16:01:15.386Z"
+            },
+            {
+              "module_id": 92,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 3884,
+              "gap_from_prev_ms": 291,
+              "timestamp": "2026-07-21T16:01:15.677Z"
+            },
+            {
+              "module_id": 87,
+              "module": "http:ActionSendData",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 4370,
+              "gap_from_prev_ms": 486,
+              "timestamp": "2026-07-21T16:01:16.163Z"
+            },
+            {
+              "module_id": 88,
+              "module": "util:FunctionSleep",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 5374,
+              "gap_from_prev_ms": 1004,
+              "timestamp": "2026-07-21T16:01:17.167Z"
+            }
+          ],
+          "estimated_ms": {
+            "ai_agent_gaps_sum": 3593,
+            "sleep_gaps_sum": 1004,
+            "sheets_gaps_sum": 291,
+            "time_to_gupshup87_ms": 4370
+          }
+        },
+        {
+          "cluster_index": 1,
+          "start": "2026-07-21T16:05:17.826Z",
+          "span_ms": 8268,
+          "event_count": 34,
+          "stages": [
+            {
+              "module_id": 79,
+              "module": "google-sheets:filterRows",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 0,
+              "gap_from_prev_ms": 0,
+              "timestamp": "2026-07-21T16:05:17.826Z"
+            },
+            {
+              "module_id": 83,
+              "module": "google-sheets:addRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 709,
+              "gap_from_prev_ms": 709,
+              "timestamp": "2026-07-21T16:05:18.535Z"
+            },
+            {
+              "module_id": 82,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 1226,
+              "gap_from_prev_ms": 517,
+              "timestamp": "2026-07-21T16:05:19.052Z"
+            },
+            {
+              "module_id": 84,
+              "module": "ai-agent:RunAnAIAgent",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 3428,
+              "gap_from_prev_ms": 2202,
+              "timestamp": "2026-07-21T16:05:21.254Z"
+            },
+            {
+              "module_id": 92,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 3697,
+              "gap_from_prev_ms": 269,
+              "timestamp": "2026-07-21T16:05:21.523Z"
+            },
+            {
+              "module_id": 63,
+              "module": "ai-agent:RunAnAIAgent",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 4078,
+              "gap_from_prev_ms": 381,
+              "timestamp": "2026-07-21T16:05:21.904Z"
+            },
+            {
+              "module_id": 87,
+              "module": "http:ActionSendData",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 4186,
+              "gap_from_prev_ms": 108,
+              "timestamp": "2026-07-21T16:05:22.012Z"
+            },
+            {
+              "module_id": 90,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 4353,
+              "gap_from_prev_ms": 167,
+              "timestamp": "2026-07-21T16:05:22.179Z"
+            },
+            {
+              "module_id": 58,
+              "module": "http:ActionSendData",
+              "status": 3,
+              "error": "Error: 400 Bad Request",
+              "from_start_ms": 4828,
+              "gap_from_prev_ms": 475,
+              "timestamp": "2026-07-21T16:05:22.654Z"
+            },
+            {
+              "module_id": 88,
+              "module": "util:FunctionSleep",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 5188,
+              "gap_from_prev_ms": 360,
+              "timestamp": "2026-07-21T16:05:23.014Z"
+            }
+          ],
+          "estimated_ms": {
+            "ai_agent_gaps_sum": 2583,
+            "sleep_gaps_sum": 360,
+            "sheets_gaps_sum": 1662,
+            "time_to_gupshup87_ms": 4186
+          }
+        },
+        {
+          "cluster_index": 2,
+          "start": "2026-07-21T16:05:37.084Z",
+          "span_ms": 11023,
+          "event_count": 11,
+          "stages": [
+            {
+              "module_id": 79,
+              "module": "google-sheets:filterRows",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 0,
+              "gap_from_prev_ms": 0,
+              "timestamp": "2026-07-21T16:05:37.084Z"
+            },
+            {
+              "module_id": 82,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 290,
+              "gap_from_prev_ms": 290,
+              "timestamp": "2026-07-21T16:05:37.374Z"
+            },
+            {
+              "module_id": 84,
+              "module": "ai-agent:RunAnAIAgent",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 2214,
+              "gap_from_prev_ms": 1924,
+              "timestamp": "2026-07-21T16:05:39.298Z"
+            },
+            {
+              "module_id": 92,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 2488,
+              "gap_from_prev_ms": 274,
+              "timestamp": "2026-07-21T16:05:39.572Z"
+            },
+            {
+              "module_id": 87,
+              "module": "http:ActionSendData",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 2966,
+              "gap_from_prev_ms": 478,
+              "timestamp": "2026-07-21T16:05:40.050Z"
+            },
+            {
+              "module_id": 88,
+              "module": "util:FunctionSleep",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 3969,
+              "gap_from_prev_ms": 1002,
+              "timestamp": "2026-07-21T16:05:41.053Z"
+            },
+            {
+              "module_id": 83,
+              "module": "google-sheets:addRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 8251,
+              "gap_from_prev_ms": 4282,
+              "timestamp": "2026-07-21T16:05:45.335Z"
+            },
+            {
+              "module_id": 63,
+              "module": "ai-agent:RunAnAIAgent",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 10164,
+              "gap_from_prev_ms": 1913,
+              "timestamp": "2026-07-21T16:05:47.248Z"
+            },
+            {
+              "module_id": 90,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 10543,
+              "gap_from_prev_ms": 379,
+              "timestamp": "2026-07-21T16:05:47.627Z"
+            },
+            {
+              "module_id": 58,
+              "module": "http:ActionSendData",
+              "status": 3,
+              "error": "Error: 400 Bad Request",
+              "from_start_ms": 11023,
+              "gap_from_prev_ms": 480,
+              "timestamp": "2026-07-21T16:05:48.107Z"
+            }
+          ],
+          "estimated_ms": {
+            "ai_agent_gaps_sum": 3837,
+            "sleep_gaps_sum": 1002,
+            "sheets_gaps_sum": 5225,
+            "time_to_gupshup87_ms": 2966
+          }
+        }
+      ],
       "execution_operation_breakdowns": [
         {
           "id": "2f1e09a7b6b9426c8fbdf935de90537b",
@@ -2613,10 +2956,11 @@
             "feeder": false,
             "retry": false
           },
-          "sleep_ms_configured": 1,
+          "sleep_ms_configured": 1000,
           "mapper_keys": [
             "duration"
-          ]
+          ],
+          "sleep_seconds_configured": 1
         },
         {
           "id": 77,
@@ -2634,15 +2978,26 @@
             "feeder": false,
             "retry": false
           },
-          "sleep_ms_configured": 1,
+          "sleep_ms_configured": 1000,
           "mapper_keys": [
             "duration"
-          ]
+          ],
+          "sleep_seconds_configured": 1
         }
       ],
-      "total_configured_sleep_ms": 2,
+      "sleep_unit": "seconds",
+      "total_configured_sleep_seconds": 2,
+      "total_configured_sleep_ms": 2000,
+      "measured_sleep_gaps_ms": [
+        {
+          "id": "88",
+          "avg_ms": 789,
+          "n": 3,
+          "name": "util:FunctionSleep"
+        }
+      ],
       "retry_flags_seen": [],
-      "verdict": "Found 2 Sleep/Delay module(s) — likely intentional pacing; sum configured≈2ms"
+      "verdict": "Two FunctionSleep (77,88) duration=1 second each. Measured ~1000ms after Gupshup. No Retry. Sleep AFTER send → does not delay that bubble; extends run/queue."
     },
     "4_openai_api": {
       "ai_modules": [
@@ -2924,98 +3279,388 @@
           ]
         }
       ],
-      "note": "AI Agent (Make) usually calls LLM under the hood — often the largest share of 6–10s runs"
-    },
-    "5_bottleneck": {
-      "inferred": true,
-      "reason": "No per-module durations from API; AI Agent modules typically dominate 5–15s runs",
-      "modules": [
+      "measured_ai_gaps_ms": [
         {
-          "id": 84,
-          "module": "ai-agent:RunAnAIAgent",
-          "name": null,
-          "url_host": null,
-          "flags": {
-            "delay": false,
-            "ai": true,
-            "http": false,
-            "sheets": false,
-            "gupshupSend": false,
-            "webhook": false,
-            "router": false,
-            "feeder": false,
-            "retry": false
-          },
-          "sleep_ms_configured": null,
-          "mapper_keys": [
-            "agent",
-            "timeout",
-            "messages",
-            "threadID",
-            "outputType",
-            "additionalSystemPrompt"
-          ]
+          "id": "84",
+          "avg_ms": 2573,
+          "n": 3,
+          "name": "ai-agent:RunAnAIAgent"
         },
         {
-          "id": 63,
-          "module": "ai-agent:RunAnAIAgent",
-          "name": null,
-          "url_host": null,
-          "flags": {
-            "delay": false,
-            "ai": true,
-            "http": false,
-            "sheets": false,
-            "gupshupSend": false,
-            "webhook": false,
-            "router": false,
-            "feeder": false,
-            "retry": false
-          },
-          "sleep_ms_configured": null,
-          "mapper_keys": [
-            "agent",
-            "timeout",
-            "messages",
-            "threadID",
-            "outputType",
-            "additionalSystemPrompt"
-          ]
+          "id": "63",
+          "avg_ms": 1147,
+          "n": 2,
+          "name": "ai-agent:RunAnAIAgent"
         }
-      ]
+      ],
+      "note": "AI 84+63 dominate; Gupshup 58 often 400"
+    },
+    "5_bottleneck": {
+      "module_id": "84",
+      "name": "ai-agent:RunAnAIAgent",
+      "avg_gap_ms": 2573,
+      "evidence": "reconstructed timeline gaps",
+      "note": "Largest pre-reply cost is AI Agent before Gupshup 87"
     }
   },
   "recommendations": [
     {
       "priority": 1,
-      "he": "לבדוק/להקטין מודולי Sleep (אם קיימים) — הורדה מיידית של שניות קבועות בלי לגעת בלוגיקת AI",
-      "risk": "low"
+      "he": "AI Agent 84: מודל מהיר יותר / פחות tokens / system prompt קצר — חוסך ~1.5–3ש׳ מתשובת המשתמש",
+      "risk": "medium — דורש אישור Owner",
+      "est_save_ms": "1500–3500"
     },
     {
       "priority": 2,
-      "he": "AI Agent: מודל מהיר יותר / פחות tokens / system prompt קצר יותר — צוואר בקבוק עיקרי בריצות ~6–8ש׳",
-      "risk": "medium — עלול לשנות איכות תשובה; לא לשנות לוגיקה בלי אישור"
+      "he": "הסרת Sleep 88/77 (1ש׳ אחרי שליחה) — לא מאיץ בועה נוכחית; מקצר תור להודעה הבאה",
+      "risk": "low",
+      "est_save_ms": "1000 per path (queue)"
     },
     {
       "priority": 3,
-      "he": "Google Sheets: cache / Data Store במקום filterRows בכל הודעה אם יש קריאות חוזרות",
-      "risk": "medium"
+      "he": "Google Sheets: cache/Data Store במקום filter+update בכל הודעה",
+      "risk": "medium",
+      "est_save_ms": "300–1200"
     },
     {
       "priority": 4,
-      "he": "Router מוקדם: DLR/statuses → יציאה מיידית בלי AI (חוסך תורים ורעש)",
-      "risk": "low-medium"
+      "he": "מסלול Gupshup 58 מחזיר 400 — לתקן או לנתק",
+      "risk": "low-medium",
+      "est_save_ms": "400–500 + noise"
     },
     {
       "priority": 5,
-      "he": "לא להריץ E2E/Forward על אותו Hook — מפחית תור ומרוצי ריצה",
-      "risk": "already_done"
+      "he": "לשמור E2E/Forward מחוץ ל-Hook של הבוט",
+      "risk": "already_done",
+      "est_save_ms": "queue contention"
     }
   ],
   "report_he": {
     "avg_make_ms": 6201,
+    "p50_make_ms": 6534,
+    "min_make_ms": 4886,
+    "max_make_ms": 6940,
     "sleep_count": 2,
+    "sleep_seconds_each": 1,
     "ai_count": 2,
-    "bottleneck_summary": "No per-module durations from API; AI Agent modules typically dominate 5–15s runs"
-  }
+    "bottleneck_summary": "ai-agent:RunAnAIAgent",
+    "time_to_reply_avg_ms": 3841
+  },
+  "reconstructed_timelines": [
+    {
+      "cluster_index": 0,
+      "start": "2026-07-21T16:01:11.793Z",
+      "span_ms": 5374,
+      "event_count": 5,
+      "stages": [
+        {
+          "module_id": 82,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 0,
+          "gap_from_prev_ms": 0,
+          "timestamp": "2026-07-21T16:01:11.793Z"
+        },
+        {
+          "module_id": 84,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3593,
+          "gap_from_prev_ms": 3593,
+          "timestamp": "2026-07-21T16:01:15.386Z"
+        },
+        {
+          "module_id": 92,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3884,
+          "gap_from_prev_ms": 291,
+          "timestamp": "2026-07-21T16:01:15.677Z"
+        },
+        {
+          "module_id": 87,
+          "module": "http:ActionSendData",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 4370,
+          "gap_from_prev_ms": 486,
+          "timestamp": "2026-07-21T16:01:16.163Z"
+        },
+        {
+          "module_id": 88,
+          "module": "util:FunctionSleep",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 5374,
+          "gap_from_prev_ms": 1004,
+          "timestamp": "2026-07-21T16:01:17.167Z"
+        }
+      ],
+      "estimated_ms": {
+        "ai_agent_gaps_sum": 3593,
+        "sleep_gaps_sum": 1004,
+        "sheets_gaps_sum": 291,
+        "time_to_gupshup87_ms": 4370
+      }
+    },
+    {
+      "cluster_index": 1,
+      "start": "2026-07-21T16:05:17.826Z",
+      "span_ms": 8268,
+      "event_count": 34,
+      "stages": [
+        {
+          "module_id": 79,
+          "module": "google-sheets:filterRows",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 0,
+          "gap_from_prev_ms": 0,
+          "timestamp": "2026-07-21T16:05:17.826Z"
+        },
+        {
+          "module_id": 83,
+          "module": "google-sheets:addRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 709,
+          "gap_from_prev_ms": 709,
+          "timestamp": "2026-07-21T16:05:18.535Z"
+        },
+        {
+          "module_id": 82,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 1226,
+          "gap_from_prev_ms": 517,
+          "timestamp": "2026-07-21T16:05:19.052Z"
+        },
+        {
+          "module_id": 84,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3428,
+          "gap_from_prev_ms": 2202,
+          "timestamp": "2026-07-21T16:05:21.254Z"
+        },
+        {
+          "module_id": 92,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3697,
+          "gap_from_prev_ms": 269,
+          "timestamp": "2026-07-21T16:05:21.523Z"
+        },
+        {
+          "module_id": 63,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 4078,
+          "gap_from_prev_ms": 381,
+          "timestamp": "2026-07-21T16:05:21.904Z"
+        },
+        {
+          "module_id": 87,
+          "module": "http:ActionSendData",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 4186,
+          "gap_from_prev_ms": 108,
+          "timestamp": "2026-07-21T16:05:22.012Z"
+        },
+        {
+          "module_id": 90,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 4353,
+          "gap_from_prev_ms": 167,
+          "timestamp": "2026-07-21T16:05:22.179Z"
+        },
+        {
+          "module_id": 58,
+          "module": "http:ActionSendData",
+          "status": 3,
+          "error": "Error: 400 Bad Request",
+          "from_start_ms": 4828,
+          "gap_from_prev_ms": 475,
+          "timestamp": "2026-07-21T16:05:22.654Z"
+        },
+        {
+          "module_id": 88,
+          "module": "util:FunctionSleep",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 5188,
+          "gap_from_prev_ms": 360,
+          "timestamp": "2026-07-21T16:05:23.014Z"
+        }
+      ],
+      "estimated_ms": {
+        "ai_agent_gaps_sum": 2583,
+        "sleep_gaps_sum": 360,
+        "sheets_gaps_sum": 1662,
+        "time_to_gupshup87_ms": 4186
+      }
+    },
+    {
+      "cluster_index": 2,
+      "start": "2026-07-21T16:05:37.084Z",
+      "span_ms": 11023,
+      "event_count": 11,
+      "stages": [
+        {
+          "module_id": 79,
+          "module": "google-sheets:filterRows",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 0,
+          "gap_from_prev_ms": 0,
+          "timestamp": "2026-07-21T16:05:37.084Z"
+        },
+        {
+          "module_id": 82,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 290,
+          "gap_from_prev_ms": 290,
+          "timestamp": "2026-07-21T16:05:37.374Z"
+        },
+        {
+          "module_id": 84,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 2214,
+          "gap_from_prev_ms": 1924,
+          "timestamp": "2026-07-21T16:05:39.298Z"
+        },
+        {
+          "module_id": 92,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 2488,
+          "gap_from_prev_ms": 274,
+          "timestamp": "2026-07-21T16:05:39.572Z"
+        },
+        {
+          "module_id": 87,
+          "module": "http:ActionSendData",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 2966,
+          "gap_from_prev_ms": 478,
+          "timestamp": "2026-07-21T16:05:40.050Z"
+        },
+        {
+          "module_id": 88,
+          "module": "util:FunctionSleep",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3969,
+          "gap_from_prev_ms": 1002,
+          "timestamp": "2026-07-21T16:05:41.053Z"
+        },
+        {
+          "module_id": 83,
+          "module": "google-sheets:addRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 8251,
+          "gap_from_prev_ms": 4282,
+          "timestamp": "2026-07-21T16:05:45.335Z"
+        },
+        {
+          "module_id": 63,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 10164,
+          "gap_from_prev_ms": 1913,
+          "timestamp": "2026-07-21T16:05:47.248Z"
+        },
+        {
+          "module_id": 90,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 10543,
+          "gap_from_prev_ms": 379,
+          "timestamp": "2026-07-21T16:05:47.627Z"
+        },
+        {
+          "module_id": 58,
+          "module": "http:ActionSendData",
+          "status": 3,
+          "error": "Error: 400 Bad Request",
+          "from_start_ms": 11023,
+          "gap_from_prev_ms": 480,
+          "timestamp": "2026-07-21T16:05:48.107Z"
+        }
+      ],
+      "estimated_ms": {
+        "ai_agent_gaps_sum": 3837,
+        "sleep_gaps_sum": 1002,
+        "sheets_gaps_sum": 5225,
+        "time_to_gupshup87_ms": 2966
+      }
+    }
+  ],
+  "per_module_avg_from_timeline_gaps": {
+    "84": {
+      "avg_gap_ms": 2573,
+      "n": 3,
+      "module": "ai-agent:RunAnAIAgent"
+    },
+    "83": {
+      "avg_gap_ms": 2496,
+      "n": 2,
+      "module": "google-sheets:addRow"
+    },
+    "63": {
+      "avg_gap_ms": 1147,
+      "n": 2,
+      "module": "ai-agent:RunAnAIAgent"
+    },
+    "88": {
+      "avg_gap_ms": 789,
+      "n": 3,
+      "module": "util:FunctionSleep"
+    },
+    "58": {
+      "avg_gap_ms": 478,
+      "n": 2,
+      "module": "http:ActionSendData"
+    },
+    "82": {
+      "avg_gap_ms": 404,
+      "n": 2,
+      "module": "google-sheets:updateRow"
+    },
+    "87": {
+      "avg_gap_ms": 357,
+      "n": 3,
+      "module": "http:ActionSendData"
+    },
+    "92": {
+      "avg_gap_ms": 278,
+      "n": 3,
+      "module": "google-sheets:updateRow"
+    },
+    "90": {
+      "avg_gap_ms": 273,
+      "n": 2,
+      "module": "google-sheets:updateRow"
+    }
+  },
+  "enriched_offline_at": "2026-07-21T16:17:24.414505Z"
 }

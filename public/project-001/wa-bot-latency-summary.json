@@ -1,0 +1,80 @@
+{
+  "id": "wa-bot-latency-summary",
+  "at": "2026-07-21T16:11:34.514Z",
+  "logic_unchanged": true,
+  "make_execution_ms": {
+    "avg": 6201,
+    "p50": 6534,
+    "min": 4886,
+    "max": 6940,
+    "n": 5
+  },
+  "webhook_accept_ms": 297,
+  "user_visible_to_gupshup_ms": {
+    "avg": 3841,
+    "samples": [
+      4370,
+      4186,
+      2966
+    ]
+  },
+  "bottleneck": {
+    "module_id": "84",
+    "name": "ai-agent:RunAnAIAgent",
+    "avg_gap_ms": 2573,
+    "evidence": "reconstructed timeline gaps",
+    "note": "Largest pre-reply cost is AI Agent before Gupshup 87"
+  },
+  "stages_typical_ms": {
+    "sheets_pre_ai": "300–1200",
+    "ai_agent_84": "1900–3600",
+    "sheets_post_ai": "250–400",
+    "gupshup_87_send": "400–500",
+    "sleep_88_after_send": 1000,
+    "ai_agent_63_alt_route": "1900–2200",
+    "gupshup_58_alt": "400–500 (often HTTP 400)"
+  },
+  "sleep": {
+    "modules": [
+      88,
+      77
+    ],
+    "seconds_each": 1,
+    "after_send": true,
+    "retry_found": false
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "he": "AI Agent 84: מודל מהיר יותר / פחות tokens / system prompt קצר — חוסך ~1.5–3ש׳ מתשובת המשתמש",
+      "risk": "medium — דורש אישור Owner",
+      "est_save_ms": "1500–3500"
+    },
+    {
+      "priority": 2,
+      "he": "הסרת Sleep 88/77 (1ש׳ אחרי שליחה) — לא מאיץ בועה נוכחית; מקצר תור להודעה הבאה",
+      "risk": "low",
+      "est_save_ms": "1000 per path (queue)"
+    },
+    {
+      "priority": 3,
+      "he": "Google Sheets: cache/Data Store במקום filter+update בכל הודעה",
+      "risk": "medium",
+      "est_save_ms": "300–1200"
+    },
+    {
+      "priority": 4,
+      "he": "מסלול Gupshup 58 מחזיר 400 — לתקן או לנתק",
+      "risk": "low-medium",
+      "est_save_ms": "400–500 + noise"
+    },
+    {
+      "priority": 5,
+      "he": "לשמור E2E/Forward מחוץ ל-Hook של הבוט",
+      "risk": "already_done",
+      "est_save_ms": "queue contention"
+    }
+  ],
+  "report_doc": "docs/audit-reports/claims-incident-process/WA-BOT-LATENCY-HE.md",
+  "raw": "project-001/wa-bot-latency-result.json"
+}

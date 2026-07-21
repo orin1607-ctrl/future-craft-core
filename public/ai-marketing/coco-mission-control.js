@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0-mission';
+  var VERSION = '1.0.1-mission';
   var STATE_KEY = 'coco-mission-state-v1';
   var MISSION_ID = 'dalia-full-stack-2026';
 
@@ -15,6 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
+    latestFocus: 'WA Bot latency — AI Agent ~2.6s bottleneck; Sleep 1s after send',
   };
 
   var STAGES = [
@@ -146,6 +147,23 @@
       ],
       status: 'partial',
     },
+    {
+      id: 'wa-bot-latency',
+      icon: '⏱️',
+      name: 'WhatsApp Bot — ביצועים',
+      screen: 'reports',
+      where: 'docs/.../WA-BOT-LATENCY-HE.md + project-001/wa-bot-latency-summary.json',
+      dataFrom: 'Make scenario 5797671 logs · wa-bot-latency-audit.mjs (ללא שינוי לוגיקה)',
+      decides: 'צוואר בקבוק = AI Agent 84 (~2–3.6ש׳); Sleep 1ש׳ אחרי שליחה; Sheets משני',
+      returns: 'תשובה למשתמש ~3–4.5ש׳ · ריצת Make ~6.2ש׳ · המלצות חיסכון',
+      howTo: [
+        'קרא docs/audit-reports/claims-incident-process/WA-BOT-LATENCY-HE.md',
+        'JSON: public/project-001/wa-bot-latency-summary.json',
+        'Actions → Whatsapp Bot latency audit (בלי Blueprint PATCH)',
+        'שיפור AI/Sleep רק אחרי אישור Owner',
+      ],
+      status: 'live',
+    },
   ];
 
   function parseLs(key) {
@@ -237,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>מרכז משימה מתמשכת + Evidence v2 בתוך דוחות + תור אישור Owner</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>AI Control Center → 🚀 מרכז משימה · דוחות → Evidence v2</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>1. פתח Staging 2. מרכז משימה 3. לחץ יכולת → פתח במערכת 4. דוחות לאישורים</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Mission Control מאחד שלבים; Evidence נטען מ-JSON במערכת; אישורים ב-localStorage בלבד</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'מרכז משימה חדש') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>GSC ' + esc(m.gscKeywords) + ' KW · GA4 ' + esc(m.ga4Sessions) + ' · ' + esc(m.approvalsPending) + ' אישורים ממתינים</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אישור TASK-0014–0016 (לא פרסום Production)</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>דוח ביצועי WhatsApp Bot (זמנים לכל שלב) · בלי שינוי לוגיקה · סיכום ב-JSON במערכת</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>מרכז משימה → יכולת «WhatsApp Bot — ביצועים» · docs/.../WA-BOT-LATENCY-HE.md · project-001/wa-bot-latency-summary.json</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>1. קרא את הדוח 2. בדוק צוואר בקבוק (AI 84) 3. אשר רק שיפורי ביצועים (Sleep/AI/Sheets) אם רוצה</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>מדידת Make logs + ציר זמן מחותמות מודולים; Sleep=שניות; תשובה למשתמש = עד Gupshup 87</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'Latency audit: תשובה ~3.8ש׳ · AI ~2.6ש׳ · Sleep 1ש׳ אחרי שליחה') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>GSC ' + esc(m.gscKeywords) + ' KW · GA4 ' + esc(m.ga4Sessions) + ' · Bot Make ~6.2ש׳ · עד תשובה ~3.8ש׳</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>האם לאשר הסרת Sleep / האצת AI Agent? (לא Production)</div>' +
         '</div>' +
       '</div>'
     );

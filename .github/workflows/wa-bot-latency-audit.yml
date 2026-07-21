@@ -22,7 +22,7 @@ jobs:
         env:
           MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
           MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
-          LATENCY_PROBE: 'true'
+          LATENCY_PROBE: 'false'
         run: node scripts/wa-bot-latency-audit.mjs
       - name: Commit result
         if: always()

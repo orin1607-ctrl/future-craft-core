@@ -3,5 +3,6 @@
   "armed": true,
   "logic_unchanged": true,
   "no_production": true,
-  "one_inbound_probe_for_wall_clock": true
+  "one_inbound_probe_for_wall_clock": false,
+  "note": "probe off \u2014 use existing timings; re-arm if wall-clock needed"
 }
