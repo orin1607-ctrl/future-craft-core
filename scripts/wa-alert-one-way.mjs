@@ -578,8 +578,16 @@ async function main() {
   if (!out.patch.skipped) {
     const patchRes = await patchBlueprint(bpBefore);
     out.patch.patch_http = patchRes.status;
+    out.patch.patch_error = patchRes.status >= 400 ? patchRes.text?.slice(0, 800) : null;
     must(patchRes.status >= 200 && patchRes.status < 300, `Make patch HTTP ${patchRes.status}: ${patchRes.text}`);
   }
+
+  // Soft-validate: start/stop to surface Make validation errors early
+  const validateStart = await make(`/scenarios/${BOT_ID}/start`, { method: 'POST', body: {} });
+  out.patch.validate_start = {
+    http: validateStart.status,
+    error: validateStart.status >= 400 ? validateStart.text?.slice(0, 500) : null,
+  };
 
   const bpAfter = await getBlueprint();
   const whAfter = bpAfter.flow?.find((m) => /CustomWebHook|webhook/i.test(String(m?.module || '')));
