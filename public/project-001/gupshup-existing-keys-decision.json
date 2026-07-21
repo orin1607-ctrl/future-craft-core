@@ -1,0 +1,15 @@
+{
+  "id": "gupshup-existing-keys-decision",
+  "at": "2026-07-21T21:04:00.000Z",
+  "production_touched": false,
+  "create_new_api_key": false,
+  "verdict_he": "אין צורך ליצור API Key חדש — להשתמש באחד משני המפתחות הקיימים של DaliaVehicle ב-Production",
+  "staging_reprobe": {
+    "run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29868360469",
+    "gupshup_verified": true,
+    "app_name": "DaliaVehicle",
+    "app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+    "key_length": 35
+  },
+  "owner_action": "Copy one existing App API Key from DaliaVehicle Settings → Prod Edge Secret GUPSHUP_API_KEY only. Do not create a new key. Do not paste in chat. Then say סיימתי Gupshup."
+}
