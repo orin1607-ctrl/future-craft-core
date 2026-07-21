@@ -1,6 +1,6 @@
 {
   "id": "wa-alert-one-way",
-  "at": "2026-07-21T20:42:35.174Z",
+  "at": "2026-07-21T20:44:32.919Z",
   "env": "staging_only",
   "production_touched": false,
   "new_mechanism": false,
@@ -23,17 +23,18 @@
     "unwrap": {
       "removed": true,
       "mode": "unwrap_router",
-      "bot_modules": 8
+      "bot_modules": 6,
+      "stripped": 3
     },
     "data_expr": "GET qs Message ID (Meta context paths)",
     "ids": {
-      "lookup": 107,
-      "router": 108,
-      "ignore": 109,
-      "skip": 109,
-      "continue": 110
+      "lookup": 99,
+      "router": 100,
+      "ignore": 101,
+      "skip": 101,
+      "continue": 102
     },
-    "rest_modules_moved": 8,
+    "rest_modules_moved": 6,
     "patch_http": 200,
     "patch_error": null,
     "validate_start": {
@@ -90,11 +91,11 @@
       },
       {
         "name": "gsId",
-        "value": "{{ifempty(1.entry[].changes[].value.messages[].context.gsId; ifempty(1.entry[].changes[].value.messages[].context.id; ifempty(1.reply_gsid; ifempty(1.payload.context.gsId; __none__))))}}"
+        "value": "{{ifempty(1.entry[].changes[].value.messages[].context.gsId; ifempty(1.entry[].changes[].value.messages[].context.id; ifempty(1.reply_gsid; __none__)))}}"
       },
       {
         "name": "waId",
-        "value": "{{ifempty(1.entry[].changes[].value.messages[].context.id; ifempty(1.reply_waid; ifempty(1.payload.context.id; __none__)))}}"
+        "value": "{{ifempty(1.entry[].changes[].value.messages[].context.id; ifempty(1.reply_waid; __none__))}}"
       }
     ]
   },
@@ -168,21 +169,68 @@
       "body": "Accepted"
     },
     "format": "meta+context+flat",
-    "log": null,
-    "log_any": {
-      "id": "d9b631108a0247e281565aff86c2e8c5",
-      "status": 3,
-      "timestamp": "2026-07-21T20:42:49.908Z",
-      "error": "Cannot initialize the scenario because of the reason 'Scenario validation failed - 5 problem(s) found.'",
-      "duration": 204
+    "log": {
+      "id": "9d317e9635d04e868fc4a64b903b86b9",
+      "status": 1,
+      "timestamp": "2026-07-21T20:44:51.651Z",
+      "error": null,
+      "duration": 841
     },
-    "failed_execution": {
-      "id": "d9b631108a0247e281565aff86c2e8c5",
-      "status": 3,
-      "timestamp": "2026-07-21T20:42:49.908Z",
-      "error": "Cannot initialize the scenario because of the reason 'Scenario validation failed - 5 problem(s) found.'",
-      "duration": 204
+    "log_any": {
+      "id": "9d317e9635d04e868fc4a64b903b86b9",
+      "status": 1,
+      "timestamp": "2026-07-21T20:44:51.651Z",
+      "error": null,
+      "duration": 841
+    },
+    "analysis": {
+      "duration_ms": 841,
+      "hit_lookup": true,
+      "hit_skip_noop": false,
+      "hit_ai_84": false,
+      "hit_ai_63": false,
+      "hit_gupshup_87": false,
+      "skip_module_id": 101,
+      "lookup_module_id": 99,
+      "lookup_logs": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T20:44:52.478Z",
+          "error": null,
+          "executionId": "9d317e9635d04e868fc4a64b903b86b9"
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T20:44:49.716Z",
+          "error": null,
+          "executionId": "7fbfbd133f734ed4830ac1c0df42940f"
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T20:38:59.316Z",
+          "error": null,
+          "executionId": "0d2f0dff663643b2b8d53f32b34a6d26"
+        }
+      ]
     }
   },
-  "error": "Reply execution not success: status=3 error=Cannot initialize the scenario because of the reason 'Scenario validation failed - 5 problem(s) found.'"
+  "e2e_hi": {
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "log": {
+      "id": "c64aa5650279437f8b88d46256e3de22",
+      "status": 1,
+      "timestamp": "2026-07-21T20:44:56.473Z",
+      "error": null,
+      "duration": 349
+    },
+    "analysis": {
+      "duration_ms": 349,
+      "hit_ai_84": false,
+      "hit_gupshup_87": false
+    }
+  },
+  "error": "Free היי did not reach AI 84 or Gupshup 87"
 }
