@@ -56,6 +56,9 @@ verify_jwt = true
 [functions.send-whatsapp-message]
 verify_jwt = true
 
+[functions.gupshup-webhook]
+verify_jwt = false
+
 [functions.backup-data]
 verify_jwt = true
 

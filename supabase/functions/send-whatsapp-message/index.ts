@@ -61,6 +61,38 @@ async function requireSuperAdmin(req: Request) {
   return { supabaseAdmin, user };
 }
 
+async function recordWhatsAppSubmission(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  opts: {
+    destination: string;
+    messageId: string;
+    textExcerpt?: string;
+    gupshupStatus?: number | null;
+  },
+) {
+  const incidentId = crypto.randomUUID();
+  const { error } = await supabaseAdmin.from('incident_notification_deliveries').insert({
+    company_name: 'Dalia E2E',
+    incident_kind: 'whatsapp_probe',
+    incident_id: incidentId,
+    event_number: `WA-PROBE-${Date.now()}`,
+    channel: 'whatsapp',
+    recipient: opts.destination,
+    status: 'submitted',
+    provider_message_id: opts.messageId,
+    payload_excerpt: (opts.textExcerpt || '').slice(0, 400),
+    dlr_event: 'submitted',
+    sent_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+  if (error) {
+    console.error('recordWhatsAppSubmission', error);
+    return { ok: false as const, error: error.message, incident_id: incidentId };
+  }
+  return { ok: true as const, incident_id: incidentId };
+}
+
 async function callGupshupMsgEndpoint(formBody: URLSearchParams) {
   const apiKey = Deno.env.get('GUPSHUP_API_KEY');
   if (!apiKey) {
@@ -462,16 +494,27 @@ Deno.serve(async (req) => {
             gupshup_response: parsed,
           }, 502);
         }
+        const messageId =
+          (parsed.messageId as string | undefined) ||
+          (parsed.message_id as string | undefined);
+        let deliveryLog: Record<string, unknown> | null = null;
+        if (messageId) {
+          deliveryLog = await recordWhatsAppSubmission(auth.supabaseAdmin, {
+            destination,
+            messageId,
+            textExcerpt: `template:${templateName}`,
+            gupshupStatus: res.status,
+          });
+        }
         return jsonResponse({
           success: true,
           message: 'הודעת WhatsApp (template) נשלחה',
           destination,
           template_name: templateName,
           gupshup_status: res.status,
-          message_id:
-            (parsed.messageId as string | undefined) ||
-            (parsed.message_id as string | undefined),
+          message_id: messageId,
           gupshup_response: parsed,
+          delivery_log: deliveryLog,
         });
       }
 
@@ -510,18 +553,114 @@ Deno.serve(async (req) => {
         }, 502);
       }
 
+      const messageId =
+        (result.response?.messageId as string | undefined) ||
+        (result.response?.message_id as string | undefined) ||
+        (typeof result.response?.id === 'string' ? result.response.id : undefined);
+
+      let deliveryLog: Record<string, unknown> | null = null;
+      if (messageId) {
+        deliveryLog = await recordWhatsAppSubmission(auth.supabaseAdmin, {
+          destination,
+          messageId,
+          textExcerpt: text,
+          gupshupStatus: result.status ?? null,
+        });
+      }
+
       return jsonResponse({
         success: true,
         message: 'הודעת WhatsApp נשלחה',
         destination,
         text,
         gupshup_status: result.status,
-        message_id:
-          (result.response?.messageId as string | undefined) ||
-          (result.response?.message_id as string | undefined) ||
-          (typeof result.response?.id === 'string' ? result.response.id : undefined),
+        message_id: messageId,
         gupshup_response: result.response,
+        delivery_log: deliveryLog,
       });
+    }
+
+    if (action === 'register_dlr_callback') {
+      const apiKey = Deno.env.get('GUPSHUP_API_KEY');
+      if (!apiKey) {
+        return jsonResponse({ success: false, error: 'GUPSHUP_API_KEY missing' }, 503);
+      }
+      const GUPSHUP_APP_ID = Deno.env.get('GUPSHUP_APP_ID') ?? '496709e8-b5fc-4de9-9c75-bc87455482dd';
+      const callbackUrl =
+        typeof body.callback_url === 'string' && body.callback_url.trim()
+          ? body.callback_url.trim()
+          : `${Deno.env.get('SUPABASE_URL')}/functions/v1/gupshup-webhook`;
+
+      const attempts: Record<string, unknown>[] = [];
+      const endpoints = [
+        {
+          name: 'wa_app_callback_put',
+          url: `https://api.gupshup.io/wa/app/${GUPSHUP_APP_ID}/callback`,
+          method: 'PUT' as const,
+          headers: { apikey: apiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ callbackUrl }),
+        },
+        {
+          name: 'wa_app_callbackUrl_put',
+          url: `https://api.gupshup.io/wa/app/${GUPSHUP_APP_ID}/callbackUrl`,
+          method: 'PUT' as const,
+          headers: {
+            apikey: apiKey,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({ callbackUrl }).toString(),
+        },
+        {
+          name: 'sm_app_opt_callback',
+          url: 'https://api.gupshup.io/sm/api/v1/app/opt/callback',
+          method: 'PUT' as const,
+          headers: {
+            apikey: apiKey,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            callbackUrl,
+            'src.name': appName,
+          }).toString(),
+        },
+      ];
+
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep.url, {
+            method: ep.method,
+            headers: ep.headers,
+            body: ep.body,
+          });
+          const raw = await res.text();
+          attempts.push({
+            name: ep.name,
+            http: res.status,
+            body: raw.slice(0, 300),
+          });
+          if (res.status >= 200 && res.status < 300) {
+            return jsonResponse({
+              success: true,
+              callback_url: callbackUrl,
+              registered_via: ep.name,
+              attempts,
+            });
+          }
+        } catch (e) {
+          attempts.push({
+            name: ep.name,
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
+      }
+
+      return jsonResponse({
+        success: false,
+        callback_url: callbackUrl,
+        error: 'Could not register callback via API — set manually in Gupshup Console → App → Webhooks',
+        owner_action_required: true,
+        attempts,
+      }, 502);
     }
 
     return jsonResponse({ success: false, error: 'Unknown action' }, 400);

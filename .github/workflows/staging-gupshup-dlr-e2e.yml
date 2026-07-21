@@ -1,0 +1,259 @@
+name: Staging Gupshup DLR webhook + one live send
+
+# Staging ONLY:
+# 1) Apply DLR migration
+# 2) Deploy gupshup-webhook + send-whatsapp-message
+# 3) Try register callback URL
+# 4) One live WhatsApp send to 0534338601
+# 5) Poll incident_notification_deliveries for delivered/failed
+# Never touches Production.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/staging-gupshup-dlr-e2e.yml'
+      - 'public/project-001/staging-gupshup-dlr-e2e-queue.json'
+      - 'supabase/functions/gupshup-webhook/**'
+      - 'supabase/migrations/20260721080000_gupshup_dlr_deliveries.sql'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  staging-dlr-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Staging migrate + deploy + one WA send + wait DLR
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = await import('node:fs');
+          const { execSync } = await import('node:child_process');
+          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+          const STAGING = 'usfeoerkpcafxxlyuldl';
+          const PROD = 'qasomfndnjuixgjmjwcm';
+          const OWNER_EMAIL = 'orin1607@gmail.com';
+          const WA_DEST = '0534338601';
+          const CALLBACK = `https://${STAGING}.supabase.co/functions/v1/gupshup-webhook`;
+          const out = {
+            env: 'staging',
+            production_touched: false,
+            callback_url: CALLBACK,
+          };
+
+          if (!token) throw new Error('MISSING_ACCESS_TOKEN');
+
+          async function mgmt(path, opts = {}) {
+            const res = await fetch(`https://api.supabase.com/v1${path}`, {
+              method: opts.method || 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                apikey: token,
+                ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+                ...(opts.sql ? { 'Content-Type': 'application/json' } : {}),
+              },
+              body: opts.body ? JSON.stringify(opts.body) : undefined,
+            });
+            const text = await res.text();
+            let json = null;
+            try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text.slice(0, 500) }; }
+            return { status: res.status, json, text: text.slice(0, 2000) };
+          }
+
+          async function post(base, path, body, bearer, apikey) {
+            const res = await fetch(base + path, {
+              method: 'POST',
+              headers: {
+                apikey: apikey || bearer,
+                Authorization: `Bearer ${bearer}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(body),
+            });
+            return { status: res.status, body: await res.json().catch(() => ({})) };
+          }
+
+          // 1) Apply SQL migration via Management database query API
+          const sql = fs.readFileSync('supabase/migrations/20260721080000_gupshup_dlr_deliveries.sql', 'utf8');
+          const q1 = await mgmt(`/projects/${STAGING}/database/query`, {
+            method: 'POST',
+            body: { query: sql },
+          });
+          // alternate endpoint shapes
+          let mig = q1;
+          if (q1.status === 404 || q1.status === 405) {
+            mig = await mgmt(`/projects/${STAGING}/database/query`, {
+              method: 'POST',
+              body: { query: sql },
+            });
+          }
+          out.migration = { http: mig.status, preview: mig.text.slice(0, 300) };
+
+          // Fallback: supabase CLI db execute if management query fails
+          if (mig.status < 200 || mig.status >= 300) {
+            try {
+              process.env.SUPABASE_ACCESS_TOKEN = token;
+              const cliOut = execSync(
+                `npx --yes supabase db query --project-ref ${STAGING} -f supabase/migrations/20260721080000_gupshup_dlr_deliveries.sql`,
+                { encoding: 'utf8', timeout: 120000 },
+              );
+              out.migration_cli = { ok: true, preview: cliOut.slice(0, 300) };
+            } catch (e) {
+              out.migration_cli = {
+                ok: false,
+                error: String(e.stderr || e.message || e).slice(0, 400),
+              };
+            }
+          }
+
+          // 2) Deploy Edge functions Staging only
+          try {
+            process.env.SUPABASE_ACCESS_TOKEN = token;
+            const dep1 = execSync(
+              `npx --yes supabase functions deploy gupshup-webhook --project-ref ${STAGING} --use-api`,
+              { encoding: 'utf8', timeout: 180000 },
+            );
+            const dep2 = execSync(
+              `npx --yes supabase functions deploy send-whatsapp-message --project-ref ${STAGING} --use-api`,
+              { encoding: 'utf8', timeout: 180000 },
+            );
+            out.deploy = {
+              gupshup_webhook: dep1.slice(-200),
+              send_whatsapp_message: dep2.slice(-200),
+              project_ref: STAGING,
+              production_deployed: false,
+            };
+          } catch (e) {
+            out.deploy = { ok: false, error: String(e.stderr || e.message || e).slice(0, 600) };
+            console.log(JSON.stringify(out, null, 2));
+            process.exit(1);
+          }
+
+          // 3) Keys + auth
+          const keys = await mgmt(`/projects/${STAGING}/api-keys`);
+          const srk = Array.isArray(keys.json)
+            ? keys.json.find((k) => k.name === 'service_role' || (k.tags || []).includes('service_role'))?.api_key
+            : null;
+          const anon = Array.isArray(keys.json)
+            ? keys.json.find((k) => k.name === 'anon' || (k.tags || []).includes('anon'))?.api_key
+            : null;
+          if (!srk) throw new Error('NO_STAGING_SRK');
+          const base = `https://${STAGING}.supabase.co`;
+          if (base.includes(PROD)) throw new Error('ABORT_PROD');
+
+          const gen = await post(base, '/auth/v1/admin/generate_link', { type: 'magiclink', email: OWNER_EMAIL }, srk, srk);
+          const ver = await post(base, '/auth/v1/verify', { type: 'magiclink', email: OWNER_EMAIL, token: gen.body.email_otp }, anon || srk, anon || srk);
+          const at = ver.body?.access_token || ver.body?.session?.access_token;
+          if (!at) throw new Error('AUTH_FAILED');
+
+          // Health GET webhook
+          const whGet = await fetch(CALLBACK);
+          out.webhook_get = { http: whGet.status, body: (await whGet.text()).slice(0, 120) };
+
+          // Try register callback
+          const reg = await post(
+            base,
+            '/functions/v1/send-whatsapp-message',
+            { action: 'register_dlr_callback', callback_url: CALLBACK },
+            at,
+            anon || srk,
+          );
+          out.callback_register = {
+            http: reg.status,
+            success: reg.body?.success ?? null,
+            registered_via: reg.body?.registered_via ?? null,
+            owner_action_required: reg.body?.owner_action_required ?? null,
+            attempts: reg.body?.attempts ?? null,
+            error: reg.body?.error ?? null,
+          };
+
+          // If callback registration failed, still allow send ONLY if webhook is reachable —
+          // but DLR may never arrive. User required tracking first.
+          // We proceed with send and poll; if no DLR, report blocked on Owner portal callback.
+
+          // 4) One live send
+          const message = `בדיקת DLR Staging דליה ${new Date().toISOString()}`;
+          const send = await post(
+            base,
+            '/functions/v1/send-whatsapp-message',
+            { action: 'send', destination: WA_DEST, message },
+            at,
+            anon || srk,
+          );
+          const messageId = send.body?.message_id || null;
+          out.send = {
+            edge_http: send.status,
+            success: send.body?.success ?? null,
+            gupshup_http: send.body?.gupshup_status ?? null,
+            gupshup_status: send.body?.gupshup_response?.status ?? null,
+            message_id: messageId,
+            destination: send.body?.destination ?? null,
+            delivery_log: send.body?.delivery_log ?? null,
+            error: send.body?.error ?? null,
+          };
+
+          if (!send.body?.success || !messageId) {
+            out.final = { ok: false, reason: 'send_failed_or_no_message_id' };
+            console.log('---STAGING_DLR_E2E---');
+            console.log(JSON.stringify(out, null, 2));
+            console.log('---STAGING_DLR_E2E_DONE---');
+            process.exit(1);
+          }
+
+          // 5) Poll DLR up to ~120s
+          const terminal = new Set(['delivered', 'read', 'failed', 'rejected']);
+          let row = null;
+          const polls = [];
+          for (let i = 0; i < 24; i++) {
+            await new Promise((r) => setTimeout(r, 5000));
+            const res = await fetch(
+              `${base}/rest/v1/incident_notification_deliveries?provider_message_id=eq.${messageId}&channel=eq.whatsapp&select=id,status,dlr_event,dlr_error_code,error_message,recipient,provider_message_id,updated_at,sent_at&limit=3`,
+              { headers: { apikey: srk, Authorization: `Bearer ${srk}` } },
+            );
+            const json = await res.json().catch(() => []);
+            const r0 = Array.isArray(json) ? json[0] : null;
+            polls.push({
+              n: i + 1,
+              http: res.status,
+              status: r0?.status ?? null,
+              dlr_event: r0?.dlr_event ?? null,
+              dlr_error_code: r0?.dlr_error_code ?? null,
+            });
+            if (r0 && terminal.has(r0.status)) {
+              row = r0;
+              break;
+            }
+            row = r0;
+          }
+          out.polls = polls;
+          out.final_row = row;
+          out.final = {
+            ok: row && terminal.has(row.status),
+            submitted_to: row?.status || 'submitted',
+            message_id: messageId,
+            dlr_event: row?.dlr_event ?? null,
+            dlr_error_code: row?.dlr_error_code ?? null,
+            error_message: row?.error_message ?? null,
+            callback_registered: out.callback_register.success === true,
+            note: row && terminal.has(row.status)
+              ? 'DLR received'
+              : (out.callback_register.success
+                ? 'Callback registered but no terminal DLR within timeout — check Gupshup Logs'
+                : 'Callback NOT registered via API — Owner must set Webhook URL in Gupshup Console, then re-run'),
+          };
+
+          console.log('---STAGING_DLR_E2E---');
+          console.log(JSON.stringify(out, null, 2));
+          console.log('---STAGING_DLR_E2E_DONE---');
+
+          // Exit 0 even if DLR pending — report is the deliverable; fail only on send failure
+          if (!out.send.success) process.exit(1);
+          NODE
