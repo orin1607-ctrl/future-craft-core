@@ -1,7 +1,7 @@
 {
   "id": "wa-alert-one-way-summary",
-  "at": "2026-07-21T20:30:56.170Z",
+  "at": "2026-07-21T20:33:32.743Z",
   "full_path_ok": false,
-  "error": "No Make execution for Reply-to-alert",
+  "error": "Reply path too slow (13227ms) without Ignore — likely bot path",
   "production_touched": false
 }

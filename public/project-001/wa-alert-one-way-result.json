@@ -1,6 +1,6 @@
 {
   "id": "wa-alert-one-way",
-  "at": "2026-07-21T20:29:35.370Z",
+  "at": "2026-07-21T20:32:53.896Z",
   "env": "staging_only",
   "production_touched": false,
   "new_mechanism": false,
@@ -25,7 +25,7 @@
       "mode": "unwrap_router",
       "bot_modules": 6
     },
-    "data_expr": "{{createJSON(1)}}",
+    "data_expr": "GET qs Message ID (no createJSON)",
     "ids": {
       "lookup": 99,
       "router": 100,
@@ -42,7 +42,8 @@
     "has_gupshup_87": true
   },
   "activate": {
-    "already": true,
+    "already": false,
+    "start_http": 200,
     "http": 200,
     "isActive": true,
     "islinked": true,
@@ -50,8 +51,9 @@
     "hookId": 2567320
   },
   "queue_clear": {
-    "before": 0,
-    "deleted": 0,
+    "before": 1,
+    "deleted": 1,
+    "delete_http": 200,
     "ok": true
   },
   "hook_url_host": "hook.eu2.make.com",
@@ -77,7 +79,29 @@
       "status": 200,
       "body": "Accepted"
     },
-    "log": null
+    "log": {
+      "id": "04c27ba726f84085ab517e3116a5a461",
+      "status": 1,
+      "timestamp": "2026-07-21T20:33:16.015Z",
+      "error": null,
+      "duration": 13227
+    },
+    "log_any": {
+      "id": "04c27ba726f84085ab517e3116a5a461",
+      "status": 1,
+      "timestamp": "2026-07-21T20:33:16.015Z",
+      "error": null,
+      "duration": 13227
+    },
+    "analysis": {
+      "duration_ms": 13227,
+      "hit_lookup": true,
+      "hit_ignore": false,
+      "hit_ai_84": false,
+      "hit_gupshup_87": false,
+      "ignore_module_id": 101,
+      "lookup_module_id": 99
+    }
   },
-  "error": "No Make execution for Reply-to-alert"
+  "error": "Reply path too slow (13227ms) without Ignore — likely bot path"
 }

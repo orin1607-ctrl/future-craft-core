@@ -1,9 +1,11 @@
 {
   "id": "wa-alert-one-way-queue",
-  "armed": true,
+  "armed": false,
   "staging_only": true,
   "production_touched": false,
   "approve_owner": "A",
   "retry": 3,
-  "note": "Re-arm: GET Message ID lookup (no createJSON) + flat reply_gsid alias"
+  "note": "Re-arm: GET Message ID lookup (no createJSON) + flat reply_gsid alias",
+  "completed": true,
+  "at": "2026-07-21T20:33:32.798Z"
 }
