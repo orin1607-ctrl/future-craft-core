@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'Stage-1 done: Sleep 88/77 removed; Gupshup 58 still 400 (diagnose only); E2E OK',
+    latestFocus: 'Bot Active restored — module 58 soft-fixed (Ignore + handleErrors=false); E2E OK',
   };
 
   var STAGES = [
@@ -255,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>Stage-1: הוסרו Sleep 88/77 · אובחן Gupshup 58 (400) · E2E היי→יוני עבר · בלי שינוי AI/Sheets</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../WA-BOT-STAGE1-OPT-HE.md · project-001/wa-bot-stage1-opt-summary.json · מרכז משימה</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>1. קרא דוח Stage-1 2. אשר שלב הבא (תיקון 58 / AI) אם רוצה</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Sleep היה אחרי שליחה — הוסר בבטחה; מסלול 87 עובד; 58 עדיין נכשל ב-400 במסלול משני</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'Make ~5ש׳ במקום ~6.2ש׳; Sleep הוסר; לוגיקת AI ללא שינוי') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>GSC ' + esc(m.gscKeywords) + ' KW · Bot אחרי Stage-1 ~4.9–5.4ש׳ · לפני ~6.2ש׳</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>האם לאשר תיקון/ניתוק Gupshup 58? (לא AI/Cache עדיין · לא Production)</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>תיקון כיבוי בוט: מודול 58 (HTTP 400) עם Ignore + handleErrors=false · E2E×3 · Active נשאר</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../WA-BOT-FIX-ACTIVE-58-HE.md · project-001/wa-bot-fix-active-58-summary.json</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>1. שלח הודעה לבוט 2. ודא שאין התראת «הופסק» 3. אשר תיקון מיפוי 58 רק אם צריך</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>שגיאת 400 ב-58 כבר לא מפילה את התרחיש; מסלול 87 ממשיך לענות</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'בוט היה כבוי → תוקן ונשאר Active אחרי 3 הודעות E2E') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>GSC ' + esc(m.gscKeywords) + ' KW · Bot Active · E2E ~3.7–4.1ש׳</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אופציונלי: תיקון מיפוי הודעה במסלול 58 (לא חובה ל-Active)</div>' +
         '</div>' +
       '</div>'
     );
