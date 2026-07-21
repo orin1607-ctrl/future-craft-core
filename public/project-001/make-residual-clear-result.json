@@ -1,0 +1,27 @@
+{
+  "id": "make-queue-residual-clear",
+  "at": "2026-07-21T13:00:58.917Z",
+  "production_touched": false,
+  "before": {
+    "count": 3,
+    "ids": [
+      "3b7d560cec72a983b7c215a99e39cb88",
+      "5b5f8d3d29b7c330c58ae993d66f2bb1",
+      "fbca15a2fa92f99fbcfd3abd15740749"
+    ]
+  },
+  "delete": {
+    "http": 200,
+    "deleted": [
+      "3b7d560cec72a983b7c215a99e39cb88",
+      "5b5f8d3d29b7c330c58ae993d66f2bb1",
+      "fbca15a2fa92f99fbcfd3abd15740749"
+    ],
+    "ok": true
+  },
+  "after": {
+    "stats_queue": 0,
+    "list_count": 0
+  },
+  "queue_empty": true
+}
