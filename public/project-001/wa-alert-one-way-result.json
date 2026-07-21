@@ -1,6 +1,6 @@
 {
   "id": "wa-alert-one-way",
-  "at": "2026-07-21T20:38:21.721Z",
+  "at": "2026-07-21T20:39:56.007Z",
   "env": "staging_only",
   "production_touched": false,
   "new_mechanism": false,
@@ -23,17 +23,17 @@
     "unwrap": {
       "removed": true,
       "mode": "unwrap_router",
-      "bot_modules": 6
+      "bot_modules": 7
     },
     "data_expr": "GET qs Message ID (Meta context paths)",
     "ids": {
-      "lookup": 99,
-      "router": 100,
-      "ignore": 101,
-      "skip": 101,
-      "continue": 102
+      "lookup": 103,
+      "router": 104,
+      "ignore": 105,
+      "skip": 105,
+      "continue": 106
     },
-    "rest_modules_moved": 6,
+    "rest_modules_moved": 7,
     "patch_http": 200
   },
   "verify_blueprint": {
@@ -162,50 +162,21 @@
       "body": "Accepted"
     },
     "format": "meta+context+flat",
-    "log": {
-      "id": "d31e229cc52340f585552e0a5e32143c",
-      "status": 1,
-      "timestamp": "2026-07-21T20:38:49.708Z",
-      "error": null,
-      "duration": 5594
-    },
+    "log": null,
     "log_any": {
-      "id": "d31e229cc52340f585552e0a5e32143c",
-      "status": 1,
-      "timestamp": "2026-07-21T20:38:49.708Z",
-      "error": null,
-      "duration": 5594
+      "id": "2891d82278104aeda6861b074a206c06",
+      "status": 3,
+      "timestamp": "2026-07-21T20:40:11.083Z",
+      "error": "Cannot initialize the scenario because of the reason 'Scenario validation failed - 4 problem(s) found.'",
+      "duration": 193
     },
-    "analysis": {
-      "duration_ms": 5594,
-      "hit_lookup": true,
-      "hit_skip_noop": true,
-      "hit_ai_84": true,
-      "hit_ai_63": false,
-      "hit_gupshup_87": true,
-      "skip_module_id": 101,
-      "lookup_module_id": 99,
-      "lookup_logs": [
-        {
-          "status": 1,
-          "timestamp": "2026-07-21T20:38:50.965Z",
-          "error": null,
-          "executionId": "d31e229cc52340f585552e0a5e32143c"
-        },
-        {
-          "status": 1,
-          "timestamp": "2026-07-21T20:37:32.066Z",
-          "error": null,
-          "executionId": "528238738b54491c93b491f0c17ec376"
-        },
-        {
-          "status": 1,
-          "timestamp": "2026-07-21T20:37:23.779Z",
-          "error": null,
-          "executionId": "f8e94617a23f49489a9f054978566555"
-        }
-      ]
+    "failed_execution": {
+      "id": "2891d82278104aeda6861b074a206c06",
+      "status": 3,
+      "timestamp": "2026-07-21T20:40:11.083Z",
+      "error": "Cannot initialize the scenario because of the reason 'Scenario validation failed - 4 problem(s) found.'",
+      "duration": 193
     }
   },
-  "error": "Reply-to-alert reached AI — should skip"
+  "error": "Reply execution not success: status=3 error=Cannot initialize the scenario because of the reason 'Scenario validation failed - 4 problem(s) found.'"
 }

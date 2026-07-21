@@ -1,9 +1,11 @@
 {
   "id": "wa-alert-one-way-queue",
-  "armed": true,
+  "armed": false,
   "staging_only": true,
   "production_touched": false,
   "approve_owner": "A",
   "retry": 7,
-  "note": "Re-arm: single-condition filters (no OR that reopens bot on empty data.*)"
+  "note": "Re-arm: single-condition filters (no OR that reopens bot on empty data.*)",
+  "completed": true,
+  "at": "2026-07-21T20:41:04.239Z"
 }
