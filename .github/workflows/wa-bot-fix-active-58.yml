@@ -1,0 +1,37 @@
+name: Whatsapp Bot fix Active after module 58 errors
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/wa-bot-fix-active-58.mjs'
+      - 'public/project-001/wa-bot-fix-active-58-queue.json'
+      - '.github/workflows/wa-bot-fix-active-58.yml'
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  fix58:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Diagnose + soft-fix module 58 + E2E
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+        run: node scripts/wa-bot-fix-active-58.mjs
+      - name: Commit results
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ls -la public/project-001/wa-bot-fix-active-58*.json || true
+          git add -f public/project-001/wa-bot-fix-active-58-result.json || true
+          git add -f public/project-001/wa-bot-fix-active-58-summary.json || true
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git pull --rebase origin main || true
+          git commit -m "ci: WA Bot soft-fix module 58 — keep Active (Staging)"
+          git push
