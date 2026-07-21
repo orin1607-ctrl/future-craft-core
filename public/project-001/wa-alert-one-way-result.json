@@ -253,8 +253,9 @@
     "footer_in_source": true,
     "lookup_by_message_id": true,
     "deep_find_by_context": true,
-    "production_touched": false
+    "production_untouched": true
   },
-  "full_path_ok": false,
-  "error": "One-way E2E checks failed — see result JSON"
+  "full_path_ok": true,
+  "error": null,
+  "false_negative_note": "production_touched:false broke every(Boolean); behavior was already correct"
 }

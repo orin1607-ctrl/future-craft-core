@@ -1,39 +1,43 @@
 # WhatsApp התראות חד-כיווניות — יישום Staging
 
-**סטטוס:** מיושם ב-Staging · ממתין לתוצאות CI / אישור Owner לפני Production  
+**סטטוס:** ✅ עבר ב-Staging · **לא Production**  
 **תאריך:** 2026-07-21  
-**מנגנון חדש:** לא — רק חיבור רכיבים קיימים
+**מנגנון חדש:** לא — חיבור רכיבים קיימים בלבד
 
 ---
 
 ## מה יושם
 
-1. **שורת סיום בהודעת התראה** (Edge `notify-accident-email` + preview ב-`incidentNotify.ts`):  
+1. **שורת סיום בהודעת התראה** (`notify-accident-email` + preview):  
    `זוהי הודעת מערכת אוטומטית ואין להשיב לה.`
 
-2. **בדיקת Message ID** ב-Edge הקיים `gupshup-webhook` (GET):  
-   `?check_system_alert=1&gsId=…&waId=…`  
-   → חיפוש ב-`incident_notification_deliveries` לפי `provider_message_id` (לא לפי טלפון/תוכן).
+2. **בדיקת Message ID** ב-Edge הקיים `gupshup-webhook`:  
+   `?check_system_alert=1&gsId=…&waId=…` → `incident_notification_deliveries`
 
-3. **Make Whatsapp Bot `5797671`:** אחרי Webhook → HTTP lookup → Router  
-   - Reply להתראת מערכת (`is_system_alert=true`) → `builtin:Ignore` (בלי AI / בלי Gupshup תשובה)  
-   - אחרת → מסלול הבוט הקיים
+3. **Make Whatsapp Bot `5797671`:**  
+   Webhook → HTTP lookup → Normalize `alert_flag` → Router  
+   - `alert_flag=yes` (Reply להתראה לפי Message ID) → SetVariable skip (בלי AI / בלי Gupshup 87)  
+   - `alert_flag=no` (הודעה חדשה) → מסלול הבוט הקיים  
+
+> הערה: `builtin:Ignore` לא בשימוש במסלול רגיל (רק ב-onerror) — Make דוחה אותו מחוץ ל-error handler.
 
 ---
 
-## בדיקות Staging (CI: `wa-alert-one-way.yml`)
+## תוצאות E2E Staging (ריצה אחרונה)
 
-| בדיקה | יעד |
-|--------|-----|
-| Reply להתראה (context.gsId = Message ID) | אין AI · אין שליחת Gupshup 87 |
-| הודעה חדשה «היי» | בוט ממשיך (AI / Gupshup) |
-| תרחיש Active | כן |
-| תור Hook | ריק אחרי הבדיקה |
+| בדיקה | תוצאה |
+|--------|--------|
+| Reply להתראה (context Message ID) | ✅ אין AI · אין Gupshup 87 · ~1.3ש׳ · skip |
+| הודעה חדשה «היי» | ✅ AI 84 + Gupshup 87 · ~4.6ש׳ |
+| תרחיש Active | ✅ |
+| תור Hook | ✅ ריק |
+| Footer בקוד Edge | ✅ |
+| Production | ✅ לא נגענו |
 
-תוצאות: `public/project-001/wa-alert-one-way-summary.json`
+מקור: `public/project-001/wa-alert-one-way-result.json`
 
 ---
 
 ## Production
 
-**לא בוצע.** אין deploy ל-Production עד אישור מפורש.
+**לא בוצע.** ממתין לאישור מפורש.

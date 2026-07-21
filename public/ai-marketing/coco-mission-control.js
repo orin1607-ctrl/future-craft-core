@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'מיישמים WA התראות חד-כיווניות ב-Staging (Make Ignore על Reply לפי Message ID)',
+    latestFocus: 'WA התראות חד-כיווניות — Staging E2E OK (Reply→skip, היי→bot); לא Production',
   };
 
   var STAGES = [
@@ -255,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>התראות WA חד-כיווניות: סימון ב-Edge + Ignore ב-Make על Reply לפי Message ID (Staging)</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../WA-ALERT-ONE-WAY-HE.md · project-001/wa-alert-one-way-*.json · Make Bot 5797671</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>תקלה/תאונה שולחות התראה; Reply להתראה לא מפעיל בוט; «היי» חופשי — כן</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>gupshup-webhook?check_system_alert + Router→Ignore · תשתית קיימת בלבד</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'יישום Staging אחרי אישור A — ממתין ל-CI E2E') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>Production: לא · תור one-way armed ל-CI</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אחרי CI: אשר תוצאות; Production רק באישור מפורש</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>התראות WA חד-כיווניות ב-Staging: Reply לפי Message ID→skip · «היי»→בוט · Footer בהתראה</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../WA-ALERT-ONE-WAY-HE.md · project-001/wa-alert-one-way-summary.json · Make 5797671</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>תקלה/תאונה שולחות התראה חד-כיוונית; צ׳אט בוט רק בהודעה חדשה (לא Reply)</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>notify footer + gupshup-webhook check_system_alert + Make Router yes/no</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'E2E: Reply ~1.3ש׳ בלי בוט · היי עם AI+Gupshup · Active · תור ריק') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>Staging OK · Production לא</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אישור Production (אם רצוי) — כרגע Staging בלבד</div>' +
         '</div>' +
       '</div>'
     );

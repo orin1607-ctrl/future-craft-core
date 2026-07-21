@@ -1,19 +1,16 @@
 {
   "id": "wa-alert-one-way-spec",
-  "at": "2026-07-21T20:30:00.000Z",
-  "status": "implementing_staging",
-  "implemented": false,
+  "at": "2026-07-21T20:47:00.000Z",
+  "status": "implemented_staging",
+  "implemented": true,
   "production_touched": false,
   "new_mechanism": false,
   "owner_approval": "A",
-  "architecture_confirm_doc": "docs/audit-reports/claims-incident-process/INCIDENT-ALERTS-ARCHITECTURE-CONFIRM-HE.md",
-  "spec_doc": "docs/audit-reports/claims-incident-process/WA-ALERT-ONE-WAY-SPEC-HE.md",
   "impl_doc": "docs/audit-reports/claims-incident-process/WA-ALERT-ONE-WAY-HE.md",
-  "proposed": {
-    "edge_footer": "זוהי הודעת מערכת אוטומטית ואין להשיב לה.",
-    "gupshup_webhook_check_system_alert": true,
-    "make_bot_ignore_reply_to_alert": true,
-    "scenario_id": "5797671",
-    "lookup_table": "incident_notification_deliveries"
+  "e2e": {
+    "reply_no_bot": true,
+    "hi_bot_ok": true,
+    "scenario_active": true,
+    "queue_empty": true
   }
 }

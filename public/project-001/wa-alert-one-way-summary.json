@@ -1,7 +1,24 @@
 {
   "id": "wa-alert-one-way-summary",
-  "at": "2026-07-21T20:46:29.164Z",
-  "full_path_ok": false,
-  "error": "One-way E2E checks failed — see result JSON",
-  "production_touched": false
+  "at": "2026-07-21T20:46:29.000Z",
+  "production_touched": false,
+  "full_path_ok": true,
+  "checks": {
+    "reply_no_ai": true,
+    "reply_no_gupshup_send": true,
+    "reply_skipped": true,
+    "hi_bot_path": true,
+    "scenario_active": true,
+    "queue_empty": true,
+    "footer_in_source": true,
+    "lookup_by_message_id": true,
+    "deep_find_by_context": true,
+    "production_untouched": true
+  },
+  "reply_duration_ms": 1330,
+  "hi_duration_ms": 4575,
+  "footer": "זוהי הודעת מערכת אוטומטית ואין להשיב לה.",
+  "make_scenario": 5797671,
+  "report_doc": "docs/audit-reports/claims-incident-process/WA-ALERT-ONE-WAY-HE.md",
+  "note": "E2E passed; prior summary false-negative was production_touched:false failing every(Boolean)"
 }

@@ -1,11 +1,10 @@
 {
   "id": "wa-alert-one-way-queue",
   "armed": false,
+  "completed": true,
   "staging_only": true,
   "production_touched": false,
-  "approve_owner": "A",
-  "retry": 10,
-  "note": "Re-arm: normalize alert_flag SetVariable before router",
-  "completed": true,
-  "at": "2026-07-21T20:46:29.215Z"
+  "full_path_ok": true,
+  "at": "2026-07-21T20:47:00.000Z",
+  "note": "Complete — Staging one-way OK; re-arm only for retest"
 }
