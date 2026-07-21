@@ -1,6 +1,6 @@
 {
   "id": "wa-alert-one-way",
-  "at": "2026-07-21T20:39:56.007Z",
+  "at": "2026-07-21T20:42:35.174Z",
   "env": "staging_only",
   "production_touched": false,
   "new_mechanism": false,
@@ -23,18 +23,23 @@
     "unwrap": {
       "removed": true,
       "mode": "unwrap_router",
-      "bot_modules": 7
+      "bot_modules": 8
     },
     "data_expr": "GET qs Message ID (Meta context paths)",
     "ids": {
-      "lookup": 103,
-      "router": 104,
-      "ignore": 105,
-      "skip": 105,
-      "continue": 106
+      "lookup": 107,
+      "router": 108,
+      "ignore": 109,
+      "skip": 109,
+      "continue": 110
     },
-    "rest_modules_moved": 7,
-    "patch_http": 200
+    "rest_modules_moved": 8,
+    "patch_http": 200,
+    "patch_error": null,
+    "validate_start": {
+      "http": 200,
+      "error": null
+    }
   },
   "verify_blueprint": {
     "has_ignore_marker": true,
@@ -134,8 +139,9 @@
     "hookId": 2567320
   },
   "queue_clear": {
-    "before": 0,
-    "deleted": 0,
+    "before": 1,
+    "deleted": 1,
+    "delete_http": 200,
     "ok": true
   },
   "hook_url_host": "hook.eu2.make.com",
@@ -164,19 +170,19 @@
     "format": "meta+context+flat",
     "log": null,
     "log_any": {
-      "id": "2891d82278104aeda6861b074a206c06",
+      "id": "d9b631108a0247e281565aff86c2e8c5",
       "status": 3,
-      "timestamp": "2026-07-21T20:40:11.083Z",
-      "error": "Cannot initialize the scenario because of the reason 'Scenario validation failed - 4 problem(s) found.'",
-      "duration": 193
+      "timestamp": "2026-07-21T20:42:49.908Z",
+      "error": "Cannot initialize the scenario because of the reason 'Scenario validation failed - 5 problem(s) found.'",
+      "duration": 204
     },
     "failed_execution": {
-      "id": "2891d82278104aeda6861b074a206c06",
+      "id": "d9b631108a0247e281565aff86c2e8c5",
       "status": 3,
-      "timestamp": "2026-07-21T20:40:11.083Z",
-      "error": "Cannot initialize the scenario because of the reason 'Scenario validation failed - 4 problem(s) found.'",
-      "duration": 193
+      "timestamp": "2026-07-21T20:42:49.908Z",
+      "error": "Cannot initialize the scenario because of the reason 'Scenario validation failed - 5 problem(s) found.'",
+      "duration": 204
     }
   },
-  "error": "Reply execution not success: status=3 error=Cannot initialize the scenario because of the reason 'Scenario validation failed - 4 problem(s) found.'"
+  "error": "Reply execution not success: status=3 error=Cannot initialize the scenario because of the reason 'Scenario validation failed - 5 problem(s) found.'"
 }

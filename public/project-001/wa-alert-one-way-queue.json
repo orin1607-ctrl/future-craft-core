@@ -1,9 +1,11 @@
 {
   "id": "wa-alert-one-way-queue",
-  "armed": true,
+  "armed": false,
   "staging_only": true,
   "production_touched": false,
   "approve_owner": "A",
   "retry": 8,
-  "note": "Re-arm: bot route filter flag=no (text:equal only — notequal invalidates scenario)"
+  "note": "Re-arm: bot route filter flag=no (text:equal only — notequal invalidates scenario)",
+  "completed": true,
+  "at": "2026-07-21T20:43:42.986Z"
 }
