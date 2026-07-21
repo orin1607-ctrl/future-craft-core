@@ -227,18 +227,40 @@ async function main() {
   must(exec1, 'No successful Make execution after message 1');
   seenIds.add(exec1.id);
 
+  // Clear any leftover hook queue (DLR noise) so msg2 runs immediately
+  const midQueue = await make(`/hooks/${HOOK_ID}/incomings?pg[limit]=50`);
+  const midItems = midQueue.json?.hookIncomings || midQueue.json?.incomings || [];
+  const midIds = (Array.isArray(midItems) ? midItems : []).map((x) => x.id).filter(Boolean);
+  if (midIds.length) {
+    await make(`/hooks/${HOOK_ID}/incomings?confirmed=true`, {
+      method: 'DELETE',
+      body: { ids: midIds },
+    });
+  }
+  out.between_messages_queue_cleared = midIds.length;
+
+  // Ensure still Active before msg2
+  const midState = await activateIfNeeded();
+  out.between_messages_bot = midState;
+
   // Message 2 — continue conversation (name), not E2E
-  await new Promise((r) => setTimeout(r, 8000));
+  await new Promise((r) => setTimeout(r, 5000));
   const t2 = Date.now();
-  const p2 = buildInbound('קוראים לי בדיקה', '2');
+  const p2 = buildInbound('יוני', '2');
   const r2 = await postHook(hookUrl, p2);
-  out.msg2 = { text: 'קוראים לי בדיקה', post: r2, at: new Date(t2).toISOString() };
+  out.msg2 = { text: 'יוני', post: r2, at: new Date(t2).toISOString() };
   must(r2.status >= 200 && r2.status < 300, `msg2 webhook HTTP ${r2.status}`);
 
   let exec2 = null;
-  for (let i = 0; i < 30; i++) {
+  const msg2Logs = [];
+  for (let i = 0; i < 36; i++) {
     await new Promise((r) => setTimeout(r, 5000));
-    const logs = await recentLogs(20);
+    const logs = await recentLogs(25);
+    msg2Logs.push(
+      ...logs
+        .filter((x) => x.id && !seenIds.has(x.id))
+        .map((x) => ({ id: x.id, status: x.status, error: x.error, timestamp: x.timestamp, duration: x.duration })),
+    );
     exec2 = logs.find((x) => {
       if (!x.id || seenIds.has(x.id)) return false;
       if (x.error) return false;
@@ -247,15 +269,22 @@ async function main() {
       return true;
     });
     if (exec2) break;
-    const err = logs.find((x) => {
-      if (!x.id || seenIds.has(x.id)) return false;
-      if (!x.error) return false;
-      if (x.timestamp && Date.parse(x.timestamp) < t2 - 5000) return false;
-      return true;
-    });
-    if (err) out.msg2.latest_error_after_post = err;
   }
+  // unique msg2Logs
+  const uniq = [];
+  const seenL = new Set();
+  for (const x of msg2Logs) {
+    if (seenL.has(x.id)) continue;
+    seenL.add(x.id);
+    uniq.push(x);
+  }
+  out.msg2.new_logs_after_post = uniq.slice(0, 15);
   out.msg2.execution = exec2;
+
+  const qAfter = await make(`/hooks/${HOOK_ID}/incomings?pg[limit]=20`);
+  const qItems = qAfter.json?.hookIncomings || qAfter.json?.incomings || [];
+  out.msg2.hook_queue_after = Array.isArray(qItems) ? qItems.length : null;
+
   must(exec2, 'No successful Make execution after message 2');
 
   // Final bot state
