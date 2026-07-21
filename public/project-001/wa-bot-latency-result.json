@@ -1,6 +1,6 @@
 {
   "id": "wa-bot-latency",
-  "at": "2026-07-21T16:11:34.514Z",
+  "at": "2026-07-21T16:18:49.016Z",
   "env": "staging_make_only",
   "production_touched": false,
   "logic_unchanged": true,
@@ -22,6 +22,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": []
     },
@@ -41,6 +42,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "name",
@@ -64,6 +66,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "from",
@@ -94,6 +97,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "name",
@@ -117,6 +121,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "name",
@@ -140,6 +145,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "name",
@@ -163,6 +169,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": []
     },
@@ -182,6 +189,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "from",
@@ -210,6 +218,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "agent",
@@ -236,6 +245,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "name",
@@ -259,6 +269,7 @@
         "feeder": true,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "array"
@@ -280,6 +291,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "name",
@@ -303,6 +315,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "name",
@@ -326,6 +339,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "from",
@@ -354,6 +368,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "ca",
@@ -393,11 +408,11 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": 1,
       "sleep_ms_configured": 1000,
       "mapper_keys": [
         "duration"
-      ],
-      "sleep_seconds_configured": 1
+      ]
     },
     {
       "id": 83,
@@ -415,6 +430,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "from",
@@ -444,6 +460,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "agent",
@@ -470,6 +487,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "name",
@@ -493,6 +511,7 @@
         "feeder": true,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "array"
@@ -514,6 +533,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "name",
@@ -537,6 +557,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "name",
@@ -560,6 +581,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "from",
@@ -588,6 +610,7 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": null,
       "sleep_ms_configured": null,
       "mapper_keys": [
         "ca",
@@ -627,11 +650,11 @@
         "feeder": false,
         "retry": false
       },
+      "sleep_seconds_configured": 1,
       "sleep_ms_configured": 1000,
       "mapper_keys": [
         "duration"
-      ],
-      "sleep_seconds_configured": 1
+      ]
     }
   ],
   "static_findings": {
@@ -652,11 +675,11 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": 1,
         "sleep_ms_configured": 1000,
         "mapper_keys": [
           "duration"
-        ],
-        "sleep_seconds_configured": 1
+        ]
       },
       {
         "id": 77,
@@ -674,11 +697,11 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": 1,
         "sleep_ms_configured": 1000,
         "mapper_keys": [
           "duration"
-        ],
-        "sleep_seconds_configured": 1
+        ]
       }
     ],
     "ai_modules": [
@@ -698,6 +721,7 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "agent",
@@ -724,6 +748,7 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "agent",
@@ -752,6 +777,7 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "ca",
@@ -791,6 +817,7 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "ca",
@@ -833,6 +860,7 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "from",
@@ -863,6 +891,7 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "from",
@@ -891,6 +920,7 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "from",
@@ -919,6 +949,7 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "from",
@@ -948,6 +979,7 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "from",
@@ -978,6 +1010,7 @@
           "feeder": false,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": []
       },
@@ -997,6 +1030,7 @@
           "feeder": true,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "array"
@@ -1018,13 +1052,17 @@
           "feeder": true,
           "retry": false
         },
+        "sleep_seconds_configured": null,
         "sleep_ms_configured": null,
         "mapper_keys": [
           "array"
         ]
       }
     ],
+    "sleep_unit": "seconds (Make Tools Sleep; duration:1 = 1000ms)",
+    "total_configured_sleep_seconds": 2,
     "total_configured_sleep_ms": 2000,
+    "note_sleep_after_send": "Sleep modules 88/77 sit AFTER Gupshup send on their routes — they do not delay that WhatsApp reply, but extend scenario duration and can delay the next queued run",
     "scenario_metadata": {
       "instant": true,
       "version": 1,
@@ -1131,10 +1169,7 @@
         "freshVariables": false,
         "autoCommitTriggerLast": true
       }
-    },
-    "sleep_unit": "seconds (Make Tools Sleep; duration:1 = 1000ms)",
-    "total_configured_sleep_seconds": 2,
-    "note_sleep_after_send": "Sleep modules 88/77 sit AFTER Gupshup send — do not delay that WhatsApp reply; extend scenario ~1s and can delay next queued run"
+    }
   },
   "recent_executions": [
     {
@@ -1642,6 +1677,7 @@
           "status": 3,
           "timestamp": "2026-07-21T16:05:48.107Z",
           "duration_ms": null,
+          "executionId": "8fa603d639db4d4db5f39dfa19287ca5",
           "error": "Error: 400 Bad Request",
           "keys": [
             "imtId",
@@ -1660,6 +1696,7 @@
           "status": 3,
           "timestamp": "2026-07-21T16:05:26.094Z",
           "duration_ms": null,
+          "executionId": "60470f47574f43049a79e088d72c06ed",
           "error": "Error: 400 Bad Request",
           "keys": [
             "imtId",
@@ -1678,6 +1715,7 @@
           "status": 3,
           "timestamp": "2026-07-21T16:05:24.026Z",
           "duration_ms": null,
+          "executionId": "8b6068ae88544949a49e7c1b4f8b3deb",
           "error": "Error: 400 Bad Request",
           "keys": [
             "imtId",
@@ -1696,6 +1734,7 @@
           "status": 3,
           "timestamp": "2026-07-21T16:05:22.993Z",
           "duration_ms": null,
+          "executionId": "a72dabe30e854864a1a8248aa30dda58",
           "error": "Error: 400 Bad Request",
           "keys": [
             "imtId",
@@ -1714,6 +1753,64 @@
           "status": 3,
           "timestamp": "2026-07-21T16:05:22.654Z",
           "duration_ms": null,
+          "executionId": "165a7b7bf3fe4a57b391c879b651333c",
+          "error": "Error: 400 Bad Request",
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "error",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 3,
+          "timestamp": "2026-07-21T16:05:22.213Z",
+          "duration_ms": null,
+          "executionId": "2e7f910a10a7497fa7ad78e9fdc45f48",
+          "error": "Error: 400 Bad Request",
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "error",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 3,
+          "timestamp": "2026-07-21T16:05:22.031Z",
+          "duration_ms": null,
+          "executionId": "ea2d9b4583fd49839b6b5999d4bba0ce",
+          "error": "Error: 400 Bad Request",
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "error",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 3,
+          "timestamp": "2026-07-21T16:05:21.939Z",
+          "duration_ms": null,
+          "executionId": "32df62ed0d3741769fdabb6b402b688d",
           "error": "Error: 400 Bad Request",
           "keys": [
             "imtId",
@@ -1738,6 +1835,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:47.248Z",
           "duration_ms": null,
+          "executionId": "8fa603d639db4d4db5f39dfa19287ca5",
           "error": null,
           "keys": [
             "imtId",
@@ -1755,6 +1853,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:25.366Z",
           "duration_ms": null,
+          "executionId": "60470f47574f43049a79e088d72c06ed",
           "error": null,
           "keys": [
             "imtId",
@@ -1772,6 +1871,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:23.329Z",
           "duration_ms": null,
+          "executionId": "8b6068ae88544949a49e7c1b4f8b3deb",
           "error": null,
           "keys": [
             "imtId",
@@ -1789,6 +1889,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:22.252Z",
           "duration_ms": null,
+          "executionId": "a72dabe30e854864a1a8248aa30dda58",
           "error": null,
           "keys": [
             "imtId",
@@ -1806,6 +1907,61 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:21.904Z",
           "duration_ms": null,
+          "executionId": "165a7b7bf3fe4a57b391c879b651333c",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.496Z",
+          "duration_ms": null,
+          "executionId": "2e7f910a10a7497fa7ad78e9fdc45f48",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.257Z",
+          "duration_ms": null,
+          "executionId": "ea2d9b4583fd49839b6b5999d4bba0ce",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.181Z",
+          "duration_ms": null,
+          "executionId": "32df62ed0d3741769fdabb6b402b688d",
           "error": null,
           "keys": [
             "imtId",
@@ -1834,6 +1990,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:44.329Z",
           "duration_ms": null,
+          "executionId": "8fa603d639db4d4db5f39dfa19287ca5",
           "error": null,
           "keys": [
             "imtId",
@@ -1851,6 +2008,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:37.084Z",
           "duration_ms": null,
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b",
           "error": null,
           "keys": [
             "imtId",
@@ -1868,6 +2026,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:17.831Z",
           "duration_ms": null,
+          "executionId": "68d2d34459e94f13a9a97ef1478bd157",
           "error": null,
           "keys": [
             "imtId",
@@ -1885,6 +2044,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:17.829Z",
           "duration_ms": null,
+          "executionId": "60b9df2aeb984d839c371acc31c6d1fd",
           "error": null,
           "keys": [
             "imtId",
@@ -1902,6 +2062,61 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:17.826Z",
           "duration_ms": null,
+          "executionId": "778c59f5d68f4c8cb906cb7bf812f6da",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:17.630Z",
+          "duration_ms": null,
+          "executionId": "7615953a8929417587069fdd17a5c8cd",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:17.626Z",
+          "duration_ms": null,
+          "executionId": "ea2d9b4583fd49839b6b5999d4bba0ce",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:17.604Z",
+          "duration_ms": null,
+          "executionId": "a72dabe30e854864a1a8248aa30dda58",
           "error": null,
           "keys": [
             "imtId",
@@ -1925,6 +2140,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:37.374Z",
           "duration_ms": null,
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b",
           "error": null,
           "keys": [
             "imtId",
@@ -1942,6 +2158,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:19.218Z",
           "duration_ms": null,
+          "executionId": "60b9df2aeb984d839c371acc31c6d1fd",
           "error": null,
           "keys": [
             "imtId",
@@ -1959,6 +2176,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:19.211Z",
           "duration_ms": null,
+          "executionId": "778c59f5d68f4c8cb906cb7bf812f6da",
           "error": null,
           "keys": [
             "imtId",
@@ -1976,6 +2194,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:19.052Z",
           "duration_ms": null,
+          "executionId": "68d2d34459e94f13a9a97ef1478bd157",
           "error": null,
           "keys": [
             "imtId",
@@ -1993,6 +2212,61 @@
           "status": 1,
           "timestamp": "2026-07-21T16:01:11.793Z",
           "duration_ms": null,
+          "executionId": "a6917f0e7d3b4aefa9d1ae166fddfb33",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:01:10.885Z",
+          "duration_ms": null,
+          "executionId": "7f220661c9614d82acbbd84ecb12e4a9",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T15:59:36.128Z",
+          "duration_ms": null,
+          "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T15:59:36.079Z",
+          "duration_ms": null,
+          "executionId": "d084d7175d5843fa86032e0c1dc853f4",
           "error": null,
           "keys": [
             "imtId",
@@ -2016,6 +2290,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:45.335Z",
           "duration_ms": null,
+          "executionId": "8fa603d639db4d4db5f39dfa19287ca5",
           "error": null,
           "keys": [
             "imtId",
@@ -2033,6 +2308,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:19.293Z",
           "duration_ms": null,
+          "executionId": "2e7f910a10a7497fa7ad78e9fdc45f48",
           "error": null,
           "keys": [
             "imtId",
@@ -2050,6 +2326,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:18.987Z",
           "duration_ms": null,
+          "executionId": "7615953a8929417587069fdd17a5c8cd",
           "error": null,
           "keys": [
             "imtId",
@@ -2067,6 +2344,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:18.899Z",
           "duration_ms": null,
+          "executionId": "a72dabe30e854864a1a8248aa30dda58",
           "error": null,
           "keys": [
             "imtId",
@@ -2084,6 +2362,61 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:18.535Z",
           "duration_ms": null,
+          "executionId": "ea2d9b4583fd49839b6b5999d4bba0ce",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:18.450Z",
+          "duration_ms": null,
+          "executionId": "8b6068ae88544949a49e7c1b4f8b3deb",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:18.106Z",
+          "duration_ms": null,
+          "executionId": "60470f47574f43049a79e088d72c06ed",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:17.954Z",
+          "duration_ms": null,
+          "executionId": "32df62ed0d3741769fdabb6b402b688d",
           "error": null,
           "keys": [
             "imtId",
@@ -2107,6 +2440,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:39.298Z",
           "duration_ms": null,
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b",
           "error": null,
           "keys": [
             "imtId",
@@ -2124,6 +2458,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:21.924Z",
           "duration_ms": null,
+          "executionId": "68d2d34459e94f13a9a97ef1478bd157",
           "error": null,
           "keys": [
             "imtId",
@@ -2141,6 +2476,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:21.858Z",
           "duration_ms": null,
+          "executionId": "60b9df2aeb984d839c371acc31c6d1fd",
           "error": null,
           "keys": [
             "imtId",
@@ -2158,6 +2494,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:21.254Z",
           "duration_ms": null,
+          "executionId": "778c59f5d68f4c8cb906cb7bf812f6da",
           "error": null,
           "keys": [
             "imtId",
@@ -2175,6 +2512,61 @@
           "status": 1,
           "timestamp": "2026-07-21T16:01:15.386Z",
           "duration_ms": null,
+          "executionId": "a6917f0e7d3b4aefa9d1ae166fddfb33",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:01:14.624Z",
+          "duration_ms": null,
+          "executionId": "7f220661c9614d82acbbd84ecb12e4a9",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T15:59:39.512Z",
+          "duration_ms": null,
+          "executionId": "d084d7175d5843fa86032e0c1dc853f4",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T15:59:38.731Z",
+          "duration_ms": null,
+          "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d",
           "error": null,
           "keys": [
             "imtId",
@@ -2198,6 +2590,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:40.050Z",
           "duration_ms": null,
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b",
           "error": null,
           "keys": [
             "imtId",
@@ -2215,6 +2608,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:22.713Z",
           "duration_ms": null,
+          "executionId": "68d2d34459e94f13a9a97ef1478bd157",
           "error": null,
           "keys": [
             "imtId",
@@ -2232,6 +2626,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:22.614Z",
           "duration_ms": null,
+          "executionId": "60b9df2aeb984d839c371acc31c6d1fd",
           "error": null,
           "keys": [
             "imtId",
@@ -2249,6 +2644,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:22.012Z",
           "duration_ms": null,
+          "executionId": "778c59f5d68f4c8cb906cb7bf812f6da",
           "error": null,
           "keys": [
             "imtId",
@@ -2266,6 +2662,61 @@
           "status": 1,
           "timestamp": "2026-07-21T16:01:16.163Z",
           "duration_ms": null,
+          "executionId": "a6917f0e7d3b4aefa9d1ae166fddfb33",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:01:15.536Z",
+          "duration_ms": null,
+          "executionId": "7f220661c9614d82acbbd84ecb12e4a9",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T15:59:40.249Z",
+          "duration_ms": null,
+          "executionId": "d084d7175d5843fa86032e0c1dc853f4",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T15:59:39.506Z",
+          "duration_ms": null,
+          "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d",
           "error": null,
           "keys": [
             "imtId",
@@ -2289,6 +2740,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:41.053Z",
           "duration_ms": null,
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b",
           "error": null,
           "keys": [
             "imtId",
@@ -2306,6 +2758,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:23.716Z",
           "duration_ms": null,
+          "executionId": "68d2d34459e94f13a9a97ef1478bd157",
           "error": null,
           "keys": [
             "imtId",
@@ -2323,6 +2776,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:23.616Z",
           "duration_ms": null,
+          "executionId": "60b9df2aeb984d839c371acc31c6d1fd",
           "error": null,
           "keys": [
             "imtId",
@@ -2340,6 +2794,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:23.014Z",
           "duration_ms": null,
+          "executionId": "778c59f5d68f4c8cb906cb7bf812f6da",
           "error": null,
           "keys": [
             "imtId",
@@ -2357,6 +2812,61 @@
           "status": 1,
           "timestamp": "2026-07-21T16:01:17.167Z",
           "duration_ms": null,
+          "executionId": "a6917f0e7d3b4aefa9d1ae166fddfb33",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:01:16.539Z",
+          "duration_ms": null,
+          "executionId": "7f220661c9614d82acbbd84ecb12e4a9",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T15:59:41.251Z",
+          "duration_ms": null,
+          "executionId": "d084d7175d5843fa86032e0c1dc853f4",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T15:59:40.509Z",
+          "duration_ms": null,
+          "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d",
           "error": null,
           "keys": [
             "imtId",
@@ -2380,6 +2890,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:47.627Z",
           "duration_ms": null,
+          "executionId": "8fa603d639db4d4db5f39dfa19287ca5",
           "error": null,
           "keys": [
             "imtId",
@@ -2397,6 +2908,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:25.630Z",
           "duration_ms": null,
+          "executionId": "60470f47574f43049a79e088d72c06ed",
           "error": null,
           "keys": [
             "imtId",
@@ -2414,6 +2926,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:23.570Z",
           "duration_ms": null,
+          "executionId": "8b6068ae88544949a49e7c1b4f8b3deb",
           "error": null,
           "keys": [
             "imtId",
@@ -2431,6 +2944,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:22.515Z",
           "duration_ms": null,
+          "executionId": "a72dabe30e854864a1a8248aa30dda58",
           "error": null,
           "keys": [
             "imtId",
@@ -2448,6 +2962,61 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:22.179Z",
           "duration_ms": null,
+          "executionId": "165a7b7bf3fe4a57b391c879b651333c",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.749Z",
+          "duration_ms": null,
+          "executionId": "2e7f910a10a7497fa7ad78e9fdc45f48",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.566Z",
+          "duration_ms": null,
+          "executionId": "ea2d9b4583fd49839b6b5999d4bba0ce",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:21.441Z",
+          "duration_ms": null,
+          "executionId": "32df62ed0d3741769fdabb6b402b688d",
           "error": null,
           "keys": [
             "imtId",
@@ -2471,6 +3040,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:39.572Z",
           "duration_ms": null,
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b",
           "error": null,
           "keys": [
             "imtId",
@@ -2488,6 +3058,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:22.237Z",
           "duration_ms": null,
+          "executionId": "68d2d34459e94f13a9a97ef1478bd157",
           "error": null,
           "keys": [
             "imtId",
@@ -2505,6 +3076,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:22.138Z",
           "duration_ms": null,
+          "executionId": "60b9df2aeb984d839c371acc31c6d1fd",
           "error": null,
           "keys": [
             "imtId",
@@ -2522,6 +3094,7 @@
           "status": 1,
           "timestamp": "2026-07-21T16:05:21.523Z",
           "duration_ms": null,
+          "executionId": "778c59f5d68f4c8cb906cb7bf812f6da",
           "error": null,
           "keys": [
             "imtId",
@@ -2539,6 +3112,61 @@
           "status": 1,
           "timestamp": "2026-07-21T16:01:15.677Z",
           "duration_ms": null,
+          "executionId": "a6917f0e7d3b4aefa9d1ae166fddfb33",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:01:15.012Z",
+          "duration_ms": null,
+          "executionId": "7f220661c9614d82acbbd84ecb12e4a9",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T15:59:39.768Z",
+          "duration_ms": null,
+          "executionId": "d084d7175d5843fa86032e0c1dc853f4",
+          "error": null,
+          "keys": [
+            "imtId",
+            "timestamp",
+            "status",
+            "size",
+            "bundles",
+            "scenarioId",
+            "executionId",
+            "organizationId",
+            "teamId"
+          ]
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T15:59:39.029Z",
+          "duration_ms": null,
+          "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d",
           "error": null,
           "keys": [
             "imtId",
@@ -2555,12 +3183,419 @@
       ]
     }
   },
-  "live_probe": {
-    "webhook_http": 200,
-    "webhook_accept_ms": 297,
-    "execution": null,
-    "wall_clock_inbound_to_success_ms": null,
-    "note": "Wall clock ≈ webhook accept + Make run until success log visible (reply send is inside duration_ms)"
+  "reconstructed_timelines": [
+    {
+      "cluster_index": 0,
+      "start": "2026-07-21T15:59:36.079Z",
+      "span_ms": 5172,
+      "event_count": 10,
+      "stages": [
+        {
+          "module_id": 82,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 0,
+          "gap_from_prev_ms": 0,
+          "timestamp": "2026-07-21T15:59:36.079Z",
+          "executionId": "d084d7175d5843fa86032e0c1dc853f4"
+        },
+        {
+          "module_id": 84,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 2652,
+          "gap_from_prev_ms": 2652,
+          "timestamp": "2026-07-21T15:59:38.731Z",
+          "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d"
+        },
+        {
+          "module_id": 92,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 2950,
+          "gap_from_prev_ms": 298,
+          "timestamp": "2026-07-21T15:59:39.029Z",
+          "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d"
+        },
+        {
+          "module_id": 87,
+          "module": "http:ActionSendData",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3427,
+          "gap_from_prev_ms": 477,
+          "timestamp": "2026-07-21T15:59:39.506Z",
+          "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d"
+        },
+        {
+          "module_id": 88,
+          "module": "util:FunctionSleep",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 4430,
+          "gap_from_prev_ms": 1003,
+          "timestamp": "2026-07-21T15:59:40.509Z",
+          "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d"
+        }
+      ],
+      "estimated_ms": {
+        "ai_agent_gaps_sum": 2652,
+        "sleep_gaps_sum": 1003,
+        "sheets_gaps_sum": 298,
+        "time_to_gupshup87_ms": 3427
+      }
+    },
+    {
+      "cluster_index": 1,
+      "start": "2026-07-21T16:01:10.885Z",
+      "span_ms": 6282,
+      "event_count": 10,
+      "stages": [
+        {
+          "module_id": 82,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 0,
+          "gap_from_prev_ms": 0,
+          "timestamp": "2026-07-21T16:01:10.885Z",
+          "executionId": "7f220661c9614d82acbbd84ecb12e4a9"
+        },
+        {
+          "module_id": 84,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3739,
+          "gap_from_prev_ms": 3739,
+          "timestamp": "2026-07-21T16:01:14.624Z",
+          "executionId": "7f220661c9614d82acbbd84ecb12e4a9"
+        },
+        {
+          "module_id": 92,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 4127,
+          "gap_from_prev_ms": 388,
+          "timestamp": "2026-07-21T16:01:15.012Z",
+          "executionId": "7f220661c9614d82acbbd84ecb12e4a9"
+        },
+        {
+          "module_id": 87,
+          "module": "http:ActionSendData",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 4651,
+          "gap_from_prev_ms": 524,
+          "timestamp": "2026-07-21T16:01:15.536Z",
+          "executionId": "7f220661c9614d82acbbd84ecb12e4a9"
+        },
+        {
+          "module_id": 88,
+          "module": "util:FunctionSleep",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 5654,
+          "gap_from_prev_ms": 1003,
+          "timestamp": "2026-07-21T16:01:16.539Z",
+          "executionId": "7f220661c9614d82acbbd84ecb12e4a9"
+        }
+      ],
+      "estimated_ms": {
+        "ai_agent_gaps_sum": 3739,
+        "sleep_gaps_sum": 1003,
+        "sheets_gaps_sum": 388,
+        "time_to_gupshup87_ms": 4651
+      }
+    },
+    {
+      "cluster_index": 2,
+      "start": "2026-07-21T16:05:17.604Z",
+      "span_ms": 8490,
+      "event_count": 49,
+      "stages": [
+        {
+          "module_id": 79,
+          "module": "google-sheets:filterRows",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 0,
+          "gap_from_prev_ms": 0,
+          "timestamp": "2026-07-21T16:05:17.604Z",
+          "executionId": "a72dabe30e854864a1a8248aa30dda58"
+        },
+        {
+          "module_id": 83,
+          "module": "google-sheets:addRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 350,
+          "gap_from_prev_ms": 350,
+          "timestamp": "2026-07-21T16:05:17.954Z",
+          "executionId": "32df62ed0d3741769fdabb6b402b688d"
+        },
+        {
+          "module_id": 82,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 1448,
+          "gap_from_prev_ms": 1098,
+          "timestamp": "2026-07-21T16:05:19.052Z",
+          "executionId": "68d2d34459e94f13a9a97ef1478bd157"
+        },
+        {
+          "module_id": 63,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3577,
+          "gap_from_prev_ms": 2129,
+          "timestamp": "2026-07-21T16:05:21.181Z",
+          "executionId": "32df62ed0d3741769fdabb6b402b688d"
+        },
+        {
+          "module_id": 84,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3650,
+          "gap_from_prev_ms": 73,
+          "timestamp": "2026-07-21T16:05:21.254Z",
+          "executionId": "778c59f5d68f4c8cb906cb7bf812f6da"
+        },
+        {
+          "module_id": 90,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3837,
+          "gap_from_prev_ms": 187,
+          "timestamp": "2026-07-21T16:05:21.441Z",
+          "executionId": "32df62ed0d3741769fdabb6b402b688d"
+        },
+        {
+          "module_id": 92,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3919,
+          "gap_from_prev_ms": 82,
+          "timestamp": "2026-07-21T16:05:21.523Z",
+          "executionId": "778c59f5d68f4c8cb906cb7bf812f6da"
+        },
+        {
+          "module_id": 58,
+          "module": "http:ActionSendData",
+          "status": 3,
+          "error": "Error: 400 Bad Request",
+          "from_start_ms": 4335,
+          "gap_from_prev_ms": 416,
+          "timestamp": "2026-07-21T16:05:21.939Z",
+          "executionId": "32df62ed0d3741769fdabb6b402b688d"
+        },
+        {
+          "module_id": 87,
+          "module": "http:ActionSendData",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 4408,
+          "gap_from_prev_ms": 73,
+          "timestamp": "2026-07-21T16:05:22.012Z",
+          "executionId": "778c59f5d68f4c8cb906cb7bf812f6da"
+        },
+        {
+          "module_id": 88,
+          "module": "util:FunctionSleep",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 5410,
+          "gap_from_prev_ms": 1002,
+          "timestamp": "2026-07-21T16:05:23.014Z",
+          "executionId": "778c59f5d68f4c8cb906cb7bf812f6da"
+        }
+      ],
+      "estimated_ms": {
+        "ai_agent_gaps_sum": 2202,
+        "sleep_gaps_sum": 1002,
+        "sheets_gaps_sum": 1717,
+        "time_to_gupshup87_ms": 4408
+      }
+    },
+    {
+      "cluster_index": 3,
+      "start": "2026-07-21T16:05:37.084Z",
+      "span_ms": 11023,
+      "event_count": 11,
+      "stages": [
+        {
+          "module_id": 79,
+          "module": "google-sheets:filterRows",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 0,
+          "gap_from_prev_ms": 0,
+          "timestamp": "2026-07-21T16:05:37.084Z",
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
+        },
+        {
+          "module_id": 82,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 290,
+          "gap_from_prev_ms": 290,
+          "timestamp": "2026-07-21T16:05:37.374Z",
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
+        },
+        {
+          "module_id": 84,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 2214,
+          "gap_from_prev_ms": 1924,
+          "timestamp": "2026-07-21T16:05:39.298Z",
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
+        },
+        {
+          "module_id": 92,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 2488,
+          "gap_from_prev_ms": 274,
+          "timestamp": "2026-07-21T16:05:39.572Z",
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
+        },
+        {
+          "module_id": 87,
+          "module": "http:ActionSendData",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 2966,
+          "gap_from_prev_ms": 478,
+          "timestamp": "2026-07-21T16:05:40.050Z",
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
+        },
+        {
+          "module_id": 88,
+          "module": "util:FunctionSleep",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 3969,
+          "gap_from_prev_ms": 1003,
+          "timestamp": "2026-07-21T16:05:41.053Z",
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
+        },
+        {
+          "module_id": 83,
+          "module": "google-sheets:addRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 8251,
+          "gap_from_prev_ms": 4282,
+          "timestamp": "2026-07-21T16:05:45.335Z",
+          "executionId": "8fa603d639db4d4db5f39dfa19287ca5"
+        },
+        {
+          "module_id": 63,
+          "module": "ai-agent:RunAnAIAgent",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 10164,
+          "gap_from_prev_ms": 1913,
+          "timestamp": "2026-07-21T16:05:47.248Z",
+          "executionId": "8fa603d639db4d4db5f39dfa19287ca5"
+        },
+        {
+          "module_id": 90,
+          "module": "google-sheets:updateRow",
+          "status": 1,
+          "error": null,
+          "from_start_ms": 10543,
+          "gap_from_prev_ms": 379,
+          "timestamp": "2026-07-21T16:05:47.627Z",
+          "executionId": "8fa603d639db4d4db5f39dfa19287ca5"
+        },
+        {
+          "module_id": 58,
+          "module": "http:ActionSendData",
+          "status": 3,
+          "error": "Error: 400 Bad Request",
+          "from_start_ms": 11023,
+          "gap_from_prev_ms": 480,
+          "timestamp": "2026-07-21T16:05:48.107Z",
+          "executionId": "8fa603d639db4d4db5f39dfa19287ca5"
+        }
+      ],
+      "estimated_ms": {
+        "ai_agent_gaps_sum": 3837,
+        "sleep_gaps_sum": 1003,
+        "sheets_gaps_sum": 5225,
+        "time_to_gupshup87_ms": 2966
+      }
+    }
+  ],
+  "per_module_avg_from_timeline_gaps": {
+    "58": {
+      "avg_gap_ms": 448,
+      "n": 2,
+      "module": "http:ActionSendData",
+      "note": "gap_from_prev in reconstructed cluster ≈ time until this module finished after previous focus module"
+    },
+    "63": {
+      "avg_gap_ms": 2021,
+      "n": 2,
+      "module": "ai-agent:RunAnAIAgent",
+      "note": "gap_from_prev in reconstructed cluster ≈ time until this module finished after previous focus module"
+    },
+    "82": {
+      "avg_gap_ms": 694,
+      "n": 2,
+      "module": "google-sheets:updateRow",
+      "note": "gap_from_prev in reconstructed cluster ≈ time until this module finished after previous focus module"
+    },
+    "83": {
+      "avg_gap_ms": 2316,
+      "n": 2,
+      "module": "google-sheets:addRow",
+      "note": "gap_from_prev in reconstructed cluster ≈ time until this module finished after previous focus module"
+    },
+    "84": {
+      "avg_gap_ms": 2097,
+      "n": 4,
+      "module": "ai-agent:RunAnAIAgent",
+      "note": "gap_from_prev in reconstructed cluster ≈ time until this module finished after previous focus module"
+    },
+    "87": {
+      "avg_gap_ms": 388,
+      "n": 4,
+      "module": "http:ActionSendData",
+      "note": "gap_from_prev in reconstructed cluster ≈ time until this module finished after previous focus module"
+    },
+    "88": {
+      "avg_gap_ms": 1003,
+      "n": 4,
+      "module": "util:FunctionSleep",
+      "note": "gap_from_prev in reconstructed cluster ≈ time until this module finished after previous focus module"
+    },
+    "90": {
+      "avg_gap_ms": 283,
+      "n": 2,
+      "module": "google-sheets:updateRow",
+      "note": "gap_from_prev in reconstructed cluster ≈ time until this module finished after previous focus module"
+    },
+    "92": {
+      "avg_gap_ms": 261,
+      "n": 4,
+      "module": "google-sheets:updateRow",
+      "note": "gap_from_prev in reconstructed cluster ≈ time until this module finished after previous focus module"
+    }
   },
   "per_module_avg_from_logs": {},
   "answers": {
@@ -2571,82 +3606,83 @@
       "recent_p50_ms": 6534,
       "live_probe_wall_ms": null,
       "live_probe_make_duration_ms": null,
-      "webhook_accept_ms": 297,
+      "webhook_accept_ms": null,
       "estimated_time_to_gupshup_send_ms": {
         "samples": [
-          4370,
-          4186,
+          3427,
+          4651,
+          4408,
           2966
         ],
-        "avg": 3841,
-        "note": "first focus module → Gupshup 87 success"
+        "avg": 3863,
+        "note": "From first Sheets/AI focus module timestamp → Gupshup module 87 success (user-visible reply path)"
       },
-      "interpretation": "Make duration includes post-send Sleep. User-visible ≈ until Gupshup 87."
+      "interpretation": "Make duration_ms includes post-send Sleep. User-visible reply ≈ time until Gupshup 87 (~3–4.5s typical). Full scenario avg ~6.2s."
     },
     "2_per_module": {
       "from_module_logs": [],
       "from_timeline_gaps": [
         {
-          "id": "84",
-          "avg_ms": 2573,
-          "n": 3,
-          "name": "ai-agent:RunAnAIAgent"
-        },
-        {
           "id": "83",
-          "avg_ms": 2496,
+          "avg_ms": 2316,
           "n": 2,
           "name": "google-sheets:addRow"
         },
         {
+          "id": "84",
+          "avg_ms": 2097,
+          "n": 4,
+          "name": "ai-agent:RunAnAIAgent"
+        },
+        {
           "id": "63",
-          "avg_ms": 1147,
+          "avg_ms": 2021,
           "n": 2,
           "name": "ai-agent:RunAnAIAgent"
         },
         {
           "id": "88",
-          "avg_ms": 789,
-          "n": 3,
+          "avg_ms": 1003,
+          "n": 4,
           "name": "util:FunctionSleep"
         },
         {
-          "id": "58",
-          "avg_ms": 478,
-          "n": 2,
-          "name": "http:ActionSendData"
-        },
-        {
           "id": "82",
-          "avg_ms": 404,
+          "avg_ms": 694,
           "n": 2,
           "name": "google-sheets:updateRow"
+        },
+        {
+          "id": "58",
+          "avg_ms": 448,
+          "n": 2,
+          "name": "http:ActionSendData"
         },
         {
           "id": "87",
-          "avg_ms": 357,
-          "n": 3,
+          "avg_ms": 388,
+          "n": 4,
           "name": "http:ActionSendData"
         },
         {
-          "id": "92",
-          "avg_ms": 278,
-          "n": 3,
+          "id": "90",
+          "avg_ms": 283,
+          "n": 2,
           "name": "google-sheets:updateRow"
         },
         {
-          "id": "90",
-          "avg_ms": 273,
-          "n": 2,
+          "id": "92",
+          "avg_ms": 261,
+          "n": 4,
           "name": "google-sheets:updateRow"
         }
       ],
       "reconstructed_timelines": [
         {
           "cluster_index": 0,
-          "start": "2026-07-21T16:01:11.793Z",
-          "span_ms": 5374,
-          "event_count": 5,
+          "start": "2026-07-21T15:59:36.079Z",
+          "span_ms": 5172,
+          "event_count": 10,
           "stages": [
             {
               "module_id": 82,
@@ -2655,57 +3691,126 @@
               "error": null,
               "from_start_ms": 0,
               "gap_from_prev_ms": 0,
-              "timestamp": "2026-07-21T16:01:11.793Z"
+              "timestamp": "2026-07-21T15:59:36.079Z",
+              "executionId": "d084d7175d5843fa86032e0c1dc853f4"
             },
             {
               "module_id": 84,
               "module": "ai-agent:RunAnAIAgent",
               "status": 1,
               "error": null,
-              "from_start_ms": 3593,
-              "gap_from_prev_ms": 3593,
-              "timestamp": "2026-07-21T16:01:15.386Z"
+              "from_start_ms": 2652,
+              "gap_from_prev_ms": 2652,
+              "timestamp": "2026-07-21T15:59:38.731Z",
+              "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d"
             },
             {
               "module_id": 92,
               "module": "google-sheets:updateRow",
               "status": 1,
               "error": null,
-              "from_start_ms": 3884,
-              "gap_from_prev_ms": 291,
-              "timestamp": "2026-07-21T16:01:15.677Z"
+              "from_start_ms": 2950,
+              "gap_from_prev_ms": 298,
+              "timestamp": "2026-07-21T15:59:39.029Z",
+              "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d"
             },
             {
               "module_id": 87,
               "module": "http:ActionSendData",
               "status": 1,
               "error": null,
-              "from_start_ms": 4370,
-              "gap_from_prev_ms": 486,
-              "timestamp": "2026-07-21T16:01:16.163Z"
+              "from_start_ms": 3427,
+              "gap_from_prev_ms": 477,
+              "timestamp": "2026-07-21T15:59:39.506Z",
+              "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d"
             },
             {
               "module_id": 88,
               "module": "util:FunctionSleep",
               "status": 1,
               "error": null,
-              "from_start_ms": 5374,
-              "gap_from_prev_ms": 1004,
-              "timestamp": "2026-07-21T16:01:17.167Z"
+              "from_start_ms": 4430,
+              "gap_from_prev_ms": 1003,
+              "timestamp": "2026-07-21T15:59:40.509Z",
+              "executionId": "5cc1a8aafdfe49df8c0b01500fc0801d"
             }
           ],
           "estimated_ms": {
-            "ai_agent_gaps_sum": 3593,
-            "sleep_gaps_sum": 1004,
-            "sheets_gaps_sum": 291,
-            "time_to_gupshup87_ms": 4370
+            "ai_agent_gaps_sum": 2652,
+            "sleep_gaps_sum": 1003,
+            "sheets_gaps_sum": 298,
+            "time_to_gupshup87_ms": 3427
           }
         },
         {
           "cluster_index": 1,
-          "start": "2026-07-21T16:05:17.826Z",
-          "span_ms": 8268,
-          "event_count": 34,
+          "start": "2026-07-21T16:01:10.885Z",
+          "span_ms": 6282,
+          "event_count": 10,
+          "stages": [
+            {
+              "module_id": 82,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 0,
+              "gap_from_prev_ms": 0,
+              "timestamp": "2026-07-21T16:01:10.885Z",
+              "executionId": "7f220661c9614d82acbbd84ecb12e4a9"
+            },
+            {
+              "module_id": 84,
+              "module": "ai-agent:RunAnAIAgent",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 3739,
+              "gap_from_prev_ms": 3739,
+              "timestamp": "2026-07-21T16:01:14.624Z",
+              "executionId": "7f220661c9614d82acbbd84ecb12e4a9"
+            },
+            {
+              "module_id": 92,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 4127,
+              "gap_from_prev_ms": 388,
+              "timestamp": "2026-07-21T16:01:15.012Z",
+              "executionId": "7f220661c9614d82acbbd84ecb12e4a9"
+            },
+            {
+              "module_id": 87,
+              "module": "http:ActionSendData",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 4651,
+              "gap_from_prev_ms": 524,
+              "timestamp": "2026-07-21T16:01:15.536Z",
+              "executionId": "7f220661c9614d82acbbd84ecb12e4a9"
+            },
+            {
+              "module_id": 88,
+              "module": "util:FunctionSleep",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 5654,
+              "gap_from_prev_ms": 1003,
+              "timestamp": "2026-07-21T16:01:16.539Z",
+              "executionId": "7f220661c9614d82acbbd84ecb12e4a9"
+            }
+          ],
+          "estimated_ms": {
+            "ai_agent_gaps_sum": 3739,
+            "sleep_gaps_sum": 1003,
+            "sheets_gaps_sum": 388,
+            "time_to_gupshup87_ms": 4651
+          }
+        },
+        {
+          "cluster_index": 2,
+          "start": "2026-07-21T16:05:17.604Z",
+          "span_ms": 8490,
+          "event_count": 49,
           "stages": [
             {
               "module_id": 79,
@@ -2714,99 +3819,109 @@
               "error": null,
               "from_start_ms": 0,
               "gap_from_prev_ms": 0,
-              "timestamp": "2026-07-21T16:05:17.826Z"
+              "timestamp": "2026-07-21T16:05:17.604Z",
+              "executionId": "a72dabe30e854864a1a8248aa30dda58"
             },
             {
               "module_id": 83,
               "module": "google-sheets:addRow",
               "status": 1,
               "error": null,
-              "from_start_ms": 709,
-              "gap_from_prev_ms": 709,
-              "timestamp": "2026-07-21T16:05:18.535Z"
+              "from_start_ms": 350,
+              "gap_from_prev_ms": 350,
+              "timestamp": "2026-07-21T16:05:17.954Z",
+              "executionId": "32df62ed0d3741769fdabb6b402b688d"
             },
             {
               "module_id": 82,
               "module": "google-sheets:updateRow",
               "status": 1,
               "error": null,
-              "from_start_ms": 1226,
-              "gap_from_prev_ms": 517,
-              "timestamp": "2026-07-21T16:05:19.052Z"
-            },
-            {
-              "module_id": 84,
-              "module": "ai-agent:RunAnAIAgent",
-              "status": 1,
-              "error": null,
-              "from_start_ms": 3428,
-              "gap_from_prev_ms": 2202,
-              "timestamp": "2026-07-21T16:05:21.254Z"
-            },
-            {
-              "module_id": 92,
-              "module": "google-sheets:updateRow",
-              "status": 1,
-              "error": null,
-              "from_start_ms": 3697,
-              "gap_from_prev_ms": 269,
-              "timestamp": "2026-07-21T16:05:21.523Z"
+              "from_start_ms": 1448,
+              "gap_from_prev_ms": 1098,
+              "timestamp": "2026-07-21T16:05:19.052Z",
+              "executionId": "68d2d34459e94f13a9a97ef1478bd157"
             },
             {
               "module_id": 63,
               "module": "ai-agent:RunAnAIAgent",
               "status": 1,
               "error": null,
-              "from_start_ms": 4078,
-              "gap_from_prev_ms": 381,
-              "timestamp": "2026-07-21T16:05:21.904Z"
+              "from_start_ms": 3577,
+              "gap_from_prev_ms": 2129,
+              "timestamp": "2026-07-21T16:05:21.181Z",
+              "executionId": "32df62ed0d3741769fdabb6b402b688d"
             },
             {
-              "module_id": 87,
-              "module": "http:ActionSendData",
+              "module_id": 84,
+              "module": "ai-agent:RunAnAIAgent",
               "status": 1,
               "error": null,
-              "from_start_ms": 4186,
-              "gap_from_prev_ms": 108,
-              "timestamp": "2026-07-21T16:05:22.012Z"
+              "from_start_ms": 3650,
+              "gap_from_prev_ms": 73,
+              "timestamp": "2026-07-21T16:05:21.254Z",
+              "executionId": "778c59f5d68f4c8cb906cb7bf812f6da"
             },
             {
               "module_id": 90,
               "module": "google-sheets:updateRow",
               "status": 1,
               "error": null,
-              "from_start_ms": 4353,
-              "gap_from_prev_ms": 167,
-              "timestamp": "2026-07-21T16:05:22.179Z"
+              "from_start_ms": 3837,
+              "gap_from_prev_ms": 187,
+              "timestamp": "2026-07-21T16:05:21.441Z",
+              "executionId": "32df62ed0d3741769fdabb6b402b688d"
+            },
+            {
+              "module_id": 92,
+              "module": "google-sheets:updateRow",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 3919,
+              "gap_from_prev_ms": 82,
+              "timestamp": "2026-07-21T16:05:21.523Z",
+              "executionId": "778c59f5d68f4c8cb906cb7bf812f6da"
             },
             {
               "module_id": 58,
               "module": "http:ActionSendData",
               "status": 3,
               "error": "Error: 400 Bad Request",
-              "from_start_ms": 4828,
-              "gap_from_prev_ms": 475,
-              "timestamp": "2026-07-21T16:05:22.654Z"
+              "from_start_ms": 4335,
+              "gap_from_prev_ms": 416,
+              "timestamp": "2026-07-21T16:05:21.939Z",
+              "executionId": "32df62ed0d3741769fdabb6b402b688d"
+            },
+            {
+              "module_id": 87,
+              "module": "http:ActionSendData",
+              "status": 1,
+              "error": null,
+              "from_start_ms": 4408,
+              "gap_from_prev_ms": 73,
+              "timestamp": "2026-07-21T16:05:22.012Z",
+              "executionId": "778c59f5d68f4c8cb906cb7bf812f6da"
             },
             {
               "module_id": 88,
               "module": "util:FunctionSleep",
               "status": 1,
               "error": null,
-              "from_start_ms": 5188,
-              "gap_from_prev_ms": 360,
-              "timestamp": "2026-07-21T16:05:23.014Z"
+              "from_start_ms": 5410,
+              "gap_from_prev_ms": 1002,
+              "timestamp": "2026-07-21T16:05:23.014Z",
+              "executionId": "778c59f5d68f4c8cb906cb7bf812f6da"
             }
           ],
           "estimated_ms": {
-            "ai_agent_gaps_sum": 2583,
-            "sleep_gaps_sum": 360,
-            "sheets_gaps_sum": 1662,
-            "time_to_gupshup87_ms": 4186
+            "ai_agent_gaps_sum": 2202,
+            "sleep_gaps_sum": 1002,
+            "sheets_gaps_sum": 1717,
+            "time_to_gupshup87_ms": 4408
           }
         },
         {
-          "cluster_index": 2,
+          "cluster_index": 3,
           "start": "2026-07-21T16:05:37.084Z",
           "span_ms": 11023,
           "event_count": 11,
@@ -2818,7 +3933,8 @@
               "error": null,
               "from_start_ms": 0,
               "gap_from_prev_ms": 0,
-              "timestamp": "2026-07-21T16:05:37.084Z"
+              "timestamp": "2026-07-21T16:05:37.084Z",
+              "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
             },
             {
               "module_id": 82,
@@ -2827,7 +3943,8 @@
               "error": null,
               "from_start_ms": 290,
               "gap_from_prev_ms": 290,
-              "timestamp": "2026-07-21T16:05:37.374Z"
+              "timestamp": "2026-07-21T16:05:37.374Z",
+              "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
             },
             {
               "module_id": 84,
@@ -2836,7 +3953,8 @@
               "error": null,
               "from_start_ms": 2214,
               "gap_from_prev_ms": 1924,
-              "timestamp": "2026-07-21T16:05:39.298Z"
+              "timestamp": "2026-07-21T16:05:39.298Z",
+              "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
             },
             {
               "module_id": 92,
@@ -2845,7 +3963,8 @@
               "error": null,
               "from_start_ms": 2488,
               "gap_from_prev_ms": 274,
-              "timestamp": "2026-07-21T16:05:39.572Z"
+              "timestamp": "2026-07-21T16:05:39.572Z",
+              "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
             },
             {
               "module_id": 87,
@@ -2854,7 +3973,8 @@
               "error": null,
               "from_start_ms": 2966,
               "gap_from_prev_ms": 478,
-              "timestamp": "2026-07-21T16:05:40.050Z"
+              "timestamp": "2026-07-21T16:05:40.050Z",
+              "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
             },
             {
               "module_id": 88,
@@ -2862,8 +3982,9 @@
               "status": 1,
               "error": null,
               "from_start_ms": 3969,
-              "gap_from_prev_ms": 1002,
-              "timestamp": "2026-07-21T16:05:41.053Z"
+              "gap_from_prev_ms": 1003,
+              "timestamp": "2026-07-21T16:05:41.053Z",
+              "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
             },
             {
               "module_id": 83,
@@ -2872,7 +3993,8 @@
               "error": null,
               "from_start_ms": 8251,
               "gap_from_prev_ms": 4282,
-              "timestamp": "2026-07-21T16:05:45.335Z"
+              "timestamp": "2026-07-21T16:05:45.335Z",
+              "executionId": "8fa603d639db4d4db5f39dfa19287ca5"
             },
             {
               "module_id": 63,
@@ -2881,7 +4003,8 @@
               "error": null,
               "from_start_ms": 10164,
               "gap_from_prev_ms": 1913,
-              "timestamp": "2026-07-21T16:05:47.248Z"
+              "timestamp": "2026-07-21T16:05:47.248Z",
+              "executionId": "8fa603d639db4d4db5f39dfa19287ca5"
             },
             {
               "module_id": 90,
@@ -2890,7 +4013,8 @@
               "error": null,
               "from_start_ms": 10543,
               "gap_from_prev_ms": 379,
-              "timestamp": "2026-07-21T16:05:47.627Z"
+              "timestamp": "2026-07-21T16:05:47.627Z",
+              "executionId": "8fa603d639db4d4db5f39dfa19287ca5"
             },
             {
               "module_id": 58,
@@ -2899,12 +4023,13 @@
               "error": "Error: 400 Bad Request",
               "from_start_ms": 11023,
               "gap_from_prev_ms": 480,
-              "timestamp": "2026-07-21T16:05:48.107Z"
+              "timestamp": "2026-07-21T16:05:48.107Z",
+              "executionId": "8fa603d639db4d4db5f39dfa19287ca5"
             }
           ],
           "estimated_ms": {
             "ai_agent_gaps_sum": 3837,
-            "sleep_gaps_sum": 1002,
+            "sleep_gaps_sum": 1003,
             "sheets_gaps_sum": 5225,
             "time_to_gupshup87_ms": 2966
           }
@@ -2956,11 +4081,11 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": 1,
           "sleep_ms_configured": 1000,
           "mapper_keys": [
             "duration"
-          ],
-          "sleep_seconds_configured": 1
+          ]
         },
         {
           "id": 77,
@@ -2978,11 +4103,11 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": 1,
           "sleep_ms_configured": 1000,
           "mapper_keys": [
             "duration"
-          ],
-          "sleep_seconds_configured": 1
+          ]
         }
       ],
       "sleep_unit": "seconds",
@@ -2991,13 +4116,13 @@
       "measured_sleep_gaps_ms": [
         {
           "id": "88",
-          "avg_ms": 789,
-          "n": 3,
+          "avg_ms": 1003,
+          "n": 4,
           "name": "util:FunctionSleep"
         }
       ],
       "retry_flags_seen": [],
-      "verdict": "Two FunctionSleep (77,88) duration=1 second each. Measured ~1000ms after Gupshup. No Retry. Sleep AFTER send → does not delay that bubble; extends run/queue."
+      "verdict": "Two FunctionSleep modules (77, 88) with duration=1 → 1 second each (~+1000ms measured after Gupshup). No Retry flags on modules. Sleep is AFTER send → does not delay that WhatsApp bubble, but extends run ~1s and can slow the queue."
     },
     "4_openai_api": {
       "ai_modules": [
@@ -3017,6 +4142,7 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": null,
           "sleep_ms_configured": null,
           "mapper_keys": [
             "agent",
@@ -3043,6 +4169,7 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": null,
           "sleep_ms_configured": null,
           "mapper_keys": [
             "agent",
@@ -3052,6 +4179,20 @@
             "outputType",
             "additionalSystemPrompt"
           ]
+        }
+      ],
+      "measured_ai_gaps_ms": [
+        {
+          "id": "84",
+          "avg_ms": 2097,
+          "n": 4,
+          "name": "ai-agent:RunAnAIAgent"
+        },
+        {
+          "id": "63",
+          "avg_ms": 2021,
+          "n": 2,
+          "name": "ai-agent:RunAnAIAgent"
         }
       ],
       "gupshup_http": [
@@ -3071,6 +4212,7 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": null,
           "sleep_ms_configured": null,
           "mapper_keys": [
             "ca",
@@ -3110,6 +4252,7 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": null,
           "sleep_ms_configured": null,
           "mapper_keys": [
             "ca",
@@ -3151,6 +4294,7 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": null,
           "sleep_ms_configured": null,
           "mapper_keys": [
             "from",
@@ -3181,6 +4325,7 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": null,
           "sleep_ms_configured": null,
           "mapper_keys": [
             "from",
@@ -3209,6 +4354,7 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": null,
           "sleep_ms_configured": null,
           "mapper_keys": [
             "from",
@@ -3237,6 +4383,7 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": null,
           "sleep_ms_configured": null,
           "mapper_keys": [
             "from",
@@ -3266,6 +4413,7 @@
             "feeder": false,
             "retry": false
           },
+          "sleep_seconds_configured": null,
           "sleep_ms_configured": null,
           "mapper_keys": [
             "from",
@@ -3279,59 +4427,44 @@
           ]
         }
       ],
-      "measured_ai_gaps_ms": [
-        {
-          "id": "84",
-          "avg_ms": 2573,
-          "n": 3,
-          "name": "ai-agent:RunAnAIAgent"
-        },
-        {
-          "id": "63",
-          "avg_ms": 1147,
-          "n": 2,
-          "name": "ai-agent:RunAnAIAgent"
-        }
-      ],
-      "note": "AI 84+63 dominate; Gupshup 58 often 400"
+      "note": "ai-agent:RunAnAIAgent (84 + 63) calls LLM under the hood — largest gap before reply (~1.9–3.6s). Module 58 Gupshup often 400 Bad Request (failed alternate route)."
     },
     "5_bottleneck": {
-      "module_id": "84",
-      "name": "ai-agent:RunAnAIAgent",
-      "avg_gap_ms": 2573,
-      "evidence": "reconstructed timeline gaps",
-      "note": "Largest pre-reply cost is AI Agent before Gupshup 87"
+      "id": "83",
+      "avg_ms": 2316,
+      "n": 2,
+      "name": "google-sheets:addRow"
     }
   },
   "recommendations": [
     {
       "priority": 1,
-      "he": "AI Agent 84: מודל מהיר יותר / פחות tokens / system prompt קצר — חוסך ~1.5–3ש׳ מתשובת המשתמש",
-      "risk": "medium — דורש אישור Owner",
+      "he": "AI Agent 84: מודל מהיר יותר / פחות tokens / system prompt קצר — חוסך ~1.5–3ש׳ מתשובת המשתמש (צוואר בקבוק לפני Gupshup)",
+      "risk": "medium — עלול לשנות איכות; דורש אישור Owner (לא שינוי לוגיקה אוטומטי)",
       "est_save_ms": "1500–3500"
     },
     {
       "priority": 2,
-      "he": "הסרת Sleep 88/77 (1ש׳ אחרי שליחה) — לא מאיץ בועה נוכחית; מקצר תור להודעה הבאה",
-      "risk": "low",
+      "he": "הסרת/השבתת Sleep 88 ו-77 (1ש׳ אחרי שליחה) — לא מאיץ את הבועה הנוכחית, אבל מקצר ריצה ומפנה תור להודעה הבאה",
+      "risk": "low אם Sleep רק לקצב; לבדוק למה נוסף",
       "est_save_ms": "1000 per path (queue)"
     },
     {
       "priority": 3,
-      "he": "Google Sheets: cache/Data Store במקום filter+update בכל הודעה",
+      "he": "Google Sheets: cache / Data Store במקום filterRows+update בכל הודעה (~0.3–1.2ש׳ לפני AI)",
       "risk": "medium",
       "est_save_ms": "300–1200"
     },
     {
       "priority": 4,
-      "he": "מסלול Gupshup 58 מחזיר 400 — לתקן או לנתק",
+      "he": "מסלול 58 (Gupshup) מחזיר 400 — לתקן או לנתק; מבזבז זמן ויוצר רעש בלוגים בלי תשובה",
       "risk": "low-medium",
       "est_save_ms": "400–500 + noise"
     },
     {
       "priority": 5,
-      "he": "לשמור E2E/Forward מחוץ ל-Hook של הבוט",
-      "risk": "already_done",
+      "he": "Router מוקדם ל-DLR/statuses בלי AI — כבר מופרד ב-DLR scenario; לשמור E2E מחוץ ל-Hook של הבוט",
+      "risk": "already_done / keep",
       "est_save_ms": "queue contention"
     }
   ],
@@ -3343,324 +4476,8 @@
     "sleep_count": 2,
     "sleep_seconds_each": 1,
     "ai_count": 2,
-    "bottleneck_summary": "ai-agent:RunAnAIAgent",
-    "time_to_reply_avg_ms": 3841
-  },
-  "reconstructed_timelines": [
-    {
-      "cluster_index": 0,
-      "start": "2026-07-21T16:01:11.793Z",
-      "span_ms": 5374,
-      "event_count": 5,
-      "stages": [
-        {
-          "module_id": 82,
-          "module": "google-sheets:updateRow",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 0,
-          "gap_from_prev_ms": 0,
-          "timestamp": "2026-07-21T16:01:11.793Z"
-        },
-        {
-          "module_id": 84,
-          "module": "ai-agent:RunAnAIAgent",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 3593,
-          "gap_from_prev_ms": 3593,
-          "timestamp": "2026-07-21T16:01:15.386Z"
-        },
-        {
-          "module_id": 92,
-          "module": "google-sheets:updateRow",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 3884,
-          "gap_from_prev_ms": 291,
-          "timestamp": "2026-07-21T16:01:15.677Z"
-        },
-        {
-          "module_id": 87,
-          "module": "http:ActionSendData",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 4370,
-          "gap_from_prev_ms": 486,
-          "timestamp": "2026-07-21T16:01:16.163Z"
-        },
-        {
-          "module_id": 88,
-          "module": "util:FunctionSleep",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 5374,
-          "gap_from_prev_ms": 1004,
-          "timestamp": "2026-07-21T16:01:17.167Z"
-        }
-      ],
-      "estimated_ms": {
-        "ai_agent_gaps_sum": 3593,
-        "sleep_gaps_sum": 1004,
-        "sheets_gaps_sum": 291,
-        "time_to_gupshup87_ms": 4370
-      }
-    },
-    {
-      "cluster_index": 1,
-      "start": "2026-07-21T16:05:17.826Z",
-      "span_ms": 8268,
-      "event_count": 34,
-      "stages": [
-        {
-          "module_id": 79,
-          "module": "google-sheets:filterRows",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 0,
-          "gap_from_prev_ms": 0,
-          "timestamp": "2026-07-21T16:05:17.826Z"
-        },
-        {
-          "module_id": 83,
-          "module": "google-sheets:addRow",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 709,
-          "gap_from_prev_ms": 709,
-          "timestamp": "2026-07-21T16:05:18.535Z"
-        },
-        {
-          "module_id": 82,
-          "module": "google-sheets:updateRow",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 1226,
-          "gap_from_prev_ms": 517,
-          "timestamp": "2026-07-21T16:05:19.052Z"
-        },
-        {
-          "module_id": 84,
-          "module": "ai-agent:RunAnAIAgent",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 3428,
-          "gap_from_prev_ms": 2202,
-          "timestamp": "2026-07-21T16:05:21.254Z"
-        },
-        {
-          "module_id": 92,
-          "module": "google-sheets:updateRow",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 3697,
-          "gap_from_prev_ms": 269,
-          "timestamp": "2026-07-21T16:05:21.523Z"
-        },
-        {
-          "module_id": 63,
-          "module": "ai-agent:RunAnAIAgent",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 4078,
-          "gap_from_prev_ms": 381,
-          "timestamp": "2026-07-21T16:05:21.904Z"
-        },
-        {
-          "module_id": 87,
-          "module": "http:ActionSendData",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 4186,
-          "gap_from_prev_ms": 108,
-          "timestamp": "2026-07-21T16:05:22.012Z"
-        },
-        {
-          "module_id": 90,
-          "module": "google-sheets:updateRow",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 4353,
-          "gap_from_prev_ms": 167,
-          "timestamp": "2026-07-21T16:05:22.179Z"
-        },
-        {
-          "module_id": 58,
-          "module": "http:ActionSendData",
-          "status": 3,
-          "error": "Error: 400 Bad Request",
-          "from_start_ms": 4828,
-          "gap_from_prev_ms": 475,
-          "timestamp": "2026-07-21T16:05:22.654Z"
-        },
-        {
-          "module_id": 88,
-          "module": "util:FunctionSleep",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 5188,
-          "gap_from_prev_ms": 360,
-          "timestamp": "2026-07-21T16:05:23.014Z"
-        }
-      ],
-      "estimated_ms": {
-        "ai_agent_gaps_sum": 2583,
-        "sleep_gaps_sum": 360,
-        "sheets_gaps_sum": 1662,
-        "time_to_gupshup87_ms": 4186
-      }
-    },
-    {
-      "cluster_index": 2,
-      "start": "2026-07-21T16:05:37.084Z",
-      "span_ms": 11023,
-      "event_count": 11,
-      "stages": [
-        {
-          "module_id": 79,
-          "module": "google-sheets:filterRows",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 0,
-          "gap_from_prev_ms": 0,
-          "timestamp": "2026-07-21T16:05:37.084Z"
-        },
-        {
-          "module_id": 82,
-          "module": "google-sheets:updateRow",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 290,
-          "gap_from_prev_ms": 290,
-          "timestamp": "2026-07-21T16:05:37.374Z"
-        },
-        {
-          "module_id": 84,
-          "module": "ai-agent:RunAnAIAgent",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 2214,
-          "gap_from_prev_ms": 1924,
-          "timestamp": "2026-07-21T16:05:39.298Z"
-        },
-        {
-          "module_id": 92,
-          "module": "google-sheets:updateRow",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 2488,
-          "gap_from_prev_ms": 274,
-          "timestamp": "2026-07-21T16:05:39.572Z"
-        },
-        {
-          "module_id": 87,
-          "module": "http:ActionSendData",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 2966,
-          "gap_from_prev_ms": 478,
-          "timestamp": "2026-07-21T16:05:40.050Z"
-        },
-        {
-          "module_id": 88,
-          "module": "util:FunctionSleep",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 3969,
-          "gap_from_prev_ms": 1002,
-          "timestamp": "2026-07-21T16:05:41.053Z"
-        },
-        {
-          "module_id": 83,
-          "module": "google-sheets:addRow",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 8251,
-          "gap_from_prev_ms": 4282,
-          "timestamp": "2026-07-21T16:05:45.335Z"
-        },
-        {
-          "module_id": 63,
-          "module": "ai-agent:RunAnAIAgent",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 10164,
-          "gap_from_prev_ms": 1913,
-          "timestamp": "2026-07-21T16:05:47.248Z"
-        },
-        {
-          "module_id": 90,
-          "module": "google-sheets:updateRow",
-          "status": 1,
-          "error": null,
-          "from_start_ms": 10543,
-          "gap_from_prev_ms": 379,
-          "timestamp": "2026-07-21T16:05:47.627Z"
-        },
-        {
-          "module_id": 58,
-          "module": "http:ActionSendData",
-          "status": 3,
-          "error": "Error: 400 Bad Request",
-          "from_start_ms": 11023,
-          "gap_from_prev_ms": 480,
-          "timestamp": "2026-07-21T16:05:48.107Z"
-        }
-      ],
-      "estimated_ms": {
-        "ai_agent_gaps_sum": 3837,
-        "sleep_gaps_sum": 1002,
-        "sheets_gaps_sum": 5225,
-        "time_to_gupshup87_ms": 2966
-      }
-    }
-  ],
-  "per_module_avg_from_timeline_gaps": {
-    "84": {
-      "avg_gap_ms": 2573,
-      "n": 3,
-      "module": "ai-agent:RunAnAIAgent"
-    },
-    "83": {
-      "avg_gap_ms": 2496,
-      "n": 2,
-      "module": "google-sheets:addRow"
-    },
-    "63": {
-      "avg_gap_ms": 1147,
-      "n": 2,
-      "module": "ai-agent:RunAnAIAgent"
-    },
-    "88": {
-      "avg_gap_ms": 789,
-      "n": 3,
-      "module": "util:FunctionSleep"
-    },
-    "58": {
-      "avg_gap_ms": 478,
-      "n": 2,
-      "module": "http:ActionSendData"
-    },
-    "82": {
-      "avg_gap_ms": 404,
-      "n": 2,
-      "module": "google-sheets:updateRow"
-    },
-    "87": {
-      "avg_gap_ms": 357,
-      "n": 3,
-      "module": "http:ActionSendData"
-    },
-    "92": {
-      "avg_gap_ms": 278,
-      "n": 3,
-      "module": "google-sheets:updateRow"
-    },
-    "90": {
-      "avg_gap_ms": 273,
-      "n": 2,
-      "module": "google-sheets:updateRow"
-    }
-  },
-  "enriched_offline_at": "2026-07-21T16:17:24.414505Z"
+    "bottleneck_summary": "google-sheets:addRow",
+    "time_to_reply_avg_ms": 3863,
+    "sample_path_he": "82:updateRow +0ms → 84:RunAnAIAgent +2652ms → 92:updateRow +298ms → 87:ActionSendData +477ms → 88:FunctionSleep +1003ms"
+  }
 }
