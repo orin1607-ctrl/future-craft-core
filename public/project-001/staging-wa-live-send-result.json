@@ -1,0 +1,23 @@
+{
+  "id": "staging-wa-live-send-result",
+  "ok": true,
+  "env": "staging",
+  "project_ref": "usfeoerkpcafxxlyuldl",
+  "production_touched": false,
+  "destination": "0534338601",
+  "destination_normalized": "972534338601",
+  "path": "session",
+  "provider": "gupshup",
+  "not_wa_me": true,
+  "not_preview": true,
+  "edge_http_status": 200,
+  "gupshup_http_status": 202,
+  "message_id": "506fe683-4b07-4752-9301-a9ab2afa2e3c",
+  "gupshup_ack": true,
+  "gupshup_response_status": "submitted",
+  "success": true,
+  "app_name": "DaliaVehicle",
+  "source": "972546500305",
+  "actions_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29808599617",
+  "sent_at": "2026-07-21T06:56:04.207Z"
+}
