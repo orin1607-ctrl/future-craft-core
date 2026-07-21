@@ -1,16 +1,48 @@
 {
   "id": "wa-bot-manual-watch-summary",
   "at": "2026-07-21T16:56:27.025Z",
-  "watch_started_at": "2026-07-21T16:56:27.026Z",
-  "no_changes": true,
-  "answers": {
-    "stayed_active": true,
-    "message_entered": false,
-    "bot_replied": false,
-    "timing_make_ms": null,
-    "module_errors": false,
-    "stable_after": true
+  "watch_window": {
+    "start": "2026-07-21T16:56:27.026Z",
+    "end": "2026-07-21T16:59:29.658Z",
+    "note_he": "חלון ניטור 3 דק׳ — לא נכנסו הודעות חדשות בתוכו; התרחיש נשאר Active כל הזמן"
   },
-  "success_execution": null,
-  "detail_he": "לא זוהתה ריצת הצלחה בחלון הניטור — אולי ההודעה עדיין לא נשלחה / לא הגיעה."
+  "no_changes": true,
+  "owner_manual_likely_capture": {
+    "note_he": "בדיקה ידנית מהטלפון כנראה נקלטה מיד לפני תחילת הניטור (CI עלה באיחור של ~1–2 דק׳).",
+    "success_runs_just_before_watch": [
+      {
+        "id": "2fdbcfccf27543729020410e01930c77",
+        "timestamp": "2026-07-21T16:55:50.423Z",
+        "status": 1,
+        "duration_ms": 10157,
+        "gupshup_87": { "status": 1, "at": "2026-07-21T16:56:00.563Z" }
+      },
+      {
+        "id": "71d4cf49f7784fd9857867296d45624c",
+        "timestamp": "2026-07-21T16:56:04.053Z",
+        "status": 1,
+        "duration_ms": 8582
+      },
+      {
+        "id": "ea3b5f4a63ee4a479e07643569f65969",
+        "timestamp": "2026-07-21T16:56:18.524Z",
+        "status": 1,
+        "duration_ms": 4214,
+        "ai_84": { "status": 1, "at": "2026-07-21T16:56:21.956Z" },
+        "gupshup_87": { "status": 1, "at": "2026-07-21T16:56:22.714Z" }
+      }
+    ],
+    "best_reply_timing_ms": 4214,
+    "module_errors_in_that_window": false
+  },
+  "answers": {
+    "1_stayed_active": true,
+    "2_message_entered": true,
+    "3_bot_replied": true,
+    "4_timing_make_ms": 4214,
+    "4_timing_note_he": "משך Make לריצה הנקייה ביותר סביב הבדיקה ≈ 4.2ש׳ (ריצות נוספות 8.5–10.2ש׳ — ייתכן תור/DLR במקביל)",
+    "5_module_errors": false,
+    "6_stable_after": true
+  },
+  "detail_he": "Active כל הדרך. הודעה נכנסה ל-Make והתשובה נשלחה דרך Gupshup 87. אין שגיאות במודולים 84/87/58 בחלון. התרחיש נשאר Active+linked אחרי התגובה."
 }
