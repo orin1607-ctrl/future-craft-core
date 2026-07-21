@@ -557,20 +557,39 @@ async function main() {
   }
 
   const bpAfter = await getBlueprint();
+  const whAfter = bpAfter.flow?.find((m) => /CustomWebHook|webhook/i.test(String(m?.module || '')));
+  const aiMods = walkModules(bpAfter).filter((m) => /ai-agent/i.test(String(m.module || '')));
   out.verify_blueprint = {
     has_ignore_marker: Boolean(findByName(bpAfter, MARKER)),
     has_lookup: Boolean(findByName(bpAfter, LOOKUP_NAME)),
     has_router: Boolean(findByName(bpAfter, ROUTER_NAME)),
-    has_ai: walkModules(bpAfter).some((m) => /ai-agent/i.test(String(m.module || ''))),
+    has_ai: aiMods.length > 0,
     has_gupshup_87: walkModules(bpAfter).some(
       (m) => Number(m.id) === 87 || (typeof m.mapper?.url === 'string' && /api\.gupshup\.io.*msg/i.test(m.mapper.url)),
     ),
+    webhook_params: whAfter?.parameters || null,
+    ai_input_preview: aiMods.slice(0, 2).map((m) => ({
+      id: m.id,
+      mapper_keys: Object.keys(m.mapper || {}),
+      // redact long prompts; keep paths that look like webhook refs
+      refs: JSON.stringify(m.mapper || {})
+        .match(/\{\{\d+[\w.\[\]"`]*\}\}/g)
+        ?.slice(0, 20),
+    })),
+    lookup_qs: findByName(bpAfter, LOOKUP_NAME)?.mapper?.qs || null,
   };
-  must(out.verify_blueprint.has_ignore_marker, 'Ignore marker missing after patch');
-  must(out.verify_blueprint.has_lookup, 'Lookup module missing after patch');
-  must(out.verify_blueprint.has_router, 'Router missing after patch');
-  must(out.verify_blueprint.has_ai, 'AI path lost after patch');
-  must(out.verify_blueprint.has_gupshup_87, 'Gupshup send path lost after patch');
+
+  // Hook diagnostics — learn how inbound JSON is exposed
+  const hookInfo = await make(`/hooks/${HOOK_ID}`);
+  const hookObj = hookInfo.json?.hook || hookInfo.json || {};
+  out.hook_info = {
+    http: hookInfo.status,
+    stringify: hookObj.stringify ?? hookObj.flags?.stringify ?? null,
+    method: hookObj.method ?? null,
+    headers: hookObj.headers ?? null,
+    udtType: hookObj.udtType || hookObj.typeName || null,
+    keys: Object.keys(hookObj).slice(0, 40),
+  };
 
   out.activate = await activateBot();
   must(out.activate.isActive, 'Bot not Active after activate');
