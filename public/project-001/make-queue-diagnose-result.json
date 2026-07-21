@@ -1,0 +1,398 @@
+{
+  "id": "make-queue-diagnose",
+  "at": "2026-07-21T12:48:33.484Z",
+  "env": "staging_make_account",
+  "production_touched": false,
+  "no_whatsapp_send": true,
+  "scenario_id": 5797671,
+  "hook_id": 2567320,
+  "scenario": {
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": false,
+    "islinked": false,
+    "iswaiting": false,
+    "isPaused": false,
+    "dlqCount": 0,
+    "scheduling": {
+      "type": "immediately",
+      "maximum_runs_per_minute": null
+    },
+    "hookId": 2567320
+  },
+  "hook": {
+    "http": 200,
+    "enabled": true,
+    "queueCount": 15,
+    "queueLimit": 667,
+    "scenarioId": 5797671,
+    "typeName": "gateway-webhook",
+    "flags": {},
+    "data": {
+      "ip": null,
+      "udt": null,
+      "headers": false,
+      "method": false,
+      "stringify": false,
+      "teamId": 1939972
+    }
+  },
+  "incomings_stats": {
+    "http": 200,
+    "body": {
+      "incomingStat": {
+        "queue": 15,
+        "limit": 667,
+        "enabled": true
+      }
+    }
+  },
+  "incomings_list_http": 200,
+  "incomings_count": 15,
+  "incomings_detailed": [
+    {
+      "id": "41d77cc2ae8e057d415114a1f1d19a40",
+      "size": 178,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": null,
+        "gs_id": null,
+        "summary": "DLR status=null gs_id=?"
+      },
+      "body_excerpt": "{\"object\":\"whatsapp_business_account\",\"gs_app_id\":\"496709e8-b5fc-4de9-9c75-bc87455482dd\",\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"statuses\":[{\"type\":\"set-callback\"}]}}]}]}"
+    },
+    {
+      "id": "00d5bad5c5b9e3d16120934c19d1cb19",
+      "size": 759,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "2a3f5462-d94a-44c9-a0b1-7ee4ea25913e",
+        "summary": "DLR status=failed gs_id=2a3f5462-d94a-44c9-a0b1-7ee4ea25913e"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TicEe5l"
+    },
+    {
+      "id": "84ed71e488f115385ccf8b3df66ee2b2",
+      "size": 759,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "64404689-6ec3-4011-bb95-dd3789355a03",
+        "summary": "DLR status=failed gs_id=64404689-6ec3-4011-bb95-dd3789355a03"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TicHzOt"
+    },
+    {
+      "id": "76934ad3a109af60cdca0087c8cfc317",
+      "size": 827,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "e116913f-17a3-4ef4-a60b-285e153068a3",
+        "summary": "DLR status=failed gs_id=e116913f-17a3-4ef4-a60b-285e153068a3"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TicIpqY"
+    },
+    {
+      "id": "2905d57feb3f6ba1e5292948390e7c2e",
+      "size": 759,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "ac3ab254-5518-4bcf-8397-fcab7eede89a",
+        "summary": "DLR status=failed gs_id=ac3ab254-5518-4bcf-8397-fcab7eede89a"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TikyPMc"
+    },
+    {
+      "id": "224e8fb8c447bc787044d2f04e130fe4",
+      "size": 759,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "5478f2e0-920e-472c-967d-00356e7eaef7",
+        "summary": "DLR status=failed gs_id=5478f2e0-920e-472c-967d-00356e7eaef7"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TikCS4k"
+    },
+    {
+      "id": "2c35566bc473d32683d720591616015d",
+      "size": 827,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "0353ce86-a0bf-4e97-9344-5618e1192032",
+        "summary": "DLR status=failed gs_id=0353ce86-a0bf-4e97-9344-5618e1192032"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TikDF0e"
+    },
+    {
+      "id": "e9465d17266ffcf2884e3c82db1fa0b1",
+      "size": 759,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "d3058142-15f4-4f85-a48b-391883878a76",
+        "summary": "DLR status=failed gs_id=d3058142-15f4-4f85-a48b-391883878a76"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TitYH9H"
+    },
+    {
+      "id": "8a0029bd56de6ed2cdf8f53efd596096",
+      "size": 827,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "ee7fa43d-2485-42ef-8582-8d802ec7444f",
+        "summary": "DLR status=failed gs_id=ee7fa43d-2485-42ef-8582-8d802ec7444f"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TitZq2I"
+    },
+    {
+      "id": "1d73912fab5d3474f2f580c273ec1a9a",
+      "size": 459,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "summary": "inbound from 972534338601: היי"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"contacts\":[{\"profile\":{\"name\":\"יוני\"},\"wa_id\":\"972534338601\"}],\"messages\":[{\"from\":\"972534338601\",\"id\":\"wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUM5QzJDQUJBQTdBQTg5RDc3MUY4M0"
+    },
+    {
+      "id": "92fd93f56f1c06f6c2ccd79dedd02846",
+      "size": 473,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "למה לא עובד",
+        "summary": "inbound from 972534338601: למה לא עובד"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"contacts\":[{\"profile\":{\"name\":\"יוני\"},\"wa_id\":\"972534338601\"}],\"messages\":[{\"from\":\"972534338601\",\"id\":\"wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNBQzhFRTdGQ0Q2QzgxQkQ3OUU5RE"
+    },
+    {
+      "id": "6cc8d7ea53724643302407b9fd1c84cf",
+      "size": 459,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "summary": "inbound from 972534338601: היי"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"contacts\":[{\"profile\":{\"name\":\"יוני\"},\"wa_id\":\"972534338601\"}],\"messages\":[{\"from\":\"972534338601\",\"id\":\"wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUM5RDFGRURFQzFCNUNBMTI1RUFBRD"
+    },
+    {
+      "id": "c22e660a15f309d4abeb1db30a46da1e",
+      "size": 759,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "13bb3459-ae2f-4955-b35d-24f4b1ba28a5",
+        "summary": "DLR status=failed gs_id=13bb3459-ae2f-4955-b35d-24f4b1ba28a5"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TjMQ4Ly"
+    },
+    {
+      "id": "4e0d4a0960c84a43f90abdda86c35fb9",
+      "size": 719,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "delivery_status",
+        "status": "sent",
+        "gs_id": "27f46420-c2d5-438d-9e4f-830f290cebde",
+        "summary": "DLR status=sent gs_id=27f46420-c2d5-438d-9e4f-830f290cebde"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TjMQSKT"
+    },
+    {
+      "id": "254666e7b1e824785e016870ee61000d",
+      "size": 459,
+      "createdAt": null,
+      "scope": "hook",
+      "detail_http": 200,
+      "log_http": 200,
+      "classification": {
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "summary": "inbound from 972534338601: היי"
+      },
+      "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"contacts\":[{\"profile\":{\"name\":\"יוני\"},\"wa_id\":\"972534338601\"}],\"messages\":[{\"from\":\"972534338601\",\"id\":\"wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNDMjkzRTU2NUY1OUZBMThBMDc1Mz"
+    }
+  ],
+  "scenario_logs": {
+    "http": 200,
+    "count": 20,
+    "recent": [
+      {
+        "timestamp": "2026-07-21T12:14:34.494Z"
+      },
+      {
+        "id": "50992ae9c5da4f6aae7e5e0207478f02",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.277Z",
+        "instant": true
+      },
+      {
+        "id": "0e5176952da9402d9a66668fdb7aeaff",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.260Z",
+        "instant": true
+      },
+      {
+        "id": "ab035f855a6f4eeb80c92e7299de1b4a",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.235Z",
+        "instant": true
+      },
+      {
+        "id": "69d5bf24428144528a76646ead97820b",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.209Z",
+        "instant": true
+      },
+      {
+        "id": "3f5a28772e8c47ef8e7ebb363c2ffcf7",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.186Z",
+        "instant": true
+      },
+      {
+        "id": "12c2aa45c4f648acb975b93b05ba6e12",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.164Z",
+        "instant": true
+      },
+      {
+        "id": "d75402f6189b4d8ebba1e78d5276d3e9",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.139Z",
+        "instant": true
+      },
+      {
+        "id": "dcdc5324951040a58803ef5aa9ecbf22",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.120Z",
+        "instant": true
+      },
+      {
+        "id": "f6e196be55fb468aa63fc5ab97ad7226",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.099Z",
+        "instant": true
+      },
+      {
+        "id": "4b75d34b5fcd46d8859c5cfc0e64ab2d",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.075Z",
+        "instant": true
+      },
+      {
+        "id": "18e7bc7b3e4043cfac3ed01496586083",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.054Z",
+        "instant": true
+      },
+      {
+        "id": "5404e56c55ba4dbb9a6d4c81aaaa0617",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.028Z",
+        "instant": true
+      },
+      {
+        "id": "75285511",
+        "timestamp": "2026-07-21T12:14:32.891Z"
+      },
+      {
+        "timestamp": "2026-07-21T11:42:02.478Z"
+      }
+    ]
+  },
+  "incomplete": {
+    "http": 200,
+    "count": 0
+  },
+  "analysis": {
+    "why_not_draining": "Scenario is not Active — Make will not consume webhook queue while OFF.",
+    "are_old": "Queue items include mix: {\"delivery_status\":11,\"inbound_message\":4}. Majority look like Delivery status (DLR) callbacks from Gupshup — leftovers from earlier Staging sends / bot traffic, not new user chats only. Some are real inbound WhatsApp messages (e.g. owner היי). Timestamps range: unknown → unknown (if API returns createdAt).",
+    "stuck": "Not stuck in DLQ; check incomings count.",
+    "safe_to_delete": "YES for Staging cleanup of Delivery-status backlog: deleting webhook incomings only discards unprocessed webhook payloads in Make. It does NOT unsend WhatsApp, does NOT touch Supabase/Production, does NOT change Gupshup. CAUTION: deleting also drops any unprocessed inbound messages (e.g. היי) — the Whatsapp Bot will never reply to those specific webhook events. Recommended: delete delivery_status items; keep or manually review inbound_message items if you want the bot to answer them.",
+    "production_impact": "NONE on Production systems (dalia-c.com / Production Supabase). This queue lives only in the Make.com account webhook for Whatsapp Bot. If the same Make scenario is used for live Production WhatsApp later, a large backlog could cause delayed bot replies or burst processing when drained — so cleaning before Production go-live is the right call. Deleting now does not break Production because Production WA path is not live on this gate yet.",
+    "kind_counts": {
+      "delivery_status": 11,
+      "inbound_message": 4
+    },
+    "oldest_createdAt": null,
+    "newest_createdAt": null,
+    "scheduling_type": "immediately",
+    "is_instant_scenario": true
+  },
+  "answers": {
+    "1_why_not_draining": "Scenario is not Active — Make will not consume webhook queue while OFF.",
+    "2_are_old": "Queue items include mix: {\"delivery_status\":11,\"inbound_message\":4}. Majority look like Delivery status (DLR) callbacks from Gupshup — leftovers from earlier Staging sends / bot traffic, not new user chats only. Some are real inbound WhatsApp messages (e.g. owner היי). Timestamps range: unknown → unknown (if API returns createdAt).",
+    "3_stuck": "Not stuck in DLQ; check incomings count.",
+    "4_safe_to_delete": "YES for Staging cleanup of Delivery-status backlog: deleting webhook incomings only discards unprocessed webhook payloads in Make. It does NOT unsend WhatsApp, does NOT touch Supabase/Production, does NOT change Gupshup. CAUTION: deleting also drops any unprocessed inbound messages (e.g. היי) — the Whatsapp Bot will never reply to those specific webhook events. Recommended: delete delivery_status items; keep or manually review inbound_message items if you want the bot to answer them.",
+    "5_production_impact": "NONE on Production systems (dalia-c.com / Production Supabase). This queue lives only in the Make.com account webhook for Whatsapp Bot. If the same Make scenario is used for live Production WhatsApp later, a large backlog could cause delayed bot replies or burst processing when drained — so cleaning before Production go-live is the right call. Deleting now does not break Production because Production WA path is not live on this gate yet."
+  },
+  "recommendation": {
+    "he": "לא לשלוח WA. לנקות את תור ה-incomings ב-Make (מחיקת פריטי DLR ישנים) לפני Production. אופציה: DELETE /hooks/{hookId}/incomings דרך API רק אחרי אישור Owner «מחק תור Make».",
+    "next_owner_phrase": "מחק תור Make"
+  }
+}
