@@ -1,11 +1,9 @@
 {
   "id": "wa-alert-one-way-queue",
-  "armed": false,
+  "armed": true,
   "staging_only": true,
   "production_touched": false,
   "approve_owner": "A",
-  "retry": 4,
-  "note": "Re-arm: richer Message ID IML + filter paths + AI63 check + hook dump",
-  "completed": true,
-  "at": "2026-07-21T20:36:23.204Z"
+  "retry": 5,
+  "note": "Re-arm: SetVariable skip (not Ignore) + Meta context Message ID paths"
 }

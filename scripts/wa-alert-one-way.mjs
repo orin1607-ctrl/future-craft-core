@@ -368,8 +368,8 @@ function applyOneWayPatch(bp) {
       headers: [{ name: 'Accept', value: 'application/json' }],
       qs: [
         { name: 'check_system_alert', value: '1' },
-        { name: 'gsId', value: `{{ifempty(${wh.id}.reply_gsid; ifempty(${wh.id}.payload.context.gsId; ifempty(get(${wh.id}; "reply_gsid"); ifempty(get(${wh.id}.payload.context; "gsId"); ifempty(get(parseJSON(${wh.id}); "payload.context.gsId"); __none__)))))}}` },
-        { name: 'waId', value: `{{ifempty(${wh.id}.reply_waid; ifempty(${wh.id}.payload.context.id; ifempty(get(${wh.id}.payload.context; "id"); __none__)))}}` },
+        { name: 'gsId', value: `{{ifempty(${wh.id}.entry[].changes[].value.messages[].context.gsId; ifempty(${wh.id}.entry[].changes[].value.messages[].context.id; ifempty(${wh.id}.reply_gsid; ifempty(${wh.id}.payload.context.gsId; __none__))))}}` },
+        { name: 'waId', value: `{{ifempty(${wh.id}.entry[].changes[].value.messages[].context.id; ifempty(${wh.id}.reply_waid; ifempty(${wh.id}.payload.context.id; __none__)))}}` },
       ],
       bodyType: 'raw',
       parseResponse: true,
@@ -397,12 +397,19 @@ function applyOneWayPatch(bp) {
     },
   };
 
-  const ignoreMod = {
+  // NOTE: builtin:Ignore is ONLY valid inside onerror — using it in a route
+  // causes: "Misplaced directive 'builtin:Ignore' outside of an error handler"
+  // Terminal no-op SetVariable ends the alert-reply route without AI/Gupshup.
+  const skipMod = {
     id: ignoreId,
-    module: 'builtin:Ignore',
+    module: 'util:SetVariable2',
     version: 1,
     parameters: {},
-    mapper: {},
+    mapper: {
+      name: 'system_alert_reply_skipped',
+      scope: 'roundtrip',
+      value: '1',
+    },
     filter: {
       name: 'Reply to system alert Message ID',
       conditions: [
@@ -436,7 +443,7 @@ function applyOneWayPatch(bp) {
     },
     routes: [
       {
-        flow: [ignoreMod],
+        flow: [skipMod],
       },
       {
         flow: rest,
@@ -448,11 +455,12 @@ function applyOneWayPatch(bp) {
   return {
     skipped: false,
     unwrap,
-    data_expr: 'GET qs Message ID (no createJSON)',
+    data_expr: 'GET qs Message ID (Meta context paths)',
     ids: {
       lookup: lookupId,
       router: routerId,
       ignore: ignoreId,
+      skip: ignoreId,
     },
     rest_modules_moved: rest.length,
   };
@@ -680,13 +688,15 @@ async function main() {
   const logsBefore1 = await recentLogs(15);
   const beforeIds1 = new Set(logsBefore1.map((x) => x.id));
   const t1 = Date.now();
-  const replyPayload = buildGupshupInbound({
+  const replyPayload = buildMetaInbound({
     text: 'תשובה להתראה — לא אמור לענות בוט',
-    contextGsId: alertMsgId,
-    contextWaId: `gBEGk.oneway.${Date.now()}`,
+    contextId: alertMsgId,
     suffix: 'reply',
   });
-  out.e2e_reply = { post: await postHook(hookUrl, replyPayload) };
+  // Also attach flat alias for Message ID mapping
+  replyPayload.reply_gsid = alertMsgId;
+  replyPayload.reply_waid = alertMsgId;
+  out.e2e_reply = { post: await postHook(hookUrl, replyPayload), format: 'meta+context+flat' };
   must(out.e2e_reply.post.status >= 200 && out.e2e_reply.post.status < 300, 'Reply post failed');
 
   let replyLog = null;
@@ -724,20 +734,20 @@ async function main() {
   out.e2e_reply.analysis = {
     duration_ms: replyLog.duration ?? null,
     hit_lookup: replyHitLookup,
-    hit_ignore: replyHitIgnore,
+    hit_skip_noop: replyHitIgnore,
     hit_ai_84: replyHit84,
     hit_ai_63: replyHit63,
     hit_gupshup_87: replyHit87,
-    ignore_module_id: ignoreId,
+    skip_module_id: ignoreId,
     lookup_module_id: lookupId,
     lookup_logs: logsLookup.slice(0, 3),
   };
-  must(!replyHit84 && !replyHit63, 'Reply-to-alert reached AI — should Ignore');
-  must(!replyHit87, 'Reply-to-alert reached Gupshup 87 — should Ignore');
+  must(!replyHit84 && !replyHit63, 'Reply-to-alert reached AI — should skip');
+  must(!replyHit87, 'Reply-to-alert reached Gupshup 87 — should skip');
   if (!replyHitIgnore) {
     must(
       typeof replyLog.duration === 'number' && replyLog.duration < 4000,
-      `Reply path too slow (${replyLog.duration}ms) without Ignore — likely bot path`,
+      `Reply path too slow (${replyLog.duration}ms) without skip — likely bot path`,
     );
   }
 
