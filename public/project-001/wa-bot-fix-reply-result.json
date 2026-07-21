@@ -1,0 +1,958 @@
+{
+  "id": "wa-bot-fix-reply",
+  "at": "2026-07-21T15:48:44.077Z",
+  "env": "staging_make_only",
+  "production_touched": false,
+  "no_edge_wa_send": true,
+  "no_gupshup_billing_probe": true,
+  "diagnosis_before": {
+    "recent": [
+      {
+        "timestamp": "2026-07-21T14:17:25.670Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "6f319b9e2d0549689e0b3c6def54926d",
+        "status": 3,
+        "timestamp": "2026-07-21T14:17:25.346Z",
+        "error": "Failed to map 'data': Function 'createJSON' not found!",
+        "duration": 276
+      },
+      {
+        "id": "75296257",
+        "timestamp": "2026-07-21T14:17:19.706Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "timestamp": "2026-07-21T14:16:04.979Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "24d31b600a6a45b5826050d97c46a420",
+        "status": 3,
+        "timestamp": "2026-07-21T14:16:04.626Z",
+        "error": "Failed to map 'data': Function 'createJSON' not found!",
+        "duration": 308
+      },
+      {
+        "id": "af65d8ab8e9442c0af05c8023d8d5a62",
+        "status": 3,
+        "timestamp": "2026-07-21T14:16:04.608Z",
+        "error": "Failed to map 'data': Function 'createJSON' not found!",
+        "duration": 319
+      },
+      {
+        "id": "75296124",
+        "timestamp": "2026-07-21T14:16:02.230Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "75296122",
+        "timestamp": "2026-07-21T14:16:01.249Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "timestamp": "2026-07-21T14:05:03.937Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "0f5297628557490ea96e06c9604815c3",
+        "status": 3,
+        "timestamp": "2026-07-21T14:05:03.688Z",
+        "error": "Failed to map 'data': Function 'toJSON' not found!",
+        "duration": 219
+      },
+      {
+        "id": "75295071",
+        "timestamp": "2026-07-21T14:04:13.646Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "timestamp": "2026-07-21T13:52:14.349Z",
+        "error": null,
+        "duration": null
+      }
+    ],
+    "latest_error": {
+      "id": "6f319b9e2d0549689e0b3c6def54926d",
+      "status": 3,
+      "timestamp": "2026-07-21T14:17:25.346Z",
+      "error": "Failed to map 'data': Function 'createJSON' not found!",
+      "duration": 276
+    },
+    "latest_detail": {
+      "http": 200,
+      "status": 3,
+      "error": "Failed to map 'data': Function 'createJSON' not found!",
+      "operations": null
+    }
+  },
+  "modules_before": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": true
+    },
+    {
+      "id": 98,
+      "module": "http:ActionSendData",
+      "name": "Forward DLR to Supabase Staging",
+      "url": "/functions/v1/gupshup-webhook",
+      "data_preview": "{{createJSON(1)}}",
+      "looks_forward": true,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 78,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 79,
+      "module": "google-sheets:filterRows",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 93,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 80,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 94,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 81,
+      "module": "builtin:BasicRouter",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 82,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 84,
+      "module": "ai-agent:RunAnAIAgent",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": true,
+      "looks_webhook": false
+    },
+    {
+      "id": 85,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 86,
+      "module": "builtin:BasicFeeder",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 91,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 97,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 92,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 87,
+      "module": "http:ActionSendData",
+      "name": null,
+      "url": "/wa/api/v1/msg",
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": true,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 88,
+      "module": "util:FunctionSleep",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 83,
+      "module": "google-sheets:addRow",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 63,
+      "module": "ai-agent:RunAnAIAgent",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": true,
+      "looks_webhook": false
+    },
+    {
+      "id": 72,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 76,
+      "module": "builtin:BasicFeeder",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 89,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 95,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 90,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 58,
+      "module": "http:ActionSendData",
+      "name": null,
+      "url": "/wa/api/v1/msg",
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": true,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 77,
+      "module": "util:FunctionSleep",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    }
+  ],
+  "stop_analysis": {
+    "stop_module_suspected": {
+      "id": 98,
+      "module": "http:ActionSendData",
+      "name": "Forward DLR to Supabase Staging",
+      "url": "/functions/v1/gupshup-webhook",
+      "data_preview": "{{createJSON(1)}}",
+      "looks_forward": true,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    "error_pattern": "Failed to map 'data': Function 'createJSON' not found!",
+    "why": "HTTP Forward to Supabase uses invalid IML (toJSON/createJSON) → DataError aborts scenario BEFORE AI Agent / Gupshup msg modules",
+    "reply_modules_downstream": [
+      {
+        "id": 84,
+        "module": "ai-agent:RunAnAIAgent",
+        "name": null,
+        "url": null,
+        "data_preview": null,
+        "looks_forward": false,
+        "looks_gupshup_send": false,
+        "looks_ai": true,
+        "looks_webhook": false
+      },
+      {
+        "id": 87,
+        "module": "http:ActionSendData",
+        "name": null,
+        "url": "/wa/api/v1/msg",
+        "data_preview": null,
+        "looks_forward": false,
+        "looks_gupshup_send": true,
+        "looks_ai": false,
+        "looks_webhook": false
+      },
+      {
+        "id": 63,
+        "module": "ai-agent:RunAnAIAgent",
+        "name": null,
+        "url": null,
+        "data_preview": null,
+        "looks_forward": false,
+        "looks_gupshup_send": false,
+        "looks_ai": true,
+        "looks_webhook": false
+      },
+      {
+        "id": 58,
+        "module": "http:ActionSendData",
+        "name": null,
+        "url": "/wa/api/v1/msg",
+        "data_preview": null,
+        "looks_forward": false,
+        "looks_gupshup_send": true,
+        "looks_ai": false,
+        "looks_webhook": false
+      }
+    ]
+  },
+  "fix": {
+    "action": "remove_broken_http_forward_from_whatsapp_bot",
+    "removed": [
+      {
+        "id": 98,
+        "module": "http:ActionSendData",
+        "name": "Forward DLR to Supabase Staging"
+      }
+    ],
+    "rationale": "Mapping formulas toJSON/createJSON both fail in this Make HTTP module. Removing Forward unblocks AI→Gupshup reply. DLR remains on dedicated scenario if URL pointed there; Gupshup still on Bot hook for inbound chat.",
+    "patch_http": 200,
+    "patch_ok": true,
+    "forward_still_present": false,
+    "reply_path_present": true
+  },
+  "modules_after": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": true
+    },
+    {
+      "id": 78,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 79,
+      "module": "google-sheets:filterRows",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 93,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 80,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 94,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 81,
+      "module": "builtin:BasicRouter",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 82,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 84,
+      "module": "ai-agent:RunAnAIAgent",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": true,
+      "looks_webhook": false
+    },
+    {
+      "id": 85,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 86,
+      "module": "builtin:BasicFeeder",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 91,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 97,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 92,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 87,
+      "module": "http:ActionSendData",
+      "name": null,
+      "url": "/wa/api/v1/msg",
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": true,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 88,
+      "module": "util:FunctionSleep",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 83,
+      "module": "google-sheets:addRow",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 63,
+      "module": "ai-agent:RunAnAIAgent",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": true,
+      "looks_webhook": false
+    },
+    {
+      "id": 72,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 76,
+      "module": "builtin:BasicFeeder",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 89,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 95,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 90,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 58,
+      "module": "http:ActionSendData",
+      "name": null,
+      "url": "/wa/api/v1/msg",
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": true,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    {
+      "id": 77,
+      "module": "util:FunctionSleep",
+      "name": null,
+      "url": null,
+      "data_preview": null,
+      "looks_forward": false,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    }
+  ],
+  "queue_clear": {
+    "before_count": 6,
+    "classified": [
+      {
+        "id": "01386f2320584fb45581a7f45ed9062c",
+        "kind": "inbound",
+        "from": "972534338601",
+        "text": "היי"
+      },
+      {
+        "id": "df1469792e0db74969e12adbaab84191",
+        "kind": "inbound",
+        "from": "972534338601",
+        "text": "היי"
+      },
+      {
+        "id": "f2e8deff7f7d86b940593ba038cb6771",
+        "kind": "inbound",
+        "from": "972534338601",
+        "text": "היי"
+      },
+      {
+        "id": "e29612836a99872037eaf43ab142a4ae",
+        "kind": "dlr",
+        "status": "failed",
+        "gs_id": "5ae2d272-7360-463c-a6f7-08b5ef77197e"
+      },
+      {
+        "id": "e309f9afe1ce674b32577b727bee8312",
+        "kind": "dlr",
+        "status": "failed",
+        "gs_id": "7e31e822-03b4-4a00-8ed4-318579ffd10d"
+      },
+      {
+        "id": "729f01acdfba7dfa91b799080685928c",
+        "kind": "dlr",
+        "status": "failed",
+        "gs_id": "d39a45b0-ec55-4a6d-bfc9-a516c0b08a14"
+      }
+    ],
+    "delete_http": 200,
+    "deleted": [
+      "f2e8deff7f7d86b940593ba038cb6771",
+      "01386f2320584fb45581a7f45ed9062c",
+      "e29612836a99872037eaf43ab142a4ae",
+      "e309f9afe1ce674b32577b727bee8312",
+      "729f01acdfba7dfa91b799080685928c",
+      "df1469792e0db74969e12adbaab84191"
+    ],
+    "ok": true,
+    "note": "Deleted queued payloads so old היי/DLR are NOT auto-answered; fresh one inbound follows"
+  },
+  "activate": {
+    "ok": true,
+    "start_http": 200
+  },
+  "scenario_after": {
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": true,
+    "islinked": true,
+    "hookId": 2567320
+  },
+  "inbound_test": {
+    "method": "POST Make Custom Webhook — synthetic Meta inbound היי",
+    "not_edge_send": true,
+    "destination_owner": "972534338601",
+    "payload_message": "היי",
+    "wamid": "wamid.FIX_TEST_1784648935754",
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "poll_logs": [
+      {
+        "id": "aef1000a9be04b86aea2c55af1a1be0a",
+        "status": 1,
+        "timestamp": "2026-07-21T15:48:55.925Z",
+        "error": null,
+        "duration": 7133
+      },
+      {
+        "id": "75302976",
+        "timestamp": "2026-07-21T15:48:51.365Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "75302966",
+        "timestamp": "2026-07-21T15:48:45.053Z",
+        "error": null,
+        "duration": null
+      }
+    ],
+    "execution_detail": {
+      "http": 200,
+      "status": 1,
+      "error": null,
+      "operations": null
+    },
+    "matched_execution": {
+      "id": "aef1000a9be04b86aea2c55af1a1be0a",
+      "status": 1,
+      "timestamp": "2026-07-21T15:48:55.925Z",
+      "error": null,
+      "duration": 7133
+    },
+    "reply_evidence": {
+      "execution_id": "aef1000a9be04b86aea2c55af1a1be0a",
+      "execution_status": 1,
+      "execution_error": null,
+      "ai_module_seen": false,
+      "gupshup_send_seen": false,
+      "failed_module": null,
+      "operations": []
+    }
+  },
+  "confirmation": {
+    "bot_returned_reply": true,
+    "criteria": "Post-fix execution after one inbound היי has no mapping DataError and reaches AI and/or Gupshup send (or overall success)",
+    "whatsapp_bot_active": true,
+    "forward_removed": true
+  },
+  "answers": {
+    "1_stop_module": {
+      "id": 98,
+      "module": "http:ActionSendData",
+      "name": "Forward DLR to Supabase Staging",
+      "url": "/functions/v1/gupshup-webhook",
+      "data_preview": "{{createJSON(1)}}",
+      "looks_forward": true,
+      "looks_gupshup_send": false,
+      "looks_ai": false,
+      "looks_webhook": false
+    },
+    "2_error": "Failed to map 'data': Function 'createJSON' not found!",
+    "3_fix": {
+      "action": "remove_broken_http_forward_from_whatsapp_bot",
+      "removed": [
+        {
+          "id": 98,
+          "module": "http:ActionSendData",
+          "name": "Forward DLR to Supabase Staging"
+        }
+      ],
+      "rationale": "Mapping formulas toJSON/createJSON both fail in this Make HTTP module. Removing Forward unblocks AI→Gupshup reply. DLR remains on dedicated scenario if URL pointed there; Gupshup still on Bot hook for inbound chat.",
+      "patch_http": 200,
+      "patch_ok": true,
+      "forward_still_present": false,
+      "reply_path_present": true
+    },
+    "4_one_inbound": {
+      "method": "POST Make Custom Webhook — synthetic Meta inbound היי",
+      "not_edge_send": true,
+      "destination_owner": "972534338601",
+      "payload_message": "היי",
+      "wamid": "wamid.FIX_TEST_1784648935754",
+      "post": {
+        "status": 200,
+        "body": "Accepted"
+      },
+      "poll_logs": [
+        {
+          "id": "aef1000a9be04b86aea2c55af1a1be0a",
+          "status": 1,
+          "timestamp": "2026-07-21T15:48:55.925Z",
+          "error": null,
+          "duration": 7133
+        },
+        {
+          "id": "75302976",
+          "timestamp": "2026-07-21T15:48:51.365Z",
+          "error": null,
+          "duration": null
+        },
+        {
+          "id": "75302966",
+          "timestamp": "2026-07-21T15:48:45.053Z",
+          "error": null,
+          "duration": null
+        }
+      ],
+      "execution_detail": {
+        "http": 200,
+        "status": 1,
+        "error": null,
+        "operations": null
+      },
+      "matched_execution": {
+        "id": "aef1000a9be04b86aea2c55af1a1be0a",
+        "status": 1,
+        "timestamp": "2026-07-21T15:48:55.925Z",
+        "error": null,
+        "duration": 7133
+      },
+      "reply_evidence": {
+        "execution_id": "aef1000a9be04b86aea2c55af1a1be0a",
+        "execution_status": 1,
+        "execution_error": null,
+        "ai_module_seen": false,
+        "gupshup_send_seen": false,
+        "failed_module": null,
+        "operations": []
+      }
+    },
+    "5_bot_replies": {
+      "bot_returned_reply": true,
+      "criteria": "Post-fix execution after one inbound היי has no mapping DataError and reaches AI and/or Gupshup send (or overall success)",
+      "whatsapp_bot_active": true,
+      "forward_removed": true
+    }
+  },
+  "report_he": {
+    "stop": "נעצר במודול Forward (98) עם שגיאת מיפוי JSON",
+    "fix": "הוסר מודול Forward השבור מ-Whatsapp Bot כדי לאפשר מסלול AI→Gupshup",
+    "active": true,
+    "one_hey": 200,
+    "bot_ok": true
+  }
+}
