@@ -318,20 +318,43 @@ function recentModuleHit(logs, sinceMs) {
 /** IML unused for qs — Edge deep-searches POST body for context.gsId / context.id */
 function removeOneWayModules(bp) {
   if (!Array.isArray(bp.flow)) return { removed: false };
+  const STRIP = new Set([
+    MARKER,
+    LOOKUP_NAME,
+    ROUTER_NAME,
+    'Continue bot chat (non-alert)',
+    'Extract reply WhatsApp context id',
+    'Extract reply context Message IDs',
+    'Ignore reply to system alert',
+  ]);
+
   const router = bp.flow.find((m) => m?.metadata?.designer?.name === ROUTER_NAME);
-  if (!router || !Array.isArray(router.routes) || router.routes.length < 2) {
-    // Remove stray named modules if any
-    const before = bp.flow.length;
-    bp.flow = bp.flow.filter(
-      (m) =>
-        ![MARKER, LOOKUP_NAME, ROUTER_NAME].includes(m?.metadata?.designer?.name),
-    );
-    return { removed: bp.flow.length !== before, mode: 'filter_names' };
-  }
   const wh = bp.flow.find((m) => /CustomWebHook|webhook/i.test(String(m?.module || '')));
-  const botFlow = router.routes[1]?.flow || [];
+
+  let botFlow = [];
+  if (router && Array.isArray(router.routes) && router.routes.length >= 2) {
+    botFlow = [...(router.routes[1]?.flow || [])];
+  } else {
+    botFlow = bp.flow.filter((m) => m && Number(m.id) !== Number(wh?.id));
+  }
+
+  // Never leave our helper modules inside the restored bot path
+  const beforeLen = botFlow.length;
+  botFlow = botFlow.filter((m) => !STRIP.has(m?.metadata?.designer?.name));
+  // Also drop prior lookup/skip helpers by module id pattern if named differently
+  botFlow = botFlow.filter((m) => {
+    const n = String(m?.metadata?.designer?.name || '');
+    if (/system-alert|one-way|Ignore reply|Continue bot/i.test(n)) return false;
+    return true;
+  });
+
   bp.flow = wh ? [wh, ...botFlow] : [...botFlow];
-  return { removed: true, mode: 'unwrap_router', bot_modules: botFlow.length };
+  return {
+    removed: true,
+    mode: router ? 'unwrap_router' : 'filter_names',
+    bot_modules: botFlow.length,
+    stripped: beforeLen - botFlow.length,
+  };
 }
 
 function applyOneWayPatch(bp) {
@@ -368,8 +391,15 @@ function applyOneWayPatch(bp) {
       headers: [{ name: 'Accept', value: 'application/json' }],
       qs: [
         { name: 'check_system_alert', value: '1' },
-        { name: 'gsId', value: `{{ifempty(${wh.id}.entry[].changes[].value.messages[].context.gsId; ifempty(${wh.id}.entry[].changes[].value.messages[].context.id; ifempty(${wh.id}.reply_gsid; ifempty(${wh.id}.payload.context.gsId; __none__))))}}` },
-        { name: 'waId', value: `{{ifempty(${wh.id}.entry[].changes[].value.messages[].context.id; ifempty(${wh.id}.reply_waid; ifempty(${wh.id}.payload.context.id; __none__)))}}` },
+        // Same Meta paths the AI Agent already uses for inbound text
+        {
+          name: 'gsId',
+          value: `{{ifempty(${wh.id}.entry[].changes[].value.messages[].context.gsId; ifempty(${wh.id}.entry[].changes[].value.messages[].context.id; ifempty(${wh.id}.reply_gsid; __none__)))}}`,
+        },
+        {
+          name: 'waId',
+          value: `{{ifempty(${wh.id}.entry[].changes[].value.messages[].context.id; ifempty(${wh.id}.reply_waid; __none__))}}`,
+        },
       ],
       bodyType: 'raw',
       parseResponse: true,
