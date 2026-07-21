@@ -68,11 +68,30 @@ Error: code / message אם יש
 
 ---
 
-## 4. בקשת אישור
+## 4. בדיקת סימולציה (הושלמה — בלי שליחת WhatsApp)
 
-ה-Webhook מוכן לבדיקת סימולציה ב-Staging.  
+הרצה: https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29810848881
+
+| מסלול | Message ID | מעברים | סופי | כשל |
+|--------|------------|--------|------|-----|
+| Happy | `fd32924b-…` | submitted → sent → delivered → read | **read** | — |
+| Failed | `0f2b72c1-…` | submitted → failed | **failed** | code `1005` · user inactive for session message |
+
+`webhook_ready: true`
+
+---
+
+## 5. בקשת אישור
+
+ה-Webhook מוכן ונבדק בסימולציה ב-Staging.  
 **לא אבצע שליחה חיה** עד שתכתוב במפורש:
 
 **«אשר שליחה חיה אחת»**
 
-(מומלץ קודם להגדיר Callback בפורטל — אחרת שוב נישאר על `submitted` בלי DLR.)
+מומלץ קודם להגדיר Callback בפורטל Gupshup ל:
+
+```
+https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/gupshup-webhook
+```
+
+אחרת שוב נישאר על `submitted` בלי DLR אמיתי מ-Gupshup.

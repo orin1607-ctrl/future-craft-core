@@ -1,0 +1,31 @@
+{
+  "id": "staging-dlr-simulate-result",
+  "generated_at": "2026-07-21T07:34:00Z",
+  "env": "staging",
+  "production_touched": false,
+  "no_whatsapp_send": true,
+  "actions_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29810848881",
+  "webhook_ready": true,
+  "callback_url": "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/gupshup-webhook",
+  "simulation": {
+    "happy_path": {
+      "message_id": "fd32924b-3a04-4e06-8e01-e944fa3e4400",
+      "transitions": ["submitted", "sent", "delivered", "read"],
+      "final_status": "read",
+      "ok": true
+    },
+    "failed_path": {
+      "message_id": "0f2b72c1-40ad-4303-b2b0-dfac787a6f86",
+      "transitions": ["submitted", "failed"],
+      "final_status": "failed",
+      "dlr_error_code": "1005",
+      "error_message": "user inactive for session message",
+      "ok": true
+    }
+  },
+  "live_send": {
+    "status": "awaiting_owner_approval",
+    "destination": "0534338601",
+    "prerequisite": "Set Gupshup portal Callback URL to webhook, then reply «אשר שליחה חיה אחת»"
+  }
+}
