@@ -1,0 +1,202 @@
+name: Compare June10 vs today WA evidence (no send)
+
+# Read-only evidence gathering. No WhatsApp send to any user.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/compare-june10-vs-today-wa.yml'
+      - 'public/project-001/june10-vs-today-wa-compare-queue.json'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Gather evidence (DB + live account status, no user send)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+          const STAGING = 'usfeoerkpcafxxlyuldl';
+          const OWNER_EMAIL = 'orin1607@gmail.com';
+          const TODAY_MSG = '506fe683-4b07-4752-9301-a9ab2afa2e3c';
+          const out = { purpose: 'June10 vs today evidence — no send', production_touched: false };
+
+          async function mgmt(path) {
+            const res = await fetch(`https://api.supabase.com/v1${path}`, {
+              headers: { Authorization: `Bearer ${token}`, apikey: token },
+            });
+            const text = await res.text();
+            let json = null; try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+            return { status: res.status, json, text: text.slice(0, 500) };
+          }
+          async function post(base, path, body, bearer, apikey) {
+            const res = await fetch(base + path, {
+              method: 'POST',
+              headers: { apikey: apikey || bearer, Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+            return { status: res.status, body: await res.json().catch(() => ({})) };
+          }
+          async function rest(base, srk, path) {
+            const res = await fetch(base + path, { headers: { apikey: srk, Authorization: `Bearer ${srk}` } });
+            const text = await res.text();
+            let json = null; try { json = text ? JSON.parse(text) : null; } catch { json = text.slice(0, 200); }
+            return { status: res.status, json };
+          }
+
+          const keys = await mgmt(`/projects/${STAGING}/api-keys`);
+          const srk = Array.isArray(keys.json)
+            ? keys.json.find((k) => k.name === 'service_role' || (k.tags || []).includes('service_role'))?.api_key
+            : null;
+          const anon = Array.isArray(keys.json)
+            ? keys.json.find((k) => k.name === 'anon' || (k.tags || []).includes('anon'))?.api_key
+            : null;
+          if (!srk) { console.log(JSON.stringify({ error: 'no_srk' })); process.exit(1); }
+          const base = `https://${STAGING}.supabase.co`;
+
+          // DB: look for any rows mentioning owner phone / message id / june window
+          const db = {};
+          db.document_requests_by_phone = await rest(base, srk,
+            `/rest/v1/document_requests?or=(outbound_message_id.eq.${TODAY_MSG})&select=id,outbound_message_id,channel,status,created_at&limit=20`);
+          db.document_requests_june = await rest(base, srk,
+            `/rest/v1/document_requests?created_at=gte.2026-06-08&created_at=lte.2026-06-12&select=id,outbound_message_id,channel,status,created_at&limit=50`);
+          db.driver_notifications_june = await rest(base, srk,
+            `/rest/v1/driver_notifications?created_at=gte.2026-06-08&created_at=lte.2026-06-12&select=id,type,title,message,created_at&limit=50`);
+          // emergency_logs if exists
+          db.emergency_logs_june = await rest(base, srk,
+            `/rest/v1/emergency_logs?created_at=gte.2026-06-08&created_at=lte.2026-06-12&select=*&limit=20`);
+          // company_settings whatsapp fields
+          db.company_settings_wa = await rest(base, srk,
+            `/rest/v1/company_settings?select=company_id,whatsapp_phone,whatsapp_enabled&limit=20`);
+
+          out.db = {
+            document_requests_today_msgid: {
+              http: db.document_requests_by_phone.status,
+              count: Array.isArray(db.document_requests_by_phone.json) ? db.document_requests_by_phone.json.length : null,
+            },
+            document_requests_june_window: {
+              http: db.document_requests_june.status,
+              count: Array.isArray(db.document_requests_june.json) ? db.document_requests_june.json.length : null,
+              with_outbound_id: Array.isArray(db.document_requests_june.json)
+                ? db.document_requests_june.json.filter((r) => r.outbound_message_id).length
+                : null,
+            },
+            driver_notifications_june_window: {
+              http: db.driver_notifications_june.status,
+              count: Array.isArray(db.driver_notifications_june.json) ? db.driver_notifications_june.json.length : null,
+              types: Array.isArray(db.driver_notifications_june.json)
+                ? [...new Set(db.driver_notifications_june.json.map((r) => r.type))]
+                : null,
+            },
+            emergency_logs_june: {
+              http: db.emergency_logs_june.status,
+              count: Array.isArray(db.emergency_logs_june.json) ? db.emergency_logs_june.json.length : null,
+            },
+            company_whatsapp_phones: Array.isArray(db.company_settings_wa.json)
+              ? db.company_settings_wa.json.map((r) => ({ phone: r.whatsapp_phone, enabled: r.whatsapp_enabled }))
+              : { http: db.company_settings_wa.status },
+          };
+
+          // Live account status: check_connection + inspect templates only (NO destination send to Owner)
+          const gen = await post(base, '/auth/v1/admin/generate_link', { type: 'magiclink', email: OWNER_EMAIL }, srk, srk);
+          const ver = await post(base, '/auth/v1/verify', { type: 'magiclink', email: OWNER_EMAIL, token: gen.body.email_otp }, anon || srk, anon || srk);
+          const at = ver.body?.access_token || ver.body?.session?.access_token;
+          let live = { auth: Boolean(at) };
+          if (at) {
+            const check = await post(base, '/functions/v1/send-whatsapp-message', { action: 'check_connection' }, at, anon || srk);
+            const insp = await post(base, '/functions/v1/send-whatsapp-message', { action: 'inspect_outbound_permissions' }, at, anon || srk);
+            live.check_connection = {
+              http: check.status,
+              configured: check.body?.configured ?? null,
+              gupshup_verified: check.body?.gupshup_verified ?? null,
+              gupshup_status: check.body?.gupshup_status ?? null,
+              app_name: check.body?.app_name ?? null,
+              source: check.body?.source ?? null,
+              message: typeof check.body?.message === 'string' ? check.body.message.slice(0, 120) : null,
+            };
+            live.inspect = {
+              http: insp.status,
+              app_id: insp.body?.app?.id ?? null,
+              app_name: insp.body?.app?.name ?? null,
+              source_used: insp.body?.app?.source_used ?? null,
+              api_key_belongs_to_app: insp.body?.analysis?.api_key_belongs_to_dalia_vehicle_app ?? null,
+              templates_http: insp.body?.probes?.list_approved_templates?.http_status ?? null,
+              approved_template_count: insp.body?.probes?.list_approved_templates?.approved_template_count ?? null,
+              note: 'inspect may probe destination=0 — not a send to Owner phone',
+            };
+          }
+          out.live_account_now = live;
+
+          // Static evidence from repo artifacts (read from checkout)
+          const fs = require('fs');
+          const nightly = JSON.parse(fs.readFileSync('docs/audit-reports/nightly-audit-2026-06-10.json', 'utf8'));
+          const today = JSON.parse(fs.readFileSync('public/project-001/staging-wa-live-send-result.json', 'utf8'));
+          const realSendExists = fs.existsSync('docs/audit-reports/gupshup-whatsapp-real-send-test.json');
+
+          out.june10_recorded_evidence = {
+            nightly_audit_generated_at: nightly.generated_at,
+            last_connection_test: nightly.whatsapp_diagnostic?.last_connection_test || null,
+            verdict: nightly.whatsapp_diagnostic?.verdict || null,
+            function_on_staging: nightly.whatsapp_diagnostic?.function_on_staging ?? null,
+            source_in_git_then: nightly.whatsapp_diagnostic?.source_in_git ?? null,
+            app_id_recorded: null,
+            source_number_recorded_in_that_test: null,
+            message_id_recorded: null,
+            destination_recorded: null,
+            gupshup_whatsapp_real_send_test_json_exists_in_repo: realSendExists,
+            full_audit_citation: 'FULL-AUDIT-REPORT-HE.md cites gupshup-whatsapp-real-send-test.json status submitted — file absent from git history',
+          };
+
+          out.today_recorded_evidence = {
+            sent_at: today.sent_at,
+            message_id: today.message_id,
+            gupshup_http_status: today.gupshup_http_status,
+            gupshup_response_status: today.gupshup_response_status,
+            path: today.path,
+            destination: today.destination_normalized,
+            app_name: today.app_name,
+            source: today.source,
+            app_id_from_live_inspect: live.inspect?.app_id ?? null,
+          };
+
+          out.comparison_answers = {
+            q1_same_app_id: {
+              answer: 'cannot_compare',
+              reason: 'June 09/10 recorded connection test has no App ID field. Today App ID observed via inspect: ' + (live.inspect?.app_id || 'unknown') + '. No June send payload with App ID exists in repo/DB.',
+            },
+            q2_same_source_972546500305: {
+              answer: 'cannot_compare_for_june_send',
+              reason: 'June 09/10 connection test record does not include source number. Today send used source 972546500305 (recorded). UI defaults on 2026-06-10 commit show 972546500305 but that is not a send log.',
+              today_source: today.source,
+            },
+            q3_reason_stuck_submitted: {
+              answer: 'no_reason_returned_by_gupshup_or_meta_in_our_systems',
+              reason: 'Gupshup send API response for today was only {status:submitted, messageId}. Per Gupshup docs, further status (enqueued/failed/sent/delivered) comes only via webhook. We have no webhook events. Meta/Gupshup did not return a stuck-submitted error code to us.',
+              gupshup_docs: 'submitted = async accept; DLR via callback only',
+            },
+            q4_account_active_now: {
+              answer: live.check_connection?.gupshup_verified === true && live.inspect?.api_key_belongs_to_app === true ? 'yes_active_by_api' : 'inconclusive',
+              evidence: live,
+            },
+            q5_visible_in_gupshup_portal_logs: {
+              answer: 'cannot_verify_from_here',
+              reason: 'No Gupshup portal session available to agent. Portal Logs/Messages visibility requires Owner login. API does not expose a message-log list endpoint we can call without portal.',
+            },
+          };
+
+          console.log('---JUNE10_VS_TODAY---');
+          console.log(JSON.stringify(out, null, 2));
+          console.log('---JUNE10_VS_TODAY_DONE---');
+          NODE
