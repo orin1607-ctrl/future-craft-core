@@ -1,0 +1,705 @@
+{
+  "id": "make-three-scenarios-audit",
+  "at": "2026-07-21T13:55:44.500Z",
+  "env": "staging_make_only",
+  "production_touched": false,
+  "no_whatsapp_send": true,
+  "no_queue_delete": true,
+  "no_auto_reply_old_queue": true,
+  "teamId": 1939972,
+  "scenarios_total": 17,
+  "active_count": 2,
+  "active_names": [
+    {
+      "id": 9553017,
+      "name": "CO.CO Dalia DLR → Staging"
+    },
+    {
+      "id": 5474839,
+      "name": "Integration Webhooks"
+    }
+  ],
+  "hooks_summary": [
+    {
+      "id": 2390003,
+      "name": "whatsapp_bot",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": 5417453,
+      "tip": "hook.eu2.make.com/…g6x4dywe"
+    },
+    {
+      "id": 2400668,
+      "name": "My gateway-webhook webhook",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": 5413854,
+      "tip": "hook.eu2.make.com/…ov74llmb"
+    },
+    {
+      "id": 2401082,
+      "name": "My gateway-webhook webhook",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": null,
+      "tip": "hook.eu2.make.com/…4fqfqo6c"
+    },
+    {
+      "id": 2401542,
+      "name": "My gateway-webhook webhook",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": null,
+      "tip": "hook.eu2.make.com/…k5wzxqhf"
+    },
+    {
+      "id": 2401624,
+      "name": "My gateway-webhook webhook",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": null,
+      "tip": "hook.eu2.make.com/…3fyj6q63"
+    },
+    {
+      "id": 2423241,
+      "name": "My gateway-mailhook webhook",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": null,
+      "tip": "y0bibadjajsxl3ntjxrvu7prntydelp6@hook.eu…"
+    },
+    {
+      "id": 2427152,
+      "name": "My gateway-webhook webhook",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": 5474839,
+      "tip": "hook.eu2.make.com/…vd9j6vbw"
+    },
+    {
+      "id": 2435455,
+      "name": "My gateway-webhook webhook",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": null,
+      "tip": "hook.eu2.make.com/…2f4km2w3"
+    },
+    {
+      "id": 2435473,
+      "name": "My gateway-webhook webhook",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": null,
+      "tip": "hook.eu2.make.com/…y19sof8d"
+    },
+    {
+      "id": 2435490,
+      "name": "My gateway-webhook webhook",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": null,
+      "tip": "hook.eu2.make.com/…laeudmb4"
+    },
+    {
+      "id": 2567320,
+      "name": "My gateway-webhook webhook",
+      "enabled": true,
+      "queueCount": 4,
+      "scenarioId": 5797671,
+      "tip": "hook.eu2.make.com/…2xplyk4s"
+    },
+    {
+      "id": 3128540,
+      "name": "My gateway webhook",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": null,
+      "tip": "hook.eu2.make.com/…3108vw0t"
+    },
+    {
+      "id": 3269018,
+      "name": "test bot",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": null,
+      "tip": "hook.eu2.make.com/…jcoslj8s"
+    },
+    {
+      "id": 4270688,
+      "name": "coco-dalia-dlr-staging",
+      "enabled": true,
+      "queueCount": 0,
+      "scenarioId": 9553017,
+      "tip": "hook.eu2.make.com/…25kumdfy"
+    }
+  ],
+  "active_scenarios": [
+    {
+      "id": 9553017,
+      "name": "CO.CO Dalia DLR → Staging",
+      "isActive": true,
+      "islinked": true,
+      "iswaiting": false,
+      "isPaused": false,
+      "dlqCount": 0,
+      "scheduling_type": "immediately",
+      "hookId": 4270688,
+      "hook_queueCount": 0,
+      "hook_enabled": true,
+      "role": "dlr_forward_only",
+      "role_he": "העברת סטטוסי DLR ל-Supabase Staging בלבד",
+      "modules": [
+        {
+          "id": 1,
+          "module": "gateway:CustomWebHook",
+          "name": "Gupshup DLR in",
+          "url": null,
+          "url_full_host": null,
+          "data_expr_preview": null,
+          "has_toJSON": false,
+          "looks_webhook": true,
+          "looks_dlr_forward": false,
+          "looks_gupshup_send": false,
+          "looks_ai": false,
+          "looks_router": false,
+          "looks_sheets": false,
+          "hook_param": 4270688
+        },
+        {
+          "id": 2,
+          "module": "http:ActionSendData",
+          "name": "Forward to Supabase Staging",
+          "url": "usfeoerkpcafxxlyuldl.supabase.co/…-webhook",
+          "url_full_host": "usfeoerkpcafxxlyuldl.supabase.co/functions/v1",
+          "data_expr_preview": "{{toJSON(1)}}",
+          "has_toJSON": true,
+          "looks_webhook": false,
+          "looks_dlr_forward": true,
+          "looks_gupshup_send": false,
+          "looks_ai": false,
+          "looks_router": false,
+          "looks_sheets": false,
+          "hook_param": null
+        }
+      ],
+      "module_flags": {
+        "webhook": true,
+        "dlr_forward": true,
+        "gupshup_send": false,
+        "ai": false,
+        "router": false,
+        "toJSON_in_mapper": true,
+        "module_98": null
+      },
+      "recent_executions": {
+        "http": 200,
+        "recent": [
+          {
+            "id": "75268513",
+            "timestamp": "2026-07-21T08:56:47.527Z",
+            "duration": null,
+            "error": null
+          },
+          {
+            "id": "75268512",
+            "timestamp": "2026-07-21T08:56:46.735Z",
+            "duration": null,
+            "error": null
+          }
+        ],
+        "details": [
+          {
+            "id": "75268513",
+            "detail_http": 400,
+            "error": "Bad Request",
+            "has_toJSON_error": false
+          },
+          {
+            "id": "75268512",
+            "detail_http": 400,
+            "error": "Bad Request",
+            "has_toJSON_error": false
+          }
+        ]
+      }
+    },
+    {
+      "id": 5474839,
+      "name": "Integration Webhooks",
+      "isActive": true,
+      "islinked": true,
+      "iswaiting": false,
+      "isPaused": false,
+      "dlqCount": 0,
+      "scheduling_type": "immediately",
+      "hookId": 2427152,
+      "hook_queueCount": 0,
+      "hook_enabled": true,
+      "role": "inbound_chatbot",
+      "role_he": "בוט נכנס: Webhook → (Sheets/AI) → תשובת Gupshup; עלול לכלול גם forward DLR",
+      "modules": [
+        {
+          "id": 1,
+          "module": "gateway:CustomWebHook",
+          "name": null,
+          "url": null,
+          "url_full_host": null,
+          "data_expr_preview": null,
+          "has_toJSON": false,
+          "looks_webhook": true,
+          "looks_dlr_forward": false,
+          "looks_gupshup_send": false,
+          "looks_ai": false,
+          "looks_router": false,
+          "looks_sheets": false,
+          "hook_param": 2427152
+        },
+        {
+          "id": 63,
+          "module": "ai-agent:RunAnAIAgent",
+          "name": null,
+          "url": null,
+          "url_full_host": null,
+          "data_expr_preview": null,
+          "has_toJSON": false,
+          "looks_webhook": false,
+          "looks_dlr_forward": false,
+          "looks_gupshup_send": false,
+          "looks_ai": true,
+          "looks_router": false,
+          "looks_sheets": false,
+          "hook_param": null
+        },
+        {
+          "id": 58,
+          "module": "http:ActionSendData",
+          "name": null,
+          "url": "api.gupshup.io/…msg",
+          "url_full_host": "api.gupshup.io/wa/api",
+          "data_expr_preview": null,
+          "has_toJSON": false,
+          "looks_webhook": false,
+          "looks_dlr_forward": false,
+          "looks_gupshup_send": true,
+          "looks_ai": false,
+          "looks_router": false,
+          "looks_sheets": false,
+          "hook_param": null
+        }
+      ],
+      "module_flags": {
+        "webhook": true,
+        "dlr_forward": false,
+        "gupshup_send": true,
+        "ai": true,
+        "router": false,
+        "toJSON_in_mapper": false,
+        "module_98": null
+      },
+      "recent_executions": {
+        "http": 200,
+        "recent": [
+          {
+            "id": "75294030",
+            "timestamp": "2026-07-21T13:51:31.084Z",
+            "duration": null,
+            "error": null
+          }
+        ],
+        "details": [
+          {
+            "id": "75294030",
+            "detail_http": 400,
+            "error": "Bad Request",
+            "has_toJSON_error": false
+          }
+        ]
+      }
+    }
+  ],
+  "wa_related_active": [
+    {
+      "id": 9553017,
+      "name": "CO.CO Dalia DLR → Staging",
+      "role": "dlr_forward_only",
+      "role_he": "העברת סטטוסי DLR ל-Supabase Staging בלבד",
+      "hookId": 4270688,
+      "islinked": true
+    },
+    {
+      "id": 5474839,
+      "name": "Integration Webhooks",
+      "role": "inbound_chatbot",
+      "role_he": "בוט נכנס: Webhook → (Sheets/AI) → תשובת Gupshup; עלול לכלול גם forward DLR",
+      "hookId": 2427152,
+      "islinked": true
+    }
+  ],
+  "duplication": {
+    "shared_hooks_among_active": [],
+    "bot_hook_2567320_active_consumers": [],
+    "risk": "OK — no two active scenarios share the same hookId in API listing"
+  },
+  "whatsapp_bot": {
+    "active": false,
+    "listed": {
+      "id": 5797671,
+      "name": "Whatsapp Bot",
+      "isActive": false,
+      "islinked": false
+    }
+  },
+  "module_98_status": {
+    "present_in_bot_blueprint": false,
+    "still_uses_toJSON": false,
+    "recent_failures_with_toJSON": [],
+    "still_broken": false
+  },
+  "queue_inspect": {
+    "hook_id": 2567320,
+    "stats": {
+      "incomingStat": {
+        "queue": 4,
+        "limit": 667,
+        "enabled": true
+      }
+    },
+    "list_count": 4,
+    "items": [
+      {
+        "id": "bde5ecd7fde435d218a9f1183799e337",
+        "size": 759,
+        "createdAt": null,
+        "classification": {
+          "kind": "delivery_status",
+          "status": "failed",
+          "gs_id": "2cbed084-d207-4797-8434-27d214e8f3cd",
+          "recipient_id": "0"
+        },
+        "action": "HOLD — do not process/reply without Owner approval"
+      },
+      {
+        "id": "6013970393f0614a86e707a51721d127",
+        "size": 759,
+        "createdAt": null,
+        "classification": {
+          "kind": "delivery_status",
+          "status": "failed",
+          "gs_id": "fb3b8a1f-3d03-431b-889b-9b60e91d61ad",
+          "recipient_id": "0"
+        },
+        "action": "HOLD — do not process/reply without Owner approval"
+      },
+      {
+        "id": "8298bf0dbf7fd7b82370678e2269cef2",
+        "size": 459,
+        "createdAt": null,
+        "classification": {
+          "kind": "inbound_message",
+          "from": "972534338601",
+          "text": "היי",
+          "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNDNjgzNERGQTk4MzBBOUUxQ0ZGMEFDOEE1OURBMkYA",
+          "ts": "1784641309"
+        },
+        "action": "HOLD — do not process/reply without Owner approval"
+      },
+      {
+        "id": "cc3683f160953ac759d66a9c22caef0c",
+        "size": 459,
+        "createdAt": null,
+        "classification": {
+          "kind": "inbound_message",
+          "from": "972534338601",
+          "text": "היי",
+          "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUMzMTY3NTE0OEQ4QTkzNDRFMTZDRTlCQTY0NENBQzIA",
+          "ts": "1784642082"
+        },
+        "action": "HOLD — do not process/reply without Owner approval"
+      }
+    ],
+    "policy": "No auto-reply to old queued messages without Owner approval"
+  },
+  "path_separation": {
+    "chatbot_scenarios": [
+      5474839
+    ],
+    "dlr_only_scenarios": [
+      9553017
+    ],
+    "bot_still_has_dlr_forward_inline": false,
+    "dlr_can_abort_bot": false,
+    "assessment_he": "הפרדה טובה: בוט בלי forward DLR + תרחיש DLR נפרד"
+  },
+  "hook_traffic_6h": {
+    "inbound_count": 6,
+    "dlr_count": 16,
+    "inbound_recent": [
+      {
+        "loggedAt": "2026-07-21T13:54:45.144Z",
+        "id": "cc3683f160953ac759d66a9c22caef0c",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUMzMTY3NTE0OEQ4QTkzNDRFMTZDRTlCQTY0NENBQzIA",
+        "ts": "1784642082"
+      },
+      {
+        "loggedAt": "2026-07-21T13:41:51.475Z",
+        "id": "8298bf0dbf7fd7b82370678e2269cef2",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNDNjgzNERGQTk4MzBBOUUxQ0ZGMEFDOEE1OURBMkYA",
+        "ts": "1784641309"
+      },
+      {
+        "loggedAt": "2026-07-21T12:16:29.347Z",
+        "id": "254666e7b1e824785e016870ee61000d",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNDMjkzRTU2NUY1OUZBMThBMDc1MzlDODY1MDMwQzcA",
+        "ts": "1784636187"
+      },
+      {
+        "loggedAt": "2026-07-21T12:12:18.880Z",
+        "id": "6cc8d7ea53724643302407b9fd1c84cf",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUM5RDFGRURFQzFCNUNBMTI1RUFBRDU4QTQwNTQ2NUQA",
+        "ts": "1784635936"
+      },
+      {
+        "loggedAt": "2026-07-21T11:26:58.244Z",
+        "id": "92fd93f56f1c06f6c2ccd79dedd02846",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "למה לא עובד",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNBQzhFRTdGQ0Q2QzgxQkQ3OUU5REVEM0E0RTkyMzIA",
+        "ts": "1784633216"
+      },
+      {
+        "loggedAt": "2026-07-21T11:25:54.297Z",
+        "id": "1d73912fab5d3474f2f580c273ec1a9a",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUM5QzJDQUJBQTdBQTg5RDc3MUY4M0FFMjkxQUEwRjUA",
+        "ts": "1784633151"
+      }
+    ],
+    "dlr_recent": [
+      {
+        "loggedAt": "2026-07-21T13:26:05.635Z",
+        "id": "6013970393f0614a86e707a51721d127",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "fb3b8a1f-3d03-431b-889b-9b60e91d61ad",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T13:26:03.088Z",
+        "id": "bde5ecd7fde435d218a9f1183799e337",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "2cbed084-d207-4797-8434-27d214e8f3cd",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T12:55:43.445Z",
+        "id": "fbca15a2fa92f99fbcfd3abd15740749",
+        "kind": "delivery_status",
+        "status": "sent",
+        "gs_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+        "recipient_id": "972534338601"
+      },
+      {
+        "loggedAt": "2026-07-21T12:55:39.990Z",
+        "id": "5b5f8d3d29b7c330c58ae993d66f2bb1",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "caa1cadd-5391-413d-a9cd-1729a8743245",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T12:55:38.340Z",
+        "id": "3b7d560cec72a983b7c215a99e39cb88",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "50af7960-6788-45f9-8a52-02326d7b7cdc",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T12:15:09.968Z",
+        "id": "4e0d4a0960c84a43f90abdda86c35fb9",
+        "kind": "delivery_status",
+        "status": "sent",
+        "gs_id": "27f46420-c2d5-438d-9e4f-830f290cebde",
+        "recipient_id": "972534338601"
+      },
+      {
+        "loggedAt": "2026-07-21T12:15:06.452Z",
+        "id": "c22e660a15f309d4abeb1db30a46da1e",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "13bb3459-ae2f-4955-b35d-24f4b1ba28a5",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T11:21:59.931Z",
+        "id": "8a0029bd56de6ed2cdf8f53efd596096",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "ee7fa43d-2485-42ef-8582-8d802ec7444f",
+        "recipient_id": "972534338601"
+      }
+    ]
+  },
+  "checks": {
+    "whatsapp_bot_active": false,
+    "whatsapp_bot_linked": false,
+    "module_98_toJSON_fixed": true,
+    "no_hook_duplication": true,
+    "dlr_does_not_abort_bot": true,
+    "queue_old_not_auto_replied": true,
+    "queue_empty_or_held": true,
+    "queue_has_old_inbound_held": true,
+    "safe_to_ask_owner_hey": false
+  },
+  "owner_next": {
+    "ask_hey": false,
+    "blockers": [
+      "whatsapp_bot_active",
+      "whatsapp_bot_linked"
+    ],
+    "phrase_he": "עדיין לא מוכן ל-«היי». יש לתקן את ה-blockers לפני בדיקת זמן-אמת."
+  },
+  "answers": {
+    "1_three_active_scenarios": [
+      {
+        "id": 9553017,
+        "name": "CO.CO Dalia DLR → Staging",
+        "role": "dlr_forward_only",
+        "role_he": "העברת סטטוסי DLR ל-Supabase Staging בלבד",
+        "hookId": 4270688,
+        "islinked": true
+      },
+      {
+        "id": 5474839,
+        "name": "Integration Webhooks",
+        "role": "inbound_chatbot",
+        "role_he": "בוט נכנס: Webhook → (Sheets/AI) → תשובת Gupshup; עלול לכלול גם forward DLR",
+        "hookId": 2427152,
+        "islinked": true
+      }
+    ],
+    "2_duplication": {
+      "shared_hooks_among_active": [],
+      "bot_hook_2567320_active_consumers": [],
+      "risk": "OK — no two active scenarios share the same hookId in API listing"
+    },
+    "3_whatsapp_bot_realtime": {
+      "active": false,
+      "listed": {
+        "id": 5797671,
+        "name": "Whatsapp Bot",
+        "isActive": false,
+        "islinked": false
+      }
+    },
+    "4_module_98_toJSON": {
+      "present_in_bot_blueprint": false,
+      "still_uses_toJSON": false,
+      "recent_failures_with_toJSON": [],
+      "still_broken": false
+    },
+    "5_inbound_to_bot_ai": {
+      "bot_active": false,
+      "note": "Structural path present if AI+Gupshup send modules exist and bot Active; live proof needs Owner היי after gates pass"
+    },
+    "6_dlr_separate": {
+      "chatbot_scenarios": [
+        5474839
+      ],
+      "dlr_only_scenarios": [
+        9553017
+      ],
+      "bot_still_has_dlr_forward_inline": false,
+      "dlr_can_abort_bot": false,
+      "assessment_he": "הפרדה טובה: בוט בלי forward DLR + תרחיש DLR נפרד"
+    },
+    "7_queue_three": {
+      "hook_id": 2567320,
+      "stats": {
+        "incomingStat": {
+          "queue": 4,
+          "limit": 667,
+          "enabled": true
+        }
+      },
+      "list_count": 4,
+      "items": [
+        {
+          "id": "bde5ecd7fde435d218a9f1183799e337",
+          "size": 759,
+          "createdAt": null,
+          "classification": {
+            "kind": "delivery_status",
+            "status": "failed",
+            "gs_id": "2cbed084-d207-4797-8434-27d214e8f3cd",
+            "recipient_id": "0"
+          },
+          "action": "HOLD — do not process/reply without Owner approval"
+        },
+        {
+          "id": "6013970393f0614a86e707a51721d127",
+          "size": 759,
+          "createdAt": null,
+          "classification": {
+            "kind": "delivery_status",
+            "status": "failed",
+            "gs_id": "fb3b8a1f-3d03-431b-889b-9b60e91d61ad",
+            "recipient_id": "0"
+          },
+          "action": "HOLD — do not process/reply without Owner approval"
+        },
+        {
+          "id": "8298bf0dbf7fd7b82370678e2269cef2",
+          "size": 459,
+          "createdAt": null,
+          "classification": {
+            "kind": "inbound_message",
+            "from": "972534338601",
+            "text": "היי",
+            "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNDNjgzNERGQTk4MzBBOUUxQ0ZGMEFDOEE1OURBMkYA",
+            "ts": "1784641309"
+          },
+          "action": "HOLD — do not process/reply without Owner approval"
+        },
+        {
+          "id": "cc3683f160953ac759d66a9c22caef0c",
+          "size": 459,
+          "createdAt": null,
+          "classification": {
+            "kind": "inbound_message",
+            "from": "972534338601",
+            "text": "היי",
+            "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUMzMTY3NTE0OEQ4QTkzNDRFMTZDRTlCQTY0NENBQzIA",
+            "ts": "1784642082"
+          },
+          "action": "HOLD — do not process/reply without Owner approval"
+        }
+      ],
+      "policy": "No auto-reply to old queued messages without Owner approval"
+    },
+    "8_ask_hey": {
+      "ask_hey": false,
+      "blockers": [
+        "whatsapp_bot_active",
+        "whatsapp_bot_linked"
+      ],
+      "phrase_he": "עדיין לא מוכן ל-«היי». יש לתקן את ה-blockers לפני בדיקת זמן-אמת."
+    }
+  }
+}
