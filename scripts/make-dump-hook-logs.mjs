@@ -20,10 +20,10 @@ function pickIds(obj, acc = []) {
   return acc;
 }
 const from = Date.now() - 2 * 60 * 60 * 1000;
-const list = await make(`/hooks/${HOOK}/logs?from=${from}&pg[limit]=10&pg[sortBy]=loggedAt&pg[sortDir]=desc`);
+const list = await make(`/hooks/${HOOK}/logs?from=${from}&pg[limit]=30&pg[sortBy]=loggedAt&pg[sortDir]=desc`);
 const logs = list.json?.hookLogs || [];
 const out = { zone, hook: HOOK, list_http: list.status, count: logs.length, details: [] };
-for (const log of logs.slice(0, 6)) {
+for (const log of logs.slice(0, 20)) {
   const detail = await make(`/hooks/${HOOK}/logs/${log.id}`);
   const dlog = detail.json?.hookLog || detail.json?.log || detail.json;
   const data = dlog?.data || {};
