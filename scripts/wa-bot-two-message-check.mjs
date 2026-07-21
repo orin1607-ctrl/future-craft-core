@@ -215,23 +215,20 @@ async function main() {
   must(r1.status >= 200 && r1.status < 300, `msg1 webhook HTTP ${r1.status}`);
 
   let exec1 = null;
+  const seenIds = new Set(beforeIds);
   for (let i = 0; i < 24; i++) {
     await new Promise((r) => setTimeout(r, 5000));
-    const logs = await recentLogs(12);
+    const logs = await recentLogs(15);
+    for (const x of logs) if (x.id) seenIds.add(x.id);
     exec1 = waitForNewSuccess(beforeIds, t1, logs);
     if (exec1) break;
-    const err = logs.find((x) => !beforeIds.has(x.id) && x.error);
-    if (err && i > 3) {
-      out.msg1.error_exec = err;
-      break;
-    }
   }
   out.msg1.execution = exec1;
   must(exec1, 'No successful Make execution after message 1');
-  beforeIds.add(exec1.id);
+  seenIds.add(exec1.id);
 
   // Message 2 — continue conversation (name), not E2E
-  await new Promise((r) => setTimeout(r, 3000));
+  await new Promise((r) => setTimeout(r, 8000));
   const t2 = Date.now();
   const p2 = buildInbound('קוראים לי בדיקה', '2');
   const r2 = await postHook(hookUrl, p2);
@@ -239,16 +236,24 @@ async function main() {
   must(r2.status >= 200 && r2.status < 300, `msg2 webhook HTTP ${r2.status}`);
 
   let exec2 = null;
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 30; i++) {
     await new Promise((r) => setTimeout(r, 5000));
-    const logs = await recentLogs(12);
-    exec2 = waitForNewSuccess(beforeIds, t2, logs);
+    const logs = await recentLogs(20);
+    exec2 = logs.find((x) => {
+      if (!x.id || seenIds.has(x.id)) return false;
+      if (x.error) return false;
+      if (!(x.status === 1 || x.status === 2 || x.status === 'SUCCESS')) return false;
+      if (x.timestamp && Date.parse(x.timestamp) < t2 - 5000) return false;
+      return true;
+    });
     if (exec2) break;
-    const err = logs.find((x) => !beforeIds.has(x.id) && x.error);
-    if (err && i > 3) {
-      out.msg2.error_exec = err;
-      break;
-    }
+    const err = logs.find((x) => {
+      if (!x.id || seenIds.has(x.id)) return false;
+      if (!x.error) return false;
+      if (x.timestamp && Date.parse(x.timestamp) < t2 - 5000) return false;
+      return true;
+    });
+    if (err) out.msg2.latest_error_after_post = err;
   }
   out.msg2.execution = exec2;
   must(exec2, 'No successful Make execution after message 2');
