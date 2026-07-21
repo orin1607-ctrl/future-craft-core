@@ -1,0 +1,35 @@
+name: Whatsapp Bot Stage-1 opt (Sleep remove + E2E)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/wa-bot-stage1-opt.mjs'
+      - 'public/project-001/wa-bot-stage1-opt-queue.json'
+      - '.github/workflows/wa-bot-stage1-opt.yml'
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  stage1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Stage-1 Sleep remove + diagnose 58 + E2E
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+        run: node scripts/wa-bot-stage1-opt.mjs
+      - name: Commit results
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/project-001/wa-bot-stage1-opt-result.json \
+                  public/project-001/wa-bot-stage1-opt-summary.json || true
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -m "ci: WA Bot Stage-1 opt — Sleep removed + E2E (no AI/Sheets)"
+          git push

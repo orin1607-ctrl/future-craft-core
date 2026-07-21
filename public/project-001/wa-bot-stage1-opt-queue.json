@@ -1,0 +1,11 @@
+{
+  "id": "wa-bot-stage1-opt-queue",
+  "armed": true,
+  "stage": 1,
+  "remove_sleep_88_77": true,
+  "diagnose_gupshup_58_only": true,
+  "no_ai_changes": true,
+  "no_sheets_cache": true,
+  "no_production": true,
+  "e2e_two_messages": true
+}
