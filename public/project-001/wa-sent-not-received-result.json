@@ -1,0 +1,206 @@
+{
+  "id": "wa-sent-not-received-diagnose",
+  "at": "2026-07-21T13:25:52.582Z",
+  "production_touched": false,
+  "production_go_live": false,
+  "no_new_whatsapp_send": true,
+  "message_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+  "expected_destination": "972534338601",
+  "business_source": "972546500305",
+  "make_events_for_message": [
+    {
+      "log_id": "fbca15a2fa92f99fbcfd3abd15740749",
+      "loggedAt": "2026-07-21T12:55:43.445Z",
+      "statusId": 1,
+      "full_status": {
+        "biz_opaque_callback_data": "033TkMz7ZZqQoGRFpG4NO1||CommonSegWAMetadata||0",
+        "conversation": {
+          "expiration_timestamp": "1784638541",
+          "id": "a9fb29cb0c85cfa69edfefe2fdfd9e5e",
+          "origin": {
+            "type": "service"
+          }
+        },
+        "gs_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+        "id": "033TkMz7ZZqQoGRFpG4NO1",
+        "meta_msg_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAERgSRDQwQTgzMkI1RDU2QkY1NDY5AA==",
+        "pricing": {
+          "billable": false,
+          "category": "service",
+          "pricing_model": "PMP",
+          "type": "free_customer_service"
+        },
+        "recipient_id": "972534338601",
+        "status": "sent",
+        "timestamp": "1784638541"
+      },
+      "metadata": {
+        "display_phone_number": "972546500305",
+        "phone_number_id": "689295480929918"
+      },
+      "gs_app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+      "object": "whatsapp_business_account"
+    }
+  ],
+  "make_status_timeline": [
+    {
+      "at": "2026-07-21T12:55:43.445Z",
+      "status": "sent",
+      "recipient_id": "972534338601",
+      "gs_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+      "meta_msg_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAERgSRDQwQTgzMkI1RDU2QkY1NDY5AA==",
+      "error_code": null,
+      "error_details": null,
+      "conversation": {
+        "expiration_timestamp": "1784638541",
+        "id": "a9fb29cb0c85cfa69edfefe2fdfd9e5e",
+        "origin": {
+          "type": "service"
+        }
+      },
+      "pricing": {
+        "billable": false,
+        "category": "service",
+        "pricing_model": "PMP",
+        "type": "free_customer_service"
+      },
+      "display_phone": "972546500305"
+    }
+  ],
+  "db_row": {
+    "status": "submitted",
+    "recipient": "972534338601",
+    "provider_message_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+    "dlr_event": "submitted",
+    "dlr_error_code": null,
+    "error_message": null,
+    "status_history": [
+      {
+        "at": "2026-07-21T12:55:39.794Z",
+        "status": "submitted",
+        "dlr_event": "submitted",
+        "error_code": null,
+        "gupshup_http": 202,
+        "error_message": null
+      }
+    ],
+    "payload_excerpt": "E2E clean-queue Staging 2026-07-21T12:55:37.518Z",
+    "created_at": "2026-07-21T12:55:40.315982+00:00",
+    "updated_at": "2026-07-21T12:55:39.794+00:00"
+  },
+  "gupshup_check_connection": {
+    "http": 200,
+    "configured": true,
+    "gupshup_verified": true,
+    "app_name": "DaliaVehicle",
+    "source": "972546500305",
+    "app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+    "templates": null,
+    "raw_keys": [
+      "success",
+      "configured",
+      "gupshup_verified",
+      "provider",
+      "app_name",
+      "source",
+      "endpoint",
+      "secret_name",
+      "gupshup_status",
+      "gupshup_endpoint",
+      "gupshup_response",
+      "message"
+    ]
+  },
+  "edge_action_status": {
+    "http": 200,
+    "body": {
+      "success": true,
+      "configured": true,
+      "gupshup_verified": true,
+      "provider": "Gupshup",
+      "app_name": "DaliaVehicle",
+      "source": "972546500305",
+      "endpoint": "https://api.gupshup.io/wa/api/v1/msg",
+      "secret_name": "[redacted]",
+      "gupshup_status": 202,
+      "gupshup_endpoint": "https://api.gupshup.io/wa/api/v1/msg",
+      "gupshup_response": {
+        "status": "submitted",
+        "messageId": "fb3b8a1f-3d03-431b-889b-9b60e91d61ad"
+      },
+      "message": "מפתח Gupshup תקין עבור endpoint השליחה"
+    }
+  },
+  "edge_action_probe_templates": {
+    "http": 400,
+    "body": {
+      "success": false,
+      "error": "Unknown action"
+    }
+  },
+  "edge_action_verify": {
+    "http": 400,
+    "body": {
+      "success": false,
+      "error": "Unknown action"
+    }
+  },
+  "destination_audit": {
+    "owner_local": "0534338601",
+    "expected_e164": "972534338601",
+    "send_response_destination": "972534338601",
+    "make_dlr_recipient_id": "972534338601",
+    "db_recipient": "972534338601",
+    "matches_owner": true,
+    "business_display_phone": "972546500305"
+  },
+  "session_audit": {
+    "had_sent_status": true,
+    "had_delivered": false,
+    "had_read": false,
+    "had_failed": false,
+    "conversation_origin": "service",
+    "pricing_type": "free_customer_service",
+    "pricing_category": "service",
+    "billable": false,
+    "interpretation": "Meta status=sent with conversation.origin=service and free_customer_service means WhatsApp servers accepted the session message into an open customer-care window. It is NOT the same as delivered-to-device."
+  },
+  "portal_visibility": {
+    "make_hook_logs": true,
+    "supabase_delivery_row": true,
+    "gupshup_console": "Agent cannot open Gupshup/Meta UI; Owner can check App DaliaVehicle → Logs/Reports for gs_id 346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+    "meta_business_suite": "Owner can check WhatsApp Manager → message logs if available for wamid in Make payload",
+    "wamid": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAERgSRDQwQTgzMkI1RDU2QkY1NDY5AA=="
+  },
+  "answers": {
+    "1_correct_number": "YES — all sides point to 972534338601 (0534338601). No evidence of wrong destination.",
+    "2_business_limited_or_blocked": "UNLIKELY fully blocked — Gupshup verified and Meta returned sent (service). Quality/flagging cannot be ruled out from API alone; check Gupshup Console → App quality / WhatsApp Manager restrictions.",
+    "3_session_message_valid": "YES technically — Meta classified as valid service/session message (not 131047 re-engagement failure).",
+    "4_owner_number_or_business_issue": "MOST LIKELY device/WhatsApp-client side OR silent non-delivery after server \"sent\": phone offline/battery optimization, WhatsApp not registered on that SIM, multi-device sync lag, archived/filtered chat, or Meta delayed delivered webhook never arrived. Business account not returning failed — so not a hard reject.",
+    "5_visible_in_gupshup_or_meta_portal": "Partially — visible in Make webhook logs (gs_id=346d6d28-9266-42ae-a0c3-6e4f0bd0a06f, wamid=wamid.HBgMOTcyNTM0MzM4NjAxFQIAERgSRDQwQTgzMkI1RDU2QkY1NDY5AA==). Agent cannot open Gupshup/Meta portals; Owner should search that gs_id/wamid in Gupshup App logs."
+  },
+  "root_cause_hypothesis": {
+    "primary": "Meta \"sent\" ≠ phone UI delivery. We never received delivered/read/failed for this message. Server accepted it; device confirmation missing.",
+    "ranked_causes": [
+      "Phone/WhatsApp client did not complete delivery (offline, Doze, WhatsApp logged out on that number)",
+      "Delivered webhook lost/delayed (less likely — Make received sent quickly; delivered usually follows)",
+      "User looking at wrong WhatsApp account/SIM (0534338601 vs another)",
+      "Business quality throttling soft-drop (rare without failed webhook)"
+    ],
+    "ruled_out": [
+      "Wrong E.164 destination (evidence matches 972534338601)",
+      "24h window closed (would be failed 131047 — we saw that earlier today, not on this msg)",
+      "Gupshup API key invalid (202 submitted + verified)"
+    ]
+  },
+  "owner_checks": [
+    "On phone 0534338601 open WhatsApp → chat with 054-650-0305 / DaliaVehicle — check Archived, Spam, muted",
+    "Confirm WhatsApp is registered to 0534338601 (Settings → Account → Phone)",
+    "Gupshup Console → DaliaVehicle → search message id 346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+    "Optional: send one more message FROM your phone to 0546500305 then reply here «חלון פתוח בדיקה» for a single new Staging send — only if you approve"
+  ],
+  "production": {
+    "approved": false,
+    "blocked_reason": "Owner did not receive WhatsApp on device — Production gated"
+  }
+}
