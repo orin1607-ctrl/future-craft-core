@@ -594,15 +594,25 @@ Deno.serve(async (req) => {
       const attempts: Record<string, unknown>[] = [];
       const endpoints = [
         {
-          name: 'wa_app_callback_put',
+          name: 'wa_app_callback_put_form',
+          url: `https://api.gupshup.io/wa/app/${GUPSHUP_APP_ID}/callback`,
+          method: 'PUT' as const,
+          headers: {
+            apikey: apiKey,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({ callbackUrl }).toString(),
+        },
+        {
+          name: 'wa_app_callback_put_json',
           url: `https://api.gupshup.io/wa/app/${GUPSHUP_APP_ID}/callback`,
           method: 'PUT' as const,
           headers: { apikey: apiKey, 'Content-Type': 'application/json' },
           body: JSON.stringify({ callbackUrl }),
         },
         {
-          name: 'wa_app_callbackUrl_put',
-          url: `https://api.gupshup.io/wa/app/${GUPSHUP_APP_ID}/callbackUrl`,
+          name: 'sm_app_name_callbackUrl',
+          url: `https://api.gupshup.io/sm/api/v1/app/${encodeURIComponent(appName)}/callbackUrl`,
           method: 'PUT' as const,
           headers: {
             apikey: apiKey,

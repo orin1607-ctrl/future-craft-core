@@ -1,0 +1,33 @@
+{
+  "id": "staging-gupshup-dlr-e2e-result",
+  "generated_at": "2026-07-21T07:30:00Z",
+  "env": "staging",
+  "production_touched": false,
+  "actions_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29810478157",
+  "webhook": {
+    "url": "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/gupshup-webhook",
+    "deployed": true,
+    "health_get_http": 200
+  },
+  "migration_applied": true,
+  "callback_registered_via_api": false,
+  "owner_action_required": true,
+  "owner_action": "Gupshup Console → App DaliaVehicle → Webhooks/Callback → set URL above → enable Delivery events (SENT/DELIVERED/READ/FAILED)",
+  "send": {
+    "success": true,
+    "gupshup_http": 202,
+    "status": "submitted",
+    "message_id": "24b2ab98-284f-466f-868c-43435a0ba8a9",
+    "destination": "972534338601",
+    "delivery_row_created": true
+  },
+  "dlr_after_120s": {
+    "status": "submitted",
+    "terminal": false,
+    "dlr_error_code": null,
+    "error_message": null,
+    "reason": "No webhook events received — callback URL not registered on Gupshup app"
+  },
+  "final_path": "submitted → (no DLR) still submitted",
+  "next": "Owner sets callback → reply «Callback הוגדר» → agent re-registers check + ONE new live send with DLR poll (no Production)"
+}
