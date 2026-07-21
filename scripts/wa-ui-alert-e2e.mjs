@@ -213,30 +213,55 @@ async function main() {
   await page.screenshot({ path: `${SHOT_DIR}/01-home-after-auth.png`, fullPage: true });
   out.ui_after_auth_url = page.url();
 
-  // --- Alert settings via UI ---
+  // --- Alert settings via UI (must pick the user's company: אכבים) ---
   await page.goto(`${APP}/alert-settings`, { waitUntil: 'domcontentloaded', timeout: 90000 });
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(2500);
 
-  // Select company if list present
-  const companySelect = page.locator('select').first();
-  if (await companySelect.count()) {
-    const opts = await companySelect.locator('option').allTextContents();
-    out.company_options = opts.slice(0, 20);
-    const match = opts.find((t) => t.includes('יוני') || t.includes(COMPANY));
-    if (match) {
-      await companySelect.selectOption({ label: match });
-      await page.waitForTimeout(1000);
-    } else if (opts.length > 1) {
-      await companySelect.selectOption({ index: 1 });
-      await page.waitForTimeout(1000);
+  const targetCompany = out.profile?.company_name || 'אכבים';
+  // Open custom company dropdown
+  const companyBtn = page.getByRole('button', { name: /לחץ לבחירת חברה|בחר חברה|אכבים|אביבים/ }).or(
+    page.locator('button').filter({ hasText: /לחץ לבחירת חברה|חברות זמינות/ }),
+  );
+  // The selector button shows selectedCompany or placeholder
+  const openCompany = page.locator('button').filter({ hasText: /לחץ לבחירת חברה|בחר חברה/ }).first();
+  if (await openCompany.count()) {
+    await openCompany.click();
+  } else {
+    // already selected or different label — click the building selector card button
+    await page.locator('label:has-text("בחר חברה")').locator('..').locator('button').first().click();
+  }
+  await page.waitForTimeout(500);
+  const search = page.getByPlaceholder('חיפוש חברה...');
+  if (await search.count()) {
+    await search.fill('אכבים');
+    await page.waitForTimeout(400);
+  }
+  // Click company option
+  let picked = false;
+  for (const name of ['אכבים', targetCompany, 'אביבים', 'מוסך יוני']) {
+    const opt = page.getByRole('button', { name: new RegExp(`^${name}$`) });
+    if (await opt.count()) {
+      await opt.first().click();
+      picked = true;
+      out.company_selected_in_settings = name;
+      break;
+    }
+    const opt2 = page.locator('button').filter({ hasText: name });
+    if (await opt2.count()) {
+      await opt2.first().click();
+      picked = true;
+      out.company_selected_in_settings = name;
+      break;
     }
   }
+  must(picked, 'Could not select company in alert-settings');
+  await page.waitForTimeout(1500);
 
   // Scroll to incident settings and enable checkboxes
   const incidentHeading = page.getByText('הגדרות התראות על תאונות ותקלות');
-  if (await incidentHeading.count()) {
-    await incidentHeading.scrollIntoViewIfNeeded();
-  }
+  must(await incidentHeading.count(), 'Incident alert settings section missing — company panel not open?');
+  await incidentHeading.scrollIntoViewIfNeeded();
+
   for (const label of [
     'התראה בתוך המערכת — פעיל / כבוי',
     'Email — פעיל / כבוי',
@@ -245,25 +270,30 @@ async function main() {
     const row = page.locator('label').filter({ hasText: label });
     if (await row.count()) {
       const cb = row.locator('input[type="checkbox"]');
-      if (await cb.count()) {
-        const checked = await cb.isChecked();
-        if (!checked) await cb.check();
-      }
+      if (await cb.count() && !(await cb.isChecked())) await cb.check();
     }
   }
-  // Recipients → דליה / both
+  // Recipients → דליה בלבד (Owner WA + email)
   const emailRecipients = page.locator('label:has-text("נמעני Email")').locator('..').locator('select');
   const waRecipients = page.locator('label:has-text("נמעני WhatsApp")').locator('..').locator('select');
   if (await emailRecipients.count()) await emailRecipients.selectOption('dalia');
   if (await waRecipients.count()) await waRecipients.selectOption('dalia');
 
-  const saveBtn = page.getByRole('button', { name: /שמור/ });
-  if (await saveBtn.count()) {
-    await saveBtn.first().click();
-    await page.waitForTimeout(2000);
-  }
+  const saveBtn = page.getByRole('button', { name: /שמור הגדרות|שמור/ });
+  must(await saveBtn.count(), 'Save settings button missing');
+  await saveBtn.first().click();
+  await page.waitForTimeout(2500);
   await page.screenshot({ path: `${SHOT_DIR}/02-alert-settings.png`, fullPage: true });
   out.alert_settings_done = true;
+
+  // Verify settings persisted (service read — not a send)
+  const settingsCheck = await restAsService(
+    srk,
+    `/rest/v1/company_settings?company_name=eq.${encodeURIComponent(out.company_selected_in_settings || 'אכבים')}&select=company_name,incident_notify_in_app,incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients`,
+  );
+  out.settings_after_ui_save = Array.isArray(settingsCheck.json) ? settingsCheck.json[0] : settingsCheck.json;
+  must(out.settings_after_ui_save?.incident_notify_whatsapp === true, 'WhatsApp toggle not saved for company');
+  must(out.settings_after_ui_save?.incident_notify_email === true, 'Email toggle not saved for company');
 
   // --- Create fault via UI ---
   await page.goto(`${APP}/faults`, { waitUntil: 'domcontentloaded', timeout: 90000 });
