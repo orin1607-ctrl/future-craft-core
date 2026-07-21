@@ -954,5 +954,9 @@
     "active": true,
     "one_hey": 200,
     "bot_ok": true
+  },
+  "owner_check_phone": {
+    "he": "בדוק בטלפון 0534338601 אם הגיעה תשובת בוט ל«היי» (~15:48 UTC). Make execution status=1 (~7s) אחרי התיקון.",
+    "execution_id": "aef1000a9be04b86aea2c55af1a1be0a"
   }
 }
