@@ -1,0 +1,6 @@
+{
+  "id": "wa-billing-vs-scenario-queue",
+  "armed": true,
+  "no_send": true,
+  "no_production": true
+}
