@@ -1,0 +1,24 @@
+{
+  "id": "wa-bot-fix-active-58-summary",
+  "at": "2026-07-21T16:47:10.637Z",
+  "production_touched": false,
+  "diagnosis_he": "התרחיש כבוי; לוגים אחרונים של מודול 58 מראים HTTP 400 — זו אותה בעיה שזוהתה ב-Stage-1.",
+  "same_module_58_http_400": true,
+  "stopped_because_of_58": true,
+  "fix": [
+    "parameters.handleErrors=false",
+    "onerror builtin:Ignore id=98",
+    "metadata.scenario.maxErrors 19→50"
+  ],
+  "e2e_ok": true,
+  "stays_active": true,
+  "scenario_final": {
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": true,
+    "islinked": true,
+    "hookId": 2567320
+  },
+  "report_doc": "docs/audit-reports/claims-incident-process/WA-BOT-FIX-ACTIVE-58-HE.md"
+}

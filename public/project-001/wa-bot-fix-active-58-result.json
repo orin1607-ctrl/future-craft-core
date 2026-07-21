@@ -1,0 +1,527 @@
+{
+  "id": "wa-bot-fix-active-58",
+  "at": "2026-07-21T16:47:10.637Z",
+  "env": "staging_make_only",
+  "production_touched": false,
+  "no_ai_changes": true,
+  "no_sheets_cache": true,
+  "diagnosis": {
+    "scenario_before": {
+      "http": 200,
+      "id": 5797671,
+      "name": "Whatsapp Bot",
+      "isActive": false,
+      "islinked": false,
+      "hookId": 2567320
+    },
+    "recent_failed_runs": [
+      {
+        "id": "356799a35bc6473085c37265a3d8584c",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.683Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 4488
+      },
+      {
+        "id": "1bdc9330424d407998125f24785378eb",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.673Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 5311
+      },
+      {
+        "id": "e8e6def0bd664f25ae235ef3a7f6fb6d",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.659Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 4208
+      },
+      {
+        "id": "43cd1a47b5974a938d9c7badf0cbf21f",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.645Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 3955
+      },
+      {
+        "id": "acb2094ffb5a4cba9e83c29080b68dc9",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.623Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 5564
+      },
+      {
+        "id": "a37f43cd3a2d4e0d994811911e39cc31",
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:22.475Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 6544
+      },
+      {
+        "id": "78e663bf53034152bb8a7a1c5c7ceb90",
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:21.857Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 6792
+      },
+      {
+        "id": "976fc91c36f64997a317b89fcfa77797",
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:21.008Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 6437
+      }
+    ],
+    "module_58_recent": [
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:25.163Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "acb2094ffb5a4cba9e83c29080b68dc9"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:24.968Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "1bdc9330424d407998125f24785378eb"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:24.138Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "356799a35bc6473085c37265a3d8584c"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:23.846Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "e8e6def0bd664f25ae235ef3a7f6fb6d"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:23.583Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "43cd1a47b5974a938d9c7badf0cbf21f"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:28.991Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "a37f43cd3a2d4e0d994811911e39cc31"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:28.630Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "78e663bf53034152bb8a7a1c5c7ceb90"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:27.427Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "976fc91c36f64997a317b89fcfa77797"
+      }
+    ],
+    "module_87_recent_ok": 8,
+    "answers": {
+      "1_same_module_58_http_400": true,
+      "2_stopped_because_of_58": true,
+      "detail_he": "התרחיש כבוי; לוגים אחרונים של מודול 58 מראים HTTP 400 — זו אותה בעיה שזוהתה ב-Stage-1."
+    }
+  },
+  "mapper_compare": {
+    "form_58": [
+      {
+        "key": "channel",
+        "value_preview": "whatsapp"
+      },
+      {
+        "key": "source",
+        "value_preview": "972546500305"
+      },
+      {
+        "key": "destination",
+        "value_preview": "{{1.entry[].changes[].value.messages[].from}}"
+      },
+      {
+        "key": "message",
+        "value_preview": "{{76.value}}"
+      },
+      {
+        "key": " src.name",
+        "value_preview": "DaliaVehicle"
+      }
+    ],
+    "form_87": [
+      {
+        "key": "channel",
+        "value_preview": "whatsapp"
+      },
+      {
+        "key": "source",
+        "value_preview": "972546500305"
+      },
+      {
+        "key": "destination",
+        "value_preview": "{{1.entry[].changes[].value.messages[].from}}"
+      },
+      {
+        "key": "message",
+        "value_preview": "{{86.value}}"
+      },
+      {
+        "key": " src.name",
+        "value_preview": "DaliaVehicle"
+      }
+    ],
+    "handleErrors_58_before": true,
+    "onerror_58_before": null,
+    "url_58": "https://api.gupshup.io/wa/api/v1/msg",
+    "url_87": "https://api.gupshup.io/wa/api/v1/msg"
+  },
+  "fix": {
+    "changes": [
+      "parameters.handleErrors=false",
+      "onerror builtin:Ignore id=98",
+      "metadata.scenario.maxErrors 19→50"
+    ],
+    "attempted": true,
+    "patch_http": 200,
+    "patch_ok": true,
+    "verify": {
+      "handleErrors_false": true,
+      "has_ignore": true,
+      "ai_still_present": true,
+      "sheets_still_present": true,
+      "gupshup_87_still_present": true,
+      "gupshup_58_still_present": true
+    }
+  },
+  "activate": {
+    "already": false,
+    "start_http": 200,
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": true,
+    "islinked": true,
+    "hookId": 2567320
+  },
+  "e2e_msg1": {
+    "text": "היי",
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "at": "2026-07-21T16:47:18.675Z",
+    "execution": {
+      "id": "d716cd99810f4e60855e8a79fc217e99",
+      "status": 1,
+      "timestamp": "2026-07-21T16:47:18.850Z",
+      "error": null,
+      "duration": 3994
+    },
+    "seen": [
+      {
+        "id": "d716cd99810f4e60855e8a79fc217e99",
+        "status": 1,
+        "timestamp": "2026-07-21T16:47:18.850Z",
+        "error": null,
+        "duration": 3994
+      },
+      {
+        "id": "75305980",
+        "timestamp": "2026-07-21T16:47:14.833Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "75305977",
+        "timestamp": "2026-07-21T16:47:11.800Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "356799a35bc6473085c37265a3d8584c",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.683Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 4488
+      },
+      {
+        "id": "1bdc9330424d407998125f24785378eb",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.673Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 5311
+      },
+      {
+        "id": "e8e6def0bd664f25ae235ef3a7f6fb6d",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.659Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 4208
+      },
+      {
+        "id": "43cd1a47b5974a938d9c7badf0cbf21f",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.645Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 3955
+      },
+      {
+        "id": "acb2094ffb5a4cba9e83c29080b68dc9",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.623Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 5564
+      },
+      {
+        "id": "75305686",
+        "timestamp": "2026-07-21T16:40:18.404Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "a37f43cd3a2d4e0d994811911e39cc31",
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:22.475Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 6544
+      }
+    ]
+  },
+  "e2e_msg2": {
+    "text": "יוני",
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "at": "2026-07-21T16:47:30.605Z",
+    "execution": {
+      "id": "a70332d423454928ae772bf43d50b86f",
+      "status": 1,
+      "timestamp": "2026-07-21T16:47:30.793Z",
+      "error": null,
+      "duration": 3704
+    },
+    "seen": [
+      {
+        "id": "a70332d423454928ae772bf43d50b86f",
+        "status": 1,
+        "timestamp": "2026-07-21T16:47:30.793Z",
+        "error": null,
+        "duration": 3704
+      },
+      {
+        "id": "c62f9854d52e4a22b80891d915f439ef",
+        "status": 1,
+        "timestamp": "2026-07-21T16:47:26.306Z",
+        "error": null,
+        "duration": 3675
+      },
+      {
+        "id": "75305980",
+        "timestamp": "2026-07-21T16:47:14.833Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "75305977",
+        "timestamp": "2026-07-21T16:47:11.800Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "356799a35bc6473085c37265a3d8584c",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.683Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 4488
+      },
+      {
+        "id": "1bdc9330424d407998125f24785378eb",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.673Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 5311
+      },
+      {
+        "id": "e8e6def0bd664f25ae235ef3a7f6fb6d",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.659Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 4208
+      },
+      {
+        "id": "43cd1a47b5974a938d9c7badf0cbf21f",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.645Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 3955
+      },
+      {
+        "id": "acb2094ffb5a4cba9e83c29080b68dc9",
+        "status": 3,
+        "timestamp": "2026-07-21T16:40:19.623Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 5564
+      },
+      {
+        "id": "75305686",
+        "timestamp": "2026-07-21T16:40:18.404Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "a37f43cd3a2d4e0d994811911e39cc31",
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:22.475Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 6544
+      },
+      {
+        "id": "78e663bf53034152bb8a7a1c5c7ceb90",
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:21.857Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 6792
+      },
+      {
+        "id": "976fc91c36f64997a317b89fcfa77797",
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:21.008Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 6437
+      },
+      {
+        "id": "35cacc9f15534ea7a9f501551d043875",
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:13.259Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 9271
+      },
+      {
+        "id": "d0e6273404df4e1c899b0d4fbb09343a",
+        "status": 3,
+        "timestamp": "2026-07-21T16:38:00.786Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 5716
+      }
+    ]
+  },
+  "scenario_final": {
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": true,
+    "islinked": true,
+    "hookId": 2567320
+  },
+  "after_module_58": [
+    {
+      "status": 1,
+      "timestamp": "2026-07-21T16:47:42.742Z",
+      "error": null,
+      "executionId": "291555688a524c189b5953d0fafb3e5f"
+    },
+    {
+      "status": 1,
+      "timestamp": "2026-07-21T16:47:29.969Z",
+      "error": null,
+      "executionId": "c62f9854d52e4a22b80891d915f439ef"
+    },
+    {
+      "status": 3,
+      "timestamp": "2026-07-21T16:40:25.163Z",
+      "error": "Error: 400 Bad Request",
+      "executionId": "acb2094ffb5a4cba9e83c29080b68dc9"
+    },
+    {
+      "status": 3,
+      "timestamp": "2026-07-21T16:40:24.968Z",
+      "error": "Error: 400 Bad Request",
+      "executionId": "1bdc9330424d407998125f24785378eb"
+    },
+    {
+      "status": 3,
+      "timestamp": "2026-07-21T16:40:24.138Z",
+      "error": "Error: 400 Bad Request",
+      "executionId": "356799a35bc6473085c37265a3d8584c"
+    }
+  ],
+  "after_module_87": [
+    {
+      "status": 1,
+      "timestamp": "2026-07-21T16:47:34.482Z",
+      "error": null,
+      "executionId": "a70332d423454928ae772bf43d50b86f"
+    },
+    {
+      "status": 1,
+      "timestamp": "2026-07-21T16:47:22.827Z",
+      "error": null,
+      "executionId": "d716cd99810f4e60855e8a79fc217e99"
+    },
+    {
+      "status": 1,
+      "timestamp": "2026-07-21T16:38:24.583Z",
+      "error": null,
+      "executionId": "66f30746cc764ea48a04d7c76763eb0e"
+    },
+    {
+      "status": 1,
+      "timestamp": "2026-07-21T16:38:18.457Z",
+      "error": null,
+      "executionId": "6ac22bc8e147481d84cce0b27cc5488e"
+    },
+    {
+      "status": 1,
+      "timestamp": "2026-07-21T16:38:18.044Z",
+      "error": null,
+      "executionId": "6ac22bc8e147481d84cce0b27cc5488e"
+    }
+  ],
+  "e2e_msg3": {
+    "text": "בדיקה",
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "at": "2026-07-21T16:47:44.649Z",
+    "execution": {
+      "id": "17f6703458ea423ab025e5ad0a9bdfa5",
+      "status": 1,
+      "timestamp": "2026-07-21T16:47:44.776Z",
+      "error": null,
+      "duration": 4120
+    }
+  },
+  "scenario_after_msg3": {
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": true,
+    "islinked": true,
+    "hookId": 2567320
+  },
+  "checks": {
+    "same_error_as_module_58_400": true,
+    "stopped_due_to_58": true,
+    "soft_fix_applied": true,
+    "e2e_two_ok": true,
+    "e2e_third_ok": true,
+    "active_after_e2e": true,
+    "active_after_third_message": true,
+    "gupshup_87_ok": true,
+    "ai_untouched": true,
+    "production_untouched": true
+  },
+  "answers": {
+    "1_same_58_400": true,
+    "2_stopped_because_58": true,
+    "3_fixed_staging": true,
+    "4_stays_active": true,
+    "5_e2e_after_fix": true
+  }
+}
