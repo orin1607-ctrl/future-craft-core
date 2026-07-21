@@ -1,0 +1,261 @@
+name: E2E Staging WhatsApp once (Gupshup live)
+
+# Staging ONLY — one real WhatsApp via Gupshup to Owner 0534338601.
+# Never touches Production. No wa.me / no Preview.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/e2e-staging-whatsapp-once.yml'
+      - 'public/project-001/staging-wa-live-send-queue.json'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  staging-wa-live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Send one WhatsApp on Staging via Gupshup
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+          const STAGING = 'usfeoerkpcafxxlyuldl';
+          const PROD = 'qasomfndnjuixgjmjwcm';
+          const OWNER_EMAIL = 'orin1607@gmail.com';
+          const WA_DEST = '0534338601';
+          const MESSAGE = `בדיקת E2E Staging דליה — שליחת Gupshup חיה ${new Date().toISOString()}`;
+
+          if (!token) {
+            console.log(JSON.stringify({ ok: false, error: 'MISSING_ACCESS_TOKEN' }, null, 2));
+            process.exit(1);
+          }
+
+          async function mgmt(path) {
+            const res = await fetch(`https://api.supabase.com/v1${path}`, {
+              headers: { Authorization: `Bearer ${token}`, apikey: token },
+            });
+            const text = await res.text();
+            let json = null;
+            try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+            return { status: res.status, json };
+          }
+
+          async function post(base, path, body, bearer, apikey) {
+            const res = await fetch(base + path, {
+              method: 'POST',
+              headers: {
+                apikey: apikey || bearer,
+                Authorization: `Bearer ${bearer}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(body),
+            });
+            const text = await res.text();
+            let parsed = {};
+            try { parsed = text ? JSON.parse(text) : {}; } catch { parsed = { raw: text.slice(0, 400) }; }
+            return { status: res.status, body: parsed };
+          }
+
+          // Safety: confirm Staging keys only
+          const keys = await mgmt(`/projects/${STAGING}/api-keys`);
+          if (keys.status !== 200 || !Array.isArray(keys.json)) {
+            console.log(JSON.stringify({ ok: false, error: 'STAGING_API_KEYS_FAILED', http: keys.status }, null, 2));
+            process.exit(1);
+          }
+          const stagingSrk = keys.json.find((k) => k.name === 'service_role' || (k.tags || []).includes('service_role'))?.api_key
+            || keys.json.find((k) => String(k.name || '').includes('service'))?.api_key;
+          const stagingAnon = keys.json.find((k) => k.name === 'anon' || (k.tags || []).includes('anon'))?.api_key;
+
+          if (!stagingSrk) {
+            console.log(JSON.stringify({ ok: false, error: 'NO_STAGING_SERVICE_ROLE' }, null, 2));
+            process.exit(1);
+          }
+
+          // Decode JWT ref — must be Staging
+          function jwtRef(jwt) {
+            try {
+              return JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8')).ref;
+            } catch { return null; }
+          }
+          const ref = jwtRef(stagingSrk);
+          if (ref === PROD) {
+            console.log(JSON.stringify({ ok: false, error: 'ABORT_PRODUCTION_KEY' }, null, 2));
+            process.exit(1);
+          }
+          if (ref && ref !== STAGING) {
+            console.log(JSON.stringify({ ok: false, error: 'ABORT_WRONG_REF', ref }, null, 2));
+            process.exit(1);
+          }
+
+          const base = `https://${STAGING}.supabase.co`;
+          if (base.includes(PROD)) {
+            console.log(JSON.stringify({ ok: false, error: 'ABORT_PRODUCTION_URL' }, null, 2));
+            process.exit(1);
+          }
+
+          const gen = await post(base, '/auth/v1/admin/generate_link', { type: 'magiclink', email: OWNER_EMAIL }, stagingSrk, stagingSrk);
+          const otp = gen.body?.email_otp;
+          if (!otp) {
+            console.log(JSON.stringify({ ok: false, error: 'AUTH_GENERATE_FAILED', http: gen.status }, null, 2));
+            process.exit(1);
+          }
+          const ver = await post(
+            base,
+            '/auth/v1/verify',
+            { type: 'magiclink', email: OWNER_EMAIL, token: otp },
+            stagingAnon || stagingSrk,
+            stagingAnon || stagingSrk,
+          );
+          const at = ver.body?.access_token || ver.body?.session?.access_token;
+          if (!at) {
+            console.log(JSON.stringify({ ok: false, error: 'AUTH_VERIFY_FAILED', http: ver.status }, null, 2));
+            process.exit(1);
+          }
+
+          // Preflight — connection only
+          const check = await post(
+            base,
+            '/functions/v1/send-whatsapp-message',
+            { action: 'check_connection' },
+            at,
+            stagingAnon || stagingSrk,
+          );
+
+          // Inspect for approved template name (fallback for outside 24h window)
+          const insp = await post(
+            base,
+            '/functions/v1/send-whatsapp-message',
+            { action: 'inspect_outbound_permissions' },
+            at,
+            stagingAnon || stagingSrk,
+          );
+          const approved = insp.body?.probes?.list_approved_templates?.approved_templates_sample || [];
+          const templateName = approved[0]?.elementName || approved[0]?.id || null;
+          const templateId = approved[0]?.id || null;
+
+          // Attempt 1: session free-form (Gupshup /wa/api/v1/msg)
+          const sessionSend = await post(
+            base,
+            '/functions/v1/send-whatsapp-message',
+            {
+              action: 'send',
+              destination: WA_DEST,
+              message: MESSAGE,
+            },
+            at,
+            stagingAnon || stagingSrk,
+          );
+
+          let used = 'session';
+          let send = sessionSend;
+
+          // Attempt 2: approved template if session rejected by business rules
+          const sessionFailed = !(sessionSend.body?.success === true);
+          const gStatus = sessionSend.body?.gupshup_status ?? sessionSend.status;
+          if (sessionFailed && templateName) {
+            used = 'template';
+            send = await post(
+              base,
+              '/functions/v1/send-whatsapp-message',
+              {
+                action: 'send',
+                destination: WA_DEST,
+                use_template: true,
+                template_name: templateId || templateName,
+                template_params: [MESSAGE.slice(0, 100)],
+                message: MESSAGE.slice(0, 100),
+              },
+              at,
+              stagingAnon || stagingSrk,
+            );
+            // If id failed, retry with elementName
+            if (!send.body?.success && templateId && templateName && templateId !== templateName) {
+              send = await post(
+                base,
+                '/functions/v1/send-whatsapp-message',
+                {
+                  action: 'send',
+                  destination: WA_DEST,
+                  use_template: true,
+                  template_name: templateName,
+                  template_params: [MESSAGE.slice(0, 100)],
+                  message: MESSAGE.slice(0, 100),
+                },
+                at,
+                stagingAnon || stagingSrk,
+              );
+            }
+          }
+
+          const gupshupStatus = send.body?.gupshup_status ?? null;
+          const messageId =
+            send.body?.message_id ||
+            send.body?.gupshup_response?.messageId ||
+            send.body?.gupshup_response?.message_id ||
+            send.body?.gupshup_response?.id ||
+            null;
+          const statusStr = String(send.body?.gupshup_response?.status || '').toLowerCase();
+          const gupshupAck =
+            send.body?.success === true &&
+            (gupshupStatus === 200 || gupshupStatus === 201 || gupshupStatus === 202) &&
+            (statusStr === 'submitted' || statusStr === 'success' || statusStr === 'accepted' || Boolean(messageId) || send.body?.success === true);
+
+          const report = {
+            ok: send.body?.success === true,
+            env: 'staging',
+            project_ref: STAGING,
+            production_touched: false,
+            destination: WA_DEST,
+            destination_normalized: send.body?.destination || null,
+            path: used,
+            edge_http_status: send.status,
+            gupshup_http_status: gupshupStatus,
+            message_id: messageId,
+            gupshup_ack: Boolean(gupshupAck),
+            gupshup_response_status: send.body?.gupshup_response?.status ?? null,
+            success: send.body?.success === true,
+            error: send.body?.error || null,
+            message: send.body?.message || null,
+            preflight: {
+              check_http: check.status,
+              configured: check.body?.configured ?? null,
+              gupshup_verified: check.body?.gupshup_verified ?? null,
+              app_name: check.body?.app_name ?? null,
+              source: check.body?.source ?? null,
+            },
+            template_fallback: {
+              available: Boolean(templateName),
+              elementName: templateName,
+              id: templateId,
+              session_attempt_failed: sessionFailed,
+              session_edge_http: sessionSend.status,
+              session_error: sessionSend.body?.error || null,
+              session_gupshup_status: sessionSend.body?.gupshup_status ?? null,
+            },
+            gupshup_response_safe: {
+              status: send.body?.gupshup_response?.status ?? null,
+              messageId: messageId,
+              // no apikey; truncate message field if present
+              message: typeof send.body?.gupshup_response?.message === 'string'
+                ? send.body.gupshup_response.message.slice(0, 200)
+                : null,
+            },
+            sent_at: new Date().toISOString(),
+          };
+
+          console.log('---STAGING_WA_LIVE_SEND---');
+          console.log(JSON.stringify(report, null, 2));
+          console.log('---STAGING_WA_LIVE_SEND_DONE---');
+
+          if (!report.ok) process.exit(1);
+          NODE

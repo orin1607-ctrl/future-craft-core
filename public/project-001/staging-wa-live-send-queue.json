@@ -1,0 +1,9 @@
+{
+  "id": "staging-wa-live-send-queue",
+  "requestedAt": "2026-07-21T06:55:00.000Z",
+  "requestedBy": "owner",
+  "env": "staging",
+  "destination": "0534338601",
+  "production_touched": false,
+  "note": "One live Gupshup WhatsApp send on Staging only"
+}
