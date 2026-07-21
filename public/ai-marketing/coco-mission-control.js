@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'Bot Active restored — module 58 soft-fixed (Ignore + handleErrors=false); E2E OK',
+    latestFocus: 'UI E2E OK: FLT-2026-000003 via /faults as יוני — WA+Email sent (Staging)',
   };
 
   var STAGES = [
@@ -255,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>תיקון כיבוי בוט: מודול 58 (HTTP 400) עם Ignore + handleErrors=false · E2E×3 · Active נשאר</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../WA-BOT-FIX-ACTIVE-58-HE.md · project-001/wa-bot-fix-active-58-summary.json</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>1. שלח הודעה לבוט 2. ודא שאין התראת «הופסק» 3. אשר תיקון מיפוי 58 רק אם צריך</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>שגיאת 400 ב-58 כבר לא מפילה את התרחיש; מסלול 87 ממשיך לענות</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'בוט היה כבוי → תוקן ונשאר Active אחרי 3 הודעות E2E') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>GSC ' + esc(m.gscKeywords) + ' KW · Bot Active · E2E ~3.7–4.1ש׳</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אופציונלי: תיקון מיפוי הודעה במסלול 58 (לא חובה ל-Active)</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>E2E התראות דרך ממשק Staging כמנהל על יוני — תקלה FLT-2026-000003 · WA+Email נשלחו</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../WA-UI-ALERT-E2E-HE.md · project-001/wa-ui-alert-e2e-summary.json · צילומים ui-alert-e2e/</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>1. בדוק WhatsApp 0534338601 2. בדוק מייל orin1607@gmail.com 3. פתח /faults לאירוע</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>UI /faults → notify-accident-email → Gupshup + Resend · לא קריאה ישירה מסקריפט</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'מסלול התראות מלא עבר ב-Staging דרך התוכנה') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>WA msg f8642799… · Email b64b737e… · status sent</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אישור קבלה בטלפון + בתיבת המייל (לא Production)</div>' +
         '</div>' +
       '</div>'
     );

@@ -1,12 +1,12 @@
 {
   "id": "wa-ui-alert-e2e-queue",
-  "armed": true,
+  "armed": false,
+  "completed": true,
   "staging_only": true,
   "via_software_ui": true,
-  "no_direct_edge_from_script": true,
-  "actor": "מנהל על – יוני אטיאס",
-  "whatsapp": "0534338601",
-  "email": "orin1607@gmail.com",
-  "retry": 3,
-  "note": "Re-run: select company אכבים in alert-settings before fault"
+  "full_path_ok": true,
+  "fault_event": "FLT-2026-000003",
+  "whatsapp_message_id": "f8642799-aea9-4503-aff3-37c04b9ef5cb",
+  "email_message_id": "b64b737e-1897-46f1-8bf2-eb3e5db11fb7",
+  "note": "Complete — re-arm only for another UI E2E"
 }

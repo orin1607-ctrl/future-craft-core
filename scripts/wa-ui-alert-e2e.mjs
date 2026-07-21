@@ -139,9 +139,17 @@ async function main() {
   // Profile check (service) — confirm super_admin if profiles table has it
   const prof = await restAsService(
     srk,
-    `/rest/v1/profiles?select=id,full_name,role,company_name,email,phone&email=eq.${encodeURIComponent(OWNER_EMAIL)}&limit=1`,
+    `/rest/v1/profiles?select=id,full_name,company_name,email,phone&email=eq.${encodeURIComponent(OWNER_EMAIL)}&limit=1`,
   );
   out.profile = Array.isArray(prof.json) ? prof.json[0] : prof.json;
+  // roles table
+  if (out.profile?.id) {
+    const roles = await restAsService(
+      srk,
+      `/rest/v1/user_roles?user_id=eq.${out.profile.id}&select=role`,
+    );
+    out.roles = roles.json;
+  }
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
