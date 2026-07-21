@@ -322,6 +322,7 @@ function removeOneWayModules(bp) {
     MARKER,
     LOOKUP_NAME,
     ROUTER_NAME,
+    'Normalize alert_flag',
     'Continue bot chat (non-alert)',
     'Extract reply WhatsApp context id',
     'Extract reply context Message IDs',
@@ -371,6 +372,7 @@ function applyOneWayPatch(bp) {
   let nextId = nextModuleId(bp);
 
   const lookupId = nextId++;
+  const flagId = nextId++;
   const routerId = nextId++;
   const ignoreId = nextId++;
 
@@ -427,9 +429,27 @@ function applyOneWayPatch(bp) {
     },
   };
 
-  // NOTE: builtin:Ignore is ONLY valid inside onerror — using it in a route
-  // causes: "Misplaced directive 'builtin:Ignore' outside of an error handler"
-  // Terminal no-op SetVariable ends the alert-reply route without AI/Gupshup.
+  // Normalize HTTP JSON field paths into one variable for reliable router filters
+  const flagNorm = {
+    id: flagId,
+    module: 'util:SetVariable2',
+    version: 1,
+    parameters: {},
+    mapper: {
+      name: 'alert_flag',
+      scope: 'roundtrip',
+      value: `{{ifempty(${lookupId}.is_system_alert_flag; ifempty(${lookupId}.data.is_system_alert_flag; ifempty(${lookupId}.body.is_system_alert_flag; no)))}}`,
+    },
+    metadata: {
+      designer: {
+        x: (wh.metadata?.designer?.x || 0) + 450,
+        y: (wh.metadata?.designer?.y || 0),
+        name: 'Normalize alert_flag',
+      },
+    },
+  };
+
+  // NOTE: builtin:Ignore is ONLY valid inside onerror
   const skipMod = {
     id: ignoreId,
     module: 'util:SetVariable2',
@@ -442,9 +462,7 @@ function applyOneWayPatch(bp) {
     },
     filter: {
       name: 'Reply to system alert Message ID',
-      conditions: [
-        [{ a: `{{${lookupId}.is_system_alert_flag}}`, b: 'yes', o: 'text:equal' }],
-      ],
+      conditions: [[{ a: `{{${flagId}.alert_flag}}`, b: 'yes', o: 'text:equal' }]],
     },
     metadata: {
       designer: {
@@ -455,8 +473,6 @@ function applyOneWayPatch(bp) {
     },
   };
 
-  // Make BasicRouter: routes WITHOUT filters ALWAYS run (parallel with matching routes).
-  // Gate the bot path so it only runs when NOT a system-alert reply.
   const continueId = nextId++;
   const continueChat = {
     id: continueId,
@@ -470,10 +486,7 @@ function applyOneWayPatch(bp) {
     },
     filter: {
       name: 'Not a system-alert Reply',
-      // Edge always returns is_system_alert_flag yes|no — equal only (notequal fails Make validation)
-      conditions: [
-        [{ a: `{{${lookupId}.is_system_alert_flag}}`, b: 'no', o: 'text:equal' }],
-      ],
+      conditions: [[{ a: `{{${flagId}.alert_flag}}`, b: 'no', o: 'text:equal' }]],
     },
     metadata: {
       designer: {
@@ -498,22 +511,19 @@ function applyOneWayPatch(bp) {
       },
     },
     routes: [
-      {
-        flow: [skipMod],
-      },
-      {
-        flow: [continueChat, ...rest],
-      },
+      { flow: [skipMod] },
+      { flow: [continueChat, ...rest] },
     ],
   };
 
-  bp.flow = [wh, lookup, router];
+  bp.flow = [wh, lookup, flagNorm, router];
   return {
     skipped: false,
     unwrap,
-    data_expr: 'GET qs Message ID (Meta context paths)',
+    data_expr: 'GET qs Message ID + normalize alert_flag',
     ids: {
       lookup: lookupId,
+      flag: flagId,
       router: routerId,
       ignore: ignoreId,
       skip: ignoreId,
