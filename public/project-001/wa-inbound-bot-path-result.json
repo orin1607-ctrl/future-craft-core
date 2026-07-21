@@ -1,0 +1,1001 @@
+{
+  "id": "wa-inbound-bot-path",
+  "at": "2026-07-21T13:46:51.730Z",
+  "env": "staging_make_only",
+  "production_touched": false,
+  "no_whatsapp_send": true,
+  "no_queue_delete": true,
+  "no_blueprint_change": true,
+  "scenario_id": 5797671,
+  "hook_id": 2567320,
+  "scenario": {
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": false,
+    "islinked": false,
+    "iswaiting": false,
+    "isPaused": false,
+    "dlqCount": 0,
+    "scheduling_type": "immediately",
+    "hookId": 2567320,
+    "lastEdit": "2026-07-21T08:48:07.439Z"
+  },
+  "blueprint_source": "scenarios_blueprint",
+  "blueprint_http": 200,
+  "modules": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "name": null,
+      "url": null,
+      "looks_webhook": true,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 98,
+      "module": "http:ActionSendData",
+      "name": "Forward DLR to Supabase Staging",
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/gupshup-webhook",
+      "looks_webhook": false,
+      "looks_dlr_forward": true,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 78,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 79,
+      "module": "google-sheets:filterRows",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 93,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 80,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 94,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 81,
+      "module": "builtin:BasicRouter",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 82,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 84,
+      "module": "ai-agent:RunAnAIAgent",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 85,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 86,
+      "module": "builtin:BasicFeeder",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 91,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 97,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 92,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 87,
+      "module": "http:ActionSendData",
+      "name": null,
+      "url": "https://api.gupshup.io/wa/api/v1/msg",
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": true
+    },
+    {
+      "id": 88,
+      "module": "util:FunctionSleep",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 83,
+      "module": "google-sheets:addRow",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 63,
+      "module": "ai-agent:RunAnAIAgent",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 72,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 76,
+      "module": "builtin:BasicFeeder",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 89,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 95,
+      "module": "util:SetVariable2",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 90,
+      "module": "google-sheets:updateRow",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    },
+    {
+      "id": 58,
+      "module": "http:ActionSendData",
+      "name": null,
+      "url": "https://api.gupshup.io/wa/api/v1/msg",
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": true
+    },
+    {
+      "id": 77,
+      "module": "util:FunctionSleep",
+      "name": null,
+      "url": null,
+      "looks_webhook": false,
+      "looks_dlr_forward": false,
+      "looks_possible_reply": false
+    }
+  ],
+  "module_counts": {
+    "total": 26,
+    "webhook": 1,
+    "dlr_forward": 1,
+    "possible_reply": 2
+  },
+  "has_explicit_reply_module": true,
+  "flow_is_dlr_forward_only": false,
+  "hook": {
+    "http": 200,
+    "enabled": true,
+    "queueCount": 3,
+    "queueLimit": 667,
+    "scenarioId": 5797671,
+    "udsType": "gateway-webhook"
+  },
+  "queue_now": {
+    "stats_http": 200,
+    "stats": {
+      "incomingStat": {
+        "queue": 3,
+        "limit": 667,
+        "enabled": true
+      }
+    },
+    "list_count": 3,
+    "ids": [
+      "bde5ecd7fde435d218a9f1183799e337",
+      "6013970393f0614a86e707a51721d127",
+      "8298bf0dbf7fd7b82370678e2269cef2"
+    ]
+  },
+  "hook_logs_window": {
+    "from": "2026-07-20T13:46:51.730Z",
+    "list_http": 200,
+    "total_listed": 21,
+    "inbound_count": 5,
+    "dlr_count": 16,
+    "other_count": 0,
+    "inbound_recent": [
+      {
+        "loggedAt": "2026-07-21T13:41:51.475Z",
+        "statusId": 1,
+        "id": "8298bf0dbf7fd7b82370678e2269cef2",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNDNjgzNERGQTk4MzBBOUUxQ0ZGMEFDOEE1OURBMkYA",
+        "timestamp": "1784641309"
+      },
+      {
+        "loggedAt": "2026-07-21T12:16:29.347Z",
+        "statusId": 1,
+        "id": "254666e7b1e824785e016870ee61000d",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNDMjkzRTU2NUY1OUZBMThBMDc1MzlDODY1MDMwQzcA",
+        "timestamp": "1784636187"
+      },
+      {
+        "loggedAt": "2026-07-21T12:12:18.880Z",
+        "statusId": 1,
+        "id": "6cc8d7ea53724643302407b9fd1c84cf",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUM5RDFGRURFQzFCNUNBMTI1RUFBRDU4QTQwNTQ2NUQA",
+        "timestamp": "1784635936"
+      },
+      {
+        "loggedAt": "2026-07-21T11:26:58.244Z",
+        "statusId": 1,
+        "id": "92fd93f56f1c06f6c2ccd79dedd02846",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "למה לא עובד",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNBQzhFRTdGQ0Q2QzgxQkQ3OUU5REVEM0E0RTkyMzIA",
+        "timestamp": "1784633216"
+      },
+      {
+        "loggedAt": "2026-07-21T11:25:54.297Z",
+        "statusId": 1,
+        "id": "1d73912fab5d3474f2f580c273ec1a9a",
+        "kind": "inbound_message",
+        "from": "972534338601",
+        "text": "היי",
+        "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUM5QzJDQUJBQTdBQTg5RDc3MUY4M0FFMjkxQUEwRjUA",
+        "timestamp": "1784633151"
+      }
+    ],
+    "dlr_recent": [
+      {
+        "loggedAt": "2026-07-21T13:26:05.635Z",
+        "statusId": 1,
+        "id": "6013970393f0614a86e707a51721d127",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "fb3b8a1f-3d03-431b-889b-9b60e91d61ad",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T13:26:03.088Z",
+        "statusId": 1,
+        "id": "bde5ecd7fde435d218a9f1183799e337",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "2cbed084-d207-4797-8434-27d214e8f3cd",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T12:55:43.445Z",
+        "statusId": 1,
+        "id": "fbca15a2fa92f99fbcfd3abd15740749",
+        "kind": "delivery_status",
+        "status": "sent",
+        "gs_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+        "recipient_id": "972534338601"
+      },
+      {
+        "loggedAt": "2026-07-21T12:55:39.990Z",
+        "statusId": 1,
+        "id": "5b5f8d3d29b7c330c58ae993d66f2bb1",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "caa1cadd-5391-413d-a9cd-1729a8743245",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T12:55:38.340Z",
+        "statusId": 1,
+        "id": "3b7d560cec72a983b7c215a99e39cb88",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "50af7960-6788-45f9-8a52-02326d7b7cdc",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T12:15:09.968Z",
+        "statusId": 1,
+        "id": "4e0d4a0960c84a43f90abdda86c35fb9",
+        "kind": "delivery_status",
+        "status": "sent",
+        "gs_id": "27f46420-c2d5-438d-9e4f-830f290cebde",
+        "recipient_id": "972534338601"
+      },
+      {
+        "loggedAt": "2026-07-21T12:15:06.452Z",
+        "statusId": 1,
+        "id": "c22e660a15f309d4abeb1db30a46da1e",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "13bb3459-ae2f-4955-b35d-24f4b1ba28a5",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T11:21:59.931Z",
+        "statusId": 1,
+        "id": "8a0029bd56de6ed2cdf8f53efd596096",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "ee7fa43d-2485-42ef-8582-8d802ec7444f",
+        "recipient_id": "972534338601"
+      },
+      {
+        "loggedAt": "2026-07-21T11:21:57.646Z",
+        "statusId": 1,
+        "id": "e9465d17266ffcf2884e3c82db1fa0b1",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "d3058142-15f4-4f85-a48b-391883878a76",
+        "recipient_id": "0"
+      },
+      {
+        "loggedAt": "2026-07-21T11:15:51.504Z",
+        "statusId": 1,
+        "id": "2c35566bc473d32683d720591616015d",
+        "kind": "delivery_status",
+        "status": "failed",
+        "gs_id": "0353ce86-a0bf-4e97-9344-5618e1192032",
+        "recipient_id": "972534338601"
+      }
+    ]
+  },
+  "owner_inbound_in_hook": [
+    {
+      "loggedAt": "2026-07-21T13:41:51.475Z",
+      "statusId": 1,
+      "id": "8298bf0dbf7fd7b82370678e2269cef2",
+      "kind": "inbound_message",
+      "from": "972534338601",
+      "text": "היי",
+      "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNDNjgzNERGQTk4MzBBOUUxQ0ZGMEFDOEE1OURBMkYA",
+      "timestamp": "1784641309"
+    },
+    {
+      "loggedAt": "2026-07-21T12:16:29.347Z",
+      "statusId": 1,
+      "id": "254666e7b1e824785e016870ee61000d",
+      "kind": "inbound_message",
+      "from": "972534338601",
+      "text": "היי",
+      "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNDMjkzRTU2NUY1OUZBMThBMDc1MzlDODY1MDMwQzcA",
+      "timestamp": "1784636187"
+    },
+    {
+      "loggedAt": "2026-07-21T12:12:18.880Z",
+      "statusId": 1,
+      "id": "6cc8d7ea53724643302407b9fd1c84cf",
+      "kind": "inbound_message",
+      "from": "972534338601",
+      "text": "היי",
+      "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUM5RDFGRURFQzFCNUNBMTI1RUFBRDU4QTQwNTQ2NUQA",
+      "timestamp": "1784635936"
+    },
+    {
+      "loggedAt": "2026-07-21T11:26:58.244Z",
+      "statusId": 1,
+      "id": "92fd93f56f1c06f6c2ccd79dedd02846",
+      "kind": "inbound_message",
+      "from": "972534338601",
+      "text": "למה לא עובד",
+      "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNBQzhFRTdGQ0Q2QzgxQkQ3OUU5REVEM0E0RTkyMzIA",
+      "timestamp": "1784633216"
+    },
+    {
+      "loggedAt": "2026-07-21T11:25:54.297Z",
+      "statusId": 1,
+      "id": "1d73912fab5d3474f2f580c273ec1a9a",
+      "kind": "inbound_message",
+      "from": "972534338601",
+      "text": "היי",
+      "wa_id": "wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUM5QzJDQUJBQTdBQTg5RDc3MUY4M0FFMjkxQUEwRjUA",
+      "timestamp": "1784633151"
+    }
+  ],
+  "realtime_assessment": {
+    "scenario_active_now": false,
+    "scenario_linked": false,
+    "scheduling_type": "immediately",
+    "queue_empty_now": false,
+    "inbound_events_seen_in_logs": true,
+    "note": "Hook logs prove Gupshup→Make delivery of inbound payloads when present. If scenario was OFF, payloads sit in incomings queue and are NOT processed as bot replies until Active + consumed."
+  },
+  "scenario_executions": {
+    "probes": {
+      "/scenarios/5797671/logs?pg[limit]=40&pg[sortDir]=desc": {
+        "http": 200,
+        "count": 40,
+        "keys": [
+          "scenarioLogs",
+          "pg"
+        ]
+      },
+      "/scenarios/5797671/logs?from=1784555211&pg[limit]=40": {
+        "http": 200,
+        "count": 40,
+        "keys": [
+          "scenarioLogs",
+          "pg"
+        ]
+      }
+    },
+    "recent": [
+      {
+        "timestamp": "2026-07-21T12:55:38.689Z",
+        "duration": null,
+        "error": null
+      },
+      {
+        "id": "1b29875305b8427487e8ab9d2a83a5df",
+        "status": 3,
+        "timestamp": "2026-07-21T12:55:38.340Z",
+        "duration": 309,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "75289058",
+        "timestamp": "2026-07-21T12:55:23.277Z",
+        "duration": null,
+        "error": null
+      },
+      {
+        "timestamp": "2026-07-21T12:14:34.494Z",
+        "duration": null,
+        "error": null
+      },
+      {
+        "id": "50992ae9c5da4f6aae7e5e0207478f02",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.277Z",
+        "duration": 434,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "0e5176952da9402d9a66668fdb7aeaff",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.260Z",
+        "duration": 323,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "ab035f855a6f4eeb80c92e7299de1b4a",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.235Z",
+        "duration": 313,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "69d5bf24428144528a76646ead97820b",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.209Z",
+        "duration": 330,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "3f5a28772e8c47ef8e7ebb363c2ffcf7",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.186Z",
+        "duration": 426,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "12c2aa45c4f648acb975b93b05ba6e12",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.164Z",
+        "duration": 359,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "d75402f6189b4d8ebba1e78d5276d3e9",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.139Z",
+        "duration": 319,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "dcdc5324951040a58803ef5aa9ecbf22",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.120Z",
+        "duration": 402,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "f6e196be55fb468aa63fc5ab97ad7226",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.099Z",
+        "duration": 424,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "4b75d34b5fcd46d8859c5cfc0e64ab2d",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.075Z",
+        "duration": 439,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "18e7bc7b3e4043cfac3ed01496586083",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.054Z",
+        "duration": 703,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "5404e56c55ba4dbb9a6d4c81aaaa0617",
+        "status": 3,
+        "timestamp": "2026-07-21T12:14:34.028Z",
+        "duration": 443,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "75285511",
+        "timestamp": "2026-07-21T12:14:32.891Z",
+        "duration": null,
+        "error": null
+      },
+      {
+        "timestamp": "2026-07-21T11:42:02.478Z",
+        "duration": null,
+        "error": null
+      },
+      {
+        "id": "f61b323071a043489de19b76cfad1bda",
+        "status": 3,
+        "timestamp": "2026-07-21T11:42:02.356Z",
+        "duration": 374,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "a808a0d782c8425ea2b54c994fe34d97",
+        "status": 3,
+        "timestamp": "2026-07-21T11:42:02.332Z",
+        "duration": 270,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "1f934341a55843acad556cc6f8fdef41",
+        "status": 3,
+        "timestamp": "2026-07-21T11:42:02.314Z",
+        "duration": 315,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "9e5c16ece3e7493684707fe9d6eee09d",
+        "status": 3,
+        "timestamp": "2026-07-21T11:42:02.294Z",
+        "duration": 375,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "bf4c34ee42674123991bfec8d555e7e1",
+        "status": 3,
+        "timestamp": "2026-07-21T11:42:02.268Z",
+        "duration": 304,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "369e8d8b5df041deba82ea4285f98a9e",
+        "status": 3,
+        "timestamp": "2026-07-21T11:42:02.253Z",
+        "duration": 410,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      },
+      {
+        "id": "9f8a31810a5a46b1a687dd6b2c8f158d",
+        "status": 3,
+        "timestamp": "2026-07-21T11:42:02.227Z",
+        "duration": 528,
+        "error": {
+          "name": "DataError",
+          "message": "Failed to map 'data': Function 'toJSON' not found!"
+        }
+      }
+    ]
+  },
+  "execution_details_sample": [
+    {
+      "id": "1b29875305b8427487e8ab9d2a83a5df",
+      "detail_http": 200,
+      "status": 3,
+      "error": {
+        "name": "DataError",
+        "message": "Failed to map 'data': Function 'toJSON' not found!"
+      },
+      "operations": null,
+      "raw_keys": [
+        "imtId",
+        "eventType",
+        "id",
+        "@kindId",
+        "timestamp",
+        "type",
+        "instant",
+        "authorId",
+        "teamId",
+        "organizationId",
+        "replayOfExecutionId",
+        "replayOfExecutionName",
+        "replayOfExecutionTimestamp",
+        "@scenarioId",
+        "scenarioName",
+        "error",
+        "scenarioId",
+        "duration",
+        "centicredits",
+        "operations",
+        "transfer",
+        "status",
+        "isReplayable"
+      ]
+    },
+    {
+      "id": "75289058",
+      "detail_http": 400,
+      "error": "Bad Request",
+      "operations": null,
+      "raw_keys": [
+        "detail",
+        "message",
+        "code",
+        "suberrors"
+      ]
+    },
+    {
+      "id": "50992ae9c5da4f6aae7e5e0207478f02",
+      "detail_http": 200,
+      "status": 3,
+      "error": {
+        "name": "DataError",
+        "message": "Failed to map 'data': Function 'toJSON' not found!"
+      },
+      "operations": null,
+      "raw_keys": [
+        "imtId",
+        "eventType",
+        "id",
+        "@kindId",
+        "timestamp",
+        "type",
+        "instant",
+        "authorId",
+        "teamId",
+        "organizationId",
+        "replayOfExecutionId",
+        "replayOfExecutionName",
+        "replayOfExecutionTimestamp",
+        "@scenarioId",
+        "scenarioName",
+        "error",
+        "scenarioId",
+        "duration",
+        "centicredits",
+        "operations",
+        "transfer",
+        "status",
+        "isReplayable"
+      ]
+    },
+    {
+      "id": "0e5176952da9402d9a66668fdb7aeaff",
+      "detail_http": 200,
+      "status": 3,
+      "error": {
+        "name": "DataError",
+        "message": "Failed to map 'data': Function 'toJSON' not found!"
+      },
+      "operations": null,
+      "raw_keys": [
+        "imtId",
+        "eventType",
+        "id",
+        "@kindId",
+        "timestamp",
+        "type",
+        "instant",
+        "authorId",
+        "teamId",
+        "organizationId",
+        "replayOfExecutionId",
+        "replayOfExecutionName",
+        "replayOfExecutionTimestamp",
+        "@scenarioId",
+        "scenarioName",
+        "error",
+        "scenarioId",
+        "duration",
+        "centicredits",
+        "operations",
+        "transfer",
+        "status",
+        "isReplayable"
+      ]
+    },
+    {
+      "id": "ab035f855a6f4eeb80c92e7299de1b4a",
+      "detail_http": 200,
+      "status": 3,
+      "error": {
+        "name": "DataError",
+        "message": "Failed to map 'data': Function 'toJSON' not found!"
+      },
+      "operations": null,
+      "raw_keys": [
+        "imtId",
+        "eventType",
+        "id",
+        "@kindId",
+        "timestamp",
+        "type",
+        "instant",
+        "authorId",
+        "teamId",
+        "organizationId",
+        "replayOfExecutionId",
+        "replayOfExecutionName",
+        "replayOfExecutionTimestamp",
+        "@scenarioId",
+        "scenarioName",
+        "error",
+        "scenarioId",
+        "duration",
+        "centicredits",
+        "operations",
+        "transfer",
+        "status",
+        "isReplayable"
+      ]
+    },
+    {
+      "id": "69d5bf24428144528a76646ead97820b",
+      "detail_http": 200,
+      "status": 3,
+      "error": {
+        "name": "DataError",
+        "message": "Failed to map 'data': Function 'toJSON' not found!"
+      },
+      "operations": null,
+      "raw_keys": [
+        "imtId",
+        "eventType",
+        "id",
+        "@kindId",
+        "timestamp",
+        "type",
+        "instant",
+        "authorId",
+        "teamId",
+        "organizationId",
+        "replayOfExecutionId",
+        "replayOfExecutionName",
+        "replayOfExecutionTimestamp",
+        "@scenarioId",
+        "scenarioName",
+        "error",
+        "scenarioId",
+        "duration",
+        "centicredits",
+        "operations",
+        "transfer",
+        "status",
+        "isReplayable"
+      ]
+    }
+  ],
+  "incomplete_dlq": {
+    "http": 200,
+    "count": 0,
+    "recent": []
+  },
+  "e2e_clean_queue_message": {
+    "text": "E2E clean-queue Staging 2026-07-21T12:55:37.518Z",
+    "message_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+    "from_artifact": {
+      "at": "2026-07-21T12:55:19.411Z",
+      "send_success": true,
+      "destination": "972534338601",
+      "message_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+      "gupshup_http": 202,
+      "make_dlr": [
+        {
+          "loggedAt": "2026-07-21T12:55:43.445Z",
+          "status": "sent",
+          "gs_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+          "error_code": null,
+          "error_details": null,
+          "conversation_origin": "service",
+          "pricing_type": "free_customer_service"
+        }
+      ],
+      "note": "Sent by Staging Edge send-whatsapp-message AFTER queue clear — NOT a Make bot auto-reply"
+    },
+    "make_dlr_hits_for_msgid": [
+      {
+        "loggedAt": "2026-07-21T12:55:43.445Z",
+        "statusId": 1,
+        "id": "fbca15a2fa92f99fbcfd3abd15740749",
+        "kind": "delivery_status",
+        "status": "sent",
+        "gs_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+        "recipient_id": "972534338601"
+      }
+    ],
+    "was_old_queued_release": false,
+    "explanation": "Timestamp 12:55:37Z matches our intentional Staging E2E send in make-queue-clear-and-e2e. It was outbound from business→Owner via Gupshup API, not Whatsapp Bot generating a reply to inbound. Late phone appearance is the known Meta sent≠delivered delay — not Make queue releasing a bot reply."
+  },
+  "answers": {
+    "1_scenario_active_now": "NO — Whatsapp Bot is OFF (isActive=false). Inbound will queue on webhook and will not run.",
+    "2_inbound_reaches_webhook_realtime": "YES — Hook 2567320 has 5 inbound message event(s) in last 24h logs (Owner samples: 5). Gupshup→Make webhook delivery works when messages arrive.",
+    "3_runs_immediately_or_queues": "NOT reliably immediate — isActive=false, islinked=false, queueCount=3, list_count=3. Offline scenario → queue; Active with backlog → delayed burst.",
+    "4_where_scenario_stops_or_fails": "Failures seen in execution details: [{\"execution\":\"1b29875305b8427487e8ab9d2a83a5df\",\"error\":{\"name\":\"DataError\",\"message\":\"Failed to map 'data': Function 'toJSON' not found!\"}},{\"execution\":\"75289058\",\"error\":\"Bad Request\"},{\"execution\":\"50992ae9c5da4f6aae7e5e0207478f02\",\"error\":{\"name\":\"DataError\",\"message\":\"Failed to map 'data': Function 'toJSON' not found!\"}},{\"execution\":\"0e5176952da9402d9a66668fdb7aeaff\",\"error\":{\"name\":\"DataError\",\"message\":\"Failed to map 'data': Function 'toJSON' not found!\"}},{\"execution\":\"ab035f855a6f4eeb80c92e7299de1b4a\",\"error\":{\"name\":\"DataError\",\"message\":\"Failed to map 'data': Function 'toJSON' not found!\"}},{\"execution\":\"69d5bf24428144528a76646ead97820b\",\"error\":{\"name\":\"DataError\",\"message\":\"Failed to map 'data': Function 'toJSON' not found!\"}}]",
+    "5_why_no_bot_reply": "Reply modules exist but replies are not reaching you — see failures/DLQ/queue delay. Also confirm reply module actually calls Gupshup/WhatsApp send.",
+    "6_was_e2e_clean_queue_old_queued": "NO — it was NOT an old queued bot reply. It was our Staging E2E outbound test at ~12:55:37Z (msgid 346d6d28-9266-42ae-a0c3-6e4f0bd0a06f) via Edge send-whatsapp-message → Gupshup → your phone. Text: «E2E clean-queue Staging 2026-07-21T12:55:37.518Z». Late receipt = Meta delivery lag (sent without delivered), not Make releasing a queued chatbot answer.",
+    "7_what_to_fix_for_seconds_reply": [
+      "Keep Whatsapp Bot Active + linked at all times if this hook is the live Gupshup callback (or split: dedicated DLR scenario vs dedicated chatbot).",
+      "Do not delete inbound incomings if you expect bot replies — only clear DLR backlog, or process inbound first.",
+      "If you want real chatbot answers within seconds: add/restore a reply path (Router: messages vs statuses → reply only on messages; DLR only forward statuses) OR separate scenarios/hooks.",
+      "Never route Production go-live on a scenario that only forwards DLR and has no reply module.",
+      "Monitor hook queueCount=0 and scenario isActive after every change."
+    ]
+  },
+  "verdict_he": "הודעת E2E clean-queue אינה תשובת בוט — זו שליחת בדיקת Staging שלנו. הבוט לא עונה כי תרחיש Whatsapp Bot כרגע משמש בעיקר כמקבל Webhook+העברת DLR ל-Supabase, לא כצ׳אטבוט שמשיב. בנוסף, כשהתרחיש היה כבוי הודעות נכנסו לתור; חלקן נמחקו בניקוי 15 הפריטים. אין Production."
+}
