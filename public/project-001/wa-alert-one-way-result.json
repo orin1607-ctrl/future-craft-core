@@ -1,0 +1,113 @@
+{
+  "id": "wa-alert-one-way",
+  "at": "2026-07-21T20:25:35.553Z",
+  "env": "staging_only",
+  "production_touched": false,
+  "new_mechanism": false,
+  "footer": "זוהי הודעת מערכת אוטומטית ואין להשיב לה.",
+  "deploy": {
+    "ok": true,
+    "project": "usfeoerkpcafxxlyuldl",
+    "functions": [
+      "notify-accident-email",
+      "gupshup-webhook"
+    ]
+  },
+  "check_endpoint_probe": {
+    "http": 200,
+    "is_system_alert": false,
+    "ok": true
+  },
+  "patch": {
+    "skipped": false,
+    "ids": {
+      "lookup": 99,
+      "router": 100,
+      "ignore": 101
+    },
+    "rest_modules_moved": 6,
+    "patch_http": 200
+  },
+  "verify_blueprint": {
+    "has_ignore_marker": true,
+    "has_lookup": true,
+    "has_router": true,
+    "has_ai": true,
+    "has_gupshup_87": true
+  },
+  "activate": {
+    "already": true,
+    "http": 200,
+    "isActive": true,
+    "islinked": true,
+    "name": "Whatsapp Bot",
+    "hookId": 2567320
+  },
+  "queue_clear": {
+    "before": 0,
+    "deleted": 0,
+    "ok": true
+  },
+  "hook_url_host": "hook.eu2.make.com",
+  "alert_message_id_source": "existing_delivery",
+  "alert_message_id": "3fd8ae53-4e9c-41db-85f2-7ca62565b0f8",
+  "lookup_match_probe": {
+    "http": 200,
+    "is_system_alert": true,
+    "matched_id": "3fd8ae53-4e9c-41db-85f2-7ca62565b0f8"
+  },
+  "footer_in_edge_source": true,
+  "e2e_reply": {
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "log": {
+      "id": "2840b9fca7d245679b35bf1ca255e509",
+      "status": 1,
+      "timestamp": "2026-07-21T20:25:48.899Z",
+      "error": null,
+      "duration": 9537
+    },
+    "detail": {
+      "http": 200,
+      "status": 1,
+      "error": null,
+      "operations": []
+    },
+    "analysis": {
+      "hitIgnore": false,
+      "hitAi": false,
+      "hitGupshupSend": false,
+      "op_count": 0,
+      "op_modules": [],
+      "ops_empty_fallback": true
+    }
+  },
+  "e2e_hi": {
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "log": {
+      "id": "8baeb1d086d44e518bd1e41b6b441fb0",
+      "status": 1,
+      "timestamp": "2026-07-21T20:26:00.586Z",
+      "error": null,
+      "duration": 8787
+    },
+    "detail": {
+      "http": 200,
+      "status": 1,
+      "error": null,
+      "operations": []
+    },
+    "analysis": {
+      "hitAi": false,
+      "hit87": false,
+      "http_ops": [],
+      "op_modules": []
+    }
+  },
+  "error": "Free היי did not reach AI/Gupshup path"
+}
