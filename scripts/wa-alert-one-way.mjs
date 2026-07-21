@@ -18,7 +18,7 @@ const STAGING = 'usfeoerkpcafxxlyuldl';
 const PROD = 'qasomfndnjuixgjmjwcm';
 const SUPABASE_HOOK = `https://${STAGING}.supabase.co/functions/v1/gupshup-webhook`;
 const FOOTER = 'זוהי הודעת מערכת אוטומטית ואין להשיב לה.';
-const MARKER = 'Ignore reply to system alert';
+const MARKER = 'Skip bot for system-alert Reply';
 const LOOKUP_NAME = 'Lookup system-alert by Message ID';
 const ROUTER_NAME = 'One-way: alert Reply vs chat';
 
