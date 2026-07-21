@@ -247,6 +247,17 @@ function buildGupshupInbound({ text, contextGsId = null, contextWaId = null, suf
   };
 }
 
+async function moduleLogs(mid, limit = 10) {
+  const r = await make(`/scenarios/${BOT_ID}/modules/${mid}/logs?pg[limit]=${limit}&pg[sortDir]=desc`);
+  const arr = r.json?.moduleLogs || r.json?.logs || [];
+  return (Array.isArray(arr) ? arr : []).slice(0, limit).map((x) => ({
+    status: x.status ?? x.statusId,
+    timestamp: x.timestamp || x.loggedAt,
+    error: x.error?.message || (typeof x.error === 'string' ? x.error : null),
+    executionId: x.executionId || x.scenarioLogId || null,
+  }));
+}
+
 async function postHook(url, body) {
   const res = await fetch(url, {
     method: 'POST',
@@ -256,21 +267,72 @@ async function postHook(url, body) {
   return { status: res.status, body: (await res.text()).slice(0, 200) };
 }
 
-/** IML: prefer Gupshup context.gsId, then context.id, then Meta cloud reply id. */
-function replyGsIdExpr(whId) {
-  return `{{ifempty(${whId}.payload.context.gsId; ifempty(${whId}.payload.context.id; ifempty(${whId}.entry[].changes[].value.messages[].context.id; __none__)))}}`;
+function buildMetaInbound({ text, contextId = null, suffix }) {
+  const ts = String(Math.floor(Date.now() / 1000));
+  const msg = {
+    from: OWNER_E164,
+    id: `wamid.ONEWAY_${suffix}_${Date.now()}`,
+    timestamp: ts,
+    type: 'text',
+    text: { body: text },
+  };
+  if (contextId) {
+    msg.context = { id: contextId, gsId: contextId };
+  }
+  return {
+    object: 'whatsapp_business_account',
+    entry: [
+      {
+        id: 'coco-one-way',
+        changes: [
+          {
+            field: 'messages',
+            value: {
+              messaging_product: 'whatsapp',
+              metadata: {
+                display_phone_number: '972546500305',
+                phone_number_id: '689295480929918',
+              },
+              contacts: [{ profile: { name: 'Owner' }, wa_id: OWNER_E164 }],
+              messages: [msg],
+            },
+          },
+        ],
+      },
+    ],
+  };
 }
 
-function replyWaIdExpr(whId) {
-  return `{{ifempty(${whId}.payload.context.id; ifempty(${whId}.entry[].changes[].value.messages[].context.id; __none__))}}`;
+function recentModuleHit(logs, sinceMs) {
+  return (logs || []).find((x) => {
+    if (x.timestamp && Date.parse(x.timestamp) < sinceMs - 10000) return false;
+    return x.status === 1 || x.status === 2 || x.status === 'SUCCESS';
+  });
+}
+
+/** IML unused for qs — Edge deep-searches POST body for context.gsId / context.id */
+function removeOneWayModules(bp) {
+  if (!Array.isArray(bp.flow)) return { removed: false };
+  const router = bp.flow.find((m) => m?.metadata?.designer?.name === ROUTER_NAME);
+  if (!router || !Array.isArray(router.routes) || router.routes.length < 2) {
+    // Remove stray named modules if any
+    const before = bp.flow.length;
+    bp.flow = bp.flow.filter(
+      (m) =>
+        ![MARKER, LOOKUP_NAME, ROUTER_NAME].includes(m?.metadata?.designer?.name),
+    );
+    return { removed: bp.flow.length !== before, mode: 'filter_names' };
+  }
+  const wh = bp.flow.find((m) => /CustomWebHook|webhook/i.test(String(m?.module || '')));
+  const botFlow = router.routes[1]?.flow || [];
+  bp.flow = wh ? [wh, ...botFlow] : [...botFlow];
+  return { removed: true, mode: 'unwrap_router', bot_modules: botFlow.length };
 }
 
 function applyOneWayPatch(bp) {
   must(Array.isArray(bp.flow), 'blueprint.flow missing');
-  const already = findByName(bp, MARKER) && findByName(bp, LOOKUP_NAME) && findByName(bp, ROUTER_NAME);
-  if (already) {
-    return { skipped: true, reason: 'already_patched' };
-  }
+
+  const unwrap = removeOneWayModules(bp);
 
   const wh = bp.flow.find((m) => /CustomWebHook|webhook/i.test(String(m?.module || '')));
   must(wh, 'Webhook module not found at top-level flow');
@@ -284,7 +346,8 @@ function applyOneWayPatch(bp) {
   const routerId = nextId++;
   const ignoreId = nextId++;
 
-  // gsId / waId formulas read Reply Context directly from webhook (Message ID — not phone/text)
+  // POST full webhook bundle → Edge deep-finds Reply context Message IDs
+  const dataExpr = `{{createJSON(${wh.id})}}`;
   const lookup = {
     id: lookupId,
     module: 'http:ActionSendData',
@@ -296,12 +359,17 @@ function applyOneWayPatch(bp) {
     mapper: {
       url: SUPABASE_HOOK,
       serializeUrl: false,
-      method: 'get',
-      headers: [{ name: 'Accept', value: 'application/json' }],
+      method: 'post',
+      headers: [
+        { name: 'Accept', value: 'application/json' },
+        { name: 'Content-Type', value: 'application/json' },
+      ],
       qs: [
         { name: 'check_system_alert', value: '1' },
-        { name: 'gsId', value: replyGsIdExpr(wh.id) },
-        { name: 'waId', value: replyWaIdExpr(wh.id) },
+        // Backups if createJSON body fails — Message ID paths only (not phone/text)
+        { name: 'gsId', value: `{{${wh.id}.payload.context.gsId}}` },
+        { name: 'waId', value: `{{${wh.id}.payload.context.id}}` },
+        { name: 'id', value: `{{${wh.id}.entry[].changes[].value.messages[].context.id}}` },
       ],
       bodyType: 'raw',
       parseResponse: true,
@@ -316,8 +384,8 @@ function applyOneWayPatch(bp) {
       gzip: true,
       useMtls: false,
       contentType: 'application/json',
-      data: '',
-      inputRaw: '',
+      data: dataExpr,
+      inputRaw: dataExpr,
       followAllRedirects: false,
     },
     metadata: {
@@ -340,16 +408,16 @@ function applyOneWayPatch(bp) {
       conditions: [
         [
           {
-            a: `{{${lookupId}.is_system_alert}}`,
-            b: 'true',
+            a: `{{${lookupId}.is_system_alert_flag}}`,
+            b: 'yes',
             o: 'text:equal',
           },
         ],
         [
           {
             a: `{{${lookupId}.is_system_alert}}`,
-            b: '{{true}}',
-            o: 'boolean:equal',
+            b: 'true',
+            o: 'text:equal',
           },
         ],
       ],
@@ -381,7 +449,6 @@ function applyOneWayPatch(bp) {
         flow: [ignoreMod],
       },
       {
-        // Fallback: free chat / non-alert reply → existing bot path
         flow: rest,
       },
     ],
@@ -390,6 +457,8 @@ function applyOneWayPatch(bp) {
   bp.flow = [wh, lookup, router];
   return {
     skipped: false,
+    unwrap,
+    data_expr: dataExpr,
     ids: {
       lookup: lookupId,
       router: routerId,
@@ -554,7 +623,7 @@ async function main() {
   }
   out.alert_message_id = alertMsgId;
 
-  // Confirm lookup matches
+  // Confirm lookup matches (GET + POST deep-find)
   const matchProbe = await fetch(
     `${SUPABASE_HOOK}?check_system_alert=1&gsId=${encodeURIComponent(alertMsgId)}`,
   );
@@ -562,13 +631,36 @@ async function main() {
   out.lookup_match_probe = {
     http: matchProbe.status,
     is_system_alert: matchJson.is_system_alert,
+    is_system_alert_flag: matchJson.is_system_alert_flag,
     matched_id: matchJson.matched_id || null,
   };
   must(out.lookup_match_probe.is_system_alert === true, 'Lookup did not match alert Message ID');
 
-  // Footer check via dry_run of notify (auth as service invoke may need user JWT — use code string check)
+  const deepBody = buildGupshupInbound({
+    text: 'probe',
+    contextGsId: alertMsgId,
+    suffix: 'probe',
+  });
+  const deepProbe = await fetch(`${SUPABASE_HOOK}?check_system_alert=1`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(deepBody),
+  });
+  const deepJson = await deepProbe.json().catch(() => ({}));
+  out.deep_find_probe = {
+    http: deepProbe.status,
+    is_system_alert: deepJson.is_system_alert,
+    is_system_alert_flag: deepJson.is_system_alert_flag,
+    checked: deepJson.checked || null,
+  };
+  must(out.deep_find_probe.is_system_alert === true, 'Deep-find POST did not match alert Message ID');
+
+  // Footer check via source
   const notifySrc = fs.readFileSync('supabase/functions/notify-accident-email/index.ts', 'utf8');
   out.footer_in_edge_source = notifySrc.includes(FOOTER);
+
+  const ignoreId = out.patch.ids?.ignore;
+  const lookupId = out.patch.ids?.lookup;
 
   // --- E2E 1: Reply to alert → Ignore, no Gupshup 87 ---
   const logsBefore1 = await recentLogs(15);
@@ -585,7 +677,7 @@ async function main() {
 
   let replyLog = null;
   for (let i = 0; i < 24; i++) {
-    await sleep(2500);
+    await sleep(2000);
     const logs = await recentLogs(20);
     replyLog = waitForNewLog(beforeIds1, t1, logs, { requireSuccess: true });
     if (replyLog) break;
@@ -593,49 +685,47 @@ async function main() {
   out.e2e_reply.log = replyLog || null;
   must(replyLog, 'No Make execution for Reply-to-alert');
 
-  const replyDetail = await logDetail(replyLog.id);
-  out.e2e_reply.detail = replyDetail;
-  const ops = replyDetail.operations || [];
-  const hitIgnore = ops.some(
-    (op) => /Ignore/i.test(String(op.module || '')) || Number(op.id) === Number(out.patch.ids?.ignore),
-  );
-  const hitAi = ops.some((op) => /ai-agent/i.test(String(op.module || '')));
-  const hitGupshupSend = ops.some(
-    (op) =>
-      Number(op.id) === 87 ||
-      Number(op.id) === 58 ||
-      /gupshup|api\.gupshup/i.test(String(op.module || '')),
-  );
-  // Module ops may only show module type; also accept success without AI/87
+  await sleep(1500);
+  const logs87AfterReply = await moduleLogs(87, 8);
+  const logs84AfterReply = await moduleLogs(84, 8);
+  const logsIgnore = ignoreId != null ? await moduleLogs(ignoreId, 8) : [];
+  const logsLookup = lookupId != null ? await moduleLogs(lookupId, 8) : [];
+
+  const replyHit87 = Boolean(recentModuleHit(logs87AfterReply, t1));
+  const replyHit84 = Boolean(recentModuleHit(logs84AfterReply, t1));
+  const replyHitIgnore = Boolean(recentModuleHit(logsIgnore, t1));
+  const replyHitLookup = Boolean(recentModuleHit(logsLookup, t1));
+
   out.e2e_reply.analysis = {
-    hitIgnore,
-    hitAi,
-    hitGupshupSend,
-    op_count: ops.length,
-    op_modules: ops.map((o) => `${o.id}:${o.module}`).slice(0, 40),
+    duration_ms: replyLog.duration ?? null,
+    hit_lookup: replyHitLookup,
+    hit_ignore: replyHitIgnore,
+    hit_ai_84: replyHit84,
+    hit_gupshup_87: replyHit87,
+    ignore_module_id: ignoreId,
+    lookup_module_id: lookupId,
   };
-  must(!hitAi, 'Reply-to-alert reached AI — should Ignore');
-  must(!hitGupshupSend, 'Reply-to-alert reached Gupshup send — should Ignore');
-  // If Make omits operations, still require success without error and short path
-  if (!ops.length) {
-    out.e2e_reply.analysis.ops_empty_fallback = true;
-    must(!replyDetail.error, 'Reply execution error with empty ops');
-  } else if (!hitIgnore) {
-    // Lookup + router may not label Ignore clearly — require no AI/send is enough
-    out.e2e_reply.analysis.ignore_inferred = true;
+  must(!replyHit84, 'Reply-to-alert reached AI 84 — should Ignore');
+  must(!replyHit87, 'Reply-to-alert reached Gupshup 87 — should Ignore');
+  // Prefer Ignore hit; if ops sparse, require short duration + no AI/87
+  if (!replyHitIgnore) {
+    must(
+      typeof replyLog.duration === 'number' && replyLog.duration < 4000,
+      `Reply path too slow (${replyLog.duration}ms) without Ignore — likely bot path`,
+    );
   }
 
-  // --- E2E 2: free «היי» → bot replies (Gupshup 87) ---
+  // --- E2E 2: free «היי» (Meta format — proven bot path) → Gupshup 87 ---
   const logsBefore2 = await recentLogs(15);
   const beforeIds2 = new Set(logsBefore2.map((x) => x.id));
   const t2 = Date.now();
-  const hiPayload = buildGupshupInbound({ text: 'היי', suffix: 'hi' });
+  const hiPayload = buildMetaInbound({ text: 'היי', suffix: 'hi' });
   out.e2e_hi = { post: await postHook(hookUrl, hiPayload) };
   must(out.e2e_hi.post.status >= 200 && out.e2e_hi.post.status < 300, 'היי post failed');
 
   let hiLog = null;
-  for (let i = 0; i < 30; i++) {
-    await sleep(3000);
+  for (let i = 0; i < 36; i++) {
+    await sleep(2500);
     const logs = await recentLogs(20);
     hiLog = waitForNewLog(beforeIds2, t2, logs, { requireSuccess: true });
     if (hiLog) break;
@@ -643,24 +733,17 @@ async function main() {
   out.e2e_hi.log = hiLog || null;
   must(hiLog, 'No Make success execution for free היי');
 
-  const hiDetail = await logDetail(hiLog.id);
-  out.e2e_hi.detail = hiDetail;
-  const hiOps = hiDetail.operations || [];
-  const hiAi = hiOps.some((op) => /ai-agent/i.test(String(op.module || '')));
-  const hi87 = hiOps.some(
-    (op) =>
-      Number(op.id) === 87 ||
-      (typeof op.module === 'string' && /http:ActionSendData/i.test(op.module) && Number(op.id) === 87),
-  );
-  // Fallback: any successful http send after AI in ops list
-  const hiHttpAfter = hiOps.filter((op) => /http:ActionSendData/i.test(String(op.module || '')));
+  await sleep(1500);
+  const logs87AfterHi = await moduleLogs(87, 8);
+  const logs84AfterHi = await moduleLogs(84, 8);
+  const hiHit87 = Boolean(recentModuleHit(logs87AfterHi, t2));
+  const hiHit84 = Boolean(recentModuleHit(logs84AfterHi, t2));
   out.e2e_hi.analysis = {
-    hitAi: hiAi,
-    hit87: hi87,
-    http_ops: hiHttpAfter.map((o) => o.id),
-    op_modules: hiOps.map((o) => `${o.id}:${o.module}`).slice(0, 40),
+    duration_ms: hiLog.duration ?? null,
+    hit_ai_84: hiHit84,
+    hit_gupshup_87: hiHit87,
   };
-  must(hiAi || hi87 || hiHttpAfter.length > 0, 'Free היי did not reach AI/Gupshup path');
+  must(hiHit84 || hiHit87, 'Free היי did not reach AI 84 or Gupshup 87');
 
   out.scenario_final = await scenarioState();
   out.queue_final = await hookQueueCount();
@@ -671,13 +754,14 @@ async function main() {
   );
 
   out.checks = {
-    reply_no_ai: !hitAi,
-    reply_no_gupshup_send: !hitGupshupSend,
-    hi_bot_path: Boolean(hiAi || hi87 || hiHttpAfter.length),
+    reply_no_ai: !replyHit84,
+    reply_no_gupshup_send: !replyHit87,
+    hi_bot_path: Boolean(hiHit84 || hiHit87),
     scenario_active: out.scenario_final.isActive === true,
     queue_empty: out.queue_final.queueCount === 0 || out.queue_final.queueCount === null,
     footer_in_source: out.footer_in_edge_source === true,
     lookup_by_message_id: out.lookup_match_probe.is_system_alert === true,
+    deep_find_by_context: out.deep_find_probe.is_system_alert === true,
     production_touched: false,
   };
   out.full_path_ok = Object.values(out.checks).every(Boolean);

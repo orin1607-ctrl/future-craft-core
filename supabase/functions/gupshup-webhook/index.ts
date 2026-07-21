@@ -233,6 +233,44 @@ function preferStatus(current: string | null | undefined, next: MappedStatus): b
   return nxt >= cur;
 }
 
+/** Walk inbound webhook JSON for WhatsApp Reply context Message IDs (gsId / id). */
+function deepFindReplyContextIds(input: unknown, acc: string[] = [], depth = 0): string[] {
+  if (input == null || depth > 12) return acc;
+  if (typeof input === 'string') {
+    const s = input.trim();
+    if (s.startsWith('{') || s.startsWith('[')) {
+      try {
+        return deepFindReplyContextIds(JSON.parse(s), acc, depth + 1);
+      } catch {
+        return acc;
+      }
+    }
+    return acc;
+  }
+  if (Array.isArray(input)) {
+    for (const x of input) deepFindReplyContextIds(x, acc, depth + 1);
+    return acc;
+  }
+  if (typeof input === 'object') {
+    const o = input as Record<string, unknown>;
+    const ctx = o.context;
+    if (ctx && typeof ctx === 'object') {
+      const c = ctx as Record<string, unknown>;
+      for (const k of ['gsId', 'gs_id', 'id', 'message_id', 'messageId']) {
+        const v = c[k];
+        if (typeof v === 'string' && v.trim()) acc.push(v.trim());
+      }
+    }
+    for (const v of Object.values(o)) {
+      if (v && typeof v === 'object') deepFindReplyContextIds(v, acc, depth + 1);
+      else if (typeof v === 'string' && (v.startsWith('{') || v.startsWith('['))) {
+        deepFindReplyContextIds(v, acc, depth + 1);
+      }
+    }
+  }
+  return acc;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -240,16 +278,41 @@ Deno.serve(async (req) => {
 
   // Gupshup may health-check with GET.
   // Also: Make Bot one-way filter — check if Reply context Message ID is a system alert.
-  if (req.method === 'GET') {
+  if (req.method === 'GET' || req.method === 'POST') {
     const url = new URL(req.url);
-    const check = url.searchParams.get('check_system_alert');
-    if (check === '1' || check === 'true') {
-      const candidates = [
+    const check =
+      url.searchParams.get('check_system_alert') === '1' ||
+      url.searchParams.get('check_system_alert') === 'true';
+
+    // POST body may carry inbound webhook for deep context extraction
+    let postBody: unknown = null;
+    if (req.method === 'POST' && check) {
+      try {
+        const text = await req.text();
+        postBody = text ? JSON.parse(text) : {};
+      } catch {
+        postBody = {};
+      }
+    }
+
+    if (check) {
+      const fromQuery = [
         url.searchParams.get('gsId'),
         url.searchParams.get('waId'),
         url.searchParams.get('id'),
         url.searchParams.get('alert_msg_id'),
-      ]
+      ];
+      const fromBody =
+        postBody && typeof postBody === 'object'
+          ? [
+              (postBody as Record<string, unknown>).gsId,
+              (postBody as Record<string, unknown>).waId,
+              (postBody as Record<string, unknown>).id,
+              (postBody as Record<string, unknown>).alert_msg_id,
+            ]
+          : [];
+      const deepIds = deepFindReplyContextIds(postBody);
+      const candidates = [...fromQuery, ...fromBody, ...deepIds]
         .map((x) => String(x || '').trim())
         .filter((x) => x && x !== '__none__' && x !== 'undefined' && x !== 'null');
 
@@ -259,6 +322,7 @@ Deno.serve(async (req) => {
             ok: true,
             service: 'gupshup-webhook',
             is_system_alert: false,
+            is_system_alert_flag: 'no',
             reason: 'no_context_id',
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -272,18 +336,18 @@ Deno.serve(async (req) => {
       const { data: rows, error } = await supabaseAdmin
         .from('incident_notification_deliveries')
         .select('id, provider_message_id, incident_kind, event_number, channel')
-        .in('provider_message_id', candidates)
+        .in('provider_message_id', [...new Set(candidates)])
         .eq('channel', 'whatsapp')
         .limit(5);
 
       if (error) {
-        // Soft: never break Make Bot — treat as not-alert so chat can continue
         console.error('gupshup-webhook check_system_alert', error);
         return new Response(
           JSON.stringify({
             ok: true,
             service: 'gupshup-webhook',
             is_system_alert: false,
+            is_system_alert_flag: 'no',
             reason: 'lookup_error',
             error: error.message,
           }),
@@ -297,19 +361,22 @@ Deno.serve(async (req) => {
           ok: true,
           service: 'gupshup-webhook',
           is_system_alert: Boolean(match),
+          is_system_alert_flag: match ? 'yes' : 'no',
           matched_id: match?.provider_message_id || null,
           incident_kind: match?.incident_kind || null,
           event_number: match?.event_number || null,
-          checked: candidates,
+          checked: [...new Set(candidates)],
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    return new Response(JSON.stringify({ ok: true, service: 'gupshup-webhook' }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    if (req.method === 'GET') {
+      return new Response(JSON.stringify({ ok: true, service: 'gupshup-webhook' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   if (req.method !== 'POST') {
