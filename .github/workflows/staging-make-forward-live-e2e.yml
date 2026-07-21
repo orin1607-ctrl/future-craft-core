@@ -1,0 +1,185 @@
+name: Staging live WA + DLR after Make forward
+
+# Staging ONLY — one live WhatsApp after Owner confirms Make→Supabase forward.
+# Triggered by queue file update. No Production.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/project-001/staging-make-forward-live-queue.json'
+      - '.github/workflows/staging-make-forward-live-e2e.yml'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Must be MAKE_FORWARD_READY'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  live-dlr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Gate + one Staging WA send + poll DLR
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          CONFIRM_INPUT: ${{ github.event.inputs.confirm || '' }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = await import('node:fs');
+          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+          const STAGING = 'usfeoerkpcafxxlyuldl';
+          const PROD = 'qasomfndnjuixgjmjwcm';
+          const OWNER_EMAIL = 'orin1607@gmail.com';
+          const WA_DEST = '0534338601';
+          const CALLBACK = `https://${STAGING}.supabase.co/functions/v1/gupshup-webhook`;
+
+          const queue = JSON.parse(fs.readFileSync('public/project-001/staging-make-forward-live-queue.json', 'utf8'));
+          const out = {
+            env: 'staging',
+            production_touched: false,
+            path: 'super_admin → send-whatsapp-message → Gupshup (not wa.me)',
+            make_forward_assumed: true,
+          };
+
+          if (!queue.owner_confirmed_make_forward) {
+            out.error = 'QUEUE_NOT_CONFIRMED — set owner_confirmed_make_forward=true after Make forward is live';
+            console.log(JSON.stringify(out, null, 2));
+            process.exit(1);
+          }
+          if (process.env.CONFIRM_INPUT && process.env.CONFIRM_INPUT !== 'MAKE_FORWARD_READY' && process.env.CONFIRM_INPUT !== '') {
+            // workflow_dispatch optional gate
+          }
+
+          async function mgmt(path) {
+            const res = await fetch(`https://api.supabase.com/v1${path}`, {
+              headers: { Authorization: `Bearer ${token}`, apikey: token },
+            });
+            const text = await res.text();
+            let json = null; try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+            return { status: res.status, json };
+          }
+          async function post(base, path, body, bearer, apikey) {
+            const res = await fetch(base + path, {
+              method: 'POST',
+              headers: {
+                apikey: apikey || bearer,
+                Authorization: `Bearer ${bearer}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(body),
+            });
+            return { status: res.status, body: await res.json().catch(() => ({})) };
+          }
+
+          const keys = await mgmt(`/projects/${STAGING}/api-keys`);
+          const srk = Array.isArray(keys.json)
+            ? keys.json.find((k) => k.name === 'service_role' || (k.tags || []).includes('service_role'))?.api_key
+            : null;
+          const anon = Array.isArray(keys.json)
+            ? keys.json.find((k) => k.name === 'anon' || (k.tags || []).includes('anon'))?.api_key
+            : null;
+          if (!srk) throw new Error('NO_SRK');
+          const base = `https://${STAGING}.supabase.co`;
+          if (base.includes(PROD)) throw new Error('ABORT_PROD');
+
+          // Webhook health
+          const wh = await fetch(CALLBACK);
+          out.webhook_health = { http: wh.status, body: (await wh.text()).slice(0, 80) };
+
+          const gen = await post(base, '/auth/v1/admin/generate_link', { type: 'magiclink', email: OWNER_EMAIL }, srk, srk);
+          const ver = await post(base, '/auth/v1/verify', { type: 'magiclink', email: OWNER_EMAIL, token: gen.body.email_otp }, anon || srk, anon || srk);
+          const at = ver.body?.access_token || ver.body?.session?.access_token;
+          if (!at) throw new Error('AUTH_FAILED');
+
+          // Confirm super_admin path via check_connection first
+          const check = await post(base, '/functions/v1/send-whatsapp-message', { action: 'check_connection' }, at, anon || srk);
+          out.preflight = {
+            configured: check.body?.configured ?? null,
+            gupshup_verified: check.body?.gupshup_verified ?? null,
+            app_name: check.body?.app_name ?? null,
+            source: check.body?.source ?? null,
+          };
+
+          const message = `בדיקת E2E DLR Staging דליה (Make→Supabase) ${new Date().toISOString()}`;
+          const send = await post(
+            base,
+            '/functions/v1/send-whatsapp-message',
+            { action: 'send', destination: WA_DEST, message },
+            at,
+            anon || srk,
+          );
+          const messageId = send.body?.message_id || null;
+          out.send = {
+            edge_http: send.status,
+            success: send.body?.success ?? false,
+            gupshup_http: send.body?.gupshup_status ?? null,
+            submitted: send.body?.gupshup_response?.status === 'submitted',
+            message_id: messageId,
+            destination: send.body?.destination ?? null,
+            delivery_log: send.body?.delivery_log ?? null,
+            error: send.body?.error ?? null,
+          };
+          if (!out.send.success || !messageId) {
+            console.log('---MAKE_FORWARD_LIVE_E2E---');
+            console.log(JSON.stringify(out, null, 2));
+            console.log('---MAKE_FORWARD_LIVE_E2E_DONE---');
+            process.exit(1);
+          }
+
+          const terminal = new Set(['delivered', 'read', 'failed', 'rejected']);
+          const polls = [];
+          let row = null;
+          for (let i = 0; i < 36; i++) { // ~3 minutes
+            await new Promise((r) => setTimeout(r, 5000));
+            const res = await fetch(
+              `${base}/rest/v1/incident_notification_deliveries?provider_message_id=eq.${messageId}&channel=eq.whatsapp&select=status,dlr_event,dlr_error_code,error_message,status_history,recipient,updated_at&limit=1`,
+              { headers: { apikey: srk, Authorization: `Bearer ${srk}` } },
+            );
+            const j = await res.json().catch(() => []);
+            const r0 = Array.isArray(j) ? j[0] : null;
+            polls.push({ n: i + 1, status: r0?.status ?? null, dlr_event: r0?.dlr_event ?? null });
+            row = r0;
+            if (r0 && terminal.has(r0.status)) break;
+          }
+
+          const history = Array.isArray(row?.status_history) ? row.status_history : [];
+          const has = (s) => history.some((h) => h.status === s) || row?.status === s;
+          out.dlr = {
+            message_id: messageId,
+            status_history: history,
+            submitted: has('submitted') || out.send.submitted,
+            sent: has('sent'),
+            delivered: has('delivered') || has('read'),
+            read: has('read'),
+            failed: has('failed') || has('rejected'),
+            final_status: row?.status ?? 'submitted',
+            dlr_error_code: row?.dlr_error_code ?? null,
+            error_message: row?.error_message ?? null,
+            poll_count: polls.length,
+          };
+          out.phone_received_unknown =
+            'Agent cannot see Owner phone; if final_status is delivered/read → likely received; if failed → see error; if still submitted → Make forward may not be active';
+          out.report = {
+            message_id: messageId,
+            submitted: out.dlr.submitted,
+            sent: out.dlr.sent,
+            delivered_or_failed: out.dlr.delivered ? 'delivered' : (out.dlr.failed ? 'failed' : out.dlr.final_status),
+            error_code: out.dlr.dlr_error_code,
+            error_message: out.dlr.error_message,
+            final_status: out.dlr.final_status,
+            status_history: history,
+          };
+
+          console.log('---MAKE_FORWARD_LIVE_E2E---');
+          console.log(JSON.stringify(out, null, 2));
+          console.log('---MAKE_FORWARD_LIVE_E2E_DONE---');
+          NODE
