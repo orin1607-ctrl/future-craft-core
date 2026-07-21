@@ -440,9 +440,9 @@ function applyOneWayPatch(bp) {
     },
     filter: {
       name: 'Not a system-alert Reply',
-      // Single AND group — OR groups would let empty data.* paths reopen the bot route
+      // Edge always returns is_system_alert_flag yes|no — equal only (notequal fails Make validation)
       conditions: [
-        [{ a: `{{${lookupId}.is_system_alert_flag}}`, b: 'yes', o: 'text:notequal' }],
+        [{ a: `{{${lookupId}.is_system_alert_flag}}`, b: 'no', o: 'text:equal' }],
       ],
     },
     metadata: {
