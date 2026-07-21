@@ -546,6 +546,7 @@ async function configureMake() {
   const extras = [];
   for (const c of candidates) {
     if (c.id === chosen.id) continue;
+    if (c.id === WHATSAPP_BOT_SCENARIO_ID) continue; // never re-inject Forward into chatbot
     if (!(c.dlr_hits > 0 || (c.isActive && /delivery|dlr|gupshup/i.test(c.name || '')))) continue;
     const br2 = await make(`/scenarios/${c.id}/blueprint`);
     if (br2.status !== 200) continue;
@@ -732,9 +733,40 @@ async function stagingLiveE2e(chosen) {
 }
 
 async function main() {
+  const queuePath = 'public/project-001/make-forward-execute-queue.json';
+  let queueArmed = false;
+  try {
+    const q = JSON.parse(fs.readFileSync(queuePath, 'utf8'));
+    queueArmed = q.armed === true && q.live_wa_send === true;
+  } catch {
+    queueArmed = false;
+  }
+  const liveArmed = process.env.LIVE_E2E_ARMED === 'true' && queueArmed;
+
   try {
     const chosen = await configureMake();
-    await stagingLiveE2e(chosen);
+    out.live_e2e_armed = liveArmed;
+    out.live_e2e_skipped_reason = liveArmed
+      ? null
+      : 'E2E WA send disabled by default — set queue armed+live_wa_send and LIVE_E2E_ARMED=true (never auto on script push)';
+    if (liveArmed) {
+      await stagingLiveE2e(chosen);
+    } else {
+      out.send = { skipped: true, reason: out.live_e2e_skipped_reason };
+      // Disarm queue so a later accidental push cannot send
+      try {
+        if (fs.existsSync(queuePath)) {
+          const q = JSON.parse(fs.readFileSync(queuePath, 'utf8'));
+          q.armed = false;
+          q.live_wa_send = false;
+          q.disarmed_at = new Date().toISOString();
+          q.note = 'Auto-disarmed: E2E must not ride on Whatsapp Bot / script pushes';
+          fs.writeFileSync(queuePath, JSON.stringify(q, null, 2) + '\n');
+        }
+      } catch {
+        /* ignore */
+      }
+    }
   } catch (e) {
     out.error = String(e.message || e).slice(0, 500);
   }
@@ -742,7 +774,8 @@ async function main() {
   console.log(JSON.stringify(out, null, 2));
   console.log('---MAKE_FORWARD_LIVE_E2E_DONE---');
   fs.writeFileSync('/tmp/make-forward-live-e2e.json', JSON.stringify(out, null, 2));
-  if (out.error || !out.send?.success) process.exit(1);
+  if (out.error) process.exit(1);
+  if (liveArmed && !out.send?.success) process.exit(1);
 }
 
 main();

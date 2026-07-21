@@ -1,0 +1,7 @@
+{
+  "id": "wa-bot-two-message-queue",
+  "armed": true,
+  "no_edge_send": true,
+  "no_production": true,
+  "no_e2e": true
+}

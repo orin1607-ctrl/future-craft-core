@@ -1,7 +1,8 @@
 {
   "id": "make-forward-execute-queue",
-  "requestedAt": "2026-07-21T11:15:01Z",
-  "requestedBy": "owner",
-  "note": "Retry E2E pinned to MATCHED Whatsapp Bot hook 2567320 after Delivery enabled",
-  "trigger": "Delivery_enabled_pin_match"
+  "armed": false,
+  "live_wa_send": false,
+  "disarmed_at": "2026-07-21T15:55:00.000Z",
+  "note": "Disarmed: E2E DLR Make→Supabase must not auto-send on bot path or script push. Owner Whatsapp Bot stays conversational only.",
+  "e2e_source_found": "scripts/make-forward-supabase.mjs stagingLiveE2e → Edge send-whatsapp-message (NOT Make bot modules)"
 }

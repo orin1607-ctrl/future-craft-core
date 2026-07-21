@@ -2,7 +2,6 @@
   "id": "staging-make-forward-live-queue",
   "owner_confirmed_make_forward": false,
   "destination": "0534338601",
-  "env": "staging",
-  "production_touched": false,
-  "note": "Set owner_confirmed_make_forward=true only after Owner confirms Make→Supabase forward is live"
+  "armed": false,
+  "note": "Disarmed — must not auto-send E2E while Whatsapp Bot conversational path is live"
 }
