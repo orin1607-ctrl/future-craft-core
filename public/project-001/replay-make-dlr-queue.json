@@ -1,0 +1,5 @@
+{
+  "id": "replay-make-dlr-queue",
+  "requestedAt": "2026-07-21T11:22:00.000Z",
+  "note": "Replay captured Meta 131047 DLR into Staging webhook after parser fix — no WA send"
+}

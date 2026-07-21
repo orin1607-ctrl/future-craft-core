@@ -1,34 +1,39 @@
 {
   "id": "make-forward-live-e2e-result",
-  "at": "2026-07-21T11:14:15Z",
-  "trigger": "Delivery_enabled",
-  "actions_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29825030765",
-  "note": "Wrong scenario chosen (dedicated 9553017); matched hook 2567320 had 1 empty-body hit at 11:08 before send; DLR still submitted",
+  "at": "2026-07-21T11:19:21Z",
+  "trigger": "Delivery_enabled_pin_match",
+  "actions_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29825365754",
   "chosen": {
-    "id": 9553017,
-    "name": "CO.CO Dalia DLR → Staging",
+    "id": 5797671,
+    "name": "Whatsapp Bot",
     "teamId": 1939972,
     "teamName": "My Team",
     "already": true,
-    "score": 95,
-    "hookId": 4270688,
-    "dlr_hits": 0
+    "score": 184,
+    "hookId": 2567320,
+    "dlr_hits": 3,
+    "pinned_match": true
   },
   "send": {
     "success": true,
     "edge_http": 200,
     "gupshup_http": 202,
     "submitted": true,
-    "message_id": "e116913f-17a3-4ef4-a60b-285e153068a3",
+    "message_id": "0353ce86-a0bf-4e97-9344-5618e1192032",
     "destination": "972534338601",
     "error": null,
     "delivery_log": {
       "ok": true,
-      "incident_id": "f9c8ebfb-ce7d-4aa4-84f0-f1271b627285"
+      "incident_id": "bc455ae4-843a-48ea-b8d5-40d2a49462f1"
     }
   },
-  "report": {
-    "message_id": "e116913f-17a3-4ef4-a60b-285e153068a3",
+  "make_hook_after_send": {
+    "hookId": 2567320,
+    "dlr_hits": 3,
+    "note": "Make received Meta DLR; gs_id matches our message; status failed 131047 — see make-hook-dlr-dump-result.json"
+  },
+  "report_at_poll_time": {
+    "message_id": "0353ce86-a0bf-4e97-9344-5618e1192032",
     "submitted": true,
     "sent": false,
     "delivered": false,
@@ -37,7 +42,7 @@
     "final_status": "submitted",
     "status_history": [
       {
-        "at": "2026-07-21T11:10:36.327Z",
+        "at": "2026-07-21T11:15:48.774Z",
         "status": "submitted",
         "dlr_event": "submitted",
         "error_code": null,
@@ -49,20 +54,10 @@
     "error_message": null,
     "phone_likely_received": "unknown_still_submitted_check_make_forward"
   },
-  "matched_hook_activity": {
-    "id": 2567320,
-    "name": "My gateway-webhook webhook",
-    "enabled": true,
-    "scenarioId": 5797671,
-    "url_redacted": "hook.***.make.com/…plyk4s",
-    "recent_count": 1,
-    "dlr_hits": 0,
-    "top_sample": {
-      "id": "41d77cc2ae8e057d415114a1f1d19a40",
-      "loggedAt": "2026-07-21T11:08:58.529Z",
-      "statusId": 1,
-      "score": 0,
-      "body_excerpt": ""
-    }
-  }
+  "root_cause_after_dump": {
+    "meta_error_code": 131047,
+    "reason": "24h customer care window expired — session message rejected (Re-engagement message)",
+    "phone_received": false
+  },
+  "production_touched": false
 }

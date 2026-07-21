@@ -1,0 +1,21 @@
+{
+  "id": "make-hook-dlr-dump",
+  "at": "2026-07-21T11:20:10Z",
+  "actions_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29825671600",
+  "matched_hook_id": 2567320,
+  "verdict": "Gupshup Delivery reaches Make; Meta rejects session messages outside 24h window",
+  "our_message": {
+    "message_id": "0353ce86-a0bf-4e97-9344-5618e1192032",
+    "destination": "972534338601",
+    "dlr_status": "failed",
+    "meta_error_code": 131047,
+    "meta_error": "Message failed to send because more than 24 hours have passed since the customer last replied to this number.",
+    "title": "Re-engagement message"
+  },
+  "also_seen": {
+    "message_id": "e116913f-17a3-4ef4-a60b-285e153068a3",
+    "dlr_status": "failed",
+    "meta_error_code": 131047
+  },
+  "production_touched": false
+}

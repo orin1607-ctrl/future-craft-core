@@ -58,8 +58,64 @@ function excerpt(obj: unknown, max = 800): string {
   }
 }
 
+/** Make {{toJSON(1)}} / double-encoded JSON / nested wrappers → raw Gupshup/Meta payload */
+function normalizeWebhookBody(input: unknown): unknown {
+  let b: unknown = input;
+  for (let i = 0; i < 4; i++) {
+    if (typeof b === 'string') {
+      const s = b.trim();
+      if (!s) return {};
+      try { b = JSON.parse(s); continue; } catch { return { raw: s.slice(0, 500) }; }
+    }
+    if (!b || typeof b !== 'object') return b;
+    const o = b as Record<string, unknown>;
+    if (Array.isArray(o.entry) || o.type === 'message-event' || typeof o.eventType === 'string') {
+      return b;
+    }
+    for (const key of ['value', 'data', 'body', 'payload', 'request']) {
+      const nested = o[key];
+      if (typeof nested === 'string' || (nested && typeof nested === 'object')) {
+        b = nested;
+        break;
+      }
+    }
+    // Deep-ish: first object that contains entry[]
+    const stack: unknown[] = Object.values(o);
+    while (stack.length) {
+      const n = stack.pop();
+      if (!n || typeof n !== 'object') continue;
+      const no = n as Record<string, unknown>;
+      if (Array.isArray(no.entry)) return n;
+      stack.push(...Object.values(no).slice(0, 20));
+    }
+    break;
+  }
+  return b;
+}
+
+function metaErrorMessage(st: Record<string, unknown>): { code: string | null; message: string | null } {
+  const errors = Array.isArray(st.errors) ? st.errors : [];
+  const err = (errors[0] && typeof errors[0] === 'object')
+    ? (errors[0] as Record<string, unknown>)
+    : null;
+  if (!err) return { code: null, message: null };
+  const data = (err.error_data && typeof err.error_data === 'object')
+    ? (err.error_data as Record<string, unknown>)
+    : {};
+  const message =
+    (typeof data.details === 'string' && data.details) ||
+    (typeof err.title === 'string' && err.title) ||
+    (typeof err.message === 'string' && err.message) ||
+    null;
+  return {
+    code: err.code != null ? String(err.code) : null,
+    message,
+  };
+}
+
 function parseEvents(body: unknown): DlrEvent[] {
   const events: DlrEvent[] = [];
+  body = normalizeWebhookBody(body);
   if (!body || typeof body !== 'object') return events;
   const b = body as Record<string, unknown>;
 
@@ -107,7 +163,7 @@ function parseEvents(body: unknown): DlrEvent[] {
     }
   }
 
-  // Meta / Gupshup v3
+  // Meta / Gupshup v3 (also what Make receives from Gupshup Delivery)
   if (Array.isArray(b.entry)) {
     for (const entry of b.entry as Record<string, unknown>[]) {
       const changes = Array.isArray(entry.changes) ? entry.changes : [];
@@ -119,21 +175,16 @@ function parseEvents(body: unknown): DlrEvent[] {
         for (const st of statuses as Record<string, unknown>[]) {
           const status = mapEventType(String(st.status || ''));
           if (!status) continue;
-          const ids = [st.gs_id, st.id, st.gsId]
+          const ids = [st.gs_id, st.gsId, st.id, st.meta_msg_id]
             .filter((x) => typeof x === 'string' && x.length > 0) as string[];
-          const err = (st.errors && Array.isArray(st.errors) && st.errors[0]
-            && typeof st.errors[0] === 'object')
-            ? (st.errors[0] as Record<string, unknown>)
-            : null;
+          const { code, message } = metaErrorMessage(st);
           events.push({
             messageIds: [...new Set(ids)],
             status,
             dlrEvent: String(st.status),
             destination: typeof st.recipient_id === 'string' ? st.recipient_id : null,
-            errorCode: err?.code != null ? String(err.code) : null,
-            errorMessage: typeof err?.title === 'string'
-              ? err.title
-              : (typeof err?.message === 'string' ? err.message : null),
+            errorCode: code,
+            errorMessage: message,
             rawExcerpt: excerpt(st),
           });
         }
