@@ -161,6 +161,30 @@ async function main() {
   };
   must(sc.status === 200, `Get scenario failed HTTP ${sc.status}`);
 
+  // Owner said they activated — if still off, start via API (required for queue drain + bot)
+  if (scenario.isActive !== true) {
+    const start = await make(`/scenarios/${SCENARIO_ID}/start`, { method: 'POST', body: {} });
+    let activated = start.status >= 200 && start.status < 300;
+    if (!activated) {
+      const patch = await make(`/scenarios/${SCENARIO_ID}?confirmed=true`, {
+        method: 'PATCH',
+        body: { isActive: true },
+      });
+      activated = patch.status >= 200 && patch.status < 300;
+      out.scenario_activate = { start_http: start.status, patch_http: patch.status, ok: activated, error: patch.text.slice(0, 200) };
+    } else {
+      out.scenario_activate = { start_http: start.status, ok: true };
+    }
+    // re-fetch
+    const sc2a = await make(`/scenarios/${SCENARIO_ID}?cols[]=id&cols[]=name&cols[]=isActive&cols[]=islinked&cols[]=dlqCount&cols[]=hookId`);
+    const s2a = sc2a.json?.scenario || sc2a.json || {};
+    out.scenario.isActive = s2a.isActive === true;
+    out.scenario.islinked = s2a.islinked;
+    out.scenario.dlqCount = s2a.dlqCount ?? out.scenario.dlqCount;
+    // Allow queue to begin draining
+    await new Promise((r) => setTimeout(r, 15000));
+  }
+
   // Hook queue / enabled
   const hook = await make(`/hooks/${HOOK_ID}`);
   const h = hook.json?.hook || hook.json || {};

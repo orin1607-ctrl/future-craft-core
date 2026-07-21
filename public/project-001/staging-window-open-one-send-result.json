@@ -1,0 +1,332 @@
+{
+  "id": "staging-window-open-one-send",
+  "at": "2026-07-21T12:13:41.135Z",
+  "env": "staging",
+  "production_touched": false,
+  "make_zone": "***",
+  "scenario_id": 5797671,
+  "hook_id": 2567320,
+  "scenario": {
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": false,
+    "islinked": false,
+    "dlqCount": 0,
+    "hookId": 2567320,
+    "nextExec": null
+  },
+  "hook": {
+    "http": 200,
+    "id": 2567320,
+    "enabled": true,
+    "queueCount": 12,
+    "queueLimit": 667,
+    "scenarioId": 5797671,
+    "url_tip": "2xplyk4s"
+  },
+  "incomings": {
+    "stats_http": 200,
+    "stats": {
+      "incomingStat": {
+        "queue": 12,
+        "limit": 667,
+        "enabled": true
+      }
+    },
+    "list_http": 200,
+    "waiting_count": 12,
+    "waiting_sample": [
+      {
+        "id": "41d77cc2ae8e057d415114a1f1d19a40",
+        "size": 178,
+        "scope": "hook"
+      },
+      {
+        "id": "00d5bad5c5b9e3d16120934c19d1cb19",
+        "size": 759,
+        "scope": "hook"
+      },
+      {
+        "id": "84ed71e488f115385ccf8b3df66ee2b2",
+        "size": 759,
+        "scope": "hook"
+      },
+      {
+        "id": "76934ad3a109af60cdca0087c8cfc317",
+        "size": 827,
+        "scope": "hook"
+      },
+      {
+        "id": "2905d57feb3f6ba1e5292948390e7c2e",
+        "size": 759,
+        "scope": "hook"
+      },
+      {
+        "id": "224e8fb8c447bc787044d2f04e130fe4",
+        "size": 759,
+        "scope": "hook"
+      },
+      {
+        "id": "2c35566bc473d32683d720591616015d",
+        "size": 827,
+        "scope": "hook"
+      },
+      {
+        "id": "e9465d17266ffcf2884e3c82db1fa0b1",
+        "size": 759,
+        "scope": "hook"
+      },
+      {
+        "id": "8a0029bd56de6ed2cdf8f53efd596096",
+        "size": 827,
+        "scope": "hook"
+      },
+      {
+        "id": "1d73912fab5d3474f2f580c273ec1a9a",
+        "size": 459,
+        "scope": "hook"
+      },
+      {
+        "id": "92fd93f56f1c06f6c2ccd79dedd02846",
+        "size": 473,
+        "scope": "hook"
+      },
+      {
+        "id": "6cc8d7ea53724643302407b9fd1c84cf",
+        "size": 459,
+        "scope": "hook"
+      }
+    ]
+  },
+  "incomplete_executions": {
+    "http": 200,
+    "count": 0,
+    "sample": []
+  },
+  "make_queue_probes": {
+    "/scenarios/5797671/logs?pg[limit]=30&pg[sortDir]=desc": {
+      "http": 200,
+      "keys": [
+        "scenarioLogs",
+        "pg"
+      ],
+      "count_hint": 23,
+      "sample": "{\"scenarioLogs\":[{\"imtId\":\"1784634122478_undefined\",\"detail\":{\"reason\":\"Scenario has encountered an error while being processed. Fix the error or clear the queue. The reason is: Failed to map 'data': Function 'toJSON' not found!.\"},\"type\":\"warning\",\"timestamp\":\"2026-07-21T11:42:02.478Z\",\"authorName\":null},{\"imtId\":\"1784634122356_f61b323071a043489de19b76cfad1bda\",\"scenarioName\":\"Whatsapp Bot\",\"replayOfExecutionId\":null,\"eventType\":\"EXECUTION_END\",\"teamId\":1939972,\"type\":\"auto\",\"error\":{\"name\":\"Da"
+    },
+    "/scenarios/5797671/logs?from=1784614421&pg[limit]=30": {
+      "http": 200,
+      "keys": [
+        "scenarioLogs",
+        "pg"
+      ],
+      "count_hint": 23,
+      "sample": "{\"scenarioLogs\":[{\"imtId\":\"1784634122478_undefined\",\"detail\":{\"reason\":\"Scenario has encountered an error while being processed. Fix the error or clear the queue. The reason is: Failed to map 'data': Function 'toJSON' not found!.\"},\"type\":\"warning\",\"timestamp\":\"2026-07-21T11:42:02.478Z\",\"authorName\":null},{\"imtId\":\"1784634122356_f61b323071a043489de19b76cfad1bda\",\"scenarioName\":\"Whatsapp Bot\",\"replayOfExecutionId\":null,\"eventType\":\"EXECUTION_END\",\"teamId\":1939972,\"type\":\"auto\",\"error\":{\"name\":\"Da"
+    }
+  },
+  "scenario_logs_recent": [
+    {
+      "status": "warning",
+      "timestamp": "2026-07-21T11:42:02.478Z"
+    },
+    {
+      "id": "f61b323071a043489de19b76cfad1bda",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.356Z"
+    },
+    {
+      "id": "a808a0d782c8425ea2b54c994fe34d97",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.332Z"
+    },
+    {
+      "id": "1f934341a55843acad556cc6f8fdef41",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.314Z"
+    },
+    {
+      "id": "9e5c16ece3e7493684707fe9d6eee09d",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.294Z"
+    },
+    {
+      "id": "bf4c34ee42674123991bfec8d555e7e1",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.268Z"
+    },
+    {
+      "id": "369e8d8b5df041deba82ea4285f98a9e",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.253Z"
+    },
+    {
+      "id": "9f8a31810a5a46b1a687dd6b2c8f158d",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.227Z"
+    },
+    {
+      "id": "7da43c843efb4c8ea69036c85b0a35ab",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.210Z"
+    },
+    {
+      "id": "65c950a501f44067bb4ff4796eb9af5d",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.185Z"
+    },
+    {
+      "id": "139cbde071584d58b79a7540d9b47a71",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.167Z"
+    },
+    {
+      "id": "1adea073807b478abe527d9c3451a978",
+      "status": 3,
+      "timestamp": "2026-07-21T11:42:02.144Z"
+    },
+    {
+      "id": "75282928",
+      "status": "start",
+      "timestamp": "2026-07-21T11:41:57.142Z"
+    },
+    {
+      "status": "warning",
+      "timestamp": "2026-07-21T11:15:35.691Z"
+    },
+    {
+      "id": "637b46e2a9294b3da8651ac83b913810",
+      "status": 3,
+      "timestamp": "2026-07-21T11:15:35.045Z"
+    }
+  ],
+  "hook_logs": {
+    "total": 12,
+    "inbound_from_owner_hits": 3,
+    "status_dlr_hits": 9,
+    "samples": [
+      {
+        "id": "6cc8d7ea53724643302407b9fd1c84cf",
+        "loggedAt": "2026-07-21T12:12:18.880Z",
+        "statusId": 1,
+        "inbound_from_owner": true,
+        "is_status_dlr": false,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"contacts\":[{\"profile\":{\"name\":\"יוני\"},\"wa_id\":\"972534338601\"}],\"messages\":[{\"from\":\"972534338601\",\"id\":\"wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUM5RDFGRURFQzFCNUNBMTI1RUFBRDU4QTQwNTQ2NUQA\",\"text\":{\"body\":\"היי\"},\"timestamp\":\"178463593"
+      },
+      {
+        "id": "92fd93f56f1c06f6c2ccd79dedd02846",
+        "loggedAt": "2026-07-21T11:26:58.244Z",
+        "statusId": 1,
+        "inbound_from_owner": true,
+        "is_status_dlr": false,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"contacts\":[{\"profile\":{\"name\":\"יוני\"},\"wa_id\":\"972534338601\"}],\"messages\":[{\"from\":\"972534338601\",\"id\":\"wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUNBQzhFRTdGQ0Q2QzgxQkQ3OUU5REVEM0E0RTkyMzIA\",\"text\":{\"body\":\"למה לא עובד\"},\"timestamp\":\"1"
+      },
+      {
+        "id": "1d73912fab5d3474f2f580c273ec1a9a",
+        "loggedAt": "2026-07-21T11:25:54.297Z",
+        "statusId": 1,
+        "inbound_from_owner": true,
+        "is_status_dlr": false,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"contacts\":[{\"profile\":{\"name\":\"יוני\"},\"wa_id\":\"972534338601\"}],\"messages\":[{\"from\":\"972534338601\",\"id\":\"wamid.HBgMOTcyNTM0MzM4NjAxFQIAEhggQUM5QzJDQUJBQTdBQTg5RDc3MUY4M0FFMjkxQUEwRjUA\",\"text\":{\"body\":\"היי\"},\"timestamp\":\"178463315"
+      },
+      {
+        "id": "8a0029bd56de6ed2cdf8f53efd596096",
+        "loggedAt": "2026-07-21T11:21:59.931Z",
+        "statusId": 1,
+        "inbound_from_owner": false,
+        "is_status_dlr": true,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TitZq2Ie5nABoJaIHZw||CommonSegWAMetadata||0\",\"errors\":[{\"code\":1310"
+      },
+      {
+        "id": "e9465d17266ffcf2884e3c82db1fa0b1",
+        "loggedAt": "2026-07-21T11:21:57.646Z",
+        "statusId": 1,
+        "inbound_from_owner": false,
+        "is_status_dlr": true,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TitYH9HYAFEAG8FWemY||CommonSegWAMetadata||0\",\"errors\":[{\"code\":1310"
+      },
+      {
+        "id": "2c35566bc473d32683d720591616015d",
+        "loggedAt": "2026-07-21T11:15:51.504Z",
+        "statusId": 1,
+        "inbound_from_owner": false,
+        "is_status_dlr": true,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TikDF0eJTBHZxfqia6o||CommonSegWAMetadata||0\",\"errors\":[{\"code\":1310"
+      },
+      {
+        "id": "224e8fb8c447bc787044d2f04e130fe4",
+        "loggedAt": "2026-07-21T11:15:48.962Z",
+        "statusId": 1,
+        "inbound_from_owner": false,
+        "is_status_dlr": true,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TikCS4kwGrpFESUs621||CommonSegWAMetadata||0\",\"errors\":[{\"code\":1310"
+      },
+      {
+        "id": "2905d57feb3f6ba1e5292948390e7c2e",
+        "loggedAt": "2026-07-21T11:15:46.563Z",
+        "statusId": 1,
+        "inbound_from_owner": false,
+        "is_status_dlr": true,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TikyPMc8Dbxpks5J6vm||CommonSegWAMetadata||0\",\"errors\":[{\"code\":1310"
+      },
+      {
+        "id": "76934ad3a109af60cdca0087c8cfc317",
+        "loggedAt": "2026-07-21T11:10:39.275Z",
+        "statusId": 1,
+        "inbound_from_owner": false,
+        "is_status_dlr": true,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TicIpqYCYSJdCUvmKxN||CommonSegWAMetadata||0\",\"errors\":[{\"code\":1310"
+      },
+      {
+        "id": "84ed71e488f115385ccf8b3df66ee2b2",
+        "loggedAt": "2026-07-21T11:10:36.434Z",
+        "statusId": 1,
+        "inbound_from_owner": false,
+        "is_status_dlr": true,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TicHzOtjwJI5Wlu2z5f||CommonSegWAMetadata||0\",\"errors\":[{\"code\":1310"
+      },
+      {
+        "id": "00d5bad5c5b9e3d16120934c19d1cb19",
+        "loggedAt": "2026-07-21T11:10:34.434Z",
+        "statusId": 1,
+        "inbound_from_owner": false,
+        "is_status_dlr": true,
+        "body_excerpt": "{\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"972546500305\",\"phone_number_id\":\"689295480929918\"},\"statuses\":[{\"biz_opaque_callback_data\":\"033TicEe5lkohc6Sz17mvZ||CommonSegWAMetadata||0\",\"errors\":[{\"code\":1310"
+      },
+      {
+        "id": "41d77cc2ae8e057d415114a1f1d19a40",
+        "loggedAt": "2026-07-21T11:08:58.529Z",
+        "statusId": 1,
+        "inbound_from_owner": false,
+        "is_status_dlr": true,
+        "body_excerpt": "{\"object\":\"whatsapp_business_account\",\"gs_app_id\":\"496709e8-b5fc-4de9-9c75-bc87455482dd\",\"entry\":[{\"changes\":[{\"field\":\"messages\",\"value\":{\"messaging_product\":\"whatsapp\",\"statuses\":[{\"type\":\"set-callback\"}]}}]}]}"
+      }
+    ]
+  },
+  "window_24h": {
+    "open": true,
+    "evidence": "Inbound webhook payload from owner phone seen on Make hook logs",
+    "owner_phone": "972534338601",
+    "business_phone": "972546500305"
+  },
+  "queue_report": {
+    "hook_queueCount_now": 12,
+    "incomings_waiting_now": 12,
+    "incomings_stats_count": null,
+    "scenario_dlqCount": 0,
+    "incomplete_count": 0,
+    "owner_mentioned_waiting": 11,
+    "released_11": "still_waiting_incomings=12 queueCount=12 stats=null",
+    "old_messages_likely_sent": "possible_recent_executions_see_scenario_logs",
+    "hook_queueCount_final": 12,
+    "scenario_dlqCount_final": 0,
+    "interpretation": "Hook still has queueCount=12 — not fully drained"
+  },
+  "send": {
+    "skipped": true,
+    "reason": "scenario_not_active"
+  },
+  "report": {
+    "final_status": null,
+    "phone_likely_received": "not_sent_scenario_inactive"
+  }
+}

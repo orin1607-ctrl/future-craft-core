@@ -1,6 +1,6 @@
 {
   "id": "staging-window-open-queue",
-  "requestedAt": "2026-07-21T12:12:00.000Z",
+  "requestedAt": "2026-07-21T12:14:21Z",
   "requestedBy": "owner",
-  "note": "Whatsapp Bot activated; check inbound 0534338601→0546500305; one Staging send + DLR if window open; report queue of 11"
+  "note": "Retry: API showed Inactive + 12 queued; activate via API then one send+DLR (window open confirmed)"
 }
