@@ -1,0 +1,7 @@
+{
+  "id": "make-fix-tojson-queue",
+  "armed": true,
+  "no_send": true,
+  "no_production": true,
+  "cancel_peer_compare": true
+}

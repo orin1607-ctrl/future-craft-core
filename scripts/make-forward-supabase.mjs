@@ -20,8 +20,8 @@ const MAKE_BASE = `https://${zone}.make.com/api/v2`;
 const MATCHED_HOOK_ID = Number(process.env.MAKE_MATCHED_HOOK_ID || 2567320);
 const MATCHED_SCENARIO_ID = Number(process.env.MAKE_MATCHED_SCENARIO_ID || 5797671);
 const MATCHED_URL_TIP = (process.env.MAKE_MATCHED_URL_TIP || 'plyk4s').toLowerCase();
-/** Prefer full webhook bundle as JSON — works with structured Custom Webhook (not only .value pass-through). */
-const DATA_EXPR_PREFERRED = (whId) => `{{toJSON(${whId})}}`;
+/** Make IML: createJSON() stringifies a collection. toJSON() does NOT exist (DataError). */
+const DATA_EXPR_PREFERRED = (whId) => `{{createJSON(${whId})}}`;
 const DATA_EXPR_FALLBACK = (whId) => `{{${whId}.value}}`;
 
 const out = {
@@ -208,7 +208,7 @@ function ensureHttpAfterWebhook(blueprint, { forceRemap = false } = {}) {
     return {
       bp,
       changed: remapped > 0,
-      reason: remapped ? 'remapped_forward_body_toJSON' : 'already_forwards_to_supabase',
+      reason: remapped ? 'remapped_forward_body_createJSON' : 'already_forwards_to_supabase',
       webhook_module_id: wh.id,
       http_module_id: existing[0].id,
       remapped,

@@ -142,8 +142,8 @@ async function main() {
             gzip: true,
             useMtls: false,
             contentType: 'application/json',
-            data: '{{toJSON(1)}}',
-            inputRaw: '{{toJSON(1)}}',
+            data: '{{createJSON(1)}}',
+            inputRaw: '{{createJSON(1)}}',
             followAllRedirects: false,
           },
           metadata: {

@@ -1,0 +1,35 @@
+name: Make fix toJSON → createJSON (no send)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/make-fix-tojson-mapping.mjs'
+      - 'public/project-001/make-fix-tojson-queue.json'
+      - '.github/workflows/make-fix-tojson-mapping.yml'
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fix Make mapping + activate Whatsapp Bot
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+        run: node scripts/make-fix-tojson-mapping.mjs
+      - name: Commit result + cancelled peer-compare gate
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/project-001/make-fix-tojson-result.json \
+                  public/project-001/wa-peer-compare-gate.json \
+                  public/project-001/wa-peer-compare-queue.json || true
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -m "ci: fix Make toJSON→createJSON + activate Whatsapp Bot (no send)"
+          git push
