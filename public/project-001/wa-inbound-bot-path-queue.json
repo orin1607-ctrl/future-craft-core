@@ -1,0 +1,7 @@
+{
+  "id": "wa-inbound-bot-path-queue",
+  "armed": true,
+  "no_send": true,
+  "no_production": true,
+  "purpose": "Read-only Make inbound bot path diagnosis"
+}
