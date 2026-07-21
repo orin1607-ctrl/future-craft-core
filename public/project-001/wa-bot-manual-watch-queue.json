@@ -1,0 +1,8 @@
+{
+  "id": "wa-bot-manual-watch-queue",
+  "armed": true,
+  "read_only": true,
+  "no_changes": true,
+  "owner_manual_phone_test": true,
+  "watch_ms": 180000
+}

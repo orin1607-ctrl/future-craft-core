@@ -1,0 +1,38 @@
+name: Whatsapp Bot manual watch (read-only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/wa-bot-manual-watch.mjs'
+      - 'public/project-001/wa-bot-manual-watch-queue.json'
+      - '.github/workflows/wa-bot-manual-watch.yml'
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only realtime monitor (3 min)
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+          WATCH_MS: '180000'
+          POLL_MS: '4000'
+        run: node scripts/wa-bot-manual-watch.mjs
+      - name: Commit watch result
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f public/project-001/wa-bot-manual-watch-result.json || true
+          git add -f public/project-001/wa-bot-manual-watch-summary.json || true
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git pull --rebase origin main || true
+          git commit -m "ci: manual WA Bot watch (read-only, no changes)"
+          git push
