@@ -1,0 +1,7 @@
+{
+  "id": "make-three-scenarios-audit-queue",
+  "armed": true,
+  "no_send": true,
+  "no_production": true,
+  "no_auto_reply_old_queue": true
+}
