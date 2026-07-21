@@ -1,9 +1,11 @@
 {
   "id": "wa-alert-one-way-queue",
-  "armed": true,
+  "armed": false,
   "staging_only": true,
   "production_touched": false,
   "approve_owner": "A",
   "retry": 10,
-  "note": "Re-arm: normalize alert_flag SetVariable before router"
+  "note": "Re-arm: normalize alert_flag SetVariable before router",
+  "completed": true,
+  "at": "2026-07-21T20:46:29.215Z"
 }

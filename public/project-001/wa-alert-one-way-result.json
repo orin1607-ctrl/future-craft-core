@@ -1,6 +1,6 @@
 {
   "id": "wa-alert-one-way",
-  "at": "2026-07-21T20:44:32.919Z",
+  "at": "2026-07-21T20:45:59.982Z",
   "env": "staging_only",
   "production_touched": false,
   "new_mechanism": false,
@@ -24,22 +24,23 @@
       "removed": true,
       "mode": "unwrap_router",
       "bot_modules": 6,
-      "stripped": 3
+      "stripped": 1
     },
-    "data_expr": "GET qs Message ID (Meta context paths)",
+    "data_expr": "GET qs Message ID + normalize alert_flag",
     "ids": {
       "lookup": 99,
-      "router": 100,
-      "ignore": 101,
-      "skip": 101,
-      "continue": 102
+      "flag": 100,
+      "router": 101,
+      "ignore": 102,
+      "skip": 102,
+      "continue": 103
     },
     "rest_modules_moved": 6,
     "patch_http": 200,
     "patch_error": null,
     "validate_start": {
-      "http": 200,
-      "error": null
+      "http": 422,
+      "error": "{\"detail\":\"Scenario is already running.\",\"message\":\"Scenario is already running (on start attempt)\",\"code\":\"IM306\"}"
     }
   },
   "verify_blueprint": {
@@ -140,9 +141,8 @@
     "hookId": 2567320
   },
   "queue_clear": {
-    "before": 1,
-    "deleted": 1,
-    "delete_http": 200,
+    "before": 0,
+    "deleted": 0,
     "ok": true
   },
   "hook_url_host": "hook.eu2.make.com",
@@ -170,46 +170,46 @@
     },
     "format": "meta+context+flat",
     "log": {
-      "id": "9d317e9635d04e868fc4a64b903b86b9",
+      "id": "11a9dba2bb61434bae4973cd4ed92dcc",
       "status": 1,
-      "timestamp": "2026-07-21T20:44:51.651Z",
+      "timestamp": "2026-07-21T20:46:16.703Z",
       "error": null,
-      "duration": 841
+      "duration": 1330
     },
     "log_any": {
-      "id": "9d317e9635d04e868fc4a64b903b86b9",
+      "id": "11a9dba2bb61434bae4973cd4ed92dcc",
       "status": 1,
-      "timestamp": "2026-07-21T20:44:51.651Z",
+      "timestamp": "2026-07-21T20:46:16.703Z",
       "error": null,
-      "duration": 841
+      "duration": 1330
     },
     "analysis": {
-      "duration_ms": 841,
+      "duration_ms": 1330,
       "hit_lookup": true,
-      "hit_skip_noop": false,
+      "hit_skip_noop": true,
       "hit_ai_84": false,
       "hit_ai_63": false,
       "hit_gupshup_87": false,
-      "skip_module_id": 101,
+      "skip_module_id": 102,
       "lookup_module_id": 99,
       "lookup_logs": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T20:46:18.014Z",
+          "error": null,
+          "executionId": "11a9dba2bb61434bae4973cd4ed92dcc"
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T20:44:56.808Z",
+          "error": null,
+          "executionId": "c64aa5650279437f8b88d46256e3de22"
+        },
         {
           "status": 1,
           "timestamp": "2026-07-21T20:44:52.478Z",
           "error": null,
           "executionId": "9d317e9635d04e868fc4a64b903b86b9"
-        },
-        {
-          "status": 1,
-          "timestamp": "2026-07-21T20:44:49.716Z",
-          "error": null,
-          "executionId": "7fbfbd133f734ed4830ac1c0df42940f"
-        },
-        {
-          "status": 1,
-          "timestamp": "2026-07-21T20:38:59.316Z",
-          "error": null,
-          "executionId": "0d2f0dff663643b2b8d53f32b34a6d26"
         }
       ]
     }
@@ -220,17 +220,41 @@
       "body": "Accepted"
     },
     "log": {
-      "id": "c64aa5650279437f8b88d46256e3de22",
+      "id": "27bb4b1ec42b49b8a3f9a8a40c930942",
       "status": 1,
-      "timestamp": "2026-07-21T20:44:56.473Z",
+      "timestamp": "2026-07-21T20:46:21.618Z",
       "error": null,
-      "duration": 349
+      "duration": 4575
     },
     "analysis": {
-      "duration_ms": 349,
-      "hit_ai_84": false,
-      "hit_gupshup_87": false
+      "duration_ms": 4575,
+      "hit_ai_84": true,
+      "hit_gupshup_87": true
     }
   },
-  "error": "Free היי did not reach AI 84 or Gupshup 87"
+  "scenario_final": {
+    "http": 200,
+    "isActive": true,
+    "islinked": true,
+    "name": "Whatsapp Bot",
+    "hookId": 2567320
+  },
+  "queue_final": {
+    "queueCount": 0,
+    "enabled": true
+  },
+  "checks": {
+    "reply_no_ai": true,
+    "reply_no_gupshup_send": true,
+    "reply_skipped": true,
+    "hi_bot_path": true,
+    "scenario_active": true,
+    "queue_empty": true,
+    "footer_in_source": true,
+    "lookup_by_message_id": true,
+    "deep_find_by_context": true,
+    "production_touched": false
+  },
+  "full_path_ok": false,
+  "error": "One-way E2E checks failed — see result JSON"
 }

@@ -1,7 +1,7 @@
 {
   "id": "wa-alert-one-way-summary",
-  "at": "2026-07-21T20:45:01.001Z",
+  "at": "2026-07-21T20:46:29.164Z",
   "full_path_ok": false,
-  "error": "Free היי did not reach AI 84 or Gupshup 87",
+  "error": "One-way E2E checks failed — see result JSON",
   "production_touched": false
 }
