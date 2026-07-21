@@ -1,0 +1,40 @@
+name: Staging UI alert E2E (Playwright as יוני)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/wa-ui-alert-e2e.mjs'
+      - 'public/project-001/wa-ui-alert-e2e-queue.json'
+      - '.github/workflows/wa-ui-alert-e2e.yml'
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  ui-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: UI E2E — create fault as מנהל על יוני (Staging)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_APP_URL: https://orin1607-ctrl.github.io/future-craft-core
+        run: node scripts/wa-ui-alert-e2e.mjs
+      - name: Commit results + screenshots
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p docs/screenshots/ui-alert-e2e
+          git add -f public/project-001/wa-ui-alert-e2e-result.json || true
+          git add -f public/project-001/wa-ui-alert-e2e-summary.json || true
+          git add -f docs/screenshots/ui-alert-e2e || true
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git pull --rebase origin main || true
+          git commit -m "ci: Staging UI alert E2E as יוני (fault→notify path)"
+          git push

@@ -1,0 +1,11 @@
+{
+  "id": "wa-ui-alert-e2e-queue",
+  "armed": true,
+  "staging_only": true,
+  "via_software_ui": true,
+  "no_direct_edge_from_script": true,
+  "actor": "מנהל על – יוני אטיאס",
+  "whatsapp": "0534338601",
+  "email": "orin1607@gmail.com",
+  "one_shot": true
+}
