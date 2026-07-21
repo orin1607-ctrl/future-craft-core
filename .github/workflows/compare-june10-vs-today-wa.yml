@@ -140,7 +140,7 @@ jobs:
           out.live_account_now = live;
 
           // Static evidence from repo artifacts (read from checkout)
-          const fs = require('fs');
+          const fs = await import('node:fs');
           const nightly = JSON.parse(fs.readFileSync('docs/audit-reports/nightly-audit-2026-06-10.json', 'utf8'));
           const today = JSON.parse(fs.readFileSync('public/project-001/staging-wa-live-send-result.json', 'utf8'));
           const realSendExists = fs.existsSync('docs/audit-reports/gupshup-whatsapp-real-send-test.json');
