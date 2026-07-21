@@ -1,7 +1,7 @@
 /**
- * Make.com → add HTTP forward to Staging gupshup-webhook (Option B)
+ * Make.com → diagnose hooks + ensure HTTP forward to Staging gupshup-webhook (Option B)
  * then one Staging live WhatsApp + DLR poll.
- * Never prints secret values. Production untouched.
+ * Never prints secret values. Production untouched. Gupshup portal webhook untouched.
  */
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -16,6 +16,9 @@ const SUPABASE_HOOK = `https://${STAGING}.supabase.co/functions/v1/gupshup-webho
 const OWNER_EMAIL = 'orin1607@gmail.com';
 const WA_DEST = '0534338601';
 const MAKE_BASE = `https://${zone}.make.com/api/v2`;
+/** Prefer full webhook bundle as JSON — works with structured Custom Webhook (not only .value pass-through). */
+const DATA_EXPR_PREFERRED = (whId) => `{{toJSON(${whId})}}`;
+const DATA_EXPR_FALLBACK = (whId) => `{{${whId}.value}}`;
 
 const out = {
   env: 'staging',
@@ -28,6 +31,20 @@ const out = {
 
 function must(cond, msg) {
   if (!cond) throw new Error(msg);
+}
+
+function redactUrl(u) {
+  if (!u || typeof u !== 'string') return null;
+  // keep host + last 6 of path token
+  try {
+    const url = new URL(u);
+    const parts = url.pathname.split('/').filter(Boolean);
+    const last = parts[parts.length - 1] || '';
+    const tip = last.slice(-6);
+    return `${url.host}/…${tip}`;
+  } catch {
+    return String(u).slice(0, 24) + '…';
+  }
 }
 
 async function make(path, opts = {}) {
@@ -43,7 +60,7 @@ async function make(path, opts = {}) {
   const text = await res.text();
   let json = null;
   try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text.slice(0, 400) }; }
-  return { status: res.status, json, text: text.slice(0, 800) };
+  return { status: res.status, json, text: text.slice(0, 1200) };
 }
 
 function walkModules(node, acc = []) {
@@ -72,11 +89,15 @@ function maxModuleId(mods) {
   return m;
 }
 
-function alreadyForwards(mods) {
-  return mods.some((m) => {
+function findForwardModules(mods) {
+  return mods.filter((m) => {
     const url = m?.mapper?.url || m?.mapper?.URL || '';
     return typeof url === 'string' && url.includes('gupshup-webhook') && url.includes(STAGING);
   });
+}
+
+function alreadyForwards(mods) {
+  return findForwardModules(mods).length > 0;
 }
 
 function findWebhookModule(mods) {
@@ -85,24 +106,14 @@ function findWebhookModule(mods) {
   ) || null;
 }
 
-function insertHttpAfterWebhook(blueprint) {
-  const bp = blueprint.flow ? structuredClone(blueprint) : structuredClone(blueprint.blueprint || blueprint);
-  must(bp && Array.isArray(bp.flow), 'Blueprint has no top-level flow array — unsupported shape');
+function hookIdFromWebhookModule(wh) {
+  return wh?.parameters?.hook || wh?.parameters?.hookId || wh?.mapper?.hook || null;
+}
 
-  const mods = walkModules(bp);
-  if (alreadyForwards(mods)) {
-    return { bp, changed: false, reason: 'already_forwards_to_supabase' };
-  }
-
-  const wh = findWebhookModule(mods);
-  must(wh, 'No webhook module found in scenario flow');
-
-  const newId = maxModuleId(mods) + 1;
+function buildHttpModule(wh, newId) {
   const whId = wh.id;
-  // Make webhook JSON pass-through uses `.value`; otherwise entire bundle via toJSON if available
-  const dataExpr = `{{${whId}.value}}`;
-
-  const httpModule = {
+  const dataExpr = DATA_EXPR_PREFERRED(whId);
+  return {
     id: newId,
     module: 'http:ActionSendData',
     version: 3,
@@ -132,6 +143,7 @@ function insertHttpAfterWebhook(blueprint) {
       useMtls: false,
       contentType: 'application/json',
       data: dataExpr,
+      inputRaw: dataExpr,
       followAllRedirects: false,
     },
     metadata: {
@@ -142,39 +154,83 @@ function insertHttpAfterWebhook(blueprint) {
       },
     },
   };
+}
 
-  function insertInFlow(flow) {
-    if (!Array.isArray(flow)) return false;
-    const idx = flow.findIndex((m) => m && m.id === whId);
-    if (idx >= 0) {
-      flow.splice(idx + 1, 0, httpModule);
-      return true;
-    }
-    for (const m of flow) {
-      if (Array.isArray(m?.routes)) {
-        for (const r of m.routes) {
-          if (insertInFlow(r?.flow)) return true;
-        }
+function insertInFlow(flow, whId, httpModule) {
+  if (!Array.isArray(flow)) return false;
+  const idx = flow.findIndex((m) => m && m.id === whId);
+  if (idx >= 0) {
+    flow.splice(idx + 1, 0, httpModule);
+    return true;
+  }
+  for (const m of flow) {
+    if (Array.isArray(m?.routes)) {
+      for (const r of m.routes) {
+        if (insertInFlow(r?.flow, whId, httpModule)) return true;
       }
-      if (Array.isArray(m?.flow) && insertInFlow(m.flow)) return true;
     }
-    return false;
+    if (Array.isArray(m?.flow) && insertInFlow(m.flow, whId, httpModule)) return true;
+  }
+  return false;
+}
+
+function ensureHttpAfterWebhook(blueprint, { forceRemap = false } = {}) {
+  const bp = blueprint.flow
+    ? structuredClone(blueprint)
+    : structuredClone(blueprint.blueprint || blueprint);
+  must(bp && Array.isArray(bp.flow), 'Blueprint has no top-level flow array — unsupported shape');
+
+  const mods = walkModules(bp);
+  const wh = findWebhookModule(mods);
+  must(wh, 'No webhook module found in scenario flow');
+
+  const existing = findForwardModules(mods);
+  if (existing.length) {
+    let remapped = 0;
+    for (const m of existing) {
+      const want = DATA_EXPR_PREFERRED(wh.id);
+      const cur = m.mapper?.data || m.mapper?.inputRaw || '';
+      if (forceRemap || cur !== want) {
+        m.mapper = m.mapper || {};
+        m.mapper.url = SUPABASE_HOOK;
+        m.mapper.method = 'post';
+        m.mapper.bodyType = 'raw';
+        m.mapper.contentType = 'application/json';
+        m.mapper.data = want;
+        m.mapper.inputRaw = want;
+        remapped += 1;
+      }
+    }
+    return {
+      bp,
+      changed: remapped > 0,
+      reason: remapped ? 'remapped_forward_body_toJSON' : 'already_forwards_to_supabase',
+      webhook_module_id: wh.id,
+      http_module_id: existing[0].id,
+      remapped,
+    };
   }
 
-  const inserted = insertInFlow(bp.flow);
+  const newId = maxModuleId(mods) + 1;
+  const httpModule = buildHttpModule(wh, newId);
+  const inserted = insertInFlow(bp.flow, wh.id, httpModule);
   if (!inserted) bp.flow.push(httpModule);
 
-  return { bp, changed: true, webhook_module_id: whId, http_module_id: newId };
+  return {
+    bp,
+    changed: true,
+    reason: 'inserted_http_forward',
+    webhook_module_id: wh.id,
+    http_module_id: newId,
+  };
 }
 
 async function discoverTeams() {
   const teams = [];
-  // Try user + orgs
   const me = await make('/users/me');
   out.make_user = {
     http: me.status,
     ok: me.status === 200,
-    // no email dump if present beyond domain
     id: me.json?.authUser?.id || me.json?.user?.id || me.json?.id || null,
   };
   must(me.status === 200, `Make auth failed HTTP ${me.status}: ${me.text.slice(0, 200)}`);
@@ -202,7 +258,6 @@ async function discoverTeams() {
     }
   }
 
-  // Fallback: some accounts expose /teams without org
   if (!teams.length) {
     const tr = await make('/teams');
     const tlist = tr.json?.teams || tr.json || [];
@@ -230,19 +285,122 @@ async function listScenarios(teamId) {
   return all;
 }
 
-function scoreScenario(s, mods) {
+async function listHooks(teamId) {
+  const all = [];
+  let offset = 0;
+  for (let page = 0; page < 20; page++) {
+    const r = await make(`/hooks?teamId=${teamId}&typeName=gateway-webhook&pg[offset]=${offset}&pg[limit]=50`);
+    const list = r.json?.hooks || [];
+    if (!Array.isArray(list) || !list.length) break;
+    all.push(...list);
+    if (list.length < 50) break;
+    offset += 50;
+  }
+  return all;
+}
+
+function scoreHookLogPayload(text) {
+  const s = String(text || '').toLowerCase();
+  let score = 0;
+  if (s.includes('message-event')) score += 40;
+  if (s.includes('"type":"delivered"') || s.includes('"type":"sent"') || s.includes('"type":"read"')) score += 30;
+  if (s.includes('eventtype') || s.includes('externalid')) score += 20;
+  if (s.includes('gsid') || s.includes('gs_id')) score += 15;
+  if (s.includes('whatsapp') || s.includes('gupshup')) score += 10;
+  if (s.includes('destination') || s.includes('destaddr')) score += 5;
+  return score;
+}
+
+async function inspectHookLogs(hookId, fromMs) {
+  const r = await make(
+    `/hooks/${hookId}/logs?from=${fromMs}&pg[limit]=25&pg[sortBy]=loggedAt&pg[sortDir]=desc`,
+  );
+  const logs = r.json?.hookLogs || r.json?.logs || [];
+  if (!Array.isArray(logs)) return { http: r.status, count: 0, dlr_hits: 0, samples: [] };
+  let dlrHits = 0;
+  const samples = [];
+  for (const log of logs.slice(0, 15)) {
+    const data = log.data || {};
+    const req = data.request || data;
+    const body = req?.body ?? req?.parsed ?? data.body ?? '';
+    const bodyStr = typeof body === 'string' ? body : JSON.stringify(body || '');
+    const sc = scoreHookLogPayload(bodyStr);
+    if (sc >= 20) dlrHits += 1;
+    if (samples.length < 5) {
+      samples.push({
+        id: log.id,
+        loggedAt: log.loggedAt,
+        statusId: log.statusId,
+        score: sc,
+        body_excerpt: bodyStr.slice(0, 180).replace(/\s+/g, ' '),
+      });
+    }
+  }
+  return { http: r.status, count: logs.length, dlr_hits: dlrHits, samples };
+}
+
+function scoreScenario(s, mods, hookMeta) {
   let score = 0;
   const name = `${s.name || ''} ${s.description || ''}`.toLowerCase();
-  if (/gupshup|whatsapp|dalia|wa\b|dlr|delivery/i.test(name)) score += 50;
+  if (/gupshup|whatsapp|dalia|wa\b|dlr|delivery|make\.com/i.test(name)) score += 50;
   if (s.isActive || s.islinked) score += 10;
   if (findWebhookModule(mods)) score += 30;
   if (alreadyForwards(mods)) score += 5;
+  if (hookMeta?.dlr_hits) score += 80 + Math.min(40, hookMeta.dlr_hits * 5);
+  if (hookMeta?.recent_count) score += Math.min(20, hookMeta.recent_count);
   return score;
+}
+
+async function patchScenarioBlueprint(scenarioId, nextBp) {
+  const bpString = typeof nextBp === 'string' ? nextBp : JSON.stringify(nextBp);
+  // Prefer stringified blueprint + confirmed (Make docs)
+  let patch = await make(`/scenarios/${scenarioId}?confirmed=true`, {
+    method: 'PATCH',
+    body: { blueprint: bpString },
+  });
+  if (patch.status >= 400) {
+    patch = await make(`/scenarios/${scenarioId}?confirmed=true`, {
+      method: 'PATCH',
+      body: { blueprint: nextBp },
+    });
+  }
+  return patch;
 }
 
 async function configureMake() {
   must(token, 'MAKE_API_TOKEN missing in Actions secrets');
   const teams = await discoverTeams();
+  const fromMs = Date.now() - 6 * 60 * 60 * 1000;
+
+  const hookIndex = [];
+  for (const team of teams) {
+    const hooks = await listHooks(team.id);
+    for (const h of hooks) {
+      const logs = await inspectHookLogs(h.id, fromMs);
+      hookIndex.push({
+        teamId: team.id,
+        teamName: team.name,
+        id: h.id,
+        name: h.name || h.hookName || null,
+        enabled: h.enabled !== false,
+        scenarioId: h.scenarioId || null,
+        url_redacted: redactUrl(h.url),
+        recent_count: logs.count,
+        dlr_hits: logs.dlr_hits,
+        log_samples: logs.samples,
+      });
+    }
+  }
+  out.hooks = hookIndex.map((h) => ({
+    id: h.id,
+    name: h.name,
+    enabled: h.enabled,
+    scenarioId: h.scenarioId,
+    url_redacted: h.url_redacted,
+    recent_count: h.recent_count,
+    dlr_hits: h.dlr_hits,
+    top_sample: h.log_samples[0] || null,
+  }));
 
   const candidates = [];
   for (const team of teams) {
@@ -250,33 +408,46 @@ async function configureMake() {
     for (const s of scenarios) {
       const br = await make(`/scenarios/${s.id}/blueprint`);
       if (br.status !== 200) continue;
-      const rawBp = br.json?.response?.blueprint || br.json?.blueprint || br.json;
+      let rawBp = br.json?.response?.blueprint || br.json?.blueprint || br.json;
+      if (typeof rawBp === 'string') {
+        try { rawBp = JSON.parse(rawBp); } catch { continue; }
+      }
       const mods = walkModules(rawBp);
-      const hasWh = Boolean(findWebhookModule(mods));
-      if (!hasWh) continue;
+      const wh = findWebhookModule(mods);
+      if (!wh) continue;
+      const hid = hookIdFromWebhookModule(wh) || s.hookId;
+      const hookMeta = hookIndex.find((h) => h.id === hid || h.scenarioId === s.id) || null;
       candidates.push({
         teamId: team.id,
         teamName: team.name,
         id: s.id,
         name: s.name,
         isActive: s.isActive,
-        score: scoreScenario(s, mods),
+        hookId: hid || hookMeta?.id || null,
+        score: scoreScenario(s, mods, hookMeta),
         already: alreadyForwards(mods),
         module_count: mods.length,
         modules: mods.map((m) => m.module).slice(0, 12),
+        forward_data: findForwardModules(mods).map((m) => m.mapper?.data || null),
+        dlr_hits: hookMeta?.dlr_hits || 0,
+        recent_hook_logs: hookMeta?.recent_count || 0,
       });
     }
   }
 
   candidates.sort((a, b) => b.score - a.score);
-  out.candidates = candidates.slice(0, 15);
+  out.candidates = candidates.slice(0, 20);
   must(candidates.length, 'No scenarios with webhook modules found');
 
-  // Prefer already-forwarding, else highest score
-  let chosen = candidates.find((c) => c.already) || candidates[0];
-  // Prefer gupshup-named if score close
-  const named = candidates.find((c) => /gupshup|dalia|whatsapp/i.test(c.name || ''));
-  if (named && named.score >= chosen.score - 10) chosen = named;
+  // Prefer hooks that actually received DLR-like payloads recently
+  let chosen =
+    candidates.find((c) => c.dlr_hits > 0) ||
+    candidates.find((c) => c.already) ||
+    candidates[0];
+  const named = candidates.find((c) => /gupshup|dalia|whatsapp|delivery|dlr/i.test(c.name || ''));
+  if (named && named.dlr_hits >= (chosen.dlr_hits || 0) && named.score >= chosen.score - 30) {
+    chosen = named;
+  }
 
   out.chosen = {
     id: chosen.id,
@@ -285,59 +456,81 @@ async function configureMake() {
     teamName: chosen.teamName,
     already: chosen.already,
     score: chosen.score,
+    hookId: chosen.hookId,
+    dlr_hits: chosen.dlr_hits,
   };
 
-  if (chosen.already) {
-    out.make_configure = { changed: false, reason: 'HTTP forward to Supabase already present' };
-    return chosen;
-  }
-
-  // Fetch blueprint again and modify
+  // Always force remap of body to toJSON if forward exists with wrong expr
   const br = await make(`/scenarios/${chosen.id}/blueprint`);
   must(br.status === 200, `Get blueprint failed HTTP ${br.status}`);
   let bp = br.json?.response?.blueprint || br.json?.blueprint || br.json;
-  // Some APIs wrap as string
   if (typeof bp === 'string') bp = JSON.parse(bp);
 
-  const { bp: nextBp, changed, reason, webhook_module_id, http_module_id } = insertHttpAfterWebhook(bp);
+  const { bp: nextBp, changed, reason, webhook_module_id, http_module_id, remapped } =
+    ensureHttpAfterWebhook(bp, { forceRemap: true });
+
   if (!changed) {
-    out.make_configure = { changed: false, reason };
-    return chosen;
+    out.make_configure = { changed: false, reason, webhook_module_id, http_module_id };
+  } else {
+    const patch = await patchScenarioBlueprint(chosen.id, nextBp);
+    out.make_configure = {
+      changed: true,
+      reason,
+      remapped: remapped || 0,
+      patch_http: patch.status,
+      webhook_module_id,
+      http_module_id,
+      ok: patch.status >= 200 && patch.status < 300,
+      error: patch.status >= 300 ? patch.text.slice(0, 300) : null,
+      data_expr: DATA_EXPR_PREFERRED(webhook_module_id),
+      fallback_expr: DATA_EXPR_FALLBACK(webhook_module_id),
+    };
+    must(out.make_configure.ok, `Make PATCH failed HTTP ${patch.status}: ${patch.text.slice(0, 300)}`);
   }
 
-  // PATCH scenario — Make expects blueprint as object or string depending on API version
-  const patchBody = {
-    blueprint: typeof nextBp === 'string' ? nextBp : nextBp,
-  };
-  // Try object first
-  let patch = await make(`/scenarios/${chosen.id}`, { method: 'PATCH', body: patchBody });
-  if (patch.status >= 400) {
-    // Retry with stringified blueprint (documented variant)
-    patch = await make(`/scenarios/${chosen.id}`, {
-      method: 'PATCH',
-      body: { blueprint: JSON.stringify(nextBp) },
+  // Ensure scenario + hook enabled
+  if (chosen.isActive === false) {
+    const act = await make(`/scenarios/${chosen.id}/start`, { method: 'POST', body: {} });
+    // fallback
+    if (act.status >= 400) {
+      await make(`/scenarios/${chosen.id}?confirmed=true`, { method: 'PATCH', body: { isActive: true } });
+    }
+    out.make_activate = { attempted: true };
+  }
+  if (chosen.hookId) {
+    const en = await make(`/hooks/${chosen.hookId}/enable`, { method: 'POST', body: {} });
+    out.hook_enable = { hookId: chosen.hookId, http: en.status };
+  }
+
+  // Also add/remap forward on any OTHER active scenario whose hook saw DLR hits
+  const extras = [];
+  for (const c of candidates) {
+    if (c.id === chosen.id) continue;
+    if (!(c.dlr_hits > 0 || (c.isActive && /delivery|dlr|gupshup/i.test(c.name || '')))) continue;
+    const br2 = await make(`/scenarios/${c.id}/blueprint`);
+    if (br2.status !== 200) continue;
+    let bp2 = br2.json?.response?.blueprint || br2.json?.blueprint || br2.json;
+    if (typeof bp2 === 'string') bp2 = JSON.parse(bp2);
+    const ens = ensureHttpAfterWebhook(bp2, { forceRemap: true });
+    if (!ens.changed) {
+      extras.push({ id: c.id, name: c.name, changed: false, reason: ens.reason });
+      continue;
+    }
+    const p2 = await patchScenarioBlueprint(c.id, ens.bp);
+    extras.push({
+      id: c.id,
+      name: c.name,
+      changed: true,
+      patch_http: p2.status,
+      ok: p2.status >= 200 && p2.status < 300,
     });
   }
-  out.make_configure = {
-    changed: true,
-    patch_http: patch.status,
-    webhook_module_id,
-    http_module_id,
-    ok: patch.status >= 200 && patch.status < 300,
-    error: patch.status >= 300 ? patch.text.slice(0, 300) : null,
-  };
-  must(out.make_configure.ok, `Make PATCH failed HTTP ${patch.status}: ${patch.text.slice(0, 300)}`);
-
-  // Ensure scenario is active/on
-  if (chosen.isActive === false) {
-    const act = await make(`/scenarios/${chosen.id}`, { method: 'PATCH', body: { isActive: true } });
-    out.make_activate = { http: act.status };
-  }
+  if (extras.length) out.extra_forwards = extras;
 
   return chosen;
 }
 
-async function stagingLiveE2e() {
+async function stagingLiveE2e(chosen) {
   must(sbToken, 'SUPABASE_ACCESS_TOKEN missing');
 
   async function mgmt(path) {
@@ -361,7 +554,6 @@ async function stagingLiveE2e() {
     return { status: res.status, body: await res.json().catch(() => ({})) };
   }
 
-  // Redeploy webhook + send function to be safe
   process.env.SUPABASE_ACCESS_TOKEN = sbToken;
   try {
     execSync(`npx --yes supabase functions deploy gupshup-webhook --project-ref ${STAGING} --use-api`, {
@@ -389,6 +581,26 @@ async function stagingLiveE2e() {
   const base = `https://${STAGING}.supabase.co`;
   must(!base.includes(PROD), 'ABORT_PROD');
 
+  // Sanity: direct POST to our webhook still works
+  const simId = `sim-make-${Date.now()}`;
+  const sim = await post(
+    base,
+    '/functions/v1/gupshup-webhook',
+    {
+      type: 'message-event',
+      payload: {
+        id: simId,
+        gsId: simId,
+        type: 'delivered',
+        destination: '972534338601',
+        payload: {},
+      },
+    },
+    srk,
+    srk,
+  );
+  out.webhook_self_test = { http: sim.status, ok: sim.status >= 200 && sim.status < 300, sim_id: simId };
+
   const gen = await post(base, '/auth/v1/admin/generate_link', { type: 'magiclink', email: OWNER_EMAIL }, srk, srk);
   const ver = await post(base, '/auth/v1/verify', { type: 'magiclink', email: OWNER_EMAIL, token: gen.body.email_otp }, anon || srk, anon || srk);
   const at = ver.body?.access_token || ver.body?.session?.access_token;
@@ -403,6 +615,7 @@ async function stagingLiveE2e() {
   };
 
   const message = `E2E DLR Make→Supabase Staging ${new Date().toISOString()}`;
+  const sendAt = Date.now();
   const send = await post(
     base,
     '/functions/v1/send-whatsapp-message',
@@ -439,6 +652,19 @@ async function stagingLiveE2e() {
   }
   out.polls_summary = { count: polls.length, last: polls[polls.length - 1] || null };
 
+  // After poll: did Make hook receive this message id?
+  if (chosen?.hookId) {
+    const logs = await inspectHookLogs(chosen.hookId, sendAt - 5000);
+    const hit = (logs.samples || []).some((s) => (s.body_excerpt || '').includes(messageId));
+    out.make_hook_after_send = {
+      hookId: chosen.hookId,
+      recent_count: logs.count,
+      dlr_hits: logs.dlr_hits,
+      message_id_seen_in_hook_logs: hit,
+      samples: logs.samples,
+    };
+  }
+
   const history = Array.isArray(row?.status_history) ? row.status_history : [];
   const has = (s) => history.some((h) => h?.status === s) || row?.status === s;
   out.report = {
@@ -463,8 +689,8 @@ async function stagingLiveE2e() {
 
 async function main() {
   try {
-    await configureMake();
-    await stagingLiveE2e();
+    const chosen = await configureMake();
+    await stagingLiveE2e(chosen);
   } catch (e) {
     out.error = String(e.message || e).slice(0, 500);
   }
