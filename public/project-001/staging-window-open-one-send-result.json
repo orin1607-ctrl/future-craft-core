@@ -406,5 +406,31 @@
     ],
     "phone_likely_received": "unknown_still_submitted",
     "poll_started_at": "2026-07-21T12:15:02.305Z"
+  },
+  "final_at": "2026-07-21T12:20:13.048804+00:00",
+  "dlr_from_make_hook": {
+    "message_id": "27f46420-c2d5-438d-9e4f-830f290cebde",
+    "statuses_seen": [
+      "sent"
+    ],
+    "delivered": false,
+    "read": false,
+    "failed": false,
+    "meta": {
+      "conversation_origin": "service",
+      "pricing_type": "free_customer_service",
+      "billable": false,
+      "recipient_id": "972534338601",
+      "loggedAt": "2026-07-21T12:15:09.968Z"
+    },
+    "note": "Make received sent DLR within seconds; no delivered/read/failed in hook logs ~5min later. DB poll stayed submitted (Make→Supabase forward not updating live row)."
+  },
+  "answers": {
+    "1_scenario_active": "Was false on first check; started via Make API → isActive=true, islinked=true",
+    "2_inbound_entered": "YES — 3 inbound messages from 972534338601 including היי at 12:12:18Z and למה לא עובד at 11:26",
+    "3_window_24h_open": "YES — outbound got Meta status sent with origin=service / free_customer_service (not 131047)",
+    "4_one_send": "YES — Staging send only once, message_id 27f46420-c2d5-438d-9e4f-830f290cebde",
+    "5_dlr_terminal": "Partial — confirmed sent; delivered/read/failed not observed yet in Make logs",
+    "6_queue_11": "NOT released — hook incomings stayed 12 then rose to 15; incomplete/dlq=0; old queued items not drained by activation alone"
   }
 }
