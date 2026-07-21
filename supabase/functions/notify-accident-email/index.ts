@@ -86,6 +86,7 @@ function buildMessageText(kind: IncidentKind, record: Record<string, unknown>, l
     'נציג דליה יחזור לנהג בהקדם.',
     'קישור לצפייה באירוע:',
     link || plateLine,
+    'זוהי הודעת מערכת אוטומטית ואין להשיב לה.',
   ];
   return lines.join('\n');
 }

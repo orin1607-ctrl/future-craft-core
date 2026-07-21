@@ -1,0 +1,58 @@
+name: WA alert one-way (Staging Make Bot)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/wa-alert-one-way.mjs'
+      - 'public/project-001/wa-alert-one-way-queue.json'
+      - '.github/workflows/wa-alert-one-way.yml'
+      - 'supabase/functions/gupshup-webhook/**'
+      - 'supabase/functions/notify-accident-email/**'
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  one-way:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Gate — queue must be armed
+        id: gate
+        run: |
+          armed=$(node -e "const q=require('./public/project-001/wa-alert-one-way-queue.json'); process.stdout.write(String(q.armed===true))")
+          echo "armed=$armed" >> "$GITHUB_OUTPUT"
+          if [ "$armed" != "true" ]; then
+            echo "Queue disarmed — skip (set armed:true to run)"
+          fi
+      - name: Deploy Edge + patch Make + Staging E2E
+        if: steps.gate.outputs.armed == 'true'
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/wa-alert-one-way.mjs
+      - name: Disarm queue + commit results
+        if: always() && steps.gate.outputs.armed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node -e "
+            const fs=require('fs');
+            const p='public/project-001/wa-alert-one-way-queue.json';
+            const q=JSON.parse(fs.readFileSync(p,'utf8'));
+            q.armed=false;
+            q.completed=true;
+            q.at=new Date().toISOString();
+            fs.writeFileSync(p, JSON.stringify(q,null,2)+'\n');
+          "
+          git add -f public/project-001/wa-alert-one-way-result.json || true
+          git add -f public/project-001/wa-alert-one-way-summary.json || true
+          git add -f public/project-001/wa-alert-one-way-queue.json || true
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git pull --rebase origin main || true
+          git commit -m "ci: WA alert one-way Staging — Ignore Reply-to-alert (Make Bot)"
+          git push

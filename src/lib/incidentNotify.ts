@@ -103,6 +103,7 @@ export function buildWhatsAppPreview(kind: IncidentKind, record: IncidentNotifyR
     'נציג דליה יחזור לנהג בהקדם.',
     'קישור לצפייה באירוע:',
     link,
+    'זוהי הודעת מערכת אוטומטית ואין להשיב לה.',
   ];
   return lines.join('\n');
 }

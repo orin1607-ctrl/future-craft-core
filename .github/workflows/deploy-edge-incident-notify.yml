@@ -92,14 +92,15 @@ jobs:
           npx supabase link --project-ref usfeoerkpcafxxlyuldl || true
           npx supabase db push --include-all || echo "::warning::Apply migrations manually on Staging"
 
-  # Production: Environment gate → Owner Approve → deploy
+  # Production: ONLY explicit workflow_dispatch + Environment Approve (never on push)
   deploy-edge-production:
     needs: [preflight-token, deploy-edge-staging]
     if: |
       always() &&
       needs.preflight-token.outputs.valid == 'true' &&
       (needs.deploy-edge-staging.result == 'success' || needs.deploy-edge-staging.result == 'skipped') &&
-      ((github.event_name == 'workflow_dispatch' && inputs.target == 'production') || github.event_name == 'push')
+      github.event_name == 'workflow_dispatch' &&
+      inputs.target == 'production'
     runs-on: ubuntu-latest
     environment:
       name: production

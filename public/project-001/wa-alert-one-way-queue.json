@@ -1,0 +1,8 @@
+{
+  "id": "wa-alert-one-way-queue",
+  "armed": true,
+  "staging_only": true,
+  "production_touched": false,
+  "approve_owner": "A",
+  "note": "Arm once — CI deploys Staging Edge, patches Make Bot Ignore-on-alert-Reply, runs E2E"
+}

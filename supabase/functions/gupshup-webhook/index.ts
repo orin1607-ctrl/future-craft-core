@@ -238,8 +238,74 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Gupshup may health-check with GET
+  // Gupshup may health-check with GET.
+  // Also: Make Bot one-way filter — check if Reply context Message ID is a system alert.
   if (req.method === 'GET') {
+    const url = new URL(req.url);
+    const check = url.searchParams.get('check_system_alert');
+    if (check === '1' || check === 'true') {
+      const candidates = [
+        url.searchParams.get('gsId'),
+        url.searchParams.get('waId'),
+        url.searchParams.get('id'),
+        url.searchParams.get('alert_msg_id'),
+      ]
+        .map((x) => String(x || '').trim())
+        .filter((x) => x && x !== '__none__' && x !== 'undefined' && x !== 'null');
+
+      if (!candidates.length) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            service: 'gupshup-webhook',
+            is_system_alert: false,
+            reason: 'no_context_id',
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      );
+      const { data: rows, error } = await supabaseAdmin
+        .from('incident_notification_deliveries')
+        .select('id, provider_message_id, incident_kind, event_number, channel')
+        .in('provider_message_id', candidates)
+        .eq('channel', 'whatsapp')
+        .limit(5);
+
+      if (error) {
+        // Soft: never break Make Bot — treat as not-alert so chat can continue
+        console.error('gupshup-webhook check_system_alert', error);
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            service: 'gupshup-webhook',
+            is_system_alert: false,
+            reason: 'lookup_error',
+            error: error.message,
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const match = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          service: 'gupshup-webhook',
+          is_system_alert: Boolean(match),
+          matched_id: match?.provider_message_id || null,
+          incident_kind: match?.incident_kind || null,
+          event_number: match?.event_number || null,
+          checked: candidates,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     return new Response(JSON.stringify({ ok: true, service: 'gupshup-webhook' }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

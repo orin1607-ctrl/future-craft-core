@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'ארכיטקטורה מאושרת בדוח · אפיון WA חד-כיווני ממתין לאישור Owner (אין יישום)',
+    latestFocus: 'מיישמים WA התראות חד-כיווניות ב-Staging (Make Ignore על Reply לפי Message ID)',
   };
 
   var STAGES = [
@@ -255,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>דוח אישור ארכיטקטורה + דוח שימוש + אפיון WA התראות חד-כיווניות (ממתין לאישור)</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../INCIDENT-ALERTS-ARCHITECTURE-CONFIRM-HE.md · WA-ALERT-ONE-WAY-SPEC-HE.md</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>מנגנון קיים: תקלה/תאונה (+VehicleActionModal). לא תביעה/חירום. אפיון חד-כיווני: אשר A/B/C</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>קיים: UI→notify-accident-email. מוצע: סימון ב-Edge + Ignore ב-Make על Reply להתראה</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'אין שינוי קוד — דוחות אפיון בלבד') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>E2E קודם OK · מנגנון חדש: לא נבנה</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אישור אפיון חד-כיווני (A/B/C) לפני כל שינוי</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>התראות WA חד-כיווניות: סימון ב-Edge + Ignore ב-Make על Reply לפי Message ID (Staging)</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../WA-ALERT-ONE-WAY-HE.md · project-001/wa-alert-one-way-*.json · Make Bot 5797671</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>תקלה/תאונה שולחות התראה; Reply להתראה לא מפעיל בוט; «היי» חופשי — כן</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>gupshup-webhook?check_system_alert + Router→Ignore · תשתית קיימת בלבד</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'יישום Staging אחרי אישור A — ממתין ל-CI E2E') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>Production: לא · תור one-way armed ל-CI</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אחרי CI: אשר תוצאות; Production רק באישור מפורש</div>' +
         '</div>' +
       '</div>'
     );
