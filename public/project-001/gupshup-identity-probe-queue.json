@@ -1,6 +1,6 @@
 {
   "id": "gupshup-identity-probe-queue",
-  "requestedAt": "2026-07-20T21:00:00.000Z",
+  "requestedAt": "2026-07-21T21:05:00.000Z",
   "requestedBy": "cursor-agent",
-  "note": "Live Staging GUPSHUP key vs App ID DaliaVehicle — no send"
+  "note": "Re-verify existing DaliaVehicle key still valid before Owner pastes to Prod — no new key, no Production"
 }
