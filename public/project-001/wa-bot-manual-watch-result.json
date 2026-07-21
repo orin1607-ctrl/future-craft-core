@@ -1,0 +1,611 @@
+{
+  "id": "wa-bot-manual-watch",
+  "at": "2026-07-21T16:56:27.025Z",
+  "mode": "read_only_monitor",
+  "production_touched": false,
+  "no_changes": true,
+  "owner_phone_test": "0546500305 / inbound to business line",
+  "watch_started_at": "2026-07-21T16:56:27.026Z",
+  "watch_ms": 180000,
+  "baseline": {
+    "scenario": {
+      "http": 200,
+      "isActive": true,
+      "islinked": true,
+      "name": "Whatsapp Bot",
+      "hookId": 2567320,
+      "at": "2026-07-21T16:56:27.354Z"
+    },
+    "log_ids": [
+      "c2908321c7cf4e64a4f128deab97df43",
+      "ea3b5f4a63ee4a479e07643569f65969",
+      "71d4cf49f7784fd9857867296d45624c",
+      "2fdbcfccf27543729020410e01930c77",
+      "da6c48bb91f9413c9b7e0a84f9ec4191",
+      "e2a8b031508e42039178b50d55591ad3",
+      "2907971c7bd74b1798afd36703a3780d",
+      "a9fe29a20f984e668a767a22b64d81a7",
+      "eec53f58fcbf462ab4bf55e88b6a561b",
+      "59047b055e1a4947ad3a2653704496fc",
+      "53803e8f05194349a8d0b676dafd390e",
+      "17f6703458ea423ab025e5ad0a9bdfa5",
+      "291555688a524c189b5953d0fafb3e5f",
+      "a70332d423454928ae772bf43d50b86f",
+      "c62f9854d52e4a22b80891d915f439ef"
+    ],
+    "latest_logs": [
+      {
+        "id": "c2908321c7cf4e64a4f128deab97df43",
+        "timestamp": "2026-07-21T16:56:25.935Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "ea3b5f4a63ee4a479e07643569f65969",
+        "status": 1,
+        "timestamp": "2026-07-21T16:56:18.524Z",
+        "error": null,
+        "duration": 4214
+      },
+      {
+        "id": "71d4cf49f7784fd9857867296d45624c",
+        "status": 1,
+        "timestamp": "2026-07-21T16:56:04.053Z",
+        "error": null,
+        "duration": 8582
+      },
+      {
+        "id": "2fdbcfccf27543729020410e01930c77",
+        "status": 1,
+        "timestamp": "2026-07-21T16:55:50.423Z",
+        "error": null,
+        "duration": 10157
+      },
+      {
+        "id": "da6c48bb91f9413c9b7e0a84f9ec4191",
+        "status": 1,
+        "timestamp": "2026-07-21T16:49:56.111Z",
+        "error": null,
+        "duration": 5987
+      }
+    ],
+    "queue_len": 0
+  },
+  "samples": [
+    {
+      "at": "2026-07-21T16:56:32.164Z",
+      "elapsed_ms": 5138,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:56:36.636Z",
+      "elapsed_ms": 9610,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:56:41.034Z",
+      "elapsed_ms": 14008,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:56:45.431Z",
+      "elapsed_ms": 18405,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:56:49.883Z",
+      "elapsed_ms": 22857,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:56:54.320Z",
+      "elapsed_ms": 27294,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:56:58.754Z",
+      "elapsed_ms": 31728,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:03.237Z",
+      "elapsed_ms": 36211,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:07.632Z",
+      "elapsed_ms": 40606,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:12.038Z",
+      "elapsed_ms": 45012,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:16.525Z",
+      "elapsed_ms": 49499,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:20.989Z",
+      "elapsed_ms": 53963,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:25.412Z",
+      "elapsed_ms": 58386,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:29.841Z",
+      "elapsed_ms": 62815,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:34.258Z",
+      "elapsed_ms": 67232,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:38.690Z",
+      "elapsed_ms": 71664,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:43.222Z",
+      "elapsed_ms": 76196,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:47.652Z",
+      "elapsed_ms": 80626,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:52.051Z",
+      "elapsed_ms": 85025,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:57:56.475Z",
+      "elapsed_ms": 89449,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:00.878Z",
+      "elapsed_ms": 93852,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:05.278Z",
+      "elapsed_ms": 98252,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:09.686Z",
+      "elapsed_ms": 102660,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:14.088Z",
+      "elapsed_ms": 107062,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:18.502Z",
+      "elapsed_ms": 111476,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:22.947Z",
+      "elapsed_ms": 115921,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:27.341Z",
+      "elapsed_ms": 120315,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:32.049Z",
+      "elapsed_ms": 125023,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:36.465Z",
+      "elapsed_ms": 129439,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:40.865Z",
+      "elapsed_ms": 133839,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:45.279Z",
+      "elapsed_ms": 138253,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:49.705Z",
+      "elapsed_ms": 142679,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:54.147Z",
+      "elapsed_ms": 147121,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:58:58.561Z",
+      "elapsed_ms": 151535,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:59:02.971Z",
+      "elapsed_ms": 155945,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:59:07.393Z",
+      "elapsed_ms": 160367,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:59:11.832Z",
+      "elapsed_ms": 164806,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:59:16.235Z",
+      "elapsed_ms": 169209,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:59:20.643Z",
+      "elapsed_ms": 173617,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:59:25.110Z",
+      "elapsed_ms": 178084,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    },
+    {
+      "at": "2026-07-21T16:59:29.531Z",
+      "elapsed_ms": 182505,
+      "isActive": true,
+      "islinked": true,
+      "queue_len": 0,
+      "fresh_count": 0,
+      "fresh": []
+    }
+  ],
+  "first_new_execution": null,
+  "success_execution": null,
+  "failed_execution": null,
+  "final_scenario": {
+    "http": 200,
+    "isActive": true,
+    "islinked": true,
+    "name": "Whatsapp Bot",
+    "hookId": 2567320,
+    "at": "2026-07-21T16:59:29.658Z"
+  },
+  "module_logs": {
+    "58": [
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:56:30.277Z",
+        "error": null,
+        "executionId": "c2908321c7cf4e64a4f128deab97df43"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:56:12.620Z",
+        "error": null,
+        "executionId": "71d4cf49f7784fd9857867296d45624c"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:50:02.086Z",
+        "error": null,
+        "executionId": "da6c48bb91f9413c9b7e0a84f9ec4191"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:49:45.666Z",
+        "error": null,
+        "executionId": "2907971c7bd74b1798afd36703a3780d"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:49:32.692Z",
+        "error": null,
+        "executionId": "eec53f58fcbf462ab4bf55e88b6a561b"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:47:56.827Z",
+        "error": null,
+        "executionId": "53803e8f05194349a8d0b676dafd390e"
+      }
+    ],
+    "84": [
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:56:21.956Z",
+        "error": null,
+        "executionId": "ea3b5f4a63ee4a479e07643569f65969"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:55:59.759Z",
+        "error": null,
+        "executionId": "2fdbcfccf27543729020410e01930c77"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:49:52.356Z",
+        "error": null,
+        "executionId": "e2a8b031508e42039178b50d55591ad3"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:49:37.206Z",
+        "error": null,
+        "executionId": "a9fe29a20f984e668a767a22b64d81a7"
+      }
+    ],
+    "87": [
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:56:22.714Z",
+        "error": null,
+        "executionId": "ea3b5f4a63ee4a479e07643569f65969"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:56:00.563Z",
+        "error": null,
+        "executionId": "2fdbcfccf27543729020410e01930c77"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:49:53.094Z",
+        "error": null,
+        "executionId": "e2a8b031508e42039178b50d55591ad3"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:49:37.930Z",
+        "error": null,
+        "executionId": "a9fe29a20f984e668a767a22b64d81a7"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:49:25.374Z",
+        "error": null,
+        "executionId": "59047b055e1a4947ad3a2653704496fc"
+      },
+      {
+        "status": 1,
+        "timestamp": "2026-07-21T16:47:48.882Z",
+        "error": null,
+        "executionId": "17f6703458ea423ab025e5ad0a9bdfa5"
+      }
+    ]
+  },
+  "reply_evidence": null,
+  "module_errors_during_watch": [],
+  "answers": {
+    "1_stayed_active": {
+      "yes": true,
+      "baseline": {
+        "http": 200,
+        "isActive": true,
+        "islinked": true,
+        "name": "Whatsapp Bot",
+        "hookId": 2567320,
+        "at": "2026-07-21T16:56:27.354Z"
+      },
+      "final": {
+        "http": 200,
+        "isActive": true,
+        "islinked": true,
+        "name": "Whatsapp Bot",
+        "hookId": 2567320,
+        "at": "2026-07-21T16:59:29.658Z"
+      },
+      "dipped_inactive": false
+    },
+    "2_message_entered_scenario": {
+      "yes": false,
+      "first_new_execution": null
+    },
+    "3_bot_replied": {
+      "yes": false,
+      "success_execution": null,
+      "gupshup_87": null,
+      "note_he": "לא זוהתה ריצת הצלחה בחלון הניטור — אולי ההודעה עדיין לא נשלחה / לא הגיעה."
+    },
+    "4_timing_ms": null,
+    "5_module_errors": {
+      "any": false,
+      "items": [],
+      "failed_execution": null
+    },
+    "6_stable_after_reply": {
+      "yes": true,
+      "final": {
+        "http": 200,
+        "isActive": true,
+        "islinked": true,
+        "name": "Whatsapp Bot",
+        "hookId": 2567320,
+        "at": "2026-07-21T16:59:29.658Z"
+      }
+    }
+  }
+}

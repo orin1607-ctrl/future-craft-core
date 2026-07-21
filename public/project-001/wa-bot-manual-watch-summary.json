@@ -1,0 +1,16 @@
+{
+  "id": "wa-bot-manual-watch-summary",
+  "at": "2026-07-21T16:56:27.025Z",
+  "watch_started_at": "2026-07-21T16:56:27.026Z",
+  "no_changes": true,
+  "answers": {
+    "stayed_active": true,
+    "message_entered": false,
+    "bot_replied": false,
+    "timing_make_ms": null,
+    "module_errors": false,
+    "stable_after": true
+  },
+  "success_execution": null,
+  "detail_he": "לא זוהתה ריצת הצלחה בחלון הניטור — אולי ההודעה עדיין לא נשלחה / לא הגיעה."
+}
