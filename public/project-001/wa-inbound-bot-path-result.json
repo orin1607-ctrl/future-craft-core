@@ -986,16 +986,22 @@
     "1_scenario_active_now": "NO — Whatsapp Bot is OFF (isActive=false). Inbound will queue on webhook and will not run.",
     "2_inbound_reaches_webhook_realtime": "YES — Hook 2567320 has 5 inbound message event(s) in last 24h logs (Owner samples: 5). Gupshup→Make webhook delivery works when messages arrive.",
     "3_runs_immediately_or_queues": "NOT reliably immediate — isActive=false, islinked=false, queueCount=3, list_count=3. Offline scenario → queue; Active with backlog → delayed burst.",
-    "4_where_scenario_stops_or_fails": "Failures seen in execution details: [{\"execution\":\"1b29875305b8427487e8ab9d2a83a5df\",\"error\":{\"name\":\"DataError\",\"message\":\"Failed to map 'data': Function 'toJSON' not found!\"}},{\"execution\":\"75289058\",\"error\":\"Bad Request\"},{\"execution\":\"50992ae9c5da4f6aae7e5e0207478f02\",\"error\":{\"name\":\"DataError\",\"message\":\"Failed to map 'data': Function 'toJSON' not found!\"}},{\"execution\":\"0e5176952da9402d9a66668fdb7aeaff\",\"error\":{\"name\":\"DataError\",\"message\":\"Failed to map 'data': Function 'toJSON' not found!\"}},{\"execution\":\"ab035f855a6f4eeb80c92e7299de1b4a\",\"error\":{\"name\":\"DataError\",\"message\":\"Failed to map 'data': Function 'toJSON' not found!\"}},{\"execution\":\"69d5bf24428144528a76646ead97820b\",\"error\":{\"name\":\"DataError\",\"message\":\"Failed to map 'data': Function 'toJSON' not found!\"}}]",
-    "5_why_no_bot_reply": "Reply modules exist but replies are not reaching you — see failures/DLQ/queue delay. Also confirm reply module actually calls Gupshup/WhatsApp send.",
+    "4_where_scenario_stops_or_fails": "STOPS at module 98 «Forward DLR to Supabase Staging» (http:ActionSendData). Repeated DataError: Failed to map 'data': Function 'toJSON' not found! Because this module was inserted immediately after the Custom Webhook, the error aborts the whole scenario BEFORE Router / AI Agent / Gupshup reply modules (84/63/87/58) run. Also right now isActive=false so new events only sit in webhook queue (3 waiting).",
+    "5_why_no_bot_reply": "Three stacked causes: (1) Whatsapp Bot is OFF now → inbound «היי» at 13:41:51Z is sitting in queue (id 8298bf0…), not processed; (2) When scenario WAS briefly Active, runs failed on module 98 toJSON mapping — chatbot path never reached; (3) Earlier today 4 Owner inbounds were deleted with the 15-item queue clear, so those events never got replies. Reply modules DO exist (AI Agent + Gupshup /wa/api/v1/msg) but they are downstream of the broken forward module.",
     "6_was_e2e_clean_queue_old_queued": "NO — it was NOT an old queued bot reply. It was our Staging E2E outbound test at ~12:55:37Z (msgid 346d6d28-9266-42ae-a0c3-6e4f0bd0a06f) via Edge send-whatsapp-message → Gupshup → your phone. Text: «E2E clean-queue Staging 2026-07-21T12:55:37.518Z». Late receipt = Meta delivery lag (sent without delivered), not Make releasing a queued chatbot answer.",
     "7_what_to_fix_for_seconds_reply": [
-      "Keep Whatsapp Bot Active + linked at all times if this hook is the live Gupshup callback (or split: dedicated DLR scenario vs dedicated chatbot).",
-      "Do not delete inbound incomings if you expect bot replies — only clear DLR backlog, or process inbound first.",
-      "If you want real chatbot answers within seconds: add/restore a reply path (Router: messages vs statuses → reply only on messages; DLR only forward statuses) OR separate scenarios/hooks.",
-      "Never route Production go-live on a scenario that only forwards DLR and has no reply module.",
-      "Monitor hook queueCount=0 and scenario isActive after every change."
+      "Turn Whatsapp Bot ON and keep it Active+linked whenever Gupshup points at this hook.",
+      "Fix or relocate module 98: replace {{toJSON(1)}} with a Make-valid body mapping (or dedicated DLR-only scenario) so it cannot abort the bot path.",
+      "Prefer Router early: statuses → DLR forward only; messages → Sheets/AI/Gupshup reply. Never let DLR-forward failure kill inbound replies.",
+      "Do not delete inbound incomings while expecting replies; clear DLR-only or process inbound first.",
+      "After fix: queueCount must stay 0 and a test «היי» should get AI/Gupshup reply within seconds — still Staging only, no Production until proven."
     ]
   },
-  "verdict_he": "הודעת E2E clean-queue אינה תשובת בוט — זו שליחת בדיקת Staging שלנו. הבוט לא עונה כי תרחיש Whatsapp Bot כרגע משמש בעיקר כמקבל Webhook+העברת DLR ל-Supabase, לא כצ׳אטבוט שמשיב. בנוסף, כשהתרחיש היה כבוי הודעות נכנסו לתור; חלקן נמחקו בניקוי 15 הפריטים. אין Production."
+  "verdict_he": "הבוט לא עונה כי (א) התרחיש כבוי עכשיו והודעות נכנסות לתור; (ב) כשהוא כן רץ — מודול 98 (Forward DLR) נופל על toJSON ועוצר לפני AI/Gupshup; (ג) הודעת E2E clean-queue היא בדיקת Staging שלנו, לא תשובת בוט. אין Production / אין שליחות חדשות.",
+  "root_cause_stack": {
+    "primary_runtime_blocker_now": "scenario_isActive=false + queue=3",
+    "primary_when_active": "module_98_toJSON_DataError_aborts_before_reply",
+    "e2e_message": "staging_outbound_test_not_bot_reply",
+    "production_touched": false
+  }
 }
