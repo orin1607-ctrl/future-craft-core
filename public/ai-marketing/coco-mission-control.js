@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'UI E2E OK: FLT-2026-000003 via /faults as יוני — WA+Email sent (Staging)',
+    latestFocus: 'ארכיטקטורה מאושרת בדוח · אפיון WA חד-כיווני ממתין לאישור Owner (אין יישום)',
   };
 
   var STAGES = [
@@ -255,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>E2E התראות דרך ממשק Staging כמנהל על יוני — תקלה FLT-2026-000003 · WA+Email נשלחו</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../WA-UI-ALERT-E2E-HE.md · project-001/wa-ui-alert-e2e-summary.json · צילומים ui-alert-e2e/</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>1. בדוק WhatsApp 0534338601 2. בדוק מייל orin1607@gmail.com 3. פתח /faults לאירוע</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>UI /faults → notify-accident-email → Gupshup + Resend · לא קריאה ישירה מסקריפט</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'מסלול התראות מלא עבר ב-Staging דרך התוכנה') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>WA msg f8642799… · Email b64b737e… · status sent</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אישור קבלה בטלפון + בתיבת המייל (לא Production)</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>דוח אישור ארכיטקטורה + דוח שימוש + אפיון WA התראות חד-כיווניות (ממתין לאישור)</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../INCIDENT-ALERTS-ARCHITECTURE-CONFIRM-HE.md · WA-ALERT-ONE-WAY-SPEC-HE.md</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>מנגנון קיים: תקלה/תאונה (+VehicleActionModal). לא תביעה/חירום. אפיון חד-כיווני: אשר A/B/C</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>קיים: UI→notify-accident-email. מוצע: סימון ב-Edge + Ignore ב-Make על Reply להתראה</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'אין שינוי קוד — דוחות אפיון בלבד') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>E2E קודם OK · מנגנון חדש: לא נבנה</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אישור אפיון חד-כיווני (A/B/C) לפני כל שינוי</div>' +
         '</div>' +
       '</div>'
     );

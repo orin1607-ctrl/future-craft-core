@@ -1,0 +1,17 @@
+{
+  "id": "wa-alert-one-way-spec",
+  "at": "2026-07-21T17:45:00.000Z",
+  "status": "awaiting_owner_approval",
+  "implemented": false,
+  "production_touched": false,
+  "new_mechanism": false,
+  "architecture_confirm_doc": "docs/audit-reports/claims-incident-process/INCIDENT-ALERTS-ARCHITECTURE-CONFIRM-HE.md",
+  "spec_doc": "docs/audit-reports/claims-incident-process/WA-ALERT-ONE-WAY-SPEC-HE.md",
+  "proposed": {
+    "edge_marker_in_buildMessageText": true,
+    "make_bot_ignore_reply_to_alert": true,
+    "scenario_id": "5797671",
+    "lookup_table": "incident_notification_deliveries"
+  },
+  "owner_choices": ["A_approve", "B_approve_with_changes", "C_reject"]
+}
