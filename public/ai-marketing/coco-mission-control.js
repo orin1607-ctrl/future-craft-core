@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'WA התראות חד-כיווניות — Staging E2E OK (Reply→skip, היי→bot); לא Production',
+    latestFocus: 'דוח פריסה סופי מוכן — ממתין ל«אשר Production» (אין פריסה)',
   };
 
   var STAGES = [
@@ -255,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>התראות WA חד-כיווניות ב-Staging: Reply לפי Message ID→skip · «היי»→בוט · Footer בהתראה</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../WA-ALERT-ONE-WAY-HE.md · project-001/wa-alert-one-way-summary.json · Make 5797671</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>תקלה/תאונה שולחות התראה חד-כיוונית; צ׳אט בוט רק בהודעה חדשה (לא Reply)</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>notify footer + gupshup-webhook check_system_alert + Make Router yes/no</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'E2E: Reply ~1.3ש׳ בלי בוט · היי עם AI+Gupshup · Active · תור ריק') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>Staging OK · Production לא</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אישור Production (אם רצוי) — כרגע Staging בלבד</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>דוח פריסה סופי ל-Production (ללא ביצוע) — רכיבים · Secrets · Rollback · Checklist</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../PRODUCTION-DEPLOY-READINESS-FINAL-HE.md · project-001/production-deploy-readiness-final.json</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>לקרוא דוח → להשלים Secrets → לכתוב «אשר Production» רק כשמוכן</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Staging הושלם; Make Bot כבר חי; Prod Edge/Frontend/Secrets ממתינים לאישור</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'אין פריסת Production — דוח מוכנות בלבד') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>Staging one-way OK · תביעות: לא שונה · מנגנון חדש: לא</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>GUPSHUP_API_KEY ב-Prod + אימות token; ואז במפורש: אשר Production</div>' +
         '</div>' +
       '</div>'
     );

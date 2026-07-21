@@ -1,0 +1,21 @@
+{
+  "id": "production-deploy-readiness-final",
+  "at": "2026-07-21T20:55:00.000Z",
+  "production_executed": false,
+  "awaiting_owner_phrase": "אשר Production",
+  "staging_complete": true,
+  "claims_module_changed": false,
+  "new_alert_mechanism": false,
+  "head_commit": "8b25053",
+  "blocking_secrets_prod": [
+    "GUPSHUP_API_KEY",
+    "SUPABASE_ACCESS_TOKEN_verify_not_401"
+  ],
+  "components": {
+    "edge": ["notify-accident-email", "gupshup-webhook"],
+    "make_bot": "5797671",
+    "make_dlr": "9553017",
+    "frontend": "dalia-car.online via deploy-production-vps"
+  },
+  "report_doc": "docs/audit-reports/claims-incident-process/PRODUCTION-DEPLOY-READINESS-FINAL-HE.md"
+}
