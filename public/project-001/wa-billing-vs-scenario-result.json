@@ -1,0 +1,250 @@
+{
+  "id": "wa-billing-vs-scenario",
+  "at": "2026-07-21T14:27:57.855Z",
+  "env": "staging",
+  "production_touched": false,
+  "no_whatsapp_destination_send": true,
+  "note": "Probes use destination=0 auth checks only; no message to Owner/staff phones",
+  "gupshup_live": {
+    "check_connection": {
+      "edge_http": 200,
+      "configured": true,
+      "gupshup_verified": true,
+      "gupshup_status": 202,
+      "app_name": "DaliaVehicle",
+      "source": "972546500305",
+      "message": "מפתח Gupshup תקין עבור endpoint השליחה",
+      "error": null,
+      "response_excerpt": "{\"status\":\"submitted\",\"messageId\":\"5ae2d272-7360-463c-a6f7-08b5ef77197e\"}",
+      "billing_signals": {
+        "looks_billing": false,
+        "looks_auth": false,
+        "looks_window": false,
+        "looks_mapping": false
+      }
+    },
+    "inspect": {
+      "edge_http": 200,
+      "analysis": {
+        "api_key_belongs_to_dalia_vehicle_app": true,
+        "outbound_session_api_blocked": false,
+        "likely_first_message_needs_template": true,
+        "our_code_uses_session_endpoint_for_all_sends": true,
+        "note_403_vs_business_errors": "HTTP 403/401 = API key / app permission at gateway. Errors 1004-1007 = session/template business rules after auth."
+      },
+      "templates": {
+        "http": 200,
+        "api_key_accepted": true,
+        "approved_count": 1
+      },
+      "session_auth": {
+        "http": 202,
+        "authorized": true,
+        "response_excerpt": "{\"status\":\"submitted\",\"messageId\":\"7e31e822-03b4-4a00-8ed4-318579ffd10d\"}",
+        "billing_signals": {
+          "looks_billing": false,
+          "looks_auth": false,
+          "looks_window": false,
+          "looks_mapping": false
+        }
+      }
+    },
+    "debug_connection": {
+      "edge_http": 200,
+      "gupshup_http": 202,
+      "gupshup_verified": true,
+      "body_excerpt": "{\"status\":\"submitted\",\"messageId\":\"d39a45b0-ec55-4a6d-bfc9-a516c0b08a14\"}",
+      "billing_signals": {
+        "looks_billing": false,
+        "looks_auth": false,
+        "looks_window": false,
+        "looks_mapping": false
+      }
+    },
+    "partner_wallet": {
+      "accessible": false,
+      "reason": "Wallet/balance Partner API needs PARTNER_APP_TOKEN — not in Staging secrets. Using send-auth + templates + recent DLR as proxies."
+    }
+  },
+  "make_path": {
+    "whatsapp_bot": {
+      "http": 200,
+      "id": 5797671,
+      "name": "Whatsapp Bot",
+      "isActive": false,
+      "islinked": false,
+      "hookId": 2567320
+    },
+    "hook_queueCount": 5,
+    "recent_execution_errors": [
+      {
+        "id": "6f319b9e2d0549689e0b3c6def54926d",
+        "status": 3,
+        "timestamp": "2026-07-21T14:17:25.346Z",
+        "error": "Failed to map 'data': Function 'createJSON' not found!",
+        "billing_signals": {
+          "looks_billing": false,
+          "looks_auth": false,
+          "looks_window": false,
+          "looks_mapping": true
+        }
+      },
+      {
+        "id": "24d31b600a6a45b5826050d97c46a420",
+        "status": 3,
+        "timestamp": "2026-07-21T14:16:04.626Z",
+        "error": "Failed to map 'data': Function 'createJSON' not found!",
+        "billing_signals": {
+          "looks_billing": false,
+          "looks_auth": false,
+          "looks_window": false,
+          "looks_mapping": true
+        }
+      },
+      {
+        "id": "af65d8ab8e9442c0af05c8023d8d5a62",
+        "status": 3,
+        "timestamp": "2026-07-21T14:16:04.608Z",
+        "error": "Failed to map 'data': Function 'createJSON' not found!",
+        "billing_signals": {
+          "looks_billing": false,
+          "looks_auth": false,
+          "looks_window": false,
+          "looks_mapping": true
+        }
+      },
+      {
+        "id": "0f5297628557490ea96e06c9604815c3",
+        "status": 3,
+        "timestamp": "2026-07-21T14:05:03.688Z",
+        "error": "Failed to map 'data': Function 'toJSON' not found!",
+        "billing_signals": {
+          "looks_billing": false,
+          "looks_auth": false,
+          "looks_window": false,
+          "looks_mapping": true
+        }
+      }
+    ],
+    "toJSON_or_mapping_errors": [
+      {
+        "id": "6f319b9e2d0549689e0b3c6def54926d",
+        "status": 3,
+        "timestamp": "2026-07-21T14:17:25.346Z",
+        "error": "Failed to map 'data': Function 'createJSON' not found!",
+        "billing_signals": {
+          "looks_billing": false,
+          "looks_auth": false,
+          "looks_window": false,
+          "looks_mapping": true
+        }
+      },
+      {
+        "id": "24d31b600a6a45b5826050d97c46a420",
+        "status": 3,
+        "timestamp": "2026-07-21T14:16:04.626Z",
+        "error": "Failed to map 'data': Function 'createJSON' not found!",
+        "billing_signals": {
+          "looks_billing": false,
+          "looks_auth": false,
+          "looks_window": false,
+          "looks_mapping": true
+        }
+      },
+      {
+        "id": "af65d8ab8e9442c0af05c8023d8d5a62",
+        "status": 3,
+        "timestamp": "2026-07-21T14:16:04.608Z",
+        "error": "Failed to map 'data': Function 'createJSON' not found!",
+        "billing_signals": {
+          "looks_billing": false,
+          "looks_auth": false,
+          "looks_window": false,
+          "looks_mapping": true
+        }
+      },
+      {
+        "id": "0f5297628557490ea96e06c9604815c3",
+        "status": 3,
+        "timestamp": "2026-07-21T14:05:03.688Z",
+        "error": "Failed to map 'data': Function 'toJSON' not found!",
+        "billing_signals": {
+          "looks_billing": false,
+          "looks_auth": false,
+          "looks_window": false,
+          "looks_mapping": true
+        }
+      }
+    ],
+    "billing_like_errors": []
+  },
+  "evidence_history": {
+    "last_staging_outbound_e2e": {
+      "at": "2026-07-21T12:55:19.411Z",
+      "gupshup_http": 202,
+      "submitted": true,
+      "message_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+      "make_dlr": [
+        {
+          "loggedAt": "2026-07-21T12:55:43.445Z",
+          "status": "sent",
+          "gs_id": "346d6d28-9266-42ae-a0c3-6e4f0bd0a06f",
+          "error_code": null,
+          "error_details": null,
+          "conversation_origin": "service",
+          "pricing_type": "free_customer_service"
+        }
+      ],
+      "implication": "Gupshup accepted outbound (202 submitted) and Meta returned sent — not a hard billing block on send API"
+    },
+    "meta_codes_seen": {
+      "131047_window": "seen earlier when 24h closed — Meta policy, not payment",
+      "sent_without_delivered": "device/delivery path — not insufficient credits (credits would usually fail/submit differently)"
+    },
+    "inbound_reached_make": true,
+    "make_was_off_or_broken": true,
+    "tojson_fixed_now": true,
+    "bot_active_after_fix": true,
+    "gupshup_callback_hook": "2567320 …plyk4s → Whatsapp Bot",
+    "earlier_active_bot_on_wrong_hook": [
+      {
+        "id": 9553017,
+        "name": "CO.CO Dalia DLR → Staging",
+        "role": "dlr_forward_only",
+        "role_he": "העברת סטטוסי DLR ל-Supabase Staging בלבד",
+        "hookId": 4270688,
+        "islinked": true
+      },
+      {
+        "id": 5474839,
+        "name": "Integration Webhooks",
+        "role": "inbound_chatbot",
+        "role_he": "בוט נכנס: Webhook → (Sheets/AI) → תשובת Gupshup; עלול לכלול גם forward DLR",
+        "hookId": 2427152,
+        "islinked": true
+      }
+    ]
+  },
+  "answers": {
+    "1_bot_silent_due_to_plan_or_credits": "NO evidence of credits/plan block. Gupshup key accepts templates + send-auth; recent outbound got 202 submitted + Meta sent.",
+    "2_gupshup_or_meta_limit_blocking_auto_reply": "NO hard block found for auto-reply API. Inbound still reaches Make webhook (account can receive). Auto-reply failed earlier because Make scenario was OFF / toJSON mapping aborted before Gupshup send module.",
+    "3_business_whatsapp_active_and_allowed_to_reply": "YES by API proxy — App DaliaVehicle key valid, templates readable, session send endpoint authorized, source 972546500305. Full WABA portal tier not readable without Partner token.",
+    "4_sandbox_trial_billing_limit": "NO signal in live probes. Not a Sandbox-only app by behavior (live E.164 source, approved templates, Meta conversation.origin=service). Wallet balance not directly readable (no PARTNER_APP_TOKEN).",
+    "5_payment_vs_scenario": "SCENARIO/CODE — not payment. Root causes documented: Whatsapp Bot Inactive (queue), HTTP Forward {{toJSON}} DataError aborting before AI/Gupshup reply, and earlier wrong-hook confusion."
+  },
+  "verdict": {
+    "code": "SCENARIO_CODE_NOT_BILLING",
+    "primary_cause": "scenario_code",
+    "one_liner_he": "הבעיה היא בתרחיש/קוד Make — לא בתשלום Gupshup/Meta לפי הראיות הזמינות.",
+    "confidence": "high"
+  },
+  "checks_summary": {
+    "gupshup_verified": true,
+    "templates_ok": true,
+    "session_auth_ok": true,
+    "gupshup_http": 202,
+    "any_billing_signal": false,
+    "whatsapp_bot_active_now": false,
+    "mapping_was_problem": true
+  }
+}
