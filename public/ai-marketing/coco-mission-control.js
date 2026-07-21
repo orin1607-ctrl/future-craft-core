@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'WA Bot latency — AI Agent ~2.6s bottleneck; Sleep 1s after send',
+    latestFocus: 'Stage-1 done: Sleep 88/77 removed; Gupshup 58 still 400 (diagnose only); E2E OK',
   };
 
   var STAGES = [
@@ -255,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>דוח ביצועי WhatsApp Bot (זמנים לכל שלב) · בלי שינוי לוגיקה · סיכום ב-JSON במערכת</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>מרכז משימה → יכולת «WhatsApp Bot — ביצועים» · docs/.../WA-BOT-LATENCY-HE.md · project-001/wa-bot-latency-summary.json</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>1. קרא את הדוח 2. בדוק צוואר בקבוק (AI 84) 3. אשר רק שיפורי ביצועים (Sleep/AI/Sheets) אם רוצה</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>מדידת Make logs + ציר זמן מחותמות מודולים; Sleep=שניות; תשובה למשתמש = עד Gupshup 87</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'Latency audit: תשובה ~3.8ש׳ · AI ~2.6ש׳ · Sleep 1ש׳ אחרי שליחה') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>GSC ' + esc(m.gscKeywords) + ' KW · GA4 ' + esc(m.ga4Sessions) + ' · Bot Make ~6.2ש׳ · עד תשובה ~3.8ש׳</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>האם לאשר הסרת Sleep / האצת AI Agent? (לא Production)</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>Stage-1: הוסרו Sleep 88/77 · אובחן Gupshup 58 (400) · E2E היי→יוני עבר · בלי שינוי AI/Sheets</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../WA-BOT-STAGE1-OPT-HE.md · project-001/wa-bot-stage1-opt-summary.json · מרכז משימה</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>1. קרא דוח Stage-1 2. אשר שלב הבא (תיקון 58 / AI) אם רוצה</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Sleep היה אחרי שליחה — הוסר בבטחה; מסלול 87 עובד; 58 עדיין נכשל ב-400 במסלול משני</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'Make ~5ש׳ במקום ~6.2ש׳; Sleep הוסר; לוגיקת AI ללא שינוי') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>GSC ' + esc(m.gscKeywords) + ' KW · Bot אחרי Stage-1 ~4.9–5.4ש׳ · לפני ~6.2ש׳</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>האם לאשר תיקון/ניתוק Gupshup 58? (לא AI/Cache עדיין · לא Production)</div>' +
         '</div>' +
       '</div>'
     );

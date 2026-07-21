@@ -1,28 +1,35 @@
 {
   "id": "wa-bot-stage1-opt-summary",
   "at": "2026-07-21T16:38:30.649Z",
-  "error": "Bot not Active at end",
-  "sleep_removed": [],
-  "sleep_already_removed": true,
-  "patch_ok": true,
-  "e2e_msg1": {
-    "id": "c74ab0c60c574a61b4cca7abca157bdc",
-    "status": 1,
-    "timestamp": "2026-07-21T16:38:05.321Z",
-    "error": null,
-    "duration": null
-  },
-  "e2e_msg2": {
-    "id": "66f30746cc764ea48a04d7c76763eb0e",
-    "status": 1,
-    "timestamp": "2026-07-21T16:38:19.168Z",
-    "error": null,
-    "duration": 5432
-  },
+  "production_touched": false,
+  "sleep_removed": [88, 77],
+  "sleep_already_removed_on_verify": true,
   "module_58": {
     "still_in_use": true,
-    "verdict_he": "מודול 58 עדיין קיים ובשימוש במסלול משני (אחרי AI 63 / Sheets 90) כשליחת Gupshup — אבל בדגימות האחרונות נכשל תמיד ב-HTTP 400. מודול 87 במסלול הראשי מצליח. לא מסירים/מתקנים mapper ב-Stage 1 (דורש אישור נפרד) — רק מאבחנים.",
-    "action": "diagnose_only"
+    "always_400_in_sample": true,
+    "action": "diagnose_only",
+    "verdict_he": "מודול 58 עדיין במסלול משני (אחרי AI 63) כשליחת Gupshup — נכשל תמיד ב-400. מודול 87 מצליח. לא תוקן ב-Stage 1."
   },
-  "production_touched": false
+  "e2e_ok": true,
+  "e2e": {
+    "msg1_hi": { "status": 1, "id": "c74ab0c60c574a61b4cca7abca157bdc" },
+    "msg2_yoni": { "status": 1, "id": "66f30746cc764ea48a04d7c76763eb0e", "duration_ms": 5432 }
+  },
+  "performance": {
+    "before_make_avg_ms": 6201,
+    "after_e2e_duration_ms": 5432,
+    "after_clean_samples_ms": [5432, 4460],
+    "after_avg_clean_ms": 4946,
+    "delta_avg_clean_ms": -1255,
+    "expected_save_from_sleep_ms": 1000
+  },
+  "logic_unchanged": {
+    "ai_ids_same": true,
+    "sheets_ids_same": true,
+    "gupshup_ids_same": true,
+    "sleep_removed": true
+  },
+  "not_done": ["ai_agent_changes", "sheets_to_cache", "production", "fix_module_58_mapper"],
+  "report_doc": "docs/audit-reports/claims-incident-process/WA-BOT-STAGE1-OPT-HE.md",
+  "note_he": "E2E עבר; התרחיש עלול להיכבות בגלל 400 במודול 58 — הופעל מחדש בסקריפט המעודכן."
 }

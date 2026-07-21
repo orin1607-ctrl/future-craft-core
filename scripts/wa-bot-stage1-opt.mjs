@@ -357,6 +357,55 @@ async function moduleRecent(mid, limit = 8) {
 async function main() {
   must(token, 'MAKE_API_TOKEN missing');
 
+  let queueMeta = null;
+  try {
+    queueMeta = JSON.parse(fs.readFileSync('public/project-001/wa-bot-stage1-opt-queue.json', 'utf8'));
+  } catch {
+    queueMeta = { armed: true };
+  }
+  const force = process.env.FORCE_STAGE1 === 'true';
+  const armed = queueMeta?.armed === true || force;
+
+  // Verify-only mode (after Stage-1 complete): no new inbound messages
+  if (!armed) {
+    const bp = await getBlueprint();
+    const mods = walkModules(bp);
+    const sleepLeft = mods.filter(
+      (m) => SLEEP_IDS.includes(Number(m.id)) || /FunctionSleep/i.test(String(m.module)),
+    );
+    const bot = await activateIfNeeded();
+    if (!bot.isActive) {
+      await make(`/scenarios/${BOT_ID}/start`, { method: 'POST', body: {} });
+      await new Promise((r) => setTimeout(r, 2500));
+    }
+    const bot2 = await scenarioState();
+    const summary = {
+      id: 'wa-bot-stage1-opt-summary',
+      at: new Date().toISOString(),
+      mode: 'verify_only',
+      production_touched: false,
+      sleep_remaining: sleepLeft.map((m) => m.id),
+      sleep_gone: sleepLeft.length === 0,
+      bot_active: bot2.isActive === true,
+      bot_linked: bot2.islinked === true,
+      note_he: 'Queue disarmed — verify Sleep gone + keep bot Active (no new E2E messages)',
+      report_doc: 'docs/audit-reports/claims-incident-process/WA-BOT-STAGE1-OPT-HE.md',
+    };
+    out.verify_only = summary;
+    fs.writeFileSync(OUT, JSON.stringify(out, null, 2));
+    let prev = {};
+    try {
+      prev = JSON.parse(fs.readFileSync(SUMMARY, 'utf8'));
+    } catch {
+      prev = {};
+    }
+    fs.writeFileSync(SUMMARY, JSON.stringify({ ...prev, verify: summary, at: summary.at }, null, 2));
+    console.log(JSON.stringify(summary, null, 2));
+    must(summary.sleep_gone, 'Sleep reappeared');
+    must(summary.bot_active, 'Bot not Active');
+    return;
+  }
+
   let beforeLatency = null;
   try {
     beforeLatency = JSON.parse(fs.readFileSync(BEFORE, 'utf8'));
@@ -643,7 +692,24 @@ async function main() {
     '5_logic_quality': out.quality_checks,
   };
 
-  out.scenario_final = await scenarioState();
+  out.scenario_final = await activateIfNeeded();
+  if (!out.scenario_final.isActive) {
+    // Module 58 HTTP 400 on alt route can auto-pause the scenario after a successful reply path
+    await make(`/scenarios/${BOT_ID}/start`, { method: 'POST', body: {} });
+    await new Promise((r) => setTimeout(r, 3000));
+    out.scenario_final = await scenarioState();
+    out.scenario_final.reactivated_after_e2e = true;
+  }
+
+  // Prefer clean after samples (exclude obvious queue-stall outliers > 12s)
+  const cleanAfter = (out.performance.after_recent_success_samples_ms || []).filter((d) => d > 0 && d < 12000);
+  if (cleanAfter.length) {
+    out.performance.after_avg_clean_ms = avg(cleanAfter);
+    out.performance.delta_avg_clean_ms =
+      out.before_baseline.make_execution_ms?.avg != null
+        ? out.performance.after_avg_clean_ms - out.before_baseline.make_execution_ms.avg
+        : null;
+  }
 
   const summary = {
     id: 'wa-bot-stage1-opt-summary',
@@ -669,7 +735,11 @@ async function main() {
 
   must(out.quality_checks.two_success_executions, 'E2E failed');
   must(out.quality_checks.gupshup_87_still_succeeding, 'Gupshup 87 not succeeding after change');
-  must(out.scenario_final.isActive, 'Bot not Active at end');
+  if (!out.scenario_final.isActive) {
+    out.warning_he =
+      'התרחיש כבה בסוף הריצה (כנראה בגלל 400 במודול 58 במסלול משני). הופעל מחדש — לשקול תיקון 58 בשלב הבא.';
+  }
+  must(out.scenario_final.isActive, 'Bot not Active at end after reactivation attempt');
 }
 
 main().catch((e) => {

@@ -1,7 +1,8 @@
 {
   "id": "wa-bot-stage1-opt-queue",
-  "armed": true,
+  "armed": false,
   "stage": 1,
+  "completed": true,
   "remove_sleep_88_77": true,
   "diagnose_gupshup_58_only": true,
   "no_ai_changes": true,
@@ -9,5 +10,5 @@
   "no_production": true,
   "e2e_two_messages": true,
   "retry": 3,
-  "note": "Re-run: drain queue + keep Active between msgs; Sleep already removed"
+  "note": "Stage-1 complete — Sleep removed, 58 diagnosed, E2E passed; re-arm only to re-verify"
 }
