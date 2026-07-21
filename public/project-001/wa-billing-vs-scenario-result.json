@@ -246,5 +246,11 @@
     "any_billing_signal": false,
     "whatsapp_bot_active_now": false,
     "mapping_was_problem": true
+  },
+  "owner_facing": {
+    "verdict_he": "הבעיה בתרחיש/קוד Make — לא בתשלום.",
+    "confidence_now": "Whatsapp Bot isActive=false again; HTTP Forward still fails mapping (createJSON also not found) — still CODE not billing",
+    "account_alive": true,
+    "billing_signal": false
   }
 }
