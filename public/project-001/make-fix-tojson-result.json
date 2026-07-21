@@ -1,6 +1,6 @@
 {
   "id": "make-fix-tojson",
-  "at": "2026-07-21T14:16:00.388Z",
+  "at": "2026-07-21T14:17:13.273Z",
   "env": "staging_make_only",
   "production_touched": false,
   "no_whatsapp_send": true,
@@ -18,27 +18,9 @@
         "islinked": false,
         "hookId": 2567320
       },
-      "toJson_modules_before": [
-        {
-          "id": 98,
-          "module": "http:ActionSendData",
-          "name": "Forward DLR to Supabase Staging",
-          "data": "{{toJSON(1)}}"
-        }
-      ],
-      "remap_hits": [
-        {
-          "path": "bp.flow[1].mapper.data",
-          "from": "{{toJSON(1)}}",
-          "to": "{{createJSON(1)}}"
-        },
-        {
-          "path": "bp.flow[1].mapper.inputRaw",
-          "from": "{{toJSON(1)}}",
-          "to": "{{createJSON(1)}}"
-        }
-      ],
-      "patch_http": 200,
+      "toJson_modules_before": [],
+      "remap_hits": [],
+      "patch_http": null,
       "patch_ok": true,
       "patch_error": null,
       "still_has_toJSON": [],
@@ -61,27 +43,9 @@
         "islinked": true,
         "hookId": 4270688
       },
-      "toJson_modules_before": [
-        {
-          "id": 2,
-          "module": "http:ActionSendData",
-          "name": "Forward to Supabase Staging",
-          "data": "{{toJSON(1)}}"
-        }
-      ],
-      "remap_hits": [
-        {
-          "path": "bp.flow[1].mapper.data",
-          "from": "{{toJSON(1)}}",
-          "to": "{{createJSON(1)}}"
-        },
-        {
-          "path": "bp.flow[1].mapper.inputRaw",
-          "from": "{{toJSON(1)}}",
-          "to": "{{createJSON(1)}}"
-        }
-      ],
-      "patch_http": 200,
+      "toJson_modules_before": [],
+      "remap_hits": [],
+      "patch_http": null,
       "patch_ok": true,
       "patch_error": null,
       "still_has_toJSON": [],
@@ -107,38 +71,140 @@
     "ok": true
   },
   "bot_after_activate": {
-    "http": 429,
-    "isActive": false,
-    "islinked": false
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": true,
+    "islinked": true,
+    "hookId": 2567320
   },
   "verify": {
     "whatsapp_bot": {
-      "http": 429,
-      "recent": [],
-      "since_fix": [],
+      "http": 200,
+      "recent": [
+        {
+          "id": "75296257",
+          "timestamp": "2026-07-21T14:17:19.706Z",
+          "error": null
+        },
+        {
+          "timestamp": "2026-07-21T14:16:04.979Z",
+          "error": null
+        },
+        {
+          "id": "24d31b600a6a45b5826050d97c46a420",
+          "status": 3,
+          "timestamp": "2026-07-21T14:16:04.626Z",
+          "error": "Failed to map 'data': Function 'createJSON' not found!"
+        },
+        {
+          "id": "af65d8ab8e9442c0af05c8023d8d5a62",
+          "status": 3,
+          "timestamp": "2026-07-21T14:16:04.608Z",
+          "error": "Failed to map 'data': Function 'createJSON' not found!"
+        },
+        {
+          "id": "75296124",
+          "timestamp": "2026-07-21T14:16:02.230Z",
+          "error": null
+        },
+        {
+          "id": "75296122",
+          "timestamp": "2026-07-21T14:16:01.249Z",
+          "error": null
+        },
+        {
+          "timestamp": "2026-07-21T14:05:03.937Z",
+          "error": null
+        },
+        {
+          "id": "0f5297628557490ea96e06c9604815c3",
+          "status": 3,
+          "timestamp": "2026-07-21T14:05:03.688Z",
+          "error": "Failed to map 'data': Function 'toJSON' not found!"
+        },
+        {
+          "id": "75295071",
+          "timestamp": "2026-07-21T14:04:13.646Z",
+          "error": null
+        },
+        {
+          "timestamp": "2026-07-21T13:52:14.349Z",
+          "error": null
+        },
+        {
+          "id": "ec57a06983ca4521bbd9ebaa5c4781bb",
+          "status": 3,
+          "timestamp": "2026-07-21T13:52:14.073Z",
+          "error": "Failed to map 'data': Function 'toJSON' not found!"
+        },
+        {
+          "id": "c295649580904fb19494a87fcfe4ebd0",
+          "status": 3,
+          "timestamp": "2026-07-21T13:52:14.060Z",
+          "error": "Failed to map 'data': Function 'toJSON' not found!"
+        },
+        {
+          "id": "e5e08dc2c6c64dd1ab4e265bcc07c809",
+          "status": 3,
+          "timestamp": "2026-07-21T13:52:14.046Z",
+          "error": "Failed to map 'data': Function 'toJSON' not found!"
+        },
+        {
+          "id": "75294048",
+          "timestamp": "2026-07-21T13:51:46.990Z",
+          "error": null
+        },
+        {
+          "timestamp": "2026-07-21T13:51:07.977Z",
+          "error": null
+        }
+      ],
+      "since_fix": [
+        {
+          "id": "75296257",
+          "timestamp": "2026-07-21T14:17:19.706Z",
+          "error": null
+        }
+      ],
       "toJSON_errors_since_fix": []
     },
     "dlr_scenario": {
-      "http": 429,
-      "recent": [],
+      "http": 200,
+      "recent": [
+        {
+          "id": "75296123",
+          "timestamp": "2026-07-21T14:16:01.830Z",
+          "error": null
+        },
+        {
+          "id": "75268513",
+          "timestamp": "2026-07-21T08:56:47.527Z",
+          "error": null
+        },
+        {
+          "id": "75268512",
+          "timestamp": "2026-07-21T08:56:46.735Z",
+          "error": null
+        }
+      ],
       "since_fix": [],
       "toJSON_errors_since_fix": []
     }
   },
   "checks": {
-    "whatsapp_bot_active": false,
-    "whatsapp_bot_linked": false,
-    "bot_mapping_no_toJSON": false,
+    "whatsapp_bot_active": true,
+    "whatsapp_bot_linked": true,
+    "bot_mapping_no_toJSON": true,
     "no_new_toJSON_errors_after_fix": true,
     "no_whatsapp_send": true
   },
   "report_he": {
     "what_fixed": "הוחלף מיפוי HTTP Forward מ-{{toJSON(1)}} (לא קיים ב-Make) ל-{{createJSON(1)}} (פונקציית IML תקינה) בתרחיש Whatsapp Bot; אותו תיקון גם ב-CO.CO Dalia DLR → Staging.",
-    "bot_active": false,
-    "bot_linked": false,
+    "bot_active": true,
+    "bot_linked": true,
     "new_toJSON_errors": "אין שגיאות toJSON חדשות מאז התיקון",
     "no_send": "לא בוצעה שליחת WhatsApp",
     "peer_compare": "בדיקת מספר נוסף בוטלה לפי בקשת Owner"
-  },
-  "error": "Whatsapp Bot failed to activate"
+  }
 }

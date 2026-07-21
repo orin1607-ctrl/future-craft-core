@@ -46,6 +46,6 @@
   "ready_script": "scripts/wa-peer-compare-send.mjs",
   "ready_queue": "public/project-001/wa-peer-compare-queue.json",
   "last_blocked_at": "2026-07-21T13:39:37.356Z",
-  "cancelled_at": "2026-07-21T14:16:00.388Z",
+  "cancelled_at": "2026-07-21T14:17:13.273Z",
   "cancel_reason": "Owner stopped alt-number compare; fix toJSON mapping first"
 }
