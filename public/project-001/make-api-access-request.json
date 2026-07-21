@@ -1,0 +1,10 @@
+{
+  "id": "make-api-access-request",
+  "requestedAt": "2026-07-21T08:02:00.000Z",
+  "status": "awaiting_owner",
+  "required_github_secrets": ["MAKE_API_TOKEN", "MAKE_ZONE"],
+  "scopes": ["scenarios:read", "scenarios:write", "teams:read", "hooks:read"],
+  "do_not_paste_token_in_chat": true,
+  "after_ready_phrase": "Make Token מוכן",
+  "doc": "docs/OWNER-MAKE-API-ACCESS-HE.md"
+}
