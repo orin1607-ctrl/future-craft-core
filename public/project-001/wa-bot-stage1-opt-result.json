@@ -1,0 +1,429 @@
+{
+  "id": "wa-bot-stage1-opt",
+  "at": "2026-07-21T16:32:27.501Z",
+  "env": "staging_make_only",
+  "production_touched": false,
+  "stage": 1,
+  "not_done": [
+    "ai_agent_changes",
+    "sheets_to_cache",
+    "production"
+  ],
+  "before_baseline": {
+    "source": "public/project-001/wa-bot-latency-summary.json",
+    "make_execution_ms": {
+      "avg": 6201,
+      "p50": 6534,
+      "min": 4886,
+      "max": 6940,
+      "n": 5
+    },
+    "user_visible_to_gupshup_ms": {
+      "avg": 3841,
+      "samples": [
+        4370,
+        4186,
+        2966
+      ]
+    },
+    "sleep": {
+      "modules": [
+        88,
+        77
+      ],
+      "seconds_each": 1,
+      "after_send": true,
+      "retry_found": false
+    },
+    "bottleneck": {
+      "module_id": "84",
+      "name": "ai-agent:RunAnAIAgent",
+      "avg_gap_ms": 2573,
+      "evidence": "reconstructed timeline gaps",
+      "note": "Largest pre-reply cost is AI Agent before Gupshup 87"
+    }
+  },
+  "sleep_analysis": {
+    "targets": [
+      88,
+      77
+    ],
+    "found": [],
+    "all_are_function_sleep": true,
+    "all_terminal_in_flow": true,
+    "all_after_gupshup_host": true,
+    "duration_seconds": [
+      {
+        "id": 88,
+        "duration": null
+      },
+      {
+        "id": 77,
+        "duration": null
+      }
+    ],
+    "references_to_sleep_outputs": [],
+    "already_removed": true,
+    "safe_to_remove": true,
+    "rationale_he": "Sleep 88/77 כבר לא ב-blueprint (הוסרו קודם) — ממשיכים ל-E2E בלבד."
+  },
+  "module_58_analysis": {
+    "still_in_blueprint": true,
+    "still_in_use": true,
+    "position": [
+      {
+        "id": 58,
+        "module": "http:ActionSendData",
+        "name": null,
+        "path": "root.flow[6].routes[1]",
+        "index": 7,
+        "next_module": null,
+        "prev_module": {
+          "id": 90,
+          "module": "google-sheets:updateRow",
+          "name": null,
+          "url_host": null
+        }
+      }
+    ],
+    "next_after_58": [
+      null
+    ],
+    "prev_before_58": [
+      {
+        "id": 90,
+        "module": "google-sheets:updateRow",
+        "name": null,
+        "url_host": null
+      }
+    ],
+    "fingerprint": {
+      "id": 58,
+      "module": "http:ActionSendData",
+      "name": null,
+      "mapper": {
+        "url": "https://api.gupshup.io/wa/api/v1/msg",
+        "method": "post",
+        "bodyType": "x_www_form_urlencoded",
+        "formFieldKeys": [
+          "channel",
+          "source",
+          "destination",
+          "message",
+          " src.name"
+        ],
+        "qsKeys": [],
+        "mapper_keys": [
+          "ca",
+          "qs",
+          "url",
+          "gzip",
+          "method",
+          "headers",
+          "timeout",
+          "useMtls",
+          "authPass",
+          "authUser",
+          "bodyType",
+          "formFields",
+          "serializeUrl",
+          "shareCookies",
+          "parseResponse",
+          "followRedirect",
+          "useQuerystring",
+          "followAllRedirects",
+          "rejectUnauthorized"
+        ]
+      }
+    },
+    "compare_to_87": {
+      "module_87": {
+        "id": 87,
+        "module": "http:ActionSendData",
+        "name": null,
+        "mapper": {
+          "url": "https://api.gupshup.io/wa/api/v1/msg",
+          "method": "post",
+          "bodyType": "x_www_form_urlencoded",
+          "formFieldKeys": [
+            "channel",
+            "source",
+            "destination",
+            "message",
+            " src.name"
+          ],
+          "qsKeys": [],
+          "mapper_keys": [
+            "ca",
+            "qs",
+            "url",
+            "gzip",
+            "method",
+            "headers",
+            "timeout",
+            "useMtls",
+            "authPass",
+            "authUser",
+            "bodyType",
+            "formFields",
+            "serializeUrl",
+            "shareCookies",
+            "parseResponse",
+            "followRedirect",
+            "useQuerystring",
+            "followAllRedirects",
+            "rejectUnauthorized"
+          ]
+        }
+      },
+      "same_host": true,
+      "form_keys_58": [
+        "channel",
+        "source",
+        "destination",
+        "message",
+        " src.name"
+      ],
+      "form_keys_87": [
+        "channel",
+        "source",
+        "destination",
+        "message",
+        " src.name"
+      ]
+    },
+    "recent_logs_58": [
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:27:42.516Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "e3ddeacfe6854f11b21ccf6b31a873fd"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:27:41.313Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "504557d054a848fc83b555c1b056f849"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:27:38.804Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "85716cb74f694404b7939b56f82c9621"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:27:33.779Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "9fdcc81181e74f7aa1ba033285a881d8"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:05:48.107Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "8fa603d639db4d4db5f39dfa19287ca5"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:05:26.094Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "60470f47574f43049a79e088d72c06ed"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:05:24.026Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "8b6068ae88544949a49e7c1b4f8b3deb"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:05:22.993Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "a72dabe30e854864a1a8248aa30dda58"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:05:22.654Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "165a7b7bf3fe4a57b391c879b651333c"
+      },
+      {
+        "status": 3,
+        "timestamp": "2026-07-21T16:05:22.213Z",
+        "error": "Error: 400 Bad Request",
+        "executionId": "2e7f910a10a7497fa7ad78e9fdc45f48"
+      }
+    ],
+    "recent_logs_87_summary": {
+      "ok": 10,
+      "sample": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:27:34.252Z",
+          "error": null,
+          "executionId": "d83ca5b17d294ee5a6fc86486ca9b9bb"
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:27:33.829Z",
+          "error": null,
+          "executionId": "1d072b70393443bebaf4cb8ef6b90bc8"
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:27:31.962Z",
+          "error": null,
+          "executionId": "d0d471c4d0444c799b0ca0b1f3aa6700"
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:40.050Z",
+          "error": null,
+          "executionId": "2f1e09a7b6b9426c8fbdf935de90537b"
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:22.713Z",
+          "error": null,
+          "executionId": "68d2d34459e94f13a9a97ef1478bd157"
+        }
+      ]
+    },
+    "success_fail_counts_58": {
+      "ok": 0,
+      "fail": 10,
+      "n": 10
+    },
+    "verdict_he": "מודול 58 עדיין קיים ובשימוש במסלול משני (אחרי AI 63 / Sheets 90) כשליחת Gupshup — אבל בדגימות האחרונות נכשל תמיד ב-HTTP 400. מודול 87 במסלול הראשי מצליח. לא מסירים/מתקנים mapper ב-Stage 1 (דורש אישור נפרד) — רק מאבחנים.",
+    "action_stage1": "diagnose_only_no_mapper_change"
+  },
+  "logic_fingerprint_before": {
+    "ai": [
+      84,
+      63
+    ],
+    "sheets": [
+      79,
+      82,
+      92,
+      83,
+      90
+    ],
+    "gupshup_msg": [
+      87,
+      58
+    ],
+    "sleep": [
+      88,
+      77
+    ]
+  },
+  "patch": {
+    "attempted": false,
+    "removed": [],
+    "skipped": true,
+    "already_removed": true,
+    "ok": true,
+    "note": "Sleep already absent — no PATCH"
+  },
+  "logic_fingerprint_after": {
+    "ai": [
+      84,
+      63
+    ],
+    "sheets": [
+      79,
+      82,
+      92,
+      83,
+      90
+    ],
+    "gupshup_msg": [
+      87,
+      58
+    ],
+    "sleep_remaining": []
+  },
+  "logic_unchanged_checks": {
+    "ai_ids_same": true,
+    "sheets_ids_same": true,
+    "gupshup_ids_same": true,
+    "sleep_removed": true,
+    "module_58_still_present": true
+  },
+  "bot": {
+    "already": false,
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": true,
+    "islinked": true,
+    "hookId": 2567320
+  },
+  "queue_cleared_before_e2e": 4,
+  "e2e_msg1": {
+    "text": "היי",
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "at": "2026-07-21T16:32:31.725Z",
+    "execution": {
+      "id": "d52565a8929346c490472a95cccb65f9",
+      "status": 1,
+      "timestamp": "2026-07-21T16:32:31.963Z",
+      "error": null,
+      "duration": 5218
+    },
+    "seen_logs": [
+      {
+        "id": "d52565a8929346c490472a95cccb65f9",
+        "timestamp": "2026-07-21T16:32:31.963Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "da0e1ceca8df47efb058be76fc366c78",
+        "timestamp": "2026-07-21T16:32:40.331Z",
+        "error": null,
+        "duration": null
+      },
+      {
+        "id": "44071f4d286a4f548f50140ab199e0af",
+        "status": 3,
+        "timestamp": "2026-07-21T16:32:37.417Z",
+        "error": "Error: 400 Bad Request",
+        "duration": 3974
+      }
+    ]
+  },
+  "queue_cleared_between": 1,
+  "between_messages_bot": {
+    "already": false,
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": true,
+    "islinked": true,
+    "hookId": 2567320
+  },
+  "e2e_msg2": {
+    "text": "יוני",
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "at": "2026-07-21T16:32:50.728Z",
+    "execution": null,
+    "seen_logs": [
+      {
+        "id": "75305324",
+        "timestamp": "2026-07-21T16:32:43.509Z",
+        "error": null,
+        "duration": null
+      }
+    ],
+    "hook_queue_after": 2
+  },
+  "error": "E2E msg2: no successful Make execution"
+}

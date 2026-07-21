@@ -1,0 +1,22 @@
+{
+  "id": "wa-bot-stage1-opt-summary",
+  "at": "2026-07-21T16:36:20.412Z",
+  "error": "E2E msg2: no successful Make execution",
+  "sleep_removed": [],
+  "sleep_already_removed": true,
+  "patch_ok": true,
+  "e2e_msg1": {
+    "id": "d52565a8929346c490472a95cccb65f9",
+    "status": 1,
+    "timestamp": "2026-07-21T16:32:31.963Z",
+    "error": null,
+    "duration": 5218
+  },
+  "e2e_msg2": null,
+  "module_58": {
+    "still_in_use": true,
+    "verdict_he": "מודול 58 עדיין קיים ובשימוש במסלול משני (אחרי AI 63 / Sheets 90) כשליחת Gupshup — אבל בדגימות האחרונות נכשל תמיד ב-HTTP 400. מודול 87 במסלול הראשי מצליח. לא מסירים/מתקנים mapper ב-Stage 1 (דורש אישור נפרד) — רק מאבחנים.",
+    "action": "diagnose_only"
+  },
+  "production_touched": false
+}
