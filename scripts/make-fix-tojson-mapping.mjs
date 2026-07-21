@@ -115,18 +115,36 @@ async function patchBlueprint(scenarioId, bp) {
   return patch;
 }
 
-async function scenarioState(scenarioId) {
-  const sc = await make(
-    `/scenarios/${scenarioId}?cols[]=id&cols[]=name&cols[]=isActive&cols[]=islinked&cols[]=hookId&cols[]=scheduling`,
-  );
-  const s = sc.json?.scenario || sc.json || {};
+async function scenarioState(scenarioId, { retries = 5 } = {}) {
+  let last = null;
+  for (let i = 0; i < retries; i++) {
+    const sc = await make(
+      `/scenarios/${scenarioId}?cols[]=id&cols[]=name&cols[]=isActive&cols[]=islinked&cols[]=hookId&cols[]=scheduling`,
+    );
+    last = sc;
+    if (sc.status === 429 || sc.status === 503) {
+      await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+      continue;
+    }
+    const s = sc.json?.scenario || sc.json || {};
+    return {
+      http: sc.status,
+      id: s.id,
+      name: s.name,
+      isActive: s.isActive === true,
+      islinked: s.islinked === true,
+      hookId: s.hookId,
+    };
+  }
+  const s = last?.json?.scenario || last?.json || {};
   return {
-    http: sc.status,
+    http: last?.status ?? 0,
     id: s.id,
     name: s.name,
     isActive: s.isActive === true,
     islinked: s.islinked === true,
     hookId: s.hookId,
+    rate_limited: true,
   };
 }
 
@@ -231,7 +249,8 @@ async function main() {
   out.fixes.push(await fixScenario(BOT_ID, 'Whatsapp Bot'));
   out.fixes.push(await fixScenario(DLR_ID, 'CO.CO Dalia DLR → Staging'));
 
-  // Activate Whatsapp Bot
+  // Activate Whatsapp Bot (retry — Make may 429 after blueprint PATCHes)
+  await new Promise((r) => setTimeout(r, 4000));
   const pre = await scenarioState(BOT_ID);
   out.bot_before_activate = pre;
   let activate = { already: false };
@@ -239,12 +258,13 @@ async function main() {
     const start = await make(`/scenarios/${BOT_ID}/start`, { method: 'POST', body: {} });
     let ok = start.status >= 200 && start.status < 300;
     if (!ok) {
+      await new Promise((r) => setTimeout(r, 3000));
       const patch = await make(`/scenarios/${BOT_ID}?confirmed=true`, {
         method: 'PATCH',
         body: { isActive: true },
       });
       ok = patch.status >= 200 && patch.status < 300;
-      activate = { start_http: start.status, patch_http: patch.status, ok };
+      activate = { start_http: start.status, patch_http: patch.status, ok, start_body: start.text?.slice(0, 200) };
     } else {
       activate = { start_http: start.status, ok: true };
     }
@@ -252,9 +272,13 @@ async function main() {
     activate = { already: true, ok: true };
   }
   out.bot_activate = activate;
-  // brief settle
-  await new Promise((r) => setTimeout(r, 3000));
+  await new Promise((r) => setTimeout(r, 5000));
   out.bot_after_activate = await scenarioState(BOT_ID);
+  // Second read if still false but start claimed ok
+  if (!out.bot_after_activate.isActive && activate.ok) {
+    await new Promise((r) => setTimeout(r, 5000));
+    out.bot_after_activate = await scenarioState(BOT_ID);
+  }
 
   const fixAt = out.at;
   out.verify = {
@@ -262,10 +286,9 @@ async function main() {
     dlr_scenario: await recentErrors(DLR_ID, fixAt),
   };
 
-  const botOk =
-    out.bot_after_activate.isActive === true &&
-    (out.fixes.find((f) => f.scenarioId === BOT_ID)?.still_has_toJSON || []).length === 0 &&
-    (out.fixes.find((f) => f.scenarioId === BOT_ID)?.patch_ok === true);
+  const botFix = out.fixes.find((f) => f.scenarioId === BOT_ID);
+  const mappingOk =
+    (botFix?.still_has_toJSON || []).length === 0 && botFix?.patch_ok === true;
 
   const noNewToJson =
     (out.verify.whatsapp_bot.toJSON_errors_since_fix || []).length === 0;
@@ -273,7 +296,7 @@ async function main() {
   out.checks = {
     whatsapp_bot_active: out.bot_after_activate.isActive === true,
     whatsapp_bot_linked: out.bot_after_activate.islinked === true,
-    bot_mapping_no_toJSON: botOk,
+    bot_mapping_no_toJSON: mappingOk,
     no_new_toJSON_errors_after_fix: noNewToJson,
     no_whatsapp_send: true,
   };
@@ -296,8 +319,22 @@ async function main() {
     now_has_createJSON: f.now_has_createJSON,
   })) }, null, 2));
 
-  must(out.checks.whatsapp_bot_active, 'Whatsapp Bot failed to activate');
-  must(out.checks.bot_mapping_no_toJSON, 'Bot still has toJSON after patch');
+  must(mappingOk, 'Bot still has toJSON after patch');
+  // Activation is required by Owner request — retry-aware
+  if (!out.checks.whatsapp_bot_active) {
+    // one more start attempt
+    await new Promise((r) => setTimeout(r, 4000));
+    const start2 = await make(`/scenarios/${BOT_ID}/start`, { method: 'POST', body: {} });
+    out.bot_activate_retry = { start_http: start2.status, text: start2.text?.slice(0, 300) };
+    await new Promise((r) => setTimeout(r, 5000));
+    out.bot_after_activate = await scenarioState(BOT_ID);
+    out.checks.whatsapp_bot_active = out.bot_after_activate.isActive === true;
+    out.checks.whatsapp_bot_linked = out.bot_after_activate.islinked === true;
+    out.report_he.bot_active = out.bot_after_activate.isActive;
+    out.report_he.bot_linked = out.bot_after_activate.islinked;
+    fs.writeFileSync(OUT, JSON.stringify(out, null, 2));
+  }
+  must(out.checks.whatsapp_bot_active, 'Whatsapp Bot failed to activate after retries');
 }
 
 main().catch((e) => {

@@ -1,7 +1,9 @@
 {
   "id": "make-fix-tojson-queue",
   "armed": true,
+  "retry": 2,
   "no_send": true,
   "no_production": true,
-  "cancel_peer_compare": true
+  "cancel_peer_compare": true,
+  "note": "Re-run after 429 on activate check; mapping already patched to createJSON"
 }
