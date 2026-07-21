@@ -1,0 +1,30 @@
+{
+  "id": "staging-wa-msgid-investigate-result",
+  "investigated_at": "2026-07-21T07:08:00Z",
+  "message_id": "506fe683-4b07-4752-9301-a9ab2afa2e3c",
+  "env": "staging",
+  "production_touched": false,
+  "no_resend": true,
+  "actions_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29809278888",
+  "answers": {
+    "1_final_status": "pending",
+    "1_detail": "Only known terminal-from-API state is Gupshup status=submitted (HTTP 202). No delivered/failed/rejected/read event exists in our systems. Mapped as pending/unknown — not delivered.",
+    "2_delivery_callback_received": false,
+    "2_detail": "No Gupshup delivery webhook Edge function (marketing-whatsapp-inbound absent). No DB tables for gupshup_events / whatsapp_delivery_events. document_requests: 0 rows for this message_id. incident_notification_deliveries table not present on Staging.",
+    "3_error_code": null,
+    "3_error_message": null,
+    "3_detail": "Submit succeeded; no failure DLR available without webhook. Cannot report Gupshup cause/errorCode.",
+    "4_message_type": "session",
+    "4_detail": "Free-form via https://api.gupshup.io/wa/api/v1/msg — NOT template/msg. Template fallback unused.",
+    "5_whatsapp_registered_0534338601": "unknown",
+    "5_detail": "Cannot verify from Staging/Gupshup without contact-check API or delivery/failure callback.",
+    "6_sent_to_other_number": false,
+    "6_detail": "Request destination 0534338601 → response destination 972534338601 only. No evidence of alternate recipient for this message_id."
+  },
+  "likely_non_delivery_hypothesis_not_proven": [
+    "Session message outside 24h customer-care window (user did not message DaliaVehicle first) — Gupshup may later emit failed DLR we never received",
+    "Callback URL not configured on Gupshup app — DLR lost",
+    "Number without WhatsApp — would normally surface as failed DLR"
+  ],
+  "gupshup_docs": "submitted = API accepted request asynchronously; delivery tracked only via webhook message-events (enqueued|failed|sent|delivered|read)"
+}
