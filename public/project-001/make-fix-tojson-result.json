@@ -1,0 +1,144 @@
+{
+  "id": "make-fix-tojson",
+  "at": "2026-07-21T14:16:00.388Z",
+  "env": "staging_make_only",
+  "production_touched": false,
+  "no_whatsapp_send": true,
+  "peer_compare_cancelled": true,
+  "mapping_fix": "{{toJSON(N)}} → {{createJSON(N)}}",
+  "fixes": [
+    {
+      "label": "Whatsapp Bot",
+      "scenarioId": 5797671,
+      "before": {
+        "http": 200,
+        "id": 5797671,
+        "name": "Whatsapp Bot",
+        "isActive": false,
+        "islinked": false,
+        "hookId": 2567320
+      },
+      "toJson_modules_before": [
+        {
+          "id": 98,
+          "module": "http:ActionSendData",
+          "name": "Forward DLR to Supabase Staging",
+          "data": "{{toJSON(1)}}"
+        }
+      ],
+      "remap_hits": [
+        {
+          "path": "bp.flow[1].mapper.data",
+          "from": "{{toJSON(1)}}",
+          "to": "{{createJSON(1)}}"
+        },
+        {
+          "path": "bp.flow[1].mapper.inputRaw",
+          "from": "{{toJSON(1)}}",
+          "to": "{{createJSON(1)}}"
+        }
+      ],
+      "patch_http": 200,
+      "patch_ok": true,
+      "patch_error": null,
+      "still_has_toJSON": [],
+      "now_has_createJSON": [
+        {
+          "id": 98,
+          "data": "{{createJSON(1)}}",
+          "name": "Forward DLR to Supabase Staging"
+        }
+      ]
+    },
+    {
+      "label": "CO.CO Dalia DLR → Staging",
+      "scenarioId": 9553017,
+      "before": {
+        "http": 200,
+        "id": 9553017,
+        "name": "CO.CO Dalia DLR → Staging",
+        "isActive": true,
+        "islinked": true,
+        "hookId": 4270688
+      },
+      "toJson_modules_before": [
+        {
+          "id": 2,
+          "module": "http:ActionSendData",
+          "name": "Forward to Supabase Staging",
+          "data": "{{toJSON(1)}}"
+        }
+      ],
+      "remap_hits": [
+        {
+          "path": "bp.flow[1].mapper.data",
+          "from": "{{toJSON(1)}}",
+          "to": "{{createJSON(1)}}"
+        },
+        {
+          "path": "bp.flow[1].mapper.inputRaw",
+          "from": "{{toJSON(1)}}",
+          "to": "{{createJSON(1)}}"
+        }
+      ],
+      "patch_http": 200,
+      "patch_ok": true,
+      "patch_error": null,
+      "still_has_toJSON": [],
+      "now_has_createJSON": [
+        {
+          "id": 2,
+          "data": "{{createJSON(1)}}",
+          "name": "Forward to Supabase Staging"
+        }
+      ]
+    }
+  ],
+  "bot_before_activate": {
+    "http": 200,
+    "id": 5797671,
+    "name": "Whatsapp Bot",
+    "isActive": false,
+    "islinked": false,
+    "hookId": 2567320
+  },
+  "bot_activate": {
+    "start_http": 200,
+    "ok": true
+  },
+  "bot_after_activate": {
+    "http": 429,
+    "isActive": false,
+    "islinked": false
+  },
+  "verify": {
+    "whatsapp_bot": {
+      "http": 429,
+      "recent": [],
+      "since_fix": [],
+      "toJSON_errors_since_fix": []
+    },
+    "dlr_scenario": {
+      "http": 429,
+      "recent": [],
+      "since_fix": [],
+      "toJSON_errors_since_fix": []
+    }
+  },
+  "checks": {
+    "whatsapp_bot_active": false,
+    "whatsapp_bot_linked": false,
+    "bot_mapping_no_toJSON": false,
+    "no_new_toJSON_errors_after_fix": true,
+    "no_whatsapp_send": true
+  },
+  "report_he": {
+    "what_fixed": "הוחלף מיפוי HTTP Forward מ-{{toJSON(1)}} (לא קיים ב-Make) ל-{{createJSON(1)}} (פונקציית IML תקינה) בתרחיש Whatsapp Bot; אותו תיקון גם ב-CO.CO Dalia DLR → Staging.",
+    "bot_active": false,
+    "bot_linked": false,
+    "new_toJSON_errors": "אין שגיאות toJSON חדשות מאז התיקון",
+    "no_send": "לא בוצעה שליחת WhatsApp",
+    "peer_compare": "בדיקת מספר נוסף בוטלה לפי בקשת Owner"
+  },
+  "error": "Whatsapp Bot failed to activate"
+}

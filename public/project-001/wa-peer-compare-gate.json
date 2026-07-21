@@ -4,7 +4,7 @@
   "env": "staging",
   "production_touched": false,
   "requested": "One Staging comparison send to a different active WhatsApp number (not 0534338601) to isolate device vs pipeline",
-  "status": "blocked_waiting_owner_phone",
+  "status": "cancelled_by_owner",
   "send_executed": false,
   "reason": "No second approved WhatsApp recipient exists in repo docs, secrets inventory, Staging send history, or Make DLR dumps. Only approved destination on record is Owner 0534338601 (=972534338601). Business source remains 972546500305.",
   "searched": [
@@ -45,5 +45,7 @@
   },
   "ready_script": "scripts/wa-peer-compare-send.mjs",
   "ready_queue": "public/project-001/wa-peer-compare-queue.json",
-  "last_blocked_at": "2026-07-21T13:39:37.356Z"
+  "last_blocked_at": "2026-07-21T13:39:37.356Z",
+  "cancelled_at": "2026-07-21T14:16:00.388Z",
+  "cancel_reason": "Owner stopped alt-number compare; fix toJSON mapping first"
 }
