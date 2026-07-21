@@ -1,0 +1,45 @@
+{
+  "id": "june10-vs-today-wa-compare-result",
+  "generated_at": "2026-07-21T07:21:00Z",
+  "no_send": true,
+  "actions_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29810028110",
+  "critical_finding": "No verifiable successful Gupshup API send record exists for 2026-06-10 in repo, git history, Actions, or Staging DB. The only contemporaneous system record (nightly-audit) is a FAILED connection test: HTTP 401 Authentication Failed at 2026-06-09T19:37:26Z. Therefore App ID/source cannot be compared send-to-send for June vs today.",
+  "june_side": {
+    "date_claimed": "2026-06-10",
+    "recorded_test_at": "2026-06-09T19:37:26Z",
+    "gupshup_http": 401,
+    "error": "Authentication Failed",
+    "app_id": null,
+    "source": null,
+    "message_id": null,
+    "destination": null,
+    "cited_file_gupshup_whatsapp_real_send_test_json": "missing_from_all_git_history",
+    "staging_db_document_requests_june_8_12": 0,
+    "staging_db_emergency_logs_june_8_12": 0
+  },
+  "today_side": {
+    "sent_at": "2026-07-21T06:56:04.207Z",
+    "gupshup_http": 202,
+    "status": "submitted",
+    "message_id": "506fe683-4b07-4752-9301-a9ab2afa2e3c",
+    "app_name": "DaliaVehicle",
+    "app_id_live_now": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+    "source": "972546500305",
+    "destination": "972534338601",
+    "path": "session"
+  },
+  "live_account_now_2026_07_21": {
+    "gupshup_verified": true,
+    "api_key_belongs_to_app": true,
+    "templates_http": 200,
+    "approved_template_count": 1,
+    "verdict": "yes_active_by_api"
+  },
+  "answers": {
+    "1_same_app_id": "cannot_compare — June has no App ID on record; today App ID is 496709e8-b5fc-4de9-9c75-bc87455482dd",
+    "2_same_source": "cannot_compare for June send — June test has no source field; today source is 972546500305",
+    "3_submitted_reason_from_gupshup_or_meta": "none returned to us — only {status:submitted,messageId}; no DLR/webhook error code",
+    "4_account_active": "yes — by API now (verified key, templates 200, belongs to DaliaVehicle)",
+    "5_visible_in_gupshup_portal": "cannot_verify_from_here — requires Owner portal login"
+  }
+}
