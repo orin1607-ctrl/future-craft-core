@@ -1,0 +1,30 @@
+{
+  "id": "replay-make-dlr-to-staging",
+  "env": "staging",
+  "production_touched": false,
+  "no_whatsapp_send": true,
+  "message_id": "0353ce86-a0bf-4e97-9344-5618e1192032",
+  "deploy_ok": true,
+  "replays": [
+    {
+      "name": "raw_meta",
+      "http": 200
+    },
+    {
+      "name": "make_toJSON_string",
+      "http": 200
+    },
+    {
+      "name": "make_wrapped_data",
+      "http": 200
+    }
+  ],
+  "db": {
+    "status": "failed",
+    "dlr_event": "failed",
+    "dlr_error_code": "131047",
+    "error_message": "Message failed to send because more than 24 hours have passed since the customer last replied to this number.",
+    "history_len": 4
+  },
+  "ok": true
+}
