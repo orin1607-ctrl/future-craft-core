@@ -1,6 +1,6 @@
 {
   "id": "wa-alert-one-way",
-  "at": "2026-07-21T20:35:15.204Z",
+  "at": "2026-07-21T20:37:07.208Z",
   "env": "staging_only",
   "production_touched": false,
   "new_mechanism": false,
@@ -25,11 +25,12 @@
       "mode": "unwrap_router",
       "bot_modules": 6
     },
-    "data_expr": "GET qs Message ID (no createJSON)",
+    "data_expr": "GET qs Message ID (Meta context paths)",
     "ids": {
       "lookup": 99,
       "router": 100,
-      "ignore": 101
+      "ignore": 101,
+      "skip": 101
     },
     "rest_modules_moved": 6,
     "patch_http": 200
@@ -83,11 +84,11 @@
       },
       {
         "name": "gsId",
-        "value": "{{ifempty(1.reply_gsid; ifempty(1.payload.context.gsId; ifempty(get(1; \"reply_gsid\"); ifempty(get(1.payload.context; \"gsId\"); ifempty(get(parseJSON(1); \"payload.context.gsId\"); __none__)))))}}"
+        "value": "{{ifempty(1.entry[].changes[].value.messages[].context.gsId; ifempty(1.entry[].changes[].value.messages[].context.id; ifempty(1.reply_gsid; ifempty(1.payload.context.gsId; __none__))))}}"
       },
       {
         "name": "waId",
-        "value": "{{ifempty(1.reply_waid; ifempty(1.payload.context.id; ifempty(get(1.payload.context; \"id\"); __none__)))}}"
+        "value": "{{ifempty(1.entry[].changes[].value.messages[].context.id; ifempty(1.reply_waid; ifempty(1.payload.context.id; __none__)))}}"
       }
     ]
   },
@@ -124,7 +125,8 @@
     ]
   },
   "activate": {
-    "already": true,
+    "already": false,
+    "start_http": 200,
     "http": 200,
     "isActive": true,
     "islinked": true,
@@ -132,8 +134,9 @@
     "hookId": 2567320
   },
   "queue_clear": {
-    "before": 0,
-    "deleted": 0,
+    "before": 1,
+    "deleted": 1,
+    "delete_http": 200,
     "ok": true
   },
   "hook_url_host": "hook.eu2.make.com",
@@ -159,21 +162,51 @@
       "status": 200,
       "body": "Accepted"
     },
-    "log": null,
-    "log_any": {
-      "id": "f0d52f4275ba40b3ac454951a4904fbc",
-      "status": 3,
-      "timestamp": "2026-07-21T20:35:29.695Z",
-      "error": "Misplaced directive 'builtin:Ignore' outside of an error handler",
-      "duration": 1250
+    "format": "meta+context+flat",
+    "log": {
+      "id": "f8e94617a23f49489a9f054978566555",
+      "status": 1,
+      "timestamp": "2026-07-21T20:37:22.889Z",
+      "error": null,
+      "duration": 5094
     },
-    "failed_execution": {
-      "id": "f0d52f4275ba40b3ac454951a4904fbc",
-      "status": 3,
-      "timestamp": "2026-07-21T20:35:29.695Z",
-      "error": "Misplaced directive 'builtin:Ignore' outside of an error handler",
-      "duration": 1250
+    "log_any": {
+      "id": "f8e94617a23f49489a9f054978566555",
+      "status": 1,
+      "timestamp": "2026-07-21T20:37:22.889Z",
+      "error": null,
+      "duration": 5094
+    },
+    "analysis": {
+      "duration_ms": 5094,
+      "hit_lookup": true,
+      "hit_skip_noop": true,
+      "hit_ai_84": true,
+      "hit_ai_63": true,
+      "hit_gupshup_87": true,
+      "skip_module_id": 101,
+      "lookup_module_id": 99,
+      "lookup_logs": [
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T20:37:23.779Z",
+          "error": null,
+          "executionId": "f8e94617a23f49489a9f054978566555"
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T20:37:19.078Z",
+          "error": null,
+          "executionId": "4532813325ab44cfbc554bd1431bcc88"
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T20:35:30.923Z",
+          "error": null,
+          "executionId": "f0d52f4275ba40b3ac454951a4904fbc"
+        }
+      ]
     }
   },
-  "error": "Reply execution not success: status=3 error=Misplaced directive 'builtin:Ignore' outside of an error handler"
+  "error": "Reply-to-alert reached AI — should skip"
 }
