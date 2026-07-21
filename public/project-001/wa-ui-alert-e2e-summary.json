@@ -1,27 +1,27 @@
 {
   "id": "wa-ui-alert-e2e-summary",
-  "at": "2026-07-21T17:31:46.472Z",
+  "at": "2026-07-21T17:35:09.902Z",
   "production_touched": false,
   "via_software_ui": true,
   "actor": "יוני אטיאס",
   "edge_function": "notify-accident-email",
   "fault": {
-    "id": "1c9b64ad-af31-42cf-953b-786445ddabd2",
-    "event_number": "FLT-2026-000002",
+    "id": "798d3483-b86f-439e-b1f9-bf3826eb5981",
+    "event_number": "FLT-2026-000003",
     "company_name": "אכבים",
-    "created_at": "2026-07-21T17:32:06.014296+00:00",
-    "description": "בדיקת E2E UI התראות Staging — מנהל על יוני אטיאס — 2026-07-21T17:32:04.328Z — WA 0534338601 · Email orin1607@gmail.com"
+    "created_at": "2026-07-21T17:35:35.250667+00:00",
+    "description": "בדיקת E2E UI התראות Staging — מנהל על יוני אטיאס — 2026-07-21T17:35:33.616Z — WA 0534338601 · Email orin1607@gmail.com"
   },
-  "whatsapp_message_id": null,
-  "whatsapp_status": null,
-  "email_status": null,
+  "whatsapp_message_id": "f8642799-aea9-4503-aff3-37c04b9ef5cb",
+  "whatsapp_status": "sent",
+  "email_status": "sent",
   "steps": {
     "ui_create": true,
     "db_saved": true,
-    "whatsapp": false,
-    "email": false,
+    "whatsapp": true,
+    "email": true,
     "screens": true,
-    "full_path_ok": false
+    "full_path_ok": true
   },
   "report_doc": "docs/audit-reports/claims-incident-process/WA-UI-ALERT-E2E-HE.md"
 }

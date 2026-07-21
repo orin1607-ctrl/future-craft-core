@@ -1,6 +1,6 @@
 {
   "id": "wa-ui-alert-e2e",
-  "at": "2026-07-21T17:31:46.472Z",
+  "at": "2026-07-21T17:35:09.902Z",
   "env": "staging_only",
   "production_touched": false,
   "via_software_ui": true,
@@ -29,7 +29,16 @@
     "message": "column profiles.role does not exist"
   },
   "ui_after_auth_url": "https://orin1607-ctrl.github.io/future-craft-core/dashboard",
+  "company_selected_in_settings": "אכבים",
   "alert_settings_done": true,
+  "settings_after_ui_save": {
+    "company_name": "אכבים",
+    "incident_notify_in_app": true,
+    "incident_notify_email": true,
+    "incident_notify_whatsapp": true,
+    "incident_email_recipients": "dalia",
+    "incident_whatsapp_recipients": "dalia"
+  },
   "fault_form_opened": true,
   "ui_success_visible": true,
   "edge_calls_from_browser": [
@@ -38,27 +47,79 @@
       "status": 200,
       "body": {
         "success": true,
-        "sent": 0,
+        "sent": 2,
         "failed": 0,
         "skipped": 0,
-        "results": [],
+        "results": [
+          {
+            "channel": "email",
+            "recipient": "orin1607@gmail.com",
+            "status": "sent",
+            "message_id": "b64b737e-1897-46f1-8bf2-eb3e5db11fb7"
+          },
+          {
+            "channel": "whatsapp",
+            "recipient": "972534338601",
+            "status": "sent",
+            "message_id": "f8642799-aea9-4503-aff3-37c04b9ef5cb"
+          }
+        ],
         "channels": {
           "in_app": true,
           "email": true,
-          "whatsapp": false
+          "whatsapp": true
         }
       },
-      "at": "2026-07-21T17:32:11.479Z"
+      "at": "2026-07-21T17:35:49.748Z"
     }
   ],
   "fault_saved": {
-    "id": "1c9b64ad-af31-42cf-953b-786445ddabd2",
-    "event_number": "FLT-2026-000002",
+    "id": "798d3483-b86f-439e-b1f9-bf3826eb5981",
+    "event_number": "FLT-2026-000003",
     "company_name": "אכבים",
-    "created_at": "2026-07-21T17:32:06.014296+00:00",
-    "description": "בדיקת E2E UI התראות Staging — מנהל על יוני אטיאס — 2026-07-21T17:32:04.328Z — WA 0534338601 · Email orin1607@gmail.com"
+    "created_at": "2026-07-21T17:35:35.250667+00:00",
+    "description": "בדיקת E2E UI התראות Staging — מנהל על יוני אטיאס — 2026-07-21T17:35:33.616Z — WA 0534338601 · Email orin1607@gmail.com"
   },
-  "deliveries": [],
+  "deliveries": [
+    {
+      "id": "c02a7c49-cbad-4f73-8875-379e02b17d4c",
+      "company_name": "אכבים",
+      "incident_kind": "fault",
+      "incident_id": "798d3483-b86f-439e-b1f9-bf3826eb5981",
+      "event_number": "FLT-2026-000003",
+      "channel": "whatsapp",
+      "recipient": "972534338601",
+      "status": "sent",
+      "provider_message_id": "f8642799-aea9-4503-aff3-37c04b9ef5cb",
+      "error_message": null,
+      "payload_excerpt": "דיווח תקלה חדש\nמספר אירוע: FLT-2026-000003\nחברה: אכבים\nנהג: בדיקה יוני\nטלפון נהג: 0534338601\nמספר רישוי: 78948502\nסוג אירוע: תקלה\nסוג תקלה: פנצ׳ר\nתאריך ושעה: 21.7.2026, 20:35\nתיאור: בדיקת E2E UI התראו",
+      "dlr_event": null,
+      "dlr_error_code": null,
+      "created_at": "2026-07-21T17:35:47.274298+00:00",
+      "sent_at": "2026-07-21T17:35:48.906+00:00",
+      "updated_at": "2026-07-21T17:35:47.274298+00:00",
+      "status_history": []
+    },
+    {
+      "id": "37fdc6d3-ebb9-4d2a-8fcc-4f425070b562",
+      "company_name": "אכבים",
+      "incident_kind": "fault",
+      "incident_id": "798d3483-b86f-439e-b1f9-bf3826eb5981",
+      "event_number": "FLT-2026-000003",
+      "channel": "email",
+      "recipient": "orin1607@gmail.com",
+      "status": "sent",
+      "provider_message_id": "b64b737e-1897-46f1-8bf2-eb3e5db11fb7",
+      "error_message": null,
+      "payload_excerpt": "דיווח תקלה חדש | אכבים | 78948502 | FLT-2026-000003",
+      "dlr_event": null,
+      "dlr_error_code": null,
+      "created_at": "2026-07-21T17:35:46.67791+00:00",
+      "sent_at": "2026-07-21T17:35:46.9+00:00",
+      "updated_at": "2026-07-21T17:35:46.67791+00:00",
+      "status_history": []
+    }
+  ],
   "driver_notifications_sample": [
     {
       "id": "0dfab314-3150-4858-b2ca-11678faa5a3b",
@@ -95,30 +156,30 @@
   "answers": {
     "1_created_in_system_ui": true,
     "2_saved_in_db": true,
-    "3_whatsapp_sent": false,
-    "4_email_sent": false,
+    "3_whatsapp_sent": true,
+    "4_email_sent": true,
     "5_appears_on_screens": true,
     "edge_function": "notify-accident-email",
     "edge_invoked_by_browser": true,
     "whatsapp": {
-      "recipient": "0534338601",
-      "message_id": null,
-      "status": null,
+      "recipient": "972534338601",
+      "message_id": "f8642799-aea9-4503-aff3-37c04b9ef5cb",
+      "status": "sent",
       "error": null,
-      "submitted": false,
-      "sent": false,
+      "submitted": true,
+      "sent": true,
       "delivered_or_failed": null,
       "received_on_phone_he": "סטטוס delivered במערכת = אינדיקציה חזקה; אישור קבלה בפועל בטלפון — אצל Owner"
     },
     "email": {
       "recipient": "orin1607@gmail.com",
-      "status": null,
-      "provider_message_id": null,
+      "status": "sent",
+      "provider_message_id": "b64b737e-1897-46f1-8bf2-eb3e5db11fb7",
       "error": null,
-      "sent_to_orin1607": false,
+      "sent_to_orin1607": true,
       "inbox_receipt_he": "Resend status=sent אומר שנשלח; קבלה בתיבה — Owner מאשר"
     },
     "in_app": null,
-    "full_path_ok": false
+    "full_path_ok": true
   }
 }
