@@ -106,6 +106,11 @@ function alreadyForwards(mods) {
   return findForwardModules(mods).length > 0;
 }
 
+/** Never mutate Whatsapp Bot chatbot scenario with DLR forward. */
+function isWhatsappBotScenario(scenarioId, name) {
+  return Number(scenarioId) === WHATSAPP_BOT_SCENARIO_ID || /whatsapp bot/i.test(String(name || ''));
+}
+
 function findWebhookModule(mods) {
   return mods.find((m) =>
     /webhook|CustomWebHook|gateway:CustomWebHook|webhooks/i.test(String(m.module || '')),
@@ -372,7 +377,14 @@ function scoreScenario(s, mods, hookMeta) {
   return score;
 }
 
-async function patchScenarioBlueprint(scenarioId, nextBp) {
+async function patchScenarioBlueprint(scenarioId, nextBp, nameHint = '') {
+  if (isWhatsappBotScenario(scenarioId, nameHint)) {
+    return {
+      status: 200,
+      json: { skipped: true, reason: 'refuse_patch_whatsapp_bot' },
+      text: 'skipped',
+    };
+  }
   const bpString = typeof nextBp === 'string' ? nextBp : JSON.stringify(nextBp);
   // Prefer stringified blueprint + confirmed (Make docs)
   let patch = await make(`/scenarios/${scenarioId}?confirmed=true`, {
@@ -512,7 +524,7 @@ async function configureMake() {
   if (!changed) {
     out.make_configure = { changed: false, reason, webhook_module_id, http_module_id };
   } else {
-    const patch = await patchScenarioBlueprint(chosen.id, nextBp);
+    const patch = await patchScenarioBlueprint(chosen.id, nextBp, chosen.name);
     out.make_configure = {
       changed: true,
       reason,
@@ -546,7 +558,7 @@ async function configureMake() {
   const extras = [];
   for (const c of candidates) {
     if (c.id === chosen.id) continue;
-    if (c.id === WHATSAPP_BOT_SCENARIO_ID) continue; // never re-inject Forward into chatbot
+    if (c.id === WHATSAPP_BOT_SCENARIO_ID || isWhatsappBotScenario(c.id, c.name)) continue;
     if (!(c.dlr_hits > 0 || (c.isActive && /delivery|dlr|gupshup/i.test(c.name || '')))) continue;
     const br2 = await make(`/scenarios/${c.id}/blueprint`);
     if (br2.status !== 200) continue;
@@ -557,7 +569,7 @@ async function configureMake() {
       extras.push({ id: c.id, name: c.name, changed: false, reason: ens.reason });
       continue;
     }
-    const p2 = await patchScenarioBlueprint(c.id, ens.bp);
+    const p2 = await patchScenarioBlueprint(c.id, ens.bp, c.name);
     extras.push({
       id: c.id,
       name: c.name,

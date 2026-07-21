@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/wa-bot-two-message-check.mjs'
+      - 'scripts/wa-bot-strip-forward.mjs'
       - 'public/project-001/wa-bot-two-message-queue.json'
       - '.github/workflows/wa-bot-two-message-check.yml'
   workflow_dispatch: {}
@@ -18,18 +19,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Two consecutive inbounds — no E2E
+      - name: Strip Forward if re-injected + two inbounds
         env:
           MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
           MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
-        run: node scripts/wa-bot-two-message-check.mjs
+        run: |
+          node scripts/wa-bot-strip-forward.mjs
+          node scripts/wa-bot-two-message-check.mjs
       - name: Commit result
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/project-001/wa-bot-two-message-result.json \
+                  public/project-001/wa-bot-strip-forward-result.json \
                   public/project-001/make-forward-execute-queue.json || true
           git diff --cached --quiet && echo "no changes" && exit 0
-          git commit -m "ci: two-message bot check — E2E auto-send disarmed"
+          git commit -m "ci: strip Forward + two-message bot check (no E2E)"
           git push

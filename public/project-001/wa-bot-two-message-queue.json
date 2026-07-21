@@ -1,7 +1,9 @@
 {
   "id": "wa-bot-two-message-queue",
   "armed": true,
+  "retry": 2,
   "no_edge_send": true,
   "no_production": true,
-  "no_e2e": true
+  "no_e2e": true,
+  "strip_forward_first": true
 }
