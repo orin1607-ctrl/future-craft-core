@@ -1,0 +1,22 @@
+{
+  "id": "wa-bot-two-message",
+  "at": "2026-07-21T15:57:38.758Z",
+  "env": "staging_make_only",
+  "production_touched": false,
+  "no_edge_wa_send": true,
+  "bot_conversation_content_unchanged": true,
+  "e2e_source": {
+    "where": "scripts/make-forward-supabase.mjs → stagingLiveE2e() → Edge send-whatsapp-message",
+    "workflow": ".github/workflows/make-forward-and-live-e2e.yml",
+    "trigger_that_hit_owner": "Push editing make-forward-supabase.mjs auto-ran live E2E (2026-07-21T15:51Z) — NOT a Whatsapp Bot module",
+    "not_in_bot_blueprint": true,
+    "removed_from_auto_path": true
+  },
+  "bot_blueprint_check": {
+    "contains_e2e_string": false,
+    "has_supabase_forward": true,
+    "has_ai": true,
+    "has_gupshup_msg": true
+  },
+  "error": "Broken Forward reappeared on Whatsapp Bot"
+}
