@@ -1,0 +1,27 @@
+{
+  "id": "make-gupshup-callback-match",
+  "matchedAt": "2026-07-21T11:04:00.000Z",
+  "owner_provided_url": "https://hook.eu2.make.com/1sm7czdbh5rh7bae55o54kxc2xplyk4s",
+  "zone_from_url": "eu2",
+  "url_last8": "2xplyk4s",
+  "match": {
+    "ok": true,
+    "make_scenario_id": 5797671,
+    "make_scenario_name": "Whatsapp Bot",
+    "make_hook_id": 2567320,
+    "evidence": "Hook list redacted tip …plyk4s matched owner URL ending 2xplyk4s; same hook already chosen in make-forward-live-e2e-result"
+  },
+  "already_configured": {
+    "http_forward_to_supabase_staging": true,
+    "supabase_hook": "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/gupshup-webhook",
+    "body_mapping": "{{toJSON(1)}}"
+  },
+  "critical_implication": {
+    "he": "כתובת Gupshup=make.com תואמת ל-Whatsapp Bot שכבר הוגדר עם forward. אחרי שליחות חיות ב-08:48–08:51 לא היה אף hit בלוגי ה-Hook — Gupshup לא דוחף Delivery לכתובת הזו כרגע (או שאירועי Delivery כבויים).",
+    "no_make_hook_traffic_after_live_send": true,
+    "dlr_never_reached_supabase": true
+  },
+  "production_touched": false,
+  "no_send_no_deploy_this_turn": true,
+  "awaiting_owner": "enable Delivery events on this Gupshup webhook, then approve one live E2E"
+}
