@@ -44,5 +44,6 @@
     ]
   },
   "ready_script": "scripts/wa-peer-compare-send.mjs",
-  "ready_queue": "public/project-001/wa-peer-compare-queue.json"
+  "ready_queue": "public/project-001/wa-peer-compare-queue.json",
+  "last_blocked_at": "2026-07-21T13:39:37.356Z"
 }

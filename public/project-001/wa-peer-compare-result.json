@@ -1,0 +1,9 @@
+{
+  "id": "wa-peer-compare-send",
+  "at": "2026-07-21T13:39:37.356Z",
+  "env": "staging",
+  "production_touched": false,
+  "only_one_send": true,
+  "status": "blocked_waiting_owner_phone",
+  "error": "No alternate destination. Reply with «מספר בדיקה מאושר: 05XXXXXXXX» then re-run."
+}
