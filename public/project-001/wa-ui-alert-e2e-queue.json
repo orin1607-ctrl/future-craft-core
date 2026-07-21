@@ -7,5 +7,6 @@
   "actor": "מנהל על – יוני אטיאס",
   "whatsapp": "0534338601",
   "email": "orin1607@gmail.com",
-  "one_shot": true
+  "retry": 2,
+  "note": "Re-run after npm ci for playwright"
 }

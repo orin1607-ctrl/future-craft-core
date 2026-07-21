@@ -18,8 +18,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install deps + Playwright Chromium
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
       - name: UI E2E — create fault as מנהל על יוני (Staging)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
