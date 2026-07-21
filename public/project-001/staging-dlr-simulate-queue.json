@@ -1,0 +1,8 @@
+{
+  "id": "staging-dlr-simulate-queue",
+  "requestedAt": "2026-07-21T07:32:00.000Z",
+  "env": "staging",
+  "no_whatsapp_send": true,
+  "production_touched": false,
+  "note": "Simulate DLR webhook chain only — no Gupshup send"
+}

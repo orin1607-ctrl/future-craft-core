@@ -83,6 +83,14 @@ async function recordWhatsAppSubmission(
     provider_message_id: opts.messageId,
     payload_excerpt: (opts.textExcerpt || '').slice(0, 400),
     dlr_event: 'submitted',
+    status_history: [{
+      at: new Date().toISOString(),
+      status: 'submitted',
+      dlr_event: 'submitted',
+      error_code: null,
+      error_message: null,
+      gupshup_http: opts.gupshupStatus ?? null,
+    }],
     sent_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   });

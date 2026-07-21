@@ -1,0 +1,219 @@
+name: Staging DLR webhook simulate (no WA send)
+
+# Validates webhook → incident_notification_deliveries pipeline.
+# Does NOT call Gupshup send. Does NOT touch Production.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/staging-dlr-webhook-simulate.yml'
+      - 'public/project-001/staging-dlr-simulate-queue.json'
+      - 'supabase/functions/gupshup-webhook/**'
+      - 'supabase/migrations/20260721090000_delivery_status_history.sql'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Migrate history + deploy webhook + simulate DLR chain
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = await import('node:fs');
+          const { execSync } = await import('node:child_process');
+          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+          const STAGING = 'usfeoerkpcafxxlyuldl';
+          const PROD = 'qasomfndnjuixgjmjwcm';
+          const CALLBACK = `https://${STAGING}.supabase.co/functions/v1/gupshup-webhook`;
+          const out = { env: 'staging', production_touched: false, no_whatsapp_send: true };
+
+          async function mgmt(path, opts = {}) {
+            const res = await fetch(`https://api.supabase.com/v1${path}`, {
+              method: opts.method || 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                apikey: token,
+                'Content-Type': 'application/json',
+              },
+              body: opts.body ? JSON.stringify(opts.body) : undefined,
+            });
+            const text = await res.text();
+            let json = null; try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text.slice(0, 300) }; }
+            return { status: res.status, json, text: text.slice(0, 500) };
+          }
+
+          // 1) Apply status_history migration
+          const sql = fs.readFileSync('supabase/migrations/20260721090000_delivery_status_history.sql', 'utf8');
+          const mig = await mgmt(`/projects/${STAGING}/database/query`, { method: 'POST', body: { query: sql } });
+          out.migration = { http: mig.status, preview: mig.text.slice(0, 200) };
+
+          // 2) Deploy webhook only (Staging)
+          process.env.SUPABASE_ACCESS_TOKEN = token;
+          const dep = execSync(
+            `npx --yes supabase functions deploy gupshup-webhook --project-ref ${STAGING} --use-api`,
+            { encoding: 'utf8', timeout: 180000 },
+          );
+          out.deploy = { preview: dep.slice(-180), production_deployed: false };
+
+          // 3) Staging service role
+          const keys = await mgmt(`/projects/${STAGING}/api-keys`);
+          const srk = Array.isArray(keys.json)
+            ? keys.json.find((k) => k.name === 'service_role' || (k.tags || []).includes('service_role'))?.api_key
+            : null;
+          if (!srk) throw new Error('NO_SRK');
+          const base = `https://${STAGING}.supabase.co`;
+          if (base.includes(PROD)) throw new Error('ABORT_PROD');
+
+          // 4) Insert synthetic submitted row (no Gupshup API)
+          const messageId = crypto.randomUUID();
+          const incidentId = crypto.randomUUID();
+          const now = new Date().toISOString();
+          const insRes = await fetch(`${base}/rest/v1/incident_notification_deliveries`, {
+            method: 'POST',
+            headers: {
+              apikey: srk,
+              Authorization: `Bearer ${srk}`,
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
+            },
+            body: JSON.stringify({
+              company_name: 'Dalia E2E',
+              incident_kind: 'whatsapp_probe',
+              incident_id: incidentId,
+              event_number: `SIM-${Date.now()}`,
+              channel: 'whatsapp',
+              recipient: '972534338601',
+              status: 'submitted',
+              provider_message_id: messageId,
+              dlr_event: 'submitted',
+              status_history: [{ at: now, status: 'submitted', dlr_event: 'submitted', error_code: null, error_message: null }],
+              sent_at: now,
+              updated_at: now,
+            }),
+          });
+          const insJson = await insRes.json().catch(() => ({}));
+          out.seed = { http: insRes.status, message_id: messageId, row_id: Array.isArray(insJson) ? insJson[0]?.id : insJson?.id };
+
+          // 5) Simulate Gupshup v2 DLR chain: sent → delivered → read
+          async function postDlr(type) {
+            const payload = {
+              app: 'DaliaVehicle',
+              timestamp: Date.now(),
+              version: 2,
+              type: 'message-event',
+              payload: {
+                id: messageId,
+                gsId: messageId,
+                type,
+                destination: '972534338601',
+                payload: type === 'failed' ? { code: '1005', reason: 'simulated failure' } : { ts: Date.now() },
+              },
+            };
+            const res = await fetch(CALLBACK, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            return { type, http: res.status, body: (await res.text()).slice(0, 80) };
+          }
+
+          const chain = [];
+          for (const t of ['sent', 'delivered', 'read']) {
+            chain.push(await postDlr(t));
+            await new Promise((r) => setTimeout(r, 400));
+          }
+          out.simulated_posts = chain;
+
+          // 6) Simulate failed path on another message id
+          const failId = crypto.randomUUID();
+          await fetch(`${base}/rest/v1/incident_notification_deliveries`, {
+            method: 'POST',
+            headers: {
+              apikey: srk,
+              Authorization: `Bearer ${srk}`,
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal',
+            },
+            body: JSON.stringify({
+              company_name: 'Dalia E2E',
+              incident_kind: 'whatsapp_probe',
+              incident_id: crypto.randomUUID(),
+              event_number: `SIM-FAIL-${Date.now()}`,
+              channel: 'whatsapp',
+              recipient: '972534338601',
+              status: 'submitted',
+              provider_message_id: failId,
+              dlr_event: 'submitted',
+              status_history: [{ at: new Date().toISOString(), status: 'submitted', dlr_event: 'submitted' }],
+            }),
+          });
+          const failRes = await fetch(CALLBACK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              app: 'DaliaVehicle',
+              timestamp: Date.now(),
+              version: 2,
+              type: 'message-event',
+              payload: {
+                id: failId,
+                gsId: failId,
+                type: 'failed',
+                destination: '972534338601',
+                payload: { code: '1005', reason: 'user inactive for session message' },
+              },
+            }),
+          });
+          out.simulated_failed = { message_id: failId, http: failRes.status };
+
+          // 7) Read back rows
+          async function readRow(mid) {
+            const res = await fetch(
+              `${base}/rest/v1/incident_notification_deliveries?provider_message_id=eq.${mid}&select=status,dlr_event,dlr_error_code,error_message,status_history,provider_message_id&limit=1`,
+              { headers: { apikey: srk, Authorization: `Bearer ${srk}` } },
+            );
+            const j = await res.json();
+            return Array.isArray(j) ? j[0] : null;
+          }
+          const happy = await readRow(messageId);
+          const failed = await readRow(failId);
+          out.results = {
+            happy_path: {
+              message_id: messageId,
+              status: happy?.status ?? null,
+              status_history: happy?.status_history ?? null,
+              ok: happy?.status === 'read' && Array.isArray(happy?.status_history) && happy.status_history.length >= 4,
+            },
+            failed_path: {
+              message_id: failId,
+              status: failed?.status ?? null,
+              dlr_error_code: failed?.dlr_error_code ?? null,
+              error_message: failed?.error_message ?? null,
+              status_history: failed?.status_history ?? null,
+              ok: failed?.status === 'failed' && failed?.dlr_error_code === '1005',
+            },
+          };
+          out.webhook_ready = out.results.happy_path.ok && out.results.failed_path.ok;
+          out.callback_url = CALLBACK;
+          out.owner_gate = {
+            set_gupshup_callback: true,
+            url: CALLBACK,
+            then_approve_live_send: 'Reply «אשר שליחה חיה אחת» after callback is set in Gupshup portal',
+          };
+
+          console.log('---STAGING_DLR_SIMULATE---');
+          console.log(JSON.stringify(out, null, 2));
+          console.log('---STAGING_DLR_SIMULATE_DONE---');
+          if (!out.webhook_ready) process.exit(1);
+          NODE

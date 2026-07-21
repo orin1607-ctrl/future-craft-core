@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
     for (const mid of ev.messageIds) {
       const { data: rows, error: selErr } = await supabaseAdmin
         .from('incident_notification_deliveries')
-        .select('id, status, provider_message_id')
+        .select('id, status, provider_message_id, status_history')
         .eq('provider_message_id', mid)
         .eq('channel', 'whatsapp')
         .limit(5);
@@ -257,6 +257,14 @@ Deno.serve(async (req) => {
         results.push({ message_id: mid, error: selErr.message });
         continue;
       }
+
+      const historyEntry = {
+        at: new Date().toISOString(),
+        status: ev.status,
+        dlr_event: ev.dlrEvent,
+        error_code: ev.errorCode ?? null,
+        error_message: ev.errorMessage ?? null,
+      };
 
       if (!rows || rows.length === 0) {
         // Insert orphan DLR so we still retain the event for investigation
@@ -273,6 +281,7 @@ Deno.serve(async (req) => {
           dlr_event: ev.dlrEvent,
           dlr_error_code: ev.errorCode,
           payload_excerpt: ev.rawExcerpt,
+          status_history: [historyEntry],
           sent_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
@@ -286,29 +295,32 @@ Deno.serve(async (req) => {
       }
 
       for (const row of rows) {
-        if (!preferStatus(row.status, ev.status)) {
-          results.push({ message_id: mid, action: 'skipped_rank', current: row.status, incoming: ev.status });
-          continue;
+        const prevHistory = Array.isArray(row.status_history) ? row.status_history : [];
+        const nextHistory = [...prevHistory, historyEntry];
+        const shouldAdvance = preferStatus(row.status, ev.status);
+        const patch: Record<string, unknown> = {
+          status_history: nextHistory,
+          dlr_event: ev.dlrEvent,
+          payload_excerpt: ev.rawExcerpt,
+          updated_at: new Date().toISOString(),
+        };
+        if (shouldAdvance) {
+          patch.status = ev.status;
+          patch.dlr_error_code = ev.errorCode;
+          patch.error_message = ev.errorMessage ?? null;
+          if (ev.status === 'sent' || ev.status === 'delivered' || ev.status === 'read') {
+            patch.sent_at = new Date().toISOString();
+          }
         }
         const { error: updErr } = await supabaseAdmin
           .from('incident_notification_deliveries')
-          .update({
-            status: ev.status,
-            dlr_event: ev.dlrEvent,
-            dlr_error_code: ev.errorCode,
-            error_message: ev.errorMessage ?? null,
-            payload_excerpt: ev.rawExcerpt,
-            updated_at: new Date().toISOString(),
-            ...(ev.status === 'sent' || ev.status === 'delivered' || ev.status === 'read'
-              ? { sent_at: new Date().toISOString() }
-              : {}),
-          })
+          .update(patch)
           .eq('id', row.id);
         results.push({
           message_id: mid,
-          action: updErr ? 'update_failed' : 'updated',
+          action: updErr ? 'update_failed' : (shouldAdvance ? 'updated' : 'history_only'),
           from: row.status,
-          to: ev.status,
+          to: shouldAdvance ? ev.status : row.status,
           error_code: ev.errorCode,
           error: updErr?.message,
         });
