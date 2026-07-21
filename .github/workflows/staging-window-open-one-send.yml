@@ -1,0 +1,32 @@
+name: Staging window-open one WA + DLR
+
+# After Owner activates Whatsapp Bot + messages business number.
+# One Staging send max. No Production.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/staging-window-open-one-send.mjs'
+      - 'public/project-001/staging-window-open-queue.json'
+      - '.github/workflows/staging-window-open-one-send.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Staging window check + optional one send
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/staging-window-open-one-send.mjs
