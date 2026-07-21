@@ -1,6 +1,6 @@
 {
   "id": "wa-alert-one-way",
-  "at": "2026-07-21T20:37:07.208Z",
+  "at": "2026-07-21T20:38:21.721Z",
   "env": "staging_only",
   "production_touched": false,
   "new_mechanism": false,
@@ -30,7 +30,8 @@
       "lookup": 99,
       "router": 100,
       "ignore": 101,
-      "skip": 101
+      "skip": 101,
+      "continue": 102
     },
     "rest_modules_moved": 6,
     "patch_http": 200
@@ -125,8 +126,7 @@
     ]
   },
   "activate": {
-    "already": false,
-    "start_http": 200,
+    "already": true,
     "http": 200,
     "isActive": true,
     "islinked": true,
@@ -134,9 +134,8 @@
     "hookId": 2567320
   },
   "queue_clear": {
-    "before": 1,
-    "deleted": 1,
-    "delete_http": 200,
+    "before": 0,
+    "deleted": 0,
     "ok": true
   },
   "hook_url_host": "hook.eu2.make.com",
@@ -164,46 +163,46 @@
     },
     "format": "meta+context+flat",
     "log": {
-      "id": "f8e94617a23f49489a9f054978566555",
+      "id": "d31e229cc52340f585552e0a5e32143c",
       "status": 1,
-      "timestamp": "2026-07-21T20:37:22.889Z",
+      "timestamp": "2026-07-21T20:38:49.708Z",
       "error": null,
-      "duration": 5094
+      "duration": 5594
     },
     "log_any": {
-      "id": "f8e94617a23f49489a9f054978566555",
+      "id": "d31e229cc52340f585552e0a5e32143c",
       "status": 1,
-      "timestamp": "2026-07-21T20:37:22.889Z",
+      "timestamp": "2026-07-21T20:38:49.708Z",
       "error": null,
-      "duration": 5094
+      "duration": 5594
     },
     "analysis": {
-      "duration_ms": 5094,
+      "duration_ms": 5594,
       "hit_lookup": true,
       "hit_skip_noop": true,
       "hit_ai_84": true,
-      "hit_ai_63": true,
+      "hit_ai_63": false,
       "hit_gupshup_87": true,
       "skip_module_id": 101,
       "lookup_module_id": 99,
       "lookup_logs": [
         {
           "status": 1,
+          "timestamp": "2026-07-21T20:38:50.965Z",
+          "error": null,
+          "executionId": "d31e229cc52340f585552e0a5e32143c"
+        },
+        {
+          "status": 1,
+          "timestamp": "2026-07-21T20:37:32.066Z",
+          "error": null,
+          "executionId": "528238738b54491c93b491f0c17ec376"
+        },
+        {
+          "status": 1,
           "timestamp": "2026-07-21T20:37:23.779Z",
           "error": null,
           "executionId": "f8e94617a23f49489a9f054978566555"
-        },
-        {
-          "status": 1,
-          "timestamp": "2026-07-21T20:37:19.078Z",
-          "error": null,
-          "executionId": "4532813325ab44cfbc554bd1431bcc88"
-        },
-        {
-          "status": 1,
-          "timestamp": "2026-07-21T20:35:30.923Z",
-          "error": null,
-          "executionId": "f0d52f4275ba40b3ac454951a4904fbc"
         }
       ]
     }
