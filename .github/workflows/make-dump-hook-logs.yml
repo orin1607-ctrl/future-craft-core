@@ -1,0 +1,24 @@
+name: Make dump matched hook logs
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/make-dump-hook-logs.mjs'
+      - 'public/project-001/make-dump-hook-queue.json'
+      - '.github/workflows/make-dump-hook-logs.yml'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dump Make hook logs
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+        run: node scripts/make-dump-hook-logs.mjs
