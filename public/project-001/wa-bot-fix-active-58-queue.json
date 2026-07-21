@@ -1,9 +1,11 @@
 {
   "id": "wa-bot-fix-active-58-queue",
-  "armed": true,
+  "armed": false,
+  "completed": true,
   "staging_only": true,
   "no_production": true,
   "no_ai_changes": true,
   "fix_module_58_soft": true,
-  "e2e_after_fix": true
+  "e2e_after_fix": true,
+  "note": "Complete — re-arm only to re-run fix/E2E"
 }
