@@ -1,0 +1,20 @@
+{
+  "id": "gupshup-make-webhook-decision",
+  "generated_at": "2026-07-21T07:55:00Z",
+  "no_changes_until_owner_approval": true,
+  "production_touched": false,
+  "findings": {
+    "make_com_is_what_dalia_uses": false,
+    "dalia_supabase_webhook_registered_in_gupshup": false,
+    "gupshup_delivery_events_max_urls": 1,
+    "adding_second_delivery_webhook_overwrites": true
+  },
+  "options": {
+    "A_replace_url": "Breaks make.com Delivery receipt",
+    "B_make_forward": "Recommended — keep make.com, forward to Supabase",
+    "C_proxy_fanout": "Replace with our proxy that fans out to make.com + Supabase"
+  },
+  "recommended": "B",
+  "supabase_callback": "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/gupshup-webhook",
+  "doc": "docs/audit-reports/claims-incident-process/GUPSHUP-MAKE-WEBHOOK-DECISION-HE.md"
+}
