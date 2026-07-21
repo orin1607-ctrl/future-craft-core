@@ -1,6 +1,6 @@
 {
   "id": "wa-bot-two-message",
-  "at": "2026-07-21T16:01:09.810Z",
+  "at": "2026-07-21T16:05:16.064Z",
   "env": "staging_make_only",
   "production_touched": false,
   "no_edge_wa_send": true,
@@ -32,22 +32,146 @@
       "status": 200,
       "body": "Accepted"
     },
-    "at": "2026-07-21T16:01:10.478Z",
+    "at": "2026-07-21T16:05:16.673Z",
     "execution": {
-      "id": "a6917f0e7d3b4aefa9d1ae166fddfb33",
+      "id": "60b9df2aeb984d839c371acc31c6d1fd",
       "status": 1,
-      "timestamp": "2026-07-21T16:01:10.615Z",
+      "timestamp": "2026-07-21T16:05:17.103Z",
       "error": null,
-      "duration": 6576
+      "duration": 6534
     }
   },
+  "between_messages_queue_cleared": 11,
+  "between_messages_bot": {
+    "already": false,
+    "start_http": 200,
+    "http": 200,
+    "isActive": true,
+    "islinked": true,
+    "name": "Whatsapp Bot",
+    "hookId": 2567320
+  },
   "msg2": {
-    "text": "קוראים לי בדיקה",
+    "text": "יוני",
     "post": {
       "status": 200,
       "body": "Accepted"
     },
-    "at": "2026-07-21T16:01:29.137Z"
+    "at": "2026-07-21T16:05:36.084Z",
+    "new_logs_after_post": [
+      {
+        "id": "2f1e09a7b6b9426c8fbdf935de90537b",
+        "status": 1,
+        "error": null,
+        "timestamp": "2026-07-21T16:05:36.183Z",
+        "duration": null
+      },
+      {
+        "id": "75303990",
+        "error": null,
+        "timestamp": "2026-07-21T16:05:27.866Z",
+        "duration": null
+      }
+    ],
+    "execution": {
+      "id": "2f1e09a7b6b9426c8fbdf935de90537b",
+      "status": 1,
+      "timestamp": "2026-07-21T16:05:36.183Z",
+      "error": null,
+      "duration": null
+    },
+    "hook_queue_after": 0
   },
-  "error": "No successful Make execution after message 2"
+  "scenario_final": {
+    "http": 200,
+    "isActive": true,
+    "islinked": true,
+    "name": "Whatsapp Bot",
+    "hookId": 2567320
+  },
+  "checks": {
+    "e2e_not_from_bot_modules": true,
+    "e2e_auto_send_disarmed": true,
+    "bot_still_active": true,
+    "bot_conversation_untouched": true,
+    "two_success_executions": true,
+    "no_e2e_string_in_blueprint": true,
+    "no_forward_on_bot": true
+  },
+  "confirmation": {
+    "bot_continues_conversation": true,
+    "e2e_will_not_auto_send_again": true,
+    "owner_should_see_on_phone": "Two normal bot replies (greeting + follow-up). Should NOT see a new «E2E DLR Make→Supabase Staging …» from this test."
+  },
+  "answers": {
+    "1_e2e_source": {
+      "where": "scripts/make-forward-supabase.mjs → stagingLiveE2e() → Edge send-whatsapp-message",
+      "workflow": ".github/workflows/make-forward-and-live-e2e.yml",
+      "trigger_that_hit_owner": "Push editing make-forward-supabase.mjs auto-ran live E2E (2026-07-21T15:51Z) — NOT a Whatsapp Bot module",
+      "not_in_bot_blueprint": true,
+      "removed_from_auto_path": true
+    },
+    "2_removed_from_bot_path": {
+      "bot_never_had_e2e_text": true,
+      "disabled_workflow_auto_send_on_script_push": true,
+      "queue_disarmed": true
+    },
+    "3_bot_still_active": {
+      "http": 200,
+      "isActive": true,
+      "islinked": true,
+      "name": "Whatsapp Bot",
+      "hookId": 2567320
+    },
+    "4_conversation_unchanged": true,
+    "5_two_messages": {
+      "msg1": {
+        "text": "היי",
+        "post": {
+          "status": 200,
+          "body": "Accepted"
+        },
+        "at": "2026-07-21T16:05:16.673Z",
+        "execution": {
+          "id": "60b9df2aeb984d839c371acc31c6d1fd",
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:17.103Z",
+          "error": null,
+          "duration": 6534
+        }
+      },
+      "msg2": {
+        "text": "יוני",
+        "post": {
+          "status": 200,
+          "body": "Accepted"
+        },
+        "at": "2026-07-21T16:05:36.084Z",
+        "new_logs_after_post": [
+          {
+            "id": "2f1e09a7b6b9426c8fbdf935de90537b",
+            "status": 1,
+            "error": null,
+            "timestamp": "2026-07-21T16:05:36.183Z",
+            "duration": null
+          },
+          {
+            "id": "75303990",
+            "error": null,
+            "timestamp": "2026-07-21T16:05:27.866Z",
+            "duration": null
+          }
+        ],
+        "execution": {
+          "id": "2f1e09a7b6b9426c8fbdf935de90537b",
+          "status": 1,
+          "timestamp": "2026-07-21T16:05:36.183Z",
+          "error": null,
+          "duration": null
+        },
+        "hook_queue_after": 0
+      },
+      "ok": true
+    }
+  }
 }
