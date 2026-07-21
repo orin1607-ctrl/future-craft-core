@@ -1,0 +1,25 @@
+{
+  "id": "wa-bot-strip-forward",
+  "at": "2026-07-21T15:59:26.514Z",
+  "production_touched": false,
+  "forward_before": [
+    {
+      "id": 98,
+      "name": "Forward DLR to Supabase Staging"
+    }
+  ],
+  "removed": [
+    {
+      "id": 98,
+      "name": "Forward DLR to Supabase Staging",
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/gupshup-webhook"
+    }
+  ],
+  "patch_http": 200,
+  "patch_ok": true,
+  "forward_after": [],
+  "bot": {
+    "isActive": true,
+    "islinked": true
+  }
+}

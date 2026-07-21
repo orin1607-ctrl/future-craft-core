@@ -1,6 +1,6 @@
 {
   "id": "wa-bot-two-message",
-  "at": "2026-07-21T15:57:38.758Z",
+  "at": "2026-07-21T15:59:32.391Z",
   "env": "staging_make_only",
   "production_touched": false,
   "no_edge_wa_send": true,
@@ -14,9 +14,47 @@
   },
   "bot_blueprint_check": {
     "contains_e2e_string": false,
-    "has_supabase_forward": true,
+    "has_supabase_forward": false,
     "has_ai": true,
     "has_gupshup_msg": true
   },
-  "error": "Broken Forward reappeared on Whatsapp Bot"
+  "activate": {
+    "already": true,
+    "http": 200,
+    "isActive": true,
+    "islinked": true,
+    "name": "Whatsapp Bot",
+    "hookId": 2567320
+  },
+  "msg1": {
+    "text": "היי",
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "at": "2026-07-21T15:59:33.658Z",
+    "execution": {
+      "id": "5cc1a8aafdfe49df8c0b01500fc0801d",
+      "status": 1,
+      "timestamp": "2026-07-21T15:59:33.819Z",
+      "error": null,
+      "duration": 6711
+    }
+  },
+  "msg2": {
+    "text": "קוראים לי בדיקה",
+    "post": {
+      "status": 200,
+      "body": "Accepted"
+    },
+    "at": "2026-07-21T15:59:47.570Z",
+    "error_exec": {
+      "id": "a8f0f74b1cc44c0d855413cfa710795e",
+      "status": 3,
+      "timestamp": "2026-07-21T15:59:33.587Z",
+      "error": "Error: 400 Bad Request",
+      "duration": 4876
+    }
+  },
+  "error": "No successful Make execution after message 2"
 }
