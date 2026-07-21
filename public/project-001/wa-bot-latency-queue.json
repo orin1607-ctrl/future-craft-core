@@ -1,0 +1,7 @@
+{
+  "id": "wa-bot-latency-queue",
+  "armed": true,
+  "logic_unchanged": true,
+  "no_production": true,
+  "one_inbound_probe_for_wall_clock": true
+}
