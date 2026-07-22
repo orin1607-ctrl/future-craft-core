@@ -1,0 +1,21 @@
+{
+  "id": "gupshup-auth-failed-create-key",
+  "at": "2026-07-22T06:00:00.000Z",
+  "production_touched": false,
+  "create_new_api_key_authorized": false,
+  "app_id_confirmed": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+  "error": "Authentication Failed on Create API Key",
+  "meaning_he": "קריאת Create לא אומתה — הרשאות חלקיות / session / Partner Owner; לא App ID שגוי",
+  "account_vs_app": {
+    "staging_likely": "legacy account-level key (hidden in UI, still works)",
+    "create_ui": "app-level keys (up to 2) — Partner Portal / Settings table"
+  },
+  "likely_causes": [
+    "logged-in user is not Owner/Admin for key management",
+    "expired or partial session",
+    "app key create requires Partner Portal owner for partner-managed apps"
+  ],
+  "do_not": "Ask Owner to Create another key until portal owner identity is clear",
+  "owner_reply_needed": ["logged-in email", "exact portal URL", "role if shown", "still see app after re-login"],
+  "report_doc": "docs/audit-reports/claims-incident-process/GUPSHUP-AUTH-FAILED-CREATE-KEY-HE.md"
+}
