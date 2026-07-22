@@ -117,6 +117,21 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
         throw new Error('נוסח התצהיר ריק לאחר החלפת השדות');
       }
 
+      // Critical: a leftover pending declaration blocked "תצהיר חדש" and caused
+      // WhatsApp sends to reuse an immutable OLD snapshot after template edits.
+      // Supersede any pending rows for this driver, then create a fresh one.
+      const pendingIds = declarations.filter((d) => d.status === 'pending').map((d) => d.id);
+      if (pendingIds.length > 0) {
+        const { error: cancelErr } = await supabase
+          .from('driver_declarations')
+          .update({ status: 'cancelled' } as any)
+          .in('id', pendingIds);
+        if (cancelErr) {
+          console.error(cancelErr);
+          throw new Error('לא ניתן לבטל תצהיר ממתין ישן לפני יצירת חדש');
+        }
+      }
+
       const { error } = await supabase.from('driver_declarations').insert({
         driver_id: driverId,
         driver_name: driverName,
@@ -133,7 +148,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
         toast.error('שגיאה ביצירת התצהיר');
         console.error(error);
       } else {
-        toast.success('תצהיר נוצר בהצלחה');
+        toast.success('תצהיר נוצר בהצלחה מהנוסח העדכני');
         await loadDeclarations();
         // Keep the declarations block in view on the same driver card
         requestAnimationFrame(() => {
@@ -153,7 +168,42 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
       toast.error('חסר קישור חתימה לתצהיר זה');
       return;
     }
-    const signUrl = buildSignDeclarationUrl(declaration.token);
+
+    // Before send: refresh pending snapshot from the current default template
+    // so WhatsApp/sign never serves stale text after a template save.
+    let live = declaration;
+    if (declaration.status === 'pending' && effectiveCompany) {
+      try {
+        const template = await getDefaultDeclarationTemplate(effectiveCompany, user?.id);
+        if (template?.body?.trim()) {
+          const snapshot = renderDeclarationTemplate(template.body, {
+            driver_name: declaration.driver_name || driverName,
+            id_number: declaration.id_number || idNumber || '',
+            license_number: declaration.license_number || licenseNumber || '',
+            company_name: effectiveCompany,
+            date: declaration.created_at
+              ? new Date(declaration.created_at).toLocaleDateString('he-IL')
+              : new Date().toLocaleDateString('he-IL'),
+          });
+          const { error: refreshErr } = await supabase
+            .from('driver_declarations')
+            .update({
+              declaration_text: snapshot,
+              template_id: template.id,
+            } as any)
+            .eq('id', declaration.id);
+          if (refreshErr) throw refreshErr;
+          live = { ...declaration, declaration_text: snapshot, template_id: template.id };
+          await loadDeclarations();
+        }
+      } catch (e) {
+        console.error(e);
+        toast.error('לא ניתן לעדכן את נוסח התצהיר לפני השליחה — נסו שוב');
+        return;
+      }
+    }
+
+    const signUrl = buildSignDeclarationUrl(live.token!);
 
     if (via === 'whatsapp') {
       // Canonical field: drivers.phone (passed as driverPhone from the driver card)
@@ -177,7 +227,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
     await supabase.from('driver_declarations').update({
       sent_via: via,
       sent_at: new Date().toISOString(),
-    } as any).eq('id', declaration.id);
+    } as any).eq('id', live.id);
     await loadDeclarations();
   };
 
@@ -292,6 +342,9 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
   };
 
   const getStatusBadge = (d: Declaration) => {
+    if (d.status === 'cancelled') {
+      return <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-muted text-muted-foreground text-sm font-bold">בוטל (הוחלף)</span>;
+    }
     if (d.status === 'signed') {
       const isExpired = d.expires_at && new Date(d.expires_at) < new Date();
       const isExpiringSoon = d.expires_at && new Date(d.expires_at) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
@@ -344,7 +397,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
 
   if (loading) return <div className="text-center py-4 text-muted-foreground">טוען...</div>;
 
-  const latest = declarations[0];
+  const latest = declarations.find((d) => d.status !== 'cancelled') || declarations[0];
   const needsRenewal = latest?.status === 'signed' && latest.expires_at && new Date(latest.expires_at) < new Date();
 
   return (
@@ -365,7 +418,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
             </button>
           )}
           {(mode === 'manager' || !latest) && (
-            <button type="button" onClick={createDeclaration} disabled={creating || (latest?.status === 'pending')}
+            <button type="button" onClick={createDeclaration} disabled={creating}
               className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50">
               {creating ? 'יוצר...' : needsRenewal ? 'חדש תצהיר' : latest ? 'תצהיר חדש' : 'צור תצהיר'}
             </button>

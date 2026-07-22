@@ -1,0 +1,17 @@
+{
+  "id": "production-declaration-pending-fix-queue",
+  "armed": true,
+  "requestedAt": "2026-07-22T16:56:00.000Z",
+  "requestedBy": "owner",
+  "owner_phrase": "עדיין נשלח הנוסח הישן — לתקן ב-Production ולבדוק בפועל מול WhatsApp 0534338601",
+  "target": "https://dalia-car.online",
+  "scope": [
+    "Fix: pending declaration blocked new create → stale snapshot sent",
+    "Refresh declaration_text from default template on WhatsApp send",
+    "Live verify: edit template, create new, open sign link, WA to 0534338601",
+    "Hostinger frontend only"
+  ],
+  "no_extra_development": true,
+  "stop_after_verify": true,
+  "completed": false
+}
