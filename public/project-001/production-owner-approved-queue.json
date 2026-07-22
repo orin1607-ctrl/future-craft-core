@@ -1,6 +1,6 @@
 {
   "id": "production-owner-approved-queue",
-  "armed": true,
+  "armed": false,
   "requestedAt": "2026-07-22T08:05:00.000Z",
   "requestedBy": "owner",
   "owner_phrase": "אני מאשר לפרוס ל-Production",
@@ -13,5 +13,7 @@
     "one Production WhatsApp to 0534338601"
   ],
   "no_extra_development": true,
-  "stop_after_verify": true
+  "stop_after_verify": true,
+  "completed": true,
+  "at": "2026-07-22T08:07:53.892Z"
 }

@@ -1,0 +1,17 @@
+{
+  "id": "production-owner-approved-summary",
+  "at": "2026-07-22T08:07:40.668Z",
+  "production_deployed": true,
+  "host": "https://dalia-car.online",
+  "deploy_sha": "bc4de251380318dbf914a729f32ddeb26d0b284b",
+  "live_bundle": "assets/index-duur46hV.js",
+  "deploy_txt": "commit=bc4de251380318dbf914a729f32ddeb26d0b284b bundle=index-duur46hV.js at=2026-07-22T08:07:37Z owner_approved=2026-07-22",
+  "gupshup_verified": true,
+  "edge_notify_new": true,
+  "whatsapp_success": true,
+  "whatsapp_message_id": "e72cb9fe-60b9-4eae-9c43-dc2fd7a98152",
+  "whatsapp_destination": "0534338601",
+  "production_system_ok": true,
+  "stopped": true,
+  "next": "No further actions without explicit Owner approval"
+}

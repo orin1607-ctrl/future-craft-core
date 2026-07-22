@@ -1,0 +1,61 @@
+{
+  "id": "production-owner-approved-verify",
+  "at": "2026-07-22T08:07:40.668Z",
+  "production_deployed": true,
+  "host": "https://dalia-car.online",
+  "deploy_sha": "bc4de251380318dbf914a729f32ddeb26d0b284b",
+  "stop_after_report": true,
+  "live_site": {
+    "http": 200,
+    "ok": true,
+    "bundle": "assets/index-duur46hV.js",
+    "deploy_txt": "commit=bc4de251380318dbf914a729f32ddeb26d0b284b bundle=index-duur46hV.js at=2026-07-22T08:07:37Z owner_approved=2026-07-22",
+    "sha_in_deploy_txt": true
+  },
+  "smoke": {
+    "has_assets": true,
+    "mentions_supabase_prod": true,
+    "bundle_http": 200,
+    "has_allocate_incident": true,
+    "no_assert_client_staging": true
+  },
+  "secrets": {
+    "http": 200,
+    "GUPSHUP_API_KEY": true,
+    "RESEND_API_KEY": true
+  },
+  "gupshup": {
+    "http": 200,
+    "configured": true,
+    "gupshup_verified": true,
+    "gupshup_status": 202,
+    "message": "מפתח Gupshup תקין עבור endpoint השליחה"
+  },
+  "edge_notify": {
+    "http": 200,
+    "is_new": true,
+    "would_whatsapp": [
+      "972534338601"
+    ]
+  },
+  "whatsapp_send": {
+    "http": 200,
+    "success": true,
+    "gupshup_status": 202,
+    "message_id": "e72cb9fe-60b9-4eae-9c43-dc2fd7a98152",
+    "destination": "0534338601",
+    "error": null,
+    "note": "הודעת WhatsApp נשלחה"
+  },
+  "gupshup_webhook": {
+    "http": 200,
+    "reachable": true
+  },
+  "verdict": {
+    "hostinger_updated": true,
+    "health_ok": true,
+    "whatsapp_sent_ok": true,
+    "production_system_ok": true,
+    "stopped": true
+  }
+}
