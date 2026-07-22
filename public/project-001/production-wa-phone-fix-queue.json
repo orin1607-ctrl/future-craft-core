@@ -1,6 +1,6 @@
 {
   "id": "production-wa-phone-fix-queue",
-  "armed": false,
+  "armed": true,
   "requestedAt": "2026-07-22T12:00:00.000Z",
   "requestedBy": "owner",
   "owner_request": "fix WhatsApp phone for declaration + exam on Production",
