@@ -6,6 +6,7 @@ import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { exportToCsv } from '@/utils/exportCsv';
 import { printDeclaration } from '@/utils/printDeclaration';
 import { canManageDeclarationTemplates } from '@/utils/declarationTemplates';
+import { normalizeTemplateCompanyName } from '@/services/declarationTemplatesApi';
 import DeclarationTemplateManager from '@/components/DeclarationTemplateManager';
 import DeclarationPreviewModal from '@/components/DeclarationPreviewModal';
 
@@ -35,7 +36,7 @@ export default function DriverDeclarations() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [previewDeclaration, setPreviewDeclaration] = useState<DeclarationRow | null>(null);
   const canManageTemplates = canManageDeclarationTemplates(user?.role);
-  const templateCompany = companyFilter || user?.company_name || '';
+  const templateCompany = normalizeTemplateCompanyName(companyFilter || user?.company_name || '');
 
   const loadData = async () => {
     setLoading(true);

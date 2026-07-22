@@ -13,7 +13,6 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   DECLARATION_PLACEHOLDERS,
-  DEFAULT_DECLARATION_BODY,
   canManageDeclarationTemplates,
   type DeclarationTemplate,
 } from '@/utils/declarationTemplates';
@@ -22,6 +21,8 @@ import {
   deleteDeclarationTemplate,
   ensureDefaultDeclarationTemplate,
   listDeclarationTemplates,
+  normalizeTemplateCompanyName,
+  saveDeclarationTemplateBodyAsDefault,
   setDefaultDeclarationTemplate,
   updateDeclarationTemplate,
 } from '@/services/declarationTemplatesApi';
@@ -53,14 +54,15 @@ export default function DeclarationTemplateManager({
   const selected = templates.find((t) => t.id === selectedId) || templates.find((t) => t.is_default) || templates[0] || null;
 
   const load = async () => {
-    if (!companyName || !canManage) {
+    const company = normalizeTemplateCompanyName(companyName);
+    if (!company || !canManage) {
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      await ensureDefaultDeclarationTemplate(companyName, user?.id);
-      const rows = await listDeclarationTemplates(companyName);
+      await ensureDefaultDeclarationTemplate(company, user?.id);
+      const rows = await listDeclarationTemplates(company);
       setTemplates(rows);
       const def = rows.find((t) => t.is_default) || rows[0] || null;
       setSelectedId((prev) => {
@@ -89,7 +91,7 @@ export default function DeclarationTemplateManager({
   }, [selected?.id, selected?.body, selected?.name, editing, renaming]);
 
   if (!canManage) return null;
-  if (!companyName) {
+  if (!normalizeTemplateCompanyName(companyName)) {
     return (
       <div className="p-3 rounded-xl border border-border bg-muted/30 text-sm text-muted-foreground">
         יש לבחור חברה כדי לנהל תבניות תצהיר
@@ -115,13 +117,22 @@ export default function DeclarationTemplateManager({
       toast.error('נוסח התצהיר לא יכול להיות ריק');
       return;
     }
+    const company = normalizeTemplateCompanyName(companyName);
+    if (!company) {
+      toast.error('חסר שם חברה לשמירת התבנית');
+      return;
+    }
     setSaving(true);
     try {
-      const updated = await updateDeclarationTemplate(selected.id, { body: draftBody });
-      setTemplates((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      // Persist body in DB and promote as default — new declarations always use this version
+      const confirmed = await saveDeclarationTemplateBodyAsDefault(selected.id, draftBody, company);
+      const rows = await listDeclarationTemplates(company);
+      setTemplates(rows);
+      setSelectedId(confirmed.id);
+      setDraftBody(confirmed.body);
       setEditing(false);
-      toast.success('התצהיר נשמר');
-      if (updated.is_default) onDefaultChange?.(updated);
+      toast.success('התצהיר נשמר במסד הנתונים');
+      onDefaultChange?.(confirmed);
     } catch (e: any) {
       console.error(e);
       toast.error('שגיאה בשמירה: ' + (e?.message || ''));
@@ -151,18 +162,24 @@ export default function DeclarationTemplateManager({
   };
 
   const handleCreate = async () => {
+    const company = normalizeTemplateCompanyName(companyName);
+    if (!company) {
+      toast.error('חסר שם חברה ליצירת תבנית');
+      return;
+    }
     setCreating(true);
     try {
-      const base = selected?.body || DEFAULT_DECLARATION_BODY;
+      // Seed new template from the currently selected DB body (not a hardcoded constant when possible)
+      const base = selected?.body || (await ensureDefaultDeclarationTemplate(company, user?.id)).body;
       const name = `תבנית חדשה ${templates.length + 1}`;
       const created = await createDeclarationTemplate({
-        companyName,
+        companyName: company,
         name,
         body: base,
         isDefault: templates.length === 0,
         createdBy: user?.id,
       });
-      const rows = await listDeclarationTemplates(companyName);
+      const rows = await listDeclarationTemplates(company);
       setTemplates(rows);
       setSelectedId(created.id);
       setDraftBody(created.body);
@@ -180,15 +197,17 @@ export default function DeclarationTemplateManager({
 
   const handleDuplicate = async () => {
     if (!selected) return;
+    const company = normalizeTemplateCompanyName(companyName);
+    if (!company) return;
     setCreating(true);
     try {
       const created = await createDeclarationTemplate({
-        companyName,
+        companyName: company,
         name: `${selected.name} (עותק)`,
         body: selected.body,
         createdBy: user?.id,
       });
-      const rows = await listDeclarationTemplates(companyName);
+      const rows = await listDeclarationTemplates(company);
       setTemplates(rows);
       setSelectedId(created.id);
       toast.success('התבנית שוכפלה');
@@ -202,6 +221,8 @@ export default function DeclarationTemplateManager({
 
   const handleDelete = async () => {
     if (!selected) return;
+    const company = normalizeTemplateCompanyName(companyName);
+    if (!company) return;
     if (selected.is_default && templates.length > 1) {
       toast.error('לא ניתן למחוק את תבנית ברירת המחדל. בחרו תבנית אחרת כברירת מחדל תחילה.');
       return;
@@ -213,7 +234,7 @@ export default function DeclarationTemplateManager({
     if (!confirm(`למחוק את התבנית "${selected.name}"?`)) return;
     try {
       await deleteDeclarationTemplate(selected.id);
-      const rows = await listDeclarationTemplates(companyName);
+      const rows = await listDeclarationTemplates(company);
       setTemplates(rows);
       const next = rows.find((t) => t.is_default) || rows[0] || null;
       setSelectedId(next?.id ?? null);
@@ -228,9 +249,11 @@ export default function DeclarationTemplateManager({
 
   const handleSetDefault = async () => {
     if (!selected || selected.is_default) return;
+    const company = normalizeTemplateCompanyName(companyName);
+    if (!company) return;
     try {
-      const updated = await setDefaultDeclarationTemplate(selected.id, companyName);
-      const rows = await listDeclarationTemplates(companyName);
+      const updated = await setDefaultDeclarationTemplate(selected.id, company);
+      const rows = await listDeclarationTemplates(company);
       setTemplates(rows);
       toast.success(`"${updated.name}" הוגדרה כברירת מחדל`);
       onDefaultChange?.(updated);

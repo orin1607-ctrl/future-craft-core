@@ -2,6 +2,10 @@
  * Driver declaration template helpers.
  * Supports {{placeholder}} tokens and legacy ______ / {ID} markers.
  * New placeholders can be registered in DECLARATION_PLACEHOLDERS without schema changes.
+ *
+ * DEFAULT_DECLARATION_BODY is a one-time seed for companies with ZERO templates.
+ * After seed, the source of truth is declaration_templates.body in the database.
+ * New declarations must load the company default from DB — never this constant.
  */
 
 export const DEFAULT_DECLARATION_BODY = `אני החתום מטה, בעל תעודת זהות מספר {{id_number}},
@@ -25,6 +29,11 @@ export const DEFAULT_DECLARATION_BODY = `אני החתום מטה, בעל תעו
 אני מצהיר בזה כי הצהרתי הנ״ל אמת`;
 
 export const DEFAULT_DECLARATION_TEMPLATE_NAME = 'תצהיר כללי';
+
+/** Normalize company key so template save/load/create always hit the same DB rows. */
+export function normalizeTemplateCompanyName(companyName: string | null | undefined): string {
+  return String(companyName || '').trim();
+}
 
 /** Registry of supported dynamic fields — extend here for future tokens. */
 export const DECLARATION_PLACEHOLDERS = [

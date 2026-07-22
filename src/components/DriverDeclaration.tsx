@@ -9,7 +9,10 @@ import {
   canManageDeclarationTemplates,
   renderDeclarationTemplate,
 } from '@/utils/declarationTemplates';
-import { getDefaultDeclarationTemplate } from '@/services/declarationTemplatesApi';
+import {
+  getDefaultDeclarationTemplate,
+  normalizeTemplateCompanyName,
+} from '@/services/declarationTemplatesApi';
 import DeclarationTemplateManager from '@/components/DeclarationTemplateManager';
 import DeclarationPreviewModal from '@/components/DeclarationPreviewModal';
 import { buildSignDeclarationUrl } from '@/utils/appUrls';
@@ -67,7 +70,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
-  const effectiveCompany = companyName || user?.company_name || '';
+  const effectiveCompany = normalizeTemplateCompanyName(companyName || user?.company_name || '');
   const canManageTemplates = mode === 'manager' && canManageDeclarationTemplates(user?.role);
 
   const loadDeclarations = async () => {
@@ -89,18 +92,16 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
     // Stay on this driver's card — never navigate away after create.
     setCreating(true);
     try {
-      let declarationText = DEFAULT_DECLARATION_BODY;
-      let templateId: string | null = null;
-
-      if (effectiveCompany) {
-        try {
-          const template = await getDefaultDeclarationTemplate(effectiveCompany, user?.id);
-          declarationText = template.body;
-          templateId = template.id;
-        } catch (templateErr) {
-          console.warn('Falling back to built-in declaration text', templateErr);
-        }
+      if (!effectiveCompany) {
+        toast.error('חסר שם חברה — לא ניתן ליצור תצהיר מתבנית');
+        return;
       }
+
+      // Always read the latest default template body from the database.
+      // Do not fall back to the hardcoded seed text for new declarations.
+      const template = await getDefaultDeclarationTemplate(effectiveCompany, user?.id);
+      const declarationText = template.body;
+      const templateId = template.id;
 
       const snapshot = renderDeclarationTemplate(declarationText, {
         driver_name: driverName,
@@ -133,9 +134,9 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
           document.getElementById('driver-declaration-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error('שגיאה ביצירת התצהיר');
+      toast.error('שגיאה בטעינת תבנית התצהיר מהמסד: ' + (e?.message || 'נסו שוב'));
     } finally {
       setCreating(false);
     }

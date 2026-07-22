@@ -3,9 +3,11 @@ import {
   DEFAULT_DECLARATION_BODY,
   DEFAULT_DECLARATION_TEMPLATE_NAME,
   DEFAULT_PLACEHOLDERS_JSON,
+  normalizeTemplateCompanyName,
   type DeclarationTemplate,
 } from '@/utils/declarationTemplates';
 
+export { normalizeTemplateCompanyName };
 
 function mapRow(row: Record<string, unknown>): DeclarationTemplate {
   return {
@@ -22,41 +24,59 @@ function mapRow(row: Record<string, unknown>): DeclarationTemplate {
 }
 
 export async function listDeclarationTemplates(companyName: string): Promise<DeclarationTemplate[]> {
-  if (!companyName) return [];
+  const company = normalizeTemplateCompanyName(companyName);
+  if (!company) return [];
   const { data, error } = await supabase
     .from('declaration_templates')
     .select('*')
-    .eq('company_name', companyName)
+    .eq('company_name', company)
     .order('is_default', { ascending: false })
+    .order('updated_at', { ascending: false })
     .order('name', { ascending: true });
 
   if (error) throw error;
   return (data || []).map((row) => mapRow(row as Record<string, unknown>));
 }
 
-/** Ensure the company has at least one default template; create the built-in default if missing. */
+export async function getDeclarationTemplateById(id: string): Promise<DeclarationTemplate> {
+  const { data, error } = await supabase
+    .from('declaration_templates')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+  return mapRow(data as Record<string, unknown>);
+}
+
+/**
+ * Ensure the company has at least one default template.
+ * Seeds the built-in body ONLY when the company has zero templates.
+ * Never overwrites an existing default body.
+ */
 export async function ensureDefaultDeclarationTemplate(
   companyName: string,
   createdBy?: string | null,
 ): Promise<DeclarationTemplate> {
-  if (!companyName) {
+  const company = normalizeTemplateCompanyName(companyName);
+  if (!company) {
     throw new Error('חסר שם חברה ליצירת תבנית תצהיר');
   }
 
-  const existing = await listDeclarationTemplates(companyName);
+  const existing = await listDeclarationTemplates(company);
   const currentDefault = existing.find((t) => t.is_default) || existing[0];
   if (currentDefault) {
     if (!currentDefault.is_default) {
-      await setDefaultDeclarationTemplate(currentDefault.id, companyName);
-      return { ...currentDefault, is_default: true };
+      // Promote existing row — do not re-seed hardcoded body
+      return setDefaultDeclarationTemplate(currentDefault.id, company);
     }
-    return currentDefault;
+    // Re-read by id so callers always get the latest persisted body from DB
+    return getDeclarationTemplateById(currentDefault.id);
   }
 
   const { data, error } = await supabase
     .from('declaration_templates')
     .insert({
-      company_name: companyName,
+      company_name: company,
       name: DEFAULT_DECLARATION_TEMPLATE_NAME,
       body: DEFAULT_DECLARATION_BODY,
       is_default: true,
@@ -77,10 +97,13 @@ export async function createDeclarationTemplate(input: {
   isDefault?: boolean;
   createdBy?: string | null;
 }): Promise<DeclarationTemplate> {
+  const company = normalizeTemplateCompanyName(input.companyName);
+  if (!company) throw new Error('חסר שם חברה ליצירת תבנית תצהיר');
+
   const { data, error } = await supabase
     .from('declaration_templates')
     .insert({
-      company_name: input.companyName,
+      company_name: company,
       name: input.name.trim(),
       body: input.body,
       is_default: Boolean(input.isDefault),
@@ -115,7 +138,8 @@ export async function updateDeclarationTemplate(
     .single();
 
   if (error) throw error;
-  return mapRow(data as Record<string, unknown>);
+  // Always re-read after write so UI cannot keep a stale/local-only body
+  return getDeclarationTemplateById(id);
 }
 
 export async function deleteDeclarationTemplate(id: string): Promise<void> {
@@ -133,6 +157,38 @@ export async function setDefaultDeclarationTemplate(
   return updateDeclarationTemplate(id, { is_default: true });
 }
 
+/**
+ * Persist template body to DB and make it the company default.
+ * New declarations always read this default from the database.
+ */
+export async function saveDeclarationTemplateBodyAsDefault(
+  id: string,
+  body: string,
+  companyName: string,
+): Promise<DeclarationTemplate> {
+  const company = normalizeTemplateCompanyName(companyName);
+  if (!company) throw new Error('חסר שם חברה לשמירת תבנית תצהיר');
+  if (!String(body || '').trim()) throw new Error('נוסח התצהיר לא יכול להיות ריק');
+
+  const { error } = await supabase
+    .from('declaration_templates')
+    .update({ body, is_default: true })
+    .eq('id', id);
+
+  if (error) throw error;
+
+  // Final DB read — source of truth after save (not local/draft state)
+  const confirmed = await getDeclarationTemplateById(id);
+  if (confirmed.body !== body) {
+    throw new Error('השמירה לא נשמרה במסד הנתונים — נסו שוב');
+  }
+  if (!confirmed.is_default) {
+    throw new Error('התבנית נשמרה אך לא הוגדרה כברירת מחדל — נסו שוב');
+  }
+  return confirmed;
+}
+
+/** Latest default template body from DB (seed only if company has no templates yet). */
 export async function getDefaultDeclarationTemplate(
   companyName: string,
   createdBy?: string | null,
