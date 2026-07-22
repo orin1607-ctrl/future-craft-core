@@ -1,0 +1,14 @@
+{
+  "id": "production-deploy-complete",
+  "at": "2026-07-22T08:10:00.000Z",
+  "production_deployed": true,
+  "production_system_ok": true,
+  "host": "https://dalia-car.online",
+  "deploy_sha": "bc4de251380318dbf914a729f32ddeb26d0b284b",
+  "live_bundle": "assets/index-duur46hV.js",
+  "whatsapp_message_id": "e72cb9fe-60b9-4eae-9c43-dc2fd7a98152",
+  "whatsapp_destination": "0534338601",
+  "actions_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29902697097",
+  "stopped": true,
+  "report_doc": "docs/audit-reports/claims-incident-process/PRODUCTION-DEPLOY-COMPLETE-HE.md"
+}

@@ -14,8 +14,8 @@
     id: MISSION_ID,
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
-    productionBlocked: true,
-    latestFocus: 'רוטציה GUPSHUP הצליחה — Staging שליחה OK · Make לא דורש עדכון · ממתין אשר Production',
+    productionBlocked: false,
+    latestFocus: 'Production Hostinger פרוס ומאומת — עצירה עד אישור Owner נוסף',
   };
 
   var STAGES = [
@@ -255,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>רוטציית GUPSHUP_API_KEY אומתה — Staging+Prod verified · שליחת WA Staging OK</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../GUPSHUP-ROTATION-SUCCESS-HE.md · project-001/gupshup-rotation-verify-summary.json</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>Make 87/58 לא דורשים עדכון; לפריסת קוד Prod — רק «אשר Production»</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Edge Secrets נקלטו; probe + send חי ב-Staging; Make apikey עדיין תקף מול Gupshup</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'חסם GUPSHUP ב-Prod Secrets הוסר') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>rotation_success: true · msg 59b5f8de… · Make needs_update: false</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אשר Production — לפריסת קוד (Secrets כבר מוכנים)</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>פריסת Production ל-Hostinger (dalia-car.online) + Edge + WA בדיקה אחת</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>https://dalia-car.online · docs/.../PRODUCTION-DEPLOY-COMPLETE-HE.md</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>המערכת הפעילה מעודכנת; אין פעולות נוספות בלי אישור מפורש</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Edge notify+webhook · migrations · frontend rsync · verify + שליחת WA אחת</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'Production live · system_ok true · stopped') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>bundle index-duur46hV.js · WA msg e72cb9fe… · gupshup_verified</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>עצירה — אין המשך בלי אישור מפורש</div>' +
         '</div>' +
       '</div>'
     );
