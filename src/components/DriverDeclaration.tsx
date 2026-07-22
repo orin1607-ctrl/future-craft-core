@@ -13,6 +13,7 @@ import { getDefaultDeclarationTemplate } from '@/services/declarationTemplatesAp
 import DeclarationTemplateManager from '@/components/DeclarationTemplateManager';
 import DeclarationPreviewModal from '@/components/DeclarationPreviewModal';
 import { buildSignDeclarationUrl } from '@/utils/appUrls';
+import { buildWaMeUrl } from '@/lib/driverOutboundNotify';
 
 interface Declaration {
   id: string;
@@ -39,6 +40,8 @@ interface DriverDeclarationProps {
   idNumber?: string;
   licenseNumber?: string;
   companyName?: string;
+  /** Driver mobile from the driver card — used for direct WhatsApp chat deep-link */
+  driverPhone?: string;
   mode?: 'manager' | 'driver';
 }
 
@@ -52,7 +55,7 @@ function resolveDeclarationDisplayText(d: Declaration): string {
   });
 }
 
-export default function DriverDeclaration({ driverId, driverName, idNumber, licenseNumber, companyName, mode = 'manager' }: DriverDeclarationProps) {
+export default function DriverDeclaration({ driverId, driverName, idNumber, licenseNumber, companyName, driverPhone, mode = 'manager' }: DriverDeclarationProps) {
   const { user } = useAuth();
   const [declarations, setDeclarations] = useState<Declaration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,8 +149,14 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
     const signUrl = buildSignDeclarationUrl(declaration.token);
 
     if (via === 'whatsapp') {
-      const msg = encodeURIComponent(`שלום ${driverName}, אנא חתום על תצהיר נהג בקישור הבא:\n${signUrl}`);
-      window.open(`https://wa.me/?text=${msg}`, '_blank', 'noopener,noreferrer');
+      const phone = (driverPhone || '').trim();
+      if (!phone) {
+        toast.error('חסר מספר טלפון בכרטיס הנהג — לא ניתן לפתוח צ׳אט ישירות');
+        return;
+      }
+      const message = `שלום ${driverName}, אנא חתום על תצהיר נהג בקישור הבא:\n${signUrl}`;
+      // Open the driver's chat directly (wa.me/<phone>?text=...) — not the contact picker
+      window.open(buildWaMeUrl(phone, message), '_blank', 'noopener,noreferrer');
     } else {
       await navigator.clipboard.writeText(signUrl);
       toast.success('קישור הועתק ללוח – שלח אותו באימייל לנהג');
