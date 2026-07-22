@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'לפני מחיקת Key: אין מיפוי 1/2↔Staging — שלח Last used או רוטציה מבוקרת',
+    latestFocus: 'תוכנית רוטציה GUPSHUP מוכנה — ממתין למפתח (בלי מחיקה עכשיו)',
   };
 
   var STAGES = [

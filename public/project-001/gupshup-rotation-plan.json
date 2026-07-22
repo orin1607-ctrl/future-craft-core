@@ -1,0 +1,38 @@
+{
+  "id": "gupshup-rotation-plan",
+  "at": "2026-07-22T07:30:00.000Z",
+  "executed": false,
+  "delete_executed": false,
+  "code_change_required": false,
+  "secrets_only": true,
+  "required_update_targets": [
+    {
+      "id": "A",
+      "env": "staging",
+      "ref": "usfeoerkpcafxxlyuldl",
+      "secret": "GUPSHUP_API_KEY",
+      "required": true
+    },
+    {
+      "id": "B",
+      "env": "production",
+      "ref": "qasomfndnjuixgjmjwcm",
+      "secret": "GUPSHUP_API_KEY",
+      "required": true
+    },
+    {
+      "id": "C",
+      "env": "make",
+      "scenario": "5797671",
+      "modules": ["87", "58"],
+      "field": "apikey",
+      "required_if": "Make HTTP modules store the deleted/rotated App API key"
+    }
+  ],
+  "not_required": [".env", "source_code", "edge_redeploy", "github_secrets_runtime", "vps", "frontend_build"],
+  "preferred_path": "alpha_create_before_delete_zero_downtime",
+  "fallback_path": "beta_delete_then_create_minimize_staging_gap",
+  "after_owner_phrase": ["רוטציה — Staging עודכן", "רוטציה — עדכן"],
+  "agent_then": ["staging_probe", "prod_secret_verify", "staging_send_test", "no_production_deploy"],
+  "report_doc": "docs/audit-reports/claims-incident-process/GUPSHUP-ROTATION-PLAN-HE.md"
+}
