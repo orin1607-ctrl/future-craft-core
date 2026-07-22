@@ -14,5 +14,7 @@
   ],
   "no_extra_development": true,
   "stop_after_verify": true,
-  "completed": false
+  "completed": false,
+  "retryAt": "2026-07-22T13:44:55.869Z",
+  "note": "retry after SSH timeout"
 }
