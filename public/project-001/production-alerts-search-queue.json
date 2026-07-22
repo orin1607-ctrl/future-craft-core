@@ -1,7 +1,7 @@
 {
   "id": "production-alerts-search-queue",
-  "armed": false,
-  "requestedAt": "2026-07-22T16:07:00.000Z",
+  "armed": true,
+  "requestedAt": "2026-07-22T16:12:45.328Z",
   "requestedBy": "owner",
   "owner_phrase": "אם הכול תקין, אני מאשר לך להעלות את אותם השינויים גם ל-Production",
   "target": "https://dalia-car.online",
