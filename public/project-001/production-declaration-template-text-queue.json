@@ -1,7 +1,7 @@
 {
   "id": "production-declaration-template-text-queue",
-  "armed": false,
-  "requestedAt": "2026-07-22T16:32:00.000Z",
+  "armed": true,
+  "requestedAt": "2026-07-22T16:36:05.481Z",
   "requestedBy": "owner",
   "owner_phrase": "לאחר שהתיקון יעבוד ב-Staging, לאמת אותו, ואז להעלות גם ל-Production",
   "target": "https://dalia-car.online",
