@@ -1,6 +1,6 @@
 {
   "id": "gupshup-identity-probe-queue",
-  "requestedAt": "2026-07-21T21:05:00.000Z",
+  "requestedAt": "2026-07-22T07:17:22.130Z",
   "requestedBy": "cursor-agent",
-  "note": "Re-verify existing DaliaVehicle key still valid before Owner pastes to Prod — no new key, no Production"
+  "note": "Pre-delete check: confirm Staging GUPSHUP still valid before any key delete"
 }
