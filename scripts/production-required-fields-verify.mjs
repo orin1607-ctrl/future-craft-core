@@ -36,18 +36,24 @@ function check(id, ok, detail = {}) {
   console.log(ok ? '✅' : '❌', id, detail.error || detail.note || '');
 }
 
-async function mgmt(path) {
+async function mgmt(path, opts = {}) {
   const res = await fetch(`https://api.supabase.com/v1${path}`, {
-    headers: { Authorization: `Bearer ${token}`, apikey: token },
+    method: opts.method || 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: token,
+      'Content-Type': 'application/json',
+    },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
   const text = await res.text();
   let json = null;
   try {
     json = text ? JSON.parse(text) : null;
   } catch {
-    json = null;
+    json = { raw: text.slice(0, 400) };
   }
-  return { status: res.status, json };
+  return { status: res.status, json, text: text.slice(0, 500) };
 }
 
 function loadKeys() {
@@ -114,7 +120,7 @@ async function main() {
   check('no-doc-404', !net400.some((e) => e.s === 404), { net400: net400.slice(0, 5) });
   await browser.close();
 
-  // Optional: confirm Production DB can store byCompany shape (read-only if empty)
+  // Ensure Production has the same config table Staging already uses (idempotent)
   if (token) {
     const keysRes = await mgmt(`/projects/${PROD}/api-keys`);
     check('mgmt-keys', keysRes.status === 200, { status: keysRes.status });
@@ -123,12 +129,37 @@ async function main() {
   const admin = createClient(PROD_URL, keys.service, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data, error } = await admin
+
+  let { data, error } = await admin
     .from('dalia_form_config')
     .select('config_key, config_value')
     .eq('config_key', 'required_fields')
     .maybeSingle();
+
+  if (error && /dalia_form_config|schema cache/i.test(error.message || '')) {
+    must(token, 'SUPABASE_ACCESS_TOKEN required to apply dalia_form_config on Production');
+    const sql = fs.readFileSync('supabase/migrations/20260626120000_dalia_form_config.sql', 'utf8');
+    const mig = await mgmt(`/projects/${PROD}/database/query`, {
+      method: 'POST',
+      body: { query: sql },
+    });
+    const migOk = mig.status >= 200 && mig.status < 300;
+    check('db-migrate-dalia-form-config', migOk, {
+      status: mig.status,
+      preview: mig.text?.slice(0, 180),
+    });
+    out.migrations_applied = migOk ? ['20260626120000_dalia_form_config.sql'] : [];
+    // brief wait for schema cache
+    await new Promise((r) => setTimeout(r, 1500));
+    ({ data, error } = await admin
+      .from('dalia_form_config')
+      .select('config_key, config_value')
+      .eq('config_key', 'required_fields')
+      .maybeSingle());
+  }
+
   check('db-config-readable', !error, { error: error?.message, hasRow: Boolean(data) });
+  out.migrations_required = Boolean(out.migrations_applied?.length);
 
   out.ok = out.checks.every((c) => c.ok);
   out.bundle = bundle;
