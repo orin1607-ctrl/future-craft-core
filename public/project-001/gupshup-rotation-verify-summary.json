@@ -1,0 +1,13 @@
+{
+  "id": "gupshup-rotation-verify-summary",
+  "at": "2026-07-22T07:57:52.981Z",
+  "staging_verified": true,
+  "staging_send_ok": true,
+  "staging_message_id": "59b5f8de-514a-438f-bccd-bcea10056f04",
+  "production_secret_present": true,
+  "production_verified": true,
+  "make_87_needs_update": false,
+  "make_58_needs_update": false,
+  "rotation_success": true,
+  "production_code_deployed": false
+}

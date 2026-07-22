@@ -1,8 +1,10 @@
 {
   "id": "gupshup-rotation-verify-queue",
-  "armed": true,
+  "armed": false,
   "requestedAt": "2026-07-22T07:55:00.000Z",
   "requestedBy": "owner",
   "note": "Owner finished rotation — verify Staging+Prod secrets, Staging send, Make 87/58",
-  "production_code_deploy": false
+  "production_code_deploy": false,
+  "completed": true,
+  "at": "2026-07-22T07:58:11.257Z"
 }

@@ -1,0 +1,100 @@
+{
+  "id": "gupshup-rotation-verify",
+  "at": "2026-07-22T07:57:52.981Z",
+  "production_code_deployed": false,
+  "production_touched_code": false,
+  "staging_secrets": {
+    "http": 200,
+    "GUPSHUP_API_KEY": true,
+    "GUPSHUP_APP_NAME": true,
+    "GUPSHUP_SOURCE": false,
+    "GUPSHUP_APP_ID": false,
+    "count": 26
+  },
+  "production_secrets": {
+    "http": 200,
+    "GUPSHUP_API_KEY": true,
+    "GUPSHUP_APP_NAME": false,
+    "GUPSHUP_SOURCE": false,
+    "GUPSHUP_APP_ID": false,
+    "count": 12
+  },
+  "staging_connection": {
+    "http": 200,
+    "configured": true,
+    "gupshup_verified": true,
+    "gupshup_status": 202,
+    "app_name": "DaliaVehicle",
+    "source": "972546500305",
+    "message": "מפתח Gupshup תקין עבור endpoint השליחה",
+    "key_length": null
+  },
+  "staging_inspect": {
+    "http": 200,
+    "key_length": 35,
+    "belongs_to_app": true,
+    "app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd"
+  },
+  "staging_send": {
+    "http": 200,
+    "success": true,
+    "gupshup_status": 202,
+    "message_id": "59b5f8de-514a-438f-bccd-bcea10056f04",
+    "destination": "0534338601",
+    "error": "הודעת WhatsApp נשלחה"
+  },
+  "production_connection": {
+    "http": 200,
+    "configured": true,
+    "gupshup_verified": true,
+    "gupshup_status": 202,
+    "message": "מפתח Gupshup תקין עבור endpoint השליחה",
+    "key_length": null
+  },
+  "make": {
+    "http": 200,
+    "scenario": 5797671,
+    "module_87": {
+      "present": true,
+      "module": "http:ActionSendData",
+      "url_host_ok": true,
+      "apikey": {
+        "kind": "literal",
+        "length": 35
+      },
+      "gupshup_probe": {
+        "ok": true,
+        "http": 202,
+        "key_length": 35
+      },
+      "needs_update": false
+    },
+    "module_58": {
+      "present": true,
+      "module": "http:ActionSendData",
+      "url_host_ok": true,
+      "apikey": {
+        "kind": "literal",
+        "length": 35
+      },
+      "gupshup_probe": {
+        "ok": true,
+        "http": 202,
+        "key_length": 35
+      },
+      "needs_update": false
+    }
+  },
+  "verdict": {
+    "staging_secret_ok": true,
+    "staging_connection_ok": true,
+    "staging_send_ok": true,
+    "production_secret_ok": true,
+    "production_connection_ok": true,
+    "make_87_needs_update": false,
+    "make_58_needs_update": false,
+    "rotation_success": true,
+    "rotation_success_strict": true,
+    "make_note_he": "מודול 87: apikey עדיין תקף מול Gupshup — אין חובה לעדכן"
+  }
+}
