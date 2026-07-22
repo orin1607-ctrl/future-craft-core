@@ -1,29 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
-import { FileText, Send, Check, Clock, AlertTriangle, ArrowRight, Pencil, Printer } from 'lucide-react';
+import { FileText, Send, Check, Clock, AlertTriangle, ArrowRight, Pencil, Printer, Settings2, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { printDeclaration } from '@/utils/printDeclaration';
-
-const DECLARATION_TEXT = `אני החתום מטה, בעל תעודת זהות מספר ______,
-מצהיר בזה כי לא נתגלו אצלי, לפי מיטב ידיעתי, מגבלות במערכת העצבים, העצמות,
-הראיה או השמיעה ומצב בריאותי הנוכחי כשיר לנהיגה.
-
-1. לא נפסלתי מלהחזיק ברישיון נהיגה מ: בית משפט, רשות הרישוי או קצין משטרה,
-ולחלופין רישיון הנהיגה אשר ברשותי לא הותלה על ידי גורמים כאמור.
-2. אין לי כל מגבלה בריאותית או רפואית המונעת ממני מלהחזיק ברישיון הנהיגה.
-3. איננו צורך סמים.
-4. איננו צורך אלכוהול מעבר לכמות המותרת על פי דין.
-5. אני מצהיר כי לא חל כל שינוי במצב בריאותי במשך חמש השנים האחרונות.
-
-אני מתחייב כי במידה ויבוטלו הגבלות איזה שהן על רישיון הנהיגה אשר ברשותי,
-ולחלופין במידה ויחול שינוי במצב בריאותי באופן המונע ממני מלהמשיך ולנהוג,
-אדווח על כך מיידית לקצין הבטיחות.
-
-ידוע לי כי בהתאם לתקנות 585א׳ – 585כ׳ יבדקו פרטי רישיון הנהיגה/מידע העבודות שלי
-ע״י קצין הבטיחות המעניק שרותי בטיחות בחברה.
-
-אני מצהיר בזה כי הצהרתי הנ״ל אמת`;
+import {
+  DEFAULT_DECLARATION_BODY,
+  canManageDeclarationTemplates,
+  renderDeclarationTemplate,
+} from '@/utils/declarationTemplates';
+import { getDefaultDeclarationTemplate } from '@/services/declarationTemplatesApi';
+import DeclarationTemplateManager from '@/components/DeclarationTemplateManager';
+import DeclarationPreviewModal from '@/components/DeclarationPreviewModal';
+import { buildSignDeclarationUrl } from '@/utils/appUrls';
+import { buildWaMeUrl } from '@/lib/driverOutboundNotify';
 
 interface Declaration {
   id: string;
@@ -32,6 +22,7 @@ interface Declaration {
   id_number: string | null;
   license_number: string | null;
   company_name: string | null;
+  declaration_text?: string | null;
   status: string;
   signed_at: string | null;
   signature_url: string | null;
@@ -39,6 +30,7 @@ interface Declaration {
   sent_via: string | null;
   sent_at: string | null;
   token: string | null;
+  template_id?: string | null;
   created_at: string;
 }
 
@@ -48,18 +40,35 @@ interface DriverDeclarationProps {
   idNumber?: string;
   licenseNumber?: string;
   companyName?: string;
+  /** Driver mobile from the driver card — used for direct WhatsApp chat deep-link */
+  driverPhone?: string;
   mode?: 'manager' | 'driver';
 }
 
-export default function DriverDeclaration({ driverId, driverName, idNumber, licenseNumber, companyName, mode = 'manager' }: DriverDeclarationProps) {
+function resolveDeclarationDisplayText(d: Declaration): string {
+  return renderDeclarationTemplate(d.declaration_text || DEFAULT_DECLARATION_BODY, {
+    driver_name: d.driver_name,
+    id_number: d.id_number,
+    license_number: d.license_number,
+    company_name: d.company_name,
+    date: d.created_at ? new Date(d.created_at).toLocaleDateString('he-IL') : new Date().toLocaleDateString('he-IL'),
+  });
+}
+
+export default function DriverDeclaration({ driverId, driverName, idNumber, licenseNumber, companyName, driverPhone, mode = 'manager' }: DriverDeclarationProps) {
   const { user } = useAuth();
   const [declarations, setDeclarations] = useState<Declaration[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [signing, setSigning] = useState(false);
   const [activeDeclaration, setActiveDeclaration] = useState<Declaration | null>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [previewDeclaration, setPreviewDeclaration] = useState<Declaration | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+
+  const effectiveCompany = companyName || user?.company_name || '';
+  const canManageTemplates = mode === 'manager' && canManageDeclarationTemplates(user?.role);
 
   const loadDeclarations = async () => {
     const { data } = await supabase
@@ -71,39 +80,85 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
     setLoading(false);
   };
 
-  useEffect(() => { loadDeclarations(); }, [driverId]);
+  useEffect(() => {
+    setLoading(true);
+    loadDeclarations();
+  }, [driverId]);
 
   const createDeclaration = async () => {
+    // Stay on this driver's card — never navigate away after create.
     setCreating(true);
-    const { error } = await supabase.from('driver_declarations').insert({
-      driver_id: driverId,
-      driver_name: driverName,
-      id_number: idNumber || null,
-      license_number: licenseNumber || null,
-      company_name: companyName || user?.company_name || '',
-      declaration_text: DECLARATION_TEXT,
-      status: 'pending',
-      created_by: user?.id,
-    } as any);
-    if (error) {
+    try {
+      let declarationText = DEFAULT_DECLARATION_BODY;
+      let templateId: string | null = null;
+
+      if (effectiveCompany) {
+        try {
+          const template = await getDefaultDeclarationTemplate(effectiveCompany, user?.id);
+          declarationText = template.body;
+          templateId = template.id;
+        } catch (templateErr) {
+          console.warn('Falling back to built-in declaration text', templateErr);
+        }
+      }
+
+      const snapshot = renderDeclarationTemplate(declarationText, {
+        driver_name: driverName,
+        id_number: idNumber || '',
+        license_number: licenseNumber || '',
+        company_name: effectiveCompany,
+        date: new Date().toLocaleDateString('he-IL'),
+      });
+
+      const { error } = await supabase.from('driver_declarations').insert({
+        driver_id: driverId,
+        driver_name: driverName,
+        id_number: idNumber || null,
+        license_number: licenseNumber || null,
+        company_name: effectiveCompany,
+        declaration_text: snapshot,
+        template_id: templateId,
+        status: 'pending',
+        created_by: user?.id,
+      } as any);
+
+      if (error) {
+        toast.error('שגיאה ביצירת התצהיר');
+        console.error(error);
+      } else {
+        toast.success('תצהיר נוצר בהצלחה');
+        await loadDeclarations();
+        // Keep the declarations block in view on the same driver card
+        requestAnimationFrame(() => {
+          document.getElementById('driver-declaration-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      }
+    } catch (e) {
+      console.error(e);
       toast.error('שגיאה ביצירת התצהיר');
-      console.error(error);
-    } else {
-      toast.success('תצהיר נוצר בהצלחה');
-      loadDeclarations();
+    } finally {
+      setCreating(false);
     }
-    setCreating(false);
   };
 
   const sendDeclaration = async (declaration: Declaration, via: 'whatsapp' | 'email') => {
-    const baseUrl = window.location.origin;
-    const signUrl = `${baseUrl}/sign-declaration?token=${declaration.token}`;
+    if (!declaration.token) {
+      toast.error('חסר קישור חתימה לתצהיר זה');
+      return;
+    }
+    const signUrl = buildSignDeclarationUrl(declaration.token);
 
     if (via === 'whatsapp') {
-      const msg = encodeURIComponent(`שלום ${driverName}, אנא חתום על תצהיר נהג בקישור הבא:\n${signUrl}`);
-      window.open(`https://wa.me/?text=${msg}`, '_blank');
+      const phone = (driverPhone || '').trim();
+      if (!phone) {
+        toast.error('חסר מספר טלפון בכרטיס הנהג — לא ניתן לפתוח צ׳אט ישירות');
+        return;
+      }
+      const message = `שלום ${driverName}, אנא חתום על תצהיר נהג בקישור הבא:\n${signUrl}`;
+      // Open the driver's chat directly (wa.me/<phone>?text=...) — not the contact picker
+      window.open(buildWaMeUrl(phone, message), '_blank', 'noopener,noreferrer');
     } else {
-      navigator.clipboard.writeText(signUrl);
+      await navigator.clipboard.writeText(signUrl);
       toast.success('קישור הועתק ללוח – שלח אותו באימייל לנהג');
     }
 
@@ -111,7 +166,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
       sent_via: via,
       sent_at: new Date().toISOString(),
     } as any).eq('id', declaration.id);
-    loadDeclarations();
+    await loadDeclarations();
   };
 
   // Canvas signature handling — DPR-aware so signatures render crisply on
@@ -237,6 +292,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
 
 
   if (signing && activeDeclaration) {
+    const displayText = resolveDeclarationDisplayText(activeDeclaration);
     return (
       <div className="space-y-4">
         <button onClick={() => { setSigning(false); setActiveDeclaration(null); }} className="flex items-center gap-2 text-primary text-lg font-medium min-h-[48px]">
@@ -246,7 +302,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
         
         <div className="p-4 rounded-xl border border-border bg-muted/30 text-sm leading-7 whitespace-pre-line" dir="rtl">
           <p className="font-bold mb-2">אני, {activeDeclaration.driver_name}, ת.ז {activeDeclaration.id_number || '______'}</p>
-          {DECLARATION_TEXT.replace('______', activeDeclaration.id_number || '______')}
+          {displayText}
         </div>
 
         <div>
@@ -280,16 +336,34 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
   const needsRenewal = latest?.status === 'signed' && latest.expires_at && new Date(latest.expires_at) < new Date();
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div id="driver-declaration-section" className="space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h3 className="text-lg font-bold flex items-center gap-2"><FileText size={20} /> תצהיר נהג</h3>
-        {(mode === 'manager' || !latest) && (
-          <button onClick={createDeclaration} disabled={creating || (latest?.status === 'pending')}
-            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50">
-            {creating ? 'יוצר...' : needsRenewal ? 'חדש תצהיר' : latest ? 'תצהיר חדש' : 'צור תצהיר'}
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {canManageTemplates && (
+            <button
+              type="button"
+              onClick={() => setShowTemplates((v) => !v)}
+              className="px-3 py-2 rounded-xl bg-muted text-foreground text-sm font-bold flex items-center gap-1"
+              title="ניהול תבניות תצהיר"
+            >
+              <Settings2 size={14} />
+              <Pencil size={14} />
+              תבניות
+            </button>
+          )}
+          {(mode === 'manager' || !latest) && (
+            <button type="button" onClick={createDeclaration} disabled={creating || (latest?.status === 'pending')}
+              className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50">
+              {creating ? 'יוצר...' : needsRenewal ? 'חדש תצהיר' : latest ? 'תצהיר חדש' : 'צור תצהיר'}
+            </button>
+          )}
+        </div>
       </div>
+
+      {canManageTemplates && showTemplates && (
+        <DeclarationTemplateManager companyName={effectiveCompany} compact />
+      )}
 
       {declarations.length === 0 ? (
         <p className="text-muted-foreground text-center py-6">אין תצהירים – לחץ ״צור תצהיר״</p>
@@ -315,6 +389,14 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
               )}
 
               <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setPreviewDeclaration(d)}
+                  className="px-3 py-2 rounded-xl bg-muted text-foreground text-sm font-bold flex items-center gap-1"
+                  title="תצוגה מקדימה — כך ייראה התצהיר לנהג"
+                >
+                  <Eye size={14} /> תצוגה מקדימה
+                </button>
                 {d.status === 'pending' && mode === 'driver' && (
                   <button onClick={() => { setActiveDeclaration(d); setSigning(true); }}
                     className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center gap-1">
@@ -338,7 +420,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
                   </>
                 )}
                 {d.status === 'signed' && (
-                  <button onClick={() => printDeclaration({ ...d, declaration_text: DECLARATION_TEXT })}
+                  <button onClick={() => printDeclaration({ ...d, declaration_text: d.declaration_text || resolveDeclarationDisplayText(d) })}
                     className="px-3 py-2 rounded-xl bg-primary/10 text-primary text-sm font-bold flex items-center gap-1">
                     <Printer size={14} /> הדפס / שמור PDF
                   </button>
@@ -351,6 +433,13 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
             </div>
           ))}
         </div>
+      )}
+
+      {previewDeclaration && (
+        <DeclarationPreviewModal
+          declaration={previewDeclaration}
+          onClose={() => setPreviewDeclaration(null)}
+        />
       )}
     </div>
   );

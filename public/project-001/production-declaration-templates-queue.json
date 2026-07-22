@@ -1,0 +1,18 @@
+{
+  "id": "production-declaration-templates-queue",
+  "armed": true,
+  "requestedAt": "2026-07-22T11:40:00.000Z",
+  "requestedBy": "owner",
+  "owner_phrase": "אני מאשר לפרוס ל-Production",
+  "target": "https://dalia-car.online",
+  "scope": [
+    "declaration_templates migration",
+    "driver declaration template UI",
+    "preview / driver-card persistence / wa.me deep-link / sign URL",
+    "Hostinger frontend",
+    "one Production declaration WhatsApp deep-link verify"
+  ],
+  "no_extra_development": true,
+  "stop_after_verify": true,
+  "completed": false
+}

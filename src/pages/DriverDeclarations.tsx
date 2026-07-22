@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { FileText, Search, Check, Clock, AlertTriangle, Download, Printer } from 'lucide-react';
+import { FileText, Search, Check, Clock, AlertTriangle, Download, Printer, Pencil, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { exportToCsv } from '@/utils/exportCsv';
 import { printDeclaration } from '@/utils/printDeclaration';
+import { canManageDeclarationTemplates } from '@/utils/declarationTemplates';
+import DeclarationTemplateManager from '@/components/DeclarationTemplateManager';
+import DeclarationPreviewModal from '@/components/DeclarationPreviewModal';
 
 interface DeclarationRow {
   id: string;
@@ -13,6 +16,7 @@ interface DeclarationRow {
   id_number: string | null;
   license_number: string | null;
   company_name: string | null;
+  declaration_text?: string | null;
   status: string;
   signed_at: string | null;
   signature_url: string | null;
@@ -28,6 +32,10 @@ export default function DriverDeclarations() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [previewDeclaration, setPreviewDeclaration] = useState<DeclarationRow | null>(null);
+  const canManageTemplates = canManageDeclarationTemplates(user?.role);
+  const templateCompany = companyFilter || user?.company_name || '';
 
   const loadData = async () => {
     setLoading(true);
@@ -69,19 +77,36 @@ export default function DriverDeclarations() {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <h1 className="page-header mb-0 flex items-center gap-2"><FileText size={28} /> תצהירי נהגים</h1>
-        <button onClick={() => exportToCsv('declarations', [
-          { key: 'driver_name', label: 'שם נהג' },
-          { key: 'id_number', label: 'ת.ז' },
-          { key: 'status', label: 'סטטוס' },
-          { key: 'signed_at', label: 'תאריך חתימה' },
-          { key: 'expires_at', label: 'תוקף עד' },
-          { key: 'company_name', label: 'חברה' },
-        ], filtered)} className="flex items-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-bold min-h-[48px]">
-          <Download size={18} /> ייצוא
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {canManageTemplates && (
+            <button
+              type="button"
+              onClick={() => setShowTemplates((v) => !v)}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-bold min-h-[48px]"
+            >
+              <Pencil size={18} /> תבניות תצהיר
+            </button>
+          )}
+          <button onClick={() => exportToCsv('declarations', [
+            { key: 'driver_name', label: 'שם נהג' },
+            { key: 'id_number', label: 'ת.ז' },
+            { key: 'status', label: 'סטטוס' },
+            { key: 'signed_at', label: 'תאריך חתימה' },
+            { key: 'expires_at', label: 'תוקף עד' },
+            { key: 'company_name', label: 'חברה' },
+          ], filtered)} className="flex items-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-bold min-h-[48px]">
+            <Download size={18} /> ייצוא
+          </button>
+        </div>
       </div>
+
+      {canManageTemplates && showTemplates && (
+        <div className="mb-4">
+          <DeclarationTemplateManager companyName={templateCompany} />
+        </div>
+      )}
 
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
@@ -129,17 +154,34 @@ export default function DriverDeclarations() {
               {d.signature_url && (
                 <img src={d.signature_url} alt="חתימה" className="h-12 mt-2 rounded border border-border bg-white p-1" />
               )}
-              {d.status === 'signed' && (
+              <div className="mt-3 flex gap-2 flex-wrap">
                 <button
-                  onClick={() => printDeclaration(d as any)}
-                  className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary text-sm font-bold"
+                  type="button"
+                  onClick={() => setPreviewDeclaration(d)}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-foreground text-sm font-bold"
+                  title="תצוגה מקדימה — כך ייראה התצהיר לנהג"
                 >
-                  <Printer size={16} /> הדפס / שמור PDF
+                  <Eye size={16} /> תצוגה מקדימה
                 </button>
-              )}
+                {d.status === 'signed' && (
+                  <button
+                    onClick={() => printDeclaration(d as any)}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary text-sm font-bold"
+                  >
+                    <Printer size={16} /> הדפס / שמור PDF
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
+      )}
+
+      {previewDeclaration && (
+        <DeclarationPreviewModal
+          declaration={previewDeclaration}
+          onClose={() => setPreviewDeclaration(null)}
+        />
       )}
     </div>
   );

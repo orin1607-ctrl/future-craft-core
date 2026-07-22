@@ -68,6 +68,21 @@ export default function Drivers() {
     if (match) setSelected(match);
   }, [searchParams, drivers]);
 
+  /** Keep the selected driver in the URL so declaration actions never drop the card context. */
+  const openDriverCard = (d: DriverRow) => {
+    setSelected(d);
+    const params = new URLSearchParams(searchParams);
+    params.set('driverId', d.id);
+    navigate({ pathname: '/drivers', search: params.toString() }, { replace: true });
+  };
+
+  const closeDriverCard = () => {
+    setSelected(null);
+    const params = new URLSearchParams(searchParams);
+    params.delete('driverId');
+    navigate({ pathname: '/drivers', search: params.toString() }, { replace: true });
+  };
+
   const companies = [...new Set(drivers.map(d => d.company_name).filter(Boolean))];
 
   const filtered = drivers.filter(d => {
@@ -96,7 +111,7 @@ export default function Drivers() {
 
     return (
       <div className="animate-fade-in">
-        <button onClick={() => setSelected(null)} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
+        <button type="button" onClick={closeDriverCard} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
           <ArrowRight size={20} />
           חזרה לרשימה
         </button>
@@ -111,7 +126,7 @@ export default function Drivers() {
                 {d.status === 'active' ? 'פעיל' : 'לא פעיל'}
               </span>
               {user?.role !== 'driver' && (
-                <button onClick={() => { setSelected(null); setEditingDriver(d); }}
+                <button onClick={() => { closeDriverCard(); setEditingDriver(d); }}
                   className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Edit2 size={18} className="text-primary" />
                 </button>
@@ -240,7 +255,7 @@ export default function Drivers() {
             <button onClick={async () => {
               await supabase.from('drivers').update({ status: 'archived' }).eq('id', d.id);
               toast.success('הנהג הועבר לארכיון');
-              setSelected(null);
+              closeDriverCard();
               loadDrivers();
             }} className="w-full mt-3 py-3 rounded-xl border-2 border-warning/30 text-warning font-bold text-lg flex items-center justify-center gap-2 hover:bg-warning/5 transition-colors">
               📦 העבר לארכיון
@@ -256,7 +271,7 @@ export default function Drivers() {
                 console.error(error);
               } else {
                 toast.success('הנהג נמחק בהצלחה');
-                setSelected(null);
+                closeDriverCard();
                 loadDrivers();
               }
             }} className="w-full mt-2 py-3 rounded-xl border-2 border-destructive/30 text-destructive font-bold text-lg flex items-center justify-center gap-2 hover:bg-destructive/5 transition-colors">
@@ -334,7 +349,7 @@ export default function Drivers() {
       <div className="space-y-3">
         {filtered.map((d) => (
           <div key={d.id} className="card-elevated">
-            <button type="button" onClick={() => setSelected(d)} className="w-full text-right hover:opacity-90 transition-opacity">
+            <button type="button" onClick={() => openDriverCard(d)} className="w-full text-right hover:opacity-90 transition-opacity">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-info/10 flex items-center justify-center flex-shrink-0">
                   <Users size={28} className="text-info" />

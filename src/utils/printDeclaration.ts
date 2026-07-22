@@ -3,25 +3,10 @@
  * full text and the signature image. Works on desktop and mobile browsers.
  */
 
-const DECLARATION_TEXT = `אני החתום מטה, בעל תעודת זהות מספר {ID},
-מצהיר בזה כי לא נתגלו אצלי, לפי מיטב ידיעתי, מגבלות במערכת העצבים, העצמות,
-הראיה או השמיעה ומצב בריאותי הנוכחי כשיר לנהיגה.
-
-1. לא נפסלתי מלהחזיק ברישיון נהיגה מ: בית משפט, רשות הרישוי או קצין משטרה,
-ולחלופין רישיון הנהיגה אשר ברשותי לא הותלה על ידי גורמים כאמור.
-2. אין לי כל מגבלה בריאותית או רפואית המונעת ממני מלהחזיק ברישיון הנהיגה.
-3. איננו צורך סמים.
-4. איננו צורך אלכוהול מעבר לכמות המותרת על פי דין.
-5. אני מצהיר כי לא חל כל שינוי במצב בריאותי במשך חמש השנים האחרונות.
-
-אני מתחייב כי במידה ויבוטלו הגבלות איזה שהן על רישיון הנהיגה אשר ברשותי,
-ולחלופין במידה ויחול שינוי במצב בריאותי באופן המונע ממני מלהמשיך ולנהוג,
-אדווח על כך מיידית לקצין הבטיחות.
-
-ידוע לי כי בהתאם לתקנות 585א׳ – 585כ׳ יבדקו פרטי רישיון הנהיגה/מידע העבודות שלי
-ע״י קצין הבטיחות המעניק שרותי בטיחות בחברה.
-
-אני מצהיר בזה כי הצהרתי הנ״ל אמת`;
+import {
+  DEFAULT_DECLARATION_BODY,
+  renderDeclarationTemplate,
+} from '@/utils/declarationTemplates';
 
 export interface DeclarationPrintData {
   driver_name: string;
@@ -40,9 +25,17 @@ const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('he-IL') : '—';
 
 export function printDeclaration(declaration: DeclarationPrintData) {
-  const text = (declaration.declaration_text || DECLARATION_TEXT).replace(
-    /______|\{ID\}/g,
-    declaration.id_number || '______'
+  const text = renderDeclarationTemplate(
+    declaration.declaration_text || DEFAULT_DECLARATION_BODY,
+    {
+      driver_name: declaration.driver_name,
+      id_number: declaration.id_number,
+      license_number: declaration.license_number,
+      company_name: declaration.company_name,
+      date: declaration.created_at
+        ? new Date(declaration.created_at).toLocaleDateString('he-IL')
+        : new Date().toLocaleDateString('he-IL'),
+    },
   );
 
   const signatureBlock = declaration.signature_url

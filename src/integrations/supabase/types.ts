@@ -680,6 +680,42 @@ export type Database = {
         }
         Relationships: []
       }
+      declaration_templates: {
+        Row: {
+          body: string
+          company_name: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_default: boolean
+          name: string
+          placeholders: Json
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          company_name: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          placeholders?: Json
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          company_name?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          placeholders?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       driver_declarations: {
         Row: {
           company_name: string | null
@@ -698,6 +734,7 @@ export type Database = {
           signature_url: string | null
           signed_at: string | null
           status: string
+          template_id: string | null
           token: string | null
           updated_at: string
         }
@@ -718,6 +755,7 @@ export type Database = {
           signature_url?: string | null
           signed_at?: string | null
           status?: string
+          template_id?: string | null
           token?: string | null
           updated_at?: string
         }
@@ -738,6 +776,7 @@ export type Database = {
           signature_url?: string | null
           signed_at?: string | null
           status?: string
+          template_id?: string | null
           token?: string | null
           updated_at?: string
         }

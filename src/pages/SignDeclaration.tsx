@@ -4,26 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast, Toaster } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { printDeclaration } from '@/utils/printDeclaration';
-
-const DECLARATION_TEXT = `אני החתום מטה, בעל תעודת זהות מספר ______,
-מצהיר בזה כי לא נתגלו אצלי, לפי מיטב ידיעתי, מגבלות במערכת העצבים, העצמות,
-הראיה או השמיעה ומצב בריאותי הנוכחי כשיר לנהיגה.
-
-1. לא נפסלתי מלהחזיק ברישיון נהיגה מ: בית משפט, רשות הרישוי או קצין משטרה,
-ולחלופין רישיון הנהיגה אשר ברשותי לא הותלה על ידי גורמים כאמור.
-2. אין לי כל מגבלה בריאותית או רפואית המונעת ממני מלהחזיק ברישיון הנהיגה.
-3. איננו צורך סמים.
-4. איננו צורך אלכוהול מעבר לכמות המותרת על פי דין.
-5. אני מצהיר כי לא חל כל שינוי במצב בריאותי במשך חמש השנים האחרונות.
-
-אני מתחייב כי במידה ויבוטלו הגבלות איזה שהן על רישיון הנהיגה אשר ברשותי,
-ולחלופין במידה ויחול שינוי במצב בריאותי באופן המונע ממני מלהמשיך ולנהוג,
-אדווח על כך מיידית לקצין הבטיחות.
-
-ידוע לי כי בהתאם לתקנות 585א׳ – 585כ׳ יבדקו פרטי רישיון הנהיגה/מידע העבודות שלי
-ע״י קצין הבטיחות המעניק שרותי בטיחות בחברה.
-
-אני מצהיר בזה כי הצהרתי הנ״ל אמת`;
+import {
+  DEFAULT_DECLARATION_BODY,
+  renderDeclarationTemplate,
+} from '@/utils/declarationTemplates';
 
 interface Declaration {
   id: string;
@@ -31,11 +15,24 @@ interface Declaration {
   id_number: string | null;
   license_number: string | null;
   company_name: string | null;
+  declaration_text?: string | null;
   status: string;
   signed_at: string | null;
   signature_url: string | null;
   expires_at: string | null;
   created_at: string;
+}
+
+function resolveDeclarationDisplayText(declaration: Declaration): string {
+  return renderDeclarationTemplate(declaration.declaration_text || DEFAULT_DECLARATION_BODY, {
+    driver_name: declaration.driver_name,
+    id_number: declaration.id_number,
+    license_number: declaration.license_number,
+    company_name: declaration.company_name,
+    date: declaration.created_at
+      ? new Date(declaration.created_at).toLocaleDateString('he-IL')
+      : new Date().toLocaleDateString('he-IL'),
+  });
 }
 
 export default function SignDeclaration() {
@@ -182,6 +179,8 @@ export default function SignDeclaration() {
   if (error) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-lg text-destructive">{error}</p></div>;
   if (!declaration) return null;
 
+  const displayText = resolveDeclarationDisplayText(declaration);
+
   return (
     <div className="min-h-screen bg-background p-4 max-w-lg mx-auto" dir="rtl">
       <Toaster />
@@ -201,7 +200,10 @@ export default function SignDeclaration() {
             <img src={declaration.signature_url} alt="חתימה" className="h-20 mx-auto rounded border bg-white p-2" />
           )}
           <button
-            onClick={() => printDeclaration({ ...declaration, declaration_text: DECLARATION_TEXT })}
+            onClick={() => printDeclaration({
+              ...declaration,
+              declaration_text: declaration.declaration_text || displayText,
+            })}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-base font-bold mt-4"
           >
             <Printer size={18} /> הדפס / שמור כ-PDF
@@ -215,7 +217,7 @@ export default function SignDeclaration() {
           </div>
 
           <div className="p-4 rounded-xl border border-border bg-card text-sm leading-7 whitespace-pre-line">
-            {DECLARATION_TEXT.replace('______', declaration.id_number || '______')}
+            {displayText}
           </div>
 
           <div>
