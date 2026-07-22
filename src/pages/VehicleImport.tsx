@@ -156,7 +156,7 @@ export default function VehicleImport() {
     const errors: ImportError[] = [];
     const companyName = user?.company_name || '';
     const settings = await fetchCompanySettings(companyName);
-    const fieldOverrides = await fetchRequiredFieldsOverrides();
+    const fieldOverrides = await fetchRequiredFieldsOverrides(companyName);
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];

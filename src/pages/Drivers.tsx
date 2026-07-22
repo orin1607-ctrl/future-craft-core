@@ -13,6 +13,7 @@ import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
 import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
+import { useRequiredFieldsOptional } from '@/contexts/RequiredFieldsContext';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { uploadDocument } from '@/lib/uploadDocument';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
@@ -397,6 +398,12 @@ export default function Drivers() {
 
 function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: any; onDone: () => void }) {
   const isEdit = !!driver;
+  const requiredFields = useRequiredFieldsOptional();
+  const companyName = driver?.company_name || user?.company_name || '';
+  const req = (fieldKey: string) =>
+    requiredFields?.isFieldRequired('drivers', fieldKey, companyName) ??
+    ['full_name', 'phone', 'login_email', 'password'].includes(fieldKey);
+
   const [fullName, setFullName] = useState(driver?.full_name || '');
   const [idNumber, setIdNumber] = useState(driver?.id_number || '');
   const [phone, setPhone] = useState(driver?.phone || '');
@@ -436,9 +443,19 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
     e.target.value = '';
   };
 
-  // For new drivers, email and password are required to create login credentials
-  const isValid = fullName.trim().length > 0 && phone.trim().length > 0 && licenseNumber.trim().length > 0 && idNumber.trim().length > 0
-    && (isEdit || (email.trim().length > 0 && password.trim().length >= 6));
+  const isValid = (() => {
+    if (req('full_name') && !fullName.trim()) return false;
+    if (req('phone') && !phone.trim()) return false;
+    if (req('license_number') && !licenseNumber.trim()) return false;
+    if (req('id_number') && !idNumber.trim()) return false;
+    if (!isEdit) {
+      if ((req('login_email') || req('email')) && !email.trim()) return false;
+      if (req('password') && password.trim().length < 6) return false;
+    }
+    return true;
+  })();
+  const star = (fieldKey: string) =>
+    req(fieldKey) ? <span className="text-destructive">*</span> : null;
   const inputClass = "w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
 
   const toggleLicense = (type: string) => {
@@ -448,7 +465,7 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
   const handleSubmit = async () => {
     if (!isValid) return;
 
-    const fieldOverrides = await fetchRequiredFieldsOverrides();
+    const fieldOverrides = await fetchRequiredFieldsOverrides(companyName);
     const driverValues: Record<string, string> = {
       full_name: fullName,
       phone,
@@ -458,7 +475,7 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
       license_number: licenseNumber,
       license_expiry: licenseExpiry || '',
       id_number: idNumber,
-      company_name: user?.company_name || '',
+      company_name: companyName,
     };
     const requiredCheck = validateRequiredModuleFields('drivers', driverValues, fieldOverrides);
     if (!requiredCheck.ok) {
@@ -553,11 +570,11 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
 
       <div className="space-y-5">
         <div>
-          <label className="block text-lg font-medium mb-2">שם מלא <span className="text-destructive">*</span></label>
+          <label className="block text-lg font-medium mb-2">שם מלא {star('full_name')}</label>
           <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="שם הנהג..." className={inputClass} />
         </div>
         <div>
-          <label className="block text-lg font-medium mb-2">תעודת זהות <span className="text-destructive">*</span></label>
+          <label className="block text-lg font-medium mb-2">תעודת זהות {star('id_number')}</label>
           <input value={idNumber} onChange={e => setIdNumber(e.target.value)} placeholder="תעודת זהות..." className={inputClass} />
         </div>
         {/* Login credentials - only for new drivers */}
@@ -566,11 +583,11 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
             <p className="text-lg font-bold text-primary">פרטי התחברות לאפליקציה</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-lg font-medium mb-2">אימייל <span className="text-destructive">*</span></label>
+                <label className="block text-lg font-medium mb-2">אימייל {star('login_email')}</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@..." className={inputClass} dir="ltr" style={{ textAlign: 'right' }} />
               </div>
               <div>
-                <label className="block text-lg font-medium mb-2">סיסמה <span className="text-destructive">*</span></label>
+                <label className="block text-lg font-medium mb-2">סיסמה {star('password')}</label>
                 <input type="text" value={password} onChange={e => setPassword(e.target.value)} placeholder="לפחות 6 תווים..." className={inputClass} dir="ltr" style={{ textAlign: 'right' }} />
               </div>
             </div>
@@ -581,24 +598,24 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
         {/* Email field for editing */}
         {isEdit && (
           <div>
-            <label className="block text-lg font-medium mb-2">אימייל</label>
+            <label className="block text-lg font-medium mb-2">אימייל {star('email')}</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@..." className={inputClass} dir="ltr" style={{ textAlign: 'right' }} />
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-lg font-medium mb-2">טלפון <span className="text-destructive">*</span></label>
+            <label className="block text-lg font-medium mb-2">טלפון {star('phone')}</label>
             <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="050-..." className={inputClass} dir="ltr" style={{ textAlign: 'right' }} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-lg font-medium mb-2">מספר רישיון <span className="text-destructive">*</span></label>
+            <label className="block text-lg font-medium mb-2">מספר רישיון {star('license_number')}</label>
             <input value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} placeholder="מספר רישיון..." className={inputClass} />
           </div>
           <div>
-            <label className="block text-lg font-medium mb-2">תוקף רישיון</label>
+            <label className="block text-lg font-medium mb-2">תוקף רישיון {star('license_expiry')}</label>
             <input type="date" value={licenseExpiry} onChange={e => setLicenseExpiry(e.target.value)} className={inputClass} />
           </div>
         </div>

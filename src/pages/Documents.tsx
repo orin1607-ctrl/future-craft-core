@@ -185,7 +185,7 @@ export default function Documents() {
     if (!e.target.files?.length || !selectedCategory || !companyName || !user?.id) return;
     const file = e.target.files[0];
 
-    const fieldOverrides = await fetchRequiredFieldsOverrides();
+    const fieldOverrides = await fetchRequiredFieldsOverrides(companyName);
     const docValues: Record<string, string> = {
       name: file.name,
       category: selectedCategory.key,

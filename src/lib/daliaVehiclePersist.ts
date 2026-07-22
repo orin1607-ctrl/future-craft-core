@@ -385,7 +385,7 @@ export async function persistDaliaVehicle(params: {
   });
   if (!policyCheck.ok) throw new Error(policyCheck.message);
 
-  const fieldOverrides = await fetchRequiredFieldsOverrides();
+  const fieldOverrides = await fetchRequiredFieldsOverrides(companyName);
   const requiredCheck = validateRequiredModuleFields('vehicles', params.allValues, fieldOverrides);
   if (!requiredCheck.ok) throw new Error(requiredCheck.message);
 

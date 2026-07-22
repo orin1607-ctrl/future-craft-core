@@ -60,12 +60,17 @@ export function Fld({
   defaultValue?: string;
 }) {
   const form = useDaliaFormValues();
+  const { user } = useAuth();
   const requiredFields = useRequiredFieldsOptional();
   const fieldName = name ?? '';
+  const companyName =
+    form?.getValue('company')?.trim() ||
+    user?.company_name ||
+    null;
   const isReq =
     fieldName &&
     (requiredFields
-      ? requiredFields.isFieldRequired(moduleKey, fieldName)
+      ? requiredFields.isFieldRequired(moduleKey, fieldName, companyName)
       : isFieldRequired(moduleKey, fieldName));
 
   if (form && fieldName) {

@@ -7,6 +7,8 @@ import {
   stripGapTitle,
 } from '@/lib/vehicleEventLog';
 import { handoverDateTime, isTowingServiceOrder } from '@/lib/vehicleActionFollowUp';
+import type { RequiredFieldsOverrides } from '@/lib/requiredFieldsSchema';
+import { isVehicleHubFieldRequired } from '@/lib/requiredFieldsCompany';
 
 export type VehicleHistoryType =
   | 'fault'
@@ -255,14 +257,22 @@ export async function loadVehicleHistory(
   return entries;
 }
 
-export function countMissingDocs(v: {
-  license_doc_url?: string | null;
-  insurance_doc_url?: string | null;
-  comprehensive_insurance_doc_url?: string | null;
-}): number {
+export function countMissingDocs(
+  v: {
+    license_doc_url?: string | null;
+    insurance_doc_url?: string | null;
+    comprehensive_insurance_doc_url?: string | null;
+  },
+  overrides: RequiredFieldsOverrides = {},
+): number {
   let n = 0;
-  if (!v.license_doc_url) n++;
-  if (!v.insurance_doc_url) n++;
-  if (!v.comprehensive_insurance_doc_url) n++;
+  if (isVehicleHubFieldRequired('license_doc_url', overrides) && !v.license_doc_url) n++;
+  if (isVehicleHubFieldRequired('insurance_doc_url', overrides) && !v.insurance_doc_url) n++;
+  if (
+    isVehicleHubFieldRequired('comprehensive_insurance_doc_url', overrides) &&
+    !v.comprehensive_insurance_doc_url
+  ) {
+    n++;
+  }
   return n;
 }
