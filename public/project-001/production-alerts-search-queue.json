@@ -1,0 +1,16 @@
+{
+  "id": "production-alerts-search-queue",
+  "armed": false,
+  "requestedAt": "2026-07-22T16:07:00.000Z",
+  "requestedBy": "owner",
+  "owner_phrase": "אם הכול תקין, אני מאשר לך להעלות את אותם השינויים גם ל-Production",
+  "target": "https://dalia-car.online",
+  "scope": [
+    "Alerts tab: plate + internal autocomplete (same as Reports)",
+    "Hostinger frontend only — no DB migration",
+    "Stop after Production verify"
+  ],
+  "no_extra_development": true,
+  "stop_after_verify": true,
+  "completed": false
+}

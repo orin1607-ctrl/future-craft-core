@@ -211,86 +211,132 @@ async function main() {
   await page.goto(`${BASE}/reports`, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForTimeout(1000);
   const reportsHasInternal = (await page.locator('text=מספר פנימי').count()) > 0;
-  record('reports-shared-label', 'Reports still shows מספר פנימי filter', reportsHasInternal);
+  const reportsHasPlate = (await page.locator('text=מספר רכב').count()) > 0;
+  record('reports-shared-labels', 'Reports still shows plate + internal filters', reportsHasInternal && reportsHasPlate);
 
   // Alerts tab
   await page.goto(`${BASE}/alerts`, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForTimeout(2000);
   await shot(page, '01-alerts');
 
-  const labelOk = (await page.locator('label', { hasText: 'מספר פנימי' }).count()) > 0;
-  record('alerts-label', 'Alerts tab has מספר פנימי search label', labelOk);
+  const labelInternalOk = (await page.locator('label', { hasText: 'מספר פנימי' }).count()) > 0;
+  const labelPlateOk = (await page.locator('label', { hasText: 'מספר רכב' }).count()) > 0;
+  record('alerts-labels', 'Alerts tab has מספר רכב + מספר פנימי labels', labelInternalOk && labelPlateOk);
 
-  // Open autocomplete — full list
-  const trigger = page
-    .locator('label', { hasText: 'מספר פנימי' })
-    .locator('..')
-    .locator('button')
-    .first();
-  await trigger.click({ timeout: 10000 });
+  const plateTrigger = page.locator('label', { hasText: 'מספר רכב' }).locator('..').locator('button').first();
+  const internalTrigger = page.locator('label', { hasText: 'מספר פנימי' }).locator('..').locator('button').first();
+
+  // ── Plate autocomplete ──
+  await plateTrigger.click({ timeout: 10000 });
   await page.waitForTimeout(600);
-  await shot(page, '02-autocomplete-open');
-
-  const listbox = page.locator('[cmdk-list], [role="listbox"]').first();
-  const optionCount = await page.locator('[cmdk-item], [role="option"]').count();
-  record('autocomplete-open', 'dropdown opens with options (full list)', optionCount >= 2, {
-    optionCount,
+  await shot(page, '02-plate-open');
+  const plateOptions = await page.locator('[cmdk-item], [role="option"]').count();
+  record('plate-autocomplete-open', 'plate dropdown opens with options', plateOptions >= 2, {
+    plateOptions,
   });
 
-  // Partial type-ahead filter
-  const searchInput = page.locator('[cmdk-input], input[placeholder*="מספר פנימי"]').first();
-  await searchInput.fill(internalA.slice(0, 8));
+  const plateSearch = page.locator('[cmdk-input], input[placeholder*="מספר רכב"]').first();
+  await plateSearch.fill(plateA.slice(0, 4));
   await page.waitForTimeout(400);
-  const afterPartial = await page.locator('[cmdk-item], [role="option"]').count();
-  const aVisible = (await page.locator(`[cmdk-item], [role="option"]`, { hasText: internalA }).count()) > 0;
-  record('autocomplete-partial', 'typing filters list (partial match)', aVisible && afterPartial >= 1, {
-    afterPartial,
-    query: internalA.slice(0, 8),
+  const platePartialVisible =
+    (await page.locator('[cmdk-item], [role="option"]', { hasText: plateA }).count()) > 0;
+  record('plate-autocomplete-partial', 'plate typing filters list (partial match)', platePartialVisible, {
+    query: plateA.slice(0, 4),
   });
-  await shot(page, '03-partial-filter');
+  await shot(page, '03-plate-partial');
 
-  // Select internal A
-  await page.locator('[cmdk-item], [role="option"]', { hasText: internalA }).first().click();
+  await page.locator('[cmdk-item], [role="option"]', { hasText: plateA }).first().click();
   await page.waitForTimeout(800);
-  await shot(page, '04-selected-a');
-
-  const bodyA = await page.textContent('body');
-  const showsA = (bodyA || '').includes(plateA) || (bodyA || '').includes('AlertsA') || (bodyA || '').includes('טסט');
-  const hidesB = !(bodyA || '').includes(plateB) && !(bodyA || '').includes('AlertsB');
-  record('filter-select-a', 'selecting internal A filters alerts to that vehicle', showsA && hidesB, {
-    showsA,
-    hidesB,
+  await shot(page, '04-plate-selected-a');
+  const bodyPlateA = await page.textContent('body');
+  const plateShowsA =
+    (bodyPlateA || '').includes(plateA) ||
+    (bodyPlateA || '').includes('AlertsA') ||
+    (bodyPlateA || '').includes('טסט');
+  const plateHidesB = !(bodyPlateA || '').includes(plateB) && !(bodyPlateA || '').includes('AlertsB');
+  record('plate-filter-select-a', 'selecting plate A filters alerts to that vehicle', plateShowsA && plateHidesB, {
+    plateShowsA,
+    plateHidesB,
   });
 
-  // Clear via X
-  const clearBtn = page.getByLabel('נקה').first();
-  if (await clearBtn.count()) {
-    await clearBtn.click();
-    await page.waitForTimeout(600);
-    const afterClear = await trigger.textContent();
-    record('clear-x', 'X clears search back to placeholder', /הכל|חיפוש/.test(afterClear || ''), {
-      afterClear: (afterClear || '').slice(0, 40),
+  const plateClear = page.locator('label', { hasText: 'מספר רכב' }).locator('..').getByLabel('נקה').first();
+  if (await plateClear.count()) {
+    await plateClear.click();
+    await page.waitForTimeout(500);
+    const afterPlateClear = await plateTrigger.textContent();
+    record('plate-clear-x', 'plate X clears search', /הכל|חיפוש/.test(afterPlateClear || ''), {
+      after: (afterPlateClear || '').slice(0, 40),
     });
   } else {
-    record('clear-x', 'X clear button', false, { error: 'נקה not found' });
+    record('plate-clear-x', 'plate X clear button', false, { error: 'נקה not found' });
   }
-  await shot(page, '05-cleared');
 
-  // Select B via typing full value
-  await trigger.click();
-  await page.waitForTimeout(400);
-  await searchInput.fill(internalB);
-  await page.waitForTimeout(300);
-  await page.locator('[cmdk-item], [role="option"]', { hasText: internalB }).first().click();
-  await page.waitForTimeout(800);
-  const bodyB = await page.textContent('body');
-  const showsB = (bodyB || '').includes(plateB) || (bodyB || '').includes('AlertsB') || (bodyB || '').includes('ביטוח');
-  const hidesA = !(bodyB || '').includes(plateA) && !(bodyB || '').includes('AlertsA');
-  record('filter-select-b', 'selecting internal B isolates that vehicle alerts', showsB && hidesA, {
-    showsB,
-    hidesA,
+  // ── Internal autocomplete ──
+  await internalTrigger.click({ timeout: 10000 });
+  await page.waitForTimeout(600);
+  await shot(page, '05-internal-open');
+  const internalOptions = await page.locator('[cmdk-item], [role="option"]').count();
+  record('internal-autocomplete-open', 'internal dropdown opens with options', internalOptions >= 2, {
+    internalOptions,
   });
-  await shot(page, '06-selected-b');
+
+  const internalSearch = page.locator('[cmdk-input], input[placeholder*="מספר פנימי"]').first();
+  await internalSearch.fill(internalA.slice(0, 8));
+  await page.waitForTimeout(400);
+  const internalPartialVisible =
+    (await page.locator('[cmdk-item], [role="option"]', { hasText: internalA }).count()) > 0;
+  record(
+    'internal-autocomplete-partial',
+    'internal typing filters list (partial match)',
+    internalPartialVisible,
+    { query: internalA.slice(0, 8) },
+  );
+  await shot(page, '06-internal-partial');
+
+  await page.locator('[cmdk-item], [role="option"]', { hasText: internalA }).first().click();
+  await page.waitForTimeout(800);
+  await shot(page, '07-internal-selected-a');
+  const bodyIntA = await page.textContent('body');
+  const intShowsA =
+    (bodyIntA || '').includes(plateA) ||
+    (bodyIntA || '').includes('AlertsA') ||
+    (bodyIntA || '').includes('טסט');
+  const intHidesB = !(bodyIntA || '').includes(plateB) && !(bodyIntA || '').includes('AlertsB');
+  record('internal-filter-select-a', 'selecting internal A filters alerts', intShowsA && intHidesB, {
+    intShowsA,
+    intHidesB,
+  });
+
+  const internalClear = page.locator('label', { hasText: 'מספר פנימי' }).locator('..').getByLabel('נקה').first();
+  if (await internalClear.count()) {
+    await internalClear.click();
+    await page.waitForTimeout(500);
+    const afterIntClear = await internalTrigger.textContent();
+    record('internal-clear-x', 'internal X clears search', /הכל|חיפוש/.test(afterIntClear || ''), {
+      after: (afterIntClear || '').slice(0, 40),
+    });
+  } else {
+    record('internal-clear-x', 'internal X clear button', false, { error: 'נקה not found' });
+  }
+
+  // Select plate B
+  await plateTrigger.click();
+  await page.waitForTimeout(400);
+  await page.locator('[cmdk-input], input[placeholder*="מספר רכב"]').first().fill(plateB);
+  await page.waitForTimeout(300);
+  await page.locator('[cmdk-item], [role="option"]', { hasText: plateB }).first().click();
+  await page.waitForTimeout(800);
+  const bodyPlateB = await page.textContent('body');
+  const plateShowsB =
+    (bodyPlateB || '').includes(plateB) ||
+    (bodyPlateB || '').includes('AlertsB') ||
+    (bodyPlateB || '').includes('ביטוח');
+  const plateHidesA = !(bodyPlateB || '').includes(plateA) && !(bodyPlateB || '').includes('AlertsA');
+  record('plate-filter-select-b', 'selecting plate B isolates that vehicle', plateShowsB && plateHidesA, {
+    plateShowsB,
+    plateHidesA,
+  });
+  await shot(page, '08-plate-selected-b');
 
   // Shared component markers in live bundle (same copy as Reports autocomplete)
   const html = await (await fetch(BASE + '/')).text();
@@ -298,9 +344,15 @@ async function main() {
   let sharedOk = false;
   if (bundle) {
     const js = await (await fetch(`${BASE}/${bundle}`)).text();
-    sharedOk = js.includes('חיפוש מספר פנימי...') && js.includes('לא נמצא מספר פנימי');
+    sharedOk =
+      js.includes('חיפוש מספר פנימי...') &&
+      js.includes('לא נמצא מספר פנימי') &&
+      js.includes('חיפוש מספר רכב...') &&
+      js.includes('לא נמצא מספר רכב');
   }
-  record('shared-copy', 'bundle uses same autocomplete copy as Reports', sharedOk, { bundle });
+  record('shared-copy', 'bundle uses same plate+internal autocomplete copy as Reports', sharedOk, {
+    bundle,
+  });
 
   const doc404 = report.networkErrors.filter(
     (e) => e.status === 404 && /github\.io\/future-craft-core\/(alerts|reports)/.test(e.url || ''),

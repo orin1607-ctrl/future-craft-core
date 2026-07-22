@@ -118,7 +118,9 @@ export default function Alerts() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [alertFilter, setAlertFilter] = useState<AlertCategory | 'all'>('all');
+  const [filterVehicle, setFilterVehicle] = useState('');
   const [filterInternal, setFilterInternal] = useState('');
+  const [vehiclePlates, setVehiclePlates] = useState<string[]>([]);
   const [internalNumbers, setInternalNumbers] = useState<string[]>([]);
 
   // Updates state
@@ -152,11 +154,13 @@ export default function Alerts() {
     const { data: vehicles } = await applyCompanyScope(supabase.from('vehicles').select('*'), companyFilter);
     if (vehicles) {
       const internals: string[] = [];
+      const plates: string[] = [];
       for (const v of vehicles) {
         const plate = v.license_plate;
         const internal = (v.internal_number || '').trim();
         if (plate && internal) plateToInternal[plate] = internal;
         if (internal) internals.push(internal);
+        if (plate) plates.push(plate);
         const label = `${v.manufacturer || ''} ${v.model || ''} - ${plate}`.trim();
 
         const testDays = getDaysLeft(v.test_expiry);
@@ -192,8 +196,10 @@ export default function Alerts() {
         }
       }
       setInternalNumbers([...new Set(internals)].sort((a, b) => a.localeCompare(b, 'he', { numeric: true })));
+      setVehiclePlates([...new Set(plates)].sort((a, b) => a.localeCompare(b, 'he', { numeric: true })));
     } else {
       setInternalNumbers([]);
+      setVehiclePlates([]);
     }
 
     // 2. Driver license expiries
@@ -351,20 +357,23 @@ export default function Alerts() {
     setLogsLoading(false);
   };
 
-  const alertsForInternal = useMemo(() => {
-    if (!filterInternal) return alerts;
-    return alerts.filter((a) => a.internalNumber === filterInternal);
-  }, [alerts, filterInternal]);
+  const alertsForEntity = useMemo(() => {
+    return alerts.filter((a) => {
+      if (filterVehicle && a.vehiclePlate !== filterVehicle) return false;
+      if (filterInternal && a.internalNumber !== filterInternal) return false;
+      return true;
+    });
+  }, [alerts, filterVehicle, filterInternal]);
 
   const filteredAlerts =
     alertFilter === 'all'
-      ? alertsForInternal
-      : alertsForInternal.filter((a) => a.category === alertFilter);
+      ? alertsForEntity
+      : alertsForEntity.filter((a) => a.category === alertFilter);
 
   const alertCounts = {
-    all: alertsForInternal.length,
-    critical: alertsForInternal.filter((a) => a.severity === 'critical').length,
-    warning: alertsForInternal.filter((a) => a.severity === 'warning').length,
+    all: alertsForEntity.length,
+    critical: alertsForEntity.filter((a) => a.severity === 'critical').length,
+    warning: alertsForEntity.filter((a) => a.severity === 'warning').length,
   };
   const categories: (AlertCategory | 'all')[] = [
     'all',
@@ -380,6 +389,8 @@ export default function Alerts() {
 
   const selectClass =
     'w-full p-3 text-base rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none';
+
+  const entityFilterActive = Boolean(filterVehicle || filterInternal);
 
   const filteredLogs = logs.filter(l => {
     if (logSearch && !l.user_name.includes(logSearch) && !l.details.includes(logSearch) && !l.vehicle_plate.includes(logSearch) && !l.entity_id.includes(logSearch)) return false;
@@ -423,18 +434,32 @@ export default function Alerts() {
 
         {/* ─── Alerts Tab ─── */}
         <TabsContent value="alerts" className="space-y-4 mt-4">
-          {/* Internal number search — same autocomplete as Reports */}
-          <div className="max-w-md">
-            <label className="block text-sm font-medium mb-1">מספר פנימי</label>
-            <SearchableFilterField
-              value={filterInternal}
-              onChange={setFilterInternal}
-              options={internalNumbers}
-              placeholder="הכל / הקלידו לחיפוש..."
-              searchPlaceholder="חיפוש מספר פנימי..."
-              emptyText="לא נמצא מספר פנימי"
-              triggerClassName={selectClass}
-            />
+          {/* Plate + internal search — same autocomplete as Reports */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl">
+            <div>
+              <label className="block text-sm font-medium mb-1">מספר רכב</label>
+              <SearchableFilterField
+                value={filterVehicle}
+                onChange={setFilterVehicle}
+                options={vehiclePlates}
+                placeholder="הכל / הקלידו לחיפוש..."
+                searchPlaceholder="חיפוש מספר רכב..."
+                emptyText="לא נמצא מספר רכב"
+                triggerClassName={selectClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">מספר פנימי</label>
+              <SearchableFilterField
+                value={filterInternal}
+                onChange={setFilterInternal}
+                options={internalNumbers}
+                placeholder="הכל / הקלידו לחיפוש..."
+                searchPlaceholder="חיפוש מספר פנימי..."
+                emptyText="לא נמצא מספר פנימי"
+                triggerClassName={selectClass}
+              />
+            </div>
           </div>
 
           {/* Severity Counters */}
@@ -457,7 +482,7 @@ export default function Alerts() {
           {/* Category Filter */}
           <div className="flex gap-2 flex-wrap">
             {categories.map(cat => {
-              const count = cat === 'all' ? alertsForInternal.length : alertsForInternal.filter(a => a.category === cat).length;
+              const count = cat === 'all' ? alertsForEntity.length : alertsForEntity.filter(a => a.category === cat).length;
               if (cat !== 'all' && count === 0) return null;
               return (
                 <button key={cat} onClick={() => setAlertFilter(cat)}
@@ -478,12 +503,16 @@ export default function Alerts() {
             <div className="card-elevated text-center py-16">
               <CheckCircle2 className="mx-auto mb-4 text-green-500" size={48} />
               <p className="text-xl font-bold text-foreground">
-                {filterInternal ? 'אין התראות למספר פנימי זה' : 'הכל תקין! 🎉'}
+                {entityFilterActive ? 'אין התראות לסינון שנבחר' : 'הכל תקין! 🎉'}
               </p>
               <p className="text-muted-foreground mt-2">
-                {filterInternal
-                  ? `לא נמצאו התראות פעילות עבור מספר פנימי ${filterInternal}`
-                  : 'אין התראות פעילות כרגע'}
+                {filterVehicle && filterInternal
+                  ? `לא נמצאו התראות עבור רכב ${filterVehicle} / מספר פנימי ${filterInternal}`
+                  : filterVehicle
+                    ? `לא נמצאו התראות פעילות עבור רכב ${filterVehicle}`
+                    : filterInternal
+                      ? `לא נמצאו התראות פעילות עבור מספר פנימי ${filterInternal}`
+                      : 'אין התראות פעילות כרגע'}
               </p>
             </div>
           )}
