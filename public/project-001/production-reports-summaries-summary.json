@@ -1,0 +1,13 @@
+{
+  "id": "production-reports-summaries-verify",
+  "at": "2026-07-22T14:29:35.679Z",
+  "production_ok": true,
+  "host": "https://dalia-car.online",
+  "deploy_sha": "0a34d000a5eb27d50d7db169b4d8fc830fda9d7a",
+  "bundle": "assets/index-062Uw59Z.js",
+  "migrations": "none required",
+  "period_summaries": true,
+  "autocomplete_plate_internal": true,
+  "stop": true,
+  "no_task_3": true
+}

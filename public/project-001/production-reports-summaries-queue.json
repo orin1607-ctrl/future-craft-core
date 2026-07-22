@@ -1,6 +1,6 @@
 {
   "id": "production-reports-summaries-queue",
-  "armed": true,
+  "armed": false,
   "requestedAt": "2026-07-22T14:27:00.000Z",
   "requestedBy": "owner",
   "owner_phrase": "אני מאשר להעלות את משימה 2 ל-Production",
@@ -15,5 +15,6 @@
   ],
   "no_extra_development": true,
   "stop_after_verify": true,
-  "completed": false
+  "completed": true,
+  "at": "2026-07-22T14:29:40.476Z"
 }

@@ -1,0 +1,61 @@
+{
+  "id": "production-reports-summaries-verify",
+  "at": "2026-07-22T14:29:35.679Z",
+  "host": "https://dalia-car.online",
+  "deploy_sha": "0a34d000a5eb27d50d7db169b4d8fc830fda9d7a",
+  "migrations_required": false,
+  "stop_after_report": true,
+  "live_site": {
+    "http": 200,
+    "ok": true,
+    "bundle": "assets/index-062Uw59Z.js",
+    "deploy_txt": "commit=0a34d000a5eb27d50d7db169b4d8fc830fda9d7a bundle=index-062Uw59Z.js at=2026-07-22T14:29:32Z reason=reports-task2-summaries owner_approved=2026-07-22"
+  },
+  "smoke": {
+    "bundle_http": 200,
+    "has_period_summaries": true,
+    "has_tests_label": true,
+    "has_treatments_label": true,
+    "has_accidents_label": true,
+    "has_insurance_renewals": true,
+    "has_autocomplete_plate": true,
+    "has_autocomplete_internal": true,
+    "has_period_month": true,
+    "has_period_week": true,
+    "has_period_year": true,
+    "has_standard_cols": true,
+    "has_reports_route_title": true,
+    "no_assert_client_staging": true
+  },
+  "auth": {
+    "owner_ok": true
+  },
+  "data_sources": {
+    "vehicles_http": 200,
+    "faults_http": 200,
+    "accidents_http": 200,
+    "drivers_http": 200,
+    "vehicles_sample": 3,
+    "faults_sample": 3,
+    "accidents_sample": 3
+  },
+  "autocomplete_data": {
+    "has_plates": true,
+    "has_internals": true,
+    "sample_plate_prefix": "790…"
+  },
+  "reports_route": {
+    "http": 200,
+    "ok": true,
+    "looks_like_spa": true
+  },
+  "verdict": {
+    "production_ok": true,
+    "hostinger_updated": true,
+    "migrations_applied": "n/a — none required",
+    "period_filters_present": true,
+    "summary_cards_present": true,
+    "autocomplete_present": true,
+    "data_sources_ok": true
+  }
+}
