@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import ExamRunner from './ExamRunner';
 
 import PracticalExamsList from './PracticalExamsList';
+import { buildWaMeUrl, hasWhatsAppPhone } from '@/utils/israeliPhone';
 
 interface Props {
   driverId: string;
@@ -80,9 +81,14 @@ export default function DriverExamsTab({ driverId, driverName, driverIdNumber, d
 
       if (sentVia === 'sms' && driverPhone) {
         window.location.href = `sms:${driverPhone}?body=${encodeURIComponent(msg)}`;
-      } else if (sentVia === 'whatsapp' && driverPhone) {
-        const phone = driverPhone.replace(/\D/g, '').replace(/^0/, '972');
-        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+      } else if (sentVia === 'whatsapp') {
+        // Same field + normalizer as declaration: drivers.phone → 9725XXXXXXXX
+        const waUrl = buildWaMeUrl(driverPhone || '', msg);
+        if (!waUrl) {
+          toast.error('חסר מספר טלפון בכרטיס הנהג — לא ניתן לפתוח צ׳אט ישירות');
+          return;
+        }
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
       } else if (sentVia === 'link') {
         navigator.clipboard.writeText(link);
         toast.success('הקישור הועתק!');
@@ -337,7 +343,7 @@ export default function DriverExamsTab({ driverId, driverName, driverIdNumber, d
               <Button onClick={() => createExam('sms')} disabled={creating || !driverPhone} variant="outline" size="sm">
                 <Send size={14} /> SMS
               </Button>
-              <Button onClick={() => createExam('whatsapp')} disabled={creating || !driverPhone} variant="outline" size="sm">
+              <Button onClick={() => createExam('whatsapp')} disabled={creating || !hasWhatsAppPhone(driverPhone)} variant="outline" size="sm">
                 <MessageCircle size={14} /> WhatsApp
               </Button>
               <Button onClick={() => createExam('link')} disabled={creating} variant="outline" size="sm">

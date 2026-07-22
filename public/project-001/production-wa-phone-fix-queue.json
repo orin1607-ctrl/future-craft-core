@@ -1,0 +1,18 @@
+{
+  "id": "production-wa-phone-fix-queue",
+  "armed": false,
+  "requestedAt": "2026-07-22T12:00:00.000Z",
+  "requestedBy": "owner",
+  "owner_request": "fix WhatsApp phone for declaration + exam on Production",
+  "target": "https://dalia-car.online",
+  "scope": [
+    "shared israeliPhone normalizer (9725XXXXXXXX)",
+    "DriverDeclaration driverPhone=drivers.phone",
+    "DriverExamsTab / practical exam WA same field + normalizer",
+    "Hostinger frontend only (no DB migration)",
+    "verify both WA deep-links on Production"
+  ],
+  "no_extra_development": true,
+  "stop_after_verify": true,
+  "completed": false
+}

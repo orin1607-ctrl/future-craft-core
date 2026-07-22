@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ClipboardList, Plus, Printer, MessageCircle, Trash2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import PracticalExamRunner from './PracticalExamRunner';
+import { buildWaMeUrl } from '@/utils/israeliPhone';
 
 interface Props {
   driverId: string;
@@ -107,12 +108,16 @@ export default function PracticalExamsList({ driverId, driverName, driverIdNumbe
   };
 
   const sendWhatsApp = (exam: any) => {
-    const phone = (driverPhone || '').replace(/\D/g, '').replace(/^0/, '972');
+    // Same field + normalizer as declaration / theory exam: drivers.phone → 9725XXXXXXXX
     const summary = exam.passed
       ? `✅ מבחן מעשי בנהיגה - עבר\nנהג: ${exam.driver_name}\nתאריך: ${new Date(exam.exam_date).toLocaleDateString('he-IL')}\nבוחן: ${exam.examiner_name}`
       : `❌ מבחן מעשי בנהיגה - לא עבר\nנהג: ${exam.driver_name}\nתאריך: ${new Date(exam.exam_date).toLocaleDateString('he-IL')}\nליקויים: ${(exam.checklist as ChecklistItem[]).filter(i => i.status === 'defect').map(i => i.name).join(', ')}`;
-    const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(summary)}` : `https://wa.me/?text=${encodeURIComponent(summary)}`;
-    window.open(url, '_blank');
+    const url = buildWaMeUrl(driverPhone || '', summary);
+    if (!url) {
+      toast.error('חסר מספר טלפון בכרטיס הנהג — לא ניתן לפתוח צ׳אט ישירות');
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   if (creating) {

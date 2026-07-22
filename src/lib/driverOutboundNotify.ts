@@ -4,6 +4,10 @@
  * (or legacy VITE_ALLOW_REAL_WHATSAPP_STAGING=true) — default: in-app + wa.me fallback.
  */
 import { supabase } from '@/integrations/supabase/client';
+import {
+  buildWaMeUrl as buildWaMeUrlShared,
+  normalizeIsraeliPhoneForWhatsApp,
+} from '@/utils/israeliPhone';
 
 export type OutboundChannelResult = {
   channel: 'in_app' | 'whatsapp_api' | 'whatsapp_wa_me' | 'email_mailto' | 'copy_link';
@@ -17,13 +21,6 @@ function allowRealWhatsApp(): boolean {
     String(import.meta.env.VITE_ALLOW_REAL_WHATSAPP || '') === 'true' ||
     String(import.meta.env.VITE_ALLOW_REAL_WHATSAPP_STAGING || '') === 'true'
   );
-}
-
-function normalizePhoneForWaMe(raw: string): string {
-  let digits = raw.replace(/\D/g, '');
-  if (digits.startsWith('0')) digits = `972${digits.slice(1)}`;
-  else if (!digits.startsWith('972') && digits.length >= 9) digits = `972${digits}`;
-  return digits;
 }
 
 async function findDriverUserId(driverId: string): Promise<string | null> {
@@ -66,11 +63,16 @@ export async function notifyDriverInApp(params: {
   return { channel: 'in_app', ok: true };
 }
 
-/** Build wa.me URL (manual fallback — does not call Gupshup). */
+/** Build wa.me URL (manual fallback — does not call Gupshup). Shared normalizer: drivers.phone → 9725XXXXXXXX.
+ * Returns contact-picker URL only when the number cannot be normalized (legacy document-request callers). */
 export function buildWaMeUrl(phone: string, message: string): string {
-  const dest = normalizePhoneForWaMe(phone);
-  return `https://wa.me/${dest}?text=${encodeURIComponent(message)}`;
+  return (
+    buildWaMeUrlShared(phone, message) ||
+    `https://wa.me/?text=${encodeURIComponent(message)}`
+  );
 }
+
+export { normalizeIsraeliPhoneForWhatsApp, buildWaMeUrlShared };
 
 /**
  * Attempt Gupshup send only when explicitly enabled.
@@ -81,10 +83,10 @@ export async function sendDriverWhatsAppOrFallback(params: {
   message: string;
   preferApi?: boolean;
 }): Promise<{ results: OutboundChannelResult[]; waMeUrl: string | null }> {
-  const waMeUrl = params.phone ? buildWaMeUrl(params.phone, params.message) : null;
+  const waMeUrl = params.phone ? buildWaMeUrlShared(params.phone, params.message) : null;
   const results: OutboundChannelResult[] = [];
 
-  if (!params.phone) {
+  if (!params.phone || !normalizeIsraeliPhoneForWhatsApp(params.phone)) {
     results.push({ channel: 'whatsapp_wa_me', ok: false, detail: 'missing_phone' });
     return { results, waMeUrl: null };
   }

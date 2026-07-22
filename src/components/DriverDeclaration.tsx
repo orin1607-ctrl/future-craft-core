@@ -13,7 +13,7 @@ import { getDefaultDeclarationTemplate } from '@/services/declarationTemplatesAp
 import DeclarationTemplateManager from '@/components/DeclarationTemplateManager';
 import DeclarationPreviewModal from '@/components/DeclarationPreviewModal';
 import { buildSignDeclarationUrl } from '@/utils/appUrls';
-import { buildWaMeUrl } from '@/lib/driverOutboundNotify';
+import { buildWaMeUrl, hasWhatsAppPhone } from '@/utils/israeliPhone';
 
 interface Declaration {
   id: string;
@@ -149,14 +149,19 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
     const signUrl = buildSignDeclarationUrl(declaration.token);
 
     if (via === 'whatsapp') {
-      const phone = (driverPhone || '').trim();
-      if (!phone) {
+      // Canonical field: drivers.phone (passed as driverPhone from the driver card)
+      if (!hasWhatsAppPhone(driverPhone)) {
         toast.error('חסר מספר טלפון בכרטיס הנהג — לא ניתן לפתוח צ׳אט ישירות');
         return;
       }
       const message = `שלום ${driverName}, אנא חתום על תצהיר נהג בקישור הבא:\n${signUrl}`;
+      const waUrl = buildWaMeUrl(driverPhone!, message);
+      if (!waUrl) {
+        toast.error('חסר מספר טלפון בכרטיס הנהג — לא ניתן לפתוח צ׳אט ישירות');
+        return;
+      }
       // Open the driver's chat directly (wa.me/<phone>?text=...) — not the contact picker
-      window.open(buildWaMeUrl(phone, message), '_blank', 'noopener,noreferrer');
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
     } else {
       await navigator.clipboard.writeText(signUrl);
       toast.success('קישור הועתק ללוח – שלח אותו באימייל לנהג');

@@ -208,6 +208,7 @@ export default function Drivers() {
               idNumber={d.id_number}
               licenseNumber={d.license_number}
               companyName={d.company_name}
+              driverPhone={d.phone}
               mode={user?.role === 'driver' ? 'driver' : 'manager'}
             />
           </div>
