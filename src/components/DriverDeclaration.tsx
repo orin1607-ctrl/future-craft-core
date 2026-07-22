@@ -5,9 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { printDeclaration } from '@/utils/printDeclaration';
 import {
-  DEFAULT_DECLARATION_BODY,
   canManageDeclarationTemplates,
   renderDeclarationTemplate,
+  resolveStoredDeclarationText,
 } from '@/utils/declarationTemplates';
 import {
   getDefaultDeclarationTemplate,
@@ -49,7 +49,7 @@ interface DriverDeclarationProps {
 }
 
 function resolveDeclarationDisplayText(d: Declaration): string {
-  return renderDeclarationTemplate(d.declaration_text || DEFAULT_DECLARATION_BODY, {
+  return resolveStoredDeclarationText(d.declaration_text, {
     driver_name: d.driver_name,
     id_number: d.id_number,
     license_number: d.license_number,
@@ -100,6 +100,9 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
       // Always read the latest default template body from the database.
       // Do not fall back to the hardcoded seed text for new declarations.
       const template = await getDefaultDeclarationTemplate(effectiveCompany, user?.id);
+      if (!template?.body?.trim()) {
+        throw new Error('תבנית ברירת המחדל ריקה — שמרו נוסח בתבניות התצהיר');
+      }
       const declarationText = template.body;
       const templateId = template.id;
 
@@ -110,6 +113,9 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
         company_name: effectiveCompany,
         date: new Date().toLocaleDateString('he-IL'),
       });
+      if (!snapshot.trim()) {
+        throw new Error('נוסח התצהיר ריק לאחר החלפת השדות');
+      }
 
       const { error } = await supabase.from('driver_declarations').insert({
         driver_id: driverId,

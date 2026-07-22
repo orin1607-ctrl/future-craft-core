@@ -62,15 +62,22 @@ export async function ensureDefaultDeclarationTemplate(
     throw new Error('חסר שם חברה ליצירת תבנית תצהיר');
   }
 
+  // Prefer the explicit default row (latest body from DB)
+  const { data: defaultRow, error: defaultErr } = await supabase
+    .from('declaration_templates')
+    .select('*')
+    .eq('company_name', company)
+    .eq('is_default', true)
+    .maybeSingle();
+  if (defaultErr) throw defaultErr;
+  if (defaultRow) {
+    return mapRow(defaultRow as Record<string, unknown>);
+  }
+
   const existing = await listDeclarationTemplates(company);
-  const currentDefault = existing.find((t) => t.is_default) || existing[0];
-  if (currentDefault) {
-    if (!currentDefault.is_default) {
-      // Promote existing row — do not re-seed hardcoded body
-      return setDefaultDeclarationTemplate(currentDefault.id, company);
-    }
-    // Re-read by id so callers always get the latest persisted body from DB
-    return getDeclarationTemplateById(currentDefault.id);
+  if (existing[0]) {
+    // Promote existing row — do not re-seed hardcoded body
+    return setDefaultDeclarationTemplate(existing[0].id, company);
   }
 
   const { data, error } = await supabase
@@ -158,8 +165,34 @@ export async function setDefaultDeclarationTemplate(
 }
 
 /**
- * Persist template body to DB and make it the company default.
- * New declarations always read this default from the database.
+ * Persist template body to DB for this template id.
+ * Does not change which template is the company default — use setDefault for that.
+ * Uses .select().single() so a blocked/zero-row update surfaces as an error.
+ */
+export async function saveDeclarationTemplateBody(
+  id: string,
+  body: string,
+): Promise<DeclarationTemplate> {
+  if (!String(body || '').trim()) throw new Error('נוסח התצהיר לא יכול להיות ריק');
+
+  const { data, error } = await supabase
+    .from('declaration_templates')
+    .update({ body })
+    .eq('id', id)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  if (!data) throw new Error('השמירה לא נשמרה במסד הנתונים — נסו שוב');
+  if (String((data as { body?: string }).body) !== body) {
+    throw new Error('השמירה לא נשמרה במסד הנתונים — נסו שוב');
+  }
+  return mapRow(data as Record<string, unknown>);
+}
+
+/**
+ * Persist template body and make it the company default (two steps).
+ * New declarations always read the default row from the database.
  */
 export async function saveDeclarationTemplateBodyAsDefault(
   id: string,
@@ -168,17 +201,16 @@ export async function saveDeclarationTemplateBodyAsDefault(
 ): Promise<DeclarationTemplate> {
   const company = normalizeTemplateCompanyName(companyName);
   if (!company) throw new Error('חסר שם חברה לשמירת תבנית תצהיר');
-  if (!String(body || '').trim()) throw new Error('נוסח התצהיר לא יכול להיות ריק');
 
-  const { error } = await supabase
-    .from('declaration_templates')
-    .update({ body, is_default: true })
-    .eq('id', id);
+  // 1) Body only — avoids unique-default trigger races on same-row is_default updates
+  await saveDeclarationTemplateBody(id, body);
 
-  if (error) throw error;
+  // 2) Ensure this row is the company default
+  const afterBody = await getDeclarationTemplateById(id);
+  const confirmed = afterBody.is_default
+    ? afterBody
+    : await setDefaultDeclarationTemplate(id, company);
 
-  // Final DB read — source of truth after save (not local/draft state)
-  const confirmed = await getDeclarationTemplateById(id);
   if (confirmed.body !== body) {
     throw new Error('השמירה לא נשמרה במסד הנתונים — נסו שוב');
   }

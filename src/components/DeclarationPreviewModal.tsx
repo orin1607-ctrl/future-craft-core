@@ -1,8 +1,5 @@
 import { Eye, X, FileText } from 'lucide-react';
-import {
-  DEFAULT_DECLARATION_BODY,
-  renderDeclarationTemplate,
-} from '@/utils/declarationTemplates';
+import { resolveStoredDeclarationText } from '@/utils/declarationTemplates';
 
 export interface DeclarationPreviewData {
   driver_name: string;
@@ -16,7 +13,7 @@ export interface DeclarationPreviewData {
 }
 
 function resolvePreviewText(d: DeclarationPreviewData): string {
-  return renderDeclarationTemplate(d.declaration_text || DEFAULT_DECLARATION_BODY, {
+  return resolveStoredDeclarationText(d.declaration_text, {
     driver_name: d.driver_name,
     id_number: d.id_number,
     license_number: d.license_number,

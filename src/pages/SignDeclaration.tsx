@@ -4,10 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast, Toaster } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { printDeclaration } from '@/utils/printDeclaration';
-import {
-  DEFAULT_DECLARATION_BODY,
-  renderDeclarationTemplate,
-} from '@/utils/declarationTemplates';
+import { resolveStoredDeclarationText } from '@/utils/declarationTemplates';
 
 interface Declaration {
   id: string;
@@ -24,7 +21,7 @@ interface Declaration {
 }
 
 function resolveDeclarationDisplayText(declaration: Declaration): string {
-  return renderDeclarationTemplate(declaration.declaration_text || DEFAULT_DECLARATION_BODY, {
+  return resolveStoredDeclarationText(declaration.declaration_text, {
     driver_name: declaration.driver_name,
     id_number: declaration.id_number,
     license_number: declaration.license_number,

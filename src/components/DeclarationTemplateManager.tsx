@@ -22,7 +22,7 @@ import {
   ensureDefaultDeclarationTemplate,
   listDeclarationTemplates,
   normalizeTemplateCompanyName,
-  saveDeclarationTemplateBodyAsDefault,
+  saveDeclarationTemplateBody,
   setDefaultDeclarationTemplate,
   updateDeclarationTemplate,
 } from '@/services/declarationTemplatesApi';
@@ -124,15 +124,19 @@ export default function DeclarationTemplateManager({
     }
     setSaving(true);
     try {
-      // Persist body in DB and promote as default — new declarations always use this version
-      const confirmed = await saveDeclarationTemplateBodyAsDefault(selected.id, draftBody, company);
+      // Always persist body on this template row (never re-seed hardcoded text).
+      const confirmed = await saveDeclarationTemplateBody(selected.id, draftBody);
       const rows = await listDeclarationTemplates(company);
       setTemplates(rows);
       setSelectedId(confirmed.id);
       setDraftBody(confirmed.body);
       setEditing(false);
-      toast.success('התצהיר נשמר במסד הנתונים');
-      onDefaultChange?.(confirmed);
+      if (confirmed.is_default) {
+        toast.success('הנוסח נשמר — תצהירים חדשים ישתמשו בנוסח זה');
+        onDefaultChange?.(confirmed);
+      } else {
+        toast.success('הנוסח נשמר. לחצו "הגדר כברירת מחדל" כדי להשתמש בו בתצהירים חדשים');
+      }
     } catch (e: any) {
       console.error(e);
       toast.error('שגיאה בשמירה: ' + (e?.message || ''));
@@ -253,10 +257,14 @@ export default function DeclarationTemplateManager({
     if (!company) return;
     try {
       const updated = await setDefaultDeclarationTemplate(selected.id, company);
+      // Re-read so we never keep a stale body after promoting default
       const rows = await listDeclarationTemplates(company);
       setTemplates(rows);
-      toast.success(`"${updated.name}" הוגדרה כברירת מחדל`);
-      onDefaultChange?.(updated);
+      const fresh = rows.find((t) => t.id === updated.id) || updated;
+      setSelectedId(fresh.id);
+      setDraftBody(fresh.body);
+      toast.success(`"${fresh.name}" הוגדרה כברירת מחדל — תצהירים חדשים ישתמשו בנוסח שלה`);
+      onDefaultChange?.(fresh);
     } catch (e: any) {
       console.error(e);
       toast.error('שגיאה בהגדרת ברירת מחדל: ' + (e?.message || ''));
