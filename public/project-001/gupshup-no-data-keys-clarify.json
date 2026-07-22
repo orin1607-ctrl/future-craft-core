@@ -1,0 +1,15 @@
+{
+  "id": "gupshup-no-data-keys-clarify",
+  "at": "2026-07-22T05:55:00.000Z",
+  "production_touched": false,
+  "create_new_api_key_authorized": false,
+  "correction_he": "הטענה על שני מפתחות בפורטל הייתה הנחה מהודעת Owner — לא אימות UI. Staging key עדיין תקף; UI יכול להראות No Data בגלל הסתרת account-level / one-time visibility.",
+  "correct_app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+  "correct_app_name": "DaliaVehicle",
+  "owner_check": [
+    "Confirm App ID on Settings matches 496709e8-b5fc-4de9-9c75-bc87455482dd",
+    "Look for single App API Key field (not only API Keys table)",
+    "Do not create new key until agent explicitly authorizes"
+  ],
+  "report_doc": "docs/audit-reports/claims-incident-process/GUPSHUP-NO-DATA-KEYS-CLARIFY-HE.md"
+}

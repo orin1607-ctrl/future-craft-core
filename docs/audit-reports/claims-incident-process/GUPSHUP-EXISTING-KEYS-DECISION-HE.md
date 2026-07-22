@@ -3,11 +3,17 @@
 **תאריך:** 2026-07-21  
 **Production:** לא בוצע
 
-## החלטה מפורשת
+## עדכון 2026-07-22
 
-**אין צורך ליצור API Key חדש.**
+Owner דיווח: ב-Settings → API Keys מופיע **No Data**.  
+ההנחה על «שני מפתחות בפורטל» **בוטלה** — ראה `GUPSHUP-NO-DATA-KEYS-CLARIFY-HE.md`.  
+**יצירת מפתח חדש עדיין לא מאושרת** עד אימות App ID + חיפוש שדה App API Key.
 
-השתמש באחד משני ה-App API Keys שכבר קיימים באפליקציית **DaliaVehicle** — והדבק אותו ב-Production Edge Secrets כ-`GUPSHUP_API_KEY`.
+## החלטה מקורית (2026-07-21) — חלקית בטעות
+
+**אין צורך ליצור API Key חדש** *אם* אפשר להשיג את המפתח הפעיל (Staging/סיסמאות/שדה UI).
+
+השתמש במפתח הפעיל של **DaliaVehicle** (זה שכבר ב-Staging) — והדבק אותו ב-Production Edge Secrets כ-`GUPSHUP_API_KEY`.
 
 ## למה
 

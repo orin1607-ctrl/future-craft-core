@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'Secrets Prod: GUPSHUP חסר — אחרי סיימתי Gupshup נאשר מוכנות (אין פריסה)',
+    latestFocus: 'Gupshup: No Data ב-UI — לאשר App ID לפני מפתח חדש (אין Prod)',
   };
 
   var STAGES = [
