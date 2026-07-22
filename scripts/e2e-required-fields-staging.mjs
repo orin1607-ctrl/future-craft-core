@@ -97,7 +97,7 @@ async function createSuperAdmin(admin, anon) {
   await new Promise((r) => setTimeout(r, 500));
   const { data: auth, error: signErr } = await anon.auth.signInWithPassword({ email, password });
   if (signErr) throw signErr;
-  return { userId, email, password, company, session: auth.session };
+  return { userId, email, password, company, session: auth.session, runId };
 }
 
 async function injectSession(context, session) {
@@ -131,6 +131,25 @@ async function main() {
 
   const user = await createSuperAdmin(admin, anon);
   record('auth', 'ephemeral super_admin session', true, { email: user.email });
+
+  // Seed second company before browser so CompanyScope picker lists it
+  const companyB = `QA-RF-Iso-${user.runId}`;
+  const { data: bUser, error: bErr } = await admin.auth.admin.createUser({
+    email: `qa-rf-b-${user.runId}@staging-e2e.local`,
+    password: `QaB!${user.runId}`,
+    email_confirm: true,
+  });
+  if (bErr) throw bErr;
+  const bId = bUser.user.id;
+  await admin.from('profiles').upsert({
+    id: bId,
+    full_name: 'QA Iso B',
+    company_name: companyB,
+    is_active: true,
+    approval_status: 'approved',
+    two_factor_approved: true,
+  });
+  record('auth-b', 'seeded isolation company B profile', true, { companyB });
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ locale: 'he-IL' });
@@ -265,13 +284,127 @@ async function main() {
   current['vehicles.license_file_name'] = true;
   current['vehicles.license_link'] = false;
   byCompany[user.company] = current;
+
+  // Isolation: second company with opposite flags
+  const byCompanyIso = { ...byCompany };
+  byCompanyIso[companyB] = {
+    ...(byCompanyIso[companyB] || {}),
+    'vehicles.comprehensive_insurance_file_name': true,
+    'vehicles.comprehensive_insurance_doc_link': true,
+    'vehicles.license_file_name': false,
+    'vehicles.license_link': false,
+    'drivers.phone': false,
+    'drivers.full_name': true,
+  };
+  // Ensure company A phone stays required for contrast
+  current['drivers.phone'] = true;
+  current['drivers.full_name'] = true;
+  byCompanyIso[user.company] = current;
+
   await admin.from('dalia_form_config').upsert({
     config_key: 'required_fields',
-    config_value: { version: 2, byCompany, legacy: store.legacy || {} },
+    config_value: { version: 2, byCompany: byCompanyIso, legacy: store.legacy || {} },
     updated_at: new Date().toISOString(),
     updated_by: user.userId,
   });
   record('rf-api', 'persisted per-company overrides via API', true);
+
+  // Hard reload so CompanyScope + required-fields store refresh
+  await page.goto(`${BASE}/admin/modules/vehicles/required-fields`, {
+    waitUntil: 'networkidle',
+    timeout: 60000,
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  await page.addStyleTag({
+    content: '.fixed.top-4.z-50, .fixed.top-6.z-50 { pointer-events: none !important; }',
+  });
+
+  async function selectCompany(name) {
+    await page.locator('button').filter({ hasText: /בחר חברה|חברה|דליה|QA-RF/ }).first().click({ timeout: 8000 });
+    await page.waitForTimeout(400);
+    const search = page.getByPlaceholder('חיפוש חברה...');
+    if (await search.count()) {
+      await search.fill(name);
+      await page.waitForTimeout(200);
+    }
+    const opt = page.getByRole('button', { name, exact: true }).first();
+    if (await opt.count()) {
+      await opt.click();
+    } else {
+      await page.locator('button', { hasText: name }).first().click({ timeout: 5000 });
+    }
+    await page.waitForTimeout(900);
+  }
+
+  await selectCompany(user.company);
+  await shot(page, '03b-company-a');
+  let aCompFile = await page
+    .locator('li')
+    .filter({ hasText: /מקיף/ })
+    .filter({ hasText: /העלאת קובץ|file_name/ })
+    .first()
+    .locator('button[role="switch"]')
+    .getAttribute('aria-checked')
+    .catch(() => null);
+  let aLicense = await page
+    .locator('li')
+    .filter({ hasText: /העלאת קובץ רישיון|license_file_name/ })
+    .first()
+    .locator('button[role="switch"]')
+    .getAttribute('aria-checked')
+    .catch(() => null);
+
+  await selectCompany(companyB);
+  await shot(page, '03c-company-b');
+  let bCompFile = await page
+    .locator('li')
+    .filter({ hasText: /מקיף/ })
+    .filter({ hasText: /העלאת קובץ|file_name/ })
+    .first()
+    .locator('button[role="switch"]')
+    .getAttribute('aria-checked')
+    .catch(() => null);
+  let bLicense = await page
+    .locator('li')
+    .filter({ hasText: /העלאת קובץ רישיון|license_file_name/ })
+    .first()
+    .locator('button[role="switch"]')
+    .getAttribute('aria-checked')
+    .catch(() => null);
+
+  const isolationOk =
+    aCompFile === 'false' &&
+    bCompFile === 'true' &&
+    aLicense === 'true' &&
+    bLicense === 'false';
+  record('rf-isolation-ui', 'company A vs B required-field switches differ', isolationOk, {
+    companyA: user.company,
+    companyB,
+    aCompFile,
+    bCompFile,
+    aLicense,
+    bLicense,
+  });
+
+  // API-level isolation (source of truth for hub missing/gaps)
+  const { data: cfg2 } = await admin
+    .from('dalia_form_config')
+    .select('config_value')
+    .eq('config_key', 'required_fields')
+    .maybeSingle();
+  const store2 = cfg2?.config_value || {};
+  const aMap = store2.byCompany?.[user.company] || {};
+  const bMap = store2.byCompany?.[companyB] || {};
+  record(
+    'rf-isolation-api',
+    'API byCompany maps are independent',
+    aMap['vehicles.comprehensive_insurance_file_name'] === false &&
+      bMap['vehicles.comprehensive_insurance_file_name'] === true &&
+      aMap['vehicles.license_file_name'] === true &&
+      bMap['vehicles.license_file_name'] === false,
+    { aMapKeys: Object.keys(aMap).length, bMapKeys: Object.keys(bMap).length },
+  );
 
   // 5) Vehicles page — open a vehicle hub if available
   await page.goto(`${BASE}/vehicles`, { waitUntil: 'networkidle', timeout: 60000 });
@@ -378,9 +511,14 @@ async function main() {
 
   await browser.close();
 
-  // cleanup user
+  // cleanup users
   try {
     await admin.auth.admin.deleteUser(user.userId);
+  } catch {
+    /* ignore */
+  }
+  try {
+    await admin.auth.admin.deleteUser(bId);
   } catch {
     /* ignore */
   }
