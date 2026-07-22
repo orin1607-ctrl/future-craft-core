@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Search, Check, Clock, AlertTriangle, Download, Printer, Pencil } from 'lucide-react';
+import { FileText, Search, Check, Clock, AlertTriangle, Download, Printer, Pencil, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
@@ -7,6 +7,7 @@ import { exportToCsv } from '@/utils/exportCsv';
 import { printDeclaration } from '@/utils/printDeclaration';
 import { canManageDeclarationTemplates } from '@/utils/declarationTemplates';
 import DeclarationTemplateManager from '@/components/DeclarationTemplateManager';
+import DeclarationPreviewModal from '@/components/DeclarationPreviewModal';
 
 interface DeclarationRow {
   id: string;
@@ -32,6 +33,7 @@ export default function DriverDeclarations() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [previewDeclaration, setPreviewDeclaration] = useState<DeclarationRow | null>(null);
   const canManageTemplates = canManageDeclarationTemplates(user?.role);
   const templateCompany = companyFilter || user?.company_name || '';
 
@@ -152,17 +154,34 @@ export default function DriverDeclarations() {
               {d.signature_url && (
                 <img src={d.signature_url} alt="חתימה" className="h-12 mt-2 rounded border border-border bg-white p-1" />
               )}
-              {d.status === 'signed' && (
+              <div className="mt-3 flex gap-2 flex-wrap">
                 <button
-                  onClick={() => printDeclaration(d as any)}
-                  className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary text-sm font-bold"
+                  type="button"
+                  onClick={() => setPreviewDeclaration(d)}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-foreground text-sm font-bold"
+                  title="תצוגה מקדימה — כך ייראה התצהיר לנהג"
                 >
-                  <Printer size={16} /> הדפס / שמור PDF
+                  <Eye size={16} /> תצוגה מקדימה
                 </button>
-              )}
+                {d.status === 'signed' && (
+                  <button
+                    onClick={() => printDeclaration(d as any)}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary text-sm font-bold"
+                  >
+                    <Printer size={16} /> הדפס / שמור PDF
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
+      )}
+
+      {previewDeclaration && (
+        <DeclarationPreviewModal
+          declaration={previewDeclaration}
+          onClose={() => setPreviewDeclaration(null)}
+        />
       )}
     </div>
   );

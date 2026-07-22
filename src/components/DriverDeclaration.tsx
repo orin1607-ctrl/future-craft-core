@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FileText, Send, Check, Clock, AlertTriangle, ArrowRight, Pencil, Printer, Settings2 } from 'lucide-react';
+import { FileText, Send, Check, Clock, AlertTriangle, ArrowRight, Pencil, Printer, Settings2, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import {
 } from '@/utils/declarationTemplates';
 import { getDefaultDeclarationTemplate } from '@/services/declarationTemplatesApi';
 import DeclarationTemplateManager from '@/components/DeclarationTemplateManager';
+import DeclarationPreviewModal from '@/components/DeclarationPreviewModal';
 
 interface Declaration {
   id: string;
@@ -58,6 +59,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
   const [signing, setSigning] = useState(false);
   const [activeDeclaration, setActiveDeclaration] = useState<Declaration | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [previewDeclaration, setPreviewDeclaration] = useState<Declaration | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
@@ -366,6 +368,14 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
               )}
 
               <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setPreviewDeclaration(d)}
+                  className="px-3 py-2 rounded-xl bg-muted text-foreground text-sm font-bold flex items-center gap-1"
+                  title="תצוגה מקדימה — כך ייראה התצהיר לנהג"
+                >
+                  <Eye size={14} /> תצוגה מקדימה
+                </button>
                 {d.status === 'pending' && mode === 'driver' && (
                   <button onClick={() => { setActiveDeclaration(d); setSigning(true); }}
                     className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center gap-1">
@@ -402,6 +412,13 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
             </div>
           ))}
         </div>
+      )}
+
+      {previewDeclaration && (
+        <DeclarationPreviewModal
+          declaration={previewDeclaration}
+          onClose={() => setPreviewDeclaration(null)}
+        />
       )}
     </div>
   );
