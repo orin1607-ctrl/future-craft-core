@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_DECLARATION_BODY,
   renderDeclarationTemplate,
+  resolveStoredDeclarationText,
   canManageDeclarationTemplates,
 } from '@/utils/declarationTemplates';
 
@@ -25,6 +26,22 @@ describe('renderDeclarationTemplate', () => {
 
   it('default body contains id_number token', () => {
     expect(DEFAULT_DECLARATION_BODY).toContain('{{id_number}}');
+  });
+});
+
+describe('resolveStoredDeclarationText', () => {
+  it('uses stored snapshot and never falls back to hardcoded seed', () => {
+    const custom = 'נוסח מותאם אישית [[MARKER]] {{id_number}}';
+    const out = resolveStoredDeclarationText(custom, { id_number: '111' });
+    expect(out).toContain('[[MARKER]]');
+    expect(out).toContain('111');
+    expect(out).not.toContain('לא נתגלו אצלי');
+  });
+
+  it('does not inject DEFAULT_DECLARATION_BODY when snapshot missing', () => {
+    const out = resolveStoredDeclarationText('', {});
+    expect(out).toContain('חסר נוסח תצהיר');
+    expect(out).not.toContain(DEFAULT_DECLARATION_BODY.slice(0, 20));
   });
 });
 

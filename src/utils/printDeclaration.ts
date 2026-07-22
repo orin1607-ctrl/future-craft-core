@@ -3,10 +3,7 @@
  * full text and the signature image. Works on desktop and mobile browsers.
  */
 
-import {
-  DEFAULT_DECLARATION_BODY,
-  renderDeclarationTemplate,
-} from '@/utils/declarationTemplates';
+import { resolveStoredDeclarationText } from '@/utils/declarationTemplates';
 
 export interface DeclarationPrintData {
   driver_name: string;
@@ -25,18 +22,15 @@ const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('he-IL') : '—';
 
 export function printDeclaration(declaration: DeclarationPrintData) {
-  const text = renderDeclarationTemplate(
-    declaration.declaration_text || DEFAULT_DECLARATION_BODY,
-    {
-      driver_name: declaration.driver_name,
-      id_number: declaration.id_number,
-      license_number: declaration.license_number,
-      company_name: declaration.company_name,
-      date: declaration.created_at
-        ? new Date(declaration.created_at).toLocaleDateString('he-IL')
-        : new Date().toLocaleDateString('he-IL'),
-    },
-  );
+  const text = resolveStoredDeclarationText(declaration.declaration_text, {
+    driver_name: declaration.driver_name,
+    id_number: declaration.id_number,
+    license_number: declaration.license_number,
+    company_name: declaration.company_name,
+    date: declaration.created_at
+      ? new Date(declaration.created_at).toLocaleDateString('he-IL')
+      : new Date().toLocaleDateString('he-IL'),
+  });
 
   const signatureBlock = declaration.signature_url
     ? `<img src="${declaration.signature_url}" alt="חתימה" crossorigin="anonymous" />`

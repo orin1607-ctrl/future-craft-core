@@ -1,0 +1,18 @@
+{
+  "id": "production-declaration-template-text-queue",
+  "armed": true,
+  "requestedAt": "2026-07-22T16:36:05.481Z",
+  "requestedBy": "owner",
+  "owner_phrase": "לאחר שהתיקון יעבוד ב-Staging, לאמת אותו, ואז להעלות גם ל-Production",
+  "target": "https://dalia-car.online",
+  "scope": [
+    "Declaration template body persist + no hardcoded display fallback",
+    "Default template edit/save used by new declarations",
+    "New template copy edit/save + set default",
+    "Hostinger frontend only — no DB migration",
+    "Stop after Production verify"
+  ],
+  "no_extra_development": true,
+  "stop_after_verify": true,
+  "completed": false
+}

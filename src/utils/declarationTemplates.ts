@@ -92,3 +92,18 @@ export function renderDeclarationTemplate(
 export function canManageDeclarationTemplates(role: string | undefined | null): boolean {
   return role === 'fleet_manager' || role === 'super_admin';
 }
+
+/**
+ * Display text for an already-created declaration.
+ * Uses the immutable DB snapshot only — never falls back to the hardcoded seed body.
+ */
+export function resolveStoredDeclarationText(
+  declarationText: string | null | undefined,
+  vars: DeclarationTemplateVars = {},
+): string {
+  const raw = String(declarationText ?? '');
+  if (!raw.trim()) {
+    return 'חסר נוסח תצהיר שמור. יש ליצור תצהיר חדש לאחר שמירת התבנית במסד הנתונים.';
+  }
+  return renderDeclarationTemplate(raw, vars);
+}
