@@ -1,0 +1,20 @@
+{
+  "id": "gupshup-no-technical-key-recovery",
+  "at": "2026-07-22T06:15:00.000Z",
+  "production_touched": false,
+  "owner_portal_email": "yoni19111977@gmail.com",
+  "app_id": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+  "verdict": "NO_TECHNICAL_RECOVERY_PATH",
+  "verdict_he": "אין דרך טכנית לשלוף את המפתח הקיים — לפנות ל-Gupshup Support",
+  "create_api_key_authorized": false,
+  "channels_checked": {
+    "supabase_management_api": "names_only_no_plaintext",
+    "gupshup_partner_account_api": "no_documented_get_plaintext_key",
+    "gupshup_portal_ui": "no_data_create_auth_failed",
+    "github_actions_gupshup_secret": "not_available",
+    "vps_scan": "previously_timed_out_empty"
+  },
+  "permissions_assessment_he": "חשבון מקורי רואה את האפליקציה; Create חסום/נכשל באימות — מגבלת פלטפורמה/באג Gupshup + מדיניות one-time/hidden keys",
+  "next_step": "Contact Gupshup Support from yoni19111977@gmail.com",
+  "report_doc": "docs/audit-reports/claims-incident-process/GUPSHUP-NO-TECHNICAL-KEY-RECOVERY-HE.md"
+}

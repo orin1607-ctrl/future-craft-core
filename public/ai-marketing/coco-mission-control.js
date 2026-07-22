@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'Gupshup: פורטל חסום — הצעד: Naeem / Support (בלי Create, בלי Prod)',
+    latestFocus: 'אין שליפת מפתח טכנית — פנה ל-Gupshup Support (yoni19111977)',
   };
 
   var STAGES = [
