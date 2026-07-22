@@ -341,15 +341,14 @@ async function main() {
   await shot(page, '03b-company-a');
   let aCompFile = await page
     .locator('li')
-    .filter({ hasText: /מקיף/ })
-    .filter({ hasText: /העלאת קובץ|file_name/ })
+    .filter({ hasText: 'comprehensive_insurance_file_name' })
     .first()
     .locator('button[role="switch"]')
     .getAttribute('aria-checked')
     .catch(() => null);
   let aLicense = await page
     .locator('li')
-    .filter({ hasText: /העלאת קובץ רישיון|license_file_name/ })
+    .filter({ hasText: 'license_file_name' })
     .first()
     .locator('button[role="switch"]')
     .getAttribute('aria-checked')
@@ -359,15 +358,14 @@ async function main() {
   await shot(page, '03c-company-b');
   let bCompFile = await page
     .locator('li')
-    .filter({ hasText: /מקיף/ })
-    .filter({ hasText: /העלאת קובץ|file_name/ })
+    .filter({ hasText: 'comprehensive_insurance_file_name' })
     .first()
     .locator('button[role="switch"]')
     .getAttribute('aria-checked')
     .catch(() => null);
   let bLicense = await page
     .locator('li')
-    .filter({ hasText: /העלאת קובץ רישיון|license_file_name/ })
+    .filter({ hasText: 'license_file_name' })
     .first()
     .locator('button[role="switch"]')
     .getAttribute('aria-checked')
