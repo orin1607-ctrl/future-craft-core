@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ import {
   getExpirySeverity,
   type ExpirySeverity,
 } from '@/lib/vehicleExpiryShared';
+import { SearchableFilterField } from '@/components/SearchableFilterField';
 
 // ─── Alerts Types ───
 type AlertSeverity = ExpirySeverity;
@@ -38,6 +39,9 @@ interface AlertItem {
   date: string | null;
   meta?: string;
   link?: string;
+  /** מספר פנימי של הרכב (לחיפוש בלשונית התראות) */
+  internalNumber?: string | null;
+  vehiclePlate?: string | null;
 }
 
 const categoryLabels: Record<AlertCategory, string> = {
@@ -114,6 +118,10 @@ export default function Alerts() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [alertFilter, setAlertFilter] = useState<AlertCategory | 'all'>('all');
+  const [filterVehicle, setFilterVehicle] = useState('');
+  const [filterInternal, setFilterInternal] = useState('');
+  const [vehiclePlates, setVehiclePlates] = useState<string[]>([]);
+  const [internalNumbers, setInternalNumbers] = useState<string[]>([]);
 
   // Updates state
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -140,27 +148,34 @@ export default function Alerts() {
   const loadAlerts = async () => {
     setAlertsLoading(true);
     const allAlerts: AlertItem[] = [];
+    const plateToInternal: Record<string, string> = {};
 
     // 1. Vehicle expiries
     const { data: vehicles } = await applyCompanyScope(supabase.from('vehicles').select('*'), companyFilter);
     if (vehicles) {
+      const internals: string[] = [];
+      const plates: string[] = [];
       for (const v of vehicles) {
         const plate = v.license_plate;
+        const internal = (v.internal_number || '').trim();
+        if (plate && internal) plateToInternal[plate] = internal;
+        if (internal) internals.push(internal);
+        if (plate) plates.push(plate);
         const label = `${v.manufacturer || ''} ${v.model || ''} - ${plate}`.trim();
 
         const testDays = getDaysLeft(v.test_expiry);
         if (testDays !== null && testDays <= 30) {
-          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getExpirySeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: buildVehicleHubUrl(v.id) });
+          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getExpirySeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: buildVehicleHubUrl(v.id), internalNumber: internal || null, vehiclePlate: plate });
         }
 
         const insDays = getDaysLeft(v.insurance_expiry);
         if (insDays !== null && insDays <= 30) {
-          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getExpirySeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: buildVehicleHubUrl(v.id) });
+          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getExpirySeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: buildVehicleHubUrl(v.id), internalNumber: internal || null, vehiclePlate: plate });
         }
 
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
         if (compDays !== null && compDays <= 30) {
-          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getExpirySeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id) });
+          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getExpirySeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id), internalNumber: internal || null, vehiclePlate: plate });
         }
 
         const thirdExpiry = getThirdPartyInsuranceExpiry(v);
@@ -175,9 +190,16 @@ export default function Alerts() {
             daysLeft: thirdDays,
             date: thirdExpiry,
             link: buildVehicleHubUrl(v.id),
+            internalNumber: internal || null,
+            vehiclePlate: plate,
           });
         }
       }
+      setInternalNumbers([...new Set(internals)].sort((a, b) => a.localeCompare(b, 'he', { numeric: true })));
+      setVehiclePlates([...new Set(plates)].sort((a, b) => a.localeCompare(b, 'he', { numeric: true })));
+    } else {
+      setInternalNumbers([]);
+      setVehiclePlates([]);
     }
 
     // 2. Driver license expiries
@@ -211,7 +233,8 @@ export default function Alerts() {
     );
     if (faults) {
       for (const f of faults) {
-        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link: f.vehicle_plate ? buildVehicleContextUrl('/faults', { plate: f.vehicle_plate }) : '/faults' });
+        const plate = f.vehicle_plate || null;
+        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link: f.vehicle_plate ? buildVehicleContextUrl('/faults', { plate: f.vehicle_plate }) : '/faults', vehiclePlate: plate, internalNumber: plate ? plateToInternal[plate] || null : null });
       }
     }
 
@@ -235,6 +258,8 @@ export default function Alerts() {
           date: vt.created_at?.split('T')[0] || null,
           meta: vt.description || undefined,
           link: vt.vehicle_plate ? buildVehicleContextUrl('/vehicle-tasks', { plate: vt.vehicle_plate }) : '/vehicle-tasks',
+          vehiclePlate: vt.vehicle_plate || null,
+          internalNumber: vt.vehicle_plate ? plateToInternal[vt.vehicle_plate] || null : null,
         });
       }
     }
@@ -259,6 +284,8 @@ export default function Alerts() {
           date: ca.alert_date,
           meta: ca.description || undefined,
           link: plate ? buildVehicleContextUrl('/vehicles', { plate }) : '/alerts',
+          vehiclePlate: plate || null,
+          internalNumber: plate ? plateToInternal[plate] || null : null,
         });
       }
     }
@@ -282,6 +309,8 @@ export default function Alerts() {
           date: so.created_at ? new Date(so.created_at).toISOString().split('T')[0] : null,
           meta: `${so.service_category || ''} ${so.description ? '- ' + so.description : ''}`.trim() || undefined,
           link: so.vehicle_plate ? buildVehicleContextUrl('/service-orders', { plate: so.vehicle_plate }) : '/service-orders',
+          vehiclePlate: so.vehicle_plate || null,
+          internalNumber: so.vehicle_plate ? plateToInternal[so.vehicle_plate] || null : null,
         });
       }
     }
@@ -304,6 +333,8 @@ export default function Alerts() {
           date: wa.scheduled_date || null,
           meta: wa.title || undefined,
           link: '/work-orders',
+          vehiclePlate: wa.vehicle_plate || null,
+          internalNumber: wa.vehicle_plate ? plateToInternal[wa.vehicle_plate] || null : null,
         });
       }
     }
@@ -326,11 +357,23 @@ export default function Alerts() {
     setLogsLoading(false);
   };
 
-  const filteredAlerts = alertFilter === 'all' ? alerts : alerts.filter(a => a.category === alertFilter);
+  const alertsForEntity = useMemo(() => {
+    return alerts.filter((a) => {
+      if (filterVehicle && a.vehiclePlate !== filterVehicle) return false;
+      if (filterInternal && a.internalNumber !== filterInternal) return false;
+      return true;
+    });
+  }, [alerts, filterVehicle, filterInternal]);
+
+  const filteredAlerts =
+    alertFilter === 'all'
+      ? alertsForEntity
+      : alertsForEntity.filter((a) => a.category === alertFilter);
+
   const alertCounts = {
-    all: alerts.length,
-    critical: alerts.filter(a => a.severity === 'critical').length,
-    warning: alerts.filter(a => a.severity === 'warning').length,
+    all: alertsForEntity.length,
+    critical: alertsForEntity.filter((a) => a.severity === 'critical').length,
+    warning: alertsForEntity.filter((a) => a.severity === 'warning').length,
   };
   const categories: (AlertCategory | 'all')[] = [
     'all',
@@ -343,6 +386,11 @@ export default function Alerts() {
     'service_order',
     'work_assignment',
   ];
+
+  const selectClass =
+    'w-full p-3 text-base rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none';
+
+  const entityFilterActive = Boolean(filterVehicle || filterInternal);
 
   const filteredLogs = logs.filter(l => {
     if (logSearch && !l.user_name.includes(logSearch) && !l.details.includes(logSearch) && !l.vehicle_plate.includes(logSearch) && !l.entity_id.includes(logSearch)) return false;
@@ -364,9 +412,9 @@ export default function Alerts() {
           <TabsTrigger value="alerts" className="text-base font-bold gap-2">
             <Bell size={18} />
             התראות
-            {alertCounts.all > 0 && (
+            {alerts.length > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
-                {alertCounts.all}
+                {alerts.length}
               </span>
             )}
           </TabsTrigger>
@@ -386,6 +434,34 @@ export default function Alerts() {
 
         {/* ─── Alerts Tab ─── */}
         <TabsContent value="alerts" className="space-y-4 mt-4">
+          {/* Plate + internal search — same autocomplete as Reports */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl">
+            <div>
+              <label className="block text-sm font-medium mb-1">מספר רכב</label>
+              <SearchableFilterField
+                value={filterVehicle}
+                onChange={setFilterVehicle}
+                options={vehiclePlates}
+                placeholder="הכל / הקלידו לחיפוש..."
+                searchPlaceholder="חיפוש מספר רכב..."
+                emptyText="לא נמצא מספר רכב"
+                triggerClassName={selectClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">מספר פנימי</label>
+              <SearchableFilterField
+                value={filterInternal}
+                onChange={setFilterInternal}
+                options={internalNumbers}
+                placeholder="הכל / הקלידו לחיפוש..."
+                searchPlaceholder="חיפוש מספר פנימי..."
+                emptyText="לא נמצא מספר פנימי"
+                triggerClassName={selectClass}
+              />
+            </div>
+          </div>
+
           {/* Severity Counters */}
           <div className="flex items-center gap-3 flex-wrap">
             {alertCounts.critical > 0 && (
@@ -406,7 +482,7 @@ export default function Alerts() {
           {/* Category Filter */}
           <div className="flex gap-2 flex-wrap">
             {categories.map(cat => {
-              const count = cat === 'all' ? alerts.length : alerts.filter(a => a.category === cat).length;
+              const count = cat === 'all' ? alertsForEntity.length : alertsForEntity.filter(a => a.category === cat).length;
               if (cat !== 'all' && count === 0) return null;
               return (
                 <button key={cat} onClick={() => setAlertFilter(cat)}
@@ -426,8 +502,18 @@ export default function Alerts() {
           {!alertsLoading && filteredAlerts.length === 0 && (
             <div className="card-elevated text-center py-16">
               <CheckCircle2 className="mx-auto mb-4 text-green-500" size={48} />
-              <p className="text-xl font-bold text-foreground">הכל תקין! 🎉</p>
-              <p className="text-muted-foreground mt-2">אין התראות פעילות כרגע</p>
+              <p className="text-xl font-bold text-foreground">
+                {entityFilterActive ? 'אין התראות לסינון שנבחר' : 'הכל תקין! 🎉'}
+              </p>
+              <p className="text-muted-foreground mt-2">
+                {filterVehicle && filterInternal
+                  ? `לא נמצאו התראות עבור רכב ${filterVehicle} / מספר פנימי ${filterInternal}`
+                  : filterVehicle
+                    ? `לא נמצאו התראות פעילות עבור רכב ${filterVehicle}`
+                    : filterInternal
+                      ? `לא נמצאו התראות פעילות עבור מספר פנימי ${filterInternal}`
+                      : 'אין התראות פעילות כרגע'}
+              </p>
             </div>
           )}
 
