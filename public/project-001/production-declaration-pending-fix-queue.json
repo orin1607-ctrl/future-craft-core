@@ -1,6 +1,6 @@
 {
   "id": "production-declaration-pending-fix-queue",
-  "armed": true,
+  "armed": false,
   "requestedAt": "2026-07-22T16:56:00.000Z",
   "requestedBy": "owner",
   "owner_phrase": "עדיין נשלח הנוסח הישן — לתקן ב-Production ולבדוק בפועל מול WhatsApp 0534338601",
@@ -13,5 +13,6 @@
   ],
   "no_extra_development": true,
   "stop_after_verify": true,
-  "completed": false
+  "completed": true,
+  "at": "2026-07-22T16:59:27.697Z"
 }

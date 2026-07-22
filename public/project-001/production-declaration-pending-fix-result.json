@@ -1,0 +1,71 @@
+{
+  "id": "production-declaration-pending-fix-verify",
+  "at": "2026-07-22T16:59:10.867Z",
+  "host": "https://dalia-car.online",
+  "deploy_sha": "c1946c42801a2c2bf0d230507fd9a3aac26c3c77",
+  "company": "אילנה אטיאס",
+  "driver_id": "38273c4e-1931-497c-9024-1f0cbf135703",
+  "wa_dest": "0534338601",
+  "marker": "[[PROD-DECL-LIVE-1784739550867]]",
+  "root_cause": "UI blocked \"תצהיר חדש\" while status=pending, so WhatsApp re-sent immutable old declaration_text snapshot after template edit",
+  "checks": [
+    {
+      "id": "bundle-fix-markers",
+      "ok": true,
+      "bundle": "assets/index-8KZoTB0x.js"
+    },
+    {
+      "id": "deploy-txt",
+      "ok": true,
+      "deployTxt": "commit=c1946c42801a2c2bf0d230507fd9a3aac26c3c77 bundle=index-8KZoTB0x.js at=2026-07-22T16:58:43Z reason=declaration-pending-snapshot-fix owner_approved=2026-07-22"
+    },
+    {
+      "id": "driver",
+      "ok": true,
+      "name": "בדיקה אילנה",
+      "phone": "0534338601",
+      "company": "אילנה אטיאס"
+    },
+    {
+      "id": "template-save",
+      "ok": true,
+      "template_id": "cbe4c2cb-ac16-419a-8e3b-0912d247cda1"
+    },
+    {
+      "id": "cancel-old-pending",
+      "ok": true,
+      "cancelled": 1
+    },
+    {
+      "id": "create-new-declaration",
+      "ok": true,
+      "declaration_id": "236aa7a4-7ffb-4d07-863e-4a926f1451e2",
+      "token_tail": "fca07f85"
+    },
+    {
+      "id": "sign-page-new-text",
+      "ok": true,
+      "status": 200,
+      "signUrl": "https://dalia-car.online/sign-declaration?token=8d90c7495c95e83a861cd360158e32c4eba7d13cb04117d8a9cfdb72fca07f85",
+      "hasMarker": true,
+      "hasNewOpener": true,
+      "hasOldOpener": false
+    },
+    {
+      "id": "whatsapp-send",
+      "ok": true,
+      "http": 200,
+      "success": true,
+      "message_id": "4ca7e9c0-f3c5-45c1-b081-53c7b6f857e5",
+      "error": null,
+      "excerpt": "{\"success\":true,\"message\":\"הודעת WhatsApp נשלחה\",\"destination\":\"972534338601\",\"text\":\"שלום בדיקה אילנה, אנא חתמי על תצהיר נהג (נוסח מעודכן [[PROD-DECL-LIVE-1784739550867]]) בקישור:\\nhttps://dalia-car.online/sign-declaration?token=8d90c7495c95e83a861cd360158e32c4eba7d13cb04117d8a9cfdb72fca07f85\",\"gupshup_status\":202,\"message_id\":\"4ca7e9c0-f3c5-45c1-b081-53c7b6f857e5\",\"gupshup_response\":{\"status\":\"s"
+    }
+  ],
+  "ok": true,
+  "restore_body_len": 864,
+  "sign_url": "https://dalia-car.online/sign-declaration?token=8d90c7495c95e83a861cd360158e32c4eba7d13cb04117d8a9cfdb72fca07f85",
+  "wa_message_includes_marker": true,
+  "kept_edited_template": true,
+  "note": "Template left with MARKER so owner can confirm the live link. Restore manually if desired.",
+  "bundle": "assets/index-8KZoTB0x.js"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "production-declaration-pending-fix-summary",
+  "at": "2026-07-22T16:59:10.867Z",
+  "ok": true,
+  "host": "https://dalia-car.online",
+  "bundle": "assets/index-8KZoTB0x.js",
+  "sign_url": "https://dalia-car.online/sign-declaration?token=8d90c7495c95e83a861cd360158e32c4eba7d13cb04117d8a9cfdb72fca07f85",
+  "marker": "[[PROD-DECL-LIVE-1784739550867]]",
+  "wa_dest": "0534338601",
+  "root_cause": "UI blocked \"תצהיר חדש\" while status=pending, so WhatsApp re-sent immutable old declaration_text snapshot after template edit",
+  "checks_passed": 8,
+  "checks_total": 8
+}
