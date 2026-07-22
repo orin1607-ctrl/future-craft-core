@@ -1,1 +1,5 @@
-{"id":"production-declaration-stale-diagnose2-queue","armed":true}
+{
+  "id": "production-declaration-stale-diagnose2-queue",
+  "armed": false,
+  "at": "2026-07-22T16:55:04.829Z"
+}
