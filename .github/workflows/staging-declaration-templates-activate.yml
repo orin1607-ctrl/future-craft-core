@@ -1,0 +1,136 @@
+name: Staging — Declaration Templates Activate
+
+# Staging-only: apply declaration_templates migration + verify table.
+# NEVER targets production (qasomfndnjuixgjmjwcm).
+#
+# Triggers on push to the staging Pages feature branch so Cursor can
+# activate without workflow_dispatch (bot cannot dispatch).
+
+on:
+  push:
+    branches:
+      - feat/incident-alerts-staging
+    paths:
+      - 'supabase/migrations/20260722101200_declaration_templates.sql'
+      - '.github/workflows/staging-declaration-templates-activate.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-declaration-templates
+  cancel-in-progress: false
+
+jobs:
+  apply-staging-migration:
+    name: Apply migration to dalia-staging only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard — refuse production refs
+        run: |
+          set -euo pipefail
+          STAGING_REF="usfeoerkpcafxxlyuldl"
+          PROD_REF="qasomfndnjuixgjmjwcm"
+          echo "Target staging project: $STAGING_REF"
+          echo "Guarding against production: $PROD_REF"
+          if grep -R --fixed-strings "$PROD_REF" .github/workflows/staging-declaration-templates-activate.yml | grep -v 'PROD_REF\|production\|NEVER\|refuse\|Guard'; then
+            echo "::error::Workflow unexpectedly references production project"
+            exit 1
+          fi
+
+      - name: Apply SQL via Supabase Management API (staging only)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_REF: usfeoerkpcafxxlyuldl
+        run: |
+          set -euo pipefail
+          TOK=$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          if [ -z "$TOK" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN missing. Owner must set GitHub Secret from https://supabase.com/dashboard/account/tokens"
+            exit 1
+          fi
+          export SUPABASE_ACCESS_TOKEN="$TOK"
+
+          CODE=$(curl -sS -o /tmp/mgmt_projects.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects" || echo "000")
+          echo "Management API projects HTTP: $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN rejected (HTTP $CODE). Rotate token and update GitHub Secret."
+            head -c 300 /tmp/mgmt_projects.json; echo
+            exit 1
+          fi
+
+          # Confirm staging project is visible to this token
+          python3 - <<'PY'
+          import json, os, sys
+          projects = json.load(open('/tmp/mgmt_projects.json'))
+          refs = {p.get('id') or p.get('ref') for p in projects} if isinstance(projects, list) else set()
+          # API returns list of projects with "id" as ref
+          if isinstance(projects, list):
+            refs = {p.get('id') for p in projects if p.get('id')}
+          staging = os.environ['STAGING_REF']
+          print('project_count', len(refs))
+          print('staging_visible', staging in refs)
+          if staging not in refs:
+            print('Available refs (prefix):', sorted(r[:8]+'...' for r in refs if r)[:20])
+            sys.exit('Staging project not visible to this token')
+          PY
+
+          SQL_FILE="supabase/migrations/20260722101200_declaration_templates.sql"
+          test -f "$SQL_FILE"
+          python3 - <<'PY'
+          import json, os, urllib.request, sys
+          token = os.environ['SUPABASE_ACCESS_TOKEN']
+          ref = os.environ['STAGING_REF']
+          sql = open('supabase/migrations/20260722101200_declaration_templates.sql', encoding='utf-8').read()
+          url = f'https://api.supabase.com/v1/projects/{ref}/database/query'
+          body = json.dumps({'query': sql}).encode('utf-8')
+          req = urllib.request.Request(
+            url,
+            data=body,
+            method='POST',
+            headers={
+              'Authorization': f'Bearer {token}',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          )
+          try:
+            with urllib.request.urlopen(req, timeout=180) as resp:
+              raw = resp.read().decode('utf-8', errors='replace')
+              print('SQL HTTP', resp.status)
+              print(raw[:1500])
+          except urllib.error.HTTPError as e:
+            raw = e.read().decode('utf-8', errors='replace')
+            print('SQL HTTP', e.code)
+            print(raw[:2000])
+            # Idempotent: table already exists is OK if schema matches
+            if e.code in (400, 409) and ('already exists' in raw.lower() or 'duplicate' in raw.lower()):
+              print('Treating as already-applied (idempotent)')
+              sys.exit(0)
+            sys.exit(1)
+          PY
+
+      - name: Verify declaration_templates exists on staging
+        env:
+          STAGING_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          STAGING_ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
+        run: |
+          set -euo pipefail
+          CODE=$(curl -sS -o /tmp/verify.json -w "%{http_code}" \
+            "${STAGING_URL}/rest/v1/declaration_templates?select=id,name,is_default&limit=3" \
+            -H "apikey: ${STAGING_ANON}" \
+            -H "Authorization: Bearer ${STAGING_ANON}")
+          echo "REST verify HTTP: $CODE"
+          cat /tmp/verify.json
+          echo
+          if [ "$CODE" = "200" ]; then
+            echo "✅ declaration_templates is live on Staging"
+          else
+            echo "::error::Table not reachable on Staging (HTTP $CODE)"
+            exit 1
+          fi
