@@ -1,0 +1,16 @@
+{
+  "id": "gupshup-pre-delete-key-decision",
+  "at": "2026-07-22T07:18:00.000Z",
+  "production_touched": false,
+  "staging_probe_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29899664533",
+  "staging_still_valid": true,
+  "staging_key_length": 35,
+  "can_identify_key_created_2026_06_16": false,
+  "repo_2026_06_16_means": "SSH deploy keys in SETUP-REPORT.md — not Gupshup",
+  "can_map_staging_to_key_number_1_or_2": false,
+  "authorize_delete_key_number": null,
+  "authorize_delete_he": "אין אישור למחוק מפתח מספר 1 או 2 — אין מיפוי בפרויקט",
+  "risk_key_1_vs_key_2": "identical_unknown_from_repo_data",
+  "next": "Owner send portal metadata (Created/Last used) without values, OR controlled rotation with immediate Staging secret update",
+  "report_doc": "docs/audit-reports/claims-incident-process/GUPSHUP-PRE-DELETE-KEY-DECISION-HE.md"
+}

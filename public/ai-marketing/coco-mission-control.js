@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'אין שליפת מפתח טכנית — פנה ל-Gupshup Support (yoni19111977)',
+    latestFocus: 'לפני מחיקת Key: אין מיפוי 1/2↔Staging — שלח Last used או רוטציה מבוקרת',
   };
 
   var STAGES = [
