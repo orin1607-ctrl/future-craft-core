@@ -1,0 +1,49 @@
+name: Production — Declaration Stale Diagnose
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/project-001/production-declaration-stale-diagnose-queue.json'
+      - 'scripts/production-declaration-stale-diagnose.mjs'
+      - '.github/workflows/production-declaration-stale-diagnose.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Gate
+        id: gate
+        run: |
+          armed=$(node -e "const q=require('./public/project-001/production-declaration-stale-diagnose-queue.json'); process.stdout.write(String(q.armed===true))")
+          echo "armed=$armed" >> "$GITHUB_OUTPUT"
+      - name: Diagnose Production stale declaration chain
+        if: steps.gate.outputs.armed == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: node scripts/production-declaration-stale-diagnose.mjs
+      - name: Commit + disarm
+        if: always() && steps.gate.outputs.armed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node -e "const fs=require('fs');const p='public/project-001/production-declaration-stale-diagnose-queue.json';const q=JSON.parse(fs.readFileSync(p,'utf8'));q.armed=false;q.completed=true;q.at=new Date().toISOString();fs.writeFileSync(p,JSON.stringify(q,null,2)+'\n');"
+          git add public/project-001/production-declaration-stale-diagnose-queue.json public/project-001/production-declaration-stale-diagnose.json || true
+          git commit -m "chore(prod): declaration stale diagnose results" || true
+          git push origin HEAD:main || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-declaration-stale-diagnose
+          path: public/project-001/production-declaration-stale-diagnose.json
+          if-no-files-found: ignore
