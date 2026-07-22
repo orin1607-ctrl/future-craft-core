@@ -407,15 +407,20 @@ async function main() {
     { status: signedFinal?.status, signVia },
   );
 
-  // Reload sign page after sign — should show success state / keep text
+  // Reload sign page after sign — should show success state
   await page.goto(signUrl, { waitUntil: 'networkidle', timeout: 60000 });
-  await page.waitForTimeout(1000);
+  const successVisible = await page
+    .getByText(/נחתם בהצלחה|התצהיר נחתם|תודה/i)
+    .first()
+    .waitFor({ state: 'visible', timeout: 15000 })
+    .then(() => true)
+    .catch(() => false);
   const afterSignBody = (await page.textContent('body')) || '';
   record(
     '8b-sign-page-after',
-    'sign page after signing shows success or keeps latest text',
-    afterSignBody.includes('נחתם') || afterSignBody.includes(MARKER_COPY),
-    {},
+    'sign page after signing shows success state',
+    successVisible || /נחתם|תודה/.test(afterSignBody),
+    { excerpt: afterSignBody.replace(/\s+/g, ' ').slice(0, 180) },
   );
 
   record('console-clean', 'no unexpected console errors on sign page', report.consoleErrors.length === 0, {
