@@ -10,9 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getThirdPartyInsuranceExpiry } from '@/lib/vehicleInsuranceUtils';
+import {
+  getDaysLeft,
+  getExpirySeverity,
+  type ExpirySeverity,
+} from '@/lib/vehicleExpiryShared';
 
 // ─── Alerts Types ───
-type AlertSeverity = 'critical' | 'warning' | 'info';
+type AlertSeverity = ExpirySeverity;
 type AlertCategory =
   | 'test'
   | 'insurance'
@@ -69,18 +74,7 @@ const severityBadge: Record<AlertSeverity, string> = {
   info: 'bg-blue-500 text-white',
 };
 
-function getDaysLeft(dateStr: string | null): number | null {
-  if (!dateStr) return null;
-  const diff = new Date(dateStr).getTime() - new Date().getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
-function getSeverity(daysLeft: number | null): AlertSeverity {
-  if (daysLeft === null) return 'info';
-  if (daysLeft <= 0) return 'critical';
-  if (daysLeft <= 14) return 'warning';
-  return 'info';
-}
+// getDaysLeft / getExpirySeverity shared with Reports via vehicleExpiryShared
 
 // ─── Updates (System Logs) Types ───
 interface LogEntry {
@@ -156,17 +150,17 @@ export default function Alerts() {
 
         const testDays = getDaysLeft(v.test_expiry);
         if (testDays !== null && testDays <= 30) {
-          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: buildVehicleHubUrl(v.id) });
+          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getExpirySeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const insDays = getDaysLeft(v.insurance_expiry);
         if (insDays !== null && insDays <= 30) {
-          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: buildVehicleHubUrl(v.id) });
+          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getExpirySeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
         if (compDays !== null && compDays <= 30) {
-          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id) });
+          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getExpirySeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const thirdExpiry = getThirdPartyInsuranceExpiry(v);
@@ -175,7 +169,7 @@ export default function Alerts() {
           allAlerts.push({
             id: `third-${v.id}`,
             category: 'third_party_insurance',
-            severity: getSeverity(thirdDays),
+            severity: getExpirySeverity(thirdDays),
             title: thirdDays <= 0 ? 'ביטוח צד ג׳ פג!' : 'ביטוח צד ג׳ עומד לפוג',
             subtitle: label,
             daysLeft: thirdDays,
@@ -192,7 +186,7 @@ export default function Alerts() {
       for (const d of drivers) {
         const licDays = getDaysLeft(d.license_expiry);
         if (licDays !== null && licDays <= 30) {
-          allAlerts.push({ id: `lic-${d.id}`, category: 'license', severity: getSeverity(licDays), title: licDays <= 0 ? 'רישיון נהיגה פג!' : 'רישיון עומד לפוג', subtitle: d.full_name, daysLeft: licDays, date: d.license_expiry, meta: d.phone || undefined, link: '/drivers' });
+          allAlerts.push({ id: `lic-${d.id}`, category: 'license', severity: getExpirySeverity(licDays), title: licDays <= 0 ? 'רישיון נהיגה פג!' : 'רישיון עומד לפוג', subtitle: d.full_name, daysLeft: licDays, date: d.license_expiry, meta: d.phone || undefined, link: '/drivers' });
         }
       }
     }
@@ -204,7 +198,7 @@ export default function Alerts() {
         if (examExpiry) {
           const examDays = getDaysLeft(examExpiry);
           if (examDays !== null && examDays <= 30) {
-            allAlerts.push({ id: `exam-${d.id}`, category: 'license', severity: getSeverity(examDays), title: examDays <= 0 ? 'תוקף מבחן נהיגה פג!' : 'מבחן נהיגה עומד לפוג', subtitle: d.full_name, daysLeft: examDays, date: examExpiry, meta: d.phone || undefined, link: '/drivers' });
+            allAlerts.push({ id: `exam-${d.id}`, category: 'license', severity: getExpirySeverity(examDays), title: examDays <= 0 ? 'תוקף מבחן נהיגה פג!' : 'מבחן נהיגה עומד לפוג', subtitle: d.full_name, daysLeft: examDays, date: examExpiry, meta: d.phone || undefined, link: '/drivers' });
           }
         }
       }
@@ -258,7 +252,7 @@ export default function Alerts() {
         allAlerts.push({
           id: `custom-${ca.id}`,
           category: 'service_order',
-          severity: getSeverity(daysLeft),
+          severity: getExpirySeverity(daysLeft),
           title: ca.title,
           subtitle: plate ? `רכב ${plate}` : ca.description?.split('\n')[0] || '',
           daysLeft,
