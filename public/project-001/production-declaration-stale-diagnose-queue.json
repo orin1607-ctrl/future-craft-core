@@ -1,7 +1,9 @@
 {
   "id": "production-declaration-stale-diagnose-queue",
-  "armed": true,
+  "armed": false,
   "requestedAt": "2026-07-22T16:51:00.000Z",
   "phone": "0534338601",
-  "purpose": "Find why edited declaration template text is not sent on Production"
+  "purpose": "Find why edited declaration template text is not sent on Production",
+  "completed": true,
+  "at": "2026-07-22T16:54:06.442Z"
 }

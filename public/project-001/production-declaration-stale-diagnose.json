@@ -1,0 +1,89 @@
+{
+  "at": "2026-07-22T16:54:01.239Z",
+  "host": "https://dalia-car.online",
+  "phone": "0534338601",
+  "findings": {},
+  "drivers_raw_count": 3,
+  "matched_by_phone": [
+    {
+      "id": "cf0f0619-da05-48eb-b52a-aa6d881fd60d",
+      "full_name": "בדיקה 3",
+      "phone": "0534338601",
+      "company_name": "אכבים",
+      "status": "active"
+    },
+    {
+      "id": "a31285f7-9f6a-43db-99b7-eab50153c504",
+      "full_name": "יהלי",
+      "phone": "0534338601",
+      "company_name": "טטטט",
+      "status": "active"
+    },
+    {
+      "id": "38273c4e-1931-497c-9024-1f0cbf135703",
+      "full_name": "בדיקה אילנה",
+      "phone": "0534338601",
+      "company_name": "אילנה אטיאס",
+      "status": "active"
+    }
+  ],
+  "matched_phone_query": [
+    {
+      "id": "cf0f0619-da05-48eb-b52a-aa6d881fd60d",
+      "full_name": "בדיקה 3",
+      "phone": "0534338601",
+      "company_name": "אכבים",
+      "id_number": "9876",
+      "status": "active"
+    },
+    {
+      "id": "a31285f7-9f6a-43db-99b7-eab50153c504",
+      "full_name": "יהלי",
+      "phone": "0534338601",
+      "company_name": "טטטט",
+      "id_number": "",
+      "status": "active"
+    },
+    {
+      "id": "38273c4e-1931-497c-9024-1f0cbf135703",
+      "full_name": "בדיקה אילנה",
+      "phone": "0534338601",
+      "company_name": "אילנה אטיאס",
+      "id_number": "7777",
+      "status": "active"
+    }
+  ],
+  "focus_driver": {
+    "id": "cf0f0619-da05-48eb-b52a-aa6d881fd60d",
+    "full_name": "בדיקה 3",
+    "phone": "0534338601",
+    "company_name": "אכבים"
+  },
+  "company": "אכבים",
+  "templates": [
+    {
+      "id": "d3cf9d60-a07e-448e-9d6d-a42897b39502",
+      "name": "תצהיר כללי",
+      "is_default": true,
+      "updated_at": "2026-07-22T11:43:39.147606+00:00",
+      "body_len": 867,
+      "body_preview": "אני החתום מטה, בעל תעודת זהות מספר {{id_number}},\nמצהיר בזה כי לא נתגלו אצלי, לפי מיטב ידיעתי, מגבלות במערכת העצבים, העצ",
+      "has_seed_phrase": true
+    }
+  ],
+  "default_template": {
+    "id": "d3cf9d60-a07e-448e-9d6d-a42897b39502",
+    "name": "תצהיר כללי",
+    "body_preview": "אני החתום מטה, בעל תעודת זהות מספר {{id_number}},\nמצהיר בזה כי לא נתגלו אצלי, לפי מיטב ידיעתי, מגבלות במערכת העצבים, העצמות,\nהראיה או השמיעה ומצב בריאותי הנוכחי",
+    "has_seed_phrase": true,
+    "updated_at": "2026-07-22T11:43:39.147606+00:00"
+  },
+  "declarations": [],
+  "pending_count": 0,
+  "root_cause_hypothesis": [],
+  "bundle": {
+    "file": "assets/index-BG7LEvXQ.js",
+    "has_pending_disable_signal": true,
+    "has_no_hardcoded_display": true
+  }
+}
