@@ -1,0 +1,46 @@
+{
+  "id": "production-declaration-template-text-verify",
+  "at": "2026-07-22T16:37:26.663Z",
+  "host": "https://dalia-car.online",
+  "deploy_sha": "40387322db539e764bf0358545ac4f1aaa39e798",
+  "migrations_required": false,
+  "stop_after_report": true,
+  "checks": [
+    {
+      "id": "bundle-markers",
+      "ok": true,
+      "bundle": "assets/index-BG7LEvXQ.js"
+    },
+    {
+      "id": "deploy-txt",
+      "ok": true,
+      "deployTxt": "commit=40387322db539e764bf0358545ac4f1aaa39e798 bundle=index-BG7LEvXQ.js at=2026-07-22T16:36:53Z reason=declaration-template-text-fix owner_approved=2026-07-22"
+    },
+    {
+      "id": "save-body",
+      "ok": true,
+      "template_id": "e3a1a01d-61ea-484e-a7cb-6b68ca21e03a",
+      "company": "רינות מחיצות וריהוט בע\"מ"
+    },
+    {
+      "id": "new-declaration-snapshot",
+      "ok": true,
+      "declaration_id": "d3d62423-5e01-4d62-95d5-00bc72e913bf"
+    },
+    {
+      "id": "sign-page",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "id": "sign-no-seed-fallback",
+      "ok": true
+    },
+    {
+      "id": "restored",
+      "ok": true
+    }
+  ],
+  "ok": true,
+  "bundle": "assets/index-BG7LEvXQ.js"
+}
