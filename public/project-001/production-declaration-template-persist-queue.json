@@ -1,6 +1,6 @@
 {
   "id": "production-declaration-template-persist-queue",
-  "armed": true,
+  "armed": false,
   "requestedAt": "2026-07-22T13:30:00.000Z",
   "requestedBy": "owner",
   "owner_request": "fix declaration template persist — do not revert to old text",
@@ -14,7 +14,8 @@
   ],
   "no_extra_development": true,
   "stop_after_verify": true,
-  "completed": false,
+  "completed": true,
   "retryAt": "2026-07-22T13:44:55.869Z",
-  "note": "retry after SSH timeout"
+  "note": "retry after SSH timeout",
+  "at": "2026-07-22T13:45:45.114Z"
 }

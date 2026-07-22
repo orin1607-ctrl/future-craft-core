@@ -1,0 +1,47 @@
+{
+  "id": "production-declaration-template-persist-verify",
+  "at": "2026-07-22T13:45:36.908Z",
+  "host": "https://dalia-car.online",
+  "deploy_sha": "0913053c22c99f8507ed0cfb98612a885372cfe2",
+  "stop_after_report": true,
+  "live_site": {
+    "http": 200,
+    "ok": true,
+    "bundle": "assets/index-BUQF0ZrB.js",
+    "deploy_txt": "commit=0913053c22c99f8507ed0cfb98612a885372cfe2 bundle=index-BUQF0ZrB.js at=2026-07-22T13:45:33Z reason=declaration-template-persist-fix"
+  },
+  "smoke": {
+    "bundle_http": 200,
+    "has_save_as_default": true,
+    "no_silent_fallback": true,
+    "has_templates_ui": true
+  },
+  "auth": {
+    "owner_ok": true
+  },
+  "after_save_reload": {
+    "ok": true,
+    "template_id": "e3a1a01d-61ea-484e-a7cb-6b68ca21e03a",
+    "company": "רינות מחיצות וריהוט בע\"מ",
+    "body_len": 899,
+    "has_marker": true,
+    "is_default": true
+  },
+  "after_new_declaration": {
+    "ok": true,
+    "declaration_id": "27f83663-5569-4359-893d-db36972563fc",
+    "driver_name": "רותם רינות",
+    "snapshot_has_marker": true,
+    "template_still_persisted_after_send": true,
+    "default_matches_saved": true
+  },
+  "restored_original": true,
+  "verdict": {
+    "production_ok": true,
+    "save_persists_in_db": true,
+    "survives_reload": true,
+    "new_declaration_uses_latest_default": true,
+    "survives_after_send": true,
+    "no_hardcoded_create_fallback_in_bundle": true
+  }
+}

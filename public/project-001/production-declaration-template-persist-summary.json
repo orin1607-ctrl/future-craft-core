@@ -1,0 +1,13 @@
+{
+  "id": "production-declaration-template-persist-verify",
+  "at": "2026-07-22T13:45:36.908Z",
+  "production_ok": true,
+  "host": "https://dalia-car.online",
+  "deploy_sha": "0913053c22c99f8507ed0cfb98612a885372cfe2",
+  "company": "רינות מחיצות וריהוט בע\"מ",
+  "driver": "רותם רינות",
+  "save_persists": true,
+  "reload_ok": true,
+  "new_declaration_ok": true,
+  "after_send_ok": true
+}
