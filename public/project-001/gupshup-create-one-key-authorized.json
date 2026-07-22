@@ -1,0 +1,12 @@
+{
+  "id": "gupshup-create-one-key-authorized",
+  "at": "2026-07-22T05:56:00.000Z",
+  "production_touched": false,
+  "production_deploy_authorized": false,
+  "create_new_api_key_authorized": true,
+  "app_id_confirmed": "496709e8-b5fc-4de9-9c75-bc87455482dd",
+  "app_api_key_field_outside_table": false,
+  "api_keys_table": "No Data",
+  "owner_next": "Create one App API Key in DaliaVehicle → paste into Prod Edge Secrets only → say סיימתי Gupshup",
+  "report_doc": "docs/audit-reports/claims-incident-process/GUPSHUP-CREATE-ONE-KEY-AUTHORIZED-HE.md"
+}
