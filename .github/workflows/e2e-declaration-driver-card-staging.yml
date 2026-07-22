@@ -46,6 +46,11 @@ jobs:
       - name: Wait for Staging Pages settle
         run: sleep 50
 
+      - name: Sync Staging anon declaration RLS (Production parity, Staging only)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/sync-staging-declaration-anon-rls.mjs
+
       - name: Run driver-card declaration E2E on Staging
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -62,5 +67,6 @@ jobs:
           path: |
             docs/screenshots/declaration-driver-card-e2e/**
             /opt/cursor/artifacts/declaration-driver-card-staging-e2e.json
+            /opt/cursor/artifacts/sync-staging-declaration-anon-rls.json
             /opt/cursor/artifacts/stg-decl-sign.png
           if-no-files-found: ignore

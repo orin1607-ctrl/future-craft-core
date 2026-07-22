@@ -106,6 +106,10 @@ async function main() {
   const anon = createClient(STAGING_URL, keys.anon, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  // Separate client with NO session — mirrors public SignDeclaration page
+  const publicAnon = createClient(STAGING_URL, keys.anon, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   const runId = Date.now();
   const email = `qa-decl-card-${runId}@staging-e2e.local`;
@@ -356,11 +360,11 @@ async function main() {
   await page.screenshot({ path: join(ARTIFACT, 'stg-decl-sign.png'), fullPage: true }).catch(() => {});
   await page.screenshot({ path: join(OUT, 'stg-decl-sign.png'), fullPage: true }).catch(() => {});
 
-  // Public sign path: anon client updates by token (mirrors SignDeclaration.tsx)
+  // Public sign path: unauthenticated anon updates by token (mirrors SignDeclaration.tsx)
   const signedAt = new Date().toISOString();
   const expiresAt = new Date();
   expiresAt.setFullYear(expiresAt.getFullYear() + 5);
-  const { data: anonSigned, error: anonSignErr } = await anon
+  const { data: anonSigned, error: anonSignErr } = await publicAnon
     .from('driver_declarations')
     .update({
       status: 'signed',
@@ -369,13 +373,12 @@ async function main() {
       expires_at: expiresAt.toISOString(),
     })
     .eq('token', decl2.token)
-    .select('id,status,declaration_text')
+    .select('id,status,declaration_text,token')
     .maybeSingle();
 
   let signedFinal = anonSigned;
   let signVia = 'anon-token';
   if (anonSignErr || anonSigned?.status !== 'signed') {
-    // Staging RLS drift vs Production — still assert text integrity via service role
     signVia = 'service-role-fallback';
     await admin
       .from('driver_declarations')
@@ -388,7 +391,7 @@ async function main() {
       .eq('id', decl2.id);
     const { data } = await admin
       .from('driver_declarations')
-      .select('id,status,declaration_text')
+      .select('id,status,declaration_text,token')
       .eq('id', decl2.id)
       .single();
     signedFinal = data;
@@ -407,6 +410,19 @@ async function main() {
     { status: signedFinal?.status, signVia },
   );
 
+  // Public SELECT after sign (success page needs this — Production parity)
+  const { data: publicRead, error: publicReadErr } = await publicAnon
+    .from('driver_declarations')
+    .select('id,status,declaration_text,token')
+    .eq('token', decl2.token)
+    .maybeSingle();
+  record(
+    '8a-public-read-after-sign',
+    'anon can still read signed declaration by token',
+    publicRead?.status === 'signed' && publicRead?.token === decl2.token && !publicReadErr,
+    { error: publicReadErr?.message || null, status: publicRead?.status || null },
+  );
+
   // Reload sign page after sign — should show success state
   await page.goto(signUrl, { waitUntil: 'networkidle', timeout: 60000 });
   const successVisible = await page
@@ -420,7 +436,7 @@ async function main() {
     '8b-sign-page-after',
     'sign page after signing shows success state',
     successVisible || /נחתם|תודה/.test(afterSignBody),
-    { excerpt: afterSignBody.replace(/\s+/g, ' ').slice(0, 180) },
+    { excerpt: afterSignBody.replace(/\s+/g, ' ').slice(0, 180), publicReadOk: publicRead?.status === 'signed' },
   );
 
   record('console-clean', 'no unexpected console errors on sign page', report.consoleErrors.length === 0, {
