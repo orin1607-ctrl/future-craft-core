@@ -1,0 +1,12 @@
+{
+  "id": "production-wa-phone-fix-verify",
+  "at": "2026-07-22T12:00:59.301Z",
+  "production_ok": true,
+  "host": "https://dalia-car.online",
+  "deploy_sha": "465b665c00698f1a602ff3ad6de205f2da9114ae",
+  "phone_field": "drivers.phone",
+  "driver": "רותם רינות",
+  "declaration_wa_direct": true,
+  "exam_wa_direct": true,
+  "same_phone_both_flows": true
+}

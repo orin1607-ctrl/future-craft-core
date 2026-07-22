@@ -1,0 +1,58 @@
+{
+  "id": "production-wa-phone-fix-verify",
+  "at": "2026-07-22T12:00:59.301Z",
+  "production_deployed": true,
+  "host": "https://dalia-car.online",
+  "deploy_sha": "465b665c00698f1a602ff3ad6de205f2da9114ae",
+  "phone_field": "drivers.phone",
+  "stop_after_report": true,
+  "live_site": {
+    "http": 200,
+    "ok": true,
+    "bundle": "assets/index-erzpUmhA.js",
+    "deploy_txt": "commit=465b665c00698f1a602ff3ad6de205f2da9114ae bundle=index-erzpUmhA.js at=2026-07-22T12:00:55Z reason=wa-phone-shared-fix owner_reported=2026-07-22"
+  },
+  "smoke": {
+    "bundle_http": 200,
+    "has_shared_normalizer": true,
+    "has_wa_me": true,
+    "has_missing_phone_toast": true,
+    "has_driver_phone_prop": true,
+    "no_assert_client_staging": true
+  },
+  "auth": {
+    "owner_ok": true
+  },
+  "driver_card": {
+    "driver_id": "db5e7393-990d-41ba-8d37-8f5d8453241c",
+    "driver_name": "רותם רינות",
+    "phone_field": "drivers.phone",
+    "phone_raw_len": 10,
+    "phone_normalized": "972542325963",
+    "phone_normalized_prefix": "97254…",
+    "status": "active"
+  },
+  "declaration_whatsapp": {
+    "field_used": "drivers.phone (driverPhone prop)",
+    "ok": true,
+    "direct_chat": true,
+    "same_normalized_phone": true,
+    "wa_me_prefix": "https://wa.me/97254…"
+  },
+  "exam_whatsapp": {
+    "field_used": "drivers.phone (driverPhone prop)",
+    "ok": true,
+    "direct_chat": true,
+    "same_normalized_phone_as_declaration": true,
+    "wa_me_prefix": "https://wa.me/97254…"
+  },
+  "format_matrix": {
+    "ok": true
+  },
+  "verdict": {
+    "both_use_drivers_phone": true,
+    "both_use_shared_normalizer": true,
+    "no_false_missing_whatsapp_for_valid_phone": true,
+    "production_ok": true
+  }
+}
