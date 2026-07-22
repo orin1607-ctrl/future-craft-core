@@ -12,7 +12,7 @@ const ALL_TABLES = [
   "service_order_messages", "vehicle_handovers", "vehicle_exchanges", "vehicle_inspections",
   "inspection_items", "routes", "trip_logs", "customers", "customer_deals",
   "customer_agreements", "suppliers", "supplier_work_orders", "companions",
-  "vehicle_companions", "custom_alerts", "company_settings", "company_subscriptions",
+  "vehicle_companions", "custom_alerts", "company_settings", "company_subscriptions", "declaration_templates",
   "document_metadata", "driver_health_declarations", "driver_notifications",
   "internal_messages", "emergency_categories", "emergency_logs", "promotions",
   "system_logs", "temporary_drivers", "dev_tasks", "approval_requests", "work_assignments",
