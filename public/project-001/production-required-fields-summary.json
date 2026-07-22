@@ -1,0 +1,10 @@
+{
+  "id": "production-required-fields-summary",
+  "at": "2026-07-22T15:39:26.954Z",
+  "ok": false,
+  "host": "https://dalia-car.online",
+  "bundle": "assets/index-D4VuvAoc.js",
+  "deploy_sha": "4fc8e46237d1cce908f821a7edcff00762a4b83b",
+  "checks_passed": 8,
+  "checks_total": 9
+}

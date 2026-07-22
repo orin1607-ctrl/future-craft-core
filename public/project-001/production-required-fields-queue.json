@@ -1,6 +1,6 @@
 {
   "id": "production-required-fields-queue",
-  "armed": true,
+  "armed": false,
   "requestedAt": "2026-07-22T15:38:15.138Z",
   "requestedBy": "owner",
   "owner_phrase": "אם כל הבדיקות עוברות בהצלחה, אני מאשר לך לפרוס את השינויים ל-Production",
@@ -13,5 +13,6 @@
   ],
   "no_extra_development": true,
   "stop_after_verify": true,
-  "completed": false
+  "completed": true,
+  "at": "2026-07-22T15:39:36.218Z"
 }

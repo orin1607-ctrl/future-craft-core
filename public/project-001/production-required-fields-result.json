@@ -1,0 +1,61 @@
+{
+  "id": "production-required-fields-verify",
+  "at": "2026-07-22T15:39:26.954Z",
+  "host": "https://dalia-car.online",
+  "deploy_sha": "4fc8e46237d1cce908f821a7edcff00762a4b83b",
+  "migrations_required": false,
+  "stop_after_report": true,
+  "checks": [
+    {
+      "id": "bundle-markers",
+      "ok": true,
+      "bundle": "assets/index-D4VuvAoc.js"
+    },
+    {
+      "id": "deploy-txt",
+      "ok": true,
+      "deployTxt": "commit=4fc8e46237d1cce908f821a7edcff00762a4b83b bundle=index-D4VuvAoc.js at=2026-07-22T15:38:56Z reason=required-fields-per-company owner_approved=2026-07-22"
+    },
+    {
+      "id": "nav/",
+      "ok": true,
+      "status": 200,
+      "url": "https://dalia-car.online/"
+    },
+    {
+      "id": "nav/login",
+      "ok": true,
+      "status": 200,
+      "url": "https://dalia-car.online/login"
+    },
+    {
+      "id": "nav/admin/modules/vehicles/required-fields",
+      "ok": true,
+      "status": 200,
+      "url": "https://dalia-car.online/login"
+    },
+    {
+      "id": "console-clean",
+      "ok": true,
+      "cons": []
+    },
+    {
+      "id": "no-doc-404",
+      "ok": true,
+      "net400": []
+    },
+    {
+      "id": "mgmt-keys",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "id": "db-config-readable",
+      "ok": false,
+      "error": "Could not find the table 'public.dalia_form_config' in the schema cache",
+      "hasRow": false
+    }
+  ],
+  "ok": false,
+  "bundle": "assets/index-D4VuvAoc.js"
+}
