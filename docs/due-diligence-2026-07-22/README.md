@@ -1,3 +1,7 @@
+# תיק נאותות דליה — 2026-07-22
+
+**דוח ראשי (15 פרקים):** [`FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md`](./FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md)
+
 # תיק נאותות / אבטחה / פרטיות — דליה — 2026-07-22
 
 | קובץ | תוכן |
