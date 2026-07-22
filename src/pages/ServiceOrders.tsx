@@ -585,7 +585,7 @@ function ServiceOrderForm({
   const handleSubmit = async () => {
     if (!isValid) return;
 
-    const fieldOverrides = await fetchRequiredFieldsOverrides();
+    const fieldOverrides = await fetchRequiredFieldsOverrides(user?.company_name);
     const treatmentValues: Record<string, string> = {
       vehicle_plate: vehiclePlate,
       service_date: serviceDate || '',

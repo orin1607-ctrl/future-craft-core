@@ -8,7 +8,13 @@ import {
   type ReactNode,
 } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchRequiredFieldsOverrides, patchRequiredField } from '@/lib/requiredFieldsApi';
+import { fetchRequiredFieldsStore, patchRequiredField } from '@/lib/requiredFieldsApi';
+import {
+  emptyRequiredFieldsStore,
+  isFieldRequiredForCompany,
+  resolveCompanyOverrides,
+  type RequiredFieldsStore,
+} from '@/lib/requiredFieldsCompany';
 import {
   mergeRequiredFields,
   type RequiredFieldModule,
@@ -18,13 +24,27 @@ import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
 
 type RequiredFieldsContextValue = {
   loading: boolean;
+  store: RequiredFieldsStore;
+  /** @deprecated Prefer getOverridesForCompany / isFieldRequired with company */
   overrides: RequiredFieldsOverrides;
+  /** @deprecated Prefer company-aware helpers */
   effective: RequiredFieldsOverrides;
-  isFieldRequired: (module: RequiredFieldModule, fieldKey: string) => boolean;
-  setFieldRequired: (module: RequiredFieldModule, fieldKey: string, required: boolean) => Promise<void>;
+  getOverridesForCompany: (companyName?: string | null) => RequiredFieldsOverrides;
+  isFieldRequired: (
+    module: RequiredFieldModule,
+    fieldKey: string,
+    companyName?: string | null,
+  ) => boolean;
+  setFieldRequired: (
+    module: RequiredFieldModule,
+    fieldKey: string,
+    required: boolean,
+    companyName: string,
+  ) => Promise<void>;
   validateModule: (
     module: RequiredFieldModule,
     values: Record<string, string>,
+    companyName?: string | null,
   ) => { ok: true } | { ok: false; message: string; fieldKey?: string };
   refresh: () => Promise<void>;
 };
@@ -33,14 +53,14 @@ const RequiredFieldsContext = createContext<RequiredFieldsContextValue | null>(n
 
 export function RequiredFieldsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [overrides, setOverrides] = useState<RequiredFieldsOverrides>({});
+  const [store, setStore] = useState<RequiredFieldsStore>(emptyRequiredFieldsStore);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchRequiredFieldsOverrides();
-      setOverrides(data);
+      const data = await fetchRequiredFieldsStore();
+      setStore(data);
     } finally {
       setLoading(false);
     }
@@ -48,49 +68,79 @@ export function RequiredFieldsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user?.id) {
-      setOverrides({});
+      setStore(emptyRequiredFieldsStore());
       setLoading(false);
       return;
     }
     void refresh();
   }, [refresh, user?.id]);
 
+  const defaultCompany = user?.company_name ?? null;
+
+  const getOverridesForCompany = useCallback(
+    (companyName?: string | null) =>
+      resolveCompanyOverrides(store, companyName ?? defaultCompany),
+    [store, defaultCompany],
+  );
+
+  const overrides = useMemo(
+    () => resolveCompanyOverrides(store, defaultCompany),
+    [store, defaultCompany],
+  );
   const effective = useMemo(() => mergeRequiredFields(overrides), [overrides]);
 
   const isFieldRequiredFn = useCallback(
-    (module: RequiredFieldModule, fieldKey: string) => {
-      const id = `${module}.${fieldKey}`;
-      if (id in effective) return effective[id];
-      return false;
-    },
-    [effective],
+    (module: RequiredFieldModule, fieldKey: string, companyName?: string | null) =>
+      isFieldRequiredForCompany(module, fieldKey, store, companyName ?? defaultCompany),
+    [store, defaultCompany],
   );
 
   const setFieldRequired = useCallback(
-    async (module: RequiredFieldModule, fieldKey: string, required: boolean) => {
-      const next = await patchRequiredField(module, fieldKey, required, overrides, user?.id);
-      setOverrides(next);
+    async (
+      module: RequiredFieldModule,
+      fieldKey: string,
+      required: boolean,
+      companyName: string,
+    ) => {
+      const next = await patchRequiredField(companyName, module, fieldKey, required, user?.id);
+      setStore(next);
     },
-    [overrides, user?.id],
+    [user?.id],
   );
 
   const validateModule = useCallback(
-    (module: RequiredFieldModule, values: Record<string, string>) =>
-      validateRequiredModuleFields(module, values, overrides),
-    [overrides],
+    (module: RequiredFieldModule, values: Record<string, string>, companyName?: string | null) =>
+      validateRequiredModuleFields(
+        module,
+        values,
+        resolveCompanyOverrides(store, companyName ?? defaultCompany),
+      ),
+    [store, defaultCompany],
   );
 
   const value = useMemo(
     () => ({
       loading,
+      store,
       overrides,
       effective,
+      getOverridesForCompany,
       isFieldRequired: isFieldRequiredFn,
       setFieldRequired,
       validateModule,
       refresh,
     }),
-    [loading, overrides, effective, isFieldRequiredFn, setFieldRequired, validateModule, refresh],
+    [
+      loading,
+      store,
+      overrides,
+      effective,
+      getOverridesForCompany,
+      isFieldRequiredFn,
+      setFieldRequired,
+      validateModule,
+      refresh,
+    ],
   );
 
   return <RequiredFieldsContext.Provider value={value}>{children}</RequiredFieldsContext.Provider>;

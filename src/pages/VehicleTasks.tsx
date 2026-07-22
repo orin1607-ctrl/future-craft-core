@@ -122,13 +122,16 @@ export default function VehicleTasks() {
   const confirmResolve = async () => {
     if (!resolveDialog) return;
 
-    const requiredCheck = await validateTaskFields({
-      vehicle_plate: resolveDialog.vehicle_plate,
-      title: resolveDialog.title,
-      description: resolveDialog.description || '',
-      status: 'resolved',
-      resolution_notes: resolutionNotes.trim(),
-    });
+    const requiredCheck = await validateTaskFields(
+      {
+        vehicle_plate: resolveDialog.vehicle_plate,
+        title: resolveDialog.title,
+        description: resolveDialog.description || '',
+        status: 'resolved',
+        resolution_notes: resolutionNotes.trim(),
+      },
+      resolveDialog.company_name,
+    );
     if (!requiredCheck.ok) {
       toast.error(requiredCheck.message);
       return;

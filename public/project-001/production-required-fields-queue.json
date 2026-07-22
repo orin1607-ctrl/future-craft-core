@@ -1,0 +1,17 @@
+{
+  "id": "production-required-fields-queue",
+  "armed": true,
+  "requestedAt": "2026-07-22T15:38:15.138Z",
+  "requestedBy": "owner",
+  "owner_phrase": "אם כל הבדיקות עוברות בהצלחה, אני מאשר לך לפרוס את השינויים ל-Production",
+  "target": "https://dalia-car.online",
+  "scope": [
+    "Required fields per company on existing admin screen",
+    "Vehicle hub missing/gaps + drivers use same byCompany map",
+    "Hostinger frontend only — no DB migration",
+    "Stop after Production verify"
+  ],
+  "no_extra_development": true,
+  "stop_after_verify": true,
+  "completed": false
+}

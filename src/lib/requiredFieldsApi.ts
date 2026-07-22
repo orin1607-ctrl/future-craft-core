@@ -3,22 +3,20 @@ import {
   REQUIRED_FIELDS_CONFIG_KEY,
   type RequiredFieldsOverrides,
 } from '@/lib/requiredFieldsSchema';
+import {
+  parseRequiredFieldsStore,
+  patchCompanyField,
+  resolveCompanyOverrides,
+  serializeRequiredFieldsStore,
+  type RequiredFieldsStore,
+} from '@/lib/requiredFieldsCompany';
 
 type ConfigRow = {
   config_key: string;
-  config_value: RequiredFieldsOverrides;
+  config_value: unknown;
 };
 
-function normalizeOverrides(raw: unknown): RequiredFieldsOverrides {
-  if (!raw || typeof raw !== 'object') return {};
-  const out: RequiredFieldsOverrides = {};
-  for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
-    if (typeof val === 'boolean') out[key] = val;
-  }
-  return out;
-}
-
-export async function fetchRequiredFieldsOverrides(): Promise<RequiredFieldsOverrides> {
+export async function fetchRequiredFieldsStore(): Promise<RequiredFieldsStore> {
   const { data, error } = await supabase
     .from('dalia_form_config')
     .select('config_value')
@@ -27,19 +25,30 @@ export async function fetchRequiredFieldsOverrides(): Promise<RequiredFieldsOver
 
   if (error) {
     console.warn('[requiredFieldsApi] fetch failed', error.message);
-    return {};
+    return parseRequiredFieldsStore(null);
   }
 
-  return normalizeOverrides((data as ConfigRow | null)?.config_value);
+  return parseRequiredFieldsStore((data as ConfigRow | null)?.config_value);
 }
 
-export async function saveRequiredFieldsOverrides(
-  overrides: RequiredFieldsOverrides,
+/**
+ * Overrides for one company (or legacy fallback when company has no dedicated map).
+ * Pass companyName whenever the consumer knows the business context.
+ */
+export async function fetchRequiredFieldsOverrides(
+  companyName?: string | null,
+): Promise<RequiredFieldsOverrides> {
+  const store = await fetchRequiredFieldsStore();
+  return resolveCompanyOverrides(store, companyName);
+}
+
+export async function saveRequiredFieldsStore(
+  store: RequiredFieldsStore,
   userId?: string,
 ): Promise<void> {
   const payload = {
     config_key: REQUIRED_FIELDS_CONFIG_KEY,
-    config_value: overrides,
+    config_value: serializeRequiredFieldsStore(store),
     updated_at: new Date().toISOString(),
     updated_by: userId ?? null,
   };
@@ -51,14 +60,24 @@ export async function saveRequiredFieldsOverrides(
   if (error) throw new Error(error.message || 'שגיאה בשמירת הגדרות שדות חובה');
 }
 
+/** @deprecated Prefer saveRequiredFieldsStore / patchRequiredField with companyName */
+export async function saveRequiredFieldsOverrides(
+  overrides: RequiredFieldsOverrides,
+  userId?: string,
+): Promise<void> {
+  const store = await fetchRequiredFieldsStore();
+  await saveRequiredFieldsStore({ ...store, legacy: overrides }, userId);
+}
+
 export async function patchRequiredField(
+  companyName: string,
   moduleKey: string,
   fieldKey: string,
   required: boolean,
-  currentOverrides: RequiredFieldsOverrides,
   userId?: string,
-): Promise<RequiredFieldsOverrides> {
-  const next = { ...currentOverrides, [`${moduleKey}.${fieldKey}`]: required };
-  await saveRequiredFieldsOverrides(next, userId);
+): Promise<RequiredFieldsStore> {
+  const store = await fetchRequiredFieldsStore();
+  const next = patchCompanyField(store, companyName, moduleKey, fieldKey, required);
+  await saveRequiredFieldsStore(next, userId);
   return next;
 }

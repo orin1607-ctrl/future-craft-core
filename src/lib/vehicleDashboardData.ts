@@ -3,6 +3,9 @@ import { countMissingDocs } from '@/lib/vehicleHistory';
 import { CUSTOM_GAP_PREFIX, isHistoryLogTask } from '@/lib/vehicleEventLog';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
 import { daysUntil, formatExpiry, insuranceStatusText } from '@/components/vehicles/vehicleHubUtils';
+import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
+import type { RequiredFieldsOverrides } from '@/lib/requiredFieldsSchema';
+import { isVehicleHubFieldRequired } from '@/lib/requiredFieldsCompany';
 
 export interface MissingDocItem {
   label: string;
@@ -77,11 +80,14 @@ function fmtDate(iso: string | null) {
   }
 }
 
-export function buildMissingDocuments(v: VehicleHubVehicle): MissingDocItem[] {
+export function buildMissingDocuments(
+  v: VehicleHubVehicle,
+  overrides: RequiredFieldsOverrides = {},
+): MissingDocItem[] {
   const items: MissingDocItem[] = [];
   const testDays = daysUntil(v.test_expiry);
 
-  if (!v.license_doc_url) {
+  if (isVehicleHubFieldRequired('license_doc_url', overrides) && !v.license_doc_url) {
     items.push({
       label: 'רישיון רכב',
       fieldKey: 'license_doc_url',
@@ -89,7 +95,7 @@ export function buildMissingDocuments(v: VehicleHubVehicle): MissingDocItem[] {
       action: 'העלה צילום/PDF בעריכת רכב → רישיון',
     });
   }
-  if (!v.insurance_doc_url) {
+  if (isVehicleHubFieldRequired('insurance_doc_url', overrides) && !v.insurance_doc_url) {
     items.push({
       label: 'ביטוח חובה — פוליסה',
       fieldKey: 'insurance_doc_url',
@@ -97,7 +103,10 @@ export function buildMissingDocuments(v: VehicleHubVehicle): MissingDocItem[] {
       action: 'העלה פוליסת ביטוח חובה',
     });
   }
-  if (!v.comprehensive_insurance_doc_url) {
+  if (
+    isVehicleHubFieldRequired('comprehensive_insurance_doc_url', overrides) &&
+    !v.comprehensive_insurance_doc_url
+  ) {
     items.push({
       label: 'ביטוח מקיף — פוליסה',
       fieldKey: 'comprehensive_insurance_doc_url',
@@ -105,43 +114,57 @@ export function buildMissingDocuments(v: VehicleHubVehicle): MissingDocItem[] {
       action: 'העלה פוליסת ביטוח מקיף',
     });
   }
-  if (!v.test_expiry) {
-    items.push({
-      label: 'טסט (תוקף רישוי)',
-      fieldKey: 'test_expiry',
-      status: 'לא הוגדר',
-      action: 'עדכן תאריך טסט בעריכת רכב',
-    });
-  } else if (testDays !== null && testDays <= 0) {
-    items.push({
-      label: 'טסט (תוקף רישוי)',
-      fieldKey: 'test_expiry',
-      status: 'פג תוקף',
-      action: 'חדש טסט ועדכן תאריך',
-    });
+  if (isVehicleHubFieldRequired('test_expiry', overrides)) {
+    if (!v.test_expiry) {
+      items.push({
+        label: 'טסט (תוקף רישוי)',
+        fieldKey: 'test_expiry',
+        status: 'לא הוגדר',
+        action: 'עדכן תאריך טסט בעריכת רכב',
+      });
+    } else if (testDays !== null && testDays <= 0) {
+      items.push({
+        label: 'טסט (תוקף רישוי)',
+        fieldKey: 'test_expiry',
+        status: 'פג תוקף',
+        action: 'חדש טסט ועדכן תאריך',
+      });
+    }
   }
 
   return items;
 }
 
-export function buildInsuranceGaps(v: VehicleHubVehicle, latestInsurer: string | null): InsuranceGapItem[] {
+export function buildInsuranceGaps(
+  v: VehicleHubVehicle,
+  latestInsurer: string | null,
+  overrides: RequiredFieldsOverrides = {},
+): InsuranceGapItem[] {
   const gaps: InsuranceGapItem[] = [];
   const add = (
     label: string,
     expiry: string | null,
     hasDoc: boolean,
     docField: string,
+    expiryHubKey: string,
+    docHubKey: string,
   ) => {
+    const trackExpiry = isVehicleHubFieldRequired(expiryHubKey, overrides);
+    const trackDoc = isVehicleHubFieldRequired(docHubKey, overrides);
+    if (!trackExpiry && !trackDoc) return;
+
     const days = daysUntil(expiry);
     const st = insuranceStatusText(expiry);
-    if (!expiry || (days !== null && days <= 14) || !hasDoc) {
+    const expiryProblem = trackExpiry && (!expiry || (days !== null && days <= 14));
+    const docProblem = trackDoc && !hasDoc;
+    if (expiryProblem || docProblem) {
       gaps.push({
         label,
         expiry: formatExpiry(expiry),
         status: st,
         hasDocument: hasDoc,
         insurer: latestInsurer || '—',
-        action: !hasDoc
+        action: docProblem
           ? `העלה מסמך (${docField})`
           : days !== null && days <= 0
             ? 'חדש פוליסה ועדכן תאריך'
@@ -150,8 +173,22 @@ export function buildInsuranceGaps(v: VehicleHubVehicle, latestInsurer: string |
     }
   };
 
-  add('ביטוח חובה', v.insurance_expiry, !!v.insurance_doc_url, 'insurance_doc_url');
-  add('ביטוח מקיף', v.comprehensive_insurance_expiry, !!v.comprehensive_insurance_doc_url, 'comprehensive_insurance_doc_url');
+  add(
+    'ביטוח חובה',
+    v.insurance_expiry,
+    !!v.insurance_doc_url,
+    'insurance_doc_url',
+    'insurance_expiry',
+    'insurance_doc_url',
+  );
+  add(
+    'ביטוח מקיף',
+    v.comprehensive_insurance_expiry,
+    !!v.comprehensive_insurance_doc_url,
+    'comprehensive_insurance_doc_url',
+    'comprehensive_insurance_expiry',
+    'comprehensive_insurance_doc_url',
+  );
 
   return gaps;
 }
@@ -160,8 +197,9 @@ export async function loadDashboardDrillDown(
   v: VehicleHubVehicle,
   latestInsurer: string | null,
 ): Promise<DashboardDrillDown> {
-  const missingDocuments = buildMissingDocuments(v);
-  const insuranceGaps = buildInsuranceGaps(v, latestInsurer);
+  const overrides = await fetchRequiredFieldsOverrides(v.company_name);
+  const missingDocuments = buildMissingDocuments(v, overrides);
+  const insuranceGaps = buildInsuranceGaps(v, latestInsurer, overrides);
 
   let transport: TransportDetail | null = null;
   if (v.needs_transport) {
@@ -315,7 +353,7 @@ export async function loadDashboardDrillDown(
     };
   }
 
-  const _missingCount = countMissingDocs(v);
+  const _missingCount = countMissingDocs(v, overrides);
   if (_missingCount > 0 && missingDocuments.length === 0) {
     missingDocuments.push({
       label: 'מסמך (כללי)',

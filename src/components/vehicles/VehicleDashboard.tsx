@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequiredFieldsOptional } from '@/contexts/RequiredFieldsContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -21,6 +22,7 @@ import {
   type CustomGapItem,
 } from '@/lib/vehicleDashboardData';
 import { countMissingDocs } from '@/lib/vehicleHistory';
+import { isVehicleHubFieldRequired } from '@/lib/requiredFieldsCompany';
 import { addCustomVehicleGap, resolveCustomVehicleGap } from '@/lib/vehicleEventLog';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
 import type { HubTabId } from '@/lib/vehicleHubData';
@@ -122,31 +124,53 @@ export default function VehicleDashboard({
   onDrillDataChanged?: () => void;
 }) {
   const { user } = useAuth();
+  const requiredFields = useRequiredFieldsOptional();
   const [drill, setDrill] = useState<DashboardDrillDown | null>(previewDrillDown ?? null);
   const [drillKind, setDrillKind] = useState<DrillKind>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [customGapInput, setCustomGapInput] = useState('');
   const [gapSaving, setGapSaving] = useState(false);
 
+  const overrides = useMemo(
+    () => requiredFields?.getOverridesForCompany(v.company_name) ?? {},
+    [requiredFields, v.company_name],
+  );
+
   const sl = statusLabel(v.status);
   const testDays = daysUntil(v.test_expiry);
   const insDays = daysUntil(v.insurance_expiry);
   const compDays = daysUntil(v.comprehensive_insurance_expiry);
   const svcDays = daysUntil(v.next_service_date);
-  const missingDocs = countMissingDocs(v);
+  const missingDocs = countMissingDocs(v, overrides);
 
-  const hasLicenseGap = !v.license_doc_url;
-  const hasTestGap = !v.test_expiry || (testDays !== null && testDays <= 0);
+  const licenseRequired = isVehicleHubFieldRequired('license_doc_url', overrides);
+  const testRequired = isVehicleHubFieldRequired('test_expiry', overrides);
+  const mandatoryDocRequired = isVehicleHubFieldRequired('insurance_doc_url', overrides);
+  const mandatoryExpiryRequired = isVehicleHubFieldRequired('insurance_expiry', overrides);
+  const comprehensiveDocRequired = isVehicleHubFieldRequired(
+    'comprehensive_insurance_doc_url',
+    overrides,
+  );
+  const comprehensiveExpiryRequired = isVehicleHubFieldRequired(
+    'comprehensive_insurance_expiry',
+    overrides,
+  );
+
+  const hasLicenseGap = licenseRequired && !v.license_doc_url;
+  const hasTestGap = testRequired && (!v.test_expiry || (testDays !== null && testDays <= 0));
   const hasInsuranceGap =
-    !v.insurance_doc_url ||
-    !v.comprehensive_insurance_doc_url ||
-    (insDays !== null && insDays <= 14) ||
-    (compDays !== null && compDays <= 14);
+    (mandatoryDocRequired && !v.insurance_doc_url) ||
+    (mandatoryExpiryRequired && (insDays !== null && insDays <= 14)) ||
+    (comprehensiveDocRequired && !v.comprehensive_insurance_doc_url) ||
+    (comprehensiveExpiryRequired && (compDays !== null && compDays <= 14));
   const customGapCount = drill?.customGaps?.length ?? 0;
   const equipmentWarn = drill?.equipmentGap?.hasGap ?? false;
 
   const insuranceLicensesWarn =
-    hasLicenseGap || hasTestGap || hasInsuranceGap || (testDays !== null && testDays <= 14);
+    hasLicenseGap ||
+    hasTestGap ||
+    hasInsuranceGap ||
+    (testRequired && testDays !== null && testDays <= 14);
   const gapsAlertsWarn =
     missingDocs > 0 ||
     hasInsuranceGap ||

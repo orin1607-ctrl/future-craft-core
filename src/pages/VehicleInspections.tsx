@@ -243,12 +243,15 @@ function InspectionForm({ vehicles, user, initialVehicleId = '', onDone, onBack 
     if (defects.length > 0) {
       const plate = selectedVehicle?.license_plate || '';
       for (const d of defects) {
-        const requiredCheck = await validateTaskFields({
-          vehicle_plate: plate,
-          title: `ליקוי: ${d.item_name}`,
-          description: d.notes || `ליקוי שנמצא בביקורת ${new Date().toLocaleDateString('he-IL')}`,
-          status: 'open',
-        });
+        const requiredCheck = await validateTaskFields(
+          {
+            vehicle_plate: plate,
+            title: `ליקוי: ${d.item_name}`,
+            description: d.notes || `ליקוי שנמצא בביקורת ${new Date().toLocaleDateString('he-IL')}`,
+            status: 'open',
+          },
+          user?.company_name,
+        );
         if (!requiredCheck.ok) {
           toast.error(requiredCheck.message);
           setLoading(false);

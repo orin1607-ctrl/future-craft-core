@@ -1,0 +1,58 @@
+name: E2E — Required Fields Staging
+
+# Staging-only. Runs after SPA deploy branch push. Never Production.
+on:
+  push:
+    branches:
+      - feat/incident-alerts-staging
+    paths:
+      - 'src/**'
+      - 'scripts/e2e-required-fields-staging.mjs'
+      - 'scripts/generate-spa-route-shells.mjs'
+      - '.github/workflows/deploy-staging-pages.yml'
+      - '.github/workflows/e2e-required-fields-staging.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-required-fields-staging
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: bun x playwright install --with-deps chromium
+
+      - name: Wait for Staging Pages settle
+        run: sleep 45
+
+      - name: Run required-fields E2E on Staging Pages
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          STAGING_PAGES_URL: https://orin1607-ctrl.github.io/future-craft-core
+        run: node scripts/e2e-required-fields-staging.mjs
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: required-fields-e2e
+          path: |
+            docs/screenshots/required-fields-e2e/**
+            /opt/cursor/artifacts/required-fields-e2e-report.json
+          if-no-files-found: ignore

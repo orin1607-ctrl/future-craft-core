@@ -61,12 +61,15 @@ export async function addCustomVehicleGap(params: {
   const label = params.label.trim();
   if (!label) return { error: new Error('empty') };
 
-  const requiredCheck = await validateTaskFields({
-    vehicle_plate: params.vehiclePlate,
-    title: `${CUSTOM_GAP_PREFIX}${label}`,
-    description: 'חוסר מותאם אישית',
-    status: 'open',
-  });
+  const requiredCheck = await validateTaskFields(
+    {
+      vehicle_plate: params.vehiclePlate,
+      title: `${CUSTOM_GAP_PREFIX}${label}`,
+      description: 'חוסר מותאם אישית',
+      status: 'open',
+    },
+    params.companyName,
+  );
   if (!requiredCheck.ok) {
     return { error: new Error(requiredCheck.message) };
   }

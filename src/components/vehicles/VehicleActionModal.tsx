@@ -135,12 +135,15 @@ export default function VehicleActionModal({
       if (category === 'ליקוי') {
         const title = `${subType}${description ? ` – ${description.slice(0, 40)}` : ''}`;
         const taskDescription = description || subType;
-        const requiredCheck = await validateTaskFields({
-          vehicle_plate: vehicle.license_plate,
-          title,
-          description: taskDescription,
-          status: 'open',
-        });
+        const requiredCheck = await validateTaskFields(
+          {
+            vehicle_plate: vehicle.license_plate,
+            title,
+            description: taskDescription,
+            status: 'open',
+          },
+          vehicle.company_name || user?.company_name,
+        );
         if (!requiredCheck.ok) {
           toast.error(requiredCheck.message);
           setLoading(false);

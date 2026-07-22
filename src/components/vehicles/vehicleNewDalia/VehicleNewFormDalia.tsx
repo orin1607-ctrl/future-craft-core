@@ -120,6 +120,9 @@ function VehicleNewFormDaliaInner({
   const requiredFields = useRequiredFieldsOptional();
   const { types: vehicleTypes } = useVehicleTypes();
   const { getValue, setValue, setValues, values } = useDaliaFormValuesRequired();
+  const formCompanyName = getValue('company')?.trim() || user?.company_name || null;
+  const vehicleFieldRequired = (fieldKey: string, fallback: boolean) =>
+    requiredFields?.isFieldRequired('vehicles', fieldKey, formCompanyName) ?? fallback;
   const formRef = useRef<HTMLFormElement>(null);
   const [openSecs, setOpenSecs] = useState<Record<string, boolean>>({ sec1: true });
   const [activeStep, setActiveStep] = useState('1');
@@ -457,10 +460,10 @@ function VehicleNewFormDaliaInner({
             <div className="d-g2" style={{ marginBottom: 12 }}>
               <div
                 className={`d-fld ${
-                  (requiredFields?.isFieldRequired('vehicles', 'vehicle_plate') ?? true) ? 'd-required' : ''
+                  vehicleFieldRequired('vehicle_plate', true) ? 'd-required' : ''
                 }`}
               >
-                <label>מספר רכב{(requiredFields?.isFieldRequired('vehicles', 'vehicle_plate') ?? true) ? ' *' : ''}</label>
+                <label>מספר רכב{vehicleFieldRequired('vehicle_plate', true) ? ' *' : ''}</label>
                 <input
                   name="vehicle_plate"
                   value={getValue('vehicle_plate')}
@@ -510,12 +513,12 @@ function VehicleNewFormDaliaInner({
                 <Fld label="כינוי רכב" name="vehicle_nickname" />
                 <div
                   className={`d-fld ${
-                    (requiredFields?.isFieldRequired('vehicles', 'vehicle_type') ?? false) ? 'd-required' : ''
+                    vehicleFieldRequired('vehicle_type', false) ? 'd-required' : ''
                   }`}
                 >
                   <label>
                     סוג רכב
-                    {(requiredFields?.isFieldRequired('vehicles', 'vehicle_type') ?? false) ? ' *' : ''}
+                    {vehicleFieldRequired('vehicle_type', false) ? ' *' : ''}
                   </label>
                   <select
                     name="vehicle_type"
