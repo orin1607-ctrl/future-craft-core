@@ -1,0 +1,15 @@
+{
+  "id": "gupshup-rotation-success",
+  "at": "2026-07-22T07:58:00.000Z",
+  "rotation_success": true,
+  "staging_verified": true,
+  "staging_send_ok": true,
+  "staging_message_id": "59b5f8de-514a-438f-bccd-bcea10056f04",
+  "production_secret_ok": true,
+  "production_verified": true,
+  "make_87_needs_update": false,
+  "make_58_needs_update": false,
+  "production_code_deployed": false,
+  "verify_run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/29902135720",
+  "report_doc": "docs/audit-reports/claims-incident-process/GUPSHUP-ROTATION-SUCCESS-HE.md"
+}

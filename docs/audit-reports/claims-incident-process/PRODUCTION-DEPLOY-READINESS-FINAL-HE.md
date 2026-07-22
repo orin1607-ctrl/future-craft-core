@@ -1,10 +1,10 @@
 # דוח פריסה סופי — מוכנות Production (ללא ביצוע)
 
-**תאריך:** 2026-07-21  
-**סטטוס:** Staging הושלם בהצלחה · **פריסת Production לא בוצעה**  
-**אימות Secrets (2026-07-21):** `SUPABASE_ACCESS_TOKEN` תקין · `RESEND_API_KEY` קיים · **`GUPSHUP_API_KEY` חסר ב-Prod** → עדיין **לא** ready  
-**פירוט:** `PROD-SECRETS-VERIFY-HE.md` · Actions run `29868047586`  
-**תנאי מעבר:** השלמת GUPSHUP ב-Prod + אימות חוזר, ואז Owner כותב במפורש: **`אשר Production`**
+**תאריך:** 2026-07-22 (עודכן אחרי רוטציית GUPSHUP)  
+**סטטוס:** Staging הושלם · Secrets Prod כולל `GUPSHUP_API_KEY` **מאומתים** · **פריסת קוד Production עדיין לא בוצעה**  
+**אימות Secrets:** token תקין · Resend OK · **GUPSHUP מאומת ב-Staging+Prod** (`gupshup_verified: true`) · שליחת Staging OK (`59b5f8de-…`)  
+**פירוט רוטציה:** `GUPSHUP-ROTATION-SUCCESS-HE.md` · Actions `29902135720`  
+**תנאי מעבר לפריסת קוד:** Owner כותב במפורש: **`אשר Production`**
 
 ---
 

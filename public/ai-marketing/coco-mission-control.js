@@ -15,7 +15,7 @@
     title: 'דליה — מערכת ייעוץ שיווקי מלאה',
     subtitle: 'משימה אחת מתמשכת · Orin Staging',
     productionBlocked: true,
-    latestFocus: 'תוכנית רוטציה GUPSHUP מוכנה — ממתין למפתח (בלי מחיקה עכשיו)',
+    latestFocus: 'רוטציה GUPSHUP הצליחה — Staging שליחה OK · Make לא דורש עדכון · ממתין אשר Production',
   };
 
   var STAGES = [
@@ -255,13 +255,13 @@
       '<div class="mc-update-report">' +
         '<div class="cat-title">דוח עדכון אחרון</div>' +
         '<div class="card" style="font-size:11px;line-height:1.65;">' +
-          '<div class="mc-cap-row"><b>מה נבנה</b><br>אימות Secrets ב-Production (CI) — token תקין · Resend OK · GUPSHUP חסר</div>' +
-          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../PROD-SECRETS-VERIFY-HE.md · project-001/prod-secrets-verify-summary.json</div>' +
-          '<div class="mc-cap-row"><b>איך משתמשים</b><br>להדביק GUPSHUP_API_KEY ב-Prod Dashboard → «סיימתי Gupshup» → רק אז «אשר Production»</div>' +
-          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Management API בודק שמות Secrets + פרוב WA; ערכים לא נקראים ולא מודפסים</div>' +
-          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'חסם יחיד: GUPSHUP_API_KEY ב-Prod') + '</div>' +
-          '<div class="mc-cap-row"><b>מדדים חיים</b><br>ready_for_production_deploy: false · RESEND OK · token OK</div>' +
-          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>GUPSHUP_API_KEY ב-Prod (DaliaVehicle) — לא בצ׳אט; אחר כך סיימתי Gupshup</div>' +
+          '<div class="mc-cap-row"><b>מה נבנה</b><br>רוטציית GUPSHUP_API_KEY אומתה — Staging+Prod verified · שליחת WA Staging OK</div>' +
+          '<div class="mc-cap-row"><b>איפה</b><br>docs/.../GUPSHUP-ROTATION-SUCCESS-HE.md · project-001/gupshup-rotation-verify-summary.json</div>' +
+          '<div class="mc-cap-row"><b>איך משתמשים</b><br>Make 87/58 לא דורשים עדכון; לפריסת קוד Prod — רק «אשר Production»</div>' +
+          '<div class="mc-cap-row"><b>איך זה עובד</b><br>Edge Secrets נקלטו; probe + send חי ב-Staging; Make apikey עדיין תקף מול Gupshup</div>' +
+          '<div class="mc-cap-row"><b>מה השתנה</b><br>' + esc(latest && latest.summary || 'חסם GUPSHUP ב-Prod Secrets הוסר') + '</div>' +
+          '<div class="mc-cap-row"><b>מדדים חיים</b><br>rotation_success: true · msg 59b5f8de… · Make needs_update: false</div>' +
+          '<div class="mc-cap-row"><b>ממתין ליוני</b><br>אשר Production — לפריסת קוד (Secrets כבר מוכנים)</div>' +
         '</div>' +
       '</div>'
     );
