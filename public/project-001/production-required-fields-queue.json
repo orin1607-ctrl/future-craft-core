@@ -1,7 +1,7 @@
 {
   "id": "production-required-fields-queue",
-  "armed": false,
-  "requestedAt": "2026-07-22T15:28:00.000Z",
+  "armed": true,
+  "requestedAt": "2026-07-22T15:38:15.138Z",
   "requestedBy": "owner",
   "owner_phrase": "אם כל הבדיקות עוברות בהצלחה, אני מאשר לך לפרוס את השינויים ל-Production",
   "target": "https://dalia-car.online",
