@@ -1,0 +1,17 @@
+{
+  "id": "production-owner-approved-queue",
+  "armed": true,
+  "requestedAt": "2026-07-22T08:05:00.000Z",
+  "requestedBy": "owner",
+  "owner_phrase": "אני מאשר לפרוס ל-Production",
+  "target": "https://dalia-car.online",
+  "scope": [
+    "notify-accident-email",
+    "gupshup-webhook",
+    "incident migrations",
+    "Hostinger frontend",
+    "one Production WhatsApp to 0534338601"
+  ],
+  "no_extra_development": true,
+  "stop_after_verify": true
+}

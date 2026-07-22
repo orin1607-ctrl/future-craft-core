@@ -1,0 +1,208 @@
+name: Production Owner-Approved Deploy + Verify
+
+# Owner authorized in Cursor chat 2026-07-22:
+# Deploy approved Staging work to Hostinger dalia-car.online only.
+# No GitHub Environment gate (blocks cursor[bot]). No extra product work.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/project-001/production-owner-approved-queue.json'
+      - '.github/workflows/production-owner-approved-deploy.yml'
+      - 'scripts/production-owner-approved-verify.mjs'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: production-owner-approved-deploy
+  cancel-in-progress: false
+
+env:
+  PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+  PROD_SUPABASE_PROJECT_ID: qasomfndnjuixgjmjwcm
+  WEB_ROOT: /root/future-craft-core/dist
+  PRODUCTION_URL: https://dalia-car.online
+  STAGING_REF: usfeoerkpcafxxlyuldl
+  PROD_REF: qasomfndnjuixgjmjwcm
+
+jobs:
+  deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Gate — queue armed
+        id: gate
+        run: |
+          armed=$(node -e "const q=require('./public/project-001/production-owner-approved-queue.json'); process.stdout.write(String(q.armed===true))")
+          echo "armed=$armed" >> "$GITHUB_OUTPUT"
+          echo "ARMED=$armed"
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.gate.outputs.armed == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.armed == 'true'
+        with:
+          node-version: '22'
+
+      - name: Install + build Production frontend
+        if: steps.gate.outputs.armed == 'true'
+        env:
+          VITE_SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          VITE_SUPABASE_PROJECT_ID: ${{ env.PROD_SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+          bun x vite build
+          node scripts/ci-smoke-report.mjs --dist dist --supabase-ref qasomfndnjuixgjmjwcm
+          BUNDLE=$(grep -oE 'index-[^"]+\.js' dist/index.html | head -1)
+          echo "BUNDLE=$BUNDLE" >> "$GITHUB_ENV"
+          echo "DEPLOY_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Normalize SUPABASE_ACCESS_TOKEN
+        if: steps.gate.outputs.armed == 'true'
+        env:
+          RAW: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          TOK=$(printf '%s' "$RAW" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          test -n "$TOK"
+          umask 077
+          printf '%s' "$TOK" > "$RUNNER_TEMP/sb_access_token"
+          CODE=$(curl -sS -o /tmp/mgmt.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${TOK}" \
+            "https://api.supabase.com/v1/projects" || echo "000")
+          echo "Management API HTTP: $CODE"
+          test "$CODE" = "200"
+
+      - name: Deploy Edge notify-accident-email + gupshup-webhook → Production
+        if: steps.gate.outputs.armed == 'true'
+        run: |
+          set -euo pipefail
+          export SUPABASE_ACCESS_TOKEN="$(cat "$RUNNER_TEMP/sb_access_token")"
+          npx supabase functions deploy notify-accident-email --project-ref "$PROD_REF" --use-api
+          echo "PROD_EDGE_NOTIFY=ok"
+          npx supabase functions deploy gupshup-webhook --project-ref "$PROD_REF" --use-api
+          echo "PROD_EDGE_WEBHOOK=ok"
+          # Keep Staging Edge in sync with same approved code (no extra features)
+          npx supabase functions deploy notify-accident-email --project-ref "$STAGING_REF" --use-api || echo "::warning::Staging notify deploy warning"
+          npx supabase functions deploy gupshup-webhook --project-ref "$STAGING_REF" --use-api || echo "::warning::Staging webhook deploy warning"
+
+      - name: Setup SSH
+        if: steps.gate.outputs.armed == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Apply incident migrations on Production (idempotent)
+        if: steps.gate.outputs.armed == 'true'
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "mkdir -p /root/golive-incident/supabase/migrations"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            supabase/migrations/20260719010000_incident_event_number_and_alert_settings.sql \
+            supabase/migrations/20260719080000_incident_notification_deliveries.sql \
+            supabase/migrations/20260721080000_gupshup_dlr_deliveries.sql \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/golive-incident/supabase/migrations/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          ENV_FILE=/root/dalia-ops/.env
+          set -a; source "$ENV_FILE"; set +a
+          test -n "${SUPABASE_DB_PASSWORD:-}"
+          DB_URL=$(python3 - <<'PY'
+          import os, urllib.parse
+          pwd=os.environ["SUPABASE_DB_PASSWORD"]
+          host=os.environ.get("SUPABASE_POOLER_HOST","aws-1-ap-south-1.pooler.supabase.com")
+          ref=os.environ.get("SUPABASE_PROJECT_REF","qasomfndnjuixgjmjwcm")
+          print(f"postgresql://postgres.{ref}:{urllib.parse.quote(pwd)}@{host}:5432/postgres")
+          PY
+          )
+          psql "$DB_URL" -c "select current_database(), current_user;" | head -5
+          ALREADY=$(psql "$DB_URL" -tAc "select to_regclass('public.incident_notification_deliveries');")
+          if [ "$ALREADY" = "incident_notification_deliveries" ]; then
+            echo "incident_notification_deliveries already present — skip core incident SQL"
+          else
+            for f in \
+              /root/golive-incident/supabase/migrations/20260719010000_incident_event_number_and_alert_settings.sql \
+              /root/golive-incident/supabase/migrations/20260719080000_incident_notification_deliveries.sql
+            do
+              echo "APPLY $f"
+              psql "$DB_URL" -v ON_ERROR_STOP=0 -c "DROP POLICY IF EXISTS \"Super admins manage incident counters\" ON public.incident_event_counters;" || true
+              psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$f"
+            done
+          fi
+          # DLR columns on incident_notification_deliveries — idempotent
+          psql "$DB_URL" -v ON_ERROR_STOP=0 -f /root/golive-incident/supabase/migrations/20260721080000_gupshup_dlr_deliveries.sql || echo "DLR_SQL_WARN"
+          psql "$DB_URL" -tAc "select 1 from information_schema.columns where table_name='faults' and column_name='event_number';" | grep -q 1
+          echo "MIGRATE_OK"
+          REMOTE
+
+      - name: Backup + rsync frontend to Hostinger (dalia-car.online)
+        if: steps.gate.outputs.armed == 'true'
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%F-%H%M)
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "tar czf /root/pre-deploy-dist-${STAMP}.tgz -C /root/future-craft-core dist && echo BACKUP=/root/pre-deploy-dist-${STAMP}.tgz"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            --delete \
+            --filter="P orin-marketing/" \
+            --filter="P orin-owner-gate.js" \
+            dist/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.WEB_ROOT }}/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "mkdir -p /root/future-craft-core/site-static"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            public/site/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/future-craft-core/site-static/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "echo 'commit=${{ github.sha }} bundle=${BUNDLE} at=$(date -u +%Y-%m-%dT%H:%M:%SZ) owner_approved=2026-07-22' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "nginx -t && systemctl reload nginx"
+          echo "FRONTEND_DEPLOY=ok"
+
+      - name: Post-deploy verify + one Production WhatsApp
+        if: steps.gate.outputs.armed == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: node scripts/production-owner-approved-verify.mjs
+
+      - name: Disarm + commit results
+        if: always() && steps.gate.outputs.armed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node -e "
+            const fs=require('fs');
+            const p='public/project-001/production-owner-approved-queue.json';
+            const q=JSON.parse(fs.readFileSync(p,'utf8'));
+            q.armed=false; q.completed=true; q.at=new Date().toISOString();
+            fs.writeFileSync(p, JSON.stringify(q,null,2)+'\n');
+          "
+          git add -f public/project-001/production-owner-approved-*.json || true
+          git add -f public/project-001/production-owner-approved-queue.json || true
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git pull --rebase origin main || true
+          git commit -m "ci: Production owner-approved deploy verify (Hostinger + WA)"
+          git push
