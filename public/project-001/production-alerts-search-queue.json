@@ -1,6 +1,6 @@
 {
   "id": "production-alerts-search-queue",
-  "armed": true,
+  "armed": false,
   "requestedAt": "2026-07-22T16:12:45.328Z",
   "requestedBy": "owner",
   "owner_phrase": "אם הכול תקין, אני מאשר לך להעלות את אותם השינויים גם ל-Production",
@@ -12,5 +12,6 @@
   ],
   "no_extra_development": true,
   "stop_after_verify": true,
-  "completed": false
+  "completed": true,
+  "at": "2026-07-22T16:14:14.720Z"
 }

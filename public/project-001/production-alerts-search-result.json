@@ -1,0 +1,56 @@
+{
+  "id": "production-alerts-search-verify",
+  "at": "2026-07-22T16:14:06.884Z",
+  "host": "https://dalia-car.online",
+  "deploy_sha": "674bf37be0d020ff8b6989de167657503943ba12",
+  "migrations_required": false,
+  "stop_after_report": true,
+  "checks": [
+    {
+      "id": "bundle-markers",
+      "ok": true,
+      "bundle": "assets/index-BdL3dyb7.js"
+    },
+    {
+      "id": "deploy-txt",
+      "ok": true,
+      "deployTxt": "commit=674bf37be0d020ff8b6989de167657503943ba12 bundle=index-BdL3dyb7.js at=2026-07-22T16:13:41Z reason=alerts-search-plate-internal owner_approved=2026-07-22"
+    },
+    {
+      "id": "nav/",
+      "ok": true,
+      "status": 200,
+      "url": "https://dalia-car.online/"
+    },
+    {
+      "id": "nav/login",
+      "ok": true,
+      "status": 200,
+      "url": "https://dalia-car.online/login"
+    },
+    {
+      "id": "nav/alerts",
+      "ok": true,
+      "status": 200,
+      "url": "https://dalia-car.online/login"
+    },
+    {
+      "id": "nav/reports",
+      "ok": true,
+      "status": 200,
+      "url": "https://dalia-car.online/login"
+    },
+    {
+      "id": "console-clean",
+      "ok": true,
+      "cons": []
+    },
+    {
+      "id": "no-doc-404",
+      "ok": true,
+      "net400": []
+    }
+  ],
+  "ok": true,
+  "bundle": "assets/index-BdL3dyb7.js"
+}
