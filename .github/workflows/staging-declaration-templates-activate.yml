@@ -82,38 +82,32 @@ jobs:
 
           SQL_FILE="supabase/migrations/20260722101200_declaration_templates.sql"
           test -f "$SQL_FILE"
-          python3 - <<'PY'
-          import json, os, urllib.request, sys
-          token = os.environ['SUPABASE_ACCESS_TOKEN']
-          ref = os.environ['STAGING_REF']
-          sql = open('supabase/migrations/20260722101200_declaration_templates.sql', encoding='utf-8').read()
-          url = f'https://api.supabase.com/v1/projects/{ref}/database/query'
-          body = json.dumps({'query': sql}).encode('utf-8')
-          req = urllib.request.Request(
-            url,
-            data=body,
-            method='POST',
-            headers={
-              'Authorization': f'Bearer {token}',
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          )
-          try:
-            with urllib.request.urlopen(req, timeout=180) as resp:
-              raw = resp.read().decode('utf-8', errors='replace')
-              print('SQL HTTP', resp.status)
-              print(raw[:1500])
-          except urllib.error.HTTPError as e:
-            raw = e.read().decode('utf-8', errors='replace')
-            print('SQL HTTP', e.code)
-            print(raw[:2000])
-            # Idempotent: table already exists is OK if schema matches
-            if e.code in (400, 409) and ('already exists' in raw.lower() or 'duplicate' in raw.lower()):
-              print('Treating as already-applied (idempotent)')
-              sys.exit(0)
-            sys.exit(1)
-          PY
+
+          # Prefer curl (Cloudflare often bans Python urllib UA on /database/query)
+          SQL_JSON=$(python3 -c 'import json; print(json.dumps({"query": open("supabase/migrations/20260722101200_declaration_templates.sql", encoding="utf-8").read()}))')
+          CODE=$(curl -sS -o /tmp/sql_result.json -w "%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/${STAGING_REF}/database/query" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -H "User-Agent: supabase-cli/2.0" \
+            --data-binary "$SQL_JSON" || echo "000")
+          echo "SQL HTTP: $CODE"
+          head -c 2000 /tmp/sql_result.json; echo
+
+          if [ "$CODE" = "200" ] || [ "$CODE" = "201" ]; then
+            echo "✅ Migration applied via Management API"
+          elif grep -qiE 'already exists|duplicate' /tmp/sql_result.json; then
+            echo "✅ Migration already applied (idempotent)"
+          else
+            echo "::warning::Management API SQL failed (HTTP $CODE). Falling back to supabase db push."
+            npx --yes supabase@2.109.1 link --project-ref "$STAGING_REF" || true
+            npx --yes supabase@2.109.1 db push --linked --include-all --yes || {
+              echo "::error::Could not apply migration via Management API or supabase db push."
+              echo "Owner fallback: run ./scripts/db-push-staging.sh from a linked machine, or paste the SQL in Staging SQL Editor."
+              exit 1
+            }
+          fi
 
       - name: Verify declaration_templates exists on staging
         env:
