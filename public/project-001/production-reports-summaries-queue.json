@@ -1,0 +1,19 @@
+{
+  "id": "production-reports-summaries-queue",
+  "armed": true,
+  "requestedAt": "2026-07-22T14:27:00.000Z",
+  "requestedBy": "owner",
+  "owner_phrase": "אני מאשר להעלות את משימה 2 ל-Production",
+  "target": "https://dalia-car.online",
+  "scope": [
+    "Reports tab period summaries (tests, treatments, accidents, insurance)",
+    "filters: month/week/year/date range/company/plate/internal/driver/status",
+    "summary cards + click-to-list",
+    "autocomplete for plate + internal number",
+    "Hostinger frontend only — no DB migration",
+    "Task 2 only — stop after verify"
+  ],
+  "no_extra_development": true,
+  "stop_after_verify": true,
+  "completed": false
+}

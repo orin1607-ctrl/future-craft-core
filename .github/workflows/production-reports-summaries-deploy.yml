@@ -1,0 +1,145 @@
+name: Production — Reports Summaries Deploy (Task 2)
+
+# Owner authorized in Cursor chat 2026-07-22:
+# Deploy approved Staging Task 2 (Reports period summaries + autocomplete)
+# to Hostinger dalia-car.online only. No Task 3. No DB migration.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/project-001/production-reports-summaries-queue.json'
+      - '.github/workflows/production-reports-summaries-deploy.yml'
+      - 'scripts/production-reports-summaries-verify.mjs'
+      - 'src/pages/Reports.tsx'
+      - 'src/lib/reportPeriod.ts'
+      - 'src/lib/reportPeriod.test.ts'
+      - 'src/lib/vehicleExpiryShared.ts'
+      - 'src/pages/Alerts.tsx'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: production-reports-summaries-deploy
+  cancel-in-progress: false
+
+env:
+  PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+  PROD_SUPABASE_PROJECT_ID: qasomfndnjuixgjmjwcm
+  WEB_ROOT: /root/future-craft-core/dist
+  PRODUCTION_URL: https://dalia-car.online
+
+jobs:
+  deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Gate — queue armed
+        id: gate
+        run: |
+          armed=$(node -e "const q=require('./public/project-001/production-reports-summaries-queue.json'); process.stdout.write(String(q.armed===true))")
+          echo "armed=$armed" >> "$GITHUB_OUTPUT"
+          echo "ARMED=$armed"
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.gate.outputs.armed == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.armed == 'true'
+        with:
+          node-version: '22'
+
+      - name: Install + build Production frontend
+        if: steps.gate.outputs.armed == 'true'
+        env:
+          VITE_SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          VITE_SUPABASE_PROJECT_ID: ${{ env.PROD_SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+          bun x vitest run src/lib/reportPeriod.test.ts
+          bun x vite build
+          node scripts/ci-smoke-report.mjs --dist dist --supabase-ref qasomfndnjuixgjmjwcm || true
+          BUNDLE=$(grep -oE 'index-[^"]+\.js' dist/index.html | head -1)
+          echo "BUNDLE=$BUNDLE" >> "$GITHUB_ENV"
+          echo "DEPLOY_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          test -n "$BUNDLE"
+          grep -q 'סיכומי תקופה' "dist/assets/$BUNDLE"
+          grep -q 'חיפוש מספר רכב' "dist/assets/$BUNDLE"
+          grep -q 'חיפוש מספר פנימי' "dist/assets/$BUNDLE"
+          grep -q 'ביטוחים לחידוש' "dist/assets/$BUNDLE"
+          echo "REPORTS_TASK2_MARKERS_OK"
+          echo "MIGRATIONS=none_required"
+
+      - name: Setup SSH
+        if: steps.gate.outputs.armed == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Backup + rsync frontend to Hostinger (dalia-car.online)
+        if: steps.gate.outputs.armed == 'true'
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%F-%H%M)
+          # SSH with short retries (transient timeouts)
+          for i in 1 2 3 4; do
+            if ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
+              ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+              "tar czf /root/pre-deploy-dist-${STAMP}.tgz -C /root/future-craft-core dist && echo BACKUP=/root/pre-deploy-dist-${STAMP}.tgz"; then
+              break
+            fi
+            echo "SSH backup attempt $i failed — retry"
+            sleep $((i * 4))
+            if [ "$i" = "4" ]; then exit 1; fi
+          done
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20" \
+            --delete \
+            --filter="P orin-marketing/" \
+            --filter="P orin-owner-gate.js" \
+            dist/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.WEB_ROOT }}/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "echo 'commit=${{ github.sha }} bundle=${BUNDLE} at=$(date -u +%Y-%m-%dT%H:%M:%SZ) reason=reports-task2-summaries owner_approved=2026-07-22' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "nginx -t && systemctl reload nginx"
+          echo "FRONTEND_DEPLOY=ok"
+
+      - name: Post-deploy verify (Reports Task 2)
+        if: steps.gate.outputs.armed == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: node scripts/production-reports-summaries-verify.mjs
+
+      - name: Disarm + commit results
+        if: always() && steps.gate.outputs.armed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node -e "
+            const fs=require('fs');
+            const p='public/project-001/production-reports-summaries-queue.json';
+            const q=JSON.parse(fs.readFileSync(p,'utf8'));
+            q.armed=false; q.completed=true; q.at=new Date().toISOString();
+            fs.writeFileSync(p, JSON.stringify(q,null,2)+'\n');
+          "
+          git add public/project-001/production-reports-summaries-queue.json \
+            public/project-001/production-reports-summaries-result.json \
+            public/project-001/production-reports-summaries-summary.json || true
+          git commit -m "chore(prod): reports Task 2 deploy results (disarm queue)" || echo "NO_COMMIT"
+          git push origin HEAD:main || echo "PUSH_WARN"
