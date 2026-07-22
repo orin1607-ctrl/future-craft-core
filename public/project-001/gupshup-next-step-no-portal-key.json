@@ -1,0 +1,12 @@
+{
+  "id": "gupshup-next-step-no-portal-key",
+  "at": "2026-07-22T06:08:00.000Z",
+  "production_touched": false,
+  "create_new_api_key_authorized": false,
+  "portal_blocked": true,
+  "agent_cannot_copy_staging_secret": true,
+  "next_step_he": "Naeem או Gupshup Support לשחזור Owner/מפתח — לא Create בפורטל",
+  "steps_order": ["ask_naeem", "gupshup_support", "password_manager_search", "new_app_only_if_1_3_fail_owner_decision"],
+  "after_key": "Paste Prod secrets → סיימתי Gupshup → verify → then אשר Production",
+  "report_doc": "docs/audit-reports/claims-incident-process/GUPSHUP-NEXT-STEP-NO-PORTAL-KEY-HE.md"
+}
