@@ -1,0 +1,37 @@
+name: Production — Declaration Stale Diagnose2
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/project-001/production-declaration-stale-diagnose2-queue.json'
+      - 'scripts/production-declaration-stale-diagnose2.mjs'
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run
+        if: ${{ true }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          armed=$(node -e "process.stdout.write(String(require('./public/project-001/production-declaration-stale-diagnose2-queue.json').armed===true))")
+          echo armed=$armed
+          test "$armed" = "true"
+          node scripts/production-declaration-stale-diagnose2.mjs
+      - name: Commit
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node -e "const fs=require('fs');const p='public/project-001/production-declaration-stale-diagnose2-queue.json';const q=JSON.parse(fs.readFileSync(p,'utf8'));q.armed=false;q.at=new Date().toISOString();fs.writeFileSync(p,JSON.stringify(q,null,2)+'\n');"
+          git add public/project-001/production-declaration-stale-diagnose2.json public/project-001/production-declaration-stale-diagnose2-queue.json || true
+          git commit -m "chore(prod): declaration company diagnose2" || true
+          git push origin HEAD:main || true
