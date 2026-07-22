@@ -67,6 +67,7 @@ jobs:
         run: |
           bun x vite build
           cp dist/index.html dist/404.html
+          node scripts/generate-spa-route-shells.mjs dist
           mkdir -p dist/dev/project-001/dashboard
           cp dist/index.html dist/dev/project-001/dashboard/index.html
 

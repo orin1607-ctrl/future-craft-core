@@ -91,6 +91,14 @@ function LegacyMarketingRedirect() {
   );
 }
 
+/** Unauthenticated deep link → remember path, then login */
+function LoginRedirect() {
+  useEffect(() => {
+    captureCurrentPathForLogin();
+  }, []);
+  return <Navigate to="/login" replace />;
+}
+
 // New pages
 import Companions from "@/pages/Companions";
 import Towing from "@/pages/Towing";
@@ -169,6 +177,7 @@ function AppRoutes() {
         <Route path="/dev/fleetos-dashboard" element={<DevFleetOSDashboardPreview />} />
         <Route path="/dev/fleetos-settings" element={<DevFleetOSSettingsPreview />} />
         <Route path="/dev/project-001/dashboard" element={<Project001Dashboard />} />
+        <Route path="/" element={<About />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dalia-crm" element={<Login />} />
@@ -177,7 +186,8 @@ function AppRoutes() {
         <Route path="/sign-declaration" element={<SignDeclaration />} />
         <Route path="/take-exam" element={<TakeDrivingExam />} />
         <Route path="/upload-request" element={<UploadDocumentRequest />} />
-        <Route path="*" element={<About />} />
+        {/* Protected deep links → login (not marketing About / fake 404) */}
+        <Route path="*" element={<LoginRedirect />} />
       </Routes>
     );
   }
