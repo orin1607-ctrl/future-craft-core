@@ -12,6 +12,7 @@ import {
 import { getDefaultDeclarationTemplate } from '@/services/declarationTemplatesApi';
 import DeclarationTemplateManager from '@/components/DeclarationTemplateManager';
 import DeclarationPreviewModal from '@/components/DeclarationPreviewModal';
+import { buildSignDeclarationUrl } from '@/utils/appUrls';
 
 interface Declaration {
   id: string;
@@ -76,9 +77,13 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
     setLoading(false);
   };
 
-  useEffect(() => { loadDeclarations(); }, [driverId]);
+  useEffect(() => {
+    setLoading(true);
+    loadDeclarations();
+  }, [driverId]);
 
   const createDeclaration = async () => {
+    // Stay on this driver's card — never navigate away after create.
     setCreating(true);
     try {
       let declarationText = DEFAULT_DECLARATION_BODY;
@@ -119,7 +124,11 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
         console.error(error);
       } else {
         toast.success('תצהיר נוצר בהצלחה');
-        loadDeclarations();
+        await loadDeclarations();
+        // Keep the declarations block in view on the same driver card
+        requestAnimationFrame(() => {
+          document.getElementById('driver-declaration-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
       }
     } catch (e) {
       console.error(e);
@@ -130,14 +139,17 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
   };
 
   const sendDeclaration = async (declaration: Declaration, via: 'whatsapp' | 'email') => {
-    const baseUrl = window.location.origin;
-    const signUrl = `${baseUrl}/sign-declaration?token=${declaration.token}`;
+    if (!declaration.token) {
+      toast.error('חסר קישור חתימה לתצהיר זה');
+      return;
+    }
+    const signUrl = buildSignDeclarationUrl(declaration.token);
 
     if (via === 'whatsapp') {
       const msg = encodeURIComponent(`שלום ${driverName}, אנא חתום על תצהיר נהג בקישור הבא:\n${signUrl}`);
-      window.open(`https://wa.me/?text=${msg}`, '_blank');
+      window.open(`https://wa.me/?text=${msg}`, '_blank', 'noopener,noreferrer');
     } else {
-      navigator.clipboard.writeText(signUrl);
+      await navigator.clipboard.writeText(signUrl);
       toast.success('קישור הועתק ללוח – שלח אותו באימייל לנהג');
     }
 
@@ -145,7 +157,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
       sent_via: via,
       sent_at: new Date().toISOString(),
     } as any).eq('id', declaration.id);
-    loadDeclarations();
+    await loadDeclarations();
   };
 
   // Canvas signature handling — DPR-aware so signatures render crisply on
@@ -315,7 +327,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
   const needsRenewal = latest?.status === 'signed' && latest.expires_at && new Date(latest.expires_at) < new Date();
 
   return (
-    <div className="space-y-4">
+    <div id="driver-declaration-section" className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h3 className="text-lg font-bold flex items-center gap-2"><FileText size={20} /> תצהיר נהג</h3>
         <div className="flex items-center gap-2 flex-wrap">
@@ -332,7 +344,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
             </button>
           )}
           {(mode === 'manager' || !latest) && (
-            <button onClick={createDeclaration} disabled={creating || (latest?.status === 'pending')}
+            <button type="button" onClick={createDeclaration} disabled={creating || (latest?.status === 'pending')}
               className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50">
               {creating ? 'יוצר...' : needsRenewal ? 'חדש תצהיר' : latest ? 'תצהיר חדש' : 'צור תצהיר'}
             </button>
