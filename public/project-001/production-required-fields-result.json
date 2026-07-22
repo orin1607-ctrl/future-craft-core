@@ -1,9 +1,9 @@
 {
   "id": "production-required-fields-verify",
-  "at": "2026-07-22T15:39:26.954Z",
+  "at": "2026-07-22T15:42:03.677Z",
   "host": "https://dalia-car.online",
-  "deploy_sha": "4fc8e46237d1cce908f821a7edcff00762a4b83b",
-  "migrations_required": false,
+  "deploy_sha": "3a7de563e591151db255f1b7a2c76a472168ac22",
+  "migrations_required": true,
   "stop_after_report": true,
   "checks": [
     {
@@ -14,7 +14,7 @@
     {
       "id": "deploy-txt",
       "ok": true,
-      "deployTxt": "commit=4fc8e46237d1cce908f821a7edcff00762a4b83b bundle=index-D4VuvAoc.js at=2026-07-22T15:38:56Z reason=required-fields-per-company owner_approved=2026-07-22"
+      "deployTxt": "commit=3a7de563e591151db255f1b7a2c76a472168ac22 bundle=index-D4VuvAoc.js at=2026-07-22T15:41:37Z reason=required-fields-per-company owner_approved=2026-07-22"
     },
     {
       "id": "nav/",
@@ -50,12 +50,20 @@
       "status": 200
     },
     {
+      "id": "db-migrate-dalia-form-config",
+      "ok": true,
+      "status": 201,
+      "preview": "[]"
+    },
+    {
       "id": "db-config-readable",
-      "ok": false,
-      "error": "Could not find the table 'public.dalia_form_config' in the schema cache",
+      "ok": true,
       "hasRow": false
     }
   ],
-  "ok": false,
+  "migrations_applied": [
+    "20260626120000_dalia_form_config.sql"
+  ],
+  "ok": true,
   "bundle": "assets/index-D4VuvAoc.js"
 }
