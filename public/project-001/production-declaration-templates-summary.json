@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "host": "https://dalia-car.online",
+  "deploy_sha": "6e6bc69313e36d950fe98311d3e38dd51ce6349a",
+  "declaration_id": "97aebd7a-0f68-46cf-8d68-75351cd6f328",
+  "sign_url": "https://dalia-car.online/sign-declaration?token=7c6caa7d79eccaf610ad6c5b196ba564fa7f8af0d6f556421f93c13ea88c2087",
+  "wa_direct_chat": true,
+  "at": "2026-07-22T11:43:51.643Z"
+}

@@ -1,0 +1,46 @@
+{
+  "id": "production-declaration-templates-verify",
+  "at": "2026-07-22T11:43:51.643Z",
+  "production_deployed": true,
+  "host": "https://dalia-car.online",
+  "deploy_sha": "6e6bc69313e36d950fe98311d3e38dd51ce6349a",
+  "stop_after_report": true,
+  "live_site": {
+    "http": 200,
+    "ok": true,
+    "bundle": "assets/index-DE0x7VFC.js",
+    "deploy_txt": "commit=6e6bc69313e36d950fe98311d3e38dd51ce6349a bundle=index-DE0x7VFC.js at=2026-07-22T11:43:48Z reason=declaration-templates owner_approved=2026-07-22"
+  },
+  "smoke": {
+    "bundle_http": 200,
+    "has_declaration_templates": true,
+    "has_preview": true,
+    "has_wa_me": true,
+    "has_sign_declaration": true,
+    "no_assert_client_staging": true
+  },
+  "schema": {
+    "declaration_templates_http": 200,
+    "ok": true,
+    "sample_count": 5,
+    "template_id_column_ok": true
+  },
+  "sign_page": {
+    "url": "https://dalia-car.online/sign-declaration?token=7c6caa7d79eccaf610ad6c5b196ba564fa7f8af0d6f556421f93c13ea88c2087",
+    "http": 200,
+    "looks_like_app": true
+  },
+  "token_lookup": {
+    "http": 200,
+    "found": true
+  },
+  "whatsapp": {
+    "driver_name": "רותם רינות",
+    "phone_normalized_prefix": "97254…",
+    "wa_me_has_phone": true,
+    "wa_me_not_contact_picker": true,
+    "declaration_id": "97aebd7a-0f68-46cf-8d68-75351cd6f328",
+    "sign_url": "https://dalia-car.online/sign-declaration?token=7c6caa7d79eccaf610ad6c5b196ba564fa7f8af0d6f556421f93c13ea88c2087"
+  },
+  "success": true
+}
