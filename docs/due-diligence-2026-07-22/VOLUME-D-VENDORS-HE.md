@@ -1,489 +1,1300 @@
 # כרך ד' – ספקים (Security Due Diligence)
-## מערכת דליה — Production בלבד · Read Only · מבוסס ראיות
+## סעיפים 27–32 · השלמה והרחבה של המסמך הקיים · Read Only
 
 | שדה | ערך |
 |-----|-----|
-| תאריך איסוף | 2026-07-23 |
+| תאריך איסוף ראשוני | 2026-07-23 |
+| תאריך השלמה | 2026-07-23 |
 | Production | https://dalia-car.online |
 | Supabase Production | `qasomfndnjuixgjmjwcm` (מאומת מ-bundle חי) |
-| מקור קוד להשוואה | `origin/main` |
+| מקור קוד | `origin/main` |
 | Bundle חי | `/assets/index-8KZoTB0x.js` |
-| מצב עבודה | **Read Only** — אין Deploy / שינוי Secrets / שליחות / חיובים במסגרת משימה זו |
+| קובץ זה | השלמה/עריכה של המסמך הקיים — **לא** כרך חדש |
+| מצב עבודה | **Read Only כלפי המערכת** — עריכת מסמך בלבד |
 
-### מקרא ודאות
+### מקרא ודאות (V1–V5)
 | קוד | משמעות |
 |-----|--------|
 | **V1** | מאומת בוודאות מול Production חי |
 | **V2** | מאומת חלקית מול Production |
 | **V3** | נמצא בקוד/`main`/docs בלבד — לא הוכח כפעיל ב-Production |
-| **V4** | אזכור בלבד / חשד |
+| **V4** | אזכור בלבד |
 | **V5** | לא ניתן לאמת |
 
-### כלל הפרדה
-- **ספק פעיל ב-Production** = יש ראיה חיה (HTTP/DNS/SSL/E2E/bundle מצביע על שימוש runtime).
-- **ספק בקוד בלבד** = מופיע ב-`main` או ב-secrets-names, אך Edge/שירות ב-Prod לא אומת כפעיל (למשל 404).
-- **אין הכללת ספקים שלא נמצאו.**
+### עקרון אמינות
+לכל קביעה: מה נבדק · כיצד · מקור ראיה · Prod/קוד/תיעוד · V1–V5.  
+סתירות מוצגות במפורש. אין ניחושים. כאשר חסר מידע: **לא ניתן לאמת – V5**.
+
+### היסטוריית מסמך
+| גרסה | תוכן |
+|------|------|
+| גרסה קודמת | טבלה מסכמת + פרקים לפי ספק + סיכומים |
+| גרסה זו | הוספת מבנה 27–32, כרטיסי ספק אחידים, מטריצות תלות/סיכון, תרשים זרימה, ציונים, מסקנות מורחבות — **בלי מחיקת ממצאים מאומתים** |
 
 ---
 
-# א. טבלה מסכמת — ספקים שאומתו מול המערכת
+# 27. רשימת כל הספקים
 
-| # | ספק | סוג שירות | תפקיד | פעיל ב-Prod? | היכן השימוש | ודאות |
-|---|-----|-----------|--------|--------------|-------------|--------|
-| 1 | Hostinger | VPS / DNS hosting | אחסון SPA + DNS | כן | IP `72.60.36.182`, NS `*.dns-parking.com`, Nginx, workflows SSH/`dalia-ops` | V1 |
-| 2 | Let's Encrypt | CA / TLS | תעודת SSL | כן | openssl issuer YE2 על `dalia-car.online` | V1 |
-| 3 | Supabase | BaaS | Auth, DB, Storage, Edge | כן | Bundle URL `qasomfndnjuixgjmjwcm.supabase.co` + Edge חיים | V1 |
-| 4 | Cloudflare | CDN/Edge (דרך Supabase) | תעבורת API Supabase | כן (כחלק מתשתית Supabase) | כותרות `server: cloudflare`, `cf-ray` על supabase.co | V1 |
-| 5 | GitHub | SCM + CI/CD | קוד, Actions, Deploy | כן | repo `orin1607-ctrl/future-craft-core`, workflows, bundle מפנה גם ל-Pages | V1 |
-| 6 | Gupshup | WhatsApp BSP / API | שליחת WhatsApp עסקי + DLR webhook | כן | Edge `send-whatsapp-message`, `gupshup-webhook`, `notify-accident-email`; E2E 2026-07-22 | V1 |
-| 7 | WhatsApp (Meta) — ערוץ הודעות | Messaging channel | קבלת הודעות אצל המשתמש | כן (דרך Gupshup + wa.me) | E2E שליחה; 12× `wa.me` ב-bundle | V1 לערוץ; **אין** אינטגרציית Meta Cloud API ישירה בקוד |
-| 8 | Resend | Transactional email | אימיילים (איפוס/התראות) | כן | E2E email `status:sent` + message_id; קריאות `api.resend.com` בקוד | V1 |
-| 9 | PayPal | Payments | חיוב מנויים | Edge קיים; פעילות חיוב **לא אומתה** | `paypal-charge` מגיב ב-Prod; Live API בקוד | V2 |
-| 10 | Twilio | Voice/SMS API | שיחות יוצאות | **לא מוגדר** ב-Prod | Edge קיים; תשובה: credentials not configured | V1 לאי-הגדרה |
-| 11 | ElevenLabs | Conversational AI / Voice | טוקן שיחה / יציאה קולית | **מפתח לא מוגדר** ב-Prod | Edge קיים; תשובה: ELEVENLABS_API_KEY not configured; SDK ב-package | V1 לאי-הגדרת מפתח |
-| 12 | Lovable (AI gateway + build heritage) | AI gateway / scaffolding | `help-ai-chat` → `ai.gateway.lovable.dev` | Edge קיים; הצלחת שיחה חיה **לא אומתה** | Bundle + Edge `help-ai-chat` 500 על GET ריק (קיום); meta Lovable ב-HTML | V2 |
-| 13 | Google (Fonts / Site Verification / GCS assets) | Web assets / SEO | גופנים, אימות אתר, תמונות OG | כן | HTML חי: fonts.googleapis.com, google-site-verification, storage.googleapis.com | V1 |
-| 14 | data.gov.il | Open data API | איתור רכב | כן (proxy) | `vehicle-lookup` ב-Prod מחזיר 400 למספר לא תקין (הפונקציה חיה) | V1 |
-| 15 | Make.com | iPaaS / Webhooks | DLR/בוט WhatsApp (תיעוד) | **לא ניתן לאמת** פעילות נוכחית מול Prod | Docs + workflows + JSON תוצאות; יעד מתועד ל-**Staging** webhook | V3 לקיום אינטגרציה מתועדת; V5 למצב חי נוכחי ל-Prod |
+## 27.1 קבוצה א — ספקים פעילים / מאומתים (חלקית או מלאה) מול Production
 
-### ספקים / שירותים שנמצאו ב-`main` אך **לא אומתו כפעילים ב-Production Edge** (404 ב-GET)
+| # | שם הספק | סוג השירות | סטטוס ב-Prod | סביבה | בקוד? | אומת בפועל? | ודאות | מקור הראיה |
+|---|---------|------------|--------------|--------|-------|-------------|--------|------------|
+| 1 | Hostinger | VPS + DNS hosting | פעיל | Production | כן (docs/workflows) | כן — DNS/IP/Nginx | V1 | dig NS `hyperion/atlas.dns-parking.com` / `*.dns-parking.com`; A=`72.60.36.182`; curl `Server: nginx`; workflows `dalia-ops` |
+| 2 | Let's Encrypt | Certificate Authority | פעיל | Production | כן (`nginx.conf`/setup) | כן — תעודת TLS | V1 | openssl issuer `O = Let's Encrypt, CN = YE2` |
+| 3 | Supabase | BaaS (Auth/DB/Storage/Edge) | פעיל | Production (+Staging נפרד) | כן | כן — URL+Edge | V1 | bundle → `qasomfndnjuixgjmjwcm.supabase.co`; Edge GET |
+| 4 | Cloudflare | CDN/proxy | פעיל מול supabase.co | תשתית ספק | לא כחשבון דליה מאומת | כן לנוכחות כותרות | V1 נוכחות; V5 לחשבון נפרד | `server: cloudflare`, `cf-ray` על supabase.co |
+| 5 | GitHub | SCM + Actions | פעיל | Production CI/CD | כן | כן | V1 | `gh repo view`; workflows; E2E runs |
+| 6 | Gupshup | WhatsApp BSP API | פעיל | Production | כן | כן — שליחה חיה | V1 | E2E `29946137467`; `api.gupshup.io`; `gupshup-webhook` 200; UI `GupshupWhatsAppSection` |
+| 7 | WhatsApp (Meta) — ערוץ קצה | Messaging channel | פעיל כערוץ | Production | כן (`wa.me` + דרך Gupshup) | כן לקבלה אצל משתמש בבדיקה | V1 לערוץ; V1 לאין Meta Graph ישיר | E2E; bundle `wa.me`×12; אין `graph.facebook.com` לשליחה |
+| 8 | Resend | Transactional email | פעיל | Production | כן | כן — אימייל נשלח | V1 | E2E email `status:sent` + `provider_message_id` |
+| 9 | PayPal | Payments | Edge קיים; חיוב שוטף לא אומת | Production Edge | כן | קיום function כן; חיוב לא | V2 / V5 לחיוב | GET/קיום `paypal-charge`; קוד `api-m.paypal.com` |
+| 10 | data.gov.il | Open Data API | פעיל (proxy) | Production | כן | כן — function חיה | V1 | `vehicle-lookup` → 400 למספר לא תקין |
+| 11 | Google Fonts | Web fonts CDN | פעיל | Production HTML | כן | כן | V1 | HTML חי `fonts.googleapis.com` / `fonts.gstatic.com` |
+| 12 | Google Site Verification | SEO meta | פעיל במטא-תג | Production HTML | כן | כן לקיום תג | V1 | meta `google-site-verification` ב-HTML חי |
+| 13 | Google Cloud Storage (נכסי OG) | Object storage (URL בתמונת שיתוף) | URL פעיל ב-HTML | Production HTML | כן | כן לקיום URL; בעלות חשבון לא אומתה | V2 | `storage.googleapis.com/gpt-engineer-file-uploads/...` ב-HTML חי |
+| 14 | Lovable (AI gateway + מורשת) | AI gateway | Edge קיים; שיחה מוצלחת לא אומתה | Production Edge | כן | קיום Edge כן | V2 | `help-ai-chat`; meta author Lovable; `ai.gateway.lovable.dev` בקוד |
+| 15 | Make.com | iPaaS / webhooks | **לא ניתן לאמת** מול Prod | תיעוד→Staging | כן (docs/workflows) | אינטגרציה מתועדת; חי נוכחי לא | V3 תיעוד; **V5** מצב חי | OWNER-MAKE docs; יעד Staging webhook |
 
-| שם | מקור | סטטוס Prod | ודאות |
-|----|------|------------|--------|
-| OpenAI | `marketing-ai-chat`, `marketing-site-build` | 404 | V3 בקוד; V1 לאי-פריסה |
-| Anthropic / Claude | `marketing-claude-chat`, secrets names | 404 | V3/V1 |
-| Google Gemini / Google OAuth Ads/Analytics/GSC | `marketing-gemini-chat`, `marketing-google-*` | 404 | V3/V1 |
-| Figma / Webflow / Plasmic / Runway / v0 / Builder.io / WordPress | `marketing-site-build` env names | 404 ל-function | V3 |
-| Deepgram | טקסט ב-UI SettingsTab בלבד | אין Edge/API | V4 אזכור בלבד — **לא ספק מאומת** |
+## 27.2 קבוצה ב — קיימים בקוד / Edge ב-Prod אך אינם מוגדרים או אינם פעילים תפעולית
 
-**WhatsApp Business API כספק נפרד מ-Meta ישירות:** לא נמצא קוד שקורא ל-`graph.facebook.com` לשליחת הודעות. הגישה העסקית המאומתת היא דרך **Gupshup** (`api.gupshup.io`). במסמכי Gupshup מופיע מספר WABA/source `972546500305`.
+| # | שם | סטטוס | בקוד? | Prod | ודאות | ראיה |
+|---|-----|--------|-------|------|--------|------|
+| 16 | Twilio | Credentials לא מוגדרים | כן | Edge קיים; error מפורש | V1 לאי-הגדרה | GET → `Twilio credentials are not configured` |
+| 17 | ElevenLabs | API key לא מוגדר | כן (+SDK) | Edge קיים; error מפורש | V1 לאי-הגדרה | GET `elevenlabs-conversation-token` → `ELEVENLABS_API_KEY is not configured`; URL `api.elevenlabs.io` ב-bundle; SDK ב-`package.json` |
 
----
+## 27.3 קבוצה ג — נמצאו ב-`main` אך **לא פעילים ב-Production Edge** (404) / אזכור בלבד
 
-# ב. פרקים מפורטים לפי ספק
+| # | שם | מקור | סטטוס Prod | ודאות |
+|---|-----|------|------------|--------|
+| 18 | OpenAI | `marketing-ai-chat`, `marketing-site-build` | 404 | V3 קוד; V1 לאי-פריסה |
+| 19 | Anthropic / Claude | `marketing-claude-chat` + secret names | 404 | V3/V1 |
+| 20 | Google Gemini / OAuth Ads/Analytics/GSC | `marketing-gemini-*`, `marketing-google-*` | 404 | V3/V1 |
+| 21 | Figma / Webflow / Plasmic / Runway / v0 / Builder.io / WordPress | `marketing-site-build` env | 404 ל-function | V3 |
+| 22 | Deepgram | טקסט UI `SettingsTab` בלבד | אין API | V4 — **לא ספק מאומת** |
 
----
+**אסור:** להציג ספקי קבוצה ג כספקי Production פעילים.
 
-## 1) Hostinger
-
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | Hostinger |
-| סוג | VPS + DNS hosting |
-| תפקיד | מארח את ה-SPA של Production; DNS לדומיין |
-| פעיל כיום | כן |
-| היכן | DNS NS `hyperion/atlas.dns-parking.com`; A→`72.60.36.182`; Nginx; workflows עם SSH ל-VPS ו-`/root/dalia-ops` |
-| ודאות | **V1** |
-
-### פירוט השימוש
-| נושא | ממצא | ודאות |
-|------|------|--------|
-| למה | הגשת Frontend סטטי | V1 |
-| מודולים תלויים | כל ה-UI החי | V1 |
-| מידע שעובר | תעבורת HTTPS של משתמשים לדפדפן (לא מאגר יישומי) | V1 לתעבורה; V5 אם נשמרים לוגים בשרת |
-| מידע אישי? | עשוי להופיע בלוגי גישה של השרת | **לא ניתן לאמת** תוכן לוגים (אין SSH) |
-| מידע עסקי? | לא כמאגר אפליקטיבי | V5 ללוגים |
-| נשמר אצל הספק? | קבצי dist ב-web root; לוגים — לא ניתן לאמת | V2/V5 |
-| אימות מולו | SSH deploy key (CI); אין API Hostinger שנבדק | V3 ל-SSH מתיעוד/workflows |
-| Secrets קשורים (שמות) | `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`; ב-VPS: `dalia-ops/.env` (`OPS_*`, וכו') לפי docs/workflows | V3 לשמות בdocs; V5 לערכים |
-
-### ניתוח
-- **יתרונות:** שליטה מלאה בפרונט; עלות נמוכה יחסית.
-- **חסרונות:** SPOF; אין גישת RO ל-nginx/logs בסשן Audit זה.
-- **רמת תלות:** קריטית לפרונט.
-- **סיכונים:** downtime אתר; קונפיג nginx שלא תואם לקובץ ב-repo (headers).
-- **חלופות:** Cloudflare Pages / Vercel / Netlify / VPS אחר.
-- **המלצות:** גישת RO לביקורת nginx; CDN; גיבוי webroot.
-- **אימות נוסף נדרש:** כן — SSH RO / hPanel backups.
+### סתירות שזוהו (נשמרות מהגרסה הקודמת)
+1. Docs ישנים ציינו GUPSHUP חסר ב-Prod ↔ E2E 2026-07-22 הוכיח מפתח תקין ושליחה (V1).  
+2. Make מתועד להעביר DLR ל-**Staging** ↔ `gupshup-webhook` קיים גם ב-Prod (V1 לקיום; V5 אם Make מצביע ל-Prod).  
+3. Cloudflare מופיע מול Supabase ↔ **לא ניתן לאמת** חשבון Cloudflare נפרד לדליה (V5).
 
 ---
 
-## 2) Let's Encrypt
+# 28. תפקיד כל ספק
 
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | Let's Encrypt (ISRG) |
-| סוג | Certificate Authority |
-| תפקיד | TLS ל-`dalia-car.online` |
-| פעיל | כן |
-| היכן | openssl: issuer `O = Let's Encrypt, CN = YE2` |
-| ודאות | **V1** |
+## 28.1 Hostinger
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | אירוח Frontend SPA של Production; DNS לדומיין | V1 |
+| שירות | VPS + DNS parking NS | V1 |
+| רכיבים תלויים | כל ה-UI החי ב-`dalia-car.online` | V1 |
+| היכן | IP `72.60.36.182`; Nginx; `/root/dalia-ops` ב-workflows | V1/V3 |
+| ליבה / משלים | **ליבה לפרונט** | V1 |
+| ניתן בלעדיו? | לא — בלי פרונט אין ממשק משתמש (אלא אם יועבר אחסון) | V1 לוגית |
+| סטטוס | פעיל | V1 |
 
-### פירוט השימוש
-- מידע: מטא-נתוני דומיין בתהליך ACME — **לא ניתן לאמת** פרטי חשבון Certbot ב-VPS ללא SSH.
-- Secrets: אין secret יישומי של דליה ל-LE מעבר לתעודות בשרת.
-- תלות: גבוהה ל-HTTPS תקין; חידוש אוטומטי **לא ניתן לאמת** בסשן זה (V5), אך תעודה בתוקף עד 2026-10-04 (V1).
+## 28.2 Let's Encrypt
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | הנפקת תעודת TLS | V1 |
+| ליבה | קריטי ל-HTTPS תקין | V1 |
+| בלעדיו | דפדפנים יציגו אזהרה / חסימה | V1 לוגית |
+| סטטוס | תעודה בתוקף עד 2026-10-04 | V1 |
+| חידוש אוטומטי | לא ניתן לאמת – V5 (אין SSH) | V5 |
 
-### ניתוח
-יתרון: חינם/סטנדרטי. סיכון: כשל חידוש → אזהרות דפדפן. חלופה: תעודה מסחרית. המלצה: בדיקת `certbot renew --dry-run` ע״י Owner.
+## 28.3 Supabase
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | Database, Authentication, Storage, Edge Functions, REST API | V1 |
+| רכיבים תלויים | כל המודולים העסקיים | V1 |
+| ליבה | **קריטי מוחלט** | V1 |
+| בלעדיו | המערכת אינה פועלת | V1 |
+| סטטוס | פעיל — project `qasomfndnjuixgjmjwcm` | V1 |
+| Staging נפרד | `usfeoerkpcafxxlyuldl` מתועד | V3/V2 |
 
----
+## 28.4 Cloudflare
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | שכבת edge/CDN מול `*.supabase.co` | V1 |
+| ליבה | תשתית של ספק ה-BaaS; לא בהכרח חוזה נפרד | V5 לחוזה |
+| בלעדיו | תלוי באופן הטמעת Supabase | V5 |
+| סטטוס | נוכח בתשובות HTTP | V1 |
 
-## 3) Supabase
+## 28.5 GitHub
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | מקור קוד, CI/CD, Environments, Secrets Actions | V1 |
+| רכיבים | Deploy frontend/Edge workflows; E2E | V1 |
+| ליבה | קריטי לשינויים/שחרור; לא קריטי לריצה שוטפת של האתר אחרי deploy | V1 |
+| בלעדיו | האתר ממשיך; אין עדכונים חדשים | V1 לוגית |
+| סטטוס | פעיל; repo **Public** `orin1607-ctrl/future-craft-core` | V1 |
 
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | Supabase |
-| סוג | Backend-as-a-Service |
-| תפקיד | Auth, PostgreSQL, Storage, Edge Functions, Realtime (אם בשימוש) |
-| פעיל | כן |
-| היכן | Bundle: `https://qasomfndnjuixgjmjwcm.supabase.co`; עשרות Edge; REST |
-| ודאות | **V1** |
+## 28.6 Gupshup
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | שליחת WhatsApp עסקי; DLR webhook | V1 |
+| רכיבים | Incident notify, WhatsApp settings, deliveries | V1 |
+| ליבה | קריטי **לערוץ WhatsApp העסקי**; לא קריטי לליבת CRUD | V1 |
+| בלעדיו | אין WA עסקי; `wa.me` ידני עדיין אפשרי | V1 |
+| סטטוס | פעיל | V1 |
+| App/Source | `DaliaVehicle` / `972546500305` | V1 E2E |
 
-### פירוט השימוש
-| נושא | ממצא | ודאות |
-|------|------|--------|
-| מודולים | כל הליבה העסקית | V1 |
-| מידע | פרופילים, רכבים, נהגים, תקלות, תאונות, מסמכים, deliveries, Auth users | V2/V3 לפי טבלאות; deliveries V1 ב-E2E |
-| מידע אישי | כן | V1/V2 |
-| מידע עסקי | כן | V1/V2 |
-| נשמר אצל הספק | כן — זה מאגר הליבה | V1 |
-| אימות | JWT משתמש / anon key / service_role ב-Edge | V3 לקוד; V1 להתנהגות חלקית ב-Edge |
-| Secrets (שמות) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`/`PUBLISHABLE`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_JWKS`, … | V3 בקוד/docs |
+## 28.7 WhatsApp (Meta) — ערוץ
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | הצגת הודעות למשתמש הקצה | V1 |
+| מימוש API | דרך Gupshup בלבד בקוד שנבדק | V1 |
+| deep links | `wa.me` ב-UI | V1 |
+| ליבה | ערוץ תקשורת; לא מאגר | V1 |
+| Meta Cloud API ישיר | **לא נמצא** | V1 להיעדר בקוד |
 
-### ניתוח
-- תלות: **קריטית מוחלטת**.
-- סיכונים: נפילת ספק; פער RLS; service_role ב-Edge; אזור ענן (מתועד docs כ-ap-south-1 — **לא אומת מ-Dashboard**, V5).
-- חלופות: Postgres עצמי + Auth חלופי — עלות/מורכבות גבוהות.
-- המלצות: DPA; dump policies חי; גיבוי+restore מאומת; הפרדת Staging/Prod (קיימת ברמת project refs — V3/V2).
+## 28.8 Resend
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | אימיילים תפעוליים (התראות/איפוס וכו') | V1 |
+| רכיבים | `notify-accident-email`, `send-password-reset`, `send-supplier-order-email`, נוספים בקוד | V1/V3 |
+| ליבה | קריטי להתראות מייל ואיפוס סיסמה | V1 |
+| בלעדיו | אין מייל אוטומטי | V1 |
+| סטטוס | פעיל (E2E שלח); שולח ישן מתועד `onboarding@resend.dev` — **לא אומת** כשולח נוכחי ב-Prod (V5) | V1/V5 |
 
----
+## 28.9 PayPal
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | חיוב מנויי חברה | V3 קוד / V2 קיום Edge |
+| רכיבים | מנויים / `paypal-charge` | V3 |
+| ליבה | קריטי **אם** הגבייה מבוססת עליו; שימוש שוטף לא אומת | V5 |
+| סטטוס | Edge קיים; חיוב לא אומת; **לא בוצע** `charge_all_due` | V2/V5 |
 
-## 4) Cloudflare (כחלק מתשתית Supabase)
+## 28.10 Twilio
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד בקוד | שיחות יוצאות | V3 |
+| סטטוס Prod | **לא מוגדר** (credentials missing) | V1 |
+| ליבה | לא — מודול כבוי תפעולית | V1 |
+| בלעדיו | המערכת ממשיכה ללא Voice | V1 |
 
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | Cloudflare |
-| סוג | CDN / reverse proxy |
-| תפקיד | מופיע מול `*.supabase.co` |
-| פעיל | כן מול API Supabase |
-| היכן | תשובות HTTP מ-supabase.co עם `server: cloudflare`, `cf-ray` |
-| ודאות | **V1** לנוכחות; **V5** לשאלה אם לדליה יש חשבון Cloudflare נפרד |
+## 28.11 ElevenLabs
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד בקוד | Conversational AI / token | V3 |
+| סטטוס Prod | API key לא מוגדר | V1 |
+| ליבה | לא | V1 |
 
-**לא ניתן לאמת** האם קיים חוזה Cloudflare נפרד לדליה, או שזו רק שכבה של Supabase.
+## 28.12 Lovable
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | AI help chat gateway; מורשת בנייה במטא | V2/V3 |
+| רכיבים | `help-ai-chat` → `https://ai.gateway.lovable.dev/v1/chat/completions` | V2/V3 |
+| ליבה | משלים | V2 |
+| שיחה חיה מוצלחת | לא ניתן לאמת – V5 | V5 |
 
----
+## 28.13 Google Fonts / Verification / GCS OG
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | גופנים, SEO verification, תמונת OG | V1 |
+| ליבה | משלים ל-UI/SEO | V1 |
+| Google Ads/Analytics OAuth | **לא פעיל ב-Prod Edge** (404) | V1 |
 
-## 5) GitHub
+## 28.14 data.gov.il
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד | איתור רכב ציבורי | V1 |
+| רכיבים | `vehicle-lookup` → `datastore_search` | V1 |
+| ליבה | משלים | V1 |
+| בלעדיו | הקלדה ידנית של פרטי רכב | V1 לוגית |
 
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | GitHub (Microsoft) |
-| סוג | Git hosting + Actions |
-| תפקיד | מקור קוד, CI/CD, Environments, Secrets Actions |
-| פעיל | כן |
-| היכן | `orin1607-ctrl/future-craft-core` (Public); עשרות workflows; E2E logs |
-| ודאות | **V1** |
+## 28.15 Make.com
+| שדה | פירוט | ודאות |
+|-----|--------|--------|
+| תפקיד מתועד | Webhook Gupshup → אוטומציה / forward DLR | V3 |
+| יעד מתועד | Staging `usfeoerkpcafxxlyuldl` … `/gupshup-webhook`; docs/JSON תחת `public/project-001/` | V3 |
+| סטטוס מול Prod | לא ניתן לאמת – V5 | V5 |
+| ליבה | לא מאומת כליבה | V5 |
 
-### פירוט השימוש
-- מידע: קוד מקור; בלוגי Actions הופיעו אימיילים/טלפונים בבדיקות E2E (V1 לקיום בלוג — אין להפיץ).
-- Secrets שמות מתועדים: `VPS_*`, `VITE_SUPABASE_*`, `SUPABASE_*`, וכו' (V3 docs; list API 403 בסשן).
-- תלות: גבוהה ל-deploy; האתר יכול להמשיך לרוץ גם אם GitHub נופל.
-- סיכון: repo **Public** (V1) חושף קוד ו-workflows.
-- חלופות: GitLab/Bitbucket עצמי.
-- המלצה: private repo; ניקוי PII מלוגים; branch protection.
-
----
-
-## 6) Gupshup
-
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | Gupshup |
-| סוג | WhatsApp Business Solution Provider (BSP) / Messaging API |
-| תפקיד | שליחת הודעות WhatsApp; קבלת DLR ב-webhook |
-| פעיל ב-Prod | **כן** |
-| היכן | `supabase/functions/send-whatsapp-message`, `gupshup-webhook`, `notify-accident-email` (שולח ל-`api.gupshup.io`); UI `GupshupWhatsAppSection` |
-| ודאות | **V1** |
-
-### פירוט השימוש
-| נושא | ממצא | ודאות |
-|------|------|--------|
-| למה | התראות תקלה/תאונה, בדיקות, שליחה יזומה | V1 E2E |
-| מודולים | Incident notify, WhatsApp settings, deliveries | V1/V2 |
-| מידע מועבר | מספרי טלפון, תוכן הודעה, מזהי הודעה | V1 |
-| מידע אישי | כן (טלפון + תוכן) | V1 |
-| מידע עסקי | כן (פרטי אירוע בתקציר) | V2 |
-| נשמר אצל הספק | לפי מדיניות Gupshup — **לא ניתן לאמת** שמירה אצלם בסשן זה | V5 |
-| אימות | `GUPSHUP_API_KEY` ב-header `apikey` מול `api.gupshup.io` | V3 קוד; V1 מפתח תקין ב-E2E |
-| Secrets שמות | `GUPSHUP_API_KEY`, `GUPSHUP_SOURCE`, `GUPSHUP_APP_NAME`, `GUPSHUP_APP_ID` | V3 |
-| מזהים שנצפו | App `DaliaVehicle`; source `972546500305`; message IDs ב-E2E | V1 |
-
-### ניתוח
-- תלות: קריטית למודול WhatsApp העסקי.
-- סיכונים: דליפת תוכן הודעות לספק; עלויות; webhook ציבורי (`gupshup-webhook` GET 200); תלות ב-BSP.
-- חלופות: Meta Cloud API ישיר; Twilio WhatsApp; ספק BSP אחר.
-- המלצות: DPA; אימות חתימת webhook; ניטור DLR; מזעור תוכן.
-- אימות נוסף: portal logs של Gupshup; האם Make מעביר DLR ל-Prod.
-
----
-
-## 7) WhatsApp (ערוץ Meta) — לא BSP נפרד בקוד
-
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | WhatsApp / Meta Platforms (ערוץ קצה) |
-| סוג | אפליקציית הודעות למשתמש הקצה |
-| תפקיד | הצגת/קבלת הודעות אצל נהג/מנהל |
-| פעיל | כן כערוץ |
-| שימוש בקוד | (א) API דרך Gupshup; (ב) deep links `wa.me` ב-UI | 
-| ודאות | **V1** לערוץ; **V1** לכך שאין קריאות ישירות ל-Meta Graph API לשליחה בקוד שנבדק |
-
-### פירוט
-- **WhatsApp Business API** ממומש בפועל דרך Gupshup (UI מציין "WhatsApp Business API"; docs מציינים WABA/source).
-- `wa.me` = קישורי לקוח בדפדפן — לא חוזה ספק נפרד עם Meta בקוד.
-- אין להציג "ספק WhatsApp Business" כאילו יש אינטגרציית Meta ישירה — **לא נמצאה**.
-
-### ניתוח
-תלות המשתמש ב-WhatsApp כערוץ; הסיכון החוזי/API הוא מול **Gupshup** (+ מדיניות Meta דרך ה-BSP).
+## 28.16–22 ספקי קוד-בלבד (OpenAI, Anthropic, Gemini/OAuth, Figma…, Deepgram)
+תפקיד מתוכנן במודולי marketing ב-`main`.  
+**סטטוס Prod:** לא פרוסים (404) או אזכור UI בלבד.  
+**ליבה:** לא.  
+**ודאות:** V3/V4 + V1 לאי-פריסה.
 
 ---
 
-## 8) Resend
+# 29. מידע שעובר לכל ספק
 
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | Resend |
-| סוג | Email API |
-| תפקיד | שליחת אימיילים תפעוליים |
-| פעיל ב-Prod | כן |
-| היכן | `notify-accident-email`, `send-password-reset`, `send-supplier-order-email`, וכו'; E2E שלח email עם `provider_message_id` | 
-| ודאות | **V1** |
+> כלל: רק מה שאומת. שמירה אצל ספק / TTL — לרוב **לא ניתן לאמת – V5** בלי פורטל/DPA.
 
-### פירוט השימוש
-| נושא | ממצא | ודאות |
-|------|------|--------|
-| מידע | כתובות אימייל, נושא, HTML (עלול לכלול פרטי אירוע) | V1/V2 |
-| אישי | כן | V1 |
-| Secrets | `RESEND_API_KEY`, `RESEND_FROM` | V3 |
-| אימות | Bearer ל-`api.resend.com` | V3 קוד; V1 הצלחת שליחה ב-E2E |
+| ספק | סוג מידע שעובר | מקור | יעד | מטרה | אישי? | עסקי? | טלפון? | אימייל? | רכב? | מסמכים? | מזהים טכניים? | נשמר אצל הספק? | הצפנה בתעבורה | אימות | Secrets (שמות) | ודאות |
+|-----|----------------|------|-----|------|-------|-------|--------|---------|-------|-----------|----------------|----------------|----------------|--------|----------------|--------|
+| Hostinger | HTTP requests/responses של UI | דפדפן | VPS | הגשת SPA | ייתכן בלוגים | ייתכן בלוגים | V5 | V5 | V5 | קבצי dist סטטיים | IPs בלוגים? | קבצי אתר כן; לוגים V5 | HTTPS V1 | SSH key ב-CI | `VPS_HOST/USER/SSH_KEY` | V1/V5 |
+| Let's Encrypt | מטא דומיין ב-ACME | VPS/Certbot | LE | TLS | לא יישומי | לא | לא | אפשרי בחשבון LE | לא | לא | דומיין | לפי LE — V5 | ACME/HTTPS | — | אין secret אפליקטיבי | V1/V5 |
+| Supabase | כל נתוני האפליקציה + Auth | אפליקציה/Edge | DB/Auth/Storage | ליבה | **כן** | **כן** | כן | כן | כן | כן (Storage) | JWT, UUIDs | **כן** | HTTPS V1 | JWT / service_role | `SUPABASE_*` | V1 |
+| Cloudflare | תעבורת API ל-supabase.co | לקוחות→Supabase | CF edge | CDN/proxy | מטא/תעבורה | מטא | V5 | V5 | V5 | V5 | cf-ray | V5 | HTTPS V1 | — | לא ידוע לדליה | V1/V5 |
+| GitHub | קוד; לוגים CI (בבדיקות הופיעו פרטי קשר) | dev/CI | GitHub | SCM/CD | אפשרי בלוגים | קוד עסקי | הופיע ב-E2E log | הופיע ב-E2E log | לא כמאגר | לא | run IDs | כן (git+logs) | HTTPS | PAT/Actions token | `GITHUB_PAT`, Actions secrets | V1 |
+| Gupshup | טלפון + תוכן הודעה + message id | Edge notify/send | `api.gupshup.io` | WhatsApp | **כן** | **כן** (תוכן אירוע) | **כן** | לא בהכרח | אפשרי בטקסט | לא כקבצים | messageId, app | **לא ניתן לאמת – V5** | HTTPS V1 | `apikey` header | `GUPSHUP_*` | V1/V5 |
+| WhatsApp/Meta | אותן הודעות למשתמש | דרך Gupshup / wa.me | אפליקציית WA | הצגה למשתמש | כן | כן | כן | לא | אפשרי | לא | — | לפי Meta/Gupshup — V5 | HTTPS/ערוץ WA | דרך Gupshup | — | V1/V5 |
+| Resend | אימייל + HTML | Edge | `api.resend.com` | התראות/איפוס | **כן** | כן | לא בהכרח | **כן** | אפשרי ב-HTML | לא | message_id | **לא ניתן לאמת – V5** | HTTPS V1 | Bearer API key | `RESEND_API_KEY`, `RESEND_FROM` | V1/V5 |
+| PayPal | סכומים/מנוי/הזמנות | Edge paypal-charge | `api-m.paypal.com` | חיוב | אפשרי | **כן** פיננסי | V5 | אפשרי בחשבון PayPal | לא | לא | order ids | V5 | HTTPS | OAuth client credentials | `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET` | V3/V5 |
+| data.gov.il | מספר רכב בשאילתה; רשומה ציבורית בתשובה | Edge vehicle-lookup | data.gov.il | איתור | רשומה ציבורית | תפעולי | לא | לא | **כן** | לא | — | מאגר ממשלתי ציבורי | HTTPS | אין secret | — | V1 |
+| Google Fonts | בקשת גופן | דפדפן | Google | UI | מטא (IP/UA) | לא | לא | לא | לא | לא | — | לפי Google — V5 | HTTPS | — | — | V1/V5 |
+| Google Verification | token מטא | HTML | Google Search | SEO | לא תוכן מאגר | לא | לא | לא | לא | לא | verification token | V5 | — | — | — | V1 |
+| GCS (OG image) | תמונת שיתוף סטטית | HTML | GCS URL | OG/social | לא מאגר | מיתוג | לא | לא | לא | תמונה | path | קובץ ב-GCS | HTTPS | — | — | V2 |
+| Lovable gateway | תוכן צ'אט + הקשר כלים | help-ai-chat | `ai.gateway.lovable.dev` | עזרה | אפשרי | אפשרי | V5 | V5 | אפשרי | לא | — | V5 | HTTPS | `LOVABLE_API_KEY` | `LOVABLE_API_KEY` | V3/V5 |
+| Twilio | מספרים/שיחות — **לא פעיל** | — | — | Voice | — | — | — | — | — | — | — | לא מועבר כעת | — | — | `TWILIO_*` בקוד | V1 אין העברה כעת |
+| ElevenLabs | אודיו/טקסט — **לא פעיל** | — | — | Voice AI | — | — | — | — | — | — | — | לא מועבר כעת | — | — | `ELEVENLABS_*` | V1 אין העברה כעת |
+| Make.com | payloads webhook — **מצב חי לא מאומת** | Gupshup→Make? | Make / Staging webhook | DLR/בוט | אפשרי | אפשרי | אפשרי | V5 | V5 | לא | message ids | V5 | HTTPS מתועד | Make token בdocs | `MAKE_API_TOKEN` בdocs | V5 |
 
-### ניתוח
-תלות גבוהה להתראות/איפוס. סיכון: open-relay אם Edge לא נעול; דומיין שולח — בגרסאות ישנות הופיע `onboarding@resend.dev` בתיעוד hardening (**לא אומת** שולח נוכחי ב-Prod ללא Dashboard, V5).  
-חלופות: Amazon SES, SendGrid, Postmark.  
-המלצה: דומיין מותג מאומת + DPA + נעילת Edge.
-
----
-
-## 9) PayPal
-
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | PayPal |
-| סוג | תשלומים |
-| תפקיד | חיוב מנויי חברה |
-| פעיל | Edge `paypal-charge` **קיים** ב-Prod; האם secrets מוגדרים וחיובים רצים — **לא ניתן לאמת** במלואו בלי Dashboard / בלי פעולת חיוב |
-| היכן | `supabase/functions/paypal-charge` → `api-m.paypal.com` (Live, לא sandbox בקוד) |
-| ודאות | **V2** לקיום; **V5** לפעילות כספית שוטפת |
-
-### Secrets שמות
-`PAYPAL_CLIENT_ID`, `PAYPAL_SECRET` (V3 בקוד).
-
-### ניתוח
-תלות גבוהה **אם** המנוי מבוסס עליו. סיכון אבטחה: בעבר נמדד ש-anon יכול להגיע ללוגיקת הפונקציה (בדיקות קודמות); במשימה זו GET החזיר 500 על JSON ריק — מוכיח קיום בלבד.  
-**לא בוצע** `charge_all_due`.  
-המלצה: אימות auth+role ב-Prod לפני שימוש ללקוחות; sandbox vs live.
+**לא נקבע** "אין מידע אישי" עבור ספקים עם לוגים/תעבורה שלא נבדקו.
 
 ---
 
-## 10) Twilio
+# 30. תלות בכל ספק
 
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | Twilio |
-| סוג | Communications API |
-| תפקיד בקוד | שיחות יוצאות (+ אינטגרציה עם ElevenLabs) |
-| פעיל ב-Prod | **לא** — credentials חסרים |
-| ראיה | GET `twilio-outbound-call` → `Twilio credentials are not configured` |
-| ודאות | **V1** |
+## 30.1 מטריצת תלות מסכמת
 
-### Secrets שמות בקוד
-`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` (V3).
+| ספק | תפקיד | תלות עסקית | תלות טכנולוגית | קריטיות | השפעה בעת נפילה | חלופה פעילה במערכת | Failover | המשך ידני | SPOF? | ודאות |
+|-----|--------|------------|----------------|---------|-----------------|---------------------|----------|-----------|-------|--------|
+| Hostinger | פרונט | קריטי | קריטי | **קריטי** | השבתת UI מלאה | אין | לא מאומת | לא סביר ללקוחות | כן לפרונט | V1 |
+| Let's Encrypt | TLS | גבוה | גבוה | גבוה | אזהרות HTTPS | אין פעיל | לא מאומת | גישה לא מאובטחת — לא מקובל | חלקי | V1/V5 |
+| Supabase | ליבה | קריטי | קריטי | **קריטי** | השבתה מלאה | אין | לא מאומת | לא | כן | V1 |
+| Cloudflare | שכבת Supabase | גבוה | גבוה | גבוה | פגיעה ב-API | אין בשליטת דליה | תלוי ספק | לא | דרך Supabase | V1/V5 |
+| GitHub | Deploy | גבוה | בינוני | גבוה לשינוי; בינוני לריצה | אין עדכונים; האתר ממשיך | אין | לא | עבודה ידנית על VPS — V5 | לא לריצה | V1 |
+| Gupshup | WA עסקי | גבוה | גבוה למודול | גבוה למודול | אובדן ערוץ WA עסקי | `wa.me` ידני חלקי | לא | כן — טלפון/wa.me | למודול | V1 |
+| WhatsApp channel | קצה | גבוה | גבוה | גבוה לתקשורת | משתמש לא מקבל WA | SMS/מייל/טלפון | לא | כן | ערוץ | V1 |
+| Resend | Email | גבוה | גבוה למודול | גבוה למודול | אובדן מייל/איפוס | אין פעיל | לא | מייל ידני | למודול | V1 |
+| PayPal | תשלום | לא ניתן לאמת | בינוני בקוד | לא ניתן לאמת | אובדן סליקה אם בשימוש | לא מאומת | לא | העברה ידנית אפשרית | אם בשימוש | V5 |
+| data.gov.il | Lookup | נמוך-בינוני | נמוך | נמוך | אין איתור אוטומטי | הקלדה ידנית | לא | כן | לא | V1 |
+| Google Fonts | UI | נמוך | נמוך | נמוך | פונט fallback | אפשר self-host (לא מחובר) | דפדפן | כן | לא | V1 |
+| Lovable | AI עזרה | נמוך | נמוך | נמוך | אין צ'אט עזרה | אין | לא | תמיכה אנושית | לא | V2 |
+| Twilio/EL | Voice | נמוך כעת | נמוך כעת | נמוך | אין השפעה (כבוי) | — | — | — | לא | V1 |
+| Make.com | DLR | לא ניתן לאמת | לא ניתן לאמת | לא ניתן לאמת | DLR חסר אם היה תלוי | webhook ישיר אפשרי בשוק | לא מאומת | — | V5 | V5 |
 
-### ניתוח
-תלות נוכחית: נמוכה (מודול כבוי תפעולית). סיכון עתידי אם יוזנו secrets בלי auth מספק. חלופות: ספקי VoIP אחרים. המלצה: לא להפעיל לפני נעילת Edge+תקציב.
+## 30.2 מטריצת תלות עסקית (מה נפגע)
 
----
+| ספק | שירות קריטי | מה נפגע אם נופל | האם המערכת ממשיכה | פתרון זמני | חלופה | רמת סיכון |
+|-----|-------------|-----------------|-------------------|------------|--------|-----------|
+| Hostinger | UI | השבתה מלאה של הממשק | לא לשימוש רגיל | — | אחסון סטטי אחר (שוק) | קריטי |
+| Supabase | Auth+DB+API | השבתה מלאה | לא | — | BaaS/Postgres אחר (שוק) | קריטי |
+| Gupshup | WA עסקי | אובדן ערוץ התראות WA | כן לליבה | wa.me/טלפון | BSP/Meta API (שוק) | גבוה |
+| Resend | Email | אובדן התראות/איפוס | כן לליבה חלקית | מייל ידני | SES/SendGrid (שוק) | גבוה |
+| GitHub | Deploy | אין שחרורים | כן לריצה | deploy ידני מ-VPS — V5 | Git אחר | בינוני-גבוה |
+| PayPal | סליקה | אובדן חיוב אוטומטי אם פעיל | כן לליבה | העברה ידנית | סולק אחר | לא ניתן לאמת |
+| data.gov.il | Lookup | אין איתור | כן | הקלדה | — | נמוך |
+| Make.com | DLR | סטטוסי delivered חסרים אם היה בשימוש | כן לליבה | בדיקה ידנית | webhook ישיר | לא ניתן לאמת |
 
-## 11) ElevenLabs
-
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | ElevenLabs |
-| סוג | AI Voice / Conversational AI |
-| תפקיד | טוקן שיחה; outbound דרך Twilio |
-| פעיל ב-Prod | **מפתח לא מוגדר** |
-| ראיה | GET `elevenlabs-conversation-token` → `ELEVENLABS_API_KEY is not configured`; SDK ב-`package.json`; URL `api.elevenlabs.io` ב-bundle |
-| ודאות | **V1** לאי-הגדרה; **V3** לקוד |
-
-### Secrets שמות
-`ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`, `ELEVENLABS_AGENT_PHONE_NUMBER_ID` (V3).
-
----
-
-## 12) Lovable (gateway + מורשת בנייה)
-
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | Lovable |
-| סוג | AI gateway / פלטפורמת בנייה |
-| תפקיד | `help-ai-chat` קורא ל-`https://ai.gateway.lovable.dev/v1/chat/completions`; מטא-תגיות HTML |
-| פעיל | Edge קיים ב-Prod; שיחה מוצלחת חיה **לא אומתה** במשימה זו |
-| ודאות | **V2** |
-
-### Secrets
-`LOVABLE_API_KEY` (V3).
-
-### מידע
-תוכן שיחת עזרה + כלי DB בצד השרת (בקוד) — עלול לכלול נתוני צי אם מופעל (V3 לקוד; V5 לשימוש חי נוכחי).
+**זמן התאוששות משוער:** לא ניתן לאמת – V5 (אין מדידות RTO/RPO).
 
 ---
 
-## 13) Google (שכבת אתר — מאומתת ב-Prod)
+# 31. חלופות לספקים
 
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | Google |
-| סוג | Fonts, Site Verification, Cloud Storage (נכסי OG) |
-| תפקיד | UI fonts; SEO verification; אחסון תמונת שיתוף |
-| פעיל | כן ב-HTML החי |
-| ודאות | **V1** |
+> הבחנה מחייבת: **חלופה בשוק** ≠ **חלופה שנבדקה** ≠ **חלופה מחוברת** ≠ **אין חלופה פעילה**. אין להציג חלופה כללית כקיימת במערכת.
 
-### מה **לא** אומת כפעיל ב-Prod
-מודולי Google Ads/Analytics/GSC/OAuth ב-Edge `marketing-google-*` — **404** ב-Production (V1 לאי-פריסה).  
-אין לכלול אותם כספקי Production פעילים.
-
-### מידע
-Fonts/verification: מטא/בקשות דפדפן.  
-GCS path לתמונות OG נראה ב-HTML (V1). תוכן מאגר עסקי לא עובר שם כחלק מהליבה.
-
----
-
-## 14) data.gov.il
-
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | data.gov.il (ממשלת ישראל — מאגרי מידע פתוחים) |
-| סוג | Open Data API |
-| תפקיד | איתור פרטי רכב |
-| פעיל | כן (proxy Edge) |
-| ראיה | `vehicle-lookup` ב-Prod מגיב; קוד → `datastore_search` |
-| ודאות | **V1** |
-
-### מידע
-מספר רכב בשאילתה; תשובה מרשומה ציבורית.  
-Secrets: אין.
+| ספק | חלופה בשוק | חלופה שנבדקה במערכת | חלופה מחוברת/פעילה | תלות בקוד ייעודי | תלות ב-API ייחודי | תלות בחוזה/חשבון | מורכבות החלפה | סיכון בהחלפה | השפעה על נתונים | השפעה על משתמשים | Exit Strategy מומלץ? | ודאות |
+|-----|------------|---------------------|---------------------|------------------|-------------------|------------------|---------------|--------------|-----------------|------------------|----------------------|--------|
+| Hostinger | כן (Vercel/Netlify/VPS אחר) | לא מאומת | **אין חלופה פעילה** | נמוכה (SPA סטטי) | נמוכה | חשבון Hostinger + DNS | בינונית (DNS/SSL/Deploy) | בינוני | קבצי dist בלבד | השבתת UI בזמן מעבר | כן — תיעוד deploy חלופי | V1/V5 |
+| Let's Encrypt | כן (CA מסחרי) | לא | אין מקבילה פעילה | נמוכה | ACME | חשבון/דומיין | נמוכה-בינונית | נמוך | אין נתוני לקוח | אזהרת HTTPS אם נכשל | כן — ניטור תוקף | V1/V5 |
+| Supabase | כן (Firebase/AWS/self-host Postgres) | לא מאומת כחלופה | **אין חלופה פעילה** | **גבוהה** (SDK/RLS/Edge) | גבוהה | פרויקט Supabase | **גבוהה מאוד** | גבוה | מיגרציית DB מלאה | השבתה בזמן מעבר | **כן — חובה ל-Enterprise** | V1 |
+| Cloudflare | חלק מ-Supabase edge | לא בשליטת דליה | אין חלופה נפרדת מאומתת | דרך Supabase | — | לא ניתן לאמת חשבון דליה | לא בשליטה ישירה | — | — | פגיעה ב-API אם CF נופל | דרך תוכנית יציאה מ-Supabase | V5 |
+| GitHub | כן (GitLab/Bitbucket) | לא | אין חלופה פעילה | בינונית (Actions YAML) | Actions API | ארגון GitHub | בינונית | בינוני | היסטוריית git/לוגים | עצירת CI | כן — גיבוי repo + deploy ידני | V1 |
+| Gupshup | כן (Meta Cloud API / BSP אחר) | לא כחלופה מלאה | `wa.me` ידני בלבד (חלקי) | בינונית-גבוהה | API Gupshup | חשבון + App | גבוהה (תבניות/Webhook) | גבוה לתקשורת | היסטוריית הודעות אצל ספק — V5 | אובדן WA עסקי | כן | V1 |
+| WhatsApp/Meta | ערוץ קצה; חלופה = SMS/מייל/טלפון | Resend פעיל כערוץ אחר | Resend פעיל; SMS לא | דרך Gupshup | — | מדיניות Meta | גבוהה לערוץ | גבוה | — | משתמש לא מקבל WA | שמירת ערוץ גיבוי | V1 |
+| Resend | כן (SES/SendGrid/Postmark) | לא | **אין חלופה פעילה** | בינונית | Resend API | API key | בינונית | בינוני | לוגים אצל ספק — V5 | אין מייל אוטומטי | כן | V1 |
+| PayPal | כן (Stripe וכו') | לא | לא ניתן לאמת שימוש שוטף | בינונית בקוד | PayPal REST | חשבון PayPal | בינונית-גבוהה | פיננסי | הזמנות — V5 | גבייה | כן אם בשימוש | V5 |
+| data.gov.il | מקור רשמי; חלופה מסחרית אפשרית | לא | הקלדה ידנית | נמוכה | API ממשלתי | אין | נמוכה | נמוך | אין מאגר פרטי אצלנו מאומת | אובדן lookup | לא דחוף | V1 |
+| Google Fonts | self-host | לא מחובר | אין self-host מאומת | נמוכה | CDN | — | נמוכה | נמוך | מטא דפדפן | פונט fallback | אופציונלי לפרטיות | V1 |
+| Google Verification | — | — | — | נמוכה | — | Search Console — V5 | נמוכה | נמוך | — | SEO | לא דחוף | V1/V5 |
+| GCS (OG) | אחסון אחר / נכס מקומי | לא | URL חי ב-HTML | נמוכה | URL סטטי | בעלות חשבון לא אומתה | נמוכה | נמוך | תמונה | שיתוף חברתי | העתקת נכס לבעלות ברורה | V2/V5 |
+| Lovable | LLM ישיר / ביטול מודול | לא | אין | בינונית | gateway | API key | נמוכה-בינונית | נמוך | תוכן צ'אט — V5 | אין עזרה AI | אופציונלי | V2/V5 |
+| Twilio | ספקי Voice אחרים | לא | **לא פעיל** | קיים בקוד | Twilio API | חשבון | בינונית אם יופעל | בינוני אם יופעל | — | אין כעת | לפני הפעלה — תוכנית | V1 |
+| ElevenLabs | ספקי Voice AI אחרים | לא | **לא פעיל** | קיים בקוד/SDK | API | API key | בינונית אם יופעל | בינוני אם יופעל | אודיו — V5 | אין כעת | לפני הפעלה | V1 |
+| Make.com | webhook ישיר / n8n | לא מאומת חי | **לא ניתן לאמת** מצב חי | תיעוד workflows | Make webhooks | חשבון Make | בינונית | בינוני אם בשימוש | DLR — V5 | סטטוסים | כן — אימות יעד webhook | V5 |
+| OpenAI/Anthropic/Gemini/OAuth/Figma… | רלוונטי רק אם ייפרסו | לא ב-Prod | **לא פעילים ב-Prod** (404) | קוד marketing | APIs ייעודיים | מפתחות | גבוהה לפריסה | סיכון הגדרה | — | אין כעת | לא להפעיל בלי בקרה | V1/V3 |
+| Deepgram | — | — | לא ספק מאומת | אזכור UI | — | — | — | — | — | — | להסיר אזכור או ליישם | V4 |
 
 ---
 
-## 15) Make.com
+# 32. סיכוני ספקים
 
-### פרטי הספק
-| שדה | ערך |
-|-----|-----|
-| שם | Make.com |
-| סוג | Automation / iPaaS |
-| תפקיד מתועד | קבלת webhooks מ-Gupshup; בוט; העברת DLR ל-Supabase |
-| פעיל מול Prod כעת | **לא ניתן לאמת** |
-| היכן | Docs Owner-Make-*; JSON תחת `public/project-001/`; workflows Make-* |
-| יעד מתועד | Staging `usfeoerkpcafxxlyuldl` … `/gupshup-webhook` |
-| ודאות | **V3** לתיעוד אינטגרציה; **V5** למצב חי נוכחי |
+דירוגים: הסתברות / השפעה / חומרה = גבוה / בינוני / נמוך / לא ניתן לאמת.  
+עדיפות: P0 דחוף · P1 גבוה · P2 בינוני · P3 נמוך.
 
-### Secrets
-`MAKE_API_TOKEN` מוזכר בdocs — **לא נקרא ולא אומת** בסשן זה.
+| מזהה | ספק | תיאור הסיכון | ראיה | ודאות | הסתברות | השפעה | חומרה | השפעה עסקית | השפעה תפעולית | השפעה אבטחתית | המלצה | עדיפות | אימות נוסף |
+|------|-----|--------------|------|--------|----------|--------|--------|-------------|---------------|---------------|--------|--------|------------|
+| VR-SUP-01 | Supabase | SPOF ליבה — נפילה = השבתה מלאה | כל האפליקציה על project Prod | V1 | בינוני | גבוה | **קריטי** | עצירת שירות | אין CRUD/Auth | תלוי בהגדרות ספק | תוכנית גיבוי/שחזור + ניטור; Exit Strategy ארוך | P0 | Dashboard: backups, MFA, DPA, SLA |
+| VR-SUP-02 | Supabase | היעדר אימות DPA/SLA/MFA מול החשבון | אין גישה ל-Dashboard בסשן | V5 | לא ניתן לאמת | גבוה | גבוה | חשיפה חוזית | — | פרטיות/אבטחה | להשיג DPA + בדיקת MFA בעלים | P0 | Owner Dashboard |
+| VR-HST-01 | Hostinger | SPOF לפרונט — אין חלופה פעילה | DNS→IP יחיד `72.60.36.182` | V1 | בינוני | גבוה | **קריטי** | אין UI | השבתה | תלוי באבטחת VPS | גיבוי deploy + ניטור Uptime; תיעוד שחזור | P0 | hPanel + SSH RO |
+| VR-HST-02 | Hostinger | SSH/הגדרות VPS לא נבדקו; פער headers מול `nginx.conf` | SSH Permission denied; curl ללא security headers | V1/V5 | בינוני | גבוה | גבוה | אמון לקוח | קושי תפעול | XSS/clickjacking וכו' | יישור Nginx חי מול הקוד בחלון שינוי מבוקר | P1 | SSH RO |
+| VR-GUP-01 | Gupshup | תלות בערוץ WA עסקי ללא Failover אוטומטי | E2E שליחה חיה; אין ספק WA שני | V1 | בינוני | גבוה | גבוה | אובדן התראות | ערוץ ידני בלבד | תוכן אישי ב-API | נוהל גיבוי (מייל/טלפון); ניטור שליחות | P1 | פורטל Gupshup + DPA |
+| VR-GUP-02 | Gupshup | שמירת הודעות/TTL אצל הספק לא מאומתים | אין פורטל/DPA | V5 | לא ניתן לאמת | גבוה | גבוה | פרטיות | — | עיבוד מידע אישי | DPA + מדיניות retention | P1 | Legal + portal |
+| VR-RES-01 | Resend | SPOF למייל/איפוס סיסמה | E2E `status:sent`; אין ספק מייל שני | V1 | בינוני | גבוה | גבוה | אין התראות/איפוס | תפעול ידני | אימיילים עם PII | ספק מייל גיבוי או נוהל ידני מתועד | P1 | Resend portal + DPA |
+| VR-RES-02 | Resend | סיכון open-relay אם function לא מוקשחת | ממצאי דוח (F-RES); Prod חלקית מוקשח (403 ב-notify) | V2/V3 | בינוני | גבוה | גבוה | ניצול משאבים/מוניטין | ספאם | שליחת מייל לא מורשית | סקירת Auth על כל פונקציות המייל ב-Prod | P0 | Edge inventory + logs |
+| VR-PAY-01 | PayPal | מצב חיוב/secrets לא מאומת; Edge קיים | `paypal-charge` חי; secrets לא אומתו | V2/V5 | לא ניתן לאמת | גבוה אם פעיל | גבוה | אובדן/כשל גבייה | בלבול תפעולי | מפתחות תשלום | לאמת האם בשימוש; לבדוק MFA ו-scopes | P1 | PayPal + secrets list |
+| VR-GH-01 | GitHub | Repo ציבורי + לוגים עם פרטי קשר בבדיקות | `gh repo view` Public; E2E logs | V1 | גבוה (חשיפה) | בינוני | גבוה | דליפת מידע בדיקות | — | PII בלוגים | redaction בלוגים; בחינת פרטיות repo | P1 | Settings + secret scanning |
+| VR-GH-02 | GitHub | Default branch `production` מיושן מול deploy מ-`main` | השוואת branches + bundle | V1 | גבוה (טעות תהליך) | גבוה | גבוה | ביקורת שגויה / deploy שגוי | בלבול צוות | שימוש ב-branch לא נכון | תיעוד מקור אמת ל-deploy; יישור default branch | P1 | Owner process |
+| VR-LE-01 | Let's Encrypt | חידוש תעודה לא מאומת; תפוגה 2026-10-04 | openssl expiry; אין SSH | V1/V5 | בינוני | גבוה | גבוה | אזהרות דפדפן | השבתת אמון | MITM אם ייכשל חידוש | ניטור expiry + אימות cron | P1 | SSH/cron |
+| VR-MK-01 | Make.com | מצב חי מול Prod לא מאומת; תיעוד→Staging | OWNER-MAKE docs | V5 | לא ניתן לאמת | בינוני | בינוני | DLR חסר/שגוי | סטטוסים | webhook חיצוני | לאמת תרחיש חי ויעד URL | P1 | Make portal |
+| VR-CF-01 | Cloudflare | תלות עקיפה בלי שליטה/חוזה מאומת לדליה | כותרות cf על supabase.co | V1/V5 | נמוך-בינוני | גבוה | בינוני | תלוי Supabase | API | — | לקבל הבהרה מ-Supabase על edge | P2 | Supabase docs/support |
+| VR-TW-01 | Twilio | קוד/Edge קיימים ללא credentials — פער תיעוד/ציפיות | error מפורש ב-Prod | V1 | גבוה (בלבול) | נמוך כעת | בינוני | הבטחת מוצר לא ממומשת | מודול כבוי | secrets חסרים | להסיר/לכבות ב-UI או להשלים הגדרה מבוקרת | P2 | החלטת מוצר |
+| VR-EL-01 | ElevenLabs | כמו Twilio — לא מוגדר | error מפורש | V1 | גבוה (בלבול) | נמוך כעת | בינוני | כמו לעיל | מודול כבוי | — | כמו VR-TW-01 | P2 | החלטת מוצר |
+| VR-AI-01 | OpenAI/Anthropic/Gemini… | ספקים בקוד marketing לא ב-Prod — סיכון פריסה לא מבוקרת | Edge 404 ב-Prod | V1/V3 | בינוני | בינוני | בינוני | עלויות/פרטיות אם יופעל | פער סביבות | מפתחות AI | לא לפרוס בלי סקירת אבטחה ו-DPA | P2 | לפני כל deploy |
+| VR-LV-01 | Lovable | שיחה חיה/שמירת תוכן לא אומתו; gateway חיצוני | Edge קיים; הצלחה V5 | V2/V5 | לא ניתן לאמת | בינוני | בינוני | דליפת הקשר עזרה | צ'אט | PII אפשרי בפרומפט | לאמת key+retention או לכבות | P2 | portal + logs |
+| VR-GOV-01 | data.gov.il | תלות במקור חיצוני ל-lookup | vehicle-lookup חי | V1 | נמוך | נמוך | נמוך | אין איתור אוטומטי | הקלדה | מינימלי | cache/הקלדה מתועדת | P3 | — |
+| VR-GF-01 | Google Fonts | העברת מטא לדפדפן לצד ג' | HTML חי | V1 | גבוה (קורה) | נמוך | נמוך | פרטיות מטא | — | IP/UA ל-Google | שקילת self-host | P3 | מדיניות פרטיות |
+| VR-GCS-01 | GCS OG | בעלות חשבון/שמירה לא אומתו | URL ב-HTML | V2/V5 | לא ניתן לאמת | נמוך | נמוך | מיתוג | — | נכס חיצוני | להעביר לבעלות ברורה | P3 | Google Cloud |
+| VR-DOC-01 | רוב הספקים | היעדר DPA/SLA מתועדים בתיק | לא נמצאו מסמכים | V5 | גבוה (פער) | גבוה ל-Enterprise | גבוה | חסימת מכירה | — | ציות | לאסוף DPA לכל מעבד | P0 | Legal |
+| VR-ACC-01 | ספקים קריטיים | תלות בחשבון/אדם יחיד לא נבדקה | אין מיפוי בעלות חשבונות | V5 | לא ניתן לאמת | גבוה | גבוה | נעילת חשבון | אובדן גישה | — | רשימת בעלים + MFA + break-glass | P0 | Owner interview |
+| VR-DG-01 | Deepgram | אזכור UI בלי ספק מאומת | SettingsTab | V4 | נמוך | נמוך | נמוך | מצג שווא מוצרי | בלבול | — | להסיר או ליישם | P3 | Product |
 
-### ניתוח
-סיכון: DLR לא מגיע ל-Prod; עיבוד הודעות בצד שלישי.  
-המלצה: Owner לאמת תרחישי Make פעילים ו-URL יעד.  
-**אין להציג כספק Production מאומת ללא בדיקת חשבון Make.**
+### סוגי סיכון שנבדקו (סיכום כיסוי)
+| סוג סיכון | סטטוס כיסוי בראיות |
+|-----------|---------------------|
+| אבטחת מידע / פרטיות / זמינות / אובדן מידע | מכוסה חלקית; שמירה אצל ספק לרוב V5 |
+| Vendor Lock-In | מאומת ל-Supabase/Gupshup ברמת קוד |
+| חשבון יחיד / אדם יחיד | **לא ניתן לאמת – V5** |
+| מחירים / הפסקת שירות / שינוי API | לא נבדק מול חוזים — V5 |
+| פקיעת Token/Secret | ראיות חלקיות (Twilio/EL חסרים; LE expiry ידוע) |
+| הגדרה שגויה / MFA / הרשאות רחבות | MFA/הרשאות פורטל — V5; פער headers מאומת |
+| משפטי / DPA / SLA / תיעוד | DPA/SLA לא נמצאו — V5 |
+| ספק בקוד לא פעיל / פעיל לא בתיעוד | מאומת (marketing 404; Gupshup תוקן מול docs ישנים) |
+
+---
+# כרטיסי ספק אחידים
+
+## Hostinger
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Hostinger |
+| סוג השירות | VPS + DNS hosting |
+| תפקיד במערכת | אירוח Frontend Production; DNS לדומיין |
+| סטטוס | פעיל |
+| סביבה | Production |
+| רכיבים תלויים | SPA ב-`dalia-car.online`, Nginx |
+| מידע שעובר לספק | בקשות HTTP של UI; קבצי dist; לוגים אפשריים |
+| מידע אישי | לא ניתן לאמת – V5 (לוגים) |
+| מידע עסקי | לא ניתן לאמת – V5 (לוגים) |
+| מידע הנשמר אצל הספק | קבצי אתר; לוגים — V5 |
+| אמצעי אימות | SSH key ב-CI (לא נבדק חי בסשן) |
+| Secrets קיימים | `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`; ב-VPS לפי docs/workflows: `dalia-ops/.env` / `OPS_*` (שמות בלבד; ערכים לא נקראו) |
+| תלות עסקית | קריטי |
+| תלות טכנולוגית | קריטי |
+| השפעה במקרה של נפילה | השבתת UI מלאה |
+| חלופה אפשרית | אחסון סטטי/VPS אחר (שוק) |
+| חלופה פעילה | אין |
+| רמת סיכון | קריטי |
+| רמת ודאות | V1 (נוכחות) / V5 (לוגים/MFA/DPA) |
+| מקור הראיה | dig NS/A; curl Server nginx; workflows |
+| אימות נוסף נדרש | hPanel, SSH RO, MFA, גיבויים |
+| המלצה | ניטור Uptime + תיעוד שחזור + יישור security headers |
+
+## Let's Encrypt
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Let's Encrypt |
+| סוג השירות | Certificate Authority |
+| תפקיד במערכת | תעודת TLS לדומיין |
+| סטטוס | פעיל |
+| סביבה | Production |
+| רכיבים תלויים | HTTPS של האתר |
+| מידע שעובר לספק | מטא דומיין ב-ACME |
+| מידע אישי | לא (יישומי) / חשבון LE — V5 |
+| מידע עסקי | לא |
+| מידע הנשמר אצל הספק | לפי מדיניות LE — לא ניתן לאמת – V5 |
+| אמצעי אימות | ACME |
+| Secrets קיימים | אין secret אפליקטיבי מאומת |
+| תלות עסקית | גבוה |
+| תלות טכנולוגית | גבוה |
+| השפעה במקרה של נפילה | אזהרות/חסימת HTTPS |
+| חלופה אפשרית | CA מסחרי |
+| חלופה פעילה | אין |
+| רמת סיכון | גבוה (חידוש לא מאומת) |
+| רמת ודאות | V1 / V5 לחידוש |
+| מקור הראיה | openssl issuer + expiry עד 2026-10-04 |
+| אימות נוסף נדרש | cron/Certbot ב-VPS |
+| המלצה | ניטור תפוגה לפני 2026-10-04 |
+
+## Supabase
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Supabase |
+| סוג השירות | BaaS — Auth, DB, Storage, Edge Functions, API |
+| תפקיד במערכת | ליבת Backend |
+| סטטוס | פעיל |
+| סביבה | Production `qasomfndnjuixgjmjwcm` (+Staging מתועד) |
+| רכיבים תלויים | כל המודולים העסקיים |
+| מידע שעובר לספק | נתוני אפליקציה, Auth, קבצים, קריאות Edge |
+| מידע אישי | כן |
+| מידע עסקי | כן |
+| מידע הנשמר אצל הספק | כן — DB/Auth/Storage |
+| אמצעי אימות | JWT anon/authenticated; service_role ב-Edge |
+| Secrets קיימים | `SUPABASE_URL`, `SUPABASE_ANON_KEY`/`PUBLISHABLE`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_JWKS`, `VITE_SUPABASE_*` (שמות מקוד/docs; רשימה מלאה ב-Prod — V5) |
+| תלות עסקית | קריטי |
+| תלות טכנולוגית | קריטי |
+| השפעה במקרה של נפילה | השבתה מלאה |
+| חלופה אפשרית | BaaS/Postgres אחר (שוק) |
+| חלופה פעילה | אין |
+| רמת סיכון | קריטי |
+| רמת ודאות | V1 |
+| מקור הראיה | bundle חי; Edge GET; E2E |
+| אימות נוסף נדרש | Dashboard RO, backups, RLS audit, DPA, MFA |
+| המלצה | להגדיר כספק קריטי עם בקרות Owner + Exit Strategy |
+
+## Cloudflare
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Cloudflare |
+| סוג השירות | CDN/proxy (מול supabase.co) |
+| תפקיד במערכת | שכבת edge של תשתית Supabase |
+| סטטוס | פעיל מול supabase.co; חשבון דליה נפרד — לא ניתן לאמת – V5 |
+| סביבה | תשתית ספק |
+| רכיבים תלויים | קריאות ל-`*.supabase.co` |
+| מידע שעובר לספק | תעבורת API/מטא |
+| מידע אישי | לא ניתן לאמת – V5 |
+| מידע עסקי | לא ניתן לאמת – V5 |
+| מידע הנשמר אצל הספק | לא ניתן לאמת – V5 |
+| אמצעי אימות | לא ידוע לדליה |
+| Secrets קיימים | לא ידוע |
+| תלות עסקית | גבוה (עקיף) |
+| תלות טכנולוגית | גבוה (עקיף) |
+| השפעה במקרה של נפילה | פגיעה ב-API |
+| חלופה אפשרית | לא בשליטת דליה הישירה |
+| חלופה פעילה | אין |
+| רמת סיכון | בינוני-גבוה |
+| רמת ודאות | V1 נוכחות / V5 חוזה |
+| מקור הראיה | כותרות `server: cloudflare`, `cf-ray` |
+| אימות נוסף נדרש | הבהרת תלות מול Supabase |
+| המלצה | לתעד כתת-מעבד עקיף בתיק פרטיות |
+
+## GitHub
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | GitHub |
+| סוג השירות | SCM + Actions CI/CD |
+| תפקיד במערכת | קוד, Deploy, E2E, Secrets Actions |
+| סטטוס | פעיל |
+| סביבה | Production CI/CD |
+| רכיבים תלויים | workflows ל-frontend/Edge/E2E |
+| מידע שעובר לספק | קוד; לוגים (כולל פרטי קשר בבדיקות) |
+| מידע אישי | כן (בלוגי E2E שנצפו) |
+| מידע עסקי | כן (קוד) |
+| מידע הנשמר אצל הספק | git + Actions logs |
+| אמצעי אימות | GitHub auth / Actions token |
+| Secrets קיימים | Actions secrets (רשימה מלאה — 403 בסשן); שמות מ-workflows כולל `VPS_*`, `GITHUB_PAT` וכו' |
+| תלות עסקית | גבוה לשינוי; בינוני לריצה |
+| תלות טכנולוגית | גבוה ל-CD |
+| השפעה במקרה של נפילה | עצירת שחרורים; האתר ממשיך |
+| חלופה אפשרית | GitLab וכו' (שוק) |
+| חלופה פעילה | אין |
+| רמת סיכון | גבוה (Public + logs + branch confusion) |
+| רמת ודאות | V1 |
+| מקור הראיה | `gh repo view`; workflow runs; E2E |
+| אימות נוסף נדרש | הרשאות צוות, MFA ארגוני, secret scanning |
+| המלצה | redaction לוגים; יישור default branch למקור אמת |
+
+## Gupshup
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Gupshup |
+| סוג השירות | WhatsApp BSP API |
+| תפקיד במערכת | שליחת WA עסקי + webhook DLR |
+| סטטוס | פעיל |
+| סביבה | Production |
+| רכיבים תלויים | `send-whatsapp-message`, `gupshup-webhook`, incident notify |
+| מידע שעובר לספק | טלפון, תוכן הודעה, message id, app |
+| מידע אישי | כן |
+| מידע עסקי | כן |
+| מידע הנשמר אצל הספק | לא ניתן לאמת – V5 |
+| אמצעי אימות | `apikey` header |
+| Secrets קיימים | `GUPSHUP_API_KEY`, `GUPSHUP_SOURCE`, `GUPSHUP_APP_NAME`, `GUPSHUP_APP_ID` (שמות בקוד/docs) |
+| תלות עסקית | גבוה לערוץ התראות |
+| תלות טכנולוגית | גבוה למודול WA |
+| השפעה במקרה של נפילה | אובדן WA עסקי |
+| חלופה אפשרית | Meta Cloud API / BSP אחר |
+| חלופה פעילה | `wa.me` ידני בלבד |
+| רמת סיכון | גבוה |
+| רמת ודאות | V1 |
+| מקור הראיה | E2E run `29946137467`; API; webhook 200 |
+| אימות נוסף נדרש | פורטל, תבניות, DPA, retention |
+| המלצה | נוהל גיבוי תקשורת + DPA |
+
+## WhatsApp (Meta) — ערוץ קצה
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | WhatsApp / Meta (ערוץ קצה דרך Gupshup) |
+| סוג השירות | Messaging channel |
+| תפקיד במערכת | הצגת הודעות למשתמש; deep links `wa.me` |
+| סטטוס | פעיל כערוץ |
+| סביבה | Production |
+| רכיבים תלויים | התראות WA; קישורים ב-UI |
+| מידע שעובר לספק | תוכן הודעות למשתמש הקצה |
+| מידע אישי | כן |
+| מידע עסקי | כן |
+| מידע הנשמר אצל הספק | לא ניתן לאמת – V5 |
+| אמצעי אימות | דרך Gupshup; לא Meta Graph ישיר בקוד שנבדק |
+| Secrets קיימים | אין Meta token ישיר מאומת |
+| תלות עסקית | גבוה לתקשורת |
+| תלות טכנולוגית | גבוה לערוץ |
+| השפעה במקרה של נפילה | משתמש לא מקבל WA |
+| חלופה אפשרית | SMS/מייל/טלפון |
+| חלופה פעילה | Resend (מייל) פעיל; SMS לא |
+| רמת סיכון | גבוה |
+| רמת ודאות | V1 לערוץ / V5 לשמירה |
+| מקור הראיה | E2E; bundle `wa.me`; היעדר Graph לשליחה |
+| אימות נוסף נדרש | תנאי Meta/Gupshup לעיבוד |
+| המלצה | לשמור ערוץ גיבוי מתועד |
+
+## Resend
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Resend |
+| סוג השירות | Transactional email |
+| תפקיד במערכת | התראות מערכת / איפוס סיסמה |
+| סטטוס | פעיל |
+| סביבה | Production |
+| רכיבים תלויים | `notify-accident-email`, `send-password-reset`, נוספים בקוד |
+| מידע שעובר לספק | כתובת אימייל + תוכן HTML |
+| מידע אישי | כן |
+| מידע עסקי | כן |
+| מידע הנשמר אצל הספק | לא ניתן לאמת – V5 |
+| אמצעי אימות | Bearer API key |
+| Secrets קיימים | `RESEND_API_KEY`, `RESEND_FROM` |
+| תלות עסקית | גבוה |
+| תלות טכנולוגית | גבוה למודול מייל |
+| השפעה במקרה של נפילה | אובדן מייל אוטומטי |
+| חלופה אפשרית | SES/SendGrid וכו' |
+| חלופה פעילה | אין |
+| רמת סיכון | גבוה |
+| רמת ודאות | V1 |
+| מקור הראיה | E2E email `status:sent` + provider_message_id |
+| אימות נוסף נדרש | Portal, domain auth, DPA, Auth על functions |
+| המלצה | הקשחת כל יציאות המייל + DPA |
+
+## PayPal
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | PayPal |
+| סוג השירות | Payments |
+| תפקיד במערכת | חיוב מנויים (בקוד) |
+| סטטוס | חלקי — Edge קיים; חיוב שוטף לא ניתן לאמת – V5 |
+| סביבה | Production Edge + קוד |
+| רכיבים תלויים | `paypal-charge` / מנויים |
+| מידע שעובר לספק | סכומים/הזמנות — אם נקרא |
+| מידע אישי | לא ניתן לאמת – V5 |
+| מידע עסקי | כן (פיננסי) אם בשימוש |
+| מידע הנשמר אצל הספק | לא ניתן לאמת – V5 |
+| אמצעי אימות | OAuth client credentials (בקוד) |
+| Secrets קיימים | `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET` |
+| תלות עסקית | לא ניתן לאמת – V5 |
+| תלות טכנולוגית | בינוני בקוד |
+| השפעה במקרה של נפילה | אובדן סליקה אם פעיל |
+| חלופה אפשרית | סולק אחר (שוק) |
+| חלופה פעילה | לא ניתן לאמת – V5 |
+| רמת סיכון | גבוה אם בשימוש; לא ניתן לאמת שימוש |
+| רמת ודאות | V2 / V5 |
+| מקור הראיה | קיום function ב-Prod; קוד `api-m.paypal.com` |
+| אימות נוסף נדרש | האם יש חיובים חיים; MFA; הרשאות |
+| המלצה | לאמת שימוש לפני התחייבות מסחרית |
+
+## Twilio
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Twilio |
+| סוג השירות | Voice / telephony |
+| תפקיד במערכת | שיחות יוצאות (מיועד בקוד) |
+| סטטוס | לא פעיל תפעולית |
+| סביבה | קוד + Edge ב-Prod ללא credentials |
+| רכיבים תלויים | פונקציות twilio-* |
+| מידע שעובר לספק | לא מועבר כעת (V1) |
+| מידע אישי | לא כעת |
+| מידע עסקי | לא כעת |
+| מידע הנשמר אצל הספק | לא כעת |
+| אמצעי אימות | לא מוגדר |
+| Secrets קיימים | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` (שמות בקוד; ערכים לא מוגדרים ב-Prod) |
+| תלות עסקית | נמוך כעת |
+| תלות טכנולוגית | נמוך כעת |
+| השפעה במקרה של נפילה | אין השפעה תפעולית נוכחית |
+| חלופה אפשרית | ספקי Voice אחרים |
+| חלופה פעילה | אין / לא רלוונטי |
+| רמת סיכון | בינוני (פער מוצר/תיעוד) |
+| רמת ודאות | V1 לאי-הגדרה |
+| מקור הראיה | Edge: `Twilio credentials are not configured` |
+| אימות נוסף נדרש | החלטת הפעלה או הסרה מ-UI |
+| המלצה | לא להציג כשירות פעיל ללקוחות |
+
+## ElevenLabs
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | ElevenLabs |
+| סוג השירות | Voice AI |
+| תפקיד במערכת | Conversational AI (מיועד) |
+| סטטוס | לא פעיל תפעולית |
+| סביבה | קוד + Edge ב-Prod ללא API key |
+| רכיבים תלויים | elevenlabs functions / SDK |
+| מידע שעובר לספק | לא מועבר כעת |
+| מידע אישי | לא כעת |
+| מידע עסקי | לא כעת |
+| מידע הנשמר אצל הספק | לא כעת |
+| אמצעי אימות | לא מוגדר |
+| Secrets קיימים | `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`, `ELEVENLABS_AGENT_PHONE_NUMBER_ID` (שמות; API key לא מוגדר ב-Prod) |
+| תלות עסקית | נמוך כעת |
+| תלות טכנולוגית | נמוך כעת |
+| השפעה במקרה של נפילה | אין |
+| חלופה אפשרית | ספקי Voice AI אחרים |
+| חלופה פעילה | אין |
+| רמת סיכון | בינוני (פער מוצר) |
+| רמת ודאות | V1 לאי-הגדרה |
+| מקור הראיה | Edge: `ELEVENLABS_API_KEY is not configured` |
+| אימות נוסף נדרש | החלטת מוצר |
+| המלצה | לא להציג כפעיל |
+
+## Lovable
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Lovable (AI gateway + מורשת) |
+| סוג השירות | AI gateway |
+| תפקיד במערכת | עזרה בצ'אט (`help-ai-chat`) |
+| סטטוס | חלקי — Edge קיים; הצלחת שיחה לא ניתן לאמת – V5 |
+| סביבה | Production Edge + מטא HTML |
+| רכיבים תלויים | Help AI |
+| מידע שעובר לספק | תוכן צ'אט + הקשר כלים (בקוד) |
+| מידע אישי | לא ניתן לאמת – V5 |
+| מידע עסקי | לא ניתן לאמת – V5 |
+| מידע הנשמר אצל הספק | לא ניתן לאמת – V5 |
+| אמצעי אימות | `LOVABLE_API_KEY` |
+| Secrets קיימים | `LOVABLE_API_KEY` |
+| תלות עסקית | נמוך |
+| תלות טכנולוגית | נמוך |
+| השפעה במקרה של נפילה | אין צ'אט עזרה |
+| חלופה אפשרית | LLM ישיר / ביטול מודול |
+| חלופה פעילה | אין |
+| רמת סיכון | בינוני |
+| רמת ודאות | V2 / V5 |
+| מקור הראיה | Edge קיים; `ai.gateway.lovable.dev` בקוד; meta author |
+| אימות נוסף נדרש | האם המפתח חי; מדיניות שמירה |
+| המלצה | לאמת או לכבות לפני Enterprise |
+
+## Google Fonts
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Google Fonts |
+| סוג השירות | Web fonts CDN |
+| תפקיד במערכת | טעינת גופנים ב-UI |
+| סטטוס | פעיל |
+| סביבה | Production HTML |
+| רכיבים תלויים | תצוגת האתר |
+| מידע שעובר לספק | בקשת גופן (IP/UA מטא) |
+| מידע אישי | מטא — לא ניתן לאמת היקף – V5 |
+| מידע עסקי | לא |
+| מידע הנשמר אצל הספק | לפי Google — V5 |
+| אמצעי אימות | אין |
+| Secrets קיימים | אין |
+| תלות עסקית | נמוך |
+| תלות טכנולוגית | נמוך |
+| השפעה במקרה של נפילה | fallback פונט |
+| חלופה אפשרית | self-host |
+| חלופה פעילה | אין |
+| רמת סיכון | נמוך |
+| רמת ודאות | V1 |
+| מקור הראיה | HTML חי — fonts.googleapis.com / gstatic |
+| אימות נוסף נדרש | מדיניות פרטיות |
+| המלצה | שקילת self-host |
+
+## Google Site Verification
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Google Site Verification |
+| סוג השירות | SEO meta verification |
+| תפקיד במערכת | אימות בעלות אתר ב-Search |
+| סטטוס | פעיל במטא-תג |
+| סביבה | Production HTML |
+| רכיבים תלויים | SEO |
+| מידע שעובר לספק | verification token במטא |
+| מידע אישי | לא |
+| מידע עסקי | לא |
+| מידע הנשמר אצל הספק | לא ניתן לאמת – V5 |
+| אמצעי אימות | meta tag |
+| Secrets קיימים | אין (token במטא ציבורי) |
+| תלות עסקית | נמוך |
+| תלות טכנולוגית | נמוך |
+| השפעה במקרה של נפילה | פגיעה אפשרית ב-SEO |
+| חלופה אפשרית | — |
+| חלופה פעילה | — |
+| רמת סיכון | נמוך |
+| רמת ודאות | V1 לקיום תג / V5 לחשבון Search Console |
+| מקור הראיה | meta `google-site-verification` ב-HTML חי |
+| אימות נוסף נדרש | בעלות Search Console |
+| המלצה | לתעד בעלות |
+
+## Google Cloud Storage (נכסי OG)
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Google Cloud Storage (URL לנכס OG) |
+| סוג השירות | Object storage (URL בתמונת שיתוף) |
+| תפקיד במערכת | תמונת Open Graph |
+| סטטוס | URL פעיל ב-HTML; בעלות חשבון לא ניתן לאמת – V5 |
+| סביבה | Production HTML |
+| רכיבים תלויים | שיתוף חברתי |
+| מידע שעובר לספק | בקשת תמונה סטטית |
+| מידע אישי | לא (מאגר אפליקציה) |
+| מידע עסקי | מיתוג |
+| מידע הנשמר אצל הספק | קובץ תמונה ב-GCS |
+| אמצעי אימות | URL ציבורי |
+| Secrets קיימים | לא מאומת |
+| תלות עסקית | נמוך |
+| תלות טכנולוגית | נמוך |
+| השפעה במקרה של נפילה | תצוגת שיתוף שבורה |
+| חלופה אפשרית | נכס תחת דומיין/ספק בבעלות |
+| חלופה פעילה | אין מאומתת |
+| רמת סיכון | נמוך |
+| רמת ודאות | V2 / V5 לבעלות |
+| מקור הראיה | `storage.googleapis.com/gpt-engineer-file-uploads/...` ב-HTML |
+| אימות נוסף נדרש | בעלות bucket |
+| המלצה | להעביר לנכס בבעלות ברורה |
+
+## data.gov.il
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | data.gov.il |
+| סוג השירות | Open Data API ממשלתי |
+| תפקיד במערכת | איתור פרטי רכב ציבוריים |
+| סטטוס | פעיל (proxy Edge) |
+| סביבה | Production |
+| רכיבים תלויים | `vehicle-lookup` |
+| מידע שעובר לספק | מספר רכב בשאילתה; רשומה ציבורית בתשובה |
+| מידע אישי | רשומה ציבורית (לא מאגר פרטי של דליה) |
+| מידע עסקי | תפעולי |
+| מידע הנשמר אצל הספק | מאגר ממשלתי ציבורי |
+| אמצעי אימות | אין secret |
+| Secrets קיימים | אין |
+| תלות עסקית | נמוך-בינוני |
+| תלות טכנולוגית | נמוך |
+| השפעה במקרה של נפילה | אין lookup אוטומטי |
+| חלופה אפשרית | הקלדה ידנית |
+| חלופה פעילה | הקלדה ידנית |
+| רמת סיכון | נמוך |
+| רמת ודאות | V1 |
+| מקור הראיה | `vehicle-lookup` → 400 למספר לא תקין |
+| אימות נוסף נדרש | — |
+| המלצה | לתעד fallback ידני |
+
+## Make.com
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Make.com |
+| סוג השירות | iPaaS / webhooks |
+| תפקיד במערכת | אוטומציית DLR/בוט (מתועד) |
+| סטטוס | לא ניתן לאמת – V5 מול Production חי |
+| סביבה | תיעוד→Staging; מצב Prod לא מאומת |
+| רכיבים תלויים | Gupshup DLR (מתועד) |
+| מידע שעובר לספק | payloads webhook — אם פעיל |
+| מידע אישי | אפשרי / לא ניתן לאמת – V5 |
+| מידע עסקי | אפשרי / V5 |
+| מידע הנשמר אצל הספק | לא ניתן לאמת – V5 |
+| אמצעי אימות | Make token (בתיעוד) |
+| Secrets קיימים | `MAKE_API_TOKEN` (בdocs) |
+| תלות עסקית | לא ניתן לאמת – V5 |
+| תלות טכנולוגית | לא ניתן לאמת – V5 |
+| השפעה במקרה של נפילה | DLR חסר אם היה תלוי |
+| חלופה אפשרית | webhook ישיר ל-Edge |
+| חלופה פעילה | לא ניתן לאמת – V5 |
+| רמת סיכון | בינוני (אי-ודאות) |
+| רמת ודאות | V3 תיעוד / V5 חי |
+| מקור הראיה | OWNER-MAKE docs; יעד Staging webhook |
+| אימות נוסף נדרש | פורטל Make — יעד URL נוכחי |
+| המלצה | לאמת או לנתק תרחישים ישנים |
+
+## OpenAI
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | OpenAI |
+| סוג השירות | LLM API |
+| תפקיד במערכת | marketing AI (בקוד `main`) |
+| סטטוס | לא פעיל |
+| סביבה | קוד בלבד — Edge Prod 404 |
+| רכיבים תלויים | `marketing-ai-chat`, `marketing-site-build` |
+| מידע שעובר לספק | לא ב-Prod |
+| מידע אישי | לא ב-Prod |
+| מידע עסקי | לא ב-Prod |
+| מידע הנשמר אצל הספק | לא ב-Prod |
+| אמצעי אימות | לא פרוס |
+| Secrets קיימים | שמות בקוד marketing — לא מאומת ב-Prod |
+| תלות עסקית | אין כעת |
+| תלות טכנולוגית | אין ב-Prod |
+| השפעה במקרה של נפילה | אין |
+| חלופה אפשרית | — |
+| חלופה פעילה | לא רלוונטי |
+| רמת סיכון | בינוני אם ייפרס ללא בקרה |
+| רמת ודאות | V3 קוד / V1 לאי-פריסה |
+| מקור הראיה | marketing functions → 404 ב-Prod |
+| אימות נוסף נדרש | לפני כל הפעלה |
+| המלצה | לא להציג כספק Production |
+
+## Anthropic
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Anthropic (Claude) |
+| סוג השירות | LLM API |
+| תפקיד במערכת | `marketing-claude-chat` בקוד |
+| סטטוס | לא פעיל |
+| סביבה | קוד בלבד — 404 ב-Prod |
+| רכיבים תלויים | marketing-claude-chat |
+| מידע שעובר לספק | לא ב-Prod |
+| מידע אישי | לא ב-Prod |
+| מידע עסקי | לא ב-Prod |
+| מידע הנשמר אצל הספק | לא ב-Prod |
+| אמצעי אימות | לא פרוס |
+| Secrets קיימים | שמות בקוד — לא מאומת ב-Prod |
+| תלות עסקית | אין כעת |
+| תלות טכנולוגית | אין ב-Prod |
+| השפעה במקרה של נפילה | אין |
+| חלופה אפשרית | — |
+| חלופה פעילה | לא רלוונטי |
+| רמת סיכון | בינוני אם ייפרס |
+| רמת ודאות | V3/V1 |
+| מקור הראיה | 404 ב-Prod |
+| אימות נוסף נדרש | לפני הפעלה |
+| המלצה | קוד-בלבד עד סקירה |
+
+## Google Gemini / OAuth Ads / Analytics / GSC
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Google Gemini / OAuth (Ads/Analytics/GSC) |
+| סוג השירות | AI + Google APIs שיווקיים |
+| תפקיד במערכת | מודולי marketing ב-`main` |
+| סטטוס | לא פעיל ב-Prod Edge |
+| סביבה | קוד בלבד — 404 |
+| רכיבים תלויים | `marketing-gemini-*`, `marketing-google-*` |
+| מידע שעובר לספק | לא ב-Prod |
+| מידע אישי | לא ב-Prod |
+| מידע עסקי | לא ב-Prod |
+| מידע הנשמר אצל הספק | לא ב-Prod |
+| אמצעי אימות | לא פרוס |
+| Secrets קיימים | שמות OAuth/AI בקוד — לא מאומת ב-Prod |
+| תלות עסקית | אין כעת |
+| תלות טכנולוגית | אין ב-Prod |
+| השפעה במקרה של נפילה | אין |
+| חלופה אפשרית | — |
+| חלופה פעילה | לא רלוונטי |
+| רמת סיכון | בינוני אם ייפרס |
+| רמת ודאות | V3/V1 |
+| מקור הראיה | 404 ב-Prod |
+| אימות נוסף נדרש | לפני הפעלה + היקף OAuth |
+| המלצה | לא כספק Production |
+
+## כלי בניית אתרים שיווקיים (Figma / Webflow / Plasmic / Runway / v0 / Builder.io / WordPress)
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | מקבץ כלי marketing-site-build |
+| סוג השירות | אתרי/עיצוב/בנייה (env בקוד) |
+| תפקיד במערכת | מיועד לבניית אתר שיווקי |
+| סטטוס | לא פעיל — function 404 ב-Prod |
+| סביבה | קוד בלבד |
+| רכיבים תלויים | `marketing-site-build` |
+| מידע שעובר לספק | לא ב-Prod |
+| מידע אישי | לא ב-Prod |
+| מידע עסקי | לא ב-Prod |
+| מידע הנשמר אצל הספק | לא ב-Prod |
+| אמצעי אימות | לא פרוס |
+| Secrets קיימים | env names בקוד — לא מאומת ב-Prod |
+| תלות עסקית | אין |
+| תלות טכנולוגית | אין ב-Prod |
+| השפעה במקרה של נפילה | אין |
+| חלופה אפשרית | — |
+| חלופה פעילה | לא רלוונטי |
+| רמת סיכון | נמוך-בינוני (בלבול מלאי ספקים) |
+| רמת ודאות | V3/V1 |
+| מקור הראיה | 404 ל-function ב-Prod |
+| אימות נוסף נדרש | ניקוי מלאי אם לא בשימוש |
+| המלצה | לא לכלול ברשימת מעבדים פעילים |
+
+## Deepgram
+| שדה | פירוט |
+|-----|--------|
+| שם הספק | Deepgram |
+| סוג השירות | Speech-to-text (אזכור) |
+| תפקיד במערכת | אזכור ב-UI בלבד |
+| סטטוס | לא ניתן לאמת כספק — אזכור בלבד |
+| סביבה | קוד/UI בלבד |
+| רכיבים תלויים | טקסט ב-`SettingsTab` |
+| מידע שעובר לספק | לא מאומת / אין API |
+| מידע אישי | לא |
+| מידע עסקי | לא |
+| מידע הנשמר אצל הספק | לא |
+| אמצעי אימות | אין |
+| Secrets קיימים | לא נמצא |
+| תלות עסקית | אין |
+| תלות טכנולוגית | אין |
+| השפעה במקרה של נפילה | אין |
+| חלופה אפשרית | — |
+| חלופה פעילה | — |
+| רמת סיכון | נמוך (מצג שווא מוצרי) |
+| רמת ודאות | V4 |
+| מקור הראיה | אזכור טקסט UI |
+| אימות נוסף נדרש | הסרה או יישום |
+| המלצה | לא לסווג כספק פעיל |
+
+---
+# מפת זרימת מידע בין ספקים
+
+מבוסס ראיות בלבד. חיבור שלא אומת מסומן במפורש.
+
+```
+משתמשים / דפדפן
+        │
+        ▼
+Frontend ב-Hostinger (VPS 72.60.36.182 · Nginx · TLS Let's Encrypt)     [אומת V1]
+        │  HTTPS
+        ▼
+Supabase Production (qasomfndnjuixgjmjwcm)                              [אומת V1]
+   ├── Authentication / Database / Storage
+   └── Edge Functions
+          ├── Gupshup API → WhatsApp (Meta) channel                      [אומת V1 שליחה]
+          │       └── gupshup-webhook ◄── (Make.com? תיעוד→Staging)     [Make חי: V5]
+          ├── Resend → Email                                            [אומת V1]
+          ├── PayPal API (paypal-charge)                                [Edge V2; חיוב V5]
+          ├── data.gov.il (vehicle-lookup)                              [אומת V1]
+          ├── Lovable AI gateway (help-ai-chat)                         [Edge V2; שיחה V5]
+          ├── Twilio / ElevenLabs                                       [לא מוגדר V1]
+          └── marketing-* (OpenAI/Anthropic/Gemini/OAuth…)              [404 ב-Prod V1]
+
+שכבת תשתית עקיפה: Cloudflare מול *.supabase.co                         [כותרות V1; חשבון דליה V5]
+
+ערוץ מקביל ב-UI: wa.me deep links (ללא Meta Graph ישיר)                 [אומת V1]
+
+נכסי צד ג' ב-HTML: Google Fonts · Google Verification · GCS OG image     [אומת V1/V2]
+
+SCM/CD: GitHub Actions → deploy ל-VPS / Edge                            [אומת V1]
+```
+
+| זרימה | מאיפה | דרך איזה רכיב | לאיזה ספק | סוג מידע | אומתה? | ודאות |
+|-------|--------|----------------|-----------|----------|--------|--------|
+| UI | משתמש | Nginx/Hostinger | Hostinger | HTTP UI | כן | V1 |
+| API/Data | Frontend | Supabase client | Supabase | נתונים+Auth | כן | V1 |
+| WA עסקי | Edge notify/send | `send-whatsapp-message` | Gupshup→WhatsApp | טלפון+תוכן | כן (E2E) | V1 |
+| Email | Edge | notify/password-reset | Resend | אימייל+HTML | כן (E2E) | V1 |
+| Lookup | Edge | `vehicle-lookup` | data.gov.il | מספר רכב | כן (תגובת function) | V1 |
+| תשלום | Edge | `paypal-charge` | PayPal | פיננסי | קיום בלבד | V2/V5 |
+| AI עזרה | Edge | `help-ai-chat` | Lovable | צ'אט | קיום בלבד | V2/V5 |
+| DLR | Gupshup | Make? / webhook | Make או Edge ישיר | message status | לא ניתן לאמת חי | V5 |
+| Fonts/OG | דפדפן | HTML | Google | מטא/תמונה | כן | V1/V2 |
 
 ---
 
-# ג. סיכומים נדרשים
+# מטריצת תלות עסקית (סיכום מורחב)
 
-## ספקים קריטיים (תלות גבוהה לזמינות/ליבה)
-1. **Supabase** — ליבת נתונים ו-Auth (V1)  
-2. **Hostinger** — פרונט Production (V1)  
-3. **GitHub** — שרשרת שחרור (V1)  
-4. **Gupshup** — WhatsApp עסקי (V1)  
-5. **Resend** — אימייל תפעולי (V1)  
-6. **Let's Encrypt** — HTTPS (V1)
-
-## ספקים שאפשר להחליף (טכנית; דורש תכנון)
-| ספק | חלופה אפשרית | הערה |
-|-----|---------------|------|
-| Hostinger | Cloudflare Pages / Vercel / VPS אחר | פרונט סטטי |
-| Gupshup | Meta Cloud API / BSP אחר | דורש WABA מחדש |
-| Resend | SES / SendGrid / Postmark | דומיין+DKIM |
-| PayPal | ספק סליקה אחר / העברה | אם בכלל בשימוש |
-| Lovable gateway | קריאה ישירה למודל / ספק AI אחר | אם help-ai בשימוש |
-| Make.com | webhook ישיר ל-`gupshup-webhook` | אם Make פעיל |
-
-## ספקים עם סיכון גבוה (אבטחה/פרטיות/תפעול)
-| ספק | סיכון | בסיס |
-|-----|--------|------|
-| Supabase | מאגר מלא + service_role ב-Edge | ארכיטקטורה V1 |
-| Gupshup | PII+תוכן הודעות אצל צד ג׳; webhook ציבורי | E2E + Edge V1 |
-| Resend | תוכן אימיילים; relay אם Edge פרוץ | E2E V1 |
-| GitHub | Repo Public; לוגים עם נתוני בדיקה | `gh repo view` V1 |
-| PayPal | פונקציית Live billing קיימת | Edge V2 |
-| Make.com | עיבוד webhook מחוץ לשליטה ישירה — מצב לא מאומת | V5 |
-
-## ספקים שדורשים ביקורת נוספת
-| ספק | מה חסר לאימות מלא | גישת RO נדרשת |
-|-----|---------------------|----------------|
-| Hostinger | לוגים, backups, nginx החי | SSH/hPanel |
-| Supabase | אזור, backups, Storage buckets, רשימת secrets | Dashboard / Management API |
-| Gupshup | portal delivery logs; תנאי שמירה | Gupshup portal |
-| Make.com | תרחישים פעילים + URL יעד | Make login / API token |
-| PayPal | האם secrets מוגדרים; האם יש חיובים בפועל | PayPal + Edge secrets UI |
-| Resend | דומיין שולח מאומת; לוגים | Resend Dashboard |
-| Google marketing stack | לא רלוונטי ל-Prod עד deploy | — |
-| Cloudflare | האם חשבון נפרד | Owner |
+| ספק | שירות קריטי | מה נפגע אם הספק נופל | סוג פגיעה | האם המערכת ממשיכה לפעול | פתרון זמני | חלופה | רמת סיכון |
+|-----|-------------|----------------------|-----------|-------------------------|------------|--------|-----------|
+| Hostinger | UI | אין ממשק | השבתה מלאה | לא לשימוש רגיל | לא מאומת | שוק בלבד | קריטי |
+| Supabase | Auth+DB+API | אין ליבה | השבתה מלאה | לא | לא מאומת | שוק בלבד | קריטי |
+| Let's Encrypt | TLS | אמון HTTPS | פגיעה חלקית חמורה | חלקי בלבד | — | CA אחר | גבוה |
+| Gupshup | WA עסקי | אין התראות WA | אובדן ערוץ תקשורת | כן לליבה | wa.me/טלפון | BSP אחר (שוק) | גבוה |
+| WhatsApp channel | מסירה למשתמש | הודעות לא מגיעות | אובדן ערוץ תקשורת | כן לליבה | מייל/טלפון | — | גבוה |
+| Resend | Email | אין מייל/איפוס | אובדן ערוץ תקשורת | כן לליבה חלקית | מייל ידני | ספק מייל (שוק) | גבוה |
+| PayPal | סליקה | אין גבייה אוטומטית אם פעיל | אובדן יכולת סליקה | כן לליבה | העברה ידנית | סולק אחר | לא ניתן לאמת |
+| data.gov.il | Lookup | אין איתור | אובדן חיפוש מידע | כן | הקלדה | — | נמוך |
+| GitHub | Deploy | אין שחרורים | ללא השפעה על הליבה בריצה | כן לריצה | deploy ידני — V5 | Git אחר | בינוני-גבוה |
+| Cloudflare | Edge ל-API | פגיעה ב-API | פגיעה חלקית/מלאה ב-Backend | לא סביר | לא בשליטה | דרך Supabase | גבוה עקיף |
+| Make.com | DLR | סטטוסים חסרים אם היה בשימוש | פגיעה חלקית | כן לליבה | בדיקה ידנית | webhook ישיר | לא ניתן לאמת |
+| Lovable | AI עזרה | אין צ'אט | ללא השפעה על הליבה | כן | תמיכה אנושית | — | נמוך |
+| Twilio/ElevenLabs | Voice | אין (כבוי) | ללא השפעה על הליבה | כן | — | — | נמוך כעת |
+| Google Fonts/Verify/GCS | UI/SEO | תצוגה/שיתוף | ללא השפעה על הליבה | כן | fallback | — | נמוך |
 
 ---
 
-# ד. ראיות — אינדקס קצר
+# Vendor Risk Matrix
 
-| מזהה | ראיה | תומך ב |
-|------|------|--------|
-| Ev-D1 | dig A/NS + curl Nginx + IP | Hostinger |
-| Ev-D2 | openssl issuer Let's Encrypt | LE |
-| Ev-D3 | bundle Supabase URL | Supabase |
-| Ev-D4 | cf-ray על supabase.co | Cloudflare layer |
-| Ev-D5 | gh repo view Public | GitHub |
-| Ev-D6 | E2E run `29946137467` Gupshup+email | Gupshup, Resend |
-| Ev-D7 | GET gupshup-webhook 200 | Gupshup webhook |
-| Ev-D8 | GET twilio/elevenlabs errors | Twilio/EL לא מוגדרים |
-| Ev-D9 | GET paypal-charge קיים | PayPal Edge |
-| Ev-D10 | HTML fonts + verification + GCS | Google web |
-| Ev-D11 | vehicle-lookup 400 | data.gov.il proxy |
-| Ev-D12 | marketing-* 404 | ספקי marketing לא ב-Prod |
-| Ev-D13 | OWNER-MAKE docs → Staging URL | Make מתועד ל-Staging |
-| Ev-D14 | Deno.env.get names ב-main | מלאי secret names |
+ממוין מחומרה גבוהה לנמוכה (ואז לפי עדיפות):
+
+| מזהה | ספק | סיכון | הסתברות | השפעה | חומרה | ודאות | המלצה |
+|------|-----|--------|----------|--------|--------|--------|--------|
+| VR-SUP-01 | Supabase | SPOF ליבה | בינוני | גבוה | קריטי | V1 | גיבויים/ניטור/Exit |
+| VR-HST-01 | Hostinger | SPOF פרונט | בינוני | גבוה | קריטי | V1 | Uptime + שחזור |
+| VR-DOC-01 | רוב הספקים | היעדר DPA/SLA בתיק | גבוה | גבוה | גבוה | V5 | איסוף הסכמים |
+| VR-ACC-01 | ספקים קריטיים | בעלות חשבון/אדם יחיד לא נבדקה | לא ניתן לאמת | גבוה | גבוה | V5 | MFA + בעלים כפולים |
+| VR-RES-02 | Resend | פונקציות מייל לא מאומתות להקשחה מלאה | בינוני | גבוה | גבוה | V2/V3 | סקירת Auth לכל יציאות מייל |
+| VR-SUP-02 | Supabase | DPA/MFA/SLA לא אומתו | לא ניתן לאמת | גבוה | גבוה | V5 | Dashboard Owner |
+| VR-GUP-01 | Gupshup | אין Failover WA | בינוני | גבוה | גבוה | V1 | נוהל גיבוי |
+| VR-GUP-02 | Gupshup | Retention/DPA לא אומתו | לא ניתן לאמת | גבוה | גבוה | V5 | DPA |
+| VR-RES-01 | Resend | SPOF מייל | בינוני | גבוה | גבוה | V1 | ספק גיבוי/נוהל |
+| VR-PAY-01 | PayPal | שימוש/secrets לא אומתו | לא ניתן לאמת | גבוה אם פעיל | גבוה | V2/V5 | אימות חיובים |
+| VR-GH-01 | GitHub | Public + PII בלוגים | גבוה | בינוני | גבוה | V1 | redaction |
+| VR-GH-02 | GitHub | בלבול branch production/main | גבוה | גבוה | גבוה | V1 | יישור תהליך |
+| VR-HST-02 | Hostinger | פער headers / VPS לא נבדק | בינוני | גבוה | גבוה | V1/V5 | SSH RO + יישור Nginx |
+| VR-LE-01 | Let's Encrypt | חידוש לא מאומת | בינוני | גבוה | גבוה | V1/V5 | ניטור expiry |
+| VR-MK-01 | Make.com | מצב חי לא מאומת | לא ניתן לאמת | בינוני | בינוני | V5 | פורטל Make |
+| VR-CF-01 | Cloudflare | תלות עקיפה | נמוך-בינוני | גבוה | בינוני | V1/V5 | תיעוד תת-מעבד |
+| VR-LV-01 | Lovable | תוכן/retention לא אומתו | לא ניתן לאמת | בינוני | בינוני | V2/V5 | אימות או כיבוי |
+| VR-TW-01 | Twilio | מוצג/קיים בקוד אך כבוי | גבוה | נמוך כעת | בינוני | V1 | החלטת מוצר |
+| VR-EL-01 | ElevenLabs | כמו Twilio | גבוה | נמוך כעת | בינוני | V1 | החלטת מוצר |
+| VR-AI-01 | OpenAI/Anthropic/Gemini… | פריסה עתידית לא מבוקרת | בינוני | בינוני | בינוני | V1/V3 | שער אישור לפני deploy |
+| VR-GOV-01 | data.gov.il | תלות מקור חיצוני | נמוך | נמוך | נמוך | V1 | fallback ידני |
+| VR-GF-01 | Google Fonts | מטא לצד ג' | גבוה | נמוך | נמוך | V1 | self-host אופציונלי |
+| VR-GCS-01 | GCS OG | בעלות לא ברורה | לא ניתן לאמת | נמוך | נמוך | V2/V5 | העברת נכס |
+| VR-DG-01 | Deepgram | אזכור בלי ספק | נמוך | נמוך | נמוך | V4 | הסרה/יישום |
 
 ---
 
-# ה. הצהרות סיום
+# ספקים קריטיים
 
-1. **לא הומצאו ספקים.** כל ספק בטבלה הראשית מגובה בראיה.  
-2. ספקים שמופיעים רק ב-`main` ואינם ב-Prod Edge סומנו במפורש כלא-פעילים ב-Production.  
-3. **Deepgram** אינו ספק מאומת — אזכור UI בלבד.  
-4. **WhatsApp Business** כערוץ מאומת דרך **Gupshup**, לא דרך Meta Cloud API ישיר.  
-5. לא בוצע שינוי במערכת; לא נחשפו ערכי Secrets.
+| ספק | מדוע קריטי | מה קורה בנפילה | חלופה פעילה | תוכנית התאוששות מאומתת | מה דורש טיפול |
+|-----|------------|----------------|-------------|-------------------------|---------------|
+| Supabase | Auth+DB+Storage+Edge | השבתה מלאה | אין | לא ניתן לאמת – V5 | גיבויים, MFA, DPA, ניטור, Exit |
+| Hostinger | מגיש את ה-UI | השבתה מלאה של ממשק | אין | לא ניתן לאמת – V5 | Uptime, SSH/גיבוי, headers |
+| Let's Encrypt | HTTPS תקין | אובדן אמון/גישה | אין | חידוש — V5 | ניטור תפוגה |
+| Gupshup | ערוץ WA עסקי מאומת | אובדן התראות WA | wa.me חלקי בלבד | לא מאומת | DPA, נוהל גיבוי |
+| Resend | מייל/איפוס מאומת | אובדן ערוץ מייל | אין | לא מאומת | DPA, הקשחת functions |
+| GitHub | מקור אמת לשינויים/CD | עצירת שחרורים (לא ריצה) | אין | deploy ידני — V5 | יישור branches, לוגים |
 
-*סוף כרך ד' – ספקים.*
+**Cloudflare** קריטי באופן עקיף דרך Supabase — לא כחוזה נפרד מאומת (V5).
+
+---
+
+# ספקים הניתנים להחלפה
+
+| ספק | ניתן להחלפה? | קושי | השפעת החלפה | מומלץ להכין חלופה? | Exit Strategy? | הערה |
+|-----|--------------|------|-------------|---------------------|----------------|------|
+| Google Fonts | כן | נמוך | נמוכה | אופציונלי (פרטיות) | לא חובה | self-host |
+| GCS OG asset | כן | נמוך | נמוכה | כן לבעלות | קל | העתקת קובץ |
+| Lovable | כן | נמוך-בינוני | נמוכה | אם נשאר בשימוש | כן קל | או כיבוי |
+| data.gov.il | חלקית | נמוך | נמוכה | לא דחוף | fallback ידני | מקור רשמי |
+| Resend | כן טכנולוגית | בינוני | בינונית | כן | כן | אין חלופה מחוברת כיום |
+| Gupshup | כן טכנולוגית | גבוה | גבוהה לתקשורת | כן | כן | לא להחליף בלי סיבה |
+| Hostinger | כן טכנולוגית | בינוני | גבוהה בזמן מעבר | כן לגיבוי | כן | אין סיבת החלפה מיידית מאומתת מעבר ל-SPOF |
+| GitHub | כן | בינוני | בינונית | גיבוי repo | כן | |
+| PayPal | תלוי שימוש | בינוני | פיננסי | רק אם מאומת בשימוש | כן אם פעיל | שימוש V5 |
+| Make.com | כן אם בשימוש | בינוני | DLR | לאחר אימות מצב | כן | מצב חי V5 |
+| Supabase | כן בשוק בלבד | גבוה מאוד | קיומית | **כן לטווח ארוך** | חובה ל-Enterprise | אין חלופה מחוברת |
+| Twilio/ElevenLabs/AI marketing | לא רלוונטי כעת | — | — | לא להפעיל בלי תוכנית | לפני הפעלה | לא פעילים |
+
+אין המלצת החלפה מיידית של ספק ליבה בלי אירוע או דרישת לקוח — ההמלצה היא **הכנת תוכניות יציאה/גיבוי** לספקים קריטיים.
+
+---
+
+# ספקים בסיכון גבוה
+
+רק סיכונים עם ראיה ממשית או פער אימות קריטי:
+
+| ספק | ראיה לסיכון ממשי | סוג | ודאות |
+|-----|------------------|-----|--------|
+| Supabase | SPOF מאומת; DPA/MFA/גיבויים לא אומתו | ליבה + פערי בקרה | V1 + V5 |
+| Hostinger | SPOF פרונט; SSH/headers לא מיושרים | זמינות + הגדרה | V1 |
+| Resend | פעיל בלי חלופה; חשש הקשחת יציאות מייל | זמינות + אבטחה | V1/V2 |
+| Gupshup | פעיל בלי Failover; retention/DPA לא אומתו | זמינות + פרטיות | V1/V5 |
+| GitHub | Repo Public; PII בלוגים; בלבול branch | חשיפה + תהליך | V1 |
+| PayPal | Edge קיים; חיוב/secrets לא אומתו | פיננסי לא שקוף | V2/V5 |
+| Make.com | מתועד אך מצב חי לא מאומת | אי-ודאות תפעולית | V5 |
+| Twilio / ElevenLabs | קיימים בקוד/Edge אך לא מוגדרים | חוסר התאמה קוד↔Prod | V1 |
+| OpenAI/Anthropic/Gemini… | בקוד, לא ב-Prod | סיכון פריסה עתידית | V1/V3 |
+
+---
+
+# ספקים הדורשים ביקורת נוספת
+
+| בדיקה חסרה | מה רוצים לבדוק | למה חשוב | מידע חסר | ודאות נוכחית |
+|------------|----------------|----------|----------|---------------|
+| Hostinger hPanel | בעלות, DNS, גיבויים, חיוב, MFA | SPOF פרונט | הגדרות מלאות | V1 נוכחות / V5 פנים |
+| SSH RO ל-VPS | Nginx חי, Certbot, לוגים, הרשאות | פער headers ותפעול | קונפיג חי | V5 לקונפיג פנימי |
+| Supabase Dashboard | MFA, backups, RLS, logs, DPA | ליבה | כל בקרות החשבון | V1 חיצוני / V5 פנים |
+| רשימת Secrets מלאה | אילו מפתחות מוגדרים ב-Prod | מלאי אמת | `gh secret list` 403 | V5 לרשימה מלאה |
+| פורטל Gupshup | תבניות, מספרים, webhooks, retention | ערוץ PII | הגדרות חשבון | V1 שליחה / V5 פנים |
+| פורטל Resend | דומיין, logs, retention, webhooks | מייל PII | הגדרות חשבון | V1 שליחה / V5 פנים |
+| PayPal | האם יש חיובים חיים, MFA, הרשאות | סיכון פיננסי | שימוש שוטף | V5 |
+| Make.com | תרחישים פעילים ויעד URL | DLR/פרטיות | מצב חי | V5 |
+| Google Cloud / Search Console | בעלות GCS OG + verification | נכסים חיצוניים | בעלות | V2/V5 |
+| Lovable | מפתח חי, לוגים, מדיניות | תוכן צ'אט | הצלחת שיחה | V5 |
+| MFA לכל הספקים | האם מופעל | תלות באדם/חשבון | סטטוס MFA | V5 |
+| DPA / הסכמי ספקים | מעבדי משנה | Enterprise/ציות | מסמכים | V5 |
+| SLA | זמינות מובטחת | התחייבות ללקוחות | מסמכים | V5 |
+| מדיניות שמירת מידע | TTL אצל כל ספק | פרטיות | מדיניות בפועל | V5 |
+
+---
+
+# Vendor Readiness Score
+
+**שיטת ניקוד (מתוך 100):**  
+אבטחת מידע 15 · פרטיות 15 · זמינות 15 · תיעוד 10 · ניהול Secrets 10 · חלופות 10 · שקיפות 10 · רמת אימות 10 · מוכנות עסקית 5.
+
+כאשר חסר מידע מהותי — **ציון זמני עקב פערי מידע.** אין ציון מלא כאילו הכול נבדק.
+
+| ספק | אבטחה | פרטיות | זמינות | תיעוד | Secrets | חלופות | שקיפות | אימות | מוכנות | סה״כ /100 | סטטוס ציון |
+|-----|-------|--------|--------|------|---------|--------|--------|-------|--------|-----------|------------|
+| Hostinger | 8 | 6 | 10 | 6 | 6 | 3 | 7 | 9 | 3 | **58** | זמני — אין hPanel/SSH |
+| Let's Encrypt | 12 | 10 | 8 | 8 | 8 | 4 | 10 | 9 | 4 | **73** | זמני — חידוש V5 |
+| Supabase | 9 | 8 | 12 | 7 | 7 | 2 | 8 | 10 | 3 | **66** | זמני — DPA/MFA/גיבויים V5 |
+| Cloudflare | 8 | 5 | 10 | 4 | 2 | 2 | 5 | 6 | 2 | **44** | זמני — חשבון/חוזה V5 |
+| GitHub | 7 | 5 | 11 | 8 | 6 | 4 | 8 | 10 | 3 | **62** | זמני — MFA צוות V5; Public מוריד פרטיות |
+| Gupshup | 8 | 6 | 10 | 6 | 7 | 4 | 7 | 10 | 3 | **61** | זמני — DPA/retention V5 |
+| WhatsApp/Meta channel | 7 | 6 | 9 | 5 | 5 | 5 | 6 | 9 | 3 | **55** | זמני — מדיניות שמירה V5 |
+| Resend | 7 | 6 | 10 | 6 | 7 | 3 | 7 | 10 | 3 | **59** | זמני — DPA + הקשחת functions |
+| PayPal | 5 | 4 | 5 | 4 | 4 | 3 | 4 | 5 | 2 | **36** | זמני — שימוש לא מאומת |
+| data.gov.il | 10 | 12 | 8 | 8 | 10 | 8 | 10 | 9 | 4 | **79** | זמני קל — מקור ציבורי |
+| Google Fonts | 8 | 6 | 10 | 7 | 10 | 7 | 8 | 9 | 4 | **69** | זמני — היקף מטא V5 |
+| Google Verification | 8 | 8 | 9 | 6 | 8 | 5 | 7 | 8 | 3 | **62** | זמני — Search Console V5 |
+| GCS OG | 6 | 6 | 8 | 4 | 5 | 7 | 5 | 6 | 2 | **49** | זמני — בעלות V5 |
+| Lovable | 5 | 4 | 5 | 4 | 5 | 6 | 4 | 5 | 2 | **40** | זמני — שיחה/retention V5 |
+| Twilio | 6 | 8 | 4 | 5 | 3 | 5 | 6 | 9 | 1 | **47** | זמני — לא פעיל; פער מוצר |
+| ElevenLabs | 6 | 8 | 4 | 5 | 3 | 5 | 6 | 9 | 1 | **47** | זמני — לא פעיל |
+| Make.com | 4 | 3 | 3 | 5 | 3 | 4 | 3 | 3 | 1 | **29** | זמני — מצב חי V5 |
+| OpenAI (קוד) | 4 | 4 | 2 | 4 | 3 | 5 | 4 | 8 | 1 | **35** | זמני — לא ב-Prod |
+| Anthropic (קוד) | 4 | 4 | 2 | 4 | 3 | 5 | 4 | 8 | 1 | **35** | זמני — לא ב-Prod |
+| Gemini/OAuth marketing | 4 | 4 | 2 | 4 | 3 | 5 | 4 | 8 | 1 | **35** | זמני — לא ב-Prod |
+| מקבץ כלי site-build | 4 | 4 | 2 | 3 | 3 | 5 | 3 | 7 | 1 | **32** | זמני — לא ב-Prod |
+| Deepgram | 3 | 5 | 1 | 2 | 5 | 5 | 2 | 3 | 1 | **27** | זמני — אזכור בלבד V4 |
+
+---
+
+# Overall Vendor Score
+
+## חישוב
+1. משקל לפי קריטיות תפעולית מאומתת:
+   - ליבה קריטית (Supabase, Hostinger): משקל 3
+   - ערוצים קריטיים מאומתים (Gupshup, Resend, Let's Encrypt, GitHub): משקל 2
+   - משלימים מאומתים (data.gov.il, Google Fonts, Verification, GCS, Cloudflare, WhatsApp channel, Lovable): משקל 1
+   - לא פעילים / לא מאומתים (Twilio, ElevenLabs, Make, PayPal, AI marketing, Deepgram): משקל 0.5  
+   PayPal במשקל 0.5 כי חיוב שוטף לא אומת.
+2. ממוצע משוקלל של ציוני ה-Readiness לעיל.
+
+**חישוב מספרי (מעוגל):**
+`(58×3 + 66×3 + 73×2 + 61×2 + 59×2 + 62×2 + 55×1 + 44×1 + 79×1 + 69×1 + 62×1 + 49×1 + 40×1 + 36×0.5 + 47×0.5 + 47×0.5 + 29×0.5 + 35×0.5 + 35×0.5 + 35×0.5 + 32×0.5 + 27×0.5) / (3+3+2+2+2+2+1×7+0.5×9)`
+
+סכום משוקלל ≈ **1441.5** · סכום משקלות ≈ **25.5** → **Overall ≈ 57 / 100**
+
+## פירוש
+| נושא | פירוט |
+|------|--------|
+| ציון כולל | **57 / 100** |
+| סטטוס | **ציון זמני עקב פערי מידע** |
+| מה העלה | אימות חי של Supabase/Hostinger/Gupshup/Resend/LE/GitHub; הפרדת סביבות מתועדת; ספקי קוד-לא-פעיל לא הוצגו כ-Prod |
+| מה הוריד | היעדר DPA/SLA/MFA מאומתים; אין חלופות פעילות לליבה; Make/PayPal לא מאומתים; פערים Twilio/EL/marketing; repo Public + לוגים; פער Nginx headers |
+| ספקים משפיעים עיקרית | Supabase, Hostinger, Gupshup, Resend, GitHub |
+| סופי? | **לא סופי** — דורש ביקורת פורטלים והסכמים |
+
+---
+
+# מסקנות כרך ד׳
+
+## מצב מערך הספקים כיום
+מערך הייצור מתבסס על **Hostinger + Supabase** כליבה, עם ערוצי תקשורת מאומתים **Gupshup (WhatsApp) ו-Resend (Email)**, CI ב-**GitHub**, ו-TLS מ-**Let's Encrypt**. ספקי Voice ורוב מודולי ה-AI השיווקיים **אינם פעילים ב-Production** למרות קיומם בקוד.
+
+## נקודות חוזקה
+- ליבה וערוצי התראות מרכזיים **אומתו מול Production** (V1).
+- קיימת הפרדה מתועדת בין Production ל-Staging ברמת פרויקט Supabase.
+- מלאי ספקים בקוד שלא נפרסו **זוהה ולא סווג בטעות כפעיל**.
+- סתירת התיעוד הישן לגבי Gupshup **תוקנה בראיות E2E**.
+
+## נקודות חולשה
+- אין חלופה פעילה ל-Supabase/Hostinger (SPOF).
+- DPA/SLA/MFA/Retention לרוב הספקים — **לא ניתן לאמת – V5**.
+- Make.com וחיוב PayPal — מצב חי לא מאומת.
+- פערים בין קוד ל-Prod (Twilio/EL/marketing; headers).
+- GitHub Public + הופעת פרטי קשר בלוגי בדיקות.
+
+## ספקים קריטיים
+Supabase, Hostinger, Let's Encrypt, Gupshup, Resend, GitHub (לשינוי/CD).
+
+## ספקים לא מאומתים / לא פעילים
+- לא מאומת חי: Make.com, שימוש PayPal שוטף, Lovable chat success, בעלות GCS, חשבון Cloudflare נפרד, MFA/DPA.
+- לא פעילים ב-Prod: Twilio, ElevenLabs, OpenAI, Anthropic, Gemini/OAuth marketing, כלי site-build.
+- אזכור בלבד: Deepgram.
+
+## הסיכונים המרכזיים
+SPOF ליבה; פערי ציות (DPA); ערוצי תקשורת בלי Failover; אי-ודאות פיננסית (PayPal); חשיפת תהליך/לוגים ב-GitHub; מלאי ספקים בקוד שעלול להיפרס בטעות.
+
+## פעולות דחופות (עכשיו)
+1. איסוף DPA/הסכמים ל-Supabase, Gupshup, Resend, Hostinger, GitHub (אם רלוונטי), PayPal.
+2. אימות MFA ובעלות חשבון לכל ספק קריטי (ראיון Owner + צילומי מסך).
+3. סקירת הקשחת כל Edge של מייל/WhatsApp ב-Prod.
+4. ניטור תפוגת TLS (לפני 2026-10-04) + Uptime לפרונט.
+5. אימות Make.com (יעד webhook) ומצב PayPal (האם יש חיובים).
+6. Redaction ללוגי E2E / צמצום PII ב-GitHub Actions.
+
+## פעולות ל-30 יום
+1. SSH/hPanel RO — יישור security headers ותיעוד שחזור Hostinger.
+2. Supabase Dashboard RO — backups, RLS summary, logs retention.
+3. נוהל תקשורת גיבוי (מייל/טלפון) לנפילת Gupshup.
+4. החלטת מוצר: Twilio/ElevenLabs/Deepgram/marketing AI — הסרה מ-UI או תוכנית הפעלה.
+5. יישור תיעוד: default branch / מקור אמת ל-deploy (`main`).
+6. העברת נכס OG לבעלות ברורה.
+
+## פעולות ל-90 יום
+1. מסמך Exit Strategy ל-Supabase ול-Gupshup.
+2. בחינת ספק מייל משני או נוהל DR מתועד.
+3. השלמת מפת מעבדי משנה ללקוחות Enterprise.
+4. תרגיל שחזור (restore) מתועד — אם גיבויים יאומתו.
+5. סגירת פערי V5 ברשימת הביקורת הנוספת לעיל.
+
+## מוכנות ללקוחות גדולים / Enterprise
+**לא מוכן להתחייבות Enterprise על בסיס מערך הספקים הנוכחי כפי שאומת.**  
+חסרים: DPA/SLA מאומתים, הוכחות MFA/גיבויים, חלופות/DR לליבה, שקיפות מלאה על Make/PayPal, והקשחת תהליכי CI/לוגים.
+
+## מה חייב טיפול לפני התחייבות Enterprise
+- DPA לכל מעבד פעיל עם PII (לפחות Supabase, Gupshup, Resend).
+- הוכחת גיבויים ושחזור ל-Supabase + שחזור פרונט.
+- MFA ובעלות כפולה לחשבונות קריטיים.
+- הצהרת מלאי ספקים מדויקת (בלי Voice/AI לא פעילים כאילו פעילים).
+- סגירת אי-ודאות PayPal/Make.
+- מדיניות לוגים ב-CI ללא PII.
+
+---
+
+# פערי מידע שנותרו (לא ניתן לאמת – V5) — רשימת סיכום
+
+| נושא | סטטוס |
+|------|--------|
+| DPA / SLA לכל הספקים | לא ניתן לאמת – V5 |
+| MFA בחשבונות ספקים | לא ניתן לאמת – V5 |
+| בעלות/אדם יחיד על חשבונות | לא ניתן לאמת – V5 |
+| שמירת מידע / TTL אצל Gupshup/Resend/PayPal/Lovable/Make | לא ניתן לאמת – V5 |
+| חידוש אוטומטי של Let's Encrypt | לא ניתן לאמת – V5 |
+| תוכניות גיבוי/שחזור Hostinger + Supabase | לא ניתן לאמת – V5 |
+| מצב Make.com החי מול Production | לא ניתן לאמת – V5 |
+| שימוש שוטף / חיובים ב-PayPal | לא ניתן לאמת – V5 |
+| הצלחת שיחת Lovable חיה | לא ניתן לאמת – V5 |
+| בעלות חשבון GCS לנכס OG | לא ניתן לאמת – V5 |
+| חשבון Cloudflare נפרד לדליה | לא ניתן לאמת – V5 |
+| רשימת Secrets מלאה ב-GitHub/Supabase | לא ניתן לאמת – V5 (403 / אין Dashboard) |
+| RTO/RPO | לא ניתן לאמת – V5 |
+| לוגים פנימיים ב-Hostinger (PII) | לא ניתן לאמת – V5 |
+
+---
+
+
+
+---
+
+# נספח א — שימור ראיות מהגרסה הקודמת של כרך ד׳
+
+הפרטים הבאים הופיעו בגרסה הקודמת של הקובץ ושומרו כאן במפורש (ללא מחיקת ממצאים מאומתים), גם אם שולבו במבנה 27–32:
+
+| פריט | פירוט שנשמר | ודאות |
+|------|-------------|--------|
+| DNS Hostinger | NS `hyperion.dns-parking.com` / `atlas.dns-parking.com` | V1 |
+| TLS issuer | `O = Let's Encrypt, CN = YE2` | V1 |
+| Gupshup UI | `GupshupWhatsAppSection` | V3/V1 bundle |
+| Gupshup webhook | `gupshup-webhook` GET 200 ב-Prod | V1 |
+| Resend functions | כולל `send-supplier-order-email` (בקוד) | V3 |
+| Resend from ישן בתיעוד | `onboarding@resend.dev` — לא אומת כשולח נוכחי | V5 |
+| PayPal | לא בוצע `charge_all_due` במסגרת הביקורת | V1 לאי-ביצוע |
+| Twilio secret names | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` | V3 |
+| ElevenLabs | function `elevenlabs-conversation-token`; `api.elevenlabs.io` ב-bundle; SDK ב-`package.json` | V1/V3 |
+| ElevenLabs secret names | `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`, `ELEVENLABS_AGENT_PHONE_NUMBER_ID` | V3 |
+| Lovable endpoint | `https://ai.gateway.lovable.dev/v1/chat/completions` | V3 |
+| data.gov.il | `datastore_search` דרך `vehicle-lookup` | V3/V1 |
+| Make docs path | `public/project-001/`; Owner-Make docs; יעד Staging webhook | V3 |
+| VPS env names | `dalia-ops/.env`, `OPS_*` לפי docs/workflows | V3 |
+| Repo | `orin1607-ctrl/future-craft-core` Public | V1 |
+| חידוש LE מוצע | `certbot renew --dry-run` — **לא בוצע** (אין SSH) | V5 |
+| כלל עבודה | Read Only — אין Deploy / שינוי Secrets / שליחות / חיובים במסגרת משימה זו | V1 לתהליך |
+
+# אישור מתודולוגיה לסיום כרך ד׳
+
+| בדיקה | תוצאה |
+|-------|--------|
+| סעיפים 27–32 קיימים לפי הסדר | כן |
+| כרטיס אחיד לכל ספק שנמצא | כן |
+| הפרדת קבוצות א/ב/ג | כן (§27) |
+| מפת זרימה + מטריצות + ציונים + מסקנות | כן |
+| לא הוצג ספק קוד-בלבד כ-Production פעיל | כן |
+| עריכת מסמך בלבד — ללא שינוי מערכת | כן |
+
+**סוף כרך ד׳ – ספקים**
