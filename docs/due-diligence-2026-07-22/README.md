@@ -1,5 +1,7 @@
 # תיק נאותות דליה — 2026-07-22
 
+**כרך ד' – ספקים:** [`VOLUME-D-VENDORS-HE.md`](./VOLUME-D-VENDORS-HE.md)
+
 **דוח ראשי (15 פרקים):** [`FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md`](./FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md)
 
 # תיק נאותות / אבטחה / פרטיות — דליה — 2026-07-22
