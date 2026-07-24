@@ -10,6 +10,8 @@
 
 **כרך ח' – הרשאות:** [`VOLUME-H-ROLES-HE.md`](./VOLUME-H-ROLES-HE.md)
 
+**כרך ט' – קוד / איכות הקוד:** [`VOLUME-I-CODE-HE.md`](./VOLUME-I-CODE-HE.md)
+
 **דוח ראשי (15 פרקים):** [`FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md`](./FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md)
 
 # תיק נאותות / אבטחה / פרטיות — דליה — 2026-07-22
