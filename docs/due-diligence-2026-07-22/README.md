@@ -14,6 +14,8 @@
 
 **כרך י' – רישום סיכונים:** [`VOLUME-J-RISKS-HE.md`](./VOLUME-J-RISKS-HE.md)
 
+**כרך י"א – פרטיות:** [`VOLUME-K-PRIVACY-HE.md`](./VOLUME-K-PRIVACY-HE.md)
+
 **דוח ראשי (15 פרקים):** [`FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md`](./FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md)
 
 # תיק נאותות / אבטחה / פרטיות — דליה — 2026-07-22
