@@ -2,6 +2,8 @@
 
 **כרך ד' – ספקים:** [`VOLUME-D-VENDORS-HE.md`](./VOLUME-D-VENDORS-HE.md)
 
+**כרך ה' – מסד נתונים:** [`VOLUME-E-DATABASE-HE.md`](./VOLUME-E-DATABASE-HE.md)
+
 **דוח ראשי (15 פרקים):** [`FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md`](./FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md)
 
 # תיק נאותות / אבטחה / פרטיות — דליה — 2026-07-22
