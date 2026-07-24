@@ -4,6 +4,8 @@
 
 **כרך ה' – מסד נתונים:** [`VOLUME-E-DATABASE-HE.md`](./VOLUME-E-DATABASE-HE.md)
 
+**כרך ו' – מידע:** [`VOLUME-F-DATA-HE.md`](./VOLUME-F-DATA-HE.md)
+
 **דוח ראשי (15 פרקים):** [`FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md`](./FULL-SECURITY-DUE-DILIGENCE-REPORT-HE.md)
 
 # תיק נאותות / אבטחה / פרטיות — דליה — 2026-07-22
