@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,15 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getThirdPartyInsuranceExpiry } from '@/lib/vehicleInsuranceUtils';
-import {
-  getDaysLeft,
-  getExpirySeverity,
-  type ExpirySeverity,
-} from '@/lib/vehicleExpiryShared';
-import { SearchableFilterField } from '@/components/SearchableFilterField';
+import { formatVehicleIds } from '@/components/vehicles/vehiclePlateDisplay';
 
 // ─── Alerts Types ───
-type AlertSeverity = ExpirySeverity;
+type AlertSeverity = 'critical' | 'warning' | 'info';
 type AlertCategory =
   | 'test'
   | 'insurance'
@@ -35,13 +30,11 @@ interface AlertItem {
   severity: AlertSeverity;
   title: string;
   subtitle: string;
+  internalNumber?: string;
   daysLeft: number | null;
   date: string | null;
   meta?: string;
   link?: string;
-  /** מספר פנימי של הרכב (לחיפוש בלשונית התראות) */
-  internalNumber?: string | null;
-  vehiclePlate?: string | null;
 }
 
 const categoryLabels: Record<AlertCategory, string> = {
@@ -78,7 +71,18 @@ const severityBadge: Record<AlertSeverity, string> = {
   info: 'bg-blue-500 text-white',
 };
 
-// getDaysLeft / getExpirySeverity shared with Reports via vehicleExpiryShared
+function getDaysLeft(dateStr: string | null): number | null {
+  if (!dateStr) return null;
+  const diff = new Date(dateStr).getTime() - new Date().getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+function getSeverity(daysLeft: number | null): AlertSeverity {
+  if (daysLeft === null) return 'info';
+  if (daysLeft <= 0) return 'critical';
+  if (daysLeft <= 14) return 'warning';
+  return 'info';
+}
 
 // ─── Updates (System Logs) Types ───
 interface LogEntry {
@@ -118,10 +122,6 @@ export default function Alerts() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [alertFilter, setAlertFilter] = useState<AlertCategory | 'all'>('all');
-  const [filterVehicle, setFilterVehicle] = useState('');
-  const [filterInternal, setFilterInternal] = useState('');
-  const [vehiclePlates, setVehiclePlates] = useState<string[]>([]);
-  const [internalNumbers, setInternalNumbers] = useState<string[]>([]);
 
   // Updates state
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -148,34 +148,48 @@ export default function Alerts() {
   const loadAlerts = async () => {
     setAlertsLoading(true);
     const allAlerts: AlertItem[] = [];
-    const plateToInternal: Record<string, string> = {};
+    const plateToInternal = new Map<string, string>();
+
+    const internalForPlate = (plate?: string | null) => {
+      const key = String(plate || '').replace(/[-\s]/g, '').trim();
+      if (!key) return undefined;
+      return plateToInternal.get(key);
+    };
+
+    const vehicleLabel = (v: { manufacturer?: string | null; model?: string | null; license_plate?: string | null; internal_number?: string | null }) => {
+      const plate = v.license_plate || '';
+      const internal = (v.internal_number || '').trim();
+      const ids = formatVehicleIds(plate, internal);
+      const make = `${v.manufacturer || ''} ${v.model || ''}`.trim();
+      return make ? `${make} — ${ids}` : ids;
+    };
 
     // 1. Vehicle expiries
     const { data: vehicles } = await applyCompanyScope(supabase.from('vehicles').select('*'), companyFilter);
     if (vehicles) {
-      const internals: string[] = [];
-      const plates: string[] = [];
       for (const v of vehicles) {
-        const plate = v.license_plate;
+        const plateKey = String(v.license_plate || '').replace(/[-\s]/g, '').trim();
         const internal = (v.internal_number || '').trim();
-        if (plate && internal) plateToInternal[plate] = internal;
-        if (internal) internals.push(internal);
-        if (plate) plates.push(plate);
-        const label = `${v.manufacturer || ''} ${v.model || ''} - ${plate}`.trim();
+        if (plateKey && internal) plateToInternal.set(plateKey, internal);
+      }
+
+      for (const v of vehicles) {
+        const label = vehicleLabel(v);
+        const internalNumber = (v.internal_number || '').trim() || undefined;
 
         const testDays = getDaysLeft(v.test_expiry);
         if (testDays !== null && testDays <= 30) {
-          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getExpirySeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, daysLeft: testDays, date: v.test_expiry, link: buildVehicleHubUrl(v.id), internalNumber: internal || null, vehiclePlate: plate });
+          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, internalNumber, daysLeft: testDays, date: v.test_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const insDays = getDaysLeft(v.insurance_expiry);
         if (insDays !== null && insDays <= 30) {
-          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getExpirySeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, daysLeft: insDays, date: v.insurance_expiry, link: buildVehicleHubUrl(v.id), internalNumber: internal || null, vehiclePlate: plate });
+          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, internalNumber, daysLeft: insDays, date: v.insurance_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
         if (compDays !== null && compDays <= 30) {
-          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getExpirySeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id), internalNumber: internal || null, vehiclePlate: plate });
+          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, internalNumber, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const thirdExpiry = getThirdPartyInsuranceExpiry(v);
@@ -184,22 +198,16 @@ export default function Alerts() {
           allAlerts.push({
             id: `third-${v.id}`,
             category: 'third_party_insurance',
-            severity: getExpirySeverity(thirdDays),
+            severity: getSeverity(thirdDays),
             title: thirdDays <= 0 ? 'ביטוח צד ג׳ פג!' : 'ביטוח צד ג׳ עומד לפוג',
             subtitle: label,
+            internalNumber,
             daysLeft: thirdDays,
             date: thirdExpiry,
             link: buildVehicleHubUrl(v.id),
-            internalNumber: internal || null,
-            vehiclePlate: plate,
           });
         }
       }
-      setInternalNumbers([...new Set(internals)].sort((a, b) => a.localeCompare(b, 'he', { numeric: true })));
-      setVehiclePlates([...new Set(plates)].sort((a, b) => a.localeCompare(b, 'he', { numeric: true })));
-    } else {
-      setInternalNumbers([]);
-      setVehiclePlates([]);
     }
 
     // 2. Driver license expiries
@@ -208,7 +216,7 @@ export default function Alerts() {
       for (const d of drivers) {
         const licDays = getDaysLeft(d.license_expiry);
         if (licDays !== null && licDays <= 30) {
-          allAlerts.push({ id: `lic-${d.id}`, category: 'license', severity: getExpirySeverity(licDays), title: licDays <= 0 ? 'רישיון נהיגה פג!' : 'רישיון עומד לפוג', subtitle: d.full_name, daysLeft: licDays, date: d.license_expiry, meta: d.phone || undefined, link: '/drivers' });
+          allAlerts.push({ id: `lic-${d.id}`, category: 'license', severity: getSeverity(licDays), title: licDays <= 0 ? 'רישיון נהיגה פג!' : 'רישיון עומד לפוג', subtitle: d.full_name, daysLeft: licDays, date: d.license_expiry, meta: d.phone || undefined, link: '/drivers' });
         }
       }
     }
@@ -220,7 +228,7 @@ export default function Alerts() {
         if (examExpiry) {
           const examDays = getDaysLeft(examExpiry);
           if (examDays !== null && examDays <= 30) {
-            allAlerts.push({ id: `exam-${d.id}`, category: 'license', severity: getExpirySeverity(examDays), title: examDays <= 0 ? 'תוקף מבחן נהיגה פג!' : 'מבחן נהיגה עומד לפוג', subtitle: d.full_name, daysLeft: examDays, date: examExpiry, meta: d.phone || undefined, link: '/drivers' });
+            allAlerts.push({ id: `exam-${d.id}`, category: 'license', severity: getSeverity(examDays), title: examDays <= 0 ? 'תוקף מבחן נהיגה פג!' : 'מבחן נהיגה עומד לפוג', subtitle: d.full_name, daysLeft: examDays, date: examExpiry, meta: d.phone || undefined, link: '/drivers' });
           }
         }
       }
@@ -233,8 +241,19 @@ export default function Alerts() {
     );
     if (faults) {
       for (const f of faults) {
-        const plate = f.vehicle_plate || null;
-        allAlerts.push({ id: `fault-${f.id}`, category: 'fault', severity: 'critical', title: `תקלה דחופה - ${f.fault_type || 'כללי'}`, subtitle: `${f.vehicle_plate || 'ללא רכב'} • ${f.driver_name || 'ללא נהג'}`, daysLeft: null, date: f.date ? new Date(f.date).toISOString().split('T')[0] : null, meta: f.description || undefined, link: f.vehicle_plate ? buildVehicleContextUrl('/faults', { plate: f.vehicle_plate }) : '/faults', vehiclePlate: plate, internalNumber: plate ? plateToInternal[plate] || null : null });
+        const internalNumber = internalForPlate(f.vehicle_plate);
+        allAlerts.push({
+          id: `fault-${f.id}`,
+          category: 'fault',
+          severity: 'critical',
+          title: `תקלה דחופה - ${f.fault_type || 'כללי'}`,
+          subtitle: `${f.vehicle_plate || 'ללא רכב'} • ${f.driver_name || 'ללא נהג'}`,
+          internalNumber,
+          daysLeft: null,
+          date: f.date ? new Date(f.date).toISOString().split('T')[0] : null,
+          meta: f.description || undefined,
+          link: f.vehicle_plate ? buildVehicleContextUrl('/faults', { plate: f.vehicle_plate }) : '/faults',
+        });
       }
     }
 
@@ -248,18 +267,18 @@ export default function Alerts() {
         const daysSince = Math.floor((Date.now() - new Date(vt.created_at).getTime()) / (1000 * 60 * 60 * 24));
         const isOverdue = vt.follow_up_date && new Date(vt.follow_up_date) < new Date();
         const severity: AlertSeverity = isOverdue ? 'critical' : daysSince > 7 ? 'warning' : 'info';
+        const internalNumber = internalForPlate(vt.vehicle_plate);
         allAlerts.push({
           id: `defect-${vt.id}`,
           category: 'fault',
           severity,
           title: isOverdue ? `ליקוי באיחור: ${vt.title}` : `ליקוי פתוח: ${vt.title}`,
           subtitle: `רכב ${vt.vehicle_plate || '—'} • ${daysSince} ימים`,
+          internalNumber,
           daysLeft: vt.follow_up_date ? Math.floor((new Date(vt.follow_up_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null,
           date: vt.created_at?.split('T')[0] || null,
           meta: vt.description || undefined,
           link: vt.vehicle_plate ? buildVehicleContextUrl('/vehicle-tasks', { plate: vt.vehicle_plate }) : '/vehicle-tasks',
-          vehiclePlate: vt.vehicle_plate || null,
-          internalNumber: vt.vehicle_plate ? plateToInternal[vt.vehicle_plate] || null : null,
         });
       }
     }
@@ -274,18 +293,18 @@ export default function Alerts() {
         const daysLeft = getDaysLeft(ca.alert_date);
         if (daysLeft === null || daysLeft > 30) continue;
         const plate = plateFromAlertText(ca.description) || plateFromAlertText(ca.title);
+        const internalNumber = internalForPlate(plate);
         allAlerts.push({
           id: `custom-${ca.id}`,
           category: 'service_order',
-          severity: getExpirySeverity(daysLeft),
+          severity: getSeverity(daysLeft),
           title: ca.title,
           subtitle: plate ? `רכב ${plate}` : ca.description?.split('\n')[0] || '',
+          internalNumber,
           daysLeft,
           date: ca.alert_date,
           meta: ca.description || undefined,
           link: plate ? buildVehicleContextUrl('/vehicles', { plate }) : '/alerts',
-          vehiclePlate: plate || null,
-          internalNumber: plate ? plateToInternal[plate] || null : null,
         });
       }
     }
@@ -299,18 +318,18 @@ export default function Alerts() {
       for (const so of serviceOrders) {
         const isUrgent = so.urgency === 'urgent' || so.urgency === 'critical';
         const severity: AlertSeverity = isUrgent ? 'critical' : so.treatment_status === 'new' ? 'warning' : 'info';
+        const internalNumber = internalForPlate(so.vehicle_plate);
         allAlerts.push({
           id: `so-${so.id}`,
           category: 'service_order',
           severity,
           title: isUrgent ? `הזמנת שירות דחופה` : `הזמנת שירות ${so.treatment_status === 'new' ? 'חדשה' : 'בטיפול'}`,
           subtitle: `${so.vehicle_plate || 'ללא רכב'} • ${so.driver_name || 'ללא נהג'}`,
+          internalNumber,
           daysLeft: null,
           date: so.created_at ? new Date(so.created_at).toISOString().split('T')[0] : null,
           meta: `${so.service_category || ''} ${so.description ? '- ' + so.description : ''}`.trim() || undefined,
           link: so.vehicle_plate ? buildVehicleContextUrl('/service-orders', { plate: so.vehicle_plate }) : '/service-orders',
-          vehiclePlate: so.vehicle_plate || null,
-          internalNumber: so.vehicle_plate ? plateToInternal[so.vehicle_plate] || null : null,
         });
       }
     }
@@ -323,18 +342,18 @@ export default function Alerts() {
     if (assignments) {
       for (const wa of assignments) {
         const isPending = wa.status === 'pending';
+        const internalNumber = internalForPlate(wa.vehicle_plate);
         allAlerts.push({
           id: `wa-${wa.id}`,
           category: 'work_assignment',
           severity: isPending ? 'warning' : 'info',
           title: isPending ? 'סידור עבודה ממתין לאישור' : 'סידור עבודה פעיל',
           subtitle: `${wa.driver_name || 'ללא נהג'} • ${wa.vehicle_plate || 'ללא רכב'}`,
+          internalNumber,
           daysLeft: null,
           date: wa.scheduled_date || null,
           meta: wa.title || undefined,
           link: '/work-orders',
-          vehiclePlate: wa.vehicle_plate || null,
-          internalNumber: wa.vehicle_plate ? plateToInternal[wa.vehicle_plate] || null : null,
         });
       }
     }
@@ -357,23 +376,11 @@ export default function Alerts() {
     setLogsLoading(false);
   };
 
-  const alertsForEntity = useMemo(() => {
-    return alerts.filter((a) => {
-      if (filterVehicle && a.vehiclePlate !== filterVehicle) return false;
-      if (filterInternal && a.internalNumber !== filterInternal) return false;
-      return true;
-    });
-  }, [alerts, filterVehicle, filterInternal]);
-
-  const filteredAlerts =
-    alertFilter === 'all'
-      ? alertsForEntity
-      : alertsForEntity.filter((a) => a.category === alertFilter);
-
+  const filteredAlerts = alertFilter === 'all' ? alerts : alerts.filter(a => a.category === alertFilter);
   const alertCounts = {
-    all: alertsForEntity.length,
-    critical: alertsForEntity.filter((a) => a.severity === 'critical').length,
-    warning: alertsForEntity.filter((a) => a.severity === 'warning').length,
+    all: alerts.length,
+    critical: alerts.filter(a => a.severity === 'critical').length,
+    warning: alerts.filter(a => a.severity === 'warning').length,
   };
   const categories: (AlertCategory | 'all')[] = [
     'all',
@@ -386,11 +393,6 @@ export default function Alerts() {
     'service_order',
     'work_assignment',
   ];
-
-  const selectClass =
-    'w-full p-3 text-base rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none';
-
-  const entityFilterActive = Boolean(filterVehicle || filterInternal);
 
   const filteredLogs = logs.filter(l => {
     if (logSearch && !l.user_name.includes(logSearch) && !l.details.includes(logSearch) && !l.vehicle_plate.includes(logSearch) && !l.entity_id.includes(logSearch)) return false;
@@ -412,9 +414,9 @@ export default function Alerts() {
           <TabsTrigger value="alerts" className="text-base font-bold gap-2">
             <Bell size={18} />
             התראות
-            {alerts.length > 0 && (
+            {alertCounts.all > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
-                {alerts.length}
+                {alertCounts.all}
               </span>
             )}
           </TabsTrigger>
@@ -434,34 +436,6 @@ export default function Alerts() {
 
         {/* ─── Alerts Tab ─── */}
         <TabsContent value="alerts" className="space-y-4 mt-4">
-          {/* Plate + internal search — same autocomplete as Reports */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl">
-            <div>
-              <label className="block text-sm font-medium mb-1">מספר רכב</label>
-              <SearchableFilterField
-                value={filterVehicle}
-                onChange={setFilterVehicle}
-                options={vehiclePlates}
-                placeholder="הכל / הקלידו לחיפוש..."
-                searchPlaceholder="חיפוש מספר רכב..."
-                emptyText="לא נמצא מספר רכב"
-                triggerClassName={selectClass}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">מספר פנימי</label>
-              <SearchableFilterField
-                value={filterInternal}
-                onChange={setFilterInternal}
-                options={internalNumbers}
-                placeholder="הכל / הקלידו לחיפוש..."
-                searchPlaceholder="חיפוש מספר פנימי..."
-                emptyText="לא נמצא מספר פנימי"
-                triggerClassName={selectClass}
-              />
-            </div>
-          </div>
-
           {/* Severity Counters */}
           <div className="flex items-center gap-3 flex-wrap">
             {alertCounts.critical > 0 && (
@@ -482,7 +456,7 @@ export default function Alerts() {
           {/* Category Filter */}
           <div className="flex gap-2 flex-wrap">
             {categories.map(cat => {
-              const count = cat === 'all' ? alertsForEntity.length : alertsForEntity.filter(a => a.category === cat).length;
+              const count = cat === 'all' ? alerts.length : alerts.filter(a => a.category === cat).length;
               if (cat !== 'all' && count === 0) return null;
               return (
                 <button key={cat} onClick={() => setAlertFilter(cat)}
@@ -502,64 +476,100 @@ export default function Alerts() {
           {!alertsLoading && filteredAlerts.length === 0 && (
             <div className="card-elevated text-center py-16">
               <CheckCircle2 className="mx-auto mb-4 text-green-500" size={48} />
-              <p className="text-xl font-bold text-foreground">
-                {entityFilterActive ? 'אין התראות לסינון שנבחר' : 'הכל תקין! 🎉'}
-              </p>
-              <p className="text-muted-foreground mt-2">
-                {filterVehicle && filterInternal
-                  ? `לא נמצאו התראות עבור רכב ${filterVehicle} / מספר פנימי ${filterInternal}`
-                  : filterVehicle
-                    ? `לא נמצאו התראות פעילות עבור רכב ${filterVehicle}`
-                    : filterInternal
-                      ? `לא נמצאו התראות פעילות עבור מספר פנימי ${filterInternal}`
-                      : 'אין התראות פעילות כרגע'}
-              </p>
+              <p className="text-xl font-bold text-foreground">הכל תקין! 🎉</p>
+              <p className="text-muted-foreground mt-2">אין התראות פעילות כרגע</p>
             </div>
           )}
 
           {!alertsLoading && filteredAlerts.length > 0 && (
-            <div className="space-y-3">
-              {filteredAlerts.map(alert => {
-                const Icon = categoryIcons[alert.category];
-                return (
-                  <div key={alert.id}
-                    onClick={() => alert.link && navigate(alert.link)}
-                    className={`rounded-2xl border-2 p-5 transition-all hover:shadow-md ${alert.link ? 'cursor-pointer' : ''} ${severityStyles[alert.severity]}`}>
-                    <div className="flex items-start gap-4">
-                      <div className={`p-3 rounded-xl ${severityBadge[alert.severity]}`}>
-                        <Icon size={22} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="font-bold text-lg">{alert.title}</h3>
+            <>
+              <div className="hidden md:block card-elevated overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground text-xs">
+                      <th className="p-3 text-right font-semibold">סוג</th>
+                      <th className="p-3 text-right font-semibold">כותרת</th>
+                      <th className="p-3 text-right font-semibold">פרטים</th>
+                      <th className="p-3 text-right font-semibold">מספר פנימי</th>
+                      <th className="p-3 text-right font-semibold">ימים</th>
+                      <th className="p-3 text-right font-semibold">תאריך</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAlerts.map((alert) => (
+                      <tr
+                        key={alert.id}
+                        onClick={() => alert.link && navigate(alert.link)}
+                        className={`border-b border-border/50 ${alert.link ? 'cursor-pointer hover:bg-muted/30' : ''}`}
+                      >
+                        <td className="p-3 whitespace-nowrap">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${severityBadge[alert.severity]}`}>
                             {categoryLabels[alert.category]}
                           </span>
+                        </td>
+                        <td className="p-3 font-medium">{alert.title}</td>
+                        <td className="p-3 text-muted-foreground max-w-[240px] truncate">{alert.subtitle}</td>
+                        <td className="p-3 font-mono text-xs whitespace-nowrap">{alert.internalNumber || '—'}</td>
+                        <td className="p-3 whitespace-nowrap font-bold">
+                          {alert.daysLeft !== null ? (alert.daysLeft <= 0 ? 'פג!' : `${alert.daysLeft} ימים`) : '—'}
+                        </td>
+                        <td className="p-3 whitespace-nowrap text-muted-foreground">
+                          {alert.date ? new Date(alert.date).toLocaleDateString('he-IL') : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="md:hidden space-y-3">
+                {filteredAlerts.map(alert => {
+                  const Icon = categoryIcons[alert.category];
+                  return (
+                    <div key={alert.id}
+                      onClick={() => alert.link && navigate(alert.link)}
+                      className={`rounded-2xl border-2 p-5 transition-all hover:shadow-md ${alert.link ? 'cursor-pointer' : ''} ${severityStyles[alert.severity]}`}>
+                      <div className="flex items-start gap-4">
+                        <div className={`p-3 rounded-xl ${severityBadge[alert.severity]}`}>
+                          <Icon size={22} />
                         </div>
-                        <p className="text-sm opacity-80 font-medium">{alert.subtitle}</p>
-                        {alert.meta && <p className="text-sm opacity-60 mt-1 line-clamp-2">{alert.meta}</p>}
-                        {alert.link && <p className="text-xs mt-2 opacity-70 underline">לחץ לצפייה →</p>}
-                      </div>
-                      <div className="text-left shrink-0">
-                        {alert.daysLeft !== null && (
-                          <div className="flex items-center gap-1.5">
-                            <Clock size={16} />
-                            <span className="font-bold text-lg">
-                              {alert.daysLeft <= 0 ? 'פג!' : `${alert.daysLeft} ימים`}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <h3 className="font-bold text-lg">{alert.title}</h3>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${severityBadge[alert.severity]}`}>
+                              {categoryLabels[alert.category]}
                             </span>
                           </div>
-                        )}
-                        {alert.date && (
-                          <p className="text-xs opacity-60 mt-1">
-                            {new Date(alert.date).toLocaleDateString('he-IL')}
-                          </p>
-                        )}
+                          <p className="text-sm opacity-80 font-medium">{alert.subtitle}</p>
+                          {alert.internalNumber && (
+                            <p className="text-sm opacity-70 mt-1">
+                              מספר פנימי: <span className="font-mono font-semibold">{alert.internalNumber}</span>
+                            </p>
+                          )}
+                          {alert.meta && <p className="text-sm opacity-60 mt-1 line-clamp-2">{alert.meta}</p>}
+                          {alert.link && <p className="text-xs mt-2 opacity-70 underline">לחץ לצפייה →</p>}
+                        </div>
+                        <div className="text-left shrink-0">
+                          {alert.daysLeft !== null && (
+                            <div className="flex items-center gap-1.5">
+                              <Clock size={16} />
+                              <span className="font-bold text-lg">
+                                {alert.daysLeft <= 0 ? 'פג!' : `${alert.daysLeft} ימים`}
+                              </span>
+                            </div>
+                          )}
+                          {alert.date && (
+                            <p className="text-xs opacity-60 mt-1">
+                              {new Date(alert.date).toLocaleDateString('he-IL')}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </TabsContent>
 
