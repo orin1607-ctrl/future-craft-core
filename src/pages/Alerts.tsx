@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getThirdPartyInsuranceExpiry } from '@/lib/vehicleInsuranceUtils';
 import { formatVehicleIds } from '@/components/vehicles/vehiclePlateDisplay';
+import { SearchableFilterField } from '@/components/SearchableFilterField';
 
 // ─── Alerts Types ───
 type AlertSeverity = 'critical' | 'warning' | 'info';
@@ -31,6 +32,7 @@ interface AlertItem {
   title: string;
   subtitle: string;
   internalNumber?: string;
+  vehiclePlate?: string | null;
   daysLeft: number | null;
   date: string | null;
   meta?: string;
@@ -122,6 +124,10 @@ export default function Alerts() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [alertFilter, setAlertFilter] = useState<AlertCategory | 'all'>('all');
+  const [filterVehicle, setFilterVehicle] = useState('');
+  const [filterInternal, setFilterInternal] = useState('');
+  const [vehiclePlates, setVehiclePlates] = useState<string[]>([]);
+  const [internalNumbers, setInternalNumbers] = useState<string[]>([]);
 
   // Updates state
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -167,29 +173,36 @@ export default function Alerts() {
     // 1. Vehicle expiries
     const { data: vehicles } = await applyCompanyScope(supabase.from('vehicles').select('*'), companyFilter);
     if (vehicles) {
+      const plates: string[] = [];
+      const internals: string[] = [];
       for (const v of vehicles) {
         const plateKey = String(v.license_plate || '').replace(/[-\s]/g, '').trim();
         const internal = (v.internal_number || '').trim();
         if (plateKey && internal) plateToInternal.set(plateKey, internal);
+        if (v.license_plate) plates.push(v.license_plate);
+        if (internal) internals.push(internal);
       }
+      setVehiclePlates([...new Set(plates)].sort((a, b) => a.localeCompare(b, 'he', { numeric: true })));
+      setInternalNumbers([...new Set(internals)].sort((a, b) => a.localeCompare(b, 'he', { numeric: true })));
 
       for (const v of vehicles) {
         const label = vehicleLabel(v);
         const internalNumber = (v.internal_number || '').trim() || undefined;
+        const vehiclePlate = v.license_plate || null;
 
         const testDays = getDaysLeft(v.test_expiry);
         if (testDays !== null && testDays <= 30) {
-          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, internalNumber, daysLeft: testDays, date: v.test_expiry, link: buildVehicleHubUrl(v.id) });
+          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, internalNumber, vehiclePlate, daysLeft: testDays, date: v.test_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const insDays = getDaysLeft(v.insurance_expiry);
         if (insDays !== null && insDays <= 30) {
-          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, internalNumber, daysLeft: insDays, date: v.insurance_expiry, link: buildVehicleHubUrl(v.id) });
+          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, internalNumber, vehiclePlate, daysLeft: insDays, date: v.insurance_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
         if (compDays !== null && compDays <= 30) {
-          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, internalNumber, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id) });
+          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, internalNumber, vehiclePlate, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id) });
         }
 
         const thirdExpiry = getThirdPartyInsuranceExpiry(v);
@@ -202,12 +215,16 @@ export default function Alerts() {
             title: thirdDays <= 0 ? 'ביטוח צד ג׳ פג!' : 'ביטוח צד ג׳ עומד לפוג',
             subtitle: label,
             internalNumber,
+            vehiclePlate,
             daysLeft: thirdDays,
             date: thirdExpiry,
             link: buildVehicleHubUrl(v.id),
           });
         }
       }
+    } else {
+      setVehiclePlates([]);
+      setInternalNumbers([]);
     }
 
     // 2. Driver license expiries
@@ -249,6 +266,7 @@ export default function Alerts() {
           title: `תקלה דחופה - ${f.fault_type || 'כללי'}`,
           subtitle: `${f.vehicle_plate || 'ללא רכב'} • ${f.driver_name || 'ללא נהג'}`,
           internalNumber,
+          vehiclePlate: f.vehicle_plate || null,
           daysLeft: null,
           date: f.date ? new Date(f.date).toISOString().split('T')[0] : null,
           meta: f.description || undefined,
@@ -275,6 +293,7 @@ export default function Alerts() {
           title: isOverdue ? `ליקוי באיחור: ${vt.title}` : `ליקוי פתוח: ${vt.title}`,
           subtitle: `רכב ${vt.vehicle_plate || '—'} • ${daysSince} ימים`,
           internalNumber,
+          vehiclePlate: vt.vehicle_plate || null,
           daysLeft: vt.follow_up_date ? Math.floor((new Date(vt.follow_up_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null,
           date: vt.created_at?.split('T')[0] || null,
           meta: vt.description || undefined,
@@ -301,6 +320,7 @@ export default function Alerts() {
           title: ca.title,
           subtitle: plate ? `רכב ${plate}` : ca.description?.split('\n')[0] || '',
           internalNumber,
+          vehiclePlate: plate || null,
           daysLeft,
           date: ca.alert_date,
           meta: ca.description || undefined,
@@ -326,6 +346,7 @@ export default function Alerts() {
           title: isUrgent ? `הזמנת שירות דחופה` : `הזמנת שירות ${so.treatment_status === 'new' ? 'חדשה' : 'בטיפול'}`,
           subtitle: `${so.vehicle_plate || 'ללא רכב'} • ${so.driver_name || 'ללא נהג'}`,
           internalNumber,
+          vehiclePlate: so.vehicle_plate || null,
           daysLeft: null,
           date: so.created_at ? new Date(so.created_at).toISOString().split('T')[0] : null,
           meta: `${so.service_category || ''} ${so.description ? '- ' + so.description : ''}`.trim() || undefined,
@@ -350,6 +371,7 @@ export default function Alerts() {
           title: isPending ? 'סידור עבודה ממתין לאישור' : 'סידור עבודה פעיל',
           subtitle: `${wa.driver_name || 'ללא נהג'} • ${wa.vehicle_plate || 'ללא רכב'}`,
           internalNumber,
+          vehiclePlate: wa.vehicle_plate || null,
           daysLeft: null,
           date: wa.scheduled_date || null,
           meta: wa.title || undefined,
@@ -376,11 +398,23 @@ export default function Alerts() {
     setLogsLoading(false);
   };
 
-  const filteredAlerts = alertFilter === 'all' ? alerts : alerts.filter(a => a.category === alertFilter);
+  const alertsForEntity = useMemo(() => {
+    return alerts.filter((a) => {
+      if (filterVehicle && a.vehiclePlate !== filterVehicle) return false;
+      if (filterInternal && a.internalNumber !== filterInternal) return false;
+      return true;
+    });
+  }, [alerts, filterVehicle, filterInternal]);
+
+  const filteredAlerts =
+    alertFilter === 'all'
+      ? alertsForEntity
+      : alertsForEntity.filter((a) => a.category === alertFilter);
+
   const alertCounts = {
-    all: alerts.length,
-    critical: alerts.filter(a => a.severity === 'critical').length,
-    warning: alerts.filter(a => a.severity === 'warning').length,
+    all: alertsForEntity.length,
+    critical: alertsForEntity.filter((a) => a.severity === 'critical').length,
+    warning: alertsForEntity.filter((a) => a.severity === 'warning').length,
   };
   const categories: (AlertCategory | 'all')[] = [
     'all',
@@ -393,6 +427,11 @@ export default function Alerts() {
     'service_order',
     'work_assignment',
   ];
+
+  const selectClass =
+    'w-full p-3 text-base rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none';
+
+  const entityFilterActive = Boolean(filterVehicle || filterInternal);
 
   const filteredLogs = logs.filter(l => {
     if (logSearch && !l.user_name.includes(logSearch) && !l.details.includes(logSearch) && !l.vehicle_plate.includes(logSearch) && !l.entity_id.includes(logSearch)) return false;
@@ -436,6 +475,34 @@ export default function Alerts() {
 
         {/* ─── Alerts Tab ─── */}
         <TabsContent value="alerts" className="space-y-4 mt-4">
+          {/* Plate + internal quick search */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl">
+            <div>
+              <label className="block text-sm font-medium mb-1">מספר רכב</label>
+              <SearchableFilterField
+                value={filterVehicle}
+                onChange={setFilterVehicle}
+                options={vehiclePlates}
+                placeholder="הכל / הקלידו לחיפוש..."
+                searchPlaceholder="חיפוש מספר רכב..."
+                emptyText="לא נמצא מספר רכב"
+                triggerClassName={selectClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">מספר פנימי</label>
+              <SearchableFilterField
+                value={filterInternal}
+                onChange={setFilterInternal}
+                options={internalNumbers}
+                placeholder="הכל / הקלידו לחיפוש..."
+                searchPlaceholder="חיפוש מספר פנימי..."
+                emptyText="לא נמצא מספר פנימי"
+                triggerClassName={selectClass}
+              />
+            </div>
+          </div>
+
           {/* Severity Counters */}
           <div className="flex items-center gap-3 flex-wrap">
             {alertCounts.critical > 0 && (
@@ -456,7 +523,7 @@ export default function Alerts() {
           {/* Category Filter */}
           <div className="flex gap-2 flex-wrap">
             {categories.map(cat => {
-              const count = cat === 'all' ? alerts.length : alerts.filter(a => a.category === cat).length;
+              const count = cat === 'all' ? alertsForEntity.length : alertsForEntity.filter(a => a.category === cat).length;
               if (cat !== 'all' && count === 0) return null;
               return (
                 <button key={cat} onClick={() => setAlertFilter(cat)}
@@ -476,8 +543,18 @@ export default function Alerts() {
           {!alertsLoading && filteredAlerts.length === 0 && (
             <div className="card-elevated text-center py-16">
               <CheckCircle2 className="mx-auto mb-4 text-green-500" size={48} />
-              <p className="text-xl font-bold text-foreground">הכל תקין! 🎉</p>
-              <p className="text-muted-foreground mt-2">אין התראות פעילות כרגע</p>
+              <p className="text-xl font-bold text-foreground">
+                {entityFilterActive ? 'אין התראות לסינון שנבחר' : 'הכל תקין! 🎉'}
+              </p>
+              <p className="text-muted-foreground mt-2">
+                {filterVehicle && filterInternal
+                  ? `לא נמצאו התראות עבור רכב ${filterVehicle} / מספר פנימי ${filterInternal}`
+                  : filterVehicle
+                    ? `לא נמצאו התראות פעילות עבור רכב ${filterVehicle}`
+                    : filterInternal
+                      ? `לא נמצאו התראות פעילות עבור מספר פנימי ${filterInternal}`
+                      : 'אין התראות פעילות כרגע'}
+              </p>
             </div>
           )}
 
