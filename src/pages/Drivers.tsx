@@ -13,7 +13,6 @@ import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
 import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
-import { useRequiredFieldsOptional } from '@/contexts/RequiredFieldsContext';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { uploadDocument } from '@/lib/uploadDocument';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
@@ -69,21 +68,6 @@ export default function Drivers() {
     if (match) setSelected(match);
   }, [searchParams, drivers]);
 
-  /** Keep the selected driver in the URL so declaration actions never drop the card context. */
-  const openDriverCard = (d: DriverRow) => {
-    setSelected(d);
-    const params = new URLSearchParams(searchParams);
-    params.set('driverId', d.id);
-    navigate({ pathname: '/drivers', search: params.toString() }, { replace: true });
-  };
-
-  const closeDriverCard = () => {
-    setSelected(null);
-    const params = new URLSearchParams(searchParams);
-    params.delete('driverId');
-    navigate({ pathname: '/drivers', search: params.toString() }, { replace: true });
-  };
-
   const companies = [...new Set(drivers.map(d => d.company_name).filter(Boolean))];
 
   const filtered = drivers.filter(d => {
@@ -112,7 +96,7 @@ export default function Drivers() {
 
     return (
       <div className="animate-fade-in">
-        <button type="button" onClick={closeDriverCard} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
+        <button onClick={() => setSelected(null)} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
           <ArrowRight size={20} />
           חזרה לרשימה
         </button>
@@ -127,7 +111,7 @@ export default function Drivers() {
                 {d.status === 'active' ? 'פעיל' : 'לא פעיל'}
               </span>
               {user?.role !== 'driver' && (
-                <button onClick={() => { closeDriverCard(); setEditingDriver(d); }}
+                <button onClick={() => { setSelected(null); setEditingDriver(d); }}
                   className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Edit2 size={18} className="text-primary" />
                 </button>
@@ -209,7 +193,6 @@ export default function Drivers() {
               idNumber={d.id_number}
               licenseNumber={d.license_number}
               companyName={d.company_name}
-              driverPhone={d.phone}
               mode={user?.role === 'driver' ? 'driver' : 'manager'}
             />
           </div>
@@ -250,6 +233,7 @@ export default function Drivers() {
               recipientName={d.full_name}
               recipientPhone={d.phone}
               recipientEmail={d.email}
+              companyName={d.company_name}
             />
           )}
           {/* Archive button */}
@@ -257,7 +241,7 @@ export default function Drivers() {
             <button onClick={async () => {
               await supabase.from('drivers').update({ status: 'archived' }).eq('id', d.id);
               toast.success('הנהג הועבר לארכיון');
-              closeDriverCard();
+              setSelected(null);
               loadDrivers();
             }} className="w-full mt-3 py-3 rounded-xl border-2 border-warning/30 text-warning font-bold text-lg flex items-center justify-center gap-2 hover:bg-warning/5 transition-colors">
               📦 העבר לארכיון
@@ -273,7 +257,7 @@ export default function Drivers() {
                 console.error(error);
               } else {
                 toast.success('הנהג נמחק בהצלחה');
-                closeDriverCard();
+                setSelected(null);
                 loadDrivers();
               }
             }} className="w-full mt-2 py-3 rounded-xl border-2 border-destructive/30 text-destructive font-bold text-lg flex items-center justify-center gap-2 hover:bg-destructive/5 transition-colors">
@@ -351,7 +335,7 @@ export default function Drivers() {
       <div className="space-y-3">
         {filtered.map((d) => (
           <div key={d.id} className="card-elevated">
-            <button type="button" onClick={() => openDriverCard(d)} className="w-full text-right hover:opacity-90 transition-opacity">
+            <button type="button" onClick={() => setSelected(d)} className="w-full text-right hover:opacity-90 transition-opacity">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-info/10 flex items-center justify-center flex-shrink-0">
                   <Users size={28} className="text-info" />
@@ -398,12 +382,6 @@ export default function Drivers() {
 
 function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: any; onDone: () => void }) {
   const isEdit = !!driver;
-  const requiredFields = useRequiredFieldsOptional();
-  const companyName = driver?.company_name || user?.company_name || '';
-  const req = (fieldKey: string) =>
-    requiredFields?.isFieldRequired('drivers', fieldKey, companyName) ??
-    ['full_name', 'phone', 'login_email', 'password'].includes(fieldKey);
-
   const [fullName, setFullName] = useState(driver?.full_name || '');
   const [idNumber, setIdNumber] = useState(driver?.id_number || '');
   const [phone, setPhone] = useState(driver?.phone || '');
@@ -443,19 +421,10 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
     e.target.value = '';
   };
 
-  const isValid = (() => {
-    if (req('full_name') && !fullName.trim()) return false;
-    if (req('phone') && !phone.trim()) return false;
-    if (req('license_number') && !licenseNumber.trim()) return false;
-    if (req('id_number') && !idNumber.trim()) return false;
-    if (!isEdit) {
-      if ((req('login_email') || req('email')) && !email.trim()) return false;
-      if (req('password') && password.trim().length < 6) return false;
-    }
-    return true;
-  })();
-  const star = (fieldKey: string) =>
-    req(fieldKey) ? <span className="text-destructive">*</span> : null;
+  // Email/password optional for new drivers — required only when creating login credentials
+  const wantsLogin = !isEdit && (email.trim().length > 0 || password.trim().length > 0);
+  const isValid = fullName.trim().length > 0 && phone.trim().length > 0 && licenseNumber.trim().length > 0 && idNumber.trim().length > 0
+    && (!wantsLogin || (email.trim().length > 0 && password.trim().length >= 6));
   const inputClass = "w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
 
   const toggleLicense = (type: string) => {
@@ -465,17 +434,17 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
   const handleSubmit = async () => {
     if (!isValid) return;
 
-    const fieldOverrides = await fetchRequiredFieldsOverrides(companyName);
+    const fieldOverrides = await fetchRequiredFieldsOverrides();
     const driverValues: Record<string, string> = {
       full_name: fullName,
       phone,
       email,
-      login_email: email,
-      password: isEdit ? 'unchanged' : password,
+      login_email: wantsLogin ? email : '',
+      password: isEdit ? 'unchanged' : wantsLogin ? password : '',
       license_number: licenseNumber,
       license_expiry: licenseExpiry || '',
       id_number: idNumber,
-      company_name: companyName,
+      company_name: user?.company_name || '',
     };
     const requiredCheck = validateRequiredModuleFields('drivers', driverValues, fieldOverrides);
     if (!requiredCheck.ok) {
@@ -514,8 +483,8 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
         toast.success('הנהג עודכן בהצלחה');
         onDone();
       }
-    } else {
-      // Create new driver: use edge function to create auth user + profile + driver record
+    } else if (wantsLogin) {
+      // Create new driver with login credentials via edge function
       const effectiveEmail = email.trim() || `${phone.replace(/\D/g, '')}@placeholder.local`;
 
       const { data, error } = await supabase.functions.invoke('create-admin-user', {
@@ -557,6 +526,35 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
       setLoading(false);
       toast.success('הנהג נוסף בהצלחה עם פרטי התחברות');
       onDone();
+    } else {
+      const payload = {
+        full_name: fullName,
+        id_number: idNumber,
+        phone,
+        email: email.trim() || '',
+        license_number: licenseNumber,
+        license_expiry: licenseExpiry || null,
+        license_types: licenseTypes,
+        city,
+        street,
+        status,
+        notes,
+        license_image_url: licenseImageUrl,
+        last_exam_date: lastExamDate || null,
+        exam_expiry: examExpiry || null,
+        company_name: user?.company_name || '',
+        created_by: user?.id || null,
+      };
+
+      const { error } = await supabase.from('drivers').insert(payload);
+      setLoading(false);
+      if (error) {
+        toast.error('שגיאה בהוספת הנהג');
+        console.error(error);
+      } else {
+        toast.success('הנהג נוסף בהצלחה (ללא פרטי התחברות)');
+        onDone();
+      }
     }
   };
 
@@ -570,52 +568,52 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
 
       <div className="space-y-5">
         <div>
-          <label className="block text-lg font-medium mb-2">שם מלא {star('full_name')}</label>
+          <label className="block text-lg font-medium mb-2">שם מלא <span className="text-destructive">*</span></label>
           <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="שם הנהג..." className={inputClass} />
         </div>
         <div>
-          <label className="block text-lg font-medium mb-2">תעודת זהות {star('id_number')}</label>
+          <label className="block text-lg font-medium mb-2">תעודת זהות <span className="text-destructive">*</span></label>
           <input value={idNumber} onChange={e => setIdNumber(e.target.value)} placeholder="תעודת זהות..." className={inputClass} />
         </div>
         {/* Login credentials - only for new drivers */}
         {!isEdit && (
           <div className="p-4 rounded-xl border-2 border-primary/30 bg-primary/5 space-y-4">
-            <p className="text-lg font-bold text-primary">פרטי התחברות לאפליקציה</p>
+            <p className="text-lg font-bold text-primary">פרטי התחברות לאפליקציה (אופציונלי)</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-lg font-medium mb-2">אימייל {star('login_email')}</label>
+                <label className="block text-lg font-medium mb-2">אימייל</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@..." className={inputClass} dir="ltr" style={{ textAlign: 'right' }} />
               </div>
               <div>
-                <label className="block text-lg font-medium mb-2">סיסמה {star('password')}</label>
+                <label className="block text-lg font-medium mb-2">סיסמה</label>
                 <input type="text" value={password} onChange={e => setPassword(e.target.value)} placeholder="לפחות 6 תווים..." className={inputClass} dir="ltr" style={{ textAlign: 'right' }} />
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">הנהג ישתמש בפרטים אלו כדי להיכנס לאפליקציה. החשבון ממתין לאישור מנהל על.</p>
+            <p className="text-sm text-muted-foreground">ניתן ליצור נהג גם ללא אימייל וסיסמה. אם ממלאים פרטי התחברות — שניהם נדרשים (סיסמה לפחות 6 תווים). חשבון עם התחברות ממתין לאישור מנהל על.</p>
           </div>
         )}
 
         {/* Email field for editing */}
         {isEdit && (
           <div>
-            <label className="block text-lg font-medium mb-2">אימייל {star('email')}</label>
+            <label className="block text-lg font-medium mb-2">אימייל</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@..." className={inputClass} dir="ltr" style={{ textAlign: 'right' }} />
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-lg font-medium mb-2">טלפון {star('phone')}</label>
+            <label className="block text-lg font-medium mb-2">טלפון <span className="text-destructive">*</span></label>
             <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="050-..." className={inputClass} dir="ltr" style={{ textAlign: 'right' }} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-lg font-medium mb-2">מספר רישיון {star('license_number')}</label>
+            <label className="block text-lg font-medium mb-2">מספר רישיון <span className="text-destructive">*</span></label>
             <input value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} placeholder="מספר רישיון..." className={inputClass} />
           </div>
           <div>
-            <label className="block text-lg font-medium mb-2">תוקף רישיון {star('license_expiry')}</label>
+            <label className="block text-lg font-medium mb-2">תוקף רישיון</label>
             <input type="date" value={licenseExpiry} onChange={e => setLicenseExpiry(e.target.value)} className={inputClass} />
           </div>
         </div>

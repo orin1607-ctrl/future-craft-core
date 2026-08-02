@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Check, FilePlus2, History, RefreshCw, X } from 'lucide-react';
+import { Check, FilePlus2, History, RefreshCw, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import RequestDocumentDialog from '@/components/documents/RequestDocumentDialog';
+import AdminUploadDocumentDialog from '@/components/documents/AdminUploadDocumentDialog';
 import {
   decideDocumentRequest,
   listEntityDocumentHistory,
@@ -21,6 +22,7 @@ type Props = {
   recipientName?: string;
   recipientPhone?: string;
   recipientEmail?: string;
+  companyName?: string;
 };
 
 export default function EntityDocumentRequestsPanel({
@@ -30,8 +32,10 @@ export default function EntityDocumentRequestsPanel({
   recipientName,
   recipientPhone,
   recipientEmail,
+  companyName,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<DocumentRequestRow[]>([]);
   const [versions, setVersions] = useState<DocumentVersionRow[]>([]);
@@ -90,6 +94,10 @@ export default function EntityDocumentRequestsPanel({
           <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => void load()} disabled={loading}>
             <RefreshCw size={14} />
             רענון
+          </Button>
+          <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => setUploadOpen(true)}>
+            <Upload size={14} />
+            העלה מהמחשב
           </Button>
           <Button type="button" className="gap-1" onClick={() => setOpen(true)}>
             <FilePlus2 size={16} />
@@ -185,6 +193,16 @@ export default function EntityDocumentRequestsPanel({
           ))}
         </div>
       )}
+
+      <AdminUploadDocumentDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        entityType={entityType}
+        entityId={entityId}
+        entityLabel={entityLabel}
+        companyName={companyName}
+        onUploaded={() => void load()}
+      />
 
       <RequestDocumentDialog
         open={open}

@@ -136,6 +136,7 @@ export async function listEntityDocumentHistory(entityType: DocumentEntityType, 
 
 /** Public (no login) — used by /upload-request page */
 export async function publicGetDocumentRequest(token: string) {
+  assertClientStaging();
   const res = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-request?action=get&token=${encodeURIComponent(token)}`,
     {
@@ -148,6 +149,7 @@ export async function publicGetDocumentRequest(token: string) {
 }
 
 export async function publicOpenDocumentRequest(token: string) {
+  assertClientStaging();
   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-request`, {
     method: 'POST',
     headers: {
@@ -166,6 +168,7 @@ export async function publicUploadDocumentRequest(params: {
   file: File;
   expiry_date?: string;
 }) {
+  assertClientStaging();
   const form = new FormData();
   form.set('action', 'upload');
   form.set('token', params.token);
@@ -191,6 +194,141 @@ export async function decideDocumentRequest(params: {
     request_id: params.request_id,
     note: params.note || '',
   }) as Promise<{ success: true; request_id: string; status: string }>;
+}
+
+const META_CATEGORY_MAP: Record<string, string> = {
+  driver_license: 'driver-license',
+  vehicle_license: 'vehicle-license',
+  mandatory_insurance: 'insurance',
+  comprehensive_insurance: 'comprehensive',
+  health_declaration: 'health',
+  medical_certificate: 'health',
+  invoice: 'vendors',
+  receipt: 'receipts',
+  vehicle_photo: 'other',
+  general_document: 'other',
+};
+
+function sanitizeFileName(name: string): string {
+  return (name || 'upload.bin').replace(/[^\w.\-()א-ת\s]/g, '_').slice(0, 180);
+}
+
+function fileAllowed(file: File, allowed: string[]): boolean {
+  const mime = file.type || 'application/octet-stream';
+  if (!allowed.length || allowed.includes('*') || allowed.includes(mime)) return true;
+  const lower = file.name.toLowerCase();
+  return ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.heic', '.heif'].some((ext) => lower.endsWith(ext));
+}
+
+/** Manager uploads a document directly from computer (does not replace driver link flow). */
+export async function adminUploadEntityDocument(params: {
+  entityType: DocumentEntityType;
+  entityId: string;
+  entityLabel: string;
+  documentTypeKey: string;
+  file: File;
+  expiryDate?: string;
+  companyName?: string;
+}) {
+  const types = await listDocumentTypes(params.entityType);
+  const typeDef = types.find((t) => t.key === params.documentTypeKey);
+  if (!typeDef) throw new Error('סוג מסמך לא נמצא');
+
+  const allowed = typeDef.allowed_mime_types?.length ? typeDef.allowed_mime_types : ['image/jpeg', 'image/png', 'application/pdf'];
+  const maxBytes = Number(typeDef.max_file_bytes || 10 * 1024 * 1024);
+  if (params.file.size > maxBytes) throw new Error('הקובץ גדול מדי');
+  if (!fileAllowed(params.file, allowed)) throw new Error('סוג קובץ לא נתמך');
+
+  if (typeDef.requires_expiry && !params.expiryDate) {
+    throw new Error('נדרש תאריך תוקף למסמך זה');
+  }
+
+  let companyName = params.companyName || '';
+  if (!companyName && params.entityType === 'driver') {
+    const { data: d } = await supabase.from('drivers').select('company_name').eq('id', params.entityId).maybeSingle();
+    companyName = d?.company_name || '';
+  }
+
+  const folder = typeDef.storage_folder || 'general';
+  const safeName = sanitizeFileName(params.file.name);
+  const filePath = `admin-uploads/${params.entityType}/${params.entityId}/${Date.now()}_${safeName}`;
+  const contentType = params.file.type || undefined;
+
+  const { error: upErr } = await supabase.storage.from('documents').upload(filePath, params.file, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType,
+  });
+  if (upErr) throw new Error(upErr.message);
+
+  const { data: pub } = supabase.storage.from('documents').getPublicUrl(filePath);
+  const publicUrl = pub?.publicUrl || '';
+
+  const { data: lastVer } = await supabase
+    .from('document_versions')
+    .select('version_no')
+    .eq('entity_type', params.entityType)
+    .eq('entity_id', params.entityId)
+    .eq('document_type_key', params.documentTypeKey)
+    .order('version_no', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextVer = (lastVer?.version_no || 0) + 1;
+
+  await supabase
+    .from('document_versions')
+    .update({ is_current: false })
+    .eq('entity_type', params.entityType)
+    .eq('entity_id', params.entityId)
+    .eq('document_type_key', params.documentTypeKey)
+    .eq('is_current', true);
+
+  const { data: version, error: verErr } = await supabase
+    .from('document_versions')
+    .insert({
+      company_name: companyName,
+      document_type_key: params.documentTypeKey,
+      entity_type: params.entityType,
+      entity_id: params.entityId,
+      version_no: nextVer,
+      is_current: true,
+      file_path: filePath,
+      public_url: publicUrl,
+      original_name: params.file.name || safeName,
+      content_type: contentType || null,
+      file_size_bytes: params.file.size,
+      source: 'manager_upload',
+      expiry_date: params.expiryDate || null,
+    })
+    .select('*')
+    .single();
+  if (verErr || !version) throw new Error(verErr?.message || 'שגיאה בשמירת גרסת מסמך');
+
+  const metaCategory = META_CATEGORY_MAP[params.documentTypeKey] || params.documentTypeKey;
+  const vehiclePlate = params.entityType === 'vehicle' ? params.entityLabel : '';
+  const driverName = params.entityType === 'driver' ? params.entityLabel : '';
+  const { data: meta } = await supabase
+    .from('document_metadata')
+    .insert({
+      file_path: filePath,
+      category: metaCategory,
+      company_name: companyName,
+      vehicle_plate: vehiclePlate,
+      driver_name: driverName,
+      original_name: params.file.name || safeName,
+    })
+    .select('id')
+    .maybeSingle();
+
+  if (meta?.id) {
+    await supabase.from('document_versions').update({ metadata_id: meta.id }).eq('id', version.id);
+  }
+
+  if (params.entityType === 'driver' && params.documentTypeKey === 'driver_license') {
+    await supabase.from('drivers').update({ license_image_url: publicUrl }).eq('id', params.entityId);
+  }
+
+  return { success: true as const, version, public_url: publicUrl };
 }
 
 export const REQUEST_STATUS_LABELS: Record<string, string> = {
