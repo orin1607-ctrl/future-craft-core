@@ -1,0 +1,241 @@
+{
+  "phase": "baseline",
+  "at": "2026-08-04T21:19:23.101Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "user": "k.auto@beeri.co.il",
+  "company": "קיבוץ בארי",
+  "build": {
+    "clean": null
+  },
+  "migration": {
+    "applied": false,
+    "columns": {
+      "drivers_department": false,
+      "company_lists": false,
+      "document_metadata_fields": false
+    }
+  },
+  "regression": {
+    "vehicles": {
+      "dbCount": 299,
+      "uiCount": 299,
+      "match": true
+    },
+    "drivers": {
+      "dbCount": 33,
+      "uiCount": 33,
+      "match": true
+    },
+    "plateSearch": {
+      "ok": true,
+      "label": "mobile"
+    },
+    "internalSearch": {
+      "ok": true,
+      "label": "mobile"
+    },
+    "otherCompanyIsolation": {
+      "ok": true,
+      "label": "mobile",
+      "otherCompanyVisible": false
+    },
+    "modules": [
+      {
+        "path": "/documents",
+        "label": "desktop",
+        "ok": true
+      },
+      {
+        "path": "/fleetos-ai",
+        "label": "desktop",
+        "ok": true
+      },
+      {
+        "path": "/dashboard",
+        "label": "desktop",
+        "ok": true
+      },
+      {
+        "path": "/documents",
+        "label": "mobile",
+        "ok": true
+      },
+      {
+        "path": "/fleetos-ai",
+        "label": "mobile",
+        "ok": true
+      },
+      {
+        "path": "/dashboard",
+        "label": "mobile",
+        "ok": true
+      }
+    ],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "pageErrors": []
+  },
+  "tasks": {
+    "t1_license_upload": {
+      "works": null,
+      "tests": [],
+      "issues": [],
+      "fixed": [],
+      "desktop": null,
+      "mobile": null,
+      "realData": true,
+      "otherClients": true,
+      "consoleClean": true,
+      "networkClean": true
+    },
+    "t2_vehicle_department_filter": {
+      "works": false,
+      "tests": [
+        {
+          "label": "desktop",
+          "mode": "text-search-fallback",
+          "q": "נוי"
+        },
+        {
+          "label": "mobile",
+          "mode": "text-search-fallback",
+          "q": "נוי"
+        }
+      ],
+      "issues": [],
+      "fixed": [],
+      "desktop": false,
+      "mobile": false,
+      "realData": true,
+      "otherClients": true,
+      "consoleClean": true,
+      "networkClean": true
+    },
+    "t3_driver_department": {
+      "works": null,
+      "tests": [
+        {
+          "label": "desktop",
+          "hasDeptOnCard": false
+        },
+        {
+          "label": "mobile",
+          "hasDeptOnCard": false
+        }
+      ],
+      "issues": [],
+      "fixed": [],
+      "desktop": false,
+      "mobile": false,
+      "realData": true,
+      "otherClients": true,
+      "consoleClean": true,
+      "networkClean": true
+    },
+    "t4_driver_department_search": {
+      "works": null,
+      "tests": [
+        {
+          "label": "desktop",
+          "hasDepartmentDropdown": false
+        },
+        {
+          "label": "mobile",
+          "hasDepartmentDropdown": false
+        }
+      ],
+      "issues": [],
+      "fixed": [],
+      "desktop": true,
+      "mobile": true,
+      "realData": true,
+      "otherClients": true,
+      "consoleClean": true,
+      "networkClean": true
+    },
+    "t5_treatment_list": {
+      "works": false,
+      "tests": [
+        {
+          "label": "desktop",
+          "hasListsManagerButton": false
+        },
+        {
+          "label": "mobile",
+          "hasListsManagerButton": false
+        }
+      ],
+      "issues": [],
+      "fixed": [],
+      "desktop": null,
+      "mobile": null,
+      "realData": true,
+      "otherClients": true,
+      "consoleClean": true,
+      "networkClean": true
+    },
+    "t6_inspection_list": {
+      "works": false,
+      "tests": [
+        {
+          "label": "desktop",
+          "hasListsManagerButton": false
+        },
+        {
+          "label": "mobile",
+          "hasListsManagerButton": false
+        }
+      ],
+      "issues": [],
+      "fixed": [],
+      "desktop": null,
+      "mobile": null,
+      "realData": true,
+      "otherClients": true,
+      "consoleClean": true,
+      "networkClean": true
+    },
+    "t7_driver_documents": {
+      "works": null,
+      "tests": [
+        {
+          "label": "desktop",
+          "hasDocsPanel": false,
+          "hasRequestPanel": true
+        },
+        {
+          "label": "mobile",
+          "hasDocsPanel": false,
+          "hasRequestPanel": true
+        }
+      ],
+      "issues": [],
+      "fixed": [],
+      "desktop": false,
+      "mobile": false,
+      "realData": true,
+      "otherClients": true,
+      "consoleClean": true,
+      "networkClean": true
+    }
+  },
+  "screenshots": [
+    "baseline/desktop-01-vehicles.png",
+    "baseline/desktop-02-search-plate.png",
+    "baseline/desktop-03-search-internal.png",
+    "baseline/desktop-04-dept-search-text.png",
+    "baseline/desktop-05-drivers.png",
+    "baseline/desktop-06-driver-card.png",
+    "baseline/desktop-07-driver-docs.png",
+    "baseline/desktop-09-vehicle-manage.png",
+    "baseline/mobile-01-vehicles.png",
+    "baseline/mobile-02-search-plate.png",
+    "baseline/mobile-03-search-internal.png",
+    "baseline/mobile-04-dept-search-text.png",
+    "baseline/mobile-05-drivers.png",
+    "baseline/mobile-06-driver-card.png",
+    "baseline/mobile-07-driver-docs.png",
+    "baseline/mobile-09-vehicle-manage.png"
+  ],
+  "compare": null
+}

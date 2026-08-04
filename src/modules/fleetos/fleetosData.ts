@@ -10,6 +10,7 @@ export interface FleetOSVehicleRow {
   id: string;
   plate: string;
   internal_number?: string;
+  department?: string;
   company_name?: string;
   make?: string;
   model?: string;
@@ -53,6 +54,7 @@ export function trackingRowToFleetOS(row: TrackingVehicleRow): FleetOSVehicleRow
     id: row.id,
     plate: row.license_plate,
     internal_number: row.internal_number !== '—' ? row.internal_number : undefined,
+    department: row.department && row.department !== '—' ? row.department : undefined,
     company_name: row.company_name && row.company_name !== '—' ? row.company_name : undefined,
     make: row.manufacturer || undefined,
     model: row.model || undefined,

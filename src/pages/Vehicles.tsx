@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import CallCustomerButton from '@/components/voice/CallCustomerButton';
 import VehicleHub from '@/components/vehicles/VehicleHub';
 import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
+import { collectDepartmentsFromVehicles } from '@/lib/companyDepartments';
 
 export { VehicleForm };
 
@@ -54,6 +55,8 @@ interface VehicleRow {
   planned_replacement_date: string | null;
   has_loan: boolean;
   is_leasing: boolean;
+  department?: string | null;
+  import_buffer?: unknown;
 }
 
 interface DriverRow { id: string; full_name: string; phone: string | null; }
@@ -72,6 +75,7 @@ export default function Vehicles() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [filterCompany, setFilterCompany] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleRow | null>(null);
   const [editVehicle, setEditVehicle] = useState<VehicleRow | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -183,13 +187,16 @@ export default function Vehicles() {
   const companies = [...new Set(vehicles.map(v => v.company_name).filter(Boolean))];
 
   const filtered = vehicles.filter(v => {
-    const matchSearch = !search || v.license_plate.includes(search) || v.manufacturer?.includes(search) || v.model?.includes(search) || v.internal_number?.includes(search);
+    const matchSearch = !search || v.license_plate.includes(search) || v.manufacturer?.includes(search) || v.model?.includes(search) || v.internal_number?.includes(search) || (v.department || '').includes(search);
     // When "all" is selected, exclude archived vehicles; only show them when "archived" tab is active
     const matchStatus = statusFilter === 'all' ? v.status !== 'archived' : v.status === statusFilter;
     const matchCompany = !filterCompany || v.company_name === filterCompany;
     const matchDriver = !filterDriver || v.assigned_driver_id === filterDriver;
-    return matchSearch && matchStatus && matchCompany && matchDriver;
+    const matchDepartment = !filterDepartment || (v.department || '') === filterDepartment;
+    return matchSearch && matchStatus && matchCompany && matchDriver && matchDepartment;
   });
+
+  const departmentOptions = collectDepartmentsFromVehicles(vehicles, filterCompany || companyFilter || user?.company_name);
 
   const statusLabel = (s: string) => {
     switch (s) {
@@ -369,12 +376,19 @@ export default function Vehicles() {
 
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לפי מספר רכב, מספר פנימי, יצרן או דגם..."
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לפי מספר רכב, מספר פנימי, מחלקה, יצרן או דגם..."
           className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none" />
       </div>
 
       {/* Advanced Filters */}
       <div className="grid grid-cols-2 gap-3 mb-4">
+        {departmentOptions.length > 0 && (
+          <select value={filterDepartment} onChange={e => setFilterDepartment(e.target.value)}
+            className="p-3 text-base rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none col-span-2">
+            <option value="">כל המחלקות</option>
+            {departmentOptions.map(dep => <option key={dep} value={dep}>{dep}</option>)}
+          </select>
+        )}
         {user?.role === 'super_admin' && companies.length > 1 && (
           <select value={filterCompany} onChange={e => setFilterCompany(e.target.value)}
             className="p-3 text-base rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none col-span-2">
