@@ -36,10 +36,12 @@ export interface UploadDocumentOptions {
   manufacturer?: string;
   model?: string;
   driverName?: string;
+  displayName?: string;
+  documentDate?: string;
 }
 
 export async function uploadDocument(options: UploadDocumentOptions): Promise<UploadDocumentResult> {
-  const { file, storageFolder, category, companyName, vehiclePlate, manufacturer, model, driverName } = options;
+  const { file, storageFolder, category, companyName, vehiclePlate, manufacturer, model, driverName, displayName, documentDate } = options;
 
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user?.id;
@@ -77,6 +79,8 @@ export async function uploadDocument(options: UploadDocumentOptions): Promise<Up
       manufacturer: manufacturer || '',
       model: model || '',
       original_name: file.name,
+      display_name: displayName || null,
+      document_date: documentDate || null,
       uploaded_by: userId,
     });
 

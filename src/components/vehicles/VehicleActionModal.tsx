@@ -14,6 +14,8 @@ import {
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import { validateTaskFields } from '@/lib/taskFieldValidation';
+import { loadCompanyListSettings } from '@/lib/companyListSettings';
+import { DEFAULT_TREATMENT_ITEMS } from '@/lib/vehicleListDefaults';
 
 const CATEGORIES = [
   'ליקוי',
@@ -72,6 +74,7 @@ export default function VehicleActionModal({
   const [category, setCategory] = useState<Category | ''>('');
   const [subType, setSubType] = useState('');
   const [loading, setLoading] = useState(false);
+  const [treatmentSubtypes, setTreatmentSubtypes] = useState<string[]>([...DEFAULT_TREATMENT_ITEMS]);
 
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState('');
@@ -101,7 +104,18 @@ export default function VehicleActionModal({
     setSubType('');
     setDescription('');
     setDate(new Date().toISOString().split('T')[0]);
-  }, [open, initialCategory]);
+    const company = vehicle.company_name || user?.company_name || '';
+    if (company) {
+      void loadCompanyListSettings(company).then((s) => setTreatmentSubtypes(s.treatmentItems));
+    } else {
+      setTreatmentSubtypes([...DEFAULT_TREATMENT_ITEMS]);
+    }
+  }, [open, initialCategory, vehicle.company_name, user?.company_name]);
+
+  const subtypesForCategory = (cat: Category): string[] => {
+    if (cat === 'טיפול') return treatmentSubtypes;
+    return SUB_TYPES[cat] || ['כללי'];
+  };
 
   const resetAndClose = () => {
     onOpenChange(false);
@@ -342,7 +356,7 @@ export default function VehicleActionModal({
           <div className="mt-4 space-y-3">
             <p className="text-sm font-medium text-muted-foreground">{category} – סוג</p>
             <div className="space-y-2">
-              {(SUB_TYPES[category] || ['כללי']).map((sub) => (
+              {(subtypesForCategory(category) || ['כללי']).map((sub) => (
                 <button
                   key={sub}
                   type="button"

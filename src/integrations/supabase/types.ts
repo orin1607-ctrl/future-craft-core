@@ -264,6 +264,8 @@ export type Database = {
           alert_days_before: number | null
           company_name: string
           created_at: string | null
+          custom_inspection_checklist: unknown | null
+          custom_treatment_items: unknown | null
           hidden_buttons: string[]
           id: string
           module_transport_enabled: boolean
@@ -286,6 +288,8 @@ export type Database = {
           alert_days_before?: number | null
           company_name: string
           created_at?: string | null
+          custom_inspection_checklist?: unknown | null
+          custom_treatment_items?: unknown | null
           hidden_buttons?: string[]
           id?: string
           module_transport_enabled?: boolean
@@ -308,6 +312,8 @@ export type Database = {
           alert_days_before?: number | null
           company_name?: string
           created_at?: string | null
+          custom_inspection_checklist?: unknown | null
+          custom_treatment_items?: unknown | null
           hidden_buttons?: string[]
           id?: string
           module_transport_enabled?: boolean
@@ -643,6 +649,8 @@ export type Database = {
           category: string
           company_name: string | null
           created_at: string | null
+          display_name: string | null
+          document_date: string | null
           driver_name: string | null
           file_path: string
           id: string
@@ -656,6 +664,8 @@ export type Database = {
           category?: string
           company_name?: string | null
           created_at?: string | null
+          display_name?: string | null
+          document_date?: string | null
           driver_name?: string | null
           file_path: string
           id?: string
@@ -669,6 +679,8 @@ export type Database = {
           category?: string
           company_name?: string | null
           created_at?: string | null
+          display_name?: string | null
+          document_date?: string | null
           driver_name?: string | null
           file_path?: string
           id?: string
@@ -863,6 +875,7 @@ export type Database = {
           company_name: string | null
           created_at: string | null
           created_by: string | null
+          department: string | null
           email: string | null
           exam_expiry: string | null
           full_name: string
@@ -884,6 +897,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           created_by?: string | null
+          department?: string | null
           email?: string | null
           exam_expiry?: string | null
           full_name?: string
@@ -905,6 +919,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           created_by?: string | null
+          department?: string | null
           email?: string | null
           exam_expiry?: string | null
           full_name?: string

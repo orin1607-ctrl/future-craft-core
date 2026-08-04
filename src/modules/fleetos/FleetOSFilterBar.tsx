@@ -9,6 +9,7 @@ export interface FleetOSFilters {
   company: string;
   plate: string;
   internal: string;
+  department: string;
   driver: string;
   make: string;
   model: string;
@@ -19,6 +20,7 @@ export const EMPTY_FLEETOS_FILTERS: FleetOSFilters = {
   company: '',
   plate: '',
   internal: '',
+  department: '',
   driver: '',
   make: '',
   model: '',
@@ -63,6 +65,7 @@ export default function FleetOSFilterBar({
 
   const makes = [...new Set(vehicles.map((v) => v.make).filter(Boolean) as string[])].sort();
   const models = [...new Set(vehicles.map((v) => v.model).filter(Boolean) as string[])].sort();
+  const departments = [...new Set(vehicles.map((v) => v.department).filter(Boolean) as string[])].sort();
   const statusOptions = [
     ...new Set([
       ...Object.values(STATUS_LABEL),
@@ -109,7 +112,7 @@ export default function FleetOSFilterBar({
       </div>
 
       {/* Primary filters — always visible (mobile + desktop) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 mb-2 sm:mb-3">
         <Field label="מספר רישוי">
           <input
             className="filter-input text-sm w-full min-h-[44px]"
@@ -129,6 +132,20 @@ export default function FleetOSFilterBar({
             onKeyDown={handleKeyDown}
             placeholder="D-101"
           />
+        </Field>
+        <Field label="מחלקה">
+          <select
+            className="filter-input text-sm w-full min-h-[44px]"
+            value={filters.department}
+            onChange={(e) => onChange({ department: e.target.value })}
+          >
+            <option value="">הכול</option>
+            {departments.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="נהג">
           <input

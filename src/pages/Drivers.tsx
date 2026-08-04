@@ -17,6 +17,8 @@ import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { uploadDocument } from '@/lib/uploadDocument';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
 import EntityDocumentRequestsPanel from '@/components/documents/EntityDocumentRequestsPanel';
+import DriverDocumentsPanel from '@/components/drivers/DriverDocumentsPanel';
+import { fetchCompanyDepartments } from '@/lib/companyDepartments';
 
 interface DriverRow {
   id: string;
@@ -35,6 +37,7 @@ interface DriverRow {
   license_image_url?: string;
   last_exam_date?: string | null;
   exam_expiry?: string | null;
+  department?: string | null;
 }
 
 const licenseOptions = ['A', 'A1', 'A2', 'B', 'C', 'C1', 'D', 'D1', 'E'];
@@ -46,6 +49,8 @@ export default function Drivers() {
   const companyFilter = useCompanyFilter();
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [search, setSearch] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('');
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [filterCompany, setFilterCompany] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selected, setSelected] = useState<DriverRow | null>(null);
@@ -58,6 +63,15 @@ export default function Drivers() {
   };
 
   useEffect(() => { loadDrivers(); }, []);
+
+  useEffect(() => {
+    const company = filterCompany || user?.company_name || '';
+    if (!company) {
+      setDepartmentOptions([]);
+      return;
+    }
+    void fetchCompanyDepartments(company).then(setDepartmentOptions);
+  }, [filterCompany, user?.company_name, drivers]);
 
   useEffect(() => {
     const companyName = searchParams.get('companyName');
@@ -74,7 +88,8 @@ export default function Drivers() {
     const matchSearch = !search || d.full_name?.includes(search) || d.phone?.includes(search) || d.license_number?.includes(search) || d.id_number?.includes(search);
     const matchCompany = !filterCompany || d.company_name === filterCompany;
     const matchStatus = statusFilter === 'all' || d.status === statusFilter;
-    return matchSearch && matchCompany && matchStatus;
+    const matchDepartment = !filterDepartment || (d.department || '') === filterDepartment;
+    return matchSearch && matchCompany && matchStatus && matchDepartment;
   });
 
   if (showForm || editingDriver) {
@@ -134,6 +149,7 @@ export default function Drivers() {
             <div><span className="text-muted-foreground">אימייל:</span><p className="font-bold">{d.email || '—'}</p></div>
             <div><span className="text-muted-foreground">ת.ז:</span><p className="font-bold">{d.id_number || '—'}</p></div>
             <div><span className="text-muted-foreground">רישיון:</span><p className="font-bold">{d.license_number || '—'}</p></div>
+            <div><span className="text-muted-foreground">מחלקה:</span><p className="font-bold">{d.department || '—'}</p></div>
             <div><span className="text-muted-foreground">תוקף רישיון:</span><p className="font-bold">{d.license_expiry ? new Date(d.license_expiry).toLocaleDateString('he-IL') : '—'}</p></div>
             <div className="col-span-2"><span className="text-muted-foreground">סוגי רישיון:</span><p className="font-bold">{d.license_types?.join(', ') || '—'}</p></div>
             <div><span className="text-muted-foreground">עיר:</span><p className="font-bold">{d.city || '—'}</p></div>
@@ -224,6 +240,13 @@ export default function Drivers() {
             <div className="mt-4 pt-4 border-t border-border">
               <NotificationsAndSendsButton driverId={d.id} driverName={d.full_name} />
             </div>
+          )}
+          {user?.role !== 'driver' && (
+            <DriverDocumentsPanel
+              driverId={d.id}
+              driverName={d.full_name}
+              companyName={d.company_name}
+            />
           )}
           {user?.role !== 'driver' && (
             <EntityDocumentRequestsPanel
@@ -317,6 +340,22 @@ export default function Drivers() {
         ))}
       </div>
 
+      {/* Department filter */}
+      {departmentOptions.length > 0 && (
+        <div className="mb-4">
+          <select
+            value={filterDepartment}
+            onChange={(e) => setFilterDepartment(e.target.value)}
+            className="w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none"
+          >
+            <option value="">כל המחלקות</option>
+            {departmentOptions.map((dep) => (
+              <option key={dep} value={dep}>{dep}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Company filter - visible to super_admin */}
       {user?.role === 'super_admin' && companies.length > 1 && (
         <div className="mb-4">
@@ -343,6 +382,9 @@ export default function Drivers() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xl font-bold">{d.full_name}</p>
                   <p className="text-muted-foreground text-lg">{d.phone}</p>
+                  {d.department && (
+                    <p className="text-sm text-muted-foreground">מחלקה: {d.department}</p>
+                  )}
                   {d.license_types?.length > 0 && (
                     <p className="text-sm text-muted-foreground">{d.license_types.join(', ')}</p>
                   )}
@@ -397,19 +439,35 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
   const [licenseImageUrl, setLicenseImageUrl] = useState(driver?.license_image_url || '');
   const [lastExamDate, setLastExamDate] = useState(driver?.last_exam_date?.split('T')[0] || '');
   const [examExpiry, setExamExpiry] = useState(driver?.exam_expiry?.split('T')[0] || '');
+  const [department, setDepartment] = useState(driver?.department || '');
+  const [deptOptions, setDeptOptions] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const company = user?.company_name || driver?.company_name || '';
+    if (company) void fetchCompanyDepartments(company).then(setDeptOptions);
+  }, [user?.company_name, driver?.company_name]);
 
   const handleLicenseUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const driverName = fullName || driver?.full_name || '';
+    const company = user?.company_name || driver?.company_name || '';
+    if (!company) {
+      toast.error('חסר שם חברה לשיוך המסמך');
+      e.target.value = '';
+      return;
+    }
     setUploading(true);
     const result = await uploadDocument({
       file,
-      storageFolder: 'driver-licenses',
-      category: 'driver_license',
-      companyName: user?.company_name || '',
-      driverName: fullName || driver?.full_name || '',
+      storageFolder: 'driver-license',
+      category: 'driver-license',
+      companyName: company,
+      driverName,
+      displayName: `רישיון נהיגה — ${driverName}`,
+      documentDate: new Date().toISOString().split('T')[0],
     });
     setUploading(false);
     if (!result.ok) {
@@ -417,6 +475,13 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
       return;
     }
     setLicenseImageUrl(result.publicUrl);
+    if (isEdit && driver?.id) {
+      const { error } = await supabase
+        .from('drivers')
+        .update({ license_image_url: result.publicUrl })
+        .eq('id', driver.id);
+      if (error) console.error('license_image_url sync:', error);
+    }
     toast.success('רישיון הועלה ונרשם במערכת המסמכים');
     e.target.value = '';
   };
@@ -471,6 +536,7 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
         license_image_url: licenseImageUrl,
         last_exam_date: lastExamDate || null,
         exam_expiry: examExpiry || null,
+        department: department.trim() || null,
         company_name: user?.company_name || '',
       };
 
@@ -520,6 +586,7 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
           license_image_url: licenseImageUrl,
           last_exam_date: lastExamDate || null,
           exam_expiry: examExpiry || null,
+          department: department.trim() || null,
         }).eq('id', data.user_id);
       }
 
@@ -542,6 +609,7 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
         license_image_url: licenseImageUrl,
         last_exam_date: lastExamDate || null,
         exam_expiry: examExpiry || null,
+        department: department.trim() || null,
         company_name: user?.company_name || '',
         created_by: user?.id || null,
       };
@@ -638,6 +706,24 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
           <div>
             <label className="block text-lg font-medium mb-2">תוקף מבחן</label>
             <input type="date" value={examExpiry} onChange={e => setExamExpiry(e.target.value)} className={inputClass} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-lg font-medium mb-2">מחלקה (אופציונלי)</label>
+            <input
+              list="driver-dept-options"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              placeholder="בחר או הקלד מחלקה..."
+              className={inputClass}
+            />
+            <datalist id="driver-dept-options">
+              {deptOptions.map((dep) => (
+                <option key={dep} value={dep} />
+              ))}
+            </datalist>
           </div>
         </div>
 

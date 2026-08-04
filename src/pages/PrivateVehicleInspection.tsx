@@ -8,7 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import { validateTaskFields } from '@/lib/taskFieldValidation';
-import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
+import { DEFAULT_INSPECTION_CHECKLIST } from '@/lib/vehicleListDefaults';
+import { loadCompanyListSettings } from '@/lib/companyListSettings';
 
 interface VehicleBasic {
   id: string;
@@ -17,26 +18,7 @@ interface VehicleBasic {
   model: string;
 }
 
-const CHECKLIST_ITEMS = [
-  'תוקף רישיון',
-  'תוקף ביטוח',
-  'בדיקה חזותית לרכב',
-  'צמיגים',
-  'גלגל רזרבי',
-  'אורות לסוגיהן',
-  'מגבים',
-  'שמשות',
-  'מראות',
-  'בלמים',
-  'דוושת בלם',
-  'חגורות בטיחות',
-  'נזילות שמן מנוע',
-  'נזילות גלגל חילוף',
-  'נזילות ושלמות פנסים',
-  'רעש כללי',
-  'נורות שעונים ונוריות',
-  'אחר',
-];
+const CHECKLIST_ITEMS = [...DEFAULT_INSPECTION_CHECKLIST];
 
 interface CheckItem {
   name: string;
@@ -65,6 +47,14 @@ export default function PrivateVehicleInspection() {
     applyCompanyScope(supabase.from('vehicles').select('id, license_plate, manufacturer, model'), companyFilter)
       .then(({ data }) => { if (data) setVehicles(data as VehicleBasic[]); });
   }, []);
+
+  useEffect(() => {
+    const company = user?.company_name || '';
+    if (!company) return;
+    void loadCompanyListSettings(company).then((s) => {
+      setItems(s.inspectionChecklist.map((name) => ({ name, status: 'ok' as const, notes: '' })));
+    });
+  }, [user?.company_name]);
 
   useEffect(() => {
     if (!vehicles.length) return;

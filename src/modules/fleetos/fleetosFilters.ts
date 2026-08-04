@@ -35,6 +35,7 @@ export function applyFleetOSFilters(
       if (!normalizePlate(v.plate).includes(q)) return false;
     }
     if (f.internal && !includesFold(v.internal_number, f.internal)) return false;
+    if (f.department && (v.department || '') !== f.department) return false;
     if (f.driver && !includesFold(v.driver_name, f.driver)) return false;
     if (f.make && v.make !== f.make) return false;
     if (f.model && v.model !== f.model) return false;

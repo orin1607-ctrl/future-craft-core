@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import CreateAlertModal from '@/components/CreateAlertModal';
 import VehicleActionModal from '@/components/vehicles/VehicleActionModal';
+import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleListsManager';
 import VehicleSupplierOrderModal from '@/components/vehicles/VehicleSupplierOrderModal';
 import VehicleDashboard from '@/components/vehicles/VehicleDashboard';
 import VehicleHubBottomActions from '@/components/vehicles/VehicleHubBottomActions';
@@ -202,6 +203,7 @@ export default function VehicleHub({
   const [hubData, setHubData] = useState<VehicleHubData | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionOpen, setActionOpen] = useState(false);
+  const [listsManagerOpen, setListsManagerOpen] = useState(false);
   const [actionCategory, setActionCategory] = useState<string | undefined>();
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [supplierSource, setSupplierSource] = useState<{ type: string; label: string } | null>(null);
@@ -931,6 +933,9 @@ export default function VehicleHub({
               <Button type="button" className="w-full" onClick={() => onEdit(v)}>
                 <ClipboardList size={18} className="ml-2" /> עריכת רכב (VehicleForm)
               </Button>
+              <Button type="button" variant="outline" className="w-full" onClick={() => setListsManagerOpen(true)}>
+                <Settings2 size={18} className="ml-2" /> ניהול רשימות טיפול ובדיקה
+              </Button>
               <Button type="button" variant="outline" className="w-full" onClick={() => navigate(buildVehicleContextUrl('/attach-car', { plate: v.license_plate, vehicleId: v.id }))}>
                 <UserCheck size={18} className="ml-2" /> שינוי שיוך נהג
               </Button>
@@ -1013,6 +1018,12 @@ export default function VehicleHub({
           setSupplierOpen(true);
         }}
         onEditVehicle={() => onEdit(v)}
+      />
+
+      <CompanyVehicleListsManager
+        open={listsManagerOpen}
+        onOpenChange={setListsManagerOpen}
+        companyName={v.company_name || user?.company_name || ''}
       />
 
       <VehicleSupplierOrderModal
