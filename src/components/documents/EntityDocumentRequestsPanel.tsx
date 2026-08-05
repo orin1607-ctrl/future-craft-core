@@ -85,25 +85,30 @@ export default function EntityDocumentRequestsPanel({
 
   return (
     <div className="mt-6 pt-6 border-t border-border space-y-4">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          <History size={18} />
-          בקשות מסמכים והיסטוריה
-        </h2>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={14} />
-            רענון
-          </Button>
-          <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => setUploadOpen(true)}>
-            <Upload size={14} />
-            העלה מהמחשב
-          </Button>
-          <Button type="button" className="gap-1" onClick={() => setOpen(true)}>
-            <FilePlus2 size={16} />
-            בקש מסמך
-          </Button>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <History size={18} />
+            בקשות מסמכים (קישור לנהג)
+          </h2>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => void load()} disabled={loading}>
+              <RefreshCw size={14} />
+              רענון
+            </Button>
+            <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => setUploadOpen(true)}>
+              <Upload size={14} />
+              העלה מהמחשב
+            </Button>
+            <Button type="button" className="gap-1" onClick={() => setOpen(true)}>
+              <FilePlus2 size={16} />
+              בקש מסמך (קישור)
+            </Button>
+          </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          &quot;בקש מסמך&quot; יוצר קישור לנהג. להעלאת קובץ ישירות — השתמשו בפאנל &quot;מסמכי נהג — העלאת קובץ&quot; למעלה.
+        </p>
       </div>
 
       {loading && <p className="text-sm text-muted-foreground">טוען…</p>}

@@ -171,7 +171,15 @@ export default function Drivers() {
               </div>
             )}
           </div>
-          {d.notes && <p className="mt-4 p-3 bg-muted rounded-xl text-muted-foreground">{d.notes}</p>}
+            {d.notes && <p className="mt-4 p-3 bg-muted rounded-xl text-muted-foreground">{d.notes}</p>}
+
+          {user?.role !== 'driver' && (
+            <DriverDocumentsPanel
+              driverId={d.id}
+              driverName={d.full_name}
+              companyName={d.company_name}
+            />
+          )}
 
           {user?.role !== 'driver' && (
             <div className="mt-6 pt-6 border-t border-border">
@@ -240,13 +248,6 @@ export default function Drivers() {
             <div className="mt-4 pt-4 border-t border-border">
               <NotificationsAndSendsButton driverId={d.id} driverName={d.full_name} />
             </div>
-          )}
-          {user?.role !== 'driver' && (
-            <DriverDocumentsPanel
-              driverId={d.id}
-              driverName={d.full_name}
-              companyName={d.company_name}
-            />
           )}
           {user?.role !== 'driver' && (
             <EntityDocumentRequestsPanel

@@ -215,6 +215,9 @@ export default function CompanyVehicleListsManager({ open, onOpenChange, company
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle>ניהול רשימות — {companyName}</DialogTitle>
+          <p className="text-xs text-muted-foreground pt-1">
+            הוסף (+) · ערוך (לחיצה על פריט) · מחק (פח) · סדר (↑↓) · שמור · איפוס לברירת מחדל
+          </p>
         </DialogHeader>
 
         <div className="flex gap-2 mb-2">

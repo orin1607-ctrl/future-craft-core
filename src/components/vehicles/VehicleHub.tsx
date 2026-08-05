@@ -835,6 +835,15 @@ export default function VehicleHub({
             </div>
           )}
           {isManager && vehicleScopedLinks}
+          <div className="card-elevated p-4 mb-4 space-y-2">
+            <p className="text-sm font-bold">תבניות לקוח — רשימות טיפול ובדיקה</p>
+            <p className="text-xs text-muted-foreground">
+              ניהול סוגי &quot;דרוש טיפול&quot; ובדיקת תלת/חצי לכל הלקוח. השינוי לא מוחק היסטוריה קיימת.
+            </p>
+            <Button type="button" variant="outline" className="w-full" onClick={() => setListsManagerOpen(true)}>
+              <Settings2 size={18} className="ml-2" /> ניהול רשימות טיפול ובדיקה
+            </Button>
+          </div>
         </>
       )}
 
@@ -936,6 +945,9 @@ export default function VehicleHub({
               <Button type="button" variant="outline" className="w-full" onClick={() => setListsManagerOpen(true)}>
                 <Settings2 size={18} className="ml-2" /> ניהול רשימות טיפול ובדיקה
               </Button>
+              <p className="text-xs text-muted-foreground px-1">
+                הוספה · עריכה (לחיצה על פריט) · מחיקה · חצים לסדר · שמור · איפוס לברירת מחדל
+              </p>
               <Button type="button" variant="outline" className="w-full" onClick={() => navigate(buildVehicleContextUrl('/attach-car', { plate: v.license_plate, vehicleId: v.id }))}>
                 <UserCheck size={18} className="ml-2" /> שינוי שיוך נהג
               </Button>
