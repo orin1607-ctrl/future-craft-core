@@ -265,6 +265,7 @@ export type Database = {
           company_name: string
           created_at: string | null
           custom_inspection_checklist: unknown | null
+          custom_gap_alerts_config: unknown | null
           custom_treatment_items: unknown | null
           hidden_buttons: string[]
           id: string
@@ -289,6 +290,7 @@ export type Database = {
           company_name: string
           created_at?: string | null
           custom_inspection_checklist?: unknown | null
+          custom_gap_alerts_config?: unknown | null
           custom_treatment_items?: unknown | null
           hidden_buttons?: string[]
           id?: string
@@ -313,6 +315,7 @@ export type Database = {
           company_name?: string
           created_at?: string | null
           custom_inspection_checklist?: unknown | null
+          custom_gap_alerts_config?: unknown | null
           custom_treatment_items?: unknown | null
           hidden_buttons?: string[]
           id?: string

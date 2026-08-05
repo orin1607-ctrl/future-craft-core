@@ -21,9 +21,16 @@ import {
   type OpenIssueItem,
   type CustomGapItem,
 } from '@/lib/vehicleDashboardData';
+import { loadCompanyGapAlertsSettings } from '@/lib/companyGapAlertsSettings';
+import { buildGapAlertDetailRows } from '@/lib/gapAlertsDisplay';
 import { countMissingDocs } from '@/lib/vehicleHistory';
 import { isVehicleHubFieldRequired } from '@/lib/requiredFieldsCompany';
 import { addCustomVehicleGap, resolveCustomVehicleGap } from '@/lib/vehicleEventLog';
+import {
+  DEFAULT_GAP_ALERT_ITEMS,
+  type GapAlertConfigItem,
+  type GapAlertValues,
+} from '@/lib/vehicleGapAlertsDefaults';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
 import type { HubTabId } from '@/lib/vehicleHubData';
 import {
@@ -130,6 +137,7 @@ export default function VehicleDashboard({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [customGapInput, setCustomGapInput] = useState('');
   const [gapSaving, setGapSaving] = useState(false);
+  const [gapAlertItems, setGapAlertItems] = useState<GapAlertConfigItem[]>([...DEFAULT_GAP_ALERT_ITEMS]);
 
   const overrides = useMemo(
     () => requiredFields?.getOverridesForCompany(v.company_name) ?? {},
@@ -192,6 +200,14 @@ export default function VehicleDashboard({
     }
     loadDashboardDrillDown(v, latestInsurer).then(setDrill);
   }, [v, latestInsurer, previewDrillDown, drillRefreshKey]);
+
+  useEffect(() => {
+    const company = v.company_name || user?.company_name || '';
+    if (!company) return;
+    loadCompanyGapAlertsSettings(company)
+      .then((s) => setGapAlertItems(s.items))
+      .catch(() => setGapAlertItems([...DEFAULT_GAP_ALERT_ITEMS]));
+  }, [v.company_name, user?.company_name]);
 
   const openDrill = (kind: DrillKind) => {
     setDrillKind(kind);
@@ -328,28 +344,25 @@ export default function VehicleDashboard({
     );
   };
 
+  const gapAlertValues: GapAlertValues = {
+    missing_documents: missingDocs ? `${missingDocs}` : 'אין',
+    insurance_gap: hasInsuranceGap ? 'כן' : 'אין',
+    license_gap: hasLicenseGap ? 'כן' : 'אין',
+    expiry_warn: insuranceLicensesWarn ? 'בדוק' : 'אין',
+    equipment_gap: equipmentWarn && drill ? drill.equipmentGap.detail : 'אין',
+    completion_summary: gapsSummary,
+    open_issues: String(openIssuesCount),
+    transport_open: v.needs_transport ? 'כן' : 'לא',
+    company_approval: v.approval_status === 'pending_approval' ? 'ממתין' : '—',
+  };
+
   const renderGapsAlertsSheet = () => (
     <>
       {!drill ? (
         <p className="text-sm py-4">טוען...</p>
       ) : (
         <>
-          <DetailList
-            items={[
-              { label: 'חוסר מסמכים', value: missingDocs ? `${missingDocs}` : 'אין' },
-              { label: 'חוסר ביטוח', value: hasInsuranceGap ? 'כן' : 'אין' },
-              { label: 'חוסר רישיון', value: hasLicenseGap ? 'כן' : 'אין' },
-              { label: 'פג תוקף (טסט/ביטוח)', value: insuranceLicensesWarn ? 'בדוק' : 'אין' },
-              { label: 'חוסר ציוד', value: equipmentWarn ? drill.equipmentGap.detail : 'אין' },
-              { label: 'דורש השלמה', value: gapsSummary },
-              { label: 'התראות פתוחות', value: String(openIssuesCount) },
-              { label: 'שינוע פתוח', value: v.needs_transport ? 'כן' : 'לא' },
-              {
-                label: 'אישור חברה',
-                value: v.approval_status === 'pending_approval' ? 'ממתין' : '—',
-              },
-            ]}
-          />
+          <DetailList items={buildGapAlertDetailRows(gapAlertItems, gapAlertValues)} />
 
           {drill.customGaps.length > 0 && (
             <div className="mt-3">
