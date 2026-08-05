@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Car, Search, Plus, Download, Upload } from 'lucide-react';
+import { Car, Search, Plus, Download, Upload, Settings2 } from 'lucide-react';
 import { logVehicleEvent } from '@/lib/vehicleEventLog';
 import { exportToCsv } from '@/utils/exportCsv';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import CallCustomerButton from '@/components/voice/CallCustomerButton';
 import VehicleHub from '@/components/vehicles/VehicleHub';
+import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleListsManager';
 import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
 import { collectDepartmentsFromVehicles } from '@/lib/companyDepartments';
 
@@ -80,6 +81,7 @@ export default function Vehicles() {
   const [editVehicle, setEditVehicle] = useState<VehicleRow | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [loading, setLoading] = useState(true);
+  const [listsManagerOpen, setListsManagerOpen] = useState(false);
   const hubOpenedForRef = useRef<string | null>(null);
   const fleetOSReturnRef = useRef(false);
 
@@ -349,6 +351,15 @@ export default function Vehicles() {
         <h1 className="page-header !mb-0 flex items-center gap-3"><Car size={28} /> ניהול רכבים</h1>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {isManager && (
+            <button
+              type="button"
+              onClick={() => setListsManagerOpen(true)}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-bold min-h-[48px] hover:bg-primary/10 transition-colors"
+            >
+              <Settings2 size={18} /> רשימות טיפול ובדיקה
+            </button>
+          )}
+          {isManager && (
             <Link
               to="/vehicle-import"
               className="flex items-center gap-2 px-4 py-3 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-bold min-h-[48px] hover:bg-primary/10 transition-colors"
@@ -476,6 +487,14 @@ export default function Vehicles() {
         >
           <Plus size={28} />
         </button>
+      )}
+
+      {isManager && user?.company_name && (
+        <CompanyVehicleListsManager
+          open={listsManagerOpen}
+          onOpenChange={setListsManagerOpen}
+          companyName={user.company_name}
+        />
       )}
     </div>
   );

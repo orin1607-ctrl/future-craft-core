@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FileText, Search, Trash2, Upload } from 'lucide-react';
+import { Camera, FileText, FolderOpen, Search, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { uploadDocument, deleteStoredDocument } from '@/lib/uploadDocument';
-import { DocumentCard } from '@/components/documents/DocumentViewer';
+import { DocumentCard, useDocumentPreview } from '@/components/documents/DocumentViewer';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
 const DRIVER_DOC_CATEGORIES = ['driver-license', 'health', 'contracts', 'other'] as const;
+const FILE_ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,image/*,application/pdf';
 
 interface DocRow {
   id: string;
@@ -41,6 +42,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function DriverDocumentsPanel({ driverId, driverName, companyName }: Props) {
+  const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [docs, setDocs] = useState<DocRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,6 +53,7 @@ export default function DriverDocumentsPanel({ driverId, driverName, companyName
   const [docDate, setDocDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [docCategory, setDocCategory] = useState<string>('other');
   const [busyDeleteId, setBusyDeleteId] = useState<string | null>(null);
+  const { PreviewDialog } = useDocumentPreview();
 
   const load = useCallback(async () => {
     if (!companyName || !driverName) return;
@@ -84,17 +87,15 @@ export default function DriverDocumentsPanel({ driverId, driverName, companyName
     return label.includes(q) || cat.includes(q);
   });
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadReady = docName.trim().length > 0 && !!docDate;
+
+  const handleUpload = async (file: File) => {
     if (!docName.trim()) {
-      toast.error('חובה להזין שם מסמך');
-      e.target.value = '';
+      toast.error('חובה להזין שם מסמך לפני העלאה');
       return;
     }
     if (!docDate) {
       toast.error('חובה להזין תאריך הכנסת מסמך');
-      e.target.value = '';
       return;
     }
 
@@ -115,7 +116,6 @@ export default function DriverDocumentsPanel({ driverId, driverName, companyName
       documentDate: docDate,
     });
     setUploading(false);
-    e.target.value = '';
 
     if (!result.ok) {
       toast.error(result.error);
@@ -126,10 +126,16 @@ export default function DriverDocumentsPanel({ driverId, driverName, companyName
       await supabase.from('drivers').update({ license_image_url: result.publicUrl }).eq('id', driverId);
     }
 
-    toast.success('המסמך הועלה בהצלחה');
+    toast.success('המסמך הועלה ונשמר במערכת');
     setShowUpload(false);
     setDocName('');
     await load();
+  };
+
+  const onFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) void handleUpload(file);
   };
 
   const handleDelete = async (doc: DocRow) => {
@@ -147,19 +153,25 @@ export default function DriverDocumentsPanel({ driverId, driverName, companyName
 
   return (
     <div className="mt-6 pt-6 border-t border-border space-y-4">
+      {PreviewDialog}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          <FileText size={18} />
-          מסמכי נהג
-        </h2>
+        <div>
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <FileText size={18} />
+            מסמכי נהג — העלאת קובץ
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            PDF · JPG · PNG · WEBP · HEIC מהמחשב, מהטלפון, מהגלריה או מהמצלמה
+          </p>
+        </div>
         <Button type="button" size="sm" className="gap-1" onClick={() => setShowUpload((v) => !v)}>
           <Upload size={14} />
-          העלאת מסמך
+          {showUpload ? 'סגור טופס' : 'העלה מסמך'}
         </Button>
       </div>
 
       {showUpload && (
-        <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
+        <div className="rounded-xl border-2 border-primary/30 p-4 space-y-4 bg-primary/5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>שם המסמך *</Label>
@@ -194,16 +206,51 @@ export default function DriverDocumentsPanel({ driverId, driverName, companyName
               ))}
             </select>
           </div>
-          <div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,image/*,application/pdf"
-              onChange={(e) => void handleUpload(e)}
-              disabled={uploading}
-              className="w-full text-sm"
-            />
-            <p className="text-xs text-muted-foreground mt-1">PDF · JPG · PNG (עד 10MB)</p>
+
+          {!uploadReady && (
+            <p className="text-sm text-amber-700 bg-amber-50 dark:bg-amber-950/30 rounded-lg p-2">
+              מלא שם מסמך ותאריך — ואז בחר קובץ להעלאה.
+            </p>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label
+              className={`flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-colors ${
+                uploadReady && !uploading
+                  ? 'bg-primary text-primary-foreground cursor-pointer hover:opacity-90'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
+              }`}
+            >
+              <FolderOpen size={18} />
+              {uploading ? 'מעלה…' : 'בחר קובץ (PDF / תמונה)'}
+              <input
+                ref={fileRef}
+                type="file"
+                accept={FILE_ACCEPT}
+                onChange={onFilePicked}
+                disabled={!uploadReady || uploading}
+                className="hidden"
+              />
+            </label>
+            <label
+              className={`flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-colors ${
+                uploadReady && !uploading
+                  ? 'bg-primary/90 text-primary-foreground cursor-pointer hover:opacity-90'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
+              }`}
+            >
+              <Camera size={18} />
+              {uploading ? 'מעלה…' : 'צלם / גלריה (מובייל)'}
+              <input
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={onFilePicked}
+                disabled={!uploadReady || uploading}
+                className="hidden"
+              />
+            </label>
           </div>
         </div>
       )}
@@ -213,14 +260,14 @@ export default function DriverDocumentsPanel({ driverId, driverName, companyName
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="חיפוש מסמך..."
+          placeholder="חיפוש מסמך לפי שם או סוג..."
           className="w-full pr-10 p-3 rounded-xl border border-input bg-background text-sm"
         />
       </div>
 
       {loading && <p className="text-sm text-muted-foreground">טוען מסמכים…</p>}
       {!loading && filtered.length === 0 && (
-        <p className="text-sm text-muted-foreground">אין מסמכים להצגה</p>
+        <p className="text-sm text-muted-foreground">אין מסמכים בהיסטוריה — העלה קובץ באמצעות הכפתור למעלה</p>
       )}
 
       <div className="space-y-2">
@@ -233,23 +280,15 @@ export default function DriverDocumentsPanel({ driverId, driverName, companyName
               ? format(new Date(d.created_at), 'dd/MM/yyyy', { locale: he })
               : '—';
           return (
-            <div key={d.id} className="flex items-center gap-2 rounded-xl border border-border p-2">
-              <div className="flex-1 min-w-0">
-                <DocumentCard url={url} fileName={title} compact />
-                <p className="text-xs text-muted-foreground px-2">
-                  {CATEGORY_LABELS[d.category] || d.category} · {dateStr}
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={busyDeleteId === d.id}
-                onClick={() => void handleDelete(d)}
-                className="shrink-0 p-2 rounded-lg text-destructive hover:bg-destructive/10"
-                title="מחק מסמך"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
+            <DocumentCard
+              key={d.id}
+              url={url}
+              fileName={title}
+              label={CATEGORY_LABELS[d.category] || d.category}
+              meta={<span className="text-xs text-muted-foreground">{dateStr}</span>}
+              compact
+              onDelete={busyDeleteId === d.id ? undefined : () => void handleDelete(d)}
+            />
           );
         })}
       </div>
