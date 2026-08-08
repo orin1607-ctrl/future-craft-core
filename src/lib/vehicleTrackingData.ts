@@ -1,8 +1,23 @@
 import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
-import { daysUntil, statusLabel } from '@/components/vehicles/vehicleHubUtils';
-import { isHistoryLogTask } from '@/lib/vehicleEventLog';
+import { statusLabel } from '@/components/vehicles/vehicleHubUtils';
+import { isHistoryLogTask, isCustomGapTask } from '@/lib/vehicleEventLog';
 import { loadVehicleHistory, type VehicleHistoryEntry } from '@/lib/vehicleHistory';
+import { fetchCompanySettings } from '@/lib/companySettings';
+import {
+  buildVehicleTrackingAlerts,
+  type TrackingAlertItem,
+  type TrackingAlertKind,
+  vehicleHasTrackingAlerts,
+  thresholdsFromCompanySettings,
+  type CompanyAlertThresholds,
+  DEFAULT_ALERT_THRESHOLDS,
+  gapTitleFromTask,
+  type TrackingOpenEntity,
+} from '@/lib/vehicleTrackingAlerts';
+import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
+
+export type { TrackingAlertItem, TrackingAlertKind };
 
 /** Include form default `opened` so new faults appear immediately in מעקב רכבים → תקלות */
 const OPEN_FAULT = [
@@ -50,6 +65,9 @@ export interface TrackingVehicleRow {
   has_active_transport: boolean;
   test_expiry: string | null;
   insurance_expiry: string | null;
+  insurance_alerts_enabled: boolean;
+  alert_items: TrackingAlertItem[];
+  alert_kinds: TrackingAlertKind[];
 }
 
 export type SummaryFilterKey =
@@ -86,6 +104,7 @@ export interface TrackingFilters {
   nodriver: boolean;
   testSoon: boolean;
   insSoon: boolean;
+  alertKind: TrackingAlertKind | '';
 }
 
 export const EMPTY_TRACKING_FILTERS: TrackingFilters = {
@@ -106,6 +125,7 @@ export const EMPTY_TRACKING_FILTERS: TrackingFilters = {
   nodriver: false,
   testSoon: false,
   insSoon: false,
+  alertKind: '',
 };
 
 function normPlate(p: string) {
@@ -117,9 +137,17 @@ function isOpen(list: string[], status: string | null | undefined) {
   return list.includes(s) || list.includes(status || '');
 }
 
-function hasDateAlert(date: string | null, withinDays: number) {
-  const d = daysUntil(date);
-  return d !== null && d >= 0 && d <= withinDays;
+async function loadCompanyThresholdsMap(
+  companyNames: string[],
+): Promise<Map<string, CompanyAlertThresholds>> {
+  const map = new Map<string, CompanyAlertThresholds>();
+  await Promise.all(
+    companyNames.map(async (name) => {
+      const settings = await fetchCompanySettings(name);
+      map.set(name, thresholdsFromCompanySettings(settings));
+    }),
+  );
+  return map;
 }
 
 export async function countTrackingAttention(companyFilter: string | null): Promise<number> {
@@ -140,7 +168,7 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
     supabase
       .from('vehicles')
       .select(
-        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry',
+        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled',
       )
       .order('license_plate'),
     companyFilter,
@@ -148,6 +176,9 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
 
   const vehicles = vehiclesRes.data || [];
   if (vehicles.length === 0) return [];
+
+  const companyNames = [...new Set(vehicles.map((v) => v.company_name).filter(Boolean))] as string[];
+  const thresholdsMap = await loadCompanyThresholdsMap(companyNames);
 
   const driverIds = [...new Set(vehicles.map((v) => v.assigned_driver_id).filter(Boolean))] as string[];
   const driverMap = new Map<string, string>();
@@ -157,33 +188,76 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
     (drivers || []).forEach((d) => driverMap.set(d.id, d.full_name));
   }
 
+function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null | undefined, entity: TrackingOpenEntity) {
+  if (!plate) return;
+  const key = normPlate(plate);
+  const list = map.get(key) || [];
+  list.push(entity);
+  map.set(key, list);
+}
+
   const [faultsRes, tasksRes, accidentsRes, servicesRes] = await Promise.all([
-    applyCompanyScope(supabase.from('faults').select('vehicle_plate, status'), companyFilter),
-    applyCompanyScope(supabase.from('vehicle_tasks').select('vehicle_plate, status, title, created_at'), companyFilter),
-    applyCompanyScope(supabase.from('accidents').select('vehicle_plate, status'), companyFilter),
     applyCompanyScope(
-      supabase.from('service_orders').select('vehicle_plate, treatment_status, created_at, service_category'),
+      supabase.from('faults').select('id, vehicle_plate, status, fault_type, description'),
+      companyFilter,
+    ),
+    applyCompanyScope(
+      supabase.from('vehicle_tasks').select('id, vehicle_plate, status, title, description, created_at'),
+      companyFilter,
+    ),
+    applyCompanyScope(
+      supabase.from('accidents').select('id, vehicle_plate, status, description, accident_date'),
+      companyFilter,
+    ),
+    applyCompanyScope(
+      supabase
+        .from('service_orders')
+        .select('id, vehicle_plate, treatment_status, created_at, service_category, description'),
       companyFilter,
     ),
   ]);
 
-  const openFaultPlates = new Set<string>();
+  const faultsByPlate = new Map<string, TrackingOpenEntity[]>();
+  const defectsByPlate = new Map<string, TrackingOpenEntity[]>();
+  const gapsByPlate = new Map<string, TrackingOpenEntity[]>();
+  const accidentsByPlate = new Map<string, TrackingOpenEntity[]>();
+  const servicesByPlate = new Map<string, TrackingOpenEntity[]>();
+
   (faultsRes.data || []).forEach((f) => {
-    if (f.vehicle_plate && isOpen(OPEN_FAULT, f.status)) openFaultPlates.add(normPlate(f.vehicle_plate));
+    if (!f.vehicle_plate || !isOpen(OPEN_FAULT, f.status)) return;
+    pushEntity(faultsByPlate, f.vehicle_plate, {
+      id: f.id,
+      title: f.fault_type || 'תקלה',
+      detail: f.description || 'תקלה פתוחה',
+    });
   });
 
-  const openDefectPlates = new Set<string>();
   (tasksRes.data || []).forEach((t) => {
-    if (t.vehicle_plate && !isHistoryLogTask(t) && isOpen(OPEN_TASK, t.status)) {
-      openDefectPlates.add(normPlate(t.vehicle_plate));
+    if (!t.vehicle_plate || isHistoryLogTask(t)) return;
+    if (isCustomGapTask(t)) {
+      if (!isOpen(OPEN_TASK, t.status)) return;
+      pushEntity(gapsByPlate, t.vehicle_plate, {
+        id: t.id,
+        title: gapTitleFromTask(t.title),
+        detail: t.description || 'חוסר פתוח',
+      });
+      return;
     }
+    if (!isOpen(OPEN_TASK, t.status)) return;
+    pushEntity(defectsByPlate, t.vehicle_plate, {
+      id: t.id,
+      title: t.title || 'ליקוי',
+      detail: t.description || 'ליקוי פתוח',
+    });
   });
 
-  const openAccidentPlates = new Set<string>();
   (accidentsRes.data || []).forEach((a) => {
-    if (a.vehicle_plate && isOpen(OPEN_ACCIDENT, a.status)) {
-      openAccidentPlates.add(normPlate(a.vehicle_plate));
-    }
+    if (!a.vehicle_plate || !isOpen(OPEN_ACCIDENT, a.status)) return;
+    pushEntity(accidentsByPlate, a.vehicle_plate, {
+      id: a.id,
+      title: 'תאונה',
+      detail: a.description || 'תאונה בטיפול',
+    });
   });
 
   const serviceByPlate = new Map<string, { active: boolean; oldest: string | null }>();
@@ -191,6 +265,13 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
     if (!s.vehicle_plate) return;
     const key = normPlate(s.vehicle_plate);
     const active = isOpen(OPEN_SERVICE, s.treatment_status);
+    if (active) {
+      pushEntity(servicesByPlate, s.vehicle_plate, {
+        id: s.id,
+        title: s.service_category || 'טיפול',
+        detail: s.description || s.service_category || 'טיפול פעיל',
+      });
+    }
     const prev = serviceByPlate.get(key);
     if (!prev) {
       serviceByPlate.set(key, { active, oldest: s.created_at });
@@ -219,13 +300,35 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
       );
     }
 
-    const has_open_fault = openFaultPlates.has(plateKey);
-    const has_open_defect = openDefectPlates.has(plateKey);
-    const has_open_accident = openAccidentPlates.has(plateKey);
-    const testAlert = hasDateAlert(v.test_expiry, 60);
-    const insAlert = hasDateAlert(v.insurance_expiry, 30);
-    const has_open_alert =
-      testAlert || insAlert || has_open_fault || has_open_defect || has_open_accident;
+    const openFaults = faultsByPlate.get(plateKey) || [];
+    const openDefects = defectsByPlate.get(plateKey) || [];
+    const openAccidents = accidentsByPlate.get(plateKey) || [];
+    const openServices = servicesByPlate.get(plateKey) || [];
+    const customGaps = gapsByPlate.get(plateKey) || [];
+    const has_open_fault = openFaults.length > 0;
+    const has_open_defect = openDefects.length > 0;
+    const has_open_accident = openAccidents.length > 0;
+    const thresholds = thresholdsMap.get(v.company_name || '') ?? DEFAULT_ALERT_THRESHOLDS;
+    const insOn = isInsuranceAlertsEnabled(v);
+
+    const alert_items = buildVehicleTrackingAlerts({
+      vehicleId: v.id,
+      license_plate: v.license_plate,
+      test_expiry: v.test_expiry,
+      insurance_expiry: v.insurance_expiry,
+      license_doc_url: v.license_doc_url,
+      insurance_alerts_enabled: v.insurance_alerts_enabled,
+      openFaults,
+      openDefects,
+      openAccidents,
+      openServices,
+      customGaps,
+      has_active_transport: !!v.needs_transport,
+      service_status: v.service_status,
+      thresholds,
+    });
+
+    const has_open_alert = vehicleHasTrackingAlerts(alert_items);
 
     const sl = statusLabel(v.status || '');
 
@@ -254,6 +357,9 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
       has_active_transport: !!v.needs_transport,
       test_expiry: v.test_expiry,
       insurance_expiry: v.insurance_expiry,
+      insurance_alerts_enabled: insOn,
+      alert_items,
+      alert_kinds: alert_items.map((a) => a.kind),
     };
   });
 }
@@ -282,9 +388,9 @@ export function applySummaryFilter(rows: TrackingVehicleRow[], key: SummaryFilte
     case 'nodriver':
       return rows.filter((v) => !v.driver_name);
     case 'testSoon':
-      return rows.filter((v) => hasDateAlert(v.test_expiry, 60));
+      return rows.filter((v) => v.alert_kinds.includes('test'));
     case 'insSoon':
-      return rows.filter((v) => hasDateAlert(v.insurance_expiry, 30));
+      return rows.filter((v) => v.alert_kinds.includes('insurance'));
     case 'km':
       return rows.filter((v) => v.odometer > 200000);
     default:
@@ -309,8 +415,9 @@ export function applyTrackingFilters(rows: TrackingVehicleRow[], f: TrackingFilt
     if (f.alert && !v.has_open_alert) return false;
     if (f.transport && !v.has_active_transport) return false;
     if (f.nodriver && v.driver_name) return false;
-    if (f.testSoon && !hasDateAlert(v.test_expiry, 60)) return false;
-    if (f.insSoon && !hasDateAlert(v.insurance_expiry, 30)) return false;
+    if (f.testSoon && !v.alert_kinds.includes('test')) return false;
+    if (f.insSoon && !v.alert_kinds.includes('insurance')) return false;
+    if (f.alertKind && !v.alert_kinds.includes(f.alertKind)) return false;
     return true;
   });
 }
@@ -342,7 +449,7 @@ export async function loadVehicleTrackingDetail(
     supabase
       .from('vehicles')
       .select(
-        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry',
+        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled',
       )
       .eq('id', vehicleId)
       .maybeSingle(),

@@ -47,6 +47,7 @@ export function fleetOSRowToHubVehicle(row: FleetOSVehicleRow): Record<string, u
     planned_replacement_date: null,
     has_loan: false,
     is_leasing: false,
+    insurance_alerts_enabled: true,
   };
 }
 

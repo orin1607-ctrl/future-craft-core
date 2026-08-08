@@ -1,5 +1,25 @@
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import type { TrackingVehicleRow } from '@/lib/vehicleTrackingData';
+import { TRACKING_ALERT_KIND_LABELS } from '@/lib/vehicleTrackingAlerts';
+
+function AlertChips({ items }: { items: TrackingVehicleRow['alert_items'] }) {
+  if (items.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
+  return (
+    <div className="flex flex-wrap gap-1 justify-end max-w-[220px]" onClick={(e) => e.stopPropagation()}>
+      {items.map((a) => (
+        <Link
+          key={`${a.kind}-${a.entityId || a.tier || ''}-${a.label}`}
+          to={a.hubLink}
+          className="status-badge status-pending text-[10px] hover:bg-primary/15"
+          title={a.detail}
+        >
+          {a.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 function Flag({ on }: { on: boolean }) {
   return on ? (
@@ -61,7 +81,7 @@ export default function TrackingFleetList({
               <th className="py-3 px-2 text-right">סטטוס</th>
               <th className="py-3 px-2 text-right">ליקוי</th>
               <th className="py-3 px-2 text-right">תקלה</th>
-              <th className="py-3 px-2 text-right">התראה</th>
+              <th className="py-3 px-2 text-right">התראות</th>
               <th className="py-3 px-2 text-right">מוסך</th>
               <th className="py-3 px-2" />
             </tr>
@@ -81,7 +101,9 @@ export default function TrackingFleetList({
                 <td className="py-3 px-2"><StatusBadge text={v.status_text} status={v.status} /></td>
                 <td className="py-3 px-2 text-center"><Flag on={v.has_open_defect} /></td>
                 <td className="py-3 px-2 text-center"><Flag on={v.has_open_fault} /></td>
-                <td className="py-3 px-2 text-center"><Flag on={v.has_open_alert} /></td>
+                <td className="py-3 px-2 text-center">
+                  <AlertChips items={v.alert_items} />
+                </td>
                 <td className="py-3 px-2 text-center">
                   {v.in_garage ? (
                     <span className="status-badge status-pending">{v.days_in_garage} ימים</span>
@@ -120,9 +142,11 @@ export default function TrackingFleetList({
               {v.company_name} · נהג: {v.driver_name || '—'}
             </p>
             <div className="flex flex-wrap gap-1 justify-end">
-              {v.has_open_defect && <span className="status-badge status-pending">ליקוי</span>}
-              {v.has_open_fault && <span className="status-badge status-urgent">תקלה</span>}
-              {v.has_open_alert && <span className="status-badge status-pending">התראה</span>}
+              {v.alert_items.length > 0 ? (
+                <AlertChips items={v.alert_items} />
+              ) : (
+                <span className="text-xs text-muted-foreground">אין התראות</span>
+              )}
               {v.in_garage && <span className="status-badge status-pending">מוסך {v.days_in_garage}י</span>}
             </div>
           </button>

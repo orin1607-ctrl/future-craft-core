@@ -104,12 +104,6 @@ export async function loadFleetOSTracking(companyFilter: string | null): Promise
   };
 }
 
-function hasDateWithin(date: string | null, days: number): boolean {
-  if (!date) return false;
-  const d = Math.ceil((new Date(date).getTime() - Date.now()) / 86400000);
-  return d >= 0 && d <= days;
-}
-
 /** Build alert catalog from existing Dalia tables (faults, service_orders, vehicles). */
 export async function loadFleetOSAlertCatalog(
   trackingRows: TrackingVehicleRow[],
@@ -162,7 +156,7 @@ export async function loadFleetOSAlertCatalog(
     });
   }
 
-  for (const v of trackingRows) {
+    for (const v of trackingRows) {
     if (v.in_garage) {
       alerts.push({
         id: `garage-${v.id}`,
@@ -193,15 +187,26 @@ export async function loadFleetOSAlertCatalog(
         created_at: 'עכשיו',
       });
     }
-    if (hasDateWithin(v.test_expiry, 30) || hasDateWithin(v.insurance_expiry, 30)) {
-      alerts.push({
-        id: `maint-${v.id}`,
-        type: 'service_urgent',
-        vehicle_plate: v.license_plate,
-        message: hasDateWithin(v.test_expiry, 30) ? 'טסט מתקרב' : 'ביטוח מתקרב',
-        severity: 'warning',
-        created_at: 'עכשיו',
-      });
+    for (const item of v.alert_items) {
+      if (item.kind === 'test') {
+        alerts.push({
+          id: `test-${v.id}-${item.tier || 'x'}`,
+          type: 'service_urgent',
+          vehicle_plate: v.license_plate,
+          message: item.detail,
+          severity: 'warning',
+          created_at: 'עכשיו',
+        });
+      } else if (item.kind === 'insurance' && v.insurance_alerts_enabled) {
+        alerts.push({
+          id: `ins-${v.id}-${item.tier || 'x'}`,
+          type: 'service_urgent',
+          vehicle_plate: v.license_plate,
+          message: item.detail,
+          severity: 'warning',
+          created_at: 'עכשיו',
+        });
+      }
     }
   }
 

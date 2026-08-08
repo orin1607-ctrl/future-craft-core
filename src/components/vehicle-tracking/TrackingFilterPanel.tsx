@@ -1,6 +1,7 @@
 import { Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { TrackingFilters, TrackingVehicleRow } from '@/lib/vehicleTrackingData';
+import { TRACKING_ALERT_KIND_LABELS, type TrackingAlertKind } from '@/lib/vehicleTrackingAlerts';
 import { cn } from '@/lib/utils';
 
 export default function TrackingFilterPanel({
@@ -100,6 +101,18 @@ export default function TrackingFilterPanel({
                 value={filters.driver}
                 onChange={(e) => onChange({ driver: e.target.value })}
               />
+            </Field>
+            <Field label="סוג התראה">
+              <select
+                className="filter-input"
+                value={filters.alertKind}
+                onChange={(e) => onChange({ alertKind: e.target.value as TrackingAlertKind | '' })}
+              >
+                <option value="">הכול</option>
+                {(Object.keys(TRACKING_ALERT_KIND_LABELS) as TrackingAlertKind[]).map((k) => (
+                  <option key={k} value={k}>{TRACKING_ALERT_KIND_LABELS[k]}</option>
+                ))}
+              </select>
             </Field>
           </div>
           <div className="flex flex-wrap gap-2">
