@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Search, CheckCircle2, Clock, Wrench, Car, CalendarDays, Shield, FileText, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,6 +46,7 @@ const getDaysSince = (dateStr: string) => {
 export default function VehicleTasks() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const [searchParams] = useSearchParams();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
   const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -73,6 +75,14 @@ export default function VehicleTasks() {
   useEffect(() => {
     if (contextPlate) setSearch(contextPlate);
   }, [contextPlate]);
+
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (!id || tasks.length === 0) return;
+    requestAnimationFrame(() => {
+      document.getElementById(`task-row-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [searchParams, tasks]);
 
   const filtered = tasks.filter(t => {
     const matchSearch = !search || plateMatches(t.vehicle_plate, search) || t.title?.includes(search) || t.description?.includes(search);
@@ -303,7 +313,11 @@ export default function VehicleTasks() {
             const isOverdue = t.follow_up_date && new Date(t.follow_up_date) < new Date() && t.status !== 'resolved';
             
             return (
-              <div key={t.id} className={`card-elevated ${isOverdue ? 'border-2 border-destructive' : ''}`}>
+              <div
+                key={t.id}
+                id={`task-row-${t.id}`}
+                className={`card-elevated ${isOverdue ? 'border-2 border-destructive' : ''} ${searchParams.get('id') === t.id ? 'ring-2 ring-primary' : ''}`}
+              >
                 <div className="flex items-start gap-3">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
                     <StatusIcon size={24} className={cfg.color} />

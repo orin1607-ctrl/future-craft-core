@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Briefcase, Plus, Search, ArrowRight, Clock, CheckCircle, MessageSquareReply,
   Filter, Car, User, Building2, Calendar, Truck, Trash2, Edit, History, Download,
@@ -69,6 +69,7 @@ const URGENCY_COLORS: Record<string, string> = { normal: 'bg-muted text-muted-fo
 
 export default function ServiceOrders() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked } = useVehicleUrlContext();
@@ -116,6 +117,13 @@ export default function ServiceOrders() {
     }
     if (contextAction === 'new') setShowForm(true);
   }, [contextPlate, contextAction]);
+
+  useEffect(() => {
+    const orderId = searchParams.get('orderId');
+    if (!orderId || orders.length === 0) return;
+    const found = orders.find((o) => o.id === orderId);
+    if (found) setSelectedOrder(found);
+  }, [searchParams, orders]);
 
   const filtered = orders.filter(o => {
     const matchSearch = !search ||

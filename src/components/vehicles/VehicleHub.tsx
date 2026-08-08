@@ -21,12 +21,13 @@ import {
   Briefcase,
   Fuel,
 } from 'lucide-react';
-import { buildVehicleContextUrl, buildVehicleHubUrl, markFleetOSHubNavigation } from '@/lib/entityNavContext';
+import { buildVehicleContextUrl, buildVehicleHubUrl, markFleetOSHubNavigation, type VehicleHubDeepLink } from '@/lib/entityNavContext';
 import { canAccessFleetOS } from '@/modules/fleetos/fleetosRoleMap';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import CreateAlertModal from '@/components/CreateAlertModal';
 import VehicleActionModal from '@/components/vehicles/VehicleActionModal';
 import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleListsManager';
@@ -88,6 +89,7 @@ export interface VehicleHubVehicle {
   vehicle_color?: string | null;
   end_or_scrap_date?: string | null;
   import_buffer?: string | null;
+  insurance_alerts_enabled?: boolean | null;
 }
 
 interface DriverRow {
@@ -176,6 +178,7 @@ export default function VehicleHub({
   previewMode = false,
   previewHubExtras,
   hubBackLabel,
+  initialHubNav,
 }: {
   vehicle: VehicleHubVehicle;
   drivers: DriverRow[];
@@ -194,6 +197,7 @@ export default function VehicleHub({
     drillDown: DashboardDrillDown;
   };
   hubBackLabel?: string;
+  initialHubNav?: VehicleHubDeepLink;
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -215,6 +219,23 @@ export default function VehicleHub({
   const [latestInsurer, setLatestInsurer] = useState<string | null>(null);
   const [openIssuesCount, setOpenIssuesCount] = useState(0);
   const [drillRefreshKey, setDrillRefreshKey] = useState(0);
+  const [initialDrillKind, setInitialDrillKind] = useState<
+    'insurance_licenses' | 'documents' | 'gaps_alerts' | 'service' | 'open_issues' | 'transport' | null
+  >(null);
+  const [initialHubFocus, setInitialHubFocus] = useState<string | null>(null);
+  const [initialHubEntityId, setInitialHubEntityId] = useState<string | null>(null);
+  const [savingInsuranceToggle, setSavingInsuranceToggle] = useState(false);
+
+  useEffect(() => {
+    if (!initialHubNav) return;
+    if (initialHubNav.hubSection) setMainSection(initialHubNav.hubSection);
+    if (initialHubNav.hubTab) setActiveTab(initialHubNav.hubTab as HubTabId);
+    if (initialHubNav.hubDrill) {
+      setInitialDrillKind(initialHubNav.hubDrill as typeof initialDrillKind);
+    }
+    if (initialHubNav.hubFocus) setInitialHubFocus(initialHubNav.hubFocus);
+    if (initialHubNav.hubEntityId) setInitialHubEntityId(initialHubNav.hubEntityId);
+  }, [initialHubNav]);
 
   const sl = statusLabel(v.status);
   const driver = drivers.find((d) => d.id === v.assigned_driver_id);
@@ -805,6 +826,9 @@ export default function VehicleHub({
             previewDrillDown={previewMode ? previewHubExtras?.drillDown : undefined}
             previewMode={previewMode}
             drillRefreshKey={drillRefreshKey}
+            initialDrillKind={initialDrillKind}
+            initialHubFocus={initialHubFocus}
+            initialHubEntityId={initialHubEntityId}
             onDrillDataChanged={() => {
               refreshHub();
               setDrillRefreshKey((k) => k + 1);
@@ -945,6 +969,32 @@ export default function VehicleHub({
               <Button type="button" variant="outline" className="w-full" onClick={() => setListsManagerOpen(true)}>
                 <Settings2 size={18} className="ml-2" /> ניהול רשימות טיפול ובדיקה
               </Button>
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+                <div className="text-right flex-1">
+                  <p className="text-sm font-bold">הפעל התראות ביטוח</p>
+                  <p className="text-xs text-muted-foreground">
+                    כבוי = אין התראות ביטוח ואין סימון אדום על ביטוח (מסמכים ותאריכים נשארים)
+                  </p>
+                </div>
+                <Switch
+                  checked={v.insurance_alerts_enabled !== false}
+                  disabled={savingInsuranceToggle}
+                  onCheckedChange={async (on) => {
+                    setSavingInsuranceToggle(true);
+                    const { error } = await supabase
+                      .from('vehicles')
+                      .update({ insurance_alerts_enabled: on })
+                      .eq('id', v.id);
+                    setSavingInsuranceToggle(false);
+                    if (error) {
+                      toast.error('שגיאה בעדכון התראות ביטוח');
+                      return;
+                    }
+                    toast.success(on ? 'התראות ביטוח הופעלו' : 'התראות ביטוח כובו');
+                    onRefresh();
+                  }}
+                />
+              </div>
               <p className="text-xs text-muted-foreground px-1">
                 הוספה · עריכה (לחיצה על פריט) · מחיקה · חצים לסדר · שמור · איפוס לברירת מחדל
               </p>

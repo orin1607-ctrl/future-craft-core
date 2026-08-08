@@ -12,6 +12,7 @@ import {
   getFleetOSReturnPath,
   isFleetOSHubNavigationActive,
   peekFleetOSHubVehicle,
+  type VehicleHubDeepLink,
 } from '@/lib/entityNavContext';
 import { toast } from 'sonner';
 import CallCustomerButton from '@/components/voice/CallCustomerButton';
@@ -58,6 +59,7 @@ interface VehicleRow {
   is_leasing: boolean;
   department?: string | null;
   import_buffer?: unknown;
+  insurance_alerts_enabled?: boolean | null;
 }
 
 interface DriverRow { id: string; full_name: string; phone: string | null; }
@@ -319,6 +321,22 @@ export default function Vehicles() {
 
   // === DETAIL VIEW (Vehicle Hub) ===
   if (viewMode === 'detail' && selectedVehicle) {
+    const initialHubNav: VehicleHubDeepLink | undefined = (() => {
+      const hubSection = searchParams.get('hubSection');
+      const hubTab = searchParams.get('hubTab');
+      const hubDrill = searchParams.get('hubDrill');
+      const hubFocus = searchParams.get('hubFocus');
+      const hubEntityId = searchParams.get('hubEntityId');
+      if (!hubSection && !hubTab && !hubDrill && !hubFocus && !hubEntityId) return undefined;
+      return {
+        hubSection: hubSection as VehicleHubDeepLink['hubSection'],
+        hubTab: hubTab || undefined,
+        hubDrill: hubDrill || undefined,
+        hubFocus: hubFocus || undefined,
+        hubEntityId: hubEntityId || undefined,
+      };
+    })();
+
     return (
       <VehicleHub
         vehicle={selectedVehicle}
@@ -330,6 +348,7 @@ export default function Vehicles() {
         onRefresh={refreshSelectedVehicle}
         getDriverName={getDriverName}
         hubBackLabel={fleetOSReturnRef.current ? 'חזרה ל-FleetOS AI' : undefined}
+        initialHubNav={initialHubNav}
       />
     );
   }
@@ -540,6 +559,9 @@ async function generateVehicleAlerts(plate: string, user: any, payload?: any) {
 
             for (const { field, label } of expiryFields) {
               const dateVal = payload[field];
+              const isInsuranceField =
+                field === 'insurance_expiry' || field === 'comprehensive_insurance_expiry';
+              if (isInsuranceField && payload.insurance_alerts_enabled === false) continue;
               if (dateVal) {
                 const daysLeft = Math.ceil((new Date(dateVal).getTime() - Date.now()) / 86400000);
                 if (daysLeft <= 30 && daysLeft > 0) {

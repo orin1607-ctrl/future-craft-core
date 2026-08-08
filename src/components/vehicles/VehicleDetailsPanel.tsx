@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Phone, Truck } from 'lucide-react';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
-import EntityDocumentRequestsPanel from '@/components/documents/EntityDocumentRequestsPanel';
 import VehicleAccordionSection from '@/components/vehicles/VehicleAccordionSection';
 import { supabase } from '@/integrations/supabase/client';
 import { getThirdPartyInsuranceExpiry, getThirdPartyInsuranceDocUrl } from '@/lib/vehicleInsuranceUtils';
 import { InfoField, DocLink, ExpiryRow } from '@/components/vehicles/vehicleUi';
+import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
 import {
   daysUntil,
   expiryColor,
@@ -48,6 +48,9 @@ export default function VehicleDetailsPanel({
   const [extraEquipment, setExtraEquipment] = useState<string | null>(null);
 
   const showInsurance = v.management_type === 'financial_leasing' || v.management_type === 'self_maintained';
+  const insAlertsOn = isInsuranceAlertsEnabled(v as { insurance_alerts_enabled?: boolean | null });
+  const neutralExpiry = 'text-muted-foreground';
+  const insColor = (days: number | null) => (insAlertsOn ? expiryColor(days) : neutralExpiry);
   const testDays = daysUntil(v.test_expiry);
   const insDays = daysUntil(v.insurance_expiry);
   const compDays = daysUntil(v.comprehensive_insurance_expiry);
@@ -171,9 +174,9 @@ export default function VehicleDetailsPanel({
       <AccordionSection title="3. ביטוחים ורישיונות">
         <div className="space-y-2 mb-4">
           <ExpiryRow label="טסט (test_expiry)" date={v.test_expiry} daysLeft={testDays} colorCls={expiryColor(testDays)} />
-          <ExpiryRow label="ביטוח חובה (insurance_expiry)" date={v.insurance_expiry} daysLeft={insDays} colorCls={expiryColor(insDays)} />
-          <ExpiryRow label="ביטוח מקיף (comprehensive_insurance_expiry)" date={v.comprehensive_insurance_expiry} daysLeft={compDays} colorCls={expiryColor(compDays)} />
-          <ExpiryRow label="ביטוח צד ג׳ (third_party_insurance_expiry)" date={thirdPartyExpiry} daysLeft={thirdDays} colorCls={expiryColor(thirdDays)} />
+          <ExpiryRow label="ביטוח חובה (insurance_expiry)" date={v.insurance_expiry} daysLeft={insDays} colorCls={insColor(insDays)} />
+          <ExpiryRow label="ביטוח מקיף (comprehensive_insurance_expiry)" date={v.comprehensive_insurance_expiry} daysLeft={compDays} colorCls={insColor(compDays)} />
+          <ExpiryRow label="ביטוח צד ג׳ (third_party_insurance_expiry)" date={thirdPartyExpiry} daysLeft={thirdDays} colorCls={insColor(thirdDays)} />
         </div>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <InfoField label="ביטוח חובה — התחלה (insurance_start)" value={v.insurance_start ? new Date(v.insurance_start).toLocaleDateString('he-IL') : '—'} />
@@ -249,15 +252,8 @@ export default function VehicleDetailsPanel({
       </AccordionSection>
 
       {isManager && (
-        <div className="p-4 border-t border-border space-y-2">
+        <div className="p-4 border-t border-border">
           <NotificationsAndSendsButton vehicleId={v.id} vehiclePlate={v.license_plate} />
-          <EntityDocumentRequestsPanel
-            entityType="vehicle"
-            entityId={v.id}
-            entityLabel={v.license_plate}
-            recipientName={driverName || ''}
-            recipientPhone={driverPhone || ''}
-          />
         </div>
       )}
     </div>

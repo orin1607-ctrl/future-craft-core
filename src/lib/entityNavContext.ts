@@ -32,18 +32,55 @@ export function plateMatches(
 
 
 
+/** Deep-link targets inside VehicleHub (מעקב רכב → התראות → כרטיס רכב) */
+export type VehicleHubDeepLink = {
+  hubSection?: 'home' | 'details' | 'actions' | 'history' | 'manage';
+  hubTab?: string;
+  hubDrill?: string;
+  /** Sub-focus inside drill sheet: test | insurance | license */
+  hubFocus?: string;
+  /** Highlight a specific gap/issue row inside drill */
+  hubEntityId?: string;
+};
+
 /** Deep-link back to vehicle hub card on /vehicles */
-
-export function buildVehicleHubUrl(vehicleId: string): string {
-
+export function buildVehicleHubUrl(vehicleId: string, deep?: VehicleHubDeepLink): string {
   const q = new URLSearchParams();
-
   q.set('vehicleId', vehicleId);
-
   q.set('view', 'hub');
-
+  if (deep?.hubSection) q.set('hubSection', deep.hubSection);
+  if (deep?.hubTab) q.set('hubTab', deep.hubTab);
+  if (deep?.hubDrill) q.set('hubDrill', deep.hubDrill);
+  if (deep?.hubFocus) q.set('hubFocus', deep.hubFocus);
+  if (deep?.hubEntityId) q.set('hubEntityId', deep.hubEntityId);
   return `/vehicles?${q.toString()}`;
+}
 
+export function buildFaultDetailUrl(faultId: string, ctx: { plate: string; vehicleId: string }): string {
+  const q = new URLSearchParams();
+  q.set('id', faultId);
+  q.set('plate', ctx.plate);
+  q.set('vehicleId', ctx.vehicleId);
+  q.set('context', 'vehicle');
+  return `/faults?${q.toString()}`;
+}
+
+export function buildVehicleTaskDetailUrl(taskId: string, ctx: { plate: string; vehicleId: string }): string {
+  const q = new URLSearchParams();
+  q.set('id', taskId);
+  q.set('plate', ctx.plate);
+  q.set('vehicleId', ctx.vehicleId);
+  q.set('context', 'vehicle');
+  return `/vehicle-tasks?${q.toString()}`;
+}
+
+export function buildServiceOrderDetailUrl(orderId: string, ctx: { plate: string; vehicleId: string }): string {
+  const q = new URLSearchParams();
+  q.set('orderId', orderId);
+  q.set('plate', ctx.plate);
+  q.set('vehicleId', ctx.vehicleId);
+  q.set('context', 'vehicle');
+  return `/service-orders?${q.toString()}`;
 }
 
 

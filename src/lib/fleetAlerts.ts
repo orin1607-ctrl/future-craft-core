@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import type { HomeAlertSlotPrefs, HomeAlertSlotType } from '@/lib/homeAlertPrefsTypes';
 import { HOME_ALERT_SLOT_LABELS } from '@/lib/homeAlertPrefsTypes';
+import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
 
 export type FleetAlertSeverity = 'critical' | 'warning' | 'info';
 
@@ -33,7 +34,7 @@ export async function loadFleetAlertSlotSummaries(
   slots: HomeAlertSlotPrefs[],
 ): Promise<FleetAlertSlotSummary[]> {
   const { data: vehicles } = await applyCompanyScope(
-    supabase.from('vehicles').select('id, license_plate, manufacturer, model, test_expiry, insurance_expiry, comprehensive_insurance_expiry, next_service_date'),
+    supabase.from('vehicles').select('id, license_plate, manufacturer, model, test_expiry, insurance_expiry, comprehensive_insurance_expiry, next_service_date, insurance_alerts_enabled'),
     companyFilter,
   );
 
@@ -88,6 +89,7 @@ export async function loadFleetAlertSlotSummaries(
       }
       case 'insurance': {
         const matches = fleet.filter((v) => {
+          if (!isInsuranceAlertsEnabled(v)) return false;
           const d = daysUntil(v.insurance_expiry);
           return d !== null && d <= days;
         });
@@ -107,6 +109,7 @@ export async function loadFleetAlertSlotSummaries(
       }
       case 'comprehensive_insurance': {
         const matches = fleet.filter((v) => {
+          if (!isInsuranceAlertsEnabled(v)) return false;
           const d = daysUntil(v.comprehensive_insurance_expiry);
           return d !== null && d <= days;
         });

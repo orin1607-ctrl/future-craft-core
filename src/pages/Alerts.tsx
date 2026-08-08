@@ -3,7 +3,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
-import { buildVehicleContextUrl, buildVehicleHubUrl } from '@/lib/entityNavContext';
+import { buildVehicleContextUrl, buildVehicleHubUrl, buildFaultDetailUrl, buildVehicleTaskDetailUrl, buildServiceOrderDetailUrl } from '@/lib/entityNavContext';
+import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
+import { fetchCompanySettings } from '@/lib/companySettings';
+import { expiryReminderTier, tierDetail, tierLabel } from '@/lib/vehicleExpiryReminders';
+import { thresholdsFromCompanySettings } from '@/lib/vehicleTrackingAlerts';
 import { plateFromAlertText } from '@/lib/vehicleActionFollowUp';
 import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, ClipboardList as LogIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -155,11 +159,40 @@ export default function Alerts() {
     setAlertsLoading(true);
     const allAlerts: AlertItem[] = [];
     const plateToInternal = new Map<string, string>();
+    const plateToVehicleId = new Map<string, string>();
+    const companyThresholds = new Map<string, ReturnType<typeof thresholdsFromCompanySettings>>();
+
+    const thresholdForCompany = async (company: string | null | undefined) => {
+      const key = company || '';
+      if (!key) return thresholdsFromCompanySettings(null);
+      if (companyThresholds.has(key)) return companyThresholds.get(key)!;
+      const settings = await fetchCompanySettings(key);
+      const t = thresholdsFromCompanySettings(settings);
+      companyThresholds.set(key, t);
+      return t;
+    };
+
+    const testHub = (vehicleId: string) =>
+      buildVehicleHubUrl(vehicleId, { hubSection: 'home', hubDrill: 'insurance_licenses', hubFocus: 'test' });
+    const insHub = (vehicleId: string) =>
+      buildVehicleHubUrl(vehicleId, { hubSection: 'home', hubDrill: 'insurance_licenses', hubFocus: 'insurance' });
 
     const internalForPlate = (plate?: string | null) => {
       const key = String(plate || '').replace(/[-\s]/g, '').trim();
       if (!key) return undefined;
       return plateToInternal.get(key);
+    };
+
+    const vehicleIdForPlate = (plate?: string | null) => {
+      const key = String(plate || '').replace(/[-\s]/g, '').trim();
+      if (!key) return undefined;
+      return plateToVehicleId.get(key);
+    };
+
+    const vehicleCtx = (plate?: string | null) => {
+      const p = plate || '';
+      const vid = vehicleIdForPlate(plate);
+      return vid ? { plate: p, vehicleId: vid } : null;
     };
 
     const vehicleLabel = (v: { manufacturer?: string | null; model?: string | null; license_plate?: string | null; internal_number?: string | null }) => {
@@ -179,6 +212,7 @@ export default function Alerts() {
         const plateKey = String(v.license_plate || '').replace(/[-\s]/g, '').trim();
         const internal = (v.internal_number || '').trim();
         if (plateKey && internal) plateToInternal.set(plateKey, internal);
+        if (plateKey && v.id) plateToVehicleId.set(plateKey, v.id);
         if (v.license_plate) plates.push(v.license_plate);
         if (internal) internals.push(internal);
       }
@@ -189,36 +223,75 @@ export default function Alerts() {
         const label = vehicleLabel(v);
         const internalNumber = (v.internal_number || '').trim() || undefined;
         const vehiclePlate = v.license_plate || null;
+        const thresholds = await thresholdForCompany(v.company_name);
+        const insOn = isInsuranceAlertsEnabled(v);
 
         const testDays = getDaysLeft(v.test_expiry);
-        if (testDays !== null && testDays <= 30) {
-          allAlerts.push({ id: `test-${v.id}`, category: 'test', severity: getSeverity(testDays), title: testDays <= 0 ? 'טסט פג תוקף!' : 'טסט עומד לפוג', subtitle: label, internalNumber, vehiclePlate, daysLeft: testDays, date: v.test_expiry, link: buildVehicleHubUrl(v.id) });
+        const testTier = expiryReminderTier(testDays, thresholds);
+        if (testTier !== null) {
+          allAlerts.push({
+            id: `test-${v.id}-${testTier}`,
+            category: 'test',
+            severity: getSeverity(testDays),
+            title: tierLabel(testTier, testDays !== null && testDays <= 0 ? 'טסט פג תוקף' : 'טסט עומד לפוג'),
+            subtitle: label,
+            internalNumber,
+            vehiclePlate,
+            daysLeft: testDays,
+            date: v.test_expiry,
+            link: testHub(v.id),
+          });
         }
 
         const insDays = getDaysLeft(v.insurance_expiry);
-        if (insDays !== null && insDays <= 30) {
-          allAlerts.push({ id: `ins-${v.id}`, category: 'insurance', severity: getSeverity(insDays), title: insDays <= 0 ? 'ביטוח חובה פג!' : 'ביטוח חובה עומד לפוג', subtitle: label, internalNumber, vehiclePlate, daysLeft: insDays, date: v.insurance_expiry, link: buildVehicleHubUrl(v.id) });
+        const insTier = insOn ? expiryReminderTier(insDays, thresholds) : null;
+        if (insTier !== null) {
+          allAlerts.push({
+            id: `ins-${v.id}-${insTier}`,
+            category: 'insurance',
+            severity: getSeverity(insDays),
+            title: tierLabel(insTier, insDays !== null && insDays <= 0 ? 'ביטוח חובה פג' : 'ביטוח חובה עומד לפוג'),
+            subtitle: label,
+            internalNumber,
+            vehiclePlate,
+            daysLeft: insDays,
+            date: v.insurance_expiry,
+            link: insHub(v.id),
+          });
         }
 
         const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
-        if (compDays !== null && compDays <= 30) {
-          allAlerts.push({ id: `comp-${v.id}`, category: 'comprehensive_insurance', severity: getSeverity(compDays), title: compDays <= 0 ? 'ביטוח מקיף פג!' : 'ביטוח מקיף עומד לפוג', subtitle: label, internalNumber, vehiclePlate, daysLeft: compDays, date: v.comprehensive_insurance_expiry, link: buildVehicleHubUrl(v.id) });
+        const compTier = insOn ? expiryReminderTier(compDays, thresholds) : null;
+        if (compTier !== null) {
+          allAlerts.push({
+            id: `comp-${v.id}-${compTier}`,
+            category: 'comprehensive_insurance',
+            severity: getSeverity(compDays),
+            title: tierLabel(compTier, compDays !== null && compDays <= 0 ? 'ביטוח מקיף פג' : 'ביטוח מקיף עומד לפוג'),
+            subtitle: label,
+            internalNumber,
+            vehiclePlate,
+            daysLeft: compDays,
+            date: v.comprehensive_insurance_expiry,
+            link: insHub(v.id),
+          });
         }
 
         const thirdExpiry = getThirdPartyInsuranceExpiry(v);
         const thirdDays = getDaysLeft(thirdExpiry);
-        if (thirdDays !== null && thirdDays <= 30) {
+        const thirdTier = insOn ? expiryReminderTier(thirdDays, thresholds) : null;
+        if (thirdTier !== null) {
           allAlerts.push({
-            id: `third-${v.id}`,
+            id: `third-${v.id}-${thirdTier}`,
             category: 'third_party_insurance',
             severity: getSeverity(thirdDays),
-            title: thirdDays <= 0 ? 'ביטוח צד ג׳ פג!' : 'ביטוח צד ג׳ עומד לפוג',
+            title: tierLabel(thirdTier, thirdDays !== null && thirdDays <= 0 ? 'ביטוח צד ג׳ פג' : 'ביטוח צד ג׳ עומד לפוג'),
             subtitle: label,
             internalNumber,
             vehiclePlate,
             daysLeft: thirdDays,
             date: thirdExpiry,
-            link: buildVehicleHubUrl(v.id),
+            link: insHub(v.id),
           });
         }
       }
@@ -270,7 +343,11 @@ export default function Alerts() {
           daysLeft: null,
           date: f.date ? new Date(f.date).toISOString().split('T')[0] : null,
           meta: f.description || undefined,
-          link: f.vehicle_plate ? buildVehicleContextUrl('/faults', { plate: f.vehicle_plate }) : '/faults',
+          link: (() => {
+            const ctx = vehicleCtx(f.vehicle_plate);
+            if (ctx) return buildFaultDetailUrl(f.id, ctx);
+            return '/faults';
+          })(),
         });
       }
     }
@@ -297,7 +374,11 @@ export default function Alerts() {
           daysLeft: vt.follow_up_date ? Math.floor((new Date(vt.follow_up_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null,
           date: vt.created_at?.split('T')[0] || null,
           meta: vt.description || undefined,
-          link: vt.vehicle_plate ? buildVehicleContextUrl('/vehicle-tasks', { plate: vt.vehicle_plate }) : '/vehicle-tasks',
+          link: (() => {
+            const ctx = vehicleCtx(vt.vehicle_plate);
+            if (ctx) return buildVehicleTaskDetailUrl(vt.id, ctx);
+            return '/vehicle-tasks';
+          })(),
         });
       }
     }
@@ -350,7 +431,11 @@ export default function Alerts() {
           daysLeft: null,
           date: so.created_at ? new Date(so.created_at).toISOString().split('T')[0] : null,
           meta: `${so.service_category || ''} ${so.description ? '- ' + so.description : ''}`.trim() || undefined,
-          link: so.vehicle_plate ? buildVehicleContextUrl('/service-orders', { plate: so.vehicle_plate }) : '/service-orders',
+          link: (() => {
+            const ctx = vehicleCtx(so.vehicle_plate);
+            if (ctx) return buildServiceOrderDetailUrl(so.id, ctx);
+            return '/service-orders';
+          })(),
         });
       }
     }

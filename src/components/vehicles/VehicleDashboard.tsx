@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRequiredFieldsOptional } from '@/contexts/RequiredFieldsContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,7 +23,6 @@ import {
 import { loadCompanyGapAlertsSettings } from '@/lib/companyGapAlertsSettings';
 import { buildGapAlertDetailRows } from '@/lib/gapAlertsDisplay';
 import { countMissingDocs } from '@/lib/vehicleHistory';
-import { isVehicleHubFieldRequired } from '@/lib/requiredFieldsCompany';
 import { addCustomVehicleGap, resolveCustomVehicleGap } from '@/lib/vehicleEventLog';
 import {
   DEFAULT_GAP_ALERT_ITEMS,
@@ -32,6 +30,7 @@ import {
   type GapAlertValues,
 } from '@/lib/vehicleGapAlertsDefaults';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
+import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
 import type { HubTabId } from '@/lib/vehicleHubData';
 import {
   daysUntil,
@@ -118,6 +117,9 @@ export default function VehicleDashboard({
   previewMode = false,
   drillRefreshKey = 0,
   onDrillDataChanged,
+  initialDrillKind = null,
+  initialHubFocus = null,
+  initialHubEntityId = null,
 }: {
   vehicle: VehicleHubVehicle;
   semiInspection: string | null;
@@ -129,9 +131,11 @@ export default function VehicleDashboard({
   previewMode?: boolean;
   drillRefreshKey?: number;
   onDrillDataChanged?: () => void;
+  initialDrillKind?: DrillKind | null;
+  initialHubFocus?: string | null;
+  initialHubEntityId?: string | null;
 }) {
   const { user } = useAuth();
-  const requiredFields = useRequiredFieldsOptional();
   const [drill, setDrill] = useState<DashboardDrillDown | null>(previewDrillDown ?? null);
   const [drillKind, setDrillKind] = useState<DrillKind>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -139,46 +143,31 @@ export default function VehicleDashboard({
   const [gapSaving, setGapSaving] = useState(false);
   const [gapAlertItems, setGapAlertItems] = useState<GapAlertConfigItem[]>([...DEFAULT_GAP_ALERT_ITEMS]);
 
-  const overrides = useMemo(
-    () => requiredFields?.getOverridesForCompany(v.company_name) ?? {},
-    [requiredFields, v.company_name],
-  );
-
   const sl = statusLabel(v.status);
   const testDays = daysUntil(v.test_expiry);
   const insDays = daysUntil(v.insurance_expiry);
   const compDays = daysUntil(v.comprehensive_insurance_expiry);
   const svcDays = daysUntil(v.next_service_date);
-  const missingDocs = countMissingDocs(v, overrides);
+  const missingDocs = isInsuranceAlertsEnabled(v)
+    ? countMissingDocs(v)
+    : v.license_doc_url
+      ? 0
+      : 1;
 
-  const licenseRequired = isVehicleHubFieldRequired('license_doc_url', overrides);
-  const testRequired = isVehicleHubFieldRequired('test_expiry', overrides);
-  const mandatoryDocRequired = isVehicleHubFieldRequired('insurance_doc_url', overrides);
-  const mandatoryExpiryRequired = isVehicleHubFieldRequired('insurance_expiry', overrides);
-  const comprehensiveDocRequired = isVehicleHubFieldRequired(
-    'comprehensive_insurance_doc_url',
-    overrides,
-  );
-  const comprehensiveExpiryRequired = isVehicleHubFieldRequired(
-    'comprehensive_insurance_expiry',
-    overrides,
-  );
-
-  const hasLicenseGap = licenseRequired && !v.license_doc_url;
-  const hasTestGap = testRequired && (!v.test_expiry || (testDays !== null && testDays <= 0));
+  const insAlertsOn = isInsuranceAlertsEnabled(v);
+  const hasLicenseGap = !v.license_doc_url;
+  const hasTestGap = !v.test_expiry || (testDays !== null && testDays <= 0);
   const hasInsuranceGap =
-    (mandatoryDocRequired && !v.insurance_doc_url) ||
-    (mandatoryExpiryRequired && (insDays !== null && insDays <= 14)) ||
-    (comprehensiveDocRequired && !v.comprehensive_insurance_doc_url) ||
-    (comprehensiveExpiryRequired && (compDays !== null && compDays <= 14));
+    insAlertsOn &&
+    (!v.insurance_doc_url ||
+      !v.comprehensive_insurance_doc_url ||
+      (insDays !== null && insDays <= 14) ||
+      (compDays !== null && compDays <= 14));
   const customGapCount = drill?.customGaps?.length ?? 0;
   const equipmentWarn = drill?.equipmentGap?.hasGap ?? false;
 
   const insuranceLicensesWarn =
-    hasLicenseGap ||
-    hasTestGap ||
-    hasInsuranceGap ||
-    (testRequired && testDays !== null && testDays <= 14);
+    hasLicenseGap || hasTestGap || hasInsuranceGap || (testDays !== null && testDays <= 14);
   const gapsAlertsWarn =
     missingDocs > 0 ||
     hasInsuranceGap ||
@@ -192,6 +181,25 @@ export default function VehicleDashboard({
   const insuranceSummary = insuranceLicensesWarn ? 'יש לטפל' : 'בסדר';
   const docsSummary = missingDocs > 0 ? `${missingDocs} חסרים` : 'מלא';
   const gapsSummary = gapsAlertsWarn ? 'דורש טיפול' : 'אין';
+
+  useEffect(() => {
+    if (!initialDrillKind) return;
+    setDrillKind(initialDrillKind);
+    setSheetOpen(true);
+  }, [initialDrillKind]);
+
+  useEffect(() => {
+    if (!sheetOpen || (!initialHubFocus && !initialHubEntityId)) return;
+    const id = initialHubEntityId
+      ? `hub-entity-${initialHubEntityId}`
+      : initialHubFocus
+        ? `hub-focus-${initialHubFocus}`
+        : null;
+    if (!id) return;
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [sheetOpen, initialHubFocus, initialHubEntityId, drillKind]);
 
   useEffect(() => {
     if (previewDrillDown) {
@@ -262,41 +270,58 @@ export default function VehicleDashboard({
     }
   };
 
+  const focusCls = (focus: string) =>
+    initialHubFocus === focus ? 'ring-2 ring-primary rounded-lg p-1 -m-1 bg-primary/5' : '';
+
   const renderInsuranceLicensesSheet = () => {
     if (!drill) return <p className="text-sm py-4 text-muted-foreground">טוען...</p>;
     const hasComp = !!v.comprehensive_insurance_expiry || !!v.comprehensive_insurance_doc_url;
     return (
       <>
-        <DetailList
-          items={[
-            { label: 'ביטוח חובה — סטטוס', value: insuranceStatusText(v.insurance_expiry) },
-            { label: 'ביטוח חובה — תפוגה', value: formatExpiry(v.insurance_expiry) },
-            { label: 'ביטוח חובה — מסמך', value: v.insurance_doc_url ? 'מצורף' : 'חסר' },
-            ...(hasComp
-              ? [
-                  { label: 'ביטוח מקיף — סטטוס', value: insuranceStatusText(v.comprehensive_insurance_expiry) },
-                  { label: 'ביטוח מקיף — תפוגה', value: formatExpiry(v.comprehensive_insurance_expiry) },
-                  { label: 'ביטוח מקיף — מסמך', value: v.comprehensive_insurance_doc_url ? 'מצורף' : 'חסר' },
-                ]
-              : []),
-            {
-              label: "ביטוח צד ג'",
-              value: hasComp
-                ? 'בדוק בפוליסת מקיף / אין שדה נפרד במערכת'
-                : 'לא הוגדר — עדכן בפרטי רכב',
-            },
-            { label: 'חברת ביטוח', value: latestInsurer || '—' },
-            { label: 'טסט — סטטוס', value: insuranceStatusText(v.test_expiry) },
-            { label: 'טסט — תפוגה', value: formatExpiry(v.test_expiry) },
-            { label: 'רישיון רכב — קובץ', value: v.license_doc_url ? 'מצורף' : 'חסר' },
-          ]}
-        />
-        {drill.insuranceGaps.map((g: InsuranceGapItem, i) => (
-          <div key={i} className="card-elevated p-3 mt-2 border-destructive/20">
-            <p className="font-bold text-destructive text-sm">{g.label}</p>
-            <p className="text-xs mt-1">{g.action}</p>
-          </div>
-        ))}
+        <div id="hub-focus-test" className={focusCls('test')}>
+          <p className="text-xs font-bold text-muted-foreground mb-1">טסט</p>
+          <DetailList
+            items={[
+              { label: 'טסט — סטטוס', value: insuranceStatusText(v.test_expiry) },
+              { label: 'טסט — תפוגה', value: formatExpiry(v.test_expiry) },
+            ]}
+          />
+        </div>
+        <div id="hub-focus-insurance" className={`mt-3 ${focusCls('insurance')}`}>
+          <p className="text-xs font-bold text-muted-foreground mb-1">ביטוח</p>
+          <DetailList
+            items={[
+              { label: 'ביטוח חובה — סטטוס', value: insuranceStatusText(v.insurance_expiry) },
+              { label: 'ביטוח חובה — תפוגה', value: formatExpiry(v.insurance_expiry) },
+              { label: 'ביטוח חובה — מסמך', value: v.insurance_doc_url ? 'מצורף' : 'חסר' },
+              ...(hasComp
+                ? [
+                    { label: 'ביטוח מקיף — סטטוס', value: insuranceStatusText(v.comprehensive_insurance_expiry) },
+                    { label: 'ביטוח מקיף — תפוגה', value: formatExpiry(v.comprehensive_insurance_expiry) },
+                    { label: 'ביטוח מקיף — מסמך', value: v.comprehensive_insurance_doc_url ? 'מצורף' : 'חסר' },
+                  ]
+                : []),
+              {
+                label: "ביטוח צד ג'",
+                value: hasComp
+                  ? 'בדוק בפוליסת מקיף / אין שדה נפרד במערכת'
+                  : 'לא הוגדר — עדכן בפרטי רכב',
+              },
+              { label: 'חברת ביטוח', value: latestInsurer || '—' },
+            ]}
+          />
+        </div>
+        <div id="hub-focus-license" className={`mt-3 ${focusCls('license')}`}>
+          <p className="text-xs font-bold text-muted-foreground mb-1">רישיון</p>
+          <DetailList items={[{ label: 'רישיון רכב — קובץ', value: v.license_doc_url ? 'מצורף' : 'חסר' }]} />
+        </div>
+        {insAlertsOn &&
+          drill.insuranceGaps.map((g: InsuranceGapItem, i) => (
+            <div key={i} className="card-elevated p-3 mt-2 border-destructive/20">
+              <p className="font-bold text-destructive text-sm">{g.label}</p>
+              <p className="text-xs mt-1">{g.action}</p>
+            </div>
+          ))}
         <Button className="w-full mt-4" onClick={() => { setSheetOpen(false); onJumpTo?.('details'); }}>
           עריכה — פרטי רכב
         </Button>
@@ -327,7 +352,11 @@ export default function VehicleDashboard({
           <p className="text-sm">אין חוסרי מסמכים מזוהים</p>
         ) : (
           drill.missingDocuments.map((m: MissingDocItem) => (
-            <div key={m.fieldKey} className="card-elevated p-3 mb-2 border-destructive/25">
+            <div
+              key={m.fieldKey}
+              id={m.fieldKey === 'license_doc_url' ? 'hub-focus-license' : undefined}
+              className={`card-elevated p-3 mb-2 border-destructive/25 ${m.fieldKey === 'license_doc_url' ? focusCls('license') : ''}`}
+            >
               <p className="font-bold text-destructive">{m.label}</p>
               <p className="text-xs">{m.status}</p>
               <p className="text-sm mt-1">{m.action}</p>
@@ -368,7 +397,11 @@ export default function VehicleDashboard({
             <div className="mt-3">
               <p className="text-sm font-bold mb-2">חוסרים מותאמים</p>
               {drill.customGaps.map((g) => (
-                <div key={g.id} className="card-elevated p-3 mb-2 flex justify-between gap-2">
+                <div
+                  key={g.id}
+                  id={`hub-entity-${g.id}`}
+                  className={`card-elevated p-3 mb-2 flex justify-between gap-2 ${initialHubEntityId === g.id ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+                >
                   <div>
                     <p className="font-bold text-sm">{g.label}</p>
                     <p className="text-xs text-muted-foreground">{g.date}</p>

@@ -1,0 +1,136 @@
+{
+  "at": "2026-08-08T20:53:32.043Z",
+  "project": "usfeoerkpcafxxlyuldl",
+  "stagingOnly": true,
+  "migration": {
+    "file": "20260808120000_vehicle_insurance_alerts_toggle_staging.sql",
+    "applied": false
+  },
+  "baseline": {
+    "vehicles_917": [
+      {
+        "id": "3e1c6145-d7c0-4224-bf99-29272f591633",
+        "license_plate": "8080064",
+        "internal_number": "917",
+        "test_expiry": "2026-12-11",
+        "insurance_expiry": "2026-12-31",
+        "insurance_alerts_enabled": false,
+        "license_doc_url": "",
+        "company_name": "קיבוץ בארי"
+      },
+      {
+        "id": "3378a2db-6492-44d8-82e9-577444c49794",
+        "license_plate": "15094302",
+        "internal_number": "917",
+        "test_expiry": "2026-10-04",
+        "insurance_expiry": "2027-03-31",
+        "insurance_alerts_enabled": false,
+        "license_doc_url": "",
+        "company_name": "קיבוץ בארי"
+      }
+    ],
+    "beeri_company_settings": {
+      "company_name": "קיבוץ בארי",
+      "alert_days_before": 30,
+      "reminder_30_days": true,
+      "reminder_7_days": true,
+      "reminder_1_day": true,
+      "custom_gap_alerts_config": null
+    },
+    "insurance_alerts_column_exists": true
+  },
+  "task1_vehicle917": {
+    "count": 2,
+    "vehicles": [
+      {
+        "id": "3e1c6145-d7c0-4224-bf99-29272f591633",
+        "plate": "8080064",
+        "test_expiry": "2026-12-11",
+        "test_days_left": 125,
+        "insurance_expiry": "2026-12-31",
+        "insurance_days_left": 145,
+        "insurance_alerts_enabled": false,
+        "test_alert_with_30_7_1_code": "none (>30d — no test alert)"
+      },
+      {
+        "id": "3378a2db-6492-44d8-82e9-577444c49794",
+        "plate": "15094302",
+        "test_expiry": "2026-10-04",
+        "test_days_left": 57,
+        "insurance_expiry": "2027-03-31",
+        "insurance_days_left": 235,
+        "insurance_alerts_enabled": false,
+        "test_alert_with_30_7_1_code": "none (>30d — no test alert)"
+      }
+    ],
+    "root_cause_note": "Old deployed code used hardcoded 60-day test threshold; plate 15094302 (~57d) triggered alert. New expiryReminderTier: >30d = no alert.",
+    "duplicate_internal_number": {
+      "business_note": "Two distinct vehicles (different plates) share internal_number 917 — both קיבוץ בארי. No DB unique constraint on internal_number per company.",
+      "navigation_rule": "All links use vehicle UUID (id), never internal_number alone."
+    },
+    "duplicate_internal_numbers_beeri": {
+      "total_with_internal": 299,
+      "duplicate_groups": 18,
+      "top_examples": [
+        {
+          "internal_number": "13",
+          "count": 2
+        },
+        {
+          "internal_number": "14",
+          "count": 2
+        },
+        {
+          "internal_number": "16",
+          "count": 2
+        },
+        {
+          "internal_number": "24",
+          "count": 2
+        },
+        {
+          "internal_number": "25",
+          "count": 2
+        },
+        {
+          "internal_number": "28",
+          "count": 2
+        },
+        {
+          "internal_number": "30",
+          "count": 2
+        },
+        {
+          "internal_number": "31",
+          "count": 2
+        },
+        {
+          "internal_number": "42",
+          "count": 2
+        },
+        {
+          "internal_number": "43",
+          "count": 2
+        }
+      ],
+      "unique_constraint_in_db": false,
+      "recommendation": "Data quality issue — not a duplicate alert bug. Navigation must use UUID. Consider business rule: unique internal_number per company (future, not this task)."
+    }
+  },
+  "task2_beeri_timing": {
+    "current_alert_days_before": 30,
+    "reminder_30_days": true,
+    "reminder_7_days": true,
+    "reminder_1_day": true,
+    "semantics": "Tiered 30/7/1 via expiryReminderTier: >30d no alert; 30-8d shows 30-tier; 7-2d shows 7-tier; 1-0d shows 1-tier. NOT 60 or 90.",
+    "migration_changes_alert_days_before": false,
+    "vehicle_917_15094302_test_days": 57,
+    "expected_test_alert_for_917_57d": false
+  },
+  "task3_insurance_toggle": {
+    "column_exists": true,
+    "beeri_vehicle_count": 299,
+    "beeri_insurance_alerts_off_count": 299,
+    "expected_beeri_default": "insurance_alerts_enabled=false for all Beeri vehicles after migration"
+  }
+}
