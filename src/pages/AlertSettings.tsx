@@ -8,6 +8,22 @@ import { toast } from 'sonner';
 
 import { MANAGEABLE_BUTTONS } from '@/hooks/useHiddenButtons';
 import { TRANSPORT_FEATURES } from '@/lib/transportSettings';
+import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  bulkSetCompanyInsuranceRedHighlight,
+  loadCompanyInsuranceRedStats,
+  type CompanyInsuranceRedStats,
+} from '@/lib/bulkInsuranceRedHighlight';
 
 interface CompanyAlertConfig {
   id: string;
@@ -44,6 +60,10 @@ export default function AlertSettings() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [insuranceRedStats, setInsuranceRedStats] = useState<CompanyInsuranceRedStats | null>(null);
+  const [loadingInsuranceRedStats, setLoadingInsuranceRedStats] = useState(false);
+  const [bulkRedPending, setBulkRedPending] = useState<boolean | null>(null);
+  const [bulkRedApplying, setBulkRedApplying] = useState(false);
   const isSuperAdmin = user?.role === 'super_admin';
   // RLS: only super_admin can UPDATE company_settings. Fleet managers may view own company.
   const canEditAlerts = isSuperAdmin;
@@ -121,6 +141,48 @@ export default function AlertSettings() {
   };
 
   const activeConfig = configs.find(c => c.company_name === selectedCompany);
+
+  useEffect(() => {
+    if (!selectedCompany || !isSuperAdmin) {
+      setInsuranceRedStats(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingInsuranceRedStats(true);
+    loadCompanyInsuranceRedStats(selectedCompany)
+      .then((stats) => {
+        if (!cancelled) setInsuranceRedStats(stats);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingInsuranceRedStats(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCompany, isSuperAdmin]);
+
+  const refreshInsuranceRedStats = async () => {
+    if (!selectedCompany) return;
+    setLoadingInsuranceRedStats(true);
+    const stats = await loadCompanyInsuranceRedStats(selectedCompany);
+    setInsuranceRedStats(stats);
+    setLoadingInsuranceRedStats(false);
+  };
+
+  const applyBulkInsuranceRed = async () => {
+    if (!selectedCompany || bulkRedPending === null) return;
+    const targetOn = bulkRedPending;
+    setBulkRedApplying(true);
+    const { updated, error } = await bulkSetCompanyInsuranceRedHighlight(selectedCompany, targetOn);
+    setBulkRedApplying(false);
+    setBulkRedPending(null);
+    if (error) {
+      toast.error(`שגיאה בעדכון: ${error}`);
+      return;
+    }
+    toast.success(`עודכנו ${updated} רכבים — הצגת ביטוח באדום ${targetOn ? 'מופעלת' : 'כבויה'}`);
+    await refreshInsuranceRedStats();
+  };
 
   const handleSave = async () => {
     if (!activeConfig) return;
@@ -483,6 +545,42 @@ export default function AlertSettings() {
                   />
                   <span className="text-base font-medium">חובת מילוי היסטוריית הדר תביעות</span>
                 </label>
+
+                {isSuperAdmin && (
+                  <div className="mt-4 p-4 rounded-xl border border-border bg-background space-y-3">
+                    <h4 className="font-bold text-base">הצגת התראות ביטוח באדום — לכל רכבי הלקוח</h4>
+                    <p className="text-sm text-muted-foreground">
+                      פעולה מרכזית בלבד על צבע/הדגשה אדומה. לא משנה את &quot;הפעל התראות ביטוח&quot; ולא מכבה התראות 30/7/1.
+                      ניתן לשנות רכב בודד לאחר מכן בכרטיס הרכב.
+                    </p>
+                    {loadingInsuranceRedStats ? (
+                      <p className="text-sm text-muted-foreground">טוען סטטיסטיקת רכבים...</p>
+                    ) : insuranceRedStats ? (
+                      <p className="text-sm">
+                        רכבים בחברה: <strong>{insuranceRedStats.total}</strong> · אדום מופעל:{' '}
+                        <strong>{insuranceRedStats.redOn}</strong> · אדום כבוי:{' '}
+                        <strong>{insuranceRedStats.redOff}</strong>
+                      </p>
+                    ) : null}
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+                      <div className="text-right flex-1">
+                        <p className="text-sm font-bold">הצג התראות ביטוח באדום לכל רכבי הלקוח</p>
+                        <p className="text-xs text-muted-foreground">
+                          שינוי יחול על כל הרכבים של {activeConfig.company_name} לאחר אישור
+                        </p>
+                      </div>
+                      <Switch
+                        checked={
+                          insuranceRedStats
+                            ? insuranceRedStats.redOn > 0 && insuranceRedStats.redOff === 0
+                            : false
+                        }
+                        disabled={bulkRedApplying || loadingInsuranceRedStats || !insuranceRedStats?.total}
+                        onCheckedChange={(on) => setBulkRedPending(on)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Transport Module */}
@@ -590,6 +688,27 @@ export default function AlertSettings() {
           ) : null}
         </>
       )}
+
+      <AlertDialog open={bulkRedPending !== null} onOpenChange={(open) => !open && setBulkRedPending(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>אישור עדכון מרכזי</AlertDialogTitle>
+            <AlertDialogDescription>
+              פעולה זו תשנה את הגדרת הצגת התראות הביטוח באדום עבור{' '}
+              <strong>{insuranceRedStats?.total ?? '—'}</strong> רכבים של{' '}
+              <strong>{selectedCompany}</strong> ל-{bulkRedPending ? 'מופעל' : 'כבוי'}.
+              <br />
+              התראות הביטוח 30/7/1 ימשיכו לפעול לרכבים שההתראות שלהם פעילות.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2 sm:justify-start">
+            <AlertDialogAction onClick={applyBulkInsuranceRed} disabled={bulkRedApplying}>
+              {bulkRedApplying ? 'מעדכן...' : 'להמשיך'}
+            </AlertDialogAction>
+            <AlertDialogCancel disabled={bulkRedApplying}>ביטול</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
