@@ -5,6 +5,7 @@ import VehicleAccordionSection from '@/components/vehicles/VehicleAccordionSecti
 import { supabase } from '@/integrations/supabase/client';
 import { getThirdPartyInsuranceExpiry, getThirdPartyInsuranceDocUrl } from '@/lib/vehicleInsuranceUtils';
 import { InfoField, DocLink, ExpiryRow } from '@/components/vehicles/vehicleUi';
+import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import { isInsuranceAlertsEnabled, shouldShowInsuranceRed } from '@/lib/vehicleInsuranceAlerts';
 import {
   daysUntil,
@@ -113,7 +114,7 @@ export default function VehicleDetailsPanel({
       <AccordionSection title="1. פרטי הרכב" defaultOpen>
         <div className="grid grid-cols-2 gap-y-4 gap-x-3">
           <InfoField label="מספר רכב (רישוי)" value={v.license_plate} />
-          <InfoField label="מספר פנימי" value={v.internal_number || '—'} />
+          <InfoField label="מספר פנימי" value={<InternalNumber value={v.internal_number} />} />
           <InfoField label="יצרן" value={v.manufacturer || '—'} />
           <InfoField label="דגם" value={v.model || '—'} />
           <InfoField label="שנה" value={v.year?.toString() || '—'} />

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 
-export function InfoField({ label, value }: { label: string; value: string }) {
+export function InfoField({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <span className="text-muted-foreground text-sm">{label}</span>

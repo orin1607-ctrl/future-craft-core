@@ -2,6 +2,7 @@ import { Car, ChevronDown, Fuel, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FleetOSVehicleRow } from './fleetosData';
+import { InternalNumber, VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
 
 export type FuelVehicleDisplay = {
   id: string;
@@ -77,12 +78,9 @@ export default function FleetOSFuelVehicleBar({
             {fromHub ? 'רכב מכרטיס הרכב' : 'רכב פעיל'}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xl font-black text-primary" dir="ltr">{vehicle.plate}</p>
-            {vehicle.internal_number && (
-              <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                {vehicle.internal_number}
-              </span>
-            )}
+            <p className="text-xl font-black text-primary" dir="ltr">
+              <VehiclePlateLine plate={vehicle.plate} internal={vehicle.internal_number} className="text-xl" />
+            </p>
           </div>
           <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
             {vehicle.company_name && <span>חברה: <strong className="text-foreground">{vehicle.company_name}</strong></span>}

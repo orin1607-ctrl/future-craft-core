@@ -8,6 +8,7 @@ import { resolveVehicleApprovalStatus } from '@/lib/companyPolicyEnforcement';
 import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
 import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
 import { createApprovalRequest } from '@/lib/approvalQueue';
+import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 
 interface ImportRow {
   internal_number?: string;
@@ -285,7 +286,7 @@ export default function VehicleImport() {
                   {rows.slice(0, 20).map((r, i) => (
                     <tr key={i} className={`border-b border-border ${!r.license_plate ? 'bg-destructive/10' : ''}`}>
                       <td className="p-2 text-muted-foreground">{i + 1}</td>
-                      <td className="p-2">{r.internal_number || '—'}</td>
+                      <td className="p-2"><InternalNumber value={r.internal_number} className="text-sm" /></td>
                       <td className="p-2 font-bold">{r.license_plate || <span className="text-destructive">חסר!</span>}</td>
                       <td className="p-2">{r.manufacturer || '—'}</td>
                       <td className="p-2">{r.year || '—'}</td>

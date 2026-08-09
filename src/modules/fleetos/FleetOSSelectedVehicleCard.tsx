@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react';
 import { MapPin, Gauge, User, Hash, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FleetOSVehicleRow } from './fleetosData';
+import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 
 const STATUS_DOT: Record<FleetOSVehicleRow['status'], string> = {
   driving: 'bg-success',
@@ -36,7 +38,9 @@ export default function FleetOSSelectedVehicleCard({
         <div className="flex-1 min-w-0 text-right">
           <p className="text-xl font-black text-primary" dir="ltr">{vehicle.plate}</p>
           {vehicle.internal_number && (
-            <p className="text-xs text-muted-foreground mt-0.5">פנימי: {vehicle.internal_number}</p>
+            <p className="text-xs mt-0.5">
+              פנימי: <InternalNumber value={vehicle.internal_number} className="text-xs" />
+            </p>
           )}
         </div>
         <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-muted text-foreground">
@@ -54,7 +58,7 @@ export default function FleetOSSelectedVehicleCard({
         />
         <Info icon={MapPin} label="מיקום אחרון" value={vehicle.location || '—'} className="col-span-2 sm:col-span-1" />
         {vehicle.internal_number && (
-          <Info icon={Hash} label="מספר פנימי" value={vehicle.internal_number} />
+          <Info icon={Hash} label="מספר פנימי" value={<InternalNumber value={vehicle.internal_number} className="text-sm" />} />
         )}
         {(vehicle.make || vehicle.model) && (
           <Info icon={Activity} label="רכב" value={`${vehicle.make || ''} ${vehicle.model || ''}`.trim()} />
@@ -85,7 +89,7 @@ function Info({
 }: {
   icon: typeof User;
   label: string;
-  value: string;
+  value: ReactNode;
   className?: string;
 }) {
   return (

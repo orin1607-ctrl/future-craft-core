@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getThirdPartyInsuranceExpiry } from '@/lib/vehicleInsuranceUtils';
-import { formatVehicleIds } from '@/components/vehicles/vehiclePlateDisplay';
+import { formatVehicleIds, InternalNumber, InternalPrefixSuffix, VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
 import { SearchableFilterField } from '@/components/SearchableFilterField';
 
 // ─── Alerts Types ───
@@ -677,7 +677,9 @@ export default function Alerts() {
                         </td>
                         <td className="p-3 font-medium">{alert.title}</td>
                         <td className="p-3 text-muted-foreground max-w-[240px] truncate">{alert.subtitle}</td>
-                        <td className="p-3 font-mono text-xs whitespace-nowrap">{alert.internalNumber || '—'}</td>
+                        <td className="p-3 font-mono text-xs whitespace-nowrap">
+                          <InternalNumber value={alert.internalNumber} />
+                        </td>
                         <td className="p-3 whitespace-nowrap font-bold">
                           {alert.daysLeft !== null ? (alert.daysLeft <= 0 ? 'פג!' : `${alert.daysLeft} ימים`) : '—'}
                         </td>
@@ -711,7 +713,7 @@ export default function Alerts() {
                           <p className="text-sm opacity-80 font-medium">{alert.subtitle}</p>
                           {alert.internalNumber && (
                             <p className="text-sm opacity-70 mt-1">
-                              מספר פנימי: <span className="font-mono font-semibold">{alert.internalNumber}</span>
+                              מספר פנימי: <InternalNumber value={alert.internalNumber} className="text-sm" />
                             </p>
                           )}
                           {alert.meta && <p className="text-sm opacity-60 mt-1 line-clamp-2">{alert.meta}</p>}

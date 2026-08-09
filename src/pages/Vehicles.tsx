@@ -20,6 +20,7 @@ import VehicleHub from '@/components/vehicles/VehicleHub';
 import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleListsManager';
 import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
 import { collectDepartmentsFromVehicles } from '@/lib/companyDepartments';
+import { VehiclePlatePipeLine } from '@/components/vehicles/vehiclePlateDisplay';
 
 export { VehicleForm };
 
@@ -473,7 +474,10 @@ export default function Vehicles() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xl font-bold truncate">{v.manufacturer} {v.model}</p>
-                      <p className="text-muted-foreground text-lg truncate">{v.license_plate}{v.internal_number ? ` | ${v.internal_number}` : ''} • {v.year}</p>
+                      <p className="text-muted-foreground text-lg truncate">
+                        <VehiclePlatePipeLine plate={v.license_plate} internal={v.internal_number} />
+                        {' • '}{v.year}
+                      </p>
                       <p className="text-sm text-muted-foreground truncate">נהג: {getDriverName(v.assigned_driver_id)}</p>
                     </div>
                   </button>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import type { TrackingVehicleRow } from '@/lib/vehicleTrackingData';
 import { TRACKING_ALERT_KIND_LABELS } from '@/lib/vehicleTrackingAlerts';
+import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 
 function AlertChips({
   items,
@@ -106,7 +107,7 @@ export default function TrackingFleetList({
                 onClick={() => onOpen(v.id)}
               >
                 <td className="py-3 px-3 font-bold">{v.license_plate}</td>
-                <td className="py-3 px-2 text-muted-foreground">{v.internal_number}</td>
+                <td className="py-3 px-2"><InternalNumber value={v.internal_number} className="text-xs" /></td>
                 <td className="py-3 px-2">{v.company_name}</td>
                 <td className="py-3 px-2">{v.manufacturer} {v.model}</td>
                 <td className="py-3 px-2">{v.driver_name || '—'}</td>
@@ -146,7 +147,7 @@ export default function TrackingFleetList({
               <div>
                 <p className="text-lg font-black">{v.license_plate}</p>
                 <p className="text-xs text-muted-foreground">
-                  {v.internal_number} · {v.manufacturer} {v.model}
+                  <InternalNumber value={v.internal_number} className="text-xs" /> · {v.manufacturer} {v.model}
                 </p>
               </div>
             </div>

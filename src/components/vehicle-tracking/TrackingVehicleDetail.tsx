@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { formatExpiry } from '@/components/vehicles/vehicleHubUtils';
 import type { TrackingVehicleRow } from '@/lib/vehicleTrackingData';
 import type { VehicleHistoryEntry } from '@/lib/vehicleHistory';
+import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 
 const TABS = [
   { id: 'current', label: 'מצב נוכחי' },
@@ -48,7 +49,7 @@ export default function TrackingVehicleDetail({
           <div>
             <p className="font-bold text-lg">{v.manufacturer} {v.model} {v.year || ''}</p>
             <p className="text-sm text-muted-foreground">
-              {v.internal_number} · {v.company_name}
+              <InternalNumber value={v.internal_number} /> · {v.company_name}
               {v.department ? ` — ${v.department}` : ''}
             </p>
           </div>
