@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Car, Search, Plus, Download, Upload, Settings2 } from 'lucide-react';
 import { logVehicleEvent } from '@/lib/vehicleEventLog';
@@ -223,11 +223,41 @@ export default function Vehicles() {
   const handleViewDetail = (v: VehicleRow) => {
     setSelectedVehicle(v);
     setViewMode('detail');
-    const next = new URLSearchParams(searchParams);
+    const next = new URLSearchParams();
     next.set('vehicleId', v.id);
     next.set('view', 'hub');
     setSearchParams(next, { replace: true });
   };
+
+  const clearHubDeepLinkParams = useCallback((params: URLSearchParams) => {
+    params.delete('hubSection');
+    params.delete('hubTab');
+    params.delete('hubDrill');
+    params.delete('hubFocus');
+    params.delete('hubEntityId');
+  }, []);
+
+  const onConsumeHubNav = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    clearHubDeepLinkParams(next);
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, clearHubDeepLinkParams]);
+
+  const initialHubNav: VehicleHubDeepLink | undefined = useMemo(() => {
+    const hubSection = searchParams.get('hubSection');
+    const hubTab = searchParams.get('hubTab');
+    const hubDrill = searchParams.get('hubDrill');
+    const hubFocus = searchParams.get('hubFocus');
+    const hubEntityId = searchParams.get('hubEntityId');
+    if (!hubSection && !hubTab && !hubDrill && !hubFocus && !hubEntityId) return undefined;
+    return {
+      hubSection: hubSection as VehicleHubDeepLink['hubSection'],
+      hubTab: hubTab || undefined,
+      hubDrill: hubDrill || undefined,
+      hubFocus: hubFocus || undefined,
+      hubEntityId: hubEntityId || undefined,
+    };
+  }, [searchParams]);
 
   const handleBack = () => {
     const returnToFleetOS = fleetOSReturnRef.current || isFleetOSHubNavigationActive();
@@ -239,6 +269,7 @@ export default function Vehicles() {
     const next = new URLSearchParams(searchParams);
     next.delete('vehicleId');
     next.delete('view');
+    clearHubDeepLinkParams(next);
     setSearchParams(next, { replace: true });
 
     if (returnToFleetOS) {
@@ -322,22 +353,6 @@ export default function Vehicles() {
 
   // === DETAIL VIEW (Vehicle Hub) ===
   if (viewMode === 'detail' && selectedVehicle) {
-    const initialHubNav: VehicleHubDeepLink | undefined = (() => {
-      const hubSection = searchParams.get('hubSection');
-      const hubTab = searchParams.get('hubTab');
-      const hubDrill = searchParams.get('hubDrill');
-      const hubFocus = searchParams.get('hubFocus');
-      const hubEntityId = searchParams.get('hubEntityId');
-      if (!hubSection && !hubTab && !hubDrill && !hubFocus && !hubEntityId) return undefined;
-      return {
-        hubSection: hubSection as VehicleHubDeepLink['hubSection'],
-        hubTab: hubTab || undefined,
-        hubDrill: hubDrill || undefined,
-        hubFocus: hubFocus || undefined,
-        hubEntityId: hubEntityId || undefined,
-      };
-    })();
-
     return (
       <VehicleHub
         vehicle={selectedVehicle}
@@ -350,6 +365,7 @@ export default function Vehicles() {
         getDriverName={getDriverName}
         hubBackLabel={fleetOSReturnRef.current ? 'חזרה ל-FleetOS AI' : undefined}
         initialHubNav={initialHubNav}
+        onConsumeHubNav={onConsumeHubNav}
       />
     );
   }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -181,6 +181,7 @@ export default function VehicleHub({
   previewHubExtras,
   hubBackLabel,
   initialHubNav,
+  onConsumeHubNav,
 }: {
   vehicle: VehicleHubVehicle;
   drivers: DriverRow[];
@@ -200,6 +201,7 @@ export default function VehicleHub({
   };
   hubBackLabel?: string;
   initialHubNav?: VehicleHubDeepLink;
+  onConsumeHubNav?: () => void;
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -228,9 +230,13 @@ export default function VehicleHub({
   const [initialHubEntityId, setInitialHubEntityId] = useState<string | null>(null);
   const [savingInsuranceToggle, setSavingInsuranceToggle] = useState(false);
   const [savingInsuranceRedToggle, setSavingInsuranceRedToggle] = useState(false);
+  const appliedHubNavKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!initialHubNav) return;
+    const key = JSON.stringify(initialHubNav);
+    if (appliedHubNavKeyRef.current === key) return;
+    appliedHubNavKeyRef.current = key;
     if (initialHubNav.hubSection) setMainSection(initialHubNav.hubSection);
     if (initialHubNav.hubTab) setActiveTab(initialHubNav.hubTab as HubTabId);
     if (initialHubNav.hubDrill) {
@@ -238,7 +244,8 @@ export default function VehicleHub({
     }
     if (initialHubNav.hubFocus) setInitialHubFocus(initialHubNav.hubFocus);
     if (initialHubNav.hubEntityId) setInitialHubEntityId(initialHubNav.hubEntityId);
-  }, [initialHubNav]);
+    onConsumeHubNav?.();
+  }, [initialHubNav, onConsumeHubNav]);
 
   const sl = statusLabel(v.status);
   const driver = drivers.find((d) => d.id === v.assigned_driver_id);
