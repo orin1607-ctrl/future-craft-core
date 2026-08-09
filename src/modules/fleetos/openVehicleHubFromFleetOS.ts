@@ -48,6 +48,7 @@ export function fleetOSRowToHubVehicle(row: FleetOSVehicleRow): Record<string, u
     has_loan: false,
     is_leasing: false,
     insurance_alerts_enabled: true,
+    insurance_alerts_red_enabled: true,
   };
 }
 

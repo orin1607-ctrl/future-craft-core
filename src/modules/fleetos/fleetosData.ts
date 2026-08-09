@@ -203,7 +203,7 @@ export async function loadFleetOSAlertCatalog(
           type: 'service_urgent',
           vehicle_plate: v.license_plate,
           message: item.detail,
-          severity: 'warning',
+          severity: v.insurance_alerts_red_enabled ? 'warning' : 'info',
           created_at: 'עכשיו',
         });
       }
