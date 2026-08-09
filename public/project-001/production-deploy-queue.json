@@ -1,7 +1,8 @@
 {
   "id": "production-deploy-queue",
-  "requestedAt": "2026-07-19T17:46:00.000Z",
-  "requestedBy": "cursor-agent",
+  "requestedAt": "2026-08-09T21:05:00.000Z",
+  "requestedBy": "cursor-agent-oren-car-tasks-1-15",
   "target": "https://dalia-car.online",
-  "note": "Push of this file queues Deploy Production behind Environment Approve. Docs-only commits no longer re-queue."
+  "commit": "f7242333cc2bc90651223c45495b95c20154244c",
+  "note": "Oren Car tasks 1-15 + 3 bug fixes. CODE ONLY — Production DB backup done. Approve Environment production."
 }
