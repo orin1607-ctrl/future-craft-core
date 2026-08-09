@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import FleetOSKpiBar from './FleetOSKpiBar';
 import FleetOSPinnedAlerts from './FleetOSPinnedAlerts';
+import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import FleetOSMapSection from './FleetOSMapSection';
 import FleetOSFilterBar, { EMPTY_FLEETOS_FILTERS, type FleetOSFilters } from './FleetOSFilterBar';
 import FleetOSSelectedVehicleCard from './FleetOSSelectedVehicleCard';
@@ -258,7 +259,7 @@ export default function FleetStatusModule({
                               {v.plate}
                             </span>
                             {v.internal_number && (
-                              <span className="text-xs text-muted-foreground truncate">{v.internal_number}</span>
+                              <InternalNumber value={v.internal_number} className="text-xs" />
                             )}
                             <span className="text-xs text-muted-foreground mr-auto shrink-0">
                               {STATUS_LABEL[v.status]}

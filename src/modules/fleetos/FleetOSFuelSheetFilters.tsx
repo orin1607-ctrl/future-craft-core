@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import FleetOSFuelAdvancedFilters from './FleetOSFuelAdvancedFilters';
 import type { FleetOSFuelFilters } from './fleetosFuelTypes';
 import type { FuelVehicleDisplay } from './FleetOSFuelVehicleBar';
+import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 
 export default function FleetOSFuelSheetFilters({
   vehicle,
@@ -31,7 +32,10 @@ export default function FleetOSFuelSheetFilters({
         <span className="text-muted-foreground">רכב: </span>
         <strong className="text-primary" dir="ltr">{vehicle.plate}</strong>
         {vehicle.internal_number && (
-          <span className="text-muted-foreground"> · {vehicle.internal_number}</span>
+          <>
+            {' · '}
+            <InternalNumber value={vehicle.internal_number} className="inline text-xs" />
+          </>
         )}
         <span className="text-muted-foreground"> · {vehicle.driver_name || 'ללא נהג'}</span>
       </div>

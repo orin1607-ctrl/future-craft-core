@@ -13,6 +13,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
+import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
 
 interface SupplierRow {
   id: string;
@@ -171,8 +172,7 @@ export default function VehicleSupplierOrderModal({
         <SheetHeader className="text-right">
           <SheetTitle>הזמנה לספק / שירות חיצוני</SheetTitle>
           <SheetDescription>
-            {vehicle.license_plate}
-            {vehicle.internal_number ? ` · ${vehicle.internal_number}` : ''}
+            <VehiclePlateLine plate={vehicle.license_plate} internal={vehicle.internal_number} />
           </SheetDescription>
         </SheetHeader>
 

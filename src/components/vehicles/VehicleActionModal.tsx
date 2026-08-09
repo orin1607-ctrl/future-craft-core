@@ -12,7 +12,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
-import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
+import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
 import { validateTaskFields } from '@/lib/taskFieldValidation';
 import { loadCompanyListSettings } from '@/lib/companyListSettings';
 import { DEFAULT_TREATMENT_ITEMS } from '@/lib/vehicleListDefaults';
@@ -319,8 +319,7 @@ export default function VehicleActionModal({
         <SheetHeader className="text-right">
           <SheetTitle>פתיחת פעולה חדשה</SheetTitle>
           <SheetDescription>
-            {vehicle.license_plate}
-            {vehicle.internal_number ? ` · ${vehicle.internal_number}` : ''}
+            <VehiclePlateLine plate={vehicle.license_plate} internal={vehicle.internal_number} />
           </SheetDescription>
         </SheetHeader>
 

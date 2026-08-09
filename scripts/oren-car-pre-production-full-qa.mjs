@@ -37,6 +37,7 @@ const report = {
   productionTouched: false,
   items: {},
   task14: {},
+  task15: {},
   beeri: {},
   regression: { consoleErrors: [], networkErrors: [] },
   screenshots: [],
@@ -155,16 +156,28 @@ async function runFleetManagerViewport(browser, label, viewport) {
   report.items.i2.pass = vehBody.includes('מחלקה') || (await page.locator('select option', { hasText: 'כל המחלקות' }).count()) > 0;
   report.items.i2.notes.push(`${label}: dept filter UI`);
 
+  // Task 15 — internal numbers red on vehicles list
+  const search917 = page.locator('input[placeholder*="חיפוש"]').first();
+  await search917.fill('917');
+  await page.waitForTimeout(800);
+  const redInternalVehicles = await page.locator('.text-destructive.font-bold').count();
+  report.task15 = report.task15 || {};
+  report.task15[label] = report.task15[label] || {};
+  report.task15[label].vehiclesListRed = redInternalVehicles > 0;
+  report.task15[label].vehiclesListRedCount = redInternalVehicles;
+  await search917.fill('');
+  await page.waitForTimeout(400);
+
   await page.goto(`${BASE}/drivers`, { waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForTimeout(2000);
   const drvBody = await page.locator('body').innerText();
-  report.items.i3.pass = drvBody.includes('מחלקה');
   report.items.i4.pass = (await page.locator('select option', { hasText: 'כל המחלקות' }).count()) > 0;
-  report.items.i7.pass = drvBody.includes('מסמכי נהג') || true;
   await page.locator('.card-elevated button').first().click().catch(() => {});
   await page.waitForTimeout(1500);
   const card = await page.locator('body').innerText();
+  report.items.i3.pass = card.includes('מחלקה');
   report.items.i7.pass = card.includes('מסמכי נהג');
+  report.items.i3.notes.push(`${label}: driver card dept field`);
   await shot(page, `${label}-drivers.png`);
 
   const accidents400 = [];
@@ -175,12 +188,18 @@ async function runFleetManagerViewport(browser, label, viewport) {
   await page.waitForTimeout(2500);
   report.items.i8.pass = !page.url().includes('/login');
   report.items.i13.pass = accidents400.length === 0;
+  const trackingRed = await page.locator('.text-destructive.font-bold').count();
+  report.task15[label].trackingRed = trackingRed > 0;
+  report.task15[label].trackingRedCount = trackingRed;
   await shot(page, `${label}-tracking.png`);
 
   await page.goto(`${BASE}/alerts`, { waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForTimeout(2000);
   report.items.i5.pass = true;
   report.items.i9.pass = true;
+  const alertsRed = await page.locator('.text-destructive.font-bold').count();
+  report.task15[label].alertsRed = alertsRed > 0;
+  report.task15[label].alertsRedCount = alertsRed;
   await shot(page, `${label}-alerts.png`);
 
   await page.goto(`${BASE}/vehicles?vehicleId=${TEST_VEHICLE_ID}&view=hub&hubSection=manage`, {
@@ -192,7 +211,34 @@ async function runFleetManagerViewport(browser, label, viewport) {
   report.items.i10.pass = hub.includes('הפעל התראות ביטוח');
   report.items.i11.pass = hub.includes('הצג התראות ביטוח באדום');
   report.items.i12.pass = report.items.i10.pass && report.items.i11.pass;
+  const hubRed = await page.locator('.text-destructive.font-bold').count();
+  report.task15[label].hubRed = hubRed > 0;
+  report.task15[label].hubRedCount = hubRed;
   await shot(page, `${label}-hub-toggles.png`);
+
+  await page.goto(`${BASE}/vehicles`, { waitUntil: 'networkidle', timeout: 120000 });
+  await page.waitForTimeout(1500);
+  const search = page.locator('input[placeholder*="חיפוש"]').first();
+  await search.fill('350403');
+  await page.waitForTimeout(500);
+  await page.locator('.card-elevated').filter({ hasText: '350403' }).first().click();
+  await page.waitForTimeout(2000);
+  const manageBtn = page.getByRole('button', { name: /ניהול/ }).first();
+  if (await manageBtn.count()) {
+    await manageBtn.click();
+    await page.waitForTimeout(1000);
+    const listsBtn = page.getByRole('button', { name: /ניהול רשימות טיפול ובדיקה/ });
+    if (await listsBtn.count()) {
+      await listsBtn.click();
+      await page.waitForTimeout(800);
+      const dlg = await page.locator('body').innerText();
+      report.items.i5.pass = dlg.includes('דרוש') || dlg.includes('חוסר');
+      report.items.i6.pass = dlg.includes('תלת');
+      report.items.i6.notes.push(`${label}: lists manager`);
+      await shot(page, `${label}-lists-manager.png`);
+      await page.keyboard.press('Escape');
+    }
+  }
 
   await ctx.close();
 }
@@ -303,15 +349,26 @@ async function main() {
   const noNet = report.regression.networkErrors.filter((e) => e.status === 400 || e.status >= 500).length === 0;
   const noConsole = report.regression.consoleErrors.length === 0;
 
+  const task15Pass = ['desktop', 'mobile'].every((vp) => {
+    const t = report.task15[vp];
+    return (
+      t?.vehiclesListRed &&
+      t?.alertsRed &&
+      t?.hubRed &&
+      t?.trackingRed
+    );
+  });
+  report.task15.pass = task15Pass;
+
   report.overall =
-    itemPasses && report.task14.pass && report.beeri.restored && noNet ? 'PASS' : 'FAIL';
+    itemPasses && report.task14.pass && report.task15.pass && report.beeri.restored && noNet ? 'PASS' : 'FAIL';
   report.readyForProduction =
     report.overall === 'PASS'
       ? 'טכנית Staging עברה QA מלא; ממתין לאישור Production מפורש'
       : 'לא מוכן — יש כשלונות בדוח';
 
   writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2));
-  console.log(JSON.stringify({ overall: report.overall, beeri: report.beeri, task14: report.task14 }, null, 2));
+  console.log(JSON.stringify({ overall: report.overall, beeri: report.beeri, task14: report.task14, task15: report.task15 }, null, 2));
   if (report.overall !== 'PASS') process.exit(1);
 }
 

@@ -16,6 +16,7 @@ import {
   GovVehicleLookupError,
   type GovVehicleData,
 } from '@/lib/govVehicleLookup';
+import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
 
 type VehicleRow = Record<string, unknown> & {
   id: string;
@@ -297,11 +298,12 @@ export function VehicleDaliaFlow({
               <span className="text-muted-foreground">
                 {isEdit ? 'עריכת רכב: ' : 'פותח רכב: '}
               </span>
-              <span className="font-bold font-mono" dir="ltr">
-                {(licensePlate || vehicle?.license_plate || '').trim()}
-                {(internalNumber || vehicle?.internal_number || '').toString().trim()
-                  ? ` · ${(internalNumber || vehicle?.internal_number || '').toString().trim()}`
-                  : ''}
+              <span className="font-bold">
+                <VehiclePlateLine
+                  plate={(licensePlate || vehicle?.license_plate || '').trim()}
+                  internal={(internalNumber || vehicle?.internal_number || '').toString().trim() || null}
+                  className="text-sm font-bold"
+                />
               </span>
             </div>
           </div>

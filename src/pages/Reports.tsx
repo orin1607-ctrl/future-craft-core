@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { SearchableFilterField } from '@/components/SearchableFilterField';
+import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import {
   type ReportPeriodMode,
   resolveReportPeriod,
@@ -1138,7 +1139,9 @@ function DetailTable({ headers, rows }: { headers: string[]; rows: string[][] })
           {rows.map((row, i) => (
             <tr key={i} className="border-b border-border/50 hover:bg-muted/40">
               {row.map((cell, j) => (
-                <td key={j} className="p-3 whitespace-nowrap">{cell}</td>
+                <td key={j} className="p-3 whitespace-nowrap">
+                  {j === 0 && cell !== '-' ? <InternalNumber value={cell} className="text-sm" /> : cell}
+                </td>
               ))}
             </tr>
           ))}

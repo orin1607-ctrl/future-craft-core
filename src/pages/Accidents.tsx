@@ -16,6 +16,7 @@ import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { createAccidentIncident } from '@/lib/incidentCreate';
 import IncidentSubmitSuccess from '@/components/incidents/IncidentSubmitSuccess';
 import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
+import { InternalNumber, InternalPrefixSuffix } from '@/components/vehicles/vehiclePlateDisplay';
 
 interface AccidentRow {
   id: string;
@@ -563,7 +564,9 @@ function AccidentForm({
             <div className="w-full p-4 text-lg rounded-xl border-2 border-input bg-muted/50">
               <p className="font-bold">{vehiclePlate}</p>
               {vehicle?.internal_number && (
-                <p className="text-sm text-muted-foreground">מספר פנימי: {vehicle.internal_number}</p>
+                <p className="text-sm text-muted-foreground">
+                  מספר פנימי: <InternalNumber value={vehicle.internal_number} />
+                </p>
               )}
               {!plateLocked && vehicle && (
                 <p className="text-sm text-muted-foreground">{vehicle.manufacturer} {vehicle.model}</p>
