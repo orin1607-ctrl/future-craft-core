@@ -10,6 +10,7 @@ import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import { validateTaskFields } from '@/lib/taskFieldValidation';
 import { DEFAULT_INSPECTION_CHECKLIST } from '@/lib/vehicleListDefaults';
 import { loadCompanyListSettings } from '@/lib/companyListSettings';
+import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 
 interface VehicleBasic {
   id: string;
