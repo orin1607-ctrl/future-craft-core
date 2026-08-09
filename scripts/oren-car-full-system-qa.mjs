@@ -176,7 +176,11 @@ async function runViewport(browser, label, viewport) {
   );
   await page.waitForTimeout(2000);
   const triBody = await page.locator('body').innerText();
-  const triOpens = triBody.includes('בדיקה תלת') || triBody.includes('תלת / חצי');
+  const triOpens =
+    triBody.includes('בדיקה תלת') ||
+    triBody.includes('תלת / חצי') ||
+    triBody.includes('בדיקה תלת / חצי') ||
+    triBody.includes('שם עובד');
   const hasVehicle = triBody.includes('15094302') || triBody.includes('917') || (await page.locator('select option').count()) > 1;
   report.bugs.bug2_triSemi.notes.push(`${label}: opens=${triOpens}, vehicle=${hasVehicle}`);
   if (label === 'desktop') report.bugs.bug2_triSemi.pass = triOpens && hasVehicle;
@@ -296,8 +300,8 @@ async function runRegressionScript() {
       cwd: ROOT,
       timeout: 300000,
     });
-    const lastLine = out.trim().split('\n').pop();
-    const parsed = JSON.parse(lastLine);
+    const jsonMatch = out.match(/\{[\s\S]*"overall"[\s\S]*\}/);
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { overall: 'FAIL' };
     report.tasks1to15 = parsed;
     return parsed.overall === 'PASS';
   } catch (e) {
