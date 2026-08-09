@@ -66,6 +66,7 @@ export interface TrackingVehicleRow {
   test_expiry: string | null;
   insurance_expiry: string | null;
   insurance_alerts_enabled: boolean;
+  insurance_alerts_red_enabled: boolean;
   alert_items: TrackingAlertItem[];
   alert_kinds: TrackingAlertKind[];
 }
@@ -168,7 +169,7 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
     supabase
       .from('vehicles')
       .select(
-        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled',
+        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled, insurance_alerts_red_enabled',
       )
       .order('license_plate'),
     companyFilter,
@@ -206,7 +207,7 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
       companyFilter,
     ),
     applyCompanyScope(
-      supabase.from('accidents').select('id, vehicle_plate, status, description, accident_date'),
+      supabase.from('accidents').select('id, vehicle_plate, status, description, date'),
       companyFilter,
     ),
     applyCompanyScope(
@@ -358,6 +359,7 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
       test_expiry: v.test_expiry,
       insurance_expiry: v.insurance_expiry,
       insurance_alerts_enabled: insOn,
+      insurance_alerts_red_enabled: v.insurance_alerts_red_enabled !== false,
       alert_items,
       alert_kinds: alert_items.map((a) => a.kind),
     };
@@ -449,7 +451,7 @@ export async function loadVehicleTrackingDetail(
     supabase
       .from('vehicles')
       .select(
-        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled',
+        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled, insurance_alerts_red_enabled',
       )
       .eq('id', vehicleId)
       .maybeSingle(),

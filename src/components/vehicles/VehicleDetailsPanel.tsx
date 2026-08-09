@@ -5,7 +5,7 @@ import VehicleAccordionSection from '@/components/vehicles/VehicleAccordionSecti
 import { supabase } from '@/integrations/supabase/client';
 import { getThirdPartyInsuranceExpiry, getThirdPartyInsuranceDocUrl } from '@/lib/vehicleInsuranceUtils';
 import { InfoField, DocLink, ExpiryRow } from '@/components/vehicles/vehicleUi';
-import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
+import { isInsuranceAlertsEnabled, shouldShowInsuranceRed } from '@/lib/vehicleInsuranceAlerts';
 import {
   daysUntil,
   expiryColor,
@@ -49,8 +49,9 @@ export default function VehicleDetailsPanel({
 
   const showInsurance = v.management_type === 'financial_leasing' || v.management_type === 'self_maintained';
   const insAlertsOn = isInsuranceAlertsEnabled(v as { insurance_alerts_enabled?: boolean | null });
+  const insRedOn = shouldShowInsuranceRed(v as { insurance_alerts_enabled?: boolean | null; insurance_alerts_red_enabled?: boolean | null });
   const neutralExpiry = 'text-muted-foreground';
-  const insColor = (days: number | null) => (insAlertsOn ? expiryColor(days) : neutralExpiry);
+  const insColor = (days: number | null) => (insRedOn ? expiryColor(days) : neutralExpiry);
   const testDays = daysUntil(v.test_expiry);
   const insDays = daysUntil(v.insurance_expiry);
   const compDays = daysUntil(v.comprehensive_insurance_expiry);

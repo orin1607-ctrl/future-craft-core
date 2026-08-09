@@ -47,6 +47,7 @@ import {
 } from '@/lib/vehicleHubData';
 import type { VehicleHistoryEntry } from '@/lib/vehicleHistory';
 import type { DashboardDrillDown } from '@/lib/vehicleDashboardData';
+import { shouldShowInsuranceRed } from '@/lib/vehicleInsuranceAlerts';
 import { PREVIEW_HUB_DATA } from '@/dev/vehicleHubPreviewMock';
 import { logVehicleEvent } from '@/lib/vehicleEventLog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -90,6 +91,7 @@ export interface VehicleHubVehicle {
   end_or_scrap_date?: string | null;
   import_buffer?: string | null;
   insurance_alerts_enabled?: boolean | null;
+  insurance_alerts_red_enabled?: boolean | null;
 }
 
 interface DriverRow {
@@ -225,6 +227,7 @@ export default function VehicleHub({
   const [initialHubFocus, setInitialHubFocus] = useState<string | null>(null);
   const [initialHubEntityId, setInitialHubEntityId] = useState<string | null>(null);
   const [savingInsuranceToggle, setSavingInsuranceToggle] = useState(false);
+  const [savingInsuranceRedToggle, setSavingInsuranceRedToggle] = useState(false);
 
   useEffect(() => {
     if (!initialHubNav) return;
@@ -482,11 +485,12 @@ export default function VehicleHub({
   };
 
   const expiryAlerts = [
-    v.test_expiry && { title: 'תוקף טסט', date: v.test_expiry },
-    v.insurance_expiry && { title: 'תוקף ביטוח חובה', date: v.insurance_expiry },
-    v.comprehensive_insurance_expiry && { title: 'תוקף ביטוח מקיף', date: v.comprehensive_insurance_expiry },
-    v.next_service_date && { title: 'טיפול מתוכנן', date: v.next_service_date },
-  ].filter(Boolean) as { title: string; date: string }[];
+    v.test_expiry && { title: 'תוקף טסט', date: v.test_expiry, isInsurance: false },
+    v.insurance_expiry && { title: 'תוקף ביטוח חובה', date: v.insurance_expiry, isInsurance: true },
+    v.comprehensive_insurance_expiry && { title: 'תוקף ביטוח מקיף', date: v.comprehensive_insurance_expiry, isInsurance: true },
+    v.next_service_date && { title: 'טיפול מתוכנן', date: v.next_service_date, isInsurance: false },
+  ].filter(Boolean) as { title: string; date: string; isInsurance: boolean }[];
+  const insRedHighlight = shouldShowInsuranceRed(v);
 
   const renderActionTabContent = () => {
     if (loading && !hubData) {
@@ -674,10 +678,11 @@ export default function VehicleHub({
               <>
                 {expiryAlerts.map((a, idx) => {
                   const days = Math.ceil((new Date(a.date).getTime() - Date.now()) / 86400000);
+                  const useRed = (!a.isInsurance || insRedHighlight) && days <= 14;
                   return (
                     <div key={`exp-${idx}`} className="p-3 flex justify-between items-center gap-2">
                       <span className="font-medium">{a.title}</span>
-                      <span className={`text-sm ${days <= 14 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                      <span className={`text-sm ${useRed ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
                         {new Date(a.date).toLocaleDateString('he-IL')}
                         {days <= 0 ? ' (פג)' : ` (${days} ימים)`}
                       </span>
@@ -973,7 +978,7 @@ export default function VehicleHub({
                 <div className="text-right flex-1">
                   <p className="text-sm font-bold">הפעל התראות ביטוח</p>
                   <p className="text-xs text-muted-foreground">
-                    כבוי = אין התראות ביטוח ואין סימון אדום על ביטוח (מסמכים ותאריכים נשארים)
+                    כבוי = אין התראות ביטוח 30/7/1 (מסמכים ותאריכים נשארים)
                   </p>
                 </div>
                 <Switch
@@ -991,6 +996,32 @@ export default function VehicleHub({
                       return;
                     }
                     toast.success(on ? 'התראות ביטוח הופעלו' : 'התראות ביטוח כובו');
+                    onRefresh();
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+                <div className="text-right flex-1">
+                  <p className="text-sm font-bold">הצג התראות ביטוח באדום</p>
+                  <p className="text-xs text-muted-foreground">
+                    כבוי = התראות ביטוח פעילות ללא הדגשה אדומה
+                  </p>
+                </div>
+                <Switch
+                  checked={v.insurance_alerts_red_enabled !== false}
+                  disabled={savingInsuranceRedToggle || v.insurance_alerts_enabled === false}
+                  onCheckedChange={async (on) => {
+                    setSavingInsuranceRedToggle(true);
+                    const { error } = await supabase
+                      .from('vehicles')
+                      .update({ insurance_alerts_red_enabled: on })
+                      .eq('id', v.id);
+                    setSavingInsuranceRedToggle(false);
+                    if (error) {
+                      toast.error('שגיאה בעדכון הדגשת ביטוח');
+                      return;
+                    }
+                    toast.success(on ? 'הדגשה אדומה הופעלה' : 'הדגשה אדומה כובתה');
                     onRefresh();
                   }}
                 />

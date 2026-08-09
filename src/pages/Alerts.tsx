@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { buildVehicleContextUrl, buildVehicleHubUrl, buildFaultDetailUrl, buildVehicleTaskDetailUrl, buildServiceOrderDetailUrl } from '@/lib/entityNavContext';
-import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
+import { isInsuranceAlertsEnabled, isInsuranceRedHighlightEnabled } from '@/lib/vehicleInsuranceAlerts';
 import { fetchCompanySettings } from '@/lib/companySettings';
 import { expiryReminderTier, tierDetail, tierLabel } from '@/lib/vehicleExpiryReminders';
 import { thresholdsFromCompanySettings } from '@/lib/vehicleTrackingAlerts';
@@ -88,6 +88,11 @@ function getSeverity(daysLeft: number | null): AlertSeverity {
   if (daysLeft <= 0) return 'critical';
   if (daysLeft <= 14) return 'warning';
   return 'info';
+}
+
+function getInsuranceSeverity(daysLeft: number | null, redOn: boolean): AlertSeverity {
+  if (!redOn) return 'info';
+  return getSeverity(daysLeft);
 }
 
 // ─── Updates (System Logs) Types ───
@@ -225,6 +230,7 @@ export default function Alerts() {
         const vehiclePlate = v.license_plate || null;
         const thresholds = await thresholdForCompany(v.company_name);
         const insOn = isInsuranceAlertsEnabled(v);
+        const insRed = isInsuranceRedHighlightEnabled(v);
 
         const testDays = getDaysLeft(v.test_expiry);
         const testTier = expiryReminderTier(testDays, thresholds);
@@ -249,7 +255,7 @@ export default function Alerts() {
           allAlerts.push({
             id: `ins-${v.id}-${insTier}`,
             category: 'insurance',
-            severity: getSeverity(insDays),
+            severity: getInsuranceSeverity(insDays, insRed),
             title: tierLabel(insTier, insDays !== null && insDays <= 0 ? 'ביטוח חובה פג' : 'ביטוח חובה עומד לפוג'),
             subtitle: label,
             internalNumber,
@@ -266,7 +272,7 @@ export default function Alerts() {
           allAlerts.push({
             id: `comp-${v.id}-${compTier}`,
             category: 'comprehensive_insurance',
-            severity: getSeverity(compDays),
+            severity: getInsuranceSeverity(compDays, insRed),
             title: tierLabel(compTier, compDays !== null && compDays <= 0 ? 'ביטוח מקיף פג' : 'ביטוח מקיף עומד לפוג'),
             subtitle: label,
             internalNumber,
@@ -284,7 +290,7 @@ export default function Alerts() {
           allAlerts.push({
             id: `third-${v.id}-${thirdTier}`,
             category: 'third_party_insurance',
-            severity: getSeverity(thirdDays),
+            severity: getInsuranceSeverity(thirdDays, insRed),
             title: tierLabel(thirdTier, thirdDays !== null && thirdDays <= 0 ? 'ביטוח צד ג׳ פג' : 'ביטוח צד ג׳ עומד לפוג'),
             subtitle: label,
             internalNumber,

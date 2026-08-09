@@ -101,6 +101,7 @@ export default function TrackingVehicleDetail({
           <p>סטטוס שירות: {v.service_status || '—'}</p>
           <p>שינוע פעיל: {v.has_active_transport ? 'כן' : 'לא'}</p>
           <p>התראות ביטוח: {v.insurance_alerts_enabled ? 'מופעלות' : 'כבויות (מתג ברכב)'}</p>
+          <p>הדגשה אדומה: {v.insurance_alerts_red_enabled ? 'מופעלת' : 'כבויה (מתג ברכב)'}</p>
         </div>
       )}
 

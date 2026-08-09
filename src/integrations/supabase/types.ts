@@ -2843,6 +2843,7 @@ export type Database = {
           insurance_start: string | null
           insurance_expiry: string | null
           insurance_alerts_enabled: boolean
+          insurance_alerts_red_enabled: boolean
           insurance_cost: number | null
           insurance_company: string | null
           insurance_agent: string | null
@@ -2944,6 +2945,7 @@ export type Database = {
           insurance_start?: string | null
           insurance_expiry?: string | null
           insurance_alerts_enabled?: boolean
+          insurance_alerts_red_enabled?: boolean
           insurance_cost?: number | null
           insurance_company?: string | null
           insurance_agent?: string | null
@@ -3045,6 +3047,7 @@ export type Database = {
           insurance_start?: string | null
           insurance_expiry?: string | null
           insurance_alerts_enabled?: boolean
+          insurance_alerts_red_enabled?: boolean
           insurance_cost?: number | null
           insurance_company?: string | null
           insurance_agent?: string | null

@@ -3,20 +3,32 @@ import { Button } from '@/components/ui/button';
 import type { TrackingVehicleRow } from '@/lib/vehicleTrackingData';
 import { TRACKING_ALERT_KIND_LABELS } from '@/lib/vehicleTrackingAlerts';
 
-function AlertChips({ items }: { items: TrackingVehicleRow['alert_items'] }) {
+function AlertChips({
+  items,
+  insuranceRed,
+}: {
+  items: TrackingVehicleRow['alert_items'];
+  insuranceRed: boolean;
+}) {
   if (items.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
   return (
     <div className="flex flex-wrap gap-1 justify-end max-w-[220px]" onClick={(e) => e.stopPropagation()}>
-      {items.map((a) => (
+      {items.map((a) => {
+        const isInsurance = a.kind === 'insurance';
+        const chipCls = isInsurance && insuranceRed
+          ? 'status-badge bg-destructive/10 text-destructive border border-destructive/30 text-[10px] hover:bg-destructive/15'
+          : 'status-badge status-pending text-[10px] hover:bg-primary/15';
+        return (
         <Link
           key={`${a.kind}-${a.entityId || a.tier || ''}-${a.label}`}
           to={a.hubLink}
-          className="status-badge status-pending text-[10px] hover:bg-primary/15"
+          className={chipCls}
           title={a.detail}
         >
           {a.label}
         </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -102,7 +114,7 @@ export default function TrackingFleetList({
                 <td className="py-3 px-2 text-center"><Flag on={v.has_open_defect} /></td>
                 <td className="py-3 px-2 text-center"><Flag on={v.has_open_fault} /></td>
                 <td className="py-3 px-2 text-center">
-                  <AlertChips items={v.alert_items} />
+                  <AlertChips items={v.alert_items} insuranceRed={v.insurance_alerts_red_enabled} />
                 </td>
                 <td className="py-3 px-2 text-center">
                   {v.in_garage ? (
@@ -143,7 +155,7 @@ export default function TrackingFleetList({
             </p>
             <div className="flex flex-wrap gap-1 justify-end">
               {v.alert_items.length > 0 ? (
-                <AlertChips items={v.alert_items} />
+                <AlertChips items={v.alert_items} insuranceRed={v.insurance_alerts_red_enabled} />
               ) : (
                 <span className="text-xs text-muted-foreground">אין התראות</span>
               )}

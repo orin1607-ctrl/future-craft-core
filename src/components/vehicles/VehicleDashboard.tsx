@@ -30,7 +30,7 @@ import {
   type GapAlertValues,
 } from '@/lib/vehicleGapAlertsDefaults';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
-import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
+import { isInsuranceAlertsEnabled, shouldShowInsuranceRed } from '@/lib/vehicleInsuranceAlerts';
 import type { HubTabId } from '@/lib/vehicleHubData';
 import {
   daysUntil,
@@ -155,14 +155,16 @@ export default function VehicleDashboard({
       : 1;
 
   const insAlertsOn = isInsuranceAlertsEnabled(v);
+  const insRedOn = shouldShowInsuranceRed(v);
   const hasLicenseGap = !v.license_doc_url;
   const hasTestGap = !v.test_expiry || (testDays !== null && testDays <= 0);
-  const hasInsuranceGap =
+  const hasInsuranceIssue =
     insAlertsOn &&
     (!v.insurance_doc_url ||
       !v.comprehensive_insurance_doc_url ||
       (insDays !== null && insDays <= 14) ||
       (compDays !== null && compDays <= 14));
+  const hasInsuranceGap = insRedOn && hasInsuranceIssue;
   const customGapCount = drill?.customGaps?.length ?? 0;
   const equipmentWarn = drill?.equipmentGap?.hasGap ?? false;
 
@@ -317,8 +319,11 @@ export default function VehicleDashboard({
         </div>
         {insAlertsOn &&
           drill.insuranceGaps.map((g: InsuranceGapItem, i) => (
-            <div key={i} className="card-elevated p-3 mt-2 border-destructive/20">
-              <p className="font-bold text-destructive text-sm">{g.label}</p>
+            <div
+              key={i}
+              className={`card-elevated p-3 mt-2 ${insRedOn ? 'border-destructive/20' : 'border-border'}`}
+            >
+              <p className={`font-bold text-sm ${insRedOn ? 'text-destructive' : ''}`}>{g.label}</p>
               <p className="text-xs mt-1">{g.action}</p>
             </div>
           ))}
@@ -351,17 +356,22 @@ export default function VehicleDashboard({
         {drill.missingDocuments.length === 0 ? (
           <p className="text-sm">אין חוסרי מסמכים מזוהים</p>
         ) : (
-          drill.missingDocuments.map((m: MissingDocItem) => (
+          drill.missingDocuments.map((m: MissingDocItem) => {
+            const isInsuranceDoc =
+              m.fieldKey === 'insurance_doc_url' || m.fieldKey === 'comprehensive_insurance_doc_url';
+            const docRed = !isInsuranceDoc || insRedOn;
+            return (
             <div
               key={m.fieldKey}
               id={m.fieldKey === 'license_doc_url' ? 'hub-focus-license' : undefined}
-              className={`card-elevated p-3 mb-2 border-destructive/25 ${m.fieldKey === 'license_doc_url' ? focusCls('license') : ''}`}
+              className={`card-elevated p-3 mb-2 ${docRed ? 'border-destructive/25' : 'border-border'} ${m.fieldKey === 'license_doc_url' ? focusCls('license') : ''}`}
             >
-              <p className="font-bold text-destructive">{m.label}</p>
+              <p className={`font-bold ${docRed ? 'text-destructive' : ''}`}>{m.label}</p>
               <p className="text-xs">{m.status}</p>
               <p className="text-sm mt-1">{m.action}</p>
             </div>
-          ))
+            );
+          })
         )}
         <Button className="w-full mt-4" onClick={() => { setSheetOpen(false); onJumpTo?.('details'); }}>
           העלאה / עריכה — פרטי רכב
