@@ -116,8 +116,16 @@ export interface VehicleHubData {
   docs: DocRow[];
 }
 
+function normalizePlate(plate: string) {
+  return plate.replace(/[-\s]/g, '');
+}
+
 function byPlate(table: string, plate: string, companyFilter: string | null) {
-  return applyCompanyScope(supabase.from(table).select('*').eq('vehicle_plate', plate), companyFilter);
+  const norm = normalizePlate(plate);
+  const q = norm !== plate
+    ? supabase.from(table).select('*').or(`vehicle_plate.eq.${plate},vehicle_plate.eq.${norm}`)
+    : supabase.from(table).select('*').eq('vehicle_plate', plate);
+  return applyCompanyScope(q, companyFilter);
 }
 
 export async function loadVehicleHubData(
@@ -143,7 +151,11 @@ export async function loadVehicleHubData(
       byPlate('vehicle_inspections', plate, companyFilter).order('inspection_date', { ascending: false }),
       byPlate('vehicle_handovers', plate, companyFilter).order('date_time', { ascending: false }),
       applyCompanyScope(
-        supabase.from('document_metadata').select('*').eq('vehicle_plate', plate).order('created_at', { ascending: false }),
+        supabase
+          .from('document_metadata')
+          .select('*')
+          .or(`vehicle_plate.eq.${plate},vehicle_plate.eq.${normalizePlate(plate)}`)
+          .order('created_at', { ascending: false }),
         companyFilter,
       ),
       applyCompanyScope(
@@ -261,48 +273,42 @@ export async function loadVehicleHubData(
     });
 
   const docs: DocRow[] = [];
+  const metadataRows = (docsRes.data || []) as Record<string, string>[];
+  const metadataCategories = new Set(metadataRows.map((d) => d.category));
 
-  if (vehicleDocs.license_doc_url) {
+  const pushUrlDoc = (
+    id: string,
+    category: string,
+    ref: string,
+    name: string,
+    url: string | null | undefined,
+    expiry: string | null | undefined,
+  ) => {
+    if (!url?.trim()) return;
+    if (metadataCategories.has(category)) return;
     docs.push({
-      id: 'license',
-      ref: 'רישיון',
-      name: 'רישיון רכב',
+      id,
+      ref,
+      name,
       source: 'רשמי',
       date: '—',
-      expiry: vehicleDocs.test_expiry
-        ? new Date(vehicleDocs.test_expiry).toLocaleDateString('he-IL')
-        : '—',
-      url: vehicleDocs.license_doc_url,
+      expiry: expiry ? new Date(expiry).toLocaleDateString('he-IL') : '—',
+      url,
     });
-  }
-  if (vehicleDocs.insurance_doc_url) {
-    docs.push({
-      id: 'insurance',
-      ref: 'ביטוח',
-      name: 'פוליסת ביטוח חובה',
-      source: 'ביטוח',
-      date: '—',
-      expiry: vehicleDocs.insurance_expiry
-        ? new Date(vehicleDocs.insurance_expiry).toLocaleDateString('he-IL')
-        : '—',
-      url: vehicleDocs.insurance_doc_url,
-    });
-  }
-  if (vehicleDocs.comprehensive_insurance_doc_url) {
-    docs.push({
-      id: 'comprehensive',
-      ref: 'מקיף',
-      name: 'פוליסת ביטוח מקיף',
-      source: 'ביטוח',
-      date: '—',
-      expiry: vehicleDocs.comprehensive_insurance_expiry
-        ? new Date(vehicleDocs.comprehensive_insurance_expiry).toLocaleDateString('he-IL')
-        : '—',
-      url: vehicleDocs.comprehensive_insurance_doc_url,
-    });
-  }
+  };
 
-  (docsRes.data || []).forEach((d: Record<string, string>, idx: number) => {
+  pushUrlDoc('license', 'vehicle-license', 'רישיון', 'רישיון רכב', vehicleDocs.license_doc_url, vehicleDocs.test_expiry);
+  pushUrlDoc('insurance', 'insurance', 'ביטוח', 'פוליסת ביטוח חובה', vehicleDocs.insurance_doc_url, vehicleDocs.insurance_expiry);
+  pushUrlDoc(
+    'comprehensive',
+    'comprehensive',
+    'מקיף',
+    'פוליסת ביטוח מקיף',
+    vehicleDocs.comprehensive_insurance_doc_url,
+    vehicleDocs.comprehensive_insurance_expiry,
+  );
+
+  metadataRows.forEach((d: Record<string, string>, idx: number) => {
     const { data: pub } = supabase.storage.from('documents').getPublicUrl(d.file_path);
     docs.push({
       id: d.id,

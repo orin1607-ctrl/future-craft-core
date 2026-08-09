@@ -126,6 +126,12 @@ export default function Documents() {
       query = query.or(`vehicle_plate.eq.${driverVehicle.license_plate},driver_name.eq.${driverProfile?.full_name || ''}`);
     }
 
+    // Vehicle-scoped: count only this vehicle's documents
+    if (locked && contextPlate) {
+      const plateNorm = contextPlate.replace(/[-\s]/g, '');
+      query = query.or(`vehicle_plate.eq.${contextPlate},vehicle_plate.eq.${plateNorm}`);
+    }
+
     const { data } = await query;
     const counts: Record<string, number> = {};
     allCategories.forEach(c => { counts[c.key] = 0; });
@@ -133,7 +139,7 @@ export default function Documents() {
       if (counts[d.category] !== undefined) counts[d.category]++;
     });
     setCategoryCounts(counts);
-  }, [companyFilter, isDriver, driverVehicle, driverProfile]);
+  }, [companyFilter, isDriver, driverVehicle, driverProfile, locked, contextPlate]);
 
   useEffect(() => { loadCounts(); }, [loadCounts]);
 

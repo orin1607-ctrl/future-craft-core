@@ -46,7 +46,7 @@ export default function PrivateVehicleInspection() {
   useEffect(() => {
     applyCompanyScope(supabase.from('vehicles').select('id, license_plate, manufacturer, model'), companyFilter)
       .then(({ data }) => { if (data) setVehicles(data as VehicleBasic[]); });
-  }, []);
+  }, [companyFilter]);
 
   useEffect(() => {
     const company = user?.company_name || '';
@@ -86,6 +86,7 @@ export default function PrivateVehicleInspection() {
       vehicle_id: vehicleId,
       vehicle_plate: selectedVehicle?.license_plate || '',
       inspection_type: 'tri_semi_annual',
+      inspection_date: inspectionDate,
       inspector_name: employeeName,
       overall_status: hasDefects ? 'failed' : 'passed',
       notes: `קילומטראז׳: ${odometer}`,
