@@ -1,3 +1,4 @@
+/** Oren Car production deploy 2026-08-10 — code-only, no data changes */
 import { supabase } from '@/integrations/supabase/client';
 
 export type DocumentEntityType =
