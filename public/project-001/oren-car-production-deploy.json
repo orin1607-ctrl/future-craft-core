@@ -1,0 +1,24 @@
+{
+  "id": "oren-car-production-deploy",
+  "armed": true,
+  "requestedAt": "2026-08-10T06:40:00.000Z",
+  "requestedBy": "owner",
+  "owner_phrase": "מאשר להמשיך עם Deploy של הקוד",
+  "target": "https://dalia-car.online",
+  "commit": "f18f571",
+  "scope": "tasks-1-15-plus-3-bug-fixes",
+  "codeOnly": true,
+  "dataChanges": false,
+  "noImport": true,
+  "noSeed": true,
+  "noSyncFromStaging": true,
+  "preserveCounts": {
+    "vehicles": 445,
+    "drivers": 268,
+    "beeriExact": 306,
+    "beeriTypo": 2,
+    "dupPlateGroups": 47,
+    "dupInternalGroups": 19
+  },
+  "note": "CODE ONLY — do not touch duplicate plates, internal dupes, or ק'יבוץ בארי records"
+}
