@@ -9,6 +9,7 @@ export const HEALTH_DECLARATION_TYPE = 'health_declaration';
 export type DriverHubSection =
   | 'home'
   | 'documents'
+  | 'health_declaration'
   | 'traffic_info'
   | 'traffic_reports'
   | 'accidents'
@@ -39,6 +40,7 @@ export type DriverAccidentRow = {
 
 export type DriverHubData = {
   versions: DriverDocumentVersionRow[];
+  allVersions: DriverDocumentVersionRow[];
   accidents: DriverAccidentRow[];
   typeDefs: DocumentTypeDef[];
 };
@@ -74,20 +76,21 @@ export async function loadDriverHubData(params: {
 
   const labelByKey = new Map(typeDefs.map((t) => [t.key, t.label_he]));
 
-  const versions: DriverDocumentVersionRow[] = (history.versions || [])
-    .filter((v) => v.is_current)
-    .map((v) => ({
-      id: v.id,
-      document_type_key: v.document_type_key,
-      label_he: labelByKey.get(v.document_type_key) || v.document_type_key,
-      public_url: v.public_url,
-      original_name: v.original_name,
-      created_at: v.created_at,
-      expiry_date: (v as { expiry_date?: string | null }).expiry_date || null,
-      version_no: v.version_no,
-      is_current: v.is_current,
-      status: documentExpiryStatus((v as { expiry_date?: string | null }).expiry_date),
-    }));
+  const mapVersion = (v: (typeof history.versions)[number]): DriverDocumentVersionRow => ({
+    id: v.id,
+    document_type_key: v.document_type_key,
+    label_he: labelByKey.get(v.document_type_key) || v.document_type_key,
+    public_url: v.public_url,
+    original_name: v.original_name,
+    created_at: v.created_at,
+    expiry_date: (v as { expiry_date?: string | null }).expiry_date || null,
+    version_no: v.version_no,
+    is_current: v.is_current,
+    status: documentExpiryStatus((v as { expiry_date?: string | null }).expiry_date),
+  });
+
+  const allVersions: DriverDocumentVersionRow[] = (history.versions || []).map(mapVersion);
+  const versions = allVersions.filter((v) => v.is_current);
 
   const accidents: DriverAccidentRow[] = (accidentsRes.data || []).map((a) => ({
     id: a.id,
@@ -99,7 +102,7 @@ export async function loadDriverHubData(params: {
     imageUrls: parseAccidentImages(a.images),
   }));
 
-  return { versions, accidents, typeDefs };
+  return { versions, allVersions, accidents, typeDefs };
 }
 
 export function hubVersionsByType(versions: DriverDocumentVersionRow[], typeKey: string): DriverDocumentVersionRow[] {

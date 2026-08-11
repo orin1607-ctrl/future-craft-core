@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Camera, FolderOpen, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -25,8 +25,12 @@ type Props = {
   entityId: string;
   entityLabel: string;
   companyName?: string;
+  /** Pre-select document type when opening from a driver hub section */
+  defaultDocumentTypeKey?: string;
   onUploaded?: () => void;
 };
+
+const FILE_ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,image/*,application/pdf';
 
 export default function AdminUploadDocumentDialog({
   open,
@@ -35,9 +39,11 @@ export default function AdminUploadDocumentDialog({
   entityId,
   entityLabel,
   companyName,
+  defaultDocumentTypeKey,
   onUploaded,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [types, setTypes] = useState<DocumentTypeDef[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
   const [docKey, setDocKey] = useState('');
@@ -56,11 +62,15 @@ export default function AdminUploadDocumentDialog({
     listDocumentTypes(entityType)
       .then((list) => {
         setTypes(list);
-        setDocKey(list[0]?.key || '');
+        const preset =
+          defaultDocumentTypeKey && list.some((t) => t.key === defaultDocumentTypeKey)
+            ? defaultDocumentTypeKey
+            : list[0]?.key || '';
+        setDocKey(preset);
       })
       .catch((err) => toast.error(err.message || 'שגיאה בטעינת סוגי מסמך'))
       .finally(() => setLoadingTypes(false));
-  }, [open, entityType]);
+  }, [open, entityType, defaultDocumentTypeKey]);
 
   const selected = types.find((t) => t.key === docKey);
   const autoExpiry =
@@ -157,14 +167,32 @@ export default function AdminUploadDocumentDialog({
           )}
 
           <div className="space-y-2">
-            <Label>קובץ מהמחשב</Label>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,image/*,application/pdf"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="w-full text-sm"
-            />
+            <Label>קובץ</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm bg-primary text-primary-foreground cursor-pointer hover:opacity-90">
+                <FolderOpen size={18} />
+                בחר קובץ
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept={FILE_ACCEPT}
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                />
+              </label>
+              <label className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm bg-primary/90 text-primary-foreground cursor-pointer hover:opacity-90">
+                <Camera size={18} />
+                צלם / גלריה
+                <input
+                  ref={cameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                />
+              </label>
+            </div>
             <p className="text-xs text-muted-foreground">PDF · JPG · PNG · WEBP · HEIC (עד 10MB)</p>
             {file && <p className="text-xs font-medium">{file.name}</p>}
           </div>

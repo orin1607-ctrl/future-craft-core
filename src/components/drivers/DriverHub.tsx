@@ -14,6 +14,8 @@ import {
   Mail,
   Save,
   Loader2,
+  Upload,
+  HeartPulse,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,6 +24,7 @@ import { buildDriverDashboardUrl } from '@/lib/entityNavContext';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { DocumentCard, useDocumentPreview } from '@/components/documents/DocumentViewer';
 import EntityDocumentRequestsPanel from '@/components/documents/EntityDocumentRequestsPanel';
+import AdminUploadDocumentDialog from '@/components/documents/AdminUploadDocumentDialog';
 import DriverDeclaration from '@/components/DriverDeclaration';
 import DriverExamsTab from '@/components/driving-exam/DriverExamsTab';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
@@ -32,6 +35,7 @@ import {
   hubHasExpiryWarning,
   TRAFFIC_INFO_TYPE,
   TRAFFIC_TICKET_TYPE,
+  HEALTH_DECLARATION_TYPE,
   type DriverHubSection,
   type DriverHubData,
   type DriverDocumentVersionRow,
@@ -101,6 +105,78 @@ function HubTile({
   );
 }
 
+function SectionUploadBar({
+  label,
+  onUpload,
+}: {
+  label: string;
+  onUpload: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 mb-4">
+      <Button type="button" className="gap-2" onClick={onUpload}>
+        <Upload size={16} />
+        {label}
+      </Button>
+    </div>
+  );
+}
+
+function TypedDocSection({
+  typeKey,
+  validityHint,
+  current,
+  history,
+  onUpload,
+}: {
+  typeKey: string;
+  validityHint: string;
+  current: DriverDocumentVersionRow | undefined;
+  history: DriverDocumentVersionRow[];
+  onUpload: () => void;
+}) {
+  const typed = history.filter((v) => v.document_type_key === typeKey);
+  return (
+    <div className="space-y-4">
+      <SectionUploadBar label="העלה מסמך" onUpload={onUpload} />
+      {current ? (
+        <>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl bg-muted p-3">
+              <p className="text-xs text-muted-foreground">הופק / הועלה</p>
+              <p className="font-bold">{formatIsraelDate(current.created_at)}</p>
+            </div>
+            <div className="rounded-xl bg-muted p-3">
+              <p className="text-xs text-muted-foreground">תוקף עד</p>
+              <p className="font-bold">{formatIsraelDate(current.expiry_date)}</p>
+            </div>
+            <div className="rounded-xl bg-muted p-3 col-span-2">
+              <p className="text-xs text-muted-foreground">סטטוס</p>
+              <p className={`font-bold ${current.status === 'expired' ? 'text-destructive' : ''}`}>
+                {documentExpiryStatusLabel(current.status)}
+              </p>
+            </div>
+          </div>
+          <DocVersionCard doc={current} />
+          <p className="text-xs text-muted-foreground">{validityHint}</p>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">אין מסמך — לחץ «העלה מסמך» למעלה</p>
+      )}
+      {typed.length > 1 && (
+        <div className="space-y-2 pt-2 border-t border-border">
+          <p className="text-sm font-medium">היסטוריית גרסאות</p>
+          {typed
+            .filter((v) => !v.is_current)
+            .map((doc) => (
+              <DocVersionCard key={doc.id} doc={doc} />
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SectionNav({
   section,
   setSection,
@@ -110,6 +186,7 @@ function SectionNav({
 }) {
   const items: { id: DriverHubSection; label: string; icon: typeof FileText }[] = [
     { id: 'documents', label: 'מסמכים ותוקפים', icon: FileText },
+    { id: 'health_declaration', label: 'הצהרת בריאות', icon: HeartPulse },
     { id: 'traffic_info', label: 'מידע תעבורתי', icon: TrafficCone },
     { id: 'traffic_reports', label: 'דוחות תעבורה', icon: ClipboardList },
     { id: 'accidents', label: 'תאונות', icon: AlertTriangle },
@@ -176,7 +253,14 @@ export default function DriverHub({
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState(d.notes || '');
   const [savingNotes, setSavingNotes] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadPresetType, setUploadPresetType] = useState<string | undefined>();
   const { PreviewDialog } = useDocumentPreview();
+
+  const openUpload = (typeKey?: string) => {
+    setUploadPresetType(typeKey);
+    setUploadOpen(true);
+  };
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -210,12 +294,14 @@ export default function DriverHub({
   };
 
   const versions = hubData?.versions || [];
+  const allVersions = hubData?.allVersions || [];
   const accidents = hubData?.accidents || [];
   const docWarn = hubHasExpiryWarning(versions);
 
   const sectionTitle: Record<DriverHubSection, string> = {
     home: '',
     documents: 'מסמכים ותוקפים',
+    health_declaration: 'הצהרת בריאות',
     traffic_info: 'מידע תעבורתי',
     traffic_reports: 'דוחות תעבורה',
     accidents: 'תאונות',
@@ -231,6 +317,9 @@ export default function DriverHub({
       case 'documents':
         return (
           <div className="space-y-4">
+            {isManager && (
+              <SectionUploadBar label="העלה מסמך" onUpload={() => openUpload()} />
+            )}
             {versions.length === 0 ? (
               <p className="text-sm text-muted-foreground">אין מסמכים ב-Document Hub — השתמשו בהעלאה או בבקשת קישור למטה</p>
             ) : (
@@ -255,45 +344,41 @@ export default function DriverHub({
           </div>
         );
 
-      case 'traffic_info': {
-        const docs = hubVersionsByType(versions, TRAFFIC_INFO_TYPE);
-        const current = docs[0];
-        return (
-          <div className="space-y-4">
-            {current ? (
-              <>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl bg-muted p-3">
-                    <p className="text-xs text-muted-foreground">הופק / הועלה</p>
-                    <p className="font-bold">{formatIsraelDate(current.created_at)}</p>
-                  </div>
-                  <div className="rounded-xl bg-muted p-3">
-                    <p className="text-xs text-muted-foreground">תוקף עד</p>
-                    <p className="font-bold">{formatIsraelDate(current.expiry_date)}</p>
-                  </div>
-                  <div className="rounded-xl bg-muted p-3 col-span-2">
-                    <p className="text-xs text-muted-foreground">סטטוס</p>
-                    <p className={`font-bold ${current.status === 'expired' ? 'text-destructive' : ''}`}>
-                      {documentExpiryStatusLabel(current.status)}
-                    </p>
-                  </div>
-                </div>
-                <DocVersionCard doc={current} />
-                <p className="text-xs text-muted-foreground">תוקף אוטומטי: 3 שנים מתאריך המסמך (לפי הגדרת סוג המסמך)</p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">אין מידע תעבורתי — העלה מסמך מסוג «מידע תעבורתי» באזור המסמכים</p>
-            )}
-          </div>
+      case 'health_declaration':
+        return isManager ? (
+          <TypedDocSection
+            typeKey={HEALTH_DECLARATION_TYPE}
+            validityHint="תוקף אוטומטי: 5 שנים מתאריך המסמך (לפי הגדרת סוג המסמך)"
+            current={hubVersionsByType(versions, HEALTH_DECLARATION_TYPE)[0]}
+            history={allVersions}
+            onUpload={() => openUpload(HEALTH_DECLARATION_TYPE)}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">אין הרשאה להעלאה</p>
         );
-      }
+
+      case 'traffic_info':
+        return isManager ? (
+          <TypedDocSection
+            typeKey={TRAFFIC_INFO_TYPE}
+            validityHint="תוקף אוטומטי: 3 שנים מתאריך המסמך (לפי הגדרת סוג המסמך)"
+            current={hubVersionsByType(versions, TRAFFIC_INFO_TYPE)[0]}
+            history={allVersions}
+            onUpload={() => openUpload(TRAFFIC_INFO_TYPE)}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">אין הרשאה להעלאה</p>
+        );
 
       case 'traffic_reports': {
         const tickets = hubVersionsByType(versions, TRAFFIC_TICKET_TYPE);
         return (
           <div className="space-y-3">
+            {isManager && (
+              <SectionUploadBar label="העלה דוח תעבורה" onUpload={() => openUpload(TRAFFIC_TICKET_TYPE)} />
+            )}
             {tickets.length === 0 ? (
-              <p className="text-sm text-muted-foreground">אין דוחות תעבורה — העלה מסמך מסוג «דוח תעבורה»</p>
+              <p className="text-sm text-muted-foreground">אין דוחות תעבורה — לחץ «העלה דוח תעבורה» למעלה</p>
             ) : (
               <div className="overflow-x-auto card-elevated p-0">
                 <table className="w-full text-sm">
@@ -399,6 +484,18 @@ export default function DriverHub({
   return (
     <div className="animate-fade-in pb-8">
       {PreviewDialog}
+      {isManager && (
+        <AdminUploadDocumentDialog
+          open={uploadOpen}
+          onOpenChange={setUploadOpen}
+          entityType="driver"
+          entityId={d.id}
+          entityLabel={d.full_name}
+          companyName={d.company_name}
+          defaultDocumentTypeKey={uploadPresetType}
+          onUploaded={() => void refresh()}
+        />
+      )}
       {fromFleetManager && filterCompany && (
         <EntityContextBanner label={`נהגים באחריות מנהל צי · ${filterCompany}`} strict />
       )}
@@ -456,6 +553,12 @@ export default function DriverHub({
                 value={versions.length ? `${versions.length} מסמכים` : 'אין'}
                 warn={docWarn}
                 onClick={() => setSection('documents')}
+              />
+              <HubTile
+                label="הצהרת בריאות"
+                value={hubSummaryForType(versions, HEALTH_DECLARATION_TYPE)}
+                warn={hubVersionsByType(versions, HEALTH_DECLARATION_TYPE)[0]?.status === 'expired'}
+                onClick={() => setSection('health_declaration')}
               />
               <HubTile
                 label="מידע תעבורתי"
