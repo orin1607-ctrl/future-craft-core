@@ -25,6 +25,7 @@ type AlertCategory =
   | 'comprehensive_insurance'
   | 'third_party_insurance'
   | 'license'
+  | 'driver_document'
   | 'fault'
   | 'service_order'
   | 'work_assignment';
@@ -49,6 +50,7 @@ const categoryLabels: Record<AlertCategory, string> = {
   comprehensive_insurance: 'ביטוח מקיף',
   third_party_insurance: 'ביטוח צד ג׳',
   license: 'רישיון נהיגה',
+  driver_document: 'מסמך נהג',
   fault: 'תקלה דחופה',
   service_order: 'הזמנת שירות',
   work_assignment: 'סידור עבודה',
@@ -60,6 +62,7 @@ const categoryIcons: Record<AlertCategory, typeof Car> = {
   comprehensive_insurance: ShieldAlert,
   third_party_insurance: ShieldAlert,
   license: IdCard,
+  driver_document: ScrollText,
   fault: Wrench,
   service_order: Briefcase,
   work_assignment: ClipboardList,
@@ -327,6 +330,46 @@ export default function Alerts() {
             allAlerts.push({ id: `exam-${d.id}`, category: 'license', severity: getSeverity(examDays), title: examDays <= 0 ? 'תוקף מבחן נהיגה פג!' : 'מבחן נהיגה עומד לפוג', subtitle: d.full_name, daysLeft: examDays, date: examExpiry, meta: d.phone || undefined, link: '/drivers' });
           }
         }
+      }
+    }
+
+
+    // 2c. Driver document expiry (Document Hub — document_versions)
+    const docAlertThresholds = await thresholdForCompany(
+      (typeof companyFilter === 'string' && companyFilter) || user?.company_name || drivers?.[0]?.company_name,
+    );
+    let docVerQuery = supabase
+      .from('document_versions')
+      .select('id, entity_id, document_type_key, expiry_date, company_name')
+      .eq('entity_type', 'driver')
+      .eq('is_current', true)
+      .not('expiry_date', 'is', null);
+    docVerQuery = applyCompanyScope(docVerQuery, companyFilter);
+    const { data: driverDocVersions } = await docVerQuery;
+    const typeLabelMap = new Map<string, string>();
+    if (driverDocVersions?.length) {
+      const { data: typeRows } = await supabase.from('document_type_defs').select('key, label_he');
+      (typeRows || []).forEach((t) => typeLabelMap.set(t.key, t.label_he));
+    }
+    if (driverDocVersions) {
+      const driverNameById = new Map((drivers || []).map((d) => [d.id, d.full_name]));
+      for (const ver of driverDocVersions) {
+        const days = getDaysLeft(ver.expiry_date);
+        const tier = expiryReminderTier(days, docAlertThresholds);
+        if (tier === null) continue;
+        const label = typeLabelMap.get(ver.document_type_key) || ver.document_type_key;
+        const driverName = driverNameById.get(ver.entity_id) || 'נהג';
+        allAlerts.push({
+          id: `drvdoc-${ver.id}`,
+          category: 'driver_document',
+          severity: days !== null && days <= 0 ? 'critical' : days !== null && days <= 7 ? 'warning' : 'info',
+          title: tierLabel(tier, `תוקף ${label}`),
+          subtitle: driverName,
+          daysLeft: days,
+          date: ver.expiry_date,
+          meta: tierDetail(ver.expiry_date, days, tier),
+          link: `/drivers?driverId=${ver.entity_id}`,
+        });
       }
     }
 

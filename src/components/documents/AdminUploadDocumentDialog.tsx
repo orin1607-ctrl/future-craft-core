@@ -16,6 +16,7 @@ import {
   type DocumentEntityType,
   type DocumentTypeDef,
 } from '@/lib/documentRequestClient';
+import { computeExpiryFromValidity, formatIsraelDate } from '@/lib/driverDocumentExpiry';
 
 type Props = {
   open: boolean;
@@ -40,6 +41,7 @@ export default function AdminUploadDocumentDialog({
   const [types, setTypes] = useState<DocumentTypeDef[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
   const [docKey, setDocKey] = useState('');
+  const [documentDate, setDocumentDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [expiryDate, setExpiryDate] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -47,6 +49,7 @@ export default function AdminUploadDocumentDialog({
   useEffect(() => {
     if (!open) return;
     setFile(null);
+    setDocumentDate(new Date().toISOString().split('T')[0]);
     setExpiryDate('');
     if (fileRef.current) fileRef.current.value = '';
     setLoadingTypes(true);
@@ -60,6 +63,14 @@ export default function AdminUploadDocumentDialog({
   }, [open, entityType]);
 
   const selected = types.find((t) => t.key === docKey);
+  const autoExpiry =
+    selected?.validity_years && documentDate
+      ? computeExpiryFromValidity(documentDate, selected.validity_years)
+      : null;
+
+  useEffect(() => {
+    if (autoExpiry) setExpiryDate(autoExpiry);
+  }, [autoExpiry, docKey]);
 
   const submit = async () => {
     if (!docKey || !file) {
@@ -74,7 +85,8 @@ export default function AdminUploadDocumentDialog({
         entityLabel,
         documentTypeKey: docKey,
         file,
-        expiryDate: expiryDate || undefined,
+        expiryDate: expiryDate || autoExpiry || undefined,
+        documentDate,
         companyName,
       });
       toast.success('המסמך הועלה בהצלחה');
@@ -118,15 +130,29 @@ export default function AdminUploadDocumentDialog({
             </select>
           </div>
 
-          {selected?.requires_expiry && (
+          <div className="space-y-2">
+            <Label>תאריך מסמך / הופק</Label>
+            <input
+              type="date"
+              value={documentDate}
+              onChange={(e) => setDocumentDate(e.target.value)}
+              className="w-full p-3 rounded-xl border border-input bg-background text-sm"
+            />
+          </div>
+
+          {(selected?.requires_expiry || selected?.validity_years) && (
             <div className="space-y-2">
-              <Label>תאריך תוקף</Label>
+              <Label>תאריך תוקף {selected?.validity_years ? `(אוטומטי: ${selected.validity_years} שנים)` : ''}</Label>
               <input
                 type="date"
                 value={expiryDate}
                 onChange={(e) => setExpiryDate(e.target.value)}
                 className="w-full p-3 rounded-xl border border-input bg-background text-sm"
+                readOnly={!!selected?.validity_years}
               />
+              {autoExpiry && (
+                <p className="text-xs text-muted-foreground">תוקף מחושב: {formatIsraelDate(autoExpiry)}</p>
+              )}
             </div>
           )}
 

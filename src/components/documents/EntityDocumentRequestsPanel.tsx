@@ -23,6 +23,7 @@ type Props = {
   recipientPhone?: string;
   recipientEmail?: string;
   companyName?: string;
+  onHubRefresh?: () => void;
 };
 
 export default function EntityDocumentRequestsPanel({
@@ -33,6 +34,7 @@ export default function EntityDocumentRequestsPanel({
   recipientPhone,
   recipientEmail,
   companyName,
+  onHubRefresh,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -47,6 +49,7 @@ export default function EntityDocumentRequestsPanel({
       const data = await listEntityDocumentHistory(entityType, entityId);
       setRequests(data.requests);
       setVersions(data.versions);
+      onHubRefresh?.();
     } catch {
       setRequests([]);
       setVersions([]);

@@ -1,0 +1,13 @@
+{
+  "id": "oren-car-driver-card-restore-point",
+  "createdAt": "2026-08-11T14:30:00+03:00",
+  "purpose": "Safe rollback before Option B driver card expansion",
+  "repository": "future-craft-core-STAGING",
+  "remote": "https://github.com/orin1607-ctrl/future-craft-core.git",
+  "branchBeforeWork": "feat/incident-alerts-staging",
+  "headCommit": "98222e2328f720b46a7671ba824603af7958c6a1",
+  "headMessage": "fix(oren-car): unify insurance gap logic and add company attention red toggles (staging)",
+  "supabaseStaging": "usfeoerkpcafxxlyuldl",
+  "rollbackGit": "git checkout feat/incident-alerts-staging && git reset --hard 98222e2328f720b46a7671ba824603af7958c6a1",
+  "note": "Do not run reset on shared branch without team approval — use revert commit instead if HEAD was pushed with driver-card work"
+}

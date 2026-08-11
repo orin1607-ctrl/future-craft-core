@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Users, Search, ArrowRight, Phone, Mail, Plus, Save, Edit2, X, Download, Upload, FileImage, Eye, UserCheck, ClipboardList, LayoutDashboard } from 'lucide-react';
-import { buildDriverContextUrl, buildDriverDashboardUrl } from '@/lib/entityNavContext';
+import { Users, Search, ArrowRight, Plus, Save, X, Download, Upload, FileImage, Eye, LayoutDashboard } from 'lucide-react';
+import { buildDriverDashboardUrl } from '@/lib/entityNavContext';
 import { Button } from '@/components/ui/button';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
-import DriverDeclaration from '@/components/DriverDeclaration';
-import DriverExamsTab from '@/components/driving-exam/DriverExamsTab';
 import { exportToCsv } from '@/utils/exportCsv';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,9 +13,7 @@ import { fetchRequiredFieldsOverrides } from '@/lib/requiredFieldsApi';
 import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { uploadDocument } from '@/lib/uploadDocument';
-import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
-import EntityDocumentRequestsPanel from '@/components/documents/EntityDocumentRequestsPanel';
-import DriverDocumentsPanel from '@/components/drivers/DriverDocumentsPanel';
+import DriverHub from '@/components/drivers/DriverHub';
 import { fetchCompanyDepartments } from '@/lib/companyDepartments';
 
 interface DriverRow {
@@ -106,190 +102,44 @@ export default function Drivers() {
 
   if (selected) {
     const d = selected;
-    const openDriverDashboard = () =>
-      navigate(buildDriverDashboardUrl({ driverId: d.id, driverName: d.full_name }));
 
     return (
-      <div className="animate-fade-in">
-        <button onClick={() => setSelected(null)} className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]">
-          <ArrowRight size={20} />
-          חזרה לרשימה
-        </button>
-        {fromFleetManager && filterCompany && (
-          <EntityContextBanner label={`נהגים באחריות מנהל צי · ${filterCompany}`} strict />
-        )}
-        <div className="card-elevated">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold">{d.full_name}</h1>
-            <div className="flex items-center gap-2">
-              <span className={`status-badge ${d.status === 'active' ? 'status-active' : 'status-inactive'}`}>
-                {d.status === 'active' ? 'פעיל' : 'לא פעיל'}
-              </span>
-              {user?.role !== 'driver' && (
-                <button onClick={() => { setSelected(null); setEditingDriver(d); }}
-                  className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Edit2 size={18} className="text-primary" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {user?.role !== 'driver' && (
-            <Button
-              type="button"
-              className="w-full h-14 text-lg font-bold gap-2 mb-6 shadow-md"
-              onClick={openDriverDashboard}
-            >
-              <LayoutDashboard size={22} />
-              פתח דשבורד נהג
-            </Button>
-          )}
-          <div className="grid grid-cols-2 gap-4 text-lg">
-            <div><span className="text-muted-foreground">טלפון:</span><p className="font-bold">{d.phone}</p></div>
-            <div><span className="text-muted-foreground">אימייל:</span><p className="font-bold">{d.email || '—'}</p></div>
-            <div><span className="text-muted-foreground">ת.ז:</span><p className="font-bold">{d.id_number || '—'}</p></div>
-            <div><span className="text-muted-foreground">רישיון:</span><p className="font-bold">{d.license_number || '—'}</p></div>
-            <div><span className="text-muted-foreground">מחלקה:</span><p className="font-bold">{d.department || '—'}</p></div>
-            <div><span className="text-muted-foreground">תוקף רישיון:</span><p className="font-bold">{d.license_expiry ? new Date(d.license_expiry).toLocaleDateString('he-IL') : '—'}</p></div>
-            <div className="col-span-2"><span className="text-muted-foreground">סוגי רישיון:</span><p className="font-bold">{d.license_types?.join(', ') || '—'}</p></div>
-            <div><span className="text-muted-foreground">עיר:</span><p className="font-bold">{d.city || '—'}</p></div>
-            <div><span className="text-muted-foreground">רחוב:</span><p className="font-bold">{d.street || '—'}</p></div>
-            <div><span className="text-muted-foreground">מבחן אחרון:</span><p className="font-bold">{d.last_exam_date ? new Date(d.last_exam_date).toLocaleDateString('he-IL') : '—'}</p></div>
-            <div>
-              <span className="text-muted-foreground">תוקף מבחן:</span>
-              <p className={`font-bold ${d.exam_expiry && new Date(d.exam_expiry) < new Date() ? 'text-destructive' : ''}`}>
-                {d.exam_expiry ? new Date(d.exam_expiry).toLocaleDateString('he-IL') : '—'}
-                {d.exam_expiry && new Date(d.exam_expiry) < new Date() && ' ⚠️ פג תוקף'}
-              </p>
-            </div>
-            {d.license_image_url && (
-              <div className="col-span-2">
-                <span className="text-muted-foreground">צילום רישיון נהיגה:</span>
-                <div className="mt-2">
-                  <DocumentAttachment label="רישיון נהיגה" url={d.license_image_url} fileName="רישיון-נהיגה" />
-                </div>
-              </div>
-            )}
-          </div>
-            {d.notes && <p className="mt-4 p-3 bg-muted rounded-xl text-muted-foreground">{d.notes}</p>}
-
-          {user?.role !== 'driver' && (
-            <DriverDocumentsPanel
-              driverId={d.id}
-              driverName={d.full_name}
-              companyName={d.company_name}
-            />
-          )}
-
-          {user?.role !== 'driver' && (
-            <div className="mt-6 pt-6 border-t border-border">
-              <h2 className="text-lg font-bold mb-3">פעולות נוספות לנהג זה</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-auto min-h-[56px] py-3 justify-start gap-2"
-                  onClick={() =>
-                    navigate(buildDriverContextUrl('/attach-customer', { driverId: d.id, driverName: d.full_name }))
-                  }
-                >
-                  <UserCheck size={18} /> הצמדת נהג ללקוח
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-auto min-h-[56px] py-3 justify-start gap-2"
-                  onClick={() =>
-                    navigate(buildDriverContextUrl('/work-orders', { driverId: d.id, driverName: d.full_name }))
-                  }
-                >
-                  <ClipboardList size={18} /> סידור עבודה
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {/* Driver Declaration */}
-          <div className="mt-6 pt-6 border-t border-border">
-            <DriverDeclaration
-              driverId={d.id}
-              driverName={d.full_name}
-              idNumber={d.id_number}
-              licenseNumber={d.license_number}
-              companyName={d.company_name}
-              mode={user?.role === 'driver' ? 'driver' : 'manager'}
-            />
-          </div>
-
-          {/* Driving Competency Exams */}
-          <div className="mt-6 pt-6 border-t border-border">
-            <h2 className="text-xl font-bold mb-3">📝 מבחני כשירות נהיגה</h2>
-            <DriverExamsTab
-              driverId={d.id}
-              driverName={d.full_name}
-              driverIdNumber={d.id_number}
-              driverPhone={d.phone}
-              companyName={d.company_name}
-            />
-          </div>
-          <div className="flex gap-3 mt-6">
-            {d.phone && (
-              <a href={`tel:${d.phone}`} className="flex-1 bg-primary text-primary-foreground rounded-2xl p-4 flex items-center justify-center gap-2 text-lg font-bold">
-                <Phone size={22} /> התקשר
-              </a>
-            )}
-            {d.email && (
-              <a href={`mailto:${d.email}`} className="flex-1 bg-muted text-foreground rounded-2xl p-4 flex items-center justify-center gap-2 text-lg font-bold">
-                <Mail size={22} /> שלח מייל
-              </a>
-            )}
-          </div>
-          {user?.role !== 'driver' && (
-            <div className="mt-4 pt-4 border-t border-border">
-              <NotificationsAndSendsButton driverId={d.id} driverName={d.full_name} />
-            </div>
-          )}
-          {user?.role !== 'driver' && (
-            <EntityDocumentRequestsPanel
-              entityType="driver"
-              entityId={d.id}
-              entityLabel={d.full_name}
-              recipientName={d.full_name}
-              recipientPhone={d.phone}
-              recipientEmail={d.email}
-              companyName={d.company_name}
-            />
-          )}
-          {/* Archive button */}
-          {user?.role !== 'driver' && d.status !== 'archived' && (
-            <button onClick={async () => {
-              await supabase.from('drivers').update({ status: 'archived' }).eq('id', d.id);
-              toast.success('הנהג הועבר לארכיון');
-              setSelected(null);
-              loadDrivers();
-            }} className="w-full mt-3 py-3 rounded-xl border-2 border-warning/30 text-warning font-bold text-lg flex items-center justify-center gap-2 hover:bg-warning/5 transition-colors">
-              📦 העבר לארכיון
-            </button>
-          )}
-          {/* Delete button */}
-          {user?.role !== 'driver' && (
-            <button onClick={async () => {
-              if (!confirm('האם אתה בטוח שברצונך למחוק את הנהג לצמיתות?')) return;
-              const { error } = await supabase.from('drivers').delete().eq('id', d.id);
-              if (error) {
-                toast.error('שגיאה במחיקת הנהג');
-                console.error(error);
-              } else {
-                toast.success('הנהג נמחק בהצלחה');
+      <DriverHub
+        driver={d}
+        isManager={user?.role !== 'driver'}
+        onBack={() => setSelected(null)}
+        onEdit={() => {
+          setSelected(null);
+          setEditingDriver(d);
+        }}
+        onArchive={
+          user?.role !== 'driver' && d.status !== 'archived'
+            ? async () => {
+                await supabase.from('drivers').update({ status: 'archived' }).eq('id', d.id);
+                toast.success('הנהג הועבר לארכיון');
                 setSelected(null);
                 loadDrivers();
               }
-            }} className="w-full mt-2 py-3 rounded-xl border-2 border-destructive/30 text-destructive font-bold text-lg flex items-center justify-center gap-2 hover:bg-destructive/5 transition-colors">
-              🗑️ מחק נהג
-            </button>
-          )}
-        </div>
-      </div>
+            : undefined
+        }
+        onDelete={
+          user?.role !== 'driver'
+            ? async () => {
+                if (!confirm('האם אתה בטוח שברצונך למחוק את הנהג לצמיתות?')) return;
+                const { error } = await supabase.from('drivers').delete().eq('id', d.id);
+                if (error) {
+                  toast.error('שגיאה במחיקת הנהג');
+                } else {
+                  toast.success('הנהג נמחק בהצלחה');
+                  setSelected(null);
+                  loadDrivers();
+                }
+              }
+            : undefined
+        }
+        fromFleetManager={fromFleetManager}
+        filterCompany={filterCompany}
+      />
     );
   }
 
