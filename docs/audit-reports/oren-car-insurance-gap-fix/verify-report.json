@@ -1,0 +1,47 @@
+{
+  "at": "2026-08-11T11:27:36.203Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "vehicles": [
+    {
+      "id": "928214e8-34a8-49a7-9424-d46a99a93f27",
+      "plate": "84174903",
+      "company": "קיבוץ בארי",
+      "insurance_expiry": "2026-12-31",
+      "insurance_doc": false,
+      "comprehensive_doc": false,
+      "companySettings": {
+        "require_insurance_docs": false,
+        "show_insurance_attention_red": true,
+        "show_gaps_attention_red": true
+      },
+      "newLogic": {
+        "insuranceGapDisplay": "אין",
+        "hasCoverageGap": false,
+        "missingMandatoryDoc": false,
+        "missingCompDoc": false,
+        "contradictionOldLogic": true
+      }
+    },
+    {
+      "id": "2a0cba63-330b-4061-b90f-9a91c323a514",
+      "plate": "78948502",
+      "company": "דרכי חיים",
+      "insurance_expiry": "2026-12-31",
+      "insurance_doc": true,
+      "comprehensive_doc": false,
+      "companySettings": {
+        "require_insurance_docs": false,
+        "show_insurance_attention_red": true,
+        "show_gaps_attention_red": true
+      },
+      "newLogic": {
+        "insuranceGapDisplay": "אין",
+        "hasCoverageGap": false,
+        "missingMandatoryDoc": false,
+        "missingCompDoc": false,
+        "contradictionOldLogic": true
+      }
+    }
+  ],
+  "note": "New logic: beeri vehicles with valid date and no required docs should show insurance_gap=אין"
+}

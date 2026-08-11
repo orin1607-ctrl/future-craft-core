@@ -9,6 +9,7 @@ import {
 import { handoverDateTime, isTowingServiceOrder } from '@/lib/vehicleActionFollowUp';
 import type { RequiredFieldsOverrides } from '@/lib/requiredFieldsSchema';
 import { isVehicleHubFieldRequired } from '@/lib/requiredFieldsCompany';
+import { evaluateInsuranceCoverage } from '@/lib/vehicleInsuranceCoverage';
 
 export type VehicleHistoryType =
   | 'fault'
@@ -262,17 +263,16 @@ export function countMissingDocs(
     license_doc_url?: string | null;
     insurance_doc_url?: string | null;
     comprehensive_insurance_doc_url?: string | null;
+    insurance_expiry?: string | null;
+    comprehensive_insurance_expiry?: string | null;
   },
   overrides: RequiredFieldsOverrides = {},
+  options?: { requireInsuranceDocs?: boolean },
 ): number {
+  const coverage = evaluateInsuranceCoverage(v, overrides, options);
   let n = 0;
   if (isVehicleHubFieldRequired('license_doc_url', overrides) && !v.license_doc_url) n++;
-  if (isVehicleHubFieldRequired('insurance_doc_url', overrides) && !v.insurance_doc_url) n++;
-  if (
-    isVehicleHubFieldRequired('comprehensive_insurance_doc_url', overrides) &&
-    !v.comprehensive_insurance_doc_url
-  ) {
-    n++;
-  }
+  if (coverage.missingMandatoryDoc) n++;
+  if (coverage.missingComprehensiveDoc) n++;
   return n;
 }
