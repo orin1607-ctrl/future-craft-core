@@ -190,8 +190,9 @@ async function main() {
   await page.waitForTimeout(500);
   await page.getByText('נהיגה', { exact: true }).first().click();
   await page.waitForTimeout(800);
-  const exams = await page.getByText(/מבחנ/).first().isVisible().catch(() => false);
-  record('driving-section', 'Driving section with exams', exams);
+  const exams = await page.getByText('מבחני כשירות נהיגה', { exact: true }).first().isVisible().catch(() => false);
+  const accidentsHeading = await page.getByText('תאונות', { exact: true }).first().isVisible().catch(() => false);
+  record('driving-section', 'Driving section with exams/accidents', exams || accidentsHeading, { exams, accidentsHeading });
   await shot('04-driving-section.png');
 
   await page.getByText('חזרה לכרטיס הנהג').first().click().catch(() => {});
