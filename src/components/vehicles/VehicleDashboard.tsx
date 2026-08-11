@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +31,11 @@ import {
 } from '@/lib/vehicleGapAlertsDefaults';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
 import { isInsuranceAlertsEnabled, shouldShowInsuranceRed } from '@/lib/vehicleInsuranceAlerts';
+import { evaluateInsuranceCoverage } from '@/lib/vehicleInsuranceCoverage';
+import { loadCompanyAttentionRedSettings } from '@/lib/companyAttentionRedSettings';
+import { fetchCompanySettings } from '@/lib/companySettings';
+import { useRequiredFieldsOptional } from '@/contexts/RequiredFieldsContext';
+import { isVehicleHubFieldRequired } from '@/lib/requiredFieldsCompany';
 import type { HubTabId } from '@/lib/vehicleHubData';
 import {
   daysUntil,
@@ -136,6 +141,17 @@ export default function VehicleDashboard({
   initialHubEntityId?: string | null;
 }) {
   const { user } = useAuth();
+  const requiredFieldsCtx = useRequiredFieldsOptional();
+  const companyName = v.company_name || user?.company_name || '';
+  const fieldOverrides = useMemo(
+    () => requiredFieldsCtx?.getOverridesForCompany(companyName) ?? {},
+    [requiredFieldsCtx, companyName],
+  );
+  const [requireInsuranceDocs, setRequireInsuranceDocs] = useState(false);
+  const [attentionRed, setAttentionRed] = useState({
+    showInsuranceAttentionRed: true,
+    showGapsAttentionRed: true,
+  });
   const [drill, setDrill] = useState<DashboardDrillDown | null>(previewDrillDown ?? null);
   const [drillKind, setDrillKind] = useState<DrillKind>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -143,46 +159,55 @@ export default function VehicleDashboard({
   const [gapSaving, setGapSaving] = useState(false);
   const [gapAlertItems, setGapAlertItems] = useState<GapAlertConfigItem[]>([...DEFAULT_GAP_ALERT_ITEMS]);
 
+  const coverageOpts = { requireInsuranceDocs };
+  const coverage = evaluateInsuranceCoverage(v, fieldOverrides, coverageOpts);
+
   const sl = statusLabel(v.status);
   const testDays = daysUntil(v.test_expiry);
-  const insDays = daysUntil(v.insurance_expiry);
-  const compDays = daysUntil(v.comprehensive_insurance_expiry);
   const svcDays = daysUntil(v.next_service_date);
-  const missingDocs = isInsuranceAlertsEnabled(v)
-    ? countMissingDocs(v)
-    : v.license_doc_url
-      ? 0
-      : 1;
+  const missingDocs = countMissingDocs(v, fieldOverrides, coverageOpts);
 
   const insAlertsOn = isInsuranceAlertsEnabled(v);
   const insRedOn = shouldShowInsuranceRed(v);
-  const hasLicenseGap = !v.license_doc_url;
+  const hasLicenseGap =
+    isVehicleHubFieldRequired('license_doc_url', fieldOverrides) && !v.license_doc_url;
   const hasTestGap = !v.test_expiry || (testDays !== null && testDays <= 0);
-  const hasInsuranceIssue =
-    insAlertsOn &&
-    (!v.insurance_doc_url ||
-      !v.comprehensive_insurance_doc_url ||
-      (insDays !== null && insDays <= 14) ||
-      (compDays !== null && compDays <= 14));
-  const hasInsuranceGap = insRedOn && hasInsuranceIssue;
+  const hasInsuranceCoverageGap = insAlertsOn && coverage.hasCoverageGap;
+  const hasInsuranceDocGap = insAlertsOn && coverage.hasMissingDocGap;
   const customGapCount = drill?.customGaps?.length ?? 0;
   const equipmentWarn = drill?.equipmentGap?.hasGap ?? false;
 
+  const insuranceLicensesNeedsAttention =
+    hasLicenseGap ||
+    hasTestGap ||
+    hasInsuranceCoverageGap ||
+    hasInsuranceDocGap ||
+    (testDays !== null && testDays <= 14);
   const insuranceLicensesWarn =
-    hasLicenseGap || hasTestGap || hasInsuranceGap || (testDays !== null && testDays <= 14);
-  const gapsAlertsWarn =
+    insuranceLicensesNeedsAttention && attentionRed.showInsuranceAttentionRed;
+
+  const gapsAlertsNeedsAttention =
     missingDocs > 0 ||
-    hasInsuranceGap ||
+    hasInsuranceCoverageGap ||
+    hasInsuranceDocGap ||
     hasLicenseGap ||
     equipmentWarn ||
     customGapCount > 0 ||
     openIssuesCount > 0 ||
     v.needs_transport ||
     v.approval_status === 'pending_approval';
+  const gapsAlertsWarn = gapsAlertsNeedsAttention && attentionRed.showGapsAttentionRed;
 
-  const insuranceSummary = insuranceLicensesWarn ? 'יש לטפל' : 'בסדר';
+  const insuranceSummary = insuranceLicensesNeedsAttention ? 'יש לטפל' : 'בסדר';
   const docsSummary = missingDocs > 0 ? `${missingDocs} חסרים` : 'מלא';
-  const gapsSummary = gapsAlertsWarn ? 'דורש טיפול' : 'אין';
+  const gapsSummary = gapsAlertsNeedsAttention ? 'דורש טיפול' : 'אין';
+
+  const missingDocGapDisplay = (() => {
+    if (coverage.missingMandatoryDocLabel && coverage.missingComprehensiveDocLabel) {
+      return 'חסרים מסמכי ביטוח';
+    }
+    return coverage.missingMandatoryDocLabel || coverage.missingComprehensiveDocLabel || 'אין';
+  })();
 
   useEffect(() => {
     if (!initialDrillKind) return;
@@ -208,8 +233,20 @@ export default function VehicleDashboard({
       setDrill(previewDrillDown);
       return;
     }
-    loadDashboardDrillDown(v, latestInsurer).then(setDrill);
-  }, [v, latestInsurer, previewDrillDown, drillRefreshKey]);
+    loadDashboardDrillDown(v, latestInsurer, fieldOverrides, coverageOpts).then(setDrill);
+  }, [v, latestInsurer, previewDrillDown, drillRefreshKey, fieldOverrides, requireInsuranceDocs]);
+
+  useEffect(() => {
+    if (!companyName) return;
+    fetchCompanySettings(companyName)
+      .then((s) => setRequireInsuranceDocs(s?.require_insurance_docs ?? false))
+      .catch(() => setRequireInsuranceDocs(false));
+    loadCompanyAttentionRedSettings(companyName)
+      .then(setAttentionRed)
+      .catch(() =>
+        setAttentionRed({ showInsuranceAttentionRed: true, showGapsAttentionRed: true }),
+      );
+  }, [companyName]);
 
   useEffect(() => {
     const company = v.company_name || user?.company_name || '';
@@ -384,10 +421,11 @@ export default function VehicleDashboard({
   };
 
   const gapAlertValues: GapAlertValues = {
-    missing_documents: missingDocs ? `${missingDocs}` : 'אין',
-    insurance_gap: hasInsuranceGap ? 'כן' : 'אין',
+    missing_documents:
+      missingDocs > 0 ? `${missingDocs}` : hasInsuranceDocGap ? missingDocGapDisplay : 'אין',
+    insurance_gap: hasInsuranceCoverageGap ? coverage.insuranceGapDisplay : 'אין',
     license_gap: hasLicenseGap ? 'כן' : 'אין',
-    expiry_warn: insuranceLicensesWarn ? 'בדוק' : 'אין',
+    expiry_warn: insuranceLicensesNeedsAttention ? 'בדוק' : 'אין',
     equipment_gap: equipmentWarn && drill ? drill.equipmentGap.detail : 'אין',
     completion_summary: gapsSummary,
     open_issues: String(openIssuesCount),

@@ -278,6 +278,8 @@ export type Database = {
           require_driver_assignment: boolean
           require_insurance_docs: boolean
           require_no_claims: boolean
+          show_gaps_attention_red: boolean
+          show_insurance_attention_red: boolean
           updated_at: string | null
           vehicle_approval_required: boolean | null
           whatsapp_button_color: string | null
@@ -303,6 +305,8 @@ export type Database = {
           require_driver_assignment?: boolean
           require_insurance_docs?: boolean
           require_no_claims?: boolean
+          show_gaps_attention_red?: boolean
+          show_insurance_attention_red?: boolean
           updated_at?: string | null
           vehicle_approval_required?: boolean | null
           whatsapp_button_color?: string | null
@@ -328,6 +332,8 @@ export type Database = {
           require_driver_assignment?: boolean
           require_insurance_docs?: boolean
           require_no_claims?: boolean
+          show_gaps_attention_red?: boolean
+          show_insurance_attention_red?: boolean
           updated_at?: string | null
           vehicle_approval_required?: boolean | null
           whatsapp_button_color?: string | null

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { clearCompanySettingsCache } from '@/lib/companySettings';
+import { clearCompanyAttentionRedCache } from '@/lib/companyAttentionRedSettings';
 import { Building2, Save, Search, ChevronDown, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -45,6 +46,8 @@ interface CompanyAlertConfig {
   incident_notify_whatsapp?: boolean;
   incident_email_recipients?: string;
   incident_whatsapp_recipients?: string;
+  show_insurance_attention_red?: boolean;
+  show_gaps_attention_red?: boolean;
 }
 
 interface ProfileCompany {
@@ -78,7 +81,7 @@ export default function AlertSettings() {
     // Load all company settings
     const { data: settingsData } = await supabase
       .from('company_settings')
-      .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons, module_transport_enabled, transport_hidden_features, incident_notify_in_app, incident_notify_email, incident_notify_whatsapp, incident_email_recipients, incident_whatsapp_recipients');
+      .select('id, company_name, alert_days_before, reminder_30_days, reminder_7_days, reminder_1_day, require_driver_assignment, max_vehicles_without_assignment, vehicle_approval_required, require_insurance_docs, require_no_claims, hidden_buttons, module_transport_enabled, transport_hidden_features, incident_notify_in_app, incident_notify_email, incident_notify_whatsapp, incident_email_recipients, incident_whatsapp_recipients, show_insurance_attention_red, show_gaps_attention_red');
     
     if (settingsData) {
       setConfigs(
@@ -205,11 +208,14 @@ export default function AlertSettings() {
       incident_notify_whatsapp: activeConfig.incident_notify_whatsapp ?? false,
       incident_email_recipients: activeConfig.incident_email_recipients || 'fleet_managers',
       incident_whatsapp_recipients: activeConfig.incident_whatsapp_recipients || 'dalia',
+      show_insurance_attention_red: activeConfig.show_insurance_attention_red !== false,
+      show_gaps_attention_red: activeConfig.show_gaps_attention_red !== false,
     }).eq('id', activeConfig.id);
     setSaving(false);
     if (error) toast.error('שגיאה בשמירה');
     else {
       clearCompanySettingsCache(activeConfig.company_name);
+      clearCompanyAttentionRedCache(activeConfig.company_name);
       toast.success(`הגדרות ${activeConfig.company_name} עודכנו בהצלחה`);
     }
   };
@@ -577,6 +583,35 @@ export default function AlertSettings() {
                         }
                         disabled={bulkRedApplying || loadingInsuranceRedStats || !insuranceRedStats?.total}
                         onCheckedChange={(on) => setBulkRedPending(on)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {isSuperAdmin && (
+                  <div className="mt-4 p-4 rounded-xl border border-border bg-background space-y-3">
+                    <h4 className="font-bold text-base">הדגשה אדומה בדשבורד רכב — לכל רכבי הלקוח</h4>
+                    <p className="text-sm text-muted-foreground">
+                      שינוי תצוגה בלבד. הנתונים, החוסרים וההתראות נשארים — רק צבע האריחים &quot;יש לטפל&quot; / &quot;דורש טיפול&quot; נשלטים כאן.
+                    </p>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+                      <div className="text-right flex-1">
+                        <p className="text-sm font-bold">הצג &quot;יש לטפל&quot; באדום לכל רכבי הלקוח</p>
+                        <p className="text-xs text-muted-foreground">אריח ביטוחים ורישיונות בדשבורד הרכב</p>
+                      </div>
+                      <Switch
+                        checked={activeConfig.show_insurance_attention_red !== false}
+                        onCheckedChange={(on) => updateConfig('show_insurance_attention_red', on)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+                      <div className="text-right flex-1">
+                        <p className="text-sm font-bold">הצג &quot;דורש טיפול&quot; באדום לכל רכבי הלקוח</p>
+                        <p className="text-xs text-muted-foreground">אריח חוסרים והתראות בדשבורד הרכב</p>
+                      </div>
+                      <Switch
+                        checked={activeConfig.show_gaps_attention_red !== false}
+                        onCheckedChange={(on) => updateConfig('show_gaps_attention_red', on)}
                       />
                     </div>
                   </div>
