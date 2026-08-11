@@ -315,7 +315,7 @@ export default function Alerts() {
       for (const d of drivers) {
         const licDays = getDaysLeft(d.license_expiry);
         if (licDays !== null && licDays <= 30) {
-          allAlerts.push({ id: `lic-${d.id}`, category: 'license', severity: getSeverity(licDays), title: licDays <= 0 ? 'רישיון נהיגה פג!' : 'רישיון עומד לפוג', subtitle: d.full_name, daysLeft: licDays, date: d.license_expiry, meta: d.phone || undefined, link: '/drivers' });
+          allAlerts.push({ id: `lic-${d.id}`, category: 'license', severity: getSeverity(licDays), title: licDays <= 0 ? 'רישיון נהיגה פג!' : 'רישיון עומד לפוג', subtitle: d.full_name, daysLeft: licDays, date: d.license_expiry, meta: d.phone || undefined, link: `/drivers?driverId=${d.id}&section=documents` });
         }
       }
     }
@@ -327,7 +327,7 @@ export default function Alerts() {
         if (examExpiry) {
           const examDays = getDaysLeft(examExpiry);
           if (examDays !== null && examDays <= 30) {
-            allAlerts.push({ id: `exam-${d.id}`, category: 'license', severity: getSeverity(examDays), title: examDays <= 0 ? 'תוקף מבחן נהיגה פג!' : 'מבחן נהיגה עומד לפוג', subtitle: d.full_name, daysLeft: examDays, date: examExpiry, meta: d.phone || undefined, link: '/drivers' });
+            allAlerts.push({ id: `exam-${d.id}`, category: 'license', severity: getSeverity(examDays), title: examDays <= 0 ? 'תוקף מבחן נהיגה פג!' : 'מבחן נהיגה עומד לפוג', subtitle: d.full_name, daysLeft: examDays, date: examExpiry, meta: d.phone || undefined, link: `/drivers?driverId=${d.id}&section=driving` });
           }
         }
       }
@@ -368,7 +368,7 @@ export default function Alerts() {
           daysLeft: days,
           date: ver.expiry_date,
           meta: tierDetail(ver.expiry_date, days, tier),
-          link: `/drivers?driverId=${ver.entity_id}`,
+          link: `/drivers?driverId=${ver.entity_id}&section=documents&docType=${encodeURIComponent(ver.document_type_key || '')}`,
         });
       }
     }

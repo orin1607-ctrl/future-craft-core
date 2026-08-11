@@ -161,53 +161,59 @@ async function main() {
   await page.waitForTimeout(1500);
   await shot('01-driver-hub-home-desktop.png');
 
-  const tiles = ['מסמכים', 'הצהרת בריאות', 'מידע תעבורתי', 'דוחות תעבורה', 'תאונות', 'הערות'];
+  const tiles = ['מסמכים ורישיון', 'בקשות ושליחה', 'נהיגה', 'פעילות והערות'];
   const tileOk = [];
   for (const t of tiles) {
     const visible = await page.getByText(t, { exact: true }).first().isVisible().catch(() => false);
     tileOk.push(visible);
   }
-  record('tiles', 'Hub summary tiles visible', tileOk.every(Boolean), { tiles: tileOk });
+  record('tiles', 'Exactly 4 hub tiles visible', tileOk.every(Boolean) && tileOk.length === 4, { tiles: tileOk });
 
-  await page.getByText('מסמכים ותוקפים', { exact: true }).first().click();
+  const noSectionNavHealth = !(await page.getByText('הצהרת בריאות', { exact: true }).first().isVisible().catch(() => false));
+  record('no-duplicate-nav', 'Health not as home tile (inside documents)', noSectionNavHealth);
+
+  await page.getByText('מסמכים ורישיון', { exact: true }).first().click();
   await page.waitForTimeout(800);
   const uploadBtn = await page.getByRole('button', { name: /העלה מסמך/ }).first().isVisible().catch(() => false);
   record('documents-upload', 'Upload button in documents section', uploadBtn);
   await shot('02-documents-section.png');
 
-  await page.getByText('מידע תעבורתי', { exact: true }).first().click();
+  await page.getByText('חזרה לכרטיס הנהג').first().click().catch(() => {});
+  await page.waitForTimeout(500);
+  await page.getByText('בקשות ושליחה', { exact: true }).first().click();
   await page.waitForTimeout(800);
-  const trafficUpload = await page.getByRole('button', { name: /העלה מסמך/ }).first().isVisible().catch(() => false);
-  record('traffic-info-upload', 'Upload in traffic info section', trafficUpload);
-  await shot('03-traffic-info-section.png');
+  const requestPanel = await page.getByText(/בקש מסמך|תצהיר/).first().isVisible().catch(() => false);
+  record('requests-section', 'Requests / declaration section loads', requestPanel);
+  await shot('03-requests-section.png');
 
-  await page.getByText('הצהרת בריאות', { exact: true }).first().click();
+  await page.getByText('חזרה לכרטיס הנהג').first().click().catch(() => {});
+  await page.waitForTimeout(500);
+  await page.getByText('נהיגה', { exact: true }).first().click();
   await page.waitForTimeout(800);
-  const healthUpload = await page.getByRole('button', { name: /העלה מסמך/ }).first().isVisible().catch(() => false);
-  record('health-upload', 'Upload in health declaration section', healthUpload);
-  await shot('04-health-section.png');
+  const exams = await page.getByText(/מבחנ/).first().isVisible().catch(() => false);
+  record('driving-section', 'Driving section with exams', exams);
+  await shot('04-driving-section.png');
 
-  await page.getByText('דוחות תעבורה', { exact: true }).first().click();
-  await page.waitForTimeout(800);
-  const ticketUpload = await page.getByRole('button', { name: /העלה דוח תעבורה/ }).first().isVisible().catch(() => false);
-  record('traffic-reports-upload', 'Upload in traffic reports section', ticketUpload);
-  await shot('05-traffic-reports-section.png');
-
-  await page.getByText('תאונות', { exact: true }).first().click();
-  await page.waitForTimeout(800);
-  await shot('06-accidents-section.png');
-
-  await page.getByText('הערות', { exact: true }).first().click();
+  await page.getByText('חזרה לכרטיס הנהג').first().click().catch(() => {});
+  await page.waitForTimeout(500);
+  await page.getByText('פעילות והערות', { exact: true }).first().click();
   await page.waitForTimeout(800);
   const notesArea = await page.locator('textarea').first().isVisible().catch(() => false);
   record('notes-edit', 'Notes textarea visible', notesArea);
-  await shot('07-notes-section.png');
+  await shot('05-activity-section.png');
+
+  // deep link
+  await page.goto(`${BASE}/drivers?driverId=${driver.id}&section=documents`, { waitUntil: 'networkidle', timeout: 120000 });
+  await page.waitForTimeout(1500);
+  const deepDocs = await page.getByRole('button', { name: /העלה מסמך/ }).first().isVisible().catch(() => false);
+  record('deep-link-documents', 'Deep link opens documents section', deepDocs);
+  await shot('06-deeplink-documents.png');
 
   await page.goto(`${BASE}/alerts`, { waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForTimeout(1500);
   const alertsLoaded = await page.locator('body').textContent();
   record('alerts-page', 'Alerts page loads', !!alertsLoaded?.includes('התראות') || !!alertsLoaded?.includes('Alerts'));
-  await shot('08-alerts-page.png');
+  await shot('07-alerts-page.png');
 
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await mobile.addInitScript(
@@ -228,8 +234,8 @@ async function main() {
   await mpage.goto(`${BASE}/drivers`, { waitUntil: 'networkidle', timeout: 120000 });
   await mpage.getByText(driverName, { exact: false }).first().click({ timeout: 30000 });
   await mpage.waitForTimeout(1500);
-  await mpage.screenshot({ path: join(OUT, '09-driver-hub-home-mobile.png'), fullPage: true });
-  report.shots.push('09-driver-hub-home-mobile.png');
+  await mpage.screenshot({ path: join(OUT, '08-driver-hub-home-mobile.png'), fullPage: true });
+  report.shots.push('08-driver-hub-home-mobile.png');
   record('mobile', 'Mobile driver hub loads', true);
 
   await browser.close();

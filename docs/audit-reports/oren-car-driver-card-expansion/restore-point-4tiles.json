@@ -1,0 +1,12 @@
+{
+  "at": "2026-08-11T20:10:00.000Z",
+  "purpose": "Restore point before DriverHub 4-tile redesign",
+  "repository": "future-craft-core-STAGING",
+  "remote": "https://github.com/orin1607-ctrl/future-craft-core.git",
+  "branch": "feat/incident-alerts-staging",
+  "head": "7a7282dab04a280123ea1926ad0dae57d2ecc639",
+  "headMessage": "fix(oren-car): driver hub section uploads, health tile, camera in upload dialog",
+  "supabaseStagingRef": "usfeoerkpcafxxlyuldl",
+  "rollbackHint": "git checkout feat/incident-alerts-staging && stay at 7a7282d — do NOT reset --hard or clean without explicit owner approval",
+  "note": "Many unrelated untracked WIP/backup files exist; they must not be committed with this task"
+}
