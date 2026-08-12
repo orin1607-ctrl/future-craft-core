@@ -29,7 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { buildDriverDashboardUrl } from '@/lib/entityNavContext';
+import { buildDriverDashboardUrl, buildDriverAccidentReportUrl } from '@/lib/entityNavContext';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { DocumentCard, useDocumentPreview } from '@/components/documents/DocumentViewer';
 import EntityDocumentRequestsPanel from '@/components/documents/EntityDocumentRequestsPanel';
@@ -640,9 +640,50 @@ export default function DriverHub({
 
       {(driveKind === 'all' || driveKind === 'accidents') && (
         <div className="space-y-3">
-          <h3 className="text-lg font-bold">תאונות</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-lg font-bold">תאונות</h3>
+            {isManager && (
+              <Button
+                type="button"
+                className="gap-2"
+                onClick={() =>
+                  navigate(
+                    buildDriverAccidentReportUrl({
+                      driverId: d.id,
+                      driverName: d.full_name,
+                      plate: assigned?.license_plate,
+                    }),
+                  )
+                }
+              >
+                <AlertTriangle size={16} />
+                דווח על תאונה
+              </Button>
+            )}
+          </div>
           {filteredAccidents.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">אין תאונות רשומות לנהג זה</p>
+            <div className="text-center py-6 space-y-3">
+              <p className="text-sm text-muted-foreground">אין תאונות רשומות לנהג זה</p>
+              {isManager && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() =>
+                    navigate(
+                      buildDriverAccidentReportUrl({
+                        driverId: d.id,
+                        driverName: d.full_name,
+                        plate: assigned?.license_plate,
+                      }),
+                    )
+                  }
+                >
+                  <AlertTriangle size={16} />
+                  דווח על תאונה
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="space-y-3 md:space-y-0">
               <div className="hidden md:block overflow-x-auto">

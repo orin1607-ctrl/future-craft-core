@@ -1,0 +1,10 @@
+{
+  "at": "2026-08-12T05:40:00.000Z",
+  "purpose": "Restore point before driver-card report-accident button",
+  "repository": "future-craft-core-STAGING",
+  "branch": "feat/incident-alerts-staging",
+  "head": "cc2aebb27a8928623add9c4949067651b2bc1466",
+  "remote": "https://github.com/orin1607-ctrl/future-craft-core.git",
+  "supabaseStaging": "usfeoerkpcafxxlyuldl",
+  "note": "Unrelated untracked WIP must not be committed"
+}

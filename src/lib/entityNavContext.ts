@@ -331,23 +331,30 @@ export function buildVehicleContextUrl(path: string, ctx: VehicleContextParams):
 
 
 export function buildDriverContextUrl(
-
   path: string,
-
   ctx: { driverId: string; driverName?: string },
-
 ): string {
-
   const q = new URLSearchParams();
-
   q.set('driverId', ctx.driverId);
-
   if (ctx.driverName) q.set('driverName', ctx.driverName);
-
   q.set('context', 'driver');
-
   return `${path}?${q.toString()}`;
+}
 
+/** Open existing Accidents "new report" form with driver context prefilled (no new accident system). */
+export function buildDriverAccidentReportUrl(ctx: {
+  driverId: string;
+  driverName: string;
+  plate?: string | null;
+}): string {
+  const q = new URLSearchParams();
+  q.set('action', 'new');
+  q.set('context', 'driver');
+  q.set('driverId', ctx.driverId);
+  q.set('driverName', ctx.driverName);
+  q.set('section', 'driving');
+  if (ctx.plate) q.set('plate', ctx.plate);
+  return `/accidents?${q.toString()}`;
 }
 
 

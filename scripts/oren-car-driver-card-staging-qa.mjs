@@ -121,6 +121,23 @@ async function main() {
   if (dErr) throw dErr;
   record('seed-driver', 'Test driver created', true, { driverId: driver.id });
 
+  const qaPlate = `QA${String(runId).slice(-6)}`;
+  const { data: qaVehicle, error: vErr } = await admin
+    .from('vehicles')
+    .insert({
+      license_plate: qaPlate,
+      company_name: company,
+      manufacturer: 'QA',
+      model: 'Test',
+      status: 'active',
+      assigned_driver_id: driver.id,
+    })
+    .select('id,license_plate')
+    .single();
+  if (vErr) throw vErr;
+  record('seed-vehicle', 'Test vehicle assigned to driver', true, { plate: qaPlate });
+  let createdAccidentId = null;
+
   const browser = await chromium.launch();
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const storageKey = `sb-${STAGING_REF}-auth-token`;
@@ -192,8 +209,81 @@ async function main() {
   await page.waitForTimeout(800);
   const exams = await page.getByText('מבחני כשירות נהיגה', { exact: true }).first().isVisible().catch(() => false);
   const accidentsHeading = await page.getByText('תאונות', { exact: true }).first().isVisible().catch(() => false);
+  const reportBtn = await page.getByRole('button', { name: /דווח על תאונה/ }).first().isVisible().catch(() => false);
   record('driving-section', 'Driving section with exams/accidents', exams || accidentsHeading, { exams, accidentsHeading });
+  record('report-accident-btn', 'Report accident button visible in driving', reportBtn);
   await shot('04-driving-section.png');
+
+  if (reportBtn) {
+    await page.getByRole('button', { name: /דווח על תאונה/ }).first().click();
+    await page.waitForTimeout(1500);
+    const formTitle = await page.getByText('דיווח תאונה', { exact: true }).first().isVisible().catch(() => false);
+    const body = await page.locator('body').textContent();
+    const hasDriverPrefill = !!body?.includes(driverName);
+    record('report-accident-form', 'Existing accident form opens with driver context', formTitle && hasDriverPrefill, {
+      formTitle,
+      hasDriverPrefill,
+    });
+    await shot('04b-report-accident-form.png');
+
+    // Fill existing form — ephemeral QA vehicle only
+    const vehicleSelect = page.locator('select').first();
+    await vehicleSelect.selectOption({ label: new RegExp(qaPlate) }).catch(async () => {
+      await vehicleSelect.selectOption({ value: qaPlate }).catch(() => {});
+    });
+    // If select uses plate as value:
+    const opts = await vehicleSelect.locator('option').allTextContents();
+    const matchOpt = opts.find((t) => t.includes(qaPlate));
+    if (matchOpt) {
+      const val = await vehicleSelect.locator('option', { hasText: qaPlate }).first().getAttribute('value');
+      if (val) await vehicleSelect.selectOption(val);
+    }
+    await page.locator('textarea').first().fill(`QA accident from driver hub ${runId}`);
+    await page.getByRole('button', { name: /שלח דיווח/ }).click();
+    await page.waitForTimeout(2500);
+    await shot('04c-after-accident-submit.png');
+
+    const { data: createdAcc } = await admin
+      .from('accidents')
+      .select('id,driver_name,vehicle_plate,images')
+      .eq('driver_name', driverName)
+      .eq('company_name', company)
+      .eq('vehicle_plate', qaPlate)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    createdAccidentId = createdAcc?.id || null;
+    record('accident-persisted', 'Accident saved in accidents table (same system)', !!createdAccidentId, {
+      accidentId: createdAccidentId,
+      driver_name: createdAcc?.driver_name,
+    });
+
+    // Return to driver card driving section
+    await page.goto(`${BASE}/drivers?driverId=${driver.id}&section=driving`, {
+      waitUntil: 'networkidle',
+      timeout: 120000,
+    });
+    await page.waitForTimeout(2000);
+    const shown = await page.getByText(qaPlate).first().isVisible().catch(() => false);
+    const openLink = await page.getByText(/פתח תאונה/).first().isVisible().catch(() => false);
+    record('accident-on-driver-card', 'Same accident visible on driver driving section', shown && openLink, {
+      shown,
+      openLink,
+    });
+    await shot('04d-accident-on-driver-card.png');
+
+    if (openLink && createdAccidentId) {
+      await page.getByText(/פתח תאונה/).first().click();
+      await page.waitForTimeout(1500);
+      const urlHasId = page.url().includes(createdAccidentId);
+      record('accident-same-uuid', 'Open accident uses same UUID', urlHasId, { url: page.url() });
+      await shot('04e-accident-detail.png');
+      await page.goto(`${BASE}/drivers?driverId=${driver.id}&section=driving`, {
+        waitUntil: 'networkidle',
+        timeout: 120000,
+      });
+    }
+  }
 
   await page.getByText('חזרה לכרטיס הנהג').first().click().catch(() => {});
   await page.waitForTimeout(500);
@@ -241,7 +331,13 @@ async function main() {
 
   await browser.close();
 
-  // cleanup test driver
+  // cleanup test data only
+  if (createdAccidentId) {
+    await admin.from('accidents').delete().eq('id', createdAccidentId);
+  }
+  if (qaVehicle?.id) {
+    await admin.from('vehicles').delete().eq('id', qaVehicle.id);
+  }
   await admin.from('drivers').delete().eq('id', driver.id);
   await admin.auth.admin.deleteUser(userId);
 
