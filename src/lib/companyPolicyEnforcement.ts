@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { fetchCompanySettings, type CompanySettingsRow } from '@/lib/companySettings';
+import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
 import type { DaliaDoc } from '@/components/vehicles/vehicleNewDalia/VehicleNewFormDalia';
 
 function hasInsuranceDoc(allValues: Record<string, string>, docs: DaliaDoc[]): boolean {
@@ -43,11 +44,13 @@ export async function validateVehicleAgainstCompanyPolicy(params: {
   }
 
   if (!settings.require_driver_assignment && !driverAssigned && settings.max_vehicles_without_assignment > 0) {
-    let query = supabase
-      .from('vehicles')
-      .select('id', { count: 'exact', head: true })
-      .eq('company_name', params.companyName)
-      .is('assigned_driver_id', null);
+    let query = applyExcludeArchivedVehicles(
+      supabase
+        .from('vehicles')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_name', params.companyName)
+        .is('assigned_driver_id', null),
+    );
 
     if (params.vehicleId) {
       query = query.neq('id', params.vehicleId);

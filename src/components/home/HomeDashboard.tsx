@@ -8,6 +8,7 @@ import DashboardCardGate from '@/components/home/DashboardCardGate';
 import HomeAlertsWidget from '@/components/home/HomeAlertsWidget';
 import { countTrackingAttention } from '@/lib/vehicleTrackingData';
 import { useHomeAlertPrefs } from '@/hooks/useHomeAlertPrefs';
+import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
 
 export default function HomeDashboard() {
   const { user } = useAuth();
@@ -30,9 +31,11 @@ export default function HomeDashboard() {
       setLoading(true);
 
       const [vehiclesRes, driversRes, rolesRes] = await Promise.all([
-        applyCompanyScope(
-          supabase.from('vehicles').select('id', { count: 'exact', head: true }),
-          companyFilter,
+        applyExcludeArchivedVehicles(
+          applyCompanyScope(
+            supabase.from('vehicles').select('id', { count: 'exact', head: true }),
+            companyFilter,
+          ),
         ),
         applyCompanyScope(
           supabase.from('drivers').select('id', { count: 'exact', head: true }),

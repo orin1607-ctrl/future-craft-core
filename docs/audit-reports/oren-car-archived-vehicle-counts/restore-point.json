@@ -1,0 +1,10 @@
+{
+  "at": "2026-08-12T10:05:00.000Z",
+  "purpose": "Restore point before excluding archived vehicles from active fleet counts",
+  "repository": "future-craft-core-STAGING",
+  "remote": "https://github.com/orin1607-ctrl/future-craft-core.git",
+  "branch": "feat/incident-alerts-staging",
+  "head": "71dab6136c144a4807adecdd073753da9764005a",
+  "archiveMechanism": "vehicles.status === 'archived' (same table, no deleted_at)",
+  "constraints": ["No Production", "No Hostinger", "No Migration", "No bulk data changes"]
+}

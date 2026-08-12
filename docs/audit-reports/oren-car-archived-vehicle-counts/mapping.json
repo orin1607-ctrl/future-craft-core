@@ -1,0 +1,77 @@
+{
+  "at": "2026-08-12T10:10:00.000Z",
+  "archiveMechanism": {
+    "table": "vehicles",
+    "field": "status",
+    "value": "archived",
+    "deleted_at": false,
+    "separateTable": false,
+    "howArchived": "VehicleHub.archiveVehicle → update status to archived",
+    "listBehavior": "Vehicles.tsx statusFilter 'all' excludes archived; dedicated 'archived' tab shows them"
+  },
+  "countSites": [
+    {
+      "file": "src/components/home/HomeDashboard.tsx",
+      "what": "Dashboard card badge סה״כ רכבים",
+      "before": "count exact all vehicles",
+      "change": "neq status archived",
+      "changed": true
+    },
+    {
+      "file": "src/lib/vehicleTrackingData.ts",
+      "what": "Tracking + FleetOS rows + summary total",
+      "before": "all vehicles",
+      "change": "exclude archived in loadFleetTrackingRows",
+      "changed": true
+    },
+    {
+      "file": "src/modules/fleetos/fleetosData.ts",
+      "what": "FleetOS KPIs total/active",
+      "before": "inherits tracking rows",
+      "change": "inherits exclusion via loadFleetTrackingRows",
+      "changed": true
+    },
+    {
+      "file": "src/components/DashboardCharts.tsx",
+      "what": "Vehicle status pie",
+      "before": "all statuses including archived slice",
+      "change": "exclude archived",
+      "changed": true
+    },
+    {
+      "file": "src/pages/Vehicles.tsx",
+      "what": "Tab counts הכל / פעיל / ארכיון",
+      "before": "already excluded archived from 'all'",
+      "change": "none needed",
+      "changed": false
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "what": "סה״כ רכבים vs רכבים פעילים",
+      "before": "total includes all; active separate",
+      "change": "LEFT INTENTIONALLY — historical total KPI",
+      "changed": false
+    },
+    {
+      "file": "src/pages/Alerts.tsx",
+      "what": "Vehicle expiry alerts",
+      "before": "includes archived",
+      "change": "NOT CHANGED — report only per Owner instructions",
+      "changed": false
+    },
+    {
+      "file": "src/lib/bulkInsuranceRedHighlight.ts",
+      "what": "Company insurance red stats/bulk",
+      "before": "all company vehicles",
+      "change": "exclude archived",
+      "changed": true
+    },
+    {
+      "file": "src/lib/companyPolicyEnforcement.ts",
+      "what": "Unassigned vehicle quota",
+      "before": "counted archived unassigned",
+      "change": "exclude archived",
+      "changed": true
+    }
+  ]
+}
