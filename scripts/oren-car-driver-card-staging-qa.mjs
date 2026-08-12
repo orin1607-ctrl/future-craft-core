@@ -218,8 +218,20 @@ async function main() {
     await page.getByRole('button', { name: /דווח על תאונה/ }).first().click();
     await page.waitForTimeout(1500);
     const formTitle = await page.getByText('דיווח תאונה', { exact: true }).first().isVisible().catch(() => false);
-    const body = await page.locator('body').textContent();
-    const hasDriverPrefill = !!body?.includes(driverName);
+    const driverInput = page.locator('input').filter({ hasNot: page.locator('[type=checkbox],[type=number],[type=file]') });
+    let hasDriverPrefill = false;
+    const inputCount = await page.locator('input').count();
+    for (let i = 0; i < inputCount; i++) {
+      const val = await page.locator('input').nth(i).inputValue().catch(() => '');
+      if (val.includes(driverName) || val === driverName) {
+        hasDriverPrefill = true;
+        break;
+      }
+    }
+    if (!hasDriverPrefill) {
+      const body = await page.locator('body').innerText();
+      hasDriverPrefill = body.includes(driverName);
+    }
     record('report-accident-form', 'Existing accident form opens with driver context', formTitle && hasDriverPrefill, {
       formTitle,
       hasDriverPrefill,
