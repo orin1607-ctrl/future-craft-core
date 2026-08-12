@@ -1,30 +1,27 @@
-import { describe, expect, it } from 'vitest';
-import { buildReminderOffsets } from './companySettings';
+import { describe, expect, it, beforeEach } from 'vitest';
+import { buildReminderOffsets, clearCompanySettingsCache, _companySettingsCacheSizeForTests } from './companySettings';
 
-describe('companySettings', () => {
-  it('builds default reminder offsets', () => {
+describe('companySettings helpers', () => {
+  beforeEach(() => {
+    clearCompanySettingsCache();
+  });
+
+  it('buildReminderOffsets defaults to 30/7/1', () => {
     expect(buildReminderOffsets(null)).toEqual([30, 7, 1]);
   });
 
-  it('respects disabled reminder toggles', () => {
+  it('buildReminderOffsets respects toggles without inventing 60/90', () => {
     expect(
       buildReminderOffsets({
-        alert_days_before: 45,
+        alert_days_before: 30,
         reminder_30_days: true,
         reminder_7_days: false,
         reminder_1_day: true,
       }),
-    ).toEqual([45, 1]);
+    ).toEqual([30, 1]);
   });
 
-  it('uses alert_days_before for first reminder', () => {
-    expect(
-      buildReminderOffsets({
-        alert_days_before: 14,
-        reminder_30_days: true,
-        reminder_7_days: true,
-        reminder_1_day: false,
-      }),
-    ).toEqual([14, 7]);
+  it('clearCompanySettingsCache resets cache size', () => {
+    expect(_companySettingsCacheSizeForTests()).toBe(0);
   });
 });

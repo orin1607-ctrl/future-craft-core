@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { buildVehicleContextUrl, buildVehicleHubUrl, buildFaultDetailUrl, buildVehicleTaskDetailUrl, buildServiceOrderDetailUrl } from '@/lib/entityNavContext';
 import { isInsuranceAlertsEnabled, isInsuranceRedHighlightEnabled } from '@/lib/vehicleInsuranceAlerts';
-import { fetchCompanySettings } from '@/lib/companySettings';
+import { fetchCompanySettings, prefetchCompanySettings } from '@/lib/companySettings';
 import { expiryReminderTier, tierDetail, tierLabel } from '@/lib/vehicleExpiryReminders';
 import { thresholdsFromCompanySettings } from '@/lib/vehicleTrackingAlerts';
 import { plateFromAlertText } from '@/lib/vehicleActionFollowUp';
@@ -226,6 +226,20 @@ export default function Alerts() {
       }
       setVehiclePlates([...new Set(plates)].sort((a, b) => a.localeCompare(b, 'he', { numeric: true })));
       setInternalNumbers([...new Set(internals)].sort((a, b) => a.localeCompare(b, 'he', { numeric: true })));
+
+      // Batch-load company_settings once for all companies in this result (avoids N round-trips).
+      const companyNames = [
+        ...new Set(
+          vehicles
+            .map((v) => (v.company_name || '').trim())
+            .filter(Boolean)
+            .concat(
+              typeof companyFilter === 'string' && companyFilter ? [companyFilter] : [],
+              user?.company_name ? [user.company_name] : [],
+            ),
+        ),
+      ];
+      await prefetchCompanySettings(companyNames);
 
       for (const v of vehicles) {
         const label = vehicleLabel(v);

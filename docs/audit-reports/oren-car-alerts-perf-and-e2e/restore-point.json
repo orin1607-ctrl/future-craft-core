@@ -1,0 +1,12 @@
+{
+  "at": "2026-08-12T07:40:00.000Z",
+  "purpose": "Restore point before Alerts performance fix + complementary E2E QA",
+  "repository": "future-craft-core-STAGING",
+  "remote": "https://github.com/orin1607-ctrl/future-craft-core.git",
+  "branch": "feat/incident-alerts-staging",
+  "head": "a708925ca307d16d58479116c1e4cacb7b124afb",
+  "supabaseStaging": "usfeoerkpcafxxlyuldl",
+  "alertsBaselineMs": 7437,
+  "alertsBaselineCompanySettingsDupes": "multiple identical company_settings REST calls (~3s each)",
+  "constraints": ["No Production", "No Hostinger", "No Migration without approval", "No unrelated WIP commits"]
+}

@@ -1,0 +1,187 @@
+{
+  "at": "2026-08-12T07:38:53.703Z",
+  "label": "before",
+  "bundle": "assets/index-CxZ-Tc1n.js",
+  "usableMs": 10634,
+  "companySettingsRequests": 35,
+  "companySettingsUniqueUrls": 1,
+  "companySettings": [
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520326457
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520326651
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520326829
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520326844
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327032
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327032
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327211
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327224
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327387
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327397
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327417
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327596
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327603
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327773
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327788
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327804
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327978
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520327998
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328150
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328179
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328191
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328369
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328398
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328554
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328574
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328594
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328770
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328798
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328945
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328978
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520328995
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520329181
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520329195
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520329361
+    },
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786520329369
+    }
+  ],
+  "alertCountHint": 7,
+  "hasError": false
+}
