@@ -51,16 +51,26 @@ function loadKeys() {
 }
 
 async function readTile(page, label) {
-  const tile = page.locator('button, div').filter({ hasText: label }).first();
-  const text = (await tile.innerText().catch(() => '')) || '';
-  const html = (await tile.innerHTML().catch(() => '')) || '';
+  // DashTile is a button with label + value; scope tightly so sidebar/footer are excluded.
+  const tile = page
+    .locator('button.rounded-xl')
+    .filter({ has: page.locator('p', { hasText: label }) })
+    .first();
+  await tile.waitFor({ state: 'visible', timeout: 20000 }).catch(() => null);
+  const text = ((await tile.innerText().catch(() => '')) || '').trim();
+  const className = (await tile.getAttribute('class').catch(() => '')) || '';
+  const valueClass =
+    (await tile.locator('p.text-sm.font-bold').first().getAttribute('class').catch(() => '')) || '';
+  const lines = text.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  const value = lines[1] || '';
   return {
-    text,
-    hasYesh: text.includes('יש לטפל'),
-    hasBeseder: text.includes('בסדר'),
-    hasDoresh: text.includes('דורש טיפול'),
-    hasEin: /\bאין\b/.test(text) || text.includes('\nאין'),
-    red: html.includes('text-destructive') || html.includes('destructive'),
+    text: lines.slice(0, 4).join(' | '),
+    value,
+    hasYesh: value === 'יש לטפל' || text.includes('יש לטפל'),
+    hasBeseder: value === 'בסדר' || text.includes('בסדר'),
+    hasDoresh: value === 'דורש טיפול' || text.includes('דורש טיפול'),
+    hasEin: value === 'אין',
+    red: className.includes('border-destructive') || valueClass.includes('text-destructive'),
   };
 }
 
@@ -341,18 +351,36 @@ async function main() {
     await page.screenshot({ path: join(OUT, 'desktop-company-b.png'), fullPage: true });
     report.shots.push('desktop-company-b.png');
 
-    // Alert settings UI — four toggles for a real company (דליה)
+    // Alert settings UI — select a company then assert 4 toggles
     await page.goto(`${BASE}/alert-settings`, { waitUntil: 'networkidle', timeout: 120000 });
     await page.waitForTimeout(2000);
+    await page.getByRole('button', { name: /לחץ לבחירת חברה|דליה|בחר/ }).first().click({ timeout: 15000 }).catch(() => null);
+    await page.waitForTimeout(500);
+    await page.getByPlaceholder('חיפוש חברה...').fill('דליה').catch(() => null);
+    await page.waitForTimeout(400);
+    const daliaOpt = page.getByRole('button', { name: /דליה/ }).first();
+    if (await daliaOpt.count()) {
+      await daliaOpt.click();
+    } else {
+      // pick first listed company
+      await page.locator('.absolute button').filter({ has: page.locator('svg') }).nth(0).click().catch(() => null);
+    }
+    await page.waitForTimeout(2000);
+    await page.getByText('הצגה והדגשה בדשבורד רכב', { exact: false }).first().scrollIntoViewIfNeeded().catch(() => null);
+    await page.waitForTimeout(500);
     const body = await page.locator('body').innerText();
     const settingsUi =
-      body.includes('הצג / הסתר "יש לטפל"') ||
-      body.includes('הצג / הסתר „יש לטפל”') ||
-      (body.includes('הצג / הסתר') && body.includes('יש לטפל') && body.includes('דורש טיפול'));
-    const redUi = body.includes('באדום') && body.includes('יש לטפל') && body.includes('דורש טיפול');
-    record('alert-settings-ui', 'AlertSettings shows visibility + red toggles', settingsUi && redUi, {
+      body.includes('הצג / הסתר') &&
+      body.includes('יש לטפל') &&
+      body.includes('דורש טיפול');
+    const redUi = body.includes('באדום') && body.includes('יש לטפל');
+    const fourToggles =
+      (body.match(/הצג \/ הסתר/g) || []).length >= 2 &&
+      (body.match(/באדום לכל רכבי הלקוח/g) || []).length >= 2;
+    record('alert-settings-ui', 'AlertSettings shows visibility + red toggles', settingsUi && redUi && fourToggles, {
       settingsUi,
       redUi,
+      fourToggles,
     });
     await page.screenshot({ path: join(OUT, 'alert-settings.png'), fullPage: true });
     report.shots.push('alert-settings.png');

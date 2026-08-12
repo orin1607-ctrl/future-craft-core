@@ -1,0 +1,237 @@
+{
+  "at": "2026-08-12T06:11:43.293Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "commit": "f76e835c59ba210044ba184e523937501f993bb6",
+  "liveBundle": "assets/index-CxZ-Tc1n.js",
+  "tests": [
+    {
+      "id": "bundle",
+      "name": "Live Staging bundle detected",
+      "ok": true,
+      "bundle": "assets/index-CxZ-Tc1n.js"
+    },
+    {
+      "id": "seed-companies",
+      "name": "Per-company settings rows created",
+      "ok": true,
+      "companyA": "QA-Attn-A-1786515107207",
+      "companyB": "QA-Attn-B-1786515107207"
+    },
+    {
+      "id": "db-isolation",
+      "name": "Company A hide does not change Company B",
+      "ok": true,
+      "rowA": {
+        "show_insurance_attention": false,
+        "show_gaps_attention": false
+      },
+      "rowB": {
+        "show_insurance_attention": true,
+        "show_gaps_attention": true
+      }
+    },
+    {
+      "id": "seed-vehicles",
+      "name": "Gap vehicles seeded for A and B",
+      "ok": true,
+      "a": "4310f927-4315-4475-b01d-efa149fd3d33",
+      "b": "e4740e6c-801a-4bac-8e47-c1c40da0836d"
+    },
+    {
+      "id": "auth",
+      "name": "Ephemeral super_admin",
+      "ok": true
+    },
+    {
+      "id": "desktop-ins-on-red-on",
+      "name": "Desktop combo ins-on-red-on",
+      "ok": true,
+      "ins": {
+        "text": "ביטוחים ורישיונות | יש לטפל | לחץ לפירוט",
+        "value": "יש לטפל",
+        "hasYesh": true,
+        "hasBeseder": false,
+        "hasDoresh": false,
+        "hasEin": false,
+        "red": true
+      },
+      "gaps": {
+        "text": "חוסרים והתראות | דורש טיפול | לחץ לפירוט",
+        "value": "דורש טיפול",
+        "hasYesh": false,
+        "hasBeseder": false,
+        "hasDoresh": true,
+        "hasEin": false,
+        "red": true
+      },
+      "okIns": true,
+      "okGaps": true,
+      "okRedHidden": true
+    },
+    {
+      "id": "desktop-ins-on-red-off",
+      "name": "Desktop combo ins-on-red-off",
+      "ok": true,
+      "ins": {
+        "text": "ביטוחים ורישיונות | יש לטפל | לחץ לפירוט",
+        "value": "יש לטפל",
+        "hasYesh": true,
+        "hasBeseder": false,
+        "hasDoresh": false,
+        "hasEin": false,
+        "red": false
+      },
+      "gaps": {
+        "text": "חוסרים והתראות | דורש טיפול | לחץ לפירוט",
+        "value": "דורש טיפול",
+        "hasYesh": false,
+        "hasBeseder": false,
+        "hasDoresh": true,
+        "hasEin": false,
+        "red": false
+      },
+      "okIns": true,
+      "okGaps": true,
+      "okRedHidden": true
+    },
+    {
+      "id": "desktop-ins-off-red-on",
+      "name": "Desktop combo ins-off-red-on",
+      "ok": true,
+      "ins": {
+        "text": "ביטוחים ורישיונות | בסדר | לחץ לפירוט",
+        "value": "בסדר",
+        "hasYesh": false,
+        "hasBeseder": true,
+        "hasDoresh": false,
+        "hasEin": false,
+        "red": false
+      },
+      "gaps": {
+        "text": "חוסרים והתראות | אין | לחץ לפירוט",
+        "value": "אין",
+        "hasYesh": false,
+        "hasBeseder": false,
+        "hasDoresh": false,
+        "hasEin": true,
+        "red": false
+      },
+      "okIns": true,
+      "okGaps": true,
+      "okRedHidden": true
+    },
+    {
+      "id": "desktop-ins-off-red-off",
+      "name": "Desktop combo ins-off-red-off",
+      "ok": true,
+      "ins": {
+        "text": "ביטוחים ורישיונות | בסדר | לחץ לפירוט",
+        "value": "בסדר",
+        "hasYesh": false,
+        "hasBeseder": true,
+        "hasDoresh": false,
+        "hasEin": false,
+        "red": false
+      },
+      "gaps": {
+        "text": "חוסרים והתראות | אין | לחץ לפירוט",
+        "value": "אין",
+        "hasYesh": false,
+        "hasBeseder": false,
+        "hasDoresh": false,
+        "hasEin": true,
+        "red": false
+      },
+      "okIns": true,
+      "okGaps": true,
+      "okRedHidden": true
+    },
+    {
+      "id": "desktop-cross-company",
+      "name": "Company B still shows attention while A hidden",
+      "ok": true,
+      "bIns": {
+        "text": "ביטוחים ורישיונות | יש לטפל | לחץ לפירוט",
+        "value": "יש לטפל",
+        "hasYesh": true,
+        "hasBeseder": false,
+        "hasDoresh": false,
+        "hasEin": false,
+        "red": true
+      },
+      "bGaps": {
+        "text": "חוסרים והתראות | דורש טיפול | לחץ לפירוט",
+        "value": "דורש טיפול",
+        "hasYesh": false,
+        "hasBeseder": false,
+        "hasDoresh": true,
+        "hasEin": false,
+        "red": true
+      }
+    },
+    {
+      "id": "alert-settings-ui",
+      "name": "AlertSettings shows visibility + red toggles",
+      "ok": true,
+      "settingsUi": true,
+      "redUi": true,
+      "fourToggles": true
+    },
+    {
+      "id": "smoke-drivers",
+      "name": "Smoke /drivers",
+      "ok": true
+    },
+    {
+      "id": "smoke-accidents",
+      "name": "Smoke /accidents",
+      "ok": true
+    },
+    {
+      "id": "smoke-alerts",
+      "name": "Smoke /alerts",
+      "ok": true
+    },
+    {
+      "id": "mobile-visibility",
+      "name": "Mobile show ON then OFF hides יש לטפל",
+      "ok": true,
+      "mOn": {
+        "text": "ביטוחים ורישיונות | יש לטפל | לחץ לפירוט",
+        "value": "יש לטפל",
+        "hasYesh": true,
+        "hasBeseder": false,
+        "hasDoresh": false,
+        "hasEin": false,
+        "red": true
+      },
+      "mOff": {
+        "text": "ביטוחים ורישיונות | בסדר | לחץ לפירוט",
+        "value": "בסדר",
+        "hasYesh": false,
+        "hasBeseder": true,
+        "hasDoresh": false,
+        "hasEin": false,
+        "red": false
+      }
+    },
+    {
+      "id": "cleanup",
+      "name": "Ephemeral QA rows removed",
+      "ok": true
+    }
+  ],
+  "consoleErrors": [],
+  "networkErrors": [],
+  "shots": [
+    "desktop-ins-on-red-on.png",
+    "desktop-ins-on-red-off.png",
+    "desktop-ins-off-red-on.png",
+    "desktop-ins-off-red-off.png",
+    "desktop-company-b.png",
+    "alert-settings.png",
+    "mobile-off.png"
+  ],
+  "ok": true
+}
