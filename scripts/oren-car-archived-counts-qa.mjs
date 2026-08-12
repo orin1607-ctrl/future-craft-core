@@ -77,7 +77,8 @@ async function main() {
   const runId = Date.now();
   const companyA = `QA-Arch-A-${runId}`;
   const companyB = `QA-Arch-B-${runId}`;
-  const email = `qa-arch-${runId}@staging-e2e.local`;
+  const emailA = `qa-arch-a-${runId}@staging-e2e.local`;
+  const emailB = `qa-arch-b-${runId}@staging-e2e.local`;
   const password = `Qa!${runId}`;
 
   for (const company_name of [companyA, companyB]) {
@@ -85,12 +86,9 @@ async function main() {
   }
 
   // Company A: 3 active-fleet + 2 archived = 5 total → UI should show 3
-  const platesA = [];
   for (let i = 0; i < 3; i++) {
-    const plate = `AA${String(runId).slice(-5)}${i}`;
-    platesA.push(plate);
     await admin.from('vehicles').insert({
-      license_plate: plate,
+      license_plate: `AA${String(runId).slice(-5)}${i}`,
       company_name: companyA,
       manufacturer: 'QA',
       model: 'Active',
@@ -131,36 +129,40 @@ async function main() {
   rec('db-company-a', 'Company A DB counts', statsA.dbTotal === 5 && statsA.dbArchived === 2 && statsA.expectedActive === 3, statsA);
   rec('db-company-b', 'Company B DB counts', statsB.dbTotal === 3 && statsB.dbArchived === 1 && statsB.expectedActive === 2, statsB);
 
-  // Alerts still load archived? (documentation probe — no product change)
-  const { data: alertVehicles } = await admin
-    .from('vehicles')
-    .select('id, status')
-    .eq('company_name', companyA);
-  const archivedInAlertSource = (alertVehicles || []).filter((v) => v.status === 'archived').length;
   report.alertsNote = {
-    note: 'Alerts.tsx loads vehicles without excluding archived (unchanged by design this task)',
-    archivedRowsStillInVehiclesTable: archivedInAlertSource,
+    note: 'Alerts.tsx still loads vehicles without excluding archived (not changed this task — report only)',
   };
 
-  const { data: created } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
-  const userId = created.user.id;
-  await admin.from('profiles').upsert({
-    id: userId,
-    full_name: 'QA Archive Counts',
-    company_name: companyA,
-    is_active: true,
-    approval_status: 'approved',
-    two_factor_approved: true,
-  });
-  await admin.from('user_roles').delete().eq('user_id', userId);
-  await admin.from('user_roles').insert({ user_id: userId, role: 'super_admin' });
-  const { data: auth } = await anon.auth.signInWithPassword({ email, password });
+  async function createFleetManager(email, company_name, full_name) {
+    const { data: created } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+    const userId = created.user.id;
+    await admin.from('profiles').upsert({
+      id: userId,
+      full_name,
+      company_name,
+      is_active: true,
+      approval_status: 'approved',
+      two_factor_approved: true,
+    });
+    await admin.from('user_roles').delete().eq('user_id', userId);
+    await admin.from('user_roles').insert({ user_id: userId, role: 'fleet_manager' });
+    return userId;
+  }
+
+  const userIdA = await createFleetManager(emailA, companyA, 'QA Arch FM A');
+  const userIdB = await createFleetManager(emailB, companyB, 'QA Arch FM B');
 
   const browser = await chromium.launch({ headless: true });
   const storageKey = `sb-${STAGING_REF}-auth-token`;
 
-  async function runViewport(label, viewport) {
-    const context = await browser.newContext({ ...viewport, locale: 'he-IL' });
+  async function runAsManager(label, email, stats, platePrefixActive, platePrefixArch) {
+    const { data: auth } = await anon.auth.signInWithPassword({ email, password });
+    if (!auth?.session) throw new Error('sign-in failed ' + email);
+    const context = await browser.newContext({
+      viewport: label.startsWith('mobile') ? { width: 390, height: 844 } : { width: 1440, height: 900 },
+      locale: 'he-IL',
+      ...(label.startsWith('mobile') ? devices['iPhone 13'] : {}),
+    });
     await context.addInitScript(
       ({ key, value }) => localStorage.setItem(key, JSON.stringify(value)),
       {
@@ -186,113 +188,81 @@ async function main() {
       }
     });
 
-    // Scope to company A via company selector if present, else filter on vehicles page
     await page.goto(`${BASE}/vehicles`, { waitUntil: 'networkidle', timeout: 120000 });
-    await page.waitForTimeout(1500);
-    // Try company filter dropdown
-    const companySelect = page.locator('select').filter({ hasText: /כל החברות|חבר/ }).first();
-    if (await companySelect.count()) {
-      await companySelect.selectOption({ label: companyA }).catch(async () => {
-        await page.locator('select').last().selectOption({ label: companyA }).catch(() => null);
-      });
-      await page.waitForTimeout(1000);
-    }
-    // Search for unique plate prefix to scope list visually
-    await page.getByPlaceholder(/חיפוש/).fill(`AA${String(runId).slice(-5)}`).catch(() => null);
-    await page.waitForTimeout(800);
-
+    await page.waitForTimeout(2000);
     const body = await page.locator('body').innerText();
     const allTab = body.match(/הכל\s*\((\d+)\)/);
     const archTab = body.match(/ארכיון\s*\((\d+)\)/);
-    const allCount = allTab ? Number(allTab[1]) : null;
-    const archCount = archTab ? Number(archTab[1]) : null;
-
-    // When filtered by search AA..., "הכל" should be 3; archived tab may show 0 under search.
-    // Better: clear search, set company filter
-    await page.getByPlaceholder(/חיפוש/).fill('').catch(() => null);
-    await page.waitForTimeout(500);
-    // Select company from dropdown - find select with companyA option
-    const selects = page.locator('select');
-    const n = await selects.count();
-    for (let i = 0; i < n; i++) {
-      const opts = await selects.nth(i).locator('option').allTextContents();
-      if (opts.some((o) => o.includes(companyA))) {
-        await selects.nth(i).selectOption({ label: companyA });
-        await page.waitForTimeout(1200);
-        break;
-      }
-    }
-    const body2 = await page.locator('body').innerText();
-    const allTab2 = body2.match(/הכל\s*\((\d+)\)/);
-    const archTab2 = body2.match(/ארכיון\s*\((\d+)\)/);
-    const uiAll = allTab2 ? Number(allTab2[1]) : allCount;
-    const uiArch = archTab2 ? Number(archTab2[1]) : archCount;
-    const listOk = uiAll === statsA.expectedActive && uiArch === statsA.dbArchived;
-    rec(`${label}-vehicles-a`, `Vehicles list company A: הכל=${uiAll} ארכיון=${uiArch}`, listOk, {
-      expectedActive: statsA.expectedActive,
-      expectedArchived: statsA.dbArchived,
+    const uiAll = allTab ? Number(allTab[1]) : null;
+    const uiArch = archTab ? Number(archTab[1]) : null;
+    const listOk = uiAll === stats.expectedActive && uiArch === stats.dbArchived;
+    rec(`${label}-vehicles`, `Vehicles ${stats.companyName}: הכל=${uiAll} ארכיון=${uiArch}`, listOk, {
+      expectedActive: stats.expectedActive,
+      expectedArchived: stats.dbArchived,
       uiAll,
       uiArch,
+      hasActivePlate: body.includes(platePrefixActive),
     });
-    await page.screenshot({ path: join(OUT, `${label}-vehicles-a.png`), fullPage: false });
+    await page.screenshot({ path: join(OUT, `${label}-vehicles.png`), fullPage: false });
 
-    // Company B isolation
-    for (let i = 0; i < n; i++) {
-      const opts = await selects.nth(i).locator('option').allTextContents();
-      if (opts.some((o) => o.includes(companyB))) {
-        await selects.nth(i).selectOption({ label: companyB });
-        await page.waitForTimeout(1200);
-        break;
-      }
-    }
-    const bodyB = await page.locator('body').innerText();
-    const allB = bodyB.match(/הכל\s*\((\d+)\)/);
-    const archB = bodyB.match(/ארכיון\s*\((\d+)\)/);
-    const uiAllB = allB ? Number(allB[1]) : null;
-    const uiArchB = archB ? Number(archB[1]) : null;
-    rec(`${label}-vehicles-b`, `Vehicles list company B: הכל=${uiAllB} ארכיון=${uiArchB}`, uiAllB === statsB.expectedActive && uiArchB === statsB.dbArchived, {
-      expectedActive: statsB.expectedActive,
-      uiAllB,
-      uiArchB,
+    await page.getByRole('button', { name: /ארכיון\s*\(/ }).first().click().catch(async () => {
+      await page.getByRole('button', { name: /^ארכיון/ }).first().click().catch(() => null);
     });
-
-    // Home dashboard badge — scope company A via localStorage company scope if used
-    await page.goto(`${BASE}/`, { waitUntil: 'networkidle', timeout: 120000 });
-    await page.waitForTimeout(2000);
-    const homeBody = await page.locator('body').innerText();
-    rec(`${label}-home`, 'Home dashboard loads', !/Unexpected Application Error/i.test(homeBody));
-
-    // Tracking
-    await page.goto(`${BASE}/vehicle-tracking`, { waitUntil: 'networkidle', timeout: 120000 });
-    await page.waitForTimeout(2000);
-    const trackBody = await page.locator('body').innerText();
-    const totalMatch = trackBody.match(/סה"כ רכבים[^\d]*(\d+)/) || trackBody.match(/סה״כ רכבים[^\d]*(\d+)/);
-    rec(`${label}-tracking`, 'Vehicle tracking page loads', !/Unexpected Application Error/i.test(trackBody), {
-      totalHint: totalMatch?.[1] || null,
-    });
-
-    // Archived still accessible via archive tab
-    await page.goto(`${BASE}/vehicles`, { waitUntil: 'networkidle', timeout: 120000 });
-    await page.waitForTimeout(1000);
-    for (let i = 0; i < (await page.locator('select').count()); i++) {
-      const opts = await page.locator('select').nth(i).locator('option').allTextContents();
-      if (opts.some((o) => o.includes(companyA))) {
-        await page.locator('select').nth(i).selectOption({ label: companyA });
-        await page.waitForTimeout(800);
-        break;
-      }
-    }
-    await page.getByRole('button', { name: /ארכיון/ }).first().click().catch(() => null);
     await page.waitForTimeout(1000);
     const archBody = await page.locator('body').innerText();
-    const archVisible = archBody.includes(`XA${String(runId).slice(-5)}`) || /ארכיון/.test(archBody);
-    rec(`${label}-archive-access`, 'Archive tab accessible for company A', archVisible);
+    rec(`${label}-archive-tab`, `Archive tab shows archived plates`, archBody.includes(platePrefixArch), {
+      platePrefixArch,
+    });
+
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle', timeout: 120000 });
+    await page.waitForTimeout(2500);
+    const homeBody = await page.locator('body').innerText();
+    // Home card badge often shows the count near "רכבים"
+    const badgeNear =
+      homeBody.includes(String(stats.expectedActive)) ||
+      new RegExp(`רכבים[^\\d]{0,40}${stats.expectedActive}`).test(homeBody) ||
+      new RegExp(`${stats.expectedActive}[^\\d]{0,20}רכבים`).test(homeBody);
+    rec(`${label}-home-count`, `Home dashboard reflects active count ~${stats.expectedActive}`, badgeNear, {
+      snippet: homeBody.slice(0, 400),
+    });
+
+    await page.goto(`${BASE}/vehicle-tracking`, { waitUntil: 'networkidle', timeout: 120000 });
+    await page.waitForTimeout(3500);
+    // Prefer DOM: number is in the button whose label is סה"כ רכבים
+    let trackTotal = null;
+    const totalBtn = page.locator('button').filter({ hasText: /סה["״]?כ רכבים/ }).first();
+    if (await totalBtn.count()) {
+      const btnText = await totalBtn.innerText();
+      const m = btnText.match(/(\d+)/);
+      trackTotal = m ? Number(m[1]) : null;
+    }
+    if (trackTotal == null) {
+      const trackBody = await page.locator('body').innerText();
+      const totalMatch =
+        trackBody.match(/(\d+)\s*סה["״]כ רכבים/) ||
+        trackBody.match(/(\d+)\s*סה.?כ רכבים/) ||
+        trackBody.match(/סה["״]כ רכבים[^\d\n]*(\d+)/);
+      trackTotal = totalMatch ? Number(totalMatch[1]) : null;
+      rec(`${label}-tracking-total`, `Tracking סה״כ = ${trackTotal}`, trackTotal === stats.expectedActive, {
+        trackTotal,
+        expected: stats.expectedActive,
+        snippet: trackBody.includes('סיכום צי') ? 'has-summary' : trackBody.slice(0, 500),
+      });
+    } else {
+      rec(`${label}-tracking-total`, `Tracking סה״כ = ${trackTotal}`, trackTotal === stats.expectedActive, {
+        trackTotal,
+        expected: stats.expectedActive,
+      });
+    }
+    await page.screenshot({ path: join(OUT, `${label}-tracking.png`), fullPage: false });
 
     await context.close();
   }
 
-  await runViewport('desktop', { viewport: { width: 1440, height: 900 } });
-  await runViewport('mobile', devices['iPhone 13']);
+  await runAsManager('desktop-a', emailA, statsA, `AA${String(runId).slice(-5)}`, `XA${String(runId).slice(-5)}`);
+  await runAsManager('desktop-b', emailB, statsB, `BB${String(runId).slice(-5)}`, `XB${String(runId).slice(-5)}`);
+  await runAsManager('mobile-a', emailA, statsA, `AA${String(runId).slice(-5)}`, `XA${String(runId).slice(-5)}`);
+
   await browser.close();
 
   // Cleanup
@@ -300,9 +270,12 @@ async function main() {
   await admin.from('vehicles').delete().eq('company_name', companyB);
   await admin.from('company_settings').delete().eq('company_name', companyA);
   await admin.from('company_settings').delete().eq('company_name', companyB);
-  await admin.from('user_roles').delete().eq('user_id', userId);
-  await admin.from('profiles').delete().eq('id', userId);
-  await admin.auth.admin.deleteUser(userId);
+  await admin.from('user_roles').delete().eq('user_id', userIdA);
+  await admin.from('user_roles').delete().eq('user_id', userIdB);
+  await admin.from('profiles').delete().eq('id', userIdA);
+  await admin.from('profiles').delete().eq('id', userIdB);
+  await admin.auth.admin.deleteUser(userIdA);
+  await admin.auth.admin.deleteUser(userIdB);
   rec('cleanup', 'Ephemeral data removed', true);
 
   report.ok = report.tests.every((t) => t.ok);

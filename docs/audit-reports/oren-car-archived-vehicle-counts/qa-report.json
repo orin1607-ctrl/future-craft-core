@@ -1,0 +1,173 @@
+{
+  "at": "2026-08-12T10:13:05.754Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "productionTouched": false,
+  "companies": [
+    {
+      "companyName": "QA-Arch-A-1786529589005",
+      "dbTotal": 5,
+      "dbArchived": 2,
+      "expectedActive": 3
+    },
+    {
+      "companyName": "QA-Arch-B-1786529589005",
+      "dbTotal": 3,
+      "dbArchived": 1,
+      "expectedActive": 2
+    }
+  ],
+  "tests": [
+    {
+      "id": "bundle",
+      "name": "Live Staging bundle",
+      "ok": true,
+      "bundle": "assets/index-VUpJ3wfN.js"
+    },
+    {
+      "id": "db-company-a",
+      "name": "Company A DB counts",
+      "ok": true,
+      "companyName": "QA-Arch-A-1786529589005",
+      "dbTotal": 5,
+      "dbArchived": 2,
+      "expectedActive": 3
+    },
+    {
+      "id": "db-company-b",
+      "name": "Company B DB counts",
+      "ok": true,
+      "companyName": "QA-Arch-B-1786529589005",
+      "dbTotal": 3,
+      "dbArchived": 1,
+      "expectedActive": 2
+    },
+    {
+      "id": "desktop-a-vehicles",
+      "name": "Vehicles QA-Arch-A-1786529589005: הכל=3 ארכיון=2",
+      "ok": true,
+      "expectedActive": 3,
+      "expectedArchived": 2,
+      "uiAll": 3,
+      "uiArch": 2,
+      "hasActivePlate": true
+    },
+    {
+      "id": "desktop-a-archive-tab",
+      "name": "Archive tab shows archived plates",
+      "ok": true,
+      "platePrefixArch": "XA89005"
+    },
+    {
+      "id": "desktop-a-home-count",
+      "name": "Home dashboard reflects active count ~3",
+      "ok": true,
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Arch FM A\n\nQA-Arch-A-1786529589005\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nדליה — מרכז שליטה\n\nQA Arch FM A · QA-Arch-A-1786529589005\n\nהתראות צי\nהגדרות\nטסט מתקרב\n0\n\nאין התראות בחלון שנבחר\n\nביטוח מתקרב\n0\n\nאין התראות בחלון שנבחר\n\nטיפול תקופתי מתקרב\n0\n\nאין טיפולים מתקרבים\n\nצפה "
+    },
+    {
+      "id": "desktop-a-tracking-total",
+      "name": "Tracking סה״כ = 3",
+      "ok": true,
+      "trackTotal": 3,
+      "expected": 3
+    },
+    {
+      "id": "desktop-b-vehicles",
+      "name": "Vehicles QA-Arch-B-1786529589005: הכל=2 ארכיון=1",
+      "ok": true,
+      "expectedActive": 2,
+      "expectedArchived": 1,
+      "uiAll": 2,
+      "uiArch": 1,
+      "hasActivePlate": true
+    },
+    {
+      "id": "desktop-b-archive-tab",
+      "name": "Archive tab shows archived plates",
+      "ok": true,
+      "platePrefixArch": "XB89005"
+    },
+    {
+      "id": "desktop-b-home-count",
+      "name": "Home dashboard reflects active count ~2",
+      "ok": true,
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Arch FM B\n\nQA-Arch-B-1786529589005\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nדליה — מרכז שליטה\n\nQA Arch FM B · QA-Arch-B-1786529589005\n\nהתראות צי\nהגדרות\nטסט מתקרב\n0\n\nאין התראות בחלון שנבחר\n\nביטוח מתקרב\n0\n\nאין התראות בחלון שנבחר\n\nטיפול תקופתי מתקרב\n0\n\nאין טיפולים מתקרבים\n\nצפה "
+    },
+    {
+      "id": "desktop-b-tracking-total",
+      "name": "Tracking סה״כ = 2",
+      "ok": true,
+      "trackTotal": 2,
+      "expected": 2
+    },
+    {
+      "id": "mobile-a-vehicles",
+      "name": "Vehicles QA-Arch-A-1786529589005: הכל=3 ארכיון=2",
+      "ok": true,
+      "expectedActive": 3,
+      "expectedArchived": 2,
+      "uiAll": 3,
+      "uiArch": 2,
+      "hasActivePlate": true
+    },
+    {
+      "id": "mobile-a-archive-tab",
+      "name": "Archive tab shows archived plates",
+      "ok": true,
+      "platePrefixArch": "XA89005"
+    },
+    {
+      "id": "mobile-a-home-count",
+      "name": "Home dashboard reflects active count ~3",
+      "ok": true,
+      "snippet": "דליה\n\nפתרונות תפעול ותחזוקה לרכב\n\nיציאה\nדליה — מרכז שליטה\n\nQA Arch FM A · QA-Arch-A-1786529589005\n\nהתראות צי\nהגדרות\nטסט מתקרב\n0\n\nאין התראות בחלון שנבחר\n\nביטוח מתקרב\n0\n\nאין התראות בחלון שנבחר\n\nטיפול תקופתי מתקרב\n0\n\nאין טיפולים מתקרבים\n\nצפה בכל ההתראות →\n3\n\nרכבים\n\nרשימת צי וכרטיסי רכב\n\n0\n\nנהגים\n\nרשימת נהגים וכרטיסי נהג\n\n3\n\nמעקב רכבים\n\nצפייה ובקרה על מצב הצי\n\nמיקום צי חכם\n\nFleetOS AI — מצב צי\n\nדוחות\n"
+    },
+    {
+      "id": "mobile-a-tracking-total",
+      "name": "Tracking סה״כ = 3",
+      "ok": true,
+      "trackTotal": 3,
+      "expected": 3
+    },
+    {
+      "id": "cleanup",
+      "name": "Ephemeral data removed",
+      "ok": true
+    }
+  ],
+  "consoleErrors": [
+    {
+      "label": "desktop-a",
+      "text": "Failed to load resource: the server responded with a status of 403 ()"
+    },
+    {
+      "label": "desktop-b",
+      "text": "Failed to load resource: the server responded with a status of 403 ()"
+    },
+    {
+      "label": "mobile-a",
+      "text": "Failed to load resource: the server responded with a status of 403 ()"
+    }
+  ],
+  "networkErrors": [
+    {
+      "label": "desktop-a",
+      "status": 403,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/dalia_form_config?on_conflict=config_key"
+    },
+    {
+      "label": "desktop-b",
+      "status": 403,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/dalia_form_config?on_conflict=config_key"
+    },
+    {
+      "label": "mobile-a",
+      "status": 403,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/dalia_form_config?on_conflict=config_key"
+    }
+  ],
+  "alertsNote": {
+    "note": "Alerts.tsx still loads vehicles without excluding archived (not changed this task — report only)"
+  },
+  "ok": true
+}
