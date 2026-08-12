@@ -1,0 +1,256 @@
+{
+  "at": "2026-08-12T07:53:32.910Z",
+  "scope": "Staging ONLY",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "realMessagesSent": false,
+  "tests": [
+    {
+      "id": "safety-scope",
+      "name": "Hard-locked to Staging ref and GitHub Pages base",
+      "ok": true,
+      "stagingRef": "usfeoerkpcafxxlyuldl",
+      "base": "https://orin1607-ctrl.github.io/future-craft-core"
+    },
+    {
+      "id": "seed-ephemeral",
+      "name": "Ephemeral company, users, driver and vehicle created",
+      "ok": true,
+      "companyName": "QA Complementary 1786521215765-69c07993",
+      "driverId": "c9379da7-e04c-4f42-8d08-87dd0bc723dc",
+      "vehicleId": "9a3f5e97-7ade-4a71-ba87-6ad069e1084a"
+    },
+    {
+      "id": "document-file-gallery-inputs",
+      "name": "File and camera/gallery inputs expose accept/capture",
+      "ok": true,
+      "count": 2,
+      "attrs": [
+        {
+          "accept": ".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,image/*,application/pdf",
+          "capture": null
+        },
+        {
+          "accept": "image/*",
+          "capture": "environment"
+        }
+      ]
+    },
+    {
+      "id": "document-ui-upload",
+      "name": "Real tiny PDF upload through DriverHub UI",
+      "ok": true,
+      "versionId": "c6e09376-2b95-43e5-87b9-ac2f36b84119",
+      "source": "manager_upload"
+    },
+    {
+      "id": "document-preview",
+      "name": "Uploaded PDF has working preview UI",
+      "ok": true,
+      "supported": true,
+      "previewVisible": true
+    },
+    {
+      "id": "document-version-history",
+      "name": "Second same-type upload creates visible version history",
+      "ok": true,
+      "versionId": "f4af4f3a-0cbe-4db2-bd33-d8347d9a8fe9",
+      "rows": [
+        {
+          "id": "c6e09376-2b95-43e5-87b9-ac2f36b84119",
+          "version_no": 1,
+          "is_current": true,
+          "source": "manager_upload"
+        },
+        {
+          "id": "f4af4f3a-0cbe-4db2-bd33-d8347d9a8fe9",
+          "version_no": 2,
+          "is_current": true,
+          "source": "manager_upload"
+        }
+      ],
+      "currentFlags": [
+        {
+          "version_no": 1,
+          "is_current": true
+        },
+        {
+          "version_no": 2,
+          "is_current": true
+        }
+      ],
+      "uiV1": true,
+      "uiV2": true
+    },
+    {
+      "id": "traffic-info-expiry",
+      "name": "traffic_info manager_upload has issue +3 years in DB and UI",
+      "ok": true,
+      "expected": "2029-08-12",
+      "formatted": "12.8.2029",
+      "row": {
+        "id": "f4af4f3a-0cbe-4db2-bd33-d8347d9a8fe9",
+        "company_name": "QA Complementary 1786521215765-69c07993",
+        "document_type_key": "traffic_info",
+        "entity_type": "driver",
+        "entity_id": "c9379da7-e04c-4f42-8d08-87dd0bc723dc",
+        "request_id": null,
+        "version_no": 2,
+        "is_current": true,
+        "file_path": "admin-uploads/driver/c9379da7-e04c-4f42-8d08-87dd0bc723dc/1786521234663_traffic-info-v2-1786521215765-69c07993.pdf",
+        "public_url": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/admin-uploads/driver/c9379da7-e04c-4f42-8d08-87dd0bc723dc/1786521234663_traffic-info-v2-1786521215765-69c07993.pdf",
+        "original_name": "traffic-info-v2-1786521215765-69c07993.pdf",
+        "content_type": "application/pdf",
+        "file_size_bytes": 45,
+        "source": "manager_upload",
+        "uploaded_by": null,
+        "metadata_id": null,
+        "expiry_date": "2029-08-12",
+        "created_at": "2026-08-12T07:53:56.518824+00:00"
+      },
+      "ui": true
+    },
+    {
+      "id": "health-declaration-hub",
+      "name": "Hub health_declaration has +5 years expiry in DB and UI",
+      "ok": true,
+      "expected": "2031-08-12",
+      "formatted": "12.8.2031",
+      "expiry": "2031-08-12",
+      "source": "manager_upload"
+    },
+    {
+      "id": "public-document-request-create",
+      "name": "Admin edge create returns raw token while DB stores token_hash",
+      "ok": true,
+      "requestId": "354c5812-a835-4cb7-a4cc-a4800dd71bc3",
+      "status": "sent",
+      "tokenHashPresent": true
+    },
+    {
+      "id": "public-document-request-token-hash",
+      "name": "document_requests uses token_hash and no raw token field",
+      "ok": true,
+      "requestId": "354c5812-a835-4cb7-a4cc-a4800dd71bc3",
+      "tokenHashPresent": true
+    },
+    {
+      "id": "public-document-request-flow",
+      "name": "Public request opens, uploads, transitions, and approves safely",
+      "ok": false,
+      "opened": "opened",
+      "uploaded": "pending_approval",
+      "finalStatus": "pending_approval",
+      "approveSupported": true,
+      "approvalError": "Cannot read properties of undefined (reading 'email')"
+    },
+    {
+      "id": "message-uri-construction",
+      "name": "WhatsApp and SMS URIs are constructed without sending",
+      "ok": true,
+      "wa": "https://wa.me/972500000123?text=QA%20https%3A%2F%2Forin1607-ctrl.github.io%2Ffuture-craft-core%2Fsign-declaration%3Ftoken%3Dqa-token",
+      "sms": "sms:0500000123?body=QA%20https%3A%2F%2Forin1607-ctrl.github.io%2Ffuture-craft-core%2Ftake-exam%3Ft%3Dqa-token",
+      "note": "URI strings verified only; no navigation/send performed"
+    },
+    {
+      "id": "driver-declaration-sign",
+      "name": "Token declaration accepts minimal canvas signature and becomes signed",
+      "ok": true,
+      "status": "signed",
+      "expiresAt": "2031-08-12T07:54:15.222+00:00"
+    },
+    {
+      "id": "driving-exam",
+      "name": "Exam token opens; completed DB result and driving deep-link are visible",
+      "ok": false,
+      "opened": false,
+      "publicPageUrl": "https://orin1607-ctrl.github.io/future-craft-core/take-exam/?t=f7797422-c650-4f3d-9321-ae92bb1f7dd9",
+      "publicPageSnippet": "המבחן לא נמצא",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/drivers/?driverId=c9379da7-e04c-4f42-8d08-87dd0bc723dc&section=driving",
+      "expiry": "2027-08-12"
+    },
+    {
+      "id": "accident-image-and-uuid",
+      "name": "Accident storage image renders and opens the same UUID",
+      "ok": true,
+      "thumbVisible": true,
+      "accidentId": "1067cce4-62bd-459c-86be-fa276da5b20a",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/accidents?id=1067cce4-62bd-459c-86be-fa276da5b20a"
+    },
+    {
+      "id": "activity-filter-search",
+      "name": "Activity timeline filter and search controls work",
+      "ok": true,
+      "activityHeading": true
+    },
+    {
+      "id": "notes-refresh-persist",
+      "name": "Driver notes save and persist after refresh",
+      "ok": true,
+      "uiValue": "persisted note 1786521215765-69c07993",
+      "dbValue": "persisted note 1786521215765-69c07993"
+    },
+    {
+      "id": "deep-link-documents",
+      "name": "Driver deep-link opens documents section",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/drivers/?driverId=c9379da7-e04c-4f42-8d08-87dd0bc723dc&section=documents"
+    },
+    {
+      "id": "deep-link-driving",
+      "name": "Driver deep-link opens driving section",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/drivers/?driverId=c9379da7-e04c-4f42-8d08-87dd0bc723dc&section=driving"
+    },
+    {
+      "id": "deep-link-activity",
+      "name": "Driver deep-link opens activity section",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/drivers/?driverId=c9379da7-e04c-4f42-8d08-87dd0bc723dc&section=activity"
+    },
+    {
+      "id": "mobile-iphone13-driver-hub",
+      "name": "iPhone 13 DriverHub smoke",
+      "ok": true,
+      "visible": [
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": "rbac-super-admin-alert-settings",
+      "name": "super_admin can access alert-settings toggles",
+      "ok": true,
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Complementary Admin\n\nQA Complementary 1786521215765-69c07993\n\nמנהל על\nכל החברות\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nחברות הסעות\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nמרכז ניהול\n▼\nהתנתקות\n← חזרה לכפתורים ומודולים\nהגדרות חברות\n"
+    },
+    {
+      "id": "rbac-driver-alert-settings",
+      "name": "role=driver cannot access alert-settings toggles",
+      "ok": true,
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Complementary Driver User\n\nQA Complementary 1786521215765-69c07993\n\nנהג\nדשבורד\nהתראות\nלוח זמנים\nדיווח תקלה\nדלק וחשבוניות\nתאונה וחירום\nהחלפת נהג\nסידור עבודה\nהיסטוריה טיפולים\nשירותי חירום 24/7\nהתנתקות\nדשבורד נהג\n\nQA Complementary Driver User\n\nQA Complementary"
+    },
+    {
+      "id": "cleanup",
+      "name": "All ephemeral QA rows and storage objects removed",
+      "ok": true,
+      "errors": []
+    }
+  ],
+  "consoleErrors": [],
+  "networkErrors": [],
+  "cleanup": {
+    "attempted": true,
+    "ok": true,
+    "errors": []
+  },
+  "ok": false,
+  "documentRequest": {
+    "requestId": "354c5812-a835-4cb7-a4cc-a4800dd71bc3",
+    "token": "[redacted from report]",
+    "uploadUrl": "https://orin1607-ctrl.github.io/future-craft-core/upload-request?t=[redacted]"
+  }
+}

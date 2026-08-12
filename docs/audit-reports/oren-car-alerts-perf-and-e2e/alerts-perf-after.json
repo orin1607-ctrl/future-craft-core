@@ -1,0 +1,17 @@
+{
+  "at": "2026-08-12T07:57:05.159Z",
+  "label": "after",
+  "bundle": "assets/index-CLWinnS3.js",
+  "usableMs": 6767,
+  "companySettingsRequests": 1,
+  "companySettingsUniqueUrls": 1,
+  "companySettings": [
+    {
+      "status": 200,
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/company_settings?select=id%2Ccompany_name%2Calert_days_before%2Creminder_30_days%2Creminder_7_days%2Creminder_1_day%2Crequire_driver_assignment%2Cmax_v",
+      "at": 1786521420635
+    }
+  ],
+  "alertCountHint": 7,
+  "hasError": false
+}

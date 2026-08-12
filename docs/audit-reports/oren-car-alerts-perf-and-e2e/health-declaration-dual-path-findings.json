@@ -1,0 +1,48 @@
+{
+  "at": "2026-08-12T07:40:00.000Z",
+  "scope": "Read-only codebase analysis; no code or data migration performed",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "finding": "Health declarations currently have two independent persistence and display paths.",
+  "paths": [
+    {
+      "name": "DriverHub document path",
+      "route": "/drivers?driverId=<uuid>&section=documents",
+      "table": "document_versions",
+      "selector": {
+        "entity_type": "driver",
+        "document_type_key": "health_declaration"
+      },
+      "expiryRule": "issue date + 5 years",
+      "sourceForManagerUpload": "manager_upload",
+      "consumedByAlerts": true
+    },
+    {
+      "name": "Legacy health declaration path",
+      "route": "/health-declaration",
+      "table": "driver_health_declarations",
+      "consumedByAlerts": false
+    }
+  ],
+  "alertsBehavior": {
+    "file": "src/pages/Alerts.tsx",
+    "readsDriverHealthFrom": "document_versions",
+    "readsLegacyDriverHealthDeclarations": false,
+    "impact": "A declaration saved only through the legacy route can exist in the database while remaining invisible to DriverHub document expiry alerts."
+  },
+  "recommendation": {
+    "choice": "ב",
+    "title": "Hide the legacy /health-declaration path",
+    "rationale": [
+      "DriverHub document_versions is already the alert-aware canonical path.",
+      "Keeping both entry points visible creates a silent split-brain state that users cannot reliably diagnose.",
+      "Hiding the legacy route is lower risk than an immediate merge because it avoids schema mapping, historical deduplication, expiry backfill, and attachment migration decisions.",
+      "Option ג (merge) should be a later, separately approved migration with reconciliation rules, rollback, and historical-data validation."
+    ],
+    "notPerformed": [
+      "No route was hidden",
+      "No code was changed",
+      "No legacy rows were migrated",
+      "No Production or Hostinger system was accessed"
+    ]
+  }
+}
