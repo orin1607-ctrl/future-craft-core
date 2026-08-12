@@ -1,0 +1,28 @@
+{
+  "at": "2026-08-12T06:00:00.000Z",
+  "purpose": "Restore point before adding show/hide toggles for יש לטפל / דורש טיפול (display only, per company)",
+  "repository": "future-craft-core-STAGING",
+  "remote": "https://github.com/orin1607-ctrl/future-craft-core.git",
+  "branch": "feat/incident-alerts-staging",
+  "head": "d7b70eadba3bd43d7f10feca54f50579fbe84635",
+  "head_short": "d7b70ea",
+  "head_message": "test(oren-car): harden driver accident QA prefill assertion",
+  "tracking": "feat/incident-alerts-staging...origin/feat/incident-alerts-staging",
+  "supabaseStaging": "usfeoerkpcafxxlyuldl",
+  "git_status_note": "Clean tracked tree vs origin; many unrelated untracked WIP files — must NOT be committed",
+  "existing_red_columns": [
+    "company_settings.show_insurance_attention_red",
+    "company_settings.show_gaps_attention_red"
+  ],
+  "proposed_visibility_columns": [
+    "company_settings.show_insurance_attention",
+    "company_settings.show_gaps_attention"
+  ],
+  "migration_status": "NOT_APPLIED — awaiting Owner approval before any Migration",
+  "constraints": [
+    "No Hostinger",
+    "No Production",
+    "No Production DB",
+    "No Deploy to live site"
+  ]
+}

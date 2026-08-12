@@ -278,7 +278,9 @@ export type Database = {
           require_driver_assignment: boolean
           require_insurance_docs: boolean
           require_no_claims: boolean
+          show_gaps_attention: boolean
           show_gaps_attention_red: boolean
+          show_insurance_attention: boolean
           show_insurance_attention_red: boolean
           updated_at: string | null
           vehicle_approval_required: boolean | null
@@ -305,7 +307,9 @@ export type Database = {
           require_driver_assignment?: boolean
           require_insurance_docs?: boolean
           require_no_claims?: boolean
+          show_gaps_attention?: boolean
           show_gaps_attention_red?: boolean
+          show_insurance_attention?: boolean
           show_insurance_attention_red?: boolean
           updated_at?: string | null
           vehicle_approval_required?: boolean | null
@@ -332,7 +336,9 @@ export type Database = {
           require_driver_assignment?: boolean
           require_insurance_docs?: boolean
           require_no_claims?: boolean
+          show_gaps_attention?: boolean
           show_gaps_attention_red?: boolean
+          show_insurance_attention?: boolean
           show_insurance_attention_red?: boolean
           updated_at?: string | null
           vehicle_approval_required?: boolean | null
