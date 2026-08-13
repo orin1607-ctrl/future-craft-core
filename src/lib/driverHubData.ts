@@ -29,6 +29,11 @@ export function parseDriverHubSection(raw: string | null | undefined): DriverHub
   return 'home';
 }
 
+/** Old `section=requests` still valid — opens Documents hub, requests block. */
+export function isDocumentsHubSection(section: DriverHubSection): boolean {
+  return section === 'documents' || section === 'requests';
+}
+
 export type DriverDocumentVersionRow = {
   id: string;
   document_type_key: string;
@@ -349,6 +354,16 @@ export async function loadDriverHubData(params: {
 export function documentsTileValue(counters: DriverHubCounters): { value: string; warn: boolean } {
   const n = counters.documentsNeedingAttention + (counters.licenseNeedsAttention ? 1 : 0);
   if (n > 0) return { value: `${n} דורשים טיפול`, warn: true };
+  return { value: 'הכול תקין', warn: false };
+}
+
+/** Merged Documents tile: files + pending driver requests. */
+export function documentsHubTileValue(counters: DriverHubCounters): { value: string; warn: boolean } {
+  const n = counters.documentsNeedingAttention + (counters.licenseNeedsAttention ? 1 : 0);
+  const p = counters.pendingRequests;
+  if (n > 0 && p > 0) return { value: `${n} לטיפול · ${p} בקשות`, warn: true };
+  if (n > 0) return { value: `${n} דורשים טיפול`, warn: true };
+  if (p > 0) return { value: `${p} בקשות ממתינות`, warn: true };
   return { value: 'הכול תקין', warn: false };
 }
 

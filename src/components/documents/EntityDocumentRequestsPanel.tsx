@@ -24,6 +24,10 @@ type Props = {
   recipientEmail?: string;
   companyName?: string;
   onHubRefresh?: () => void;
+  /** DriverHub already has a single upload area — hide the duplicate button. */
+  hideUpload?: boolean;
+  /** DriverHub already lists document versions. */
+  hideVersions?: boolean;
 };
 
 export default function EntityDocumentRequestsPanel({
@@ -35,6 +39,8 @@ export default function EntityDocumentRequestsPanel({
   recipientEmail,
   companyName,
   onHubRefresh,
+  hideUpload = false,
+  hideVersions = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -99,10 +105,12 @@ export default function EntityDocumentRequestsPanel({
               <RefreshCw size={14} />
               רענון
             </Button>
-            <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => setUploadOpen(true)}>
-              <Upload size={14} />
-              העלה מהמחשב
-            </Button>
+            {!hideUpload && (
+              <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => setUploadOpen(true)}>
+                <Upload size={14} />
+                העלה מהמחשב
+              </Button>
+            )}
             <Button type="button" className="gap-1" onClick={() => setOpen(true)}>
               <FilePlus2 size={16} />
               בקש מסמך (קישור)
@@ -110,14 +118,16 @@ export default function EntityDocumentRequestsPanel({
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          &quot;בקש מסמך&quot; יוצר קישור לנהג. להעלאת קובץ ישירות — השתמשו בפאנל &quot;מסמכי נהג — העלאת קובץ&quot; למעלה.
+          {hideUpload
+            ? '«בקש מסמך» יוצר קישור לנהג. העלאת קובץ ישירות — באזור המסמכים למעלה.'
+            : '«בקש מסמך» יוצר קישור לנהג. להעלאת קובץ ישירות — השתמשו בפאנל «מסמכי נהג — העלאת קובץ» למעלה.'}
         </p>
       </div>
 
       {loading && <p className="text-sm text-muted-foreground">טוען…</p>}
 
-      {!loading && requests.length === 0 && versions.length === 0 && (
-        <p className="text-sm text-muted-foreground">אין בקשות או גרסאות מסמך עדיין</p>
+      {!loading && requests.length === 0 && (hideVersions || versions.length === 0) && (
+        <p className="text-sm text-muted-foreground">אין בקשות עדיין</p>
       )}
 
       {requests.length > 0 && (
@@ -173,7 +183,7 @@ export default function EntityDocumentRequestsPanel({
         </div>
       )}
 
-      {versions.length > 0 && (
+      {!hideVersions && versions.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium">גרסאות מסמך (ללא מחיקה)</p>
           {versions.slice(0, 15).map((v) => (

@@ -2,11 +2,9 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
-  ChevronLeft,
   FileText,
   AlertTriangle,
   StickyNote,
-  Send,
   Car,
   LayoutDashboard,
   Edit2,
@@ -41,8 +39,8 @@ import {
   loadDriverHubData,
   hubVersionsByType,
   parseDriverHubSection,
-  documentsTileValue,
-  requestsTileValue,
+  isDocumentsHubSection,
+  documentsHubTileValue,
   drivingTileValue,
   activityTileValue,
   DRIVER_LICENSE_TYPE,
@@ -60,8 +58,6 @@ import {
   formatIsraelDate,
   daysUntilDate,
 } from '@/lib/driverDocumentExpiry';
-import { REQUEST_STATUS_LABELS } from '@/lib/documentRequestClient';
-
 export interface DriverHubDriver {
   id: string;
   full_name: string;
@@ -95,31 +91,25 @@ type Props = {
 
 function HubTile({
   label,
-  value,
-  warn,
+  description,
+  status,
   onClick,
 }: {
   label: string;
-  value: string;
-  warn?: boolean;
+  description: string;
+  status?: string;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-xl p-4 border min-h-[96px] text-right w-full transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-        warn ? 'border-amber-500/50 bg-amber-50/40 dark:bg-amber-950/20' : 'border-border bg-muted/50'
-      }`}
+      className="rounded-xl p-5 sm:p-6 text-right w-full min-h-[124px] sm:min-h-[148px] border border-white/10 bg-[hsl(218,58%,18%)] hover:bg-[hsl(218,58%,21%)] focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background transition-colors"
     >
-      <p className="text-xs text-muted-foreground leading-snug mb-1 flex items-center justify-between gap-1">
-        {label}
-        <ChevronLeft size={16} className={`shrink-0 ${warn ? 'text-amber-600' : 'text-primary'}`} />
-      </p>
-      <p className={`text-base font-bold leading-snug ${warn ? 'text-amber-700 dark:text-amber-400' : ''}`}>
-        {value}
-      </p>
-      <p className="text-[10px] text-primary mt-2 font-semibold">לחץ לפירוט</p>
+      <p className="text-xl sm:text-2xl font-extrabold text-white leading-tight">{label}</p>
+      <p className="text-sm text-white/70 mt-2 leading-snug">{description}</p>
+      {status ? <p className="text-[11px] text-white/40 mt-1.5 leading-snug">{status}</p> : null}
+      <p className="text-sm font-semibold mt-3 text-primary">לחץ לפריט</p>
     </button>
   );
 }
@@ -195,12 +185,6 @@ export default function DriverHub({
   const [docDateFrom, setDocDateFrom] = useState('');
   const [docDateTo, setDocDateTo] = useState('');
 
-  // Requests filters
-  const [reqStatusFilter, setReqStatusFilter] = useState('all');
-  const [reqTypeFilter, setReqTypeFilter] = useState('');
-  const [reqSearch, setReqSearch] = useState('');
-  const [reqDateFrom, setReqDateFrom] = useState('');
-
   // Driving filters
   const [driveKind, setDriveKind] = useState<'all' | 'exams' | 'accidents'>('all');
   const [driveSearch, setDriveSearch] = useState('');
@@ -266,6 +250,12 @@ export default function DriverHub({
   }, [refresh]);
 
   useEffect(() => {
+    if (section !== 'requests' || loading) return;
+    const el = document.getElementById('hub-doc-requests');
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [section, loading]);
+
+  useEffect(() => {
     setNotes(d.notes || '');
   }, [d.id, d.notes]);
 
@@ -287,9 +277,8 @@ export default function DriverHub({
   const assigned = hubData?.assignedVehicle;
 
   const docsTile = counters
-    ? documentsTileValue(counters)
+    ? documentsHubTileValue(counters)
     : { value: '…', warn: false };
-  const reqsTile = counters ? requestsTileValue(counters) : { value: '…', warn: false };
   const driveTile = counters ? drivingTileValue(counters) : { value: '…', warn: false };
   const actTile = counters
     ? activityTileValue(counters, !!d.notes?.trim())
@@ -370,14 +359,21 @@ export default function DriverHub({
 
   const sectionTitle: Record<DriverHubSection, string> = {
     home: '',
-    documents: 'מסמכים ורישיון',
-    requests: 'בקשות ושליחה',
-    driving: 'נהיגה',
-    activity: 'פעילות והערות',
+    documents: 'מסמכים',
+    requests: 'מסמכים',
+    driving: 'מבחנים ותאונות',
+    activity: 'היסטוריה והערות',
   };
 
   const renderDocuments = () => (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-lg font-bold">רישיון ומסמכים</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            קבצים שכבר בתיק. העלאה מכאן בלבד. «הצהרת בריאות» כאן היא מסמך קובץ — לא תצהיר הנהג למטה.
+          </p>
+        </div>
       {isManager && (
         <div className="flex flex-wrap gap-2">
           <Button type="button" className="gap-2" onClick={() => openUpload()}>
@@ -395,9 +391,6 @@ export default function DriverHub({
           </Button>
           <Button type="button" variant="outline" className="gap-2" onClick={() => openUpload(TRAFFIC_TICKET_TYPE)}>
             דוח תעבורה
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => setSection('requests')}>
-            בקש מסמך מהנהג →
           </Button>
         </div>
       )}
@@ -489,80 +482,20 @@ export default function DriverHub({
       )}
 
       <p className="text-xs text-muted-foreground">
-        מידע תעבורתי = 3 שנים · הצהרת בריאות = 5 שנים (לפי הגדרת סוג המסמך ב-Document Hub)
+        מידע תעבורתי = 3 שנים · הצהרת בריאות (מסמך) = 5 שנים
       </p>
-    </div>
-  );
+      </section>
 
-  const renderRequests = () => (
-    <div className="space-y-6">
-      {!isManager ? (
-        <p className="text-sm text-muted-foreground">אין הרשאה לניהול בקשות</p>
-      ) : (
-        <>
-          <FilterBar>
-            <select className={selectCls()} value={reqStatusFilter} onChange={(e) => setReqStatusFilter(e.target.value)}>
-              <option value="all">כל הסטטוסים</option>
-              {Object.entries(REQUEST_STATUS_LABELS).map(([k, label]) => (
-                <option key={k} value={k}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <select className={selectCls()} value={reqTypeFilter} onChange={(e) => setReqTypeFilter(e.target.value)}>
-              <option value="">כל הסוגים</option>
-              {docTypeOptions.map(([k, label]) => (
-                <option key={k} value={k}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <input type="date" className={selectCls()} value={reqDateFrom} onChange={(e) => setReqDateFrom(e.target.value)} />
-            <input
-              value={reqSearch}
-              onChange={(e) => setReqSearch(e.target.value)}
-              placeholder="חיפוש בקשה…"
-              className={`${selectCls()} flex-1 min-w-[140px]`}
-            />
-          </FilterBar>
-
-          <div className="space-y-2">
-            {(hubData?.requests || [])
-              .filter((r) => {
-                if (reqStatusFilter !== 'all' && r.status !== reqStatusFilter) return false;
-                if (reqTypeFilter && r.document_type_key !== reqTypeFilter) return false;
-                if (reqDateFrom && r.created_at.slice(0, 10) < reqDateFrom) return false;
-                if (reqSearch.trim()) {
-                  const q = reqSearch.trim().toLowerCase();
-                  if (
-                    !r.document_type_key.toLowerCase().includes(q) &&
-                    !r.status.toLowerCase().includes(q) &&
-                    !(r.notes || '').toLowerCase().includes(q)
-                  ) {
-                    return false;
-                  }
-                }
-                return true;
-              })
-              .map((r) => (
-                <div key={r.id} className="rounded-xl border border-border p-3 text-sm">
-                  <div className="flex justify-between gap-2 flex-wrap">
-                    <span className="font-bold">{r.document_type_key}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
-                      {REQUEST_STATUS_LABELS[r.status] || r.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatIsraelDate(r.created_at)}
-                    {r.channel ? ` · ${r.channel}` : ''}
-                  </p>
-                </div>
-              ))}
-            {(hubData?.requests || []).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">אין בקשות — צרו בקשה למטה</p>
-            )}
-          </div>
-
+      <section id="hub-doc-requests" className="space-y-4 scroll-mt-4">
+        <div>
+          <h3 className="text-lg font-bold">בקשות מהנהג</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            קישור לנהג להעלאה. שונה מהעלאה הישירה למעלה.
+          </p>
+        </div>
+        {!isManager ? (
+          <p className="text-sm text-muted-foreground">אין הרשאה לניהול בקשות</p>
+        ) : (
           <EntityDocumentRequestsPanel
             entityType="driver"
             entityId={d.id}
@@ -572,10 +505,21 @@ export default function DriverHub({
             recipientEmail={d.email}
             companyName={d.company_name}
             onHubRefresh={() => void refresh()}
+            hideUpload
+            hideVersions
           />
+        )}
+      </section>
 
-          <div className="card-elevated border border-border rounded-xl p-4">
-            <h3 className="text-lg font-bold mb-3">תצהיר נהג</h3>
+      {isManager && (
+        <section id="hub-doc-declaration" className="space-y-3">
+          <div>
+            <h3 className="text-lg font-bold">תצהיר נהג</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              תהליך חתימה מול הנהג. לא אותו דבר כמו «הצהרת בריאות» (מסמך קובץ) למעלה.
+            </p>
+          </div>
+          <div className="rounded-xl border border-border p-4">
             <DriverDeclaration
               driverId={d.id}
               driverName={d.full_name}
@@ -586,7 +530,7 @@ export default function DriverHub({
               mode="manager"
             />
           </div>
-        </>
+        </section>
       )}
     </div>
   );
@@ -693,7 +637,6 @@ export default function DriverHub({
                       <th className="p-2 text-right">תאריך</th>
                       <th className="p-2 text-right">רכב</th>
                       <th className="p-2 text-right">סטטוס</th>
-                      <th className="p-2 text-right">תמונות</th>
                       <th className="p-2"></th>
                     </tr>
                   </thead>
@@ -701,21 +644,20 @@ export default function DriverHub({
                     {filteredAccidents.map((a) => (
                       <tr key={a.id} className="border-b border-border/50">
                         <td className="p-2 whitespace-nowrap">{formatIsraelDate(a.date)}</td>
-                        <td className="p-2 font-mono">{a.vehicle_plate}</td>
-                        <td className="p-2">{a.status}</td>
                         <td className="p-2">
-                          <div className="flex gap-1">
-                            {a.imageUrls.slice(0, 3).map((url, i) => (
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono">{a.vehicle_plate}</span>
+                            {a.imageUrls.slice(0, 2).map((url, i) => (
                               <img
                                 key={i}
                                 src={url}
                                 alt=""
-                                className="w-10 h-10 rounded object-cover border border-border"
+                                className="w-8 h-8 rounded object-cover border border-border shrink-0"
                               />
                             ))}
-                            {a.imageUrls.length === 0 && <span className="text-muted-foreground text-xs">—</span>}
                           </div>
                         </td>
+                        <td className="p-2">{a.status}</td>
                         <td className="p-2">
                           <Link
                             to={`/accidents?id=${a.id}`}
@@ -737,11 +679,13 @@ export default function DriverHub({
                       <span className="text-xs text-muted-foreground">{formatIsraelDate(a.date)}</span>
                     </div>
                     <p className="text-sm">{a.status}</p>
-                    <div className="flex gap-1 overflow-x-auto">
-                      {a.imageUrls.slice(0, 4).map((url, i) => (
-                        <img key={i} src={url} alt="" className="w-14 h-14 rounded object-cover border border-border shrink-0" />
-                      ))}
-                    </div>
+                    {a.imageUrls.length > 0 && (
+                      <div className="flex gap-1 overflow-x-auto">
+                        {a.imageUrls.slice(0, 3).map((url, i) => (
+                          <img key={i} src={url} alt="" className="w-12 h-12 rounded object-cover border border-border shrink-0" />
+                        ))}
+                      </div>
+                    )}
                     <Link to={`/accidents?id=${a.id}`} className="text-primary font-bold text-sm inline-block">
                       פתח תאונה →
                     </Link>
@@ -783,7 +727,7 @@ export default function DriverHub({
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-lg font-bold">פעילות מתועדת</h3>
+        <h3 className="text-lg font-bold">היסטוריה מתועדת</h3>
         <p className="text-xs text-muted-foreground">
           רק אירועים עם חותמת זמן ממקורות קיימים — לא audit מלא של שינויי שדות
         </p>
@@ -845,18 +789,10 @@ export default function DriverHub({
   );
 
   const renderSectionContent = () => {
-    switch (section) {
-      case 'documents':
-        return renderDocuments();
-      case 'requests':
-        return renderRequests();
-      case 'driving':
-        return renderDriving();
-      case 'activity':
-        return renderActivity();
-      default:
-        return null;
-    }
+    if (isDocumentsHubSection(section)) return renderDocuments();
+    if (section === 'driving') return renderDriving();
+    if (section === 'activity') return renderActivity();
+    return null;
   };
 
   return (
@@ -1075,29 +1011,23 @@ export default function DriverHub({
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <HubTile
-                label="מסמכים ורישיון"
-                value={docsTile.value}
-                warn={docsTile.warn}
+                label="מסמכים"
+                description="רישיון, מסמכים, בקשות, תצהירים, תוקפים"
+                status={docsTile.value}
                 onClick={() => setSection('documents')}
               />
               <HubTile
-                label="בקשות ושליחה"
-                value={reqsTile.value}
-                warn={reqsTile.warn}
-                onClick={() => setSection('requests')}
-              />
-              <HubTile
-                label="נהיגה"
-                value={driveTile.value}
-                warn={driveTile.warn}
+                label="מבחנים ותאונות"
+                description="מבחני כשירות, תאונות, דיווחים, תמונות"
+                status={driveTile.value}
                 onClick={() => setSection('driving')}
               />
               <HubTile
-                label="פעילות והערות"
-                value={actTile.value}
-                warn={actTile.warn}
+                label="היסטוריה והערות"
+                description="יומן פעילות, הערות, תיעוד"
+                status={actTile.value}
                 onClick={() => setSection('activity')}
               />
             </div>
@@ -1119,8 +1049,7 @@ export default function DriverHub({
           <div className="card-elevated mb-4 p-3">
             <h1 className="text-xl font-bold">{d.full_name}</h1>
             <p className="text-sm text-muted-foreground flex items-center gap-2">
-              {section === 'documents' && <FileText size={14} />}
-              {section === 'requests' && <Send size={14} />}
+              {isDocumentsHubSection(section) && <FileText size={14} />}
               {section === 'driving' && <AlertTriangle size={14} />}
               {section === 'activity' && <StickyNote size={14} />}
               {sectionTitle[section]}
