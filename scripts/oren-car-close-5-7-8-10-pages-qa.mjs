@@ -294,18 +294,27 @@ async function main() {
     await isolate('t5', async () => {
     await page.goto(`${BASE}/vehicles?vehicleId=${vehA.id}&view=hub`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitPage(page);
-    const docsTab = page.getByRole('button', { name: /^מסמכים$/ }).or(page.getByText('מסמכים', { exact: true })).first();
-    if (await docsTab.count()) await docsTab.click().catch(() => null);
+    rec('t5', 'Hub exposes existing מסמכים screen for this vehicle', (await page.getByRole('button', { name: /^מסמכים$/ }).count()) > 0);
+
+    const docsUrl = (category) =>
+      `${BASE}/documents?plate=${encodeURIComponent(plateA)}&vehicleId=${vehA.id}&context=vehicle&category=${category}`;
+
+    await page.goto(docsUrl('vehicle-license'), { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitPage(page);
-    rec('t5', 'Hub docs upload actions visible', /העלה רישיון|העלה ביטוח/.test(await body(page)));
-    await page.getByRole('button', { name: /העלה רישיון רכב/ }).click();
-    await waitPage(page);
-    rec('t5', 'License documents category opens', /רישיונות רכב|העלאה|בחר קובץ/.test(await body(page)));
+    if (!(await page.locator('input[type="file"]').count())) {
+      await page.getByText('רישיונות רכב').first().click().catch(() => null);
+      await waitPage(page);
+      if (!(await page.locator('input[type="file"]').count())) {
+        await page.getByRole('button', { name: /העלאה/ }).click().catch(() => null);
+        await waitPage(page);
+      }
+    }
+    rec('t5', 'License documents category opens', /רישיונות רכב|העלאה/.test(await body(page)));
     const fileInput = page.locator('input[type="file"]').first();
     rec('t5', 'File input present for license', (await fileInput.count()) > 0);
     if (await fileInput.count()) {
       await fileInput.setInputFiles(pdfLicense);
-      await page.waitForTimeout(3500);
+      await page.waitForTimeout(4000);
     }
     rec('t5', 'License upload finished without error toast', !(await body(page)).includes('שגיאה בהעלאת'));
     rec('t5', 'License file listed or linked', /qa-license|pdf|מסמך|רישיון/.test(await body(page)));
@@ -314,16 +323,21 @@ async function main() {
     const { data: vehDocs1 } = await admin.from('vehicles').select('license_doc_url, insurance_doc_url').eq('id', vehA.id).maybeSingle();
     rec('t5', 'license_doc_url persisted', Boolean(vehDocs1?.license_doc_url), { value: vehDocs1?.license_doc_url });
 
-    await page.goto(`${BASE}/vehicles?vehicleId=${vehA.id}&view=hub`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.goto(docsUrl('insurance'), { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitPage(page);
-    await page.getByRole('button', { name: /^מסמכים$/ }).click().catch(() => null);
-    await waitPage(page);
-    await page.getByRole('button', { name: /העלה ביטוח חובה/ }).click();
-    await waitPage(page);
+    if (!(await page.locator('input[type="file"]').count())) {
+      await page.getByText('ביטוח חובה').first().click().catch(() => null);
+      await waitPage(page);
+      if (!(await page.locator('input[type="file"]').count())) {
+        await page.getByRole('button', { name: /העלאה/ }).click().catch(() => null);
+        await waitPage(page);
+      }
+    }
     const fileInput2 = page.locator('input[type="file"]').first();
+    rec('t5', 'File input present for insurance', (await fileInput2.count()) > 0);
     if (await fileInput2.count()) {
       await fileInput2.setInputFiles(pdfInsurance);
-      await page.waitForTimeout(3500);
+      await page.waitForTimeout(4000);
     }
     rec('t5', 'Insurance upload finished without error toast', !(await body(page)).includes('שגיאה בהעלאת'));
     await shot(page, 't5-insurance-upload.png');
@@ -338,11 +352,18 @@ async function main() {
       rec('t5', 'Insurance document URL opens', openedIns.ok, { status: openedIns.status });
     }
 
+    const { data: metaDocs } = await admin.from('document_metadata').select('id, category, vehicle_plate').eq('company_name', companyA);
+    rec('t5', 'No duplicate license/insurance metadata', (metaDocs || []).filter((d) => d.category === 'vehicle-license').length <= 1 && (metaDocs || []).filter((d) => d.category === 'insurance').length <= 1, { count: metaDocs?.length || 0 });
+
     await page.goto(`${BASE}/vehicles?vehicleId=${vehA.id}&view=hub`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitPage(page);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitPage(page);
-    rec('t5', 'After refresh hub still has license/insurance urls in UI or DB', Boolean(vehDocs2?.license_doc_url && vehDocs2?.insurance_doc_url) && /רישיון|ביטוח|מסמך|pdf/.test(await body(page)));
+    await page.getByRole('button', { name: /^פעולות רכב$/ }).click().catch(() => null);
+    await waitPage(page);
+    await page.getByRole('button', { name: /^מסמכים$/ }).last().click().catch(() => null);
+    await waitPage(page);
+    rec('t5', 'After refresh+re-enter hub still shows license/insurance', Boolean(vehDocs2?.license_doc_url && vehDocs2?.insurance_doc_url) && /רישיון|ביטוח|מסמך|pdf|qa-/.test(await body(page)));
     rec('t5', 'No duplicate invented Beeri docs', !(await body(page)).includes('בארי'));
     if (vehDocs2?.license_doc_url) {
       rec('t5', 'License URL is openable http(s)', /^https?:\/\//.test(vehDocs2.license_doc_url));
