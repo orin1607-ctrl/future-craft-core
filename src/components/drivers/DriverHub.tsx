@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
-  ChevronLeft,
   FileText,
   AlertTriangle,
   StickyNote,
@@ -92,31 +91,25 @@ type Props = {
 
 function HubTile({
   label,
-  value,
-  warn,
+  description,
+  status,
   onClick,
 }: {
   label: string;
-  value: string;
-  warn?: boolean;
+  description: string;
+  status?: string;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-xl p-4 border min-h-[96px] text-right w-full transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-        warn ? 'border-amber-500/50 bg-amber-50/40 dark:bg-amber-950/20' : 'border-border bg-muted/50'
-      }`}
+      className="rounded-xl p-5 sm:p-6 text-right w-full min-h-[124px] sm:min-h-[148px] border border-white/10 bg-[hsl(218,58%,18%)] hover:bg-[hsl(218,58%,21%)] focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background transition-colors"
     >
-      <p className="text-xs text-muted-foreground leading-snug mb-1 flex items-center justify-between gap-1">
-        {label}
-        <ChevronLeft size={16} className={`shrink-0 ${warn ? 'text-amber-600' : 'text-primary'}`} />
-      </p>
-      <p className={`text-base font-bold leading-snug ${warn ? 'text-amber-700 dark:text-amber-400' : ''}`}>
-        {value}
-      </p>
-      <p className="text-[10px] text-primary mt-2 font-semibold">לחץ לפירוט</p>
+      <p className="text-xl sm:text-2xl font-extrabold text-white leading-tight">{label}</p>
+      <p className="text-sm text-white/70 mt-2 leading-snug">{description}</p>
+      {status ? <p className="text-[11px] text-white/40 mt-1.5 leading-snug">{status}</p> : null}
+      <p className="text-sm font-semibold mt-3 text-primary">לחץ לפריט</p>
     </button>
   );
 }
@@ -1018,23 +1011,23 @@ export default function DriverHub({
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <HubTile
                 label="מסמכים"
-                value={docsTile.value}
-                warn={docsTile.warn}
+                description="רישיון, מסמכים, בקשות, תצהירים, תוקפים"
+                status={docsTile.value}
                 onClick={() => setSection('documents')}
               />
               <HubTile
                 label="מבחנים ותאונות"
-                value={driveTile.value}
-                warn={driveTile.warn}
+                description="מבחני כשירות, תאונות, דיווחים, תמונות"
+                status={driveTile.value}
                 onClick={() => setSection('driving')}
               />
               <HubTile
                 label="היסטוריה והערות"
-                value={actTile.value}
-                warn={actTile.warn}
+                description="יומן פעילות, הערות, תיעוד"
+                status={actTile.value}
                 onClick={() => setSection('activity')}
               />
             </div>
