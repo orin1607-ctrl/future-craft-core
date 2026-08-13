@@ -729,6 +729,33 @@ export default function VehicleHub({
       case 'docs':
         return (
           <div className="space-y-2">
+            {isManager && (
+              <div className="flex flex-col sm:flex-row gap-2 mb-2">
+                <Button
+                  type="button"
+                  className="h-11 font-bold"
+                  onClick={() =>
+                    navigate(
+                      `${buildVehicleContextUrl('/documents', { plate: v.license_plate, vehicleId: v.id })}&category=vehicle-license`,
+                    )
+                  }
+                >
+                  העלה רישיון רכב
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 font-bold"
+                  onClick={() =>
+                    navigate(
+                      `${buildVehicleContextUrl('/documents', { plate: v.license_plate, vehicleId: v.id })}&category=insurance`,
+                    )
+                  }
+                >
+                  העלה ביטוח חובה
+                </Button>
+              </div>
+            )}
             {data.docs.length === 0 ? (
               <EmptyTab text="אין מסמך שמור לרכב זה (רישיון/ביטוח יופיעו רק אם קיים קישור או קובץ אמיתי)" />
             ) : (

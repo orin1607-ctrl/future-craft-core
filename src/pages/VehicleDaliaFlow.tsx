@@ -263,6 +263,8 @@ export function VehicleDaliaFlow({
             <div>
               <label className="block text-lg font-medium mb-2">סוג רכב</label>
               <select
+                id="vehicle-type-intro"
+                aria-label="סוג רכב"
                 value={introVehicleType}
                 onChange={(e) => setIntroVehicleType(e.target.value)}
                 className={inputClass}

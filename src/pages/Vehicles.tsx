@@ -393,6 +393,15 @@ export default function Vehicles() {
           {isManager && (
             <button
               type="button"
+              onClick={() => handleOpenForm()}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold min-h-[48px] hover:bg-primary/90 transition-colors"
+            >
+              <Plus size={18} /> הוספת רכב
+            </button>
+          )}
+          {isManager && (
+            <button
+              type="button"
               onClick={() => setListsManagerOpen(true)}
               className="flex items-center gap-2 px-4 py-3 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-bold min-h-[48px] hover:bg-primary/10 transition-colors"
             >

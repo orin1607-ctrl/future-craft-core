@@ -107,7 +107,7 @@ export default function Reports() {
   });
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
-  const [expandedReport, setExpandedReport] = useState<string | null>('ops_tests');
+  const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   const [periodMode, setPeriodMode] = useState<ReportPeriodMode>('month');
@@ -356,8 +356,14 @@ export default function Reports() {
   );
 
   const showReport = (type: string) => filterReportTypes.length === 0 || filterReportTypes.includes(type);
-  const toggleReportType = (type: string) =>
-    setFilterReportTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+  useEffect(() => {
+    if (filterReportTypes.length === 1) setExpandedReport(filterReportTypes[0]);
+  }, [filterReportTypes]);
+
+  const toggleReportType = (type: string) => {
+    setFilterReportTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
+    setExpandedReport(type);
+  };
 
   const clearFilters = () => {
     setPeriodMode('month');
@@ -828,6 +834,7 @@ export default function Reports() {
                   periodMode === 'custom' ? period.labelSuffix : 'בכל הזמנים',
                 )}
                 expanded={expandedReport === 'ops_officer_inspections'}
+                openLabel="פתח טבלת ביקורות קצין רכב"
               />
             }
             table={
@@ -1185,20 +1192,24 @@ function ExpandableReport({ expanded, onToggle, card, table }: {
 }) {
   return (
     <div>
-      <div onClick={onToggle} className="cursor-pointer" role="button" tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onToggle(); }}>
+      <button type="button" onClick={onToggle} className="w-full text-right cursor-pointer">
         {card}
-      </div>
-      {expanded && table && <div className="animate-fade-in">{table}</div>}
+      </button>
+      {expanded && table && (
+        <div className="animate-fade-in" data-report-table>
+          {table}
+        </div>
+      )}
     </div>
   );
 }
 
-function SummaryCard({ icon: Icon, color, headline, expanded }: {
+function SummaryCard({ icon: Icon, color, headline, expanded, openLabel }: {
   icon: any;
   color: string;
   headline: string;
   expanded?: boolean;
+  openLabel?: string;
 }) {
   return (
     <div className="card-elevated hover:shadow-lg transition-shadow">
@@ -1209,7 +1220,7 @@ function SummaryCard({ icon: Icon, color, headline, expanded }: {
         <h2 className="text-xl font-bold flex-1 leading-snug">{headline}</h2>
         {expanded ? <ChevronUp size={18} className="text-primary shrink-0" /> : <ChevronDown size={18} className="text-muted-foreground shrink-0" />}
       </div>
-      <p className="text-xs text-muted-foreground mt-2">לחצו לפתיחת הרשימה המסוננת</p>
+      <p className="text-xs text-muted-foreground mt-2">{openLabel || 'לחצו לפתיחת הרשימה המסוננת'}</p>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Upload, FolderOpen, Filter, ArrowRight, Car, User, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,6 +64,7 @@ function docPublicUrl(filePath: string) {
 
 export default function Documents() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
   const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const companyFilter = useCompanyFilter();
@@ -176,7 +178,9 @@ export default function Documents() {
     }
 
     if (locked && contextPlate && cat.scope === 'vehicle') {
-      query = query.eq('vehicle_plate', contextPlate.replace(/[-\s]/g, ''));
+      const raw = contextPlate.trim();
+      const norm = raw.replace(/[-\s]/g, '');
+      query = query.or(`vehicle_plate.eq.${raw},vehicle_plate.eq.${norm}`);
     }
 
     const { data, error } = await query;
@@ -185,12 +189,21 @@ export default function Documents() {
     setLoadingFiles(false);
   }, [companyFilter, isDriver, driverVehicle, driverProfile, locked, contextPlate]);
 
-  const openCategory = (cat: DocCategory) => {
+  const openCategory = (cat: DocCategory, opts?: { upload?: boolean }) => {
     setSelectedCategory(cat);
     setSearchQuery('');
     setShowFilters(false);
+    if (opts?.upload || vehicleScoped) setShowUploadForm(true);
     loadDocs(cat);
   };
+
+  useEffect(() => {
+    const key = searchParams.get('category');
+    if (!key) return;
+    const cat = allCategories.find((c) => c.key === key);
+    if (cat) openCategory(cat, { upload: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length || !selectedCategory || !companyName || !user?.id) return;
@@ -212,7 +225,7 @@ export default function Documents() {
     }
 
     setUploading(true);
-    const plateForUpload = (uploadVehicle || contextPlate || '').trim();
+    const plateForUpload = (vehicleScoped && contextPlate ? contextPlate : uploadVehicle || contextPlate || '').trim();
     const result = await uploadDocument({
       file,
       storageFolder: selectedCategory.folder,
@@ -235,7 +248,12 @@ export default function Documents() {
       const plate = plateForUpload || contextPlate || '';
       let vehicleId = contextVehicleId || '';
       if (!vehicleId && plate) {
-        const { data: veh } = await supabase.from('vehicles').select('id').eq('license_plate', plate).maybeSingle();
+        const norm = plate.replace(/[-\s]/g, '');
+        const { data: veh } = await supabase
+          .from('vehicles')
+          .select('id')
+          .or(`license_plate.eq.${plate},license_plate.eq.${norm}`)
+          .maybeSingle();
         vehicleId = veh?.id || '';
       }
       if (vehicleId) {

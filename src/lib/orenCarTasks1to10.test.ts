@@ -113,7 +113,7 @@ describe('expiry alert feed (unified log)', () => {
     const rows = vehicleExpiryToLogEntries({
       id: 'veh-1',
       license_plate: '45954002',
-      company_name: 'קיבוץ בארי',
+      company_name: 'QA-Company-A',
       test_expiry: '2026-08-20',
       insurance_expiry: '2026-12-01',
       next_inspection_date: '2026-11-13',

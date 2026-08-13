@@ -522,6 +522,7 @@ function VehicleNewFormDaliaInner({
                   </label>
                   <select
                     name="vehicle_type"
+                    aria-label="סוג רכב"
                     value={vehicleTypeSelectValue}
                     onChange={(e) => {
                       const id = e.target.value;
