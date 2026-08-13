@@ -16,6 +16,7 @@ import {
   type TrackingOpenEntity,
 } from '@/lib/vehicleTrackingAlerts';
 import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
+import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
 
 export type { TrackingAlertItem, TrackingAlertKind };
 
@@ -166,12 +167,14 @@ export async function countTrackingAttention(companyFilter: string | null): Prom
 
 export async function loadFleetTrackingRows(companyFilter: string | null): Promise<TrackingVehicleRow[]> {
   const vehiclesRes = await applyCompanyScope(
-    supabase
-      .from('vehicles')
-      .select(
-        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled, insurance_alerts_red_enabled',
-      )
-      .order('license_plate'),
+    applyExcludeArchivedVehicles(
+      supabase
+        .from('vehicles')
+        .select(
+          'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled, insurance_alerts_red_enabled',
+        )
+        .order('license_plate'),
+    ),
     companyFilter,
   );
 

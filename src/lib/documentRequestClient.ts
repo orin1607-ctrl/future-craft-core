@@ -1,5 +1,6 @@
 /** Oren Car production deploy 2026-08-10 — code-only, no data changes */
 import { supabase } from '@/integrations/supabase/client';
+import { computeExpiryFromValidity } from '@/lib/driverDocumentExpiry';
 
 export type DocumentEntityType =
   | 'driver'
@@ -25,6 +26,7 @@ export type DocumentTypeDef = {
   message_template_he: string;
   is_active: boolean;
   sort_order: number;
+  validity_years?: number | null;
 };
 
 export type DocumentRequestRow = {
@@ -57,6 +59,7 @@ export type DocumentVersionRow = {
   created_at: string;
   source: string;
   request_id: string | null;
+  expiry_date?: string | null;
 };
 
 function publicAppOrigin(): string {
@@ -137,7 +140,6 @@ export async function listEntityDocumentHistory(entityType: DocumentEntityType, 
 
 /** Public (no login) — used by /upload-request page */
 export async function publicGetDocumentRequest(token: string) {
-  assertClientStaging();
   const res = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-request?action=get&token=${encodeURIComponent(token)}`,
     {
@@ -150,7 +152,6 @@ export async function publicGetDocumentRequest(token: string) {
 }
 
 export async function publicOpenDocumentRequest(token: string) {
-  assertClientStaging();
   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-request`, {
     method: 'POST',
     headers: {
@@ -169,7 +170,6 @@ export async function publicUploadDocumentRequest(params: {
   file: File;
   expiry_date?: string;
 }) {
-  assertClientStaging();
   const form = new FormData();
   form.set('action', 'upload');
   form.set('token', params.token);
@@ -204,6 +204,8 @@ const META_CATEGORY_MAP: Record<string, string> = {
   comprehensive_insurance: 'comprehensive',
   health_declaration: 'health',
   medical_certificate: 'health',
+  traffic_info: 'other',
+  traffic_ticket: 'other',
   invoice: 'vendors',
   receipt: 'receipts',
   vehicle_photo: 'other',
@@ -229,6 +231,7 @@ export async function adminUploadEntityDocument(params: {
   documentTypeKey: string;
   file: File;
   expiryDate?: string;
+  documentDate?: string;
   companyName?: string;
 }) {
   const types = await listDocumentTypes(params.entityType);
@@ -240,7 +243,12 @@ export async function adminUploadEntityDocument(params: {
   if (params.file.size > maxBytes) throw new Error('הקובץ גדול מדי');
   if (!fileAllowed(params.file, allowed)) throw new Error('סוג קובץ לא נתמך');
 
-  if (typeDef.requires_expiry && !params.expiryDate) {
+  const issueDate = params.documentDate || new Date().toISOString().split('T')[0];
+  let resolvedExpiry = params.expiryDate || null;
+  if (!resolvedExpiry && typeDef.validity_years) {
+    resolvedExpiry = computeExpiryFromValidity(issueDate, typeDef.validity_years);
+  }
+  if (typeDef.requires_expiry && !resolvedExpiry) {
     throw new Error('נדרש תאריך תוקף למסמך זה');
   }
 
@@ -299,7 +307,7 @@ export async function adminUploadEntityDocument(params: {
       content_type: contentType || null,
       file_size_bytes: params.file.size,
       source: 'manager_upload',
-      expiry_date: params.expiryDate || null,
+      expiry_date: resolvedExpiry,
     })
     .select('*')
     .single();
@@ -317,6 +325,8 @@ export async function adminUploadEntityDocument(params: {
       vehicle_plate: vehiclePlate,
       driver_name: driverName,
       original_name: params.file.name || safeName,
+      display_name: params.file.name || safeName,
+      document_date: issueDate,
     })
     .select('id')
     .maybeSingle();

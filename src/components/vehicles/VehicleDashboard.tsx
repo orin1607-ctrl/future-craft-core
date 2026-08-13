@@ -32,7 +32,13 @@ import {
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
 import { isInsuranceAlertsEnabled, shouldShowInsuranceRed } from '@/lib/vehicleInsuranceAlerts';
 import { evaluateInsuranceCoverage } from '@/lib/vehicleInsuranceCoverage';
-import { loadCompanyAttentionRedSettings } from '@/lib/companyAttentionRedSettings';
+import {
+  gapsAttentionLabel,
+  gapsAttentionWarn,
+  insuranceAttentionLabel,
+  insuranceAttentionWarn,
+  loadCompanyAttentionRedSettings,
+} from '@/lib/companyAttentionRedSettings';
 import { fetchCompanySettings } from '@/lib/companySettings';
 import { useRequiredFieldsOptional } from '@/contexts/RequiredFieldsContext';
 import { isVehicleHubFieldRequired } from '@/lib/requiredFieldsCompany';
@@ -148,8 +154,10 @@ export default function VehicleDashboard({
     [requiredFieldsCtx, companyName],
   );
   const [requireInsuranceDocs, setRequireInsuranceDocs] = useState(false);
-  const [attentionRed, setAttentionRed] = useState({
+  const [attentionDisplay, setAttentionDisplay] = useState({
+    showInsuranceAttention: true,
     showInsuranceAttentionRed: true,
+    showGapsAttention: true,
     showGapsAttentionRed: true,
   });
   const [drill, setDrill] = useState<DashboardDrillDown | null>(previewDrillDown ?? null);
@@ -183,9 +191,6 @@ export default function VehicleDashboard({
     hasInsuranceCoverageGap ||
     hasInsuranceDocGap ||
     (testDays !== null && testDays <= 14);
-  const insuranceLicensesWarn =
-    insuranceLicensesNeedsAttention && attentionRed.showInsuranceAttentionRed;
-
   const gapsAlertsNeedsAttention =
     missingDocs > 0 ||
     hasInsuranceCoverageGap ||
@@ -196,11 +201,19 @@ export default function VehicleDashboard({
     openIssuesCount > 0 ||
     v.needs_transport ||
     v.approval_status === 'pending_approval';
-  const gapsAlertsWarn = gapsAlertsNeedsAttention && attentionRed.showGapsAttentionRed;
 
-  const insuranceSummary = insuranceLicensesNeedsAttention ? 'יש לטפל' : 'בסדר';
+  const insuranceLicensesWarn = insuranceAttentionWarn(
+    insuranceLicensesNeedsAttention,
+    attentionDisplay,
+  );
+  const gapsAlertsWarn = gapsAttentionWarn(gapsAlertsNeedsAttention, attentionDisplay);
+
+  const insuranceSummary = insuranceAttentionLabel(
+    insuranceLicensesNeedsAttention,
+    attentionDisplay,
+  );
   const docsSummary = missingDocs > 0 ? `${missingDocs} חסרים` : 'מלא';
-  const gapsSummary = gapsAlertsNeedsAttention ? 'דורש טיפול' : 'אין';
+  const gapsSummary = gapsAttentionLabel(gapsAlertsNeedsAttention, attentionDisplay);
 
   const missingDocGapDisplay = (() => {
     if (coverage.missingMandatoryDocLabel && coverage.missingComprehensiveDocLabel) {
@@ -242,9 +255,14 @@ export default function VehicleDashboard({
       .then((s) => setRequireInsuranceDocs(s?.require_insurance_docs ?? false))
       .catch(() => setRequireInsuranceDocs(false));
     loadCompanyAttentionRedSettings(companyName)
-      .then(setAttentionRed)
+      .then(setAttentionDisplay)
       .catch(() =>
-        setAttentionRed({ showInsuranceAttentionRed: true, showGapsAttentionRed: true }),
+        setAttentionDisplay({
+          showInsuranceAttention: true,
+          showInsuranceAttentionRed: true,
+          showGapsAttention: true,
+          showGapsAttentionRed: true,
+        }),
       );
   }, [companyName]);
 

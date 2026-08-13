@@ -5,6 +5,7 @@ import {
   PieChart, Pie, Cell, Legend, LineChart, Line, Area, AreaChart,
 } from 'recharts';
 import { TrendingUp, PieChart as PieIcon, Activity } from 'lucide-react';
+import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
 
 const COLORS = [
   'hsl(var(--primary))',
@@ -69,7 +70,7 @@ export default function DashboardCharts({ companyName, isSuperAdminView }: Props
     const [expensesRes, faultsRes, vehiclesRes] = await Promise.all([
       withScope(supabase.from('expenses').select('amount, date').gte('date', sixMonthsAgo)),
       withScope(supabase.from('faults').select('fault_type')),
-      withScope(supabase.from('vehicles').select('status')),
+      withScope(applyExcludeArchivedVehicles(supabase.from('vehicles').select('status'))),
     ]);
 
     // Monthly expenses

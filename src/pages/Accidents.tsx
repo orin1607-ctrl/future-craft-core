@@ -9,7 +9,7 @@ import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { useDriverVehicle } from '@/hooks/useDriverVehicle';
 import { DocumentGallery } from '@/components/documents/DocumentViewer';
 import MultiImageUpload from '@/components/MultiImageUpload';
-import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext, readDriverContext } from '@/lib/entityNavContext';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
@@ -53,6 +53,16 @@ export default function Accidents() {
   const [searchParams] = useSearchParams();
   const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked } = useVehicleUrlContext();
   const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
+  const driverCtx = readDriverContext(searchParams);
+  const driverScoped = searchParams.get('context') === 'driver' && !!driverCtx.driverId;
+
+  const goBackToDriver = () => {
+    if (!driverCtx.driverId) return;
+    const q = new URLSearchParams();
+    q.set('driverId', driverCtx.driverId);
+    q.set('section', searchParams.get('section') || 'driving');
+    navigate(`/drivers?${q.toString()}`);
+  };
 
   const goBackToHub = () => {
     if (vehicleScoped && contextVehicleId) {
@@ -65,6 +75,10 @@ export default function Accidents() {
       goBackToHub();
       return;
     }
+    if (driverScoped) {
+      goBackToDriver();
+      return;
+    }
     setViewMode('list');
     setEditItem(null);
     setSelected(null);
@@ -73,6 +87,10 @@ export default function Accidents() {
   const afterFormSave = () => {
     if (vehicleScoped && contextVehicleId) {
       goBackToHub();
+      return;
+    }
+    if (driverScoped) {
+      goBackToDriver();
       return;
     }
     setViewMode('list');
@@ -184,6 +202,7 @@ export default function Accidents() {
         <AccidentForm
           accident={editItem}
           initialVehiclePlate={initialVehiclePlate}
+          initialDriverName={driverCtx.driverName || undefined}
           plateLocked={vehicleScoped && !!initialVehiclePlate}
           hubVehicleId={vehicleScoped ? contextVehicleId : undefined}
           onDone={afterFormSave}
@@ -215,6 +234,8 @@ export default function Accidents() {
           onClick={() => {
             if (vehicleScoped && contextVehicleId) {
               goBackToHub();
+            } else if (driverScoped) {
+              goBackToDriver();
             } else {
               setViewMode('list');
               setSelected(null);
@@ -222,7 +243,7 @@ export default function Accidents() {
           }}
           className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]"
         >
-          <ArrowRight size={20} /> {vehicleScoped ? 'חזרה לכרטיס הרכב' : 'חזרה'}
+          <ArrowRight size={20} /> {vehicleScoped ? 'חזרה לכרטיס הרכב' : driverScoped ? 'חזרה לכרטיס הנהג' : 'חזרה'}
         </button>
         <div className="card-elevated mb-4">
           <div className="flex items-center justify-between mb-4">
@@ -397,6 +418,7 @@ export default function Accidents() {
 function AccidentForm({
   accident,
   initialVehiclePlate = '',
+  initialDriverName = '',
   plateLocked = false,
   hubVehicleId,
   onDone,
@@ -406,6 +428,7 @@ function AccidentForm({
 }: {
   accident: AccidentRow | null;
   initialVehiclePlate?: string;
+  initialDriverName?: string;
   plateLocked?: boolean;
   hubVehicleId?: string;
   onDone: () => void;
@@ -425,7 +448,9 @@ function AccidentForm({
   
   const [vehiclePlate, setVehiclePlate] = useState(accident?.vehicle_plate || initialVehiclePlate);
   const [vehicleId, setVehicleId] = useState(hubVehicleId || '');
-  const [driverName, setDriverName] = useState(accident?.driver_name || user?.full_name || '');
+  const [driverName, setDriverName] = useState(
+    accident?.driver_name || initialDriverName || user?.full_name || '',
+  );
   const [location, setLocation] = useState(accident?.location || '');
   const [description, setDescription] = useState(accident?.description || '');
   const [hasInsurance, setHasInsurance] = useState(accident?.has_insurance || false);
