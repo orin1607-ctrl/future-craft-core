@@ -1,0 +1,209 @@
+{
+  "at": "2026-08-13T18:33:49.438Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "commit": "c947bc5",
+  "snapshotUntouched": true,
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "productionSupabaseTouched": false,
+  "googleAppsScriptTouched": false,
+  "tasks": {
+    "deploy": {
+      "checks": [
+        {
+          "name": "STAGING-DEPLOY.txt has new commit",
+          "ok": true,
+          "deployTxt": "deployed_ref=c947bc5 feat/incident-alerts-staging",
+          "COMMIT": "c947bc5"
+        },
+        {
+          "name": "Not Production URL",
+          "ok": true
+        },
+        {
+          "name": "Staging DB only",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t1": {
+      "checks": [
+        {
+          "name": "Vehicles list as company FM",
+          "ok": true
+        },
+        {
+          "name": "Internal 19 still first-class search",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t4": {
+      "checks": [
+        {
+          "name": "Future test >30 days visible",
+          "ok": true,
+          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA OwnerGap FM\n\nQA-OG-1786646033357\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nהתראות ועדכונים\nהתראות\n3\nהתראות ושליחות\nעדכונים\nמספר רכב\nהכל / הקלידו לחיפוש...\nמספר פנימי\nהכל / הקלידו לחיפוש...\n3 סה״כ\nהכל (3)\nטסט (1)\nביטוח חובה (1)\nרישיון נהיגה (1)\nסוג\tכותרת\tפרטים\tמספר פנימי\tימים\tתאריך\nביטוח חובה\tביטוח חובה · התראת 30 יום\tOwnerGapToyota Corolla — OG033357 · 19\t19\t20 ימים\t2.9.202"
+        },
+        {
+          "name": "Near insurance visible",
+          "ok": true
+        },
+        {
+          "name": "Future driver license visible",
+          "ok": true
+        },
+        {
+          "name": "Officer/free category chips exist or page healthy",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t6": {
+      "checks": [
+        {
+          "name": "Free alert button on vehicle home",
+          "ok": true
+        },
+        {
+          "name": "Free alert appears in central alerts",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t5": {
+      "checks": [
+        {
+          "name": "License/insurance docs visible or openable",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t2": {
+      "checks": [
+        {
+          "name": "Tilta form opens",
+          "ok": true
+        },
+        {
+          "name": "+3 months button",
+          "ok": true
+        },
+        {
+          "name": "Tilta save clicked",
+          "ok": true
+        },
+        {
+          "name": "Officer alert visible after tilta+refresh",
+          "ok": true,
+          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA OwnerGap FM\n\nQA-OG-1786646033357\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nהתראות ועדכונים\nהתראות\n7\nהתראות ושליחות\nעדכונים\nמספר רכב\nהכל / הקלידו לחיפוש...\nמספר פנימי\nהכל / הקלידו לחיפוש...\n7 סה״כ\nהכל (7)\nהתראת קצין רכב (4)\nטסט (1)\nביטוח חובה (1)\nרישיון נהיגה (1)\nסוג\tכותרת\tפרטים\tמספר פנימי\tימים\tתאריך\nביטוח חובה\tביטוח חובה · התראת 30 יום\tOwnerGapToyota Corolla — OG033357 · 19\t19\t20 ימים\t2.9.2026\nרישיון נהיגה\tרישיון נהיגה · עתידית\tנהג OwnerGap 1786646033357 · עתידית\t—\t60 ימים\t12.10.2026\nהתראת קצין רכב\tהתראת קצין רכב · OG033357 · בעוד 30 ימים\tרכב OG033357 • עתידית • בעוד 62 ימים\t19\t62 ימים\t14.10.2026\nהתראת קצין רכב\tהתראת קצין רכב · OG033357 · בעוד 7 ימים\tרכב OG033357 • עת"
+        }
+      ],
+      "pass": true
+    },
+    "t3": {
+      "checks": [
+        {
+          "name": "Vehicle hub still opens after tilta",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t9": {
+      "checks": [
+        {
+          "name": "CreateAlertModal opens from vehicle home",
+          "ok": true
+        },
+        {
+          "name": "Free alert on driver hub",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t7": {
+      "checks": [
+        {
+          "name": "Drivers list hides dashboard button",
+          "ok": true
+        },
+        {
+          "name": "Driver name still listed",
+          "ok": true
+        },
+        {
+          "name": "Driver hub dashboard button hidden",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t8": {
+      "checks": [
+        {
+          "name": "Officer inspections report card visible",
+          "ok": true
+        },
+        {
+          "name": "New tilta appears in officer report",
+          "ok": true,
+          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA OwnerGap FM\n\nQA-OG-1786646033357\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nדוחות וסיכומים\nייצוא\n\nסיכומים לפי תקופה — לחיצה על כרטיס פותחת את רשימת הרשומות המסוננת\n\nסינון\nפעיל\nתקופה\nחודש נוכחי\nשבוע נוכחי\nשנה נוכחית\nטווח תאריכים\nהכל\nמתאריך\nבחר...\nעד תאריך\nבחר...\nמספר רכב\nהכל / הקלידו לחיפוש...\nמספר פנימי\nהכל / הקלידו לחיפוש...\nנהג\nהכל\nנהג OwnerGap 1786646033357\nסטטוס\nהכל\nפעיל\nפג תוקף\nלחידוש\nבתוקף\nספק\nהכל\nסוגי דוח להצגה\nטסטים\nטיפולים\nתאונות\nביקורות קצין רכב\nביטוחים לחידוש\nסיכום רכבים\nסיכום נהגים\nהוצאות לפי תקופה\nרווח והפסד\nטיפולים (מפורט)\nתאונות (מפורט)\nהזמנות\nסיכום לפי ספקים\nנקה סינונים\nסיכומי תקופה\n1 טסטים בכל הזמנים\n\nלחצו לפתיחת הרשימה המסוננת\n\n0 טיפולים בכל הזמנים\n\nלחצו לפתיחת הרשימה המסוננת\n\n0 תאונות בכל הזמנים\n\nלחצו לפתיחת הרשימה המסוננת\n\n1 ביקורות קצין רכב בכל הזמנים\n\nלחצו לפתיחת הרשימה המסוננת\n\nמספר רכב\tמס' פנימי\tסוג הביקורת\tתאריך הביקורת\tמועד הביקורת הבאה\nOG033357\t19\tתלת/חצי שנתית\t13.8.2026\t13.11.2026\n\n1 רשומות\n\n1 ביטוחים לחידוש בכל הזמנים\n\nלחצו לפתיחת הרשימה המסוננת\n\nדוחות נוספים\nדוח הוצאות כולל\n\n₪0\n\nסה\"כ הוצאות\n\n0\n\nמספר חשבוניות\n\n₪0\n\nממוצע לחשבונית\n\nדו"
+        }
+      ],
+      "pass": true
+    },
+    "t10": {
+      "checks": [
+        {
+          "name": "נגרר in form",
+          "ok": true
+        },
+        {
+          "name": "טרקטור in form",
+          "ok": true
+        },
+        {
+          "name": "ציוד הנדסי in form",
+          "ok": true
+        },
+        {
+          "name": "רכב זעיר in form",
+          "ok": true
+        },
+        {
+          "name": "Old type רכב פרטי still there",
+          "ok": true
+        }
+      ],
+      "pass": true
+    }
+  },
+  "shots": [
+    "t1-search.png",
+    "t4-alerts.png",
+    "t6-vehicle-home.png",
+    "t5-docs.png",
+    "t2-tilta-saved.png",
+    "t2-alerts-after-tilta.png",
+    "t9-free-alert-modal.png",
+    "t6-central-free.png",
+    "t7-drivers-list.png",
+    "t7-driver-hub.png",
+    "t8-officer-report.png",
+    "t10-types.png"
+  ],
+  "deployTxt": "deployed_ref=c947bc5 feat/incident-alerts-staging",
+  "cleanup": {
+    "ok": true,
+    "note": "QA-OG-* only"
+  },
+  "pass": true
+}
