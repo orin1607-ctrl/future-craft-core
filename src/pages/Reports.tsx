@@ -322,7 +322,7 @@ export default function Reports() {
             : '',
           status: i.overall_status,
         }) && (
-          periodMode === 'all' ||
+          periodMode !== 'custom' ||
           dateInReportRange(i.inspection_date, from, to) ||
           dateInReportRange(i.next_due_date, from, to)
         ),
@@ -478,7 +478,7 @@ export default function Reports() {
           getInternal(i.vehicle_plate),
           inspectionTypeLabel(i.inspection_type),
           fmtDate(i.inspection_date),
-          fmtDate(i.next_due_date),
+          i.next_due_date ? fmtDate(i.next_due_date) : '—',
         ]);
       });
       rows.push([]);
@@ -822,21 +822,30 @@ export default function Reports() {
               <SummaryCard
                 icon={ClipboardList}
                 color="bg-primary/10 text-primary"
-                headline={formatSummaryHeadline(filtered.inspections.length, 'ביקורות קצין רכב', period.labelSuffix)}
+                headline={formatSummaryHeadline(
+                  filtered.inspections.length,
+                  'ביקורות קצין רכב',
+                  periodMode === 'custom' ? period.labelSuffix : 'בכל הזמנים',
+                )}
                 expanded={expandedReport === 'ops_officer_inspections'}
               />
             }
             table={
-              <DetailTable
-                headers={OFFICER_INSPECTION_HEADERS}
-                rows={filtered.inspections.map(i => [
-                  i.vehicle_plate || '-',
-                  getInternal(i.vehicle_plate),
-                  inspectionTypeLabel(i.inspection_type),
-                  fmtDate(i.inspection_date),
-                  fmtDate(i.next_due_date),
-                ])}
-              />
+              <>
+                <p className="text-xs text-muted-foreground px-3 pb-2">
+                  דוח זה מציג את כל הביקורות (כולל בלי מועד הבא). סינון תאריכים חל רק בבחירת «טווח תאריכים». מועד הבא חסר מוצג כ־—.
+                </p>
+                <DetailTable
+                  headers={OFFICER_INSPECTION_HEADERS}
+                  rows={filtered.inspections.map(i => [
+                    i.vehicle_plate || '-',
+                    getInternal(i.vehicle_plate) || '—',
+                    inspectionTypeLabel(i.inspection_type),
+                    fmtDate(i.inspection_date),
+                    i.next_due_date ? fmtDate(i.next_due_date) : '—',
+                  ])}
+                />
+              </>
             }
           />
         )}

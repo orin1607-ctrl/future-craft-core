@@ -15,7 +15,8 @@ import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { uploadDocument } from '@/lib/uploadDocument';
 import DriverHub from '@/components/drivers/DriverHub';
 import { fetchCompanyDepartments } from '@/lib/companyDepartments';
-import { useHiddenButtons } from '@/hooks/useHiddenButtons';
+import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
+import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
 
 interface DriverRow {
   id: string;
@@ -45,8 +46,8 @@ export default function Drivers() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
-  const hiddenButtons = useHiddenButtons();
-  const showDriverDashboard = !hiddenButtons.includes('driver-hub-dashboard');
+  const { hiddenButtons, ready: hiddenReady } = useHiddenButtonsState();
+  const showDriverDashboard = hiddenReady && !isDriverHubDashboardHidden(hiddenButtons);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [search, setSearch] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');

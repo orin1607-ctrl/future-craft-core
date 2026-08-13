@@ -6,6 +6,7 @@ import {
   handoverDateTime,
   isTowingServiceOrder,
   plateFromAlertText,
+  vehicleIdFromAlertText,
 } from '@/lib/vehicleActionFollowUp';
 
 export type HubTabId =
@@ -273,9 +274,12 @@ export async function loadVehicleHubData(
   const now = Date.now();
   const vehicleAlerts: VehicleAlertRow[] = (alertsRes.data || [])
     .filter((a: Record<string, string>) => {
-      const p = plateFromAlertText(a.description) || plateFromAlertText(a.title);
-      if (!p) return true;
-      return normalizePlate(p) === normalizePlate(plate);
+      const blob = `${a.title || ''}\n${a.description || ''}`;
+      const p = plateFromAlertText(blob);
+      const vid = vehicleIdFromAlertText(blob);
+      if (vehicleId && vid && vid === vehicleId) return true;
+      if (p) return normalizePlate(p) === normalizePlate(plate);
+      return false;
     })
     .map((a: Record<string, string>) => {
       const alertDate = a.alert_date || '';

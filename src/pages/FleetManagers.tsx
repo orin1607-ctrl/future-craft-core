@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope, useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { useAuth } from '@/contexts/AuthContext';
 import DriverDashboardPicker from '@/components/admin/DriverDashboardPicker';
-import { useHiddenButtons } from '@/hooks/useHiddenButtons';
+import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
+import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
 import { Button } from '@/components/ui/button';
 
 interface FleetManagerRow {
@@ -21,8 +22,8 @@ export default function FleetManagers() {
   const navigate = useNavigate();
   const companyFilter = useCompanyFilter();
   const isSuperAdmin = user?.role === 'super_admin';
-  const hiddenButtons = useHiddenButtons();
-  const showDriverDashboard = !hiddenButtons.includes('driver-hub-dashboard');
+  const { hiddenButtons, ready: hiddenReady } = useHiddenButtonsState();
+  const showDriverDashboard = hiddenReady && !isDriverHubDashboardHidden(hiddenButtons);
   const [rows, setRows] = useState<FleetManagerRow[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);

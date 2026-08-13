@@ -176,7 +176,7 @@ export default function PrivateVehicleInspection() {
         userId: user.id,
         userName: user?.full_name,
       });
-      await createOfficerInspectionAlert({
+      const officer = await createOfficerInspectionAlert({
         userId: user.id,
         companyName: user?.company_name || '',
         vehiclePlate: plate,
@@ -184,6 +184,8 @@ export default function PrivateVehicleInspection() {
         nextDueDate,
         details: defects.length > 0 ? `${defects.length} ליקויים` : 'תקין',
       });
+      if (!officer.ok) toast.error(`הבדיקה נשמרה, אך התראת קצין רכב לא נוצרה: ${officer.error || ''}`);
+      else toast.success('נוצרה התראת קצין רכב למועד הבא');
       await createTargetDateAlerts({
         userId: user.id,
         companyName: user?.company_name || '',

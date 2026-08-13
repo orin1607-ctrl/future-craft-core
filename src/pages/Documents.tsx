@@ -231,8 +231,22 @@ export default function Documents() {
       return;
     }
 
-    if (contextVehicleId && selectedCategory.key === 'vehicle-license' && result.publicUrl) {
-      await supabase.from('vehicles').update({ license_doc_url: result.publicUrl }).eq('id', contextVehicleId);
+    if (result.publicUrl) {
+      const plate = plateForUpload || contextPlate || '';
+      let vehicleId = contextVehicleId || '';
+      if (!vehicleId && plate) {
+        const { data: veh } = await supabase.from('vehicles').select('id').eq('license_plate', plate).maybeSingle();
+        vehicleId = veh?.id || '';
+      }
+      if (vehicleId) {
+        const patch: Record<string, string> = {};
+        if (selectedCategory.key === 'vehicle-license') patch.license_doc_url = result.publicUrl;
+        if (selectedCategory.key === 'insurance') patch.insurance_doc_url = result.publicUrl;
+        if (selectedCategory.key === 'comprehensive') patch.comprehensive_insurance_doc_url = result.publicUrl;
+        if (Object.keys(patch).length) {
+          await supabase.from('vehicles').update(patch).eq('id', vehicleId);
+        }
+      }
     }
 
     const plateForLog = plateForUpload || contextPlate;

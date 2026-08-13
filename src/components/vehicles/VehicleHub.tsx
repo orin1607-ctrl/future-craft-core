@@ -133,7 +133,7 @@ const QUICK_ACTIONS: { cat: string; label: string }[] = [
   { cat: 'שינוע', label: 'שינוע' },
   { cat: 'מסמך', label: 'מסמך' },
   { cat: 'הערה', label: 'הערה' },
-  { cat: 'התראה', label: 'התראה חופשית' },
+  { cat: 'התראה', label: 'הוסף התראה' },
   { cat: '__supplier__', label: 'ספק' },
 ];
 
@@ -500,13 +500,15 @@ export default function VehicleHub({
     setDrillRefreshKey((k) => k + 1);
   };
 
-  const expiryAlerts = [
-    v.test_expiry && { title: 'תוקף טסט / רישיון רכב', date: v.test_expiry, isInsurance: false },
-    v.insurance_expiry && { title: 'תוקף ביטוח חובה', date: v.insurance_expiry, isInsurance: true },
-    v.comprehensive_insurance_expiry && { title: 'תוקף ביטוח מקיף', date: v.comprehensive_insurance_expiry, isInsurance: true },
-    v.next_inspection_date && { title: 'התראת קצין רכב', date: v.next_inspection_date, isInsurance: false },
-    v.next_service_date && { title: 'טיפול מתוכנן', date: v.next_service_date, isInsurance: false },
-  ].filter(Boolean) as { title: string; date: string; isInsurance: boolean }[];
+  const expiryAlerts = (
+    [
+      v.test_expiry && { title: 'תוקף טסט / רישיון רכב', date: v.test_expiry, isInsurance: false },
+      v.insurance_expiry && { title: 'תוקף ביטוח חובה', date: v.insurance_expiry, isInsurance: true },
+      v.comprehensive_insurance_expiry && { title: 'תוקף ביטוח מקיף', date: v.comprehensive_insurance_expiry, isInsurance: true },
+      v.next_inspection_date && { title: 'התראת קצין רכב', date: v.next_inspection_date, isInsurance: false },
+      v.next_service_date && { title: 'טיפול מתוכנן', date: v.next_service_date, isInsurance: false },
+    ].filter(Boolean) as { title: string; date: string; isInsurance: boolean }[]
+  ).filter((a) => Math.ceil((new Date(a.date).getTime() - Date.now()) / 86400000) >= 0);
   const insRedHighlight = shouldShowInsuranceRed(v);
 
   const renderActionTabContent = () => {
@@ -719,7 +721,7 @@ export default function VehicleHub({
             )}
             <div className="p-3">
               <Button type="button" variant="outline" size="sm" onClick={() => setShowAlertModal(true)}>
-                התראה חופשית
+                הוסף התראה · התראה חופשית
               </Button>
             </div>
           </div>
@@ -728,7 +730,7 @@ export default function VehicleHub({
         return (
           <div className="space-y-2">
             {data.docs.length === 0 ? (
-              <EmptyTab text="אין מסמכים" />
+              <EmptyTab text="אין מסמך שמור לרכב זה (רישיון/ביטוח יופיעו רק אם קיים קישור או קובץ אמיתי)" />
             ) : (
               data.docs.map((d) => (
                 d.url ? (
@@ -865,7 +867,7 @@ export default function VehicleHub({
                 onClick={() => setShowAlertModal(true)}
               >
                 <Bell size={18} />
-                התראה חופשית
+                הוסף התראה · התראה חופשית
               </Button>
               <NotificationsAndSendsButton vehicleId={v.id} vehiclePlate={v.license_plate} />
             </div>

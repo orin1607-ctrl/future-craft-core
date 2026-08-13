@@ -664,6 +664,9 @@ export default function Alerts() {
         <Bell size={28} />
         התראות ועדכונים
       </h1>
+      <p className="text-sm text-muted-foreground">
+        טסט, ביטוח, רישיון, קצין רכב והתראה חופשית — אותה תמונה כמו «התראות ושליחות». פגות תוקף בהיסטוריה בלבד.
+      </p>
 
       <Tabs defaultValue="alerts" dir="rtl">
         <TabsList className="w-full grid grid-cols-3 h-12">

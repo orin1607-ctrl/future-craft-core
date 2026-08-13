@@ -37,7 +37,7 @@ import {
 } from '@/lib/notificationLogMock';
 import {
   deactivateCustomAlert,
-  fetchCustomAlertLogEntries,
+  fetchUnifiedAlertLogEntries,
 } from '@/lib/notificationLogService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -181,7 +181,7 @@ export default function NotificationLogPage() {
   const [dbEntries, setDbEntries] = useState<NotificationLogEntry[]>([]);
 
   const reloadAlerts = () => {
-    void fetchCustomAlertLogEntries({
+    void fetchUnifiedAlertLogEntries({
       companyName: user?.role === 'super_admin' ? (filterCompany || null) : user?.company_name,
       vehicleId,
       vehiclePlate,
@@ -245,7 +245,7 @@ export default function NotificationLogPage() {
   };
 
   const backUrl = vehicleId
-    ? `/vehicles?vehicleId=${vehicleId}`
+    ? `/vehicles?vehicleId=${vehicleId}&view=hub`
     : driverId
       ? `/drivers?driverId=${driverId}`
       : '/alerts';
@@ -276,9 +276,9 @@ export default function NotificationLogPage() {
             התראות ושליחות
           </h1>
           <p className="text-sm text-muted-foreground">
-            {viewMode === 'driver' && 'יומן נהג בלבד — רישיון, הסמכות, מסמכי נהג, תזכירים'}
-            {viewMode === 'vehicle' && 'יומן רכב בלבד — טסט, ביטוחים, טיפולים, מסמכי רכב'}
-            {viewMode === 'general' && 'יומן כללי — נהגים, רכבים, חברות'}
+            {viewMode === 'driver' && 'יומן נהג — רישיון, מבחן, התראות חופשיות (אותם מקורות כמו מסך התראות)'}
+            {viewMode === 'vehicle' && 'יומן רכב — טסט, ביטוח, קצין רכב, התראות חופשיות (אותם מקורות כמו מסך התראות)'}
+            {viewMode === 'general' && 'יומן כללי — תוקפים אוטומטיים + התראות ידניות. פגות תוקף בהיסטוריה בלבד.'}
           </p>
         </div>
         <Button type="button" className="gap-2 min-h-[44px]" onClick={() => setAddOpen(true)}>

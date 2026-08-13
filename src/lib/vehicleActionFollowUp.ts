@@ -208,11 +208,33 @@ export async function createOfficerInspectionAlert(params: {
   vehicleId?: string;
   nextDueDate: string;
   details?: string;
-}) {
-  if (!params.nextDueDate || !params.userId) return;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!params.nextDueDate || !params.userId) return { ok: false, error: 'חסר תאריך או משתמש' };
   const when = new Date(`${params.nextDueDate}T09:00:00`);
-  if (Number.isNaN(when.getTime())) return;
+  if (Number.isNaN(when.getTime())) return { ok: false, error: 'תאריך לא תקין' };
   const meta = formatVehicleAlertMeta(params.vehiclePlate, params.vehicleId);
+
+  const prev = await supabase
+    .from('custom_alerts')
+    .select('id, description, alert_type, title')
+    .eq('company_name', params.companyName)
+    .eq('is_active', true)
+    .eq('alert_type', OFFICER_ALERT_TYPE);
+  const staleIds = (prev.data || [])
+    .filter((row) => {
+      const blob = `${row.title || ''}\n${row.description || ''}`;
+      const plate = plateFromAlertText(blob);
+      const vid = vehicleIdFromAlertText(blob);
+      return (
+        (params.vehicleId && vid === params.vehicleId) ||
+        (params.vehiclePlate && plate === params.vehiclePlate)
+      );
+    })
+    .map((row) => row.id);
+  if (staleIds.length) {
+    await supabase.from('custom_alerts').update({ is_active: false }).in('id', staleIds);
+  }
+
   const { error } = await supabase.from('custom_alerts').insert({
     user_id: params.userId,
     company_name: params.companyName,
@@ -224,7 +246,11 @@ export async function createOfficerInspectionAlert(params: {
     recurrence: 'none',
     is_active: true,
   });
-  if (error) console.error('createOfficerInspectionAlert', error);
+  if (error) {
+    console.error('createOfficerInspectionAlert', error);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
 }
 
 /** Log to vehicle history + optional dated alerts + optional transport notification. */

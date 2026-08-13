@@ -12,6 +12,9 @@ import {
 import { classifyExpiryForActiveList, expiryAlertTitle } from './vehicleExpiryReminders';
 import { DEFAULT_ALERT_THRESHOLDS } from './vehicleTrackingAlerts';
 import { DEFAULT_VEHICLE_TYPES, withRequiredVehicleTypes } from './vehicleTypesConfig';
+import { driverExpiryToLogEntries, vehicleExpiryToLogEntries } from './expiryAlertFeed';
+import { OFFICER_ALERT_LABEL } from './vehicleActionFollowUp';
+import { isDriverHubDashboardHidden } from './hiddenButtons';
 
 describe('internal number exact-first sort', () => {
   it('puts exact "19" before "019" and other includes', () => {
@@ -102,5 +105,51 @@ describe('required vehicle types overlay', () => {
   it('does not duplicate when defaults already include them', () => {
     const merged = withRequiredVehicleTypes(DEFAULT_VEHICLE_TYPES);
     expect(merged.filter((t) => t.id === 'trailer')).toHaveLength(1);
+  });
+});
+
+describe('expiry alert feed (unified log)', () => {
+  it('emits test, insurance and officer future dates without inventing docs', () => {
+    const rows = vehicleExpiryToLogEntries({
+      id: 'veh-1',
+      license_plate: '45954002',
+      company_name: 'קיבוץ בארי',
+      test_expiry: '2026-08-20',
+      insurance_expiry: '2026-12-01',
+      next_inspection_date: '2026-11-13',
+    });
+    const topics = rows.map((r) => r.topic);
+    expect(topics).toContain('טסט / רישיון רכב');
+    expect(topics).toContain('ביטוח חובה');
+    expect(topics).toContain(OFFICER_ALERT_LABEL);
+    expect(rows.every((r) => r.vehiclePlate === '45954002')).toBe(true);
+    expect(rows.some((r) => r.timing === 'future')).toBe(true);
+  });
+
+  it('skips expired dates so they leave the active list', () => {
+    const rows = vehicleExpiryToLogEntries({
+      id: 'veh-2',
+      license_plate: '111',
+      test_expiry: '2020-01-01',
+    });
+    expect(rows).toHaveLength(0);
+  });
+
+  it('emits driver license expiry', () => {
+    const rows = driverExpiryToLogEntries({
+      id: 'drv-1',
+      full_name: 'נהג בדיקה',
+      license_expiry: '2026-09-01',
+    });
+    expect(rows[0].topic).toBe('רישיון נהיגה');
+    expect(rows[0].driverId).toBe('drv-1');
+  });
+});
+
+describe('driver hub dashboard hide key', () => {
+  it('matches settings key and hebrew label', () => {
+    expect(isDriverHubDashboardHidden(['driver-hub-dashboard'])).toBe(true);
+    expect(isDriverHubDashboardHidden(['פתח דשבורד נהג'])).toBe(true);
+    expect(isDriverHubDashboardHidden(['/vehicles'])).toBe(false);
   });
 });

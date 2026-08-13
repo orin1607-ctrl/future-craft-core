@@ -16,6 +16,7 @@ import {
   MoreVertical,
   Search,
   Filter,
+  Bell,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,7 +37,8 @@ import DriverDeclaration from '@/components/DriverDeclaration';
 import DriverExamsTab from '@/components/driving-exam/DriverExamsTab';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
 import CreateAlertModal from '@/components/CreateAlertModal';
-import { useHiddenButtons } from '@/hooks/useHiddenButtons';
+import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
+import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
 import {
   loadDriverHubData,
   hubVersionsByType,
@@ -169,8 +171,8 @@ export default function DriverHub({
   onNotesSaved,
 }: Props) {
   const navigate = useNavigate();
-  const hiddenButtons = useHiddenButtons();
-  const showDriverDashboard = !hiddenButtons.includes('driver-hub-dashboard');
+  const { hiddenButtons, ready: hiddenReady } = useHiddenButtonsState();
+  const showDriverDashboard = hiddenReady && !isDriverHubDashboardHidden(hiddenButtons);
   const [searchParams, setSearchParams] = useSearchParams();
   const [section, setSectionState] = useState<DriverHubSection>(() =>
     parseDriverHubSection(searchParams.get('section')),
@@ -837,7 +839,10 @@ export default function DriverHub({
           driverId={d.id}
           driverName={d.full_name}
           onClose={() => setShowAlertModal(false)}
-          onCreated={() => setShowAlertModal(false)}
+          onCreated={() => {
+            setShowAlertModal(false);
+            void refresh();
+          }}
         />
       )}
       {fromFleetManager && filterCompany && (
@@ -963,6 +968,21 @@ export default function DriverHub({
               </div>
             </div>
 
+            {isManager && (
+              <div className="mb-4 space-y-2">
+                <p className="text-sm font-bold">התראות לנהג</p>
+                <Button
+                  type="button"
+                  className="w-full h-12 font-bold gap-2"
+                  onClick={() => setShowAlertModal(true)}
+                >
+                  <Bell size={18} />
+                  הוסף התראה · התראה חופשית
+                </Button>
+                <NotificationsAndSendsButton driverId={d.id} driverName={d.full_name} />
+              </div>
+            )}
+
             <button
               type="button"
               className="text-sm text-primary font-medium mb-4"
@@ -1067,9 +1087,9 @@ export default function DriverHub({
 
           {isManager && (
             <div className="mt-2">
-              <NotificationsAndSendsButton driverId={d.id} driverName={d.full_name} />
-              <Button type="button" variant="outline" className="w-full mt-2 gap-2" onClick={() => setShowAlertModal(true)}>
-                התראה חופשית
+              <Button type="button" className="w-full h-12 font-bold gap-2" onClick={() => setShowAlertModal(true)}>
+                <Bell size={18} />
+                הוסף התראה · התראה חופשית
               </Button>
             </div>
           )}

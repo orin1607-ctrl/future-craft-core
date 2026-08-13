@@ -348,8 +348,18 @@ export async function adminUploadEntityDocument(params: {
   if (params.entityType === 'driver' && params.documentTypeKey === 'driver_license') {
     await supabase.from('drivers').update({ license_image_url: publicUrl }).eq('id', params.entityId);
   }
-  if (params.entityType === 'vehicle' && params.documentTypeKey === 'vehicle_license') {
-    await supabase.from('vehicles').update({ license_doc_url: publicUrl }).eq('id', params.entityId);
+  if (params.entityType === 'vehicle') {
+    const patch: Record<string, string> = {};
+    if (params.documentTypeKey === 'vehicle_license') patch.license_doc_url = publicUrl;
+    if (params.documentTypeKey === 'mandatory_insurance' || params.documentTypeKey === 'insurance') {
+      patch.insurance_doc_url = publicUrl;
+    }
+    if (params.documentTypeKey === 'comprehensive_insurance' || params.documentTypeKey === 'comprehensive') {
+      patch.comprehensive_insurance_doc_url = publicUrl;
+    }
+    if (Object.keys(patch).length) {
+      await supabase.from('vehicles').update(patch).eq('id', params.entityId);
+    }
   }
 
   return { success: true as const, version, public_url: publicUrl };

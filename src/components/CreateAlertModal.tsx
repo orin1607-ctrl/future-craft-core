@@ -48,7 +48,7 @@ export default function CreateAlertModal({
 }) {
   const { user } = useAuth();
   const [alertType, setAlertType] = useState(vehiclePlate || driverId ? FREE_ALERT_TYPE : 'other');
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(vehiclePlate || driverId ? FREE_ALERT_LABEL : '');
   const [description, setDescription] = useState('');
   const [alertDate, setAlertDate] = useState('');
   const [alertTime, setAlertTime] = useState('09:00');
@@ -104,7 +104,7 @@ export default function CreateAlertModal({
           </button>
           <h2 className="text-xl font-black flex items-center gap-2">
             <Bell size={22} className="text-primary" />
-            יצירת התראה חדשה
+            {vehiclePlate || driverId ? 'הוסף התראה חופשית' : 'יצירת התראה חדשה'}
           </h2>
         </div>
 

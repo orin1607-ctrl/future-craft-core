@@ -36,7 +36,7 @@ export default function VehicleHubBottomActions({
           {onCreateAlert && (
             <Button type="button" className="w-full h-12 font-bold gap-2" onClick={onCreateAlert}>
               <Bell size={18} className="shrink-0" />
-              התראה חופשית
+              הוסף התראה · התראה חופשית
             </Button>
           )}
           <NotificationsAndSendsButton vehicleId={vehicleId} vehiclePlate={plate} />

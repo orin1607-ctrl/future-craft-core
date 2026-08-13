@@ -13,6 +13,11 @@ import {
   plateFromAlertText,
   vehicleIdFromAlertText,
 } from '@/lib/vehicleActionFollowUp';
+import {
+  driverExpiryToLogEntries,
+  isOfficerLikeAlert,
+  vehicleExpiryToLogEntries,
+} from '@/lib/expiryAlertFeed';
 
 type SystemLogRow = {
   id: string;
@@ -110,6 +115,27 @@ export function customAlertToNotificationEntry(row: CustomAlertRow): Notificatio
   };
 }
 
+function matchesScope(
+  e: NotificationLogEntry,
+  filters?: {
+    vehiclePlate?: string | null;
+    vehicleId?: string | null;
+    driverId?: string | null;
+  },
+): boolean {
+  if (filters?.driverId) return e.driverId === filters.driverId;
+  if (filters?.vehicleId || filters?.vehiclePlate) {
+    if (filters.vehicleId && e.vehicleId === filters.vehicleId) return true;
+    if (filters.vehiclePlate) {
+      const want = (filters.vehiclePlate || '').replace(/[-\s]/g, '');
+      const p = (e.vehiclePlate || '').replace(/[-\s]/g, '');
+      if (p && (p === want || e.vehiclePlate === filters.vehiclePlate)) return true;
+    }
+    return false;
+  }
+  return true;
+}
+
 export async function fetchCustomAlertLogEntries(filters?: {
   companyName?: string | null;
   vehiclePlate?: string | null;
@@ -131,21 +157,65 @@ export async function fetchCustomAlertLogEntries(filters?: {
     return [];
   }
 
-  const plateNorm = (filters?.vehiclePlate || '').replace(/[-\s]/g, '');
   return (data as CustomAlertRow[])
     .map(customAlertToNotificationEntry)
-    .filter((e) => {
-      if (filters?.driverId) return e.driverId === filters.driverId;
-      if (filters?.vehicleId || filters?.vehiclePlate) {
-        if (filters.vehicleId && e.vehicleId === filters.vehicleId) return true;
-        if (filters.vehiclePlate) {
-          const p = (e.vehiclePlate || '').replace(/[-\s]/g, '');
-          if (p && (p === plateNorm || e.vehiclePlate === filters.vehiclePlate)) return true;
-        }
-        return false;
-      }
-      return true;
-    });
+    .filter((e) => matchesScope(e, filters));
+}
+
+/** Same sources as /alerts: custom_alerts + vehicle/driver expiry + officer next due. */
+export async function fetchUnifiedAlertLogEntries(filters?: {
+  companyName?: string | null;
+  vehiclePlate?: string | null;
+  vehicleId?: string | null;
+  driverId?: string | null;
+  limit?: number;
+}): Promise<NotificationLogEntry[]> {
+  const custom = await fetchCustomAlertLogEntries(filters);
+
+  let vq = supabase
+    .from('vehicles')
+    .select(
+      'id, license_plate, company_name, test_expiry, insurance_expiry, comprehensive_insurance_expiry, next_inspection_date, insurance_alerts_enabled, status',
+    )
+    .neq('status', 'archived')
+    .limit(800);
+  if (filters?.companyName) vq = vq.eq('company_name', filters.companyName);
+  if (filters?.vehicleId) vq = vq.eq('id', filters.vehicleId);
+  if (filters?.vehiclePlate) vq = vq.eq('license_plate', filters.vehiclePlate);
+
+  let dq = supabase
+    .from('drivers')
+    .select('id, full_name, company_name, license_expiry, exam_expiry, status')
+    .neq('status', 'archived')
+    .limit(800);
+  if (filters?.companyName) dq = dq.eq('company_name', filters.companyName);
+  if (filters?.driverId) dq = dq.eq('id', filters.driverId);
+
+  const [vRes, dRes] = await Promise.all([vq, dq]);
+  const expiry: NotificationLogEntry[] = [];
+  for (const v of vRes.data || []) expiry.push(...vehicleExpiryToLogEntries(v));
+  if (!filters?.vehicleId && !filters?.vehiclePlate) {
+    for (const d of dRes.data || []) expiry.push(...driverExpiryToLogEntries(d));
+  } else if (filters?.driverId) {
+    for (const d of dRes.data || []) expiry.push(...driverExpiryToLogEntries(d));
+  }
+
+  const officerKeys = new Set(
+    custom
+      .filter((e) => isOfficerLikeAlert({ topic: e.topic }))
+      .map((e) => `${(e.vehiclePlate || '').replace(/[-\s]/g, '')}|${(e.scheduledFor || '').slice(0, 10)}`),
+  );
+  const expiryDeduped = expiry.filter((e) => {
+    if (!isOfficerLikeAlert({ topic: e.topic })) return true;
+    const key = `${(e.vehiclePlate || '').replace(/[-\s]/g, '')}|${(e.scheduledFor || '').slice(0, 10)}`;
+    if (officerKeys.has(key)) return false;
+    officerKeys.add(key);
+    return true;
+  });
+
+  const merged = [...custom, ...expiryDeduped].filter((e) => matchesScope(e, filters));
+  merged.sort((a, b) => String(a.scheduledFor || a.createdAt).localeCompare(String(b.scheduledFor || b.createdAt)));
+  return merged.slice(0, filters?.limit || 800);
 }
 
 export async function fetchActiveCustomAlertCount(filters: {
@@ -154,7 +224,7 @@ export async function fetchActiveCustomAlertCount(filters: {
   vehicleId?: string | null;
   driverId?: string | null;
 }): Promise<number> {
-  const rows = await fetchCustomAlertLogEntries(filters);
+  const rows = await fetchUnifiedAlertLogEntries(filters);
   return rows.filter((e) => e.timing === 'active' || e.timing === 'future').length;
 }
 

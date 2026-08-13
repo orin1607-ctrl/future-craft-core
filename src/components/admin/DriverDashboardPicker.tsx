@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { buildDriverDashboardUrl } from '@/lib/entityNavContext';
+import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
+import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,6 +28,8 @@ export default function DriverDashboardPicker({
   className?: string;
 }) {
   const navigate = useNavigate();
+  const { hiddenButtons, ready } = useHiddenButtonsState();
+  const hidden = !ready || isDriverHubDashboardHidden(hiddenButtons);
   const [open, setOpen] = useState(false);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [search, setSearch] = useState('');
@@ -54,6 +58,8 @@ export default function DriverDashboardPicker({
     setSearch('');
     navigate(buildDriverDashboardUrl({ driverId: d.id, driverName: d.full_name }));
   };
+
+  if (hidden) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
