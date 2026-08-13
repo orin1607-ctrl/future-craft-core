@@ -6,6 +6,8 @@ import {
   documentsTileValue,
   formatActivityRecency,
   parseDriverHubSection,
+  isDocumentsHubSection,
+  documentsHubTileValue,
   requestsTileValue,
 } from './driverHubData';
 import type { DriverDocumentVersionRow } from './driverHubData';
@@ -13,8 +15,14 @@ import type { DriverDocumentVersionRow } from './driverHubData';
 describe('driverHubData helpers', () => {
   it('parses hub sections', () => {
     expect(parseDriverHubSection('documents')).toBe('documents');
+    expect(parseDriverHubSection('requests')).toBe('requests');
+    expect(parseDriverHubSection('driving')).toBe('driving');
+    expect(parseDriverHubSection('activity')).toBe('activity');
     expect(parseDriverHubSection('bogus')).toBe('home');
     expect(parseDriverHubSection(null)).toBe('home');
+    expect(isDocumentsHubSection('documents')).toBe(true);
+    expect(isDocumentsHubSection('requests')).toBe(true);
+    expect(isDocumentsHubSection('driving')).toBe(false);
   });
 
   it('counts documents needing attention', () => {
@@ -59,6 +67,17 @@ describe('driverHubData helpers', () => {
         examNeedsAttention: false,
       }).value,
     ).toBe('3 ממתינות');
+
+    expect(
+      documentsHubTileValue({
+        documentsNeedingAttention: 2,
+        pendingRequests: 3,
+        accidentCount: 0,
+        lastActivityAt: null,
+        licenseNeedsAttention: false,
+        examNeedsAttention: false,
+      }).value,
+    ).toBe('2 לטיפול · 3 בקשות');
   });
 
   it('builds activity from real sources only', () => {
