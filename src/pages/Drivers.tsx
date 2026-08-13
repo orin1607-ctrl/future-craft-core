@@ -28,6 +28,7 @@ interface DriverRow {
   street: string;
   status: string;
   notes: string;
+  show_notes_on_list?: boolean | null;
   company_name: string;
   id_number: string;
   license_image_url?: string;
@@ -107,6 +108,10 @@ export default function Drivers() {
       <DriverHub
         driver={d}
         isManager={user?.role !== 'driver'}
+        onNotesSaved={(patch) => {
+          setSelected((s) => (s ? { ...s, ...patch } : s));
+          setDrivers((list) => list.map((x) => (x.id === d.id ? { ...x, ...patch } : x)));
+        }}
         onBack={() => setSelected(null)}
         onEdit={() => {
           setSelected(null);
@@ -239,6 +244,9 @@ export default function Drivers() {
                   {d.license_types?.length > 0 && (
                     <p className="text-sm text-muted-foreground">{d.license_types.join(', ')}</p>
                   )}
+                  {d.show_notes_on_list && d.notes?.trim() ? (
+                    <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap break-words">{d.notes.trim()}</p>
+                  ) : null}
                 </div>
                 <span
                   className={`status-badge ${d.status === 'active' ? 'status-active' : d.status === 'archived' ? 'bg-muted text-muted-foreground' : 'status-inactive'}`}

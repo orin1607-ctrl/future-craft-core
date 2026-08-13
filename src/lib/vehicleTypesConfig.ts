@@ -15,6 +15,10 @@ export const DEFAULT_VEHICLE_TYPES: VehicleTypeOption[] = [
   { id: 'van_14', label: 'רכב 14 מקומות' },
   { id: 'minibus', label: 'מיניבוס' },
   { id: 'bus', label: 'אוטובוס' },
+  { id: 'trailer', label: 'נגרר' },
+  { id: 'tractor', label: 'טרקטור' },
+  { id: 'engineering', label: 'ציוד הנדסי' },
+  { id: 'micro', label: 'רכב זעיר' },
   { id: 'other', label: 'אחר' },
 ];
 

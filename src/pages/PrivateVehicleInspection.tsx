@@ -6,7 +6,14 @@ import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
-import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
+import {
+  addCalendarMonths,
+  createOfficerInspectionAlert,
+  createTargetDateAlerts,
+  parseOdometerKm,
+  recordVehicleHubAction,
+  shouldUpdateOdometer,
+} from '@/lib/vehicleActionFollowUp';
 import { validateTaskFields } from '@/lib/taskFieldValidation';
 import { DEFAULT_INSPECTION_CHECKLIST } from '@/lib/vehicleListDefaults';
 import { loadCompanyListSettings } from '@/lib/companyListSettings';
@@ -39,6 +46,7 @@ export default function PrivateVehicleInspection() {
   const [employeeName, setEmployeeName] = useState(user?.full_name || '');
   const [odometer, setOdometer] = useState('');
   const [inspectionDate, setInspectionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [nextDueDate, setNextDueDate] = useState(() => addCalendarMonths(new Date().toISOString().split('T')[0], 3));
   const [items, setItems] = useState<CheckItem[]>(
     CHECKLIST_ITEMS.map(name => ({ name, status: 'ok', notes: '' }))
   );
@@ -83,11 +91,14 @@ export default function PrivateVehicleInspection() {
     setLoading(true);
     const hasDefects = items.some(i => i.status === 'defect');
 
+    if (!nextDueDate) { toast.error('יש לקבוע מועד בדיקה הבאה'); setLoading(false); return; }
+
     const { data: inspection, error } = await supabase.from('vehicle_inspections').insert({
       vehicle_id: vehicleId,
       vehicle_plate: selectedVehicle?.license_plate || '',
       inspection_type: 'tri_semi_annual',
       inspection_date: inspectionDate,
+      next_due_date: nextDueDate,
       inspector_name: employeeName,
       overall_status: hasDefects ? 'failed' : 'passed',
       notes: `קילומטראז׳: ${odometer}`,
@@ -144,16 +155,43 @@ export default function PrivateVehicleInspection() {
       toast.success('הבדיקה נשמרה – הרכב תקין');
     }
 
-    if (vehicleScoped && selectedVehicle) {
+    const plate = selectedVehicle?.license_plate || '';
+    const incomingKm = parseOdometerKm(odometer);
+    const vehiclePatch: Record<string, unknown> = { next_inspection_date: nextDueDate };
+    if (incomingKm != null) {
+      const { data: vehRow } = await supabase.from('vehicles').select('odometer').eq('id', vehicleId).maybeSingle();
+      if (shouldUpdateOdometer(vehRow?.odometer, incomingKm)) {
+        vehiclePatch.odometer = incomingKm;
+      }
+    }
+    await supabase.from('vehicles').update(vehiclePatch).eq('id', vehicleId);
+
+    if (selectedVehicle && user?.id) {
       await recordVehicleHubAction({
         vehicleId: contextVehicleId || vehicleId,
-        vehiclePlate: selectedVehicle.license_plate,
+        vehiclePlate: plate,
         companyName: user?.company_name || '',
         action: 'בדיקה תלת/חצי',
         details: defects.length > 0 ? `${defects.length} ליקויים` : 'תקין',
-        userId: user?.id,
+        userId: user.id,
         userName: user?.full_name,
-        targetDate: inspectionDate || null,
+      });
+      await createOfficerInspectionAlert({
+        userId: user.id,
+        companyName: user?.company_name || '',
+        vehiclePlate: plate,
+        vehicleId: contextVehicleId || vehicleId,
+        nextDueDate,
+        details: defects.length > 0 ? `${defects.length} ליקויים` : 'תקין',
+      });
+      await createTargetDateAlerts({
+        userId: user.id,
+        companyName: user?.company_name || '',
+        vehiclePlate: plate,
+        vehicleId: contextVehicleId || vehicleId,
+        actionLabel: 'התראת קצין רכב',
+        targetDate: nextDueDate,
+        details: defects.length > 0 ? `${defects.length} ליקויים` : 'תקין',
       });
     }
 
@@ -221,8 +259,29 @@ export default function PrivateVehicleInspection() {
         </div>
 
         <div>
-          <label className="block text-base font-medium mb-1.5">תאריך</label>
+          <label className="block text-base font-medium mb-1.5">תאריך הבדיקה</label>
           <input type="date" value={inspectionDate} onChange={e => setInspectionDate(e.target.value)} className={inputClass} />
+        </div>
+
+        <div>
+          <label className="block text-base font-medium mb-1.5">מועד בדיקה הבאה *</label>
+          <input type="date" value={nextDueDate} onChange={e => setNextDueDate(e.target.value)} className={inputClass} />
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              className="flex-1 py-2 rounded-xl border border-input text-sm font-medium hover:bg-muted"
+              onClick={() => setNextDueDate(addCalendarMonths(inspectionDate, 3))}
+            >
+              +3 חודשים
+            </button>
+            <button
+              type="button"
+              className="flex-1 py-2 rounded-xl border border-input text-sm font-medium hover:bg-muted"
+              onClick={() => setNextDueDate(addCalendarMonths(inspectionDate, 6))}
+            >
+              +6 חודשים
+            </button>
+          </div>
         </div>
       </div>
 

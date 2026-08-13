@@ -85,11 +85,16 @@ export default function Documents() {
   const [showFilters, setShowFilters] = useState(false);
 
   // Upload form fields
-  const [uploadVehicle, setUploadVehicle] = useState('');
+  const [uploadVehicle, setUploadVehicle] = useState(contextPlate || '');
   const [uploadDriver, setUploadDriver] = useState('');
   const [uploadManufacturer, setUploadManufacturer] = useState('');
   const [uploadModel, setUploadModel] = useState('');
   const [showUploadForm, setShowUploadForm] = useState(false);
+
+  useEffect(() => {
+    if (!contextPlate) return;
+    setUploadVehicle((prev) => prev || contextPlate);
+  }, [contextPlate]);
 
   // Driver's assigned vehicle
   const [driverVehicle, setDriverVehicle] = useState<{ license_plate: string; manufacturer: string; model: string } | null>(null);
@@ -207,12 +212,13 @@ export default function Documents() {
     }
 
     setUploading(true);
+    const plateForUpload = (uploadVehicle || contextPlate || '').trim();
     const result = await uploadDocument({
       file,
       storageFolder: selectedCategory.folder,
       category: selectedCategory.key,
       companyName,
-      vehiclePlate: uploadVehicle,
+      vehiclePlate: plateForUpload,
       driverName: uploadDriver,
       manufacturer: uploadManufacturer,
       model: uploadModel,
@@ -225,7 +231,11 @@ export default function Documents() {
       return;
     }
 
-    const plateForLog = uploadVehicle || contextPlate;
+    if (contextVehicleId && selectedCategory.key === 'vehicle-license' && result.publicUrl) {
+      await supabase.from('vehicles').update({ license_doc_url: result.publicUrl }).eq('id', contextVehicleId);
+    }
+
+    const plateForLog = plateForUpload || contextPlate;
     if (vehicleScoped && plateForLog) {
       await recordVehicleHubAction({
         vehicleId: contextVehicleId,

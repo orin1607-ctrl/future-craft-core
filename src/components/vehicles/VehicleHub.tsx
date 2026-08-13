@@ -77,6 +77,7 @@ export interface VehicleHubVehicle {
   insurance_doc_url: string;
   comprehensive_insurance_doc_url: string;
   notes: string;
+  show_notes_on_list?: boolean | null;
   management_type: string;
   monthly_leasing_cost: number | null;
   leasing_end_date: string | null;
@@ -217,6 +218,7 @@ export default function VehicleHub({
   const [supplierSource, setSupplierSource] = useState<{ type: string; label: string } | null>(null);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [noteText, setNoteText] = useState(v.notes || '');
+  const [showNotesOnList, setShowNotesOnList] = useState(!!v.show_notes_on_list);
   const [savingNote, setSavingNote] = useState(false);
   const [semiInspection, setSemiInspection] = useState<string | null>(null);
   const [triInspection, setTriInspection] = useState<string | null>(null);
@@ -330,7 +332,7 @@ export default function VehicleHub({
       test_expiry: v.test_expiry,
       insurance_expiry: v.insurance_expiry,
       comprehensive_insurance_expiry: v.comprehensive_insurance_expiry,
-    })
+    }, v.id)
       .then(setHubData)
       .finally(() => setLoading(false));
   }, [v, companyFilter, previewMode, previewHubExtras]);
@@ -341,7 +343,8 @@ export default function VehicleHub({
 
   useEffect(() => {
     setNoteText(v.notes || '');
-  }, [v.notes]);
+    setShowNotesOnList(!!v.show_notes_on_list);
+  }, [v.notes, v.show_notes_on_list]);
 
   useEffect(() => {
     if (previewMode && previewHubExtras) {
@@ -443,7 +446,10 @@ export default function VehicleHub({
       return;
     }
     setSavingNote(true);
-    const { error } = await supabase.from('vehicles').update({ notes: noteText }).eq('id', v.id);
+    const { error } = await supabase
+      .from('vehicles')
+      .update({ notes: noteText, show_notes_on_list: showNotesOnList })
+      .eq('id', v.id);
     setSavingNote(false);
     if (error) toast.error('שגיאה בשמירת ההערה');
     else {
@@ -1087,6 +1093,14 @@ export default function VehicleHub({
                   rows={3}
                   className="w-full p-3 rounded-xl border-2 border-input bg-background resize-none"
                 />
+                <label className="flex items-center gap-2 text-sm mt-2">
+                  <input
+                    type="checkbox"
+                    checked={showNotesOnList}
+                    onChange={(e) => setShowNotesOnList(e.target.checked)}
+                  />
+                  הצג ברשימת הרכבים
+                </label>
                 <Button type="button" variant="secondary" className="w-full mt-2" disabled={savingNote} onClick={saveNote}>
                   {savingNote ? 'שומר...' : 'שמור הערה'}
                 </Button>

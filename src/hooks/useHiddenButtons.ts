@@ -68,5 +68,6 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/dalia-settings', label: 'Dalia Settings', category: 'מרכז ניהול' },
   { path: '/user-management', label: 'משתמשים (דשבורד)', category: 'כרטיסי דשבורד' },
   { path: '/expenses', label: 'דלק וחשבוניות', category: 'נהג' },
+  { path: 'driver-hub-dashboard', label: 'פתח דשבורד נהג', category: 'נהג' },
   ...DASHBOARD_CARD_BUTTONS.filter((b) => b.path !== '/user-management' && b.path !== '/admin-home'),
 ];

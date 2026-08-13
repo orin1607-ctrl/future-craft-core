@@ -3,13 +3,22 @@ import { X, Bell, Calendar, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { formatVehicleAlertMeta } from '@/lib/vehicleActionFollowUp';
+import {
+  FREE_ALERT_LABEL,
+  FREE_ALERT_TYPE,
+  OFFICER_ALERT_LABEL,
+  OFFICER_ALERT_TYPE,
+  formatDriverAlertMeta,
+  formatVehicleAlertMeta,
+} from '@/lib/vehicleActionFollowUp';
 
 const ALERT_TYPES = [
   { value: 'insurance', label: 'ביטוח', emoji: '🛡️' },
   { value: 'test', label: 'טסט', emoji: '🔍' },
   { value: 'service', label: 'טיפול', emoji: '🔧' },
   { value: 'fault', label: 'תקלה', emoji: '⚠️' },
+  { value: OFFICER_ALERT_TYPE, label: OFFICER_ALERT_LABEL, emoji: '🛡️' },
+  { value: FREE_ALERT_TYPE, label: FREE_ALERT_LABEL, emoji: '📝' },
   { value: 'other', label: 'אחר', emoji: '📌' },
 ];
 
@@ -27,14 +36,18 @@ export default function CreateAlertModal({
   onCreated,
   vehiclePlate,
   vehicleId,
+  driverId,
+  driverName,
 }: {
   onClose: () => void;
   onCreated: () => void;
   vehiclePlate?: string;
   vehicleId?: string;
+  driverId?: string;
+  driverName?: string;
 }) {
   const { user } = useAuth();
-  const [alertType, setAlertType] = useState('other');
+  const [alertType, setAlertType] = useState(driverId && !vehiclePlate ? FREE_ALERT_TYPE : 'other');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [alertDate, setAlertDate] = useState('');
@@ -52,13 +65,16 @@ export default function CreateAlertModal({
     const dateTime = new Date(`${alertDate}T${alertTime}`).toISOString();
 
     const vehicleMeta = vehiclePlate ? formatVehicleAlertMeta(vehiclePlate, vehicleId) : '';
-    const fullDescription = [vehicleMeta, description.trim()].filter(Boolean).join('\n') || null;
+    const driverMeta = driverId ? formatDriverAlertMeta(driverId, driverName) : '';
+    const fullDescription = [vehicleMeta, driverMeta, description.trim()].filter(Boolean).join('\n') || null;
+    const titleSuffix = vehiclePlate || driverName || '';
+    const fullTitle = titleSuffix ? `${title.trim()} · ${titleSuffix}` : title.trim();
 
     const { error } = await supabase.from('custom_alerts').insert({
       user_id: user.id,
       company_name: user.company_name || '',
       alert_type: alertType,
-      title: vehiclePlate ? `${title.trim()} · ${vehiclePlate}` : title.trim(),
+      title: fullTitle,
       description: fullDescription,
       alert_date: dateTime,
       recurrence,

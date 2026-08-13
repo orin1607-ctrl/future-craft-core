@@ -1,0 +1,21 @@
+{
+  "at": "2026-08-13T16:42:00+03:00",
+  "purpose": "Restore point before Oren Car tasks 1–10 (Staging work area only)",
+  "branch": "feat/incident-alerts-staging",
+  "head": "c667595cc4799fc65d92c84fdcfa5fa992432d62",
+  "headShort": "c667595",
+  "remote": "origin/feat/incident-alerts-staging",
+  "scope": "Oren Car Git work area only — not Production, not Hostinger, not Production Supabase",
+  "archive": "src-tree-HEAD-c667595.zip",
+  "srcCopies": "src-files/",
+  "restore": {
+    "code": "git checkout c667595cc4799fc65d92c84fdcfa5fa992432d62 -- src supabase/migrations",
+    "orArchive": "unzip src-tree-HEAD-c667595.zip",
+    "schemaRollback": [
+      "ALTER TABLE public.vehicle_inspections DROP COLUMN IF EXISTS next_due_date;",
+      "ALTER TABLE public.vehicles DROP COLUMN IF EXISTS show_notes_on_list;",
+      "ALTER TABLE public.drivers DROP COLUMN IF EXISTS show_notes_on_list;"
+    ],
+    "schemaTarget": "Staging only: usfeoerkpcafxxlyuldl"
+  }
+}

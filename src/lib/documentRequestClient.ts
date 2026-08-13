@@ -253,6 +253,16 @@ export async function adminUploadEntityDocument(params: {
   }
 
   let companyName = params.companyName || '';
+  let resolvedVehiclePlate = '';
+  if (params.entityType === 'vehicle') {
+    const { data: veh } = await supabase
+      .from('vehicles')
+      .select('license_plate, company_name')
+      .eq('id', params.entityId)
+      .maybeSingle();
+    resolvedVehiclePlate = veh?.license_plate || params.entityLabel || '';
+    if (!companyName) companyName = veh?.company_name || '';
+  }
   if (!companyName && params.entityType === 'driver') {
     const { data: d } = await supabase.from('drivers').select('company_name').eq('id', params.entityId).maybeSingle();
     companyName = d?.company_name || '';
@@ -314,7 +324,7 @@ export async function adminUploadEntityDocument(params: {
   if (verErr || !version) throw new Error(verErr?.message || 'שגיאה בשמירת גרסת מסמך');
 
   const metaCategory = META_CATEGORY_MAP[params.documentTypeKey] || params.documentTypeKey;
-  const vehiclePlate = params.entityType === 'vehicle' ? params.entityLabel : '';
+  const vehiclePlate = params.entityType === 'vehicle' ? resolvedVehiclePlate : '';
   const driverName = params.entityType === 'driver' ? params.entityLabel : '';
   const { data: meta } = await supabase
     .from('document_metadata')
@@ -337,6 +347,9 @@ export async function adminUploadEntityDocument(params: {
 
   if (params.entityType === 'driver' && params.documentTypeKey === 'driver_license') {
     await supabase.from('drivers').update({ license_image_url: publicUrl }).eq('id', params.entityId);
+  }
+  if (params.entityType === 'vehicle' && params.documentTypeKey === 'vehicle_license') {
+    await supabase.from('vehicles').update({ license_doc_url: publicUrl }).eq('id', params.entityId);
   }
 
   return { success: true as const, version, public_url: publicUrl };

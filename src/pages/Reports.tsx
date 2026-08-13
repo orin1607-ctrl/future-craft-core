@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   BarChart3, Car, Users, FileText, Wrench, AlertTriangle, Download, Filter,
   ChevronDown, ChevronUp, ShoppingCart, TrendingUp, Package, Mail, MessageSquare,
-  Share2, ShieldAlert, CalendarRange,
+  Share2, ShieldAlert, CalendarRange, ClipboardList,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -35,12 +35,14 @@ interface RawData {
   expenses: any[];
   serviceOrders: any[];
   supplierOrders: any[];
+  inspections: any[];
 }
 
 const reportTypes = [
   { value: 'ops_tests', label: 'טסטים' },
   { value: 'ops_treatments', label: 'טיפולים' },
   { value: 'ops_accidents', label: 'תאונות' },
+  { value: 'ops_officer_inspections', label: 'ביקורות קצין רכב' },
   { value: 'ops_insurance', label: 'ביטוחים לחידוש' },
   { value: 'vehicles', label: 'סיכום רכבים' },
   { value: 'drivers', label: 'סיכום נהגים' },
@@ -53,6 +55,16 @@ const reportTypes = [
 ];
 
 const STANDARD_HEADERS = ['מס\' פנימי', 'מספר רכב', 'חברה / לקוח', 'נהג', 'סוג האירוע', 'תאריך', 'סטטוס'];
+const OFFICER_INSPECTION_HEADERS = ['מספר רכב', 'מס\' פנימי', 'סוג הביקורת', 'תאריך הביקורת', 'מועד הביקורת הבאה'];
+const INSPECTION_SELECT = 'id,vehicle_id,vehicle_plate,inspection_type,inspection_date,next_due_date,overall_status,company_name';
+
+function inspectionTypeLabel(t: string | null | undefined): string {
+  if (t === 'tri_semi_annual') return 'תלת/חצי שנתית';
+  if (t === 'quarterly') return 'רבעונית';
+  if (t === 'semi_annual') return 'חצי שנתית';
+  if (t === 'annual') return 'שנתית';
+  return t || 'ביקורת';
+}
 
 const PERIOD_OPTIONS: { value: ReportPeriodMode; label: string }[] = [
   { value: 'month', label: 'חודש נוכחי' },
@@ -90,7 +102,7 @@ export default function Reports() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
   const [raw, setRaw] = useState<RawData>({
-    vehicles: [], drivers: [], faults: [], accidents: [], expenses: [], serviceOrders: [], supplierOrders: [],
+    vehicles: [], drivers: [], faults: [], accidents: [], expenses: [], serviceOrders: [], supplierOrders: [], inspections: [],
   });
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -112,7 +124,7 @@ export default function Reports() {
 
   const loadData = async () => {
     setLoading(true);
-    const [vRes, dRes, fRes, aRes, eRes, soRes, woRes] = await Promise.all([
+    const [vRes, dRes, fRes, aRes, eRes, soRes, woRes, iRes] = await Promise.all([
       applyCompanyScope(supabase.from('vehicles').select(VEHICLE_EXPIRY_SELECT), companyFilter),
       applyCompanyScope(supabase.from('drivers').select(DRIVER_SELECT), companyFilter),
       applyCompanyScope(supabase.from('faults').select(FAULT_SELECT), companyFilter),
@@ -120,6 +132,7 @@ export default function Reports() {
       applyCompanyScope(supabase.from('expenses').select(EXPENSE_SELECT), companyFilter),
       applyCompanyScope(supabase.from('service_orders').select(SERVICE_SELECT), companyFilter),
       applyCompanyScope(supabase.from('supplier_work_orders').select(SUPPLIER_SELECT), companyFilter),
+      applyCompanyScope(supabase.from('vehicle_inspections').select(INSPECTION_SELECT), companyFilter),
     ]);
     setRaw({
       vehicles: vRes.data || [],
@@ -129,6 +142,7 @@ export default function Reports() {
       expenses: eRes.data || [],
       serviceOrders: soRes.data || [],
       supplierOrders: woRes.data || [],
+      inspections: iRes.data || [],
     });
     setLoading(false);
   };
@@ -274,6 +288,14 @@ export default function Reports() {
         (!filterVendor || o.supplier_name === filterVendor) &&
         (!filterStatus || o.status === filterStatus),
       ),
+      inspections: raw.inspections.filter(i =>
+        matchEntityFilters({
+          company: i.company_name,
+          plate: i.vehicle_plate,
+          internal: i.vehicle_plate ? plateToInternal[i.vehicle_plate] || '' : '',
+          status: i.overall_status,
+        }) && dateInReportRange(i.inspection_date, from, to),
+      ),
     };
   }, [
     raw, period, filterCompany, filterVehicle, filterInternal, filterDriver,
@@ -416,10 +438,46 @@ export default function Reports() {
         status: statusLabel(a.status),
       })));
     }
+    if (showReport('ops_officer_inspections')) {
+      rows.push(['--- ביקורות קצין רכב ---']);
+      rows.push(OFFICER_INSPECTION_HEADERS);
+      filtered.inspections.forEach(i => {
+        rows.push([
+          i.vehicle_plate || '-',
+          getInternal(i.vehicle_plate),
+          inspectionTypeLabel(i.inspection_type),
+          fmtDate(i.inspection_date),
+          fmtDate(i.next_due_date),
+        ]);
+      });
+      rows.push([]);
+    }
     if (showReport('ops_insurance')) {
       pushBlock('ביטוחים לחידוש', insuranceInPeriod.map(e => standardRow({
         internal: e.internalNumber, plate: e.vehiclePlate, company: e.companyName,
         driver: e.driverName, eventType: e.eventType, date: fmtDate(e.date), status: e.status,
+      })));
+    }
+    if (showReport('vehicles')) {
+      pushBlock('סיכום רכבים', filtered.vehicles.map(v => standardRow({
+        internal: v.internal_number,
+        plate: v.license_plate,
+        company: v.company_name,
+        driver: v.assigned_driver_id ? driverById[v.assigned_driver_id] : '',
+        eventType: 'רכב',
+        date: '-',
+        status: statusLabel(v.status),
+      })));
+    }
+    if (showReport('drivers')) {
+      pushBlock('סיכום נהגים', filtered.drivers.map(d => standardRow({
+        internal: '-',
+        plate: '-',
+        company: d.company_name,
+        driver: d.full_name,
+        eventType: 'נהג',
+        date: fmtDate(d.license_expiry),
+        status: statusLabel(d.status),
       })));
     }
 
@@ -720,6 +778,33 @@ export default function Reports() {
                   date: fmtDate(a.date),
                   status: statusLabel(a.status),
                 }))}
+              />
+            }
+          />
+        )}
+
+        {showReport('ops_officer_inspections') && (
+          <ExpandableReport
+            expanded={expandedReport === 'ops_officer_inspections'}
+            onToggle={() => toggleExpand('ops_officer_inspections')}
+            card={
+              <SummaryCard
+                icon={ClipboardList}
+                color="bg-primary/10 text-primary"
+                headline={formatSummaryHeadline(filtered.inspections.length, 'ביקורות קצין רכב', period.labelSuffix)}
+                expanded={expandedReport === 'ops_officer_inspections'}
+              />
+            }
+            table={
+              <DetailTable
+                headers={OFFICER_INSPECTION_HEADERS}
+                rows={filtered.inspections.map(i => [
+                  i.vehicle_plate || '-',
+                  getInternal(i.vehicle_plate),
+                  inspectionTypeLabel(i.inspection_type),
+                  fmtDate(i.inspection_date),
+                  fmtDate(i.next_due_date),
+                ])}
               />
             }
           />

@@ -140,8 +140,9 @@ export async function loadVehicleHubData(
     insurance_expiry?: string | null;
     comprehensive_insurance_expiry?: string | null;
   },
+  vehicleId?: string,
 ): Promise<VehicleHubData> {
-  const [history, tasksRes, faultsRes, servicesRes, accidentsRes, inspectionsRes, handoversRes, docsRes, alertsRes] =
+  const [history, tasksRes, faultsRes, servicesRes, accidentsRes, inspectionsRes, handoversRes, docsRes, alertsRes, versionsRes] =
     await Promise.all([
       loadVehicleHistory(plate, internalNumber, companyFilter),
       byPlate('vehicle_tasks', plate, companyFilter).order('created_at', { ascending: false }),
@@ -166,6 +167,15 @@ export async function loadVehicleHubData(
           .order('alert_date', { ascending: true }),
         companyFilter,
       ),
+      vehicleId
+        ? supabase
+            .from('document_versions')
+            .select('id, public_url, original_name, document_type_key, expiry_date, created_at, file_path, is_current')
+            .eq('entity_type', 'vehicle')
+            .eq('entity_id', vehicleId)
+            .eq('is_current', true)
+            .order('created_at', { ascending: false })
+        : Promise.resolve({ data: [] as Record<string, string>[] }),
     ]);
 
   const tasks: VehicleTaskRow[] = (tasksRes.data || []).map((t: Record<string, string>) => ({
@@ -318,6 +328,29 @@ export async function loadVehicleHubData(
       date: d.created_at ? new Date(d.created_at).toLocaleDateString('he-IL') : '—',
       expiry: '—',
       url: pub.publicUrl,
+    });
+  });
+
+  const seenUrls = new Set(docs.map((d) => d.url).filter(Boolean) as string[]);
+  const seenPaths = new Set(metadataRows.map((d) => d.file_path).filter(Boolean));
+  (versionsRes.data || []).forEach((ver: Record<string, string>, idx: number) => {
+    const url = ver.public_url || '';
+    if (url && seenUrls.has(url)) return;
+    if (ver.file_path && seenPaths.has(ver.file_path)) return;
+    if (url) seenUrls.add(url);
+    if (ver.file_path) seenPaths.add(ver.file_path);
+    const typeLabel =
+      ver.document_type_key === 'vehicle_license'
+        ? 'רישיון רכב'
+        : ver.original_name || ver.document_type_key || 'מסמך';
+    docs.push({
+      id: ver.id || `ver-${idx}`,
+      ref: `HUB-${String(idx + 1).padStart(3, '0')}`,
+      name: typeLabel,
+      source: ver.document_type_key || 'מערכת',
+      date: ver.created_at ? new Date(ver.created_at).toLocaleDateString('he-IL') : '—',
+      expiry: ver.expiry_date ? new Date(ver.expiry_date).toLocaleDateString('he-IL') : '—',
+      url: url || undefined,
     });
   });
 

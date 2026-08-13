@@ -902,6 +902,7 @@ export type Database = {
           license_number: string | null
           license_types: string[] | null
           notes: string | null
+          show_notes_on_list: boolean
           phone: string | null
           status: string | null
           street: string | null
@@ -924,6 +925,7 @@ export type Database = {
           license_number?: string | null
           license_types?: string[] | null
           notes?: string | null
+          show_notes_on_list?: boolean
           phone?: string | null
           status?: string | null
           street?: string | null
@@ -946,6 +948,7 @@ export type Database = {
           license_number?: string | null
           license_types?: string[] | null
           notes?: string | null
+          show_notes_on_list?: boolean
           phone?: string | null
           status?: string | null
           street?: string | null
@@ -2637,6 +2640,7 @@ export type Database = {
           inspection_type: string | null
           inspector_name: string | null
           notes: string | null
+          next_due_date: string | null
           overall_status: string | null
           vehicle_id: string
           vehicle_plate: string | null
@@ -2650,6 +2654,7 @@ export type Database = {
           inspection_type?: string | null
           inspector_name?: string | null
           notes?: string | null
+          next_due_date?: string | null
           overall_status?: string | null
           vehicle_id: string
           vehicle_plate?: string | null
@@ -2663,6 +2668,7 @@ export type Database = {
           inspection_type?: string | null
           inspector_name?: string | null
           notes?: string | null
+          next_due_date?: string | null
           overall_status?: string | null
           vehicle_id?: string
           vehicle_plate?: string | null
@@ -2876,6 +2882,7 @@ export type Database = {
           approval_status: string | null
           vehicle_images: string | null
           notes: string | null
+          show_notes_on_list: boolean
           import_source: string | null
           import_category: string | null
           import_buffer: string | null
@@ -2978,6 +2985,7 @@ export type Database = {
           approval_status?: string | null
           vehicle_images?: string | null
           notes?: string | null
+          show_notes_on_list?: boolean
           import_source?: string | null
           import_category?: string | null
           import_buffer?: string | null
@@ -3080,6 +3088,7 @@ export type Database = {
           approval_status?: string | null
           vehicle_images?: string | null
           notes?: string | null
+          show_notes_on_list?: boolean
           import_source?: string | null
           import_category?: string | null
           import_buffer?: string | null

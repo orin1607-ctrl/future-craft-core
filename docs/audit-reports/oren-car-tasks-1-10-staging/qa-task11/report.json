@@ -1,0 +1,694 @@
+{
+  "at": "2026-08-13T17:27:41.818Z",
+  "base": "http://127.0.0.1:8081",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "branch": "feat/incident-alerts-staging",
+  "head": "c667595cc4799fc65d92c84fdcfa5fa992432d62",
+  "snapshotUntouched": true,
+  "snapshotPath": "docs/audit-reports/oren-car-tasks-1-10-staging/restore-c667595",
+  "productionDeploy": false,
+  "hostingerTouched": false,
+  "productionSupabaseTouched": false,
+  "googleAppsScriptTouched": false,
+  "tasks": {
+    "safety": {
+      "checks": [
+        {
+          "name": "Staging DB only",
+          "ok": true,
+          "STAGING_REF": "usfeoerkpcafxxlyuldl"
+        },
+        {
+          "name": "Not Production URL",
+          "ok": true,
+          "BASE": "http://127.0.0.1:8081"
+        },
+        {
+          "name": "Snapshot folder still exists",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t1": {
+      "checks": [
+        {
+          "name": "Search 19 shows ToyotaQA/plate19 first",
+          "ok": true,
+          "first": "ToyotaQA CorollaQA T1164782 | 19 • 2020 נהג: לא משויך פעיל 10,000 ק\"מ"
+        },
+        {
+          "name": "019/119/190 still appear after exact",
+          "ok": true,
+          "sample": [
+            "ToyotaQA CorollaQA T1164782 | 19 • 2020 נהג: לא משויך פעיל 10,000 ק\"מ",
+            "MazdaQA 3 T1164782A | 019 • 2020 נהג: לא משויך פעיל 20,000 ק\"מ",
+            "FordQA Focus T1164782B | 119 • 2020 נהג: לא משויך פעיל 30,000 ק\"מ",
+            "KiaQA Picanto T1164782C | 190 • 2020 נהג: לא משויך פעיל 40,000 ק\"מ"
+          ]
+        },
+        {
+          "name": "Manufacturer search still works",
+          "ok": true
+        },
+        {
+          "name": "Plate search still works",
+          "ok": true
+        },
+        {
+          "name": "Department search still works",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t2": {
+      "checks": [
+        {
+          "name": "Opened tilta-hatzi form",
+          "ok": true
+        },
+        {
+          "name": "+3 months button visible",
+          "ok": true
+        },
+        {
+          "name": "+6 months button visible",
+          "ok": true
+        },
+        {
+          "name": "inspection_date saved",
+          "ok": true,
+          "inspection_date": "2026-08-13"
+        },
+        {
+          "name": "next_due_date saved on inspection",
+          "ok": true,
+          "next_due_date": "2026-11-13"
+        },
+        {
+          "name": "vehicles.next_inspection_date updated",
+          "ok": true,
+          "next_inspection_date": "2026-11-13"
+        },
+        {
+          "name": "Officer alert created and linked to vehicle",
+          "ok": true,
+          "count": 4,
+          "sample": "התראת קצין רכב · T1164782 · בעוד 30 ימים",
+          "date": "2026-10-14T06:00:00+00:00"
+        },
+        {
+          "name": "Officer alert date matches next due",
+          "ok": true,
+          "alert_date": "2026-10-14T06:00:00+00:00",
+          "next_due": "2026-11-13"
+        },
+        {
+          "name": "30/7/1 reminders created without runaway duplicates",
+          "ok": true,
+          "totalAlertsForCompany": 4
+        }
+      ],
+      "pass": true
+    },
+    "t3": {
+      "checks": [
+        {
+          "name": "odometer updated to 85000",
+          "ok": true,
+          "odometer": 85000
+        },
+        {
+          "name": "Dashboard shows 85,000 km",
+          "ok": true
+        },
+        {
+          "name": "Lower odometer 1000 does not overwrite 85000",
+          "ok": true,
+          "odometer": 85000
+        }
+      ],
+      "pass": true
+    },
+    "t6": {
+      "checks": [
+        {
+          "name": "Vehicle free-alert control exists",
+          "ok": true
+        },
+        {
+          "name": "Officer alert type visible in modal",
+          "ok": true
+        },
+        {
+          "name": "Vehicle free alert saved and linked",
+          "ok": true,
+          "count": 1,
+          "title": "QA חופשית רכב קרובה · T1164782"
+        },
+        {
+          "name": "Free vehicle alert appears in central alerts",
+          "ok": true
+        },
+        {
+          "name": "Driver hub has free-alert button",
+          "ok": true
+        },
+        {
+          "name": "Driver modal has officer type",
+          "ok": true
+        },
+        {
+          "name": "Driver free alert saved with did meta",
+          "ok": true,
+          "count": 1,
+          "title": "QA חופשית נהג · נהג QA T11 1786642064782"
+        },
+        {
+          "name": "No vehicle/driver mix-up on driver log",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t4": {
+      "checks": [
+        {
+          "name": "Notification log is not mock",
+          "ok": true,
+          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA T11 fleet_manager\n\nQA-T11-A-1786642064782\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\n"
+        },
+        {
+          "name": "Active tab shows near alerts",
+          "ok": true
+        },
+        {
+          "name": "Dismiss/deactivate available to fleet manager",
+          "ok": true
+        },
+        {
+          "name": "Future tab shows >30 day alert",
+          "ok": true
+        },
+        {
+          "name": "History shows past and inactive",
+          "ok": true
+        },
+        {
+          "name": "Central alerts show officer/future relevant items",
+          "ok": true
+        },
+        {
+          "name": "Driver notification log shows real driver alert",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t5": {
+      "checks": [
+        {
+          "name": "Upload control on license category",
+          "ok": true
+        },
+        {
+          "name": "File input present",
+          "ok": true
+        },
+        {
+          "name": "Metadata saved for correct plate",
+          "ok": true,
+          "sample": {
+            "id": "c749bdc8-fdda-4f9e-a43a-c6d3d2e950c3",
+            "vehicle_plate": "T1164782",
+            "category": "vehicle-license",
+            "original_name": "qa-license.png"
+          }
+        },
+        {
+          "name": "Uploaded license appears on vehicle hub docs",
+          "ok": true,
+          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA T11 fleet_manager\n\nQA-T11-A-1786642064782\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nחזרה לכרטיס הרכב\nT1164782 · 19\n\nToyotaQA C"
+        },
+        {
+          "name": "No obvious duplicate license cards",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t7": {
+      "checks": [
+        {
+          "name": "Company A appears in settings picker",
+          "ok": true
+        },
+        {
+          "name": "Company settings shows driver dashboard toggle",
+          "ok": true
+        },
+        {
+          "name": "Toggle label found",
+          "ok": true
+        },
+        {
+          "name": "Company A hidden_buttons includes driver-hub-dashboard",
+          "ok": true,
+          "hidden_buttons": [
+            "driver-hub-dashboard"
+          ]
+        },
+        {
+          "name": "Fleet manager A: driver dashboard button hidden",
+          "ok": true
+        },
+        {
+          "name": "Super admin still sees driver dashboard button",
+          "ok": true
+        },
+        {
+          "name": "Company B unchanged: dashboard button still visible",
+          "ok": true
+        },
+        {
+          "name": "Vehicle dashboard unaffected by driver toggle",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t8": {
+      "checks": [
+        {
+          "name": "Plate/internal filters exist on reports page",
+          "ok": true
+        },
+        {
+          "name": "Officer inspections report card exists",
+          "ok": true
+        },
+        {
+          "name": "Report shows plate",
+          "ok": true
+        },
+        {
+          "name": "Report shows internal 19",
+          "ok": true
+        },
+        {
+          "name": "Report shows inspection type",
+          "ok": true
+        },
+        {
+          "name": "New inspection from task 2 appears",
+          "ok": true
+        },
+        {
+          "name": "Old inspection without next_due still renders",
+          "ok": true
+        },
+        {
+          "name": "Next due column present",
+          "ok": true
+        },
+        {
+          "name": "Filter by plate works",
+          "ok": true
+        },
+        {
+          "name": "Plate filter lists QA vehicle",
+          "ok": true
+        },
+        {
+          "name": "Filter by internal number works",
+          "ok": true
+        },
+        {
+          "name": "Internal filter lists 19",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t9": {
+      "checks": [
+        {
+          "name": "Vehicle note editor exists",
+          "ok": true
+        },
+        {
+          "name": "Vehicle show-on-list checkbox exists",
+          "ok": true
+        },
+        {
+          "name": "Note hidden on vehicles list when flag off",
+          "ok": true
+        },
+        {
+          "name": "Note visible on vehicles list when flag on",
+          "ok": true
+        },
+        {
+          "name": "Long note does not break list layout",
+          "ok": true
+        },
+        {
+          "name": "Driver hub uses existing notes field",
+          "ok": true
+        },
+        {
+          "name": "Driver show-on-list checkbox exists",
+          "ok": true
+        },
+        {
+          "name": "Driver note hidden on list when flag off",
+          "ok": true
+        },
+        {
+          "name": "Driver note visible on list when flag on",
+          "ok": true
+        },
+        {
+          "name": "Long driver note does not break list",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t10": {
+      "checks": [
+        {
+          "name": "נגרר visible in types UI or defaults",
+          "ok": true,
+          "note": "ok"
+        },
+        {
+          "name": "טרקטור visible",
+          "ok": true
+        },
+        {
+          "name": "ציוד הנדסי visible",
+          "ok": true
+        },
+        {
+          "name": "רכב זעיר visible",
+          "ok": true
+        },
+        {
+          "name": "Old types still present",
+          "ok": true
+        },
+        {
+          "name": "Vehicle form type select includes new options (or config override reported)",
+          "ok": true
+        },
+        {
+          "name": "Can select trailer option in form",
+          "ok": true
+        },
+        {
+          "name": "Saved type \"נגרר\" persists",
+          "ok": true,
+          "vehicle_type": "נגרר"
+        },
+        {
+          "name": "Saved type \"טרקטור\" persists",
+          "ok": true,
+          "vehicle_type": "טרקטור"
+        },
+        {
+          "name": "Saved type \"ציוד הנדסי\" persists",
+          "ok": true,
+          "vehicle_type": "ציוד הנדסי"
+        },
+        {
+          "name": "Saved type \"רכב זעיר\" persists",
+          "ok": true,
+          "vehicle_type": "רכב זעיר"
+        },
+        {
+          "name": "No duplicate new type options in form",
+          "ok": true,
+          "newHits": [
+            "נגרר",
+            "טרקטור",
+            "ציוד הנדסי",
+            "רכב זעיר"
+          ]
+        },
+        {
+          "name": "Saved new type visible after reopen",
+          "ok": true
+        }
+      ],
+      "pass": true
+    }
+  },
+  "exports": [
+    {
+      "name": "active vehicles excel/csv",
+      "ok": true,
+      "file": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\oren-car-tasks-1-10-staging\\qa-task11\\exports\\vehicles_2026-08-13.csv",
+      "headers": [
+        "מספר רכב",
+        "מספר פנימי",
+        "יצרן",
+        "דגם",
+        "שנה",
+        "סוג",
+        "סטטוס",
+        "קילומטראז׳",
+        "מחלקה",
+        "תוקף טסט",
+        "תוקף ביטוח",
+        "חברה",
+        "הערות"
+      ],
+      "rowCount": 8,
+      "hasInternalColumn": true,
+      "sample19": [
+        "T1164782",
+        "19",
+        "ToyotaQA",
+        "CorollaQA",
+        "2020",
+        "רכב פרטי",
+        "active",
+        "85000",
+        "QA-Dept",
+        "",
+        "",
+        "QA-T11-A-1786642064782",
+        "הערת רכב ארוכה לבדיקת תצוגה אאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאאא סוף."
+      ]
+    },
+    {
+      "name": "drivers summary csv",
+      "ok": true,
+      "file": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\oren-car-tasks-1-10-staging\\qa-task11\\exports\\drivers_2026-08-13.csv",
+      "headers": [
+        "שם מלא",
+        "טלפון",
+        "אימייל",
+        "מספר רישיון",
+        "תוקף רישיון",
+        "עיר",
+        "סטטוס",
+        "חברה",
+        "הערות"
+      ],
+      "rowCount": 1
+    },
+    {
+      "name": "insurance export (reports)",
+      "ok": true,
+      "file": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\oren-car-tasks-1-10-staging\\qa-task11\\exports\\דוח_דליה_13.8.2026.csv",
+      "hasInternalHeader": true
+    },
+    {
+      "name": "vehicles summary export (reports)",
+      "ok": true,
+      "plate19Present": true,
+      "internal19": true
+    },
+    {
+      "name": "drivers summary export (reports)",
+      "ok": true,
+      "driverPresent": true
+    }
+  ],
+  "regression": {
+    "vehicles-list": {
+      "ok": true
+    },
+    "vehicle-hub": {
+      "ok": true
+    },
+    "driver-hub": {
+      "ok": true
+    },
+    "vehicle-docs-page": {
+      "ok": true
+    },
+    "alert-settings": {
+      "ok": true
+    },
+    "reports": {
+      "ok": true
+    },
+    "vehicle-tracking": {
+      "ok": true
+    },
+    "drivers-list": {
+      "ok": true
+    },
+    "central-alerts": {
+      "ok": true,
+      "note": "opened during t4"
+    },
+    "company-settings": {
+      "ok": true,
+      "note": "opened during t7"
+    }
+  },
+  "daliaFormConfig": {
+    "exists": false,
+    "updatedAt": null,
+    "labels": [],
+    "missingNewTypes": [],
+    "companiesInWorkArea": [
+      "E2E QA",
+      "Ilana",
+      "QA",
+      "QA-DOC-UX-1781466922180",
+      "QA-DOC-UX-1781467417226",
+      "QA-DOC-UX-1781467427629",
+      "QA-DOC-UX-1781468001756",
+      "QA-DOC-UX-1781468023768",
+      "QA-DOC-UX-1781468102488",
+      "QA-DOC-UX-1781468148615",
+      "QA-DOC-UX-1781468197405",
+      "QA-DOC-UX-1781468229736",
+      "QA-DOC-UX-1781468286243",
+      "QA-DOC-UX-1781468349129",
+      "QA-DRV-DOC-1781466263999",
+      "QA-LIC-1785905500294",
+      "QA-RLS-PROBE-1781465571496",
+      "QA-STRICT-1781464898731",
+      "QA-STRICT-1781464921733",
+      "QA-STRICT-1781465202667",
+      "Staging QA",
+      "TransportPreview-1781350606929",
+      "TransportPreview-1781350742015",
+      "TransportPreview-1781350825055",
+      "TransportPreview-1781350883754",
+      "Yoni",
+      "d",
+      "df",
+      "dosh44",
+      "test2025",
+      "tesy",
+      "אברהמי יואב ובניו בע\"מ",
+      "אילנה אטיאס",
+      "אכבים",
+      "בדיקה מיקי",
+      "דליה",
+      "דרכי חיים",
+      "זאב *",
+      "חברה 1",
+      "חברה 2",
+      "חיל בדיקה",
+      "טטטט",
+      "יוסי חחחח",
+      "מ.ח אדם",
+      "מוטי",
+      "מוסך יוני",
+      "ממתקים",
+      "מנזון דורון",
+      "מני",
+      "פרחי בוקי בע\"מ",
+      "ק'יבוץ בארי",
+      "קיבוץ בארי",
+      "רותם",
+      "שיטות"
+    ],
+    "companiesMissingNewTypes": [],
+    "note": "No custom vehicle_types config — DEFAULT_VEHICLE_TYPES (including 4 new types) applies to all companies."
+  },
+  "consoleErrors": [
+    "Warning: Select elements must be either controlled or uncontrolled (specify either the value prop, or the defaultValue prop, but not both). Decide between using a controlled or uncontrolled select element and remove one of these props. More info: https://reactjs.org/link/controlled-components%s \n   "
+  ],
+  "networkErrors": [],
+  "shots": [
+    "t1-search-19.png",
+    "t2-tilta-form.png",
+    "t3-dashboard-km.png",
+    "t6-vehicle-alert-modal.png",
+    "t4-vehicle-active.png",
+    "t4-vehicle-future.png",
+    "t4-vehicle-history.png",
+    "t4-central-alerts.png",
+    "t6-driver-log.png",
+    "t5-upload.png",
+    "t5-hub-docs.png",
+    "t7-alert-settings.png",
+    "t7-fma-hub.png",
+    "t8-officer-report.png",
+    "t9-vehicle-list-note.png",
+    "t9-driver-list-note.png",
+    "t10-vehicle-types-settings.png",
+    "t10-vehicle-form-types.png"
+  ],
+  "fixes": [],
+  "readyForOwnerReview": true,
+  "cleanup": {
+    "ok": true,
+    "ids": {
+      "users": [
+        "f6bc96d4-1883-4d1f-aa50-69a6ea696c49",
+        "12937378-025d-4bc8-b11b-c6618dc84652",
+        "3d20df38-f291-4403-a6d8-34a5550c2eb7"
+      ],
+      "vehicles": [
+        "b884dd1d-def5-4dd7-96bd-c6452fb2b0df",
+        "e0556528-f94e-4b4e-ba1f-8f49e6227e99",
+        "e63ecdda-5898-4f55-a06f-28d4739d757b",
+        "5c2eb8df-663c-4475-85f4-113971780e3c",
+        "5333c18f-705f-48f2-922b-1b73d517378c",
+        "5ed8d7bb-0e83-4530-937f-36a798a9d1ea",
+        "5aa13618-fecf-4886-8780-225165a16234",
+        "d2e20307-a9ba-48e4-8004-6cecdee5f535",
+        "8e050d31-b8cb-40ae-80e5-4dce3ce96826"
+      ],
+      "drivers": [
+        "63ab8e4f-9ea4-41e5-ac48-1d7c7f0f5342",
+        "0ba2541f-0a6c-4bc7-8913-76d327e08940"
+      ],
+      "inspections": [
+        "0363d9d7-6396-449d-9c72-9d4b5a4bbca7",
+        "980dd2ba-f56a-4797-b2f1-838e3f166659",
+        "6f34be79-8c0b-4774-aac1-c3a55722c4a1"
+      ],
+      "alerts": [
+        "dca49b13-2e56-4e3b-b59c-94ccf3d1e4fb",
+        "aeff9100-a6c3-40b7-88e9-6d452869f561",
+        "42a47f11-61fb-4fe1-93bf-d739233d051e",
+        "eed85c5a-3e9b-456d-8add-5479afe0b3cc",
+        "8841c68d-3af0-4f41-9343-1defe0933e13",
+        "3b5a859f-6efb-40f8-8765-c8969f233b54",
+        "d46a1941-4648-4c98-91f1-bc5edf92258e",
+        "24a41eae-370d-4809-9172-e2c0c501c17b",
+        "e464498c-8b5d-4632-86d4-475c5fa8e98e"
+      ],
+      "settings": [
+        "QA-T11-A-1786642064782",
+        "QA-T11-B-1786642064782"
+      ],
+      "versions": [],
+      "metadata": [
+        "c749bdc8-fdda-4f9e-a43a-c6d3d2e950c3"
+      ]
+    }
+  }
+}

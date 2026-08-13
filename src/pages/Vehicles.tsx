@@ -21,6 +21,7 @@ import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleList
 import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
 import { collectDepartmentsFromVehicles } from '@/lib/companyDepartments';
 import { VehiclePlatePipeLine } from '@/components/vehicles/vehiclePlateDisplay';
+import { sortByExactInternalNumberFirst } from '@/lib/internalNumberSearch';
 
 export { VehicleForm };
 
@@ -49,6 +50,7 @@ interface VehicleRow {
   insurance_doc_url: string;
   comprehensive_insurance_doc_url: string;
   notes: string;
+  show_notes_on_list?: boolean | null;
   management_type: string;
   monthly_leasing_cost: number | null;
   leasing_end_date: string | null;
@@ -191,7 +193,7 @@ export default function Vehicles() {
 
   const companies = [...new Set(vehicles.map(v => v.company_name).filter(Boolean))];
 
-  const filtered = vehicles.filter(v => {
+  const filteredUnsorted = vehicles.filter(v => {
     const matchSearch = !search || v.license_plate.includes(search) || v.manufacturer?.includes(search) || v.model?.includes(search) || v.internal_number?.includes(search) || (v.department || '').includes(search);
     // When "all" is selected, exclude archived vehicles; only show them when "archived" tab is active
     const matchStatus = statusFilter === 'all' ? v.status !== 'archived' : v.status === statusFilter;
@@ -200,6 +202,7 @@ export default function Vehicles() {
     const matchDepartment = !filterDepartment || (v.department || '') === filterDepartment;
     return matchSearch && matchStatus && matchCompany && matchDriver && matchDepartment;
   });
+  const filtered = sortByExactInternalNumberFirst(filteredUnsorted, search);
 
   const departmentOptions = collectDepartmentsFromVehicles(vehicles, filterCompany || companyFilter || user?.company_name);
 
@@ -405,12 +408,14 @@ export default function Vehicles() {
           )}
           <button onClick={() => exportToCsv('vehicles', [
             { key: 'license_plate', label: 'מספר רכב' },
+            { key: 'internal_number', label: 'מספר פנימי' },
             { key: 'manufacturer', label: 'יצרן' },
             { key: 'model', label: 'דגם' },
             { key: 'year', label: 'שנה' },
             { key: 'vehicle_type', label: 'סוג' },
             { key: 'status', label: 'סטטוס' },
             { key: 'odometer', label: 'קילומטראז׳' },
+            { key: 'department', label: 'מחלקה' },
             { key: 'test_expiry', label: 'תוקף טסט' },
             { key: 'insurance_expiry', label: 'תוקף ביטוח' },
             { key: 'company_name', label: 'חברה' },
@@ -495,6 +500,9 @@ export default function Vehicles() {
                         {' • '}{v.year}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">נהג: {getDriverName(v.assigned_driver_id)}</p>
+                      {v.show_notes_on_list && v.notes?.trim() ? (
+                        <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap break-words">{v.notes.trim()}</p>
+                      ) : null}
                     </div>
                   </button>
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">

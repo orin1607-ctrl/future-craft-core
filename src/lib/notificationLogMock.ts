@@ -8,6 +8,8 @@ export type LogScope = 'driver' | 'vehicle' | 'company';
 
 export interface NotificationLogEntry {
   id: string;
+  /** Present when the row comes from custom_alerts — used for deactivate. */
+  customAlertId?: string;
   scope: LogScope;
   timing: LogTiming;
   createdAt: string;

@@ -6,6 +6,13 @@ import type {
   LogTiming,
   NotificationLogEntry,
 } from '@/lib/notificationLogMock';
+import {
+  classifyAlertTiming,
+  driverIdFromAlertText,
+  driverNameFromAlertText,
+  plateFromAlertText,
+  vehicleIdFromAlertText,
+} from '@/lib/vehicleActionFollowUp';
 
 type SystemLogRow = {
   id: string;
@@ -18,6 +25,17 @@ type SystemLogRow = {
   details: string | null;
   channel: string | null;
   new_status: string | null;
+};
+
+type CustomAlertRow = {
+  id: string;
+  created_at?: string | null;
+  company_name: string | null;
+  title: string | null;
+  description: string | null;
+  alert_date: string | null;
+  alert_type: string | null;
+  is_active: boolean | null;
 };
 
 function mapChannel(raw: string | null): LogChannel {
@@ -63,6 +81,87 @@ export function systemLogToNotificationEntry(row: SystemLogRow): NotificationLog
     source: 'auto',
     notes: row.details || undefined,
   };
+}
+
+export function customAlertToNotificationEntry(row: CustomAlertRow): NotificationLogEntry {
+  const blob = `${row.title || ''}\n${row.description || ''}`;
+  const plate = plateFromAlertText(blob);
+  const vehicleId = vehicleIdFromAlertText(blob) || undefined;
+  const driverId = driverIdFromAlertText(blob) || undefined;
+  const driverName = driverNameFromAlertText(blob) || undefined;
+  const scope: LogScope = driverId ? 'driver' : plate || vehicleId ? 'vehicle' : 'company';
+  return {
+    id: row.id,
+    customAlertId: row.id,
+    scope,
+    timing: classifyAlertTiming(row.alert_date, row.is_active !== false),
+    createdAt: row.created_at || row.alert_date || new Date().toISOString(),
+    scheduledFor: row.alert_date || undefined,
+    companyName: row.company_name || '',
+    vehiclePlate: plate || undefined,
+    vehicleId,
+    driverId,
+    driverName,
+    topic: row.title || row.alert_type || 'התראה',
+    channel: 'system',
+    status: row.is_active === false ? 'sent' : 'pending',
+    source: 'manual',
+    notes: row.description || undefined,
+  };
+}
+
+export async function fetchCustomAlertLogEntries(filters?: {
+  companyName?: string | null;
+  vehiclePlate?: string | null;
+  vehicleId?: string | null;
+  driverId?: string | null;
+  limit?: number;
+}): Promise<NotificationLogEntry[]> {
+  let q = supabase
+    .from('custom_alerts')
+    .select('id, created_at, company_name, title, description, alert_date, alert_type, is_active')
+    .order('alert_date', { ascending: true })
+    .limit(filters?.limit || 500);
+
+  if (filters?.companyName) q = q.eq('company_name', filters.companyName);
+
+  const { data, error } = await q;
+  if (error) {
+    console.error('[notificationLogService] custom_alerts', error);
+    return [];
+  }
+
+  const plateNorm = (filters?.vehiclePlate || '').replace(/[-\s]/g, '');
+  return (data as CustomAlertRow[])
+    .map(customAlertToNotificationEntry)
+    .filter((e) => {
+      if (filters?.driverId) return e.driverId === filters.driverId;
+      if (filters?.vehicleId || filters?.vehiclePlate) {
+        if (filters.vehicleId && e.vehicleId === filters.vehicleId) return true;
+        if (filters.vehiclePlate) {
+          const p = (e.vehiclePlate || '').replace(/[-\s]/g, '');
+          if (p && (p === plateNorm || e.vehiclePlate === filters.vehiclePlate)) return true;
+        }
+        return false;
+      }
+      return true;
+    });
+}
+
+export async function fetchActiveCustomAlertCount(filters: {
+  companyName?: string | null;
+  vehiclePlate?: string | null;
+  vehicleId?: string | null;
+  driverId?: string | null;
+}): Promise<number> {
+  const rows = await fetchCustomAlertLogEntries(filters);
+  return rows.filter((e) => e.timing === 'active' || e.timing === 'future').length;
+}
+
+export async function deactivateCustomAlert(id: string): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await supabase.from('custom_alerts').update({ is_active: false }).eq('id', id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 /** Loads notification-relevant rows from system_logs (WhatsApp/email/system channels). */

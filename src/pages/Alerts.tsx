@@ -8,7 +8,7 @@ import { isInsuranceAlertsEnabled, isInsuranceRedHighlightEnabled } from '@/lib/
 import { fetchCompanySettings, prefetchCompanySettings } from '@/lib/companySettings';
 import { expiryReminderTier, tierDetail, tierLabel } from '@/lib/vehicleExpiryReminders';
 import { thresholdsFromCompanySettings } from '@/lib/vehicleTrackingAlerts';
-import { plateFromAlertText } from '@/lib/vehicleActionFollowUp';
+import { driverNameFromAlertText, plateFromAlertText } from '@/lib/vehicleActionFollowUp';
 import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, ClipboardList as LogIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -454,15 +454,24 @@ export default function Alerts() {
     if (customAlerts) {
       for (const ca of customAlerts) {
         const daysLeft = getDaysLeft(ca.alert_date);
-        if (daysLeft === null || daysLeft > 30) continue;
+        if (daysLeft === null) continue;
         const plate = plateFromAlertText(ca.description) || plateFromAlertText(ca.title);
+        const driverName = driverNameFromAlertText(ca.description) || driverNameFromAlertText(ca.title);
         const internalNumber = internalForPlate(plate);
+        const timingLabel =
+          daysLeft < 0 ? 'עבר המועד' : daysLeft > 30 ? 'עתידית' : 'קרובה';
+        const severity: AlertSeverity =
+          daysLeft < 0 ? 'critical' : daysLeft <= 14 ? 'warning' : 'info';
         allAlerts.push({
           id: `custom-${ca.id}`,
           category: 'service_order',
-          severity: getSeverity(daysLeft),
+          severity,
           title: ca.title,
-          subtitle: plate ? `רכב ${plate}` : ca.description?.split('\n')[0] || '',
+          subtitle: [
+            plate ? `רכב ${plate}` : driverName ? `נהג ${driverName}` : ca.description?.split('\n')[0] || '',
+            timingLabel,
+            daysLeft > 30 ? `בעוד ${daysLeft} ימים` : undefined,
+          ].filter(Boolean).join(' • '),
           internalNumber,
           vehiclePlate: plate || null,
           daysLeft,
