@@ -47,7 +47,7 @@ export default function CreateAlertModal({
   driverName?: string;
 }) {
   const { user } = useAuth();
-  const [alertType, setAlertType] = useState(driverId && !vehiclePlate ? FREE_ALERT_TYPE : 'other');
+  const [alertType, setAlertType] = useState(vehiclePlate || driverId ? FREE_ALERT_TYPE : 'other');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [alertDate, setAlertDate] = useState('');

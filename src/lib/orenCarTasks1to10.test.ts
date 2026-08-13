@@ -9,6 +9,9 @@ import {
   parseOdometerKm,
   shouldUpdateOdometer,
 } from './vehicleActionFollowUp';
+import { classifyExpiryForActiveList, expiryAlertTitle } from './vehicleExpiryReminders';
+import { DEFAULT_ALERT_THRESHOLDS } from './vehicleTrackingAlerts';
+import { DEFAULT_VEHICLE_TYPES, withRequiredVehicleTypes } from './vehicleTypesConfig';
 
 describe('internal number exact-first sort', () => {
   it('puts exact "19" before "019" and other includes', () => {
@@ -64,5 +67,40 @@ describe('next due months', () => {
   it('adds 3 and 6 calendar months', () => {
     expect(addCalendarMonths('2026-08-13', 3)).toBe('2026-11-13');
     expect(addCalendarMonths('2026-08-13', 6)).toBe('2027-02-13');
+  });
+});
+
+describe('expiry active list', () => {
+  it('shows current and future including >30 days, hides expired', () => {
+    expect(classifyExpiryForActiveList(0)).toBe('active');
+    expect(classifyExpiryForActiveList(14)).toBe('active');
+    expect(classifyExpiryForActiveList(90)).toBe('future');
+    expect(classifyExpiryForActiveList(-1)).toBe('none');
+    expect(classifyExpiryForActiveList(null)).toBe('none');
+  });
+  it('labels future vs near expiry', () => {
+    expect(expiryAlertTitle('טסט', 90, DEFAULT_ALERT_THRESHOLDS)).toContain('עתידית');
+    expect(expiryAlertTitle('טסט', 7, DEFAULT_ALERT_THRESHOLDS)).toContain('7');
+  });
+});
+
+describe('required vehicle types overlay', () => {
+  it('keeps old types and adds the four new ones without duplicating אחר', () => {
+    const merged = withRequiredVehicleTypes([
+      { id: 'private', label: 'רכב פרטי' },
+      { id: 'other', label: 'אחר' },
+    ]);
+    const labels = merged.map((t) => t.label);
+    expect(labels).toContain('נגרר');
+    expect(labels).toContain('טרקטור');
+    expect(labels).toContain('ציוד הנדסי');
+    expect(labels).toContain('רכב זעיר');
+    expect(labels).toContain('רכב פרטי');
+    expect(labels.filter((l) => l === 'אחר')).toHaveLength(1);
+    expect(labels.indexOf('נגרר')).toBeLessThan(labels.indexOf('אחר'));
+  });
+  it('does not duplicate when defaults already include them', () => {
+    const merged = withRequiredVehicleTypes(DEFAULT_VEHICLE_TYPES);
+    expect(merged.filter((t) => t.id === 'trailer')).toHaveLength(1);
   });
 });

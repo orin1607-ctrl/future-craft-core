@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
+import { normalizePlate } from '@/lib/entityNavContext';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -132,17 +133,27 @@ export default function Reports() {
       applyCompanyScope(supabase.from('expenses').select(EXPENSE_SELECT), companyFilter),
       applyCompanyScope(supabase.from('service_orders').select(SERVICE_SELECT), companyFilter),
       applyCompanyScope(supabase.from('supplier_work_orders').select(SUPPLIER_SELECT), companyFilter),
-      applyCompanyScope(supabase.from('vehicle_inspections').select(INSPECTION_SELECT), companyFilter),
+      supabase.from('vehicle_inspections').select(INSPECTION_SELECT),
     ]);
+    const vehicles = vRes.data || [];
+    const companyPlates = new Set(
+      vehicles.map((v) => normalizePlate(v.license_plate || '')).filter(Boolean),
+    );
+    const inspections = (iRes.data || []).filter((i) => {
+      if (!companyFilter) return true;
+      if (i.company_name === companyFilter) return true;
+      const p = normalizePlate(i.vehicle_plate || '');
+      return !!p && companyPlates.has(p);
+    });
     setRaw({
-      vehicles: vRes.data || [],
+      vehicles,
       drivers: dRes.data || [],
       faults: fRes.data || [],
       accidents: aRes.data || [],
       expenses: eRes.data || [],
       serviceOrders: soRes.data || [],
       supplierOrders: woRes.data || [],
-      inspections: iRes.data || [],
+      inspections,
     });
     setLoading(false);
   };
@@ -186,16 +197,24 @@ export default function Reports() {
 
   const plateToInternal = useMemo(() => {
     const map: Record<string, string> = {};
-    raw.vehicles.forEach(v => { if (v.license_plate) map[v.license_plate] = v.internal_number || ''; });
+    raw.vehicles.forEach(v => {
+      if (!v.license_plate) return;
+      map[v.license_plate] = v.internal_number || '';
+      map[normalizePlate(v.license_plate)] = v.internal_number || '';
+    });
     return map;
   }, [raw.vehicles]);
   const plateToCompany = useMemo(() => {
     const map: Record<string, string> = {};
-    raw.vehicles.forEach(v => { if (v.license_plate) map[v.license_plate] = v.company_name || ''; });
+    raw.vehicles.forEach(v => {
+      if (!v.license_plate) return;
+      map[v.license_plate] = v.company_name || '';
+      map[normalizePlate(v.license_plate)] = v.company_name || '';
+    });
     return map;
   }, [raw.vehicles]);
   const getInternal = (plate: string | null | undefined) =>
-    plate ? (plateToInternal[plate] || '-') : '-';
+    plate ? (plateToInternal[plate] || plateToInternal[normalizePlate(plate)] || '-') : '-';
   const getCompanyForPlate = (plate: string | null | undefined, fallback?: string | null) =>
     fallback || (plate ? plateToCompany[plate] : '') || '-';
 
@@ -217,9 +236,15 @@ export default function Reports() {
     if (company && !opts.company && opts.plate) {
       if (plateToCompany[opts.plate] && plateToCompany[opts.plate] !== company) return false;
     }
-    if (filterVehicle && opts.plate !== filterVehicle) return false;
+    if (filterVehicle) {
+      const want = normalizePlate(filterVehicle);
+      const got = normalizePlate(opts.plate || '');
+      if (opts.plate !== filterVehicle && want !== got) return false;
+    }
     if (filterInternal) {
-      const internal = opts.internal || (opts.plate ? plateToInternal[opts.plate] : '');
+      const internal =
+        opts.internal ||
+        (opts.plate ? plateToInternal[opts.plate] || plateToInternal[normalizePlate(opts.plate)] || '' : '');
       if (internal !== filterInternal) return false;
     }
     if (filterDriver && opts.driver !== filterDriver) return false;
@@ -290,15 +315,21 @@ export default function Reports() {
       ),
       inspections: raw.inspections.filter(i =>
         matchEntityFilters({
-          company: i.company_name,
+          company: i.company_name || (i.vehicle_plate ? plateToCompany[i.vehicle_plate] || plateToCompany[normalizePlate(i.vehicle_plate)] : ''),
           plate: i.vehicle_plate,
-          internal: i.vehicle_plate ? plateToInternal[i.vehicle_plate] || '' : '',
+          internal: i.vehicle_plate
+            ? plateToInternal[i.vehicle_plate] || plateToInternal[normalizePlate(i.vehicle_plate)] || ''
+            : '',
           status: i.overall_status,
-        }) && dateInReportRange(i.inspection_date, from, to),
+        }) && (
+          periodMode === 'all' ||
+          dateInReportRange(i.inspection_date, from, to) ||
+          dateInReportRange(i.next_due_date, from, to)
+        ),
       ),
     };
   }, [
-    raw, period, filterCompany, filterVehicle, filterInternal, filterDriver,
+    raw, period, periodMode, filterCompany, filterVehicle, filterInternal, filterDriver,
     filterStatus, filterVendor, user?.role, companyFilter, plateToInternal, plateToCompany,
   ]);
 

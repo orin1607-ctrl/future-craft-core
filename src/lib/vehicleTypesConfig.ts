@@ -43,6 +43,24 @@ function normalizeTypes(raw: unknown): VehicleTypeOption[] {
   return out.length > 0 ? out : DEFAULT_VEHICLE_TYPES;
 }
 
+const REQUIRED_VEHICLE_TYPES: VehicleTypeOption[] = [
+  { id: 'trailer', label: 'נגרר' },
+  { id: 'tractor', label: 'טרקטור' },
+  { id: 'engineering', label: 'ציוד הנדסי' },
+  { id: 'micro', label: 'רכב זעיר' },
+];
+
+/** Display-time only: keep custom labels, always include the 4 new types. Does not write config. */
+export function withRequiredVehicleTypes(types: VehicleTypeOption[]): VehicleTypeOption[] {
+  const ids = new Set(types.map((t) => t.id));
+  const labels = new Set(types.map((t) => t.label));
+  const extra = REQUIRED_VEHICLE_TYPES.filter((t) => !ids.has(t.id) && !labels.has(t.label));
+  if (!extra.length) return types;
+  const otherIdx = types.findIndex((t) => t.id === VEHICLE_TYPE_OTHER_ID || t.label === 'אחר');
+  if (otherIdx >= 0) return [...types.slice(0, otherIdx), ...extra, ...types.slice(otherIdx)];
+  return [...types, ...extra];
+}
+
 export async function fetchVehicleTypes(): Promise<VehicleTypeOption[]> {
   const { data, error } = await supabase
     .from('dalia_form_config')
@@ -52,14 +70,14 @@ export async function fetchVehicleTypes(): Promise<VehicleTypeOption[]> {
 
   if (error) {
     console.warn('[vehicleTypesConfig] fetch failed', error.message);
-    return DEFAULT_VEHICLE_TYPES;
+    return withRequiredVehicleTypes(DEFAULT_VEHICLE_TYPES);
   }
 
   const value = (data as { config_value?: unknown } | null)?.config_value;
   if (value && typeof value === 'object' && 'types' in (value as object)) {
-    return normalizeTypes((value as { types: unknown }).types);
+    return withRequiredVehicleTypes(normalizeTypes((value as { types: unknown }).types));
   }
-  return normalizeTypes(value);
+  return withRequiredVehicleTypes(normalizeTypes(value));
 }
 
 export async function saveVehicleTypes(

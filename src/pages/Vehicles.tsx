@@ -43,6 +43,7 @@ interface VehicleRow {
   comprehensive_insurance_expiry: string | null;
   comprehensive_insurance_start: string | null;
   next_service_date: string | null;
+  next_inspection_date?: string | null;
   last_service_date: string | null;
   needs_transport: boolean;
   approval_status: string;

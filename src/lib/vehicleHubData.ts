@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { loadVehicleHistory, type VehicleHistoryEntry } from '@/lib/vehicleHistory';
+import { normalizePlate as normalizePlateKey } from '@/lib/entityNavContext';
 import {
   handoverDateTime,
   isTowingServiceOrder,
@@ -117,7 +118,7 @@ export interface VehicleHubData {
 }
 
 function normalizePlate(plate: string) {
-  return plate.replace(/[-\s]/g, '');
+  return normalizePlateKey(plate);
 }
 
 function byPlate(table: string, plate: string, companyFilter: string | null) {
@@ -167,15 +168,21 @@ export async function loadVehicleHubData(
           .order('alert_date', { ascending: true }),
         companyFilter,
       ),
-      vehicleId
-        ? supabase
-            .from('document_versions')
-            .select('id, public_url, original_name, document_type_key, expiry_date, created_at, file_path, is_current')
-            .eq('entity_type', 'vehicle')
-            .eq('entity_id', vehicleId)
-            .eq('is_current', true)
-            .order('created_at', { ascending: false })
-        : Promise.resolve({ data: [] as Record<string, string>[] }),
+      supabase
+        .from('document_versions')
+        .select('id, public_url, original_name, document_type_key, expiry_date, created_at, file_path, is_current')
+        .eq('entity_type', 'vehicle')
+        .or(
+          [
+            vehicleId ? `entity_id.eq.${vehicleId}` : null,
+            `entity_id.eq.${plate}`,
+            `entity_id.eq.${normalizePlate(plate)}`,
+          ]
+            .filter(Boolean)
+            .join(','),
+        )
+        .eq('is_current', true)
+        .order('created_at', { ascending: false }),
     ]);
 
   const tasks: VehicleTaskRow[] = (tasksRes.data || []).map((t: Record<string, string>) => ({
@@ -267,7 +274,8 @@ export async function loadVehicleHubData(
   const vehicleAlerts: VehicleAlertRow[] = (alertsRes.data || [])
     .filter((a: Record<string, string>) => {
       const p = plateFromAlertText(a.description) || plateFromAlertText(a.title);
-      return !p || p === plate;
+      if (!p) return true;
+      return normalizePlate(p) === normalizePlate(plate);
     })
     .map((a: Record<string, string>) => {
       const alertDate = a.alert_date || '';
@@ -284,7 +292,9 @@ export async function loadVehicleHubData(
 
   const docs: DocRow[] = [];
   const metadataRows = (docsRes.data || []) as Record<string, string>[];
-  const metadataCategories = new Set(metadataRows.map((d) => d.category));
+  const metadataCategoriesWithFile = new Set(
+    metadataRows.filter((d) => d.file_path || d.public_url).map((d) => d.category),
+  );
 
   const pushUrlDoc = (
     id: string,
@@ -295,7 +305,7 @@ export async function loadVehicleHubData(
     expiry: string | null | undefined,
   ) => {
     if (!url?.trim()) return;
-    if (metadataCategories.has(category)) return;
+    if (metadataCategoriesWithFile.has(category)) return;
     docs.push({
       id,
       ref,
@@ -340,9 +350,13 @@ export async function loadVehicleHubData(
     if (url) seenUrls.add(url);
     if (ver.file_path) seenPaths.add(ver.file_path);
     const typeLabel =
-      ver.document_type_key === 'vehicle_license'
+      ver.document_type_key === 'vehicle_license' || ver.document_type_key === 'license'
         ? 'רישיון רכב'
-        : ver.original_name || ver.document_type_key || 'מסמך';
+        : ver.document_type_key === 'insurance' ||
+            ver.document_type_key === 'vehicle_insurance' ||
+            ver.document_type_key === 'mandatory_insurance'
+          ? 'ביטוח רכב'
+          : ver.original_name || ver.document_type_key || 'מסמך';
     docs.push({
       id: ver.id || `ver-${idx}`,
       ref: `HUB-${String(idx + 1).padStart(3, '0')}`,

@@ -20,6 +20,7 @@ import {
   Wrench,
   Briefcase,
   Fuel,
+  Bell,
 } from 'lucide-react';
 import { buildVehicleContextUrl, buildVehicleHubUrl, markFleetOSHubNavigation, type VehicleHubDeepLink } from '@/lib/entityNavContext';
 import { canAccessFleetOS } from '@/modules/fleetos/fleetosRoleMap';
@@ -29,6 +30,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import CreateAlertModal from '@/components/CreateAlertModal';
+import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
 import VehicleActionModal from '@/components/vehicles/VehicleActionModal';
 import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleListsManager';
 import VehicleSupplierOrderModal from '@/components/vehicles/VehicleSupplierOrderModal';
@@ -70,6 +72,7 @@ export interface VehicleHubVehicle {
   comprehensive_insurance_expiry: string | null;
   comprehensive_insurance_start: string | null;
   next_service_date: string | null;
+  next_inspection_date?: string | null;
   last_service_date: string | null;
   needs_transport: boolean;
   approval_status: string;
@@ -130,7 +133,7 @@ const QUICK_ACTIONS: { cat: string; label: string }[] = [
   { cat: 'שינוע', label: 'שינוע' },
   { cat: 'מסמך', label: 'מסמך' },
   { cat: 'הערה', label: 'הערה' },
-  { cat: 'התראה', label: 'התראה' },
+  { cat: 'התראה', label: 'התראה חופשית' },
   { cat: '__supplier__', label: 'ספק' },
 ];
 
@@ -498,9 +501,10 @@ export default function VehicleHub({
   };
 
   const expiryAlerts = [
-    v.test_expiry && { title: 'תוקף טסט', date: v.test_expiry, isInsurance: false },
+    v.test_expiry && { title: 'תוקף טסט / רישיון רכב', date: v.test_expiry, isInsurance: false },
     v.insurance_expiry && { title: 'תוקף ביטוח חובה', date: v.insurance_expiry, isInsurance: true },
     v.comprehensive_insurance_expiry && { title: 'תוקף ביטוח מקיף', date: v.comprehensive_insurance_expiry, isInsurance: true },
+    v.next_inspection_date && { title: 'התראת קצין רכב', date: v.next_inspection_date, isInsurance: false },
     v.next_service_date && { title: 'טיפול מתוכנן', date: v.next_service_date, isInsurance: false },
   ].filter(Boolean) as { title: string; date: string; isInsurance: boolean }[];
   const insRedHighlight = shouldShowInsuranceRed(v);
@@ -715,7 +719,7 @@ export default function VehicleHub({
             )}
             <div className="p-3">
               <Button type="button" variant="outline" size="sm" onClick={() => setShowAlertModal(true)}>
-                התראה מותאמת
+                התראה חופשית
               </Button>
             </div>
           </div>
@@ -852,6 +856,20 @@ export default function VehicleHub({
               setDrillRefreshKey((k) => k + 1);
             }}
           />
+          {isManager && (
+            <div className="card-elevated p-4 mb-4 space-y-2">
+              <p className="text-sm font-bold">התראות לרכב</p>
+              <Button
+                type="button"
+                className="w-full h-12 font-bold gap-2"
+                onClick={() => setShowAlertModal(true)}
+              >
+                <Bell size={18} />
+                התראה חופשית
+              </Button>
+              <NotificationsAndSendsButton vehicleId={v.id} vehiclePlate={v.license_plate} />
+            </div>
+          )}
           {mainNav}
           {hubData && hubData.history.length > 0 && (
             <div className="mt-4">
@@ -1174,6 +1192,7 @@ export default function VehicleHub({
         isManager={isManager}
         isArchived={v.status === 'archived'}
         previewMode={previewMode}
+        onCreateAlert={() => setShowAlertModal(true)}
         onImport={async () => {
           if (previewMode) {
             toast.info('תצוגת פיתוח — /vehicle-import');

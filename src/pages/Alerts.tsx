@@ -6,9 +6,22 @@ import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { buildVehicleContextUrl, buildVehicleHubUrl, buildFaultDetailUrl, buildVehicleTaskDetailUrl, buildServiceOrderDetailUrl } from '@/lib/entityNavContext';
 import { isInsuranceAlertsEnabled, isInsuranceRedHighlightEnabled } from '@/lib/vehicleInsuranceAlerts';
 import { fetchCompanySettings, prefetchCompanySettings } from '@/lib/companySettings';
-import { expiryReminderTier, tierDetail, tierLabel } from '@/lib/vehicleExpiryReminders';
+import {
+  classifyExpiryForActiveList,
+  expiryAlertTitle,
+  expiryReminderTier,
+  tierDetail,
+} from '@/lib/vehicleExpiryReminders';
 import { thresholdsFromCompanySettings } from '@/lib/vehicleTrackingAlerts';
-import { driverNameFromAlertText, plateFromAlertText } from '@/lib/vehicleActionFollowUp';
+import {
+  FREE_ALERT_LABEL,
+  FREE_ALERT_TYPE,
+  OFFICER_ALERT_LABEL,
+  OFFICER_ALERT_TYPE,
+  driverNameFromAlertText,
+  plateFromAlertText,
+} from '@/lib/vehicleActionFollowUp';
+import { normalizePlate } from '@/lib/entityNavContext';
 import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, ClipboardList as LogIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -28,7 +41,9 @@ type AlertCategory =
   | 'driver_document'
   | 'fault'
   | 'service_order'
-  | 'work_assignment';
+  | 'work_assignment'
+  | 'officer'
+  | 'free';
 
 interface AlertItem {
   id: string;
@@ -54,6 +69,8 @@ const categoryLabels: Record<AlertCategory, string> = {
   fault: 'תקלה דחופה',
   service_order: 'הזמנת שירות',
   work_assignment: 'סידור עבודה',
+  officer: OFFICER_ALERT_LABEL,
+  free: FREE_ALERT_LABEL,
 };
 
 const categoryIcons: Record<AlertCategory, typeof Car> = {
@@ -66,6 +83,8 @@ const categoryIcons: Record<AlertCategory, typeof Car> = {
   fault: Wrench,
   service_order: Briefcase,
   work_assignment: ClipboardList,
+  officer: ShieldAlert,
+  free: Bell,
 };
 
 const severityStyles: Record<AlertSeverity, string> = {
@@ -249,73 +268,75 @@ export default function Alerts() {
         const insOn = isInsuranceAlertsEnabled(v);
         const insRed = isInsuranceRedHighlightEnabled(v);
 
-        const testDays = getDaysLeft(v.test_expiry);
-        const testTier = expiryReminderTier(testDays, thresholds);
-        if (testTier !== null) {
+        const pushExpiry = (
+          id: string,
+          category: AlertCategory,
+          subject: string,
+          dateStr: string | null | undefined,
+          enabled: boolean,
+          severityFn: (days: number | null) => AlertSeverity,
+          link: string,
+        ) => {
+          if (!enabled || !dateStr) return;
+          const days = getDaysLeft(dateStr);
+          const kind = classifyExpiryForActiveList(days);
+          if (kind === 'none' || days === null) return;
           allAlerts.push({
-            id: `test-${v.id}-${testTier}`,
-            category: 'test',
-            severity: getSeverity(testDays),
-            title: tierLabel(testTier, testDays !== null && testDays <= 0 ? 'טסט פג תוקף' : 'טסט עומד לפוג'),
-            subtitle: label,
+            id,
+            category,
+            severity: kind === 'future' ? 'info' : severityFn(days),
+            title: expiryAlertTitle(subject, days, thresholds),
+            subtitle: kind === 'future' ? `${label} · עתידית` : label,
             internalNumber,
             vehiclePlate,
-            daysLeft: testDays,
-            date: v.test_expiry,
-            link: testHub(v.id),
+            daysLeft: days,
+            date: dateStr,
+            meta: kind === 'future' ? `בעוד ${days} ימים` : undefined,
+            link,
           });
-        }
+        };
 
-        const insDays = getDaysLeft(v.insurance_expiry);
-        const insTier = insOn ? expiryReminderTier(insDays, thresholds) : null;
-        if (insTier !== null) {
-          allAlerts.push({
-            id: `ins-${v.id}-${insTier}`,
-            category: 'insurance',
-            severity: getInsuranceSeverity(insDays, insRed),
-            title: tierLabel(insTier, insDays !== null && insDays <= 0 ? 'ביטוח חובה פג' : 'ביטוח חובה עומד לפוג'),
-            subtitle: label,
-            internalNumber,
-            vehiclePlate,
-            daysLeft: insDays,
-            date: v.insurance_expiry,
-            link: insHub(v.id),
-          });
-        }
+        pushExpiry(`test-${v.id}`, 'test', 'טסט / רישיון רכב', v.test_expiry, true, getSeverity, testHub(v.id));
+        pushExpiry(`ins-${v.id}`, 'insurance', 'ביטוח חובה', v.insurance_expiry, insOn, (d) => getInsuranceSeverity(d, insRed), insHub(v.id));
+        pushExpiry(
+          `comp-${v.id}`,
+          'comprehensive_insurance',
+          'ביטוח מקיף',
+          v.comprehensive_insurance_expiry,
+          insOn,
+          (d) => getInsuranceSeverity(d, insRed),
+          insHub(v.id),
+        );
+        pushExpiry(
+          `third-${v.id}`,
+          'third_party_insurance',
+          'ביטוח צד ג׳',
+          getThirdPartyInsuranceExpiry(v),
+          insOn,
+          (d) => getInsuranceSeverity(d, insRed),
+          insHub(v.id),
+        );
 
-        const compDays = getDaysLeft(v.comprehensive_insurance_expiry);
-        const compTier = insOn ? expiryReminderTier(compDays, thresholds) : null;
-        if (compTier !== null) {
-          allAlerts.push({
-            id: `comp-${v.id}-${compTier}`,
-            category: 'comprehensive_insurance',
-            severity: getInsuranceSeverity(compDays, insRed),
-            title: tierLabel(compTier, compDays !== null && compDays <= 0 ? 'ביטוח מקיף פג' : 'ביטוח מקיף עומד לפוג'),
-            subtitle: label,
-            internalNumber,
-            vehiclePlate,
-            daysLeft: compDays,
-            date: v.comprehensive_insurance_expiry,
-            link: insHub(v.id),
-          });
-        }
-
-        const thirdExpiry = getThirdPartyInsuranceExpiry(v);
-        const thirdDays = getDaysLeft(thirdExpiry);
-        const thirdTier = insOn ? expiryReminderTier(thirdDays, thresholds) : null;
-        if (thirdTier !== null) {
-          allAlerts.push({
-            id: `third-${v.id}-${thirdTier}`,
-            category: 'third_party_insurance',
-            severity: getInsuranceSeverity(thirdDays, insRed),
-            title: tierLabel(thirdTier, thirdDays !== null && thirdDays <= 0 ? 'ביטוח צד ג׳ פג' : 'ביטוח צד ג׳ עומד לפוג'),
-            subtitle: label,
-            internalNumber,
-            vehiclePlate,
-            daysLeft: thirdDays,
-            date: thirdExpiry,
-            link: insHub(v.id),
-          });
+        const nextInsp = (v as { next_inspection_date?: string | null }).next_inspection_date;
+        if (nextInsp) {
+          const days = getDaysLeft(nextInsp);
+          const kind = classifyExpiryForActiveList(days);
+          if (kind !== 'none' && days !== null) {
+            allAlerts.push({
+              id: `officer-veh-${v.id}`,
+              category: 'officer',
+              severity: kind === 'future' ? 'info' : getSeverity(days),
+              title: `${OFFICER_ALERT_LABEL} · ${v.license_plate || ''}`.trim(),
+              subtitle: [label, kind === 'future' ? 'עתידית' : 'קרובה', days > 30 ? `בעוד ${days} ימים` : undefined]
+                .filter(Boolean)
+                .join(' • '),
+              internalNumber,
+              vehiclePlate,
+              daysLeft: days,
+              date: nextInsp,
+              link: testHub(v.id),
+            });
+          }
         }
       }
     } else {
@@ -323,13 +344,27 @@ export default function Alerts() {
       setInternalNumbers([]);
     }
 
-    // 2. Driver license expiries
+    // 2. Driver license expiries (current + future, expired → history only)
     const { data: drivers } = await applyCompanyScope(supabase.from('drivers').select('*'), companyFilter);
+    const driverThresholds = await thresholdForCompany(
+      (typeof companyFilter === 'string' && companyFilter) || user?.company_name || drivers?.[0]?.company_name,
+    );
     if (drivers) {
       for (const d of drivers) {
         const licDays = getDaysLeft(d.license_expiry);
-        if (licDays !== null && licDays <= 30) {
-          allAlerts.push({ id: `lic-${d.id}`, category: 'license', severity: getSeverity(licDays), title: licDays <= 0 ? 'רישיון נהיגה פג!' : 'רישיון עומד לפוג', subtitle: d.full_name, daysLeft: licDays, date: d.license_expiry, meta: d.phone || undefined, link: `/drivers?driverId=${d.id}&section=documents` });
+        const licKind = classifyExpiryForActiveList(licDays);
+        if (licKind !== 'none' && licDays !== null) {
+          allAlerts.push({
+            id: `lic-${d.id}`,
+            category: 'license',
+            severity: licKind === 'future' ? 'info' : getSeverity(licDays),
+            title: expiryAlertTitle('רישיון נהיגה', licDays, driverThresholds),
+            subtitle: licKind === 'future' ? `${d.full_name} · עתידית` : d.full_name,
+            daysLeft: licDays,
+            date: d.license_expiry,
+            meta: d.phone || undefined,
+            link: `/drivers?driverId=${d.id}&section=documents`,
+          });
         }
       }
     }
@@ -338,11 +373,21 @@ export default function Alerts() {
     if (drivers) {
       for (const d of drivers) {
         const examExpiry = (d as any).exam_expiry;
-        if (examExpiry) {
-          const examDays = getDaysLeft(examExpiry);
-          if (examDays !== null && examDays <= 30) {
-            allAlerts.push({ id: `exam-${d.id}`, category: 'license', severity: getSeverity(examDays), title: examDays <= 0 ? 'תוקף מבחן נהיגה פג!' : 'מבחן נהיגה עומד לפוג', subtitle: d.full_name, daysLeft: examDays, date: examExpiry, meta: d.phone || undefined, link: `/drivers?driverId=${d.id}&section=driving` });
-          }
+        if (!examExpiry) continue;
+        const examDays = getDaysLeft(examExpiry);
+        const examKind = classifyExpiryForActiveList(examDays);
+        if (examKind !== 'none' && examDays !== null) {
+          allAlerts.push({
+            id: `exam-${d.id}`,
+            category: 'license',
+            severity: examKind === 'future' ? 'info' : getSeverity(examDays),
+            title: expiryAlertTitle('מבחן נהיגה', examDays, driverThresholds),
+            subtitle: examKind === 'future' ? `${d.full_name} · עתידית` : d.full_name,
+            daysLeft: examDays,
+            date: examExpiry,
+            meta: d.phone || undefined,
+            link: `/drivers?driverId=${d.id}&section=driving`,
+          });
         }
       }
     }
@@ -369,19 +414,19 @@ export default function Alerts() {
       const driverNameById = new Map((drivers || []).map((d) => [d.id, d.full_name]));
       for (const ver of driverDocVersions) {
         const days = getDaysLeft(ver.expiry_date);
-        const tier = expiryReminderTier(days, docAlertThresholds);
-        if (tier === null) continue;
+        const kind = classifyExpiryForActiveList(days);
+        if (kind === 'none' || days === null) continue;
         const label = typeLabelMap.get(ver.document_type_key) || ver.document_type_key;
         const driverName = driverNameById.get(ver.entity_id) || 'נהג';
         allAlerts.push({
           id: `drvdoc-${ver.id}`,
           category: 'driver_document',
-          severity: days !== null && days <= 0 ? 'critical' : days !== null && days <= 7 ? 'warning' : 'info',
-          title: tierLabel(tier, `תוקף ${label}`),
-          subtitle: driverName,
+          severity: kind === 'future' ? 'info' : days <= 7 ? 'warning' : 'info',
+          title: expiryAlertTitle(`תוקף ${label}`, days, docAlertThresholds),
+          subtitle: kind === 'future' ? `${driverName} · עתידית` : driverName,
           daysLeft: days,
           date: ver.expiry_date,
-          meta: tierDetail(ver.expiry_date, days, tier),
+          meta: kind === 'future' ? `בעוד ${days} ימים` : tierDetail(ver.expiry_date, days, expiryReminderTier(days, docAlertThresholds) || 30),
           link: `/drivers?driverId=${ver.entity_id}&section=documents&docType=${encodeURIComponent(ver.document_type_key || '')}`,
         });
       }
@@ -452,19 +497,32 @@ export default function Alerts() {
       companyFilter,
     );
     if (customAlerts) {
+      const officerSeen = new Set(
+        allAlerts
+          .filter((a) => a.category === 'officer' && a.vehiclePlate && a.date)
+          .map((a) => `${normalizePlate(a.vehiclePlate || '')}|${String(a.date).slice(0, 10)}`),
+      );
       for (const ca of customAlerts) {
         const daysLeft = getDaysLeft(ca.alert_date);
-        if (daysLeft === null) continue;
+        if (daysLeft === null || daysLeft < 0) continue;
         const plate = plateFromAlertText(ca.description) || plateFromAlertText(ca.title);
         const driverName = driverNameFromAlertText(ca.description) || driverNameFromAlertText(ca.title);
         const internalNumber = internalForPlate(plate);
-        const timingLabel =
-          daysLeft < 0 ? 'עבר המועד' : daysLeft > 30 ? 'עתידית' : 'קרובה';
-        const severity: AlertSeverity =
-          daysLeft < 0 ? 'critical' : daysLeft <= 14 ? 'warning' : 'info';
+        const timingLabel = daysLeft > 30 ? 'עתידית' : 'קרובה';
+        const severity: AlertSeverity = daysLeft <= 14 ? 'warning' : 'info';
+        const isOfficer =
+          ca.alert_type === OFFICER_ALERT_TYPE || String(ca.title || '').includes(OFFICER_ALERT_LABEL);
+        const isFree =
+          ca.alert_type === FREE_ALERT_TYPE || String(ca.title || '').includes(FREE_ALERT_LABEL);
+        const category: AlertCategory = isOfficer ? 'officer' : isFree ? 'free' : 'service_order';
+        if (isOfficer && plate) {
+          const key = `${normalizePlate(plate)}|${String(ca.alert_date).slice(0, 10)}`;
+          if (officerSeen.has(key)) continue;
+          officerSeen.add(key);
+        }
         allAlerts.push({
           id: `custom-${ca.id}`,
-          category: 'service_order',
+          category,
           severity,
           title: ca.title,
           subtitle: [
@@ -575,6 +633,8 @@ export default function Alerts() {
   };
   const categories: (AlertCategory | 'all')[] = [
     'all',
+    'officer',
+    'free',
     'test',
     'insurance',
     'comprehensive_insurance',

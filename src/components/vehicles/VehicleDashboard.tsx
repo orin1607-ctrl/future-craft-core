@@ -371,6 +371,16 @@ export default function VehicleDashboard({
         <div id="hub-focus-license" className={`mt-3 ${focusCls('license')}`}>
           <p className="text-xs font-bold text-muted-foreground mb-1">רישיון</p>
           <DetailList items={[{ label: 'רישיון רכב — קובץ', value: v.license_doc_url ? 'מצורף' : 'חסר' }]} />
+          {v.license_doc_url ? (
+            <a
+              href={v.license_doc_url}
+              target="_blank"
+              rel="noreferrer"
+              className="block text-sm font-bold text-primary underline mt-2"
+            >
+              פתח רישיון רכב
+            </a>
+          ) : null}
         </div>
         {insAlertsOn &&
           drill.insuranceGaps.map((g: InsuranceGapItem, i) => (
@@ -382,6 +392,20 @@ export default function VehicleDashboard({
               <p className="text-xs mt-1">{g.action}</p>
             </div>
           ))}
+        {(v.insurance_doc_url || v.comprehensive_insurance_doc_url) && (
+          <div className="mt-2 space-y-1">
+            {v.insurance_doc_url ? (
+              <a href={v.insurance_doc_url} target="_blank" rel="noreferrer" className="block text-sm font-bold text-primary underline">
+                פתח ביטוח חובה
+              </a>
+            ) : null}
+            {v.comprehensive_insurance_doc_url ? (
+              <a href={v.comprehensive_insurance_doc_url} target="_blank" rel="noreferrer" className="block text-sm font-bold text-primary underline">
+                פתח ביטוח מקיף
+              </a>
+            ) : null}
+          </div>
+        )}
         <Button className="w-full mt-4" onClick={() => { setSheetOpen(false); onJumpTo?.('details'); }}>
           עריכה — פרטי רכב
         </Button>
@@ -392,10 +416,10 @@ export default function VehicleDashboard({
   const renderDocumentsSheet = () => {
     if (!drill) return null;
     const uploaded = [
-      v.license_doc_url && { name: 'רישיון רכב', ok: true },
-      v.insurance_doc_url && { name: 'ביטוח חובה', ok: true },
-      v.comprehensive_insurance_doc_url && { name: 'ביטוח מקיף', ok: true },
-    ].filter(Boolean) as { name: string; ok: boolean }[];
+      v.license_doc_url && { name: 'רישיון רכב', url: v.license_doc_url },
+      v.insurance_doc_url && { name: 'ביטוח חובה', url: v.insurance_doc_url },
+      v.comprehensive_insurance_doc_url && { name: 'ביטוח מקיף', url: v.comprehensive_insurance_doc_url },
+    ].filter(Boolean) as { name: string; url: string }[];
 
     return (
       <>
@@ -404,7 +428,15 @@ export default function VehicleDashboard({
           <div className="mb-3">
             <p className="text-xs font-bold mb-2">מסמכים במערכת</p>
             {uploaded.map((d) => (
-              <p key={d.name} className="text-sm py-1">✓ {d.name}</p>
+              <a
+                key={d.name}
+                href={d.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block text-sm py-1 font-bold text-primary underline"
+              >
+                ✓ {d.name} — פתח
+              </a>
             ))}
           </div>
         )}

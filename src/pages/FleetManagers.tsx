@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope, useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { useAuth } from '@/contexts/AuthContext';
 import DriverDashboardPicker from '@/components/admin/DriverDashboardPicker';
+import { useHiddenButtons } from '@/hooks/useHiddenButtons';
 import { Button } from '@/components/ui/button';
 
 interface FleetManagerRow {
@@ -20,6 +21,8 @@ export default function FleetManagers() {
   const navigate = useNavigate();
   const companyFilter = useCompanyFilter();
   const isSuperAdmin = user?.role === 'super_admin';
+  const hiddenButtons = useHiddenButtons();
+  const showDriverDashboard = !hiddenButtons.includes('driver-hub-dashboard');
   const [rows, setRows] = useState<FleetManagerRow[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -122,7 +125,9 @@ export default function FleetManagers() {
                   צפייה כמנהל צi
                 </Button>
               )}
-              <DriverDashboardPicker companyName={m.company_name} className="flex-1 h-12 font-bold" />
+              {showDriverDashboard && (
+                <DriverDashboardPicker companyName={m.company_name} className="flex-1 h-12 font-bold" />
+              )}
             </div>
             <h2 className="font-bold mb-3">פעולות מנהל צי</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
