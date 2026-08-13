@@ -82,16 +82,15 @@ export function VehicleDaliaFlow({
       });
   }, [vehicle, loaded, previewMode]);
 
+  const { types: vehicleTypes } = useVehicleTypes();
+  const [introVehicleType, setIntroVehicleType] = useState(
+    String((vehicle as { vehicle_type?: string } | null)?.vehicle_type || ''),
+  );
   const mergedLoadedValues = useMemo(() => {
     const base = { ...(loaded?.values || {}), ...(driverEnrichedValues || {}) };
     if (introVehicleType) base.vehicle_type = introVehicleType;
     return Object.keys(base).length ? base : undefined;
   }, [loaded, driverEnrichedValues, introVehicleType]);
-
-  const { types: vehicleTypes } = useVehicleTypes();
-  const [introVehicleType, setIntroVehicleType] = useState(
-    String((vehicle as { vehicle_type?: string } | null)?.vehicle_type || ''),
-  );
   const [licensePlate, setLicensePlate] = useState(vehicle?.license_plate || '');
   const [internalNumber, setInternalNumber] = useState(vehicle?.internal_number || '');
   const [govData, setGovData] = useState<GovVehicleData | null>(null);

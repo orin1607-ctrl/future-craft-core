@@ -225,52 +225,73 @@ async function main() {
     }
     rec('r1', 'Search 19 still first-class', (await body(page)).includes(plateA) && (await body(page)).includes('19'));
 
-    // ── 10 types ──
-    await page.getByRole('button', { name: /הוספת רכב/ }).click();
-    await waitPage(page);
-    rec('t10', 'Intro add-vehicle screen opens', /הוספת רכב חדש|שלב 1/.test(await body(page)));
-    rec('t10', 'נגרר on intro', (await page.locator('option:has-text("נגרר")').count()) > 0);
-    rec('t10', 'טרקטור on intro', (await page.locator('option:has-text("טרקטור")').count()) > 0);
-    rec('t10', 'ציוד הנדסי on intro', (await page.locator('option:has-text("ציוד הנדסי")').count()) > 0);
-    rec('t10', 'רכב זעיר on intro', (await page.locator('option:has-text("רכב זעיר")').count()) > 0);
-    rec('t10', 'רכב פרטי still there', (await page.locator('option:has-text("רכב פרטי")').count()) > 0);
-    rec('t10', 'No duplicate נגרר', (await page.locator('option:has-text("נגרר")').count()) <= 2);
-    await page.locator('#vehicle-type-intro, select[aria-label="סוג רכב"]').first().selectOption({ label: 'נגרר' }).catch(() => null);
-    await page.getByPlaceholder('12-345-67').fill(`${plateA}N`);
-    await page.getByRole('button', { name: /המשך לטופס המלא/ }).click();
-    await waitPage(page);
-    rec('t10', 'Full form keeps new types', (await page.locator('option:has-text("נגרר")').count()) > 0 && (await page.locator('option:has-text("רכב זעיר")').count()) > 0);
-    await shot(page, 't10-full-form.png');
-    await page.getByRole('button', { name: /חזרה|ביטול/ }).first().click().catch(() => null);
-    await waitPage(page);
+    const isolate = async (task, fn) => {
+      try {
+        await fn();
+      } catch (e) {
+        rec(task, 'section did not crash the rest of QA', false, { error: String(e?.message || e) });
+        await shot(page, `${task}-error.png`).catch(() => null);
+      }
+    };
 
-    await page.goto(`${BASE}/vehicles?vehicleId=${vehA.id}&view=hub`, { waitUntil: 'domcontentloaded', timeout: 90000 });
-    await waitPage(page);
-    rec('r3', 'Vehicle hub opens', (await body(page)).includes(plateA));
-    rec('r9', 'Free alert CTA still on hub', /הוסף התראה|התראה חופשית/.test(await body(page)));
-    const editBtn = page.getByRole('button', { name: /עריכה/ }).first();
-    if (await editBtn.count()) {
-      await editBtn.click();
+    // ── 10 types ──
+    await isolate('t10', async () => {
+      await page.goto(`${BASE}/vehicles`, { waitUntil: 'domcontentloaded', timeout: 90000 });
       await waitPage(page);
-      rec('t10', 'Edit form has new types', (await page.locator('option:has-text("טרקטור")').count()) > 0);
-      const typeSelect = page.locator('select[name="vehicle_type"], select[aria-label="סוג רכב"]').first();
-      if (await typeSelect.count()) {
-        await typeSelect.selectOption({ label: 'טרקטור' }).catch(async () => {
-          await typeSelect.selectOption({ index: 1 }).catch(() => null);
-        });
+      const addBtn = page.locator('#add-vehicle-btn');
+      if (await addBtn.count()) await addBtn.click({ force: true });
+      else await page.getByRole('button', { name: /הוספת רכב/ }).first().click({ force: true });
+      await waitPage(page);
+      if (!/הוספת רכב חדש|שלב 1/.test(await body(page))) {
+        await page.locator('button[title="רכב חדש"]').click({ force: true }).catch(() => null);
+        await waitPage(page);
       }
-      const saveType = page.getByRole('button', { name: /שמור פרטי רכב/ }).first();
-      if (await saveType.count()) {
-        await saveType.click();
-        await page.waitForTimeout(2000);
+      await shot(page, 't10-intro.png');
+      rec('t10', 'Intro add-vehicle screen opens', /הוספת רכב חדש|שלב 1/.test(await body(page)));
+      rec('t10', 'נגרר on intro', (await page.locator('option:has-text("נגרר")').count()) > 0);
+      rec('t10', 'טרקטור on intro', (await page.locator('option:has-text("טרקטור")').count()) > 0);
+      rec('t10', 'ציוד הנדסי on intro', (await page.locator('option:has-text("ציוד הנדסי")').count()) > 0);
+      rec('t10', 'רכב זעיר on intro', (await page.locator('option:has-text("רכב זעיר")').count()) > 0);
+      rec('t10', 'רכב פרטי still there', (await page.locator('option:has-text("רכב פרטי")').count()) > 0);
+      rec('t10', 'No duplicate נגרר', (await page.locator('option:has-text("נגרר")').count()) <= 2);
+      await page.locator('#vehicle-type-intro, select[aria-label="סוג רכב"]').first().selectOption({ label: 'נגרר' }).catch(() => null);
+      await page.getByPlaceholder('12-345-67').fill(`${plateA}N`);
+      await page.getByRole('button', { name: /המשך לטופס המלא/ }).click();
+      await waitPage(page);
+      rec('t10', 'Full form keeps new types', (await page.locator('option:has-text("נגרר")').count()) > 0 && (await page.locator('option:has-text("רכב זעיר")').count()) > 0);
+      await shot(page, 't10-full-form.png');
+      await page.getByRole('button', { name: /חזרה|ביטול/ }).first().click().catch(() => null);
+      await waitPage(page);
+
+      await page.goto(`${BASE}/vehicles?vehicleId=${vehA.id}&view=hub`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await waitPage(page);
+      rec('r3', 'Vehicle hub opens', (await body(page)).includes(plateA));
+      rec('r9', 'Free alert CTA still on hub', /הוסף התראה|התראה חופשית/.test(await body(page)));
+      const editBtn = page.getByRole('button', { name: /עריכה/ }).first();
+      if (await editBtn.count()) {
+        await editBtn.click();
+        await waitPage(page);
+        rec('t10', 'Edit form has new types', (await page.locator('option:has-text("טרקטור")').count()) > 0);
+        const typeSelect = page.locator('select[name="vehicle_type"], select[aria-label="סוג רכב"]').first();
+        if (await typeSelect.count()) {
+          await typeSelect.selectOption({ label: 'טרקטור' }).catch(async () => {
+            await typeSelect.selectOption({ index: 1 }).catch(() => null);
+          });
+        }
+        const saveType = page.getByRole('button', { name: /שמור פרטי רכב/ }).first();
+        if (await saveType.count()) {
+          await saveType.click();
+          await page.waitForTimeout(2000);
+        }
+        rec('t10', 'Edit type save attempted', true);
       }
-      rec('t10', 'Edit type save attempted', true);
-    }
-    await shot(page, 't10-edit.png');
-    const { data: vehType } = await admin.from('vehicles').select('vehicle_type').eq('id', vehA.id).maybeSingle();
-    rec('t10', 'Saved vehicle_type is not empty after edit path', Boolean(vehType?.vehicle_type), { value: vehType?.vehicle_type });
+      await shot(page, 't10-edit.png');
+      const { data: vehType } = await admin.from('vehicles').select('vehicle_type').eq('id', vehA.id).maybeSingle();
+      rec('t10', 'Saved vehicle_type is not empty after edit path', Boolean(vehType?.vehicle_type), { value: vehType?.vehicle_type });
+    });
 
     // ── 5 docs E2E ──
+    await isolate('t5', async () => {
     await page.goto(`${BASE}/vehicles?vehicleId=${vehA.id}&view=hub`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitPage(page);
     const docsTab = page.getByRole('button', { name: /^מסמכים$/ }).or(page.getByText('מסמכים', { exact: true })).first();
@@ -326,8 +347,10 @@ async function main() {
     if (vehDocs2?.license_doc_url) {
       rec('t5', 'License URL is openable http(s)', /^https?:\/\//.test(vehDocs2.license_doc_url));
     }
+    });
 
     // ── 7 hide dashboard ──
+    await isolate('t7', async () => {
     await page.goto(`${BASE}/drivers`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitPage(page);
     rec('t7', 'A drivers list has no dashboard entry', (await page.getByRole('button', { name: /פתח דשבורד נהג/ }).count()) === 0);
@@ -357,8 +380,10 @@ async function main() {
     rec('t5', 'Company B hub/docs do not show A license url text', !(await b.page.locator('body').innerText()).includes(plateA));
     rec('t7', 'Company B list does not show A driver', !(await b.page.locator('body').innerText()).includes(drvA.full_name));
     await b.context.close();
+    });
 
     // ── 8 officer report ──
+    await isolate('t8', async () => {
     await page.goto(`${BASE}/reports`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitPage(page);
     await page.getByRole('button', { name: /^הכל$/ }).first().click().catch(() => null);
@@ -398,6 +423,7 @@ async function main() {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitPage(page);
     rec('t8', 'Reports page still loads after refresh', /דוחות/.test(await body(page)));
+    });
 
     // ── regression alerts 4/6 ──
     await page.goto(`${BASE}/alerts`, { waitUntil: 'domcontentloaded', timeout: 90000 });

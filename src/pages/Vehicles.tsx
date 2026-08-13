@@ -393,6 +393,8 @@ export default function Vehicles() {
           {isManager && (
             <button
               type="button"
+              id="add-vehicle-btn"
+              aria-label="הוספת רכב"
               onClick={() => handleOpenForm()}
               className="flex items-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold min-h-[48px] hover:bg-primary/90 transition-colors"
             >
@@ -538,9 +540,11 @@ export default function Vehicles() {
       {/* Floating + button */}
       {isManager && (
         <button
+          type="button"
           onClick={() => handleOpenForm()}
           className="fixed bottom-24 left-6 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-xl hover:shadow-2xl transition-all flex items-center justify-center hover:scale-110"
           title="רכב חדש"
+          aria-label="הוספת רכב"
         >
           <Plus size={28} />
         </button>
