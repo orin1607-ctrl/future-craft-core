@@ -108,7 +108,9 @@ async function exportCsvThroughUi(page) {
       return originalCreateObjectURL(blob);
     };
   });
-  await page.getByRole('button', { name: /ייצוא/ }).first().click();
+  // Invoke the visible button's native click even when Cursor's floating
+  // accessibility/theme controls overlap its corner in the automation viewport.
+  await page.getByRole('button', { name: /ייצוא/ }).first().evaluate((button) => button.click());
   await page.waitForFunction(() => typeof window.__qaLastCsv === 'string' && window.__qaLastCsv.length > 0);
   return page.evaluate(() => window.__qaLastCsv);
 }

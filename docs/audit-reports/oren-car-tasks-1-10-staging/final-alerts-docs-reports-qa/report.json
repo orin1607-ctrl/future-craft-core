@@ -1,16 +1,16 @@
 {
-  "at": "2026-08-14T07:30:08.459Z",
+  "at": "2026-08-14T07:40:19.022Z",
   "base": "https://orin1607-ctrl.github.io/future-craft-core",
-  "commit": "a2112a9",
-  "deployTxt": "deployed_ref=a2112a9 feat/incident-alerts-staging",
+  "commit": "52eb9d4",
+  "deployTxt": "deployed_ref=52eb9d4 feat/incident-alerts-staging",
   "tasks": {
     "deploy": {
       "checks": [
         {
           "name": "Pages is current staging commit",
           "ok": true,
-          "deployTxt": "deployed_ref=a2112a9 feat/incident-alerts-staging",
-          "COMMIT": "a2112a9"
+          "deployTxt": "deployed_ref=52eb9d4 feat/incident-alerts-staging",
+          "COMMIT": "52eb9d4"
         }
       ],
       "pass": true
@@ -125,17 +125,17 @@
         {
           "name": "license_doc_url persisted by actual form",
           "ok": true,
-          "value": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/96d0edff-b978-4b0e-b848-3ac160201496/vehicles_CA613648/1786692637051_qa-license.pdf"
+          "value": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/762a47e2-0ed8-46dd-acdc-8ff6002f829e/vehicles_CA225375/1786693248662_qa-license.pdf"
         },
         {
           "name": "insurance_doc_url persisted by actual form",
           "ok": true,
-          "value": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/96d0edff-b978-4b0e-b848-3ac160201496/vehicles_CA613648/1786692639587_qa-insurance.pdf"
+          "value": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/762a47e2-0ed8-46dd-acdc-8ff6002f829e/vehicles_CA225375/1786693251178_qa-insurance.pdf"
         },
         {
           "name": "additional insurance URL persisted by actual form",
           "ok": true,
-          "value": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/96d0edff-b978-4b0e-b848-3ac160201496/vehicles_CA613648/1786692642107_qa-insurance.pdf"
+          "value": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/762a47e2-0ed8-46dd-acdc-8ff6002f829e/vehicles_CA225375/1786693253703_qa-insurance.pdf"
         },
         {
           "name": "License document URL opens",
@@ -301,7 +301,7 @@
         {
           "name": "Plate appears in report table",
           "ok": true,
-          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA C5710 FM A\n\nQA-C5710-A-1786692613648\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nדוחות וסיכומים\nייצוא\n\nסיכומים לפי תקופה — לחיצה על כרטיס פותחת את רשימת הרשומות המסוננת\n\nסינון\nפעיל\nתקופה\nחודש נוכחי\nשבוע נוכחי\nשנה נוכחית\nטווח תאריכים\nהכל\nמתאריך\nבחר...\nעד תאריך\nבחר...\nמספר רכב\nהכל / הקלידו לחיפוש...\nמספר פנימי\nהכל / הקלידו לחיפוש...\nנהג\nהכל\nנהג C5710 A 1786692613648\nסטטוס\nהכל\nפעיל\nok\nתקין\nפג תוקף\nלחידוש\nבתוקף\nספק\nהכל\nסוגי דוח להצגה\nטסטים\nטיפולים\nתאונות\nביקורות קצין רכב\nביטוחים לחידוש\nסיכום רכבים\nסיכום נהגים\nהוצאות לפי תקופה\nרווח והפסד\nטיפולים (מפורט)\nתאונות (מפורט)\nהזמנות\nסיכום לפי ספקים\nנקה סינונים\nסיכומי תקופה\n4 ביקורות קצין רכב בכל הזמנים\n\nפתח טבלת ביקורות קצין רכב\n\nדוח זה מציג את כל הביקורות (כולל בלי מועד הבא). סינון תאריכים חל רק בבחירת «טווח תאריכים». מועד הבא חסר מוצג כ־—.\n\nמספר רכב\tמס׳ פנימי\tסוג הביקורת\tתאריך הביקורת\tמועד הביקורת הבאה\tסטטוס\tקישור לביקורת\tקישור לרכב\nCA613648\t19\tתלת/חצי שנתית\t10.1.2026\t—\tok\tפתח ביקורת\tפתח רכב\nCA613648\t19\tתלת/חצי שנתית\t14.8.2026\t13.11.2026\tok\tפתח ביקורת\tפתח רכב\nCA613648\t19\tתלת/חצי שנתית\t14.8.2026\t14.11.2026\tתקין\tפתח ביקורת\tפתח רכב\nCA613648\t19\tתלת/חצי שנתית\t14.8.2026\t14.2.2027\tתקין\tפתח ביקורת\tפתח רכב\n\n4 רשומות\n\nדוחות נוספים\n\nדליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לציי רכב | www.dalia-c.com | כל הזכויות שמורות ©"
+          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA C5710 FM A\n\nQA-C5710-A-1786693225375\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nדוחות וסיכומים\nייצוא\n\nסיכומים לפי תקופה — לחיצה על כרטיס פותחת את רשימת הרשומות המסוננת\n\nסינון\nפעיל\nתקופה\nחודש נוכחי\nשבוע נוכחי\nשנה נוכחית\nטווח תאריכים\nהכל\nמתאריך\nבחר...\nעד תאריך\nבחר...\nמספר רכב\nהכל / הקלידו לחיפוש...\nמספר פנימי\nהכל / הקלידו לחיפוש...\nנהג\nהכל\nנהג C5710 A 1786693225375\nסטטוס\nהכל\nפעיל\nok\nתקין\nפג תוקף\nלחידוש\nבתוקף\nספק\nהכל\nסוגי דוח להצגה\nטסטים\nטיפולים\nתאונות\nביקורות קצין רכב\nביטוחים לחידוש\nסיכום רכבים\nסיכום נהגים\nהוצאות לפי תקופה\nרווח והפסד\nטיפולים (מפורט)\nתאונות (מפורט)\nהזמנות\nסיכום לפי ספקים\nנקה סינונים\nסיכומי תקופה\n4 ביקורות קצין רכב בכל הזמנים\n\nפתח טבלת ביקורות קצין רכב\n\nדוח זה מציג את כל הביקורות (כולל בלי מועד הבא). סינון תאריכים חל רק בבחירת «טווח תאריכים». מועד הבא חסר מוצג כ־—.\n\nמספר רכב\tמס׳ פנימי\tסוג הביקורת\tתאריך הביקורת\tמועד הביקורת הבאה\tסטטוס\tקישור לביקורת\tקישור לרכב\nCA225375\t19\tתלת/חצי שנתית\t10.1.2026\t—\tok\tפתח ביקורת\tפתח רכב\nCA225375\t19\tתלת/חצי שנתית\t14.8.2026\t13.11.2026\tok\tפתח ביקורת\tפתח רכב\nCA225375\t19\tתלת/חצי שנתית\t14.8.2026\t14.11.2026\tתקין\tפתח ביקורת\tפתח רכב\nCA225375\t19\tתלת/חצי שנתית\t14.8.2026\t14.2.2027\tתקין\tפתח ביקורת\tפתח רכב\n\n4 רשומות\n\nדוחות נוספים\n\nדליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לציי רכב | www.dalia-c.com | כל הזכויות שמורות ©"
         },
         {
           "name": "Internal number appears",
@@ -350,7 +350,7 @@
         {
           "name": "section did not crash the rest of QA",
           "ok": false,
-          "error": "page.waitForEvent: Timeout 30000ms exceeded while waiting for event \"download\"\n=========================== logs ===========================\nwaiting for event \"download\"\n============================================================"
+          "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: /ייצוא/ }).first()\n    - locator resolved to <button type=\"button\" class=\"flex items-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-base font-bold min-h-[48px]\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <button aria-label=\"מצב כהה\" class=\"flex items-center gap-2 bg-card text-foreground border border-border rounded-xl px-3 py-2 shadow-md hover:shadow-lg active:scale-95 transition-all\">…</button> from <div class=\"fixed top-4 z-50 flex items-center gap-0 md:top-6\">…</div> subtree intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    - waiting for element to be visible, enabled and stable\n    - element is visible, enabled and stable\n    - scrolling into view if needed\n    - done scrolling\n    - <button aria-label=\"מצב כהה\" class=\"flex items-center gap-2 bg-card text-foreground border border-border rounded-xl px-3 py-2 shadow-md hover:shadow-lg active:scale-95 transition-all\">…</button> from <div class=\"fixed top-4 z-50 flex items-center gap-0 md:top-6\">…</div> subtree intercepts pointer events\n  2 × retrying click action\n      - waiting 100ms\n      - waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <svg width=\"12\" height=\"12\" fill=\"none\" stroke-width=\"2\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-x\" xmlns=\"http://www.w3.org/2000/svg\">…</svg> from <div class=\"fixed top-4 z-50 flex items-center gap-0 md:top-6\">…</div> subtree intercepts pointer events\n  13 × retrying click action\n       - waiting 500ms\n       - waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <button aria-label=\"מצב כהה\" class=\"flex items-center gap-2 bg-card text-foreground border border-border rounded-xl px-3 py-2 shadow-md hover:shadow-lg active:scale-95 transition-all\">…</button> from <div class=\"fixed top-4 z-50 flex items-center gap-0 md:top-6\">…</div> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n       - waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <button aria-label=\"מצב כהה\" class=\"flex items-center gap-2 bg-card text-foreground border border-border rounded-xl px-3 py-2 shadow-md hover:shadow-lg active:scale-95 transition-all\">…</button> from <div class=\"fixed top-4 z-50 flex items-center gap-0 md:top-6\">…</div> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n       - waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <svg width=\"12\" height=\"12\" fill=\"none\" stroke-width=\"2\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-x\" xmlns=\"http://www.w3.org/2000/svg\">…</svg> from <div class=\"fixed top-4 z-50 flex items-center gap-0 md:top-6\">…</div> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n       - waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <svg width=\"12\" height=\"12\" fill=\"none\" stroke-width=\"2\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-x\" xmlns=\"http://www.w3.org/2000/svg\">…</svg> from <div class=\"fixed top-4 z-50 flex items-center gap-0 md:top-6\">…</div> subtree intercepts pointer events\n  2 × retrying click action\n      - waiting 500ms\n      - waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <button aria-label=\"מצב כהה\" class=\"flex items-center gap-2 bg-card text-foreground border border-border rounded-xl px-3 py-2 shadow-md hover:shadow-lg active:scale-95 transition-all\">…</button> from <div class=\"fixed top-4 z-50 flex items-center gap-0 md:top-6\">…</div> subtree intercepts pointer events\n  - retrying click action\n    - waiting 500ms\n"
         }
       ],
       "pass": false
