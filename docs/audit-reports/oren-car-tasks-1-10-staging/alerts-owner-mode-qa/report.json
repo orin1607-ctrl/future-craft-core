@@ -1,5 +1,5 @@
 {
-  "at": "2026-08-14T13:03:19.265Z",
+  "at": "2026-08-14T13:17:59.246Z",
   "base": "https://orin1607-ctrl.github.io/future-craft-core",
   "results": [
     {
@@ -7,8 +7,8 @@
       "name": "Pages runs the commit that is being tested",
       "status": "PASS",
       "detail": {
-        "deployTxt": "deployed_ref=e247c77 feat/incident-alerts-staging",
-        "commit": "e247c77"
+        "deployTxt": "deployed_ref=670326e feat/incident-alerts-staging",
+        "commit": "670326e"
       }
     },
     {
@@ -28,7 +28,7 @@
       "name": "the alerts screen loads for a super admin whose scope covers the QA company",
       "status": "PASS",
       "detail": {
-        "company": "QA-OWN-1786712599283",
+        "company": "QA-OWN-1786713479246",
         "nativeScopeSelectFound": false,
         "scope": "all companies"
       }
@@ -59,9 +59,9 @@
         "toast": "ההתראה נוצרה בהצלחה",
         "row": {
           "alert_type": "officer",
-          "company_name": "QA-OWN-1786712599283",
+          "company_name": "QA-OWN-1786713479246",
           "alert_date": "2026-10-01T06:00:00+00:00",
-          "user_id": "089c9f67-bdd6-43b5-a077-ccdad2371666",
+          "user_id": "cdd9c949-5a99-4291-b6ab-7946638db2b4",
           "is_active": true
         },
         "visible": true
@@ -75,9 +75,9 @@
         "toast": "ההתראה נוצרה בהצלחה",
         "row": {
           "alert_type": "free",
-          "company_name": "QA-OWN-1786712599283",
+          "company_name": "QA-OWN-1786713479246",
           "alert_date": "2026-09-23T06:00:00+00:00",
-          "user_id": "089c9f67-bdd6-43b5-a077-ccdad2371666",
+          "user_id": "cdd9c949-5a99-4291-b6ab-7946638db2b4",
           "is_active": true
         },
         "visible": true
@@ -104,11 +104,11 @@
   ],
   "consoleErrors": [],
   "supabaseFailures": [],
-  "deployTxt": "deployed_ref=e247c77 feat/incident-alerts-staging",
-  "commit": "e247c77",
+  "deployTxt": "deployed_ref=670326e feat/incident-alerts-staging",
+  "commit": "670326e",
   "cleanup": {
     "ok": true,
-    "scope": "QA-OWN-1786712599283 + temporary QA users only"
+    "scope": "QA-OWN-1786713479246 + temporary QA users only"
   },
   "summary": {
     "pass": 9,

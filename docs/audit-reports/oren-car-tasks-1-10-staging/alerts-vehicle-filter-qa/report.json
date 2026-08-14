@@ -1,0 +1,86 @@
+{
+  "at": "2026-08-14T13:17:03.750Z",
+  "results": [
+    {
+      "id": "deploy",
+      "name": "Pages runs the commit being tested",
+      "status": "PASS",
+      "detail": {
+        "deployTxt": "deployed_ref=670326e feat/incident-alerts-staging",
+        "commit": "670326e"
+      }
+    },
+    {
+      "id": "f1",
+      "name": "a far-off officer alert saves from the vehicle card",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה"
+      }
+    },
+    {
+      "id": "f2",
+      "name": "the vehicle card opens the alerts screen filtered to that vehicle",
+      "status": "PASS",
+      "detail": {
+        "linkExists": true,
+        "url": "/alerts?plate=12-345-75",
+        "rows": 2,
+        "officerRowNumber": 2
+      }
+    },
+    {
+      "id": "f3",
+      "name": "the vehicle-scoped list holds only that vehicle",
+      "status": "PASS",
+      "detail": {
+        "rows": 2,
+        "otherPlateLeaked": false
+      }
+    },
+    {
+      "id": "f4",
+      "name": "a plate written with separators still matches the stored alert",
+      "status": "PASS",
+      "detail": {
+        "plateInUrl": "12-345-75"
+      }
+    },
+    {
+      "id": "f5",
+      "name": "the unfiltered alerts screen still shows the whole company",
+      "status": "PASS",
+      "detail": {
+        "rows": 3,
+        "scopedRows": 2
+      }
+    },
+    {
+      "id": "f6",
+      "name": "the scoped view survives refresh and re-entry without duplicates",
+      "status": "PASS",
+      "detail": {
+        "copies": 1
+      }
+    },
+    {
+      "id": "f7",
+      "name": "no Supabase failures or console errors",
+      "status": "PASS",
+      "detail": {
+        "supabaseFailures": [],
+        "consoleErrors": []
+      }
+    }
+  ],
+  "supabaseFailures": [],
+  "consoleErrors": [],
+  "cleanup": {
+    "ok": true,
+    "scope": "QA-FLT-1786713423775 only"
+  },
+  "summary": {
+    "pass": 8,
+    "fail": 0
+  }
+}
