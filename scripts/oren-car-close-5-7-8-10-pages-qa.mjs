@@ -1,11 +1,11 @@
 /**
- * Close tasks 5/7/8/10 on published Staging Pages. Isolated QA companies only.
+ * Final alert/document/report/export QA on published Staging Pages.
  * node scripts/oren-car-close-5-7-8-10-pages-qa.mjs
  */
 import { chromium } from 'playwright';
 import { createClient } from '@supabase/supabase-js';
 import { execSync } from 'child_process';
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
@@ -13,7 +13,7 @@ const PROD_REF = 'qasomfndnjuixgjmjwcm';
 const STAGING_URL = `https://${STAGING_REF}.supabase.co`;
 const BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const COMMIT = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
-const OUT = join(process.cwd(), 'docs/audit-reports/oren-car-tasks-1-10-staging/close-5-7-8-10');
+const OUT = join(process.cwd(), 'docs/audit-reports/oren-car-tasks-1-10-staging/final-alerts-docs-reports-qa');
 mkdirSync(OUT, { recursive: true });
 
 if (STAGING_REF === PROD_REF) throw new Error('refused: production db');
@@ -67,6 +67,30 @@ async function waitPage(page) {
 
 async function body(page) {
   return page.locator('body').innerText();
+}
+
+function parseCsvLine(line) {
+  const cells = [];
+  let value = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (quoted && line[i + 1] === '"') {
+        value += '"';
+        i += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (ch === ',' && !quoted) {
+      cells.push(value);
+      value = '';
+    } else {
+      value += ch;
+    }
+  }
+  cells.push(value);
+  return cells;
 }
 
 async function loginContext(browser, anon, email, password) {
@@ -295,54 +319,39 @@ async function main() {
     await page.goto(`${BASE}/vehicles?vehicleId=${vehA.id}&view=hub`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitPage(page);
     rec('t5', 'Hub exposes existing מסמכים screen for this vehicle', (await page.getByRole('button', { name: /^מסמכים$/ }).count()) > 0);
-
-    const docsUrl = (category) =>
-      `${BASE}/documents?plate=${encodeURIComponent(plateA)}&vehicleId=${vehA.id}&context=vehicle&category=${category}`;
-
-    await page.goto(docsUrl('vehicle-license'), { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.getByRole('button', { name: /^פרטי רכב/ }).click();
     await waitPage(page);
-    if (!(await page.locator('input[type="file"]').count())) {
-      await page.getByText('רישיונות רכב').first().click().catch(() => null);
-      await waitPage(page);
-      if (!(await page.locator('input[type="file"]').count())) {
-        await page.getByRole('button', { name: /העלאה/ }).click().catch(() => null);
-        await waitPage(page);
-      }
-    }
-    rec('t5', 'License documents category opens', /רישיונות רכב|העלאה/.test(await body(page)));
-    const fileInput = page.locator('input[type="file"]').first();
-    rec('t5', 'File input present for license', (await fileInput.count()) > 0);
-    if (await fileInput.count()) {
-      await fileInput.setInputFiles(pdfLicense);
-      await page.waitForTimeout(4000);
-    }
-    rec('t5', 'License upload finished without error toast', !(await body(page)).includes('שגיאה בהעלאת'));
-    rec('t5', 'License file listed or linked', /qa-license|pdf|מסמך|רישיון/.test(await body(page)));
-    await shot(page, 't5-license-upload.png');
-
-    const { data: vehDocs1 } = await admin.from('vehicles').select('license_doc_url, insurance_doc_url').eq('id', vehA.id).maybeSingle();
-    rec('t5', 'license_doc_url persisted', Boolean(vehDocs1?.license_doc_url), { value: vehDocs1?.license_doc_url });
-
-    await page.goto(docsUrl('insurance'), { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.getByRole('button', { name: /עריכה מלאה/ }).click();
     await waitPage(page);
-    if (!(await page.locator('input[type="file"]').count())) {
-      await page.getByText('ביטוח חובה').first().click().catch(() => null);
-      await waitPage(page);
-      if (!(await page.locator('input[type="file"]').count())) {
-        await page.getByRole('button', { name: /העלאה/ }).click().catch(() => null);
-        await waitPage(page);
-      }
-    }
-    const fileInput2 = page.locator('input[type="file"]').first();
-    rec('t5', 'File input present for insurance', (await fileInput2.count()) > 0);
-    if (await fileInput2.count()) {
-      await fileInput2.setInputFiles(pdfInsurance);
-      await page.waitForTimeout(4000);
-    }
-    rec('t5', 'Insurance upload finished without error toast', !(await body(page)).includes('שגיאה בהעלאת'));
-    await shot(page, 't5-insurance-upload.png');
-    const { data: vehDocs2 } = await admin.from('vehicles').select('license_doc_url, insurance_doc_url').eq('id', vehA.id).maybeSingle();
-    rec('t5', 'insurance_doc_url persisted', Boolean(vehDocs2?.insurance_doc_url), { value: vehDocs2?.insurance_doc_url });
+    rec('t5', 'Actual Dalia edit form opens', /עריכת רכב/.test(await body(page)));
+    await page.getByText(/3\. ביטוחים ורישיונות/).first().click();
+    await waitPage(page);
+    const licenseInput = page.locator('input[name="license_file"]');
+    const mandatoryInput = page.locator('input[name="mandatory_insurance_file"]');
+    const comprehensiveInput = page.locator('input[name="comprehensive_insurance_file"]');
+    rec('t5', 'Dalia license upload input present', (await licenseInput.count()) > 0);
+    rec('t5', 'Dalia mandatory insurance upload input present', (await mandatoryInput.count()) > 0);
+    rec('t5', 'Dalia additional insurance upload input present', (await comprehensiveInput.count()) > 0);
+    await licenseInput.setInputFiles(pdfLicense);
+    await page.waitForTimeout(2500);
+    await mandatoryInput.setInputFiles(pdfInsurance);
+    await page.waitForTimeout(2500);
+    await comprehensiveInput.setInputFiles(pdfInsurance);
+    await page.waitForTimeout(2500);
+    rec('t5', 'All real Dalia uploads finish without error', !(await body(page)).includes('שגיאה'));
+    await shot(page, 't5-dalia-uploads.png');
+    await page.getByRole('button', { name: /שמור ביטוחים ורישיונות/ }).click();
+    await page.getByRole('button', { name: /שמור רכב חדש/ }).first().click();
+    await page.waitForTimeout(4500);
+
+    const { data: vehDocs2 } = await admin
+      .from('vehicles')
+      .select('license_doc_url, insurance_doc_url, comprehensive_insurance_doc_url')
+      .eq('id', vehA.id)
+      .maybeSingle();
+    rec('t5', 'license_doc_url persisted by actual form', Boolean(vehDocs2?.license_doc_url), { value: vehDocs2?.license_doc_url });
+    rec('t5', 'insurance_doc_url persisted by actual form', Boolean(vehDocs2?.insurance_doc_url), { value: vehDocs2?.insurance_doc_url });
+    rec('t5', 'additional insurance URL persisted by actual form', Boolean(vehDocs2?.comprehensive_insurance_doc_url), { value: vehDocs2?.comprehensive_insurance_doc_url });
     if (vehDocs2?.license_doc_url) {
       const opened = await fetch(vehDocs2.license_doc_url);
       rec('t5', 'License document URL opens', opened.ok, { status: opened.status });
@@ -351,9 +360,14 @@ async function main() {
       const openedIns = await fetch(vehDocs2.insurance_doc_url);
       rec('t5', 'Insurance document URL opens', openedIns.ok, { status: openedIns.status });
     }
+    if (vehDocs2?.comprehensive_insurance_doc_url) {
+      const openedAdditional = await fetch(vehDocs2.comprehensive_insurance_doc_url);
+      rec('t5', 'Additional insurance document URL opens', openedAdditional.ok, { status: openedAdditional.status });
+    }
 
     const { data: metaDocs } = await admin.from('document_metadata').select('id, category, vehicle_plate').eq('company_name', companyA);
-    rec('t5', 'No duplicate license/insurance metadata', (metaDocs || []).filter((d) => d.category === 'vehicle-license').length <= 1 && (metaDocs || []).filter((d) => d.category === 'insurance').length <= 1, { count: metaDocs?.length || 0 });
+    rec('t5', 'Dalia metadata uses canonical categories', ['vehicle-license', 'insurance', 'comprehensive'].every((category) => (metaDocs || []).some((d) => d.category === category)), { categories: (metaDocs || []).map((d) => d.category) });
+    rec('t5', 'No duplicate license/insurance metadata', ['vehicle-license', 'insurance', 'comprehensive'].every((category) => (metaDocs || []).filter((d) => d.category === category).length === 1), { count: metaDocs?.length || 0 });
 
     await page.goto(`${BASE}/vehicles?vehicleId=${vehA.id}&view=hub`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitPage(page);
@@ -363,7 +377,7 @@ async function main() {
     await waitPage(page);
     await page.getByRole('button', { name: /^מסמכים$/ }).last().click().catch(() => null);
     await waitPage(page);
-    rec('t5', 'After refresh+re-enter hub still shows license/insurance', Boolean(vehDocs2?.license_doc_url && vehDocs2?.insurance_doc_url) && /רישיון|ביטוח|מסמך|pdf|qa-/.test(await body(page)));
+    rec('t5', 'After refresh+re-enter hub still shows all uploaded documents', Boolean(vehDocs2?.license_doc_url && vehDocs2?.insurance_doc_url && vehDocs2?.comprehensive_insurance_doc_url) && /רישיון|ביטוח|מסמך|pdf|qa-/.test(await body(page)));
     rec('t5', 'No duplicate invented Beeri docs', !(await body(page)).includes('בארי'));
     if (vehDocs2?.license_doc_url) {
       rec('t5', 'License URL is openable http(s)', /^https?:\/\//.test(vehDocs2.license_doc_url));
@@ -401,6 +415,78 @@ async function main() {
     rec('t5', 'Company B hub/docs do not show A license url text', !(await b.page.locator('body').innerText()).includes(plateA));
     rec('t7', 'Company B list does not show A driver', !(await b.page.locator('body').innerText()).includes(drvA.full_name));
     await b.context.close();
+    });
+
+    // ── final fix 1: actual tri/semi save -> visible officer alert ──
+    await isolate('fix1', async () => {
+      const saveTilta = async (months) => {
+        await page.goto(
+          `${BASE}/private-vehicle-inspection?vehicleId=${vehA.id}&plate=${encodeURIComponent(plateA)}&context=vehicle`,
+          { waitUntil: 'domcontentloaded', timeout: 90000 },
+        );
+        await waitPage(page);
+        await page.locator('input[placeholder*="עובד"]').fill('QA C5710 FM A');
+        await page.getByRole('button', { name: new RegExp(`\\+${months} חודשים`) }).click();
+        await page.getByRole('button', { name: /שמור בדיקה/ }).click();
+        await page.waitForTimeout(3500);
+      };
+      await saveTilta(3);
+      const { data: firstVehicle } = await admin.from('vehicles').select('next_inspection_date').eq('id', vehA.id).single();
+      const firstDue = firstVehicle?.next_inspection_date;
+      await saveTilta(6);
+      const { data: secondVehicle } = await admin.from('vehicles').select('next_inspection_date').eq('id', vehA.id).single();
+      const secondDue = secondVehicle?.next_inspection_date;
+      rec('fix1', '+3 then +6 updates next inspection date', Boolean(firstDue && secondDue && firstDue !== secondDue), { firstDue, secondDue });
+
+      const { data: activeOfficerFamily } = await admin
+        .from('custom_alerts')
+        .select('id, title, description, alert_date, alert_type, is_active, company_name')
+        .eq('company_name', companyA)
+        .eq('is_active', true);
+      const officerFamily = (activeOfficerFamily || []).filter((row) => String(row.title || '').includes('התראת קצין רכב'));
+      rec('fix1', 'Old +3 officer reminder family is deactivated', officerFamily.every((row) => !String(row.description || '').includes(`target:${firstDue}`)), { active: officerFamily.length });
+      rec('fix1', 'Current +6 officer family is active', officerFamily.some((row) => String(row.description || '').includes(`target:${secondDue}`)));
+      rec('fix1', 'Officer alerts are company A only', officerFamily.every((row) => row.company_name === companyA));
+
+      await page.goto(`${BASE}/alerts?category=officer`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await waitPage(page);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await waitPage(page);
+      const officerText = await body(page);
+      rec('fix1', 'Officer filter is visible and selected after refresh', (await page.getByRole('button', { name: /התראת קצין רכב/ }).count()) > 0);
+      rec('fix1', 'Officer alert is visible in sidebar Alerts UI', officerText.includes('התראת קצין רכב') && officerText.includes(plateA));
+      rec('fix1', 'Officer alert >30 days remains visible', /עתידית|בעוד/.test(officerText));
+      await shot(page, 'fix1-officer-alert.png');
+
+      await page.goto(`${BASE}/vehicles?vehicleId=${vehA.id}&view=hub`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await waitPage(page);
+      await page.goto(`${BASE}/alerts?category=officer`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await waitPage(page);
+      rec('fix1', 'Officer alert survives leaving and re-entering', (await body(page)).includes(plateA));
+    });
+
+    // ── final fix 2: actual free alert -> central filter ──
+    await isolate('fix2', async () => {
+      const title = `התראה חופשית FINAL ${runId}`;
+      await page.goto(`${BASE}/vehicles?vehicleId=${vehA.id}&view=hub`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await waitPage(page);
+      await page.getByRole('button', { name: /הוסף התראה|התראה חופשית/ }).first().click();
+      await page.getByPlaceholder('כותרת ההתראה...').fill(title);
+      const future = new Date(Date.now() + 45 * 86400000).toISOString().slice(0, 10);
+      await page.locator('input[type="date"]').first().fill(future);
+      await page.getByRole('button', { name: /צור התראה/ }).click();
+      await page.waitForTimeout(1800);
+      await page.goto(`${BASE}/alerts?category=free`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await waitPage(page);
+      await page.getByRole('button', { name: /התראה חופשית/ }).click();
+      await waitPage(page);
+      rec('fix2', 'Free alert category/filter is always visible', (await page.getByRole('button', { name: /התראה חופשית/ }).count()) > 0);
+      rec('fix2', 'Only free alert workflow row is visible', (await body(page)).includes(title));
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await waitPage(page);
+      rec('fix2', 'Free alert survives refresh with filter', (await body(page)).includes(title));
+      rec('fix2', 'Free alert is company isolated', !(await body(page)).includes(plateB));
+      await shot(page, 'fix2-free-alert-filter.png');
     });
 
     // ── 8 officer report ──
@@ -441,6 +527,79 @@ async function main() {
     }
     rec('t8', 'Export button present', (await page.getByRole('button', { name: /ייצוא/ }).count()) > 0);
 
+    const inspectionLink = page.getByRole('button', { name: 'פתח ביקורת' }).first();
+    const vehicleLink = page.getByRole('button', { name: 'פתח רכב' }).first();
+    rec('t8', 'Each officer row has specific inspection action', (await inspectionLink.count()) > 0);
+    rec('t8', 'Each officer row has vehicle action', (await vehicleLink.count()) > 0);
+    if (await inspectionLink.count()) {
+      await inspectionLink.click();
+      await waitPage(page);
+      rec('t8', 'Specific inspection action opens detail', /ביקורת רכב/.test(await body(page)) && (await body(page)).includes(plateA));
+    }
+    await page.goto(`${BASE}/reports`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await waitPage(page);
+    await page.getByRole('button', { name: /^ביקורות קצין רכב$/ }).click();
+    await waitPage(page);
+    const vehicleAction = page.getByRole('button', { name: 'פתח רכב' }).first();
+    if (await vehicleAction.count()) {
+      await vehicleAction.click();
+      await waitPage(page);
+      rec('t8', 'Vehicle action opens the linked vehicle hub', (await body(page)).includes(plateA));
+    }
+
+    await page.goto(`${BASE}/reports`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await waitPage(page);
+    await page.getByRole('button', { name: /^ביקורות קצין רכב$/ }).click();
+    await waitPage(page);
+    const [officerDownload] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: /ייצוא/ }).click(),
+    ]);
+    const officerCsvPath = join(OUT, 'officer-inspections.csv');
+    await officerDownload.saveAs(officerCsvPath);
+    const officerCsv = readFileSync(officerCsvPath, 'utf8');
+    rec('t8', 'Officer CSV opens and contains plate/internal', officerCsv.includes(plateA) && officerCsv.includes('19'));
+    rec('t8', 'Officer CSV has status and both links', officerCsv.includes('סטטוס') && officerCsv.includes('קישור לביקורת') && officerCsv.includes('קישור לרכב'));
+    const officerLines = officerCsv.replace(/^\uFEFF/, '').split(/\r?\n/).filter(Boolean);
+    const officerHeaderIndex = officerLines.findIndex((line) => line.includes('מספר רכב') && line.includes('קישור לביקורת'));
+    const officerHeaderWidth = officerHeaderIndex >= 0 ? parseCsvLine(officerLines[officerHeaderIndex]).length : 0;
+    const officerDataWidth = officerHeaderIndex >= 0 && officerLines[officerHeaderIndex + 1]
+      ? parseCsvLine(officerLines[officerHeaderIndex + 1]).length
+      : 0;
+    rec('t8', 'Officer CSV columns align', officerHeaderWidth === 8 && officerDataWidth === officerHeaderWidth, { officerHeaderWidth, officerDataWidth });
+
+    const exportMatrix = [
+      ['טסטים', 'טסטים'],
+      ['טיפולים', 'טיפולים'],
+      ['תאונות', 'תאונות'],
+      ['ביקורות קצין רכב', 'ביקורות קצין רכב'],
+      ['ביטוחים לחידוש', 'ביטוחים לחידוש'],
+      ['סיכום רכבים', 'סיכום רכבים'],
+      ['סיכום נהגים', 'סיכום נהגים'],
+      ['הוצאות לפי תקופה', 'הוצאות לפי תקופה'],
+      ['רווח והפסד', 'רווח והפסד'],
+      ['טיפולים (מפורט)', 'טיפולים'],
+      ['תאונות (מפורט)', 'תאונות'],
+      ['הזמנות', 'הזמנות'],
+      ['סיכום לפי ספקים', 'סיכום לפי ספקים'],
+    ];
+    for (let i = 0; i < exportMatrix.length; i += 1) {
+      const [label, marker] = exportMatrix[i];
+      await page.goto(`${BASE}/reports`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await waitPage(page);
+      await page.getByRole('button', { name: label, exact: true }).click();
+      await waitPage(page);
+      rec('reports', `${label} opens`, (await body(page)).includes(label));
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.getByRole('button', { name: /ייצוא/ }).click(),
+      ]);
+      const file = join(OUT, `report-${String(i + 1).padStart(2, '0')}.csv`);
+      await download.saveAs(file);
+      const csv = readFileSync(file, 'utf8');
+      rec('reports', `${label} export opens with correct block`, csv.length > 10 && csv.includes(marker));
+    }
+
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitPage(page);
     rec('t8', 'Reports page still loads after refresh', /דוחות/.test(await body(page)));
@@ -453,6 +612,23 @@ async function main() {
     rec('r4', 'Expiry alerts still appear', /טסט|ביטוח|רישיון נהיגה/.test(await body(page)));
     rec('r4', 'No company B leak on alerts', !(await body(page)).includes(plateB));
     rec('r6', 'Free/officer categories still exist', /התראה חופשית|התראת קצין|התרא/.test(await body(page)));
+
+    const regressionRoutes = [
+      ['/vehicles', /רכב/],
+      ['/drivers', /נהג/],
+      ['/vehicle-tracking', /מעקב|רכב/],
+      ['/documents', /מסמכ/],
+      ['/reports', /דוחות/],
+      ['/alert-settings', /התרא|הגדר/],
+      ['/settings', /חברה|הגדר/],
+    ];
+    for (const [route, expected] of regressionRoutes) {
+      await page.goto(`${BASE}${route}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await waitPage(page);
+      const text = await body(page);
+      rec('regression', `${route} loads without runtime error`, expected.test(text) && !/TypeError|ReferenceError/.test(text));
+      rec('regression', `${route} remains company isolated`, !text.includes(plateB) && !text.includes(drvB.full_name));
+    }
 
     await a.context.close();
   } catch (e) {
@@ -468,6 +644,13 @@ async function main() {
       if (ids.drivers.length) await admin.from('drivers').delete().in('id', ids.drivers);
       if (ids.settings.length) await admin.from('company_settings').delete().in('company_name', ids.settings);
       for (const uid of ids.users) {
+        const storageFolder = `${uid}/vehicles_${plateA.replace(/[-\s]/g, '')}`;
+        const { data: storedFiles } = await admin.storage.from('documents').list(storageFolder);
+        if (storedFiles?.length) {
+          await admin.storage
+            .from('documents')
+            .remove(storedFiles.map((file) => `${storageFolder}/${file.name}`));
+        }
         await admin.from('user_roles').delete().eq('user_id', uid);
         await admin.from('profiles').delete().eq('id', uid);
         await admin.auth.admin.deleteUser(uid).catch(() => null);
