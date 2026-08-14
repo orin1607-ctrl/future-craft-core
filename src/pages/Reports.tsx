@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart3, Car, Users, FileText, Wrench, AlertTriangle, Download, Filter,
   ChevronDown, ChevronUp, ShoppingCart, TrendingUp, Package, Mail, MessageSquare,
-  Share2, ShieldAlert, CalendarRange,
+  Share2, ShieldAlert, CalendarRange, ClipboardList,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
+import { buildVehicleHubUrl, normalizePlate } from '@/lib/entityNavContext';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -35,12 +37,14 @@ interface RawData {
   expenses: any[];
   serviceOrders: any[];
   supplierOrders: any[];
+  inspections: any[];
 }
 
 const reportTypes = [
   { value: 'ops_tests', label: 'טסטים' },
   { value: 'ops_treatments', label: 'טיפולים' },
   { value: 'ops_accidents', label: 'תאונות' },
+  { value: 'ops_officer_inspections', label: 'ביקורות קצין רכב' },
   { value: 'ops_insurance', label: 'ביטוחים לחידוש' },
   { value: 'vehicles', label: 'סיכום רכבים' },
   { value: 'drivers', label: 'סיכום נהגים' },
@@ -53,6 +57,25 @@ const reportTypes = [
 ];
 
 const STANDARD_HEADERS = ['מס\' פנימי', 'מספר רכב', 'חברה / לקוח', 'נהג', 'סוג האירוע', 'תאריך', 'סטטוס'];
+const OFFICER_INSPECTION_HEADERS = [
+  'מספר רכב',
+  'מס׳ פנימי',
+  'סוג הביקורת',
+  'תאריך הביקורת',
+  'מועד הביקורת הבאה',
+  'סטטוס',
+  'קישור לביקורת',
+  'קישור לרכב',
+];
+const INSPECTION_SELECT = 'id,vehicle_id,vehicle_plate,inspection_type,inspection_date,next_due_date,overall_status,company_name';
+
+function inspectionTypeLabel(t: string | null | undefined): string {
+  if (t === 'tri_semi_annual') return 'תלת/חצי שנתית';
+  if (t === 'quarterly') return 'רבעונית';
+  if (t === 'semi_annual') return 'חצי שנתית';
+  if (t === 'annual') return 'שנתית';
+  return t || 'ביקורת';
+}
 
 const PERIOD_OPTIONS: { value: ReportPeriodMode; label: string }[] = [
   { value: 'month', label: 'חודש נוכחי' },
@@ -81,6 +104,9 @@ function statusLabel(s: string | null | undefined): string {
   if (s === 'inactive' || s === 'archived') return 'לא פעיל';
   if (s === 'in_service') return 'בטיפול';
   if (s === 'closed') return 'סגור';
+  if (s === 'passed') return 'תקין';
+  if (s === 'failed') return 'ליקויים';
+  if (s === 'pending') return 'ממתין';
   if (s === 'new' || s === 'open') return 'פתוח';
   if (s === 'in_progress') return 'בתהליך';
   return s;
@@ -88,13 +114,14 @@ function statusLabel(s: string | null | undefined): string {
 
 export default function Reports() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const companyFilter = useCompanyFilter();
   const [raw, setRaw] = useState<RawData>({
-    vehicles: [], drivers: [], faults: [], accidents: [], expenses: [], serviceOrders: [], supplierOrders: [],
+    vehicles: [], drivers: [], faults: [], accidents: [], expenses: [], serviceOrders: [], supplierOrders: [], inspections: [],
   });
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
-  const [expandedReport, setExpandedReport] = useState<string | null>('ops_tests');
+  const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   const [periodMode, setPeriodMode] = useState<ReportPeriodMode>('month');
@@ -112,7 +139,7 @@ export default function Reports() {
 
   const loadData = async () => {
     setLoading(true);
-    const [vRes, dRes, fRes, aRes, eRes, soRes, woRes] = await Promise.all([
+    const [vRes, dRes, fRes, aRes, eRes, soRes, woRes, iRes] = await Promise.all([
       applyCompanyScope(supabase.from('vehicles').select(VEHICLE_EXPIRY_SELECT), companyFilter),
       applyCompanyScope(supabase.from('drivers').select(DRIVER_SELECT), companyFilter),
       applyCompanyScope(supabase.from('faults').select(FAULT_SELECT), companyFilter),
@@ -120,15 +147,27 @@ export default function Reports() {
       applyCompanyScope(supabase.from('expenses').select(EXPENSE_SELECT), companyFilter),
       applyCompanyScope(supabase.from('service_orders').select(SERVICE_SELECT), companyFilter),
       applyCompanyScope(supabase.from('supplier_work_orders').select(SUPPLIER_SELECT), companyFilter),
+      supabase.from('vehicle_inspections').select(INSPECTION_SELECT),
     ]);
+    const vehicles = vRes.data || [];
+    const companyPlates = new Set(
+      vehicles.map((v) => normalizePlate(v.license_plate || '')).filter(Boolean),
+    );
+    const inspections = (iRes.data || []).filter((i) => {
+      if (!companyFilter) return true;
+      if (i.company_name === companyFilter) return true;
+      const p = normalizePlate(i.vehicle_plate || '');
+      return !!p && companyPlates.has(p);
+    });
     setRaw({
-      vehicles: vRes.data || [],
+      vehicles,
       drivers: dRes.data || [],
       faults: fRes.data || [],
       accidents: aRes.data || [],
       expenses: eRes.data || [],
       serviceOrders: soRes.data || [],
       supplierOrders: woRes.data || [],
+      inspections,
     });
     setLoading(false);
   };
@@ -167,23 +206,51 @@ export default function Reports() {
     raw.accidents.forEach(a => a.status && set.add(a.status));
     raw.serviceOrders.forEach(s => s.treatment_status && set.add(s.treatment_status));
     raw.vehicles.forEach(v => v.status && set.add(v.status));
+    raw.inspections.forEach(i => i.overall_status && set.add(i.overall_status));
     return [...set].sort();
   }, [raw]);
 
   const plateToInternal = useMemo(() => {
     const map: Record<string, string> = {};
-    raw.vehicles.forEach(v => { if (v.license_plate) map[v.license_plate] = v.internal_number || ''; });
+    raw.vehicles.forEach(v => {
+      if (!v.license_plate) return;
+      map[v.license_plate] = v.internal_number || '';
+      map[normalizePlate(v.license_plate)] = v.internal_number || '';
+    });
     return map;
   }, [raw.vehicles]);
   const plateToCompany = useMemo(() => {
     const map: Record<string, string> = {};
-    raw.vehicles.forEach(v => { if (v.license_plate) map[v.license_plate] = v.company_name || ''; });
+    raw.vehicles.forEach(v => {
+      if (!v.license_plate) return;
+      map[v.license_plate] = v.company_name || '';
+      map[normalizePlate(v.license_plate)] = v.company_name || '';
+    });
+    return map;
+  }, [raw.vehicles]);
+  const plateToVehicleId = useMemo(() => {
+    const map: Record<string, string> = {};
+    raw.vehicles.forEach(v => {
+      if (!v.license_plate || !v.id) return;
+      map[v.license_plate] = v.id;
+      map[normalizePlate(v.license_plate)] = v.id;
+    });
     return map;
   }, [raw.vehicles]);
   const getInternal = (plate: string | null | undefined) =>
-    plate ? (plateToInternal[plate] || '-') : '-';
+    plate ? (plateToInternal[plate] || plateToInternal[normalizePlate(plate)] || '-') : '-';
   const getCompanyForPlate = (plate: string | null | undefined, fallback?: string | null) =>
     fallback || (plate ? plateToCompany[plate] : '') || '-';
+  const getVehicleId = (plate: string | null | undefined, fallback?: string | null) =>
+    fallback || (plate ? plateToVehicleId[plate] || plateToVehicleId[normalizePlate(plate)] : '') || '';
+  const inspectionPath = (inspection: any) => {
+    const vehicleId = getVehicleId(inspection.vehicle_plate, inspection.vehicle_id);
+    const query = new URLSearchParams({ inspectionId: inspection.id });
+    if (inspection.vehicle_plate) query.set('plate', inspection.vehicle_plate);
+    if (vehicleId) query.set('vehicleId', vehicleId);
+    query.set('context', 'vehicle');
+    return `/vehicle-inspections?${query.toString()}`;
+  };
 
   const driverById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -203,9 +270,15 @@ export default function Reports() {
     if (company && !opts.company && opts.plate) {
       if (plateToCompany[opts.plate] && plateToCompany[opts.plate] !== company) return false;
     }
-    if (filterVehicle && opts.plate !== filterVehicle) return false;
+    if (filterVehicle) {
+      const want = normalizePlate(filterVehicle);
+      const got = normalizePlate(opts.plate || '');
+      if (opts.plate !== filterVehicle && want !== got) return false;
+    }
     if (filterInternal) {
-      const internal = opts.internal || (opts.plate ? plateToInternal[opts.plate] : '');
+      const internal =
+        opts.internal ||
+        (opts.plate ? plateToInternal[opts.plate] || plateToInternal[normalizePlate(opts.plate)] || '' : '');
       if (internal !== filterInternal) return false;
     }
     if (filterDriver && opts.driver !== filterDriver) return false;
@@ -274,9 +347,23 @@ export default function Reports() {
         (!filterVendor || o.supplier_name === filterVendor) &&
         (!filterStatus || o.status === filterStatus),
       ),
+      inspections: raw.inspections.filter(i =>
+        matchEntityFilters({
+          company: i.company_name || (i.vehicle_plate ? plateToCompany[i.vehicle_plate] || plateToCompany[normalizePlate(i.vehicle_plate)] : ''),
+          plate: i.vehicle_plate,
+          internal: i.vehicle_plate
+            ? plateToInternal[i.vehicle_plate] || plateToInternal[normalizePlate(i.vehicle_plate)] || ''
+            : '',
+          status: i.overall_status,
+        }) && (
+          periodMode !== 'custom' ||
+          dateInReportRange(i.inspection_date, from, to) ||
+          dateInReportRange(i.next_due_date, from, to)
+        ),
+      ),
     };
   }, [
-    raw, period, filterCompany, filterVehicle, filterInternal, filterDriver,
+    raw, period, periodMode, filterCompany, filterVehicle, filterInternal, filterDriver,
     filterStatus, filterVendor, user?.role, companyFilter, plateToInternal, plateToCompany,
   ]);
 
@@ -303,8 +390,14 @@ export default function Reports() {
   );
 
   const showReport = (type: string) => filterReportTypes.length === 0 || filterReportTypes.includes(type);
-  const toggleReportType = (type: string) =>
-    setFilterReportTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+  useEffect(() => {
+    if (filterReportTypes.length === 1) setExpandedReport(filterReportTypes[0]);
+  }, [filterReportTypes]);
+
+  const toggleReportType = (type: string) => {
+    setFilterReportTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
+    setExpandedReport(type);
+  };
 
   const clearFilters = () => {
     setPeriodMode('month');
@@ -387,9 +480,9 @@ export default function Reports() {
 
   const exportCSV = () => {
     const rows: string[][] = [];
-    const pushBlock = (title: string, dataRows: string[][]) => {
+    const pushBlock = (title: string, dataRows: string[][], headers = STANDARD_HEADERS) => {
       rows.push([`--- ${title} ---`]);
-      rows.push(STANDARD_HEADERS);
+      rows.push(headers);
       dataRows.forEach(r => rows.push(r));
       rows.push([]);
     };
@@ -416,6 +509,25 @@ export default function Reports() {
         status: statusLabel(a.status),
       })));
     }
+    if (showReport('ops_officer_inspections')) {
+      pushBlock(
+        'ביקורות קצין רכב',
+        filtered.inspections.map(i => {
+          const vehicleId = getVehicleId(i.vehicle_plate, i.vehicle_id);
+          return [
+          i.vehicle_plate || '-',
+          getInternal(i.vehicle_plate),
+          inspectionTypeLabel(i.inspection_type),
+          fmtDate(i.inspection_date),
+          i.next_due_date ? fmtDate(i.next_due_date) : '—',
+          statusLabel(i.overall_status),
+          inspectionPath(i),
+          vehicleId ? buildVehicleHubUrl(vehicleId) : '—',
+          ];
+        }),
+        OFFICER_INSPECTION_HEADERS,
+      );
+    }
     if (showReport('ops_insurance')) {
       pushBlock('ביטוחים לחידוש', insuranceInPeriod.map(e => standardRow({
         internal: e.internalNumber, plate: e.vehiclePlate, company: e.companyName,
@@ -424,12 +536,24 @@ export default function Reports() {
     }
 
     if (rows.length === 0) rows.push(['אין נתונים להצגה']);
-    const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\n');
+    const escapeCsv = (value: string) => {
+      const raw = String(value ?? '');
+      const text = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const csv = '\uFEFF' + rows.map(r => r.map(escapeCsv).join(',')).join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `דוח_דליה_${new Date().toLocaleDateString('he-IL')}.csv`;
+    const objectUrl = URL.createObjectURL(blob);
+    link.href = objectUrl;
+    link.download = `דוח_דליה_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
     link.click();
+    link.remove();
+    // Keep the blob alive long enough for slower browsers/webviews to finish
+    // handing the file to their download manager.
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    toast.success('קובץ הדוח הורד בהצלחה');
   };
 
   const shareViaWhatsApp = () => {
@@ -721,6 +845,63 @@ export default function Reports() {
                   status: statusLabel(a.status),
                 }))}
               />
+            }
+          />
+        )}
+
+        {showReport('ops_officer_inspections') && (
+          <ExpandableReport
+            expanded={expandedReport === 'ops_officer_inspections'}
+            onToggle={() => toggleExpand('ops_officer_inspections')}
+            card={
+              <SummaryCard
+                icon={ClipboardList}
+                color="bg-primary/10 text-primary"
+                headline={formatSummaryHeadline(
+                  filtered.inspections.length,
+                  'ביקורות קצין רכב',
+                  periodMode === 'custom' ? period.labelSuffix : 'בכל הזמנים',
+                )}
+                expanded={expandedReport === 'ops_officer_inspections'}
+                openLabel="פתח טבלת ביקורות קצין רכב"
+              />
+            }
+            table={
+              <>
+                <p className="text-xs text-muted-foreground px-3 pb-2">
+                  דוח זה מציג את כל הביקורות (כולל בלי מועד הבא). סינון תאריכים חל רק בבחירת «טווח תאריכים». מועד הבא חסר מוצג כ־—.
+                </p>
+                <DetailTable
+                  headers={OFFICER_INSPECTION_HEADERS}
+                  internalColumnIndex={1}
+                  rows={filtered.inspections.map(i => [
+                    i.vehicle_plate || '-',
+                    getInternal(i.vehicle_plate) || '—',
+                    inspectionTypeLabel(i.inspection_type),
+                    fmtDate(i.inspection_date),
+                    i.next_due_date ? fmtDate(i.next_due_date) : '—',
+                    statusLabel(i.overall_status),
+                    <button
+                      key={`inspection-${i.id}`}
+                      type="button"
+                      className="font-bold text-primary underline"
+                      onClick={() => navigate(inspectionPath(i))}
+                    >
+                      פתח ביקורת
+                    </button>,
+                    getVehicleId(i.vehicle_plate, i.vehicle_id) ? (
+                      <button
+                        key={`vehicle-${i.id}`}
+                        type="button"
+                        className="font-bold text-primary underline"
+                        onClick={() => navigate(buildVehicleHubUrl(getVehicleId(i.vehicle_plate, i.vehicle_id)))}
+                      >
+                        פתח רכב
+                      </button>
+                    ) : '—',
+                  ])}
+                />
+              </>
             }
           />
         )}
@@ -1060,20 +1241,24 @@ function ExpandableReport({ expanded, onToggle, card, table }: {
 }) {
   return (
     <div>
-      <div onClick={onToggle} className="cursor-pointer" role="button" tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onToggle(); }}>
+      <button type="button" onClick={onToggle} className="w-full text-right cursor-pointer">
         {card}
-      </div>
-      {expanded && table && <div className="animate-fade-in">{table}</div>}
+      </button>
+      {expanded && table && (
+        <div className="animate-fade-in" data-report-table>
+          {table}
+        </div>
+      )}
     </div>
   );
 }
 
-function SummaryCard({ icon: Icon, color, headline, expanded }: {
+function SummaryCard({ icon: Icon, color, headline, expanded, openLabel }: {
   icon: any;
   color: string;
   headline: string;
   expanded?: boolean;
+  openLabel?: string;
 }) {
   return (
     <div className="card-elevated hover:shadow-lg transition-shadow">
@@ -1084,7 +1269,7 @@ function SummaryCard({ icon: Icon, color, headline, expanded }: {
         <h2 className="text-xl font-bold flex-1 leading-snug">{headline}</h2>
         {expanded ? <ChevronUp size={18} className="text-primary shrink-0" /> : <ChevronDown size={18} className="text-muted-foreground shrink-0" />}
       </div>
-      <p className="text-xs text-muted-foreground mt-2">לחצו לפתיחת הרשימה המסוננת</p>
+      <p className="text-xs text-muted-foreground mt-2">{openLabel || 'לחצו לפתיחת הרשימה המסוננת'}</p>
     </div>
   );
 }
@@ -1117,7 +1302,15 @@ function ReportCard({ title, icon: Icon, color, stats, expanded }: {
   );
 }
 
-function DetailTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+function DetailTable({
+  headers,
+  rows,
+  internalColumnIndex = 0,
+}: {
+  headers: string[];
+  rows: React.ReactNode[][];
+  internalColumnIndex?: number;
+}) {
   if (rows.length === 0) {
     return (
       <div className="card-elevated -mt-2 border-t-2 border-primary/20 p-4 text-center text-muted-foreground animate-fade-in">
@@ -1140,7 +1333,9 @@ function DetailTable({ headers, rows }: { headers: string[]; rows: string[][] })
             <tr key={i} className="border-b border-border/50 hover:bg-muted/40">
               {row.map((cell, j) => (
                 <td key={j} className="p-3 whitespace-nowrap">
-                  {j === 0 && cell !== '-' ? <InternalNumber value={cell} className="text-sm" /> : cell}
+                  {j === internalColumnIndex && typeof cell === 'string' && cell !== '-' && cell !== '—'
+                    ? <InternalNumber value={cell} className="text-sm" />
+                    : cell}
                 </td>
               ))}
             </tr>

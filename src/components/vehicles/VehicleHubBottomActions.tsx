@@ -1,4 +1,4 @@
-import { Upload, Archive, Trash2 } from 'lucide-react';
+import { Upload, Archive, Trash2, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
@@ -12,6 +12,7 @@ export default function VehicleHubBottomActions({
   onImport,
   onArchive,
   onDelete,
+  onCreateAlert,
   previewMode,
 }: {
   plate: string;
@@ -22,6 +23,7 @@ export default function VehicleHubBottomActions({
   onImport: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  onCreateAlert?: () => void;
   previewMode?: boolean;
 }) {
   return (
@@ -30,7 +32,13 @@ export default function VehicleHubBottomActions({
         פעולות קבועות · <VehiclePlateLine plate={plate} internal={internalNumber} />
       </p>
       {isManager && vehicleId && (
-        <div className="mb-3">
+        <div className="mb-3 space-y-2">
+          {onCreateAlert && (
+            <Button type="button" className="w-full h-12 font-bold gap-2" onClick={onCreateAlert}>
+              <Bell size={18} className="shrink-0" />
+              הוסף התראה · התראה חופשית
+            </Button>
+          )}
           <NotificationsAndSendsButton vehicleId={vehicleId} vehiclePlate={plate} />
         </div>
       )}

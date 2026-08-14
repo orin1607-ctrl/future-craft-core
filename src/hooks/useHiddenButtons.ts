@@ -2,23 +2,31 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+export { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
+
 /**
- * Returns an array of route paths that should be hidden for the current user's company.
+ * Returns hidden button keys for the current user's company.
  * Only applies to fleet_manager and driver roles — super_admin sees everything.
  */
-export function useHiddenButtons(): string[] {
+export function useHiddenButtonsState(): { hiddenButtons: string[]; ready: boolean } {
   const { user } = useAuth();
   const [hiddenButtons, setHiddenButtons] = useState<string[]>([]);
+  const [ready, setReady] = useState(!user || user.role === 'super_admin');
 
   useEffect(() => {
     if (!user || user.role === 'super_admin') {
       setHiddenButtons([]);
+      setReady(true);
       return;
     }
 
     const companyName = user.company_name;
-    if (!companyName) return;
+    if (!companyName) {
+      setReady(true);
+      return;
+    }
 
+    setReady(false);
     supabase
       .from('company_settings')
       .select('hidden_buttons')
@@ -27,11 +35,18 @@ export function useHiddenButtons(): string[] {
       .then(({ data }) => {
         if (data?.hidden_buttons) {
           setHiddenButtons(data.hidden_buttons as string[]);
+        } else {
+          setHiddenButtons([]);
         }
+        setReady(true);
       });
   }, [user?.id, user?.company_name, user?.role]);
 
-  return hiddenButtons;
+  return { hiddenButtons, ready };
+}
+
+export function useHiddenButtons(): string[] {
+  return useHiddenButtonsState().hiddenButtons;
 }
 
 /** Dashboard home cards — hidden via hidden_buttons[] */
@@ -68,5 +83,6 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/dalia-settings', label: 'Dalia Settings', category: 'מרכז ניהול' },
   { path: '/user-management', label: 'משתמשים (דשבורד)', category: 'כרטיסי דשבורד' },
   { path: '/expenses', label: 'דלק וחשבוניות', category: 'נהג' },
+  { path: 'driver-hub-dashboard', label: 'פתח דשבורד נהג', category: 'נהג' },
   ...DASHBOARD_CARD_BUTTONS.filter((b) => b.path !== '/user-management' && b.path !== '/admin-home'),
 ];

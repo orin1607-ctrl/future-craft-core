@@ -16,16 +16,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import AddNotificationDialog from '@/components/notifications/AddNotificationDialog';
+import CreateAlertModal from '@/components/CreateAlertModal';
 import WhatsAppSendDialog from '@/components/whatsapp/WhatsAppSendDialog';
 import { buildNotificationLogUrl } from '@/lib/notificationLogNav';
 import {
-  MOCK_LOG_ENTRIES,
   CHANNEL_LABELS,
   STATUS_LABELS,
   SCOPE_LABELS,
   filterMockEntries,
-  scopedMockFallback,
   resolveLogViewMode,
   formatLogEntryMeta,
   mockCostSummary,
@@ -37,7 +35,12 @@ import {
   type LogViewMode,
   type NotificationLogEntry,
 } from '@/lib/notificationLogMock';
-import { fetchNotificationLogEntries } from '@/lib/notificationLogService';
+import {
+  deactivateCustomAlert,
+  fetchUnifiedAlertLogEntries,
+} from '@/lib/notificationLogService';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import { buildMockPreviewMessage, type WhatsAppSendKind } from '@/lib/whatsappUiMock';
 
 const LOG_TABS: { id: LogTab; label: string; icon: typeof Bell }[] = [
@@ -83,12 +86,15 @@ function LogEntryRow({
   entry,
   viewMode,
   onSendWa,
+  onDismiss,
 }: {
   entry: NotificationLogEntry;
   viewMode: LogViewMode;
   onSendWa?: (entry: NotificationLogEntry) => void;
+  onDismiss?: (entry: NotificationLogEntry) => void;
 }) {
-  const dt = new Date(entry.createdAt);
+  const createdAt = new Date(entry.createdAt);
+  const scheduledFor = entry.scheduledFor ? new Date(entry.scheduledFor) : null;
   const waLabel =
     entry.channel === 'whatsapp' && entry.waSent != null
       ? `${entry.waSent}/${entry.waMax ?? 3}${entry.status === 'blocked' ? ' חסום' : ''}`
@@ -115,11 +121,15 @@ function LogEntryRow({
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            {format(dt, 'dd/MM/yyyy HH:mm', { locale: he })}
-            {entry.scheduledFor && entry.timing === 'future' && (
-              <> · מתוזמן ל-{format(new Date(entry.scheduledFor), 'dd/MM/yyyy', { locale: he })}</>
+          <p className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+            {scheduledFor && (
+              <span className="font-semibold text-foreground">
+                מועד ההתראה: {format(scheduledFor, 'dd/MM/yyyy', { locale: he })}
+              </span>
             )}
+            <span>
+              {scheduledFor ? 'נוצרה' : 'תאריך'}: {format(createdAt, 'dd/MM/yyyy HH:mm', { locale: he })}
+            </span>
           </p>
           <p className="text-sm">{formatLogEntryMeta(entry, viewMode)}</p>
           {entry.notes && <p className="text-xs text-muted-foreground">{entry.notes}</p>}
@@ -144,6 +154,11 @@ function LogEntryRow({
                 שלח WhatsApp
               </Button>
             )}
+          {onDismiss && entry.customAlertId && entry.timing !== 'history' && (
+            <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={() => onDismiss(entry)}>
+              הסר מהפעילות
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -152,6 +167,7 @@ function LogEntryRow({
 
 export default function NotificationLogPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const vehicleId = searchParams.get('vehicleId');
@@ -169,16 +185,26 @@ export default function NotificationLogPage() {
   const [waDialog, setWaDialog] = useState<{ entry: NotificationLogEntry } | null>(null);
   const [dbEntries, setDbEntries] = useState<NotificationLogEntry[]>([]);
 
+  const reloadAlerts = () => {
+    void fetchUnifiedAlertLogEntries({
+      companyName: user?.role === 'super_admin' ? (filterCompany || null) : user?.company_name,
+      vehicleId,
+      vehiclePlate,
+      driverId,
+    }).then(setDbEntries);
+  };
+
   useEffect(() => {
-    void fetchNotificationLogEntries().then(setDbEntries);
-  }, []);
+    reloadAlerts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role, user?.company_name, vehicleId, vehiclePlate, driverId, filterCompany]);
 
-  const sourceEntries = dbEntries.length > 0 ? dbEntries : MOCK_LOG_ENTRIES;
-
+  const sourceEntries = dbEntries;
   const scoped = viewMode !== 'general';
+  const canDismiss = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
   const baseEntries = useMemo(() => {
-    let list = filterMockEntries(sourceEntries, {
+    return filterMockEntries(sourceEntries, {
       viewMode,
       vehicleId,
       vehiclePlate,
@@ -187,16 +213,7 @@ export default function NotificationLogPage() {
       channel: filterChannel || undefined,
       status: filterStatus || undefined,
     });
-    if (scoped && list.length === 0) {
-      list = scopedMockFallback(viewMode, {
-        vehicleId,
-        vehiclePlate,
-        driverId,
-        driverName,
-      });
-    }
-    return list;
-  }, [sourceEntries, viewMode, vehicleId, vehiclePlate, driverId, driverName, filterCompany, filterChannel, filterStatus, scoped]);
+  }, [sourceEntries, viewMode, vehicleId, vehiclePlate, driverId, filterCompany, filterChannel, filterStatus]);
 
   const activeEntries = useMemo(
     () => filterMockEntries(baseEntries, { timing: 'active' }),
@@ -211,6 +228,17 @@ export default function NotificationLogPage() {
     [baseEntries],
   );
 
+  const dismissAlert = async (entry: NotificationLogEntry) => {
+    if (!entry.customAlertId) return;
+    const res = await deactivateCustomAlert(entry.customAlertId);
+    if (!res.ok) {
+      toast.error(res.error || 'שגיאה בהסרת ההתראה');
+      return;
+    }
+    toast.success('ההתראה הוסרה מהפעילות (ההיסטוריה נשמרה)');
+    reloadAlerts();
+  };
+
   const costSummary = useMemo(() => mockCostSummary(baseEntries), [baseEntries]);
   const calendarDates = useMemo(() => calendarEventDates(baseEntries), [baseEntries]);
   const dayEntries = selectedDate ? entriesForDate(baseEntries, selectedDate) : [];
@@ -222,7 +250,7 @@ export default function NotificationLogPage() {
   };
 
   const backUrl = vehicleId
-    ? `/vehicles?vehicleId=${vehicleId}`
+    ? `/vehicles?vehicleId=${vehicleId}&view=hub`
     : driverId
       ? `/drivers?driverId=${driverId}`
       : '/alerts';
@@ -253,11 +281,9 @@ export default function NotificationLogPage() {
             התראות ושליחות
           </h1>
           <p className="text-sm text-muted-foreground">
-            {viewMode === 'driver' && 'יומן נהג בלבד — רישיון, הסמכות, מסמכי נהג, תזכירים'}
-            {viewMode === 'vehicle' && 'יומן רכב בלבד — טסט, ביטוחים, טיפולים, מסמכי רכב'}
-            {viewMode === 'general' && 'יומן כללי — נהגים, רכבים, חברות, WhatsApp, אימייל'}
-            {' · '}
-            Mock UI בלבד
+            {viewMode === 'driver' && 'יומן נהג — רישיון, מבחן, התראות חופשיות (אותם מקורות כמו מסך התראות)'}
+            {viewMode === 'vehicle' && 'יומן רכב — טסט, ביטוח, קצין רכב, התראות חופשיות (אותם מקורות כמו מסך התראות)'}
+            {viewMode === 'general' && 'יומן כללי — תוקפים אוטומטיים + התראות ידניות. פגות תוקף בהיסטוריה בלבד.'}
           </p>
         </div>
         <Button type="button" className="gap-2 min-h-[44px]" onClick={() => setAddOpen(true)}>
@@ -356,7 +382,13 @@ export default function NotificationLogPage() {
             <p className="text-center text-muted-foreground py-12">אין התראות פעילות</p>
           ) : (
             activeEntries.map((e) => (
-              <LogEntryRow key={e.id} entry={e} viewMode={viewMode} onSendWa={(entry) => setWaDialog({ entry })} />
+              <LogEntryRow
+                key={e.id}
+                entry={e}
+                viewMode={viewMode}
+                onSendWa={(entry) => setWaDialog({ entry })}
+                onDismiss={canDismiss ? dismissAlert : undefined}
+              />
             ))
           )}
         </TabsContent>
@@ -365,7 +397,14 @@ export default function NotificationLogPage() {
           {futureEntries.length === 0 ? (
             <p className="text-center text-muted-foreground py-12">אין התראות עתידיות</p>
           ) : (
-            futureEntries.map((e) => <LogEntryRow key={e.id} entry={e} viewMode={viewMode} />)
+            futureEntries.map((e) => (
+              <LogEntryRow
+                key={e.id}
+                entry={e}
+                viewMode={viewMode}
+                onDismiss={canDismiss ? dismissAlert : undefined}
+              />
+            ))
           )}
         </TabsContent>
 
@@ -434,14 +473,19 @@ export default function NotificationLogPage() {
         </TabsContent>
       </Tabs>
 
-      <AddNotificationDialog
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        viewMode={viewMode}
-        defaultVehiclePlate={vehiclePlate || ''}
-        defaultDriverName={driverName || ''}
-        defaultWaSent={1}
-      />
+      {addOpen && (
+        <CreateAlertModal
+          vehiclePlate={vehiclePlate || undefined}
+          vehicleId={vehicleId || undefined}
+          driverId={driverId || undefined}
+          driverName={driverName || undefined}
+          onClose={() => setAddOpen(false)}
+          onCreated={() => {
+            setAddOpen(false);
+            reloadAlerts();
+          }}
+        />
+      )}
 
       {waDialog && (
         <WhatsAppSendDialog

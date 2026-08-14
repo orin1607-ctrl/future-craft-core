@@ -15,6 +15,8 @@ import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { uploadDocument } from '@/lib/uploadDocument';
 import DriverHub from '@/components/drivers/DriverHub';
 import { fetchCompanyDepartments } from '@/lib/companyDepartments';
+import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
+import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
 
 interface DriverRow {
   id: string;
@@ -28,6 +30,7 @@ interface DriverRow {
   street: string;
   status: string;
   notes: string;
+  show_notes_on_list?: boolean | null;
   company_name: string;
   id_number: string;
   license_image_url?: string;
@@ -43,6 +46,8 @@ export default function Drivers() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const { hiddenButtons, ready: hiddenReady } = useHiddenButtonsState();
+  const showDriverDashboard = hiddenReady && !isDriverHubDashboardHidden(hiddenButtons);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [search, setSearch] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
@@ -107,6 +112,10 @@ export default function Drivers() {
       <DriverHub
         driver={d}
         isManager={user?.role !== 'driver'}
+        onNotesSaved={(patch) => {
+          setSelected((s) => (s ? { ...s, ...patch } : s));
+          setDrivers((list) => list.map((x) => (x.id === d.id ? { ...x, ...patch } : x)));
+        }}
         onBack={() => setSelected(null)}
         onEdit={() => {
           setSelected(null);
@@ -239,6 +248,9 @@ export default function Drivers() {
                   {d.license_types?.length > 0 && (
                     <p className="text-sm text-muted-foreground">{d.license_types.join(', ')}</p>
                   )}
+                  {d.show_notes_on_list && d.notes?.trim() ? (
+                    <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap break-words">{d.notes.trim()}</p>
+                  ) : null}
                 </div>
                 <span
                   className={`status-badge ${d.status === 'active' ? 'status-active' : d.status === 'archived' ? 'bg-muted text-muted-foreground' : 'status-inactive'}`}
@@ -247,7 +259,7 @@ export default function Drivers() {
                 </span>
               </div>
             </button>
-            {user?.role !== 'driver' && (
+            {user?.role !== 'driver' && showDriverDashboard && (
               <Button
                 type="button"
                 className="w-full mt-3 h-12 font-bold gap-2"

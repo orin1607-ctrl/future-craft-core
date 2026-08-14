@@ -21,6 +21,7 @@ import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleList
 import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
 import { collectDepartmentsFromVehicles } from '@/lib/companyDepartments';
 import { VehiclePlatePipeLine } from '@/components/vehicles/vehiclePlateDisplay';
+import { sortByExactInternalNumberFirst } from '@/lib/internalNumberSearch';
 
 export { VehicleForm };
 
@@ -42,6 +43,7 @@ interface VehicleRow {
   comprehensive_insurance_expiry: string | null;
   comprehensive_insurance_start: string | null;
   next_service_date: string | null;
+  next_inspection_date?: string | null;
   last_service_date: string | null;
   needs_transport: boolean;
   approval_status: string;
@@ -49,6 +51,7 @@ interface VehicleRow {
   insurance_doc_url: string;
   comprehensive_insurance_doc_url: string;
   notes: string;
+  show_notes_on_list?: boolean | null;
   management_type: string;
   monthly_leasing_cost: number | null;
   leasing_end_date: string | null;
@@ -191,7 +194,7 @@ export default function Vehicles() {
 
   const companies = [...new Set(vehicles.map(v => v.company_name).filter(Boolean))];
 
-  const filtered = vehicles.filter(v => {
+  const filteredUnsorted = vehicles.filter(v => {
     const matchSearch = !search || v.license_plate.includes(search) || v.manufacturer?.includes(search) || v.model?.includes(search) || v.internal_number?.includes(search) || (v.department || '').includes(search);
     // When "all" is selected, exclude archived vehicles; only show them when "archived" tab is active
     const matchStatus = statusFilter === 'all' ? v.status !== 'archived' : v.status === statusFilter;
@@ -200,6 +203,7 @@ export default function Vehicles() {
     const matchDepartment = !filterDepartment || (v.department || '') === filterDepartment;
     return matchSearch && matchStatus && matchCompany && matchDriver && matchDepartment;
   });
+  const filtered = sortByExactInternalNumberFirst(filteredUnsorted, search);
 
   const departmentOptions = collectDepartmentsFromVehicles(vehicles, filterCompany || companyFilter || user?.company_name);
 
@@ -389,6 +393,17 @@ export default function Vehicles() {
           {isManager && (
             <button
               type="button"
+              id="add-vehicle-btn"
+              aria-label="הוספת רכב"
+              onClick={() => handleOpenForm()}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold min-h-[48px] hover:bg-primary/90 transition-colors"
+            >
+              <Plus size={18} /> הוספת רכב
+            </button>
+          )}
+          {isManager && (
+            <button
+              type="button"
               onClick={() => setListsManagerOpen(true)}
               className="flex items-center gap-2 px-4 py-3 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-bold min-h-[48px] hover:bg-primary/10 transition-colors"
             >
@@ -495,6 +510,9 @@ export default function Vehicles() {
                         {' • '}{v.year}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">נהג: {getDriverName(v.assigned_driver_id)}</p>
+                      {v.show_notes_on_list && v.notes?.trim() ? (
+                        <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap break-words">{v.notes.trim()}</p>
+                      ) : null}
                     </div>
                   </button>
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -520,9 +538,11 @@ export default function Vehicles() {
       {/* Floating + button */}
       {isManager && (
         <button
+          type="button"
           onClick={() => handleOpenForm()}
           className="fixed bottom-24 left-6 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-xl hover:shadow-2xl transition-all flex items-center justify-center hover:scale-110"
           title="רכב חדש"
+          aria-label="הוספת רכב"
         >
           <Plus size={28} />
         </button>

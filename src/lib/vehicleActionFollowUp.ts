@@ -5,6 +5,15 @@ import { getCompanyReminderOffsets } from '@/lib/companySettings';
 
 const PLATE_TAG = 'vplate:';
 const VEHICLE_ID_TAG = 'vid:';
+const DRIVER_ID_TAG = 'did:';
+const DRIVER_NAME_TAG = 'dname:';
+
+export const OFFICER_ALERT_TYPE = 'officer';
+export const OFFICER_ALERT_LABEL = 'התראת קצין רכב';
+export const FREE_ALERT_TYPE = 'free';
+export const FREE_ALERT_LABEL = 'התראה חופשית';
+
+export type AlertTimingBucket = 'active' | 'future' | 'history';
 
 /** Service order that represents transport / towing (שינוע). */
 export function isTowingServiceOrder(row: {
@@ -24,6 +33,68 @@ export function plateFromAlertText(text: string | null | undefined): string | nu
   if (!text) return null;
   const m = text.match(/vplate:([^\s]+)/);
   return m ? m[1] : null;
+}
+
+export function vehicleIdFromAlertText(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const m = text.match(/vid:([^\s]+)/);
+  return m ? m[1] : null;
+}
+
+export function formatDriverAlertMeta(driverId: string, driverName?: string): string {
+  const parts = [`${DRIVER_ID_TAG}${driverId}`];
+  if (driverName?.trim()) parts.push(`${DRIVER_NAME_TAG}${encodeURIComponent(driverName.trim())}`);
+  return parts.join(' ');
+}
+
+export function driverIdFromAlertText(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const uuid = text.match(/did:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+  if (uuid) return uuid[1];
+  const m = text.match(/did:([^\s]+)/);
+  return m ? m[1] : null;
+}
+
+export function driverNameFromAlertText(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const m = text.match(/dname:([^\s]+)/);
+  if (!m) return null;
+  try {
+    return decodeURIComponent(m[1]);
+  } catch {
+    return m[1];
+  }
+}
+
+export function addCalendarMonths(isoDate: string, months: number): string {
+  const d = new Date(`${isoDate}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return isoDate;
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+export function parseOdometerKm(raw: string | number | null | undefined): number | null {
+  if (raw == null || raw === '') return null;
+  const n = Number(String(raw).replace(/[^\d.]/g, ''));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n);
+}
+
+export function shouldUpdateOdometer(current: number | null | undefined, incoming: number): boolean {
+  return incoming >= Number(current || 0);
+}
+
+export function classifyAlertTiming(
+  alertDate: string | null | undefined,
+  isActive: boolean | null | undefined,
+  now: Date = new Date(),
+): AlertTimingBucket {
+  if (!isActive) return 'history';
+  if (!alertDate) return 'active';
+  const daysLeft = Math.ceil((new Date(alertDate).getTime() - now.getTime()) / 86400000);
+  if (Number.isNaN(daysLeft) || daysLeft < 0) return 'history';
+  if (daysLeft > 30) return 'future';
+  return 'active';
 }
 
 export function handoverDateTime(row: {
@@ -81,6 +152,16 @@ export async function notifyFleetManagers(params: {
   }
 }
 
+/**
+ * custom_alerts RLS requires user_id = auth.uid(). Screens pass the profile they
+ * are showing, which is the impersonated profile while a super admin views the
+ * system as someone else, so the owner column must come from the live session.
+ */
+async function alertOwnerId(fallbackUserId: string) {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id || fallbackUserId;
+}
+
 /** Create custom_alerts for 30 / 7 / 1 days before target date. */
 export async function createTargetDateAlerts(params: {
   userId: string;
@@ -102,6 +183,7 @@ export async function createTargetDateAlerts(params: {
 
   const inserts: Record<string, unknown>[] = [];
   const reminderDays = await getCompanyReminderOffsets(params.companyName);
+  const ownerId = await alertOwnerId(params.userId);
 
   for (const daysBefore of reminderDays) {
     const alertDate = new Date(target);
@@ -111,7 +193,7 @@ export async function createTargetDateAlerts(params: {
 
     const whenLabel = daysBefore === 1 ? 'מחר' : `בעוד ${daysBefore} ימים`;
     inserts.push({
-      user_id: params.userId,
+      user_id: ownerId,
       company_name: params.companyName,
       alert_type: 'service',
       title: `${params.actionLabel} · ${params.vehiclePlate} · ${whenLabel}`,
@@ -127,6 +209,65 @@ export async function createTargetDateAlerts(params: {
     const { error } = await supabase.from('custom_alerts').insert(inserts);
     if (error) console.error('createTargetDateAlerts', error);
   }
+}
+
+/** Single officer alert dated at the next inspection due date. */
+export async function createOfficerInspectionAlert(params: {
+  userId: string;
+  companyName: string;
+  vehiclePlate: string;
+  vehicleId?: string;
+  nextDueDate: string;
+  details?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!params.nextDueDate || !params.userId) return { ok: false, error: 'חסר תאריך או משתמש' };
+  const when = new Date(`${params.nextDueDate}T09:00:00`);
+  if (Number.isNaN(when.getTime())) return { ok: false, error: 'תאריך לא תקין' };
+  const meta = formatVehicleAlertMeta(params.vehiclePlate, params.vehicleId);
+
+  const prev = await supabase
+    .from('custom_alerts')
+    .select('id, description, alert_type, title')
+    .eq('company_name', params.companyName)
+    .eq('is_active', true)
+    .in('alert_type', [OFFICER_ALERT_TYPE, 'service']);
+  const staleIds = (prev.data || [])
+    .filter((row) => {
+      const blob = `${row.title || ''}\n${row.description || ''}`;
+      // Only previous inspection-generated alerts are replaced. A manual officer
+      // alert has no `target:` marker and must survive a new inspection.
+      const autoInspectionAlert =
+        String(row.title || '').startsWith(`${OFFICER_ALERT_LABEL} · `) &&
+        String(row.description || '').includes('target:');
+      if (!autoInspectionAlert) return false;
+      const plate = plateFromAlertText(blob);
+      const vid = vehicleIdFromAlertText(blob);
+      return (
+        (params.vehicleId && vid === params.vehicleId) ||
+        (params.vehiclePlate && plate === params.vehiclePlate)
+      );
+    })
+    .map((row) => row.id);
+  if (staleIds.length) {
+    await supabase.from('custom_alerts').update({ is_active: false }).in('id', staleIds);
+  }
+
+  const { error } = await supabase.from('custom_alerts').insert({
+    user_id: await alertOwnerId(params.userId),
+    company_name: params.companyName,
+    alert_type: OFFICER_ALERT_TYPE,
+    title: `${OFFICER_ALERT_LABEL} · ${params.vehiclePlate}`,
+    description: [meta, params.details, `target:${params.nextDueDate}`].filter(Boolean).join('\n'),
+    alert_date: when.toISOString(),
+    next_trigger_at: when.toISOString(),
+    recurrence: 'none',
+    is_active: true,
+  });
+  if (error) {
+    console.error('createOfficerInspectionAlert', error);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
 }
 
 /** Log to vehicle history + optional dated alerts + optional transport notification. */

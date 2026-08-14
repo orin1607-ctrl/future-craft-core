@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Upload, FolderOpen, Filter, ArrowRight, Car, User, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +26,7 @@ const vehicleDocs: DocCategory[] = [
   { key: 'vehicle-license', label: 'רישיונות רכב', icon: '🚗', folder: 'vehicle-license', scope: 'vehicle' },
   { key: 'insurance', label: 'ביטוח חובה', icon: '🛡️', folder: 'insurance', scope: 'vehicle' },
   { key: 'comprehensive', label: 'ביטוח מקיף', icon: '📋', folder: 'comprehensive', scope: 'vehicle' },
+  { key: 'third-party', label: 'ביטוח צד ג׳', icon: '📄', folder: 'third-party', scope: 'vehicle' },
   { key: 'test', label: 'טסט', icon: '✅', folder: 'test', scope: 'vehicle' },
 ];
 
@@ -63,6 +65,7 @@ function docPublicUrl(filePath: string) {
 
 export default function Documents() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
   const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const companyFilter = useCompanyFilter();
@@ -85,11 +88,16 @@ export default function Documents() {
   const [showFilters, setShowFilters] = useState(false);
 
   // Upload form fields
-  const [uploadVehicle, setUploadVehicle] = useState('');
+  const [uploadVehicle, setUploadVehicle] = useState(contextPlate || '');
   const [uploadDriver, setUploadDriver] = useState('');
   const [uploadManufacturer, setUploadManufacturer] = useState('');
   const [uploadModel, setUploadModel] = useState('');
   const [showUploadForm, setShowUploadForm] = useState(false);
+
+  useEffect(() => {
+    if (!contextPlate) return;
+    setUploadVehicle((prev) => prev || contextPlate);
+  }, [contextPlate]);
 
   // Driver's assigned vehicle
   const [driverVehicle, setDriverVehicle] = useState<{ license_plate: string; manufacturer: string; model: string } | null>(null);
@@ -171,7 +179,9 @@ export default function Documents() {
     }
 
     if (locked && contextPlate && cat.scope === 'vehicle') {
-      query = query.eq('vehicle_plate', contextPlate.replace(/[-\s]/g, ''));
+      const raw = contextPlate.trim();
+      const norm = raw.replace(/[-\s]/g, '');
+      query = query.or(`vehicle_plate.eq.${raw},vehicle_plate.eq.${norm}`);
     }
 
     const { data, error } = await query;
@@ -180,22 +190,63 @@ export default function Documents() {
     setLoadingFiles(false);
   }, [companyFilter, isDriver, driverVehicle, driverProfile, locked, contextPlate]);
 
-  const openCategory = (cat: DocCategory) => {
+  const openCategory = (cat: DocCategory, opts?: { upload?: boolean }) => {
     setSelectedCategory(cat);
     setSearchQuery('');
     setShowFilters(false);
+    if (opts?.upload || vehicleScoped) setShowUploadForm(true);
     loadDocs(cat);
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length || !selectedCategory || !companyName || !user?.id) return;
-    const file = e.target.files[0];
+  useEffect(() => {
+    const key = searchParams.get('category');
+    if (!key) return;
+    const cat = allCategories.find((c) => c.key === key);
+    if (cat) openCategory(cat, { upload: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
-    const fieldOverrides = await fetchRequiredFieldsOverrides(companyName);
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length || !selectedCategory || !user?.id) return;
+    const file = e.target.files[0];
+    let targetVehicle: {
+      id: string;
+      license_plate: string;
+      company_name: string;
+      manufacturer: string | null;
+      model: string | null;
+    } | null = null;
+    if (selectedCategory.scope === 'vehicle') {
+      let query = supabase
+        .from('vehicles')
+        .select('id, license_plate, company_name, manufacturer, model');
+      if (contextVehicleId) {
+        query = query.eq('id', contextVehicleId);
+      } else {
+        const requestedPlate = (uploadVehicle || contextPlate || '').trim();
+        const norm = requestedPlate.replace(/[-\s]/g, '');
+        query = query.or(`license_plate.eq.${requestedPlate},license_plate.eq.${norm}`);
+      }
+      const { data } = await query.maybeSingle();
+      targetVehicle = data;
+    }
+    const targetCompanyName =
+      targetVehicle?.company_name || (typeof companyFilter === 'string' ? companyFilter : '') || companyName;
+    if (!targetCompanyName) {
+      toast.error('לא נמצאה חברת הרכב עבור המסמך');
+      e.target.value = '';
+      return;
+    }
+    const plateForUpload = (
+      targetVehicle?.license_plate ||
+      (vehicleScoped && contextPlate ? contextPlate : uploadVehicle || contextPlate || '')
+    ).trim();
+
+    const fieldOverrides = await fetchRequiredFieldsOverrides(targetCompanyName);
     const docValues: Record<string, string> = {
       name: file.name,
       category: selectedCategory.key,
-      vehicle_plate: uploadVehicle || contextPlate || '',
+      vehicle_plate: plateForUpload,
       file_url: file.name,
       notes: '',
     };
@@ -211,11 +262,11 @@ export default function Documents() {
       file,
       storageFolder: selectedCategory.folder,
       category: selectedCategory.key,
-      companyName,
-      vehiclePlate: uploadVehicle,
+      companyName: targetCompanyName,
+      vehiclePlate: plateForUpload,
       driverName: uploadDriver,
-      manufacturer: uploadManufacturer,
-      model: uploadModel,
+      manufacturer: targetVehicle?.manufacturer || uploadManufacturer,
+      model: targetVehicle?.model || uploadModel,
     });
 
     if (!result.ok) {
@@ -225,12 +276,36 @@ export default function Documents() {
       return;
     }
 
-    const plateForLog = uploadVehicle || contextPlate;
+    if (result.publicUrl) {
+      const plate = plateForUpload || contextPlate || '';
+      let vehicleId = targetVehicle?.id || contextVehicleId || '';
+      if (!vehicleId && plate) {
+        const norm = plate.replace(/[-\s]/g, '');
+        const { data: veh } = await supabase
+          .from('vehicles')
+          .select('id')
+          .or(`license_plate.eq.${plate},license_plate.eq.${norm}`)
+          .maybeSingle();
+        vehicleId = veh?.id || '';
+      }
+      if (vehicleId) {
+        const patch: Record<string, string> = {};
+        if (selectedCategory.key === 'vehicle-license') patch.license_doc_url = result.publicUrl;
+        if (selectedCategory.key === 'insurance') patch.insurance_doc_url = result.publicUrl;
+        if (selectedCategory.key === 'comprehensive') patch.comprehensive_insurance_doc_url = result.publicUrl;
+        if (selectedCategory.key === 'third-party') patch.third_party_insurance_doc_url = result.publicUrl;
+        if (Object.keys(patch).length) {
+          await supabase.from('vehicles').update(patch).eq('id', vehicleId);
+        }
+      }
+    }
+
+    const plateForLog = plateForUpload || contextPlate;
     if (vehicleScoped && plateForLog) {
       await recordVehicleHubAction({
         vehicleId: contextVehicleId,
         vehiclePlate: plateForLog,
-        companyName: companyName,
+        companyName: targetCompanyName,
         action: 'העלאת מסמך',
         details: `${selectedCategory.label}: ${file.name}`,
         userId: user?.id,

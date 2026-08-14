@@ -17,6 +17,7 @@ import {
   type GovVehicleData,
 } from '@/lib/govVehicleLookup';
 import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
+import { useVehicleTypes } from '@/hooks/useVehicleTypes';
 
 type VehicleRow = Record<string, unknown> & {
   id: string;
@@ -81,11 +82,15 @@ export function VehicleDaliaFlow({
       });
   }, [vehicle, loaded, previewMode]);
 
+  const { types: vehicleTypes } = useVehicleTypes();
+  const [introVehicleType, setIntroVehicleType] = useState(
+    String((vehicle as { vehicle_type?: string } | null)?.vehicle_type || ''),
+  );
   const mergedLoadedValues = useMemo(() => {
-    if (!loaded?.values) return undefined;
-    return { ...loaded.values, ...driverEnrichedValues };
-  }, [loaded, driverEnrichedValues]);
-
+    const base = { ...(loaded?.values || {}), ...(driverEnrichedValues || {}) };
+    if (introVehicleType) base.vehicle_type = introVehicleType;
+    return Object.keys(base).length ? base : undefined;
+  }, [loaded, driverEnrichedValues, introVehicleType]);
   const [licensePlate, setLicensePlate] = useState(vehicle?.license_plate || '');
   const [internalNumber, setInternalNumber] = useState(vehicle?.internal_number || '');
   const [govData, setGovData] = useState<GovVehicleData | null>(null);
@@ -253,6 +258,26 @@ export function VehicleDaliaFlow({
                 placeholder="מספר פנימי בארגון..."
                 className={inputClass}
               />
+            </div>
+            <div>
+              <label className="block text-lg font-medium mb-2">סוג רכב</label>
+              <select
+                id="vehicle-type-intro"
+                aria-label="סוג רכב"
+                value={introVehicleType}
+                onChange={(e) => setIntroVehicleType(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">בחרו סוג רכב...</option>
+                {vehicleTypes.map((t) => (
+                  <option key={t.id} value={t.label}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground mt-1">
+                כולל נגרר, טרקטור, ציוד הנדסי ורכב זעיר. אפשר לשנות גם בטופס המלא.
+              </p>
             </div>
             <Button type="button" onClick={goToFullForm} className="w-full py-5 text-xl font-bold">
               המשך לטופס המלא →

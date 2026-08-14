@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { buildNotificationLogUrl } from '@/lib/notificationLogNav';
-import { mockActiveAlertCount, resolveLogViewMode } from '@/lib/notificationLogMock';
+import { resolveLogViewMode } from '@/lib/notificationLogMock';
+import { fetchActiveCustomAlertCount } from '@/lib/notificationLogService';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Props = {
   vehicleId?: string;
@@ -20,9 +23,17 @@ export default function NotificationsAndSendsButton({
   className = '',
 }: Props) {
   const navigate = useNavigate();
-  const viewMode = resolveLogViewMode({ driverId, vehicleId, vehiclePlate });
-  const entityId = vehicleId || driverId || 'global';
-  const count = mockActiveAlertCount(entityId, viewMode);
+  const { user } = useAuth();
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    void fetchActiveCustomAlertCount({
+      companyName: user?.role === 'super_admin' ? null : user?.company_name,
+      vehicleId,
+      vehiclePlate,
+      driverId,
+    }).then(setCount);
+  }, [user?.role, user?.company_name, vehicleId, vehiclePlate, driverId]);
 
   const href = buildNotificationLogUrl({
     vehicleId,

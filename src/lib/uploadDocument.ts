@@ -69,11 +69,14 @@ export async function uploadDocument(options: UploadDocumentOptions): Promise<Up
 
   const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(filePath);
 
-  if (category && companyName) {
+  // A missing company must not silently skip registration: without a
+  // document_metadata row the file exists in storage but never shows up in the
+  // vehicle documents area.
+  if (category) {
     const { error: metaError } = await supabase.from('document_metadata').insert({
       file_path: filePath,
       category,
-      company_name: companyName,
+      company_name: companyName || '',
       vehicle_plate: vehiclePlate || '',
       driver_name: driverName || '',
       manufacturer: manufacturer || '',

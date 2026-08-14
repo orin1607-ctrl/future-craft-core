@@ -7,6 +7,7 @@ import type { RequiredFieldModule } from '@/lib/requiredFieldsSchema';
 import { uploadDocument } from '@/lib/uploadDocument';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { useDaliaFormValues } from './DaliaFormValuesContext';
+import { supabase } from '@/integrations/supabase/client';
 
 function bindControl(
   child: ReactElement,
@@ -172,10 +173,20 @@ function inferLinkField(textName: string): string | undefined {
 }
 
 function inferDocCategory(textName: string): string {
-  if (textName.includes('insurance') || textName.includes('license') || textName.includes('test')) {
-    return 'vehicle_docs';
-  }
+  if (textName === 'license_file_name') return 'vehicle-license';
+  if (textName === 'mandatory_insurance_file_name') return 'insurance';
+  if (textName === 'comprehensive_insurance_file_name') return 'comprehensive';
+  if (textName === 'third_party_insurance_file_name') return 'third-party';
+  if (textName === 'test_file_name') return 'test';
   return 'vehicle_docs';
+}
+
+function vehicleDocumentColumn(linkField: string | undefined): string | undefined {
+  if (linkField === 'license_link') return 'license_doc_url';
+  if (linkField === 'mandatory_insurance_doc_link') return 'insurance_doc_url';
+  if (linkField === 'comprehensive_insurance_doc_link') return 'comprehensive_insurance_doc_url';
+  if (linkField === 'third_party_insurance_doc_link') return 'third_party_insurance_doc_url';
+  return undefined;
 }
 
 export function FileWrap({ name, textName }: { name: string; textName: string }) {
@@ -199,12 +210,30 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
     }
 
     setUploading(true);
-    const plate = (form.getValue('vehicle_plate') || 'vehicle').replace(/[-\s]/g, '');
+    const rawPlate = (form.getValue('vehicle_plate') || '').trim();
+    const plate = (rawPlate || 'vehicle').replace(/[-\s]/g, '');
+    const formCompany = form.getValue('company_name') || user.company_name || '';
+
+    // The vehicle row is the authority for the company, so a document uploaded
+    // by a super admin (who has no company of their own) is still registered
+    // under the vehicle's company and shows up in that vehicle's documents.
+    let vehicleRow: { id: string; company_name: string | null } | null = null;
+    if (rawPlate) {
+      let vehicleQuery = supabase
+        .from('vehicles')
+        .select('id, company_name')
+        .or(`license_plate.eq.${rawPlate},license_plate.eq.${plate}`);
+      if (formCompany) vehicleQuery = vehicleQuery.eq('company_name', formCompany);
+      const { data } = await vehicleQuery.maybeSingle();
+      vehicleRow = data;
+    }
+    const companyName = vehicleRow?.company_name || formCompany;
+
     const result = await uploadDocument({
       file,
       storageFolder: `vehicles/${plate}`,
       category: inferDocCategory(textName),
-      companyName: user.company_name || '',
+      companyName,
       vehiclePlate: plate,
       manufacturer: form.getValue('manufacturer'),
       model: form.getValue('model'),
@@ -217,6 +246,17 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
     }
 
     if (linkField) form.setValue(linkField, result.publicUrl);
+    const vehicleColumn = vehicleDocumentColumn(linkField);
+    if (vehicleColumn && vehicleRow?.id) {
+      const { error: patchError } = await supabase
+        .from('vehicles')
+        .update({ [vehicleColumn]: result.publicUrl })
+        .eq('id', vehicleRow.id);
+      if (patchError) {
+        toast.error(`הקובץ הועלה, אך הקישור לא נשמר בכרטיס הרכב: ${patchError.message}`);
+        return;
+      }
+    }
     toast.success('הקובץ הועלה ונשמר במערכת המסמכים');
   };
 

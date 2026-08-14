@@ -1,10 +1,12 @@
 import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { loadVehicleHistory, type VehicleHistoryEntry } from '@/lib/vehicleHistory';
+import { normalizePlate as normalizePlateKey } from '@/lib/entityNavContext';
 import {
   handoverDateTime,
   isTowingServiceOrder,
   plateFromAlertText,
+  vehicleIdFromAlertText,
 } from '@/lib/vehicleActionFollowUp';
 
 export type HubTabId =
@@ -117,7 +119,27 @@ export interface VehicleHubData {
 }
 
 function normalizePlate(plate: string) {
-  return plate.replace(/[-\s]/g, '');
+  return normalizePlateKey(plate);
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * document_versions.entity_id is a uuid column, so filtering it by a license
+ * plate makes Postgres reject the whole request (22P02) and every Document Hub
+ * file for the vehicle disappears from the card.
+ */
+function vehicleDocumentVersions(vehicleId?: string) {
+  if (!vehicleId || !UUID_PATTERN.test(vehicleId)) {
+    return Promise.resolve({ data: [] as Record<string, string>[] });
+  }
+  return supabase
+    .from('document_versions')
+    .select('id, public_url, original_name, document_type_key, expiry_date, created_at, file_path, is_current')
+    .eq('entity_type', 'vehicle')
+    .eq('entity_id', vehicleId)
+    .eq('is_current', true)
+    .order('created_at', { ascending: false });
 }
 
 function byPlate(table: string, plate: string, companyFilter: string | null) {
@@ -136,12 +158,15 @@ export async function loadVehicleHubData(
     license_doc_url?: string | null;
     insurance_doc_url?: string | null;
     comprehensive_insurance_doc_url?: string | null;
+    third_party_insurance_doc_url?: string | null;
     test_expiry?: string | null;
     insurance_expiry?: string | null;
     comprehensive_insurance_expiry?: string | null;
+    third_party_insurance_expiry?: string | null;
   },
+  vehicleId?: string,
 ): Promise<VehicleHubData> {
-  const [history, tasksRes, faultsRes, servicesRes, accidentsRes, inspectionsRes, handoversRes, docsRes, alertsRes] =
+  const [history, tasksRes, faultsRes, servicesRes, accidentsRes, inspectionsRes, handoversRes, docsRes, alertsRes, versionsRes] =
     await Promise.all([
       loadVehicleHistory(plate, internalNumber, companyFilter),
       byPlate('vehicle_tasks', plate, companyFilter).order('created_at', { ascending: false }),
@@ -166,6 +191,7 @@ export async function loadVehicleHubData(
           .order('alert_date', { ascending: true }),
         companyFilter,
       ),
+      vehicleDocumentVersions(vehicleId),
     ]);
 
   const tasks: VehicleTaskRow[] = (tasksRes.data || []).map((t: Record<string, string>) => ({
@@ -256,8 +282,12 @@ export async function loadVehicleHubData(
   const now = Date.now();
   const vehicleAlerts: VehicleAlertRow[] = (alertsRes.data || [])
     .filter((a: Record<string, string>) => {
-      const p = plateFromAlertText(a.description) || plateFromAlertText(a.title);
-      return !p || p === plate;
+      const blob = `${a.title || ''}\n${a.description || ''}`;
+      const p = plateFromAlertText(blob);
+      const vid = vehicleIdFromAlertText(blob);
+      if (vehicleId && vid && vid === vehicleId) return true;
+      if (p) return normalizePlate(p) === normalizePlate(plate);
+      return false;
     })
     .map((a: Record<string, string>) => {
       const alertDate = a.alert_date || '';
@@ -274,7 +304,9 @@ export async function loadVehicleHubData(
 
   const docs: DocRow[] = [];
   const metadataRows = (docsRes.data || []) as Record<string, string>[];
-  const metadataCategories = new Set(metadataRows.map((d) => d.category));
+  const metadataCategoriesWithFile = new Set(
+    metadataRows.filter((d) => d.file_path || d.public_url).map((d) => d.category),
+  );
 
   const pushUrlDoc = (
     id: string,
@@ -285,7 +317,7 @@ export async function loadVehicleHubData(
     expiry: string | null | undefined,
   ) => {
     if (!url?.trim()) return;
-    if (metadataCategories.has(category)) return;
+    if (metadataCategoriesWithFile.has(category)) return;
     docs.push({
       id,
       ref,
@@ -307,6 +339,14 @@ export async function loadVehicleHubData(
     vehicleDocs.comprehensive_insurance_doc_url,
     vehicleDocs.comprehensive_insurance_expiry,
   );
+  pushUrlDoc(
+    'third-party',
+    'third-party',
+    'צד ג׳',
+    'פוליסת ביטוח צד ג׳',
+    vehicleDocs.third_party_insurance_doc_url,
+    vehicleDocs.third_party_insurance_expiry,
+  );
 
   metadataRows.forEach((d: Record<string, string>, idx: number) => {
     const { data: pub } = supabase.storage.from('documents').getPublicUrl(d.file_path);
@@ -318,6 +358,33 @@ export async function loadVehicleHubData(
       date: d.created_at ? new Date(d.created_at).toLocaleDateString('he-IL') : '—',
       expiry: '—',
       url: pub.publicUrl,
+    });
+  });
+
+  const seenUrls = new Set(docs.map((d) => d.url).filter(Boolean) as string[]);
+  const seenPaths = new Set(metadataRows.map((d) => d.file_path).filter(Boolean));
+  (versionsRes.data || []).forEach((ver: Record<string, string>, idx: number) => {
+    const url = ver.public_url || '';
+    if (url && seenUrls.has(url)) return;
+    if (ver.file_path && seenPaths.has(ver.file_path)) return;
+    if (url) seenUrls.add(url);
+    if (ver.file_path) seenPaths.add(ver.file_path);
+    const typeLabel =
+      ver.document_type_key === 'vehicle_license' || ver.document_type_key === 'license'
+        ? 'רישיון רכב'
+        : ver.document_type_key === 'insurance' ||
+            ver.document_type_key === 'vehicle_insurance' ||
+            ver.document_type_key === 'mandatory_insurance'
+          ? 'ביטוח רכב'
+          : ver.original_name || ver.document_type_key || 'מסמך';
+    docs.push({
+      id: ver.id || `ver-${idx}`,
+      ref: `HUB-${String(idx + 1).padStart(3, '0')}`,
+      name: typeLabel,
+      source: ver.document_type_key || 'מערכת',
+      date: ver.created_at ? new Date(ver.created_at).toLocaleDateString('he-IL') : '—',
+      expiry: ver.expiry_date ? new Date(ver.expiry_date).toLocaleDateString('he-IL') : '—',
+      url: url || undefined,
     });
   });
 

@@ -16,6 +16,7 @@ import {
   MoreVertical,
   Search,
   Filter,
+  Bell,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,6 +36,9 @@ import AdminUploadDocumentDialog from '@/components/documents/AdminUploadDocumen
 import DriverDeclaration from '@/components/DriverDeclaration';
 import DriverExamsTab from '@/components/driving-exam/DriverExamsTab';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
+import CreateAlertModal from '@/components/CreateAlertModal';
+import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
+import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
 import {
   loadDriverHubData,
   hubVersionsByType,
@@ -70,6 +74,7 @@ export interface DriverHubDriver {
   street: string;
   status: string;
   notes: string;
+  show_notes_on_list?: boolean | null;
   company_name: string;
   id_number: string;
   license_image_url?: string;
@@ -87,6 +92,7 @@ type Props = {
   onDelete?: () => void;
   fromFleetManager?: boolean;
   filterCompany?: string;
+  onNotesSaved?: (patch: { notes: string; show_notes_on_list: boolean }) => void;
 };
 
 function HubTile({
@@ -162,8 +168,11 @@ export default function DriverHub({
   onDelete,
   fromFleetManager,
   filterCompany,
+  onNotesSaved,
 }: Props) {
   const navigate = useNavigate();
+  const { hiddenButtons, ready: hiddenReady } = useHiddenButtonsState();
+  const showDriverDashboard = hiddenReady && !isDriverHubDashboardHidden(hiddenButtons);
   const [searchParams, setSearchParams] = useSearchParams();
   const [section, setSectionState] = useState<DriverHubSection>(() =>
     parseDriverHubSection(searchParams.get('section')),
@@ -171,7 +180,9 @@ export default function DriverHub({
   const [hubData, setHubData] = useState<DriverHubData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState(d.notes || '');
+  const [showNotesOnList, setShowNotesOnList] = useState(!!d.show_notes_on_list);
   const [savingNotes, setSavingNotes] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadPresetType, setUploadPresetType] = useState<string | undefined>();
   const [showMoreDetails, setShowMoreDetails] = useState(false);
@@ -257,17 +268,22 @@ export default function DriverHub({
 
   useEffect(() => {
     setNotes(d.notes || '');
-  }, [d.id, d.notes]);
+    setShowNotesOnList(!!d.show_notes_on_list);
+  }, [d.id, d.notes, d.show_notes_on_list]);
 
   const saveNotes = async () => {
     setSavingNotes(true);
-    const { error } = await supabase.from('drivers').update({ notes }).eq('id', d.id);
+    const { error } = await supabase
+      .from('drivers')
+      .update({ notes, show_notes_on_list: showNotesOnList })
+      .eq('id', d.id);
     setSavingNotes(false);
     if (error) {
       toast.error('שגיאה בשמירת הערות');
       return;
     }
     toast.success('הערות נשמרו');
+    onNotesSaved?.({ notes, show_notes_on_list: showNotesOnList });
   };
 
   const versions = hubData?.versions || [];
@@ -716,6 +732,14 @@ export default function DriverHub({
               className="w-full p-4 rounded-xl border-2 border-input bg-background text-sm resize-none"
               placeholder="הערות על הנהג…"
             />
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showNotesOnList}
+                onChange={(e) => setShowNotesOnList(e.target.checked)}
+              />
+              הצג ברשימת הנהגים
+            </label>
             <Button type="button" className="w-full gap-2" onClick={() => void saveNotes()} disabled={savingNotes}>
               {savingNotes ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
               שמור הערות
@@ -808,6 +832,17 @@ export default function DriverHub({
           companyName={d.company_name}
           defaultDocumentTypeKey={uploadPresetType}
           onUploaded={() => void refresh()}
+        />
+      )}
+      {showAlertModal && (
+        <CreateAlertModal
+          driverId={d.id}
+          driverName={d.full_name}
+          onClose={() => setShowAlertModal(false)}
+          onCreated={() => {
+            setShowAlertModal(false);
+            void refresh();
+          }}
         />
       )}
       {fromFleetManager && filterCompany && (
@@ -933,6 +968,21 @@ export default function DriverHub({
               </div>
             </div>
 
+            {isManager && (
+              <div className="mb-4 space-y-2">
+                <p className="text-sm font-bold">התראות לנהג</p>
+                <Button
+                  type="button"
+                  className="w-full h-12 font-bold gap-2"
+                  onClick={() => setShowAlertModal(true)}
+                >
+                  <Bell size={18} />
+                  הוסף התראה · התראה חופשית
+                </Button>
+                <NotificationsAndSendsButton driverId={d.id} driverName={d.full_name} />
+              </div>
+            )}
+
             <button
               type="button"
               className="text-sm text-primary font-medium mb-4"
@@ -995,6 +1045,7 @@ export default function DriverHub({
                     <Mail size={16} /> מייל
                   </a>
                 )}
+                {showDriverDashboard && (
                 <Button
                   type="button"
                   variant="outline"
@@ -1004,6 +1055,7 @@ export default function DriverHub({
                   <LayoutDashboard size={16} />
                   דשבורד
                 </Button>
+                )}
                 <Button type="button" variant="outline" className="min-h-[48px] gap-2" onClick={onEdit}>
                   <Edit2 size={16} />
                   עריכה
@@ -1035,10 +1087,10 @@ export default function DriverHub({
 
           {isManager && (
             <div className="mt-2">
-              <NotificationsAndSendsButton driverId={d.id} driverName={d.full_name} />
-              <p className="text-[10px] text-muted-foreground mt-1 px-1">
-                יומן התראות/שליחות קיים — חלק מהשליחות במערכת הן תצוגה/mock
-              </p>
+              <Button type="button" className="w-full h-12 font-bold gap-2" onClick={() => setShowAlertModal(true)}>
+                <Bell size={18} />
+                הוסף התראה · התראה חופשית
+              </Button>
             </div>
           )}
         </>
