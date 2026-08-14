@@ -1,0 +1,463 @@
+{
+  "at": "2026-08-14T07:30:08.459Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "commit": "a2112a9",
+  "deployTxt": "deployed_ref=a2112a9 feat/incident-alerts-staging",
+  "tasks": {
+    "deploy": {
+      "checks": [
+        {
+          "name": "Pages is current staging commit",
+          "ok": true,
+          "deployTxt": "deployed_ref=a2112a9 feat/incident-alerts-staging",
+          "COMMIT": "a2112a9"
+        }
+      ],
+      "pass": true
+    },
+    "r1": {
+      "checks": [
+        {
+          "name": "Vehicles list loads",
+          "ok": true
+        },
+        {
+          "name": "No company B leak on vehicles",
+          "ok": true
+        },
+        {
+          "name": "Search 19 still first-class",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t10": {
+      "checks": [
+        {
+          "name": "Intro add-vehicle screen opens",
+          "ok": true
+        },
+        {
+          "name": "נגרר on intro",
+          "ok": true
+        },
+        {
+          "name": "טרקטור on intro",
+          "ok": true
+        },
+        {
+          "name": "ציוד הנדסי on intro",
+          "ok": true
+        },
+        {
+          "name": "רכב זעיר on intro",
+          "ok": true
+        },
+        {
+          "name": "רכב פרטי still there",
+          "ok": true
+        },
+        {
+          "name": "No duplicate נגרר",
+          "ok": true
+        },
+        {
+          "name": "Full form keeps new types",
+          "ok": true
+        },
+        {
+          "name": "Saved vehicle_type is not empty after edit path",
+          "ok": true,
+          "value": "רכב פרטי"
+        }
+      ],
+      "pass": true
+    },
+    "r3": {
+      "checks": [
+        {
+          "name": "Vehicle hub opens",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "r9": {
+      "checks": [
+        {
+          "name": "Free alert CTA still on hub",
+          "ok": true
+        },
+        {
+          "name": "Driver free-alert CTA still there",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t5": {
+      "checks": [
+        {
+          "name": "Hub exposes existing מסמכים screen for this vehicle",
+          "ok": true
+        },
+        {
+          "name": "Actual Dalia edit form opens",
+          "ok": true
+        },
+        {
+          "name": "Dalia license upload input present",
+          "ok": true
+        },
+        {
+          "name": "Dalia mandatory insurance upload input present",
+          "ok": true
+        },
+        {
+          "name": "Dalia additional insurance upload input present",
+          "ok": true
+        },
+        {
+          "name": "All real Dalia uploads finish without error",
+          "ok": true
+        },
+        {
+          "name": "license_doc_url persisted by actual form",
+          "ok": true,
+          "value": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/96d0edff-b978-4b0e-b848-3ac160201496/vehicles_CA613648/1786692637051_qa-license.pdf"
+        },
+        {
+          "name": "insurance_doc_url persisted by actual form",
+          "ok": true,
+          "value": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/96d0edff-b978-4b0e-b848-3ac160201496/vehicles_CA613648/1786692639587_qa-insurance.pdf"
+        },
+        {
+          "name": "additional insurance URL persisted by actual form",
+          "ok": true,
+          "value": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/96d0edff-b978-4b0e-b848-3ac160201496/vehicles_CA613648/1786692642107_qa-insurance.pdf"
+        },
+        {
+          "name": "License document URL opens",
+          "ok": true,
+          "status": 200
+        },
+        {
+          "name": "Insurance document URL opens",
+          "ok": true,
+          "status": 200
+        },
+        {
+          "name": "Additional insurance document URL opens",
+          "ok": true,
+          "status": 200
+        },
+        {
+          "name": "Dalia metadata uses canonical categories",
+          "ok": true,
+          "categories": [
+            "vehicle-license",
+            "insurance",
+            "comprehensive"
+          ]
+        },
+        {
+          "name": "No duplicate license/insurance metadata",
+          "ok": true,
+          "count": 3
+        },
+        {
+          "name": "After refresh+re-enter hub still shows all uploaded documents",
+          "ok": true
+        },
+        {
+          "name": "No duplicate invented Beeri docs",
+          "ok": true
+        },
+        {
+          "name": "License URL is openable http(s)",
+          "ok": true
+        },
+        {
+          "name": "Company B hub/docs do not show A license url text",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t7": {
+      "checks": [
+        {
+          "name": "A drivers list has no dashboard entry",
+          "ok": true
+        },
+        {
+          "name": "B driver not mixed into A list",
+          "ok": true
+        },
+        {
+          "name": "A driver hub has no dashboard entry",
+          "ok": true
+        },
+        {
+          "name": "Direct dashboard URL does not stay on driver dashboard for FM when hidden",
+          "ok": true
+        },
+        {
+          "name": "After enabling, list dashboard entry returns",
+          "ok": true
+        },
+        {
+          "name": "Company B still shows dashboard entry",
+          "ok": true
+        },
+        {
+          "name": "Company B list does not show A driver",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "r-drivers": {
+      "checks": [
+        {
+          "name": "A driver listed",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "fix1": {
+      "checks": [
+        {
+          "name": "+3 then +6 updates next inspection date",
+          "ok": true,
+          "firstDue": "2026-11-14",
+          "secondDue": "2027-02-14"
+        },
+        {
+          "name": "Old +3 officer reminder family is deactivated",
+          "ok": true,
+          "active": 4
+        },
+        {
+          "name": "Current +6 officer family is active",
+          "ok": true
+        },
+        {
+          "name": "Officer alerts are company A only",
+          "ok": true
+        },
+        {
+          "name": "Officer filter is visible and selected after refresh",
+          "ok": true
+        },
+        {
+          "name": "Officer alert is visible in sidebar Alerts UI",
+          "ok": true
+        },
+        {
+          "name": "Officer alert >30 days remains visible",
+          "ok": true
+        },
+        {
+          "name": "Officer alert survives leaving and re-entering",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "fix2": {
+      "checks": [
+        {
+          "name": "Free alert category/filter is always visible",
+          "ok": true
+        },
+        {
+          "name": "Only free alert workflow row is visible",
+          "ok": true
+        },
+        {
+          "name": "Free alert survives refresh with filter",
+          "ok": true
+        },
+        {
+          "name": "Free alert is company isolated",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t8": {
+      "checks": [
+        {
+          "name": "Officer filter selected expands report area",
+          "ok": true
+        },
+        {
+          "name": "Officer table is actually open",
+          "ok": true
+        },
+        {
+          "name": "Plate appears in report table",
+          "ok": true,
+          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA C5710 FM A\n\nQA-C5710-A-1786692613648\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nדוחות וסיכומים\nייצוא\n\nסיכומים לפי תקופה — לחיצה על כרטיס פותחת את רשימת הרשומות המסוננת\n\nסינון\nפעיל\nתקופה\nחודש נוכחי\nשבוע נוכחי\nשנה נוכחית\nטווח תאריכים\nהכל\nמתאריך\nבחר...\nעד תאריך\nבחר...\nמספר רכב\nהכל / הקלידו לחיפוש...\nמספר פנימי\nהכל / הקלידו לחיפוש...\nנהג\nהכל\nנהג C5710 A 1786692613648\nסטטוס\nהכל\nפעיל\nok\nתקין\nפג תוקף\nלחידוש\nבתוקף\nספק\nהכל\nסוגי דוח להצגה\nטסטים\nטיפולים\nתאונות\nביקורות קצין רכב\nביטוחים לחידוש\nסיכום רכבים\nסיכום נהגים\nהוצאות לפי תקופה\nרווח והפסד\nטיפולים (מפורט)\nתאונות (מפורט)\nהזמנות\nסיכום לפי ספקים\nנקה סינונים\nסיכומי תקופה\n4 ביקורות קצין רכב בכל הזמנים\n\nפתח טבלת ביקורות קצין רכב\n\nדוח זה מציג את כל הביקורות (כולל בלי מועד הבא). סינון תאריכים חל רק בבחירת «טווח תאריכים». מועד הבא חסר מוצג כ־—.\n\nמספר רכב\tמס׳ פנימי\tסוג הביקורת\tתאריך הביקורת\tמועד הביקורת הבאה\tסטטוס\tקישור לביקורת\tקישור לרכב\nCA613648\t19\tתלת/חצי שנתית\t10.1.2026\t—\tok\tפתח ביקורת\tפתח רכב\nCA613648\t19\tתלת/חצי שנתית\t14.8.2026\t13.11.2026\tok\tפתח ביקורת\tפתח רכב\nCA613648\t19\tתלת/חצי שנתית\t14.8.2026\t14.11.2026\tתקין\tפתח ביקורת\tפתח רכב\nCA613648\t19\tתלת/חצי שנתית\t14.8.2026\t14.2.2027\tתקין\tפתח ביקורת\tפתח רכב\n\n4 רשומות\n\nדוחות נוספים\n\nדליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לציי רכב | www.dalia-c.com | כל הזכויות שמורות ©"
+        },
+        {
+          "name": "Internal number appears",
+          "ok": true
+        },
+        {
+          "name": "Inspection type appears",
+          "ok": true
+        },
+        {
+          "name": "Inspection date appears",
+          "ok": true
+        },
+        {
+          "name": "Missing next due shows dash",
+          "ok": true
+        },
+        {
+          "name": "Next due date appears for new row",
+          "ok": true
+        },
+        {
+          "name": "Company B plate absent",
+          "ok": true
+        },
+        {
+          "name": "Export button present",
+          "ok": true
+        },
+        {
+          "name": "Each officer row has specific inspection action",
+          "ok": true
+        },
+        {
+          "name": "Each officer row has vehicle action",
+          "ok": true
+        },
+        {
+          "name": "Specific inspection action opens detail",
+          "ok": true
+        },
+        {
+          "name": "Vehicle action opens the linked vehicle hub",
+          "ok": true
+        },
+        {
+          "name": "section did not crash the rest of QA",
+          "ok": false,
+          "error": "page.waitForEvent: Timeout 30000ms exceeded while waiting for event \"download\"\n=========================== logs ===========================\nwaiting for event \"download\"\n============================================================"
+        }
+      ],
+      "pass": false
+    },
+    "r4": {
+      "checks": [
+        {
+          "name": "Alerts page still healthy",
+          "ok": true
+        },
+        {
+          "name": "Expiry alerts still appear",
+          "ok": true
+        },
+        {
+          "name": "No company B leak on alerts",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "r6": {
+      "checks": [
+        {
+          "name": "Free/officer categories still exist",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "regression": {
+      "checks": [
+        {
+          "name": "/vehicles loads without runtime error",
+          "ok": true
+        },
+        {
+          "name": "/vehicles remains company isolated",
+          "ok": true
+        },
+        {
+          "name": "/drivers loads without runtime error",
+          "ok": true
+        },
+        {
+          "name": "/drivers remains company isolated",
+          "ok": true
+        },
+        {
+          "name": "/vehicle-tracking loads without runtime error",
+          "ok": true
+        },
+        {
+          "name": "/vehicle-tracking remains company isolated",
+          "ok": true
+        },
+        {
+          "name": "/documents loads without runtime error",
+          "ok": true
+        },
+        {
+          "name": "/documents remains company isolated",
+          "ok": true
+        },
+        {
+          "name": "/reports loads without runtime error",
+          "ok": true
+        },
+        {
+          "name": "/reports remains company isolated",
+          "ok": true
+        },
+        {
+          "name": "/alert-settings loads without runtime error",
+          "ok": true
+        },
+        {
+          "name": "/alert-settings remains company isolated",
+          "ok": true
+        },
+        {
+          "name": "/settings loads without runtime error",
+          "ok": true
+        },
+        {
+          "name": "/settings remains company isolated",
+          "ok": true
+        }
+      ],
+      "pass": true
+    }
+  },
+  "shots": [
+    "t10-intro.png",
+    "t10-full-form.png",
+    "t10-edit.png",
+    "t5-dalia-uploads.png",
+    "t7-direct-url.png",
+    "fix1-officer-alert.png",
+    "fix2-free-alert-filter.png",
+    "t8-table.png",
+    "t8-error.png"
+  ],
+  "productionTouched": false,
+  "cleanup": {
+    "ok": true,
+    "note": "QA-C5710-* only"
+  },
+  "pass": false
+}
