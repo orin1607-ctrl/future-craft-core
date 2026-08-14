@@ -234,10 +234,12 @@ export async function createOfficerInspectionAlert(params: {
   const staleIds = (prev.data || [])
     .filter((row) => {
       const blob = `${row.title || ''}\n${row.description || ''}`;
-      const officerLike =
-        row.alert_type === OFFICER_ALERT_TYPE ||
-        String(row.title || '').includes(OFFICER_ALERT_LABEL);
-      if (!officerLike) return false;
+      // Only previous inspection-generated alerts are replaced. A manual officer
+      // alert has no `target:` marker and must survive a new inspection.
+      const autoInspectionAlert =
+        String(row.title || '').startsWith(`${OFFICER_ALERT_LABEL} · `) &&
+        String(row.description || '').includes('target:');
+      if (!autoInspectionAlert) return false;
       const plate = plateFromAlertText(blob);
       const vid = vehicleIdFromAlertText(blob);
       return (

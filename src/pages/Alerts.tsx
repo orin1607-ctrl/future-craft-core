@@ -567,7 +567,19 @@ export default function Alerts() {
           .filter((a) => a.category === 'officer' && a.vehiclePlate && a.date)
           .map((a) => `${normalizePlate(a.vehiclePlate || '')}|${String(a.date).slice(0, 10)}`),
       );
-      for (const ca of customAlerts) {
+      // One inspection writes the officer alert plus its 30/7/1 reminders, all
+      // carrying the same `target:` date. The alert itself is shown and the
+      // reminders are folded into it, so an inspection appears exactly once.
+      const targetDateOf = (row: { description?: string | null; alert_date?: string | null }) =>
+        String(row.description || '').match(/target:(\d{4}-\d{2}-\d{2})/)?.[1] ||
+        String(row.alert_date || '').slice(0, 10);
+      const orderedCustomAlerts = [...customAlerts].sort((a, b) => {
+        const aOfficer = a.alert_type === OFFICER_ALERT_TYPE ? 0 : 1;
+        const bOfficer = b.alert_type === OFFICER_ALERT_TYPE ? 0 : 1;
+        return aOfficer - bOfficer;
+      });
+
+      for (const ca of orderedCustomAlerts) {
         const daysLeft = getDaysLeft(ca.alert_date);
         if (daysLeft === null || daysLeft < 0) continue;
         const plate = plateFromAlertText(ca.description) || plateFromAlertText(ca.title);
@@ -584,7 +596,7 @@ export default function Alerts() {
           ca.alert_type === FREE_ALERT_TYPE || String(ca.title || '').includes(FREE_ALERT_LABEL);
         const category: AlertCategory = isOfficer ? 'officer' : isFree ? 'free' : 'service_order';
         if (isOfficer && plate) {
-          const key = `${normalizePlate(plate)}|${String(ca.alert_date).slice(0, 10)}`;
+          const key = `${normalizePlate(plate)}|${targetDateOf(ca)}`;
           if (officerSeen.has(key)) continue;
           officerSeen.add(key);
         }
