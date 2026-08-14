@@ -152,6 +152,16 @@ export async function notifyFleetManagers(params: {
   }
 }
 
+/**
+ * custom_alerts RLS requires user_id = auth.uid(). Screens pass the profile they
+ * are showing, which is the impersonated profile while a super admin views the
+ * system as someone else, so the owner column must come from the live session.
+ */
+async function alertOwnerId(fallbackUserId: string) {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id || fallbackUserId;
+}
+
 /** Create custom_alerts for 30 / 7 / 1 days before target date. */
 export async function createTargetDateAlerts(params: {
   userId: string;
@@ -173,6 +183,7 @@ export async function createTargetDateAlerts(params: {
 
   const inserts: Record<string, unknown>[] = [];
   const reminderDays = await getCompanyReminderOffsets(params.companyName);
+  const ownerId = await alertOwnerId(params.userId);
 
   for (const daysBefore of reminderDays) {
     const alertDate = new Date(target);
@@ -182,7 +193,7 @@ export async function createTargetDateAlerts(params: {
 
     const whenLabel = daysBefore === 1 ? 'מחר' : `בעוד ${daysBefore} ימים`;
     inserts.push({
-      user_id: params.userId,
+      user_id: ownerId,
       company_name: params.companyName,
       alert_type: 'service',
       title: `${params.actionLabel} · ${params.vehiclePlate} · ${whenLabel}`,
@@ -240,7 +251,7 @@ export async function createOfficerInspectionAlert(params: {
   }
 
   const { error } = await supabase.from('custom_alerts').insert({
-    user_id: params.userId,
+    user_id: await alertOwnerId(params.userId),
     company_name: params.companyName,
     alert_type: OFFICER_ALERT_TYPE,
     title: `${OFFICER_ALERT_LABEL} · ${params.vehiclePlate}`,

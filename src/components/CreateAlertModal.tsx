@@ -47,7 +47,7 @@ export default function CreateAlertModal({
   driverId?: string;
   driverName?: string;
 }) {
-  const { user } = useAuth();
+  const { user, realUser } = useAuth();
   const companyFilter = useCompanyFilter();
   const [alertType, setAlertType] = useState(vehiclePlate || driverId ? FREE_ALERT_TYPE : 'other');
   const [title, setTitle] = useState(vehiclePlate || driverId ? FREE_ALERT_LABEL : '');
@@ -105,8 +105,13 @@ export default function CreateAlertModal({
     }
     if (!companyForAlert) companyForAlert = user.company_name || companyFilter || '';
 
+    // custom_alerts RLS requires user_id = auth.uid(); while viewing the system
+    // as another user, `user` is that profile and only `realUser` is signed in.
+    const { data: sessionData } = await supabase.auth.getSession();
+    const ownerId = sessionData.session?.user?.id || realUser?.id || user.id;
+
     const { error } = await supabase.from('custom_alerts').insert({
-      user_id: user.id,
+      user_id: ownerId,
       company_name: companyForAlert,
       alert_type: alertType,
       title: fullTitle,
@@ -119,7 +124,7 @@ export default function CreateAlertModal({
 
     setLoading(false);
     if (error) {
-      toast.error('שגיאה ביצירת ההתראה');
+      toast.error(`שגיאה ביצירת ההתראה: ${error.message}`);
       console.error(error);
     } else {
       toast.success('ההתראה נוצרה בהצלחה');

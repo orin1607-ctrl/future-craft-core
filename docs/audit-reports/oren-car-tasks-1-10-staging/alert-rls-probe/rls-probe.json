@@ -1,0 +1,18 @@
+{
+  "at": "2026-08-14T11:39:44.235Z",
+  "company": "QA-RLS-1786707578422",
+  "findings": [
+    {
+      "case": "user_id = impersonated profile (what the app writes while viewing as another user)",
+      "ok": false,
+      "code": "42501",
+      "message": "new row violates row-level security policy for table \"custom_alerts\""
+    },
+    {
+      "case": "user_id = authenticated user (the fix)",
+      "ok": true,
+      "code": null,
+      "message": null
+    }
+  ]
+}
