@@ -96,17 +96,25 @@ try {
 
   const roContext = await sessionContext(browser, `qa-ro-sa-${runId}@staging-e2e.local`, password);
   const roPage = await roContext.newPage();
-  await roPage.goto(`${BASE}/alerts/log?vehicleId=${realVehicle?.id || ''}&plate=${encodeURIComponent(REAL_PLATE)}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await wait(roPage);
-  const perVehicleText = await roPage.locator('body').innerText();
-  await roPage.screenshot({ path: join(OUT, 'a1-per-vehicle-view.png'), fullPage: true }).catch(() => null);
+  const perVehicleTab = async (tab) => {
+    await roPage.goto(
+      `${BASE}/alerts/log?vehicleId=${realVehicle?.id || ''}&plate=${encodeURIComponent(REAL_PLATE)}&tab=${tab}`,
+      { waitUntil: 'domcontentloaded', timeout: 120000 },
+    );
+    await wait(roPage);
+    return roPage.locator('body').innerText();
+  };
+  const activeTabText = await perVehicleTab('active');
+  const futureTabText = await perVehicleTab('future');
+  await roPage.screenshot({ path: join(OUT, 'a1-per-vehicle-future-tab.png'), fullPage: true }).catch(() => null);
   rec('a1', 'per-vehicle alerts view of the reporting company shows its officer alert',
-    perVehicleText.includes('התראת קצין רכב') && perVehicleText.includes(REAL_PLATE),
+    futureTabText.includes('התראת קצין רכב'),
     {
       company: REAL_COMPANY,
       plate: REAL_PLATE,
       vehicleNextInspection: realVehicle?.next_inspection_date ?? null,
-      officerTextPresent: perVehicleText.includes('התראת קצין רכב'),
+      officerInActiveTab: activeTabText.includes('התראת קצין רכב'),
+      officerInFutureTab: futureTabText.includes('התראת קצין רכב'),
     });
   await roContext.close();
 

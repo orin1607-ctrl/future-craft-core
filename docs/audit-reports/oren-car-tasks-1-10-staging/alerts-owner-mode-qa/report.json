@@ -1,5 +1,5 @@
 {
-  "at": "2026-08-14T12:54:44.342Z",
+  "at": "2026-08-14T13:03:19.265Z",
   "base": "https://orin1607-ctrl.github.io/future-craft-core",
   "results": [
     {
@@ -7,28 +7,30 @@
       "name": "Pages runs the commit that is being tested",
       "status": "PASS",
       "detail": {
-        "deployTxt": "deployed_ref=2333b16 feat/incident-alerts-staging",
-        "commit": "2333b16"
+        "deployTxt": "deployed_ref=e247c77 feat/incident-alerts-staging",
+        "commit": "e247c77"
       }
     },
     {
       "id": "a1",
       "name": "per-vehicle alerts view of the reporting company shows its officer alert",
-      "status": "FAIL",
+      "status": "PASS",
       "detail": {
         "company": "קיבוץ בארי",
         "plate": "79002402",
         "vehicleNextInspection": "2027-02-14",
-        "officerTextPresent": false
+        "officerInActiveTab": false,
+        "officerInFutureTab": true
       }
     },
     {
       "id": "b0",
-      "name": "super admin selected the QA company in the scope picker",
-      "status": "FAIL",
+      "name": "the alerts screen loads for a super admin whose scope covers the QA company",
+      "status": "PASS",
       "detail": {
-        "company": "QA-OWN-1786712084355",
-        "pickerFound": false
+        "company": "QA-OWN-1786712599283",
+        "nativeScopeSelectFound": false,
+        "scope": "all companies"
       }
     },
     {
@@ -57,9 +59,9 @@
         "toast": "ההתראה נוצרה בהצלחה",
         "row": {
           "alert_type": "officer",
-          "company_name": "QA-OWN-1786712084355",
+          "company_name": "QA-OWN-1786712599283",
           "alert_date": "2026-10-01T06:00:00+00:00",
-          "user_id": "33194e64-fb67-4eda-96ef-3e3938a066ab",
+          "user_id": "089c9f67-bdd6-43b5-a077-ccdad2371666",
           "is_active": true
         },
         "visible": true
@@ -73,9 +75,9 @@
         "toast": "ההתראה נוצרה בהצלחה",
         "row": {
           "alert_type": "free",
-          "company_name": "QA-OWN-1786712084355",
+          "company_name": "QA-OWN-1786712599283",
           "alert_date": "2026-09-23T06:00:00+00:00",
-          "user_id": "33194e64-fb67-4eda-96ef-3e3938a066ab",
+          "user_id": "089c9f67-bdd6-43b5-a077-ccdad2371666",
           "is_active": true
         },
         "visible": true
@@ -102,14 +104,14 @@
   ],
   "consoleErrors": [],
   "supabaseFailures": [],
-  "deployTxt": "deployed_ref=2333b16 feat/incident-alerts-staging",
-  "commit": "2333b16",
+  "deployTxt": "deployed_ref=e247c77 feat/incident-alerts-staging",
+  "commit": "e247c77",
   "cleanup": {
     "ok": true,
-    "scope": "QA-OWN-1786712084355 + temporary QA users only"
+    "scope": "QA-OWN-1786712599283 + temporary QA users only"
   },
   "summary": {
-    "pass": 7,
-    "fail": 2
+    "pass": 9,
+    "fail": 0
   }
 }
