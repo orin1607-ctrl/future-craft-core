@@ -925,6 +925,14 @@ export default function VehicleHub({
                 הוסף התראה · התראה חופשית
               </Button>
               <NotificationsAndSendsButton vehicleId={v.id} vehiclePlate={v.license_plate} />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-11 font-bold"
+                onClick={() => navigate(`/alerts?plate=${encodeURIComponent(v.license_plate || '')}`)}
+              >
+                כל ההתראות של הרכב במסך ההתראות
+              </Button>
             </div>
           )}
           {mainNav}

@@ -186,6 +186,10 @@ export default function Alerts() {
   useEffect(() => {
     const requested = searchParams.get('category');
     if (requested === 'free' || requested === 'officer') setAlertFilter(requested);
+    const plate = searchParams.get('plate');
+    if (plate) setFilterVehicle(plate);
+    const internal = searchParams.get('internal');
+    if (internal) setFilterInternal(internal);
   }, [searchParams]);
 
   useEffect(() => {
@@ -701,8 +705,11 @@ export default function Alerts() {
   };
 
   const alertsForEntity = useMemo(() => {
+    // Plates reach this list both as typed by the user and as stored in alert
+    // metadata without separators, so compare them in a single normalized form.
+    const wantedPlate = normalizePlate(filterVehicle);
     return alerts.filter((a) => {
-      if (filterVehicle && a.vehiclePlate !== filterVehicle) return false;
+      if (wantedPlate && normalizePlate(a.vehiclePlate || '') !== wantedPlate) return false;
       if (filterInternal && a.internalNumber !== filterInternal) return false;
       return true;
     });
