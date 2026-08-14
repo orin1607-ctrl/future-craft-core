@@ -1,0 +1,196 @@
+{
+  "at": "2026-08-14T11:16:24.755Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "results": [
+    {
+      "id": "deploy",
+      "name": "Pages serves the tested staging commit",
+      "status": "PASS",
+      "detail": {
+        "deployTxt": "deployed_ref=594ad63 feat/incident-alerts-staging",
+        "commit": "594ad63"
+      }
+    },
+    {
+      "id": "qa1",
+      "name": "tri/semi +3 months creates an officer alert visible in the alerts screen",
+      "status": "PASS",
+      "detail": {
+        "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
+        "nextDue": "2026-11-14",
+        "plateVisible": true
+      }
+    },
+    {
+      "id": "qa2",
+      "name": "tri/semi +6 months creates an officer alert visible beyond 30 days",
+      "status": "PASS",
+      "detail": {
+        "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
+        "nextDue": "2027-02-14",
+        "daysAhead": 184,
+        "plateVisible": true
+      }
+    },
+    {
+      "id": "qa3",
+      "name": "manual officer alert from the vehicle card saves without an error and shows in the alerts screen",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "row": {
+          "alert_type": "officer",
+          "company_name": "QA-AD-A-1786706187284",
+          "alert_date": "2026-10-03T06:00:00+00:00",
+          "title": "QA קצין ידני 1786706187284 · AA187284"
+        },
+        "visible": true
+      }
+    },
+    {
+      "id": "qa4",
+      "name": "manual free alert from the vehicle card saves without an error and shows in the alerts screen",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "row": {
+          "alert_type": "free",
+          "company_name": "QA-AD-A-1786706187284",
+          "title": "QA חופשית ידנית 1786706187284 · AA187284"
+        },
+        "visible": true
+      }
+    },
+    {
+      "id": "qa5",
+      "name": "driver card uses the same alert mechanism and the alert reaches the alerts screen",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "row": {
+          "alert_type": "free",
+          "company_name": "QA-AD-A-1786706187284",
+          "title": "QA נהג חופשית 1786706187284 · QA Driver A 1786706187284"
+        },
+        "visible": true
+      }
+    },
+    {
+      "id": "qa6",
+      "name": "officer and free filters each show only their own alerts",
+      "status": "PASS",
+      "detail": {
+        "officerHasOfficer": true,
+        "officerHasFree": false,
+        "freeHasFree": true,
+        "freeHasOfficer": false
+      }
+    },
+    {
+      "id": "qa7",
+      "name": "uploaded vehicle license appears in the vehicle documents area and opens",
+      "status": "PASS",
+      "detail": {
+        "upload": {
+          "found": 1,
+          "hasInput": 1,
+          "toast": "הקובץ הועלה בהצלחה",
+          "url": "https://orin1607-ctrl.github.io/future-craft-core/documents?plate=AA187284&vehicleId=d29dfffd-99b1-4324-9386-e727391abe45&context=vehicle&category=vehicle-license"
+        },
+        "listed": true,
+        "previewSrc": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/cc25cb7c-cab7-41be-8bfb-7e6860ec04ba/vehicle-license/1786706259923_qa-license.pdf",
+        "stored": {
+          "url": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/cc25cb7c-cab7-41be-8bfb-7e6860ec04ba/vehicle-license/1786706259923_qa-license.pdf",
+          "status": 200
+        }
+      }
+    },
+    {
+      "id": "qa8",
+      "name": "uploaded mandatory insurance appears in the vehicle documents area and opens",
+      "status": "PASS",
+      "detail": {
+        "upload": {
+          "found": 1,
+          "hasInput": 1,
+          "toast": "הקובץ הועלה בהצלחה",
+          "url": "https://orin1607-ctrl.github.io/future-craft-core/documents?plate=AA187284&vehicleId=d29dfffd-99b1-4324-9386-e727391abe45&context=vehicle&category=insurance"
+        },
+        "listed": true,
+        "previewSrc": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/cc25cb7c-cab7-41be-8bfb-7e6860ec04ba/insurance/1786706273236_qa-insurance.pdf",
+        "stored": {
+          "url": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/cc25cb7c-cab7-41be-8bfb-7e6860ec04ba/insurance/1786706273236_qa-insurance.pdf",
+          "status": 200
+        }
+      }
+    },
+    {
+      "id": "qa9",
+      "name": "documents and alerts survive refresh, leaving the screen and re-entering, with no duplicates",
+      "status": "PASS",
+      "detail": {
+        "licenseCopies": 1,
+        "officerStillThere": true,
+        "freeStillThere": true
+      }
+    },
+    {
+      "id": "qa11",
+      "name": "officer inspections report still opens with rows and working links",
+      "status": "PASS",
+      "detail": {
+        "hasA1": true,
+        "hasA2": true,
+        "inspectionNavOk": true
+      }
+    },
+    {
+      "id": "qa11b",
+      "name": "officer inspections export still produces structured rows with the internal number",
+      "status": "PASS",
+      "detail": {
+        "header": "מספר רכב,מס׳ פנימי,סוג הביקורת,תאריך הביקורת,מועד הביקורת הבאה,סטטוס,קישור לביקורת,קישור לרכב",
+        "dataRows": 2,
+        "sample": "AA187284,31,תלת/חצי שנתית,14.8.2026,14.11.2026,תקין,/vehicle-inspections?inspectionId=d2d0ee46-cdbf-4a15-8ad7-de329ae3584d&plate=AA187284&vehicleId=d29dfffd-99b1-4324-9386-e727391abe45&context=vehicle"
+      }
+    },
+    {
+      "id": "qa12",
+      "name": "short regression over the previously passing screens",
+      "status": "PASS",
+      "detail": {
+        "vehicles": true,
+        "drivers": true,
+        "vehicle-tracking": true,
+        "documents": true,
+        "reports": true,
+        "alerts": true,
+        "settings": true,
+        "customers": true,
+        "vehicleCard": true,
+        "driverCard": true
+      }
+    },
+    {
+      "id": "qa10",
+      "name": "company B sees none of company A alerts, documents or plates",
+      "status": "PASS",
+      "detail": {
+        "alertsLeak": false,
+        "docsLeak": false,
+        "docScreenLeak": false
+      }
+    }
+  ],
+  "failedResponses": [],
+  "deployTxt": "deployed_ref=594ad63 feat/incident-alerts-staging",
+  "commit": "594ad63",
+  "cleanup": {
+    "ok": true,
+    "scope": "QA-AD-* only"
+  },
+  "summary": {
+    "pass": 14,
+    "fail": 0
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "at": "2026-08-14T11:23:53.750Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "results": [
+    {
+      "id": "sa0",
+      "name": "super admin can select the QA company scope",
+      "status": "PASS",
+      "detail": {
+        "scopeShown": true
+      }
+    },
+    {
+      "id": "sa1",
+      "name": "manual officer alert created under a company scope belongs to that company and stays visible",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "row": {
+          "alert_type": "officer",
+          "company_name": "QA-SA-1786706637966",
+          "title": "SA קצין 1786706637966 · SA637966"
+        },
+        "visibleInScope": true
+      }
+    },
+    {
+      "id": "sa2",
+      "name": "document uploaded under a company scope is registered to that company and listed in the vehicle documents",
+      "status": "PASS",
+      "detail": {
+        "toast": "הקובץ הועלה בהצלחה",
+        "metaRows": [
+          {
+            "category": "vehicle-license",
+            "company_name": "QA-SA-1786706637966",
+            "vehicle_plate": "SA637966",
+            "file_path": "93fd684d-8656-435a-b07d-56fe3e9d27d8/vehicle-license/1786706676067_sa-license.pdf"
+          }
+        ],
+        "listed": true,
+        "httpStatus": 200
+      }
+    }
+  ],
+  "cleanup": {
+    "ok": true,
+    "scope": "QA-SA-* only"
+  },
+  "summary": {
+    "pass": 3,
+    "fail": 0
+  }
+}
