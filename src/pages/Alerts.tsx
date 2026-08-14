@@ -599,7 +599,12 @@ export default function Alerts() {
         const isFree =
           ca.alert_type === FREE_ALERT_TYPE || String(ca.title || '').includes(FREE_ALERT_LABEL);
         const category: AlertCategory = isOfficer ? 'officer' : isFree ? 'free' : 'service_order';
-        if (isOfficer && plate) {
+        // Only inspection-generated rows share a canonical target date and
+        // should be folded together. Two manual officer alerts may legitimately
+        // target the same vehicle and date, so they must remain separate.
+        const isGeneratedOfficer =
+          isOfficer && String(ca.description || '').includes('target:');
+        if (isGeneratedOfficer && plate) {
           const key = `${normalizePlate(plate)}|${targetDateOf(ca)}`;
           if (officerSeen.has(key)) continue;
           officerSeen.add(key);

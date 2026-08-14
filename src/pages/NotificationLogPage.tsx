@@ -93,7 +93,8 @@ function LogEntryRow({
   onSendWa?: (entry: NotificationLogEntry) => void;
   onDismiss?: (entry: NotificationLogEntry) => void;
 }) {
-  const dt = new Date(entry.createdAt);
+  const createdAt = new Date(entry.createdAt);
+  const scheduledFor = entry.scheduledFor ? new Date(entry.scheduledFor) : null;
   const waLabel =
     entry.channel === 'whatsapp' && entry.waSent != null
       ? `${entry.waSent}/${entry.waMax ?? 3}${entry.status === 'blocked' ? ' חסום' : ''}`
@@ -120,11 +121,15 @@ function LogEntryRow({
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            {format(dt, 'dd/MM/yyyy HH:mm', { locale: he })}
-            {entry.scheduledFor && entry.timing === 'future' && (
-              <> · מתוזמן ל-{format(new Date(entry.scheduledFor), 'dd/MM/yyyy', { locale: he })}</>
+          <p className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+            {scheduledFor && (
+              <span className="font-semibold text-foreground">
+                מועד ההתראה: {format(scheduledFor, 'dd/MM/yyyy', { locale: he })}
+              </span>
             )}
+            <span>
+              {scheduledFor ? 'נוצרה' : 'תאריך'}: {format(createdAt, 'dd/MM/yyyy HH:mm', { locale: he })}
+            </span>
           </p>
           <p className="text-sm">{formatLogEntryMeta(entry, viewMode)}</p>
           {entry.notes && <p className="text-xs text-muted-foreground">{entry.notes}</p>}

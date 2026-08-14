@@ -1,0 +1,238 @@
+{
+  "at": "2026-08-14T14:13:02.913Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "company": "QA-MD-1786716782913",
+  "plate": "MD782913",
+  "results": [
+    {
+      "id": "deploy",
+      "device": "both",
+      "name": "Pages commit and hashed bundle are identical on mobile and desktop",
+      "status": "PASS",
+      "detail": {
+        "deployTxt": "deployed_ref=af19bb9 feat/incident-alerts-staging",
+        "commit": "af19bb9",
+        "desktopAsset": "assets/index-CDeIQaRx.js",
+        "mobileAsset": "assets/index-CDeIQaRx.js"
+      }
+    },
+    {
+      "id": "tri-3",
+      "device": "desktop",
+      "name": "tri/semi +3 saves and remains visible after refresh",
+      "status": "PASS",
+      "detail": {
+        "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
+        "due": "2026-11-14",
+        "expected": "2026-11-14",
+        "company": "QA-MD-1786716782913",
+        "visible": true
+      }
+    },
+    {
+      "id": "tri-3",
+      "device": "mobile",
+      "name": "tri/semi +3 saves and remains visible after refresh",
+      "status": "PASS",
+      "detail": {
+        "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
+        "due": "2026-11-14",
+        "expected": "2026-11-14",
+        "company": "QA-MD-1786716782913",
+        "visible": true
+      }
+    },
+    {
+      "id": "tri-6",
+      "device": "desktop",
+      "name": "tri/semi +6 saves and remains visible after refresh",
+      "status": "PASS",
+      "detail": {
+        "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
+        "due": "2027-02-14",
+        "expected": "2027-02-14",
+        "company": "QA-MD-1786716782913",
+        "visible": true
+      }
+    },
+    {
+      "id": "tri-6",
+      "device": "mobile",
+      "name": "tri/semi +6 saves and remains visible after refresh",
+      "status": "PASS",
+      "detail": {
+        "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
+        "due": "2027-02-14",
+        "expected": "2027-02-14",
+        "company": "QA-MD-1786716782913",
+        "visible": true
+      }
+    },
+    {
+      "id": "manual-officer",
+      "device": "desktop",
+      "name": "התראת קצין רכב saves and remains visible after refresh",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "dueDate": "2026-09-30",
+        "createdAt": "2026-08-14T14:14:36.483023+00:00",
+        "visible": true,
+        "logText": "MD officer desktop 1786716782913 · MD782913 ממתין מערכת 14/08/2026 17:14 · מתוזמן ל-30/09/2026 QA-MD-1786716782913 · MD782913 vplate:MD782913 vid:a998df26-9e3d-4ebe-a4d0-923f37573360 הסר מהפעילות",
+        "showsCreatedLabel": false,
+        "showsScheduledLabel": false,
+        "showsLegacyScheduledText": true
+      }
+    },
+    {
+      "id": "manual-free",
+      "device": "desktop",
+      "name": "התראה חופשית saves and remains visible after refresh",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "dueDate": "2026-09-22",
+        "createdAt": "2026-08-14T14:14:50.756266+00:00",
+        "visible": true,
+        "logText": "MD free desktop 1786716782913 · MD782913 ממתין מערכת 14/08/2026 17:14 · מתוזמן ל-22/09/2026 QA-MD-1786716782913 · MD782913 vplate:MD782913 vid:a998df26-9e3d-4ebe-a4d0-923f37573360 הסר מהפעילות",
+        "showsCreatedLabel": false,
+        "showsScheduledLabel": false,
+        "showsLegacyScheduledText": true
+      }
+    },
+    {
+      "id": "manual-officer",
+      "device": "mobile",
+      "name": "התראת קצין רכב saves and remains visible after refresh",
+      "status": "FAIL",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "dueDate": "2026-09-30",
+        "createdAt": "2026-08-14T14:15:05.218807+00:00",
+        "visible": false,
+        "logText": "MD officer mobile 1786716782913 · MD782913 ממתין מערכת 14/08/2026 17:15 · מתוזמן ל-30/09/2026 QA-MD-1786716782913 · MD782913 vplate:MD782913 vid:a998df26-9e3d-4ebe-a4d0-923f37573360 הסר מהפעילות",
+        "showsCreatedLabel": false,
+        "showsScheduledLabel": false,
+        "showsLegacyScheduledText": true
+      }
+    },
+    {
+      "id": "manual-free",
+      "device": "mobile",
+      "name": "התראה חופשית saves and remains visible after refresh",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "dueDate": "2026-09-22",
+        "createdAt": "2026-08-14T14:15:35.234661+00:00",
+        "visible": true,
+        "logText": "MD free mobile 1786716782913 · MD782913 ממתין מערכת 14/08/2026 17:15 · מתוזמן ל-22/09/2026 QA-MD-1786716782913 · MD782913 vplate:MD782913 vid:a998df26-9e3d-4ebe-a4d0-923f37573360 הסר מהפעילות",
+        "showsCreatedLabel": false,
+        "showsScheduledLabel": false,
+        "showsLegacyScheduledText": true
+      }
+    },
+    {
+      "id": "history-date-before",
+      "device": "desktop",
+      "name": "history retains the row but currently does not label both dates",
+      "status": "PASS",
+      "detail": {
+        "text": "MD officer desktop 1786716782913 · MD782913 נשלח מערכת 14/08/2026 17:14 QA-MD-1786716782913 · MD782913 vplate:MD782913 vid:a998df26-9e3d-4ebe-a4d0-923f37573360",
+        "createdAt": "2026-08-14T14:14:36.483023+00:00",
+        "scheduledFor": "2026-09-30T06:00:00+00:00",
+        "showsCreatedLabel": false,
+        "showsScheduledLabel": false
+      }
+    },
+    {
+      "id": "history-date-before",
+      "device": "mobile",
+      "name": "history retains the row but currently does not label both dates",
+      "status": "PASS",
+      "detail": {
+        "text": "MD officer desktop 1786716782913 · MD782913 נשלח מערכת 14/08/2026 17:14 QA-MD-1786716782913 · MD782913 vplate:MD782913 vid:a998df26-9e3d-4ebe-a4d0-923f37573360",
+        "createdAt": "2026-08-14T14:14:36.483023+00:00",
+        "scheduledFor": "2026-09-30T06:00:00+00:00",
+        "showsCreatedLabel": false,
+        "showsScheduledLabel": false
+      }
+    },
+    {
+      "id": "runtime",
+      "device": "both",
+      "name": "no Supabase failures during desktop and mobile flows",
+      "status": "PASS",
+      "detail": {
+        "supabaseFailures": [],
+        "consoleErrors": [
+          {
+            "device": "desktop",
+            "text": "Failed to load resource: the server responded with a status of 404 ()"
+          },
+          {
+            "device": "desktop",
+            "text": "Failed to load resource: the server responded with a status of 404 ()"
+          },
+          {
+            "device": "mobile",
+            "text": "Failed to load resource: the server responded with a status of 404 ()"
+          },
+          {
+            "device": "mobile",
+            "text": "Failed to load resource: the server responded with a status of 404 ()"
+          },
+          {
+            "device": "desktop",
+            "text": "Failed to load resource: the server responded with a status of 404 ()"
+          },
+          {
+            "device": "mobile",
+            "text": "Failed to load resource: the server responded with a status of 404 ()"
+          }
+        ]
+      }
+    }
+  ],
+  "consoleErrors": [
+    {
+      "device": "desktop",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "device": "desktop",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "device": "mobile",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "device": "mobile",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "device": "desktop",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "device": "mobile",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    }
+  ],
+  "supabaseFailures": [],
+  "deploy": {
+    "deployTxt": "deployed_ref=af19bb9 feat/incident-alerts-staging",
+    "commit": "af19bb9",
+    "desktopAsset": "assets/index-CDeIQaRx.js",
+    "mobileAsset": "assets/index-CDeIQaRx.js"
+  },
+  "cleanup": {
+    "ok": true,
+    "scope": "QA-MD-1786716782913 only"
+  },
+  "summary": {
+    "pass": 11,
+    "fail": 1
+  }
+}
