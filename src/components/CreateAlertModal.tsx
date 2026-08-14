@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Bell, Calendar, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import {
   FREE_ALERT_LABEL,
@@ -47,6 +48,7 @@ export default function CreateAlertModal({
   driverName?: string;
 }) {
   const { user } = useAuth();
+  const companyFilter = useCompanyFilter();
   const [alertType, setAlertType] = useState(vehiclePlate || driverId ? FREE_ALERT_TYPE : 'other');
   const [title, setTitle] = useState(vehiclePlate || driverId ? FREE_ALERT_LABEL : '');
   const [description, setDescription] = useState('');
@@ -57,6 +59,16 @@ export default function CreateAlertModal({
   const [loading, setLoading] = useState(false);
 
   const isValid = title.trim() && alertDate;
+
+  const defaultTitleForType = (value: string) =>
+    value === OFFICER_ALERT_TYPE ? OFFICER_ALERT_LABEL : value === FREE_ALERT_TYPE ? FREE_ALERT_LABEL : '';
+
+  const selectType = (value: string) => {
+    const previousDefault = defaultTitleForType(alertType);
+    const nextDefault = defaultTitleForType(value);
+    setAlertType(value);
+    if (nextDefault && (!title.trim() || title.trim() === previousDefault)) setTitle(nextDefault);
+  };
 
   const handleSubmit = async () => {
     if (!isValid || !user) return;
@@ -70,9 +82,32 @@ export default function CreateAlertModal({
     const titleSuffix = vehiclePlate || driverName || '';
     const fullTitle = titleSuffix ? `${title.trim()} · ${titleSuffix}` : title.trim();
 
+    // The entity's company wins over the actor's, so an alert created by a
+    // super admin still belongs to the vehicle/driver company and stays visible
+    // in the alerts screen under that company scope.
+    let companyForAlert = '';
+    if (vehicleId || vehiclePlate) {
+      let vehicleQuery = supabase.from('vehicles').select('company_name');
+      vehicleQuery = vehicleId
+        ? vehicleQuery.eq('id', vehicleId)
+        : vehicleQuery.or(
+            `license_plate.eq.${vehiclePlate},license_plate.eq.${String(vehiclePlate).replace(/[-\s]/g, '')}`,
+          );
+      const { data: vehicleRow } = await vehicleQuery.maybeSingle();
+      companyForAlert = vehicleRow?.company_name || '';
+    } else if (driverId) {
+      const { data: driverRow } = await supabase
+        .from('drivers')
+        .select('company_name')
+        .eq('id', driverId)
+        .maybeSingle();
+      companyForAlert = driverRow?.company_name || '';
+    }
+    if (!companyForAlert) companyForAlert = user.company_name || companyFilter || '';
+
     const { error } = await supabase.from('custom_alerts').insert({
       user_id: user.id,
-      company_name: user.company_name || '',
+      company_name: companyForAlert,
       alert_type: alertType,
       title: fullTitle,
       description: fullDescription,
@@ -114,7 +149,7 @@ export default function CreateAlertModal({
             <label className="block text-sm font-bold mb-2">סוג התראה *</label>
             <div className="grid grid-cols-3 gap-2">
               {ALERT_TYPES.map(t => (
-                <button key={t.value} type="button" onClick={() => setAlertType(t.value)}
+                <button key={t.value} type="button" onClick={() => selectType(t.value)}
                   className={`p-3 rounded-xl text-sm font-bold border-2 transition-all text-center ${alertType === t.value ? 'border-primary bg-primary/10 text-primary' : 'border-input bg-background text-muted-foreground hover:border-primary/50'}`}>
                   <span className="text-lg block mb-1">{t.emoji}</span>
                   {t.label}

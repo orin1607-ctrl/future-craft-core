@@ -1,0 +1,216 @@
+{
+  "at": "2026-08-14T10:53:03.819Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "findings": [
+    {
+      "step": "api insert custom_alerts alert_type=officer",
+      "ok": true,
+      "code": null,
+      "message": null,
+      "details": null
+    },
+    {
+      "step": "api insert custom_alerts alert_type=free",
+      "ok": true,
+      "code": null,
+      "message": null,
+      "details": null
+    },
+    {
+      "step": "api insert custom_alerts alert_type=other",
+      "ok": true,
+      "code": null,
+      "message": null,
+      "details": null
+    },
+    {
+      "step": "api select custom_alerts as user",
+      "ok": true,
+      "count": 3,
+      "types": [
+        "officer",
+        "free",
+        "other"
+      ],
+      "isActive": [
+        true,
+        true,
+        true
+      ],
+      "message": null
+    },
+    {
+      "step": "api insert document_metadata as user",
+      "ok": true,
+      "code": null,
+      "message": null
+    },
+    {
+      "step": "vehicle card add-alert button",
+      "count": 1
+    },
+    {
+      "step": "modal type button התראת קצין רכב",
+      "count": 0
+    },
+    {
+      "step": "ui create alert התראת קצין רכב",
+      "toast": "ההתראה נוצרה בהצלחה"
+    },
+    {
+      "step": "modal type button התראה חופשית",
+      "count": 0
+    },
+    {
+      "step": "ui create alert התראה חופשית",
+      "toast": "ההתראה נוצרה בהצלחה"
+    },
+    {
+      "step": "db rows after ui creation",
+      "rows": [
+        {
+          "type": "officer",
+          "title": "DIAG officer 1786704787140",
+          "active": true
+        },
+        {
+          "type": "free",
+          "title": "DIAG free 1786704787140",
+          "active": true
+        },
+        {
+          "type": "other",
+          "title": "DIAG other 1786704787140",
+          "active": true
+        },
+        {
+          "type": "free",
+          "title": "UI התראת קצין רכב 1786704787140 · DG787140",
+          "active": true
+        },
+        {
+          "type": "free",
+          "title": "UI התראה חופשית 1786704787140 · DG787140",
+          "active": true
+        }
+      ]
+    },
+    {
+      "step": "ui tri-semi save",
+      "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין"
+    },
+    {
+      "step": "tri-semi persistence",
+      "nextInspectionDate": "2026-11-14",
+      "inspections": [
+        {
+          "id": "faa996e6-5ca9-4706-bc65-463c1a5ab06e",
+          "inspection_type": "tri_semi_annual",
+          "next_due_date": "2026-11-14",
+          "company_name": "QA-DIAG-1786704787140"
+        }
+      ]
+    },
+    {
+      "step": "alerts screen content",
+      "hasOfficerLabel": true,
+      "hasFreeLabel": true,
+      "hasUiOfficerTitle": true,
+      "hasUiFreeTitle": true,
+      "hasPlate": true
+    },
+    {
+      "step": "hub upload license button",
+      "count": 0
+    },
+    {
+      "step": "documents screen after hub navigation",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/documents?plate=DG787140&vehicleId=a7c1cef1-da94-4398-be9a-40595efc7746&context=vehicle",
+      "fileInputs": 0,
+      "text": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Diag FM\n\nQA-DIAG-1786704787140\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nדשבורד\nמעקב רכבים\nרכב DG787140\nמסמכים\nחזרה לכרטיס הרכב\nדשבורד ראשי\nמעקב רכבים\n\nמסונן לפי: רכב DG787140\n\nמסמכים\nמסמכי רכב\n\nטסט, ביטוח, רישיון רכב\n\n🚗\n\nרישיונות רכב\n\n1 מסמכים\n\n🛡️\n\nביטוח חובה\n\n0 מסמכים\n\n📋"
+    },
+    {
+      "step": "ui document upload",
+      "toast": ""
+    },
+    {
+      "step": "document persistence",
+      "vehDocs": {
+        "license_doc_url": "",
+        "insurance_doc_url": ""
+      },
+      "metaRows": [
+        {
+          "id": "be7c0579-2864-45fa-9472-84639dbc0918",
+          "category": "vehicle-license",
+          "vehicle_plate": "DG787140",
+          "company_name": "QA-DIAG-1786704787140",
+          "file_path": "883e27cd-b461-4123-906c-33919635dd8e/vehicle-license/diag-api.pdf"
+        }
+      ]
+    },
+    {
+      "step": "hub documents after re-entry",
+      "mentionsLicense": true,
+      "mentionsDiag": false,
+      "emptyState": false,
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Diag FM\n\nQA-DIAG-1786704787140\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nדשבורד\nמעקב רכבים\nרכב DG787140\nמסמכים\nחזרה לכרטיס הרכב\nדשבורד ראשי\nמעקב רכבים\n\nמסונן לפי: רכב DG787140\n\nמסמכים\nמסמכי רכב\n\nטסט, ביטוח, רישיון רכב\n\n🚗\n\nרישיונות רכב\n\n1 מסמכים\n\n🛡️\n\nביטוח חובה\n\n0 מסמכים\n\n📋\n\nביטוח מקיף\n\n0 מסמכים\n\n📄\n\nביטוח צד ג׳\n\n0 מסמכים\n\n✅\n\nטסט\n\n0 מסמכים\n\nמסמכי נהגים\n\nרישיונות נהיגה, תעודות, אישורים\n\n🪪\n\nרישיונות נהיגה\n\n0 מסמכים\n\n🏥\n\nאישורי בריאות\n\n0 מסמכים\n\n📝\n\nהסכמי עבודה\n\n0 מסמכים\n\n📎\n\nאחר\n\n0 מסמכים\n\nחשבוניות והוצאות\n\nחשבוניות דלק, תחזוקה וספקים\n\n⛽\n\nחשבוניות דלק\n\n0 מסמכים\n\n🔧\n\nחש"
+    }
+  ],
+  "failedResponses": [
+    {
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/document_versions?select=id%2Cpublic_url%2Coriginal_name%2Cdocument_type_key%2Cexpiry_date%2Ccreated_at%2Cfile_path%2Cis_current&entity_type=eq.vehicle&or=%28entity_id.eq.",
+      "status": 400,
+      "body": "{\"code\":\"22P02\",\"details\":null,\"hint\":null,\"message\":\"invalid input syntax for type uuid: \\\"DG787140\\\"\"}"
+    },
+    {
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/document_versions?select=id%2Cpublic_url%2Coriginal_name%2Cdocument_type_key%2Cexpiry_date%2Ccreated_at%2Cfile_path%2Cis_current&entity_type=eq.vehicle&or=%28entity_id.eq.",
+      "status": 400,
+      "body": "{\"code\":\"22P02\",\"details\":null,\"hint\":null,\"message\":\"invalid input syntax for type uuid: \\\"DG787140\\\"\"}"
+    },
+    {
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/document_versions?select=id%2Cpublic_url%2Coriginal_name%2Cdocument_type_key%2Cexpiry_date%2Ccreated_at%2Cfile_path%2Cis_current&entity_type=eq.vehicle&or=%28entity_id.eq.",
+      "status": 400,
+      "body": "{\"code\":\"22P02\",\"details\":null,\"hint\":null,\"message\":\"invalid input syntax for type uuid: \\\"DG787140\\\"\"}"
+    },
+    {
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/document_versions?select=id%2Cpublic_url%2Coriginal_name%2Cdocument_type_key%2Cexpiry_date%2Ccreated_at%2Cfile_path%2Cis_current&entity_type=eq.vehicle&or=%28entity_id.eq.",
+      "status": 400,
+      "body": "{\"code\":\"22P02\",\"details\":null,\"hint\":null,\"message\":\"invalid input syntax for type uuid: \\\"DG787140\\\"\"}"
+    },
+    {
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/document_versions?select=id%2Cpublic_url%2Coriginal_name%2Cdocument_type_key%2Cexpiry_date%2Ccreated_at%2Cfile_path%2Cis_current&entity_type=eq.vehicle&or=%28entity_id.eq.",
+      "status": 400,
+      "body": "{\"code\":\"22P02\",\"details\":null,\"hint\":null,\"message\":\"invalid input syntax for type uuid: \\\"DG787140\\\"\"}"
+    },
+    {
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/document_versions?select=id%2Cpublic_url%2Coriginal_name%2Cdocument_type_key%2Cexpiry_date%2Ccreated_at%2Cfile_path%2Cis_current&entity_type=eq.vehicle&or=%28entity_id.eq.",
+      "status": 400,
+      "body": "{\"code\":\"22P02\",\"details\":null,\"hint\":null,\"message\":\"invalid input syntax for type uuid: \\\"DG787140\\\"\"}"
+    },
+    {
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/document_versions?select=id%2Cpublic_url%2Coriginal_name%2Cdocument_type_key%2Cexpiry_date%2Ccreated_at%2Cfile_path%2Cis_current&entity_type=eq.vehicle&or=%28entity_id.eq.",
+      "status": 400,
+      "body": "{\"code\":\"22P02\",\"details\":null,\"hint\":null,\"message\":\"invalid input syntax for type uuid: \\\"DG787140\\\"\"}"
+    },
+    {
+      "url": "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/document_versions?select=id%2Cpublic_url%2Coriginal_name%2Cdocument_type_key%2Cexpiry_date%2Ccreated_at%2Cfile_path%2Cis_current&entity_type=eq.vehicle&or=%28entity_id.eq.",
+      "status": 400,
+      "body": "{\"code\":\"22P02\",\"details\":null,\"hint\":null,\"message\":\"invalid input syntax for type uuid: \\\"DG787140\\\"\"}"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()"
+  ],
+  "cleanup": {
+    "ok": true,
+    "note": "QA-DIAG-* only"
+  }
+}

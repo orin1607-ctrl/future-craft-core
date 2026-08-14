@@ -210,12 +210,30 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
     }
 
     setUploading(true);
-    const plate = (form.getValue('vehicle_plate') || 'vehicle').replace(/[-\s]/g, '');
+    const rawPlate = (form.getValue('vehicle_plate') || '').trim();
+    const plate = (rawPlate || 'vehicle').replace(/[-\s]/g, '');
+    const formCompany = form.getValue('company_name') || user.company_name || '';
+
+    // The vehicle row is the authority for the company, so a document uploaded
+    // by a super admin (who has no company of their own) is still registered
+    // under the vehicle's company and shows up in that vehicle's documents.
+    let vehicleRow: { id: string; company_name: string | null } | null = null;
+    if (rawPlate) {
+      let vehicleQuery = supabase
+        .from('vehicles')
+        .select('id, company_name')
+        .or(`license_plate.eq.${rawPlate},license_plate.eq.${plate}`);
+      if (formCompany) vehicleQuery = vehicleQuery.eq('company_name', formCompany);
+      const { data } = await vehicleQuery.maybeSingle();
+      vehicleRow = data;
+    }
+    const companyName = vehicleRow?.company_name || formCompany;
+
     const result = await uploadDocument({
       file,
       storageFolder: `vehicles/${plate}`,
       category: inferDocCategory(textName),
-      companyName: form.getValue('company_name') || user.company_name || '',
+      companyName,
       vehiclePlate: plate,
       manufacturer: form.getValue('manufacturer'),
       model: form.getValue('model'),
@@ -229,23 +247,14 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
 
     if (linkField) form.setValue(linkField, result.publicUrl);
     const vehicleColumn = vehicleDocumentColumn(linkField);
-    if (vehicleColumn && plate && plate !== 'vehicle') {
-      const companyName = form.getValue('company_name') || user.company_name || '';
-      let query = supabase
+    if (vehicleColumn && vehicleRow?.id) {
+      const { error: patchError } = await supabase
         .from('vehicles')
-        .select('id')
-        .or(`license_plate.eq.${form.getValue('vehicle_plate')},license_plate.eq.${plate}`);
-      if (companyName) query = query.eq('company_name', companyName);
-      const { data: existingVehicle } = await query.maybeSingle();
-      if (existingVehicle?.id) {
-        const { error: patchError } = await supabase
-          .from('vehicles')
-          .update({ [vehicleColumn]: result.publicUrl })
-          .eq('id', existingVehicle.id);
-        if (patchError) {
-          toast.error(`הקובץ הועלה, אך הקישור לא נשמר בכרטיס הרכב: ${patchError.message}`);
-          return;
-        }
+        .update({ [vehicleColumn]: result.publicUrl })
+        .eq('id', vehicleRow.id);
+      if (patchError) {
+        toast.error(`הקובץ הועלה, אך הקישור לא נשמר בכרטיס הרכב: ${patchError.message}`);
+        return;
       }
     }
     toast.success('הקובץ הועלה ונשמר במערכת המסמכים');

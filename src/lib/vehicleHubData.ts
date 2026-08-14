@@ -122,6 +122,26 @@ function normalizePlate(plate: string) {
   return normalizePlateKey(plate);
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * document_versions.entity_id is a uuid column, so filtering it by a license
+ * plate makes Postgres reject the whole request (22P02) and every Document Hub
+ * file for the vehicle disappears from the card.
+ */
+function vehicleDocumentVersions(vehicleId?: string) {
+  if (!vehicleId || !UUID_PATTERN.test(vehicleId)) {
+    return Promise.resolve({ data: [] as Record<string, string>[] });
+  }
+  return supabase
+    .from('document_versions')
+    .select('id, public_url, original_name, document_type_key, expiry_date, created_at, file_path, is_current')
+    .eq('entity_type', 'vehicle')
+    .eq('entity_id', vehicleId)
+    .eq('is_current', true)
+    .order('created_at', { ascending: false });
+}
+
 function byPlate(table: string, plate: string, companyFilter: string | null) {
   const norm = normalizePlate(plate);
   const q = norm !== plate
@@ -171,21 +191,7 @@ export async function loadVehicleHubData(
           .order('alert_date', { ascending: true }),
         companyFilter,
       ),
-      supabase
-        .from('document_versions')
-        .select('id, public_url, original_name, document_type_key, expiry_date, created_at, file_path, is_current')
-        .eq('entity_type', 'vehicle')
-        .or(
-          [
-            vehicleId ? `entity_id.eq.${vehicleId}` : null,
-            `entity_id.eq.${plate}`,
-            `entity_id.eq.${normalizePlate(plate)}`,
-          ]
-            .filter(Boolean)
-            .join(','),
-        )
-        .eq('is_current', true)
-        .order('created_at', { ascending: false }),
+      vehicleDocumentVersions(vehicleId),
     ]);
 
   const tasks: VehicleTaskRow[] = (tasksRes.data || []).map((t: Record<string, string>) => ({
