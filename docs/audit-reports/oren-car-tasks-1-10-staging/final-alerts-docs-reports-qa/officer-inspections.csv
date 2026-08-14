@@ -1,0 +1,6 @@
+'--- ביקורות קצין רכב ---
+מספר רכב,מס׳ פנימי,סוג הביקורת,תאריך הביקורת,מועד הביקורת הבאה,סטטוס,קישור לביקורת,קישור לרכב
+CA510907,19,תלת/חצי שנתית,10.1.2026,—,ok,/vehicle-inspections?inspectionId=62203c65-5c55-42a9-a4fb-d84848ff70e3&plate=CA510907&vehicleId=51118080-06c9-4743-83d0-4c6f4281667f&context=vehicle,/vehicles?vehicleId=51118080-06c9-4743-83d0-4c6f4281667f&view=hub
+CA510907,19,תלת/חצי שנתית,14.8.2026,13.11.2026,ok,/vehicle-inspections?inspectionId=c34c81cf-b06a-4b11-b257-963bd1fbd933&plate=CA510907&vehicleId=51118080-06c9-4743-83d0-4c6f4281667f&context=vehicle,/vehicles?vehicleId=51118080-06c9-4743-83d0-4c6f4281667f&view=hub
+CA510907,19,תלת/חצי שנתית,14.8.2026,14.11.2026,תקין,/vehicle-inspections?inspectionId=4363e2c4-ea29-41c2-8674-e79912188dbe&plate=CA510907&vehicleId=51118080-06c9-4743-83d0-4c6f4281667f&context=vehicle,/vehicles?vehicleId=51118080-06c9-4743-83d0-4c6f4281667f&view=hub
+CA510907,19,תלת/חצי שנתית,14.8.2026,14.2.2027,תקין,/vehicle-inspections?inspectionId=2ddf47cf-0f66-42ed-b7a9-09765ccb9ca4&plate=CA510907&vehicleId=51118080-06c9-4743-83d0-4c6f4281667f&context=vehicle,/vehicles?vehicleId=51118080-06c9-4743-83d0-4c6f4281667f&view=hub
