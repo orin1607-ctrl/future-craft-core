@@ -7,6 +7,7 @@ import type { RequiredFieldModule } from '@/lib/requiredFieldsSchema';
 import { uploadDocument } from '@/lib/uploadDocument';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { useDaliaFormValues } from './DaliaFormValuesContext';
+import { supabase } from '@/integrations/supabase/client';
 
 function bindControl(
   child: ReactElement,
@@ -180,6 +181,14 @@ function inferDocCategory(textName: string): string {
   return 'vehicle_docs';
 }
 
+function vehicleDocumentColumn(linkField: string | undefined): string | undefined {
+  if (linkField === 'license_link') return 'license_doc_url';
+  if (linkField === 'mandatory_insurance_doc_link') return 'insurance_doc_url';
+  if (linkField === 'comprehensive_insurance_doc_link') return 'comprehensive_insurance_doc_url';
+  if (linkField === 'third_party_insurance_doc_link') return 'third_party_insurance_doc_url';
+  return undefined;
+}
+
 export function FileWrap({ name, textName }: { name: string; textName: string }) {
   const form = useDaliaFormValues();
   const { user } = useAuth();
@@ -219,6 +228,26 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
     }
 
     if (linkField) form.setValue(linkField, result.publicUrl);
+    const vehicleColumn = vehicleDocumentColumn(linkField);
+    if (vehicleColumn && plate && plate !== 'vehicle') {
+      const companyName = form.getValue('company_name') || user.company_name || '';
+      let query = supabase
+        .from('vehicles')
+        .select('id')
+        .or(`license_plate.eq.${form.getValue('vehicle_plate')},license_plate.eq.${plate}`);
+      if (companyName) query = query.eq('company_name', companyName);
+      const { data: existingVehicle } = await query.maybeSingle();
+      if (existingVehicle?.id) {
+        const { error: patchError } = await supabase
+          .from('vehicles')
+          .update({ [vehicleColumn]: result.publicUrl })
+          .eq('id', existingVehicle.id);
+        if (patchError) {
+          toast.error(`הקובץ הועלה, אך הקישור לא נשמר בכרטיס הרכב: ${patchError.message}`);
+          return;
+        }
+      }
+    }
     toast.success('הקובץ הועלה ונשמר במערכת המסמכים');
   };
 

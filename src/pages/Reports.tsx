@@ -620,8 +620,11 @@ export default function Reports() {
     const objectUrl = URL.createObjectURL(blob);
     link.href = objectUrl;
     link.download = `דוח_דליה_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
     link.click();
+    link.remove();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    toast.success('קובץ הדוח הורד בהצלחה');
   };
 
   const shareViaWhatsApp = () => {
