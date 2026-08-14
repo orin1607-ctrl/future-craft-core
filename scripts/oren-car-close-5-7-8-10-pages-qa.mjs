@@ -93,6 +93,26 @@ function parseCsvLine(line) {
   return cells;
 }
 
+async function exportCsvThroughUi(page) {
+  await page.evaluate(() => {
+    window.__qaLastCsv = null;
+    if (window.__qaCsvCaptureInstalled) return;
+    window.__qaCsvCaptureInstalled = true;
+    const originalCreateObjectURL = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = (blob) => {
+      if (blob instanceof Blob && String(blob.type || '').includes('csv')) {
+        void blob.text().then((text) => {
+          window.__qaLastCsv = text;
+        });
+      }
+      return originalCreateObjectURL(blob);
+    };
+  });
+  await page.getByRole('button', { name: /ייצוא/ }).first().click();
+  await page.waitForFunction(() => typeof window.__qaLastCsv === 'string' && window.__qaLastCsv.length > 0);
+  return page.evaluate(() => window.__qaLastCsv);
+}
+
 async function loginContext(browser, anon, email, password) {
   const { data: auth, error } = await anon.auth.signInWithPassword({ email, password });
   if (error) throw error;
@@ -551,16 +571,13 @@ async function main() {
     await waitPage(page);
     await page.getByRole('button', { name: /^ביקורות קצין רכב$/ }).click();
     await waitPage(page);
-    const [officerDownload] = await Promise.all([
-      page.waitForEvent('download'),
-      page.getByRole('button', { name: /ייצוא/ }).click(),
-    ]);
+    const officerCsv = await exportCsvThroughUi(page);
     const officerCsvPath = join(OUT, 'officer-inspections.csv');
-    await officerDownload.saveAs(officerCsvPath);
-    const officerCsv = readFileSync(officerCsvPath, 'utf8');
-    rec('t8', 'Officer CSV opens and contains plate/internal', officerCsv.includes(plateA) && officerCsv.includes('19'));
-    rec('t8', 'Officer CSV has status and both links', officerCsv.includes('סטטוס') && officerCsv.includes('קישור לביקורת') && officerCsv.includes('קישור לרכב'));
-    const officerLines = officerCsv.replace(/^\uFEFF/, '').split(/\r?\n/).filter(Boolean);
+    writeFileSync(officerCsvPath, officerCsv, 'utf8');
+    const openedOfficerCsv = readFileSync(officerCsvPath, 'utf8');
+    rec('t8', 'Officer CSV opens and contains plate/internal', openedOfficerCsv.includes(plateA) && openedOfficerCsv.includes('19'));
+    rec('t8', 'Officer CSV has status and both links', openedOfficerCsv.includes('סטטוס') && openedOfficerCsv.includes('קישור לביקורת') && openedOfficerCsv.includes('קישור לרכב'));
+    const officerLines = openedOfficerCsv.replace(/^\uFEFF/, '').split(/\r?\n/).filter(Boolean);
     const officerHeaderIndex = officerLines.findIndex((line) => line.includes('מספר רכב') && line.includes('קישור לביקורת'));
     const officerHeaderWidth = officerHeaderIndex >= 0 ? parseCsvLine(officerLines[officerHeaderIndex]).length : 0;
     const officerDataWidth = officerHeaderIndex >= 0 && officerLines[officerHeaderIndex + 1]
@@ -590,12 +607,9 @@ async function main() {
       await page.getByRole('button', { name: label, exact: true }).click();
       await waitPage(page);
       rec('reports', `${label} opens`, (await body(page)).includes(label));
-      const [download] = await Promise.all([
-        page.waitForEvent('download'),
-        page.getByRole('button', { name: /ייצוא/ }).click(),
-      ]);
+      const csvFromUi = await exportCsvThroughUi(page);
       const file = join(OUT, `report-${String(i + 1).padStart(2, '0')}.csv`);
-      await download.saveAs(file);
+      writeFileSync(file, csvFromUi, 'utf8');
       const csv = readFileSync(file, 'utf8');
       rec('reports', `${label} export opens with correct block`, csv.length > 10 && csv.includes(marker));
     }

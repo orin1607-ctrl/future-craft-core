@@ -623,7 +623,9 @@ export default function Reports() {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    // Keep the blob alive long enough for slower browsers/webviews to finish
+    // handing the file to their download manager.
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
     toast.success('קובץ הדוח הורד בהצלחה');
   };
 
