@@ -1,0 +1,115 @@
+{
+  "at": "2026-08-14T12:54:44.342Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "results": [
+    {
+      "id": "deploy",
+      "name": "Pages runs the commit that is being tested",
+      "status": "PASS",
+      "detail": {
+        "deployTxt": "deployed_ref=2333b16 feat/incident-alerts-staging",
+        "commit": "2333b16"
+      }
+    },
+    {
+      "id": "a1",
+      "name": "per-vehicle alerts view of the reporting company shows its officer alert",
+      "status": "FAIL",
+      "detail": {
+        "company": "קיבוץ בארי",
+        "plate": "79002402",
+        "vehicleNextInspection": "2027-02-14",
+        "officerTextPresent": false
+      }
+    },
+    {
+      "id": "b0",
+      "name": "super admin selected the QA company in the scope picker",
+      "status": "FAIL",
+      "detail": {
+        "company": "QA-OWN-1786712084355",
+        "pickerFound": false
+      }
+    },
+    {
+      "id": "b1",
+      "name": "א. tri/semi +3 months → save → refresh → officer alert visible",
+      "status": "PASS",
+      "detail": {
+        "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
+        "visible": true
+      }
+    },
+    {
+      "id": "b2",
+      "name": "ב. tri/semi +6 months → save → refresh → officer alert visible",
+      "status": "PASS",
+      "detail": {
+        "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
+        "visible": true
+      }
+    },
+    {
+      "id": "b3",
+      "name": "ג. manual officer alert → save → refresh → visible",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "row": {
+          "alert_type": "officer",
+          "company_name": "QA-OWN-1786712084355",
+          "alert_date": "2026-10-01T06:00:00+00:00",
+          "user_id": "33194e64-fb67-4eda-96ef-3e3938a066ab",
+          "is_active": true
+        },
+        "visible": true
+      }
+    },
+    {
+      "id": "b4",
+      "name": "ד. manual free alert → save → refresh → visible",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "row": {
+          "alert_type": "free",
+          "company_name": "QA-OWN-1786712084355",
+          "alert_date": "2026-09-23T06:00:00+00:00",
+          "user_id": "33194e64-fb67-4eda-96ef-3e3938a066ab",
+          "is_active": true
+        },
+        "visible": true
+      }
+    },
+    {
+      "id": "b5",
+      "name": "ה. leaving the screen and re-entering keeps every alert, once each",
+      "status": "PASS",
+      "detail": {
+        "officerRowsForPlateA": 1,
+        "freeRows": 1
+      }
+    },
+    {
+      "id": "b6",
+      "name": "no Supabase failures during the whole flow",
+      "status": "PASS",
+      "detail": {
+        "supabaseFailures": [],
+        "consoleErrors": []
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "supabaseFailures": [],
+  "deployTxt": "deployed_ref=2333b16 feat/incident-alerts-staging",
+  "commit": "2333b16",
+  "cleanup": {
+    "ok": true,
+    "scope": "QA-OWN-1786712084355 + temporary QA users only"
+  },
+  "summary": {
+    "pass": 7,
+    "fail": 2
+  }
+}

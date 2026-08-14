@@ -151,6 +151,16 @@ export async function fetchCustomAlertLogEntries(filters?: {
 
   if (filters?.companyName) q = q.eq('company_name', filters.companyName);
 
+  // The vehicle / driver scope has to reach the query. Filtering only in memory
+  // let the row limit cut off alerts with a far-off date — the exact case of an
+  // officer alert dated at the next inspection — before the scope was applied.
+  const scopePatterns: string[] = [];
+  const plate = (filters?.vehiclePlate || '').replace(/[-\s]/g, '');
+  if (plate) scopePatterns.push(`description.ilike.%vplate:${plate}%`, `title.ilike.%${plate}%`);
+  if (filters?.vehicleId) scopePatterns.push(`description.ilike.%vid:${filters.vehicleId}%`);
+  if (filters?.driverId) scopePatterns.push(`description.ilike.%did:${filters.driverId}%`);
+  if (scopePatterns.length) q = q.or(scopePatterns.join(','));
+
   const { data, error } = await q;
   if (error) {
     console.error('[notificationLogService] custom_alerts', error);

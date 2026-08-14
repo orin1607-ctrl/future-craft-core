@@ -1,0 +1,196 @@
+{
+  "at": "2026-08-14T12:49:21.713Z",
+  "company": "קיבוץ בארי",
+  "consoleErrors": [],
+  "failedRequests": [],
+  "expectedAlerts": [
+    {
+      "title": "התראת קצין רכב · 54084103 · בעוד 30 ימים",
+      "alert_type": "service",
+      "alert_date": "2027-01-15T07:00:00+00:00",
+      "is_active": true,
+      "description": "vplate:54084103 vid:ead5b4e3-986b-427d-9f3e-eeba15cb4f75\n1 ליקויים\ntarget:2027-02-14"
+    },
+    {
+      "title": "התראת קצין רכב · 54084103 · בעוד 7 ימים",
+      "alert_type": "service",
+      "alert_date": "2027-02-07T07:00:00+00:00",
+      "is_active": true,
+      "description": "vplate:54084103 vid:ead5b4e3-986b-427d-9f3e-eeba15cb4f75\n1 ליקויים\ntarget:2027-02-14"
+    },
+    {
+      "title": "התראת קצין רכב · 54084103 · מחר",
+      "alert_type": "service",
+      "alert_date": "2027-02-13T07:00:00+00:00",
+      "is_active": true,
+      "description": "vplate:54084103 vid:ead5b4e3-986b-427d-9f3e-eeba15cb4f75\n1 ליקויים\ntarget:2027-02-14"
+    },
+    {
+      "title": "התראת קצין רכב · 54084103",
+      "alert_type": "officer",
+      "alert_date": "2027-02-14T07:00:00+00:00",
+      "is_active": true,
+      "description": "vplate:54084103 vid:ead5b4e3-986b-427d-9f3e-eeba15cb4f75\n1 ליקויים\ntarget:2027-02-14"
+    },
+    {
+      "title": "התראת קצין רכב · 54084103",
+      "alert_type": "officer",
+      "alert_date": "2026-08-30T06:00:00+00:00",
+      "is_active": true,
+      "description": "vplate:54084103 vid:ead5b4e3-986b-427d-9f3e-eeba15cb4f75\nבדיקה חשה לטיפול בקגב"
+    },
+    {
+      "title": "התראת קצין רכב · 575",
+      "alert_type": "officer",
+      "alert_date": "2026-08-25T06:00:00+00:00",
+      "is_active": true,
+      "description": "vplate:575 vid:2a4bb272-c7c9-4b90-b8a2-82ba213777ba\nבדיקה 75"
+    },
+    {
+      "title": "התראת קצין רכב · 79002402 · מחר",
+      "alert_type": "service",
+      "alert_date": "2027-02-13T07:00:00+00:00",
+      "is_active": true,
+      "description": "vplate:79002402 vid:0f815324-ee0f-467a-928e-b9aa47105780\n1 ליקויים\ntarget:2027-02-14"
+    },
+    {
+      "title": "התראת קצין רכב · 79002402 · בעוד 30 ימים",
+      "alert_type": "service",
+      "alert_date": "2027-01-15T07:00:00+00:00",
+      "is_active": true,
+      "description": "vplate:79002402 vid:0f815324-ee0f-467a-928e-b9aa47105780\n1 ליקויים\ntarget:2027-02-14"
+    },
+    {
+      "title": "התראת קצין רכב · 79002402 · בעוד 7 ימים",
+      "alert_type": "service",
+      "alert_date": "2027-02-07T07:00:00+00:00",
+      "is_active": true,
+      "description": "vplate:79002402 vid:0f815324-ee0f-467a-928e-b9aa47105780\n1 ליקויים\ntarget:2027-02-14"
+    },
+    {
+      "title": "התראת קצין רכב · 79002402",
+      "alert_type": "officer",
+      "alert_date": "2027-02-14T07:00:00+00:00",
+      "is_active": true,
+      "description": "vplate:79002402 vid:0f815324-ee0f-467a-928e-b9aa47105780\n1 ליקויים\ntarget:2027-02-14"
+    }
+  ],
+  "inspections": {
+    "error": null,
+    "rows": [
+      {
+        "id": "82018fde-83ee-483f-81e9-102105ac4e8d",
+        "vehicle_id": "006206a7-9a9e-41ef-b5c7-e0f516823159",
+        "vehicle_plate": "54092003",
+        "inspection_date": "2026-08-14",
+        "next_due_date": "2027-02-14",
+        "company_name": "קיבוץ בארי"
+      },
+      {
+        "id": "1cc48c65-782e-48e6-b41e-d404ae0fa897",
+        "vehicle_id": "ead5b4e3-986b-427d-9f3e-eeba15cb4f75",
+        "vehicle_plate": "54084103",
+        "inspection_date": "2026-08-14",
+        "next_due_date": "2027-02-14",
+        "company_name": "קיבוץ בארי"
+      },
+      {
+        "id": "f23b209c-18d0-4ed7-aea6-09f980a2a26e",
+        "vehicle_id": "bced87a0-0a43-4058-a402-79994ef39343",
+        "vehicle_plate": "45954002",
+        "inspection_date": "2026-08-14",
+        "next_due_date": "2027-02-14",
+        "company_name": "קיבוץ בארי"
+      },
+      {
+        "id": "44c8048d-6de1-4d39-97df-e82a2d5bf47c",
+        "vehicle_id": "765a3aa8-650b-44c0-8d80-ae0259020291",
+        "vehicle_plate": "79001002",
+        "inspection_date": "2026-08-14",
+        "next_due_date": "2027-02-14",
+        "company_name": "קיבוץ בארי"
+      },
+      {
+        "id": "0f18f38c-71b3-46fb-b5a4-3acc40938b09",
+        "vehicle_id": "bced87a0-0a43-4058-a402-79994ef39343",
+        "vehicle_plate": "45954002",
+        "inspection_date": "2026-08-14",
+        "next_due_date": "2027-02-14",
+        "company_name": "קיבוץ בארי"
+      },
+      {
+        "id": "af709afc-ffdb-4092-9b20-61dde00c66ef",
+        "vehicle_id": "0f815324-ee0f-467a-928e-b9aa47105780",
+        "vehicle_plate": "79002402",
+        "inspection_date": "2026-08-14",
+        "next_due_date": "2027-02-14",
+        "company_name": "קיבוץ בארי"
+      },
+      {
+        "id": "6092a24d-0cd6-4da7-a60a-76d49910fec4",
+        "vehicle_id": "bced87a0-0a43-4058-a402-79994ef39343",
+        "vehicle_plate": "45954002",
+        "inspection_date": "2026-08-13",
+        "next_due_date": "2026-11-13",
+        "company_name": "קיבוץ בארי"
+      },
+      {
+        "id": "14f53800-f5b1-4388-a20d-81213288477c",
+        "vehicle_id": "226adf26-2671-496a-bc90-263a835f29dc",
+        "vehicle_plate": "48",
+        "inspection_date": "2026-05-11",
+        "next_due_date": null,
+        "company_name": "קיבוץ בארי"
+      },
+      {
+        "id": "5a343cc6-c118-4ce8-8616-16ce257f786a",
+        "vehicle_id": "4a0caec6-98e4-4fa8-b77c-c47a824a46ed",
+        "vehicle_plate": "69210903",
+        "inspection_date": "2026-04-15",
+        "next_due_date": null,
+        "company_name": "קיבוץ בארי"
+      }
+    ]
+  },
+  "companySettings": {
+    "company_name": "קיבוץ בארי",
+    "reminder_30_days": true,
+    "reminder_7_days": true,
+    "reminder_1_day": true
+  },
+  "vehicles": [],
+  "pickerFound": false,
+  "screenSaysAllClear": false,
+  "categoryButtons": [
+    "הכל (947)",
+    "התראת קצין רכב (240)",
+    "התראה חופשית (0)",
+    "טסט (308)",
+    "ביטוח חובה (320)",
+    "ביטוח מקיף (8)",
+    "רישיון נהיגה (36)",
+    "תקלה דחופה (16)",
+    "הזמנת שירות (11)",
+    "סידור עבודה (6)"
+  ],
+  "officerRowsVisible": 240,
+  "expectedTitlesFound": [
+    {
+      "title": "התראת קצין רכב · 54084103",
+      "visible": true
+    },
+    {
+      "title": "התראת קצין רכב · 54084103",
+      "visible": true
+    },
+    {
+      "title": "התראת קצין רכב · 575",
+      "visible": true
+    },
+    {
+      "title": "התראת קצין רכב · 79002402",
+      "visible": true
+    }
+  ],
+  "officerFilterRows": 240
+}
