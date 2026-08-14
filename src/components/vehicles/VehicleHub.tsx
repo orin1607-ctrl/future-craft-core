@@ -79,6 +79,8 @@ export interface VehicleHubVehicle {
   license_doc_url: string;
   insurance_doc_url: string;
   comprehensive_insurance_doc_url: string;
+  third_party_insurance_doc_url?: string | null;
+  third_party_insurance_expiry?: string | null;
   notes: string;
   show_notes_on_list?: boolean | null;
   management_type: string;
@@ -332,9 +334,11 @@ export default function VehicleHub({
       license_doc_url: v.license_doc_url,
       insurance_doc_url: v.insurance_doc_url,
       comprehensive_insurance_doc_url: v.comprehensive_insurance_doc_url,
+      third_party_insurance_doc_url: v.third_party_insurance_doc_url,
       test_expiry: v.test_expiry,
       insurance_expiry: v.insurance_expiry,
       comprehensive_insurance_expiry: v.comprehensive_insurance_expiry,
+      third_party_insurance_expiry: v.third_party_insurance_expiry,
     }, v.id)
       .then(setHubData)
       .finally(() => setLoading(false));
@@ -753,6 +757,30 @@ export default function VehicleHub({
                   }
                 >
                   העלה ביטוח חובה
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 font-bold"
+                  onClick={() =>
+                    navigate(
+                      `${buildVehicleContextUrl('/documents', { plate: v.license_plate, vehicleId: v.id })}&category=comprehensive`,
+                    )
+                  }
+                >
+                  העלה ביטוח מקיף
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 font-bold"
+                  onClick={() =>
+                    navigate(
+                      `${buildVehicleContextUrl('/documents', { plate: v.license_plate, vehicleId: v.id })}&category=third-party`,
+                    )
+                  }
+                >
+                  העלה ביטוח צד ג׳
                 </Button>
               </div>
             )}

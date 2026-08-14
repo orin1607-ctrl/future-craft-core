@@ -24,6 +24,7 @@ interface VehicleBasic {
   license_plate: string;
   manufacturer: string;
   model: string;
+  company_name: string;
 }
 
 const CHECKLIST_ITEMS = [...DEFAULT_INSPECTION_CHECKLIST];
@@ -53,7 +54,7 @@ export default function PrivateVehicleInspection() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    applyCompanyScope(supabase.from('vehicles').select('id, license_plate, manufacturer, model'), companyFilter)
+    applyCompanyScope(supabase.from('vehicles').select('id, license_plate, manufacturer, model, company_name'), companyFilter)
       .then(({ data }) => { if (data) setVehicles(data as VehicleBasic[]); });
   }, [companyFilter]);
 
@@ -156,6 +157,7 @@ export default function PrivateVehicleInspection() {
     }
 
     const plate = selectedVehicle?.license_plate || '';
+    const companyName = selectedVehicle?.company_name || user?.company_name || '';
     const incomingKm = parseOdometerKm(odometer);
     const vehiclePatch: Record<string, unknown> = { next_inspection_date: nextDueDate };
     if (incomingKm != null) {
@@ -164,13 +166,16 @@ export default function PrivateVehicleInspection() {
         vehiclePatch.odometer = incomingKm;
       }
     }
-    await supabase.from('vehicles').update(vehiclePatch).eq('id', vehicleId);
+    const { error: vehicleUpdateError } = await supabase.from('vehicles').update(vehiclePatch).eq('id', vehicleId);
+    if (vehicleUpdateError) {
+      toast.error(`הבדיקה נשמרה, אך מועד הבדיקה לא עודכן בכרטיס הרכב: ${vehicleUpdateError.message}`);
+    }
 
     if (selectedVehicle && user?.id) {
       await recordVehicleHubAction({
         vehicleId: contextVehicleId || vehicleId,
         vehiclePlate: plate,
-        companyName: user?.company_name || '',
+        companyName,
         action: 'בדיקה תלת/חצי',
         details: defects.length > 0 ? `${defects.length} ליקויים` : 'תקין',
         userId: user.id,
@@ -178,7 +183,7 @@ export default function PrivateVehicleInspection() {
       });
       const officer = await createOfficerInspectionAlert({
         userId: user.id,
-        companyName: user?.company_name || '',
+        companyName,
         vehiclePlate: plate,
         vehicleId: contextVehicleId || vehicleId,
         nextDueDate,
@@ -188,7 +193,7 @@ export default function PrivateVehicleInspection() {
       else toast.success('נוצרה התראת קצין רכב למועד הבא');
       await createTargetDateAlerts({
         userId: user.id,
-        companyName: user?.company_name || '',
+        companyName,
         vehiclePlate: plate,
         vehicleId: contextVehicleId || vehicleId,
         actionLabel: 'התראת קצין רכב',

@@ -138,9 +138,11 @@ export async function loadVehicleHubData(
     license_doc_url?: string | null;
     insurance_doc_url?: string | null;
     comprehensive_insurance_doc_url?: string | null;
+    third_party_insurance_doc_url?: string | null;
     test_expiry?: string | null;
     insurance_expiry?: string | null;
     comprehensive_insurance_expiry?: string | null;
+    third_party_insurance_expiry?: string | null;
   },
   vehicleId?: string,
 ): Promise<VehicleHubData> {
@@ -330,6 +332,14 @@ export async function loadVehicleHubData(
     'פוליסת ביטוח מקיף',
     vehicleDocs.comprehensive_insurance_doc_url,
     vehicleDocs.comprehensive_insurance_expiry,
+  );
+  pushUrlDoc(
+    'third-party',
+    'third-party',
+    'צד ג׳',
+    'פוליסת ביטוח צד ג׳',
+    vehicleDocs.third_party_insurance_doc_url,
+    vehicleDocs.third_party_insurance_expiry,
   );
 
   metadataRows.forEach((d: Record<string, string>, idx: number) => {

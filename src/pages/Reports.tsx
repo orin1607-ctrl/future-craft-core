@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart3, Car, Users, FileText, Wrench, AlertTriangle, Download, Filter,
   ChevronDown, ChevronUp, ShoppingCart, TrendingUp, Package, Mail, MessageSquare,
@@ -8,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
-import { normalizePlate } from '@/lib/entityNavContext';
+import { buildVehicleHubUrl, normalizePlate } from '@/lib/entityNavContext';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -56,7 +57,16 @@ const reportTypes = [
 ];
 
 const STANDARD_HEADERS = ['מס\' פנימי', 'מספר רכב', 'חברה / לקוח', 'נהג', 'סוג האירוע', 'תאריך', 'סטטוס'];
-const OFFICER_INSPECTION_HEADERS = ['מספר רכב', 'מס\' פנימי', 'סוג הביקורת', 'תאריך הביקורת', 'מועד הביקורת הבאה'];
+const OFFICER_INSPECTION_HEADERS = [
+  'מספר רכב',
+  'מס׳ פנימי',
+  'סוג הביקורת',
+  'תאריך הביקורת',
+  'מועד הביקורת הבאה',
+  'סטטוס',
+  'קישור לביקורת',
+  'קישור לרכב',
+];
 const INSPECTION_SELECT = 'id,vehicle_id,vehicle_plate,inspection_type,inspection_date,next_due_date,overall_status,company_name';
 
 function inspectionTypeLabel(t: string | null | undefined): string {
@@ -94,6 +104,9 @@ function statusLabel(s: string | null | undefined): string {
   if (s === 'inactive' || s === 'archived') return 'לא פעיל';
   if (s === 'in_service') return 'בטיפול';
   if (s === 'closed') return 'סגור';
+  if (s === 'passed') return 'תקין';
+  if (s === 'failed') return 'ליקויים';
+  if (s === 'pending') return 'ממתין';
   if (s === 'new' || s === 'open') return 'פתוח';
   if (s === 'in_progress') return 'בתהליך';
   return s;
@@ -101,6 +114,7 @@ function statusLabel(s: string | null | undefined): string {
 
 export default function Reports() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const companyFilter = useCompanyFilter();
   const [raw, setRaw] = useState<RawData>({
     vehicles: [], drivers: [], faults: [], accidents: [], expenses: [], serviceOrders: [], supplierOrders: [], inspections: [],
@@ -192,6 +206,7 @@ export default function Reports() {
     raw.accidents.forEach(a => a.status && set.add(a.status));
     raw.serviceOrders.forEach(s => s.treatment_status && set.add(s.treatment_status));
     raw.vehicles.forEach(v => v.status && set.add(v.status));
+    raw.inspections.forEach(i => i.overall_status && set.add(i.overall_status));
     return [...set].sort();
   }, [raw]);
 
@@ -213,10 +228,29 @@ export default function Reports() {
     });
     return map;
   }, [raw.vehicles]);
+  const plateToVehicleId = useMemo(() => {
+    const map: Record<string, string> = {};
+    raw.vehicles.forEach(v => {
+      if (!v.license_plate || !v.id) return;
+      map[v.license_plate] = v.id;
+      map[normalizePlate(v.license_plate)] = v.id;
+    });
+    return map;
+  }, [raw.vehicles]);
   const getInternal = (plate: string | null | undefined) =>
     plate ? (plateToInternal[plate] || plateToInternal[normalizePlate(plate)] || '-') : '-';
   const getCompanyForPlate = (plate: string | null | undefined, fallback?: string | null) =>
     fallback || (plate ? plateToCompany[plate] : '') || '-';
+  const getVehicleId = (plate: string | null | undefined, fallback?: string | null) =>
+    fallback || (plate ? plateToVehicleId[plate] || plateToVehicleId[normalizePlate(plate)] : '') || '';
+  const inspectionPath = (inspection: any) => {
+    const vehicleId = getVehicleId(inspection.vehicle_plate, inspection.vehicle_id);
+    const query = new URLSearchParams({ inspectionId: inspection.id });
+    if (inspection.vehicle_plate) query.set('plate', inspection.vehicle_plate);
+    if (vehicleId) query.set('vehicleId', vehicleId);
+    query.set('context', 'vehicle');
+    return `/vehicle-inspections?${query.toString()}`;
+  };
 
   const driverById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -446,9 +480,9 @@ export default function Reports() {
 
   const exportCSV = () => {
     const rows: string[][] = [];
-    const pushBlock = (title: string, dataRows: string[][]) => {
+    const pushBlock = (title: string, dataRows: string[][], headers = STANDARD_HEADERS) => {
       rows.push([`--- ${title} ---`]);
-      rows.push(STANDARD_HEADERS);
+      rows.push(headers);
       dataRows.forEach(r => rows.push(r));
       rows.push([]);
     };
@@ -476,18 +510,23 @@ export default function Reports() {
       })));
     }
     if (showReport('ops_officer_inspections')) {
-      rows.push(['--- ביקורות קצין רכב ---']);
-      rows.push(OFFICER_INSPECTION_HEADERS);
-      filtered.inspections.forEach(i => {
-        rows.push([
+      pushBlock(
+        'ביקורות קצין רכב',
+        filtered.inspections.map(i => {
+          const vehicleId = getVehicleId(i.vehicle_plate, i.vehicle_id);
+          return [
           i.vehicle_plate || '-',
           getInternal(i.vehicle_plate),
           inspectionTypeLabel(i.inspection_type),
           fmtDate(i.inspection_date),
           i.next_due_date ? fmtDate(i.next_due_date) : '—',
-        ]);
-      });
-      rows.push([]);
+          statusLabel(i.overall_status),
+          inspectionPath(i),
+          vehicleId ? buildVehicleHubUrl(vehicleId) : '—',
+          ];
+        }),
+        OFFICER_INSPECTION_HEADERS,
+      );
     }
     if (showReport('ops_insurance')) {
       pushBlock('ביטוחים לחידוש', insuranceInPeriod.map(e => standardRow({
@@ -517,14 +556,72 @@ export default function Reports() {
         status: statusLabel(d.status),
       })));
     }
+    if (showReport('expenses')) {
+      pushBlock(
+        'הוצאות לפי תקופה',
+        filtered.expenses.map(e => [
+          getInternal(e.vehicle_plate),
+          e.vehicle_plate || '-',
+          e.company_name || '-',
+          e.driver_name || '-',
+          e.category || '-',
+          fmtDate(e.date),
+          e.vendor || '-',
+          String(e.amount || 0),
+          e.invoice_number || '-',
+        ]),
+        ['מס׳ פנימי', 'מספר רכב', 'חברה / לקוח', 'נהג', 'קטגוריה', 'תאריך', 'ספק', 'סכום', 'מספר חשבונית'],
+      );
+    }
+    if (showReport('service_orders')) {
+      pushBlock('הזמנות', filtered.serviceOrders.map(s => standardRow({
+        internal: getInternal(s.vehicle_plate),
+        plate: s.vehicle_plate,
+        company: getCompanyForPlate(s.vehicle_plate, s.company_name),
+        driver: s.driver_name,
+        eventType: s.service_category || 'הזמנת שירות',
+        date: fmtDate(s.service_date || s.created_at),
+        status: statusLabel(s.treatment_status),
+      })));
+    }
+    if (showReport('profit_loss')) {
+      pushBlock(
+        'רווח והפסד',
+        [
+          ['הוצאות', String(totalExpenses)],
+          ['עלות תאונות', String(totalAccidentCost)],
+          ['סה״כ עלויות', String(totalExpenses + totalAccidentCost)],
+        ],
+        ['מדד', 'סכום'],
+      );
+    }
+    if (showReport('vendors')) {
+      pushBlock(
+        'סיכום לפי ספקים',
+        vendorSummary.map(([name, data]) => [
+          name,
+          String(data.count),
+          String(data.workOrders),
+          String(data.total),
+        ]),
+        ['ספק', 'מספר רשומות', 'הזמנות ספק', 'סה״כ'],
+      );
+    }
 
     if (rows.length === 0) rows.push(['אין נתונים להצגה']);
-    const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\n');
+    const escapeCsv = (value: string) => {
+      const raw = String(value ?? '');
+      const text = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const csv = '\uFEFF' + rows.map(r => r.map(escapeCsv).join(',')).join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `דוח_דליה_${new Date().toLocaleDateString('he-IL')}.csv`;
+    const objectUrl = URL.createObjectURL(blob);
+    link.href = objectUrl;
+    link.download = `דוח_דליה_${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
   };
 
   const shareViaWhatsApp = () => {
@@ -844,12 +941,32 @@ export default function Reports() {
                 </p>
                 <DetailTable
                   headers={OFFICER_INSPECTION_HEADERS}
+                  internalColumnIndex={1}
                   rows={filtered.inspections.map(i => [
                     i.vehicle_plate || '-',
                     getInternal(i.vehicle_plate) || '—',
                     inspectionTypeLabel(i.inspection_type),
                     fmtDate(i.inspection_date),
                     i.next_due_date ? fmtDate(i.next_due_date) : '—',
+                    statusLabel(i.overall_status),
+                    <button
+                      key={`inspection-${i.id}`}
+                      type="button"
+                      className="font-bold text-primary underline"
+                      onClick={() => navigate(inspectionPath(i))}
+                    >
+                      פתח ביקורת
+                    </button>,
+                    getVehicleId(i.vehicle_plate, i.vehicle_id) ? (
+                      <button
+                        key={`vehicle-${i.id}`}
+                        type="button"
+                        className="font-bold text-primary underline"
+                        onClick={() => navigate(buildVehicleHubUrl(getVehicleId(i.vehicle_plate, i.vehicle_id)))}
+                      >
+                        פתח רכב
+                      </button>
+                    ) : '—',
                   ])}
                 />
               </>
@@ -1253,7 +1370,15 @@ function ReportCard({ title, icon: Icon, color, stats, expanded }: {
   );
 }
 
-function DetailTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+function DetailTable({
+  headers,
+  rows,
+  internalColumnIndex = 0,
+}: {
+  headers: string[];
+  rows: React.ReactNode[][];
+  internalColumnIndex?: number;
+}) {
   if (rows.length === 0) {
     return (
       <div className="card-elevated -mt-2 border-t-2 border-primary/20 p-4 text-center text-muted-foreground animate-fade-in">
@@ -1276,7 +1401,9 @@ function DetailTable({ headers, rows }: { headers: string[]; rows: string[][] })
             <tr key={i} className="border-b border-border/50 hover:bg-muted/40">
               {row.map((cell, j) => (
                 <td key={j} className="p-3 whitespace-nowrap">
-                  {j === 0 && cell !== '-' ? <InternalNumber value={cell} className="text-sm" /> : cell}
+                  {j === internalColumnIndex && typeof cell === 'string' && cell !== '-' && cell !== '—'
+                    ? <InternalNumber value={cell} className="text-sm" />
+                    : cell}
                 </td>
               ))}
             </tr>

@@ -219,10 +219,14 @@ export async function createOfficerInspectionAlert(params: {
     .select('id, description, alert_type, title')
     .eq('company_name', params.companyName)
     .eq('is_active', true)
-    .eq('alert_type', OFFICER_ALERT_TYPE);
+    .in('alert_type', [OFFICER_ALERT_TYPE, 'service']);
   const staleIds = (prev.data || [])
     .filter((row) => {
       const blob = `${row.title || ''}\n${row.description || ''}`;
+      const officerLike =
+        row.alert_type === OFFICER_ALERT_TYPE ||
+        String(row.title || '').includes(OFFICER_ALERT_LABEL);
+      if (!officerLike) return false;
       const plate = plateFromAlertText(blob);
       const vid = vehicleIdFromAlertText(blob);
       return (

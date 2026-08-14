@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { buildVehicleContextUrl, buildVehicleHubUrl, buildFaultDetailUrl, buildVehicleTaskDetailUrl, buildServiceOrderDetailUrl } from '@/lib/entityNavContext';
@@ -18,8 +18,10 @@ import {
   FREE_ALERT_TYPE,
   OFFICER_ALERT_LABEL,
   OFFICER_ALERT_TYPE,
+  driverIdFromAlertText,
   driverNameFromAlertText,
   plateFromAlertText,
+  vehicleIdFromAlertText,
 } from '@/lib/vehicleActionFollowUp';
 import { normalizePlate } from '@/lib/entityNavContext';
 import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, ClipboardList as LogIcon } from 'lucide-react';
@@ -117,6 +119,13 @@ function getInsuranceSeverity(daysLeft: number | null, redOn: boolean): AlertSev
   return getSeverity(daysLeft);
 }
 
+function statusLabelForInspection(status: string | null | undefined): string {
+  if (status === 'passed') return 'תקין';
+  if (status === 'failed') return 'ליקויים';
+  if (status === 'pending') return 'ממתין';
+  return status || 'ללא סטטוס';
+}
+
 // ─── Updates (System Logs) Types ───
 interface LogEntry {
   id: string;
@@ -148,6 +157,7 @@ const ENTITY_LABELS: Record<string, string> = {
 export default function Alerts() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const companyFilter = useCompanyFilter();
   const isSuperAdmin = user?.role === 'super_admin';
 
@@ -172,6 +182,11 @@ export default function Alerts() {
   useEffect(() => {
     if (user) loadAlerts();
   }, [user, companyFilter]);
+
+  useEffect(() => {
+    const requested = searchParams.get('category');
+    if (requested === 'free' || requested === 'officer') setAlertFilter(requested);
+  }, [searchParams]);
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -344,6 +359,56 @@ export default function Alerts() {
       setInternalNumbers([]);
     }
 
+    // The inspection row is the source of truth for the officer workflow.
+    // Read it directly as a fallback so a saved tri/semi inspection remains visible
+    // even if a legacy vehicle row did not receive next_inspection_date.
+    const { data: officerInspections } = await applyCompanyScope(
+      supabase
+        .from('vehicle_inspections')
+        .select('id, vehicle_id, vehicle_plate, inspection_date, next_due_date, overall_status, company_name')
+        .not('next_due_date', 'is', null)
+        .order('inspection_date', { ascending: false }),
+      companyFilter,
+    );
+    const latestOfficerByVehicle = new Map<string, any>();
+    (officerInspections || []).forEach((inspection) => {
+      const key = inspection.vehicle_id || normalizePlate(inspection.vehicle_plate || '');
+      if (key && !latestOfficerByVehicle.has(key)) latestOfficerByVehicle.set(key, inspection);
+    });
+    const officerSeenFromVehicles = new Set(
+      allAlerts
+        .filter((a) => a.category === 'officer' && a.vehiclePlate && a.date)
+        .map((a) => `${normalizePlate(a.vehiclePlate || '')}|${String(a.date).slice(0, 10)}`),
+    );
+    latestOfficerByVehicle.forEach((inspection) => {
+      const days = getDaysLeft(inspection.next_due_date);
+      if (days === null || days < 0) return;
+      const plate = inspection.vehicle_plate || '';
+      const key = `${normalizePlate(plate)}|${String(inspection.next_due_date).slice(0, 10)}`;
+      if (officerSeenFromVehicles.has(key)) return;
+      officerSeenFromVehicles.add(key);
+      const query = new URLSearchParams({ inspectionId: inspection.id, context: 'vehicle' });
+      if (plate) query.set('plate', plate);
+      if (inspection.vehicle_id) query.set('vehicleId', inspection.vehicle_id);
+      allAlerts.push({
+        id: `officer-inspection-${inspection.id}`,
+        category: 'officer',
+        severity: days <= 14 ? 'warning' : 'info',
+        title: `${OFFICER_ALERT_LABEL} · ${plate}`.trim(),
+        subtitle: [
+          plate ? `רכב ${plate}` : 'ביקורת רכב',
+          days > 30 ? 'עתידית' : 'קרובה',
+          days > 30 ? `בעוד ${days} ימים` : undefined,
+        ].filter(Boolean).join(' • '),
+        internalNumber: internalForPlate(plate),
+        vehiclePlate: plate || null,
+        daysLeft: days,
+        date: inspection.next_due_date,
+        meta: `מועד ביקורת: ${inspection.inspection_date || '—'} · ${statusLabelForInspection(inspection.overall_status)}`,
+        link: `/vehicle-inspections?${query.toString()}`,
+      });
+    });
+
     // 2. Driver license expiries (current + future, expired → history only)
     const { data: drivers } = await applyCompanyScope(supabase.from('drivers').select('*'), companyFilter);
     const driverThresholds = await thresholdForCompany(
@@ -506,7 +571,10 @@ export default function Alerts() {
         const daysLeft = getDaysLeft(ca.alert_date);
         if (daysLeft === null || daysLeft < 0) continue;
         const plate = plateFromAlertText(ca.description) || plateFromAlertText(ca.title);
+        const customVehicleId =
+          vehicleIdFromAlertText(ca.description) || vehicleIdFromAlertText(ca.title);
         const driverName = driverNameFromAlertText(ca.description) || driverNameFromAlertText(ca.title);
+        const driverId = driverIdFromAlertText(ca.description) || driverIdFromAlertText(ca.title);
         const internalNumber = internalForPlate(plate);
         const timingLabel = daysLeft > 30 ? 'עתידית' : 'קרובה';
         const severity: AlertSeverity = daysLeft <= 14 ? 'warning' : 'info';
@@ -535,7 +603,14 @@ export default function Alerts() {
           daysLeft,
           date: ca.alert_date,
           meta: ca.description || undefined,
-          link: plate ? buildVehicleContextUrl('/vehicles', { plate }) : '/alerts',
+          link:
+            plate && customVehicleId
+              ? buildVehicleHubUrl(customVehicleId)
+              : plate
+                ? buildVehicleContextUrl('/vehicles', { plate })
+                : driverId
+                  ? `/drivers?driverId=${encodeURIComponent(driverId)}`
+                  : '/alerts',
         });
       }
     }
@@ -744,7 +819,9 @@ export default function Alerts() {
           <div className="flex gap-2 flex-wrap">
             {categories.map(cat => {
               const count = cat === 'all' ? alertsForEntity.length : alertsForEntity.filter(a => a.category === cat).length;
-              if (cat !== 'all' && count === 0) return null;
+              // Officer/free are user workflows, so keep their filters discoverable
+              // even before the first alert exists.
+              if (cat !== 'all' && cat !== 'officer' && cat !== 'free' && count === 0) return null;
               return (
                 <button key={cat} onClick={() => setAlertFilter(cat)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${alertFilter === cat ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>

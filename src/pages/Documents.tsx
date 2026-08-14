@@ -26,6 +26,7 @@ const vehicleDocs: DocCategory[] = [
   { key: 'vehicle-license', label: 'רישיונות רכב', icon: '🚗', folder: 'vehicle-license', scope: 'vehicle' },
   { key: 'insurance', label: 'ביטוח חובה', icon: '🛡️', folder: 'insurance', scope: 'vehicle' },
   { key: 'comprehensive', label: 'ביטוח מקיף', icon: '📋', folder: 'comprehensive', scope: 'vehicle' },
+  { key: 'third-party', label: 'ביטוח צד ג׳', icon: '📄', folder: 'third-party', scope: 'vehicle' },
   { key: 'test', label: 'טסט', icon: '✅', folder: 'test', scope: 'vehicle' },
 ];
 
@@ -206,14 +207,46 @@ export default function Documents() {
   }, [searchParams]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length || !selectedCategory || !companyName || !user?.id) return;
+    if (!e.target.files?.length || !selectedCategory || !user?.id) return;
     const file = e.target.files[0];
+    let targetVehicle: {
+      id: string;
+      license_plate: string;
+      company_name: string;
+      manufacturer: string | null;
+      model: string | null;
+    } | null = null;
+    if (selectedCategory.scope === 'vehicle') {
+      let query = supabase
+        .from('vehicles')
+        .select('id, license_plate, company_name, manufacturer, model');
+      if (contextVehicleId) {
+        query = query.eq('id', contextVehicleId);
+      } else {
+        const requestedPlate = (uploadVehicle || contextPlate || '').trim();
+        const norm = requestedPlate.replace(/[-\s]/g, '');
+        query = query.or(`license_plate.eq.${requestedPlate},license_plate.eq.${norm}`);
+      }
+      const { data } = await query.maybeSingle();
+      targetVehicle = data;
+    }
+    const targetCompanyName =
+      targetVehicle?.company_name || (typeof companyFilter === 'string' ? companyFilter : '') || companyName;
+    if (!targetCompanyName) {
+      toast.error('לא נמצאה חברת הרכב עבור המסמך');
+      e.target.value = '';
+      return;
+    }
+    const plateForUpload = (
+      targetVehicle?.license_plate ||
+      (vehicleScoped && contextPlate ? contextPlate : uploadVehicle || contextPlate || '')
+    ).trim();
 
-    const fieldOverrides = await fetchRequiredFieldsOverrides(companyName);
+    const fieldOverrides = await fetchRequiredFieldsOverrides(targetCompanyName);
     const docValues: Record<string, string> = {
       name: file.name,
       category: selectedCategory.key,
-      vehicle_plate: uploadVehicle || contextPlate || '',
+      vehicle_plate: plateForUpload,
       file_url: file.name,
       notes: '',
     };
@@ -225,16 +258,15 @@ export default function Documents() {
     }
 
     setUploading(true);
-    const plateForUpload = (vehicleScoped && contextPlate ? contextPlate : uploadVehicle || contextPlate || '').trim();
     const result = await uploadDocument({
       file,
       storageFolder: selectedCategory.folder,
       category: selectedCategory.key,
-      companyName,
+      companyName: targetCompanyName,
       vehiclePlate: plateForUpload,
       driverName: uploadDriver,
-      manufacturer: uploadManufacturer,
-      model: uploadModel,
+      manufacturer: targetVehicle?.manufacturer || uploadManufacturer,
+      model: targetVehicle?.model || uploadModel,
     });
 
     if (!result.ok) {
@@ -246,7 +278,7 @@ export default function Documents() {
 
     if (result.publicUrl) {
       const plate = plateForUpload || contextPlate || '';
-      let vehicleId = contextVehicleId || '';
+      let vehicleId = targetVehicle?.id || contextVehicleId || '';
       if (!vehicleId && plate) {
         const norm = plate.replace(/[-\s]/g, '');
         const { data: veh } = await supabase
@@ -261,6 +293,7 @@ export default function Documents() {
         if (selectedCategory.key === 'vehicle-license') patch.license_doc_url = result.publicUrl;
         if (selectedCategory.key === 'insurance') patch.insurance_doc_url = result.publicUrl;
         if (selectedCategory.key === 'comprehensive') patch.comprehensive_insurance_doc_url = result.publicUrl;
+        if (selectedCategory.key === 'third-party') patch.third_party_insurance_doc_url = result.publicUrl;
         if (Object.keys(patch).length) {
           await supabase.from('vehicles').update(patch).eq('id', vehicleId);
         }
@@ -272,7 +305,7 @@ export default function Documents() {
       await recordVehicleHubAction({
         vehicleId: contextVehicleId,
         vehiclePlate: plateForLog,
-        companyName: companyName,
+        companyName: targetCompanyName,
         action: 'העלאת מסמך',
         details: `${selectedCategory.label}: ${file.name}`,
         userId: user?.id,

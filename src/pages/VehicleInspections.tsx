@@ -8,6 +8,7 @@ import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/li
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { validateTaskFields } from '@/lib/taskFieldValidation';
+import { useSearchParams } from 'react-router-dom';
 
 interface InspectionRow {
   id: string;
@@ -15,6 +16,7 @@ interface InspectionRow {
   vehicle_plate: string;
   inspection_type: string;
   inspection_date: string;
+  next_due_date?: string | null;
   inspector_name: string;
   overall_status: string;
   notes: string;
@@ -48,6 +50,7 @@ type ViewMode = 'list' | 'form' | 'detail';
 export default function VehicleInspections() {
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const [searchParams] = useSearchParams();
   const { plate: contextPlate, vehicleId: contextVehicleId, action: contextAction, locked } = useVehicleUrlContext();
   const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const [inspections, setInspections] = useState<InspectionRow[]>([]);
@@ -70,7 +73,17 @@ export default function VehicleInspections() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [companyFilter]);
+
+  useEffect(() => {
+    const inspectionId = searchParams.get('inspectionId');
+    if (!inspectionId || loading) return;
+    const inspection = inspections.find((row) => row.id === inspectionId);
+    if (inspection) {
+      setSelectedInspection(inspection);
+      setViewMode('detail');
+    }
+  }, [searchParams, inspections, loading]);
 
   useEffect(() => {
     if (contextPlate) setSearch(contextPlate);
@@ -377,8 +390,10 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
         </div>
         <div className="grid grid-cols-2 gap-4 text-lg">
           <div><span className="text-muted-foreground text-sm">תאריך</span><p className="font-bold">{new Date(inspection.inspection_date).toLocaleDateString('he-IL')}</p></div>
+          <div><span className="text-muted-foreground text-sm">מועד בדיקה הבאה</span><p className="font-bold">{inspection.next_due_date ? new Date(inspection.next_due_date).toLocaleDateString('he-IL') : '—'}</p></div>
           <div><span className="text-muted-foreground text-sm">בודק</span><p className="font-bold">{inspection.inspector_name || '—'}</p></div>
           <div><span className="text-muted-foreground text-sm">סוג</span><p className="font-bold">{
+            inspection.inspection_type === 'tri_semi_annual' ? 'תלת/חצי שנתית' :
             inspection.inspection_type === 'semi_annual' ? 'חצי שנתי' :
             inspection.inspection_type === 'quarterly' ? 'רבעוני' :
             inspection.inspection_type === 'monthly' ? 'חודשי' : 'מיוחד'

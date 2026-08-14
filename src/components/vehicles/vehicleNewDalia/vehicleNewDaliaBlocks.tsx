@@ -172,9 +172,11 @@ function inferLinkField(textName: string): string | undefined {
 }
 
 function inferDocCategory(textName: string): string {
-  if (textName.includes('insurance') || textName.includes('license') || textName.includes('test')) {
-    return 'vehicle_docs';
-  }
+  if (textName === 'license_file_name') return 'vehicle-license';
+  if (textName === 'mandatory_insurance_file_name') return 'insurance';
+  if (textName === 'comprehensive_insurance_file_name') return 'comprehensive';
+  if (textName === 'third_party_insurance_file_name') return 'third-party';
+  if (textName === 'test_file_name') return 'test';
   return 'vehicle_docs';
 }
 
@@ -204,7 +206,7 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
       file,
       storageFolder: `vehicles/${plate}`,
       category: inferDocCategory(textName),
-      companyName: user.company_name || '',
+      companyName: form.getValue('company_name') || user.company_name || '',
       vehiclePlate: plate,
       manufacturer: form.getValue('manufacturer'),
       model: form.getValue('model'),
