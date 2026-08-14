@@ -54,6 +54,14 @@ const wait = async (page, ms = 1700) => {
   await page.waitForLoadState('networkidle').catch(() => null);
 };
 const compact = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+const displayDate = (value) => {
+  const date = new Date(value);
+  return [
+    String(date.getDate()).padStart(2, '0'),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    date.getFullYear(),
+  ].join('/');
+};
 
 async function makeContext(browser, session, device) {
   const desktop = device === 'desktop';
@@ -259,12 +267,14 @@ try {
       rec(
         `manual-${item.key}`,
         device,
-        `${item.type} saves and remains visible after refresh`,
+        `${item.type} saves, remains visible, and labels both dates`,
         !/שגיאה/.test(toast) &&
           row.data?.alert_type === item.key &&
           row.data?.company_name === company &&
           String(row.data?.alert_date || '').slice(0, 10) === dueDate &&
-          visible,
+          visible &&
+          logText.includes(`מועד ההתראה: ${displayDate(dueDate)}`) &&
+          logText.includes('נוצרה:'),
         {
           toast,
           dueDate,
@@ -277,10 +287,10 @@ try {
         },
       );
       if (device === 'desktop' && item.key === 'officer') {
-        await pages[device].screenshot({ path: join(OUT, 'before-desktop-future.png'), fullPage: true }).catch(() => null);
+        await pages[device].screenshot({ path: join(OUT, 'after-desktop-future.png'), fullPage: true }).catch(() => null);
       }
       if (device === 'mobile' && item.key === 'officer') {
-        await pages[device].screenshot({ path: join(OUT, 'before-mobile-future.png'), fullPage: true }).catch(() => null);
+        await pages[device].screenshot({ path: join(OUT, 'after-mobile-future.png'), fullPage: true }).catch(() => null);
       }
     }
   }
@@ -305,10 +315,12 @@ try {
     await card.waitFor({ state: 'visible', timeout: 15000 }).catch(() => null);
     const text = compact(await card.innerText().catch(() => ''));
     rec(
-      'history-date-before',
+      'history-dates',
       device,
-      'history retains the row but currently does not label both dates',
-      text.includes(historyTitle),
+      'history retains and labels the scheduled and creation dates separately',
+      text.includes(historyTitle) &&
+        text.includes(`מועד ההתראה: ${displayDate(historyRow.data.alert_date)}`) &&
+        text.includes('נוצרה:'),
       {
         text,
         createdAt: historyRow.data.created_at,
@@ -351,5 +363,5 @@ try {
 }
 
 report.summary = { pass, fail };
-writeFileSync(join(OUT, 'before-report.json'), JSON.stringify(report, null, 2), 'utf8');
+writeFileSync(join(OUT, 'after-report.json'), JSON.stringify(report, null, 2), 'utf8');
 console.log(`\nPASS ${pass} / FAIL ${fail}`);
