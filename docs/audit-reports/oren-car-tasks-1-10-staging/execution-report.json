@@ -1,0 +1,31 @@
+{
+  "at": "2026-08-13T19:52:00+03:00",
+  "branch": "feat/incident-alerts-staging",
+  "restoreHead": "c667595cc4799fc65d92c84fdcfa5fa992432d62",
+  "restorePath": "docs/audit-reports/oren-car-tasks-1-10-staging/restore-c667595",
+  "stagingDb": "usfeoerkpcafxxlyuldl",
+  "productionDeploy": false,
+  "hostingerTouched": false,
+  "productionSupabaseTouched": false,
+  "googleAppsScriptTouched": false,
+  "otherProjectsTouched": false,
+  "schema": {
+    "applied": true,
+    "file": "supabase/migrations/20260813190000_oren_car_tasks_1_10_staging.sql",
+    "columns": [
+      "vehicle_inspections.next_due_date",
+      "vehicles.show_notes_on_list",
+      "drivers.show_notes_on_list"
+    ],
+    "verify": {
+      "inspectionNextDueReadable": true,
+      "vehicleFlagReadable": true,
+      "driverFlagReadable": true
+    }
+  },
+  "unitTests": {
+    "orenCarTasks1to10.test.ts": "7 passed",
+    "notificationLogMock.test.ts": "6 passed"
+  },
+  "task11": "not started"
+}

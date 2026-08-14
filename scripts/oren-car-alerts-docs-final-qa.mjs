@@ -52,7 +52,7 @@ async function waitPage(page) {
 async function main() {
   const deployTxt = (await fetch(`${BASE}/STAGING-DEPLOY.txt?t=${Date.now()}`).then((r) => r.text())).trim();
   report.deployTxt = deployTxt;
-  const commit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+  const commit = execSync('git rev-parse --short=7 HEAD', { encoding: 'utf8' }).trim();
   report.commit = commit;
   rec('deploy', 'Pages serves the tested staging commit', deployTxt.includes(commit), { deployTxt, commit });
 

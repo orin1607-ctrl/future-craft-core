@@ -1,0 +1,196 @@
+{
+  "at": "2026-08-14T12:01:08.505Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "results": [
+    {
+      "id": "deploy",
+      "name": "Pages serves the tested staging commit",
+      "status": "PASS",
+      "detail": {
+        "deployTxt": "deployed_ref=4de68ae feat/incident-alerts-staging",
+        "commit": "4de68ae"
+      }
+    },
+    {
+      "id": "imp0",
+      "name": "super admin is viewing the system as the company fleet manager",
+      "status": "PASS",
+      "detail": {
+        "impersonating": true
+      }
+    },
+    {
+      "id": "imp1",
+      "name": "vehicle card → officer alert saves and appears in התראות ועדכונים",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "row": {
+          "alert_type": "officer",
+          "company_name": "QA-IMP-1786708875134",
+          "user_id": "22cdd72e-81f0-4055-a55b-55505b91578c",
+          "title": "IMP רכב קצין 1786708875134 · IA875134",
+          "is_active": true
+        },
+        "visible": true
+      }
+    },
+    {
+      "id": "imp2",
+      "name": "vehicle card → free alert saves and appears in התראות ועדכונים",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "row": {
+          "alert_type": "free",
+          "company_name": "QA-IMP-1786708875134",
+          "user_id": "22cdd72e-81f0-4055-a55b-55505b91578c",
+          "title": "IMP רכב חופשית 1786708875134 · IA875134",
+          "is_active": true
+        },
+        "visible": true
+      }
+    },
+    {
+      "id": "imp3",
+      "name": "driver card → free alert saves and appears in התראות ועדכונים",
+      "status": "PASS",
+      "detail": {
+        "toast": "ההתראה נוצרה בהצלחה",
+        "row": {
+          "alert_type": "free",
+          "company_name": "QA-IMP-1786708875134",
+          "user_id": "22cdd72e-81f0-4055-a55b-55505b91578c",
+          "title": "IMP נהג חופשית 1786708875134 · QA IMP Driver 1786708875134",
+          "is_active": true
+        },
+        "visible": true
+      }
+    },
+    {
+      "id": "imp4",
+      "name": "alerts log screen → officer and free alerts save and appear in התראות ועדכונים",
+      "status": "PASS",
+      "detail": {
+        "officerToast": "ההתראה נוצרה בהצלחה",
+        "freeToast": "ההתראה נוצרה בהצלחה",
+        "officerRow": {
+          "alert_type": "officer",
+          "company_name": "QA-IMP-1786708875134",
+          "user_id": "22cdd72e-81f0-4055-a55b-55505b91578c",
+          "title": "IMP יומן קצין 1786708875134 · IA875134",
+          "is_active": true
+        },
+        "freeRow": {
+          "alert_type": "free",
+          "company_name": "QA-IMP-1786708875134",
+          "user_id": "22cdd72e-81f0-4055-a55b-55505b91578c",
+          "title": "IMP יומן חופשית 1786708875134 · IA875134",
+          "is_active": true
+        }
+      }
+    },
+    {
+      "id": "imp5",
+      "name": "tri/semi +3 months creates an officer alert shown under התראת קצין רכב",
+      "status": "PASS",
+      "detail": {
+        "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
+        "row": {
+          "alert_type": "officer",
+          "company_name": "QA-IMP-1786708875134",
+          "user_id": "22cdd72e-81f0-4055-a55b-55505b91578c",
+          "title": "התראת קצין רכב · IA875134",
+          "alert_date": "2026-11-14T07:00:00+00:00"
+        },
+        "visible": true
+      }
+    },
+    {
+      "id": "imp6",
+      "name": "tri/semi +6 months officer alert is shown, dated beyond 30 days, and links to its vehicle",
+      "status": "PASS",
+      "detail": {
+        "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
+        "nextDue": "2027-02-14",
+        "daysAhead": 183,
+        "linkReachesVehicle": true
+      }
+    },
+    {
+      "id": "imp7",
+      "name": "officer filter shows officer alerts only and free filter shows free alerts only",
+      "status": "PASS",
+      "detail": {
+        "officerHasManualOfficer": true,
+        "officerHasTriSemi": true,
+        "officerLeaksFree": false,
+        "freeHasBoth": true,
+        "freeLeaksOfficer": false
+      }
+    },
+    {
+      "id": "imp8",
+      "name": "every alert survives refresh and re-entry with no duplicates",
+      "status": "PASS",
+      "detail": {
+        "officerCopies": 1,
+        "freeCopies": 1
+      }
+    },
+    {
+      "id": "imp9",
+      "name": "no Supabase failures and no application console errors during the alert flows",
+      "status": "PASS",
+      "detail": {
+        "supabaseFailures": [],
+        "otherFailedRequests": [
+          "404 https://orin1607-ctrl.github.io/future-craft-core/alerts/log?vehicleId=ce3ddb75-adb3-403b-a9cf-65ad1d6a53f8&plate=IA875134",
+          "404 https://orin1607-ctrl.github.io/future-craft-core/alerts/log?vehicleId=ce3ddb75-adb3-403b-a9cf-65ad1d6a53f8&plate=IA875134"
+        ],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 404 ()",
+          "Failed to load resource: the server responded with a status of 404 ()"
+        ]
+      }
+    },
+    {
+      "id": "imp10",
+      "name": "the company fleet manager also sees the alerts created while impersonated",
+      "status": "PASS",
+      "detail": {
+        "officer": true,
+        "free": true,
+        "triSemi": true
+      }
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "failedResponses": [
+    {
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/alerts/log?vehicleId=ce3ddb75-adb3-403b-a9cf-65ad1d6a53f8&plate=IA875134",
+      "status": 404,
+      "supabase": false,
+      "body": ""
+    },
+    {
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/alerts/log?vehicleId=ce3ddb75-adb3-403b-a9cf-65ad1d6a53f8&plate=IA875134",
+      "status": 404,
+      "supabase": false,
+      "body": ""
+    }
+  ],
+  "deployTxt": "deployed_ref=4de68ae feat/incident-alerts-staging",
+  "commit": "4de68ae",
+  "cleanup": {
+    "ok": true,
+    "scope": "QA-IMP-* only"
+  },
+  "summary": {
+    "pass": 12,
+    "fail": 0
+  }
+}

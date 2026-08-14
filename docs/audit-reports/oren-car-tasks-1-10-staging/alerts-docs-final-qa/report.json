@@ -1,5 +1,5 @@
 {
-  "at": "2026-08-14T11:16:24.755Z",
+  "at": "2026-08-14T12:07:21.622Z",
   "base": "https://orin1607-ctrl.github.io/future-craft-core",
   "results": [
     {
@@ -7,8 +7,8 @@
       "name": "Pages serves the tested staging commit",
       "status": "PASS",
       "detail": {
-        "deployTxt": "deployed_ref=594ad63 feat/incident-alerts-staging",
-        "commit": "594ad63"
+        "deployTxt": "deployed_ref=4de68ae feat/incident-alerts-staging",
+        "commit": "4de68ae"
       }
     },
     {
@@ -28,7 +28,7 @@
       "detail": {
         "toast": "נוצרה התראת קצין רכב למועד הבא | הבדיקה נשמרה – הרכב תקין",
         "nextDue": "2027-02-14",
-        "daysAhead": 184,
+        "daysAhead": 183,
         "plateVisible": true
       }
     },
@@ -40,9 +40,9 @@
         "toast": "ההתראה נוצרה בהצלחה",
         "row": {
           "alert_type": "officer",
-          "company_name": "QA-AD-A-1786706187284",
+          "company_name": "QA-AD-A-1786709244751",
           "alert_date": "2026-10-03T06:00:00+00:00",
-          "title": "QA קצין ידני 1786706187284 · AA187284"
+          "title": "QA קצין ידני 1786709244751 · AA244751"
         },
         "visible": true
       }
@@ -55,8 +55,8 @@
         "toast": "ההתראה נוצרה בהצלחה",
         "row": {
           "alert_type": "free",
-          "company_name": "QA-AD-A-1786706187284",
-          "title": "QA חופשית ידנית 1786706187284 · AA187284"
+          "company_name": "QA-AD-A-1786709244751",
+          "title": "QA חופשית ידנית 1786709244751 · AA244751"
         },
         "visible": true
       }
@@ -69,8 +69,8 @@
         "toast": "ההתראה נוצרה בהצלחה",
         "row": {
           "alert_type": "free",
-          "company_name": "QA-AD-A-1786706187284",
-          "title": "QA נהג חופשית 1786706187284 · QA Driver A 1786706187284"
+          "company_name": "QA-AD-A-1786709244751",
+          "title": "QA נהג חופשית 1786709244751 · QA Driver A 1786709244751"
         },
         "visible": true
       }
@@ -95,12 +95,12 @@
           "found": 1,
           "hasInput": 1,
           "toast": "הקובץ הועלה בהצלחה",
-          "url": "https://orin1607-ctrl.github.io/future-craft-core/documents?plate=AA187284&vehicleId=d29dfffd-99b1-4324-9386-e727391abe45&context=vehicle&category=vehicle-license"
+          "url": "https://orin1607-ctrl.github.io/future-craft-core/documents?plate=AA244751&vehicleId=2b3694a2-a2b6-4d02-b99e-411a7fd70bd8&context=vehicle&category=vehicle-license"
         },
         "listed": true,
-        "previewSrc": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/cc25cb7c-cab7-41be-8bfb-7e6860ec04ba/vehicle-license/1786706259923_qa-license.pdf",
+        "previewSrc": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/6f0d2455-e642-4cdb-a80d-25b978bf4ea8/vehicle-license/1786709317685_qa-license.pdf",
         "stored": {
-          "url": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/cc25cb7c-cab7-41be-8bfb-7e6860ec04ba/vehicle-license/1786706259923_qa-license.pdf",
+          "url": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/6f0d2455-e642-4cdb-a80d-25b978bf4ea8/vehicle-license/1786709317685_qa-license.pdf",
           "status": 200
         }
       }
@@ -114,12 +114,12 @@
           "found": 1,
           "hasInput": 1,
           "toast": "הקובץ הועלה בהצלחה",
-          "url": "https://orin1607-ctrl.github.io/future-craft-core/documents?plate=AA187284&vehicleId=d29dfffd-99b1-4324-9386-e727391abe45&context=vehicle&category=insurance"
+          "url": "https://orin1607-ctrl.github.io/future-craft-core/documents?plate=AA244751&vehicleId=2b3694a2-a2b6-4d02-b99e-411a7fd70bd8&context=vehicle&category=insurance"
         },
         "listed": true,
-        "previewSrc": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/cc25cb7c-cab7-41be-8bfb-7e6860ec04ba/insurance/1786706273236_qa-insurance.pdf",
+        "previewSrc": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/6f0d2455-e642-4cdb-a80d-25b978bf4ea8/insurance/1786709331118_qa-insurance.pdf",
         "stored": {
-          "url": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/cc25cb7c-cab7-41be-8bfb-7e6860ec04ba/insurance/1786706273236_qa-insurance.pdf",
+          "url": "https://usfeoerkpcafxxlyuldl.supabase.co/storage/v1/object/public/documents/6f0d2455-e642-4cdb-a80d-25b978bf4ea8/insurance/1786709331118_qa-insurance.pdf",
           "status": 200
         }
       }
@@ -151,7 +151,7 @@
       "detail": {
         "header": "מספר רכב,מס׳ פנימי,סוג הביקורת,תאריך הביקורת,מועד הביקורת הבאה,סטטוס,קישור לביקורת,קישור לרכב",
         "dataRows": 2,
-        "sample": "AA187284,31,תלת/חצי שנתית,14.8.2026,14.11.2026,תקין,/vehicle-inspections?inspectionId=d2d0ee46-cdbf-4a15-8ad7-de329ae3584d&plate=AA187284&vehicleId=d29dfffd-99b1-4324-9386-e727391abe45&context=vehicle"
+        "sample": "AA244751,31,תלת/חצי שנתית,14.8.2026,14.11.2026,תקין,/vehicle-inspections?inspectionId=3a666c84-1862-44b0-8e78-63fb28c65659&plate=AA244751&vehicleId=2b3694a2-a2b6-4d02-b99e-411a7fd70bd8&context=vehicle"
       }
     },
     {
@@ -183,8 +183,8 @@
     }
   ],
   "failedResponses": [],
-  "deployTxt": "deployed_ref=594ad63 feat/incident-alerts-staging",
-  "commit": "594ad63",
+  "deployTxt": "deployed_ref=4de68ae feat/incident-alerts-staging",
+  "commit": "4de68ae",
   "cleanup": {
     "ok": true,
     "scope": "QA-AD-* only"

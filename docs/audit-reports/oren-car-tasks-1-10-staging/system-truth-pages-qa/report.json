@@ -1,0 +1,421 @@
+{
+  "at": "2026-08-13T19:45:41.787Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "commit": "788efe4",
+  "beeriHardcoded": false,
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "productionSupabaseTouched": false,
+  "googleAppsScriptTouched": false,
+  "realClientDataChanged": false,
+  "tasks": {
+    "deploy": {
+      "checks": [
+        {
+          "name": "Published Pages is 788efe4 / current HEAD",
+          "ok": true,
+          "deployTxt": "deployed_ref=788efe4 feat/incident-alerts-staging",
+          "COMMIT": "788efe4"
+        },
+        {
+          "name": "Not Production URL",
+          "ok": true
+        },
+        {
+          "name": "Staging DB only",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t1": {
+      "checks": [
+        {
+          "name": "Vehicles list loads for company A FM",
+          "ok": true
+        },
+        {
+          "name": "Company B vehicle not mixed into A list",
+          "ok": true
+        },
+        {
+          "name": "Search 19 shows internal 19 vehicle",
+          "ok": true,
+          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA SYS FM A\n\nQA-SYS-A-1786650345645\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nניהול רכבים\nרשימות טיפול ובדיקה\nיבוא רכבים\nייצוא\nכל המחלקות\nOther-Dept\nQA-Dept\nכל הנהגים\nנהג SYS A 1786650345645\nהכל (4)\nפעיל (4)\nבטיפול (0)\nלא פעיל (0)\nארכיון (0)\n\nSysToyota Corolla\n\nSA345645 | 19 • 2020\n\nנהג: לא משויך\n\nפעיל\n50,000 ק\"מ\n\nSysKia Picanto\n\nSA345645C | 190 • 2020\n\nנהג: לא משויך\n\nפעיל\n40,000 ק\"מ\n\nSysFord Focus\n\nSA345645B | 119 • 2020\n\nנהג: לא משויך\n\nפעיל\n30,000 ק\"מ\n\nSysMazda 3\n\nSA345645"
+        },
+        {
+          "name": "019/119/190 can appear after exact 19",
+          "ok": true
+        },
+        {
+          "name": "Manufacturer search still works",
+          "ok": true
+        },
+        {
+          "name": "Plate search still works",
+          "ok": true
+        },
+        {
+          "name": "Department search still works",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t4": {
+      "checks": [
+        {
+          "name": "Test expiry alert visible (future >30)",
+          "ok": true
+        },
+        {
+          "name": "Insurance alert visible (current/near)",
+          "ok": true
+        },
+        {
+          "name": "Driver license alert visible",
+          "ok": true
+        },
+        {
+          "name": "Future/עתידית bucket present",
+          "ok": true
+        },
+        {
+          "name": "Expired test not in active list as live item",
+          "ok": true
+        },
+        {
+          "name": "Company B secret alert not visible to A",
+          "ok": true
+        },
+        {
+          "name": "Alerts page healthy",
+          "ok": true
+        },
+        {
+          "name": "Notification log shows expiry/officer/free sources",
+          "ok": true
+        },
+        {
+          "name": "Log does not leak company B",
+          "ok": true
+        },
+        {
+          "name": "Vehicle hub opens for correct plate",
+          "ok": true
+        },
+        {
+          "name": "Officer appears in central alerts",
+          "ok": true
+        },
+        {
+          "name": "Driver hub opens correct driver",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t9": {
+      "checks": [
+        {
+          "name": "Vehicle hub has add-alert CTA",
+          "ok": true
+        },
+        {
+          "name": "CreateAlertModal opens from vehicle",
+          "ok": true
+        },
+        {
+          "name": "Vehicle free alert still company-scoped",
+          "ok": true
+        },
+        {
+          "name": "Driver hub has add-alert CTA",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t5": {
+      "checks": [
+        {
+          "name": "Existing license/insurance links or labels on hub",
+          "ok": true
+        },
+        {
+          "name": "Hub does not invent other-company docs",
+          "ok": true
+        },
+        {
+          "name": "Documents screen opens in vehicle scope",
+          "ok": true
+        },
+        {
+          "name": "Documents screen scoped away from company B",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t6": {
+      "checks": [
+        {
+          "name": "Free-alert button visible on vehicle card",
+          "ok": true
+        },
+        {
+          "name": "Free alert save attempted from vehicle",
+          "ok": true
+        },
+        {
+          "name": "Free alert appears in central alerts after save+refresh",
+          "ok": true
+        },
+        {
+          "name": "Driver free alert can appear centrally",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t2": {
+      "checks": [
+        {
+          "name": "Tilta form opens",
+          "ok": true
+        },
+        {
+          "name": "+3 months button",
+          "ok": true
+        },
+        {
+          "name": "+6 months button",
+          "ok": true
+        },
+        {
+          "name": "Tilta save clicked",
+          "ok": true
+        },
+        {
+          "name": "next_inspection_date saved on vehicle",
+          "ok": true,
+          "value": "2026-11-13"
+        },
+        {
+          "name": "Inspection row exists for correct plate/company",
+          "ok": true,
+          "row": {
+            "id": "9a1e1841-df44-49d7-a90e-3f2be4f36bb2",
+            "vehicle_plate": "SA345645",
+            "inspection_type": "tri_semi_annual",
+            "inspection_date": "2026-08-13",
+            "next_due_date": "2026-11-13",
+            "company_name": "QA-SYS-A-1786650345645"
+          }
+        },
+        {
+          "name": "Officer alert visible after tilta+refresh",
+          "ok": true,
+          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA SYS FM A\n\nQA-SYS-A-1786650345645\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nהתראות ועדכונים\n\nטסט, ביטוח, רישיון, קצין רכב והתראה חופשית — אותה תמונה כמו «התראות ושליחות». פגות תוקף בהיסטוריה בלבד.\n\nהתראות\n10\nהתראות ושליחות\nעדכונים\nמספר רכב\nהכל / הקלידו לחיפוש...\nמספר פנימי\nהכל / הקלידו לחיפוש...\n1 אזהרה\n10 סה״כ\nהכל (10)\nהתראת קצין רכב (4)\nהתראה חופשית (1)\nטסט (3)\nביטוח חובה (1)\nרישיון נהיגה (1)\nסוג\tכותרת\tפרטים\tמספר פנימי\tימים\tתאריך\nטסט\tטסט / רישיון רכב · התראת 30 יום\tSysKia Picanto — SA345645C · 190\t190\t12 ימים\t25.8.2026\nביטוח חובה\tביטוח חובה · התראת 30 יום\tSysToyota Corolla — SA345645 · 19\t19\t20 ימים\t2.9.2026\nטסט\tטסט / רישיון רכב · עתידית\tSysMazda 3 — SA345645A · 019 · עתידית\t019\t40 ימים\t22.9.2026\nהתראה חופשית\tהתראה חופשית SYS 1786650345645 · SA345645\tרכב SA345645 •"
+        },
+        {
+          "name": "Officer alert tied to company A plate",
+          "ok": true
+        },
+        {
+          "name": "Company B still absent after tilta",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t3": {
+      "checks": [
+        {
+          "name": "Odometer persisted >= 51000 after tilta",
+          "ok": true,
+          "value": 51000
+        },
+        {
+          "name": "Vehicle hub still opens after refresh path",
+          "ok": true
+        },
+        {
+          "name": "Hub shows km or vehicle details",
+          "ok": true
+        },
+        {
+          "name": "Lower km would not overwrite higher (guard still in code+DB value high)",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t8": {
+      "checks": [
+        {
+          "name": "Inspection type/date/next due stored",
+          "ok": true,
+          "row": {
+            "id": "9a1e1841-df44-49d7-a90e-3f2be4f36bb2",
+            "vehicle_plate": "SA345645",
+            "inspection_type": "tri_semi_annual",
+            "inspection_date": "2026-08-13",
+            "next_due_date": "2026-11-13",
+            "company_name": "QA-SYS-A-1786650345645"
+          }
+        },
+        {
+          "name": "Officer inspections report card visible",
+          "ok": true
+        },
+        {
+          "name": "Reports do not show company B plate by default",
+          "ok": true
+        },
+        {
+          "name": "New tilta plate appears in officer report",
+          "ok": false,
+          "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA SYS FM A\n\nQA-SYS-A-1786650345645\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nדוחות וסיכומים\nייצוא\n\nסיכומים לפי תקופה — לחיצה על כרטיס פותחת את רשימת הרשומות המסוננת\n\nסינון\nפעיל\nתקופה\nחודש נוכחי\nשבוע נוכחי\nשנה נוכחית\nטווח תאריכים\nהכל\nמתאריך\nבחר...\nעד תאריך\nבחר...\nמספר רכב\nהכל / הקלידו לחיפוש...\nמספר פנימי\nהכל / הקלידו לחיפוש...\nנהג\nהכל\nנהג SYS A 1786650345645\nסטטוס\nהכל\nפעיל\nפג תוקף\nלחידוש\nבתוקף\nספק\nהכל\nסוגי דוח להצגה\nטסטים\nטיפולים\nתאונות\nביקורות קצין רכב\nביטוחים לחידוש\nסיכום רכבים\nסיכום נהגים\nהוצאות לפי תקופה\nרווח והפסד\nטיפולים (מפורט)\nתאונות (מפורט)\nהזמנות\nסיכום לפי ספקים\nנקה סינונים\nסיכומי תקופה\n1 ביקורות קצין רכב בכל הזמנים\n\nלחצו לפתיחת הרשימה המסוננת\n\nדוחות נוספים\n\nדליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לציי רכב | www.dalia-c.com | כל הזכויות שמורות ©"
+        },
+        {
+          "name": "Report has type/date columns language",
+          "ok": true
+        },
+        {
+          "name": "Company B plate absent from officer report",
+          "ok": true
+        }
+      ],
+      "pass": false
+    },
+    "t7": {
+      "checks": [
+        {
+          "name": "Drivers list loads company A driver",
+          "ok": true
+        },
+        {
+          "name": "Company B driver not mixed",
+          "ok": true
+        },
+        {
+          "name": "Dashboard entry hidden on drivers list when setting off",
+          "ok": true
+        },
+        {
+          "name": "Driver hub dashboard button hidden",
+          "ok": true
+        },
+        {
+          "name": "After enabling setting, dashboard entry can return",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "t10": {
+      "checks": [
+        {
+          "name": "Intro step can show vehicle type select",
+          "ok": false
+        },
+        {
+          "name": "נגרר available",
+          "ok": false
+        },
+        {
+          "name": "טרקטור available",
+          "ok": false
+        },
+        {
+          "name": "ציוד הנדסי available",
+          "ok": false
+        },
+        {
+          "name": "רכב זעיר available",
+          "ok": false
+        },
+        {
+          "name": "Old type רכב פרטי still there",
+          "ok": false
+        },
+        {
+          "name": "Types not Beeri-only — available to QA company A",
+          "ok": true
+        }
+      ],
+      "pass": false
+    },
+    "regression": {
+      "checks": [
+        {
+          "name": "Vehicles list reachable",
+          "ok": true
+        },
+        {
+          "name": "Drivers list reachable",
+          "ok": true
+        },
+        {
+          "name": "Vehicle hub reachable",
+          "ok": true
+        },
+        {
+          "name": "Driver hub reachable",
+          "ok": true
+        },
+        {
+          "name": "Alerts reachable",
+          "ok": true
+        },
+        {
+          "name": "Reports reachable",
+          "ok": true
+        },
+        {
+          "name": "Documents reachable",
+          "ok": true
+        }
+      ],
+      "pass": true
+    },
+    "scope": {
+      "checks": [
+        {
+          "name": "No Beeri hardcode required for any task",
+          "ok": true
+        },
+        {
+          "name": "Isolation: A never saw B plate/alerts/driver",
+          "ok": true
+        }
+      ],
+      "pass": true
+    }
+  },
+  "shots": [
+    "t1-search.png",
+    "t4-alerts.png",
+    "t4-log.png",
+    "t5-hub.png",
+    "t9-vehicle-modal.png",
+    "t6-central-free.png",
+    "t2-tilta.png",
+    "t2-alerts-after-tilta.png",
+    "t3-hub-km.png",
+    "t7-drivers-list.png",
+    "t7-driver-hub.png",
+    "t7-drivers-restored.png",
+    "t8-officer-report.png",
+    "t10-types.png",
+    "t5-documents.png"
+  ],
+  "deployTxt": "deployed_ref=788efe4 feat/incident-alerts-staging",
+  "cleanup": {
+    "ok": true,
+    "note": "QA-SYS-* only, no real client rows"
+  },
+  "pass": false
+}

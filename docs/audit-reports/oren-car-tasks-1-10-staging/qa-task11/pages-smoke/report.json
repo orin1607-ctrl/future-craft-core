@@ -1,0 +1,100 @@
+{
+  "at": "2026-08-13T17:45:38.671Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "commitExpected": "7adc0d3",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "productionSupabaseTouched": false,
+  "googleAppsScriptTouched": false,
+  "checks": [
+    {
+      "name": "STAGING-DEPLOY.txt matches 7adc0d3",
+      "ok": true,
+      "deployTxt": "deployed_ref=7adc0d3 feat/incident-alerts-staging"
+    },
+    {
+      "name": "Not Production URL",
+      "ok": true
+    },
+    {
+      "name": "Staging DB only",
+      "ok": true
+    },
+    {
+      "name": "Site opens",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/dashboard"
+    },
+    {
+      "name": "Login session works (not login wall)",
+      "ok": true
+    },
+    {
+      "name": "Vehicles list opens",
+      "ok": true
+    },
+    {
+      "name": "Vehicle note on list when flag on",
+      "ok": true
+    },
+    {
+      "name": "Internal number search 19",
+      "ok": true
+    },
+    {
+      "name": "Drivers list opens",
+      "ok": true
+    },
+    {
+      "name": "Driver note on list when flag on",
+      "ok": true
+    },
+    {
+      "name": "Tilta form +3 months",
+      "ok": true
+    },
+    {
+      "name": "Tilta form +6 months",
+      "ok": true
+    },
+    {
+      "name": "Alerts page opens",
+      "ok": true
+    },
+    {
+      "name": "Vehicle documents page opens",
+      "ok": true
+    },
+    {
+      "name": "Reports page opens",
+      "ok": true
+    },
+    {
+      "name": "Officer inspections report visible",
+      "ok": true
+    },
+    {
+      "name": "New vehicle types in form",
+      "ok": true
+    },
+    {
+      "name": "Old vehicle types still present",
+      "ok": true
+    }
+  ],
+  "shots": [
+    "01-home.png",
+    "02-vehicles-search.png",
+    "03-drivers.png",
+    "04-tilta.png",
+    "05-alerts.png",
+    "06-docs.png",
+    "07-reports.png",
+    "08-vehicle-types.png"
+  ],
+  "cleanup": {
+    "ok": true
+  },
+  "pass": true
+}

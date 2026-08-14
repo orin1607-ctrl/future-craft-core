@@ -1,0 +1,32 @@
+{
+  "checks": [
+    {
+      "name": "t8 card count all-time",
+      "ok": false,
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA T810 FM\n\nQA-SYS-T810-1786650496188\n\nנהג\nדשבורד\nהתראות\nלוח זמנים\nדיווח תקלה\nדלק וחשבוניות\nתאונה וחירום\nהחלפת נהג\nסידור עבודה\nהיסטוריה טיפולים\nשירותי חירום 24/7\nהתנתקות\nדשבורד נהג\n\nQA T810 FM\n\nQA-SYS-T810-1786650496188\n\nהרכב המשויך\n\nלא הוצמד רכב לנהג זה.\n\nהתראות נהג\n\nאין התראות פתוחות כרגע.\n\nדיווח תקלה\nדיווח תאונה\nהזמנת שירות\nהעלאת חשבונית דלק / הוצאה\nהיסטו"
+    },
+    {
+      "name": "t8 plate in expanded table",
+      "ok": false,
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA T810 FM\n\nQA-SYS-T810-1786650496188\n\nנהג\nדשבורד\nהתראות\nלוח זמנים\nדיווח תקלה\nדלק וחשבוניות\nתאונה וחירום\nהחלפת נהג\nסידור עבודה\nהיסטוריה טיפולים\nשירותי חירום 24/7\nהתנתקות\nדשבורד נהג\n\nQA T810 FM\n\nQA-SYS-T810-1786650496188\n\nהרכב המשויך\n\nלא הוצמד רכב לנהג זה.\n\nהתראות נהג\n\nאין התראות פתוחות כרגע.\n\nדיווח תקלה\nדיווח תאונה\nהזמנת שירות\nהעלאת חשבונית דלק / הוצאה\nהיסטוריית טיפולים לרכב\nסידור עבודה שלי\nיצירת קשר עם מוקד\nתצהיר נהג\n\nדליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לציי רכב | www.dalia-c.com | כל הזכויות שמורות ©"
+    },
+    {
+      "name": "t8 internal 42",
+      "ok": false
+    },
+    {
+      "name": "t8 type label",
+      "ok": false
+    },
+    {
+      "name": "t8 missing next due shows dash",
+      "ok": true
+    },
+    {
+      "name": "t8 date present",
+      "ok": false
+    }
+  ],
+  "fatal": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('button[title=\"רכב חדש\"]')\n\n    at main (C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\scripts\\oren-car-system-truth-t8-t10.mjs:137:51)",
+  "cleanup": "QA-SYS-T810 only"
+}

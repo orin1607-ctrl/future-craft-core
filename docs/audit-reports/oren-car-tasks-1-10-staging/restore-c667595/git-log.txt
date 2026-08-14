@@ -1,0 +1,5 @@
+﻿c667595 ux(oren-car): DriverHub tile design Γאפ navy tiles, white titles, no icons
+c6c2de0 ux(oren-car): DriverHub 3 tiles on Staging Γאפ documents, exams/accidents, history
+e3f77de test(oren-car): archived fleet counts QA report (Staging PASS)
+ba8ee87 fix(oren-car): exclude archived vehicles from active fleet counts
+71dab61 test(oren-car): complementary E2E + Alerts perf before/after reports
