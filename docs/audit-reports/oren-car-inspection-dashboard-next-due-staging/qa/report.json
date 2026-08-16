@@ -1,0 +1,181 @@
+{
+  "at": "2026-08-16T14:22:12.141Z",
+  "environment": "Oren Car Staging",
+  "ref": "usfeoerkpcafxxlyuldl",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
+  "company": "QA-NEXT-DUE-1786890132141",
+  "deploy": {
+    "marker": "deployed_ref=1584cc8 feat/incident-alerts-staging",
+    "expected": "1584cc8"
+  },
+  "results": [
+    {
+      "id": "deploy-marker",
+      "device": "both",
+      "status": "PASS",
+      "detail": {
+        "marker": "deployed_ref=1584cc8 feat/incident-alerts-staging",
+        "expected": "1584cc8"
+      }
+    },
+    {
+      "id": "save-3-months",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "id": "e094a3ea-5c05-4e91-ac53-af74b26fb982",
+        "inspection_date": "2026-08-16",
+        "inspection_type": "tri_semi_annual",
+        "next_due_date": "2026-11-16",
+        "notes": "קילומטראז׳: 85030",
+        "overall_status": "failed",
+        "expectedDueDate": "2026-11-16"
+      }
+    },
+    {
+      "id": "save-6-months",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "id": "5b4a4727-52c5-4d72-aa88-0242f1ed773b",
+        "inspection_date": "2026-08-16",
+        "inspection_type": "tri_semi_annual",
+        "next_due_date": "2027-02-16",
+        "notes": "קילומטראז׳: 85060",
+        "overall_status": "passed",
+        "expectedDueDate": "2027-02-16"
+      }
+    },
+    {
+      "id": "dashboard-בדיקה תלת חודשית-future",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה תלת חודשית 16.11.2026",
+        "expectedDate": "16.11.2026",
+        "expired": false
+      }
+    },
+    {
+      "id": "dashboard-בדיקה חצי שנתית-future",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה חצי שנתית 16.2.2027",
+        "expectedDate": "16.2.2027",
+        "expired": false
+      }
+    },
+    {
+      "id": "refresh",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "expectedDate": "16.2.2027"
+      }
+    },
+    {
+      "id": "dashboard-בדיקה חצי שנתית-past",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה חצי שנתית 1.2.2025 (פג)",
+        "expectedDate": "1.2.2025",
+        "expired": true
+      }
+    },
+    {
+      "id": "no-inspection",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקת תלת / חצי\n\nלא הוגדר"
+      }
+    },
+    {
+      "id": "other-dashboard-cards",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {}
+    },
+    {
+      "id": "inspection-regression",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "itemCount": 18,
+        "taskCount": 1,
+        "alertCount": 1,
+        "detailHasNote": true
+      }
+    },
+    {
+      "id": "odometer-and-next-due-regression",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "odometer": 85030,
+        "next_inspection_date": "2026-11-16"
+      }
+    },
+    {
+      "id": "reports-regression",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {}
+    },
+    {
+      "id": "dashboard-בדיקה תלת חודשית-future",
+      "device": "mobile",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה תלת חודשית 16.11.2026",
+        "expectedDate": "16.11.2026",
+        "expired": false
+      }
+    },
+    {
+      "id": "dashboard-בדיקה חצי שנתית-future",
+      "device": "mobile",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה חצי שנתית 16.2.2027",
+        "expectedDate": "16.2.2027",
+        "expired": false
+      }
+    },
+    {
+      "id": "dashboard-בדיקה חצי שנתית-future",
+      "device": "reentry",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה חצי שנתית 16.2.2027",
+        "expectedDate": "16.2.2027",
+        "expired": false
+      }
+    },
+    {
+      "id": "runtime",
+      "device": "both",
+      "status": "PASS",
+      "detail": {
+        "supabaseFailures": [],
+        "consoleErrors": []
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "supabaseFailures": [],
+  "cleanup": {
+    "ok": true,
+    "vehicles": 0,
+    "inspections": 0,
+    "alerts": 0
+  },
+  "summary": {
+    "passed": 16,
+    "failed": 0,
+    "cleanup": true
+  },
+  "pass": true
+}
