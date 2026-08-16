@@ -523,10 +523,10 @@ function AccidentForm({
   });
   const [loading, setLoading] = useState(false);
 
-  const [allVehicles, setAllVehicles] = useState<{ id: string; license_plate: string; manufacturer: string; model: string; internal_number: string | null }[]>([]);
+  const [allVehicles, setAllVehicles] = useState<{ id: string; license_plate: string; manufacturer: string; model: string; internal_number: string | null; company_name: string }[]>([]);
   useEffect(() => {
     if (!isDriver) {
-      supabase.from('vehicles').select('id, license_plate, manufacturer, model, internal_number').then(({ data }) => {
+      supabase.from('vehicles').select('id, license_plate, manufacturer, model, internal_number, company_name').then(({ data }) => {
         if (data) setAllVehicles(data as typeof allVehicles);
       });
     }
@@ -555,8 +555,11 @@ function AccidentForm({
         manufacturer: v.manufacturer || '',
         model: v.model || '',
         internal_number: v.internal_number,
+        company_name: v.company_name || user?.company_name || '',
       }))
     : allVehicles;
+  const selectedVehicleOption = vehicleOptions.find((v) => v.license_plate === vehiclePlate);
+  const incidentCompanyName = selectedVehicleOption?.company_name || user?.company_name || '';
 
   const isValid = !!vehiclePlate && !!driverName && !!description && !!claimNumber.trim() && !(isDriver && hasNoVehicle);
   const inputClass = "w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
@@ -621,7 +624,7 @@ function AccidentForm({
       user: {
         id: user?.id,
         role: user?.role,
-        company_name: user?.company_name,
+        company_name: incidentCompanyName,
         full_name: user?.full_name,
         phone: phone || user?.phone,
       },
@@ -643,7 +646,7 @@ function AccidentForm({
       await recordVehicleHubAction({
         vehicleId: hubVehicleId || result.vehicle?.id,
         vehiclePlate,
-        companyName: user?.company_name || '',
+        companyName: incidentCompanyName,
         action: 'דיווח תאונה',
         details: description,
         userId: user?.id,
