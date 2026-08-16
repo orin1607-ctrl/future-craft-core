@@ -373,10 +373,11 @@ export default function VehicleHub({
     }
     supabase
       .from('vehicle_inspections')
-      .select('inspection_type, inspection_date, next_due_date')
+      .select('inspection_type, inspection_date, next_due_date, created_at')
       .eq('vehicle_id', v.id)
       .not('next_due_date', 'is', null)
       .order('inspection_date', { ascending: false })
+      .order('created_at', { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
