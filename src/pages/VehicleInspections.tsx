@@ -473,7 +473,7 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
                   <span className="text-destructive text-sm font-medium shrink-0">ליקוי</span>
                 )}
               </div>
-              {item.status === 'defect' && (item.notes || '').trim() && (
+              {(item.notes || '').trim() && (
                 <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{item.notes}</p>
               )}
             </div>
