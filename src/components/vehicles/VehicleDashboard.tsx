@@ -48,6 +48,7 @@ import {
   formatExpiry,
   insuranceStatusText,
   statusLabel,
+  type InspectionDashboardCard,
 } from '@/components/vehicles/vehicleHubUtils';
 
 type DrillKind =
@@ -119,8 +120,7 @@ function SectionLabel({ children }: { children: string }) {
 
 export default function VehicleDashboard({
   vehicle: v,
-  semiInspection,
-  triInspection,
+  inspectionSchedule,
   latestInsurer,
   openIssuesCount,
   onJumpTo,
@@ -133,8 +133,7 @@ export default function VehicleDashboard({
   initialHubEntityId = null,
 }: {
   vehicle: VehicleHubVehicle;
-  semiInspection: string | null;
-  triInspection: string | null;
+  inspectionSchedule: InspectionDashboardCard | null;
   latestInsurer: string | null;
   openIssuesCount: number;
   onJumpTo?: (section: 'details' | 'actions' | 'history' | 'manage', tab?: HubTabId) => void;
@@ -647,8 +646,15 @@ export default function VehicleDashboard({
             onClick={() => openDrill('service')}
           />
           <DashTile label='ק"מ נוכחי' value={(v.odometer || 0).toLocaleString()} />
-          <DashTile label="בדיקה חצי שנתית" value={formatExpiry(semiInspection)} />
-          <DashTile label="בדיקה תלת שנתית" value={formatExpiry(triInspection)} />
+          <DashTile
+            label={inspectionSchedule?.label || 'בדיקת תלת / חצי'}
+            value={formatExpiry(inspectionSchedule?.nextDueDate || null)}
+            warn={
+              inspectionSchedule?.nextDueDate
+                ? (daysUntil(inspectionSchedule.nextDueDate) ?? 1) <= 0
+                : false
+            }
+          />
           <DashTile
             label="התראות פתוחות"
             value={String(openIssuesCount)}

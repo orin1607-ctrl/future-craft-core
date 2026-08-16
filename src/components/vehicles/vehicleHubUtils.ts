@@ -1,4 +1,54 @@
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
+import { addCalendarMonths } from '@/lib/vehicleActionFollowUp';
+
+export interface InspectionDashboardCard {
+  label: string;
+  nextDueDate: string;
+}
+
+interface InspectionScheduleRow {
+  inspection_type?: string | null;
+  inspection_date?: string | null;
+  next_due_date?: string | null;
+}
+
+export function getInspectionDashboardCard(
+  inspection: InspectionScheduleRow | null | undefined,
+): InspectionDashboardCard | null {
+  const nextDueDate = inspection?.next_due_date?.slice(0, 10);
+  if (!inspection || !nextDueDate) return null;
+
+  if (inspection.inspection_type === 'semi_annual') {
+    return { label: 'בדיקה חצי שנתית', nextDueDate };
+  }
+  if (inspection.inspection_type === 'quarterly') {
+    return { label: 'בדיקה תלת חודשית', nextDueDate };
+  }
+
+  const inspectionDate = inspection.inspection_date?.slice(0, 10);
+  if (!inspectionDate) {
+    return { label: 'בדיקת תלת / חצי', nextDueDate };
+  }
+
+  const sixMonthDate = addCalendarMonths(inspectionDate, 6);
+  const threeMonthDate = addCalendarMonths(inspectionDate, 3);
+  if (nextDueDate === sixMonthDate) {
+    return { label: 'בדיקה חצי שנתית', nextDueDate };
+  }
+  if (nextDueDate === threeMonthDate) {
+    return { label: 'בדיקה תלת חודשית', nextDueDate };
+  }
+
+  const intervalDays = Math.round(
+    (new Date(`${nextDueDate}T12:00:00`).getTime()
+      - new Date(`${inspectionDate}T12:00:00`).getTime())
+      / 86400000,
+  );
+  return {
+    label: intervalDays >= 135 ? 'בדיקה חצי שנתית' : 'בדיקה תלת חודשית',
+    nextDueDate,
+  };
+}
 
 export function daysUntil(dateStr: string | null) {
   if (!dateStr) return null;

@@ -39,7 +39,11 @@ import VehicleHubBottomActions from '@/components/vehicles/VehicleHubBottomActio
 import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
 import VehicleDaliaFullPanel from '@/components/vehicles/VehicleDaliaFullPanel';
 import { DocumentCard } from '@/components/documents/DocumentViewer';
-import { statusLabel } from '@/components/vehicles/vehicleHubUtils';
+import {
+  getInspectionDashboardCard,
+  statusLabel,
+  type InspectionDashboardCard,
+} from '@/components/vehicles/vehicleHubUtils';
 import {
   loadVehicleHubData,
   formatHubDate,
@@ -225,8 +229,7 @@ export default function VehicleHub({
   const [noteText, setNoteText] = useState(v.notes || '');
   const [showNotesOnList, setShowNotesOnList] = useState(!!v.show_notes_on_list);
   const [savingNote, setSavingNote] = useState(false);
-  const [semiInspection, setSemiInspection] = useState<string | null>(null);
-  const [triInspection, setTriInspection] = useState<string | null>(null);
+  const [inspectionSchedule, setInspectionSchedule] = useState<InspectionDashboardCard | null>(null);
   const [latestInsurer, setLatestInsurer] = useState<string | null>(null);
   const [openIssuesCount, setOpenIssuesCount] = useState(0);
   const [drillRefreshKey, setDrillRefreshKey] = useState(0);
@@ -355,24 +358,31 @@ export default function VehicleHub({
 
   useEffect(() => {
     if (previewMode && previewHubExtras) {
-      setSemiInspection(previewHubExtras.semiInspection);
-      setTriInspection(previewHubExtras.triInspection);
+      const previewDueDate = previewHubExtras.semiInspection || previewHubExtras.triInspection;
+      setInspectionSchedule(
+        previewDueDate
+          ? {
+              label: previewHubExtras.semiInspection ? 'בדיקה חצי שנתית' : 'בדיקה תלת חודשית',
+              nextDueDate: previewDueDate,
+            }
+          : null,
+      );
       setLatestInsurer(previewHubExtras.latestInsurer);
       setOpenIssuesCount(previewHubExtras.openIssuesCount);
       return;
     }
     supabase
       .from('vehicle_inspections')
-      .select('inspection_type, inspection_date')
-      .eq('vehicle_plate', v.license_plate)
+      .select('inspection_type, inspection_date, next_due_date')
+      .eq('vehicle_id', v.id)
+      .not('next_due_date', 'is', null)
       .order('inspection_date', { ascending: false })
+      .limit(1)
+      .maybeSingle()
       .then(({ data }) => {
-        const semi = data?.find((i) => i.inspection_type === 'semi_annual');
-        const tri = data?.find((i) => i.inspection_type === 'tri_semi_annual');
-        setSemiInspection(semi?.inspection_date || null);
-        setTriInspection(tri?.inspection_date || null);
+        setInspectionSchedule(getInspectionDashboardCard(data));
       });
-  }, [v.license_plate, previewMode, previewHubExtras]);
+  }, [v.id, previewMode, previewHubExtras]);
 
   useEffect(() => {
     if (previewMode && previewHubExtras) return;
@@ -897,8 +907,7 @@ export default function VehicleHub({
 
           <VehicleDashboard
             vehicle={v}
-            semiInspection={semiInspection}
-            triInspection={triInspection}
+            inspectionSchedule={inspectionSchedule}
             latestInsurer={latestInsurer}
             openIssuesCount={openIssuesCount}
             onJumpTo={jumpFromDashboard}
