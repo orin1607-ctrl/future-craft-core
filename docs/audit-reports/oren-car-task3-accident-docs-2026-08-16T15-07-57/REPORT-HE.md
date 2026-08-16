@@ -74,3 +74,5 @@ Migration: `20260816152000_accident_claim_documents_staging.sql`
 ## Commit
 
 Implementation: `64062e37` — `feat(oren-car): add claim-linked accident documents on Staging`
+
+Company-isolation hardening: `3314dd8f` — `fix(oren-car): scope new accidents to the selected vehicle company`
