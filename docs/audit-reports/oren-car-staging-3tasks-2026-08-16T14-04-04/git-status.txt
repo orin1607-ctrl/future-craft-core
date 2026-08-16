@@ -1,0 +1,58 @@
+﻿## feat/incident-alerts-staging...origin/feat/incident-alerts-staging
+ M docs/audit-reports/oren-car-attention-visibility/qa/live-qa-report.json
+ M docs/audit-reports/oren-car-tasks-1-10-staging/alerts-owner-mode-qa/a1-per-vehicle-future-tab.png
+ M docs/audit-reports/oren-car-tasks-1-10-staging/alerts-owner-mode-qa/b1-trisemi-3.png
+ M docs/audit-reports/oren-car-tasks-1-10-staging/alerts-owner-mode-qa/b2-trisemi-6.png
+ M docs/audit-reports/oren-car-tasks-1-10-staging/alerts-owner-mode-qa/b3-manual-officer.png
+ M docs/audit-reports/oren-car-tasks-1-10-staging/alerts-owner-mode-qa/b4-manual-free.png
+ M docs/audit-reports/oren-car-tasks-1-10-staging/alerts-owner-mode-qa/b5-after-reentry.png
+ M docs/audit-reports/oren-car-tasks-1-10-staging/alerts-owner-mode-qa/report.json
+?? backups/
+?? docs/audit-reports/dalia-first-client-coco/
+?? docs/audit-reports/oren-car-alerts-perf-and-e2e/REPORT-HE.md
+?? docs/audit-reports/oren-car-attention-visibility/qa/alert-settings.png
+?? docs/audit-reports/oren-car-attention-visibility/qa/desktop-company-b.png
+?? docs/audit-reports/oren-car-attention-visibility/qa/desktop-ins-off-red-off.png
+?? docs/audit-reports/oren-car-attention-visibility/qa/desktop-ins-off-red-on.png
+?? docs/audit-reports/oren-car-attention-visibility/qa/desktop-ins-on-red-off.png
+?? docs/audit-reports/oren-car-attention-visibility/qa/desktop-ins-on-red-on.png
+?? docs/audit-reports/oren-car-attention-visibility/qa/mobile-off.png
+?? docs/audit-reports/oren-car-driver-card-expansion/mockup-driver-card.html
+?? docs/audit-reports/oren-car-driver-card-expansion/qa-report-4tiles.json
+?? docs/audit-reports/oren-car-driver-card-expansion/qa-report.json
+?? docs/audit-reports/oren-car-driver-card-expansion/qa/
+?? docs/audit-reports/oren-car-driverhub-3tiles-prod/
+?? docs/audit-reports/oren-car-driverhub-3tiles-staging/qa-design/
+?? docs/audit-reports/oren-car-driverhub-3tiles-staging/qa-full-git.txt
+?? docs/audit-reports/oren-car-driverhub-3tiles-staging/qa-full/
+?? docs/audit-reports/oren-car-driverhub-3tiles-staging/qa/
+?? docs/audit-reports/oren-car-driverhub-3tiles-staging/restore-c6c2de0-tile-design/DriverHub.tsx
+?? docs/audit-reports/oren-car-driverhub-3tiles-staging/restore-e3f77de/DriverHub.tsx
+?? docs/audit-reports/oren-car-driverhub-3tiles-staging/restore-e3f77de/EntityDocumentRequestsPanel.tsx
+?? docs/audit-reports/oren-car-driverhub-3tiles-staging/restore-e3f77de/driverHubData.test.ts
+?? docs/audit-reports/oren-car-driverhub-3tiles-staging/restore-e3f77de/driverHubData.ts
+?? docs/audit-reports/oren-car-full-system-qa/
+?? docs/audit-reports/oren-car-gap-alerts-task5-qa/
+?? docs/audit-reports/oren-car-gate3-production/
+?? docs/audit-reports/oren-car-insurance-gap-fix/production-2026-08-11T11-38-00/
+?? docs/audit-reports/oren-car-insurance-gap-fix/production-qa/
+?? docs/audit-reports/oren-car-insurance-toggles-staging/REPORT-HE-POST-DEPLOY.md
+?? docs/audit-reports/oren-car-insurance-toggles-staging/post-deploy-qa/
+?? docs/audit-reports/oren-car-pre-production-qa/
+?? docs/audit-reports/oren-car-prod-rls-gate/
+?? docs/audit-reports/oren-car-production-deploy/
+?? docs/audit-reports/oren-car-production-readiness/
+?? docs/audit-reports/oren-car-seven-tasks-qa/REPORT-HE-POST-DEPLOY.md
+?? docs/audit-reports/oren-car-seven-tasks-qa/post-deploy-full/
+?? docs/audit-reports/oren-car-staging-3tasks-2026-08-16T14-04-04/
+?? docs/audit-reports/oren-car-staging-readiness-qa/
+?? docs/audit-reports/oren-car-task1-license-verify/
+?? docs/audit-reports/oren-car-task15-internal-red/
+?? docs/audit-reports/oren-car-three-tasks-staging/REPORT-HE-LIVE-AUDIT.md
+?? docs/audit-reports/oren-car-three-tasks-staging/REPORT-HE-POST-DEPLOY.md
+?? docs/audit-reports/oren-car-three-tasks-staging/live-audit-2026-08-09/
+?? docs/audit-reports/oren-car-three-tasks-staging/post-deploy-qa/
+?? docs/audit-reports/oren-car-ui-fix-backup-2026-08-05/
+?? docs/audit-reports/oren-car-ui-fix-qa/
+?? integrations/cash-flow/
+?? integrations/google/token.gmail-yonia.json

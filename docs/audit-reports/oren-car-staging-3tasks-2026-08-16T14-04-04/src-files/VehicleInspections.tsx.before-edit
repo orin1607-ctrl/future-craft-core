@@ -82,18 +82,8 @@ export default function VehicleInspections() {
     if (inspection) {
       setSelectedInspection(inspection);
       setViewMode('detail');
-      return;
     }
-    // Deep-link from officer report: fetch the inspection if not yet in the list.
-    void applyCompanyScope(
-      supabase.from('vehicle_inspections').select('*').eq('id', inspectionId),
-      companyFilter,
-    ).maybeSingle().then(({ data }) => {
-      if (!data) return;
-      setSelectedInspection(data as InspectionRow);
-      setViewMode('detail');
-    });
-  }, [searchParams, inspections, loading, companyFilter]);
+  }, [searchParams, inspections, loading]);
 
   useEffect(() => {
     if (contextPlate) setSearch(contextPlate);
