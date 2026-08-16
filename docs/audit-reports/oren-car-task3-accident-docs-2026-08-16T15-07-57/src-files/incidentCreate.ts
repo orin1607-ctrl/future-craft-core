@@ -99,7 +99,6 @@ export async function createAccidentIncident(opts: {
   hasInsurance?: boolean;
   thirdParty?: boolean;
   estimatedCost?: number;
-  claimNumber: string;
   notes?: string;
   images?: string[];
   dryRunNotify?: boolean;
@@ -128,7 +127,6 @@ export async function createAccidentIncident(opts: {
     has_insurance: !!opts.hasInsurance,
     third_party: !!opts.thirdParty,
     estimated_cost: opts.estimatedCost || 0,
-    claim_number: opts.claimNumber.trim(),
     notes: opts.notes || '',
     images: opts.images?.length ? JSON.stringify(opts.images) : '',
     status: 'open',

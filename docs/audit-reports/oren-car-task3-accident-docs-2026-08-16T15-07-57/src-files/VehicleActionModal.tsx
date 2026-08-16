@@ -82,7 +82,6 @@ export default function VehicleActionModal({
   const [garage, setGarage] = useState('');
   const [serviceStatus, setServiceStatus] = useState('פתוח');
   const [location, setLocation] = useState('');
-  const [claimNumber, setClaimNumber] = useState('');
   const [damage, setDamage] = useState('קל');
   const [inspector, setInspector] = useState('');
   const [result, setResult] = useState('עבר');
@@ -143,10 +142,6 @@ export default function VehicleActionModal({
 
   const save = async () => {
     if (!category || !subType) return;
-    if (category === 'תאונה' && !claimNumber.trim()) {
-      toast.error('חובה להזין מספר תביעה');
-      return;
-    }
     setLoading(true);
     let error: { message: string } | null = null;
 
@@ -232,7 +227,6 @@ export default function VehicleActionModal({
           driverName: driverName || user?.full_name || '',
           location: location || '',
           description: description || subType,
-          claimNumber: claimNumber.trim(),
           dryRunNotify: false,
         });
         error = result.error;
@@ -412,16 +406,10 @@ export default function VehicleActionModal({
             )}
 
             {category === 'תאונה' && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-muted-foreground">מספר תביעה *</label>
-                  <input className={inputClass} value={claimNumber} onChange={(e) => setClaimNumber(e.target.value)} required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-muted-foreground">מיקום</label>
-                  <input className={inputClass} value={location} onChange={(e) => setLocation(e.target.value)} />
-                </div>
-              </>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-muted-foreground">מיקום</label>
+                <input className={inputClass} value={location} onChange={(e) => setLocation(e.target.value)} />
+              </div>
             )}
 
             {(category === 'טיפול' || category === 'הזמנת שירות') && (

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, Plus, ArrowRight, Search, Edit2, Mail, Share2, Download, ExternalLink, FileText, Upload } from 'lucide-react';
+import { AlertTriangle, Plus, ArrowRight, Search, Edit2, Mail, Share2, Download, ExternalLink } from 'lucide-react';
 import { exportToCsv } from '@/utils/exportCsv';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { useDriverVehicle } from '@/hooks/useDriverVehicle';
-import { DocumentCard, DocumentGallery } from '@/components/documents/DocumentViewer';
+import { DocumentGallery } from '@/components/documents/DocumentViewer';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext, readDriverContext } from '@/lib/entityNavContext';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
@@ -17,7 +17,6 @@ import { createAccidentIncident } from '@/lib/incidentCreate';
 import IncidentSubmitSuccess from '@/components/incidents/IncidentSubmitSuccess';
 import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
 import { InternalNumber, InternalPrefixSuffix } from '@/components/vehicles/vehiclePlateDisplay';
-import { uploadDocument } from '@/lib/uploadDocument';
 
 interface AccidentRow {
   id: string;
@@ -32,7 +31,6 @@ interface AccidentRow {
   status: string;
   notes: string;
   images: string;
-  claim_number: string;
   event_number?: string | null;
   created_at?: string;
   company_name?: string;
@@ -168,7 +166,7 @@ export default function Accidents() {
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
   const filtered = accidents.filter(a => {
-    const matchSearch = !search || a.driver_name?.includes(search) || plateMatches(a.vehicle_plate, search) || a.description?.includes(search) || (a.event_number || '').includes(search) || a.claim_number?.includes(search);
+    const matchSearch = !search || a.driver_name?.includes(search) || plateMatches(a.vehicle_plate, search) || a.description?.includes(search) || (a.event_number || '').includes(search);
     const matchStatus = !filterStatus || a.status === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -261,7 +259,6 @@ export default function Accidents() {
             <div><span className="text-muted-foreground text-sm">מיקום</span><p className="font-bold">{a.location || '—'}</p></div>
             <div><span className="text-muted-foreground text-sm">תאריך</span><p className="font-bold">{a.date ? new Date(a.date).toLocaleDateString('he-IL') : '—'}</p></div>
             <div><span className="text-muted-foreground text-sm">עלות משוערת</span><p className="font-bold">₪{(a.estimated_cost || 0).toLocaleString()}</p></div>
-            <div><span className="text-muted-foreground text-sm">מספר תביעה</span><p className="font-bold">{a.claim_number || '—'}</p></div>
           </div>
           <div className="flex gap-3 mt-4">
             {a.has_insurance && <span className="status-badge status-active">ביטוח ✓</span>}
@@ -276,7 +273,6 @@ export default function Accidents() {
               </div>
             ) : null;
           })()}
-          <AccidentDocuments accident={a} user={user} />
           {a.notes && <p className="mt-4 p-3 bg-muted rounded-xl text-muted-foreground">{a.notes}</p>}
 
           {/* Share buttons */}
@@ -285,7 +281,7 @@ export default function Accidents() {
             <div className="flex gap-3 flex-wrap">
               <a
                 href={`mailto:?subject=${encodeURIComponent(`דיווח תאונה - ${a.vehicle_plate}`)}&body=${encodeURIComponent(
-                  `דיווח תאונה - ${a.vehicle_plate}\n\nמספר תביעה: ${a.claim_number || '—'}\nנהג: ${a.driver_name}\nמיקום: ${a.location || '—'}\nתאריך: ${a.date ? new Date(a.date).toLocaleDateString('he-IL') : '—'}\nתיאור: ${a.description}\nעלות משוערת: ₪${(a.estimated_cost || 0).toLocaleString()}\nביטוח: ${a.has_insurance ? 'כן' : 'לא'}\nצד ג׳: ${a.third_party ? 'כן' : 'לא'}\n${a.notes ? `הערות: ${a.notes}\n` : ''}${(() => { let imgs: string[] = []; try { imgs = a.images ? JSON.parse(a.images) : []; } catch { if (a.images) imgs = [a.images]; } return imgs.length > 0 ? `\nתמונות:\n${imgs.join('\n')}` : ''; })()}`
+                  `דיווח תאונה - ${a.vehicle_plate}\n\nנהג: ${a.driver_name}\nמיקום: ${a.location || '—'}\nתאריך: ${a.date ? new Date(a.date).toLocaleDateString('he-IL') : '—'}\nתיאור: ${a.description}\nעלות משוערת: ₪${(a.estimated_cost || 0).toLocaleString()}\nביטוח: ${a.has_insurance ? 'כן' : 'לא'}\nצד ג׳: ${a.third_party ? 'כן' : 'לא'}\n${a.notes ? `הערות: ${a.notes}\n` : ''}${(() => { let imgs: string[] = []; try { imgs = a.images ? JSON.parse(a.images) : []; } catch { if (a.images) imgs = [a.images]; } return imgs.length > 0 ? `\nתמונות:\n${imgs.join('\n')}` : ''; })()}`
                 )}`}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-base min-h-[48px]"
               >
@@ -295,7 +291,7 @@ export default function Accidents() {
                 onClick={() => {
                   let imgs: string[] = [];
                   try { imgs = a.images ? JSON.parse(a.images) : []; } catch { if (a.images) imgs = [a.images]; }
-                  const text = `דיווח תאונה - ${a.vehicle_plate}\nמספר תביעה: ${a.claim_number || '—'}\nנהג: ${a.driver_name}\nתיאור: ${a.description}${imgs.length > 0 ? '\n\nתמונות:\n' + imgs.join('\n') : ''}`;
+                  const text = `דיווח תאונה - ${a.vehicle_plate}\nנהג: ${a.driver_name}\nתיאור: ${a.description}${imgs.length > 0 ? '\n\nתמונות:\n' + imgs.join('\n') : ''}`;
                   if (navigator.share) {
                     navigator.share({ title: `תאונה - ${a.vehicle_plate}`, text }).catch(() => {});
                   } else {
@@ -349,7 +345,6 @@ export default function Accidents() {
           <button onClick={() => exportToCsv('accidents', [
             { key: 'date', label: 'תאריך' },
             { key: 'vehicle_plate', label: 'מספר רכב' },
-            { key: 'claim_number', label: 'מספר תביעה' },
             { key: 'driver_name', label: 'נהג' },
             { key: 'location', label: 'מיקום' },
             { key: 'description', label: 'תיאור' },
@@ -407,7 +402,6 @@ export default function Accidents() {
                     <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
                       <span>👤 {a.driver_name}</span>
                       <span>📅 {a.date ? new Date(a.date).toLocaleDateString('he-IL') : ''}</span>
-                      {a.claim_number && <span>📄 {a.claim_number}</span>}
                       <span>💰 ₪{(a.estimated_cost || 0).toLocaleString()}</span>
                     </div>
                   </div>
@@ -415,58 +409,6 @@ export default function Accidents() {
               </button>
             );
           })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface AccidentDocumentVersion {
-  id: string;
-  file_path: string;
-  public_url: string;
-  original_name: string;
-  created_at: string;
-}
-
-function AccidentDocuments({ accident, user }: { accident: AccidentRow; user: any }) {
-  const [documents, setDocuments] = useState<AccidentDocumentVersion[]>([]);
-  const [loadingDocuments, setLoadingDocuments] = useState(true);
-
-  useEffect(() => {
-    let query = supabase
-      .from('document_versions')
-      .select('id, file_path, public_url, original_name, created_at')
-      .eq('entity_type', 'accident')
-      .eq('entity_id', accident.id)
-      .order('created_at', { ascending: false });
-    const company = accident.company_name || user?.company_name || '';
-    if (company) query = query.eq('company_name', company);
-    void query.then(({ data }) => {
-      setDocuments((data as AccidentDocumentVersion[]) || []);
-      setLoadingDocuments(false);
-    });
-  }, [accident.id, accident.company_name, user?.company_name]);
-
-  return (
-    <div className="mt-4 rounded-xl border border-border p-4">
-      <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">
-        <FileText size={20} /> מסמכי תאונה
-      </h2>
-      {loadingDocuments ? (
-        <p className="text-sm text-muted-foreground">טוען מסמכים...</p>
-      ) : documents.length === 0 ? (
-        <p className="text-sm text-muted-foreground">לא הועלו מסמכים לתאונה זו</p>
-      ) : (
-        <div className="space-y-2">
-          {documents.map((doc) => (
-            <DocumentCard
-              key={doc.id}
-              url={doc.public_url || supabase.storage.from('documents').getPublicUrl(doc.file_path).data.publicUrl}
-              fileName={doc.original_name}
-              meta={<span className="text-xs text-muted-foreground">תביעה {accident.claim_number} · {new Date(accident.date).toLocaleDateString('he-IL')}</span>}
-            />
-          ))}
         </div>
       )}
     </div>
@@ -514,9 +456,7 @@ function AccidentForm({
   const [hasInsurance, setHasInsurance] = useState(accident?.has_insurance || false);
   const [thirdParty, setThirdParty] = useState(accident?.third_party || false);
   const [estimatedCost, setEstimatedCost] = useState(accident?.estimated_cost?.toString() || '');
-  const [claimNumber, setClaimNumber] = useState(accident?.claim_number || '');
   const [notes, setNotes] = useState(accident?.notes || '');
-  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>(() => {
     if (!accident?.images) return [];
     try { return JSON.parse(accident.images); } catch { return accident.images ? [accident.images] : []; }
@@ -558,42 +498,10 @@ function AccidentForm({
       }))
     : allVehicles;
 
-  const isValid = !!vehiclePlate && !!driverName && !!description && !!claimNumber.trim() && !(isDriver && hasNoVehicle);
+  const isValid = !!vehiclePlate && !!driverName && !!description && !(isDriver && hasNoVehicle);
   const inputClass = "w-full p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none";
 
-  const uploadAccidentDocuments = async (savedAccident: AccidentRow) => {
-    if (documentFiles.length === 0) return true;
-    let allUploaded = true;
-    for (const file of documentFiles) {
-      const result = await uploadDocument({
-        file,
-        storageFolder: 'accident-documents',
-        category: 'accident-document',
-        companyName: savedAccident.company_name || user?.company_name || '',
-        vehiclePlate: savedAccident.vehicle_plate || vehiclePlate,
-        driverName: savedAccident.driver_name || driverName,
-        displayName: `${savedAccident.claim_number || claimNumber.trim()} — ${file.name}`,
-        documentDate: savedAccident.date?.slice(0, 10),
-        accidentId: savedAccident.id,
-        claimNumber: savedAccident.claim_number || claimNumber.trim(),
-      });
-      if (!result.ok) {
-        allUploaded = false;
-        toast.error(`שגיאה בהעלאת ${file.name}: ${result.error}`);
-      }
-    }
-    if (allUploaded) {
-      toast.success(`${documentFiles.length} מסמכי תאונה הועלו`);
-      setDocumentFiles([]);
-    }
-    return allUploaded;
-  };
-
   const handleSubmit = async () => {
-    if (!claimNumber.trim()) {
-      toast.error('חובה להזין מספר תביעה');
-      return;
-    }
     if (!isValid || loading) return;
     setLoading(true);
     if (isEdit) {
@@ -605,12 +513,10 @@ function AccidentForm({
         has_insurance: hasInsurance,
         third_party: thirdParty,
         estimated_cost: parseFloat(estimatedCost) || 0,
-        claim_number: claimNumber.trim(),
         notes,
         images: JSON.stringify(imageUrls),
       };
-      const { data: updated, error } = await supabase.from('accidents').update(payload).eq('id', accident!.id).select('*').single();
-      if (!error && updated) await uploadAccidentDocuments(updated as AccidentRow);
+      const { error } = await supabase.from('accidents').update(payload).eq('id', accident!.id);
       setLoading(false);
       if (error) toast.error('שגיאה');
       else { toast.success('עודכן'); onDone(); }
@@ -633,7 +539,6 @@ function AccidentForm({
       hasInsurance,
       thirdParty,
       estimatedCost: parseFloat(estimatedCost) || 0,
-      claimNumber: claimNumber.trim(),
       notes,
       images: imageUrls,
       dryRunNotify: false,
@@ -651,14 +556,12 @@ function AccidentForm({
       });
     }
 
+    setLoading(false);
     if (result.error) {
-      setLoading(false);
       toast.error('שגיאה');
       console.error(result.error);
       return;
     }
-    await uploadAccidentDocuments(result.data as AccidentRow);
-    setLoading(false);
     toast.success('דיווח נשמר');
     onCreated?.({
       eventNumber: result.data.event_number || '',
@@ -741,18 +644,6 @@ function AccidentForm({
           <label className="block text-lg font-medium mb-2">תיאור *</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={`${inputClass} resize-none`} />
         </div>
-        <div>
-          <label className="block text-lg font-medium mb-2">מספר תביעה *</label>
-          <input
-            value={claimNumber}
-            onChange={(e) => setClaimNumber(e.target.value)}
-            className={inputClass}
-            required
-            aria-required="true"
-            placeholder="הזן מספר תביעה"
-          />
-          {!claimNumber.trim() && <p className="mt-1 text-sm text-destructive">חובה להזין מספר תביעה לפני השמירה</p>}
-        </div>
         <div className="flex flex-wrap gap-4">
           <label className="flex items-center gap-2 text-lg">
             <input type="checkbox" checked={hasInsurance} onChange={(e) => setHasInsurance(e.target.checked)} />
@@ -772,30 +663,6 @@ function AccidentForm({
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={`${inputClass} resize-none`} />
         </div>
         <MultiImageUpload label="תמונות (אופציונלי)" imageUrls={imageUrls} onImagesChanged={setImageUrls} folder="accidents" max={10} />
-        <div className="rounded-xl border-2 border-dashed border-input p-4">
-          <label className="block text-lg font-medium mb-2">העלאת מסמכי תאונה</label>
-          <p className="text-sm text-muted-foreground mb-3">PDF, טופס תביעה, מסמך ביטוח, אישור משטרה, שמאות או מסמך נוסף</p>
-          <label className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-xl bg-muted px-4 py-3 font-bold hover:bg-muted/80">
-            <Upload size={19} />
-            בחירת מסמכים
-            <input
-              type="file"
-              multiple
-              className="hidden"
-              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-              onChange={(e) => setDocumentFiles(Array.from(e.target.files || []))}
-            />
-          </label>
-          {documentFiles.length > 0 && (
-            <div className="mt-3 space-y-1">
-              {documentFiles.map((file) => (
-                <p key={`${file.name}-${file.lastModified}`} className="flex items-center gap-2 text-sm">
-                  <FileText size={15} /> {file.name}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
         <button type="button" onClick={handleSubmit} disabled={!isValid || loading}
           className={`w-full py-5 rounded-2xl text-xl font-bold transition-all ${isValid && !loading ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-muted text-muted-foreground cursor-not-allowed'}`}>
           {loading ? 'שולח...' : isEdit ? 'עדכן' : 'שלח דיווח'}
