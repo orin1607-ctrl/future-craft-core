@@ -404,7 +404,33 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
   }, [inspection.id, inspection.vehicle_id]);
 
   const defects = items.filter((item) => item.status === 'defect');
-  const generalNotes = (inspection.notes || '').trim();
+
+  // The tri-semi screen stores the km reading inside vehicle_inspections.notes
+  // ("קילומטראז׳: 1111"), so split it out to keep the notes area for real remarks.
+  const savedNotes = (inspection.notes || '').trim();
+  const kmMatch = savedNotes.match(/קילומטראז[׳']?\s*:\s*([\d,\.]*)/);
+  const inspectionKm = (kmMatch?.[1] || '').trim();
+  const generalNotes = savedNotes.replace(/קילומטראז[׳']?\s*:\s*[\d,\.]*/, '').trim();
+
+  // All remarks written during that inspection, from the sources that already
+  // save them: the inspection row, its checklist items and its follow-up tasks.
+  const noteEntries: { key: string; label: string; text: string }[] = [];
+  if (generalNotes) noteEntries.push({ key: 'general', label: 'הערה כללית', text: generalNotes });
+  items.forEach((item, i) => {
+    const text = (item.notes || '').trim();
+    if (!text) return;
+    noteEntries.push({
+      key: item.id || `item-${i}`,
+      label: `${item.item_name}${item.status === 'defect' ? ' (ליקוי)' : ''}`,
+      text,
+    });
+  });
+  const itemNoteTexts = new Set(noteEntries.map((entry) => entry.text));
+  relatedTasks.forEach((task) => {
+    const text = (task.description || '').trim();
+    if (!text || itemNoteTexts.has(text) || text.startsWith('ליקוי שנמצא בבדיקה')) return;
+    noteEntries.push({ key: `task-${task.id}`, label: task.title || 'משימת טיפול', text });
+  });
 
   return (
     <div className="animate-fade-in">
@@ -431,11 +457,22 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
             inspection.inspection_type === 'quarterly' ? 'רבעוני' :
             inspection.inspection_type === 'monthly' ? 'חודשי' : 'מיוחד'
           }</p></div>
+          <div><span className="text-muted-foreground text-sm">קילומטראז׳ בבדיקה</span><p className="font-bold">{inspectionKm || '—'}</p></div>
         </div>
-        {generalNotes && (
-          <div className="mt-4 p-3 bg-muted rounded-xl">
-            <p className="text-sm text-muted-foreground mb-1">הערות הביקורת</p>
-            <p className="font-medium whitespace-pre-wrap">{generalNotes}</p>
+      </div>
+
+      <div className="card-elevated mb-4">
+        <h2 className="text-lg font-bold mb-3">הערות הביקורת{noteEntries.length > 0 ? ` (${noteEntries.length})` : ''}</h2>
+        {noteEntries.length === 0 ? (
+          <p className="text-muted-foreground">לא נרשמו הערות בביקורת זו</p>
+        ) : (
+          <div className="space-y-2">
+            {noteEntries.map((entry) => (
+              <div key={entry.key} className="rounded-xl bg-muted p-3">
+                <p className="text-sm text-muted-foreground">{entry.label}</p>
+                <p className="font-medium whitespace-pre-wrap">{entry.text}</p>
+              </div>
+            ))}
           </div>
         )}
       </div>
