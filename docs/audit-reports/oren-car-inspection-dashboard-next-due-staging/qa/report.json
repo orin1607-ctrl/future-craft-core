@@ -1,12 +1,12 @@
 {
-  "at": "2026-08-16T14:22:12.141Z",
+  "at": "2026-08-16T15:28:47.507Z",
   "environment": "Oren Car Staging",
   "ref": "usfeoerkpcafxxlyuldl",
   "base": "https://orin1607-ctrl.github.io/future-craft-core",
-  "company": "QA-NEXT-DUE-1786890132141",
+  "company": "QA-NEXT-DUE-1786894127507",
   "deploy": {
-    "marker": "deployed_ref=1584cc8 feat/incident-alerts-staging",
-    "expected": "1584cc8"
+    "marker": "deployed_ref=2e96b9b feat/incident-alerts-staging",
+    "expected": "2e96b9b"
   },
   "results": [
     {
@@ -14,8 +14,8 @@
       "device": "both",
       "status": "PASS",
       "detail": {
-        "marker": "deployed_ref=1584cc8 feat/incident-alerts-staging",
-        "expected": "1584cc8"
+        "marker": "deployed_ref=2e96b9b feat/incident-alerts-staging",
+        "expected": "2e96b9b"
       }
     },
     {
@@ -23,7 +23,7 @@
       "device": "desktop",
       "status": "PASS",
       "detail": {
-        "id": "e094a3ea-5c05-4e91-ac53-af74b26fb982",
+        "id": "a21bf2c3-3a5c-4237-bc6b-7fc906465af9",
         "inspection_date": "2026-08-16",
         "inspection_type": "tri_semi_annual",
         "next_due_date": "2026-11-16",
@@ -37,7 +37,7 @@
       "device": "desktop",
       "status": "PASS",
       "detail": {
-        "id": "5b4a4727-52c5-4d72-aa88-0242f1ed773b",
+        "id": "5db320a1-61cd-46db-a7ce-e8f07169885a",
         "inspection_date": "2026-08-16",
         "inspection_type": "tri_semi_annual",
         "next_due_date": "2027-02-16",
@@ -47,12 +47,99 @@
       }
     },
     {
+      "id": "db-order-six-then-three-same-day",
+      "device": "database",
+      "status": "PASS",
+      "detail": {
+        "selected": {
+          "id": "7b87e5bd-5eb1-47bc-bc65-8693540f6104",
+          "inspection_date": "2026-08-16",
+          "next_due_date": "2026-11-16",
+          "created_at": "2026-08-16T10:05:00+00:00"
+        },
+        "expected": {
+          "id": "7b87e5bd-5eb1-47bc-bc65-8693540f6104",
+          "inspection_date": "2026-08-16",
+          "next_due_date": "2026-11-16",
+          "created_at": "2026-08-16T10:05:00+00:00"
+        }
+      }
+    },
+    {
+      "id": "db-order-three-then-six-same-day",
+      "device": "database",
+      "status": "PASS",
+      "detail": {
+        "selected": {
+          "id": "cc103241-16b5-4975-b782-113691983829",
+          "inspection_date": "2026-08-16",
+          "next_due_date": "2027-02-16",
+          "created_at": "2026-08-16T11:05:00+00:00"
+        },
+        "expected": {
+          "id": "cc103241-16b5-4975-b782-113691983829",
+          "inspection_date": "2026-08-16",
+          "next_due_date": "2027-02-16",
+          "created_at": "2026-08-16T11:05:00+00:00"
+        }
+      }
+    },
+    {
+      "id": "db-order-different-inspection-dates",
+      "device": "database",
+      "status": "PASS",
+      "detail": {
+        "selected": {
+          "id": "3e39e781-d767-483c-b7dd-5ade01c745e1",
+          "inspection_date": "2026-08-16",
+          "next_due_date": "2027-02-16",
+          "created_at": "2026-08-16T09:00:00+00:00"
+        },
+        "expected": {
+          "id": "3e39e781-d767-483c-b7dd-5ade01c745e1",
+          "inspection_date": "2026-08-16",
+          "next_due_date": "2027-02-16",
+          "created_at": "2026-08-16T09:00:00+00:00"
+        }
+      }
+    },
+    {
       "id": "dashboard-בדיקה תלת חודשית-future",
       "device": "desktop",
       "status": "PASS",
       "detail": {
         "tileText": "בדיקה תלת חודשית 16.11.2026",
         "expectedDate": "16.11.2026",
+        "expired": false
+      }
+    },
+    {
+      "id": "dashboard-בדיקה חצי שנתית-future",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה חצי שנתית 16.2.2027",
+        "expectedDate": "16.2.2027",
+        "expired": false
+      }
+    },
+    {
+      "id": "dashboard-בדיקה תלת חודשית-future",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה תלת חודשית 16.11.2026",
+        "expectedDate": "16.11.2026",
+        "expired": false
+      }
+    },
+    {
+      "id": "dashboard-בדיקה חצי שנתית-future",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה חצי שנתית 16.2.2027",
+        "expectedDate": "16.2.2027",
         "expired": false
       }
     },
@@ -125,6 +212,24 @@
       "detail": {}
     },
     {
+      "id": "documents-regression",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {}
+    },
+    {
+      "id": "accidents-regression",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {}
+    },
+    {
+      "id": "alerts-regression",
+      "device": "desktop",
+      "status": "PASS",
+      "detail": {}
+    },
+    {
       "id": "dashboard-בדיקה תלת חודשית-future",
       "device": "mobile",
       "status": "PASS",
@@ -145,12 +250,32 @@
       }
     },
     {
+      "id": "dashboard-בדיקה תלת חודשית-future",
+      "device": "mobile",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה תלת חודשית 16.11.2026",
+        "expectedDate": "16.11.2026",
+        "expired": false
+      }
+    },
+    {
       "id": "dashboard-בדיקה חצי שנתית-future",
-      "device": "reentry",
+      "device": "mobile",
       "status": "PASS",
       "detail": {
         "tileText": "בדיקה חצי שנתית 16.2.2027",
         "expectedDate": "16.2.2027",
+        "expired": false
+      }
+    },
+    {
+      "id": "dashboard-בדיקה תלת חודשית-future",
+      "device": "reentry",
+      "status": "PASS",
+      "detail": {
+        "tileText": "בדיקה תלת חודשית 16.11.2026",
+        "expectedDate": "16.11.2026",
         "expired": false
       }
     },
@@ -173,7 +298,7 @@
     "alerts": 0
   },
   "summary": {
-    "passed": 16,
+    "passed": 27,
     "failed": 0,
     "cleanup": true
   },

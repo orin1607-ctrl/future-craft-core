@@ -124,6 +124,43 @@ async function createVehicle(suffix, internal) {
   return data;
 }
 
+async function insertInspection(vehicle, inspectionDate, nextDueDate, createdAt) {
+  const { data, error } = await admin
+    .from('vehicle_inspections')
+    .insert({
+      vehicle_id: vehicle.id,
+      vehicle_plate: vehicle.license_plate,
+      inspection_type: 'tri_semi_annual',
+      inspection_date: inspectionDate,
+      next_due_date: nextDueDate,
+      inspector_name: `QA Next Due ${runId}`,
+      overall_status: 'passed',
+      notes: 'קילומטראז׳: 85000',
+      company_name: company,
+      created_by: userId,
+      created_at: createdAt,
+    })
+    .select('id, inspection_date, next_due_date, created_at')
+    .single();
+  if (error) throw error;
+  inspectionIds.push(data.id);
+  return data;
+}
+
+async function latestInspection(vehicle) {
+  const { data, error } = await admin
+    .from('vehicle_inspections')
+    .select('id, inspection_date, next_due_date, created_at')
+    .eq('vehicle_id', vehicle.id)
+    .not('next_due_date', 'is', null)
+    .order('inspection_date', { ascending: false })
+    .order('created_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 async function performInspection(page, vehicle, months, withDefect = false) {
   await page.goto(
     `${BASE}/private-vehicle-inspection?vehicleId=${vehicle.id}&plate=${encodeURIComponent(vehicle.license_plate)}&context=vehicle`,
@@ -183,8 +220,8 @@ let contexts = [];
 
 try {
   const deployText = await fetch(`${BASE}/STAGING-DEPLOY.txt?qa=${Date.now()}`).then((r) => r.text());
-  report.deploy = { marker: deployText.trim(), expected: '1584cc8' };
-  record('deploy-marker', 'both', deployText.includes('1584cc8'), report.deploy);
+  report.deploy = { marker: deployText.trim(), expected: '2e96b9b' };
+  record('deploy-marker', 'both', deployText.includes('2e96b9b'), report.deploy);
 
   await admin.from('company_settings').upsert({
     company_name: company,
@@ -212,6 +249,9 @@ try {
   const vehicle6 = await createVehicle('6', '906');
   const vehiclePast = await createVehicle('P', '909');
   const vehicleEmpty = await createVehicle('E', '900');
+  const vehicleSixThenThree = await createVehicle('A', '901');
+  const vehicleThreeThenSix = await createVehicle('B', '902');
+  const vehicleDifferentDates = await createVehicle('D', '904');
 
   const auth = await anon.auth.signInWithPassword({ email, password });
   if (auth.error) throw auth.error;
@@ -243,6 +283,67 @@ try {
     inspection6,
   );
 
+  await insertInspection(
+    vehicleSixThenThree,
+    '2026-08-16',
+    '2027-02-16',
+    '2026-08-16T10:00:00.000Z',
+  );
+  const latestSixThenThree = await insertInspection(
+    vehicleSixThenThree,
+    '2026-08-16',
+    '2026-11-16',
+    '2026-08-16T10:05:00.000Z',
+  );
+  await insertInspection(
+    vehicleThreeThenSix,
+    '2026-08-16',
+    '2026-11-16',
+    '2026-08-16T11:00:00.000Z',
+  );
+  const latestThreeThenSix = await insertInspection(
+    vehicleThreeThenSix,
+    '2026-08-16',
+    '2027-02-16',
+    '2026-08-16T11:05:00.000Z',
+  );
+  await insertInspection(
+    vehicleDifferentDates,
+    '2026-07-16',
+    '2026-10-16',
+    '2026-08-16T12:00:00.000Z',
+  );
+  const latestDifferentDate = await insertInspection(
+    vehicleDifferentDates,
+    '2026-08-16',
+    '2027-02-16',
+    '2026-08-16T09:00:00.000Z',
+  );
+
+  const [selectedSixThenThree, selectedThreeThenSix, selectedDifferentDate] = await Promise.all([
+    latestInspection(vehicleSixThenThree),
+    latestInspection(vehicleThreeThenSix),
+    latestInspection(vehicleDifferentDates),
+  ]);
+  record(
+    'db-order-six-then-three-same-day',
+    'database',
+    selectedSixThenThree.id === latestSixThenThree.id,
+    { selected: selectedSixThenThree, expected: latestSixThenThree },
+  );
+  record(
+    'db-order-three-then-six-same-day',
+    'database',
+    selectedThreeThenSix.id === latestThreeThenSix.id,
+    { selected: selectedThreeThenSix, expected: latestThreeThenSix },
+  );
+  record(
+    'db-order-different-inspection-dates',
+    'database',
+    selectedDifferentDate.id === latestDifferentDate.id,
+    { selected: selectedDifferentDate, expected: latestDifferentDate },
+  );
+
   await dashboardCard(
     desktop,
     vehicle3,
@@ -261,6 +362,33 @@ try {
     'desktop',
     'desktop-6-months.png',
   );
+  await dashboardCard(
+    desktop,
+    vehicleSixThenThree,
+    'בדיקה תלת חודשית',
+    latestSixThenThree.next_due_date,
+    false,
+    'desktop',
+    'desktop-same-day-6-then-3.png',
+  );
+  await dashboardCard(
+    desktop,
+    vehicleThreeThenSix,
+    'בדיקה חצי שנתית',
+    latestThreeThenSix.next_due_date,
+    false,
+    'desktop',
+    'desktop-same-day-3-then-6.png',
+  );
+  await dashboardCard(
+    desktop,
+    vehicleDifferentDates,
+    'בדיקה חצי שנתית',
+    latestDifferentDate.next_due_date,
+    false,
+    'desktop',
+    'desktop-different-dates.png',
+  );
 
   await desktop.reload({ waitUntil: 'domcontentloaded' });
   await wait(desktop);
@@ -269,9 +397,9 @@ try {
     'refresh',
     'desktop',
     refreshBody.includes('בדיקה חצי שנתית')
-      && refreshBody.includes(displayDate(inspection6.next_due_date))
-      && !refreshBody.includes(`${displayDate(inspection6.next_due_date)} (פג)`),
-    { expectedDate: displayDate(inspection6.next_due_date) },
+      && refreshBody.includes(displayDate(latestDifferentDate.next_due_date))
+      && !refreshBody.includes(`${displayDate(latestDifferentDate.next_due_date)} (פג)`),
+    { expectedDate: displayDate(latestDifferentDate.next_due_date) },
   );
 
   const { data: pastInspection, error: pastError } = await admin
@@ -377,6 +505,20 @@ try {
     (await desktop.locator('body').innerText()).includes('דוחות'),
     {},
   );
+  for (const route of [
+    { path: '/documents', text: 'מסמכים', id: 'documents-regression' },
+    { path: '/accidents', text: 'תאונות', id: 'accidents-regression' },
+    { path: '/alerts', text: 'התראות ועדכונים', id: 'alerts-regression' },
+  ]) {
+    await desktop.goto(`${BASE}${route.path}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await wait(desktop);
+    record(
+      route.id,
+      'desktop',
+      (await desktop.locator('body').innerText()).includes(route.text),
+      {},
+    );
+  }
 
   const mobileContext = await createContext(browser, auth.data.session, 'mobile');
   contexts.push(mobileContext);
@@ -399,6 +541,24 @@ try {
     'mobile',
     'mobile-6-months.png',
   );
+  await dashboardCard(
+    mobile,
+    vehicleSixThenThree,
+    'בדיקה תלת חודשית',
+    latestSixThenThree.next_due_date,
+    false,
+    'mobile',
+    'mobile-same-day-6-then-3.png',
+  );
+  await dashboardCard(
+    mobile,
+    vehicleThreeThenSix,
+    'בדיקה חצי שנתית',
+    latestThreeThenSix.next_due_date,
+    false,
+    'mobile',
+    'mobile-same-day-3-then-6.png',
+  );
 
   await desktopContext.close();
   contexts = contexts.filter((context) => context !== desktopContext);
@@ -407,12 +567,12 @@ try {
   const reentry = await reentryContext.newPage();
   await dashboardCard(
     reentry,
-    vehicle6,
-    'בדיקה חצי שנתית',
-    inspection6.next_due_date,
+    vehicleSixThenThree,
+    'בדיקה תלת חודשית',
+    latestSixThenThree.next_due_date,
     false,
     'reentry',
-    'reentry-6-months.png',
+    'reentry-same-day-6-then-3.png',
   );
 
   record(
