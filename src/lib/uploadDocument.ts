@@ -38,10 +38,25 @@ export interface UploadDocumentOptions {
   driverName?: string;
   displayName?: string;
   documentDate?: string;
+  accidentId?: string;
+  claimNumber?: string;
 }
 
 export async function uploadDocument(options: UploadDocumentOptions): Promise<UploadDocumentResult> {
-  const { file, storageFolder, category, companyName, vehiclePlate, manufacturer, model, driverName, displayName, documentDate } = options;
+  const {
+    file,
+    storageFolder,
+    category,
+    companyName,
+    vehiclePlate,
+    manufacturer,
+    model,
+    driverName,
+    displayName,
+    documentDate,
+    accidentId,
+    claimNumber,
+  } = options;
 
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user?.id;
@@ -73,23 +88,56 @@ export async function uploadDocument(options: UploadDocumentOptions): Promise<Up
   // document_metadata row the file exists in storage but never shows up in the
   // vehicle documents area.
   if (category) {
-    const { error: metaError } = await supabase.from('document_metadata').insert({
-      file_path: filePath,
-      category,
-      company_name: companyName || '',
-      vehicle_plate: vehiclePlate || '',
-      driver_name: driverName || '',
-      manufacturer: manufacturer || '',
-      model: model || '',
-      original_name: file.name,
-      display_name: displayName || null,
-      document_date: documentDate || null,
-      uploaded_by: userId,
-    });
+    const { data: metadata, error: metaError } = await supabase
+      .from('document_metadata')
+      .insert({
+        file_path: filePath,
+        category,
+        company_name: companyName || '',
+        vehicle_plate: vehiclePlate || '',
+        driver_name: driverName || '',
+        manufacturer: manufacturer || '',
+        model: model || '',
+        original_name: file.name,
+        display_name: displayName || null,
+        document_date: documentDate || null,
+        claim_number: claimNumber || '',
+        uploaded_by: userId,
+      })
+      .select('id')
+      .single();
 
     if (metaError) {
       console.error('document_metadata insert error:', metaError);
+      if (accidentId) await supabase.storage.from('documents').remove([filePath]);
       return { ok: false, error: `הקובץ הועלה אך לא נרשם במערכת המסמכים: ${metaError.message}` };
+    }
+
+    // Accident documents reuse the existing document version/entity mechanism.
+    // The same storage object and metadata row are referenced; no duplicate file.
+    if (accidentId) {
+      const { error: versionError } = await supabase.from('document_versions').insert({
+        company_name: companyName || '',
+        document_type_key: category,
+        entity_type: 'accident',
+        entity_id: accidentId,
+        version_no: 1,
+        is_current: true,
+        file_path: filePath,
+        public_url: publicUrl,
+        original_name: file.name,
+        content_type: contentType || '',
+        file_size_bytes: file.size,
+        source: 'manager_upload',
+        uploaded_by: userId,
+        metadata_id: metadata.id,
+      });
+      if (versionError) {
+        console.error('document_versions insert error:', versionError);
+        await supabase.from('document_metadata').delete().eq('id', metadata.id);
+        await supabase.storage.from('documents').remove([filePath]);
+        return { ok: false, error: `המסמך לא שויך לתאונה: ${versionError.message}` };
+      }
     }
   }
 

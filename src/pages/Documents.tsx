@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Upload, FolderOpen, Filter, ArrowRight, Car, User, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +19,7 @@ interface DocCategory {
   label: string;
   icon: string;
   folder: string;
-  scope: 'vehicle' | 'driver' | 'expense';
+  scope: 'vehicle' | 'driver' | 'expense' | 'accident';
 }
 
 const vehicleDocs: DocCategory[] = [
@@ -44,7 +44,11 @@ const expenseDocs: DocCategory[] = [
   { key: 'receipts', label: 'קבלות', icon: '🧾', folder: 'receipts', scope: 'expense' },
 ];
 
-const allCategories = [...vehicleDocs, ...driverDocs, ...expenseDocs];
+const accidentDocs: DocCategory[] = [
+  { key: 'accident-document', label: 'מסמכי תאונות', icon: '🚨', folder: 'accident-documents', scope: 'accident' },
+];
+
+const allCategories = [...vehicleDocs, ...driverDocs, ...accidentDocs, ...expenseDocs];
 
 interface DocMeta {
   id: string;
@@ -56,7 +60,11 @@ interface DocMeta {
   manufacturer: string;
   model: string;
   original_name: string;
+  display_name: string | null;
+  document_date: string | null;
+  claim_number: string;
   created_at: string;
+  accident_id?: string;
 }
 
 function docPublicUrl(filePath: string) {
@@ -65,6 +73,7 @@ function docPublicUrl(filePath: string) {
 
 export default function Documents() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { plate: contextPlate, vehicleId: contextVehicleId, locked } = useVehicleUrlContext();
   const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
@@ -170,6 +179,12 @@ export default function Documents() {
         query = query.eq('vehicle_plate', driverVehicle.license_plate);
       } else if (cat.scope === 'driver' && driverProfile) {
         query = query.eq('driver_name', driverProfile.full_name);
+      } else if (cat.scope === 'accident' && driverProfile) {
+        query = query.eq('driver_name', driverProfile.full_name);
+      } else if (cat.scope === 'accident') {
+        setDocs([]);
+        setLoadingFiles(false);
+        return;
       } else if (cat.scope === 'expense') {
         // drivers don't see expense docs
         setDocs([]);
@@ -186,7 +201,21 @@ export default function Documents() {
 
     const { data, error } = await query;
     if (error) toast.error('שגיאה בטעינת מסמכים');
-    else setDocs((data || []) as DocMeta[]);
+    else {
+      const loaded = ((data || []) as DocMeta[]);
+      if (cat.scope === 'accident' && loaded.length > 0) {
+        const { data: versions } = await supabase
+          .from('document_versions')
+          .select('metadata_id, entity_id')
+          .eq('entity_type', 'accident')
+          .in('metadata_id', loaded.map((doc) => doc.id));
+        const accidentByMetadata = new Map(
+          (versions || []).map((version: any) => [version.metadata_id, version.entity_id]),
+        );
+        loaded.forEach((doc) => { doc.accident_id = accidentByMetadata.get(doc.id); });
+      }
+      setDocs(loaded);
+    }
     setLoadingFiles(false);
   }, [companyFilter, isDriver, driverVehicle, driverProfile, locked, contextPlate]);
 
@@ -334,9 +363,26 @@ export default function Documents() {
   };
 
   // Apply filters
-  let filteredDocs = docs.filter(d =>
-    !searchQuery || d.original_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  let filteredDocs = docs.filter((doc) => {
+    if (!normalizedSearch) return true;
+    const eventDate = doc.document_date ? new Date(`${doc.document_date}T00:00:00`) : null;
+    const dateValues = eventDate && !Number.isNaN(eventDate.getTime())
+      ? [
+          doc.document_date,
+          eventDate.toLocaleDateString('he-IL'),
+          eventDate.toLocaleDateString('he-IL').replace(/\./g, '/'),
+        ]
+      : [];
+    return [
+      doc.original_name,
+      doc.display_name,
+      doc.claim_number,
+      doc.vehicle_plate,
+      doc.driver_name,
+      ...dateValues,
+    ].some((value) => value?.toLowerCase().includes(normalizedSearch));
+  });
   if (isManager && filterVehicle) filteredDocs = filteredDocs.filter(d => d.vehicle_plate?.includes(filterVehicle));
   if (isManager && filterDriver) filteredDocs = filteredDocs.filter(d => d.driver_name?.includes(filterDriver));
   if (isManager && filterCompany) filteredDocs = filteredDocs.filter(d => d.company_name?.includes(filterCompany));
@@ -363,6 +409,7 @@ export default function Documents() {
 
         <CategorySection title="מסמכי רכב" description="טסט, ביטוח, רישיון רכב" categories={visibleVehicleDocs} counts={categoryCounts} onOpen={openCategory} icon={<Car size={20} className="text-primary" />} />
         <CategorySection title="מסמכי נהגים" description="רישיונות נהיגה, תעודות, אישורים" categories={visibleDriverDocs} counts={categoryCounts} onOpen={openCategory} icon={<User size={20} className="text-primary" />} />
+        <CategorySection title="מסמכי תאונות" description="תביעות, ביטוח, משטרה ושמאות" categories={accidentDocs} counts={categoryCounts} onOpen={openCategory} icon={<FileText size={20} className="text-primary" />} />
         {!isDriver && (
           <CategorySection title="חשבוניות והוצאות" description="חשבוניות דלק, תחזוקה וספקים" categories={expenseDocs} counts={categoryCounts} onOpen={openCategory} />
         )}
@@ -404,7 +451,7 @@ export default function Documents() {
       <div className="flex gap-2 mb-4">
         <div className="relative flex-1">
           <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="חיפוש מסמך..." className="w-full pr-10 p-3 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none text-lg" />
+          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={selectedCategory.scope === 'accident' ? 'חיפוש לפי מספר תביעה, תאריך אירוע, נהג או רכב...' : 'חיפוש מסמך...'} className="w-full pr-10 p-3 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none text-lg" />
         </div>
         {isManager && (
           <button onClick={() => setShowFilters(!showFilters)} className={`relative flex items-center gap-1 px-3 py-3 rounded-xl border-2 font-bold transition-colors ${showFilters ? 'border-primary bg-primary/10 text-primary' : 'border-input text-foreground'}`}>
@@ -414,7 +461,7 @@ export default function Documents() {
             )}
           </button>
         )}
-        {isManager && (
+        {isManager && selectedCategory.scope !== 'accident' && (
           <button onClick={() => setShowUploadForm(!showUploadForm)} className="flex items-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 active:scale-95 transition-transform">
             <Upload size={20} />
             <span className="hidden sm:inline">העלאה</span>
@@ -459,7 +506,7 @@ export default function Documents() {
       )}
 
       {/* Upload Form */}
-      {isManager && showUploadForm && (
+      {isManager && selectedCategory.scope !== 'accident' && showUploadForm && (
         <div className="card-elevated mb-4 space-y-3">
           <h3 className="font-bold">העלאת מסמך חדש</h3>
           <p className="text-sm text-muted-foreground">מלא פרטים לשיוך המסמך (אופציונלי)</p>
@@ -509,8 +556,14 @@ export default function Documents() {
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-0.5">
                   {doc.vehicle_plate && <span className="bg-muted px-1.5 py-0.5 rounded">🚗 {doc.vehicle_plate}</span>}
                   {doc.driver_name && <span className="bg-muted px-1.5 py-0.5 rounded">👤 {doc.driver_name}</span>}
+                  {doc.claim_number && <span className="bg-muted px-1.5 py-0.5 rounded">תביעה {doc.claim_number}</span>}
                   {doc.manufacturer && <span className="bg-muted px-1.5 py-0.5 rounded">{doc.manufacturer} {doc.model}</span>}
-                  {doc.created_at && <span>{new Date(doc.created_at).toLocaleDateString('he-IL')}</span>}
+                  {doc.document_date && <span>אירוע: {new Date(`${doc.document_date}T00:00:00`).toLocaleDateString('he-IL')}</span>}
+                  {doc.accident_id && (
+                    <button type="button" className="font-medium text-primary underline" onClick={() => navigate(`/accidents?id=${doc.accident_id}`)}>
+                      פתח תאונה
+                    </button>
+                  )}
                 </div>
               )}
               onDelete={isManager ? () => handleDelete(doc) : undefined}

@@ -82,8 +82,18 @@ export default function VehicleInspections() {
     if (inspection) {
       setSelectedInspection(inspection);
       setViewMode('detail');
+      return;
     }
-  }, [searchParams, inspections, loading]);
+    // Deep-link from officer report: fetch the inspection if not yet in the list.
+    void applyCompanyScope(
+      supabase.from('vehicle_inspections').select('*').eq('id', inspectionId),
+      companyFilter,
+    ).maybeSingle().then(({ data }) => {
+      if (!data) return;
+      setSelectedInspection(data as InspectionRow);
+      setViewMode('detail');
+    });
+  }, [searchParams, inspections, loading, companyFilter]);
 
   useEffect(() => {
     if (contextPlate) setSearch(contextPlate);
@@ -369,11 +379,58 @@ function InspectionForm({ vehicles, user, initialVehicleId = '', onDone, onBack 
 
 function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; onBack: () => void }) {
   const [items, setItems] = useState<InspectionItemRow[]>([]);
+  const [internalNumber, setInternalNumber] = useState<string | null>(null);
+  const [relatedTasks, setRelatedTasks] = useState<{ id: string; title: string; description: string; status: string }[]>([]);
 
   useEffect(() => {
-    supabase.from('inspection_items').select('*').eq('inspection_id', inspection.id)
+    void supabase.from('inspection_items').select('*').eq('inspection_id', inspection.id)
       .then(({ data }) => { if (data) setItems(data as InspectionItemRow[]); });
-  }, [inspection.id]);
+
+    if (inspection.vehicle_id) {
+      void supabase.from('vehicles').select('internal_number').eq('id', inspection.vehicle_id).maybeSingle()
+        .then(({ data }) => setInternalNumber(data?.internal_number || null));
+    } else {
+      setInternalNumber(null);
+    }
+
+    void supabase
+      .from('vehicle_tasks')
+      .select('id, title, description, status')
+      .eq('inspection_id', inspection.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setRelatedTasks((data as { id: string; title: string; description: string; status: string }[]) || []);
+      });
+  }, [inspection.id, inspection.vehicle_id]);
+
+  const defects = items.filter((item) => item.status === 'defect');
+
+  // The tri-semi screen stores the km reading inside vehicle_inspections.notes
+  // ("קילומטראז׳: 1111"), so split it out to keep the notes area for real remarks.
+  const savedNotes = (inspection.notes || '').trim();
+  const kmMatch = savedNotes.match(/קילומטראז[׳']?\s*:\s*([\d,\.]*)/);
+  const inspectionKm = (kmMatch?.[1] || '').trim();
+  const generalNotes = savedNotes.replace(/קילומטראז[׳']?\s*:\s*[\d,\.]*/, '').trim();
+
+  // All remarks written during that inspection, from the sources that already
+  // save them: the inspection row, its checklist items and its follow-up tasks.
+  const noteEntries: { key: string; label: string; text: string }[] = [];
+  if (generalNotes) noteEntries.push({ key: 'general', label: 'הערה כללית', text: generalNotes });
+  items.forEach((item, i) => {
+    const text = (item.notes || '').trim();
+    if (!text) return;
+    noteEntries.push({
+      key: item.id || `item-${i}`,
+      label: `${item.item_name}${item.status === 'defect' ? ' (ליקוי)' : ''}`,
+      text,
+    });
+  });
+  const itemNoteTexts = new Set(noteEntries.map((entry) => entry.text));
+  relatedTasks.forEach((task) => {
+    const text = (task.description || '').trim();
+    if (!text || itemNoteTexts.has(text) || text.startsWith('ליקוי שנמצא בבדיקה')) return;
+    noteEntries.push({ key: `task-${task.id}`, label: task.title || 'משימת טיפול', text });
+  });
 
   return (
     <div className="animate-fade-in">
@@ -389,36 +446,92 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
           </span>
         </div>
         <div className="grid grid-cols-2 gap-4 text-lg">
-          <div><span className="text-muted-foreground text-sm">תאריך</span><p className="font-bold">{new Date(inspection.inspection_date).toLocaleDateString('he-IL')}</p></div>
+          <div><span className="text-muted-foreground text-sm">מספר רכב</span><p className="font-bold">{inspection.vehicle_plate || '—'}</p></div>
+          <div><span className="text-muted-foreground text-sm">מספר פנימי</span><p className="font-bold">{internalNumber || '—'}</p></div>
+          <div><span className="text-muted-foreground text-sm">תאריך הביקורת</span><p className="font-bold">{new Date(inspection.inspection_date).toLocaleDateString('he-IL')}</p></div>
           <div><span className="text-muted-foreground text-sm">מועד בדיקה הבאה</span><p className="font-bold">{inspection.next_due_date ? new Date(inspection.next_due_date).toLocaleDateString('he-IL') : '—'}</p></div>
           <div><span className="text-muted-foreground text-sm">בודק</span><p className="font-bold">{inspection.inspector_name || '—'}</p></div>
-          <div><span className="text-muted-foreground text-sm">סוג</span><p className="font-bold">{
+          <div><span className="text-muted-foreground text-sm">סוג הביקורת</span><p className="font-bold">{
             inspection.inspection_type === 'tri_semi_annual' ? 'תלת/חצי שנתית' :
             inspection.inspection_type === 'semi_annual' ? 'חצי שנתי' :
             inspection.inspection_type === 'quarterly' ? 'רבעוני' :
             inspection.inspection_type === 'monthly' ? 'חודשי' : 'מיוחד'
           }</p></div>
+          <div><span className="text-muted-foreground text-sm">קילומטראז׳ בבדיקה</span><p className="font-bold">{inspectionKm || '—'}</p></div>
         </div>
-        {inspection.notes && <p className="mt-4 p-3 bg-muted rounded-xl text-muted-foreground">{inspection.notes}</p>}
       </div>
 
-      <div className="card-elevated">
-        <h2 className="text-lg font-bold mb-4">פריטי בדיקה</h2>
-        <div className="space-y-2">
-          {items.map((item, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-              <span className="font-medium">{item.item_name}</span>
-              <div className="flex items-center gap-2">
-                {item.status === 'ok' ? (
-                  <span className="text-success text-sm font-medium">✅ תקין</span>
+      <div className="card-elevated mb-4">
+        <h2 className="text-lg font-bold mb-3">הערות הביקורת{noteEntries.length > 0 ? ` (${noteEntries.length})` : ''}</h2>
+        {noteEntries.length === 0 ? (
+          <p className="text-muted-foreground">לא נרשמו הערות בביקורת זו</p>
+        ) : (
+          <div className="space-y-2">
+            {noteEntries.map((entry) => (
+              <div key={entry.key} className="rounded-xl bg-muted p-3">
+                <p className="text-sm text-muted-foreground">{entry.label}</p>
+                <p className="font-medium whitespace-pre-wrap">{entry.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {defects.length > 0 && (
+        <div className="card-elevated mb-4 border border-destructive/30">
+          <h2 className="text-lg font-bold mb-3 text-destructive">תקלות שסומנו ({defects.length})</h2>
+          <div className="space-y-3">
+            {defects.map((item, i) => (
+              <div key={item.id || i} className="rounded-xl bg-destructive/5 p-3">
+                <p className="font-bold">{item.item_name}</p>
+                {(item.notes || '').trim() ? (
+                  <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{item.notes}</p>
                 ) : (
-                  <span className="text-destructive text-sm font-medium">⚠️ ליקוי</span>
+                  <p className="mt-1 text-sm text-muted-foreground">ללא פירוט נוסף</p>
                 )}
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="card-elevated mb-4">
+        <h2 className="text-lg font-bold mb-4">סעיפי הבדיקה</h2>
+        <div className="space-y-2">
+          {items.length === 0 ? (
+            <p className="text-muted-foreground">אין סעיפי בדיקה שמורים לביקורת זו</p>
+          ) : items.map((item, i) => (
+            <div key={item.id || i} className="py-2 border-b border-border last:border-0">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium">{item.item_name}</span>
+                {item.status === 'ok' ? (
+                  <span className="text-success text-sm font-medium shrink-0">תקין</span>
+                ) : (
+                  <span className="text-destructive text-sm font-medium shrink-0">ליקוי</span>
+                )}
+              </div>
+              {(item.notes || '').trim() && (
+                <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{item.notes}</p>
+              )}
             </div>
           ))}
         </div>
       </div>
+
+      {relatedTasks.length > 0 && (
+        <div className="card-elevated mb-4">
+          <h2 className="text-lg font-bold mb-3">משימות טיפול שנפתחו מהביקורת</h2>
+          <div className="space-y-2">
+            {relatedTasks.map((task) => (
+              <div key={task.id} className="rounded-xl border border-border p-3">
+                <p className="font-bold">{task.title}</p>
+                {task.description && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{task.description}</p>}
+                <p className="text-xs text-muted-foreground mt-1">סטטוס: {task.status || '—'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -25,6 +25,7 @@ interface VehicleBasic {
   manufacturer: string;
   model: string;
   company_name: string;
+  odometer?: number | string | null;
 }
 
 const CHECKLIST_ITEMS = [...DEFAULT_INSPECTION_CHECKLIST];
@@ -54,8 +55,10 @@ export default function PrivateVehicleInspection() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    applyCompanyScope(supabase.from('vehicles').select('id, license_plate, manufacturer, model, company_name'), companyFilter)
-      .then(({ data }) => { if (data) setVehicles(data as VehicleBasic[]); });
+    applyCompanyScope(
+      supabase.from('vehicles').select('id, license_plate, manufacturer, model, company_name, odometer'),
+      companyFilter,
+    ).then(({ data }) => { if (data) setVehicles(data as VehicleBasic[]); });
   }, [companyFilter]);
 
   useEffect(() => {
@@ -80,6 +83,14 @@ export default function PrivateVehicleInspection() {
   }, [vehicles, contextPlate, contextVehicleId]);
 
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
+
+  // Prefill odometer from the vehicle's last known km (vehicles.odometer).
+  // User can still edit before save; shouldUpdateOdometer still guards downgrades.
+  useEffect(() => {
+    if (!selectedVehicle) return;
+    const km = parseOdometerKm(selectedVehicle.odometer);
+    setOdometer(km != null ? String(km) : '');
+  }, [selectedVehicle?.id, selectedVehicle?.odometer]);
 
   const updateItem = (index: number, field: keyof CheckItem, value: string) => {
     setItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));

@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       accidents: {
         Row: {
+          claim_number: string
           company_name: string | null
           created_at: string | null
           created_by: string | null
@@ -33,6 +34,7 @@ export type Database = {
           vehicle_plate: string | null
         }
         Insert: {
+          claim_number?: string
           company_name?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -50,6 +52,7 @@ export type Database = {
           vehicle_plate?: string | null
         }
         Update: {
+          claim_number?: string
           company_name?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -662,6 +665,7 @@ export type Database = {
       document_metadata: {
         Row: {
           category: string
+          claim_number: string
           company_name: string | null
           created_at: string | null
           display_name: string | null
@@ -677,6 +681,7 @@ export type Database = {
         }
         Insert: {
           category?: string
+          claim_number?: string
           company_name?: string | null
           created_at?: string | null
           display_name?: string | null
@@ -692,6 +697,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          claim_number?: string
           company_name?: string | null
           created_at?: string | null
           display_name?: string | null
