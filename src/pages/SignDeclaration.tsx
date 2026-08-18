@@ -41,6 +41,7 @@ export default function SignDeclaration() {
   const [error, setError] = useState('');
   const [signed, setSigned] = useState(false);
   const [hasStrokes, setHasStrokes] = useState(false);
+  const [localSignaturePreview, setLocalSignaturePreview] = useState('');
   const isDrawingRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -126,6 +127,7 @@ export default function SignDeclaration() {
     setSubmitting(true);
     try {
       const dataUrl = canvasRef.current.toDataURL('image/png');
+      setLocalSignaturePreview(dataUrl);
       const blob = await (await fetch(dataUrl)).blob();
       const path = `declarations/sig_${declaration.id}_${Date.now()}.png`;
       const { error: uploadErr } = await supabase.storage
@@ -137,7 +139,7 @@ export default function SignDeclaration() {
         setSubmitting(false);
         return;
       }
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path);
+      const signatureRef = path;
 
       const signedAt = new Date().toISOString();
       const expiresAt = new Date();
@@ -148,7 +150,7 @@ export default function SignDeclaration() {
         .update({
           status: 'signed',
           signed_at: signedAt,
-          signature_url: urlData.publicUrl,
+          signature_url: signatureRef,
           expires_at: expiresAt.toISOString(),
         })
         .eq('token', token)
@@ -193,13 +195,14 @@ export default function SignDeclaration() {
           </div>
           <h2 className="text-xl font-bold">התצהיר נחתם בהצלחה!</h2>
           <p className="text-muted-foreground">תודה, {declaration.driver_name}. התצהיר נשמר במערכת.</p>
-          {declaration.signature_url && (
-            <img src={declaration.signature_url} alt="חתימה" className="h-20 mx-auto rounded border bg-white p-2" />
+          {(localSignaturePreview || declaration.signature_url) && (
+            <img src={localSignaturePreview || declaration.signature_url || ''} alt="חתימה" className="h-20 mx-auto rounded border bg-white p-2" />
           )}
           <button
             onClick={() => printDeclaration({
               ...declaration,
               declaration_text: declaration.declaration_text || displayText,
+              signature_url: localSignaturePreview || declaration.signature_url,
             })}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-base font-bold mt-4"
           >

@@ -31,7 +31,7 @@ type Props = {
 };
 
 function docPublicUrl(filePath: string) {
-  return supabase.storage.from('documents').getPublicUrl(filePath).data.publicUrl;
+  return filePath;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {

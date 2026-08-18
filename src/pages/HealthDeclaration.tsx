@@ -166,8 +166,7 @@ function DeclarationForm({ user, onDone, onBack }: { user: any; onDone: () => vo
         const path = `${user?.id}/health-declarations/${crypto.randomUUID()}.png`;
         const { error: uploadError } = await supabase.storage.from('documents').upload(path, blob);
         if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path);
-          signatureUrl = publicUrl;
+          signatureUrl = path;
         }
       }
     }

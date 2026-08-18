@@ -3,6 +3,7 @@ import { ChevronLeft, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { ResolvedStorageLink } from '@/components/documents/DocumentViewer';
 import { Input } from '@/components/ui/input';
 import {
   Sheet,
@@ -394,14 +395,12 @@ export default function VehicleDashboard({
           <p className="text-xs font-bold text-muted-foreground mb-1">רישיון</p>
           <DetailList items={[{ label: 'רישיון רכב — קובץ', value: v.license_doc_url ? 'מצורף' : 'חסר' }]} />
           {v.license_doc_url ? (
-            <a
-              href={v.license_doc_url}
-              target="_blank"
-              rel="noreferrer"
+            <ResolvedStorageLink
+              url={v.license_doc_url}
               className="block text-sm font-bold text-primary underline mt-2"
             >
               פתח רישיון רכב
-            </a>
+            </ResolvedStorageLink>
           ) : null}
         </div>
         {insAlertsOn &&
@@ -417,14 +416,14 @@ export default function VehicleDashboard({
         {(v.insurance_doc_url || v.comprehensive_insurance_doc_url) && (
           <div className="mt-2 space-y-1">
             {v.insurance_doc_url ? (
-              <a href={v.insurance_doc_url} target="_blank" rel="noreferrer" className="block text-sm font-bold text-primary underline">
+              <ResolvedStorageLink url={v.insurance_doc_url} className="block text-sm font-bold text-primary underline">
                 פתח ביטוח חובה
-              </a>
+              </ResolvedStorageLink>
             ) : null}
             {v.comprehensive_insurance_doc_url ? (
-              <a href={v.comprehensive_insurance_doc_url} target="_blank" rel="noreferrer" className="block text-sm font-bold text-primary underline">
+              <ResolvedStorageLink url={v.comprehensive_insurance_doc_url} className="block text-sm font-bold text-primary underline">
                 פתח ביטוח מקיף
-              </a>
+              </ResolvedStorageLink>
             ) : null}
           </div>
         )}
@@ -450,15 +449,13 @@ export default function VehicleDashboard({
           <div className="mb-3">
             <p className="text-xs font-bold mb-2">מסמכים במערכת</p>
             {uploaded.map((d) => (
-              <a
+              <ResolvedStorageLink
                 key={d.name}
-                href={d.url}
-                target="_blank"
-                rel="noreferrer"
+                url={d.url}
                 className="block text-sm py-1 font-bold text-primary underline"
               >
                 ✓ {d.name} — פתח
-              </a>
+              </ResolvedStorageLink>
             ))}
           </div>
         )}

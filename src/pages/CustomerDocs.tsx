@@ -119,8 +119,7 @@ export default function CustomerDocs() {
     loadDocs();
   };
 
-  const docPublicUrl = (filePath: string) =>
-    supabase.storage.from('documents').getPublicUrl(filePath).data.publicUrl;
+  const docPublicUrl = (filePath: string) => filePath;
 
   const filtered = docs.filter(d => {
     if (filterCategory && d.category !== filterCategory) return false;

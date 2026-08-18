@@ -8,6 +8,7 @@ import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/li
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { Button } from '@/components/ui/button';
+import { ResolvedStorageImg } from '@/components/documents/DocumentViewer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,8 +31,7 @@ function PhotoUpload({ label, imageUrl, onUpload, required }: { label: string; i
     const path = `exchanges/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from('documents').upload(path, file);
     if (error) { toast.error('שגיאה בהעלאת תמונה'); setUploading(false); return; }
-    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path);
-    onUpload(publicUrl);
+    onUpload(path);
     setUploading(false);
   };
 
@@ -44,7 +44,7 @@ function PhotoUpload({ label, imageUrl, onUpload, required }: { label: string; i
         className={`w-full aspect-[4/3] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-sm font-medium transition-colors ${imageUrl ? 'border-primary/50 bg-primary/5' : 'border-input bg-muted/30 hover:border-primary hover:text-primary'}`}
       >
         {uploading ? <Loader2 size={28} className="animate-spin text-primary" /> : imageUrl ? (
-          <img src={imageUrl} alt={label} className="w-full h-full object-cover rounded-lg" />
+          <ResolvedStorageImg url={imageUrl} alt={label} className="w-full h-full object-cover rounded-lg" />
         ) : (
           <>
             <Camera size={28} className="text-muted-foreground" />

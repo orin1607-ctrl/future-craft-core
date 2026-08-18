@@ -349,7 +349,7 @@ export async function loadVehicleHubData(
   );
 
   metadataRows.forEach((d: Record<string, string>, idx: number) => {
-    const { data: pub } = supabase.storage.from('documents').getPublicUrl(d.file_path);
+    const url = d.file_path || '';
     docs.push({
       id: d.id,
       ref: `REF-${String(idx + 1).padStart(3, '0')}`,
@@ -357,14 +357,14 @@ export async function loadVehicleHubData(
       source: d.category || 'מערכת',
       date: d.created_at ? new Date(d.created_at).toLocaleDateString('he-IL') : '—',
       expiry: '—',
-      url: pub.publicUrl,
+      url,
     });
   });
 
   const seenUrls = new Set(docs.map((d) => d.url).filter(Boolean) as string[]);
   const seenPaths = new Set(metadataRows.map((d) => d.file_path).filter(Boolean));
   (versionsRes.data || []).forEach((ver: Record<string, string>, idx: number) => {
-    const url = ver.public_url || '';
+    const url = ver.file_path || ver.public_url || '';
     if (url && seenUrls.has(url)) return;
     if (ver.file_path && seenPaths.has(ver.file_path)) return;
     if (url) seenUrls.add(url);

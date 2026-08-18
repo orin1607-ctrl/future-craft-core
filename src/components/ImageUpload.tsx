@@ -3,6 +3,7 @@ import { Camera, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { buildStoragePath } from '@/lib/storage';
+import { ResolvedStorageImg, ResolvedStorageLink } from '@/components/documents/DocumentViewer';
 
 interface ImageUploadProps {
   label: string;
@@ -38,8 +39,7 @@ export default function ImageUpload({ label, required, imageUrl, onImageUploaded
       return;
     }
 
-    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path);
-    onImageUploaded(publicUrl);
+    onImageUploaded(path);
     setUploading(false);
   };
 
@@ -66,12 +66,12 @@ export default function ImageUpload({ label, required, imageUrl, onImageUploaded
         </button>
       ) : (
         <div className="relative">
-          {imageUrl.endsWith('.pdf') ? (
+          {imageUrl.endsWith('.pdf') || imageUrl.toLowerCase().includes('.pdf') ? (
             <div className="w-full rounded-xl bg-muted p-4 flex items-center justify-center">
-              <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-bold">📄 צפה בקובץ PDF</a>
+              <ResolvedStorageLink url={imageUrl} className="text-primary font-bold">📄 צפה בקובץ PDF</ResolvedStorageLink>
             </div>
           ) : (
-            <img src={imageUrl} alt={label} className="w-full rounded-xl max-h-64 object-cover" />
+            <ResolvedStorageImg url={imageUrl} alt={label} className="w-full rounded-xl max-h-64 object-cover" />
           )}
           <button
             onClick={removeImage}

@@ -1,5 +1,6 @@
 import { Eye, X, FileText } from 'lucide-react';
 import { resolveStoredDeclarationText } from '@/utils/declarationTemplates';
+import { ResolvedStorageImg } from '@/components/documents/DocumentViewer';
 
 export interface DeclarationPreviewData {
   driver_name: string;
@@ -88,7 +89,7 @@ export default function DeclarationPreviewModal({ declaration, onClose }: Declar
           {declaration.signature_url ? (
             <div className="p-4 rounded-xl border border-border bg-white">
               <p className="text-sm text-muted-foreground mb-2">חתימת הנהג:</p>
-              <img src={declaration.signature_url} alt="חתימה" className="h-20 rounded border bg-white p-1" />
+              <ResolvedStorageImg url={declaration.signature_url} alt="חתימה" className="h-20 rounded border bg-white p-1" />
             </div>
           ) : (
             <div className="p-4 rounded-xl border-2 border-dashed border-input bg-muted/20 text-center text-muted-foreground text-sm">

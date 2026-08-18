@@ -223,8 +223,9 @@ Deno.serve(async (req) => {
       if (upErr) {
         return jsonResponse({ success: false, error: "storage_failed", details: upErr.message }, 500);
       }
-      const { data: pub } = supabase.storage.from("documents").getPublicUrl(filePath);
-      const publicUrl = pub?.publicUrl || "";
+      const { data: signed } = await supabase.storage.from("documents").createSignedUrl(filePath, 900);
+      const publicUrl = filePath;
+      const signedUrl = signed?.signedUrl || "";
 
       // version number
       const { data: lastVer } = await supabase
@@ -348,7 +349,7 @@ Deno.serve(async (req) => {
         success: true,
         status: nextStatus,
         version,
-        public_url: publicUrl,
+        public_url: signedUrl || publicUrl,
       });
     }
 

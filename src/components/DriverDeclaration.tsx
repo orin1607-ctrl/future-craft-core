@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { printDeclaration } from '@/utils/printDeclaration';
+import { ResolvedStorageImg } from '@/components/documents/DocumentViewer';
 import {
   canManageDeclarationTemplates,
   renderDeclarationTemplate,
@@ -316,7 +317,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
       toast.error('שגיאה בשמירת החתימה: ' + uploadErr.message);
       return;
     }
-    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path);
+    const signatureRef = path;
 
     const signedAt = new Date().toISOString();
     const expiresAt = new Date();
@@ -325,7 +326,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
     const { error: updateErr } = await supabase.from('driver_declarations').update({
       status: 'signed',
       signed_at: signedAt,
-      signature_url: urlData.publicUrl,
+      signature_url: signatureRef,
       expires_at: expiresAt.toISOString(),
     } as any).eq('id', activeDeclaration.id);
 
@@ -449,7 +450,7 @@ export default function DriverDeclaration({ driverId, driverName, idNumber, lice
               )}
               {d.signature_url && (
                 <div>
-                  <img src={d.signature_url} alt="חתימה" className="h-16 rounded border border-border bg-white p-1" />
+                  <ResolvedStorageImg url={d.signature_url} alt="חתימה" className="h-16 rounded border border-border bg-white p-1" />
                 </div>
               )}
 

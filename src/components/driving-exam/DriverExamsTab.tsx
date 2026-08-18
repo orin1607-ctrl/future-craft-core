@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 import ExamRunner from './ExamRunner';
+import { ResolvedStorageImg } from '@/components/documents/DocumentViewer';
 
 import PracticalExamsList from './PracticalExamsList';
 import { buildWaMeUrl, hasWhatsAppPhone } from '@/utils/israeliPhone';
@@ -231,13 +232,13 @@ export default function DriverExamsTab({ driverId, driverName, driverIdNumber, d
           {selected.signature_url && (
             <div className="mt-3">
               <p className="text-sm font-medium mb-1">חתימת נהג:</p>
-              <img src={selected.signature_url} alt="חתימת נהג" className="border rounded max-w-xs" />
+              <ResolvedStorageImg url={selected.signature_url} alt="חתימת נהג" className="border rounded max-w-xs" />
             </div>
           )}
           {selected.manager_signature_url && (
             <div className="mt-3">
               <p className="text-sm font-medium mb-1">חתימת מנהל:</p>
-              <img src={selected.manager_signature_url} alt="חתימת מנהל" className="border rounded max-w-xs" />
+              <ResolvedStorageImg url={selected.manager_signature_url} alt="חתימת מנהל" className="border rounded max-w-xs" />
             </div>
           )}
           {selected.status === 'completed' && (

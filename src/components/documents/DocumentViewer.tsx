@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Download, Eye, File, FileText, Trash2 } from 'lucide-react';
+import { resolveDocumentUrl, extractDocumentsStoragePath } from '@/lib/documentUrl';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   fileNameFromDocument,
@@ -7,6 +8,23 @@ import {
   isImageDocument,
   triggerDocumentDownload,
 } from '@/lib/documentDisplayUtils';
+
+function useResolvedDocumentUrl(url: string | null | undefined) {
+  const [resolved, setResolved] = useState(url || '');
+  useEffect(() => {
+    let cancelled = false;
+    if (!url) {
+      setResolved('');
+      return;
+    }
+    const path = extractDocumentsStoragePath(url);
+    resolveDocumentUrl(url).then((next) => {
+      if (!cancelled) setResolved(next || (path ? '' : url));
+    });
+    return () => { cancelled = true; };
+  }, [url]);
+  return resolved;
+}
 
 export function DocumentPreviewDialog({
   open,
@@ -19,8 +37,9 @@ export function DocumentPreviewDialog({
   fileName?: string;
   onOpenChange: (open: boolean) => void;
 }) {
+  const resolvedUrl = useResolvedDocumentUrl(url);
   const title = fileName || (url ? fileNameFromDocument(url) : 'תצוגת מסמך');
-  const kind = url ? getDocumentKind(`${fileName || ''} ${url}`) : 'other';
+  const kind = resolvedUrl ? getDocumentKind(`${fileName || ''} ${resolvedUrl}`) : 'other';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -29,19 +48,19 @@ export function DocumentPreviewDialog({
           <DialogTitle className="truncate pe-8">{title}</DialogTitle>
           <DialogDescription className="sr-only">תצוגה מלאה של מסמך</DialogDescription>
         </DialogHeader>
-        {url && (
+        {resolvedUrl && (
           <div className="p-4 overflow-auto max-h-[calc(92vh-5rem)]">
             {kind === 'image' ? (
-              <img src={url} alt={title} className="mx-auto w-full max-h-[75vh] object-contain rounded-lg" />
+              <img src={resolvedUrl} alt={title} className="mx-auto w-full max-h-[75vh] object-contain rounded-lg" />
             ) : kind === 'pdf' ? (
-              <iframe src={url} title={title} className="w-full h-[75vh] rounded-lg border border-border bg-muted" />
+              <iframe src={resolvedUrl} title={title} className="w-full h-[75vh] rounded-lg border border-border bg-muted" />
             ) : (
               <div className="text-center py-12 space-y-4">
                 <File size={48} className="mx-auto text-muted-foreground" />
                 <p className="text-muted-foreground">אין תצוגה מקדימה לסוג קובץ זה</p>
                 <button
                   type="button"
-                  onClick={() => triggerDocumentDownload(url, title)}
+                  onClick={() => triggerDocumentDownload(resolvedUrl, title)}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium"
                 >
                   <Download size={16} /> הורד קובץ
@@ -179,9 +198,10 @@ export function DocumentCard({
   onDelete?: () => void;
   compact?: boolean;
 }) {
+  const resolvedUrl = useResolvedDocumentUrl(url);
   const fileName = fileNameProp || fileNameFromDocument(url, label || 'מסמך');
   const [previewOpen, setPreviewOpen] = useState(false);
-  const kind = getDocumentKind(`${fileName} ${url}`);
+  const kind = getDocumentKind(`${fileName} ${resolvedUrl || url}`);
 
   const openPreview = () => {
     if (kind === 'image' || kind === 'pdf') setPreviewOpen(true);
@@ -192,7 +212,7 @@ export function DocumentCard({
     <>
       <div className={`card-elevated flex items-center gap-3 ${compact ? 'p-2.5' : 'p-3'}`}>
         <DocumentKindVisual
-          url={url}
+          url={resolvedUrl || url}
           fileName={fileName}
           size={compact ? 'sm' : 'md'}
           onClick={kind === 'image' ? openPreview : undefined}
@@ -202,15 +222,39 @@ export function DocumentCard({
           <p className={`font-medium truncate ${compact ? 'text-sm' : ''}`}>{fileName}</p>
           {meta}
         </div>
-        <DocumentActions url={url} fileName={fileName} onPreview={openPreview} onDelete={onDelete} compact={compact} />
+        <DocumentActions url={resolvedUrl || url} fileName={fileName} onPreview={openPreview} onDelete={onDelete} compact={compact} />
       </div>
-      <DocumentPreviewDialog open={previewOpen} url={url} fileName={fileName} onOpenChange={setPreviewOpen} />
+      <DocumentPreviewDialog open={previewOpen} url={resolvedUrl || url} fileName={fileName} onOpenChange={setPreviewOpen} />
     </>
   );
 }
 
 export function DocumentAttachment({ label, url, fileName }: { label: string; url: string; fileName?: string }) {
   return <DocumentCard url={url} fileName={fileName} label={label} compact />;
+}
+
+export function ResolvedStorageImg({ url, alt, className }: { url: string; alt: string; className?: string }) {
+  const resolved = useResolvedDocumentUrl(url);
+  if (!resolved) return null;
+  return <img src={resolved} alt={alt} className={className} />;
+}
+
+export function ResolvedStorageLink({
+  url,
+  className,
+  children,
+}: {
+  url: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const resolved = useResolvedDocumentUrl(url);
+  if (!resolved) return <span className={className}>{children}</span>;
+  return (
+    <a href={resolved} target="_blank" rel="noreferrer" className={className}>
+      {children}
+    </a>
+  );
 }
 
 export function DocumentGallery({
@@ -232,7 +276,6 @@ export function DocumentGallery({
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {urls.map((url, i) => {
           const fileName = fileNames?.[i] || fileNameFromDocument(url, `${title || 'מסמך'} ${i + 1}`);
-          const kind = getDocumentKind(`${fileName} ${url}`);
 
           if (isImageDocument(`${fileName} ${url}`)) {
             return (
@@ -242,7 +285,7 @@ export function DocumentGallery({
                 onClick={() => setPreview({ url, fileName })}
                 className="relative rounded-xl overflow-hidden aspect-square border border-border hover:ring-2 hover:ring-primary/40 transition-all"
               >
-                <img src={url} alt={fileName} className="w-full h-full object-cover" />
+                <ResolvedStorageImg url={url} alt={fileName} className="w-full h-full object-cover" />
               </button>
             );
           }
@@ -261,3 +304,4 @@ export function DocumentGallery({
     </div>
   );
 }
+

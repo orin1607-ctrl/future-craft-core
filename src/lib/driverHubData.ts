@@ -288,7 +288,7 @@ export async function loadDriverHubData(params: {
     id: v.id,
     document_type_key: v.document_type_key,
     label_he: labelByKey.get(v.document_type_key) || v.document_type_key,
-    public_url: v.public_url,
+    public_url: v.file_path || v.public_url,
     original_name: v.original_name,
     created_at: v.created_at,
     expiry_date: (v as { expiry_date?: string | null }).expiry_date || null,

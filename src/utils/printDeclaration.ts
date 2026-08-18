@@ -4,6 +4,7 @@
  */
 
 import { resolveStoredDeclarationText } from '@/utils/declarationTemplates';
+import { resolveDocumentUrl } from '@/lib/documentUrl';
 
 export interface DeclarationPrintData {
   driver_name: string;
@@ -21,7 +22,7 @@ export interface DeclarationPrintData {
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('he-IL') : '—';
 
-export function printDeclaration(declaration: DeclarationPrintData) {
+export async function printDeclaration(declaration: DeclarationPrintData) {
   const text = resolveStoredDeclarationText(declaration.declaration_text, {
     driver_name: declaration.driver_name,
     id_number: declaration.id_number,
@@ -32,8 +33,12 @@ export function printDeclaration(declaration: DeclarationPrintData) {
       : new Date().toLocaleDateString('he-IL'),
   });
 
-  const signatureBlock = declaration.signature_url
-    ? `<img src="${declaration.signature_url}" alt="חתימה" crossorigin="anonymous" />`
+  const signatureSrc = declaration.signature_url
+    ? await resolveDocumentUrl(declaration.signature_url)
+    : '';
+
+  const signatureBlock = signatureSrc
+    ? `<img src="${signatureSrc}" alt="חתימה" crossorigin="anonymous" />`
     : `<div class="empty-sig">לא נחתם עדיין</div>`;
 
   const html = `<!DOCTYPE html>

@@ -9,6 +9,7 @@ import { canManageDeclarationTemplates } from '@/utils/declarationTemplates';
 import { normalizeTemplateCompanyName } from '@/services/declarationTemplatesApi';
 import DeclarationTemplateManager from '@/components/DeclarationTemplateManager';
 import DeclarationPreviewModal from '@/components/DeclarationPreviewModal';
+import { ResolvedStorageImg } from '@/components/documents/DocumentViewer';
 
 interface DeclarationRow {
   id: string;
@@ -153,7 +154,7 @@ export default function DriverDeclarations() {
                 {d.expires_at && <span>תוקף עד: {new Date(d.expires_at).toLocaleDateString('he-IL')}</span>}
               </div>
               {d.signature_url && (
-                <img src={d.signature_url} alt="חתימה" className="h-12 mt-2 rounded border border-border bg-white p-1" />
+                <ResolvedStorageImg url={d.signature_url} alt="חתימה" className="h-12 mt-2 rounded border border-border bg-white p-1" />
               )}
               <div className="mt-3 flex gap-2 flex-wrap">
                 <button

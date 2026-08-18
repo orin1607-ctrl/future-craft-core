@@ -3,7 +3,7 @@ import { Camera, X, Loader2, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { buildStoragePath } from '@/lib/storage';
-import { DocumentPreviewDialog } from '@/components/documents/DocumentViewer';
+import { DocumentPreviewDialog, ResolvedStorageImg } from '@/components/documents/DocumentViewer';
 import { fileNameFromDocument } from '@/lib/documentDisplayUtils';
 
 interface MultiImageUploadProps {
@@ -41,8 +41,7 @@ export default function MultiImageUpload({ label, required, imageUrls, onImagesC
       return;
     }
 
-    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path);
-    onImagesChanged([...imageUrls, publicUrl]);
+    onImagesChanged([...imageUrls, path]);
     setUploading(false);
   };
 
@@ -65,7 +64,7 @@ export default function MultiImageUpload({ label, required, imageUrls, onImagesC
                 onClick={() => setPreview({ url, fileName: fileNameFromDocument(url, `${label} ${i + 1}`) })}
                 className="block w-full rounded-xl overflow-hidden h-36 focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
-                <img src={url} alt={`${label} ${i + 1}`} className="w-full h-full object-cover" />
+                <ResolvedStorageImg url={url} alt={`${label} ${i + 1}`} className="w-full h-full object-cover" />
               </button>
               <button
                 onClick={() => removeImage(i)}

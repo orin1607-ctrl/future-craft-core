@@ -68,7 +68,7 @@ interface DocMeta {
 }
 
 function docPublicUrl(filePath: string) {
-  return supabase.storage.from('documents').getPublicUrl(filePath).data.publicUrl;
+  return filePath;
 }
 
 export default function Documents() {

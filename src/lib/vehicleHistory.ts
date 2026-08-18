@@ -238,7 +238,6 @@ export async function loadVehicleHistory(
   );
 
   (docsRes.data || []).forEach((d: Record<string, string>) => {
-    const { data: pub } = supabase.storage.from('documents').getPublicUrl(d.file_path);
     push({
       id: d.id,
       type: 'document',
@@ -249,7 +248,7 @@ export async function loadVehicleHistory(
       userName: '',
       vehiclePlate: plate,
       internalNumber,
-      docUrl: pub.publicUrl,
+      docUrl: d.file_path || '',
       route: '/documents',
     });
   });

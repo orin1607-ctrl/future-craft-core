@@ -14,6 +14,7 @@ import {
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { ResolvedStorageLink } from '@/components/documents/DocumentViewer';
 
 type Props = {
   entityType: DocumentEntityType;
@@ -197,15 +198,13 @@ export default function EntityDocumentRequestsPanel({
                   {format(new Date(v.created_at), 'dd/MM/yyyy HH:mm', { locale: he })} · {v.original_name || 'קובץ'}
                 </p>
               </div>
-              {v.public_url && (
-                <a
-                  href={v.public_url}
-                  target="_blank"
-                  rel="noreferrer"
+              {(v.file_path || v.public_url) && (
+                <ResolvedStorageLink
+                  url={v.file_path || v.public_url}
                   className="text-xs text-primary font-medium shrink-0"
                 >
                   פתח
-                </a>
+                </ResolvedStorageLink>
               )}
             </div>
           ))}

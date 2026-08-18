@@ -462,7 +462,7 @@ function AccidentDocuments({ accident, user }: { accident: AccidentRow; user: an
           {documents.map((doc) => (
             <DocumentCard
               key={doc.id}
-              url={doc.public_url || supabase.storage.from('documents').getPublicUrl(doc.file_path).data.publicUrl}
+              url={doc.file_path || doc.public_url}
               fileName={doc.original_name}
               meta={<span className="text-xs text-muted-foreground">תביעה {accident.claim_number} · {new Date(accident.date).toLocaleDateString('he-IL')}</span>}
             />

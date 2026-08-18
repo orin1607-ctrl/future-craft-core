@@ -55,6 +55,7 @@ export type DocumentVersionRow = {
   version_no: number;
   is_current: boolean;
   public_url: string;
+  file_path?: string;
   original_name: string;
   created_at: string;
   source: string;
@@ -280,8 +281,7 @@ export async function adminUploadEntityDocument(params: {
   });
   if (upErr) throw new Error(upErr.message);
 
-  const { data: pub } = supabase.storage.from('documents').getPublicUrl(filePath);
-  const publicUrl = pub?.publicUrl || '';
+  const publicUrl = filePath;
 
   const { data: lastVer } = await supabase
     .from('document_versions')

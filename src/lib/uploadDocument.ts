@@ -82,7 +82,7 @@ export async function uploadDocument(options: UploadDocumentOptions): Promise<Up
     return { ok: false, error: storageError.message };
   }
 
-  const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(filePath);
+  const publicUrl = filePath;
 
   // A missing company must not silently skip registration: without a
   // document_metadata row the file exists in storage but never shows up in the
