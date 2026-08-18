@@ -545,6 +545,10 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (role !== 'driver') {
+      await supabaseAdmin.from('drivers').delete().eq('id', newUserId);
+    }
+
     if (role === 'driver') {
       const driverEmail = contact_email || email;
       const { error: driverErr } = await supabaseAdmin.from('drivers').upsert(

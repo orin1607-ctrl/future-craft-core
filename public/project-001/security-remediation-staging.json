@@ -265,7 +265,40 @@
       ],
       "testResult": "PASS",
       "testedAt": "2026-08-18T20:03:49.637Z"
+    },
+    {
+      "id": "C2",
+      "code": "P0-signup",
+      "title": "handle_new_user trusts client role metadata",
+      "rootCause": "Signup metadata role was cast to app_role; super_admin was auto-activated.",
+      "changeMade": "handle_new_user always assigns driver and is_active=false. Privileged users are created only via create-admin-user.",
+      "files": [
+        "supabase/migrations/20260818223000_p0_handle_new_user_ignore_client_role.sql"
+      ],
+      "tests": [
+        {
+          "id": "C2-1",
+          "name": "created user with malicious super_admin metadata",
+          "ok": true
+        },
+        {
+          "id": "C2-2",
+          "name": "signup metadata did not grant super_admin",
+          "ok": true,
+          "roles": [
+            "driver"
+          ]
+        },
+        {
+          "id": "C2-3",
+          "name": "new user is_active is false",
+          "ok": true,
+          "is_active": false
+        }
+      ],
+      "testResult": "PASS",
+      "testedAt": "2026-08-18T20:05:53.002Z"
     }
   ],
-  "updatedAt": "2026-08-18T20:03:49.638Z"
+  "updatedAt": "2026-08-18T20:05:53.004Z"
 }
