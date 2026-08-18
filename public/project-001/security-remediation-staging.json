@@ -100,98 +100,6 @@
       "testedAt": "2026-08-18T19:53:54.349Z"
     },
     {
-      "id": "C4-C5",
-      "code": "P0-F",
-      "title": "driver_declarations / driving_exams anon USING(true)",
-      "rootCause": "Anon SELECT/UPDATE policies used USING(true); client .eq(token) is not an RLS bound.",
-      "changeMade": "Dropped anon USING(true) policies; added SECURITY DEFINER token RPCs; SignDeclaration and TakeDrivingExam use RPCs.",
-      "files": [
-        "supabase/migrations/20260818221000_p0_token_scope_declarations_exams.sql",
-        "src/lib/tokenScopedAccess.ts",
-        "src/pages/SignDeclaration.tsx",
-        "src/pages/TakeDrivingExam.tsx",
-        "src/components/driving-exam/ExamRunner.tsx"
-      ],
-      "tests": [
-        {
-          "id": "D1",
-          "name": "inserted disposable declaration fixtures",
-          "ok": true
-        },
-        {
-          "id": "D2",
-          "name": "anon cannot SELECT all driver_declarations",
-          "ok": true,
-          "count": 0
-        },
-        {
-          "id": "D3",
-          "name": "anon table SELECT by token does not return rows",
-          "ok": true,
-          "count": 0
-        },
-        {
-          "id": "D4",
-          "name": "valid token RPC returns the matching declaration",
-          "ok": true,
-          "gotId": "f3b630d5-effa-4c32-80af-46b4bf8e4d54"
-        },
-        {
-          "id": "D5",
-          "name": "valid token RPC does not leak other declarations",
-          "ok": true,
-          "count": 1
-        },
-        {
-          "id": "D6",
-          "name": "wrong token RPC returns no row",
-          "ok": true
-        },
-        {
-          "id": "D7",
-          "name": "anon table UPDATE of another row fails",
-          "ok": true,
-          "count": 0
-        },
-        {
-          "id": "D8",
-          "name": "valid token can sign its own declaration",
-          "ok": true,
-          "status": "signed"
-        },
-        {
-          "id": "E1",
-          "name": "inserted disposable exam fixtures",
-          "ok": true
-        },
-        {
-          "id": "E2",
-          "name": "anon cannot SELECT all driving_exams",
-          "ok": true,
-          "count": 0
-        },
-        {
-          "id": "E3",
-          "name": "valid exam token RPC returns matching exam",
-          "ok": true
-        },
-        {
-          "id": "E4",
-          "name": "anon table UPDATE of another exam fails",
-          "ok": true,
-          "count": 0
-        },
-        {
-          "id": "E5",
-          "name": "valid exam token can submit its own exam",
-          "ok": true,
-          "status": "completed"
-        }
-      ],
-      "testResult": "PASS",
-      "testedAt": "2026-08-18T19:59:39.087Z"
-    },
-    {
       "id": "C3",
       "code": "P0-B/C",
       "title": "Mutable company_name / is_active on profiles",
@@ -407,8 +315,16 @@
       "title": "document-request approve/reject skipped tenant check",
       "rootCause": "requireAuth returns {ctx}|{error} but approve/reject checked instanceof Response, so company_mismatch never ran.",
       "changeMade": "Removed duplicate requireAuth; approve/reject uses the authenticated ctx from the shared requireAuth block.",
-      "files": ["supabase/functions/document-request/index.ts"],
-      "tests": [{ "id": "H12-deploy", "name": "deployed to Staging usfeoerkpcafxxlyuldl", "ok": true }],
+      "files": [
+        "supabase/functions/document-request/index.ts"
+      ],
+      "tests": [
+        {
+          "id": "H12-deploy",
+          "name": "deployed to Staging usfeoerkpcafxxlyuldl",
+          "ok": true
+        }
+      ],
       "testResult": "PASS",
       "testedAt": "2026-08-18T20:12:00.000Z"
     },
@@ -418,8 +334,16 @@
       "title": "request-human-callback trusted company_name from body",
       "rootCause": "Service-role query used body.company_name.",
       "changeMade": "Non-super_admin callers are scoped to ctx.companyName.",
-      "files": ["supabase/functions/request-human-callback/index.ts"],
-      "tests": [{ "id": "H13-deploy", "name": "deployed to Staging", "ok": true }],
+      "files": [
+        "supabase/functions/request-human-callback/index.ts"
+      ],
+      "tests": [
+        {
+          "id": "H13-deploy",
+          "name": "deployed to Staging",
+          "ok": true
+        }
+      ],
       "testResult": "PASS",
       "testedAt": "2026-08-18T20:12:00.000Z"
     },
@@ -429,23 +353,123 @@
       "title": "check-driver-availability trusted company_name query param",
       "rootCause": "Service-role query used company_name from the URL.",
       "changeMade": "Fleet managers are forced to ctx.companyName; super_admin/internal may pass a company.",
-      "files": ["supabase/functions/check-driver-availability/index.ts"],
-      "tests": [{ "id": "H15-deploy", "name": "deployed to Staging", "ok": true }],
+      "files": [
+        "supabase/functions/check-driver-availability/index.ts"
+      ],
+      "tests": [
+        {
+          "id": "H15-deploy",
+          "name": "deployed to Staging",
+          "ok": true
+        }
+      ],
       "testResult": "PASS",
       "testedAt": "2026-08-18T20:12:00.000Z"
+    },
+    {
+      "id": "C4-C5",
+      "code": "P0-F",
+      "title": "driver_declarations / driving_exams anon USING(true)",
+      "rootCause": "Anon SELECT/UPDATE policies used USING(true); client .eq(token) is not an RLS bound.",
+      "changeMade": "Dropped anon USING(true) policies; added SECURITY DEFINER token RPCs; SignDeclaration and TakeDrivingExam use RPCs.",
+      "files": [
+        "supabase/migrations/20260818221000_p0_token_scope_declarations_exams.sql",
+        "src/lib/tokenScopedAccess.ts",
+        "src/pages/SignDeclaration.tsx",
+        "src/pages/TakeDrivingExam.tsx",
+        "src/components/driving-exam/ExamRunner.tsx"
+      ],
+      "tests": [
+        {
+          "id": "D1",
+          "name": "inserted disposable declaration fixtures",
+          "ok": true
+        },
+        {
+          "id": "D2",
+          "name": "anon cannot SELECT all driver_declarations",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "D3",
+          "name": "anon table SELECT by token does not return rows",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "D4",
+          "name": "valid token RPC returns the matching declaration",
+          "ok": true,
+          "gotId": "4d75840b-249e-4c5d-80f1-eb0469cb99c1"
+        },
+        {
+          "id": "D5",
+          "name": "valid token RPC does not leak other declarations",
+          "ok": true,
+          "count": 1
+        },
+        {
+          "id": "D6",
+          "name": "wrong token RPC returns no row",
+          "ok": true
+        },
+        {
+          "id": "D7",
+          "name": "anon table UPDATE of another row fails",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "D8",
+          "name": "valid token can sign its own declaration",
+          "ok": true,
+          "status": "signed"
+        },
+        {
+          "id": "E1",
+          "name": "inserted disposable exam fixtures",
+          "ok": true
+        },
+        {
+          "id": "E2",
+          "name": "anon cannot SELECT all driving_exams",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "E3",
+          "name": "valid exam token RPC returns matching exam",
+          "ok": true
+        },
+        {
+          "id": "E4",
+          "name": "anon table UPDATE of another exam fails",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "E5",
+          "name": "valid exam token can submit its own exam",
+          "ok": true,
+          "status": "completed"
+        }
+      ],
+      "testResult": "PASS",
+      "testedAt": "2026-08-18T21:21:40.256Z"
     }
   ],
   "remainingOpen": [
-    "C6 Google OAuth refresh_token in git — reported, not rotated (needs Owner approval)",
-    "FM can still Storage-list admin-uploads/request-uploads/exchanges prefixes across tenants",
-    "system_logs INSERT USING true",
-    "voice_scenario_runs / pickup_appointments INSERT true",
-    "Gupshup webhook unsigned",
+    "C6 Google token file token.gmail-yonia.json exists on disk, not gitignored; not currently in git index — Owner rotation still required if ever shared",
+    "FM can Storage-list admin-uploads/request-uploads/exchanges/qa-samples/qa-security across tenants (confirmed 2026-08-18)",
+    "Gupshup webhook unsigned (POST without signature returned 200)",
     "/dev/* routes unauthenticated",
-    "full-supabase-export may embed service_role_key",
+    "dalia_form_config / document_type_defs / voice_prompts authenticated SELECT USING true (reference data)",
+    "registration_requests authenticated INSERT USING true",
+    "full-supabase-export may embed service_role_key (function itself returns 401 unauthenticated)",
     "allocate_incident_event_number trusts p_company",
-    "FM create-admin-user may still assign privileged roles — verify remaining path",
-    "Other edge functions using service role without tenant checks"
+    "C4 policy drift: anon USING(true) reappeared after db-query apply; re-dropped 2026-08-18; Production must record migrations and re-verify",
+    "Other edge functions using service role without a full tenant matrix"
   ],
-  "updatedAt": "2026-08-18T20:12:00.000Z"
+  "updatedAt": "2026-08-18T21:21:40.257Z"
 }

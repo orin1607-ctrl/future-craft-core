@@ -1,0 +1,885 @@
+{
+  "at": "2026-08-18T21:15:51.134Z",
+  "environment": "staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "verdicts": {
+    "stagingWorks": "PASS",
+    "documentsUploadView": "PASS",
+    "documentsProtected": "PASS",
+    "tenantIsolation": "PASS",
+    "criticalClosed": "PASS",
+    "openHigh": "REQUIRES ATTENTION",
+    "readyForProdPrep": "READY FOR PRODUCTION PREPARATION"
+  },
+  "postAuditCorrection": {
+    "c4Regression": "First pass found anon USING(true) back on driver_declarations (15–17 ids listable; UPDATE of QA row succeeded). Policies dropped again on Staging only. verify-p0-token-scope then PASS.",
+    "falseFails": [
+      "EDGE-auth-send-otp status 400 is expected for the public login OTP endpoint",
+      "EDGE-deploy-control status 404 means the function is not deployed on Staging"
+    ],
+    "confirmedHigh": [
+      "HIGH-GUPSHUP unsigned webhook HTTP 200",
+      "H-FM-LIST shared admin-uploads prefix listable by any fleet_manager"
+    ]
+  },
+  "failedCount": 5,
+  "passCount": 99,
+  "tests": [
+    {
+      "id": "G0",
+      "name": "Production not targeted",
+      "ok": true,
+      "stagingRef": "usfeoerkpcafxxlyuldl",
+      "productionTouched": false
+    },
+    {
+      "id": "DOC-PRIV",
+      "name": "documents bucket is private",
+      "ok": true,
+      "public": false
+    },
+    {
+      "id": "C1-POL",
+      "name": "wide documents SELECT policies are gone",
+      "ok": true,
+      "leftover": []
+    },
+    {
+      "id": "C4-POL",
+      "name": "anon USING(true) gone on declarations/exams",
+      "ok": false,
+      "leftover": [
+        {
+          "cmd": "UPDATE",
+          "policyname": "Anonymous can update by token",
+          "qual": "true",
+          "roles": "{anon}",
+          "tablename": "driver_declarations"
+        },
+        {
+          "cmd": "SELECT",
+          "policyname": "Anonymous can view by token",
+          "qual": "true",
+          "roles": "{anon}",
+          "tablename": "driver_declarations"
+        }
+      ]
+    },
+    {
+      "id": "RLS-ON",
+      "name": "no public tables with RLS disabled (except known)",
+      "ok": true,
+      "rlsOff": []
+    },
+    {
+      "id": "QA-USERS",
+      "name": "created disposable FM A, FM B, driver A",
+      "ok": true
+    },
+    {
+      "id": "AUTH-IN",
+      "name": "FM A / FM B / driver can sign in",
+      "ok": true
+    },
+    {
+      "id": "UP-1",
+      "name": "authorized FM A can upload to own uid folder",
+      "ok": true
+    },
+    {
+      "id": "UP-2",
+      "name": "document_metadata row saved for company A",
+      "ok": true
+    },
+    {
+      "id": "VIEW-1",
+      "name": "FM A can create signed URL for own file",
+      "ok": true
+    },
+    {
+      "id": "VIEW-2",
+      "name": "signed URL downloads own file",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "id": "SEC-1",
+      "name": "direct public URL cannot download",
+      "ok": true,
+      "status": 400
+    },
+    {
+      "id": "SEC-2",
+      "name": "anonymous cannot download",
+      "ok": true,
+      "error": "{}"
+    },
+    {
+      "id": "SEC-3",
+      "name": "anonymous cannot list uid folder",
+      "ok": true,
+      "count": 0
+    },
+    {
+      "id": "SEC-4",
+      "name": "company B cannot download company A file",
+      "ok": true,
+      "error": "Object not found",
+      "leaked": false
+    },
+    {
+      "id": "SEC-5",
+      "name": "expired signed URL fails",
+      "ok": true,
+      "status": 400
+    },
+    {
+      "id": "SEC-6",
+      "name": "after logout cannot mint a new signed URL",
+      "ok": true,
+      "error": "Object not found"
+    },
+    {
+      "id": "SEC-7",
+      "name": "existing signed URL still valid until TTL (expected 15min)",
+      "ok": true,
+      "status": 200,
+      "note": "short TTL by design; not revoked instantly on logout"
+    },
+    {
+      "id": "AUTH-RE",
+      "name": "FM A can sign in again after logout",
+      "ok": true
+    },
+    {
+      "id": "FIX-VEH",
+      "name": "inserted QA vehicles A and B",
+      "ok": true
+    },
+    {
+      "id": "FIX-CUS",
+      "name": "inserted QA customers A and B (or skipped)",
+      "ok": true,
+      "note": "ok"
+    },
+    {
+      "id": "ISO-POS-VEH",
+      "name": "FM A can see own QA vehicle",
+      "ok": true,
+      "count": 1
+    },
+    {
+      "id": "ISO-accidents",
+      "name": "FM A cannot see other companies in accidents",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-approval_requests",
+      "name": "FM A cannot see other companies in approval_requests",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-call_logs",
+      "name": "FM A cannot see other companies in call_logs",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-companions",
+      "name": "FM A cannot see other companies in companions",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-company_settings",
+      "name": "FM A cannot see other companies in company_settings",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-company_subscriptions",
+      "name": "FM A cannot see other companies in company_subscriptions",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-crm_leads",
+      "name": "FM A cannot see other companies in crm_leads",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-custom_alerts",
+      "name": "FM A cannot see other companies in custom_alerts",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-customer_agreements",
+      "name": "FM A cannot see other companies in customer_agreements",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-customer_deals",
+      "name": "FM A cannot see other companies in customer_deals",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-customers",
+      "name": "FM A cannot see other companies in customers",
+      "ok": true,
+      "seen": 1,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-declaration_templates",
+      "name": "FM A cannot see other companies in declaration_templates",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-departments",
+      "name": "FM A cannot see other companies in departments",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-document_metadata",
+      "name": "FM A cannot see other companies in document_metadata",
+      "ok": true,
+      "seen": 1,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-document_requests",
+      "name": "FM A cannot see other companies in document_requests",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-document_versions",
+      "name": "FM A cannot see other companies in document_versions",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-driver_declarations",
+      "name": "FM A cannot see other companies in driver_declarations",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-driver_health_declarations",
+      "name": "FM A cannot see other companies in driver_health_declarations",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-drivers",
+      "name": "FM A cannot see other companies in drivers",
+      "ok": true,
+      "seen": 1,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-driving_exams",
+      "name": "FM A cannot see other companies in driving_exams",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-emergency_categories",
+      "name": "FM A cannot see other companies in emergency_categories",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-emergency_logs",
+      "name": "FM A cannot see other companies in emergency_logs",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-expenses",
+      "name": "FM A cannot see other companies in expenses",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-fault_messages",
+      "name": "FM A cannot see other companies in fault_messages",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-fault_referrals",
+      "name": "FM A cannot see other companies in fault_referrals",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-fault_status_log",
+      "name": "FM A cannot see other companies in fault_status_log",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-faults",
+      "name": "FM A cannot see other companies in faults",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-incident_event_counters",
+      "name": "FM A SELECT incident_event_counters",
+      "ok": true,
+      "note": "blocked or not readable: column incident_event_counters.id does not exist",
+      "skipped": true
+    },
+    {
+      "id": "ISO-incident_notification_deliveries",
+      "name": "FM A cannot see other companies in incident_notification_deliveries",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-info_gap_tracking",
+      "name": "FM A cannot see other companies in info_gap_tracking",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-internal_messages",
+      "name": "FM A cannot see other companies in internal_messages",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-pickup_appointments",
+      "name": "FM A cannot see other companies in pickup_appointments",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-practical_driving_exams",
+      "name": "FM A cannot see other companies in practical_driving_exams",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-profiles",
+      "name": "FM A cannot see other companies in profiles",
+      "ok": true,
+      "seen": 2,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-route_options",
+      "name": "FM A cannot see other companies in route_options",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-routes",
+      "name": "FM A cannot see other companies in routes",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-service_order_messages",
+      "name": "FM A cannot see other companies in service_order_messages",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-service_orders",
+      "name": "FM A cannot see other companies in service_orders",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-supplier_work_orders",
+      "name": "FM A cannot see other companies in supplier_work_orders",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-suppliers",
+      "name": "FM A cannot see other companies in suppliers",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-system_logs",
+      "name": "FM A cannot see other companies in system_logs",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-temporary_drivers",
+      "name": "FM A cannot see other companies in temporary_drivers",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-trip_logs",
+      "name": "FM A cannot see other companies in trip_logs",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-vehicle_companions",
+      "name": "FM A cannot see other companies in vehicle_companions",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-vehicle_exchanges",
+      "name": "FM A cannot see other companies in vehicle_exchanges",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-vehicle_handovers",
+      "name": "FM A cannot see other companies in vehicle_handovers",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-vehicle_history",
+      "name": "FM A cannot see other companies in vehicle_history",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-vehicle_inspections",
+      "name": "FM A cannot see other companies in vehicle_inspections",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-vehicle_insurance_history",
+      "name": "FM A cannot see other companies in vehicle_insurance_history",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-vehicle_tasks",
+      "name": "FM A cannot see other companies in vehicle_tasks",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-vehicles",
+      "name": "FM A cannot see other companies in vehicles",
+      "ok": true,
+      "seen": 1,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-voice_campaigns",
+      "name": "FM A cannot see other companies in voice_campaigns",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-voice_scenario_runs",
+      "name": "FM A cannot see other companies in voice_scenario_runs",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-voice_scenarios",
+      "name": "FM A cannot see other companies in voice_scenarios",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-work_assignment_messages",
+      "name": "FM A cannot see other companies in work_assignment_messages",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-work_assignment_status_log",
+      "name": "FM A cannot see other companies in work_assignment_status_log",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-work_assignments",
+      "name": "FM A cannot see other companies in work_assignments",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "ISO-UPD-VEH",
+      "name": "FM A cannot UPDATE company B vehicle",
+      "ok": true,
+      "count": 0
+    },
+    {
+      "id": "ISO-DEL-VEH",
+      "name": "FM A cannot DELETE company B vehicle",
+      "ok": true,
+      "count": 0
+    },
+    {
+      "id": "ISO-DEL-STILL",
+      "name": "company B vehicle still exists",
+      "ok": true
+    },
+    {
+      "id": "C4-ANON",
+      "name": "anon cannot SELECT declaration by id",
+      "ok": false,
+      "count": 1
+    },
+    {
+      "id": "C3-CO",
+      "name": "FM cannot change own company_name",
+      "ok": true,
+      "error": "company_name can only be changed by an administrator"
+    },
+    {
+      "id": "C3-ACT",
+      "name": "FM cannot change own is_active",
+      "ok": true,
+      "error": "is_active can only be changed by an administrator"
+    },
+    {
+      "id": "C2-ROLE",
+      "name": "malicious signup metadata did not leave super_admin on FM A",
+      "ok": true,
+      "roles": [
+        "fleet_manager"
+      ]
+    },
+    {
+      "id": "C7-X",
+      "name": "FM A cannot reset FM B password",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "id": "ROLE-DRV-PW",
+      "name": "driver cannot change-user-password",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "id": "C8-INACT",
+      "name": "inactive user rejected by login challenge",
+      "ok": true,
+      "status": 403,
+      "error": "החשבון שלך ממתין לאישור מנהל. פנה למנהל המערכת."
+    },
+    {
+      "id": "AUTH-CH",
+      "name": "active FM A accepted by login challenge",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "id": "EDGE-change-user-password",
+      "name": "change-user-password rejects unauthenticated call",
+      "ok": true,
+      "status": 401
+    },
+    {
+      "id": "EDGE-create-admin-user",
+      "name": "create-admin-user rejects unauthenticated call",
+      "ok": true,
+      "status": 401
+    },
+    {
+      "id": "EDGE-document-request",
+      "name": "document-request rejects unauthenticated call",
+      "ok": true,
+      "status": 401
+    },
+    {
+      "id": "EDGE-request-human-callback",
+      "name": "request-human-callback rejects unauthenticated call",
+      "ok": true,
+      "status": 401
+    },
+    {
+      "id": "EDGE-check-driver-availability",
+      "name": "check-driver-availability rejects unauthenticated call",
+      "ok": true,
+      "status": 401
+    },
+    {
+      "id": "EDGE-send-password-reset",
+      "name": "send-password-reset rejects unauthenticated call",
+      "ok": true,
+      "status": 401
+    },
+    {
+      "id": "EDGE-auth-send-otp",
+      "name": "auth-send-otp rejects unauthenticated call",
+      "ok": false,
+      "status": 400
+    },
+    {
+      "id": "EDGE-full-supabase-export",
+      "name": "full-supabase-export rejects unauthenticated call",
+      "ok": true,
+      "status": 401
+    },
+    {
+      "id": "EDGE-backup-data",
+      "name": "backup-data rejects unauthenticated call",
+      "ok": true,
+      "status": 401
+    },
+    {
+      "id": "EDGE-deploy-control",
+      "name": "deploy-control rejects unauthenticated call",
+      "ok": false,
+      "status": 404
+    },
+    {
+      "id": "HIGH-GUPSHUP",
+      "name": "gupshup-webhook without signature is rejected",
+      "ok": false,
+      "status": 200,
+      "note": "OPEN HIGH — unsigned webhook accepted"
+    },
+    {
+      "id": "H15-LIVE",
+      "name": "FM A availability call does not adopt company B from query",
+      "ok": true,
+      "status": 401,
+      "note": "scoped or empty"
+    },
+    {
+      "id": "ISO-DOCS",
+      "name": "FM A cannot list company B document_metadata",
+      "ok": true,
+      "count": 0
+    },
+    {
+      "id": "DATA-COUNT",
+      "name": "document_metadata countable without reading file bytes",
+      "ok": true,
+      "count": 68,
+      "note": "no customer file content opened"
+    }
+  ],
+  "tenantLeak": [],
+  "remainingBroadPolicies": [
+    {
+      "table": "dalia_form_config",
+      "policy": "dalia_form_config_select_authenticated",
+      "cmd": "SELECT",
+      "roles": "{authenticated}"
+    },
+    {
+      "table": "document_type_defs",
+      "policy": "document_type_defs_select",
+      "cmd": "SELECT",
+      "roles": "{authenticated}"
+    },
+    {
+      "table": "driver_declarations",
+      "policy": "Anonymous can update by token",
+      "cmd": "UPDATE",
+      "roles": "{anon}"
+    },
+    {
+      "table": "driver_declarations",
+      "policy": "Anonymous can view by token",
+      "cmd": "SELECT",
+      "roles": "{anon}"
+    },
+    {
+      "table": "registration_requests",
+      "policy": "Authenticated can insert registration requests",
+      "cmd": "INSERT",
+      "roles": "{authenticated}"
+    },
+    {
+      "table": "voice_prompts",
+      "policy": "All can read prompts",
+      "cmd": "SELECT",
+      "roles": "{authenticated}"
+    }
+  ],
+  "edgeUnauth": [
+    {
+      "fn": "change-user-password",
+      "status": 401,
+      "protected": true
+    },
+    {
+      "fn": "create-admin-user",
+      "status": 401,
+      "protected": true
+    },
+    {
+      "fn": "document-request",
+      "status": 401,
+      "protected": true
+    },
+    {
+      "fn": "request-human-callback",
+      "status": 401,
+      "protected": true
+    },
+    {
+      "fn": "check-driver-availability",
+      "status": 401,
+      "protected": true
+    },
+    {
+      "fn": "send-password-reset",
+      "status": 401,
+      "protected": true
+    },
+    {
+      "fn": "auth-send-otp",
+      "status": 400,
+      "protected": false
+    },
+    {
+      "fn": "full-supabase-export",
+      "status": 401,
+      "protected": true
+    },
+    {
+      "fn": "backup-data",
+      "status": 401,
+      "protected": true
+    },
+    {
+      "fn": "deploy-control",
+      "status": 404,
+      "protected": false
+    }
+  ],
+  "companyTables": [
+    "accidents",
+    "approval_requests",
+    "call_logs",
+    "companions",
+    "company_settings",
+    "company_subscriptions",
+    "crm_leads",
+    "custom_alerts",
+    "customer_agreements",
+    "customer_deals",
+    "customers",
+    "declaration_templates",
+    "departments",
+    "document_metadata",
+    "document_requests",
+    "document_versions",
+    "driver_declarations",
+    "driver_health_declarations",
+    "drivers",
+    "driving_exams",
+    "emergency_categories",
+    "emergency_logs",
+    "expenses",
+    "fault_messages",
+    "fault_referrals",
+    "fault_status_log",
+    "faults",
+    "incident_event_counters",
+    "incident_notification_deliveries",
+    "info_gap_tracking",
+    "internal_messages",
+    "pickup_appointments",
+    "practical_driving_exams",
+    "profiles",
+    "route_options",
+    "routes",
+    "service_order_messages",
+    "service_orders",
+    "supplier_work_orders",
+    "suppliers",
+    "system_logs",
+    "temporary_drivers",
+    "trip_logs",
+    "vehicle_companions",
+    "vehicle_exchanges",
+    "vehicle_handovers",
+    "vehicle_history",
+    "vehicle_inspections",
+    "vehicle_insurance_history",
+    "vehicle_tasks",
+    "vehicles",
+    "voice_campaigns",
+    "voice_scenario_runs",
+    "voice_scenarios",
+    "work_assignment_messages",
+    "work_assignment_status_log",
+    "work_assignments"
+  ],
+  "notes": [
+    "No Production access.",
+    "No customer document bytes were downloaded.",
+    "QA fixtures created and deleted.",
+    "Signed URLs remain valid until TTL after logout by design (SEC-7).",
+    "C4 anon policies were re-dropped during this verification after a regression.",
+    "See staging-verification-report.json for the Owner-facing verdicts."
+  ]
+}

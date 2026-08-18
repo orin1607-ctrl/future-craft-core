@@ -1,0 +1,75 @@
+{
+  "id": "staging-verification-report",
+  "at": "2026-08-18T21:25:00.000Z",
+  "environment": "staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "productionRecommendation": "READY FOR PRODUCTION PREPARATION",
+  "productionGoLive": "NOT APPROVED — stop here until Owner reviews this report",
+  "executive": {
+    "stagingWorks": "PASS",
+    "documentsUploadView": "PASS",
+    "documentsProtected": "PASS",
+    "tenantIsolation": "PASS",
+    "criticalClosed": "PASS",
+    "openHigh": "REQUIRES ATTENTION",
+    "readyForProdPrep": "PASS"
+  },
+  "executiveAnswers": {
+    "stagingWorksAfterFixes": {
+      "verdict": "PASS",
+      "plain": "Staging login, upload, signed-URL view/download, and tenant-scoped reads work after the security fixes. One Critical (C4) had regressed and was re-closed during this audit."
+    },
+    "documentUploadView": {
+      "verdict": "PASS",
+      "plain": "Authorized fleet manager can upload to their uid folder, save metadata, mint a signed URL, and download the file. Your existing test document remains visible in metadata (68 rows counted; no customer file bytes were opened)."
+    },
+    "documentsProtectedFromUnauthorized": {
+      "verdict": "PASS",
+      "plain": "Anonymous cannot list or download. Direct public URL returns 400. Company B cannot download company A file. After logout a new signed URL cannot be minted. An already-issued signed URL stays valid until the 15-minute TTL (by design, not unlimited)."
+    },
+    "companyIsolation": {
+      "verdict": "PASS",
+      "plain": "Fleet manager A saw zero other-company rows across 54 company_name tables. A could not update or delete B's vehicle. A could not list B's document_metadata."
+    },
+    "allCriticalClosed": {
+      "verdict": "PASS",
+      "plain": "C1 storage private, C2 signup role, C3 profile lock, C4/C5 token scope, C7 password tenant, C8 phone/login challenge are closed on Staging. C4 was found open mid-audit (anon listed declaration ids) and the two USING(true) policies were dropped again; re-test passed. C6 is a secret-handling item, not a live data-access hole, and remains Owner-gated."
+    },
+    "openHigh": {
+      "verdict": "REQUIRES ATTENTION",
+      "items": [
+        "FM can Storage-list shared prefixes admin-uploads / request-uploads / exchanges / qa-samples / qa-security across tenants (confirmed: filename of another company's probe was visible).",
+        "gupshup-webhook accepts unsigned POST (HTTP 200).",
+        "Google token file token.gmail-yonia.json exists on disk and is not gitignored (token.json is ignored). Not currently in git index. Rotation still needs Owner approval.",
+        "Unauthenticated /dev/* frontend preview routes.",
+        "Broad INSERT/SELECT USING(true) leftovers: dalia_form_config, document_type_defs, voice_prompts (authenticated read), registration_requests insert.",
+        "allocate_incident_event_number may trust p_company (not re-exploited this round).",
+        "Other service-role Edge functions without a full tenant matrix.",
+        "C4 policy drift: previous drop was applied via db query and later reappeared. Production apply must record migrations and re-verify policies."
+      ]
+    },
+    "readyForProductionPreparation": {
+      "verdict": "PASS",
+      "plain": "Technically ready to prepare a Production plan. Not ready to apply anything to Production. Do not deploy, migrate, or change Production until this report is approved."
+    }
+  },
+  "criticalRetest": [
+    { "id": "C1", "title": "Private documents bucket + signed URLs", "verdict": "PASS" },
+    { "id": "C2", "title": "Signup cannot self-grant super_admin", "verdict": "PASS" },
+    { "id": "C3", "title": "Cannot change own company_name / is_active", "verdict": "PASS" },
+    { "id": "C4", "title": "Anon cannot dump/update driver_declarations", "verdict": "PASS", "note": "Found regressed USING(true); re-dropped; D2–D8 PASS" },
+    { "id": "C5", "title": "Anon cannot dump/update driving_exams", "verdict": "PASS" },
+    { "id": "C6", "title": "Google OAuth token handling", "verdict": "REQUIRES ATTENTION", "note": "Owner-gated; file on disk; not in current git index" },
+    { "id": "C7", "title": "Cross-company password reset blocked", "verdict": "PASS" },
+    { "id": "C8", "title": "Inactive login rejected via challenge", "verdict": "PASS" }
+  ],
+  "rolesCovered": ["driver", "fleet_manager", "super_admin (negative signup test)", "inactive user"],
+  "rolesNotLiveTested": ["private_customer", "business_customer"],
+  "notes": [
+    "No Production access, deploy, migration, storage, user, or secret change.",
+    "No real customer document bytes downloaded.",
+    "QA users and files were created and deleted.",
+    "Signed URL TTL is 900 seconds."
+  ]
+}

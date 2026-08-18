@@ -1,0 +1,183 @@
+{
+  "at": "2026-08-18T21:19:49.087Z",
+  "environment": "staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "failedCount": 3,
+  "passCount": 12,
+  "tests": [
+    {
+      "id": "G0",
+      "name": "Production not targeted",
+      "ok": true,
+      "stagingRef": "usfeoerkpcafxxlyuldl"
+    },
+    {
+      "id": "C4-LIVE-POL",
+      "name": "live anon USING(true) policies on declarations/exams",
+      "ok": false,
+      "leftover": [
+        "driver_declarations:Anonymous can update by token:UPDATE",
+        "driver_declarations:Anonymous can view by token:SELECT"
+      ],
+      "allPolicies": [
+        "driver_declarations:Anonymous can update by token:UPDATE:{anon}",
+        "driver_declarations:Anonymous can view by token:SELECT:{anon}",
+        "driver_declarations:Authenticated users can view declarations in their company:SELECT:{authenticated}",
+        "driver_declarations:Managers and drivers can update declarations:UPDATE:{authenticated}",
+        "driver_declarations:Managers can create declarations:INSERT:{authenticated}",
+        "driving_exams:Driver or manager update exam:UPDATE:{authenticated}",
+        "driving_exams:Managers create exams:INSERT:{authenticated}",
+        "driving_exams:Managers delete exams:DELETE:{authenticated}",
+        "driving_exams:Users view own company exams:SELECT:{authenticated}"
+      ]
+    },
+    {
+      "id": "C4-RPC",
+      "name": "token RPCs exist",
+      "ok": true,
+      "functions": [
+        "get_declaration_by_token",
+        "get_driving_exam_by_token",
+        "sign_declaration_by_token",
+        "start_driving_exam_by_token",
+        "submit_driving_exam_by_token"
+      ]
+    },
+    {
+      "id": "C4-DUMP",
+      "name": "anon cannot list declaration ids",
+      "ok": false,
+      "count": 15
+    },
+    {
+      "id": "C5-DUMP",
+      "name": "anon cannot list exam ids",
+      "ok": true,
+      "count": 0
+    },
+    {
+      "id": "DATA-NO-CO",
+      "name": "catalogued public tables without company_name",
+      "ok": true,
+      "count": 38,
+      "tables": [
+        "auth_account_lockouts:rls=true",
+        "auth_audit_log:rls=true",
+        "auth_login_challenges:rls=true",
+        "auth_password_reset_tokens:rls=true",
+        "auth_verification_codes:rls=true",
+        "campaign_customers:rls=true",
+        "crm_activity_log:rls=true",
+        "crm_ai_insights:rls=true",
+        "crm_tasks:rls=true",
+        "dalia_form_config:rls=true",
+        "dev_tasks:rls=true",
+        "document_request_events:rls=true",
+        "document_type_defs:rls=true",
+        "driver_notifications:rls=true",
+        "google_oauth_connections:rls=true",
+        "google_oauth_dry_runs:rls=true",
+        "google_resource_bindings:rls=true",
+        "google_sync_runs:rls=true",
+        "google_token_vault:rls=true",
+        "info_gap_history:rls=true",
+        "inspection_items:rls=true",
+        "marketing_activity_log:rls=true",
+        "marketing_ai_setup:rls=true",
+        "marketing_api_items:rls=true",
+        "marketing_campaigns:rls=true",
+        "marketing_connections:rls=true",
+        "marketing_contacts:rls=true",
+        "marketing_domains:rls=true",
+        "marketing_leads:rls=true",
+        "marketing_metrics:rls=true",
+        "marketing_profiles:rls=true",
+        "marketing_sites:rls=true",
+        "promotions:rls=true",
+        "registration_requests:rls=true",
+        "system_update_audit:rls=true",
+        "user_access_codes:rls=true",
+        "user_roles:rls=true",
+        "voice_prompts:rls=true"
+      ]
+    },
+    {
+      "id": "ROLES",
+      "name": "app_role enum",
+      "ok": true,
+      "roles": [
+        "driver",
+        "fleet_manager",
+        "super_admin",
+        "private_customer",
+        "business_customer"
+      ]
+    },
+    {
+      "id": "ISO-COUNTERS-ADMIN",
+      "name": "incident_event_counters readable by service role",
+      "ok": true,
+      "count": 4
+    },
+    {
+      "id": "C6-GIT",
+      "name": "Google OAuth token file not tracked in git",
+      "ok": true,
+      "note": "not in git index",
+      "files": [
+        "integrations/google/apps-script/.clasp.json.example",
+        "integrations/google/apps-script/Code.gs",
+        "integrations/google/apps-script/appsscript.json",
+        "integrations/google/apps-script/project001-sync.gs",
+        "integrations/google/config.example.json",
+        "integrations/google/credentials.oauth.example.json",
+        "integrations/google/credentials.oauth.paste.example.json",
+        "integrations/google/scopes.json"
+      ]
+    },
+    {
+      "id": "EDGE-OTP-PUBLIC",
+      "name": "auth-send-otp is a public login endpoint (400 on bad body is expected)",
+      "ok": true,
+      "status": 400,
+      "note": "not a Critical; login OTP must be callable without a session"
+    },
+    {
+      "id": "EDGE-DEPLOY",
+      "name": "deploy-control not deployed on Staging (404) or auth-protected",
+      "ok": true,
+      "status": 404
+    },
+    {
+      "id": "H-FM-LIST-SETUP",
+      "name": "uploaded disposable file under admin-uploads",
+      "ok": true
+    },
+    {
+      "id": "H-FM-LIST",
+      "name": "FM A cannot list other-company files in admin-uploads",
+      "ok": false,
+      "leaked": true,
+      "names": [
+        "4e2e1936-ae2f-4fa4-98e1-6c9de1cccdea-secret.png",
+        "driver"
+      ],
+      "note": "OPEN HIGH — shared prefix listable by any FM"
+    },
+    {
+      "id": "ISO-COUNTERS-FM",
+      "name": "FM A cannot see other companies in incident_event_counters",
+      "ok": true,
+      "seen": 0,
+      "leaked": 0
+    },
+    {
+      "id": "H-LOGS-INS",
+      "name": "FM cannot insert system_logs for another company",
+      "ok": true,
+      "error": "Could not find the 'action' column of 'system_logs' in the schema cache",
+      "count": null
+    }
+  ]
+}
