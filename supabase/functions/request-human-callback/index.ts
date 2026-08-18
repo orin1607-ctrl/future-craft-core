@@ -13,14 +13,25 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { customer_name, customer_phone, company_name, reason } = body;
 
+    const company =
+      ctx.role === 'super_admin' || ctx.isInternalCall
+        ? (company_name || ctx.companyName)
+        : ctx.companyName;
+    if (!company) {
+      return new Response(JSON.stringify({ error: 'company_required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const supabase = ctx.supabaseAdmin;
 
-    // Notify all fleet managers of the company about the callback request
+    // Notify all fleet managers of the caller's company about the callback request
     const { data: managers } = await supabase
       .from('user_roles')
       .select('user_id, profiles!inner(company_name)')
       .eq('role', 'fleet_manager')
-      .eq('profiles.company_name', company_name);
+      .eq('profiles.company_name', company);
 
     if (managers && managers.length > 0) {
       await supabase.from('driver_notifications').insert(

@@ -6,7 +6,6 @@ import logo from '@/assets/logo.png';
 import { consumePostLoginRedirect } from '@/lib/postLoginRedirect';
 import {
   ACCOUNT_LOCKOUT_MESSAGE,
-  applyAuthSession,
   invokeAuthLoginChallenge,
   invokeAuthSendOtp,
   invokeAuthVerifyOtp,
@@ -15,7 +14,7 @@ import {
 type LoginStep = 'credentials' | 'otp';
 
 export default function Login() {
-  const { login, signup, completeLoginSession } = useAuth();
+  const { signup, completeLoginSession } = useAuth();
   const navigate = useNavigate();
   const [isSignup, setIsSignup] = useState(false);
   const [step, setStep] = useState<LoginStep>('credentials');
@@ -50,13 +49,6 @@ export default function Login() {
     const loginEmail = loginByPhone
       ? `${email.replace(/[^0-9]/g, '')}@nomail.fleet.local`
       : email;
-
-    if (loginByPhone) {
-      const { error: loginError } = await login(loginEmail, password);
-      setLoading(false);
-      if (loginError) setError('שם משתמש או סיסמה שגויים');
-      return;
-    }
 
     const result = await invokeAuthLoginChallenge(loginEmail, password);
     setLoading(false);

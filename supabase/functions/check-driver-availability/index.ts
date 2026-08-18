@@ -14,8 +14,19 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const driverName = url.searchParams.get('driver_name') || '';
-    const companyName = url.searchParams.get('company_name') || '';
+    const requestedCompany = url.searchParams.get('company_name') || '';
     const daysAhead = parseInt(url.searchParams.get('days_ahead') || '7');
+
+    const companyName =
+      auth.ctx.role === 'super_admin' || auth.ctx.isInternalCall
+        ? requestedCompany || auth.ctx.companyName || ''
+        : auth.ctx.companyName || '';
+    if (!companyName) {
+      return new Response(JSON.stringify({ error: 'company_required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const supabase = auth.ctx.supabaseAdmin;
 

@@ -298,7 +298,154 @@
       ],
       "testResult": "PASS",
       "testedAt": "2026-08-18T20:05:53.002Z"
+    },
+    {
+      "id": "C7",
+      "code": "P0-D",
+      "title": "Cross-company password reset",
+      "rootCause": "change-user-password reset any email with no tenant or super_admin guard.",
+      "changeMade": "requireAuth + same-company check for fleet_manager; FM cannot reset super_admin; unknown emails return Forbidden.",
+      "files": [
+        "supabase/functions/change-user-password/index.ts"
+      ],
+      "tests": [
+        {
+          "id": "D1",
+          "name": "fleet_manager can sign in",
+          "ok": true
+        },
+        {
+          "id": "D2",
+          "name": "FM can reset password for same-company user",
+          "ok": true,
+          "status": 200
+        },
+        {
+          "id": "D3",
+          "name": "FM cannot reset password for other company",
+          "ok": true,
+          "status": 403,
+          "error": "Forbidden"
+        },
+        {
+          "id": "D4",
+          "name": "FM cannot reset super_admin password",
+          "ok": true,
+          "status": 403,
+          "error": "Forbidden"
+        }
+      ],
+      "testResult": "PASS",
+      "testedAt": "2026-08-18T20:09:24.614Z"
+    },
+    {
+      "id": "C8",
+      "code": "P0-E",
+      "title": "Phone login bypassed OTP/lockout/is_active",
+      "rootCause": "Login.tsx phone path called signInWithPassword directly.",
+      "changeMade": "Phone login uses invokeAuthLoginChallenge like email login.",
+      "files": [
+        "src/pages/Login.tsx"
+      ],
+      "tests": [
+        {
+          "id": "E1",
+          "name": "phone-style login email goes through auth-login-challenge is_active check",
+          "ok": true,
+          "status": 403,
+          "error": "החשבון שלך ממתין לאישור מנהל. פנה למנהל המערכת."
+        },
+        {
+          "id": "E2",
+          "name": "active phone-style user is accepted by the same challenge path",
+          "ok": true,
+          "status": 200
+        }
+      ],
+      "testResult": "PASS",
+      "testedAt": "2026-08-18T20:09:24.614Z"
+    },
+    {
+      "id": "H14",
+      "code": "HIGH",
+      "title": "practical_driving_exams cross-company UPDATE/DELETE",
+      "rootCause": "UPDATE/DELETE policies allowed any fleet_manager.",
+      "changeMade": "Policies now require company_name = get_user_company(auth.uid()) for fleet_manager.",
+      "files": [
+        "supabase/migrations/20260818224000_h14_practical_exams_company_scope.sql"
+      ],
+      "tests": [
+        {
+          "id": "H14-1",
+          "name": "inserted company B exam fixture",
+          "ok": true
+        },
+        {
+          "id": "H14-2",
+          "name": "company A FM cannot UPDATE company B exam",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "H14-3",
+          "name": "company A FM cannot DELETE company B exam",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "H14-4",
+          "name": "company B exam still exists",
+          "ok": true
+        }
+      ],
+      "testResult": "PASS",
+      "testedAt": "2026-08-18T20:11:22.758Z"
+    },
+    {
+      "id": "H12",
+      "code": "HIGH",
+      "title": "document-request approve/reject skipped tenant check",
+      "rootCause": "requireAuth returns {ctx}|{error} but approve/reject checked instanceof Response, so company_mismatch never ran.",
+      "changeMade": "Removed duplicate requireAuth; approve/reject uses the authenticated ctx from the shared requireAuth block.",
+      "files": ["supabase/functions/document-request/index.ts"],
+      "tests": [{ "id": "H12-deploy", "name": "deployed to Staging usfeoerkpcafxxlyuldl", "ok": true }],
+      "testResult": "PASS",
+      "testedAt": "2026-08-18T20:12:00.000Z"
+    },
+    {
+      "id": "H13",
+      "code": "HIGH",
+      "title": "request-human-callback trusted company_name from body",
+      "rootCause": "Service-role query used body.company_name.",
+      "changeMade": "Non-super_admin callers are scoped to ctx.companyName.",
+      "files": ["supabase/functions/request-human-callback/index.ts"],
+      "tests": [{ "id": "H13-deploy", "name": "deployed to Staging", "ok": true }],
+      "testResult": "PASS",
+      "testedAt": "2026-08-18T20:12:00.000Z"
+    },
+    {
+      "id": "H15",
+      "code": "HIGH",
+      "title": "check-driver-availability trusted company_name query param",
+      "rootCause": "Service-role query used company_name from the URL.",
+      "changeMade": "Fleet managers are forced to ctx.companyName; super_admin/internal may pass a company.",
+      "files": ["supabase/functions/check-driver-availability/index.ts"],
+      "tests": [{ "id": "H15-deploy", "name": "deployed to Staging", "ok": true }],
+      "testResult": "PASS",
+      "testedAt": "2026-08-18T20:12:00.000Z"
     }
   ],
-  "updatedAt": "2026-08-18T20:05:53.004Z"
+  "remainingOpen": [
+    "C6 Google OAuth refresh_token in git — reported, not rotated (needs Owner approval)",
+    "FM can still Storage-list admin-uploads/request-uploads/exchanges prefixes across tenants",
+    "system_logs INSERT USING true",
+    "voice_scenario_runs / pickup_appointments INSERT true",
+    "Gupshup webhook unsigned",
+    "/dev/* routes unauthenticated",
+    "full-supabase-export may embed service_role_key",
+    "allocate_incident_event_number trusts p_company",
+    "FM create-admin-user may still assign privileged roles — verify remaining path",
+    "Other edge functions using service role without tenant checks"
+  ],
+  "updatedAt": "2026-08-18T20:12:00.000Z"
 }

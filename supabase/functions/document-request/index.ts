@@ -528,9 +528,6 @@ Deno.serve(async (req) => {
     }
 
     if (action === "approve" || action === "reject") {
-      const ctx = await requireAuth(req, { roles: ["super_admin", "fleet_manager"] });
-      if (ctx instanceof Response) return ctx;
-
       const requestId = String(body.request_id || "");
       const decisionNote = String(body.note || body.notes || "");
       if (!requestId) {
