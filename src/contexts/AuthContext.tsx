@@ -87,6 +87,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loadProfile = useCallback(async (sess: Session | null) => {
     if (sess?.user) {
       const profile = await fetchUserProfile(sess.user.id, sess.user.email || '');
+      if (profile && profile.is_active === false) {
+        await supabase.auth.signOut();
+        setRealUser(null);
+        setSession(null);
+        setImpersonatedUser(null);
+        setLoading(false);
+        return;
+      }
       setRealUser(profile);
       setSession(sess);
     } else {
@@ -162,6 +170,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userEmail = (session.user as { email?: string })?.email || '';
     if (userId) {
       const profile = await fetchUserProfile(userId, userEmail);
+      if (profile && profile.is_active === false) {
+        await supabase.auth.signOut();
+        setRealUser(null);
+        setSession(null);
+        return { error: 'החשבון שלך ממתין לאישור מנהל. פנה למנהל המערכת.' };
+      }
       setRealUser(profile);
       const { data: { session: s } } = await supabase.auth.getSession();
       setSession(s);

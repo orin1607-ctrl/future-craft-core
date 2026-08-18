@@ -36,7 +36,7 @@ export default function SettingsPage() {
     setSaving(true);
     const { error } = await supabase
       .from('profiles')
-      .update({ full_name: fullName, phone, company_name: companyName, updated_at: new Date().toISOString() })
+      .update({ full_name: fullName, phone, updated_at: new Date().toISOString() })
       .eq('id', user.id);
     setSaving(false);
     if (error) {
@@ -113,7 +113,8 @@ export default function SettingsPage() {
           </div>
           <div>
             <label className="block text-base font-medium mb-1.5">שם חברה</label>
-            <input value={companyName} onChange={e => setCompanyName(e.target.value)} className={inputClass} placeholder="שם החברה..." />
+            <input value={companyName} disabled readOnly className={`${inputClass} opacity-70 cursor-not-allowed`} placeholder="שם החברה..." />
+            <p className="text-xs text-muted-foreground mt-1">שינוי חברה מתבצע רק על ידי מנהל מערכת</p>
           </div>
           <button onClick={handleSaveProfile} disabled={saving}
             className="w-full py-4 rounded-xl bg-primary text-primary-foreground text-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50">

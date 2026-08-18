@@ -190,7 +190,82 @@
       ],
       "testResult": "PASS",
       "testedAt": "2026-08-18T19:59:39.087Z"
+    },
+    {
+      "id": "C3",
+      "code": "P0-B/C",
+      "title": "Mutable company_name / is_active on profiles",
+      "rootCause": "profiles UPDATE allowed any column for id=auth.uid(); session restore skipped is_active.",
+      "changeMade": "BEFORE UPDATE trigger locks company_name/is_active/approval/2FA except service_role and super_admin; Settings no longer submits company_name; AuthContext signs out inactive sessions; edgeAuth rejects inactive users.",
+      "files": [
+        "supabase/migrations/20260818222000_p0_lock_profile_tenant_fields.sql",
+        "src/pages/Settings.tsx",
+        "src/contexts/AuthContext.tsx",
+        "supabase/functions/_shared/edgeAuth.ts"
+      ],
+      "tests": [
+        {
+          "id": "P1",
+          "name": "created disposable QA user",
+          "ok": true
+        },
+        {
+          "id": "P2",
+          "name": "active user can sign in",
+          "ok": true
+        },
+        {
+          "id": "P3",
+          "name": "user can still update own display name",
+          "ok": true
+        },
+        {
+          "id": "P4",
+          "name": "user cannot change own company_name",
+          "ok": true,
+          "error": "company_name can only be changed by an administrator",
+          "note": "rejected"
+        },
+        {
+          "id": "P5",
+          "name": "company_name unchanged after client attempt",
+          "ok": true,
+          "value": "QA-P0-C"
+        },
+        {
+          "id": "P6",
+          "name": "user cannot change own is_active",
+          "ok": true,
+          "error": "is_active can only be changed by an administrator"
+        },
+        {
+          "id": "P7",
+          "name": "service role can deactivate user",
+          "ok": true
+        },
+        {
+          "id": "P8",
+          "name": "Supabase Auth still issues a session for inactive user (app must drop it)",
+          "ok": true,
+          "note": "expected: JWT exists; AuthContext/edge must reject"
+        },
+        {
+          "id": "P9",
+          "name": "inactive profile loads as is_active=false for session check",
+          "ok": true,
+          "is_active": false
+        },
+        {
+          "id": "P10",
+          "name": "auth-login-challenge rejects inactive account",
+          "ok": true,
+          "status": 403,
+          "error": "החשבון שלך ממתין לאישור מנהל. פנה למנהל המערכת."
+        }
+      ],
+      "testResult": "PASS",
+      "testedAt": "2026-08-18T20:03:49.637Z"
     }
   ],
-  "updatedAt": "2026-08-18T19:59:39.088Z"
+  "updatedAt": "2026-08-18T20:03:49.638Z"
 }

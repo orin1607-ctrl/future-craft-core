@@ -111,9 +111,13 @@ export async function requireAuth(
 
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('company_name')
+    .select('company_name, is_active')
     .eq('id', user.id)
     .maybeSingle();
+
+  if (profile && profile.is_active === false) {
+    return { error: jsonResponse({ error: 'Forbidden — account inactive' }, 403) };
+  }
 
   const supabaseUser = createClient(
     Deno.env.get('SUPABASE_URL')!,
