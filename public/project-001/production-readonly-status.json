@@ -1,0 +1,295 @@
+{
+  "id": "production-readonly-status",
+  "at": "2026-08-18T22:42:36.330Z",
+  "environment": "production-read-only",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionHost": "dalia-car.online",
+  "productionTouched": false,
+  "productionChanged": false,
+  "readOnly": true,
+  "customerDocumentsOpened": false,
+  "checks": {
+    "RO-1": {
+      "id": "RO-1",
+      "title": "documents bucket public/private",
+      "status": "OPEN",
+      "plain": "ה-bucket documents ב-Production ציבורי (public=true). מסמכים יכולים להיות נגישים בלי התחברות אם יש גם מדיניות/URL ציבורי.",
+      "bucketPublic": true,
+      "bucketFound": true,
+      "safe": false,
+      "dangerous": true,
+      "wroteProduction": false
+    },
+    "RO-2": {
+      "id": "RO-2",
+      "title": "C4 and document policies",
+      "status": "OPEN",
+      "plain": "מדיניות C4 האנונימית (USING token/true) קיימת ב-Production.",
+      "c4NamedPoliciesPresent": true,
+      "documentsPublicReadPolicyPresent": true,
+      "anonViewDeclarationSignaturesPresent": true,
+      "policies": [
+        {
+          "obj": "public.driver_declarations",
+          "name": "Anonymous can update by token",
+          "cmd": "UPDATE",
+          "roles": "{anon}",
+          "using": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))"
+        },
+        {
+          "obj": "public.driver_declarations",
+          "name": "Anonymous can view by token",
+          "cmd": "SELECT",
+          "roles": "{anon}",
+          "using": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))"
+        },
+        {
+          "obj": "public.driving_exams",
+          "name": "Anon submit exam by token",
+          "cmd": "UPDATE",
+          "roles": "{anon}",
+          "using": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))"
+        },
+        {
+          "obj": "public.driving_exams",
+          "name": "Anon view exam by token",
+          "cmd": "SELECT",
+          "roles": "{anon}",
+          "using": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))"
+        },
+        {
+          "obj": "storage.objects",
+          "name": "Anonymous can upload declaration signatures",
+          "cmd": "INSERT",
+          "roles": "{anon,authenticated}",
+          "using": ""
+        },
+        {
+          "obj": "storage.objects",
+          "name": "Anonymous can view declaration signatures",
+          "cmd": "SELECT",
+          "roles": "{anon,authenticated}",
+          "using": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text))"
+        },
+        {
+          "obj": "storage.objects",
+          "name": "Authenticated users can upload documents",
+          "cmd": "INSERT",
+          "roles": "{authenticated}",
+          "using": ""
+        },
+        {
+          "obj": "storage.objects",
+          "name": "Authenticated users can view documents",
+          "cmd": "SELECT",
+          "roles": "{authenticated}",
+          "using": "(bucket_id = 'documents'::text)"
+        },
+        {
+          "obj": "storage.objects",
+          "name": "Managers can delete own company documents",
+          "cmd": "DELETE",
+          "roles": "{authenticated}",
+          "using": "((bucket_id = 'documents'::text) AND ((has_role(auth.uid(), 'fleet_manager'::app_role) AND ((storage.foldername(name))[1] = get_user_company(auth.uid()))) OR has_role(auth.uid(), '"
+        },
+        {
+          "obj": "storage.objects",
+          "name": "Users can delete own documents",
+          "cmd": "DELETE",
+          "roles": "{authenticated}",
+          "using": "((bucket_id = 'documents'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))"
+        },
+        {
+          "obj": "storage.objects",
+          "name": "Users can upload documents to own company folder",
+          "cmd": "INSERT",
+          "roles": "{authenticated}",
+          "using": ""
+        },
+        {
+          "obj": "storage.objects",
+          "name": "Users can view own company documents",
+          "cmd": "SELECT",
+          "roles": "{authenticated}",
+          "using": "((bucket_id = 'documents'::text) AND (((storage.foldername(name))[1] = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role)))"
+        },
+        {
+          "obj": "storage.objects",
+          "name": "auth_read_documents",
+          "cmd": "SELECT",
+          "roles": "{authenticated}",
+          "using": "(bucket_id = 'documents'::text)"
+        },
+        {
+          "obj": "storage.objects",
+          "name": "public_read_documents",
+          "cmd": "SELECT",
+          "roles": "{anon}",
+          "using": "(bucket_id = 'documents'::text)"
+        }
+      ],
+      "names": [
+        "public.driver_declarations:Anonymous can update by token:UPDATE",
+        "public.driver_declarations:Anonymous can view by token:SELECT",
+        "public.driving_exams:Anon submit exam by token:UPDATE",
+        "public.driving_exams:Anon view exam by token:SELECT",
+        "storage.objects:Anonymous can upload declaration signatures:INSERT",
+        "storage.objects:Anonymous can view declaration signatures:SELECT",
+        "storage.objects:Authenticated users can upload documents:INSERT",
+        "storage.objects:Authenticated users can view documents:SELECT",
+        "storage.objects:Managers can delete own company documents:DELETE",
+        "storage.objects:Users can delete own documents:DELETE",
+        "storage.objects:Users can upload documents to own company folder:INSERT",
+        "storage.objects:Users can view own company documents:SELECT",
+        "storage.objects:auth_read_documents:SELECT",
+        "storage.objects:public_read_documents:SELECT"
+      ],
+      "safe": false,
+      "dangerous": true,
+      "wroteProduction": false
+    },
+    "RO-3": {
+      "id": "RO-3",
+      "title": "token sign RPCs exist",
+      "status": "MISSING",
+      "plain": "חסרים RPCs: get_declaration_by_token, sign_declaration_by_token, get_driving_exam_by_token, start_driving_exam_by_token, submit_driving_exam_by_token",
+      "present": [],
+      "missing": [
+        "get_declaration_by_token",
+        "sign_declaration_by_token",
+        "get_driving_exam_by_token",
+        "start_driving_exam_by_token",
+        "submit_driving_exam_by_token"
+      ],
+      "handle_new_user": {
+        "exists": true,
+        "assignsFromClientMetadata": true,
+        "alwaysDriver": true
+      },
+      "profileTriggers": {
+        "names": []
+      },
+      "safe": false,
+      "dangerous": true,
+      "wroteProduction": false
+    },
+    "RO-4": {
+      "id": "RO-4",
+      "title": "live dalia-car.online bundle",
+      "status": "GOT_BUNDLE",
+      "plain": "נקרא ה-bundle החי; ראו markers.",
+      "http": 200,
+      "bundle": "assets/index-CECbN36N.js",
+      "jsStatus": 200,
+      "jsBytes": 3126237,
+      "markers": {
+        "getPublicUrl": true,
+        "createSignedUrl": true,
+        "documentSignedTtl": true,
+        "get_declaration_by_token": false,
+        "sign_declaration_by_token": false,
+        "tableEqToken": true,
+        "tokenScopedAccess": false,
+        "devRoute": true
+      },
+      "matchesStagingSecurityFrontend": false,
+      "safe": false,
+      "dangerous": true,
+      "wroteProduction": false,
+      "note": "createSignedUrl/getPublicUrl exist in the supabase-js client. Live app still loads declarations by table token and has /dev routes. No get_declaration_by_token in the bundle."
+    },
+    "RO-5": {
+      "id": "RO-5",
+      "title": "P0 migrations recorded on Production",
+      "status": "ABSENT",
+      "plain": "אין רשומות schema_migrations ל-20260818* / 20260819*. תיקוני P0 כנראה לא הוחלו כ-migration רשום.",
+      "source": "supabase_migrations.schema_migrations",
+      "versions": [],
+      "safe": false,
+      "dangerous": true,
+      "wroteProduction": false
+    },
+    "RO-6": {
+      "id": "RO-6",
+      "title": "privileged accounts and sessions (counts only)",
+      "status": "COUNTED",
+      "plain": "ספירות בלבד. אימיילים לא נשמרו בדוח. super_admin sessions חיים וחשבונות מושבתים עם session — ראו מספרים.",
+      "roleCounts": {
+        "driver": 63,
+        "fleet_manager": 45,
+        "super_admin": 23,
+        "private_customer": 9,
+        "business_customer": 1
+      },
+      "inactiveProfiles": 46,
+      "sessions": {
+        "not_expired": 47,
+        "session_count": 47
+      },
+      "inactiveProfilesWithLiveSession": 0,
+      "superAdminLiveSessions": 45,
+      "authUsersListed": 123,
+      "privilegedUserIds": 68,
+      "testLikeEmails": 21,
+      "listError": null,
+      "emailsStored": false,
+      "wroteProduction": false
+    },
+    "RO-7": {
+      "id": "RO-7",
+      "title": "edge functions exist on Production",
+      "status": "PRESENT",
+      "plain": "הפונקציות קיימות. הקוד לא הורד. לפי תאריכי עדכון כולן מלפני תיקוני 18 באוגוסט ב-Staging, ולכן כנראה בלי תיקוני C7/H12/H13/H15.",
+      "present": {
+        "change-user-password": true,
+        "document-request": true,
+        "request-human-callback": true,
+        "check-driver-availability": true,
+        "auth-login-challenge": true,
+        "gupshup-webhook": true
+      },
+      "missing": [],
+      "listPreview": "\n  \n   ID                                   | NAME                          | SLUG                          | STATUS | VERSION | UPDATED_AT (UTC)    \n  --------------------------------------|-------------------------------|-------------------------------|--------|---------|---------------------\n   6665761d-680a-42ef-a7be-f7356ddc5e0f | change-user-password          | change-user-password          | ACTIVE | 7       | 2026-04-26 08:57:35 \n   c9627362-2a5d-462f-80dc-c588e1e099a1 | create-admin-user             | create-admin-user             | ACTIVE | 9       | 2026-06-15 14:57:49 \n   bd272256-3c14-4ab9-954b-65bd4975abaf | notify-accident-email         | notify-accident-email         | ACTIVE | 10      | 2026-07-22 08:07:03 \n   51e6ff30-6871-4099-9381-7de52abdcbee | notify-service-order-email    | notify-service-order-email    | ACTIVE | 7       | 2026-04-26 08:57:35 \n   f78e5611-eea2-4e5e-9b4e-b6c9d6685487 | send-password-reset           | send-password-reset           | ACTIVE | 8       | 2026-04-26 08:57:35 \n   debd4790-4c5a-4a33-81bd-3f9eb53aa2f9 | send-supplier-order-email     | send-supplier-order-email     | ACTIVE | 7       | 2026-04-26 08:57:35 \n   707d85a3-26cc-4cd0-8d5a-c",
+      "sourceComparedToStaging": false,
+      "skippedWrite": "functions download would overwrite local Staging sources; skipped as not strictly GET-safe for the workspace.",
+      "wroteProduction": false,
+      "updatedAtUtc": {
+        "change-user-password": "2026-04-26T08:57:35Z",
+        "request-human-callback": "2026-04-26T08:57:35Z",
+        "check-driver-availability": "2026-04-26T08:57:35Z",
+        "auth-login-challenge": "2026-06-15T14:57:49Z",
+        "document-request": "2026-07-16T16:04:01Z",
+        "gupshup-webhook": "2026-07-22T08:07:08Z"
+      },
+      "likelyMissingAugustFixes": true
+    }
+  },
+  "permissionProbes": {
+    "fakePublicDocumentPath": {
+      "path": "qa-readonly-does-not-exist-20260819.bin",
+      "status": 400,
+      "bodyPreview": "{\"statusCode\":\"404\",\"error\":\"not_found\",\"message\":\"Object not found\",\"code\":\"NoSuchKey\"}",
+      "note": "נתיב מזויף בלבד. לא נפתח מסמך לקוח."
+    },
+    "anonDeclarationCountHead": {
+      "count": 7,
+      "error": null,
+      "note": "count/head בלבד. לא הוחזרו שורות או תוכן."
+    },
+    "anonExamCountHead": {
+      "count": 0,
+      "error": null
+    }
+  },
+  "summary": {
+    "documentsBucketPublic": true,
+    "c4NamedPoliciesPresent": true,
+    "c4AnonCanCountDeclarations": 7,
+    "tokenRpcsPresent": false,
+    "liveSiteUsesPublicDocumentUrls": true,
+    "liveSiteUsesTokenRpc": false,
+    "p0MigrationsRecorded": false,
+    "criticalLikely": true
+  },
+  "ownerVerdict": "CRITICAL_FOUND_STOPPED_NO_FIX"
+}
