@@ -1,0 +1,450 @@
+{
+  "id": "production-cutover-plan",
+  "at": "2026-08-18T22:30:00.000Z",
+  "environment": "plan-only",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionHost": "dalia-car.online",
+  "productionTouched": false,
+  "productionQueried": false,
+  "productionDeployed": false,
+  "verdict": "NOT READY FOR PRODUCTION",
+  "verdictPlain": "Staging מוכן כבסיס לתכנון. Production עצמו עדיין לא נבדק באישור, והקוד החי לפי git עדיין לא כולל את תיקוני האבטחה. אסור להתחיל ביצוע.",
+  "nextOwnerDecision": "לאשר בדיקות Read-Only בלבד על Production, ואז לחזור לתוכנית. אין אישור לשינוי.",
+  "known": {
+    "fromGitNotLiveDb": [
+      "ענפי origin/production ו-origin/main אינם מכילים את קבצי P0: documentUrl.ts, tokenScopedAccess.ts, migrations 20260818*/20260819*.",
+      "ב-origin/production דף החתימה קורא ישירות מ-driver_declarations לפי token. ב-Staging זה RPC.",
+      "ב-origin/production עדיין יש getPublicUrl ב-9 קבצי UI. ב-Staging זה הוסר והוחלף ב-signed URL ל-15 דקות.",
+      "קיימים מספר Workflows שיכולים לפרוס ל-dalia-car.online מ-main / workflow_dispatch, חלקם בלי שער מאשר.",
+      "הסקריפט שפתח מחדש את C4 ב-Staging היה ייעודי ל-Staging. אחרי התיקון הוא רק DROP, אף פעם לא CREATE.",
+      "Migrations ישנים בריפו (20260417, 20260424) כן יוצרים את המדיניות המסוכנת. הרצה של היסטוריית migrations על Production עלולה לפתוח את C4."
+    ],
+    "fromStagingVerified": [
+      "C1–C5, C7, C8 סגורים ב-Staging ונבדקו.",
+      "Guard של C4 ב-GitHub Actions על feat/incident-alerts-staging עבר בירוק (run 32191972460).",
+      "חתימה לפי token עובדת ב-Staging. SELECT/UPDATE אנונימי לטבלה נכשל.",
+      "Bucket documents ב-Staging פרטי. משתמש מורשה רואה עם signed URL. אנונימי לא יכול להוריד.",
+      "הפרדת חברות ב-Staging עברה: A לא רואה/מעדכן/מוחק רכב של B, ולא מוריד קובץ של B."
+    ]
+  },
+  "unknownNeedsReadOnlyApproval": [
+    {
+      "id": "RO-1",
+      "check": "האם bucket documents ב-Production הוא public או private",
+      "why": "קובע אם סגירת הגישה הציבורית תשבור צפייה מיד, ומה סדר המעבר מול האתר.",
+      "readOnly": true,
+      "risk": "נמוך אם זו רק קריאת storage.buckets. בלי UPDATE.",
+      "method": "SELECT id, public FROM storage.buckets WHERE id = 'documents'"
+    },
+    {
+      "id": "RO-2",
+      "check": "האם ב-Production קיימות מדיניות Anonymous can view/update by token ו-documents_read_public",
+      "why": "לא מניחים ש-C4 פתוח רק כי הוא היה פתוח ב-Staging ובקוד הישן.",
+      "readOnly": true,
+      "risk": "נמוך: SELECT מ-pg_policies בלבד.",
+      "method": "SELECT schemaname, tablename, policyname, cmd, roles FROM pg_policies WHERE policyname IN (...C4 names...) OR tablename = 'objects'"
+    },
+    {
+      "id": "RO-3",
+      "check": "האם ב-Production קיימים ה-RPCs get/sign_declaration_by_token ו-exam RPCs",
+      "why": "אם נעלה אתר חדש שקורא RPC בלי שהפונקציות קיימות — חתימת הצהרות תישבר.",
+      "readOnly": true,
+      "risk": "נמוך: SELECT מ-pg_proc.",
+      "method": "SELECT proname FROM pg_proc JOIN pg_namespace ..."
+    },
+    {
+      "id": "RO-4",
+      "check": "איזה JS באמת רץ ב-dalia-car.online (getPublicUrl מול signed URL, table token מול RPC)",
+      "why": "האתר החי לא בהכרח זהה ל-origin/production. היו פריסות נקודתיות.",
+      "readOnly": true,
+      "risk": "נמוך: GET ציבורי ל-HTML/bundle בלי התחברות ובלי DB.",
+      "method": "GET https://dalia-car.online/ ואיתור מחרוזות ב-bundle"
+    },
+    {
+      "id": "RO-5",
+      "check": "האם schema_migrations ב-Production כולל 20260818* / 20260819*",
+      "why": "לא להריץ migration שכבר הוחל, ולא להניח שהוחל.",
+      "readOnly": true,
+      "risk": "נמוך.",
+      "method": "SELECT version FROM supabase_migrations.schema_migrations WHERE version LIKE '20260818%' OR version LIKE '20260819%'"
+    },
+    {
+      "id": "RO-6",
+      "check": "ספירת super_admin / inactive-with-session / חשבונות בדיקה ב-Production (אימיילים מגובבים בלבד)",
+      "why": "מספרי Staging (57 super_admin, 4 inactive עם session) לא מועתקים אוטומטית.",
+      "readOnly": true,
+      "risk": "בינוני-רגיש: חשיפת מטא-דאטה של חשבונות, בלי סיסמאות ובלי שינוי.",
+      "method": "אותו audit script עם abort אם project-ref אינו Staging — דורש העתק Production-only אחרי אישור"
+    },
+    {
+      "id": "RO-7",
+      "check": "גרסאות Edge: change-user-password, document-request, request-human-callback, check-driver-availability, auth-login-challenge, gupshup-webhook",
+      "why": "חלק מהתיקונים הם בקוד פונקציה ולא ב-SQL.",
+      "readOnly": true,
+      "risk": "נמוך: list functions / GET status, בלי deploy.",
+      "method": "Management API list functions + השוואת checksum לקבצים ב-Staging"
+    }
+  ],
+  "changesFromStaging": [
+    {
+      "id": "CHG-C1",
+      "title": "מסמכים פרטיים + כתובות חתומות ל-15 דקות",
+      "problem": "כל מי שיש לו קישור ישן ל-storage הציבורי יכול לראות מסמך בלי התחברות.",
+      "whatChanges": "bucket documents הופך ל-private; מדיניות SELECT רחבה יורדת; האתר מבקש signed URL אחרי התחברות.",
+      "touches": ["database-storage", "site"],
+      "usersFeel": "משתמש מחובר אמור להמשיך לראות ולהעלות. קישור ישן ציבורי שנשלח בוואטסאפ/מייל יישבר אחרי סגירת ה-bucket.",
+      "risk": "גבוה אם סוגרים את ה-bucket לפני שהאתר החדש חי. אז אף אחד לא יראה מסמכים.",
+      "verifyNow": "התחברות → צפייה במסמך קיים → הורדה → העלאה חדשה → אנונימי מקבל 400 על URL ציבורי.",
+      "rollback": "SET public=true והחזרת מדיניות SELECT הישנה מהגיבוי. שחזור dist הישן אם האתר החדש נכשל.",
+      "mustCoordinateWithSite": true
+    },
+    {
+      "id": "CHG-C4",
+      "title": "חתימת הצהרה לפי token RPC במקום הרשאה אנונימית לטבלה",
+      "problem": "Anon SELECT/UPDATE USING(true) מאפשר לכל אחד לראות ולשנות כל ההצהרות.",
+      "whatChanges": "DROP של 4 מדיניות מסוכנות; יצירת 5 RPCs; האתר קורא ל-RPC. Anon INSERT של קובץ חתימה תחת declarations/ נשאר.",
+      "touches": ["database", "site", "permissions"],
+      "usersFeel": "נהג עם קישור חתימה אמור להמשיך לחתום. אם RPC עולה בלי האתר החדש — או להפך — החתימה נשברת.",
+      "risk": "גבוה בסדר הלא נכון. בינוני אם RPC קודם, אחר כך אתר, אחר כך DROP.",
+      "verifyNow": "קישור חתימה תקין עובד; token שגוי לא מחזיר שורה; anon לא יכול SELECT * מהטבלה.",
+      "rollback": "לא להחזיר USING(true) אלא אם החתימה מתה לגמרי. עדיף לתקן את האתר/RPC. שחזור מדיניות רק מגיבוי מתועד ועם אישור Owner."
+    },
+    {
+      "id": "CHG-C4-GUARD",
+      "title": "Guard שלא יוצר מחדש את C4",
+      "problem": "CI של Staging יצר מחדש את החור אחרי שנסגר.",
+      "whatChanges": "סקריפט DROP-only + workflow שנופל אם המדיניות חזרה. ב-Production חייבים Guard נפרד, לא להפנות את סקריפט ה-Staging ל-Production.",
+      "touches": ["ci"],
+      "usersFeel": "לא.",
+      "risk": "נמוך אם זה רק בדיקה. גבוה אם מעתיקים בטעות סקריפט ישן מ-SHA ישן שעושה CREATE.",
+      "verifyNow": "Workflow ירוק; leftover policies ריק; אין CREATE POLICY בקובץ החי.",
+      "rollback": "כיבוי ה-workflow. לא להחזיר את גרסת ה-CREATE."
+    },
+    {
+      "id": "CHG-C2",
+      "title": "הרשמה לא יכולה לתת super_admin",
+      "problem": "handle_new_user האמין ל-role מהלקוח.",
+      "whatChanges": "כל נרשם חדש מקבל driver ו-is_active=false. מנהלים נוצרים רק בנתיב יצירת מנהל.",
+      "touches": ["database", "permissions", "login"],
+      "usersFeel": "נרשם חדש יישאר ממתין לאישור. משתמשים קיימים לא אמורים להשתנות.",
+      "risk": "בינוני אם מישהו תלוי בהרשמה שמפעילה מנהל אוטומטית.",
+      "verifyNow": "signup עם metadata super_admin → נשאר driver ולא פעיל.",
+      "rollback": "שחזור גוף הפונקציה הקודם מהגיבוי."
+    },
+    {
+      "id": "CHG-C3",
+      "title": "משתמש לא יכול להחליף חברה או להפעיל את עצמו",
+      "problem": "UPDATE על הפרופיל אפשר לשנות company_name ו-is_active.",
+      "whatChanges": "טריגר נעילה; האתר לא שולח company_name; משתמש מושבת מנותק.",
+      "touches": ["database", "site", "login", "permissions"],
+      "usersFeel": "עריכת שם תצוגה נשארת. ניסיון לשנות חברה נכשל.",
+      "risk": "נמוך-בינוני. מסכים ישנים שכותבים ל-company_name ייכשלו בשמירה.",
+      "verifyNow": "A לא משנה company_name; מושבת לא נכנס דרך challenge.",
+      "rollback": "DROP TRIGGER ושחזור מדיניות UPDATE ישנה מהגיבוי."
+    },
+    {
+      "id": "CHG-C7",
+      "title": "מנהל חברה לא מאפס סיסמה בחברה אחרת",
+      "problem": "change-user-password איפס כל אימייל.",
+      "whatChanges": "בדיקת אותה חברה; FM לא מאפס super_admin.",
+      "touches": ["permissions", "login"],
+      "usersFeel": "איפוס בתוך אותה חברה ממשיך. ניסיון חוצה-חברה נחסם.",
+      "risk": "בינוני אם פורסים פונקציה בלי לבדוק super_admin לגיטימי.",
+      "verifyNow": "FM של A מקבל 403 על משתמש של B.",
+      "rollback": "שחזור גרסת הפונקציה הקודמת ב-Edge (לא DB users)."
+    },
+    {
+      "id": "CHG-C8",
+      "title": "כניסה בטלפון עוברת את אותה בדיקת חשבון מושבת",
+      "problem": "נתיב טלפון דילג על OTP/lockout/is_active.",
+      "whatChanges": "Login.tsx קורא ל-auth-login-challenge גם בטלפון.",
+      "touches": ["site", "login"],
+      "usersFeel": "משתמש מושבת לא ייכנס. משתמש פעיל ממשיך, אולי עם OTP אם זה כבר דלוק ב-Production.",
+      "risk": "בינוני: אם challenge לא קיים ב-Production, כניסה בטלפון תישבר עד שהפונקציה קיימת.",
+      "verifyNow": "מושבת → 403. פעיל → 200.",
+      "rollback": "שחזור dist ישן."
+    },
+    {
+      "id": "CHG-H12",
+      "title": "אישור בקשת מסמך בודק חברה",
+      "problem": "באג בקוד דילג על company_mismatch.",
+      "whatChanges": "document-request משתמש ב-ctx המאומת.",
+      "touches": ["permissions"],
+      "usersFeel": "בדרך כלל לא. חסימה של פעולה חוצת-חברה.",
+      "risk": "נמוך.",
+      "verifyNow": "FM של A לא מאשר בקשה של B.",
+      "rollback": "שחזור פונקציית Edge."
+    },
+    {
+      "id": "CHG-H13",
+      "title": "callback אנושי לא מקבל company_name מהגוף",
+      "problem": "service-role האמין ל-body.",
+      "whatChanges": "שיוך לחברה של המשתמש המחובר.",
+      "touches": ["permissions"],
+      "usersFeel": "לא, אלא אם מישהו שלח במכוון חברה אחרת.",
+      "risk": "נמוך.",
+      "verifyNow": "קריאה עם company זרה לא יוצרת רשומה בחברה הזרה.",
+      "rollback": "שחזור פונקציית Edge."
+    },
+    {
+      "id": "CHG-H15",
+      "title": "זמינות נהג לפי חברת המשתמש",
+      "problem": "פרמטר company_name ב-URL.",
+      "whatChanges": "FM נכפה ל-ctx.companyName.",
+      "touches": ["permissions"],
+      "usersFeel": "לא.",
+      "risk": "נמוך.",
+      "verifyNow": "FM של A לא מקבל נהגי B.",
+      "rollback": "שחזור פונקציית Edge."
+    },
+    {
+      "id": "CHG-H14",
+      "title": "מבחן מעשי מוגבל לחברה",
+      "problem": "FM מכל חברה יכול היה לעדכן/למחוק מבחן.",
+      "whatChanges": "מדיניות לפי get_user_company.",
+      "touches": ["database", "permissions"],
+      "usersFeel": "לא, חוץ מניסיון לחצות חברות.",
+      "risk": "נמוך.",
+      "verifyNow": "A לא מעדכן מבחן של B.",
+      "rollback": "שחזור מדיניות ישנה מהגיבוי."
+    }
+  ],
+  "documentsPlan": {
+    "principle": "קודם אתר שיודע signed URL, ורק אחרי אימות — סגירת הגישה הציבורית. אף פעם לא להפך.",
+    "viewContinue": "כן, למשתמש מחובר, אם האתר החדש כבר חי.",
+    "uploadContinue": "כן, אם מדיניות INSERT המוגבלת קיימת (uid/company). לא לאנונימי חוץ מתיקיית declarations.",
+    "downloadContinue": "כן דרך signed URL. לא דרך /object/public/documents/...",
+    "existingFiles": "הקבצים עצמם לא נמחקים. רק אופן הגישה משתנה.",
+    "oldLinks": "קישורי public ישנים יפסיקו אחרי הפיכת ה-bucket ל-private. זה מכוון.",
+    "maintenanceWindow": "מומלץ 20–30 דקות לחלון סגירת ה-bucket + בדיקות, לא לכל הפריסה. שלב האתר החדש יכול להיות בלי השבתה אם ה-bucket עדיין public.",
+    "dualRead": "כל עוד ה-bucket public, גם getPublicUrl הישן וגם signed URL החדש עובדים. זה חלון המעבר הבטוח."
+  },
+  "c4Recurrence": {
+    "stagingCause": "GitHub Action e2e-declaration-driver-card-staging.yml הרצה סקריפט ש-DROP ואז CREATE USING(true) 'ליישור ל-Production'.",
+    "nowOnStaging": "הסקריפט הוא Guard: DROP leftover בלבד, לעולם לא CREATE. Workflow run 32191972460 ירוק.",
+    "productionRisks": [
+      "הפעלת migrations ישנים 20260417213545 / 20260424091333 אחרי הסגירה.",
+      "הרצת SHA ישן של sync-staging-declaration-anon-rls.mjs עם טוקן Production.",
+      "שינוי ידני ב-Dashboard.",
+      "db reset / dump restore שכולל מדיניות ישנה."
+    ],
+    "requiredBeforeGoLive": [
+      "לוודא שאין Workflow שרץ SQL CREATE POLICY על qasomfndnjuixgjmjwcm.",
+      "לא לחבר את סקריפט ה-Staging ל-Production.",
+      "אחרי המעבר: Guard ייעודי ל-Production, DROP-only, נפרד, עם abort אם ה-ref הוא Production בטעות בסקריפט Staging.",
+      "לא להריץ supabase db push של כל ההיסטוריה."
+    ]
+  },
+  "openIssues": {
+    "criticalStillOpenOnStaging": [],
+    "highStillOpenOnStaging": [
+      {
+        "id": "H-PRIV",
+        "title": "חשבונות עם הרשאות גבוהות",
+        "stagingFact": "103 privileged, 57 super_admin, 21 multi-role, 7 inactive privileged, 24 מסווגים כבדיקה. אימיילים מגובבים בלבד.",
+        "productionFact": "לא ידוע. אסור להניח שזהה.",
+        "beforeOrAfter": "לפני מעבר מלא: חובה לדעת את המספר ב-Production (Read-Only). ניקוי/מחיקה — אחרי המעבר הטכני ורק באישור Owner. לא למחוק במעבר עצמו."
+      },
+      {
+        "id": "H-SESS",
+        "title": "Sessions של משתמשים לא פעילים",
+        "stagingFact": "4 פרופילים מושבתים עם session חי; 84 sessions של super_admin; 191 sessions לא פגי-תוקף.",
+        "productionFact": "לא ידוע.",
+        "beforeOrAfter": "לפני: מדידה Read-Only. ביטול sessions — אחרי, באישור, כי זה מנתק אנשים אמיתיים."
+      },
+      {
+        "id": "H-TEST-ACCOUNTS",
+        "title": "חשבונות בדיקה ישנים",
+        "stagingFact": "24 מסווגים כ-test, חלקם super_admin על חברת דליה.",
+        "productionFact": "לא ידוע אם הועתקו ל-Production.",
+        "beforeOrAfter": "אחרי המעבר, באישור. לא למחוק עכשיו."
+      },
+      {
+        "id": "H-FM-STORAGE-LIST",
+        "title": "הרשאות Storage רחבות מדי לרשימת תיקיות משותפות",
+        "stagingFact": "FM יכול לראות שמות קבצים ב-admin-uploads / request-uploads / exchanges / qa-samples / qa-security גם של חברה אחרת. הורדת קובץ של חברה אחרת בתיקיית uid נחסמה.",
+        "productionFact": "לא ידוע. אם נעתיק את אותה מדיניות Staging, החור הזה יגיע ל-Production.",
+        "beforeOrAfter": "לפני מעבר המסמכים: לתכנן מדיניות צרה יותר, או לקבל סיכון מודע. לא להעתיק את החור בעיניים עצומות."
+      },
+      {
+        "id": "H-GUPSHUP",
+        "title": "Gupshup webhook בלי חתימה",
+        "stagingFact": "POST בלי חתימה החזיר 200.",
+        "productionFact": "לא נבדק בסיבוב הזה.",
+        "beforeOrAfter": "אחרי המעבר של מסמכים/C4. תיקון עכשיו עלול לשבור WhatsApp חי. לא לגעת ב-Production בלי אישור ובלי בדיקת Staging נפרדת."
+      },
+      {
+        "id": "H-DEV",
+        "title": "דפי /dev בלי התחברות",
+        "stagingFact": "קיימים ב-src/App.tsx. אם נעלה את frontend של Staging כמו שהוא, הם ייכנסו ל-Production.",
+        "productionFact": "לא ידוע אם כבר חיים באתר.",
+        "beforeOrAfter": "לפני פריסת האתר: להסיר או לחסום /dev ב-build של Production. זה חלק מהחבילה, לא אחרי."
+      },
+      {
+        "id": "C6-GOOGLE",
+        "title": "קובץ Google token בדיסק",
+        "stagingFact": "integrations/google/token.gmail-yonia.json קיים, לא ב-.gitignore, לא ב-index של git. לא סובב.",
+        "productionFact": "לא ידוע אם הועתק לשרת.",
+        "beforeOrAfter": "לפני: לוודא שהקובץ לא נכנס ל-git ולא ל-deploy. סיבוב טוקן — אישור Owner נפרד, אחרי."
+      },
+      {
+        "id": "H-REF-RLS",
+        "title": "SELECT מאומת רחב על טבלאות עזר",
+        "stagingFact": "dalia_form_config, document_type_defs, voice_prompts.",
+        "productionFact": "לא ידוע.",
+        "beforeOrAfter": "אחרי. לא חוסם מסמכים/C4."
+      },
+      {
+        "id": "H-ALLOC",
+        "title": "allocate_incident_event_number עלול להאמין ל-p_company",
+        "stagingFact": "נשאר פתוח; לא נוצל מחדש בסיבוב.",
+        "productionFact": "לא ידוע.",
+        "beforeOrAfter": "אחרי, אלא אם RO מראה ניצול."
+      },
+      {
+        "id": "H-EMPTY-COMPANY",
+        "title": "נהגים עם company_name ריק",
+        "stagingFact": "דגימה 401/500. RLS מסתיר אותם מ-FM. איכות נתונים, לא הוכחת דליפה.",
+        "productionFact": "לא ידוע.",
+        "beforeOrAfter": "אחרי. לא במעבר האבטחה."
+      }
+    ]
+  },
+  "mustCloseBeforeGoLive": [
+    "אישור ובצוע בדיקות Read-Only RO-1 עד RO-7 (בלי שינוי).",
+    "גיבוי Production מאומת.",
+    "סדר מסמכים: אתר signed URL חי → בדיקה → ורק אז bucket private.",
+    "סדר C4: RPCs קיימים → אתר RPC חי → ואז DROP מדיניות מסוכנת.",
+    "הסרת /dev מפריסת Production.",
+    "Guard נגד CREATE מחדש, בלי להפנות סקריפט Staging ל-Production.",
+    "לא לפרוס מדיניות Storage שמשאירה FM-list חוצה-חברות בלי החלטת Owner.",
+    "C2/C3/C7/C8 ו-H12/H13/H14/H15 כחלק מאותו חלון, אחרי שהמסמכים והחתימה יציבים — או בחלון שני מתועד, לא בערבוב."
+  ],
+  "canWaitAfter": [
+    "מחיקת super_admin / חשבונות בדיקה / ביטול sessions.",
+    "חתימת Gupshup webhook.",
+    "סיבוב Google token.",
+    "צמצום SELECT על טבלאות עזר.",
+    "allocate_incident_event_number.",
+    "ניקוי נהגים עם company_name ריק."
+  ],
+  "steps": [
+    {
+      "n": 0,
+      "name": "עצירה מובנית",
+      "do": "אין שינוי ב-Production. אין migration, אין deploy, אין בדיקת DB בלי אישור RO."
+    },
+    {
+      "n": 1,
+      "name": "בדיקות Read-Only מאושרות",
+      "do": "רק אחרי אישור Owner נפרד: RO-1…RO-7. אם C4 סגור כבר ו-bucket כבר private — לעדכן את התוכנית לפני ביצוע."
+    },
+    {
+      "n": 2,
+      "name": "גיבוי",
+      "do": "dump סכמה+מדיניות+פונקציות; רשימת buckets; dist נוכחי ב-VPS; רשימת edge functions. לא restore."
+    },
+    {
+      "n": 3,
+      "name": "נעילת CI מסוכן",
+      "do": "לוודא שאף workflow לא רץ CREATE POLICY / db push מלא ל-Production. לא לדחוף ל-main קבצים שמפעילים deploy."
+    },
+    {
+      "n": 4,
+      "name": "הסרת /dev מ-build Production",
+      "do": "שינוי קוד ב-Staging/ענף ייעודי, לא ב-Production החי, ואז פריסה מאושרת."
+    },
+    {
+      "n": 5,
+      "name": "פריסת אתר עם signed URL (bucket עדיין public)",
+      "do": "משתמשים ממשיכים לראות מסמכים בקישור הישן וגם בחדש. בדיקת צפייה/העלאה/הורדה."
+    },
+    {
+      "n": 6,
+      "name": "יצירת RPCs של C4 ב-DB בלי DROP עדיין",
+      "do": "החתימה הישנה עדיין עובדת דרך המדיניות הישנה. האתר הישן לא נשבר."
+    },
+    {
+      "n": 7,
+      "name": "פריסת אתר שקורא ל-RPC",
+      "do": "חתימה עוברת ל-RPC בזמן שהמדיניות הישנה עוד קיימת כרשת ביטחון קצרה."
+    },
+    {
+      "n": 8,
+      "name": "DROP מדיניות C4 + Guard",
+      "do": "רק אחרי חתימה מוצלחת ב-RPC. מיד בדיקת D2–D8 על Production עם fixtures חד-פעמיים, לא על לקוחות."
+    },
+    {
+      "n": 9,
+      "name": "סגירת bucket documents ל-private",
+      "do": "רק אחרי שצפייה ב-signed URL עובדת באתר החי. מיד: אנונימי 400, מחובר 200, B לא מוריד של A."
+    },
+    {
+      "n": 10,
+      "name": "שאר תיקוני DB/Edge (C2 C3 C7 C8 H12-H15)",
+      "do": "אחרי שמסמכים וחתימות יציבים. כל אחד עם בדיקה מיידית ונקודת STOP."
+    },
+    {
+      "n": 11,
+      "name": "בדיקות הפרדת חברות + checklist מלא",
+      "do": "A רואה את עצמו; A לא רואה B; אנונימי לא מסמכים; לא משנים company; מושבת לא נכנס; FM לא מאפס סיסמת חברה אחרת."
+    }
+  ],
+  "backupPlan": {
+    "what": [
+      "pg_dump סכמה + מדיניות + פונקציות (לא חובה כל ה-blobs של storage בשלב ראשון).",
+      "SELECT * מ-pg_policies ו-storage.buckets לקובץ JSON.",
+      "עותק dist נוכחי ב-VPS (יש workflow rollback-production-vps).",
+      "רשימת edge functions ו-checksum.",
+      "תיעוד schema_migrations."
+    ],
+    "verifyBackup": "פתיחת קובץ הגיבוי מקומית: יש CREATE POLICY / buckets / functions; גודל לא אפס; SHA מתועד.",
+    "doNotRunNow": true
+  },
+  "rollbackPlan": {
+    "siteDown": "שחזור dist הקודם ב-VPS. זמן צפוי: 5–15 דקות אם הגיבוי מוכן.",
+    "documentsDown": "אם נסגר bucket מוקדם מדי: להחזיר public=true + מדיניות SELECT מהגיבוי. זמן: 5–10 דקות אחרי אישור. האתר החדש ימשיך לעבוד גם אז.",
+    "signDown": "אם DROP של C4 היה לפני RPC/אתר: להחזיר זמנית מדיניות ישנה רק עם אישור Owner, או לתקן RPC. עדיף לא לפתוח USING(true).",
+    "migrationFail": "STOP. לא להמשיך לשלב הבא. לא לנסות db reset.",
+    "cannotEasilyUndo": "מחיקת משתמשים, ביטול sessions, שינוי סיסמאות, סיבוב secrets — לכן הם מחוץ למעבר הזה."
+  },
+  "postChecks": [
+    "התחברות אימייל למשתמש פעיל.",
+    "כניסת משתמש מושבת נחסמת.",
+    "נהגים: רשימה של החברה בלבד.",
+    "רכבים: רשימה של החברה בלבד.",
+    "מסמך קיים נפתח.",
+    "העלאת מסמך חדש.",
+    "הורדת מסמך.",
+    "אנונימי לא פותח URL ציבורי ישן.",
+    "חתימת הצהרה לפי קישור token.",
+    "token שגוי לא חושף הצהרה.",
+    "A לא רואה מסמכי B ולא רכבי B.",
+    "A לא משנה את החברה שלו.",
+    "FM של A לא מאפס סיסמה של B.",
+    "אין מדיניות C4 USING(true).",
+    "אין documents_read_public.",
+    "RPCs קיימים.",
+    "/dev לא נגיש באתר החי, או מחזיר חסימה."
+  ],
+  "stopPoints": [
+    "לקוחות לא פותחים מסמכים אחרי פריסת האתר או אחרי סגירת ה-bucket → STOP / ROLLBACK אתר או bucket.",
+    "העלאה נכשלת → STOP. לא סוגרים bucket ולא ממשיכים ל-C4 DROP.",
+    "חברה A רואה מידע של B → STOP / ROLLBACK מיידי. לא ממשיכים.",
+    "משתמש לא מחובר מגיע למסמך → STOP לפני סגירת המעבר; זו רגרסיה של C1.",
+    "חתימת הצהרה נשברת → STOP לפני DROP או ROLLBACK אתר. לא לפתוח C4 בלי אישור.",
+    "Migration נכשל → STOP.",
+    "Critical חדש → STOP.",
+    "Workflow מנסה CREATE POLICY על Production → STOP וביטול הרצה."
+  ],
+  "downtime": {
+    "siteDeploy": "קרוב לאפס אם CDN/rsync מחליף קבצים; כמה שניות רענון.",
+    "bucketPrivateSwitch": "אין השבתה מתוכננת למשתמש מחובר עם האתר החדש. קישורים ציבוריים ישנים מתים באותו רגע.",
+    "recommendedWindow": "20–30 דקות עם אדם זמין, מחוץ לשעת שיא, לשלבי 8–9."
+  },
+  "finalRecommendation": {
+    "code": "NOT READY FOR PRODUCTION",
+    "why": "אין תמונת מצב חיה מאושרת של Production; לפי git האתר וה-DB החיים כנראה עדיין על מודל ישן (קישור ציבורי + קריאת טבלה לפי token); נשארו High שחלקם חייבים החלטת Owner לפני העתקת מדיניות; ואין אישור לבצע. התכנון מוכן. הביצוע אסור."
+  }
+}
