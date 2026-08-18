@@ -1,7 +1,8 @@
 name: E2E — Declaration Driver Card Staging Sync
 
-# Staging-only parity check vs Production declaration behavior on driver card.
-# Never Production.
+# Staging-only declaration E2E. Never Production.
+# MUST NOT recreate anon USING(true) table/storage SELECT policies (C4/C1).
+# Sign-by-link uses token RPCs + anon INSERT of signature files only.
 on:
   push:
     branches:
@@ -14,6 +15,7 @@ on:
       - 'src/utils/declarationTemplates.ts'
       - 'src/pages/SignDeclaration.tsx'
       - 'scripts/e2e-declaration-driver-card-staging.mjs'
+      - 'scripts/sync-staging-declaration-anon-rls.mjs'
       - '.github/workflows/e2e-declaration-driver-card-staging.yml'
   workflow_dispatch: {}
 
@@ -46,7 +48,7 @@ jobs:
       - name: Wait for Staging Pages settle
         run: sleep 50
 
-      - name: Sync Staging anon declaration RLS (Production parity, Staging only)
+      - name: Guard Staging declaration RLS (token RPCs only, never recreate C4)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node scripts/sync-staging-declaration-anon-rls.mjs

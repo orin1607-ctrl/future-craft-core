@@ -17,7 +17,7 @@ const BASE = (process.env.STAGING_PAGES_URL || 'https://orin1607-ctrl.github.io/
 );
 const PROD_LIVE = 'https://dalia-car.online';
 const OUT = join(process.cwd(), 'docs', 'screenshots', 'declaration-driver-card-e2e');
-const ARTIFACT = '/opt/cursor/artifacts';
+const ARTIFACT = process.env.RUNNER_TEMP || process.env.TEMP || '/opt/cursor/artifacts';
 mkdirSync(OUT, { recursive: true });
 mkdirSync(ARTIFACT, { recursive: true });
 
@@ -360,67 +360,57 @@ async function main() {
   await page.screenshot({ path: join(ARTIFACT, 'stg-decl-sign.png'), fullPage: true }).catch(() => {});
   await page.screenshot({ path: join(OUT, 'stg-decl-sign.png'), fullPage: true }).catch(() => {});
 
-  // Public sign path: unauthenticated anon updates by token (mirrors SignDeclaration.tsx)
-  const signedAt = new Date().toISOString();
-  const expiresAt = new Date();
-  expiresAt.setFullYear(expiresAt.getFullYear() + 5);
-  const { data: anonSigned, error: anonSignErr } = await publicAnon
+  // C4 must stay closed: client .eq(token) is not an RLS bound.
+  const { data: tableUpd, error: tableUpdErr } = await publicAnon
     .from('driver_declarations')
-    .update({
-      status: 'signed',
-      signed_at: signedAt,
-      signature_url: 'data:image/png;base64,iVBORw0KGgo=',
-      expires_at: expiresAt.toISOString(),
-    })
+    .update({ status: 'signed', signature_url: 'hack' })
     .eq('token', decl2.token)
-    .select('id,status,declaration_text,token')
-    .maybeSingle();
+    .select('id');
+  record(
+    '8-c4-table-update-blocked',
+    'anon table UPDATE by token does not mutate rows',
+    Boolean(tableUpdErr) || !(tableUpd || []).length,
+    { error: tableUpdErr?.message || null, count: tableUpd?.length ?? null },
+  );
 
-  let signedFinal = anonSigned;
-  let signVia = 'anon-token';
-  if (anonSignErr || anonSigned?.status !== 'signed') {
-    signVia = 'service-role-fallback';
-    await admin
-      .from('driver_declarations')
-      .update({
-        status: 'signed',
-        signed_at: signedAt,
-        signature_url: 'data:image/png;base64,iVBORw0KGgo=',
-        expires_at: expiresAt.toISOString(),
-      })
-      .eq('id', decl2.id);
-    const { data } = await admin
-      .from('driver_declarations')
-      .select('id,status,declaration_text,token')
-      .eq('id', decl2.id)
-      .single();
-    signedFinal = data;
-  }
-
+  const { data: rpcSigned, error: rpcSignErr } = await publicAnon.rpc('sign_declaration_by_token', {
+    p_token: decl2.token,
+    p_signature_url: 'declarations/qa-e2e-sig.png',
+  });
+  const signedRow = Array.isArray(rpcSigned) ? rpcSigned[0] : rpcSigned;
   record(
     '8-sign-public-anon',
-    'public anon-by-token sign works (Production parity)',
-    signVia === 'anon-token' && signedFinal?.status === 'signed',
-    { signVia, error: anonSignErr?.message || null },
+    'public sign works via token RPC (not USING true table policy)',
+    Boolean(!rpcSignErr && signedRow?.status === 'signed'),
+    { error: rpcSignErr?.message || null, status: signedRow?.status || null },
   );
   record(
     '8-sign',
     'declaration signed while keeping latest saved text',
-    signedFinal?.status === 'signed' && String(signedFinal?.declaration_text).includes(MARKER_COPY),
-    { status: signedFinal?.status, signVia },
+    signedRow?.status === 'signed' && String(signedRow?.declaration_text).includes(MARKER_COPY),
+    { status: signedRow?.status },
   );
 
-  // Public SELECT after sign (success page needs this — Production parity)
-  const { data: publicRead, error: publicReadErr } = await publicAnon
+  const { data: tableRead, error: tableReadErr } = await publicAnon
     .from('driver_declarations')
-    .select('id,status,declaration_text,token')
-    .eq('token', decl2.token)
-    .maybeSingle();
+    .select('id,status,token')
+    .eq('token', decl2.token);
+  record(
+    '8a-c4-table-select-blocked',
+    'anon table SELECT by token returns no rows',
+    Boolean(tableReadErr) || !(tableRead || []).length,
+    { error: tableReadErr?.message || null, count: tableRead?.length ?? null },
+  );
+
+  const { data: rpcRead, error: rpcReadErr } = await publicAnon.rpc('get_declaration_by_token', {
+    p_token: decl2.token,
+  });
+  const publicRead = Array.isArray(rpcRead) ? rpcRead[0] : rpcRead;
   record(
     '8a-public-read-after-sign',
-    'anon can still read signed declaration by token',
-    publicRead?.status === 'signed' && publicRead?.token === decl2.token && !publicReadErr,
-    { error: publicReadErr?.message || null, status: publicRead?.status || null },
+    'anon can read signed declaration via token RPC',
+    publicRead?.status === 'signed' && publicRead?.token === decl2.token && !rpcReadErr,
+    { error: rpcReadErr?.message || null, status: publicRead?.status || null },
   );
 
   // Reload sign page after sign — should show success state
