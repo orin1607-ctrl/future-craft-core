@@ -4,9 +4,11 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { gradeExam, type ExamQuestion, PASSING_SCORE } from '@/data/drivingExamQuestions';
+import { submitDrivingExamByToken } from '@/lib/tokenScopedAccess';
 
 interface ExamRunnerProps {
   examId: string;
+  examToken?: string;
   questions: ExamQuestion[];
   driverName: string;
   companyName?: string;
@@ -15,7 +17,7 @@ interface ExamRunnerProps {
   onComplete?: () => void;
 }
 
-export default function ExamRunner({ examId, questions, driverName, companyName, vehiclePlate, showManagerSignature, onComplete }: ExamRunnerProps) {
+export default function ExamRunner({ examId, examToken, questions, driverName, companyName, vehiclePlate, showManagerSignature, onComplete }: ExamRunnerProps) {
   const [answers, setAnswers] = useState<Record<number, number | null>>({});
   const [showSig, setShowSig] = useState(false);
   const [showManagerSig, setShowManagerSig] = useState(false);
@@ -96,10 +98,26 @@ export default function ExamRunner({ examId, questions, driverName, companyName,
       updateData.manager_signature_url = managerSig;
     }
 
-    const { error } = await supabase
-      .from('driving_exams')
-      .update(updateData)
-      .eq('id', examId);
+    let error = null as { message: string } | null;
+    if (examToken) {
+      const res = await submitDrivingExamByToken({
+        token: examToken,
+        answers: graded.answers,
+        score: graded.score,
+        correct_count: graded.correct_count,
+        total_questions: graded.total,
+        passed: graded.passed,
+        category_breakdown: graded.category_breakdown,
+        signature_url: sig,
+      });
+      error = res.error;
+    } else {
+      const res = await supabase
+        .from('driving_exams')
+        .update(updateData)
+        .eq('id', examId);
+      error = res.error;
+    }
     setSubmitting(false);
     if (error) { toast.error('שגיאה בשליחה'); return; }
     setResult(graded);

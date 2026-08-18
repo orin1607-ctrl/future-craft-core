@@ -5,6 +5,7 @@ import { toast, Toaster } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { printDeclaration } from '@/utils/printDeclaration';
 import { resolveStoredDeclarationText } from '@/utils/declarationTemplates';
+import { getDeclarationByToken, signDeclarationByToken } from '@/lib/tokenScopedAccess';
 
 interface Declaration {
   id: string;
@@ -47,11 +48,11 @@ export default function SignDeclaration() {
 
   useEffect(() => {
     if (!token) { setError('קישור לא תקין'); setLoading(false); return; }
-    supabase.from('driver_declarations').select('*').eq('token', token).maybeSingle()
+    getDeclarationByToken<Declaration>(token)
       .then(({ data, error: err }) => {
         if (err || !data) { setError('תצהיר לא נמצא'); }
         else {
-          setDeclaration(data as Declaration);
+          setDeclaration(data);
           if (data.status === 'signed') setSigned(true);
         }
         setLoading(false);
@@ -122,7 +123,7 @@ export default function SignDeclaration() {
   const clearCanvas = () => initCanvas();
 
   const handleSign = async () => {
-    if (!declaration || !canvasRef.current) return;
+    if (!declaration || !canvasRef.current || !token) return;
     if (!hasStrokes) { toast.error('יש לחתום בתוך המסגרת לפני אישור'); return; }
     setSubmitting(true);
     try {
@@ -141,21 +142,7 @@ export default function SignDeclaration() {
       }
       const signatureRef = path;
 
-      const signedAt = new Date().toISOString();
-      const expiresAt = new Date();
-      expiresAt.setFullYear(expiresAt.getFullYear() + 5);
-
-      const { error: updateErr, data: updated } = await supabase
-        .from('driver_declarations')
-        .update({
-          status: 'signed',
-          signed_at: signedAt,
-          signature_url: signatureRef,
-          expires_at: expiresAt.toISOString(),
-        })
-        .eq('token', token)
-        .select()
-        .maybeSingle();
+      const { error: updateErr, data: updated } = await signDeclarationByToken<Declaration>(token, signatureRef);
 
       if (updateErr) {
         console.error('Update error:', updateErr);

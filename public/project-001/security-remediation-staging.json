@@ -98,7 +98,99 @@
       ],
       "testResult": "PASS",
       "testedAt": "2026-08-18T19:53:54.349Z"
+    },
+    {
+      "id": "C4-C5",
+      "code": "P0-F",
+      "title": "driver_declarations / driving_exams anon USING(true)",
+      "rootCause": "Anon SELECT/UPDATE policies used USING(true); client .eq(token) is not an RLS bound.",
+      "changeMade": "Dropped anon USING(true) policies; added SECURITY DEFINER token RPCs; SignDeclaration and TakeDrivingExam use RPCs.",
+      "files": [
+        "supabase/migrations/20260818221000_p0_token_scope_declarations_exams.sql",
+        "src/lib/tokenScopedAccess.ts",
+        "src/pages/SignDeclaration.tsx",
+        "src/pages/TakeDrivingExam.tsx",
+        "src/components/driving-exam/ExamRunner.tsx"
+      ],
+      "tests": [
+        {
+          "id": "D1",
+          "name": "inserted disposable declaration fixtures",
+          "ok": true
+        },
+        {
+          "id": "D2",
+          "name": "anon cannot SELECT all driver_declarations",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "D3",
+          "name": "anon table SELECT by token does not return rows",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "D4",
+          "name": "valid token RPC returns the matching declaration",
+          "ok": true,
+          "gotId": "f3b630d5-effa-4c32-80af-46b4bf8e4d54"
+        },
+        {
+          "id": "D5",
+          "name": "valid token RPC does not leak other declarations",
+          "ok": true,
+          "count": 1
+        },
+        {
+          "id": "D6",
+          "name": "wrong token RPC returns no row",
+          "ok": true
+        },
+        {
+          "id": "D7",
+          "name": "anon table UPDATE of another row fails",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "D8",
+          "name": "valid token can sign its own declaration",
+          "ok": true,
+          "status": "signed"
+        },
+        {
+          "id": "E1",
+          "name": "inserted disposable exam fixtures",
+          "ok": true
+        },
+        {
+          "id": "E2",
+          "name": "anon cannot SELECT all driving_exams",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "E3",
+          "name": "valid exam token RPC returns matching exam",
+          "ok": true
+        },
+        {
+          "id": "E4",
+          "name": "anon table UPDATE of another exam fails",
+          "ok": true,
+          "count": 0
+        },
+        {
+          "id": "E5",
+          "name": "valid exam token can submit its own exam",
+          "ok": true,
+          "status": "completed"
+        }
+      ],
+      "testResult": "PASS",
+      "testedAt": "2026-08-18T19:59:39.087Z"
     }
   ],
-  "updatedAt": "2026-08-18T19:53:54.351Z"
+  "updatedAt": "2026-08-18T19:59:39.088Z"
 }
