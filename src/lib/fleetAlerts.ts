@@ -3,6 +3,7 @@ import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import type { HomeAlertSlotPrefs, HomeAlertSlotType } from '@/lib/homeAlertPrefsTypes';
 import { HOME_ALERT_SLOT_LABELS } from '@/lib/homeAlertPrefsTypes';
 import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
+import { isUpcomingInWindow } from '@/lib/expiryOfficerApproval';
 
 export type FleetAlertSeverity = 'critical' | 'warning' | 'info';
 
@@ -69,10 +70,7 @@ export async function loadFleetAlertSlotSummaries(
 
     switch (slot.type) {
       case 'test': {
-        const matches = fleet.filter((v) => {
-          const d = daysUntil(v.test_expiry);
-          return d !== null && d <= days;
-        });
+        const matches = fleet.filter((v) => isUpcomingInWindow(v.test_expiry, days));
         const worst = matches.reduce<number | null>((min, v) => {
           const d = daysUntil(v.test_expiry);
           if (d === null) return min;
@@ -90,8 +88,7 @@ export async function loadFleetAlertSlotSummaries(
       case 'insurance': {
         const matches = fleet.filter((v) => {
           if (!isInsuranceAlertsEnabled(v)) return false;
-          const d = daysUntil(v.insurance_expiry);
-          return d !== null && d <= days;
+          return isUpcomingInWindow(v.insurance_expiry, days);
         });
         const worst = matches.reduce<number | null>((min, v) => {
           const d = daysUntil(v.insurance_expiry);
@@ -110,8 +107,7 @@ export async function loadFleetAlertSlotSummaries(
       case 'comprehensive_insurance': {
         const matches = fleet.filter((v) => {
           if (!isInsuranceAlertsEnabled(v)) return false;
-          const d = daysUntil(v.comprehensive_insurance_expiry);
-          return d !== null && d <= days;
+          return isUpcomingInWindow(v.comprehensive_insurance_expiry, days);
         });
         const worst = matches.reduce<number | null>((min, v) => {
           const d = daysUntil(v.comprehensive_insurance_expiry);
@@ -146,10 +142,7 @@ export async function loadFleetAlertSlotSummaries(
         };
       }
       case 'license': {
-        const matches = (drivers || []).filter((d) => {
-          const dd = daysUntil(d.license_expiry);
-          return dd !== null && dd <= days;
-        });
+        const matches = (drivers || []).filter((d) => isUpcomingInWindow(d.license_expiry, days));
         const worst = matches.reduce<number | null>((min, d) => {
           const dd = daysUntil(d.license_expiry);
           if (dd === null) return min;

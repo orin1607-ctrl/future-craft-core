@@ -62,6 +62,8 @@ import {
   formatIsraelDate,
   daysUntilDate,
 } from '@/lib/driverDocumentExpiry';
+import ExpiryPendingInline from '@/components/expiry/ExpiryPendingInline';
+import { pendingItemsForDriver } from '@/lib/expiryOfficerApproval';
 export interface DriverHubDriver {
   id: string;
   full_name: string;
@@ -93,6 +95,7 @@ type Props = {
   fromFleetManager?: boolean;
   filterCompany?: string;
   onNotesSaved?: (patch: { notes: string; show_notes_on_list: boolean }) => void;
+  onDriverPatch?: (patch: Partial<DriverHubDriver>) => void;
 };
 
 function HubTile({
@@ -169,6 +172,7 @@ export default function DriverHub({
   fromFleetManager,
   filterCompany,
   onNotesSaved,
+  onDriverPatch,
 }: Props) {
   const navigate = useNavigate();
   const { hiddenButtons, ready: hiddenReady } = useHiddenButtonsState();
@@ -303,6 +307,9 @@ export default function DriverHub({
   const licenseDays = daysUntilDate(d.license_expiry);
   const licenseWarn = licenseDays !== null && licenseDays <= 30;
   const licenseExpired = licenseDays !== null && licenseDays < 0;
+  const pendingExpiry = pendingItemsForDriver(d);
+  const pendingLicense = pendingExpiry.find((i) => i.kind === 'license');
+  const pendingExam = pendingExpiry.find((i) => i.kind === 'exam');
 
   const filteredDocs = useMemo(() => {
     const source = docHistoryFilter === 'current' ? versions : docHistoryFilter === 'history' ? allVersions.filter((v) => !v.is_current) : allVersions;
@@ -431,6 +438,12 @@ export default function DriverHub({
         </div>
         {d.license_types?.length > 0 && (
           <p className="text-xs text-muted-foreground">סוגים: {d.license_types.join(', ')}</p>
+        )}
+        {pendingLicense && (
+          <ExpiryPendingInline
+            item={pendingLicense}
+            onApproved={(newDate) => onDriverPatch?.({ license_expiry: newDate })}
+          />
         )}
         {d.license_image_url && (
           <DocumentCard url={d.license_image_url} fileName="תמונת רישיון" label="רישיון" compact />
@@ -586,6 +599,12 @@ export default function DriverHub({
             <p className={`text-sm ${examNeedsAttentionClass(d.exam_expiry)}`}>
               תוקף מבחן: {formatIsraelDate(d.exam_expiry)}
             </p>
+          )}
+          {pendingExam && (
+            <ExpiryPendingInline
+              item={pendingExam}
+              onApproved={(newDate) => onDriverPatch?.({ exam_expiry: newDate })}
+            />
           )}
           <DriverExamsTab
             driverId={d.id}

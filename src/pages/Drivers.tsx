@@ -116,6 +116,10 @@ export default function Drivers() {
           setSelected((s) => (s ? { ...s, ...patch } : s));
           setDrivers((list) => list.map((x) => (x.id === d.id ? { ...x, ...patch } : x)));
         }}
+        onDriverPatch={(patch) => {
+          setSelected((s) => (s ? { ...s, ...patch } : s));
+          setDrivers((list) => list.map((x) => (x.id === d.id ? { ...x, ...patch } : x)));
+        }}
         onBack={() => setSelected(null)}
         onEdit={() => {
           setSelected(null);

@@ -50,6 +50,8 @@ import {
   statusLabel,
   type InspectionDashboardCard,
 } from '@/components/vehicles/vehicleHubUtils';
+import ExpiryPendingInline from '@/components/expiry/ExpiryPendingInline';
+import { pendingItemsForVehicle, type ExpiryKind } from '@/lib/expiryOfficerApproval';
 
 type DrillKind =
   | 'insurance_licenses'
@@ -179,6 +181,8 @@ export default function VehicleDashboard({
   const hasLicenseGap =
     isVehicleHubFieldRequired('license_doc_url', fieldOverrides) && !v.license_doc_url;
   const hasTestGap = !v.test_expiry || (testDays !== null && testDays <= 0);
+  const pendingExpiry = pendingItemsForVehicle(v);
+  const pendingByKind = (kind: ExpiryKind) => pendingExpiry.find((i) => i.kind === kind);
   const hasInsuranceCoverageGap = insAlertsOn && coverage.hasCoverageGap;
   const hasInsuranceDocGap = insAlertsOn && coverage.hasMissingDocGap;
   const customGapCount = drill?.customGaps?.length ?? 0;
@@ -189,6 +193,7 @@ export default function VehicleDashboard({
     hasTestGap ||
     hasInsuranceCoverageGap ||
     hasInsuranceDocGap ||
+    pendingExpiry.length > 0 ||
     (testDays !== null && testDays <= 14);
   const gapsAlertsNeedsAttention =
     missingDocs > 0 ||
@@ -335,13 +340,16 @@ export default function VehicleDashboard({
     return (
       <>
         <div id="hub-focus-test" className={focusCls('test')}>
-          <p className="text-xs font-bold text-muted-foreground mb-1">טסט</p>
+          <p className="text-xs font-bold text-muted-foreground mb-1">טסט / רישוי</p>
           <DetailList
             items={[
               { label: 'טסט — סטטוס', value: insuranceStatusText(v.test_expiry) },
               { label: 'טסט — תפוגה', value: formatExpiry(v.test_expiry) },
             ]}
           />
+          {pendingByKind('test') && (
+            <ExpiryPendingInline item={pendingByKind('test')!} onApproved={() => onDrillDataChanged?.()} />
+          )}
         </div>
         <div id="hub-focus-insurance" className={`mt-3 ${focusCls('insurance')}`}>
           <p className="text-xs font-bold text-muted-foreground mb-1">ביטוח</p>
@@ -366,6 +374,21 @@ export default function VehicleDashboard({
               { label: 'חברת ביטוח', value: latestInsurer || '—' },
             ]}
           />
+          {pendingByKind('insurance') && (
+            <ExpiryPendingInline item={pendingByKind('insurance')!} onApproved={() => onDrillDataChanged?.()} />
+          )}
+          {pendingByKind('comprehensive_insurance') && (
+            <ExpiryPendingInline
+              item={pendingByKind('comprehensive_insurance')!}
+              onApproved={() => onDrillDataChanged?.()}
+            />
+          )}
+          {pendingByKind('third_party_insurance') && (
+            <ExpiryPendingInline
+              item={pendingByKind('third_party_insurance')!}
+              onApproved={() => onDrillDataChanged?.()}
+            />
+          )}
         </div>
         <div id="hub-focus-license" className={`mt-3 ${focusCls('license')}`}>
           <p className="text-xs font-bold text-muted-foreground mb-1">רישיון</p>

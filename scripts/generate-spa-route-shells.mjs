@@ -51,6 +51,7 @@ const ROUTES = [
   'documents',
   'reports',
   'alerts',
+  'expiry-approvals',
   'settings',
   'dalia-settings',
   'fleet-managers',

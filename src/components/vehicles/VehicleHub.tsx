@@ -919,6 +919,7 @@ export default function VehicleHub({
             initialHubFocus={initialHubFocus}
             initialHubEntityId={initialHubEntityId}
             onDrillDataChanged={() => {
+              onRefresh();
               refreshHub();
               setDrillRefreshKey((k) => k + 1);
             }}

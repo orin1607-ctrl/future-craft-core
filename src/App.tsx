@@ -24,6 +24,7 @@ import Roadmap from "@/pages/Roadmap";
 import Settings from "@/pages/Settings";
 import AttachCar from "@/pages/AttachCar";
 import Alerts from "@/pages/Alerts";
+import ExpiryApprovals from "@/pages/ExpiryApprovals";
 import NotificationLogPage from "@/pages/NotificationLogPage";
 import DaliaSettings from "@/pages/DaliaSettings";
 import DaliaDeploy from "@/pages/DaliaDeploy";
@@ -263,6 +264,7 @@ function AppRoutes() {
         <Route path="/attach-car" element={<AttachCar />} />
         <Route path="/attach-customer" element={<AttachCar />} />
         <Route path="/alerts" element={<Alerts />} />
+        <Route path="/expiry-approvals" element={<ExpiryApprovals />} />
         <Route path="/dalia-settings" element={<DaliaSettings />} />
         <Route path="/dalia-settings/deploy" element={<DaliaDeploy />} />
         <Route path="/dalia-settings/whatsapp" element={<WhatsAppSettingsPage />} />

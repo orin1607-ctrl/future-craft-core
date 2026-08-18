@@ -17,6 +17,7 @@ import {
   DEFAULT_HOME_ALERT_PREFS,
 } from '@/hooks/useHomeAlertPrefs';
 import { loadFleetAlertSlotSummaries, type FleetAlertSlotSummary } from '@/lib/fleetAlerts';
+import ExpiryPendingCard from '@/components/expiry/ExpiryPendingCard';
 
 const SLOT_ICONS: Record<HomeAlertSlotType, typeof Car> = {
   test: Car,
@@ -164,6 +165,8 @@ export default function HomeAlertsWidget({
           הגדרות
         </Button>
       </div>
+
+      <ExpiryPendingCard companyFilter={companyFilter} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {summaries.map((s) => (
