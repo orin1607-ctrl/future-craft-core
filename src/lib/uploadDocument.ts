@@ -141,6 +141,14 @@ export async function uploadDocument(options: UploadDocumentOptions): Promise<Up
     }
   }
 
+  void import('@/lib/securityAuditClient').then(({ securityRecordAction }) => {
+    securityRecordAction('document_upload', {
+      action: 'העלאת מסמך',
+      objectType: category || 'document',
+      outcome: 'success',
+    }).catch(() => undefined);
+  });
+
   return { ok: true, publicUrl, filePath };
 }
 

@@ -1,0 +1,21 @@
+{
+  "verdict": "MONITORING IDENTITY, ACTIONS & MOBILE — PASS",
+  "at": "2026-08-19T14:50:00Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "route": "/security-center",
+  "productionTouched": false,
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "daliaCarOnlineChanged": false,
+  "secretsInFrontendOrLog": false,
+  "changed": [
+    "active_people_now counts DISTINCT user_id (tabs of same person = 1)",
+    "active_tools_now separate from people",
+    "unidentified_review separate from people",
+    "AUTHORIZED tool labels only with proof",
+    "Full desktop table columns + date range/hour/tool/action/blocked filters",
+    "User timeline + session count in details",
+    "App actions: page view, driver/vehicle create-update, document upload metadata",
+    "GitHub Push commit count + Deployment when present"
+  ]
+}

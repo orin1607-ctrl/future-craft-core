@@ -408,6 +408,14 @@ export async function persistDaliaVehicle(params: {
   if (error) throw new Error(formatVehiclePersistError(error));
   if (!vehicleId) throw new Error('לא התקבל מזהה רכב');
 
+  void import('@/lib/securityAuditClient').then(({ securityRecordAction }) => {
+    securityRecordAction(params.vehicleId ? 'entity_update' : 'entity_create', {
+      action: params.vehicleId ? 'שינוי רכב' : 'יצירת רכב',
+      objectType: 'vehicle',
+      outcome: 'success',
+    }).catch(() => undefined);
+  });
+
   await logVehicleEvent({
     vehicleId,
     vehiclePlate: plate,

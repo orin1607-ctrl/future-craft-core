@@ -88,6 +88,22 @@ export const ACCESS_KIND_HE: Record<string, string> = {
   unidentified: 'לא מזוהה',
 };
 
+export const AUTHORIZED_TOOL_LABEL: Record<string, string> = {
+  cursor_cross: 'AUTHORIZED — CURSOR/CROSS',
+  claude_code: 'AUTHORIZED — CLAUDE CODE',
+  chatgpt: 'AUTHORIZED — CHATGPT',
+  github_actions: 'AUTHORIZED — GITHUB ACTIONS',
+  automation: 'AUTHORIZED — AUTOMATION',
+};
+
+export const TOOL_FILTER_KIND: Record<string, string> = {
+  cursor: 'cursor_cross',
+  claude: 'claude_code',
+  chatgpt: 'chatgpt',
+  actions: 'github_actions',
+  other: 'other',
+};
+
 export type SecurityIdentityRow = {
   source: string;
   actor_email?: string | null;
@@ -105,6 +121,11 @@ export type SecurityIdentityRow = {
   result_label?: string | null;
   outcome?: string | null;
   event_type?: string | null;
+  severity?: string | null;
+  company_name?: string | null;
+  actor_user_id?: string | null;
+  action_label?: string;
+  occurred_at?: string;
 };
 
 export function displayAccount(row: SecurityIdentityRow): string {
@@ -127,9 +148,11 @@ export function displayAccount(row: SecurityIdentityRow): string {
 }
 
 export function displayTool(row: SecurityIdentityRow): string {
-  if (row.tool_name && row.tool_name.trim()) return row.tool_name;
-  if (row.access_kind && ACCESS_KIND_HE[row.access_kind]) return ACCESS_KIND_HE[row.access_kind];
-  return 'לא מזוהה';
+  if (row.access_kind && AUTHORIZED_TOOL_LABEL[row.access_kind] && row.tool_name !== 'לא מזוהה') {
+    return AUTHORIZED_TOOL_LABEL[row.access_kind];
+  }
+  if (!row.tool_name || row.tool_name === 'לא מזוהה') return 'כלי/אדם לא מזוהה';
+  return row.tool_name;
 }
 
 export function displayAccessKind(row: SecurityIdentityRow): string {
@@ -158,7 +181,7 @@ export function displayActivityDuration(row: SecurityIdentityRow): { kind: 'sess
   if (row.session_id && row.active_ms != null && row.active_ms > 0) {
     return { kind: 'session', text: formatActiveMs(row.active_ms) };
   }
-  return { kind: 'event', text: 'משך פעילות: לא זמין' };
+  return { kind: 'event', text: 'זמן פעילות לא זמין' };
 }
 
 export function needsIdentityAttention(row: SecurityIdentityRow): boolean {
@@ -182,4 +205,103 @@ export function redactDetails(details: Record<string, unknown> | null | undefine
     out[k] = v;
   }
   return out;
+}
+
+export type SecurityFilterState = {
+  search: string;
+  source: string;
+  role: string;
+  outcome: string;
+  identity: string;
+  severity: string;
+  dateFrom: string;
+  dateTo: string;
+  hour: string;
+  company: string;
+  user: string;
+  email: string;
+  tool: string;
+  action: string;
+  unidentifiedOnly: boolean;
+  activePeopleOnly: boolean;
+};
+
+export type SessionLike = {
+  user_id: string;
+  is_open: boolean;
+  last_heartbeat_at?: string | null;
+};
+
+export function activeUserIds(sessions: SessionLike[], withinMs = 3 * 60_000): Set<string> {
+  const now = Date.now();
+  const ids = new Set<string>();
+  for (const s of sessions) {
+    if (!s.is_open || !s.last_heartbeat_at) continue;
+    if (now - new Date(s.last_heartbeat_at).getTime() <= withinMs) ids.add(s.user_id);
+  }
+  return ids;
+}
+
+export function countDistinctActivePeople(sessions: SessionLike[]): number {
+  return activeUserIds(sessions).size;
+}
+
+export function sessionCountByUser(sessions: SessionLike[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const s of sessions) {
+    if (!s.is_open) continue;
+    map.set(s.user_id, (map.get(s.user_id) || 0) + 1);
+  }
+  return map;
+}
+
+export function matchesSecurityFilters(
+  row: SecurityIdentityRow & { occurred_at?: string; action_label?: string; company_name?: string | null; actor_user_id?: string | null },
+  filter: SecurityFilterState,
+  activeIds: Set<string>,
+): boolean {
+  if (filter.unidentifiedOnly && !needsIdentityAttention(row)) return false;
+  if (filter.activePeopleOnly) {
+    if (row.source !== 'app' || !row.actor_user_id || !activeIds.has(row.actor_user_id)) return false;
+  }
+  if (filter.source && row.source !== filter.source) return false;
+  if (filter.role && row.actor_role !== filter.role) return false;
+  if (filter.outcome) {
+    if (filter.outcome === 'blocked') {
+      const blob = `${row.result_label || ''} ${row.outcome || ''}`;
+      if (!/נדחה|נחסם|blocked/i.test(blob)) return false;
+    } else if (row.outcome !== filter.outcome) return false;
+  }
+  if (filter.identity && row.identity_status !== filter.identity) return false;
+  if (filter.severity && row.severity !== filter.severity) return false;
+  if (filter.company && (row.company_name || '') !== filter.company) return false;
+  if (filter.tool) {
+    const kind = TOOL_FILTER_KIND[filter.tool];
+    if (filter.tool === 'other') {
+      if (row.access_kind && AUTHORIZED_TOOL_LABEL[row.access_kind]) return false;
+    } else if (kind && row.access_kind !== kind) return false;
+  }
+  if (filter.action) {
+    const blob = `${row.action_label || ''} ${row.event_type || ''}`.toLowerCase();
+    if (!blob.includes(filter.action.toLowerCase())) return false;
+  }
+  if (filter.user) {
+    const blob = `${row.actor_username || ''} ${displayAccount(row)}`.toLowerCase();
+    if (!blob.includes(filter.user.toLowerCase())) return false;
+  }
+  if (filter.email) {
+    if (!(row.actor_email || '').toLowerCase().includes(filter.email.toLowerCase())) return false;
+  }
+  const occurred = row.occurred_at || '';
+  if (filter.dateFrom && occurred.slice(0, 10) < filter.dateFrom) return false;
+  if (filter.dateTo && occurred.slice(0, 10) > filter.dateTo) return false;
+  if (filter.hour && occurred) {
+    const h = String(new Date(occurred).getHours()).padStart(2, '0');
+    if (h !== filter.hour) return false;
+  }
+  if (filter.search) {
+    const blob = `${displayAccount(row)} ${row.action_label} ${row.event_type} ${row.ip_address} ${row.company_name} ${row.tool_name} ${row.actor_username} ${row.actor_email}`.toLowerCase();
+    if (!blob.includes(filter.search.toLowerCase())) return false;
+  }
+  return true;
 }

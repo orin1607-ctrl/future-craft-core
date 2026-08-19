@@ -414,6 +414,9 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
         console.error(error);
       } else {
         toast.success('הנהג עודכן בהצלחה');
+        void import('@/lib/securityAuditClient').then(({ securityRecordAction }) => {
+          securityRecordAction('entity_update', { action: 'שינוי נהג', objectType: 'driver', outcome: 'success' }).catch(() => undefined);
+        });
         onDone();
       }
     } else if (wantsLogin) {
@@ -488,6 +491,9 @@ function DriverForm({ driver, user, onDone }: { driver: DriverRow | null; user: 
         console.error(error);
       } else {
         toast.success('הנהג נוסף בהצלחה (ללא פרטי התחברות)');
+        void import('@/lib/securityAuditClient').then(({ securityRecordAction }) => {
+          securityRecordAction('entity_create', { action: 'יצירת נהג', objectType: 'driver', outcome: 'success' }).catch(() => undefined);
+        });
         onDone();
       }
     }

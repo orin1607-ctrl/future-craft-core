@@ -3,7 +3,12 @@ import { requireAuth, jsonResponse, edgeCorsHeaders } from '../_shared/edgeAuth.
 const GITHUB_REPO = 'orin1607-ctrl/future-craft-core';
 
 function githubActionLabel(type: string, payload: Record<string, unknown>): string {
-  if (type === 'PushEvent') return 'Push';
+  if (type === 'PushEvent') {
+    const commits = payload.commits as unknown[] | undefined;
+    const n = Array.isArray(commits) ? commits.length : 0;
+    return n > 0 ? `Push (${n} commits)` : 'Push';
+  }
+  if (type === 'DeploymentEvent' || type === 'DeployEvent') return 'Deployment';
   if (type === 'PullRequestEvent') {
     const action = String(payload.action || '');
     const pr = payload.pull_request as { merged?: boolean } | undefined;
@@ -66,7 +71,7 @@ Deno.serve(async (req) => {
       }>;
       for (const ev of events) {
         const type = ev.type || 'UnknownEvent';
-        if (!['PushEvent', 'PullRequestEvent', 'CreateEvent', 'DeleteEvent', 'ReleaseEvent', 'WorkflowRunEvent'].includes(type)) {
+        if (!['PushEvent', 'PullRequestEvent', 'CreateEvent', 'DeleteEvent', 'ReleaseEvent', 'WorkflowRunEvent', 'DeploymentEvent'].includes(type)) {
           continue;
         }
         const payload = ev.payload || {};

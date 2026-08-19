@@ -57,6 +57,22 @@ export async function securityRecordClientEvent(
   });
 }
 
+export async function securityRecordAction(
+  eventType: 'entity_create' | 'entity_update' | 'document_upload' | 'document_view' | 'document_download' | 'settings_change' | 'user_change',
+  opts: { action: string; objectType: string; outcome?: 'success' | 'failure'; result?: string },
+): Promise<void> {
+  await rpc('security_record_client_event', {
+    p_event_type: eventType,
+    p_outcome: opts.outcome || 'success',
+    p_action_label: opts.action,
+    p_result_label: opts.result || (opts.outcome === 'failure' ? 'נכשל' : 'הצליח'),
+    p_session_id: sessionStorage.getItem(SESSION_KEY),
+    p_device_summary: deviceSummary(),
+    p_severity: 'info',
+    p_details: { object_type: opts.objectType },
+  }).catch(() => undefined);
+}
+
 export async function securityRecordAnonEvent(
   eventType: 'login_failed' | 'unauthorized_anonymous' | 'invalid_token',
   emailHint?: string,
