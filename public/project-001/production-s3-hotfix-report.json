@@ -1,0 +1,275 @@
+{
+  "id": "production-s3-hotfix",
+  "at": "2026-08-19T06:58:56.452Z",
+  "step": "S3",
+  "s4Started": false,
+  "c4Closed": false,
+  "bucketChanged": false,
+  "dbChanged": false,
+  "edgeChanged": false,
+  "fullStagingDeploy": false,
+  "tests": [
+    {
+      "name": "live site before still old bundle",
+      "ok": true,
+      "http": 200,
+      "bundle": "index-CECbN36N.js"
+    },
+    {
+      "name": "S1 tarball present and SHA matches",
+      "ok": true,
+      "s1": "SHA=85658300f848e6048ee0a78f48ef7272ff5cab8cece8ccefeed7062feb060835\nBYTES=3626179\nLIVE_OK=yes\nLIVE_BUNDLE=assets/index-CECbN36N.js"
+    },
+    {
+      "name": "five RPCs still present from S2",
+      "ok": true,
+      "rpcs": [
+        "get_declaration_by_token",
+        "get_driving_exam_by_token",
+        "sign_declaration_by_token",
+        "start_driving_exam_by_token",
+        "submit_driving_exam_by_token"
+      ]
+    },
+    {
+      "name": "documents file count still 370 before deploy",
+      "ok": true,
+      "countsBefore": [
+        {
+          "bucket_id": "documents",
+          "files": 370
+        }
+      ]
+    },
+    {
+      "name": "C4 policies still present before deploy",
+      "ok": true,
+      "names": [
+        "Anonymous can update by token",
+        "Anonymous can view by token",
+        "Anon submit exam by token",
+        "Anon view exam by token"
+      ]
+    },
+    {
+      "name": "documents bucket still public before deploy",
+      "ok": true,
+      "bucketBefore": {
+        "id": "documents",
+        "public": "true"
+      }
+    },
+    {
+      "name": "no getPublicUrl left in overlay src",
+      "ok": true,
+      "leftoverPublicUrl": ""
+    },
+    {
+      "name": "build uses Production supabase ref",
+      "ok": true,
+      "bundle": "index-CnhgFhN-.js",
+      "hasProdRef": true,
+      "hasStagingRef": false,
+      "hasDeclarationRpc": true,
+      "hasSignRpc": true,
+      "hasExamRpc": true,
+      "hasSignedUrl": true,
+      "hasExpiryLabel": true,
+      "hasGetPublicUrl": true
+    },
+    {
+      "name": "build contains token RPCs",
+      "ok": true,
+      "bundle": "index-CnhgFhN-.js",
+      "hasProdRef": true,
+      "hasStagingRef": false,
+      "hasDeclarationRpc": true,
+      "hasSignRpc": true,
+      "hasExamRpc": true,
+      "hasSignedUrl": true,
+      "hasExpiryLabel": true,
+      "hasGetPublicUrl": true
+    },
+    {
+      "name": "build contains signed URL helper",
+      "ok": true,
+      "bundle": "index-CnhgFhN-.js",
+      "hasProdRef": true,
+      "hasStagingRef": false,
+      "hasDeclarationRpc": true,
+      "hasSignRpc": true,
+      "hasExamRpc": true,
+      "hasSignedUrl": true,
+      "hasExpiryLabel": true,
+      "hasGetPublicUrl": true
+    },
+    {
+      "name": "build keeps expiry officer",
+      "ok": true,
+      "bundle": "index-CnhgFhN-.js",
+      "hasProdRef": true,
+      "hasStagingRef": false,
+      "hasDeclarationRpc": true,
+      "hasSignRpc": true,
+      "hasExamRpc": true,
+      "hasSignedUrl": true,
+      "hasExpiryLabel": true,
+      "hasGetPublicUrl": true
+    },
+    {
+      "name": "build bundle is not the old live bundle",
+      "ok": true,
+      "bundle": "index-CnhgFhN-.js",
+      "bundleFile": "index-CnhgFhN-.js"
+    },
+    {
+      "name": "ci-smoke on overlay dist",
+      "ok": true,
+      "failures": []
+    },
+    {
+      "name": "extra pre-S3 dist tarball created on VPS",
+      "ok": true,
+      "backupOut": "BACKUP=/root/pre-s3-dist-2026-08-19T06-58-56.tgz\nS1_STILL=yes"
+    },
+    {
+      "name": "atomic dist swap on VPS",
+      "ok": true,
+      "swap": "commit=s3-hotfix-overlay source=2e96b9b expiry=32c196e stagingFiles=9b3c618 bundle=index-CnhgFhN-.js deployed_at=2026-08-19T06-58-56 reason=s3-signed-url-rpc-overlay-only\ndist/assets/index-CnhgFhN-.js"
+    },
+    {
+      "name": "live site new bundle",
+      "ok": true,
+      "http": 200,
+      "bundle": "index-CnhgFhN-.js"
+    },
+    {
+      "name": "live JS contains token RPC",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "live JS contains signed URL",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "live JS is Production not Staging",
+      "ok": true
+    },
+    {
+      "name": "login route still serves SPA",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "sign-declaration route still serves SPA",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "take-exam route still serves SPA",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "documents file count still 370 after deploy",
+      "ok": true,
+      "countsAfter": [
+        {
+          "bucket_id": "documents",
+          "files": 370
+        }
+      ]
+    },
+    {
+      "name": "C4 policies still present after deploy",
+      "ok": true,
+      "names": [
+        "Anonymous can update by token",
+        "Anonymous can view by token",
+        "Anon submit exam by token",
+        "Anon view exam by token"
+      ]
+    },
+    {
+      "name": "documents bucket still public after deploy",
+      "ok": true,
+      "bucketAfter": {
+        "id": "documents",
+        "public": "true"
+      }
+    },
+    {
+      "name": "five RPCs unchanged after deploy",
+      "ok": true,
+      "rpcsAfter": [
+        "get_declaration_by_token",
+        "get_driving_exam_by_token",
+        "sign_declaration_by_token",
+        "start_driving_exam_by_token",
+        "submit_driving_exam_by_token"
+      ]
+    }
+  ],
+  "created": [],
+  "rollbackDone": false,
+  "verdict": "PASS",
+  "liveBundleBefore": "index-CECbN36N.js",
+  "s1Check": "SHA=85658300f848e6048ee0a78f48ef7272ff5cab8cece8ccefeed7062feb060835\nBYTES=3626179\nLIVE_OK=yes\nLIVE_BUNDLE=assets/index-CECbN36N.js",
+  "stagingSha": "9b3c61870f5fec010c1ef7eade7f0df6e91d8bf7",
+  "expirySha": "32c196e0b90266405c873f2b297852245117e745",
+  "prodSource": "2e96b9b1522cab8995b40738d02af5571a361d28",
+  "worktreeDiffStat": "",
+  "build": {
+    "bundle": "index-CnhgFhN-.js",
+    "hasProdRef": true,
+    "hasStagingRef": false,
+    "hasDeclarationRpc": true,
+    "hasSignRpc": true,
+    "hasExamRpc": true,
+    "hasSignedUrl": true,
+    "hasExpiryLabel": true,
+    "hasGetPublicUrl": true
+  },
+  "smoke": {
+    "at": "2026-08-19T07:00:48.272Z",
+    "base": null,
+    "dist": "C:\\Temp\\s3-signedurl-rpc-prod\\dist",
+    "checks": {
+      "build_bundle": {
+        "ok": true,
+        "bundle": "index-CnhgFhN-.js"
+      },
+      "build_base_path": {
+        "ok": true
+      },
+      "build_supabase": {
+        "ok": true,
+        "ref": "qasomfndnjuixgjmjwcm"
+      },
+      "build_staging_leak": {
+        "ok": true
+      }
+    },
+    "passed": true,
+    "failures": [],
+    "production_bundle": "index-CnhgFhN-.js"
+  },
+  "deployTxt": "commit=s3-hotfix-overlay source=2e96b9b expiry=32c196e stagingFiles=9b3c618 bundle=index-CnhgFhN-.js deployed_at=2026-08-19T06-58-56 reason=s3-signed-url-rpc-overlay-only",
+  "localTarball": "C:\\Temp\\s3-signedurl-rpc-artifacts\\dist-s3-2026-08-19T06-58-56.tgz",
+  "remoteBackup": "/root/pre-s3-dist-2026-08-19T06-58-56.tgz",
+  "vpsSwap": "commit=s3-hotfix-overlay source=2e96b9b expiry=32c196e stagingFiles=9b3c618 bundle=index-CnhgFhN-.js deployed_at=2026-08-19T06-58-56 reason=s3-signed-url-rpc-overlay-only\ndist/assets/index-CnhgFhN-.js",
+  "liveBundleAfter": "index-CnhgFhN-.js",
+  "safeToRequestS4": true,
+  "rollbackPlan": "Restore dist from /root/pre-s3-dist-2026-08-19T06-58-56.tgz or /root/s1-safety-backup-2026-08-19T061550Z.tgz. DB untouched.",
+  "browserChecks": {
+    "loginPage": { "ok": true, "url": "https://dalia-car.online/login", "saw": "כניסה למערכת" },
+    "fakeTokenSign": { "ok": true, "url": "https://dalia-car.online/sign-declaration?token=zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", "saw": "תצהיר לא נמצא", "customerDataShown": false }
+  },
+  "notExecutedThisStep": [
+    "authenticated login with a real/QA user — no credentials used, no users created",
+    "QA document upload/view/download — would add a storage file; deferred to S4",
+    "real customer declaration token — forbidden"
+  ]
+}

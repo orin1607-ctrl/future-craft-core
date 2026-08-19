@@ -1,0 +1,173 @@
+{
+  "id": "production-s4-complete",
+  "at": "2026-08-19T07:54:16.891Z",
+  "step": "S4",
+  "changed": "none — verification only",
+  "s5Started": false,
+  "tests": [
+    {
+      "name": "document count at start is 371",
+      "ok": true,
+      "filesAtStart": 371
+    },
+    {
+      "name": "live site up",
+      "ok": true,
+      "http": 200,
+      "bundle": "assets/index-CnhgFhN-.js"
+    },
+    {
+      "name": "signed URL helper live in bundle",
+      "ok": true
+    },
+    {
+      "name": "five RPCs present in live bundle",
+      "ok": true
+    },
+    {
+      "name": "bundle is Production not Staging",
+      "ok": true
+    },
+    {
+      "name": "login page HTTP 200",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "login challenge endpoint alive (fake user rejected, not 5xx)",
+      "ok": true,
+      "http": 401
+    },
+    {
+      "name": "drivers SPA served",
+      "ok": true
+    },
+    {
+      "name": "vehicles SPA served",
+      "ok": true
+    },
+    {
+      "name": "documents SPA served",
+      "ok": true
+    },
+    {
+      "name": "invalid token get_declaration_by_token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "invalid token sign_declaration_by_token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "invalid token get_driving_exam_by_token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "invalid token start_driving_exam_by_token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "invalid token submit_driving_exam_by_token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "invalid declaration link still serves SPA",
+      "ok": true
+    },
+    {
+      "name": "anon cannot list drivers",
+      "ok": true,
+      "count": 0,
+      "error": null
+    },
+    {
+      "name": "anon cannot list vehicles",
+      "ok": true,
+      "count": 0,
+      "error": null
+    },
+    {
+      "name": "C4 still open on purpose (not a new exposure before S5)",
+      "ok": true
+    },
+    {
+      "name": "documents bucket still public on purpose (not a new exposure before S7)",
+      "ok": true
+    },
+    {
+      "name": "company RLS policies still present on drivers/vehicles/documents",
+      "ok": true,
+      "tables": [
+        "document_metadata",
+        "drivers",
+        "vehicles"
+      ]
+    },
+    {
+      "name": "existing authorized user session established for read-only UI/API checks",
+      "ok": true,
+      "note": "temporary in-memory session; no password/role change; signed out at end"
+    },
+    {
+      "name": "drivers list loads for authorized user",
+      "ok": true,
+      "rowCount": 34
+    },
+    {
+      "name": "drivers company isolation (single company in result set)",
+      "ok": true,
+      "distinctCompanies": 1
+    },
+    {
+      "name": "vehicles list loads for authorized user",
+      "ok": true,
+      "rowCount": 306
+    },
+    {
+      "name": "vehicles company isolation (single company in result set)",
+      "ok": true,
+      "distinctCompanies": 1
+    },
+    {
+      "name": "authorized user can list documents metadata",
+      "ok": true,
+      "rowCount": 20
+    },
+    {
+      "name": "document metadata company isolation",
+      "ok": true,
+      "distinctCompanies": 1
+    },
+    {
+      "name": "authorized user signed URL issued (file body not fetched)",
+      "ok": true,
+      "error": null,
+      "usesSignPath": true
+    },
+    {
+      "name": "test session signed out",
+      "ok": true
+    },
+    {
+      "name": "document count unchanged during S4 complete",
+      "ok": true,
+      "filesAtEnd": 371
+    }
+  ],
+  "skipped": [],
+  "fileProbes": [],
+  "verdict": "PASS",
+  "filesAtStart": 371,
+  "filesAtEnd": 371,
+  "safeToRequestS5": true
+}

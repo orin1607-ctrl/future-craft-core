@@ -57,6 +57,127 @@
       "rollbackAvailable": true,
       "rollbackPlan": "DROP FUNCTION of the five new RPCs only. Live site does not depend on them yet.",
       "s3Started": false
+    },
+    {
+      "step": "S3",
+      "at": "2026-08-19T06:58:56.452Z",
+      "report": "public/project-001/production-s3-hotfix-report.json",
+      "changed": "Hostinger dist overlay only: signed URL + token RPC pages on live Production tree (2e96b9b + expiry officer). Not full Staging. No DB/C4/bucket/Edge/user/data change.",
+      "liveBundleBefore": "index-CECbN36N.js",
+      "liveBundleAfter": "index-CnhgFhN-.js",
+      "remoteBackup": "/root/pre-s3-dist-2026-08-19T06-58-56.tgz",
+      "s1TarballStill": "/root/s1-safety-backup-2026-08-19T061550Z.tgz",
+      "tests": [
+        { "name": "S1 tarball SHA still matches", "result": "PASS" },
+        { "name": "overlay excludes Auth/Login/Settings and full Staging", "result": "PASS" },
+        { "name": "build Production ref, RPCs, signed URL, expiry officer", "result": "PASS" },
+        { "name": "live bundle index-CnhgFhN-.js", "result": "PASS" },
+        { "name": "login page renders", "result": "PASS" },
+        { "name": "fake token sign page shows תצהיר לא נמצא, no customer data", "result": "PASS" },
+        { "name": "documents still 370", "result": "PASS" },
+        { "name": "C4 still open", "result": "PASS" },
+        { "name": "documents bucket still public", "result": "PASS" }
+      ],
+      "verdict": "PASS",
+      "rollbackDone": false,
+      "rollbackAvailable": true,
+      "rollbackPlan": "Restore dist from /root/pre-s3-dist-2026-08-19T06-58-56.tgz or S1 tarball. DB untouched.",
+      "s4Started": false
+    },
+    {
+      "step": "S4",
+      "at": "2026-08-19T07:14:49.794Z",
+      "report": "public/project-001/production-s4-verify-report.json",
+      "changed": "none — verification only. No Hostinger, DB, RLS, users, or file writes by S4.",
+      "verdict": "FAIL",
+      "failedCheck": "documents file count 370 → 371",
+      "fileCountEvidence": {
+        "files": 371,
+        "createdAfterS3": 1,
+        "createdDuringS4": 0,
+        "newestCreatedAtUtc": "2026-08-19 07:02:49.29628+00"
+      },
+      "tests": [
+        { "name": "live S3 bundle still index-CnhgFhN-.js", "result": "PASS" },
+        { "name": "new RPC path fake tokens return 0 rows", "result": "PASS" },
+        { "name": "signed URL API reachable", "result": "PASS" },
+        { "name": "C4 still open on purpose", "result": "PASS" },
+        { "name": "bucket still public on purpose", "result": "PASS" },
+        { "name": "documents still 370", "result": "FAIL" }
+      ],
+      "rollbackDone": false,
+      "rollbackRecommended": false,
+      "s5Started": false
+    },
+    {
+      "step": "S4-complete",
+      "at": "2026-08-19T07:50:00.000Z",
+      "report": "public/project-001/production-s4-complete-report.json",
+      "changed": "none — verification only. Baseline files=371 after legitimate live upload was confirmed.",
+      "verdict": "PASS",
+      "filesAtStart": 371,
+      "filesAtEnd": 371,
+      "s5Started": false
+    },
+    {
+      "step": "S5",
+      "at": "2026-08-19T08:13:04.027Z",
+      "report": "public/project-001/production-s5-c4-close-report.json",
+      "policyBackup": "public/project-001/production-s5-c4-policy-backup.json",
+      "changed": "Dropped four C4 anon policies only (driver_declarations view/update by token, driving_exams view/submit by token). Token RPCs kept. Bucket still public. public_read_documents kept. No Hostinger, Edge, users, secrets, or customer row/file changes.",
+      "dropped": [
+        "Anonymous can view by token",
+        "Anonymous can update by token",
+        "Anon view exam by token",
+        "Anon submit exam by token"
+      ],
+      "kept": [
+        "five token RPCs",
+        "documents bucket public=true",
+        "public_read_documents",
+        "Anonymous can upload declaration signatures",
+        "Anonymous can view declaration signatures"
+      ],
+      "verdict": "PASS",
+      "c4Closed": true,
+      "rollbackDone": false,
+      "rollbackAvailable": true,
+      "rollbackPlan": "CREATE POLICY from production-s5-c4-policy-backup.json restoreSql only. Do not restore storage or other policies.",
+      "s6Started": false
+    },
+    {
+      "step": "S6",
+      "at": "2026-08-19T08:31:19.673Z",
+      "report": "public/project-001/production-s6-verify-report.json",
+      "changed": "none — verification only. No Hostinger, DB, RLS, storage, users, secrets, or customer data writes.",
+      "verdict": "PASS",
+      "counts": {
+        "before": { "files": 371, "declarations": 16, "exams": 23 },
+        "after": { "files": 371, "declarations": 16, "exams": 23 }
+      },
+      "c4Closed": true,
+      "bucketStillPublic": true,
+      "publicReadDocumentsStillPresent": true,
+      "rollbackDone": false,
+      "rollbackNeeded": false,
+      "s7Started": false
+    },
+    {
+      "step": "S7",
+      "at": "2026-08-19T08:48:06.839Z",
+      "report": "public/project-001/production-s7-close-public-documents-report.json",
+      "policyBackup": "public/project-001/production-s7-storage-policy-backup.json",
+      "changed": "SET documents.public=false. DROP public_read_documents only. No other policies, Hostinger, RPCs, C4, users, or file changes.",
+      "verdict": "PASS",
+      "filesBefore": 371,
+      "filesAfter": 371,
+      "bucketPublicAfter": false,
+      "publicReadDocumentsDropped": true,
+      "c4Closed": true,
+      "rollbackDone": false,
+      "rollbackNeeded": false,
+      "knownLeftover": "Authenticated bucket-wide SELECT still allows an authenticated user to request a signed URL for another company object. Pre-existed S7. File body not fetched. Not rolled back because rollback would reopen public anon access.",
+      "s8Started": false
     }
   ]
 }

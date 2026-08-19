@@ -1,0 +1,47 @@
+{
+  "at": "2026-08-19T08:14:20.319Z",
+  "policies": [
+    {
+      "cmd": "UPDATE",
+      "policyname": "Anonymous can update by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driver_declarations",
+      "with_check": "((token IS NOT NULL) AND (length(token) >= 20))"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anonymous can view by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driver_declarations",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Anon submit exam by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driving_exams",
+      "with_check": "((token IS NOT NULL) AND (length(token) >= 20))"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anon view exam by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driving_exams",
+      "with_check": null
+    }
+  ],
+  "restoreSql": [
+    "CREATE POLICY \"Anonymous can update by token\" ON public.driver_declarations FOR UPDATE TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))) WITH CHECK (((token IS NOT NULL) AND (length(token) >= 20)));",
+    "CREATE POLICY \"Anonymous can view by token\" ON public.driver_declarations FOR SELECT TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text)));",
+    "CREATE POLICY \"Anon submit exam by token\" ON public.driving_exams FOR UPDATE TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))) WITH CHECK (((token IS NOT NULL) AND (length(token) >= 20)));",
+    "CREATE POLICY \"Anon view exam by token\" ON public.driving_exams FOR SELECT TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text)));"
+  ]
+}

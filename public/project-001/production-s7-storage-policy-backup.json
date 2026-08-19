@@ -1,0 +1,146 @@
+{
+  "at": "2026-08-19T08:49:29.626Z",
+  "bucketPublic": true,
+  "policies": [
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Anonymous can upload declaration signatures",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Anonymous can view declaration signatures",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Authenticated users can upload documents",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(bucket_id = 'documents'::text)"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Authenticated users can view documents",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(bucket_id = 'documents'::text)",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Managers can delete own company documents",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'documents'::text) AND ((has_role(auth.uid(), 'fleet_manager'::app_role) AND ((storage.foldername(name))[1] = get_user_company(auth.uid()))) OR has_role(auth.uid(), 'super_admin'::app_role)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Users can delete own documents",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'documents'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Users can upload documents to own company folder",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = get_user_company(auth.uid())))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Users can upload to own uid folder",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Users can view own company documents",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'documents'::text) AND (((storage.foldername(name))[1] = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Users can view own uid folder",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'documents'::text) AND (((storage.foldername(name))[1] = (auth.uid())::text) OR ((storage.foldername(name))[1] = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "auth_delete_own_files",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "auth_read_documents",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(bucket_id = 'documents'::text)",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "auth_update_own_files",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "auth_upload_own_folder",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "public_read_documents",
+      "cmd": "SELECT",
+      "roles": "{anon}",
+      "qual": "(bucket_id = 'documents'::text)",
+      "with_check": null
+    }
+  ],
+  "restoreSql": [
+    "CREATE POLICY \"public_read_documents\" ON storage.objects FOR SELECT TO anon USING ((bucket_id = 'documents'::text));",
+    "UPDATE storage.buckets SET public = true WHERE id = 'documents';"
+  ],
+  "note": "S7 rollback restores bucket public=true and public_read_documents only. Other policies were not dropped."
+}

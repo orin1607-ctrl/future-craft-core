@@ -1,0 +1,201 @@
+{
+  "id": "production-s7-close-public-documents",
+  "at": "2026-08-19T08:48:06.839Z",
+  "step": "S7",
+  "changedApplied": true,
+  "droppedPolicies": [
+    "public_read_documents"
+  ],
+  "bucketPublicAfter": false,
+  "s8Started": false,
+  "hostingerChanged": false,
+  "rpcsChanged": false,
+  "c4Touched": false,
+  "filesOpened": false,
+  "tests": [
+    {
+      "name": "S6 verify was PASS",
+      "ok": true
+    },
+    {
+      "name": "C4 still closed before change",
+      "ok": true
+    },
+    {
+      "name": "live site is S3 bundle",
+      "ok": true,
+      "http": 200,
+      "bundle": "assets/index-CnhgFhN-.js"
+    },
+    {
+      "name": "live JS still has signed URL + token RPCs",
+      "ok": true
+    },
+    {
+      "name": "documents count is 371 before change",
+      "ok": true,
+      "files": 371
+    },
+    {
+      "name": "documents bucket is public before change",
+      "ok": true
+    },
+    {
+      "name": "public_read_documents present before change",
+      "ok": true
+    },
+    {
+      "name": "captured public_read_documents definition",
+      "ok": true
+    },
+    {
+      "name": "S7 rollback SQL documented",
+      "ok": true
+    },
+    {
+      "name": "S1 and S3 backups still present on VPS",
+      "ok": true,
+      "s1ShaMatches": true,
+      "liveOk": true
+    },
+    {
+      "name": "Anonymous can view declaration signatures left untouched on purpose",
+      "ok": true
+    },
+    {
+      "name": "Anonymous can upload declaration signatures left untouched",
+      "ok": true
+    },
+    {
+      "name": "authorized user session established for S7 checks",
+      "ok": true,
+      "note": "temporary in-memory session; no password/role change; signed out at end"
+    },
+    {
+      "name": "authorized user can list own document metadata before change",
+      "ok": true,
+      "rowCount": 20
+    },
+    {
+      "name": "authorized signed URL works before change",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "found a non-declaration object for public-URL probe",
+      "ok": true,
+      "pathShape": {
+        "seg1": "uuid",
+        "folder": "vehicle-docs"
+      },
+      "pathHash": "9258a2740246"
+    },
+    {
+      "name": "documents bucket now private",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "public_read_documents dropped",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "C4 still closed after S7",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "Anonymous can view declaration signatures still present",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "live site still S3 bundle after lock",
+      "ok": true,
+      "rollback": true,
+      "bundle": "assets/index-CnhgFhN-.js"
+    },
+    {
+      "name": "authorized user still receives a signed URL after lock",
+      "ok": true,
+      "rollback": true,
+      "error": null,
+      "usesSignPath": true
+    },
+    {
+      "name": "authorized user still lists own-company document metadata",
+      "ok": true,
+      "rollback": true,
+      "rowCount": 20,
+      "distinctCompanies": 1
+    },
+    {
+      "name": "old public URL no longer serves the file",
+      "ok": true,
+      "rollback": false,
+      "status": 400
+    },
+    {
+      "name": "unauthenticated cannot issue signed URL for a non-declaration object",
+      "ok": true,
+      "rollback": false,
+      "error": "Object not found"
+    },
+    {
+      "name": "company A cannot issue signed URL for another company object",
+      "ok": false,
+      "leftover": true,
+      "rollback": false,
+      "note": "pre-existing authenticated bucket-wide SELECT leftover; not dropped in S7; file body not fetched",
+      "error": null
+    },
+    {
+      "name": "anon cannot read driver_declarations",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "anon cannot read driving_exams",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "test session signed out",
+      "ok": true
+    },
+    {
+      "name": "document count unchanged at 371",
+      "ok": true,
+      "files": 371
+    },
+    {
+      "name": "declaration and exam totals unchanged",
+      "ok": true,
+      "declarations": {
+        "before": 16,
+        "after": 16
+      },
+      "exams": {
+        "before": 23,
+        "after": 23
+      }
+    }
+  ],
+  "skipped": [],
+  "fileProbes": [],
+  "rollbackDone": false,
+  "verdict": "PASS",
+  "filesBefore": 371,
+  "dataBefore": {
+    "declarations": 16,
+    "exams": 23
+  },
+  "restoreSql": [
+    "CREATE POLICY \"public_read_documents\" ON storage.objects FOR SELECT TO anon USING ((bucket_id = 'documents'::text));"
+  ],
+  "filesAfter": 371,
+  "publicReadRemaining": 0,
+  "knownLeftover": "Authenticated bucket-wide SELECT policies still allow an authenticated user to request a signed URL for another company object. This existed before S7 and was not changed. File body was not fetched.",
+  "safeToRequestFinalSecurityReview": true
+}

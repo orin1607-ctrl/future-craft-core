@@ -23,12 +23,12 @@
   "whyNotFullStagingDeploy": "ענף Staging מכיל שינויים רבים שאינם ה-Critical. אסור לפרוס את כל Staging ל-Production. רק שכבת תיקון מעל הקוד החי.",
   "liveFacts": {
     "host": "dalia-car.online",
-    "bundle": "assets/index-CECbN36N.js",
-    "documentsBucketPublic": true,
-    "anonPolicyPublicReadDocuments": true,
-    "c4PoliciesPresent": true,
-    "tokenRpcsPresent": false,
-    "anonCanCountPendingDeclarations": 7
+    "bundle": "assets/index-CnhgFhN-.js",
+    "documentsBucketPublic": false,
+    "anonPolicyPublicReadDocuments": false,
+    "c4PoliciesPresent": false,
+    "tokenRpcsPresent": true,
+    "anonCanCountPendingDeclarations": 0
   },
   "goldenRule": "Additive first, subtractive last. Never DROP C4 or private the bucket before RPCs exist AND the new frontend is live and verified.",
   "doNotApplyAsIs": [

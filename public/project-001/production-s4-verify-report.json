@@ -1,0 +1,218 @@
+{
+  "id": "production-s4-verify",
+  "at": "2026-08-19T07:17:02.125Z",
+  "step": "S4",
+  "changed": "none — verification only",
+  "s5Started": false,
+  "hostingerChanged": false,
+  "dbChanged": false,
+  "storageChanged": false,
+  "usersChanged": false,
+  "tests": [
+    {
+      "name": "live site still S3 bundle",
+      "ok": true,
+      "http": 200,
+      "bundle": "assets/index-CnhgFhN-.js"
+    },
+    {
+      "name": "live JS has get_declaration_by_token",
+      "ok": true
+    },
+    {
+      "name": "live JS has sign_declaration_by_token",
+      "ok": true
+    },
+    {
+      "name": "live JS has exam RPCs",
+      "ok": true
+    },
+    {
+      "name": "live JS has createSignedUrl",
+      "ok": true
+    },
+    {
+      "name": "live JS is Production not Staging",
+      "ok": true
+    },
+    {
+      "name": "live JS keeps expiry officer",
+      "ok": true
+    },
+    {
+      "name": "login SPA HTTP 200",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "drivers route still served",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "vehicles route still served",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "five token RPCs present",
+      "ok": true,
+      "rpcs": [
+        "get_declaration_by_token",
+        "get_driving_exam_by_token",
+        "sign_declaration_by_token",
+        "start_driving_exam_by_token",
+        "submit_driving_exam_by_token"
+      ]
+    },
+    {
+      "name": "EXECUTE granted to anon and authenticated",
+      "ok": true,
+      "grantCount": 10
+    },
+    {
+      "name": "C4 old path still open on purpose",
+      "ok": true,
+      "names": [
+        "Anonymous can update by token",
+        "Anonymous can view by token",
+        "Anon submit exam by token",
+        "Anon view exam by token"
+      ]
+    },
+    {
+      "name": "old public_read_documents still present on purpose",
+      "ok": true
+    },
+    {
+      "name": "documents bucket still public on purpose",
+      "ok": true,
+      "bucket": {
+        "id": "documents",
+        "public": "true"
+      }
+    },
+    {
+      "name": "documents file count still 370",
+      "ok": false,
+      "counts": [
+        {
+          "bucket_id": "documents",
+          "files": 371
+        }
+      ],
+      "evidence": {
+        "afterS3": 1,
+        "afterS4Start": 0,
+        "newestCreatedAtUtc": "2026-08-19 07:02:49.29628+00",
+        "s3LiveAtUtc": "2026-08-19T07:02:06Z",
+        "s4StartedAtUtc": "2026-08-19T07:14:49Z",
+        "note": "One object was created after S3 went live and before S4 started. S4 created zero files. Name/bytes not opened."
+      }
+    },
+    {
+      "name": "new path RPC get_declaration_by_token fake/short returns 0 rows",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows returned"
+    },
+    {
+      "name": "new path RPC get_declaration_by_token fake/short returns 0 rows",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows returned"
+    },
+    {
+      "name": "new path RPC sign_declaration_by_token fake/short returns 0 rows",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows returned"
+    },
+    {
+      "name": "new path RPC get_driving_exam_by_token fake/short returns 0 rows",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows returned"
+    },
+    {
+      "name": "new path RPC start_driving_exam_by_token fake/short returns 0 rows",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows returned"
+    },
+    {
+      "name": "new path RPC submit_driving_exam_by_token fake/short returns 0 rows",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows returned"
+    },
+    {
+      "name": "fake sign RPC did not change declaration counts",
+      "ok": true,
+      "signed": 7,
+      "pending": 7
+    },
+    {
+      "name": "old C4 path still lets anon count declarations (expected until S5)",
+      "ok": true,
+      "count": 7,
+      "error": null,
+      "note": "count only, no row bodies"
+    },
+    {
+      "name": "new path signed URL API responds",
+      "ok": true,
+      "generatedUrlContainsSign": false,
+      "error": "Object not found",
+      "note": "nonexistent path only; file body not fetched"
+    },
+    {
+      "name": "signed URL API reachable (nonexistent path rejected)",
+      "ok": true,
+      "error": "Object not found"
+    },
+    {
+      "name": "old public object endpoint still exists (expected until S7)",
+      "ok": true,
+      "http": 400,
+      "note": "HEAD on nonexistent path only; no customer bytes"
+    },
+    {
+      "name": "looked for disposable QA files without listing customer names",
+      "ok": true,
+      "qaNamedFiles": 33
+    },
+    {
+      "name": "S1 and pre-S3 tarballs still on VPS",
+      "ok": true,
+      "backups": "S1=yes\nS3=yes\nLIVE=assets/index-CnhgFhN-.js"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "signed URL on existing QA file body",
+      "reason": "QA-named file exists but S4 forbids opening document bytes and forbids new uploads; URL API already probed"
+    },
+    {
+      "name": "login existing active user / drivers list / vehicles list as that company",
+      "reason": "no credentials used; creating or impersonating users is forbidden this step"
+    },
+    {
+      "name": "company A vs B isolation with live users",
+      "reason": "would require two accounts or creating QA users"
+    },
+    {
+      "name": "declaration sign-by-link with a disposable QA token",
+      "reason": "would create or mutate a declaration row; fake-token RPC already proved no-write"
+    }
+  ],
+  "verdict": "FAIL",
+  "safeToRequestS5": false,
+  "caveatForS5": "S4 did not perform a live authenticated login or a real QA sign/upload because those would change the system. New RPC path and signed URL API responded as designed; old C4 and public bucket remain open on purpose."
+}

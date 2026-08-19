@@ -1,0 +1,368 @@
+{
+  "id": "production-s5-c4-close",
+  "at": "2026-08-19T08:13:04.027Z",
+  "step": "S5",
+  "s6Started": false,
+  "bucketChanged": false,
+  "hostingerChanged": false,
+  "dropped": [
+    "Anonymous can view by token",
+    "Anonymous can update by token",
+    "Anon view exam by token",
+    "Anon submit exam by token"
+  ],
+  "tests": [
+    {
+      "name": "S4 complete was PASS",
+      "ok": true,
+      "s4verdict": "PASS"
+    },
+    {
+      "name": "live site is S3 bundle",
+      "ok": true,
+      "http": 200,
+      "bundle": "assets/index-CnhgFhN-.js"
+    },
+    {
+      "name": "live JS uses token RPCs",
+      "ok": true
+    },
+    {
+      "name": "five RPCs exist",
+      "ok": true,
+      "rpcs": [
+        "get_declaration_by_token",
+        "get_driving_exam_by_token",
+        "sign_declaration_by_token",
+        "start_driving_exam_by_token",
+        "submit_driving_exam_by_token"
+      ]
+    },
+    {
+      "name": "documents still 371 before change",
+      "ok": true,
+      "files": 371
+    },
+    {
+      "name": "four C4 policies present before drop",
+      "ok": true,
+      "names": [
+        "Anonymous can update by token",
+        "Anonymous can view by token",
+        "Anon submit exam by token",
+        "Anon view exam by token"
+      ]
+    },
+    {
+      "name": "C4 rollback SQL documented",
+      "ok": true
+    },
+    {
+      "name": "public_read_documents still present (must stay)",
+      "ok": true
+    },
+    {
+      "name": "documents bucket still public (must stay)",
+      "ok": true
+    },
+    {
+      "name": "pre: fake get_declaration_by_token empty",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "pre: valid token GET returns exactly one matching declaration",
+      "ok": true,
+      "rowCount": 1,
+      "idMatches": true,
+      "note": "no personal fields stored"
+    },
+    {
+      "name": "pre: sign RPC on already-signed token returns row without changing pending count",
+      "ok": true,
+      "rowCount": 1,
+      "pendingUnchanged": true
+    },
+    {
+      "name": "pre: valid exam token GET returns exactly one matching exam",
+      "ok": true,
+      "rowCount": 1,
+      "idMatches": true
+    },
+    {
+      "name": "pre: anon can still count declarations via C4 (expected)",
+      "ok": true,
+      "count": 7
+    },
+    {
+      "name": "dropped Anonymous can view by token",
+      "ok": true
+    },
+    {
+      "name": "dropped Anonymous can update by token",
+      "ok": true
+    },
+    {
+      "name": "dropped Anon view exam by token",
+      "ok": true
+    },
+    {
+      "name": "dropped Anon submit exam by token",
+      "ok": true
+    },
+    {
+      "name": "all four C4 policies gone",
+      "ok": true,
+      "remaining": []
+    },
+    {
+      "name": "public_read_documents still present after C4 drop",
+      "ok": true
+    },
+    {
+      "name": "documents bucket still public after C4 drop",
+      "ok": true
+    },
+    {
+      "name": "post: fake token still empty",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "post: valid token GET still returns only that declaration",
+      "ok": true,
+      "rowCount": 1,
+      "idMatches": true
+    },
+    {
+      "name": "post: valid exam token GET still returns only that exam",
+      "ok": true,
+      "rowCount": 1
+    },
+    {
+      "name": "post: fake exam token empty",
+      "ok": true
+    },
+    {
+      "name": "post: sign RPC still reachable without mutating pending rows",
+      "ok": true
+    },
+    {
+      "name": "post: anon cannot read declarations table directly",
+      "ok": true,
+      "count": 0,
+      "error": null
+    },
+    {
+      "name": "post: anon cannot read exams table directly",
+      "ok": true,
+      "count": 0
+    },
+    {
+      "name": "post: anon cannot update nonexistent declaration id",
+      "ok": true,
+      "updatedRows": 0,
+      "error": null
+    },
+    {
+      "name": "post: anon cannot update real pending declaration row",
+      "ok": true,
+      "updatedRows": 0,
+      "error": null,
+      "status": "pending"
+    },
+    {
+      "name": "live sign-declaration page still served",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "live take-exam page still served",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "post: fake submit_driving_exam_by_token empty",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "live site still S3 bundle",
+      "ok": true,
+      "bundle": "assets/index-CnhgFhN-.js"
+    },
+    {
+      "name": "documents count unchanged",
+      "ok": true,
+      "files": 371
+    },
+    {
+      "name": "declaration totals unchanged",
+      "ok": true,
+      "before": {
+        "pending": 7,
+        "signed": 7,
+        "total": 16
+      },
+      "after": {
+        "pending": 7,
+        "signed": 7,
+        "total": 16
+      }
+    },
+    {
+      "name": "exam totals unchanged",
+      "ok": true,
+      "before": 23,
+      "after": 23
+    }
+  ],
+  "rollbackDone": false,
+  "verdict": "PASS",
+  "c4Snapshot": [
+    {
+      "cmd": "UPDATE",
+      "policyname": "Anonymous can update by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driver_declarations",
+      "with_check": "((token IS NOT NULL) AND (length(token) >= 20))"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anonymous can view by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driver_declarations",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Anon submit exam by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driving_exams",
+      "with_check": "((token IS NOT NULL) AND (length(token) >= 20))"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anon view exam by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driving_exams",
+      "with_check": null
+    }
+  ],
+  "c4RestoreSql": [
+    "CREATE POLICY \"Anonymous can update by token\" ON public.driver_declarations FOR UPDATE TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))) WITH CHECK (((token IS NOT NULL) AND (length(token) >= 20)));",
+    "CREATE POLICY \"Anonymous can view by token\" ON public.driver_declarations FOR SELECT TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text)));",
+    "CREATE POLICY \"Anon submit exam by token\" ON public.driving_exams FOR UPDATE TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))) WITH CHECK (((token IS NOT NULL) AND (length(token) >= 20)));",
+    "CREATE POLICY \"Anon view exam by token\" ON public.driving_exams FOR SELECT TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text)));"
+  ],
+  "relatedPoliciesBefore": [
+    {
+      "cmd": "UPDATE",
+      "policyname": "Anonymous can update by token",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driver_declarations"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anonymous can view by token",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driver_declarations"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Authenticated users can view declarations in their company",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driver_declarations"
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Managers and drivers can update declarations",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driver_declarations"
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Managers can create declarations",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driver_declarations"
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Anon submit exam by token",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anon view exam by token",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Driver or manager update exam",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Managers create exams",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "DELETE",
+      "policyname": "Managers delete exams",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Users view own company exams",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Anonymous can upload declaration signatures",
+      "roles": "{anon,authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anonymous can view declaration signatures",
+      "roles": "{anon,authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "public_read_documents",
+      "roles": "{anon}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    }
+  ],
+  "c4Closed": true,
+  "safeToRequestS6": true
+}

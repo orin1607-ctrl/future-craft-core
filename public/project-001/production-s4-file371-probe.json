@@ -1,0 +1,74 @@
+{
+  "id": "production-s4-file371-probe",
+  "at": "2026-08-19T07:43:16.947Z",
+  "readOnly": true,
+  "bytesOpened": false,
+  "fileDownloaded": false,
+  "fileNamePrinted": false,
+  "personalDataPrinted": false,
+  "s5Started": false,
+  "changed": "none",
+  "verdict": "FILE 371 — LEGITIMATE APPLICATION UPLOAD",
+  "object": {
+    "bucket": "documents",
+    "created_at": "2026-08-19 07:02:49.29628+00",
+    "updated_at": "2026-08-19 07:02:49.29628+00",
+    "sizeBytes": 348085,
+    "mimeType": "application/pdf",
+    "cacheControl": "max-age=3600",
+    "ownerIsUuid": true,
+    "path": {
+      "segmentCount": 3,
+      "extension": "pdf",
+      "lastSegmentLooksPersonal": false,
+      "matchesBuildStoragePath": true,
+      "matchesAdminUploads": false,
+      "matchesDeclarationsSig": false,
+      "matchesExchangeUuid": false,
+      "matchesHealthDeclaration": false,
+      "knownAppFolder": true,
+      "folderKey": "vehicles_{numeric}",
+      "timestampPrefixOnFile": true,
+      "matchesVehicleFormFolder": true
+    },
+    "pathOwnerMatchesFirstSegment": true
+  },
+  "uploader": {
+    "profileExists": true,
+    "isActive": true,
+    "isApproved": true,
+    "roleIsKnownAppRole": true,
+    "roleFamily": "fleet_manager",
+    "hasCompany": true
+  },
+  "documentMetadata": {
+    "rowExists": true,
+    "categoryIsTechnicalKey": true,
+    "category": "vehicle-license",
+    "hasCompany": true,
+    "hasVehicleOrDriver": true,
+    "uploadedByMatchesOwner": true,
+    "companyMatchesUploaderProfile": true,
+    "created_at": "2026-08-19 07:02:49.677476+00"
+  },
+  "documentVersionsCount": 0,
+  "checks": {
+    "exactlyOneObjectInThatSecond": true,
+    "timestampMatches": true,
+    "pathMatchesKnownAppPattern": true,
+    "mimeLooksLikeAppDocument": true,
+    "sizeWithinAppLimit": true,
+    "cacheControlMatchesAppDefault": true,
+    "uploaderProfileActiveKnownRole": true,
+    "storageOwnerMatchesPathUser": true,
+    "metadataRowPresent": true,
+    "metadataWrittenBySameUser": true,
+    "metadataCompanyAlignedWithUploader": true
+  },
+  "why": [
+    "Storage key matches the live app helper buildStoragePath: authenticated user UUID / vehicles_{numeric} folder / unix-timestamp_filename.pdf. That folder shape is produced when the vehicle form calls uploadDocument({ storageFolder: vehicles/{plate} }).",
+    "The storage owner UUID equals the first path segment and belongs to an active profile with a normal application role and a company.",
+    "A document_metadata row exists for the same key, uploaded_by is that same user, and the metadata company matches the uploader profile company. Category is a technical key, not a personal name.",
+    "Object created_at is exactly 2026-08-19 07:02:49 UTC. MIME is application/pdf, size is under the app 10MB limit, cacheControl is max-age=3600 — the uploadDocument defaults."
+  ]
+}

@@ -1,0 +1,300 @@
+{
+  "id": "production-s6-verify-after-c4",
+  "at": "2026-08-19T08:31:19.673Z",
+  "step": "S6",
+  "changed": "none — verification only",
+  "s7Started": false,
+  "productionCodeChanged": false,
+  "policiesChanged": false,
+  "rpcsChanged": false,
+  "storageChanged": false,
+  "hostingerChanged": false,
+  "customerDataChanged": false,
+  "tests": [
+    {
+      "name": "S5 close was PASS",
+      "ok": true,
+      "s5verdict": "PASS",
+      "c4Closed": true
+    },
+    {
+      "name": "files at start are 371",
+      "ok": true,
+      "files": 371
+    },
+    {
+      "name": "declarations at start are 16",
+      "ok": true,
+      "declarations": 16
+    },
+    {
+      "name": "exams at start are 23",
+      "ok": true,
+      "exams": 23
+    },
+    {
+      "name": "live site up with S3 bundle",
+      "ok": true,
+      "http": 200,
+      "bundle": "assets/index-CnhgFhN-.js"
+    },
+    {
+      "name": "live JS still uses token RPCs",
+      "ok": true
+    },
+    {
+      "name": "bundle is Production not Staging",
+      "ok": true
+    },
+    {
+      "name": "signed URL helper still in bundle",
+      "ok": true
+    },
+    {
+      "name": "five RPCs exist",
+      "ok": true,
+      "names": [
+        "get_declaration_by_token",
+        "get_driving_exam_by_token",
+        "sign_declaration_by_token",
+        "start_driving_exam_by_token",
+        "submit_driving_exam_by_token"
+      ]
+    },
+    {
+      "name": "anon and authenticated still have EXECUTE on all five RPCs",
+      "ok": true
+    },
+    {
+      "name": "C4 four anon policies remain closed",
+      "ok": true,
+      "remaining": 0
+    },
+    {
+      "name": "public_read_documents still present (unchanged until S7)",
+      "ok": true
+    },
+    {
+      "name": "documents bucket still public (unchanged until S7)",
+      "ok": true
+    },
+    {
+      "name": "found pending declaration token for read-only GET",
+      "ok": true
+    },
+    {
+      "name": "found exam token for read-only GET",
+      "ok": true
+    },
+    {
+      "name": "invalid token get_declaration_by_token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "invalid token sign_declaration_by_token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "invalid token get_driving_exam_by_token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "invalid token start_driving_exam_by_token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "invalid token submit_driving_exam_by_token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "short declaration token exposes no rows",
+      "ok": true,
+      "rowCount": 0,
+      "error": null
+    },
+    {
+      "name": "valid declaration token returns only that declaration",
+      "ok": true,
+      "rowCount": 1,
+      "idMatches": true,
+      "note": "no personal fields stored"
+    },
+    {
+      "name": "valid exam token returns only that exam",
+      "ok": true,
+      "rowCount": 1,
+      "idMatches": true,
+      "note": "GET only; start/submit not called on a real token"
+    },
+    {
+      "name": "sign RPC reachable on already-signed token without mutating pending rows",
+      "ok": true,
+      "rowCount": 1,
+      "pendingUnchanged": true
+    },
+    {
+      "name": "anon cannot read driver_declarations directly",
+      "ok": true,
+      "count": 0,
+      "error": null
+    },
+    {
+      "name": "anon cannot read driving_exams directly",
+      "ok": true,
+      "count": 0,
+      "error": null
+    },
+    {
+      "name": "anon cannot update nonexistent declaration id",
+      "ok": true,
+      "updatedRows": 0,
+      "error": null
+    },
+    {
+      "name": "anon cannot update real pending declaration row",
+      "ok": true,
+      "updatedRows": 0,
+      "error": null,
+      "status": "pending"
+    },
+    {
+      "name": "anon cannot update real exam row",
+      "ok": true,
+      "updatedRows": 0,
+      "error": null,
+      "statusUnchanged": true
+    },
+    {
+      "name": "sign-declaration page served",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "take-exam page served",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "sign-declaration and take-exam routes are wired to RPC helpers in live JS",
+      "ok": true
+    },
+    {
+      "name": "login page HTTP 200",
+      "ok": true,
+      "http": 200
+    },
+    {
+      "name": "login challenge endpoint alive (fake user rejected, not 5xx)",
+      "ok": true,
+      "http": 401
+    },
+    {
+      "name": "drivers SPA served",
+      "ok": true
+    },
+    {
+      "name": "vehicles SPA served",
+      "ok": true
+    },
+    {
+      "name": "documents SPA served",
+      "ok": true
+    },
+    {
+      "name": "anon cannot list drivers",
+      "ok": true,
+      "count": 0
+    },
+    {
+      "name": "anon cannot list vehicles",
+      "ok": true,
+      "count": 0
+    },
+    {
+      "name": "existing authorized user session established for read-only checks",
+      "ok": true,
+      "note": "temporary in-memory session; no password/role change; signed out at end"
+    },
+    {
+      "name": "authorized user can load drivers",
+      "ok": true,
+      "rowCount": 34
+    },
+    {
+      "name": "drivers company isolation",
+      "ok": true,
+      "distinctCompanies": 1
+    },
+    {
+      "name": "authorized user can load vehicles",
+      "ok": true,
+      "rowCount": 306
+    },
+    {
+      "name": "vehicles company isolation",
+      "ok": true,
+      "distinctCompanies": 1
+    },
+    {
+      "name": "authorized user can list document metadata",
+      "ok": true,
+      "rowCount": 20
+    },
+    {
+      "name": "document metadata company isolation",
+      "ok": true,
+      "distinctCompanies": 1
+    },
+    {
+      "name": "authorized user signed URL issued (file body not fetched)",
+      "ok": true,
+      "error": null,
+      "usesSignPath": true
+    },
+    {
+      "name": "test session signed out",
+      "ok": true
+    },
+    {
+      "name": "files unchanged at 371",
+      "ok": true,
+      "files": 371
+    },
+    {
+      "name": "declarations unchanged at 16",
+      "ok": true,
+      "declarations": 16
+    },
+    {
+      "name": "exams unchanged at 23",
+      "ok": true,
+      "exams": 23
+    }
+  ],
+  "skipped": [],
+  "counts": {
+    "before": {
+      "files": 371,
+      "declarations": 16,
+      "exams": 23
+    },
+    "after": {
+      "files": 371,
+      "declarations": 16,
+      "exams": 23
+    }
+  },
+  "verdict": "PASS",
+  "safeToRequestS7": true,
+  "noteForS7": "S7 is a separate Owner approval. S6 did not private the bucket or drop public_read_documents."
+}
