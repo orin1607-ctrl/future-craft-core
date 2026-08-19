@@ -1,0 +1,147 @@
+{
+  "id": "production-final-security-check",
+  "at": "2026-08-19T09:34:48.356Z",
+  "changed": "none — verification only",
+  "tests": [
+    {
+      "name": "documents still private",
+      "ok": true
+    },
+    {
+      "name": "public_read_documents absent",
+      "ok": true
+    },
+    {
+      "name": "wide authenticated SELECT policies absent",
+      "ok": true
+    },
+    {
+      "name": "anon declaration signature SELECT absent",
+      "ok": true
+    },
+    {
+      "name": "anon declaration signature INSERT present",
+      "ok": true
+    },
+    {
+      "name": "C4 closed",
+      "ok": true
+    },
+    {
+      "name": "live site up",
+      "ok": true,
+      "bundle": "assets/index-CnhgFhN-.js"
+    },
+    {
+      "name": "login page up",
+      "ok": true
+    },
+    {
+      "name": "drivers SPA up",
+      "ok": true
+    },
+    {
+      "name": "vehicles SPA up",
+      "ok": true
+    },
+    {
+      "name": "documents SPA up",
+      "ok": true
+    },
+    {
+      "name": "anon cannot issue signed URL",
+      "ok": true
+    },
+    {
+      "name": "old public URL blocked",
+      "ok": true
+    },
+    {
+      "name": "anon cannot issue signed URL for declaration signature",
+      "ok": true
+    },
+    {
+      "name": "anon cannot list drivers",
+      "ok": true
+    },
+    {
+      "name": "anon cannot list vehicles",
+      "ok": true
+    },
+    {
+      "name": "anon cannot read declarations table",
+      "ok": true
+    },
+    {
+      "name": "fake token get_declaration_by_token empty",
+      "ok": true
+    },
+    {
+      "name": "fake token get_driving_exam_by_token empty",
+      "ok": true
+    },
+    {
+      "name": "fake token sign_declaration_by_token empty",
+      "ok": true
+    },
+    {
+      "name": "valid token returns only matching declaration",
+      "ok": true
+    },
+    {
+      "name": "valid exam token returns only matching exam",
+      "ok": true
+    },
+    {
+      "name": "authorized drivers list loads",
+      "ok": true,
+      "rowCount": 34
+    },
+    {
+      "name": "drivers company isolation",
+      "ok": true
+    },
+    {
+      "name": "authorized vehicles list loads",
+      "ok": true,
+      "rowCount": 306
+    },
+    {
+      "name": "vehicles company isolation",
+      "ok": true
+    },
+    {
+      "name": "authorized document metadata loads",
+      "ok": true
+    },
+    {
+      "name": "document metadata company isolation",
+      "ok": true
+    },
+    {
+      "name": "authorized signed URL works",
+      "ok": true
+    },
+    {
+      "name": "A cannot signed-URL a non-A object",
+      "ok": true
+    },
+    {
+      "name": "B cannot signed-URL A document",
+      "ok": true
+    },
+    {
+      "name": "super_admin signed URL works per intended access",
+      "ok": true
+    },
+    {
+      "name": "document count unchanged during final check",
+      "ok": true,
+      "files": 375
+    }
+  ],
+  "skipped": [],
+  "verdict": "PASS",
+  "filesAtStart": 375,
+  "filesAtEnd": 375
+}

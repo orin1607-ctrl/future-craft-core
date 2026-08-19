@@ -178,6 +178,19 @@
       "rollbackNeeded": false,
       "knownLeftover": "Authenticated bucket-wide SELECT still allows an authenticated user to request a signed URL for another company object. Pre-existed S7. File body not fetched. Not rolled back because rollback would reopen public anon access.",
       "s8Started": false
+    },
+    {
+      "step": "leftover-scope-fix",
+      "at": "2026-08-19T09:20:56.536Z",
+      "report": "public/project-001/production-leftover-scope-fix-report.json",
+      "policyBackup": "public/project-001/production-leftover-policy-backup.json",
+      "changed": "DROP Authenticated users can view documents, auth_read_documents, Anonymous can view declaration signatures. CREATE auth_select_same_company_uuid_and_decl_sigs. Kept anon INSERT for declarations/. Did not restore public bucket, public_read_documents, or C4.",
+      "verdict": "PASS",
+      "filesBefore": 375,
+      "filesAfter": 375,
+      "rollbackDone": false,
+      "finalReport": "public/project-001/production-final-security-check-report.json",
+      "finalVerdict": "PASS"
     }
   ]
 }

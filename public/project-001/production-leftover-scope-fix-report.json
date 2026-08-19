@@ -1,0 +1,298 @@
+{
+  "id": "production-leftover-scope-fix",
+  "at": "2026-08-19T09:24:17.870Z",
+  "changedApplied": true,
+  "dropped": [
+    "Authenticated users can view documents",
+    "auth_read_documents",
+    "Anonymous can view declaration signatures"
+  ],
+  "created": [
+    "auth_select_same_company_uuid_and_decl_sigs"
+  ],
+  "tests": [
+    {
+      "name": "S5 still PASS",
+      "ok": true
+    },
+    {
+      "name": "S6 still PASS",
+      "ok": true
+    },
+    {
+      "name": "S7 still PASS",
+      "ok": true
+    },
+    {
+      "name": "documents still private",
+      "ok": true
+    },
+    {
+      "name": "public_read_documents still absent",
+      "ok": true
+    },
+    {
+      "name": "C4 still closed",
+      "ok": true
+    },
+    {
+      "name": "live site is S3 bundle",
+      "ok": true,
+      "bundle": "assets/index-CnhgFhN-.js"
+    },
+    {
+      "name": "signed URL helper still in live JS",
+      "ok": true
+    },
+    {
+      "name": "files added after S7 look like legitimate app uploads",
+      "ok": true,
+      "files": 375,
+      "added": 4
+    },
+    {
+      "name": "both wide authenticated SELECT policies present with bucket-only qual",
+      "ok": true,
+      "names": [
+        "Anonymous can view declaration signatures",
+        "Authenticated users can view documents",
+        "auth_read_documents"
+      ]
+    },
+    {
+      "name": "cause is bucket-wide authenticated SELECT, not a different mechanism",
+      "ok": true,
+      "cause": "Authenticated users can view documents + auth_read_documents USING (bucket_id = documents) let any logged-in user request a signed URL for any object"
+    },
+    {
+      "name": "leftover rollback SQL documented",
+      "ok": true
+    },
+    {
+      "name": "anon upload signatures policy stays",
+      "ok": true
+    },
+    {
+      "name": "company A session established",
+      "ok": true,
+      "note": "temporary in-memory session; signed out later"
+    },
+    {
+      "name": "A can list own-company metadata before change",
+      "ok": true,
+      "rowCount": 20
+    },
+    {
+      "name": "A signed URL for own document works before change",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "found a different-company object for cross-company probe",
+      "ok": true,
+      "pathShape": {
+        "seg1": "uuid",
+        "folder": "vehicle-docs"
+      }
+    },
+    {
+      "name": "A can currently issue signed URL for another company object (cause confirmed live)",
+      "ok": true,
+      "error": null,
+      "note": "if this had already failed, cause would be different and S8 leftover fix would stop"
+    },
+    {
+      "name": "scoped same-company policy created",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "dropped Authenticated users can view documents",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "dropped auth_read_documents",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "dropped Anonymous can view declaration signatures",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "anon upload signatures still present",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "documents still private after leftover fix",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "public_read_documents still absent after leftover fix",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "C4 still closed after leftover fix",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "A still receives signed URL for authorized own-company document",
+      "ok": true,
+      "rollback": true,
+      "error": null
+    },
+    {
+      "name": "A cannot issue signed URL for another company object",
+      "ok": true,
+      "rollback": true,
+      "error": "Object not found"
+    },
+    {
+      "name": "A metadata remains single-company",
+      "ok": true,
+      "rollback": true,
+      "distinctCompanies": 1,
+      "rowCount": 50
+    },
+    {
+      "name": "company B session established",
+      "ok": true,
+      "note": "temporary in-memory session"
+    },
+    {
+      "name": "B cannot issue signed URL for A document",
+      "ok": true,
+      "rollback": true,
+      "error": "Object not found"
+    },
+    {
+      "name": "super_admin session established",
+      "ok": true,
+      "note": "temporary in-memory session"
+    },
+    {
+      "name": "super_admin can issue signed URL per intended all-documents access",
+      "ok": true,
+      "rollback": true,
+      "error": null
+    },
+    {
+      "name": "unauthenticated cannot issue signed URL",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "old public URL remains blocked",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "anon cannot issue signed URL for declaration signature object",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "fake declaration token empty",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "valid declaration token returns only that row",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "sign RPC reachable on already-signed token without mutating pending rows",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "anon cannot read driver_declarations",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "live site still up",
+      "ok": true,
+      "rollback": true
+    },
+    {
+      "name": "company A session signed out",
+      "ok": true
+    },
+    {
+      "name": "document count unchanged during leftover fix",
+      "ok": true,
+      "files": 375
+    },
+    {
+      "name": "declaration and exam totals unchanged",
+      "ok": true
+    }
+  ],
+  "skipped": [
+    {
+      "name": "B own-document signed URL",
+      "reason": "no metadata path for B"
+    }
+  ],
+  "fileProbes": [
+    {
+      "created_at": "2026-08-19 09:04:02.71632+00",
+      "mimeType": "application/pdf",
+      "sizeBytes": 1199677,
+      "folderShape": "vehicles_{numeric}",
+      "legitimate": true,
+      "metadataExists": true,
+      "category": "insurance"
+    },
+    {
+      "created_at": "2026-08-19 09:04:11.883954+00",
+      "mimeType": "application/pdf",
+      "sizeBytes": 1199677,
+      "folderShape": "vehicles_{numeric}",
+      "legitimate": true,
+      "metadataExists": true,
+      "category": "vehicle-license"
+    },
+    {
+      "created_at": "2026-08-19 09:19:23.23313+00",
+      "mimeType": "application/pdf",
+      "sizeBytes": 364460,
+      "folderShape": "vehicles_{numeric}",
+      "legitimate": true,
+      "metadataExists": true,
+      "category": "insurance"
+    },
+    {
+      "created_at": "2026-08-19 09:19:31.406401+00",
+      "mimeType": "application/pdf",
+      "sizeBytes": 262033,
+      "folderShape": "vehicles_{numeric}",
+      "legitimate": true,
+      "metadataExists": true,
+      "category": "vehicle-license"
+    }
+  ],
+  "rollbackDone": false,
+  "finalStarted": true,
+  "verdict": "PASS",
+  "filesBefore": 375,
+  "dataBefore": {
+    "declarations": 16,
+    "exams": 23
+  },
+  "restoreSql": [
+    "CREATE POLICY \"Authenticated users can view documents\" ON storage.objects FOR SELECT TO authenticated USING ((bucket_id = 'documents'::text));",
+    "CREATE POLICY \"auth_read_documents\" ON storage.objects FOR SELECT TO authenticated USING ((bucket_id = 'documents'::text));",
+    "CREATE POLICY \"Anonymous can view declaration signatures\" ON storage.objects FOR SELECT TO anon,authenticated USING (((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text)));"
+  ],
+  "filesAfter": 375,
+  "partAPass": true
+}

@@ -1,0 +1,39 @@
+{
+  "at": "2026-08-19T09:25:48.424Z",
+  "policies": [
+    {
+      "cmd": "SELECT",
+      "policyname": "Anonymous can view declaration signatures",
+      "qual": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text))",
+      "roles": "{anon,authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Authenticated users can view documents",
+      "qual": "(bucket_id = 'documents'::text)",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "auth_read_documents",
+      "qual": "(bucket_id = 'documents'::text)",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": null
+    }
+  ],
+  "restoreSql": [
+    "CREATE POLICY \"Authenticated users can view documents\" ON storage.objects FOR SELECT TO authenticated USING ((bucket_id = 'documents'::text));",
+    "CREATE POLICY \"auth_read_documents\" ON storage.objects FOR SELECT TO authenticated USING ((bucket_id = 'documents'::text));",
+    "CREATE POLICY \"Anonymous can view declaration signatures\" ON storage.objects FOR SELECT TO anon,authenticated USING (((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text)));"
+  ],
+  "createdIfApplied": "CREATE POLICY \"auth_select_same_company_uuid_and_decl_sigs\" ON storage.objects FOR SELECT TO authenticated USING ((bucket_id = 'documents'::text) AND ((public.has_role(auth.uid(), 'fleet_manager'::app_role) AND EXISTS (SELECT 1 FROM public.document_metadata m WHERE m.file_path = name AND m.company_name = public.get_user_company(auth.uid()))) OR (((storage.foldername(name))[1] = 'declarations'::text) AND (public.has_role(auth.uid(), 'super_admin'::app_role) OR (public.has_role(auth.uid(), 'fleet_manager'::app_role) AND EXISTS (SELECT 1 FROM public.driver_declarations d WHERE d.company_name = public.get_user_company(auth.uid()) AND name LIKE ('declarations/sig_' || d.id::text || '_%')))))));",
+  "note": "Rollback restores only these three policies and drops the new scoped policy. Does not restore public bucket, public_read_documents, or C4."
+}

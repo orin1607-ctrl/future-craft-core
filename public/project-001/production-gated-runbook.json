@@ -1,8 +1,8 @@
 {
   "id": "production-gated-runbook",
   "at": "2026-08-19T06:00:00.000Z",
-  "status": "S7_PASS_WAITING_OWNER_FOR_FINAL_SECURITY_REVIEW",
-  "nextAllowedAction": "none — stop. No S8 or further changes without a separate Owner approval. Do not drop remaining storage leftovers. Do not rotate secrets or delete users.",
+  "status": "CENTRAL_DOCUMENT_TENANT_FIX_PASS_STOPPED",
+  "nextAllowedAction": "none — stop. No further security fixes without a separate Owner approval.",
   "productionTouched": true,
   "productionChanged": true,
   "method": "BACKUP → CHANGE → TEST → PASS/FAIL → CONTINUE OR ROLLBACK",
@@ -125,5 +125,5 @@
       "ownerGateAfter": true
     }
   ],
-  "waitingFor": "Owner review of the S7 report, then a separate approval for a final security verification only. No more system changes."
+  "waitingFor": "Owner review of the leftover-fix + final security report. No more system changes."
 }
