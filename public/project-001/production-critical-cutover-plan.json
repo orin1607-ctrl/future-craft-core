@@ -1,0 +1,206 @@
+{
+  "id": "production-critical-cutover-plan",
+  "at": "2026-08-19T05:45:00.000Z",
+  "status": "PLAN_ONLY_NOT_EXECUTED",
+  "productionTouched": false,
+  "productionChanged": false,
+  "scope": ["C1-public-documents", "C4-anon-declarations-exams"],
+  "outOfScopeThisWindow": [
+    "users",
+    "sessions",
+    "secrets",
+    "C2 handle_new_user",
+    "C3 profile lock",
+    "C7 password tenant",
+    "C8 phone login",
+    "H12-H15 edge",
+    "gupshup",
+    "/dev pages",
+    "privileged account cleanup",
+    "authenticated bucket-wide SELECT leftover"
+  ],
+  "verdictNow": "NOT EXECUTED — waiting for a separate Owner approval to run",
+  "whyNotFullStagingDeploy": "ענף Staging מכיל שינויים רבים שאינם ה-Critical. אסור לפרוס את כל Staging ל-Production. רק שכבת תיקון מעל הקוד החי.",
+  "liveFacts": {
+    "host": "dalia-car.online",
+    "bundle": "assets/index-CECbN36N.js",
+    "documentsBucketPublic": true,
+    "anonPolicyPublicReadDocuments": true,
+    "c4PoliciesPresent": true,
+    "tokenRpcsPresent": false,
+    "anonCanCountPendingDeclarations": 7
+  },
+  "goldenRule": "Additive first, subtractive last. Never DROP C4 or private the bucket before RPCs exist AND the new frontend is live and verified.",
+  "doNotApplyAsIs": [
+    "supabase/migrations/20260818221000_p0_token_scope_declarations_exams.sql — ends with DROP of C4; must split CREATE+GRANT first, DROP later",
+    "supabase/migrations/20260818220000_p0_storage_private_staging.sql — also rebuilds many storage policies; too wide for this window"
+  ],
+  "hostingerMustGoFirstFiles": {
+    "add": [
+      "src/lib/documentUrl.ts",
+      "src/lib/tokenScopedAccess.ts"
+    ],
+    "switchToSignedUrl": [
+      "src/components/documents/DocumentViewer.tsx",
+      "src/utils/printDeclaration.ts",
+      "every live file that still calls getPublicUrl (Production git had: Documents, Drivers, CustomerDocs, DriverDeclaration, HealthDeclaration, ImageUpload, MultiImageUpload, VehicleDocumentsPanel, VehicleExchange, SignDeclaration)"
+    ],
+    "switchToTokenRpc": [
+      "src/pages/SignDeclaration.tsx",
+      "src/pages/TakeDrivingExam.tsx",
+      "src/components/driving-exam/ExamRunner.tsx"
+    ],
+    "keep": "Anonymous can upload declaration signatures — needed for sign-by-link file upload under declarations/"
+  },
+  "rpcsRequiredBeforeC4Drop": [
+    "get_declaration_by_token",
+    "sign_declaration_by_token",
+    "get_driving_exam_by_token",
+    "start_driving_exam_by_token",
+    "submit_driving_exam_by_token"
+  ],
+  "sqlCreateOnlyNoDrop": {
+    "purpose": "Step 2 only. CREATE OR REPLACE + GRANT. No DROP POLICY.",
+    "note": "Copy from 20260818221000 but stop before the DROP POLICY lines. Include REVOKE/GRANT EXECUTE to anon, authenticated."
+  },
+  "sqlDropC4Only": {
+    "purpose": "Step 5 only. After RPC frontend verified.",
+    "statements": [
+      "DROP POLICY IF EXISTS \"Anonymous can view by token\" ON public.driver_declarations",
+      "DROP POLICY IF EXISTS \"Anonymous can update by token\" ON public.driver_declarations",
+      "DROP POLICY IF EXISTS \"Anon view exam by token\" ON public.driving_exams",
+      "DROP POLICY IF EXISTS \"Anon submit exam by token\" ON public.driving_exams"
+    ]
+  },
+  "sqlClosePublicDocuments": {
+    "purpose": "Step 7 only. After signed-URL frontend verified.",
+    "statements": [
+      "UPDATE storage.buckets SET public = false WHERE id = 'documents'",
+      "DROP POLICY IF EXISTS \"public_read_documents\" ON storage.objects",
+      "DROP POLICY IF EXISTS \"Anonymous can view declaration signatures\" ON storage.objects"
+    ],
+    "doNotDropThisWindow": [
+      "Anonymous can upload declaration signatures",
+      "Authenticated users can view documents",
+      "Users can view own company documents"
+    ]
+  },
+  "steps": [
+    {
+      "n": 1,
+      "name": "גיבוי בלבד",
+      "where": "VPS dist + SELECT snapshots of buckets/policies/pg_proc",
+      "site": "none",
+      "supabase": "SELECT only",
+      "check": "tarball exists; JSON snapshot has public_read_documents and the four C4 policies",
+      "stop": "אם אין גיבוי dist — לא ממשיכים",
+      "rollback": "n/a",
+      "risk": "אפס",
+      "downtime": "אין",
+      "minutes": 15
+    },
+    {
+      "n": 2,
+      "name": "יצירת 5 RPCs ב-Supabase בלי לסגור C4",
+      "where": "Production DB",
+      "site": "none",
+      "supabase": "CREATE OR REPLACE functions + GRANT EXECUTE to anon, authenticated. No DROP.",
+      "check": "חמשת השמות ב-pg_proc. קריאה עם token מזויף מחזירה אפס שורות. מדיניות C4 עדיין קיימת במכוון.",
+      "stop": "אם CREATE נכשל או GRANT חסר — STOP. לא פורסים אתר חדש.",
+      "rollback": "אפשר להשאיר את הפונקציות; הן לא שוברות את האתר הישן. או DROP FUNCTION אם חובה.",
+      "risk": "נמוך. תוספת בלבד.",
+      "downtime": "אין",
+      "minutes": 10
+    },
+    {
+      "n": 3,
+      "name": "העלאת האתר החדש ל-Hostinger",
+      "where": "dalia-car.online dist",
+      "site": "Hotfix overlay on the live Production tree: signed URLs + RPC sign/exam pages. Not full Staging.",
+      "supabase": "none",
+      "check": "bundle החי כבר לא index-CECbN36N. יש get_declaration_by_token ב-JS. צפייה במסמך QA (לא לקוח) יוצרת /object/sign/. חתימת QA לפי קישור עובדת.",
+      "stop": "אם האתר לא עולה, אם חתימה נשברת, אם מסמך QA לא נפתח — STOP ומחזירים dist.",
+      "rollback": "workflow rollback-production-vps / tarball pre-deploy. 5–15 דקות.",
+      "risk": "בינוני. זה השינוי הראשון שמשתמשים רואים. ה-bucket עדיין ציבורי ולכן קישורים ישנים עדיין עובדים.",
+      "downtime": "כמה שניות רענון. אין השבתה מתוכננת.",
+      "minutes": 20
+    },
+    {
+      "n": 4,
+      "name": "אימות חלון כפול",
+      "where": "live site + DB",
+      "site": "none",
+      "supabase": "none",
+      "check": "מחובר רואה מסמך QA ב-signed URL. העלאת QA עובדת. קישור חתימה QA עובד דרך RPC. C4 עדיין פתוח במכוון. bucket עדיין public במכוון.",
+      "stop": "כל כשל כאן = STOP. לא סוגרים כלום.",
+      "rollback": "רק dist אם האתר החדש אשם.",
+      "risk": "נמוך אם שלב 3 עבר.",
+      "downtime": "אין",
+      "minutes": 15
+    },
+    {
+      "n": 5,
+      "name": "סגירת C4",
+      "where": "Production DB",
+      "site": "none",
+      "supabase": "DROP four anon declaration/exam policies only",
+      "check": "anon count על driver_declarations = 0/שגיאה. RPC עם token תקין של QA עדיין חותם. קישור אמיתי של לקוח לא נפתח ולא מוריד תוכן — רק מוודאים שהדף נטען אם Owner יבחר QA.",
+      "stop": "אם חתימה נשברה — STOP ולהחזיר 4 המדיניות מהגיבוי. לא ממשיכים למסמכים.",
+      "rollback": "CREATE POLICY from snapshot. Only if sign is dead.",
+      "risk": "בינוני. אחרי זה האתר הישן שב-cache עלול להיכשל בחתימה; האתר החדש חייב להיות חי.",
+      "downtime": "אין אם RPC+אתר עובדים",
+      "minutes": 10
+    },
+    {
+      "n": 6,
+      "name": "אימות אחרי C4",
+      "where": "live",
+      "check": "חתימת QA עובדת. אנונימי לא סופר הצהרות. מבחן QA לפי RPC אם רלוונטי.",
+      "stop": "כשל חתימה = ROLLBACK מדיניות C4",
+      "risk": "נמוך אם 5 עבר",
+      "downtime": "אין",
+      "minutes": 10
+    },
+    {
+      "n": 7,
+      "name": "סגירת הגישה הציבורית למסמכים",
+      "where": "Production Storage",
+      "site": "none — signed URLs already live",
+      "supabase": "SET documents.public=false; DROP public_read_documents; DROP Anonymous can view declaration signatures. Keep anon INSERT declarations/.",
+      "check": "נתיב מזויף /object/public/ מחזיר שגיאה. מסמך QA נפתח ב-signed URL. העלאה עובדת. אנונימי לא מוריד את קובץ ה-QA.",
+      "stop": "אם לקוחות/QA לא פותחים מסמך — STOP. מחזירים public=true + מדיניות public_read מהגיבוי.",
+      "rollback": "UPDATE public=true; restore public_read_documents and anon view signatures from snapshot.",
+      "risk": "בינוני-גבוה. קישורים ישנים שנשלחו החוצה יישברו באותו רגע. זה מכוון.",
+      "downtime": "אין למשתמש מחובר עם האתר החדש. קישורים ציבוריים ישנים מתים מיד.",
+      "minutes": 15
+    },
+    {
+      "n": 8,
+      "name": "אימות סופי",
+      "where": "live",
+      "check": "צפייה QA, העלאה QA, הורדה QA, חתימת QA, אנונימי חסום למסמכים ולהצהרות, RPCs קיימים, 4 מדיניות C4 חסרות, bucket private.",
+      "stop": "כל רגרסיה = ROLLBACK של השלב האחרון שעבד.",
+      "risk": "נמוך אם 7 עבר",
+      "downtime": "אין",
+      "minutes": 15
+    }
+  ],
+  "totals": {
+    "steps": 8,
+    "elapsedMinutes": "90–120",
+    "watchWindowMinutes": "20–30 around steps 5 and 7",
+    "plannedOutage": false,
+    "oldPublicLinksDieAt": "step 7"
+  },
+  "whenSignedUrlsSwitch": "Step 3 (frontend). Public bucket still on until step 7, so both old public URLs and new signed URLs work in between.",
+  "whenPublicDocumentsClose": "Step 7, only after step 4 passed.",
+  "whenC4Closes": "Step 5, only after RPCs exist (step 2) and RPC frontend verified (step 4).",
+  "qaOnly": "Verification uses disposable QA rows/files created after execution approval. No customer document bytes.",
+  "stopSummary": [
+    "No dist backup → stop before any change",
+    "RPC create/grant fail → stop before Hostinger",
+    "Hostinger deploy breaks login/docs/sign → rollback dist, do not close C4 or bucket",
+    "Sign fails after C4 drop → restore four policies, do not close bucket",
+    "Docs fail after private bucket → restore public=true + public_read, keep RPCs and new site"
+  ]
+}
