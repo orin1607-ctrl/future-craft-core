@@ -30,6 +30,7 @@ import DaliaSettings from "@/pages/DaliaSettings";
 import DaliaDeploy from "@/pages/DaliaDeploy";
 import WhatsAppSettingsPage from "@/pages/WhatsAppSettingsPage";
 import SystemLogs from "@/pages/SystemLogs";
+import SecurityControlCenter from "@/pages/SecurityControlCenter";
 import HistoryPage from "@/pages/History";
 import ServiceOrders from "@/pages/ServiceOrders";
 import Expenses from "@/pages/Expenses";
@@ -292,6 +293,7 @@ function AppRoutes() {
         <Route path="/customer-docs" element={<CustomerDocs />} />
         <Route path="/emergency-settings" element={<EmergencySettings />} />
         <Route path="/system-logs" element={<SystemLogs />} />
+        <Route path="/security-center" element={<SecurityControlCenter />} />
         <Route path="/service-order-history" element={<ServiceOrderHistory />} />
         <Route path="/project-summary" element={<ProjectSummary />} />
         <Route path="/completed-tasks" element={<CompletedTasks />} />

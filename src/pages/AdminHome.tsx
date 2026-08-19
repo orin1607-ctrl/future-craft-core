@@ -7,6 +7,7 @@ const ADMIN_LINKS = [
   { to: '/admin/modules', icon: LayoutGrid, title: 'כפתורים ומודולים', subtitle: 'ניהול רכבים · שדות חובה · מודולים' },
   { to: '/ai-marketing', icon: Megaphone, title: 'ניהול שיווק', subtitle: 'לקוחות · לידים · Google · AI' },
   { to: '/dalia-settings', icon: SlidersHorizontal, title: 'Dalia Settings', subtitle: 'התראות · WhatsApp · אימייל · חברות' },
+  { to: '/security-center', icon: Shield, title: 'מרכז בקרה ואבטחה', subtitle: 'כניסות · Sessions · GitHub · Supabase · VPS' },
   { to: '/user-management', icon: Users, title: 'משתמשים', subtitle: 'ניהול משתמשים והרשאות' },
   { to: '/permissions', icon: Shield, title: 'הרשאות', subtitle: 'תפקידים וגישה' },
   { to: '/settings', icon: Settings, title: 'פרופיל אישי', subtitle: 'שם, טלפון, סיסמה' },

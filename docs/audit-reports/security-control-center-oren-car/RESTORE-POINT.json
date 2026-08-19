@@ -1,0 +1,15 @@
+{
+  "at": "2026-08-19T10:47:50.321Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "rollback": [
+    "DROP TRIGGER IF EXISTS trg_auth_audit_to_security ON public.auth_audit_log;",
+    "DROP FUNCTION IF EXISTS public.trg_auth_audit_to_security();",
+    "DROP TABLE IF EXISTS public.security_alert_inbox;",
+    "DROP TABLE IF EXISTS public.security_activity_sessions;",
+    "DROP TABLE IF EXISTS public.security_audit_events;"
+  ],
+  "note": "Rollback drops only new security_* objects. Does not touch customer documents or Production."
+}

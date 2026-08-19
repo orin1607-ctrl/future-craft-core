@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Session } from '@supabase/supabase-js';
 import type { AuthSessionPayload } from '@/lib/authOtpClient';
 import { applyAuthSession } from '@/lib/authOtpClient';
+import { securityEndSession } from '@/lib/securityAuditClient';
 
 export type AppRole = 'driver' | 'fleet_manager' | 'super_admin' | 'private_customer' | 'business_customer';
 
@@ -149,6 +150,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    await securityEndSession('logout');
     await supabase.auth.signOut();
     setRealUser(null);
     setImpersonatedUser(null);

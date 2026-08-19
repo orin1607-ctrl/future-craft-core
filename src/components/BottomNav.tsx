@@ -36,6 +36,7 @@ const managerNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { path: '/admin-home', label: 'מרכז ניהול', icon: Shield },
+  { path: '/security-center', label: 'מרכז בקרה ואבטחה', icon: Shield },
   { path: '/ai-marketing', label: 'ניהול שיווק', icon: Megaphone },
   { path: '/dalia-settings', label: 'Dalia Settings', icon: SlidersHorizontal },
 ];
@@ -116,6 +117,7 @@ export function DesktopSidebar() {
     }
     if (path === '/fleetos-ai') return canFleetOS;
     if (path === '/ai-marketing') return isSuperAdmin;
+    if (path === '/security-center') return isSuperAdmin;
     return true;
   };
 

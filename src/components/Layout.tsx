@@ -6,6 +6,7 @@ import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import logo from '@/assets/logo.png';
 import { LogOut, X, Eye, Building2 } from 'lucide-react';
 import HelpButton from '@/components/HelpButton';
+import SecurityActivityTracker from '@/components/SecurityActivityTracker';
 
 export default function Layout() {
   const { user, realUser, isImpersonating, stopImpersonation, logout } = useAuth();
@@ -15,6 +16,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SecurityActivityTracker />
       {/* Impersonation Banner */}
       {isImpersonating && (
         <div className="bg-warning text-warning-foreground px-4 py-2 flex items-center justify-between text-sm font-bold sticky top-0 z-50 shadow-md">

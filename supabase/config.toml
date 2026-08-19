@@ -83,3 +83,6 @@ verify_jwt = false
 # Public token upload + authenticated create (JWT checked inside handler)
 [functions.document-request]
 verify_jwt = false
+
+[functions.security-collect-sources]
+verify_jwt = true

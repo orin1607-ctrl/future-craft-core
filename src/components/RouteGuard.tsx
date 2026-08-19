@@ -10,6 +10,12 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
   if (!user) return null;
 
   if (!canAccessRoute(location.pathname, user.role)) {
+    void import('@/lib/securityAuditClient').then(({ securityRecordClientEvent }) => {
+      securityRecordClientEvent('unauthorized_page', {
+        action: 'גישה לעמוד מוגן',
+        result: 'נדחה',
+      }).catch(() => undefined);
+    });
     return <Navigate to="/dashboard" replace state={{ from: location.pathname }} />;
   }
 
