@@ -6,11 +6,14 @@ import { Shield, RefreshCw, Search, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  CLASS_BADGE_CLASS,
-  CLASS_HE,
+  APPROVAL_BADGE_CLASS,
   CLASS_ROW_CLASS,
+  IDENTITY_BADGE_CLASS,
+  IDENTITY_HE,
   activeUserIds,
-  activityLayer,
+  approvalLabel,
+  classifyApproval,
+  classifyIdentity,
   classifySecurityEvent,
   displayAccessKind,
   displayAccount,
@@ -24,7 +27,8 @@ import {
   SOURCE_HE,
   shortFingerprint,
   formatActiveMs,
-  type SecurityClass,
+  type ApprovalStatus,
+  type IdentityKind,
   type SecurityFilterState,
   type SecurityIdentityRow,
 } from '@/lib/securityAuditLabels';
@@ -103,6 +107,7 @@ const EMPTY_FILTER: SecurityFilterState = {
   unidentifiedOnly: false,
   activePeopleOnly: false,
   classification: '',
+  approval: '',
   layer: '',
 };
 
@@ -119,15 +124,29 @@ function timePart(iso: string) {
   return format(new Date(iso), 'HH:mm', { locale: he });
 }
 
-function ClassBadge({ value }: { value: SecurityClass }) {
+function uniqueValues(values: Array<string | null | undefined>) {
+  return [...new Set(values.map((v) => (v || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'he'));
+}
+
+function IdentityBadge({ value }: { value: IdentityKind }) {
   return (
-    <span className={`inline-block text-[11px] font-bold rounded-full px-2 py-0.5 border ${CLASS_BADGE_CLASS[value]}`}>
-      {CLASS_HE[value]}
+    <span className={`inline-block text-[11px] font-bold rounded-full px-2 py-0.5 border ${IDENTITY_BADGE_CLASS[value]}`}>
+      {IDENTITY_HE[value]}
+    </span>
+  );
+}
+
+function ApprovalBadge({ row }: { row: SecurityIdentityRow }) {
+  const value = classifyApproval(row);
+  return (
+    <span className={`inline-block text-[11px] font-bold rounded-full px-2 py-0.5 border ${APPROVAL_BADGE_CLASS[value]}`}>
+      {approvalLabel(row)}
     </span>
   );
 }
 
 const FILTER_INPUT = 'mt-1 p-2.5 rounded-xl border-2 border-input bg-background text-sm w-full block';
+const QUICK_BTN = 'rounded-xl border-2 px-3 py-2 text-sm font-medium';
 
 export default function SecurityControlCenter() {
   const { user } = useAuth();
@@ -143,6 +162,7 @@ export default function SecurityControlCenter() {
   const [filter, setFilter] = useState<SecurityFilterState>(EMPTY_FILTER);
 
   const setF = (patch: Partial<SecurityFilterState>) => setFilter((f) => ({ ...f, ...patch }));
+  const setQuick = (patch: Partial<SecurityFilterState>) => setFilter({ ...EMPTY_FILTER, ...patch });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -182,18 +202,20 @@ export default function SecurityControlCenter() {
   const activeIds = useMemo(() => activeUserIds(sessions), [sessions]);
   const tabsByUser = useMemo(() => sessionCountByUser(sessions), [sessions]);
   const peopleNow = summary.active_people_now || summary.active_now;
-  const approvedInfraToday = rows.filter((r) => activityLayer(r) === 'infra_approved').length;
-  const unknownInfraToday = rows.filter((r) => {
-    const c = classifySecurityEvent(r);
-    return c === 'unidentified' || c === 'review';
-  }).length;
+  const approvedCount = rows.filter((r) => classifyApproval(r) === 'approved').length;
+  const reviewCount = rows.filter((r) => classifyApproval(r) === 'review').length;
+  const unidentifiedCount = rows.filter((r) => classifyIdentity(r) === 'unidentified').length;
 
   const filtered = useMemo(
     () => rows.filter((r) => matchesSecurityFilters(r, filter, activeIds)),
     [rows, filter, activeIds],
   );
 
-  const companies = [...new Set(rows.map((r) => r.company_name).filter(Boolean))] as string[];
+  const companies = uniqueValues(rows.map((r) => r.company_name));
+  const usernames = uniqueValues(rows.map((r) => r.actor_username));
+  const emails = uniqueValues(rows.map((r) => r.actor_email));
+  const actions = uniqueValues(rows.map((r) => r.action_label || r.event_type));
+  const rolesInData = uniqueValues(rows.map((r) => r.actor_role)).filter((r) => ROLE_HE[r] || r);
 
   const timelineEvents = useMemo(() => {
     const key = timelineKey;
@@ -225,7 +247,13 @@ export default function SecurityControlCenter() {
     );
   }
 
-  const cls = selected ? classifySecurityEvent(selected) : null;
+  const selectedIdentity = selected ? classifyIdentity(selected) : null;
+  const selectedApproval = selected ? classifyApproval(selected) : null;
+  const quickActive = (key: 'all' | ApprovalStatus | 'unidentified') => {
+    if (key === 'all') return !filter.approval && !filter.identity && !filter.unidentifiedOnly && !filter.classification;
+    if (key === 'unidentified') return filter.identity === 'unidentified';
+    return filter.approval === key;
+  };
 
   return (
     <div className="animate-fade-in space-y-4 max-w-full overflow-x-hidden" dir="rtl">
@@ -242,28 +270,36 @@ export default function SecurityControlCenter() {
         </button>
       </div>
       <p className="text-sm text-muted-foreground">
-        במבט אחד: מי, מאיפה, מאושר או דורש בדיקה, מה עשה ומתי. אין ניחוש זהות. GitHub/VPS לא נספרים כמשתמש אפליקציה.
+        זהות וסטטוס אישור הם שני שדות נפרדים. זהות חסרה אינה אומרת שהגישה חשודה. אין ניחוש לפי מקור או לפי שעה.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-        <button type="button" onClick={() => setF({ layer: 'app', activePeopleOnly: true, unidentifiedOnly: false, classification: '' })}
+        <button type="button" onClick={() => setQuick({ layer: 'app', activePeopleOnly: true })}
           className="card-elevated p-3 text-right min-w-0 border-r-4 border-r-emerald-500">
           <p className="text-xs text-muted-foreground">משתמשי אפליקציה פעילים עכשיו</p>
           <p className="text-2xl font-bold mt-1">{peopleNow}</p>
-          <p className="text-[11px] text-muted-foreground mt-1">מנהל־על / מנהל צי / נהג / לקוח · אדם אחד לכמה טאבים</p>
+          <p className="text-[11px] text-muted-foreground mt-1">לא כולל GitHub / VPS / Supabase</p>
         </button>
-        <button type="button" onClick={() => setF({ layer: 'infra_approved', activePeopleOnly: false, unidentifiedOnly: false, classification: 'approved' })}
+        <button type="button" onClick={() => setQuick({ approval: 'approved' })}
           className="card-elevated p-3 text-right min-w-0 border-r-4 border-r-emerald-500">
-          <p className="text-xs text-muted-foreground">גישות תשתית מאושרות</p>
-          <p className="text-2xl font-bold mt-1">{approvedInfraToday}</p>
-          <p className="text-[11px] text-muted-foreground mt-1">Cursor/Cross, GitHub Actions וחשבונות ממופים</p>
+          <p className="text-xs text-muted-foreground">מאושר על ידינו</p>
+          <p className="text-2xl font-bold mt-1">{approvedCount}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">מפתח/חשבון ממופה או בדיקת QA</p>
         </button>
-        <button type="button" onClick={() => setF({ layer: 'infra_unknown', activePeopleOnly: false, unidentifiedOnly: true, classification: '' })}
-          className="card-elevated p-3 text-right min-w-0 border-r-4 border-r-amber-500">
-          <p className="text-xs text-muted-foreground">לא מזוהה / דורש בדיקה</p>
-          <p className="text-2xl font-bold mt-1">{unknownInfraToday}</p>
-          <p className="text-[11px] text-muted-foreground mt-1">אירועים בלי שיוך אמין · לא תוקף בלי הוכחה</p>
+        <button type="button" onClick={() => setQuick({ approval: 'review' })}
+          className="card-elevated p-3 text-right min-w-0 border-r-4 border-r-orange-500">
+          <p className="text-xs text-muted-foreground">דורש בדיקה</p>
+          <p className="text-2xl font-bold mt-1">{reviewCount}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">גישה בלי הוכחת שיוך מאושר · {unidentifiedCount} זהות לא מזוהה</p>
         </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className={`${QUICK_BTN} ${quickActive('all') ? 'bg-primary text-primary-foreground border-primary' : 'bg-background'}`} onClick={() => setFilter(EMPTY_FILTER)}>הכול</button>
+        <button type="button" className={`${QUICK_BTN} ${quickActive('approved') ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-background'}`} onClick={() => setQuick({ approval: 'approved' })}>מאושרים</button>
+        <button type="button" className={`${QUICK_BTN} ${quickActive('review') ? 'bg-orange-500 text-white border-orange-500' : 'bg-background'}`} onClick={() => setQuick({ approval: 'review' })}>דורשים בדיקה</button>
+        <button type="button" className={`${QUICK_BTN} ${quickActive('unidentified') ? 'bg-amber-400 text-amber-950 border-amber-400' : 'bg-background'}`} onClick={() => setQuick({ identity: 'unidentified' })}>לא מזוהים</button>
+        <button type="button" className={`${QUICK_BTN} ${quickActive('failed') ? 'bg-red-600 text-white border-red-600' : 'bg-background'}`} onClick={() => setQuick({ approval: 'failed' })}>נכשלו/נחסמו</button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -298,39 +334,26 @@ export default function SecurityControlCenter() {
           </button>
         </div>
         <div className={`${filtersOpen ? 'flex max-h-64 overflow-y-auto' : 'hidden'} md:flex md:max-h-none md:overflow-visible flex-col md:flex-row flex-wrap gap-2 pb-1`}>
-          <label className="text-xs font-medium w-full md:w-auto">שם משתמש<input value={filter.user} onChange={(e) => setF({ user: e.target.value })} className={FILTER_INPUT} /></label>
-          <label className="text-xs font-medium w-full md:w-auto">אימייל<input value={filter.email} onChange={(e) => setF({ email: e.target.value })} className={FILTER_INPUT} /></label>
-          <label className="text-xs font-medium w-full md:w-auto">חברה
-            <select value={filter.company} onChange={(e) => setF({ company: e.target.value })} className={FILTER_INPUT}>
-              <option value="">הכל</option>
-              {companies.map((c) => <option key={c} value={c}>{c}</option>)}
+          <label className="text-xs font-medium w-full md:w-auto">סטטוס אישור
+            <select value={filter.approval} onChange={(e) => setF({ approval: e.target.value, classification: '', unidentifiedOnly: false })} className={FILTER_INPUT}>
+              <option value="">הכול</option>
+              <option value="approved">מאושר על ידינו</option>
+              <option value="review">דורש בדיקה</option>
+              <option value="unapproved">לא מאושר</option>
+              <option value="failed">נכשל / נחסם</option>
             </select>
           </label>
-          <label className="text-xs font-medium w-full md:w-auto">תפקיד
-            <select value={filter.role} onChange={(e) => setF({ role: e.target.value })} className={FILTER_INPUT}>
-              <option value="">הכל</option>
-              {Object.entries(ROLE_HE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <label className="text-xs font-medium w-full md:w-auto">זהות
+            <select value={filter.identity} onChange={(e) => setF({ identity: e.target.value, unidentifiedOnly: false })} className={FILTER_INPUT}>
+              <option value="">הכול</option>
+              <option value="identified">מזוהה</option>
+              <option value="identity_unavailable">זהות לא זמינה</option>
+              <option value="unidentified">זהות לא מזוהה</option>
             </select>
           </label>
-          <label className="text-xs font-medium w-full md:w-auto">מתאריך<input type="date" value={filter.dateFrom} onChange={(e) => setF({ dateFrom: e.target.value })} className={FILTER_INPUT} /></label>
-          <label className="text-xs font-medium w-full md:w-auto">עד תאריך<input type="date" value={filter.dateTo} onChange={(e) => setF({ dateTo: e.target.value })} className={FILTER_INPUT} /></label>
-          <label className="text-xs font-medium w-full md:w-auto">שעה
-            <select value={filter.hour} onChange={(e) => setF({ hour: e.target.value })} className={FILTER_INPUT}>
-              <option value="">הכל</option>
-              {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((h) => <option key={h} value={h}>{h}:00</option>)}
-            </select>
-          </label>
-          <label className="text-xs font-medium w-full md:w-auto">סוג פעילות
-            <select value={filter.layer} onChange={(e) => setF({ layer: e.target.value })} className={FILTER_INPUT}>
-              <option value="">הכל</option>
-              <option value="app">משתמשי אפליקציה</option>
-              <option value="infra_approved">תשתית מאושרת</option>
-              <option value="infra_unknown">לא מזוהה / דורש בדיקה</option>
-            </select>
-          </label>
-          <label className="text-xs font-medium w-full md:w-auto">מערכת מקור
+          <label className="text-xs font-medium w-full md:w-auto">מערכת
             <select value={filter.source} onChange={(e) => setF({ source: e.target.value })} className={FILTER_INPUT}>
-              <option value="">הכל</option>
+              <option value="">הכול</option>
               <option value="app">אפליקציה</option>
               <option value="github">GitHub</option>
               <option value="supabase">Supabase</option>
@@ -339,37 +362,65 @@ export default function SecurityControlCenter() {
           </label>
           <label className="text-xs font-medium w-full md:w-auto">כלי
             <select value={filter.tool} onChange={(e) => setF({ tool: e.target.value })} className={FILTER_INPUT}>
-              <option value="">הכל</option>
+              <option value="">הכול</option>
               <option value="cursor">Cursor/Cross</option>
               <option value="claude">Claude Code</option>
               <option value="chatgpt">ChatGPT</option>
               <option value="actions">GitHub Actions</option>
               <option value="automation">Automation</option>
-              <option value="other">אחר</option>
               <option value="unidentified">לא מזוהה</option>
             </select>
           </label>
-          <label className="text-xs font-medium w-full md:w-auto">פעולה<input value={filter.action} onChange={(e) => setF({ action: e.target.value })} placeholder="Push, התחברות..." className={FILTER_INPUT} /></label>
+          <label className="text-xs font-medium w-full md:w-auto">שם משתמש
+            <select value={filter.user} onChange={(e) => setF({ user: e.target.value })} className={FILTER_INPUT}>
+              <option value="">הכול</option>
+              {usernames.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-medium w-full md:w-auto">אימייל
+            <select value={filter.email} onChange={(e) => setF({ email: e.target.value })} className={FILTER_INPUT}>
+              <option value="">הכול</option>
+              {emails.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-medium w-full md:w-auto">חברה
+            <select value={filter.company} onChange={(e) => setF({ company: e.target.value })} className={FILTER_INPUT}>
+              <option value="">הכול</option>
+              {companies.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-medium w-full md:w-auto">תפקיד
+            <select value={filter.role} onChange={(e) => setF({ role: e.target.value })} className={FILTER_INPUT}>
+              <option value="">הכול</option>
+              {rolesInData.map((k) => <option key={k} value={k}>{ROLE_HE[k] || k}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-medium w-full md:w-auto">פעולה
+            <select value={filter.action} onChange={(e) => setF({ action: e.target.value })} className={FILTER_INPUT}>
+              <option value="">הכול</option>
+              {actions.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
           <label className="text-xs font-medium w-full md:w-auto">תוצאה
             <select value={filter.outcome} onChange={(e) => setF({ outcome: e.target.value })} className={FILTER_INPUT}>
-              <option value="">הכל</option>
+              <option value="">הכול</option>
               <option value="success">הצליח</option>
               <option value="failure">נכשל</option>
               <option value="blocked">נחסם</option>
+              <option value="unknown">לא ידוע</option>
             </select>
           </label>
-          <label className="text-xs font-medium w-full md:w-auto">סיווג
-            <select value={filter.classification} onChange={(e) => setF({ classification: e.target.value, unidentifiedOnly: false })} className={FILTER_INPUT}>
-              <option value="">הכל</option>
-              <option value="approved">מאושר / מוכר</option>
-              <option value="unidentified">לא מזוהה</option>
-              <option value="review">דורש בדיקה</option>
-              <option value="failed">נחסם / נכשל</option>
+          <label className="text-xs font-medium w-full md:w-auto">מתאריך<input type="date" value={filter.dateFrom} onChange={(e) => setF({ dateFrom: e.target.value })} className={FILTER_INPUT} /></label>
+          <label className="text-xs font-medium w-full md:w-auto">עד תאריך<input type="date" value={filter.dateTo} onChange={(e) => setF({ dateTo: e.target.value })} className={FILTER_INPUT} /></label>
+          <label className="text-xs font-medium w-full md:w-auto">שעה
+            <select value={filter.hour} onChange={(e) => setF({ hour: e.target.value })} className={FILTER_INPUT}>
+              <option value="">הכול</option>
+              {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((h) => <option key={h} value={h}>{h}:00</option>)}
             </select>
           </label>
           <label className="text-xs font-medium w-full md:w-auto">פעיל עכשיו
             <select value={filter.activePeopleOnly ? 'active' : ''} onChange={(e) => setF({ activePeopleOnly: e.target.value === 'active' })} className={FILTER_INPUT}>
-              <option value="">הכל</option>
+              <option value="">הכול</option>
               <option value="active">משתמשי אפליקציה פעילים</option>
             </select>
           </label>
@@ -384,12 +435,16 @@ export default function SecurityControlCenter() {
         <>
           <div className="md:hidden space-y-3">
             {filtered.map((r) => {
-              const c = classifySecurityEvent(r);
+              const tone = classifySecurityEvent(r);
+              const identity = classifyIdentity(r);
               return (
                 <button key={r.id} type="button" onClick={() => setSelected(r)}
-                  className={`w-full text-right card-elevated p-3 space-y-2 ${CLASS_ROW_CLASS[c]}`}>
+                  className={`w-full text-right card-elevated p-3 space-y-2 ${CLASS_ROW_CLASS[tone]}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <ClassBadge value={c} />
+                    <div className="flex flex-wrap gap-1">
+                      <IdentityBadge value={identity} />
+                      <ApprovalBadge row={r} />
+                    </div>
                     <span className="text-xs font-medium">{timePart(r.occurred_at)}</span>
                   </div>
                   <p className="font-bold leading-snug">{displayAccount(r)}</p>
@@ -405,18 +460,20 @@ export default function SecurityControlCenter() {
             <table className="w-full text-sm text-right">
               <thead className="bg-muted/50">
                 <tr>
-                  {['סיווג', 'תאריך', 'שעה', 'מערכת', 'שם משתמש', 'אימייל/Actor', 'חברה', 'תפקיד', 'כלי', 'פעולה', 'תוצאה', 'פעילות אחרונה', 'זמן פעילות'].map((h) => (
+                  {['זהות', 'סטטוס אישור', 'תאריך', 'שעה', 'מערכת', 'שם משתמש', 'אימייל/Actor', 'חברה', 'תפקיד', 'כלי', 'פעולה', 'תוצאה', 'פעילות אחרונה', 'זמן פעילות'].map((h) => (
                     <th key={h} className="p-2 font-bold whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r) => {
-                  const c = classifySecurityEvent(r);
+                  const tone = classifySecurityEvent(r);
+                  const identity = classifyIdentity(r);
                   const sess = r.session_id ? sessions.find((s) => s.id === r.session_id) : null;
                   return (
-                    <tr key={r.id} className={`border-t border-border hover:bg-muted/30 cursor-pointer ${CLASS_ROW_CLASS[c]}`} onClick={() => setSelected(r)}>
-                      <td className="p-2"><ClassBadge value={c} /></td>
+                    <tr key={r.id} className={`border-t border-border hover:bg-muted/30 cursor-pointer ${CLASS_ROW_CLASS[tone]}`} onClick={() => setSelected(r)}>
+                      <td className="p-2"><IdentityBadge value={identity} /></td>
+                      <td className="p-2"><ApprovalBadge row={r} /></td>
                       <td className="p-2 whitespace-nowrap">{dayPart(r.occurred_at)}</td>
                       <td className="p-2 whitespace-nowrap">{timePart(r.occurred_at)}</td>
                       <td className="p-2">{SOURCE_HE[r.source] || r.source}</td>
@@ -466,13 +523,17 @@ export default function SecurityControlCenter() {
         </div>
       )}
 
-      {selected && cls && (
+      {selected && selectedIdentity && selectedApproval && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-end md:items-center justify-center p-0 md:p-4" onClick={() => setSelected(null)}>
           <div className="bg-background rounded-t-2xl md:rounded-2xl w-full md:max-w-lg max-h-[92vh] overflow-y-auto p-5 space-y-2 shadow-xl" onClick={(e) => e.stopPropagation()} dir="rtl">
             <h2 className="text-lg font-bold">פרטי אירוע</h2>
-            <ClassBadge value={cls} />
+            <div className="flex flex-wrap gap-1">
+              <IdentityBadge value={selectedIdentity} />
+              <ApprovalBadge row={selected} />
+            </div>
             <p className="text-sm"><b>מי:</b> {displayAccount(selected)}</p>
-            <p className="text-sm"><b>זהות:</b> {selected.actor_username || selected.actor_email || 'זהות לא זמינה'}</p>
+            <p className="text-sm"><b>זהות:</b> {IDENTITY_HE[selectedIdentity]}</p>
+            <p className="text-sm"><b>סטטוס אישור:</b> {approvalLabel(selected)}</p>
             <p className="text-sm"><b>מערכת:</b> {SOURCE_HE[selected.source] || selected.source}</p>
             <p className="text-sm"><b>כלי:</b> {displayTool(selected)}</p>
             <p className="text-sm"><b>תפקיד / חברה:</b> {ROLE_HE[selected.actor_role || ''] || selected.actor_role || '—'} · {selected.company_name || '—'}</p>

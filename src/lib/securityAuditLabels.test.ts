@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { canAccessRoute } from './routeAccess';
 import {
-  CLASS_HE,
+  APPROVAL_HE,
+  IDENTITY_HE,
   activityLayer,
+  approvalLabel,
+  classifyApproval,
+  classifyIdentity,
   classifySecurityEvent,
   countDistinctActivePeople,
   displayAccount,
@@ -18,7 +22,7 @@ import {
 const emptyFilter = (patch: Partial<SecurityFilterState> = {}): SecurityFilterState => ({
   search: '', source: '', role: '', outcome: '', identity: '', severity: '',
   dateFrom: '', dateTo: '', hour: '', company: '', user: '', email: '', tool: '', action: '',
-  unidentifiedOnly: false, activePeopleOnly: false, classification: '', layer: '',
+  unidentifiedOnly: false, activePeopleOnly: false, classification: '', approval: '', layer: '',
   ...patch,
 });
 
@@ -106,73 +110,93 @@ describe('security identity display — no guessing', () => {
   });
 });
 
-describe('security event classification — display only', () => {
-  it('classifies mapped app user as approved', () => {
-    expect(classifySecurityEvent({
-      source: 'app',
-      identity_status: 'identified',
-      actor_user_id: 'u1',
-      actor_username: 'יוני אטיאס',
-      actor_email: 'owner@example.com',
-      actor_role: 'super_admin',
-      outcome: 'success',
-    })).toBe('approved');
-  });
+describe('identity vs approval are separate fields', () => {
+  const ssh1411 = {
+    source: 'hostinger_vps' as const,
+    identity_status: 'identified',
+    actor_username: 'root',
+    access_kind: 'ssh',
+    tool_name: 'לא מזוהה',
+    outcome: 'success',
+    event_type: 'ssh_login_success',
+    action_label: 'כניסת SSH',
+    ssh_fingerprint: 'SHA256:+cjDBmC5TAOzoHndrQ5QM84kUwCbP7AgosH8ociBSME',
+    source_ref: 'SHA256:+cjDBmC5TAOzoHndrQ5QM84kUwCbP7AgosH8ociBSME',
+  };
 
-  it('classifies named GitHub actor as approved', () => {
-    expect(classifySecurityEvent({
-      source: 'github',
-      identity_status: 'identified',
-      actor_username: 'orin1607-ctrl',
-      action_label: 'Push',
-      outcome: 'success',
-    })).toBe('approved');
-  });
+  const supabase1418 = {
+    source: 'supabase' as const,
+    identity_status: 'identity_unavailable',
+    actor_username: null,
+    actor_email: null,
+    access_kind: 'api',
+    tool_name: 'Supabase',
+    outcome: 'unknown',
+    event_type: 'auth_audit',
+    action_label: 'אירוע Auth',
+    source_ref: 'identity-seed-supabase',
+    details: { note: 'Supabase did not supply actor — identity unavailable' },
+  };
 
-  it('classifies proven Cursor/Cross mapping as approved', () => {
-    expect(classifySecurityEvent({
-      source: 'hostinger_vps',
-      identity_status: 'identified',
+  it('approves Cursor/Cross only when the fingerprint is the mapped key', () => {
+    const cursor = {
+      source: 'hostinger_vps' as const,
+      identity_status: 'identity_unavailable',
       actor_username: 'root',
       access_kind: 'cursor_cross',
       tool_name: 'Cursor/Cross',
       outcome: 'success',
-    })).toBe('approved');
-  });
-
-  it('classifies successful SSH with unmapped tool as review, not attacker', () => {
-    const row = {
-      source: 'hostinger_vps' as const,
-      identity_status: 'unidentified' as const,
-      actor_username: 'root',
-      access_kind: 'ssh',
-      tool_name: 'לא מזוהה',
-      outcome: 'success',
-      event_type: 'ssh_login',
+      ssh_fingerprint: 'SHA256:Ji7fUE2KcaJyxEhnHse0EqmL97LuuBuaOERJl+xtE4c',
     };
-    expect(classifySecurityEvent(row)).toBe('review');
-    expect(CLASS_HE[classifySecurityEvent(row)]).toBe('דורש בדיקה');
-    expect(JSON.stringify(CLASS_HE)).not.toMatch(/תוקף|לא מורשה|חיצוני/);
+    expect(classifyApproval(cursor)).toBe('approved');
+    expect(classifyIdentity(cursor)).toBe('identity_unavailable');
   });
 
-  it('classifies failed access as blocked/failed', () => {
-    expect(classifySecurityEvent({
-      source: 'hostinger_vps',
-      identity_status: 'unidentified',
-      event_type: 'ssh_login_failed',
-      outcome: 'failure',
-      tool_name: 'לא מזוהה',
-    })).toBe('failed');
+  it('does not approve SSH 14:11 without Cursor/Cross key proof', () => {
+    expect(classifyIdentity(ssh1411)).toBe('unidentified');
+    expect(classifyApproval(ssh1411)).toBe('review');
+    expect(approvalLabel(ssh1411)).toBe('דורש בדיקה');
+    expect(ssh1411.ssh_fingerprint).not.toContain('Ji7fUE2KcaJyxEhnHse0EqmL97LuuBuaOERJl+xtE4c');
   });
 
-  it('classifies insufficient identity as unidentified', () => {
-    expect(classifySecurityEvent({
+  it('marks Staging QA Supabase 14:18 as identity unavailable + approved QA', () => {
+    expect(classifyIdentity(supabase1418)).toBe('identity_unavailable');
+    expect(classifyApproval(supabase1418)).toBe('approved');
+    expect(approvalLabel(supabase1418)).toBe('מאושר — בדיקת QA');
+    expect(classifySecurityEvent(supabase1418)).toBe('unidentified');
+  });
+
+  it('does not treat missing identity as unapproved or attacker', () => {
+    expect(JSON.stringify({ ...IDENTITY_HE, ...APPROVAL_HE })).not.toMatch(/תוקף|לא מורשה|חיצוני/);
+    expect(classifyApproval(supabase1418)).not.toBe('unapproved');
+    expect(classifyApproval(supabase1418)).not.toBe('review');
+  });
+
+  it('does not approve a source just because it is GitHub or Supabase', () => {
+    expect(classifyApproval({
       source: 'supabase',
       identity_status: 'identity_unavailable',
       outcome: 'success',
-    })).toBe('unidentified');
+    })).toBe('review');
+    expect(classifyApproval({
+      source: 'github',
+      identity_status: 'identified',
+      actor_username: 'random-collaborator',
+      outcome: 'success',
+    })).toBe('unapproved');
   });
 
+  it('filters approval and identity independently', () => {
+    expect(matchesSecurityFilters(supabase1418, emptyFilter({ approval: 'approved' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(supabase1418, emptyFilter({ identity: 'identity_unavailable' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(supabase1418, emptyFilter({ identity: 'unidentified' }), new Set())).toBe(false);
+    expect(matchesSecurityFilters(ssh1411, emptyFilter({ approval: 'review' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(ssh1411, emptyFilter({ approval: 'approved' }), new Set())).toBe(false);
+    expect(matchesSecurityFilters(ssh1411, emptyFilter({ identity: 'unidentified' }), new Set())).toBe(true);
+  });
+});
+
+describe('security filters remaining', () => {
   it('does not count infrastructure events as app-active people', () => {
     const github = {
       source: 'github' as const,
@@ -213,8 +237,8 @@ describe('security event classification — display only', () => {
       outcome: 'success',
       occurred_at: '2026-08-19T14:12:00.000Z',
     };
-    expect(matchesSecurityFilters(approved, emptyFilter({ classification: 'approved' }), new Set())).toBe(true);
-    expect(matchesSecurityFilters(review, emptyFilter({ classification: 'approved' }), new Set())).toBe(false);
+    expect(matchesSecurityFilters(approved, emptyFilter({ approval: 'approved' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(review, emptyFilter({ approval: 'approved' }), new Set())).toBe(false);
     expect(matchesSecurityFilters(review, emptyFilter({ unidentifiedOnly: true }), new Set())).toBe(true);
     expect(matchesSecurityFilters(approved, emptyFilter({ unidentifiedOnly: true }), new Set())).toBe(false);
     expect(matchesSecurityFilters(approved, emptyFilter({ user: 'orin1607' }), new Set())).toBe(true);

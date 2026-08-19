@@ -21,6 +21,7 @@
   .filters label { display: block; font-size: 12px; font-weight: 700; margin-top: 8px; }
   .filters select, .filters .mini { width: 100%; padding: 10px; border-radius: 12px; border: 2px solid #ddd; }
   .actions { display: flex; gap: 8px; margin-top: 8px; }
+  .quick button { padding: 8px 10px; border-radius: 12px; border: 2px solid #ddd; background: #fff; font-size: 12px; }
   .actions button { flex: 1; padding: 10px; border-radius: 12px; border: 2px solid #ddd; background: #fff; }
   .clear { background: #2563eb !important; color: #fff; border-color: #2563eb !important; }
   .event { background: #fff; border-radius: 16px; padding: 12px; margin: 10px 0; width: 100%; text-align: right; box-shadow: 0 1px 4px #0001; border-right: 4px solid #10b981; }
@@ -50,8 +51,15 @@
   <h1>מרכז בקרה ואבטחה</h1>
   <div class="cards">
     <div class="sum"><p>משתמשי אפליקציה פעילים עכשיו</p><b>1</b></div>
-    <div class="sum"><p>גישות תשתית מאושרות</p><b>2</b></div>
-    <div class="sum warn"><p>לא מזוהה / דורש בדיקה</p><b>1</b></div>
+    <div class="sum"><p>מאושר על ידינו</p><b>2</b></div>
+    <div class="sum warn" style="border-right-color:#f97316"><p>דורש בדיקה</p><b>1</b></div>
+  </div>
+  <div class="quick" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">
+    <button type="button">הכול</button>
+    <button type="button">מאושרים</button>
+    <button type="button">דורשים בדיקה</button>
+    <button type="button">לא מזוהים</button>
+    <button type="button">נכשלו/נחסמו</button>
   </div>
   <div class="filters">
     <input placeholder="חיפוש חופשי: שם, אימייל או מילה מהפעולה"/>
@@ -60,43 +68,45 @@
       <button class="clear" type="button">נקה סינונים</button>
     </div>
     <div class="filters-extra">
-      <label>שם משתמש<input class="mini"/></label>
-      <label>חברה<select><option>הכל</option><option>אכבים</option></select></label>
-      <label>מערכת מקור<select><option>הכל</option><option>אפליקציה</option><option>GitHub</option><option>Supabase</option><option>Hostinger/VPS</option></select></label>
-      <label>כלי<select><option>הכל</option><option>Cursor/Cross</option><option>לא מזוהה</option></select></label>
-      <label>סיווג<select><option>הכל</option><option>מאושר / מוכר</option><option>לא מזוהה</option><option>דורש בדיקה</option><option>נחסם / נכשל</option></select></label>
+      <label>סטטוס אישור<select><option>הכול</option><option>מאושר על ידינו</option><option>דורש בדיקה</option><option>לא מאושר</option><option>נכשל / נחסם</option></select></label>
+      <label>זהות<select><option>הכול</option><option>מזוהה</option><option>זהות לא זמינה</option><option>זהות לא מזוהה</option></select></label>
+      <label>מערכת<select><option>הכול</option><option>אפליקציה</option><option>GitHub</option><option>Supabase</option><option>Hostinger/VPS</option></select></label>
+      <label>כלי<select><option>הכול</option><option>Cursor/Cross</option><option>Claude Code</option><option>ChatGPT</option><option>GitHub Actions</option><option>Automation</option><option>לא מזוהה</option></select></label>
     </div>
   </div>
-  <div class="event mobile-only">
-    <span class="badge g">מאושר / מוכר</span>
-    <div class="muted">17:05</div>
-    <div><b>GitHub — orin1607-ctrl</b></div>
-    <div>מערכת: GitHub</div>
-    <div>פעולה: Push</div>
-    <div>תוצאה: הצלחה</div>
+  <div class="event yellow mobile-only">
+    <span class="badge y">זהות לא זמינה</span>
+    <span class="badge g">מאושר — בדיקת QA</span>
+    <div class="muted">14:18</div>
+    <div><b>זהות לא זמינה</b></div>
+    <div>מערכת: Supabase</div>
+    <div>פעולה: אירוע Auth</div>
+    <div>תוצאה: זהות לא זמינה</div>
   </div>
   <div class="event orange mobile-only">
+    <span class="badge y">זהות לא מזוהה</span>
     <span class="badge o">דורש בדיקה</span>
-    <div class="muted">17:12</div>
+    <div class="muted">14:11</div>
     <div><b>root</b></div>
     <div>מערכת: Hostinger / VPS</div>
-    <div>פעולה: SSH Login</div>
+    <div>פעולה: כניסת SSH</div>
     <div>תוצאה: הצלחה</div>
   </div>
   <div class="event red mobile-only">
-    <span class="badge r">נחסם / נכשל</span>
-    <div class="muted">17:01</div>
-    <div><b>לא מזוהה</b></div>
+    <span class="badge y">זהות לא מזוהה</span>
+    <span class="badge r">נכשל / נחסם</span>
+    <div class="muted">14:15</div>
+    <div><b>root</b></div>
     <div>מערכת: Hostinger / VPS</div>
-    <div>פעולה: כניסת SSH</div>
+    <div>פעולה: כניסת SSH שנכשלה</div>
     <div>תוצאה: נכשל</div>
   </div>
   <div class="desktop-only">
     <table>
-      <thead><tr><th>סיווג</th><th>מערכת</th><th>שם משתמש</th><th>כלי</th><th>פעולה</th><th>שעה</th><th>תוצאה</th></tr></thead>
+      <thead><tr><th>זהות</th><th>סטטוס אישור</th><th>מערכת</th><th>שם משתמש</th><th>פעולה</th><th>שעה</th></tr></thead>
       <tbody>
-        <tr><td>מאושר / מוכר</td><td>GitHub</td><td>orin1607-ctrl</td><td>GitHub user</td><td>Push</td><td>17:05</td><td>הצלחה</td></tr>
-        <tr><td>דורש בדיקה</td><td>VPS</td><td>root</td><td>לא מזוהה</td><td>SSH Login</td><td>17:12</td><td>הצלחה</td></tr>
+        <tr><td>זהות לא זמינה</td><td>מאושר — בדיקת QA</td><td>Supabase</td><td>—</td><td>אירוע Auth</td><td>14:18</td></tr>
+        <tr><td>זהות לא מזוהה</td><td>דורש בדיקה</td><td>VPS</td><td>root</td><td>כניסת SSH</td><td>14:11</td></tr>
       </tbody>
     </table>
   </div>

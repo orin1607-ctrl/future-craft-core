@@ -1,0 +1,35 @@
+{
+  "verdict": "SECURITY CENTER IDENTITY vs APPROVAL — PASS",
+  "at": "2026-08-19T15:40:00Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "route": "/security-center",
+  "productionTouched": false,
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "daliaCarOnlineChanged": false,
+  "daliaCarProductionUnchanged": true,
+  "secretsInFrontendOrLog": false,
+  "eventsChecked": [
+    {
+      "localTime": "2026-08-19 14:11 Asia/Jerusalem",
+      "source": "hostinger_vps",
+      "action": "כניסת SSH",
+      "fingerprint": "SHA256:+cjDBmC5TAOzoHndrQ5QM84kUwCbP7AgosH8ociBSME",
+      "mappedCursorKey": "SHA256:Ji7fUE2KcaJyxEhnHse0EqmL97LuuBuaOERJl+xtE4c",
+      "fingerprintMatchesCursor": false,
+      "proofNote": "key has no identifying comment — tool not guessed",
+      "identity": "זהות לא מזוהה",
+      "approval": "דורש בדיקה",
+      "reason": "Success SSH with unmapped key. Not retroactively approved. Cursor/Cross proof is a different fingerprint (authorized_keys comment cursor-dalia-vps)."
+    },
+    {
+      "localTime": "2026-08-19 14:18 Asia/Jerusalem",
+      "source": "supabase",
+      "action": "אירוע Auth",
+      "source_ref": "identity-seed-supabase",
+      "identity": "זהות לא זמינה",
+      "approval": "מאושר — בדיקת QA",
+      "reason": "Proven Staging QA seed from scripts/security-identity-seed-staging.sql. Not approved merely because source=supabase."
+    }
+  ]
+}

@@ -64,7 +64,7 @@ export const SEVERITY_HE: Record<string, string> = {
 
 export const IDENTITY_HE: Record<string, string> = {
   identified: 'מזוהה',
-  unidentified: 'לא מזוהה',
+  unidentified: 'זהות לא מזוהה',
   identity_unavailable: 'זהות לא זמינה',
 };
 
@@ -106,13 +106,36 @@ export const TOOL_FILTER_KIND: Record<string, string> = {
   unidentified: 'unidentified',
 };
 
+export type IdentityKind = 'identified' | 'identity_unavailable' | 'unidentified';
+export type ApprovalStatus = 'approved' | 'review' | 'unapproved' | 'failed';
+/** Row color tone — identity gap is yellow, not the same as "needs review". */
 export type SecurityClass = 'approved' | 'unidentified' | 'review' | 'failed';
 
-export const CLASS_HE: Record<SecurityClass, string> = {
-  approved: 'מאושר / מוכר',
-  unidentified: 'לא מזוהה',
+export const APPROVAL_HE: Record<ApprovalStatus, string> = {
+  approved: 'מאושר על ידינו',
   review: 'דורש בדיקה',
-  failed: 'נחסם / נכשל',
+  unapproved: 'לא מאושר',
+  failed: 'נכשל / נחסם',
+};
+
+export const CLASS_HE: Record<SecurityClass, string> = {
+  approved: 'מאושר על ידינו',
+  unidentified: 'זהות חסרה',
+  review: 'דורש בדיקה',
+  failed: 'נכשל / נחסם',
+};
+
+export const IDENTITY_BADGE_CLASS: Record<IdentityKind, string> = {
+  identified: 'bg-emerald-50 text-emerald-900 border-emerald-400',
+  identity_unavailable: 'bg-amber-100 text-amber-900 border-amber-400',
+  unidentified: 'bg-amber-100 text-amber-900 border-amber-400',
+};
+
+export const APPROVAL_BADGE_CLASS: Record<ApprovalStatus, string> = {
+  approved: 'bg-emerald-100 text-emerald-800 border-emerald-500',
+  review: 'bg-orange-100 text-orange-900 border-orange-500',
+  unapproved: 'bg-red-100 text-red-800 border-red-500',
+  failed: 'bg-red-100 text-red-800 border-red-500',
 };
 
 export const CLASS_BADGE_CLASS: Record<SecurityClass, string> = {
@@ -134,6 +157,21 @@ const FAILED_EVENT_TYPES = new Set([
   'forbidden_action', 'session_invalid', 'unauthorized_anonymous', 'invalid_token',
 ]);
 
+/** Proven Staging QA seeds we created. Never infer QA from source/time alone. */
+const APPROVED_QA_SOURCE_REFS = new Set([
+  'identity-seed-supabase',
+  'identity-seed-push-orin',
+  'identity-seed-gha',
+]);
+
+const APPROVED_GITHUB_LOGINS = new Set([
+  'orin1607-ctrl',
+  'github-actions[bot]',
+  'github-actions',
+  'cursor[bot]',
+  'cursoragent',
+]);
+
 function isAccessFailure(row: SecurityIdentityRow): boolean {
   if (row.outcome === 'failure') return true;
   if (FAILED_EVENT_TYPES.has(row.event_type || '')) return true;
@@ -141,26 +179,95 @@ function isAccessFailure(row: SecurityIdentityRow): boolean {
   return /נדחה|נחסם|blocked/i.test(blob);
 }
 
-function isApprovedMapped(row: SecurityIdentityRow): boolean {
-  if (row.access_kind && AUTHORIZED_TOOL_LABEL[row.access_kind] && row.tool_name !== 'לא מזוהה') return true;
-  if (row.source === 'app' && row.identity_status === 'identified' && !!(row.actor_user_id || row.actor_email || row.actor_username)) return true;
-  if (row.source === 'github' && row.identity_status === 'identified' && !!(row.actor_username || row.actor_email)) return true;
+function hasPersonFields(row: SecurityIdentityRow): boolean {
+  return !!(row.actor_user_id || (row.actor_email || '').trim() || (row.actor_username || '').trim());
+}
+
+export function isMappedAuthorizedTool(row: SecurityIdentityRow): boolean {
+  return !!(row.access_kind && AUTHORIZED_TOOL_LABEL[row.access_kind] && row.tool_name !== 'לא מזוהה');
+}
+
+export function isApprovedQaEvent(row: SecurityIdentityRow): boolean {
+  const ref = (row.source_ref || '').trim();
+  if (APPROVED_QA_SOURCE_REFS.has(ref)) return true;
+  const details = row.details || {};
+  if (details.qa === true || details.approval_basis === 'qa') return true;
   return false;
 }
 
-/** Display-only classification. Never labels anyone as attacker/unauthorized without proof. */
-export function classifySecurityEvent(row: SecurityIdentityRow): SecurityClass {
+function githubLogin(row: SecurityIdentityRow): string {
+  return (row.actor_username || row.actor_email || '').trim().toLowerCase();
+}
+
+export function isApprovedGithubActor(row: SecurityIdentityRow): boolean {
+  const login = githubLogin(row);
+  if (!login) return false;
+  if (APPROVED_GITHUB_LOGINS.has(login)) return true;
+  if (row.access_kind === 'github_actions' || row.access_kind === 'cursor_cross') return true;
+  return false;
+}
+
+/** Who/what we could identify. Separate from approval. */
+export function classifyIdentity(row: SecurityIdentityRow): IdentityKind {
+  const noPerson = !hasPersonFields(row);
+  if (row.source === 'supabase' && noPerson) return 'identity_unavailable';
+  if (row.identity_status === 'identity_unavailable' && noPerson) return 'identity_unavailable';
+
+  if (row.source === 'hostinger_vps') {
+    if (isMappedAuthorizedTool(row)) {
+      return hasPersonFields(row) && row.identity_status === 'identified' && row.actor_username !== 'root'
+        ? 'identified'
+        : 'identity_unavailable';
+    }
+    return 'unidentified';
+  }
+
+  if (row.source === 'github') {
+    if ((row.actor_username || row.actor_email || '').trim()) return 'identified';
+    return 'identity_unavailable';
+  }
+
+  if (row.source === 'app' && (row.actor_user_id || row.actor_email || row.actor_username)) {
+    return 'identified';
+  }
+
+  if (row.identity_status === 'identified' && hasPersonFields(row)) return 'identified';
+  if (row.identity_status === 'identity_unavailable') return 'identity_unavailable';
+  return 'unidentified';
+}
+
+export function classifyApproval(row: SecurityIdentityRow): ApprovalStatus {
   if (isAccessFailure(row)) return 'failed';
-  if (isApprovedMapped(row)) return 'approved';
-  if (row.outcome === 'success' && (row.tool_name === 'לא מזוהה' || row.identity_status === 'unidentified')) {
+  if (isApprovedQaEvent(row)) return 'approved';
+  if (isMappedAuthorizedTool(row)) return 'approved';
+  if (row.source === 'app' && classifyIdentity(row) === 'identified') return 'approved';
+  if (row.source === 'github') {
+    if (isApprovedGithubActor(row)) return 'approved';
+    if (classifyIdentity(row) === 'identified') return 'unapproved';
     return 'review';
   }
-  return 'unidentified';
+  return 'review';
+}
+
+export function approvalLabel(row: SecurityIdentityRow): string {
+  const status = classifyApproval(row);
+  if (status === 'approved' && isApprovedQaEvent(row)) return 'מאושר — בדיקת QA';
+  return APPROVAL_HE[status];
+}
+
+/** Visual tone: missing identity is yellow only when approval is not a problem. */
+export function classifySecurityEvent(row: SecurityIdentityRow): SecurityClass {
+  const approval = classifyApproval(row);
+  const identity = classifyIdentity(row);
+  if (approval === 'failed' || approval === 'unapproved') return 'failed';
+  if (approval === 'review') return 'review';
+  if (approval === 'approved' && identity !== 'identified') return 'unidentified';
+  return 'approved';
 }
 
 export function activityLayer(row: SecurityIdentityRow): 'app' | 'infra_approved' | 'infra_unknown' {
   if (row.source === 'app') return 'app';
-  return classifySecurityEvent(row) === 'approved' ? 'infra_approved' : 'infra_unknown';
+  return classifyApproval(row) === 'approved' ? 'infra_approved' : 'infra_unknown';
 }
 
 export type SecurityIdentityRow = {
@@ -185,6 +292,8 @@ export type SecurityIdentityRow = {
   actor_user_id?: string | null;
   action_label?: string;
   occurred_at?: string;
+  source_ref?: string | null;
+  details?: Record<string, unknown> | null;
 };
 
 export function displayAccount(row: SecurityIdentityRow): string {
@@ -284,6 +393,7 @@ export type SecurityFilterState = {
   unidentifiedOnly: boolean;
   activePeopleOnly: boolean;
   classification: string;
+  approval: string;
   layer: string;
 };
 
@@ -321,11 +431,9 @@ export function matchesSecurityFilters(
   filter: SecurityFilterState,
   activeIds: Set<string>,
 ): boolean {
-  if (filter.unidentifiedOnly) {
-    const c = classifySecurityEvent(row);
-    if (c !== 'unidentified' && c !== 'review') return false;
-  }
-  if (filter.classification && classifySecurityEvent(row) !== filter.classification) return false;
+  if (filter.unidentifiedOnly && classifyIdentity(row) !== 'unidentified') return false;
+  const approval = filter.approval || filter.classification;
+  if (approval && classifyApproval(row) !== approval) return false;
   if (filter.layer && activityLayer(row) !== filter.layer) return false;
   if (filter.activePeopleOnly) {
     if (row.source !== 'app' || !row.actor_user_id || !activeIds.has(row.actor_user_id)) return false;
@@ -338,7 +446,7 @@ export function matchesSecurityFilters(
       if (!/נדחה|נחסם|blocked/i.test(blob)) return false;
     } else if (row.outcome !== filter.outcome) return false;
   }
-  if (filter.identity && row.identity_status !== filter.identity) return false;
+  if (filter.identity && classifyIdentity(row) !== filter.identity) return false;
   if (filter.severity && row.severity !== filter.severity) return false;
   if (filter.company && (row.company_name || '') !== filter.company) return false;
   if (filter.tool) {
