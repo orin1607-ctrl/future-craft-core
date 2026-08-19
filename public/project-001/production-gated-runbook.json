@@ -1,0 +1,129 @@
+{
+  "id": "production-gated-runbook",
+  "at": "2026-08-19T06:00:00.000Z",
+  "status": "WAITING_OWNER_APPROVAL_OF_SEQUENCE_ONLY",
+  "nextAllowedAction": "none — stop until Owner approves this sequence, then separately approve Step 1 only",
+  "productionTouched": false,
+  "productionChanged": false,
+  "method": "BACKUP → CHANGE → TEST → PASS/FAIL → CONTINUE OR ROLLBACK",
+  "gateRule": "One significant change at a time. Stop after each step. Wait for Owner to approve the next step. Never run the full plan in one go.",
+  "scope": ["C1-public-documents", "C4-anon-declarations-exams"],
+  "forbiddenThisRun": [
+    "delete customer data",
+    "open customer document bytes unless a disposable QA file",
+    "change users",
+    "revoke sessions",
+    "rotate secrets",
+    "apply full Staging branch",
+    "apply Staging migrations as a single file that also DROPs C4 or rebuilds all storage policies"
+  ],
+  "expectedOpenUntilLaterStep": {
+    "untilStep5": "C4 remains open on purpose. Anon can still count pending declarations. That is not a FAIL before step 5.",
+    "untilStep7": "documents bucket stays public on purpose. Old public URLs still work. Anon document access is not a FAIL before step 7."
+  },
+  "requiredChecksEveryChangeStep": [
+    "login existing active user",
+    "drivers list loads for that company",
+    "vehicles list loads for that company",
+    "upload a disposable QA document (not a customer file)",
+    "view a document the tester is allowed to see (QA file preferred)",
+    "download that same QA file",
+    "company A does not see company B rows in drivers/vehicles",
+    "company B cannot open company A QA file",
+    "unauthenticated cannot open the QA file — FAIL only from step 7 onward; before that it is expected to still work via public URL",
+    "declaration sign-by-link with a disposable QA token still works"
+  ],
+  "logFile": "public/project-001/production-gated-run-log.json",
+  "logFields": ["step", "backedUp", "changed", "tests", "verdict", "rollbackDone"],
+  "steps": [
+    {
+      "id": "S1",
+      "name": "גיבוי בלבד — אין שינוי מערכת",
+      "what": "צילום dist ב-Hostinger/VPS, צילום SELECT של storage.buckets, pg_policies הרלוונטיות, ו-pg_proc של חמשת ה-RPCs (צפוי ריק).",
+      "mayHarm": "כלום אם זה רק קריאה + tar של dist הקיים בלי למחוק אותו.",
+      "backup": "זה השלב עצמו. בלי הקבצים האלה אסור להמשיך.",
+      "rollback": "לא נדרש — אין שינוי.",
+      "success": "יש tarball dist עם index.html. יש JSON עם public=true, public_read_documents, 4 מדיניות C4, ו-RPCs חסרים כמו היום.",
+      "stopIf": "אין tarball, או הצילום לא תואם את מה שראינו ב-RO.",
+      "ownerGateAfter": true
+    },
+    {
+      "id": "S2",
+      "name": "יצירת 5 RPCs בלבד",
+      "what": "CREATE OR REPLACE + GRANT EXECUTE ל-anon/authenticated. בלי DROP POLICY.",
+      "mayHarm": "נמוך. האתר הישן ממשיך לעבוד דרך C4. אם GRANT חסר, האתר החדש בשלב 3 ייכשל בחתימה — לכן לא מעלים אתר לפני שבדיקת RPC עוברת.",
+      "backup": "כבר יש צילום pg_proc ריק משלב 1. שומרים גם את SQL המדויק שרץ.",
+      "rollback": "DROP FUNCTION של החמש אם חייבים. האתר הישן לא תלוי בהן.",
+      "success": "חמשת השמות קיימים. token מזויף מחזיר אפס שורות. 4 מדיניות C4 עדיין קיימות. כניסה/נהגים/רכבים/מסמך QA/חתימת QA עדיין עובדים כמו קודם.",
+      "stopIf": "CREATE נכשל, או פונקציה חסרה, או פונקציונליות רגילה נשברה.",
+      "ownerGateAfter": true
+    },
+    {
+      "id": "S3",
+      "name": "העלאת אתר hotfix ל-Hostinger",
+      "what": "פריסת שכבת תיקון מעל הקוד החי: signed URL + דפי חתימה/מבחן ב-RPC. לא כל Staging. bucket נשאר ציבורי. C4 נשאר פתוח.",
+      "mayHarm": "JS חדש. אם חסר קובץ, צפייה/חתימה עלולים להישבר. רשת ביטחון: קישורים ציבוריים ישנים עדיין עובדים.",
+      "backup": "tarball dist משלב 1 חייב להיות זמין לשחזור תוך 5–15 דקות (rollback-production-vps).",
+      "rollback": "שחזור dist מה-tarball. לא נוגעים ב-DB.",
+      "success": "bundle החי אינו index-CECbN36N. יש get_declaration_by_token ב-JS. כניסה, נהגים, רכבים, העלאה, צפייה, הורדה של QA עובדים. חתימת QA עובדת דרך RPC. הפרדת חברות לא נשברה.",
+      "stopIf": "אתר לא עולה, לוגין נכשל, מסמך QA לא נפתח, חתימה נכשלת.",
+      "ownerGateAfter": true
+    },
+    {
+      "id": "S4",
+      "name": "אימות חלון כפול — אין שינוי",
+      "what": "רק בדיקות. מוודאים שהמנגנון החדש חי לפני שסוגרים את הישן.",
+      "mayHarm": "אין.",
+      "backup": "אין שינוי.",
+      "rollback": "אין.",
+      "success": "signed URL עובד למסמך QA. RPC חתימה עובד. המנגנון הישן עדיין קיים במכוון (bucket public, C4 open).",
+      "stopIf": "החדש לא יציב — לא סוגרים כלום. אם צריך, rollback של dist משלב 3.",
+      "ownerGateAfter": true
+    },
+    {
+      "id": "S5",
+      "name": "סגירת C4 בלבד",
+      "what": "DROP של 4 מדיניות אנונימיות על הצהרות/מבחנים. לא נוגעים ב-Storage.",
+      "mayHarm": "חתימה דרך הטבלה הישנה תישבר. חייב ש-RPC+אתר כבר עובדים.",
+      "backup": "צילום 4 המדיניות המלא (name, cmd, qual) משלב 1, מוכן ל-CREATE POLICY חוזר.",
+      "rollback": "שחזור 4 המדיניות מהצילום. כמה דקות. לא משנים users/files.",
+      "success": "אנונימי לא סופר הצהרות. חתימת QA לפי קישור עדיין עובדת. כניסה/מסמכים/נהגים/רכבים תקינים.",
+      "stopIf": "חתימה נכשלת, או לוגין/מסמכים נשברים.",
+      "ownerGateAfter": true
+    },
+    {
+      "id": "S6",
+      "name": "אימות אחרי C4 — אין שינוי",
+      "what": "רק בדיקות חוזרות.",
+      "mayHarm": "אין.",
+      "backup": "אין שינוי.",
+      "rollback": "אם מתגלה כשל מאוחר — שחזור מדיניות C4 משלב 5.",
+      "success": "C4 סגור. חתימה חיה. שאר המערכת חיה. bucket עדיין public במכוון.",
+      "stopIf": "כל FAIL.",
+      "ownerGateAfter": true
+    },
+    {
+      "id": "S7",
+      "name": "סגירת גישה ציבורית למסמכים בלבד",
+      "what": "SET documents.public=false. DROP public_read_documents. DROP Anonymous can view declaration signatures. משאירים Anon INSERT ל-declarations/.",
+      "mayHarm": "קישורים ישנים /object/public/ מתים מיד. משתמש מחובר עם האתר החדש אמור להמשיך דרך signed URL.",
+      "backup": "צילום buckets.public + שתי המדיניות. tarball dist כבר קיים.",
+      "rollback": "SET public=true + CREATE POLICY מהצילום. 5–10 דקות. לא מוחקים קבצים.",
+      "success": "אנונימי לא מגיע למסמך QA. מחובר כן צופה/מעלה/מוריד QA ב-signed URL. חתימה עדיין עובדת. נהגים/רכבים/לוגין תקינים.",
+      "stopIf": "צפייה/העלאה/הורדה נכשלת למחובר, או חתימה נכשלת.",
+      "ownerGateAfter": true
+    },
+    {
+      "id": "S8",
+      "name": "אימות סופי — אין שינוי",
+      "what": "רשימת הבדיקות המלאה. תיעוד PASS/FAIL.",
+      "mayHarm": "אין.",
+      "backup": "אין שינוי.",
+      "rollback": "לפי השלב האחרון שעבר.",
+      "success": "מסמכים פרטיים לאנונימי. C4 סגור. חתימה ב-RPC. לקוחות מחוברים עובדים.",
+      "stopIf": "כל FAIL — לא ממשיכים ל-High אחרים.",
+      "ownerGateAfter": true
+    }
+  ],
+  "waitingFor": "Owner approval of this sequence. After that, a separate approval for S1 only."
+}
