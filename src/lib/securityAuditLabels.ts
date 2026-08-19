@@ -101,8 +101,67 @@ export const TOOL_FILTER_KIND: Record<string, string> = {
   claude: 'claude_code',
   chatgpt: 'chatgpt',
   actions: 'github_actions',
+  automation: 'automation',
   other: 'other',
+  unidentified: 'unidentified',
 };
+
+export type SecurityClass = 'approved' | 'unidentified' | 'review' | 'failed';
+
+export const CLASS_HE: Record<SecurityClass, string> = {
+  approved: 'מאושר / מוכר',
+  unidentified: 'לא מזוהה',
+  review: 'דורש בדיקה',
+  failed: 'נחסם / נכשל',
+};
+
+export const CLASS_BADGE_CLASS: Record<SecurityClass, string> = {
+  approved: 'bg-emerald-100 text-emerald-800 border-emerald-500',
+  unidentified: 'bg-amber-100 text-amber-900 border-amber-400',
+  review: 'bg-orange-100 text-orange-900 border-orange-500',
+  failed: 'bg-red-100 text-red-800 border-red-500',
+};
+
+export const CLASS_ROW_CLASS: Record<SecurityClass, string> = {
+  approved: 'border-r-4 border-r-emerald-500',
+  unidentified: 'border-r-4 border-r-amber-400',
+  review: 'border-r-4 border-r-orange-500',
+  failed: 'border-r-4 border-r-red-500',
+};
+
+const FAILED_EVENT_TYPES = new Set([
+  'login_failed', 'ssh_login_failed', 'otp_failed', 'unauthorized_page',
+  'forbidden_action', 'session_invalid', 'unauthorized_anonymous', 'invalid_token',
+]);
+
+function isAccessFailure(row: SecurityIdentityRow): boolean {
+  if (row.outcome === 'failure') return true;
+  if (FAILED_EVENT_TYPES.has(row.event_type || '')) return true;
+  const blob = `${row.result_label || ''} ${row.outcome || ''}`;
+  return /נדחה|נחסם|blocked/i.test(blob);
+}
+
+function isApprovedMapped(row: SecurityIdentityRow): boolean {
+  if (row.access_kind && AUTHORIZED_TOOL_LABEL[row.access_kind] && row.tool_name !== 'לא מזוהה') return true;
+  if (row.source === 'app' && row.identity_status === 'identified' && !!(row.actor_user_id || row.actor_email || row.actor_username)) return true;
+  if (row.source === 'github' && row.identity_status === 'identified' && !!(row.actor_username || row.actor_email)) return true;
+  return false;
+}
+
+/** Display-only classification. Never labels anyone as attacker/unauthorized without proof. */
+export function classifySecurityEvent(row: SecurityIdentityRow): SecurityClass {
+  if (isAccessFailure(row)) return 'failed';
+  if (isApprovedMapped(row)) return 'approved';
+  if (row.outcome === 'success' && (row.tool_name === 'לא מזוהה' || row.identity_status === 'unidentified')) {
+    return 'review';
+  }
+  return 'unidentified';
+}
+
+export function activityLayer(row: SecurityIdentityRow): 'app' | 'infra_approved' | 'infra_unknown' {
+  if (row.source === 'app') return 'app';
+  return classifySecurityEvent(row) === 'approved' ? 'infra_approved' : 'infra_unknown';
+}
 
 export type SecurityIdentityRow = {
   source: string;
@@ -224,6 +283,8 @@ export type SecurityFilterState = {
   action: string;
   unidentifiedOnly: boolean;
   activePeopleOnly: boolean;
+  classification: string;
+  layer: string;
 };
 
 export type SessionLike = {
@@ -260,7 +321,12 @@ export function matchesSecurityFilters(
   filter: SecurityFilterState,
   activeIds: Set<string>,
 ): boolean {
-  if (filter.unidentifiedOnly && !needsIdentityAttention(row)) return false;
+  if (filter.unidentifiedOnly) {
+    const c = classifySecurityEvent(row);
+    if (c !== 'unidentified' && c !== 'review') return false;
+  }
+  if (filter.classification && classifySecurityEvent(row) !== filter.classification) return false;
+  if (filter.layer && activityLayer(row) !== filter.layer) return false;
   if (filter.activePeopleOnly) {
     if (row.source !== 'app' || !row.actor_user_id || !activeIds.has(row.actor_user_id)) return false;
   }
@@ -276,10 +342,14 @@ export function matchesSecurityFilters(
   if (filter.severity && row.severity !== filter.severity) return false;
   if (filter.company && (row.company_name || '') !== filter.company) return false;
   if (filter.tool) {
-    const kind = TOOL_FILTER_KIND[filter.tool];
-    if (filter.tool === 'other') {
+    if (filter.tool === 'unidentified') {
+      if (displayTool(row) !== 'כלי/אדם לא מזוהה') return false;
+    } else if (filter.tool === 'other') {
       if (row.access_kind && AUTHORIZED_TOOL_LABEL[row.access_kind]) return false;
-    } else if (kind && row.access_kind !== kind) return false;
+    } else {
+      const kind = TOOL_FILTER_KIND[filter.tool];
+      if (kind && row.access_kind !== kind) return false;
+    }
   }
   if (filter.action) {
     const blob = `${row.action_label || ''} ${row.event_type || ''}`.toLowerCase();

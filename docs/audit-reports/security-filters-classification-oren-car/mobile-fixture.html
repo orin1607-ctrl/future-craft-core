@@ -1,16 +1,4 @@
-/**
- * Viewport QA for Security Center classification cards + labeled filters.
- * No Production. No secrets.
- * node scripts/qa-security-center-mobile.mjs
- */
-import { mkdirSync, writeFileSync } from 'fs';
-import { join } from 'path';
-import { chromium } from 'playwright';
-
-const OUT = join(process.cwd(), 'docs/audit-reports/security-filters-classification-oren-car');
-mkdirSync(OUT, { recursive: true });
-
-const html = `<!doctype html>
+<!doctype html>
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8"/>
@@ -114,46 +102,4 @@ const html = `<!doctype html>
   </div>
 </div>
 </body>
-</html>`;
-
-writeFileSync(join(OUT, 'mobile-fixture.html'), html);
-
-const widths = [320, 375, 390, 430, 1280];
-const results = [];
-
-const browser = await chromium.launch();
-const page = await browser.newPage();
-const fileUrl = 'file:///' + join(OUT, 'mobile-fixture.html').replace(/\\/g, '/');
-
-for (const width of widths) {
-  await page.setViewportSize({ width, height: 800 });
-  await page.goto(fileUrl);
-  const metrics = await page.evaluate(() => {
-    const desktop = document.querySelector('.desktop-only');
-    const mobile = document.querySelector('.mobile-only');
-    const extra = document.querySelector('.filters-extra');
-    return {
-      innerWidth: window.innerWidth,
-      scrollWidth: document.documentElement.scrollWidth,
-      bodyScrollWidth: document.body.scrollWidth,
-      desktopDisplay: desktop ? getComputedStyle(desktop).display : null,
-      mobileDisplay: mobile ? getComputedStyle(mobile).display : null,
-      extraMaxHeight: extra ? getComputedStyle(extra).maxHeight : null,
-    };
-  });
-  const overflow = metrics.scrollWidth > metrics.innerWidth + 2;
-  const expectDesktop = width >= 768;
-  const layoutOk = expectDesktop
-    ? metrics.desktopDisplay !== 'none' && metrics.mobileDisplay === 'none'
-    : metrics.desktopDisplay === 'none' && metrics.mobileDisplay !== 'none';
-  const filtersNotFullscreen = expectDesktop || metrics.extraMaxHeight === 'none' || parseInt(metrics.extraMaxHeight || '0', 10) <= 320;
-  const shot = join(OUT, `mobile-${width}.png`);
-  await page.screenshot({ path: shot, fullPage: true });
-  results.push({ width, overflow, layoutOk, filtersNotFullscreen, ...metrics, screenshot: shot });
-}
-
-await browser.close();
-writeFileSync(join(OUT, 'mobile-qa.json'), JSON.stringify({ at: new Date().toISOString(), results }, null, 2));
-const failed = results.filter((r) => (r.width <= 430 && r.overflow) || !r.layoutOk || !r.filtersNotFullscreen);
-console.log(JSON.stringify({ ok: failed.length === 0, results }, null, 2));
-if (failed.length) process.exit(1);
+</html>

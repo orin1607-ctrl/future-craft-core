@@ -1,0 +1,24 @@
+{
+  "verdict": "SECURITY CENTER FILTERS & CLASSIFICATION — PASS",
+  "at": "2026-08-19T15:15:00Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "route": "/security-center",
+  "productionTouched": false,
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "daliaCarOnlineChanged": false,
+  "daliaCarProductionUnchanged": true,
+  "secretsInFrontendOrLog": false,
+  "unitTests": "26 passed (classification, filters, super_admin route)",
+  "mobileQa": "320/375/390/430/1280 overflow-free; filters max-height 256px on phone",
+  "approvedRule": "Mapped authorized tool, identified app user, or named GitHub actor from source. Never guessed from IP.",
+  "unidentifiedRule": "Real event without reliable identity → לא מזוהה. Successful unmapped access → דורש בדיקה. Never attacker/unauthorized/external without proof.",
+  "activePeopleRule": "App heartbeats only (security_activity_sessions). GitHub/VPS/Supabase events are not counted as פעילים עכשיו.",
+  "changed": [
+    "Display classification: מאושר / מוכר, לא מזוהה, דורש בדיקה, נחסם / נכשל",
+    "Color + text badges (green/yellow/orange/red)",
+    "Labeled filters + free search + נקה סינונים",
+    "Three layers: app users vs approved infra vs unidentified/review",
+    "Mobile cards: מי / מערכת / סיווג / פעולה / שעה / תוצאה"
+  ]
+}

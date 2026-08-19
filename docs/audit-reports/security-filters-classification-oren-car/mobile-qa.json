@@ -1,0 +1,70 @@
+{
+  "at": "2026-08-19T15:12:16.666Z",
+  "results": [
+    {
+      "width": 320,
+      "overflow": false,
+      "layoutOk": true,
+      "filtersNotFullscreen": true,
+      "innerWidth": 320,
+      "scrollWidth": 320,
+      "bodyScrollWidth": 320,
+      "desktopDisplay": "none",
+      "mobileDisplay": "block",
+      "extraMaxHeight": "256px",
+      "screenshot": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\security-filters-classification-oren-car\\mobile-320.png"
+    },
+    {
+      "width": 375,
+      "overflow": false,
+      "layoutOk": true,
+      "filtersNotFullscreen": true,
+      "innerWidth": 375,
+      "scrollWidth": 375,
+      "bodyScrollWidth": 375,
+      "desktopDisplay": "none",
+      "mobileDisplay": "block",
+      "extraMaxHeight": "256px",
+      "screenshot": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\security-filters-classification-oren-car\\mobile-375.png"
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "layoutOk": true,
+      "filtersNotFullscreen": true,
+      "innerWidth": 390,
+      "scrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "desktopDisplay": "none",
+      "mobileDisplay": "block",
+      "extraMaxHeight": "256px",
+      "screenshot": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\security-filters-classification-oren-car\\mobile-390.png"
+    },
+    {
+      "width": 430,
+      "overflow": false,
+      "layoutOk": true,
+      "filtersNotFullscreen": true,
+      "innerWidth": 430,
+      "scrollWidth": 430,
+      "bodyScrollWidth": 430,
+      "desktopDisplay": "none",
+      "mobileDisplay": "block",
+      "extraMaxHeight": "256px",
+      "screenshot": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\security-filters-classification-oren-car\\mobile-430.png"
+    },
+    {
+      "width": 1280,
+      "overflow": false,
+      "layoutOk": true,
+      "filtersNotFullscreen": true,
+      "innerWidth": 1280,
+      "scrollWidth": 1280,
+      "bodyScrollWidth": 1280,
+      "desktopDisplay": "block",
+      "mobileDisplay": "none",
+      "extraMaxHeight": "none",
+      "screenshot": "C:\\Users\\אליאב\\OneDrive\\מסמכים\\future-craft-core-STAGING\\docs\\audit-reports\\security-filters-classification-oren-car\\mobile-1280.png"
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { canAccessRoute } from './routeAccess';
 import {
+  CLASS_HE,
+  activityLayer,
+  classifySecurityEvent,
   countDistinctActivePeople,
   displayAccount,
   displayActivityDuration,
@@ -9,7 +12,15 @@ import {
   needsIdentityAttention,
   redactDetails,
   shortFingerprint,
+  type SecurityFilterState,
 } from './securityAuditLabels';
+
+const emptyFilter = (patch: Partial<SecurityFilterState> = {}): SecurityFilterState => ({
+  search: '', source: '', role: '', outcome: '', identity: '', severity: '',
+  dateFrom: '', dateTo: '', hour: '', company: '', user: '', email: '', tool: '', action: '',
+  unidentifiedOnly: false, activePeopleOnly: false, classification: '', layer: '',
+  ...patch,
+});
 
 describe('security identity display — no guessing', () => {
   it('shows GitHub account as the source reports it', () => {
@@ -85,17 +96,144 @@ describe('security identity display — no guessing', () => {
   });
 
   it('filters by source and unidentified without mixing people', () => {
-    const empty = {
-      search: '', source: 'github', role: '', outcome: '', identity: '', severity: '',
-      dateFrom: '', dateTo: '', hour: '', company: '', user: '', email: '', tool: '', action: '',
-      unidentifiedOnly: false, activePeopleOnly: false,
-    };
+    const empty = emptyFilter({ source: 'github' });
     expect(matchesSecurityFilters({
       source: 'github', identity_status: 'identified', actor_username: 'orin1607-ctrl', action_label: 'Push',
     }, empty, new Set())).toBe(true);
     expect(matchesSecurityFilters({
       source: 'app', identity_status: 'identified', actor_username: 'x',
     }, empty, new Set())).toBe(false);
+  });
+});
+
+describe('security event classification — display only', () => {
+  it('classifies mapped app user as approved', () => {
+    expect(classifySecurityEvent({
+      source: 'app',
+      identity_status: 'identified',
+      actor_user_id: 'u1',
+      actor_username: 'יוני אטיאס',
+      actor_email: 'owner@example.com',
+      actor_role: 'super_admin',
+      outcome: 'success',
+    })).toBe('approved');
+  });
+
+  it('classifies named GitHub actor as approved', () => {
+    expect(classifySecurityEvent({
+      source: 'github',
+      identity_status: 'identified',
+      actor_username: 'orin1607-ctrl',
+      action_label: 'Push',
+      outcome: 'success',
+    })).toBe('approved');
+  });
+
+  it('classifies proven Cursor/Cross mapping as approved', () => {
+    expect(classifySecurityEvent({
+      source: 'hostinger_vps',
+      identity_status: 'identified',
+      actor_username: 'root',
+      access_kind: 'cursor_cross',
+      tool_name: 'Cursor/Cross',
+      outcome: 'success',
+    })).toBe('approved');
+  });
+
+  it('classifies successful SSH with unmapped tool as review, not attacker', () => {
+    const row = {
+      source: 'hostinger_vps' as const,
+      identity_status: 'unidentified' as const,
+      actor_username: 'root',
+      access_kind: 'ssh',
+      tool_name: 'לא מזוהה',
+      outcome: 'success',
+      event_type: 'ssh_login',
+    };
+    expect(classifySecurityEvent(row)).toBe('review');
+    expect(CLASS_HE[classifySecurityEvent(row)]).toBe('דורש בדיקה');
+    expect(JSON.stringify(CLASS_HE)).not.toMatch(/תוקף|לא מורשה|חיצוני/);
+  });
+
+  it('classifies failed access as blocked/failed', () => {
+    expect(classifySecurityEvent({
+      source: 'hostinger_vps',
+      identity_status: 'unidentified',
+      event_type: 'ssh_login_failed',
+      outcome: 'failure',
+      tool_name: 'לא מזוהה',
+    })).toBe('failed');
+  });
+
+  it('classifies insufficient identity as unidentified', () => {
+    expect(classifySecurityEvent({
+      source: 'supabase',
+      identity_status: 'identity_unavailable',
+      outcome: 'success',
+    })).toBe('unidentified');
+  });
+
+  it('does not count infrastructure events as app-active people', () => {
+    const github = {
+      source: 'github' as const,
+      identity_status: 'identified' as const,
+      actor_username: 'orin1607-ctrl',
+      actor_user_id: null,
+    };
+    const vps = {
+      source: 'hostinger_vps' as const,
+      identity_status: 'identified' as const,
+      actor_username: 'root',
+      actor_user_id: null,
+      access_kind: 'cursor_cross',
+      tool_name: 'Cursor/Cross',
+    };
+    expect(activityLayer(github)).toBe('infra_approved');
+    expect(activityLayer(vps)).toBe('infra_approved');
+    expect(matchesSecurityFilters(github, emptyFilter({ activePeopleOnly: true }), new Set(['u1']))).toBe(false);
+    expect(matchesSecurityFilters(vps, emptyFilter({ layer: 'app' }), new Set())).toBe(false);
+  });
+
+  it('filters by classification, tool, company, free search and clear-equivalent empty', () => {
+    const approved = {
+      source: 'github' as const,
+      identity_status: 'identified' as const,
+      actor_username: 'orin1607-ctrl',
+      action_label: 'Push',
+      company_name: 'אכבים',
+      occurred_at: '2026-08-19T14:05:00.000Z',
+      outcome: 'success',
+    };
+    const review = {
+      source: 'hostinger_vps' as const,
+      identity_status: 'unidentified' as const,
+      actor_username: 'root',
+      tool_name: 'לא מזוהה',
+      action_label: 'כניסת SSH',
+      outcome: 'success',
+      occurred_at: '2026-08-19T14:12:00.000Z',
+    };
+    expect(matchesSecurityFilters(approved, emptyFilter({ classification: 'approved' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(review, emptyFilter({ classification: 'approved' }), new Set())).toBe(false);
+    expect(matchesSecurityFilters(review, emptyFilter({ unidentifiedOnly: true }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(approved, emptyFilter({ unidentifiedOnly: true }), new Set())).toBe(false);
+    expect(matchesSecurityFilters(approved, emptyFilter({ user: 'orin1607' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(approved, emptyFilter({ company: 'אכבים' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(approved, emptyFilter({ search: 'Push' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(approved, emptyFilter({ dateFrom: '2026-08-19', dateTo: '2026-08-19' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(review, emptyFilter({ tool: 'unidentified' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(approved, emptyFilter(), new Set())).toBe(true);
+  });
+
+  it('active people filter requires app source and heartbeat user id', () => {
+    const app = {
+      source: 'app' as const,
+      identity_status: 'identified' as const,
+      actor_user_id: 'user-1',
+      actor_username: 'יוני אטיאס',
+    };
+    expect(matchesSecurityFilters(app, emptyFilter({ activePeopleOnly: true }), new Set(['user-1']))).toBe(true);
+    expect(matchesSecurityFilters(app, emptyFilter({ activePeopleOnly: true }), new Set(['other']))).toBe(false);
   });
 });
 
