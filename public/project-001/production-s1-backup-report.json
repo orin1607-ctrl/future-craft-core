@@ -1,0 +1,210 @@
+{
+  "id": "production-s1-backup",
+  "at": "2026-08-19T06:15:46.556Z",
+  "step": "S1",
+  "productionChanged": false,
+  "liveSiteReplaced": false,
+  "deployDone": false,
+  "s2Started": false,
+  "sshProbe": "S1_SSH_OK\nLIVE_INDEX_OK",
+  "vpsBackupRaw": "BACKUP_PATH=/root/s1-safety-backup-2026-08-19T061550Z.tgz\nBACKUP_STAMP=2026-08-19T061550Z\nBACKUP_BYTES=3626179\nBACKUP_FILES=367\nBACKUP_HAS_INDEX=1\nBACKUP_SHA256=85658300f848e6048ee0a78f48ef7272ff5cab8cece8ccefeed7062feb060835\nLIVE_BUNDLE=assets/index-CECbN36N.js\nRESTORE_TEST=yes\nLIVE_STILL_PRESENT=yes",
+  "vpsBackup": {
+    "BACKUP_PATH": "/root/s1-safety-backup-2026-08-19T061550Z.tgz",
+    "BACKUP_STAMP": "2026-08-19T061550Z",
+    "BACKUP_BYTES": "3626179",
+    "BACKUP_FILES": "367",
+    "BACKUP_HAS_INDEX": "1",
+    "BACKUP_SHA256": "85658300f848e6048ee0a78f48ef7272ff5cab8cece8ccefeed7062feb060835",
+    "LIVE_BUNDLE": "assets/index-CECbN36N.js",
+    "RESTORE_TEST": "yes",
+    "LIVE_STILL_PRESENT": "yes"
+  },
+  "buckets": [
+    {
+      "id": "documents",
+      "public": true
+    }
+  ],
+  "fileCountsByBucket": [
+    {
+      "bucket_id": "documents",
+      "files": 370
+    }
+  ],
+  "c4AndDocumentPolicies": [
+    {
+      "cmd": "UPDATE",
+      "policyname": "Anonymous can update by token",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driver_declarations"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anonymous can view by token",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driver_declarations"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Authenticated users can view declarations in their company",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driver_declarations"
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Managers and drivers can update declarations",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driver_declarations"
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Managers can create declarations",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driver_declarations"
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Anon submit exam by token",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anon view exam by token",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Driver or manager update exam",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Managers create exams",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "DELETE",
+      "policyname": "Managers delete exams",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Users view own company exams",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams"
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Anonymous can upload declaration signatures",
+      "roles": "{anon,authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anonymous can view declaration signatures",
+      "roles": "{anon,authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Authenticated users can upload documents",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Authenticated users can view documents",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "DELETE",
+      "policyname": "Managers can delete own company documents",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "DELETE",
+      "policyname": "Users can delete own documents",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Users can upload documents to own company folder",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Users can view own company documents",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "auth_read_documents",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "public_read_documents",
+      "roles": "{anon}",
+      "schemaname": "storage",
+      "tablename": "objects"
+    }
+  ],
+  "rpcs": [],
+  "requiredRpcs": [
+    "get_declaration_by_token",
+    "sign_declaration_by_token",
+    "get_driving_exam_by_token",
+    "start_driving_exam_by_token",
+    "submit_driving_exam_by_token"
+  ],
+  "rpcsPresent": [],
+  "rpcsMissing": [
+    "get_declaration_by_token",
+    "sign_declaration_by_token",
+    "get_driving_exam_by_token",
+    "start_driving_exam_by_token",
+    "submit_driving_exam_by_token"
+  ],
+  "productionUnchanged": {
+    "code": true,
+    "database": true,
+    "rls": true,
+    "storagePolicies": true,
+    "bucketPublicFlagNotChanged": true,
+    "documentsNotOpened": true,
+    "customersNotChanged": true,
+    "liveDistNotReplaced": true
+  },
+  "ok": true
+}

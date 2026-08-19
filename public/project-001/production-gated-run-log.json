@@ -1,0 +1,33 @@
+{
+  "id": "production-gated-run-log",
+  "productionChanged": false,
+  "entries": [
+    {
+      "step": "S1",
+      "at": "2026-08-19T06:15:50.000Z",
+      "backedUp": {
+        "vpsTarball": "/root/s1-safety-backup-2026-08-19T061550Z.tgz",
+        "sha256": "85658300f848e6048ee0a78f48ef7272ff5cab8cece8ccefeed7062feb060835",
+        "bytes": 3626179,
+        "filesInArchive": 367,
+        "containsDistIndexHtml": true,
+        "restoreExtractedToTmpAndRemoved": true,
+        "liveDistLeftInPlace": true,
+        "policySnapshot": "public/project-001/production-s1-backup-report.json"
+      },
+      "changed": "none in live site, database, RLS, storage, or data. Added a new tarball file on the VPS only.",
+      "tests": [
+        { "name": "live index.html still present after backup", "result": "PASS" },
+        { "name": "archive contains dist/index.html", "result": "PASS" },
+        { "name": "extract archive to /tmp and find index.html", "result": "PASS" },
+        { "name": "live bundle still assets/index-CECbN36N.js", "result": "PASS" },
+        { "name": "SELECT buckets/policies/rpcs/file counts", "result": "PASS" }
+      ],
+      "verdict": "PASS",
+      "rollbackDone": false,
+      "rollbackAvailable": true,
+      "rollbackMinutes": "5-15",
+      "s2Started": false
+    }
+  ]
+}
