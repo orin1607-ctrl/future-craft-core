@@ -1,0 +1,287 @@
+{
+  "id": "pre-s2-backup-readiness",
+  "at": "2026-08-19T06:25:04.144Z",
+  "s2Started": false,
+  "productionChanged": false,
+  "restoreExecuted": false,
+  "vpsRaw": "SHA=85658300f848e6048ee0a78f48ef7272ff5cab8cece8ccefeed7062feb060835\nBYTES=3626179\nHAS_INDEX=1\nLIVE_OK=yes\nLIVE_BUNDLE=assets/index-CECbN36N.js\nTARBALL_STILL_THERE=yes",
+  "vps": {
+    "SHA": "85658300f848e6048ee0a78f48ef7272ff5cab8cece8ccefeed7062feb060835",
+    "BYTES": "3626179",
+    "HAS_INDEX": "1",
+    "LIVE_OK": "yes",
+    "LIVE_BUNDLE": "assets/index-CECbN36N.js",
+    "TARBALL_STILL_THERE": "yes"
+  },
+  "vpsShaMatchesS1": true,
+  "buckets": [
+    {
+      "id": "documents",
+      "public": "true"
+    }
+  ],
+  "fileCounts": [
+    {
+      "bucket_id": "documents",
+      "files": 370
+    }
+  ],
+  "policies": [
+    {
+      "cmd": "UPDATE",
+      "policyname": "Anonymous can update by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driver_declarations",
+      "with_check": "((token IS NOT NULL) AND (length(token) >= 20))"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anonymous can view by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driver_declarations",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Authenticated users can view declarations in their company",
+      "qual": "((company_name = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role) OR (driver_id = auth.uid()))",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driver_declarations",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Managers and drivers can update declarations",
+      "qual": "((company_name = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role) OR (driver_id = auth.uid()))",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driver_declarations",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Managers can create declarations",
+      "qual": null,
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driver_declarations",
+      "with_check": "(has_role(auth.uid(), 'fleet_manager'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role))"
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Anon submit exam by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driving_exams",
+      "with_check": "((token IS NOT NULL) AND (length(token) >= 20))"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anon view exam by token",
+      "qual": "((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))",
+      "roles": "{anon}",
+      "schemaname": "public",
+      "tablename": "driving_exams",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "policyname": "Driver or manager update exam",
+      "qual": "((driver_id = auth.uid()) OR (has_role(auth.uid(), 'fleet_manager'::app_role) AND (company_name = get_user_company(auth.uid()))) OR has_role(auth.uid(), 'super_admin'::app_role))",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Managers create exams",
+      "qual": null,
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams",
+      "with_check": "(has_role(auth.uid(), 'fleet_manager'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role))"
+    },
+    {
+      "cmd": "DELETE",
+      "policyname": "Managers delete exams",
+      "qual": "((has_role(auth.uid(), 'fleet_manager'::app_role) AND (company_name = get_user_company(auth.uid()))) OR has_role(auth.uid(), 'super_admin'::app_role))",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Users view own company exams",
+      "qual": "((company_name = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role) OR (driver_id = auth.uid()))",
+      "roles": "{authenticated}",
+      "schemaname": "public",
+      "tablename": "driving_exams",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Anonymous can upload declaration signatures",
+      "qual": null,
+      "roles": "{anon,authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text))"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Anonymous can view declaration signatures",
+      "qual": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text))",
+      "roles": "{anon,authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Authenticated users can upload documents",
+      "qual": null,
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": "(bucket_id = 'documents'::text)"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Authenticated users can view documents",
+      "qual": "(bucket_id = 'documents'::text)",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "policyname": "Managers can delete own company documents",
+      "qual": "((bucket_id = 'documents'::text) AND ((has_role(auth.uid(), 'fleet_manager'::app_role) AND ((storage.foldername(name))[1] = get_user_company(auth.uid()))) OR has_role(auth.uid(), 'super_admin'::app_role)))",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "policyname": "Users can delete own documents",
+      "qual": "((bucket_id = 'documents'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "policyname": "Users can upload documents to own company folder",
+      "qual": null,
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = get_user_company(auth.uid())))"
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "Users can view own company documents",
+      "qual": "((bucket_id = 'documents'::text) AND (((storage.foldername(name))[1] = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role)))",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "auth_read_documents",
+      "qual": "(bucket_id = 'documents'::text)",
+      "roles": "{authenticated}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "policyname": "public_read_documents",
+      "qual": "(bucket_id = 'documents'::text)",
+      "roles": "{anon}",
+      "schemaname": "storage",
+      "tablename": "objects",
+      "with_check": null
+    }
+  ],
+  "policyRestoreSql": [
+    "CREATE POLICY \"Anonymous can update by token\" ON public.driver_declarations FOR UPDATE TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))) WITH CHECK (((token IS NOT NULL) AND (length(token) >= 20)));",
+    "CREATE POLICY \"Anonymous can view by token\" ON public.driver_declarations FOR SELECT TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text)));",
+    "CREATE POLICY \"Authenticated users can view declarations in their company\" ON public.driver_declarations FOR SELECT TO authenticated USING (((company_name = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role) OR (driver_id = auth.uid())));",
+    "CREATE POLICY \"Managers and drivers can update declarations\" ON public.driver_declarations FOR UPDATE TO authenticated USING (((company_name = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role) OR (driver_id = auth.uid())));",
+    "CREATE POLICY \"Managers can create declarations\" ON public.driver_declarations FOR INSERT TO authenticated WITH CHECK ((has_role(auth.uid(), 'fleet_manager'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)));",
+    "CREATE POLICY \"Anon submit exam by token\" ON public.driving_exams FOR UPDATE TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text))) WITH CHECK (((token IS NOT NULL) AND (length(token) >= 20)));",
+    "CREATE POLICY \"Anon view exam by token\" ON public.driving_exams FOR SELECT TO anon USING (((token IS NOT NULL) AND (length(token) >= 20) AND (status = 'pending'::text)));",
+    "CREATE POLICY \"Driver or manager update exam\" ON public.driving_exams FOR UPDATE TO authenticated USING (((driver_id = auth.uid()) OR (has_role(auth.uid(), 'fleet_manager'::app_role) AND (company_name = get_user_company(auth.uid()))) OR has_role(auth.uid(), 'super_admin'::app_role)));",
+    "CREATE POLICY \"Managers create exams\" ON public.driving_exams FOR INSERT TO authenticated WITH CHECK ((has_role(auth.uid(), 'fleet_manager'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)));",
+    "CREATE POLICY \"Managers delete exams\" ON public.driving_exams FOR DELETE TO authenticated USING (((has_role(auth.uid(), 'fleet_manager'::app_role) AND (company_name = get_user_company(auth.uid()))) OR has_role(auth.uid(), 'super_admin'::app_role)));",
+    "CREATE POLICY \"Users view own company exams\" ON public.driving_exams FOR SELECT TO authenticated USING (((company_name = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role) OR (driver_id = auth.uid())));",
+    "CREATE POLICY \"Anonymous can upload declaration signatures\" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text)));",
+    "CREATE POLICY \"Anonymous can view declaration signatures\" ON storage.objects FOR SELECT TO anon, authenticated USING (((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text)));",
+    "CREATE POLICY \"Authenticated users can upload documents\" ON storage.objects FOR INSERT TO authenticated WITH CHECK ((bucket_id = 'documents'::text));",
+    "CREATE POLICY \"Authenticated users can view documents\" ON storage.objects FOR SELECT TO authenticated USING ((bucket_id = 'documents'::text));",
+    "CREATE POLICY \"Managers can delete own company documents\" ON storage.objects FOR DELETE TO authenticated USING (((bucket_id = 'documents'::text) AND ((has_role(auth.uid(), 'fleet_manager'::app_role) AND ((storage.foldername(name))[1] = get_user_company(auth.uid()))) OR has_role(auth.uid(), 'super_admin'::app_role))));",
+    "CREATE POLICY \"Users can delete own documents\" ON storage.objects FOR DELETE TO authenticated USING (((bucket_id = 'documents'::text) AND ((auth.uid())::text = (storage.foldername(name))[1])));",
+    "CREATE POLICY \"Users can upload documents to own company folder\" ON storage.objects FOR INSERT TO authenticated WITH CHECK (((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = get_user_company(auth.uid()))));",
+    "CREATE POLICY \"Users can view own company documents\" ON storage.objects FOR SELECT TO authenticated USING (((bucket_id = 'documents'::text) AND (((storage.foldername(name))[1] = get_user_company(auth.uid())) OR has_role(auth.uid(), 'super_admin'::app_role))));",
+    "CREATE POLICY \"auth_read_documents\" ON storage.objects FOR SELECT TO authenticated USING ((bucket_id = 'documents'::text));",
+    "CREATE POLICY \"public_read_documents\" ON storage.objects FOR SELECT TO anon USING ((bucket_id = 'documents'::text));"
+  ],
+  "rpcs": [],
+  "rpcBeforeState": "all five RPCs absent",
+  "rpcsMissing": [
+    "get_declaration_by_token",
+    "sign_declaration_by_token",
+    "get_driving_exam_by_token",
+    "start_driving_exam_by_token",
+    "submit_driving_exam_by_token"
+  ],
+  "c4PolicyCount": 4,
+  "c4HasQual": true,
+  "publicRead": {
+    "cmd": "SELECT",
+    "policyname": "public_read_documents",
+    "qual": "(bucket_id = 'documents'::text)",
+    "roles": "{anon}",
+    "schemaname": "storage",
+    "tablename": "objects",
+    "with_check": null
+  },
+  "anonViewSig": {
+    "cmd": "SELECT",
+    "policyname": "Anonymous can view declaration signatures",
+    "qual": "((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'declarations'::text))",
+    "roles": "{anon,authenticated}",
+    "schemaname": "storage",
+    "tablename": "objects",
+    "with_check": null
+  },
+  "gaps": {
+    "fullPostgresDump": false,
+    "storageObjectBytesDump": false,
+    "edgeFunctionSourceFiles": false,
+    "vpsTarballPresent": true,
+    "rlsExactExpressionsCaptured": true
+  },
+  "s2Rollback": {
+    "change": "CREATE five RPCs that do not exist today",
+    "backupNeeded": "documented absence of the five names is the before-state",
+    "rollback": "DROP FUNCTION IF EXISTS those five signatures",
+    "filesInHand": true
+  },
+  "verdict": "SAFE TO REQUEST S2 APPROVAL",
+  "verdictWhy": "S2 only adds missing RPCs. Before-state is proven empty. VPS tarball still present and hash-matches S1. Exact C4/document policy expressions were captured for later steps. No Production change was made."
+}
