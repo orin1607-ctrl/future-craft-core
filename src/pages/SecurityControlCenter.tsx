@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
 import { Shield, RefreshCw, Search, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   APPROVAL_BADGE_CLASS,
   CLASS_ROW_CLASS,
+  DATE_PRESET_HE,
   IDENTITY_BADGE_CLASS,
   IDENTITY_HE,
+  activeDateRangeLabel,
   activeUserIds,
   approvalLabel,
   classifyApproval,
@@ -20,6 +20,7 @@ import {
   displayActivityDuration,
   displayOutcome,
   displayTool,
+  israelYmd,
   matchesSecurityFilters,
   redactDetails,
   ROLE_HE,
@@ -27,7 +28,9 @@ import {
   SOURCE_HE,
   shortFingerprint,
   formatActiveMs,
+  formatIlDay,
   type ApprovalStatus,
+  type DatePreset,
   type IdentityKind,
   type SecurityFilterState,
   type SecurityIdentityRow,
@@ -109,19 +112,25 @@ const EMPTY_FILTER: SecurityFilterState = {
   classification: '',
   approval: '',
   layer: '',
+  datePreset: 'all',
 };
 
 function when(iso: string | null | undefined) {
   if (!iso) return '—';
-  return format(new Date(iso), 'dd/MM/yyyy HH:mm', { locale: he });
+  return `${dayPart(iso)} ${timePart(iso)}`;
 }
 
 function dayPart(iso: string) {
-  return format(new Date(iso), 'dd/MM/yyyy', { locale: he });
+  return formatIlDay(israelYmd(iso));
 }
 
 function timePart(iso: string) {
-  return format(new Date(iso), 'HH:mm', { locale: he });
+  return new Intl.DateTimeFormat('he-IL', {
+    timeZone: 'Asia/Jerusalem',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso));
 }
 
 function uniqueValues(values: Array<string | null | undefined>) {
@@ -162,7 +171,18 @@ export default function SecurityControlCenter() {
   const [filter, setFilter] = useState<SecurityFilterState>(EMPTY_FILTER);
 
   const setF = (patch: Partial<SecurityFilterState>) => setFilter((f) => ({ ...f, ...patch }));
-  const setQuick = (patch: Partial<SecurityFilterState>) => setFilter({ ...EMPTY_FILTER, ...patch });
+  const setDatePreset = (preset: DatePreset) => {
+    const today = israelYmd(new Date());
+    if (preset === 'specific') {
+      setF({ datePreset: preset, dateFrom: filter.dateFrom || today, dateTo: '' });
+      return;
+    }
+    if (preset === 'range') {
+      setF({ datePreset: preset, dateFrom: filter.dateFrom || today, dateTo: filter.dateTo || today });
+      return;
+    }
+    setF({ datePreset: preset, dateFrom: '', dateTo: '' });
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -274,19 +294,19 @@ export default function SecurityControlCenter() {
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-        <button type="button" onClick={() => setQuick({ layer: 'app', activePeopleOnly: true })}
+        <button type="button" onClick={() => setF({ layer: 'app', activePeopleOnly: true })}
           className="card-elevated p-3 text-right min-w-0 border-r-4 border-r-emerald-500">
           <p className="text-xs text-muted-foreground">משתמשי אפליקציה פעילים עכשיו</p>
           <p className="text-2xl font-bold mt-1">{peopleNow}</p>
           <p className="text-[11px] text-muted-foreground mt-1">לא כולל GitHub / VPS / Supabase</p>
         </button>
-        <button type="button" onClick={() => setQuick({ approval: 'approved' })}
+        <button type="button" onClick={() => setF({ approval: 'approved', unidentifiedOnly: false, classification: '' })}
           className="card-elevated p-3 text-right min-w-0 border-r-4 border-r-emerald-500">
           <p className="text-xs text-muted-foreground">מאושר על ידינו</p>
           <p className="text-2xl font-bold mt-1">{approvedCount}</p>
           <p className="text-[11px] text-muted-foreground mt-1">מפתח/חשבון ממופה או בדיקת QA</p>
         </button>
-        <button type="button" onClick={() => setQuick({ approval: 'review' })}
+        <button type="button" onClick={() => setF({ approval: 'review', unidentifiedOnly: false, classification: '' })}
           className="card-elevated p-3 text-right min-w-0 border-r-4 border-r-orange-500">
           <p className="text-xs text-muted-foreground">דורש בדיקה</p>
           <p className="text-2xl font-bold mt-1">{reviewCount}</p>
@@ -295,11 +315,11 @@ export default function SecurityControlCenter() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" className={`${QUICK_BTN} ${quickActive('all') ? 'bg-primary text-primary-foreground border-primary' : 'bg-background'}`} onClick={() => setFilter(EMPTY_FILTER)}>הכול</button>
-        <button type="button" className={`${QUICK_BTN} ${quickActive('approved') ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-background'}`} onClick={() => setQuick({ approval: 'approved' })}>מאושרים</button>
-        <button type="button" className={`${QUICK_BTN} ${quickActive('review') ? 'bg-orange-500 text-white border-orange-500' : 'bg-background'}`} onClick={() => setQuick({ approval: 'review' })}>דורשים בדיקה</button>
-        <button type="button" className={`${QUICK_BTN} ${quickActive('unidentified') ? 'bg-amber-400 text-amber-950 border-amber-400' : 'bg-background'}`} onClick={() => setQuick({ identity: 'unidentified' })}>לא מזוהים</button>
-        <button type="button" className={`${QUICK_BTN} ${quickActive('failed') ? 'bg-red-600 text-white border-red-600' : 'bg-background'}`} onClick={() => setQuick({ approval: 'failed' })}>נכשלו/נחסמו</button>
+        <button type="button" className={`${QUICK_BTN} ${quickActive('all') ? 'bg-primary text-primary-foreground border-primary' : 'bg-background'}`} onClick={() => setF({ approval: '', identity: '', unidentifiedOnly: false, classification: '', layer: '', activePeopleOnly: false })}>הכול</button>
+        <button type="button" className={`${QUICK_BTN} ${quickActive('approved') ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-background'}`} onClick={() => setF({ approval: 'approved', unidentifiedOnly: false, classification: '' })}>מאושרים</button>
+        <button type="button" className={`${QUICK_BTN} ${quickActive('review') ? 'bg-orange-500 text-white border-orange-500' : 'bg-background'}`} onClick={() => setF({ approval: 'review', unidentifiedOnly: false, classification: '' })}>דורשים בדיקה</button>
+        <button type="button" className={`${QUICK_BTN} ${quickActive('unidentified') ? 'bg-amber-400 text-amber-950 border-amber-400' : 'bg-background'}`} onClick={() => setF({ identity: 'unidentified', unidentifiedOnly: false })}>לא מזוהים</button>
+        <button type="button" className={`${QUICK_BTN} ${quickActive('failed') ? 'bg-red-600 text-white border-red-600' : 'bg-background'}`} onClick={() => setF({ approval: 'failed', unidentifiedOnly: false, classification: '' })}>נכשלו/נחסמו</button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -324,6 +344,33 @@ export default function SecurityControlCenter() {
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input value={filter.search} onChange={(e) => setF({ search: e.target.value })} placeholder="חיפוש חופשי: שם, אימייל או מילה מהפעולה"
             className="w-full pr-9 p-2.5 rounded-xl border-2 border-input bg-background text-sm" />
+        </div>
+        <div>
+          <p className="text-xs font-medium mb-2">תאריך (שעון ישראל)</p>
+          <div className="flex flex-wrap gap-2">
+            {(['all', 'today', 'yesterday', '7d', '30d', 'specific', 'range'] as DatePreset[]).map((preset) => (
+              <button key={preset} type="button"
+                className={`${QUICK_BTN} ${filter.datePreset === preset ? 'bg-primary text-primary-foreground border-primary' : 'bg-background'}`}
+                onClick={() => setDatePreset(preset)}>
+                {DATE_PRESET_HE[preset]}
+              </button>
+            ))}
+          </div>
+          {filter.datePreset === 'specific' && (
+            <label className="text-xs font-medium block mt-2 max-w-xs">תאריך מסוים
+              <input type="date" value={filter.dateFrom} onChange={(e) => setF({ datePreset: 'specific', dateFrom: e.target.value, dateTo: '' })} className={FILTER_INPUT} />
+            </label>
+          )}
+          {filter.datePreset === 'range' && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              <label className="text-xs font-medium">מתאריך
+                <input type="date" value={filter.dateFrom} onChange={(e) => setF({ datePreset: 'range', dateFrom: e.target.value })} className={FILTER_INPUT} />
+              </label>
+              <label className="text-xs font-medium">עד תאריך
+                <input type="date" value={filter.dateTo} onChange={(e) => setF({ datePreset: 'range', dateTo: e.target.value })} className={FILTER_INPUT} />
+              </label>
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="md:hidden rounded-xl border-2 px-3 py-2 text-sm font-medium" onClick={() => setFiltersOpen((v) => !v)}>
@@ -410,8 +457,6 @@ export default function SecurityControlCenter() {
               <option value="unknown">לא ידוע</option>
             </select>
           </label>
-          <label className="text-xs font-medium w-full md:w-auto">מתאריך<input type="date" value={filter.dateFrom} onChange={(e) => setF({ dateFrom: e.target.value })} className={FILTER_INPUT} /></label>
-          <label className="text-xs font-medium w-full md:w-auto">עד תאריך<input type="date" value={filter.dateTo} onChange={(e) => setF({ dateTo: e.target.value })} className={FILTER_INPUT} /></label>
           <label className="text-xs font-medium w-full md:w-auto">שעה
             <select value={filter.hour} onChange={(e) => setF({ hour: e.target.value })} className={FILTER_INPUT}>
               <option value="">הכול</option>
@@ -427,7 +472,9 @@ export default function SecurityControlCenter() {
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">{filtered.length} אירועים</p>
+      <div className="rounded-xl border-2 border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium">
+        {activeDateRangeLabel(filter)} · {filtered.length} אירועים
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" /></div>

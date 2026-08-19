@@ -1,0 +1,22 @@
+{
+  "verdict": "SECURITY CENTER DATE FILTERS — PASS",
+  "at": "2026-08-19T16:00:00Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "route": "/security-center",
+  "productionTouched": false,
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "daliaCarOnlineChanged": false,
+  "daliaCarProductionUnchanged": true,
+  "timezone": "Asia/Jerusalem",
+  "presets": ["הכול", "היום", "אתמול", "7 ימים אחרונים", "30 ימים אחרונים", "תאריך מסוים", "טווח תאריכים"],
+  "checks": {
+    "today": "PASS — Israel calendar day, including events after 00:00 IL that fall on previous UTC date",
+    "yesterday": "PASS",
+    "specificDate": "PASS",
+    "dateRange": "PASS — inclusive start/end",
+    "combineTodayReviewVps": "PASS",
+    "clearFiltersResetsToAll": "PASS",
+    "mobile320to430": "PASS"
+  }
+}

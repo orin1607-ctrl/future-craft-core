@@ -75,6 +75,17 @@ const html = `<!doctype html>
   </div>
   <div class="filters">
     <input placeholder="חיפוש חופשי: שם, אימייל או מילה מהפעולה"/>
+    <p style="font-size:12px;font-weight:700;margin:8px 0 4px">תאריך (שעון ישראל)</p>
+    <div class="quick" style="display:flex;flex-wrap:wrap;gap:6px">
+      <button type="button">הכול</button>
+      <button type="button" style="background:#2563eb;color:#fff;border-color:#2563eb">היום</button>
+      <button type="button">אתמול</button>
+      <button type="button">7 ימים אחרונים</button>
+      <button type="button">30 ימים אחרונים</button>
+      <button type="button">תאריך מסוים</button>
+      <button type="button">טווח תאריכים</button>
+    </div>
+    <div class="range" style="margin:8px 0;padding:8px;border:2px solid #93c5fd;border-radius:12px;background:#eff6ff;font-size:13px;font-weight:700">טווח זמן פעיל: היום · 19/08/2026 (שעון ישראל) · 2 אירועים</div>
     <div class="actions">
       <button class="toggle-filters" type="button">עוד סינונים</button>
       <button class="clear" type="button">נקה סינונים</button>

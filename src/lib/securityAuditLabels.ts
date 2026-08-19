@@ -375,6 +375,99 @@ export function redactDetails(details: Record<string, unknown> | null | undefine
   return out;
 }
 
+export const IL_TZ = 'Asia/Jerusalem';
+export type DatePreset = 'all' | 'today' | 'yesterday' | '7d' | '30d' | 'specific' | 'range';
+
+export const DATE_PRESET_HE: Record<DatePreset, string> = {
+  all: 'הכול',
+  today: 'היום',
+  yesterday: 'אתמול',
+  '7d': '7 ימים אחרונים',
+  '30d': '30 ימים אחרונים',
+  specific: 'תאריך מסוים',
+  range: 'טווח תאריכים',
+};
+
+export function israelYmd(iso: string | Date, timeZone = IL_TZ): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso;
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
+export function israelHour(iso: string | Date, timeZone = IL_TZ): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso;
+  if (Number.isNaN(d.getTime())) return '';
+  const raw = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    hour12: false,
+  }).format(d);
+  return raw.replace(/[^\d]/g, '').padStart(2, '0').slice(0, 2);
+}
+
+export function shiftYmd(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, (m || 1) - 1, (d || 1) + days));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+}
+
+export function formatIlDay(ymd: string): string {
+  if (!ymd) return '';
+  const [y, m, d] = ymd.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+export function resolveFilterDateRange(
+  filter: Pick<SecurityFilterState, 'datePreset' | 'dateFrom' | 'dateTo'>,
+  now = new Date(),
+): { from: string | null; to: string | null } {
+  const today = israelYmd(now);
+  const preset = filter.datePreset || 'all';
+  switch (preset) {
+    case 'today':
+      return { from: today, to: today };
+    case 'yesterday': {
+      const yest = shiftYmd(today, -1);
+      return { from: yest, to: yest };
+    }
+    case '7d':
+      return { from: shiftYmd(today, -6), to: today };
+    case '30d':
+      return { from: shiftYmd(today, -29), to: today };
+    case 'specific': {
+      const day = filter.dateFrom || today;
+      return { from: day, to: day };
+    }
+    case 'range':
+      return { from: filter.dateFrom || null, to: filter.dateTo || null };
+    default:
+      return { from: null, to: null };
+  }
+}
+
+export function activeDateRangeLabel(
+  filter: Pick<SecurityFilterState, 'datePreset' | 'dateFrom' | 'dateTo'>,
+  now = new Date(),
+): string {
+  const { from, to } = resolveFilterDateRange(filter, now);
+  const preset = filter.datePreset || 'all';
+  if (preset === 'all' || (!from && !to)) return 'טווח זמן פעיל: הכול';
+  if (from && to && from === to) {
+    const name = preset === 'today' ? 'היום' : preset === 'yesterday' ? 'אתמול' : 'תאריך מסוים';
+    return `טווח זמן פעיל: ${name} · ${formatIlDay(from)} (שעון ישראל)`;
+  }
+  if (from && to) {
+    return `טווח זמן פעיל: ${DATE_PRESET_HE[preset] || 'טווח'} · ${formatIlDay(from)} – ${formatIlDay(to)} (שעון ישראל)`;
+  }
+  if (from) return `טווח זמן פעיל: מ־${formatIlDay(from)} (שעון ישראל)`;
+  return `טווח זמן פעיל: עד ${formatIlDay(to || '')} (שעון ישראל)`;
+}
+
 export type SecurityFilterState = {
   search: string;
   source: string;
@@ -395,6 +488,7 @@ export type SecurityFilterState = {
   classification: string;
   approval: string;
   layer: string;
+  datePreset: DatePreset;
 };
 
 export type SessionLike = {
@@ -430,6 +524,7 @@ export function matchesSecurityFilters(
   row: SecurityIdentityRow & { occurred_at?: string; action_label?: string; company_name?: string | null; actor_user_id?: string | null },
   filter: SecurityFilterState,
   activeIds: Set<string>,
+  now = new Date(),
 ): boolean {
   if (filter.unidentifiedOnly && classifyIdentity(row) !== 'unidentified') return false;
   const approval = filter.approval || filter.classification;
@@ -471,11 +566,14 @@ export function matchesSecurityFilters(
     if (!(row.actor_email || '').toLowerCase().includes(filter.email.toLowerCase())) return false;
   }
   const occurred = row.occurred_at || '';
-  if (filter.dateFrom && occurred.slice(0, 10) < filter.dateFrom) return false;
-  if (filter.dateTo && occurred.slice(0, 10) > filter.dateTo) return false;
-  if (filter.hour && occurred) {
-    const h = String(new Date(occurred).getHours()).padStart(2, '0');
-    if (h !== filter.hour) return false;
+  if (occurred) {
+    const day = israelYmd(occurred);
+    const { from, to } = resolveFilterDateRange(filter, now);
+    if (from && day < from) return false;
+    if (to && day > to) return false;
+    if (filter.hour && israelHour(occurred) !== filter.hour) return false;
+  } else if (filter.datePreset && filter.datePreset !== 'all') {
+    return false;
   }
   if (filter.search) {
     const blob = `${displayAccount(row)} ${row.action_label} ${row.event_type} ${row.ip_address} ${row.company_name} ${row.tool_name} ${row.actor_username} ${row.actor_email}`.toLowerCase();

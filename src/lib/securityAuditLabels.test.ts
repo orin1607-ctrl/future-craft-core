@@ -3,6 +3,7 @@ import { canAccessRoute } from './routeAccess';
 import {
   APPROVAL_HE,
   IDENTITY_HE,
+  activeDateRangeLabel,
   activityLayer,
   approvalLabel,
   classifyApproval,
@@ -23,6 +24,7 @@ const emptyFilter = (patch: Partial<SecurityFilterState> = {}): SecurityFilterSt
   search: '', source: '', role: '', outcome: '', identity: '', severity: '',
   dateFrom: '', dateTo: '', hour: '', company: '', user: '', email: '', tool: '', action: '',
   unidentifiedOnly: false, activePeopleOnly: false, classification: '', approval: '', layer: '',
+  datePreset: 'all',
   ...patch,
 });
 
@@ -244,7 +246,7 @@ describe('security filters remaining', () => {
     expect(matchesSecurityFilters(approved, emptyFilter({ user: 'orin1607' }), new Set())).toBe(true);
     expect(matchesSecurityFilters(approved, emptyFilter({ company: 'אכבים' }), new Set())).toBe(true);
     expect(matchesSecurityFilters(approved, emptyFilter({ search: 'Push' }), new Set())).toBe(true);
-    expect(matchesSecurityFilters(approved, emptyFilter({ dateFrom: '2026-08-19', dateTo: '2026-08-19' }), new Set())).toBe(true);
+    expect(matchesSecurityFilters(approved, emptyFilter({ datePreset: 'range', dateFrom: '2026-08-19', dateTo: '2026-08-19' }), new Set())).toBe(true);
     expect(matchesSecurityFilters(review, emptyFilter({ tool: 'unidentified' }), new Set())).toBe(true);
     expect(matchesSecurityFilters(approved, emptyFilter(), new Set())).toBe(true);
   });
@@ -267,5 +269,75 @@ describe('security-center route access', () => {
     expect(canAccessRoute('/security-center', 'fleet_manager')).toBe(false);
     expect(canAccessRoute('/security-center', 'driver')).toBe(false);
     expect(canAccessRoute('/security-center', 'private_customer')).toBe(false);
+  });
+});
+
+describe('israel date filters', () => {
+  const now = new Date('2026-08-19T18:00:00+03:00');
+  const row = (iso: string, extra: Record<string, unknown> = {}) => ({
+    source: 'hostinger_vps' as const,
+    identity_status: 'unidentified' as const,
+    actor_username: 'root',
+    tool_name: 'לא מזוהה',
+    outcome: 'success',
+    occurred_at: iso,
+    ...extra,
+  });
+  const todayIl = row('2026-08-19T11:11:00.000Z');
+  const todayAfterMidnightUtc = row('2026-08-18T22:30:00.000Z');
+  const yesterdayIl = row('2026-08-18T11:11:00.000Z');
+  const weekAgo = row('2026-08-13T08:00:00.000Z');
+  const old = row('2026-07-01T08:00:00.000Z');
+
+  it('today uses Israel calendar day, not UTC date', () => {
+    const f = emptyFilter({ datePreset: 'today' });
+    expect(matchesSecurityFilters(todayIl, f, new Set(), now)).toBe(true);
+    expect(matchesSecurityFilters(todayAfterMidnightUtc, f, new Set(), now)).toBe(true);
+    expect(matchesSecurityFilters(yesterdayIl, f, new Set(), now)).toBe(false);
+  });
+
+  it('yesterday is the previous Israel day', () => {
+    const f = emptyFilter({ datePreset: 'yesterday' });
+    expect(matchesSecurityFilters(yesterdayIl, f, new Set(), now)).toBe(true);
+    expect(matchesSecurityFilters(todayIl, f, new Set(), now)).toBe(false);
+  });
+
+  it('specific date shows only that Israel day', () => {
+    const f = emptyFilter({ datePreset: 'specific', dateFrom: '2026-08-19' });
+    expect(matchesSecurityFilters(todayIl, f, new Set(), now)).toBe(true);
+    expect(matchesSecurityFilters(yesterdayIl, f, new Set(), now)).toBe(false);
+  });
+
+  it('date range is inclusive in Israel time', () => {
+    const f = emptyFilter({ datePreset: 'range', dateFrom: '2026-08-18', dateTo: '2026-08-19' });
+    expect(matchesSecurityFilters(todayIl, f, new Set(), now)).toBe(true);
+    expect(matchesSecurityFilters(yesterdayIl, f, new Set(), now)).toBe(true);
+    expect(matchesSecurityFilters(old, f, new Set(), now)).toBe(false);
+  });
+
+  it('last 7 days includes today and a week ago, not older', () => {
+    const f = emptyFilter({ datePreset: '7d' });
+    expect(matchesSecurityFilters(todayIl, f, new Set(), now)).toBe(true);
+    expect(matchesSecurityFilters(weekAgo, f, new Set(), now)).toBe(true);
+    expect(matchesSecurityFilters(old, f, new Set(), now)).toBe(false);
+  });
+
+  it('combines today + review + Hostinger/VPS', () => {
+    const f = emptyFilter({ datePreset: 'today', approval: 'review', source: 'hostinger_vps' });
+    expect(matchesSecurityFilters(todayIl, f, new Set(), now)).toBe(true);
+    expect(matchesSecurityFilters({
+      ...todayIl,
+      source: 'github',
+      actor_username: 'orin1607-ctrl',
+      identity_status: 'identified',
+    }, f, new Set(), now)).toBe(false);
+    expect(matchesSecurityFilters(yesterdayIl, f, new Set(), now)).toBe(false);
+  });
+
+  it('clear-equivalent all includes every day', () => {
+    const f = emptyFilter({ datePreset: 'all' });
+    expect(activeDateRangeLabel(f, now)).toBe('טווח זמן פעיל: הכול');
+    expect(matchesSecurityFilters(old, f, new Set(), now)).toBe(true);
+    expect(matchesSecurityFilters(todayIl, f, new Set(), now)).toBe(true);
   });
 });
