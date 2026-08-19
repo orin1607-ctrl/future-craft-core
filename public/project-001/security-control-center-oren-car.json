@@ -10,6 +10,7 @@
   "daliaCarOnlineChanged": false,
   "tables": ["security_audit_events", "security_activity_sessions", "security_alert_inbox"],
   "edgeFunction": "security-collect-sources",
+  "identityEnhancement": "public/project-001/security-identity-mobile-oren-car.json",
   "retentionRecommendation": {
     "auditEventsDays": 180,
     "ipDays": 90,

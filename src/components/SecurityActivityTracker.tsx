@@ -1,14 +1,23 @@
 import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { securityEndSession, securityHeartbeat, securityStartSession } from '@/lib/securityAuditClient';
+import {
+  securityEndSession,
+  securityHeartbeat,
+  securityRecordClientEvent,
+  securityStartSession,
+} from '@/lib/securityAuditClient';
 
 const HEARTBEAT_MS = 45_000;
 const IDLE_MS = 5 * 60_000;
+const PAGE_VIEW_THROTTLE_MS = 30_000;
 
 /** Counts real activity via heartbeat while the tab is visible and recently used. */
 export default function SecurityActivityTracker() {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
   const lastInput = useRef(Date.now());
+  const lastPageView = useRef<{ path: string; at: number }>({ path: '', at: 0 });
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -51,6 +60,20 @@ export default function SecurityActivityTracker() {
     if (isAuthenticated) return;
     securityEndSession('logout').catch(() => undefined);
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const path = location.pathname;
+    const now = Date.now();
+    if (path === lastPageView.current.path && now - lastPageView.current.at < PAGE_VIEW_THROTTLE_MS) return;
+    lastPageView.current = { path, at: now };
+    securityRecordClientEvent('page_view', {
+      action: 'צפייה בעמוד',
+      result: 'הצליח',
+      path,
+      objectType: 'page',
+    }).catch(() => undefined);
+  }, [isAuthenticated, location.pathname]);
 
   return null;
 }

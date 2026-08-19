@@ -1,0 +1,83 @@
+import { describe, expect, it } from 'vitest';
+import { canAccessRoute } from './routeAccess';
+import {
+  displayAccount,
+  displayActivityDuration,
+  displayTool,
+  needsIdentityAttention,
+  redactDetails,
+  shortFingerprint,
+} from './securityAuditLabels';
+
+describe('security identity display — no guessing', () => {
+  it('shows GitHub account as the source reports it', () => {
+    expect(displayAccount({
+      source: 'github',
+      actor_username: 'orin1607-ctrl',
+      identity_status: 'identified',
+    })).toBe('GitHub — orin1607-ctrl');
+  });
+
+  it('does not invent an email', () => {
+    expect(displayAccount({
+      source: 'github',
+      actor_username: 'orin1607-ctrl',
+      actor_email: null,
+      identity_status: 'identified',
+    })).not.toMatch(/@/);
+  });
+
+  it('shows GitHub Actions only from proven actor', () => {
+    expect(displayTool({
+      source: 'github',
+      identity_status: 'identified',
+      access_kind: 'github_actions',
+      tool_name: 'GitHub Actions',
+    })).toBe('GitHub Actions');
+  });
+
+  it('does not guess Cursor from IP-only VPS row', () => {
+    expect(displayTool({
+      source: 'hostinger_vps',
+      actor_username: 'root',
+      identity_status: 'identified',
+      access_kind: 'ssh',
+      tool_name: 'לא מזוהה',
+      ip_address: '79.181.173.191',
+    })).toBe('לא מזוהה');
+  });
+
+  it('marks unidentified access without attacker language', () => {
+    const row = {
+      source: 'hostinger_vps' as const,
+      actor_username: 'root',
+      identity_status: 'unidentified',
+      tool_name: 'לא מזוהה',
+      event_type: 'ssh_login_failed',
+    };
+    expect(needsIdentityAttention(row)).toBe(true);
+    expect(displayAccount(row)).toBe('root');
+  });
+
+  it('does not invent duration for external events', () => {
+    expect(displayActivityDuration({
+      source: 'github',
+      identity_status: 'identified',
+      active_ms: null,
+    }).text).toBe('משך פעילות: לא זמין');
+  });
+
+  it('shortens fingerprints and redacts secrets', () => {
+    expect(shortFingerprint('SHA256:Ji7fUE2KcaJyxEhnHse0EqmL97LuuBuaOERJl+xtE4c')).toMatch(/^SHA256:Ji7f…E4c$/);
+    expect(redactDetails({ token: 'secret', note: 'ok' })).toEqual({ note: 'ok' });
+  });
+});
+
+describe('security-center route access', () => {
+  it('allows super_admin and blocks others', () => {
+    expect(canAccessRoute('/security-center', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/security-center', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/security-center', 'driver')).toBe(false);
+    expect(canAccessRoute('/security-center', undefined)).toBe(false);
+  });
+});

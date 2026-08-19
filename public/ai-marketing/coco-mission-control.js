@@ -31,6 +31,18 @@
   /** יכולות במערכת — כרטיסי למידה */
   var CAPABILITIES = [
     {
+      id: 'oren-security-center',
+      icon: '🛡️',
+      name: 'מרכז בקרה ואבטחה',
+      screen: 'security',
+      where: 'Oren Car Staging → /security-center (super_admin בלבד)',
+      dataFrom: 'security_audit_events, sessions, GitHub/VPS collectors',
+      decides: 'זהות וכלי רק לפי הוכחה מהמקור. אין ניחוש לפי IP.',
+      returns: 'כרטיסי מובייל + טבלת דסקטופ + ציר פעולות + באנר גישה לא מזוהה',
+      howTo: ['התחבר כ-super_admin ב-Oren Car Staging', 'מרכז ניהול → מרכז בקרה ואבטחה', 'לחץ על אירוע לפרטים ולציר פעולות'],
+      status: 'live',
+    },
+    {
       id: 'evidence-v2',
       icon: '📊',
       name: 'דוח Evidence v2',

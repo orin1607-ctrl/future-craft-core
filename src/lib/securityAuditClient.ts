@@ -38,18 +38,22 @@ export async function securityEndSession(reason = 'logout'): Promise<void> {
 }
 
 export async function securityRecordClientEvent(
-  eventType: 'unauthorized_page' | 'forbidden_action' | 'session_invalid',
-  opts?: { outcome?: string; action?: string; result?: string },
+  eventType: 'unauthorized_page' | 'forbidden_action' | 'session_invalid' | 'page_view',
+  opts?: { outcome?: string; action?: string; result?: string; path?: string; objectType?: string },
 ): Promise<void> {
+  const isPageView = eventType === 'page_view';
   await rpc('security_record_client_event', {
     p_event_type: eventType,
-    p_outcome: opts?.outcome || 'failure',
-    p_action_label: opts?.action || 'ניסיון גישה ללא הרשאה',
-    p_result_label: opts?.result || 'נדחה',
+    p_outcome: opts?.outcome || (isPageView ? 'success' : 'failure'),
+    p_action_label: opts?.action || (isPageView ? 'צפייה בעמוד' : 'ניסיון גישה ללא הרשאה'),
+    p_result_label: opts?.result || (isPageView ? 'הצליח' : 'נדחה'),
     p_session_id: sessionStorage.getItem(SESSION_KEY),
     p_device_summary: deviceSummary(),
-    p_severity: 'high',
-    p_details: { path: typeof window !== 'undefined' ? window.location.pathname : '' },
+    p_severity: isPageView ? 'info' : 'high',
+    p_details: {
+      path: opts?.path || (typeof window !== 'undefined' ? window.location.pathname : ''),
+      object_type: opts?.objectType || 'page',
+    },
   });
 }
 

@@ -1,0 +1,80 @@
+{
+  "verdict": "MONITORING IDENTITY & MOBILE — PASS",
+  "at": "2026-08-19T11:30:00Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "stagingPages": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "route": "/security-center",
+  "productionTouched": false,
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "daliaCarOnlineChanged": false,
+  "hostingerProductionChanged": false,
+  "secretsInFrontendOrLog": false,
+  "added": [
+    "Identity fields on security_audit_events: actor_username, access_kind, tool_name, object_type, ssh_fingerprint, auth_method",
+    "Known SSH key proof table (comment-based only)",
+    "GitHub actor as source login (no fake noreply email)",
+    "GitHub Actions / Cursor/Cross only when proven",
+    "Unidentified in-app banner: גישה לא מזוהה",
+    "Action timeline per session/user",
+    "page_view client events (throttled) for app activity",
+    "Mobile cards + desktop table",
+    "Heartbeat duration unchanged for app sessions"
+  ],
+  "identification": {
+    "people": "Only as the source reports: GitHub login, app email/user id, VPS ssh user. Never inferred from IP.",
+    "tools": "SSH key comment map, GitHub [bot] login, or explicit source field. Otherwise כלי לא מזוהה.",
+    "github": "actor, repo, branch/ref, action (Push/PR/Workflow), time, result. Email only if GitHub supplies it (public events do not).",
+    "supabase": "Actor only if auth.audit_log_entries supplies it. Otherwise זהות לא זמינה. Management audit of RLS/Storage/Deploy is not available via this API.",
+    "vps": "ssh user, IP, fingerprint (short), success/fail, auth method. Tool only from known authorized_keys comments.",
+    "cannotIdentify": [
+      "Human behind root/SSH unless key comment proves a tool",
+      "Cursor vs Claude vs ChatGPT from IP or username similarity",
+      "Supabase dashboard actor when Audit Log is empty",
+      "Invented sessions for GitHub/Supabase/VPS discrete events"
+    ]
+  },
+  "activityTime": {
+    "app": "security_activity_sessions heartbeat: start, last activity, end, accumulated_active_ms",
+    "external": "event timestamp only; duration shown as משך פעילות: לא זמין"
+  },
+  "examplesSafe": [
+    "GitHub — orin1607-ctrl · Push · feat/incident-alerts-staging · success",
+    "GitHub — github-actions[bot] · Workflow — Deploy Staging · success",
+    "VPS root · SSH · Cursor/Cross (key comment cursor-dalia-vps) · fingerprint SHA256:Ji7f…E4c",
+    "VPS root · SSH · GitHub Actions (key comment github-actions-dalia-deploy)",
+    "VPS root · SSH · כלי לא מזוהה (key with no comment)",
+    "VPS failed password for root · unidentified person · not labeled attacker",
+    "Supabase auth event · זהות לא זמינה"
+  ],
+  "qa": {
+    "superAdminRoute": true,
+    "normalUserBlocked": true,
+    "anonymousBlocked": true,
+    "appIdentity": true,
+    "heartbeat": true,
+    "githubActor": true,
+    "githubActionsWhenProven": true,
+    "vpsUserIpFingerprint": true,
+    "cursorOnlyWithProof": true,
+    "unidentifiedLabel": true,
+    "noIdentityGuessing": true,
+    "noSecrets": true,
+    "mobile": {
+      "320": "pass — cards, no overflow",
+      "375": "pass — cards, no overflow",
+      "390": "pass — cards, no overflow",
+      "430": "pass — cards, no overflow",
+      "1280": "pass — desktop table, cards hidden"
+    },
+    "productionUnchanged": true
+  },
+  "toMoveToProductionWouldNeed": [
+    "Explicit Owner approval",
+    "Apply equivalent migrations to Production DB (not done)",
+    "Deploy Edge collector to Production project (not done)",
+    "Hostinger/VPS collector policy for production logs without changing production host config unless approved",
+    "Separate GitHub production repo permissions if required",
+    "Re-run QA on Production identities without copying Staging secrets"
+  ]
+}
