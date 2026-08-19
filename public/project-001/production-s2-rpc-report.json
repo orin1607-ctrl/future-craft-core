@@ -1,0 +1,228 @@
+{
+  "id": "production-s2-rpcs",
+  "at": "2026-08-19T06:30:55.434Z",
+  "step": "S2",
+  "s3Started": false,
+  "c4Closed": false,
+  "bucketChanged": false,
+  "hostingerChanged": false,
+  "created": [
+    "get_declaration_by_token",
+    "sign_declaration_by_token",
+    "get_driving_exam_by_token",
+    "start_driving_exam_by_token",
+    "submit_driving_exam_by_token"
+  ],
+  "tests": [
+    {
+      "name": "precheck none exist on Production",
+      "ok": true,
+      "present": []
+    },
+    {
+      "name": "create get_declaration_by_token",
+      "ok": true,
+      "presentAfter": [
+        "get_declaration_by_token"
+      ]
+    },
+    {
+      "name": "create sign_declaration_by_token",
+      "ok": true,
+      "presentAfter": [
+        "get_declaration_by_token",
+        "sign_declaration_by_token"
+      ]
+    },
+    {
+      "name": "create get_driving_exam_by_token",
+      "ok": true,
+      "presentAfter": [
+        "get_declaration_by_token",
+        "get_driving_exam_by_token",
+        "sign_declaration_by_token"
+      ]
+    },
+    {
+      "name": "create start_driving_exam_by_token",
+      "ok": true,
+      "presentAfter": [
+        "get_declaration_by_token",
+        "get_driving_exam_by_token",
+        "sign_declaration_by_token",
+        "start_driving_exam_by_token"
+      ]
+    },
+    {
+      "name": "create submit_driving_exam_by_token",
+      "ok": true,
+      "presentAfter": [
+        "get_declaration_by_token",
+        "get_driving_exam_by_token",
+        "sign_declaration_by_token",
+        "start_driving_exam_by_token",
+        "submit_driving_exam_by_token"
+      ]
+    },
+    {
+      "name": "grant execute to anon/authenticated",
+      "ok": true
+    },
+    {
+      "name": "all five exist on Production",
+      "ok": true,
+      "after": [
+        "get_declaration_by_token",
+        "get_driving_exam_by_token",
+        "sign_declaration_by_token",
+        "start_driving_exam_by_token",
+        "submit_driving_exam_by_token"
+      ]
+    },
+    {
+      "name": "def match staging get_declaration_by_token",
+      "ok": true,
+      "prodFp": "cbd87e2a7c3d6ac2",
+      "stagingFp": "cbd87e2a7c3d6ac2"
+    },
+    {
+      "name": "def match staging get_driving_exam_by_token",
+      "ok": true,
+      "prodFp": "d06ea1a92268851e",
+      "stagingFp": "d06ea1a92268851e"
+    },
+    {
+      "name": "def match staging sign_declaration_by_token",
+      "ok": true,
+      "prodFp": "75970c060c206930",
+      "stagingFp": "75970c060c206930"
+    },
+    {
+      "name": "def match staging start_driving_exam_by_token",
+      "ok": true,
+      "prodFp": "0ca971e36432ba69",
+      "stagingFp": "0ca971e36432ba69"
+    },
+    {
+      "name": "def match staging submit_driving_exam_by_token",
+      "ok": true,
+      "prodFp": "1bbd3560577979d4",
+      "stagingFp": "1bbd3560577979d4"
+    },
+    {
+      "name": "anon rpc get_declaration_by_token empty on fake/short token",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows requested or returned"
+    },
+    {
+      "name": "anon rpc get_declaration_by_token empty on fake/short token",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows requested or returned"
+    },
+    {
+      "name": "anon rpc sign_declaration_by_token empty on fake/short token",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows requested or returned"
+    },
+    {
+      "name": "anon rpc get_driving_exam_by_token empty on fake/short token",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows requested or returned"
+    },
+    {
+      "name": "anon rpc start_driving_exam_by_token empty on fake/short token",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows requested or returned"
+    },
+    {
+      "name": "anon rpc submit_driving_exam_by_token empty on fake/short token",
+      "ok": true,
+      "error": null,
+      "rowCount": 0,
+      "note": "no customer rows requested or returned"
+    },
+    {
+      "name": "live site still old bundle",
+      "ok": true,
+      "http": 200,
+      "bundle": "assets/index-CECbN36N.js"
+    },
+    {
+      "name": "documents file count still 370",
+      "ok": true,
+      "counts": [
+        {
+          "bucket_id": "documents",
+          "files": 370
+        }
+      ]
+    },
+    {
+      "name": "C4 policies still present",
+      "ok": true,
+      "names": [
+        "Anonymous can update by token",
+        "Anonymous can view by token",
+        "Anon submit exam by token",
+        "Anon view exam by token"
+      ]
+    },
+    {
+      "name": "documents bucket still public",
+      "ok": true,
+      "bucket": {
+        "id": "documents",
+        "public": "true"
+      }
+    }
+  ],
+  "verdict": "PASS",
+  "defCompare": [
+    {
+      "name": "get_declaration_by_token",
+      "matchStaging": true,
+      "prodFp": "cbd87e2a7c3d6ac2",
+      "stagingFp": "cbd87e2a7c3d6ac2",
+      "hasSecurityDefiner": true
+    },
+    {
+      "name": "get_driving_exam_by_token",
+      "matchStaging": true,
+      "prodFp": "d06ea1a92268851e",
+      "stagingFp": "d06ea1a92268851e",
+      "hasSecurityDefiner": true
+    },
+    {
+      "name": "sign_declaration_by_token",
+      "matchStaging": true,
+      "prodFp": "75970c060c206930",
+      "stagingFp": "75970c060c206930",
+      "hasSecurityDefiner": true
+    },
+    {
+      "name": "start_driving_exam_by_token",
+      "matchStaging": true,
+      "prodFp": "0ca971e36432ba69",
+      "stagingFp": "0ca971e36432ba69",
+      "hasSecurityDefiner": true
+    },
+    {
+      "name": "submit_driving_exam_by_token",
+      "matchStaging": true,
+      "prodFp": "1bbd3560577979d4",
+      "stagingFp": "1bbd3560577979d4",
+      "hasSecurityDefiner": true
+    }
+  ],
+  "safeToRequestS3": true
+}

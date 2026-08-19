@@ -1,6 +1,6 @@
 {
   "id": "production-gated-run-log",
-  "productionChanged": false,
+  "productionChanged": true,
   "entries": [
     {
       "step": "S1",
@@ -28,6 +28,35 @@
       "rollbackAvailable": true,
       "rollbackMinutes": "5-15",
       "s2Started": false
+    },
+    {
+      "step": "S2",
+      "at": "2026-08-19T06:30:55.434Z",
+      "report": "public/project-001/production-s2-rpc-report.json",
+      "changed": "Created five token RPCs on Production (qasomfndnjuixgjmjwcm) with GRANT EXECUTE to anon and authenticated. No DROP POLICY. No Hostinger. No bucket change. No Edge Functions. No customer data change.",
+      "created": [
+        "get_declaration_by_token",
+        "sign_declaration_by_token",
+        "get_driving_exam_by_token",
+        "start_driving_exam_by_token",
+        "submit_driving_exam_by_token"
+      ],
+      "tests": [
+        { "name": "precheck none existed before CREATE", "result": "PASS" },
+        { "name": "CREATE one-by-one without OR REPLACE", "result": "PASS" },
+        { "name": "all five exist after CREATE", "result": "PASS" },
+        { "name": "pg_get_functiondef fingerprints match Staging", "result": "PASS" },
+        { "name": "anon fake/short tokens return 0 rows, no customer data", "result": "PASS" },
+        { "name": "live site still assets/index-CECbN36N.js HTTP 200", "result": "PASS" },
+        { "name": "documents file count still 370", "result": "PASS" },
+        { "name": "C4 four anon policies still present", "result": "PASS" },
+        { "name": "documents bucket still public=true", "result": "PASS" }
+      ],
+      "verdict": "PASS",
+      "rollbackDone": false,
+      "rollbackAvailable": true,
+      "rollbackPlan": "DROP FUNCTION of the five new RPCs only. Live site does not depend on them yet.",
+      "s3Started": false
     }
   ]
 }
