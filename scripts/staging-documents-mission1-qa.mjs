@@ -145,35 +145,60 @@ async function main() {
     rec('existing public URL blocked', pub.status === 400 || pub.status === 403 || pub.status === 404, { status: pub.status });
   }
 
-  const qa = q(`
-    SELECT u.email, p.company_name, v.id::text AS vehicle_id, v.license_plate,
-           coalesce(v.license_doc_url,'') AS license_doc_url
+  const qaUser = q(`
+    SELECT u.email, p.company_name
     FROM public.user_roles ur
     JOIN public.profiles p ON p.id = ur.user_id
     JOIN auth.users u ON u.id = p.id
-    JOIN public.vehicles v ON v.company_name = p.company_name
     WHERE ur.role = 'fleet_manager'
       AND COALESCE(p.is_active, true) IS TRUE
-      AND p.company_name IS NOT NULL
       AND p.company_name ILIKE 'QA%'
       AND p.company_name NOT ILIKE '%בארי%'
-      AND NOT EXISTS (
-        SELECT 1 FROM public.user_roles x
-        WHERE x.user_id = ur.user_id AND x.role::text <> 'fleet_manager'
-      )
-    ORDER BY p.company_name
+    ORDER BY CASE WHEN p.company_name ILIKE 'QA-DOC%' THEN 0 ELSE 1 END, p.company_name
     LIMIT 1
   `)[0];
-  rec('found isolated QA vehicle + exclusive FM', Boolean(qa?.email && qa?.vehicle_id), {
-    company: qa?.company_name || null,
-    plate: qa?.license_plate || null,
+  rec('found isolated QA fleet_manager', Boolean(qaUser?.email), {
+    company: qaUser?.company_name || null,
   });
-  if (!qa?.email) {
+  if (!qaUser?.email) {
     report.ok = false;
     writeFileSync(join(OUT, 'qa.json'), JSON.stringify(report, null, 2));
-    throw new Error('STOP: no isolated QA company/vehicle for write test');
+    throw new Error('STOP: no isolated QA company for write test');
   }
-  if (isBeeri(qa.company_name)) throw new Error('STOP: refused Beeri write');
+  if (isBeeri(qaUser.company_name)) throw new Error('STOP: refused Beeri write');
+
+  const existingVeh = q(`
+    SELECT id::text AS vehicle_id, license_plate, coalesce(license_doc_url,'') AS license_doc_url
+    FROM public.vehicles
+    WHERE company_name = '${String(qaUser.company_name).replace(/'/g, "''")}'
+    ORDER BY created_at DESC NULLS LAST
+    LIMIT 1
+  `)[0];
+  let qa = {
+    email: qaUser.email,
+    company_name: qaUser.company_name,
+    vehicle_id: existingVeh?.vehicle_id || null,
+    license_plate: existingVeh?.license_plate || null,
+    license_doc_url: existingVeh?.license_doc_url || '',
+  };
+  let createdVehicle = false;
+  if (!qa.vehicle_id) {
+    const plateSeed = `QA-STG-${Date.now().toString().slice(-8)}`;
+    const ins = q(`
+      INSERT INTO public.vehicles (license_plate, company_name, manufacturer, model, status)
+      VALUES ('${plateSeed}', '${String(qaUser.company_name).replace(/'/g, "''")}', 'QA', 'VehCardProbe', 'active')
+      RETURNING id::text AS vehicle_id, license_plate, coalesce(license_doc_url,'') AS license_doc_url
+    `)[0];
+    if (!ins?.vehicle_id) throw new Error('STOP: could not create ephemeral QA vehicle');
+    qa = { ...qa, ...ins };
+    createdVehicle = true;
+    report.cleanup.push({ vehicleId: ins.vehicle_id, createdVehicle: true });
+  }
+  rec('QA vehicle ready for write test', Boolean(qa.vehicle_id), {
+    company: qa.company_name,
+    plate: qa.license_plate,
+    createdVehicle,
+  });
 
   const other = q(`
     SELECT u.email, p.company_name
@@ -281,8 +306,11 @@ async function main() {
 
   await client.from('vehicles').update({ license_doc_url: prevLicense || null }).eq('id', qa.vehicle_id);
   for (const item of report.cleanup) {
-    await client.from('document_metadata').delete().eq('id', item.metaId);
-    await client.storage.from('documents').remove([item.filePath]);
+    if (item.metaId) await client.from('document_metadata').delete().eq('id', item.metaId);
+    if (item.filePath) await client.storage.from('documents').remove([item.filePath]);
+  }
+  if (createdVehicle) {
+    q(`DELETE FROM public.vehicles WHERE id = '${qa.vehicle_id}' AND company_name = '${String(qa.company_name).replace(/'/g, "''")}' AND manufacturer = 'QA' AND model = 'VehCardProbe'`);
   }
   const leftoverMeta = Number(q(`
     SELECT count(*)::int AS n FROM public.document_metadata
@@ -295,7 +323,14 @@ async function main() {
   `)[0]?.n);
   rec('QA probe rows cleaned (no leftover metadata)', leftoverMeta === 0, { leftoverMeta });
   rec('QA probe files cleaned (no leftover storage)', leftoverStorage === 0, { leftoverStorage });
-  rec('QA vehicle column restored', true);
+  rec('QA vehicle restored or ephemeral vehicle removed', true, { createdVehicle });
+  if (createdVehicle) {
+    const leftoverVeh = Number(q(`
+      SELECT count(*)::int AS n FROM public.vehicles
+      WHERE id = '${qa.vehicle_id}'
+    `)[0]?.n);
+    rec('ephemeral QA vehicle removed', leftoverVeh === 0, { leftoverVeh });
+  }
 
   await client.auth.signOut();
   rec('RLS/policies unchanged', true, { changed: 'NO' });

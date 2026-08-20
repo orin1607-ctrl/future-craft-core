@@ -1,0 +1,20 @@
+{
+  "id": "staging-documents-mission1-2026-08-20",
+  "verdict": "STAGING PASS",
+  "at": "2026-08-20T14:08:00.000Z",
+  "site": "https://orin1607-ctrl.github.io/future-craft-core",
+  "supabaseRef": "usfeoerkpcafxxlyuldl",
+  "liveBundleBefore": "assets/index-BD5qAD-_.js",
+  "liveBundleAfter": "assets/index-Db7iLp5Y.js",
+  "commit": "40fb34c5",
+  "bugA_signedUrlExisted": false,
+  "bugB_vehicleCardUploadExisted": true,
+  "productionChanged": false,
+  "productionBundle": "assets/index-BQlrxFmz.js",
+  "schemaChanged": false,
+  "rlsChanged": false,
+  "dataCopied": false,
+  "stop": true,
+  "next": "Do not start alerts mission 2 until Owner closes documents Production=PASS Staging=PASS.",
+  "reportPath": "docs/audit-reports/staging-documents-mission1-2026-08-20/REPORT.json"
+}

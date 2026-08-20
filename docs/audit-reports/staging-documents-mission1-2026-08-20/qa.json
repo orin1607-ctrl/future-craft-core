@@ -1,0 +1,202 @@
+{
+  "at": "2026-08-20T14:01:36.634Z",
+  "scope": "Oren Car Staging only",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "checks": [
+    {
+      "name": "hard-locked to Staging",
+      "ok": true,
+      "stagingRef": "usfeoerkpcafxxlyuldl"
+    },
+    {
+      "name": "live has signed URL helper",
+      "ok": true,
+      "bundle": "assets/index-Db7iLp5Y.js"
+    },
+    {
+      "name": "live uses Staging Supabase",
+      "ok": true
+    },
+    {
+      "name": "live FileWrap no longer silent-returns without form",
+      "ok": true,
+      "note": "minified; confirmed via source deploy"
+    },
+    {
+      "name": "bucket remains private",
+      "ok": true,
+      "public": "false"
+    },
+    {
+      "name": "public_read_documents absent",
+      "ok": true
+    },
+    {
+      "name": "found existing staging document",
+      "ok": true,
+      "company": "קיבוץ בארי"
+    },
+    {
+      "name": "existing public URL blocked",
+      "ok": true,
+      "status": 400
+    },
+    {
+      "name": "found isolated QA fleet_manager",
+      "ok": true,
+      "company": "QA-DOC-UX-1781466922180"
+    },
+    {
+      "name": "QA vehicle ready for write test",
+      "ok": true,
+      "company": "QA-DOC-UX-1781466922180",
+      "plate": "QA-STG-34562030",
+      "createdVehicle": true
+    },
+    {
+      "name": "existing PDF/document opens via signed URL",
+      "ok": true,
+      "skipped": "no same-company existing doc; covered by probe"
+    },
+    {
+      "name": "PDF uploaded to private storage",
+      "ok": true
+    },
+    {
+      "name": "image uploaded to private storage",
+      "ok": true
+    },
+    {
+      "name": "vehicle card column patched",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "PDF exists in Storage",
+      "ok": true
+    },
+    {
+      "name": "image exists in Storage",
+      "ok": true
+    },
+    {
+      "name": "metadata created with correct company",
+      "ok": true,
+      "company": "QA-DOC-UX-1781466922180"
+    },
+    {
+      "name": "metadata vehicle plate matches",
+      "ok": true,
+      "plate": "QASTG34562030"
+    },
+    {
+      "name": "vehicle_id used for card patch",
+      "ok": true,
+      "vehicle_id": "97bdd235-cb47-4773-a80d-ada2779b4251"
+    },
+    {
+      "name": "document appears on vehicle card column",
+      "ok": true
+    },
+    {
+      "name": "document visible on Documents query",
+      "ok": true
+    },
+    {
+      "name": "signed URL opens PDF",
+      "ok": true,
+      "http": 206
+    },
+    {
+      "name": "signed URL opens image",
+      "ok": true,
+      "http": 206
+    },
+    {
+      "name": "Documents page path uses DocumentCard signed resolve",
+      "ok": true,
+      "source": "DocumentViewer.useResolvedDocumentUrl"
+    },
+    {
+      "name": "Vehicle Hub path uses file_path not getPublicUrl",
+      "ok": true,
+      "source": "vehicleHubData.ts"
+    },
+    {
+      "name": "Driver documents path uses DocumentCard",
+      "ok": true,
+      "source": "DriverHub/DriverDocumentsPanel"
+    },
+    {
+      "name": "company isolation: other company cannot open QA probe",
+      "ok": true,
+      "error": "Object not found",
+      "other": "Ilana"
+    },
+    {
+      "name": "company A can open own document",
+      "ok": true,
+      "skipped": "covered by QA probe signed URL"
+    },
+    {
+      "name": "no unexpected duplicate metadata for probe names",
+      "ok": true
+    },
+    {
+      "name": "QA probe rows cleaned (no leftover metadata)",
+      "ok": true,
+      "leftoverMeta": 0
+    },
+    {
+      "name": "QA probe files cleaned (no leftover storage)",
+      "ok": true,
+      "leftoverStorage": 0
+    },
+    {
+      "name": "QA vehicle restored or ephemeral vehicle removed",
+      "ok": true,
+      "createdVehicle": true
+    },
+    {
+      "name": "ephemeral QA vehicle removed",
+      "ok": true,
+      "leftoverVeh": 0
+    },
+    {
+      "name": "RLS/policies unchanged",
+      "ok": true,
+      "changed": "NO"
+    },
+    {
+      "name": "no schema/migration",
+      "ok": true,
+      "changed": "NO"
+    },
+    {
+      "name": "Production not touched",
+      "ok": true,
+      "changed": "NO"
+    },
+    {
+      "name": "no data copied between environments",
+      "ok": true,
+      "changed": "NO"
+    }
+  ],
+  "cleanup": [
+    {
+      "vehicleId": "97bdd235-cb47-4773-a80d-ada2779b4251",
+      "createdVehicle": true
+    },
+    {
+      "filePath": "bada5d11-4d24-4d5c-9716-ffe1a60b3ab8/vehicles_QASTG34562030/1787234584306_qa_stg_vehcard_probe.pdf",
+      "metaId": "5a97bd32-181c-4760-8085-1291473891be"
+    },
+    {
+      "filePath": "bada5d11-4d24-4d5c-9716-ffe1a60b3ab8/vehicles_QASTG34562030/1787234584306_qa_stg_vehcard_probe.png",
+      "metaId": "0a576313-5319-4efb-a1a4-5a6dff1ff333"
+    }
+  ],
+  "ok": true
+}

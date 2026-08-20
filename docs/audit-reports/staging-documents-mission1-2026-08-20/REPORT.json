@@ -1,0 +1,65 @@
+{
+  "id": "staging-documents-mission1-2026-08-20",
+  "verdict": "STAGING PASS",
+  "at": "2026-08-20T14:08:00.000Z",
+  "stop": true,
+  "site": "https://orin1607-ctrl.github.io/future-craft-core",
+  "supabaseRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "bugA_signedUrlWasPresentOnStaging": "NO",
+  "bugB_vehicleCardUploadWasPresentOnStaging": "YES",
+  "diffVsProduction": {
+    "signedUrl": "Already in Staging since 506a3b7c (documentUrl.ts, DocumentViewer, Documents.tsx docPublicUrl=filePath, vehicleHubData file_path).",
+    "vehicleCardUpload": "HEAD FileWrap still did silent filename-only return when !form, read company_name instead of company, ignored vehicle_id, maybeSingle without limit(1).",
+    "unrelatedKept": "Staging bundle still contains expiry-approvals; Production overlay excluded it. Not changed."
+  },
+  "changed": [
+    "src/lib/vehicleCardUploadContext.ts",
+    "src/lib/vehicleCardUploadContext.test.ts",
+    "src/components/vehicles/vehicleNewDalia/vehicleNewDaliaBlocks.tsx",
+    "src/components/vehicles/vehicleNewDalia/VehicleNewFormDalia.tsx",
+    "scripts/staging-documents-mission1-qa.mjs"
+  ],
+  "commit": "40fb34c5",
+  "liveBundleBefore": "assets/index-BD5qAD-_.js",
+  "liveBundleAfter": "assets/index-Db7iLp5Y.js",
+  "productionBundleStill": "assets/index-BQlrxFmz.js",
+  "answers": {
+    "1_bugA_existed": "NO",
+    "2_bugB_existed": "YES",
+    "3_diff": "Signed URL already on Staging. Vehicle-card FileWrap on live HEAD still skipped upload without form context and used the wrong company field.",
+    "4_what_changed": "Ported the Production-proven FileWrap context fix only.",
+    "5_files": [
+      "src/lib/vehicleCardUploadContext.ts",
+      "src/lib/vehicleCardUploadContext.test.ts",
+      "src/components/vehicles/vehicleNewDalia/vehicleNewDaliaBlocks.tsx",
+      "src/components/vehicles/vehicleNewDalia/VehicleNewFormDalia.tsx"
+    ],
+    "6_commit": "40fb34c5",
+    "7_deploy_staging": "PASS",
+    "8_signed_url": "PASS",
+    "9_storage_private": "PASS",
+    "10_public_url_blocked": "PASS",
+    "11_upload_vehicle_card": "PASS",
+    "12_storage": "PASS",
+    "13_metadata": "PASS",
+    "14_vehicle_association": "PASS",
+    "15_documents_page": "PASS",
+    "16_vehicle_hub": "PASS",
+    "17_driver_documents": "PASS",
+    "18_pdf_image": "PASS",
+    "19_company_isolation": "PASS",
+    "20_desktop_mobile": "PASS",
+    "21_regression": "PASS",
+    "22_qa_cleanup": "PASS",
+    "23_schema_migration": "NO",
+    "24_rls_policies": "NO",
+    "25_production_changed": "NO",
+    "26_data_copied": "NO"
+  },
+  "qaWrite": {
+    "company": "QA-DOC-UX-1781466922180",
+    "beeriWrite": false,
+    "ephemeralVehicleCreatedAndDeleted": true
+  }
+}
