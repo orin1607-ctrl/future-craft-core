@@ -154,11 +154,12 @@ async function loadCompanyThresholdsMap(
 }
 
 export function vehicleNeedsTrackingAttention(v: TrackingVehicleRow): boolean {
+  const hasOperationalAlert = (v.alert_items || []).some((item) => item.kind !== 'license');
   return Boolean(
     v.has_open_fault ||
       v.has_open_defect ||
       v.has_open_accident ||
-      v.has_open_alert ||
+      hasOperationalAlert ||
       v.has_active_service ||
       v.in_garage,
   );

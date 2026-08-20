@@ -97,7 +97,12 @@ const deployTxt = await fetch(`${LIVE}/STAGING-DEPLOY.txt?t=${Date.now()}`).then
 report.live = { bundle: stagingBundle, deployTxt: deployTxt.trim(), status: stagingPage.status };
 rec('hard-locked to Staging', STAGING_REF === 'usfeoerkpcafxxlyuldl' && LIVE.includes('orin1607-ctrl'));
 rec('live site is Oren Car Staging', stagingPage.status === 200 && /future-craft-core/.test(LIVE), { bundle: stagingBundle });
-rec('live uses Staging Supabase', stagingPage.html.includes(STAGING_REF) || stagingPage.html.includes('usfeoerkpcafxxlyuldl'), { note: 'anon key/project in bundle or html' });
+if (stagingBundle) {
+  const js = await fetch(`${LIVE}/${stagingBundle}`).then((r) => r.text());
+  rec('live uses Staging Supabase', js.includes(STAGING_REF) && !js.includes(PROD_REF), { bundle: stagingBundle });
+} else {
+  rec('live uses Staging Supabase', false, { bundle: stagingBundle });
+}
 
 let prodBundle = null;
 try {
@@ -170,7 +175,7 @@ async function trackingBreakdown(company) {
   for (const v of vehicles) {
     const plate = String(v.license_plate || '').replace(/[-\s]/g, '').trim();
     let hit = false;
-    if (!v.license_doc_url) { reasons.missingLicense += 1; hit = true; }
+    if (!v.license_doc_url) reasons.missingLicense += 1;
     if (dueOrUpcoming(v.test_expiry, 30)) { reasons.testWindow += 1; hit = true; }
     if (insOn(v) && dueOrUpcoming(v.insurance_expiry, 30)) { reasons.insWindow += 1; hit = true; }
     if (plate && faults.plates.has(plate)) { reasons.fault += 1; hit = true; }
@@ -254,9 +259,7 @@ report.meaning273 = {
   definition: 'Unique non-archived vehicles with at least one tracking-attention item: missing license_doc_url, test/insurance in expired+30d window, open fault/task/accident/service.',
   beeriUniqueAttention: beeriTrack.uniqueAttention,
   allCompaniesUniqueAttention: allTrack.uniqueAttention,
-  likelyReportedNumber: allTrack.uniqueAttention === 273 || beeriTrack.uniqueAttention === 273
-    ? 273
-    : `live unique attention Beeri=${beeriTrack.uniqueAttention} allCompanies=${allTrack.uniqueAttention} (273 was the number seen at report time; this is the same metric)`,
+  likelyReportedNumber: '273 at report time was unique vehicles with ANY tracking item, dominated by missing license_doc_url (now 297/298 on Beeri). Dashboard badge now excludes license-doc-only.',
   correctAsUniqueVehicles: true,
   wrongIfReadAsUnfilteredFleetList: true,
   dominantReasonBeeri: 'missing license_doc_url and/or open service/tasks — not 273 separate vehicles in the test-urgent list',
@@ -325,13 +328,19 @@ async function shownCount(page) {
 async function slotCount(page, label) {
   const card = page.locator('a').filter({ hasText: label }).first();
   if (!(await card.count())) return null;
+  const big = card.locator('span.font-black, span.text-2xl').first();
+  if (await big.count()) {
+    const n = Number((await big.innerText()).trim());
+    if (Number.isFinite(n)) return n;
+  }
   const t = await card.innerText();
-  const nums = t.match(/\d+/g);
-  return nums ? Number(nums[nums.length - 1]) : null;
+  const m = t.match(/^\s*(\d+)/m);
+  return m ? Number(m[1]) : null;
 }
 
-const browser = await chromium.launch({ headless: true });
+let browser;
 try {
+  browser = await chromium.launch({ headless: true });
   await admin.from('company_settings').insert({
     company_name: company,
     reminder_30_days: true,
@@ -469,6 +478,7 @@ try {
   rec('dashboard service count matches date + periodic order', svcCount === expectedServiceUrgent, { svcCount, expectedServiceUrgent });
 
   await page.locator('a').filter({ hasText: 'טסט מתקרב' }).first().click();
+  await page.getByText('דחוף / החודש הקרוב', { exact: false }).first().waitFor({ timeout: 45000 });
   await wait();
   const testUrl = page.url();
   rec('test card opens alerts with category=test&scope=urgent', /category=test/.test(testUrl) && /scope=urgent/.test(testUrl), { testUrl });
@@ -497,6 +507,7 @@ try {
   await page.goto(`${LIVE}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await wait();
   await page.locator('a').filter({ hasText: 'ביטוח מתקרב' }).first().click();
+  await page.getByText('דחוף / החודש הקרוב', { exact: false }).first().waitFor({ timeout: 45000 });
   await wait();
   const insUrl = page.url();
   const insShown = await shownCount(page);
@@ -514,6 +525,7 @@ try {
   await page.goto(`${LIVE}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await wait();
   await page.locator('a').filter({ hasText: 'טיפול תקופתי מתקרב' }).first().click();
+  await page.getByText('דחוף / החודש הקרוב', { exact: false }).first().waitFor({ timeout: 45000 });
   await wait();
   const svcUrl = page.url();
   const svcShown = await shownCount(page);
@@ -603,7 +615,7 @@ try {
 } catch (err) {
   rec('QA run completed without exception', false, { error: String(err?.stack || err).slice(0, 800) });
 } finally {
-  await browser.close().catch(() => null);
+  await browser?.close().catch(() => null);
   if (ids.serviceOrders.length) await admin.from('service_orders').delete().in('id', ids.serviceOrders);
   if (ids.vehicles.length) await admin.from('vehicles').delete().in('id', ids.vehicles);
   if (ids.drivers.length) await admin.from('drivers').delete().in('id', ids.drivers);

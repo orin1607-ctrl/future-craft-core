@@ -40,6 +40,7 @@ import {
   type AlertListScope,
 } from '@/lib/alertListScope';
 import { calendarDaysLeft } from '@/lib/expiryOfficerApproval';
+import { SearchableFilterField } from '@/components/SearchableFilterField';
 
 // ─── Alerts Types ───
 type AlertSeverity = 'critical' | 'warning' | 'info';
