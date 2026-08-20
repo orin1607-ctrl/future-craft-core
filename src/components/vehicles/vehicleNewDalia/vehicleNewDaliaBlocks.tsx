@@ -8,6 +8,7 @@ import { uploadDocument } from '@/lib/uploadDocument';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { useDaliaFormValues } from './DaliaFormValuesContext';
 import { supabase } from '@/integrations/supabase/client';
+import { readDomField, resolveVehicleCardUploadFields } from '@/lib/vehicleCardUploadContext';
 
 function bindControl(
   child: ReactElement,
@@ -196,13 +197,17 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
   const linkField = inferLinkField(textName);
 
   const handleFile = async (file: File) => {
-    if (!form) {
+    const getValue = (name: string) => (form?.getValue(name) || '').trim() || readDomField(name);
+    const { rawPlate, plate, formCompany, vehicleId } = resolveVehicleCardUploadFields(
+      getValue,
+      user?.company_name,
+    );
+
+    if (form) form.setValue(textName, file.name);
+    else {
       const text = document.querySelector(`input[name="${textName}"]`) as HTMLInputElement | null;
       if (text) text.value = file.name;
-      return;
     }
-
-    form.setValue(textName, file.name);
 
     if (!user?.id) {
       toast.error('יש להתחבר כדי להעלות קבצים');
@@ -210,33 +215,36 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
     }
 
     setUploading(true);
-    const rawPlate = (form.getValue('vehicle_plate') || '').trim();
-    const plate = (rawPlate || 'vehicle').replace(/[-\s]/g, '');
-    const formCompany = form.getValue('company_name') || user.company_name || '';
 
-    // The vehicle row is the authority for the company, so a document uploaded
-    // by a super admin (who has no company of their own) is still registered
-    // under the vehicle's company and shows up in that vehicle's documents.
-    let vehicleRow: { id: string; company_name: string | null } | null = null;
-    if (rawPlate) {
+    let vehicleRow: { id: string; company_name: string | null; license_plate?: string | null } | null = null;
+    if (vehicleId) {
+      const { data } = await supabase
+        .from('vehicles')
+        .select('id, company_name, license_plate')
+        .eq('id', vehicleId)
+        .maybeSingle();
+      vehicleRow = data;
+    } else if (rawPlate) {
       let vehicleQuery = supabase
         .from('vehicles')
-        .select('id, company_name')
-        .or(`license_plate.eq.${rawPlate},license_plate.eq.${plate}`);
+        .select('id, company_name, license_plate')
+        .or(`license_plate.eq.${rawPlate},license_plate.eq.${plate}`)
+        .limit(1);
       if (formCompany) vehicleQuery = vehicleQuery.eq('company_name', formCompany);
       const { data } = await vehicleQuery.maybeSingle();
       vehicleRow = data;
     }
     const companyName = vehicleRow?.company_name || formCompany;
+    const storagePlate = (rawPlate || vehicleRow?.license_plate || plate || 'vehicle').replace(/[-\s]/g, '');
 
     const result = await uploadDocument({
       file,
-      storageFolder: `vehicles/${plate}`,
+      storageFolder: `vehicles/${storagePlate}`,
       category: inferDocCategory(textName),
       companyName,
-      vehiclePlate: plate,
-      manufacturer: form.getValue('manufacturer'),
-      model: form.getValue('model'),
+      vehiclePlate: storagePlate,
+      manufacturer: getValue('manufacturer'),
+      model: getValue('model'),
     });
     setUploading(false);
 
@@ -245,7 +253,13 @@ export function FileWrap({ name, textName }: { name: string; textName: string })
       return;
     }
 
-    if (linkField) form.setValue(linkField, result.publicUrl);
+    if (linkField) {
+      if (form) form.setValue(linkField, result.publicUrl);
+      else {
+        const linkInput = document.querySelector(`input[name="${linkField}"]`) as HTMLInputElement | null;
+        if (linkInput) linkInput.value = result.publicUrl;
+      }
+    }
     const vehicleColumn = vehicleDocumentColumn(linkField);
     if (vehicleColumn && vehicleRow?.id) {
       const { error: patchError } = await supabase

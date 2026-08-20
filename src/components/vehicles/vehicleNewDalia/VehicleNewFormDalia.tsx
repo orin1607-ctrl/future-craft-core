@@ -89,9 +89,10 @@ export default function VehicleNewFormDalia(props: VehicleNewFormDaliaProps) {
       mandatory_insurance_type: 'ביטוח חובה',
       comprehensive_insurance_type: 'ביטוח מקיף',
       third_party_insurance_type: 'ביטוח צד ג',
+      ...(props.vehicleId ? { vehicle_id: props.vehicleId } : {}),
       ...props.loadedValues,
     }),
-    [props.initialPlate, props.initialInternal, props.loadedValues],
+    [props.initialPlate, props.initialInternal, props.loadedValues, props.vehicleId],
   );
 
   return (
@@ -175,11 +176,13 @@ function VehicleNewFormDaliaInner({
     }
     setDocUploading(true);
     const plate = getValue('vehicle_plate').replace(/[-\s]/g, '') || 'vehicle';
+    const companyName =
+      getValue('company').trim() || getValue('company_name').trim() || user?.company_name || '';
     const result = await uploadDocument({
       file,
       storageFolder: `vehicles/${plate}`,
       category: docCategory,
-      companyName: user.company_name || '',
+      companyName,
       vehiclePlate: plate,
       manufacturer: getValue('manufacturer'),
       model: getValue('model'),
@@ -197,7 +200,8 @@ function VehicleNewFormDaliaInner({
   useEffect(() => {
     if (initialPlate) setValue('vehicle_plate', initialPlate);
     if (initialInternal) setValue('internal_number', initialInternal);
-  }, [initialPlate, initialInternal, setValue]);
+    if (vehicleId) setValue('vehicle_id', vehicleId);
+  }, [initialPlate, initialInternal, vehicleId, setValue]);
 
   useEffect(() => {
     if (!loadedValues) return;
