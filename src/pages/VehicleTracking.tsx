@@ -155,11 +155,17 @@ export default function VehicleTracking() {
               onApply={() => {
                 setAppliedFilters(filters);
                 setSummaryKey(null);
+                const q = new URLSearchParams(searchParams);
+                q.delete('summary');
+                setSearchParams(q);
               }}
               onClear={() => {
                 setFilters(EMPTY_TRACKING_FILTERS);
                 setAppliedFilters(EMPTY_TRACKING_FILTERS);
                 setSummaryKey(null);
+                const q = new URLSearchParams(searchParams);
+                q.delete('summary');
+                setSearchParams(q);
               }}
               vehicles={allRows}
             />

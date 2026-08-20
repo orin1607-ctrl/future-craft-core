@@ -209,7 +209,7 @@ export default function HomeAlertsWidget({
         <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-2xl">
           <SheetHeader>
             <SheetTitle>הגדרות התראות דשבורד</SheetTitle>
-            <SheetDescription>בחר 3 התראות שיוצגו בדשבורד הראשי. ההעדפות נשמרות במכשיר זה בלבד.</SheetDescription>
+            <SheetDescription>בחר 3 התראות שיוצגו בדשבורד הראשי. הסתרה והעדפות נשמרות למשתמש זה.</SheetDescription>
           </SheetHeader>
           <div className="space-y-4 mt-4 pb-6">
             {draft.slots.map((slot, i) => (

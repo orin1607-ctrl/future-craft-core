@@ -69,6 +69,18 @@ export function toIsoDate(value: string | null | undefined): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
 }
 
+/** Whole calendar days from today to the expiry date (negative = already expired). */
+export function calendarDaysLeft(
+  dateStr: string | null | undefined,
+  today = todayIsoDate(),
+): number | null {
+  const d = toIsoDate(dateStr);
+  if (!d) return null;
+  const start = new Date(`${today}T00:00:00`);
+  const end = new Date(`${d}T00:00:00`);
+  return Math.round((end.getTime() - start.getTime()) / 86400000);
+}
+
 /** Expired = calendar date strictly before today. Missing dates are gaps, not pending renewals. */
 export function isExpiryPending(dateStr: string | null | undefined, today = todayIsoDate()): boolean {
   const d = toIsoDate(dateStr);
@@ -96,13 +108,9 @@ export function isDueOrUpcomingInWindow(
   daysBefore: number,
   today = todayIsoDate(),
 ): boolean {
-  const d = toIsoDate(dateStr);
-  if (!d || daysBefore < 0) return false;
-  const start = new Date(`${today}T00:00:00`);
-  const limit = new Date(start);
-  limit.setDate(limit.getDate() + daysBefore);
-  const end = new Date(`${d}T00:00:00`);
-  return end.getTime() <= limit.getTime();
+  if (daysBefore < 0) return false;
+  const n = calendarDaysLeft(dateStr, today);
+  return n !== null && n <= daysBefore;
 }
 
 export function canApproveExpiryRenewal(role: string | undefined | null): boolean {

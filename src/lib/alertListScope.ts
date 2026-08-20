@@ -43,6 +43,38 @@ export function alertInScope(
   return daysLeft <= windowDays;
 }
 
+export function serviceOrderMatchesDashboardUrgent(alert: {
+  id: string;
+  category: string;
+  title?: string | null;
+  meta?: string | null;
+}): boolean {
+  if (alert.category !== 'service_order') return false;
+  if (alert.id.startsWith('svcdate-')) return true;
+  if (alert.id.startsWith('so-') && /תקופ/.test(`${alert.title || ''} ${alert.meta || ''}`)) return true;
+  return false;
+}
+
+export function alertPassesListFilters(
+  alert: {
+    id: string;
+    category: string;
+    daysLeft: number | null;
+    title?: string | null;
+    meta?: string | null;
+  },
+  filter: string,
+  scope: AlertListScope,
+  windowDays: number,
+): boolean {
+  if (!alertCategoryMatches(filter, alert.category)) return false;
+  if (!alertInScope(alert.daysLeft, scope, windowDays)) return false;
+  if (filter === 'service_order' && scope === 'urgent') {
+    return serviceOrderMatchesDashboardUrgent(alert);
+  }
+  return true;
+}
+
 export function buildAlertsHref(opts: {
   category?: string;
   scope?: AlertListScope;

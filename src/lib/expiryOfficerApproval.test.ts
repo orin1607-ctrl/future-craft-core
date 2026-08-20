@@ -6,6 +6,7 @@ import {
   isExpiryPending,
   isUpcomingInWindow,
   isDueOrUpcomingInWindow,
+  calendarDaysLeft,
   matchesExpiryKindQuery,
   pendingItemsForDriver,
   pendingItemsForVehicle,
@@ -37,6 +38,15 @@ describe('expiry pending detection', () => {
     expect(isDueOrUpcomingInWindow('2026-09-01', 30, TODAY)).toBe(true);
     expect(isDueOrUpcomingInWindow('2026-12-01', 30, TODAY)).toBe(false);
     expect(isDueOrUpcomingInWindow(null, 30, TODAY)).toBe(false);
+  });
+
+  it('calendarDaysLeft is the same window used by dashboard urgent counts', () => {
+    expect(calendarDaysLeft('2026-08-10', TODAY)).toBe(-8);
+    expect(calendarDaysLeft('2026-08-18', TODAY)).toBe(0);
+    expect(calendarDaysLeft('2026-09-17', TODAY)).toBe(30);
+    expect(calendarDaysLeft('2026-09-18', TODAY)).toBe(31);
+    expect(isDueOrUpcomingInWindow('2026-09-17', 30, TODAY)).toBe(true);
+    expect(isDueOrUpcomingInWindow('2026-09-18', 30, TODAY)).toBe(false);
   });
 });
 

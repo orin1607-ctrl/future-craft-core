@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   alertCategoryMatches,
   alertInScope,
+  alertPassesListFilters,
   buildAlertsHref,
   parseAlertListScope,
 } from './alertListScope';
@@ -34,5 +35,17 @@ describe('alertListScope', () => {
   it('builds dashboard deep links', () => {
     expect(buildAlertsHref({ category: 'test', scope: 'urgent' })).toBe('/alerts?category=test&scope=urgent');
     expect(buildAlertsHref({ scope: 'all' })).toBe('/alerts?scope=all');
+  });
+
+  it('urgent service list matches dashboard periodic+date rows only', () => {
+    const svcdate = { id: 'svcdate-1', category: 'service_order', daysLeft: 5, title: 'טיפול תקופתי', meta: '' };
+    const periodic = { id: 'so-1', category: 'service_order', daysLeft: null, title: 'הזמנת שירות', meta: 'טיפול תקופתי' };
+    const otherOrder = { id: 'so-2', category: 'service_order', daysLeft: null, title: 'הזמנת שירות', meta: 'פחחות' };
+    const custom = { id: 'custom-1', category: 'service_order', daysLeft: 3, title: 'תזכורת', meta: 'טיפול תקופתי' };
+    expect(alertPassesListFilters(svcdate, 'service_order', 'urgent', 30)).toBe(true);
+    expect(alertPassesListFilters(periodic, 'service_order', 'urgent', 30)).toBe(true);
+    expect(alertPassesListFilters(otherOrder, 'service_order', 'urgent', 30)).toBe(false);
+    expect(alertPassesListFilters(custom, 'service_order', 'urgent', 30)).toBe(false);
+    expect(alertPassesListFilters(custom, 'service_order', 'all', 30)).toBe(true);
   });
 });

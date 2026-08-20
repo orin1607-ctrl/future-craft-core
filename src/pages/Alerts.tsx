@@ -34,10 +34,12 @@ import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
 import {
   alertCategoryMatches,
   alertInScope,
+  alertPassesListFilters,
   parseAlertListScope,
   parseAlertWindowDays,
   type AlertListScope,
 } from '@/lib/alertListScope';
+import { calendarDaysLeft } from '@/lib/expiryOfficerApproval';
 
 // ─── Alerts Types ───
 type AlertSeverity = 'critical' | 'warning' | 'info';
@@ -108,10 +110,8 @@ const severityBadge: Record<AlertSeverity, string> = {
   info: 'bg-blue-500 text-white',
 };
 
-function getDaysLeft(dateStr: string | null): number | null {
-  if (!dateStr) return null;
-  const diff = new Date(dateStr).getTime() - new Date().getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+function getDaysLeft(dateStr: string | null | undefined): number | null {
+  return calendarDaysLeft(dateStr);
 }
 
 function getSeverity(daysLeft: number | null): AlertSeverity {
@@ -194,28 +194,30 @@ export default function Alerts() {
 
   useEffect(() => {
     const requested = searchParams.get('category');
-    if (
-      requested === 'all' ||
-      requested === 'free' ||
-      requested === 'officer' ||
-      requested === 'test' ||
-      requested === 'insurance' ||
-      requested === 'comprehensive_insurance' ||
-      requested === 'third_party_insurance' ||
-      requested === 'license' ||
-      requested === 'fault' ||
-      requested === 'service_order' ||
-      requested === 'work_assignment' ||
-      requested === 'driver_document'
-    ) {
-      setAlertFilter(requested === 'all' ? 'all' : requested);
+    const allowed = [
+      'free',
+      'officer',
+      'test',
+      'insurance',
+      'comprehensive_insurance',
+      'third_party_insurance',
+      'license',
+      'fault',
+      'service_order',
+      'work_assignment',
+      'driver_document',
+    ] as const;
+    if (!requested || requested === 'all') {
+      setAlertFilter('all');
+    } else if ((allowed as readonly string[]).includes(requested)) {
+      setAlertFilter(requested as AlertCategory);
     }
     setAlertScope(parseAlertListScope(searchParams.get('scope')));
     setAlertWindowDays(parseAlertWindowDays(searchParams.get('days')));
     const plate = searchParams.get('plate');
-    if (plate) setFilterVehicle(plate);
+    setFilterVehicle(plate || '');
     const internal = searchParams.get('internal');
-    if (internal) setFilterInternal(internal);
+    setFilterInternal(internal || '');
   }, [searchParams]);
 
   useEffect(() => {
@@ -770,20 +772,12 @@ export default function Alerts() {
 
   const filteredAlerts = useMemo(() => {
     return alertsForEntity
-      .filter((a) => alertCategoryMatches(alertFilter, a.category))
-      .filter((a) => alertInScope(a.daysLeft, alertScope, alertWindowDays))
-      .filter((a) => {
-        if (alertFilter !== 'service_order' || alertScope !== 'urgent' || a.category !== 'service_order') return true;
-        if (a.id.startsWith('svcdate-')) return true;
-        return /תקופ/.test(`${a.title || ''} ${a.meta || ''}`);
-      })
+      .filter((a) => alertPassesListFilters(a, alertFilter, alertScope, alertWindowDays))
       .sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
   }, [alertsForEntity, alertFilter, alertScope, alertWindowDays]);
 
   const countForScope = (scope: AlertListScope) =>
-    alertsForEntity.filter(
-      (a) => alertCategoryMatches(alertFilter, a.category) && alertInScope(a.daysLeft, scope, alertWindowDays),
-    ).length;
+    alertsForEntity.filter((a) => alertPassesListFilters(a, alertFilter, scope, alertWindowDays)).length;
 
   const urgentCount = alertsForEntity.filter((a) => alertInScope(a.daysLeft, 'urgent', alertWindowDays)).length;
   const expiredCount = alertsForEntity.filter((a) => alertInScope(a.daysLeft, 'expired', alertWindowDays)).length;

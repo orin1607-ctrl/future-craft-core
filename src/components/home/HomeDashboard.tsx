@@ -119,7 +119,7 @@ export default function HomeDashboard() {
           to="/vehicle-tracking?summary=attention"
           icon={Radio}
           title="מעקב רכבים"
-          subtitle={loading ? 'טוען…' : trackingAttention > 0 ? `${trackingAttention} רכבים ייחודיים שדורשים טיפול` : 'אין רכבים שדורשים טיפול'}
+          subtitle={loading ? 'טוען…' : trackingAttention > 0 ? `${trackingAttention} רכבים ייחודיים עם פריט במעקב` : 'אין רכבים עם פריט במעקב'}
           badge={attentionLabel}
           accent="warning"
         />
