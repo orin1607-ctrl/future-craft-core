@@ -319,6 +319,18 @@ async function sessionContext(browser, email, viewport = { width: 1440, height: 
   return context;
 }
 
+async function waitForShown(p, min = 1) {
+  await p.waitForFunction(
+    (n) => {
+      const m = document.body.innerText.match(/מוצג\s+(\d+)/);
+      return m && Number(m[1]) >= n;
+    },
+    min,
+    { timeout: 45000 },
+  );
+  await waitPage(p);
+}
+
 async function shownCount(page) {
   const t = await page.locator('body').innerText();
   const m = t.match(/מוצג\s+(\d+)/);
@@ -479,6 +491,7 @@ try {
 
   await page.locator('a').filter({ hasText: 'טסט מתקרב' }).first().click();
   await page.getByText('דחוף / החודש הקרוב', { exact: false }).first().waitFor({ timeout: 45000 });
+  await waitForShown(page, expectedTestUrgent);
   await wait();
   const testUrl = page.url();
   rec('test card opens alerts with category=test&scope=urgent', /category=test/.test(testUrl) && /scope=urgent/.test(testUrl), { testUrl });
@@ -547,12 +560,14 @@ try {
 
   await page.goto(`${LIVE}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await wait();
-  const trackingCard = page.locator('a').filter({ hasText: 'מעקב רכבים' }).first();
+  const trackingCard = page.locator('a[href*="summary=attention"]').first();
   const trackingText = await trackingCard.innerText();
   rec('tracking card states unique vehicles', /רכבים ייחודיים/.test(trackingText), { trackingText: trackingText.slice(0, 200) });
   await trackingCard.click();
   await wait();
   rec('tracking card opens summary=attention', /summary=attention/.test(page.url()), { url: page.url() });
+  await page.getByText(/מוצגים\s+\d+/).first().waitFor({ timeout: 45000 });
+  await wait();
   const trackBody = await page.locator('body').innerText();
   const shownMatch = trackBody.match(/מוצגים\s+(\d+)\s+מתוך\s+(\d+)/);
   const shownAttn = shownMatch ? Number(shownMatch[1]) : null;
@@ -606,7 +621,8 @@ try {
   await waitPage(mobile);
   await mobile.screenshot({ path: join(OUT, '05-dashboard-mobile.png'), fullPage: true }).catch(() => null);
   await mobile.locator('a').filter({ hasText: 'טסט מתקרב' }).first().click();
-  await waitPage(mobile);
+  await mobile.getByText('דחוף / החודש הקרוב', { exact: false }).first().waitFor({ timeout: 45000 });
+  await waitForShown(mobile, expectedTestUrgent);
   rec('mobile test card deep-link works', /category=test/.test(mobile.url()));
   rec('mobile alerts list usable', (await shownCount(mobile)) === expectedTestUrgent);
   await mobileCtx.close();

@@ -1,0 +1,12 @@
+{
+  "id": "oren-car-mission2-alerts",
+  "at": "2026-08-20T15:30:00.000Z",
+  "scope": "Oren Car Staging only",
+  "site": "https://orin1607-ctrl.github.io/future-craft-core",
+  "verdict": "STAGING PASS",
+  "stop": true,
+  "productionTouched": false,
+  "commit": "4a006352",
+  "bundle": "assets/index-OxS4pNZq.js",
+  "report": "docs/audit-reports/staging-alerts-mission2-2026-08-20/REPORT.json"
+}

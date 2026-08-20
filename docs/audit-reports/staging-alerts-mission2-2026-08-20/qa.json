@@ -1,0 +1,399 @@
+{
+  "at": "2026-08-20T15:27:38.614Z",
+  "scope": "Oren Car Staging only",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "beeriWrite": false,
+  "checks": [
+    {
+      "name": "hard-locked to Staging",
+      "ok": true
+    },
+    {
+      "name": "live site is Oren Car Staging",
+      "ok": true,
+      "bundle": "assets/index-OxS4pNZq.js"
+    },
+    {
+      "name": "live uses Staging Supabase",
+      "ok": true,
+      "bundle": "assets/index-OxS4pNZq.js"
+    },
+    {
+      "name": "Production frontend not redeployed by this mission",
+      "ok": true,
+      "productionBundle": "assets/index-BQlrxFmz.js",
+      "note": "read-only check of live Production HTML"
+    },
+    {
+      "name": "Beeri READ-ONLY snapshot loaded",
+      "ok": true,
+      "vehicles": 298,
+      "uniqueAttention": 28,
+      "missingLicense": 297,
+      "testUrgent": 16,
+      "allAlertsEstimate": 658
+    },
+    {
+      "name": "273-class number is unique tracking-attention vehicles",
+      "ok": true,
+      "definition": "Unique non-archived vehicles with at least one tracking-attention item: missing license_doc_url, test/insurance in expired+30d window, open fault/task/accident/service.",
+      "beeriUniqueAttention": 28,
+      "allCompaniesUniqueAttention": 58,
+      "likelyReportedNumber": "273 at report time was unique vehicles with ANY tracking item, dominated by missing license_doc_url (now 297/298 on Beeri). Dashboard badge now excludes license-doc-only.",
+      "correctAsUniqueVehicles": true,
+      "wrongIfReadAsUnfilteredFleetList": true,
+      "dominantReasonBeeri": "missing license_doc_url and/or open service/tasks — not 273 separate vehicles in the test-urgent list"
+    },
+    {
+      "name": "869-class number is all alert rows including future",
+      "ok": true,
+      "definition": "Alerts page \"כל ההתראות\" = every alert ROW (expiry fields + drivers + faults + custom_alerts + service orders + work assignments), including far-future dates. Not unique vehicles.",
+      "beeriAllEstimate": 658,
+      "allCompaniesAllEstimate": 831,
+      "correctAsAllAlerts": true,
+      "wrongAsDefaultView": true
+    },
+    {
+      "name": "Beeri test urgent count is not the 273 tracking number",
+      "ok": true,
+      "testUrgent": 16,
+      "uniqueAttention": 28
+    },
+    {
+      "name": "QA company seeded without touching Beeri",
+      "ok": true,
+      "company": "QA-ALRT-M2-1787239669908",
+      "plates": {
+        "expiredTest": "AT669908",
+        "soonTest": "AS669908",
+        "futureTest": "AF669908",
+        "insMix": "AI669908"
+      }
+    },
+    {
+      "name": "desktop dashboard loaded",
+      "ok": true,
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Alerts M2 1787239669908\n\nQA-ALRT-M2-1787239669908\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי "
+    },
+    {
+      "name": "dashboard test count matches seeded urgent tests",
+      "ok": true,
+      "testCount": 2,
+      "expectedTestUrgent": 2
+    },
+    {
+      "name": "dashboard insurance count matches חובה+מקיף urgent rows",
+      "ok": true,
+      "insCount": 2,
+      "expectedInsUrgent": 2
+    },
+    {
+      "name": "dashboard service count matches date + periodic order",
+      "ok": true,
+      "svcCount": 2,
+      "expectedServiceUrgent": 2
+    },
+    {
+      "name": "test card opens alerts with category=test&scope=urgent",
+      "ok": true,
+      "testUrl": "https://orin1607-ctrl.github.io/future-craft-core/alerts?category=test&scope=urgent"
+    },
+    {
+      "name": "test urgent list count matches dashboard",
+      "ok": true,
+      "testShown": 2,
+      "testCount": 2
+    },
+    {
+      "name": "expired test remains visible",
+      "ok": true,
+      "plate": "AT669908"
+    },
+    {
+      "name": "soon test visible in urgent",
+      "ok": true,
+      "plate": "AS669908"
+    },
+    {
+      "name": "far-future test hidden from urgent default",
+      "ok": true,
+      "plate": "AF669908"
+    },
+    {
+      "name": "alerts default chip is urgent",
+      "ok": true
+    },
+    {
+      "name": "כל הטסטים deep-link scope=all",
+      "ok": true,
+      "allTestsUrl": "https://orin1607-ctrl.github.io/future-craft-core/alerts?category=test&scope=all"
+    },
+    {
+      "name": "far-future test appears in כל הטסטים",
+      "ok": true,
+      "plate": "AF669908"
+    },
+    {
+      "name": "expired test still in כל הטסטים",
+      "ok": true
+    },
+    {
+      "name": "פג תוקף filter shows expired test only among the three",
+      "ok": true
+    },
+    {
+      "name": "insurance card opens insurance urgent list",
+      "ok": true,
+      "insUrl": "https://orin1607-ctrl.github.io/future-craft-core/alerts?category=insurance&scope=urgent"
+    },
+    {
+      "name": "insurance urgent list count matches dashboard",
+      "ok": true,
+      "insShown": 2,
+      "insCount": 2
+    },
+    {
+      "name": "insurance urgent includes חובה פג תוקף",
+      "ok": true
+    },
+    {
+      "name": "insurance urgent includes מקיף בחודש הקרוב",
+      "ok": true
+    },
+    {
+      "name": "כל הביטוחים shows צד ג׳ future row",
+      "ok": true
+    },
+    {
+      "name": "service card opens service_order urgent",
+      "ok": true,
+      "svcUrl": "https://orin1607-ctrl.github.io/future-craft-core/alerts?category=service_order&scope=urgent"
+    },
+    {
+      "name": "service list count matches dashboard",
+      "ok": true,
+      "svcShown": 2,
+      "svcCount": 2
+    },
+    {
+      "name": "/alerts without params defaults to urgent scope",
+      "ok": true,
+      "defaultAlertsUrl": "https://orin1607-ctrl.github.io/future-craft-core/alerts/"
+    },
+    {
+      "name": "default alerts are not the all-dump",
+      "ok": true
+    },
+    {
+      "name": "כל ההתראות chip works",
+      "ok": true
+    },
+    {
+      "name": "refresh/deep-link keeps scope=all",
+      "ok": true
+    },
+    {
+      "name": "tracking card states unique vehicles",
+      "ok": true,
+      "trackingText": "3\n\nמעקב רכבים\n\n3 רכבים ייחודיים שדורשים טיפול עכשיו"
+    },
+    {
+      "name": "tracking card opens summary=attention",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/vehicle-tracking?summary=attention"
+    },
+    {
+      "name": "tracking attention list equals unique vehicles with a tracking item",
+      "ok": true,
+      "shownAttn": 3,
+      "expectedTracking": 3,
+      "trackBody": "מוצגים 3 מתוך 4"
+    },
+    {
+      "name": "future-only test vehicle is not in attention list",
+      "ok": true,
+      "plate": "AF669908"
+    },
+    {
+      "name": "hide removes a dashboard alert slot",
+      "ok": true,
+      "note": "one slot hidden via existing home_alert_prefs"
+    },
+    {
+      "name": "hidden slot can be restored from existing prefs UI",
+      "ok": true
+    },
+    {
+      "name": "regression vehicles page loads",
+      "ok": true
+    },
+    {
+      "name": "regression drivers page loads",
+      "ok": true
+    },
+    {
+      "name": "regression documents page loads",
+      "ok": true
+    },
+    {
+      "name": "regression pending-expiry page loads",
+      "ok": true
+    },
+    {
+      "name": "regression tri/semi page loads without write",
+      "ok": true
+    },
+    {
+      "name": "company isolation: QA FM does not see Beeri plates on alerts",
+      "ok": true,
+      "company": "QA-ALRT-M2-1787239669908"
+    },
+    {
+      "name": "mobile test card deep-link works",
+      "ok": true
+    },
+    {
+      "name": "mobile alerts list usable",
+      "ok": true
+    },
+    {
+      "name": "console has no flood of errors",
+      "ok": true,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Failed to load resource: the server responded with a status of 403 ()"
+      ]
+    },
+    {
+      "name": "QA data cleanup",
+      "ok": true,
+      "leftoverVehicles": 0,
+      "company": "QA-ALRT-M2-1787239669908"
+    }
+  ],
+  "beeri": {
+    "tracking": {
+      "vehicles": 298,
+      "uniqueAttention": 28,
+      "missingLicense": 297,
+      "testWindow": 16,
+      "insWindow": 1,
+      "openFaultRows": 0,
+      "openTaskRows": 17,
+      "openAccidentRows": 1,
+      "openServiceRows": 0,
+      "reasons": {
+        "missingLicense": 297,
+        "testWindow": 16,
+        "insWindow": 1,
+        "fault": 0,
+        "task": 11,
+        "accident": 1,
+        "service": 0
+      }
+    },
+    "alerts": {
+      "expiryRows": 595,
+      "futureExpiryRows": 578,
+      "urgentExpiryRows": 17,
+      "driverLicensesWithDate": 29,
+      "urgentFaults": 0,
+      "activeCustomAlerts": 34,
+      "openServiceOrders": 0,
+      "workAssignments": 0,
+      "allEstimate": 658
+    }
+  },
+  "meaning273": {
+    "definition": "Unique non-archived vehicles with at least one tracking-attention item: missing license_doc_url, test/insurance in expired+30d window, open fault/task/accident/service.",
+    "beeriUniqueAttention": 28,
+    "allCompaniesUniqueAttention": 58,
+    "likelyReportedNumber": "273 at report time was unique vehicles with ANY tracking item, dominated by missing license_doc_url (now 297/298 on Beeri). Dashboard badge now excludes license-doc-only.",
+    "correctAsUniqueVehicles": true,
+    "wrongIfReadAsUnfilteredFleetList": true,
+    "dominantReasonBeeri": "missing license_doc_url and/or open service/tasks — not 273 separate vehicles in the test-urgent list"
+  },
+  "meaning869": {
+    "definition": "Alerts page \"כל ההתראות\" = every alert ROW (expiry fields + drivers + faults + custom_alerts + service orders + work assignments), including far-future dates. Not unique vehicles.",
+    "beeriAllEstimate": 658,
+    "allCompaniesAllEstimate": 831,
+    "correctAsAllAlerts": true,
+    "wrongAsDefaultView": true
+  },
+  "cleanup": {
+    "users": [
+      "cceb3b0e-f0ba-416c-8d69-112a649cd243"
+    ],
+    "vehicles": [
+      "686bc8f1-dbcd-46db-a0f3-d2be094b7199",
+      "90cd7adb-e634-489d-a3d3-f4a8fdb0ca60",
+      "22bef486-ba4a-49cc-b82f-32a9c9833f89",
+      "e2775a6f-1fe2-4901-890b-1686caa38153"
+    ],
+    "drivers": [
+      "63dc6576-78ab-40a0-9de6-02520c89d4e7"
+    ],
+    "serviceOrders": [
+      "448821cd-8e70-4f96-aee1-57f35ad564b5"
+    ],
+    "prefsKeys": [
+      "home_alert_prefs:cceb3b0e-f0ba-416c-8d69-112a649cd243"
+    ]
+  },
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 403 ()",
+    "Failed to load resource: the server responded with a status of 403 ()",
+    "Failed to load resource: the server responded with a status of 403 ()",
+    "Failed to load resource: the server responded with a status of 403 ()",
+    "Failed to load resource: the server responded with a status of 403 ()",
+    "Failed to load resource: the server responded with a status of 403 ()",
+    "Failed to load resource: the server responded with a status of 403 ()"
+  ],
+  "ok": true,
+  "commit": "4a00635",
+  "live": {
+    "bundle": "assets/index-OxS4pNZq.js",
+    "deployTxt": "deployed_ref=4a00635 feat/incident-alerts-staging",
+    "status": 200
+  },
+  "productionBundle": "assets/index-BQlrxFmz.js",
+  "allCompanies": {
+    "tracking": {
+      "vehicles": 434,
+      "uniqueAttention": 58,
+      "missingLicense": 397,
+      "testWindow": 39,
+      "insWindow": 11,
+      "openFaultRows": 4,
+      "openTaskRows": 23,
+      "openAccidentRows": 9,
+      "openServiceRows": 12,
+      "reasons": {
+        "missingLicense": 397,
+        "testWindow": 39,
+        "insWindow": 11,
+        "fault": 3,
+        "task": 14,
+        "accident": 7,
+        "service": 8
+      }
+    },
+    "alerts": {
+      "expiryRows": 690,
+      "futureExpiryRows": 625,
+      "urgentExpiryRows": 65,
+      "driverLicensesWithDate": 55,
+      "urgentFaults": 2,
+      "activeCustomAlerts": 67,
+      "openServiceOrders": 11,
+      "workAssignments": 6,
+      "allEstimate": 831
+    }
+  }
+}

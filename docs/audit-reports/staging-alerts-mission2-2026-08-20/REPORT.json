@@ -1,0 +1,100 @@
+{
+  "id": "staging-alerts-mission2-2026-08-20",
+  "verdict": "STAGING PASS",
+  "stop": true,
+  "mission3Started": false,
+  "productionTouched": false,
+  "at": "2026-08-20T15:30:00.000Z",
+  "site": "https://orin1607-ctrl.github.io/future-craft-core",
+  "supabaseRef": "usfeoerkpcafxxlyuldl",
+  "branch": "feat/incident-alerts-staging",
+  "commits": ["a6cb440b", "c1b6524e", "4a006352"],
+  "liveCommit": "4a00635",
+  "liveBundle": "assets/index-OxS4pNZq.js",
+  "productionBundleStill": "assets/index-BQlrxFmz.js",
+  "before": {
+    "dashboardCardsLinkedToGenericAlerts": true,
+    "alertsDefaultFilter": "all",
+    "expiredHiddenFromActiveList": true,
+    "isUpcomingInWindowExcludedExpired": true,
+    "trackingBadgeOpenedUnfilteredFleet": true,
+    "countListMismatch": true,
+    "missingSearchableFilterFieldImport": "introduced then fixed in 4a006352"
+  },
+  "rootCauses": [
+    {
+      "issue": "Dashboard count ≠ list",
+      "cause": "Home cards linked to /alerts without category/scope. Alerts defaulted to all. Dashboard used upcoming-only dates while list hid expired."
+    },
+    {
+      "issue": "Expired disappeared",
+      "cause": "classifyExpiryForActiveList treated daysLeft < 0 as none; isUpcomingInWindow excluded past dates."
+    },
+    {
+      "issue": "273",
+      "cause": "Unique vehicles with ANY tracking alert item. Dominated by missing license_doc_url (297/298 Beeri). Badge previously opened the unfiltered fleet list."
+    },
+    {
+      "issue": "869-class",
+      "cause": "Alerts all-rows count including far-future expiry fields, custom_alerts, faults, service orders. Correct as כל ההתראות, wrong as default."
+    }
+  ],
+  "changedFiles": [
+    "src/lib/alertListScope.ts",
+    "src/lib/alertListScope.test.ts",
+    "src/lib/expiryOfficerApproval.ts",
+    "src/lib/expiryOfficerApproval.test.ts",
+    "src/lib/vehicleExpiryReminders.ts",
+    "src/lib/fleetAlerts.ts",
+    "src/lib/homeAlertPrefsTypes.ts",
+    "src/lib/homeAlertPrefsApi.ts",
+    "src/lib/vehicleTrackingData.ts",
+    "src/lib/vehicleTrackingData.test.ts",
+    "src/pages/Alerts.tsx",
+    "src/pages/VehicleTracking.tsx",
+    "src/components/home/HomeAlertsWidget.tsx",
+    "src/components/home/HomeDashboard.tsx",
+    "src/components/vehicle-tracking/TrackingSummaryGrid.tsx",
+    "scripts/staging-alerts-mission2-qa.mjs",
+    "scripts/staging-alerts-beeri-readonly-audit.mjs"
+  ],
+  "answers": {
+    "1_before": "Dashboard cards opened a generic Alerts screen. Default was all alerts. Expired tests/insurance were treated as history. Tracking badge did not open the same unique-vehicle set it counted.",
+    "2_root_cause": "No shared scope/category deep-link; upcoming window excluded expired; tracking click ignored the attention subset; 273 was unique vehicles with any tracking item including missing license_doc_url.",
+    "3_what_changed": "Shared urgent scope (expired + 30 days), deep-links per card, Alerts chips, calendarDaysLeft as one window, tracking ?summary=attention, hide on existing home_alert_prefs, dashboard attention excludes license-doc-only.",
+    "4_files": "See changedFiles",
+    "5_meaning_273": "Unique vehicles with a tracking-alert item. On Beeri the bulk was missing license_doc_url (297/298). The reported 273 was that metric at an earlier snapshot / unscoped view, not 273 test rows.",
+    "6_273_correct": "Correct as unique vehicles with a tracking item. Wrong as the unfiltered fleet list and misleading as operational attention because nearly every Beeri vehicle lacks license_doc_url. Dashboard badge now excludes license-doc-only; Beeri operational attention now 28.",
+    "7_meaning_869": "All alert ROWS (expiry fields + drivers + custom_alerts + faults + service orders + assignments), including far future. Beeri estimate now 658; all-companies estimate 831. 869 was the same class of number.",
+    "8_869_correct": "Correct as כל ההתראות. Wrong as the default officer view. Left as secondary chip.",
+    "9_tests": "PASS",
+    "10_insurance": "PASS",
+    "11_service": "PASS",
+    "12_expired": "PASS",
+    "13_near_month": "PASS",
+    "14_all_alerts": "PASS",
+    "15_counts_lists": "PASS",
+    "16_navigation": "PASS",
+    "17_hide": "Existing: company_settings.hidden_buttons (world cards) + dalia_form_config home_alert_prefs. Extended slots with hidden. UI: הסתר + הצג מחדש. No new prefs table.",
+    "18_company_isolation": "PASS",
+    "19_desktop_mobile": "PASS",
+    "20_regression": "PASS (vehicles, drivers, documents, expiry-approvals, tri/semi load; no writes on Beeri)",
+    "21_schema_migration": "NO",
+    "22_rls_policies": "NO",
+    "23_production_changed": "NO",
+    "24_production_data_changed": "NO",
+    "25_staging_commit": "4a006352 (plus a6cb440b, c1b6524e)",
+    "26_staging_bundle": "assets/index-OxS4pNZq.js",
+    "27_oren_car_final": "Mission 2 live on Oren Car Staging. Production untouched. STOP."
+  },
+  "beeriReadOnly": {
+    "vehicles": 298,
+    "missingLicenseDocUrl": 297,
+    "testUrgentExpiredPlus30d": 16,
+    "insuranceUrgentRows": 1,
+    "operationalTrackingAttentionNow": 28,
+    "allAlertsEstimate": 658
+  },
+  "qaWriteCompany": "QA-ALRT-M2-* ephemeral, cleaned",
+  "beeriWrite": false
+}
