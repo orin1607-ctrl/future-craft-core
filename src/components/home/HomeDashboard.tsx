@@ -116,10 +116,10 @@ export default function HomeDashboard() {
         />
         <DashboardCardGate
           path="/vehicle-tracking"
-          to="/vehicle-tracking"
+          to="/vehicle-tracking?summary=attention"
           icon={Radio}
           title="מעקב רכבים"
-          subtitle="צפייה ובקרה על מצב הצי"
+          subtitle={loading ? 'טוען…' : trackingAttention > 0 ? `${trackingAttention} רכבים ייחודיים שדורשים טיפול` : 'אין רכבים שדורשים טיפול'}
           badge={attentionLabel}
           accent="warning"
         />

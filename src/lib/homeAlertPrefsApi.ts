@@ -12,7 +12,15 @@ function normalizePrefs(raw: unknown): HomeAlertPrefs | null {
   if (!raw || typeof raw !== 'object') return null;
   const slots = (raw as HomeAlertPrefs).slots;
   if (!Array.isArray(slots) || slots.length !== 3) return null;
-  return { slots: slots as HomeAlertPrefs['slots'] };
+  return {
+    slots: slots.map((s) => ({
+      type: s.type,
+      daysBefore: s.daysBefore,
+      targetDate: s.targetDate,
+      alertTime: s.alertTime,
+      hidden: Boolean(s.hidden),
+    })) as HomeAlertPrefs['slots'],
+  };
 }
 
 export async function fetchHomeAlertPrefs(userId: string): Promise<HomeAlertPrefs | null> {

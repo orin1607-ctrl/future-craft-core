@@ -25,7 +25,10 @@ export default function VehicleTracking() {
 
   const [allRows, setAllRows] = useState<TrackingVehicleRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [summaryKey, setSummaryKey] = useState<SummaryFilterKey | null>(null);
+  const summaryFromUrl = searchParams.get('summary') as SummaryFilterKey | null;
+  const [summaryKey, setSummaryKey] = useState<SummaryFilterKey | null>(
+    summaryFromUrl === 'attention' ? 'attention' : null,
+  );
   const [filters, setFilters] = useState<TrackingFilters>(EMPTY_TRACKING_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<TrackingFilters>(EMPTY_TRACKING_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -47,6 +50,13 @@ export default function VehicleTracking() {
   }, [refreshFleet]);
 
   useEffect(() => {
+    const raw = searchParams.get('summary');
+    if (raw === 'attention' || raw === 'alert' || raw === 'fault' || raw === 'total') {
+      setSummaryKey(raw);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (!vehicleId) {
       setDetail(null);
       return;
@@ -66,16 +76,26 @@ export default function VehicleTracking() {
   const counts = useMemo(() => buildSummaryCounts(allRows), [allRows]);
 
   const openVehicle = (id: string) => {
-    setSearchParams({ vehicleId: id });
+    const q = new URLSearchParams(searchParams);
+    q.set('vehicleId', id);
+    setSearchParams(q);
   };
 
   const backToList = () => {
-    setSearchParams({});
+    const q = new URLSearchParams(searchParams);
+    q.delete('vehicleId');
+    setSearchParams(q);
   };
 
   const onSummarySelect = (key: SummaryFilterKey) => {
-    setSummaryKey((prev) => (prev === key ? null : key));
+    const next = summaryKey === key ? null : key;
+    setSummaryKey(next);
     setAppliedFilters(EMPTY_TRACKING_FILTERS);
+    const q = new URLSearchParams(searchParams);
+    if (next) q.set('summary', next);
+    else q.delete('summary');
+    q.delete('vehicleId');
+    setSearchParams(q);
   };
 
   if (vehicleId) {

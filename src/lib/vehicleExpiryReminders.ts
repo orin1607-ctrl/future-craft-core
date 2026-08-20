@@ -3,7 +3,7 @@ import type { CompanyAlertThresholds } from '@/lib/vehicleTrackingAlerts';
 /** Active reminder tier for expiry-based alerts (30 → 7 → 1 day windows). */
 export type ExpiryReminderTier = 30 | 7 | 1;
 
-export type ExpiryActiveListKind = 'none' | 'active' | 'future';
+export type ExpiryActiveListKind = 'none' | 'expired' | 'active' | 'future';
 
 export function expiryReminderTier(
   daysLeft: number | null,
@@ -17,10 +17,10 @@ export function expiryReminderTier(
   return first as ExpiryReminderTier;
 }
 
-/** Central Alerts active list: current + future (incl. >30). Expired stay in history only. */
+/** Alerts list: expired stay visible, plus current window and future (>30). */
 export function classifyExpiryForActiveList(daysLeft: number | null): ExpiryActiveListKind {
   if (daysLeft === null) return 'none';
-  if (daysLeft < 0) return 'none';
+  if (daysLeft < 0) return 'expired';
   if (daysLeft > 30) return 'future';
   return 'active';
 }
@@ -30,6 +30,8 @@ export function expiryAlertTitle(
   daysLeft: number,
   thresholds: CompanyAlertThresholds,
 ): string {
+  if (daysLeft < 0) return `${subject} · פג תוקף`;
+  if (daysLeft === 0) return `${subject} · פג היום`;
   if (daysLeft > 30) return `${subject} · עתידית`;
   const tier = expiryReminderTier(daysLeft, thresholds);
   if (tier) return tierLabel(tier, subject);

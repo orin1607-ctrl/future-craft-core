@@ -35,22 +35,36 @@ const severityBorder: Record<FleetAlertSlotSummary['severity'], string> = {
   info: 'border-border bg-card',
 };
 
-function AlertSlotCard({ summary, loading }: { summary: FleetAlertSlotSummary; loading: boolean }) {
+function AlertSlotCard({
+  summary,
+  loading,
+  onHide,
+}: {
+  summary: FleetAlertSlotSummary;
+  loading: boolean;
+  onHide: () => void;
+}) {
   const Icon = SLOT_ICONS[summary.type];
   return (
-    <Link
-      to={summary.link}
-      className={`card-elevated block p-4 min-h-[100px] border-2 transition-colors hover:border-primary/40 ${severityBorder[summary.severity]}`}
-    >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2">
-          <Icon size={20} className="text-primary shrink-0" />
-          <span className="font-bold text-sm">{summary.label}</span>
+    <div className={`card-elevated min-h-[100px] border-2 ${severityBorder[summary.severity]} relative`}>
+      <Link to={summary.link} className="block p-4 pt-8 transition-colors hover:border-primary/40 rounded-xl">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <Icon size={20} className="text-primary shrink-0" />
+            <span className="font-bold text-sm">{summary.label}</span>
+          </div>
+          <span className="text-2xl font-black text-primary">{loading ? '…' : summary.count}</span>
         </div>
-        <span className="text-2xl font-black text-primary">{loading ? '…' : summary.count}</span>
-      </div>
-      <p className="text-xs text-muted-foreground leading-snug">{loading ? 'טוען…' : summary.subtitle}</p>
-    </Link>
+        <p className="text-xs text-muted-foreground leading-snug">{loading ? 'טוען…' : summary.subtitle}</p>
+      </Link>
+      <button
+        type="button"
+        onClick={onHide}
+        className="absolute top-1 left-1 text-[11px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded-md hover:bg-muted"
+      >
+        הסתר
+      </button>
+    </div>
   );
 }
 
@@ -169,13 +183,24 @@ export default function HomeAlertsWidget({
       <ExpiryPendingCard companyFilter={companyFilter} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {summaries.map((s) => (
-          <AlertSlotCard key={s.type + s.label} summary={s} loading={loading} />
-        ))}
+        {prefs.slots.map((slot, index) =>
+          slot.hidden || !summaries[index] ? null : (
+            <AlertSlotCard
+              key={slot.type + index}
+              summary={summaries[index]}
+              loading={loading}
+              onHide={() => {
+                const slots = [...prefs.slots] as HomeAlertPrefs['slots'];
+                slots[index] = { ...slots[index], hidden: true };
+                onPrefsChange({ slots });
+              }}
+            />
+          ),
+        )}
       </div>
 
       <div className="text-center">
-        <Link to="/alerts" className="text-sm text-primary font-medium hover:underline">
+        <Link to="/alerts?scope=all" className="text-sm text-primary font-medium hover:underline">
           צפה בכל ההתראות →
         </Link>
       </div>
@@ -199,6 +224,27 @@ export default function HomeAlertsWidget({
                 }}
               />
             ))}
+            {draft.slots.some((s) => s.hidden) && (
+              <div className="text-sm space-y-2">
+                <p className="font-medium">כרטיסים מוסתרים</p>
+                {draft.slots.map((slot, i) =>
+                  slot.hidden ? (
+                    <button
+                      key={i}
+                      type="button"
+                      className="text-primary underline"
+                      onClick={() => {
+                        const slots = [...draft.slots] as HomeAlertPrefs['slots'];
+                        slots[i] = { ...slots[i], hidden: false };
+                        setDraft({ slots });
+                      }}
+                    >
+                      הצג מחדש: {HOME_ALERT_SLOT_LABELS[slot.type]}
+                    </button>
+                  ) : null,
+                )}
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row gap-2">
               <Button type="button" className="flex-1" onClick={saveSettings}>
                 שמור

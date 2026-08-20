@@ -5,6 +5,7 @@ import {
   filterPendingExpiryItems,
   isExpiryPending,
   isUpcomingInWindow,
+  isDueOrUpcomingInWindow,
   matchesExpiryKindQuery,
   pendingItemsForDriver,
   pendingItemsForVehicle,
@@ -28,6 +29,14 @@ describe('expiry pending detection', () => {
     expect(isUpcomingInWindow('2026-08-18', 30, TODAY)).toBe(true);
     expect(isUpcomingInWindow('2026-09-01', 30, TODAY)).toBe(true);
     expect(isUpcomingInWindow('2026-12-01', 30, TODAY)).toBe(false);
+  });
+
+  it('urgent window includes expired plus the coming month', () => {
+    expect(isDueOrUpcomingInWindow('2026-08-10', 30, TODAY)).toBe(true);
+    expect(isDueOrUpcomingInWindow('2026-08-18', 30, TODAY)).toBe(true);
+    expect(isDueOrUpcomingInWindow('2026-09-01', 30, TODAY)).toBe(true);
+    expect(isDueOrUpcomingInWindow('2026-12-01', 30, TODAY)).toBe(false);
+    expect(isDueOrUpcomingInWindow(null, 30, TODAY)).toBe(false);
   });
 });
 

@@ -3,6 +3,7 @@ import type { SummaryFilterKey } from '@/lib/vehicleTrackingData';
 
 const DEFS: { key: SummaryFilterKey; label: string; color: string }[] = [
   { key: 'total', label: 'סה"כ רכבים', color: 'text-primary' },
+  { key: 'attention', label: 'דורשים טיפול', color: 'text-warning' },
   { key: 'active', label: 'רכבים פעילים', color: 'text-success' },
   { key: 'service', label: 'בטיפול', color: 'text-warning' },
   { key: 'transport', label: 'בשינוע', color: 'text-info' },

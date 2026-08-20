@@ -74,11 +74,11 @@ describe('next due months', () => {
 });
 
 describe('expiry active list', () => {
-  it('shows current and future including >30 days, hides expired', () => {
+  it('shows expired, current window, and future including >30 days', () => {
     expect(classifyExpiryForActiveList(0)).toBe('active');
     expect(classifyExpiryForActiveList(14)).toBe('active');
     expect(classifyExpiryForActiveList(90)).toBe('future');
-    expect(classifyExpiryForActiveList(-1)).toBe('none');
+    expect(classifyExpiryForActiveList(-1)).toBe('expired');
     expect(classifyExpiryForActiveList(null)).toBe('none');
   });
   it('labels future vs near expiry', () => {

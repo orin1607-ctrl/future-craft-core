@@ -90,6 +90,21 @@ export function isUpcomingInWindow(
   return diff <= daysBefore;
 }
 
+/** Urgent window for officer lists: expired + due within daysBefore (inclusive). */
+export function isDueOrUpcomingInWindow(
+  dateStr: string | null | undefined,
+  daysBefore: number,
+  today = todayIsoDate(),
+): boolean {
+  const d = toIsoDate(dateStr);
+  if (!d || daysBefore < 0) return false;
+  const start = new Date(`${today}T00:00:00`);
+  const limit = new Date(start);
+  limit.setDate(limit.getDate() + daysBefore);
+  const end = new Date(`${d}T00:00:00`);
+  return end.getTime() <= limit.getTime();
+}
+
 export function canApproveExpiryRenewal(role: string | undefined | null): boolean {
   return role === 'fleet_manager' || role === 'super_admin';
 }

@@ -74,6 +74,7 @@ export interface TrackingVehicleRow {
 
 export type SummaryFilterKey =
   | 'total'
+  | 'attention'
   | 'active'
   | 'service'
   | 'transport'
@@ -152,17 +153,20 @@ async function loadCompanyThresholdsMap(
   return map;
 }
 
-export async function countTrackingAttention(companyFilter: string | null): Promise<number> {
-  const rows = await loadFleetTrackingRows(companyFilter);
-  return rows.filter(
-    (v) =>
-      v.has_open_fault ||
+export function vehicleNeedsTrackingAttention(v: TrackingVehicleRow): boolean {
+  return Boolean(
+    v.has_open_fault ||
       v.has_open_defect ||
       v.has_open_accident ||
       v.has_open_alert ||
       v.has_active_service ||
       v.in_garage,
-  ).length;
+  );
+}
+
+export async function countTrackingAttention(companyFilter: string | null): Promise<number> {
+  const rows = await loadFleetTrackingRows(companyFilter);
+  return rows.filter(vehicleNeedsTrackingAttention).length;
 }
 
 export async function loadFleetTrackingRows(companyFilter: string | null): Promise<TrackingVehicleRow[]> {
@@ -372,6 +376,8 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
 export function applySummaryFilter(rows: TrackingVehicleRow[], key: SummaryFilterKey | null): TrackingVehicleRow[] {
   if (!key || key === 'total') return rows;
   switch (key) {
+    case 'attention':
+      return rows.filter(vehicleNeedsTrackingAttention);
     case 'active':
       return rows.filter((v) => v.status === 'active' || v.status_text === 'פעיל');
     case 'service':
@@ -430,6 +436,7 @@ export function applyTrackingFilters(rows: TrackingVehicleRow[], f: TrackingFilt
 export function buildSummaryCounts(rows: TrackingVehicleRow[]): Record<SummaryFilterKey, number> {
   return {
     total: rows.length,
+    attention: applySummaryFilter(rows, 'attention').length,
     active: applySummaryFilter(rows, 'active').length,
     service: applySummaryFilter(rows, 'service').length,
     transport: applySummaryFilter(rows, 'transport').length,

@@ -30,7 +30,14 @@ import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getThirdPartyInsuranceExpiry } from '@/lib/vehicleInsuranceUtils';
 import { formatVehicleIds, InternalNumber, InternalPrefixSuffix, VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
-import { SearchableFilterField } from '@/components/SearchableFilterField';
+import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
+import {
+  alertCategoryMatches,
+  alertInScope,
+  parseAlertListScope,
+  parseAlertWindowDays,
+  type AlertListScope,
+} from '@/lib/alertListScope';
 
 // ─── Alerts Types ───
 type AlertSeverity = 'critical' | 'warning' | 'info';
@@ -157,7 +164,7 @@ const ENTITY_LABELS: Record<string, string> = {
 export default function Alerts() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const companyFilter = useCompanyFilter();
   const isSuperAdmin = user?.role === 'super_admin';
 
@@ -165,6 +172,8 @@ export default function Alerts() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [alertFilter, setAlertFilter] = useState<AlertCategory | 'all'>('all');
+  const [alertScope, setAlertScope] = useState<AlertListScope>('urgent');
+  const [alertWindowDays, setAlertWindowDays] = useState(30);
   const [filterVehicle, setFilterVehicle] = useState('');
   const [filterInternal, setFilterInternal] = useState('');
   const [vehiclePlates, setVehiclePlates] = useState<string[]>([]);
@@ -185,7 +194,24 @@ export default function Alerts() {
 
   useEffect(() => {
     const requested = searchParams.get('category');
-    if (requested === 'free' || requested === 'officer') setAlertFilter(requested);
+    if (
+      requested === 'all' ||
+      requested === 'free' ||
+      requested === 'officer' ||
+      requested === 'test' ||
+      requested === 'insurance' ||
+      requested === 'comprehensive_insurance' ||
+      requested === 'third_party_insurance' ||
+      requested === 'license' ||
+      requested === 'fault' ||
+      requested === 'service_order' ||
+      requested === 'work_assignment' ||
+      requested === 'driver_document'
+    ) {
+      setAlertFilter(requested === 'all' ? 'all' : requested);
+    }
+    setAlertScope(parseAlertListScope(searchParams.get('scope')));
+    setAlertWindowDays(parseAlertWindowDays(searchParams.get('days')));
     const plate = searchParams.get('plate');
     if (plate) setFilterVehicle(plate);
     const internal = searchParams.get('internal');
@@ -250,7 +276,10 @@ export default function Alerts() {
     };
 
     // 1. Vehicle expiries
-    const { data: vehicles } = await applyCompanyScope(supabase.from('vehicles').select('*'), companyFilter);
+    const { data: vehicles } = await applyCompanyScope(
+      applyExcludeArchivedVehicles(supabase.from('vehicles').select('*')),
+      companyFilter,
+    );
     if (vehicles) {
       const plates: string[] = [];
       const internals: string[] = [];
@@ -305,7 +334,7 @@ export default function Alerts() {
             category,
             severity: kind === 'future' ? 'info' : severityFn(days),
             title: expiryAlertTitle(subject, days, thresholds),
-            subtitle: kind === 'future' ? `${label} · עתידית` : label,
+            subtitle: kind === 'future' ? `${label} · עתידית` : kind === 'expired' ? `${label} · פג תוקף` : label,
             internalNumber,
             vehiclePlate,
             daysLeft: days,
@@ -334,6 +363,15 @@ export default function Alerts() {
           insOn,
           (d) => getInsuranceSeverity(d, insRed),
           insHub(v.id),
+        );
+        pushExpiry(
+          `svcdate-${v.id}`,
+          'service_order',
+          'טיפול תקופתי',
+          (v as { next_service_date?: string | null }).next_service_date,
+          true,
+          getSeverity,
+          buildVehicleHubUrl(v.id, { hubSection: 'home' }),
         );
 
         const nextInsp = (v as { next_inspection_date?: string | null }).next_inspection_date;
@@ -386,7 +424,7 @@ export default function Alerts() {
     );
     latestOfficerByVehicle.forEach((inspection) => {
       const days = getDaysLeft(inspection.next_due_date);
-      if (days === null || days < 0) return;
+      if (days === null) return;
       const plate = inspection.vehicle_plate || '';
       const key = `${normalizePlate(plate)}|${String(inspection.next_due_date).slice(0, 10)}`;
       if (officerSeenFromVehicles.has(key)) return;
@@ -585,7 +623,7 @@ export default function Alerts() {
 
       for (const ca of orderedCustomAlerts) {
         const daysLeft = getDaysLeft(ca.alert_date);
-        if (daysLeft === null || daysLeft < 0) continue;
+        if (daysLeft === null) continue;
         const plate = plateFromAlertText(ca.description) || plateFromAlertText(ca.title);
         const customVehicleId =
           vehicleIdFromAlertText(ca.description) || vehicleIdFromAlertText(ca.title);
@@ -709,9 +747,19 @@ export default function Alerts() {
     setLogsLoading(false);
   };
 
+  const applyListParams = (next: { category?: AlertCategory | 'all'; scope?: AlertListScope }) => {
+    const q = new URLSearchParams(searchParams);
+    const cat = next.category ?? alertFilter;
+    const scope = next.scope ?? alertScope;
+    if (cat === 'all') q.delete('category');
+    else q.set('category', cat);
+    q.set('scope', scope);
+    if (alertWindowDays !== 30) q.set('days', String(alertWindowDays));
+    else q.delete('days');
+    setSearchParams(q);
+  };
+
   const alertsForEntity = useMemo(() => {
-    // Plates reach this list both as typed by the user and as stored in alert
-    // metadata without separators, so compare them in a single normalized form.
     const wantedPlate = normalizePlate(filterVehicle);
     return alerts.filter((a) => {
       if (wantedPlate && normalizePlate(a.vehiclePlate || '') !== wantedPlate) return false;
@@ -720,13 +768,30 @@ export default function Alerts() {
     });
   }, [alerts, filterVehicle, filterInternal]);
 
-  const filteredAlerts =
-    alertFilter === 'all'
-      ? alertsForEntity
-      : alertsForEntity.filter((a) => a.category === alertFilter);
+  const filteredAlerts = useMemo(() => {
+    return alertsForEntity
+      .filter((a) => alertCategoryMatches(alertFilter, a.category))
+      .filter((a) => alertInScope(a.daysLeft, alertScope, alertWindowDays))
+      .filter((a) => {
+        if (alertFilter !== 'service_order' || alertScope !== 'urgent' || a.category !== 'service_order') return true;
+        if (a.id.startsWith('svcdate-')) return true;
+        return /תקופ/.test(`${a.title || ''} ${a.meta || ''}`);
+      })
+      .sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
+  }, [alertsForEntity, alertFilter, alertScope, alertWindowDays]);
+
+  const countForScope = (scope: AlertListScope) =>
+    alertsForEntity.filter(
+      (a) => alertCategoryMatches(alertFilter, a.category) && alertInScope(a.daysLeft, scope, alertWindowDays),
+    ).length;
+
+  const urgentCount = alertsForEntity.filter((a) => alertInScope(a.daysLeft, 'urgent', alertWindowDays)).length;
+  const expiredCount = alertsForEntity.filter((a) => alertInScope(a.daysLeft, 'expired', alertWindowDays)).length;
 
   const alertCounts = {
     all: alertsForEntity.length,
+    urgent: urgentCount,
+    expired: expiredCount,
     critical: alertsForEntity.filter((a) => a.severity === 'critical').length,
     warning: alertsForEntity.filter((a) => a.severity === 'warning').length,
   };
@@ -764,7 +829,7 @@ export default function Alerts() {
         התראות ועדכונים
       </h1>
       <p className="text-sm text-muted-foreground">
-        טסט, ביטוח, רישיון, קצין רכב והתראה חופשית — אותה תמונה כמו «התראות ושליחות». פגות תוקף בהיסטוריה בלבד.
+        ברירת מחדל: פגי תוקף + החודש הקרוב. פג תוקף נשאר גלוי. כל ההתראות זמין כסינון משני.
       </p>
 
       <Tabs defaultValue="alerts" dir="rtl">
@@ -772,9 +837,9 @@ export default function Alerts() {
           <TabsTrigger value="alerts" className="text-base font-bold gap-2">
             <Bell size={18} />
             התראות
-            {alertCounts.all > 0 && (
+            {alertCounts.urgent > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
-                {alertCounts.all}
+                {alertCounts.urgent}
               </span>
             )}
           </TabsTrigger>
@@ -822,6 +887,25 @@ export default function Alerts() {
             </div>
           </div>
 
+          <div className="flex gap-2 flex-wrap">
+            {([
+              ['urgent', `דחוף / החודש הקרוב (${countForScope('urgent')})`],
+              ['expired', `פג תוקף (${countForScope('expired')})`],
+              ['all', alertFilter === 'test' ? `כל הטסטים (${countForScope('all')})` : alertFilter === 'insurance' ? `כל הביטוחים (${countForScope('all')})` : `כל ההתראות (${countForScope('all')})`],
+            ] as const).map(([scope, label]) => (
+              <button
+                key={scope}
+                type="button"
+                onClick={() => applyListParams({ scope })}
+                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+                  alertScope === scope ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {/* Severity Counters */}
           <div className="flex items-center gap-3 flex-wrap">
             {alertCounts.critical > 0 && (
@@ -835,21 +919,40 @@ export default function Alerts() {
               </span>
             )}
             <span className="px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-sm font-medium">
-              {alertCounts.all} סה״כ
+              מוצג {filteredAlerts.length}
             </span>
           </div>
 
           {/* Category Filter */}
           <div className="flex gap-2 flex-wrap">
-            {categories.map(cat => {
-              const count = cat === 'all' ? alertsForEntity.length : alertsForEntity.filter(a => a.category === cat).length;
-              // Officer/free are user workflows, so keep their filters discoverable
-              // even before the first alert exists.
+            {categories.map((cat) => {
+              const count =
+                cat === 'all'
+                  ? alertsForEntity.filter((a) => alertInScope(a.daysLeft, alertScope, alertWindowDays)).length
+                  : alertsForEntity.filter(
+                      (a) => alertCategoryMatches(cat, a.category) && alertInScope(a.daysLeft, alertScope, alertWindowDays),
+                    ).length;
               if (cat !== 'all' && cat !== 'officer' && cat !== 'free' && count === 0) return null;
+              const extra =
+                cat === 'test' && alertFilter === 'test'
+                  ? alertScope === 'all'
+                    ? ' · כל הטסטים'
+                    : ' · דחוף'
+                  : cat === 'insurance' && alertFilter === 'insurance'
+                    ? alertScope === 'all'
+                      ? ' · כל הביטוחים'
+                      : ' · דחוף'
+                    : '';
               return (
-                <button key={cat} onClick={() => setAlertFilter(cat)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${alertFilter === cat ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
-                  {cat === 'all' ? 'הכל' : categoryLabels[cat]} ({count})
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => applyListParams({ category: cat })}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${alertFilter === cat ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                >
+                  {cat === 'all' ? 'הכל' : categoryLabels[cat]}
+                  {cat === 'insurance' ? ' (כל הסוגים)' : ''}
+                  {extra} ({count})
                 </button>
               );
             })}

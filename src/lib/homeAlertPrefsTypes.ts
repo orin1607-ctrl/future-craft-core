@@ -12,6 +12,7 @@ export interface HomeAlertSlotPrefs {
   daysBefore: number;
   targetDate?: string;
   alertTime?: string;
+  hidden?: boolean;
 }
 
 export interface HomeAlertPrefs {
