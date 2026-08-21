@@ -1,0 +1,141 @@
+{
+  "error": "The caller does not have permission",
+  "response": {
+    "config": {
+      "url": "https://script.googleapis.com/v1/scripts/1yn8zeIV2WJkox-0nEmIT4ozrtRmCdzdgu8xwmnOt7soIZ0Jiju0Au0dc:run",
+      "method": "POST",
+      "apiVersion": "",
+      "userAgentDirectives": [
+        {
+          "product": "google-api-nodejs-client",
+          "version": "7.2.0",
+          "comment": "gzip"
+        }
+      ],
+      "data": {
+        "function": "intakeReparseOneStored_",
+        "parameters": [
+          "1"
+        ],
+        "devMode": true
+      },
+      "headers": {
+        "x-goog-api-client": "gdcl/7.2.0 gl-node/24.16.0",
+        "Accept-Encoding": "gzip",
+        "User-Agent": "google-api-nodejs-client/7.2.0 (gzip)",
+        "Authorization": "<<REDACTED> - See `errorRedactor` option in `gaxios` for configuration>.",
+        "Content-Type": "application/json"
+      },
+      "params": {},
+      "retry": true,
+      "body": "{\"function\":\"intakeReparseOneStored_\",\"parameters\":[\"1\"],\"devMode\":true}",
+      "responseType": "unknown",
+      "retryConfig": {
+        "currentRetryAttempt": 0,
+        "retry": 3,
+        "httpMethodsToRetry": [
+          "GET",
+          "HEAD",
+          "PUT",
+          "OPTIONS",
+          "DELETE"
+        ],
+        "noResponseRetries": 2,
+        "retryDelayMultiplier": 2,
+        "timeOfFirstRequest": 1787302635922,
+        "totalTimeout": 9007199254740991,
+        "maxRetryDelay": 9007199254740991,
+        "statusCodesToRetry": [
+          [
+            100,
+            199
+          ],
+          [
+            408,
+            408
+          ],
+          [
+            429,
+            429
+          ],
+          [
+            500,
+            599
+          ]
+        ]
+      }
+    },
+    "response": {
+      "config": {
+        "url": "https://script.googleapis.com/v1/scripts/1yn8zeIV2WJkox-0nEmIT4ozrtRmCdzdgu8xwmnOt7soIZ0Jiju0Au0dc:run",
+        "method": "POST",
+        "apiVersion": "",
+        "userAgentDirectives": [
+          {
+            "product": "google-api-nodejs-client",
+            "version": "7.2.0",
+            "comment": "gzip"
+          }
+        ],
+        "data": {
+          "function": "intakeReparseOneStored_",
+          "parameters": [
+            "1"
+          ],
+          "devMode": true
+        },
+        "headers": {
+          "x-goog-api-client": "gdcl/7.2.0 gl-node/24.16.0",
+          "Accept-Encoding": "gzip",
+          "User-Agent": "google-api-nodejs-client/7.2.0 (gzip)",
+          "Authorization": "<<REDACTED> - See `errorRedactor` option in `gaxios` for configuration>.",
+          "Content-Type": "application/json"
+        },
+        "params": {},
+        "retry": true,
+        "body": "{\"function\":\"intakeReparseOneStored_\",\"parameters\":[\"1\"],\"devMode\":true}",
+        "responseType": "unknown"
+      },
+      "data": {
+        "error": {
+          "code": 403,
+          "message": "The caller does not have permission",
+          "errors": [
+            {
+              "message": "The caller does not have permission",
+              "domain": "global",
+              "reason": "forbidden"
+            }
+          ],
+          "status": "PERMISSION_DENIED"
+        }
+      },
+      "headers": {
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "content-encoding": "gzip",
+        "content-type": "application/json; charset=UTF-8",
+        "date": "Fri, 21 Aug 2026 08:57:16 GMT",
+        "server": "ESF",
+        "transfer-encoding": "chunked",
+        "vary": "Origin, X-Origin, Referer",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "0"
+      },
+      "status": 403,
+      "statusText": "Forbidden",
+      "request": {
+        "responseURL": "https://script.googleapis.com/v1/scripts/1yn8zeIV2WJkox-0nEmIT4ozrtRmCdzdgu8xwmnOt7soIZ0Jiju0Au0dc:run"
+      }
+    },
+    "status": 403,
+    "code": 403,
+    "errors": [
+      {
+        "message": "The caller does not have permission",
+        "domain": "global",
+        "reason": "forbidden"
+      }
+    ]
+  }
+}

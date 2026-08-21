@@ -1,0 +1,176 @@
+{
+  "metaTable": [
+    {
+      "field": "intake number",
+      "v18": "1",
+      "neu": "1",
+      "match": true
+    },
+    {
+      "field": "category",
+      "v18": "אובליגו",
+      "neu": "אובליגו",
+      "match": true
+    },
+    {
+      "field": "filename",
+      "v18": "Metal Comuters Ver 4.31-5.pdf",
+      "neu": "Metal Comuters Ver 4.31-5.pdf",
+      "match": true
+    },
+    {
+      "field": "Message ID",
+      "v18": "19fabd95498421fd",
+      "neu": "19fabd95498421fd",
+      "match": true
+    },
+    {
+      "field": "fingerprint",
+      "v18": "208099cea85889879b7503d44fc6b59c2d5edf26d078153f93a6274e90a33902",
+      "neu": "208099cea85889879b7503d44fc6b59c2d5edf26d078153f93a6274e90a33902",
+      "match": true
+    },
+    {
+      "field": "records",
+      "v18": 3,
+      "neu": 4,
+      "match": false
+    },
+    {
+      "field": "total amount",
+      "v18": 23939,
+      "neu": 23939,
+      "match": true
+    },
+    {
+      "field": "entities (unique names)",
+      "v18": 3,
+      "neu": 3,
+      "match": true
+    }
+  ],
+  "v18Rows": [
+    {
+      "i": 1,
+      "name": "א.ו חיאת חאלדי בע\"מ",
+      "amount": -3776,
+      "checkNo": "",
+      "due": "",
+      "bank": ""
+    },
+    {
+      "i": 2,
+      "name": "המאגר מרכז חלפי רכב בע\"מ",
+      "amount": -11844,
+      "checkNo": "",
+      "due": "",
+      "bank": ""
+    },
+    {
+      "i": 3,
+      "name": "מ.פינס בע\"מ",
+      "amount": -8319,
+      "checkNo": "",
+      "due": "",
+      "bank": ""
+    }
+  ],
+  "neuRows": [
+    {
+      "i": 1,
+      "name": "א.ו חיאת חאלדי בע\"מ",
+      "amount": 3776,
+      "ref": "1",
+      "intake": "1",
+      "status": "אצלנו"
+    },
+    {
+      "i": 2,
+      "name": "המאגר מרכז חלפי רכב בע\"מ",
+      "amount": 11844,
+      "ref": "1",
+      "intake": "1",
+      "status": "אצלנו"
+    },
+    {
+      "i": 3,
+      "name": "מ.פינס בע\"מ",
+      "amount": 4365,
+      "ref": "2",
+      "intake": "1",
+      "status": "אצלנו"
+    },
+    {
+      "i": 4,
+      "name": "מ.פינס בע\"מ",
+      "amount": 3954,
+      "ref": "2",
+      "intake": "1",
+      "status": "אצלנו"
+    }
+  ],
+  "fourthRow": {
+    "which": {
+      "i": 4,
+      "name": "מ.פינס בע\"מ",
+      "amount": 3954,
+      "ref": "2",
+      "intake": "1",
+      "status": "אצלנו"
+    },
+    "explanation": "NEW row #4 is the second due-month payment for מ.פינס בע\"מ (amount 3954). V18 stored one aggregated party total 8319 (=4365+3954).",
+    "pinsV18Amount": -8319,
+    "pinsNeuAmounts": [
+      4365,
+      3954
+    ],
+    "pinsNeuSum": 8319,
+    "sumMatchesV18PartyTotal": false
+  },
+  "rootCauseRecords": {
+    "summary": "Grain mismatch: V18 #1 stored 3 party-total rows (empty check/due fields). NEW stored 4 payment rows (per due-month) from parseObligoReportGas_/parsePartySegment. Not a TOTAL line, not a duplicate phantom, not missing intake.",
+    "not": [
+      "not a TOTAL/summary row misread",
+      "not header/footer",
+      "not random cache",
+      "not missing fingerprint"
+    ],
+    "codeRefs": {
+      "newParser": "parseObligoReportGas_ → parsePartySegment (one payment per month cell)",
+      "v18StoredShape": "registry שורות JSON: 3 payee totals with empty מספר צ׳ק/בנק/תאריך פירעון",
+      "compareNote": "NEW פיצל שורות לפי צ׳קים/תשלומים (3 ישויות ב-V18, 4 שורות ב-NEW) — הסכומים לפי ישות תואמים."
+    }
+  },
+  "rootCauseIntakeDash": {
+    "liveNeuIntake": "1",
+    "allNeuRowsHaveIntake1": true,
+    "compareCheckIntake": true,
+    "liveStatus": "PASS",
+    "conclusion": "Live data and compareV18 currently have NEW intakeNumber=\"1\" (not missing). If UI showed #—, it was UI/ stale view — not missing sheet data. Current API would render #1.",
+    "uiSim": {
+      "status": "PASS",
+      "vNum": "1",
+      "nNum": "1",
+      "displayV": "#1",
+      "displayN": "#1",
+      "wouldShowDash": false,
+      "records": {
+        "v": 3,
+        "n": 4
+      },
+      "entities": {
+        "v18": 3,
+        "neu": 3
+      },
+      "note": "NEW פיצל שורות לפי צ׳קים/תשלומים (3 ישויות ב-V18, 4 שורות ב-NEW) — הסכומים לפי ישות תואמים.",
+      "checks": {
+        "fingerprint": true,
+        "intakeNumber": true,
+        "source": true,
+        "business": true
+      }
+    }
+  },
+  "problemsAre": "ONE primary data-shape mismatch (3 party totals vs 4 payments). Intake #— is NOT reproduced in live sources.",
+  "recommendedFix": "Reparse/align V18 #1 to payment-level rows (4) using the same obligo matrix parser, without changing intakeNumber/fingerprint/messageId; OR keep party grain on both sides. Do NOT delete NEW payment rows. Do NOT fake PASS in compare by ignoring row #4."
+}

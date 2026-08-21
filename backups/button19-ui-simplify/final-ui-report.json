@@ -1,0 +1,35 @@
+{
+  "headline": "8 דוחות פעילים | 8 PASS | 0 FAIL | 1 בארכיון (מוסתרים)",
+  "pass": 8,
+  "fail": 0,
+  "nums": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "8",
+    "10"
+  ],
+  "has7": false,
+  "has9": false,
+  "item4": {
+    "status": "PASS",
+    "content": "9/9",
+    "vAmt": 17015.34,
+    "nAmt": 17015.34
+  },
+  "deployedHtmlHas": {
+    "simpleTable": true,
+    "openCheckLabel": true,
+    "techLabel": true,
+    "tableHeaders": true,
+    "noOldFingerprintCard": true,
+    "btn1to18": true,
+    "hasBtn19": true
+  },
+  "failButtonOnlyOnFail": true,
+  "previewPath": "backups/button19-ui-simplify/preview-live.html",
+  "blockHasDetailBtn": true
+}

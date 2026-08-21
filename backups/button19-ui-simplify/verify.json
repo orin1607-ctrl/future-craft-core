@@ -1,0 +1,65 @@
+{
+  "hasP20": false,
+  "hasTableHeader": true,
+  "hasOpenBtn": true,
+  "hasTechBtn": true,
+  "noOldFpLine": true,
+  "btn19": true,
+  "headline": "8 דוחות פעילים | 8 PASS | 0 FAIL | 1 בארכיון (מוסתרים)",
+  "pass": 8,
+  "fail": 0,
+  "nums": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "8",
+    "10"
+  ],
+  "statuses": [
+    {
+      "n": "1",
+      "s": "PASS"
+    },
+    {
+      "n": "2",
+      "s": "PASS"
+    },
+    {
+      "n": "3",
+      "s": "PASS"
+    },
+    {
+      "n": "4",
+      "s": "PASS"
+    },
+    {
+      "n": "5",
+      "s": "PASS"
+    },
+    {
+      "n": "6",
+      "s": "PASS"
+    },
+    {
+      "n": "8",
+      "s": "PASS"
+    },
+    {
+      "n": "10",
+      "s": "PASS"
+    }
+  ],
+  "item4": {
+    "status": "PASS",
+    "vAmt": 17015.34,
+    "nAmt": 17015.34,
+    "vRec": 9,
+    "nRec": 9,
+    "business": true
+  },
+  "has7": false,
+  "has9": false
+}

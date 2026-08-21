@@ -1,0 +1,215 @@
+{
+  "phase": "AUDIT_COMPLETE_FIX_BLOCKED",
+  "claimComplete": false,
+  "reason": "Cannot reparse V18 #1 from PDF without Gmail access / scripts.run permission / V18 web deploy. Refused to copy NEW→V18 or weaken compare to fake PASS.",
+  "rootCauseRecords": "Grain mismatch: V18 #1 stored 3 party-total rows (empty check/due fields). NEW stored 4 payment rows (per due-month) from parseObligoReportGas_/parsePartySegment. Not a TOTAL line, not a duplicate phantom, not missing intake.",
+  "rootCauseIntake": "Live data and compareV18 currently have NEW intakeNumber=\"1\" (not missing). If UI showed #—, it was UI/ stale view — not missing sheet data. Current API would render #1.",
+  "problemsCount": 1,
+  "fourthRow": {
+    "which": {
+      "i": 4,
+      "name": "מ.פינס בע\"מ",
+      "amount": 3954,
+      "ref": "2",
+      "intake": "1",
+      "status": "אצלנו"
+    },
+    "explanation": "NEW row #4 is the second due-month payment for מ.פינס בע\"מ (amount 3954). V18 stored one aggregated party total 8319 (=4365+3954).",
+    "pinsV18Amount": -8319,
+    "pinsNeuAmounts": [
+      4365,
+      3954
+    ],
+    "pinsNeuSum": 8319,
+    "sumMatchesV18PartyTotal": false
+  },
+  "metaTable": [
+    {
+      "field": "intake number",
+      "v18": "1",
+      "neu": "1",
+      "match": true
+    },
+    {
+      "field": "category",
+      "v18": "אובליגו",
+      "neu": "אובליגו",
+      "match": true
+    },
+    {
+      "field": "filename",
+      "v18": "Metal Comuters Ver 4.31-5.pdf",
+      "neu": "Metal Comuters Ver 4.31-5.pdf",
+      "match": true
+    },
+    {
+      "field": "Message ID",
+      "v18": "19fabd95498421fd",
+      "neu": "19fabd95498421fd",
+      "match": true
+    },
+    {
+      "field": "fingerprint",
+      "v18": "208099cea85889879b7503d44fc6b59c2d5edf26d078153f93a6274e90a33902",
+      "neu": "208099cea85889879b7503d44fc6b59c2d5edf26d078153f93a6274e90a33902",
+      "match": true
+    },
+    {
+      "field": "records",
+      "v18": 3,
+      "neu": 4,
+      "match": false
+    },
+    {
+      "field": "total amount",
+      "v18": 23939,
+      "neu": 23939,
+      "match": true
+    },
+    {
+      "field": "entities (unique names)",
+      "v18": 3,
+      "neu": 3,
+      "match": true
+    }
+  ],
+  "v18Rows": [
+    {
+      "i": 1,
+      "name": "א.ו חיאת חאלדי בע\"מ",
+      "amount": -3776,
+      "checkNo": "",
+      "due": "",
+      "bank": ""
+    },
+    {
+      "i": 2,
+      "name": "המאגר מרכז חלפי רכב בע\"מ",
+      "amount": -11844,
+      "checkNo": "",
+      "due": "",
+      "bank": ""
+    },
+    {
+      "i": 3,
+      "name": "מ.פינס בע\"מ",
+      "amount": -8319,
+      "checkNo": "",
+      "due": "",
+      "bank": ""
+    }
+  ],
+  "neuRows": [
+    {
+      "i": 1,
+      "name": "א.ו חיאת חאלדי בע\"מ",
+      "amount": 3776,
+      "ref": "1",
+      "intake": "1",
+      "status": "אצלנו"
+    },
+    {
+      "i": 2,
+      "name": "המאגר מרכז חלפי רכב בע\"מ",
+      "amount": 11844,
+      "ref": "1",
+      "intake": "1",
+      "status": "אצלנו"
+    },
+    {
+      "i": 3,
+      "name": "מ.פינס בע\"מ",
+      "amount": 4365,
+      "ref": "2",
+      "intake": "1",
+      "status": "אצלנו"
+    },
+    {
+      "i": 4,
+      "name": "מ.פינס בע\"מ",
+      "amount": 3954,
+      "ref": "2",
+      "intake": "1",
+      "status": "אצלנו"
+    }
+  ],
+  "liveNow": {
+    "headline": "8 דוחות פעילים | 8 PASS | 0 FAIL | 1 בארכיון (מוסתרים)",
+    "pass": 8,
+    "fail": 0,
+    "item1Status": "PASS",
+    "item1Intake": {
+      "v18": "1",
+      "neu": "1"
+    },
+    "item1Records": {
+      "v18": 3,
+      "neu": 4
+    },
+    "item1Amount": {
+      "v18": 23939,
+      "neu": 23939
+    },
+    "entities": {
+      "v18": 3,
+      "neu": 3
+    },
+    "item4": "PASS",
+    "has7": false,
+    "has9": false,
+    "statuses": [
+      {
+        "n": "1",
+        "s": "PASS"
+      },
+      {
+        "n": "2",
+        "s": "PASS"
+      },
+      {
+        "n": "3",
+        "s": "PASS"
+      },
+      {
+        "n": "4",
+        "s": "PASS"
+      },
+      {
+        "n": "5",
+        "s": "PASS"
+      },
+      {
+        "n": "6",
+        "s": "PASS"
+      },
+      {
+        "n": "8",
+        "s": "PASS"
+      },
+      {
+        "n": "10",
+        "s": "PASS"
+      }
+    ]
+  },
+  "blockers": [
+    "Local Gmail API: 0 messages for אובליגו (wrong mailbox / no access)",
+    "Drive: PDF Metal Comuters Ver 4.31-5.pdf not found",
+    "Apps Script scripts.run on V18: 403 permission",
+    "User rule: deploy only NEW (cannot deploy V18 web app to expose reparse-one)"
+  ],
+  "preparedButNotExecuted": [
+    "V18 IntakeV18_Data: added intakeReparseOneStored_(num) — ready when execution allowed"
+  ],
+  "notDone": [
+    "No sheet data rewrite",
+    "No compare rule change to hide 4th row",
+    "No NEW צקים deletion",
+    "No standing/#4 touch"
+  ],
+  "needFromOwner": [
+    "Allow V18 web-app deploy for intake-reparse-one&num=1",
+    "OR enable scripts.run on IntakeV18 Demo",
+    "OR attach/upload Metal Comuters Ver 4.31-5.pdf for local parse"
+  ]
+}

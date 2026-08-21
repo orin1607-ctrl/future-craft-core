@@ -1,0 +1,27 @@
+{
+  "newProject": "NEW v167 Clone",
+  "scriptId": "1s3-gi5kusn2bl3HfiJT34Ig42n0sf7myQarohvtoAh9Im9c2Sdrc4qzG",
+  "deploymentId": "AKfycbz2csN5kyFURg2MV08z70prtszZDXwXdoL8sXxslvO-35BNcRFeAaJpL3sYcZqmyr5f",
+  "ver": 57,
+  "desc": "Button19 simple V18|NEW comparison UI",
+  "uiMarkersInIndex": {
+    "simpleTable": true,
+    "openCheck": true,
+    "tech": true,
+    "noCardClickOpen": true
+  },
+  "standingUntouched": {
+    "hasParseStanding": true,
+    "hasRealign": true,
+    "hasApply": true
+  },
+  "hashes": {
+    "Code": "7fe639f33bc0f041",
+    "V18Compare": "8a37f796bc4718dd",
+    "index": "99aeb19f07f5a8f8"
+  },
+  "v18UntouchedConfirm": {
+    "scriptId": "1yn8zeIV2WJkox-0nEmIT4ozrtRmCdzdgu8xwmnOt7soIZ0Jiju0Au0dc",
+    "fileCount": 10
+  }
+}

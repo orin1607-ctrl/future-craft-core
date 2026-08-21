@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "vNum": "1",
+  "nNum": "1",
+  "displayV": "#1",
+  "displayN": "#1",
+  "wouldShowDash": false,
+  "records": {
+    "v": 3,
+    "n": 4
+  },
+  "entities": {
+    "v18": 3,
+    "neu": 3
+  },
+  "note": "NEW פיצל שורות לפי צ׳קים/תשלומים (3 ישויות ב-V18, 4 שורות ב-NEW) — הסכומים לפי ישות תואמים.",
+  "checks": {
+    "fingerprint": true,
+    "intakeNumber": true,
+    "source": true,
+    "business": true
+  }
+}

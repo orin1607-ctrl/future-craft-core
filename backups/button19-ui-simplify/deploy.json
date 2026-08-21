@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "project": "NEW v167 Clone",
+  "scriptId": "1s3-gi5kusn2bl3HfiJT34Ig42n0sf7myQarohvtoAh9Im9c2Sdrc4qzG",
+  "deploymentId": "AKfycbz2csN5kyFURg2MV08z70prtszZDXwXdoL8sXxslvO-35BNcRFeAaJpL3sYcZqmyr5f",
+  "snap": 56,
+  "ver": 57,
+  "uiOnly": true,
+  "touchedV18Compare": false,
+  "touchedCode": false,
+  "compareLenUnchanged": true,
+  "codeLenUnchanged": true,
+  "live": {
+    "headline": "8 דוחות פעילים | 8 PASS | 0 FAIL | 1 בארכיון (מוסתרים)",
+    "checked": 8,
+    "pass": 8,
+    "fail": 0,
+    "nums": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "8",
+      "10"
+    ],
+    "has7": false,
+    "has9": false,
+    "item4": "PASS",
+    "allPass": true
+  },
+  "uiMarkers": {
+    "hasSimpleTable": true,
+    "hasOpenCheck": true,
+    "hasTech": true,
+    "hasOldFingerprintOnCard": false
+  }
+}

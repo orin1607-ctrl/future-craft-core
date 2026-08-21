@@ -1,0 +1,38 @@
+{
+  "mission": "Button 19 UI simplify only",
+  "completedAt": "2026-08-21",
+  "1_project": "NEW v167 Clone",
+  "2_scriptId": "1s3-gi5kusn2bl3HfiJT34Ig42n0sf7myQarohvtoAh9Im9c2Sdrc4qzG",
+  "3_changed": {
+    "file": "index (HTML/JS p20 block only)",
+    "functions": "loadCompare / card renderer in p20 IIFE",
+    "deployment": "AKfycbz2csN5kyFURg2MV08z70prtszZDXwXdoL8sXxslvO-35BNcRFeAaJpL3sYcZqmyr5f",
+    "version": 57,
+    "snapshotBefore": 56
+  },
+  "4_uiOnly": true,
+  "5_activeReports": 8,
+  "6_pass": 8,
+  "7_fail": 0,
+  "8_item4": {
+    "status": "PASS",
+    "content": "9/9",
+    "v18Amount": 17015.34,
+    "newAmount": 17015.34
+  },
+  "9_hash7Hidden": true,
+  "10_hash9Hidden": true,
+  "11_buttons1to17": "unchanged (only p20 style/script block replaced)",
+  "12_v18Unchanged": true,
+  "13_newDataUnchanged": true,
+  "14_noParserMappingDataChanges": true,
+  "15_onlyAllowedGasProjects": true,
+  "headline": "8 דוחות פעילים | 8 PASS | 0 FAIL | 1 בארכיון (מוסתרים)",
+  "activeNums": ["1", "2", "3", "4", "5", "6", "8", "10"],
+  "notes": [
+    "V18Compare.gs not modified",
+    "Code.gs standing functions not modified",
+    "FAIL detail button present in UI code; not shown while all PASS",
+    "Technical details collapsed behind button"
+  ]
+}

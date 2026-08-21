@@ -1,0 +1,43 @@
+{
+  "intakeNum": "1",
+  "type": "אובליגו",
+  "archived": false,
+  "numberingGap": false,
+  "buttons": [
+    "7"
+  ],
+  "buttonLabel": "7 צ׳קים ואובליגו",
+  "v18": {
+    "records": 3,
+    "displayCount": 3,
+    "amount": 23939,
+    "file": "Metal Comuters Ver 4.31-5.pdf",
+    "messageId": "19fabd95498421fd",
+    "fingerprint": "208099cea85889879b7503d44fc6b59c2d5edf26d078153f93a6274e90a33902",
+    "intakeNumber": "1"
+  },
+  "neu": {
+    "records": 4,
+    "amount": 23939,
+    "file": "Metal Comuters Ver 4.31-5.pdf",
+    "messageId": "19fabd95498421fd",
+    "fingerprint": "208099cea85889879b7503d44fc6b59c2d5edf26d078153f93a6274e90a33902",
+    "regular": 0,
+    "legal": 0,
+    "intakeNumber": "1"
+  },
+  "checks": {
+    "fingerprint": true,
+    "intakeNumber": true,
+    "source": true,
+    "business": true
+  },
+  "gaps": [],
+  "workCards": null,
+  "note": "NEW פיצל שורות לפי צ׳קים/תשלומים (3 ישויות ב-V18, 4 שורות ב-NEW) — הסכומים לפי ישות תואמים.",
+  "entities": {
+    "v18": 3,
+    "neu": 3
+  },
+  "status": "PASS"
+}

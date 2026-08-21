@@ -1,0 +1,94 @@
+{
+  "headline": "8 דוחות פעילים | 8 PASS | 0 FAIL | 1 בארכיון (מוסתרים)",
+  "pass": 8,
+  "fail": 0,
+  "statuses": [
+    {
+      "n": "1",
+      "s": "PASS",
+      "type": "אובליגו"
+    },
+    {
+      "n": "2",
+      "s": "PASS",
+      "type": "ספקים"
+    },
+    {
+      "n": "3",
+      "s": "PASS",
+      "type": "כרטיסי אשראי"
+    },
+    {
+      "n": "4",
+      "s": "PASS",
+      "type": "הוראות קבע"
+    },
+    {
+      "n": "5",
+      "s": "PASS",
+      "type": "תלושי שכר"
+    },
+    {
+      "n": "6",
+      "s": "PASS",
+      "type": "מע\"מ"
+    },
+    {
+      "n": "8",
+      "s": "PASS",
+      "type": "חייבים"
+    },
+    {
+      "n": "10",
+      "s": "PASS",
+      "type": "כרטיסי עבודה"
+    }
+  ],
+  "item1Keys": [
+    "intakeNum",
+    "type",
+    "archived",
+    "numberingGap",
+    "buttons",
+    "buttonLabel",
+    "v18",
+    "neu",
+    "checks",
+    "gaps",
+    "workCards",
+    "note",
+    "entities",
+    "status"
+  ],
+  "v18Keys": [
+    "records",
+    "displayCount",
+    "amount",
+    "file",
+    "messageId",
+    "fingerprint",
+    "intakeNumber"
+  ],
+  "neuKeys": [
+    "records",
+    "amount",
+    "file",
+    "messageId",
+    "fingerprint",
+    "regular",
+    "legal",
+    "intakeNumber"
+  ],
+  "checks": {
+    "fingerprint": true,
+    "intakeNumber": true,
+    "source": true,
+    "business": true
+  },
+  "gaps": [],
+  "entities": {
+    "v18": 3,
+    "neu": 3
+  },
+  "note": "NEW פיצל שורות לפי צ׳קים/תשלומים (3 ישויות ב-V18, 4 שורות ב-NEW) — הסכומים לפי ישות תואמים."
+}
