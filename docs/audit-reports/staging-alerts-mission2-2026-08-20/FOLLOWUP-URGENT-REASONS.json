@@ -1,0 +1,30 @@
+{
+  "id": "staging-alerts-mission2-followup-urgent-reasons",
+  "verdict": "STAGING PASS",
+  "stop": true,
+  "mission3Started": false,
+  "productionTouched": false,
+  "schemaMigration": false,
+  "rlsPolicies": false,
+  "at": "2026-08-22T18:08:00.000Z",
+  "site": "https://orin1607-ctrl.github.io/future-craft-core",
+  "branch": "feat/incident-alerts-staging",
+  "commit": "c7a57a9c",
+  "bundle": "assets/index-CEiQCyJ2.js",
+  "productionBundleStill": "assets/index-BQlrxFmz.js",
+  "qaFail": 0,
+  "fixes": {
+    "attentionReasons": {
+      "rootCause": "vehicleNeedsTrackingAttention used flags + non-license alert_items, but the list showed generic chips/flags so officers could not see why a vehicle was in דרוש טיפול.",
+      "change": "trackingAttentionReasons() is the same source of truth as the counter. Compact chips: טסט פג תוקף / טסט בחודש הקרוב / ביטוח / טיפול / תקלה / ליקוי / תאונה / מוסך.",
+      "beeriAttentionBeforeAfter": { "before": 28, "after": 28 }
+    },
+    "urgentVsExpired": {
+      "rootCause": "alertInScope('urgent') and dashboard isDueOrUpcomingInWindow treated daysLeft < 0 as urgent, mixing פג תוקף into דחוף.",
+      "urgent": "daysLeft >= 0 && daysLeft <= 30 (calendarDaysLeft / isUpcomingInWindow)",
+      "expired": "daysLeft < 0",
+      "overlap": 0,
+      "aligned": ["test", "insurance", "service", "license"]
+    }
+  }
+}

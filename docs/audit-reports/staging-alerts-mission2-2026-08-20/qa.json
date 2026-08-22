@@ -1,5 +1,5 @@
 {
-  "at": "2026-08-20T15:27:38.614Z",
+  "at": "2026-08-22T18:07:50.944Z",
   "scope": "Oren Car Staging only",
   "stagingRef": "usfeoerkpcafxxlyuldl",
   "productionTouched": false,
@@ -12,12 +12,12 @@
     {
       "name": "live site is Oren Car Staging",
       "ok": true,
-      "bundle": "assets/index-OxS4pNZq.js"
+      "bundle": "assets/index-CEiQCyJ2.js"
     },
     {
       "name": "live uses Staging Supabase",
       "ok": true,
-      "bundle": "assets/index-OxS4pNZq.js"
+      "bundle": "assets/index-CEiQCyJ2.js"
     },
     {
       "name": "Production frontend not redeployed by this mission",
@@ -31,7 +31,7 @@
       "vehicles": 298,
       "uniqueAttention": 28,
       "missingLicense": 297,
-      "testUrgent": 16,
+      "testUrgent": 2,
       "allAlertsEstimate": 658
     },
     {
@@ -57,42 +57,45 @@
     {
       "name": "Beeri test urgent count is not the 273 tracking number",
       "ok": true,
-      "testUrgent": 16,
+      "testUrgent": 2,
       "uniqueAttention": 28
     },
     {
       "name": "QA company seeded without touching Beeri",
       "ok": true,
-      "company": "QA-ALRT-M2-1787239669908",
+      "company": "QA-ALRT-M2-1787422085514",
       "plates": {
-        "expiredTest": "AT669908",
-        "soonTest": "AS669908",
-        "futureTest": "AF669908",
-        "insMix": "AI669908"
+        "expiredTest": "AT085514",
+        "soonTest": "AS085514",
+        "todayTest": "AD085514",
+        "plus30Test": "A3085514",
+        "plus31Test": "A4085514",
+        "futureTest": "AF085514",
+        "insMix": "AI085514"
       }
     },
     {
       "name": "desktop dashboard loaded",
       "ok": true,
-      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Alerts M2 1787239669908\n\nQA-ALRT-M2-1787239669908\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי "
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Alerts M2 1787422085514\n\nQA-ALRT-M2-1787422085514\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי "
     },
     {
       "name": "dashboard test count matches seeded urgent tests",
       "ok": true,
-      "testCount": 2,
-      "expectedTestUrgent": 2
+      "testCount": 3,
+      "expectedTestUrgent": 3
     },
     {
       "name": "dashboard insurance count matches חובה+מקיף urgent rows",
       "ok": true,
-      "insCount": 2,
-      "expectedInsUrgent": 2
+      "insCount": 1,
+      "expectedInsUrgent": 1
     },
     {
       "name": "dashboard service count matches date + periodic order",
       "ok": true,
-      "svcCount": 2,
-      "expectedServiceUrgent": 2
+      "svcCount": 1,
+      "expectedServiceUrgent": 1
     },
     {
       "name": "test card opens alerts with category=test&scope=urgent",
@@ -102,23 +105,38 @@
     {
       "name": "test urgent list count matches dashboard",
       "ok": true,
-      "testShown": 2,
-      "testCount": 2
+      "testShown": 3,
+      "testCount": 3
     },
     {
-      "name": "expired test remains visible",
+      "name": "expired test is not in urgent",
       "ok": true,
-      "plate": "AT669908"
+      "plate": "AT085514"
+    },
+    {
+      "name": "today test is urgent only",
+      "ok": true,
+      "plate": "AD085514"
     },
     {
       "name": "soon test visible in urgent",
       "ok": true,
-      "plate": "AS669908"
+      "plate": "AS085514"
+    },
+    {
+      "name": "+30 day test is urgent",
+      "ok": true,
+      "plate": "A3085514"
+    },
+    {
+      "name": "+31 day test is not urgent",
+      "ok": true,
+      "plate": "A4085514"
     },
     {
       "name": "far-future test hidden from urgent default",
       "ok": true,
-      "plate": "AF669908"
+      "plate": "AF085514"
     },
     {
       "name": "alerts default chip is urgent",
@@ -132,14 +150,18 @@
     {
       "name": "far-future test appears in כל הטסטים",
       "ok": true,
-      "plate": "AF669908"
+      "plate": "AF085514"
     },
     {
       "name": "expired test still in כל הטסטים",
       "ok": true
     },
     {
-      "name": "פג תוקף filter shows expired test only among the three",
+      "name": "פג תוקף filter shows expired test only among the dated tests",
+      "ok": true
+    },
+    {
+      "name": "no overlap between urgent and expired test lists",
       "ok": true
     },
     {
@@ -150,16 +172,18 @@
     {
       "name": "insurance urgent list count matches dashboard",
       "ok": true,
-      "insShown": 2,
-      "insCount": 2
-    },
-    {
-      "name": "insurance urgent includes חובה פג תוקף",
-      "ok": true
+      "insShown": 1,
+      "insCount": 1
     },
     {
       "name": "insurance urgent includes מקיף בחודש הקרוב",
       "ok": true
+    },
+    {
+      "name": "insurance urgent excludes expired חובה",
+      "ok": true,
+      "insShown": 1,
+      "expectedInsUrgent": 1
     },
     {
       "name": "כל הביטוחים shows צד ג׳ future row",
@@ -173,8 +197,8 @@
     {
       "name": "service list count matches dashboard",
       "ok": true,
-      "svcShown": 2,
-      "svcCount": 2
+      "svcShown": 1,
+      "svcCount": 1
     },
     {
       "name": "/alerts without params defaults to urgent scope",
@@ -196,7 +220,7 @@
     {
       "name": "tracking card states unique vehicles",
       "ok": true,
-      "trackingText": "3\n\nמעקב רכבים\n\n3 רכבים ייחודיים שדורשים טיפול עכשיו"
+      "trackingText": "5\n\nמעקב רכבים\n\n5 רכבים ייחודיים שדורשים טיפול עכשיו"
     },
     {
       "name": "tracking card opens summary=attention",
@@ -206,14 +230,26 @@
     {
       "name": "tracking attention list equals unique vehicles with a tracking item",
       "ok": true,
-      "shownAttn": 3,
-      "expectedTracking": 3,
-      "trackBody": "מוצגים 3 מתוך 4"
+      "shownAttn": 5,
+      "expectedTracking": 5,
+      "trackBody": "מוצגים 5 מתוך 7"
     },
     {
       "name": "future-only test vehicle is not in attention list",
       "ok": true,
-      "plate": "AF669908"
+      "plate": "AF085514"
+    },
+    {
+      "name": "+31 day test is not in attention list",
+      "ok": true
+    },
+    {
+      "name": "attention list shows compact reasons",
+      "ok": true
+    },
+    {
+      "name": "every attention vehicle from seed is listed once",
+      "ok": true
     },
     {
       "name": "hide removes a dashboard alert slot",
@@ -247,7 +283,7 @@
     {
       "name": "company isolation: QA FM does not see Beeri plates on alerts",
       "ok": true,
-      "company": "QA-ALRT-M2-1787239669908"
+      "company": "QA-ALRT-M2-1787422085514"
     },
     {
       "name": "mobile test card deep-link works",
@@ -274,7 +310,7 @@
       "name": "QA data cleanup",
       "ok": true,
       "leftoverVehicles": 0,
-      "company": "QA-ALRT-M2-1787239669908"
+      "company": "QA-ALRT-M2-1787422085514"
     }
   ],
   "beeri": {
@@ -282,7 +318,8 @@
       "vehicles": 298,
       "uniqueAttention": 28,
       "missingLicense": 297,
-      "testWindow": 16,
+      "testWindow": 2,
+      "testExpired": 14,
       "insWindow": 1,
       "openFaultRows": 0,
       "openTaskRows": 17,
@@ -290,7 +327,8 @@
       "openServiceRows": 0,
       "reasons": {
         "missingLicense": 297,
-        "testWindow": 16,
+        "testWindow": 2,
+        "testExpired": 14,
         "insWindow": 1,
         "fault": 0,
         "task": 11,
@@ -301,7 +339,7 @@
     "alerts": {
       "expiryRows": 595,
       "futureExpiryRows": 578,
-      "urgentExpiryRows": 17,
+      "urgentExpiryRows": 3,
       "driverLicensesWithDate": 29,
       "urgentFaults": 0,
       "activeCustomAlerts": 34,
@@ -328,22 +366,25 @@
   },
   "cleanup": {
     "users": [
-      "cceb3b0e-f0ba-416c-8d69-112a649cd243"
+      "eee91257-4f34-420b-a780-2549a280eef2"
     ],
     "vehicles": [
-      "686bc8f1-dbcd-46db-a0f3-d2be094b7199",
-      "90cd7adb-e634-489d-a3d3-f4a8fdb0ca60",
-      "22bef486-ba4a-49cc-b82f-32a9c9833f89",
-      "e2775a6f-1fe2-4901-890b-1686caa38153"
+      "e2d12123-bf4a-4ca4-a946-372ac016b589",
+      "a2fe19b9-81a8-41e3-b75f-4eb262ccac7d",
+      "1e729b84-81af-4ba2-810e-52e84cac8ed8",
+      "ff448b85-bf82-4f33-81ca-fa49f0c15599",
+      "dedc160d-2285-40ac-b9cb-6f3951e5426b",
+      "ebecf28d-900b-4534-94a5-3a5289bb301b",
+      "a7a0071f-5310-43a2-a3c4-92377458cf1f"
     ],
     "drivers": [
-      "63dc6576-78ab-40a0-9de6-02520c89d4e7"
+      "032055c3-bb13-4b6f-a81b-f7ac3f5c52e3"
     ],
     "serviceOrders": [
-      "448821cd-8e70-4f96-aee1-57f35ad564b5"
+      "b32bdd2e-d5f0-4ba8-a54d-db5390d37ac6"
     ],
     "prefsKeys": [
-      "home_alert_prefs:cceb3b0e-f0ba-416c-8d69-112a649cd243"
+      "home_alert_prefs:eee91257-4f34-420b-a780-2549a280eef2"
     ]
   },
   "consoleErrors": [
@@ -356,10 +397,10 @@
     "Failed to load resource: the server responded with a status of 403 ()"
   ],
   "ok": true,
-  "commit": "4a00635",
+  "commit": "c7a57a9",
   "live": {
-    "bundle": "assets/index-OxS4pNZq.js",
-    "deployTxt": "deployed_ref=4a00635 feat/incident-alerts-staging",
+    "bundle": "assets/index-CEiQCyJ2.js",
+    "deployTxt": "deployed_ref=c7a57a9 feat/incident-alerts-staging",
     "status": 200
   },
   "productionBundle": "assets/index-BQlrxFmz.js",
@@ -368,15 +409,17 @@
       "vehicles": 434,
       "uniqueAttention": 58,
       "missingLicense": 397,
-      "testWindow": 39,
-      "insWindow": 11,
+      "testWindow": 3,
+      "testExpired": 36,
+      "insWindow": 1,
       "openFaultRows": 4,
       "openTaskRows": 23,
       "openAccidentRows": 9,
       "openServiceRows": 12,
       "reasons": {
         "missingLicense": 397,
-        "testWindow": 39,
+        "testWindow": 3,
+        "testExpired": 36,
         "insWindow": 11,
         "fault": 3,
         "task": 14,
@@ -387,7 +430,7 @@
     "alerts": {
       "expiryRows": 690,
       "futureExpiryRows": 625,
-      "urgentExpiryRows": 65,
+      "urgentExpiryRows": 4,
       "driverLicensesWithDate": 55,
       "urgentFaults": 2,
       "activeCustomAlerts": 67,
