@@ -1,0 +1,209 @@
+{
+  "at": "2026-08-22T19:20:37.588Z",
+  "scope": "Oren Car Staging only",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "beeriWrite": false,
+  "schemaChanged": false,
+  "rlsChanged": false,
+  "realSendAttempted": false,
+  "checks": [
+    {
+      "name": "hard-locked to Staging",
+      "ok": true
+    },
+    {
+      "name": "live site is Oren Car Staging",
+      "ok": true,
+      "bundle": "assets/index-C-TPBQSL.js"
+    },
+    {
+      "name": "live uses Staging Supabase",
+      "ok": true,
+      "bundle": "assets/index-C-TPBQSL.js"
+    },
+    {
+      "name": "live bundle includes Super Admin auto-send control",
+      "ok": true
+    },
+    {
+      "name": "Production frontend not redeployed by this mission",
+      "ok": true,
+      "productionBundle": "assets/index-BQlrxFmz.js"
+    },
+    {
+      "name": "QA companies seeded without touching Beeri",
+      "ok": true,
+      "companyA": "QA-SEND-A-1787426443169",
+      "companyB": "QA-SEND-B-1787426443169"
+    },
+    {
+      "name": "Email Automatic defaults ON",
+      "ok": true,
+      "emailAutomatic": true,
+      "whatsappAutomatic": true
+    },
+    {
+      "name": "WhatsApp Automatic defaults ON",
+      "ok": true,
+      "emailAutomatic": true,
+      "whatsappAutomatic": true
+    },
+    {
+      "name": "Email Automatic ON — automatic email allowed",
+      "ok": true
+    },
+    {
+      "name": "WhatsApp Automatic ON — automatic WhatsApp allowed",
+      "ok": true
+    },
+    {
+      "name": "Super Admin can open company auto-send controls",
+      "ok": true
+    },
+    {
+      "name": "Email Automatic OFF persisted",
+      "ok": true,
+      "emailAutomatic": false,
+      "whatsappAutomatic": true
+    },
+    {
+      "name": "WhatsApp Automatic OFF persisted",
+      "ok": true,
+      "emailAutomatic": false,
+      "whatsappAutomatic": false
+    },
+    {
+      "name": "Email Automatic OFF — automatic email blocked",
+      "ok": true
+    },
+    {
+      "name": "WhatsApp Automatic OFF — automatic WhatsApp blocked",
+      "ok": true
+    },
+    {
+      "name": "In-App Alerts stay allowed when automatic send is OFF",
+      "ok": true
+    },
+    {
+      "name": "setting survives refresh",
+      "ok": true
+    },
+    {
+      "name": "Company B stays ON when Company A is OFF",
+      "ok": true,
+      "bDb": {
+        "emailAutomatic": true,
+        "whatsappAutomatic": true
+      },
+      "snippet": "שליחה אוטומטית — Email / WhatsApp\n\nSuper Admin בלבד, לפי חברה. כיבוי לא מבטל התראות בתוך המערכת (טסטים, ביטוחים, טיפולים, פגי תוקף) ולא חוסם שליחה ידנית.\n\nEmail אוטומטי\n\nON — מורשה\n\nWhatsApp אוטומטי\n\nON — מורשה"
+    },
+    {
+      "name": "company isolation A does not affect B",
+      "ok": true
+    },
+    {
+      "name": "setting survives new login",
+      "ok": true
+    },
+    {
+      "name": "Super Admin can change",
+      "ok": true
+    },
+    {
+      "name": "fleet manager cannot change auto-send (RLS write denied)",
+      "ok": true,
+      "error": "new row violates row-level security policy for table \"dalia_form_config\""
+    },
+    {
+      "name": "value still OFF after fleet manager write attempt",
+      "ok": true
+    },
+    {
+      "name": "fleet manager cannot open Super Admin auto-send UI",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/dashboard",
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Send FM 1787426443169\n\nQA-SEND-A-1787426443169\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\n"
+    },
+    {
+      "name": "In-App Alerts still work with automatic send OFF",
+      "ok": true,
+      "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nQA Send FM 1787426443169\n\nQA-SEND-A-1787426443169\n\nמנהל צי\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nהתראות\nחירום\nצ'אט\nהתנתקות\nדליה — "
+    },
+    {
+      "name": "in-app dashboard loaded for fleet manager",
+      "ok": true
+    },
+    {
+      "name": "in-app alerts page still loads",
+      "ok": true
+    },
+    {
+      "name": "manual send UI remains available (notifications button exists in vehicle flows)",
+      "ok": true,
+      "note": "NotificationsAndSendsButton is not gated by auto-send"
+    },
+    {
+      "name": "regression vehicles page loads",
+      "ok": true
+    },
+    {
+      "name": "desktop PASS",
+      "ok": true
+    },
+    {
+      "name": "no real customer send attempted",
+      "ok": true,
+      "blockedCount": 0,
+      "note": "Playwright aborted Resend/Gupshup/notify functions"
+    },
+    {
+      "name": "mobile Super Admin control usable",
+      "ok": true
+    },
+    {
+      "name": "mobile PASS",
+      "ok": true
+    },
+    {
+      "name": "console has no flood of errors",
+      "ok": true,
+      "consoleErrors": []
+    },
+    {
+      "name": "QA data cleanup",
+      "ok": true,
+      "leftoverVehicles": 0
+    },
+    {
+      "name": "Beeri auto-send settings unchanged",
+      "ok": true,
+      "before": null,
+      "after": null
+    }
+  ],
+  "cleanup": {
+    "users": [
+      "77a56039-224d-4832-b156-9c47f8dfd8d4",
+      "e48cbefb-32ce-48c6-a238-756b65e989a7",
+      "0cdb8de6-5543-4e20-b477-8cd8e4da34f1"
+    ],
+    "vehicles": [
+      "f2578473-0430-4c73-a276-e9a4ad012488"
+    ],
+    "autoKeys": [
+      "company_auto_send:QA-SEND-A-1787426443169",
+      "company_auto_send:QA-SEND-B-1787426443169"
+    ]
+  },
+  "consoleErrors": [],
+  "ok": true,
+  "commit": "b582fa3",
+  "live": {
+    "bundle": "assets/index-C-TPBQSL.js",
+    "deployTxt": "deployed_ref=b582fa3 feat/incident-alerts-staging",
+    "status": 200
+  },
+  "productionBundle": "assets/index-BQlrxFmz.js",
+  "beeriAutoSendBefore": null
+}

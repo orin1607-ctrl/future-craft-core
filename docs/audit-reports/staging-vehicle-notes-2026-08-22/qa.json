@@ -1,0 +1,165 @@
+{
+  "at": "2026-08-22T19:04:13.210Z",
+  "scope": "Oren Car Staging only",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "beeriWrite": false,
+  "schemaChanged": false,
+  "rlsChanged": false,
+  "checks": [
+    {
+      "name": "hard-locked to Staging",
+      "ok": true
+    },
+    {
+      "name": "live site is Oren Car Staging",
+      "ok": true,
+      "bundle": "assets/index-CueKl-8n.js"
+    },
+    {
+      "name": "live uses Staging Supabase",
+      "ok": true,
+      "bundle": "assets/index-CueKl-8n.js"
+    },
+    {
+      "name": "live bundle includes compact vehicle list note",
+      "ok": true
+    },
+    {
+      "name": "Production frontend not redeployed by this mission",
+      "ok": true,
+      "productionBundle": "assets/index-BQlrxFmz.js",
+      "note": "read-only check of live Production HTML"
+    },
+    {
+      "name": "QA company seeded without touching Beeri",
+      "ok": true,
+      "company": "QA-NOTE-T1-1787425459844",
+      "plates": {
+        "noted": "NT459844",
+        "clean": "NC459844"
+      }
+    },
+    {
+      "name": "note saved from vehicle card",
+      "ok": true,
+      "plate": "NT459844"
+    },
+    {
+      "name": "card save persisted notes",
+      "ok": true,
+      "notes": "QA הערה קצרה לרשימה"
+    },
+    {
+      "name": "vehicles list shows saved note",
+      "ok": true,
+      "snippet": "QA הערה קצרה לרשימה"
+    },
+    {
+      "name": "vehicles list does not invent empty note area on clean row",
+      "ok": true,
+      "plate": "NC459844"
+    },
+    {
+      "name": "vehicle search results show the note",
+      "ok": true
+    },
+    {
+      "name": "search hides the clean vehicle",
+      "ok": true
+    },
+    {
+      "name": "tracking list shows saved note",
+      "ok": true
+    },
+    {
+      "name": "note still visible after refresh",
+      "ok": true
+    },
+    {
+      "name": "edited note appears on vehicles list",
+      "ok": true
+    },
+    {
+      "name": "edited note appears on tracking",
+      "ok": true
+    },
+    {
+      "name": "long note is compacted on list (not dumped as many blank lines)",
+      "ok": true
+    },
+    {
+      "name": "deleted note is removed from vehicles list",
+      "ok": true
+    },
+    {
+      "name": "deleted note is removed from tracking",
+      "ok": true
+    },
+    {
+      "name": "vehicle without a note stays clean",
+      "ok": true
+    },
+    {
+      "name": "company isolation: QA FM does not see Beeri",
+      "ok": true
+    },
+    {
+      "name": "regression drivers page loads",
+      "ok": true
+    },
+    {
+      "name": "regression alerts page loads",
+      "ok": true
+    },
+    {
+      "name": "desktop PASS",
+      "ok": true
+    },
+    {
+      "name": "mobile vehicles list shows note",
+      "ok": true
+    },
+    {
+      "name": "mobile tracking shows note",
+      "ok": true
+    },
+    {
+      "name": "mobile PASS",
+      "ok": true
+    },
+    {
+      "name": "console has no flood of errors",
+      "ok": true,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 ()"
+      ]
+    },
+    {
+      "name": "QA data cleanup",
+      "ok": true,
+      "leftoverVehicles": 0,
+      "company": "QA-NOTE-T1-1787425459844"
+    }
+  ],
+  "cleanup": {
+    "users": [
+      "8caa6536-dee7-4342-8703-bcf11bfd6bcb"
+    ],
+    "vehicles": [
+      "2ff6c38f-a796-47c9-84f4-9e6f18276e4e",
+      "74119f6c-b927-494e-8c3a-4391187c9894"
+    ]
+  },
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "ok": true,
+  "commit": "56d4d29",
+  "live": {
+    "bundle": "assets/index-CueKl-8n.js",
+    "deployTxt": "deployed_ref=56d4d29 feat/incident-alerts-staging",
+    "status": 200
+  },
+  "productionBundle": "assets/index-BQlrxFmz.js"
+}

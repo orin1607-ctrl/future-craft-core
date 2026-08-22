@@ -176,7 +176,9 @@ async function pickCompany(page, company) {
   await searchBox.waitFor({ timeout: 15000 });
   await searchBox.fill(company);
   await page.getByRole('button', { name: company, exact: true }).first().click();
+  await page.getByRole('heading', { name: new RegExp(`הגדרות:\\s*${company}`) }).waitFor({ timeout: 20000 });
   await page.getByTestId('company-auto-send').waitFor({ timeout: 20000 });
+  await page.getByText('טוען...').first().waitFor({ state: 'hidden', timeout: 15000 }).catch(() => null);
   await page.getByText(/ON — מורשה|OFF — חסום/).first().waitFor({ timeout: 15000 });
 }
 
