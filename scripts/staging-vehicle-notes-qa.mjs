@@ -152,7 +152,7 @@ async function openVehicleByPlate(page, plate) {
 
 let browser;
 try {
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({ headless: true, channel: 'chrome' });
   await admin.from('company_settings').insert({
     company_name: company,
     reminder_30_days: true,

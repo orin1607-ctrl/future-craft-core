@@ -25,6 +25,12 @@ import {
   loadCompanyInsuranceRedStats,
   type CompanyInsuranceRedStats,
 } from '@/lib/bulkInsuranceRedHighlight';
+import {
+  DEFAULT_COMPANY_AUTO_SEND,
+  fetchCompanyAutoSend,
+  saveCompanyAutoSend,
+  type CompanyAutoSend,
+} from '@/lib/companyAutoSend';
 
 interface CompanyAlertConfig {
   id: string;
@@ -69,6 +75,8 @@ export default function AlertSettings() {
   const [loadingInsuranceRedStats, setLoadingInsuranceRedStats] = useState(false);
   const [bulkRedPending, setBulkRedPending] = useState<boolean | null>(null);
   const [bulkRedApplying, setBulkRedApplying] = useState(false);
+  const [autoSend, setAutoSend] = useState<CompanyAutoSend>(DEFAULT_COMPANY_AUTO_SEND);
+  const [savingAutoSend, setSavingAutoSend] = useState(false);
   const isSuperAdmin = user?.role === 'super_admin';
   // RLS: only super_admin can UPDATE company_settings. Fleet managers may view own company.
   const canEditAlerts = isSuperAdmin;
@@ -76,6 +84,34 @@ export default function AlertSettings() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!selectedCompany) {
+      setAutoSend(DEFAULT_COMPANY_AUTO_SEND);
+      return;
+    }
+    let cancelled = false;
+    fetchCompanyAutoSend(selectedCompany).then((value) => {
+      if (!cancelled) setAutoSend(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCompany]);
+
+  const persistAutoSend = async (next: CompanyAutoSend) => {
+    if (!selectedCompany || !isSuperAdmin) return;
+    setSavingAutoSend(true);
+    try {
+      await saveCompanyAutoSend(selectedCompany, next, user?.id);
+      setAutoSend(next);
+      toast.success(`שליחה אוטומטית עודכנה עבור ${selectedCompany}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'שגיאה בשמירת שליחה אוטומטית');
+    } finally {
+      setSavingAutoSend(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -356,6 +392,38 @@ export default function AlertSettings() {
                   <Save size={18} />
                   {saving ? 'שומר...' : 'שמור הגדרות'}
                 </button>
+              </div>
+
+              <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4 space-y-3" data-testid="company-auto-send">
+                <h3 className="font-bold text-lg">שליחה אוטומטית — Email / WhatsApp</h3>
+                <p className="text-sm text-muted-foreground">
+                  Super Admin בלבד, לפי חברה. כיבוי לא מבטל התראות בתוך המערכת (טסטים, ביטוחים, טיפולים, פגי תוקף)
+                  ולא חוסם שליחה ידנית.
+                </p>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
+                  <div>
+                    <p className="font-medium">Email אוטומטי</p>
+                    <p className="text-xs text-muted-foreground">{autoSend.emailAutomatic ? 'ON — מורשה' : 'OFF — חסום'}</p>
+                  </div>
+                  <Switch
+                    checked={autoSend.emailAutomatic}
+                    disabled={savingAutoSend}
+                    onCheckedChange={(on) => void persistAutoSend({ ...autoSend, emailAutomatic: on })}
+                    aria-label="Email אוטומטי"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
+                  <div>
+                    <p className="font-medium">WhatsApp אוטומטי</p>
+                    <p className="text-xs text-muted-foreground">{autoSend.whatsappAutomatic ? 'ON — מורשה' : 'OFF — חסום'}</p>
+                  </div>
+                  <Switch
+                    checked={autoSend.whatsappAutomatic}
+                    disabled={savingAutoSend}
+                    onCheckedChange={(on) => void persistAutoSend({ ...autoSend, whatsappAutomatic: on })}
+                    aria-label="WhatsApp אוטומטי"
+                  />
+                </div>
               </div>
 
               {/* Reminder Settings */}

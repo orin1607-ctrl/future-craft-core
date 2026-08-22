@@ -5,6 +5,7 @@ import {
 } from '@/lib/daliaIncidentNotifyContacts';
 import { faultTypeDisplay } from '@/lib/faultTypes';
 import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
+import { applyAutomaticSendGates, fetchCompanyAutoSend } from '@/lib/companyAutoSend';
 
 export type IncidentKind = 'fault' | 'accident';
 
@@ -165,10 +166,22 @@ export async function dispatchIncidentNotifications(opts: {
   const emailSubject = buildEmailSubject(kind, record);
   const emailHtml = buildEmailPreviewHtml(kind, record, link);
 
-  // Incident WhatsApp is independent of emergency whatsapp_enabled
-  const wouldSendWhatsApp = settings.incident_notify_whatsapp === true;
-  const wouldSendEmail = settings.incident_notify_email === true;
+  // Incident WhatsApp is independent of emergency whatsapp_enabled.
+  // Master Super Admin automatic-send toggles gate Email/WhatsApp only — in-app stays on.
+  let wouldSendWhatsApp = settings.incident_notify_whatsapp === true;
+  let wouldSendEmail = settings.incident_notify_email === true;
   const wouldSendInApp = settings.incident_notify_in_app === true;
+  try {
+    const autoSend = await fetchCompanyAutoSend(record.company_name || '');
+    const gated = applyAutomaticSendGates(
+      { email: wouldSendEmail, whatsapp: wouldSendWhatsApp, inApp: wouldSendInApp },
+      autoSend,
+    );
+    wouldSendEmail = gated.email;
+    wouldSendWhatsApp = gated.whatsapp;
+  } catch (e) {
+    notifyError = notifyError || (e instanceof Error ? e.message : 'auto-send fetch failed');
+  }
 
   if (!dryRun && (wouldSendEmail || wouldSendWhatsApp || wouldSendInApp)) {
     try {

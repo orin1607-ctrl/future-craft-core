@@ -6,6 +6,7 @@
  * - Notify failures never throw to client as hard failure (returns partial results)
  */
 import { assertCompanyAccess, edgeCorsHeaders, requireAuth } from '../_shared/edgeAuth.ts';
+import { loadCompanyAutoSend } from '../_shared/companyAutoSend.ts';
 
 const corsHeaders = edgeCorsHeaders;
 const GUPSHUP_SEND_URL = 'https://api.gupshup.io/wa/api/v1/msg';
@@ -194,9 +195,12 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const wantInApp = channels.in_app ?? settings?.incident_notify_in_app ?? true;
-    const wantEmail = channels.email ?? settings?.incident_notify_email ?? true;
+    const incidentEmail = channels.email ?? settings?.incident_notify_email ?? true;
     // Decoupled from emergency whatsapp_enabled — paid add-on is incident_notify_whatsapp only
-    const wantWhatsApp = channels.whatsapp ?? settings?.incident_notify_whatsapp ?? false;
+    const incidentWhatsApp = channels.whatsapp ?? settings?.incident_notify_whatsapp ?? false;
+    const autoSend = await loadCompanyAutoSend(supabaseAdmin, String(record.company_name || ''));
+    const wantEmail = Boolean(incidentEmail) && autoSend.emailAutomatic;
+    const wantWhatsApp = Boolean(incidentWhatsApp) && autoSend.whatsappAutomatic;
     const emailMode = (channels.emailRecipients ||
       settings?.incident_email_recipients ||
       'fleet_managers') as RecipientMode;

@@ -1,4 +1,5 @@
 import { assertCompanyAccess, edgeCorsHeaders, requireAuth } from '../_shared/edgeAuth.ts';
+import { loadCompanyAutoSend } from '../_shared/companyAutoSend.ts';
 
 const corsHeaders = edgeCorsHeaders;
 
@@ -31,6 +32,14 @@ Deno.serve(async (req) => {
 
     const denied = assertCompanyAccess(ctx, record.company_name);
     if (denied) return denied;
+
+    const autoSend = await loadCompanyAutoSend(supabaseAdmin, String(record.company_name));
+    if (!autoSend.emailAutomatic) {
+      return new Response(JSON.stringify({ sent: 0, skipped: true, reason: 'email_automatic_off' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Find fleet managers in the same company
     const { data: managers } = await supabaseAdmin

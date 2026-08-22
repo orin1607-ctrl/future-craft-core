@@ -20,6 +20,7 @@ import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/li
 import { isTowingServiceOrder, recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
+import { fetchCompanyAutoSend } from '@/lib/companyAutoSend';
 
 interface ServiceRow {
   id: string;
@@ -659,12 +660,15 @@ function ServiceOrderForm({
       toast.success(editData ? 'ההזמנה עודכנה' : 'הזמנת השירות נשלחה – ממתינה לאישור');
       if (!editData) {
         const isUrgent = urgency === 'critical' || urgency === 'urgent';
-        supabase.functions.invoke('notify-service-order-email', {
-          body: {
-            record: { ...payload, created_by: user?.id, ordering_user: user?.full_name || '' },
-            type: isUrgent ? 'urgent_order' : 'new_order',
-          },
-        }).catch(err => console.error('Email notification error:', err));
+        const autoSend = await fetchCompanyAutoSend(payload.company_name || user?.company_name || '');
+        if (autoSend.emailAutomatic) {
+          supabase.functions.invoke('notify-service-order-email', {
+            body: {
+              record: { ...payload, created_by: user?.id, ordering_user: user?.full_name || '' },
+              type: isUrgent ? 'urgent_order' : 'new_order',
+            },
+          }).catch(err => console.error('Email notification error:', err));
+        }
 
         if (fromVehicleHub) {
           const towing = isTowingServiceOrder(payload);
