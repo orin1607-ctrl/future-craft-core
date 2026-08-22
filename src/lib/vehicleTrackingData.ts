@@ -17,6 +17,7 @@ import {
 } from '@/lib/vehicleTrackingAlerts';
 import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
 import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
+import { calendarDaysLeft } from '@/lib/expiryOfficerApproval';
 
 export type { TrackingAlertItem, TrackingAlertKind };
 
@@ -153,16 +154,73 @@ async function loadCompanyThresholdsMap(
   return map;
 }
 
+function compactExpiryReason(
+  subject: 'טסט' | 'ביטוח',
+  date: string | null,
+  item: TrackingAlertItem,
+): string {
+  const days = calendarDaysLeft(date);
+  if (days !== null && days < 0) return `${subject} פג תוקף`;
+  if (days !== null && days >= 0) {
+    return subject === 'טסט' ? 'טסט בחודש הקרוב' : 'ביטוח מתקרב';
+  }
+  if (/פג לפני|פג תוקף/.test(`${item.label} ${item.detail}`)) return `${subject} פג תוקף`;
+  return subject === 'טסט' ? 'טסט בחודש הקרוב' : 'ביטוח מתקרב';
+}
+
+function reasonFromOperationalItem(item: TrackingAlertItem, v: TrackingVehicleRow): string | null {
+  switch (item.kind) {
+    case 'license':
+      return null;
+    case 'test':
+      return compactExpiryReason('טסט', v.test_expiry, item);
+    case 'insurance':
+      return compactExpiryReason('ביטוח', v.insurance_expiry, item);
+    case 'document':
+      return item.detail || 'מסמך חסר';
+    case 'fault':
+      return 'תקלה פתוחה';
+    case 'defect':
+      return 'ליקוי פתוח';
+    case 'accident':
+      return 'תאונה פתוחה';
+    case 'transport':
+      return 'שינוע פעיל';
+    case 'service':
+      return /תקופ/.test(`${item.label} ${item.detail}`) ? 'טיפול תקופתי' : 'טיפול פעיל';
+    case 'gap':
+      return item.detail ? `חוסר · ${item.detail}` : 'חוסר';
+    default:
+      return item.label;
+  }
+}
+
+/** Same source of truth as the "דרוש טיפול" counter — one compact reason per cause. */
+export function trackingAttentionReasons(v: TrackingVehicleRow): string[] {
+  const reasons: string[] = [];
+  const seen = new Set<string>();
+  const add = (label: string | null | undefined) => {
+    const t = (label || '').trim();
+    if (!t || seen.has(t)) return;
+    seen.add(t);
+    reasons.push(t);
+  };
+
+  for (const item of v.alert_items || []) {
+    add(reasonFromOperationalItem(item, v));
+  }
+
+  if (v.has_open_fault) add('תקלה פתוחה');
+  if (v.has_open_defect) add('ליקוי פתוח');
+  if (v.has_open_accident) add('תאונה פתוחה');
+  if (v.has_active_service) add('טיפול פעיל');
+  if (v.in_garage) add('במוסך');
+
+  return reasons;
+}
+
 export function vehicleNeedsTrackingAttention(v: TrackingVehicleRow): boolean {
-  const hasOperationalAlert = (v.alert_items || []).some((item) => item.kind !== 'license');
-  return Boolean(
-    v.has_open_fault ||
-      v.has_open_defect ||
-      v.has_open_accident ||
-      hasOperationalAlert ||
-      v.has_active_service ||
-      v.in_garage,
-  );
+  return trackingAttentionReasons(v).length > 0;
 }
 
 export async function countTrackingAttention(companyFilter: string | null): Promise<number> {

@@ -3,7 +3,7 @@ import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import type { HomeAlertSlotPrefs, HomeAlertSlotType } from '@/lib/homeAlertPrefsTypes';
 import { HOME_ALERT_SLOT_LABELS } from '@/lib/homeAlertPrefsTypes';
 import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
-import { isDueOrUpcomingInWindow } from '@/lib/expiryOfficerApproval';
+import { isUpcomingInWindow } from '@/lib/expiryOfficerApproval';
 import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
 import { getThirdPartyInsuranceExpiry } from '@/lib/vehicleInsuranceUtils';
 import { buildAlertsHref } from '@/lib/alertListScope';
@@ -75,7 +75,7 @@ export async function loadFleetAlertSlotSummaries(
 
     switch (slot.type) {
       case 'test': {
-        const matches = fleet.filter((v) => isDueOrUpcomingInWindow(v.test_expiry, days));
+        const matches = fleet.filter((v) => isUpcomingInWindow(v.test_expiry, days));
         const worst = matches.reduce<number | null>((min, v) => {
           const d = daysUntil(v.test_expiry);
           if (d === null) return min;
@@ -85,7 +85,7 @@ export async function loadFleetAlertSlotSummaries(
           type: slot.type,
           label,
           count: matches.length,
-          subtitle: matches.length === 0 ? 'אין התראות בחלון שנבחר' : worst !== null && worst < 0 ? 'כולל פגי תוקף + החודש הקרוב' : `פג תוקף + בעוד עד ${days} ימים`,
+          subtitle: matches.length === 0 ? 'אין התראות בחלון שנבחר' : `בתוקף · עד ${days} ימים`,
           severity: severityFromDays(worst),
           link: buildAlertsHref({ category: 'test', scope: 'urgent', days }),
         };
@@ -94,15 +94,15 @@ export async function loadFleetAlertSlotSummaries(
         const matches = fleet.flatMap((v) => {
           if (!isInsuranceAlertsEnabled(v)) return [];
           const rows: string[] = [];
-          if (isDueOrUpcomingInWindow(v.insurance_expiry, days)) rows.push('insurance');
-          if (isDueOrUpcomingInWindow(v.comprehensive_insurance_expiry, days)) rows.push('comprehensive');
-          if (isDueOrUpcomingInWindow(getThirdPartyInsuranceExpiry(v), days)) rows.push('third');
+          if (isUpcomingInWindow(v.insurance_expiry, days)) rows.push('insurance');
+          if (isUpcomingInWindow(v.comprehensive_insurance_expiry, days)) rows.push('comprehensive');
+          if (isUpcomingInWindow(getThirdPartyInsuranceExpiry(v), days)) rows.push('third');
           return rows;
         });
         const worst = fleet.reduce<number | null>((min, v) => {
           if (!isInsuranceAlertsEnabled(v)) return min;
           for (const date of [v.insurance_expiry, v.comprehensive_insurance_expiry, getThirdPartyInsuranceExpiry(v)]) {
-            if (!isDueOrUpcomingInWindow(date, days)) continue;
+            if (!isUpcomingInWindow(date, days)) continue;
             const d = daysUntil(date);
             if (d === null) continue;
             min = min === null ? d : Math.min(min, d);
@@ -113,7 +113,7 @@ export async function loadFleetAlertSlotSummaries(
           type: slot.type,
           label,
           count: matches.length,
-          subtitle: matches.length === 0 ? 'אין התראות בחלון שנבחר' : worst !== null && worst < 0 ? 'חובה / מקיף / צד ג׳ · כולל פגי תוקף' : `חובה / מקיף / צד ג׳ · עד ${days} ימים`,
+          subtitle: matches.length === 0 ? 'אין התראות בחלון שנבחר' : `חובה / מקיף / צד ג׳ · עד ${days} ימים`,
           severity: severityFromDays(worst),
           link: buildAlertsHref({ category: 'insurance', scope: 'urgent', days }),
         };
@@ -121,7 +121,7 @@ export async function loadFleetAlertSlotSummaries(
       case 'comprehensive_insurance': {
         const matches = fleet.filter((v) => {
           if (!isInsuranceAlertsEnabled(v)) return false;
-          return isDueOrUpcomingInWindow(v.comprehensive_insurance_expiry, days);
+          return isUpcomingInWindow(v.comprehensive_insurance_expiry, days);
         });
         const worst = matches.reduce<number | null>((min, v) => {
           const d = daysUntil(v.comprehensive_insurance_expiry);
@@ -132,13 +132,13 @@ export async function loadFleetAlertSlotSummaries(
           type: slot.type,
           label,
           count: matches.length,
-          subtitle: matches.length === 0 ? 'אין התראות בחלון שנבחר' : `פג תוקף + בעוד עד ${days} ימים`,
+          subtitle: matches.length === 0 ? 'אין התראות בחלון שנבחר' : `בתוקף · עד ${days} ימים`,
           severity: severityFromDays(worst),
           link: buildAlertsHref({ category: 'comprehensive_insurance', scope: 'urgent', days }),
         };
       }
       case 'service': {
-        const byDate = fleet.filter((v) => isDueOrUpcomingInWindow(v.next_service_date, days));
+        const byDate = fleet.filter((v) => isUpcomingInWindow(v.next_service_date, days));
         const periodicOrders = openOrders.filter((o) =>
           (o.service_category || '').toLowerCase().includes('תקופ'),
         );
@@ -153,7 +153,7 @@ export async function loadFleetAlertSlotSummaries(
         };
       }
       case 'license': {
-        const matches = (drivers || []).filter((d) => isDueOrUpcomingInWindow(d.license_expiry, days));
+        const matches = (drivers || []).filter((d) => isUpcomingInWindow(d.license_expiry, days));
         const worst = matches.reduce<number | null>((min, d) => {
           const dd = daysUntil(d.license_expiry);
           if (dd === null) return min;
@@ -163,7 +163,7 @@ export async function loadFleetAlertSlotSummaries(
           type: slot.type,
           label,
           count: matches.length,
-          subtitle: matches.length === 0 ? 'אין התראות בחלון שנבחר' : `פג תוקף + בעוד עד ${days} ימים`,
+          subtitle: matches.length === 0 ? 'אין התראות בחלון שנבחר' : `בתוקף · עד ${days} ימים`,
           severity: severityFromDays(worst),
           link: buildAlertsHref({ category: 'license', scope: 'urgent', days }),
         };

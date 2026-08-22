@@ -39,8 +39,10 @@ export function alertInScope(
 ): boolean {
   if (scope === 'all') return true;
   if (scope === 'expired') return daysLeft !== null && daysLeft < 0;
+  // Dateless rows (e.g. open periodic service orders) stay in the urgent list.
   if (daysLeft === null) return true;
-  return daysLeft <= windowDays;
+  // Urgent / החודש הקרוב: still valid, due today through windowDays. Never overlap expired.
+  return daysLeft >= 0 && daysLeft <= windowDays;
 }
 
 export function serviceOrderMatchesDashboardUrgent(alert: {

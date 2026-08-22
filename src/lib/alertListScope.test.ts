@@ -21,15 +21,19 @@ describe('alertListScope', () => {
     expect(alertCategoryMatches('test', 'test')).toBe(true);
   });
 
-  it('urgent includes expired and the coming window, not far future', () => {
-    expect(alertInScope(-3, 'urgent', 30)).toBe(true);
+  it('urgent is 0–30 only; expired is strictly before today; no overlap', () => {
+    expect(alertInScope(-1, 'urgent', 30)).toBe(false);
     expect(alertInScope(0, 'urgent', 30)).toBe(true);
+    expect(alertInScope(1, 'urgent', 30)).toBe(true);
     expect(alertInScope(30, 'urgent', 30)).toBe(true);
     expect(alertInScope(31, 'urgent', 30)).toBe(false);
     expect(alertInScope(null, 'urgent', 30)).toBe(true);
-    expect(alertInScope(-3, 'expired', 30)).toBe(true);
+    expect(alertInScope(-1, 'expired', 30)).toBe(true);
+    expect(alertInScope(0, 'expired', 30)).toBe(false);
     expect(alertInScope(5, 'expired', 30)).toBe(false);
     expect(alertInScope(90, 'all', 30)).toBe(true);
+    expect(alertInScope(-3, 'urgent', 30) && alertInScope(-3, 'expired', 30)).toBe(false);
+    expect(alertInScope(0, 'urgent', 30) && alertInScope(0, 'expired', 30)).toBe(false);
   });
 
   it('builds dashboard deep links', () => {

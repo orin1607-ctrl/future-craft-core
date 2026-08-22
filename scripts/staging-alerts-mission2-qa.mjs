@@ -69,9 +69,14 @@ function daysLeft(dateStr, today = todayIso()) {
   return Math.round((end.getTime() - start.getTime()) / 86400000);
 }
 
-function dueOrUpcoming(dateStr, windowDays = 30, today = todayIso()) {
+function upcomingInWindow(dateStr, windowDays = 30, today = todayIso()) {
   const n = daysLeft(dateStr, today);
-  return n !== null && n <= windowDays;
+  return n !== null && n >= 0 && n <= windowDays;
+}
+
+function expiredDate(dateStr, today = todayIso()) {
+  const n = daysLeft(dateStr, today);
+  return n !== null && n < 0;
 }
 
 const arr = JSON.parse(execSync(`npx --yes supabase projects api-keys --project-ref ${STAGING_REF} -o json`, { encoding: 'utf8' }));
@@ -168,16 +173,18 @@ async function trackingBreakdown(company) {
   const accidents = await countOpenByPlate('accidents', 'status', OPEN_ACCIDENT, company);
   const services = await countOpenByPlate('service_orders', 'treatment_status', OPEN_SERVICE, company);
   const missingLicense = vehicles.filter((v) => !v.license_doc_url);
-  const testWindow = vehicles.filter((v) => dueOrUpcoming(v.test_expiry, 30));
-  const insWindow = vehicles.filter((v) => insOn(v) && dueOrUpcoming(v.insurance_expiry, 30));
+  const testWindow = vehicles.filter((v) => upcomingInWindow(v.test_expiry, 30));
+  const testExpired = vehicles.filter((v) => expiredDate(v.test_expiry));
+  const insWindow = vehicles.filter((v) => insOn(v) && upcomingInWindow(v.insurance_expiry, 30));
   const unique = new Set();
-  const reasons = { missingLicense: 0, testWindow: 0, insWindow: 0, fault: 0, task: 0, accident: 0, service: 0 };
+  const reasons = { missingLicense: 0, testWindow: 0, testExpired: 0, insWindow: 0, fault: 0, task: 0, accident: 0, service: 0 };
   for (const v of vehicles) {
     const plate = String(v.license_plate || '').replace(/[-\s]/g, '').trim();
     let hit = false;
     if (!v.license_doc_url) reasons.missingLicense += 1;
-    if (dueOrUpcoming(v.test_expiry, 30)) { reasons.testWindow += 1; hit = true; }
-    if (insOn(v) && dueOrUpcoming(v.insurance_expiry, 30)) { reasons.insWindow += 1; hit = true; }
+    if (upcomingInWindow(v.test_expiry, 30)) { reasons.testWindow += 1; hit = true; }
+    if (expiredDate(v.test_expiry)) { reasons.testExpired += 1; hit = true; }
+    if (insOn(v) && (upcomingInWindow(v.insurance_expiry, 30) || expiredDate(v.insurance_expiry))) { reasons.insWindow += 1; hit = true; }
     if (plate && faults.plates.has(plate)) { reasons.fault += 1; hit = true; }
     if (plate && tasks.plates.has(plate)) { reasons.task += 1; hit = true; }
     if (plate && accidents.plates.has(plate)) { reasons.accident += 1; hit = true; }
@@ -189,6 +196,7 @@ async function trackingBreakdown(company) {
     uniqueAttention: unique.size,
     missingLicense: missingLicense.length,
     testWindow: testWindow.length,
+    testExpired: testExpired.length,
     insWindow: insWindow.length,
     openFaultRows: faults.rows ?? 0,
     openTaskRows: tasks.rows ?? 0,
@@ -216,7 +224,7 @@ async function alertRowEstimate(company) {
       expiryRows += 1;
       const n = daysLeft(d);
       if (n !== null && n > 30) futureRows += 1;
-      if (n !== null && n <= 30) urgentExpiryRows += 1;
+      if (n !== null && n >= 0 && n <= 30) urgentExpiryRows += 1;
     }
   }
   let dq = admin.from('drivers').select('id, license_expiry');
@@ -294,6 +302,9 @@ const ids = { users: [], vehicles: [], drivers: [], serviceOrders: [], prefsKeys
 const plates = {
   expiredTest: `AT${String(runId).slice(-6)}`,
   soonTest: `AS${String(runId).slice(-6)}`,
+  todayTest: `AD${String(runId).slice(-6)}`,
+  plus30Test: `A3${String(runId).slice(-6)}`,
+  plus31Test: `A4${String(runId).slice(-6)}`,
   futureTest: `AF${String(runId).slice(-6)}`,
   insMix: `AI${String(runId).slice(-6)}`,
 };
@@ -413,6 +424,45 @@ try {
     license_doc_url: 'qa-placeholder',
     insurance_alerts_enabled: true,
   });
+  const vToday = await insertVeh({
+    license_plate: plates.todayTest,
+    internal_number: 'M22T',
+    manufacturer: 'QaMazda',
+    model: 'Today',
+    company_name: company,
+    status: 'active',
+    year: 2021,
+    test_expiry: isoAdd(0),
+    insurance_expiry: isoAdd(200),
+    license_doc_url: 'qa-placeholder',
+    insurance_alerts_enabled: true,
+  });
+  await insertVeh({
+    license_plate: plates.plus30Test,
+    internal_number: 'M2230',
+    manufacturer: 'QaMazda',
+    model: 'Plus30',
+    company_name: company,
+    status: 'active',
+    year: 2021,
+    test_expiry: isoAdd(30),
+    insurance_expiry: isoAdd(200),
+    license_doc_url: 'qa-placeholder',
+    insurance_alerts_enabled: true,
+  });
+  await insertVeh({
+    license_plate: plates.plus31Test,
+    internal_number: 'M2231',
+    manufacturer: 'QaMazda',
+    model: 'Plus31',
+    company_name: company,
+    status: 'active',
+    year: 2021,
+    test_expiry: isoAdd(31),
+    insurance_expiry: isoAdd(200),
+    license_doc_url: 'qa-placeholder',
+    insurance_alerts_enabled: true,
+  });
   const vFuture = await insertVeh({
     license_plate: plates.futureTest,
     internal_number: 'M23',
@@ -462,10 +512,10 @@ try {
 
   rec('QA company seeded without touching Beeri', true, { company, plates });
 
-  const expectedTestUrgent = 2;
-  const expectedInsUrgent = 2;
-  const expectedServiceUrgent = 2;
-  const expectedTracking = 3;
+  const expectedTestUrgent = 3;
+  const expectedInsUrgent = 1;
+  const expectedServiceUrgent = 1;
+  const expectedTracking = 5;
 
   const context = await sessionContext(browser, fmEmail);
   const page = await context.newPage();
@@ -498,8 +548,11 @@ try {
   const testShown = await shownCount(page);
   const testBody = await page.locator('body').innerText();
   rec('test urgent list count matches dashboard', testShown === testCount, { testShown, testCount });
-  rec('expired test remains visible', testBody.includes(plates.expiredTest), { plate: plates.expiredTest });
+  rec('expired test is not in urgent', !testBody.includes(plates.expiredTest), { plate: plates.expiredTest });
+  rec('today test is urgent only', testBody.includes(plates.todayTest), { plate: plates.todayTest });
   rec('soon test visible in urgent', testBody.includes(plates.soonTest), { plate: plates.soonTest });
+  rec('+30 day test is urgent', testBody.includes(plates.plus30Test), { plate: plates.plus30Test });
+  rec('+31 day test is not urgent', !testBody.includes(plates.plus31Test), { plate: plates.plus31Test });
   rec('far-future test hidden from urgent default', !testBody.includes(plates.futureTest), { plate: plates.futureTest });
   rec('alerts default chip is urgent', testBody.includes('דחוף / החודש הקרוב'), {});
   await page.screenshot({ path: join(OUT, '02-test-urgent.png'), fullPage: true }).catch(() => null);
@@ -515,7 +568,8 @@ try {
   await page.getByRole('button', { name: /פג תוקף/ }).first().click();
   await wait();
   const expiredBody = await page.locator('body').innerText();
-  rec('פג תוקף filter shows expired test only among the three', expiredBody.includes(plates.expiredTest) && !expiredBody.includes(plates.soonTest) && !expiredBody.includes(plates.futureTest), {});
+  rec('פג תוקף filter shows expired test only among the dated tests', expiredBody.includes(plates.expiredTest) && !expiredBody.includes(plates.soonTest) && !expiredBody.includes(plates.todayTest) && !expiredBody.includes(plates.plus30Test) && !expiredBody.includes(plates.futureTest), {});
+  rec('no overlap between urgent and expired test lists', !testBody.includes(plates.expiredTest) && !expiredBody.includes(plates.soonTest));
 
   await page.goto(`${LIVE}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await wait();
@@ -527,8 +581,8 @@ try {
   const insBody = await page.locator('body').innerText();
   rec('insurance card opens insurance urgent list', /category=insurance/.test(insUrl) && /scope=urgent/.test(insUrl), { insUrl });
   rec('insurance urgent list count matches dashboard', insShown === insCount, { insShown, insCount });
-  rec('insurance urgent includes חובה פג תוקף', /ביטוח חובה/.test(insBody) && insBody.includes(plates.insMix));
-  rec('insurance urgent includes מקיף בחודש הקרוב', /ביטוח מקיף/.test(insBody));
+  rec('insurance urgent includes מקיף בחודש הקרוב', /ביטוח מקיף/.test(insBody) && insBody.includes(plates.insMix));
+  rec('insurance urgent excludes expired חובה', insShown === expectedInsUrgent, { insShown, expectedInsUrgent });
   await page.getByRole('button', { name: /כל הביטוחים/ }).first().click();
   await wait();
   const allInsBody = await page.locator('body').innerText();
@@ -573,6 +627,9 @@ try {
   const shownAttn = shownMatch ? Number(shownMatch[1]) : null;
   rec('tracking attention list equals unique vehicles with a tracking item', shownAttn === expectedTracking, { shownAttn, expectedTracking, trackBody: shownMatch?.[0] });
   rec('future-only test vehicle is not in attention list', !trackBody.includes(plates.futureTest) || shownAttn === expectedTracking, { plate: plates.futureTest });
+  rec('+31 day test is not in attention list', !trackBody.includes(plates.plus31Test));
+  rec('attention list shows compact reasons', /טסט פג תוקף|טסט בחודש הקרוב|ביטוח מתקרב|ביטוח פג תוקף|טיפול/.test(trackBody));
+  rec('every attention vehicle from seed is listed once', trackBody.includes(plates.expiredTest) && trackBody.includes(plates.soonTest) && trackBody.includes(plates.todayTest) && trackBody.includes(plates.plus30Test) && trackBody.includes(plates.insMix));
   await page.screenshot({ path: join(OUT, '04-tracking-attention.png'), fullPage: true }).catch(() => null);
 
   await page.goto(`${LIVE}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 120000 });

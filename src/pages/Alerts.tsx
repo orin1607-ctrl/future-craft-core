@@ -824,7 +824,7 @@ export default function Alerts() {
         התראות ועדכונים
       </h1>
       <p className="text-sm text-muted-foreground">
-        ברירת מחדל: פגי תוקף + החודש הקרוב. פג תוקף נשאר גלוי. כל ההתראות זמין כסינון משני.
+        ברירת מחדל: דחוף / החודש הקרוב (היום עד 30 ימים). פג תוקף הוא כפתור נפרד. כל ההתראות זמין כסינון משני.
       </p>
 
       <Tabs defaultValue="alerts" dir="rtl">

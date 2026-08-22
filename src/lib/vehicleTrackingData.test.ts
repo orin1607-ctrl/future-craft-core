@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { vehicleNeedsTrackingAttention, type TrackingVehicleRow } from './vehicleTrackingData';
+import { calendarDaysLeft, todayIsoDate } from './expiryOfficerApproval';
+import {
+  trackingAttentionReasons,
+  vehicleNeedsTrackingAttention,
+  type TrackingVehicleRow,
+} from './vehicleTrackingData';
+
+function shiftIso(days: number): string {
+  const today = todayIsoDate();
+  const d = new Date(`${today}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 function row(partial: Partial<TrackingVehicleRow>): TrackingVehicleRow {
   return {
@@ -37,14 +52,12 @@ function row(partial: Partial<TrackingVehicleRow>): TrackingVehicleRow {
 
 describe('vehicleNeedsTrackingAttention', () => {
   it('does not treat missing license document alone as dashboard attention', () => {
-    expect(
-      vehicleNeedsTrackingAttention(
-        row({
-          alert_items: [{ kind: 'license', label: 'רישיון', detail: 'חסר', hubLink: '/' }],
-          alert_kinds: ['license'],
-        }),
-      ),
-    ).toBe(false);
+    const v = row({
+      alert_items: [{ kind: 'license', label: 'רישיון', detail: 'חסר', hubLink: '/' }],
+      alert_kinds: ['license'],
+    });
+    expect(vehicleNeedsTrackingAttention(v)).toBe(false);
+    expect(trackingAttentionReasons(v)).toEqual([]);
   });
 
   it('counts expired/upcoming test as attention', () => {
@@ -56,5 +69,58 @@ describe('vehicleNeedsTrackingAttention', () => {
         }),
       ),
     ).toBe(true);
+  });
+
+  it('shows expired vs upcoming test from the same attention logic', () => {
+    const expiredDate = shiftIso(-1);
+    const soonDate = shiftIso(10);
+    expect(calendarDaysLeft(expiredDate)).toBe(-1);
+    expect(calendarDaysLeft(soonDate)).toBe(10);
+
+    const expired = row({
+      test_expiry: expiredDate,
+      alert_items: [{ kind: 'test', label: 'טסט', detail: 'פג לפני 1 ימים', hubLink: '/' }],
+      alert_kinds: ['test'],
+    });
+    const soon = row({
+      test_expiry: soonDate,
+      alert_items: [{ kind: 'test', label: 'טסט', detail: 'עוד 10 ימים', hubLink: '/' }],
+      alert_kinds: ['test'],
+    });
+    expect(trackingAttentionReasons(expired)).toEqual(['טסט פג תוקף']);
+    expect(trackingAttentionReasons(soon)).toEqual(['טסט בחודש הקרוב']);
+    expect(vehicleNeedsTrackingAttention(expired)).toBe(true);
+    expect(vehicleNeedsTrackingAttention(soon)).toBe(true);
+  });
+
+  it('keeps one vehicle with several compact reasons', () => {
+    const v = row({
+      test_expiry: shiftIso(-2),
+      insurance_expiry: shiftIso(5),
+      has_open_fault: true,
+      has_open_defect: true,
+      alert_items: [
+        { kind: 'test', label: 'טסט', detail: 'פג לפני 2 ימים', hubLink: '/' },
+        { kind: 'insurance', label: 'ביטוח', detail: 'עוד 5 ימים', hubLink: '/' },
+        { kind: 'fault', label: 'תקלה', detail: 'אור', hubLink: '/' },
+      ],
+      alert_kinds: ['test', 'insurance', 'fault'],
+    });
+    const reasons = trackingAttentionReasons(v);
+    expect(reasons).toEqual(['טסט פג תוקף', 'ביטוח מתקרב', 'תקלה פתוחה', 'ליקוי פתוח']);
+    expect(vehicleNeedsTrackingAttention(v)).toBe(true);
+  });
+
+  it('never shows a reason without putting the vehicle in the attention count', () => {
+    const samples = [
+      row({ in_garage: true }),
+      row({ has_active_service: true, in_garage: true }),
+      row({ has_open_accident: true }),
+    ];
+    for (const v of samples) {
+      const reasons = trackingAttentionReasons(v);
+      expect(reasons.length).toBeGreaterThan(0);
+      expect(vehicleNeedsTrackingAttention(v)).toBe(true);
+    }
   });
 });

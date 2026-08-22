@@ -1,8 +1,23 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import type { TrackingVehicleRow } from '@/lib/vehicleTrackingData';
-import { TRACKING_ALERT_KIND_LABELS } from '@/lib/vehicleTrackingAlerts';
+import { trackingAttentionReasons, type TrackingVehicleRow } from '@/lib/vehicleTrackingData';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
+
+function ReasonChips({ reasons }: { reasons: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-1 justify-end max-w-[260px]">
+      {reasons.map((reason) => (
+        <span
+          key={reason}
+          className="status-badge status-pending text-[10px] leading-tight max-w-[240px] truncate"
+          title={reason}
+        >
+          {reason}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function AlertChips({
   items,
@@ -32,6 +47,12 @@ function AlertChips({
       })}
     </div>
   );
+}
+
+function VehicleCauseChips({ v }: { v: TrackingVehicleRow }) {
+  const reasons = trackingAttentionReasons(v);
+  if (reasons.length > 0) return <ReasonChips reasons={reasons} />;
+  return <AlertChips items={v.alert_items} insuranceRed={v.insurance_alerts_red_enabled} />;
 }
 
 function Flag({ on }: { on: boolean }) {
@@ -94,7 +115,7 @@ export default function TrackingFleetList({
               <th className="py-3 px-2 text-right">סטטוס</th>
               <th className="py-3 px-2 text-right">ליקוי</th>
               <th className="py-3 px-2 text-right">תקלה</th>
-              <th className="py-3 px-2 text-right">התראות</th>
+              <th className="py-3 px-2 text-right">דרוש טיפול</th>
               <th className="py-3 px-2 text-right">מוסך</th>
               <th className="py-3 px-2" />
             </tr>
@@ -115,7 +136,7 @@ export default function TrackingFleetList({
                 <td className="py-3 px-2 text-center"><Flag on={v.has_open_defect} /></td>
                 <td className="py-3 px-2 text-center"><Flag on={v.has_open_fault} /></td>
                 <td className="py-3 px-2 text-center">
-                  <AlertChips items={v.alert_items} insuranceRed={v.insurance_alerts_red_enabled} />
+                  <VehicleCauseChips v={v} />
                 </td>
                 <td className="py-3 px-2 text-center">
                   {v.in_garage ? (
@@ -155,10 +176,10 @@ export default function TrackingFleetList({
               {v.company_name} · נהג: {v.driver_name || '—'}
             </p>
             <div className="flex flex-wrap gap-1 justify-end">
-              {v.alert_items.length > 0 ? (
-                <AlertChips items={v.alert_items} insuranceRed={v.insurance_alerts_red_enabled} />
+              {trackingAttentionReasons(v).length > 0 || v.alert_items.length > 0 ? (
+                <VehicleCauseChips v={v} />
               ) : (
-                <span className="text-xs text-muted-foreground">אין התראות</span>
+                <span className="text-xs text-muted-foreground">אין סיבת טיפול</span>
               )}
               {v.in_garage && <span className="status-badge status-pending">מוסך {v.days_in_garage}י</span>}
             </div>
