@@ -21,6 +21,7 @@ import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleList
 import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
 import { collectDepartmentsFromVehicles } from '@/lib/companyDepartments';
 import { VehiclePlatePipeLine } from '@/components/vehicles/vehiclePlateDisplay';
+import EntityListNote from '@/components/vehicles/EntityListNote';
 import { sortByExactInternalNumberFirst } from '@/lib/internalNumberSearch';
 
 export { VehicleForm };
@@ -512,9 +513,7 @@ export default function Vehicles() {
                         {' • '}{v.year}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">נהג: {getDriverName(v.assigned_driver_id)}</p>
-                      {v.show_notes_on_list && v.notes?.trim() ? (
-                        <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap break-words">{v.notes.trim()}</p>
-                      ) : null}
+                      <EntityListNote notes={v.notes} />
                     </div>
                   </button>
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">

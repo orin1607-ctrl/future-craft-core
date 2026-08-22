@@ -227,7 +227,7 @@ export default function VehicleHub({
   const [supplierSource, setSupplierSource] = useState<{ type: string; label: string } | null>(null);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [noteText, setNoteText] = useState(v.notes || '');
-  const [showNotesOnList, setShowNotesOnList] = useState(!!v.show_notes_on_list);
+  const [showNotesOnList, setShowNotesOnList] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
   const [inspectionSchedule, setInspectionSchedule] = useState<InspectionDashboardCard | null>(null);
   const [latestInsurer, setLatestInsurer] = useState<string | null>(null);
@@ -353,7 +353,7 @@ export default function VehicleHub({
 
   useEffect(() => {
     setNoteText(v.notes || '');
-    setShowNotesOnList(!!v.show_notes_on_list);
+    setShowNotesOnList(v.show_notes_on_list === false && v.notes?.trim() ? false : true);
   }, [v.notes, v.show_notes_on_list]);
 
   useEffect(() => {
@@ -464,9 +464,13 @@ export default function VehicleHub({
       return;
     }
     setSavingNote(true);
+    const trimmed = noteText.trim();
     const { error } = await supabase
       .from('vehicles')
-      .update({ notes: noteText, show_notes_on_list: showNotesOnList })
+      .update({
+        notes: noteText,
+        show_notes_on_list: trimmed ? showNotesOnList : false,
+      })
       .eq('id', v.id);
     setSavingNote(false);
     if (error) toast.error('שגיאה בשמירת ההערה');
@@ -1186,6 +1190,7 @@ export default function VehicleHub({
                   onChange={(e) => setNoteText(e.target.value)}
                   rows={3}
                   className="w-full p-3 rounded-xl border-2 border-input bg-background resize-none"
+                  data-testid="vehicle-note-input"
                 />
                 <label className="flex items-center gap-2 text-sm mt-2">
                   <input

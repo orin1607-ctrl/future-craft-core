@@ -46,6 +46,7 @@ function row(partial: Partial<TrackingVehicleRow>): TrackingVehicleRow {
     insurance_alerts_red_enabled: true,
     alert_items: [],
     alert_kinds: [],
+    notes: null,
     ...partial,
   };
 }

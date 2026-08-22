@@ -6,6 +6,7 @@ import { formatExpiry } from '@/components/vehicles/vehicleHubUtils';
 import type { TrackingVehicleRow } from '@/lib/vehicleTrackingData';
 import type { VehicleHistoryEntry } from '@/lib/vehicleHistory';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
+import EntityListNote from '@/components/vehicles/EntityListNote';
 
 const TABS = [
   { id: 'current', label: 'מצב נוכחי' },
@@ -52,6 +53,7 @@ export default function TrackingVehicleDetail({
               <InternalNumber value={v.internal_number} /> · {v.company_name}
               {v.department ? ` — ${v.department}` : ''}
             </p>
+            <EntityListNote notes={v.notes} />
           </div>
           <span className={`status-badge ${v.status === 'active' ? 'status-active' : 'status-pending'}`}>
             {v.status_text}

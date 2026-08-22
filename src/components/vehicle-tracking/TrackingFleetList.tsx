@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { trackingAttentionReasons, type TrackingVehicleRow } from '@/lib/vehicleTrackingData';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
+import EntityListNote from '@/components/vehicles/EntityListNote';
 
 function ReasonChips({ reasons }: { reasons: string[] }) {
   return (
@@ -127,7 +128,10 @@ export default function TrackingFleetList({
                 className="border-t border-border hover:bg-muted/30 cursor-pointer"
                 onClick={() => onOpen(v.id)}
               >
-                <td className="py-3 px-3 font-bold">{v.license_plate}</td>
+                <td className="py-3 px-3">
+                  <div className="font-bold">{v.license_plate}</div>
+                  <EntityListNote notes={v.notes} />
+                </td>
                 <td className="py-3 px-2"><InternalNumber value={v.internal_number} className="text-xs" /></td>
                 <td className="py-3 px-2">{v.company_name}</td>
                 <td className="py-3 px-2">{v.manufacturer} {v.model}</td>
@@ -170,6 +174,7 @@ export default function TrackingFleetList({
                 <p className="text-xs text-muted-foreground">
                   <InternalNumber value={v.internal_number} className="text-xs" /> · {v.manufacturer} {v.model}
                 </p>
+                <EntityListNote notes={v.notes} />
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
