@@ -77,6 +77,7 @@ export default function AlertSettings() {
   const [bulkRedApplying, setBulkRedApplying] = useState(false);
   const [autoSend, setAutoSend] = useState<CompanyAutoSend>(DEFAULT_COMPANY_AUTO_SEND);
   const [savingAutoSend, setSavingAutoSend] = useState(false);
+  const [autoSendReady, setAutoSendReady] = useState(false);
   const isSuperAdmin = user?.role === 'super_admin';
   // RLS: only super_admin can UPDATE company_settings. Fleet managers may view own company.
   const canEditAlerts = isSuperAdmin;
@@ -88,11 +89,15 @@ export default function AlertSettings() {
   useEffect(() => {
     if (!selectedCompany) {
       setAutoSend(DEFAULT_COMPANY_AUTO_SEND);
+      setAutoSendReady(false);
       return;
     }
     let cancelled = false;
+    setAutoSendReady(false);
     fetchCompanyAutoSend(selectedCompany).then((value) => {
-      if (!cancelled) setAutoSend(value);
+      if (cancelled) return;
+      setAutoSend(value);
+      setAutoSendReady(true);
     });
     return () => {
       cancelled = true;
@@ -403,11 +408,13 @@ export default function AlertSettings() {
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
                   <div>
                     <p className="font-medium">Email אוטומטי</p>
-                    <p className="text-xs text-muted-foreground">{autoSend.emailAutomatic ? 'ON — מורשה' : 'OFF — חסום'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {!autoSendReady ? 'טוען...' : autoSend.emailAutomatic ? 'ON — מורשה' : 'OFF — חסום'}
+                    </p>
                   </div>
                   <Switch
                     checked={autoSend.emailAutomatic}
-                    disabled={savingAutoSend}
+                    disabled={savingAutoSend || !autoSendReady}
                     onCheckedChange={(on) => void persistAutoSend({ ...autoSend, emailAutomatic: on })}
                     aria-label="Email אוטומטי"
                   />
@@ -415,11 +422,13 @@ export default function AlertSettings() {
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
                   <div>
                     <p className="font-medium">WhatsApp אוטומטי</p>
-                    <p className="text-xs text-muted-foreground">{autoSend.whatsappAutomatic ? 'ON — מורשה' : 'OFF — חסום'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {!autoSendReady ? 'טוען...' : autoSend.whatsappAutomatic ? 'ON — מורשה' : 'OFF — חסום'}
+                    </p>
                   </div>
                   <Switch
                     checked={autoSend.whatsappAutomatic}
-                    disabled={savingAutoSend}
+                    disabled={savingAutoSend || !autoSendReady}
                     onCheckedChange={(on) => void persistAutoSend({ ...autoSend, whatsappAutomatic: on })}
                     aria-label="WhatsApp אוטומטי"
                   />

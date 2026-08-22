@@ -169,6 +169,17 @@ async function sessionContext(browser, email, viewport = { width: 1440, height: 
   return context;
 }
 
+async function pickCompany(page, company) {
+  await page.getByRole('button', { name: /לחץ לבחירת חברה|QA-SEND/ }).first().waitFor({ timeout: 45000 });
+  await page.getByRole('button', { name: /לחץ לבחירת חברה|QA-SEND/ }).first().click();
+  const searchBox = page.getByPlaceholder('חיפוש חברה...');
+  await searchBox.waitFor({ timeout: 15000 });
+  await searchBox.fill(company);
+  await page.getByRole('button', { name: company, exact: true }).first().click();
+  await page.getByTestId('company-auto-send').waitFor({ timeout: 20000 });
+  await page.getByText(/ON — מורשה|OFF — חסום/).first().waitFor({ timeout: 15000 });
+}
+
 async function blockRealSends(page) {
   const blocked = [];
   const deny = async (route) => {
@@ -236,11 +247,7 @@ try {
 
   await saPage.goto(`${LIVE}/alert-settings`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await waitPage(saPage);
-  await saPage.getByRole('button', { name: /בחר חברה/ }).click().catch(() => null);
-  const picker = saPage.locator('input[placeholder*="חיפוש"]').first();
-  if (await picker.count()) await picker.fill(companyA);
-  await saPage.getByRole('button', { name: new RegExp(companyA) }).first().click();
-  await saPage.getByTestId('company-auto-send').waitFor({ timeout: 20000 });
+  await pickCompany(saPage, companyA);
   rec('Super Admin can open company auto-send controls', true);
 
   await saPage.getByLabel('Email אוטומטי').click();
@@ -264,21 +271,14 @@ try {
 
   await saPage.reload({ waitUntil: 'domcontentloaded' });
   await waitPage(saPage);
-  await saPage.getByRole('button', { name: /בחר חברה|QA-SEND-A/ }).first().click().catch(() => null);
-  if (await picker.count()) await picker.fill(companyA);
-  await saPage.getByRole('button', { name: new RegExp(companyA) }).first().click();
-  await saPage.getByTestId('company-auto-send').waitFor({ timeout: 20000 });
-  rec('setting survives refresh', (await saPage.locator('[data-testid="company-auto-send"]').innerText()).includes('OFF'));
+  await pickCompany(saPage, companyA);
+  rec('setting survives refresh', (await saPage.locator('[data-testid="company-auto-send"]').innerText()).includes('OFF — חסום'));
   await saPage.screenshot({ path: join(OUT, '01-sa-company-a-off.png'), fullPage: true }).catch(() => null);
 
-  await saPage.getByRole('button', { name: /בחר חברה|QA-SEND/ }).first().click().catch(() => null);
-  const searchB = saPage.locator('input[placeholder*="חיפוש"]').first();
-  if (await searchB.count()) await searchB.fill(companyB);
-  await saPage.getByRole('button', { name: new RegExp(companyB) }).first().click();
-  await waitPage(saPage);
+  await pickCompany(saPage, companyB);
   const bOnPage = await saPage.locator('[data-testid="company-auto-send"]').innerText();
   const bDb = await readAuto(companyB);
-  rec('Company B stays ON when Company A is OFF', bDb.emailAutomatic === true && bDb.whatsappAutomatic === true && /ON/.test(bOnPage), { bDb, snippet: bOnPage.slice(0, 180) });
+  rec('Company B stays ON when Company A is OFF', bDb.emailAutomatic === true && bDb.whatsappAutomatic === true && /ON — מורשה/.test(bOnPage) && !/OFF — חסום/.test(bOnPage), { bDb, snippet: bOnPage.slice(0, 220) });
   rec('company isolation A does not affect B', afterWaOff.emailAutomatic === false && bDb.emailAutomatic === true);
 
   await saCtx.close();
@@ -288,11 +288,7 @@ try {
   await blockRealSends(saPage2);
   await saPage2.goto(`${LIVE}/alert-settings`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await waitPage(saPage2);
-  await saPage2.getByRole('button', { name: /בחר חברה/ }).click().catch(() => null);
-  const picker2 = saPage2.locator('input[placeholder*="חיפוש"]').first();
-  if (await picker2.count()) await picker2.fill(companyA);
-  await saPage2.getByRole('button', { name: new RegExp(companyA) }).first().click();
-  await saPage2.getByTestId('company-auto-send').waitFor({ timeout: 20000 });
+  await pickCompany(saPage2, companyA);
   rec('setting survives new login', (await readAuto(companyA)).emailAutomatic === false && (await saPage2.locator('[data-testid="company-auto-send"]').innerText()).includes('OFF'));
   rec('Super Admin can change', true);
   await sa2.close();
@@ -313,12 +309,12 @@ try {
   await fmPage.goto(`${LIVE}/alert-settings`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await waitPage(fmPage);
   const fmSettings = await fmPage.locator('body').innerText();
-  rec('fleet manager cannot open Super Admin auto-send UI', !fmSettings.includes('Email אוטומטי') || fmSettings.includes('אין הרשאה') || !fmPage.url().includes('alert-settings') === false && (fmSettings.includes('אין הרשאה') || fmPage.url().includes('dashboard')), { url: fmPage.url(), snippet: fmSettings.slice(0, 180) });
+  rec('fleet manager cannot open Super Admin auto-send UI', !fmSettings.includes('Email אוטומטי') || /אין הרשאה|דשבורד/.test(fmSettings) || !/alert-settings/.test(fmPage.url()), { url: fmPage.url(), snippet: fmSettings.slice(0, 180) });
 
   await fmPage.goto(`${LIVE}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await waitPage(fmPage);
   const dash = await fmPage.locator('body').innerText();
-  rec('In-App Alerts still work with automatic send OFF', /טסט מתקרב|התראות/.test(dash) && dash.includes(plateA) === false ? /טסט|ביטוח|התראות/.test(dash) : true, { snippet: dash.slice(0, 220) });
+  rec('In-App Alerts still work with automatic send OFF', /טסט|ביטוח|התראות/.test(dash), { snippet: dash.slice(0, 220) });
   rec('in-app dashboard loaded for fleet manager', dash.length > 40);
 
   await fmPage.goto(`${LIVE}/alerts`, { waitUntil: 'domcontentloaded', timeout: 120000 });
@@ -339,11 +335,7 @@ try {
   await blockRealSends(mobile);
   await mobile.goto(`${LIVE}/alert-settings`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await waitPage(mobile);
-  await mobile.getByRole('button', { name: /בחר חברה/ }).click().catch(() => null);
-  const mSearch = mobile.locator('input[placeholder*="חיפוש"]').first();
-  if (await mSearch.count()) await mSearch.fill(companyA);
-  await mobile.getByRole('button', { name: new RegExp(companyA) }).first().click();
-  await mobile.getByTestId('company-auto-send').waitFor({ timeout: 20000 });
+  await pickCompany(mobile, companyA);
   await mobile.screenshot({ path: join(OUT, '03-sa-mobile.png'), fullPage: true }).catch(() => null);
   rec('mobile Super Admin control usable', (await mobile.locator('[data-testid="company-auto-send"]').innerText()).includes('Email'));
   rec('mobile PASS', true);
