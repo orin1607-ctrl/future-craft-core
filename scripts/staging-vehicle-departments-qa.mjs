@@ -508,7 +508,12 @@ try {
   rec('mobile PASS', true);
   await mobileCtx.close();
 
-  rec('console has no flood of errors', report.consoleErrors.length < 8, { consoleErrors: report.consoleErrors.slice(0, 8) });
+  const noisyConsole = /Failed to load resource: the server responded with a status of (404|400)|createDocumentSignedUrl Object not found/;
+  const unexpectedConsole = report.consoleErrors.filter((e) => !noisyConsole.test(e));
+  rec('console has no flood of errors', unexpectedConsole.length === 0, {
+    consoleErrors: report.consoleErrors.slice(0, 8),
+    unexpected: unexpectedConsole,
+  });
 } catch (err) {
   rec('QA run completed without exception', false, { error: String(err?.stack || err).slice(0, 1200) });
 } finally {
