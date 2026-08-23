@@ -1150,7 +1150,7 @@ export default function VehicleHub({
           </p>
           {isManager ? (
             <>
-              <Button type="button" className="w-full" onClick={() => onEdit(v)}>
+              <Button type="button" className="w-full" data-testid="vehicle-edit-button" onClick={() => onEdit(v)}>
                 <ClipboardList size={18} className="ml-2" /> עריכת רכב (VehicleForm)
               </Button>
               <Button type="button" variant="outline" className="w-full" onClick={() => setListsManagerOpen(true)}>

@@ -20,6 +20,7 @@ import VehicleHub from '@/components/vehicles/VehicleHub';
 import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleListsManager';
 import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
 import { collectDepartmentsFromVehicles, fetchCompanyDepartments, mergeDepartmentNames } from '@/lib/companyDepartments';
+import { shouldSkipHubReopen } from '@/lib/vehicleHubOpenGuard';
 import { VehiclePlatePipeLine } from '@/components/vehicles/vehiclePlateDisplay';
 import EntityListNote from '@/components/vehicles/EntityListNote';
 import { sortByExactInternalNumberFirst } from '@/lib/internalNumberSearch';
@@ -122,6 +123,10 @@ export default function Vehicles() {
       hubOpenedForRef.current = null;
       return;
     }
+
+    // Edit form keeps the hub URL (vehicleId + view=hub). If we reopen the hub here,
+    // setViewMode('detail') immediately closes "עריכת רכב".
+    if (shouldSkipHubReopen(viewMode)) return;
 
     // Already on this hub: do not clobber selectedVehicle with a stale list/router snapshot
     // (loadData() toggles loading and recreates `vehicles`, which re-runs this effect).

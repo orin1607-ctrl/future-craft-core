@@ -309,6 +309,26 @@ try {
 
   await openVehicleByPlate(page, plates.maintOk);
   await page.getByRole('button', { name: /ניהול רכב/ }).first().click();
+  await page.getByTestId('vehicle-edit-button').waitFor({ timeout: 20000 });
+  await page.getByTestId('vehicle-edit-button').click();
+  await page.getByText(/עריכת רכב/, { exact: false }).first().waitFor({ timeout: 20000 });
+  await page.waitForTimeout(1800);
+  const editBody = await page.locator('body').innerText();
+  rec('edit vehicle form opens and stays open', /עריכת רכב/.test(editBody) && /שמור רכב/.test(editBody), {
+    snippet: editBody.slice(0, 180),
+  });
+  const newModel = `QA-דגם-${String(runId).slice(-4)}`;
+  const modelInput = page.locator('input[name="model"]').first();
+  await modelInput.waitFor({ timeout: 20000 });
+  await modelInput.fill(newModel);
+  await page.getByRole('button', { name: /שמור רכב/ }).first().click();
+  await page.getByText(/הרכב עודכן|נפתח כרטיס/, { exact: false }).first().waitFor({ timeout: 25000 }).catch(() => null);
+  await waitPage(page);
+  const afterEdit = await admin.from('vehicles').select('model, department').eq('id', vMaintOk.id).single();
+  rec('edit vehicle save persisted model', afterEdit.data?.model === newModel, { model: afterEdit.data?.model });
+  rec('edit vehicle did not wipe department column', afterEdit.data?.department == null, { department: afterEdit.data?.department, note: 'still unassigned until hub save below' });
+
+  await page.getByRole('button', { name: /ניהול רכב/ }).first().click().catch(() => null);
   await page.getByTestId('vehicle-department-input').waitFor({ timeout: 20000 });
   rec('vehicle card shows department field', await page.getByTestId('vehicle-department-input').count() > 0);
   await page.getByTestId('vehicle-department-input').fill(DEPT_A);

@@ -61,6 +61,7 @@ export default function VehicleDaliaFullPanel({
         {isManager && onEdit && (
           <button
             type="button"
+            data-testid="vehicle-full-edit-button"
             onClick={onEdit}
             className="text-sm font-bold text-primary whitespace-nowrap px-3 py-1.5 rounded-lg bg-primary/10"
           >
