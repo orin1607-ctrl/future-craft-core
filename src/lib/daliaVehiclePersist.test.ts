@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildVehiclePayloadFromDalia } from '@/lib/daliaVehiclePersist';
+import { buildVehiclePayloadFromDalia, resolveDepartmentFromDaliaForm } from '@/lib/daliaVehiclePersist';
 import { loadDaliaFromVehicleRow, getAllDisplayFields } from '@/lib/daliaVehicleLoad';
 import { PREVIEW_VEHICLE } from '@/dev/vehicleHubPreviewMock';
 
@@ -83,5 +83,49 @@ describe('buildVehiclePayloadFromDalia', () => {
     expect(hubFields.length).toBe(39);
     expect(hubFields.length).toBeGreaterThan(20);
     expect(hubFields.length).toBeLessThan(80);
+  });
+
+  it('department field wins over work_area alias on persist', () => {
+    const { payload } = buildVehiclePayloadFromDalia(
+      {
+        vehicle_plate: '3334445',
+        department: 'אחזקה',
+        work_area: 'ביטחון',
+        vehicle_status: 'פעיל',
+      },
+      extras,
+      user,
+    );
+    expect(payload.department).toBe('אחזקה');
+  });
+
+  it('empty department field clears the column even if work_area has a value', () => {
+    const { payload } = buildVehiclePayloadFromDalia(
+      {
+        vehicle_plate: '3334446',
+        department: '',
+        work_area: 'ביטחון',
+        vehicle_status: 'פעיל',
+      },
+      extras,
+      user,
+    );
+    expect(payload.department).toBeNull();
+  });
+});
+
+describe('resolveDepartmentFromDaliaForm', () => {
+  it('uses the מחלקה field when present', () => {
+    expect(resolveDepartmentFromDaliaForm({ department: 'אחזקה', work_area: 'ביטחון' })).toEqual({
+      set: true,
+      value: 'אחזקה',
+    });
+  });
+
+  it('does not infer a department when the field is absent', () => {
+    expect(resolveDepartmentFromDaliaForm({ work_area: 'ביטחון' })).toEqual({
+      set: false,
+      value: null,
+    });
   });
 });

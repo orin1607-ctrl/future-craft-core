@@ -330,12 +330,31 @@ try {
   if (await driverField.count()) {
     await driverField.fill(`QA Driver ${runId}`);
   }
+  const editDept = page.getByTestId('vehicle-edit-department-input');
+  await editDept.waitFor({ timeout: 20000 });
+  await editDept.fill(DEPT_A);
   await page.getByRole('button', { name: 'שמור רכב חדש' }).last().click();
   await page.getByText(/הרכב עודכן|נשמר בהצלחה|נפתח כרטיס/, { exact: false }).first().waitFor({ timeout: 25000 }).catch(() => null);
   await waitPage(page);
   const afterEdit = await admin.from('vehicles').select('model, department').eq('id', vMaintOk.id).single();
   rec('edit vehicle save persisted model', afterEdit.data?.model === newModel, { model: afterEdit.data?.model });
-  rec('edit vehicle did not wipe department column', afterEdit.data?.department == null, { department: afterEdit.data?.department, note: 'still unassigned until hub save below' });
+  rec('edit vehicle save persisted existing department', afterEdit.data?.department === DEPT_A, { department: afterEdit.data?.department });
+
+  await openVehicleByPlate(page, plates.maintOk);
+  await page.getByRole('button', { name: /ניהול רכב/ }).first().click();
+  await page.getByTestId('vehicle-edit-button').click();
+  await page.getByText(/עריכת רכב/, { exact: false }).first().waitFor({ timeout: 20000 });
+  await page.waitForTimeout(1800);
+  rec('edit vehicle reopen stays open after department save', /עריכת רכב/.test(await page.locator('body').innerText()));
+  const editDeptAgain = page.getByTestId('vehicle-edit-department-input');
+  await editDeptAgain.waitFor({ timeout: 20000 });
+  rec('edit form shows saved department', (await editDeptAgain.inputValue()) === DEPT_A);
+  await editDeptAgain.fill(DEPT_NEW);
+  await page.getByRole('button', { name: 'שמור רכב חדש' }).last().click();
+  await page.getByText(/הרכב עודכן|נשמר בהצלחה|נפתח כרטיס/, { exact: false }).first().waitFor({ timeout: 25000 }).catch(() => null);
+  await waitPage(page);
+  const afterNew = await admin.from('vehicles').select('department').eq('id', vMaintOk.id).single();
+  rec('edit vehicle save persisted new typed department', afterNew.data?.department === DEPT_NEW, { department: afterNew.data?.department });
 
   if ((await page.getByTestId('vehicle-department-input').count()) === 0) {
     await openVehicleByPlate(page, plates.maintOk);

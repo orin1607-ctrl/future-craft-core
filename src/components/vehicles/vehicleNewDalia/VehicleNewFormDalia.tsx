@@ -29,6 +29,7 @@ import {
 } from '@/lib/daliaVehiclePersist';
 import { useVehicleTypes } from '@/hooks/useVehicleTypes';
 import { VEHICLE_TYPE_OTHER_ID } from '@/lib/vehicleTypesConfig';
+import { fetchCompanyDepartments } from '@/lib/companyDepartments';
 
 export type DaliaDoc = {
   category: string;
@@ -136,6 +137,7 @@ function VehicleNewFormDaliaInner({
   const [editingDocIndex, setEditingDocIndex] = useState<number | null>(null);
   const [deptList, setDeptList] = useState<string[]>([]);
   const [newDept, setNewDept] = useState('');
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [qsMsg, setQsMsg] = useState('');
   const [qsLoading, setQsLoading] = useState(false);
   const [summaryHtml, setSummaryHtml] = useState('לחץ על בדוק נתונים כדי לראות סיכום.');
@@ -213,6 +215,12 @@ function VehicleNewFormDaliaInner({
     if (loadedExtras?.sectionSaved) setSectionSaved(loadedExtras.sectionSaved);
     if (isEdit) setSaveMsg('טוען נתוני רכב לעריכה');
   }, [loadedValues, loadedExtras, isEdit, setValues, setValue]);
+
+  useEffect(() => {
+    const company = user?.company_name || getValue('company').trim();
+    if (!company) return;
+    void fetchCompanyDepartments(company).then(setDepartmentOptions);
+  }, [user?.company_name, getValue, loadedValues]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -305,6 +313,12 @@ function VehicleNewFormDaliaInner({
     }
     const fd = formRef.current ? new FormData(formRef.current) : null;
     const allValues = collectDaliaFormValues(values, fd);
+    const pendingDept = newDept.trim();
+    if (pendingDept) {
+      allValues.department = pendingDept;
+    }
+    const savedDepartments =
+      pendingDept && !deptList.includes(pendingDept) ? [...deptList, pendingDept] : deptList;
     if (requiredFields) {
       const reqCheck = requiredFields.validateModule('vehicles', allValues);
       if (!reqCheck.ok) {
@@ -326,7 +340,7 @@ function VehicleNewFormDaliaInner({
         allValues,
         extras: {
           docs,
-          departments: deptList,
+          departments: savedDepartments,
           route,
           maintMethod,
           sectionSaved,
@@ -375,6 +389,7 @@ function VehicleNewFormDaliaInner({
       return;
     }
     setDeptList((p) => [...p, val]);
+    setDepartmentOptions((p) => (p.includes(val) ? p : [...p, val].sort((a, b) => a.localeCompare(b, 'he'))));
     setValue('department', val);
     setNewDept('');
   };
@@ -577,11 +592,27 @@ function VehicleNewFormDaliaInner({
                 <Fld label="מיקום נוכחי" name="current_location" />
                 <Fld label="אתר עבודה" name="work_site" />
                 <Fld label="סוג שימוש" name="usage_type" />
-                <Fld label="מחלקה" name="department" />
+                <div className="d-fld d-full">
+                  <label>מחלקה</label>
+                  <input
+                    name="department"
+                    list="dalia-vehicle-dept-options"
+                    value={getValue('department')}
+                    onChange={(e) => setValue('department', e.target.value)}
+                    placeholder="בחר מחלקה קיימת או הקלד מחלקה חדשה"
+                    data-testid="vehicle-edit-department-input"
+                  />
+                  <datalist id="dalia-vehicle-dept-options">
+                    {departmentOptions.map((dep) => (
+                      <option key={dep} value={dep} />
+                    ))}
+                  </datalist>
+                  <p className="d-hint">אותן מחלקות של החברה כמו אצל נהגים. אפשר לבחור או להקליד מחלקה חדשה.</p>
+                </div>
                 <div className="d-fld d-full">
                   <label>הוסף מחלקה חדשה</label>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <input value={newDept} onChange={(e) => setNewDept(e.target.value)} placeholder="שם מחלקה" />
+                    <input value={newDept} onChange={(e) => setNewDept(e.target.value)} placeholder="שם מחלקה" data-testid="vehicle-edit-new-department-input" />
                     <button type="button" className="d-btn small" onClick={addDept}>
                       +
                     </button>

@@ -103,8 +103,21 @@ const DIRECT_COLUMN_MAP: Record<string, string> = {
   accessories_validity: 'inspections_certificates',
   accessories_validity_date: 'inspections_certificates',
   location_assignment: 'work_site',
-  work_area: 'department',
 };
+
+/**
+ * `vehicles.department` is owned by the form field "מחלקה" only.
+ * `work_area` used to map to the same column and overwrote a newly typed
+ * department on save (Object.entries keeps work_area after department).
+ */
+export function resolveDepartmentFromDaliaForm(
+  allValues: Record<string, string>,
+): { set: boolean; value: string | null } {
+  if (Object.prototype.hasOwnProperty.call(allValues, 'department')) {
+    return { set: true, value: String(allValues.department || '').trim() || null };
+  }
+  return { set: false, value: null };
+}
 
 const ROUTE_TO_MANAGEMENT: Record<string, string> = {
   'ליסינג תפעולי': 'operational_leasing',
@@ -245,6 +258,10 @@ export function buildVehiclePayloadFromDalia(
 
   for (const [field, raw] of Object.entries(allValues)) {
     if (raw === undefined || raw === '') continue;
+    if (field === 'work_area') {
+      overflow[field] = raw;
+      continue;
+    }
     const col = DIRECT_COLUMN_MAP[field];
     if (col) {
       const val = normValue(col, raw);
@@ -253,6 +270,9 @@ export function buildVehiclePayloadFromDalia(
       overflow[field] = raw;
     }
   }
+
+  const departmentField = resolveDepartmentFromDaliaForm(allValues);
+  if (departmentField.set) direct.department = departmentField.value;
 
   if (extras.route) {
     direct.finance_track = extras.route;
