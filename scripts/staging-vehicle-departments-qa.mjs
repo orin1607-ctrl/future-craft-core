@@ -199,6 +199,10 @@ try {
     reminder_1_day: true,
     hidden_buttons: [],
     alert_days_before: 30,
+    require_driver_assignment: false,
+    require_insurance_docs: false,
+    require_no_claims: false,
+    vehicle_approval_required: false,
   });
 
   const created = await admin.auth.admin.createUser({ email: fmEmail, password, email_confirm: true });
@@ -246,6 +250,7 @@ try {
     test_expiry: plusDays(400),
     insurance_expiry: plusDays(400),
     license_doc_url: 'qa-placeholder',
+    assigned_driver_id: driver.id,
   });
   const vMaintAtt = await insertVeh({
     license_plate: plates.maintAtt,
@@ -321,14 +326,21 @@ try {
   const modelInput = page.locator('input[name="model"]').first();
   await modelInput.waitFor({ timeout: 20000 });
   await modelInput.fill(newModel);
-  await page.getByRole('button', { name: /שמור רכב/ }).first().click();
-  await page.getByText(/הרכב עודכן|נפתח כרטיס/, { exact: false }).first().waitFor({ timeout: 25000 }).catch(() => null);
+  const driverField = page.locator('input[name="assigned_driver"]').first();
+  if (await driverField.count()) {
+    await driverField.fill(`QA Driver ${runId}`);
+  }
+  await page.getByRole('button', { name: 'שמור רכב חדש' }).last().click();
+  await page.getByText(/הרכב עודכן|נשמר בהצלחה|נפתח כרטיס/, { exact: false }).first().waitFor({ timeout: 25000 }).catch(() => null);
   await waitPage(page);
   const afterEdit = await admin.from('vehicles').select('model, department').eq('id', vMaintOk.id).single();
   rec('edit vehicle save persisted model', afterEdit.data?.model === newModel, { model: afterEdit.data?.model });
   rec('edit vehicle did not wipe department column', afterEdit.data?.department == null, { department: afterEdit.data?.department, note: 'still unassigned until hub save below' });
 
-  await page.getByRole('button', { name: /ניהול רכב/ }).first().click().catch(() => null);
+  if ((await page.getByTestId('vehicle-department-input').count()) === 0) {
+    await openVehicleByPlate(page, plates.maintOk);
+    await page.getByRole('button', { name: /ניהול רכב/ }).first().click();
+  }
   await page.getByTestId('vehicle-department-input').waitFor({ timeout: 20000 });
   rec('vehicle card shows department field', await page.getByTestId('vehicle-department-input').count() > 0);
   await page.getByTestId('vehicle-department-input').fill(DEPT_A);
