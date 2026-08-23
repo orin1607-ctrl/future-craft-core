@@ -99,6 +99,28 @@ try {
 report.productionBundle = prodBundle;
 rec('Production frontend not redeployed by this mission', true, { productionBundle: prodBundle, note: 'read-only check of live Production HTML' });
 
+async function cleanupQaDeptRows() {
+  const { data: oldVeh } = await admin.from('vehicles').select('id, company_name').like('company_name', 'QA-DEPT-%');
+  const vehicleIds = (oldVeh || []).map((v) => v.id);
+  const companies = [...new Set((oldVeh || []).map((v) => v.company_name).filter(Boolean))];
+  if (vehicleIds.length) {
+    try { await admin.from('vehicle_tasks').delete().in('vehicle_id', vehicleIds); } catch { /* optional */ }
+    await admin.from('vehicles').delete().in('id', vehicleIds);
+  }
+  const { data: oldDrivers } = await admin.from('drivers').select('id').like('company_name', 'QA-DEPT-%');
+  if (oldDrivers?.length) await admin.from('drivers').delete().in('id', oldDrivers.map((d) => d.id));
+  const { data: oldProfiles } = await admin.from('profiles').select('id').like('company_name', 'QA-DEPT-%');
+  if (oldProfiles?.length) {
+    const uids = oldProfiles.map((p) => p.id);
+    await admin.from('user_roles').delete().in('user_id', uids);
+    await admin.from('profiles').delete().in('id', uids);
+    for (const id of uids) await admin.auth.admin.deleteUser(id).catch(() => null);
+  }
+  for (const name of companies) await admin.from('company_settings').delete().eq('company_name', name);
+}
+
+await cleanupQaDeptRows();
+
 const beeriBefore = await admin.from('vehicles').select('id', { count: 'exact', head: true }).eq('company_name', BEERI);
 
 const runId = Date.now();
@@ -314,7 +336,13 @@ try {
 
   let list = await vehiclesBody(page);
   rec('vehicles list shows department compactly', list.includes(plates.maintOk) && list.includes(`מחלקה: ${DEPT_A}`));
-  rec('unassigned vehicle has no invented department', list.includes(plates.none) && !list.split(plates.none)[1]?.slice(0, 280).includes('מחלקה:'));
+  const noneSearch = page.locator('input[placeholder*="חיפוש"]').first();
+  await noneSearch.fill(plates.none);
+  await waitPage(page);
+  const noneOnly = await page.locator('body').innerText();
+  rec('unassigned vehicle has no invented department', noneOnly.includes(plates.none) && !noneOnly.includes('מחלקה:'));
+  await noneSearch.fill('');
+  await waitPage(page);
 
   const search = page.locator('input[placeholder*="חיפוש"]').first();
   await search.fill(plates.maintOk);
@@ -414,7 +442,7 @@ try {
 } finally {
   await browser?.close().catch(() => null);
   if (ids.vehicles.length) {
-    await admin.from('vehicle_tasks').delete().in('vehicle_id', ids.vehicles).catch(() => null);
+    try { await admin.from('vehicle_tasks').delete().in('vehicle_id', ids.vehicles); } catch { /* optional table */ }
     await admin.from('vehicles').delete().in('id', ids.vehicles);
   }
   if (ids.drivers.length) await admin.from('drivers').delete().in('id', ids.drivers);
