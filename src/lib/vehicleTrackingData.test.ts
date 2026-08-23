@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { calendarDaysLeft, todayIsoDate } from './expiryOfficerApproval';
 import {
+  EMPTY_TRACKING_FILTERS,
+  applySummaryFilter,
+  applyTrackingFilters,
   trackingAttentionReasons,
   vehicleNeedsTrackingAttention,
   type TrackingVehicleRow,
@@ -123,5 +126,37 @@ describe('vehicleNeedsTrackingAttention', () => {
       expect(reasons.length).toBeGreaterThan(0);
       expect(vehicleNeedsTrackingAttention(v)).toBe(true);
     }
+  });
+});
+
+describe('department filter + attention', () => {
+  it('intersects department with needs-attention without dropping either', () => {
+    const maintenanceOk = row({
+      id: 'ok',
+      department: 'אחזקה',
+      has_open_alert: false,
+    });
+    const maintenanceAttention = row({
+      id: 'att',
+      department: 'אחזקה',
+      in_garage: true,
+    });
+    const otherAttention = row({
+      id: 'oth',
+      department: 'ביטחון',
+      in_garage: true,
+    });
+    const none = row({
+      id: 'none',
+      department: null,
+      has_open_alert: false,
+    });
+    const fleet = [maintenanceOk, maintenanceAttention, otherAttention, none];
+    const byDept = applyTrackingFilters(fleet, { ...EMPTY_TRACKING_FILTERS, department: 'אחזקה' });
+    expect(byDept.map((v) => v.id).sort()).toEqual(['att', 'ok']);
+    const both = applySummaryFilter(byDept, 'attention');
+    expect(both.map((v) => v.id)).toEqual(['att']);
+    const emptyDept = applyTrackingFilters(fleet, EMPTY_TRACKING_FILTERS);
+    expect(emptyDept).toHaveLength(4);
   });
 });

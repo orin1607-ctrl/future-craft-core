@@ -73,7 +73,10 @@ export default function VehicleTracking() {
     return rows;
   }, [allRows, summaryKey, appliedFilters]);
 
-  const counts = useMemo(() => buildSummaryCounts(allRows), [allRows]);
+  const counts = useMemo(
+    () => buildSummaryCounts(applyTrackingFilters(allRows, appliedFilters)),
+    [allRows, appliedFilters],
+  );
 
   const openVehicle = (id: string) => {
     const q = new URLSearchParams(searchParams);
@@ -90,7 +93,6 @@ export default function VehicleTracking() {
   const onSummarySelect = (key: SummaryFilterKey) => {
     const next = summaryKey === key ? null : key;
     setSummaryKey(next);
-    setAppliedFilters(EMPTY_TRACKING_FILTERS);
     const q = new URLSearchParams(searchParams);
     if (next) q.set('summary', next);
     else q.delete('summary');
@@ -154,10 +156,6 @@ export default function VehicleTracking() {
               onChange={(patch) => setFilters((f) => ({ ...f, ...patch }))}
               onApply={() => {
                 setAppliedFilters(filters);
-                setSummaryKey(null);
-                const q = new URLSearchParams(searchParams);
-                q.delete('summary');
-                setSearchParams(q);
               }}
               onClear={() => {
                 setFilters(EMPTY_TRACKING_FILTERS);

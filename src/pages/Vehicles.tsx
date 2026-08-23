@@ -19,7 +19,7 @@ import CallCustomerButton from '@/components/voice/CallCustomerButton';
 import VehicleHub from '@/components/vehicles/VehicleHub';
 import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleListsManager';
 import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
-import { collectDepartmentsFromVehicles } from '@/lib/companyDepartments';
+import { collectDepartmentsFromVehicles, fetchCompanyDepartments, mergeDepartmentNames } from '@/lib/companyDepartments';
 import { VehiclePlatePipeLine } from '@/components/vehicles/vehiclePlateDisplay';
 import EntityListNote from '@/components/vehicles/EntityListNote';
 import { sortByExactInternalNumberFirst } from '@/lib/internalNumberSearch';
@@ -84,6 +84,7 @@ export default function Vehicles() {
   const [filterCompany, setFilterCompany] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
+  const [sharedDepartments, setSharedDepartments] = useState<string[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleRow | null>(null);
   const [editVehicle, setEditVehicle] = useState<VehicleRow | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -104,6 +105,15 @@ export default function Vehicles() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    const company = filterCompany || companyFilter || user?.company_name || '';
+    if (!company) {
+      setSharedDepartments([]);
+      return;
+    }
+    void fetchCompanyDepartments(company).then(setSharedDepartments);
+  }, [filterCompany, companyFilter, user?.company_name, vehicles]);
 
   useEffect(() => {
     const vid = searchParams.get('vehicleId');
@@ -206,7 +216,10 @@ export default function Vehicles() {
   });
   const filtered = sortByExactInternalNumberFirst(filteredUnsorted, search);
 
-  const departmentOptions = collectDepartmentsFromVehicles(vehicles, filterCompany || companyFilter || user?.company_name);
+  const departmentOptions = mergeDepartmentNames(
+    collectDepartmentsFromVehicles(vehicles, filterCompany || companyFilter || user?.company_name),
+    sharedDepartments,
+  );
 
   const statusLabel = (s: string) => {
     switch (s) {
@@ -513,6 +526,9 @@ export default function Vehicles() {
                         {' • '}{v.year}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">נהג: {getDriverName(v.assigned_driver_id)}</p>
+                      {v.department?.trim() ? (
+                        <p className="text-sm text-muted-foreground truncate">מחלקה: {v.department.trim()}</p>
+                      ) : null}
                       <EntityListNote notes={v.notes} />
                     </div>
                   </button>

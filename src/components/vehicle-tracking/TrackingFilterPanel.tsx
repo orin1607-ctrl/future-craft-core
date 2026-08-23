@@ -65,7 +65,7 @@ export default function TrackingFilterPanel({
             </Field>
             <Field label="מחלקה">
               <select className="filter-input" value={filters.department} onChange={(e) => onChange({ department: e.target.value })}>
-                <option value="">הכול</option>
+                <option value="">כל המחלקות</option>
                 {departments.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}

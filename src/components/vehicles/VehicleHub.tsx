@@ -56,6 +56,7 @@ import type { DashboardDrillDown } from '@/lib/vehicleDashboardData';
 import { shouldShowInsuranceRed } from '@/lib/vehicleInsuranceAlerts';
 import { PREVIEW_HUB_DATA } from '@/dev/vehicleHubPreviewMock';
 import { logVehicleEvent } from '@/lib/vehicleEventLog';
+import { fetchCompanyDepartments } from '@/lib/companyDepartments';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface VehicleHubVehicle {
@@ -87,6 +88,7 @@ export interface VehicleHubVehicle {
   third_party_insurance_expiry?: string | null;
   notes: string;
   show_notes_on_list?: boolean | null;
+  department?: string | null;
   management_type: string;
   monthly_leasing_cost: number | null;
   leasing_end_date: string | null;
@@ -229,6 +231,10 @@ export default function VehicleHub({
   const [noteText, setNoteText] = useState(v.notes || '');
   const [showNotesOnList, setShowNotesOnList] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
+  const [department, setDepartment] = useState(v.department || '');
+  // Shared company department vocabulary (drivers + vehicles).
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const [savingDepartment, setSavingDepartment] = useState(false);
   const [inspectionSchedule, setInspectionSchedule] = useState<InspectionDashboardCard | null>(null);
   const [latestInsurer, setLatestInsurer] = useState<string | null>(null);
   const [openIssuesCount, setOpenIssuesCount] = useState(0);
@@ -357,6 +363,16 @@ export default function VehicleHub({
   }, [v.notes, v.show_notes_on_list]);
 
   useEffect(() => {
+    setDepartment(v.department || '');
+  }, [v.department]);
+
+  useEffect(() => {
+    const company = v.company_name || user?.company_name || '';
+    if (!company) return;
+    void fetchCompanyDepartments(company).then(setDepartmentOptions);
+  }, [v.company_name, user?.company_name]);
+
+  useEffect(() => {
     if (previewMode && previewHubExtras) {
       const previewDueDate = previewHubExtras.semiInspection || previewHubExtras.triInspection;
       setInspectionSchedule(
@@ -456,6 +472,35 @@ export default function VehicleHub({
   const openSupplierFromRow = (type: string, label: string) => {
     setSupplierSource({ type, label });
     setSupplierOpen(true);
+  };
+
+  const saveDepartment = async () => {
+    if (previewMode) {
+      toast.info('תצוגת פיתוח — שמירה מבוטלת');
+      return;
+    }
+    setSavingDepartment(true);
+    const next = department.trim() || null;
+    const { error } = await supabase
+      .from('vehicles')
+      .update({ department: next })
+      .eq('id', v.id);
+    setSavingDepartment(false);
+    if (error) toast.error('שגיאה בשמירת המחלקה');
+    else {
+      await logVehicleEvent({
+        vehicleId: v.id,
+        vehiclePlate: v.license_plate,
+        companyName: v.company_name || user?.company_name || '',
+        action: 'שיוך מחלקה',
+        details: next || 'ללא מחלקה',
+        userId: user?.id,
+        userName: user?.full_name,
+      });
+      toast.success(next ? `המחלקה עודכנה: ${next}` : 'השיוך למחלקה הוסר');
+      onRefresh();
+      refreshHub();
+    }
   };
 
   const saveNote = async () => {
@@ -906,6 +951,9 @@ export default function VehicleHub({
                 internal={v.internal_number}
                 className="text-muted-foreground text-lg"
               />
+              {v.department?.trim() ? (
+                <p className="text-sm text-muted-foreground mt-0.5">מחלקה: {v.department.trim()}</p>
+              ) : null}
             </div>
             <span className={`status-badge ${sl.cls}`}>{sl.text}</span>
           </div>
@@ -1180,6 +1228,26 @@ export default function VehicleHub({
                     {statusLabel(st).text}
                   </button>
                 ))}
+              </div>
+              <div>
+                <p className="text-sm font-bold mb-2">שיוך למחלקה</p>
+                <input
+                  list="vehicle-dept-options"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  placeholder="בחר או הקלד מחלקה..."
+                  className="w-full p-3 rounded-xl border-2 border-input bg-background"
+                  data-testid="vehicle-department-input"
+                />
+                <datalist id="vehicle-dept-options">
+                  {departmentOptions.map((dep) => (
+                    <option key={dep} value={dep} />
+                  ))}
+                </datalist>
+                <p className="text-xs text-muted-foreground mt-1">אותן מחלקות של החברה כמו אצל נהגים. ריק = ללא מחלקה.</p>
+                <Button type="button" variant="secondary" className="w-full mt-2" disabled={savingDepartment} onClick={saveDepartment}>
+                  {savingDepartment ? 'שומר...' : 'שמור מחלקה'}
+                </Button>
               </div>
               <div>
                 <p className="text-sm font-bold mb-2 flex items-center gap-2">

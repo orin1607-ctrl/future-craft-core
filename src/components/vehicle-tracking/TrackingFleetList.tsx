@@ -133,7 +133,7 @@ export default function TrackingFleetList({
                   <EntityListNote notes={v.notes} />
                 </td>
                 <td className="py-3 px-2"><InternalNumber value={v.internal_number} className="text-xs" /></td>
-                <td className="py-3 px-2">{v.company_name}</td>
+                <td className="py-3 px-2">{v.company_name}{v.department ? ` · ${v.department}` : ''}</td>
                 <td className="py-3 px-2">{v.manufacturer} {v.model}</td>
                 <td className="py-3 px-2">{v.driver_name || '—'}</td>
                 <td className="py-3 px-2"><StatusBadge text={v.status_text} status={v.status} /></td>
@@ -178,7 +178,7 @@ export default function TrackingFleetList({
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              {v.company_name} · נהג: {v.driver_name || '—'}
+              {v.company_name}{v.department ? ` · ${v.department}` : ''} · נהג: {v.driver_name || '—'}
             </p>
             <div className="flex flex-wrap gap-1 justify-end">
               {trackingAttentionReasons(v).length > 0 || v.alert_items.length > 0 ? (
