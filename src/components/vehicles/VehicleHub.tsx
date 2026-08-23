@@ -189,6 +189,7 @@ export default function VehicleHub({
   onDelete,
   onRefresh,
   getDriverName,
+  onDepartmentSaved,
   previewMode = false,
   previewHubExtras,
   hubBackLabel,
@@ -201,8 +202,9 @@ export default function VehicleHub({
   onBack: () => void;
   onEdit: (v: VehicleHubVehicle) => void;
   onDelete: (id: string) => void;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
   getDriverName: (id: string | null) => string;
+  onDepartmentSaved?: (department: string | null) => void;
   previewMode?: boolean;
   previewHubExtras?: {
     semiInspection: string | null;
@@ -235,6 +237,7 @@ export default function VehicleHub({
   // Shared company department vocabulary (drivers + vehicles).
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [savingDepartment, setSavingDepartment] = useState(false);
+  const savingDepartmentRef = useRef(false);
   const [inspectionSchedule, setInspectionSchedule] = useState<InspectionDashboardCard | null>(null);
   const [latestInsurer, setLatestInsurer] = useState<string | null>(null);
   const [openIssuesCount, setOpenIssuesCount] = useState(0);
@@ -363,6 +366,7 @@ export default function VehicleHub({
   }, [v.notes, v.show_notes_on_list]);
 
   useEffect(() => {
+    if (savingDepartmentRef.current) return;
     setDepartment(v.department || '');
   }, [v.department]);
 
@@ -474,34 +478,53 @@ export default function VehicleHub({
     setSupplierOpen(true);
   };
 
-  const saveDepartment = async () => {
+  const persistDepartment = async (raw: string, source: 'button' | 'blur') => {
     if (previewMode) {
-      toast.info('תצוגת פיתוח — שמירה מבוטלת');
+      if (source === 'button') toast.info('תצוגת פיתוח — שמירה מבוטלת');
       return;
     }
+    const next = raw.trim() || null;
+    const current = (v.department || '').trim() || null;
+    if (next === current) return;
+    if (savingDepartmentRef.current) return;
+    savingDepartmentRef.current = true;
     setSavingDepartment(true);
-    const next = department.trim() || null;
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('vehicles')
       .update({ department: next })
-      .eq('id', v.id);
-    setSavingDepartment(false);
-    if (error) toast.error('שגיאה בשמירת המחלקה');
-    else {
-      await logVehicleEvent({
-        vehicleId: v.id,
-        vehiclePlate: v.license_plate,
-        companyName: v.company_name || user?.company_name || '',
-        action: 'שיוך מחלקה',
-        details: next || 'ללא מחלקה',
-        userId: user?.id,
-        userName: user?.full_name,
-      });
-      toast.success(next ? `המחלקה עודכנה: ${next}` : 'השיוך למחלקה הוסר');
-      onRefresh();
+      .eq('id', v.id)
+      .select('id, department')
+      .maybeSingle();
+    if (error || !data) {
+      setSavingDepartment(false);
+      savingDepartmentRef.current = false;
+      toast.error(error?.message ? `שגיאה בשמירת המחלקה: ${error.message}` : 'המחלקה לא נשמרה — לא עודכן הרכב');
+      return;
+    }
+    setDepartment(data.department || '');
+    onDepartmentSaved?.(data.department || null);
+    await logVehicleEvent({
+      vehicleId: v.id,
+      vehiclePlate: v.license_plate,
+      companyName: v.company_name || user?.company_name || '',
+      action: 'שיוך מחלקה',
+      details: data.department || 'ללא מחלקה',
+      userId: user?.id,
+      userName: user?.full_name,
+    });
+    toast.success(data.department ? `המחלקה נשמרה: ${data.department}` : 'השיוך למחלקה הוסר');
+    try {
+      await onRefresh();
       refreshHub();
+      const company = v.company_name || user?.company_name || '';
+      if (company) void fetchCompanyDepartments(company).then(setDepartmentOptions);
+    } finally {
+      setSavingDepartment(false);
+      savingDepartmentRef.current = false;
     }
   };
+
+  const saveDepartment = () => persistDepartment(department, 'button');
 
   const saveNote = async () => {
     if (previewMode) {
@@ -1230,12 +1253,19 @@ export default function VehicleHub({
                 ))}
               </div>
               <div>
-                <p className="text-sm font-bold mb-2">שיוך למחלקה</p>
+                <p className="text-sm font-bold mb-2">מחלקה</p>
                 <input
                   list="vehicle-dept-options"
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  placeholder="בחר או הקלד מחלקה..."
+                  onBlur={() => void persistDepartment(department, 'blur')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void persistDepartment(department, 'button');
+                    }
+                  }}
+                  placeholder="בחר מהרשימה או הקלד מחלקה חדשה..."
                   className="w-full p-3 rounded-xl border-2 border-input bg-background"
                   data-testid="vehicle-department-input"
                 />
@@ -1244,7 +1274,9 @@ export default function VehicleHub({
                     <option key={dep} value={dep} />
                   ))}
                 </datalist>
-                <p className="text-xs text-muted-foreground mt-1">אותן מחלקות של החברה כמו אצל נהגים. ריק = ללא מחלקה.</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  אותן מחלקות של החברה כמו אצל נהגים. אפשר להקליד מחלקה חדשה — היא תישמר לרכב ותתווסף לרשימה. ריק = ללא מחלקה.
+                </p>
                 <Button type="button" variant="secondary" className="w-full mt-2" disabled={savingDepartment} onClick={saveDepartment}>
                   {savingDepartment ? 'שומר...' : 'שמור מחלקה'}
                 </Button>

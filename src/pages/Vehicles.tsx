@@ -93,15 +93,15 @@ export default function Vehicles() {
   const hubOpenedForRef = useRef<string | null>(null);
   const fleetOSReturnRef = useRef(false);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (opts?: { quiet?: boolean }) => {
+    if (!opts?.quiet) setLoading(true);
     const [vRes, dRes] = await Promise.all([
       applyCompanyScope(supabase.from('vehicles').select('*'), companyFilter).order('created_at', { ascending: false }),
       applyCompanyScope(supabase.from('drivers').select('id, full_name, phone'), companyFilter),
     ]);
     if (vRes.data) setVehicles(vRes.data as VehicleRow[]);
     if (dRes.data) setDrivers(dRes.data as DriverRow[]);
-    setLoading(false);
+    if (!opts?.quiet) setLoading(false);
   };
 
   useEffect(() => { loadData(); }, []);
@@ -120,6 +120,12 @@ export default function Vehicles() {
     const view = searchParams.get('view');
     if (!vid || view !== 'hub') {
       hubOpenedForRef.current = null;
+      return;
+    }
+
+    // Already on this hub: do not clobber selectedVehicle with a stale list/router snapshot
+    // (loadData() toggles loading and recreates `vehicles`, which re-runs this effect).
+    if (hubOpenedForRef.current === vid && viewMode === 'detail' && selectedVehicle?.id === vid) {
       return;
     }
 
@@ -196,7 +202,7 @@ export default function Vehicles() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, vehicles, loading, location.state, companyFilter]);
+  }, [searchParams, vehicles, loading, location.state, companyFilter, viewMode, selectedVehicle?.id]);
 
   const getDriverName = (id: string | null) => {
     if (!id) return 'לא משויך';
@@ -366,7 +372,7 @@ export default function Vehicles() {
     if (!selectedVehicle) return;
     const { data } = await supabase.from('vehicles').select('*').eq('id', selectedVehicle.id).single();
     if (data) setSelectedVehicle(data as VehicleRow);
-    loadData();
+    await loadData({ quiet: true });
   };
 
   // === DETAIL VIEW (Vehicle Hub) ===
@@ -380,6 +386,12 @@ export default function Vehicles() {
         onEdit={handleOpenForm}
         onDelete={handleDelete}
         onRefresh={refreshSelectedVehicle}
+        onDepartmentSaved={(department) => {
+          setSelectedVehicle((prev) => (prev ? { ...prev, department } : prev));
+          setVehicles((prev) =>
+            prev.map((row) => (row.id === selectedVehicle.id ? { ...row, department } : row)),
+          );
+        }}
         getDriverName={getDriverName}
         hubBackLabel={fleetOSReturnRef.current ? 'חזרה ל-FleetOS AI' : undefined}
         initialHubNav={initialHubNav}

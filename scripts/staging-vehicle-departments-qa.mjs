@@ -138,6 +138,7 @@ const plates = {
 };
 const DEPT_A = 'אחזקה';
 const DEPT_B = 'ביטחון';
+const DEPT_NEW = `חקלאות-QA-${String(runId).slice(-4)}`;
 const DEPT_ISO = `מחלקת-ייחוד-${String(runId).slice(-4)}`;
 
 async function sessionContext(browser, email, viewport = { width: 1440, height: 1100 }) {
@@ -174,10 +175,11 @@ async function openVehicleByPlate(page, plate) {
 
 async function saveDepartmentFromHub(page, value) {
   await page.getByRole('button', { name: /ניהול רכב/ }).first().click();
-  await page.getByTestId('vehicle-department-input').waitFor({ timeout: 20000 });
-  await page.getByTestId('vehicle-department-input').fill(value);
+  const input = page.getByTestId('vehicle-department-input');
+  await input.waitFor({ timeout: 20000 });
+  await input.fill(value);
   await page.getByRole('button', { name: /שמור מחלקה/ }).first().click();
-  await page.getByText(/המחלקה עודכנה|השיוך למחלקה הוסר/, { exact: false }).first().waitFor({ timeout: 20000 }).catch(() => null);
+  await page.getByText(/המחלקה נשמרה|המחלקה עודכנה|השיוך למחלקה הוסר/, { exact: false }).first().waitFor({ timeout: 20000 }).catch(() => null);
   await waitPage(page);
 }
 
@@ -311,7 +313,7 @@ try {
   rec('vehicle card shows department field', await page.getByTestId('vehicle-department-input').count() > 0);
   await page.getByTestId('vehicle-department-input').fill(DEPT_A);
   await page.getByRole('button', { name: /שמור מחלקה/ }).first().click();
-  await page.getByText(/המחלקה עודכנה|השיוך למחלקה הוסר/, { exact: false }).first().waitFor({ timeout: 20000 }).catch(() => null);
+  await page.getByText(/המחלקה נשמרה|המחלקה עודכנה|השיוך למחלקה הוסר/, { exact: false }).first().waitFor({ timeout: 20000 }).catch(() => null);
   await waitPage(page);
   const afterA = await admin.from('vehicles').select('department').eq('id', vMaintOk.id).single();
   rec('card save persisted department', afterA.data?.department === DEPT_A, { department: afterA.data?.department });
@@ -344,6 +346,20 @@ try {
   await noneSearch.fill('');
   await waitPage(page);
 
+  await openVehicleByPlate(page, plates.none);
+  await saveDepartmentFromHub(page, DEPT_NEW);
+  const typed = await admin.from('vehicles').select('department').eq('id', vNone.id).single();
+  rec('typed new department persisted in DB', typed.data?.department === DEPT_NEW, { department: typed.data?.department });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await waitPage(page);
+  rec('typed new department survives refresh', (await page.locator('body').innerText()).includes(DEPT_NEW));
+  await page.getByRole('button', { name: /ניהול רכב/ }).first().click();
+  await page.getByTestId('vehicle-department-input').waitFor({ timeout: 20000 });
+  const datalistValues = await page.locator('#vehicle-dept-options option').evaluateAll((els) => els.map((e) => e.getAttribute('value')));
+  rec('new department appears in shared company list', datalistValues.includes(DEPT_NEW), { datalistValues });
+
+  list = await vehiclesBody(page);
+  rec('vehicles list shows typed department', list.includes(plates.none) && list.includes(`מחלקה: ${DEPT_NEW}`));
   const search = page.locator('input[placeholder*="חיפוש"]').first();
   await search.fill(plates.maintOk);
   await waitPage(page);
@@ -360,12 +376,17 @@ try {
     await waitPage(page);
     const filteredA = await page.locator('body').innerText();
     rec('filter department A shows only A vehicles', filteredA.includes(plates.maintOk) && filteredA.includes(plates.maintAtt) && !filteredA.includes(plates.secAtt) && !filteredA.includes(plates.none));
+    await deptSelect.selectOption({ label: DEPT_NEW });
+    await waitPage(page);
+    const filteredNew = await page.locator('body').innerText();
+    rec('filter new department shows only that vehicle', filteredNew.includes(plates.none) && !filteredNew.includes(plates.maintOk));
     await deptSelect.selectOption({ value: '' });
     await waitPage(page);
     const allDept = await page.locator('body').innerText();
     rec('all departments restores regular list', allDept.includes(plates.maintOk) && allDept.includes(plates.secAtt) && allDept.includes(plates.none));
   } else {
     rec('filter department A shows only A vehicles', false);
+    rec('filter new department shows only that vehicle', false);
     rec('all departments restores regular list', false);
   }
 
