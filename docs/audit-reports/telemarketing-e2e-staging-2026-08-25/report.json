@@ -1,0 +1,238 @@
+{
+  "at": "2026-08-24T22:08:41.993Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "mainMerged": false,
+  "tests": [
+    {
+      "id": "deploy",
+      "name": "Staging Pages ref",
+      "status": "PASS",
+      "deployTxt": "deployed_ref=570eb79 feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-not-prod",
+      "name": "Deploy file is not Production",
+      "status": "PASS"
+    },
+    {
+      "id": "seed",
+      "name": "Created ephemeral QA users in Staging",
+      "status": "PASS",
+      "sa": "be0722b3-4512-4431-8c19-acbe5037bf84",
+      "agent": "b505f5c4-dd30-4315-a1a6-8464b47d531b"
+    },
+    {
+      "id": "3-start-call",
+      "name": "Agent can start a call",
+      "status": "PASS",
+      "callId": "8e3b8750-8506-4608-8306-e8003d5bdd17"
+    },
+    {
+      "id": "19-rls-other-agent",
+      "name": "Agent 2 cannot read agent 1 call",
+      "status": "PASS",
+      "rows": 0
+    },
+    {
+      "id": "4-times",
+      "name": "Call start/end/duration saved",
+      "status": "PASS",
+      "duration": 42
+    },
+    {
+      "id": "5-report",
+      "name": "Call report saved with result and summary",
+      "status": "PASS"
+    },
+    {
+      "id": "7-followup-create",
+      "name": "Follow-up created with date and time",
+      "status": "PASS",
+      "dueTime": "10:30:00"
+    },
+    {
+      "id": "7-followup-close",
+      "name": "Follow-up can be completed without deleting history",
+      "status": "PASS"
+    },
+    {
+      "id": "8-work",
+      "name": "Work session saved with times",
+      "status": "PASS"
+    },
+    {
+      "id": "9-traffic",
+      "name": "Lead traffic light green saved",
+      "status": "PASS"
+    },
+    {
+      "id": "12-admin-internal-insert",
+      "name": "Admin can open internal chat without customer",
+      "status": "PASS",
+      "chatId": "da686e3a-af43-4554-b25b-032048f1cbdb"
+    },
+    {
+      "id": "11-admin-message",
+      "name": "Admin can send a message in the thread",
+      "status": "PASS"
+    },
+    {
+      "id": "12-agent-sees-internal",
+      "name": "Agent sees manager chat without customer",
+      "status": "PASS"
+    },
+    {
+      "id": "19-chat-rls",
+      "name": "Other agent cannot see the internal chat",
+      "status": "PASS"
+    },
+    {
+      "id": "11-agent-reply",
+      "name": "Agent can reply to manager",
+      "status": "PASS"
+    },
+    {
+      "id": "10-status-after-reply",
+      "name": "Agent reply moves status off waiting-for-agent",
+      "status": "בטיפול"
+    },
+    {
+      "id": "16-history",
+      "name": "Both messages remain in history",
+      "status": "PASS",
+      "count": 2
+    },
+    {
+      "id": "10-close",
+      "name": "Only manager close with summary works",
+      "status": "PASS"
+    },
+    {
+      "id": "10-no-reopen",
+      "name": "Closed chat cannot be reopened",
+      "status": "PASS",
+      "error": "לא ניתן לפתוח מחדש פנייה סגורה — יש לפתוח טיפול חדש"
+    },
+    {
+      "id": "19-agent-cannot-close",
+      "name": "Agent cannot close chats",
+      "status": "PASS"
+    },
+    {
+      "id": "6-results",
+      "name": "Call results persist distinctly",
+      "status": "PASS"
+    },
+    {
+      "id": "13-no-double",
+      "name": "Admin sees each QA call once",
+      "status": "PASS",
+      "count": 7
+    },
+    {
+      "id": "17-employee-filter-source",
+      "name": "Calls carry employee name for comparison",
+      "status": "PASS"
+    },
+    {
+      "id": "1-admin-login",
+      "name": "Super admin reaches telemarketing admin",
+      "status": "PASS"
+    },
+    {
+      "id": "2-no-shift-clock",
+      "name": "No fake clock-in control on admin",
+      "status": "PASS"
+    },
+    {
+      "id": "13-report-ui",
+      "name": "Activity report is on admin screen",
+      "status": "PASS"
+    },
+    {
+      "id": "14-filters",
+      "name": "Report has day/range/employee/status/result filters",
+      "status": "PASS"
+    },
+    {
+      "id": "15-unmeasured",
+      "name": "Unmeasured metrics are labeled honestly",
+      "status": "PASS"
+    },
+    {
+      "id": "12-compose-ui",
+      "name": "Manager compose without customer exists",
+      "status": "PASS"
+    },
+    {
+      "id": "18-admin-desktop",
+      "name": "Admin desktop page rendered",
+      "status": "PASS"
+    },
+    {
+      "id": "18-admin-mobile",
+      "name": "Admin mobile page rendered",
+      "status": "PASS"
+    },
+    {
+      "id": "12-agent-picker",
+      "name": "Compose lists telemarketing agents",
+      "status": "PASS",
+      "options": [
+        "בחירת עובד",
+        "אבי טלמיטינג",
+        "QA Tele Agent 09321993",
+        "QA Tele Agent2 09321993",
+        "QA Tele deactivated 09270134",
+        "QA Tele deactivated 09270134"
+      ]
+    },
+    {
+      "id": "1-agent-login",
+      "name": "Agent reaches telemarketing agent screen",
+      "status": "PASS"
+    },
+    {
+      "id": "15-agent-timer",
+      "name": "Start call and work controls exist",
+      "status": "PASS"
+    },
+    {
+      "id": "12-agent-inbox",
+      "name": "Agent inbox shows Dalia chats",
+      "status": "PASS"
+    },
+    {
+      "id": "19-agent-blocked-admin",
+      "name": "Agent is blocked from admin screen",
+      "status": "PASS",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing"
+    },
+    {
+      "id": "18-spa-admin",
+      "name": "Direct admin link HTTP 200",
+      "status": "PASS",
+      "httpStatus": 200
+    },
+    {
+      "id": "18-spa-agent",
+      "name": "Direct agent link HTTP 200",
+      "status": "PASS",
+      "httpStatus": 200
+    },
+    {
+      "id": "20-regression-start-end",
+      "name": "Start/end call buttons still labeled as before",
+      "status": "PASS"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "cleanup": {
+    "usersDeactivated": true
+  },
+  "ok": true
+}

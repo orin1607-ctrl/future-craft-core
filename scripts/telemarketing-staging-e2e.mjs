@@ -128,7 +128,7 @@ try {
     client_token: token,
     created_by: users.agent,
   }).select('*').single();
-  rec('3-start-call', 'Agent can start a call', started.error ? 'FAIL' : 'PASS', { error: started.error?.message, id: started.data?.id });
+  rec('3-start-call', 'Agent can start a call', started.error ? 'FAIL' : 'PASS', { error: started.error?.message, callId: started.data?.id });
 
   const otherSee = await agent2Api.from('telemarketing_calls').select('id').eq('id', started.data?.id || '00000000-0000-0000-0000-000000000000');
   rec('19-rls-other-agent', 'Agent 2 cannot read agent 1 call', (otherSee.data || []).length === 0 ? 'PASS' : 'FAIL', { rows: otherSee.data?.length });
@@ -155,7 +155,7 @@ try {
     urgency: 'חשוב',
     status: 'open',
   }).select('*').single();
-  rec('7-followup-create', 'Follow-up created with date and time', follow.data?.due_time === '10:30' ? 'PASS' : 'FAIL', { error: follow.error?.message });
+  rec('7-followup-create', 'Follow-up created with date and time', follow.data?.due_date && String(follow.data?.due_time || '').startsWith('10:30') ? 'PASS' : 'FAIL', { error: follow.error?.message, dueTime: follow.data?.due_time });
 
   const closedFu = await agentApi.from('telemarketing_followups').update({
     status: 'done',
@@ -205,7 +205,7 @@ try {
     initiated_by: 'admin',
     client_token: `dalia-internal-${randomUUID()}`,
   }).select('*').single();
-  rec('12-admin-internal-insert', 'Admin can open internal chat without customer', chat.data && !chat.error ? 'PASS' : 'FAIL', { error: chat.error?.message, id: chat.data?.id });
+  rec('12-admin-internal-insert', 'Admin can open internal chat without customer', chat.data && !chat.error ? 'PASS' : 'FAIL', { error: chat.error?.message, chatId: chat.data?.id });
 
   if (chat.data) {
     const adminMsg = await saApi.from('telemarketing_team_messages').insert({
@@ -283,7 +283,7 @@ try {
   rec('13-no-double', 'Admin sees each QA call once', uniqueIds.size === (calls.data || []).length && uniqueIds.size >= 1 ? 'PASS' : 'FAIL', { count: calls.data?.length });
   rec('17-employee-filter-source', 'Calls carry employee name for comparison', (calls.data || []).every((c) => c.employee_name) ? 'PASS' : 'FAIL');
 
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({ headless: true, channel: 'chrome' });
   const storageKey = `sb-${STAGING_REF}-auth-token`;
 
   async function pageFor(session, viewport = { width: 1440, height: 1000 }) {
@@ -337,12 +337,12 @@ try {
 
   await agentPage.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await agentPage.waitForTimeout(1500);
-  rec('19-agent-blocked-admin', 'Agent is blocked from admin screen', !/דוח פעילות וביצועי עובד/.test(await agentPage.locator('body').innerText()) || agentPage.url().includes('/telemarketing') && !agentPage.url().includes('/admin') || /אין הרשאה|login/.test(await agentPage.locator('body').innerText()) ? 'PASS' : 'FAIL', { url: agentPage.url() });
+  rec('19-agent-blocked-admin', 'Agent is blocked from admin screen', !/דוח פעילות וביצועי עובד/.test(await agentPage.locator('body').innerText()) ? 'PASS' : 'FAIL', { url: agentPage.url() });
 
   const deep = await fetch(`${BASE}/telemarketing/admin/`);
-  rec('18-spa-admin', 'Direct admin link HTTP 200', deep.status === 200 ? 'PASS' : 'FAIL', { status: deep.status });
+  rec('18-spa-admin', 'Direct admin link HTTP 200', deep.status === 200 ? 'PASS' : 'FAIL', { httpStatus: deep.status });
   const deepAgent = await fetch(`${BASE}/telemarketing/`);
-  rec('18-spa-agent', 'Direct agent link HTTP 200', deepAgent.status === 200 ? 'PASS' : 'FAIL', { status: deepAgent.status });
+  rec('18-spa-agent', 'Direct agent link HTTP 200', deepAgent.status === 200 ? 'PASS' : 'FAIL', { httpStatus: deepAgent.status });
 
   rec('20-regression-start-end', 'Start/end call buttons still labeled as before', /התחל שיחה/.test(agentBody) && /סיום שיחה|התחל משימת עבודה/.test(agentBody) ? 'PASS' : 'FAIL');
 
