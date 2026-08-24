@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { CustomerCallCard } from '@/features/telemarketing/components/CallerScreen/CustomerCallCard';
 import { CallTimerBar } from '@/features/telemarketing/components/CallerScreen/CallTimerBar';
 import { CallReportForm } from '@/features/telemarketing/components/CallerScreen/CallReportForm';
@@ -7,7 +8,8 @@ import { WorkReportForm } from '@/features/telemarketing/components/WorkSession/
 import { MyFollowUps } from '@/features/telemarketing/components/FollowUp/MyFollowUps';
 import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadTimeline';
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
-import { DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
+import { AgentChatEntry, DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
+import { DALIA_CHAT_PARAM } from '@/features/telemarketing/lib/daliaChatNav';
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
 import { useActiveWorkSession } from '@/features/telemarketing/hooks/useActiveWorkSession';
 import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
@@ -24,10 +26,13 @@ const EMPTY_MANUAL_CUSTOMER: CustomerRef = {
 };
 
 export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee: TelemarketingEmployee }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [manualCustomer, setManualCustomer] = useState<CustomerRef>(EMPTY_MANUAL_CUSTOMER);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [followUpReload, setFollowUpReload] = useState(0);
   const [returnHint, setReturnHint] = useState<FollowUpWorkItem | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
   const {
     call,
     elapsedSeconds,
@@ -53,6 +58,40 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     starting: workStarting,
     error: workError,
   } = useActiveWorkSession(currentEmployee.id, currentEmployee.displayName);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.has(DALIA_CHAT_PARAM) || location.hash.includes('dalia')) {
+      navigate({ pathname: '/telemarketing', search: '', hash: '' }, { replace: true });
+    }
+    setChatOpen(false);
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    const onPop = () => {
+      setChatOpen(false);
+      window.scrollTo(0, 0);
+      document.getElementById('tele-work-home')?.scrollIntoView({ block: 'start' });
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const openChats = () => {
+    setChatOpen(true);
+    window.history.pushState({ teleAgentChat: true }, '');
+  };
+
+  const backToWork = () => {
+    if (window.history.state?.teleAgentChat) {
+      window.history.back();
+      return;
+    }
+    setChatOpen(false);
+    window.scrollTo(0, 0);
+    document.getElementById('tele-work-home')?.scrollIntoView({ block: 'start' });
+  };
 
   useEffect(() => {
     if (!call?.sourceFollowUpId) {
@@ -184,7 +223,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         </div>
       )}
 
-      <div data-testid="telemarketing-agent-home">
+      <div data-testid="telemarketing-agent-home" id="tele-work-home">
         <h1 className="text-2xl font-black">טלמיטינג</h1>
         <p className="text-sm text-muted-foreground">
           {currentEmployee.displayName}
@@ -198,9 +237,9 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
             <a href="#my-followups" className="mt-2 mr-3 inline-block text-sm font-bold text-primary">
               לחזרות שלי ↓
             </a>
-            <a href="#dalia-care" className="mt-2 mr-3 inline-block text-sm font-bold text-violet-700">
-              🟣 פניות צוות דליה ↓
-            </a>
+            <button type="button" onClick={openChats} className="mt-2 mr-3 inline-block text-sm font-bold text-violet-700">
+              🟣 פניות צוות דליה
+            </button>
           </>
         )}
       </div>
@@ -337,11 +376,16 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
       {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter />}
 
       {showIdleBoards && (
+        <AgentChatEntry currentUserId={currentEmployee.id} onOpen={openChats} reloadToken={followUpReload} />
+      )}
+
+      {chatOpen && (
         <DaliaChatBoard
           currentUserId={currentEmployee.id}
           currentUserName={currentEmployee.displayName}
           isAdmin={false}
           reloadToken={followUpReload}
+          onBackToWork={backToWork}
         />
       )}
 

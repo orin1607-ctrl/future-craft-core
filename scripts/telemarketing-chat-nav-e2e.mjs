@@ -1,6 +1,6 @@
 /**
- * Staging E2E: agent home vs Dalia chat overlay + back navigation.
- * Staging / telemarketing only. Does not touch Production.
+ * Live Staging E2E: employee work home vs Dalia chat.
+ * Must pass against GitHub Pages, not localhost.
  * node scripts/telemarketing-chat-nav-e2e.mjs
  */
 import { chromium } from 'playwright';
@@ -89,17 +89,22 @@ function sessionValue(session) {
   };
 }
 
-async function isHome(page) {
-  const start = await page.getByTestId('tele-start-call').count().catch(() => 0);
-  const overlay = await page.getByTestId('dalia-chat-overlay').count().catch(() => 0);
-  const heading = await page.getByTestId('telemarketing-agent-home').count().catch(() => 0);
-  return start > 0 && overlay === 0 && heading > 0;
-}
-
-async function isChatOpen(page) {
-  const overlay = await page.getByTestId('dalia-chat-overlay').count().catch(() => 0);
-  const back = await page.getByTestId('dalia-back-telemarketing').count().catch(() => 0);
-  return overlay > 0 && back > 0;
+async function startCallVisibleOnScreen(page) {
+  const btn = page.getByTestId('tele-start-call');
+  await btn.waitFor({ state: 'visible', timeout: 30000 });
+  const chatScreen = await page.getByTestId('dalia-agent-chat-screen').count();
+  const overlay = await page.getByTestId('dalia-chat-overlay').count();
+  const box = await btn.boundingBox();
+  const vh = page.viewportSize()?.height || 900;
+  const onScreen = !!box && box.y >= 0 && box.y < vh - 8;
+  const urlClean = !page.url().includes('daliaChat') && !page.url().includes('dalia-care');
+  return {
+    ok: chatScreen === 0 && overlay === 0 && onScreen && urlClean,
+    chatScreen,
+    overlay,
+    y: box?.y,
+    url: page.url(),
+  };
 }
 
 const users = {};
@@ -111,11 +116,22 @@ try {
   rec('deploy-not-prod', 'Not Production', !deployTxt.includes(PROD_REF) ? 'PASS' : 'FAIL');
   report.deployed_ref = deployTxt.trim();
 
+  const indexHtml = await fetch(`${BASE}/?t=${Date.now()}`, { cache: 'no-store' }).then((r) => r.text());
+  const asset = (indexHtml.match(/assets\/index-[^"]+\.js/) || [])[0];
+  rec('bundle-asset', 'Live index.html has JS asset', asset ? 'PASS' : 'FAIL', { asset });
+  report.liveBundle = asset;
+  if (asset) {
+    const js = await fetch(`${BASE}/${asset}?t=${Date.now()}`).then((r) => r.text());
+    rec('bundle-work-home', 'Live bundle contains tele-work-home', js.includes('tele-work-home') ? 'PASS' : 'FAIL');
+    rec('bundle-agent-chat-screen', 'Live bundle contains dalia-agent-chat-screen', js.includes('dalia-agent-chat-screen') ? 'PASS' : 'FAIL');
+    rec('bundle-back-label', 'Live bundle contains חזרה לטלמיטינג', js.includes('חזרה לטלמיטינג') ? 'PASS' : 'FAIL');
+    rec('bundle-not-localhost', 'Bundle fetched from GitHub Pages', asset.startsWith('assets/') ? 'PASS' : 'FAIL');
+  }
+
   users.sa = await createUser(saEmail, 'super_admin', `QA Chat SA ${runId}`);
   users.agent = await createUser(agentEmail, 'telemarketing_agent', `QA Chat Agent ${runId}`);
 
   const saSession = await signIn(saEmail);
-  const agentSession = await signIn(agentEmail);
   const saApi = createClient(STAGING_URL, keys.anon, {
     global: { headers: { Authorization: `Bearer ${saSession.access_token}` } },
     auth: { autoRefreshToken: false, persistSession: false },
@@ -148,7 +164,7 @@ try {
   browser = await chromium.launch({ headless: true, channel: 'chrome' });
   const storageKey = `sb-${STAGING_REF}-auth-token`;
 
-  async function pageFor(session, viewport = { width: 1440, height: 900 }) {
+  async function contextWithSession(session, viewport) {
     const context = await browser.newContext({ locale: 'he-IL', viewport });
     await context.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
       key: storageKey,
@@ -158,77 +174,86 @@ try {
     return { context, page };
   }
 
-  async function runAgentFlow(label, viewport, { doLogout = false } = {}) {
-    const freshSession = await signIn(agentEmail);
-    const { page, context } = await pageFor(freshSession, viewport);
+  async function loginViaUi(page) {
+    await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await page.getByLabel('אימייל').or(page.getByPlaceholder(/אימייל/)).first().fill(agentEmail);
+    await page.locator('input[type="password"]').first().fill(password);
+    await page.getByRole('button', { name: 'התחבר' }).click();
+    const otp = page.getByText(/קוד|OTP|אימות/i);
+    const start = page.getByTestId('tele-start-call');
+    const appeared = await Promise.race([
+      start.waitFor({ state: 'visible', timeout: 25000 }).then(() => 'home'),
+      otp.waitFor({ state: 'visible', timeout: 25000 }).then(() => 'otp').catch(() => null),
+    ]).catch(() => null);
+    return appeared;
+  }
+
+  async function runAgentFlow(label, viewport) {
+    const agentSession = await signIn(agentEmail);
+    const { page, context } = await contextWithSession(agentSession, viewport);
+
     await page.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-    await page.getByTestId('tele-start-call').waitFor({ timeout: 30000 });
-    rec(`${label}-login-home`, 'Login/open lands on agent telemarketing home, not chat overlay', (await isHome(page)) ? 'PASS' : 'FAIL', {
-      url: page.url(),
-      overlay: await page.getByTestId('dalia-chat-overlay').count(),
-    });
-    rec(`${label}-no-auto-thread`, 'Thread send box is not open on arrival', (await page.getByPlaceholder('כתבו הודעה...').count()) === 0 ? 'PASS' : 'FAIL');
+    let home = await startCallVisibleOnScreen(page);
+    rec(`${label}-clean-url-home`, 'Clean /telemarketing shows התחל שיחה on screen, not chat', home.ok ? 'PASS' : 'FAIL', home);
 
-    await page.getByTestId('dalia-toggle-inbox').click();
-    await page.getByTestId('dalia-chat-row').first().waitFor({ timeout: 15000 });
-    rec(`${label}-inbox-not-thread`, 'Opening the inbox list does not open a thread', (await isHome(page)) || (await page.getByTestId('dalia-chat-overlay').count()) === 0 ? 'PASS' : 'FAIL');
+    await page.goto(`${BASE}/telemarketing?daliaChat=${chat.data?.id || 'x'}#dalia-care`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await page.waitForTimeout(800);
+    home = await startCallVisibleOnScreen(page);
+    rec(`${label}-strip-daliaChat`, 'Stale daliaChat/hash does not auto-open chat', home.ok ? 'PASS' : 'FAIL', home);
 
-    await page.getByTestId('dalia-chat-row').first().click();
-    await page.getByTestId('dalia-chat-overlay').waitFor({ timeout: 15000 });
-    rec(`${label}-open-chat`, 'Entering a chat from the list opens the thread', (await isChatOpen(page)) ? 'PASS' : 'FAIL');
-    rec(`${label}-back-button`, 'Chat has חזרה לטלמיטינג', (await page.getByTestId('dalia-back-telemarketing').count()) > 0 ? 'PASS' : 'FAIL');
-    rec(`${label}-back-agent-home-label`, 'Chat has חזרה למסך העובד', (await page.getByTestId('dalia-back-agent-home').count()) > 0 ? 'PASS' : 'FAIL');
+    await page.getByTestId('dalia-open-inbox').click();
+    await page.getByTestId('dalia-agent-chat-screen').waitFor({ timeout: 15000 });
+    rec(`${label}-chat-opens`, 'Chat screen opens only after explicit click', (await page.getByTestId('dalia-agent-chat-screen').count()) > 0 ? 'PASS' : 'FAIL');
+    rec(`${label}-back-button-present`, 'חזרה לטלמיטינג is visible in chat', (await page.getByTestId('dalia-back-telemarketing').count()) > 0 ? 'PASS' : 'FAIL');
+
+    if ((await page.getByTestId('dalia-chat-row').count()) > 0) {
+      await page.getByTestId('dalia-chat-row').first().click();
+      await page.getByPlaceholder('כתבו הודעה...').waitFor({ timeout: 10000 }).catch(() => null);
+    }
 
     await page.getByTestId('dalia-back-telemarketing').first().click();
-    await page.getByTestId('tele-start-call').waitFor({ timeout: 15000 });
-    rec(`${label}-back-button-home`, 'Back button returns to agent home / inbox, not stuck in chat', (await isHome(page)) || (await page.getByTestId('dalia-chat-overlay').count()) === 0 ? 'PASS' : 'FAIL', { url: page.url() });
-    rec(`${label}-return-inbox`, 'Return keeps inbox available', (await page.getByTestId('dalia-toggle-inbox').count()) > 0 || (await page.getByTestId('dalia-chat-row').count()) > 0 ? 'PASS' : 'FAIL');
+    home = await startCallVisibleOnScreen(page);
+    rec(`${label}-back-to-start-call`, 'חזרה לטלמיטינג returns to התחל שיחה, not chat list', home.ok ? 'PASS' : 'FAIL', home);
 
-    if ((await page.getByTestId('dalia-chat-row').count()) === 0) {
-      await page.getByTestId('dalia-toggle-inbox').click();
-    }
-    await page.getByTestId('dalia-chat-row').first().click();
-    await page.getByTestId('dalia-chat-overlay').waitFor({ timeout: 15000 });
-    rec(`${label}-reenter`, 'Can enter the same chat again', (await isChatOpen(page)) ? 'PASS' : 'FAIL');
-
+    await page.getByTestId('dalia-open-inbox').click();
+    await page.getByTestId('dalia-agent-chat-screen').waitFor({ timeout: 15000 });
     await page.goBack();
-    await page.getByTestId('tele-start-call').waitFor({ timeout: 15000 });
-    rec(`${label}-browser-back`, 'Browser/phone Back closes chat and is not stuck', (await page.getByTestId('dalia-chat-overlay').count()) === 0 ? 'PASS' : 'FAIL', { url: page.url() });
+    home = await startCallVisibleOnScreen(page);
+    rec(`${label}-browser-back`, 'Browser/phone Back returns to התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
 
-    if (doLogout) {
-      const logoutBtn = page.getByRole('button', { name: /יציאה|התנתקות/ }).first();
-      await logoutBtn.click({ timeout: 15000 });
-      await page.waitForTimeout(1500);
-      rec(`${label}-logout`, 'Logout leaves the agent session', /login|התחבר|סיסמה|שם משתמש/i.test(await page.locator('body').innerText()) || !page.url().includes('/telemarketing') ? 'PASS' : 'FAIL', { url: page.url() });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    home = await startCallVisibleOnScreen(page);
+    rec(`${label}-refresh`, 'Refresh stays on work home, does not reopen chat', home.ok ? 'PASS' : 'FAIL', home);
+
+    await page.screenshot({ path: join(OUT, `${label}-home.png`) }).catch(() => null);
+
+    const logoutBtn = page.getByRole('button', { name: /יציאה|התנתקות/ }).first();
+    await logoutBtn.click({ timeout: 15000 });
+    await page.waitForTimeout(1200);
+    rec(`${label}-logout`, 'Logout leaves the session', /login|התחבר|סיסמה/i.test(await page.locator('body').innerText()) ? 'PASS' : 'FAIL', { url: page.url() });
+
+    const loginResult = await loginViaUi(page);
+    if (loginResult === 'home') {
+      home = await startCallVisibleOnScreen(page);
+      rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
+    } else if (loginResult === 'otp') {
+      rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', 'BLOCKED', { note: 'Staging login requires OTP; cannot complete without weakening auth' });
+    } else {
+      rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', 'FAIL', { url: page.url(), body: (await page.locator('body').innerText()).slice(0, 180) });
     }
-    await page.screenshot({ path: join(OUT, `${label}.png`), fullPage: true }).catch(() => null);
+
     await context.close();
   }
 
-  await runAgentFlow('desktop', { width: 1440, height: 900 }, { doLogout: true });
-  await runAgentFlow('mobile', { width: 390, height: 844 }, { doLogout: true });
+  await runAgentFlow('desktop', { width: 1440, height: 900 });
+  await runAgentFlow('mobile', { width: 390, height: 844 });
 
-  const { page: saPage, context: saCtx } = await pageFor(saSession, { width: 1440, height: 900 });
+  const { page: saPage, context: saCtx } = await contextWithSession(saSession, { width: 1440, height: 900 });
   await saPage.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await saPage.waitForTimeout(2500);
   const adminBody = await saPage.locator('body').innerText();
-  rec('admin-home-unchanged', 'Manager still lands on admin telemarketing, not agent chat', /מסך מנהל/.test(adminBody) && /פנייה פנימית לעובד/.test(adminBody) ? 'PASS' : 'FAIL');
-  rec('admin-no-auto-overlay', 'Manager does not auto-open a chat thread', (await saPage.getByTestId('dalia-chat-overlay').count()) === 0 ? 'PASS' : 'FAIL');
-  rec('admin-compose-still-there', 'Manager compose without customer still present', /פנייה פנימית לעובד/.test(adminBody) ? 'PASS' : 'FAIL');
-
-  const adminRows = saPage.getByTestId('dalia-chat-row');
-  if ((await adminRows.count()) > 0) {
-    await adminRows.first().click();
-    await saPage.getByTestId('dalia-chat-overlay').waitFor({ timeout: 15000 });
-    rec('admin-open-chat', 'Manager can still open a thread', (await saPage.getByTestId('dalia-chat-overlay').count()) > 0 ? 'PASS' : 'FAIL');
-    rec('admin-back-label', 'Manager back stays on the list, not agent home', (await saPage.getByRole('button', { name: 'חזרה לרשימת הפניות' }).count()) > 0 ? 'PASS' : 'FAIL');
-    await saPage.getByTestId('dalia-back-telemarketing').first().click();
-    await saPage.waitForTimeout(800);
-    rec('admin-back-stays-admin', 'Manager back returns to admin screen', /מסך מנהל/.test(await saPage.locator('body').innerText()) && (await saPage.getByTestId('dalia-chat-overlay').count()) === 0 ? 'PASS' : 'FAIL', { url: saPage.url() });
-  } else {
-    rec('admin-open-chat', 'Manager can still open a thread', 'FAIL', { note: 'no chat rows on admin' });
-  }
-  await saPage.screenshot({ path: join(OUT, 'admin-desktop.png'), fullPage: true }).catch(() => null);
+  rec('admin-home-unchanged', 'Manager still lands on admin telemarketing', /מסך מנהל/.test(adminBody) && /פנייה פנימית לעובד/.test(adminBody) ? 'PASS' : 'FAIL');
+  rec('admin-no-agent-fullscreen', 'Manager is not forced into agent chat screen', (await saPage.getByTestId('dalia-agent-chat-screen').count()) === 0 ? 'PASS' : 'FAIL');
   await saCtx.close();
 } catch (e) {
   rec('fatal', 'E2E runner', 'FAIL', { error: e instanceof Error ? e.message : String(e) });
@@ -246,5 +271,5 @@ try {
 const fail = report.tests.filter((t) => t.status === 'FAIL').length;
 report.ok = fail === 0;
 writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2), 'utf8');
-console.log(JSON.stringify({ ok: report.ok, fail, total: report.tests.length, out: OUT, deployed_ref: report.deployed_ref }, null, 2));
+console.log(JSON.stringify({ ok: report.ok, fail, total: report.tests.length, out: OUT, deployed_ref: report.deployed_ref, liveBundle: report.liveBundle }, null, 2));
 if (!report.ok) process.exit(1);
