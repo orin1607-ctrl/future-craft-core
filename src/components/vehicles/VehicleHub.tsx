@@ -41,9 +41,11 @@ import VehicleDaliaFullPanel from '@/components/vehicles/VehicleDaliaFullPanel';
 import { DocumentCard } from '@/components/documents/DocumentViewer';
 import {
   getInspectionDashboardCard,
+  pickInspectionForDashboard,
   statusLabel,
   type InspectionDashboardCard,
 } from '@/components/vehicles/vehicleHubUtils';
+import { fetchCompanyVehicleHubDisplay } from '@/lib/companyVehicleHubDisplay';
 import {
   loadVehicleHubData,
   formatHubDate,
@@ -239,6 +241,8 @@ export default function VehicleHub({
   const [savingDepartment, setSavingDepartment] = useState(false);
   const savingDepartmentRef = useRef(false);
   const [inspectionSchedule, setInspectionSchedule] = useState<InspectionDashboardCard | null>(null);
+  const [inspectionRefreshKey, setInspectionRefreshKey] = useState(0);
+  const [showRecentActions, setShowRecentActions] = useState(true);
   const [latestInsurer, setLatestInsurer] = useState<string | null>(null);
   const [openIssuesCount, setOpenIssuesCount] = useState(0);
   const [drillRefreshKey, setDrillRefreshKey] = useState(0);
@@ -342,6 +346,7 @@ export default function VehicleHub({
       return;
     }
     setLoading(true);
+    setInspectionRefreshKey((k) => k + 1);
     loadVehicleHubData(v.license_plate, v.internal_number || '', companyFilter, {
       license_doc_url: v.license_doc_url,
       insurance_doc_url: v.insurance_doc_url,
@@ -377,6 +382,21 @@ export default function VehicleHub({
   }, [v.company_name, user?.company_name]);
 
   useEffect(() => {
+    const company = v.company_name || user?.company_name || '';
+    if (!company) {
+      setShowRecentActions(true);
+      return;
+    }
+    let cancelled = false;
+    void fetchCompanyVehicleHubDisplay(company).then((cfg) => {
+      if (!cancelled) setShowRecentActions(cfg.showRecentActionsOnHub);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [v.company_name, user?.company_name]);
+
+  useEffect(() => {
     if (previewMode && previewHubExtras) {
       const previewDueDate = previewHubExtras.semiInspection || previewHubExtras.triInspection;
       setInspectionSchedule(
@@ -395,15 +415,14 @@ export default function VehicleHub({
       .from('vehicle_inspections')
       .select('inspection_type, inspection_date, next_due_date, created_at')
       .eq('vehicle_id', v.id)
-      .not('next_due_date', 'is', null)
       .order('inspection_date', { ascending: false })
       .order('created_at', { ascending: false, nullsFirst: false })
-      .limit(1)
-      .maybeSingle()
+      .limit(8)
       .then(({ data }) => {
-        setInspectionSchedule(getInspectionDashboardCard(data));
+        const row = pickInspectionForDashboard(data || []);
+        setInspectionSchedule(getInspectionDashboardCard(row, v.next_inspection_date));
       });
-  }, [v.id, previewMode, previewHubExtras]);
+  }, [v.id, v.next_inspection_date, previewMode, previewHubExtras, inspectionRefreshKey]);
 
   useEffect(() => {
     if (previewMode && previewHubExtras) return;
@@ -1022,8 +1041,8 @@ export default function VehicleHub({
             </div>
           )}
           {mainNav}
-          {hubData && hubData.history.length > 0 && (
-            <div className="mt-4">
+          {showRecentActions && hubData && hubData.history.length > 0 && (
+            <div className="mt-4" data-testid="vehicle-hub-recent-actions">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-base font-bold">פעולות אחרונות</h2>
                 <button
@@ -1131,6 +1150,7 @@ export default function VehicleHub({
       )}
 
       {mainSection === 'history' && hubData && (
+        <div data-testid="vehicle-hub-history">
         <HistoryTimeline
           entries={hubData.history}
           onNavigate={(route) =>
@@ -1139,6 +1159,7 @@ export default function VehicleHub({
           plate={v.license_plate}
           internalNumber={v.internal_number}
         />
+        </div>
       )}
 
       {mainSection === 'manage' && (

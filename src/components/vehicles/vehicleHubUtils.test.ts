@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { formatExpiry, getInspectionDashboardCard } from './vehicleHubUtils';
+import { addCalendarMonths } from '@/lib/vehicleActionFollowUp';
+import { formatExpiry, getInspectionDashboardCard, pickInspectionForDashboard } from './vehicleHubUtils';
 
 describe('getInspectionDashboardCard', () => {
   it('uses the saved next due date for a three-month inspection', () => {
@@ -32,12 +33,53 @@ describe('getInspectionDashboardCard', () => {
     })?.label).toBe('בדיקה חצי שנתית');
   });
 
-  it('returns no card schedule when no next due date was saved', () => {
+  it('derives a three-month due date when the saved next due equals the performed date', () => {
     expect(getInspectionDashboardCard({
       inspection_type: 'tri_semi_annual',
       inspection_date: '2026-08-16',
       next_due_date: null,
-    })).toBeNull();
+    })).toEqual({
+      label: 'בדיקה תלת חודשית',
+      nextDueDate: addCalendarMonths('2026-08-16', 3),
+    });
+  });
+
+  it('never displays the performed inspection date as the future due date', () => {
+    const card = getInspectionDashboardCard({
+      inspection_type: 'tri_semi_annual',
+      inspection_date: '2026-08-24',
+      next_due_date: '2026-08-24',
+    });
+    expect(card?.nextDueDate).toBe(addCalendarMonths('2026-08-24', 3));
+    expect(card?.nextDueDate).not.toBe('2026-08-24');
+    expect(card?.label).toBe('בדיקה תלת חודשית');
+  });
+
+  it('uses the vehicle next-inspection date when it is later than a stale row', () => {
+    expect(getInspectionDashboardCard({
+      inspection_type: 'tri_semi_annual',
+      inspection_date: '2026-08-24',
+      next_due_date: '2026-08-24',
+    }, '2027-02-24')).toEqual({
+      label: 'בדיקה חצי שנתית',
+      nextDueDate: '2027-02-24',
+    });
+  });
+
+  it('picks the latest inspection whose next due is after the performed date', () => {
+    const picked = pickInspectionForDashboard([
+      {
+        inspection_type: 'tri_semi_annual',
+        inspection_date: '2026-08-24',
+        next_due_date: '2026-08-24',
+      },
+      {
+        inspection_type: 'tri_semi_annual',
+        inspection_date: '2026-08-24',
+        next_due_date: '2026-11-24',
+      },
+    ]);
+    expect(picked?.next_due_date).toBe('2026-11-24');
   });
 });
 

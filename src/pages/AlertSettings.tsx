@@ -31,6 +31,12 @@ import {
   saveCompanyAutoSend,
   type CompanyAutoSend,
 } from '@/lib/companyAutoSend';
+import {
+  DEFAULT_COMPANY_VEHICLE_HUB_DISPLAY,
+  fetchCompanyVehicleHubDisplay,
+  saveCompanyVehicleHubDisplay,
+  type CompanyVehicleHubDisplay,
+} from '@/lib/companyVehicleHubDisplay';
 
 interface CompanyAlertConfig {
   id: string;
@@ -78,6 +84,9 @@ export default function AlertSettings() {
   const [autoSend, setAutoSend] = useState<CompanyAutoSend>(DEFAULT_COMPANY_AUTO_SEND);
   const [savingAutoSend, setSavingAutoSend] = useState(false);
   const [autoSendReady, setAutoSendReady] = useState(false);
+  const [hubDisplay, setHubDisplay] = useState<CompanyVehicleHubDisplay>(DEFAULT_COMPANY_VEHICLE_HUB_DISPLAY);
+  const [savingHubDisplay, setSavingHubDisplay] = useState(false);
+  const [hubDisplayReady, setHubDisplayReady] = useState(false);
   const isSuperAdmin = user?.role === 'super_admin';
   // RLS: only super_admin can UPDATE company_settings. Fleet managers may view own company.
   const canEditAlerts = isSuperAdmin;
@@ -90,19 +99,41 @@ export default function AlertSettings() {
     if (!selectedCompany) {
       setAutoSend(DEFAULT_COMPANY_AUTO_SEND);
       setAutoSendReady(false);
+      setHubDisplay(DEFAULT_COMPANY_VEHICLE_HUB_DISPLAY);
+      setHubDisplayReady(false);
       return;
     }
     let cancelled = false;
     setAutoSendReady(false);
+    setHubDisplayReady(false);
     fetchCompanyAutoSend(selectedCompany).then((value) => {
       if (cancelled) return;
       setAutoSend(value);
       setAutoSendReady(true);
     });
+    fetchCompanyVehicleHubDisplay(selectedCompany).then((value) => {
+      if (cancelled) return;
+      setHubDisplay(value);
+      setHubDisplayReady(true);
+    });
     return () => {
       cancelled = true;
     };
   }, [selectedCompany]);
+
+  const persistHubDisplay = async (next: CompanyVehicleHubDisplay) => {
+    if (!selectedCompany || !isSuperAdmin) return;
+    setSavingHubDisplay(true);
+    try {
+      await saveCompanyVehicleHubDisplay(selectedCompany, next, user?.id);
+      setHubDisplay(next);
+      toast.success(`תצוגת כרטיס הרכב עודכנה עבור ${selectedCompany}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'שגיאה בשמירת תצוגת כרטיס הרכב');
+    } finally {
+      setSavingHubDisplay(false);
+    }
+  };
 
   const persistAutoSend = async (next: CompanyAutoSend) => {
     if (!selectedCompany || !isSuperAdmin) return;
@@ -435,7 +466,29 @@ export default function AlertSettings() {
                 </div>
               </div>
 
-              {/* Reminder Settings */}
+              <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4 space-y-3" data-testid="company-vehicle-hub-display">
+                <h3 className="font-bold text-lg">תצוגת כרטיס רכב — פעולות אחרונות</h3>
+                <p className="text-sm text-muted-foreground">
+                  Super Admin בלבד, לפי חברה. כיבוי מסתיר את &quot;פעולות אחרונות&quot; בדשבורד הרכב בלבד.
+                  היסטוריית הרכב לא נמחקת ונותרת זמינה דרך כפתור &quot;היסטוריית רכב&quot;.
+                </p>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
+                  <div>
+                    <p className="font-medium">הצג פעולות אחרונות בכרטיס הרכב</p>
+                    <p className="text-xs text-muted-foreground">
+                      {!hubDisplayReady ? 'טוען...' : hubDisplay.showRecentActionsOnHub ? 'ON — מוצג בדשבורד' : 'OFF — מוסתר מהדשבורד'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={hubDisplay.showRecentActionsOnHub}
+                    disabled={savingHubDisplay || !hubDisplayReady || !isSuperAdmin}
+                    onCheckedChange={(on) => void persistHubDisplay({ showRecentActionsOnHub: on })}
+                    aria-label="הצג פעולות אחרונות בכרטיס הרכב"
+                    data-testid="company-show-recent-actions"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <h3 className="font-bold text-lg">🔔 תזכורות אוטומטיות</h3>
                 <div>
