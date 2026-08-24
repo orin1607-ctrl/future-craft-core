@@ -1,0 +1,27 @@
+{
+  "id": "oren-car-recent-actions-and-next-due-staging",
+  "at": "2026-08-24T08:50:00Z",
+  "environment": "Oren Car Staging only",
+  "commit": "1db36859",
+  "branch": "feat/incident-alerts-staging",
+  "pages": "https://orin1607-ctrl.github.io/future-craft-core",
+  "deployTxt": "deployed_ref=1db3685 feat/incident-alerts-staging",
+  "schemaChanged": false,
+  "rlsChanged": false,
+  "productionTouched": false,
+  "productionDataChanged": false,
+  "stagingDataTransferredToProduction": false,
+  "mission1": {
+    "configMechanism": "dalia_form_config (same store as company auto-send)",
+    "configKeyPrefix": "company_vehicle_hub_display:",
+    "superAdminToggle": "/alert-settings per company — הצג פעולות אחרונות בכרטיס הרכב",
+    "default": "ON",
+    "qa": "PASS 27/27 isolated companies"
+  },
+  "mission2": {
+    "rootCause": "Dashboard could treat a next_due_date that is not after the performed inspection (including today) as the future inspection, and it did not merge vehicles.next_inspection_date. The previous fix already read next_due_date instead of inspection_date; the remaining gap was stale/same-day next_due values.",
+    "previousFix": "1584cc8a + 2e96b9b1 — card uses next_due_date; latest same-day row by created_at",
+    "whyItStopped": "Selecting the latest inspection row with next_due_date not null can still return a row whose next_due_date equals inspection_date (today), so the tile showed today as the future inspection.",
+    "fix": "Pick a row whose next due is after the performed date; merge vehicles.next_inspection_date; never display the performed date as next due; parse expiry at noon."
+  }
+}

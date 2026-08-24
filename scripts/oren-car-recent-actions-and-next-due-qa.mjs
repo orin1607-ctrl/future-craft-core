@@ -237,6 +237,13 @@ try {
 
   await saPage.goto(`${LIVE}/alert-settings`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await waitPage(saPage, 2500);
+  if (await saPage.getByText('לחץ לבחירת חברה...').count()) {
+    await saPage.getByText('לחץ לבחירת חברה...').click();
+    await saPage.getByPlaceholder('חיפוש חברה...').fill(companyA);
+    await waitPage(saPage, 800);
+    await saPage.getByRole('button', { name: companyA }).click();
+    await waitPage(saPage, 1500);
+  }
   rec('1 Super Admin sees the setting', (await saPage.getByText('הצג פעולות אחרונות בכרטיס הרכב').count()) > 0);
 
   const fmCtx = await createContext(browser, authFm.data.session, 'desktop');
