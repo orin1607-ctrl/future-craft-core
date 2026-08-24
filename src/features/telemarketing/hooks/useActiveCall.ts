@@ -235,6 +235,7 @@ export function useActiveCall(employeeId?: string) {
       followUpUrgency: draft.needsFollowUp ? draft.followUpUrgency : undefined,
       managerNote: draft.managerNote.trim() || undefined,
       clientToken: submitTokenRef.current,
+      sourceFollowUpId: call.sourceFollowUpId,
     };
 
     try {

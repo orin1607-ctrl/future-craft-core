@@ -1,0 +1,11 @@
+{
+  "at": "2026-08-24T19:17:49.215Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "rollback": [
+    "DROP POLICY IF EXISTS telemarketing_followups_update_agent ON public.telemarketing_followups;",
+    "ALTER TABLE public.telemarketing_calls DROP COLUMN IF EXISTS source_followup_id;",
+    "ALTER TABLE public.telemarketing_followups DROP COLUMN IF EXISTS closed_by_call_id;"
+  ]
+}

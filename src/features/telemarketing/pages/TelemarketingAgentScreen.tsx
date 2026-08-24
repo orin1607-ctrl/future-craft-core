@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CustomerCallCard } from '@/features/telemarketing/components/CallerScreen/CustomerCallCard';
 import { CallTimerBar } from '@/features/telemarketing/components/CallerScreen/CallTimerBar';
 import { CallReportForm } from '@/features/telemarketing/components/CallerScreen/CallReportForm';
+import { MyFollowUps } from '@/features/telemarketing/components/FollowUp/MyFollowUps';
+import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadTimeline';
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
-import type { CustomerRef, TelemarketingEmployee } from '@/features/telemarketing/types';
+import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
+import type { CustomerRef, FollowUpWorkItem, TelemarketingEmployee } from '@/features/telemarketing/types';
 
 const EMPTY_MANUAL_CUSTOMER: CustomerRef = {
   companyName: '',
@@ -18,6 +21,8 @@ const EMPTY_MANUAL_CUSTOMER: CustomerRef = {
 export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee: TelemarketingEmployee }) {
   const [manualCustomer, setManualCustomer] = useState<CustomerRef>(EMPTY_MANUAL_CUSTOMER);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [followUpReload, setFollowUpReload] = useState(0);
+  const [returnHint, setReturnHint] = useState<FollowUpWorkItem | null>(null);
   const {
     call,
     elapsedSeconds,
@@ -31,6 +36,22 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     isRecording,
     error,
   } = useActiveCall(currentEmployee.id);
+
+  useEffect(() => {
+    if (!call?.sourceFollowUpId) {
+      setReturnHint(null);
+      return;
+    }
+    let cancelled = false;
+    void getFollowUpWorkItems().then((rows) => {
+      if (cancelled) return;
+      const found = rows.find((row) => row.id === call.sourceFollowUpId);
+      if (found) setReturnHint(found);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [call?.sourceFollowUpId]);
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToast({ type, text });
@@ -60,11 +81,47 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     }
   };
 
+  const handleStartReturn = async (item: FollowUpWorkItem) => {
+    const history = await getLeadHistory(item.phone, item.companyName);
+    const last = history[history.length - 1];
+    const lead: CustomerRef = {
+      companyName: item.companyName || last?.companyName || '',
+      contactName: item.contactName || last?.contactName,
+      contactRole: last?.contactRole,
+      phone: item.phone || last?.phone || '',
+      email: last?.email,
+      vehicleCount: last?.vehicleCount ?? null,
+      city: last?.city,
+    };
+    setManualCustomer(lead);
+    setReturnHint(item);
+    try {
+      await beginCall({
+        employeeId: currentEmployee.id,
+        employeeName: currentEmployee.displayName,
+        customerId: last?.customerId ?? null,
+        companyName: lead.companyName,
+        contactName: lead.contactName,
+        contactRole: lead.contactRole,
+        phone: lead.phone,
+        email: lead.email,
+        vehicleCount: lead.vehicleCount,
+        city: lead.city,
+        sourceFollowUpId: item.id,
+      });
+    } catch (e) {
+      setReturnHint(null);
+      showToast('error', e instanceof Error ? e.message : 'שגיאה בהתחלת שיחת חזרה');
+    }
+  };
+
   const handleSubmit = async () => {
     const ok = await submitReport();
     if (ok) {
       showToast('success', 'השיחה נשמרה בהצלחה');
       setManualCustomer(EMPTY_MANUAL_CUSTOMER);
+      setReturnHint(null);
+      setFollowUpReload((n) => n + 1);
     } else {
       showToast('error', 'לא ניתן לשמור - יש לתקן ולנסות שוב. הטקסט שהוזן לא נמחק.');
     }
@@ -92,7 +149,38 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           {currentEmployee.displayName}
           {currentEmployee.employeeCode ? ` · ${currentEmployee.employeeCode}` : ''}
         </p>
+        {showManualForm && (
+          <a href="#my-followups" className="mt-2 inline-block text-sm font-bold text-primary">
+            לחזרות שלי ↓
+          </a>
+        )}
       </div>
+
+      {call?.sourceFollowUpId && (
+        <div className="space-y-2 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm">
+          <p className="font-black">שיחת חזרה — נוצרת רשומת שיחה חדשה. הסיכום הקודם נשמר בהיסטוריה.</p>
+          {returnHint && (
+            <>
+              <p>
+                מועד החזרה: {returnHint.dueDate}
+                {returnHint.dueTime ? ` ${returnHint.dueTime}` : ''} · {returnHint.urgency}
+              </p>
+              {returnHint.actionNeeded && <p className="font-semibold">מה צריך לבצע: {returnHint.actionNeeded}</p>}
+              {returnHint.lastSummary && <p>סיכום קודם: {returnHint.lastSummary}</p>}
+            </>
+          )}
+          {returnHint && (
+            <details className="rounded-lg bg-background/70 p-2">
+              <summary className="cursor-pointer font-bold">היסטוריית שיחות</summary>
+              <div className="mt-2">
+                <LeadTimeline followUp={returnHint} />
+              </div>
+            </details>
+          )}
+        </div>
+      )}
+
+      {showManualForm && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} />}
 
       {showManualForm && (
         <div className="space-y-2 rounded-2xl border border-border bg-card p-4">

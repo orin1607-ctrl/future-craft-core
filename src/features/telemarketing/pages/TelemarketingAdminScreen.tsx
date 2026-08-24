@@ -2,33 +2,38 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SummaryCards } from '@/features/telemarketing/components/AdminDashboard/SummaryCards';
 import { CallsTable } from '@/features/telemarketing/components/AdminDashboard/CallsTable';
-import { FollowUpsPanel } from '@/features/telemarketing/components/AdminDashboard/FollowUpsPanel';
 import { EmployeeCards } from '@/features/telemarketing/components/AdminDashboard/EmployeeCards';
+import { FollowUpBoard } from '@/features/telemarketing/components/FollowUp/FollowUpBoard';
 import { useTelemarketingDashboard } from '@/features/telemarketing/hooks/useTelemarketingDashboard';
-import { useFollowUps } from '@/features/telemarketing/hooks/useFollowUps';
 import { useAgentPerformance } from '@/features/telemarketing/hooks/useAgentPerformance';
+import { getFollowUpWorkItems } from '@/features/telemarketing/services/telemarketingService';
 import { getTelemarketingSettings, updateTelemarketingSetting } from '@/features/telemarketing/config/telemarketingSettings';
+import type { FollowUpWorkItem } from '@/features/telemarketing/types';
 
-export function TelemarketingAdminScreen({ currentManagerId }: { currentManagerId: string }) {
+export function TelemarketingAdminScreen({ currentManagerId: _currentManagerId }: { currentManagerId: string }) {
   const { calls, summary, loading, error, lastUpdated, reload, autoRefresh, setAutoRefresh } = useTelemarketingDashboard();
-  const { groups, markDone, reload: reloadFollowUps } = useFollowUps();
   const { agents, reload: reloadAgents } = useAgentPerformance();
+  const [followUps, setFollowUps] = useState<FollowUpWorkItem[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [waNumber, setWaNumber] = useState('');
   const [managerEmail, setManagerEmail] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+
+  const reloadFollowUps = async () => {
+    try {
+      setFollowUps(await getFollowUpWorkItems());
+    } catch {
+      /* keep previous */
+    }
+  };
 
   useEffect(() => {
     void getTelemarketingSettings().then((s) => {
       setWaNumber(s.managerWhatsappNumber);
       setManagerEmail(s.managerNotificationEmail);
     });
+    void reloadFollowUps();
   }, []);
-
-  const handleMarkDone = async (id: string) => {
-    await markDone(id, currentManagerId);
-    reload();
-  };
 
   const saveSettings = async () => {
     setSavingSettings(true);
@@ -111,7 +116,8 @@ export function TelemarketingAdminScreen({ currentManagerId }: { currentManagerI
 
       {summary && <SummaryCards summary={summary} />}
 
-      <FollowUpsPanel groups={groups} onMarkDone={(id) => void handleMarkDone(id)} />
+      <h3 className="mb-2 text-lg font-bold">החזרות — כל הנציגים</h3>
+      <FollowUpBoard items={followUps} />
 
       <EmployeeCards agents={agents} selectedAgent={selectedAgent} onSelectAgent={setSelectedAgent} />
 

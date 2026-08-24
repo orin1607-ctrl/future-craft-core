@@ -1,9 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
+import { followUpBucket, localDateStr } from '@/features/telemarketing/lib/localDate';
 import type {
   AgentPerformance,
   CallResult,
   CompleteCallReportPayload,
   ExistingCustomerLookup,
+  FollowUpWorkItem,
   StartCallPayload,
   TelemarketingCall,
   TelemarketingDashboardSummary,
@@ -18,7 +20,7 @@ function normalizePhone(phone: string): string {
 }
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localDateStr();
 }
 
 export async function startCall(payload: StartCallPayload): Promise<TelemarketingCall> {
@@ -47,6 +49,7 @@ export async function startCall(payload: StartCallPayload): Promise<Telemarketin
       status: 'in_progress',
       client_token: payload.clientToken,
       created_by: payload.employeeId,
+      source_followup_id: payload.sourceFollowUpId ?? null,
     })
     .select('*')
     .single();
@@ -174,6 +177,25 @@ export async function submitCallReport(
     }
   }
 
+  const sourceFollowUpId = payload.sourceFollowUpId || (updatedCall.source_followup_id as string | null);
+  if (sourceFollowUpId) {
+    const { error: closeErr } = await supabase
+      .from(TABLE_FOLLOWUPS)
+      .update({
+        status: 'done',
+        completed_by: currentRow.employee_id,
+        completed_at: new Date().toISOString(),
+        closed_by_call_id: payload.callId,
+      })
+      .eq('id', sourceFollowUpId)
+      .eq('status', 'open');
+    if (closeErr) {
+      throw new Error(
+        'השיחה נשמרה, אך סגירת החזרה הקודמת נכשלה: ' + closeErr.message + ' (ID שיחה: ' + payload.callId + ')',
+      );
+    }
+  }
+
   return { call: mapCallRow(updatedCall), followUp, duplicate: false };
 }
 
@@ -193,6 +215,7 @@ export async function checkExistingCustomer(phone: string, companyName: string):
     .from(TABLE_CALLS)
     .select('*')
     .or(orFilters.join(','))
+    .eq('status', 'completed')
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -281,8 +304,11 @@ export async function getDashboardData(limit = 300): Promise<{
   const { data: followUps, error: fuError } = await supabase.from(TABLE_FOLLOWUPS).select('*').eq('status', 'open');
   if (!fuError && followUps) {
     summary.followUpsOpen = followUps.length;
-    summary.followUpsToday = followUps.filter((f) => f.due_date === today).length;
-    summary.followUpsLate = followUps.filter((f) => f.due_date < today).length;
+    for (const f of followUps) {
+      const bucket = followUpBucket(String(f.due_date), f.due_time ? String(f.due_time).slice(0, 5) : null, 'open');
+      if (bucket === 'today') summary.followUpsToday++;
+      if (bucket === 'late') summary.followUpsLate++;
+    }
   }
 
   return { calls, summary };
@@ -294,6 +320,48 @@ export async function getFollowUps(filter?: { status?: 'open' | 'done' }): Promi
   const { data, error } = await query;
   if (error) throw new Error('שגיאה בטעינת Follow-ups: ' + error.message);
   return (data ?? []).map(mapFollowUpRow);
+}
+
+export async function getFollowUpWorkItems(): Promise<FollowUpWorkItem[]> {
+  const rows = await getFollowUps();
+  const callIds = Array.from(new Set(rows.map((r) => r.callId)));
+  const callMap = new Map<string, TelemarketingCall>();
+  if (callIds.length > 0) {
+    const { data } = await supabase.from(TABLE_CALLS).select('*').in('id', callIds);
+    for (const row of data ?? []) {
+      const call = mapCallRow(row);
+      callMap.set(call.id, call);
+    }
+  }
+  return rows.map((fu) => {
+    const origin = callMap.get(fu.callId);
+    return {
+      ...fu,
+      employeeId: origin?.employeeId || '',
+      employeeName: origin?.employeeName || fu.owner || '',
+      lastResult: origin?.result ?? null,
+      lastSummary: origin?.summary ?? null,
+      lastRecordingPath: origin?.recordingPath ?? null,
+      bucket: followUpBucket(fu.dueDate, fu.dueTime, fu.status),
+    };
+  });
+}
+
+export async function getLeadHistory(phone: string, companyName: string): Promise<TelemarketingCall[]> {
+  const normPhone = normalizePhone(phone);
+  const orFilters: string[] = [];
+  if (normPhone) orFilters.push(`phone.eq.${normPhone}`);
+  if (companyName.trim()) orFilters.push(`company_name.ilike.${companyName.trim()}`);
+  if (orFilters.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from(TABLE_CALLS)
+    .select('*')
+    .or(orFilters.join(','))
+    .order('started_at', { ascending: true })
+    .limit(50);
+  if (error || !data) return [];
+  return data.map(mapCallRow);
 }
 
 export async function completeFollowUp(followUpId: string, completedBy: string): Promise<TelemarketingFollowUp> {
@@ -412,6 +480,7 @@ function mapCallRow(row: Record<string, unknown>): TelemarketingCall {
     recordingPath: (row.recording_path as string | null) ?? null,
     recordingStatus: (row.recording_status as TelemarketingCall['recordingStatus']) || 'none',
     recordingMime: (row.recording_mime as string | null) ?? null,
+    sourceFollowUpId: (row.source_followup_id as string | null) ?? null,
     clientToken: String(row.client_token),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -434,6 +503,7 @@ function mapFollowUpRow(row: Record<string, unknown>): TelemarketingFollowUp {
     status: row.status as TelemarketingFollowUp['status'],
     completedBy: (row.completed_by as string | null) ?? null,
     completedAt: (row.completed_at as string | null) ?? null,
+    closedByCallId: (row.closed_by_call_id as string | null) ?? null,
     createdAt: String(row.created_at),
   };
 }

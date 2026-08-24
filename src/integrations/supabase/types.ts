@@ -2291,6 +2291,7 @@ export type Database = {
           recording_path: string | null
           recording_status: string
           result: string | null
+          source_followup_id: string | null
           started_at: string
           status: string
           summary: string | null
@@ -2327,6 +2328,7 @@ export type Database = {
           recording_path?: string | null
           recording_status?: string
           result?: string | null
+          source_followup_id?: string | null
           started_at?: string
           status?: string
           summary?: string | null
@@ -2363,6 +2365,7 @@ export type Database = {
           recording_path?: string | null
           recording_status?: string
           result?: string | null
+          source_followup_id?: string | null
           started_at?: string
           status?: string
           summary?: string | null
@@ -2381,6 +2384,7 @@ export type Database = {
           completed_by: string | null
           contact_name: string | null
           created_at: string
+          closed_by_call_id: string | null
           due_date: string
           due_time: string | null
           id: string
@@ -2398,6 +2402,7 @@ export type Database = {
           completed_by?: string | null
           contact_name?: string | null
           created_at?: string
+          closed_by_call_id?: string | null
           due_date: string
           due_time?: string | null
           id?: string
@@ -2415,6 +2420,7 @@ export type Database = {
           completed_by?: string | null
           contact_name?: string | null
           created_at?: string
+          closed_by_call_id?: string | null
           due_date?: string
           due_time?: string | null
           id?: string

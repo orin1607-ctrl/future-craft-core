@@ -67,6 +67,7 @@ export interface TelemarketingCall extends CustomerRef {
   recordingPath: string | null;
   recordingStatus: RecordingStatus;
   recordingMime: string | null;
+  sourceFollowUpId: string | null;
   clientToken: string;
   createdAt: string;
   updatedAt: string;
@@ -87,6 +88,7 @@ export interface TelemarketingFollowUp {
   status: FollowUpStatus;
   completedBy: UUID | null;
   completedAt: string | null;
+  closedByCallId: string | null;
   createdAt: string;
 }
 
@@ -102,6 +104,7 @@ export interface StartCallPayload {
   vehicleCount?: number | null;
   city?: string;
   clientToken: string;
+  sourceFollowUpId?: string | null;
 }
 
 export interface CompleteCallReportPayload {
@@ -117,6 +120,7 @@ export interface CompleteCallReportPayload {
   followUpUrgency?: UrgencyLevel;
   managerNote?: string;
   clientToken: string;
+  sourceFollowUpId?: string | null;
 }
 
 export interface ExistingCustomerLookup {
@@ -191,4 +195,13 @@ export interface TelemarketingSettings {
   managerNotificationEmail: string;
   whatsappEnabled: boolean;
   emailEnabled: boolean;
+}
+
+export interface FollowUpWorkItem extends TelemarketingFollowUp {
+  employeeId: string;
+  employeeName: string;
+  lastResult: CallResult | null;
+  lastSummary: string | null;
+  lastRecordingPath: string | null;
+  bucket: 'late' | 'today' | 'future' | 'done';
 }
