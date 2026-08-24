@@ -23,6 +23,7 @@ export const URGENCY_LEVELS = ['רגיל', 'חשוב', 'דחוף'] as const;
 export type UrgencyLevel = (typeof URGENCY_LEVELS)[number];
 
 export type NotificationStatus = 'not_applicable' | 'pending' | 'sent' | 'failed';
+export type RecordingStatus = 'none' | 'pending' | 'ready' | 'failed';
 export type CallStatus = 'in_progress' | 'completed';
 export type FollowUpStatus = 'open' | 'done';
 
@@ -63,6 +64,9 @@ export interface TelemarketingCall extends CustomerRef {
   managerNote: string | null;
   whatsappStatus: NotificationStatus;
   emailStatus: NotificationStatus;
+  recordingPath: string | null;
+  recordingStatus: RecordingStatus;
+  recordingMime: string | null;
   clientToken: string;
   createdAt: string;
   updatedAt: string;

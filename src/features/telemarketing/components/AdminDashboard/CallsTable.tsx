@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { CallWithPriority } from '@/features/telemarketing/hooks/useTelemarketingDashboard';
+import { PlayRecordingButton } from '@/features/telemarketing/components/AdminDashboard/PlayRecordingButton';
 
 interface Props {
   calls: CallWithPriority[];
@@ -98,6 +99,7 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
               <th className="p-3 text-right font-semibold">תוצאה</th>
               <th className="p-3 text-right font-semibold">דירוג</th>
               <th className="p-3 text-right font-semibold">משך</th>
+              <th className="p-3 text-right font-semibold">הקלטה</th>
               <th className="p-3 text-right font-semibold">תאריך</th>
             </tr>
           </thead>
@@ -113,6 +115,13 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
                 <td className="p-3">{c.result || '-'}</td>
                 <td className="p-3">{c.leadRating || '-'}</td>
                 <td className="p-3 font-mono">{formatDuration(c.durationSeconds)}</td>
+                <td className="p-3">
+                  {c.recordingStatus === 'ready' && c.recordingPath ? (
+                    <PlayRecordingButton path={c.recordingPath} />
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </td>
                 <td className="p-3">{c.createdAt.slice(0, 10)}</td>
               </tr>
             ))}
@@ -123,11 +132,9 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
       <div className="space-y-2 md:hidden">
         {filtered.length === 0 && <p className="p-6 text-center text-muted-foreground">אין שיחות תואמות</p>}
         {filtered.map((c) => (
-          <button
+          <div
             key={c.id}
-            type="button"
-            onClick={() => setSelected(c)}
-            className={`w-full rounded-xl border bg-card p-3 text-right ${
+            className={`rounded-xl border bg-card ${
               c.leadRating === 'דחוף'
                 ? 'border-destructive/50'
                 : c.leadRating === 'חם'
@@ -135,17 +142,28 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
                   : 'border-border'
             }`}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-bold">{c.companyName || c.contactName || 'ללא שם'}</span>
-              <span className="text-xs text-muted-foreground">
-                {c.createdAt.slice(0, 10)} · {c.employeeName} · {formatDuration(c.durationSeconds)}
-              </span>
-            </div>
-            <div className="mt-1 text-sm">
-              {c.result || '-'} {c.leadRating ? `· ${c.leadRating}` : ''}
-              {c.isLate ? ' · באיחור' : ''}
-            </div>
-          </button>
+            <button
+              type="button"
+              onClick={() => setSelected(c)}
+              className="w-full p-3 text-right"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-bold">{c.companyName || c.contactName || 'ללא שם'}</span>
+                <span className="text-xs text-muted-foreground">
+                  {c.createdAt.slice(0, 10)} · {c.employeeName} · {formatDuration(c.durationSeconds)}
+                </span>
+              </div>
+              <div className="mt-1 text-sm">
+                {c.result || '-'} {c.leadRating ? `· ${c.leadRating}` : ''}
+                {c.isLate ? ' · באיחור' : ''}
+              </div>
+            </button>
+            {c.recordingStatus === 'ready' && c.recordingPath && (
+              <div className="border-t border-border px-3 py-2">
+                <PlayRecordingButton path={c.recordingPath} />
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
@@ -184,6 +202,11 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
               <Field label="סטטוס WhatsApp" value={selected.whatsappStatus} />
               <Field label="סטטוס Email" value={selected.emailStatus} />
             </dl>
+            {selected.recordingStatus === 'ready' && selected.recordingPath && (
+              <div className="mt-4">
+                <PlayRecordingButton path={selected.recordingPath} />
+              </div>
+            )}
           </div>
         </div>
       )}

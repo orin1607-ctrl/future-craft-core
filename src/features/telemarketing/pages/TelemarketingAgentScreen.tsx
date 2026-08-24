@@ -18,8 +18,19 @@ const EMPTY_MANUAL_CUSTOMER: CustomerRef = {
 export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee: TelemarketingEmployee }) {
   const [manualCustomer, setManualCustomer] = useState<CustomerRef>(EMPTY_MANUAL_CUSTOMER);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const { call, elapsedSeconds, draft, updateDraft, beginCall, finishCallTiming, submitReport, submitting, starting, error } =
-    useActiveCall();
+  const {
+    call,
+    elapsedSeconds,
+    draft,
+    updateDraft,
+    beginCall,
+    finishCallTiming,
+    submitReport,
+    submitting,
+    starting,
+    isRecording,
+    error,
+  } = useActiveCall();
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToast({ type, text });
@@ -158,6 +169,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         status={callStatus}
         elapsedSeconds={elapsedSeconds}
         starting={starting}
+        isRecording={isRecording}
         onStart={() => void handleStart()}
         onEnd={() => void finishCallTiming()}
       />

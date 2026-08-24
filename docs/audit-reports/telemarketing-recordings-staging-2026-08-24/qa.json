@@ -1,0 +1,45 @@
+{
+  "at": "2026-08-24T16:10:00Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "scope": "telemarketing microphone recording add-on only",
+  "unitTests": {
+    "callRecordingService": "7 passed",
+    "routeAccess": "pass — unchanged",
+    "postLoginHome": "pass — unchanged",
+    "total": "18 passed"
+  },
+  "storage": {
+    "bucket": "telemarketing-recordings",
+    "public": false,
+    "anonPolicies": [],
+    "policies": ["telemarketing_recordings_select SELECT authenticated", "telemarketing_recordings_insert INSERT authenticated"],
+    "deletePolicy": false,
+    "publicObjectUrl": "400 Bucket not found",
+    "authenticatedWithoutJwt": "400 authorization required"
+  },
+  "db": {
+    "columnsAdded": ["recording_path", "recording_status", "recording_mime"],
+    "existingCallsPreserved": true,
+    "callsCountAtBackup": 1
+  },
+  "isolation": {
+    "startCallDoesNotAwaitMic": true,
+    "endCallDoesNotAwaitUpload": true,
+    "notificationFunctionUnchanged": "notify-telemarketing-followup",
+    "noGetPublicUrl": true
+  },
+  "browser": {
+    "agentRouteUnauthenticated": "PASS — /telemarketing redirected to /login",
+    "adminRouteUnauthenticated": "PASS — /telemarketing/admin redirected to /login",
+    "mediaRecorderAvailable": true,
+    "getUserMediaAvailable": true,
+    "authenticatedMicGrant": "OPEN — requires Owner login",
+    "authenticatedPlayback": "OPEN — requires Owner login as super_admin",
+    "otherAgentIsolationLive": "OPEN — policy verified in SQL, live two-agent test needs Owner"
+  },
+  "findingsNotFixed": [
+    "Existing bucket coco-media is public. Unrelated to this task; not changed."
+  ]
+}

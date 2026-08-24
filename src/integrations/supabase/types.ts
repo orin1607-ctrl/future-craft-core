@@ -2287,6 +2287,9 @@ export type Database = {
           needs_follow_up: boolean
           next_action: string | null
           phone: string
+          recording_mime: string | null
+          recording_path: string | null
+          recording_status: string
           result: string | null
           started_at: string
           status: string
@@ -2320,6 +2323,9 @@ export type Database = {
           needs_follow_up?: boolean
           next_action?: string | null
           phone?: string
+          recording_mime?: string | null
+          recording_path?: string | null
+          recording_status?: string
           result?: string | null
           started_at?: string
           status?: string
@@ -2353,6 +2359,9 @@ export type Database = {
           needs_follow_up?: boolean
           next_action?: string | null
           phone?: string
+          recording_mime?: string | null
+          recording_path?: string | null
+          recording_status?: string
           result?: string | null
           started_at?: string
           status?: string

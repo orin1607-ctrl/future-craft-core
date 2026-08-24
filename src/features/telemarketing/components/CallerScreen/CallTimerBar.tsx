@@ -4,6 +4,7 @@ interface Props {
   status: 'idle' | 'in_progress' | 'ended';
   elapsedSeconds: number;
   starting: boolean;
+  isRecording?: boolean;
   onStart: () => void;
   onEnd: () => void;
 }
@@ -14,7 +15,7 @@ function formatMMSS(totalSeconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function CallTimerBar({ status, elapsedSeconds, starting, onStart, onEnd }: Props) {
+export function CallTimerBar({ status, elapsedSeconds, starting, isRecording = false, onStart, onEnd }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       {status === 'idle' && (
@@ -32,6 +33,11 @@ export function CallTimerBar({ status, elapsedSeconds, starting, onStart, onEnd 
       {status === 'in_progress' && (
         <div className="text-center">
           <p className="mb-2 text-sm text-muted-foreground">השיחה פעילה</p>
+          {isRecording && (
+            <p className="mb-2 text-sm font-bold text-destructive" aria-live="polite">
+              🔴 מקליט
+            </p>
+          )}
           <p className="mb-3 font-mono text-3xl font-bold text-foreground">{formatMMSS(elapsedSeconds)}</p>
           <button
             type="button"

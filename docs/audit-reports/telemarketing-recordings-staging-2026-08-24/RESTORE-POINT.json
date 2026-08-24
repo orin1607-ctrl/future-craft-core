@@ -1,0 +1,15 @@
+{
+  "at": "2026-08-24T16:05:22.779Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "rollback": [
+    "DROP POLICY IF EXISTS telemarketing_recordings_select ON storage.objects;",
+    "DROP POLICY IF EXISTS telemarketing_recordings_insert ON storage.objects;",
+    "DELETE FROM storage.objects WHERE bucket_id = 'telemarketing-recordings';",
+    "DELETE FROM storage.buckets WHERE id = 'telemarketing-recordings';",
+    "ALTER TABLE public.telemarketing_calls DROP COLUMN IF EXISTS recording_path, DROP COLUMN IF EXISTS recording_status, DROP COLUMN IF EXISTS recording_mime;"
+  ],
+  "note": "Does not drop telemarketing_calls / followups / settings. Does not touch Production."
+}

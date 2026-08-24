@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { startCall, endCall, submitCallReport } from '@/features/telemarketing/services/telemarketingService';
 import { sendFollowUpNotifications } from '@/features/telemarketing/services/notificationService';
+import {
+  startCallRecording,
+  stopCallRecording,
+  uploadCallRecording,
+  markCallRecordingStatus,
+} from '@/features/telemarketing/services/callRecordingService';
 import type {
   CallResult,
   CompleteCallReportPayload,
@@ -53,6 +59,7 @@ export function useActiveCall() {
   const [draft, setDraft] = useState<ReportDraft>(EMPTY_DRAFT);
   const [submitting, setSubmitting] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitTokenRef = useRef<string>(uuid());
@@ -105,6 +112,12 @@ export function useActiveCall() {
       setElapsedSeconds(0);
       setDraft(EMPTY_DRAFT);
       persistDraft(created.id, EMPTY_DRAFT, submitTokenRef.current);
+      void startCallRecording()
+        .then((started) => {
+          setIsRecording(started);
+          if (started) void markCallRecordingStatus(created.id, 'pending');
+        })
+        .catch(() => setIsRecording(false));
       return created;
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'שגיאה בהתחלת שיחה';
@@ -117,10 +130,34 @@ export function useActiveCall() {
 
   const finishCallTiming = useCallback(async () => {
     if (!call) return;
+    setIsRecording(false);
+    const blobPromise = stopCallRecording().catch(() => null);
     try {
       const updated = await endCall(call.id);
       setCall(updated);
       if (updated.durationSeconds != null) setElapsedSeconds(updated.durationSeconds);
+      void blobPromise.then(async (blob) => {
+        if (!blob || blob.size <= 0) return;
+        try {
+          const uploaded = await uploadCallRecording({
+            callId: updated.id,
+            employeeId: updated.employeeId,
+            blob,
+          });
+          setCall((prev) =>
+            prev && prev.id === updated.id
+              ? {
+                  ...prev,
+                  recordingPath: uploaded.path,
+                  recordingStatus: uploaded.status,
+                  recordingMime: uploaded.mime,
+                }
+              : prev,
+          );
+        } catch {
+          /* upload failure must not undo End Call */
+        }
+      });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'שגיאה בסיום שיחה');
     }
@@ -186,6 +223,7 @@ export function useActiveCall() {
       setCall(null);
       setDraft(EMPTY_DRAFT);
       setElapsedSeconds(0);
+      setIsRecording(false);
       return true;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'שגיאה בשמירת הדיווח - הנתונים שהוזנו לא אבדו, ניתן לנסות שוב');
@@ -206,6 +244,7 @@ export function useActiveCall() {
     submitReport,
     submitting,
     starting,
+    isRecording,
     error,
     setError,
   };
