@@ -3,6 +3,7 @@ import { leadKey, isUsableLeadKey } from '@/features/telemarketing/lib/leadKey';
 import { localDateStr } from '@/features/telemarketing/lib/localDate';
 import { formatOpenDuration, isChatClosed, openDurationSeconds, validateDaliaCare } from '@/features/telemarketing/lib/teamChat';
 import type { TeamChat, TeamChatMessage, TeamChatStatus, TeamChatSummary, UrgencyLevel } from '@/features/telemarketing/types';
+import { INTERNAL_CHAT_TYPE } from '@/features/telemarketing/types';
 
 export { formatOpenDuration, isChatClosed, openDurationSeconds, validateDaliaCare };
 
@@ -39,6 +40,7 @@ function mapChat(row: Record<string, unknown>, unreadCount = 0): TeamChat {
     lastMessageAt: (row.last_message_at as string | null) ?? null,
     lastMessagePreview: (row.last_message_preview as string | null) ?? null,
     unreadCount,
+    initiatedBy: row.initiated_by === 'admin' ? 'admin' : 'agent',
   };
 }
 
@@ -59,13 +61,14 @@ async function attachUnread(rows: TeamChat[], userId: string): Promise<TeamChat[
   if (rows.length === 0) return rows;
   const ids = rows.map((r) => r.id);
   const [{ data: messages }, { data: reads }] = await Promise.all([
-    supabase.from(TABLE_MESSAGES).select('chat_id, author_id, created_at').in('chat_id', ids),
+    supabase.from(TABLE_MESSAGES).select('chat_id, author_id, created_at, kind').in('chat_id', ids),
     supabase.from(TABLE_READS).select('chat_id, last_read_at').eq('user_id', userId).in('chat_id', ids),
   ]);
   const readMap = new Map((reads ?? []).map((r) => [String(r.chat_id), String(r.last_read_at)]));
   const counts = new Map<string, number>();
   for (const msg of messages ?? []) {
     if (String(msg.author_id) === userId) continue;
+    if (String(msg.kind) === 'system') continue;
     const lastRead = readMap.get(String(msg.chat_id));
     if (!lastRead || String(msg.created_at) > lastRead) {
       counts.set(String(msg.chat_id), (counts.get(String(msg.chat_id)) || 0) + 1);
@@ -144,6 +147,13 @@ export async function createTeamChat(payload: {
   if (existing) return mapChat(existing as Record<string, unknown>);
 
   const key = leadKey(payload.phone || '', payload.companyName || '');
+  const { data: userData } = await supabase.auth.getUser();
+  const actorId = userData.user?.id;
+  if (!actorId) throw new Error('יש להתחבר כדי לפתוח פנייה');
+
+  const initiatedBy = actorId === payload.agentId ? 'agent' : 'admin';
+  const status = initiatedBy === 'admin' ? 'ממתין לנציג' : 'חדש';
+
   const { data, error } = await supabase
     .from(TABLE_CHATS)
     .insert({
@@ -163,7 +173,8 @@ export async function createTeamChat(payload: {
       urgency: payload.urgency || 'רגיל',
       due_at: payload.dueDate ? `${payload.dueDate}T12:00:00` : null,
       last_call_summary: payload.lastCallSummary ?? null,
-      status: 'חדש',
+      status,
+      initiated_by: initiatedBy,
       client_token: payload.clientToken,
       last_message_at: new Date().toISOString(),
       last_message_preview: payload.requestDetail.trim().slice(0, 140),
@@ -172,14 +183,33 @@ export async function createTeamChat(payload: {
     .single();
   if (error) throw new Error(error.message);
 
-  await supabase.from(TABLE_MESSAGES).insert({
+  const { data: actorProfile } = await supabase.from('profiles').select('full_name').eq('id', actorId).maybeSingle();
+  const actorName = actorProfile?.full_name || payload.agentName;
+
+  const { error: sysErr } = await supabase.from(TABLE_MESSAGES).insert({
     chat_id: data.id,
-    author_id: payload.agentId,
-    author_name: payload.agentName,
+    author_id: actorId,
+    author_name: actorName,
     author_role: 'system',
     kind: 'system',
-    body: `נפתח טיפול: ${payload.careType}${payload.careTypeOther ? ` (${payload.careTypeOther})` : ''} — ${payload.requestDetail.trim()}`,
+    body:
+      initiatedBy === 'admin'
+        ? `מנהל פתח פנייה פנימית: ${payload.careType}${payload.careTypeOther ? ` (${payload.careTypeOther})` : ''} — ${payload.requestDetail.trim()}`
+        : `נפתח טיפול: ${payload.careType}${payload.careTypeOther ? ` (${payload.careTypeOther})` : ''} — ${payload.requestDetail.trim()}`,
   });
+  if (sysErr) throw new Error(sysErr.message);
+
+  if (initiatedBy === 'admin') {
+    const { error: msgErr } = await supabase.from(TABLE_MESSAGES).insert({
+      chat_id: data.id,
+      author_id: actorId,
+      author_name: actorName,
+      author_role: 'super_admin',
+      kind: 'user',
+      body: payload.requestDetail.trim(),
+    });
+    if (msgErr) throw new Error(msgErr.message);
+  }
 
   return mapChat(data as Record<string, unknown>);
 }
@@ -314,3 +344,38 @@ export async function getTeamChatSummary(): Promise<TeamChatSummary> {
     avgCloseSeconds: avg(closes),
   };
 }
+
+export async function getTelemarketingAgents(): Promise<{ id: string; displayName: string }[]> {
+  const { data: roles, error } = await supabase.from('user_roles').select('user_id').eq('role', 'telemarketing_agent');
+  if (error) throw new Error(error.message);
+  const ids = Array.from(new Set((roles ?? []).map((r) => String(r.user_id)).filter(Boolean)));
+  if (ids.length === 0) return [];
+  const { data: profiles } = await supabase.from('profiles').select('id, full_name, user_number').in('id', ids);
+  return (profiles ?? [])
+    .map((p) => ({ id: String(p.id), displayName: String(p.full_name || p.user_number || p.id) }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName, 'he'));
+}
+
+export async function createManagerInternalChat(payload: {
+  agentId: string;
+  agentName: string;
+  body: string;
+  urgency?: UrgencyLevel;
+  companyName?: string;
+  contactName?: string;
+  phone?: string;
+}): Promise<TeamChat> {
+  if (!payload.agentId) throw new Error('חובה לבחור עובד');
+  return createTeamChat({
+    agentId: payload.agentId,
+    agentName: payload.agentName,
+    companyName: payload.companyName,
+    contactName: payload.contactName,
+    phone: payload.phone,
+    careType: INTERNAL_CHAT_TYPE,
+    requestDetail: payload.body,
+    urgency: payload.urgency,
+    clientToken: `dalia-internal-${crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`,
+  });
+}
+

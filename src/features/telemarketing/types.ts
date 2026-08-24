@@ -315,6 +315,7 @@ export const DALIA_CARE_TYPES = [
   'אחר',
 ] as const;
 export type DaliaCareType = (typeof DALIA_CARE_TYPES)[number];
+export const INTERNAL_CHAT_TYPE = 'פנייה פנימית';
 
 export const TEAM_CHAT_STATUSES = ['חדש', 'בטיפול', 'ממתין לנציג', 'ממתין ללקוח', 'הושלם', 'ארכיון'] as const;
 export type TeamChatStatus = (typeof TEAM_CHAT_STATUSES)[number];
@@ -347,6 +348,7 @@ export interface TeamChat {
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
   unreadCount: number;
+  initiatedBy: 'agent' | 'admin';
 }
 
 export interface TeamChatMessage {

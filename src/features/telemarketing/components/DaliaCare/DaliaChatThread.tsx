@@ -97,8 +97,8 @@ export function DaliaChatThread({
   return (
     <div className="space-y-3 text-sm">
       <p className="font-black text-violet-800 dark:text-violet-300">🟣 {local.careType}{local.careTypeOther ? ` — ${local.careTypeOther}` : ''}</p>
-      <p>{local.companyName} · {local.contactName} · {local.phone}</p>
-      <p>נציג: {local.agentName} · סטטוס: {local.status} · {local.urgency}</p>
+      <p>{local.companyName || (local.initiatedBy === 'admin' ? 'פנייה פנימית' : 'ללא לקוח')}{local.contactName ? ` · ${local.contactName}` : ''}{local.phone ? ` · ${local.phone}` : ''}</p>
+      <p>נציג: {local.agentName} · סטטוס: {local.status} · {local.urgency}{local.initiatedBy === 'admin' ? ' · נפתח ע״י מנהל' : ''}</p>
       <TimeStampLines startedAt={local.openedAt} endedAt={local.closedAt} employeeName={local.agentName} />
       <OpenDurationClock openedAt={local.openedAt} closedAt={local.closedAt} />
       {local.startedAt && <p className="text-xs">תחילת טיפול: {formatStamp(local.startedAt)}</p>}

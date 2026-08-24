@@ -97,4 +97,19 @@ describe('activity report uses only real mappings', () => {
     expect(report.unmeasured.length).toBeGreaterThan(0);
     expect(report.unmeasured.every((u) => u.measured === false)).toBe(true);
   });
+
+  it('does not double-count the same call across totals', () => {
+    const report = buildActivityReport({
+      filters,
+      calls: [call({ id: 'same', result: 'מעוניין', durationSeconds: 60, leadRating: 'חם' })],
+      work: [],
+      followUps: [],
+      chats: [],
+    });
+    expect(report.totals.dialAttempts).toBe(1);
+    expect(report.totals.answered).toBe(1);
+    expect(report.totals.interested).toBe(1);
+    expect(report.totals.hotLeads).toBe(1);
+    expect(report.calls).toHaveLength(1);
+  });
 });

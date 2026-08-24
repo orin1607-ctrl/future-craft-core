@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getTeamChatBadge, getTeamChatSummary, getTeamChats, isChatClosed, formatOpenDuration } from '@/features/telemarketing/services/teamChatService';
 import { DaliaChatThread } from '@/features/telemarketing/components/DaliaCare/DaliaChatThread';
+import { DaliaManagerCompose } from '@/features/telemarketing/components/DaliaCare/DaliaManagerCompose';
 import { TEAM_CHAT_STATUSES } from '@/features/telemarketing/types';
 import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
 import type { TeamChat, TeamChatStatus, TeamChatSummary } from '@/features/telemarketing/types';
@@ -52,7 +53,7 @@ export function DaliaChatBoard({
   const types = useMemo(() => Array.from(new Set(items.map((i) => i.careType))), [items]);
   const filtered = items.filter((item) => {
     const q = search.trim().toLowerCase();
-    if (q && !`${item.companyName} ${item.contactName ?? ''} ${item.phone} ${item.agentName}`.toLowerCase().includes(q)) return false;
+    if (q && !`${item.companyName} ${item.contactName ?? ''} ${item.phone} ${item.agentName} ${item.careType} פנייה פנימית`.toLowerCase().includes(q)) return false;
     if (isAdmin && employee && item.agentName !== employee) return false;
     if (fromDate && item.openedAt.slice(0, 10) < fromDate) return false;
     if (toDate && item.openedAt.slice(0, 10) > toDate) return false;
@@ -67,7 +68,7 @@ export function DaliaChatBoard({
   return (
     <section id="dalia-care" className="space-y-3 rounded-2xl border border-violet-500/40 bg-card p-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-xl font-black">🟣 {isAdmin ? 'טיפול צוות דליה' : 'הטיפולים שהעברתי לצוות דליה'}</h2>
+        <h2 className="text-xl font-black">🟣 {isAdmin ? 'טיפול צוות דליה' : 'פניות צוות דליה'}</h2>
         {(badge.newCount > 0 || badge.unreadCount > 0) && (
           <span className="rounded-full bg-violet-700 px-3 py-1 text-sm font-bold text-white">
             🟣 {badge.newCount > 0 ? `${badge.newCount} חדשות` : ''}{badge.newCount > 0 && badge.unreadCount > 0 ? ' · ' : ''}{badge.unreadCount > 0 ? `${badge.unreadCount} הודעות` : ''}
@@ -84,6 +85,14 @@ export function DaliaChatBoard({
           <SummaryChip label="זמן תגובה ממוצע" value={formatAvg(summary.avgFirstResponseSeconds)} />
           <SummaryChip label="זמן סגירה ממוצע" value={formatAvg(summary.avgCloseSeconds)} />
         </div>
+      )}
+      {isAdmin && (
+        <DaliaManagerCompose
+          actorName={currentUserName}
+          onCreated={() => {
+            void load();
+          }}
+        />
       )}
       <div className="grid gap-2 md:grid-cols-3">
         <input placeholder="חיפוש: חברה / איש קשר / טלפון" value={search} onChange={(e) => setSearch(e.target.value)} className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm md:col-span-3" />
@@ -123,10 +132,10 @@ export function DaliaChatBoard({
               {rows.map((item) => (
                 <button key={item.id} type="button" onClick={() => setSelected(item)} className={`w-full rounded-xl border p-3 text-right ${item.status === 'ממתין לנציג' ? 'border-violet-700 bg-violet-600/20 ring-2 ring-violet-500' : 'border-violet-500/30 bg-violet-500/5'}`}>
                   <div className="flex justify-between gap-2">
-                    <span className="font-bold">{item.companyName || 'ללא שם'} · {item.careType}</span>
+                    <span className="font-bold">{item.companyName || (item.initiatedBy === 'admin' ? 'פנייה פנימית' : 'ללא לקוח')} · {item.careType}</span>
                     {item.unreadCount > 0 && <span className="rounded-full bg-violet-700 px-2 text-xs font-bold text-white">{item.unreadCount}</span>}
                   </div>
-                  <p className="text-sm">{isAdmin ? `${item.agentName} · ` : ''}{item.phone} · {item.status} · {item.urgency}</p>
+                  <p className="text-sm">{isAdmin ? `${item.agentName} · ` : ''}{item.phone || 'ללא טלפון'} · {item.status} · {item.urgency}{item.initiatedBy === 'admin' ? ' · מנהל→עובד' : ''}</p>
                   <TimeStampMeta startedAt={item.openedAt} endedAt={item.closedAt} employeeName={isAdmin ? null : item.agentName} extra={formatOpenDuration(item.openedAt, item.closedAt)} />
                   {item.lastMessagePreview && <p className="mt-1 line-clamp-2 text-xs opacity-80">{item.lastMessagePreview}</p>}
                 </button>
