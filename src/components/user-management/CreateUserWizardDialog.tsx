@@ -4,6 +4,7 @@ import {
   Building2,
   Car,
   Users,
+  Phone,
   ChevronLeft,
   Loader2,
   CheckCircle2,
@@ -47,6 +48,7 @@ const TYPE_ICONS: Record<UserCreationType, typeof User> = {
   business_customer: Building2,
   fleet_manager: Users,
   driver: Car,
+  telemarketing_agent: Phone,
 };
 
 const STEPS = ['סוג משתמש', 'פרטים', 'קוד גישה', 'סיכום'] as const;
@@ -187,6 +189,7 @@ export default function CreateUserWizardDialog({
       job_title: form.job_title || undefined,
       notes: form.notes || undefined,
       permissions: form.permissions || undefined,
+      user_number: form.user_number || undefined,
       contact_role: form.contact_role || undefined,
       activity_field: form.activity_field || undefined,
       business_id: form.business_id || undefined,

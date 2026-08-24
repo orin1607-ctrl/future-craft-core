@@ -84,5 +84,6 @@ verify_jwt = false
 [functions.document-request]
 verify_jwt = false
 
-[functions.security-collect-sources]
+[functions.notify-telemarketing-followup]
 verify_jwt = true
+

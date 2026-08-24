@@ -18,6 +18,9 @@ const ROLE_LABELS: Record<string, string> = {
   driver: 'נהג',
   fleet_manager: 'מנהל צי',
   super_admin: 'מנהל על',
+  private_customer: 'לקוח פרטי',
+  business_customer: 'לקוח עסקי',
+  telemarketing_agent: 'נציג/ת טלמיטינג',
 };
 
 const ROLE_COLORS: Record<string, string> = {

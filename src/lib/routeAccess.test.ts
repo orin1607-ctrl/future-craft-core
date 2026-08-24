@@ -39,4 +39,17 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/security-center', 'driver')).toBe(false);
     expect(canAccessRoute('/security-center', 'private_customer')).toBe(false);
   });
+
+  it('telemarketing_agent can only access telemarketing agent screen', () => {
+    expect(canAccessRoute('/telemarketing', 'telemarketing_agent')).toBe(true);
+    expect(canAccessRoute('/dashboard', 'telemarketing_agent')).toBe(true);
+    expect(canAccessRoute('/telemarketing/admin', 'telemarketing_agent')).toBe(false);
+    expect(canAccessRoute('/user-management', 'telemarketing_agent')).toBe(false);
+    expect(canAccessRoute('/vehicles', 'telemarketing_agent')).toBe(false);
+    expect(canAccessRoute('/dalia-settings', 'telemarketing_agent')).toBe(false);
+  });
+
+  it('fleet_manager cannot access telemarketing admin', () => {
+    expect(canAccessRoute('/telemarketing/admin', 'fleet_manager')).toBe(false);
+  });
 });

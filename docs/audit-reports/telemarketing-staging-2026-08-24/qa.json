@@ -1,0 +1,34 @@
+{
+  "at": "2026-08-24T15:22:00Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "unitTests": {
+    "routeAccess": "pass",
+    "postLoginHome": "pass",
+    "securityAuditLabels": "pass",
+    "total": "37 passed"
+  },
+  "db": {
+    "roleAdded": "telemarketing_agent",
+    "tables": ["telemarketing_calls", "telemarketing_followups", "telemarketing_settings"],
+    "rls": true,
+    "noDeletePolicies": true,
+    "locksTable": false,
+    "managerWhatsappDefault": "0534338601",
+    "managerEmail": ""
+  },
+  "edgeFunction": {
+    "name": "notify-telemarketing-followup",
+    "project": "usfeoerkpcafxxlyuldl",
+    "deployed": true
+  },
+  "browser": {
+    "agentRouteUnauthenticated": "PASS — /telemarketing redirected to /login",
+    "adminRouteUnauthenticated": "PASS — /telemarketing/admin redirected to /login",
+    "desktopLoginRtl": "PASS",
+    "mobileLoginRtl": "PASS — large login button, RTL",
+    "authenticatedCallFlow": "OPEN — requires Owner login as super_admin or new telemarketing_agent",
+    "followUpNotificationsLive": "OPEN — WhatsApp/Email send after first saved follow-up"
+  }
+}

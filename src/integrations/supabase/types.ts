@@ -2261,6 +2261,180 @@ export type Database = {
         }
         Relationships: []
       }
+      telemarketing_calls: {
+        Row: {
+          city: string | null
+          client_token: string
+          company_name: string
+          contact_name: string | null
+          contact_role: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          duration_seconds: number | null
+          email: string | null
+          email_status: string
+          employee_id: string
+          employee_name: string
+          ended_at: string | null
+          follow_up_date: string | null
+          follow_up_owner: string | null
+          follow_up_time: string | null
+          follow_up_urgency: string | null
+          id: string
+          lead_rating: string | null
+          manager_note: string | null
+          needs_follow_up: boolean
+          next_action: string | null
+          phone: string
+          result: string | null
+          started_at: string
+          status: string
+          summary: string | null
+          updated_at: string
+          vehicle_count: number | null
+          whatsapp_status: string
+        }
+        Insert: {
+          city?: string | null
+          client_token: string
+          company_name?: string
+          contact_name?: string | null
+          contact_role?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          duration_seconds?: number | null
+          email?: string | null
+          email_status?: string
+          employee_id: string
+          employee_name: string
+          ended_at?: string | null
+          follow_up_date?: string | null
+          follow_up_owner?: string | null
+          follow_up_time?: string | null
+          follow_up_urgency?: string | null
+          id?: string
+          lead_rating?: string | null
+          manager_note?: string | null
+          needs_follow_up?: boolean
+          next_action?: string | null
+          phone?: string
+          result?: string | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          vehicle_count?: number | null
+          whatsapp_status?: string
+        }
+        Update: {
+          city?: string | null
+          client_token?: string
+          company_name?: string
+          contact_name?: string | null
+          contact_role?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          duration_seconds?: number | null
+          email?: string | null
+          email_status?: string
+          employee_id?: string
+          employee_name?: string
+          ended_at?: string | null
+          follow_up_date?: string | null
+          follow_up_owner?: string | null
+          follow_up_time?: string | null
+          follow_up_urgency?: string | null
+          id?: string
+          lead_rating?: string | null
+          manager_note?: string | null
+          needs_follow_up?: boolean
+          next_action?: string | null
+          phone?: string
+          result?: string | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          vehicle_count?: number | null
+          whatsapp_status?: string
+        }
+        Relationships: []
+      }
+      telemarketing_followups: {
+        Row: {
+          action_needed: string
+          call_id: string
+          company_name: string
+          completed_at: string | null
+          completed_by: string | null
+          contact_name: string | null
+          created_at: string
+          due_date: string
+          due_time: string | null
+          id: string
+          manager_note: string | null
+          owner: string | null
+          phone: string
+          status: string
+          urgency: string
+        }
+        Insert: {
+          action_needed?: string
+          call_id: string
+          company_name: string
+          completed_at?: string | null
+          completed_by?: string | null
+          contact_name?: string | null
+          created_at?: string
+          due_date: string
+          due_time?: string | null
+          id?: string
+          manager_note?: string | null
+          owner?: string | null
+          phone?: string
+          status?: string
+          urgency?: string
+        }
+        Update: {
+          action_needed?: string
+          call_id?: string
+          company_name?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          contact_name?: string | null
+          created_at?: string
+          due_date?: string
+          due_time?: string | null
+          id?: string
+          manager_note?: string | null
+          owner?: string | null
+          phone?: string
+          status?: string
+          urgency?: string
+        }
+        Relationships: []
+      }
+      telemarketing_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       user_access_codes: {
         Row: {
           code_hash: string
@@ -3527,7 +3701,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "driver" | "fleet_manager" | "super_admin" | "private_customer" | "business_customer"
+      app_role: "driver" | "fleet_manager" | "super_admin" | "private_customer" | "business_customer" | "telemarketing_agent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3655,7 +3829,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["driver", "fleet_manager", "super_admin", "private_customer", "business_customer"],
+      app_role: ["driver", "fleet_manager", "super_admin", "private_customer", "business_customer", "telemarketing_agent"],
     },
   },
 } as const

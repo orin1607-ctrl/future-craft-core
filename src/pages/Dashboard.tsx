@@ -33,5 +33,9 @@ export default function Dashboard() {
     return <PrivateCustomerDashboard />;
   }
 
+  if (user.role === 'telemarketing_agent') {
+    return <Navigate to="/telemarketing" replace />;
+  }
+
   return <HomeDashboard />;
 }

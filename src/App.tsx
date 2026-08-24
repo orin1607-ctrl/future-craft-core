@@ -127,6 +127,8 @@ import VehicleTracking from "@/pages/VehicleTracking";
 import AdminHome from "@/pages/AdminHome";
 import FleetManagers from "@/pages/FleetManagers";
 import FleetOSAIPage from "@/pages/FleetOSAIPage";
+import TelemarketingAgentPage from "@/pages/TelemarketingAgentPage";
+import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
 import TransportHubPage from "@/pages/TransportHubPage";
 
 const queryClient = new QueryClient();
@@ -254,6 +256,8 @@ function AppRoutes() {
         <Route path="/vehicles" element={<Vehicles />} />
         <Route path="/drivers" element={<Drivers />} />
         <Route path="/customers" element={<Customers />} />
+        <Route path="/telemarketing" element={<TelemarketingAgentPage />} />
+        <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/faults" element={<Faults />} />
         <Route path="/handover" element={<VehicleHandover />} />

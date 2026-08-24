@@ -1,0 +1,202 @@
+import { useMemo, useState } from 'react';
+import type { CallWithPriority } from '@/features/telemarketing/hooks/useTelemarketingDashboard';
+
+interface Props {
+  calls: CallWithPriority[];
+  forcedAgentFilter?: string | null;
+}
+
+function formatDuration(seconds: number | null): string {
+  if (seconds == null) return '-';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+export function CallsTable({ calls, forcedAgentFilter }: Props) {
+  const [search, setSearch] = useState('');
+  const [agentFilter, setAgentFilter] = useState('');
+  const [resultFilter, setResultFilter] = useState('');
+  const [ratingFilter, setRatingFilter] = useState('');
+  const [selected, setSelected] = useState<CallWithPriority | null>(null);
+
+  const effectiveAgentFilter = forcedAgentFilter ?? agentFilter;
+  const agents = useMemo(() => Array.from(new Set(calls.map((c) => c.employeeName))).filter(Boolean), [calls]);
+  const results = useMemo(() => Array.from(new Set(calls.map((c) => c.result))).filter(Boolean) as string[], [calls]);
+  const ratings = useMemo(() => Array.from(new Set(calls.map((c) => c.leadRating))).filter(Boolean) as string[], [calls]);
+
+  const filtered = calls.filter((c) => {
+    if (search) {
+      const hay = `${c.companyName} ${c.contactName ?? ''} ${c.phone}`.toLowerCase();
+      if (!hay.includes(search.toLowerCase())) return false;
+    }
+    if (effectiveAgentFilter && c.employeeName !== effectiveAgentFilter) return false;
+    if (resultFilter && c.result !== resultFilter) return false;
+    if (ratingFilter && c.leadRating !== ratingFilter) return false;
+    return true;
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2 rounded-xl border border-border bg-card p-3">
+        <input
+          placeholder="חיפוש: חברה / איש קשר / טלפון"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="min-h-12 min-w-[200px] flex-1 rounded-lg border border-border bg-background p-2 text-sm"
+        />
+        <select
+          value={effectiveAgentFilter}
+          onChange={(e) => setAgentFilter(e.target.value)}
+          disabled={!!forcedAgentFilter}
+          className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm disabled:opacity-60"
+        >
+          <option value="">כל העובדים</option>
+          {agents.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
+        {forcedAgentFilter && (
+          <span className="rounded-lg bg-muted px-2 py-2 text-xs text-muted-foreground">
+            מסונן לפי כרטיס עובד — {forcedAgentFilter}
+          </span>
+        )}
+        <select
+          value={resultFilter}
+          onChange={(e) => setResultFilter(e.target.value)}
+          className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm"
+        >
+          <option value="">כל התוצאות</option>
+          {results.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+        <select
+          value={ratingFilter}
+          onChange={(e) => setRatingFilter(e.target.value)}
+          className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm"
+        >
+          <option value="">כל הדירוגים</option>
+          {ratings.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-border">
+        <table className="w-full min-w-[720px] text-sm">
+          <thead className="bg-muted/50 text-muted-foreground">
+            <tr>
+              <th className="p-3 text-right font-semibold">חברה</th>
+              <th className="p-3 text-right font-semibold">עובד</th>
+              <th className="p-3 text-right font-semibold">תוצאה</th>
+              <th className="p-3 text-right font-semibold">דירוג</th>
+              <th className="p-3 text-right font-semibold">משך</th>
+              <th className="p-3 text-right font-semibold">תאריך</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((c) => (
+              <tr
+                key={c.id}
+                onClick={() => setSelected(c)}
+                className="cursor-pointer border-t border-border hover:bg-muted/40"
+              >
+                <td className="p-3 font-semibold">{c.companyName || c.contactName || 'ללא שם'}</td>
+                <td className="p-3">{c.employeeName}</td>
+                <td className="p-3">{c.result || '-'}</td>
+                <td className="p-3">{c.leadRating || '-'}</td>
+                <td className="p-3 font-mono">{formatDuration(c.durationSeconds)}</td>
+                <td className="p-3">{c.createdAt.slice(0, 10)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="space-y-2 md:hidden">
+        {filtered.length === 0 && <p className="p-6 text-center text-muted-foreground">אין שיחות תואמות</p>}
+        {filtered.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => setSelected(c)}
+            className={`w-full rounded-xl border bg-card p-3 text-right ${
+              c.leadRating === 'דחוף'
+                ? 'border-destructive/50'
+                : c.leadRating === 'חם'
+                  ? 'border-orange-400/50'
+                  : 'border-border'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-bold">{c.companyName || c.contactName || 'ללא שם'}</span>
+              <span className="text-xs text-muted-foreground">
+                {c.createdAt.slice(0, 10)} · {c.employeeName} · {formatDuration(c.durationSeconds)}
+              </span>
+            </div>
+            <div className="mt-1 text-sm">
+              {c.result || '-'} {c.leadRating ? `· ${c.leadRating}` : ''}
+              {c.isLate ? ' · באיחור' : ''}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setSelected(null)}>
+          <div
+            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button type="button" onClick={() => setSelected(null)} className="float-left text-2xl text-muted-foreground">
+              ×
+            </button>
+            <h3 className="mb-3 text-lg font-bold">{selected.companyName}</h3>
+            <dl className="space-y-2 text-sm">
+              <Field label="עובד" value={selected.employeeName} />
+              <Field label="תאריך" value={selected.createdAt.slice(0, 10)} />
+              <Field
+                label="שעות"
+                value={`${new Date(selected.startedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })} - ${
+                  selected.endedAt
+                    ? new Date(selected.endedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+                    : '-'
+                }`}
+              />
+              <Field label="משך שיחה" value={formatDuration(selected.durationSeconds)} />
+              <Field label="איש קשר" value={selected.contactName} />
+              <Field label="טלפון" value={selected.phone} />
+              <Field label="תוצאה" value={selected.result ?? undefined} />
+              <Field label="דירוג ליד" value={selected.leadRating ?? undefined} />
+              <Field label="סיכום" value={selected.summary ?? undefined} />
+              <Field label="פעולה הבאה" value={selected.nextAction ?? undefined} />
+              <Field
+                label="מועד Follow-up"
+                value={selected.followUpDate ? `${selected.followUpDate} ${selected.followUpTime ?? ''}` : undefined}
+              />
+              <Field label="סטטוס WhatsApp" value={selected.whatsappStatus} />
+              <Field label="סטטוס Email" value={selected.emailStatus} />
+            </dl>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div>
+      <dt className="text-xs font-semibold text-muted-foreground">{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}

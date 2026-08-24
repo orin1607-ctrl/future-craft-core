@@ -718,6 +718,7 @@ Deno.serve(async (req) => {
           super_admin: 'מנהל על',
           private_customer: 'לקוח פרטי',
           business_customer: 'לקוח עסקי',
+          telemarketing_agent: 'נציג/ת טלמיטינג',
         };
 
         const notifications = superAdmins.map((sa) => ({

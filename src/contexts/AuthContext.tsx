@@ -5,7 +5,7 @@ import type { AuthSessionPayload } from '@/lib/authOtpClient';
 import { applyAuthSession } from '@/lib/authOtpClient';
 import { securityEndSession } from '@/lib/securityAuditClient';
 
-export type AppRole = 'driver' | 'fleet_manager' | 'super_admin' | 'private_customer' | 'business_customer';
+export type AppRole = 'driver' | 'fleet_manager' | 'super_admin' | 'private_customer' | 'business_customer' | 'telemarketing_agent';
 
 export interface UserProfile {
   id: string;
@@ -15,6 +15,7 @@ export interface UserProfile {
   company_name: string;
   is_active: boolean;
   role: AppRole;
+  user_number?: string | null;
 }
 
 interface AuthContextType {
@@ -25,7 +26,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signup: (email: string, password: string, metadata: { full_name: string; phone: string; company_name: string; role?: AppRole }) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
-  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null }>;
+  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null; role?: AppRole }>;
   isAuthenticated: boolean;
   isImpersonating: boolean;
   impersonate: (targetUser: UserProfile) => void;
@@ -71,6 +72,7 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       company_name: profile.company_name || '',
       is_active: profile.is_active ?? true,
       role: (roleData?.role as AppRole) || 'driver',
+      user_number: profile.user_number || null,
     };
   }
   return null;
@@ -181,6 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRealUser(profile);
       const { data: { session: s } } = await supabase.auth.getSession();
       setSession(s);
+      return { error: null, role: profile?.role };
     }
     return { error: null };
   };

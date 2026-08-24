@@ -7,7 +7,7 @@ export const edgeCorsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-export type AppRole = 'super_admin' | 'fleet_manager' | 'driver' | 'private_customer';
+export type AppRole = 'super_admin' | 'fleet_manager' | 'driver' | 'private_customer' | 'telemarketing_agent';
 
 export type AuthContext = {
   user: { id: string; email?: string };

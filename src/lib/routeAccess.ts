@@ -1,4 +1,4 @@
-export type AppRole = 'super_admin' | 'fleet_manager' | 'driver' | 'private_customer';
+export type AppRole = 'super_admin' | 'fleet_manager' | 'driver' | 'private_customer' | 'business_customer' | 'telemarketing_agent';
 
 /** Prefix routes — manager-only modules (drivers redirected to dashboard). */
 const MANAGER_PREFIXES = [
@@ -11,6 +11,7 @@ const MANAGER_PREFIXES = [
   '/dalia-crm',
   '/transport',
   '/customers',
+  '/telemarketing',
   '/routes',
   '/reports',
   '/alerts',
@@ -44,6 +45,7 @@ const SUPER_ADMIN_ONLY = [
   '/required-fields',
   '/admin/modules',
   '/emergency-settings',
+  '/telemarketing/admin',
 ];
 
 const FLEET_MANAGER_ROUTES = ['/fleetos-ai'];
@@ -69,6 +71,10 @@ export function canAccessRoute(pathname: string, role: AppRole | undefined): boo
   if (role === 'private_customer') {
     const allowed = ['/dashboard', '/service-orders', '/driver-notifications', '/settings'];
     return allowed.some((p) => path === p || path.startsWith(`${p}/`));
+  }
+
+  if (role === 'telemarketing_agent') {
+    return path === '/telemarketing' || path === '/dashboard';
   }
 
   if (role === 'fleet_manager') {

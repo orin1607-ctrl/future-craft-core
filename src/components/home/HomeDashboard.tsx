@@ -179,6 +179,16 @@ export default function HomeDashboard() {
         )}
         {isSuperAdmin && (
           <DashboardCardGate
+            path="/telemarketing/admin"
+            to="/telemarketing/admin"
+            icon={Megaphone}
+            title="טלמיטינג"
+            subtitle="שיחות · Follow-up · כרטיסי עובדים"
+            accent="primary"
+          />
+        )}
+        {isSuperAdmin && (
+          <DashboardCardGate
             path="/admin-home"
             to="/admin-home"
             icon={Shield}

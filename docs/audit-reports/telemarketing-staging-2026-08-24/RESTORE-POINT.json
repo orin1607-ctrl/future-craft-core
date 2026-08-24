@@ -1,0 +1,14 @@
+{
+  "at": "2026-08-24T15:18:37.196Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "rollback": [
+    "DROP TABLE IF EXISTS public.telemarketing_followups CASCADE;",
+    "DROP TABLE IF EXISTS public.telemarketing_calls CASCADE;",
+    "DROP TABLE IF EXISTS public.telemarketing_settings CASCADE;",
+    "NOTE: app_role value telemarketing_agent cannot be dropped in PostgreSQL."
+  ],
+  "note": "Rollback drops only new telemarketing_* objects. Does not touch customers, users, or Production."
+}
