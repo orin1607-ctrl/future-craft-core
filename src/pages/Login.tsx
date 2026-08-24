@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { consumePostLoginRedirect } from '@/lib/postLoginRedirect';
-import { homePathForRole } from '@/lib/postLoginHome';
+import { homePathForRole, postLoginPathForRole } from '@/lib/postLoginHome';
 import {
   ACCOUNT_LOCKOUT_MESSAGE,
   invokeAuthLoginChallenge,
@@ -73,7 +73,7 @@ export default function Login() {
     if (result.session) {
       const { error: sessionError, role } = await completeLoginSession(result.session);
       if (sessionError) setError(sessionError);
-      else navigate(consumePostLoginRedirect(homePathForRole(role)));
+      else navigate(postLoginPathForRole(role, consumePostLoginRedirect(homePathForRole(role))));
       return;
     }
 
@@ -99,7 +99,7 @@ export default function Login() {
 
     const { error: sessionError, role } = await completeLoginSession(result.session);
     if (sessionError) setError(sessionError);
-    else navigate(consumePostLoginRedirect(homePathForRole(role)));
+    else navigate(postLoginPathForRole(role, consumePostLoginRedirect(homePathForRole(role))));
   };
 
   const handleOtpResend = async () => {

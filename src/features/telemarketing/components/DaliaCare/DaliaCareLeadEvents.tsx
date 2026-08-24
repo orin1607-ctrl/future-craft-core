@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getTeamChatsForLead, formatOpenDuration, isChatClosed } from '@/features/telemarketing/services/teamChatService';
 import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 import { DaliaChatThread } from '@/features/telemarketing/components/DaliaCare/DaliaChatThread';
@@ -52,6 +52,25 @@ export function DaliaCareLeadEvents({
     void load().catch(() => setChats([]));
   }, [phone, companyName]);
 
+  const closeThread = useCallback(() => {
+    if (window.history.state?.daliaLeadChat) {
+      window.history.back();
+      return;
+    }
+    setOpen(null);
+  }, []);
+
+  useEffect(() => {
+    const onPop = () => setOpen(null);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const openThread = (chat: TeamChat) => {
+    window.history.pushState({ daliaLeadChat: chat.id }, '');
+    setOpen(chat);
+  };
+
   return (
     <div className="space-y-2 rounded-xl border border-violet-500/30 bg-violet-500/5 p-3">
       <div className="flex items-center justify-between gap-2">
@@ -70,7 +89,7 @@ export function DaliaCareLeadEvents({
             {chatEvents(chat).map((ev) => (
               <p key={`${chat.id}-${ev.at}-${ev.text}`}>{formatStamp(ev.at)} — {ev.text}</p>
             ))}
-            <button type="button" onClick={() => setOpen(chat)} className="mt-1 font-bold text-violet-700">
+            <button type="button" onClick={() => openThread(chat)} className="mt-1 font-bold text-violet-700">
               פתח Thread מלא
             </button>
             {isChatClosed(chat.status) && <p className="mt-1 text-muted-foreground">סגור לצמיתות — לטיפול נוסף פותחים Chat חדש</p>}
@@ -95,16 +114,18 @@ export function DaliaCareLeadEvents({
         />
       )}
       {open && actor && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={() => setOpen(null)}>
-          <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-card p-5" onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => setOpen(null)} className="float-left text-2xl text-muted-foreground">×</button>
-            <DaliaChatThread
-              chat={open}
-              currentUserId={actor.id}
-              currentUserName={actor.displayName}
-              isAdmin={!!actor.isAdmin}
-              onChanged={() => void load()}
-            />
+        <div className="fixed inset-0 z-[60] flex flex-col bg-black/50 md:items-center md:justify-center md:p-4" data-testid="dalia-chat-overlay" onClick={closeThread}>
+          <div className="flex h-full w-full flex-col bg-card md:max-h-[92vh] md:h-auto md:max-w-lg md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="overflow-y-auto p-5">
+              <DaliaChatThread
+                chat={open}
+                currentUserId={actor.id}
+                currentUserName={actor.displayName}
+                isAdmin={!!actor.isAdmin}
+                onBack={closeThread}
+                onChanged={() => void load()}
+              />
+            </div>
           </div>
         </div>
       )}

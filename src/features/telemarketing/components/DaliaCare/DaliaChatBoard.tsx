@@ -1,9 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { getTeamChatBadge, getTeamChatSummary, getTeamChats, isChatClosed, formatOpenDuration } from '@/features/telemarketing/services/teamChatService';
 import { DaliaChatThread } from '@/features/telemarketing/components/DaliaCare/DaliaChatThread';
 import { DaliaManagerCompose } from '@/features/telemarketing/components/DaliaCare/DaliaManagerCompose';
 import { TEAM_CHAT_STATUSES } from '@/features/telemarketing/types';
 import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
+import {
+  DALIA_CHAT_PARAM,
+  stripDaliaChatSearch,
+  withDaliaChatSearch,
+  type DaliaChatLocationState,
+} from '@/features/telemarketing/lib/daliaChatNav';
 import type { TeamChat, TeamChatStatus, TeamChatSummary } from '@/features/telemarketing/types';
 
 const BUCKETS: { id: TeamChatStatus | 'open'; label: string }[] = [
@@ -26,9 +33,14 @@ export function DaliaChatBoard({
   isAdmin: boolean;
   reloadToken?: number;
 }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const selectedId = searchParams.get(DALIA_CHAT_PARAM);
   const [items, setItems] = useState<TeamChat[]>([]);
   const [badge, setBadge] = useState({ newCount: 0, unreadCount: 0 });
-  const [selected, setSelected] = useState<TeamChat | null>(null);
+  const [opened, setOpened] = useState<TeamChat | null>(null);
+  const [inboxOpen, setInboxOpen] = useState(isAdmin);
   const [search, setSearch] = useState('');
   const [employee, setEmployee] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -49,6 +61,41 @@ export function DaliaChatBoard({
     void load().catch(() => setItems([]));
   }, [reloadToken, currentUserId]);
 
+  const closeChat = useCallback(() => {
+    const state = (location.state || {}) as DaliaChatLocationState;
+    if (state.daliaChatOpened && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate(
+      {
+        pathname: location.pathname,
+        search: stripDaliaChatSearch(location.search),
+        hash: state.daliaChatFrom === 'inbox' ? 'dalia-care' : '',
+      },
+      { replace: true },
+    );
+  }, [location.hash, location.pathname, location.search, location.state, navigate]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setOpened(null);
+      return;
+    }
+    const found = items.find((item) => item.id === selectedId);
+    if (found) setOpened(found);
+    if (!isAdmin) setInboxOpen(true);
+  }, [selectedId, items, isAdmin]);
+
+  useEffect(() => {
+    if (!opened) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeChat();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [opened, closeChat]);
+
   const employees = useMemo(() => Array.from(new Set(items.map((i) => i.agentName))), [items]);
   const types = useMemo(() => Array.from(new Set(items.map((i) => i.careType))), [items]);
   const filtered = items.filter((item) => {
@@ -65,16 +112,50 @@ export function DaliaChatBoard({
     return true;
   });
 
+  const openChat = (item: TeamChat, from: 'inbox' | 'home') => {
+    setOpened(item);
+    if (!isAdmin) setInboxOpen(true);
+    const state: DaliaChatLocationState = { daliaChatOpened: true, daliaChatFrom: from };
+    navigate(
+      {
+        pathname: location.pathname,
+        search: withDaliaChatSearch(location.search, item.id),
+        hash: from === 'inbox' ? 'dalia-care' : '',
+      },
+      { state },
+    );
+  };
+
+  const showList = isAdmin || inboxOpen;
+
   return (
     <section id="dalia-care" className="space-y-3 rounded-2xl border border-violet-500/40 bg-card p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-xl font-black">🟣 {isAdmin ? 'טיפול צוות דליה' : 'פניות צוות דליה'}</h2>
         {(badge.newCount > 0 || badge.unreadCount > 0) && (
-          <span className="rounded-full bg-violet-700 px-3 py-1 text-sm font-bold text-white">
+          <button
+            type="button"
+            data-testid="dalia-inbox-badge"
+            onClick={() => {
+              if (!isAdmin) setInboxOpen(true);
+              document.getElementById('dalia-care')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="rounded-full bg-violet-700 px-3 py-1 text-sm font-bold text-white"
+          >
             🟣 {badge.newCount > 0 ? `${badge.newCount} חדשות` : ''}{badge.newCount > 0 && badge.unreadCount > 0 ? ' · ' : ''}{badge.unreadCount > 0 ? `${badge.unreadCount} הודעות` : ''}
-          </span>
+          </button>
         )}
       </div>
+      {!isAdmin && (
+        <button
+          type="button"
+          data-testid="dalia-toggle-inbox"
+          onClick={() => setInboxOpen((open) => !open)}
+          className="min-h-12 w-full rounded-xl border border-violet-500/40 bg-violet-500/10 px-4 font-bold text-violet-900 dark:text-violet-200"
+        >
+          {inboxOpen ? 'הסתר רשימת פניות' : 'הצג פניות צוות דליה'}
+        </button>
+      )}
       {isAdmin && summary && (
         <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
           <SummaryChip label="חדשות היום" value={String(summary.newToday)} />
@@ -94,6 +175,8 @@ export function DaliaChatBoard({
           }}
         />
       )}
+      {showList && (
+        <>
       <div className="grid gap-2 md:grid-cols-3">
         <input placeholder="חיפוש: חברה / איש קשר / טלפון" value={search} onChange={(e) => setSearch(e.target.value)} className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm md:col-span-3" />
         {isAdmin && (
@@ -130,7 +213,13 @@ export function DaliaChatBoard({
             {rows.length === 0 && <p className="mb-3 text-sm text-muted-foreground">אין רשומות</p>}
             <div className="space-y-2">
               {rows.map((item) => (
-                <button key={item.id} type="button" onClick={() => setSelected(item)} className={`w-full rounded-xl border p-3 text-right ${item.status === 'ממתין לנציג' ? 'border-violet-700 bg-violet-600/20 ring-2 ring-violet-500' : 'border-violet-500/30 bg-violet-500/5'}`}>
+                <button
+                  key={item.id}
+                  type="button"
+                  data-testid="dalia-chat-row"
+                  onClick={() => openChat(item, 'inbox')}
+                  className={`w-full rounded-xl border p-3 text-right ${item.status === 'ממתין לנציג' ? 'border-violet-700 bg-violet-600/20 ring-2 ring-violet-500' : 'border-violet-500/30 bg-violet-500/5'}`}
+                >
                   <div className="flex justify-between gap-2">
                     <span className="font-bold">{item.companyName || (item.initiatedBy === 'admin' ? 'פנייה פנימית' : 'ללא לקוח')} · {item.careType}</span>
                     {item.unreadCount > 0 && <span className="rounded-full bg-violet-700 px-2 text-xs font-bold text-white">{item.unreadCount}</span>}
@@ -144,19 +233,30 @@ export function DaliaChatBoard({
           </div>
         );
       })}
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setSelected(null)}>
-          <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-card p-5" onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => setSelected(null)} className="float-left text-2xl text-muted-foreground">×</button>
-            <DaliaChatThread
-              chat={selected}
-              currentUserId={currentUserId}
-              currentUserName={currentUserName}
-              isAdmin={isAdmin}
-              onChanged={() => {
-                void load();
-              }}
-            />
+        </>
+      )}
+      {opened && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-black/50 md:items-center md:justify-center md:p-4"
+          data-testid="dalia-chat-overlay"
+          onClick={closeChat}
+        >
+          <div
+            className="flex h-full w-full flex-col bg-card md:max-h-[92vh] md:h-auto md:max-w-lg md:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="overflow-y-auto p-5">
+              <DaliaChatThread
+                chat={opened}
+                currentUserId={currentUserId}
+                currentUserName={currentUserName}
+                isAdmin={isAdmin}
+                onBack={closeChat}
+                onChanged={() => {
+                  void load();
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -179,4 +279,3 @@ function SummaryChip({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-

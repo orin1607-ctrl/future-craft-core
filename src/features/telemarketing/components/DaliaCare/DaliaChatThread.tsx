@@ -29,12 +29,16 @@ export function DaliaChatThread({
   currentUserName,
   isAdmin,
   onChanged,
+  onBack,
+  backLabel,
 }: {
   chat: TeamChat;
   currentUserId: string;
   currentUserName: string;
   isAdmin: boolean;
   onChanged?: () => void;
+  onBack?: () => void;
+  backLabel?: string;
 }) {
   const [local, setLocal] = useState(chat);
   const [messages, setMessages] = useState<TeamChatMessage[]>([]);
@@ -94,8 +98,32 @@ export function DaliaChatThread({
     }
   };
 
+  const closeLabel = backLabel || (isAdmin ? 'חזרה לרשימת הפניות' : 'חזרה למסך העובד');
+
   return (
     <div className="space-y-3 text-sm">
+      {onBack && (
+        <div className="sticky top-0 z-10 -mx-1 space-y-2 bg-card pb-2">
+          <button
+            type="button"
+            data-testid="dalia-back-telemarketing"
+            onClick={onBack}
+            className="min-h-12 w-full rounded-xl bg-primary px-4 text-base font-black text-primary-foreground"
+          >
+            {isAdmin ? closeLabel : 'חזרה לטלמיטינג'}
+          </button>
+          {!isAdmin && (
+            <button
+              type="button"
+              data-testid="dalia-back-agent-home"
+              onClick={onBack}
+              className="min-h-11 w-full rounded-xl border border-border px-4 text-sm font-bold"
+            >
+              חזרה למסך העובד
+            </button>
+          )}
+        </div>
+      )}
       <p className="font-black text-violet-800 dark:text-violet-300">🟣 {local.careType}{local.careTypeOther ? ` — ${local.careTypeOther}` : ''}</p>
       <p>{local.companyName || (local.initiatedBy === 'admin' ? 'פנייה פנימית' : 'ללא לקוח')}{local.contactName ? ` · ${local.contactName}` : ''}{local.phone ? ` · ${local.phone}` : ''}</p>
       <p>נציג: {local.agentName} · סטטוס: {local.status} · {local.urgency}{local.initiatedBy === 'admin' ? ' · נפתח ע״י מנהל' : ''}</p>
@@ -147,6 +175,15 @@ export function DaliaChatThread({
         </button>
       )}
       {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="min-h-12 w-full rounded-xl border border-border font-bold"
+        >
+          {isAdmin ? closeLabel : 'חזרה לטלמיטינג'}
+        </button>
+      )}
     </div>
   );
 }

@@ -25,6 +25,7 @@ export function CallTimerBar({ status, elapsedSeconds, starting, isRecording = f
       {status === 'idle' && (
         <button
           type="button"
+          data-testid="tele-start-call"
           onClick={onStart}
           disabled={starting}
           className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-4 text-lg font-bold text-white active:scale-[0.99] disabled:opacity-50"

@@ -184,7 +184,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         </div>
       )}
 
-      <div>
+      <div data-testid="telemarketing-agent-home">
         <h1 className="text-2xl font-black">טלמיטינג</h1>
         <p className="text-sm text-muted-foreground">
           {currentEmployee.displayName}
@@ -192,11 +192,14 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         </p>
         {showIdleBoards && (
           <>
-            <a href="#my-followups" className="mt-2 inline-block text-sm font-bold text-primary">
+            <a href="#new-lead" className="mt-2 inline-block text-sm font-bold text-primary">
+              לקוח / ליד חדש ↓
+            </a>
+            <a href="#my-followups" className="mt-2 mr-3 inline-block text-sm font-bold text-primary">
               לחזרות שלי ↓
             </a>
             <a href="#dalia-care" className="mt-2 mr-3 inline-block text-sm font-bold text-violet-700">
-              🟣 הטיפולים שלי ↓
+              🟣 פניות צוות דליה ↓
             </a>
           </>
         )}
@@ -227,20 +230,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
       )}
 
       {showIdleBoards && (
-        <DaliaChatBoard
-          currentUserId={currentEmployee.id}
-          currentUserName={currentEmployee.displayName}
-          isAdmin={false}
-          reloadToken={followUpReload}
-        />
-      )}
-
-      {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} />}
-
-      {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter />}
-
-      {showIdleBoards && (
-        <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+        <div id="new-lead" className="space-y-2 rounded-2xl border border-border bg-card p-4">
           <p className="text-base font-black">לקוח / ליד חדש</p>
           <p className="text-xs text-muted-foreground">
             מילאו שם חברה או טלפון, ואז לחצו התחל שיחה. לא נוצר לקוח במערכת הראשית — רק ליד לשיחה.
@@ -340,6 +330,19 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
             <p className="rounded-lg bg-destructive/10 p-2 text-sm font-semibold text-destructive">{error || workError}</p>
           )}
         </div>
+      )}
+
+      {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} />}
+
+      {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter />}
+
+      {showIdleBoards && (
+        <DaliaChatBoard
+          currentUserId={currentEmployee.id}
+          currentUserName={currentEmployee.displayName}
+          isAdmin={false}
+          reloadToken={followUpReload}
+        />
       )}
 
       {callStatus === 'ended' && (
