@@ -30,7 +30,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     starting,
     isRecording,
     error,
-  } = useActiveCall();
+  } = useActiveCall(currentEmployee.id);
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToast({ type, text });
@@ -55,8 +55,8 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         vehicleCount: manualCustomer.vehicleCount,
         city: manualCustomer.city,
       });
-    } catch {
-      showToast('error', 'שגיאה בהתחלת שיחה');
+    } catch (e) {
+      showToast('error', e instanceof Error ? e.message : 'שגיאה בהתחלת שיחה');
     }
   };
 
@@ -96,61 +96,102 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
 
       {showManualForm && (
         <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs font-semibold text-muted-foreground">הזנת לקוח לשיחה</p>
-          <input
-            placeholder="שם החברה"
-            value={manualCustomer.companyName}
-            onChange={(e) => setManualCustomer((c) => ({ ...c, companyName: e.target.value }))}
-            className="min-h-12 w-full rounded-lg border border-border bg-background p-3"
+          <p className="text-base font-black">לקוח / ליד חדש</p>
+          <p className="text-xs text-muted-foreground">
+            מילאו שם חברה או טלפון, ואז לחצו התחל שיחה. לא נוצר לקוח במערכת הראשית — רק ליד לשיחה.
+          </p>
+          <label className="block text-xs font-semibold text-muted-foreground">
+            שם החברה
+            <input
+              placeholder="שם החברה"
+              value={manualCustomer.companyName}
+              onChange={(e) => setManualCustomer((c) => ({ ...c, companyName: e.target.value }))}
+              className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3 text-base font-normal text-foreground"
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block text-xs font-semibold text-muted-foreground">
+              איש קשר
+              <input
+                placeholder="איש קשר"
+                value={manualCustomer.contactName}
+                onChange={(e) => setManualCustomer((c) => ({ ...c, contactName: e.target.value }))}
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3 text-base font-normal text-foreground"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-muted-foreground">
+              תפקיד
+              <input
+                placeholder="תפקיד"
+                value={manualCustomer.contactRole}
+                onChange={(e) => setManualCustomer((c) => ({ ...c, contactRole: e.target.value }))}
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3 text-base font-normal text-foreground"
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block text-xs font-semibold text-muted-foreground">
+              טלפון
+              <input
+                placeholder="טלפון"
+                value={manualCustomer.phone}
+                onChange={(e) => setManualCustomer((c) => ({ ...c, phone: e.target.value }))}
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3 text-base font-normal text-foreground"
+                dir="ltr"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-muted-foreground">
+              אימייל
+              <input
+                placeholder="אימייל"
+                value={manualCustomer.email}
+                onChange={(e) => setManualCustomer((c) => ({ ...c, email: e.target.value }))}
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3 text-base font-normal text-foreground"
+                dir="ltr"
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block text-xs font-semibold text-muted-foreground">
+              מס' רכבים
+              <input
+                placeholder="מס' רכבים"
+                type="number"
+                value={manualCustomer.vehicleCount ?? ''}
+                onChange={(e) =>
+                  setManualCustomer((c) => ({ ...c, vehicleCount: e.target.value ? Number(e.target.value) : null }))
+                }
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3 text-base font-normal text-foreground"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-muted-foreground">
+              עיר
+              <input
+                placeholder="עיר"
+                value={manualCustomer.city}
+                onChange={(e) => setManualCustomer((c) => ({ ...c, city: e.target.value }))}
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3 text-base font-normal text-foreground"
+              />
+            </label>
+          </div>
+          {error && !call && (
+            <p className="rounded-lg bg-destructive/10 p-2 text-sm font-semibold text-destructive">{error}</p>
+          )}
+          <CallTimerBar
+            status="idle"
+            elapsedSeconds={elapsedSeconds}
+            starting={starting}
+            isRecording={false}
+            onStart={() => void handleStart()}
+            onEnd={() => void finishCallTiming()}
           />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              placeholder="איש קשר"
-              value={manualCustomer.contactName}
-              onChange={(e) => setManualCustomer((c) => ({ ...c, contactName: e.target.value }))}
-              className="min-h-12 rounded-lg border border-border bg-background p-3"
-            />
-            <input
-              placeholder="תפקיד"
-              value={manualCustomer.contactRole}
-              onChange={(e) => setManualCustomer((c) => ({ ...c, contactRole: e.target.value }))}
-              className="min-h-12 rounded-lg border border-border bg-background p-3"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              placeholder="טלפון"
-              value={manualCustomer.phone}
-              onChange={(e) => setManualCustomer((c) => ({ ...c, phone: e.target.value }))}
-              className="min-h-12 rounded-lg border border-border bg-background p-3"
-              dir="ltr"
-            />
-            <input
-              placeholder="אימייל"
-              value={manualCustomer.email}
-              onChange={(e) => setManualCustomer((c) => ({ ...c, email: e.target.value }))}
-              className="min-h-12 rounded-lg border border-border bg-background p-3"
-              dir="ltr"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              placeholder="מס' רכבים"
-              type="number"
-              value={manualCustomer.vehicleCount ?? ''}
-              onChange={(e) =>
-                setManualCustomer((c) => ({ ...c, vehicleCount: e.target.value ? Number(e.target.value) : null }))
-              }
-              className="min-h-12 rounded-lg border border-border bg-background p-3"
-            />
-            <input
-              placeholder="עיר"
-              value={manualCustomer.city}
-              onChange={(e) => setManualCustomer((c) => ({ ...c, city: e.target.value }))}
-              className="min-h-12 rounded-lg border border-border bg-background p-3"
-            />
-          </div>
         </div>
+      )}
+
+      {callStatus === 'ended' && (
+        <p className="rounded-xl border border-amber-400/40 bg-amber-50 p-3 text-sm font-semibold dark:bg-amber-950/30">
+          יש להשלים דיווח למטה לפני מעבר ללקוח / ליד הבא
+        </p>
       )}
 
       {(call || manualCustomer.companyName || manualCustomer.phone) && (
@@ -165,14 +206,16 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         } : manualCustomer} />
       )}
 
-      <CallTimerBar
-        status={callStatus}
-        elapsedSeconds={elapsedSeconds}
-        starting={starting}
-        isRecording={isRecording}
-        onStart={() => void handleStart()}
-        onEnd={() => void finishCallTiming()}
-      />
+      {callStatus !== 'idle' && (
+        <CallTimerBar
+          status={callStatus}
+          elapsedSeconds={elapsedSeconds}
+          starting={starting}
+          isRecording={isRecording}
+          onStart={() => void handleStart()}
+          onEnd={() => void finishCallTiming()}
+        />
+      )}
 
       {reportOpen && (
         <CallReportForm

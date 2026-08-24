@@ -55,6 +55,19 @@ export async function startCall(payload: StartCallPayload): Promise<Telemarketin
   return mapCallRow(data);
 }
 
+export async function getOpenCallForEmployee(employeeId: string): Promise<TelemarketingCall | null> {
+  const { data, error } = await supabase
+    .from(TABLE_CALLS)
+    .select('*')
+    .eq('employee_id', employeeId)
+    .eq('status', 'in_progress')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapCallRow(data);
+}
+
 export async function endCall(callId: string): Promise<TelemarketingCall> {
   const { data: current, error: fetchErr } = await supabase
     .from(TABLE_CALLS)

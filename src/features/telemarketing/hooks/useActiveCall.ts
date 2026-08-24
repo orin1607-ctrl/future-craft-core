@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { startCall, endCall, submitCallReport } from '@/features/telemarketing/services/telemarketingService';
+import { startCall, endCall, submitCallReport, getOpenCallForEmployee } from '@/features/telemarketing/services/telemarketingService';
 import { sendFollowUpNotifications } from '@/features/telemarketing/services/notificationService';
 import {
   startCallRecording,
@@ -53,7 +53,7 @@ const EMPTY_DRAFT: ReportDraft = {
   managerNote: '',
 };
 
-export function useActiveCall() {
+export function useActiveCall(employeeId?: string) {
   const [call, setCall] = useState<TelemarketingCall | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [draft, setDraft] = useState<ReportDraft>(EMPTY_DRAFT);
@@ -80,6 +80,23 @@ export function useActiveCall() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!employeeId) return;
+    let cancelled = false;
+    void getOpenCallForEmployee(employeeId).then((open) => {
+      if (cancelled || !open) return;
+      setCall(open);
+      if (open.endedAt && open.durationSeconds != null) {
+        setElapsedSeconds(open.durationSeconds);
+      } else {
+        setElapsedSeconds(Math.max(0, Math.floor((Date.now() - new Date(open.startedAt).getTime()) / 1000)));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [employeeId]);
+
   const persistDraft = useCallback((callId: string, nextDraft: ReportDraft, clientToken: string) => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({ callId, draft: nextDraft, clientToken }));
   }, []);
@@ -89,7 +106,7 @@ export function useActiveCall() {
   }, []);
 
   useEffect(() => {
-    if (call && call.status === 'in_progress') {
+    if (call && !call.endedAt) {
       timerRef.current = setInterval(() => {
         setElapsedSeconds(Math.floor((Date.now() - new Date(call.startedAt).getTime()) / 1000));
       }, 1000);
@@ -104,9 +121,15 @@ export function useActiveCall() {
   const beginCall = useCallback(async (payload: Omit<StartCallPayload, 'clientToken'>) => {
     setStarting(true);
     setError(null);
-    const clientToken = uuid();
-    submitTokenRef.current = uuid();
     try {
+      const open = employeeId ? await getOpenCallForEmployee(employeeId) : null;
+      if (open) {
+        setCall(open);
+        if (open.endedAt && open.durationSeconds != null) setElapsedSeconds(open.durationSeconds);
+        throw new Error('יש שיחה פתוחה — יש להשלים דיווח לפני לקוח חדש');
+      }
+      const clientToken = uuid();
+      submitTokenRef.current = uuid();
       const created = await startCall({ ...payload, clientToken });
       setCall(created);
       setElapsedSeconds(0);
@@ -126,7 +149,7 @@ export function useActiveCall() {
     } finally {
       setStarting(false);
     }
-  }, [persistDraft]);
+  }, [persistDraft, employeeId]);
 
   const finishCallTiming = useCallback(async () => {
     if (!call) return;
