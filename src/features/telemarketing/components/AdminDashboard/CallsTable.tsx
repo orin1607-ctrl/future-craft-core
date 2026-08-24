@@ -1,17 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { CallWithPriority } from '@/features/telemarketing/hooks/useTelemarketingDashboard';
 import { PlayRecordingButton } from '@/features/telemarketing/components/AdminDashboard/PlayRecordingButton';
+import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
+import { formatClock, formatDay, formatDurationSeconds, formatStamp } from '@/features/telemarketing/lib/formatTime';
 
 interface Props {
   calls: CallWithPriority[];
   forcedAgentFilter?: string | null;
-}
-
-function formatDuration(seconds: number | null): string {
-  if (seconds == null) return '-';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 export function CallsTable({ calls, forcedAgentFilter }: Props) {
@@ -98,6 +93,8 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
               <th className="p-3 text-right font-semibold">עובד</th>
               <th className="p-3 text-right font-semibold">תוצאה</th>
               <th className="p-3 text-right font-semibold">דירוג</th>
+              <th className="p-3 text-right font-semibold">התחלה</th>
+              <th className="p-3 text-right font-semibold">סיום</th>
               <th className="p-3 text-right font-semibold">משך</th>
               <th className="p-3 text-right font-semibold">הקלטה</th>
               <th className="p-3 text-right font-semibold">תאריך</th>
@@ -114,7 +111,9 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
                 <td className="p-3">{c.employeeName}</td>
                 <td className="p-3">{c.result || '-'}</td>
                 <td className="p-3">{c.leadRating || '-'}</td>
-                <td className="p-3 font-mono">{formatDuration(c.durationSeconds)}</td>
+                <td className="p-3 font-mono">{formatClock(c.startedAt)}</td>
+                <td className="p-3 font-mono">{c.endedAt ? formatClock(c.endedAt) : 'פעיל'}</td>
+                <td className="p-3 font-mono">{formatDurationSeconds(c.durationSeconds)}</td>
                 <td className="p-3">
                   {c.recordingStatus === 'ready' && c.recordingPath ? (
                     <PlayRecordingButton path={c.recordingPath} />
@@ -122,7 +121,7 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
                     <span className="text-muted-foreground">-</span>
                   )}
                 </td>
-                <td className="p-3">{c.createdAt.slice(0, 10)}</td>
+                <td className="p-3">{formatDay(c.startedAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -149,10 +148,8 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-bold">{c.companyName || c.contactName || 'ללא שם'}</span>
-                <span className="text-xs text-muted-foreground">
-                  {c.createdAt.slice(0, 10)} · {c.employeeName} · {formatDuration(c.durationSeconds)}
-                </span>
               </div>
+              <TimeStampMeta startedAt={c.startedAt} endedAt={c.endedAt} durationSeconds={c.durationSeconds} employeeName={c.employeeName} />
               <div className="mt-1 text-sm">
                 {c.result || '-'} {c.leadRating ? `· ${c.leadRating}` : ''}
                 {c.isLate ? ' · באיחור' : ''}
@@ -179,16 +176,10 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
             <h3 className="mb-3 text-lg font-bold">{selected.companyName}</h3>
             <dl className="space-y-2 text-sm">
               <Field label="עובד" value={selected.employeeName} />
-              <Field label="תאריך" value={selected.createdAt.slice(0, 10)} />
-              <Field
-                label="שעות"
-                value={`${new Date(selected.startedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })} - ${
-                  selected.endedAt
-                    ? new Date(selected.endedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
-                    : '-'
-                }`}
-              />
-              <Field label="משך שיחה" value={formatDuration(selected.durationSeconds)} />
+              <Field label="תאריך שיחה" value={formatDay(selected.startedAt)} />
+              <Field label="שעת התחלה" value={formatStamp(selected.startedAt)} />
+              <Field label="שעת סיום" value={selected.endedAt ? formatStamp(selected.endedAt) : 'פעיל'} />
+              <Field label="משך שיחה" value={formatDurationSeconds(selected.durationSeconds)} />
               <Field label="איש קשר" value={selected.contactName} />
               <Field label="טלפון" value={selected.phone} />
               <Field label="תוצאה" value={selected.result ?? undefined} />

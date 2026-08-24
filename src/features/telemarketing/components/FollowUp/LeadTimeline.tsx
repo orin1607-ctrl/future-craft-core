@@ -3,14 +3,9 @@ import { getLeadHistory } from '@/features/telemarketing/services/telemarketingS
 import { getWorkSessionsForLead } from '@/features/telemarketing/services/workSessionService';
 import { PlayRecordingButton } from '@/features/telemarketing/components/AdminDashboard/PlayRecordingButton';
 import { DaliaCareLeadEvents } from '@/features/telemarketing/components/DaliaCare/DaliaCareLeadEvents';
+import { TimeStampLines } from '@/features/telemarketing/components/TimeStampMeta';
+import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 import type { FollowUpWorkItem, TelemarketingCall, TelemarketingWorkSession } from '@/features/telemarketing/types';
-
-function formatDuration(seconds: number | null): string {
-  if (seconds == null) return '-';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
 
 export function LeadTimeline({
   followUp,
@@ -52,7 +47,9 @@ export function LeadTimeline({
         <Field label="איש קשר" value={followUp.contactName} />
         <Field label="טלפון" value={followUp.phone} />
         <Field label="נציג" value={followUp.employeeName} />
+        <Field label="נוצר" value={formatStamp(followUp.createdAt)} />
         <Field label="מועד חזרה" value={`${followUp.dueDate}${followUp.dueTime ? ` ${followUp.dueTime}` : ''}`} />
+        {followUp.completedAt && <Field label="הושלם" value={formatStamp(followUp.completedAt)} />}
         <Field label="דחיפות" value={followUp.urgency} />
         <Field label="תוצאה אחרונה" value={followUp.lastResult ?? undefined} />
       </dl>
@@ -77,15 +74,9 @@ export function LeadTimeline({
           {history.map((c, index) => (
             <li key={c.id} className="rounded-xl border border-border bg-background p-3">
               <p className="font-bold">
-                שיחה {index + 1} · {c.startedAt.slice(0, 10)} · {c.employeeName}
+                שיחה {index + 1} · {c.result || 'ללא תוצאה'}
               </p>
-              <p className="text-muted-foreground">
-                {new Date(c.startedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                {c.endedAt
-                  ? ` - ${new Date(c.endedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`
-                  : ''}{' '}
-                · משך {formatDuration(c.durationSeconds)} · {c.result || 'ללא תוצאה'}
-              </p>
+              <TimeStampLines startedAt={c.startedAt} endedAt={c.endedAt} durationSeconds={c.durationSeconds} employeeName={c.employeeName} />
               {c.summary && <p className="mt-1">{c.summary}</p>}
               {c.recordingStatus === 'ready' && c.recordingPath && (
                 <div className="mt-2">
@@ -103,8 +94,8 @@ export function LeadTimeline({
           <ol className="space-y-2">
             {work.map((session) => (
               <li key={session.id} className="rounded-xl border border-border bg-background p-3">
-                <p className="font-bold">{session.taskType || 'משימה'} · {session.startedAt.slice(0, 10)}</p>
-                <p className="text-muted-foreground">משך {formatDuration(session.durationSeconds)}</p>
+                <p className="font-bold">{session.taskType || 'משימה'}</p>
+                <TimeStampLines startedAt={session.startedAt} endedAt={session.endedAt} durationSeconds={session.durationSeconds} employeeName={session.employeeName} />
                 {session.description && <p className="mt-1">{session.description}</p>}
               </li>
             ))}

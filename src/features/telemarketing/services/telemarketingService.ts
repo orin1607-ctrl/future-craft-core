@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { createTeamChatIfNeeded } from '@/features/telemarketing/services/teamChatService';
 import { followUpBucket, localDateStr } from '@/features/telemarketing/lib/localDate';
+import { formatClock, formatDay } from '@/features/telemarketing/lib/formatTime';
 import { leadKey } from '@/features/telemarketing/lib/leadKey';
 import { suggestedLeadTraffic } from '@/features/telemarketing/lib/leadTraffic';
 import { closeOpenFollowUpsForLead, getLeadStates, upsertLeadState } from '@/features/telemarketing/services/leadStateService';
@@ -302,7 +303,7 @@ export async function checkExistingCustomer(phone: string, companyName: string):
     .select('*')
     .or(orFilters.join(','))
     .eq('status', 'completed')
-    .order('created_at', { ascending: false })
+    .order('started_at', { ascending: false })
     .limit(1);
 
   if (error || !data || data.length === 0) return { found: false };
@@ -315,12 +316,13 @@ export async function checkExistingCustomer(phone: string, companyName: string):
     .eq('status', 'open')
     .maybeSingle();
 
+  const lastStarted = String(last.started_at || last.created_at || '');
   return {
     found: true,
     companyName: last.company_name,
     contactName: last.contact_name ?? undefined,
-    lastCallDate: last.created_at?.slice(0, 10),
-    lastCallTime: last.created_at?.slice(11, 16),
+    lastCallDate: lastStarted ? formatDay(lastStarted) : undefined,
+    lastCallTime: lastStarted ? formatClock(lastStarted) : undefined,
     lastResult: last.result as CallResult,
     lastSummary: last.summary ?? undefined,
     openFollowUp: openFollowUp ? { dueDate: openFollowUp.due_date, actionNeeded: openFollowUp.action_needed } : null,

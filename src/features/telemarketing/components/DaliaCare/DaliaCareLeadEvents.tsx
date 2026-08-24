@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getTeamChatsForLead, formatOpenDuration, isChatClosed } from '@/features/telemarketing/services/teamChatService';
+import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 import { DaliaChatThread } from '@/features/telemarketing/components/DaliaCare/DaliaChatThread';
 import { DaliaCareCreateForm } from '@/features/telemarketing/components/DaliaCare/DaliaCareCreateForm';
 import type { TeamChat } from '@/features/telemarketing/types';
@@ -67,7 +68,7 @@ export function DaliaCareLeadEvents({
           <li key={chat.id} className="rounded-lg border border-violet-500/20 bg-background p-2 text-xs">
             <p className="font-bold">{chat.careType} · {chat.status} · {formatOpenDuration(chat.openedAt, chat.closedAt)}</p>
             {chatEvents(chat).map((ev) => (
-              <p key={`${chat.id}-${ev.at}-${ev.text}`}>{new Date(ev.at).toLocaleString('he-IL')} — {ev.text}</p>
+              <p key={`${chat.id}-${ev.at}-${ev.text}`}>{formatStamp(ev.at)} — {ev.text}</p>
             ))}
             <button type="button" onClick={() => setOpen(chat)} className="mt-1 font-bold text-violet-700">
               פתח Thread מלא

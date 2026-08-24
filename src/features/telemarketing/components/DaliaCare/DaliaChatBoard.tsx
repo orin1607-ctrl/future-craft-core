@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getTeamChatBadge, getTeamChatSummary, getTeamChats, isChatClosed, formatOpenDuration } from '@/features/telemarketing/services/teamChatService';
 import { DaliaChatThread } from '@/features/telemarketing/components/DaliaCare/DaliaChatThread';
 import { TEAM_CHAT_STATUSES } from '@/features/telemarketing/types';
+import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
 import type { TeamChat, TeamChatStatus, TeamChatSummary } from '@/features/telemarketing/types';
 
 const BUCKETS: { id: TeamChatStatus | 'open'; label: string }[] = [
@@ -126,7 +127,7 @@ export function DaliaChatBoard({
                     {item.unreadCount > 0 && <span className="rounded-full bg-violet-700 px-2 text-xs font-bold text-white">{item.unreadCount}</span>}
                   </div>
                   <p className="text-sm">{isAdmin ? `${item.agentName} · ` : ''}{item.phone} · {item.status} · {item.urgency}</p>
-                  <p className="text-xs">{formatOpenDuration(item.openedAt, item.closedAt)}</p>
+                  <TimeStampMeta startedAt={item.openedAt} endedAt={item.closedAt} employeeName={isAdmin ? null : item.agentName} extra={formatOpenDuration(item.openedAt, item.closedAt)} />
                   {item.lastMessagePreview && <p className="mt-1 line-clamp-2 text-xs opacity-80">{item.lastMessagePreview}</p>}
                 </button>
               ))}

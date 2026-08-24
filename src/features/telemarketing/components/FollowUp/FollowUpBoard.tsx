@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { FollowUpWorkItem } from '@/features/telemarketing/types';
 import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadTimeline';
+import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
+import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 
 const BUCKET_LABEL: Record<FollowUpWorkItem['bucket'], string> = {
   late: 'באיחור',
@@ -209,6 +211,7 @@ export function FollowUpBoard({
                   {!hideEmployeeFilter ? ` · ${item.employeeName}` : ''}
                 </p>
                 <p className="mt-1 text-sm font-semibold">{item.actionNeeded || 'ללא פעולה מוגדרת'}</p>
+                <TimeStampMeta startedAt={item.createdAt} employeeName={hideEmployeeFilter ? null : item.employeeName} extra={`חזרה ${item.dueDate}${item.dueTime ? ` ${item.dueTime}` : ''}${item.completedAt ? ` · הושלם ${formatStamp(item.completedAt)}` : ''}`} />
                 {item.lastSummary && <p className="mt-1 line-clamp-2 text-xs opacity-80">{item.lastSummary}</p>}
                 {item.lastResult && <p className="mt-1 text-xs">תוצאה אחרונה: {item.lastResult}</p>}
               </button>

@@ -6,6 +6,7 @@ import { EmployeeCards } from '@/features/telemarketing/components/AdminDashboar
 import { FollowUpBoard } from '@/features/telemarketing/components/FollowUp/FollowUpBoard';
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
 import { WorkTimeDashboard } from '@/features/telemarketing/components/AdminDashboard/WorkTimeDashboard';
+import { ActivityReportPanel } from '@/features/telemarketing/components/AdminDashboard/ActivityReport';
 import { DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
 import { useTelemarketingDashboard } from '@/features/telemarketing/hooks/useTelemarketingDashboard';
 import { useAgentPerformance } from '@/features/telemarketing/hooks/useAgentPerformance';
@@ -143,6 +144,8 @@ export function TelemarketingAdminScreen({
       />
 
       <WorkTimeDashboard selectedAgent={selectedAgent} />
+
+      <ActivityReportPanel />
 
       <EmployeeCards agents={agents} selectedAgent={selectedAgent} onSelectAgent={setSelectedAgent} />
 

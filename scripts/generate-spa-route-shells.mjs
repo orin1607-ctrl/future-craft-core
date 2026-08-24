@@ -105,6 +105,8 @@ const ROUTES = [
   'dev/vehicle-flows',
   'dev/fleetos-module1',
   'dev/project-001/dashboard',
+  'telemarketing',
+  'telemarketing/admin',
 ];
 
 let n = 0;

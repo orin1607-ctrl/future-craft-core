@@ -3,6 +3,8 @@ import { getLeadStates, getLeadStatusEvents, upsertLeadState } from '@/features/
 import { getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
 import { getWorkSessionsForLead } from '@/features/telemarketing/services/workSessionService';
 import { DaliaCareLeadEvents } from '@/features/telemarketing/components/DaliaCare/DaliaCareLeadEvents';
+import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
+import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 import { LEAD_COLOR_LABEL, LEAD_STATUSES, leadStatusLabel, type LeadColor } from '@/features/telemarketing/lib/leadTraffic';
 import type { TelemarketingEmployee, TelemarketingLeadState } from '@/features/telemarketing/types';
 
@@ -87,6 +89,7 @@ export function LeadsBoard({
                 <p className="font-bold">{item.companyName || 'ללא שם'}</p>
                 <p className="text-sm">{item.contactName ? `${item.contactName} · ` : ''}{item.phone || 'אין טלפון'}{item.employeeName ? ` · ${item.employeeName}` : ''}</p>
                 <p className="mt-1 text-xs font-semibold">{leadStatusLabel(item.leadStatus)}{item.reason ? ` — ${item.reason}` : ''}</p>
+                <TimeStampMeta startedAt={item.lastCallAt || item.changedAt} employeeName={item.employeeName} extra={item.lastCallAt ? 'שיחה אחרונה' : 'עודכן'} />
               </button>
             ))}
           </div>
@@ -179,6 +182,8 @@ function LeadDetail({
         <p className="mt-1 font-semibold">{LEAD_COLOR_LABEL[lead.leadColor]} · {leadStatusLabel(lead.leadStatus)}</p>
         {lead.reason && <p className="mt-1 text-sm">סיבה: {lead.reason}</p>}
         <p className="mt-2 text-sm">נציג מטפל: {lead.employeeName || '-'}</p>
+        <TimeStampMeta startedAt={lead.changedAt} extra="עדכון אחרון" />
+        {lead.lastCallAt && <TimeStampMeta startedAt={lead.lastCallAt} extra="שיחה אחרונה" />}
         <p className="text-sm">שיחות: {callCount} · זמן עבודה: {Math.round(workSeconds / 60)} דק'</p>
         {lastSummary && <p className="mt-2 text-sm">שיחה אחרונה: {lastSummary}</p>}
         {employee && (
@@ -196,7 +201,7 @@ function LeadDetail({
             <h4 className="font-bold">היסטוריית שינוי סטטוס</h4>
             <ul className="mt-1 space-y-1 text-xs">
               {events.map((ev, i) => (
-                <li key={i}>{ev.changedAt.slice(0, 16).replace('T', ' ')} · {ev.leadColor} · {leadStatusLabel(ev.leadStatus)}{ev.reason ? ` — ${ev.reason}` : ''}</li>
+                <li key={i}>{formatStamp(ev.changedAt)} · {ev.leadColor} · {leadStatusLabel(ev.leadStatus)}{ev.reason ? ` — ${ev.reason}` : ''}</li>
               ))}
             </ul>
           </div>

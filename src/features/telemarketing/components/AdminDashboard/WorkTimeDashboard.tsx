@@ -1,21 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getActivityJournal, getWorkTimeSummary } from '@/features/telemarketing/services/telemarketingService';
 import { localDateStr } from '@/features/telemarketing/lib/localDate';
+import { formatDay, formatDurationSeconds, formatTimeRange } from '@/features/telemarketing/lib/formatTime';
 import type { ActivityJournalItem, WorkTimeSummary } from '@/features/telemarketing/types';
 
 function formatDuration(seconds: number | null): string {
-  const total = seconds || 0;
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}`;
-  return `${m} דק'`;
+  return formatDurationSeconds(seconds) === '-' ? "0:00" : formatDurationSeconds(seconds);
 }
 
 function formatRange(start: string, end: string | null): string {
-  const a = new Date(start);
-  const b = end ? new Date(end) : null;
-  const t = (d: Date) => d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-  return b ? `${t(a)}–${t(b)}` : `${t(a)}–פעיל`;
+  return `${formatDay(start)} · ${formatTimeRange(start, end)}`;
 }
 
 export function WorkTimeDashboard({ selectedAgent }: { selectedAgent: string | null }) {

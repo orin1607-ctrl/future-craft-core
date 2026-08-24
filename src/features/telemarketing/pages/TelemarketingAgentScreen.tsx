@@ -324,6 +324,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
             elapsedSeconds={elapsedSeconds}
             starting={starting}
             isRecording={false}
+            employeeName={currentEmployee.displayName}
             onStart={() => void handleStart()}
             onEnd={() => void finishCallTiming()}
           />
@@ -331,6 +332,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
             status="idle"
             elapsedSeconds={workElapsed}
             starting={workStarting}
+            employeeName={currentEmployee.displayName}
             onStart={() => void handleStartWork()}
             onEnd={() => void finishWorkTiming()}
           />
@@ -364,6 +366,9 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           elapsedSeconds={elapsedSeconds}
           starting={starting}
           isRecording={isRecording}
+          startedAt={call?.startedAt}
+          endedAt={call?.endedAt}
+          employeeName={call?.employeeName || currentEmployee.displayName}
           onStart={() => void handleStart()}
           onEnd={() => void finishCallTiming()}
         />
@@ -384,6 +389,9 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           status={workStatus}
           elapsedSeconds={workElapsed}
           starting={workStarting}
+          startedAt={workSession?.startedAt}
+          endedAt={workSession?.endedAt}
+          employeeName={workSession?.employeeName || currentEmployee.displayName}
           onStart={() => void handleStartWork()}
           onEnd={() => void finishWorkTiming()}
         />

@@ -9,6 +9,8 @@ import {
   updateTeamChatStatus,
 } from '@/features/telemarketing/services/teamChatService';
 import { TEAM_CHAT_STATUSES } from '@/features/telemarketing/types';
+import { TimeStampLines } from '@/features/telemarketing/components/TimeStampMeta';
+import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 import type { TeamChat, TeamChatMessage, TeamChatStatus } from '@/features/telemarketing/types';
 
 function OpenDurationClock({ openedAt, closedAt }: { openedAt: string; closedAt: string | null }) {
@@ -97,20 +99,22 @@ export function DaliaChatThread({
       <p className="font-black text-violet-800 dark:text-violet-300">🟣 {local.careType}{local.careTypeOther ? ` — ${local.careTypeOther}` : ''}</p>
       <p>{local.companyName} · {local.contactName} · {local.phone}</p>
       <p>נציג: {local.agentName} · סטטוס: {local.status} · {local.urgency}</p>
+      <TimeStampLines startedAt={local.openedAt} endedAt={local.closedAt} employeeName={local.agentName} />
       <OpenDurationClock openedAt={local.openedAt} closedAt={local.closedAt} />
+      {local.startedAt && <p className="text-xs">תחילת טיפול: {formatStamp(local.startedAt)}</p>}
+      {local.firstResponseAt && <p className="text-xs">תגובה ראשונה: {formatStamp(local.firstResponseAt)}</p>}
       {local.requestDetail && <p>בקשה: {local.requestDetail}</p>}
       {local.lastCallSummary && <p className="text-muted-foreground">סיכום שיחה: {local.lastCallSummary}</p>}
       {local.callId && <p className="text-xs">מקושר לשיחה {local.callId.slice(0, 8)}</p>}
       {local.followupId && <p className="text-xs">מקושר ל-Follow-up {local.followupId.slice(0, 8)}</p>}
       {local.workSessionId && <p className="text-xs">מקושר למשימה {local.workSessionId.slice(0, 8)}</p>}
       {local.closingSummary && <p className="rounded-lg bg-muted p-2">סיכום סגירה: {local.closingSummary}</p>}
-      {local.firstResponseAt && <p className="text-xs">תגובה ראשונה: {new Date(local.firstResponseAt).toLocaleString('he-IL')}</p>}
-      {local.closedAt && <p className="text-xs">נסגר: {new Date(local.closedAt).toLocaleString('he-IL')}</p>}
+      {local.closedAt && local.closedBy && <p className="text-xs">נסגר על ידי: {local.closedBy}</p>}
 
       <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-border p-3">
         {messages.map((msg) => (
           <div key={msg.id} className={`rounded-lg p-2 ${msg.kind === 'system' ? 'bg-muted text-muted-foreground' : msg.authorId === currentUserId ? 'bg-violet-600/20' : 'bg-background border border-border'}`}>
-            <p className="text-xs font-semibold">{msg.authorName} · {new Date(msg.createdAt).toLocaleString('he-IL')}</p>
+            <p className="text-xs font-semibold">{msg.authorName} · {formatStamp(msg.createdAt)}</p>
             <p className="whitespace-pre-wrap">{msg.body}</p>
           </div>
         ))}
