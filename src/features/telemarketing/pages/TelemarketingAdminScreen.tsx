@@ -6,6 +6,7 @@ import { EmployeeCards } from '@/features/telemarketing/components/AdminDashboar
 import { FollowUpBoard } from '@/features/telemarketing/components/FollowUp/FollowUpBoard';
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
 import { WorkTimeDashboard } from '@/features/telemarketing/components/AdminDashboard/WorkTimeDashboard';
+import { DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
 import { useTelemarketingDashboard } from '@/features/telemarketing/hooks/useTelemarketingDashboard';
 import { useAgentPerformance } from '@/features/telemarketing/hooks/useAgentPerformance';
 import { getFollowUpWorkItems } from '@/features/telemarketing/services/telemarketingService';
@@ -124,10 +125,22 @@ export function TelemarketingAdminScreen({
 
       {summary && <SummaryCards summary={summary} />}
 
-      <h3 className="mb-2 text-lg font-bold">החזרות — כל הנציגים</h3>
-      <FollowUpBoard items={followUps} />
+      <DaliaChatBoard
+        currentUserId={currentManagerId}
+        currentUserName={currentManagerName || 'מנהל-על'}
+        isAdmin
+      />
 
-      <LeadsBoard currentEmployee={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על' }} />
+      <h3 className="mb-2 text-lg font-bold">החזרות — כל הנציגים</h3>
+      <FollowUpBoard
+        items={followUps}
+        actor={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על', isAdmin: true }}
+      />
+
+      <LeadsBoard
+        currentEmployee={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על' }}
+        daliaActor={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על', isAdmin: true }}
+      />
 
       <WorkTimeDashboard selectedAgent={selectedAgent} />
 

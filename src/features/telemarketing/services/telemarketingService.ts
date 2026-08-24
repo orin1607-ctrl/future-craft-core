@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { createTeamChatIfNeeded } from '@/features/telemarketing/services/teamChatService';
 import { followUpBucket, localDateStr } from '@/features/telemarketing/lib/localDate';
 import { leadKey } from '@/features/telemarketing/lib/leadKey';
 import { suggestedLeadTraffic } from '@/features/telemarketing/lib/leadTraffic';
@@ -116,6 +117,32 @@ export async function submitCallReport(
 
   if (currentRow.status === 'completed') {
     const existingFollowUp = currentRow.needs_follow_up ? await getFollowUpByCallId(payload.callId) : null;
+    try {
+      await createTeamChatIfNeeded({
+        agentId: String(currentRow.employee_id),
+        agentName: String(currentRow.employee_name || ''),
+        companyName: String(currentRow.company_name || ''),
+        contactName: (currentRow.contact_name as string | null) ?? undefined,
+        phone: String(currentRow.phone || ''),
+        email: (currentRow.email as string | null) ?? undefined,
+        callId: payload.callId,
+        followupId: existingFollowUp?.id ?? payload.sourceFollowUpId ?? (currentRow.source_followup_id as string | null),
+        lastCallSummary: payload.summary || String(currentRow.summary || ''),
+        clientToken: `dalia-call-${payload.clientToken}`,
+        care: {
+          needsDaliaCare: payload.needsDaliaCare,
+          daliaCareType: payload.daliaCareType,
+          daliaCareTypeOther: payload.daliaCareTypeOther,
+          daliaCareDetail: payload.daliaCareDetail,
+          daliaCareUrgency: payload.daliaCareUrgency,
+          daliaCareDueDate: payload.daliaCareDueDate,
+        },
+      });
+    } catch (e) {
+      throw new Error(
+        'השיחה נשמרה, אך יצירת טיפול דליה נכשלה: ' + (e instanceof Error ? e.message : '') + ' (ID שיחה: ' + payload.callId + ')',
+      );
+    }
     return { call: mapCallRow(currentRow), followUp: existingFollowUp, duplicate: true };
   }
 
@@ -208,6 +235,33 @@ export async function submitCallReport(
   } catch (e) {
     throw new Error(
       'השיחה נשמרה, אך שמירת הרמזור נכשלה: ' + (e instanceof Error ? e.message : '') + ' (ID שיחה: ' + payload.callId + ')',
+    );
+  }
+
+  try {
+    await createTeamChatIfNeeded({
+      agentId: String(updatedCall.employee_id),
+      agentName: String(updatedCall.employee_name || ''),
+      companyName: String(updatedCall.company_name || ''),
+      contactName: (updatedCall.contact_name as string | null) ?? undefined,
+      phone: String(updatedCall.phone || ''),
+      email: (updatedCall.email as string | null) ?? undefined,
+      callId: payload.callId,
+      followupId: followUp?.id ?? sourceFollowUpId ?? null,
+      lastCallSummary: payload.summary,
+      clientToken: `dalia-call-${payload.clientToken}`,
+      care: {
+        needsDaliaCare: payload.needsDaliaCare,
+        daliaCareType: payload.daliaCareType,
+        daliaCareTypeOther: payload.daliaCareTypeOther,
+        daliaCareDetail: payload.daliaCareDetail,
+        daliaCareUrgency: payload.daliaCareUrgency,
+        daliaCareDueDate: payload.daliaCareDueDate,
+      },
+    });
+  } catch (e) {
+    throw new Error(
+      'השיחה נשמרה, אך יצירת טיפול דליה נכשלה: ' + (e instanceof Error ? e.message : '') + ' (ID שיחה: ' + payload.callId + ')',
     );
   }
 

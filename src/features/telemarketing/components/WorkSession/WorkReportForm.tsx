@@ -1,5 +1,6 @@
 import { WORK_TASK_TYPES } from '@/features/telemarketing/types';
 import type { WorkDraft } from '@/features/telemarketing/hooks/useActiveWorkSession';
+import { DaliaCareFields } from '@/features/telemarketing/components/DaliaCare/DaliaCareFields';
 
 const chipBase = 'min-h-12 rounded-xl border px-3 py-2 text-sm text-center select-none';
 const chipInactive = 'border-border bg-background text-foreground';
@@ -84,6 +85,7 @@ export function WorkReportForm({
         />
         <span className="font-semibold">נדרשת פעולה נוספת</span>
       </label>
+      <DaliaCareFields draft={draft} onChange={onChange} />
       {error && <p className="rounded-lg bg-destructive/10 p-2 text-sm font-semibold text-destructive">{error}</p>}
       <button
         type="button"

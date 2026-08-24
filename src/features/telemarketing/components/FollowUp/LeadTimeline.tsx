@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
 import { getWorkSessionsForLead } from '@/features/telemarketing/services/workSessionService';
 import { PlayRecordingButton } from '@/features/telemarketing/components/AdminDashboard/PlayRecordingButton';
+import { DaliaCareLeadEvents } from '@/features/telemarketing/components/DaliaCare/DaliaCareLeadEvents';
 import type { FollowUpWorkItem, TelemarketingCall, TelemarketingWorkSession } from '@/features/telemarketing/types';
 
 function formatDuration(seconds: number | null): string {
@@ -15,10 +16,12 @@ export function LeadTimeline({
   followUp,
   onStartReturn,
   showStartButton,
+  actor,
 }: {
   followUp: FollowUpWorkItem;
   onStartReturn?: (item: FollowUpWorkItem) => void;
   showStartButton?: boolean;
+  actor?: { id: string; displayName: string; isAdmin?: boolean };
 }) {
   const [history, setHistory] = useState<TelemarketingCall[]>([]);
   const [work, setWork] = useState<TelemarketingWorkSession[]>([]);
@@ -108,6 +111,17 @@ export function LeadTimeline({
           </ol>
         </div>
       )}
+
+      <DaliaCareLeadEvents
+        phone={followUp.phone}
+        companyName={followUp.companyName}
+        contactName={followUp.contactName}
+        callId={followUp.callId}
+        followupId={followUp.id}
+        lastCallSummary={followUp.lastSummary || undefined}
+        actor={actor || { id: followUp.employeeId, displayName: followUp.employeeName, isAdmin: false }}
+        ownerAgent={{ id: followUp.employeeId, displayName: followUp.employeeName }}
+      />
 
       {showStartButton && followUp.status === 'open' && onStartReturn && (
         <button

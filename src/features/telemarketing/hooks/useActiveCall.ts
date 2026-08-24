@@ -17,6 +17,8 @@ import type {
   UrgencyLevel,
 } from '@/features/telemarketing/types';
 import type { LeadColor, LeadStatus } from '@/features/telemarketing/lib/leadTraffic';
+import { EMPTY_DALIA_CARE } from '@/features/telemarketing/components/DaliaCare/DaliaCareFields';
+import { validateDaliaCare } from '@/features/telemarketing/services/teamChatService';
 
 const DRAFT_KEY = 'telemarketing_draft_report_v1';
 
@@ -45,6 +47,12 @@ export interface ReportDraft {
   closeReason: string;
   closeOpenFollowUps: boolean;
   leadColorTouched: boolean;
+  needsDaliaCare: boolean;
+  daliaCareType: string;
+  daliaCareTypeOther: string;
+  daliaCareDetail: string;
+  daliaCareUrgency: UrgencyLevel;
+  daliaCareDueDate: string;
 }
 
 const EMPTY_DRAFT: ReportDraft = {
@@ -63,6 +71,7 @@ const EMPTY_DRAFT: ReportDraft = {
   closeReason: '',
   closeOpenFollowUps: true,
   leadColorTouched: false,
+  ...EMPTY_DALIA_CARE,
 };
 
 export function useActiveCall(employeeId?: string) {
@@ -243,6 +252,11 @@ export function useActiveCall(employeeId?: string) {
       setError('ליד אדום — חובה לכתוב סיבת סגירה');
       return false;
     }
+    const daliaError = validateDaliaCare(draft);
+    if (daliaError) {
+      setError(daliaError);
+      return false;
+    }
 
     submitLockRef.current = true;
     setSubmitting(true);
@@ -266,6 +280,12 @@ export function useActiveCall(employeeId?: string) {
       leadStatus: draft.leadStatus ?? undefined,
       closeReason: draft.closeReason.trim() || draft.summary.trim(),
       closeOpenFollowUps: draft.leadColor === 'red' ? draft.closeOpenFollowUps : false,
+      needsDaliaCare: draft.needsDaliaCare,
+      daliaCareType: draft.daliaCareType || undefined,
+      daliaCareTypeOther: draft.daliaCareTypeOther || undefined,
+      daliaCareDetail: draft.daliaCareDetail || undefined,
+      daliaCareUrgency: draft.needsDaliaCare ? draft.daliaCareUrgency : undefined,
+      daliaCareDueDate: draft.daliaCareDueDate || undefined,
     };
 
     try {

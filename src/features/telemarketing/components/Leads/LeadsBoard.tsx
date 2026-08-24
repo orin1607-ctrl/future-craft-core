@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getLeadStates, getLeadStatusEvents, upsertLeadState } from '@/features/telemarketing/services/leadStateService';
 import { getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
 import { getWorkSessionsForLead } from '@/features/telemarketing/services/workSessionService';
+import { DaliaCareLeadEvents } from '@/features/telemarketing/components/DaliaCare/DaliaCareLeadEvents';
 import { LEAD_COLOR_LABEL, LEAD_STATUSES, leadStatusLabel, type LeadColor } from '@/features/telemarketing/lib/leadTraffic';
 import type { TelemarketingEmployee, TelemarketingLeadState } from '@/features/telemarketing/types';
 
@@ -14,9 +15,11 @@ const TONE: Record<LeadColor, string> = {
 export function LeadsBoard({
   currentEmployee,
   hideEmployeeFilter,
+  daliaActor,
 }: {
   currentEmployee?: TelemarketingEmployee;
   hideEmployeeFilter?: boolean;
+  daliaActor?: { id: string; displayName: string; isAdmin?: boolean };
 }) {
   const [items, setItems] = useState<TelemarketingLeadState[]>([]);
   const [color, setColor] = useState<'' | LeadColor>('');
@@ -93,6 +96,7 @@ export function LeadsBoard({
         <LeadDetail
           lead={selected}
           employee={currentEmployee}
+          daliaActor={daliaActor || (currentEmployee ? { id: currentEmployee.id, displayName: currentEmployee.displayName } : undefined)}
           onClose={() => setSelected(null)}
           onSaved={async () => {
             await load();
@@ -101,7 +105,11 @@ export function LeadsBoard({
         />
       )}
       {selected && !currentEmployee && (
-        <LeadDetail lead={selected} onClose={() => setSelected(null)} />
+        <LeadDetail
+          lead={selected}
+          daliaActor={daliaActor}
+          onClose={() => setSelected(null)}
+        />
       )}
     </section>
   );
@@ -110,11 +118,13 @@ export function LeadsBoard({
 function LeadDetail({
   lead,
   employee,
+  daliaActor,
   onClose,
   onSaved,
 }: {
   lead: TelemarketingLeadState;
   employee?: TelemarketingEmployee;
+  daliaActor?: { id: string; displayName: string; isAdmin?: boolean };
   onClose: () => void;
   onSaved?: () => void;
 }) {
@@ -191,6 +201,16 @@ function LeadDetail({
             </ul>
           </div>
         )}
+        <div className="mt-4">
+          <DaliaCareLeadEvents
+            phone={lead.phone}
+            companyName={lead.companyName}
+            contactName={lead.contactName}
+            lastCallSummary={lastSummary || lead.reason || undefined}
+            actor={daliaActor || (employee ? { id: employee.id, displayName: employee.displayName } : lead.employeeId ? { id: lead.employeeId, displayName: lead.employeeName || '' } : undefined)}
+            ownerAgent={lead.employeeId ? { id: lead.employeeId, displayName: lead.employeeName || '' } : undefined}
+          />
+        </div>
       </div>
     </div>
   );

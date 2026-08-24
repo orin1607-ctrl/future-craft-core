@@ -1,6 +1,7 @@
 import { CALL_RESULTS, LEAD_RATINGS, URGENCY_LEVELS } from '@/features/telemarketing/types';
 import type { ReportDraft } from '@/features/telemarketing/hooks/useActiveCall';
 import { LEAD_COLOR_LABEL, LEAD_STATUSES, suggestedLeadTraffic, type LeadColor } from '@/features/telemarketing/lib/leadTraffic';
+import { DaliaCareFields } from '@/features/telemarketing/components/DaliaCare/DaliaCareFields';
 
 interface Props {
   draft: ReportDraft;
@@ -225,6 +226,11 @@ export function CallReportForm({ draft, onChange, onSubmit, submitting, error }:
           </div>
         </div>
       )}
+
+      <DaliaCareFields
+        draft={draft}
+        onChange={onChange}
+      />
 
       {error && <p className="rounded-lg bg-destructive/10 p-2 text-sm font-semibold text-destructive">{error}</p>}
 

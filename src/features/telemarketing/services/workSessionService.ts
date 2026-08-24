@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { TelemarketingWorkSession, WorkTaskType } from '@/features/telemarketing/types';
+import { createTeamChatIfNeeded } from '@/features/telemarketing/services/teamChatService';
+import type { TelemarketingWorkSession, UrgencyLevel, WorkTaskType } from '@/features/telemarketing/types';
 
 const TABLE = 'telemarketing_work_sessions';
 
@@ -100,10 +101,19 @@ export async function submitWorkSessionReport(payload: {
   companyName?: string;
   contactName?: string;
   phone?: string;
+  needsDaliaCare?: boolean;
+  daliaCareType?: string;
+  daliaCareTypeOther?: string;
+  daliaCareDetail?: string;
+  daliaCareUrgency?: UrgencyLevel;
+  daliaCareDueDate?: string;
 }): Promise<TelemarketingWorkSession> {
   const { data: current, error: fetchErr } = await supabase.from(TABLE).select('*').eq('id', payload.sessionId).single();
   if (fetchErr) throw new Error(fetchErr.message);
-  if (current.status === 'completed') return mapRow(current as Record<string, unknown>);
+  if (current.status === 'completed') {
+    await attachWorkDaliaCare(payload, current as Record<string, unknown>);
+    return mapRow(current as Record<string, unknown>);
+  }
   if (!payload.taskType) throw new Error('חובה לבחור סוג משימה');
   if (!payload.description.trim()) throw new Error('חובה לכתוב מה בוצע');
 
@@ -123,7 +133,50 @@ export async function submitWorkSessionReport(payload: {
     .select('*')
     .single();
   if (error) throw new Error(error.message);
+  await attachWorkDaliaCare(payload, data as Record<string, unknown>);
   return mapRow(data as Record<string, unknown>);
+}
+
+async function attachWorkDaliaCare(
+  payload: {
+    sessionId: string;
+    description: string;
+    companyName?: string;
+    contactName?: string;
+    phone?: string;
+    needsDaliaCare?: boolean;
+    daliaCareType?: string;
+    daliaCareTypeOther?: string;
+    daliaCareDetail?: string;
+    daliaCareUrgency?: UrgencyLevel;
+    daliaCareDueDate?: string;
+  },
+  row: Record<string, unknown>,
+) {
+  try {
+    await createTeamChatIfNeeded({
+      agentId: String(row.employee_id),
+      agentName: String(row.employee_name || ''),
+      companyName: payload.companyName || String(row.company_name || ''),
+      contactName: payload.contactName || ((row.contact_name as string | null) ?? undefined),
+      phone: payload.phone || String(row.phone || ''),
+      workSessionId: payload.sessionId,
+      lastCallSummary: payload.description,
+      clientToken: `dalia-work-${String(row.client_token || payload.sessionId)}`,
+      care: {
+        needsDaliaCare: payload.needsDaliaCare,
+        daliaCareType: payload.daliaCareType,
+        daliaCareTypeOther: payload.daliaCareTypeOther,
+        daliaCareDetail: payload.daliaCareDetail,
+        daliaCareUrgency: payload.daliaCareUrgency,
+        daliaCareDueDate: payload.daliaCareDueDate,
+      },
+    });
+  } catch (e) {
+    throw new Error(
+      'המשימה נשמרה, אך יצירת טיפול דליה נכשלה: ' + (e instanceof Error ? e.message : ''),
+    );
+  }
 }
 
 export async function getWorkSessions(limit = 500): Promise<TelemarketingWorkSession[]> {

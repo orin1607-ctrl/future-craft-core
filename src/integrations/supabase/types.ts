@@ -2597,6 +2597,153 @@ export type Database = {
         }
         Relationships: []
       }
+      telemarketing_team_chats: {
+        Row: {
+          id: string
+          agent_id: string
+          agent_name: string
+          company_name: string
+          contact_name: string | null
+          phone: string
+          email: string | null
+          lead_key: string | null
+          call_id: string | null
+          followup_id: string | null
+          work_session_id: string | null
+          care_type: string
+          care_type_other: string | null
+          request_detail: string
+          urgency: string
+          due_at: string | null
+          last_call_summary: string | null
+          status: string
+          opened_at: string
+          first_response_at: string | null
+          started_at: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closing_summary: string | null
+          last_message_at: string | null
+          last_message_preview: string | null
+          client_token: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          agent_id: string
+          agent_name: string
+          company_name?: string
+          contact_name?: string | null
+          phone?: string
+          email?: string | null
+          lead_key?: string | null
+          call_id?: string | null
+          followup_id?: string | null
+          work_session_id?: string | null
+          care_type: string
+          care_type_other?: string | null
+          request_detail?: string
+          urgency?: string
+          due_at?: string | null
+          last_call_summary?: string | null
+          status?: string
+          opened_at?: string
+          first_response_at?: string | null
+          started_at?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_summary?: string | null
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          client_token: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          agent_id?: string
+          agent_name?: string
+          company_name?: string
+          contact_name?: string | null
+          phone?: string
+          email?: string | null
+          lead_key?: string | null
+          call_id?: string | null
+          followup_id?: string | null
+          work_session_id?: string | null
+          care_type?: string
+          care_type_other?: string | null
+          request_detail?: string
+          urgency?: string
+          due_at?: string | null
+          last_call_summary?: string | null
+          status?: string
+          opened_at?: string
+          first_response_at?: string | null
+          started_at?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_summary?: string | null
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          client_token?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telemarketing_team_messages: {
+        Row: {
+          id: string
+          chat_id: string
+          author_id: string
+          author_name: string
+          author_role: string
+          body: string
+          kind: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          chat_id: string
+          author_id: string
+          author_name: string
+          author_role: string
+          body: string
+          kind?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          chat_id?: string
+          author_id?: string
+          author_name?: string
+          author_role?: string
+          body?: string
+          kind?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      telemarketing_team_chat_reads: {
+        Row: {
+          user_id: string
+          chat_id: string
+          last_read_at: string
+        }
+        Insert: {
+          user_id: string
+          chat_id: string
+          last_read_at?: string
+        }
+        Update: {
+          user_id?: string
+          chat_id?: string
+          last_read_at?: string
+        }
+        Relationships: []
+      }
       user_access_codes: {
         Row: {
           code_hash: string

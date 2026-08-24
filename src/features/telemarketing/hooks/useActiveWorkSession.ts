@@ -6,7 +6,9 @@ import {
   startWorkSession,
   submitWorkSessionReport,
 } from '@/features/telemarketing/services/workSessionService';
-import type { TelemarketingWorkSession, WorkTaskType } from '@/features/telemarketing/types';
+import type { TelemarketingWorkSession, UrgencyLevel, WorkTaskType } from '@/features/telemarketing/types';
+import { EMPTY_DALIA_CARE } from '@/features/telemarketing/components/DaliaCare/DaliaCareFields';
+import { validateDaliaCare } from '@/features/telemarketing/services/teamChatService';
 
 function uuid(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -25,6 +27,12 @@ export interface WorkDraft {
   companyName: string;
   contactName: string;
   phone: string;
+  needsDaliaCare: boolean;
+  daliaCareType: string;
+  daliaCareTypeOther: string;
+  daliaCareDetail: string;
+  daliaCareUrgency: UrgencyLevel;
+  daliaCareDueDate: string;
 }
 
 const EMPTY_WORK_DRAFT: WorkDraft = {
@@ -35,6 +43,7 @@ const EMPTY_WORK_DRAFT: WorkDraft = {
   companyName: '',
   contactName: '',
   phone: '',
+  ...EMPTY_DALIA_CARE,
 };
 
 export function useActiveWorkSession(employeeId?: string, employeeName?: string) {
@@ -152,6 +161,11 @@ export function useActiveWorkSession(employeeId?: string, employeeName?: string)
       setError('חובה לכתוב מה בוצע');
       return false;
     }
+    const daliaError = validateDaliaCare(draft);
+    if (daliaError) {
+      setError(daliaError);
+      return false;
+    }
     lockRef.current = true;
     setSubmitting(true);
     setError(null);
@@ -165,6 +179,12 @@ export function useActiveWorkSession(employeeId?: string, employeeName?: string)
         companyName: draft.companyName,
         contactName: draft.contactName,
         phone: draft.phone,
+        needsDaliaCare: draft.needsDaliaCare,
+        daliaCareType: draft.daliaCareType,
+        daliaCareTypeOther: draft.daliaCareTypeOther,
+        daliaCareDetail: draft.daliaCareDetail,
+        daliaCareUrgency: draft.needsDaliaCare ? draft.daliaCareUrgency : undefined,
+        daliaCareDueDate: draft.daliaCareDueDate || undefined,
       });
       setSession(null);
       setDraft(EMPTY_WORK_DRAFT);

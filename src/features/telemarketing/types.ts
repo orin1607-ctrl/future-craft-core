@@ -125,6 +125,12 @@ export interface CompleteCallReportPayload {
   leadStatus?: string;
   closeReason?: string;
   closeOpenFollowUps?: boolean;
+  needsDaliaCare?: boolean;
+  daliaCareType?: string;
+  daliaCareTypeOther?: string;
+  daliaCareDetail?: string;
+  daliaCareUrgency?: UrgencyLevel;
+  daliaCareDueDate?: string;
 }
 
 export interface ExistingCustomerLookup {
@@ -292,4 +298,74 @@ export interface WorkTimeSummary {
   totalSeconds: number;
   avgCallSeconds: number;
   avgWorkSeconds: number;
+}
+
+export const DALIA_CARE_TYPES = [
+  'שליחת Email',
+  'שליחת מידע',
+  'שליחת חומר',
+  'שליחת הצעה',
+  'תיאום פגישה',
+  'התקשרות ללקוח',
+  'בדיקת מידע',
+  'בדיקת מחיר / שירות',
+  'הכנת מסמך',
+  'טיפול מנהל',
+  'Follow-up מצד צוות דליה',
+  'אחר',
+] as const;
+export type DaliaCareType = (typeof DALIA_CARE_TYPES)[number];
+
+export const TEAM_CHAT_STATUSES = ['חדש', 'בטיפול', 'ממתין לנציג', 'ממתין ללקוח', 'הושלם', 'ארכיון'] as const;
+export type TeamChatStatus = (typeof TEAM_CHAT_STATUSES)[number];
+
+export interface TeamChat {
+  id: string;
+  agentId: string;
+  agentName: string;
+  companyName: string;
+  contactName?: string;
+  phone: string;
+  email?: string;
+  leadKey: string | null;
+  callId: string | null;
+  followupId: string | null;
+  workSessionId: string | null;
+  careType: string;
+  careTypeOther: string | null;
+  requestDetail: string;
+  urgency: UrgencyLevel;
+  dueAt: string | null;
+  lastCallSummary: string | null;
+  status: TeamChatStatus;
+  openedAt: string;
+  firstResponseAt: string | null;
+  startedAt: string | null;
+  closedAt: string | null;
+  closedBy: string | null;
+  closingSummary: string | null;
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  unreadCount: number;
+}
+
+export interface TeamChatMessage {
+  id: string;
+  chatId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: 'telemarketing_agent' | 'super_admin' | 'system';
+  body: string;
+  kind: 'user' | 'system';
+  createdAt: string;
+}
+
+export interface TeamChatSummary {
+  newToday: number;
+  openNow: number;
+  closedToday: number;
+  waitingAgent: number;
+  waitingCustomer: number;
+  avgFirstResponseSeconds: number | null;
+  avgCloseSeconds: number | null;
 }

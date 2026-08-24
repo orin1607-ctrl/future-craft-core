@@ -7,6 +7,7 @@ import { WorkReportForm } from '@/features/telemarketing/components/WorkSession/
 import { MyFollowUps } from '@/features/telemarketing/components/FollowUp/MyFollowUps';
 import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadTimeline';
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
+import { DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
 import { useActiveWorkSession } from '@/features/telemarketing/hooks/useActiveWorkSession';
 import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
@@ -190,9 +191,14 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           {currentEmployee.employeeCode ? ` · ${currentEmployee.employeeCode}` : ''}
         </p>
         {showIdleBoards && (
-          <a href="#my-followups" className="mt-2 inline-block text-sm font-bold text-primary">
-            לחזרות שלי ↓
-          </a>
+          <>
+            <a href="#my-followups" className="mt-2 inline-block text-sm font-bold text-primary">
+              לחזרות שלי ↓
+            </a>
+            <a href="#dalia-care" className="mt-2 mr-3 inline-block text-sm font-bold text-violet-700">
+              🟣 הטיפולים שלי ↓
+            </a>
+          </>
         )}
       </div>
 
@@ -213,14 +219,23 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
             <details className="rounded-lg bg-background/70 p-2">
               <summary className="cursor-pointer font-bold">היסטוריית שיחות</summary>
               <div className="mt-2">
-                <LeadTimeline followUp={returnHint} />
+                <LeadTimeline followUp={returnHint} actor={{ id: currentEmployee.id, displayName: currentEmployee.displayName }} />
               </div>
             </details>
           )}
         </div>
       )}
 
-      {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} />}
+      {showIdleBoards && (
+        <DaliaChatBoard
+          currentUserId={currentEmployee.id}
+          currentUserName={currentEmployee.displayName}
+          isAdmin={false}
+          reloadToken={followUpReload}
+        />
+      )}
+
+      {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} />}
 
       {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter />}
 

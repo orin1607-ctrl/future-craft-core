@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { getFollowUpWorkItems } from '@/features/telemarketing/services/telemarketingService';
 import { FollowUpBoard, dueCount } from '@/features/telemarketing/components/FollowUp/FollowUpBoard';
-import type { FollowUpWorkItem } from '@/features/telemarketing/types';
+import type { FollowUpWorkItem, TelemarketingEmployee } from '@/features/telemarketing/types';
 
 export function MyFollowUps({
   onStartReturn,
   reloadToken,
+  currentEmployee,
 }: {
   onStartReturn: (item: FollowUpWorkItem) => void;
   reloadToken?: number;
+  currentEmployee?: TelemarketingEmployee;
 }) {
   const [items, setItems] = useState<FollowUpWorkItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,13 @@ export function MyFollowUps({
       {loading && <p className="text-sm text-muted-foreground">טוען החזרות...</p>}
       {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
       {!loading && !error && (
-        <FollowUpBoard items={items} hideEmployeeFilter allowStartReturn onStartReturn={onStartReturn} />
+        <FollowUpBoard
+          items={items}
+          hideEmployeeFilter
+          allowStartReturn
+          onStartReturn={onStartReturn}
+          actor={currentEmployee ? { id: currentEmployee.id, displayName: currentEmployee.displayName } : undefined}
+        />
       )}
     </section>
   );
