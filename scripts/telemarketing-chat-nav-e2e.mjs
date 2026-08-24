@@ -3,7 +3,7 @@
  * Staging / telemarketing only. Does not touch Production.
  * node scripts/telemarketing-chat-nav-e2e.mjs
  */
-import { chromium, devices } from 'playwright';
+import { chromium } from 'playwright';
 import { createClient } from '@supabase/supabase-js';
 import { execSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -158,8 +158,9 @@ try {
     return { context, page };
   }
 
-  async function runAgentFlow(label, viewport) {
-    const { page, context } = await pageFor(agentSession, viewport);
+  async function runAgentFlow(label, viewport, { doLogout = false } = {}) {
+    const freshSession = await signIn(agentEmail);
+    const { page, context } = await pageFor(freshSession, viewport);
     await page.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.getByTestId('tele-start-call').waitFor({ timeout: 30000 });
     rec(`${label}-login-home`, 'Login/open lands on agent telemarketing home, not chat overlay', (await isHome(page)) ? 'PASS' : 'FAIL', {
@@ -194,15 +195,18 @@ try {
     await page.getByTestId('tele-start-call').waitFor({ timeout: 15000 });
     rec(`${label}-browser-back`, 'Browser/phone Back closes chat and is not stuck', (await page.getByTestId('dalia-chat-overlay').count()) === 0 ? 'PASS' : 'FAIL', { url: page.url() });
 
-    await page.getByRole('button', { name: 'יציאה' }).click();
-    await page.waitForTimeout(1500);
-    rec(`${label}-logout`, 'Logout leaves the agent session', /login|התחבר|סיסמה/i.test(await page.locator('body').innerText()) || !page.url().includes('/telemarketing') ? 'PASS' : 'FAIL', { url: page.url() });
+    if (doLogout) {
+      const logoutBtn = page.getByRole('button', { name: /יציאה|התנתקות/ }).first();
+      await logoutBtn.click({ timeout: 15000 });
+      await page.waitForTimeout(1500);
+      rec(`${label}-logout`, 'Logout leaves the agent session', /login|התחבר|סיסמה|שם משתמש/i.test(await page.locator('body').innerText()) || !page.url().includes('/telemarketing') ? 'PASS' : 'FAIL', { url: page.url() });
+    }
     await page.screenshot({ path: join(OUT, `${label}.png`), fullPage: true }).catch(() => null);
     await context.close();
   }
 
-  await runAgentFlow('desktop', { width: 1440, height: 900 });
-  await runAgentFlow('mobile', devices['iPhone 12'].viewport);
+  await runAgentFlow('desktop', { width: 1440, height: 900 }, { doLogout: true });
+  await runAgentFlow('mobile', { width: 390, height: 844 }, { doLogout: true });
 
   const { page: saPage, context: saCtx } = await pageFor(saSession, { width: 1440, height: 900 });
   await saPage.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });

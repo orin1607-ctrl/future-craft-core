@@ -1,0 +1,179 @@
+{
+  "at": "2026-08-24T22:31:19.263Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "mainMerged": false,
+  "tests": [
+    {
+      "id": "deploy-staging",
+      "name": "Pages is Staging branch",
+      "status": "PASS",
+      "deployTxt": "deployed_ref=441ce1a feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-not-prod",
+      "name": "Not Production",
+      "status": "PASS"
+    },
+    {
+      "id": "seed-chat",
+      "name": "Seed manager→agent chat",
+      "status": "PASS",
+      "chatId": "348068c8-01c2-44ef-979f-3fa809a23525"
+    },
+    {
+      "id": "desktop-login-home",
+      "name": "Login/open lands on agent telemarketing home, not chat overlay",
+      "status": "PASS",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing",
+      "overlay": 0
+    },
+    {
+      "id": "desktop-no-auto-thread",
+      "name": "Thread send box is not open on arrival",
+      "status": "PASS"
+    },
+    {
+      "id": "desktop-inbox-not-thread",
+      "name": "Opening the inbox list does not open a thread",
+      "status": "PASS"
+    },
+    {
+      "id": "desktop-open-chat",
+      "name": "Entering a chat from the list opens the thread",
+      "status": "PASS"
+    },
+    {
+      "id": "desktop-back-button",
+      "name": "Chat has חזרה לטלמיטינג",
+      "status": "PASS"
+    },
+    {
+      "id": "desktop-back-agent-home-label",
+      "name": "Chat has חזרה למסך העובד",
+      "status": "PASS"
+    },
+    {
+      "id": "desktop-back-button-home",
+      "name": "Back button returns to agent home / inbox, not stuck in chat",
+      "status": "PASS",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing"
+    },
+    {
+      "id": "desktop-return-inbox",
+      "name": "Return keeps inbox available",
+      "status": "PASS"
+    },
+    {
+      "id": "desktop-reenter",
+      "name": "Can enter the same chat again",
+      "status": "PASS"
+    },
+    {
+      "id": "desktop-browser-back",
+      "name": "Browser/phone Back closes chat and is not stuck",
+      "status": "PASS",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing"
+    },
+    {
+      "id": "desktop-logout",
+      "name": "Logout leaves the agent session",
+      "status": "PASS",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/login"
+    },
+    {
+      "id": "mobile-login-home",
+      "name": "Login/open lands on agent telemarketing home, not chat overlay",
+      "status": "PASS",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing",
+      "overlay": 0
+    },
+    {
+      "id": "mobile-no-auto-thread",
+      "name": "Thread send box is not open on arrival",
+      "status": "PASS"
+    },
+    {
+      "id": "mobile-inbox-not-thread",
+      "name": "Opening the inbox list does not open a thread",
+      "status": "PASS"
+    },
+    {
+      "id": "mobile-open-chat",
+      "name": "Entering a chat from the list opens the thread",
+      "status": "PASS"
+    },
+    {
+      "id": "mobile-back-button",
+      "name": "Chat has חזרה לטלמיטינג",
+      "status": "PASS"
+    },
+    {
+      "id": "mobile-back-agent-home-label",
+      "name": "Chat has חזרה למסך העובד",
+      "status": "PASS"
+    },
+    {
+      "id": "mobile-back-button-home",
+      "name": "Back button returns to agent home / inbox, not stuck in chat",
+      "status": "PASS",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing"
+    },
+    {
+      "id": "mobile-return-inbox",
+      "name": "Return keeps inbox available",
+      "status": "PASS"
+    },
+    {
+      "id": "mobile-reenter",
+      "name": "Can enter the same chat again",
+      "status": "PASS"
+    },
+    {
+      "id": "mobile-browser-back",
+      "name": "Browser/phone Back closes chat and is not stuck",
+      "status": "PASS",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing"
+    },
+    {
+      "id": "mobile-logout",
+      "name": "Logout leaves the agent session",
+      "status": "PASS",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/login"
+    },
+    {
+      "id": "admin-home-unchanged",
+      "name": "Manager still lands on admin telemarketing, not agent chat",
+      "status": "PASS"
+    },
+    {
+      "id": "admin-no-auto-overlay",
+      "name": "Manager does not auto-open a chat thread",
+      "status": "PASS"
+    },
+    {
+      "id": "admin-compose-still-there",
+      "name": "Manager compose without customer still present",
+      "status": "PASS"
+    },
+    {
+      "id": "admin-open-chat",
+      "name": "Manager can still open a thread",
+      "status": "PASS"
+    },
+    {
+      "id": "admin-back-label",
+      "name": "Manager back stays on the list, not agent home",
+      "status": "PASS"
+    },
+    {
+      "id": "admin-back-stays-admin",
+      "name": "Manager back returns to admin screen",
+      "status": "PASS",
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing/admin/"
+    }
+  ],
+  "ok": true,
+  "deployed_ref": "deployed_ref=441ce1a feat/incident-alerts-staging"
+}
