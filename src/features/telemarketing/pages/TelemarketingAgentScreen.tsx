@@ -60,6 +60,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   } = useActiveWorkSession(currentEmployee.id, currentEmployee.displayName);
 
   useEffect(() => {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
     const params = new URLSearchParams(location.search);
     if (params.has(DALIA_CHAT_PARAM) || location.hash.includes('dalia')) {
       navigate({ pathname: '/telemarketing', search: '', hash: '' }, { replace: true });
@@ -69,10 +70,15 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   }, []);
 
   useEffect(() => {
+    if (chatOpen) return;
+    window.scrollTo(0, 0);
+    document.getElementById('tele-work-home')?.scrollIntoView({ block: 'start' });
+  }, [chatOpen]);
+
+  useEffect(() => {
     const onPop = () => {
       setChatOpen(false);
       window.scrollTo(0, 0);
-      document.getElementById('tele-work-home')?.scrollIntoView({ block: 'start' });
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -231,15 +237,29 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         </p>
         {showIdleBoards && (
           <>
-            <a href="#new-lead" className="mt-2 inline-block text-sm font-bold text-primary">
-              לקוח / ליד חדש ↓
-            </a>
-            <a href="#my-followups" className="mt-2 mr-3 inline-block text-sm font-bold text-primary">
-              לחזרות שלי ↓
-            </a>
-            <button type="button" onClick={openChats} className="mt-2 mr-3 inline-block text-sm font-bold text-violet-700">
-              🟣 פניות צוות דליה
-            </button>
+            <div className="mt-3 space-y-2">
+              <CallTimerBar
+                status="idle"
+                elapsedSeconds={elapsedSeconds}
+                starting={starting}
+                isRecording={false}
+                employeeName={currentEmployee.displayName}
+                onStart={() => void handleStart()}
+                onEnd={() => void finishCallTiming()}
+              />
+              <WorkTimerBar
+                status="idle"
+                elapsedSeconds={workElapsed}
+                starting={workStarting}
+                employeeName={currentEmployee.displayName}
+                onStart={() => void handleStartWork()}
+                onEnd={() => void finishWorkTiming()}
+              />
+              <AgentChatEntry currentUserId={currentEmployee.id} onOpen={openChats} reloadToken={followUpReload} />
+            </div>
+            {(error || workError) && !call && !workSession && (
+              <p className="mt-2 rounded-lg bg-destructive/10 p-2 text-sm font-semibold text-destructive">{error || workError}</p>
+            )}
           </>
         )}
       </div>
@@ -348,36 +368,12 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
               />
             </label>
           </div>
-          <CallTimerBar
-            status="idle"
-            elapsedSeconds={elapsedSeconds}
-            starting={starting}
-            isRecording={false}
-            employeeName={currentEmployee.displayName}
-            onStart={() => void handleStart()}
-            onEnd={() => void finishCallTiming()}
-          />
-          <WorkTimerBar
-            status="idle"
-            elapsedSeconds={workElapsed}
-            starting={workStarting}
-            employeeName={currentEmployee.displayName}
-            onStart={() => void handleStartWork()}
-            onEnd={() => void finishWorkTiming()}
-          />
-          {(error || workError) && !call && !workSession && (
-            <p className="rounded-lg bg-destructive/10 p-2 text-sm font-semibold text-destructive">{error || workError}</p>
-          )}
         </div>
       )}
 
       {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} />}
 
       {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter />}
-
-      {showIdleBoards && (
-        <AgentChatEntry currentUserId={currentEmployee.id} onOpen={openChats} reloadToken={followUpReload} />
-      )}
 
       {chatOpen && (
         <DaliaChatBoard

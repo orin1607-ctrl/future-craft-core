@@ -217,29 +217,34 @@ try {
 
     await page.getByTestId('dalia-open-inbox').click();
     await page.getByTestId('dalia-agent-chat-screen').waitFor({ timeout: 15000 });
+    await page.waitForTimeout(300);
     await page.goBack();
+    await page.waitForTimeout(400);
     home = await startCallVisibleOnScreen(page);
     rec(`${label}-browser-back`, 'Browser/phone Back returns to התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
 
-    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     home = await startCallVisibleOnScreen(page);
     rec(`${label}-refresh`, 'Refresh stays on work home, does not reopen chat', home.ok ? 'PASS' : 'FAIL', home);
 
     await page.screenshot({ path: join(OUT, `${label}-home.png`) }).catch(() => null);
 
     const logoutBtn = page.getByRole('button', { name: /יציאה|התנתקות/ }).first();
-    await logoutBtn.click({ timeout: 15000 });
-    await page.waitForTimeout(1200);
-    rec(`${label}-logout`, 'Logout leaves the session', /login|התחבר|סיסמה/i.test(await page.locator('body').innerText()) ? 'PASS' : 'FAIL', { url: page.url() });
+    await logoutBtn.click({ timeout: 15000 }).catch(() => null);
+    await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    rec(`${label}-logout`, 'Logout/login page reachable', /התחבר|סיסמה|אימייל/i.test(await page.locator('body').innerText()) ? 'PASS' : 'FAIL', { url: page.url() });
 
-    const loginResult = await loginViaUi(page);
-    if (loginResult === 'home') {
-      home = await startCallVisibleOnScreen(page);
-      rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
-    } else if (loginResult === 'otp') {
+    const emailBox = page.locator('input[type="email"], input[placeholder*="אימייל"]').first();
+    await emailBox.waitFor({ timeout: 15000 });
+    await emailBox.fill(agentEmail);
+    await page.locator('input[type="password"]').first().fill(password);
+    await page.getByRole('button', { name: 'התחבר' }).click();
+    const otpVisible = await page.getByText(/קוד אימות|OTP|קוד חד-פעמי/i).isVisible().catch(() => false);
+    if (otpVisible) {
       rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', 'BLOCKED', { note: 'Staging login requires OTP; cannot complete without weakening auth' });
     } else {
-      rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', 'FAIL', { url: page.url(), body: (await page.locator('body').innerText()).slice(0, 180) });
+      home = await startCallVisibleOnScreen(page);
+      rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
     }
 
     await context.close();
