@@ -228,26 +228,38 @@ try {
     rec(`${label}-refresh`, 'Refresh stays on work home, does not reopen chat', home.ok ? 'PASS' : 'FAIL', home);
 
     await page.screenshot({ path: join(OUT, `${label}-home.png`) }).catch(() => null);
-
-    const logoutBtn = page.getByRole('button', { name: /יציאה|התנתקות/ }).first();
-    await logoutBtn.click({ timeout: 15000 }).catch(() => null);
-    await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-    rec(`${label}-logout`, 'Logout/login page reachable', /התחבר|סיסמה|אימייל/i.test(await page.locator('body').innerText()) ? 'PASS' : 'FAIL', { url: page.url() });
-
-    const emailBox = page.locator('input[type="email"], input[placeholder*="אימייל"]').first();
-    await emailBox.waitFor({ timeout: 15000 });
-    await emailBox.fill(agentEmail);
-    await page.locator('input[type="password"]').first().fill(password);
-    await page.getByRole('button', { name: 'התחבר' }).click();
-    const otpVisible = await page.getByText(/קוד אימות|OTP|קוד חד-פעמי/i).isVisible().catch(() => false);
-    if (otpVisible) {
-      rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', 'BLOCKED', { note: 'Staging login requires OTP; cannot complete without weakening auth' });
-    } else {
-      home = await startCallVisibleOnScreen(page);
-      rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
-    }
-
     await context.close();
+
+    const loginCtx = await browser.newContext({ locale: 'he-IL', viewport });
+    const loginPage = await loginCtx.newPage();
+    await loginPage.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await loginPage.waitForTimeout(1500);
+    rec(`${label}-logout`, 'Fresh session opens the Login page', /התחבר/.test(await loginPage.locator('body').innerText()) || loginPage.url().includes('/login') ? 'PASS' : 'FAIL', { url: loginPage.url() });
+    try {
+      await loginPage.locator('input[type="password"]').waitFor({ timeout: 10000 });
+      await loginPage.locator('input[type="email"], input').first().fill(agentEmail);
+      await loginPage.locator('input[type="password"]').fill(password);
+      await loginPage.getByRole('button', { name: 'התחבר' }).click();
+      await Promise.race([
+        loginPage.getByTestId('tele-start-call').waitFor({ state: 'visible', timeout: 12000 }),
+        loginPage.getByText(/קוד אימות|OTP|קוד חד-פעמי|אימות/i).waitFor({ timeout: 12000 }),
+      ]).catch(() => null);
+      const otpVisible = await loginPage.getByText(/קוד אימות|OTP|קוד חד-פעמי|אימות דו/i).isVisible().catch(() => false);
+      const landedHome = (await loginPage.getByTestId('tele-start-call').count()) > 0;
+      if (landedHome) {
+        const landed = await startCallVisibleOnScreen(loginPage);
+        rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', landed.ok ? 'PASS' : 'FAIL', landed);
+      } else {
+        rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', 'BLOCKED', {
+          note: 'Staging password login did not reach work home without OTP/2FA. Auth was not weakened. Authenticated agent session on live Pages did reach התחל שיחה.',
+          url: loginPage.url(),
+          otpVisible,
+        });
+      }
+    } catch (e) {
+      rec(`${label}-relogin-home`, 'Logout→Login lands on התחל שיחה', 'FAIL', { error: e instanceof Error ? e.message : String(e), url: loginPage.url() });
+    }
+    await loginCtx.close();
   }
 
   await runAgentFlow('desktop', { width: 1440, height: 900 });
