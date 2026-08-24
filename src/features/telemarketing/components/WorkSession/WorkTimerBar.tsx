@@ -1,0 +1,52 @@
+import { Briefcase, Square } from 'lucide-react';
+
+interface Props {
+  status: 'idle' | 'in_progress' | 'ended';
+  elapsedSeconds: number;
+  starting: boolean;
+  onStart: () => void;
+  onEnd: () => void;
+}
+
+function formatMMSS(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+export function WorkTimerBar({ status, elapsedSeconds, starting, onStart, onEnd }: Props) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      {status === 'idle' && (
+        <button
+          type="button"
+          onClick={onStart}
+          disabled={starting}
+          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-sky-700 py-4 text-lg font-bold text-white active:scale-[0.99] disabled:opacity-50"
+        >
+          <Briefcase size={22} />
+          {starting ? 'מתחיל משימה...' : 'התחל משימת עבודה'}
+        </button>
+      )}
+      {status === 'in_progress' && (
+        <div className="text-center">
+          <p className="mb-2 text-sm text-muted-foreground">משימת עבודה פעילה</p>
+          <p className="mb-3 font-mono text-3xl font-bold text-foreground">{formatMMSS(elapsedSeconds)}</p>
+          <button
+            type="button"
+            onClick={onEnd}
+            className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-destructive py-4 text-lg font-bold text-destructive-foreground"
+          >
+            <Square size={20} />
+            סיום משימת עבודה
+          </button>
+        </div>
+      )}
+      {status === 'ended' && (
+        <div className="text-center text-sm font-semibold text-muted-foreground">
+          המשימה הסתיימה — משך {formatMMSS(elapsedSeconds)} · יש להשלים דיווח למטה
+        </div>
+      )}
+    </div>
+  );
+}

@@ -2,9 +2,13 @@ import { useEffect, useState } from 'react';
 import { CustomerCallCard } from '@/features/telemarketing/components/CallerScreen/CustomerCallCard';
 import { CallTimerBar } from '@/features/telemarketing/components/CallerScreen/CallTimerBar';
 import { CallReportForm } from '@/features/telemarketing/components/CallerScreen/CallReportForm';
+import { WorkTimerBar } from '@/features/telemarketing/components/WorkSession/WorkTimerBar';
+import { WorkReportForm } from '@/features/telemarketing/components/WorkSession/WorkReportForm';
 import { MyFollowUps } from '@/features/telemarketing/components/FollowUp/MyFollowUps';
 import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadTimeline';
+import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
+import { useActiveWorkSession } from '@/features/telemarketing/hooks/useActiveWorkSession';
 import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
 import type { CustomerRef, FollowUpWorkItem, TelemarketingEmployee } from '@/features/telemarketing/types';
 
@@ -36,6 +40,18 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     isRecording,
     error,
   } = useActiveCall(currentEmployee.id);
+  const {
+    session: workSession,
+    elapsedSeconds: workElapsed,
+    draft: workDraft,
+    updateDraft: updateWorkDraft,
+    beginWork,
+    finishWorkTiming,
+    submitWork,
+    submitting: workSubmitting,
+    starting: workStarting,
+    error: workError,
+  } = useActiveWorkSession(currentEmployee.id, currentEmployee.displayName);
 
   useEffect(() => {
     if (!call?.sourceFollowUpId) {
@@ -115,6 +131,28 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     }
   };
 
+  const handleStartWork = async () => {
+    try {
+      await beginWork({
+        companyName: manualCustomer.companyName,
+        contactName: manualCustomer.contactName,
+        phone: manualCustomer.phone,
+      });
+    } catch (e) {
+      showToast('error', e instanceof Error ? e.message : 'שגיאה בהתחלת משימה');
+    }
+  };
+
+  const handleSubmitWork = async () => {
+    const ok = await submitWork();
+    if (ok) {
+      showToast('success', 'משימת העבודה נשמרה');
+      setFollowUpReload((n) => n + 1);
+    } else {
+      showToast('error', 'לא ניתן לשמור את המשימה');
+    }
+  };
+
   const handleSubmit = async () => {
     const ok = await submitReport();
     if (ok) {
@@ -129,7 +167,9 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
 
   const callStatus = !call ? 'idle' : call.endedAt ? 'ended' : 'in_progress';
   const reportOpen = callStatus === 'ended';
-  const showManualForm = !call;
+  const workStatus = !workSession ? 'idle' : workSession.endedAt ? 'ended' : 'in_progress';
+  const workReportOpen = workStatus === 'ended';
+  const showIdleBoards = !call && !workSession;
 
   return (
     <div className="mx-auto max-w-lg space-y-4 pb-8">
@@ -149,7 +189,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           {currentEmployee.displayName}
           {currentEmployee.employeeCode ? ` · ${currentEmployee.employeeCode}` : ''}
         </p>
-        {showManualForm && (
+        {showIdleBoards && (
           <a href="#my-followups" className="mt-2 inline-block text-sm font-bold text-primary">
             לחזרות שלי ↓
           </a>
@@ -180,9 +220,11 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         </div>
       )}
 
-      {showManualForm && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} />}
+      {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} />}
 
-      {showManualForm && (
+      {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter />}
+
+      {showIdleBoards && (
         <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
           <p className="text-base font-black">לקוח / ליד חדש</p>
           <p className="text-xs text-muted-foreground">
@@ -262,9 +304,6 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
               />
             </label>
           </div>
-          {error && !call && (
-            <p className="rounded-lg bg-destructive/10 p-2 text-sm font-semibold text-destructive">{error}</p>
-          )}
           <CallTimerBar
             status="idle"
             elapsedSeconds={elapsedSeconds}
@@ -273,6 +312,16 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
             onStart={() => void handleStart()}
             onEnd={() => void finishCallTiming()}
           />
+          <WorkTimerBar
+            status="idle"
+            elapsedSeconds={workElapsed}
+            starting={workStarting}
+            onStart={() => void handleStartWork()}
+            onEnd={() => void finishWorkTiming()}
+          />
+          {(error || workError) && !call && !workSession && (
+            <p className="rounded-lg bg-destructive/10 p-2 text-sm font-semibold text-destructive">{error || workError}</p>
+          )}
         </div>
       )}
 
@@ -312,6 +361,25 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           onSubmit={() => void handleSubmit()}
           submitting={submitting}
           error={error}
+        />
+      )}
+
+      {workStatus !== 'idle' && (
+        <WorkTimerBar
+          status={workStatus}
+          elapsedSeconds={workElapsed}
+          starting={workStarting}
+          onStart={() => void handleStartWork()}
+          onEnd={() => void finishWorkTiming()}
+        />
+      )}
+      {workReportOpen && (
+        <WorkReportForm
+          draft={workDraft}
+          onChange={updateWorkDraft}
+          onSubmit={() => void handleSubmitWork()}
+          submitting={workSubmitting}
+          error={workError}
         />
       )}
     </div>

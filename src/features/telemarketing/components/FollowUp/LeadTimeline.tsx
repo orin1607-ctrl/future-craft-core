@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
+import { getWorkSessionsForLead } from '@/features/telemarketing/services/workSessionService';
 import { PlayRecordingButton } from '@/features/telemarketing/components/AdminDashboard/PlayRecordingButton';
-import type { FollowUpWorkItem, TelemarketingCall } from '@/features/telemarketing/types';
+import type { FollowUpWorkItem, TelemarketingCall, TelemarketingWorkSession } from '@/features/telemarketing/types';
 
 function formatDuration(seconds: number | null): string {
   if (seconds == null) return '-';
@@ -20,14 +21,19 @@ export function LeadTimeline({
   showStartButton?: boolean;
 }) {
   const [history, setHistory] = useState<TelemarketingCall[]>([]);
+  const [work, setWork] = useState<TelemarketingWorkSession[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    void getLeadHistory(followUp.phone, followUp.companyName).then((rows) => {
+    void Promise.all([
+      getLeadHistory(followUp.phone, followUp.companyName),
+      getWorkSessionsForLead(followUp.phone, followUp.companyName),
+    ]).then(([calls, sessions]) => {
       if (!cancelled) {
-        setHistory(rows);
+        setHistory(calls);
+        setWork(sessions);
         setLoading(false);
       }
     });
@@ -87,6 +93,21 @@ export function LeadTimeline({
           ))}
         </ol>
       </div>
+
+      {work.length > 0 && (
+        <div>
+          <h4 className="mb-2 font-bold">משימות עבודה על הלקוח</h4>
+          <ol className="space-y-2">
+            {work.map((session) => (
+              <li key={session.id} className="rounded-xl border border-border bg-background p-3">
+                <p className="font-bold">{session.taskType || 'משימה'} · {session.startedAt.slice(0, 10)}</p>
+                <p className="text-muted-foreground">משך {formatDuration(session.durationSeconds)}</p>
+                {session.description && <p className="mt-1">{session.description}</p>}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {showStartButton && followUp.status === 'open' && onStartReturn && (
         <button

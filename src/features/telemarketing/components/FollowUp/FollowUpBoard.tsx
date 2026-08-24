@@ -24,6 +24,7 @@ export interface FollowUpFiltersState {
   bucket: '' | FollowUpWorkItem['bucket'];
   urgency: string;
   result: string;
+  color: '' | 'red' | 'yellow' | 'green';
 }
 
 const EMPTY_FILTERS: FollowUpFiltersState = {
@@ -34,6 +35,7 @@ const EMPTY_FILTERS: FollowUpFiltersState = {
   bucket: '',
   urgency: '',
   result: '',
+  color: '',
 };
 
 function applyFilters(items: FollowUpWorkItem[], filters: FollowUpFiltersState, hideEmployee: boolean): FollowUpWorkItem[] {
@@ -49,6 +51,7 @@ function applyFilters(items: FollowUpWorkItem[], filters: FollowUpFiltersState, 
     if (filters.bucket && item.bucket !== filters.bucket) return false;
     if (filters.urgency && item.urgency !== filters.urgency) return false;
     if (filters.result && item.lastResult !== filters.result) return false;
+    if (filters.color && item.leadColor !== filters.color) return false;
     return true;
   });
 }
@@ -75,12 +78,14 @@ export function FollowUpBoard({
     [items],
   );
   const filtered = applyFilters(items, filters, !!hideEmployeeFilter);
+  const workQueue = filtered.filter((i) => i.leadColor !== 'red' || filters.color === 'red');
   const grouped = {
-    late: filtered.filter((i) => i.bucket === 'late'),
-    today: filtered.filter((i) => i.bucket === 'today'),
-    future: filtered.filter((i) => i.bucket === 'future'),
-    done: filtered.filter((i) => i.bucket === 'done'),
+    late: workQueue.filter((i) => i.bucket === 'late'),
+    today: workQueue.filter((i) => i.bucket === 'today'),
+    future: workQueue.filter((i) => i.bucket === 'future'),
+    done: workQueue.filter((i) => i.bucket === 'done'),
   };
+  const redHidden = filters.color !== 'red' ? filtered.filter((i) => i.leadColor === 'red' && i.status === 'open') : [];
 
   return (
     <div className="space-y-3">
@@ -145,6 +150,16 @@ export function FollowUpBoard({
           <option value="דחוף">דחוף</option>
         </select>
         <select
+          value={filters.color}
+          onChange={(e) => setFilters((f) => ({ ...f, color: e.target.value as FollowUpFiltersState['color'] }))}
+          className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm"
+        >
+          <option value="">כל הצבעים</option>
+          <option value="red">🔴 אדום</option>
+          <option value="yellow">🟡 צהוב</option>
+          <option value="green">🟢 ירוק</option>
+        </select>
+        <select
           value={filters.result}
           onChange={(e) => setFilters((f) => ({ ...f, result: e.target.value }))}
           className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm"
@@ -177,7 +192,10 @@ export function FollowUpBoard({
                 }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-bold">{item.companyName || 'ללא שם'}</span>
+                  <span className="font-bold">
+                    {item.leadColor === 'red' ? '🔴 ' : item.leadColor === 'green' ? '🟢 ' : item.leadColor === 'yellow' ? '🟡 ' : ''}
+                    {item.companyName || 'ללא שם'}
+                  </span>
                   <span className="text-xs font-semibold">
                     {BUCKET_LABEL[item.bucket]} · {item.dueDate}
                     {item.dueTime ? ` ${item.dueTime}` : ''} · {item.urgency}
@@ -196,6 +214,25 @@ export function FollowUpBoard({
           </div>
         </section>
       ))}
+
+      {redHidden.length > 0 && (
+        <section>
+          <h4 className="mb-2 text-base font-black text-destructive">אדומים — לא בתור חזרה ({redHidden.length})</h4>
+          <div className="space-y-2">
+            {redHidden.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSelected(item)}
+                className="w-full rounded-xl border border-destructive bg-destructive/10 p-3 text-right text-destructive"
+              >
+                <span className="font-bold">🔴 {item.companyName || 'ללא שם'}</span>
+                <p className="text-sm">{item.closeReason || item.lastSummary || item.lastResult}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setSelected(null)}>
@@ -223,5 +260,5 @@ export function FollowUpBoard({
 }
 
 export function dueCount(items: FollowUpWorkItem[]): number {
-  return items.filter((i) => i.bucket === 'late' || i.bucket === 'today').length;
+  return items.filter((i) => (i.bucket === 'late' || i.bucket === 'today') && i.leadColor !== 'red').length;
 }

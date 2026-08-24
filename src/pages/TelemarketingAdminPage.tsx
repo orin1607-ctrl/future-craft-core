@@ -4,5 +4,5 @@ import { TelemarketingAdminScreen } from '@/features/telemarketing/pages/Telemar
 export default function TelemarketingAdminPage() {
   const { user } = useAuth();
   if (!user) return null;
-  return <TelemarketingAdminScreen currentManagerId={user.id} />;
+  return <TelemarketingAdminScreen currentManagerId={user.id} currentManagerName={user.full_name} />;
 }

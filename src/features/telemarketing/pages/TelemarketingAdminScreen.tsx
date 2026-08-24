@@ -4,13 +4,21 @@ import { SummaryCards } from '@/features/telemarketing/components/AdminDashboard
 import { CallsTable } from '@/features/telemarketing/components/AdminDashboard/CallsTable';
 import { EmployeeCards } from '@/features/telemarketing/components/AdminDashboard/EmployeeCards';
 import { FollowUpBoard } from '@/features/telemarketing/components/FollowUp/FollowUpBoard';
+import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
+import { WorkTimeDashboard } from '@/features/telemarketing/components/AdminDashboard/WorkTimeDashboard';
 import { useTelemarketingDashboard } from '@/features/telemarketing/hooks/useTelemarketingDashboard';
 import { useAgentPerformance } from '@/features/telemarketing/hooks/useAgentPerformance';
 import { getFollowUpWorkItems } from '@/features/telemarketing/services/telemarketingService';
 import { getTelemarketingSettings, updateTelemarketingSetting } from '@/features/telemarketing/config/telemarketingSettings';
 import type { FollowUpWorkItem } from '@/features/telemarketing/types';
 
-export function TelemarketingAdminScreen({ currentManagerId: _currentManagerId }: { currentManagerId: string }) {
+export function TelemarketingAdminScreen({
+  currentManagerId,
+  currentManagerName,
+}: {
+  currentManagerId: string;
+  currentManagerName?: string;
+}) {
   const { calls, summary, loading, error, lastUpdated, reload, autoRefresh, setAutoRefresh } = useTelemarketingDashboard();
   const { agents, reload: reloadAgents } = useAgentPerformance();
   const [followUps, setFollowUps] = useState<FollowUpWorkItem[]>([]);
@@ -118,6 +126,10 @@ export function TelemarketingAdminScreen({ currentManagerId: _currentManagerId }
 
       <h3 className="mb-2 text-lg font-bold">החזרות — כל הנציגים</h3>
       <FollowUpBoard items={followUps} />
+
+      <LeadsBoard currentEmployee={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על' }} />
+
+      <WorkTimeDashboard selectedAgent={selectedAgent} />
 
       <EmployeeCards agents={agents} selectedAgent={selectedAgent} onSelectAgent={setSelectedAgent} />
 

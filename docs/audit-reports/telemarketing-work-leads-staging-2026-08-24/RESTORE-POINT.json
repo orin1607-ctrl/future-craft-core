@@ -1,0 +1,16 @@
+{
+  "at": "2026-08-24T19:51:47.980Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "rollback": [
+    "DROP TRIGGER IF EXISTS trg_telemarketing_calls_one_timer ON public.telemarketing_calls;",
+    "DROP TRIGGER IF EXISTS trg_telemarketing_work_one_timer ON public.telemarketing_work_sessions;",
+    "DROP FUNCTION IF EXISTS public.telemarketing_one_active_timer();",
+    "DROP FUNCTION IF EXISTS public.telemarketing_lead_key(text, text);",
+    "DROP TABLE IF EXISTS public.telemarketing_lead_status_events;",
+    "DROP TABLE IF EXISTS public.telemarketing_lead_states;",
+    "DROP TABLE IF EXISTS public.telemarketing_work_sessions;",
+    "DROP INDEX IF EXISTS telemarketing_calls_one_open_per_employee;"
+  ]
+}

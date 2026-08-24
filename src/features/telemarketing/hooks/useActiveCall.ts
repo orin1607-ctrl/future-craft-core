@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { startCall, endCall, submitCallReport, getOpenCallForEmployee } from '@/features/telemarketing/services/telemarketingService';
+import { getOpenWorkSession } from '@/features/telemarketing/services/workSessionService';
 import { sendFollowUpNotifications } from '@/features/telemarketing/services/notificationService';
 import {
   startCallRecording,
@@ -15,6 +16,7 @@ import type {
   TelemarketingCall,
   UrgencyLevel,
 } from '@/features/telemarketing/types';
+import type { LeadColor, LeadStatus } from '@/features/telemarketing/lib/leadTraffic';
 
 const DRAFT_KEY = 'telemarketing_draft_report_v1';
 
@@ -38,6 +40,11 @@ export interface ReportDraft {
   followUpTime: string;
   followUpUrgency: UrgencyLevel;
   managerNote: string;
+  leadColor: LeadColor | null;
+  leadStatus: LeadStatus | null;
+  closeReason: string;
+  closeOpenFollowUps: boolean;
+  leadColorTouched: boolean;
 }
 
 const EMPTY_DRAFT: ReportDraft = {
@@ -51,6 +58,11 @@ const EMPTY_DRAFT: ReportDraft = {
   followUpTime: '',
   followUpUrgency: 'רגיל',
   managerNote: '',
+  leadColor: null,
+  leadStatus: null,
+  closeReason: '',
+  closeOpenFollowUps: true,
+  leadColorTouched: false,
 };
 
 export function useActiveCall(employeeId?: string) {
@@ -127,6 +139,12 @@ export function useActiveCall(employeeId?: string) {
         setCall(open);
         if (open.endedAt && open.durationSeconds != null) setElapsedSeconds(open.durationSeconds);
         throw new Error('יש שיחה פתוחה — יש להשלים דיווח לפני לקוח חדש');
+      }
+      if (employeeId) {
+        const openWork = await getOpenWorkSession(employeeId);
+        if (openWork) {
+          throw new Error('יש משימת עבודה פעילה — יש לסיים אותה לפני התחלת שיחה');
+        }
       }
       const clientToken = uuid();
       submitTokenRef.current = uuid();
@@ -213,8 +231,16 @@ export function useActiveCall(employeeId?: string) {
       setError('חובה למלא סיכום קצר');
       return false;
     }
-    if (draft.needsFollowUp && !draft.followUpDate) {
+    if (draft.needsFollowUp && !draft.followUpDate && draft.leadColor !== 'red') {
       setError('נדרשת המשכיות מסומן - חובה למלא תאריך לחזרה');
+      return false;
+    }
+    if (!draft.leadColor || !draft.leadStatus) {
+      setError('חובה לבחור רמזור ליד (אדום / צהוב / ירוק)');
+      return false;
+    }
+    if (draft.leadColor === 'red' && !draft.closeReason.trim() && !draft.summary.trim()) {
+      setError('ליד אדום — חובה לכתוב סיבת סגירה');
       return false;
     }
 
@@ -236,6 +262,10 @@ export function useActiveCall(employeeId?: string) {
       managerNote: draft.managerNote.trim() || undefined,
       clientToken: submitTokenRef.current,
       sourceFollowUpId: call.sourceFollowUpId,
+      leadColor: draft.leadColor ?? undefined,
+      leadStatus: draft.leadStatus ?? undefined,
+      closeReason: draft.closeReason.trim() || draft.summary.trim(),
+      closeOpenFollowUps: draft.leadColor === 'red' ? draft.closeOpenFollowUps : false,
     };
 
     try {

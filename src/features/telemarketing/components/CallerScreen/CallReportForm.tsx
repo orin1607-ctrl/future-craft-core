@@ -1,5 +1,6 @@
 import { CALL_RESULTS, LEAD_RATINGS, URGENCY_LEVELS } from '@/features/telemarketing/types';
 import type { ReportDraft } from '@/features/telemarketing/hooks/useActiveCall';
+import { LEAD_COLOR_LABEL, LEAD_STATUSES, suggestedLeadTraffic, type LeadColor } from '@/features/telemarketing/lib/leadTraffic';
 
 interface Props {
   draft: ReportDraft;
@@ -23,7 +24,15 @@ export function CallReportForm({ draft, onChange, onSubmit, submitting, error }:
             <button
               key={r}
               type="button"
-              onClick={() => onChange({ result: r })}
+              onClick={() => {
+                const suggested = suggestedLeadTraffic(r, draft.needsFollowUp);
+                onChange({
+                  result: r,
+                  leadColor: suggested.color,
+                  leadStatus: suggested.status,
+                  leadColorTouched: false,
+                });
+              }}
               className={`${chipBase} ${draft.result === r ? chipActive : chipInactive}`}
             >
               {r}
@@ -68,6 +77,77 @@ export function CallReportForm({ draft, onChange, onSubmit, submitting, error }:
         />
       </div>
 
+      <div>
+        <label className="mb-2 block text-sm font-semibold">רמזור ליד</label>
+        <p className="mb-2 text-xs text-muted-foreground">לא ענה לא הופך לאדום. אדום רק בסגירה מפורשת.</p>
+        <div className="grid grid-cols-3 gap-2">
+          {(['red', 'yellow', 'green'] as LeadColor[]).map((color) => (
+            <button
+              key={color}
+              type="button"
+              onClick={() =>
+                onChange({
+                  leadColor: color,
+                  leadStatus: LEAD_STATUSES[color][0].id,
+                  leadColorTouched: true,
+                  needsFollowUp: color === 'red' ? false : draft.needsFollowUp,
+                })
+              }
+              className={`${chipBase} ${
+                draft.leadColor === color
+                  ? color === 'red'
+                    ? 'border-destructive bg-destructive text-white font-black'
+                    : color === 'green'
+                      ? 'border-emerald-600 bg-emerald-600 text-white font-black'
+                      : 'border-amber-500 bg-amber-400 font-black text-black'
+                  : chipInactive
+              }`}
+            >
+              {color === 'red' ? '🔴 אדום' : color === 'yellow' ? '🟡 צהוב' : '🟢 ירוק'}
+            </button>
+          ))}
+        </div>
+        {draft.leadColor && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {LEAD_STATUSES[draft.leadColor].map((status) => (
+              <button
+                key={status.id}
+                type="button"
+                onClick={() => onChange({ leadStatus: status.id, leadColorTouched: true })}
+                className={`${chipBase} ${draft.leadStatus === status.id ? chipActive : chipInactive}`}
+              >
+                {status.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {draft.leadColor === 'red' && (
+          <div className="mt-3 space-y-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3">
+            <label className="block text-sm font-semibold">
+              סיבת סגירה (חובה)
+              <textarea
+                value={draft.closeReason}
+                onChange={(e) => onChange({ closeReason: e.target.value })}
+                rows={2}
+                className="mt-1 w-full rounded-lg border border-border bg-background p-3"
+                placeholder="לדוגמה: עובד עם ספק קבוע ולא רוצה הצעה"
+              />
+            </label>
+            <label className="flex min-h-12 items-center gap-3">
+              <input
+                type="checkbox"
+                checked={draft.closeOpenFollowUps}
+                onChange={(e) => onChange({ closeOpenFollowUps: e.target.checked })}
+                className="h-5 w-5"
+              />
+              <span className="text-sm font-semibold">סגור Follow-up פתוח — אין צורך לחזור</span>
+            </label>
+          </div>
+        )}
+        {draft.leadColor && <p className="mt-1 text-xs text-muted-foreground">{LEAD_COLOR_LABEL[draft.leadColor]}</p>}
+      </div>
+
+      {draft.leadColor !== 'red' && (
       <label className="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-muted/40 p-3">
         <input
           type="checkbox"
@@ -77,8 +157,9 @@ export function CallReportForm({ draft, onChange, onSubmit, submitting, error }:
         />
         <span className="font-semibold">נדרשת המשכיות עם הלקוח</span>
       </label>
+      )}
 
-      {draft.needsFollowUp && (
+      {draft.leadColor !== 'red' && draft.needsFollowUp && (
         <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
           <div>
             <label className="mb-1 block text-xs font-semibold">מה צריך לעשות</label>

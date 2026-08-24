@@ -42,7 +42,10 @@ export function EmployeeCards({ agents, selectedAgent, onSelectAgent }: Props) {
                 <span>לידים חמים: {a.hotLeads}</span>
                 <span>Follow-ups: {a.followUpsOpen}</span>
                 <span>זמן שיחה: {formatDuration(a.totalCallDurationSeconds)}</span>
-                <span>ממוצע: {formatDuration(a.avgCallDurationSeconds)}</span>
+                <span>ממוצע שיחה: {formatDuration(a.avgCallDurationSeconds)}</span>
+                <span>משימות: {a.workCount}</span>
+                <span>זמן עבודה: {formatDuration(a.workSeconds)}</span>
+                <span>סה״כ זמן: {formatDuration(a.totalCallDurationSeconds + a.workSeconds)}</span>
               </div>
             </button>
           );

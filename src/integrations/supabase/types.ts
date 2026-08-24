@@ -2450,6 +2450,153 @@ export type Database = {
         }
         Relationships: []
       }
+      telemarketing_work_sessions: {
+        Row: {
+          id: string
+          employee_id: string
+          employee_name: string
+          customer_id: string | null
+          company_name: string
+          contact_name: string | null
+          phone: string
+          task_type: string
+          description: string | null
+          note: string | null
+          needs_follow_up: boolean
+          started_at: string
+          ended_at: string | null
+          duration_seconds: number | null
+          status: string
+          client_token: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          employee_name: string
+          customer_id?: string | null
+          company_name?: string
+          contact_name?: string | null
+          phone?: string
+          task_type?: string
+          description?: string | null
+          note?: string | null
+          needs_follow_up?: boolean
+          started_at?: string
+          ended_at?: string | null
+          duration_seconds?: number | null
+          status?: string
+          client_token: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          employee_name?: string
+          customer_id?: string | null
+          company_name?: string
+          contact_name?: string | null
+          phone?: string
+          task_type?: string
+          description?: string | null
+          note?: string | null
+          needs_follow_up?: boolean
+          started_at?: string
+          ended_at?: string | null
+          duration_seconds?: number | null
+          status?: string
+          client_token?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telemarketing_lead_states: {
+        Row: {
+          id: string
+          lead_key: string
+          company_name: string
+          contact_name: string | null
+          phone: string
+          employee_id: string | null
+          employee_name: string | null
+          lead_color: string
+          lead_status: string
+          reason: string | null
+          changed_at: string
+          changed_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lead_key: string
+          company_name?: string
+          contact_name?: string | null
+          phone?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          lead_color: string
+          lead_status: string
+          reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          lead_key?: string
+          company_name?: string
+          contact_name?: string | null
+          phone?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          lead_color?: string
+          lead_status?: string
+          reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telemarketing_lead_status_events: {
+        Row: {
+          id: string
+          lead_key: string
+          lead_color: string
+          lead_status: string
+          reason: string | null
+          changed_by: string | null
+          changed_at: string
+        }
+        Insert: {
+          id?: string
+          lead_key: string
+          lead_color: string
+          lead_status: string
+          reason?: string | null
+          changed_by?: string | null
+          changed_at?: string
+        }
+        Update: {
+          id?: string
+          lead_key?: string
+          lead_color?: string
+          lead_status?: string
+          reason?: string | null
+          changed_by?: string | null
+          changed_at?: string
+        }
+        Relationships: []
+      }
       user_access_codes: {
         Row: {
           code_hash: string
