@@ -1,0 +1,19 @@
+{
+  "testids": [
+    "telemarketing-agent-home",
+    "tele-start-call",
+    "dalia-open-inbox"
+  ],
+  "buttons": [
+    "",
+    "כהה",
+    "התנתקות",
+    "יציאה",
+    "התחל שיחה",
+    "התחל משימת עבודה",
+    "🟣 פניות צוות דליה",
+    "",
+    ""
+  ],
+  "hasInbox": true
+}

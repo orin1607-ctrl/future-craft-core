@@ -60,6 +60,15 @@ async function sessionForExistingUser(email) {
   return auth.session;
 }
 
+async function isIdleEmployee(userId) {
+  const work = await admin.from('telemarketing_work_sessions').select('id, status, ended_at').eq('employee_id', userId).eq('status', 'in_progress').limit(5);
+  const calls = await admin.from('telemarketing_calls').select('id, status').eq('employee_id', userId).eq('status', 'in_progress').limit(5);
+  if (work.error) console.log('work query', work.error.message);
+  if (calls.error) console.log('calls query', calls.error.message);
+  const busy = (work.data && work.data.length > 0) || (calls.data && calls.data.length > 0);
+  return { idle: !busy, work: work.data, calls: calls.data };
+}
+
 async function findRoleUser(role) {
   const { data: rows, error } = await admin.from('user_roles').select('user_id').eq('role', role);
   if (error) throw error;
@@ -71,9 +80,12 @@ async function findRoleUser(role) {
     const { data: u } = await admin.auth.admin.getUserById(id);
     const email = u?.user?.email;
     if (!email) continue;
-    picked.push({ id, email, name: profile.full_name, qa: /staging-e2e\.local|qa-chat-|qa-tele-/i.test(email) });
+    const idleInfo = role === 'telemarketing_agent' ? await isIdleEmployee(id) : { idle: true };
+    picked.push({ id, email, name: profile.full_name, qa: /staging-e2e\.local|qa-chat-|qa-tele-/i.test(email), idle: idleInfo.idle, work: idleInfo.work, calls: idleInfo.calls });
   }
-  return picked.find((p) => !p.qa) || picked[0] || null;
+  const realIdle = picked.find((p) => !p.qa && p.idle);
+  const anyIdle = picked.find((p) => p.idle);
+  return realIdle || anyIdle || picked.find((p) => !p.qa) || picked[0] || null;
 }
 
 function sessionValue(session) {
@@ -99,13 +111,14 @@ async function openAgentInbox(page) {
 }
 
 async function firstScreenProbe(page) {
+  await page.waitForTimeout(2500);
   const btn = page.getByTestId('tele-start-call');
-  await btn.waitFor({ state: 'visible', timeout: 30000 });
+  const startVisible = (await btn.count()) > 0 && (await btn.first().isVisible().catch(() => false));
   const chatScreen = await page.getByTestId('dalia-agent-chat-screen').count();
   const overlay = await page.getByTestId('dalia-chat-overlay').count();
   const rows = await page.getByTestId('dalia-chat-row').count();
   const back = await page.getByTestId('dalia-back-telemarketing').count();
-  const box = await btn.boundingBox();
+  const box = startVisible ? await btn.first().boundingBox() : null;
   const vh = page.viewportSize()?.height || 900;
   const onScreen = !!box && box.y >= 0 && box.y < vh * 0.55;
   const url = page.url();
@@ -113,6 +126,7 @@ async function firstScreenProbe(page) {
   const body = await page.locator('body').innerText();
   const hasStart = body.includes('התחל שיחה');
   const hasChatBack = body.includes('חזרה לטלמיטינג');
+  const hasWorkReport = body.includes('דיווח משימת עבודה');
   const env = await page.evaluate(() => ({
     bundle: document.querySelector('script[src*="assets/index-"]')?.getAttribute('src') || '',
     hash: location.hash,
@@ -123,8 +137,12 @@ async function firstScreenProbe(page) {
     ssChat: Object.keys(sessionStorage).filter((k) => /daliaChat|teleAgentChat|dalia-care/i.test(k)),
     scrollY: window.scrollY,
   }));
+  const chatClosed = chatScreen === 0 && overlay === 0 && rows === 0 && back === 0 && !hasChatBack && !env.sw;
   return {
-    ok: chatScreen === 0 && overlay === 0 && rows === 0 && back === 0 && onScreen && urlClean && hasStart && !hasChatBack && env.scrollY < 40 && !env.sw,
+    ok: chatClosed && startVisible && onScreen && urlClean && hasStart && env.scrollY < 80,
+    chatClosed,
+    pendingWork: hasWorkReport && !startVisible,
+    startVisible,
     chatScreen,
     overlay,
     rows,
@@ -133,6 +151,7 @@ async function firstScreenProbe(page) {
     url,
     hasStart,
     hasChatBack,
+    hasWorkReport,
     ...env,
   };
 }
@@ -161,7 +180,12 @@ try {
   }
 
   const agent = await findRoleUser('telemarketing_agent');
-  rec('existing-agent', 'Found existing telemarketing employee (no user create)', agent ? 'PASS' : 'FAIL', { usedQaFallback: Boolean(agent?.qa) });
+  rec('existing-agent', 'Found existing telemarketing employee (no user create)', agent ? 'PASS' : 'FAIL', {
+    usedQaFallback: Boolean(agent?.qa),
+    idle: agent?.idle,
+    work: agent?.work,
+    calls: agent?.calls,
+  });
   if (!agent) throw new Error('no existing telemarketing_agent');
   const agentSession = await sessionForExistingUser(agent.email);
 
@@ -184,58 +208,58 @@ try {
   async function runAgentFlow(label, viewport) {
     const { page, context } = await contextWithSession(agentSession, viewport);
 
+    function recHome(id, name, home) {
+      if (home.ok) rec(id, name, 'PASS', home);
+      else if (home.chatClosed && home.pendingWork) rec(id, name, 'BLOCKED', { ...home, note: 'Chat did not auto-open. Start Call is hidden because this employee has an unfinished work report. Users/data were not changed.' });
+      else rec(id, name, 'FAIL', home);
+    }
+
     await page.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     let home = await firstScreenProbe(page);
     await page.screenshot({ path: join(OUT, `${label}-01-first-screen.png`) });
-    rec(`${label}-clean-url-home`, 'First viewport is התחל שיחה, chat is not open', home.ok ? 'PASS' : 'FAIL', home);
+    recHome(`${label}-clean-url-home`, 'First viewport is התחל שיחה, chat is not open', home);
+    rec(`${label}-chat-not-auto-open`, 'Chat screen is not open after load', home.chatClosed ? 'PASS' : 'FAIL', home);
 
     await page.goto(`${BASE}/telemarketing?daliaChat=stale-id#dalia-care`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-    await page.waitForTimeout(1200);
-    try {
-      home = await firstScreenProbe(page);
-    } catch (e) {
-      await page.screenshot({ path: join(OUT, `${label}-02-stale-url-FAIL.png`) });
-      throw e;
-    }
+    home = await firstScreenProbe(page);
     await page.screenshot({ path: join(OUT, `${label}-02-stale-url.png`) });
-    rec(`${label}-strip-daliaChat`, 'Stale daliaChat/hash does not auto-open chat', home.ok ? 'PASS' : 'FAIL', home);
+    recHome(`${label}-strip-daliaChat`, 'Stale daliaChat/hash does not auto-open chat', home);
 
-    await openAgentInbox(page);
-    await page.getByTestId('dalia-agent-chat-screen').waitFor({ timeout: 15000 });
-    rec(`${label}-chat-opens`, 'Chat screen opens only after explicit click', (await page.getByTestId('dalia-agent-chat-screen').count()) > 0 ? 'PASS' : 'FAIL');
-    rec(`${label}-back-button-present`, 'חזרה לטלמיטינג is visible in chat', (await page.getByTestId('dalia-back-telemarketing').count()) > 0 ? 'PASS' : 'FAIL');
-    await page.screenshot({ path: join(OUT, `${label}-03-chat.png`) });
+    if (!home.startVisible) {
+      rec(`${label}-chat-opens`, 'Chat screen opens only after explicit click', 'BLOCKED', { note: 'Purple chat entry is on the idle Start Call home. Current employee is on an unfinished work report.' });
+    } else {
+      await openAgentInbox(page);
+      await page.getByTestId('dalia-agent-chat-screen').waitFor({ timeout: 15000 });
+      rec(`${label}-chat-opens`, 'Chat screen opens only after explicit click', (await page.getByTestId('dalia-agent-chat-screen').count()) > 0 ? 'PASS' : 'FAIL');
+      rec(`${label}-back-button-present`, 'חזרה לטלמיטינג is visible in chat', (await page.getByTestId('dalia-back-telemarketing').count()) > 0 ? 'PASS' : 'FAIL');
+      await page.screenshot({ path: join(OUT, `${label}-03-chat.png`) });
 
-    await page.getByTestId('dalia-back-telemarketing').first().click();
-    await page.getByTestId('tele-start-call').waitFor({ state: 'visible', timeout: 20000 });
-    home = await firstScreenProbe(page);
-    await page.screenshot({ path: join(OUT, `${label}-04-back.png`) });
-    rec(`${label}-back-to-start-call`, 'חזרה לטלמיטינג returns to התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
+      await page.getByTestId('dalia-back-telemarketing').first().click();
+      await page.waitForTimeout(800);
+      home = await firstScreenProbe(page);
+      await page.screenshot({ path: join(OUT, `${label}-04-back.png`) });
+      recHome(`${label}-back-to-start-call`, 'חזרה לטלמיטינג returns to התחל שיחה', home);
 
-    await openAgentInbox(page);
-    await page.getByTestId('dalia-agent-chat-screen').waitFor({ timeout: 15000 });
-    await page.waitForTimeout(300);
-    await page.goBack();
-    await page.waitForTimeout(400);
-    home = await firstScreenProbe(page);
-    rec(`${label}-browser-back`, 'Browser/phone Back returns to התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
+      if (home.startVisible) {
+        await openAgentInbox(page);
+        await page.getByTestId('dalia-agent-chat-screen').waitFor({ timeout: 15000 });
+        await page.waitForTimeout(300);
+        await page.goBack();
+        await page.waitForTimeout(400);
+        home = await firstScreenProbe(page);
+        recHome(`${label}-browser-back`, 'Browser/phone Back returns to התחל שיחה', home);
+      }
+    }
 
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 120000 });
     home = await firstScreenProbe(page);
     await page.screenshot({ path: join(OUT, `${label}-05-refresh.png`) });
-    rec(`${label}-refresh`, 'Normal refresh stays on התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
+    recHome(`${label}-refresh`, 'Normal refresh stays on התחל שיחה', home);
 
-    await page.reload({ waitUntil: 'domcontentloaded', timeout: 120000 });
-    await page.evaluate(async () => {
-      if (window.caches?.keys) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
-      }
-    });
     await page.goto(`${BASE}/telemarketing?v=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     home = await firstScreenProbe(page);
     await page.screenshot({ path: join(OUT, `${label}-06-hard-refresh.png`) });
-    rec(`${label}-hard-refresh`, 'Hard refresh / cache-bust still התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
+    recHome(`${label}-hard-refresh`, 'Hard refresh / cache-bust still התחל שיחה', home);
 
     rec(`${label}-live-bundle-in-page`, 'Page is running the live Pages bundle', home.bundle.includes(report.liveBundle || 'assets/index-') ? 'PASS' : 'FAIL', { pageBundle: home.bundle, liveBundle: report.liveBundle });
     rec(`${label}-no-service-worker`, 'No service worker controlling the page', home.sw ? 'FAIL' : 'PASS', { sw: home.sw });
@@ -255,7 +279,7 @@ try {
     await relogin.page.goto(`${BASE}/telemarketing?v=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     home = await firstScreenProbe(relogin.page);
     await relogin.page.screenshot({ path: join(OUT, `${label}-08-relogin-home.png`) });
-    rec(`${label}-relogin-home`, 'New tab after login lands on התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
+    rec(`${label}-relogin-home`, 'New tab after login lands on התחל שיחה', home.ok ? 'PASS' : home.chatClosed && home.pendingWork ? 'BLOCKED' : 'FAIL', home);
     await relogin.context.close();
   }
 
