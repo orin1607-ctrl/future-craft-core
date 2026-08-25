@@ -23,3 +23,10 @@ describe('postLoginPathForRole', () => {
     expect(postLoginPathForRole('super_admin', '/dashboard')).toBe('/dashboard');
   });
 });
+
+describe('replaceToAgentWorkHome', () => {
+  it('is exported for agent login full-page landing', async () => {
+    const mod = await import('./postLoginHome');
+    expect(typeof mod.replaceToAgentWorkHome).toBe('function');
+  });
+});

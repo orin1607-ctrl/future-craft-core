@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CustomerCallCard } from '@/features/telemarketing/components/CallerScreen/CustomerCallCard';
 import { CallTimerBar } from '@/features/telemarketing/components/CallerScreen/CallTimerBar';
@@ -59,20 +59,23 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     error: workError,
   } = useActiveWorkSession(currentEmployee.id, currentEmployee.displayName);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
-    const params = new URLSearchParams(location.search);
-    if (params.has(DALIA_CHAT_PARAM) || location.hash.includes('dalia')) {
-      navigate({ pathname: '/telemarketing', search: '', hash: '' }, { replace: true });
-    }
     setChatOpen(false);
     window.scrollTo(0, 0);
+    const params = new URLSearchParams(location.search);
+    const dirty =
+      params.has(DALIA_CHAT_PARAM) ||
+      params.has('v') ||
+      /dalia/i.test(location.hash);
+    if (dirty) {
+      navigate({ pathname: '/telemarketing', search: '', hash: '' }, { replace: true });
+    }
   }, []);
 
   useEffect(() => {
     if (chatOpen) return;
     window.scrollTo(0, 0);
-    document.getElementById('tele-work-home')?.scrollIntoView({ block: 'start' });
   }, [chatOpen]);
 
   useEffect(() => {
@@ -87,6 +90,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   const openChats = () => {
     setChatOpen(true);
     window.history.pushState({ teleAgentChat: true }, '');
+    window.scrollTo(0, 0);
   };
 
   const backToWork = () => {
@@ -96,7 +100,6 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     }
     setChatOpen(false);
     window.scrollTo(0, 0);
-    document.getElementById('tele-work-home')?.scrollIntoView({ block: 'start' });
   };
 
   useEffect(() => {
@@ -217,6 +220,18 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   const workReportOpen = workStatus === 'ended';
   const showIdleBoards = !call && !workSession;
 
+  if (chatOpen) {
+    return (
+      <DaliaChatBoard
+        currentUserId={currentEmployee.id}
+        currentUserName={currentEmployee.displayName}
+        isAdmin={false}
+        reloadToken={followUpReload}
+        onBackToWork={backToWork}
+      />
+    );
+  }
+
   return (
     <div className="mx-auto max-w-lg space-y-4 pb-8">
       {toast && (
@@ -229,7 +244,12 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         </div>
       )}
 
-      <div data-testid="telemarketing-agent-home" id="tele-work-home">
+      <div
+        data-testid="telemarketing-agent-home"
+        data-tele-build={String(import.meta.env.VITE_BUILD_COMMIT || '').slice(0, 7)}
+        id="tele-work-home"
+        className="scroll-mt-28"
+      >
         <h1 className="text-2xl font-black">טלמיטינג</h1>
         <p className="text-sm text-muted-foreground">
           {currentEmployee.displayName}
@@ -374,16 +394,6 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
       {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} />}
 
       {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter />}
-
-      {chatOpen && (
-        <DaliaChatBoard
-          currentUserId={currentEmployee.id}
-          currentUserName={currentEmployee.displayName}
-          isAdmin={false}
-          reloadToken={followUpReload}
-          onBackToWork={backToWork}
-        />
-      )}
 
       {callStatus === 'ended' && (
         <p className="rounded-xl border border-amber-400/40 bg-amber-50 p-3 text-sm font-semibold dark:bg-amber-950/30">

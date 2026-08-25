@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { consumePostLoginRedirect } from '@/lib/postLoginRedirect';
-import { homePathForRole, postLoginPathForRole } from '@/lib/postLoginHome';
+import { homePathForRole, postLoginPathForRole, replaceToAgentWorkHome } from '@/lib/postLoginHome';
 import {
   ACCOUNT_LOCKOUT_MESSAGE,
   invokeAuthLoginChallenge,
@@ -13,6 +13,15 @@ import {
 } from '@/lib/authOtpClient';
 
 type LoginStep = 'credentials' | 'otp';
+
+function goAfterLogin(role: string | undefined, navigate: (path: string) => void) {
+  if (role === 'telemarketing_agent') {
+    consumePostLoginRedirect('/telemarketing');
+    replaceToAgentWorkHome();
+    return;
+  }
+  navigate(postLoginPathForRole(role, consumePostLoginRedirect(homePathForRole(role))));
+}
 
 export default function Login() {
   const { signup, completeLoginSession } = useAuth();
@@ -73,7 +82,7 @@ export default function Login() {
     if (result.session) {
       const { error: sessionError, role } = await completeLoginSession(result.session);
       if (sessionError) setError(sessionError);
-      else navigate(postLoginPathForRole(role, consumePostLoginRedirect(homePathForRole(role))));
+      else goAfterLogin(role, navigate);
       return;
     }
 
@@ -99,7 +108,7 @@ export default function Login() {
 
     const { error: sessionError, role } = await completeLoginSession(result.session);
     if (sessionError) setError(sessionError);
-    else navigate(postLoginPathForRole(role, consumePostLoginRedirect(homePathForRole(role))));
+    else goAfterLogin(role, navigate);
   };
 
   const handleOtpResend = async () => {
