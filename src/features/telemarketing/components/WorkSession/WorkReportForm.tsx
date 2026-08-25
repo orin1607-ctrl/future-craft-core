@@ -20,7 +20,7 @@ export function WorkReportForm({
   error: string | null;
 }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
+    <div className="space-y-3 rounded-2xl border border-border bg-card p-4" data-testid="tele-work-report">
       <p className="text-base font-black">דיווח משימת עבודה</p>
       <div>
         <label className="mb-2 block text-sm font-semibold">סוג המשימה</label>

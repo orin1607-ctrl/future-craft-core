@@ -31,7 +31,7 @@ export function DaliaCareFields({
   onChange: (patch: Partial<DaliaCareDraft>) => void;
 }) {
   return (
-    <div className="space-y-2 rounded-xl border border-violet-500/40 bg-violet-500/10 p-3">
+    <div className="space-y-2 rounded-xl border border-violet-500/40 bg-violet-500/10 p-3" data-testid="tele-dalia-care-fields">
       <p className="font-black text-violet-800 dark:text-violet-300">🟣 האם נדרש טיפול מצוות דליה?</p>
       <p className="text-xs text-muted-foreground">סגול אינו רמזור ליד. זה בקשה נפרדת לצוות דליה.</p>
       <div className="grid grid-cols-2 gap-2">

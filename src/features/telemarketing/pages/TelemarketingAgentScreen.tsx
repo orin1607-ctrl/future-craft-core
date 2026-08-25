@@ -10,6 +10,7 @@ import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadT
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
 import { AgentChatEntry, DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
 import { DALIA_CHAT_PARAM } from '@/features/telemarketing/lib/daliaChatNav';
+import { agentHomeActionsVisible } from '@/features/telemarketing/lib/agentHomeVisibility';
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
 import { useActiveWorkSession } from '@/features/telemarketing/hooks/useActiveWorkSession';
 import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
@@ -63,6 +64,9 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
     setChatOpen(false);
     window.scrollTo(0, 0);
+    if (window.history.state?.teleAgentChat) {
+      window.history.replaceState({ ...(window.history.state || {}), teleAgentChat: false }, '');
+    }
     const params = new URLSearchParams(location.search);
     const dirty =
       params.has(DALIA_CHAT_PARAM) ||
@@ -218,7 +222,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   const reportOpen = callStatus === 'ended';
   const workStatus = !workSession ? 'idle' : workSession.endedAt ? 'ended' : 'in_progress';
   const workReportOpen = workStatus === 'ended';
-  const showIdleBoards = !call && !workSession;
+  const showIdleBoards = agentHomeActionsVisible(callStatus, workStatus);
 
   if (chatOpen) {
     return (
