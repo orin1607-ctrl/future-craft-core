@@ -82,10 +82,11 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     const onPop = () => {
       setChatOpen(false);
       window.scrollTo(0, 0);
+      navigate({ pathname: '/telemarketing', search: '', hash: '' }, { replace: true });
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, []);
+  }, [navigate]);
 
   const openChats = () => {
     setChatOpen(true);
@@ -94,12 +95,12 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   };
 
   const backToWork = () => {
-    if (window.history.state?.teleAgentChat) {
-      window.history.back();
-      return;
-    }
     setChatOpen(false);
     window.scrollTo(0, 0);
+    if (window.history.state?.teleAgentChat) {
+      window.history.replaceState({ ...(window.history.state || {}), teleAgentChat: false }, '');
+    }
+    navigate({ pathname: '/telemarketing', search: '', hash: '' }, { replace: true });
   };
 
   useEffect(() => {

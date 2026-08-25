@@ -87,6 +87,17 @@ function sessionValue(session) {
   };
 }
 
+async function openAgentInbox(page) {
+  const debug = await page.evaluate(() => ({
+    testids: [...document.querySelectorAll('[data-testid]')].map((el) => el.getAttribute('data-testid')),
+    buttons: [...document.querySelectorAll('button')].map((el) => (el.innerText || '').slice(0, 80)),
+    hasInbox: Boolean(document.querySelector('[data-testid="dalia-open-inbox"]')),
+  }));
+  writeFileSync(join(OUT, 'debug-inbox.json'), JSON.stringify(debug, null, 2), 'utf8');
+  const inbox = page.locator('[data-testid="dalia-open-inbox"], button:has-text("פניות צוות דליה")');
+  await inbox.first().click({ timeout: 15000, force: true });
+}
+
 async function firstScreenProbe(page) {
   const btn = page.getByTestId('tele-start-call');
   await btn.waitFor({ state: 'visible', timeout: 30000 });
@@ -184,18 +195,19 @@ try {
     await page.screenshot({ path: join(OUT, `${label}-02-stale-url.png`) });
     rec(`${label}-strip-daliaChat`, 'Stale daliaChat/hash does not auto-open chat', home.ok ? 'PASS' : 'FAIL', home);
 
-    await page.getByTestId('dalia-open-inbox').click();
+    await openAgentInbox(page);
     await page.getByTestId('dalia-agent-chat-screen').waitFor({ timeout: 15000 });
     rec(`${label}-chat-opens`, 'Chat screen opens only after explicit click', (await page.getByTestId('dalia-agent-chat-screen').count()) > 0 ? 'PASS' : 'FAIL');
     rec(`${label}-back-button-present`, 'חזרה לטלמיטינג is visible in chat', (await page.getByTestId('dalia-back-telemarketing').count()) > 0 ? 'PASS' : 'FAIL');
     await page.screenshot({ path: join(OUT, `${label}-03-chat.png`) });
 
     await page.getByTestId('dalia-back-telemarketing').first().click();
+    await page.getByTestId('tele-start-call').waitFor({ state: 'visible', timeout: 20000 });
     home = await firstScreenProbe(page);
     await page.screenshot({ path: join(OUT, `${label}-04-back.png`) });
     rec(`${label}-back-to-start-call`, 'חזרה לטלמיטינג returns to התחל שיחה', home.ok ? 'PASS' : 'FAIL', home);
 
-    await page.getByTestId('dalia-open-inbox').click();
+    await openAgentInbox(page);
     await page.getByTestId('dalia-agent-chat-screen').waitFor({ timeout: 15000 });
     await page.waitForTimeout(300);
     await page.goBack();
