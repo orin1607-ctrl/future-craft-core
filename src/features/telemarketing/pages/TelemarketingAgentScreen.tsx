@@ -82,11 +82,10 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     const onPop = () => {
       setChatOpen(false);
       window.scrollTo(0, 0);
-      navigate({ pathname: '/telemarketing', search: '', hash: '' }, { replace: true });
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, [navigate]);
+  }, []);
 
   const openChats = () => {
     setChatOpen(true);

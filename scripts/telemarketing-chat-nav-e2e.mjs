@@ -190,8 +190,13 @@ try {
     rec(`${label}-clean-url-home`, 'First viewport is התחל שיחה, chat is not open', home.ok ? 'PASS' : 'FAIL', home);
 
     await page.goto(`${BASE}/telemarketing?daliaChat=stale-id#dalia-care`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-    await page.waitForTimeout(800);
-    home = await firstScreenProbe(page);
+    await page.waitForTimeout(1200);
+    try {
+      home = await firstScreenProbe(page);
+    } catch (e) {
+      await page.screenshot({ path: join(OUT, `${label}-02-stale-url-FAIL.png`) });
+      throw e;
+    }
     await page.screenshot({ path: join(OUT, `${label}-02-stale-url.png`) });
     rec(`${label}-strip-daliaChat`, 'Stale daliaChat/hash does not auto-open chat', home.ok ? 'PASS' : 'FAIL', home);
 
