@@ -380,7 +380,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
             >
               📊 הדוח שלי
             </button>
-            {showHomeActions && !activeDirectoryLead && (
+            {!activeDirectoryLead && (
               <button
                 type="button"
                 data-testid="tele-work-from-list"
