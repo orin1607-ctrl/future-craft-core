@@ -1,0 +1,657 @@
+{
+  "at": "2026-08-26T20:41:36.545Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "deploy-staging",
+      "ok": true,
+      "detail": "deployed_ref=f3ea03c feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-not-prod",
+      "ok": true,
+      "detail": "deployed_ref=f3ea03c feat/incident-alerts-staging"
+    },
+    {
+      "id": "bundle-workday-summary",
+      "ok": true,
+      "detail": "assets/index-Dx7iWoaY.js"
+    },
+    {
+      "id": "keep-1-29-before",
+      "ok": true,
+      "detail": {
+        "count": 30,
+        "missing": [],
+        "ok": true
+      }
+    },
+    {
+      "id": "rls-hides-other-employee",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "id": "agent-desktop-summary",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-title-today",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-nav",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-no-employee-select",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-readonly",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-self-only",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-leads-remain",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-window-vs-measured",
+      "ok": true,
+      "detail": {
+        "window": 52148,
+        "measured": 1824
+      }
+    },
+    {
+      "id": "agent-desktop-no-double-call",
+      "ok": true,
+      "detail": {
+        "first": "2026-08-26T05:00:00+00:00",
+        "last": "2026-08-26T19:29:08.473+00:00",
+        "window": 52148,
+        "measured": 1824,
+        "call": 914,
+        "reportSec": 250,
+        "treat": 1164,
+        "work": 600,
+        "workreport": 60,
+        "worktreat": 660,
+        "dials": "3",
+        "answered": "1",
+        "noanswer": "2",
+        "leads": "2",
+        "followups": "1",
+        "interested": "1",
+        "hot": "1",
+        "meetings": "0",
+        "quotes": "0",
+        "continued": "3"
+      }
+    },
+    {
+      "id": "agent-desktop-no-double-work",
+      "ok": true,
+      "detail": {
+        "first": "2026-08-26T05:00:00+00:00",
+        "last": "2026-08-26T19:29:08.473+00:00",
+        "window": 52148,
+        "measured": 1824,
+        "call": 914,
+        "reportSec": 250,
+        "treat": 1164,
+        "work": 600,
+        "workreport": 60,
+        "worktreat": 660,
+        "dials": "3",
+        "answered": "1",
+        "noanswer": "2",
+        "leads": "2",
+        "followups": "1",
+        "interested": "1",
+        "hot": "1",
+        "meetings": "0",
+        "quotes": "0",
+        "continued": "3"
+      }
+    },
+    {
+      "id": "agent-desktop-measured-once",
+      "ok": true,
+      "detail": {
+        "first": "2026-08-26T05:00:00+00:00",
+        "last": "2026-08-26T19:29:08.473+00:00",
+        "window": 52148,
+        "measured": 1824,
+        "call": 914,
+        "reportSec": 250,
+        "treat": 1164,
+        "work": 600,
+        "workreport": 60,
+        "worktreat": 660,
+        "dials": "3",
+        "answered": "1",
+        "noanswer": "2",
+        "leads": "2",
+        "followups": "1",
+        "interested": "1",
+        "hot": "1",
+        "meetings": "0",
+        "quotes": "0",
+        "continued": "3"
+      }
+    },
+    {
+      "id": "agent-desktop-not-window-as-work",
+      "ok": true,
+      "detail": {
+        "first": "2026-08-26T05:00:00+00:00",
+        "last": "2026-08-26T19:29:08.473+00:00",
+        "window": 52148,
+        "measured": 1824,
+        "call": 914,
+        "reportSec": 250,
+        "treat": 1164,
+        "work": 600,
+        "workreport": 60,
+        "worktreat": 660,
+        "dials": "3",
+        "answered": "1",
+        "noanswer": "2",
+        "leads": "2",
+        "followups": "1",
+        "interested": "1",
+        "hot": "1",
+        "meetings": "0",
+        "quotes": "0",
+        "continued": "3"
+      }
+    },
+    {
+      "id": "agent-desktop-week-days",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-week-yday-row",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-click-day",
+      "ok": true,
+      "detail": "סיכום יום עבודה — 25/08/2026\n\nחלון הפעילות הוא המרחק בין הפעילות הראשונה לאחרונה. זמן העבודה המדוד סופר רק שיחה + דיווח + משימות, כל שנייה פעם אחת. הפער אינו הפסקה.\n\nפעילות ראשונה\n"
+    },
+    {
+      "id": "agent-desktop-month",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-hours",
+      "ok": true,
+      "detail": {
+        "hourDials": 0,
+        "todayDials": "3"
+      }
+    },
+    {
+      "id": "agent-desktop-export",
+      "ok": true,
+      "detail": "﻿\"שדה\",\"ערך\"\n\"עובד\",\"תאיר\"\n\"תקופה\",\"26/08/2026\"\n\"פעילות ראשונה\",\"26.8.2026 08:00\"\n\"פעילות אחרונה\",\"26.8.2026 22:29\"\n\"חלון פעילות (משך)\",\"14:29:08\"\n\"חלון פעילות (שעות שעון)\",\"08:00–22:29\"\n\"סה״כ זמן עבודה מדוד\",\"30:24\"\n\"לידים שטופלו\",\"2\"\n\"ניסיונות חיוג"
+    },
+    {
+      "id": "agent-desktop-back",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-summary",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-title-today",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-nav",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-no-employee-select",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-readonly",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-self-only",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-leads-remain",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-window-vs-measured",
+      "ok": true,
+      "detail": {
+        "window": 52148,
+        "measured": 1824
+      }
+    },
+    {
+      "id": "agent-mobile-no-double-call",
+      "ok": true,
+      "detail": {
+        "first": "2026-08-26T05:00:00+00:00",
+        "last": "2026-08-26T19:29:08.473+00:00",
+        "window": 52148,
+        "measured": 1824,
+        "call": 914,
+        "reportSec": 250,
+        "treat": 1164,
+        "work": 600,
+        "workreport": 60,
+        "worktreat": 660,
+        "dials": "3",
+        "answered": "1",
+        "noanswer": "2",
+        "leads": "2",
+        "followups": "1",
+        "interested": "1",
+        "hot": "1",
+        "meetings": "0",
+        "quotes": "0",
+        "continued": "3"
+      }
+    },
+    {
+      "id": "agent-mobile-no-double-work",
+      "ok": true,
+      "detail": {
+        "first": "2026-08-26T05:00:00+00:00",
+        "last": "2026-08-26T19:29:08.473+00:00",
+        "window": 52148,
+        "measured": 1824,
+        "call": 914,
+        "reportSec": 250,
+        "treat": 1164,
+        "work": 600,
+        "workreport": 60,
+        "worktreat": 660,
+        "dials": "3",
+        "answered": "1",
+        "noanswer": "2",
+        "leads": "2",
+        "followups": "1",
+        "interested": "1",
+        "hot": "1",
+        "meetings": "0",
+        "quotes": "0",
+        "continued": "3"
+      }
+    },
+    {
+      "id": "agent-mobile-measured-once",
+      "ok": true,
+      "detail": {
+        "first": "2026-08-26T05:00:00+00:00",
+        "last": "2026-08-26T19:29:08.473+00:00",
+        "window": 52148,
+        "measured": 1824,
+        "call": 914,
+        "reportSec": 250,
+        "treat": 1164,
+        "work": 600,
+        "workreport": 60,
+        "worktreat": 660,
+        "dials": "3",
+        "answered": "1",
+        "noanswer": "2",
+        "leads": "2",
+        "followups": "1",
+        "interested": "1",
+        "hot": "1",
+        "meetings": "0",
+        "quotes": "0",
+        "continued": "3"
+      }
+    },
+    {
+      "id": "agent-mobile-not-window-as-work",
+      "ok": true,
+      "detail": {
+        "first": "2026-08-26T05:00:00+00:00",
+        "last": "2026-08-26T19:29:08.473+00:00",
+        "window": 52148,
+        "measured": 1824,
+        "call": 914,
+        "reportSec": 250,
+        "treat": 1164,
+        "work": 600,
+        "workreport": 60,
+        "worktreat": 660,
+        "dials": "3",
+        "answered": "1",
+        "noanswer": "2",
+        "leads": "2",
+        "followups": "1",
+        "interested": "1",
+        "hot": "1",
+        "meetings": "0",
+        "quotes": "0",
+        "continued": "3"
+      }
+    },
+    {
+      "id": "agent-mobile-week-days",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-week-yday-row",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-click-day",
+      "ok": true,
+      "detail": "סיכום יום עבודה — 25/08/2026\n\nחלון הפעילות הוא המרחק בין הפעילות הראשונה לאחרונה. זמן העבודה המדוד סופר רק שיחה + דיווח + משימות, כל שנייה פעם אחת. הפער אינו הפסקה.\n\nפעילות ראשונה\n"
+    },
+    {
+      "id": "agent-mobile-month",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-hours",
+      "ok": true,
+      "detail": {
+        "hourDials": 0,
+        "todayDials": "3"
+      }
+    },
+    {
+      "id": "agent-mobile-export",
+      "ok": true,
+      "detail": "﻿\"שדה\",\"ערך\"\n\"עובד\",\"תאיר\"\n\"תקופה\",\"26/08/2026\"\n\"פעילות ראשונה\",\"26.8.2026 08:00\"\n\"פעילות אחרונה\",\"26.8.2026 22:29\"\n\"חלון פעילות (משך)\",\"14:29:08\"\n\"חלון פעילות (שעות שעון)\",\"08:00–22:29\"\n\"סה״כ זמן עבודה מדוד\",\"30:24\"\n\"לידים שטופלו\",\"2\"\n\"ניסיונות חיוג"
+    },
+    {
+      "id": "agent-mobile-back",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-summary",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "manager-vs-employee-first",
+      "ok": true,
+      "detail": {
+        "agentVal": "2026-08-26T05:00:00+00:00",
+        "adminVal": "2026-08-26T05:00:00+00:00"
+      }
+    },
+    {
+      "id": "manager-vs-employee-last",
+      "ok": true,
+      "detail": {
+        "agentVal": "2026-08-26T19:29:08.473+00:00",
+        "adminVal": "2026-08-26T19:29:08.473+00:00"
+      }
+    },
+    {
+      "id": "manager-vs-employee-window",
+      "ok": true,
+      "detail": {
+        "agentVal": "52148",
+        "adminVal": "52148"
+      }
+    },
+    {
+      "id": "manager-vs-employee-measured",
+      "ok": true,
+      "detail": {
+        "agentVal": "1824",
+        "adminVal": "1824"
+      }
+    },
+    {
+      "id": "manager-vs-employee-call",
+      "ok": true,
+      "detail": {
+        "agentVal": "914",
+        "adminVal": "914"
+      }
+    },
+    {
+      "id": "manager-vs-employee-report",
+      "ok": true,
+      "detail": {
+        "agentVal": "250",
+        "adminVal": "250"
+      }
+    },
+    {
+      "id": "manager-vs-employee-treat",
+      "ok": true,
+      "detail": {
+        "agentVal": "1164",
+        "adminVal": "1164"
+      }
+    },
+    {
+      "id": "manager-vs-employee-dials",
+      "ok": true,
+      "detail": {
+        "agentVal": "3",
+        "adminVal": "3"
+      }
+    },
+    {
+      "id": "manager-vs-employee-answered",
+      "ok": true,
+      "detail": {
+        "agentVal": "1",
+        "adminVal": "1"
+      }
+    },
+    {
+      "id": "manager-vs-employee-noanswer",
+      "ok": true,
+      "detail": {
+        "agentVal": "2",
+        "adminVal": "2"
+      }
+    },
+    {
+      "id": "manager-vs-employee-leads",
+      "ok": true,
+      "detail": {
+        "agentVal": "2",
+        "adminVal": "2"
+      }
+    },
+    {
+      "id": "manager-vs-employee-followups",
+      "ok": true,
+      "detail": {
+        "agentVal": "1",
+        "adminVal": "1"
+      }
+    },
+    {
+      "id": "manager-vs-employee-interested",
+      "ok": true,
+      "detail": {
+        "agentVal": "1",
+        "adminVal": "1"
+      }
+    },
+    {
+      "id": "manager-vs-employee-hot",
+      "ok": true,
+      "detail": {
+        "agentVal": "1",
+        "adminVal": "1"
+      }
+    },
+    {
+      "id": "manager-vs-employee-meetings",
+      "ok": true,
+      "detail": {
+        "agentVal": "0",
+        "adminVal": "0"
+      }
+    },
+    {
+      "id": "manager-vs-employee-quotes",
+      "ok": true,
+      "detail": {
+        "agentVal": "0",
+        "adminVal": "0"
+      }
+    },
+    {
+      "id": "keep-1-29-after",
+      "ok": true,
+      "detail": {
+        "count": 30,
+        "missing": [],
+        "ok": true
+      }
+    },
+    {
+      "id": "qa-cleaned",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "expectedVsActual": [
+    {
+      "id": "first",
+      "agentVal": "2026-08-26T05:00:00+00:00",
+      "adminVal": "2026-08-26T05:00:00+00:00",
+      "match": true
+    },
+    {
+      "id": "last",
+      "agentVal": "2026-08-26T19:29:08.473+00:00",
+      "adminVal": "2026-08-26T19:29:08.473+00:00",
+      "match": true
+    },
+    {
+      "id": "window",
+      "agentVal": "52148",
+      "adminVal": "52148",
+      "match": true
+    },
+    {
+      "id": "measured",
+      "agentVal": "1824",
+      "adminVal": "1824",
+      "match": true
+    },
+    {
+      "id": "call",
+      "agentVal": "914",
+      "adminVal": "914",
+      "match": true
+    },
+    {
+      "id": "report",
+      "agentVal": "250",
+      "adminVal": "250",
+      "match": true
+    },
+    {
+      "id": "treat",
+      "agentVal": "1164",
+      "adminVal": "1164",
+      "match": true
+    },
+    {
+      "id": "dials",
+      "agentVal": "3",
+      "adminVal": "3",
+      "match": true
+    },
+    {
+      "id": "answered",
+      "agentVal": "1",
+      "adminVal": "1",
+      "match": true
+    },
+    {
+      "id": "noanswer",
+      "agentVal": "2",
+      "adminVal": "2",
+      "match": true
+    },
+    {
+      "id": "leads",
+      "agentVal": "2",
+      "adminVal": "2",
+      "match": true
+    },
+    {
+      "id": "followups",
+      "agentVal": "1",
+      "adminVal": "1",
+      "match": true
+    },
+    {
+      "id": "interested",
+      "agentVal": "1",
+      "adminVal": "1",
+      "match": true
+    },
+    {
+      "id": "hot",
+      "agentVal": "1",
+      "adminVal": "1",
+      "match": true
+    },
+    {
+      "id": "meetings",
+      "agentVal": "0",
+      "adminVal": "0",
+      "match": true
+    },
+    {
+      "id": "quotes",
+      "agentVal": "0",
+      "adminVal": "0",
+      "match": true
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "tairKept": true,
+  "deployed_ref": "deployed_ref=f3ea03c feat/incident-alerts-staging",
+  "liveBundle": "assets/index-Dx7iWoaY.js"
+}
