@@ -1,0 +1,333 @@
+{
+  "at": "2026-08-26T19:20:15.152Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "keep-29-before",
+      "ok": true,
+      "detail": {
+        "dirBefore": 29
+      }
+    },
+    {
+      "id": "four-buttons",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "work-from-list-preview",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nליד #1 מוכן. לחצו התחל שיחה אחרי שקראתם את הפרטים.\nטלמיטינג\n\nתאיר\n\nהתחל שיחה\nהתחל משימת עבודה\n🟣 פניות צוות דליה\n\nליד #1 — מערכות אשד\n\nפרטי הליד מוצגים למטה. השיחה לא התחילה. לחצו «התחל שיחה» כשאתם מוכנים.\n\nלקוח / ליד"
+    },
+    {
+      "id": "call-started",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "report-timer-visible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "qa-lead-created",
+      "ok": true,
+      "detail": {
+        "lead_number": "30",
+        "company_name": "QA-TIME-E2E-0826"
+      }
+    },
+    {
+      "id": "attempt1-call-duration",
+      "ok": true,
+      "detail": {
+        "expectedCall": 11,
+        "actualCall": 10
+      }
+    },
+    {
+      "id": "attempt1-report-duration",
+      "ok": true,
+      "detail": {
+        "expectedReport": 5,
+        "actualReport": 5
+      }
+    },
+    {
+      "id": "attempt1-treatment-sum",
+      "ok": true,
+      "detail": {
+        "actualCall": 10,
+        "actualReport": 5,
+        "actualTreat": 15
+      }
+    },
+    {
+      "id": "attempt1-call-end-neq-treat-end",
+      "ok": true,
+      "detail": {
+        "ended": "2026-08-26T19:20:41.44+00:00",
+        "treated": "2026-08-26T19:20:46.177+00:00"
+      }
+    },
+    {
+      "id": "attempt1-result-no-answer",
+      "ok": true,
+      "detail": "לא ענה"
+    },
+    {
+      "id": "timer-stopped-after-submit",
+      "ok": true,
+      "detail": {
+        "duration_seconds": 10,
+        "report_duration_seconds": 5,
+        "treatment_duration_seconds": 15
+      }
+    },
+    {
+      "id": "reload-no-live-timer",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nתאיר\n\nהתחל שיחה\nהתחל משימת עבודה\n🟣 פניות צוות דליה\n📋 עבודה מרשימת לידים\n\nיש 1 לידים בהמשך טיפול. הם מוצגי"
+    },
+    {
+      "id": "reload-duration-frozen",
+      "ok": true,
+      "detail": {
+        "duration_seconds": 10,
+        "treatment_duration_seconds": 15
+      }
+    },
+    {
+      "id": "continue-queue",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nתאיר\n\nהתחל שיחה\nהתחל משימת עבודה\n🟣 פניות צוות דליה\n📋 עבודה מרשימת לידים\n\nיש 1 לידים בהמשך טיפול. הם מוצגים למטה ולא נעלמים בגלל רצף הרשימה.\n\nלקוח / ליד חדש\n\nמילאו שם חברה או טלפון, ואז לחצו התחל שיחה. ליד חדש מקבל מספר אוטומטי ונכנס למאגר המנהל. «עבודה מרשימת לידים» לוקחת את הליד הבא ששויך אליכם.\n\nשם החב"
+    },
+    {
+      "id": "two-attempts-same-lead",
+      "ok": true,
+      "detail": {
+        "count": 2,
+        "leadNumber": "30"
+      }
+    },
+    {
+      "id": "attempt2-treatment-sum",
+      "ok": true,
+      "detail": {
+        "id": "e2ec52ce-3503-4f1f-8e92-169d4f21b153",
+        "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "employee_name": "תאיר",
+        "customer_id": null,
+        "company_name": "QA-TIME-E2E-0826",
+        "contact_name": "",
+        "contact_role": "",
+        "phone": "0501777666",
+        "email": "",
+        "vehicle_count": null,
+        "city": "",
+        "started_at": "2026-08-26T19:21:04.819+00:00",
+        "ended_at": "2026-08-26T19:21:15.018+00:00",
+        "duration_seconds": 10,
+        "status": "completed",
+        "result": "לחזור אליו",
+        "lead_rating": "חם",
+        "summary": "qa-time-e2e attempt-2 callback",
+        "needs_follow_up": true,
+        "next_action": "המשך טיפול — אין מענה",
+        "follow_up_owner": "תאיר",
+        "follow_up_date": "2026-08-26",
+        "follow_up_time": null,
+        "follow_up_urgency": "רגיל",
+        "manager_note": null,
+        "whatsapp_status": "sent",
+        "email_status": "pending",
+        "client_token": "fac0fa60-51e3-4de5-8c8b-86eac97f5786",
+        "created_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "created_at": "2026-08-26T19:21:05.628944+00:00",
+        "updated_at": "2026-08-26T19:21:23.324036+00:00",
+        "recording_path": null,
+        "recording_status": "none",
+        "recording_mime": null,
+        "source_followup_id": "418b1363-05b8-445e-97c4-b039f9e90e45",
+        "report_started_at": "2026-08-26T19:21:15.018+00:00",
+        "report_ended_at": "2026-08-26T19:21:19.69+00:00",
+        "report_duration_seconds": 5,
+        "treated_ended_at": "2026-08-26T19:21:19.69+00:00",
+        "treatment_duration_seconds": 15
+      }
+    },
+    {
+      "id": "work-treatment-sum",
+      "ok": true,
+      "detail": {
+        "id": "dc7d29b4-ecf1-44fd-a9bd-c52b95a2da86",
+        "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "employee_name": "תאיר",
+        "customer_id": null,
+        "company_name": "QA-TIME-E2E-0826",
+        "contact_name": "",
+        "phone": "0501777666",
+        "task_type": "חיפוש מידע",
+        "description": "qa-time-e2e work session",
+        "note": null,
+        "needs_follow_up": false,
+        "started_at": "2026-08-26T19:21:28.483733+00:00",
+        "ended_at": "2026-08-26T19:21:33.375+00:00",
+        "duration_seconds": 5,
+        "status": "completed",
+        "client_token": "233a6036-12bd-4ceb-aef2-9fcffc30a5ee",
+        "created_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "created_at": "2026-08-26T19:21:28.483733+00:00",
+        "updated_at": "2026-08-26T19:21:37.250158+00:00",
+        "report_started_at": "2026-08-26T19:21:33.375+00:00",
+        "report_ended_at": "2026-08-26T19:21:36.436+00:00",
+        "report_duration_seconds": 3,
+        "treated_ended_at": "2026-08-26T19:21:36.436+00:00",
+        "treatment_duration_seconds": 8
+      }
+    },
+    {
+      "id": "work-has-report-clock",
+      "ok": true,
+      "detail": {
+        "id": "dc7d29b4-ecf1-44fd-a9bd-c52b95a2da86",
+        "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "employee_name": "תאיר",
+        "customer_id": null,
+        "company_name": "QA-TIME-E2E-0826",
+        "contact_name": "",
+        "phone": "0501777666",
+        "task_type": "חיפוש מידע",
+        "description": "qa-time-e2e work session",
+        "note": null,
+        "needs_follow_up": false,
+        "started_at": "2026-08-26T19:21:28.483733+00:00",
+        "ended_at": "2026-08-26T19:21:33.375+00:00",
+        "duration_seconds": 5,
+        "status": "completed",
+        "client_token": "233a6036-12bd-4ceb-aef2-9fcffc30a5ee",
+        "created_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "created_at": "2026-08-26T19:21:28.483733+00:00",
+        "updated_at": "2026-08-26T19:21:37.250158+00:00",
+        "report_started_at": "2026-08-26T19:21:33.375+00:00",
+        "report_ended_at": "2026-08-26T19:21:36.436+00:00",
+        "report_duration_seconds": 3,
+        "treated_ended_at": "2026-08-26T19:21:36.436+00:00",
+        "treatment_duration_seconds": 8
+      }
+    },
+    {
+      "id": "mobile-start-call",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-screen",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nיוני אטיאס\n\nאכבים\n\nמנהל על\nכל החברות\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nחברות הסעות\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nטלמיטינג\nהתראות\nחירום\nצ'אט\nמרכז ניהול\n▼\nהתנתקות\nמסך מנהל — טלמיטינג\n\nעודכ"
+    },
+    {
+      "id": "admin-lead-detail",
+      "ok": true,
+      "detail": "דוח פעילות וביצועי עובד\n\nכל המספרים מגיעים משיחות, משימות, Follow-up ופניות דליה שנשמרו. אין נתונים מומצאים. סה״כ זמן עבודה סופר כל שנייה פעם אחת (טיפול = שיחה + דיווח).\n\nמתאריך\nעד תאריך\nהיום\nכל העובדים\nתאיר\nכל תוצאות השיחה\nלא ענה\nלנסות שוב\nדיברנו\nמעוניין\nמעוניין מאוד\nביקש מידע\nביקש הצעת מחיר\nרוצה פגישה\nלחזור אליו\nלא מעוניין\nלא רלוונטי\nמספר שגוי\nכל סטטוסי השיחה\nהושלמו\nפתוחות\nליד / שם חברה\nליד #30 — QA-TIME-E2E-0826\n\nעובד משויך\n\nתאיר\n\nמקור הליד\n\nmanual_agent\n\nתאריך יצירה\n\n26.8.2026 22:20\n\nסטטוס נ"
+    },
+    {
+      "id": "admin-two-attempts",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-shows-lead-number",
+      "ok": true,
+      "detail": "דוח פעילות וביצועי עובד\n\nכל המספרים מגיעים משיחות, משימות, Follow-up ופניות דליה שנשמרו. אין נתונים מומצאים. סה״כ זמן עבודה סופר כל שנייה פעם אחת (טיפול = שיחה + דיווח).\n\nמתאריך\nעד תאריך\nהיום\nכל העובדים\nתאיר\nכל תוצאות השיחה\nלא ענה\nלנסות שוב\nדיברנו\nמעוניין\nמעוניין מאוד\nביקש מידע\nביקש הצעת מחיר\nרוצה פ"
+    },
+    {
+      "id": "admin-cumulative-panel",
+      "ok": true,
+      "detail": "מספר ניסיונות\n\n2\n\nסה״כ זמן שיחות\n\n00:20\n\nסה״כ זמן דיווח\n\n00:10\n\nסה״כ זמן טיפול בליד\n\n00:30"
+    },
+    {
+      "id": "admin-dalia-unmeasured",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-import",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-directory",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "cleaned-qa-calls",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "id": "cleaned-qa-work",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "id": "final-29",
+      "ok": true,
+      "detail": {
+        "still29": 29
+      }
+    },
+    {
+      "id": "final-tair",
+      "ok": true,
+      "detail": {
+        "full_name": "תאיר",
+        "is_active": true
+      }
+    },
+    {
+      "id": "dashboard-source-empty",
+      "ok": true,
+      "detail": {
+        "callsLeft": 0
+      }
+    }
+  ],
+  "expectedVsActual": [
+    {
+      "attempt": 1,
+      "expectedCall": 11,
+      "actualCall": 10,
+      "expectedReport": 5,
+      "actualReport": 5,
+      "expectedTreat": 16,
+      "actualTreat": 15,
+      "callEnd": "2026-08-26T19:20:41.44+00:00",
+      "reportStart": "2026-08-26T19:20:41.44+00:00",
+      "reportEnd": "2026-08-26T19:20:46.177+00:00",
+      "treatedEnd": "2026-08-26T19:20:46.177+00:00"
+    },
+    {
+      "attempt": 2,
+      "expectedCall": 11,
+      "actualCall": 10,
+      "expectedReport": 5,
+      "actualReport": 5,
+      "actualTreat": 15
+    },
+    {
+      "kind": "work",
+      "expectedExec": 13,
+      "actualExec": 5,
+      "actualReport": 3,
+      "actualTreat": 8
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "liveBuild": "46dce09",
+  "qaLeadNumber": "30"
+}

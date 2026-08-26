@@ -155,8 +155,8 @@ try {
   await page.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForTimeout(3000);
 
-  await page.getByPlaceholder('שם החברה').fill(QA_COMPANY);
-  await page.getByPlaceholder('טלפון').fill(QA_PHONE);
+  await page.getByRole('textbox', { name: 'שם החברה', exact: true }).fill(QA_COMPANY);
+  await page.getByRole('textbox', { name: 'טלפון', exact: true }).fill(QA_PHONE);
 
   const t0 = Date.now();
   await page.getByTestId('tele-start-call').click();
@@ -250,8 +250,8 @@ try {
 
   await page.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForTimeout(3000);
-  await page.getByPlaceholder('שם החברה').fill(QA_COMPANY);
-  await page.getByPlaceholder('טלפון').fill(QA_PHONE);
+  await page.getByRole('textbox', { name: 'שם החברה', exact: true }).fill(QA_COMPANY);
+  await page.getByRole('textbox', { name: 'טלפון', exact: true }).fill(QA_PHONE);
   const tWork = Date.now();
   await page.getByTestId('tele-start-work').click();
   await page.waitForTimeout(2000);
@@ -289,15 +289,20 @@ try {
     value: storagePayload(adminSession),
   });
   const adminPage = await adminCtx.newPage();
-  await adminPage.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await adminPage.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await adminPage.waitForTimeout(6000);
+  await adminPage.screenshot({ path: join(OUT, '06-admin-load.png'), fullPage: true });
+  const adminHome = await adminPage.locator('body').innerText();
+  check('admin-screen', adminHome.includes('מסך מנהל') || adminHome.includes('דוח פעילות'), adminHome.slice(0, 250));
+  await adminPage.locator('#activity-report').waitFor({ timeout: 30000 });
   await adminPage.getByTestId('activity-lead-query').fill(leadNumber || QA_COMPANY);
   await adminPage.waitForTimeout(4000);
   const adminText = await adminPage.locator('#activity-report').innerText();
   check('admin-lead-detail', (await adminPage.getByTestId('activity-lead-detail').count()) > 0, adminText.slice(0, 500));
   check('admin-two-attempts', (await adminPage.getByTestId('activity-lead-attempt-1').count()) > 0 && (await adminPage.getByTestId('activity-lead-attempt-2').count()) > 0);
   check('admin-shows-lead-number', adminText.includes(`ליד #${leadNumber}`) || adminText.includes(QA_COMPANY), adminText.slice(0, 300));
-  check('admin-no-double-count-copy', adminText.includes('טיפול') && !adminText.includes('22:'), adminText.slice(0, 400));
+  const totalsText = await adminPage.getByTestId('activity-lead-totals').innerText();
+  check('admin-cumulative-panel', totalsText.includes('מספר ניסיונות') && totalsText.includes('2') && totalsText.includes('סה״כ זמן טיפול'), totalsText);
   check('admin-dalia-unmeasured', adminText.includes('לא נמדד'));
   await adminPage.screenshot({ path: join(OUT, '06-admin-lead.png'), fullPage: true });
   await adminPage.setViewportSize({ width: 390, height: 844 });
