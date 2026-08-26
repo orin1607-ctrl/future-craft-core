@@ -7,6 +7,8 @@ import {
   listLeadAssignmentEvents,
   listLeadDirectory,
   listLeadImportBatches,
+  previewLeadDelete,
+  setLeadsArchived,
 } from '@/features/telemarketing/services/leadDirectoryService';
 import {
   filterDirectoryRows,
@@ -39,6 +41,9 @@ export function LeadDirectoryBoard({
   const [assignPreview, setAssignPreview] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [assignResult, setAssignResult] = useState<LeadAssignResult | null>(null);
+  const [archiveBusy, setArchiveBusy] = useState(false);
+  const [archiveConfirm, setArchiveConfirm] = useState(false);
+  const [deletePreview, setDeletePreview] = useState('');
 
   const load = async () => {
     try {
@@ -80,6 +85,35 @@ export function LeadDirectoryBoard({
 
   const chosenAgent = agents.find((a) => a.id === assignAgentId);
   const selectedRows = rows.filter((row) => selected.has(row.id));
+
+  const runArchive = async (archived: boolean) => {
+    if (selected.size === 0) return;
+    setArchiveBusy(true);
+    setError('');
+    try {
+      await setLeadsArchived(Array.from(selected), archived);
+      clearSelection();
+      setArchiveConfirm(false);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'שגיאה בארכיון');
+    } finally {
+      setArchiveBusy(false);
+    }
+  };
+
+  const runDeletePreview = async () => {
+    if (selected.size !== 1) {
+      setDeletePreview('מחיקה אפשרית רק לליד אחד בכל פעם, ורק אם אין היסטוריה. עדיפות לארכיון.');
+      return;
+    }
+    try {
+      const preview = await previewLeadDelete(Array.from(selected)[0]);
+      setDeletePreview(`${preview.companyName} (#${preview.leadNumber}): שיחות ${preview.calls}, Follow-up ${preview.followups}, שיוכים ${preview.assignmentEvents}. ${preview.reason}`);
+    } catch (e) {
+      setDeletePreview(e instanceof Error ? e.message : 'שגיאה בתצוגת מחיקה');
+    }
+  };
 
   const runAssign = async () => {
     if (!assignAgentId || selected.size === 0) return;
@@ -158,6 +192,7 @@ export function LeadDirectoryBoard({
             >
               <option value="all">כל העובדים</option>
               <option value="unassigned">ללא עובד משויך</option>
+              <option value="archive">ארכיון</option>
               {agents.map((agent) => (
                 <option key={agent.id} value={agent.id}>{agent.displayName}</option>
               ))}
@@ -183,6 +218,29 @@ export function LeadDirectoryBoard({
           >
             שייך לעובד ({selected.size})
           </button>
+          <button type="button" data-testid="lead-archive" className="min-h-12 rounded-xl border border-border px-3 font-bold disabled:opacity-50" disabled={selected.size === 0 || archiveBusy} onClick={() => setArchiveConfirm(true)}>
+            העבר לארכיון
+          </button>
+          {agentFilter === 'archive' && (
+            <button type="button" data-testid="lead-unarchive" className="min-h-12 rounded-xl border border-border px-3 font-bold disabled:opacity-50" disabled={selected.size === 0 || archiveBusy} onClick={() => void runArchive(false)}>
+              החזר לפעילות
+            </button>
+          )}
+          <button type="button" data-testid="lead-delete-preview" className="min-h-12 rounded-xl border border-destructive/40 px-3 font-bold text-destructive disabled:opacity-50" disabled={selected.size === 0} onClick={() => void runDeletePreview()}>
+            מחיקה (Preview)
+          </button>
+          {archiveConfirm && (
+            <div className="w-full space-y-2 rounded-xl border border-amber-400/50 bg-amber-50 p-3 dark:bg-amber-950/30" data-testid="lead-archive-confirm">
+              <p className="font-bold">להעביר {selected.size} לידים לארכיון? הם ייעלמו מתור העובדים. ההיסטוריה נשמרת.</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" data-testid="lead-archive-confirm-yes" className="min-h-12 rounded-xl bg-amber-700 px-4 font-bold text-white disabled:opacity-50" disabled={archiveBusy} onClick={() => void runArchive(true)}>
+                  אישור ארכיון
+                </button>
+                <button type="button" className="min-h-12 rounded-xl border border-border px-4 font-bold" onClick={() => setArchiveConfirm(false)}>ביטול</button>
+              </div>
+            </div>
+          )}
+          {deletePreview && <p className="w-full text-xs font-semibold text-amber-800" data-testid="lead-delete-preview-text">{deletePreview}</p>}
           {filterActive && <p className="text-xs font-semibold text-amber-700">הבחירה חלה רק על התוצאות המוצגות, לא על כל המאגר.</p>}
         </div>
       )}
@@ -283,6 +341,7 @@ export function LeadDirectoryBoard({
               <th className="p-2">טלפון</th>
               <th className="p-2">מייל</th>
               <th className="p-2">עובד משויך</th>
+              <th className="p-2">מקור</th>
               {onPick && <th className="p-2"> </th>}
             </tr>
           </thead>
@@ -308,6 +367,7 @@ export function LeadDirectoryBoard({
                 <td className="p-2" dir="ltr">{row.phone}</td>
                 <td className="p-2" dir="ltr">{row.email}</td>
                 <td className="p-2" data-testid="lead-assigned-cell">{row.assignedName || 'ללא שיוך'}</td>
+                <td className="p-2">{row.source === 'manual_agent' ? 'יצירה ידנית' : row.source || '—'}</td>
                 {onPick && (
                   <td className="p-2">
                     <button type="button" className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white" onClick={() => onPick(row)}>

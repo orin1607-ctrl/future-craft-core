@@ -24,6 +24,7 @@ function row(partial: Partial<LeadDirectoryRecord> & { id: string }): LeadDirect
     assignedAt: null,
     claimedBy: null,
     claimedAt: null,
+    archivedAt: null,
     ...partial,
   };
 }
@@ -58,5 +59,14 @@ describe('lead assign select scope', () => {
   it('employee filter shows only that employee', () => {
     const filtered = filterDirectoryRows(rows, '', 'tair');
     expect(filtered.map((r) => r.id)).toEqual(['1']);
+  });
+
+  it('hides archived leads unless archive filter is on', () => {
+    const withArchive = [
+      ...rows,
+      row({ id: '4', leadNumber: '4', companyName: 'ארכיון', archivedAt: '2026-08-26T00:00:00Z' }),
+    ];
+    expect(filterDirectoryRows(withArchive, '', 'all').map((r) => r.id)).toEqual(['1', '2', '3']);
+    expect(filterDirectoryRows(withArchive, '', 'archive').map((r) => r.id)).toEqual(['4']);
   });
 });

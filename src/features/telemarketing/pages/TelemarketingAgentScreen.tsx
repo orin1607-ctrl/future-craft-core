@@ -8,16 +8,18 @@ import { WorkReportForm } from '@/features/telemarketing/components/WorkSession/
 import { MyFollowUps } from '@/features/telemarketing/components/FollowUp/MyFollowUps';
 import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadTimeline';
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
-import { LeadDirectoryBoard } from '@/features/telemarketing/components/Leads/LeadDirectoryBoard';
+import { DirectoryLeadCard } from '@/features/telemarketing/components/Leads/DirectoryLeadCard';
 import { AgentChatEntry, DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
 import { DALIA_CHAT_PARAM } from '@/features/telemarketing/lib/daliaChatNav';
 import { agentHomeActionsVisible } from '@/features/telemarketing/lib/agentHomeVisibility';
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
 import { useActiveWorkSession } from '@/features/telemarketing/hooks/useActiveWorkSession';
 import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
-import { claimAssignedLead, claimNextAssignedLead } from '@/features/telemarketing/services/leadDirectoryService';
+import { claimNextAssignedLead, createManualDirectoryLead, listLeadDirectory } from '@/features/telemarketing/services/leadDirectoryService';
 import { directoryLeadToCustomer } from '@/features/telemarketing/lib/leadAssign/selectScope';
 import type { CustomerRef, FollowUpWorkItem, TelemarketingEmployee } from '@/features/telemarketing/types';
+import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
+import { ClipboardList } from 'lucide-react';
 
 const EMPTY_MANUAL_CUSTOMER: CustomerRef = {
   companyName: '',
@@ -36,6 +38,8 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [followUpReload, setFollowUpReload] = useState(0);
   const [returnHint, setReturnHint] = useState<FollowUpWorkItem | null>(null);
+  const [activeDirectoryLead, setActiveDirectoryLead] = useState<LeadDirectoryRecord | null>(null);
+  const [dueFollowUpCount, setDueFollowUpCount] = useState(0);
   const [chatOpen, setChatOpen] = useState(false);
   const {
     call,
@@ -125,6 +129,18 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     };
   }, [call?.sourceFollowUpId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void getFollowUpWorkItems().then((rows) => {
+      if (cancelled) return;
+      const today = new Date().toISOString().slice(0, 10);
+      setDueFollowUpCount(rows.filter((row) => row.status !== 'done' && row.dueDate && row.dueDate <= today).length);
+    }).catch(() => setDueFollowUpCount(0));
+    return () => {
+      cancelled = true;
+    };
+  }, [followUpReload]);
+
   const showToast = (type: 'success' | 'error', text: string) => {
     setToast({ type, text });
     setTimeout(() => setToast(null), 3500);
@@ -146,45 +162,52 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   };
 
   const handleStart = async () => {
+    if (!manualCustomer.companyName && !manualCustomer.phone) {
+      showToast('error', 'חובה למלא שם חברה או טלפון לפני התחלת שיחה');
+      return;
+    }
     try {
-      if (manualCustomer.companyName || manualCustomer.phone) {
-        await startCallWith(manualCustomer);
-        return;
+      if (!activeDirectoryLead) {
+        const resolved = await createManualDirectoryLead({
+          companyName: manualCustomer.companyName,
+          phone: manualCustomer.phone,
+          email: manualCustomer.email,
+          region: manualCustomer.city,
+          fleetSize: manualCustomer.vehicleCount != null ? String(manualCustomer.vehicleCount) : '',
+        });
+        if (resolved.action === 'duplicate_other') {
+          showToast('error', `הטלפון/מייל כבר במאגר (ליד ${resolved.leadNumber || ''}). בקשו ממנהל-על לשייך את הליד אליכם.`);
+          return;
+        }
+        if (resolved.lead) {
+          setActiveDirectoryLead(resolved.lead);
+          if (resolved.action === 'existing') {
+            showToast('success', `הליד כבר במאגר (#${resolved.lead.leadNumber}) — ממשיכים עליו, לא נוצר ליד חדש`);
+            setManualCustomer(directoryLeadToCustomer(resolved.lead));
+            await startCallWith(directoryLeadToCustomer(resolved.lead));
+            return;
+          }
+        }
       }
-      const next = await claimNextAssignedLead();
-      if (!next) {
-        showToast('error', 'אין ליד משויך פנוי בתור. מלאו חברה או טלפון לשיחה ידנית, או בקשו שיוך ממנהל-על.');
-        return;
-      }
-      const customer = directoryLeadToCustomer(next);
-      setManualCustomer(customer);
-      await startCallWith(customer);
+      await startCallWith(manualCustomer);
     } catch (e) {
       showToast('error', e instanceof Error ? e.message : 'שגיאה בהתחלת שיחה');
     }
   };
 
-  const handleClaimNext = async () => {
+  const handleWorkFromList = async () => {
     try {
       const next = await claimNextAssignedLead();
       if (!next) {
         showToast('error', 'אין ליד משויך פנוי בתור');
         return;
       }
-      setManualCustomer(directoryLeadToCustomer(next));
-      showToast('success', `נלקח ליד ${next.leadNumber || next.companyName}`);
+      const customer = directoryLeadToCustomer(next);
+      setActiveDirectoryLead(next);
+      setManualCustomer(customer);
+      await startCallWith(customer);
     } catch (e) {
-      showToast('error', e instanceof Error ? e.message : 'שגיאה בלקיחת ליד');
-    }
-  };
-
-  const handlePickLead = async (leadId: string, fallback: CustomerRef) => {
-    try {
-      const claimed = await claimAssignedLead(leadId);
-      setManualCustomer(directoryLeadToCustomer(claimed));
-    } catch (e) {
-      showToast('error', e instanceof Error ? e.message : 'לא ניתן לבחור את הליד');
-      setManualCustomer(fallback);
+      showToast('error', e instanceof Error ? e.message : 'שגיאה בלקיחת ליד מהרשימה');
     }
   };
 
@@ -200,6 +223,17 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
       vehicleCount: last?.vehicleCount ?? null,
       city: last?.city,
     };
+    try {
+      const directory = await listLeadDirectory();
+      const phoneKey = (lead.phone || '').replace(/[^0-9*]/g, '');
+      const match = directory.find((row) => {
+        const rowPhone = (row.phone || '').replace(/[^0-9*]/g, '');
+        return (phoneKey && rowPhone === phoneKey) || (!phoneKey && row.companyName === lead.companyName);
+      });
+      if (match) setActiveDirectoryLead(match);
+    } catch {
+      /* keep return without directory card */
+    }
     setManualCustomer(lead);
     setReturnHint(item);
     try {
@@ -249,6 +283,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     if (ok) {
       showToast('success', 'השיחה נשמרה בהצלחה');
       setManualCustomer(EMPTY_MANUAL_CUSTOMER);
+      setActiveDirectoryLead(null);
       setReturnHint(null);
       setFollowUpReload((n) => n + 1);
     } else {
@@ -261,6 +296,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   const workStatus = !workSession ? 'idle' : workSession.endedAt ? 'ended' : 'in_progress';
   const workReportOpen = workStatus === 'ended';
   const showIdleBoards = agentHomeActionsVisible(callStatus, workStatus);
+  const showHomeActions = callStatus === 'idle' && workStatus === 'idle';
 
   if (chatOpen) {
     return (
@@ -298,31 +334,46 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           {currentEmployee.employeeCode ? ` · ${currentEmployee.employeeCode}` : ''}
         </p>
         {showIdleBoards && (
-          <>
-            <div className="mt-3 space-y-2">
-              <CallTimerBar
-                status="idle"
-                elapsedSeconds={elapsedSeconds}
-                starting={starting}
-                isRecording={false}
-                employeeName={currentEmployee.displayName}
-                onStart={() => void handleStart()}
-                onEnd={() => void finishCallTiming()}
-              />
-              <WorkTimerBar
-                status="idle"
-                elapsedSeconds={workElapsed}
-                starting={workStarting}
-                employeeName={currentEmployee.displayName}
-                onStart={() => void handleStartWork()}
-                onEnd={() => void finishWorkTiming()}
-              />
-              <AgentChatEntry currentUserId={currentEmployee.id} onOpen={openChats} reloadToken={followUpReload} />
-            </div>
-            {(error || workError) && !call && !workSession && (
-              <p className="mt-2 rounded-lg bg-destructive/10 p-2 text-sm font-semibold text-destructive">{error || workError}</p>
+          <div className="mt-3 space-y-2">
+            <CallTimerBar
+              status="idle"
+              elapsedSeconds={elapsedSeconds}
+              starting={starting}
+              isRecording={false}
+              employeeName={currentEmployee.displayName}
+              onStart={() => void handleStart()}
+              onEnd={() => void finishCallTiming()}
+            />
+            <WorkTimerBar
+              status="idle"
+              elapsedSeconds={workElapsed}
+              starting={workStarting}
+              employeeName={currentEmployee.displayName}
+              onStart={() => void handleStartWork()}
+              onEnd={() => void finishWorkTiming()}
+            />
+            <AgentChatEntry currentUserId={currentEmployee.id} onOpen={openChats} reloadToken={followUpReload} />
+            {showHomeActions && (
+              <button
+                type="button"
+                data-testid="tele-work-from-list"
+                onClick={() => void handleWorkFromList()}
+                disabled={starting}
+                className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-amber-700 py-4 text-lg font-bold text-white active:scale-[0.99] disabled:opacity-50"
+              >
+                <ClipboardList size={22} />
+                📋 עבודה מרשימת לידים
+              </button>
             )}
-          </>
+          </div>
+        )}
+        {showHomeActions && dueFollowUpCount > 0 && (
+          <p className="mt-2 rounded-xl border border-amber-400/40 bg-amber-50 p-3 text-sm font-semibold dark:bg-amber-950/30">
+            יש {dueFollowUpCount} Follow-up שהגיע מועדם. הם מוצגים למטה ב«החזרות שלי» ולא נעלמים בגלל רצף הלידים.
+          </p>
+        )}
+        {(error || workError) && !call && !workSession && (
+          <p className="mt-2 rounded-lg bg-destructive/10 p-2 text-sm font-semibold text-destructive">{error || workError}</p>
         )}
       </div>
 
@@ -354,7 +405,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         <div id="new-lead" className="space-y-2 rounded-2xl border border-border bg-card p-4">
           <p className="text-base font-black">לקוח / ליד חדש</p>
           <p className="text-xs text-muted-foreground">
-            «התחל שיחה» בלי פרטים לוקח את הליד הבא מהמאגר שמשויך אליכם. מילוי חברה או טלפון ידנית עדיין מתחיל שיחה ללא ליד מהמאגר.
+            מילאו שם חברה או טלפון, ואז לחצו התחל שיחה. ליד חדש מקבל מספר אוטומטי ונכנס למאגר המנהל. «עבודה מרשימת לידים» לוקחת את הליד הבא ששויך אליכם.
           </p>
           <label className="block text-xs font-semibold text-muted-foreground">
             שם החברה
@@ -435,19 +486,6 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
 
       {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} />}
 
-      {showIdleBoards && (
-        <LeadDirectoryBoard
-          reloadToken={followUpReload}
-          onClaimNext={() => void handleClaimNext()}
-          onPick={(lead) =>
-            void handlePickLead(lead.id, {
-              ...EMPTY_MANUAL_CUSTOMER,
-              ...directoryLeadToCustomer(lead),
-            })
-          }
-        />
-      )}
-
       {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter />}
 
       {callStatus === 'ended' && (
@@ -456,8 +494,12 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         </p>
       )}
 
+      {activeDirectoryLead && (call || showHomeActions) && <DirectoryLeadCard lead={activeDirectoryLead} />}
+
       {(call || manualCustomer.companyName || manualCustomer.phone) && (
-        <CustomerCallCard customer={call ? {
+        <CustomerCallCard
+          leadNumber={activeDirectoryLead?.leadNumber}
+          customer={call ? {
           companyName: call.companyName,
           contactName: call.contactName,
           contactRole: call.contactRole,

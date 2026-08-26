@@ -86,6 +86,7 @@ export interface LeadDirectoryRecord {
   assignedAt: string | null;
   claimedBy: string | null;
   claimedAt: string | null;
+  archivedAt: string | null;
 }
 
 export interface LeadAssignmentEvent {

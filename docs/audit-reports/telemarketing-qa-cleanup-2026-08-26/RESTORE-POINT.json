@@ -1,0 +1,15 @@
+{
+  "at": "2026-08-26T16:57:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "keep": {
+    "tair": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "directoryLeads": "1-29"
+  },
+  "backupFile": "docs/audit-reports/telemarketing-qa-cleanup-2026-08-26/qa-backup.json",
+  "cleanupVerify": "docs/audit-reports/telemarketing-qa-cleanup-2026-08-26/qa-cleanup-verify.json",
+  "rollbackCommit": "a0e63206",
+  "rollbackBranch": "feat/incident-alerts-staging",
+  "rollbackSql": "Restore qa-backup.json rows. Revert migration 20260826180000 (drop archived_at/archived_by, restore previous claim RPCs). Do not restore to Production."
+}

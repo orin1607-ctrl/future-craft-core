@@ -3,7 +3,7 @@ import { Phone } from 'lucide-react';
 import { checkExistingCustomer } from '@/features/telemarketing/services/telemarketingService';
 import type { CustomerRef, ExistingCustomerLookup } from '@/features/telemarketing/types';
 
-export function CustomerCallCard({ customer }: { customer: CustomerRef }) {
+export function CustomerCallCard({ customer, leadNumber }: { customer: CustomerRef; leadNumber?: string | null }) {
   const [lookup, setLookup] = useState<ExistingCustomerLookup | null>(null);
   const [loadingLookup, setLoadingLookup] = useState(false);
 
@@ -27,7 +27,10 @@ export function CustomerCallCard({ customer }: { customer: CustomerRef }) {
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-lg font-bold text-foreground truncate">{customer.companyName || 'ללא שם חברה'}</h2>
+          <h2 className="text-lg font-bold text-foreground truncate">
+            {leadNumber ? `ליד #${leadNumber} — ` : ''}
+            {customer.companyName || 'ללא שם חברה'}
+          </h2>
           {customer.contactName && (
             <p className="text-sm text-muted-foreground">
               {customer.contactName}

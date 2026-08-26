@@ -1,6 +1,6 @@
 import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
 
-export type AgentFilter = 'all' | 'unassigned' | string;
+export type AgentFilter = 'all' | 'unassigned' | 'archive' | string;
 
 export function filterDirectoryRows(
   rows: LeadDirectoryRecord[],
@@ -9,8 +9,14 @@ export function filterDirectoryRows(
 ): LeadDirectoryRecord[] {
   const q = query.trim().toLowerCase();
   return rows.filter((row) => {
+    const archived = Boolean(row.archivedAt);
+    if (agentFilter === 'archive') {
+      if (!archived) return false;
+    } else if (archived) {
+      return false;
+    }
     if (agentFilter === 'unassigned' && row.assignedTo) return false;
-    if (agentFilter !== 'all' && agentFilter !== 'unassigned' && row.assignedTo !== agentFilter) return false;
+    if (agentFilter !== 'all' && agentFilter !== 'unassigned' && agentFilter !== 'archive' && row.assignedTo !== agentFilter) return false;
     if (!q) return true;
     const hay = [row.leadNumber, row.companyName, row.phone, row.email, row.assignedName, row.industry, row.region]
       .join(' ')

@@ -31,6 +31,7 @@ function mapDirectory(row: Record<string, unknown>): LeadDirectoryRecord {
     assignedAt: (row.assigned_at as string | null) ?? null,
     claimedBy: (row.claimed_by as string | null) ?? null,
     claimedAt: (row.claimed_at as string | null) ?? null,
+    archivedAt: (row.archived_at as string | null) ?? null,
   };
 }
 
@@ -150,6 +151,58 @@ export async function assignLeadsToAgent(leadIds: string[], agentId: string): Pr
     }),
     agentName: String(result.agentName ?? result.agentname ?? ''),
     agentId: String(result.agentId ?? result.agentid ?? agentId),
+  };
+}
+
+export async function createManualDirectoryLead(payload: {
+  companyName: string;
+  phone: string;
+  email?: string;
+  industry?: string;
+  region?: string;
+  fleetSize?: string;
+}): Promise<{ action: 'created' | 'existing' | 'duplicate_other'; lead: LeadDirectoryRecord | null; leadNumber?: string }> {
+  const { data, error } = await supabase.rpc('telemarketing_create_manual_lead' as never, {
+    p_company_name: payload.companyName || '',
+    p_phone: payload.phone || '',
+    p_email: payload.email || '',
+    p_industry: payload.industry || '',
+    p_region: payload.region || '',
+    p_fleet_size: payload.fleetSize || '',
+  } as never);
+  if (error) throw new Error(error.message);
+  const result = (data || {}) as Record<string, unknown>;
+  const action = String(result.action || '') as 'created' | 'existing' | 'duplicate_other';
+  const leadRaw = result.lead as Record<string, unknown> | undefined;
+  return {
+    action,
+    lead: leadRaw ? mapDirectory(leadRaw) : null,
+    leadNumber: String(result.leadNumber ?? result.leadnumber ?? leadRaw?.lead_number ?? ''),
+  };
+}
+
+export async function setLeadsArchived(leadIds: string[], archived: boolean): Promise<number> {
+  const { data, error } = await supabase.rpc('telemarketing_set_leads_archived' as never, {
+    p_lead_ids: leadIds,
+    p_archived: archived,
+  } as never);
+  if (error) throw new Error(error.message);
+  const result = (data || {}) as Record<string, unknown>;
+  return Number(result.updatedCount ?? result.updatedcount ?? 0);
+}
+
+export async function previewLeadDelete(leadId: string): Promise<{ leadNumber: string; companyName: string; calls: number; followups: number; assignmentEvents: number; canDelete: boolean; reason: string }> {
+  const { data, error } = await supabase.rpc('telemarketing_preview_lead_delete' as never, { p_lead_id: leadId } as never);
+  if (error) throw new Error(error.message);
+  const result = (data || {}) as Record<string, unknown>;
+  return {
+    leadNumber: String(result.leadNumber ?? result.leadnumber ?? ''),
+    companyName: String(result.companyName ?? result.companyname ?? ''),
+    calls: Number(result.calls ?? 0),
+    followups: Number(result.followups ?? 0),
+    assignmentEvents: Number(result.assignmentEvents ?? result.assignmentevents ?? 0),
+    canDelete: Boolean(result.canDelete ?? result.candelete),
+    reason: String(result.reason || ''),
   };
 }
 
