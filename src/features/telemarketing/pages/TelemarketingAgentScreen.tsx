@@ -307,7 +307,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   const workReportOpen = workStatus === 'ended';
   const showIdleBoards = agentHomeActionsVisible(callStatus, workStatus);
   const showHomeActions = callStatus === 'idle' && workStatus === 'idle';
-  const showLeadPreview = showHomeActions && Boolean(activeDirectoryLead || returnHint);
+  const showLeadPreview = Boolean(activeDirectoryLead) || (showHomeActions && Boolean(returnHint));
   const clearLeadPreview = () => {
     setActiveDirectoryLead(null);
     setReturnHint(null);
@@ -548,7 +548,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         </p>
       )}
 
-      {activeDirectoryLead && (call || showHomeActions) && <DirectoryLeadCard lead={activeDirectoryLead} />}
+      {activeDirectoryLead && <DirectoryLeadCard lead={activeDirectoryLead} />}
 
       {(call || manualCustomer.companyName || manualCustomer.phone) && (
         <CustomerCallCard
