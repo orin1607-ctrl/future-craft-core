@@ -1,0 +1,610 @@
+{
+  "at": "2026-08-26T20:24:39.855Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "deploy-staging",
+      "ok": true,
+      "detail": "deployed_ref=d686a64 feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-not-prod",
+      "ok": true,
+      "detail": "deployed_ref=d686a64 feat/incident-alerts-staging"
+    },
+    {
+      "id": "bundle-my-report",
+      "ok": true,
+      "detail": "assets/index-D5ZEUzsP.js"
+    },
+    {
+      "id": "keep-1-29-before",
+      "ok": true,
+      "detail": {
+        "count": 30,
+        "missing": [],
+        "ok": true
+      }
+    },
+    {
+      "id": "rls-hides-other-employee-calls",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "id": "agent-desktop-home-button",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-nav",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-no-employee-select",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-readonly",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-self-only",
+      "ok": true,
+      "detail": "← חזרה למסך הקודם🏠 חזרה לדשבורד הראשי\n📊 הדוח שלי\n\nתאיר · 26/08/2026\n\nהיום\nאתמול\nהשבוע\nהחודש\nטווח מותאם\nמתאריך\nעד תאריך\nמשעה\nעד שעה\n\nפעילות ראשונה\n\n26.8.2026 10:00\n\nפעילות אחרונה\n\n26.8.2026 22:29\n\nחלון פעילות\n\n10:00–22:29\n\nסה״כ זמן עבודה מדוד\n\n09:29\n\nלידים שטופלו\n\n3\n\nניסיונות חיוג\n\n4\n\nנענו\n\n2\n\nלא ענו\n\n2\n\nהמשך טיפול\n\n3\n\nFollow-up\n\n1\n\nמתעניינים\n\n2\n\nלידים חמים\n\n1\n\nפגישות\n\n0\n\nהצעות מחיר\n\n1\n\nזמן שיחות"
+    },
+    {
+      "id": "agent-desktop-includes-qa-dials",
+      "ok": true,
+      "detail": {
+        "dials": "4",
+        "answered": "2",
+        "noanswer": "2",
+        "callsec": "234",
+        "reportsec": "135",
+        "treatsec": "369",
+        "worksec": "180",
+        "workreportsec": "20",
+        "worktreatsec": "200",
+        "measured": "569",
+        "leads": "3",
+        "interested": "2",
+        "hot": "1",
+        "meetings": "0",
+        "quotes": "1",
+        "continued": "3",
+        "followups": "1",
+        "dalia": "0",
+        "display": {
+          "dials": "4",
+          "call": "03:54",
+          "report": "02:15",
+          "treat": "06:09",
+          "work": "03:00",
+          "measured": "09:29",
+          "interested": "2",
+          "hot": "1",
+          "meetings": "0",
+          "continued": "3",
+          "followups": "1",
+          "dalia": "0",
+          "noanswer": "2",
+          "answered": "2",
+          "workreport": "00:20",
+          "worktreat": "03:20"
+        }
+      }
+    },
+    {
+      "id": "agent-desktop-quotes-today",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "id": "agent-desktop-leads",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-lead-expand",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-week",
+      "ok": true,
+      "detail": {
+        "weekDials": "4",
+        "today": "4"
+      }
+    },
+    {
+      "id": "agent-desktop-month",
+      "ok": true,
+      "detail": {
+        "monthDials": "4",
+        "weekDials": "4"
+      }
+    },
+    {
+      "id": "agent-desktop-custom-day",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-hour-window",
+      "ok": true,
+      "detail": {
+        "hourDials": "2",
+        "hourQuotes": "0",
+        "today": "4"
+      }
+    },
+    {
+      "id": "agent-desktop-export",
+      "ok": true,
+      "detail": "﻿\"שדה\",\"ערך\"\n\"עובד\",\"תאיר\"\n\"תקופה\",\"26/08/2026\"\n\"פעילות ראשונה\",\"26.8.2026 10:00\"\n\"פעילות אחרונה\",\"26.8.2026 22:29\"\n\"חלון פעילות\",\"10:00–22:29\"\n\"סה״כ זמן עבודה מדוד\",\"09:29\"\n\"לידים שטופלו\",\"3\"\n\"ניסיונות חיוג\",\"4\"\n\"נענו\",\"2\"\n\"לא ענו\",\"2\"\n\"המשך טיפול\",\"3\"\n\"Follow-up\",\"1\"\n\"מתעניינים\",\"2\"\n\"לידים חמים\",\""
+    },
+    {
+      "id": "agent-desktop-back-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-home-btn",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-home-button",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-nav",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-no-employee-select",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-readonly",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-self-only",
+      "ok": true,
+      "detail": "← חזרה למסך הקודם🏠 חזרה לדשבורד הראשי\n📊 הדוח שלי\n\nתאיר · 26/08/2026\n\nהיום\nאתמול\nהשבוע\nהחודש\nטווח מותאם\nמתאריך\nעד תאריך\nמשעה\nעד שעה\n\nפעילות ראשונה\n\n26.8.2026 10:00\n\nפעילות אחרונה\n\n26.8.2026 22:29\n\nחלון פעילות\n\n10:00–22:29\n\nסה״כ זמן עבודה מדוד\n\n09:29\n\nלידים שטופלו\n\n3\n\nניסיונות חיוג\n\n4\n\nנענו\n\n2\n\nלא ענו\n\n2\n\nהמשך טיפול\n\n3\n\nFollow-up\n\n1\n\nמתעניינים\n\n2\n\nלידים חמים\n\n1\n\nפגישות\n\n0\n\nהצעות מחיר\n\n1\n\nזמן שיחות"
+    },
+    {
+      "id": "agent-mobile-includes-qa-dials",
+      "ok": true,
+      "detail": {
+        "dials": "4",
+        "answered": "2",
+        "noanswer": "2",
+        "callsec": "234",
+        "reportsec": "135",
+        "treatsec": "369",
+        "worksec": "180",
+        "workreportsec": "20",
+        "worktreatsec": "200",
+        "measured": "569",
+        "leads": "3",
+        "interested": "2",
+        "hot": "1",
+        "meetings": "0",
+        "quotes": "1",
+        "continued": "3",
+        "followups": "1",
+        "dalia": "0",
+        "display": {
+          "dials": "4",
+          "call": "03:54",
+          "report": "02:15",
+          "treat": "06:09",
+          "work": "03:00",
+          "measured": "09:29",
+          "interested": "2",
+          "hot": "1",
+          "meetings": "0",
+          "continued": "3",
+          "followups": "1",
+          "dalia": "0",
+          "noanswer": "2",
+          "answered": "2",
+          "workreport": "00:20",
+          "worktreat": "03:20"
+        }
+      }
+    },
+    {
+      "id": "agent-mobile-quotes-today",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "id": "agent-mobile-leads",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-lead-expand",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-week",
+      "ok": true,
+      "detail": {
+        "weekDials": "4",
+        "today": "4"
+      }
+    },
+    {
+      "id": "agent-mobile-month",
+      "ok": true,
+      "detail": {
+        "monthDials": "4",
+        "weekDials": "4"
+      }
+    },
+    {
+      "id": "agent-mobile-custom-day",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-hour-window",
+      "ok": true,
+      "detail": {
+        "hourDials": "2",
+        "hourQuotes": "0",
+        "today": "4"
+      }
+    },
+    {
+      "id": "agent-mobile-export",
+      "ok": true,
+      "detail": "﻿\"שדה\",\"ערך\"\n\"עובד\",\"תאיר\"\n\"תקופה\",\"26/08/2026\"\n\"פעילות ראשונה\",\"26.8.2026 10:00\"\n\"פעילות אחרונה\",\"26.8.2026 22:29\"\n\"חלון פעילות\",\"10:00–22:29\"\n\"סה״כ זמן עבודה מדוד\",\"09:29\"\n\"לידים שטופלו\",\"3\"\n\"ניסיונות חיוג\",\"4\"\n\"נענו\",\"2\"\n\"לא ענו\",\"2\"\n\"המשך טיפול\",\"3\"\n\"Follow-up\",\"1\"\n\"מתעניינים\",\"2\"\n\"לידים חמים\",\""
+    },
+    {
+      "id": "agent-mobile-back-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-home-btn",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-tair-body",
+      "ok": true,
+      "detail": "דוח פעילות וביצועי עובד\n\nכל המספרים מגיעים משיחות, משימות, Follow-up ופניות דליה שנשמרו. אין נתונים מומצאים. סה״כ זמן עבודה סופר כל שנייה פעם אחת (טיפול = שיחה + דיווח).\n\nמתאריך\nעד תאריך\nהיום\nכל העובד"
+    },
+    {
+      "id": "admin-employee-is-tair",
+      "ok": true,
+      "detail": "תאיר"
+    },
+    {
+      "id": "manager-vs-employee-dials",
+      "ok": true,
+      "detail": {
+        "agentVal": "4",
+        "adminVal": "4"
+      }
+    },
+    {
+      "id": "manager-vs-employee-answered",
+      "ok": true,
+      "detail": {
+        "agentVal": "2",
+        "adminVal": "2"
+      }
+    },
+    {
+      "id": "manager-vs-employee-noanswer",
+      "ok": true,
+      "detail": {
+        "agentVal": "2",
+        "adminVal": "2"
+      }
+    },
+    {
+      "id": "manager-vs-employee-continued",
+      "ok": true,
+      "detail": {
+        "agentVal": "3",
+        "adminVal": "3"
+      }
+    },
+    {
+      "id": "manager-vs-employee-interested",
+      "ok": true,
+      "detail": {
+        "agentVal": "2",
+        "adminVal": "2"
+      }
+    },
+    {
+      "id": "manager-vs-employee-hot",
+      "ok": true,
+      "detail": {
+        "agentVal": "1",
+        "adminVal": "1"
+      }
+    },
+    {
+      "id": "manager-vs-employee-meetings",
+      "ok": true,
+      "detail": {
+        "agentVal": "0",
+        "adminVal": "0"
+      }
+    },
+    {
+      "id": "manager-vs-employee-followups",
+      "ok": true,
+      "detail": {
+        "agentVal": "1",
+        "adminVal": "1"
+      }
+    },
+    {
+      "id": "manager-vs-employee-dalia",
+      "ok": true,
+      "detail": {
+        "agentVal": "0",
+        "adminVal": "0"
+      }
+    },
+    {
+      "id": "manager-vs-employee-call",
+      "ok": true,
+      "detail": {
+        "agentVal": "03:54",
+        "adminVal": "03:54"
+      }
+    },
+    {
+      "id": "manager-vs-employee-report",
+      "ok": true,
+      "detail": {
+        "agentVal": "02:15",
+        "adminVal": "02:15"
+      }
+    },
+    {
+      "id": "manager-vs-employee-treat",
+      "ok": true,
+      "detail": {
+        "agentVal": "06:09",
+        "adminVal": "06:09"
+      }
+    },
+    {
+      "id": "manager-vs-employee-work",
+      "ok": true,
+      "detail": {
+        "agentVal": "03:00",
+        "adminVal": "03:00"
+      }
+    },
+    {
+      "id": "manager-vs-employee-workreport",
+      "ok": true,
+      "detail": {
+        "agentVal": "00:20",
+        "adminVal": "00:20"
+      }
+    },
+    {
+      "id": "manager-vs-employee-worktreat",
+      "ok": true,
+      "detail": {
+        "agentVal": "03:20",
+        "adminVal": "03:20"
+      }
+    },
+    {
+      "id": "manager-vs-employee-measured",
+      "ok": true,
+      "detail": {
+        "agentVal": "09:29",
+        "adminVal": "09:29"
+      }
+    },
+    {
+      "id": "admin-not-avi-totals",
+      "ok": true,
+      "detail": {
+        "dials": "4",
+        "answered": "2",
+        "noanswer": "2",
+        "continued": "3",
+        "interested": "2",
+        "hot": "1",
+        "meetings": "0",
+        "followups": "1",
+        "dalia": "0",
+        "call": "03:54",
+        "report": "02:15",
+        "treat": "06:09",
+        "work": "03:00",
+        "workreport": "00:20",
+        "worktreat": "03:20",
+        "measured": "09:29"
+      }
+    },
+    {
+      "id": "keep-1-29-after",
+      "ok": true,
+      "detail": {
+        "count": 30,
+        "missing": [],
+        "ok": true
+      }
+    },
+    {
+      "id": "qa-cleaned",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "compare": {
+    "agent": {
+      "dials": "4",
+      "answered": "2",
+      "noanswer": "2",
+      "callsec": "234",
+      "reportsec": "135",
+      "treatsec": "369",
+      "worksec": "180",
+      "workreportsec": "20",
+      "worktreatsec": "200",
+      "measured": "569",
+      "leads": "3",
+      "interested": "2",
+      "hot": "1",
+      "meetings": "0",
+      "quotes": "1",
+      "continued": "3",
+      "followups": "1",
+      "dalia": "0",
+      "display": {
+        "dials": "4",
+        "call": "03:54",
+        "report": "02:15",
+        "treat": "06:09",
+        "work": "03:00",
+        "measured": "09:29",
+        "interested": "2",
+        "hot": "1",
+        "meetings": "0",
+        "continued": "3",
+        "followups": "1",
+        "dalia": "0",
+        "noanswer": "2",
+        "answered": "2",
+        "workreport": "00:20",
+        "worktreat": "03:20"
+      }
+    },
+    "admin": {
+      "dials": "4",
+      "answered": "2",
+      "noanswer": "2",
+      "continued": "3",
+      "interested": "2",
+      "hot": "1",
+      "meetings": "0",
+      "followups": "1",
+      "dalia": "0",
+      "call": "03:54",
+      "report": "02:15",
+      "treat": "06:09",
+      "work": "03:00",
+      "workreport": "00:20",
+      "worktreat": "03:20",
+      "measured": "09:29"
+    },
+    "pairs": [
+      [
+        "dials",
+        "4",
+        "4"
+      ],
+      [
+        "answered",
+        "2",
+        "2"
+      ],
+      [
+        "noanswer",
+        "2",
+        "2"
+      ],
+      [
+        "continued",
+        "3",
+        "3"
+      ],
+      [
+        "interested",
+        "2",
+        "2"
+      ],
+      [
+        "hot",
+        "1",
+        "1"
+      ],
+      [
+        "meetings",
+        "0",
+        "0"
+      ],
+      [
+        "followups",
+        "1",
+        "1"
+      ],
+      [
+        "dalia",
+        "0",
+        "0"
+      ],
+      [
+        "call",
+        "03:54",
+        "03:54"
+      ],
+      [
+        "report",
+        "02:15",
+        "02:15"
+      ],
+      [
+        "treat",
+        "06:09",
+        "06:09"
+      ],
+      [
+        "work",
+        "03:00",
+        "03:00"
+      ],
+      [
+        "workreport",
+        "00:20",
+        "00:20"
+      ],
+      [
+        "worktreat",
+        "03:20",
+        "03:20"
+      ],
+      [
+        "measured",
+        "09:29",
+        "09:29"
+      ]
+    ]
+  },
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "tairKept": true,
+  "deployed_ref": "deployed_ref=d686a64 feat/incident-alerts-staging",
+  "liveBundle": "assets/index-D5ZEUzsP.js"
+}

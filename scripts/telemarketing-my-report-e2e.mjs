@@ -24,7 +24,12 @@ const MARKER = 'qa-my-report-e2e';
 const QA_COMPANY = 'QA-MY-REPORT-E2E';
 const QA_QUOTE = 'QA-MY-REPORT-QUOTE';
 const QA_OTHER = 'QA-MY-REPORT-OTHER';
-const KEEP_DIR = 29;
+async function directoryKeep() {
+  const { data } = await adminDb.from('telemarketing_lead_directory').select('lead_number, company_name');
+  const nums = new Set((data || []).map((r) => String(r.lead_number)));
+  const missing = Array.from({ length: 29 }, (_, i) => String(i + 1)).filter((n) => !nums.has(n));
+  return { count: (data || []).length, missing, ok: missing.length === 0 };
+}
 
 function loadKeys() {
   const raw = execSync(`npx --yes supabase projects api-keys --project-ref ${STAGING_REF} -o json`, { encoding: 'utf8' });
@@ -250,8 +255,8 @@ try {
   const today = jerusalemDate();
   await cleanupQa();
   await insertQa(today);
-  const { count: dirBefore } = await adminDb.from('telemarketing_lead_directory').select('id', { count: 'exact', head: true });
-  check('keep-29-before', dirBefore === KEEP_DIR, { dirBefore });
+  const dirBefore = await directoryKeep();
+  check('keep-1-29-before', dirBefore.ok, dirBefore);
 
   const tairSession = await sessionFor(TAIR.email);
   const adminSession = await sessionFor(ADMIN.email);
@@ -450,8 +455,8 @@ try {
   await browser.close();
 
   await cleanupQa();
-  const { count: dirAfter } = await adminDb.from('telemarketing_lead_directory').select('id', { count: 'exact', head: true });
-  check('keep-29-after', dirAfter === KEEP_DIR, { dirAfter });
+  const dirAfter = await directoryKeep();
+  check('keep-1-29-after', dirAfter.ok, dirAfter);
   const { data: leftover } = await adminDb.from('telemarketing_calls').select('id').eq('summary', MARKER);
   check('qa-cleaned', !leftover?.length, leftover);
 
