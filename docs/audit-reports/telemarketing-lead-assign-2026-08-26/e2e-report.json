@@ -1,5 +1,5 @@
 {
-  "at": "2026-08-26T11:05:35.381Z",
+  "at": "2026-08-26T11:16:38.390Z",
   "pass": true,
   "checks": [
     {
@@ -40,7 +40,7 @@
       "id": "tair-sees-assigned-lead1",
       "ok": true,
       "detail": {
-        "count": 1
+        "count": 27
       }
     },
     {
@@ -48,7 +48,6 @@
       "ok": true,
       "detail": {
         "numbers": [
-          "29",
           "2",
           "3"
         ]
@@ -97,7 +96,7 @@
       "id": "followup-kept-and-owner-moved",
       "ok": true,
       "detail": {
-        "id": "bd9b9bf1-655f-4791-b02f-3af8eb185a81",
+        "id": "109b6f46-561d-4e72-91e3-417c26834434",
         "owner": "אבי טלמיטינג",
         "status": "open"
       }
@@ -141,6 +140,82 @@
       "detail": {
         "still29": 29
       }
+    },
+    {
+      "id": "admin-assign-ui",
+      "ok": true,
+      "detail": {
+        "url": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing/admin/"
+      }
+    },
+    {
+      "id": "import-still-there",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "export-still-there",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "unassigned-filter",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "preview-29-tair",
+      "ok": true,
+      "detail": "אתה עומד לשייך 29 לידים לתאיר. להמשיך?\n\nחלק מהלידים כבר משויכים לעובד אחר — לאחר אישור הם יועברו, אלא אם הם בשיחה/טיפול פעיל.\n\nאישור שיוך\nחזרה"
+    },
+    {
+      "id": "assign-29-result",
+      "ok": true,
+      "detail": "השיוך הושלם\n\nשויכו: 29\n\nלא שויכו: 0\n\nסגור"
+    },
+    {
+      "id": "filter-tair-after-refresh",
+      "ok": true,
+      "detail": "מאגר לידים\nרענן\nExport\n\n29 תוצאות מסוננות מתוך 29 לידים במאגר\n\nחיפוש\nעובד משויך\nכל העובדים\nללא עובד משויך\nאבי טלמיטינג\nתאיר\nבחר הכול בתוצאות המסוננות (29) — לא את כל המאגר (29)\nנקה בחירה\nשייך לעובד (0)\n\nהבחירה חלה רק על התוצאות המוצגות, לא על כל המאג"
+    },
+    {
+      "id": "mobile-assign-ui",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "tair-home",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\nהתחל משימת עבודה\n🟣 פניות צוות דליה"
+    },
+    {
+      "id": "tair-sees-assigned",
+      "ok": true,
+      "detail": "מאגר לידים\nהליד הבא\nרענן\nExport\n\n29 לידים במאגר\n\nחיפוש\nמספר\tחברה\tתחום\tאזור\tצי רכב\tטלפון\tמייל\tעובד משויך\t\n5\tמנועי פרידמן\tחשמל ותעשייה\tפ\"ת\t20+\t03-9244451\toffice@friedman-eng.co.il\tתאיר\tבחר ליד\n6\tגנרטורים פלוס\tהשכרה ושירות\tמרכז\t15+\t072-3926222\tinfo@gene"
+    },
+    {
+      "id": "tair-db-sees-29",
+      "ok": true,
+      "detail": {
+        "tairVisible": 29
+      }
+    },
+    {
+      "id": "start-call-takes-assigned",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nתאיר\n\nמערכות אשד\n25 רכבים\n03-5584555\nחולון\ninfo@ashd.co.il\n\nלקוח קיים\n\nשיחה אחרונה: 26.8.2026 14:15 · תוצאה: qa-assign-cleanup\n\nהשיחה פעילה\n\n00:02\n\n26.8.2026 · התחלה 26.8.2026 14:17 · תאיר\n\nסיום שיחה\n\nדליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לציי רכב | www.dalia-c.com | כל הזכויות שמור"
+    },
+    {
+      "id": "avi-does-not-see-tair-pool",
+      "ok": true,
+      "detail": {
+        "aviVisible": 0
+      }
+    },
+    {
+      "id": "avi-manual-call-without-lead",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nאבי טלמיטינג\n\nIlana\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nאבי טלמיטינג · 123456\n\nשיחה ידנית QA\n03-9999999\n\nהשיחה פעילה\n\n00:03\n\n26.8.2026 · התחלה 26.8.2026 14:17 · אבי טלמיטינג\n\nסיום שיחה\n\nדליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לציי רכב | www.dalia-c.com | כל הזכויות שמורות ©"
     },
     {
       "id": "final-still-29",

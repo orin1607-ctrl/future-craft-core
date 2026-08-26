@@ -200,6 +200,7 @@ const { count: still29 } = await adminDb.from('telemarketing_lead_directory').se
 check('no-delete-29', still29 === 29, { still29 });
 
 const uiMode = process.argv.includes('--rpc-only') ? 'rpc' : 'full';
+try {
 if (uiMode === 'full') {
   await withPage(adminAuth.session, { width: 1440, height: 900 }, async (page) => {
     await page.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
@@ -270,8 +271,8 @@ if (uiMode === 'full') {
     await page.waitForTimeout(4000);
     const { count: aviVisible } = await aviCli.from('telemarketing_lead_directory').select('id', { count: 'exact', head: true });
     check('avi-does-not-see-tair-pool', aviVisible === 0, { aviVisible });
-    await page.getByPlaceholder('שם החברה').fill('שיחה ידנית QA');
-    await page.getByPlaceholder('טלפון').fill('03-9999999');
+    await page.locator('#new-lead').getByPlaceholder('שם החברה').fill('שיחה ידנית QA');
+    await page.locator('#new-lead').getByPlaceholder('טלפון').fill('03-9999999');
     await page.getByTestId('tele-start-call').click();
     await page.waitForTimeout(4000);
     const body = await page.locator('body').innerText();
@@ -282,6 +283,9 @@ if (uiMode === 'full') {
     }
   });
   await completeOpenCalls(AVI.id);
+}
+} catch (e) {
+  check('ui-uncaught', false, String(e.message || e).slice(0, 500));
 }
 
 const { count: finalCount } = await adminDb.from('telemarketing_lead_directory').select('id', { count: 'exact', head: true });
