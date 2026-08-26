@@ -3,7 +3,7 @@ import { getWorkSessions } from '@/features/telemarketing/services/workSessionSe
 import { getTeamChats } from '@/features/telemarketing/services/teamChatService';
 import { getLeadStates } from '@/features/telemarketing/services/leadStateService';
 import { attachLeadNumbers, listLeadDirectory } from '@/features/telemarketing/services/leadDirectoryService';
-import { dayKey, inDayRange } from '@/features/telemarketing/lib/formatTime';
+import { dayKey, inStampWindow } from '@/features/telemarketing/lib/formatTime';
 import { buildTimingSnapshot, matchesLeadQuery, normalizeLeadQuery } from '@/features/telemarketing/lib/callTiming';
 import { keepsContinuedTreatment } from '@/features/telemarketing/lib/leadTraffic';
 import type { CallResult, FollowUpWorkItem, TeamChat, TelemarketingCall, TelemarketingLeadState, TelemarketingWorkSession } from '@/features/telemarketing/types';
@@ -27,6 +27,8 @@ export interface ActivityFilters {
   result: string;
   status: '' | 'completed' | 'in_progress';
   leadQuery?: string;
+  fromTime?: string;
+  toTime?: string;
 }
 
 export interface UnmeasuredMetric {
@@ -177,6 +179,81 @@ function matchesLead(query: string | undefined, leadNumber?: string | null, comp
   return matchesLeadQuery(query, leadNumber, companyName);
 }
 
+export function callsToAttempts(calls: TelemarketingCall[]): LeadAttemptView[] {
+  return calls
+    .slice()
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+    .map((call, index) => {
+      const snap = buildTimingSnapshot(call);
+      const completed = call.status === 'completed';
+      return {
+        attempt: index + 1,
+        callId: call.id,
+        date: dayKey(call.startedAt),
+        employeeName: call.employeeName,
+        startedAt: call.startedAt,
+        callEndedAt: call.endedAt,
+        callSeconds: completed || call.endedAt ? snap.callSeconds : 0,
+        reportStartedAt: snap.reportStartedAt,
+        reportEndedAt: snap.reportEndedAt,
+        reportSeconds: completed ? snap.reportSeconds : 0,
+        treatedEndedAt: snap.treatedEndedAt,
+        treatmentSeconds: completed ? snap.treatmentSeconds : 0,
+        result: call.result,
+        notes: [call.summary, call.managerNote].filter(Boolean).join(' · ') || null,
+        followUp: call.needsFollowUp
+          ? [call.nextAction, call.followUpDate, call.followUpTime].filter(Boolean).join(' · ')
+          : null,
+        leadRating: call.leadRating,
+      };
+    });
+}
+
+export function attemptTotals(attempts: LeadAttemptView[]): LeadActivityDetail['totals'] {
+  return attempts.reduce(
+    (acc, row) => {
+      acc.callSeconds += row.callSeconds;
+      acc.reportSeconds += row.reportSeconds;
+      acc.treatmentSeconds += row.treatmentSeconds;
+      return acc;
+    },
+    { attemptCount: attempts.length, callSeconds: 0, reportSeconds: 0, treatmentSeconds: 0 },
+  );
+}
+
+export function uniqueLeadCount(calls: TelemarketingCall[]): number {
+  return new Set(calls.map((c) => c.leadNumber || c.companyName || c.id)).size;
+}
+
+export function groupLeadActivity(calls: TelemarketingCall[]): LeadActivityDetail[] {
+  const groups = new Map<string, TelemarketingCall[]>();
+  for (const call of calls) {
+    const key = call.leadNumber || `name:${(call.companyName || '').trim().toLowerCase()}` || call.id;
+    const list = groups.get(key) || [];
+    list.push(call);
+    groups.set(key, list);
+  }
+  return Array.from(groups.values())
+    .map((list) => {
+      const attempts = callsToAttempts(list);
+      return {
+        leadNumber: list[0].leadNumber || '',
+        companyName: list[0].companyName || '',
+        assignedName: null,
+        source: null,
+        createdAt: null,
+        currentStatus: null,
+        attempts,
+        totals: attemptTotals(attempts),
+      };
+    })
+    .sort((a, b) => (b.attempts[0]?.startedAt || '').localeCompare(a.attempts[0]?.startedAt || ''));
+}
+
+export function lockFiltersToSelf(filters: ActivityFilters, employeeName: string): ActivityFilters {
+  return { ...filters, employeeName };
+}
+
 export function buildLeadDetail(input: {
   filters: ActivityFilters;
   calls: TelemarketingCall[];
@@ -195,42 +272,9 @@ export function buildLeadDetail(input: {
   const resolvedNumber = directoryHits.length === 1 ? directoryHits[0].leadNumber : uniqueNumbers[0];
   const dir = (input.directory || []).find((row) => row.leadNumber === resolvedNumber) || directoryHits[0] || null;
   const attemptsSource = input.calls
-    .filter((c) => c.leadNumber === resolvedNumber || (!c.leadNumber && dir && matchesLead(resolvedNumber, null, c.companyName)))
-    .slice()
-    .sort((a, b) => a.startedAt.localeCompare(b.startedAt));
-  const attempts: LeadAttemptView[] = attemptsSource.map((call, index) => {
-    const snap = buildTimingSnapshot(call);
-    const completed = call.status === 'completed';
-    return {
-      attempt: index + 1,
-      callId: call.id,
-      date: dayKey(call.startedAt),
-      employeeName: call.employeeName,
-      startedAt: call.startedAt,
-      callEndedAt: call.endedAt,
-      callSeconds: completed || call.endedAt ? snap.callSeconds : 0,
-      reportStartedAt: snap.reportStartedAt,
-      reportEndedAt: snap.reportEndedAt,
-      reportSeconds: completed ? snap.reportSeconds : 0,
-      treatedEndedAt: snap.treatedEndedAt,
-      treatmentSeconds: completed ? snap.treatmentSeconds : 0,
-      result: call.result,
-      notes: [call.summary, call.managerNote].filter(Boolean).join(' · ') || null,
-      followUp: call.needsFollowUp
-        ? [call.nextAction, call.followUpDate, call.followUpTime].filter(Boolean).join(' · ')
-        : null,
-      leadRating: call.leadRating,
-    };
-  });
-  const totals = attempts.reduce(
-    (acc, row) => {
-      acc.callSeconds += row.callSeconds;
-      acc.reportSeconds += row.reportSeconds;
-      acc.treatmentSeconds += row.treatmentSeconds;
-      return acc;
-    },
-    { attemptCount: attempts.length, callSeconds: 0, reportSeconds: 0, treatmentSeconds: 0 },
-  );
+    .filter((c) => c.leadNumber === resolvedNumber || (!c.leadNumber && dir && matchesLead(resolvedNumber, null, c.companyName)));
+  const attempts = callsToAttempts(attemptsSource);
+  const totals = attemptTotals(attempts);
   const state = (input.leadStates || []).find((s) => s.leadNumber === resolvedNumber)
     || (input.leadStates || []).find((s) => dir && matchesLead(dir.leadNumber, s.leadNumber, s.companyName));
   return {
@@ -256,7 +300,7 @@ export function buildActivityReport(input: {
 }): ActivityReport {
   const { filters } = input;
   const calls = input.calls.filter((c) => {
-    if (!inDayRange(c.startedAt, filters.from, filters.to)) return false;
+    if (!inStampWindow(c.startedAt, filters.from, filters.to, filters.fromTime, filters.toTime)) return false;
     if (filters.employeeName && c.employeeName !== filters.employeeName) return false;
     if (filters.result && c.result !== filters.result) return false;
     if (filters.status && c.status !== filters.status) return false;
@@ -264,7 +308,7 @@ export function buildActivityReport(input: {
     return true;
   });
   const work = input.work.filter((s) => {
-    if (!inDayRange(s.startedAt, filters.from, filters.to)) return false;
+    if (!inStampWindow(s.startedAt, filters.from, filters.to, filters.fromTime, filters.toTime)) return false;
     if (filters.employeeName && s.employeeName !== filters.employeeName) return false;
     if (!matchesLead(filters.leadQuery, s.leadNumber, s.companyName)) return false;
     return true;
@@ -279,7 +323,7 @@ export function buildActivityReport(input: {
     return true;
   });
   const chats = input.chats.filter((c) => {
-    if (!inDayRange(c.openedAt, filters.from, filters.to)) return false;
+    if (!inStampWindow(c.openedAt, filters.from, filters.to, filters.fromTime, filters.toTime)) return false;
     if (filters.employeeName && c.agentName !== filters.employeeName) return false;
     if (!matchesLead(filters.leadQuery, c.leadNumber, c.companyName)) return false;
     return true;
@@ -456,4 +500,27 @@ export async function loadActivityReport(filters: ActivityFilters): Promise<Acti
     directory,
     leadStates,
   });
+}
+
+export async function loadMyActivityReport(employeeName: string, filters: ActivityFilters): Promise<ActivityReport> {
+  const locked = lockFiltersToSelf(filters, employeeName);
+  const report = await loadActivityReport(locked);
+  const mine = report.employees.find((row) => row.employeeName === employeeName);
+  const own = (name: string) => name === employeeName;
+  return {
+    ...report,
+    filters: locked,
+    employeeNames: [employeeName],
+    employees: mine ? [mine] : [],
+    totals: mine || report.totals,
+    calls: report.calls.filter((c) => own(c.employeeName)),
+    work: report.work.filter((s) => own(s.employeeName)),
+    followUps: report.followUps.filter((f) => own(f.employeeName)),
+    daliaReports: report.daliaReports.filter((c) => own(c.agentName)),
+    meetings: report.meetings.filter((m) => own(m.employeeName)),
+    notInterested: report.notInterested.filter((n) => own(n.employeeName)),
+    interested: report.interested.filter((n) => own(n.employeeName)),
+    hotLeads: report.hotLeads.filter((n) => own(n.employeeName)),
+    notes: report.notes.filter((n) => own(n.employeeName)),
+  };
 }

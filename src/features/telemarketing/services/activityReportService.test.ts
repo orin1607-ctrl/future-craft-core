@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildActivityReport, isAnsweredResult, isNoAnswerResult } from '@/features/telemarketing/services/activityReportService';
+import {
+  buildActivityReport,
+  groupLeadActivity,
+  isAnsweredResult,
+  isNoAnswerResult,
+  lockFiltersToSelf,
+  uniqueLeadCount,
+} from '@/features/telemarketing/services/activityReportService';
 import type { FollowUpWorkItem, TeamChat, TelemarketingCall, TelemarketingWorkSession } from '@/features/telemarketing/types';
 
 const filters = { from: '2026-08-24', to: '2026-08-24', employeeName: '', result: '', status: '' as const };
@@ -179,5 +186,67 @@ describe('activity report uses only real mappings', () => {
     expect(report.totals.interested).toBe(1);
     expect(report.totals.hotLeads).toBe(1);
     expect(report.calls).toHaveLength(1);
+  });
+
+  it('locks employee filters to self and groups lead attempts with the same timing snapshot', () => {
+    const locked = lockFiltersToSelf({ ...filters, employeeName: 'מישהו אחר' }, 'תאיר');
+    expect(locked.employeeName).toBe('תאיר');
+    const tair = call({
+      id: 'self',
+      employeeName: 'תאיר',
+      leadNumber: '40',
+      companyName: 'QA-SELF',
+      durationSeconds: 80,
+      reportDurationSeconds: 20,
+      treatmentDurationSeconds: 100,
+    });
+    const other = call({
+      id: 'other-emp',
+      employeeName: 'אבי טלמיטינג',
+      leadNumber: '41',
+      companyName: 'OTHER',
+      durationSeconds: 999,
+    });
+    const report = buildActivityReport({
+      filters: locked,
+      calls: [tair, other],
+      work: [],
+      followUps: [],
+      chats: [],
+    });
+    expect(report.calls).toHaveLength(1);
+    expect(report.totals.dialAttempts).toBe(1);
+    expect(report.totals.callSeconds).toBe(80);
+    expect(report.totals.reportSeconds).toBe(20);
+    expect(report.totals.callTreatmentSeconds).toBe(100);
+    const grouped = groupLeadActivity(report.calls);
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0].attempts).toHaveLength(1);
+    expect(grouped[0].totals).toEqual({ attemptCount: 1, callSeconds: 80, reportSeconds: 20, treatmentSeconds: 100 });
+    expect(uniqueLeadCount(report.calls)).toBe(1);
+  });
+
+  it('uses hour bounds without changing day-only totals when times are empty', () => {
+    const midday = call({
+      startedAt: '2026-08-24T12:00:00.000Z',
+      endedAt: '2026-08-24T12:01:00.000Z',
+      durationSeconds: 60,
+    });
+    const withHours = buildActivityReport({
+      filters: { ...filters, fromTime: '00:00', toTime: '00:00' },
+      calls: [midday],
+      work: [],
+      followUps: [],
+      chats: [],
+    });
+    const dayOnly = buildActivityReport({
+      filters,
+      calls: [midday],
+      work: [],
+      followUps: [],
+      chats: [],
+    });
+    expect(dayOnly.totals.dialAttempts).toBe(1);
+    expect(withHours.totals.dialAttempts).toBe(0);
   });
 });

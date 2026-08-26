@@ -1,0 +1,15 @@
+{
+  "at": "2026-08-26T20:10:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "codeCommit": "e772df609c8589219964f49143850d01448014c0",
+  "branch": "feat/incident-alerts-staging",
+  "keep": {
+    "tair": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "directoryLeads": "1-29"
+  },
+  "note": "Agent personal report UI only. Reuses buildActivityReport / loadActivityReport. No DB/RPC/RLS change. Rollback = revert the feature commit on feat/incident-alerts-staging."
+}

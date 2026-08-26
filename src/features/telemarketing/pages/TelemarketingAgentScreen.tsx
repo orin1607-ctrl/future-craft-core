@@ -10,6 +10,7 @@ import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadT
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
 import { DirectoryLeadCard } from '@/features/telemarketing/components/Leads/DirectoryLeadCard';
 import { AgentChatEntry, DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
+import { MyActivityReport } from '@/features/telemarketing/components/CallerScreen/MyActivityReport';
 import { DALIA_CHAT_PARAM } from '@/features/telemarketing/lib/daliaChatNav';
 import { agentHomeActionsVisible } from '@/features/telemarketing/lib/agentHomeVisibility';
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
@@ -44,6 +45,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   const [activeDirectoryLead, setActiveDirectoryLead] = useState<LeadDirectoryRecord | null>(null);
   const [dueFollowUpCount, setDueFollowUpCount] = useState(0);
   const [chatOpen, setChatOpen] = useState(false);
+  const [myReportOpen, setMyReportOpen] = useState(false);
   const {
     call,
     elapsedSeconds,
@@ -75,6 +77,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   useLayoutEffect(() => {
     if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
     setChatOpen(false);
+    setMyReportOpen(false);
     window.scrollTo(0, 0);
     if (window.history.state?.teleAgentChat) {
       window.history.replaceState({ ...(window.history.state || {}), teleAgentChat: false }, '');
@@ -90,13 +93,14 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   }, []);
 
   useEffect(() => {
-    if (chatOpen) return;
+    if (chatOpen || myReportOpen) return;
     window.scrollTo(0, 0);
-  }, [chatOpen]);
+  }, [chatOpen, myReportOpen]);
 
   useEffect(() => {
     const onPop = () => {
       setChatOpen(false);
+      setMyReportOpen(false);
       window.scrollTo(0, 0);
     };
     window.addEventListener('popstate', onPop);
@@ -104,13 +108,21 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   }, []);
 
   const openChats = () => {
+    setMyReportOpen(false);
     setChatOpen(true);
     window.history.pushState({ teleAgentChat: true }, '');
     window.scrollTo(0, 0);
   };
 
+  const openMyReport = () => {
+    setChatOpen(false);
+    setMyReportOpen(true);
+    window.scrollTo(0, 0);
+  };
+
   const backToWork = () => {
     setChatOpen(false);
+    setMyReportOpen(false);
     window.scrollTo(0, 0);
     if (window.history.state?.teleAgentChat) {
       window.history.replaceState({ ...(window.history.state || {}), teleAgentChat: false }, '');
@@ -303,13 +315,20 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   };
   const goAgentDashboard = () => {
     setChatOpen(false);
+    setMyReportOpen(false);
     navigate({ pathname: '/telemarketing', search: '', hash: '' });
     requestAnimationFrame(() => {
       document.getElementById('tele-work-home')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   };
 
-  const inner = chatOpen ? (
+  const inner = myReportOpen ? (
+    <MyActivityReport
+      employeeName={currentEmployee.displayName}
+      onBack={() => setMyReportOpen(false)}
+      onHome={goAgentDashboard}
+    />
+  ) : chatOpen ? (
       <DaliaChatBoard
         currentUserId={currentEmployee.id}
         currentUserName={currentEmployee.displayName}
@@ -362,6 +381,14 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
               onEnd={() => void finishWorkTiming()}
             />
             <AgentChatEntry currentUserId={currentEmployee.id} onOpen={openChats} reloadToken={followUpReload} />
+            <button
+              type="button"
+              data-testid="tele-my-report"
+              onClick={openMyReport}
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border-2 border-primary bg-primary/10 py-4 text-lg font-black text-foreground active:scale-[0.99]"
+            >
+              📊 הדוח שלי
+            </button>
             {showHomeActions && !activeDirectoryLead && (
               <button
                 type="button"

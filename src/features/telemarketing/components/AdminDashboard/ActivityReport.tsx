@@ -70,7 +70,7 @@ export function ActivityReportPanel() {
         </label>
         <label className="text-xs font-semibold">
           עד תאריך
-          <input type="date" value={filters.to} onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))} className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-2" />
+          <input type="date" data-testid="activity-to-date" value={filters.to} onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))} className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-2" />
         </label>
         <button
           type="button"
@@ -82,7 +82,7 @@ export function ActivityReportPanel() {
         >
           היום
         </button>
-        <select value={filters.employeeName} onChange={(e) => setFilters((f) => ({ ...f, employeeName: e.target.value }))} className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm">
+        <select data-testid="activity-employee-filter" value={filters.employeeName} onChange={(e) => setFilters((f) => ({ ...f, employeeName: e.target.value }))} className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm">
           <option value="">כל העובדים</option>
           {employees.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
@@ -117,7 +117,7 @@ export function ActivityReportPanel() {
       )}
       {report && !showLeadScreen && (
         <>
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4" data-testid="activity-totals">
             <Stat label="ניסיונות חיוג" value={String(report.totals.dialAttempts)} />
             <Stat label="נענו" value={String(report.totals.answered)} />
             <Stat label="לא ענו" value={String(report.totals.noAnswer)} />
@@ -308,7 +308,7 @@ function LeadDetailCard({ detail }: { detail: LeadActivityDetail }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border p-3">
+    <div className="rounded-xl border border-border p-3" data-stat-label={label}>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-lg font-black">{value}</p>
     </div>

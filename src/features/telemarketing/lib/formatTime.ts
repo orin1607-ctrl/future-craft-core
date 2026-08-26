@@ -44,3 +44,26 @@ export function inDayRange(iso: string, from?: string, to?: string): boolean {
   if (to && day > to) return false;
   return true;
 }
+
+export function localClockStr(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** Same day-range as inDayRange, plus optional HH:MM window on the local clock. Empty times = identical to inDayRange. */
+export function inStampWindow(
+  iso: string,
+  from?: string,
+  to?: string,
+  fromTime?: string,
+  toTime?: string,
+): boolean {
+  if (!inDayRange(iso, from, to)) return false;
+  const start = (fromTime || '').slice(0, 5);
+  const end = (toTime || '').slice(0, 5);
+  if (!start && !end) return true;
+  const clock = localClockStr(iso);
+  if (start && clock < start) return false;
+  if (end && clock > end) return false;
+  return true;
+}
