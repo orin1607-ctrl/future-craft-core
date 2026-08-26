@@ -1,0 +1,436 @@
+{
+  "at": "2026-08-26T17:11:29.558Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "tair-unchanged",
+      "ok": true,
+      "detail": {
+        "profile": {
+          "id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+          "full_name": "תאיר",
+          "is_active": true
+        },
+        "email": "tairmizrahi311@gmail.com"
+      }
+    },
+    {
+      "id": "directory-29",
+      "ok": true,
+      "detail": {
+        "count": 29,
+        "nums": [
+          "1",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "2",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24",
+          "25",
+          "26",
+          "27",
+          "28",
+          "29",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9"
+        ]
+      }
+    },
+    {
+      "id": "numbers-1-29",
+      "ok": true,
+      "detail": [
+        "1",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "2",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ]
+    },
+    {
+      "id": "assigned-tair-29",
+      "ok": true,
+      "detail": {
+        "assigned": 29
+      }
+    },
+    {
+      "id": "qa-calls-cleaned-before-e2e",
+      "ok": true,
+      "detail": {
+        "qaCalls": 0
+      }
+    },
+    {
+      "id": "tair-rls-assigned-only",
+      "ok": true,
+      "detail": {
+        "count": 29
+      }
+    },
+    {
+      "id": "avi-rls-hides-tair-leads",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "id": "agent-cannot-archive",
+      "ok": true,
+      "detail": "רק מנהל-על יכול לארכב לידים"
+    },
+    {
+      "id": "agent-cannot-delete-preview",
+      "ok": true,
+      "detail": "רק מנהל-על יכול לצפות ב-Preview מחיקה"
+    },
+    {
+      "id": "claim-next-is-1",
+      "ok": true,
+      "detail": {
+        "id": "fe8fd95b-6df8-465c-8adf-7f52ac13bf52",
+        "email": "info@ashd.co.il",
+        "extra": {},
+        "phone": "03-5584555",
+        "region": "חולון",
+        "source": "pasted_sheet",
+        "industry": "בטיחות אש",
+        "claimed_at": "2026-08-26T17:11:34.693052+00:00",
+        "claimed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "created_at": "2026-08-26T09:49:37.264371+00:00",
+        "created_by": "7fd0a5b9-ae13-4d9c-9e18-27a036103eae",
+        "fleet_size": "25+",
+        "updated_at": "2026-08-26T17:11:33.713824+00:00",
+        "archived_at": null,
+        "archived_by": null,
+        "assigned_at": "2026-08-26T11:16:54.383709+00:00",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "lead_number": "1",
+        "company_name": "מערכות אשד",
+        "assigned_name": "תאיר",
+        "import_batch_id": "0316eb64-43a3-40b2-afc5-9894bc76e3dd"
+      }
+    },
+    {
+      "id": "claim-next-is-2",
+      "ok": true,
+      "detail": {
+        "id": "4b22ac58-79a1-4514-8c06-76f289b8d81e",
+        "email": "office@fireout.co.il",
+        "extra": {},
+        "phone": "03-9518818",
+        "region": "ראשל\"צ",
+        "source": "pasted_sheet",
+        "industry": "כיבוי אש",
+        "claimed_at": "2026-08-26T17:11:34.879251+00:00",
+        "claimed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "created_at": "2026-08-26T09:49:37.264371+00:00",
+        "created_by": "7fd0a5b9-ae13-4d9c-9e18-27a036103eae",
+        "fleet_size": "20+",
+        "updated_at": "2026-08-26T17:11:33.713824+00:00",
+        "archived_at": null,
+        "archived_by": null,
+        "assigned_at": "2026-08-26T11:16:54.383709+00:00",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "lead_number": "2",
+        "company_name": "פייר אאוט",
+        "assigned_name": "תאיר",
+        "import_batch_id": "0316eb64-43a3-40b2-afc5-9894bc76e3dd"
+      }
+    },
+    {
+      "id": "claim-lock-distinct-or-denied",
+      "ok": true,
+      "detail": [
+        "3"
+      ]
+    },
+    {
+      "id": "manual-lead-30",
+      "ok": true,
+      "detail": {
+        "lead": {
+          "id": "24e10b89-d4b7-4427-902f-599e1b47c5c2",
+          "email": "qa-list-e2e@staging-e2e.local",
+          "extra": {},
+          "phone": "0501111999",
+          "region": "בדיקה",
+          "source": "manual_agent",
+          "industry": "QA",
+          "claimed_at": null,
+          "claimed_by": null,
+          "created_at": "2026-08-26T17:11:35.485811+00:00",
+          "created_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+          "fleet_size": "1",
+          "updated_at": "2026-08-26T17:11:35.485811+00:00",
+          "archived_at": null,
+          "archived_by": null,
+          "assigned_at": "2026-08-26T17:11:35.485811+00:00",
+          "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+          "lead_number": "30",
+          "company_name": "QA-LIST-E2E-0826",
+          "assigned_name": "תאיר",
+          "import_batch_id": null
+        },
+        "action": "created"
+      }
+    },
+    {
+      "id": "manual-duplicate-existing",
+      "ok": true,
+      "detail": {
+        "lead": {
+          "id": "24e10b89-d4b7-4427-902f-599e1b47c5c2",
+          "email": "qa-list-e2e@staging-e2e.local",
+          "extra": {},
+          "phone": "0501111999",
+          "region": "בדיקה",
+          "source": "manual_agent",
+          "industry": "QA",
+          "claimed_at": null,
+          "claimed_by": null,
+          "created_at": "2026-08-26T17:11:35.485811+00:00",
+          "created_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+          "fleet_size": "1",
+          "updated_at": "2026-08-26T17:11:35.485811+00:00",
+          "archived_at": null,
+          "archived_by": null,
+          "assigned_at": "2026-08-26T17:11:35.485811+00:00",
+          "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+          "lead_number": "30",
+          "company_name": "QA-LIST-E2E-0826",
+          "assigned_name": "תאיר",
+          "import_batch_id": null
+        },
+        "action": "existing"
+      }
+    },
+    {
+      "id": "manual-duplicate-other-agent",
+      "ok": true,
+      "detail": {
+        "action": "duplicate_other",
+        "leadNumber": "30"
+      }
+    },
+    {
+      "id": "admin-archive-qa-lead",
+      "ok": true,
+      "detail": {
+        "archived": true,
+        "updatedCount": 1
+      }
+    },
+    {
+      "id": "agent-cannot-see-archived",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "id": "claim-skips-archived",
+      "ok": true,
+      "detail": "הליד אינו משויך אליך"
+    },
+    {
+      "id": "admin-restore-qa-lead",
+      "ok": true,
+      "detail": {
+        "archived": false,
+        "updatedCount": 1
+      }
+    },
+    {
+      "id": "delete-preview-blocks",
+      "ok": true,
+      "detail": {
+        "calls": 0,
+        "reason": "ליד עם פעילות או שיוך — השתמשו בארכיון. מחיקה חסומה כדי לא למחוק היסטוריה.",
+        "canDelete": false,
+        "followups": 0,
+        "leadNumber": "30",
+        "companyName": "QA-LIST-E2E-0826",
+        "assignmentEvents": 1
+      }
+    },
+    {
+      "id": "agent-home-tair",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\nהתחל משימת עבודה\n🟣 פניות צוות דליה\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "btn-start-call",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "btn-start-work",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "btn-dalia",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "btn-work-from-list",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-no-directory-table",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "start-call-requires-fields",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nחובה למלא שם חברה או טלפון לפני התחלת שיחה\nטלמיטינג\n\nתאיר\n\nהתחל שיחה\nהתחל משימת עבודה\n🟣 פניות צוות דליה\n📋 עבודה מרשימת לידים\n\nלקוח / ליד חדש\n\nמילאו שם חברה או טלפון,"
+    },
+    {
+      "id": "start-work-still-works",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nתאיר\n\nמשימת עבודה פעילה\n\n00:00\n\n26.8.2026 · התחלה 26.8.2026 20:11 · תאיר\n\nסיום משימת עבודה\n\nדליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לצי"
+    },
+    {
+      "id": "dalia-opens",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nחזרה לטלמיטינג\n\n🟣 פניות צוות דליה\n\nכל סוגי הטיפול\nכל הדחיפויות\nרגיל\nחשוב\nדחוף\nכל הסטטוסים\nפתוח\nסגור\nחדש\nבטיפול\nממתין"
+    },
+    {
+      "id": "work-from-list-lead-1",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nתאיר\n\nליד #1 — מערכות אשד\n\nתחום: בטיחות אש\nאזור: חולון\nצי רכב: 25+\nטלפון: 03-5584555\nמייל: info@ashd.co.il\nעובד משויך: תאיר\nליד #1 — מערכות אשד\n25 רכבים\n03-5584555\nחולון\ninfo@ashd.co.il\n\nלקוח קיים\n\nשיחה אחרונה: 26.8.2026 20:04 · תוצאה: לא ענה\n\n\"qa-list-cleanup e2e lead 1\"\n\nהשיחה פעילה\n\n00:02\n\n26.8.2026 · ה"
+    },
+    {
+      "id": "work-from-list-started",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nתאיר\n\nליד #1 — מערכות אשד\n\nתחום: בטיחות אש\nאזור: חולון\nצי רכב: 25+\nטלפון: 03-5584555\nמייל: info@ashd.co.il\n"
+    },
+    {
+      "id": "report-blocks-next-list-button",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-four-buttons",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-directory",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-import",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-export",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-archive-btn",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-archive-filter",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "final-still-1-29",
+      "ok": true,
+      "detail": [
+        "1",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "2",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ]
+    },
+    {
+      "id": "final-tair-profile",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "final-claimed-cleared",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "followUpVsQueue": "Follow-up due items stay on «החזרות שלי». The 4th button claims the next unclaimed assigned non-archived lead by numeric lead_number. A due Follow-up does not skip or consume the numbered queue."
+}

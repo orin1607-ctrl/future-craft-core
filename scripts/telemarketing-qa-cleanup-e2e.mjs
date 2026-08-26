@@ -104,7 +104,7 @@ async function completeOpenCalls(employeeId) {
 }
 
 async function deleteQaE2eRows() {
-  const { data: calls } = await adminDb.from('telemarketing_calls').select('id').or(`result.ilike.%qa%,company_name.eq.${QA_COMPANY},phone.eq.${QA_PHONE},employee_name.ilike.QA %`);
+  const { data: calls } = await adminDb.from('telemarketing_calls').select('id').or(`result.ilike.%qa%,summary.ilike.%qa-list-cleanup%,company_name.eq.${QA_COMPANY},phone.eq.${QA_PHONE},employee_name.ilike.QA %`);
   const callIds = (calls || []).map((c) => c.id);
   if (callIds.length) {
     await adminDb.from('telemarketing_followups').delete().in('call_id', callIds);
@@ -119,8 +119,12 @@ async function deleteQaE2eRows() {
   await adminDb.from('telemarketing_lead_directory').update({ claimed_by: null, claimed_at: null }).not('id', 'is', null);
 }
 
-const { data: tairProfile } = await adminDb.from('profiles').select('id, full_name, is_active, email').eq('id', TAIR.id).maybeSingle();
-check('tair-unchanged', tairProfile?.full_name === 'תאיר' && tairProfile?.is_active !== false, tairProfile);
+const { data: tairProfile } = await adminDb.from('profiles').select('id, full_name, is_active').eq('id', TAIR.id).maybeSingle();
+const { data: tairAuthUser } = await adminDb.auth.admin.getUserById(TAIR.id);
+check('tair-unchanged', tairProfile?.full_name === 'תאיר' && tairProfile?.is_active !== false && tairAuthUser?.user?.email === TAIR.email, {
+  profile: tairProfile,
+  email: tairAuthUser?.user?.email,
+});
 
 const { data: numbers } = await adminDb.from('telemarketing_lead_directory').select('id, lead_number, company_name, phone, assigned_to, archived_at').order('lead_number');
 const nums = (numbers || []).map((r) => r.lead_number);
@@ -230,6 +234,13 @@ try {
     await page.waitForTimeout(1200);
     const toast = await page.locator('body').innerText();
     check('start-call-requires-fields', toast.includes('חובה למלא') || (await page.getByRole('button', { name: 'סיום שיחה' }).count()) === 0, toast.slice(0, 250));
+    await page.getByRole('button', { name: 'התחל משימת עבודה' }).click();
+    await page.waitForTimeout(2500);
+    const workBody = await page.locator('body').innerText();
+    check('start-work-still-works', workBody.includes('משימת עבודה פעילה') || workBody.includes('סיום משימת'), workBody.slice(0, 250));
+    await completeOpenCalls(TAIR.id);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(4000);
 
     await page.getByTestId('dalia-open-inbox').click();
     await page.waitForTimeout(1500);
