@@ -74,3 +74,10 @@ export function suggestedLeadTraffic(
 export function isExplicitCloseResult(result: CallResult | null): boolean {
   return result === 'לא מעוניין' || result === 'לא רלוונטי' || result === 'מספר שגוי';
 }
+
+/** No-answer / callback stays in continued treatment. Only explicit close or a booked outcome leaves the queue. */
+export function keepsContinuedTreatment(result: CallResult | null): boolean {
+  if (!result || isExplicitCloseResult(result)) return false;
+  if (result === 'רוצה פגישה' || result === 'ביקש הצעת מחיר') return false;
+  return true;
+}

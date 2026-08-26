@@ -15,8 +15,9 @@ import { agentHomeActionsVisible } from '@/features/telemarketing/lib/agentHomeV
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
 import { useActiveWorkSession } from '@/features/telemarketing/hooks/useActiveWorkSession';
 import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
-import { claimNextAssignedLead, createManualDirectoryLead, listLeadDirectory } from '@/features/telemarketing/services/leadDirectoryService';
+import { claimAssignedLead, claimNextAssignedLead, createManualDirectoryLead, listLeadDirectory } from '@/features/telemarketing/services/leadDirectoryService';
 import { directoryLeadToCustomer } from '@/features/telemarketing/lib/leadAssign/selectScope';
+import { keepsContinuedTreatment } from '@/features/telemarketing/lib/leadTraffic';
 import type { CustomerRef, FollowUpWorkItem, TelemarketingEmployee } from '@/features/telemarketing/types';
 import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
 import { ClipboardList } from 'lucide-react';
@@ -146,7 +147,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     setTimeout(() => setToast(null), 3500);
   };
 
-  const startCallWith = async (customer: CustomerRef) => {
+  const startCallWith = async (customer: CustomerRef, sourceFollowUpId?: string | null) => {
     await beginCall({
       employeeId: currentEmployee.id,
       employeeName: currentEmployee.displayName,
@@ -158,6 +159,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
       email: customer.email,
       vehicleCount: customer.vehicleCount,
       city: customer.city,
+      sourceFollowUpId: sourceFollowUpId || undefined,
     });
   };
 
@@ -184,12 +186,12 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           if (resolved.action === 'existing') {
             showToast('success', `הליד כבר במאגר (#${resolved.lead.leadNumber}) — ממשיכים עליו, לא נוצר ליד חדש`);
             setManualCustomer(directoryLeadToCustomer(resolved.lead));
-            await startCallWith(directoryLeadToCustomer(resolved.lead));
+            await startCallWith(directoryLeadToCustomer(resolved.lead), returnHint?.id);
             return;
           }
         }
       }
-      await startCallWith(manualCustomer);
+      await startCallWith(manualCustomer, returnHint?.id);
     } catch (e) {
       showToast('error', e instanceof Error ? e.message : 'שגיאה בהתחלת שיחה');
     }
@@ -202,10 +204,10 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         showToast('error', 'אין ליד משויך פנוי בתור');
         return;
       }
-      const customer = directoryLeadToCustomer(next);
+      setReturnHint(null);
       setActiveDirectoryLead(next);
-      setManualCustomer(customer);
-      await startCallWith(customer);
+      setManualCustomer(directoryLeadToCustomer(next));
+      showToast('success', `ליד #${next.leadNumber} מוכן. לחצו התחל שיחה אחרי שקראתם את הפרטים.`);
     } catch (e) {
       showToast('error', e instanceof Error ? e.message : 'שגיאה בלקיחת ליד מהרשימה');
     }
@@ -230,30 +232,19 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         const rowPhone = (row.phone || '').replace(/[^0-9*]/g, '');
         return (phoneKey && rowPhone === phoneKey) || (!phoneKey && row.companyName === lead.companyName);
       });
-      if (match) setActiveDirectoryLead(match);
+      if (match) {
+        try {
+          setActiveDirectoryLead(await claimAssignedLead(match.id));
+        } catch {
+          setActiveDirectoryLead(match);
+        }
+      }
     } catch {
       /* keep return without directory card */
     }
     setManualCustomer(lead);
     setReturnHint(item);
-    try {
-      await beginCall({
-        employeeId: currentEmployee.id,
-        employeeName: currentEmployee.displayName,
-        customerId: last?.customerId ?? null,
-        companyName: lead.companyName,
-        contactName: lead.contactName,
-        contactRole: lead.contactRole,
-        phone: lead.phone,
-        email: lead.email,
-        vehicleCount: lead.vehicleCount,
-        city: lead.city,
-        sourceFollowUpId: item.id,
-      });
-    } catch (e) {
-      setReturnHint(null);
-      showToast('error', e instanceof Error ? e.message : 'שגיאה בהתחלת שיחת חזרה');
-    }
+    showToast('success', 'פרטי הליד מוצגים. לחצו התחל שיחה כדי להמשיך טיפול.');
   };
 
   const handleStartWork = async () => {
@@ -279,9 +270,10 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   };
 
   const handleSubmit = async () => {
+    const continued = keepsContinuedTreatment(draft.result);
     const ok = await submitReport();
     if (ok) {
-      showToast('success', 'השיחה נשמרה בהצלחה');
+      showToast('success', continued ? 'נשמר בהמשך טיפול על אותו ליד. הליד לא נסגר.' : 'השיחה נשמרה בהצלחה');
       setManualCustomer(EMPTY_MANUAL_CUSTOMER);
       setActiveDirectoryLead(null);
       setReturnHint(null);
@@ -353,7 +345,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
               onEnd={() => void finishWorkTiming()}
             />
             <AgentChatEntry currentUserId={currentEmployee.id} onOpen={openChats} reloadToken={followUpReload} />
-            {showHomeActions && (
+            {showHomeActions && !activeDirectoryLead && (
               <button
                 type="button"
                 data-testid="tele-work-from-list"
@@ -369,7 +361,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         )}
         {showHomeActions && dueFollowUpCount > 0 && (
           <p className="mt-2 rounded-xl border border-amber-400/40 bg-amber-50 p-3 text-sm font-semibold dark:bg-amber-950/30">
-            יש {dueFollowUpCount} Follow-up שהגיע מועדם. הם מוצגים למטה ב«החזרות שלי» ולא נעלמים בגלל רצף הלידים.
+            יש {dueFollowUpCount} לידים בהמשך טיפול. הם מוצגים למטה ולא נעלמים בגלל רצף הרשימה.
           </p>
         )}
         {(error || workError) && !call && !workSession && (
@@ -377,9 +369,19 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         )}
       </div>
 
-      {call?.sourceFollowUpId && (
+      {showHomeActions && activeDirectoryLead && (
+        <div className="space-y-2" data-testid="tele-lead-preview">
+          <p className="rounded-xl border border-emerald-700/40 bg-emerald-50 p-3 text-sm font-semibold dark:bg-emerald-950/30">
+            פרטי הליד מוצגים למטה. השיחה לא התחילה. לחצו «התחל שיחה» כשאתם מוכנים.
+          </p>
+        </div>
+      )}
+
+      {(call?.sourceFollowUpId || (returnHint && showHomeActions)) && (
         <div className="space-y-2 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm">
-          <p className="font-black">שיחת חזרה — נוצרת רשומת שיחה חדשה. הסיכום הקודם נשמר בהיסטוריה.</p>
+          <p className="font-black">
+            {call?.sourceFollowUpId ? 'שיחת חזרה — נוצרת רשומת שיחה חדשה. הסיכום הקודם נשמר בהיסטוריה.' : 'המשך טיפול — אותו ליד. לחצו התחל שיחה אחרי עיון בפרטים.'}
+          </p>
           {returnHint && (
             <>
               <p>

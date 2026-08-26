@@ -19,6 +19,8 @@ import type {
 import type { LeadColor, LeadStatus } from '@/features/telemarketing/lib/leadTraffic';
 import { EMPTY_DALIA_CARE } from '@/features/telemarketing/components/DaliaCare/DaliaCareFields';
 import { validateDaliaCare } from '@/features/telemarketing/services/teamChatService';
+import { keepsContinuedTreatment } from '@/features/telemarketing/lib/leadTraffic';
+import { localDateStr } from '@/features/telemarketing/lib/localDate';
 
 const DRAFT_KEY = 'telemarketing_draft_report_v1';
 
@@ -240,7 +242,7 @@ export function useActiveCall(employeeId?: string) {
       setError('חובה למלא סיכום קצר');
       return false;
     }
-    if (draft.needsFollowUp && !draft.followUpDate && draft.leadColor !== 'red') {
+    if (draft.needsFollowUp && !draft.followUpDate && draft.leadColor !== 'red' && !keepsContinuedTreatment(draft.result)) {
       setError('נדרשת המשכיות מסומן - חובה למלא תאריך לחזרה');
       return false;
     }
@@ -262,17 +264,18 @@ export function useActiveCall(employeeId?: string) {
     setSubmitting(true);
     setError(null);
 
+    const continued = keepsContinuedTreatment(draft.result);
     const payload: CompleteCallReportPayload = {
       callId: call.id,
       result: draft.result,
       leadRating: draft.leadRating,
       summary: draft.summary.trim(),
-      needsFollowUp: draft.needsFollowUp,
-      nextAction: draft.nextAction.trim() || undefined,
-      followUpOwner: draft.followUpOwner.trim() || undefined,
-      followUpDate: draft.followUpDate || undefined,
+      needsFollowUp: draft.needsFollowUp || continued,
+      nextAction: draft.nextAction.trim() || (continued ? 'המשך טיפול — אין מענה' : undefined),
+      followUpOwner: draft.followUpOwner.trim() || (continued ? call.employeeName : undefined),
+      followUpDate: draft.followUpDate || (continued ? localDateStr() : undefined),
       followUpTime: draft.followUpTime || undefined,
-      followUpUrgency: draft.needsFollowUp ? draft.followUpUrgency : undefined,
+      followUpUrgency: draft.needsFollowUp || continued ? draft.followUpUrgency : undefined,
       managerNote: draft.managerNote.trim() || undefined,
       clientToken: submitTokenRef.current,
       sourceFollowUpId: call.sourceFollowUpId,

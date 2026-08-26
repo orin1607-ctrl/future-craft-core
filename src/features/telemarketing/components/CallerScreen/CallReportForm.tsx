@@ -1,6 +1,6 @@
 import { CALL_RESULTS, LEAD_RATINGS, URGENCY_LEVELS } from '@/features/telemarketing/types';
 import type { ReportDraft } from '@/features/telemarketing/hooks/useActiveCall';
-import { LEAD_COLOR_LABEL, LEAD_STATUSES, suggestedLeadTraffic, type LeadColor } from '@/features/telemarketing/lib/leadTraffic';
+import { LEAD_COLOR_LABEL, LEAD_STATUSES, keepsContinuedTreatment, suggestedLeadTraffic, type LeadColor } from '@/features/telemarketing/lib/leadTraffic';
 import { DaliaCareFields } from '@/features/telemarketing/components/DaliaCare/DaliaCareFields';
 
 interface Props {
@@ -27,11 +27,15 @@ export function CallReportForm({ draft, onChange, onSubmit, submitting, error }:
               type="button"
               onClick={() => {
                 const suggested = suggestedLeadTraffic(r, draft.needsFollowUp);
+                const continued = keepsContinuedTreatment(r);
                 onChange({
                   result: r,
                   leadColor: suggested.color,
                   leadStatus: suggested.status,
                   leadColorTouched: false,
+                  needsFollowUp: continued ? true : draft.needsFollowUp,
+                  followUpDate: continued && !draft.followUpDate ? new Date().toISOString().slice(0, 10) : draft.followUpDate,
+                  nextAction: continued && !draft.nextAction ? 'המשך טיפול — אין מענה' : draft.nextAction,
                 });
               }}
               className={`${chipBase} ${draft.result === r ? chipActive : chipInactive}`}

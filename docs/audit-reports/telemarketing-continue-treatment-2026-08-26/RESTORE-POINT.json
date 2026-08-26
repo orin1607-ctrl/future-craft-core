@@ -1,0 +1,13 @@
+{
+  "at": "2026-08-26T17:50:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "keep": {
+    "tair": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "directoryLeads": "1-29"
+  },
+  "rollbackCommit": "0e65044c",
+  "rollbackBranch": "feat/incident-alerts-staging",
+  "note": "No directory rows deleted. Continue-treatment is UI + follow-up rules only."
+}

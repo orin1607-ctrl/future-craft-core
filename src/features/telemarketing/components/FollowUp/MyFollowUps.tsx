@@ -39,9 +39,9 @@ export function MyFollowUps({
   }, [reloadToken]);
 
   return (
-    <section id="my-followups" className="space-y-3 rounded-2xl border border-border bg-card p-4">
+    <section id="my-followups" className="space-y-3 rounded-2xl border border-border bg-card p-4" data-testid="tele-continue-treatment">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-xl font-black">החזרות שלי</h2>
+        <h2 className="text-xl font-black">המשך טיפול</h2>
         {badge > 0 && (
           <span className="min-w-8 rounded-full bg-destructive px-2 py-1 text-center text-sm font-bold text-destructive-foreground">
             {badge}

@@ -117,10 +117,11 @@ export function LeadTimeline({
       {showStartButton && followUp.status === 'open' && onStartReturn && (
         <button
           type="button"
+          data-testid="tele-continue-lead"
           onClick={() => onStartReturn(followUp)}
           className="flex min-h-14 w-full items-center justify-center rounded-xl bg-emerald-600 py-4 text-lg font-bold text-white"
         >
-          התחל שיחת חזרה
+          התחל המשך טיפול
         </button>
       )}
     </div>

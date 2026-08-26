@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isExplicitCloseResult, suggestedLeadTraffic } from '@/features/telemarketing/lib/leadTraffic';
+import { isExplicitCloseResult, keepsContinuedTreatment, suggestedLeadTraffic } from '@/features/telemarketing/lib/leadTraffic';
 
 describe('lead traffic mapping', () => {
   it('does not mark no-answer as red', () => {
@@ -15,5 +15,14 @@ describe('lead traffic mapping', () => {
 
   it('marks a booked meeting as green without dropping a remaining follow-up color', () => {
     expect(suggestedLeadTraffic('רוצה פגישה', true)).toEqual({ color: 'green', status: 'meeting_booked' });
+  });
+
+  it('keeps no-answer in continued treatment and drops only final outcomes', () => {
+    expect(keepsContinuedTreatment('לא ענה')).toBe(true);
+    expect(keepsContinuedTreatment('לנסות שוב')).toBe(true);
+    expect(keepsContinuedTreatment('לחזור אליו')).toBe(true);
+    expect(keepsContinuedTreatment('לא מעוניין')).toBe(false);
+    expect(keepsContinuedTreatment('מספר שגוי')).toBe(false);
+    expect(keepsContinuedTreatment('רוצה פגישה')).toBe(false);
   });
 });

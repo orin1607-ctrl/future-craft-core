@@ -3,7 +3,7 @@ import { createTeamChatIfNeeded } from '@/features/telemarketing/services/teamCh
 import { followUpBucket, localDateStr } from '@/features/telemarketing/lib/localDate';
 import { formatClock, formatDay } from '@/features/telemarketing/lib/formatTime';
 import { leadKey } from '@/features/telemarketing/lib/leadKey';
-import { suggestedLeadTraffic } from '@/features/telemarketing/lib/leadTraffic';
+import { keepsContinuedTreatment, suggestedLeadTraffic } from '@/features/telemarketing/lib/leadTraffic';
 import { closeOpenFollowUpsForLead, getLeadStates, upsertLeadState } from '@/features/telemarketing/services/leadStateService';
 import { getWorkSessions } from '@/features/telemarketing/services/workSessionService';
 import type {
@@ -150,9 +150,12 @@ export async function submitCallReport(
   if (!payload.result || !payload.summary || payload.needsFollowUp === undefined) {
     throw new Error('דיווח חובה: תוצאת שיחה, סיכום, והאם נדרשת המשכיות הם שדות חובה');
   }
-  if (payload.needsFollowUp && !payload.followUpDate) {
+  const continued = keepsContinuedTreatment(payload.result);
+  const needsFollow = Boolean(payload.needsFollowUp || continued);
+  if (payload.needsFollowUp && !payload.followUpDate && !continued) {
     throw new Error('נדרשת המשכיות מסומן - חובה למלא תאריך לחזרה');
   }
+  const followDate = payload.followUpDate || (continued ? localDateStr() : null);
 
   const { data: updatedCall, error: updateErr } = await supabase
     .from(TABLE_CALLS)
@@ -160,17 +163,17 @@ export async function submitCallReport(
       result: payload.result,
       lead_rating: payload.leadRating,
       summary: payload.summary,
-      needs_follow_up: payload.needsFollowUp,
-      next_action: payload.nextAction ?? null,
+      needs_follow_up: needsFollow,
+      next_action: payload.nextAction ?? (continued ? 'המשך טיפול — אין מענה' : null),
       follow_up_owner: payload.followUpOwner ?? null,
-      follow_up_date: payload.followUpDate ?? null,
+      follow_up_date: followDate,
       follow_up_time: payload.followUpTime ?? null,
       follow_up_urgency: payload.followUpUrgency ?? null,
       manager_note: payload.managerNote ?? null,
       status: 'completed',
       client_token: payload.clientToken,
-      whatsapp_status: payload.needsFollowUp ? 'pending' : 'not_applicable',
-      email_status: payload.needsFollowUp ? 'pending' : 'not_applicable',
+      whatsapp_status: needsFollow ? 'pending' : 'not_applicable',
+      email_status: needsFollow ? 'pending' : 'not_applicable',
     })
     .eq('id', payload.callId)
     .select('*')
@@ -180,10 +183,37 @@ export async function submitCallReport(
 
   let followUp: TelemarketingFollowUp | null = null;
   const skipFollowUp = payload.leadColor === 'red';
-  if (payload.needsFollowUp && !skipFollowUp) {
+  const sourceFollowUpId = payload.sourceFollowUpId || (updatedCall.source_followup_id as string | null);
+
+  if (needsFollow && !skipFollowUp) {
     const existing = await getFollowUpByCallId(payload.callId);
     if (existing) {
       followUp = existing;
+    } else if (sourceFollowUpId && continued) {
+      const { data: kept, error: keepErr } = await supabase
+        .from(TABLE_FOLLOWUPS)
+        .update({
+          due_date: followDate,
+          due_time: payload.followUpTime ?? null,
+          action_needed: payload.nextAction || 'המשך טיפול — אין מענה',
+          owner: payload.followUpOwner ?? null,
+          status: 'open',
+        })
+        .eq('id', sourceFollowUpId)
+        .eq('status', 'open')
+        .select('*')
+        .maybeSingle();
+      if (keepErr) {
+        throw new Error(
+          'השיחה נשמרה, אך עדכון המשך הטיפול נכשל: ' + keepErr.message + ' (ID שיחה: ' + payload.callId + ')',
+        );
+      }
+      if (kept) {
+        followUp = mapFollowUpRow(kept);
+      } else {
+        const { data: openRow } = await supabase.from(TABLE_FOLLOWUPS).select('*').eq('id', sourceFollowUpId).maybeSingle();
+        followUp = openRow ? mapFollowUpRow(openRow) : null;
+      }
     } else {
       const { data: fu, error: fuErr } = await supabase
         .from(TABLE_FOLLOWUPS)
@@ -192,9 +222,9 @@ export async function submitCallReport(
           company_name: updatedCall.company_name,
           contact_name: updatedCall.contact_name,
           phone: updatedCall.phone,
-          action_needed: payload.nextAction ?? '',
+          action_needed: payload.nextAction || (continued ? 'המשך טיפול — אין מענה' : ''),
           owner: payload.followUpOwner ?? null,
-          due_date: payload.followUpDate,
+          due_date: followDate,
           due_time: payload.followUpTime ?? null,
           urgency: payload.followUpUrgency ?? 'רגיל',
           manager_note: payload.managerNote ?? null,
@@ -212,8 +242,7 @@ export async function submitCallReport(
     }
   }
 
-  const sourceFollowUpId = payload.sourceFollowUpId || (updatedCall.source_followup_id as string | null);
-  if (sourceFollowUpId) {
+  if (sourceFollowUpId && !continued) {
     const { error: closeErr } = await supabase
       .from(TABLE_FOLLOWUPS)
       .update({
