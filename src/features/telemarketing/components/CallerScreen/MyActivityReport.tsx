@@ -30,10 +30,6 @@ function pct(value: number | null): string {
   return value == null ? '-' : `${value}%`;
 }
 
-function unmeasured(value: number | null | undefined): string {
-  return value == null ? 'לא נמדד' : formatDurationSeconds(value);
-}
-
 export function MyActivityReport({
   employeeName,
   onBack,
@@ -225,33 +221,6 @@ export function MyActivityReport({
               days={days}
               onSelectDay={selectDay}
             />
-            <div className="grid grid-cols-2 gap-2" data-testid="my-report-stats">
-              <Stat testId="my-report-stat-first" label="פעילות ראשונה" value={formatStamp(row.firstActivityAt)} raw={row.firstActivityAt || ''} />
-              <Stat testId="my-report-stat-last" label="פעילות אחרונה" value={formatStamp(row.lastActivityAt)} raw={row.lastActivityAt || ''} />
-              <Stat testId="my-report-stat-window" label="חלון פעילות" value={formatDurationSeconds(row.activityWindowSeconds)} raw={String(row.activityWindowSeconds)} />
-              <Stat testId="my-report-stat-measured" label="סה״כ זמן עבודה מדוד" value={formatDurationSeconds(row.measuredWorkSeconds)} raw={String(row.measuredWorkSeconds)} />
-              <Stat testId="my-report-stat-leads" label="לידים שטופלו" value={String(uniqueLeadCount(report.calls))} raw={String(uniqueLeadCount(report.calls))} />
-              <Stat testId="my-report-stat-dials" label="ניסיונות חיוג" value={String(row.dialAttempts)} raw={String(row.dialAttempts)} />
-              <Stat testId="my-report-stat-answered" label="נענו" value={String(row.answered)} raw={String(row.answered)} />
-              <Stat testId="my-report-stat-noanswer" label="לא ענו" value={String(row.noAnswer)} raw={String(row.noAnswer)} />
-              <Stat testId="my-report-stat-continued" label="המשך טיפול" value={String(row.continuedTreatments)} raw={String(row.continuedTreatments)} />
-              <Stat testId="my-report-stat-followups" label="Follow-up" value={String(row.followUps)} raw={String(row.followUps)} />
-              <Stat testId="my-report-stat-interested" label="מתעניינים" value={String(row.interested)} raw={String(row.interested)} />
-              <Stat testId="my-report-stat-hot" label="לידים חמים" value={String(row.hotLeads)} raw={String(row.hotLeads)} />
-              <Stat testId="my-report-stat-meetings" label="פגישות" value={String(row.meetings)} raw={String(row.meetings)} />
-              <Stat testId="my-report-stat-quotes" label="הצעות מחיר" value={String(quotes)} raw={String(quotes)} />
-              <Stat testId="my-report-stat-callsec" label="זמן שיחות" value={formatDurationSeconds(row.callSeconds)} raw={String(row.callSeconds)} />
-              <Stat testId="my-report-stat-reportsec" label="זמן דיווחי שיחה" value={formatDurationSeconds(row.reportSeconds)} raw={String(row.reportSeconds)} />
-              <Stat testId="my-report-stat-treatsec" label="זמן טיפול בשיחות" value={formatDurationSeconds(row.callTreatmentSeconds)} raw={String(row.callTreatmentSeconds)} />
-              <Stat testId="my-report-stat-worksec" label="זמן משימות" value={formatDurationSeconds(row.workSeconds)} raw={String(row.workSeconds)} />
-              <Stat testId="my-report-stat-workreportsec" label="דיווחי משימות" value={formatDurationSeconds(row.workReportSeconds)} raw={String(row.workReportSeconds)} />
-              <Stat testId="my-report-stat-worktreatsec" label="טיפול במשימות" value={formatDurationSeconds(row.workTreatmentSeconds)} raw={String(row.workTreatmentSeconds)} />
-              <Stat testId="my-report-stat-dalia" label="פניות 🟣" value={String(row.daliaReports)} raw={String(row.daliaReports)} />
-              <Stat testId="my-report-stat-answerrate" label="מענה מתוך חיוגים" value={pct(row.answerRate)} raw={String(row.answerRate ?? '')} />
-              <Stat testId="my-report-stat-interestrate" label="מתעניינים מתוך נענו" value={pct(row.interestRate)} raw={String(row.interestRate ?? '')} />
-              <Stat testId="my-report-stat-meetingrate" label="פגישות מתוך מתעניינים" value={pct(row.meetingRate)} raw={String(row.meetingRate ?? '')} />
-              <Stat testId="my-report-stat-daliasec" label="משך פניות דליה" value={unmeasured(row.daliaSeconds)} raw="unmeasured" />
-            </div>
             <button type="button" data-testid="my-report-export" onClick={exportReport} className="min-h-12 w-full rounded-xl bg-primary font-black text-primary-foreground">
               הפק דוח / Export
             </button>
@@ -288,15 +257,6 @@ export function MyActivityReport({
           </>
         )}
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, testId, raw }: { label: string; value: string; testId?: string; raw?: string }) {
-  return (
-    <div className="rounded-xl border border-border p-3" data-testid={testId} data-value={raw} data-stat-label={label}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-black">{value}</p>
     </div>
   );
 }

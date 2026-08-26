@@ -1,0 +1,15 @@
+{
+  "at": "2026-08-26T20:55:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "codeCommit": "b6dbe679ae2fdd5fb5ccae03890f5ecda7d3f4fa",
+  "branch": "feat/incident-alerts-staging",
+  "keep": {
+    "tair": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "directoryLeads": "1-29"
+  },
+  "note": "UI-only: hide duplicate lower stats grid on agent My Report. Keep WorkDaySummary, filters, export, leads, nav. No calculator/DB/RLS change. Rollback = revert the feature commit on feat/incident-alerts-staging."
+}
