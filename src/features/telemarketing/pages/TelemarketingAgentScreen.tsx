@@ -15,6 +15,8 @@ import { agentHomeActionsVisible } from '@/features/telemarketing/lib/agentHomeV
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
 import { useActiveWorkSession } from '@/features/telemarketing/hooks/useActiveWorkSession';
 import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
+import { claimAssignedLead, claimNextAssignedLead } from '@/features/telemarketing/services/leadDirectoryService';
+import { directoryLeadToCustomer } from '@/features/telemarketing/lib/leadAssign/selectScope';
 import type { CustomerRef, FollowUpWorkItem, TelemarketingEmployee } from '@/features/telemarketing/types';
 
 const EMPTY_MANUAL_CUSTOMER: CustomerRef = {
@@ -128,26 +130,61 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     setTimeout(() => setToast(null), 3500);
   };
 
+  const startCallWith = async (customer: CustomerRef) => {
+    await beginCall({
+      employeeId: currentEmployee.id,
+      employeeName: currentEmployee.displayName,
+      customerId: null,
+      companyName: customer.companyName,
+      contactName: customer.contactName,
+      contactRole: customer.contactRole,
+      phone: customer.phone,
+      email: customer.email,
+      vehicleCount: customer.vehicleCount,
+      city: customer.city,
+    });
+  };
+
   const handleStart = async () => {
-    if (!manualCustomer.companyName && !manualCustomer.phone) {
-      showToast('error', 'חובה למלא שם חברה או טלפון לפני התחלת שיחה');
-      return;
-    }
     try {
-      await beginCall({
-        employeeId: currentEmployee.id,
-        employeeName: currentEmployee.displayName,
-        customerId: null,
-        companyName: manualCustomer.companyName,
-        contactName: manualCustomer.contactName,
-        contactRole: manualCustomer.contactRole,
-        phone: manualCustomer.phone,
-        email: manualCustomer.email,
-        vehicleCount: manualCustomer.vehicleCount,
-        city: manualCustomer.city,
-      });
+      if (manualCustomer.companyName || manualCustomer.phone) {
+        await startCallWith(manualCustomer);
+        return;
+      }
+      const next = await claimNextAssignedLead();
+      if (!next) {
+        showToast('error', 'אין ליד משויך פנוי בתור. מלאו חברה או טלפון לשיחה ידנית, או בקשו שיוך ממנהל-על.');
+        return;
+      }
+      const customer = directoryLeadToCustomer(next);
+      setManualCustomer(customer);
+      await startCallWith(customer);
     } catch (e) {
       showToast('error', e instanceof Error ? e.message : 'שגיאה בהתחלת שיחה');
+    }
+  };
+
+  const handleClaimNext = async () => {
+    try {
+      const next = await claimNextAssignedLead();
+      if (!next) {
+        showToast('error', 'אין ליד משויך פנוי בתור');
+        return;
+      }
+      setManualCustomer(directoryLeadToCustomer(next));
+      showToast('success', `נלקח ליד ${next.leadNumber || next.companyName}`);
+    } catch (e) {
+      showToast('error', e instanceof Error ? e.message : 'שגיאה בלקיחת ליד');
+    }
+  };
+
+  const handlePickLead = async (leadId: string, fallback: CustomerRef) => {
+    try {
+      const claimed = await claimAssignedLead(leadId);
+      setManualCustomer(directoryLeadToCustomer(claimed));
+    } catch (e) {
+      showToast('error', e instanceof Error ? e.message : 'לא ניתן לבחור את הליד');
+      setManualCustomer(fallback);
     }
   };
 
@@ -317,7 +354,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         <div id="new-lead" className="space-y-2 rounded-2xl border border-border bg-card p-4">
           <p className="text-base font-black">לקוח / ליד חדש</p>
           <p className="text-xs text-muted-foreground">
-            מילאו שם חברה או טלפון, ואז לחצו התחל שיחה. לא נוצר לקוח במערכת הראשית — רק ליד לשיחה.
+            «התחל שיחה» בלי פרטים לוקח את הליד הבא מהמאגר שמשויך אליכם. מילוי חברה או טלפון ידנית עדיין מתחיל שיחה ללא ליד מהמאגר.
           </p>
           <label className="block text-xs font-semibold text-muted-foreground">
             שם החברה
@@ -401,13 +438,11 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
       {showIdleBoards && (
         <LeadDirectoryBoard
           reloadToken={followUpReload}
+          onClaimNext={() => void handleClaimNext()}
           onPick={(lead) =>
-            setManualCustomer({
+            void handlePickLead(lead.id, {
               ...EMPTY_MANUAL_CUSTOMER,
-              companyName: lead.companyName,
-              phone: lead.phone,
-              email: lead.email,
-              city: lead.region,
+              ...directoryLeadToCustomer(lead),
             })
           }
         />

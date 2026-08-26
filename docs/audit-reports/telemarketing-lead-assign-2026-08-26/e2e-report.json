@@ -1,0 +1,156 @@
+{
+  "at": "2026-08-26T11:05:35.381Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "directory-still-29",
+      "ok": true,
+      "detail": {
+        "beforeCount": 29
+      }
+    },
+    {
+      "id": "lead-numbers-intact",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "rpc-one-to-tair",
+      "ok": true,
+      "detail": {
+        "agentId": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "skipped": [],
+        "agentName": "תאיר",
+        "skippedCount": 0,
+        "assignedCount": 1
+      }
+    },
+    {
+      "id": "rpc-many-to-avi",
+      "ok": true,
+      "detail": {
+        "agentId": "e260ae41-c144-4545-bbf3-36f1d2735180",
+        "skipped": [],
+        "agentName": "אבי טלמיטינג",
+        "skippedCount": 0,
+        "assignedCount": 2
+      }
+    },
+    {
+      "id": "tair-sees-assigned-lead1",
+      "ok": true,
+      "detail": {
+        "count": 1
+      }
+    },
+    {
+      "id": "avi-rls-hides-tair-lead",
+      "ok": true,
+      "detail": {
+        "numbers": [
+          "29",
+          "2",
+          "3"
+        ]
+      }
+    },
+    {
+      "id": "avi-cannot-claim-tair-lead",
+      "ok": true,
+      "detail": "הליד אינו משויך אליך"
+    },
+    {
+      "id": "agent-cannot-bulk-assign",
+      "ok": true,
+      "detail": "אין הרשאה לשיוך לידים"
+    },
+    {
+      "id": "transfer-tair-to-avi",
+      "ok": true,
+      "detail": {
+        "agentId": "e260ae41-c144-4545-bbf3-36f1d2735180",
+        "skipped": [],
+        "agentName": "אבי טלמיטינג",
+        "skippedCount": 0,
+        "assignedCount": 1
+      }
+    },
+    {
+      "id": "audit-history",
+      "ok": true,
+      "detail": [
+        {
+          "lead_number": "1",
+          "previous_agent_name": "תאיר",
+          "new_agent_name": "אבי טלמיטינג",
+          "changed_by_name": "יוני אטיאס"
+        },
+        {
+          "lead_number": "1",
+          "previous_agent_name": "תאיר",
+          "new_agent_name": "תאיר",
+          "changed_by_name": "יוני אטיאס"
+        }
+      ]
+    },
+    {
+      "id": "followup-kept-and-owner-moved",
+      "ok": true,
+      "detail": {
+        "id": "bd9b9bf1-655f-4791-b02f-3af8eb185a81",
+        "owner": "אבי טלמיטינג",
+        "status": "open"
+      }
+    },
+    {
+      "id": "busy-skip-no-full-success",
+      "ok": true,
+      "detail": {
+        "agentId": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "skipped": [
+          {
+            "reason": "הליד בשיחה או במשימה פעילה — לא הועבר",
+            "leadNumber": "2",
+            "companyName": "פייר אאוט"
+          }
+        ],
+        "agentName": "תאיר",
+        "skippedCount": 1,
+        "assignedCount": 0
+      }
+    },
+    {
+      "id": "claim-race-same-agent-distinct",
+      "ok": true,
+      "detail": [
+        "fe8fd95b-6df8-465c-8adf-7f52ac13bf52",
+        "4b22ac58-79a1-4514-8c06-76f289b8d81e"
+      ]
+    },
+    {
+      "id": "claim-race-two-employees",
+      "ok": true,
+      "detail": [
+        "b23714e1-eb78-4e34-95c5-13ac79d23bec",
+        "c01121d1-0967-4fc1-ba45-11fc6e31bc9d"
+      ]
+    },
+    {
+      "id": "no-delete-29",
+      "ok": true,
+      "detail": {
+        "still29": 29
+      }
+    },
+    {
+      "id": "final-still-29",
+      "ok": true,
+      "detail": {
+        "finalCount": 29
+      }
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false
+}

@@ -1,0 +1,20 @@
+{
+  "at": "2026-08-26T10:55:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "rollbackCommit": "8a729589",
+  "rollbackBranch": "feat/incident-alerts-staging",
+  "doNotDelete": "29 imported directory leads",
+  "rollbackSql": [
+    "DROP FUNCTION IF EXISTS public.telemarketing_assign_leads(uuid[], uuid);",
+    "DROP FUNCTION IF EXISTS public.telemarketing_claim_next_lead();",
+    "DROP FUNCTION IF EXISTS public.telemarketing_claim_lead(uuid);",
+    "DROP TABLE IF EXISTS public.telemarketing_lead_assignment_events;",
+    "ALTER TABLE public.telemarketing_lead_directory DROP COLUMN IF EXISTS assigned_to;",
+    "ALTER TABLE public.telemarketing_lead_directory DROP COLUMN IF EXISTS assigned_name;",
+    "ALTER TABLE public.telemarketing_lead_directory DROP COLUMN IF EXISTS assigned_at;",
+    "ALTER TABLE public.telemarketing_lead_directory DROP COLUMN IF EXISTS claimed_by;",
+    "ALTER TABLE public.telemarketing_lead_directory DROP COLUMN IF EXISTS claimed_at;"
+  ]
+}

@@ -3,11 +3,14 @@ import { emailMatchKey, numberMatchKey, phoneMatchKey } from '@/features/telemar
 import type {
   ColumnMapping,
   ExistingLeadIndex,
+  LeadAssignResult,
+  LeadAssignmentEvent,
   LeadDirectoryRecord,
   LeadImportBatch,
   LeadImportSource,
   MappedLeadRow,
 } from '@/features/telemarketing/lib/leadImport/types';
+import { getTelemarketingAgents } from '@/features/telemarketing/services/teamChatService';
 
 function mapDirectory(row: Record<string, unknown>): LeadDirectoryRecord {
   return {
@@ -23,6 +26,11 @@ function mapDirectory(row: Record<string, unknown>): LeadDirectoryRecord {
     importBatchId: (row.import_batch_id as string | null) ?? null,
     source: String(row.source || ''),
     createdAt: String(row.created_at),
+    assignedTo: (row.assigned_to as string | null) ?? null,
+    assignedName: String(row.assigned_name || ''),
+    assignedAt: (row.assigned_at as string | null) ?? null,
+    claimedBy: (row.claimed_by as string | null) ?? null,
+    claimedAt: (row.claimed_at as string | null) ?? null,
   };
 }
 
@@ -111,4 +119,71 @@ export async function commitLeadImport(payload: {
     invalidCount: Number(result.invalidCount ?? result.invalidcount ?? 0),
     rowCount: Number(result.rowCount ?? result.rowcount ?? 0),
   };
+}
+
+export async function listAssignableAgents(): Promise<{ id: string; displayName: string }[]> {
+  const agents = await getTelemarketingAgents();
+  if (agents.length === 0) return [];
+  const { data } = await supabase.from('profiles').select('id, is_active').in('id', agents.map((a) => a.id));
+  const active = new Set((data ?? []).filter((p) => p.is_active !== false).map((p) => String(p.id)));
+  return agents.filter((a) => active.has(a.id));
+}
+
+export async function assignLeadsToAgent(leadIds: string[], agentId: string): Promise<LeadAssignResult> {
+  const { data, error } = await supabase.rpc('telemarketing_assign_leads' as never, {
+    p_lead_ids: leadIds,
+    p_agent_id: agentId,
+  } as never);
+  if (error) throw new Error(error.message);
+  const result = (data || {}) as Record<string, unknown>;
+  const skippedRaw = Array.isArray(result.skipped) ? result.skipped : [];
+  return {
+    assignedCount: Number(result.assignedCount ?? result.assignedcount ?? 0),
+    skippedCount: Number(result.skippedCount ?? result.skippedcount ?? 0),
+    skipped: skippedRaw.map((item) => {
+      const row = (item || {}) as Record<string, unknown>;
+      return {
+        leadNumber: String(row.leadNumber ?? row.leadnumber ?? ''),
+        companyName: String(row.companyName ?? row.companyname ?? ''),
+        reason: String(row.reason || ''),
+      };
+    }),
+    agentName: String(result.agentName ?? result.agentname ?? ''),
+    agentId: String(result.agentId ?? result.agentid ?? agentId),
+  };
+}
+
+export async function claimNextAssignedLead(): Promise<LeadDirectoryRecord | null> {
+  const { data, error } = await supabase.rpc('telemarketing_claim_next_lead' as never);
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return mapDirectory(data as Record<string, unknown>);
+}
+
+export async function claimAssignedLead(leadId: string): Promise<LeadDirectoryRecord> {
+  const { data, error } = await supabase.rpc('telemarketing_claim_lead' as never, { p_lead_id: leadId } as never);
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('הליד לא נמצא בתור');
+  return mapDirectory(data as Record<string, unknown>);
+}
+
+export async function listLeadAssignmentEvents(): Promise<LeadAssignmentEvent[]> {
+  const { data, error } = await supabase
+    .from('telemarketing_lead_assignment_events' as never)
+    .select('id, lead_id, lead_number, previous_agent_id, previous_agent_name, new_agent_id, new_agent_name, changed_by, changed_by_name, created_at')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+    id: String(row.id),
+    leadId: String(row.lead_id || ''),
+    leadNumber: String(row.lead_number || ''),
+    previousAgentId: (row.previous_agent_id as string | null) ?? null,
+    previousAgentName: String(row.previous_agent_name || ''),
+    newAgentId: (row.new_agent_id as string | null) ?? null,
+    newAgentName: String(row.new_agent_name || ''),
+    changedBy: (row.changed_by as string | null) ?? null,
+    changedByName: String(row.changed_by_name || ''),
+    createdAt: String(row.created_at || ''),
+  }));
 }

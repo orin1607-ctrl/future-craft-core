@@ -81,6 +81,32 @@ export interface LeadDirectoryRecord {
   importBatchId: string | null;
   source: string;
   createdAt: string;
+  assignedTo: string | null;
+  assignedName: string;
+  assignedAt: string | null;
+  claimedBy: string | null;
+  claimedAt: string | null;
+}
+
+export interface LeadAssignmentEvent {
+  id: string;
+  leadId: string;
+  leadNumber: string;
+  previousAgentId: string | null;
+  previousAgentName: string;
+  newAgentId: string | null;
+  newAgentName: string;
+  changedBy: string | null;
+  changedByName: string;
+  createdAt: string;
+}
+
+export interface LeadAssignResult {
+  assignedCount: number;
+  skippedCount: number;
+  skipped: { leadNumber: string; companyName: string; reason: string }[];
+  agentName: string;
+  agentId: string;
 }
 
 export interface LeadImportBatch {
