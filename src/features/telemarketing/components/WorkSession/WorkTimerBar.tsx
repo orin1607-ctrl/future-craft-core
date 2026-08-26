@@ -4,6 +4,7 @@ import { formatDay, formatStamp } from '@/features/telemarketing/lib/formatTime'
 interface Props {
   status: 'idle' | 'in_progress' | 'ended';
   elapsedSeconds: number;
+  reportElapsedSeconds?: number;
   starting: boolean;
   startedAt?: string | null;
   endedAt?: string | null;
@@ -18,12 +19,13 @@ function formatMMSS(totalSeconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function WorkTimerBar({ status, elapsedSeconds, starting, startedAt, endedAt, employeeName, onStart, onEnd }: Props) {
+export function WorkTimerBar({ status, elapsedSeconds, reportElapsedSeconds = 0, starting, startedAt, endedAt, employeeName, onStart, onEnd }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       {status === 'idle' && (
         <button
           type="button"
+          data-testid="tele-start-work"
           onClick={onStart}
           disabled={starting}
           className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-sky-700 py-4 text-lg font-bold text-white active:scale-[0.99] disabled:opacity-50"
@@ -44,6 +46,7 @@ export function WorkTimerBar({ status, elapsedSeconds, starting, startedAt, ende
           )}
           <button
             type="button"
+            data-testid="tele-end-work"
             onClick={onEnd}
             className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-destructive py-4 text-lg font-bold text-destructive-foreground"
           >
@@ -54,7 +57,8 @@ export function WorkTimerBar({ status, elapsedSeconds, starting, startedAt, ende
       )}
       {status === 'ended' && (
         <div className="text-center text-sm font-semibold text-muted-foreground">
-          המשימה הסתיימה — משך {formatMMSS(elapsedSeconds)} · יש להשלים דיווח למטה
+          <p data-testid="tele-work-duration">המשימה הסתיימה — משך {formatMMSS(elapsedSeconds)} · יש להשלים דיווח למטה</p>
+          <p className="mt-1 font-mono text-xl font-black text-foreground" data-testid="tele-work-report-duration">זמן דיווח {formatMMSS(reportElapsedSeconds)}</p>
           {startedAt && (
             <p className="mt-1 text-xs font-normal">
               {formatDay(startedAt)} · {formatStamp(startedAt)} – {endedAt ? formatStamp(endedAt) : 'סיום'}

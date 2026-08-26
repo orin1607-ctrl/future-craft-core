@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { stampCallEnd, stampReportSubmit } from '@/features/telemarketing/lib/callTiming';
 import { createTeamChatIfNeeded } from '@/features/telemarketing/services/teamChatService';
 import { followUpBucket, localDateStr } from '@/features/telemarketing/lib/localDate';
 import { formatClock, formatDay } from '@/features/telemarketing/lib/formatTime';
@@ -87,18 +88,24 @@ export async function endCall(callId: string): Promise<TelemarketingCall> {
     .eq('id', callId)
     .single();
   if (fetchErr) throw new Error('שגיאה באיתור השיחה: ' + fetchErr.message);
-  if (current.ended_at) return mapCallRow(current);
+  if (current.ended_at) {
+    if (!current.report_started_at) {
+      const { data: patched, error: patchErr } = await supabase
+        .from(TABLE_CALLS)
+        .update({ report_started_at: current.ended_at })
+        .eq('id', callId)
+        .select('*')
+        .single();
+      if (patchErr) throw new Error('שגיאה בסיום שיחה: ' + patchErr.message);
+      return mapCallRow(patched);
+    }
+    return mapCallRow(current);
+  }
 
-  const endedAt = new Date();
-  const startedAt = new Date(current.started_at);
-  const durationSeconds = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000));
-
+  const stamp = stampCallEnd(String(current.started_at));
   const { data, error } = await supabase
     .from(TABLE_CALLS)
-    .update({
-      ended_at: endedAt.toISOString(),
-      duration_seconds: durationSeconds,
-    })
+    .update(stamp)
     .eq('id', callId)
     .select('*')
     .single();
@@ -158,6 +165,13 @@ export async function submitCallReport(
   }
   const followDate = payload.followUpDate || (continued ? localDateStr() : null);
 
+  const timing = stampReportSubmit({
+    ended_at: currentRow.ended_at as string | null,
+    duration_seconds: currentRow.duration_seconds as number | null,
+    report_started_at: currentRow.report_started_at as string | null,
+    report_ended_at: currentRow.report_ended_at as string | null,
+  });
+
   const { data: updatedCall, error: updateErr } = await supabase
     .from(TABLE_CALLS)
     .update({
@@ -175,6 +189,7 @@ export async function submitCallReport(
       client_token: payload.clientToken,
       whatsapp_status: needsFollow ? 'pending' : 'not_applicable',
       email_status: needsFollow ? 'pending' : 'not_applicable',
+      ...timing,
     })
     .eq('id', payload.callId)
     .select('*')
@@ -718,6 +733,11 @@ function mapCallRow(row: Record<string, unknown>): TelemarketingCall {
     startedAt: String(row.started_at),
     endedAt: (row.ended_at as string | null) ?? null,
     durationSeconds: (row.duration_seconds as number | null) ?? null,
+    reportStartedAt: (row.report_started_at as string | null) ?? null,
+    reportEndedAt: (row.report_ended_at as string | null) ?? null,
+    reportDurationSeconds: (row.report_duration_seconds as number | null) ?? null,
+    treatedEndedAt: (row.treated_ended_at as string | null) ?? null,
+    treatmentDurationSeconds: (row.treatment_duration_seconds as number | null) ?? null,
     status: row.status as TelemarketingCall['status'],
     result: (row.result as CallResult | null) ?? null,
     leadRating: (row.lead_rating as TelemarketingCall['leadRating']) ?? null,

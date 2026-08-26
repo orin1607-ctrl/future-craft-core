@@ -51,6 +51,11 @@ export interface TelemarketingCall extends CustomerRef {
   startedAt: string;
   endedAt: string | null;
   durationSeconds: number | null;
+  reportStartedAt?: string | null;
+  reportEndedAt?: string | null;
+  reportDurationSeconds?: number | null;
+  treatedEndedAt?: string | null;
+  treatmentDurationSeconds?: number | null;
   status: CallStatus;
   result: CallResult | null;
   leadRating: LeadRating | null;
@@ -254,9 +259,15 @@ export interface TelemarketingWorkSession {
   startedAt: string;
   endedAt: string | null;
   durationSeconds: number | null;
+  reportStartedAt?: string | null;
+  reportEndedAt?: string | null;
+  reportDurationSeconds?: number | null;
+  treatedEndedAt?: string | null;
+  treatmentDurationSeconds?: number | null;
   status: CallStatus;
   clientToken: string;
   createdAt: string;
+  leadNumber?: string | null;
 }
 
 export interface TelemarketingLeadState {

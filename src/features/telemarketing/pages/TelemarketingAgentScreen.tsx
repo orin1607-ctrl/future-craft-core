@@ -46,6 +46,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   const {
     call,
     elapsedSeconds,
+    reportElapsedSeconds,
     draft,
     updateDraft,
     beginCall,
@@ -59,6 +60,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   const {
     session: workSession,
     elapsedSeconds: workElapsed,
+    reportElapsedSeconds: workReportElapsed,
     draft: workDraft,
     updateDraft: updateWorkDraft,
     beginWork,
@@ -333,6 +335,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
             <CallTimerBar
               status="idle"
               elapsedSeconds={elapsedSeconds}
+              reportElapsedSeconds={reportElapsedSeconds}
               starting={starting}
               isRecording={false}
               employeeName={currentEmployee.displayName}
@@ -342,6 +345,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
             <WorkTimerBar
               status="idle"
               elapsedSeconds={workElapsed}
+              reportElapsedSeconds={workReportElapsed}
               starting={workStarting}
               employeeName={currentEmployee.displayName}
               onStart={() => void handleStartWork()}
@@ -525,6 +529,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         <CallTimerBar
           status={callStatus}
           elapsedSeconds={elapsedSeconds}
+          reportElapsedSeconds={reportElapsedSeconds}
           starting={starting}
           isRecording={isRecording}
           startedAt={call?.startedAt}
@@ -552,6 +557,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         <WorkTimerBar
           status={workStatus}
           elapsedSeconds={workElapsed}
+          reportElapsedSeconds={workReportElapsed}
           starting={workStarting}
           startedAt={workSession?.startedAt}
           endedAt={workSession?.endedAt}

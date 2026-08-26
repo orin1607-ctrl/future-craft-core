@@ -92,6 +92,7 @@ export function WorkReportForm({
         onClick={onSubmit}
         disabled={submitting}
         className="min-h-14 w-full rounded-xl bg-sky-700 py-4 text-lg font-bold text-white disabled:opacity-50"
+        data-testid="tele-submit-work"
       >
         {submitting ? 'שומר...' : 'שמור משימת עבודה'}
       </button>

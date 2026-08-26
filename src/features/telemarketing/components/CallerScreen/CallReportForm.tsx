@@ -249,6 +249,7 @@ export function CallReportForm({ draft, onChange, onSubmit, submitting, error, l
         onClick={onSubmit}
         disabled={submitting}
         className="min-h-14 w-full rounded-xl bg-primary py-4 text-lg font-bold text-primary-foreground disabled:opacity-50"
+        data-testid="tele-submit-report"
       >
         {submitting ? 'שומר...' : 'שמור וסיים שיחה'}
       </button>

@@ -1,0 +1,61 @@
+{
+  "at": "2026-08-26T19:04:32.435Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "beforeMechanism": {
+    "calls": "started_at, ended_at, duration_seconds. Timer stops on End Call. Report submit has no separate clock.",
+    "work": "started_at, ended_at, duration_seconds. Same pattern.",
+    "dalia": "opened_at/closed_at exist but are not reliable typing time."
+  },
+  "tair": {
+    "id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "name": "תאיר",
+    "email": "tairmizrahi311@gmail.com",
+    "active": true
+  },
+  "directoryCount": 29,
+  "numbers": [
+    "1",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "2",
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "29",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "claimed": 0,
+  "assignedTair": 29,
+  "agents": [
+    "cfadfd61-476b-4b19-83c8-19b62b7bb99e"
+  ],
+  "counts": {
+    "calls": 0,
+    "followups": 0,
+    "work": 0,
+    "chats": 0
+  },
+  "callColumnSample": [],
+  "workColumnSample": []
+}

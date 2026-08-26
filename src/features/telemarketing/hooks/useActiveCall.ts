@@ -79,12 +79,14 @@ const EMPTY_DRAFT: ReportDraft = {
 export function useActiveCall(employeeId?: string) {
   const [call, setCall] = useState<TelemarketingCall | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [reportElapsedSeconds, setReportElapsedSeconds] = useState(0);
   const [draft, setDraft] = useState<ReportDraft>(EMPTY_DRAFT);
   const [submitting, setSubmitting] = useState(false);
   const [starting, setStarting] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reportTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitTokenRef = useRef<string>(uuid());
   const submitLockRef = useRef(false);
 
@@ -111,6 +113,10 @@ export function useActiveCall(employeeId?: string) {
       setCall(open);
       if (open.endedAt && open.durationSeconds != null) {
         setElapsedSeconds(open.durationSeconds);
+        if (open.status === 'in_progress') {
+          const startMs = new Date(open.reportStartedAt || open.endedAt).getTime();
+          setReportElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
+        }
       } else {
         setElapsedSeconds(Math.max(0, Math.floor((Date.now() - new Date(open.startedAt).getTime()) / 1000)));
       }
@@ -138,6 +144,22 @@ export function useActiveCall(employeeId?: string) {
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [call]);
+
+  useEffect(() => {
+    if (call && call.endedAt && call.status === 'in_progress') {
+      const startMs = new Date(call.reportStartedAt || call.endedAt).getTime();
+      setReportElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
+      reportTimerRef.current = setInterval(() => {
+        setReportElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
+      }, 1000);
+    } else {
+      if (!call || call.status === 'completed') setReportElapsedSeconds(0);
+      if (reportTimerRef.current) clearInterval(reportTimerRef.current);
+    }
+    return () => {
+      if (reportTimerRef.current) clearInterval(reportTimerRef.current);
     };
   }, [call]);
 
@@ -300,6 +322,7 @@ export function useActiveCall(employeeId?: string) {
       setCall(null);
       setDraft(EMPTY_DRAFT);
       setElapsedSeconds(0);
+      setReportElapsedSeconds(0);
       setIsRecording(false);
       return true;
     } catch (e: unknown) {
@@ -314,6 +337,7 @@ export function useActiveCall(employeeId?: string) {
   return {
     call,
     elapsedSeconds,
+    reportElapsedSeconds,
     draft,
     updateDraft,
     beginCall,

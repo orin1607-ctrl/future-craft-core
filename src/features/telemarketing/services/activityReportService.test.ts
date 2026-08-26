@@ -92,10 +92,78 @@ describe('activity report uses only real mappings', () => {
     expect(report.totals.callSeconds).toBe(150);
     expect(report.totals.workSeconds).toBe(1200);
     expect(report.totals.measuredWorkSeconds).toBe(1350);
+    expect(report.totals.callTreatmentSeconds).toBe(150);
+    expect(report.totals.reportSeconds).toBe(0);
+    expect(report.totals.callSeconds + report.totals.reportSeconds).toBe(report.totals.callTreatmentSeconds);
+    expect(report.totals.callSeconds + report.totals.reportSeconds + report.totals.callTreatmentSeconds).not.toBe(report.totals.measuredWorkSeconds);
     expect(report.totals.answerRate).toBe(50);
     expect(report.meetings[0].when).toBe('2026-08-26 11:00');
     expect(report.unmeasured.length).toBeGreaterThan(0);
     expect(report.unmeasured.every((u) => u.measured === false)).toBe(true);
+  });
+
+  it('counts treatment once: 8 min call + 3 min report = 11, not 22', () => {
+    const report = buildActivityReport({
+      filters,
+      calls: [
+        call({
+          id: 't1',
+          durationSeconds: 480,
+          reportDurationSeconds: 180,
+          treatmentDurationSeconds: 660,
+          result: 'מעוניין',
+        }),
+      ],
+      work: [],
+      followUps: [],
+      chats: [],
+    });
+    expect(report.totals.callSeconds).toBe(480);
+    expect(report.totals.reportSeconds).toBe(180);
+    expect(report.totals.callTreatmentSeconds).toBe(660);
+    expect(report.totals.measuredWorkSeconds).toBe(660);
+    expect(report.totals.callSeconds + report.totals.reportSeconds + report.totals.callTreatmentSeconds).toBe(1320);
+  });
+
+  it('filters a single lead and sums two attempts without double counting', () => {
+    const report = buildActivityReport({
+      filters: { ...filters, leadQuery: '7' },
+      calls: [
+        call({
+          id: 'a1',
+          leadNumber: '7',
+          companyName: 'אלפא',
+          durationSeconds: 80,
+          reportDurationSeconds: 45,
+          treatmentDurationSeconds: 125,
+          result: 'לא ענה',
+        }),
+        call({
+          id: 'a2',
+          leadNumber: '7',
+          companyName: 'אלפא',
+          startedAt: '2026-08-24T08:00:00.000Z',
+          endedAt: '2026-08-24T08:06:10.000Z',
+          durationSeconds: 370,
+          reportDurationSeconds: 120,
+          treatmentDurationSeconds: 490,
+          result: 'לחזור אליו',
+        }),
+        call({ id: 'other', leadNumber: '8', companyName: 'בטא', durationSeconds: 999, result: 'מעוניין' }),
+      ],
+      work: [],
+      followUps: [],
+      chats: [],
+      directory: [{ leadNumber: '7', companyName: 'אלפא', assignedName: 'תאיר', source: 'pasted_sheet', createdAt: '2026-08-01T00:00:00.000Z' } as never],
+    });
+    expect(report.calls).toHaveLength(2);
+    expect(report.leadDetail?.leadNumber).toBe('7');
+    expect(report.leadDetail?.attempts).toHaveLength(2);
+    expect(report.leadDetail?.totals.callSeconds).toBe(450);
+    expect(report.leadDetail?.totals.reportSeconds).toBe(165);
+    expect(report.leadDetail?.totals.treatmentSeconds).toBe(615);
+    expect(report.totals.measuredWorkSeconds).toBe(615);
+    expect(report.totals.measuredWorkSeconds).toBe(report.totals.callSeconds + report.totals.reportSeconds);
   });
 
   it('does not double-count the same call across totals', () => {

@@ -49,11 +49,13 @@ const EMPTY_WORK_DRAFT: WorkDraft = {
 export function useActiveWorkSession(employeeId?: string, employeeName?: string) {
   const [session, setSession] = useState<TelemarketingWorkSession | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [reportElapsedSeconds, setReportElapsedSeconds] = useState(0);
   const [draft, setDraft] = useState<WorkDraft>(EMPTY_WORK_DRAFT);
   const [submitting, setSubmitting] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reportTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tokenRef = useRef<string>(uuid());
   const lockRef = useRef(false);
 
@@ -89,6 +91,22 @@ export function useActiveWorkSession(employeeId?: string, employeeName?: string)
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [session]);
+
+  useEffect(() => {
+    if (session && session.endedAt && session.status === 'in_progress') {
+      const startMs = new Date(session.reportStartedAt || session.endedAt).getTime();
+      setReportElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
+      reportTimerRef.current = setInterval(() => {
+        setReportElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
+      }, 1000);
+    } else {
+      if (!session || session.status === 'completed') setReportElapsedSeconds(0);
+      if (reportTimerRef.current) clearInterval(reportTimerRef.current);
+    }
+    return () => {
+      if (reportTimerRef.current) clearInterval(reportTimerRef.current);
     };
   }, [session]);
 
@@ -189,6 +207,7 @@ export function useActiveWorkSession(employeeId?: string, employeeName?: string)
       setSession(null);
       setDraft(EMPTY_WORK_DRAFT);
       setElapsedSeconds(0);
+      setReportElapsedSeconds(0);
       return true;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'שגיאה בשמירת המשימה');
@@ -202,6 +221,7 @@ export function useActiveWorkSession(employeeId?: string, employeeName?: string)
   return {
     session,
     elapsedSeconds,
+    reportElapsedSeconds,
     draft,
     updateDraft,
     beginWork,

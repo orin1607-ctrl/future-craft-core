@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { stampCallEnd, stampReportSubmit } from '@/features/telemarketing/lib/callTiming';
+import { attachLeadNumbers } from '@/features/telemarketing/services/leadDirectoryService';
 import { createTeamChatIfNeeded } from '@/features/telemarketing/services/teamChatService';
 import type { TelemarketingWorkSession, UrgencyLevel, WorkTaskType } from '@/features/telemarketing/types';
 
@@ -20,6 +22,11 @@ function mapRow(row: Record<string, unknown>): TelemarketingWorkSession {
     startedAt: String(row.started_at),
     endedAt: (row.ended_at as string | null) ?? null,
     durationSeconds: (row.duration_seconds as number | null) ?? null,
+    reportStartedAt: (row.report_started_at as string | null) ?? null,
+    reportEndedAt: (row.report_ended_at as string | null) ?? null,
+    reportDurationSeconds: (row.report_duration_seconds as number | null) ?? null,
+    treatedEndedAt: (row.treated_ended_at as string | null) ?? null,
+    treatmentDurationSeconds: (row.treatment_duration_seconds as number | null) ?? null,
     status: row.status as TelemarketingWorkSession['status'],
     clientToken: String(row.client_token),
     createdAt: String(row.created_at),
@@ -77,14 +84,24 @@ export async function startWorkSession(payload: {
 export async function endWorkSession(sessionId: string): Promise<TelemarketingWorkSession> {
   const { data: current, error: fetchErr } = await supabase.from(TABLE).select('*').eq('id', sessionId).single();
   if (fetchErr) throw new Error(fetchErr.message);
-  if (current.ended_at) return mapRow(current as Record<string, unknown>);
+  if (current.ended_at) {
+    if (!current.report_started_at) {
+      const { data: patched, error: patchErr } = await supabase
+        .from(TABLE)
+        .update({ report_started_at: current.ended_at })
+        .eq('id', sessionId)
+        .select('*')
+        .single();
+      if (patchErr) throw new Error(patchErr.message);
+      return mapRow(patched as Record<string, unknown>);
+    }
+    return mapRow(current as Record<string, unknown>);
+  }
 
-  const endedAt = new Date();
-  const startedAt = new Date(current.started_at as string);
-  const durationSeconds = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000));
+  const stamp = stampCallEnd(String(current.started_at));
   const { data, error } = await supabase
     .from(TABLE)
-    .update({ ended_at: endedAt.toISOString(), duration_seconds: durationSeconds })
+    .update(stamp)
     .eq('id', sessionId)
     .select('*')
     .single();
@@ -117,6 +134,13 @@ export async function submitWorkSessionReport(payload: {
   if (!payload.taskType) throw new Error('חובה לבחור סוג משימה');
   if (!payload.description.trim()) throw new Error('חובה לכתוב מה בוצע');
 
+  const timing = stampReportSubmit({
+    ended_at: current.ended_at as string | null,
+    duration_seconds: current.duration_seconds as number | null,
+    report_started_at: current.report_started_at as string | null,
+    report_ended_at: current.report_ended_at as string | null,
+  });
+
   const { data, error } = await supabase
     .from(TABLE)
     .update({
@@ -128,6 +152,7 @@ export async function submitWorkSessionReport(payload: {
       contact_name: payload.contactName ?? current.contact_name,
       phone: payload.phone ?? current.phone,
       status: 'completed',
+      ...timing,
     })
     .eq('id', payload.sessionId)
     .select('*')
@@ -182,7 +207,7 @@ async function attachWorkDaliaCare(
 export async function getWorkSessions(limit = 500): Promise<TelemarketingWorkSession[]> {
   const { data, error } = await supabase.from(TABLE).select('*').order('started_at', { ascending: false }).limit(limit);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
+  return attachLeadNumbers((data ?? []).map((row) => mapRow(row as Record<string, unknown>)));
 }
 
 export async function getWorkSessionsForLead(phone: string, companyName: string): Promise<TelemarketingWorkSession[]> {
