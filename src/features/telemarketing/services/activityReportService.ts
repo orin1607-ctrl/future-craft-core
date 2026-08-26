@@ -225,6 +225,51 @@ export function uniqueLeadCount(calls: TelemarketingCall[]): number {
   return new Set(calls.map((c) => c.leadNumber || c.companyName || c.id)).size;
 }
 
+export function quoteCount(calls: TelemarketingCall[]): number {
+  return calls.filter((c) => c.result === 'ביקש הצעת מחיר').length;
+}
+
+export interface WorkDaySlice {
+  day: string;
+  row: EmployeeActivityRow;
+  leadCount: number;
+  quotes: number;
+}
+
+/** Re-runs the same buildActivityReport per local day on already-filtered rows. No second calculator. */
+export function groupActivityByDay(report: ActivityReport): WorkDaySlice[] {
+  const days = new Set<string>();
+  for (const c of report.calls) days.add(dayKey(c.startedAt));
+  for (const s of report.work) days.add(dayKey(s.startedAt));
+  for (const chat of report.daliaReports) {
+    if (chat.openedAt) days.add(dayKey(chat.openedAt));
+  }
+  return Array.from(days)
+    .sort()
+    .map((day) => {
+      const slice = buildActivityReport({
+        filters: {
+          ...report.filters,
+          from: day,
+          to: day,
+          fromTime: undefined,
+          toTime: undefined,
+        },
+        calls: report.calls,
+        work: report.work,
+        followUps: report.followUps,
+        chats: report.daliaReports,
+      });
+      const row = slice.employees[0] || slice.totals;
+      return {
+        day,
+        row,
+        leadCount: uniqueLeadCount(slice.calls),
+        quotes: quoteCount(slice.calls),
+      };
+    });
+}
+
 export function groupLeadActivity(calls: TelemarketingCall[]): LeadActivityDetail[] {
   const groups = new Map<string, TelemarketingCall[]>();
   for (const call of calls) {

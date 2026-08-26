@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildActivityReport,
+  groupActivityByDay,
   groupLeadActivity,
   isAnsweredResult,
   isNoAnswerResult,
   lockFiltersToSelf,
+  quoteCount,
   uniqueLeadCount,
 } from '@/features/telemarketing/services/activityReportService';
 import type { FollowUpWorkItem, TeamChat, TelemarketingCall, TelemarketingWorkSession } from '@/features/telemarketing/types';
@@ -248,5 +250,77 @@ describe('activity report uses only real mappings', () => {
     });
     expect(dayOnly.totals.dialAttempts).toBe(1);
     expect(withHours.totals.dialAttempts).toBe(0);
+  });
+
+  it('keeps activity window distinct from measured work and does not double-count treatment', () => {
+    const report = buildActivityReport({
+      filters,
+      calls: [
+        call({
+          id: 'w1',
+          startedAt: '2026-08-24T07:00:00.000Z',
+          endedAt: '2026-08-24T07:10:00.000Z',
+          durationSeconds: 600,
+          reportDurationSeconds: 120,
+          treatmentDurationSeconds: 720,
+          treatedEndedAt: '2026-08-24T07:12:00.000Z',
+        }),
+        call({
+          id: 'w2',
+          startedAt: '2026-08-24T09:00:00.000Z',
+          endedAt: '2026-08-24T09:05:00.000Z',
+          durationSeconds: 300,
+          reportDurationSeconds: 0,
+          treatmentDurationSeconds: 300,
+          treatedEndedAt: '2026-08-24T09:05:00.000Z',
+          result: 'לא ענה',
+          leadRating: 'קר',
+        }),
+      ],
+      work: [],
+      followUps: [],
+      chats: [],
+    });
+    expect(report.totals.callSeconds).toBe(900);
+    expect(report.totals.reportSeconds).toBe(120);
+    expect(report.totals.callTreatmentSeconds).toBe(1020);
+    expect(report.totals.measuredWorkSeconds).toBe(1020);
+    expect(report.totals.callSeconds + report.totals.reportSeconds + report.totals.callTreatmentSeconds).not.toBe(report.totals.measuredWorkSeconds);
+    expect(report.totals.activityWindowSeconds).toBeGreaterThan(report.totals.measuredWorkSeconds);
+  });
+
+  it('groups a multi-day report with the same calculator per local day', () => {
+    const report = buildActivityReport({
+      filters: { from: '2026-08-24', to: '2026-08-25', employeeName: '', result: '', status: '' },
+      calls: [
+        call({
+          id: 'd1',
+          startedAt: '2026-08-24T07:00:00.000Z',
+          endedAt: '2026-08-24T07:10:00.000Z',
+          durationSeconds: 100,
+          reportDurationSeconds: 20,
+          treatmentDurationSeconds: 120,
+          leadNumber: '40',
+        }),
+        call({
+          id: 'd2',
+          startedAt: '2026-08-25T07:00:00.000Z',
+          endedAt: '2026-08-25T07:05:00.000Z',
+          durationSeconds: 50,
+          reportDurationSeconds: 10,
+          treatmentDurationSeconds: 60,
+          leadNumber: '41',
+          companyName: 'XYZ',
+        }),
+      ],
+      work: [],
+      followUps: [],
+      chats: [],
+    });
+    const days = groupActivityByDay(report);
+    expect(days).toHaveLength(2);
+    expect(days[0].row.measuredWorkSeconds + days[1].row.measuredWorkSeconds).toBe(report.totals.measuredWorkSeconds);
+    expect(days[0].row.dialAttempts + days[1].row.dialAttempts).toBe(report.totals.dialAttempts);
+    expect(quoteCount(report.calls)).toBe(0);
   });
 });

@@ -3,9 +3,11 @@ import { localDateStr } from '@/features/telemarketing/lib/localDate';
 import { formatDay, formatDurationSeconds, formatStamp, formatTimeRange } from '@/features/telemarketing/lib/formatTime';
 import { activityDatePreset, type ActivityDatePreset } from '@/features/telemarketing/lib/activityDatePresets';
 import {
+  groupActivityByDay,
   groupLeadActivity,
   loadMyActivityReport,
   lockFiltersToSelf,
+  quoteCount,
   uniqueLeadCount,
   type ActivityFilters,
   type ActivityReport,
@@ -13,6 +15,7 @@ import {
 } from '@/features/telemarketing/services/activityReportService';
 import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import { TeleInnerNav, useRegisterTeleCloser } from '@/features/telemarketing/components/Nav/TeleInnerNav';
+import { WorkDaySummary } from '@/features/telemarketing/components/ActivityReport/WorkDaySummary';
 import { exportToCsv } from '@/utils/exportCsv';
 
 const PRESETS: { id: ActivityDatePreset; label: string }[] = [
@@ -101,11 +104,21 @@ export function MyActivityReport({
 
   const row: EmployeeActivityRow | null = report?.employees[0] || report?.totals || null;
   const leads = report ? groupLeadActivity(report.calls) : [];
-  const quotes = report?.calls.filter((c) => c.result === 'ביקש הצעת מחיר').length ?? 0;
+  const quotes = report ? quoteCount(report.calls) : 0;
+  const days = report ? groupActivityByDay(report) : [];
   const singleDay = from === to;
   const periodLabel = singleDay
     ? `${formatDay(from)}${fromTime || toTime ? ` | ${(fromTime || '00:00')}–${(toTime || '23:59')}` : ''}`
     : `${formatDay(from)} – ${formatDay(to)}`;
+  const summaryTitle = singleDay ? `סיכום יום עבודה — ${formatDay(from)}` : `סיכום תקופה — ${periodLabel}`;
+
+  const selectDay = (day: string) => {
+    setPreset('custom');
+    setFrom(day);
+    setTo(day);
+    setFromTime('');
+    setToTime('');
+  };
 
   const exportReport = () => {
     if (!report || !row) return;
@@ -120,7 +133,8 @@ export function MyActivityReport({
         { field: 'תקופה', value: periodLabel },
         { field: 'פעילות ראשונה', value: formatStamp(row.firstActivityAt) },
         { field: 'פעילות אחרונה', value: formatStamp(row.lastActivityAt) },
-        { field: 'חלון פעילות', value: formatTimeRange(row.firstActivityAt, row.lastActivityAt) },
+        { field: 'חלון פעילות (משך)', value: formatDurationSeconds(row.activityWindowSeconds) },
+        { field: 'חלון פעילות (שעות שעון)', value: formatTimeRange(row.firstActivityAt, row.lastActivityAt) },
         { field: 'סה״כ זמן עבודה מדוד', value: formatDurationSeconds(row.measuredWorkSeconds) },
         { field: 'לידים שטופלו', value: uniqueLeadCount(report.calls) },
         { field: 'ניסיונות חיוג', value: row.dialAttempts },
@@ -142,6 +156,10 @@ export function MyActivityReport({
         { field: 'מענה מתוך חיוגים', value: pct(row.answerRate) },
         { field: 'מתעניינים מתוך נענו', value: pct(row.interestRate) },
         { field: 'פגישות מתוך מתעניינים', value: pct(row.meetingRate) },
+        ...days.map((slice) => ({
+          field: `יום ${formatDay(slice.day)}`,
+          value: `${formatTimeRange(slice.row.firstActivityAt, slice.row.lastActivityAt)} · מדוד ${formatDurationSeconds(slice.row.measuredWorkSeconds)} · ${slice.row.dialAttempts} חיוגים · ${slice.leadCount} לידים`,
+        })),
         ...leads.flatMap((lead) =>
           lead.attempts.map((a) => ({
             field: `${formatLeadTitle(lead.leadNumber, lead.companyName)} · ניסיון ${a.attempt}`,
@@ -199,10 +217,18 @@ export function MyActivityReport({
         {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
         {row && report && (
           <>
+            <WorkDaySummary
+              title={summaryTitle}
+              row={row}
+              leadCount={uniqueLeadCount(report.calls)}
+              quotes={quotes}
+              days={days}
+              onSelectDay={selectDay}
+            />
             <div className="grid grid-cols-2 gap-2" data-testid="my-report-stats">
               <Stat testId="my-report-stat-first" label="פעילות ראשונה" value={formatStamp(row.firstActivityAt)} raw={row.firstActivityAt || ''} />
               <Stat testId="my-report-stat-last" label="פעילות אחרונה" value={formatStamp(row.lastActivityAt)} raw={row.lastActivityAt || ''} />
-              <Stat testId="my-report-stat-window" label="חלון פעילות" value={formatTimeRange(row.firstActivityAt, row.lastActivityAt)} raw={String(row.activityWindowSeconds)} />
+              <Stat testId="my-report-stat-window" label="חלון פעילות" value={formatDurationSeconds(row.activityWindowSeconds)} raw={String(row.activityWindowSeconds)} />
               <Stat testId="my-report-stat-measured" label="סה״כ זמן עבודה מדוד" value={formatDurationSeconds(row.measuredWorkSeconds)} raw={String(row.measuredWorkSeconds)} />
               <Stat testId="my-report-stat-leads" label="לידים שטופלו" value={String(uniqueLeadCount(report.calls))} raw={String(uniqueLeadCount(report.calls))} />
               <Stat testId="my-report-stat-dials" label="ניסיונות חיוג" value={String(row.dialAttempts)} raw={String(row.dialAttempts)} />

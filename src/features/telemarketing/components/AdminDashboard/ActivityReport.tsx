@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { localDateStr } from '@/features/telemarketing/lib/localDate';
-import { formatDurationSeconds, formatStamp, formatTimeRange } from '@/features/telemarketing/lib/formatTime';
-import { loadActivityReport } from '@/features/telemarketing/services/activityReportService';
+import { formatDay, formatDurationSeconds, formatStamp, formatTimeRange } from '@/features/telemarketing/lib/formatTime';
+import { loadActivityReport, groupActivityByDay, quoteCount, uniqueLeadCount } from '@/features/telemarketing/services/activityReportService';
 import type { ActivityFilters, ActivityReport, LeadActivityDetail } from '@/features/telemarketing/services/activityReportService';
 import { CALL_RESULTS } from '@/features/telemarketing/types';
 import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import { buildTimingSnapshot } from '@/features/telemarketing/lib/callTiming';
 import { TeleInnerNav, useRegisterTeleCloser } from '@/features/telemarketing/components/Nav/TeleInnerNav';
+import { WorkDaySummary } from '@/features/telemarketing/components/ActivityReport/WorkDaySummary';
 
 const EMPTY: ActivityFilters = {
   from: localDateStr(),
@@ -117,6 +118,16 @@ export function ActivityReportPanel() {
       )}
       {report && !showLeadScreen && (
         <>
+          {filters.employeeName && (
+            <WorkDaySummary
+              title={filters.from === filters.to ? `סיכום יום עבודה — ${formatDay(filters.from)}` : `סיכום תקופה — ${formatDay(filters.from)} – ${formatDay(filters.to)}`}
+              row={report.employees[0] || report.totals}
+              leadCount={uniqueLeadCount(report.calls)}
+              quotes={quoteCount(report.calls)}
+              days={groupActivityByDay(report)}
+              onSelectDay={(day) => setFilters((f) => ({ ...f, from: day, to: day }))}
+            />
+          )}
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4" data-testid="activity-totals">
             <Stat label="ניסיונות חיוג" value={String(report.totals.dialAttempts)} />
             <Stat label="נענו" value={String(report.totals.answered)} />

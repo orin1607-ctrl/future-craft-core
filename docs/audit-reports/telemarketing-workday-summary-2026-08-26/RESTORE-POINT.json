@@ -1,0 +1,15 @@
+{
+  "at": "2026-08-26T20:40:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "codeCommit": "5a6fb624ee1a3adfd85eea050dc373dd0203edda",
+  "branch": "feat/incident-alerts-staging",
+  "keep": {
+    "tair": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "directoryLeads": "1-29"
+  },
+  "note": "Work-day summary UI layer only. Reuses buildActivityReport / loadMyActivityReport / buildTimingSnapshot. No DB/RPC/RLS/Auth change. Rollback = revert the feature commit on feat/incident-alerts-staging."
+}
