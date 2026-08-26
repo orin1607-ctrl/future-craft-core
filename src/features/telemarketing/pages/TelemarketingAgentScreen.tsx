@@ -371,15 +371,6 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
               onStart={() => void handleStart()}
               onEnd={() => void finishCallTiming()}
             />
-            <WorkTimerBar
-              status="idle"
-              elapsedSeconds={workElapsed}
-              reportElapsedSeconds={workReportElapsed}
-              starting={workStarting}
-              employeeName={currentEmployee.displayName}
-              onStart={() => void handleStartWork()}
-              onEnd={() => void finishWorkTiming()}
-            />
             <AgentChatEntry currentUserId={currentEmployee.id} onOpen={openChats} reloadToken={followUpReload} />
             <button
               type="button"
