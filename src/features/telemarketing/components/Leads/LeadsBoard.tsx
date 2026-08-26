@@ -5,6 +5,7 @@ import { getWorkSessionsForLead } from '@/features/telemarketing/services/workSe
 import { DaliaCareLeadEvents } from '@/features/telemarketing/components/DaliaCare/DaliaCareLeadEvents';
 import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
 import { formatStamp } from '@/features/telemarketing/lib/formatTime';
+import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import { LEAD_COLOR_LABEL, LEAD_STATUSES, leadStatusLabel, type LeadColor } from '@/features/telemarketing/lib/leadTraffic';
 import type { TelemarketingEmployee, TelemarketingLeadState } from '@/features/telemarketing/types';
 
@@ -86,7 +87,7 @@ export function LeadsBoard({
           <div className="space-y-2">
             {grouped[c].map((item) => (
               <button key={item.id} type="button" onClick={() => setSelected(item)} className={`w-full rounded-xl border p-3 text-right ${TONE[item.leadColor]}`}>
-                <p className="font-bold">{item.companyName || 'ללא שם'}</p>
+                <p className="font-bold">{formatLeadTitle(item.leadNumber, item.companyName)}</p>
                 <p className="text-sm">{item.contactName ? `${item.contactName} · ` : ''}{item.phone || 'אין טלפון'}{item.employeeName ? ` · ${item.employeeName}` : ''}</p>
                 <p className="mt-1 text-xs font-semibold">{leadStatusLabel(item.leadStatus)}{item.reason ? ` — ${item.reason}` : ''}</p>
                 <TimeStampMeta startedAt={item.lastCallAt || item.changedAt} employeeName={item.employeeName} extra={item.lastCallAt ? 'שיחה אחרונה' : 'עודכן'} />
@@ -177,7 +178,7 @@ function LeadDetail({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-card p-5" onClick={(e) => e.stopPropagation()}>
         <button type="button" onClick={onClose} className="float-left text-2xl text-muted-foreground">×</button>
-        <h3 className="mb-2 text-lg font-black">{lead.companyName}</h3>
+        <h3 className="mb-2 text-lg font-black">{formatLeadTitle(lead.leadNumber, lead.companyName)}</h3>
         <p className="text-sm">{lead.contactName} · {lead.phone}</p>
         <p className="mt-1 font-semibold">{LEAD_COLOR_LABEL[lead.leadColor]} · {leadStatusLabel(lead.leadStatus)}</p>
         {lead.reason && <p className="mt-1 text-sm">סיבה: {lead.reason}</p>}

@@ -4,6 +4,7 @@ import { formatDurationSeconds, formatStamp, formatTimeRange } from '@/features/
 import { loadActivityReport } from '@/features/telemarketing/services/activityReportService';
 import type { ActivityFilters, ActivityReport } from '@/features/telemarketing/services/activityReportService';
 import { CALL_RESULTS } from '@/features/telemarketing/types';
+import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 
 const EMPTY: ActivityFilters = {
   from: localDateStr(),
@@ -170,15 +171,15 @@ export function ActivityReportPanel() {
             </table>
           </div>
 
-          <DetailList title="שיחות — משך כל שיחה" items={report.calls.map((c) => `${formatStamp(c.startedAt)} ${formatTimeRange(c.startedAt, c.endedAt)} · ${c.employeeName} · ${c.companyName || 'ללא שם'} · ${c.result || 'ללא תוצאה'} · ${formatDurationSeconds(c.durationSeconds)}`)} />
+          <DetailList title="שיחות — משך כל שיחה" items={report.calls.map((c) => `${formatStamp(c.startedAt)} ${formatTimeRange(c.startedAt, c.endedAt)} · ${c.employeeName} · ${formatLeadTitle(c.leadNumber, c.companyName)} · ${c.result || 'ללא תוצאה'} · ${formatDurationSeconds(c.durationSeconds)}`)} />
           <DetailList title="משימות שאינן שיחה" items={report.work.map((s) => `${formatStamp(s.startedAt)} ${formatTimeRange(s.startedAt, s.endedAt)} · ${s.employeeName} · ${s.taskType || 'משימה'} · ${s.companyName || 'ללא לקוח'} · ${formatDurationSeconds(s.durationSeconds)}`)} />
-          <DetailList title="לקוחות לחזרה" items={report.followUps.map((f) => `${f.companyName} · ${f.employeeName} · חזרה ${f.dueDate}${f.dueTime ? ` ${f.dueTime}` : ''} · נוצר ${formatStamp(f.createdAt)}`)} />
-          <DetailList title="פגישות שנקבעו" items={report.meetings.map((m) => `${m.companyName} · ${m.employeeName} · ${m.when}`)} />
-          <DetailList title="לא מעוניינים" items={report.notInterested.map((n) => `${formatStamp(n.at)} · ${n.companyName} · ${n.employeeName} · ${n.reason}`)} />
-          <DetailList title="מתעניינים" items={report.interested.map((n) => `${formatStamp(n.at)} · ${n.companyName} · ${n.employeeName} · ${n.result}`)} />
-          <DetailList title="לידים חמים" items={report.hotLeads.map((n) => `${formatStamp(n.at)} · ${n.companyName} · ${n.employeeName} · ${n.rating}`)} />
-          <DetailList title="הערות עובד" items={report.notes.map((n) => `${formatStamp(n.at)} · ${n.companyName} · ${n.employeeName} — ${n.note}`)} />
-          <DetailList title="דיווחים / פניות לצוות דליה" items={report.daliaReports.map((c) => `${formatStamp(c.openedAt)}${c.closedAt ? `–${formatStamp(c.closedAt)}` : '–פתוח'} · ${c.agentName} · ${c.careType} · ${c.companyName || 'ללא לקוח'} · ${c.status}`)} />
+          <DetailList title="לקוחות לחזרה" items={report.followUps.map((f) => `${formatLeadTitle(f.leadNumber, f.companyName)} · ${f.employeeName} · חזרה ${f.dueDate}${f.dueTime ? ` ${f.dueTime}` : ''} · נוצר ${formatStamp(f.createdAt)}`)} />
+          <DetailList title="פגישות שנקבעו" items={report.meetings.map((m) => `${formatLeadTitle(m.leadNumber, m.companyName)} · ${m.employeeName} · ${m.when}`)} />
+          <DetailList title="לא מעוניינים" items={report.notInterested.map((n) => `${formatStamp(n.at)} · ${formatLeadTitle(n.leadNumber, n.companyName)} · ${n.employeeName} · ${n.reason}`)} />
+          <DetailList title="מתעניינים" items={report.interested.map((n) => `${formatStamp(n.at)} · ${formatLeadTitle(n.leadNumber, n.companyName)} · ${n.employeeName} · ${n.result}`)} />
+          <DetailList title="לידים חמים" items={report.hotLeads.map((n) => `${formatStamp(n.at)} · ${formatLeadTitle(n.leadNumber, n.companyName)} · ${n.employeeName} · ${n.rating}`)} />
+          <DetailList title="הערות עובד" items={report.notes.map((n) => `${formatStamp(n.at)} · ${formatLeadTitle(n.leadNumber, n.companyName)} · ${n.employeeName} — ${n.note}`)} />
+          <DetailList title="דיווחים / פניות לצוות דליה" items={report.daliaReports.map((c) => `${formatStamp(c.openedAt)}${c.closedAt ? `–${formatStamp(c.closedAt)}` : '–פתוח'} · ${c.agentName} · ${c.careType} · ${formatLeadTitle(c.leadNumber, c.companyName || 'ללא לקוח')} · ${c.status}`)} />
         </>
       )}
     </section>

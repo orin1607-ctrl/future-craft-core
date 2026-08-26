@@ -5,6 +5,8 @@ import { DaliaChatThread } from '@/features/telemarketing/components/DaliaCare/D
 import { DaliaManagerCompose } from '@/features/telemarketing/components/DaliaCare/DaliaManagerCompose';
 import { TEAM_CHAT_STATUSES } from '@/features/telemarketing/types';
 import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
+import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
+import { useLeadNumberLookup } from '@/features/telemarketing/hooks/useLeadNumberLookup';
 import {
   DALIA_CHAT_PARAM,
   stripDaliaChatSearch,
@@ -51,6 +53,7 @@ export function DaliaChatBoard({
   const [urgency, setUrgency] = useState('');
   const [status, setStatus] = useState('');
   const [summary, setSummary] = useState<TeamChatSummary | null>(null);
+  const lookupLead = useLeadNumberLookup();
 
   const load = async () => {
     const rows = await getTeamChats();
@@ -187,7 +190,7 @@ export function DaliaChatBoard({
                   className={`w-full rounded-xl border p-3 text-right ${item.status === 'ממתין לנציג' ? 'border-violet-700 bg-violet-600/20 ring-2 ring-violet-500' : 'border-violet-500/30 bg-violet-500/5'}`}
                 >
                   <div className="flex justify-between gap-2">
-                    <span className="font-bold">{item.companyName || (item.initiatedBy === 'admin' ? 'פנייה פנימית' : 'ללא לקוח')} · {item.careType}</span>
+                    <span className="font-bold">{formatLeadTitle(lookupLead(item.phone, item.companyName), item.companyName || (item.initiatedBy === 'admin' ? 'פנייה פנימית' : 'ללא לקוח'))} · {item.careType}</span>
                     {item.unreadCount > 0 && <span className="rounded-full bg-violet-700 px-2 text-xs font-bold text-white">{item.unreadCount}</span>}
                   </div>
                   <p className="text-sm">{isAdmin ? `${item.agentName} · ` : ''}{item.phone || 'ללא טלפון'} · {item.status} · {item.urgency}{item.initiatedBy === 'admin' ? ' · מנהל→עובד' : ''}</p>

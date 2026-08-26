@@ -1,5 +1,6 @@
 import type { FollowUpGroups } from '@/features/telemarketing/hooks/useFollowUps';
 import type { TelemarketingFollowUp } from '@/features/telemarketing/types';
+import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 
 interface Props {
   groups: FollowUpGroups;
@@ -27,7 +28,7 @@ function Section({
         {items.map((f) => (
           <div key={f.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
             <div className="min-w-0 text-sm">
-              <p className="font-semibold truncate">{f.companyName}</p>
+              <p className="font-semibold truncate">{formatLeadTitle(f.leadNumber, f.companyName)}</p>
               <p className="text-muted-foreground">
                 {f.actionNeeded} · {f.dueDate}
                 {f.dueTime ? ` ${f.dueTime}` : ''} {f.owner ? `· ${f.owner}` : ''}

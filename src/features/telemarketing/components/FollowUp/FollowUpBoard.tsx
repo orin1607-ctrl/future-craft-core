@@ -3,6 +3,7 @@ import type { FollowUpWorkItem } from '@/features/telemarketing/types';
 import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadTimeline';
 import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
 import { formatStamp } from '@/features/telemarketing/lib/formatTime';
+import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 
 const BUCKET_LABEL: Record<FollowUpWorkItem['bucket'], string> = {
   late: 'באיחור',
@@ -44,7 +45,7 @@ function applyFilters(items: FollowUpWorkItem[], filters: FollowUpFiltersState, 
   const q = filters.search.trim().toLowerCase();
   return items.filter((item) => {
     if (q) {
-      const hay = `${item.companyName} ${item.contactName ?? ''} ${item.phone}`.toLowerCase();
+      const hay = `${item.leadNumber || ''} ${item.companyName} ${item.contactName ?? ''} ${item.phone}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     if (filters.fromDate && item.dueDate < filters.fromDate) return false;
@@ -198,7 +199,7 @@ export function FollowUpBoard({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-bold">
                     {item.leadColor === 'red' ? '🔴 ' : item.leadColor === 'green' ? '🟢 ' : item.leadColor === 'yellow' ? '🟡 ' : ''}
-                    {item.companyName || 'ללא שם'}
+                    {formatLeadTitle(item.leadNumber, item.companyName)}
                   </span>
                   <span className="text-xs font-semibold">
                     {BUCKET_LABEL[item.bucket]} · {item.dueDate}
@@ -231,7 +232,7 @@ export function FollowUpBoard({
                 onClick={() => setSelected(item)}
                 className="w-full rounded-xl border border-destructive bg-destructive/10 p-3 text-right text-destructive"
               >
-                <span className="font-bold">🔴 {item.companyName || 'ללא שם'}</span>
+                <span className="font-bold">🔴 {formatLeadTitle(item.leadNumber, item.companyName)}</span>
                 <p className="text-sm">{item.closeReason || item.lastSummary || item.lastResult}</p>
               </button>
             ))}
@@ -248,7 +249,7 @@ export function FollowUpBoard({
             <button type="button" onClick={() => setSelected(null)} className="float-left text-2xl text-muted-foreground">
               ×
             </button>
-            <h3 className="mb-3 text-lg font-black">{selected.companyName}</h3>
+            <h3 className="mb-3 text-lg font-black">{formatLeadTitle(selected.leadNumber, selected.companyName)}</h3>
             <LeadTimeline
               followUp={selected}
               showStartButton={allowStartReturn}

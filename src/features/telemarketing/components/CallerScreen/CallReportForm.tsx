@@ -2,6 +2,7 @@ import { CALL_RESULTS, LEAD_RATINGS, URGENCY_LEVELS } from '@/features/telemarke
 import type { ReportDraft } from '@/features/telemarketing/hooks/useActiveCall';
 import { LEAD_COLOR_LABEL, LEAD_STATUSES, keepsContinuedTreatment, suggestedLeadTraffic, type LeadColor } from '@/features/telemarketing/lib/leadTraffic';
 import { DaliaCareFields } from '@/features/telemarketing/components/DaliaCare/DaliaCareFields';
+import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 
 interface Props {
   draft: ReportDraft;
@@ -9,15 +10,20 @@ interface Props {
   onSubmit: () => void;
   submitting: boolean;
   error: string | null;
+  leadNumber?: string | null;
+  companyName?: string | null;
 }
 
 const chipBase = 'min-h-12 rounded-xl border px-3 py-2 text-sm text-center select-none transition-colors';
 const chipInactive = 'border-border bg-background text-foreground';
 const chipActive = 'border-primary bg-primary text-primary-foreground font-semibold';
 
-export function CallReportForm({ draft, onChange, onSubmit, submitting, error }: Props) {
+export function CallReportForm({ draft, onChange, onSubmit, submitting, error, leadNumber, companyName }: Props) {
   return (
     <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
+      {leadNumber && (
+        <p className="text-center text-lg font-black" data-testid="tele-lead-number">{formatLeadTitle(leadNumber, companyName)}</p>
+      )}
       <div>
         <label className="mb-2 block text-sm font-semibold">תוצאת השיחה</label>
         <div className="grid grid-cols-2 gap-2">

@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { leadKey, isUsableLeadKey } from '@/features/telemarketing/lib/leadKey';
 import type { TelemarketingLeadState } from '@/features/telemarketing/types';
 import type { LeadColor } from '@/features/telemarketing/lib/leadTraffic';
+import { attachLeadNumbers } from '@/features/telemarketing/services/leadDirectoryService';
 
 const TABLE_STATES = 'telemarketing_lead_states';
 const TABLE_EVENTS = 'telemarketing_lead_status_events';
@@ -26,7 +27,7 @@ function mapState(row: Record<string, unknown>): TelemarketingLeadState {
 export async function getLeadStates(): Promise<TelemarketingLeadState[]> {
   const { data, error } = await supabase.from(TABLE_STATES).select('*').order('changed_at', { ascending: false });
   if (error) throw new Error(error.message);
-  return (data ?? []).map((row) => mapState(row as Record<string, unknown>));
+  return attachLeadNumbers((data ?? []).map((row) => mapState(row as Record<string, unknown>)));
 }
 
 export async function upsertLeadState(payload: {

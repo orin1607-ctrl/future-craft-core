@@ -11,6 +11,8 @@ import {
 import { TEAM_CHAT_STATUSES } from '@/features/telemarketing/types';
 import { TimeStampLines } from '@/features/telemarketing/components/TimeStampMeta';
 import { formatStamp } from '@/features/telemarketing/lib/formatTime';
+import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
+import { useLeadNumberLookup } from '@/features/telemarketing/hooks/useLeadNumberLookup';
 import type { TeamChat, TeamChatMessage, TeamChatStatus } from '@/features/telemarketing/types';
 
 function OpenDurationClock({ openedAt, closedAt }: { openedAt: string; closedAt: string | null }) {
@@ -41,6 +43,7 @@ export function DaliaChatThread({
   backLabel?: string;
 }) {
   const [local, setLocal] = useState(chat);
+  const lookupLead = useLeadNumberLookup();
   const [messages, setMessages] = useState<TeamChatMessage[]>([]);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -125,7 +128,7 @@ export function DaliaChatThread({
         </div>
       )}
       <p className="font-black text-violet-800 dark:text-violet-300">🟣 {local.careType}{local.careTypeOther ? ` — ${local.careTypeOther}` : ''}</p>
-      <p>{local.companyName || (local.initiatedBy === 'admin' ? 'פנייה פנימית' : 'ללא לקוח')}{local.contactName ? ` · ${local.contactName}` : ''}{local.phone ? ` · ${local.phone}` : ''}</p>
+      <p>{formatLeadTitle(lookupLead(local.phone, local.companyName), local.companyName || (local.initiatedBy === 'admin' ? 'פנייה פנימית' : 'ללא לקוח'))}{local.contactName ? ` · ${local.contactName}` : ''}{local.phone ? ` · ${local.phone}` : ''}</p>
       <p>נציג: {local.agentName} · סטטוס: {local.status} · {local.urgency}{local.initiatedBy === 'admin' ? ' · נפתח ע״י מנהל' : ''}</p>
       <TimeStampLines startedAt={local.openedAt} endedAt={local.closedAt} employeeName={local.agentName} />
       <OpenDurationClock openedAt={local.openedAt} closedAt={local.closedAt} />

@@ -18,6 +18,7 @@ import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/s
 import { claimAssignedLead, claimNextAssignedLead, createManualDirectoryLead, listLeadDirectory } from '@/features/telemarketing/services/leadDirectoryService';
 import { directoryLeadToCustomer } from '@/features/telemarketing/lib/leadAssign/selectScope';
 import { keepsContinuedTreatment } from '@/features/telemarketing/lib/leadTraffic';
+import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import type { CustomerRef, FollowUpWorkItem, TelemarketingEmployee } from '@/features/telemarketing/types';
 import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
 import { ClipboardList } from 'lucide-react';
@@ -183,12 +184,14 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         }
         if (resolved.lead) {
           setActiveDirectoryLead(resolved.lead);
-          if (resolved.action === 'existing') {
+          setManualCustomer(directoryLeadToCustomer(resolved.lead));
+          if (resolved.action === 'created') {
+            showToast('success', `נוצר ליד #${resolved.lead.leadNumber}`);
+          } else if (resolved.action === 'existing') {
             showToast('success', `הליד כבר במאגר (#${resolved.lead.leadNumber}) — ממשיכים עליו, לא נוצר ליד חדש`);
-            setManualCustomer(directoryLeadToCustomer(resolved.lead));
-            await startCallWith(directoryLeadToCustomer(resolved.lead), returnHint?.id);
-            return;
           }
+          await startCallWith(directoryLeadToCustomer(resolved.lead), returnHint?.id);
+          return;
         }
       }
       await startCallWith(manualCustomer, returnHint?.id);
@@ -371,6 +374,9 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
 
       {showHomeActions && activeDirectoryLead && (
         <div className="space-y-2" data-testid="tele-lead-preview">
+          <p className="rounded-xl border border-emerald-700/40 bg-emerald-50 p-3 text-center text-xl font-black dark:bg-emerald-950/30" data-testid="tele-lead-number">
+            {formatLeadTitle(activeDirectoryLead.leadNumber, activeDirectoryLead.companyName)}
+          </p>
           <p className="rounded-xl border border-emerald-700/40 bg-emerald-50 p-3 text-sm font-semibold dark:bg-emerald-950/30">
             פרטי הליד מוצגים למטה. השיחה לא התחילה. לחצו «התחל שיחה» כשאתם מוכנים.
           </p>
@@ -379,6 +385,9 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
 
       {(call?.sourceFollowUpId || (returnHint && showHomeActions)) && (
         <div className="space-y-2 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm">
+          <p className="font-black">
+            {formatLeadTitle(activeDirectoryLead?.leadNumber, returnHint?.companyName || activeDirectoryLead?.companyName)}
+          </p>
           <p className="font-black">
             {call?.sourceFollowUpId ? 'שיחת חזרה — נוצרת רשומת שיחה חדשה. הסיכום הקודם נשמר בהיסטוריה.' : 'המשך טיפול — אותו ליד. לחצו התחל שיחה אחרי עיון בפרטים.'}
           </p>
@@ -521,6 +530,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           startedAt={call?.startedAt}
           endedAt={call?.endedAt}
           employeeName={call?.employeeName || currentEmployee.displayName}
+          leadLabel={activeDirectoryLead?.leadNumber ? formatLeadTitle(activeDirectoryLead.leadNumber, call?.companyName || activeDirectoryLead.companyName) : undefined}
           onStart={() => void handleStart()}
           onEnd={() => void finishCallTiming()}
         />
@@ -528,6 +538,8 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
 
       {reportOpen && (
         <CallReportForm
+          leadNumber={activeDirectoryLead?.leadNumber}
+          companyName={call?.companyName || activeDirectoryLead?.companyName}
           draft={draft}
           onChange={updateDraft}
           onSubmit={() => void handleSubmit()}

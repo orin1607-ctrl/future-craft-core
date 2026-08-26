@@ -3,6 +3,7 @@ import type { CallWithPriority } from '@/features/telemarketing/hooks/useTelemar
 import { PlayRecordingButton } from '@/features/telemarketing/components/AdminDashboard/PlayRecordingButton';
 import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
 import { formatClock, formatDay, formatDurationSeconds, formatStamp } from '@/features/telemarketing/lib/formatTime';
+import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 
 interface Props {
   calls: CallWithPriority[];
@@ -23,7 +24,7 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
 
   const filtered = calls.filter((c) => {
     if (search) {
-      const hay = `${c.companyName} ${c.contactName ?? ''} ${c.phone}`.toLowerCase();
+      const hay = `${c.leadNumber || ''} ${c.companyName} ${c.contactName ?? ''} ${c.phone}`.toLowerCase();
       if (!hay.includes(search.toLowerCase())) return false;
     }
     if (effectiveAgentFilter && c.employeeName !== effectiveAgentFilter) return false;
@@ -107,7 +108,7 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
                 onClick={() => setSelected(c)}
                 className="cursor-pointer border-t border-border hover:bg-muted/40"
               >
-                <td className="p-3 font-semibold">{c.companyName || c.contactName || 'ללא שם'}</td>
+                <td className="p-3 font-semibold">{formatLeadTitle(c.leadNumber, c.companyName || c.contactName)}</td>
                 <td className="p-3">{c.employeeName}</td>
                 <td className="p-3">{c.result || '-'}</td>
                 <td className="p-3">{c.leadRating || '-'}</td>
@@ -147,7 +148,7 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
               className="w-full p-3 text-right"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-bold">{c.companyName || c.contactName || 'ללא שם'}</span>
+                <span className="font-bold">{formatLeadTitle(c.leadNumber, c.companyName || c.contactName)}</span>
               </div>
               <TimeStampMeta startedAt={c.startedAt} endedAt={c.endedAt} durationSeconds={c.durationSeconds} employeeName={c.employeeName} />
               <div className="mt-1 text-sm">
@@ -173,7 +174,7 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
             <button type="button" onClick={() => setSelected(null)} className="float-left text-2xl text-muted-foreground">
               ×
             </button>
-            <h3 className="mb-3 text-lg font-bold">{selected.companyName}</h3>
+            <h3 className="mb-3 text-lg font-bold">{formatLeadTitle(selected.leadNumber, selected.companyName)}</h3>
             <dl className="space-y-2 text-sm">
               <Field label="עובד" value={selected.employeeName} />
               <Field label="תאריך שיחה" value={formatDay(selected.startedAt)} />

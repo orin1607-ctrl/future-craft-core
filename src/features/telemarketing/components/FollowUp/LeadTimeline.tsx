@@ -5,6 +5,7 @@ import { PlayRecordingButton } from '@/features/telemarketing/components/AdminDa
 import { DaliaCareLeadEvents } from '@/features/telemarketing/components/DaliaCare/DaliaCareLeadEvents';
 import { TimeStampLines } from '@/features/telemarketing/components/TimeStampMeta';
 import { formatStamp } from '@/features/telemarketing/lib/formatTime';
+import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import type { FollowUpWorkItem, TelemarketingCall, TelemarketingWorkSession } from '@/features/telemarketing/types';
 
 export function LeadTimeline({
@@ -43,6 +44,7 @@ export function LeadTimeline({
   return (
     <div className="space-y-3 text-sm">
       <dl className="grid grid-cols-2 gap-2">
+        <Field label="מספר ליד" value={followUp.leadNumber ? `#${followUp.leadNumber}` : undefined} />
         <Field label="חברה" value={followUp.companyName} />
         <Field label="איש קשר" value={followUp.contactName} />
         <Field label="טלפון" value={followUp.phone} />
@@ -74,7 +76,7 @@ export function LeadTimeline({
           {history.map((c, index) => (
             <li key={c.id} className="rounded-xl border border-border bg-background p-3">
               <p className="font-bold">
-                שיחה {index + 1} · {c.result || 'ללא תוצאה'}
+                שיחה {index + 1} · {formatLeadTitle(c.leadNumber || followUp.leadNumber, c.companyName)} · {c.result || 'ללא תוצאה'}
               </p>
               <TimeStampLines startedAt={c.startedAt} endedAt={c.endedAt} durationSeconds={c.durationSeconds} employeeName={c.employeeName} />
               {c.summary && <p className="mt-1">{c.summary}</p>}

@@ -3,7 +3,7 @@ import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImpor
 export function DirectoryLeadCard({ lead }: { lead: LeadDirectoryRecord }) {
   return (
     <div className="rounded-2xl border border-emerald-700/40 bg-emerald-50 p-4 dark:bg-emerald-950/30" data-testid="directory-lead-card">
-      <p className="text-lg font-black">ליד #{lead.leadNumber || '—'} — {lead.companyName || 'ללא שם חברה'}</p>
+      <p className="text-lg font-black" data-testid="tele-lead-number">ליד #{lead.leadNumber || '—'} — {lead.companyName || 'ללא שם חברה'}</p>
       <dl className="mt-2 grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
         <div><span className="text-muted-foreground">תחום: </span>{lead.industry || '—'}</div>
         <div><span className="text-muted-foreground">אזור: </span>{lead.region || '—'}</div>

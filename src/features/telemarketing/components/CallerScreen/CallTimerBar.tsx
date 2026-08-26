@@ -9,6 +9,7 @@ interface Props {
   startedAt?: string | null;
   endedAt?: string | null;
   employeeName?: string | null;
+  leadLabel?: string | null;
   onStart: () => void;
   onEnd: () => void;
 }
@@ -19,7 +20,7 @@ function formatMMSS(totalSeconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function CallTimerBar({ status, elapsedSeconds, starting, isRecording = false, startedAt, endedAt, employeeName, onStart, onEnd }: Props) {
+export function CallTimerBar({ status, elapsedSeconds, starting, isRecording = false, startedAt, endedAt, employeeName, leadLabel, onStart, onEnd }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       {status === 'idle' && (
@@ -38,6 +39,7 @@ export function CallTimerBar({ status, elapsedSeconds, starting, isRecording = f
       {status === 'in_progress' && (
         <div className="text-center">
           <p className="mb-2 text-sm text-muted-foreground">השיחה פעילה</p>
+          {leadLabel && <p className="mb-2 text-base font-black" data-testid="tele-lead-number">{leadLabel}</p>}
           {isRecording && (
             <p className="mb-2 text-sm font-bold text-destructive" aria-live="polite">
               🔴 מקליט

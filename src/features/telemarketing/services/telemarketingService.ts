@@ -4,6 +4,7 @@ import { followUpBucket, localDateStr } from '@/features/telemarketing/lib/local
 import { formatClock, formatDay } from '@/features/telemarketing/lib/formatTime';
 import { leadKey } from '@/features/telemarketing/lib/leadKey';
 import { keepsContinuedTreatment, suggestedLeadTraffic } from '@/features/telemarketing/lib/leadTraffic';
+import { attachLeadNumbers } from '@/features/telemarketing/services/leadDirectoryService';
 import { closeOpenFollowUpsForLead, getLeadStates, upsertLeadState } from '@/features/telemarketing/services/leadStateService';
 import { getWorkSessions } from '@/features/telemarketing/services/workSessionService';
 import type {
@@ -371,7 +372,7 @@ export async function getDashboardData(limit = 300): Promise<{
 
   if (error) throw new Error('שגיאה בטעינת נתוני Dashboard: ' + error.message);
 
-  const calls = (data ?? []).map(mapCallRow);
+  const calls = await attachLeadNumbers((data ?? []).map(mapCallRow));
   const today = todayStr();
 
   const summary: TelemarketingDashboardSummary = {
@@ -436,7 +437,7 @@ export async function getFollowUps(filter?: { status?: 'open' | 'done' }): Promi
   if (filter?.status) query = query.eq('status', filter.status);
   const { data, error } = await query;
   if (error) throw new Error('שגיאה בטעינת Follow-ups: ' + error.message);
-  return (data ?? []).map(mapFollowUpRow);
+  return attachLeadNumbers((data ?? []).map(mapFollowUpRow));
 }
 
 export async function getFollowUpWorkItems(): Promise<FollowUpWorkItem[]> {
@@ -486,7 +487,7 @@ export async function getLeadHistory(phone: string, companyName: string): Promis
     .order('started_at', { ascending: true })
     .limit(50);
   if (error || !data) return [];
-  return data.map(mapCallRow);
+  return attachLeadNumbers(data.map(mapCallRow));
 }
 
 export async function completeFollowUp(followUpId: string, completedBy: string): Promise<TelemarketingFollowUp> {

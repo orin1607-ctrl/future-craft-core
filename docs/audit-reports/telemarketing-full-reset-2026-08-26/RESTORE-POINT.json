@@ -1,0 +1,13 @@
+{
+  "at": "2026-08-26T18:27:21.382Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "codeCommit": "032824cee425be7549f7828c06c613b5f118bfdc",
+  "branch": "feat/incident-alerts-staging",
+  "keep": {
+    "tair": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "directoryLeads": "1-29"
+  },
+  "note": "Data reset only. Do not revert feature commits. Restore tables from full-backup.json if needed."
+}

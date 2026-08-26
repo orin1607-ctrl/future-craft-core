@@ -71,6 +71,7 @@ export interface TelemarketingCall extends CustomerRef {
   clientToken: string;
   createdAt: string;
   updatedAt: string;
+  leadNumber?: string | null;
 }
 
 export interface TelemarketingFollowUp {
@@ -90,6 +91,7 @@ export interface TelemarketingFollowUp {
   completedAt: string | null;
   closedByCallId: string | null;
   createdAt: string;
+  leadNumber?: string | null;
 }
 
 export interface StartCallPayload {
@@ -274,6 +276,7 @@ export interface TelemarketingLeadState {
   workSeconds?: number;
   lastCallAt?: string | null;
   nextFollowUp?: string | null;
+  leadNumber?: string | null;
 }
 
 export interface ActivityJournalItem {
@@ -347,6 +350,7 @@ export interface TeamChat {
   closingSummary: string | null;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
+  leadNumber?: string | null;
   unreadCount: number;
   initiatedBy: 'agent' | 'admin';
 }

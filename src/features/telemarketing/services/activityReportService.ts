@@ -62,11 +62,11 @@ export interface ActivityReport {
   calls: TelemarketingCall[];
   work: TelemarketingWorkSession[];
   followUps: FollowUpWorkItem[];
-  meetings: { companyName: string; employeeName: string; when: string; callId: string }[];
-  notInterested: { companyName: string; employeeName: string; reason: string; at: string }[];
-  interested: { companyName: string; employeeName: string; result: string; at: string }[];
-  hotLeads: { companyName: string; employeeName: string; rating: string; at: string }[];
-  notes: { companyName: string; employeeName: string; note: string; at: string }[];
+  meetings: { companyName: string; employeeName: string; when: string; callId: string; leadNumber?: string | null }[];
+  notInterested: { companyName: string; employeeName: string; reason: string; at: string; leadNumber?: string | null }[];
+  interested: { companyName: string; employeeName: string; result: string; at: string; leadNumber?: string | null }[];
+  hotLeads: { companyName: string; employeeName: string; rating: string; at: string; leadNumber?: string | null }[];
+  notes: { companyName: string; employeeName: string; note: string; at: string; leadNumber?: string | null }[];
   daliaReports: TeamChat[];
   unmeasured: UnmeasuredMetric[];
 }
@@ -228,6 +228,7 @@ export function buildActivityReport(input: {
         employeeName: c.employeeName,
         when: c.followUpDate ? `${c.followUpDate}${c.followUpTime ? ` ${c.followUpTime}` : ''}` : 'ללא מועד שמור',
         callId: c.id,
+        leadNumber: c.leadNumber,
       })),
     notInterested: calls
       .filter((c) => c.result === 'לא מעוניין' || c.result === 'לא רלוונטי')
@@ -236,6 +237,7 @@ export function buildActivityReport(input: {
         employeeName: c.employeeName,
         reason: c.managerNote || c.summary || c.result || '',
         at: c.startedAt,
+        leadNumber: c.leadNumber,
       })),
     interested: calls
       .filter((c) => INTERESTED_RESULTS.includes((c.result || '') as CallResult))
@@ -244,6 +246,7 @@ export function buildActivityReport(input: {
         employeeName: c.employeeName,
         result: c.result || '',
         at: c.startedAt,
+        leadNumber: c.leadNumber,
       })),
     hotLeads: calls
       .filter((c) => HOT_RATINGS.includes((c.leadRating || '') as (typeof HOT_RATINGS)[number]))
@@ -252,6 +255,7 @@ export function buildActivityReport(input: {
         employeeName: c.employeeName,
         rating: c.leadRating || '',
         at: c.startedAt,
+        leadNumber: c.leadNumber,
       })),
     notes: calls
       .filter((c) => (c.summary || c.managerNote || '').trim())
@@ -260,6 +264,7 @@ export function buildActivityReport(input: {
         employeeName: c.employeeName,
         note: [c.summary, c.managerNote].filter(Boolean).join(' · '),
         at: c.startedAt,
+        leadNumber: c.leadNumber,
       })),
     daliaReports: chats,
     unmeasured: [

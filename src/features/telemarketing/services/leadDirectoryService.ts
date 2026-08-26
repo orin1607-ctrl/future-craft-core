@@ -11,6 +11,30 @@ import type {
   MappedLeadRow,
 } from '@/features/telemarketing/lib/leadImport/types';
 import { getTelemarketingAgents } from '@/features/telemarketing/services/teamChatService';
+import { lookupLeadNumber } from '@/features/telemarketing/lib/leadLabel';
+
+let directoryCache: { at: number; rows: LeadDirectoryRecord[] } | null = null;
+
+export function invalidateLeadDirectoryCache() {
+  directoryCache = null;
+}
+
+export async function getLeadDirectoryCached(): Promise<LeadDirectoryRecord[]> {
+  if (directoryCache && Date.now() - directoryCache.at < 20000) return directoryCache.rows;
+  const rows = await listLeadDirectory();
+  directoryCache = { at: Date.now(), rows };
+  return rows;
+}
+
+export async function attachLeadNumbers<T extends { phone?: string | null; companyName?: string | null }>(
+  items: T[],
+): Promise<(T & { leadNumber: string | null })[]> {
+  const rows = await getLeadDirectoryCached();
+  return items.map((item) => ({
+    ...item,
+    leadNumber: lookupLeadNumber(rows, item.phone, item.companyName),
+  }));
+}
 
 function mapDirectory(row: Record<string, unknown>): LeadDirectoryRecord {
   return {
@@ -42,7 +66,9 @@ export async function listLeadDirectory(): Promise<LeadDirectoryRecord[]> {
     .order('created_at', { ascending: false })
     .limit(4000);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((row) => mapDirectory(row as Record<string, unknown>));
+  const rows = (data ?? []).map((row) => mapDirectory(row as Record<string, unknown>));
+  directoryCache = { at: Date.now(), rows };
+  return rows;
 }
 
 export async function listLeadImportBatches(): Promise<LeadImportBatch[]> {
@@ -171,6 +197,7 @@ export async function createManualDirectoryLead(payload: {
     p_fleet_size: payload.fleetSize || '',
   } as never);
   if (error) throw new Error(error.message);
+  invalidateLeadDirectoryCache();
   const result = (data || {}) as Record<string, unknown>;
   const action = String(result.action || '') as 'created' | 'existing' | 'duplicate_other';
   const leadRaw = result.lead as Record<string, unknown> | undefined;

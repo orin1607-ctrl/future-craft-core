@@ -1,0 +1,776 @@
+{
+  "at": "2026-08-26T18:27:21.382Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "tair": {
+    "id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "full_name": "תאיר",
+    "email": "tairmizrahi311@gmail.com",
+    "is_active": true,
+    "roles": [
+      "telemarketing_agent"
+    ]
+  },
+  "directory": {
+    "count": 30,
+    "numbers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30"
+    ],
+    "expected29": false,
+    "assignedToTair": 30,
+    "claimed": [
+      {
+        "lead_number": "1",
+        "company_name": "מערכות אשד",
+        "claimed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "claimed_at": "2026-08-26T18:04:35.591255+00:00"
+      },
+      {
+        "lead_number": "2",
+        "company_name": "פייר אאוט",
+        "claimed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "claimed_at": "2026-08-26T18:11:21.77924+00:00"
+      }
+    ],
+    "archived": [],
+    "leads": [
+      {
+        "lead_number": "1",
+        "company_name": "מערכות אשד",
+        "phone": "03-5584555",
+        "email": "info@ashd.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "claimed_at": "2026-08-26T18:04:35.591255+00:00",
+        "archived_at": null
+      },
+      {
+        "lead_number": "10",
+        "company_name": "דקלה שירות רפואי",
+        "phone": "03-6252222",
+        "email": "service@dikla.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "11",
+        "company_name": "קומסקו",
+        "phone": "09-7633222",
+        "email": "info@comasco.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "12",
+        "company_name": "קיסריה פולימרים",
+        "phone": "04-6371111",
+        "email": "info@caesarea-polymers.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "13",
+        "company_name": "מפעלי חמצן וארגון",
+        "phone": "04-6374444",
+        "email": "sales@oxygen.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "14",
+        "company_name": "טירת צבי",
+        "phone": "04-6411111",
+        "email": "info@tiratzvi.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "15",
+        "company_name": "מחלבות גד",
+        "phone": "08-9311111",
+        "email": "logistics@gad.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "16",
+        "company_name": "בלדי",
+        "phone": "1-800-300-300",
+        "email": "sales@baladi.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "17",
+        "company_name": "מי עדן שירות",
+        "phone": "*5335",
+        "email": "service@meyeden.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "18",
+        "company_name": "נביעות שירות",
+        "phone": "*6444",
+        "email": "info@neviot.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "19",
+        "company_name": "מדיקל סרוויס",
+        "phone": "03-6111111",
+        "email": "info@medicalservice.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "2",
+        "company_name": "פייר אאוט",
+        "phone": "03-9518818",
+        "email": "office@fireout.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "claimed_at": "2026-08-26T18:11:21.77924+00:00",
+        "archived_at": null
+      },
+      {
+        "lead_number": "20",
+        "company_name": "אמון ניקיון",
+        "phone": "09-8625222",
+        "email": "service@emun-clean.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "21",
+        "company_name": "אור ניקיון",
+        "phone": "03-6185111",
+        "email": "info@or-clean.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "22",
+        "company_name": "ניקיון הזהב",
+        "phone": "03-9212222",
+        "email": "office@gold-clean.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "23",
+        "company_name": "ברק ניקיון",
+        "phone": "03-5704040",
+        "email": "office@barak-clean.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "24",
+        "company_name": "ספץ אינסטלציה",
+        "phone": "03-9044444",
+        "email": "service@spatz-plumbing.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "25",
+        "company_name": "אינסטלציה המומחה",
+        "phone": "072-3925555",
+        "email": "info@plumber-expert.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "26",
+        "company_name": "ד\"ר ביוב",
+        "phone": "1-800-25-26-27",
+        "email": "info@drbiuv.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "27",
+        "company_name": "ביובית המרכז",
+        "phone": "03-9014444",
+        "email": "service@biuv-center.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "28",
+        "company_name": "אינסטלציה ירוקה",
+        "phone": "03-6503333",
+        "email": "green@plumbing.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "29",
+        "company_name": "טורנדו שירות",
+        "phone": "*5055",
+        "email": "service@tornado.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "3",
+        "company_name": "יהודה בטיחות",
+        "phone": "08-8566543",
+        "email": "info@yehuda-safety.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "30",
+        "company_name": "יוסי בדיקה",
+        "phone": "555555",
+        "email": "",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "4",
+        "company_name": "קבוצת אלרם",
+        "phone": "03-9021200",
+        "email": "sales@elram.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "5",
+        "company_name": "מנועי פרידמן",
+        "phone": "03-9244451",
+        "email": "office@friedman-eng.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "6",
+        "company_name": "גנרטורים פלוס",
+        "phone": "072-3926222",
+        "email": "info@generatorsplus.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "7",
+        "company_name": "א.א. גנרטורים",
+        "phone": "09-8611111",
+        "email": "service@aa-generators.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "8",
+        "company_name": "מדיטק",
+        "phone": "02-9901111",
+        "email": "service@meditech.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      },
+      {
+        "lead_number": "9",
+        "company_name": "דיגניה",
+        "phone": "09-8351111",
+        "email": "info@degania-med.co.il",
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "assigned_name": "תאיר",
+        "claimed_by": null,
+        "claimed_at": null,
+        "archived_at": null
+      }
+    ]
+  },
+  "agents": [
+    {
+      "id": "e260ae41-c144-4545-bbf3-36f1d2735180",
+      "full_name": "אבי טלמיטינג",
+      "is_active": true,
+      "job_title": "מנהל",
+      "email": "yoni133333@gmail.com",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "51a99114-a5e8-4df3-8cdf-70189c84a0c7",
+      "full_name": "QA Tele deactivated 09270134",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-tele-agent-09270134@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "d364cd15-6edb-475e-b9c9-1b22ef715f7b",
+      "full_name": "QA Tele deactivated 09270134",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-tele-agent2-09270134@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "b505f5c4-dd30-4315-a1a6-8464b47d531b",
+      "full_name": "QA Tele deactivated 09321993",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-tele-agent-09321993@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "c27dab60-a35c-4141-bc63-3ad0bcbf2c66",
+      "full_name": "QA Tele deactivated 09321993",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-tele-agent2-09321993@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "73800f3c-d7b7-4e7e-9db6-84722211c6bb",
+      "full_name": "QA Chat deactivated 10490628",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-chat-agent-10490628@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "60f009b4-84c3-44bb-87fc-be643ef3c370",
+      "full_name": "QA Chat deactivated 10566696",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-chat-agent-10566696@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "b6dea832-8a97-4316-ba52-ce5088a46966",
+      "full_name": "QA Chat deactivated 10679263",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-chat-agent-10679263@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "a19bf87c-d30c-4d6a-a7f3-4333e4b1ae58",
+      "full_name": "QA Chat deactivated 11699210",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-chat-agent-11699210@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "c36f70bb-af3f-4912-b90b-66d61e19e518",
+      "full_name": "QA Chat deactivated 11962502",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-chat-agent-11962502@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "57a75bc7-d34f-409c-bd09-18bf0178f6bd",
+      "full_name": "QA Chat deactivated 12028230",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-chat-agent-12028230@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "04088c0e-f91a-49bc-be42-3b917243a6fd",
+      "full_name": "QA Chat deactivated 12172127",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-chat-agent-12172127@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "ea683c27-fb42-4d6f-b1e5-4a6f34f44590",
+      "full_name": "QA Chat deactivated 12318813",
+      "is_active": false,
+      "job_title": null,
+      "email": "qa-chat-agent-12318813@staging-e2e.local",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": false
+    },
+    {
+      "id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "full_name": "תאיר",
+      "is_active": true,
+      "job_title": "מוכר ",
+      "email": "tairmizrahi311@gmail.com",
+      "roles": [
+        "telemarketing_agent"
+      ],
+      "isTair": true
+    }
+  ],
+  "counts": {
+    "calls": 9,
+    "followups": 7,
+    "work": 1,
+    "chats": 1,
+    "states": 3,
+    "statusEvents": 0,
+    "assignmentEvents": 94,
+    "messages": 1
+  },
+  "callsSlim": [
+    {
+      "id": "cddec8b8-8136-4594-90e2-e512229eee38",
+      "company_name": "יוני",
+      "phone": "555",
+      "employee_name": "יוני אטיאס",
+      "employee_id": "7fd0a5b9-ae13-4d9c-9e18-27a036103eae",
+      "result": null,
+      "summary": null,
+      "status": "in_progress",
+      "started_at": "2026-08-24T15:35:56.018+00:00",
+      "qa": false
+    },
+    {
+      "id": "2d0419d4-033d-47f6-a637-5bbe1cf6bed7",
+      "company_name": "אבי ",
+      "phone": "12345",
+      "employee_name": "יוני אטיאס",
+      "employee_id": "7fd0a5b9-ae13-4d9c-9e18-27a036103eae",
+      "result": "דיברנו",
+      "summary": "טאאאא עיי. עיייחכ. מטיוו",
+      "status": "completed",
+      "started_at": "2026-08-24T16:30:57.501+00:00",
+      "qa": false
+    },
+    {
+      "id": "08e58f43-e3d1-4a6c-9328-2c3245c449ed",
+      "company_name": "חיים",
+      "phone": "54321",
+      "employee_name": "יוני אטיאס",
+      "employee_id": "7fd0a5b9-ae13-4d9c-9e18-27a036103eae",
+      "result": "מעוניין",
+      "summary": "שרוצה להמשיך שיחה",
+      "status": "completed",
+      "started_at": "2026-08-24T16:57:49.261+00:00",
+      "qa": false
+    },
+    {
+      "id": "00b7fa6d-5903-4cb6-8391-3b9cf57fae27",
+      "company_name": "בדיקת טלמיטינג",
+      "phone": "76543",
+      "employee_name": "אבי טלמיטינג",
+      "employee_id": "e260ae41-c144-4545-bbf3-36f1d2735180",
+      "result": "מעוניין",
+      "summary": "רוצה מחר שנחזור אליו",
+      "status": "completed",
+      "started_at": "2026-08-24T19:02:52.931+00:00",
+      "qa": false
+    },
+    {
+      "id": "2637a2ff-df20-4620-9c05-31eafc28104a",
+      "company_name": "בדיקת טלמיטינג",
+      "phone": "76543",
+      "employee_name": "אבי טלמיטינג",
+      "employee_id": "e260ae41-c144-4545-bbf3-36f1d2735180",
+      "result": "לא ענה",
+      "summary": "תתקשר יותר מאוחר",
+      "status": "completed",
+      "started_at": "2026-08-24T19:27:36.319+00:00",
+      "qa": false
+    },
+    {
+      "id": "b3b429df-84ee-487b-8185-066428ccb792",
+      "company_name": "יוסי  2",
+      "phone": "0534338601",
+      "employee_name": "אבי טלמיטינג",
+      "employee_id": "e260ae41-c144-4545-bbf3-36f1d2735180",
+      "result": "לא מעוניין",
+      "summary": "cczc",
+      "status": "completed",
+      "started_at": "2026-08-24T19:50:47.985+00:00",
+      "qa": false
+    },
+    {
+      "id": "5bf4b4bc-216a-4be0-a34f-fc509b7f69f2",
+      "company_name": "מערכות אשד",
+      "phone": "03-5584555",
+      "employee_name": "תאיר",
+      "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "result": "לנסות שוב",
+      "summary": "אאיחל. יייט",
+      "status": "completed",
+      "started_at": "2026-08-26T18:06:33.28+00:00",
+      "qa": false
+    },
+    {
+      "id": "06692df2-490b-496d-9ac6-8e1781468315",
+      "company_name": "פייר אאוט",
+      "phone": "03-9518818",
+      "employee_name": "תאיר",
+      "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "result": "לא ענה",
+      "summary": "טטטט",
+      "status": "completed",
+      "started_at": "2026-08-26T18:14:02.699+00:00",
+      "qa": false
+    },
+    {
+      "id": "dc2df12e-6edb-4c57-a640-9429fceada03",
+      "company_name": "יוסי בדיקה",
+      "phone": "555555",
+      "employee_name": "תאיר",
+      "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "result": "לא ענה",
+      "summary": "בדיקה שלישית",
+      "status": "completed",
+      "started_at": "2026-08-26T18:16:29.72+00:00",
+      "qa": false
+    }
+  ],
+  "followupsSlim": [
+    {
+      "id": "32d9b4f5-6e15-48ab-961d-cb75a8466482",
+      "company_name": "אבי ",
+      "phone": "12345",
+      "status": "done",
+      "action_needed": "5א5",
+      "qa": false
+    },
+    {
+      "id": "40c349f7-22e7-48f6-932d-1fe2df01e7cd",
+      "company_name": "חיים",
+      "phone": "54321",
+      "status": "open",
+      "action_needed": "להתקשר ביום ראשון",
+      "qa": false
+    },
+    {
+      "id": "4091cfdb-c596-4ac3-8762-af0891051ee6",
+      "company_name": "בדיקת טלמיטינג",
+      "phone": "76543",
+      "status": "done",
+      "action_needed": "לבדוק לו אם יש רכבים",
+      "qa": false
+    },
+    {
+      "id": "f3384f5e-355e-4a98-b05b-c9c16b894ced",
+      "company_name": "בדיקת טלמיטינג",
+      "phone": "76543",
+      "status": "open",
+      "action_needed": "הוא לא ענה לי התקשר עוד",
+      "qa": false
+    },
+    {
+      "id": "096c5b1b-3acc-49e2-a4fa-0eb62476c62b",
+      "company_name": "מערכות אשד",
+      "phone": "03-5584555",
+      "status": "open",
+      "action_needed": "בדיקה שזה עובד",
+      "qa": false
+    },
+    {
+      "id": "3eb88e8d-e1c0-43f6-9111-f397814488d7",
+      "company_name": "פייר אאוט",
+      "phone": "03-9518818",
+      "status": "open",
+      "action_needed": "המשך טיפול — אין מענה",
+      "qa": false
+    },
+    {
+      "id": "97711938-ccf6-41e3-8e49-6a1bbb111967",
+      "company_name": "יוסי בדיקה",
+      "phone": "555555",
+      "status": "open",
+      "action_needed": "המשך טיפול — אין מענה",
+      "qa": false
+    }
+  ],
+  "workSlim": [
+    {
+      "id": "5107d735-ec81-4068-aef0-71a01a60ba33",
+      "company_name": "",
+      "employee_name": "אבי טלמיטינג",
+      "status": "completed",
+      "task_type": "",
+      "qa": false
+    }
+  ],
+  "chatsSlim": [
+    {
+      "id": "fb349eb0-28d2-452f-b032-a51ed7b252e5",
+      "company_name": "",
+      "agent_name": "אבי טלמיטינג",
+      "care_type": "פנייה פנימית",
+      "status": "ממתין לנציג",
+      "qa": false
+    }
+  ],
+  "statesSlim": [
+    {
+      "id": "5720f6e5-94f3-4854-bca0-c0a4577f53a5",
+      "lead_key": "p:035584555",
+      "company_name": "מערכות אשד",
+      "reason": "אאיחל. יייט",
+      "qa": false
+    },
+    {
+      "id": "c1ea2847-7814-4965-b3bc-cb6540364ef2",
+      "lead_key": "p:039518818",
+      "company_name": "פייר אאוט",
+      "reason": "טטטט",
+      "qa": false
+    },
+    {
+      "id": "83ad50b1-2475-4809-ab41-c065439eb2f3",
+      "lead_key": "p:555555",
+      "company_name": "יוסי בדיקה",
+      "reason": "בדיקה שלישית",
+      "qa": false
+    }
+  ]
+}
