@@ -142,7 +142,8 @@ try {
   await page.getByRole('button', { name: 'סיום שיחה' }).click();
   await page.waitForTimeout(1500);
   const reportText = await page.locator('body').innerText();
-  check('number-on-report', reportText.includes('ליד #1'), reportText.slice(0, 200));
+  const reportNumber = await page.getByTestId('tele-lead-number').first().innerText().catch(() => '');
+  check('number-on-report', reportNumber.includes('ליד #1') || reportText.includes('ליד #1'), { reportNumber, snippet: reportText.slice(0, 200) });
   await page.getByRole('button', { name: 'לא ענה' }).click();
   await page.getByRole('button', { name: 'קר' }).click();
   await page.locator('textarea').first().fill(`${MARKER} no-answer lead 1`);
@@ -152,8 +153,8 @@ try {
   check('continue-keeps-number', after.includes('המשך טיפול') && (after.includes('ליד #1') || after.includes('#1')), after.slice(0, 400));
   await page.screenshot({ path: join(OUT, '10-continue-with-number.png'), fullPage: true });
 
-  await page.getByPlaceholder('שם החברה').fill(QA_COMPANY);
-  await page.getByPlaceholder('טלפון').fill(QA_PHONE);
+  await page.getByRole('textbox', { name: 'שם החברה', exact: true }).fill(QA_COMPANY);
+  await page.getByRole('textbox', { name: 'טלפון', exact: true }).fill(QA_PHONE);
   await page.getByTestId('tele-start-call').click();
   await page.waitForTimeout(4000);
   const manual = await page.locator('body').innerText();

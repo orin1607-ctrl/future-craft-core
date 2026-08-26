@@ -1,0 +1,18 @@
+{
+  "id": "telemarketing-full-reset-2026-08-26",
+  "at": "2026-08-26T18:45:00.000Z",
+  "scope": "Oren Car Staging only",
+  "site": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing",
+  "verdict": "STAGING PASS",
+  "stop": true,
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "commit": "e35de54bd0fbe455fc606be1342e4d9df5e510de",
+  "deployed_ref": "e35de54b",
+  "bundle": "assets/index-BwTo00zH.js",
+  "restorePoint": "docs/audit-reports/telemarketing-full-reset-2026-08-26/RESTORE-POINT.json",
+  "backup": "docs/audit-reports/telemarketing-full-reset-2026-08-26/full-backup.json",
+  "apply": "docs/audit-reports/telemarketing-full-reset-2026-08-26/apply-report.json",
+  "e2e": "docs/audit-reports/telemarketing-full-reset-2026-08-26/e2e-report.json"
+}

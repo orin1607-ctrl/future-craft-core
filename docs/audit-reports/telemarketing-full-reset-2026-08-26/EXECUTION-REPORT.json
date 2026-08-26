@@ -1,0 +1,24 @@
+{
+  "id": "telemarketing-full-reset-2026-08-26",
+  "at": "2026-08-26T18:45:00.000Z",
+  "environment": "oren-car-staging-only",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "branch": "feat/incident-alerts-staging",
+  "verdict": "STAGING PASS",
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "authOtpRlsTouched": false,
+  "commit": "e35de54bd0fbe455fc606be1342e4d9df5e510de",
+  "deployed_ref": "e35de54b",
+  "liveBundle": "assets/index-BwTo00zH.js",
+  "tairKept": {
+    "id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "email": "tairmizrahi311@gmail.com",
+    "full_name": "תאיר"
+  },
+  "directoryAfter": 29,
+  "leadNumbers": "1-29 unchanged",
+  "dashboardSourceZero": true,
+  "e2ePass": true
+}
