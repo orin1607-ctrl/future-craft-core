@@ -1,0 +1,256 @@
+{
+  "at": "2026-08-26T19:50:32.423Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "deploy-staging",
+      "ok": true,
+      "detail": "deployed_ref=d2e1f5e feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-not-prod",
+      "ok": true,
+      "detail": "deployed_ref=d2e1f5e feat/incident-alerts-staging"
+    },
+    {
+      "id": "bundle-asset",
+      "ok": true,
+      "detail": "assets/index-HnHBQmxv.js"
+    },
+    {
+      "id": "bundle-nav-back",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-nav-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-no-blind-back-admin-chat",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-home",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nתאיר\n\nהתחל שיחה\nהתחל משימת עבודה\n🟣 פניות צוות דליה\n📋 עבודה מרשימת לידים\n\nלקוח / ליד ח"
+    },
+    {
+      "id": "agent-desktop-chat-nav",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-chat-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-followup-card",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-followup-back",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-followup-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-lead-card",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-lead-back",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-lead-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-home",
+      "ok": true,
+      "detail": "דליה\n\nפתרונות תפעול ותחזוקה לרכב\n\nיציאה\nטלמיטינג\n\nתאיר\n\nהתחל שיחה\nהתחל משימת עבודה\n🟣 פניות צוות דליה\n📋 עבודה מרשימת לידים\n\nלקוח / ליד חדש\n\nמילאו שם חברה או טלפון, ואז לחצו התחל ש"
+    },
+    {
+      "id": "agent-mobile-chat-nav",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-chat-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-followup-card",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-followup-back",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-followup-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-lead-card",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-lead-back",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-lead-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-desktop-home",
+      "ok": true,
+      "detail": "דליה"
+    },
+    {
+      "id": "admin-desktop-report-lead",
+      "ok": true,
+      "detail": {
+        "q": "12"
+      }
+    },
+    {
+      "id": "admin-desktop-report-lead-nav",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-desktop-report-back-filters",
+      "ok": true,
+      "detail": {
+        "fromBefore": "2026-08-26",
+        "fromAfter": "2026-08-26",
+        "queryAfter": ""
+      }
+    },
+    {
+      "id": "admin-desktop-report-back-list",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-desktop-report-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-desktop-dalia-overlay",
+      "ok": true,
+      "detail": "no 🟣 rows — skipped"
+    },
+    {
+      "id": "admin-desktop-followup-back-filter",
+      "ok": true,
+      "detail": {
+        "token": "30",
+        "searchAfter": "30"
+      }
+    },
+    {
+      "id": "admin-desktop-followup-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-mobile-home",
+      "ok": true,
+      "detail": "דליה"
+    },
+    {
+      "id": "admin-mobile-report-lead",
+      "ok": true,
+      "detail": {
+        "q": "12"
+      }
+    },
+    {
+      "id": "admin-mobile-report-lead-nav",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-mobile-report-back-filters",
+      "ok": true,
+      "detail": {
+        "fromBefore": "2026-08-26",
+        "fromAfter": "2026-08-26",
+        "queryAfter": ""
+      }
+    },
+    {
+      "id": "admin-mobile-report-back-list",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-mobile-report-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-mobile-dalia-overlay",
+      "ok": true,
+      "detail": "no 🟣 rows — skipped"
+    },
+    {
+      "id": "admin-mobile-followup-back-filter",
+      "ok": true,
+      "detail": {
+        "token": "30",
+        "searchAfter": "30"
+      }
+    },
+    {
+      "id": "admin-mobile-followup-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "final-tair",
+      "ok": true,
+      "detail": {
+        "full_name": "תאיר",
+        "is_active": true
+      }
+    },
+    {
+      "id": "final-directory-kept",
+      "ok": true,
+      "detail": {
+        "still29": 30
+      }
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "tairKept": true,
+  "deployed_ref": "deployed_ref=d2e1f5e feat/incident-alerts-staging",
+  "liveBundle": "assets/index-HnHBQmxv.js"
+}

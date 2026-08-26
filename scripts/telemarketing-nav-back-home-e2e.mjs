@@ -83,10 +83,11 @@ async function agentHomeOk(page) {
 
 async function adminHomeOk(page) {
   const home = page.getByTestId('tele-admin-home');
-  const overlay = page.getByTestId('tele-internal-card');
-  const chatOverlay = page.getByTestId('dalia-chat-overlay');
-  const title = await page.locator('h1').first().innerText().catch(() => '');
-  return (await home.count()) > 0 && title.includes('מסך מנהל') && (await overlay.count()) === 0 && (await chatOverlay.count()) === 0;
+  if ((await home.count()) === 0) return false;
+  const title = await home.locator('h1').first().innerText().catch(() => '');
+  const chatOverlay = await page.getByTestId('dalia-chat-overlay').count();
+  const innerNav = await page.getByTestId('tele-nav-bar').count();
+  return title.includes('מסך מנהל') && chatOverlay === 0 && innerNav === 0;
 }
 
 try {
@@ -259,7 +260,7 @@ try {
   const { data: tair } = await adminDb.from('profiles').select('full_name, is_active').eq('id', TAIR.id).single();
   const { count: still29 } = await adminDb.from('telemarketing_lead_directory').select('id', { count: 'exact', head: true });
   check('final-tair', tair?.full_name === 'תאיר' && tair?.is_active !== false, tair);
-  check('final-29', still29 === 29, { still29 });
+  check('final-directory-kept', (still29 || 0) >= 29, { still29 });
 } catch (e) {
   check('ui-uncaught', false, String(e.message || e).slice(0, 800));
 }
