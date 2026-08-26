@@ -1,0 +1,63 @@
+{
+  "at": "2026-08-26T11:52:19.815Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "nav-button-visible",
+      "ok": true,
+      "detail": {
+        "navInViewport": true,
+        "boardTop": 96,
+        "boardInViewport": true,
+        "firstText": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nיוני אטיאס\n\nאכבים\n\nמנהל על\nכל החברות\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nחברות הסעות\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nטלמיטינג\nהתראות\nחירום\nצ'אט\nמרכז ניהול\n▼\nהתנתקות\nמסך מנהל — טלמיטינג\n\nעודכן: 14:52:25\n\nמאגר לידים\nמסך נציג\nרענן נתונים\nרענון אוטומטי\nמאגר לידים\nרענן\nExport\n\n29 לידים במאגר\n\nחיפוש\nעובד משויך\nכל העובדים\nללא עובד משויך\nאבי טלמיטינג\nתאיר\nבחר הכול במאגר (29)\nנקה בחירה\nשייך לעובד (0)\n\tמספר\tחברה\tתחום\tאזור\tצי רכב\tטלפון\tמייל\tעובד משויך\n\t5\tמנועי פרידמן\tחשמל ותעשייה\tפ\"ת\t20+\t03-9244451\toffice@friedman-eng.co.il\tתאיר\n\t6\tגנרטורים פלוס\tהשכרה ושירות\tמרכז\t15+\t072-3926222\tinfo@generatorsplus.co.il\tתאיר\n\t7\tא.א. גנרטורים\tשירות ותחזוקה\tנתניה\t15+\t09-8611111\tservice@aa-generators.co.il\tתאיר\n\t8\tמדיטק\tציוד רפואי\tמרכז\t30+\t02-9901111\tservice@m"
+      }
+    },
+    {
+      "id": "directory-in-first-viewport",
+      "ok": true,
+      "detail": {
+        "navInViewport": true,
+        "boardTop": 96,
+        "boardInViewport": true,
+        "firstText": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nיוני אטיאס\n\nאכבים\n\nמנהל על\nכל החברות\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nחברות הסעות\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nטלמיטינג\nהתראות\nחירום\nצ'אט\nמרכז ניהול\n▼\nהתנתקות\nמסך מנהל — טלמיטינג\n\nעודכן: 14:52:25\n\nמאגר לידים\nמסך נציג\nרענן נתונים\nרענון אוטומטי\nמאגר לידים\nרענן\nExport\n\n29 לידים במאגר\n\nחיפוש\nעובד משויך\nכל העובדים\nללא עובד משויך\nאבי טלמיטינג\nתאיר\nבחר הכול במאגר (29)\nנקה בחירה\nשייך לעובד (0)\n\tמספר\tחברה\tתחום\tאזור\tצי רכב\tטלפון\tמייל\tעובד משויך\n\t5\tמנועי פרידמן\tחשמל ותעשייה\tפ\"ת\t20+\t03-9244451\toffice@friedman-eng.co.il\tתאיר\n\t6\tגנרטורים פלוס\tהשכרה ושירות\tמרכז\t15+\t072-3926222\tinfo@generatorsplus.co.il\tתאיר\n\t7\tא.א. גנרטורים\tשירות ותחזוקה\tנתניה\t15+\t09-8611111\tservice@aa-generators.co.il\tתאיר\n\t8\tמדיטק\tציוד רפואי\tמרכז\t30+\t02-9901111\tservice@m"
+      }
+    },
+    {
+      "id": "directory-heading-visible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "shows-29-leads",
+      "ok": true,
+      "detail": "מאגר לידים\nרענן\nExport\n\n29 לידים במאגר\n\nחיפוש\nעובד משויך\nכל העובדים\nללא עובד משויך\nאבי טלמיטינג\nתאיר\nבחר הכול במאגר (29)\nנקה בחירה\nשייך לעובד (0)\n\tמספר\tחברה\tתחום\tאזור\tצי רכב\tטלפון\tמייל\tעובד משויך\n\t5\tמנועי פרידמן\tחשמל ותעשייה\tפ\"ת\t20+\t03-9244451\toffice"
+    },
+    {
+      "id": "lead-1-visible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "lead-29-visible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "employee-list-opens",
+      "ok": true,
+      "detail": [
+        "בחרו עובד טלמיטינג",
+        "אבי טלמיטינג",
+        "תאיר"
+      ]
+    },
+    {
+      "id": "can-choose-tair",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false
+}
