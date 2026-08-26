@@ -117,7 +117,7 @@ export function LeadDirectoryBoard({
   };
 
   return (
-    <section className="space-y-3 rounded-2xl border border-border bg-card p-4" data-testid="lead-directory-board">
+    <section id="lead-directory" className="scroll-mt-24 space-y-3 rounded-2xl border border-border bg-card p-4" data-testid="lead-directory-board">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-black">מאגר לידים</h2>
         <div className="flex flex-wrap gap-2">

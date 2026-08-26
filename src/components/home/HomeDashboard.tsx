@@ -183,7 +183,7 @@ export default function HomeDashboard() {
             to="/telemarketing/admin"
             icon={Megaphone}
             title="טלמיטינג"
-            subtitle="שיחות · Follow-up · כרטיסי עובדים"
+            subtitle="מאגר לידים · שיוך לעובדים · Follow-up"
             accent="primary"
           />
         )}

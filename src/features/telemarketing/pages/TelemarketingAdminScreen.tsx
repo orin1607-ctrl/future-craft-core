@@ -68,6 +68,17 @@ export function TelemarketingAdminScreen({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <a
+            href="#lead-directory"
+            data-testid="lead-directory-nav"
+            className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('lead-directory')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          >
+            מאגר לידים
+          </a>
           <Link
             to="/telemarketing"
             className="rounded-lg border border-border px-4 py-2 text-sm font-semibold"
@@ -80,6 +91,7 @@ export function TelemarketingAdminScreen({
               reload();
               reloadFollowUps();
               reloadAgents();
+              setLeadReload((n) => n + 1);
             }}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
           >
@@ -91,6 +103,11 @@ export function TelemarketingAdminScreen({
           </label>
         </div>
       </div>
+
+      {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm font-semibold text-destructive">{error}</p>}
+
+      <LeadDirectoryBoard isAdmin reloadToken={leadReload} />
+      <LeadImportPanel isAdmin onImported={() => setLeadReload((n) => n + 1)} />
 
       <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
         <h3 className="text-sm font-bold">הגדרות התראות מנהל</h3>
@@ -125,8 +142,6 @@ export function TelemarketingAdminScreen({
         </button>
       </div>
 
-      {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm font-semibold text-destructive">{error}</p>}
-
       {summary && <SummaryCards summary={summary} />}
 
       <DaliaChatBoard
@@ -140,9 +155,6 @@ export function TelemarketingAdminScreen({
         items={followUps}
         actor={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על', isAdmin: true }}
       />
-
-      <LeadImportPanel isAdmin onImported={() => setLeadReload((n) => n + 1)} />
-      <LeadDirectoryBoard isAdmin reloadToken={leadReload} />
 
       <LeadsBoard
         currentEmployee={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על' }}
