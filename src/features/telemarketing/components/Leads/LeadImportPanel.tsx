@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { applyColumnMapping, mappingIsComplete, suggestColumnMapping } from '@/features/telemarketing/lib/leadImport/mapColumns';
 import { parseSheetText } from '@/features/telemarketing/lib/leadImport/parseSheetText';
 import { LEAD_DIRECTORY_FIELDS, type ColumnMapping, type LeadImportPreview, type LeadImportSource, type ParsedSheet } from '@/features/telemarketing/lib/leadImport/types';
@@ -113,7 +113,7 @@ export function LeadImportPanel({ isAdmin, onImported }: { isAdmin: boolean; onI
     }
   };
 
-  const mappedPreviewRows = useMemo(() => preview?.rows.slice(0, 8) || [], [preview]);
+  const mappedPreviewRows = preview?.rows || [];
 
   if (!isAdmin) return null;
 
@@ -198,7 +198,7 @@ export function LeadImportPanel({ isAdmin, onImported }: { isAdmin: boolean; onI
             <Stat label="כפילויות / Conflicts" value={preview.duplicateCount} />
             <Stat label="ייכנסו בפועל" value={preview.willImportCount} />
           </div>
-          <div className="overflow-x-auto rounded-xl border border-border">
+          <div className="max-h-80 overflow-auto rounded-xl border border-border">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-muted/40">
