@@ -13,6 +13,8 @@ import { TimeStampLines } from '@/features/telemarketing/components/TimeStampMet
 import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import { useLeadNumberLookup } from '@/features/telemarketing/hooks/useLeadNumberLookup';
+import { TeleInnerNav } from '@/features/telemarketing/components/Nav/TeleInnerNav';
+import { TELE_NAV_UNSAVED } from '@/features/telemarketing/lib/teleInnerNav';
 import type { TeamChat, TeamChatMessage, TeamChatStatus } from '@/features/telemarketing/types';
 
 function OpenDurationClock({ openedAt, closedAt }: { openedAt: string; closedAt: string | null }) {
@@ -32,7 +34,7 @@ export function DaliaChatThread({
   isAdmin,
   onChanged,
   onBack,
-  backLabel,
+  onHome,
 }: {
   chat: TeamChat;
   currentUserId: string;
@@ -40,7 +42,7 @@ export function DaliaChatThread({
   isAdmin: boolean;
   onChanged?: () => void;
   onBack?: () => void;
-  backLabel?: string;
+  onHome?: () => void;
 }) {
   const [local, setLocal] = useState(chat);
   const lookupLead = useLeadNumberLookup();
@@ -101,31 +103,14 @@ export function DaliaChatThread({
     }
   };
 
-  const closeLabel = backLabel || (isAdmin ? 'חזרה לרשימת הפניות' : 'חזרה למסך העובד');
-
   return (
     <div className="space-y-3 text-sm">
-      {onBack && (
-        <div className="sticky top-0 z-10 -mx-1 space-y-2 bg-card pb-2">
-          <button
-            type="button"
-            data-testid="dalia-back-telemarketing"
-            onClick={onBack}
-            className="min-h-12 w-full rounded-xl bg-primary px-4 text-base font-black text-primary-foreground"
-          >
-            {isAdmin ? closeLabel : 'חזרה לטלמיטינג'}
-          </button>
-          {!isAdmin && (
-            <button
-              type="button"
-              data-testid="dalia-back-agent-home"
-              onClick={onBack}
-              className="min-h-11 w-full rounded-xl border border-border px-4 text-sm font-bold"
-            >
-              חזרה למסך העובד
-            </button>
-          )}
-        </div>
+      {(onBack || onHome) && (
+        <TeleInnerNav
+          onBack={onBack}
+          onHome={onHome}
+          confirmLeave={text.trim() ? TELE_NAV_UNSAVED : null}
+        />
       )}
       <p className="font-black text-violet-800 dark:text-violet-300">🟣 {local.careType}{local.careTypeOther ? ` — ${local.careTypeOther}` : ''}</p>
       <p>{formatLeadTitle(lookupLead(local.phone, local.companyName), local.companyName || (local.initiatedBy === 'admin' ? 'פנייה פנימית' : 'ללא לקוח'))}{local.contactName ? ` · ${local.contactName}` : ''}{local.phone ? ` · ${local.phone}` : ''}</p>
@@ -178,15 +163,6 @@ export function DaliaChatThread({
         </button>
       )}
       {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
-      {onBack && (
-        <button
-          type="button"
-          onClick={onBack}
-          className="min-h-12 w-full rounded-xl border border-border font-bold"
-        >
-          {isAdmin ? closeLabel : 'חזרה לטלמיטינג'}
-        </button>
-      )}
     </div>
   );
 }

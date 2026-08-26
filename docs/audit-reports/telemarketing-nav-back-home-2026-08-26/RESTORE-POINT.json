@@ -1,0 +1,15 @@
+{
+  "at": "2026-08-26T19:35:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "codeCommit": "df03f7ec58f52b09f385d1470fecd915bfa5a0dc",
+  "branch": "feat/incident-alerts-staging",
+  "keep": {
+    "tair": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "directoryLeads": "1-29"
+  },
+  "note": "Navigation-only restore point. No DB/Auth/OTP/RLS change. Rollback = revert the nav commit on feat/incident-alerts-staging. Do not touch Production, main, Hostinger, dalia-car.online, or dalia-c.com."
+}

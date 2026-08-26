@@ -3,6 +3,7 @@ import { getTeamChatsForLead, formatOpenDuration, isChatClosed } from '@/feature
 import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 import { DaliaChatThread } from '@/features/telemarketing/components/DaliaCare/DaliaChatThread';
 import { DaliaCareCreateForm } from '@/features/telemarketing/components/DaliaCare/DaliaCareCreateForm';
+import { useOptionalTeleOverlayNav, useRegisterTeleCloser } from '@/features/telemarketing/components/Nav/TeleInnerNav';
 import type { TeamChat } from '@/features/telemarketing/types';
 
 function chatEvents(chat: TeamChat) {
@@ -43,6 +44,7 @@ export function DaliaCareLeadEvents({
   const [chats, setChats] = useState<TeamChat[]>([]);
   const [open, setOpen] = useState<TeamChat | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const overlayNav = useOptionalTeleOverlayNav();
 
   const load = async () => {
     setChats(await getTeamChatsForLead(phone, companyName));
@@ -53,12 +55,13 @@ export function DaliaCareLeadEvents({
   }, [phone, companyName]);
 
   const closeThread = useCallback(() => {
-    if (window.history.state?.daliaLeadChat) {
-      window.history.back();
-      return;
-    }
     setOpen(null);
+    if (window.history.state?.daliaLeadChat) {
+      window.history.replaceState({ ...(window.history.state || {}), daliaLeadChat: false }, '');
+    }
   }, []);
+
+  useRegisterTeleCloser(Boolean(open), closeThread);
 
   useEffect(() => {
     const onPop = () => setOpen(null);
@@ -123,6 +126,7 @@ export function DaliaCareLeadEvents({
                 currentUserName={actor.displayName}
                 isAdmin={!!actor.isAdmin}
                 onBack={closeThread}
+                onHome={() => overlayNav?.goHome()}
                 onChanged={() => void load()}
               />
             </div>

@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { CallWithPriority } from '@/features/telemarketing/hooks/useTelemarketingDashboard';
 import { PlayRecordingButton } from '@/features/telemarketing/components/AdminDashboard/PlayRecordingButton';
 import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
 import { formatClock, formatDay, formatDurationSeconds, formatStamp } from '@/features/telemarketing/lib/formatTime';
 import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
+import { TeleInnerNav, useRegisterTeleCloser } from '@/features/telemarketing/components/Nav/TeleInnerNav';
 
 interface Props {
   calls: CallWithPriority[];
@@ -16,6 +17,8 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
   const [resultFilter, setResultFilter] = useState('');
   const [ratingFilter, setRatingFilter] = useState('');
   const [selected, setSelected] = useState<CallWithPriority | null>(null);
+  const closeSelected = useCallback(() => setSelected(null), []);
+  useRegisterTeleCloser(Boolean(selected), closeSelected);
 
   const effectiveAgentFilter = forcedAgentFilter ?? agentFilter;
   const agents = useMemo(() => Array.from(new Set(calls.map((c) => c.employeeName))).filter(Boolean), [calls]);
@@ -105,6 +108,7 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
             {filtered.map((c) => (
               <tr
                 key={c.id}
+                data-testid="call-row"
                 onClick={() => setSelected(c)}
                 className="cursor-pointer border-t border-border hover:bg-muted/40"
               >
@@ -144,6 +148,7 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
           >
             <button
               type="button"
+              data-testid="call-row"
               onClick={() => setSelected(c)}
               className="w-full p-3 text-right"
             >
@@ -166,14 +171,12 @@ export function CallsTable({ calls, forcedAgentFilter }: Props) {
       </div>
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setSelected(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" data-testid="tele-internal-card" onClick={closeSelected}>
           <div
             className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <button type="button" onClick={() => setSelected(null)} className="float-left text-2xl text-muted-foreground">
-              ×
-            </button>
+            <TeleInnerNav onBack={closeSelected} />
             <h3 className="mb-3 text-lg font-bold">{formatLeadTitle(selected.leadNumber, selected.companyName)}</h3>
             <dl className="space-y-2 text-sm">
               <Field label="עובד" value={selected.employeeName} />

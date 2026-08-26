@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getLeadStates, getLeadStatusEvents, upsertLeadState } from '@/features/telemarketing/services/leadStateService';
 import { getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
 import { getWorkSessionsForLead } from '@/features/telemarketing/services/workSessionService';
@@ -7,6 +7,7 @@ import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta
 import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import { LEAD_COLOR_LABEL, LEAD_STATUSES, leadStatusLabel, type LeadColor } from '@/features/telemarketing/lib/leadTraffic';
+import { TeleInnerNav, useRegisterTeleCloser } from '@/features/telemarketing/components/Nav/TeleInnerNav';
 import type { TelemarketingEmployee, TelemarketingLeadState } from '@/features/telemarketing/types';
 
 const TONE: Record<LeadColor, string> = {
@@ -29,6 +30,8 @@ export function LeadsBoard({
   const [search, setSearch] = useState('');
   const [employee, setEmployee] = useState('');
   const [selected, setSelected] = useState<TelemarketingLeadState | null>(null);
+  const closeSelected = useCallback(() => setSelected(null), []);
+  useRegisterTeleCloser(Boolean(selected), closeSelected);
 
   const load = async () => {
     setItems(await getLeadStates());
@@ -86,7 +89,7 @@ export function LeadsBoard({
           {grouped[c].length === 0 && <p className="mb-3 text-sm text-muted-foreground">אין רשומות</p>}
           <div className="space-y-2">
             {grouped[c].map((item) => (
-              <button key={item.id} type="button" onClick={() => setSelected(item)} className={`w-full rounded-xl border p-3 text-right ${TONE[item.leadColor]}`}>
+              <button key={item.id} type="button" data-testid="lead-board-item" onClick={() => setSelected(item)} className={`w-full rounded-xl border p-3 text-right ${TONE[item.leadColor]}`}>
                 <p className="font-bold">{formatLeadTitle(item.leadNumber, item.companyName)}</p>
                 <p className="text-sm">{item.contactName ? `${item.contactName} · ` : ''}{item.phone || 'אין טלפון'}{item.employeeName ? ` · ${item.employeeName}` : ''}</p>
                 <p className="mt-1 text-xs font-semibold">{leadStatusLabel(item.leadStatus)}{item.reason ? ` — ${item.reason}` : ''}</p>
@@ -101,10 +104,10 @@ export function LeadsBoard({
           lead={selected}
           employee={currentEmployee}
           daliaActor={daliaActor || (currentEmployee ? { id: currentEmployee.id, displayName: currentEmployee.displayName } : undefined)}
-          onClose={() => setSelected(null)}
+          onClose={closeSelected}
           onSaved={async () => {
             await load();
-            setSelected(null);
+            closeSelected();
           }}
         />
       )}
@@ -112,7 +115,7 @@ export function LeadsBoard({
         <LeadDetail
           lead={selected}
           daliaActor={daliaActor}
-          onClose={() => setSelected(null)}
+          onClose={closeSelected}
         />
       )}
     </section>
@@ -175,9 +178,9 @@ function LeadDetail({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" data-testid="tele-internal-card" onClick={onClose}>
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-card p-5" onClick={(e) => e.stopPropagation()}>
-        <button type="button" onClick={onClose} className="float-left text-2xl text-muted-foreground">×</button>
+        <TeleInnerNav onBack={onClose} />
         <h3 className="mb-2 text-lg font-black">{formatLeadTitle(lead.leadNumber, lead.companyName)}</h3>
         <p className="text-sm">{lead.contactName} · {lead.phone}</p>
         <p className="mt-1 font-semibold">{LEAD_COLOR_LABEL[lead.leadColor]} · {leadStatusLabel(lead.leadStatus)}</p>

@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { FollowUpWorkItem } from '@/features/telemarketing/types';
 import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadTimeline';
 import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
 import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
+import { TeleInnerNav, useRegisterTeleCloser } from '@/features/telemarketing/components/Nav/TeleInnerNav';
 
 const BUCKET_LABEL: Record<FollowUpWorkItem['bucket'], string> = {
   late: 'באיחור',
@@ -74,6 +75,8 @@ export function FollowUpBoard({
 }) {
   const [filters, setFilters] = useState<FollowUpFiltersState>(EMPTY_FILTERS);
   const [selected, setSelected] = useState<FollowUpWorkItem | null>(null);
+  const closeSelected = useCallback(() => setSelected(null), []);
+  useRegisterTeleCloser(Boolean(selected), closeSelected);
   const employees = useMemo(
     () => Array.from(new Set(items.map((i) => i.employeeName).filter(Boolean))),
     [items],
@@ -96,6 +99,7 @@ export function FollowUpBoard({
     <div className="space-y-3">
       <div className="grid gap-2 rounded-xl border border-border bg-card p-3 md:grid-cols-3">
         <input
+          data-testid="followup-search"
           placeholder="חיפוש: חברה / איש קשר / טלפון"
           value={filters.search}
           onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
@@ -191,6 +195,7 @@ export function FollowUpBoard({
               <button
                 key={item.id}
                 type="button"
+                data-testid="followup-item"
                 onClick={() => setSelected(item)}
                 className={`w-full rounded-xl border p-3 text-right ${BUCKET_TONE[item.bucket]} ${
                   item.urgency === 'דחוף' ? 'ring-2 ring-destructive' : ''
@@ -229,6 +234,7 @@ export function FollowUpBoard({
               <button
                 key={item.id}
                 type="button"
+                data-testid="followup-item"
                 onClick={() => setSelected(item)}
                 className="w-full rounded-xl border border-destructive bg-destructive/10 p-3 text-right text-destructive"
               >
@@ -241,14 +247,12 @@ export function FollowUpBoard({
       )}
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setSelected(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" data-testid="tele-internal-card" onClick={closeSelected}>
           <div
             className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-card p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <button type="button" onClick={() => setSelected(null)} className="float-left text-2xl text-muted-foreground">
-              ×
-            </button>
+            <TeleInnerNav onBack={closeSelected} />
             <h3 className="mb-3 text-lg font-black">{formatLeadTitle(selected.leadNumber, selected.companyName)}</h3>
             <LeadTimeline
               followUp={selected}

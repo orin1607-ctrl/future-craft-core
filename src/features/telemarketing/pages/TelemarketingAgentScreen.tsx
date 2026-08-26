@@ -21,6 +21,7 @@ import { keepsContinuedTreatment } from '@/features/telemarketing/lib/leadTraffi
 import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import type { CustomerRef, FollowUpWorkItem, TelemarketingEmployee } from '@/features/telemarketing/types';
 import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
+import { TeleInnerNav, TeleOverlayNavProvider } from '@/features/telemarketing/components/Nav/TeleInnerNav';
 import { ClipboardList } from 'lucide-react';
 
 const EMPTY_MANUAL_CUSTOMER: CustomerRef = {
@@ -294,9 +295,21 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   const workReportOpen = workStatus === 'ended';
   const showIdleBoards = agentHomeActionsVisible(callStatus, workStatus);
   const showHomeActions = callStatus === 'idle' && workStatus === 'idle';
+  const showLeadPreview = showHomeActions && Boolean(activeDirectoryLead || returnHint);
+  const clearLeadPreview = () => {
+    setActiveDirectoryLead(null);
+    setReturnHint(null);
+    setManualCustomer(EMPTY_MANUAL_CUSTOMER);
+  };
+  const goAgentDashboard = () => {
+    setChatOpen(false);
+    navigate({ pathname: '/telemarketing', search: '', hash: '' });
+    requestAnimationFrame(() => {
+      document.getElementById('tele-work-home')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
-  if (chatOpen) {
-    return (
+  const inner = chatOpen ? (
       <DaliaChatBoard
         currentUserId={currentEmployee.id}
         currentUserName={currentEmployee.displayName}
@@ -304,10 +317,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         reloadToken={followUpReload}
         onBackToWork={backToWork}
       />
-    );
-  }
-
-  return (
+  ) : (
     <div className="mx-auto max-w-lg space-y-4 pb-8">
       {toast && (
         <div
@@ -376,14 +386,25 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         )}
       </div>
 
-      {showHomeActions && activeDirectoryLead && (
+      {showLeadPreview && (
         <div className="space-y-2" data-testid="tele-lead-preview">
-          <p className="rounded-xl border border-emerald-700/40 bg-emerald-50 p-3 text-center text-xl font-black dark:bg-emerald-950/30" data-testid="tele-lead-number">
-            {formatLeadTitle(activeDirectoryLead.leadNumber, activeDirectoryLead.companyName)}
-          </p>
-          <p className="rounded-xl border border-emerald-700/40 bg-emerald-50 p-3 text-sm font-semibold dark:bg-emerald-950/30">
-            פרטי הליד מוצגים למטה. השיחה לא התחילה. לחצו «התחל שיחה» כשאתם מוכנים.
-          </p>
+          <TeleInnerNav
+            onBack={clearLeadPreview}
+            onHome={() => {
+              clearLeadPreview();
+              goAgentDashboard();
+            }}
+          />
+          {activeDirectoryLead && (
+            <p className="rounded-xl border border-emerald-700/40 bg-emerald-50 p-3 text-center text-xl font-black dark:bg-emerald-950/30" data-testid="tele-lead-number">
+              {formatLeadTitle(activeDirectoryLead.leadNumber, activeDirectoryLead.companyName)}
+            </p>
+          )}
+          {activeDirectoryLead && (
+            <p className="rounded-xl border border-emerald-700/40 bg-emerald-50 p-3 text-sm font-semibold dark:bg-emerald-950/30">
+              פרטי הליד מוצגים למטה. השיחה לא התחילה. לחצו «התחל שיחה» כשאתם מוכנים.
+            </p>
+          )}
         </div>
       )}
 
@@ -576,5 +597,11 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         />
       )}
     </div>
+  );
+
+  return (
+    <TeleOverlayNavProvider homePath="/telemarketing" homeAnchorId="tele-work-home">
+      {inner}
+    </TeleOverlayNavProvider>
   );
 }

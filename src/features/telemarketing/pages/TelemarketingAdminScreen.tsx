@@ -10,6 +10,7 @@ import { LeadImportPanel } from '@/features/telemarketing/components/Leads/LeadI
 import { WorkTimeDashboard } from '@/features/telemarketing/components/AdminDashboard/WorkTimeDashboard';
 import { ActivityReportPanel } from '@/features/telemarketing/components/AdminDashboard/ActivityReport';
 import { DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
+import { TeleOverlayNavProvider } from '@/features/telemarketing/components/Nav/TeleInnerNav';
 import { useTelemarketingDashboard } from '@/features/telemarketing/hooks/useTelemarketingDashboard';
 import { useAgentPerformance } from '@/features/telemarketing/hooks/useAgentPerformance';
 import { getFollowUpWorkItems } from '@/features/telemarketing/services/telemarketingService';
@@ -59,7 +60,8 @@ export function TelemarketingAdminScreen({
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 pb-10">
+    <TeleOverlayNavProvider homePath="/telemarketing/admin" homeAnchorId="tele-admin-home">
+    <div id="tele-admin-home" data-testid="tele-admin-home" className="mx-auto max-w-6xl space-y-4 pb-10 scroll-mt-24">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-black">מסך מנהל — טלמיטינג</h1>
@@ -172,5 +174,6 @@ export function TelemarketingAdminScreen({
         {loading ? <p className="text-muted-foreground">טוען...</p> : <CallsTable calls={calls} forcedAgentFilter={selectedAgent} />}
       </div>
     </div>
+    </TeleOverlayNavProvider>
   );
 }

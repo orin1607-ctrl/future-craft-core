@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { localDateStr } from '@/features/telemarketing/lib/localDate';
 import { formatDurationSeconds, formatStamp, formatTimeRange } from '@/features/telemarketing/lib/formatTime';
 import { loadActivityReport } from '@/features/telemarketing/services/activityReportService';
@@ -6,6 +6,7 @@ import type { ActivityFilters, ActivityReport, LeadActivityDetail } from '@/feat
 import { CALL_RESULTS } from '@/features/telemarketing/types';
 import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import { buildTimingSnapshot } from '@/features/telemarketing/lib/callTiming';
+import { TeleInnerNav, useRegisterTeleCloser } from '@/features/telemarketing/components/Nav/TeleInnerNav';
 
 const EMPTY: ActivityFilters = {
   from: localDateStr(),
@@ -47,6 +48,14 @@ export function ActivityReportPanel() {
   }, [filters.from, filters.to, filters.employeeName, filters.result, filters.status, filters.leadQuery]);
 
   const employees = report?.employeeNames ?? [];
+  const showLeadScreen = Boolean(report?.leadDetail);
+  const clearLeadQuery = useCallback(() => {
+    setFilters((f) => ({ ...f, leadQuery: '' }));
+    requestAnimationFrame(() => {
+      document.getElementById('activity-report')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
+  useRegisterTeleCloser(showLeadScreen, clearLeadQuery);
 
   return (
     <section id="activity-report" className="space-y-4 rounded-2xl border border-border bg-card p-4">
@@ -57,7 +66,7 @@ export function ActivityReportPanel() {
       <div className="grid gap-2 md:grid-cols-5">
         <label className="text-xs font-semibold">
           מתאריך
-          <input type="date" value={filters.from} onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))} className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-2" />
+          <input type="date" data-testid="activity-from-date" value={filters.from} onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))} className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-2" />
         </label>
         <label className="text-xs font-semibold">
           עד תאריך
@@ -100,9 +109,14 @@ export function ActivityReportPanel() {
       </div>
       {loading && <p className="text-sm text-muted-foreground">טוען דוח...</p>}
       {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
-      {report && (
+      {report && showLeadScreen && report.leadDetail && (
+        <div data-testid="tele-internal-card">
+          <TeleInnerNav onBack={clearLeadQuery} />
+          <LeadDetailCard detail={report.leadDetail} />
+        </div>
+      )}
+      {report && !showLeadScreen && (
         <>
-          {report.leadDetail && <LeadDetailCard detail={report.leadDetail} />}
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             <Stat label="ניסיונות חיוג" value={String(report.totals.dialAttempts)} />
             <Stat label="נענו" value={String(report.totals.answered)} />

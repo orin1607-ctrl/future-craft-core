@@ -13,6 +13,7 @@ import {
   withDaliaChatSearch,
   type DaliaChatLocationState,
 } from '@/features/telemarketing/lib/daliaChatNav';
+import { TeleInnerNav, useOptionalTeleOverlayNav, useRegisterTeleCloser } from '@/features/telemarketing/components/Nav/TeleInnerNav';
 import type { TeamChat, TeamChatStatus, TeamChatSummary } from '@/features/telemarketing/types';
 
 const BUCKETS: { id: TeamChatStatus | 'open'; label: string }[] = [
@@ -66,12 +67,9 @@ export function DaliaChatBoard({
     void load().catch(() => setItems([]));
   }, [reloadToken, currentUserId]);
 
+  const overlayNav = useOptionalTeleOverlayNav();
   const closeAdminChat = useCallback(() => {
-    const state = (location.state || {}) as DaliaChatLocationState;
-    if (state.daliaChatOpened && window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
+    setOpened(null);
     navigate(
       {
         pathname: location.pathname,
@@ -80,7 +78,7 @@ export function DaliaChatBoard({
       },
       { replace: true },
     );
-  }, [location.pathname, location.search, location.state, navigate]);
+  }, [location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -97,6 +95,7 @@ export function DaliaChatBoard({
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (isAdmin) closeAdminChat();
+        else if (opened) closeAgentThread();
         else onBackToWork?.();
       }
     };
@@ -141,8 +140,11 @@ export function DaliaChatBoard({
     setOpened(null);
   };
 
+  useRegisterTeleCloser(Boolean(!isAdmin && onBackToWork), () => onBackToWork?.());
+  useRegisterTeleCloser(Boolean(!isAdmin && opened), closeAgentThread);
+  useRegisterTeleCloser(Boolean(isAdmin && opened), closeAdminChat);
+
   const showList = isAdmin || inboxOpen || Boolean(onBackToWork);
-  const backToWork = onBackToWork || closeAgentThread;
 
   const list = (
         <>
@@ -209,14 +211,7 @@ export function DaliaChatBoard({
     return (
       <div className="fixed inset-0 z-[60] flex flex-col bg-background" data-testid="dalia-agent-chat-screen">
         <div className="sticky top-0 z-10 space-y-2 border-b border-border bg-card p-3">
-          <button
-            type="button"
-            data-testid="dalia-back-telemarketing"
-            onClick={onBackToWork}
-            className="min-h-12 w-full rounded-xl bg-primary px-4 text-base font-black text-primary-foreground"
-          >
-            חזרה לטלמיטינג
-          </button>
+          {!opened && <TeleInnerNav onBack={onBackToWork} onHome={onBackToWork} />}
           <p className="text-center text-sm font-bold">🟣 פניות צוות דליה</p>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
@@ -226,7 +221,8 @@ export function DaliaChatBoard({
               currentUserId={currentUserId}
               currentUserName={currentUserName}
               isAdmin={false}
-              onBack={onBackToWork}
+              onBack={closeAgentThread}
+              onHome={onBackToWork}
               onChanged={() => {
                 void load();
               }}
@@ -286,6 +282,7 @@ export function DaliaChatBoard({
                 currentUserName={currentUserName}
                 isAdmin
                 onBack={closeAdminChat}
+                onHome={() => overlayNav?.goHome()}
                 onChanged={() => {
                   void load();
                 }}
