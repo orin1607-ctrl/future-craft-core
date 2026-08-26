@@ -1,0 +1,238 @@
+{
+  "at": "2026-08-26T20:56:26.853Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "deploy-staging",
+      "ok": true,
+      "detail": "deployed_ref=2b6b68b feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-not-prod",
+      "ok": true,
+      "detail": "deployed_ref=2b6b68b feat/incident-alerts-staging"
+    },
+    {
+      "id": "bundle-has-upper-summary",
+      "ok": true,
+      "detail": "assets/index-BM4hRQM6.js"
+    },
+    {
+      "id": "bundle-no-lower-dup",
+      "ok": true,
+      "detail": "assets/index-BM4hRQM6.js"
+    },
+    {
+      "id": "keep-1-29",
+      "ok": true,
+      "detail": {
+        "dirCount": 30,
+        "missing": []
+      }
+    },
+    {
+      "id": "desktop-summary-once",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-no-lower-dup",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-upper-title",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-tabs",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-presets",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-dates",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-hours",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-export",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-nav",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-times",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-no-double-count",
+      "ok": true,
+      "detail": {
+        "call": 14,
+        "reportSec": 70,
+        "treat": 84
+      }
+    },
+    {
+      "id": "desktop-leads-heading",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-yesterday",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-week",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-month",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-export-click",
+      "ok": true,
+      "detail": "telemarketing-my-report_2026-08-26.csv"
+    },
+    {
+      "id": "desktop-back",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-summary-once",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-no-lower-dup",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-upper-title",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-tabs",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-presets",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-dates",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-hours",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-export",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-nav",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-times",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-no-double-count",
+      "ok": true,
+      "detail": {
+        "call": 14,
+        "reportSec": 70,
+        "treat": 84
+      }
+    },
+    {
+      "id": "mobile-leads-heading",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-yesterday",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-week",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-month",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-export-click",
+      "ok": true,
+      "detail": "telemarketing-my-report_2026-08-26.csv"
+    },
+    {
+      "id": "mobile-back",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-report-present",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-totals-kept",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "keep-1-29-after",
+      "ok": true,
+      "detail": {
+        "count": 30,
+        "missing": [],
+        "ok": true
+      }
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "dbWrites": false,
+  "deployed_ref": "deployed_ref=2b6b68b feat/incident-alerts-staging",
+  "liveBundle": "assets/index-BM4hRQM6.js"
+}
