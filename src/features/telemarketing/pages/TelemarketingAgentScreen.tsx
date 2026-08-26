@@ -8,6 +8,7 @@ import { WorkReportForm } from '@/features/telemarketing/components/WorkSession/
 import { MyFollowUps } from '@/features/telemarketing/components/FollowUp/MyFollowUps';
 import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadTimeline';
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
+import { LeadDirectoryBoard } from '@/features/telemarketing/components/Leads/LeadDirectoryBoard';
 import { AgentChatEntry, DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
 import { DALIA_CHAT_PARAM } from '@/features/telemarketing/lib/daliaChatNav';
 import { agentHomeActionsVisible } from '@/features/telemarketing/lib/agentHomeVisibility';
@@ -396,6 +397,21 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
       )}
 
       {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} />}
+
+      {showIdleBoards && (
+        <LeadDirectoryBoard
+          reloadToken={followUpReload}
+          onPick={(lead) =>
+            setManualCustomer({
+              ...EMPTY_MANUAL_CUSTOMER,
+              companyName: lead.companyName,
+              phone: lead.phone,
+              email: lead.email,
+              city: lead.region,
+            })
+          }
+        />
+      )}
 
       {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter />}
 

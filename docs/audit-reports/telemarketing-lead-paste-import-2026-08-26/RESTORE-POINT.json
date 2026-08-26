@@ -1,0 +1,15 @@
+{
+  "at": "2026-08-26T08:20:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "rollbackCommit": "4d2751a4e094ffb697437aec8b69b2ce278ca49b",
+  "rollbackBranch": "feat/incident-alerts-staging",
+  "note": "HEAD before lead-directory paste import. No existing CSV/XLSX lead-import pipeline was found; paste is attached to a new single pipeline.",
+  "rollbackSql": [
+    "DROP FUNCTION IF EXISTS public.telemarketing_commit_lead_import(text, jsonb, text, text, text, jsonb);",
+    "DROP TABLE IF EXISTS public.telemarketing_lead_directory;",
+    "DROP TABLE IF EXISTS public.telemarketing_lead_import_batches;"
+  ],
+  "doNotTouch": ["main", "production", "qasomfndnjuixgjmjwcm", "Hostinger", "dalia-car.online", "dalia-c.com"]
+}

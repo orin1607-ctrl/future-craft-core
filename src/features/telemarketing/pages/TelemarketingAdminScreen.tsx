@@ -5,6 +5,8 @@ import { CallsTable } from '@/features/telemarketing/components/AdminDashboard/C
 import { EmployeeCards } from '@/features/telemarketing/components/AdminDashboard/EmployeeCards';
 import { FollowUpBoard } from '@/features/telemarketing/components/FollowUp/FollowUpBoard';
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
+import { LeadDirectoryBoard } from '@/features/telemarketing/components/Leads/LeadDirectoryBoard';
+import { LeadImportPanel } from '@/features/telemarketing/components/Leads/LeadImportPanel';
 import { WorkTimeDashboard } from '@/features/telemarketing/components/AdminDashboard/WorkTimeDashboard';
 import { ActivityReportPanel } from '@/features/telemarketing/components/AdminDashboard/ActivityReport';
 import { DaliaChatBoard } from '@/features/telemarketing/components/DaliaCare/DaliaChatBoard';
@@ -28,6 +30,7 @@ export function TelemarketingAdminScreen({
   const [waNumber, setWaNumber] = useState('');
   const [managerEmail, setManagerEmail] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+  const [leadReload, setLeadReload] = useState(0);
 
   const reloadFollowUps = async () => {
     try {
@@ -137,6 +140,9 @@ export function TelemarketingAdminScreen({
         items={followUps}
         actor={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על', isAdmin: true }}
       />
+
+      <LeadImportPanel isAdmin onImported={() => setLeadReload((n) => n + 1)} />
+      <LeadDirectoryBoard isAdmin reloadToken={leadReload} />
 
       <LeadsBoard
         currentEmployee={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על' }}
