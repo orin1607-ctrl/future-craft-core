@@ -1,0 +1,122 @@
+{
+  "id": "telemarketing-continue-treatment-2026-08-26",
+  "title": "כרטיס לפני שיחה + המשך טיפול אחרי אין מענה",
+  "at": "2026-08-26T18:00:00.000Z",
+  "environment": "oren-car-staging-only",
+  "stagingUrl": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "branch": "feat/incident-alerts-staging",
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "authOtpRlsTouched": false,
+  "verdict": "STAGING PASS — live E2E of the new flow, not the previous cleanup report",
+  "rootCause": {
+    "cardBeforeCall": "handleWorkFromList claimed the next assigned lead and immediately called beginCall. The 4th button started the conversation before the employee saw the card.",
+    "noAnswerLost": "Reporting «לא ענה» did not create or keep a Follow-up unless the agent also checked «נדרשת המשכיות». The lead stayed claimed, so the numbered queue skipped to the next lead and #1 disappeared from continued treatment."
+  },
+  "whatWasFixed": [
+    "עבודה מרשימת לידים claims lead #N, fills the card, shows tele-lead-preview, and does not start the call.",
+    "While a lead is previewed, the 4th button is hidden so the agent cannot skip to the next number.",
+    "התחל שיחה is the only action that starts the claimed lead (existing timer / beginCall).",
+    "«לא ענה» / לנסות שוב / לחזור אליו auto-creates or keeps Follow-up as המשך טיפול on the same lead number.",
+    "Re-entry from המשך טיפול opens the same card first; it does not auto-start.",
+    "A later attempt writes a new call row on the same company/lead number and keeps history.",
+    "Only a final/disqualify result (לא מעוניין / לא רלוונטי / מספר שגוי) or a booked outcome closes continued treatment."
+  ],
+  "keptExistingMechanisms": [
+    "Claim/Lock: claimNextAssignedLead + claimAssignedLead",
+    "Follow-up tables and MyFollowUps board (retitled המשך טיפול)",
+    "רמזור, 🟣, Timeline, reports, Import/Export, assignment, manual lead"
+  ],
+  "notChanged": {
+    "directoryLeadNumbers": "1-29 unchanged",
+    "tair": {
+      "id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "email": "tairmizrahi311@gmail.com",
+      "full_name": "תאיר",
+      "lead1AssignedToTair": true
+    },
+    "dbMigrations": "none",
+    "rpc": "none",
+    "rls": "none"
+  },
+  "filesChanged": [
+    "src/features/telemarketing/pages/TelemarketingAgentScreen.tsx",
+    "src/features/telemarketing/hooks/useActiveCall.ts",
+    "src/features/telemarketing/services/telemarketingService.ts",
+    "src/features/telemarketing/components/CallerScreen/CallReportForm.tsx",
+    "src/features/telemarketing/components/FollowUp/MyFollowUps.tsx",
+    "src/features/telemarketing/components/FollowUp/LeadTimeline.tsx",
+    "src/features/telemarketing/lib/leadTraffic.ts",
+    "src/features/telemarketing/lib/leadTraffic.test.ts"
+  ],
+  "liveE2E": {
+    "script": "scripts/telemarketing-continue-treatment-e2e.mjs",
+    "at": "2026-08-26T17:56:32.956Z",
+    "pass": true,
+    "failed": [],
+    "proofFlow": [
+      "Lead #1 מערכות אשד — card before call (tele-lead-preview, no סיום שיחה)",
+      "Click התחל שיחה — call started on ליד #1",
+      "Report לא ענה — toast נשמר בהמשך טיפול; open Follow-up המשך טיפול — אין מענה",
+      "Re-enter same lead from המשך טיפול — card again, call not auto-started",
+      "Second attempt — same ליד #1, history kept (qa-continue-e2e no-answer 1)",
+      "Final לא מעוניין — Follow-up status=done; lead left continued treatment"
+    ],
+    "checks": [
+      "keep-29",
+      "four-buttons-before",
+      "card-before-call",
+      "did-not-auto-start",
+      "started-after-click",
+      "stayed-in-continue",
+      "followup-open-after-no-answer",
+      "reentry-card-not-auto-call",
+      "second-attempt-same-lead",
+      "history-kept",
+      "closed-only-on-final",
+      "two-attempts-same-company",
+      "mobile-start-call",
+      "final-29",
+      "final-tair"
+    ],
+    "screenshots": [
+      "01-card-before-call.png",
+      "02-call-started.png",
+      "03-no-answer-continue.png",
+      "04-reentry-card.png",
+      "05-second-attempt.png",
+      "06-final-close.png",
+      "07-mobile.png"
+    ],
+    "qaCleanup": {
+      "marker": "qa-continue-e2e",
+      "leftoverQaCallsAfterCleanup": 0,
+      "directoryStill29": true,
+      "lead1StillAssignedToTair": true,
+      "realLeadsNotDeleted": true
+    }
+  },
+  "regression": {
+    "button1StartCall": "PASS — tele-start-call present before, during preview, and on mobile",
+    "button2WorkMission": "PASS — התחל משימת עבודה remained on agent home",
+    "button3DaliaPurple": "PASS — 🟣 פניות צוות דליה remained",
+    "button4WorkFromList": "PASS — present when idle; hidden only while a lead card is previewed",
+    "claimLock": "PASS — still claimNextAssignedLead / claimAssignedLead; no rewrite",
+    "followUp": "PASS — existing Follow-up rows used for המשך טיפול",
+    "trafficLight": "PASS — yellow mapping for לא ענה unchanged",
+    "timeline": "PASS — התחל המשך טיפול opens card, does not auto-start",
+    "reportsImportExportAssignmentManual": "untouched in this change"
+  },
+  "backupRollback": {
+    "restorePoint": "docs/audit-reports/telemarketing-continue-treatment-2026-08-26/RESTORE-POINT.json",
+    "rollbackCommit": "0e65044c",
+    "rollbackBranch": "feat/incident-alerts-staging",
+    "note": "git revert 8ee5f779 on feat/incident-alerts-staging. No directory rows were deleted."
+  },
+  "commit": "8ee5f77976efae17046186825daca1cb4adfa7c0",
+  "deployed_ref": "8ee5f779",
+  "liveBundle": "assets/index-CHZ_HG6V.js",
+  "liveNeedle": "tele-lead-preview"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "telemarketing-continue-treatment-2026-08-26",
+  "at": "2026-08-26T18:00:00.000Z",
+  "scope": "Oren Car Staging only",
+  "site": "https://orin1607-ctrl.github.io/future-craft-core/telemarketing",
+  "verdict": "STAGING PASS",
+  "stop": true,
+  "productionTouched": false,
+  "mainTouched": false,
+  "commit": "8ee5f77976efae17046186825daca1cb4adfa7c0",
+  "deployed_ref": "8ee5f779",
+  "bundle": "assets/index-CHZ_HG6V.js",
+  "report": "docs/audit-reports/telemarketing-continue-treatment-2026-08-26/EXECUTION-REPORT.json",
+  "e2e": "docs/audit-reports/telemarketing-continue-treatment-2026-08-26/e2e-report.json",
+  "restorePoint": "docs/audit-reports/telemarketing-continue-treatment-2026-08-26/RESTORE-POINT.json"
+}

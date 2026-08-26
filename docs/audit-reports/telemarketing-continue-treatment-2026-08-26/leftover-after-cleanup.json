@@ -1,0 +1,16 @@
+{
+  "at": "2026-08-26T18:02:00.000Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "dirCount": 29,
+  "still29": true,
+  "tairOk": true,
+  "leftoverQaCalls": 0,
+  "leftoverAshdContinueFu": [],
+  "lead1": {
+    "lead_number": "1",
+    "company_name": "מערכות אשד",
+    "claimed_by": null,
+    "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e"
+  }
+}
