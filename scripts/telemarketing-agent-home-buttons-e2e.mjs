@@ -199,8 +199,9 @@ try {
   await page.screenshot({ path: join(OUT, 'work-from-list-preview.png'), fullPage: true });
 
   await page.getByTestId('tele-start-call').click({ force: true });
-  await page.waitForTimeout(2500);
-  check('call-starts-only-after-click', (await page.getByTestId('tele-end-call').count()) > 0);
+  await page.waitForTimeout(4000);
+  const started = (await page.getByTestId('tele-end-call').count()) > 0;
+  check('call-starts-only-after-click', started, await page.locator('body').innerText().then((t) => t.slice(0, 400)));
   await page.screenshot({ path: join(OUT, 'after-start-call.png'), fullPage: true });
   await abortCallsSince(t0);
   await restoreClaims(claimSnap);

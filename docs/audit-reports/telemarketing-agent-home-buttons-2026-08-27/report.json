@@ -1,0 +1,199 @@
+{
+  "at": "2026-08-26T21:42:56.574Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "deploy-staging",
+      "ok": true,
+      "detail": "deployed_ref=8d25d82 feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-not-prod",
+      "ok": true,
+      "detail": "deployed_ref=8d25d82 feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-expected-sha",
+      "ok": true,
+      "detail": {
+        "expected": "8d25d82b",
+        "deployTxt": "deployed_ref=8d25d82 feat/incident-alerts-staging"
+      }
+    },
+    {
+      "id": "keep-1-29-before",
+      "ok": true,
+      "detail": {
+        "count": 30,
+        "missing": [],
+        "ok": true
+      }
+    },
+    {
+      "id": "desktop-four-buttons",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "desktop-no-start-work",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-order",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "desktop-dalia-open",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-after-dalia-four-buttons",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "desktop-after-dalia-no-start-work",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-after-dalia-order",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "desktop-my-report",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-after-report-four-buttons",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "desktop-after-report-no-start-work",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-after-report-order",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "desktop-continue-treatment",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-four-buttons",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "mobile-no-start-work",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-order",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "mobile-dalia-open",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-after-dalia-four-buttons",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "mobile-after-dalia-no-start-work",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-after-dalia-order",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "mobile-my-report",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-after-report-four-buttons",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "mobile-after-report-no-start-work",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-after-report-order",
+      "ok": true,
+      "detail": "טלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים"
+    },
+    {
+      "id": "mobile-continue-treatment",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "work-from-list-preview",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nליד #1 מוכן. לחצו התחל שיחה אחרי שקראתם את הפרטים.\nטלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n← חזרה למסך הקודם🏠 חזרה לדשבורד הראשי\n\nליד #1 — מערכות אשד\n\nפרטי הליד מוצגים למטה. השיחה לא התחילה. לחצו «הת"
+    },
+    {
+      "id": "lead-number-shown",
+      "ok": true,
+      "detail": "ליד #1 — מערכות אשד"
+    },
+    {
+      "id": "details-before-call",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "call-not-auto-started",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "call-starts-only-after-click",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nתאיר\n\n← חזרה למסך הקודם🏠 חזרה לדשבורד הראשי\n\nליד #1 — מערכות אשד\n\nפרטי הליד מוצגים למטה. השיחה לא התחילה. לחצו «התחל שיחה» כשאתם מוכנים.\n\nליד #1 — מערכות אשד\n\nתחום: בטיחות אש\nאזור: חולון\nצי רכב: 25+\nטלפון: 03-5584555\nמייל: info@ashd.co.il\nעובד משויך: תאיר\nליד #1 — מערכות אשד\n25 רכבים\n03-5584555\nחולון\ninfo"
+    },
+    {
+      "id": "keep-1-29-after",
+      "ok": true,
+      "detail": {
+        "count": 30,
+        "missing": [],
+        "ok": true
+      }
+    },
+    {
+      "id": "claims-restored",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "expectedSha": "8d25d82b",
+  "deployed_ref": "deployed_ref=8d25d82 feat/incident-alerts-staging",
+  "liveBundle": "assets/index-B9ZkgoUz.js"
+}
