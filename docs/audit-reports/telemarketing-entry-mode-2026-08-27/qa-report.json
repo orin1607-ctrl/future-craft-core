@@ -1,0 +1,1074 @@
+{
+  "at": "2026-08-27T09:47:43.181Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "before-29",
+      "ok": true,
+      "detail": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29"
+      ]
+    },
+    {
+      "id": "before-hist-5400",
+      "ok": true,
+      "detail": 5400
+    },
+    {
+      "id": "before-sunday-6",
+      "ok": true,
+      "detail": [
+        "מערכות אשד",
+        "מנועי פרידמן",
+        "קיסריה פולימרים",
+        "מפעלי חמצן וארגון",
+        "בלדי",
+        "אינסטלציה המומחה"
+      ]
+    },
+    {
+      "id": "before-measured-zero",
+      "ok": true,
+      "detail": {
+        "callCount": 0,
+        "callSeconds": 0,
+        "workSeconds": 0,
+        "dirCount": 29,
+        "numbers": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24",
+          "25",
+          "26",
+          "27",
+          "28",
+          "29"
+        ],
+        "histSum": 5400,
+        "sundayFu": 6,
+        "sundayCompanies": [
+          "מערכות אשד",
+          "מנועי פרידמן",
+          "קיסריה פולימרים",
+          "מפעלי חמצן וארגון",
+          "בלדי",
+          "אינסטלציה המומחה"
+        ],
+        "yellow": 6,
+        "red": 17,
+        "claims": [
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          },
+          {
+            "claimed_by": null,
+            "claimed_at": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "desktop-greeting",
+      "ok": true,
+      "detail": "שלום תאיר 👋\n\nשמחים שחזרת. איך תרצי להיכנס למערכת?\n\nמטרת הכניסה למערכת\n\n🟢 כניסה לעבודה\nהתחלת עבודה והמשך טיפול בלידים.\n🧪 כניסה לבדיקה\nצפייה ובדיקה בלבד — ללא שיחות וללא רישום זמן עבודה."
+    },
+    {
+      "id": "desktop-inspect-banner",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-start-disabled",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-list-disabled",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-report-visible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-continue-visible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-report-opens",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-greeting",
+      "ok": true,
+      "detail": "שלום תאיר 👋\n\nשמחים שחזרת. איך תרצי להיכנס למערכת?\n\nמטרת הכניסה למערכת\n\n🟢 כניסה לעבודה\nהתחלת עבודה והמשך טיפול בלידים.\n🧪 כניסה לבדיקה\nצפייה ובדיקה בלבד — ללא שיחות וללא רישום זמן עבודה."
+    },
+    {
+      "id": "mobile-inspect-banner",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-start-disabled",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-list-disabled",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-report-visible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-continue-visible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-report-opens",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "inspect-no-time",
+      "ok": true,
+      "detail": {
+        "before": 0,
+        "after": 0
+      }
+    },
+    {
+      "id": "switch-start-enabled",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "switch-list-enabled",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "work-skips-purpose",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "work-start-enabled",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "work-list-enabled",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "live-sha",
+      "ok": true,
+      "detail": {
+        "EXPECTED_SHA": "66858e27",
+        "liveBuild": "66858e2"
+      }
+    },
+    {
+      "id": "work-view-no-new-calls",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-banner",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-assign-disabled",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-audit",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-no-tair-time",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-29",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-hist-5400",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-sunday-6",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-colors",
+      "ok": true,
+      "detail": {
+        "before": {
+          "y": 6,
+          "r": 17
+        },
+        "after": {
+          "y": 6,
+          "r": 17
+        }
+      }
+    },
+    {
+      "id": "no-production",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "deployedRef": "66858e27",
+  "liveBundle": "assets/index-4lALIpeO.js",
+  "liveBuild": "66858e2",
+  "before": {
+    "callCount": 0,
+    "callSeconds": 0,
+    "workSeconds": 0,
+    "dirCount": 29,
+    "numbers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29"
+    ],
+    "histSum": 5400,
+    "sundayFu": 6,
+    "sundayCompanies": [
+      "מערכות אשד",
+      "מנועי פרידמן",
+      "קיסריה פולימרים",
+      "מפעלי חמצן וארגון",
+      "בלדי",
+      "אינסטלציה המומחה"
+    ],
+    "yellow": 6,
+    "red": 17,
+    "claims": [
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      }
+    ]
+  },
+  "afterInspect": {
+    "callCount": 0,
+    "callSeconds": 0,
+    "workSeconds": 0,
+    "dirCount": 29,
+    "numbers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29"
+    ],
+    "histSum": 5400,
+    "sundayFu": 6,
+    "sundayCompanies": [
+      "מערכות אשד",
+      "מנועי פרידמן",
+      "קיסריה פולימרים",
+      "מפעלי חמצן וארגון",
+      "בלדי",
+      "אינסטלציה המומחה"
+    ],
+    "yellow": 6,
+    "red": 17,
+    "claims": [
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      }
+    ]
+  },
+  "afterWorkView": {
+    "callCount": 0,
+    "callSeconds": 0,
+    "workSeconds": 0,
+    "dirCount": 29,
+    "numbers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29"
+    ],
+    "histSum": 5400,
+    "sundayFu": 6,
+    "sundayCompanies": [
+      "מערכות אשד",
+      "מנועי פרידמן",
+      "קיסריה פולימרים",
+      "מפעלי חמצן וארגון",
+      "בלדי",
+      "אינסטלציה המומחה"
+    ],
+    "yellow": 6,
+    "red": 17,
+    "claims": [
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      }
+    ]
+  },
+  "afterAdmin": {
+    "callCount": 0,
+    "callSeconds": 0,
+    "workSeconds": 0,
+    "dirCount": 29,
+    "numbers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29"
+    ],
+    "histSum": 5400,
+    "sundayFu": 6,
+    "sundayCompanies": [
+      "מערכות אשד",
+      "מנועי פרידמן",
+      "קיסריה פולימרים",
+      "מפעלי חמצן וארגון",
+      "בלדי",
+      "אינסטלציה המומחה"
+    ],
+    "yellow": 6,
+    "red": 17,
+    "claims": [
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      },
+      {
+        "claimed_by": null,
+        "claimed_at": null
+      }
+    ]
+  }
+}
