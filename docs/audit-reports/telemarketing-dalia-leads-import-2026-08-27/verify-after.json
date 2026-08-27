@@ -1,0 +1,89 @@
+{
+  "at": "2026-08-27T21:10:12.821Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "afterCount": 314,
+  "keep29": true,
+  "tairAssigned29": 29,
+  "histSum": 5400,
+  "sundayFu": 6,
+  "tairCallCount": 0,
+  "statesCount": 23,
+  "newLeads": 285,
+  "newLeadsAssigned": 0,
+  "bucketsAll": {
+    "5-10": 0,
+    "11-20": 36,
+    "21-30": 42,
+    "31-40": 37,
+    "5-40": 115,
+    "over40": 199,
+    "under5": 0,
+    "unknown": 0
+  },
+  "bucketsNew": {
+    "5-10": 0,
+    "11-20": 20,
+    "21-30": 36,
+    "31-40": 34,
+    "5-40": 90,
+    "over40": 195,
+    "under5": 0,
+    "unknown": 0
+  },
+  "bucketsKeep29": {
+    "5-10": 0,
+    "11-20": 16,
+    "21-30": 6,
+    "31-40": 3,
+    "5-40": 25,
+    "over40": 4,
+    "under5": 0,
+    "unknown": 0
+  },
+  "fileRows": 1000,
+  "imported": 285,
+  "blockedUnique": 715,
+  "blocked": {
+    "existing": 7,
+    "inFileOnly": 666,
+    "both": 42,
+    "invalid": 0
+  },
+  "numbersMinMax": {
+    "min": 1,
+    "max": 314
+  },
+  "sampleNew": [
+    {
+      "n": "30",
+      "company": "אלקטרה בנייה",
+      "fleet": "300+",
+      "assigned": null
+    },
+    {
+      "n": "31",
+      "company": "אשטרום הנדסה",
+      "fleet": "210+",
+      "assigned": null
+    },
+    {
+      "n": "32",
+      "company": "דניה סיבוס",
+      "fleet": "260+",
+      "assigned": null
+    },
+    {
+      "n": "33",
+      "company": "סולל בונה",
+      "fleet": "310+",
+      "assigned": null
+    },
+    {
+      "n": "34",
+      "company": "אפקון החזקות",
+      "fleet": "130+",
+      "assigned": null
+    }
+  ]
+}

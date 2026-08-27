@@ -14,7 +14,9 @@ import {
   filterDirectoryRows,
   isDirectoryFilterActive,
   selectAllLabel,
+  sortDirectoryRows,
   type AgentFilter,
+  type DirectorySort,
 } from '@/features/telemarketing/lib/leadAssign/selectScope';
 
 export function LeadDirectoryBoard({
@@ -37,6 +39,10 @@ export function LeadDirectoryBoard({
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [agentFilter, setAgentFilter] = useState<AgentFilter>('all');
+  const [fleetPreset, setFleetPreset] = useState('all');
+  const [fleetMin, setFleetMin] = useState('');
+  const [fleetMax, setFleetMax] = useState('');
+  const [fleetSort, setFleetSort] = useState<DirectorySort>('default');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignAgentId, setAssignAgentId] = useState('');
@@ -64,8 +70,20 @@ export function LeadDirectoryBoard({
     void load();
   }, [reloadToken, isAdmin]);
 
-  const filtered = useMemo(() => filterDirectoryRows(rows, query, agentFilter), [rows, query, agentFilter]);
-  const filterActive = isDirectoryFilterActive(query, agentFilter);
+  const fleetRange = useMemo(() => {
+    const min = fleetMin.trim() === '' ? null : Number(fleetMin);
+    const max = fleetMax.trim() === '' ? null : Number(fleetMax);
+    return {
+      min: min != null && Number.isFinite(min) ? min : null,
+      max: max != null && Number.isFinite(max) ? max : null,
+    };
+  }, [fleetMin, fleetMax]);
+
+  const filtered = useMemo(
+    () => sortDirectoryRows(filterDirectoryRows(rows, query, agentFilter, fleetRange), fleetSort),
+    [rows, query, agentFilter, fleetRange, fleetSort],
+  );
+  const filterActive = isDirectoryFilterActive(query, agentFilter, fleetRange);
   const filteredIds = filtered.map((row) => row.id);
   const selectedVisible = filteredIds.filter((id) => selected.has(id));
   const allFilteredSelected = filteredIds.length > 0 && selectedVisible.length === filteredIds.length;
@@ -202,6 +220,81 @@ export function LeadDirectoryBoard({
           </label>
         )}
       </div>
+      {isAdmin && (
+        <div className="space-y-2 rounded-xl border border-border p-3" data-testid="lead-fleet-filter">
+          <p className="text-xs font-black">סינון לפי כמות רכבים</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'all', label: 'הכל', min: '', max: '' },
+              { id: '5-10', label: '5–10', min: '5', max: '10' },
+              { id: '11-20', label: '11–20', min: '11', max: '20' },
+              { id: '21-30', label: '21–30', min: '21', max: '30' },
+              { id: '31-40', label: '31–40', min: '31', max: '40' },
+              { id: '5-40', label: '5–40', min: '5', max: '40' },
+              { id: 'over-40', label: 'מעל 40', min: '41', max: '' },
+            ].map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                data-testid={`lead-fleet-preset-${preset.id}`}
+                className={`min-h-10 rounded-xl px-3 text-sm font-bold ${fleetPreset === preset.id ? 'bg-emerald-700 text-white' : 'border border-border'}`}
+                onClick={() => {
+                  setFleetPreset(preset.id);
+                  setFleetMin(preset.min);
+                  setFleetMax(preset.max);
+                }}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-2 md:grid-cols-3">
+            <label className="text-xs font-semibold">
+              מינימום רכבים
+              <input
+                data-testid="lead-fleet-min"
+                type="number"
+                min={0}
+                value={fleetMin}
+                onChange={(e) => {
+                  setFleetPreset('custom');
+                  setFleetMin(e.target.value);
+                }}
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3"
+                placeholder="למשל 5"
+              />
+            </label>
+            <label className="text-xs font-semibold">
+              מקסימום רכבים
+              <input
+                data-testid="lead-fleet-max"
+                type="number"
+                min={0}
+                value={fleetMax}
+                onChange={(e) => {
+                  setFleetPreset('custom');
+                  setFleetMax(e.target.value);
+                }}
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3"
+                placeholder="למשל 15"
+              />
+            </label>
+            <label className="text-xs font-semibold">
+              מיון
+              <select
+                data-testid="lead-fleet-sort"
+                value={fleetSort}
+                onChange={(e) => setFleetSort(e.target.value as DirectorySort)}
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3"
+              >
+                <option value="default">ללא מיון מיוחד</option>
+                <option value="fleet_asc">כמות רכבים — מהנמוך לגבוה</option>
+                <option value="fleet_desc">כמות רכבים — מהגבוה לנמוך</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      )}
 
       {isAdmin && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border p-3">
@@ -365,7 +458,7 @@ export function LeadDirectoryBoard({
                 <td className="p-2 font-bold">{row.companyName}</td>
                 <td className="p-2">{row.industry}</td>
                 <td className="p-2">{row.region}</td>
-                <td className="p-2">{row.fleetSize}</td>
+                <td className="p-2" data-testid="lead-fleet-cell">{row.fleetSize.trim() ? row.fleetSize : 'ללא נתון'}</td>
                 <td className="p-2" dir="ltr">{row.phone}</td>
                 <td className="p-2" dir="ltr">{row.email}</td>
                 <td className="p-2" data-testid="lead-assigned-cell">{row.assignedName || 'ללא שיוך'}</td>
