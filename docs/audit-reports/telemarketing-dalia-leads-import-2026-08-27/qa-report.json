@@ -1,0 +1,124 @@
+{
+  "at": "2026-08-27T21:13:47.122Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "bundle-fleet-filter",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-no-auto-assign",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-fleet-ui",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-count-314",
+      "ok": true,
+      "detail": "מאגר לידים\nרענן\nExport\n\n314 לידים במאגר\n\nחיפוש\nעובד משויך\nכל העובדים\nללא עובד משויך\nארכיון\nתאיר\n\nסינון לפי כמות רכבים\n\nהכל\n5–10\n11–20\n21–30\n31–40\n5–40\nמעל 40\nמינימום רכבים\nמקסימום רכבים\nמיון\nללא מיון "
+    },
+    {
+      "id": "filter-5-10",
+      "ok": true,
+      "detail": "מאגר לידים\nרענן\nExport\n\n0 תוצאות מסוננות מתוך 314 לידים במאגר\n\nחיפוש\nעובד משויך\nכל העובדים\nללא עובד משויך\nארכיון\nתאיר\n\nסינון לפי כמות רכבים\n\nהכל\n5–10\n11–20\n21–30\n31–40\n5–40\nמעל 40\n"
+    },
+    {
+      "id": "filter-5-40",
+      "ok": true,
+      "detail": {
+        "filtered540": 115
+      }
+    },
+    {
+      "id": "filter-manual-5-15",
+      "ok": true,
+      "detail": "מאגר לידים\nרענן\nExport\n\n12 תוצאות מסוננות מתוך 314 לידים במאגר\n\nחיפוש\nעובד משויך\nכל העובדים\nללא עובד משויך\nארכיון\nתאיר\n\nסינון לפי כמות רכבים\n\nהכל\n5–10\n11–20\n21–30\n31–40\n5–40\nמעל 40"
+    },
+    {
+      "id": "sort-fleet",
+      "ok": true,
+      "detail": {
+        "firstFleet": "15+ רכבים",
+        "firstDesc": "40+"
+      }
+    },
+    {
+      "id": "select-all-filtered-label",
+      "ok": true,
+      "detail": "בחר הכול בתוצאות המסוננות (115) — לא את כל המאגר (314)"
+    },
+    {
+      "id": "select-all-count-matches-filter",
+      "ok": true,
+      "detail": {
+        "assignBtn": "שייך לעובד (115)",
+        "filtered540": 115
+      }
+    },
+    {
+      "id": "assign-preview-count",
+      "ok": true,
+      "detail": "אתה עומד לשייך 115 לידים לתאיר. להמשיך?\n\nאישור שיוך\nחזרה"
+    },
+    {
+      "id": "assign-not-executed",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "live-sha",
+      "ok": true,
+      "detail": {
+        "EXPECTED_SHA": "d8cad49d",
+        "liveBuild": "d8cad49"
+      }
+    },
+    {
+      "id": "agent-no-fleet-filter",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-no-admin-assign",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-blocked-from-admin",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nתאיר\n\n🧪 מצב בדיקה — הפעילות אינה נחשבת כעבודה\n\nמעבר למצב עבודה\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋"
+    },
+    {
+      "id": "after-314",
+      "ok": true,
+      "detail": 314
+    },
+    {
+      "id": "after-29-still-tair",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "new-leads-unassigned",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "no-production",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "deployedRef": "d8cad49d",
+  "liveBundle": "assets/index-BP-jwPSD.js",
+  "liveBuild": "d8cad49"
+}
