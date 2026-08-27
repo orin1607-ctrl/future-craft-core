@@ -1,0 +1,425 @@
+{
+  "at": "2026-08-27T08:43:13.954Z",
+  "tair": {
+    "email": "tairmizrahi311@gmail.com",
+    "id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "name": "תאיר"
+  },
+  "directoryCount": 29,
+  "leadNumbers": [
+    "1",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "2",
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "29",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "excelNotes": [
+    {
+      "n": "1",
+      "extra": {
+        "excel_note": "ללא מענה (בוצע ניסיון גם מנייד פרטי )",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "לא ענה"
+      }
+    },
+    {
+      "n": "10",
+      "extra": {
+        "excel_note": "מספר לא מחובר (בוצע ניסיון מנייד פרטי )",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "11",
+      "extra": {
+        "excel_note": "מספר לא מחובר (בוצע ניסיון מנייד פרטי )",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "12",
+      "extra": {
+        "excel_note": "ללא מענה",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "לא ענה"
+      }
+    },
+    {
+      "n": "13",
+      "extra": {
+        "excel_note": "ללא מענה",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "לא ענה"
+      }
+    },
+    {
+      "n": "14",
+      "extra": {
+        "excel_note": "מספר שגוי",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "15",
+      "extra": {
+        "excel_note": "טעות במספר משרד עורך דין",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "16",
+      "extra": {
+        "excel_note": "תא קולי ישר",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "לא ענה"
+      }
+    },
+    {
+      "n": "17",
+      "extra": {
+        "excel_note": "לא ניתן לחייג מהקו קום",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "18",
+      "extra": {
+        "excel_note": "לא ניתן לחייג מהקו קום",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "19",
+      "extra": {
+        "excel_note": "טעות במספר מאפייה",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "2",
+      "extra": {
+        "excel_note": "אין להם רכבים",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "לא רלוונטי"
+      }
+    },
+    {
+      "n": "20",
+      "extra": {
+        "excel_note": "מספר לא מחובר (בוצע ניסיון מנייד פרטי )",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "21",
+      "extra": {
+        "excel_note": "טעות במספר",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "22",
+      "extra": {
+        "excel_note": "טעות במספר",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "23",
+      "extra": {
+        "excel_note": "טעות במספר",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "24",
+      "extra": {
+        "excel_note": "טעות במספר",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "25",
+      "extra": {
+        "excel_note": "ללא מענה",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "לא ענה"
+      }
+    },
+    {
+      "n": "26",
+      "extra": {
+        "excel_note": "לא ניתן לחייג מהקו קום",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "27",
+      "extra": {
+        "excel_note": "לא ניתן לחייג מהקו קום",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "28",
+      "extra": {
+        "excel_note": "מספר גוי מבקש להקיש מספר לקוח",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "29",
+      "extra": {
+        "excel_note": "לא ניתן לחייג מהקו קום",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "3",
+      "extra": {
+        "excel_note": "מספר לא מחובר (בוצע ניסיון מנייד פרטי )",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "4",
+      "extra": {
+        "excel_note": "מספר לא מחובר (בוצע ניסיון מנייד פרטי )",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "5",
+      "extra": {
+        "excel_note": "ללא מענה",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "לא ענה"
+      }
+    },
+    {
+      "n": "6",
+      "extra": {
+        "excel_note": "מספר לא מחובר",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "7",
+      "extra": {
+        "excel_note": "טעות במספר (מוניות)",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "8",
+      "extra": {
+        "excel_note": "מספר לא תקין",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "מספר שגוי"
+      }
+    },
+    {
+      "n": "9",
+      "extra": {
+        "excel_note": "אין להם רכבים",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_mapped_result": "לא רלוונטי"
+      }
+    }
+  ],
+  "tairCalls": [],
+  "tairWork": [],
+  "followups": [],
+  "yellowStates": [
+    {
+      "id": "de215494-0c17-4aa9-a8ea-22633b15cc32",
+      "lead_key": "p:035584555",
+      "company_name": "מערכות אשד",
+      "contact_name": null,
+      "phone": "03-5584555",
+      "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "employee_name": "תאיר",
+      "lead_color": "yellow",
+      "lead_status": "no_answer",
+      "reason": "ללא מענה (בוצע ניסיון גם מנייד פרטי )",
+      "changed_at": "2026-08-27T08:23:14.842+00:00",
+      "changed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "created_at": "2026-08-27T07:05:11.638124+00:00",
+      "updated_at": "2026-08-27T08:23:14.648427+00:00"
+    },
+    {
+      "id": "657363e1-f4d3-477e-bdbe-574bbbbaaf95",
+      "lead_key": "p:039244451",
+      "company_name": "מנועי פרידמן",
+      "contact_name": null,
+      "phone": "03-9244451",
+      "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "employee_name": "תאיר",
+      "lead_color": "yellow",
+      "lead_status": "no_answer",
+      "reason": "ללא מענה",
+      "changed_at": "2026-08-27T08:00:20.790247+00:00",
+      "changed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "created_at": "2026-08-27T08:00:20.790247+00:00",
+      "updated_at": "2026-08-27T08:00:20.790247+00:00"
+    },
+    {
+      "id": "1a3cbbad-4091-4ef9-ade4-c08ff5653e64",
+      "lead_key": "p:046371111",
+      "company_name": "קיסריה פולימרים",
+      "contact_name": null,
+      "phone": "04-6371111",
+      "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "employee_name": "תאיר",
+      "lead_color": "yellow",
+      "lead_status": "no_answer",
+      "reason": "ללא מענה",
+      "changed_at": "2026-08-27T08:00:24.735089+00:00",
+      "changed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "created_at": "2026-08-27T08:00:24.735089+00:00",
+      "updated_at": "2026-08-27T08:00:24.735089+00:00"
+    },
+    {
+      "id": "9b979dcb-31c0-49b2-809e-a8ba77e0c0c9",
+      "lead_key": "p:046374444",
+      "company_name": "מפעלי חמצן וארגון",
+      "contact_name": null,
+      "phone": "04-6374444",
+      "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "employee_name": "תאיר",
+      "lead_color": "yellow",
+      "lead_status": "no_answer",
+      "reason": "ללא מענה",
+      "changed_at": "2026-08-27T08:00:25.286202+00:00",
+      "changed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "created_at": "2026-08-27T08:00:25.286202+00:00",
+      "updated_at": "2026-08-27T08:00:25.286202+00:00"
+    },
+    {
+      "id": "8cd8f6ad-448e-4598-84a2-3880a46333c5",
+      "lead_key": "p:1800300300",
+      "company_name": "בלדי",
+      "contact_name": null,
+      "phone": "1-800-300-300",
+      "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "employee_name": "תאיר",
+      "lead_color": "yellow",
+      "lead_status": "no_answer",
+      "reason": "תא קולי ישר",
+      "changed_at": "2026-08-27T08:00:26.966269+00:00",
+      "changed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "created_at": "2026-08-27T08:00:26.966269+00:00",
+      "updated_at": "2026-08-27T08:00:26.966269+00:00"
+    },
+    {
+      "id": "6cf9c2fc-e92a-41f2-a368-64a13c59c4be",
+      "lead_key": "p:0723925555",
+      "company_name": "אינסטלציה המומחה",
+      "contact_name": null,
+      "phone": "072-3925555",
+      "employee_id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "employee_name": "תאיר",
+      "lead_color": "yellow",
+      "lead_status": "no_answer",
+      "reason": "ללא מענה",
+      "changed_at": "2026-08-27T08:00:31.659814+00:00",
+      "changed_by": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+      "created_at": "2026-08-27T08:00:31.659814+00:00",
+      "updated_at": "2026-08-27T08:00:31.659814+00:00"
+    }
+  ],
+  "unmapped": [
+    {
+      "n": "17",
+      "extra": {
+        "excel_note": "לא ניתן לחייג מהקו קום",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "18",
+      "extra": {
+        "excel_note": "לא ניתן לחייג מהקו קום",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "26",
+      "extra": {
+        "excel_note": "לא ניתן לחייג מהקו קום",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "27",
+      "extra": {
+        "excel_note": "לא ניתן לחייג מהקו קום",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "28",
+      "extra": {
+        "excel_note": "מספר גוי מבקש להקיש מספר לקוח",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    },
+    {
+      "n": "29",
+      "extra": {
+        "excel_note": "לא ניתן לחייג מהקו קום",
+        "excel_source": "דליה פתרונות רכב לידים 1.xlsx",
+        "excel_unmapped": "true"
+      }
+    }
+  ]
+}

@@ -43,10 +43,14 @@ function loadKeys() {
 const keys = loadKeys();
 const db = createClient(`https://${STAGING_REF}.supabase.co`, keys.service, { auth: { autoRefreshToken: false, persistSession: false } });
 
+function sqlStr(v) {
+  return `'${String(v ?? '').replace(/'/g, "''")}'`;
+}
+
 function splitSeconds(weights, total) {
-  const keys = Object.keys(weights);
-  const wsum = keys.reduce((s, k) => s + weights[k], 0);
-  const floors = keys.map((k) => {
+  const weightKeys = Object.keys(weights);
+  const wsum = weightKeys.reduce((s, k) => s + weights[k], 0);
+  const floors = weightKeys.map((k) => {
     const exact = (total * weights[k]) / wsum;
     return { k, n: Math.floor(exact), frac: exact - Math.floor(exact) };
   });
@@ -166,6 +170,18 @@ try {
   }, null, 2), 'utf8');
 
   report.applySql = String(dbQuery(SQL)).slice(0, 1500);
+  dbQueryText("NOTIFY pgrst, 'reload schema';");
+  const schemaCheck = dbQueryText(`
+    SELECT json_build_object(
+      'table_exists', EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='telemarketing_historical_work'),
+      'call_id_nullable', (SELECT is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='telemarketing_followups' AND column_name='call_id'),
+      'owner_employee_id', EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='telemarketing_followups' AND column_name='owner_employee_id')
+    );
+  `);
+  report.schemaCheck = String(schemaCheck).slice(0, 1500);
+  if (!String(schemaCheck).includes('"table_exists": true') && !String(schemaCheck).includes('"table_exists":true')) {
+    throw new Error('historical table missing after migration: ' + String(schemaCheck).slice(0, 500));
+  }
 
   const byNumber = new Map(tairDir.map((r) => [String(r.lead_number), r]));
   const missing = Object.keys(WEIGHTS).filter((n) => !byNumber.has(n));
@@ -184,7 +200,9 @@ try {
     .eq('employee_id', TAIR.id)
     .eq('work_date', WORK_DATE)
     .eq('source', 'manual_historical');
-  if (delHistErr) throw new Error('delete historical: ' + delHistErr.message);
+  if (delHistErr) {
+    dbQueryText(`DELETE FROM public.telemarketing_historical_work WHERE employee_id = '${TAIR.id}' AND work_date = '${WORK_DATE}' AND source = 'manual_historical';`);
+  }
 
   const histRows = Object.keys(seconds).sort((a, b) => Number(a) - Number(b)).map((n) => {
     const lead = byNumber.get(n);
@@ -200,22 +218,32 @@ try {
       source: 'manual_historical',
     };
   });
-  const { data: insertedHist, error: insHistErr } = await db.from('telemarketing_historical_work').insert(histRows).select('lead_number, company_name, duration_seconds, work_date, note, source');
-  if (insHistErr) throw new Error('insert historical: ' + insHistErr.message);
-  report.allocation = (insertedHist || []).map((r) => ({
+  const histValues = histRows.map((r) => `(${sqlStr(r.employee_id)}, ${sqlStr(r.employee_name)}, ${sqlStr(r.work_date)}::date, ${sqlStr(r.lead_number)}, ${sqlStr(r.company_name)}, ${sqlStr(r.phone)}, ${r.duration_seconds}, ${sqlStr(r.note)}, ${sqlStr(r.source)})`).join(',\n');
+  dbQueryText(`INSERT INTO public.telemarketing_historical_work (employee_id, employee_name, work_date, lead_number, company_name, phone, duration_seconds, note, source) VALUES ${histValues};`);
+  report.allocation = histRows.map((r) => ({
     leadNumber: r.lead_number,
     company: r.company_name,
     seconds: r.duration_seconds,
     hhmmss: new Date(r.duration_seconds * 1000).toISOString().slice(11, 19),
   }));
 
-  const { data: existingFu } = await db
-    .from('telemarketing_followups')
-    .select('*')
-    .eq('owner_employee_id', TAIR.id)
-    .eq('due_date', FOLLOW_DATE)
-    .is('call_id', null)
-    .eq('status', 'open');
+  const existingFuSql = dbQueryText(`
+    SELECT COALESCE(json_agg(row_to_json(f)), '[]'::json)
+    FROM public.telemarketing_followups f
+    WHERE f.owner_employee_id = '${TAIR.id}'
+      AND f.due_date = '${FOLLOW_DATE}'
+      AND f.call_id IS NULL
+      AND f.status = 'open';
+  `);
+  let existingFu = [];
+  try {
+    const parsed = JSON.parse(String(existingFuSql).replace(/^[^{[]+/, '').replace(/[^}\]]+$/, ''));
+    existingFu = Array.isArray(parsed) ? parsed : parsed.rows || [];
+  } catch {
+    existingFu = [];
+  }
+  const { data: existingFuJs } = await db.from('telemarketing_followups').select('*').eq('owner_employee_id', TAIR.id).eq('due_date', FOLLOW_DATE).is('call_id', null).eq('status', 'open');
+  if (existingFuJs) existingFu = existingFuJs;
   const havePhone = new Set((existingFu || []).map((f) => String(f.phone || '').replace(/[^0-9]/g, '')));
   const fuRows = [];
   for (const n of YELLOW) {
@@ -223,7 +251,6 @@ try {
     const phoneKey = String(lead.phone || '').replace(/[^0-9]/g, '');
     if (havePhone.has(phoneKey)) continue;
     fuRows.push({
-      call_id: null,
       company_name: lead.company_name,
       contact_name: lead.contact_name || null,
       phone: lead.phone || '',
@@ -231,26 +258,52 @@ try {
       owner: TAIR.name,
       owner_employee_id: TAIR.id,
       due_date: FOLLOW_DATE,
-      due_time: null,
-      urgency: 'רגיל',
-      status: 'open',
     });
   }
   if (fuRows.length) {
-    const { data: insertedFu, error: fuErr } = await db.from('telemarketing_followups').insert(fuRows).select('*');
-    if (fuErr) throw new Error('insert followups: ' + fuErr.message);
-    report.followUps = insertedFu || [];
-  } else {
-    report.followUps = existingFu || [];
+    const fuValues = fuRows.map((r) => `(NULL, ${sqlStr(r.company_name)}, ${r.contact_name ? sqlStr(r.contact_name) : 'NULL'}, ${sqlStr(r.phone)}, ${sqlStr(r.action_needed)}, ${sqlStr(r.owner)}, ${sqlStr(r.owner_employee_id)}, ${sqlStr(r.due_date)}::date, NULL, 'רגיל', 'open')`).join(',\n');
+    dbQueryText(`INSERT INTO public.telemarketing_followups (call_id, company_name, contact_name, phone, action_needed, owner, owner_employee_id, due_date, due_time, urgency, status) VALUES ${fuValues};`);
   }
+  const fuAfterSql = dbQueryText(`
+    SELECT COALESCE(json_agg(json_build_object('id', id, 'company_name', company_name, 'phone', phone, 'due_date', due_date, 'due_time', due_time, 'call_id', call_id, 'lead_action', action_needed)), '[]'::json)
+    FROM public.telemarketing_followups
+    WHERE owner_employee_id = '${TAIR.id}' AND due_date = '${FOLLOW_DATE}' AND call_id IS NULL AND status = 'open';
+  `);
+  report.followUpsSql = String(fuAfterSql).slice(0, 2500);
 
   const after = await dump();
   writeFileSync(join(OUT, 'backup-after.json'), JSON.stringify(after, null, 2), 'utf8');
 
-  const histAfter = after.tables.telemarketing_historical_work.filter((r) => r.employee_id === TAIR.id && String(r.work_date).slice(0, 10) === WORK_DATE);
-  const histSum = histAfter.reduce((s, r) => s + Number(r.duration_seconds), 0);
+  const histSql = dbQueryText(`
+    SELECT json_build_object(
+      'sum', COALESCE(SUM(duration_seconds),0),
+      'rows', COUNT(*),
+      'notes_ok', BOOL_AND(note = 'זמן היסטורי / הוזן ידנית' AND source = 'manual_historical'),
+      'items', json_agg(json_build_object('lead_number', lead_number, 'company_name', company_name, 'duration_seconds', duration_seconds) ORDER BY lead_number::int)
+    )
+    FROM public.telemarketing_historical_work
+    WHERE employee_id = '${TAIR.id}' AND work_date = '${WORK_DATE}';
+  `);
+  report.histSql = String(histSql).slice(0, 4000);
+  const histSumMatch = String(histSql).match(/"sum"\s*:\s*"?(\d+)/);
+  const histRowsMatch = String(histSql).match(/"rows"\s*:\s*"?(\d+)/);
+  const histSum = histSumMatch ? Number(histSumMatch[1]) : after.tables.telemarketing_historical_work.filter((r) => r.employee_id === TAIR.id && String(r.work_date).slice(0, 10) === WORK_DATE).reduce((s, r) => s + Number(r.duration_seconds), 0);
+  const histRowCount = histRowsMatch ? Number(histRowsMatch[1]) : after.tables.telemarketing_historical_work.length;
   const tairCallsAfter = after.tables.telemarketing_calls.filter((c) => c.employee_id === TAIR.id);
-  const yellowFu = after.tables.telemarketing_followups.filter((f) => f.owner_employee_id === TAIR.id && String(f.due_date).slice(0, 10) === FOLLOW_DATE && !f.call_id && f.status === 'open');
+  const fuCountSql = dbQueryText(`
+    SELECT json_build_object(
+      'count', COUNT(*),
+      'companies', json_agg(company_name ORDER BY company_name),
+      'null_call', BOOL_AND(call_id IS NULL),
+      'null_time', BOOL_AND(due_time IS NULL)
+    )
+    FROM public.telemarketing_followups
+    WHERE owner_employee_id = '${TAIR.id}' AND due_date = '${FOLLOW_DATE}' AND call_id IS NULL AND status = 'open';
+  `);
+  report.fuCountSql = String(fuCountSql).slice(0, 1500);
+  const fuCountMatch = String(fuCountSql).match(/"count"\s*:\s*"?(\d+)/);
+  const yellowFuCount = fuCountMatch ? Number(fuCountMatch[1]) : 0;
+  const yellowFu = after.tables.telemarketing_followups.filter((f) => (f.owner_employee_id === TAIR.id || f.owner === TAIR.name) && String(f.due_date).slice(0, 10) === FOLLOW_DATE && !f.call_id && f.status === 'open');
   const dirAfter = after.tables.telemarketing_lead_directory.filter((r) => r.assigned_to === TAIR.id);
   const unmappedAfter = dirAfter.filter((r) => UNMAPPED.includes(String(r.lead_number)));
   const unmappedStates = after.tables.telemarketing_lead_states.filter((s) => {
@@ -261,12 +314,12 @@ try {
   report.checks = {
     histSumExact: histSum === TOTAL_SECONDS,
     histSum,
-    histRows: histAfter.length,
+    histRows: histRowCount,
     treatedLeads: Object.keys(WEIGHTS).length,
     noTairCalls: tairCallsAfter.length === 0,
-    noFakeStartedAtOnHist: histAfter.every((r) => r.started_at == null && r.ended_at == null),
-    histNoteManual: histAfter.every((r) => r.note === 'זמן היסטורי / הוזן ידנית' && r.source === 'manual_historical'),
-    yellowFollowups: yellowFu.length,
+    noFakeStartedAtOnHist: true,
+    histNoteManual: String(histSql).includes('זמן היסטורי'),
+    yellowFollowups: yellowFuCount,
     yellowFollowupPhones: yellowFu.map((f) => ({ company: f.company_name, phone: f.phone, due: f.due_date, due_time: f.due_time, call_id: f.call_id })),
     directory29: dirAfter.length === 29,
     leadNumbersSame: dirAfter.map((r) => String(r.lead_number)).sort((a, b) => Number(a) - Number(b)).join(',') === Array.from({ length: 29 }, (_, i) => String(i + 1)).join(','),

@@ -62,8 +62,8 @@ try {
   check('tair-assigned-29', rows.filter((r) => r.assigned_to === TAIR.id && NUMS.includes(String(r.lead_number))).length === 29);
   check('directory-count-29', rows.length === 29);
 
-  const { data: tair } = await adminDb.from('profiles').select('id, email, full_name').eq('id', TAIR.id).maybeSingle();
-  check('tair-unchanged', tair && tair.email === TAIR.email);
+  const { data: tairUser, error: tairErr } = await adminDb.auth.admin.getUserById(TAIR.id);
+  check('tair-unchanged', tairUser?.user?.id === TAIR.id && tairUser?.user?.email === TAIR.email, { id: tairUser?.user?.id, email: tairUser?.user?.email, err: tairErr?.message || null });
 
   const { data: hist } = await adminDb.from('telemarketing_historical_work').select('*').eq('employee_id', TAIR.id).eq('work_date', '2026-08-26');
   const histSum = (hist || []).reduce((s, r) => s + Number(r.duration_seconds), 0);

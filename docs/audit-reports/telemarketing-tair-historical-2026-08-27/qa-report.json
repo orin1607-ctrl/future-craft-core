@@ -1,0 +1,267 @@
+{
+  "at": "2026-08-27T08:53:11.435Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "keep-1-29",
+      "ok": true,
+      "detail": {
+        "count": 29
+      }
+    },
+    {
+      "id": "no-duplicates",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "tair-assigned-29",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "directory-count-29",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "tair-unchanged",
+      "ok": true,
+      "detail": {
+        "id": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "email": "tairmizrahi311@gmail.com",
+        "err": null
+      }
+    },
+    {
+      "id": "hist-sum-5400",
+      "ok": true,
+      "detail": {
+        "histSum": 5400,
+        "rows": 23
+      }
+    },
+    {
+      "id": "hist-manual-label",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "hist-no-clock-cols",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "hist-not-unmapped",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "no-fake-calls",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "id": "yellow-followups-6",
+      "ok": true,
+      "detail": [
+        "מערכות אשד",
+        "מנועי פרידמן",
+        "קיסריה פולימרים",
+        "מפעלי חמצן וארגון",
+        "בלדי",
+        "אינסטלציה המומחה"
+      ]
+    },
+    {
+      "id": "followups-date-only",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "followups-same-companies",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "yellow-still-open",
+      "ok": true,
+      "detail": [
+        "מערכות אשד",
+        "מנועי פרידמן",
+        "קיסריה פולימרים",
+        "מפעלי חמצן וארגון",
+        "בלדי",
+        "אינסטלציה המומחה"
+      ]
+    },
+    {
+      "id": "unmapped-not-colored-by-this",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-home-buttons",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-continue-board",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-fu-sunday-companies",
+      "ok": true,
+      "detail": "המשך טיפול\nמתאריך\nעד תאריך\nכל הסטטוסים\nבאיחור\nלהיום\nעתידי\nהושלם\nכל הדחיפויות\nרגיל\nחשוב\nדחוף\nכל הצבעים\n🔴 אדום\n🟡 צהוב\n🟢 ירוק\nכל תוצאות השיחה\nבאיחור (0)\n\nאין רשומות\n\nלחזור היום (0)\n\nאין רשומות\n\nבהמשך (6)\n🟡 ליד #1 — מערכות אשד\nבהמשך · 2026-08-30 · רגיל\n\n03-5584555\n\nהמשך טיפול — אין מענה\n\n27.8.2026 · 11:43 · חזרה 2026-08-30\n\n🟡 ליד #5 — מנועי פרידמן\nבהמשך · 2026-08-30 · רגיל\n\n03-9244451\n\nהמשך טיפול — אין מענה\n\n27.8.2026 · 11:43 · חזרה 2026-08-30\n\n🟡 ליד #12 — קיסריה פולימרים\nבהמשך · 2026-08-30 · "
+    },
+    {
+      "id": "desktop-fu-date",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-open-same-lead-1",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nטלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים\n\nלקוח / ליד חדש\n\nמילאו שם חברה או טלפון, ואז לחצו התחל שיחה. ליד חדש מקבל מספר אוטומטי ונכנס למאגר המנהל. «עבודה מרשימת לידים» לוקחת את הליד הבא ששויך אליכם.\n\nשם החברה\nאיש קשר\nתפקיד\nטלפון\nאימייל\nמס' רכבים\nעיר\nהמשך טיפול\nמתאריך\nעד תאריך\nכל"
+    },
+    {
+      "id": "desktop-return-same-lead",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-no-auto-call",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-report-26-historical-5400",
+      "ok": true,
+      "detail": "5400"
+    },
+    {
+      "id": "desktop-report-26-auto-zero",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "id": "desktop-report-26-label",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-report-26-no-fake-clock",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-report-27-no-hist",
+      "ok": true,
+      "detail": {
+        "hist27": 0,
+        "measured27": "0"
+      }
+    },
+    {
+      "id": "mobile-home-buttons",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-continue-board",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-fu-sunday-companies",
+      "ok": true,
+      "detail": "המשך טיפול\nמתאריך\nעד תאריך\nכל הסטטוסים\nבאיחור\nלהיום\nעתידי\nהושלם\nכל הדחיפויות\nרגיל\nחשוב\nדחוף\nכל הצבעים\n🔴 אדום\n🟡 צהוב\n🟢 ירוק\nכל תוצאות השיחה\nבאיחור (0)\n\nאין רשומות\n\nלחזור היום (0)\n\nאין רשומות\n\nבהמשך (6)\n🟡 ליד #1 — מערכות אשד\nבהמשך · 2026-08-30 · רגיל\n\n03-5584555\n\nהמשך טיפול — אין מענה\n\n27.8.2026 · 11:43 · חזרה 2026-08-30\n\n🟡 ליד #5 — מנועי פרידמן\nבהמשך · 2026-08-30 · רגיל\n\n03-9244451\n\nהמשך טיפול — אין מענה\n\n27.8.2026 · 11:43 · חזרה 2026-08-30\n\n🟡 ליד #12 — קיסריה פולימרים\nבהמשך · 2026-08-30 · "
+    },
+    {
+      "id": "mobile-fu-date",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-open-same-lead-1",
+      "ok": true,
+      "detail": "דליה\n\nפתרונות תפעול ותחזוקה לרכב\n\nיציאה\nטלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n📋 עבודה מרשימת לידים\n\nלקוח / ליד חדש\n\nמילאו שם חברה או טלפון, ואז לחצו התחל שיחה. ליד חדש מקבל מספר אוטומטי ונכנס למאגר המנהל. «עבודה מרשימת לידים» לוקחת את הליד הבא ששויך אליכם.\n\nשם החברה\nאיש קשר\nתפקיד\nטלפון\nאימייל\nמס' רכבים\nעיר\nהמשך טיפול\nמתאריך\nעד תאריך\nכל הסטטוסים\nבאיחור\nלהיום\nעתידי\nהושלם\nכל הדחיפ"
+    },
+    {
+      "id": "mobile-return-same-lead",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-no-auto-call",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-report-26-historical-5400",
+      "ok": true,
+      "detail": "5400"
+    },
+    {
+      "id": "mobile-report-26-auto-zero",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "id": "mobile-report-26-label",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-report-26-no-fake-clock",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-report-27-no-hist",
+      "ok": true,
+      "detail": {
+        "hist27": 0,
+        "measured27": "0"
+      }
+    },
+    {
+      "id": "work-from-list-still-works",
+      "ok": true,
+      "detail": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nתאיר\n\nQA\n\nנציג/ת טלמיטינג\nטלמיטינג\nהתנתקות\nליד #2 מוכן. לחצו התחל שיחה אחרי שקראתם את הפרטים.\nטלמיטינג\n\nתאיר\n\nהתחל שיחה\n🟣 פניות צוות דליה\n📊 הדוח שלי\n← חזרה למסך הקודם🏠 חזרה לדשבורד הראשי\n\nליד #2 — פייר אאוט\n"
+    },
+    {
+      "id": "call-not-auto-started",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-26-historical-5400",
+      "ok": true,
+      "detail": {
+        "adminHistVal": "5400",
+        "snippet": "כהה\n\nדליה — פתרונות תפעול ותחזוקה לרכב\n\nיוני אטיאס\n\nאכבים\n\nמנהל על\nכל החברות\nניווט\n▼\nבית\nרשימת רכבים\nרשימת נהגים\nמעקב רכבים\nמיקום צי חכם\nחברות הסעות\nתקלות\nדוחות\nמנהלי צי\nלקוחות\nטלמיטינג\nהתראות\nחירום\nצ'אט\nמרכז ניהול\n▼\nהתנתקות\nמסך מנהל — טלמיטינג\n\nעודכן: 11:54:04\n\nמאגר לידים\nמסך נציג\nרענן נתונים\nרענון אוטומטי\nמאגר לידים\nרענן\nExport\n\n29 לידים במאגר\n\nחיפוש\nעובד משויך\nכל העובדים\nללא עובד משויך\nארכיון\nת"
+      }
+    },
+    {
+      "id": "admin-27-no-hist",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "claims-restored",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "id": "no-production",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl"
+}

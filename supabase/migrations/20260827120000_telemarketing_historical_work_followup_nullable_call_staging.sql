@@ -90,3 +90,5 @@ CREATE POLICY telemarketing_historical_work_select ON public.telemarketing_histo
 
 GRANT SELECT ON public.telemarketing_historical_work TO authenticated;
 GRANT ALL ON public.telemarketing_historical_work TO service_role;
+
+NOTIFY pgrst, 'reload schema';

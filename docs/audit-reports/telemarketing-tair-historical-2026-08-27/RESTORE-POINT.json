@@ -1,0 +1,23 @@
+{
+  "at": "2026-08-27T08:43:16.281Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "codeCommit": "5bebec3350df922527cd0f2c8e6cdd45a2370965",
+  "branch": "feat/incident-alerts-staging",
+  "backupFile": "backup-before.json",
+  "keep": {
+    "tair": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "directoryLeads": "1-29"
+  },
+  "rollback": [
+    "DELETE FROM public.telemarketing_historical_work WHERE employee_id = 'cfadfd61-476b-4b19-83c8-19b62b7bb99e' AND work_date = '2026-08-26' AND source = 'manual_historical';",
+    "DELETE FROM public.telemarketing_followups WHERE owner_employee_id = 'cfadfd61-476b-4b19-83c8-19b62b7bb99e' AND due_date = '2026-08-30' AND call_id IS NULL;",
+    "DROP POLICY IF EXISTS telemarketing_historical_work_select ON public.telemarketing_historical_work;",
+    "DROP TABLE IF EXISTS public.telemarketing_historical_work;",
+    "ALTER TABLE public.telemarketing_followups DROP COLUMN IF EXISTS owner_employee_id;"
+  ],
+  "note": "One-shot historical time + yellow follow-ups. No fake calls or invented started_at/ended_at."
+}
