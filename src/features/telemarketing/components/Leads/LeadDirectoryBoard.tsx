@@ -62,27 +62,32 @@ export function LeadDirectoryBoard({
 
   const load = async () => {
     try {
-      setRows(await listLeadDirectory());
-      if (isAdmin) {
-        setBatches(await listLeadImportBatches().catch(() => []));
-        setEvents(await listLeadAssignmentEvents().catch(() => []));
-        setAgents(await listAssignableAgents().catch(() => []));
-        const [states, openFollowups, callRes] = await Promise.all([
-          getLeadStates().catch(() => []),
-          getFollowUps({ status: 'open' }).catch(() => []),
-          supabase.from('telemarketing_calls').select('phone, company_name').limit(5000),
-        ]);
-        const callKeys = (callRes.data || [])
-          .map((row) => leadKey(String(row.phone || ''), String(row.company_name || '')))
-          .filter((key) => isUsableLeadKey(key));
-        setActivityHints({
-          callKeys,
-          stateKeys: states.map((state) => ({ key: state.leadKey, color: state.leadColor })),
-          openFollowupKeys: openFollowups
-            .map((fu) => leadKey(fu.phone, fu.companyName))
-            .filter((key) => isUsableLeadKey(key)),
-        });
+      if (!isAdmin) {
+        setRows(await listLeadDirectory());
+        return;
       }
+      const [dirRows, nextBatches, nextEvents, nextAgents, states, openFollowups, callRes] = await Promise.all([
+        listLeadDirectory(),
+        listLeadImportBatches().catch(() => []),
+        listLeadAssignmentEvents().catch(() => []),
+        listAssignableAgents().catch(() => []),
+        getLeadStates().catch(() => []),
+        getFollowUps({ status: 'open' }).catch(() => []),
+        supabase.from('telemarketing_calls').select('phone, company_name').limit(5000),
+      ]);
+      setRows(dirRows);
+      setBatches(nextBatches);
+      setEvents(nextEvents);
+      setAgents(nextAgents);
+      setActivityHints({
+        callKeys: (callRes.data || [])
+          .map((row) => leadKey(String(row.phone || ''), String(row.company_name || '')))
+          .filter((key) => isUsableLeadKey(key)),
+        stateKeys: states.map((state) => ({ key: state.leadKey, color: state.leadColor })),
+        openFollowupKeys: openFollowups
+          .map((fu) => leadKey(fu.phone, fu.companyName))
+          .filter((key) => isUsableLeadKey(key)),
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'שגיאה בטעינת מאגר לידים');
     }

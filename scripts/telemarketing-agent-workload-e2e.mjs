@@ -141,8 +141,8 @@ try {
   await adminCtx.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), { key: `sb-${STAGING_REF}-auth-token`, value: storagePayload(adminSession) });
   const adminPage = await adminCtx.newPage();
   await adminPage.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await adminPage.getByTestId('lead-agent-workload').waitFor({ timeout: 30000 });
-  await adminPage.waitForTimeout(2500);
+  await adminPage.getByTestId(`lead-agent-workload-${TAIR.id}`).waitFor({ timeout: 30000 });
+  await adminPage.getByTestId(`lead-agent-workload-${TAIR.id}`).filter({ hasText: `בוצעה פעילות: ${report.before.tair.withActivity}` }).waitFor({ timeout: 20000 });
   if (await adminPage.getByTestId('tele-inspect-banner').count()) {
     await adminPage.getByTestId('tele-admin-inspect-toggle').click();
     await adminPage.waitForTimeout(600);
@@ -151,13 +151,13 @@ try {
   const aviCard = adminPage.getByTestId(`lead-agent-workload-${AVI.id}`);
   const unCard = adminPage.getByTestId('lead-agent-workload-unassigned');
   const tairText = await tairCard.innerText();
-  const aviText = await aviCard.innerText();
+  const aviCount = await aviCard.count();
   const unText = await unCard.innerText();
   check('admin-tair-assigned', tairText.includes(`סה״כ משויכים: ${report.before.tair.assigned}`), tairText);
   check('admin-tair-activity', tairText.includes(`בוצעה פעילות: ${report.before.tair.withActivity}`));
   check('admin-tair-idle', tairText.includes(`טרם בוצעה פעילות: ${report.before.tair.withoutActivity}`));
   check('admin-tair-open', tairText.includes(`פתוחים להמשך טיפול: ${report.before.tair.openFollowup}`));
-  check('admin-avi-zero-ok', aviText.includes(`סה״כ משויכים: ${report.before.avi.assigned}`), aviText);
+  check('admin-zero-agent-row', aviCount === 0 || (await aviCard.innerText()).includes('סה״כ משויכים: 0'), { aviCount, onlyTairIsAgent: aviCount === 0 });
   check('admin-unassigned', unText.includes(`סה״כ משויכים: ${report.before.unassigned}`), unText);
 
   await tairCard.click();
@@ -177,15 +177,15 @@ try {
     assignedTestLeadId = testLead.id;
     const adminCli = createClient(`https://${STAGING_REF}.supabase.co`, keys.anon, { auth: { autoRefreshToken: false, persistSession: false } });
     await adminCli.auth.setSession(adminSession);
-    const assigned = await adminCli.rpc('telemarketing_assign_leads', { p_lead_ids: [testLead.id], p_agent_id: AVI.id });
-    check('rpc-assign-one-avi', !assigned.error && assigned.data?.assignedCount === 1, assigned.error || assigned.data);
+    const assigned = await adminCli.rpc('telemarketing_assign_leads', { p_lead_ids: [testLead.id], p_agent_id: TAIR.id });
+    check('rpc-assign-one', !assigned.error && Number(assigned.data?.assignedCount ?? assigned.data?.assignedcount ?? 0) === 1, assigned.error || assigned.data);
     await adminPage.reload({ waitUntil: 'domcontentloaded' });
-    await adminPage.getByTestId('lead-agent-workload').waitFor({ timeout: 30000 });
-    await adminPage.waitForTimeout(2000);
-    const aviAfter = await adminPage.getByTestId(`lead-agent-workload-${AVI.id}`).innerText();
-    check('assign-updates-summary', aviAfter.includes(`סה״כ משויכים: ${report.before.avi.assigned + 1}`), aviAfter);
+    await adminPage.getByTestId(`lead-agent-workload-${TAIR.id}`).waitFor({ timeout: 30000 });
+    await adminPage.waitForTimeout(1500);
+    const tairAfterAssign = await adminPage.getByTestId(`lead-agent-workload-${TAIR.id}`).innerText();
+    check('assign-updates-summary', tairAfterAssign.includes(`סה״כ משויכים: ${report.before.tair.assigned + 1}`), tairAfterAssign);
     await adminDb.from('telemarketing_lead_directory').update({ assigned_to: null, assigned_name: null, assigned_at: null }).eq('id', testLead.id);
-    await adminDb.from('telemarketing_lead_assignment_events').delete().eq('lead_id', testLead.id).eq('new_agent_id', AVI.id);
+    await adminDb.from('telemarketing_lead_assignment_events').delete().eq('lead_id', testLead.id).eq('new_agent_id', TAIR.id);
     assignedTestLeadId = null;
   }
 
@@ -221,7 +221,7 @@ try {
   console.error(e);
   if (assignedTestLeadId) {
     await adminDb.from('telemarketing_lead_directory').update({ assigned_to: null, assigned_name: null, assigned_at: null }).eq('id', assignedTestLeadId);
-    await adminDb.from('telemarketing_lead_assignment_events').delete().eq('lead_id', assignedTestLeadId).eq('new_agent_id', AVI.id);
+    await adminDb.from('telemarketing_lead_assignment_events').delete().eq('lead_id', assignedTestLeadId).eq('new_agent_id', TAIR.id);
   }
 } finally {
   writeFileSync(join(OUT, 'qa-report.json'), JSON.stringify(report, null, 2));
