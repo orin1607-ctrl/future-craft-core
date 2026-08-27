@@ -7,10 +7,12 @@ export function MyFollowUps({
   onStartReturn,
   reloadToken,
   currentEmployee,
+  startLocked = false,
 }: {
   onStartReturn: (item: FollowUpWorkItem) => void;
   reloadToken?: number;
   currentEmployee?: TelemarketingEmployee;
+  startLocked?: boolean;
 }) {
   const [items, setItems] = useState<FollowUpWorkItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,7 @@ export function MyFollowUps({
           items={items}
           hideEmployeeFilter
           allowStartReturn
+          startLocked={startLocked}
           onStartReturn={onStartReturn}
           actor={currentEmployee ? { id: currentEmployee.id, displayName: currentEmployee.displayName } : undefined}
         />

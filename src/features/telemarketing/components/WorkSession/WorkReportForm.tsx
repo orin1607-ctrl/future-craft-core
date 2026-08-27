@@ -12,12 +12,14 @@ export function WorkReportForm({
   onSubmit,
   submitting,
   error,
+  locked = false,
 }: {
   draft: WorkDraft;
   onChange: (patch: Partial<WorkDraft>) => void;
   onSubmit: () => void;
   submitting: boolean;
   error: string | null;
+  locked?: boolean;
 }) {
   return (
     <div className="space-y-3 rounded-2xl border border-border bg-card p-4" data-testid="tele-work-report">
@@ -90,7 +92,8 @@ export function WorkReportForm({
       <button
         type="button"
         onClick={onSubmit}
-        disabled={submitting}
+        disabled={submitting || locked}
+        title={locked ? 'עבור למצב עבודה' : undefined}
         className="min-h-14 w-full rounded-xl bg-sky-700 py-4 text-lg font-bold text-white disabled:opacity-50"
         data-testid="tele-submit-work"
       >

@@ -59,7 +59,7 @@ export async function securityRecordClientEvent(
 
 export async function securityRecordAction(
   eventType: 'entity_create' | 'entity_update' | 'document_upload' | 'document_view' | 'document_download' | 'settings_change' | 'user_change',
-  opts: { action: string; objectType: string; outcome?: 'success' | 'failure'; result?: string },
+  opts: { action: string; objectType: string; outcome?: 'success' | 'failure'; result?: string; details?: Record<string, unknown> },
 ): Promise<void> {
   await rpc('security_record_client_event', {
     p_event_type: eventType,
@@ -69,7 +69,7 @@ export async function securityRecordAction(
     p_session_id: sessionStorage.getItem(SESSION_KEY),
     p_device_summary: deviceSummary(),
     p_severity: 'info',
-    p_details: { object_type: opts.objectType },
+    p_details: { object_type: opts.objectType, ...(opts.details || {}) },
   }).catch(() => undefined);
 }
 

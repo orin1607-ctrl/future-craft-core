@@ -19,7 +19,7 @@ const FIELD_LABEL: Record<string, string> = {
 
 type Step = 'input' | 'map' | 'preview' | 'done';
 
-export function LeadImportPanel({ isAdmin, onImported }: { isAdmin: boolean; onImported: () => void }) {
+export function LeadImportPanel({ isAdmin, onImported, readOnly = false }: { isAdmin: boolean; onImported: () => void; readOnly?: boolean }) {
   const [step, setStep] = useState<Step>('input');
   const [raw, setRaw] = useState('');
   const [source, setSource] = useState<LeadImportSource>('pasted_sheet');
@@ -45,6 +45,7 @@ export function LeadImportPanel({ isAdmin, onImported }: { isAdmin: boolean; onI
   };
 
   const parseInput = async (text: string, nextSource: LeadImportSource, name = '') => {
+    if (readOnly) return;
     setError('');
     try {
       const parsed = parseSheetText(text);
@@ -91,7 +92,7 @@ export function LeadImportPanel({ isAdmin, onImported }: { isAdmin: boolean; onI
   };
 
   const confirmImport = async () => {
-    if (!preview) return;
+    if (readOnly || !preview) return;
     const ready = rowsReadyToImport(preview);
     setBusy(true);
     setError('');
@@ -123,6 +124,7 @@ export function LeadImportPanel({ isAdmin, onImported }: { isAdmin: boolean; onI
       <p className="text-sm text-muted-foreground">
         מקור אמת אחד: הדבקה מ־Google Sheets/Excel או קובץ CSV נכנסים לאותו Mapping → Preview → Validation → Import.
       </p>
+      {readOnly && <p className="rounded-xl border border-amber-400/50 bg-amber-50 p-2 text-sm font-semibold dark:bg-amber-950/30">מצב בדיקת מנהל־על — ייבוא חסום.</p>}
 
       {step === 'input' && (
         <div className="space-y-3">
@@ -139,7 +141,8 @@ export function LeadImportPanel({ isAdmin, onImported }: { isAdmin: boolean; onI
             <button
               type="button"
               data-testid="lead-import-parse"
-              className="min-h-12 rounded-xl bg-primary px-4 font-bold text-primary-foreground"
+              className="min-h-12 rounded-xl bg-primary px-4 font-bold text-primary-foreground disabled:opacity-50"
+              disabled={readOnly}
               onClick={() => void parseInput(raw, 'pasted_sheet')}
             >
               זהה כותרות
@@ -243,7 +246,7 @@ export function LeadImportPanel({ isAdmin, onImported }: { isAdmin: boolean; onI
               type="button"
               data-testid="lead-import-confirm"
               className="min-h-12 rounded-xl bg-emerald-700 px-4 font-bold text-white disabled:opacity-50"
-              disabled={busy || preview.willImportCount === 0}
+              disabled={busy || preview.willImportCount === 0 || readOnly}
               onClick={() => void confirmImport()}
             >
               {busy ? 'מייבא...' : `אישור Import (${preview.willImportCount})`}

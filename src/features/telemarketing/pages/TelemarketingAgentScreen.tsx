@@ -23,6 +23,7 @@ import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import type { CustomerRef, FollowUpWorkItem, TelemarketingEmployee } from '@/features/telemarketing/types';
 import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
 import { TeleInnerNav, TeleOverlayNavProvider } from '@/features/telemarketing/components/Nav/TeleInnerNav';
+import { InspectBanner } from '@/features/telemarketing/components/EntryPurpose/InspectBanner';
 import { ClipboardList } from 'lucide-react';
 
 const EMPTY_MANUAL_CUSTOMER: CustomerRef = {
@@ -35,7 +36,19 @@ const EMPTY_MANUAL_CUSTOMER: CustomerRef = {
   city: '',
 };
 
-export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee: TelemarketingEmployee }) {
+export function TelemarketingAgentScreen({
+  currentEmployee,
+  inspect = false,
+  inspectVariant = 'agent',
+  onSwitchToWork,
+  onTurnOffAdminInspect,
+}: {
+  currentEmployee: TelemarketingEmployee;
+  inspect?: boolean;
+  inspectVariant?: 'agent' | 'admin';
+  onSwitchToWork?: () => void;
+  onTurnOffAdminInspect?: () => void;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const [manualCustomer, setManualCustomer] = useState<CustomerRef>(EMPTY_MANUAL_CUSTOMER);
@@ -163,6 +176,12 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
     setTimeout(() => setToast(null), 3500);
   };
 
+  const requireWorkMode = () => {
+    if (!inspect) return false;
+    showToast('error', 'עבור למצב עבודה כדי לבצע פעולה זו');
+    return true;
+  };
+
   const startCallWith = async (customer: CustomerRef, sourceFollowUpId?: string | null) => {
     await beginCall({
       employeeId: currentEmployee.id,
@@ -180,6 +199,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   };
 
   const handleStart = async () => {
+    if (requireWorkMode()) return;
     if (!manualCustomer.companyName && !manualCustomer.phone) {
       showToast('error', 'חובה למלא שם חברה או טלפון לפני התחלת שיחה');
       return;
@@ -216,6 +236,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   };
 
   const handleWorkFromList = async () => {
+    if (requireWorkMode()) return;
     try {
       const next = await claimNextAssignedLead();
       if (!next) {
@@ -232,6 +253,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   };
 
   const handleStartReturn = async (item: FollowUpWorkItem) => {
+    if (requireWorkMode()) return;
     const history = await getLeadHistory(item.phone, item.companyName);
     const last = history[history.length - 1];
     const lead: CustomerRef = {
@@ -266,6 +288,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   };
 
   const handleStartWork = async () => {
+    if (requireWorkMode()) return;
     try {
       await beginWork({
         companyName: manualCustomer.companyName,
@@ -278,6 +301,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   };
 
   const handleSubmitWork = async () => {
+    if (requireWorkMode()) return;
     const ok = await submitWork();
     if (ok) {
       showToast('success', 'משימת העבודה נשמרה');
@@ -288,6 +312,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
   };
 
   const handleSubmit = async () => {
+    if (requireWorkMode()) return;
     const continued = keepsContinuedTreatment(draft.result);
     const ok = await submitReport();
     if (ok) {
@@ -359,6 +384,15 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           {currentEmployee.displayName}
           {currentEmployee.employeeCode ? ` · ${currentEmployee.employeeCode}` : ''}
         </p>
+        {inspect && (
+          <div className="mt-3">
+            <InspectBanner
+              variant={inspectVariant}
+              onSwitchToWork={onSwitchToWork}
+              onTurnOffAdmin={onTurnOffAdminInspect}
+            />
+          </div>
+        )}
         {showIdleBoards && (
           <div className="mt-3 space-y-2">
             <CallTimerBar
@@ -367,6 +401,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
               reportElapsedSeconds={reportElapsedSeconds}
               starting={starting}
               isRecording={false}
+              locked={inspect}
               employeeName={currentEmployee.displayName}
               onStart={() => void handleStart()}
               onEnd={() => void finishCallTiming()}
@@ -385,7 +420,8 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
                 type="button"
                 data-testid="tele-work-from-list"
                 onClick={() => void handleWorkFromList()}
-                disabled={starting}
+                disabled={starting || inspect}
+                title={inspect ? 'עבור למצב עבודה' : undefined}
                 className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-amber-700 py-4 text-lg font-bold text-white active:scale-[0.99] disabled:opacity-50"
               >
                 <ClipboardList size={22} />
@@ -538,9 +574,9 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
         </div>
       )}
 
-      {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} />}
+      {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} startLocked={inspect} />}
 
-      {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter />}
+      {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter readOnly={inspect} />}
 
       {callStatus === 'ended' && (
         <p className="rounded-xl border border-amber-400/40 bg-amber-50 p-3 text-sm font-semibold dark:bg-amber-950/30">
@@ -575,6 +611,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           endedAt={call?.endedAt}
           employeeName={call?.employeeName || currentEmployee.displayName}
           leadLabel={activeDirectoryLead?.leadNumber ? formatLeadTitle(activeDirectoryLead.leadNumber, call?.companyName || activeDirectoryLead.companyName) : undefined}
+          locked={inspect}
           onStart={() => void handleStart()}
           onEnd={() => void finishCallTiming()}
         />
@@ -589,6 +626,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           onSubmit={() => void handleSubmit()}
           submitting={submitting}
           error={error}
+          locked={inspect}
         />
       )}
 
@@ -601,6 +639,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           startedAt={workSession?.startedAt}
           endedAt={workSession?.endedAt}
           employeeName={workSession?.employeeName || currentEmployee.displayName}
+          locked={inspect}
           onStart={() => void handleStartWork()}
           onEnd={() => void finishWorkTiming()}
         />
@@ -612,6 +651,7 @@ export function TelemarketingAgentScreen({ currentEmployee }: { currentEmployee:
           onSubmit={() => void handleSubmitWork()}
           submitting={workSubmitting}
           error={workError}
+          locked={inspect}
         />
       )}
     </div>

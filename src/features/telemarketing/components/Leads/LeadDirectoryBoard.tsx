@@ -22,11 +22,13 @@ export function LeadDirectoryBoard({
   reloadToken,
   onPick,
   onClaimNext,
+  readOnly = false,
 }: {
   isAdmin?: boolean;
   reloadToken?: number;
   onPick?: (lead: LeadDirectoryRecord) => void;
   onClaimNext?: () => void;
+  readOnly?: boolean;
 }) {
   const [rows, setRows] = useState<LeadDirectoryRecord[]>([]);
   const [batches, setBatches] = useState<LeadImportBatch[]>([]);
@@ -87,7 +89,7 @@ export function LeadDirectoryBoard({
   const selectedRows = rows.filter((row) => selected.has(row.id));
 
   const runArchive = async (archived: boolean) => {
-    if (selected.size === 0) return;
+    if (readOnly || selected.size === 0) return;
     setArchiveBusy(true);
     setError('');
     try {
@@ -116,7 +118,7 @@ export function LeadDirectoryBoard({
   };
 
   const runAssign = async () => {
-    if (!assignAgentId || selected.size === 0) return;
+    if (readOnly || !assignAgentId || selected.size === 0) return;
     setAssigning(true);
     setError('');
     try {
@@ -156,7 +158,7 @@ export function LeadDirectoryBoard({
         <h2 className="text-xl font-black">מאגר לידים</h2>
         <div className="flex flex-wrap gap-2">
           {onClaimNext && (
-            <button type="button" data-testid="lead-claim-next" className="min-h-12 rounded-xl bg-emerald-700 px-4 font-bold text-white" onClick={onClaimNext}>
+            <button type="button" data-testid="lead-claim-next" className="min-h-12 rounded-xl bg-emerald-700 px-4 font-bold text-white disabled:opacity-50" onClick={onClaimNext} disabled={readOnly} title={readOnly ? 'מצב בדיקה' : undefined}>
               הליד הבא
             </button>
           )}
@@ -214,26 +216,26 @@ export function LeadDirectoryBoard({
             data-testid="lead-assign-open"
             className="min-h-12 rounded-xl bg-primary px-4 font-bold text-primary-foreground disabled:opacity-50"
             onClick={() => { setAssignOpen(true); setAssignPreview(false); setAssignResult(null); }}
-            disabled={selected.size === 0}
+            disabled={selected.size === 0 || readOnly}
           >
             שייך לעובד ({selected.size})
           </button>
-          <button type="button" data-testid="lead-archive" className="min-h-12 rounded-xl border border-border px-3 font-bold disabled:opacity-50" disabled={selected.size === 0 || archiveBusy} onClick={() => setArchiveConfirm(true)}>
+          <button type="button" data-testid="lead-archive" className="min-h-12 rounded-xl border border-border px-3 font-bold disabled:opacity-50" disabled={selected.size === 0 || archiveBusy || readOnly} onClick={() => setArchiveConfirm(true)}>
             העבר לארכיון
           </button>
           {agentFilter === 'archive' && (
-            <button type="button" data-testid="lead-unarchive" className="min-h-12 rounded-xl border border-border px-3 font-bold disabled:opacity-50" disabled={selected.size === 0 || archiveBusy} onClick={() => void runArchive(false)}>
+            <button type="button" data-testid="lead-unarchive" className="min-h-12 rounded-xl border border-border px-3 font-bold disabled:opacity-50" disabled={selected.size === 0 || archiveBusy || readOnly} onClick={() => void runArchive(false)}>
               החזר לפעילות
             </button>
           )}
-          <button type="button" data-testid="lead-delete-preview" className="min-h-12 rounded-xl border border-destructive/40 px-3 font-bold text-destructive disabled:opacity-50" disabled={selected.size === 0} onClick={() => void runDeletePreview()}>
+          <button type="button" data-testid="lead-delete-preview" className="min-h-12 rounded-xl border border-destructive/40 px-3 font-bold text-destructive disabled:opacity-50" disabled={selected.size === 0 || readOnly} onClick={() => void runDeletePreview()}>
             מחיקה (Preview)
           </button>
           {archiveConfirm && (
             <div className="w-full space-y-2 rounded-xl border border-amber-400/50 bg-amber-50 p-3 dark:bg-amber-950/30" data-testid="lead-archive-confirm">
               <p className="font-bold">להעביר {selected.size} לידים לארכיון? הם ייעלמו מתור העובדים. ההיסטוריה נשמרת.</p>
               <div className="flex flex-wrap gap-2">
-                <button type="button" data-testid="lead-archive-confirm-yes" className="min-h-12 rounded-xl bg-amber-700 px-4 font-bold text-white disabled:opacity-50" disabled={archiveBusy} onClick={() => void runArchive(true)}>
+                <button type="button" data-testid="lead-archive-confirm-yes" className="min-h-12 rounded-xl bg-amber-700 px-4 font-bold text-white disabled:opacity-50" disabled={archiveBusy || readOnly} onClick={() => void runArchive(true)}>
                   אישור ארכיון
                 </button>
                 <button type="button" className="min-h-12 rounded-xl border border-border px-4 font-bold" onClick={() => setArchiveConfirm(false)}>ביטול</button>
@@ -268,7 +270,7 @@ export function LeadDirectoryBoard({
                 type="button"
                 data-testid="lead-assign-preview"
                 className="min-h-12 rounded-xl bg-primary px-4 font-bold text-primary-foreground disabled:opacity-50"
-                disabled={!assignAgentId || selected.size === 0}
+                disabled={!assignAgentId || selected.size === 0 || readOnly}
                 onClick={() => setAssignPreview(true)}
               >
                 Preview / אישור
@@ -291,7 +293,7 @@ export function LeadDirectoryBoard({
                   type="button"
                   data-testid="lead-assign-confirm"
                   className="min-h-12 rounded-xl bg-emerald-700 px-4 font-bold text-white disabled:opacity-50"
-                  disabled={assigning}
+                  disabled={assigning || readOnly}
                   onClick={() => void runAssign()}
                 >
                   {assigning ? 'משייך...' : 'אישור שיוך'}

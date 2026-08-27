@@ -20,10 +20,12 @@ export function LeadsBoard({
   currentEmployee,
   hideEmployeeFilter,
   daliaActor,
+  readOnly = false,
 }: {
   currentEmployee?: TelemarketingEmployee;
   hideEmployeeFilter?: boolean;
   daliaActor?: { id: string; displayName: string; isAdmin?: boolean };
+  readOnly?: boolean;
 }) {
   const [items, setItems] = useState<TelemarketingLeadState[]>([]);
   const [color, setColor] = useState<'' | LeadColor>('');
@@ -104,6 +106,7 @@ export function LeadsBoard({
           lead={selected}
           employee={currentEmployee}
           daliaActor={daliaActor || (currentEmployee ? { id: currentEmployee.id, displayName: currentEmployee.displayName } : undefined)}
+          readOnly={readOnly}
           onClose={closeSelected}
           onSaved={async () => {
             await load();
@@ -115,6 +118,7 @@ export function LeadsBoard({
         <LeadDetail
           lead={selected}
           daliaActor={daliaActor}
+          readOnly={readOnly}
           onClose={closeSelected}
         />
       )}
@@ -126,12 +130,14 @@ function LeadDetail({
   lead,
   employee,
   daliaActor,
+  readOnly,
   onClose,
   onSaved,
 }: {
   lead: TelemarketingLeadState;
   employee?: TelemarketingEmployee;
   daliaActor?: { id: string; displayName: string; isAdmin?: boolean };
+  readOnly?: boolean;
   onClose: () => void;
   onSaved?: () => void;
 }) {
@@ -155,7 +161,7 @@ function LeadDetail({
   }, [lead]);
 
   const changeColor = async (color: LeadColor) => {
-    if (!employee) return;
+    if (!employee || readOnly) return;
     if (color === 'red' && !reason.trim()) {
       return;
     }
@@ -192,12 +198,13 @@ function LeadDetail({
         {lastSummary && <p className="mt-2 text-sm">שיחה אחרונה: {lastSummary}</p>}
         {employee && (
           <div className="mt-3 space-y-2">
-            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} className="w-full rounded-lg border border-border p-2" placeholder="סיבה / הערה" />
+            <textarea value={reason} onChange={(e) => !readOnly && setReason(e.target.value)} rows={2} className="w-full rounded-lg border border-border p-2" placeholder="סיבה / הערה" disabled={readOnly} />
             <div className="grid grid-cols-3 gap-2">
-              <button type="button" disabled={saving} onClick={() => void changeColor('red')} className="min-h-12 rounded-xl bg-destructive text-white font-bold">אדום</button>
-              <button type="button" disabled={saving} onClick={() => void changeColor('yellow')} className="min-h-12 rounded-xl bg-amber-400 font-bold">צהוב</button>
-              <button type="button" disabled={saving} onClick={() => void changeColor('green')} className="min-h-12 rounded-xl bg-emerald-600 text-white font-bold">ירוק</button>
+              <button type="button" disabled={saving || readOnly} title={readOnly ? 'עבור למצב עבודה' : undefined} onClick={() => void changeColor('red')} className="min-h-12 rounded-xl bg-destructive text-white font-bold disabled:opacity-50">אדום</button>
+              <button type="button" disabled={saving || readOnly} title={readOnly ? 'עבור למצב עבודה' : undefined} onClick={() => void changeColor('yellow')} className="min-h-12 rounded-xl bg-amber-400 font-bold disabled:opacity-50">צהוב</button>
+              <button type="button" disabled={saving || readOnly} title={readOnly ? 'עבור למצב עבודה' : undefined} onClick={() => void changeColor('green')} className="min-h-12 rounded-xl bg-emerald-600 text-white font-bold disabled:opacity-50">ירוק</button>
             </div>
+            {readOnly && <p className="text-sm font-semibold text-amber-800">מצב בדיקה — שינוי רמזור חסום.</p>}
           </div>
         )}
         {events.length > 0 && (

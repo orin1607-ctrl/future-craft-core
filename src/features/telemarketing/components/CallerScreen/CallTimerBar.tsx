@@ -11,6 +11,7 @@ interface Props {
   endedAt?: string | null;
   employeeName?: string | null;
   leadLabel?: string | null;
+  locked?: boolean;
   onStart: () => void;
   onEnd: () => void;
 }
@@ -21,7 +22,7 @@ function formatMMSS(totalSeconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function CallTimerBar({ status, elapsedSeconds, reportElapsedSeconds = 0, starting, isRecording = false, startedAt, endedAt, employeeName, leadLabel, onStart, onEnd }: Props) {
+export function CallTimerBar({ status, elapsedSeconds, reportElapsedSeconds = 0, starting, isRecording = false, startedAt, endedAt, employeeName, leadLabel, locked = false, onStart, onEnd }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       {status === 'idle' && (
@@ -29,7 +30,8 @@ export function CallTimerBar({ status, elapsedSeconds, reportElapsedSeconds = 0,
           type="button"
           data-testid="tele-start-call"
           onClick={onStart}
-          disabled={starting}
+          disabled={starting || locked}
+          title={locked ? 'עבור למצב עבודה' : undefined}
           className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-4 text-lg font-bold text-white active:scale-[0.99] disabled:opacity-50"
         >
           <Phone size={22} />

@@ -12,11 +12,13 @@ export function LeadTimeline({
   followUp,
   onStartReturn,
   showStartButton,
+  startLocked,
   actor,
 }: {
   followUp: FollowUpWorkItem;
   onStartReturn?: (item: FollowUpWorkItem) => void;
   showStartButton?: boolean;
+  startLocked?: boolean;
   actor?: { id: string; displayName: string; isAdmin?: boolean };
 }) {
   const [history, setHistory] = useState<TelemarketingCall[]>([]);
@@ -121,9 +123,11 @@ export function LeadTimeline({
           type="button"
           data-testid="tele-continue-lead"
           onClick={() => onStartReturn(followUp)}
-          className="flex min-h-14 w-full items-center justify-center rounded-xl bg-emerald-600 py-4 text-lg font-bold text-white"
+          disabled={startLocked}
+          title={startLocked ? 'עבור למצב עבודה' : undefined}
+          className="flex min-h-14 w-full items-center justify-center rounded-xl bg-emerald-600 py-4 text-lg font-bold text-white disabled:opacity-50"
         >
-          התחל המשך טיפול
+          {startLocked ? 'התחל המשך טיפול — עבור למצב עבודה' : 'התחל המשך טיפול'}
         </button>
       )}
     </div>

@@ -15,14 +15,22 @@ import { useTelemarketingDashboard } from '@/features/telemarketing/hooks/useTel
 import { useAgentPerformance } from '@/features/telemarketing/hooks/useAgentPerformance';
 import { getFollowUpWorkItems } from '@/features/telemarketing/services/telemarketingService';
 import { getTelemarketingSettings, updateTelemarketingSetting } from '@/features/telemarketing/config/telemarketingSettings';
+import { InspectBanner } from '@/features/telemarketing/components/EntryPurpose/InspectBanner';
+import { TeleEntryAuditPanel } from '@/features/telemarketing/components/EntryPurpose/TeleEntryAuditPanel';
 import type { FollowUpWorkItem } from '@/features/telemarketing/types';
 
 export function TelemarketingAdminScreen({
   currentManagerId,
   currentManagerName,
+  inspect = false,
+  onToggleInspect,
+  onTurnOffInspect,
 }: {
   currentManagerId: string;
   currentManagerName?: string;
+  inspect?: boolean;
+  onToggleInspect?: () => void;
+  onTurnOffInspect?: () => void;
 }) {
   const { calls, summary, loading, error, lastUpdated, reload, autoRefresh, setAutoRefresh } = useTelemarketingDashboard();
   const { agents, reload: reloadAgents } = useAgentPerformance();
@@ -50,6 +58,7 @@ export function TelemarketingAdminScreen({
   }, []);
 
   const saveSettings = async () => {
+    if (inspect) return;
     setSavingSettings(true);
     try {
       await updateTelemarketingSetting('manager_whatsapp_number', waNumber.trim());
@@ -81,6 +90,14 @@ export function TelemarketingAdminScreen({
           >
             מאגר לידים
           </a>
+          <button
+            type="button"
+            data-testid="tele-admin-inspect-toggle"
+            onClick={() => onToggleInspect?.()}
+            className={`rounded-lg px-4 py-2 text-sm font-black ${inspect ? 'bg-amber-500 text-black' : 'border border-border'}`}
+          >
+            {inspect ? '🧪 מצב בדיקה פעיל' : '🧪 מצב בדיקה'}
+          </button>
           <Link
             to="/telemarketing"
             className="rounded-lg border border-border px-4 py-2 text-sm font-semibold"
@@ -108,8 +125,12 @@ export function TelemarketingAdminScreen({
 
       {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm font-semibold text-destructive">{error}</p>}
 
-      <LeadDirectoryBoard isAdmin reloadToken={leadReload} />
-      <LeadImportPanel isAdmin onImported={() => setLeadReload((n) => n + 1)} />
+      {inspect && (
+        <InspectBanner variant="admin" onTurnOffAdmin={onTurnOffInspect} />
+      )}
+
+      <LeadDirectoryBoard isAdmin reloadToken={leadReload} readOnly={inspect} />
+      <LeadImportPanel isAdmin onImported={() => setLeadReload((n) => n + 1)} readOnly={inspect} />
 
       <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
         <h3 className="text-sm font-bold">הגדרות התראות מנהל</h3>
@@ -137,10 +158,10 @@ export function TelemarketingAdminScreen({
         <button
           type="button"
           onClick={() => void saveSettings()}
-          disabled={savingSettings}
+          disabled={savingSettings || inspect}
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
         >
-          {savingSettings ? 'שומר...' : 'שמור הגדרות'}
+          {savingSettings ? 'שומר...' : inspect ? 'שמור הגדרות — חסום במצב בדיקה' : 'שמור הגדרות'}
         </button>
       </div>
 
@@ -161,11 +182,14 @@ export function TelemarketingAdminScreen({
       <LeadsBoard
         currentEmployee={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על' }}
         daliaActor={{ id: currentManagerId, displayName: currentManagerName || 'מנהל-על', isAdmin: true }}
+        readOnly={inspect}
       />
 
       <WorkTimeDashboard selectedAgent={selectedAgent} />
 
       <ActivityReportPanel />
+
+      <TeleEntryAuditPanel />
 
       <EmployeeCards agents={agents} selectedAgent={selectedAgent} onSelectAgent={setSelectedAgent} />
 

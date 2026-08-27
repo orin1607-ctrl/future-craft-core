@@ -1,0 +1,115 @@
+{
+  "at": "2026-08-27T09:37:39.385Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "codeCommit": "2aaafcb479f7c4577dd285c66b2899d502e2ae8e",
+  "branch": "feat/incident-alerts-staging",
+  "backupFile": "backup-before.json",
+  "keep": {
+    "tair": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+    "directoryLeads": "1-29",
+    "historicalSeconds": 5400,
+    "sundayFollowups": [
+      "1",
+      "5",
+      "12",
+      "13",
+      "16",
+      "25"
+    ]
+  },
+  "fingerprints": {
+    "directoryCount": 29,
+    "directoryNumbers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29"
+    ],
+    "assignedToTair": 29,
+    "statesCount": 23,
+    "statesByColor": {
+      "yellow": 6,
+      "red": 17
+    },
+    "followupsOpenSunday": [
+      {
+        "company": "מערכות אשד",
+        "due": "2026-08-30",
+        "dueTime": null,
+        "callId": null
+      },
+      {
+        "company": "מנועי פרידמן",
+        "due": "2026-08-30",
+        "dueTime": null,
+        "callId": null
+      },
+      {
+        "company": "קיסריה פולימרים",
+        "due": "2026-08-30",
+        "dueTime": null,
+        "callId": null
+      },
+      {
+        "company": "מפעלי חמצן וארגון",
+        "due": "2026-08-30",
+        "dueTime": null,
+        "callId": null
+      },
+      {
+        "company": "בלדי",
+        "due": "2026-08-30",
+        "dueTime": null,
+        "callId": null
+      },
+      {
+        "company": "אינסטלציה המומחה",
+        "due": "2026-08-30",
+        "dueTime": null,
+        "callId": null
+      }
+    ],
+    "histSum": 5400,
+    "histRows": 23,
+    "tairCallCount": 0,
+    "tairCallSeconds": 0,
+    "tairWorkCount": 0,
+    "tairWorkSeconds": 0,
+    "tairMeasuredSeconds": 0
+  },
+  "rollback": [
+    "This change is client sessionStorage + UI gates. No DB schema change.",
+    "Restore code: git checkout <codeCommit> -- the files from this mission.",
+    "Do not restore directory/calls/followups unless a later QA script mutated them; backup-before.json holds the snapshot."
+  ],
+  "note": "Work/inspect mode. No inactivity timeout invented. Tab sessionStorage, same lifetime as existing security session."
+}

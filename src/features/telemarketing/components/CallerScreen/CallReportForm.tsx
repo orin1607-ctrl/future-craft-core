@@ -12,13 +12,14 @@ interface Props {
   error: string | null;
   leadNumber?: string | null;
   companyName?: string | null;
+  locked?: boolean;
 }
 
 const chipBase = 'min-h-12 rounded-xl border px-3 py-2 text-sm text-center select-none transition-colors';
 const chipInactive = 'border-border bg-background text-foreground';
 const chipActive = 'border-primary bg-primary text-primary-foreground font-semibold';
 
-export function CallReportForm({ draft, onChange, onSubmit, submitting, error, leadNumber, companyName }: Props) {
+export function CallReportForm({ draft, onChange, onSubmit, submitting, error, leadNumber, companyName, locked = false }: Props) {
   return (
     <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
       {leadNumber && (
@@ -247,7 +248,8 @@ export function CallReportForm({ draft, onChange, onSubmit, submitting, error, l
       <button
         type="button"
         onClick={onSubmit}
-        disabled={submitting}
+        disabled={submitting || locked}
+        title={locked ? 'עבור למצב עבודה' : undefined}
         className="min-h-14 w-full rounded-xl bg-primary py-4 text-lg font-bold text-primary-foreground disabled:opacity-50"
         data-testid="tele-submit-report"
       >

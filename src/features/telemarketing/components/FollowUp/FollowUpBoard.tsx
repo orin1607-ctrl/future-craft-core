@@ -65,12 +65,14 @@ export function FollowUpBoard({
   hideEmployeeFilter,
   onStartReturn,
   allowStartReturn,
+  startLocked,
   actor,
 }: {
   items: FollowUpWorkItem[];
   hideEmployeeFilter?: boolean;
   onStartReturn?: (item: FollowUpWorkItem) => void;
   allowStartReturn?: boolean;
+  startLocked?: boolean;
   actor?: { id: string; displayName: string; isAdmin?: boolean };
 }) {
   const [filters, setFilters] = useState<FollowUpFiltersState>(EMPTY_FILTERS);
@@ -257,6 +259,7 @@ export function FollowUpBoard({
             <LeadTimeline
               followUp={selected}
               showStartButton={allowStartReturn}
+              startLocked={startLocked}
               actor={actor}
               onStartReturn={(item) => {
                 setSelected(null);

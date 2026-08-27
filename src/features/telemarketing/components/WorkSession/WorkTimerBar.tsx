@@ -9,6 +9,7 @@ interface Props {
   startedAt?: string | null;
   endedAt?: string | null;
   employeeName?: string | null;
+  locked?: boolean;
   onStart: () => void;
   onEnd: () => void;
 }
@@ -19,7 +20,7 @@ function formatMMSS(totalSeconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function WorkTimerBar({ status, elapsedSeconds, reportElapsedSeconds = 0, starting, startedAt, endedAt, employeeName, onStart, onEnd }: Props) {
+export function WorkTimerBar({ status, elapsedSeconds, reportElapsedSeconds = 0, starting, startedAt, endedAt, employeeName, locked = false, onStart, onEnd }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       {status === 'idle' && (
@@ -27,7 +28,8 @@ export function WorkTimerBar({ status, elapsedSeconds, reportElapsedSeconds = 0,
           type="button"
           data-testid="tele-start-work"
           onClick={onStart}
-          disabled={starting}
+          disabled={starting || locked}
+          title={locked ? 'עבור למצב עבודה' : undefined}
           className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-sky-700 py-4 text-lg font-bold text-white active:scale-[0.99] disabled:opacity-50"
         >
           <Briefcase size={22} />

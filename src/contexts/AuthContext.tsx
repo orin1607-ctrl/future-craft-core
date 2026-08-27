@@ -4,6 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import type { AuthSessionPayload } from '@/lib/authOtpClient';
 import { applyAuthSession } from '@/lib/authOtpClient';
 import { securityEndSession } from '@/lib/securityAuditClient';
+import { clearAllTeleModes, clearTeleModesForUser } from '@/features/telemarketing/lib/teleEntryMode';
 
 export type AppRole = 'driver' | 'fleet_manager' | 'super_admin' | 'private_customer' | 'business_customer' | 'telemarketing_agent';
 
@@ -129,6 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await supabase.auth.signOut();
         return { error: 'החשבון שלך ממתין לאישור מנהל. פנה למנהל המערכת.' };
       }
+      clearTeleModesForUser(data.session.user.id);
       setRealUser(profile);
       setSession(data.session);
     }
@@ -153,6 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     await securityEndSession('logout');
+    clearAllTeleModes();
     await supabase.auth.signOut();
     setRealUser(null);
     setImpersonatedUser(null);
@@ -180,6 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(null);
         return { error: 'החשבון שלך ממתין לאישור מנהל. פנה למנהל המערכת.' };
       }
+      clearTeleModesForUser(userId);
       setRealUser(profile);
       const { data: { session: s } } = await supabase.auth.getSession();
       setSession(s);
