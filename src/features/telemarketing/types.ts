@@ -81,12 +81,13 @@ export interface TelemarketingCall extends CustomerRef {
 
 export interface TelemarketingFollowUp {
   id: UUID;
-  callId: UUID;
+  callId: UUID | null;
   companyName: string;
   contactName?: string;
   phone: string;
   actionNeeded: string;
   owner: string | null;
+  ownerEmployeeId?: UUID | null;
   dueDate: string;
   dueTime: string | null;
   urgency: UrgencyLevel;
@@ -97,6 +98,19 @@ export interface TelemarketingFollowUp {
   closedByCallId: string | null;
   createdAt: string;
   leadNumber?: string | null;
+}
+
+export interface HistoricalWorkEntry {
+  id: UUID;
+  employeeId: UUID;
+  employeeName: string;
+  workDate: string;
+  leadNumber: string | null;
+  companyName: string;
+  phone: string;
+  durationSeconds: number;
+  note: string;
+  source: string;
 }
 
 export interface StartCallPayload {

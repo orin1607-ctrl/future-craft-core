@@ -224,7 +224,7 @@ describe('activity report uses only real mappings', () => {
     const grouped = groupLeadActivity(report.calls);
     expect(grouped).toHaveLength(1);
     expect(grouped[0].attempts).toHaveLength(1);
-    expect(grouped[0].totals).toEqual({ attemptCount: 1, callSeconds: 80, reportSeconds: 20, treatmentSeconds: 100 });
+    expect(grouped[0].totals).toEqual({ attemptCount: 1, callSeconds: 80, reportSeconds: 20, treatmentSeconds: 100, historicalSeconds: 0 });
     expect(uniqueLeadCount(report.calls)).toBe(1);
   });
 
@@ -322,5 +322,67 @@ describe('activity report uses only real mappings', () => {
     expect(days[0].row.measuredWorkSeconds + days[1].row.measuredWorkSeconds).toBe(report.totals.measuredWorkSeconds);
     expect(days[0].row.dialAttempts + days[1].row.dialAttempts).toBe(report.totals.dialAttempts);
     expect(quoteCount(report.calls)).toBe(0);
+  });
+
+  it('adds historical/manual seconds once and never as auto-measured call time', () => {
+    const historical = [
+      {
+        id: 'h1',
+        employeeId: 't',
+        employeeName: 'תאיר',
+        workDate: '2026-08-26',
+        leadNumber: '1',
+        companyName: 'א',
+        phone: '1',
+        durationSeconds: 360,
+        note: 'זמן היסטורי / הוזן ידנית',
+        source: 'manual_historical',
+      },
+      {
+        id: 'h2',
+        employeeId: 't',
+        employeeName: 'תאיר',
+        workDate: '2026-08-26',
+        leadNumber: '5',
+        companyName: 'ב',
+        phone: '2',
+        durationSeconds: 5040,
+        note: 'זמן היסטורי / הוזן ידנית',
+        source: 'manual_historical',
+      },
+    ];
+    const report = buildActivityReport({
+      filters: { from: '2026-08-26', to: '2026-08-26', employeeName: 'תאיר', result: '', status: '' },
+      calls: [],
+      work: [],
+      followUps: [],
+      chats: [],
+      historical,
+    });
+    expect(report.totals.historicalSeconds).toBe(5400);
+    expect(report.totals.measuredWorkSeconds).toBe(0);
+    expect(report.totals.callSeconds).toBe(0);
+    expect(report.totals.reportSeconds).toBe(0);
+    expect(report.totals.totalWorkSeconds).toBe(5400);
+    expect(report.totals.callSeconds + report.totals.historicalSeconds).toBe(5400);
+    const nextDay = buildActivityReport({
+      filters: { from: '2026-08-27', to: '2026-08-27', employeeName: 'תאיר', result: '', status: '' },
+      calls: [],
+      work: [],
+      followUps: [],
+      chats: [],
+      historical,
+    });
+    expect(nextDay.totals.historicalSeconds).toBe(0);
+    expect(nextDay.totals.totalWorkSeconds).toBe(0);
+    const withHours = buildActivityReport({
+      filters: { from: '2026-08-26', to: '2026-08-26', employeeName: 'תאיר', result: '', status: '', fromTime: '09:00', toTime: '10:00' },
+      calls: [],
+      work: [],
+      followUps: [],
+      chats: [],
+      historical,
+    });
+    expect(withHours.totals.historicalSeconds).toBe(0);
   });
 });

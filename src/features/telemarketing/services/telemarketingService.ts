@@ -15,6 +15,7 @@ import type {
   CompleteCallReportPayload,
   ExistingCustomerLookup,
   FollowUpWorkItem,
+  HistoricalWorkEntry,
   StartCallPayload,
   TelemarketingCall,
   TelemarketingDashboardSummary,
@@ -457,7 +458,7 @@ export async function getFollowUps(filter?: { status?: 'open' | 'done' }): Promi
 
 export async function getFollowUpWorkItems(): Promise<FollowUpWorkItem[]> {
   const rows = await getFollowUps();
-  const callIds = Array.from(new Set(rows.map((r) => r.callId)));
+  const callIds = Array.from(new Set(rows.map((r) => r.callId).filter((id): id is string => Boolean(id))));
   const callMap = new Map<string, TelemarketingCall>();
   if (callIds.length > 0) {
     const { data } = await supabase.from(TABLE_CALLS).select('*').in('id', callIds);
@@ -469,13 +470,13 @@ export async function getFollowUpWorkItems(): Promise<FollowUpWorkItem[]> {
   const states = await getLeadStates().catch(() => []);
   const stateByKey = new Map(states.map((s) => [s.leadKey, s]));
   return rows.map((fu) => {
-    const origin = callMap.get(fu.callId);
+    const origin = fu.callId ? callMap.get(fu.callId) : undefined;
     const key = leadKey(fu.phone, fu.companyName);
     const state = stateByKey.get(key);
     const inferred = origin?.result ? suggestedLeadTraffic(origin.result, origin.needsFollowUp) : null;
     return {
       ...fu,
-      employeeId: origin?.employeeId || '',
+      employeeId: origin?.employeeId || fu.ownerEmployeeId || '',
       employeeName: origin?.employeeName || fu.owner || '',
       lastResult: origin?.result ?? null,
       lastSummary: origin?.summary ?? null,
@@ -486,6 +487,16 @@ export async function getFollowUpWorkItems(): Promise<FollowUpWorkItem[]> {
       closeReason: state?.reason ?? null,
     };
   });
+}
+
+export async function getHistoricalWork(limit = 2000): Promise<HistoricalWorkEntry[]> {
+  const { data, error } = await supabase
+    .from('telemarketing_historical_work' as never)
+    .select('*')
+    .order('work_date', { ascending: true })
+    .limit(limit);
+  if (error) throw new Error('שגיאה בטעינת זמן היסטורי: ' + error.message);
+  return (data ?? []).map((row) => mapHistoricalWorkRow(row as Record<string, unknown>));
 }
 
 export async function getLeadHistory(phone: string, companyName: string): Promise<TelemarketingCall[]> {
@@ -764,12 +775,13 @@ function mapCallRow(row: Record<string, unknown>): TelemarketingCall {
 function mapFollowUpRow(row: Record<string, unknown>): TelemarketingFollowUp {
   return {
     id: String(row.id),
-    callId: String(row.call_id),
+    callId: row.call_id ? String(row.call_id) : null,
     companyName: String(row.company_name || ''),
     contactName: (row.contact_name as string | null) ?? undefined,
     phone: String(row.phone || ''),
     actionNeeded: String(row.action_needed || ''),
     owner: (row.owner as string | null) ?? null,
+    ownerEmployeeId: row.owner_employee_id ? String(row.owner_employee_id) : null,
     dueDate: String(row.due_date),
     dueTime: row.due_time ? String(row.due_time).slice(0, 5) : null,
     urgency: row.urgency as TelemarketingFollowUp['urgency'],
@@ -779,5 +791,20 @@ function mapFollowUpRow(row: Record<string, unknown>): TelemarketingFollowUp {
     completedAt: (row.completed_at as string | null) ?? null,
     closedByCallId: (row.closed_by_call_id as string | null) ?? null,
     createdAt: String(row.created_at),
+  };
+}
+
+function mapHistoricalWorkRow(row: Record<string, unknown>): HistoricalWorkEntry {
+  return {
+    id: String(row.id),
+    employeeId: String(row.employee_id),
+    employeeName: String(row.employee_name || ''),
+    workDate: String(row.work_date).slice(0, 10),
+    leadNumber: row.lead_number != null && String(row.lead_number) !== '' ? String(row.lead_number) : null,
+    companyName: String(row.company_name || ''),
+    phone: String(row.phone || ''),
+    durationSeconds: Number(row.duration_seconds) || 0,
+    note: String(row.note || 'זמן היסטורי / הוזן ידנית'),
+    source: String(row.source || 'manual_historical'),
   };
 }

@@ -8,7 +8,7 @@ import {
   loadMyActivityReport,
   lockFiltersToSelf,
   quoteCount,
-  uniqueLeadCount,
+  uniqueWorkedLeadCount,
   type ActivityFilters,
   type ActivityReport,
   type EmployeeActivityRow,
@@ -99,7 +99,7 @@ export function MyActivityReport({
   }, [employeeName, filters.from, filters.to, filters.fromTime, filters.toTime]);
 
   const row: EmployeeActivityRow | null = report?.employees[0] || report?.totals || null;
-  const leads = report ? groupLeadActivity(report.calls) : [];
+  const leads = report ? groupLeadActivity(report.calls, report.historical) : [];
   const quotes = report ? quoteCount(report.calls) : 0;
   const days = report ? groupActivityByDay(report) : [];
   const singleDay = from === to;
@@ -132,7 +132,8 @@ export function MyActivityReport({
         { field: 'חלון פעילות (משך)', value: formatDurationSeconds(row.activityWindowSeconds) },
         { field: 'חלון פעילות (שעות שעון)', value: formatTimeRange(row.firstActivityAt, row.lastActivityAt) },
         { field: 'סה״כ זמן עבודה מדוד', value: formatDurationSeconds(row.measuredWorkSeconds) },
-        { field: 'לידים שטופלו', value: uniqueLeadCount(report.calls) },
+        { field: 'זמן היסטורי / הוזן ידנית', value: formatDurationSeconds(row.historicalSeconds || 0) },
+        { field: 'לידים שטופלו', value: uniqueWorkedLeadCount(report.calls, report.historical) },
         { field: 'ניסיונות חיוג', value: row.dialAttempts },
         { field: 'נענו', value: row.answered },
         { field: 'לא ענו', value: row.noAnswer },
@@ -156,12 +157,19 @@ export function MyActivityReport({
           field: `יום ${formatDay(slice.day)}`,
           value: `${formatTimeRange(slice.row.firstActivityAt, slice.row.lastActivityAt)} · מדוד ${formatDurationSeconds(slice.row.measuredWorkSeconds)} · ${slice.row.dialAttempts} חיוגים · ${slice.leadCount} לידים`,
         })),
-        ...leads.flatMap((lead) =>
-          lead.attempts.map((a) => ({
+        ...leads.flatMap((lead) => {
+          const attempts = lead.attempts.map((a) => ({
             field: `${formatLeadTitle(lead.leadNumber, lead.companyName)} · ניסיון ${a.attempt}`,
             value: `${formatStamp(a.startedAt)} · שיחה ${formatDurationSeconds(a.callSeconds)} · דיווח ${formatDurationSeconds(a.reportSeconds)} · טיפול ${formatDurationSeconds(a.treatmentSeconds)} · ${a.result || 'ללא תוצאה'}${a.followUp ? ` · ${a.followUp}` : ''}`,
-          })),
-        ),
+          }));
+          if ((lead.totals.historicalSeconds || 0) > 0) {
+            attempts.push({
+              field: `${formatLeadTitle(lead.leadNumber, lead.companyName)} · זמן היסטורי`,
+              value: `${formatDurationSeconds(lead.totals.historicalSeconds)} · הוזן ידנית · אין שעות התחלה/סיום`,
+            });
+          }
+          return attempts;
+        }),
       ],
     );
   };
@@ -216,7 +224,7 @@ export function MyActivityReport({
             <WorkDaySummary
               title={summaryTitle}
               row={row}
-              leadCount={uniqueLeadCount(report.calls)}
+              leadCount={uniqueWorkedLeadCount(report.calls, report.historical)}
               quotes={quotes}
               days={days}
               onSelectDay={selectDay}
@@ -236,7 +244,10 @@ export function MyActivityReport({
                     <button type="button" className="w-full text-right" onClick={() => setOpenLead(open ? null : key)}>
                       <p className="font-black">{formatLeadTitle(lead.leadNumber, lead.companyName)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatStamp(lead.attempts[0]?.startedAt)} · שיחה {formatDurationSeconds(lead.totals.callSeconds)} · דיווח {formatDurationSeconds(lead.totals.reportSeconds)} · טיפול {formatDurationSeconds(lead.totals.treatmentSeconds)} · {last?.result || 'ללא תוצאה'}
+                        {lead.attempts[0] ? formatStamp(lead.attempts[0].startedAt) : 'זמן היסטורי / הוזן ידנית'}
+                        {' · '}שיחה {formatDurationSeconds(lead.totals.callSeconds)} · דיווח {formatDurationSeconds(lead.totals.reportSeconds)} · טיפול {formatDurationSeconds(lead.totals.treatmentSeconds)}
+                        {(lead.totals.historicalSeconds || 0) > 0 ? ` · היסטורי ${formatDurationSeconds(lead.totals.historicalSeconds)}` : ''}
+                        {' · '}{last?.result || ((lead.totals.historicalSeconds || 0) > 0 ? 'הוזן ידנית' : 'ללא תוצאה')}
                         {last?.followUp ? ` · ${last.followUp}` : ''}
                         {lead.attempts.length > 1 ? ` · ${lead.attempts.length} ניסיונות` : ''}
                       </p>
@@ -248,6 +259,11 @@ export function MyActivityReport({
                             ניסיון {a.attempt}: {formatStamp(a.startedAt)} · שיחה {formatDurationSeconds(a.callSeconds)} · דיווח {formatDurationSeconds(a.reportSeconds)} · טיפול {formatDurationSeconds(a.treatmentSeconds)} · {a.result || 'ללא תוצאה'}
                           </li>
                         ))}
+                        {(lead.totals.historicalSeconds || 0) > 0 && (
+                          <li className="rounded-lg border border-sky-600/40 p-2" data-testid="my-report-lead-historical">
+                            זמן היסטורי / הוזן ידנית: {formatDurationSeconds(lead.totals.historicalSeconds)} · אין שעות התחלה/סיום
+                          </li>
+                        )}
                       </ol>
                     )}
                   </div>

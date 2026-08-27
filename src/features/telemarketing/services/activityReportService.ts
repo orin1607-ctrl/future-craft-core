@@ -1,4 +1,4 @@
-import { getDashboardData, getFollowUpWorkItems } from '@/features/telemarketing/services/telemarketingService';
+import { getDashboardData, getFollowUpWorkItems, getHistoricalWork } from '@/features/telemarketing/services/telemarketingService';
 import { getWorkSessions } from '@/features/telemarketing/services/workSessionService';
 import { getTeamChats } from '@/features/telemarketing/services/teamChatService';
 import { getLeadStates } from '@/features/telemarketing/services/leadStateService';
@@ -6,7 +6,7 @@ import { attachLeadNumbers, listLeadDirectory } from '@/features/telemarketing/s
 import { dayKey, inStampWindow } from '@/features/telemarketing/lib/formatTime';
 import { buildTimingSnapshot, matchesLeadQuery, normalizeLeadQuery } from '@/features/telemarketing/lib/callTiming';
 import { keepsContinuedTreatment } from '@/features/telemarketing/lib/leadTraffic';
-import type { CallResult, FollowUpWorkItem, TeamChat, TelemarketingCall, TelemarketingLeadState, TelemarketingWorkSession } from '@/features/telemarketing/types';
+import type { CallResult, FollowUpWorkItem, HistoricalWorkEntry, TeamChat, TelemarketingCall, TelemarketingLeadState, TelemarketingWorkSession } from '@/features/telemarketing/types';
 import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
 
 export const INTERESTED_RESULTS: CallResult[] = ['מעוניין', 'מעוניין מאוד', 'ביקש מידע', 'ביקש הצעת מחיר', 'רוצה פגישה', 'לחזור אליו'];
@@ -50,6 +50,8 @@ export interface EmployeeActivityRow {
   workSeconds: number;
   workReportSeconds: number;
   workTreatmentSeconds: number;
+  historicalSeconds: number;
+  totalWorkSeconds: number;
   workTaskCount: number;
   dialAttempts: number;
   answered: number;
@@ -95,7 +97,7 @@ export interface LeadActivityDetail {
   createdAt: string | null;
   currentStatus: string | null;
   attempts: LeadAttemptView[];
-  totals: { attemptCount: number; callSeconds: number; reportSeconds: number; treatmentSeconds: number };
+  totals: { attemptCount: number; callSeconds: number; reportSeconds: number; treatmentSeconds: number; historicalSeconds: number };
 }
 
 export interface ActivityReport {
@@ -105,6 +107,7 @@ export interface ActivityReport {
   employees: EmployeeActivityRow[];
   calls: TelemarketingCall[];
   work: TelemarketingWorkSession[];
+  historical: HistoricalWorkEntry[];
   followUps: FollowUpWorkItem[];
   meetings: { companyName: string; employeeName: string; when: string; callId: string; leadNumber?: string | null }[];
   notInterested: { companyName: string; employeeName: string; reason: string; at: string; leadNumber?: string | null }[];
@@ -130,6 +133,8 @@ function emptyRow(employeeId: string, employeeName: string): EmployeeActivityRow
     workSeconds: 0,
     workReportSeconds: 0,
     workTreatmentSeconds: 0,
+    historicalSeconds: 0,
+    totalWorkSeconds: 0,
     workTaskCount: 0,
     dialAttempts: 0,
     answered: 0,
@@ -165,6 +170,8 @@ function finalize(row: EmployeeActivityRow): EmployeeActivityRow {
   row.callTreatmentSeconds = row.callSeconds + row.reportSeconds;
   row.workTreatmentSeconds = row.workSeconds + row.workReportSeconds;
   row.measuredWorkSeconds = row.callTreatmentSeconds + row.workTreatmentSeconds;
+  row.historicalSeconds = row.historicalSeconds || 0;
+  row.totalWorkSeconds = row.measuredWorkSeconds + row.historicalSeconds;
   row.daliaSeconds = null;
   if (row.firstActivityAt && row.lastActivityAt) {
     row.activityWindowSeconds = Math.max(0, Math.round((new Date(row.lastActivityAt).getTime() - new Date(row.firstActivityAt).getTime()) / 1000));
@@ -209,7 +216,7 @@ export function callsToAttempts(calls: TelemarketingCall[]): LeadAttemptView[] {
     });
 }
 
-export function attemptTotals(attempts: LeadAttemptView[]): LeadActivityDetail['totals'] {
+export function attemptTotals(attempts: LeadAttemptView[], historicalSeconds = 0): LeadActivityDetail['totals'] {
   return attempts.reduce(
     (acc, row) => {
       acc.callSeconds += row.callSeconds;
@@ -217,12 +224,19 @@ export function attemptTotals(attempts: LeadAttemptView[]): LeadActivityDetail['
       acc.treatmentSeconds += row.treatmentSeconds;
       return acc;
     },
-    { attemptCount: attempts.length, callSeconds: 0, reportSeconds: 0, treatmentSeconds: 0 },
+    { attemptCount: attempts.length, callSeconds: 0, reportSeconds: 0, treatmentSeconds: 0, historicalSeconds },
   );
 }
 
 export function uniqueLeadCount(calls: TelemarketingCall[]): number {
   return new Set(calls.map((c) => c.leadNumber || c.companyName || c.id)).size;
+}
+
+export function uniqueWorkedLeadCount(calls: TelemarketingCall[], historical: HistoricalWorkEntry[] = []): number {
+  return new Set([
+    ...calls.map((c) => c.leadNumber || c.companyName || c.id),
+    ...historical.map((h) => h.leadNumber || h.companyName || h.id),
+  ]).size;
 }
 
 export function quoteCount(calls: TelemarketingCall[]): number {
@@ -241,6 +255,7 @@ export function groupActivityByDay(report: ActivityReport): WorkDaySlice[] {
   const days = new Set<string>();
   for (const c of report.calls) days.add(dayKey(c.startedAt));
   for (const s of report.work) days.add(dayKey(s.startedAt));
+  for (const h of report.historical || []) days.add(h.workDate);
   for (const chat of report.daliaReports) {
     if (chat.openedAt) days.add(dayKey(chat.openedAt));
   }
@@ -257,6 +272,7 @@ export function groupActivityByDay(report: ActivityReport): WorkDaySlice[] {
         },
         calls: report.calls,
         work: report.work,
+        historical: report.historical,
         followUps: report.followUps,
         chats: report.daliaReports,
       });
@@ -264,35 +280,56 @@ export function groupActivityByDay(report: ActivityReport): WorkDaySlice[] {
       return {
         day,
         row,
-        leadCount: uniqueLeadCount(slice.calls),
+        leadCount: uniqueWorkedLeadCount(slice.calls, slice.historical),
         quotes: quoteCount(slice.calls),
       };
     });
 }
 
-export function groupLeadActivity(calls: TelemarketingCall[]): LeadActivityDetail[] {
+export function groupLeadActivity(calls: TelemarketingCall[], historical: HistoricalWorkEntry[] = []): LeadActivityDetail[] {
   const groups = new Map<string, TelemarketingCall[]>();
+  const histByLead = new Map<string, number>();
+  const histMeta = new Map<string, HistoricalWorkEntry>();
   for (const call of calls) {
     const key = call.leadNumber || `name:${(call.companyName || '').trim().toLowerCase()}` || call.id;
     const list = groups.get(key) || [];
     list.push(call);
     groups.set(key, list);
   }
-  return Array.from(groups.values())
-    .map((list) => {
-      const attempts = callsToAttempts(list);
-      return {
-        leadNumber: list[0].leadNumber || '',
-        companyName: list[0].companyName || '',
-        assignedName: null,
-        source: null,
-        createdAt: null,
-        currentStatus: null,
-        attempts,
-        totals: attemptTotals(attempts),
-      };
-    })
-    .sort((a, b) => (b.attempts[0]?.startedAt || '').localeCompare(a.attempts[0]?.startedAt || ''));
+  for (const row of historical) {
+    const key = row.leadNumber || `name:${(row.companyName || '').trim().toLowerCase()}` || row.id;
+    histByLead.set(key, (histByLead.get(key) || 0) + row.durationSeconds);
+    if (!histMeta.has(key)) histMeta.set(key, row);
+  }
+  const fromCalls = Array.from(groups.entries()).map(([key, list]) => {
+    const attempts = callsToAttempts(list);
+    return {
+      leadNumber: list[0].leadNumber || '',
+      companyName: list[0].companyName || '',
+      assignedName: null,
+      source: null,
+      createdAt: null,
+      currentStatus: null,
+      attempts,
+      totals: attemptTotals(attempts, histByLead.get(key) || 0),
+    };
+  });
+  const extras: LeadActivityDetail[] = [];
+  for (const [key, seconds] of histByLead.entries()) {
+    if (groups.has(key)) continue;
+    const meta = histMeta.get(key);
+    extras.push({
+      leadNumber: meta?.leadNumber || '',
+      companyName: meta?.companyName || '',
+      assignedName: null,
+      source: null,
+      createdAt: null,
+      currentStatus: null,
+      attempts: [],
+      totals: attemptTotals([], seconds),
+    });
+  }
+  return [...fromCalls, ...extras].sort((a, b) => (b.attempts[0]?.startedAt || '').localeCompare(a.attempts[0]?.startedAt || ''));
 }
 
 export function lockFiltersToSelf(filters: ActivityFilters, employeeName: string): ActivityFilters {
@@ -302,6 +339,7 @@ export function lockFiltersToSelf(filters: ActivityFilters, employeeName: string
 export function buildLeadDetail(input: {
   filters: ActivityFilters;
   calls: TelemarketingCall[];
+  historical?: HistoricalWorkEntry[];
   directory?: LeadDirectoryRecord[];
   leadStates?: TelemarketingLeadState[];
 }): LeadActivityDetail | null {
@@ -309,9 +347,11 @@ export function buildLeadDetail(input: {
   if (!q) return null;
   const directoryHits = (input.directory || []).filter((row) => matchesLead(q, row.leadNumber, row.companyName));
   const callHits = input.calls.filter((c) => matchesLead(q, c.leadNumber, c.companyName));
+  const histHits = (input.historical || []).filter((h) => matchesLead(q, h.leadNumber, h.companyName));
   const uniqueNumbers = [...new Set([
     ...directoryHits.map((row) => row.leadNumber),
     ...callHits.map((c) => c.leadNumber).filter(Boolean) as string[],
+    ...histHits.map((h) => h.leadNumber).filter(Boolean) as string[],
   ])];
   if (uniqueNumbers.length !== 1 && directoryHits.length !== 1) return null;
   const resolvedNumber = directoryHits.length === 1 ? directoryHits[0].leadNumber : uniqueNumbers[0];
@@ -319,12 +359,15 @@ export function buildLeadDetail(input: {
   const attemptsSource = input.calls
     .filter((c) => c.leadNumber === resolvedNumber || (!c.leadNumber && dir && matchesLead(resolvedNumber, null, c.companyName)));
   const attempts = callsToAttempts(attemptsSource);
-  const totals = attemptTotals(attempts);
+  const historicalSeconds = (input.historical || [])
+    .filter((h) => h.leadNumber === resolvedNumber || (!h.leadNumber && dir && matchesLead(resolvedNumber, null, h.companyName)))
+    .reduce((sum, h) => sum + h.durationSeconds, 0);
+  const totals = attemptTotals(attempts, historicalSeconds);
   const state = (input.leadStates || []).find((s) => s.leadNumber === resolvedNumber)
     || (input.leadStates || []).find((s) => dir && matchesLead(dir.leadNumber, s.leadNumber, s.companyName));
   return {
     leadNumber: resolvedNumber,
-    companyName: dir?.companyName || attemptsSource[0]?.companyName || '',
+    companyName: dir?.companyName || attemptsSource[0]?.companyName || histHits[0]?.companyName || '',
     assignedName: dir?.assignedName || null,
     source: dir?.source || null,
     createdAt: dir?.createdAt || null,
@@ -340,6 +383,7 @@ export function buildActivityReport(input: {
   work: TelemarketingWorkSession[];
   followUps: FollowUpWorkItem[];
   chats: TeamChat[];
+  historical?: HistoricalWorkEntry[];
   directory?: LeadDirectoryRecord[];
   leadStates?: TelemarketingLeadState[];
 }): ActivityReport {
@@ -356,6 +400,14 @@ export function buildActivityReport(input: {
     if (!inStampWindow(s.startedAt, filters.from, filters.to, filters.fromTime, filters.toTime)) return false;
     if (filters.employeeName && s.employeeName !== filters.employeeName) return false;
     if (!matchesLead(filters.leadQuery, s.leadNumber, s.companyName)) return false;
+    return true;
+  });
+  const historical = (input.historical || []).filter((h) => {
+    if (filters.fromTime || filters.toTime) return false;
+    if (filters.from && h.workDate < filters.from) return false;
+    if (filters.to && h.workDate > filters.to) return false;
+    if (filters.employeeName && h.employeeName !== filters.employeeName) return false;
+    if (!matchesLead(filters.leadQuery, h.leadNumber, h.companyName)) return false;
     return true;
   });
   const followUps = input.followUps.filter((f) => {
@@ -417,6 +469,10 @@ export function buildActivityReport(input: {
     const row = rowFor(chat.agentId, chat.agentName);
     row.daliaReports++;
   }
+  for (const row of historical) {
+    const agent = rowFor(row.employeeId, row.employeeName);
+    agent.historicalSeconds += row.durationSeconds;
+  }
 
   const employees = Array.from(byAgent.values()).map(finalize).sort((a, b) => b.dialAttempts - a.dialAttempts);
   const totals = finalize(employees.reduce((acc, row) => {
@@ -436,6 +492,7 @@ export function buildActivityReport(input: {
     acc.reportSeconds += row.reportSeconds;
     acc.workSeconds += row.workSeconds;
     acc.workReportSeconds += row.workReportSeconds;
+    acc.historicalSeconds += row.historicalSeconds;
     acc.workTaskCount += row.workTaskCount;
     markBounds(acc, row.firstActivityAt, row.lastActivityAt);
     return acc;
@@ -443,11 +500,15 @@ export function buildActivityReport(input: {
 
   return {
     filters,
-    employeeNames: Array.from(new Set([...input.calls, ...input.work].map((row) => row.employeeName).filter(Boolean))).sort(),
+    employeeNames: Array.from(new Set([
+      ...[...input.calls, ...input.work].map((row) => row.employeeName),
+      ...(input.historical || []).map((row) => row.employeeName),
+    ].filter(Boolean))).sort(),
     totals,
     employees,
     calls,
     work,
+    historical,
     followUps,
     meetings: calls
       .filter((c) => c.result === 'רוצה פגישה')
@@ -495,7 +556,7 @@ export function buildActivityReport(input: {
         leadNumber: c.leadNumber,
       })),
     daliaReports: chats,
-    leadDetail: buildLeadDetail({ filters, calls, directory: input.directory, leadStates: input.leadStates }),
+    leadDetail: buildLeadDetail({ filters, calls, historical, directory: input.directory, leadStates: input.leadStates }),
     unmeasured: [
       {
         measured: false,
@@ -527,19 +588,21 @@ export function buildActivityReport(input: {
 }
 
 export async function loadActivityReport(filters: ActivityFilters): Promise<ActivityReport> {
-  const [{ calls }, work, followUps, chats, directory, leadStates] = await Promise.all([
+  const [{ calls }, work, followUps, chats, directory, leadStates, historical] = await Promise.all([
     getDashboardData(1000),
     getWorkSessions(1000),
     getFollowUpWorkItems(),
     getTeamChats(),
     listLeadDirectory().catch(() => [] as LeadDirectoryRecord[]),
     getLeadStates().catch(() => [] as TelemarketingLeadState[]),
+    getHistoricalWork().catch(() => [] as HistoricalWorkEntry[]),
   ]);
   const numberedChats = await attachLeadNumbers(chats);
   return buildActivityReport({
     filters,
     calls,
     work,
+    historical,
     followUps,
     chats: numberedChats,
     directory,
@@ -560,6 +623,7 @@ export async function loadMyActivityReport(employeeName: string, filters: Activi
     totals: mine || report.totals,
     calls: report.calls.filter((c) => own(c.employeeName)),
     work: report.work.filter((s) => own(s.employeeName)),
+    historical: report.historical.filter((h) => own(h.employeeName)),
     followUps: report.followUps.filter((f) => own(f.employeeName)),
     daliaReports: report.daliaReports.filter((c) => own(c.agentName)),
     meetings: report.meetings.filter((m) => own(m.employeeName)),

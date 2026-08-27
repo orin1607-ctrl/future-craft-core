@@ -49,9 +49,19 @@ export function WorkDaySummary({
           label="זמן עבודה מדוד בפועל"
           value={formatDurationSeconds(row.measuredWorkSeconds)}
           raw={String(row.measuredWorkSeconds)}
-          hint="שיחות + דיווחים + משימות"
+          hint="שיחות + דיווחים + משימות שנמדדו אוטומטית"
           emphasize="measured"
         />
+        {(row.historicalSeconds || 0) > 0 && (
+          <Hero
+            testId="workday-summary-historical"
+            label="זמן היסטורי / הוזן ידנית"
+            value={formatDurationSeconds(row.historicalSeconds)}
+            raw={String(row.historicalSeconds)}
+            hint="לא נמדד אוטומטית. אין שעות התחלה/סיום."
+            emphasize="historical"
+          />
+        )}
       </div>
       <div className="grid grid-cols-2 gap-2" data-testid="workday-summary-times">
         <Mini testId="workday-summary-callsec" label="זמן שיחות" value={formatDurationSeconds(row.callSeconds)} raw={String(row.callSeconds)} />
@@ -60,6 +70,9 @@ export function WorkDaySummary({
         <Mini testId="workday-summary-worksec" label="זמן משימות" value={formatDurationSeconds(row.workSeconds)} raw={String(row.workSeconds)} />
         <Mini testId="workday-summary-workreportsec" label="דיווחי משימות" value={formatDurationSeconds(row.workReportSeconds)} raw={String(row.workReportSeconds)} />
         <Mini testId="workday-summary-worktreatsec" label="טיפול כולל במשימות" value={formatDurationSeconds(row.workTreatmentSeconds)} raw={String(row.workTreatmentSeconds)} />
+        {(row.historicalSeconds || 0) > 0 && (
+          <Mini testId="workday-summary-histsec" label="זמן היסטורי / הוזן ידנית" value={formatDurationSeconds(row.historicalSeconds)} raw={String(row.historicalSeconds)} />
+        )}
       </div>
       <div className="grid grid-cols-3 gap-2" data-testid="workday-summary-counts">
         <Mini testId="workday-summary-leads" label="לידים שטופלו" value={String(leadCount)} raw={String(leadCount)} />
@@ -94,6 +107,7 @@ export function WorkDaySummary({
               {formatClock(slice.row.firstActivityAt)}–{formatClock(slice.row.lastActivityAt)}
               {' | '}
               זמן מדוד {formatDurationSeconds(slice.row.measuredWorkSeconds)}
+              {(slice.row.historicalSeconds || 0) > 0 ? ` | היסטורי ${formatDurationSeconds(slice.row.historicalSeconds)}` : ''}
               {' | '}
               {slice.row.dialAttempts} חיוגים
               {' | '}
@@ -119,12 +133,14 @@ function Hero({
   testId: string;
   raw: string;
   hint?: string;
-  emphasize?: 'window' | 'measured';
+  emphasize?: 'window' | 'measured' | 'historical';
 }) {
   const cls =
     emphasize === 'measured'
       ? 'border-emerald-600/50 bg-emerald-50 dark:bg-emerald-950/30'
-      : emphasize === 'window'
+      : emphasize === 'historical'
+        ? 'border-sky-600/50 bg-sky-50 dark:bg-sky-950/30'
+        : emphasize === 'window'
         ? 'border-amber-500/50 bg-amber-50 dark:bg-amber-950/30'
         : 'border-border bg-background';
   return (

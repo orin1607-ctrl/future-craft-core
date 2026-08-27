@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { localDateStr } from '@/features/telemarketing/lib/localDate';
 import { formatDay, formatDurationSeconds, formatStamp, formatTimeRange } from '@/features/telemarketing/lib/formatTime';
-import { loadActivityReport, groupActivityByDay, quoteCount, uniqueLeadCount } from '@/features/telemarketing/services/activityReportService';
+import { loadActivityReport, groupActivityByDay, quoteCount, uniqueWorkedLeadCount } from '@/features/telemarketing/services/activityReportService';
 import type { ActivityFilters, ActivityReport, LeadActivityDetail } from '@/features/telemarketing/services/activityReportService';
 import { CALL_RESULTS } from '@/features/telemarketing/types';
 import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
@@ -120,13 +120,13 @@ export function ActivityReportPanel() {
         <>
           {filters.employeeName && (
             <WorkDaySummary
-              title={filters.from === filters.to ? `סיכום יום עבודה — ${formatDay(filters.from)}` : `סיכום תקופה — ${formatDay(filters.from)} – ${formatDay(filters.to)}`}
-              row={report.employees[0] || report.totals}
-              leadCount={uniqueLeadCount(report.calls)}
-              quotes={quoteCount(report.calls)}
-              days={groupActivityByDay(report)}
-              onSelectDay={(day) => setFilters((f) => ({ ...f, from: day, to: day }))}
-            />
+            title={filters.from === filters.to ? `סיכום יום עבודה — ${formatDay(filters.from)}` : `סיכום תקופה — ${formatDay(filters.from)} – ${formatDay(filters.to)}`}
+            row={report.employees[0] || report.totals}
+            leadCount={uniqueWorkedLeadCount(report.calls, report.historical)}
+            quotes={quoteCount(report.calls)}
+            days={groupActivityByDay(report)}
+            onSelectDay={(day) => setFilters((f) => ({ ...f, from: day, to: day }))}
+          />
           )}
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4" data-testid="activity-totals">
             <Stat label="ניסיונות חיוג" value={String(report.totals.dialAttempts)} />
@@ -147,6 +147,9 @@ export function ActivityReportPanel() {
             <Stat label="דיווחי משימות" value={formatDurationSeconds(report.totals.workReportSeconds)} />
             <Stat label="טיפול במשימות" value={formatDurationSeconds(report.totals.workTreatmentSeconds)} />
             <Stat label="סה״כ זמן עבודה מדוד" value={formatDurationSeconds(report.totals.measuredWorkSeconds)} />
+            {(report.totals.historicalSeconds || 0) > 0 && (
+              <Stat label="זמן היסטורי / הוזן ידנית" value={formatDurationSeconds(report.totals.historicalSeconds)} />
+            )}
             <Stat label="משך פניות דליה" value={unmeasuredLabel(report.totals.daliaSeconds)} />
             <Stat label="מענה מתוך חיוגים" value={pct(report.totals.answerRate)} />
             <Stat label="מתעניינים מתוך נענו" value={pct(report.totals.interestRate)} />
@@ -190,6 +193,7 @@ export function ActivityReportPanel() {
                   <th className="p-2 text-right">עובד</th>
                   <th className="p-2 text-right">חלון</th>
                   <th className="p-2 text-right">זמן מדוד</th>
+                  <th className="p-2 text-right">היסטורי / ידני</th>
                   <th className="p-2 text-right">שיחות</th>
                   <th className="p-2 text-right">דיווח שיחה</th>
                   <th className="p-2 text-right">טיפול שיחות</th>
@@ -209,6 +213,7 @@ export function ActivityReportPanel() {
                     <td className="p-2 font-semibold">{row.employeeName}</td>
                     <td className="p-2">{formatTimeRange(row.firstActivityAt, row.lastActivityAt)}</td>
                     <td className="p-2">{formatDurationSeconds(row.measuredWorkSeconds)}</td>
+                    <td className="p-2">{formatDurationSeconds(row.historicalSeconds || 0)}</td>
                     <td className="p-2">{formatDurationSeconds(row.callSeconds)}</td>
                     <td className="p-2">{formatDurationSeconds(row.reportSeconds)}</td>
                     <td className="p-2">{formatDurationSeconds(row.callTreatmentSeconds)}</td>
@@ -268,6 +273,9 @@ function LeadDetailCard({ detail }: { detail: LeadActivityDetail }) {
         <Stat label="סה״כ זמן שיחות" value={formatDurationSeconds(detail.totals.callSeconds)} />
         <Stat label="סה״כ זמן דיווח" value={formatDurationSeconds(detail.totals.reportSeconds)} />
         <Stat label="סה״כ זמן טיפול בליד" value={formatDurationSeconds(detail.totals.treatmentSeconds)} />
+        {(detail.totals.historicalSeconds || 0) > 0 && (
+          <Stat label="זמן היסטורי / הוזן ידנית" value={formatDurationSeconds(detail.totals.historicalSeconds)} />
+        )}
       </div>
       <div className="overflow-x-auto rounded-xl border border-border bg-background">
         <table className="w-full min-w-[920px] text-sm">
