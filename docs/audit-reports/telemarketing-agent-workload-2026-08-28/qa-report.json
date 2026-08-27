@@ -1,0 +1,234 @@
+{
+  "at": "2026-08-27T21:40:50.302Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "before-314",
+      "ok": true,
+      "detail": 314
+    },
+    {
+      "id": "before-keep29",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "before-hist-5400",
+      "ok": true,
+      "detail": 5400
+    },
+    {
+      "id": "before-sunday-6",
+      "ok": true,
+      "detail": 6
+    },
+    {
+      "id": "no-double-count-tair",
+      "ok": true,
+      "detail": {
+        "assigned": 119,
+        "withActivity": 23,
+        "withoutActivity": 96,
+        "openFollowup": 6
+      }
+    },
+    {
+      "id": "bundle-workload",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-tair-assigned",
+      "ok": true,
+      "detail": "תאיר\n\nסה״כ משויכים: 119\n\nבוצעה פעילות: 23\n\nטרם בוצעה פעילות: 96\n\nפתוחים להמשך טיפול: 6"
+    },
+    {
+      "id": "admin-tair-activity",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-tair-idle",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-tair-open",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-zero-agent-row",
+      "ok": true,
+      "detail": {
+        "aviCount": 0,
+        "onlyTairIsAgent": true
+      }
+    },
+    {
+      "id": "admin-unassigned",
+      "ok": true,
+      "detail": "ללא עובד משויך\n\nסה״כ משויכים: 195\n\nבוצעה פעילות: 0\n\nטרם בוצעה פעילות: 195\n\nפתוחים להמשך טיפול: 0"
+    },
+    {
+      "id": "click-filters-tair",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "filter-agent-plus-fleet",
+      "ok": true,
+      "detail": {
+        "comboCount": 36
+      }
+    },
+    {
+      "id": "has-unassigned-for-assign-qa",
+      "ok": true,
+      "detail": {
+        "id": "2f75fbfa-abc6-4b39-b527-3876ea343109",
+        "lead_number": "30",
+        "assigned_to": null
+      }
+    },
+    {
+      "id": "rpc-assign-one",
+      "ok": true,
+      "detail": {
+        "agentId": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "skipped": [],
+        "agentName": "תאיר",
+        "skippedCount": 0,
+        "assignedCount": 1
+      }
+    },
+    {
+      "id": "assign-updates-summary",
+      "ok": true,
+      "detail": "תאיר\n\nסה״כ משויכים: 120\n\nבוצעה פעילות: 23\n\nטרם בוצעה פעילות: 97\n\nפתוחים להמשך טיפול: 6"
+    },
+    {
+      "id": "live-sha",
+      "ok": true,
+      "detail": {
+        "EXPECTED_SHA": "ba6fa151",
+        "liveBuild": "ba6fa15"
+      }
+    },
+    {
+      "id": "agent-no-workload",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-314",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-keep29",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-hist-5400",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-sunday-6",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-tair-same",
+      "ok": true,
+      "detail": {
+        "before": {
+          "assigned": 119,
+          "withActivity": 23,
+          "withoutActivity": 96,
+          "openFollowup": 6
+        },
+        "after": {
+          "assigned": 119,
+          "withActivity": 23,
+          "withoutActivity": 96,
+          "openFollowup": 6
+        }
+      }
+    },
+    {
+      "id": "after-avi-same",
+      "ok": true,
+      "detail": {
+        "before": {
+          "assigned": 0,
+          "withActivity": 0,
+          "withoutActivity": 0,
+          "openFollowup": 0
+        },
+        "after": {
+          "assigned": 0,
+          "withActivity": 0,
+          "withoutActivity": 0,
+          "openFollowup": 0
+        }
+      }
+    },
+    {
+      "id": "no-production",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "deployedRef": "ba6fa151",
+  "liveBundle": "assets/index-BjAELawG.js",
+  "liveBuild": "ba6fa15",
+  "before": {
+    "dirCount": 314,
+    "keep29": true,
+    "unassigned": 195,
+    "tair": {
+      "assigned": 119,
+      "withActivity": 23,
+      "withoutActivity": 96,
+      "openFollowup": 6
+    },
+    "avi": {
+      "assigned": 0,
+      "withActivity": 0,
+      "withoutActivity": 0,
+      "openFollowup": 0
+    },
+    "histSum": 5400,
+    "sundayFu": 6,
+    "tairCalls": 0,
+    "states": 23
+  },
+  "after": {
+    "dirCount": 314,
+    "keep29": true,
+    "unassigned": 195,
+    "tair": {
+      "assigned": 119,
+      "withActivity": 23,
+      "withoutActivity": 96,
+      "openFollowup": 6
+    },
+    "avi": {
+      "assigned": 0,
+      "withActivity": 0,
+      "withoutActivity": 0,
+      "openFollowup": 0
+    },
+    "histSum": 5400,
+    "sundayFu": 6,
+    "tairCalls": 0,
+    "states": 23
+  }
+}
