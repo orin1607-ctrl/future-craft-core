@@ -1,0 +1,35 @@
+{
+  "at": "2026-08-27T21:28:32.510Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "codeCommit": "5179d3e92120d1bc05736e4afce7825398fe1873",
+  "branch": "feat/incident-alerts-staging",
+  "backupFile": "backup-before.json",
+  "keep": {
+    "directoryLeads": 314,
+    "leads1to29": "assigned to Tair, unchanged",
+    "historicalSeconds": 5400,
+    "sundayFollowups": 6
+  },
+  "fingerprints": {
+    "directoryCount": 314,
+    "assignedToTair": 119,
+    "unassigned": 195,
+    "statesCount": 23,
+    "yellowStates": 6,
+    "redStates": 17,
+    "openFollowups": 6,
+    "sundayFu": 6,
+    "tairCallCount": 0,
+    "histSum": 5400,
+    "keep29": true
+  },
+  "rollback": [
+    "UI only: git checkout <codeCommit> -- src/features/telemarketing/lib/leadAssign/selectScope.ts src/features/telemarketing/components/Leads/LeadDirectoryBoard.tsx",
+    "Do not delete or update telemarketing_lead_directory rows.",
+    "Do not change calls, states, followups, or historical_work."
+  ]
+}

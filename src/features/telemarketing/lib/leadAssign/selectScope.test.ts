@@ -5,6 +5,7 @@ import {
   parseFleetSize,
   selectAllLabel,
   sortDirectoryRows,
+  summarizeAgentLeadWorkload,
 } from './selectScope';
 import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
 
@@ -100,5 +101,37 @@ describe('lead assign select scope', () => {
     ];
     expect(sortDirectoryRows(fleetRows, 'fleet_asc').map((r) => r.id)).toEqual(['c', 'a', 'b']);
     expect(sortDirectoryRows(fleetRows, 'fleet_desc').map((r) => r.id)).toEqual(['a', 'c', 'b']);
+  });
+
+  it('summarizes assigned / activity / idle / open follow-up without double-counting a lead', () => {
+    const agents = [
+      { id: 'tair', displayName: 'תאיר' },
+      { id: 'avi', displayName: 'אבי' },
+    ];
+    const directory = [
+      row({ id: '1', assignedTo: 'tair', assignedName: 'תאיר', phone: '03-111', companyName: 'אלפא' }),
+      row({ id: '2', assignedTo: 'tair', assignedName: 'תאיר', phone: '03-222', companyName: 'בטא' }),
+      row({ id: '3', assignedTo: 'tair', assignedName: 'תאיר', phone: '03-333', companyName: 'גמא' }),
+      row({ id: '4', assignedTo: null, phone: '03-444', companyName: 'דלתא' }),
+    ];
+    const summary = summarizeAgentLeadWorkload(directory, agents, {
+      callKeys: ['p:03111'],
+      stateKeys: [
+        { key: 'p:03222', color: 'yellow' },
+        { key: 'p:03111', color: 'red' },
+      ],
+      openFollowupKeys: ['p:03222'],
+    });
+    const tair = summary.find((s) => s.agentId === 'tair')!;
+    const avi = summary.find((s) => s.agentId === 'avi')!;
+    const none = summary.find((s) => s.agentId === 'unassigned')!;
+    expect(tair.assigned).toBe(3);
+    expect(tair.withActivity).toBe(2);
+    expect(tair.withoutActivity).toBe(1);
+    expect(tair.openFollowup).toBe(1);
+    expect(avi.assigned).toBe(0);
+    expect(avi.withActivity).toBe(0);
+    expect(none.assigned).toBe(1);
+    expect(tair.withActivity + tair.withoutActivity).toBe(tair.assigned);
   });
 });

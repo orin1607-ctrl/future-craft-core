@@ -10,13 +10,19 @@ import {
   previewLeadDelete,
   setLeadsArchived,
 } from '@/features/telemarketing/services/leadDirectoryService';
+import { getLeadStates } from '@/features/telemarketing/services/leadStateService';
+import { getFollowUps } from '@/features/telemarketing/services/telemarketingService';
+import { supabase } from '@/integrations/supabase/client';
+import { isUsableLeadKey, leadKey } from '@/features/telemarketing/lib/leadKey';
 import {
   filterDirectoryRows,
   isDirectoryFilterActive,
   selectAllLabel,
   sortDirectoryRows,
+  summarizeAgentLeadWorkload,
   type AgentFilter,
   type DirectorySort,
+  type LeadActivityHints,
 } from '@/features/telemarketing/lib/leadAssign/selectScope';
 
 export function LeadDirectoryBoard({
@@ -43,6 +49,7 @@ export function LeadDirectoryBoard({
   const [fleetMin, setFleetMin] = useState('');
   const [fleetMax, setFleetMax] = useState('');
   const [fleetSort, setFleetSort] = useState<DirectorySort>('default');
+  const [activityHints, setActivityHints] = useState<LeadActivityHints>({ callKeys: [], stateKeys: [], openFollowupKeys: [] });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignAgentId, setAssignAgentId] = useState('');
@@ -60,6 +67,21 @@ export function LeadDirectoryBoard({
         setBatches(await listLeadImportBatches().catch(() => []));
         setEvents(await listLeadAssignmentEvents().catch(() => []));
         setAgents(await listAssignableAgents().catch(() => []));
+        const [states, openFollowups, callRes] = await Promise.all([
+          getLeadStates().catch(() => []),
+          getFollowUps({ status: 'open' }).catch(() => []),
+          supabase.from('telemarketing_calls').select('phone, company_name').limit(5000),
+        ]);
+        const callKeys = (callRes.data || [])
+          .map((row) => leadKey(String(row.phone || ''), String(row.company_name || '')))
+          .filter((key) => isUsableLeadKey(key));
+        setActivityHints({
+          callKeys,
+          stateKeys: states.map((state) => ({ key: state.leadKey, color: state.leadColor })),
+          openFollowupKeys: openFollowups
+            .map((fu) => leadKey(fu.phone, fu.companyName))
+            .filter((key) => isUsableLeadKey(key)),
+        });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'שגיאה בטעינת מאגר לידים');
@@ -82,6 +104,10 @@ export function LeadDirectoryBoard({
   const filtered = useMemo(
     () => sortDirectoryRows(filterDirectoryRows(rows, query, agentFilter, fleetRange), fleetSort),
     [rows, query, agentFilter, fleetRange, fleetSort],
+  );
+  const workload = useMemo(
+    () => (isAdmin ? summarizeAgentLeadWorkload(rows, agents, activityHints) : []),
+    [isAdmin, rows, agents, activityHints],
   );
   const filterActive = isDirectoryFilterActive(query, agentFilter, fleetRange);
   const filteredIds = filtered.map((row) => row.id);
@@ -190,6 +216,31 @@ export function LeadDirectoryBoard({
       <p className="text-sm text-muted-foreground">
         {filterActive ? `${filtered.length} תוצאות מסוננות מתוך ${rows.length} לידים במאגר` : `${rows.length} לידים במאגר`}
       </p>
+      {isAdmin && (
+        <div className="space-y-2 rounded-xl border border-border p-3" data-testid="lead-agent-workload">
+          <p className="text-xs font-black">מצב לידים לפי עובד</p>
+          <p className="text-xs text-muted-foreground">
+            פעילות = שיחה/ניסיון שיחה או רמזור קיים. פתוחים = Follow-up פתוח או רמזור צהוב. לחיצה מסננת את המאגר לעובד.
+          </p>
+          <div className="grid gap-2 md:grid-cols-2">
+            {workload.map((item) => (
+              <button
+                key={item.agentId}
+                type="button"
+                data-testid={`lead-agent-workload-${item.agentId}`}
+                className={`rounded-xl border p-3 text-right ${agentFilter === item.agentId ? 'border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30' : 'border-border'}`}
+                onClick={() => setAgentFilter(item.agentId as AgentFilter)}
+              >
+                <p className="font-black">{item.displayName}</p>
+                <p className="text-sm">סה״כ משויכים: {item.assigned}</p>
+                <p className="text-sm">בוצעה פעילות: {item.withActivity}</p>
+                <p className="text-sm">טרם בוצעה פעילות: {item.withoutActivity}</p>
+                <p className="text-sm">פתוחים להמשך טיפול: {item.openFollowup}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="grid gap-2 md:grid-cols-2">
         <label className="text-xs font-semibold">
           חיפוש

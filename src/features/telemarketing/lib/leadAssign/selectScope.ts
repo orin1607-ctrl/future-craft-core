@@ -1,4 +1,5 @@
 import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
+import { isUsableLeadKey, leadKey } from '@/features/telemarketing/lib/leadKey';
 
 export type AgentFilter = 'all' | 'unassigned' | 'archive' | string;
 export type DirectorySort = 'default' | 'fleet_asc' | 'fleet_desc';
@@ -60,6 +61,85 @@ export function isDirectoryFilterActive(query: string, agentFilter: AgentFilter,
 export function selectAllLabel(filteredCount: number, totalCount: number, filterActive: boolean): string {
   if (!filterActive) return `בחר הכול במאגר (${filteredCount})`;
   return `בחר הכול בתוצאות המסוננות (${filteredCount}) — לא את כל המאגר (${totalCount})`;
+}
+
+export type AgentLeadWorkload = {
+  agentId: string;
+  displayName: string;
+  assigned: number;
+  withActivity: number;
+  withoutActivity: number;
+  openFollowup: number;
+};
+
+export type LeadActivityHints = {
+  callKeys: Iterable<string>;
+  stateKeys: Iterable<{ key: string; color?: string | null }>;
+  openFollowupKeys: Iterable<string>;
+};
+
+const UNASSIGNED_ID = 'unassigned';
+
+function asKeySet(values: Iterable<string>): Set<string> {
+  const out = new Set<string>();
+  for (const value of values) {
+    if (isUsableLeadKey(value)) out.add(value);
+  }
+  return out;
+}
+
+/** Per-agent counts from directory + existing call/state/follow-up keys. Unique by directory row. */
+export function summarizeAgentLeadWorkload(
+  rows: LeadDirectoryRecord[],
+  agents: { id: string; displayName: string }[],
+  hints: LeadActivityHints,
+): AgentLeadWorkload[] {
+  const activityKeys = asKeySet(hints.callKeys);
+  for (const state of hints.stateKeys) {
+    if (isUsableLeadKey(state.key)) activityKeys.add(state.key);
+  }
+  const openKeys = asKeySet(hints.openFollowupKeys);
+  for (const state of hints.stateKeys) {
+    if (state.color === 'yellow' && isUsableLeadKey(state.key)) openKeys.add(state.key);
+  }
+
+  const byAgent = new Map<string, AgentLeadWorkload>();
+  const ensure = (id: string, name: string) => {
+    const current = byAgent.get(id);
+    if (current) return current;
+    const created: AgentLeadWorkload = {
+      agentId: id,
+      displayName: name,
+      assigned: 0,
+      withActivity: 0,
+      withoutActivity: 0,
+      openFollowup: 0,
+    };
+    byAgent.set(id, created);
+    return created;
+  };
+
+  for (const agent of agents) ensure(agent.id, agent.displayName);
+  const unassigned = ensure(UNASSIGNED_ID, 'ללא עובד משויך');
+
+  for (const row of rows) {
+    if (row.archivedAt) continue;
+    const bucket = row.assignedTo
+      ? ensure(row.assignedTo, row.assignedName || 'עובד')
+      : unassigned;
+    bucket.assigned += 1;
+    const key = leadKey(row.phone, row.companyName);
+    const hadActivity = isUsableLeadKey(key) && activityKeys.has(key);
+    if (hadActivity) bucket.withActivity += 1;
+    else bucket.withoutActivity += 1;
+    if (isUsableLeadKey(key) && openKeys.has(key)) bucket.openFollowup += 1;
+  }
+
+  const ordered = agents.map((agent) => byAgent.get(agent.id)!);
+  const extras = [...byAgent.values()].filter(
+    (row) => row.agentId !== UNASSIGNED_ID && !agents.some((agent) => agent.id === row.agentId),
+  );
+  return [...ordered, ...extras, unassigned];
 }
 
 export function directoryLeadToCustomer(lead: LeadDirectoryRecord): {
