@@ -1,6 +1,7 @@
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { supabase } from '@/integrations/supabase/client';
 import type { GpsFreshness, LiveSnapshot } from './types';
+import { assignmentOnlyOverlay } from './emptyOverlay';
 import type { TelematicsOverlay } from './adapter';
 
 /**
@@ -24,6 +25,14 @@ export async function loadGpsLiveOverlay(
     );
     if (error || !data) return out;
     const vehicleIds = (data as Array<Record<string, unknown>>).map((r) => String(r.vehicle_id || '')).filter(Boolean);
+
+    const devicesQ = await applyCompanyScope(
+      (supabase as any)
+        .from('gps_devices')
+        .select('vehicle_id, unit_id, imei')
+        .eq('enabled', true),
+      companyFilter,
+    );
 
     const posQ = await applyCompanyScope(
       (supabase as any)
@@ -109,6 +118,20 @@ export async function loadGpsLiveOverlay(
         canMapped,
         events: eventsByV.get(vehicleId) || [],
       });
+    }
+
+    for (const d of devicesQ.data || []) {
+      const vehicleId = String(d.vehicle_id || '');
+      if (!vehicleId) continue;
+      const unitId = str(d.unit_id);
+      const imei = str(d.imei);
+      const existing = out.get(vehicleId);
+      if (existing) {
+        if (!existing.unitId) existing.unitId = unitId;
+        if (!existing.imei) existing.imei = imei;
+        continue;
+      }
+      out.set(vehicleId, assignmentOnlyOverlay(unitId, imei));
     }
   } catch {
     return out;
