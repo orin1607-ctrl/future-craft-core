@@ -104,7 +104,11 @@ try {
   const adminPage = await adminCtx.newPage();
   adminPage.setDefaultTimeout(60000);
   await adminPage.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await adminPage.waitForTimeout(5000);
+  await adminPage.getByTestId('lead-directory-count').waitFor({ timeout: 30000 });
+  await adminPage.waitForFunction(() => {
+    const el = document.querySelector('[data-testid="lead-directory-count"]');
+    return Boolean(el && /2344/.test(el.textContent || ''));
+  }, null, { timeout: 30000 });
   if (await adminPage.getByTestId('lead-directory-toggle').count()) {
     const expanded = await adminPage.getByTestId('lead-directory-toggle').getAttribute('aria-expanded');
     if (expanded !== 'true') await adminPage.getByTestId('lead-directory-toggle').click();

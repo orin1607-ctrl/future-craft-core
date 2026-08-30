@@ -68,6 +68,7 @@ export async function listLeadDirectory(): Promise<LeadDirectoryRecord[]> {
       .from('telemarketing_lead_directory')
       .select('*')
       .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
       .range(from, from + page - 1);
     if (error) throw new Error(error.message);
     rows.push(...(data ?? []).map((row) => mapDirectory(row as Record<string, unknown>)));
