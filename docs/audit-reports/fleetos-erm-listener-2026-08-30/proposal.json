@@ -1,0 +1,25 @@
+{
+  "at": "2026-08-30T15:20:00Z",
+  "status": "STOP_BEFORE_PUBLIC_PORT",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "portOpened": false,
+  "ermDeviceTouched": false,
+  "proposed": {
+    "dnsOrIp": "72.60.36.182 (Hostinger VPS that currently serves Production site dalia-car.online) — NOT approved yet. Alternative: a dedicated Staging VPS.",
+    "port": 5055,
+    "protocol": "TCP (not TLS)",
+    "whyTcp": "Official ERM StarLink protocol is $payload*CS over TCP. Device P49/P50 are host+port. TLS is not in the protocol we implemented; enabling TLS would require device-side TLS that we must not configure now.",
+    "certificate": false,
+    "where": "systemd unit fleetos-erm-listener on a Staging-approved host. Must not change nginx, dist, or Production site files.",
+    "process": "node via vite-node src/modules/fleetos/starlink/runListener.ts",
+    "restart": "Restart=always in systemd. Not installed yet.",
+    "firewall": "ufw allow 5055/tcp comment 'ERM StarLink Staging' — not applied.",
+    "unknownDevice": "ingest returns unknown_device, ACK is not sent, gps_raw reason=unknown_device only.",
+    "secrets": "FLEETOS_GPS_SERVICE_ROLE in EnvironmentFile mode 600. Frontend never sees it. Listener refuses Production ref qasomfndnjuixgjmjwcm.",
+    "rollback": "systemctl stop fleetos-erm-listener; ufw delete allow 5055/tcp; bind remains 127.0.0.1 without FLEETOS_GPS_PUBLIC=1."
+  },
+  "risk": "Using the existing Hostinger VPS puts a public TCP service on the same machine as Production nginx. That needs explicit Owner approval. A dedicated Staging VPS is safer.",
+  "codeReadyLocal": true,
+  "defaultBind": "127.0.0.1:5055"
+}
