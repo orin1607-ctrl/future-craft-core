@@ -13,7 +13,6 @@ import { AgentChatEntry, DaliaChatBoard } from '@/features/telemarketing/compone
 import { MyActivityReport } from '@/features/telemarketing/components/CallerScreen/MyActivityReport';
 import { DALIA_CHAT_PARAM } from '@/features/telemarketing/lib/daliaChatNav';
 import { agentHomeActionsVisible } from '@/features/telemarketing/lib/agentHomeVisibility';
-import { canAbortLeadPreview } from '@/features/telemarketing/lib/leadPreviewAbort';
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
 import { useActiveWorkSession } from '@/features/telemarketing/hooks/useActiveWorkSession';
 import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
@@ -334,15 +333,10 @@ export function TelemarketingAgentScreen({
   const showIdleBoards = agentHomeActionsVisible(callStatus, workStatus);
   const showHomeActions = callStatus === 'idle' && workStatus === 'idle';
   const showLeadPreview = Boolean(activeDirectoryLead) || (showHomeActions && Boolean(returnHint));
-  const canAbort = canAbortLeadPreview(callStatus, workStatus);
   const clearLeadPreview = () => {
     setActiveDirectoryLead(null);
     setReturnHint(null);
     setManualCustomer(EMPTY_MANUAL_CUSTOMER);
-  };
-  const abortLeadPreview = () => {
-    if (!canAbortLeadPreview(callStatus, workStatus)) return;
-    clearLeadPreview();
   };
   const goAgentDashboard = () => {
     setChatOpen(false);
@@ -368,7 +362,7 @@ export function TelemarketingAgentScreen({
         onBackToWork={backToWork}
       />
   ) : (
-    <div className="mx-auto w-full max-w-lg space-y-4 pb-8 lg:max-w-6xl" data-testid="tele-agent-layout">
+    <div className="mx-auto max-w-lg space-y-4 pb-8">
       {toast && (
         <div
           className={`fixed inset-x-4 top-4 z-50 rounded-xl p-3 text-center font-bold text-white ${
@@ -400,7 +394,7 @@ export function TelemarketingAgentScreen({
           </div>
         )}
         {showIdleBoards && (
-          <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
+          <div className="mt-3 space-y-2">
             <CallTimerBar
               status="idle"
               elapsedSeconds={elapsedSeconds}
@@ -448,25 +442,13 @@ export function TelemarketingAgentScreen({
 
       {showLeadPreview && (
         <div className="space-y-2" data-testid="tele-lead-preview">
-          {canAbort && (
-            <>
-              <TeleInnerNav
-                onBack={abortLeadPreview}
-                onHome={() => {
-                  abortLeadPreview();
-                  goAgentDashboard();
-                }}
-              />
-              <button
-                type="button"
-                data-testid="tele-lead-abort"
-                onClick={abortLeadPreview}
-                className="min-h-12 w-full rounded-xl border-2 border-border bg-background px-4 text-base font-black"
-              >
-                ביטול / יציאה מהליד
-              </button>
-            </>
-          )}
+          <TeleInnerNav
+            onBack={clearLeadPreview}
+            onHome={() => {
+              clearLeadPreview();
+              goAgentDashboard();
+            }}
+          />
           {activeDirectoryLead && (
             <p className="rounded-xl border border-emerald-700/40 bg-emerald-50 p-3 text-center text-xl font-black dark:bg-emerald-950/30" data-testid="tele-lead-number">
               {formatLeadTitle(activeDirectoryLead.leadNumber, activeDirectoryLead.companyName)}
@@ -474,7 +456,7 @@ export function TelemarketingAgentScreen({
           )}
           {activeDirectoryLead && (
             <p className="rounded-xl border border-emerald-700/40 bg-emerald-50 p-3 text-sm font-semibold dark:bg-emerald-950/30">
-              פרטי הליד מוצגים למטה. השיחה לא התחילה. לחצו «התחל שיחה» כשאתם מוכנים. ביטול לפני התחלת שיחה לא נרשם כעבודה.
+              פרטי הליד מוצגים למטה. השיחה לא התחילה. לחצו «התחל שיחה» כשאתם מוכנים.
             </p>
           )}
         </div>
@@ -510,7 +492,6 @@ export function TelemarketingAgentScreen({
       )}
 
       {showIdleBoards && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
         <div id="new-lead" className="space-y-2 rounded-2xl border border-border bg-card p-4">
           <p className="text-base font-black">לקוח / ליד חדש</p>
           <p className="text-xs text-muted-foreground">
@@ -591,9 +572,9 @@ export function TelemarketingAgentScreen({
             </label>
           </div>
         </div>
-        <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} startLocked={inspect} />
-        </div>
       )}
+
+      {showIdleBoards && <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} startLocked={inspect} />}
 
       {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter readOnly={inspect} />}
 
@@ -603,23 +584,20 @@ export function TelemarketingAgentScreen({
         </p>
       )}
 
-      {(activeDirectoryLead || call || manualCustomer.companyName || manualCustomer.phone) && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
-          {activeDirectoryLead && <DirectoryLeadCard lead={activeDirectoryLead} />}
-          {(call || manualCustomer.companyName || manualCustomer.phone) && (
-            <CustomerCallCard
-              leadNumber={activeDirectoryLead?.leadNumber}
-              customer={call ? {
-              companyName: call.companyName,
-              contactName: call.contactName,
-              contactRole: call.contactRole,
-              phone: call.phone,
-              email: call.email,
-              vehicleCount: call.vehicleCount,
-              city: call.city,
-            } : manualCustomer} />
-          )}
-        </div>
+      {activeDirectoryLead && <DirectoryLeadCard lead={activeDirectoryLead} />}
+
+      {(call || manualCustomer.companyName || manualCustomer.phone) && (
+        <CustomerCallCard
+          leadNumber={activeDirectoryLead?.leadNumber}
+          customer={call ? {
+          companyName: call.companyName,
+          contactName: call.contactName,
+          contactRole: call.contactRole,
+          phone: call.phone,
+          email: call.email,
+          vehicleCount: call.vehicleCount,
+          city: call.city,
+        } : manualCustomer} />
       )}
 
       {callStatus !== 'idle' && (

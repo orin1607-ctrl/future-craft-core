@@ -85,6 +85,11 @@ try {
   await page.screenshot({ path: join(OUT, 'visible-02-after-nav.png') });
 
   await page.waitForSelector('[data-testid="lead-directory-board"]', { timeout: 15000 });
+  const dirToggle = page.getByTestId('lead-directory-toggle');
+  if (await dirToggle.count()) {
+    const label = await dirToggle.innerText();
+    if (label.includes('הצג רשימת לידים')) await dirToggle.click();
+  }
   const boardText = await board.innerText();
   check('shows-29-leads', /29 לידים במאגר/.test(boardText) || boardText.includes('29'), boardText.slice(0, 250));
   check('lead-1-visible', await page.locator('[data-lead-number="1"]').count() > 0);

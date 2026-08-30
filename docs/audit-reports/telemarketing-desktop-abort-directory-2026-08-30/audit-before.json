@@ -1,0 +1,22 @@
+{
+  "at": "2026-08-30T18:20:00.000Z",
+  "branch": "feat/incident-alerts-staging",
+  "codeCommit": "fc86f5cf134d81c644a55f53cb18e8eb63ed7148",
+  "productionTouched": false,
+  "audit": {
+    "task1Desktop": {
+      "cause": "TelemarketingAgentScreen wrapper used mx-auto max-w-lg (512px) on all breakpoints. Admin used max-w-6xl. Layout main has no extra max-width.",
+      "plan": "Keep max-w-lg on mobile; lg:max-w-6xl on agent and my-report; admin max-w-7xl; two-column grids at lg only."
+    },
+    "task2Abort": {
+      "onSelect": "claimNextAssignedLead / claimAssignedLead writes claimed_by/claimed_at only (queue lock, 2h). No call row, no work session, no timer, no traffic light, no follow-up.",
+      "onStartCall": "beginCall -> startCall creates telemarketing_calls and starts timers.",
+      "existingExit": "clearLeadPreview already local-only via TeleInnerNav, but unlabeled and still available conceptually after a call started (cleared card, left the call running).",
+      "plan": "canAbortLeadPreview only when call and work are idle. Dedicated ביטול / יציאה מהליד. After real activity the abort button is hidden. No unclaim RPC (would be new business logic)."
+    },
+    "task3Directory": {
+      "cause": "LeadDirectoryBoard always rendered every filtered row in a full-page table.",
+      "plan": "Admin default collapsed. Toggle הצג/הסתר רשימת לידים. Filters, workload, assign, import history stay inside the expanded panel. Table max-h 55vh when open."
+    }
+  }
+}

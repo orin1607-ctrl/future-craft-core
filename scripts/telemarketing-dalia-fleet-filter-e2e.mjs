@@ -81,6 +81,11 @@ try {
   await adminPage.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await adminPage.getByTestId('lead-directory-board').waitFor({ timeout: 30000 });
   await adminPage.waitForTimeout(2500);
+  const dirToggle = adminPage.getByTestId('lead-directory-toggle');
+  if (await dirToggle.count()) {
+    const label = await dirToggle.innerText();
+    if (label.includes('הצג רשימת לידים')) await dirToggle.click();
+  }
   if (await adminPage.getByTestId('tele-inspect-banner').count()) {
     await adminPage.getByTestId('tele-admin-inspect-toggle').click();
     await adminPage.waitForTimeout(800);

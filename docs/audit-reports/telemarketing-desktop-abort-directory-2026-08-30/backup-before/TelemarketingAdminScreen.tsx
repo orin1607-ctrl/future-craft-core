@@ -70,7 +70,7 @@ export function TelemarketingAdminScreen({
 
   return (
     <TeleOverlayNavProvider homePath="/telemarketing/admin" homeAnchorId="tele-admin-home">
-    <div id="tele-admin-home" data-testid="tele-admin-home" className="mx-auto w-full max-w-7xl space-y-4 pb-10 scroll-mt-24">
+    <div id="tele-admin-home" data-testid="tele-admin-home" className="mx-auto max-w-6xl space-y-4 pb-10 scroll-mt-24">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-black">מסך מנהל — טלמיטינג</h1>

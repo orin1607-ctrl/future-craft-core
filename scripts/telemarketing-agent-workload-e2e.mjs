@@ -141,6 +141,11 @@ try {
   await adminCtx.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), { key: `sb-${STAGING_REF}-auth-token`, value: storagePayload(adminSession) });
   const adminPage = await adminCtx.newPage();
   await adminPage.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  const dirToggle = adminPage.getByTestId('lead-directory-toggle');
+  if (await dirToggle.count()) {
+    const label = await dirToggle.innerText();
+    if (label.includes('הצג רשימת לידים')) await dirToggle.click();
+  }
   await adminPage.getByTestId(`lead-agent-workload-${TAIR.id}`).waitFor({ timeout: 30000 });
   await adminPage.getByTestId(`lead-agent-workload-${TAIR.id}`).filter({ hasText: `בוצעה פעילות: ${report.before.tair.withActivity}` }).waitFor({ timeout: 20000 });
   if (await adminPage.getByTestId('tele-inspect-banner').count()) {
@@ -180,6 +185,11 @@ try {
     const assigned = await adminCli.rpc('telemarketing_assign_leads', { p_lead_ids: [testLead.id], p_agent_id: TAIR.id });
     check('rpc-assign-one', !assigned.error && Number(assigned.data?.assignedCount ?? assigned.data?.assignedcount ?? 0) === 1, assigned.error || assigned.data);
     await adminPage.reload({ waitUntil: 'domcontentloaded' });
+    const dirToggleReload = adminPage.getByTestId('lead-directory-toggle');
+    if (await dirToggleReload.count()) {
+      const label = await dirToggleReload.innerText();
+      if (label.includes('הצג רשימת לידים')) await dirToggleReload.click();
+    }
     await adminPage.getByTestId(`lead-agent-workload-${TAIR.id}`).waitFor({ timeout: 30000 });
     await adminPage.waitForTimeout(1500);
     const tairAfterAssign = await adminPage.getByTestId(`lead-agent-workload-${TAIR.id}`).innerText();

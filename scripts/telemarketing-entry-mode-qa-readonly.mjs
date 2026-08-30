@@ -168,6 +168,11 @@ try {
   const adminPage = await adminCtx.newPage();
   await adminPage.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await adminPage.waitForTimeout(4000);
+  const dirToggle = adminPage.getByTestId('lead-directory-toggle');
+  if (await dirToggle.count()) {
+    const label = await dirToggle.innerText();
+    if (label.includes('הצג רשימת לידים')) await dirToggle.click();
+  }
   await adminPage.getByTestId('tele-admin-inspect-toggle').click();
   await adminPage.waitForTimeout(1000);
   check('admin-banner', (await adminPage.getByTestId('tele-inspect-banner').innerText()).includes('מצב בדיקת מנהל־על'));

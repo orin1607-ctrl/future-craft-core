@@ -181,7 +181,7 @@ export function MyActivityReport({
         <h2 className="text-center text-xl font-black">📊 הדוח שלי</h2>
         <p className="text-center text-xs text-muted-foreground">{employeeName} · {periodLabel}</p>
       </div>
-      <div className="mx-auto w-full max-w-lg flex-1 space-y-3 overflow-y-auto p-4 pb-10 lg:max-w-6xl">
+      <div className="mx-auto w-full max-w-lg flex-1 space-y-3 overflow-y-auto p-4 pb-10">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {PRESETS.map((item) => (
             <button

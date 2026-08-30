@@ -205,6 +205,11 @@ if (uiMode === 'full') {
   await withPage(adminAuth.session, { width: 1440, height: 900 }, async (page) => {
     await page.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForTimeout(5000);
+    const dirToggle = page.getByTestId('lead-directory-toggle');
+    if (await dirToggle.count()) {
+      const label = await dirToggle.innerText();
+      if (label.includes('הצג רשימת לידים')) await dirToggle.click();
+    }
     const hasAssign = await page.getByTestId('lead-assign-open').count();
     check('admin-assign-ui', hasAssign > 0, { url: page.url() });
     if (!hasAssign) {

@@ -59,7 +59,6 @@ export function LeadDirectoryBoard({
   const [archiveBusy, setArchiveBusy] = useState(false);
   const [archiveConfirm, setArchiveConfirm] = useState(false);
   const [deletePreview, setDeletePreview] = useState('');
-  const [listOpen, setListOpen] = useState(!isAdmin);
 
   const load = async () => {
     try {
@@ -205,24 +204,8 @@ export function LeadDirectoryBoard({
   return (
     <section id="lead-directory" className="scroll-mt-24 space-y-3 rounded-2xl border border-border bg-card p-4" data-testid="lead-directory-board">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-xl font-black">📋 מאגר לידים</h2>
-          <p className="text-sm text-muted-foreground" data-testid="lead-directory-count">
-            {filterActive ? `${filtered.length} תוצאות מסוננות מתוך ${rows.length} לידים` : `${rows.length} לידים במאגר`}
-          </p>
-        </div>
+        <h2 className="text-xl font-black">מאגר לידים</h2>
         <div className="flex flex-wrap gap-2">
-          {isAdmin && (
-            <button
-              type="button"
-              data-testid="lead-directory-toggle"
-              className="min-h-12 rounded-xl bg-emerald-700 px-4 font-bold text-white"
-              onClick={() => setListOpen((open) => !open)}
-              aria-expanded={listOpen}
-            >
-              {listOpen ? 'הסתר רשימת לידים' : 'הצג רשימת לידים'}
-            </button>
-          )}
           {onClaimNext && (
             <button type="button" data-testid="lead-claim-next" className="min-h-12 rounded-xl bg-emerald-700 px-4 font-bold text-white disabled:opacity-50" onClick={onClaimNext} disabled={readOnly} title={readOnly ? 'מצב בדיקה' : undefined}>
               הליד הבא
@@ -235,15 +218,16 @@ export function LeadDirectoryBoard({
         </div>
       </div>
       {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
-      {(!isAdmin || listOpen) && (
-      <div data-testid="lead-directory-list" className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        {filterActive ? `${filtered.length} תוצאות מסוננות מתוך ${rows.length} לידים במאגר` : `${rows.length} לידים במאגר`}
+      </p>
       {isAdmin && (
         <div className="space-y-2 rounded-xl border border-border p-3" data-testid="lead-agent-workload">
           <p className="text-xs font-black">מצב לידים לפי עובד</p>
           <p className="text-xs text-muted-foreground">
             פעילות = שיחה/ניסיון שיחה או רמזור קיים. פתוחים = Follow-up פתוח או רמזור צהוב. לחיצה מסננת את המאגר לעובד.
           </p>
-          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-2 md:grid-cols-2">
             {workload.map((item) => (
               <button
                 key={item.agentId}
@@ -485,7 +469,7 @@ export function LeadDirectoryBoard({
         </div>
       )}
 
-      <div className="max-h-[55vh] overflow-auto" data-testid="lead-directory-table-wrap">
+      <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-right">
@@ -566,8 +550,6 @@ export function LeadDirectoryBoard({
             </p>
           ))}
         </div>
-      )}
-    </div>
       )}
     </section>
   );
