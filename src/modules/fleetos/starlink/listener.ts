@@ -16,9 +16,13 @@ export interface ListenerHandle {
  */
 export function startStarlinkListener(
   store: GpsStore,
-  opts?: { port?: number; onResult?: (r: IngestResult) => void },
+  opts?: { port?: number; host?: string; onResult?: (r: IngestResult, line: string) => void },
 ): Promise<ListenerHandle> {
-  const host = '127.0.0.1';
+  const host = opts?.host ?? '127.0.0.1';
+  const publicBind = host !== '127.0.0.1' && host !== '::1';
+  if (publicBind && process.env.FLEETOS_GPS_PUBLIC !== '1') {
+    return Promise.reject(new Error('refused: public bind without FLEETOS_GPS_PUBLIC=1'));
+  }
   const port = opts?.port ?? 0;
 
   return new Promise((resolve, reject) => {
@@ -32,7 +36,7 @@ export function startStarlinkListener(
         buf = rest;
         for (const line of lines) {
           const result = ingestStarlinkLine(store, line);
-          opts?.onResult?.(result);
+          opts?.onResult?.(result, line);
           if (result.ack) {
             socket.write(`${result.ack}\r\n`);
           }

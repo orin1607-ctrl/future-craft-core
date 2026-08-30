@@ -1,0 +1,21 @@
+[Unit]
+Description=FleetOS ERM StarLink TCP listener (Staging gps_* only)
+After=network.target
+# Do not install until Owner approves public bind + firewall.
+
+[Service]
+Type=simple
+User=fleetos-gps
+WorkingDirectory=/opt/fleetos-erm-listener
+EnvironmentFile=/etc/fleetos-erm-listener.env
+# EnvironmentFile must be mode 600. Contains FLEETOS_GPS_SERVICE_ROLE only.
+# Never place the key in the frontend or git.
+ExecStart=/usr/bin/npx vite-node src/modules/fleetos/starlink/runListener.ts
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=15
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
