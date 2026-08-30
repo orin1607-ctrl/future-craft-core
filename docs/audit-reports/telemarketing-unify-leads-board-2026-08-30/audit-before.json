@@ -1,0 +1,13 @@
+{
+  "overlap": true,
+  "followUpSource": "telemarketing_followups via getFollowUpWorkItems / FollowUpBoard buckets late|today|future|done",
+  "trafficSource": "telemarketing_lead_states via getLeadStates yellow|red|green",
+  "desktopHole": "Agent idle home put new-lead form and MyFollowUps in a 2-col grid. The form stayed half-width; the other half was empty or a short follow-up card. LeadsBoard sat full-width below and often repeated the same companies that were already in follow-up.",
+  "meaningsKept": {
+    "yellow": "צהוב — בתהליך",
+    "red": "אדום — סגור",
+    "green": "ירוק — הצלחה",
+    "today": "Follow-up due today",
+    "late": "Follow-up overdue"
+  }
+}

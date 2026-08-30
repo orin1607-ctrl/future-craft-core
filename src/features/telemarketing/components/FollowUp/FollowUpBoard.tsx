@@ -67,6 +67,7 @@ export function FollowUpBoard({
   allowStartReturn,
   startLocked,
   actor,
+  initialBucket = '',
 }: {
   items: FollowUpWorkItem[];
   hideEmployeeFilter?: boolean;
@@ -74,8 +75,9 @@ export function FollowUpBoard({
   allowStartReturn?: boolean;
   startLocked?: boolean;
   actor?: { id: string; displayName: string; isAdmin?: boolean };
+  initialBucket?: FollowUpFiltersState['bucket'];
 }) {
-  const [filters, setFilters] = useState<FollowUpFiltersState>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<FollowUpFiltersState>({ ...EMPTY_FILTERS, bucket: initialBucket });
   const [selected, setSelected] = useState<FollowUpWorkItem | null>(null);
   const closeSelected = useCallback(() => setSelected(null), []);
   useRegisterTeleCloser(Boolean(selected), closeSelected);
@@ -140,13 +142,14 @@ export function FollowUpBoard({
           </select>
         )}
         <select
+          data-testid="followup-bucket-filter"
           value={filters.bucket}
           onChange={(e) => setFilters((f) => ({ ...f, bucket: e.target.value as FollowUpFiltersState['bucket'] }))}
           className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm"
         >
           <option value="">כל הסטטוסים</option>
           <option value="late">באיחור</option>
-          <option value="today">להיום</option>
+          <option value="today">לחזור היום</option>
           <option value="future">עתידי</option>
           <option value="done">הושלם</option>
         </select>

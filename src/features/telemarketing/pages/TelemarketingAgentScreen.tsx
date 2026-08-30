@@ -5,7 +5,6 @@ import { CallTimerBar } from '@/features/telemarketing/components/CallerScreen/C
 import { CallReportForm } from '@/features/telemarketing/components/CallerScreen/CallReportForm';
 import { WorkTimerBar } from '@/features/telemarketing/components/WorkSession/WorkTimerBar';
 import { WorkReportForm } from '@/features/telemarketing/components/WorkSession/WorkReportForm';
-import { MyFollowUps } from '@/features/telemarketing/components/FollowUp/MyFollowUps';
 import { LeadTimeline } from '@/features/telemarketing/components/FollowUp/LeadTimeline';
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
 import { DirectoryLeadCard } from '@/features/telemarketing/components/Leads/DirectoryLeadCard';
@@ -524,7 +523,6 @@ export function TelemarketingAgentScreen({
       )}
 
       {showIdleBoards && (
-        <div className={TELE_DESKTOP_PAIR_GRID}>
         <div id="new-lead" className="space-y-2 rounded-2xl border border-border bg-card p-4">
           <p className="text-base font-black">לקוח / ליד חדש</p>
           <p className="text-xs text-muted-foreground">
@@ -605,11 +603,19 @@ export function TelemarketingAgentScreen({
             </label>
           </div>
         </div>
-        <MyFollowUps onStartReturn={(item) => void handleStartReturn(item)} reloadToken={followUpReload} currentEmployee={currentEmployee} startLocked={inspect} />
-        </div>
       )}
 
-      {showIdleBoards && <LeadsBoard currentEmployee={currentEmployee} hideEmployeeFilter readOnly={inspect} />}
+      {showIdleBoards && (
+        <LeadsBoard
+          currentEmployee={currentEmployee}
+          hideEmployeeFilter
+          readOnly={inspect}
+          startLocked={inspect}
+          reloadToken={followUpReload}
+          embedFollowUp
+          onStartReturn={(item) => void handleStartReturn(item)}
+        />
+      )}
 
       {callStatus === 'ended' && (
         <p className="rounded-xl border border-amber-400/40 bg-amber-50 p-3 text-sm font-semibold dark:bg-amber-950/30">

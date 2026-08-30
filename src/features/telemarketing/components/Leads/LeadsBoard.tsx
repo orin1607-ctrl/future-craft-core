@@ -1,14 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getLeadStates, getLeadStatusEvents, upsertLeadState } from '@/features/telemarketing/services/leadStateService';
-import { getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
+import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
 import { getWorkSessionsForLead } from '@/features/telemarketing/services/workSessionService';
+import { FollowUpBoard, dueCount } from '@/features/telemarketing/components/FollowUp/FollowUpBoard';
 import { DaliaCareLeadEvents } from '@/features/telemarketing/components/DaliaCare/DaliaCareLeadEvents';
 import { TimeStampMeta } from '@/features/telemarketing/components/TimeStampMeta';
 import { formatStamp } from '@/features/telemarketing/lib/formatTime';
 import { formatLeadTitle } from '@/features/telemarketing/lib/leadLabel';
 import { LEAD_COLOR_LABEL, LEAD_STATUSES, leadStatusLabel, type LeadColor } from '@/features/telemarketing/lib/leadTraffic';
+import {
+  colorFilterForView,
+  colorsToRender,
+  DEFAULT_LEAD_BOARD_VIEW,
+  followUpBucketForView,
+  isFollowUpBoardView,
+  type LeadBoardView,
+} from '@/features/telemarketing/lib/leadBoardView';
 import { TeleInnerNav, useRegisterTeleCloser } from '@/features/telemarketing/components/Nav/TeleInnerNav';
-import type { TelemarketingEmployee, TelemarketingLeadState } from '@/features/telemarketing/types';
+import type { FollowUpWorkItem, TelemarketingEmployee, TelemarketingLeadState } from '@/features/telemarketing/types';
 
 const TONE: Record<LeadColor, string> = {
   red: 'border-destructive bg-destructive/10',
@@ -21,14 +30,24 @@ export function LeadsBoard({
   hideEmployeeFilter,
   daliaActor,
   readOnly = false,
+  onStartReturn,
+  startLocked = false,
+  reloadToken,
+  embedFollowUp = false,
 }: {
   currentEmployee?: TelemarketingEmployee;
   hideEmployeeFilter?: boolean;
   daliaActor?: { id: string; displayName: string; isAdmin?: boolean };
   readOnly?: boolean;
+  onStartReturn?: (item: FollowUpWorkItem) => void;
+  startLocked?: boolean;
+  reloadToken?: number;
+  /** Agent home: follow-up lives in this board. Admin keeps its own FollowUpBoard. */
+  embedFollowUp?: boolean;
 }) {
   const [items, setItems] = useState<TelemarketingLeadState[]>([]);
-  const [color, setColor] = useState<'' | LeadColor>('');
+  const [followUps, setFollowUps] = useState<FollowUpWorkItem[]>([]);
+  const [view, setView] = useState<LeadBoardView>(DEFAULT_LEAD_BOARD_VIEW);
   const [search, setSearch] = useState('');
   const [employee, setEmployee] = useState('');
   const [selected, setSelected] = useState<TelemarketingLeadState | null>(null);
@@ -36,14 +55,26 @@ export function LeadsBoard({
   useRegisterTeleCloser(Boolean(selected), closeSelected);
 
   const load = async () => {
-    setItems(await getLeadStates());
+    const states = await getLeadStates();
+    setItems(states);
+    if (embedFollowUp) {
+      const fus = await getFollowUpWorkItems().catch(() => [] as FollowUpWorkItem[]);
+      setFollowUps(fus);
+    } else {
+      setFollowUps([]);
+    }
   };
 
   useEffect(() => {
-    void load().catch(() => setItems([]));
-  }, []);
+    void load().catch(() => {
+      setItems([]);
+      setFollowUps([]);
+    });
+  }, [reloadToken]);
 
   const employees = useMemo(() => Array.from(new Set(items.map((i) => i.employeeName).filter(Boolean))) as string[], [items]);
+  const color = colorFilterForView(view);
+  const showFollowUps = embedFollowUp && isFollowUpBoardView(view);
   const filtered = items.filter((item) => {
     if (color && item.leadColor !== color) return false;
     if (!hideEmployeeFilter && employee && item.employeeName !== employee) return false;
@@ -59,10 +90,47 @@ export function LeadsBoard({
     yellow: filtered.filter((i) => i.leadColor === 'yellow'),
     green: filtered.filter((i) => i.leadColor === 'green'),
   };
+  const due = dueCount(followUps);
+  const chipClass = (active: boolean) =>
+    `min-h-12 rounded-xl px-3 text-sm font-black ${active ? 'bg-primary text-primary-foreground' : 'border border-border bg-background'}`;
 
   return (
-    <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
+    <section
+      id={embedFollowUp ? 'my-followups' : undefined}
+      data-testid={embedFollowUp ? 'tele-continue-treatment' : 'tele-leads-board'}
+      className="space-y-3 rounded-2xl border border-border bg-card p-4"
+    >
       <h2 className="text-xl font-black">רמזור לידים</h2>
+      <p className="text-xs text-muted-foreground">
+        {embedFollowUp
+          ? 'צהוב / אדום / ירוק מגיעים מרמזור הליד. «המשך טיפול» ו«לחזור היום» מגיעים מ-Follow-up פתוח — אותו אזור, שני מקורות אמת.'
+          : 'צהוב — בתהליך · אדום — סגור · ירוק — הצלחה. ברירת המחדל: צהוב.'}
+      </p>
+      <div className="flex flex-wrap gap-2" data-testid="tele-lead-board-filters">
+        <button type="button" data-testid="tele-lead-filter-yellow" className={chipClass(view === 'yellow')} onClick={() => setView('yellow')}>
+          🟡 צהובים
+        </button>
+        <button type="button" data-testid="tele-lead-filter-red" className={chipClass(view === 'red')} onClick={() => setView('red')}>
+          🔴 אדומים
+        </button>
+        <button type="button" data-testid="tele-lead-filter-green" className={chipClass(view === 'green')} onClick={() => setView('green')}>
+          🟢 ירוקים
+        </button>
+        {embedFollowUp && (
+          <>
+            <button type="button" data-testid="tele-lead-filter-followup" className={chipClass(view === 'followup')} onClick={() => setView('followup')}>
+              📅 המשך טיפול{due > 0 ? ` (${due})` : ''}
+            </button>
+            <button type="button" data-testid="tele-lead-filter-today" className={chipClass(view === 'today')} onClick={() => setView('today')}>
+              לחזור היום
+            </button>
+          </>
+        )}
+        <button type="button" data-testid="tele-lead-filter-all" className={chipClass(view === 'all')} onClick={() => setView('all')}>
+          הכול
+        </button>
+      </div>
+      {!showFollowUps && (
       <div className="grid gap-2 md:grid-cols-3">
         <input
           placeholder="חיפוש: חברה / איש קשר / טלפון"
@@ -70,12 +138,6 @@ export function LeadsBoard({
           onChange={(e) => setSearch(e.target.value)}
           className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm md:col-span-3"
         />
-        <select value={color} onChange={(e) => setColor(e.target.value as '' | LeadColor)} className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm">
-          <option value="">כל הצבעים</option>
-          <option value="red">🔴 אדומים</option>
-          <option value="yellow">🟡 צהובים</option>
-          <option value="green">🟢 ירוקים</option>
-        </select>
         {!hideEmployeeFilter && (
           <select value={employee} onChange={(e) => setEmployee(e.target.value)} className="min-h-12 rounded-lg border border-border bg-background p-2 text-sm">
             <option value="">כל הנציגים</option>
@@ -85,7 +147,26 @@ export function LeadsBoard({
           </select>
         )}
       </div>
-      {(['red', 'yellow', 'green'] as LeadColor[]).map((c) => (
+      )}
+      {showFollowUps ? (
+        <FollowUpBoard
+          key={view}
+          items={followUps}
+          hideEmployeeFilter={hideEmployeeFilter}
+          allowStartReturn={Boolean(onStartReturn)}
+          startLocked={startLocked}
+          onStartReturn={onStartReturn}
+          actor={currentEmployee ? { id: currentEmployee.id, displayName: currentEmployee.displayName } : daliaActor}
+          initialBucket={followUpBucketForView(view)}
+        />
+      ) : (
+        <>
+          {view === 'yellow' && grouped.yellow.length === 0 && due > 0 && (
+            <p className="rounded-xl border border-amber-400/40 bg-amber-50 p-3 text-sm font-semibold dark:bg-amber-950/30">
+              אין לידים צהובים ברמזור. יש {due} להמשך טיפול / לחזור היום — לחצו «המשך טיפול» או «לחזור היום».
+            </p>
+          )}
+          {colorsToRender(view).map((c) => (
         <div key={c}>
           <h3 className="mb-2 font-black">{c === 'red' ? '🔴 אדומים' : c === 'yellow' ? '🟡 צהובים' : '🟢 ירוקים'} ({grouped[c].length})</h3>
           {grouped[c].length === 0 && <p className="mb-3 text-sm text-muted-foreground">אין רשומות</p>}
@@ -100,7 +181,9 @@ export function LeadsBoard({
             ))}
           </div>
         </div>
-      ))}
+          ))}
+        </>
+      )}
       {selected && currentEmployee && (
         <LeadDetail
           lead={selected}

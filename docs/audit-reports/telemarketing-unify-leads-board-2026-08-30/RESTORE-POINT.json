@@ -1,0 +1,17 @@
+{
+  "at": "2026-08-30T19:50:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "codeCommit": "497ee370be9aa653fc0a09d5a482c03c2ee6cebd",
+  "branch": "feat/incident-alerts-staging",
+  "backupFiles": [
+    "docs/audit-reports/telemarketing-unify-leads-board-2026-08-30/backup-before/TelemarketingAgentScreen.tsx",
+    "docs/audit-reports/telemarketing-unify-leads-board-2026-08-30/backup-before/LeadsBoard.tsx",
+    "docs/audit-reports/telemarketing-unify-leads-board-2026-08-30/backup-before/FollowUpBoard.tsx",
+    "docs/audit-reports/telemarketing-unify-leads-board-2026-08-30/backup-before/MyFollowUps.tsx"
+  ],
+  "note": "UI-only unify of agent follow-up card into LeadsBoard. No DB/RPC/status/follow-up row changes. Rollback = revert the feature commit."
+}
