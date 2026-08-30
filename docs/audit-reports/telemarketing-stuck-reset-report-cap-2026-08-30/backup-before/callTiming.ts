@@ -1,5 +1,3 @@
-import { capReportDurationSeconds } from '@/features/telemarketing/lib/callLifecycle';
-
 export function secondsBetween(start?: string | null, end?: string | null): number | null {
   if (!start || !end) return null;
   const ms = new Date(end).getTime() - new Date(start).getTime();
@@ -49,18 +47,17 @@ export function stampReportSubmit(current: {
 }, now = new Date()) {
   if (current.report_ended_at) {
     const reportStarted = current.report_started_at || current.ended_at || current.report_ended_at;
-    const reportDuration = capReportDurationSeconds(secondsBetween(reportStarted, current.report_ended_at) ?? 0);
     return {
       report_started_at: reportStarted,
       report_ended_at: current.report_ended_at,
-      report_duration_seconds: reportDuration,
+      report_duration_seconds: secondsBetween(reportStarted, current.report_ended_at) ?? 0,
       treated_ended_at: current.report_ended_at,
-      treatment_duration_seconds: treatmentSeconds(current.duration_seconds, reportDuration),
+      treatment_duration_seconds: treatmentSeconds(current.duration_seconds, secondsBetween(reportStarted, current.report_ended_at)),
     };
   }
   const reportStarted = current.report_started_at || current.ended_at || now.toISOString();
   const reportEnded = now.toISOString();
-  const reportDuration = capReportDurationSeconds(secondsBetween(reportStarted, reportEnded) ?? 0);
+  const reportDuration = secondsBetween(reportStarted, reportEnded) ?? 0;
   return {
     report_started_at: reportStarted,
     report_ended_at: reportEnded,

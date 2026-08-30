@@ -1,0 +1,15 @@
+{
+  "at": "2026-08-30T19:10:00.000Z",
+  "branch": "feat/incident-alerts-staging",
+  "findings": {
+    "activeCall": "telemarketing_calls.status=in_progress is the open-call lock (unique index one_open_per_employee). getOpenCallForEmployee filters that status. A pending report is still in_progress with ended_at set.",
+    "workState": "telemarketing_work_sessions same in_progress lock.",
+    "claimedLead": "telemarketing_lead_directory.claimed_by / claimed_at. Assignment assigned_to is separate and must not change.",
+    "timers": "Call timer starts at startCall insert (started_at=now). Report timer starts at endCall (report_started_at=ended_at). No cap today. Submit uses wall-clock stampReportSubmit.",
+    "noPstn": "This product is a work timer, not a phone switch. startCall immediately inserts in_progress and UI shows השיחה פעילה. There is no answered/connected event.",
+    "task3SafeWindow": "Cancel after התחל שיחה is allowed only while ended_at IS NULL AND elapsed < 15 seconds. After סיום שיחה or after 15s, only super-admin reset can unstick. Released status is excluded from reports/timeline/performance.",
+    "reports": "dialAttempts currently counts every loaded call including in_progress. completed-only adds seconds. Released must be skipped so void/reset is not a fake dial.",
+    "desktopHole": "Agent home lg:grid-cols-2 with 3 items (lead already open) leaves the last card on one side. Directory+customer only-child has the same hole."
+  },
+  "significantLogic": "Adding status=released is a small schema CHECK expansion, not a report-formula rewrite. Completed rows are never released. No import/dedup/follow-up/traffic changes."
+}

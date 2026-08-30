@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 import { stampCallEnd, stampReportSubmit } from '@/features/telemarketing/lib/callTiming';
-import { isReleasedStatus } from '@/features/telemarketing/lib/callLifecycle';
 import { createTeamChatIfNeeded } from '@/features/telemarketing/services/teamChatService';
 import { followUpBucket, localDateStr } from '@/features/telemarketing/lib/localDate';
 import { formatClock, formatDay } from '@/features/telemarketing/lib/formatTime';
@@ -68,15 +67,6 @@ export async function startCall(payload: StartCallPayload): Promise<Telemarketin
 
   if (error) throw new Error('שגיאה בהתחלת שיחה: ' + error.message);
   return mapCallRow(data);
-}
-
-export async function voidUnstartedCall(callId: string): Promise<{ ok: boolean; didVoid: boolean }> {
-  const { data, error } = await supabase.rpc('telemarketing_void_unstarted_call' as never, {
-    p_call_id: callId,
-  } as never);
-  if (error) throw new Error(error.message || 'לא ניתן לבטל את השיחה');
-  const row = (data || {}) as Record<string, unknown>;
-  return { ok: row.ok !== false, didVoid: Boolean(row.didVoid ?? row.didvoid) };
 }
 
 export async function getOpenCallForEmployee(employeeId: string): Promise<TelemarketingCall | null> {
@@ -398,7 +388,7 @@ export async function getDashboardData(limit = 300): Promise<{
 
   if (error) throw new Error('שגיאה בטעינת נתוני Dashboard: ' + error.message);
 
-  const calls = await attachLeadNumbers((data ?? []).map(mapCallRow).filter((c) => !isReleasedStatus(c.status)));
+  const calls = await attachLeadNumbers((data ?? []).map(mapCallRow));
   const today = todayStr();
 
   const summary: TelemarketingDashboardSummary = {
@@ -523,7 +513,7 @@ export async function getLeadHistory(phone: string, companyName: string): Promis
     .order('started_at', { ascending: true })
     .limit(50);
   if (error || !data) return [];
-  return attachLeadNumbers(data.map(mapCallRow).filter((c) => !isReleasedStatus(c.status)));
+  return attachLeadNumbers(data.map(mapCallRow));
 }
 
 export async function completeFollowUp(followUpId: string, completedBy: string): Promise<TelemarketingFollowUp> {
@@ -551,7 +541,6 @@ export async function getAgentPerformance(limit = 1000): Promise<AgentPerformanc
 
   for (const row of data ?? []) {
     const call = mapCallRow(row);
-    if (isReleasedStatus(call.status)) continue;
     const key = call.employeeId || call.employeeName;
     if (!byAgent.has(key)) {
       byAgent.set(key, {

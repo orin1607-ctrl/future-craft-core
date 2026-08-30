@@ -385,4 +385,21 @@ describe('activity report uses only real mappings', () => {
     });
     expect(withHours.totals.historicalSeconds).toBe(0);
   });
+
+  it('does not count released/voided calls as dials or time', () => {
+    const report = buildActivityReport({
+      filters,
+      calls: [
+        call({ id: 'kept', status: 'completed', durationSeconds: 40, reportDurationSeconds: 10 }),
+        call({ id: 'voided', status: 'released', durationSeconds: 99, result: null, leadRating: null }),
+      ],
+      work: [],
+      followUps: [],
+      chats: [],
+    });
+    expect(report.calls).toHaveLength(1);
+    expect(report.totals.dialAttempts).toBe(1);
+    expect(report.totals.callSeconds).toBe(40);
+    expect(report.totals.reportSeconds).toBe(10);
+  });
 });

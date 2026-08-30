@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { startCall, endCall, submitCallReport, getOpenCallForEmployee, voidUnstartedCall } from '@/features/telemarketing/services/telemarketingService';
+import { startCall, endCall, submitCallReport, getOpenCallForEmployee } from '@/features/telemarketing/services/telemarketingService';
 import { getOpenWorkSession } from '@/features/telemarketing/services/workSessionService';
 import { sendFollowUpNotifications } from '@/features/telemarketing/services/notificationService';
 import {
@@ -85,7 +85,6 @@ export function useActiveCall(employeeId?: string) {
   const [starting, setStarting] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [voiding, setVoiding] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reportTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitTokenRef = useRef<string>(uuid());
@@ -109,37 +108,21 @@ export function useActiveCall(employeeId?: string) {
   useEffect(() => {
     if (!employeeId) return;
     let cancelled = false;
-    const loadOpen = () => {
-      void getOpenCallForEmployee(employeeId).then((open) => {
-        if (cancelled) return;
-        if (!open) {
-          setCall((prev) => {
-            if (!prev) return prev;
-            if (!prev.endedAt) {
-              const ageMs = Date.now() - new Date(prev.startedAt).getTime();
-              if (Number.isFinite(ageMs) && ageMs < 25000) return prev;
-            }
-            return null;
-          });
-          return;
+    void getOpenCallForEmployee(employeeId).then((open) => {
+      if (cancelled || !open) return;
+      setCall(open);
+      if (open.endedAt && open.durationSeconds != null) {
+        setElapsedSeconds(open.durationSeconds);
+        if (open.status === 'in_progress') {
+          const startMs = new Date(open.reportStartedAt || open.endedAt).getTime();
+          setReportElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
         }
-        setCall(open);
-        if (open.endedAt && open.durationSeconds != null) {
-          setElapsedSeconds(open.durationSeconds);
-          if (open.status === 'in_progress') {
-            const startMs = new Date(open.reportStartedAt || open.endedAt).getTime();
-            setReportElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
-          }
-        } else {
-          setElapsedSeconds(Math.max(0, Math.floor((Date.now() - new Date(open.startedAt).getTime()) / 1000)));
-        }
-      });
-    };
-    loadOpen();
-    const poll = window.setInterval(loadOpen, 20000);
+      } else {
+        setElapsedSeconds(Math.max(0, Math.floor((Date.now() - new Date(open.startedAt).getTime()) / 1000)));
+      }
+    });
     return () => {
       cancelled = true;
-      window.clearInterval(poll);
     };
   }, [employeeId]);
 
@@ -254,28 +237,6 @@ export function useActiveCall(employeeId?: string) {
     }
   }, [call]);
 
-  const voidUnstarted = useCallback(async (): Promise<boolean> => {
-    if (!call || call.endedAt) return false;
-    setVoiding(true);
-    setError(null);
-    try {
-      void stopCallRecording().catch(() => null);
-      await voidUnstartedCall(call.id);
-      clearDraft();
-      setCall(null);
-      setDraft(EMPTY_DRAFT);
-      setElapsedSeconds(0);
-      setReportElapsedSeconds(0);
-      setIsRecording(false);
-      return true;
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'לא ניתן לבטל את השיחה');
-      return false;
-    } finally {
-      setVoiding(false);
-    }
-  }, [call, clearDraft]);
-
   const updateDraft = useCallback(
     (patch: Partial<ReportDraft>) => {
       setDraft((prev) => {
@@ -381,11 +342,9 @@ export function useActiveCall(employeeId?: string) {
     updateDraft,
     beginCall,
     finishCallTiming,
-    voidUnstarted,
     submitReport,
     submitting,
     starting,
-    voiding,
     isRecording,
     error,
     setError,

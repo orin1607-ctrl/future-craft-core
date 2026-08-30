@@ -207,7 +207,7 @@ async function attachWorkDaliaCare(
 export async function getWorkSessions(limit = 500): Promise<TelemarketingWorkSession[]> {
   const { data, error } = await supabase.from(TABLE).select('*').order('started_at', { ascending: false }).limit(limit);
   if (error) throw new Error(error.message);
-  return attachLeadNumbers((data ?? []).map((row) => mapRow(row as Record<string, unknown>)).filter((s) => s.status !== 'released'));
+  return attachLeadNumbers((data ?? []).map((row) => mapRow(row as Record<string, unknown>)));
 }
 
 export async function getWorkSessionsForLead(phone: string, companyName: string): Promise<TelemarketingWorkSession[]> {
@@ -224,5 +224,5 @@ export async function getWorkSessionsForLead(phone: string, companyName: string)
     .order('started_at', { ascending: true })
     .limit(50);
   if (error || !data) return [];
-  return data.map((row) => mapRow(row as Record<string, unknown>)).filter((s) => s.status !== 'released');
+  return data.map((row) => mapRow(row as Record<string, unknown>));
 }

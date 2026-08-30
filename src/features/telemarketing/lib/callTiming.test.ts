@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTimingSnapshot, matchesLeadQuery, treatmentSeconds } from '@/features/telemarketing/lib/callTiming';
+import { buildTimingSnapshot, matchesLeadQuery, treatmentSeconds, stampReportSubmit } from '@/features/telemarketing/lib/callTiming';
 
 describe('call timing', () => {
   it('adds call + report once as treatment and never as 8+3+11', () => {
@@ -23,5 +23,16 @@ describe('call timing', () => {
     expect(matchesLeadQuery('#7', '7', 'אלפא')).toBe(true);
     expect(matchesLeadQuery('אלפא', '7', 'אלפא בע"מ')).toBe(true);
     expect(matchesLeadQuery('8', '7', 'אלפא')).toBe(false);
+  });
+
+  it('caps new report duration at 180 seconds without changing call duration', () => {
+    const stamped = stampReportSubmit({
+      ended_at: '2026-08-30T10:00:00.000Z',
+      duration_seconds: 90,
+      report_started_at: '2026-08-30T10:00:00.000Z',
+    }, new Date('2026-08-30T10:08:00.000Z'));
+    expect(stamped.report_duration_seconds).toBe(180);
+    expect(stamped.treatment_duration_seconds).toBe(270);
+    expect(stamped.report_ended_at).toBe('2026-08-30T10:08:00.000Z');
   });
 });

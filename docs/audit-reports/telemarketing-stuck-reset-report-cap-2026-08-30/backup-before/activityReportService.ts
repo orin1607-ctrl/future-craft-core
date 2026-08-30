@@ -389,7 +389,6 @@ export function buildActivityReport(input: {
 }): ActivityReport {
   const { filters } = input;
   const calls = input.calls.filter((c) => {
-    if (c.status === 'released') return false;
     if (!inStampWindow(c.startedAt, filters.from, filters.to, filters.fromTime, filters.toTime)) return false;
     if (filters.employeeName && c.employeeName !== filters.employeeName) return false;
     if (filters.result && c.result !== filters.result) return false;
@@ -398,7 +397,6 @@ export function buildActivityReport(input: {
     return true;
   });
   const work = input.work.filter((s) => {
-    if (s.status === 'released') return false;
     if (!inStampWindow(s.startedAt, filters.from, filters.to, filters.fromTime, filters.toTime)) return false;
     if (filters.employeeName && s.employeeName !== filters.employeeName) return false;
     if (!matchesLead(filters.leadQuery, s.leadNumber, s.companyName)) return false;

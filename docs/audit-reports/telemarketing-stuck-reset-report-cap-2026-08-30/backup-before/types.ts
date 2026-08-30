@@ -24,7 +24,7 @@ export type UrgencyLevel = (typeof URGENCY_LEVELS)[number];
 
 export type NotificationStatus = 'not_applicable' | 'pending' | 'sent' | 'failed';
 export type RecordingStatus = 'none' | 'pending' | 'ready' | 'failed';
-export type CallStatus = 'in_progress' | 'completed' | 'released';
+export type CallStatus = 'in_progress' | 'completed';
 export type FollowUpStatus = 'open' | 'done';
 
 export interface TelemarketingEmployee {

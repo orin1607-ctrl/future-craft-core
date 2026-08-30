@@ -14,7 +14,6 @@ import { MyActivityReport } from '@/features/telemarketing/components/CallerScre
 import { DALIA_CHAT_PARAM } from '@/features/telemarketing/lib/daliaChatNav';
 import { agentHomeActionsVisible } from '@/features/telemarketing/lib/agentHomeVisibility';
 import { canAbortLeadPreview } from '@/features/telemarketing/lib/leadPreviewAbort';
-import { TELE_DESKTOP_HOME_GRID, TELE_DESKTOP_PAIR_GRID, canVoidUnstartedCall } from '@/features/telemarketing/lib/callLifecycle';
 import { useActiveCall } from '@/features/telemarketing/hooks/useActiveCall';
 import { useActiveWorkSession } from '@/features/telemarketing/hooks/useActiveWorkSession';
 import { getFollowUpWorkItems, getLeadHistory } from '@/features/telemarketing/services/telemarketingService';
@@ -69,11 +68,9 @@ export function TelemarketingAgentScreen({
     updateDraft,
     beginCall,
     finishCallTiming,
-    voidUnstarted,
     submitReport,
     submitting,
     starting,
-    voiding,
     isRecording,
     error,
   } = useActiveCall(currentEmployee.id);
@@ -239,16 +236,6 @@ export function TelemarketingAgentScreen({
     }
   };
 
-  const handleVoidUnstarted = async () => {
-    if (requireWorkMode()) return;
-    const ok = await voidUnstarted();
-    if (ok) {
-      showToast('success', 'השיחה בוטלה ולא נרשמה כפעילות');
-    } else {
-      showToast('error', 'לא ניתן לבטל — ייתכן שהשיחה כבר התחילה');
-    }
-  };
-
   const handleWorkFromList = async () => {
     if (requireWorkMode()) return;
     try {
@@ -348,7 +335,6 @@ export function TelemarketingAgentScreen({
   const showHomeActions = callStatus === 'idle' && workStatus === 'idle';
   const showLeadPreview = Boolean(activeDirectoryLead) || (showHomeActions && Boolean(returnHint));
   const canAbort = canAbortLeadPreview(callStatus, workStatus);
-  const canVoid = canVoidUnstartedCall({ endedAt: call?.endedAt, elapsedSeconds });
   const clearLeadPreview = () => {
     setActiveDirectoryLead(null);
     setReturnHint(null);
@@ -414,7 +400,7 @@ export function TelemarketingAgentScreen({
           </div>
         )}
         {showIdleBoards && (
-          <div className={`mt-3 ${TELE_DESKTOP_HOME_GRID}`}>
+          <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
             <CallTimerBar
               status="idle"
               elapsedSeconds={elapsedSeconds}
@@ -524,7 +510,7 @@ export function TelemarketingAgentScreen({
       )}
 
       {showIdleBoards && (
-        <div className={TELE_DESKTOP_PAIR_GRID}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
         <div id="new-lead" className="space-y-2 rounded-2xl border border-border bg-card p-4">
           <p className="text-base font-black">לקוח / ליד חדש</p>
           <p className="text-xs text-muted-foreground">
@@ -618,7 +604,7 @@ export function TelemarketingAgentScreen({
       )}
 
       {(activeDirectoryLead || call || manualCustomer.companyName || manualCustomer.phone) && (
-        <div className={TELE_DESKTOP_PAIR_GRID}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
           {activeDirectoryLead && <DirectoryLeadCard lead={activeDirectoryLead} />}
           {(call || manualCustomer.companyName || manualCustomer.phone) && (
             <CustomerCallCard
@@ -648,11 +634,8 @@ export function TelemarketingAgentScreen({
           employeeName={call?.employeeName || currentEmployee.displayName}
           leadLabel={activeDirectoryLead?.leadNumber ? formatLeadTitle(activeDirectoryLead.leadNumber, call?.companyName || activeDirectoryLead.companyName) : undefined}
           locked={inspect}
-          canVoidUnstarted={canVoid}
-          voiding={voiding}
           onStart={() => void handleStart()}
           onEnd={() => void finishCallTiming()}
-          onVoidUnstarted={() => void handleVoidUnstarted()}
         />
       )}
 

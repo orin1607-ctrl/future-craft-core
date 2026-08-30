@@ -62,22 +62,38 @@ export function useActiveWorkSession(employeeId?: string, employeeName?: string)
   useEffect(() => {
     if (!employeeId) return;
     let cancelled = false;
-    void getOpenWorkSession(employeeId).then((open) => {
-      if (cancelled || !open) return;
-      setSession(open);
-      setDraft((prev) => ({
-        ...prev,
-        companyName: open.companyName || prev.companyName,
-        contactName: open.contactName || prev.contactName,
-        phone: open.phone || prev.phone,
-        taskType: (open.taskType as WorkTaskType) || prev.taskType,
-        description: open.description || prev.description,
-      }));
-      if (open.endedAt && open.durationSeconds != null) setElapsedSeconds(open.durationSeconds);
-      else setElapsedSeconds(Math.max(0, Math.floor((Date.now() - new Date(open.startedAt).getTime()) / 1000)));
-    });
+    const loadOpen = () => {
+      void getOpenWorkSession(employeeId).then((open) => {
+        if (cancelled) return;
+        if (!open) {
+          setSession((prev) => {
+            if (!prev) return prev;
+            if (!prev.endedAt) {
+              const ageMs = Date.now() - new Date(prev.startedAt).getTime();
+              if (Number.isFinite(ageMs) && ageMs < 25000) return prev;
+            }
+            return null;
+          });
+          return;
+        }
+        setSession(open);
+        setDraft((prev) => ({
+          ...prev,
+          companyName: open.companyName || prev.companyName,
+          contactName: open.contactName || prev.contactName,
+          phone: open.phone || prev.phone,
+          taskType: (open.taskType as WorkTaskType) || prev.taskType,
+          description: open.description || prev.description,
+        }));
+        if (open.endedAt && open.durationSeconds != null) setElapsedSeconds(open.durationSeconds);
+        else setElapsedSeconds(Math.max(0, Math.floor((Date.now() - new Date(open.startedAt).getTime()) / 1000)));
+      });
+    };
+    loadOpen();
+    const poll = window.setInterval(loadOpen, 20000);
     return () => {
       cancelled = true;
+      window.clearInterval(poll);
     };
   }, [employeeId]);
 
