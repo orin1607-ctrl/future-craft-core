@@ -1,0 +1,172 @@
+{
+  "at": "2026-08-30T18:35:01.074Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "deploy-staging",
+      "ok": true,
+      "detail": "deployed_ref=e5f1095 feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-not-prod",
+      "ok": true,
+      "detail": "deployed_ref=e5f1095 feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-expected-sha",
+      "ok": true,
+      "detail": {
+        "expected": "e5f10958",
+        "deployTxt": "deployed_ref=e5f1095 feat/incident-alerts-staging"
+      }
+    },
+    {
+      "id": "bundle-abort",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-directory-toggle",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-desktop",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-no-void-rpc",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-desktop-wide",
+      "ok": true,
+      "detail": {
+        "adminWidth": 1088
+      }
+    },
+    {
+      "id": "admin-directory-collapsed",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-toggle-show",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-directory-open",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-toggle-hide",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-filters-present",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-select-all-present",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-fleet-filter-works",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-directory-collapsed-again",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-collapsed-shorter-than-open",
+      "ok": true,
+      "detail": {
+        "firstViewportH": 3938
+      }
+    },
+    {
+      "id": "admin-mobile-toggle",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-desktop-wide",
+      "ok": true,
+      "detail": {
+        "agentWidth": 1088
+      }
+    },
+    {
+      "id": "agent-abort-blocked-when-real-activity",
+      "ok": true,
+      "detail": "Tair has a pending call report — abort must not void it"
+    },
+    {
+      "id": "agent-pending-report-stays",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "agent-mobile-narrow",
+      "ok": true,
+      "detail": {
+        "mobileWidth": 358
+      }
+    },
+    {
+      "id": "agent-mobile-home",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "data-leads-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 314,
+        "after": 314
+      }
+    },
+    {
+      "id": "data-calls-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 39,
+        "after": 39,
+        "callsBeforeAbort": 39
+      }
+    },
+    {
+      "id": "data-followups-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 24,
+        "after": 24
+      }
+    },
+    {
+      "id": "data-sessions-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 0,
+        "after": 0
+      }
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "expectedSha": "e5f109581c72803788f25eb493a26913287020da",
+  "liveBundle": "assets/index-DNeyGDZu.js",
+  "deployed_ref": "deployed_ref=e5f1095 feat/incident-alerts-staging"
+}

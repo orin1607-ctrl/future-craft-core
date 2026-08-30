@@ -50,6 +50,26 @@ function storagePayload(session) {
     user: session.user,
   };
 }
+async function openAgent(browser, session, viewport) {
+  const ctx = await browser.newContext({ locale: 'he-IL', timezoneId: 'Asia/Jerusalem', viewport });
+  await ctx.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
+    key: `sb-${STAGING_REF}-auth-token`,
+    value: storagePayload(session),
+  });
+  await ctx.addInitScript(({ key, value }) => sessionStorage.setItem(key, value), {
+    key: `tele_entry_mode_v1:${TAIR.id}`,
+    value: 'work',
+  });
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await page.waitForTimeout(2500);
+  if (await page.getByTestId('tele-entry-purpose').count()) {
+    await page.getByTestId('tele-entry-work').click();
+    await page.waitForTimeout(1500);
+  }
+  await page.getByTestId('telemarketing-agent-home').waitFor({ timeout: 20000 });
+  return { ctx, page };
+}
 async function snapshotClaims() {
   const { data } = await adminDb.from('telemarketing_lead_directory').select('id, lead_number, claimed_by, claimed_at').in('lead_number', NUMS);
   return data || [];
@@ -90,6 +110,7 @@ function check(id, ok, detail) {
   console.log(ok ? 'PASS' : 'FAIL', id, detail ? JSON.stringify(detail).slice(0, 400) : '');
 }
 
+let claimsBefore = [];
 try {
   const stamp = Date.now();
   const html = await fetch(`${BASE}/?t=${stamp}`, { headers: { 'Cache-Control': 'no-cache' } }).then((r) => r.text());
@@ -113,7 +134,7 @@ try {
   }
 
   const before = await counts();
-  const claimsBefore = await snapshotClaims();
+  claimsBefore = await snapshotClaims();
   const adminSession = await sessionFor(ADMIN.email);
   const tairSession = await sessionFor(TAIR.email);
   const browser = await chromium.launch({ headless: true, channel: 'chrome' });
@@ -162,25 +183,18 @@ try {
   check('admin-mobile-toggle', (await mobileAdminPage.getByTestId('lead-directory-toggle').count()) > 0);
   await mobileAdminPage.screenshot({ path: join(OUT, 'admin-mobile-collapsed.png') });
 
-  const agentDesktop = await browser2.newContext({ locale: 'he-IL', timezoneId: 'Asia/Jerusalem', viewport: { width: 1440, height: 900 } });
-  await agentDesktop.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
-    key: `sb-${STAGING_REF}-auth-token`,
-    value: storagePayload(tairSession),
-  });
-  const agentPage = await agentDesktop.newPage();
-  await agentPage.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await agentPage.waitForTimeout(4000);
-  if (await agentPage.getByTestId('tele-entry-purpose').count()) {
-    await agentPage.getByRole('button', { name: /עבודה/ }).click().catch(() => {});
-    await agentPage.waitForTimeout(1500);
-  }
+  const { ctx: agentDesktop, page: agentPage } = await openAgent(browser2, tairSession, { width: 1440, height: 900 });
   const agentWidth = await agentPage.evaluate(() => {
     const el = document.querySelector('[data-testid="tele-agent-layout"]');
     return el ? Math.round(el.getBoundingClientRect().width) : 0;
   });
   check('agent-desktop-wide', agentWidth >= 700, { agentWidth });
+  const pendingReport = (await agentPage.locator('body').innerText()).includes('יש להשלים דיווח');
   const callsBeforeAbort = before.calls;
-  if (await agentPage.getByTestId('tele-work-from-list').count()) {
+  if (pendingReport) {
+    check('agent-abort-blocked-when-real-activity', (await agentPage.getByTestId('tele-lead-abort').count()) === 0, 'Tair has a pending call report — abort must not void it');
+    check('agent-pending-report-stays', pendingReport);
+  } else if (await agentPage.getByTestId('tele-work-from-list').count()) {
     await agentPage.getByTestId('tele-work-from-list').click();
     await agentPage.waitForTimeout(2500);
     check('agent-preview-open', (await agentPage.getByTestId('tele-lead-preview').count()) > 0);
@@ -194,18 +208,7 @@ try {
     check('agent-preview-open', false, 'work-from-list missing');
   }
 
-  const agentMobile = await browser2.newContext({ locale: 'he-IL', timezoneId: 'Asia/Jerusalem', viewport: { width: 390, height: 844 } });
-  await agentMobile.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
-    key: `sb-${STAGING_REF}-auth-token`,
-    value: storagePayload(tairSession),
-  });
-  const mobileAgentPage = await agentMobile.newPage();
-  await mobileAgentPage.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await mobileAgentPage.waitForTimeout(3500);
-  if (await mobileAgentPage.getByTestId('tele-entry-purpose').count()) {
-    await mobileAgentPage.getByRole('button', { name: /עבודה/ }).click().catch(() => {});
-    await mobileAgentPage.waitForTimeout(1500);
-  }
+  const { ctx: agentMobile, page: mobileAgentPage } = await openAgent(browser2, tairSession, { width: 390, height: 844 });
   const mobileWidth = await mobileAgentPage.evaluate(() => {
     const el = document.querySelector('[data-testid="tele-agent-layout"]');
     return el ? Math.round(el.getBoundingClientRect().width) : 0;
@@ -227,6 +230,7 @@ try {
 } catch (e) {
   check('e2e-exception', false, e instanceof Error ? e.message : String(e));
   report.pass = false;
+  try { await restoreClaims(claimsBefore); } catch { /* keep */ }
 }
 
 writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2), 'utf8');
