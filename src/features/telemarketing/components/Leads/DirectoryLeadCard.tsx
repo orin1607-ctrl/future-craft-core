@@ -7,7 +7,7 @@ export function DirectoryLeadCard({ lead }: { lead: LeadDirectoryRecord }) {
       <dl className="mt-2 grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
         <div><span className="text-muted-foreground">תחום: </span>{lead.industry || '—'}</div>
         <div><span className="text-muted-foreground">אזור: </span>{lead.region || '—'}</div>
-        <div><span className="text-muted-foreground">צי רכב: </span>{lead.fleetSize || '—'}</div>
+        <div><span className="text-muted-foreground">צי רכב: </span>{lead.fleetSize || 'ללא נתון'}</div>
         <div dir="ltr"><span className="text-muted-foreground">טלפון: </span>{lead.phone || '—'}</div>
         <div className="sm:col-span-2" dir="ltr"><span className="text-muted-foreground">מייל: </span>{lead.email || '—'}</div>
         {lead.assignedName && <div>עובד משויך: {lead.assignedName}</div>}

@@ -58,6 +58,27 @@ describe('mapping and validation', () => {
     expect(mappingIsComplete({ 0: 'lead_number', 1: 'company_name', 2: 'skip', 3: 'phone' }, 4)).toBe(true);
   });
 
+  it('does not block a different company that shares a switchboard phone', () => {
+    const preview = buildLeadImportPreview(
+      [
+        { rowIndex: 2, lead_number: '', company_name: 'אלפא', industry: '', region: '', fleet_size: '', phone: '03-1111111', email: '', extra: {} },
+        { rowIndex: 3, lead_number: '', company_name: 'בטא', industry: '', region: '', fleet_size: '', phone: '03-1111111', email: '', extra: {} },
+      ],
+      { numbers: new Set(), companies: new Set(), phones: new Set(['031111111']), emails: new Set() },
+    );
+    expect(preview.willImportCount).toBe(2);
+    expect(preview.issues.some((issue) => issue.kind === 'existing_phone')).toBe(true);
+  });
+
+  it('blocks an existing company name even when the phone differs', () => {
+    const preview = buildLeadImportPreview(
+      [{ rowIndex: 2, lead_number: '', company_name: 'עיריית חולון', industry: '', region: '', fleet_size: '', phone: '03-000', email: '', extra: {} }],
+      { numbers: new Set(), companies: new Set(['עיריית חולון']), phones: new Set(), emails: new Set() },
+    );
+    expect(preview.willImportCount).toBe(0);
+    expect(preview.issues.some((issue) => issue.kind === 'existing_company')).toBe(true);
+  });
+
   it('flags existing and in-file duplicates without merging', () => {
     const sheet = parseSheetText(SAMPLE);
     const rows = applyColumnMapping(sheet, suggestColumnMapping(sheet.headers));
@@ -65,6 +86,7 @@ describe('mapping and validation', () => {
       [...rows, { ...rows[0], rowIndex: 99, company_name: 'כפיל' }],
       {
         numbers: new Set(['1']),
+        companies: new Set(),
         phones: new Set(['035584555']),
         emails: new Set(),
       },

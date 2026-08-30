@@ -28,6 +28,7 @@ function row(partial: Partial<LeadDirectoryRecord> & { id: string }): LeadDirect
     claimedBy: null,
     claimedAt: null,
     archivedAt: null,
+    leadWave: 'old',
     ...partial,
   };
 }
@@ -71,6 +72,24 @@ describe('lead assign select scope', () => {
     ];
     expect(filterDirectoryRows(withArchive, '', 'all').map((r) => r.id)).toEqual(['1', '2', '3']);
     expect(filterDirectoryRows(withArchive, '', 'archive').map((r) => r.id)).toEqual(['4']);
+  });
+
+  it('filters old vs new lead waves', () => {
+    const mixed = [
+      row({ id: '1', leadNumber: '1', leadWave: 'old' }),
+      row({ id: '2', leadNumber: '2', leadWave: 'new' }),
+    ];
+    expect(filterDirectoryRows(mixed, '', 'all', { min: null, max: null }, 'old').map((r) => r.id)).toEqual(['1']);
+    expect(filterDirectoryRows(mixed, '', 'all', { min: null, max: null }, 'new').map((r) => r.id)).toEqual(['2']);
+    expect(isDirectoryFilterActive('', 'all', { min: null, max: null }, 'new')).toBe(true);
+  });
+
+  it('unknown fleet preset keeps rows without a vehicle count', () => {
+    const fleetRows = [
+      row({ id: '1', fleetSize: '8+' }),
+      row({ id: '2', fleetSize: '' }),
+    ];
+    expect(filterDirectoryRows(fleetRows, '', 'all', { min: null, max: null, unknownOnly: true }).map((r) => r.id)).toEqual(['2']);
   });
 
   it('parses fleet size from first digits only', () => {

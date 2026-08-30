@@ -1,4 +1,4 @@
-export const MAX_LEAD_IMPORT_ROWS = 2000;
+export const MAX_LEAD_IMPORT_ROWS = 3000;
 export const MAX_LEAD_IMPORT_CHARS = 400_000;
 
 export const LEAD_DIRECTORY_FIELDS = [
@@ -40,9 +40,11 @@ export interface MappedLeadRow {
 export type LeadRowIssueKind =
   | 'invalid'
   | 'duplicate_in_file_number'
+  | 'duplicate_in_file_company'
   | 'duplicate_in_file_phone'
   | 'duplicate_in_file_email'
   | 'existing_number'
+  | 'existing_company'
   | 'existing_phone'
   | 'existing_email';
 
@@ -64,6 +66,7 @@ export interface LeadImportPreview {
 
 export interface ExistingLeadIndex {
   numbers: Set<string>;
+  companies: Set<string>;
   phones: Set<string>;
   emails: Set<string>;
 }
@@ -87,6 +90,7 @@ export interface LeadDirectoryRecord {
   claimedBy: string | null;
   claimedAt: string | null;
   archivedAt: string | null;
+  leadWave: 'old' | 'new';
 }
 
 export interface LeadAssignmentEvent {

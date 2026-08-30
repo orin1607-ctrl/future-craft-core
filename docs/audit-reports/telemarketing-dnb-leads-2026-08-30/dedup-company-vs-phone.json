@@ -1,0 +1,96 @@
+{
+  "phoneHits": [
+    {
+      "file": "חברת הגיחון בע\"מ",
+      "existing": "מי גיחון",
+      "phone": "02-5651111",
+      "sameCompany": false
+    },
+    {
+      "file": "אהבה- מעבדות ים המלח בע\"מ",
+      "existing": "DHL ישראל (הפצה)",
+      "phone": "03-5571111",
+      "sameCompany": false
+    },
+    {
+      "file": "שומרה חב' לביטוח בע\"מ",
+      "existing": "מיניליין",
+      "phone": "03-9251111",
+      "sameCompany": false
+    },
+    {
+      "file": "קבוצת סקופ מתכות בע\"מ",
+      "existing": "קבוצת סקופ",
+      "phone": "08-8631000",
+      "sameCompany": false
+    },
+    {
+      "file": "עיריית חולון",
+      "existing": "עיריית חולון",
+      "phone": "03-5027222",
+      "sameCompany": true
+    },
+    {
+      "file": "מובילאיי טכנולוגיות ראיה בע\"מ",
+      "existing": "מוביילאיי",
+      "phone": "02-5417333",
+      "sameCompany": false
+    },
+    {
+      "file": "המריץ שליחויות את פלאש לוגיסטיקה",
+      "existing": "HFD שליחויות",
+      "phone": "03-9244441",
+      "sameCompany": false
+    },
+    {
+      "file": "בי. אמ. סי. תוכנה ישראל בע\"מ",
+      "existing": "בינת תקשורת",
+      "phone": "03-6451111",
+      "sameCompany": false
+    },
+    {
+      "file": "שמש חי אחזקות בע\"מ",
+      "existing": "קירור בני (שירות מוסדי)",
+      "phone": "03-5564444",
+      "sameCompany": false
+    },
+    {
+      "file": "מוקד אמון סביון 1997 אבטחה ושמירה בע\"מ",
+      "existing": "הפניקס (סוקרים)",
+      "phone": "03-5395555",
+      "sameCompany": false
+    }
+  ],
+  "sameCompanyPhoneHits": 1,
+  "differentCompanyPhoneHits": 9,
+  "companyNameHits": [
+    {
+      "file": "עיריית חדרה",
+      "existing": "עיריית חדרה",
+      "lead": "104",
+      "phoneFile": "04-6303311",
+      "phoneExisting": "106"
+    },
+    {
+      "file": "עיריית רחובות",
+      "existing": "עיריית רחובות",
+      "lead": "224",
+      "phoneFile": "08-9392222",
+      "phoneExisting": "08-939-2106"
+    },
+    {
+      "file": "רשות העתיקות",
+      "existing": "רשות העתיקות",
+      "lead": "177",
+      "phoneFile": "02-6204600",
+      "phoneExisting": "02-620-1111"
+    },
+    {
+      "file": "עיריית חולון",
+      "existing": "עיריית חולון",
+      "lead": "105",
+      "phoneFile": "03-5027222",
+      "phoneExisting": "03-502-7222"
+    }
+  ]
+}

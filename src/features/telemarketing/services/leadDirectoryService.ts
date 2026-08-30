@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { emailMatchKey, numberMatchKey, phoneMatchKey } from '@/features/telemarketing/lib/leadImport/validateLeads';
+import { emailMatchKey, numberMatchKey, phoneMatchKey, companyMatchKey } from '@/features/telemarketing/lib/leadImport/validateLeads';
 import type {
   ColumnMapping,
   ExistingLeadIndex,
@@ -56,6 +56,7 @@ function mapDirectory(row: Record<string, unknown>): LeadDirectoryRecord {
     claimedBy: (row.claimed_by as string | null) ?? null,
     claimedAt: (row.claimed_at as string | null) ?? null,
     archivedAt: (row.archived_at as string | null) ?? null,
+    leadWave: row.lead_wave === 'new' ? 'new' : 'old',
   };
 }
 
@@ -100,6 +101,7 @@ export async function loadExistingLeadIndex(): Promise<ExistingLeadIndex> {
   const rows = await listLeadDirectory();
   return {
     numbers: new Set(rows.map((row) => numberMatchKey(row.leadNumber)).filter(Boolean)),
+    companies: new Set(rows.map((row) => companyMatchKey(row.companyName)).filter(Boolean)),
     phones: new Set(rows.map((row) => phoneMatchKey(row.phone)).filter(Boolean)),
     emails: new Set(rows.map((row) => emailMatchKey(row.email)).filter(Boolean)),
   };
@@ -177,6 +179,27 @@ export async function assignLeadsToAgent(leadIds: string[], agentId: string): Pr
     }),
     agentName: String(result.agentName ?? result.agentname ?? ''),
     agentId: String(result.agentId ?? result.agentid ?? agentId),
+  };
+}
+
+export async function unassignLeads(leadIds: string[]): Promise<{ unassignedCount: number; skippedCount: number; skipped: { leadNumber: string; companyName: string; reason: string }[] }> {
+  const { data, error } = await supabase.rpc('telemarketing_unassign_leads' as never, {
+    p_lead_ids: leadIds,
+  } as never);
+  if (error) throw new Error(error.message);
+  const result = (data || {}) as Record<string, unknown>;
+  const skippedRaw = Array.isArray(result.skipped) ? result.skipped : [];
+  return {
+    unassignedCount: Number(result.unassignedCount ?? result.unassignedcount ?? 0),
+    skippedCount: Number(result.skippedCount ?? result.skippedcount ?? 0),
+    skipped: skippedRaw.map((item) => {
+      const row = (item || {}) as Record<string, unknown>;
+      return {
+        leadNumber: String(row.leadNumber ?? row.leadnumber ?? ''),
+        companyName: String(row.companyName ?? row.companyname ?? ''),
+        reason: String(row.reason || ''),
+      };
+    }),
   };
 }
 

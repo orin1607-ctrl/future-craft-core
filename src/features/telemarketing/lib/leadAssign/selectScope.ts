@@ -3,7 +3,8 @@ import { isUsableLeadKey, leadKey } from '@/features/telemarketing/lib/leadKey';
 
 export type AgentFilter = 'all' | 'unassigned' | 'archive' | string;
 export type DirectorySort = 'default' | 'fleet_asc' | 'fleet_desc';
-export type FleetFilter = { min: number | null; max: number | null };
+export type WaveFilter = 'all' | 'old' | 'new';
+export type FleetFilter = { min: number | null; max: number | null; unknownOnly?: boolean };
 
 /** First integer in the stored fleet text. Does not invent a size when none exists. */
 export function parseFleetSize(raw: string | null | undefined): number | null {
@@ -18,6 +19,7 @@ export function filterDirectoryRows(
   query: string,
   agentFilter: AgentFilter,
   fleet: FleetFilter = { min: null, max: null },
+  wave: WaveFilter = 'all',
 ): LeadDirectoryRecord[] {
   const q = query.trim().toLowerCase();
   return rows.filter((row) => {
@@ -27,11 +29,17 @@ export function filterDirectoryRows(
     } else if (archived) {
       return false;
     }
+    if (wave === 'old' && row.leadWave !== 'old') return false;
+    if (wave === 'new' && row.leadWave !== 'new') return false;
     if (agentFilter === 'unassigned' && row.assignedTo) return false;
     if (agentFilter !== 'all' && agentFilter !== 'unassigned' && agentFilter !== 'archive' && row.assignedTo !== agentFilter) return false;
     const size = parseFleetSize(row.fleetSize);
-    if (fleet.min != null && (size == null || size < fleet.min)) return false;
-    if (fleet.max != null && (size == null || size > fleet.max)) return false;
+    if (fleet.unknownOnly) {
+      if (size != null) return false;
+    } else {
+      if (fleet.min != null && (size == null || size < fleet.min)) return false;
+      if (fleet.max != null && (size == null || size > fleet.max)) return false;
+    }
     if (!q) return true;
     const hay = [row.leadNumber, row.companyName, row.phone, row.email, row.assignedName, row.industry, row.region, row.fleetSize]
       .join(' ')
@@ -54,8 +62,13 @@ export function sortDirectoryRows(rows: LeadDirectoryRecord[], sort: DirectorySo
   return copy;
 }
 
-export function isDirectoryFilterActive(query: string, agentFilter: AgentFilter, fleet: FleetFilter = { min: null, max: null }): boolean {
-  return query.trim() !== '' || agentFilter !== 'all' || fleet.min != null || fleet.max != null;
+export function isDirectoryFilterActive(
+  query: string,
+  agentFilter: AgentFilter,
+  fleet: FleetFilter = { min: null, max: null },
+  wave: WaveFilter = 'all',
+): boolean {
+  return query.trim() !== '' || agentFilter !== 'all' || wave !== 'all' || Boolean(fleet.unknownOnly) || fleet.min != null || fleet.max != null;
 }
 
 export function selectAllLabel(filteredCount: number, totalCount: number, filterActive: boolean): string {

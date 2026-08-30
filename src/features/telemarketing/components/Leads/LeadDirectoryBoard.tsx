@@ -23,6 +23,7 @@ import {
   type AgentFilter,
   type DirectorySort,
   type LeadActivityHints,
+  type WaveFilter,
 } from '@/features/telemarketing/lib/leadAssign/selectScope';
 
 export function LeadDirectoryBoard({
@@ -49,6 +50,7 @@ export function LeadDirectoryBoard({
   const [fleetMin, setFleetMin] = useState('');
   const [fleetMax, setFleetMax] = useState('');
   const [fleetSort, setFleetSort] = useState<DirectorySort>('default');
+  const [waveFilter, setWaveFilter] = useState<WaveFilter>('all');
   const [activityHints, setActivityHints] = useState<LeadActivityHints>({ callKeys: [], stateKeys: [], openFollowupKeys: [] });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [assignOpen, setAssignOpen] = useState(false);
@@ -104,18 +106,19 @@ export function LeadDirectoryBoard({
     return {
       min: min != null && Number.isFinite(min) ? min : null,
       max: max != null && Number.isFinite(max) ? max : null,
+      unknownOnly: fleetPreset === 'unknown',
     };
-  }, [fleetMin, fleetMax]);
+  }, [fleetMin, fleetMax, fleetPreset]);
 
   const filtered = useMemo(
-    () => sortDirectoryRows(filterDirectoryRows(rows, query, agentFilter, fleetRange), fleetSort),
-    [rows, query, agentFilter, fleetRange, fleetSort],
+    () => sortDirectoryRows(filterDirectoryRows(rows, query, agentFilter, fleetRange, waveFilter), fleetSort),
+    [rows, query, agentFilter, fleetRange, fleetSort, waveFilter],
   );
   const workload = useMemo(
     () => (isAdmin ? summarizeAgentLeadWorkload(rows, agents, activityHints) : []),
     [isAdmin, rows, agents, activityHints],
   );
-  const filterActive = isDirectoryFilterActive(query, agentFilter, fleetRange);
+  const filterActive = isDirectoryFilterActive(query, agentFilter, fleetRange, waveFilter);
   const filteredIds = filtered.map((row) => row.id);
   const selectedVisible = filteredIds.filter((id) => selected.has(id));
   const allFilteredSelected = filteredIds.length > 0 && selectedVisible.length === filteredIds.length;
@@ -262,6 +265,25 @@ export function LeadDirectoryBoard({
           </div>
         </div>
       )}
+      {isAdmin && (
+        <div className="flex flex-wrap gap-2" data-testid="lead-wave-filter">
+          {([
+            { id: 'all', label: 'כל הלידים' },
+            { id: 'old', label: 'לידים ישנים' },
+            { id: 'new', label: 'לידים חדשים' },
+          ] as const).map((wave) => (
+            <button
+              key={wave.id}
+              type="button"
+              data-testid={`lead-wave-${wave.id}`}
+              className={`min-h-12 rounded-xl px-4 text-sm font-black ${waveFilter === wave.id ? 'bg-primary text-primary-foreground' : 'border border-border bg-background'}`}
+              onClick={() => setWaveFilter(wave.id)}
+            >
+              {wave.label}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="grid gap-2 md:grid-cols-2">
         <label className="text-xs font-semibold">
           חיפוש
@@ -304,6 +326,7 @@ export function LeadDirectoryBoard({
               { id: '31-40', label: '31–40', min: '31', max: '40' },
               { id: '5-40', label: '5–40', min: '5', max: '40' },
               { id: 'over-40', label: 'מעל 40', min: '41', max: '' },
+              { id: 'unknown', label: 'ללא נתון', min: '', max: '' },
             ].map((preset) => (
               <button
                 key={preset.id}
@@ -508,6 +531,7 @@ export function LeadDirectoryBoard({
               <th className="p-2">טלפון</th>
               <th className="p-2">מייל</th>
               <th className="p-2">עובד משויך</th>
+              <th className="p-2">גל</th>
               <th className="p-2">מקור</th>
               {onPick && <th className="p-2"> </th>}
             </tr>
@@ -531,9 +555,15 @@ export function LeadDirectoryBoard({
                 <td className="p-2">{row.industry}</td>
                 <td className="p-2">{row.region}</td>
                 <td className="p-2" data-testid="lead-fleet-cell">{row.fleetSize.trim() ? row.fleetSize : 'ללא נתון'}</td>
-                <td className="p-2" dir="ltr">{row.phone}</td>
+                <td className="p-2" dir="ltr">
+                  {row.phone}
+                  {row.extra?.phone1 && row.extra.phone1 !== row.phone ? (
+                    <span className="block text-xs text-muted-foreground">{row.extra.phone1}</span>
+                  ) : null}
+                </td>
                 <td className="p-2" dir="ltr">{row.email}</td>
                 <td className="p-2" data-testid="lead-assigned-cell">{row.assignedName || 'ללא שיוך'}</td>
+                <td className="p-2">{row.leadWave === 'new' ? 'חדש' : 'ישן'}</td>
                 <td className="p-2">{row.source === 'manual_agent' ? 'יצירה ידנית' : row.source || '—'}</td>
                 {onPick && (
                   <td className="p-2">

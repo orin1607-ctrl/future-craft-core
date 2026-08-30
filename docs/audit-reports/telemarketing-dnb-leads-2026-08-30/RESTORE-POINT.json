@@ -1,0 +1,25 @@
+{
+  "at": "2026-08-30T20:40:24.027Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "branch": "feat/incident-alerts-staging",
+  "codeCommit": "7a362bf09d448402b936d3f26a6f8a3c26017f40",
+  "counts": {
+    "directory": 314,
+    "tairAssigned": 119,
+    "tairClaimed": 28,
+    "unassigned": 195,
+    "otherAssigned": 0,
+    "followups": 24,
+    "followupsOpen": 22,
+    "tairFollowups": 6,
+    "tairFollowupsOpen": 5,
+    "calls": 41,
+    "completedCalls": 38,
+    "tairCalls": 41,
+    "states": 28,
+    "histRows": 23,
+    "tairHistSeconds": 5400
+  }
+}

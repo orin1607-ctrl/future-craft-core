@@ -1,4 +1,4 @@
-import type { ExistingLeadIndex, LeadImportPreview, LeadRowIssue, MappedLeadRow } from './types';
+import type { ExistingLeadIndex, LeadImportPreview, LeadRowIssue, LeadRowIssueKind, MappedLeadRow } from './types';
 
 export function phoneMatchKey(phone: string): string {
   return (phone || '').replace(/[^0-9*]/g, '');
@@ -12,14 +12,33 @@ export function numberMatchKey(value: string): string {
   return (value || '').trim();
 }
 
+/** Shared switchboard/email is not enough to treat two companies as the same lead. */
+export function companyMatchKey(name: string): string {
+  return (name || '').replace(/["'׳״]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+const BLOCKING_KINDS = new Set<LeadRowIssueKind>([
+  'invalid',
+  'duplicate_in_file_number',
+  'duplicate_in_file_company',
+  'existing_number',
+  'existing_company',
+]);
+
+export function isBlockingLeadIssue(kind: LeadRowIssueKind): boolean {
+  return BLOCKING_KINDS.has(kind);
+}
+
 export function buildLeadImportPreview(
   rows: MappedLeadRow[],
   existing: ExistingLeadIndex,
 ): LeadImportPreview {
   const issues: LeadRowIssue[] = [];
   const seenNumbers = new Map<string, number>();
+  const seenCompanies = new Map<string, number>();
   const seenPhones = new Map<string, number>();
   const seenEmails = new Map<string, number>();
+  const companies = existing.companies || new Set<string>();
 
   for (const row of rows) {
     const hasIdentity = Boolean(row.company_name || row.phone);
@@ -48,6 +67,27 @@ export function buildLeadImportPreview(
       }
     }
 
+    const companyKey = companyMatchKey(row.company_name);
+    if (companyKey) {
+      const prev = seenCompanies.get(companyKey);
+      if (prev) {
+        issues.push({
+          rowIndex: row.rowIndex,
+          kind: 'duplicate_in_file_company',
+          message: `שם חברה כפול בקלט (שורה ${prev})`,
+        });
+      } else {
+        seenCompanies.set(companyKey, row.rowIndex);
+      }
+      if (companies.has(companyKey)) {
+        issues.push({
+          rowIndex: row.rowIndex,
+          kind: 'existing_company',
+          message: 'חברה כבר קיימת במאגר',
+        });
+      }
+    }
+
     const phoneKey = phoneMatchKey(row.phone);
     if (phoneKey) {
       const prev = seenPhones.get(phoneKey);
@@ -55,7 +95,7 @@ export function buildLeadImportPreview(
         issues.push({
           rowIndex: row.rowIndex,
           kind: 'duplicate_in_file_phone',
-          message: `טלפון כפול בקלט (שורה ${prev})`,
+          message: `טלפון משותף בקלט עם שורה ${prev} — לא נפסל אוטומטית`,
         });
       } else {
         seenPhones.set(phoneKey, row.rowIndex);
@@ -64,7 +104,7 @@ export function buildLeadImportPreview(
         issues.push({
           rowIndex: row.rowIndex,
           kind: 'existing_phone',
-          message: 'טלפון כבר קיים במאגר — ללא Merge אוטומטי',
+          message: 'טלפון קיים במאגר לחברה אחרת — לא נפסל אוטומטית',
         });
       }
     }
@@ -76,7 +116,7 @@ export function buildLeadImportPreview(
         issues.push({
           rowIndex: row.rowIndex,
           kind: 'duplicate_in_file_email',
-          message: `מייל כפול בקלט (שורה ${prev})`,
+          message: `מייל משותף בקלט עם שורה ${prev} — לא נפסל אוטומטית`,
         });
       } else {
         seenEmails.set(emailKey, row.rowIndex);
@@ -85,15 +125,15 @@ export function buildLeadImportPreview(
         issues.push({
           rowIndex: row.rowIndex,
           kind: 'existing_email',
-          message: 'מייל כבר קיים במאגר — ללא Merge אוטומטי',
+          message: 'מייל קיים במאגר לחברה אחרת — לא נפסל אוטומטית',
         });
       }
     }
   }
 
-  const blocked = new Set(issues.map((issue) => issue.rowIndex));
+  const blocked = new Set(issues.filter((issue) => isBlockingLeadIssue(issue.kind)).map((issue) => issue.rowIndex));
   const invalidCount = issues.filter((issue) => issue.kind === 'invalid').length;
-  const duplicateCount = issues.filter((issue) => issue.kind !== 'invalid').length;
+  const duplicateCount = issues.filter((issue) => isBlockingLeadIssue(issue.kind) && issue.kind !== 'invalid').length;
   const willImportCount = rows.filter((row) => !blocked.has(row.rowIndex)).length;
 
   return {
@@ -108,6 +148,6 @@ export function buildLeadImportPreview(
 }
 
 export function rowsReadyToImport(preview: LeadImportPreview): MappedLeadRow[] {
-  const blocked = new Set(preview.issues.map((issue) => issue.rowIndex));
+  const blocked = new Set(preview.issues.filter((issue) => isBlockingLeadIssue(issue.kind)).map((issue) => issue.rowIndex));
   return preview.rows.filter((row) => !blocked.has(row.rowIndex));
 }
