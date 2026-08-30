@@ -1,0 +1,213 @@
+{
+  "at": "2026-08-30T15:08:19.990Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "publicPort": false,
+  "ermConnected": false,
+  "base": "http://localhost:8080",
+  "checks": [
+    {
+      "id": "design-chrome",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "kpi-labels",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "nav-status",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "streets-map",
+      "ok": true,
+      "detail": {
+        "osmTiles": 15
+      }
+    },
+    {
+      "id": "attribution-osm",
+      "ok": true,
+      "detail": " Leaflet | © OpenStreetMap"
+    },
+    {
+      "id": "satellite-map",
+      "ok": true,
+      "detail": {
+        "esriTiles": 15
+      }
+    },
+    {
+      "id": "attribution-esri",
+      "ok": true,
+      "detail": " Leaflet | Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+    },
+    {
+      "id": "two-vehicles-on-map",
+      "ok": true,
+      "detail": "2 רכבים על המפה"
+    },
+    {
+      "id": "gps-markers",
+      "ok": true,
+      "detail": {
+        "markers": 2
+      }
+    },
+    {
+      "id": "rls-no-company-b-plate",
+      "ok": true,
+      "detail": {
+        "hidden": "554555"
+      }
+    },
+    {
+      "id": "no-beeri-in-test",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "marker-gps-live",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "last-seen-live",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "trail",
+      "ok": true,
+      "detail": {
+        "trail": 1
+      }
+    },
+    {
+      "id": "gps-stale",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "last-seen-stale",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "gps-missing",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "missing-not-live",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "missing-no-fake-marker",
+      "ok": true,
+      "detail": {
+        "markersNone": 0
+      }
+    },
+    {
+      "id": "imei-ui-assign",
+      "ok": true,
+      "detail": {
+        "unitUi": "QA-MAP-UI-1788102521984"
+      }
+    },
+    {
+      "id": "imei-ui-db",
+      "ok": true,
+      "detail": {
+        "unit_id": "QA-MAP-UI-1788102521984",
+        "vehicle_id": "25b14ed5-aecd-48b0-ab1a-b6c6626db0c3",
+        "enabled": true
+      }
+    },
+    {
+      "id": "imei-ui-unassign",
+      "ok": true,
+      "detail": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "fuel-tab-intact",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "hub-faults",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "hub-accidents",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "hub-expenses",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "two-companies-b-sees-own",
+      "ok": true,
+      "detail": {
+        "plate": "554555"
+      }
+    },
+    {
+      "id": "rls-browser-no-leak",
+      "ok": true,
+      "detail": {
+        "liveA": "78948502",
+        "staleA": "74786602"
+      }
+    },
+    {
+      "id": "responsive-basic",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "business-tables-unchanged",
+      "ok": true,
+      "detail": {
+        "before": {
+          "faults": 15,
+          "accidents": 11,
+          "expenses": 11
+        },
+        "after": {
+          "faults": 15,
+          "accidents": 11,
+          "expenses": 11
+        }
+      }
+    },
+    {
+      "id": "no-mock-as-live",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "ok": true,
+  "businessBefore": {
+    "faults": 15,
+    "accidents": 11,
+    "expenses": 11
+  },
+  "businessAfter": {
+    "faults": 15,
+    "accidents": 11,
+    "expenses": 11
+  }
+}

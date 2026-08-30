@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Layers, MapPin } from 'lucide-react';
+import { Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import 'leaflet/dist/leaflet.css';
+import './fleetos-map.css';
 import type { FleetOSVehicleRow } from './fleetosData';
 import type { VehicleStatus } from './fleetosTypes';
-import { STATUS_LABEL } from './fleetosFilters';
-import { latLngToPercent } from './starlink/geo';
+import FleetOSLeafletMap from './FleetOSLeafletMap';
+import type { MapBasemapId } from './starlink/mapProviders';
 
 const STATUS_PIN: Record<VehicleStatus, string> = {
   driving: 'bg-success',
@@ -24,17 +26,16 @@ const LAYERS: { id: VehicleStatus; label: string }[] = (
   Object.keys(LAYER_LABELS) as VehicleStatus[]
 ).map((id) => ({ id, label: LAYER_LABELS[id] }));
 
-function pinPosition(v: FleetOSVehicleRow): { top: string; left: string } | null {
-  const t = v.telematics;
-  if (!t || t.freshness === 'none' || t.lat == null || t.lng == null) return null;
-  return latLngToPercent(t.lat, t.lng);
-}
-
 function pinStatus(v: FleetOSVehicleRow): VehicleStatus {
   if (v.telematics?.freshness === 'stale') return 'offline';
   if (v.telematics?.motion === 'driving') return 'driving';
   if (v.telematics?.motion === 'stopped') return 'stopped';
   return v.status;
+}
+
+function hasGps(v: FleetOSVehicleRow): boolean {
+  const t = v.telematics;
+  return Boolean(t && t.freshness !== 'none' && t.lat != null && t.lng != null);
 }
 
 export default function FleetOSMapSection({
@@ -50,51 +51,40 @@ export default function FleetOSMapSection({
 }) {
   const [layersOpen, setLayersOpen] = useState(false);
   const [active, setActive] = useState<VehicleStatus[]>(['driving', 'stopped', 'fault', 'offline']);
+  const [basemap, setBasemap] = useState<MapBasemapId>('streets');
 
   const toggle = (id: VehicleStatus) => {
     setActive((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   };
 
-  const gpsVisible = useMemo(() => {
-    return vehicles.filter((v) => {
-      const pos = pinPosition(v);
-      if (!pos) return false;
-      const status = pinStatus(v);
-      return active.includes(status);
-    });
-  }, [vehicles, active]);
-
-  const selectedTrail = useMemo(() => {
-    const row = vehicles.find((v) => v.id === selectedId);
-    const pts = row?.telematics?.trail || [];
-    return pts
-      .map((p) => latLngToPercent(p.lat, p.lng))
-      .filter((p): p is { top: string; left: string } => p != null);
-  }, [vehicles, selectedId]);
+  const gpsVisible = useMemo(
+    () => vehicles.filter((v) => hasGps(v) && active.includes(pinStatus(v))),
+    [vehicles, active],
+  );
 
   useEffect(() => {
     if (!selectedId) return;
     const row = vehicles.find((v) => v.id === selectedId);
     if (!row) return;
-    setActive((prev) => (prev.includes(row.status) ? prev : [...prev, row.status]));
+    const status = pinStatus(row);
+    setActive((prev) => (prev.includes(status) ? prev : [...prev, status]));
   }, [selectedId, vehicles]);
 
   const filteredFromTotal = totalCount != null && totalCount !== vehicles.length;
+  const selected = vehicles.find((v) => v.id === selectedId);
+  const selectedFresh = selected?.telematics?.freshness;
+  const lastSeen = selected?.telematics?.lastSeen;
 
   return (
     <div className="relative w-full min-h-[320px] sm:min-h-[400px] lg:min-h-[460px] rounded-2xl overflow-hidden border border-border shadow-sm">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-muted/30 to-background" aria-hidden />
-      <div
-        className="absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            'linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)',
-          backgroundSize: '36px 36px',
-        }}
-        aria-hidden
+      <FleetOSLeafletMap
+        vehicles={gpsVisible}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        basemap={basemap}
       />
 
-      <div className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 left-2.5 sm:left-3 flex items-start justify-between gap-2 z-10">
+      <div className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 left-2.5 sm:left-3 flex items-start justify-between gap-2 z-[500]">
         <div className="bg-card/95 backdrop-blur border border-border rounded-xl px-3 py-2 shadow-sm min-w-0 max-w-[70%]">
           <p className="text-[10px] sm:text-xs font-bold text-muted-foreground">מפת צי · GPS כאשר זמין</p>
           <p className="text-base sm:text-lg font-black text-primary leading-tight">
@@ -104,7 +94,29 @@ export default function FleetOSMapSection({
             <p className="text-[10px] text-muted-foreground truncate">מתוך {totalCount} בצי</p>
           )}
         </div>
-        <div className="relative shrink-0">
+        <div className="relative shrink-0 flex flex-col items-end gap-2">
+          <div className="flex bg-card/95 border border-border rounded-xl overflow-hidden shadow-sm">
+            <button
+              type="button"
+              onClick={() => setBasemap('streets')}
+              className={cn(
+                'px-3 h-11 text-xs font-bold min-h-[44px]',
+                basemap === 'streets' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+              )}
+            >
+              רחובות
+            </button>
+            <button
+              type="button"
+              onClick={() => setBasemap('satellite')}
+              className={cn(
+                'px-3 h-11 text-xs font-bold min-h-[44px]',
+                basemap === 'satellite' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+              )}
+            >
+              לוויין
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => setLayersOpen((o) => !o)}
@@ -138,77 +150,35 @@ export default function FleetOSMapSection({
         </div>
       </div>
 
-      <div className="absolute inset-0 pt-[4.5rem] sm:pt-16 pb-28 sm:pb-16 px-2 sm:px-4">
-        {vehicles.length === 0 ? (
-          <div className="h-full flex items-center justify-center px-4">
-            <p className="text-sm text-muted-foreground bg-card/90 px-4 py-3 rounded-lg border border-border text-center">
-              אין רכבים להצגה — שנה את הסינון ולחץ חפש
-            </p>
-          </div>
-        ) : gpsVisible.length === 0 ? (
-          <div className="h-full flex items-center justify-center px-4">
-            <p className="text-sm text-muted-foreground bg-card/90 px-4 py-3 rounded-lg border border-border text-center">
-              אין מיקום GPS זמין — לא מוצג מיקום מדומה
-            </p>
-          </div>
-        ) : (
-          <div className="relative w-full h-full min-h-[220px]">
-            {selectedTrail.length > 1 && (
-              <svg
-                className="absolute inset-0 w-full h-full pointer-events-none"
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-                aria-hidden
-              >
-                <polyline
-                  fill="none"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth="0.6"
-                  strokeOpacity="0.55"
-                  points={selectedTrail.map((p) => `${parseFloat(p.left)},${parseFloat(p.top)}`).join(' ')}
-                />
-              </svg>
-            )}
-            {gpsVisible.map((v) => {
-              const pos = pinPosition(v);
-              if (!pos) return null;
-              const isSelected = v.id === selectedId;
-              const status = pinStatus(v);
-              const stale = v.telematics?.freshness === 'stale';
-              const live = v.telematics?.freshness === 'live';
-              const speed = v.telematics?.speedKmh;
-              return (
-                <button
-                  key={v.id}
-                  type="button"
-                  title={`${v.plate} — ${live ? 'Live' : stale ? 'GPS ישן' : STATUS_LABEL[status]}${speed != null ? ` · ${speed} קמ״ש` : ''}`}
-                  onClick={() => onSelect(v)}
-                  className={cn(
-                    'absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background shadow-md flex items-center justify-center transition-all hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                    STATUS_PIN[status],
-                    stale && 'opacity-40',
-                    isSelected ? 'w-12 h-12 sm:w-14 sm:h-14 ring-4 ring-primary/50 scale-110 z-10' : 'w-9 h-9 sm:w-10 sm:h-10',
-                  )}
-                  style={{ top: pos.top, left: pos.left }}
-                  aria-label={`${v.plate} ${STATUS_LABEL[status]}${live ? ' חי' : stale ? ' ישן' : ''}`}
-                  aria-pressed={isSelected}
-                >
-                  <MapPin size={isSelected ? 18 : 14} className="text-primary-foreground" />
-                </button>
-              );
-            })}
-            {selectedId && (
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-card/95 border border-primary/30 rounded-full px-3 py-1.5 text-[11px] sm:text-xs font-bold text-primary shadow-sm max-w-[92%] truncate">
-                {gpsVisible.find((v) => v.id === selectedId)?.plate
-                  ?? vehicles.find((v) => v.id === selectedId)?.plate
-                  ?? ''} — נבחר
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      {vehicles.length === 0 && (
+        <div className="absolute inset-0 pt-16 flex items-center justify-center px-4 z-[400] pointer-events-none">
+          <p className="text-sm text-muted-foreground bg-card/90 px-4 py-3 rounded-lg border border-border text-center">
+            אין רכבים להצגה — שנה את הסינון ולחץ חפש
+          </p>
+        </div>
+      )}
+      {vehicles.length > 0 && gpsVisible.length === 0 && (
+        <div className="absolute inset-0 pt-16 flex items-center justify-center px-4 z-[400] pointer-events-none">
+          <p className="text-sm text-muted-foreground bg-card/90 px-4 py-3 rounded-lg border border-border text-center">
+            אין מיקום GPS זמין — לא מוצג מיקום מדומה
+          </p>
+        </div>
+      )}
 
-      <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:left-3 sm:right-auto flex flex-wrap gap-1.5 z-10">
+      {selectedId && (
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-card/95 border border-primary/30 rounded-full px-3 py-1.5 text-[11px] sm:text-xs font-bold text-primary shadow-sm max-w-[92%] truncate z-[500]">
+          {selected?.plate ?? ''} — נבחר
+          {selectedFresh === 'live' && ' · Live'}
+          {selectedFresh === 'stale' && ' · GPS ישן'}
+          {lastSeen && (
+            <span className="font-normal text-muted-foreground">
+              {` · נראה ${new Date(lastSeen).toLocaleString('he-IL')}`}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:left-3 sm:right-auto flex flex-wrap gap-1.5 z-[500]">
         {(['driving', 'stopped', 'fault', 'offline'] as VehicleStatus[]).map((s) => (
           <span
             key={s}

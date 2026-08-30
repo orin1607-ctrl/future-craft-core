@@ -63,6 +63,8 @@ export function liveToOverlay(store: GpsStore, live: LiveSnapshot): TelematicsOv
   };
 }
 
+export { assignmentOnlyOverlay } from './emptyOverlay';
+
 export function mergeTelematics(
   vehicles: FleetOSVehicleRow[],
   store: GpsStore,
