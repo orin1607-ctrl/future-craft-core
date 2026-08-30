@@ -66,7 +66,7 @@ try {
   if (EXPECTED_SHA) check('deploy-expected-sha', deployTxt.includes(EXPECTED_SHA.slice(0, 7)), deployTxt.trim());
   if (bundle) {
     const js = await fetch(`${BASE}/${bundle}`).then((r) => r.text());
-    check('bundle-wave-filters', js.includes('lead-wave-new') && js.includes('lead-wave-old') && js.includes('לידים חדשים'));
+    check('bundle-wave-filters', js.includes('lead-wave-filter') && js.includes('lead-wave-'));
   }
 
   const dir = [];

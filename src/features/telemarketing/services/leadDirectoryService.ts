@@ -61,13 +61,18 @@ function mapDirectory(row: Record<string, unknown>): LeadDirectoryRecord {
 }
 
 export async function listLeadDirectory(): Promise<LeadDirectoryRecord[]> {
-  const { data, error } = await supabase
-    .from('telemarketing_lead_directory')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(4000);
-  if (error) throw new Error(error.message);
-  const rows = (data ?? []).map((row) => mapDirectory(row as Record<string, unknown>));
+  const page = 1000;
+  const rows: LeadDirectoryRecord[] = [];
+  for (let from = 0; ; from += page) {
+    const { data, error } = await supabase
+      .from('telemarketing_lead_directory')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, from + page - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...(data ?? []).map((row) => mapDirectory(row as Record<string, unknown>)));
+    if (!data || data.length < page) break;
+  }
   directoryCache = { at: Date.now(), rows };
   return rows;
 }
