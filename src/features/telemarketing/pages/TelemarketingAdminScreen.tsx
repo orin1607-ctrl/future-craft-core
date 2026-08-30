@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SummaryCards } from '@/features/telemarketing/components/AdminDashboard/SummaryCards';
 import { CallsTable } from '@/features/telemarketing/components/AdminDashboard/CallsTable';
+import { EmployeeCards } from '@/features/telemarketing/components/AdminDashboard/EmployeeCards';
 import { StuckActionResetPanel } from '@/features/telemarketing/components/AdminDashboard/StuckActionResetPanel';
 import { FollowUpBoard } from '@/features/telemarketing/components/FollowUp/FollowUpBoard';
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';

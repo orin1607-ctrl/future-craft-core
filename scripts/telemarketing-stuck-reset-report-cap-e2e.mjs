@@ -64,11 +64,12 @@ async function openPage(browser, session, path, viewport, entryUserId) {
     });
   }
   const page = await ctx.newPage();
+  page.setDefaultTimeout(60000);
   await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(4000);
   if (await page.getByTestId('tele-entry-purpose').count()) {
     await page.getByTestId('tele-entry-work').click();
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(2000);
   }
   return { ctx, page };
 }
@@ -148,7 +149,11 @@ try {
   const browser = await chromium.launch({ headless: true, channel: 'chrome' });
 
   const { ctx: adminCtx, page: adminPage } = await openPage(browser, adminSession, '/telemarketing/admin', { width: 1440, height: 900 }, null);
-  await adminPage.getByTestId('tele-admin-home').waitFor({ timeout: 20000 });
+  await adminPage.waitForTimeout(3000);
+  if (!(await adminPage.getByTestId('tele-admin-home').count())) {
+    await adminPage.screenshot({ path: join(OUT, 'admin-missing-home.png'), fullPage: true });
+    throw new Error(`admin home missing url=${adminPage.url()} body=${(await adminPage.locator('body').innerText()).slice(0, 400)}`);
+  }
   check('admin-stuck-panel', (await adminPage.getByTestId('tele-stuck-reset').count()) > 0);
   await adminPage.getByTestId('tele-stuck-reset-agent').selectOption(TAIR.id);
   await adminPage.getByTestId('tele-stuck-reset-preview').click();
