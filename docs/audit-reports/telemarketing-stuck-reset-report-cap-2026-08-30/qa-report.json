@@ -1,0 +1,196 @@
+{
+  "at": "2026-08-30T19:35:11.781Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "deploy-staging",
+      "ok": true,
+      "detail": "deployed_ref=326f0d6 feat/incident-alerts-staging"
+    },
+    {
+      "id": "deploy-expected-sha",
+      "ok": true,
+      "detail": {
+        "expected": "326f0d60",
+        "deployTxt": "deployed_ref=326f0d6 feat/incident-alerts-staging"
+      }
+    },
+    {
+      "id": "bundle-stuck-reset",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-void",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-report-cap",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-desktop-span",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-stuck-panel",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-tair-preview",
+      "ok": true,
+      "detail": {
+        "tairPreviewHasStuck": true
+      }
+    },
+    {
+      "id": "admin-tair-reset-done",
+      "ok": true,
+      "detail": {
+        "confirm": 0,
+        "idle": 1
+      }
+    },
+    {
+      "id": "admin-idle-no-dangerous-reset",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "admin-idle-message",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "tair-no-open-call",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "id": "tair-idle-after-reset",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "tair-no-pending-report",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "void-button-visible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "void-released",
+      "ok": true,
+      "detail": {
+        "status": "released",
+        "result": null,
+        "duration_seconds": null,
+        "needs_follow_up": false
+      }
+    },
+    {
+      "id": "void-no-result",
+      "ok": true,
+      "detail": {
+        "status": "released",
+        "result": null,
+        "duration_seconds": null,
+        "needs_follow_up": false
+      }
+    },
+    {
+      "id": "void-no-followup-flag",
+      "ok": true,
+      "detail": {
+        "status": "released",
+        "result": null,
+        "duration_seconds": null,
+        "needs_follow_up": false
+      }
+    },
+    {
+      "id": "agent-idle-after-void",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "void-hidden-after-grace",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "real-call-end-visible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "desktop-no-half-row-hole",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "reason": "no-home-grid"
+      }
+    },
+    {
+      "id": "mobile-no-overflow",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "data-leads-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 314,
+        "after": 314
+      }
+    },
+    {
+      "id": "data-followups-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 24,
+        "after": 24
+      }
+    },
+    {
+      "id": "data-sessions-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 0,
+        "after": 0
+      }
+    },
+    {
+      "id": "completed-calls-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 38,
+        "after": 38
+      }
+    },
+    {
+      "id": "no-new-qa-rows",
+      "ok": true,
+      "detail": {
+        "before": 39,
+        "after": 39
+      }
+    }
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "hostingerTouched": false,
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "expectedSha": "326f0d6051732579bd5eb2634f78d3e81a46ad95",
+  "qaCallIds": [],
+  "liveBundle": "assets/index-K32Zlo9A.js",
+  "deployed_ref": "deployed_ref=326f0d6 feat/incident-alerts-staging",
+  "tairOpenBefore": []
+}

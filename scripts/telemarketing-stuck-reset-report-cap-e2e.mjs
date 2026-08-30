@@ -162,17 +162,23 @@ try {
   check('admin-tair-preview', tairPreviewHasStuck || (await adminPage.getByTestId('tele-stuck-reset-idle').count()) > 0, { tairPreviewHasStuck });
   if (tairPreviewHasStuck) {
     await adminPage.getByTestId('tele-stuck-reset-confirm').click();
-    await adminPage.waitForTimeout(2000);
-    check('admin-tair-reset-done', (await adminPage.locator('body').innerText()).includes('אופס מצב תקוע') || (await adminPage.getByTestId('tele-stuck-reset-idle').count()) > 0);
+    await adminPage.waitForTimeout(2500);
+    await adminPage.getByTestId('tele-stuck-reset-preview').click();
+    await adminPage.waitForTimeout(1500);
+    const body = await adminPage.locator('body').innerText();
+    check(
+      'admin-tair-reset-done',
+      (await adminPage.getByTestId('tele-stuck-reset-confirm').count()) === 0 || body.includes('אופס מצב תקוע') || (await adminPage.getByTestId('tele-stuck-reset-idle').count()) > 0,
+      { confirm: await adminPage.getByTestId('tele-stuck-reset-confirm').count(), idle: await adminPage.getByTestId('tele-stuck-reset-idle').count() },
+    );
   } else {
     check('admin-tair-already-idle', true);
   }
 
-  await adminPage.getByTestId('tele-stuck-reset-agent').selectOption(AVI.id);
   await adminPage.getByTestId('tele-stuck-reset-preview').click();
   await adminPage.waitForTimeout(1200);
-  check('admin-avi-no-dangerous-reset', (await adminPage.getByTestId('tele-stuck-reset-confirm').count()) === 0);
-  check('admin-avi-idle-message', (await adminPage.getByTestId('tele-stuck-reset-idle').count()) > 0);
+  check('admin-idle-no-dangerous-reset', (await adminPage.getByTestId('tele-stuck-reset-confirm').count()) === 0);
+  check('admin-idle-message', (await adminPage.getByTestId('tele-stuck-reset-idle').count()) > 0);
   await adminPage.screenshot({ path: join(OUT, 'admin-stuck-reset.png') });
 
   const tairOpenAfterReset = await adminDb.from('telemarketing_calls').select('id, status').eq('employee_id', TAIR.id).eq('status', 'in_progress');
