@@ -5,6 +5,8 @@ import {
   type TrackingVehicleRow,
 } from '@/lib/vehicleTrackingData';
 import type { AlertTypeKey, FleetOSKpiSnapshot, VehicleStatus } from './fleetosTypes';
+import type { TelematicsOverlay } from './starlink/adapter';
+import { loadGpsLiveOverlay } from './starlink/loadOverlay';
 
 export interface FleetOSVehicleRow {
   id: string;
@@ -21,6 +23,8 @@ export interface FleetOSVehicleRow {
   odometer?: number;
   fault_count?: number;
   in_garage?: boolean;
+  /** ERM overlay only. Does not change vehicles.status. */
+  telematics?: TelematicsOverlay;
 }
 
 export interface FleetOSAlertRow {
@@ -97,9 +101,14 @@ export async function loadFleetOSTracking(companyFilter: string | null): Promise
   const vehicles = trackingRows
     .map(trackingRowToFleetOS)
     .filter((v): v is FleetOSVehicleRow => v != null);
+  const overlay = await loadGpsLiveOverlay(companyFilter);
+  const merged = vehicles.map((v) => {
+    const t = overlay.get(v.id);
+    return t ? { ...v, telematics: t } : v;
+  });
   return {
     trackingRows,
-    vehicles,
+    vehicles: merged,
     kpis: computeFleetOSKpis(trackingRows),
   };
 }

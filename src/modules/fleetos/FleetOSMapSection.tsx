@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import type { FleetOSVehicleRow } from './fleetosData';
 import type { VehicleStatus } from './fleetosTypes';
 import { STATUS_LABEL } from './fleetosFilters';
+import { latLngToPercent } from './starlink/geo';
 
 const STATUS_PIN: Record<VehicleStatus, string> = {
   driving: 'bg-success',
@@ -23,19 +24,17 @@ const LAYERS: { id: VehicleStatus; label: string }[] = (
   Object.keys(LAYER_LABELS) as VehicleStatus[]
 ).map((id) => ({ id, label: LAYER_LABELS[id] }));
 
-function pinPosition(id: string, index: number): { top: string; left: string } {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  const angle = ((hash % 360) * Math.PI) / 180;
-  const ring = (index % 4) + 1;
-  const radiusX = 12 + ring * 14;
-  const radiusY = 10 + ring * 12;
-  const cx = 50 + Math.cos(angle + index * 0.35) * radiusX * 0.75;
-  const cy = 48 + Math.sin(angle + index * 0.35) * radiusY * 0.65;
-  return {
-    top: `${Math.max(10, Math.min(86, cy))}%`,
-    left: `${Math.max(6, Math.min(94, cx))}%`,
-  };
+function pinPosition(v: FleetOSVehicleRow): { top: string; left: string } | null {
+  const t = v.telematics;
+  if (!t || t.freshness === 'none' || t.lat == null || t.lng == null) return null;
+  return latLngToPercent(t.lat, t.lng);
+}
+
+function pinStatus(v: FleetOSVehicleRow): VehicleStatus {
+  if (v.telematics?.freshness === 'stale') return 'offline';
+  if (v.telematics?.motion === 'driving') return 'driving';
+  if (v.telematics?.motion === 'stopped') return 'stopped';
+  return v.status;
 }
 
 export default function FleetOSMapSection({
@@ -56,10 +55,22 @@ export default function FleetOSMapSection({
     setActive((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   };
 
-  const visible = useMemo(
-    () => vehicles.filter((v) => active.includes(v.status)),
-    [vehicles, active],
-  );
+  const gpsVisible = useMemo(() => {
+    return vehicles.filter((v) => {
+      const pos = pinPosition(v);
+      if (!pos) return false;
+      const status = pinStatus(v);
+      return active.includes(status);
+    });
+  }, [vehicles, active]);
+
+  const selectedTrail = useMemo(() => {
+    const row = vehicles.find((v) => v.id === selectedId);
+    const pts = row?.telematics?.trail || [];
+    return pts
+      .map((p) => latLngToPercent(p.lat, p.lng))
+      .filter((p): p is { top: string; left: string } => p != null);
+  }, [vehicles, selectedId]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -85,9 +96,9 @@ export default function FleetOSMapSection({
 
       <div className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 left-2.5 sm:left-3 flex items-start justify-between gap-2 z-10">
         <div className="bg-card/95 backdrop-blur border border-border rounded-xl px-3 py-2 shadow-sm min-w-0 max-w-[70%]">
-          <p className="text-[10px] sm:text-xs font-bold text-muted-foreground">מפת צי (Mock)</p>
+          <p className="text-[10px] sm:text-xs font-bold text-muted-foreground">מפת צי · GPS כאשר זמין</p>
           <p className="text-base sm:text-lg font-black text-primary leading-tight">
-            {visible.length} רכבים על המפה
+            {gpsVisible.length} רכבים על המפה
           </p>
           {filteredFromTotal && (
             <p className="text-[10px] text-muted-foreground truncate">מתוך {totalCount} בצי</p>
@@ -134,30 +145,52 @@ export default function FleetOSMapSection({
               אין רכבים להצגה — שנה את הסינון ולחץ חפש
             </p>
           </div>
-        ) : visible.length === 0 ? (
+        ) : gpsVisible.length === 0 ? (
           <div className="h-full flex items-center justify-center px-4">
             <p className="text-sm text-muted-foreground bg-card/90 px-4 py-3 rounded-lg border border-border text-center">
-              אין רכבים בשכבות הנבחרות
+              אין מיקום GPS זמין — לא מוצג מיקום מדומה
             </p>
           </div>
         ) : (
           <div className="relative w-full h-full min-h-[220px]">
-            {visible.map((v, i) => {
-              const pos = pinPosition(v.id, i);
+            {selectedTrail.length > 1 && (
+              <svg
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                aria-hidden
+              >
+                <polyline
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="0.6"
+                  strokeOpacity="0.55"
+                  points={selectedTrail.map((p) => `${parseFloat(p.left)},${parseFloat(p.top)}`).join(' ')}
+                />
+              </svg>
+            )}
+            {gpsVisible.map((v) => {
+              const pos = pinPosition(v);
+              if (!pos) return null;
               const isSelected = v.id === selectedId;
+              const status = pinStatus(v);
+              const stale = v.telematics?.freshness === 'stale';
+              const live = v.telematics?.freshness === 'live';
+              const speed = v.telematics?.speedKmh;
               return (
                 <button
                   key={v.id}
                   type="button"
-                  title={`${v.plate} — ${STATUS_LABEL[v.status]}`}
+                  title={`${v.plate} — ${live ? 'Live' : stale ? 'GPS ישן' : STATUS_LABEL[status]}${speed != null ? ` · ${speed} קמ״ש` : ''}`}
                   onClick={() => onSelect(v)}
                   className={cn(
                     'absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background shadow-md flex items-center justify-center transition-all hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                    STATUS_PIN[v.status],
+                    STATUS_PIN[status],
+                    stale && 'opacity-40',
                     isSelected ? 'w-12 h-12 sm:w-14 sm:h-14 ring-4 ring-primary/50 scale-110 z-10' : 'w-9 h-9 sm:w-10 sm:h-10',
                   )}
                   style={{ top: pos.top, left: pos.left }}
-                  aria-label={`${v.plate} ${STATUS_LABEL[v.status]}`}
+                  aria-label={`${v.plate} ${STATUS_LABEL[status]}${live ? ' חי' : stale ? ' ישן' : ''}`}
                   aria-pressed={isSelected}
                 >
                   <MapPin size={isSelected ? 18 : 14} className="text-primary-foreground" />
@@ -166,7 +199,9 @@ export default function FleetOSMapSection({
             })}
             {selectedId && (
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-card/95 border border-primary/30 rounded-full px-3 py-1.5 text-[11px] sm:text-xs font-bold text-primary shadow-sm max-w-[92%] truncate">
-                {visible.find((v) => v.id === selectedId)?.plate ?? ''} — נבחר
+                {gpsVisible.find((v) => v.id === selectedId)?.plate
+                  ?? vehicles.find((v) => v.id === selectedId)?.plate
+                  ?? ''} — נבחר
               </div>
             )}
           </div>
