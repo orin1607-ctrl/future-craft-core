@@ -1,0 +1,8 @@
+{
+  "id": "fleetos-erm-telematics-restore-point",
+  "created_at": "2026-08-30T14:24:00Z",
+  "branch": "feat/fleetos-erm-telematics",
+  "restore_ref": "fc86f5cf134d81c644a55f53cb18e8eb63ed7148",
+  "scope": "מצב צי / מיקום צי חכם",
+  "status": "restore_point_recorded"
+}

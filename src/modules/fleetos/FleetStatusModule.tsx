@@ -12,6 +12,7 @@ import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import FleetOSMapSection from './FleetOSMapSection';
 import FleetOSFilterBar, { EMPTY_FLEETOS_FILTERS, type FleetOSFilters } from './FleetOSFilterBar';
 import FleetOSSelectedVehicleCard from './FleetOSSelectedVehicleCard';
+import FleetOSDeviceAssignPanel from './FleetOSDeviceAssignPanel';
 import FleetOSBottomNav, { type FleetOSNavModule } from './FleetOSBottomNav';
 import {
   applyFleetOSFilters,
@@ -49,6 +50,9 @@ export interface FleetStatusModuleProps {
   onModuleChange?: (module: FleetOSNavModule) => void;
   selectedVehicleId?: string | null;
   onSelectedVehicleIdChange?: (vehicleId: string | null) => void;
+  gpsPersistReady?: boolean;
+  onAssignGpsDevice?: (vehicle: FleetOSVehicleRow, unitId: string, imei: string) => void | Promise<void>;
+  onUnassignGpsDevice?: (vehicle: FleetOSVehicleRow) => void | Promise<void>;
 }
 
 export default function FleetStatusModule({
@@ -64,6 +68,9 @@ export default function FleetStatusModule({
   onModuleChange,
   selectedVehicleId = null,
   onSelectedVehicleIdChange,
+  gpsPersistReady = false,
+  onAssignGpsDevice,
+  onUnassignGpsDevice,
 }: FleetStatusModuleProps) {
   const visibility = getVisibilityForRole(userRole);
   const [draftFilters, setDraftFilters] = useState<FleetOSFilters>(EMPTY_FLEETOS_FILTERS);
@@ -152,7 +159,7 @@ export default function FleetStatusModule({
             </span>
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground pr-0 md:pr-14 leading-relaxed">
-            מצב צי — נתונים חיים ממערכת דליה (רכבים, תקלות, הזמנות שירות)
+            מצב צי — נתוני דליה, וטלמטיקה ERM כאשר מכשיר משויך
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
@@ -215,6 +222,14 @@ export default function FleetStatusModule({
           vehicle={selected}
           onOpenHub={handleOpenSelectedHub}
           hubOpening={hubOpening}
+        />
+
+        <FleetOSDeviceAssignPanel
+          vehicle={selected}
+          userRole={userRole}
+          persistReady={gpsPersistReady}
+          onAssign={(unitId, imei) => selected && onAssignGpsDevice?.(selected, unitId, imei)}
+          onUnassign={() => selected && onUnassignGpsDevice?.(selected)}
         />
 
         <div className="card-elevated overflow-hidden">

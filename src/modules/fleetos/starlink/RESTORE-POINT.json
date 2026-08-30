@@ -1,0 +1,31 @@
+{
+  "created_at": "2026-08-30T14:24:00Z",
+  "branch": "feat/fleetos-erm-telematics",
+  "restore_ref": "fc86f5cf134d81c644a55f53cb18e8eb63ed7148",
+  "restore_subject": "test(staging): record super-admin per-agent lead workload QA.",
+  "scope": "אורין קאר → האזור הלא פעיל → מיקום צי חכם → מצב צי",
+  "not_touched": [
+    "Production",
+    "Hostinger",
+    "Nginx live",
+    "package.json",
+    "supabase/migrations (not run)",
+    "src/pages/Vehicles.tsx",
+    "faults / accidents / expenses",
+    "ERM device / portal / P177"
+  ],
+  "files_in_this_work": [
+    "src/modules/fleetos/starlink/**",
+    "src/modules/fleetos/FleetOSDeviceAssignPanel.tsx",
+    "src/modules/fleetos/FleetOSMapSection.tsx",
+    "src/modules/fleetos/FleetOSSelectedVehicleCard.tsx",
+    "src/modules/fleetos/FleetStatusModule.tsx",
+    "src/modules/fleetos/fleetosData.ts",
+    "src/pages/FleetOSAIPage.tsx"
+  ],
+  "rollback": {
+    "git": "git checkout fc86f5cf134d81c644a55f53cb18e8eb63ed7148 -- <files_in_this_work tracked>; remove untracked starlink/ and FleetOSDeviceAssignPanel.tsx",
+    "data": "No existing GPS tables or customer rows are deleted. No irreversible writes.",
+    "migration": "Not applied. If later applied, DROP TABLE list is in schema.proposed.sql"
+  }
+}

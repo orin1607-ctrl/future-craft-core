@@ -15,6 +15,8 @@ import {
   type FleetOSAlertRow,
   type FleetOSVehicleRow,
 } from '@/modules/fleetos/fleetosData';
+import { filterBusinessLocationNoComm, telematicsNoCommAlerts } from '@/modules/fleetos/starlink/adapter';
+import { gpsTablesReady, persistAssignDevice, persistUnassignDevice } from '@/modules/fleetos/starlink/persist';
 import type { FleetOSKpiSnapshot } from '@/modules/fleetos/fleetosTypes';
 import { readVehicleContext } from '@/lib/entityNavContext';
 
@@ -48,15 +50,21 @@ export default function FleetOSAIPage() {
   const [alerts, setAlerts] = useState<FleetOSAlertRow[]>([]);
   const [kpis, setKpis] = useState<FleetOSKpiSnapshot>(EMPTY_KPIS);
   const [loading, setLoading] = useState(true);
+  const [gpsPersistReady, setGpsPersistReady] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
+      setGpsPersistReady(await gpsTablesReady());
       const { vehicles: v, kpis: k, trackingRows } = await loadFleetOSTracking(companyFilter);
       const catalog = await loadFleetOSAlertCatalog(trackingRows, companyFilter);
+      const withTelematics = filterBusinessLocationNoComm(
+        [...catalog, ...telematicsNoCommAlerts(v)],
+        v,
+      );
       setVehicles(v);
       setKpis(k);
-      setAlerts(catalog);
+      setAlerts(withTelematics);
     } finally {
       setLoading(false);
     }
@@ -173,6 +181,43 @@ export default function FleetOSAIPage() {
       onModuleChange={onModuleChange}
       selectedVehicleId={statusSelectedId}
       onSelectedVehicleIdChange={onStatusVehicleSelect}
+      gpsPersistReady={gpsPersistReady}
+      onAssignGpsDevice={async (vehicle, unitId, imei) => {
+        const companyName = vehicle.company_name || user?.company_name || '';
+        if (!companyName) {
+          toast.error('אין חברה לרכב');
+          return;
+        }
+        const result = vehicle.telematics?.unitId || vehicle.telematics?.imei
+          ? await persistAssignDevice({
+              vehicleId: vehicle.id,
+              companyName,
+              unitId,
+              imei: imei || null,
+              replace: true,
+            })
+          : await persistAssignDevice({
+              vehicleId: vehicle.id,
+              companyName,
+              unitId,
+              imei: imei || null,
+            });
+        if (!result.ok) {
+          toast.error(`שיוך נכשל: ${result.reason}`);
+          return;
+        }
+        toast.success('המכשיר שויך לרכב');
+        await refresh();
+      }}
+      onUnassignGpsDevice={async (vehicle) => {
+        const result = await persistUnassignDevice(vehicle.id);
+        if (!result.ok) {
+          toast.error(`ניתוק נכשל: ${result.reason}`);
+          return;
+        }
+        toast.success('המכשיר נותק');
+        await refresh();
+      }}
     />
   );
 }
