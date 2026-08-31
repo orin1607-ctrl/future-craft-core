@@ -101,7 +101,11 @@
 .claims-root .sdiv{display:flex;align-items:center;gap:7px;margin:14px 0 10px}
 .claims-root .sdiv-t{font-size:10px;font-weight:700;color:var(--t3);white-space:nowrap;letter-spacing:.5px;text-transform:uppercase}
 .claims-root .sdiv-l{flex:1;height:1px;background:var(--br)}
-.claims-root .gmail-card{background:var(--bg3);border:1px solid var(--br);border-radius:var(--r2);padding:12px;margin-bottom:9px}
+.claims-root .fu-box{background:var(--bg3);border:1px solid var(--br);border-radius:var(--r2);padding:12px;margin-bottom:10px}
+.claims-root .fu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:8px 0;font-size:12px}
+.claims-root .fu-grid b{display:block;font-size:10px;color:var(--t3)}
+.claims-root .fu-prev{background:var(--bg2);border:1px dashed var(--br2);border-radius:7px;padding:10px;font-size:12px;margin-top:8px}
+.claims-root .fu-prev pre{white-space:pre-wrap;font-family:inherit;font-size:12px;margin:6px 0;color:var(--t2)}
 .claims-root .ab{display:flex;align-items:center;gap:3px;padding:9px 18px;border-bottom:1px solid var(--br);background:var(--bg3);flex-wrap:wrap}
 .claims-root .ab-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:var(--r2);border:none;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
 .claims-root .ab-sep{width:1px;height:22px;background:var(--br2);margin:0 3px}

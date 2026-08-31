@@ -1,0 +1,11 @@
+{
+  "module": "claims-mail-dryrun",
+  "at": "2026-08-31",
+  "environment": "oren-car-staging",
+  "status": "dry_run_pass",
+  "MAIL_DISPATCH_MODE": "dry_run",
+  "oauthStarted": false,
+  "realEmailSend": false,
+  "gmailMailboxTouched": false,
+  "restoreGitHeadBefore": "53f2c62f7939c1f1079ed19f53de10f9660da63a"
+}

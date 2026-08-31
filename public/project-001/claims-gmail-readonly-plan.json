@@ -1,0 +1,29 @@
+{
+  "module": "claims-gmail-followup-plan",
+  "status": "dry_run_implemented_oauth_not_started",
+  "oauth": "not started — STOP until owner approval for yoni122222@gmail.com",
+  "realEmailSend": false,
+  "gmailMailboxTouched": false,
+  "dryRun": {
+    "mode": "MAIL_DISPATCH_MODE=dry_run",
+    "tables": ["claims_reminders (action=send_email)", "claims_mail_jobs"],
+    "ui": "תביעה → מעקב מייל / Follow-up",
+    "previewInClaim": ["to", "when", "subject", "body", "attachments", "once|repeat", "next_run", "defined_by", "cancelled|failed|stopped"]
+  },
+  "workerImportAfterOauth": {
+    "flow": "תביעה → ייבוא מ-Gmail → בחירת מייל → ייבא את המייל וכל המצורפים",
+    "oneAction": true,
+    "gallery": "כל התמונות (גם 60–70) מוצגות כקבוצה תחת אותו מייל",
+    "storage": "קבצים נפרדים מאחורי הקלעים"
+  },
+  "finalCapabilitiesAfterOauth": [
+    "שליחת תיק לחברת ביטוח",
+    "העברה לטיפול משפטי",
+    "בחירת מסמכים לצירוף",
+    "צירוף סיכום והיסטוריית תיק",
+    "שמירת Gmail Message/Thread בתביעה",
+    "Follow-up מתוזמן",
+    "שיוך תשובות נכנסות בהמשך"
+  ],
+  "source": "docs/audit-reports/claims-gmail-readonly-2026-08-31/REPORT.json"
+}

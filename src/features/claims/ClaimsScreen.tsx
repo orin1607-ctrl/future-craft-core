@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_KINDS, CLOSE_REASONS, DOC_PRESETS, MANDATORY_STATUSES, STATUSES, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
-import { createClaimsApi, type ClaimsApi } from './claimsService';
+import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -31,6 +31,31 @@ function stBadge(s: string) {
 }
 function fmt(v: unknown) {
   return `${(Number(v) || 0).toLocaleString('he-IL')}₪`;
+}
+function fmtWhen(iso: string) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString('he-IL');
+}
+function fuStatusHe(s: string) {
+  const map: Record<string, string> = {
+    scheduled: 'מתוזמן',
+    completed: 'הושלם',
+    cancelled: 'בוטל / נעצר',
+    failed: 'נכשל',
+    pending: 'ממתין',
+    sending: 'בתהליך',
+    dry_run_sent: 'Dry Run — לא נשלח',
+  };
+  return map[s] || s;
+}
+function toLocalInput(iso: string) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 function val(_form: HTMLFormElement | HTMLElement | null, id: string) {
   const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
@@ -74,6 +99,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [tpl, setTpl] = useState<Record<string, { name: string; subject?: string; body: string }>>({});
   const [curTpl, setCurTpl] = useState('');
   const [reminders, setReminders] = useState<ClaimRecord[]>([]);
+  const [mailFollowups, setMailFollowups] = useState<MailFollowupRow[]>([]);
+  const [fuEditId, setFuEditId] = useState<string | null>(null);
   const [assignees, setAssignees] = useState<Array<{ id: string; full_name: string; company_name: string }>>([]);
   const [docs, setDocs] = useState<{ requests: Array<{ id: string; label: string; status: string; received_at?: string }>; files: Array<{ id: string; doc_request_id: string | null; original_name: string; source: string; created_at: string; uploaded_by_name?: string }> }>({ requests: [], files: [] });
   const [linkUrl, setLinkUrl] = useState('');
@@ -164,21 +191,57 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const loadCardData = async (id: string) => {
-    const [c, h, t, rem, d] = await Promise.all([
+    const [c, h, t, rem, d, fu] = await Promise.all([
       apiRef.current.getCommLog(id),
       apiRef.current.getHistory(id),
       apiRef.current.getTasks(id),
       apiRef.current.getReminders(id),
       apiRef.current.invokeDocs('list_docs', { claim_id: id }),
+      apiRef.current.listMailFollowups(id),
     ]);
     setComm(c.data || []);
     setHist(h.data || []);
     setTasks((t.data || []).filter((x) => x.done !== 'true'));
     setReminders(rem.data || []);
+    setMailFollowups(fu.data || []);
     setDocs({
       requests: (d.requests as typeof docs.requests) || [],
       files: (d.files as typeof docs.files) || [],
     });
+  };
+
+  const openMailFollowupModal = async (edit?: MailFollowupRow | null) => {
+    setFuEditId(edit?.id || null);
+    setModal('moMailFu');
+    const c = cur;
+    const filled = c ? await apiRef.current.fillTemplate('status_request', {
+      ...c,
+      claimNum: c.claimNum || c.id,
+      clientName: c.clientName || '',
+      plate: c.plate || '',
+      eventDate: c.eventDate || '',
+    }) : { subject: '', body: '' };
+    setTimeout(() => {
+      if (edit) {
+        setVal('fu_to', edit.mail_to);
+        setVal('fu_subj', edit.mail_subject);
+        setVal('fu_body', edit.mail_body);
+        setVal('fu_kind', edit.mail_kind);
+        setVal('fu_repeat', edit.repeat_every_days || '7');
+        setVal('fu_when', toLocalInput(edit.next_run_at) || toLocalInput(new Date(Date.now() + 3600000).toISOString()));
+        setVal('fu_stop', toLocalInput(edit.stop_at));
+        setVal('fu_attach', edit.attach_mode || 'none');
+      } else {
+        setVal('fu_to', c?.insEmail || c?.insRepEmail || '');
+        setVal('fu_subj', filled.subject || '');
+        setVal('fu_body', filled.body || '');
+        setVal('fu_kind', 'email_once');
+        setVal('fu_repeat', '7');
+        setVal('fu_when', toLocalInput(new Date(Date.now() + 3600000).toISOString()));
+        setVal('fu_stop', '');
+        setVal('fu_attach', 'none');
+      }
+    }, 0);
   };
 
   const openCard = async (id: string) => {
@@ -524,10 +587,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <>
                 <div className="ph"><div><div className="ph-t">📧 Gmail – ניהול מיילים<div className="ph-bar" /></div></div></div>
                 <div className="gmail-card">
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>שלב Google — בהמתנה לאישור</div>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>שלב Google — בהמתנה לאישור OAuth</div>
                   <div style={{ fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}>
-                    סריקת מיילים, תוויות Gmail ושמירת קבצים ב-Drive לא פעילים בשלב זה.
-                    אחרי שניהול התביעות עובד ב-Oren Car נחבר אותם בנפרד, רק לאחר אישור OAuth.
+                    אין חיבור לתיבת Gmail בשלב זה. לא נשלח מייל אמיתי.
+                    <br /><br />
+                    <b>מה יחובר אחרי אישור:</b> תביעה → ייבוא מ-Gmail → בחירת מייל → «ייבא את המייל וכל המצורפים» — המייל, דוח השמאי וכל התמונות (גם 60–70) נכנסים לתביעה בפעולה אחת, ומוצגים כגלריה תחת אותו מייל.
+                    <br />
+                    בנוסף: שליחת תיק לחברת ביטוח, העברה לטיפול משפטי, בחירת מסמכים לצירוף, צירוף סיכום והיסטוריה, שמירת Gmail Message/Thread, Follow-up מתוזמן, ובהמשך שיוך תשובות נכנסות.
                   </div>
                 </div>
               </>
@@ -706,6 +772,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <button className="ab-btn ab-mail" onClick={() => { setVal('mail_subj', `תביעה ${cur.id} – ${cur.clientName}`); setVal('mail_body', `שלום,\n\nבהמשך לתביעה מספר ${cur.claimNum || cur.id}\nלקוח: ${cur.clientName}\nרכב: ${cur.plate || '—'}\n\nבברכה,\nדליה ניהול תביעות`); setVal('mail_to', cur.insEmail || cur.clientEmail || ''); setModal('moMail'); }}>📧 מייל</button>
               <button className="ab-btn ab-task" onClick={() => setModal('moTask')}>✅ משימה</button>
               <button className="ab-btn ab-rem" onClick={() => setModal('moRem')}>🔔 תזכורת</button>
+              <button className="ab-btn ab-mail" onClick={() => openMailFollowupModal(null)}>📬 מעקב מייל</button>
               <div className="ab-sep" />
               <button className="ab-btn ab-status" onClick={() => { setVal('sf_st', cur.status); setVal('sf_note', ''); setModal('moStatus'); }}>🔄 סטטוס</button>
               <button className="ab-btn ab-sum" onClick={async () => { const r = await apiRef.current.exportClaimSummary(cur.id); setSumText(r.text || ''); setModal('moSum'); }}>📄 סיכום</button>
@@ -714,7 +781,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             </div>
             <div style={{ padding: '0 18px 18px' }}>
               <div className="tabs">
-                {[['claim', '📋 תביעה'], ['client', '👤 לקוח'], ['vehicle', '🚗 רכב'], ['treat', '🛠 טיפול'], ['docs', '📄 מסמכים'], ['tasks', '✅ משימות'], ['rems', '🔔 תזכורות'], ['timeline', '⏱ היסטוריה']].map(([k, l]) => (
+                {[['claim', '📋 תביעה'], ['client', '👤 לקוח'], ['vehicle', '🚗 רכב'], ['treat', '🛠 טיפול'], ['docs', '📄 מסמכים'], ['tasks', '✅ משימות'], ['rems', '🔔 תזכורות'], ['mailfu', '📬 מעקב מייל'], ['timeline', '⏱ היסטוריה']].map(([k, l]) => (
                   <button key={k} className={`tab ${cardTab === k ? 'act' : ''}`} onClick={() => setCardTab(k)}>{l}</button>
                 ))}
               </div>
@@ -859,6 +926,63 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div style={{ fontSize: 12, color: 'var(--t2)' }}>{r.note || ''}</div>
                       </div>
                     ))}
+                </>
+              )}
+              {cardTab === 'mailfu' && (
+                <>
+                  <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>
+                    מצב Dry Run — אין שליחת מייל אמיתית ואין חיבור Gmail. כאן מוצג בדיוק מה היה אמור להישלח.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <button className="btn btn-p btn-sm" onClick={() => openMailFollowupModal(null)}>＋ הגדר מעקב מייל</button>
+                    {isSuperAdmin && (
+                      <button className="btn btn-g btn-sm" onClick={async () => {
+                        const r = await apiRef.current.dispatchMailNow();
+                        if (!r.success) { toast(String(r.error || 'שגיאה'), 'err'); return; }
+                        toast(`Dry Run רץ · עובדו ${String(r.processed ?? 0)} · לא נשלח מייל אמיתי`);
+                        if (cur) await loadCardData(cur.id);
+                      }}>הרץ Dry Run עכשיו</button>
+                    )}
+                  </div>
+                  {mailFollowups.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין מעקב מייל בתיק זה</div>
+                    : mailFollowups.map((fu) => {
+                      const last = fu.jobs[0];
+                      const prev = (last?.preview && typeof last.preview === 'object') ? last.preview : null;
+                      const atts = Array.isArray(prev?.attachments) ? prev.attachments as Array<{ name?: string }> : [];
+                      return (
+                        <div key={fu.id} className="fu-box">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                            <div style={{ fontWeight: 700 }}>{fu.mail_kind === 'email_repeat' ? 'חוזר' : 'חד-פעמי'} · {fuStatusHe(fu.status)}</div>
+                            <div style={{ fontSize: 11, color: 'var(--t3)' }}>{fu.id}</div>
+                          </div>
+                          <div className="fu-grid">
+                            <div><b>למי</b>{fu.mail_to || '—'}</div>
+                            <div><b>מועד מתוכנן</b>{fmtWhen(last?.planned_at || fu.next_run_at)}</div>
+                            <div><b>מועד הבא</b>{fu.next_run_at ? fmtWhen(fu.next_run_at) : '—'}</div>
+                            <div><b>מי הגדיר</b>{fu.defined_by || '—'}</div>
+                            {fu.mail_kind === 'email_repeat' ? <div><b>כל N ימים</b>{fu.repeat_every_days || '—'}</div> : null}
+                          </div>
+                          <div className="fu-prev">
+                            <div style={{ fontWeight: 700, marginBottom: 4 }}>Preview — מה היה אמור להישלח</div>
+                            <div><b>נושא:</b> {(prev?.subject as string) || fu.mail_subject || '—'}</div>
+                            <pre>{String((prev?.body as string) || fu.mail_body || '')}</pre>
+                            <div><b>מסמכים לצירוף:</b> {fu.attach_mode === 'received' ? (atts.length ? atts.map((a) => a.name).filter(Boolean).join(', ') : 'מסמכים שהתקבלו בתיק (אם יש)') : 'ללא מצורפים'}</div>
+                            {last ? <div style={{ marginTop: 6, fontSize: 11 }}><b>סטטוס שליחה:</b> {fuStatusHe(last.status)}{last.fail_reason ? ` · ${last.fail_reason}` : ''} · realEmailSend={String(prev?.realEmailSend ?? false)}</div> : null}
+                          </div>
+                          {fu.status === 'scheduled' && (
+                            <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                              <button className="btn btn-g btn-sm" onClick={() => openMailFollowupModal(fu)}>עריכה</button>
+                              <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={async () => {
+                                const r = await apiRef.current.cancelMailFollowup(fu.id);
+                                if (!r.success) { toast(r.error || 'שגיאה', 'err'); return; }
+                                toast('המעקב נעצר. ההיסטוריה נשמרה.');
+                                if (cur) await loadCardData(cur.id);
+                              }}>עצור מעקב</button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </>
               )}
               {cardTab === 'timeline' && (
@@ -1039,6 +1163,68 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               toast('תזכורת נוספה');
               setModal('moCard');
             }}>💾 שמור</button>
+          </div>
+        </div>
+      </div>
+
+      <div className={`ov ${modal === 'moMailFu' ? 'open' : ''}`}>
+        <div className="modal modal-md">
+          <div className="mh"><div className="mh-t">📬 מעקב מייל / Follow-up</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mb">
+            <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>Dry Run בלבד. לא נשלח מייל אמיתי ולא מתבצע OAuth.</div>
+            <div className="fg"><label className="fl">נמען *</label><input className="fi" id="fu_to" type="email" /></div>
+            <div className="fg"><label className="fl">מועד שליחה *</label><input className="fi" id="fu_when" type="datetime-local" /></div>
+            <div className="fg"><label className="fl">סוג</label>
+              <select className="fse fi" id="fu_kind">
+                <option value="email_once">חד-פעמי</option>
+                <option value="email_repeat">כל N ימים</option>
+              </select>
+            </div>
+            <div className="fg"><label className="fl">כל כמה ימים</label><input className="fi" id="fu_repeat" type="number" min={1} defaultValue="7" /></div>
+            <div className="fg"><label className="fl">עצור אחרי (אופציונלי)</label><input className="fi" id="fu_stop" type="datetime-local" /></div>
+            <div className="fg"><label className="fl">צירוף מסמכים</label>
+              <select className="fse fi" id="fu_attach">
+                <option value="none">ללא</option>
+                <option value="received">מסמכים שהתקבלו בתיק</option>
+              </select>
+            </div>
+            <div className="fg"><label className="fl">נושא</label><input className="fi" id="fu_subj" /></div>
+            <div className="fg"><label className="fl">תוכן</label><textarea className="fta" id="fu_body" style={{ minHeight: 120 }} /></div>
+            {isSuperAdmin && (
+              <label style={{ display: 'flex', gap: 8, fontSize: 12, marginTop: 8 }}>
+                <input type="checkbox" id="fu_closed" /> אפשר גם בתיק סגור (super_admin)
+              </label>
+            )}
+          </div>
+          <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
+            <button className="btn btn-p" onClick={async () => {
+              const to = val(null, 'fu_to');
+              const when = val(null, 'fu_when');
+              if (!to || !when) { toast('נמען ומועד חובה', 'err'); return; }
+              const whenIso = new Date(when).toISOString();
+              if (Number.isNaN(Date.parse(whenIso))) { toast('מועד לא תקין', 'err'); return; }
+              const stop = val(null, 'fu_stop');
+              const kind = val(null, 'fu_kind') || 'email_once';
+              const r = await apiRef.current.upsertMailFollowup({
+                id: fuEditId || undefined,
+                claim_id: curId,
+                mail_to: to,
+                mail_subject: val(null, 'fu_subj'),
+                mail_body: val(null, 'fu_body'),
+                mail_kind: kind,
+                attach_mode: val(null, 'fu_attach') || 'none',
+                repeat_every_days: kind === 'email_repeat' ? val(null, 'fu_repeat') || '7' : '',
+                next_run_at: whenIso,
+                stop_at: stop ? new Date(stop).toISOString() : '',
+                allow_on_closed: isSuperAdmin && !!(document.getElementById('fu_closed') as HTMLInputElement | null)?.checked,
+              });
+              if (!r.success) { toast(r.error || 'שגיאה', 'err'); return; }
+              toast(fuEditId ? 'המעקב עודכן' : 'מעקב מייל הוגדר (Dry Run)');
+              setFuEditId(null);
+              setCardTab('mailfu');
+              setModal('moCard');
+              if (curId) await loadCardData(curId);
+            }}>💾 שמור מעקב</button>
           </div>
         </div>
       </div>

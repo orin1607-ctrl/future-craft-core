@@ -1,0 +1,75 @@
+{
+  "id": "claims-gmail-plan",
+  "at": "2026-08-31T12:00:00.000Z",
+  "status": "DRY_RUN_IMPLEMENTED_OAUTH_NOT_STARTED",
+  "execution": "dry_run_only — STOP before OAuth",
+  "environment": "oren-car-staging-only",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "telemarketingTouched": false,
+  "accidentsTouched": false,
+  "whatsappTouched": false,
+  "appRoleTouched": false,
+  "oauthStarted": false,
+  "realEmailSend": false,
+  "gmailMailboxTouched": false,
+  "dryRun": {
+    "reuse": "claims_reminders.action=send_email + claims_mail_jobs unique (reminder_id, planned_at)",
+    "mode": "claims_config MAIL_DISPATCH_MODE=dry_run",
+    "dispatch": "pg_cron every 5 min SELECT claims_mail_dispatch_now(); Edge claims-mail-dispatch super_admin run-now",
+    "liveGuard": "if mode != dry_run → blocked, live_blocked_until_oauth, no Gmail call",
+    "ui": "Claim tab מעקב מייל — to, when, subject, body, attachments, once/repeat, next run, defined by, cancelled/failed/stopped, preview of would-send"
+  },
+  "workerImportFlow": {
+    "phase": "after OAuth only — not in this dry-run",
+    "steps": [
+      "תביעה",
+      "ייבוא מ-Gmail",
+      "בחירת מייל",
+      "ייבא את המייל וכל המצורפים"
+    ],
+    "oneAction": true,
+    "includes": ["גוף המייל", "דוח שמאי", "כל המצורפים כולל 60–70 תמונות"],
+    "storage": "קבצים נשמרים בנפרד מאחורי הקלעים ב-claims-docs (או bucket ייעודי)",
+    "ui": "גלריה/קבוצה אחת תחת אותו מייל — לא תמונה-תמונה לעובד",
+    "groupKey": "gmail_message_id",
+    "never": "אין ייבוא קובץ-קובץ בממשק העובד"
+  },
+  "finalGmailCapabilities": {
+    "sendClaimToInsurer": {
+      "to": "insEmail / insRepEmail or picker",
+      "attach": "בחירת מסמכים מהתיק",
+      "attachSummary": "סיכום תיק + היסטוריה (exportClaimSummary)",
+      "store": ["gmail_message_id", "gmail_thread_id"]
+    },
+    "legalTransfer": {
+      "template": "legal_transfer",
+      "to": "legalEmail",
+      "attach": "מסמכים נבחרים + סיכום + היסטוריה"
+    },
+    "followUp": "already implemented as dry-run scheduler; live send waits for OAuth",
+    "inboundLater": {
+      "match": "same gmail_thread_id OR known insurer From + claim id/claimNum in subject",
+      "neverAutoStopOnBodyGuess": true,
+      "uncertain": "staff uses עצור מעקב"
+    }
+  },
+  "oauthStop": {
+    "accountPlanned": "yoni122222@gmail.com — not connected",
+    "ifOauthNeededForTest": "STOP and report to owner before any Google consent screen"
+  },
+  "found": {
+    "claims_reminders": {
+      "extended": true,
+      "action": ["note", "send_email"]
+    },
+    "claims_mail_jobs": {
+      "existsAfterDryRun": true,
+      "unique": "(reminder_id, planned_at)"
+    },
+    "telemarketing_followups": {
+      "reuse": false
+    }
+  }
+}

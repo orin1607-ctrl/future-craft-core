@@ -1,6 +1,36 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CLOSE_REASONS, TEMPLATES, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 
+export type MailJobRow = {
+  id: string;
+  reminder_id: string;
+  planned_at: string;
+  status: string;
+  fail_reason?: string | null;
+  preview?: Record<string, unknown> | null;
+  finished_at?: string | null;
+  created_at?: string;
+};
+
+export type MailFollowupRow = {
+  id: string;
+  claim_id: string;
+  mail_kind: string;
+  mail_to: string;
+  mail_subject: string;
+  mail_body: string;
+  attach_mode: string;
+  repeat_every_days: string;
+  stop_at: string;
+  next_run_at: string;
+  status: string;
+  allow_on_closed: boolean;
+  defined_by: string;
+  cancelled_at: string;
+  created_at: string;
+  jobs: MailJobRow[];
+};
+
 function tbl(name: string) {
   return supabase.from(name as never);
 }
@@ -261,13 +291,91 @@ export function createClaimsApi(actor: ClaimsActor) {
       const row = { ...rem };
       row.id = row.id || generateId('REM');
       row.createdAt = nowHe();
-      await tbl('claims_reminders').insert({ id: row.id, claim_id: row.claimId, row_data: row } as never);
+      await tbl('claims_reminders').insert({
+        id: row.id,
+        claim_id: row.claimId,
+        action: 'note',
+        row_data: row,
+      } as never);
       await appendHistory(row.claimId, `תזכורת נוספה: ${row.date}`, '', 'reminder', '', '');
       return { success: true, id: row.id };
     },
 
     async getReminders(claimId: string | null) {
-      return { success: true, data: await loadChild('claims_reminders', claimId) };
+      let q = tbl('claims_reminders')
+        .select('id, claim_id, row_data, action')
+        .eq('action', 'note')
+        .order('created_at', { ascending: false });
+      if (claimId) q = q.eq('claim_id', claimId);
+      const { data, error } = await q;
+      if (error) return { success: true, data: [] as ClaimRecord[] };
+      const rows = ((data || []) as Array<{ id: string; row_data: Record<string, unknown> }>).map((r) => {
+        const row = rowFromData(r.row_data);
+        row.id = row.id || r.id;
+        return row;
+      });
+      return { success: true, data: rows };
+    },
+
+    async upsertMailFollowup(payload: Record<string, unknown>) {
+      const { data, error } = await supabase.rpc('claims_upsert_mail_followup' as never, { p_payload: payload } as never);
+      if (error) {
+        const msg = error.message || '';
+        if (msg.includes('closed_claim')) return { success: false, error: 'תיק סגור — לא ניתן להגדיר מעקב מייל' };
+        if (msg.includes('invalid_to')) return { success: false, error: 'כתובת נמען לא תקינה' };
+        if (msg.includes('not_editable')) return { success: false, error: 'לא ניתן לערוך מעקב שאינו מתוזמן' };
+        return { success: false, error: msg };
+      }
+      return { success: true, ...(data as Record<string, unknown>) };
+    },
+
+    async cancelMailFollowup(id: string) {
+      const { error } = await supabase.rpc('claims_cancel_mail_followup' as never, { p_id: id } as never);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    },
+
+    async listMailFollowups(claimId: string) {
+      const { data: rems, error: remErr } = await tbl('claims_reminders')
+        .select('id, claim_id, action, mail_kind, mail_to, mail_subject, mail_body, attach_mode, repeat_every_days, stop_at, next_run_at, status, allow_on_closed, created_by, cancelled_at, created_at, row_data')
+        .eq('claim_id', claimId)
+        .eq('action', 'send_email')
+        .order('created_at', { ascending: false });
+      if (remErr) return { success: false, data: [] as MailFollowupRow[] };
+      const { data: jobs } = await tbl('claims_mail_jobs')
+        .select('id, reminder_id, planned_at, status, fail_reason, preview, finished_at, created_at')
+        .eq('claim_id', claimId)
+        .order('planned_at', { ascending: false });
+      const jobRows = (jobs || []) as MailJobRow[];
+      const data: MailFollowupRow[] = ((rems || []) as Array<Record<string, unknown>>).map((r) => {
+        const rd = (r.row_data && typeof r.row_data === 'object' ? r.row_data : {}) as Record<string, unknown>;
+        const id = asText(r.id);
+        return {
+          id,
+          claim_id: asText(r.claim_id),
+          mail_kind: asText(r.mail_kind) || 'email_once',
+          mail_to: asText(r.mail_to),
+          mail_subject: asText(r.mail_subject),
+          mail_body: asText(r.mail_body),
+          attach_mode: asText(r.attach_mode) || 'none',
+          repeat_every_days: r.repeat_every_days == null ? '' : String(r.repeat_every_days),
+          stop_at: asText(r.stop_at),
+          next_run_at: asText(r.next_run_at),
+          status: asText(r.status) || 'scheduled',
+          allow_on_closed: r.allow_on_closed === true,
+          defined_by: asText(rd.owner),
+          cancelled_at: asText(r.cancelled_at),
+          created_at: asText(r.created_at),
+          jobs: jobRows.filter((j) => j.reminder_id === id),
+        };
+      });
+      return { success: true, data };
+    },
+
+    async dispatchMailNow() {
+      const { data, error } = await supabase.functions.invoke('claims-mail-dispatch', { body: {} });
+      if (error) return { success: false, error: error.message, realEmailSend: false };
+      return { success: true, realEmailSend: false, ...(data as Record<string, unknown>) };
     },
 
     async saveCommEntry(entry: Record<string, string>) {

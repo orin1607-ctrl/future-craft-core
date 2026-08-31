@@ -1,0 +1,184 @@
+{
+  "at": "2026-08-31T11:49:30.942Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "telemarketingTouched": false,
+  "accidentsTouched": false,
+  "oauthStarted": false,
+  "realEmailSend": false,
+  "gmailMailboxTouched": false,
+  "pass": true,
+  "tests": [
+    {
+      "id": "mode-dry-run",
+      "ok": true,
+      "detail": "MAIL_DISPATCH_MODE=dry_run"
+    },
+    {
+      "id": "once-upsert",
+      "ok": true,
+      "detail": "{\"id\":\"REM-1788176840665-637bc9\",\"success\":true}"
+    },
+    {
+      "id": "once-dispatch",
+      "ok": true,
+      "detail": "{\"failed\":0,\"gmailTouched\":false,\"mode\":\"dry_run\",\"processed\":1,\"realEmailSend\":false,\"skipped\":0,\"success\":true}"
+    },
+    {
+      "id": "once-no-real-mail",
+      "ok": true,
+      "detail": "{\"failed\":0,\"gmailTouched\":false,\"mode\":\"dry_run\",\"processed\":1,\"realEmailSend\":false,\"skipped\":0,\"success\":true}"
+    },
+    {
+      "id": "once-completed",
+      "ok": true,
+      "detail": "\"dry_run_sent\""
+    },
+    {
+      "id": "once-no-next-job",
+      "ok": true,
+      "detail": "pending=0"
+    },
+    {
+      "id": "preview-to",
+      "ok": true,
+      "detail": "to=insurer-qa@example.com"
+    },
+    {
+      "id": "preview-subject",
+      "ok": true,
+      "detail": "subject=תביעה QA-MAIL-1 – בקשת עדכון סטטוס"
+    },
+    {
+      "id": "preview-body",
+      "ok": true,
+      "detail": "body=שלום, Dry Run once"
+    },
+    {
+      "id": "preview-attachments",
+      "ok": true,
+      "detail": "[{\"id\":\"DOC-QA-MAIL-1\",\"name\":\"דוח שמאי QA.pdf\"}]"
+    },
+    {
+      "id": "preview-kind-once",
+      "ok": true,
+      "detail": "kind=email_once"
+    },
+    {
+      "id": "preview-real-false",
+      "ok": true,
+      "detail": "realEmailSend=false"
+    },
+    {
+      "id": "history-and-comm",
+      "ok": true,
+      "detail": "{\"comm\":1,\"hist\":1}"
+    },
+    {
+      "id": "repeat-dispatch",
+      "ok": true,
+      "detail": "{\"failed\":0,\"gmailTouched\":false,\"mode\":\"dry_run\",\"processed\":1,\"realEmailSend\":false,\"skipped\":0,\"success\":true}"
+    },
+    {
+      "id": "repeat-still-scheduled",
+      "ok": true,
+      "detail": "{\"kind\":\"email_repeat\",\"next_run\":\"2026-09-07T11:46:35.490222+00:00\",\"pending\":1,\"reminder_status\":\"scheduled\",\"sent\":1}"
+    },
+    {
+      "id": "repeat-next-pending",
+      "ok": true,
+      "detail": "{\"kind\":\"email_repeat\",\"next_run\":\"2026-09-07T11:46:35.490222+00:00\",\"pending\":1,\"reminder_status\":\"scheduled\",\"sent\":1}"
+    },
+    {
+      "id": "cancel-status",
+      "ok": true,
+      "detail": "{\"hist\":1,\"jobs\":[\"cancelled\"],\"rem\":\"cancelled\"}"
+    },
+    {
+      "id": "cancel-jobs",
+      "ok": true,
+      "detail": "[\"cancelled\"]"
+    },
+    {
+      "id": "cancel-history-kept",
+      "ok": true,
+      "detail": "hist=1"
+    },
+    {
+      "id": "cancel-not-sent",
+      "ok": true,
+      "detail": "{\"failed\":0,\"gmailTouched\":false,\"mode\":\"dry_run\",\"processed\":0,\"realEmailSend\":false,\"skipped\":0,\"success\":true}"
+    },
+    {
+      "id": "duplicate-blocked",
+      "ok": true,
+      "detail": "{\"inserted\":0}"
+    },
+    {
+      "id": "invalid-to-rejected",
+      "ok": true,
+      "detail": "Command failed: npx --yes supabase db query --linked --workdir \"C:\\Users\\3FE7~1\\AppData\\Local\\Temp\\fcc-claims-mail-qa\" -f \"C:\\Users\\3FE7~1\\AppData\\Local\\Temp\\fcc-claims-mail-qa\\q.sql\"\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` "
+    },
+    {
+      "id": "closed-upsert-rejected",
+      "ok": true,
+      "detail": "Command failed: npx --yes supabase db query --linked --workdir \"C:\\Users\\3FE7~1\\AppData\\Local\\Temp\\fcc-claims-mail-qa\" -f \"C:\\Users\\3FE7~1\\AppData\\Local\\Temp\\fcc-claims-mail-qa\\q.sql\"\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` "
+    },
+    {
+      "id": "closed-dispatch-failed",
+      "ok": true,
+      "detail": "{\"reason\":\"closed_claim\",\"status\":\"failed\"}"
+    },
+    {
+      "id": "invalid-to-dispatch-failed",
+      "ok": true,
+      "detail": "{\"reason\":\"invalid_to\",\"status\":\"failed\"}"
+    },
+    {
+      "id": "live-blocked",
+      "ok": true,
+      "detail": "{\"blocked\":true,\"gmailTouched\":false,\"mode\":\"live\",\"realEmailSend\":false,\"reason\":\"live_blocked_until_oauth\",\"success\":false}"
+    },
+    {
+      "id": "baseline-vehicles",
+      "ok": true,
+      "detail": "437→437"
+    },
+    {
+      "id": "baseline-accidents",
+      "ok": true,
+      "detail": "11→11"
+    },
+    {
+      "id": "baseline-document-requests",
+      "ok": true,
+      "detail": "12→12"
+    },
+    {
+      "id": "mode-restored-dry-run",
+      "ok": true,
+      "detail": "dry_run"
+    },
+    {
+      "id": "qa-claim-cleaned",
+      "ok": true,
+      "detail": "{\"left\":0}"
+    }
+  ],
+  "preview": {
+    "to": "insurer-qa@example.com",
+    "subject": "תביעה QA-MAIL-1 – בקשת עדכון סטטוס",
+    "body": "שלום, Dry Run once",
+    "attachments": [
+      {
+        "id": "DOC-QA-MAIL-1",
+        "name": "דוח שמאי QA.pdf"
+      }
+    ],
+    "kind": "email_once",
+    "plannedAt": "2026-08-31T11:46:20.658638+00:00",
+    "definedBy": "יוני מממ",
+    "realEmailSend": false
+  }
+}

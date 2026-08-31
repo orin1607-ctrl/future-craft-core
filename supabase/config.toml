@@ -88,6 +88,10 @@ verify_jwt = false
 [functions.claims-docs]
 verify_jwt = false
 
+# Staff-triggered dry-run tick (JWT inside). Never sends Gmail.
+[functions.claims-mail-dispatch]
+verify_jwt = true
+
 [functions.notify-telemarketing-followup]
 verify_jwt = true
 
