@@ -48,8 +48,12 @@ const managerCategories = [
   { title: 'מרכז ניהול', items: adminNavItems },
 ];
 
-// Manager mobile — בית בלבד. שאר מסכי Oren Car נפתחים מתפריט ☰.
+// Manager mobile — בית + תביעות כשיש הרשאה. שאר המסכים נפתחים מתפריט ההמבורגר.
 const managerMobileNav: NavItem[] = [
+  { path: '/dashboard', label: 'בית', icon: Home },
+];
+
+const privateCustomerMobileNav: NavItem[] = [
   { path: '/dashboard', label: 'בית', icon: Home },
 ];
 
@@ -71,12 +75,19 @@ export default function BottomNav() {
   const unreadCount = useUnreadNotifications();
 
   const isDriver = user?.role === 'driver';
+  const isPrivateCustomer = user?.role === 'private_customer';
   const isTelemarketingAgent = user?.role === 'telemarketing_agent';
+  const canClaims = user?.role === 'super_admin' || !!user?.hasClaimsAccess;
+  const managerItems = canClaims
+    ? [...managerMobileNav, { path: '/claims', label: 'תביעות', icon: Scale }]
+    : managerMobileNav;
   const mobileNav = isTelemarketingAgent
     ? telemarketingMobileNav
     : isDriver
       ? driverMobileNav
-      : managerMobileNav;
+      : isPrivateCustomer
+        ? privateCustomerMobileNav
+        : managerItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t-2 border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] md:hidden">
@@ -158,20 +169,18 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
           className="md:hidden fixed inset-0 z-[60] bg-black/55"
           onClick={onMobileClose}
           aria-hidden="true"
-          data-testid="mobile-nav-overlay"
         />
       ) : null}
       <aside
         className={cn(
-          'flex-col w-72 max-w-[88vw] overflow-hidden bg-[hsl(218,58%,15%)] text-primary-foreground fixed right-0 top-0',
-          mobileOpen ? 'flex z-[61] h-[100dvh] md:h-screen md:flex md:z-20' : 'hidden md:flex z-20 h-screen',
+          'flex-col w-72 max-w-[88vw] bg-[hsl(218,58%,15%)] text-primary-foreground h-screen fixed right-0 top-0',
+          mobileOpen ? 'flex z-[61] h-[100dvh] md:flex md:z-20' : 'hidden md:flex z-20',
         )}
         aria-label="תפריט ניווט"
-        data-testid="mobile-nav-drawer"
       >
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-primary-foreground/10">
         <span className="text-sm font-bold">תפריט</span>
-        <button type="button" aria-label="סגור תפריט" data-testid="mobile-nav-close" onClick={onMobileClose} className="p-2 rounded-lg bg-primary-foreground/15">
+        <button type="button" aria-label="סגור תפריט" onClick={onMobileClose} className="p-2 rounded-lg bg-primary-foreground/15">
           <X size={18} />
         </button>
       </div>
@@ -199,7 +208,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
                 <ChevronsUpDown size={14} className="shrink-0 opacity-60" />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[80] bg-[hsl(218,58%,12%)] border-primary-foreground/20 rounded-xl shadow-2xl" align="start">
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[60] bg-[hsl(218,58%,12%)] border-primary-foreground/20 rounded-xl shadow-2xl" align="start">
               <Command dir="rtl" className="bg-transparent text-primary-foreground">
                 <CommandInput placeholder="חיפוש חברה..." className="border-primary-foreground/15 text-primary-foreground placeholder:text-primary-foreground/40" />
                 <CommandList className="max-h-[260px]">
@@ -227,7 +236,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
       )}
 
       <nav
-        className="flex-1 min-h-0 py-3 overflow-y-auto overflow-x-hidden sidebar-scroll"
+        className="flex-1 py-3 overflow-y-auto sidebar-scroll"
         onClick={(e) => {
           if (!onMobileClose) return;
           const t = e.target as HTMLElement | null;

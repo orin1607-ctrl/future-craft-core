@@ -1,0 +1,16 @@
+{
+  "at": "2026-09-01T00:00:00Z",
+  "branch": "feat/incident-alerts-staging",
+  "head": "see HEAD.txt",
+  "reason": "Oren Car mobile sidebar overlay — isolate from uncommitted Claims/Layout mix",
+  "files": [
+    "src/components/Layout.tsx",
+    "src/components/BottomNav.tsx"
+  ],
+  "copies": [
+    "Layout.HEAD.tsx",
+    "BottomNav.HEAD.tsx",
+    "Layout.working-before.tsx",
+    "BottomNav.working-before.tsx"
+  ]
+}

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import BottomNav, { DesktopSidebar } from '@/components/BottomNav';
 import RouteGuard from '@/components/RouteGuard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,25 +13,11 @@ export default function Layout() {
   const { user, realUser, isImpersonating, stopImpersonation, logout } = useAuth();
   const { selectedCompany, setSelectedCompany } = useCompanyScope();
   const navigate = useNavigate();
-  const location = useLocation();
   const isSuperAdmin = realUser?.role === 'super_admin' && !isImpersonating;
   const [navOpen, setNavOpen] = useState(false);
 
-  useEffect(() => {
-    setNavOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (!navOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [navOpen]);
-
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background">
       <SecurityActivityTracker />
       {/* Impersonation Banner */}
       {isImpersonating && (
@@ -60,9 +46,8 @@ export default function Layout() {
         <button
           type="button"
           aria-label="פתח תפריט"
-          data-testid="mobile-nav-open"
           onClick={() => setNavOpen(true)}
-          className="flex items-center gap-2 bg-primary-foreground/25 border border-primary-foreground/40 rounded-xl px-3 py-2 active:scale-95 transition-transform shrink-0 min-h-11"
+          className="flex items-center gap-2 bg-primary-foreground/20 rounded-xl px-3 py-2 active:scale-95 transition-transform shrink-0"
         >
           <Menu size={20} />
           <span className="text-sm font-medium">תפריט</span>

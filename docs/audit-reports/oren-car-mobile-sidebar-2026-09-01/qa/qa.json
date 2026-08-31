@@ -1,0 +1,79 @@
+{
+  "at": "2026-08-31T21:55:59.467Z",
+  "base": "http://localhost:8080",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "checks": [
+    {
+      "name": "mobile-390-hamburger-visible",
+      "ok": true
+    },
+    {
+      "name": "mobile-390-drawer-closed-by-default",
+      "ok": true
+    },
+    {
+      "name": "mobile-390-drawer-opens",
+      "ok": true
+    },
+    {
+      "name": "mobile-390-oren-links",
+      "ok": true
+    },
+    {
+      "name": "mobile-390-no-horizontal-scroll",
+      "ok": true,
+      "scrollWidth": 390
+    },
+    {
+      "name": "mobile-390-close-x",
+      "ok": true
+    },
+    {
+      "name": "mobile-390-close-backdrop",
+      "ok": true
+    },
+    {
+      "name": "mobile-390-navigate-closes",
+      "ok": true
+    },
+    {
+      "name": "tablet-768-hamburger-hidden",
+      "ok": true
+    },
+    {
+      "name": "tablet-768-sidebar-visible",
+      "ok": true
+    },
+    {
+      "name": "tablet-768-oren-links",
+      "ok": true
+    },
+    {
+      "name": "desktop-1280-hamburger-hidden",
+      "ok": true
+    },
+    {
+      "name": "desktop-1280-sidebar-visible",
+      "ok": true
+    },
+    {
+      "name": "desktop-1280-oren-links",
+      "ok": true
+    },
+    {
+      "name": "console-clean",
+      "ok": true,
+      "n": 0,
+      "sample": []
+    },
+    {
+      "name": "network-no-5xx",
+      "ok": true,
+      "n": 0
+    }
+  ],
+  "consoleErrors": [],
+  "networkErrors": [],
+  "ok": true
+}

@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom';
-import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Scale, X } from 'lucide-react';
+﻿import { NavLink } from 'react-router-dom';
+import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Scale } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -17,53 +17,53 @@ interface NavItem {
   icon: any;
 }
 
-/** Sidebar IA — צפייה, מעקב, בקרה, דוחות, ניווט (כל ה-Routes נשארים; פעולות מתוך כרטיסים) */
+/** Sidebar IA Γאפ ╫ª╫ñ╫ש╫ש╫פ, ╫₧╫ó╫º╫ס, ╫ס╫º╫¿╫פ, ╫ף╫ץ╫ק╫ץ╫¬, ╫á╫ש╫ץ╫ץ╫ר (╫¢╫£ ╫פ-Routes ╫á╫⌐╫נ╫¿╫ש╫¥; ╫ñ╫ó╫ץ╫£╫ץ╫¬ ╫₧╫¬╫ץ╫ת ╫¢╫¿╫ר╫ש╫í╫ש╫¥) */
 const managerNavItems: NavItem[] = [
-  { path: '/dashboard', label: 'בית', icon: Home },
-  { path: '/vehicles', label: 'רשימת רכבים', icon: Car },
-  { path: '/drivers', label: 'רשימת נהגים', icon: Users },
-  { path: '/vehicle-tracking', label: 'מעקב רכבים', icon: Radio },
-  { path: '/fleetos-ai', label: 'מיקום צי חכם', icon: Radar },
-  { path: '/transport', label: 'חברות הסעות', icon: Bus },
-  { path: '/faults', label: 'תקלות', icon: Wrench },
-  { path: '/reports', label: 'דוחות', icon: BarChart3 },
-  { path: '/fleet-managers', label: 'מנהלי צי', icon: Building2 },
-  { path: '/customers', label: 'לקוחות', icon: Users },
-  { path: '/claims', label: 'ניהול תביעות', icon: Scale },
-  { path: '/telemarketing/admin', label: 'טלמיטינג', icon: Phone },
-  { path: '/alerts', label: 'התראות', icon: Bell },
-  { path: '/emergency', label: 'חירום', icon: Phone },
-  { path: '/internal-chat', label: 'צ\'אט', icon: MessageCircle },
+  { path: '/dashboard', label: '╫ס╫ש╫¬', icon: Home },
+  { path: '/vehicles', label: '╫¿╫⌐╫ש╫₧╫¬ ╫¿╫¢╫ס╫ש╫¥', icon: Car },
+  { path: '/drivers', label: '╫¿╫⌐╫ש╫₧╫¬ ╫á╫פ╫ע╫ש╫¥', icon: Users },
+  { path: '/vehicle-tracking', label: '╫₧╫ó╫º╫ס ╫¿╫¢╫ס╫ש╫¥', icon: Radio },
+  { path: '/fleetos-ai', label: '╫₧╫ש╫º╫ץ╫¥ ╫ª╫ש ╫ק╫¢╫¥', icon: Radar },
+  { path: '/transport', label: '╫ק╫ס╫¿╫ץ╫¬ ╫פ╫í╫ó╫ץ╫¬', icon: Bus },
+  { path: '/faults', label: '╫¬╫º╫£╫ץ╫¬', icon: Wrench },
+  { path: '/reports', label: '╫ף╫ץ╫ק╫ץ╫¬', icon: BarChart3 },
+  { path: '/fleet-managers', label: '╫₧╫á╫פ╫£╫ש ╫ª╫ש', icon: Building2 },
+  { path: '/customers', label: '╫£╫º╫ץ╫ק╫ץ╫¬', icon: Users },
+  { path: '/claims', label: '╫á╫ש╫פ╫ץ╫£ ╫¬╫ס╫ש╫ó╫ץ╫¬', icon: Scale },
+  { path: '/telemarketing/admin', label: '╫ר╫£╫₧╫ש╫ר╫ש╫á╫ע', icon: Phone },
+  { path: '/alerts', label: '╫פ╫¬╫¿╫נ╫ץ╫¬', icon: Bell },
+  { path: '/emergency', label: '╫ק╫ש╫¿╫ץ╫¥', icon: Phone },
+  { path: '/internal-chat', label: '╫ª\'╫נ╫ר', icon: MessageCircle },
 ];
 
 const adminNavItems: NavItem[] = [
-  { path: '/admin-home', label: 'מרכז ניהול', icon: Shield },
-  { path: '/security-center', label: 'מרכז בקרה ואבטחה', icon: Shield },
-  { path: '/ai-marketing', label: 'ניהול שיווק', icon: Megaphone },
+  { path: '/admin-home', label: '╫₧╫¿╫¢╫צ ╫á╫ש╫פ╫ץ╫£', icon: Shield },
+  { path: '/security-center', label: '╫₧╫¿╫¢╫צ ╫ס╫º╫¿╫פ ╫ץ╫נ╫ס╫ר╫ק╫פ', icon: Shield },
+  { path: '/ai-marketing', label: '╫á╫ש╫פ╫ץ╫£ ╫⌐╫ש╫ץ╫ץ╫º', icon: Megaphone },
   { path: '/dalia-settings', label: 'Dalia Settings', icon: SlidersHorizontal },
 ];
 
 const managerCategories = [
-  { title: 'ניווט', items: managerNavItems },
-  { title: 'מרכז ניהול', items: adminNavItems },
+  { title: '╫á╫ש╫ץ╫ץ╫ר', items: managerNavItems },
+  { title: '╫₧╫¿╫¢╫צ ╫á╫ש╫פ╫ץ╫£', items: adminNavItems },
 ];
 
-// Manager mobile — בית בלבד. שאר מסכי Oren Car נפתחים מתפריט ☰.
+// Manager mobile Γאפ ╫ס╫ש╫¬ ╫ס╫£╫ס╫ף (Mobile First; ╫á╫ש╫ץ╫ץ╫ר ╫ף╫¿╫ת ╫¢╫¿╫ר╫ש╫í╫ש ╫פ╫ף╫⌐╫ס╫ץ╫¿╫ף)
 const managerMobileNav: NavItem[] = [
-  { path: '/dashboard', label: 'בית', icon: Home },
+  { path: '/dashboard', label: '╫ס╫ש╫¬', icon: Home },
 ];
 
 // Driver mobile bottom nav
 const driverMobileNav: NavItem[] = [
-  { path: '/dashboard', label: 'בית', icon: Home },
-  { path: '/driver-notifications', label: 'התראות', icon: Bell },
-  { path: '/faults', label: 'תקלה', icon: Wrench },
-  { path: '/expenses', label: 'חשבוניות', icon: FileText },
+  { path: '/dashboard', label: '╫ס╫ש╫¬', icon: Home },
+  { path: '/driver-notifications', label: '╫פ╫¬╫¿╫נ╫ץ╫¬', icon: Bell },
+  { path: '/faults', label: '╫¬╫º╫£╫פ', icon: Wrench },
+  { path: '/expenses', label: '╫ק╫⌐╫ס╫ץ╫á╫ש╫ץ╫¬', icon: FileText },
 ];
 
 // Private customer mobile bottom nav
 const telemarketingMobileNav: NavItem[] = [
-  { path: '/telemarketing', label: 'טלמיטינג', icon: Phone },
+  { path: '/telemarketing', label: '╫ר╫£╫₧╫ש╫ר╫ש╫á╫ע', icon: Phone },
 ];
 
 export default function BottomNav() {
@@ -71,12 +71,15 @@ export default function BottomNav() {
   const unreadCount = useUnreadNotifications();
 
   const isDriver = user?.role === 'driver';
+  const isPrivateCustomer = user?.role === 'private_customer';
   const isTelemarketingAgent = user?.role === 'telemarketing_agent';
   const mobileNav = isTelemarketingAgent
     ? telemarketingMobileNav
     : isDriver
       ? driverMobileNav
-      : managerMobileNav;
+      : isPrivateCustomer
+        ? privateCustomerMobileNav
+        : managerMobileNav;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t-2 border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] md:hidden">
@@ -96,12 +99,12 @@ export default function BottomNav() {
   );
 }
 
-export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: boolean; onMobileClose?: () => void }) {
+export function DesktopSidebar() {
   const { user, logout } = useAuth();
   const { selectedCompany, setSelectedCompany, companyOptions } = useCompanyScope();
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
-    ניווט: true,
-    'מרכז ניהול': false,
+    ╫á╫ש╫ץ╫ץ╫ר: true,
+    '╫₧╫¿╫¢╫צ ╫á╫ש╫פ╫ץ╫£': false,
   });
   const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
   const unreadCount = useUnreadNotifications();
@@ -133,57 +136,35 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
   };
 
   const driverSidebarItems: NavItem[] = [
-    { path: '/dashboard', label: 'דשבורד', icon: Home },
-    { path: '/driver-notifications', label: 'התראות', icon: Bell },
-    { path: '/driver-schedule', label: 'לוח זמנים', icon: ClipboardList },
-    { path: '/faults', label: 'דיווח תקלה', icon: Wrench },
-    { path: '/expenses', label: 'דלק וחשבוניות', icon: FileText },
-    { path: '/accidents', label: 'תאונה וחירום', icon: AlertTriangle },
-    { path: '/handover', label: 'החלפת נהג', icon: RefreshCw },
-    { path: '/work-orders', label: 'סידור עבודה', icon: ClipboardList },
-    { path: '/history', label: 'היסטוריה טיפולים', icon: History },
-    { path: '/emergency', label: 'שירותי חירום 24/7', icon: Phone },
-    ...(canClaims ? [{ path: '/claims', label: 'ניהול תביעות', icon: Scale } as NavItem] : []),
+    { path: '/dashboard', label: '╫ף╫⌐╫ס╫ץ╫¿╫ף', icon: Home },
+    { path: '/driver-notifications', label: '╫פ╫¬╫¿╫נ╫ץ╫¬', icon: Bell },
+    { path: '/driver-schedule', label: '╫£╫ץ╫ק ╫צ╫₧╫á╫ש╫¥', icon: ClipboardList },
+    { path: '/faults', label: '╫ף╫ש╫ץ╫ץ╫ק ╫¬╫º╫£╫פ', icon: Wrench },
+    { path: '/expenses', label: '╫ף╫£╫º ╫ץ╫ק╫⌐╫ס╫ץ╫á╫ש╫ץ╫¬', icon: FileText },
+    { path: '/accidents', label: '╫¬╫נ╫ץ╫á╫פ ╫ץ╫ק╫ש╫¿╫ץ╫¥', icon: AlertTriangle },
+    { path: '/handover', label: '╫פ╫ק╫£╫ñ╫¬ ╫á╫פ╫ע', icon: RefreshCw },
+    { path: '/work-orders', label: '╫í╫ש╫ף╫ץ╫¿ ╫ó╫ס╫ץ╫ף╫פ', icon: ClipboardList },
+    { path: '/history', label: '╫פ╫ש╫í╫ר╫ץ╫¿╫ש╫פ ╫ר╫ש╫ñ╫ץ╫£╫ש╫¥', icon: History },
+    { path: '/emergency', label: '╫⌐╫ש╫¿╫ץ╫¬╫ש ╫ק╫ש╫¿╫ץ╫¥ 24/7', icon: Phone },
+    ...(canClaims ? [{ path: '/claims', label: '╫á╫ש╫פ╫ץ╫£ ╫¬╫ס╫ש╫ó╫ץ╫¬', icon: Scale } as NavItem] : []),
   ];
 
   const telemarketingSidebarItems: NavItem[] = [
-    { path: '/telemarketing', label: 'טלמיטינג', icon: Phone },
-    ...(canClaims ? [{ path: '/claims', label: 'ניהול תביעות', icon: Scale } as NavItem] : []),
+    { path: '/telemarketing', label: '╫ר╫£╫₧╫ש╫ר╫ש╫á╫ע', icon: Phone },
+    ...(canClaims ? [{ path: '/claims', label: '╫á╫ש╫פ╫ץ╫£ ╫¬╫ס╫ש╫ó╫ץ╫¬', icon: Scale } as NavItem] : []),
   ];
 
   return (
-    <>
-      {mobileOpen ? (
-        <div
-          className="md:hidden fixed inset-0 z-[60] bg-black/55"
-          onClick={onMobileClose}
-          aria-hidden="true"
-          data-testid="mobile-nav-overlay"
-        />
-      ) : null}
-      <aside
-        className={cn(
-          'flex-col w-72 max-w-[88vw] overflow-hidden bg-[hsl(218,58%,15%)] text-primary-foreground fixed right-0 top-0',
-          mobileOpen ? 'flex z-[61] h-[100dvh] md:h-screen md:flex md:z-20' : 'hidden md:flex z-20 h-screen',
-        )}
-        aria-label="תפריט ניווט"
-        data-testid="mobile-nav-drawer"
-      >
-      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-primary-foreground/10">
-        <span className="text-sm font-bold">תפריט</span>
-        <button type="button" aria-label="סגור תפריט" data-testid="mobile-nav-close" onClick={onMobileClose} className="p-2 rounded-lg bg-primary-foreground/15">
-          <X size={18} />
-        </button>
-      </div>
+    <aside className="hidden md:flex flex-col w-72 bg-[hsl(218,58%,15%)] text-primary-foreground h-screen fixed right-0 top-0 z-20">
       {/* Logo */}
       <div className="p-5 flex flex-col items-center border-b border-primary-foreground/10">
-        <img src={logo} alt="דליה" className="h-14 mb-2" />
-        <p className="text-sm font-medium opacity-90">דליה — פתרונות תפעול ותחזוקה לרכב</p>
+        <img src={logo} alt="╫ף╫£╫ש╫פ" className="h-14 mb-2" />
+        <p className="text-sm font-medium opacity-90">╫ף╫£╫ש╫פ Γאפ ╫ñ╫¬╫¿╫ץ╫á╫ץ╫¬ ╫¬╫ñ╫ó╫ץ╫£ ╫ץ╫¬╫ק╫צ╫ץ╫º╫פ ╫£╫¿╫¢╫ס</p>
         <div className="mt-2 text-center">
           <p className="text-sm font-bold">{user?.full_name}</p>
           <p className="text-xs opacity-60">{user?.company_name}</p>
           <span className="mt-1 inline-block text-xs bg-primary-foreground/15 px-3 py-0.5 rounded-full">
-            {user?.role === 'super_admin' ? 'מנהל על' : user?.role === 'fleet_manager' ? 'מנהל צי' : user?.role === 'telemarketing_agent' ? 'נציג/ת טלמיטינג' : 'נהג'}
+            {user?.role === 'super_admin' ? '╫₧╫á╫פ╫£ ╫ó╫£' : user?.role === 'fleet_manager' ? '╫₧╫á╫פ╫£ ╫ª╫ש' : user?.role === 'telemarketing_agent' ? '╫á╫ª╫ש╫ע/╫¬ ╫ר╫£╫₧╫ש╫ר╫ש╫á╫ע' : '╫á╫פ╫ע'}
           </span>
         </div>
       </div>
@@ -195,19 +176,19 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
             <PopoverTrigger asChild>
               <button className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors text-sm font-medium">
                 <Building2 size={16} className="shrink-0" />
-                <span className="flex-1 text-right truncate">{selectedCompany || 'כל החברות'}</span>
+                <span className="flex-1 text-right truncate">{selectedCompany || '╫¢╫£ ╫פ╫ק╫ס╫¿╫ץ╫¬'}</span>
                 <ChevronsUpDown size={14} className="shrink-0 opacity-60" />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[80] bg-[hsl(218,58%,12%)] border-primary-foreground/20 rounded-xl shadow-2xl" align="start">
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[60] bg-[hsl(218,58%,12%)] border-primary-foreground/20 rounded-xl shadow-2xl" align="start">
               <Command dir="rtl" className="bg-transparent text-primary-foreground">
-                <CommandInput placeholder="חיפוש חברה..." className="border-primary-foreground/15 text-primary-foreground placeholder:text-primary-foreground/40" />
+                <CommandInput placeholder="╫ק╫ש╫ñ╫ץ╫⌐ ╫ק╫ס╫¿╫פ..." className="border-primary-foreground/15 text-primary-foreground placeholder:text-primary-foreground/40" />
                 <CommandList className="max-h-[260px]">
-                  <CommandEmpty className="text-primary-foreground/50 py-4 text-center text-sm">לא נמצאו חברות</CommandEmpty>
+                  <CommandEmpty className="text-primary-foreground/50 py-4 text-center text-sm">╫£╫נ ╫á╫₧╫ª╫נ╫ץ ╫ק╫ס╫¿╫ץ╫¬</CommandEmpty>
                   <CommandGroup>
                     <CommandItem value="__all__" onSelect={() => { setSelectedCompany(null); setCompanyPickerOpen(false); }} className="flex items-center justify-between text-primary-foreground hover:bg-primary-foreground/10 data-[selected=true]:bg-primary-foreground/15 data-[selected=true]:text-primary-foreground rounded-lg mx-1">
                       <Check size={16} className={cn("shrink-0", !selectedCompany ? "opacity-100" : "opacity-0")} />
-                      <span className="flex-1 text-right font-medium">כל החברות</span>
+                      <span className="flex-1 text-right font-medium">╫¢╫£ ╫פ╫ק╫ס╫¿╫ץ╫¬</span>
                     </CommandItem>
                     {companyOptions.map((option) => (
                       <CommandItem key={option.name} value={`${option.name} ${option.businessId}`} onSelect={() => { setSelectedCompany(option.name); setCompanyPickerOpen(false); }} className="flex items-center justify-between text-primary-foreground hover:bg-primary-foreground/10 data-[selected=true]:bg-primary-foreground/15 data-[selected=true]:text-primary-foreground rounded-lg mx-1">
@@ -226,14 +207,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
         </div>
       )}
 
-      <nav
-        className="flex-1 min-h-0 py-3 overflow-y-auto overflow-x-hidden sidebar-scroll"
-        onClick={(e) => {
-          if (!onMobileClose) return;
-          const t = e.target as HTMLElement | null;
-          if (t?.closest('a')) onMobileClose();
-        }}
-      >
+      <nav className="flex-1 py-3 overflow-y-auto sidebar-scroll">
         {isTelemarketingAgent ? (
           telemarketingSidebarItems.map(item => (
             <NavLink key={item.path} to={item.path}
@@ -254,7 +228,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
         ) : (
           <>
             {managerCategories.map((cat) => {
-              if (cat.title === 'מרכז ניהול' && !isSuperAdmin) return null;
+              if (cat.title === '╫₧╫¿╫¢╫צ ╫á╫ש╫פ╫ץ╫£' && !isSuperAdmin) return null;
               const visibleItems = cat.items.filter((item) => isNavItemVisible(item.path));
               if (visibleItems.length === 0) return null;
               return (
@@ -262,7 +236,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
                 <button onClick={() => toggleCategory(cat.title)}
                   className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-bold uppercase tracking-wider opacity-50 hover:opacity-80 transition-opacity">
                   <span>{cat.title}</span>
-                  <span className={`transition-transform text-[10px] ${openCategories[cat.title] ? 'rotate-180' : ''}`}>▼</span>
+                  <span className={`transition-transform text-[10px] ${openCategories[cat.title] ? 'rotate-180' : ''}`}>Γצ╝</span>
                 </button>
                 {openCategories[cat.title] && (
                   <div>
@@ -283,9 +257,8 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
 
       <button onClick={() => logout()}
         className="flex items-center gap-3 px-6 py-4 text-[15px] font-medium border-t border-primary-foreground/10 hover:bg-primary-foreground/10 transition-colors">
-        <LogOut size={20} /><span>התנתקות</span>
+        <LogOut size={20} /><span>╫פ╫¬╫á╫¬╫º╫ץ╫¬</span>
       </button>
     </aside>
-    </>
   );
 }
