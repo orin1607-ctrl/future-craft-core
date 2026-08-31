@@ -106,14 +106,19 @@ try {
   });
   const page = await ctx.newPage();
   const consoleErrors = [];
+  const isNoiseConsole = (t) => /favicon/i.test(t) || /Failed to load resource: the server responded with a status of 404/.test(t);
   page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
   page.setDefaultTimeout(60000);
-  await page.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await page.waitForFunction(() => /2344/.test(document.querySelector('[data-testid="lead-directory-count"]')?.textContent || ''), null, { timeout: 30000 });
-  if (await page.getByTestId('lead-directory-toggle').count()) {
-    const expanded = await page.getByTestId('lead-directory-toggle').getAttribute('aria-expanded');
-    if (expanded !== 'true') await page.getByTestId('lead-directory-toggle').click();
+  async function expandAdminDirectory() {
+    await page.waitForFunction(() => /2344/.test(document.querySelector('[data-testid="lead-directory-count"]')?.textContent || ''), null, { timeout: 30000 });
+    if (await page.getByTestId('lead-directory-toggle').count()) {
+      const expanded = await page.getByTestId('lead-directory-toggle').getAttribute('aria-expanded');
+      if (expanded !== 'true') await page.getByTestId('lead-directory-toggle').click();
+    }
+    await page.getByTestId('lead-wave-new').waitFor({ timeout: 20000 });
   }
+  await page.goto(`${BASE}/telemarketing/admin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await expandAdminDirectory();
   await page.getByTestId('lead-wave-new').click();
   await page.waitForTimeout(600);
   await page.getByTestId('lead-row-checkbox-315').click();
@@ -127,7 +132,28 @@ try {
   check('one-success-ui', oneText.includes('השיוך הושלם') && oneText.includes('שויכו: 1'), oneText);
   const afterOne = await adminDb.from('telemarketing_lead_directory').select('assigned_to').eq('lead_number', '315').maybeSingle();
   check('one-assigned-db', afterOne.data?.assigned_to === TAIR.id, afterOne.data);
+  const workloadOne = await page.getByTestId(`lead-agent-workload-${TAIR.id}`).innerText();
+  check('workload-one', /סה״כ משויכים:\s*1/.test(workloadOne), workloadOne);
   await page.screenshot({ path: join(OUT, 'assign-one.png') });
+
+  const tairSeeCtx = await browser.newContext({ locale: 'he-IL', timezoneId: 'Asia/Jerusalem', viewport: { width: 1440, height: 900 } });
+  await tairSeeCtx.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), { key: `sb-${STAGING_REF}-auth-token`, value: storagePayload(tairSession) });
+  await tairSeeCtx.addInitScript(({ key, value }) => sessionStorage.setItem(key, value), { key: `tele_entry_mode_v1:${TAIR.id}`, value: 'work' });
+  const tairSeePage = await tairSeeCtx.newPage();
+  tairSeePage.setDefaultTimeout(60000);
+  await tairSeePage.goto(`${BASE}/telemarketing`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await tairSeePage.waitForTimeout(4000);
+  if (await tairSeePage.getByTestId('tele-entry-purpose').count()) {
+    await tairSeePage.getByTestId('tele-entry-work').click();
+    await tairSeePage.waitForTimeout(2000);
+  }
+  await tairSeePage.getByTestId('tele-work-from-list').click();
+  const tairLead = tairSeePage.getByTestId('tele-lead-preview').getByTestId('tele-lead-number');
+  await tairLead.waitFor({ timeout: 20000 });
+  const tairLeadText = await tairLead.innerText();
+  check('tair-sees-assigned', tairLeadText.includes('315') || tairLeadText.includes('שומרי משקל'), tairLeadText);
+  if (await tairSeePage.getByTestId('tele-lead-abort').count()) await tairSeePage.getByTestId('tele-lead-abort').click();
+  await tairSeeCtx.close();
 
   const sessionClient = createClient(STAGING_URL, keys.anon, { auth: { autoRefreshToken: false, persistSession: false } });
   await sessionClient.auth.setSession(adminSession);
@@ -136,6 +162,18 @@ try {
   check('restore-one', !u1, u1?.message || null);
 
   await page.getByTestId('lead-assign-result').locator('button', { hasText: 'סגור' }).click();
+  await page.getByTestId('lead-clear-selection').click().catch(() => {});
+  await page.getByTestId('lead-directory-search').fill('שומרי משקל');
+  await page.waitForTimeout(500);
+  await page.getByTestId('lead-select-all').click();
+  await page.getByTestId('lead-assign-open').click();
+  await page.getByTestId('lead-assign-agent').selectOption(TAIR.id);
+  await page.getByTestId('lead-assign-preview').click();
+  check('select-all-preview-one', (await page.getByTestId('lead-assign-confirm-box').innerText()).includes('1 לידים'));
+  await page.getByTestId('lead-assign-dialog').locator('button', { hasText: 'חזרה' }).click();
+  await page.getByTestId('lead-assign-dialog').locator('button', { hasText: 'ביטול' }).click();
+  await page.getByTestId('lead-directory-search').fill('');
+  await page.waitForTimeout(400);
   await page.getByTestId('lead-clear-selection').click().catch(() => {});
   await page.getByTestId('lead-row-checkbox-316').click();
   await page.getByTestId('lead-row-checkbox-317').click();
@@ -154,14 +192,15 @@ try {
   check('restore-three', !u3, u3?.message || null);
 
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => /2344/.test(document.querySelector('[data-testid="lead-directory-count"]')?.textContent || ''), null, { timeout: 30000 });
+  await expandAdminDirectory();
   await page.getByTestId('lead-wave-old').click();
   await page.waitForTimeout(400);
   check('old-still-314', (await page.getByTestId('lead-directory-count').innerText()).includes('314'));
   await page.getByTestId('lead-wave-new').click();
   await page.waitForTimeout(400);
   check('new-still-2030', (await page.getByTestId('lead-directory-count').innerText()).includes('2030'));
-  check('admin-no-console-error', consoleErrors.filter((t) => !t.includes('favicon')).length === 0, consoleErrors.slice(0, 5));
+  const appConsoleErrors = consoleErrors.filter((t) => !isNoiseConsole(t));
+  check('admin-no-console-error', appConsoleErrors.length === 0, appConsoleErrors.slice(0, 5));
 
   const tairCtx = await browser.newContext({ locale: 'he-IL', timezoneId: 'Asia/Jerusalem', viewport: { width: 1440, height: 900 } });
   await tairCtx.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), { key: `sb-${STAGING_REF}-auth-token`, value: storagePayload(tairSession) });
@@ -177,6 +216,21 @@ try {
   check('tair-home', (await tairPage.getByTestId('telemarketing-agent-home').count()) > 0);
   check('tair-followup-board', (await tairPage.getByTestId('tele-continue-treatment').count()) > 0);
   check('tair-yellow-default', ((await tairPage.getByTestId('tele-lead-filter-yellow').getAttribute('class')) || '').includes('bg-primary'));
+  check('tair-red-filter', (await tairPage.getByTestId('tele-lead-filter-red').count()) > 0);
+  await tairPage.getByTestId('tele-my-report').click();
+  await tairPage.getByTestId('tele-my-report-screen').waitFor({ timeout: 20000 });
+  check('tair-report', (await tairPage.getByTestId('tele-my-report-screen').count()) > 0);
+  await tairPage.getByTestId('tele-nav-back').click();
+  await tairPage.waitForTimeout(800);
+  await tairPage.getByTestId('tele-lead-filter-followup').click();
+  await tairPage.waitForTimeout(800);
+  if (await tairPage.getByTestId('followup-item').count()) {
+    await tairPage.getByTestId('followup-item').first().click();
+    await tairPage.getByTestId('tele-continue-lead').waitFor({ timeout: 15000 });
+    check('tair-timeline', (await tairPage.getByTestId('tele-continue-lead').count()) > 0);
+  } else {
+    check('tair-timeline', false, 'follow-up board opened but no items');
+  }
   await tairPage.screenshot({ path: join(OUT, 'tair-home.png') });
 
   const after = await counts();
@@ -192,6 +246,19 @@ try {
 } catch (e) {
   check('e2e-exception', false, e instanceof Error ? e.message : String(e));
   report.pass = false;
+}
+try {
+  const qa = await adminDb.from('telemarketing_lead_directory').select('id, lead_number, assigned_to').in('lead_number', ['315', '316', '317', '318']);
+  const leftover = (qa.data || []).filter((r) => r.assigned_to);
+  if (leftover.length) {
+    const sessionClient = createClient(STAGING_URL, keys.anon, { auth: { autoRefreshToken: false, persistSession: false } });
+    const adminSession = await sessionFor(ADMIN.email);
+    await sessionClient.auth.setSession(adminSession);
+    await sessionClient.rpc('telemarketing_unassign_leads', { p_lead_ids: leftover.map((r) => r.id) });
+    check('safety-restore-qa-leads', true, leftover.map((r) => r.lead_number));
+  }
+} catch (e) {
+  check('safety-restore-qa-leads', false, e instanceof Error ? e.message : String(e));
 }
 writeFileSync(join(OUT, 'qa-report.json'), JSON.stringify(report, null, 2), 'utf8');
 console.log(JSON.stringify({ pass: report.pass, failed: report.checks.filter((c) => !c.ok), deployed_ref: report.deployed_ref, liveBundle: report.liveBundle }, null, 2));

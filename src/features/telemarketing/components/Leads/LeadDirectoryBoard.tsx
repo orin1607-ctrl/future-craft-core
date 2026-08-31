@@ -176,10 +176,14 @@ export function LeadDirectoryBoard({
     setError('');
     try {
       const result = await assignLeadsToAgent(Array.from(selected), assignAgentId);
-      setAssignResult(result);
       setAssignPreview(false);
       clearSelection();
-      await load();
+      try {
+        await load();
+      } catch {
+        /* assignment already succeeded — do not retry or hide the result */
+      }
+      setAssignResult(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'שגיאה בשיוך לידים');
     } finally {
