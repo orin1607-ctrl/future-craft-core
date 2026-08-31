@@ -84,6 +84,10 @@ verify_jwt = false
 [functions.document-request]
 verify_jwt = false
 
+# Claims customer upload (token) + staff JWT checked inside handler
+[functions.claims-docs]
+verify_jwt = false
+
 [functions.notify-telemarketing-followup]
 verify_jwt = true
 

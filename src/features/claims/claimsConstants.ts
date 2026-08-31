@@ -19,6 +19,22 @@ export const CLOSE_REASONS = [
 
 export const MANDATORY_STATUSES = ['נדחה', 'תשלום חלקי', 'הועבר לטיפול משפטי', 'הסתיים'];
 
+export const CLAIM_KINDS = [
+  'תביעה במסגרת פוליסת הלקוח',
+  'תביעת צד ג׳',
+] as const;
+
+export const DOC_PRESETS: { key: string; label: string }[] = [
+  { key: 'event_form', label: 'טופס אירוע / הודעה על מקרה' },
+  { key: 'claim_form', label: 'טופס הגשת תביעה' },
+  { key: 'no_claim_form', label: 'טופס אי-הגשת תביעה' },
+  { key: 'license_driver', label: 'רישיון נהיגה – שני הצדדים' },
+  { key: 'license_vehicle', label: 'רישיון רכב' },
+  { key: 'damage_photos', label: 'תמונות נזק / אירוע' },
+  { key: 'insurance_history', label: 'עבר ביטוחי' },
+  { key: 'third_party', label: 'מסמכי צד ג׳' },
+];
+
 export const TEMPLATES: Record<string, { name: string; subject?: string; body: string }> = {
   request_docs: {
     name: 'בקשת מסמכים',

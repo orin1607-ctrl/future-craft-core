@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RequiredFieldsProvider } from "@/contexts/RequiredFieldsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -131,7 +131,6 @@ import TelemarketingAgentPage from "@/pages/TelemarketingAgentPage";
 import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
 import TransportHubPage from "@/pages/TransportHubPage";
 import ClaimsPage from "@/pages/ClaimsPage";
-import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
 
 const queryClient = new QueryClient();
 
@@ -192,7 +191,6 @@ function AppRoutes() {
         <Route path="/sign-declaration" element={<SignDeclaration />} />
         <Route path="/take-exam" element={<TakeDrivingExam />} />
         <Route path="/upload-request" element={<UploadDocumentRequest />} />
-        <Route path="/claims-upload" element={<ClaimsUploadPage />} />
         {/* Protected deep links → login (not marketing About / fake 404) */}
         <Route path="*" element={<LoginRedirect />} />
       </Routes>
@@ -229,7 +227,6 @@ function AppRoutes() {
         }
       />
       <Route path="/dalia-crm" element={<LegacyMarketingRedirect />} />
-      <Route path="/claims-upload" element={<ClaimsUploadPage />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
@@ -326,12 +323,6 @@ function AppRoutes() {
   );
 }
 
-function ThemeToggleGate() {
-  const loc = useLocation();
-  if (loc.pathname === '/claims-upload') return null;
-  return <ThemeToggle />;
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -342,7 +333,7 @@ const App = () => (
           <AuthProvider>
             <RequiredFieldsProvider>
               <CompanyScopeProvider>
-                <ThemeToggleGate />
+                <ThemeToggle />
                 <AppRoutes />
               </CompanyScopeProvider>
             </RequiredFieldsProvider>

@@ -99,7 +99,7 @@ export function createClaimsApi(actor: ClaimsActor) {
 
   async function getAllClaims(): Promise<ClaimRecord[]> {
     const { data, error } = await tbl('claims_records')
-      .select('id, vehicle_id, plate, client_name, status, company_name, row_data, created_by, created_by_name, updated_by_name, assigned_to, assigned_to_name, assigned_at, created_at, updated_at, last_activity_at')
+      .select('id, vehicle_id, plate, client_name, status, company_name, row_data, created_by_name, updated_by_name, created_at, updated_at, last_activity_at')
       .order('updated_at', { ascending: false });
     if (error) return [];
     return ((data || []) as Array<Record<string, unknown>>).map((r) => {
@@ -112,9 +112,6 @@ export function createClaimsApi(actor: ClaimsActor) {
       row.company_name = row.company_name || asText(r.company_name);
       row.createdByName = asText(r.created_by_name);
       row.updatedByName = asText(r.updated_by_name);
-      row.assigned_to = asText(r.assigned_to);
-      row.assigned_to_name = asText(r.assigned_to_name);
-      row.assigned_at = asText(r.assigned_at);
       if (!row.createdAt && r.created_at) row.createdAt = new Date(asText(r.created_at)).toLocaleString('he-IL');
       if (!row.updatedAt && r.updated_at) row.updatedAt = new Date(asText(r.updated_at)).toLocaleString('he-IL');
       if (!row.lastActivityAt && r.last_activity_at) {
@@ -491,45 +488,6 @@ export function createClaimsApi(actor: ClaimsActor) {
       const { data, error } = await supabase.rpc('claims_search_vehicles' as never, { p_q: query || '' } as never);
       if (error) return { success: false, data: [] };
       return { success: true, data: (data || []) as ClaimsVehicleHit[] };
-    },
-
-    async listAssignees() {
-      const { data, error } = await supabase.rpc('claims_list_assignees' as never);
-      if (error) return { success: false, data: [] as Array<{ id: string; full_name: string; company_name: string }> };
-      return { success: true, data: (data || []) as Array<{ id: string; full_name: string; company_name: string }> };
-    },
-
-    async assignClaim(claimId: string, userId: string) {
-      const { error } = await supabase.rpc('claims_assign' as never, { p_claim_id: claimId, p_user_id: userId } as never);
-      if (error) return { success: false, error: error.message };
-      return { success: true };
-    },
-
-    async invokeDocs(action: string, body: Record<string, unknown> = {}) {
-      const { data, error } = await supabase.functions.invoke('claims-docs', { body: { action, ...body } });
-      if (error) return { success: false, error: error.message, data };
-      return (data || { success: false }) as Record<string, unknown> & { success?: boolean; error?: string };
-    },
-
-    async staffUpload(claimId: string, docRequestId: string, file: File) {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      const form = new FormData();
-      form.set('action', 'staff_upload');
-      form.set('claim_id', claimId);
-      form.set('doc_request_id', docRequestId);
-      form.set('file', file);
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`, {
-        method: 'POST',
-        headers: {
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: form,
-      });
-      const json = await res.json().catch(() => ({})) as { success?: boolean; error?: string };
-      if (!res.ok || json.success === false) return { success: false, error: json.error || `HTTP ${res.status}` };
-      return { success: true };
     },
   };
 }

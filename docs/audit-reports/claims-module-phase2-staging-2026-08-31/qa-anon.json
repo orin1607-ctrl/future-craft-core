@@ -1,0 +1,39 @@
+{
+  "at": "2026-08-31T10:41:50.072Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "telemarketingTouched": false,
+  "accidentsTouched": false,
+  "documentRequestsTouched": false,
+  "gmailTouched": false,
+  "whatsappTouched": false,
+  "tests": [
+    {
+      "id": "anon-cannot-read-claims",
+      "ok": true,
+      "detail": "rows=0"
+    },
+    {
+      "id": "anon-cannot-read-docs",
+      "ok": true,
+      "detail": "rows=0"
+    },
+    {
+      "id": "anon-cannot-read-links",
+      "ok": true,
+      "detail": "rows=0"
+    },
+    {
+      "id": "bogus-token-denied",
+      "ok": true,
+      "detail": "status=401 err="
+    },
+    {
+      "id": "claim-id-not-a-token",
+      "ok": true,
+      "detail": "status=401"
+    }
+  ],
+  "passed": true
+}

@@ -1,0 +1,32 @@
+{
+  "at": "2026-08-31T10:32:00.000Z",
+  "phase": 2,
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "telemarketingTouched": false,
+  "accidentsTouched": false,
+  "gmailTouched": false,
+  "driveTouched": false,
+  "whatsappTouched": false,
+  "documentRequestsTouched": false,
+  "gitBranch": "feat/incident-alerts-staging",
+  "gitHeadBefore": "2ea3e8acb018521c4aaaa468c453ca7624f709b9",
+  "backupBefore": "docs/audit-reports/claims-module-phase2-staging-2026-08-31/backup-before",
+  "rollback": [
+    "DROP TABLE IF EXISTS public.claims_documents CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_upload_links CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_doc_requests CASCADE;",
+    "ALTER TABLE public.claims_records DROP COLUMN IF EXISTS assigned_to;",
+    "ALTER TABLE public.claims_records DROP COLUMN IF EXISTS assigned_to_name;",
+    "ALTER TABLE public.claims_records DROP COLUMN IF EXISTS assigned_at;",
+    "ALTER TABLE public.claims_records DROP COLUMN IF EXISTS assigned_by;",
+    "DROP FUNCTION IF EXISTS public.claims_can_work_claim(text);",
+    "DROP FUNCTION IF EXISTS public.claims_assign(text, uuid);",
+    "DROP FUNCTION IF EXISTS public.claims_list_assignees();",
+    "DROP FUNCTION IF EXISTS public.claims_protect_assignment();",
+    "NOTE: Does not drop phase-1 claims_* tables. Does not touch vehicles, accidents, telemarketing, document_requests, or Production."
+  ]
+}

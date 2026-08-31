@@ -1,0 +1,130 @@
+{
+  "at": "2026-08-31T10:50:27.329Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "telemarketingTouched": false,
+  "accidentsTouched": false,
+  "documentRequestsTouched": false,
+  "gmailTouched": false,
+  "driveTouched": false,
+  "oauthTouched": false,
+  "whatsappTouched": false,
+  "before": {
+    "accidents": 11,
+    "bucket_public": false,
+    "document_requests": 12,
+    "profiles": 179,
+    "vehicles": 437
+  },
+  "after": {
+    "accidents": 11,
+    "document_requests": 12,
+    "profiles": 179,
+    "qa_left": 0,
+    "vehicles": 437
+  },
+  "tests": [
+    {
+      "id": "bucket-private",
+      "ok": true,
+      "detail": "public=false"
+    },
+    {
+      "id": "bogus-token-404",
+      "ok": true,
+      "detail": "status=404 err=not_found"
+    },
+    {
+      "id": "claim-id-guess-denied",
+      "ok": true,
+      "detail": "status=404"
+    },
+    {
+      "id": "other-token-denied",
+      "ok": true,
+      "detail": "status=404"
+    },
+    {
+      "id": "valid-token-opens",
+      "ok": true,
+      "detail": "{\"status\":200,\"name\":\"QA לקוח מסמכים\",\"plate\":\"00000\",\"docs\":1,\"leakedId\":false}"
+    },
+    {
+      "id": "public-payload-no-internal",
+      "ok": true,
+      "detail": "success,clientName,plate,expiresAt,docs"
+    },
+    {
+      "id": "customer-upload",
+      "ok": true,
+      "detail": "status=200 err="
+    },
+    {
+      "id": "auto-ingest-to-claim",
+      "ok": true,
+      "detail": {
+        "files": 1,
+        "hist": 1,
+        "path": "DAL-QA-PHASE2-001/DCR-QA-PHASE2-1/F-1788173404529-8NFAEB-qa-license.png",
+        "req_status": "received"
+      }
+    },
+    {
+      "id": "history-kept",
+      "ok": true,
+      "detail": "hist=1"
+    },
+    {
+      "id": "no-public-object-url",
+      "ok": true,
+      "detail": "status=400"
+    },
+    {
+      "id": "anon-cannot-list-bucket",
+      "ok": true,
+      "detail": "listed=0"
+    },
+    {
+      "id": "revoked-token-denied",
+      "ok": true,
+      "detail": "status=404 err=revoked"
+    },
+    {
+      "id": "anon-cannot-read-qa-claim",
+      "ok": true,
+      "detail": "rows=0"
+    },
+    {
+      "id": "storage-cleaned-via-api",
+      "ok": true,
+      "detail": "skipped-no-service-role-or-path"
+    },
+    {
+      "id": "vehicles-unchanged",
+      "ok": true,
+      "detail": "437→437"
+    },
+    {
+      "id": "accidents-unchanged",
+      "ok": true,
+      "detail": "11→11"
+    },
+    {
+      "id": "document-requests-untouched",
+      "ok": true,
+      "detail": "12→12"
+    },
+    {
+      "id": "profiles-unchanged",
+      "ok": true,
+      "detail": "179→179"
+    },
+    {
+      "id": "qa-cleaned",
+      "ok": true,
+      "detail": "left=0"
+    }
+  ],
+  "passed": true
+}

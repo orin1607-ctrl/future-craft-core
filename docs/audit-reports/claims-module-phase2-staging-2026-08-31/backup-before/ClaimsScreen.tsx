@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CLAIM_KINDS, CLOSE_REASONS, DOC_PRESETS, MANDATORY_STATUSES, STATUSES, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
+import { CLOSE_REASONS, MANDATORY_STATUSES, STATUSES, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { createClaimsApi, type ClaimsApi } from './claimsService';
 import './claims.css';
 
@@ -22,8 +22,6 @@ const FC_MAP: Record<string, string> = {
   fc_legalReason: 'legalReason', fc_legalLawyer: 'legalLawyer', fc_legalFirm: 'legalFirm',
   fc_legalPhone: 'legalPhone', fc_legalEmail: 'legalEmail', fc_legalDate: 'legalDate',
   fc_legalNotes: 'legalNotes',
-  fc_kind: 'claimKind', fc_eventDate: 'eventDate', fc_policyNum: 'policyNum',
-  fc_thirdParty: 'thirdParty', fc_thirdPlate: 'thirdPlate', fc_thirdPhone: 'thirdPhone', fc_thirdEmail: 'thirdEmail',
 };
 
 function stBadge(s: string) {
@@ -73,17 +71,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [exportText, setExportText] = useState('');
   const [tpl, setTpl] = useState<Record<string, { name: string; subject?: string; body: string }>>({});
   const [curTpl, setCurTpl] = useState('');
-  const [reminders, setReminders] = useState<ClaimRecord[]>([]);
-  const [assignees, setAssignees] = useState<Array<{ id: string; full_name: string; company_name: string }>>([]);
-  const [docs, setDocs] = useState<{ requests: Array<{ id: string; label: string; status: string; received_at?: string }>; files: Array<{ id: string; doc_request_id: string | null; original_name: string; source: string; created_at: string; uploaded_by_name?: string }> }>({ requests: [], files: [] });
-  const [linkUrl, setLinkUrl] = useState('');
-  const [customDoc, setCustomDoc] = useState('');
-  const [mineOnly, setMineOnly] = useState(actor.role !== 'super_admin');
-  const [formKind, setFormKind] = useState<string>(CLAIM_KINDS[0]);
-  const [dashTasks, setDashTasks] = useState<ClaimRecord[]>([]);
-  const [dashRems, setDashRems] = useState<ClaimRecord[]>([]);
   const toastN = useRef(0);
-  const isSuperAdmin = actor.role === 'super_admin';
 
   const toast = (msg: string, type = 'ok') => {
     const id = ++toastN.current;
@@ -94,20 +82,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const loadAll = useCallback(async () => {
     setSync('pend');
     try {
-      const [cr, nr, tr, rr] = await Promise.all([
+      const [cr, nr] = await Promise.all([
         apiRef.current.getClaims(),
         apiRef.current.getNotifications(),
-        apiRef.current.getTasks(null),
-        apiRef.current.getReminders(null),
       ]);
       setClaims(cr.data || []);
       setNotifs(nr.data || []);
-      setDashTasks((tr.data || []).filter((t) => t.done !== 'true'));
-      setDashRems(rr.data || []);
-      if (actor.role === 'super_admin') {
-        const a = await apiRef.current.listAssignees();
-        setAssignees(a.data || []);
-      }
       setSync('ok');
     } catch {
       setSync('err');
@@ -131,8 +111,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const unread = notifs.filter((n) => n.read !== 'true').length;
   const cur = claims.find((c) => c.id === curId) || null;
-  const workset = mineOnly ? claims.filter((c) => c.assigned_to === actor.id) : claims;
-  const cnt = (f: (x: ClaimRecord) => boolean) => workset.filter(f).length;
+  const cnt = (f: (x: ClaimRecord) => boolean) => claims.filter(f).length;
 
   const showView = (name: string, f = '') => {
     setView(name);
@@ -163,30 +142,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }
   };
 
-  const loadCardData = async (id: string) => {
-    const [c, h, t, rem, d] = await Promise.all([
+  const openCard = async (id: string) => {
+    setCurId(id);
+    setCardTab('comm');
+    setModal('moCard');
+    const [c, h, t] = await Promise.all([
       apiRef.current.getCommLog(id),
       apiRef.current.getHistory(id),
       apiRef.current.getTasks(id),
-      apiRef.current.getReminders(id),
-      apiRef.current.invokeDocs('list_docs', { claim_id: id }),
     ]);
     setComm(c.data || []);
     setHist(h.data || []);
     setTasks((t.data || []).filter((x) => x.done !== 'true'));
-    setReminders(rem.data || []);
-    setDocs({
-      requests: (d.requests as typeof docs.requests) || [],
-      files: (d.files as typeof docs.files) || [],
-    });
-  };
-
-  const openCard = async (id: string) => {
-    setCurId(id);
-    setCardTab('claim');
-    setModal('moCard');
-    setLinkUrl('');
-    await loadCardData(id);
   };
 
   const collectClaimForm = (): Record<string, string> => {
@@ -206,8 +173,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     Object.keys(FC_MAP).forEach((fid) => setVal(fid, ''));
     setVal('fc_id', '');
     setVal('fc_status', 'חדש');
-    setVal('fc_kind', CLAIM_KINDS[0]);
-    setFormKind(CLAIM_KINDS[0]);
     setVehId('');
     setCompanyName('');
     setVehHits([]);
@@ -220,7 +185,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     Object.entries(FC_MAP).forEach(([fid, key]) => setVal(fid, c[key] || ''));
     setVal('fc_id', c.id);
     setVal('fc_status', c.status || 'חדש');
-    setFormKind(c.claimKind || CLAIM_KINDS[0]);
     setVehId(c.vehicle_id || '');
     setCompanyName(c.company_name || '');
     setModal('moClaim');
@@ -279,16 +243,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const pendingStatus = useRef('');
 
   const list = useMemo(() => claims.filter((c) => {
-    if (mineOnly && c.assigned_to !== actor.id) return false;
     if (search && JSON.stringify(c).toLowerCase().indexOf(search.toLowerCase()) === -1) return false;
     if (stFil && c.status !== stFil) return false;
     if (filter && c.status !== filter) return false;
     return true;
-  }), [claims, search, stFil, filter, mineOnly, actor.id]);
+  }), [claims, search, stFil, filter]);
 
-  const openDash = workset.filter((x) => x.status !== 'הסתיים' && x.status !== 'שולם').slice(0, 10);
-  const myTasks = dashTasks.filter((t) => !mineOnly || workset.some((c) => c.id === t.claimId)).slice(0, 8);
-  const myRems = dashRems.filter((r) => !mineOnly || workset.some((c) => c.id === r.claimId)).slice(0, 8);
+  const openDash = claims.filter((x) => x.status !== 'הסתיים' && x.status !== 'שולם').slice(0, 10);
 
   if (!ready) {
     return (
@@ -333,7 +294,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               ['reports', '📈 דוחות'],
             ].map(([k, l]) => (
               <button key={k} className={`tbn ${view === k ? 'act' : ''}`} onClick={() => showView(k)}>
-                {l}{k === 'claims' ? <span className="nb b">{workset.length}</span> : null}
+                {l}{k === 'claims' ? <span className="nb b">{claims.length}</span> : null}
               </button>
             ))}
             <button className="tbn" onClick={async () => {
@@ -383,7 +344,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="sb-sec">
               <div className="sb-lbl">ניווט</div>
               <button className={`sb-i ${view === 'dashboard' && !filter ? 'act' : ''}`} onClick={() => showView('dashboard')}><span className="ic">📊</span>דשבורד</button>
-              <button className={`sb-i ${view === 'claims' && !filter ? 'act' : ''}`} onClick={() => showView('claims')}><span className="ic">📋</span>{mineOnly ? 'התביעות שלי' : 'כל התיקים'}<span className="sb-bd b">{workset.length}</span></button>
+              <button className={`sb-i ${view === 'claims' && !filter ? 'act' : ''}`} onClick={() => showView('claims')}><span className="ic">📋</span>כל התיקים<span className="sb-bd b">{claims.length}</span></button>
               <button className={`sb-i ${view === 'gmail' ? 'act' : ''}`} onClick={() => showView('gmail')}><span className="ic">📧</span>Gmail</button>
               <button className={`sb-i ${view === 'tasks' ? 'act' : ''}`} onClick={() => showView('tasks')}><span className="ic">✅</span>משימות</button>
               <button className={`sb-i ${view === 'reports' ? 'act' : ''}`} onClick={() => showView('reports')}><span className="ic">📈</span>דוחות</button>
@@ -413,13 +374,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             {view === 'dashboard' && (
               <>
                 <div className="ph">
-                  <div><div className="ph-t">{isSuperAdmin && !mineOnly ? 'דשבורד' : 'התביעות שלי'}<div className="ph-bar" /></div>
+                  <div><div className="ph-t">דשבורד<div className="ph-bar" /></div>
                     <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{new Date().toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · {actor.full_name}</div>
                   </div>
                   <div className="ph-a">
-                    {isSuperAdmin && (
-                      <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
-                    )}
                     <button className="btn btn-p btn-sm" onClick={openNew}>＋ תיק חדש</button>
                     <button className="btn btn-g btn-sm" onClick={() => { toast('סריקת Gmail תחובר בשלב הבא', 'inf'); showView('gmail'); }}>📬 סרוק מיילים</button>
                   </div>
@@ -439,56 +397,28 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   ))}
                 </div>
                 <div className="sdiv"><div className="sdiv-t">תיקים פתוחים – דורשים טיפול</div><div className="sdiv-l" /></div>
-                <div className="tw"><table><thead><tr><th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>סטטוס</th><th>מטפל</th><th>חסר / ממתין</th><th>פעולה הבאה</th><th>עדכון</th></tr></thead>
+                <div className="tw"><table><thead><tr><th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>ביטוח</th><th>סטטוס</th><th>פעולה הבאה</th><th>עדכון</th></tr></thead>
                   <tbody>
-                    {openDash.length === 0 ? <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--t3)', padding: 24 }}>אין תיקים פתוחים</td></tr>
+                    {openDash.length === 0 ? <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--t3)', padding: 24 }}>אין תיקים פתוחים</td></tr>
                       : openDash.map((x) => (
                         <tr key={x.id} onClick={() => openCard(x.id)}>
                           <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{x.id}</td>
-                          <td>{x.clientName}</td><td>{x.plate || '—'}</td>
+                          <td>{x.clientName}</td><td>{x.plate || '—'}</td><td>{x.insCompany || '—'}</td>
                           <td>{stBadge(x.status)}</td>
-                          <td style={{ fontSize: 11 }}>{x.assigned_to_name || '—'}</td>
-                          <td style={{ fontSize: 11, color: x.status === 'ממתין למסמכים' ? 'var(--rd2)' : 'var(--t3)' }}>{x.status === 'ממתין למסמכים' ? 'מסמכים' : '—'}</td>
                           <td style={{ fontSize: 11, color: 'var(--yn2)' }}>{x.nextAction || '—'}</td>
                           <td style={{ fontSize: 10, color: 'var(--t3)' }}>{x.updatedAt || '—'}</td>
                         </tr>
                       ))}
                   </tbody>
                 </table></div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginTop: 16 }}>
-                  <div>
-                    <div className="sdiv"><div className="sdiv-t">משימות לביצוע</div><div className="sdiv-l" /></div>
-                    {myTasks.length === 0 ? <div style={{ color: 'var(--t3)', fontSize: 12 }}>אין משימות פתוחות</div>
-                      : myTasks.map((t) => (
-                        <div key={t.id} style={{ background: 'var(--bg2)', border: '1px solid var(--br)', borderRadius: 7, padding: '10px 12px', marginBottom: 7, cursor: 'pointer' }} onClick={() => t.claimId && openCard(t.claimId)}>
-                          <div style={{ fontSize: 10, color: 'var(--ac3)' }}>{t.claimId}</div>
-                          <div style={{ fontWeight: 600 }}>{t.action}</div>
-                          {t.dueDate ? <div style={{ fontSize: 11, color: 'var(--yn2)' }}>📅 {t.dueDate}</div> : null}
-                        </div>
-                      ))}
-                  </div>
-                  <div>
-                    <div className="sdiv"><div className="sdiv-t">תזכורות</div><div className="sdiv-l" /></div>
-                    {myRems.length === 0 ? <div style={{ color: 'var(--t3)', fontSize: 12 }}>אין תזכורות</div>
-                      : myRems.map((r) => (
-                        <div key={r.id} style={{ background: 'var(--bg2)', border: '1px solid var(--br)', borderRadius: 7, padding: '10px 12px', marginBottom: 7, cursor: 'pointer' }} onClick={() => r.claimId && openCard(r.claimId)}>
-                          <div style={{ fontWeight: 600 }}>{r.date} {r.time || ''}</div>
-                          <div style={{ fontSize: 12, color: 'var(--t2)' }}>{r.note || r.claimId}</div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
               </>
             )}
 
             {view === 'claims' && (
               <>
                 <div className="ph">
-                  <div><div className="ph-t">{filter || stFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים')}<div className="ph-bar" /></div></div>
+                  <div><div className="ph-t">{filter || stFil || 'כל התיקים'}<div className="ph-bar" /></div></div>
                   <div className="ph-a">
-                    {isSuperAdmin && (
-                      <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'שלי' : 'הכול'}</button>
-                    )}
                     <input className="fi" placeholder="🔎 חיפוש..." style={{ width: 180 }} value={search} onChange={(e) => setSearch(e.target.value)} />
                     <select className="fse" value={stFil} onChange={(e) => setStFil(e.target.value)} style={{ fontSize: 11.5 }}>
                       <option value="">כל הסטטוסים</option>
@@ -498,10 +428,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   </div>
                 </div>
                 <div className="tw"><table><thead><tr>
-                  <th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>ביטוח</th><th>מס' תביעה</th><th>סטטוס</th><th>מטפל</th><th>רכב במערכת</th><th>עדכון</th><th></th>
+                  <th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>ביטוח</th><th>מס' תביעה</th><th>סטטוס</th><th>רכב במערכת</th><th>עדכון</th><th></th>
                 </tr></thead>
                   <tbody>
-                    {list.length === 0 ? <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }}>לא נמצאו תיקים</td></tr>
+                    {list.length === 0 ? <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }}>לא נמצאו תיקים</td></tr>
                       : list.map((c) => (
                         <tr key={c.id} onClick={() => openCard(c.id)}>
                           <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{c.id}</td>
@@ -509,7 +439,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           <td>{c.plate || '—'}</td><td>{c.insCompany || '—'}</td>
                           <td style={{ color: 'var(--t3)', fontSize: 11 }}>{c.claimNum || '—'}</td>
                           <td>{stBadge(c.status)}</td>
-                          <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
                           <td><div className="lbl-pill">{c.vehicle_id ? '✓' : '—'}</div></td>
                           <td style={{ fontSize: 10, color: 'var(--t3)' }}>{c.updatedAt || '—'}</td>
                           <td onClick={(e) => e.stopPropagation()}><button className="btn btn-g btn-sm" onClick={() => startEdit(c.id)}>✏️</button></td>
@@ -617,11 +546,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <div className="fg"><label className="fl">סטטוס</label>
                 <select className="fse fi" id="fc_status">{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
               </div>
-              <div className="fg"><label className="fl">סוג התביעה</label>
-                <select className="fse fi" id="fc_kind" value={formKind} onChange={(e) => { setFormKind(e.target.value); setVal('fc_kind', e.target.value); }}>{CLAIM_KINDS.map((s) => <option key={s}>{s}</option>)}</select>
-              </div>
-              <div className="fg"><label className="fl">תאריך אירוע</label><input className="fi" id="fc_eventDate" type="date" /></div>
-              <div className="fg"><label className="fl">מספר פוליסה</label><input className="fi" id="fc_policyNum" /></div>
             </div>
             <div className="sdiv"><div className="sdiv-t">חברת ביטוח</div><div className="sdiv-l" /></div>
             <div className="fg2">
@@ -631,15 +555,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <div className="fg"><label className="fl">נציג – שם</label><input className="fi" id="fc_insRepName" /></div>
               <div className="fg"><label className="fl">נציג – טלפון</label><input className="fi" id="fc_insRepPhone" /></div>
               <div className="fg"><label className="fl">נציג – אימייל</label><input className="fi" id="fc_insRepEmail" type="email" /></div>
-            </div>
-            <div style={{ display: formKind === 'תביעת צד ג׳' ? 'block' : 'none' }}>
-              <div className="sdiv"><div className="sdiv-t">צד ג׳</div><div className="sdiv-l" /></div>
-              <div className="fg2">
-                <div className="fg"><label className="fl">שם צד ג׳</label><input className="fi" id="fc_thirdParty" /></div>
-                <div className="fg"><label className="fl">מספר רכב צד ג׳</label><input className="fi" id="fc_thirdPlate" /></div>
-                <div className="fg"><label className="fl">טלפון צד ג׳</label><input className="fi" id="fc_thirdPhone" /></div>
-                <div className="fg"><label className="fl">אימייל צד ג׳</label><input className="fi" id="fc_thirdEmail" type="email" /></div>
-              </div>
             </div>
             <div className="sdiv"><div className="sdiv-t">שמאי</div><div className="sdiv-l" /></div>
             <div className="fg2">
@@ -690,13 +605,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   {cur.plate ? <span style={{ fontSize: 11, color: 'var(--t3)' }}>{cur.plate}</span> : null}
                   {cur.insCompany ? <span style={{ fontSize: 11, color: 'var(--t3)' }}>{cur.insCompany}</span> : null}
                   {cur.vehicle_id ? <div className="lbl-pill">רכב משויך</div> : null}
-                  {cur.assigned_to_name ? <div className="lbl-pill">מטפל: {cur.assigned_to_name}</div> : <div className="lbl-pill">ללא מטפל</div>}
-                  {cur.claimKind ? <div className="lbl-pill">{cur.claimKind}</div> : null}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
                 <button className="btn btn-g btn-sm" onClick={() => startEdit(cur.id)}>✏️ ערוך</button>
-                {isSuperAdmin && <button className="btn btn-p btn-sm" onClick={() => setModal('moAssign')}>👤 הקצה לעובד</button>}
                 <button className="mcl" onClick={() => setModal(null)}>✕</button>
               </div>
             </div>
@@ -714,127 +626,63 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             </div>
             <div style={{ padding: '0 18px 18px' }}>
               <div className="tabs">
-                {[['claim', '📋 תביעה'], ['client', '👤 לקוח'], ['vehicle', '🚗 רכב'], ['treat', '🛠 טיפול'], ['docs', '📄 מסמכים'], ['tasks', '✅ משימות'], ['rems', '🔔 תזכורות'], ['timeline', '⏱ היסטוריה']].map(([k, l]) => (
+                {[['comm', '📡 תקשורת'], ['info', '📋 פרטים'], ['finance', '💰 כספי'], ['tasks', '✅ משימות'], ['timeline', '⏱ ציר זמן']].map(([k, l]) => (
                   <button key={k} className={`tab ${cardTab === k ? 'act' : ''}`} onClick={() => setCardTab(k)}>{l}</button>
                 ))}
               </div>
-              {cardTab === 'claim' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11 }}>
-                  {[['מספר תיק', cur.id], ['סוג', cur.claimKind || '—'], ['תאריך אירוע', cur.eventDate || '—'], ['תאריך פתיחה', cur.createdAt || '—'],
-                    ['סטטוס', cur.status], ['מטפל', cur.assigned_to_name || '—'], ['חברת ביטוח', cur.insCompany || '—'],
-                    ['מספר פוליסה', cur.policyNum || '—'], ["מס' תביעה", cur.claimNum || '—'], ['שמאי', cur.surveyor || '—'],
-                    ['פעולה הבאה', cur.nextAction || '—'], ['עודכן ע״י', cur.updatedByName || '—']].map((f) => (
-                      <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
-                    ))}
-                </div>
-              )}
-              {cardTab === 'client' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11 }}>
-                  {[['שם לקוח', cur.clientName], ['טלפון', cur.clientPhone || '—'], ['אימייל', cur.clientEmail || '—']].map((f) => (
-                    <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
-                  ))}
-                </div>
-              )}
-              {cardTab === 'vehicle' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11 }}>
-                  {[['מספר רישוי', cur.plate || '—'], ['דגם', cur.carModel || '—'], ['חברה/לקוח', cur.company_name || '—'], ['רכב במערכת', cur.vehicle_id ? 'משויך' : 'לא משויך']].map((f) => (
-                    <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
-                  ))}
-                </div>
-              )}
-              {cardTab === 'treat' && (
-                <>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 12 }}>
-                    {([['פעולה הבאה', cur.nextAction || '—'], ['תאריך יעד', cur.nextDate || '—'], ['הערות טיפול', cur.notes || '—']] as Array<[string, string]>)
-                      .concat(cur.claimKind === 'תביעת צד ג׳' ? [['צד ג׳', cur.thirdParty || '—'], ['רכב צד ג׳', cur.thirdPlate || '—']] : [])
-                      .map((f) => (
-                      <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
-                    ))}
-                  </div>
-                  <div className="sdiv"><div className="sdiv-t">תקשורת והערות</div><div className="sdiv-l" /></div>
-                  {comm.length === 0 ? <div className="empty">אין תקשורת מתועדת</div>
-                    : comm.map((e) => (
-                      <div key={e.id} className={`comm-item ${e.type || ''}`}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontSize: 10, fontWeight: 700 }}>{e.type}</span>
-                          <span style={{ fontSize: 10, color: 'var(--t3)' }}>{e.at} · {e.by || ''}</span>
-                        </div>
-                        <div style={{ fontSize: 12.5, color: 'var(--t2)' }}>{e.body || e.note || ''}</div>
+              {cardTab === 'comm' && (
+                comm.length === 0 ? <div className="empty">אין תקשורת מתועדת</div>
+                  : comm.map((e) => (
+                    <div key={e.id} className={`comm-item ${e.type || ''}`}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700 }}>{e.type}</span>
+                        <span style={{ fontSize: 10, color: 'var(--t3)' }}>{e.at} · {e.by || ''}</span>
                       </div>
-                    ))}
-                </>
-              )}
-              {cardTab === 'docs' && (
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>בחר אילו מסמכים לבקש מהלקוח — לא אותה רשימה לכל תיק.</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                    {DOC_PRESETS.map((p) => {
-                      const on = docs.requests.some((d) => d.label === p.label);
-                      return (
-                        <button key={p.key} className={`btn btn-sm ${on ? 'btn-p' : 'btn-g'}`} onClick={async () => {
-                          const next = on ? docs.requests.filter((d) => d.label !== p.label) : [...docs.requests, { id: '', label: p.label, status: 'requested' }];
-                          await apiRef.current.invokeDocs('save_doc_requests', { claim_id: cur.id, items: next.map((d) => ({ label: d.label })) });
-                          await loadCardData(cur.id);
-                        }}>{on ? '✓ ' : ''}{p.label}</button>
-                      );
-                    })}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-                    <input className="fi" placeholder="מסמך נוסף..." value={customDoc} onChange={(e) => setCustomDoc(e.target.value)} />
-                    <button className="btn btn-p btn-sm" onClick={async () => {
-                      if (!customDoc.trim()) return;
-                      await apiRef.current.invokeDocs('save_doc_requests', { claim_id: cur.id, items: [...docs.requests, { label: customDoc.trim(), doc_key: 'custom' }] });
-                      setCustomDoc('');
-                      await loadCardData(cur.id);
-                    }}>הוסף</button>
-                  </div>
-                  {docs.requests.map((d) => (
-                    <div key={d.id} style={{ background: 'var(--bg3)', border: '1px solid var(--br)', borderRadius: 7, padding: '10px 12px', marginBottom: 7, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <div>
-                        <div style={{ fontWeight: 600 }}>{d.label}</div>
-                        <div style={{ fontSize: 11, color: d.status === 'received' ? 'var(--gn2)' : 'var(--yn2)' }}>{d.status === 'received' ? `התקבל${d.received_at ? ` · ${new Date(d.received_at).toLocaleString('he-IL')}` : ''}` : d.status === 'missing' ? 'חסר' : 'התבקש'}</div>
-                      </div>
-                      <label className="btn btn-g btn-sm">העלאה
-                        <input type="file" hidden accept="application/pdf,image/*" onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          const up = await apiRef.current.staffUpload(cur.id, d.id, file);
-                          if (!up.success) { toast(up.error || 'העלאה נכשלה', 'err'); return; }
-                          await loadCardData(cur.id);
-                          toast('מסמך הועלה');
-                        }} />
-                      </label>
+                      {e.contactName ? <div style={{ fontWeight: 600, marginBottom: 3 }}>{e.contactName}</div> : null}
+                      <div style={{ fontSize: 12.5, color: 'var(--t2)' }}>{e.body || e.note || ''}</div>
                     </div>
-                  ))}
-                  <div className="sdiv"><div className="sdiv-t">קבצים שהתקבלו</div><div className="sdiv-l" /></div>
-                  {docs.files.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין קבצים עדיין</div>
-                    : docs.files.map((f) => (
-                      <div key={f.id} style={{ padding: '8px 0', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{f.original_name}</div>
-                          <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.source === 'customer' ? 'לקוח' : 'עובד'} · {f.uploaded_by_name || ''} · {new Date(f.created_at).toLocaleString('he-IL')}</div>
-                        </div>
-                        <button className="btn btn-g btn-sm" onClick={async () => {
-                          const r = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: f.id });
-                          if (r.url) window.open(String(r.url), '_blank');
-                        }}>צפייה</button>
+                  ))
+              )}
+              {cardTab === 'info' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11 }}>
+                  {[['שם לקוח', cur.clientName], ['טלפון', cur.clientPhone || '—'], ['אימייל', cur.clientEmail || '—'],
+                    ['מספר רכב', cur.plate || '—'], ['דגם', cur.carModel || '—'], ['חברה ב-Oren Car', cur.company_name || '—'],
+                    ['חברת ביטוח', cur.insCompany || '—'], ["מס' תביעה", cur.claimNum || '—'], ['שמאי', cur.surveyor || '—'],
+                    ['פעולה הבאה', cur.nextAction || '—'], ['נפתח', cur.createdAt || '—'], ['עודכן ע״י', cur.updatedByName || '—']].map((f) => (
+                      <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
+                    ))}
+                </div>
+              )}
+              {cardTab === 'finance' && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 9, marginBottom: 14 }}>
+                    {[['סכום תביעה', fmt(cur.finAmount)], ['סכום אושר', fmt(cur.finApproved)], ['שולם', fmt(cur.finPaid)], ['יתרה', fmt((Number(cur.finApproved) || 0) - (Number(cur.finPaid) || 0))]].map((x) => (
+                      <div key={x[0]} style={{ background: 'var(--bg3)', border: '1px solid var(--br)', borderRadius: 7, padding: 11 }}>
+                        <div style={{ fontSize: 9.5, color: 'var(--t3)', fontWeight: 700, marginBottom: 4 }}>{x[0]}</div>
+                        <div style={{ fontSize: 18, fontWeight: 800 }}>{x[1]}</div>
                       </div>
                     ))}
-                  <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button className="btn btn-p btn-sm" onClick={async () => {
-                      const r = await apiRef.current.invokeDocs('create_link', { claim_id: cur.id });
-                      if (!r.success || !r.token) { toast(String(r.error || 'שגיאה'), 'err'); return; }
-                      const origin = window.location.origin;
-                      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
-                      const url = `${origin}${base && base !== '/' ? base : ''}/claims-upload?t=${r.token}`;
-                      setLinkUrl(url);
-                      await navigator.clipboard.writeText(url).catch(() => undefined);
-                      toast('הקישור הועתק');
-                    }}>קישור להעלאת מסמכים</button>
-                    <button className="btn btn-g btn-sm" onClick={async () => { await apiRef.current.invokeDocs('revoke_link', { claim_id: cur.id }); setLinkUrl(''); toast('הקישור בוטל'); }}>בטל קישור</button>
                   </div>
-                  {linkUrl ? <div style={{ marginTop: 8, fontSize: 11, wordBreak: 'break-all', color: 'var(--ac3)' }}>{linkUrl}</div> : null}
-                </div>
+                  <div className="fg3">
+                    <div className="fg"><label className="fl">סכום תביעה</label><input className="fi" id="ff_amount" defaultValue={cur.finAmount} type="number" /></div>
+                    <div className="fg"><label className="fl">סכום אושר</label><input className="fi" id="ff_approved" defaultValue={cur.finApproved} type="number" /></div>
+                    <div className="fg"><label className="fl">סכום שולם</label><input className="fi" id="ff_paid" defaultValue={cur.finPaid} type="number" /></div>
+                    <div className="fg"><label className="fl">תאריך תשלום</label><input className="fi" id="ff_payDate" defaultValue={cur.finPayDate} type="date" /></div>
+                    <div className="fg"><label className="fl">אסמכתא</label><input className="fi" id="ff_ref" defaultValue={cur.finRef} /></div>
+                    <div className="fg" style={{ alignItems: 'flex-end' }}><button className="btn btn-p btn-sm" onClick={async () => {
+                      await apiRef.current.saveClaim({
+                        ...cur,
+                        finAmount: val(null, 'ff_amount'),
+                        finApproved: val(null, 'ff_approved'),
+                        finPaid: val(null, 'ff_paid'),
+                        finPayDate: val(null, 'ff_payDate'),
+                        finRef: val(null, 'ff_ref'),
+                      });
+                      await loadAll();
+                      toast('נתוני תשלום עודכנו');
+                    }}>💾 שמור</button></div>
+                  </div>
+                </>
               )}
               {cardTab === 'tasks' && (
                 <>
@@ -845,18 +693,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div style={{ fontWeight: 600 }}>{t.action}</div>
                         {t.dueDate ? <div style={{ fontSize: 11, color: 'var(--yn2)' }}>📅 {t.dueDate}</div> : null}
                         {t.owner ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>👤 {t.owner}</div> : null}
-                      </div>
-                    ))}
-                </>
-              )}
-              {cardTab === 'rems' && (
-                <>
-                  <button className="btn btn-p btn-sm" style={{ marginBottom: 10 }} onClick={() => setModal('moRem')}>＋ תזכורת</button>
-                  {reminders.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין תזכורות</div>
-                    : reminders.map((r) => (
-                      <div key={r.id} style={{ background: 'var(--bg3)', border: '1px solid var(--br)', borderRadius: 7, padding: '10px 12px', marginBottom: 7 }}>
-                        <div style={{ fontWeight: 600 }}>{r.date} {r.time || ''}</div>
-                        <div style={{ fontSize: 12, color: 'var(--t2)' }}>{r.note || ''}</div>
                       </div>
                     ))}
                 </>
@@ -874,34 +710,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             </div>
           </div>
         )}
-      </div>
-
-      {/* ASSIGN */}
-      <div className={`ov ${modal === 'moAssign' ? 'open' : ''}`}>
-        <div className="modal modal-sm">
-          <div className="mh"><div className="mh-t">👤 הקצה לעובד</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
-          <div className="mb">
-            <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>מטפל נוכחי: {cur?.assigned_to_name || 'לא הוקצה'}</div>
-            <div className="fg"><label className="fl">עובד מורשה</label>
-              <select className="fse fi" id="as_user">
-                <option value="">— בחר —</option>
-                {assignees.map((a) => <option key={a.id} value={a.id}>{a.full_name}{a.company_name ? ` · ${a.company_name}` : ''}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
-            <button className="btn btn-p" onClick={async () => {
-              const uid = val(null, 'as_user');
-              if (!uid || !cur) { toast('בחר עובד', 'err'); return; }
-              const r = await apiRef.current.assignClaim(cur.id, uid);
-              if (!r.success) { toast(r.error || 'שגיאה', 'err'); return; }
-              await loadAll();
-              setModal('moCard');
-              await loadCardData(cur.id);
-              toast('התביעה הוקצתה');
-            }}>הקצה</button>
-          </div>
-        </div>
       </div>
 
       {/* STATUS */}
