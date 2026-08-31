@@ -58,6 +58,7 @@ function mapDirectory(row: Record<string, unknown>): LeadDirectoryRecord {
     claimedAt: (row.claimed_at as string | null) ?? null,
     archivedAt: (row.archived_at as string | null) ?? null,
     leadWave: row.lead_wave === 'new' ? 'new' : 'old',
+    workPriorityAt: (row.work_priority_at as string | null) ?? null,
   };
 }
 
@@ -259,6 +260,21 @@ export async function createManualDirectoryLead(payload: {
     lead: leadRaw ? mapDirectory(leadRaw) : null,
     leadNumber: String(result.leadNumber ?? result.leadnumber ?? leadRaw?.lead_number ?? ''),
   };
+}
+
+export async function setLeadsWorkPriority(leadIds: string[], priority: boolean): Promise<number> {
+  let updated = 0;
+  for (const chunk of chunkLeadIds(leadIds)) {
+    const { data, error } = await supabase.rpc('telemarketing_set_work_priority' as never, {
+      p_lead_ids: chunk,
+      p_priority: priority,
+    } as never);
+    if (error) throw new Error(error.message);
+    const result = (data || {}) as Record<string, unknown>;
+    updated += Number(result.updatedCount ?? result.updatedcount ?? 0);
+  }
+  invalidateLeadDirectoryCache();
+  return updated;
 }
 
 export async function setLeadsArchived(leadIds: string[], archived: boolean): Promise<number> {

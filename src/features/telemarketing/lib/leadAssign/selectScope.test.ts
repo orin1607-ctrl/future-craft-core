@@ -29,6 +29,7 @@ function row(partial: Partial<LeadDirectoryRecord> & { id: string }): LeadDirect
     claimedAt: null,
     archivedAt: null,
     leadWave: 'old',
+    workPriorityAt: null,
     ...partial,
   };
 }
@@ -152,5 +153,40 @@ describe('lead assign select scope', () => {
     expect(avi.withActivity).toBe(0);
     expect(none.assigned).toBe(1);
     expect(tair.withActivity + tair.withoutActivity).toBe(tair.assigned);
+  });
+
+  it('combines city + mobile + new wave and select-all stays on filtered ids', () => {
+    const mixed = [
+      row({ id: '1', leadWave: 'new', region: 'ראשון לציון', phone: '0501234567', workPriorityAt: null }),
+      row({ id: '2', leadWave: 'new', region: 'ראשון לציון', phone: '0312345678' }),
+      row({ id: '3', leadWave: 'new', region: 'חולון', phone: '0509999999' }),
+      row({ id: '4', leadWave: 'old', region: 'ראשון לציון', phone: '0501111111' }),
+    ];
+    const extra = { city: 'ראשון לציון', macro: '', industry: '', contact: 'mobile' as const, priority: 'all' as const };
+    const filtered = filterDirectoryRows(mixed, '', 'all', { min: null, max: null }, 'new', extra);
+    expect(filtered.map((r) => r.id)).toEqual(['1']);
+    expect(isDirectoryFilterActive('', 'all', { min: null, max: null }, 'new', extra)).toBe(true);
+    expect(selectAllLabel(filtered.length, mixed.length, true)).toContain('בתוצאות המסוננות (1)');
+    expect(selectAllLabel(filtered.length, mixed.length, true)).toContain('לא את כל המאגר (4)');
+  });
+
+  it('filters work priority without changing assignment fields', () => {
+    const mixed = [
+      row({ id: '1', assignedTo: 'tair', workPriorityAt: '2026-08-31T08:00:00Z' }),
+      row({ id: '2', assignedTo: 'tair', workPriorityAt: null }),
+    ];
+    const extra = { city: '', macro: '', industry: '', contact: 'all' as const, priority: 'priority' as const };
+    const filtered = filterDirectoryRows(mixed, '', 'tair', { min: null, max: null }, 'all', extra);
+    expect(filtered.map((r) => r.id)).toEqual(['1']);
+    expect(filtered[0].assignedTo).toBe('tair');
+  });
+
+  it('sorts priority group first then by mark time', () => {
+    const mixed = [
+      row({ id: 'a', workPriorityAt: '2026-08-31T10:00:00Z' }),
+      row({ id: 'b', workPriorityAt: null }),
+      row({ id: 'c', workPriorityAt: '2026-08-31T08:00:00Z' }),
+    ];
+    expect(sortDirectoryRows(mixed, 'priority_first').map((r) => r.id)).toEqual(['c', 'a', 'b']);
   });
 });

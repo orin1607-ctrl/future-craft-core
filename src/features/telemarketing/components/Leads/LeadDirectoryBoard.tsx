@@ -9,22 +9,40 @@ import {
   listLeadImportBatches,
   previewLeadDelete,
   setLeadsArchived,
+  setLeadsWorkPriority,
 } from '@/features/telemarketing/services/leadDirectoryService';
 import { getLeadStates } from '@/features/telemarketing/services/leadStateService';
 import { getFollowUps } from '@/features/telemarketing/services/telemarketingService';
 import { supabase } from '@/integrations/supabase/client';
 import { isUsableLeadKey, leadKey } from '@/features/telemarketing/lib/leadKey';
 import {
+  describeDirectoryFilters,
+  EMPTY_DIRECTORY_EXTRA,
   filterDirectoryRows,
   isDirectoryFilterActive,
   selectAllLabel,
   sortDirectoryRows,
   summarizeAgentLeadWorkload,
+  summarizeWorkPriority,
   type AgentFilter,
+  type DirectoryExtraFilter,
   type DirectorySort,
   type LeadActivityHints,
   type WaveFilter,
 } from '@/features/telemarketing/lib/leadAssign/selectScope';
+import type { ContactFilter } from '@/features/telemarketing/lib/leadAssign/leadContact';
+import { MACRO_REGIONS } from '@/features/telemarketing/lib/leadAssign/leadGeo';
+
+const FEATURED_CITIES = ['תל אביב יפו', 'ראשון לציון', 'חולון', 'בת ים', 'פתח תקווה', 'רחובות', 'ירושלים', 'הרצליה', 'חיפה', 'נתניה', 'רמת גן', 'בני ברק'];
+const CONTACT_OPTIONS: { id: ContactFilter; label: string }[] = [
+  { id: 'all', label: 'כל פרטי הקשר' },
+  { id: 'mobile', label: 'יש נייד' },
+  { id: 'landline', label: 'יש טלפון' },
+  { id: 'both', label: 'יש טלפון ונייד' },
+  { id: 'email', label: 'יש מייל' },
+  { id: 'no_phone', label: 'חסר טלפון' },
+  { id: 'full', label: 'פרטי קשר מלאים' },
+];
 
 export function LeadDirectoryBoard({
   isAdmin,
@@ -51,6 +69,10 @@ export function LeadDirectoryBoard({
   const [fleetMax, setFleetMax] = useState('');
   const [fleetSort, setFleetSort] = useState<DirectorySort>('default');
   const [waveFilter, setWaveFilter] = useState<WaveFilter>('all');
+  const [extraFilter, setExtraFilter] = useState<DirectoryExtraFilter>(EMPTY_DIRECTORY_EXTRA);
+  const [priorityPreview, setPriorityPreview] = useState<'add' | 'remove' | null>(null);
+  const [priorityBusy, setPriorityBusy] = useState(false);
+  const [priorityResult, setPriorityResult] = useState('');
   const [activityHints, setActivityHints] = useState<LeadActivityHints>({ callKeys: [], stateKeys: [], openFollowupKeys: [] });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [assignOpen, setAssignOpen] = useState(false);
@@ -111,14 +133,37 @@ export function LeadDirectoryBoard({
   }, [fleetMin, fleetMax, fleetPreset]);
 
   const filtered = useMemo(
-    () => sortDirectoryRows(filterDirectoryRows(rows, query, agentFilter, fleetRange, waveFilter), fleetSort),
-    [rows, query, agentFilter, fleetRange, fleetSort, waveFilter],
+    () => sortDirectoryRows(filterDirectoryRows(rows, query, agentFilter, fleetRange, waveFilter, extraFilter), fleetSort),
+    [rows, query, agentFilter, fleetRange, fleetSort, waveFilter, extraFilter],
   );
   const workload = useMemo(
     () => (isAdmin ? summarizeAgentLeadWorkload(rows, agents, activityHints) : []),
     [isAdmin, rows, agents, activityHints],
   );
-  const filterActive = isDirectoryFilterActive(query, agentFilter, fleetRange, waveFilter);
+  const priorityStats = useMemo(
+    () => (isAdmin ? summarizeWorkPriority(rows, activityHints) : { total: 0, untreated: 0, inProgress: 0, completed: 0 }),
+    [isAdmin, rows, activityHints],
+  );
+  const industries = useMemo(() => {
+    const set = new Set<string>();
+    for (const row of rows) {
+      if (row.industry.trim()) set.add(row.industry);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'he'));
+  }, [rows]);
+  const cityCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      if (row.archivedAt) continue;
+      if (waveFilter === 'new' && row.leadWave !== 'new') continue;
+      if (waveFilter === 'old' && row.leadWave !== 'old') continue;
+      const city = row.region.trim();
+      if (!city) continue;
+      map.set(city, (map.get(city) || 0) + 1);
+    }
+    return map;
+  }, [rows, waveFilter]);
+  const filterActive = isDirectoryFilterActive(query, agentFilter, fleetRange, waveFilter, extraFilter);
   const filteredIds = filtered.map((row) => row.id);
   const selectedVisible = filteredIds.filter((id) => selected.has(id));
   const allFilteredSelected = filteredIds.length > 0 && selectedVisible.length === filteredIds.length;
@@ -140,6 +185,37 @@ export function LeadDirectoryBoard({
 
   const chosenAgent = agents.find((a) => a.id === assignAgentId);
   const selectedRows = rows.filter((row) => selected.has(row.id));
+  const selectedAssignedNames = [...new Set(selectedRows.map((row) => row.assignedName || 'ללא שיוך'))];
+  const filterSummary = describeDirectoryFilters({
+    query,
+    agentFilter,
+    agentName: agents.find((a) => a.id === agentFilter)?.displayName,
+    fleet: fleetRange,
+    wave: waveFilter,
+    extra: extraFilter,
+  });
+
+  const patchExtra = (patch: Partial<DirectoryExtraFilter>) => {
+    setExtraFilter((prev) => ({ ...prev, ...patch }));
+  };
+
+  const runWorkPriority = async (priority: boolean) => {
+    if (readOnly || selected.size === 0) return;
+    setPriorityBusy(true);
+    setError('');
+    setPriorityResult('');
+    try {
+      const updated = await setLeadsWorkPriority(Array.from(selected), priority);
+      setPriorityPreview(null);
+      setPriorityResult(priority ? `נוספו לעדיפות לעבודה: ${updated}` : `הוסרו מעדיפות לעבודה: ${updated}`);
+      clearSelection();
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'שגיאה בעדיפות לעבודה');
+    } finally {
+      setPriorityBusy(false);
+    }
+  };
 
   const runArchive = async (archived: boolean) => {
     if (readOnly || selected.size === 0) return;
@@ -217,6 +293,12 @@ export function LeadDirectoryBoard({
           <p className="text-sm text-muted-foreground" data-testid="lead-directory-count">
             {filterActive ? `${filtered.length} תוצאות מסוננות מתוך ${rows.length} לידים` : `${rows.length} לידים במאגר`}
           </p>
+          {isAdmin && (
+            <p className="text-sm font-black" data-testid="lead-work-priority-count">
+              ⭐ עדיפות לעבודה: {priorityStats.total} לידים
+              {priorityStats.total > 0 ? ` · טרם טופלו ${priorityStats.untreated} · בטיפול ${priorityStats.inProgress} · בוצעה פעילות ${priorityStats.completed}` : ''}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {isAdmin && (
@@ -295,7 +377,7 @@ export function LeadDirectoryBoard({
             data-testid="lead-directory-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="חברה / טלפון / מספר ליד"
+            placeholder="חברה / טלפון / עיר / תחום / מספר ליד"
             className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3"
           />
         </label>
@@ -330,6 +412,7 @@ export function LeadDirectoryBoard({
               { id: '31-40', label: '31–40', min: '31', max: '40' },
               { id: '5-40', label: '5–40', min: '5', max: '40' },
               { id: 'over-40', label: 'מעל 40', min: '41', max: '' },
+              { id: '40plus', label: '40+', min: '40', max: '' },
               { id: 'unknown', label: 'ללא נתון', min: '', max: '' },
             ].map((preset) => (
               <button
@@ -387,10 +470,127 @@ export function LeadDirectoryBoard({
                 className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3"
               >
                 <option value="default">ללא מיון מיוחד</option>
+                <option value="priority_first">עדיפות לעבודה קודם</option>
+                <option value="city_asc">עיר א–ב</option>
                 <option value="fleet_asc">כמות רכבים — מהנמוך לגבוה</option>
                 <option value="fleet_desc">כמות רכבים — מהגבוה לנמוך</option>
               </select>
             </label>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="space-y-3 rounded-xl border border-amber-400/40 bg-amber-50/40 p-3 dark:bg-amber-950/20" data-testid="lead-work-priority-filters">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-black">⭐ עדיפות לעבודה — סינון במנהל־על בלבד</p>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { id: 'all', label: 'הכל' },
+                { id: 'priority', label: `רק עדיפות (${priorityStats.total})` },
+                { id: 'not_priority', label: 'לא בעדיפות' },
+              ] as const).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  data-testid={`lead-priority-view-${item.id}`}
+                  className={`min-h-10 rounded-xl px-3 text-sm font-bold ${extraFilter.priority === item.id ? 'bg-amber-600 text-white' : 'border border-border bg-background'}`}
+                  onClick={() => patchExtra({ priority: item.id })}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            סינון לא משנה כלום לתאיר. רק אישור מפורש מוסיף או מסיר עדיפות. השיוך נשאר כמו שהוא.
+          </p>
+          <div>
+            <p className="mb-1 text-xs font-black">📍 אזור</p>
+            <div className="flex flex-wrap gap-2">
+              {[{ id: '', label: 'כל הארץ' }, { id: 'ללא אזור', label: 'ללא אזור' }, ...MACRO_REGIONS.map((m) => ({ id: m, label: m }))].map((item) => (
+                <button
+                  key={item.id || 'all-macro'}
+                  type="button"
+                  data-testid={`lead-macro-${item.id || 'all'}`}
+                  className={`min-h-10 rounded-xl px-3 text-sm font-bold ${extraFilter.macro === item.id || (!extraFilter.macro && !item.id) ? 'bg-primary text-primary-foreground' : 'border border-border bg-background'}`}
+                  onClick={() => patchExtra({ macro: item.id, city: '' })}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-1 text-xs font-black">עיר</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                data-testid="lead-city-all"
+                className={`min-h-10 rounded-xl px-3 text-sm font-bold ${!extraFilter.city ? 'bg-primary text-primary-foreground' : 'border border-border bg-background'}`}
+                onClick={() => patchExtra({ city: '' })}
+              >
+                כל הערים
+              </button>
+              {FEATURED_CITIES.filter((city) => (cityCounts.get(city) || 0) > 0).map((city) => (
+                <button
+                  key={city}
+                  type="button"
+                  data-testid={`lead-city-${city}`}
+                  className={`min-h-10 rounded-xl px-3 text-sm font-bold ${extraFilter.city === city ? 'bg-primary text-primary-foreground' : 'border border-border bg-background'}`}
+                  onClick={() => patchExtra({ city, macro: '' })}
+                >
+                  {city} ({cityCounts.get(city)})
+                </button>
+              ))}
+            </div>
+            <label className="mt-2 block text-xs font-semibold">
+              עיר נוספת מהמאגר
+              <select
+                data-testid="lead-city-select"
+                value={extraFilter.city && !FEATURED_CITIES.includes(extraFilter.city) && extraFilter.city !== '__none__' ? extraFilter.city : ''}
+                onChange={(e) => patchExtra({ city: e.target.value, macro: '' })}
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3"
+              >
+                <option value="">בחרו עיר מהנתונים האמיתיים</option>
+                {[...cityCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'he')).map(([city, count]) => (
+                  <option key={city} value={city}>{city} ({count})</option>
+                ))}
+              </select>
+            </label>
+            <p className="mt-1 text-xs text-muted-foreground">רדיוס בק״מ אינו זמין — אין קואורדינטות בלידים. אין מרחק מזויף.</p>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            <label className="text-xs font-semibold">
+              תחום פעילות
+              <select
+                data-testid="lead-industry-filter"
+                value={extraFilter.industry}
+                onChange={(e) => patchExtra({ industry: e.target.value })}
+                className="mt-1 min-h-12 w-full rounded-lg border border-border bg-background p-3"
+              >
+                <option value="">כל התחומים מהמאגר</option>
+                {industries.map((industry) => (
+                  <option key={industry} value={industry}>{industry}</option>
+                ))}
+              </select>
+            </label>
+            <div>
+              <p className="mb-1 text-xs font-black">☎️ פרטי קשר</p>
+              <div className="flex flex-wrap gap-2">
+                {CONTACT_OPTIONS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    data-testid={`lead-contact-${item.id}`}
+                    className={`min-h-10 rounded-xl px-3 text-sm font-bold ${extraFilter.contact === item.id ? 'bg-emerald-700 text-white' : 'border border-border bg-background'}`}
+                    onClick={() => patchExtra({ contact: item.id })}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -411,6 +611,24 @@ export function LeadDirectoryBoard({
             disabled={selected.size === 0 || readOnly}
           >
             שייך לעובד ({selected.size})
+          </button>
+          <button
+            type="button"
+            data-testid="lead-priority-add"
+            className="min-h-12 rounded-xl bg-amber-600 px-4 font-bold text-white disabled:opacity-50"
+            onClick={() => { setPriorityPreview('add'); setPriorityResult(''); }}
+            disabled={selected.size === 0 || readOnly}
+          >
+            ⭐ הוסף לעדיפות לעבודה ({selected.size})
+          </button>
+          <button
+            type="button"
+            data-testid="lead-priority-remove"
+            className="min-h-12 rounded-xl border border-amber-600 px-4 font-bold text-amber-800 disabled:opacity-50"
+            onClick={() => { setPriorityPreview('remove'); setPriorityResult(''); }}
+            disabled={selected.size === 0 || readOnly}
+          >
+            הסר מעדיפות לעבודה ({selected.size})
           </button>
           <button type="button" data-testid="lead-archive" className="min-h-12 rounded-xl border border-border px-3 font-bold disabled:opacity-50" disabled={selected.size === 0 || archiveBusy || readOnly} onClick={() => setArchiveConfirm(true)}>
             העבר לארכיון
@@ -435,7 +653,39 @@ export function LeadDirectoryBoard({
             </div>
           )}
           {deletePreview && <p className="w-full text-xs font-semibold text-amber-800" data-testid="lead-delete-preview-text">{deletePreview}</p>}
+          {priorityResult && <p className="w-full text-xs font-semibold text-emerald-800" data-testid="lead-priority-result">{priorityResult}</p>}
           {filterActive && <p className="text-xs font-semibold text-amber-700">הבחירה חלה רק על התוצאות המוצגות, לא על כל המאגר.</p>}
+        </div>
+      )}
+
+      {isAdmin && priorityPreview && (
+        <div className="space-y-3 rounded-xl border border-amber-500 bg-amber-50 p-3 dark:bg-amber-950/30" data-testid="lead-priority-preview">
+          <p className="font-black">⭐ עדיפות לעבודה</p>
+          <p>עובדת: {selectedAssignedNames.join(', ') || '—'}</p>
+          <p data-testid="lead-priority-preview-count">לידים שנבחרו: {selected.size}</p>
+          <p className="text-xs text-muted-foreground">השיוך לא משתנה. זה רק סדר בתור העבודה הבא, ולא מחליף ליד פעיל.</p>
+          {filterSummary.length > 0 && (
+            <div>
+              <p className="text-xs font-black">סינון:</p>
+              <ul className="list-disc pr-5 text-sm">
+                {filterSummary.map((line) => <li key={line}>{line}</li>)}
+              </ul>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="min-h-12 rounded-xl border border-border px-4 font-bold" onClick={() => setPriorityPreview(null)} disabled={priorityBusy}>
+              ביטול
+            </button>
+            <button
+              type="button"
+              data-testid="lead-priority-confirm"
+              className="min-h-12 rounded-xl bg-amber-600 px-4 font-bold text-white disabled:opacity-50"
+              disabled={priorityBusy || readOnly || selected.size === 0}
+              onClick={() => void runWorkPriority(priorityPreview === 'add')}
+            >
+              {priorityBusy ? 'מעדכן...' : priorityPreview === 'add' ? 'אישור' : 'אישור הסרה'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -532,6 +782,7 @@ export function LeadDirectoryBoard({
                 </th>
               )}
               <th className="p-2">מספר</th>
+              {isAdmin && <th className="p-2">עדיפות</th>}
               <th className="p-2">חברה</th>
               <th className="p-2">תחום</th>
               <th className="p-2">אזור</th>
@@ -559,6 +810,7 @@ export function LeadDirectoryBoard({
                   </td>
                 )}
                 <td className="p-2">{row.leadNumber}</td>
+                {isAdmin && <td className="p-2">{row.workPriorityAt ? '⭐' : ''}</td>}
                 <td className="p-2 font-bold">{row.companyName}</td>
                 <td className="p-2">{row.industry}</td>
                 <td className="p-2">{row.region}</td>

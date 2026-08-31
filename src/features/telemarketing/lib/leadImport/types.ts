@@ -91,6 +91,8 @@ export interface LeadDirectoryRecord {
   claimedAt: string | null;
   archivedAt: string | null;
   leadWave: 'old' | 'new';
+  /** Set only by super-admin "עדיפות לעבודה". Does not change assigned_to. */
+  workPriorityAt: string | null;
 }
 
 export interface LeadAssignmentEvent {

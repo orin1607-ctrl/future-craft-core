@@ -1,10 +1,39 @@
 import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
 import { isUsableLeadKey, leadKey } from '@/features/telemarketing/lib/leadKey';
+import { matchesContactFilter, type ContactFilter } from '@/features/telemarketing/lib/leadAssign/leadContact';
+import { matchesMacro } from '@/features/telemarketing/lib/leadAssign/leadGeo';
 
 export type AgentFilter = 'all' | 'unassigned' | 'archive' | string;
-export type DirectorySort = 'default' | 'fleet_asc' | 'fleet_desc';
+export type DirectorySort = 'default' | 'fleet_asc' | 'fleet_desc' | 'priority_first' | 'city_asc';
 export type WaveFilter = 'all' | 'old' | 'new';
 export type FleetFilter = { min: number | null; max: number | null; unknownOnly?: boolean };
+export type PriorityFilter = 'all' | 'priority' | 'not_priority';
+
+export type DirectoryExtraFilter = {
+  city: string;
+  macro: string;
+  industry: string;
+  contact: ContactFilter;
+  priority: PriorityFilter;
+};
+
+export const EMPTY_DIRECTORY_EXTRA: DirectoryExtraFilter = {
+  city: '',
+  macro: '',
+  industry: '',
+  contact: 'all',
+  priority: 'all',
+};
+
+export function extraFilterActive(extra: DirectoryExtraFilter = EMPTY_DIRECTORY_EXTRA): boolean {
+  return Boolean(
+    extra.city
+    || (extra.macro && extra.macro !== 'כל הארץ')
+    || extra.industry
+    || extra.contact !== 'all'
+    || extra.priority !== 'all',
+  );
+}
 
 /** First integer in the stored fleet text. Does not invent a size when none exists. */
 export function parseFleetSize(raw: string | null | undefined): number | null {
@@ -20,6 +49,7 @@ export function filterDirectoryRows(
   agentFilter: AgentFilter,
   fleet: FleetFilter = { min: null, max: null },
   wave: WaveFilter = 'all',
+  extra: DirectoryExtraFilter = EMPTY_DIRECTORY_EXTRA,
 ): LeadDirectoryRecord[] {
   const q = query.trim().toLowerCase();
   return rows.filter((row) => {
@@ -40,8 +70,25 @@ export function filterDirectoryRows(
       if (fleet.min != null && (size == null || size < fleet.min)) return false;
       if (fleet.max != null && (size == null || size > fleet.max)) return false;
     }
+    if (extra.city === '__none__' && String(row.region || '').trim()) return false;
+    if (extra.city && extra.city !== '__none__' && row.region !== extra.city) return false;
+    if (extra.macro && extra.macro !== 'כל הארץ' && !matchesMacro(row.region, extra.macro)) return false;
+    if (extra.industry && row.industry !== extra.industry) return false;
+    if (!matchesContactFilter(row, extra.contact)) return false;
+    if (extra.priority === 'priority' && !row.workPriorityAt) return false;
+    if (extra.priority === 'not_priority' && row.workPriorityAt) return false;
     if (!q) return true;
-    const hay = [row.leadNumber, row.companyName, row.phone, row.email, row.assignedName, row.industry, row.region, row.fleetSize]
+    const hay = [
+      row.leadNumber,
+      row.companyName,
+      row.phone,
+      row.email,
+      row.assignedName,
+      row.industry,
+      row.region,
+      row.fleetSize,
+      ...Object.values(row.extra || {}),
+    ]
       .join(' ')
       .toLowerCase();
     return hay.includes(q);
@@ -52,6 +99,14 @@ export function sortDirectoryRows(rows: LeadDirectoryRecord[], sort: DirectorySo
   if (sort === 'default') return rows;
   const copy = [...rows];
   copy.sort((a, b) => {
+    if (sort === 'city_asc') return String(a.region || '').localeCompare(String(b.region || ''), 'he');
+    if (sort === 'priority_first') {
+      const ap = a.workPriorityAt ? 0 : 1;
+      const bp = b.workPriorityAt ? 0 : 1;
+      if (ap !== bp) return ap - bp;
+      if (a.workPriorityAt && b.workPriorityAt) return a.workPriorityAt.localeCompare(b.workPriorityAt);
+      return 0;
+    }
     const fa = parseFleetSize(a.fleetSize);
     const fb = parseFleetSize(b.fleetSize);
     if (fa == null && fb == null) return 0;
@@ -67,8 +122,46 @@ export function isDirectoryFilterActive(
   agentFilter: AgentFilter,
   fleet: FleetFilter = { min: null, max: null },
   wave: WaveFilter = 'all',
+  extra: DirectoryExtraFilter = EMPTY_DIRECTORY_EXTRA,
 ): boolean {
-  return query.trim() !== '' || agentFilter !== 'all' || wave !== 'all' || Boolean(fleet.unknownOnly) || fleet.min != null || fleet.max != null;
+  return query.trim() !== '' || agentFilter !== 'all' || wave !== 'all' || Boolean(fleet.unknownOnly) || fleet.min != null || fleet.max != null || extraFilterActive(extra);
+}
+
+export function describeDirectoryFilters(opts: {
+  query: string;
+  agentFilter: AgentFilter;
+  agentName?: string;
+  fleet: FleetFilter;
+  wave: WaveFilter;
+  extra: DirectoryExtraFilter;
+}): string[] {
+  const lines: string[] = [];
+  if (opts.wave === 'new') lines.push('לידים חדשים');
+  if (opts.wave === 'old') lines.push('לידים ישנים');
+  if (opts.agentFilter === 'unassigned') lines.push('ללא עובד משויך');
+  else if (opts.agentFilter !== 'all' && opts.agentFilter !== 'archive') lines.push(`עובד: ${opts.agentName || opts.agentFilter}`);
+  if (opts.extra.macro && opts.extra.macro !== 'כל הארץ') lines.push(`אזור: ${opts.extra.macro}`);
+  if (opts.extra.city === '__none__') lines.push('ללא אזור');
+  else if (opts.extra.city) lines.push(opts.extra.city);
+  if (opts.query.trim()) lines.push(`חיפוש: ${opts.query.trim()}`);
+  if (opts.extra.industry) lines.push(`תחום: ${opts.extra.industry}`);
+  if (opts.fleet.unknownOnly) lines.push('כמות רכבים: ללא נתון');
+  else if (opts.fleet.min != null || opts.fleet.max != null) {
+    lines.push(`רכבים: ${opts.fleet.min ?? '—'}${opts.fleet.max != null ? `–${opts.fleet.max}` : '+'}`);
+  }
+  const contactLabel: Record<ContactFilter, string> = {
+    all: '',
+    mobile: 'יש נייד',
+    landline: 'יש טלפון',
+    both: 'יש טלפון ונייד',
+    email: 'יש מייל',
+    no_phone: 'חסר טלפון',
+    full: 'פרטי קשר מלאים',
+  };
+  if (opts.extra.contact !== 'all') lines.push(contactLabel[opts.extra.contact]);
+  if (opts.extra.priority === 'priority') lines.push('כבר בעדיפות לעבודה');
+  if (opts.extra.priority === 'not_priority') lines.push('לא בעדיפות');
+  return lines;
 }
 
 export function selectAllLabel(filteredCount: number, totalCount: number, filterActive: boolean): string {
@@ -99,6 +192,38 @@ function asKeySet(values: Iterable<string>): Set<string> {
     if (isUsableLeadKey(value)) out.add(value);
   }
   return out;
+}
+
+export function summarizeWorkPriority(
+  rows: LeadDirectoryRecord[],
+  hints: LeadActivityHints,
+): { total: number; untreated: number; inProgress: number; completed: number } {
+  const activityKeys = asKeySet(hints.callKeys);
+  for (const state of hints.stateKeys) {
+    if (isUsableLeadKey(state.key)) activityKeys.add(state.key);
+  }
+  const openKeys = asKeySet(hints.openFollowupKeys);
+  for (const state of hints.stateKeys) {
+    if (state.color === 'yellow' && isUsableLeadKey(state.key)) openKeys.add(state.key);
+  }
+  const twoHours = 2 * 60 * 60 * 1000;
+  const now = Date.now();
+  let total = 0;
+  let untreated = 0;
+  let inProgress = 0;
+  let completed = 0;
+  for (const row of rows) {
+    if (!row.workPriorityAt || row.archivedAt) continue;
+    total += 1;
+    const key = leadKey(row.phone, row.companyName);
+    const hadActivity = isUsableLeadKey(key) && activityKeys.has(key);
+    const claimedFresh = Boolean(row.claimedBy && row.claimedAt && now - Date.parse(row.claimedAt) < twoHours);
+    const open = isUsableLeadKey(key) && openKeys.has(key);
+    if (hadActivity) completed += 1;
+    if (claimedFresh || open) inProgress += 1;
+    if (!hadActivity && !claimedFresh && !open) untreated += 1;
+  }
+  return { total, untreated, inProgress, completed };
 }
 
 /** Per-agent counts from directory + existing call/state/follow-up keys. Unique by directory row. */
