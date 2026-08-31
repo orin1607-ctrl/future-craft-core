@@ -1,0 +1,259 @@
+{
+  "at": "2026-08-31T19:27:27.223Z",
+  "claim": "DAL-2026-0004",
+  "inserted": 0,
+  "documentsTouched": 0,
+  "mailboxMutated": false,
+  "beforeImports": 30,
+  "afterImports": 30,
+  "beforeDocs": 182,
+  "afterDocs": 182,
+  "updated": 30,
+  "failed": 0,
+  "withTo": 30,
+  "withCc": 0,
+  "otherClaimImports": 0,
+  "otherClaimDocs": 0,
+  "results": [
+    {
+      "id": "GIM-DAL-2026-0004-19f5fc9c2ab2e883",
+      "messageId": "19f5fc9c2ab2e883",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19e441875a006dfc",
+      "messageId": "19e441875a006dfc",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19e43f088c76a381",
+      "messageId": "19e43f088c76a381",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19e3b47d12070122",
+      "messageId": "19e3b47d12070122",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19e3b46321e3957a",
+      "messageId": "19e3b46321e3957a",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c3ca58c756b882",
+      "messageId": "19c3ca58c756b882",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c189a68d1efdfb",
+      "messageId": "19c189a68d1efdfb",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c518f2299d1766",
+      "messageId": "19c518f2299d1766",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19e3b46efbfbf306",
+      "messageId": "19e3b46efbfbf306",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c3ca84b36e4c17",
+      "messageId": "19c3ca84b36e4c17",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c18ba299b359b0",
+      "messageId": "19c18ba299b359b0",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-199f93a4b4f7cb8c",
+      "messageId": "199f93a4b4f7cb8c",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c18980d9f4d5a2",
+      "messageId": "19c18980d9f4d5a2",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19bcff3347e04ccf",
+      "messageId": "19bcff3347e04ccf",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c1897793613327",
+      "messageId": "19c1897793613327",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c1895573166c9d",
+      "messageId": "19c1895573166c9d",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19bc16c6e9d24e6e",
+      "messageId": "19bc16c6e9d24e6e",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19bc118a18a5e98c",
+      "messageId": "19bc118a18a5e98c",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19bc10e0c178ac80",
+      "messageId": "19bc10e0c178ac80",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19bbc91f664c9a0e",
+      "messageId": "19bbc91f664c9a0e",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-199fb37620c492b7",
+      "messageId": "199fb37620c492b7",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19e3b3f7d1f400b5",
+      "messageId": "19e3b3f7d1f400b5",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-199fb3589a617408",
+      "messageId": "199fb3589a617408",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c84b35d10f3b1b",
+      "messageId": "19c84b35d10f3b1b",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-199edb88515f0fde",
+      "messageId": "199edb88515f0fde",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-199e735dfa6fcbc0",
+      "messageId": "199e735dfa6fcbc0",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c84b426f694ff7",
+      "messageId": "19c84b426f694ff7",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c604a277c194fd",
+      "messageId": "19c604a277c194fd",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c51f4aca8571d5",
+      "messageId": "19c51f4aca8571d5",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    },
+    {
+      "id": "GIM-DAL-2026-0004-19c4c2ea3cbcd109",
+      "messageId": "19c4c2ea3cbcd109",
+      "ok": true,
+      "to": true,
+      "cc": false,
+      "error": null
+    }
+  ]
+}

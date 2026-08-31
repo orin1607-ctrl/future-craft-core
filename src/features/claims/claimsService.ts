@@ -10,6 +10,7 @@ export type MailJobRow = {
   preview?: Record<string, unknown> | null;
   finished_at?: string | null;
   created_at?: string;
+  retry_count?: number;
 };
 
 export type MailFollowupRow = {
@@ -131,7 +132,7 @@ export function createClaimsApi(actor: ClaimsActor) {
     const { data, error } = await tbl('claims_records')
       .select('id, vehicle_id, plate, client_name, status, company_name, row_data, created_by, created_by_name, updated_by_name, assigned_to, assigned_to_name, assigned_at, created_at, updated_at, last_activity_at, gmail_message_id, gmail_thread_id')
       .order('updated_at', { ascending: false });
-    if (error) return [];
+    if (error) throw new Error(error.message);
     return ((data || []) as Array<Record<string, unknown>>).map((r) => {
       const row = rowFromData(r.row_data as Record<string, unknown>);
       row.id = asText(r.id);
@@ -183,7 +184,11 @@ export function createClaimsApi(actor: ClaimsActor) {
     },
 
     async getClaims() {
-      return { success: true, data: await getAllClaims() };
+      try {
+        return { success: true, data: await getAllClaims() };
+      } catch (e) {
+        return { success: false, error: String((e as Error).message || e), data: [] as ClaimRecord[] };
+      }
     },
 
     async saveClaim(data: Record<string, string>) {
@@ -337,6 +342,12 @@ export function createClaimsApi(actor: ClaimsActor) {
       return { success: true };
     },
 
+    async retryMailFollowup(id: string) {
+      const { data, error } = await supabase.rpc('claims_retry_mail_followup' as never, { p_id: id } as never);
+      if (error) return { success: false, error: error.message, realEmailSend: false };
+      return { success: true, realEmailSend: false, ...(data as Record<string, unknown>) };
+    },
+
     async listMailFollowups(claimId: string) {
       const { data: rems, error: remErr } = await tbl('claims_reminders')
         .select('id, claim_id, action, mail_kind, mail_to, mail_subject, mail_body, attach_mode, repeat_every_days, stop_at, next_run_at, status, allow_on_closed, created_by, cancelled_at, created_at, row_data')
@@ -345,7 +356,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         .order('created_at', { ascending: false });
       if (remErr) return { success: false, data: [] as MailFollowupRow[] };
       const { data: jobs } = await tbl('claims_mail_jobs')
-        .select('id, reminder_id, planned_at, status, fail_reason, preview, finished_at, created_at')
+        .select('id, reminder_id, planned_at, status, fail_reason, preview, finished_at, created_at, retry_count')
         .eq('claim_id', claimId)
         .order('planned_at', { ascending: false });
       const jobRows = (jobs || []) as MailJobRow[];
@@ -541,6 +552,37 @@ export function createClaimsApi(actor: ClaimsActor) {
       return this.saveClaim({ ...c, status, closeReason, closeNote: closeNote || '' });
     },
 
+    async exportExternalSummary(claimId: string, extra?: { mailBody?: string; docNames?: string[] }) {
+      const c = await getClaimById(claimId);
+      if (!c) return { success: false, error: 'תיק לא נמצא', text: '' };
+      const lines = [
+        '══════════════════════════════════════════════',
+        '  סיכום חיצוני לתביעה — מותר להעברה',
+        '  (ללא הערות פנימיות / היסטוריית עובדים)',
+        '══════════════════════════════════════════════',
+        `מספר תיק:      ${c.id}`,
+        `לקוח:          ${c.clientName || '—'}`,
+        `רכב:           ${c.plate || '—'} ${c.carModel || ''}`.trim(),
+        `תאריך אירוע:   ${c.eventDate || '—'}`,
+        `סוג תביעה:     ${c.claimKind || '—'}`,
+        `חברת ביטוח:    ${c.insCompany || '—'}`,
+        `מספר תביעה:    ${c.claimNum || '—'}`,
+        `פוליסה:        ${c.policyNum || '—'}`,
+        `שמאי:          ${c.surveyor || '—'}`,
+        `סכום תביעה:    ${c.finAmount || '—'}₪`,
+        `סטטוס:         ${c.status || '—'}`,
+        '',
+      ];
+      if (extra?.mailBody) {
+        lines.push('── תוכן מייל מיובא ──', extra.mailBody.slice(0, 4000), '');
+      }
+      if (extra?.docNames?.length) {
+        lines.push('── מסמכים מצורפים ──', ...extra.docNames.map((n) => `• ${n}`), '');
+      }
+      lines.push(`הופק: ${nowHe()}`);
+      return { success: true, text: lines.join('\n'), claimId, kind: 'external' as const };
+    },
+
     async exportClaimSummary(claimId: string) {
       const c = await getClaimById(claimId);
       if (!c) return { success: false, error: 'תיק לא נמצא' };
@@ -549,7 +591,7 @@ export function createClaimsApi(actor: ClaimsActor) {
       const tasks = (await loadChild('claims_tasks', claimId));
       const lines = [
         '══════════════════════════════════════════════',
-        '  דליה – ניהול תביעות | סיכום תיק מלא',
+        '  היסטוריה פנימית — לא לשלוח לחברת ביטוח / עו"ד',
         '══════════════════════════════════════════════',
         `מספר תיק:      ${c.id}`,
         `נפתח:          ${c.createdAt || '—'}`,
@@ -631,23 +673,24 @@ export function createClaimsApi(actor: ClaimsActor) {
     async importGmailMessage(claimId: string, messageId: string) {
       let start = 0;
       let last: Record<string, unknown> = {};
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 40; i++) {
         const r = await this.invokeGmail('import_message', { claim_id: claimId, message_id: messageId, start });
         last = r;
         if (!r.success) return r;
         if (r.done) return r;
         start = Number(r.start || 0);
       }
-      return last;
+      return { ...last, success: false, error: 'import_incomplete', hint: 'יותר מדי קבצים לסבב אחד — לחץ שוב לייבוא להשלמת היתרה' };
     },
 
-    async staffUpload(claimId: string, docRequestId: string, file: File) {
+    async staffUpload(claimId: string, docRequestId: string, file: File, extra?: { doc_kind?: string }) {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       const form = new FormData();
       form.set('action', 'staff_upload');
       form.set('claim_id', claimId);
-      form.set('doc_request_id', docRequestId);
+      if (docRequestId) form.set('doc_request_id', docRequestId);
+      if (extra?.doc_kind) form.set('doc_kind', extra.doc_kind);
       form.set('file', file);
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`, {
         method: 'POST',

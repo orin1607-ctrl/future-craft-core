@@ -105,7 +105,34 @@
 .claims-root .fu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:8px 0;font-size:12px}
 .claims-root .fu-grid b{display:block;font-size:10px;color:var(--t3)}
 .claims-root .fu-prev{background:var(--bg2);border:1px dashed var(--br2);border-radius:7px;padding:10px;font-size:12px;margin-top:8px}
-.claims-root .fu-prev pre{white-space:pre-wrap;font-family:inherit;font-size:12px;margin:6px 0;color:var(--t2)}
+.claims-root .gmail-card{background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:10px;margin-bottom:8px}
+.claims-root .mail-body{white-space:pre-wrap;font-family:inherit;font-size:12px;line-height:1.6;background:var(--bg2);border:1px dashed var(--br2);border-radius:7px;padding:8px;margin:6px 0;color:var(--t2);max-height:360px;overflow:auto}
+.claims-root .thread-box{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:10px;margin-bottom:12px}
+.claims-root .thread-h{font-size:11px;font-weight:800;color:var(--t3);margin-bottom:8px}
+.claims-root .mail-meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 10px;font-size:12px;margin-bottom:8px}
+.claims-root .mail-meta b{display:block;font-size:10px;color:var(--t3)}
+.claims-root .gal-box{background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:10px;margin-bottom:8px}
+.claims-root .gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:8px 0}
+.claims-root .gal-item{background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:0;overflow:hidden;cursor:pointer;min-height:90px;color:var(--t3);font-size:10px}
+.claims-root .gal-item img{width:100%;height:90px;object-fit:cover;display:block}
+.claims-root .kind-pill{display:inline-block;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;margin-inline-start:6px;vertical-align:middle}
+.claims-root .kind-pill.surveyor{background:rgba(59,130,246,.14);color:var(--ac3);border:1px solid rgba(59,130,246,.28)}
+.claims-root .kind-pill.invoice{background:rgba(245,158,11,.14);color:var(--yn2);border:1px solid rgba(245,158,11,.28)}
+.claims-root .spec-empty{background:var(--bg3);border:1px dashed var(--br2);border-radius:8px;padding:16px;color:var(--t3);font-size:13px;line-height:1.55;margin-bottom:10px}
+.claims-root .doc-preview-wrap{margin-top:10px;background:var(--bg2);border:1px solid var(--br2);border-radius:8px;overflow:hidden}
+.claims-root .doc-preview-bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--br);font-size:12px}
+.claims-root .doc-preview-bar b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.claims-root .doc-preview-frame{width:100%;height:min(70vh,640px);border:0;background:#111}
+.claims-root .doc-preview-img{display:block;max-width:100%;max-height:min(70vh,640px);margin:0 auto}
+.claims-root .pick-cat{margin-bottom:8px}
+.claims-root .pick-cat-h{display:flex;align-items:center;gap:6px;font-weight:800;font-size:12px;margin-bottom:4px}
+.claims-root .pick-list{max-height:140px;overflow:auto;border:1px solid var(--br);border-radius:7px;padding:4px 8px;background:var(--bg2)}
+.claims-root .pick-row{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}
+.claims-root .pick-row span:nth-child(2){flex:1}
+.claims-root .pick-sz{color:var(--t3);font-size:10px}
+.claims-root .pkg-bar{margin-top:10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:8px}
+.claims-root .pkg-bar.over{border-color:#ef4444;color:#fecaca}
+.claims-root .pkg-warn{margin-top:4px;font-weight:700}
 .claims-root .ab{display:flex;align-items:center;gap:3px;padding:9px 18px;border-bottom:1px solid var(--br);background:var(--bg3);flex-wrap:wrap}
 .claims-root .ab-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:var(--r2);border:none;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
 .claims-root .ab-sep{width:1px;height:22px;background:var(--br2);margin:0 3px}

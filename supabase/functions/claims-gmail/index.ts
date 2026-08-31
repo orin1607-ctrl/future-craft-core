@@ -13,10 +13,13 @@ const SCOPES = [
   "https://www.googleapis.com/auth/gmail.compose",
 ];
 const BUCKET = "claims-docs";
-const MAX_ATTACH = 80;
+const MAX_ATTACH = 400;
 const MAX_BYTES = 12 * 1024 * 1024;
 const BATCH = 12;
+const PACKAGE_LIMIT = 18 * 1024 * 1024;
 const ALLOWED_MIME = /^(image\/(jpeg|png|webp|gif|heic|heif)|application\/pdf)$/i;
+
+type Failure = { filename: string; reason: string };
 
 function admin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -97,10 +100,34 @@ function b64urlToBytes(data: string) {
   return out;
 }
 
+async function sha256HexBytes(bytes: Uint8Array) {
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function guessDocKind(filename: string, mime: string, subject: string) {
+  const fileHay = `${filename || ""}`.toLowerCase();
+  const subj = `${subject || ""}`.toLowerCase();
+  const img = String(mime || "").startsWith("image/") || /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(fileHay);
+  const surv = /שמאי|שמאות|survey/.test(subj) || /שמאי|שמאות|survey/.test(fileHay);
+  const invoice = /חשבונ|invoice|קבלה|receipt/.test(fileHay) || /חשבונ|invoice/.test(subj);
+  const garage = /מוסך|garage/.test(fileHay) || /מוסך/.test(subj);
+  if (invoice && garage) return "garage_invoice";
+  if (surv && img) return "surveyor_photo";
+  if (surv && !img) return "surveyor_report";
+  return "general";
+}
+
 function bytesToB64url(bytes: Uint8Array) {
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function bytesToB64(bytes: Uint8Array) {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
 }
 
 function walkParts(part: Record<string, unknown>, acc: Array<Record<string, unknown>>) {
@@ -119,12 +146,206 @@ function decodeBody(part: Record<string, unknown> | undefined) {
   }
 }
 
+function htmlToText(html: string) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|h[1-6]|li|blockquote|table)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+async function decodePartBody(access: string, messageId: string, part: Record<string, unknown> | undefined) {
+  if (!part) return "";
+  const body = (part.body || {}) as { data?: string; attachmentId?: string };
+  if (body.data) {
+    try { return new TextDecoder().decode(b64urlToBytes(body.data)); } catch { return ""; }
+  }
+  if (body.attachmentId) {
+    try {
+      const att = await gmailGet(access, `messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(body.attachmentId)}`);
+      return new TextDecoder().decode(b64urlToBytes(String(att.data || "")));
+    } catch {
+      return "";
+    }
+  }
+  return "";
+}
+
+function mimeOf(p: Record<string, unknown>) {
+  return String(p.mimeType || "").toLowerCase();
+}
+
+async function extractMailBody(
+  access: string,
+  messageId: string,
+  payload: Record<string, unknown> | undefined,
+  parts: Array<Record<string, unknown>>,
+  snippet = "",
+) {
+  let html = "";
+  let text = "";
+  for (const p of parts) {
+    const mime = mimeOf(p);
+    if (mime.startsWith("text/html")) {
+      const d = await decodePartBody(access, messageId, p);
+      if (d.length > html.length) html = d;
+    } else if (mime.startsWith("text/plain") && !String(p.filename || "").trim()) {
+      const d = await decodePartBody(access, messageId, p);
+      if (d.length > text.length) text = d;
+    }
+  }
+  const fromHtml = html ? htmlToText(html) : "";
+  const fromText = text.replace(/^[\s\r\n]+$/, "").trim();
+  const readable = (fromHtml.length >= fromText.length ? fromHtml : fromText) || fromHtml || fromText;
+  if (readable) return { bodyText: readable.slice(0, 20000), bodyHtml: html.slice(0, 40000) };
+  const root = payload ? await decodePartBody(access, messageId, payload) : "";
+  const rootText = htmlToText(root) || root.replace(/^[\s\r\n]+$/, "").trim();
+  if (rootText) return { bodyText: rootText.slice(0, 20000), bodyHtml: html.slice(0, 40000) };
+  const snip = String(snippet || "").trim();
+  if (snip) return { bodyText: snip.slice(0, 20000), bodyHtml: html.slice(0, 40000) };
+  if (html.trim() || text.trim()) {
+    const note = "המייל התקבל ללא טקסט בגוף — רק מצורפים.\n\n--- מקור HTML מהמייל ---\n" + html.slice(0, 4000);
+    return { bodyText: note.slice(0, 20000), bodyHtml: html.slice(0, 40000), emptyBody: true };
+  }
+  return { bodyText: "", bodyHtml: html.slice(0, 40000) };
+}
+
+function collectFiles(parts: Array<Record<string, unknown>>) {
+  const out: Array<{ filename: string; mime: string; attachmentId: string; inline?: string; part: Record<string, unknown> }> = [];
+  let unnamed = 0;
+  for (const p of parts) {
+    const mime = String(p.mimeType || "");
+    if (mime.startsWith("text/plain") || mime.startsWith("text/html") || mime.startsWith("multipart/")) continue;
+    const rawName = String(p.filename || "").trim();
+    const body = (p.body || {}) as { attachmentId?: string; data?: string; size?: number };
+    const attId = String(body.attachmentId || "");
+    const inline = body.data || "";
+    if (!rawName && !attId && !inline) continue;
+    if (!rawName && !(attId || inline) ) continue;
+    if (!rawName && !ALLOWED_MIME.test(mime) && !mime.startsWith("image/") && mime !== "application/pdf") continue;
+    unnamed += rawName ? 0 : 1;
+    const ext = mime.includes("pdf") ? "pdf" : mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
+    const filename = rawName || `image-${unnamed}.${ext}`;
+    out.push({ filename, mime: mime || "application/octet-stream", attachmentId: attId, inline, part: p });
+  }
+  return out.slice(0, MAX_ATTACH);
+}
+
 function sanitizeName(name: string) {
   const dot = name.lastIndexOf(".");
   const base = dot > 0 ? name.slice(0, dot) : name;
   const ext = dot > 0 ? name.slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, "") : "";
   const safe = base.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_+/g, "_").slice(0, 60) || "file";
   return ext ? `${safe}.${ext}` : safe;
+}
+
+function rfc2047(s: string) {
+  if (!s) return "";
+  if (/^[\x20-\x7E]+$/.test(s)) return s;
+  return `=?UTF-8?B?${bytesToB64(new TextEncoder().encode(s))}?=`;
+}
+
+function packageSuggestion(bytes: number) {
+  if (bytes <= PACKAGE_LIMIT) return "";
+  return "החבילה גדולה מדי למייל אחד. בחר פחות תמונות, פצל לכמה טיוטות, או שלח קודם את המסמכים (PDF) ואחר כך את התמונות בקבוצות.";
+}
+
+function parseEmails(raw: string): string[] {
+  return String(raw || "")
+    .split(/[,;]/)
+    .map((s) => {
+      const m = String(s).match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+      return (m?.[0] || "").toLowerCase();
+    })
+    .filter(Boolean);
+}
+
+function assertSelfAllowlist(raw: string, required: boolean) {
+  const emails = parseEmails(raw);
+  if (!emails.length) return required ? { ok: false as const, emails, error: "recipient_required" } : { ok: true as const, emails };
+  if (emails.some((e) => e !== ALLOWED_ACCOUNT)) {
+    return { ok: false as const, emails, error: "recipient_not_allowlisted" };
+  }
+  return { ok: true as const, emails };
+}
+
+async function gmailPost(access: string, path: string, payload: Record<string, unknown>) {
+  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${access}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  return { ok: res.ok, status: res.status, json };
+}
+
+async function encodeMixedMessage(
+  sb: ReturnType<typeof admin>,
+  opts: {
+    to: string;
+    cc: string;
+    subject: string;
+    text: string;
+    extraHeaders?: string[];
+    files: Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string }>;
+  },
+) {
+  const packageBytes = opts.files.reduce((s, f) => s + Number(f.byte_size || 0), 0);
+  if (packageBytes > PACKAGE_LIMIT) {
+    return { error: "package_too_large" as const, packageBytes };
+  }
+  const boundary = `mix_${crypto.randomUUID().replace(/-/g, "")}`;
+  const chunks: string[] = [
+    `To: ${opts.to}`,
+    ...(opts.cc ? [`Cc: ${opts.cc}`] : []),
+    `Subject: ${rfc2047(opts.subject)}`,
+    ...(opts.extraHeaders || []),
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    bytesToB64(new TextEncoder().encode(opts.text)),
+  ];
+  const attached: Array<{ id: string; name: string; bytes: number }> = [];
+  for (const f of opts.files) {
+    const { data: blob, error: dlErr } = await sb.storage.from(BUCKET).download(f.storage_path);
+    if (dlErr || !blob) {
+      return { error: "attachment_download_failed" as const, filename: f.original_name, reason: dlErr?.message || "empty" };
+    }
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const mime = f.mime_type || "application/octet-stream";
+    const safe = sanitizeName(f.original_name || "file");
+    chunks.push(
+      `--${boundary}`,
+      `Content-Type: ${mime}; name="${safe}"`,
+      `Content-Disposition: attachment; filename="${safe}"`,
+      "Content-Transfer-Encoding: base64",
+      "",
+      bytesToB64(bytes),
+    );
+    attached.push({ id: f.id, name: f.original_name, bytes: bytes.byteLength });
+  }
+  chunks.push(`--${boundary}--`);
+  const raw = chunks.join("\r\n");
+  return {
+    encoded: bytesToB64url(new TextEncoder().encode(raw)),
+    attached,
+    packageBytes,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -178,6 +399,7 @@ Deno.serve(async (req) => {
 
   if (action === "status") {
     const conn = await loadConnection(sb);
+    const { count: selfTestCount } = await sb.from("claims_gmail_outbox").select("id", { count: "exact", head: true }).eq("kind", "self_test");
     return jsonResponse({
       success: true,
       connected: !!conn,
@@ -185,6 +407,7 @@ Deno.serve(async (req) => {
       accountExpected: ALLOWED_ACCOUNT,
       sendEnabled: false,
       realEmailSend: false,
+      selfTestSendUsed: Number(selfTestCount || 0) > 0,
       scopes: SCOPES,
       canConnect: role === "super_admin",
     });
@@ -212,8 +435,47 @@ Deno.serve(async (req) => {
     if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
       return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
     }
-    const { data } = await sb.from("claims_gmail_imports").select("id, gmail_message_id, gmail_thread_id, from_addr, subject, snippet, sent_at, attachment_count, imported_by_name, created_at").eq("claim_id", claimId).order("created_at", { ascending: false });
+    const { data } = await sb.from("claims_gmail_imports")
+      .select("id, gmail_message_id, gmail_thread_id, from_addr, to_addr, cc_addr, subject, snippet, body_text, sent_at, attachment_count, found_count, imported_count, failed_count, failures, imported_by_name, created_at")
+      .eq("claim_id", claimId)
+      .order("sent_at", { ascending: true });
     return jsonResponse({ success: true, data: data || [] });
+  }
+
+  if (action === "package_preview") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const ids = Array.isArray(body.file_ids) ? body.file_ids.map((x) => String(x)).filter(Boolean) : [];
+    if (!ids.length) {
+      return jsonResponse({
+        success: true,
+        packageBytes: 0,
+        limitBytes: PACKAGE_LIMIT,
+        overLimit: false,
+        files: [],
+        suggestion: "",
+        realEmailSend: false,
+      });
+    }
+    const { data: files } = await sb.from("claims_documents")
+      .select("id, original_name, mime_type, byte_size")
+      .eq("claim_id", claimId)
+      .in("id", ids);
+    const rows = files || [];
+    const packageBytes = rows.reduce((s, f) => s + Number(f.byte_size || 0), 0);
+    const overLimit = packageBytes > PACKAGE_LIMIT;
+    return jsonResponse({
+      success: true,
+      packageBytes,
+      limitBytes: PACKAGE_LIMIT,
+      overLimit,
+      files: rows.map((f) => ({ id: f.id, name: f.original_name, bytes: Number(f.byte_size || 0), mime: f.mime_type })),
+      missing: ids.filter((id) => !rows.some((f) => f.id === id)),
+      suggestion: packageSuggestion(packageBytes),
+      realEmailSend: false,
+    });
   }
 
   const conn = await loadConnection(sb);
@@ -239,7 +501,7 @@ Deno.serve(async (req) => {
     const listed = await gmailGet(access, `messages?maxResults=20&q=${encodeURIComponent(q)}`);
     const messages: Array<Record<string, unknown>> = [];
     for (const m of (listed.messages || []).slice(0, 20)) {
-      const full = await gmailGet(access, `messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`);
+      const full = await gmailGet(access, `messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date`);
       const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
       messages.push({
         id: full.id,
@@ -254,6 +516,59 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, messages, mailboxMutated: false, realEmailSend: false });
   }
 
+  if (action === "enrich_headers") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const { data: rows } = await sb.from("claims_gmail_imports")
+      .select("id, gmail_message_id")
+      .eq("claim_id", claimId);
+    const existing = rows || [];
+    let updated = 0;
+    let missing = 0;
+    const errors: Array<{ id: string; error: string }> = [];
+    for (const row of existing) {
+      const messageId = String(row.gmail_message_id || "");
+      if (!messageId) continue;
+      try {
+        const full = await gmailGet(
+          access,
+          `messages/${encodeURIComponent(messageId)}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date`,
+        );
+        const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+        const patch: Record<string, string | null> = {
+          to_addr: header(headers, "To") || null,
+          cc_addr: header(headers, "Cc") || null,
+        };
+        if (header(headers, "From")) patch.from_addr = header(headers, "From");
+        const { data: touched, error: upErr } = await sb.from("claims_gmail_imports")
+          .update(patch)
+          .eq("id", row.id)
+          .eq("claim_id", claimId)
+          .eq("gmail_message_id", messageId)
+          .select("id");
+        if (upErr) errors.push({ id: row.id, error: upErr.message });
+        else if (touched?.length) updated += 1;
+      } catch (e) {
+        missing += 1;
+        errors.push({ id: row.id, error: String((e as Error).message || e) });
+      }
+    }
+    return jsonResponse({
+      success: true,
+      claim_id: claimId,
+      existing: existing.length,
+      updated,
+      missing,
+      inserted: 0,
+      documentsTouched: 0,
+      mailboxMutated: false,
+      realEmailSend: false,
+      errors: errors.slice(0, 20),
+    });
+  }
+
   if (action === "read_message") {
     const claimId = String(body.claim_id || "");
     if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
@@ -265,26 +580,34 @@ Deno.serve(async (req) => {
     const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
     const parts: Array<Record<string, unknown>> = [];
     if (full.payload) walkParts(full.payload as Record<string, unknown>, parts);
-    const files = parts
-      .filter((p) => p.filename)
-      .map((p) => ({
-        filename: String(p.filename),
-        mime: String(p.mimeType || ""),
-        size: Number((p.body as { size?: number } | undefined)?.size || 0),
-        attachmentId: (p.body as { attachmentId?: string } | undefined)?.attachmentId || "",
-      }));
-    const htmlPart = parts.find((p) => p.mimeType === "text/html");
-    const textPart = parts.find((p) => p.mimeType === "text/plain");
+    const files = collectFiles(parts);
+    const extracted = await extractMailBody(access, messageId, full.payload as Record<string, unknown>, parts, String(full.snippet || ""));
     return jsonResponse({
       success: true,
       message: {
         id: full.id,
         threadId: full.threadId,
         from: header(headers, "From"),
+        to: header(headers, "To"),
         subject: header(headers, "Subject"),
         date: header(headers, "Date"),
-        bodyText: decodeBody(textPart) || decodeBody(htmlPart).replace(/<[^>]+>/g, " ").slice(0, 8000),
-        attachments: files,
+        messageIdHeader: header(headers, "Message-ID") || header(headers, "Message-Id"),
+        labelIds: Array.isArray(full.labelIds) ? full.labelIds : [],
+        cc: header(headers, "Cc"),
+        bodyText: extracted.bodyText,
+        bodyHtml: extracted.bodyHtml?.slice(0, 4000) || "",
+        partsMeta: parts.slice(0, 40).map((p) => ({
+          mime: String(p.mimeType || ""),
+          filename: String(p.filename || ""),
+          size: Number((p.body as { size?: number } | undefined)?.size || 0),
+          hasData: Boolean((p.body as { data?: string } | undefined)?.data),
+        })),
+        attachments: files.map((f) => ({
+          filename: f.filename,
+          mime: f.mime,
+          size: Number((f.part.body as { size?: number } | undefined)?.size || 0),
+          attachmentId: f.attachmentId,
+        })),
       },
       mailboxMutated: false,
       realEmailSend: false,
@@ -305,83 +628,157 @@ Deno.serve(async (req) => {
     const full = await gmailGet(access, `messages/${encodeURIComponent(messageId)}?format=full`);
     const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
     const threadId = String(full.threadId || "");
+    const subject = header(headers, "Subject");
     const parts: Array<Record<string, unknown>> = [];
     if (full.payload) walkParts(full.payload as Record<string, unknown>, parts);
-    const files = parts.filter((p) => String(p.filename || "").trim());
-    const htmlPart = parts.find((p) => p.mimeType === "text/html");
-    const textPart = parts.find((p) => p.mimeType === "text/plain");
-    const bodyText = decodeBody(textPart) || decodeBody(htmlPart).replace(/<[^>]+>/g, " ").slice(0, 12000);
+    const files = collectFiles(parts);
+    const extracted = await extractMailBody(access, messageId, full.payload as Record<string, unknown>, parts, String(full.snippet || ""));
+    const importId = `GIM-${claimId}-${String(full.id)}`.slice(0, 80);
 
     if (start === 0) {
       await sb.from("claims_gmail_imports").upsert({
-        id: `GIM-${claimId}-${String(full.id)}`.slice(0, 80),
+        id: importId,
         claim_id: claimId,
         gmail_message_id: String(full.id),
         gmail_thread_id: threadId,
         from_addr: header(headers, "From"),
-        subject: header(headers, "Subject"),
-        snippet: full.snippet || "",
-        body_text: bodyText,
+        to_addr: header(headers, "To"),
+        cc_addr: header(headers, "Cc") || null,
+        subject,
+        snippet: (full.snippet || extracted.bodyText.slice(0, 180)),
+        body_text: extracted.bodyText,
         sent_at: full.internalDate ? new Date(Number(full.internalDate)).toISOString() : null,
-        attachment_count: Math.min(files.length, MAX_ATTACH),
+        attachment_count: files.length,
+        found_count: files.length,
+        imported_count: 0,
+        failed_count: 0,
+        failures: [],
         imported_by: user.id,
         imported_by_name: actorName,
       }, { onConflict: "id" });
-      await sb.from("claims_records").update({
-        gmail_message_id: String(full.id),
-        gmail_thread_id: threadId,
-        last_activity_at: new Date().toISOString(),
-      }).eq("id", claimId);
+      const { data: rec } = await sb.from("claims_records").select("gmail_message_id").eq("id", claimId).maybeSingle();
+      if (!rec?.gmail_message_id) {
+        await sb.from("claims_records").update({
+          gmail_message_id: String(full.id),
+          gmail_thread_id: threadId,
+          last_activity_at: new Date().toISOString(),
+        }).eq("id", claimId);
+      } else {
+        await sb.from("claims_records").update({ last_activity_at: new Date().toISOString() }).eq("id", claimId);
+      }
+    } else if (extracted.bodyText) {
+      await sb.from("claims_gmail_imports").update({
+        body_text: extracted.bodyText,
+        snippet: (full.snippet || extracted.bodyText.slice(0, 180)),
+      }).eq("id", importId).eq("claim_id", claimId);
     }
 
-    const slice = files.slice(start, Math.min(files.length, start + BATCH, MAX_ATTACH));
+    const { data: existingRows } = await sb.from("claims_documents").select("id, original_name, byte_size, gmail_attachment_id, gmail_message_id, content_sha256").eq("claim_id", claimId);
+    const haveAtt = new Set((existingRows || []).map((r) => String(r.gmail_attachment_id || "")).filter(Boolean));
+    const haveHash = new Set((existingRows || []).map((r) => String(r.content_sha256 || "")).filter(Boolean));
+    const haveMsgAtt = new Set((existingRows || []).filter((r) => r.gmail_attachment_id).map((r) => `${r.gmail_message_id || ""}:${r.gmail_attachment_id}`));
+
+    const slice = files.slice(start, Math.min(files.length, start + BATCH));
     let uploaded = 0;
-    for (const p of slice) {
-      const filename = sanitizeName(String(p.filename));
-      const mime = String(p.mimeType || "application/octet-stream");
-      const attId = (p.body as { attachmentId?: string; data?: string } | undefined)?.attachmentId;
-      const inline = (p.body as { data?: string } | undefined)?.data;
-      let bytes: Uint8Array | null = null;
-      if (inline) bytes = b64urlToBytes(inline);
-      else if (attId) {
-        const att = await gmailGet(access, `messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attId)}`);
-        bytes = b64urlToBytes(String(att.data || ""));
+    let skippedExisting = 0;
+    const failures: Failure[] = [];
+    for (const f of slice) {
+      const filename = f.filename;
+      const mime = f.mime;
+      if ((f.attachmentId && haveAtt.has(f.attachmentId)) || haveMsgAtt.has(`${full.id}:${f.attachmentId || ""}`)) {
+        skippedExisting += 1;
+        continue;
       }
-      if (!bytes || bytes.byteLength === 0) continue;
-      if (bytes.byteLength > MAX_BYTES) continue;
-      if (mime && !ALLOWED_MIME.test(mime) && !/\.(jpg|jpeg|png|gif|webp|pdf|heic)$/i.test(filename)) continue;
-      const path = `${claimId}/gmail/${full.id}/${nid("F")}-${filename}`;
+      let bytes: Uint8Array | null = null;
+      try {
+        if (f.inline) bytes = b64urlToBytes(f.inline);
+        else if (f.attachmentId) {
+          const att = await gmailGet(access, `messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(f.attachmentId)}`);
+          bytes = b64urlToBytes(String(att.data || ""));
+        }
+      } catch (e) {
+        failures.push({ filename, reason: `download_error: ${String((e as Error).message || e).slice(0, 180)}` });
+        continue;
+      }
+      if (!bytes || bytes.byteLength === 0) {
+        failures.push({ filename, reason: "empty" });
+        continue;
+      }
+      if (bytes.byteLength > MAX_BYTES) {
+        failures.push({ filename, reason: `too_large:${bytes.byteLength}` });
+        continue;
+      }
+      if (mime && !ALLOWED_MIME.test(mime) && !/\.(jpg|jpeg|png|gif|webp|pdf|heic)$/i.test(filename)) {
+        failures.push({ filename, reason: `mime_not_allowed:${mime || "unknown"}` });
+        continue;
+      }
+      const digest = await sha256HexBytes(bytes);
+      if (haveHash.has(digest)) {
+        skippedExisting += 1;
+        continue;
+      }
+      const path = `${claimId}/gmail/${full.id}/${nid("F")}-${sanitizeName(filename)}`;
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, bytes, {
         contentType: mime || "application/octet-stream",
         upsert: false,
       });
-      if (upErr) continue;
-      await sb.from("claims_documents").insert({
+      if (upErr) {
+        failures.push({ filename, reason: `upload_error:${upErr.message}` });
+        continue;
+      }
+      const { error: insErr } = await sb.from("claims_documents").insert({
         id: nid("CDM"),
         claim_id: claimId,
         storage_path: path,
-        original_name: String(p.filename),
+        original_name: filename,
         mime_type: mime,
         byte_size: bytes.byteLength,
         source: "gmail",
         gmail_message_id: String(full.id),
         gmail_thread_id: threadId,
-        gmail_attachment_id: attId || null,
+        gmail_attachment_id: f.attachmentId || null,
+        content_sha256: digest,
+        doc_kind: guessDocKind(filename, mime, subject),
         uploaded_by: user.id,
         uploaded_by_name: actorName,
       });
+      if (insErr) {
+        failures.push({ filename, reason: `db_error:${insErr.message}` });
+        continue;
+      }
       uploaded += 1;
+      if (f.attachmentId) haveAtt.add(f.attachmentId);
+      haveHash.add(digest);
     }
 
     const next = start + slice.length;
-    const done = next >= Math.min(files.length, MAX_ATTACH);
+    const done = next >= files.length;
+
+    const { data: afterRows } = await sb.from("claims_documents")
+      .select("original_name")
+      .eq("claim_id", claimId)
+      .eq("gmail_message_id", String(full.id));
+    const importedCount = new Set((afterRows || []).map((r) => String(r.original_name || "").toLowerCase())).size;
+
+    const { data: prevImp } = await sb.from("claims_gmail_imports").select("failures").eq("id", importId).maybeSingle();
+    const prevFail = Array.isArray(prevImp?.failures) ? prevImp.failures as Failure[] : [];
+    const allFail = [...prevFail, ...failures];
+    await sb.from("claims_gmail_imports").update({
+      found_count: files.length,
+      imported_count: importedCount,
+      failed_count: allFail.length,
+      failures: allFail,
+      attachment_count: files.length,
+      body_text: extracted.bodyText || undefined,
+    }).eq("id", importId);
+
     if (done) {
       await sb.from("claims_history").insert({
         id: nid("HIS"),
         claim_id: claimId,
         row_data: {
           action: "יובא מייל מ-Gmail כולל כל המצורפים",
-          note: `${header(headers, "Subject")} · ${Math.min(files.length, MAX_ATTACH)} קבצים`,
+          note: `${header(headers, "Subject")} · Found ${files.length} · Imported ${importedCount} · Failed ${allFail.length}`,
           type: "gmail_import",
           by: actorName,
           at: new Date().toLocaleString("he-IL"),
@@ -395,7 +792,13 @@ Deno.serve(async (req) => {
       done,
       start: next,
       uploaded,
-      total: Math.min(files.length, MAX_ATTACH),
+      skippedExisting,
+      found: files.length,
+      imported: importedCount,
+      failed: allFail.length,
+      failures: allFail,
+      total: files.length,
+      body_len: extracted.bodyText.length,
       gmail_message_id: full.id,
       gmail_thread_id: threadId,
       mailboxMutated: false,
@@ -409,25 +812,92 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
     }
     const to = String(body.to || "").trim();
+    const cc = String(body.cc || "").trim();
     const requestedSubject = String(body.subject || `טיוטה תביעה ${claimId}`);
-    const subject = requestedSubject.includes("לא לשלוח")
+    const subject = requestedSubject.includes("לא לשלוח") || requestedSubject.includes("STAGING-QA")
       ? requestedSubject
       : `[STAGING-QA-DO-NOT-SEND] ${requestedSubject}`;
-    const text = `[STAGING QA — טיוטה בלבד, לא לשלוח לחברת ביטוח]\n\n${String(body.body || "")}`;
+    const text = `[STAGING QA — טיוטה בלבד, לא לשלוח לחברת ביטוח / עורך דין / לקוח]\n\n${String(body.body || "")}`;
     if (!to) return jsonResponse({ success: false, error: "to required" }, 400);
-    const raw = [
+
+    const ids = Array.isArray(body.file_ids) ? body.file_ids.map((x) => String(x)).filter(Boolean) : [];
+    const { data: fileRows } = ids.length
+      ? await sb.from("claims_documents")
+        .select("id, original_name, mime_type, byte_size, storage_path, claim_id")
+        .eq("claim_id", claimId)
+        .in("id", ids)
+      : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string; claim_id: string }> };
+    const rows = fileRows || [];
+    const missing = ids.filter((id) => !rows.some((f) => f.id === id));
+    if (missing.length) {
+      return jsonResponse({
+        success: false,
+        error: "files_not_on_claim",
+        missing,
+        realEmailSend: false,
+      }, 400);
+    }
+    const packageBytes = rows.reduce((s, f) => s + Number(f.byte_size || 0), 0);
+    if (packageBytes > PACKAGE_LIMIT) {
+      return jsonResponse({
+        success: false,
+        error: "package_too_large",
+        packageBytes,
+        limitBytes: PACKAGE_LIMIT,
+        suggestion: packageSuggestion(packageBytes),
+        files: rows.map((f) => ({ id: f.id, name: f.original_name, bytes: Number(f.byte_size || 0) })),
+        omitted: false,
+        realEmailSend: false,
+      }, 413);
+    }
+
+    const boundary = `mix_${crypto.randomUUID().replace(/-/g, "")}`;
+    const chunks: string[] = [
       `To: ${to}`,
-      `Subject: ${subject}`,
+      ...(cc ? [`Cc: ${cc}`] : []),
+      `Subject: ${rfc2047(subject)}`,
       "MIME-Version: 1.0",
-      "Content-Type: text/plain; charset=UTF-8",
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
       "",
-      text,
-    ].join("\r\n");
+      `--${boundary}`,
+      "Content-Type: text/plain; charset=UTF-8",
+      "Content-Transfer-Encoding: base64",
+      "",
+      bytesToB64(new TextEncoder().encode(text)),
+    ];
+    const attached: Array<{ id: string; name: string; bytes: number }> = [];
+    for (const f of rows) {
+      const { data: blob, error: dlErr } = await sb.storage.from(BUCKET).download(f.storage_path);
+      if (dlErr || !blob) {
+        return jsonResponse({
+          success: false,
+          error: "attachment_download_failed",
+          filename: f.original_name,
+          reason: dlErr?.message || "empty",
+          omitted: false,
+          realEmailSend: false,
+        }, 400);
+      }
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const mime = f.mime_type || "application/octet-stream";
+      const safe = sanitizeName(f.original_name || "file");
+      chunks.push(
+        `--${boundary}`,
+        `Content-Type: ${mime}; name="${safe}"`,
+        `Content-Disposition: attachment; filename="${safe}"`,
+        "Content-Transfer-Encoding: base64",
+        "",
+        bytesToB64(bytes),
+      );
+      attached.push({ id: f.id, name: f.original_name, bytes: bytes.byteLength });
+    }
+    chunks.push(`--${boundary}--`);
+    const raw = chunks.join("\r\n");
     const encoded = bytesToB64url(new TextEncoder().encode(raw));
     const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", {
       method: "POST",
       headers: { Authorization: `Bearer ${access}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ message: { raw: encoded, threadId: body.thread_id || undefined } }),
+      body: JSON.stringify({ message: { raw: encoded } }),
     });
     const json = await res.json();
     if (!res.ok) return jsonResponse({ success: false, error: json.error?.message || "draft_failed", realEmailSend: false }, 400);
@@ -437,7 +907,7 @@ Deno.serve(async (req) => {
       claim_id: claimId,
       row_data: {
         action: "נוצרה טיוטת Gmail (לא נשלח)",
-        note: subject,
+        note: `${subject} · to ${to}${cc ? ` · cc ${cc}` : ""} · ${attached.length} קבצים · ${packageBytes} bytes`,
         type: "gmail_draft",
         by: profile?.full_name || user.email,
         at: new Date().toLocaleString("he-IL"),
@@ -446,20 +916,221 @@ Deno.serve(async (req) => {
         gmail_thread_id: json.message?.threadId,
       },
     });
-    if (json.message?.id) {
-      await sb.from("claims_records").update({
-        gmail_message_id: json.message.id,
-        gmail_thread_id: json.message.threadId || null,
-        last_activity_at: new Date().toISOString(),
-      }).eq("id", claimId);
-    }
+    await sb.from("claims_records").update({
+      last_activity_at: new Date().toISOString(),
+    }).eq("id", claimId);
     return jsonResponse({
       success: true,
       draftId: json.id,
       gmail_message_id: json.message?.id || null,
       gmail_thread_id: json.message?.threadId || null,
-      realEmailSend: false,
+      to,
+      cc: cc || null,
+      subject,
+      packageBytes,
+      attached,
       sent: false,
+      realEmailSend: false,
+    });
+  }
+
+  if (action === "send_self_test" || action === "reply_self_test") {
+    if (role !== "super_admin") return jsonResponse({ success: false, error: "super_admin only", realEmailSend: false }, 403);
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
+    }
+    const isReply = action === "reply_self_test";
+    const kind = isReply ? "self_test_reply" : "self_test";
+    const toCheck = assertSelfAllowlist(String(body.to || ""), true);
+    const ccRaw = String(body.cc || "").trim();
+    const ccCheck = assertSelfAllowlist(ccRaw, false);
+    if (!toCheck.ok) {
+      return jsonResponse({ success: false, error: toCheck.error, emails: toCheck.emails, realEmailSend: false }, 403);
+    }
+    if (!ccCheck.ok) {
+      return jsonResponse({ success: false, error: ccCheck.error, emails: ccCheck.emails, realEmailSend: false }, 403);
+    }
+    const to = ALLOWED_ACCOUNT;
+    const cc = ccRaw ? ALLOWED_ACCOUNT : "";
+    const requestedSubject = String(body.subject || "");
+    if (!/test|בדיקה/i.test(requestedSubject)) {
+      return jsonResponse({ success: false, error: "subject_must_include_TEST", realEmailSend: false }, 400);
+    }
+    const text = String(body.body || "").trim();
+    if (!text) return jsonResponse({ success: false, error: "body required", realEmailSend: false }, 400);
+    const ids = Array.isArray(body.file_ids) ? body.file_ids.map((x) => String(x)).filter(Boolean) : [];
+    if (!isReply && (ids.length < 1 || ids.length > 3)) {
+      return jsonResponse({ success: false, error: "self_test_requires_1_to_3_files", realEmailSend: false }, 400);
+    }
+    if (isReply && ids.length > 0) {
+      return jsonResponse({ success: false, error: "reply_test_no_extra_files", realEmailSend: false }, 400);
+    }
+
+    const { data: existingKind } = await sb.from("claims_gmail_outbox").select("id, gmail_message_id").eq("kind", kind).maybeSingle();
+    if (existingKind) {
+      return jsonResponse({
+        success: false,
+        error: "already_sent",
+        kind,
+        existing_id: existingKind.id,
+        gmail_message_id: existingKind.gmail_message_id,
+        realEmailSend: false,
+      }, 409);
+    }
+
+    let extraHeaders: string[] = [];
+    let threadId: string | undefined;
+    if (isReply) {
+      const { data: orig } = await sb.from("claims_gmail_outbox").select("*").eq("kind", "self_test").maybeSingle();
+      if (!orig?.gmail_message_id || !orig.gmail_thread_id) {
+        return jsonResponse({ success: false, error: "original_self_test_missing", realEmailSend: false }, 400);
+      }
+      threadId = String(orig.gmail_thread_id);
+      const origFull = await gmailGet(access, `messages/${encodeURIComponent(String(orig.gmail_message_id))}?format=metadata&metadataHeaders=Message-ID`);
+      const origHeaders = origFull.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      const rfc = orig.rfc_message_id || header(origHeaders, "Message-ID") || header(origHeaders, "Message-Id");
+      if (rfc) {
+        extraHeaders = [`In-Reply-To: ${rfc}`, `References: ${rfc}`];
+      }
+    }
+
+    const { data: fileRows } = ids.length
+      ? await sb.from("claims_documents")
+        .select("id, original_name, mime_type, byte_size, storage_path, claim_id")
+        .eq("claim_id", claimId)
+        .in("id", ids)
+      : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string; claim_id: string }> };
+    const rows = fileRows || [];
+    if (ids.length && rows.length !== ids.length) {
+      return jsonResponse({ success: false, error: "files_not_on_claim", realEmailSend: false }, 400);
+    }
+
+    const encodedMsg = await encodeMixedMessage(sb, {
+      to,
+      cc,
+      subject: requestedSubject,
+      text,
+      extraHeaders,
+      files: rows,
+    });
+    if ("error" in encodedMsg && encodedMsg.error) {
+      return jsonResponse({ success: false, ...encodedMsg, realEmailSend: false }, encodedMsg.error === "package_too_large" ? 413 : 400);
+    }
+
+    const sent = await gmailPost(access, "messages/send", {
+      raw: (encodedMsg as { encoded: string }).encoded,
+      ...(threadId ? { threadId } : {}),
+    });
+    if (!sent.ok) {
+      return jsonResponse({
+        success: false,
+        error: sent.json?.error?.message || "gmail_send_failed",
+        status: sent.status,
+        realEmailSend: false,
+      }, 400);
+    }
+
+    const gmailMessageId = String(sent.json.id || "");
+    const gmailThreadId = String(sent.json.threadId || threadId || "");
+    let rfcMessageId = "";
+    let labelIds: string[] = [];
+    try {
+      const got = await gmailGet(access, `messages/${encodeURIComponent(gmailMessageId)}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=From&metadataHeaders=Cc`);
+      const hd = got.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      rfcMessageId = header(hd, "Message-ID") || header(hd, "Message-Id");
+      labelIds = Array.isArray(got.labelIds) ? got.labelIds.map(String) : [];
+    } catch {
+      rfcMessageId = "";
+    }
+
+    const { data: profile } = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+    const actorName = profile?.full_name || user.email || user.id;
+    const outId = nid(isReply ? "GOR" : "GOS");
+    const attached = (encodedMsg as { attached: Array<{ id: string; name: string; bytes: number }> }).attached || [];
+    const { error: outErr } = await sb.from("claims_gmail_outbox").insert({
+      id: outId,
+      claim_id: claimId,
+      kind,
+      gmail_message_id: gmailMessageId,
+      gmail_thread_id: gmailThreadId,
+      rfc_message_id: rfcMessageId || null,
+      to_addr: to,
+      cc_addr: cc || null,
+      subject: requestedSubject,
+      sender: ALLOWED_ACCOUNT,
+      body_excerpt: text.slice(0, 500),
+      file_ids: ids,
+      sent_at: new Date().toISOString(),
+      created_by: user.id,
+    });
+    if (outErr) {
+      return jsonResponse({
+        success: false,
+        error: "outbox_insert_failed_mail_may_have_sent",
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        db: outErr.message,
+        realEmailSend: true,
+      }, 500);
+    }
+
+    await sb.from("claims_history").insert({
+      id: nid("HIS"),
+      claim_id: claimId,
+      row_data: {
+        action: isReply ? "Reply TEST נשלח (אותו thread, בלי שיוך אוטומטי)" : "נשלח מייל TEST אמיתי (רק לעצמי)",
+        note: `${requestedSubject} · to ${to}${cc ? ` · cc ${cc}` : ""} · ${attached.length} קבצים`,
+        type: isReply ? "gmail_self_test_reply" : "gmail_self_test_send",
+        by: actorName,
+        at: new Date().toLocaleString("he-IL"),
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        sender: ALLOWED_ACCOUNT,
+        sent_at: new Date().toISOString(),
+      },
+    });
+    await sb.from("claims_comm_log").insert({
+      id: nid("COM"),
+      claim_id: claimId,
+      row_data: {
+        id: nid("COM"),
+        claimId,
+        type: "mail",
+        direction: "out",
+        email: to,
+        cc,
+        subject: requestedSubject,
+        body: text,
+        at: new Date().toLocaleString("he-IL"),
+        by: actorName,
+        note: isReply ? "Reply TEST — לא שויך אוטומטית" : "LIVE SEND QA — יעד עצמי בלבד",
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        sender: ALLOWED_ACCOUNT,
+        sent_at: new Date().toISOString(),
+        attachments: attached.map((a) => a.name),
+      },
+    });
+    await sb.from("claims_records").update({ last_activity_at: new Date().toISOString() }).eq("id", claimId);
+
+    return jsonResponse({
+      success: true,
+      kind,
+      sent: true,
+      realEmailSend: true,
+      to,
+      cc: cc || null,
+      subject: requestedSubject,
+      sender: ALLOWED_ACCOUNT,
+      gmail_message_id: gmailMessageId,
+      gmail_thread_id: gmailThreadId,
+      rfc_message_id: rfcMessageId || null,
+      sent_at: new Date().toISOString(),
+      attached,
+      labelIds,
+      generalSendEnabled: false,
+      followUpLive: false,
     });
   }
 
@@ -470,6 +1141,6 @@ function whyScope(s: string) {
   if (s === "openid") return "זיהוי חשבון Google בלי לגשת לתוכן.";
   if (s.includes("userinfo.email")) return "לוודא שהחשבון הוא בדיוק yoni122222@gmail.com.";
   if (s.includes("gmail.readonly")) return "קריאת מיילים ומצורפים לייבוא לתביעה. לא מוחק, לא מסמן כנקרא, לא מעביר.";
-  if (s.includes("gmail.compose")) return "יצירת טיוטה בלבד. האפליקציה חוסמת send. Google עצמו מאפשר שליחה ב-scope הזה — אנחנו לא קוראים ל-send.";
+  if (s.includes("gmail.compose")) return "יצירת טיוטה, וגם שליחת TEST חד-פעמית לעצמי (yoni122222@gmail.com) בלבד. שליחה כללית / לחברת ביטוח / Follow-up חי עדיין חסומים בקוד.";
   return s;
 }

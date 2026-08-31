@@ -32,6 +32,31 @@ function nid(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
+const DOC_KINDS = new Set([
+  "general",
+  "surveyor_report",
+  "surveyor_photo",
+  "surveyor_attachment",
+  "garage_invoice",
+]);
+
+function kindFromUpload(docKey: string, mime: string, explicit: string) {
+  if (explicit && DOC_KINDS.has(explicit)) return explicit;
+  if (docKey === "surveyor_report") return mime.startsWith("image/") ? "surveyor_photo" : "surveyor_report";
+  if (docKey === "garage_invoice") return "garage_invoice";
+  return "general";
+}
+
+function cleanMeta(raw: unknown) {
+  const src = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+  const out: Record<string, string> = {};
+  for (const k of ["surveyorName", "reportDate", "reportNumber", "invoiceDate", "invoiceAmount", "garageName"]) {
+    const v = src[k];
+    if (v !== undefined && v !== null && String(v).trim()) out[k] = String(v).trim();
+  }
+  return out;
+}
+
 function sanitizeFileName(name: string) {
   const dot = name.lastIndexOf(".");
   const base = dot > 0 ? name.slice(0, dot) : name;
@@ -125,7 +150,7 @@ Deno.serve(async (req) => {
       const resolved = await resolveLink(sb, token);
       if ("error" in resolved) return jsonResponse({ success: false, error: resolved.error }, 404);
       const claimId = resolved.data.claim_id;
-      const { data: reqRow } = await sb.from("claims_doc_requests").select("id, claim_id, label").eq("id", docRequestId).eq("claim_id", claimId).maybeSingle();
+      const { data: reqRow } = await sb.from("claims_doc_requests").select("id, claim_id, label, doc_key").eq("id", docRequestId).eq("claim_id", claimId).maybeSingle();
       if (!reqRow) return jsonResponse({ success: false, error: "doc_not_in_claim" }, 400);
       const path = `${claimId}/${docRequestId}/${nid("F")}-${sanitizeFileName(file.name)}`;
       const buf = new Uint8Array(await file.arrayBuffer());
@@ -141,6 +166,7 @@ Deno.serve(async (req) => {
         byte_size: file.size,
         source: "customer",
         uploaded_by_name: "לקוח",
+        doc_kind: kindFromUpload(String(reqRow.doc_key || ""), file.type || "", ""),
       });
       await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId);
       await history(sb, claimId, "מסמך התקבל מהלקוח", reqRow.label, "לקוח");
@@ -227,8 +253,40 @@ Deno.serve(async (req) => {
       const claimId = String(body.claim_id || url.searchParams.get("claim_id") || "");
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       const { data: reqs } = await sb.from("claims_doc_requests").select("id, label, doc_key, status, received_at, created_at").eq("claim_id", claimId).order("created_at");
-      const { data: files } = await sb.from("claims_documents").select("id, doc_request_id, original_name, mime_type, byte_size, source, uploaded_by_name, created_at, gmail_message_id, gmail_thread_id").eq("claim_id", claimId).order("created_at", { ascending: false });
+      const { data: files } = await sb.from("claims_documents").select("id, doc_request_id, original_name, mime_type, byte_size, source, uploaded_by_name, created_at, gmail_message_id, gmail_thread_id, doc_kind, doc_meta").eq("claim_id", claimId).order("created_at", { ascending: false });
       return jsonResponse({ success: true, requests: reqs || [], files: files || [] });
+    }
+
+    if (action === "set_doc_kind") {
+      const claimId = String(body.claim_id || "");
+      const fileId = String(body.file_id || "");
+      const kind = String(body.doc_kind || "general");
+      const meta = cleanMeta(body.doc_meta);
+      if (!DOC_KINDS.has(kind)) return jsonResponse({ success: false, error: "invalid_kind" }, 400);
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const { data: file } = await sb.from("claims_documents").select("id, gmail_message_id, mime_type, doc_meta").eq("id", fileId).eq("claim_id", claimId).maybeSingle();
+      if (!file) return jsonResponse({ success: false, error: "not_found" }, 404);
+      const merged = { ...((file.doc_meta && typeof file.doc_meta === "object") ? file.doc_meta as Record<string, string> : {}), ...meta };
+      const { error: upErr } = await sb.from("claims_documents").update({ doc_kind: kind, doc_meta: merged }).eq("id", fileId).eq("claim_id", claimId);
+      if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
+      if (kind === "surveyor_report" && file.gmail_message_id) {
+        await sb.from("claims_documents")
+          .update({ doc_kind: "surveyor_photo" })
+          .eq("claim_id", claimId)
+          .eq("gmail_message_id", file.gmail_message_id)
+          .neq("id", fileId)
+          .like("mime_type", "image/%")
+          .eq("doc_kind", "general");
+        await sb.from("claims_documents")
+          .update({ doc_kind: "surveyor_attachment" })
+          .eq("claim_id", claimId)
+          .eq("gmail_message_id", file.gmail_message_id)
+          .neq("id", fileId)
+          .not("mime_type", "like", "image/%")
+          .eq("doc_kind", "general");
+      }
+      await history(sb, claimId, "סווג מסמך", `${kind} · ${fileId}`, actorName);
+      return jsonResponse({ success: true, copied: false });
     }
 
     if (action === "signed_url") {
@@ -237,19 +295,42 @@ Deno.serve(async (req) => {
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       const { data: file } = await sb.from("claims_documents").select("storage_path, claim_id").eq("id", fileId).eq("claim_id", claimId).maybeSingle();
       if (!file) return jsonResponse({ success: false, error: "not_found" }, 404);
-      const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(file.storage_path, 120);
+      const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(file.storage_path, 600);
       if (error) return jsonResponse({ success: false, error: error.message }, 400);
       return jsonResponse({ success: true, url: data.signedUrl });
+    }
+
+    if (action === "signed_urls") {
+      const claimId = String(body.claim_id || "");
+      const ids = Array.isArray(body.file_ids) ? body.file_ids.map((x) => String(x)).filter(Boolean).slice(0, 200) : [];
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      if (!ids.length) return jsonResponse({ success: true, urls: {} });
+      const { data: files } = await sb.from("claims_documents").select("id, storage_path").eq("claim_id", claimId).in("id", ids);
+      const rows = files || [];
+      const { data, error } = await sb.storage.from(BUCKET).createSignedUrls(rows.map((f) => f.storage_path), 600);
+      if (error) return jsonResponse({ success: false, error: error.message }, 400);
+      const urls: Record<string, string> = {};
+      rows.forEach((f, i) => {
+        const signed = (data || [])[i]?.signedUrl || "";
+        if (signed) urls[f.id] = signed;
+      });
+      return jsonResponse({ success: true, urls });
     }
 
     if (action === "staff_upload") {
       const claimId = String(form?.get("claim_id") || "");
       const docRequestId = String(form?.get("doc_request_id") || "") || null;
+      const explicitKind = String(form?.get("doc_kind") || "");
       const file = form?.get("file");
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       if (!(file instanceof File)) return jsonResponse({ success: false, error: "file_required" }, 400);
       if (file.size > MAX_BYTES) return jsonResponse({ success: false, error: "file_too_large" }, 400);
       if (file.type && !ALLOWED.has(file.type)) return jsonResponse({ success: false, error: "mime_not_allowed" }, 400);
+      let reqKey = "";
+      if (docRequestId) {
+        const { data: reqRow } = await sb.from("claims_doc_requests").select("doc_key").eq("id", docRequestId).eq("claim_id", claimId).maybeSingle();
+        reqKey = String(reqRow?.doc_key || "");
+      }
       const path = `${claimId}/staff/${nid("F")}-${sanitizeFileName(file.name)}`;
       const buf = new Uint8Array(await file.arrayBuffer());
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: file.type || "application/octet-stream", upsert: false });
@@ -265,6 +346,7 @@ Deno.serve(async (req) => {
         source: "staff",
         uploaded_by: user.id,
         uploaded_by_name: actorName,
+        doc_kind: kindFromUpload(reqKey, file.type || "", explicitKind),
       });
       if (docRequestId) {
         await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId).eq("claim_id", claimId);

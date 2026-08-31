@@ -66,6 +66,135 @@ function setVal(id: string, v: string) {
   if (el) el.value = v || '';
 }
 
+function fmtBytes(n: number) {
+  if (!n) return '0 B';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const PACKAGE_LIMIT = 18 * 1024 * 1024;
+const DOC_CATS: Array<{ key: string; label: string }> = [
+  { key: 'surveyor', label: 'דוח שמאי' },
+  { key: 'license', label: 'רישיון רכב' },
+  { key: 'photos', label: 'תמונות' },
+  { key: 'third', label: 'מסמכי צד ג\'' },
+  { key: 'insurance', label: 'מסמכי ביטוח' },
+  { key: 'other', label: 'מסמכים נוספים' },
+];
+
+type ClaimFile = {
+  id: string;
+  doc_request_id: string | null;
+  original_name: string;
+  source: string;
+  created_at: string;
+  uploaded_by_name?: string;
+  mime_type?: string;
+  byte_size?: number;
+  gmail_message_id?: string | null;
+  doc_kind?: string;
+  doc_meta?: Record<string, string> | null;
+};
+
+function classifyDoc(f: ClaimFile) {
+  const n = `${f.original_name || ''}`.toLowerCase();
+  const mime = `${f.mime_type || ''}`.toLowerCase();
+  if (mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(n)) return 'photos';
+  if (/שמאי|survey|apprais|שמאות/i.test(n)) return 'surveyor';
+  if (/רישיון|license|rishayon/i.test(n)) return 'license';
+  if (/צד.?ג|third/i.test(n)) return 'third';
+  if (/ביטוח|policy|insurance|פוליסה/i.test(n)) return 'insurance';
+  return 'other';
+}
+
+function isImageFile(f: ClaimFile) {
+  const n = `${f.original_name || ''}`;
+  const mime = `${f.mime_type || ''}`.toLowerCase();
+  return mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif|tiff?)$/i.test(n);
+}
+
+function fileMeta(f: ClaimFile): Record<string, string> {
+  return f.doc_meta && typeof f.doc_meta === 'object' ? f.doc_meta : {};
+}
+
+function effectiveKind(f: ClaimFile) {
+  if (f.doc_kind && f.doc_kind !== 'general') return f.doc_kind;
+  return 'general';
+}
+
+function kindHe(k: string) {
+  const map: Record<string, string> = {
+    surveyor_report: 'דוח שמאי',
+    surveyor_photo: 'תמונת שמאי',
+    surveyor_attachment: 'קובץ דוח שמאי',
+    garage_invoice: 'חשבונית מוסך',
+  };
+  return map[k] || '';
+}
+
+function surveyorBundle(files: ClaimFile[]) {
+  const photos = files.filter((f) => f.doc_kind === 'surveyor_photo');
+  const reports = files.filter((f) => f.doc_kind === 'surveyor_report');
+  const taggedAtt = files.filter((f) => f.doc_kind === 'surveyor_attachment');
+  const gmailIds = new Set([...photos, ...reports, ...taggedAtt].map((f) => f.gmail_message_id).filter(Boolean) as string[]);
+  const related = files.filter((f) => (
+    f.gmail_message_id
+    && gmailIds.has(f.gmail_message_id)
+    && f.doc_kind !== 'surveyor_photo'
+    && f.doc_kind !== 'surveyor_report'
+    && f.doc_kind !== 'surveyor_attachment'
+    && !isImageFile(f)
+  ));
+  const byId = new Map<string, ClaimFile>();
+  [...taggedAtt, ...related].forEach((f) => byId.set(f.id, f));
+  return { reports, photos, attachments: [...byId.values()] };
+}
+
+function invoiceFiles(files: ClaimFile[]) {
+  return files.filter((f) => f.doc_kind === 'garage_invoice');
+}
+
+function correspondenceThreads(imports: Array<Record<string, unknown>>) {
+  const sorted = [...imports].sort((a, b) => {
+    const ta = new Date(String(a.sent_at || '')).getTime() || 0;
+    const tb = new Date(String(b.sent_at || '')).getTime() || 0;
+    return ta - tb;
+  });
+  const groups: Array<{ thread: string; mails: typeof sorted }> = [];
+  const idx = new Map<string, number>();
+  for (const im of sorted) {
+    const thread = String(im.gmail_thread_id || im.gmail_message_id || im.id);
+    if (!idx.has(thread)) {
+      idx.set(thread, groups.length);
+      groups.push({ thread, mails: [] });
+    }
+    groups[idx.get(thread)!].mails.push(im);
+  }
+  return groups.sort((a, b) => {
+    const ta = new Date(String(a.mails[0]?.sent_at || '')).getTime() || 0;
+    const tb = new Date(String(b.mails[0]?.sent_at || '')).getTime() || 0;
+    return ta - tb;
+  });
+}
+
+function InCardPreview({ file, onClose }: { file: { url: string; name: string; mime: string } | null; onClose: () => void }) {
+  if (!file) return null;
+  const img = (file.mime || '').startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(file.name);
+  return (
+    <div className="doc-preview-wrap">
+      <div className="doc-preview-bar">
+        <b>{file.name}</b>
+        <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
+        <button className="btn btn-g btn-sm" onClick={onClose}>סגור תצוגה</button>
+      </div>
+      {img
+        ? <img className="doc-preview-img" src={file.url} alt={file.name} />
+        : <iframe className="doc-preview-frame" title={file.name} src={file.url} />}
+    </div>
+  );
+}
+
 type ToastItem = { id: number; msg: string; type: string };
 
 export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
@@ -102,13 +231,21 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [mailFollowups, setMailFollowups] = useState<MailFollowupRow[]>([]);
   const [fuEditId, setFuEditId] = useState<string | null>(null);
   const [assignees, setAssignees] = useState<Array<{ id: string; full_name: string; company_name: string }>>([]);
-  const [docs, setDocs] = useState<{ requests: Array<{ id: string; label: string; status: string; received_at?: string }>; files: Array<{ id: string; doc_request_id: string | null; original_name: string; source: string; created_at: string; uploaded_by_name?: string; mime_type?: string; gmail_message_id?: string | null }> }>({ requests: [], files: [] });
+  const [docs, setDocs] = useState<{ requests: Array<{ id: string; label: string; status: string; received_at?: string }>; files: ClaimFile[] }>({ requests: [], files: [] });
   const [gmailStatus, setGmailStatus] = useState<{ connected?: boolean; email?: string | null; canConnect?: boolean }>({});
   const [gmailList, setGmailList] = useState<Array<Record<string, unknown>>>([]);
   const [gmailImports, setGmailImports] = useState<Array<Record<string, unknown>>>([]);
   const [gmailBusy, setGmailBusy] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [customDoc, setCustomDoc] = useState('');
+  const [sendIds, setSendIds] = useState<string[]>([]);
+  const [mailKind, setMailKind] = useState<'draft' | 'insurer' | 'legal'>('draft');
+  const [mailPreviewOn, setMailPreviewOn] = useState(false);
+  const [extSummary, setExtSummary] = useState('');
+  const [pkgInfo, setPkgInfo] = useState<{ packageBytes: number; overLimit: boolean; suggestion: string } | null>(null);
+  const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
+  const [openGal, setOpenGal] = useState<Record<string, boolean>>({});
+  const [previewFile, setPreviewFile] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
   const [mineOnly, setMineOnly] = useState(actor.role !== 'super_admin');
   const [formKind, setFormKind] = useState<string>(CLAIM_KINDS[0]);
   const [dashTasks, setDashTasks] = useState<ClaimRecord[]>([]);
@@ -135,6 +272,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       setNotifs(nr.data || []);
       setDashTasks((tr.data || []).filter((t) => t.done !== 'true'));
       setDashRems(rr.data || []);
+      if (!cr.success && cr.error) toast(`טעינת תביעות נכשלה: ${cr.error}`, 'err');
       if (actor.role === 'super_admin') {
         const a = await apiRef.current.listAssignees();
         setAssignees(a.data || []);
@@ -219,9 +357,96 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setGmailImports((gi.data as Array<Record<string, unknown>>) || []);
     setDocs({
       requests: (d.requests as typeof docs.requests) || [],
-      files: (d.files as typeof docs.files) || [],
+      files: (d.files as ClaimFile[]) || [],
     });
   };
+
+  const refreshPackage = async (claimId: string, ids: string[]) => {
+    const r = await apiRef.current.invokeGmail('package_preview', { claim_id: claimId, file_ids: ids });
+    setPkgInfo({
+      packageBytes: Number(r.packageBytes || 0),
+      overLimit: r.overLimit === true,
+      suggestion: String(r.suggestion || ''),
+    });
+    return r;
+  };
+
+  const toggleSendId = (id: string) => {
+    setSendIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      if (curId) void refreshPackage(curId, next);
+      return next;
+    });
+  };
+
+  const setSendGroup = (ids: string[], on: boolean) => {
+    setSendIds((prev) => {
+      const set = new Set(prev);
+      ids.forEach((id) => { if (on) set.add(id); else set.delete(id); });
+      const next = [...set];
+      if (curId) void refreshPackage(curId, next);
+      return next;
+    });
+  };
+
+  const openSendModal = async (kind: 'draft' | 'insurer' | 'legal') => {
+    if (!cur) return;
+    setMailKind(kind);
+    setSendIds([]);
+    setPkgInfo({ packageBytes: 0, overLimit: false, suggestion: '' });
+    setMailPreviewOn(false);
+    const mailBody = gmailImports.map((im) => String(im.body_text || '')).filter((t) => t.trim().length > 2).join('\n\n');
+    const ext = await apiRef.current.exportExternalSummary(cur.id, { mailBody });
+    setExtSummary(ext.text || '');
+    setVal('mail_cc', '');
+    if (kind === 'insurer') {
+      setVal('mail_to', cur.insEmail || '');
+      setVal('mail_subj', `תביעה ${cur.claimNum || cur.id} – ${cur.clientName}`);
+      setVal('mail_body', ext.text || '');
+    } else if (kind === 'legal') {
+      setVal('mail_to', cur.legalEmail || '');
+      setVal('mail_subj', `העברה לטיפול משפטי – ${cur.id} – ${cur.clientName}`);
+      setVal('mail_body', ext.text || '');
+    } else {
+      setVal('mail_to', cur.insEmail || cur.clientEmail || '');
+      setVal('mail_subj', `תביעה ${cur.id} – ${cur.clientName}`);
+      setVal('mail_body', `שלום,\n\nבהמשך לתביעה מספר ${cur.claimNum || cur.id}\nלקוח: ${cur.clientName}\nרכב: ${cur.plate || '—'}\n\nבברכה,\nדליה ניהול תביעות`);
+    }
+    setModal('moMail');
+  };
+
+  const loadGalleryThumbs = async (claimId: string, files: ClaimFile[]) => {
+    const images = files.filter((f) => isImageFile(f));
+    const missing = images.filter((f) => !galleryUrls[f.id]).map((f) => f.id);
+    if (!missing.length) return;
+    const next: Record<string, string> = { ...galleryUrls };
+    for (let i = 0; i < missing.length; i += 80) {
+      const slice = missing.slice(i, i + 80);
+      const r = await apiRef.current.invokeDocs('signed_urls', { claim_id: claimId, file_ids: slice });
+      const urls = (r.urls && typeof r.urls === 'object') ? r.urls as Record<string, string> : {};
+      Object.entries(urls).forEach(([id, url]) => { if (url) next[id] = url; });
+    }
+    setGalleryUrls(next);
+  };
+
+  const openInCard = async (claimId: string, f: ClaimFile) => {
+    const r = await apiRef.current.invokeDocs('signed_url', { claim_id: claimId, file_id: f.id });
+    if (!r.url) { toast('לא ניתן לפתוח את הקובץ', 'err'); return; }
+    setPreviewFile({ id: f.id, url: String(r.url), name: f.original_name, mime: f.mime_type || '' });
+  };
+
+  const markDocKind = async (claimId: string, fileId: string, kind: string, meta?: Record<string, string>) => {
+    const r = await apiRef.current.invokeDocs('set_doc_kind', { claim_id: claimId, file_id: fileId, doc_kind: kind, doc_meta: meta || {} });
+    if (!r.success) { toast(String(r.error || 'סיווג נכשל'), 'err'); return; }
+    await loadCardData(claimId);
+    toast(kind === 'general' ? 'הוסר הסימון' : `סומן כ${kindHe(kind) || kind}`);
+  };
+
+  useEffect(() => {
+    if (!curId || (cardTab !== 'surveyor' && cardTab !== 'invoice')) return;
+    const pack = cardTab === 'surveyor' ? surveyorBundle(docs.files).photos : invoiceFiles(docs.files).filter(isImageFile);
+    if (pack.length) void loadGalleryThumbs(curId, pack);
+  }, [cardTab, curId, docs.files]);
 
   const openMailFollowupModal = async (edit?: MailFollowupRow | null) => {
     setFuEditId(edit?.id || null);
@@ -262,6 +487,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setCardTab('claim');
     setModal('moCard');
     setLinkUrl('');
+    setPreviewFile(null);
     await loadCardData(id);
   };
 
@@ -795,7 +1021,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="ab">
               <button className="ab-btn ab-phone" onClick={() => setModal('moCall')}>📞 שיחה</button>
               <button className="ab-btn ab-wa" onClick={() => { setVal('wa_msg', `שלום, בהמשך לתביעה ${cur.claimNum || cur.id}`); setModal('moWA'); }}>💬 WhatsApp</button>
-              <button className="ab-btn ab-mail" onClick={() => { setVal('mail_subj', `תביעה ${cur.id} – ${cur.clientName}`); setVal('mail_body', `שלום,\n\nבהמשך לתביעה מספר ${cur.claimNum || cur.id}\nלקוח: ${cur.clientName}\nרכב: ${cur.plate || '—'}\n\nבברכה,\nדליה ניהול תביעות`); setVal('mail_to', cur.insEmail || cur.clientEmail || ''); setModal('moMail'); }}>📧 מייל</button>
+              <button className="ab-btn ab-mail" onClick={() => { void openSendModal('draft'); }}>📧 מייל / טיוטה</button>
+              <button className="ab-btn ab-mail" onClick={() => { void openSendModal('insurer'); }}>🏢 לחברת ביטוח</button>
+              <button className="ab-btn ab-status" onClick={() => { void openSendModal('legal'); }}>⚖️ טיפול משפטי</button>
               <button className="ab-btn ab-task" onClick={() => setModal('moTask')}>✅ משימה</button>
               <button className="ab-btn ab-rem" onClick={() => setModal('moRem')}>🔔 תזכורת</button>
               <button className="ab-btn ab-mail" onClick={() => openMailFollowupModal(null)}>📬 מעקב מייל</button>
@@ -809,13 +1037,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               }}>📥 ייבוא מ-Gmail</button>
               <div className="ab-sep" />
               <button className="ab-btn ab-status" onClick={() => { setVal('sf_st', cur.status); setVal('sf_note', ''); setModal('moStatus'); }}>🔄 סטטוס</button>
-              <button className="ab-btn ab-sum" onClick={async () => { const r = await apiRef.current.exportClaimSummary(cur.id); setSumText(r.text || ''); setModal('moSum'); }}>📄 סיכום</button>
+              <button className="ab-btn ab-sum" onClick={async () => { const r = await apiRef.current.exportClaimSummary(cur.id); setSumText(r.text || ''); setModal('moSum'); }}>📄 סיכום פנימי</button>
               <button className="ab-btn" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => setModal('moClose')}>🔒 סגור תיק</button>
-              <button className="ab-btn ab-sum" onClick={async () => { const r = await apiRef.current.exportClaimSummary(cur.id); setExportText(r.text || ''); setModal('moExport'); }}>📤 ייצוא</button>
+              <button className="ab-btn ab-sum" onClick={async () => {
+                const mailBody = gmailImports.map((im) => String(im.body_text || '')).filter((t) => t.trim().length > 2).join('\n\n');
+                const r = await apiRef.current.exportExternalSummary(cur.id, { mailBody, docNames: docs.files.map((f) => f.original_name) });
+                setExportText(r.text || '');
+                setModal('moExport');
+              }}>📄 סיכום חיצוני</button>
             </div>
             <div style={{ padding: '0 18px 18px' }}>
               <div className="tabs">
-                {[['claim', '📋 תביעה'], ['client', '👤 לקוח'], ['vehicle', '🚗 רכב'], ['treat', '🛠 טיפול'], ['docs', '📄 מסמכים'], ['gin', '📥 ייבוא Gmail'], ['tasks', '✅ משימות'], ['rems', '🔔 תזכורות'], ['mailfu', '📬 מעקב מייל'], ['timeline', '⏱ היסטוריה']].map(([k, l]) => (
+                {[['claim', '📋 תביעה'], ['client', '👤 לקוח'], ['vehicle', '🚗 רכב'], ['treat', '🛠 טיפול'], ['surveyor', '🔎 דוח שמאי'], ['invoice', '🧾 חשבונית מוסך'], ['docs', '📄 מסמכים'], ['gin', '✉ התכתבויות'], ['tasks', '✅ משימות'], ['rems', '🔔 תזכורות'], ['mailfu', '📬 מעקב מייל'], ['timeline', '⏱ היסטוריה']].map(([k, l]) => (
                   <button key={k} className={`tab ${cardTab === k ? 'act' : ''}`} onClick={() => setCardTab(k)}>{l}</button>
                 ))}
               </div>
@@ -866,6 +1099,145 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     ))}
                 </>
               )}
+              {cardTab === 'surveyor' && (() => {
+                const pack = surveyorBundle(docs.files);
+                const report = pack.reports[0];
+                const meta = report ? fileMeta(report) : {};
+                return (
+                  <div>
+                    <div className="sdiv"><div className="sdiv-t">דוח שמאי</div><div className="sdiv-l" /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 12 }}>
+                      {[['מספר רכב', cur.plate || '—'], ["מס' תביעה", cur.claimNum || '—'], ['תאריך אירוע', cur.eventDate || '—'],
+                        ['שם שמאי', meta.surveyorName || cur.surveyor || '—'], ['תאריך הדוח', meta.reportDate || '—'], ['מספר דוח', meta.reportNumber || '—']].map((f) => (
+                        <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
+                      ))}
+                    </div>
+                    {pack.reports.length === 0 && pack.photos.length === 0 && pack.attachments.length === 0 ? (
+                      <div className="spec-empty">אין דוח שמאי מסומן בתיק. העלה את הדוח כאן, או סמן מסמך קיים כלשונית «מסמכים» כדוח שמאי. הקובץ נשמר פעם אחת בלבד.</div>
+                    ) : null}
+                    {pack.reports.length === 0 && pack.photos.length > 0 ? (
+                      <div className="spec-empty">אין קובץ דוח PDF מסומן. מוצגות {pack.photos.length} תמונות שמאי שכבר יובאו לתיק — בלי עותק חדש.</div>
+                    ) : null}
+                    {pack.reports.map((f) => (
+                      <div key={f.id} className="gal-box" style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontWeight: 800 }}>{f.original_name} <span className="kind-pill surveyor">דוח שמאי</span></div>
+                          <div style={{ fontSize: 11, color: 'var(--t3)' }}>{f.source === 'gmail' ? 'Gmail' : f.source === 'customer' ? 'לקוח' : 'עובד'} · {fmtBytes(Number(f.byte_size || 0))}</div>
+                        </div>
+                        <button className="btn btn-p btn-sm" onClick={() => void openInCard(cur.id, f)}>פתח בתיק</button>
+                      </div>
+                    ))}
+                    <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+                    {report ? (
+                      <div key={`${report.id}:${meta.surveyorName}:${meta.reportDate}:${meta.reportNumber}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 8, margin: '10px 0 14px' }}>
+                        <input className="fi" id="surv_meta_name" defaultValue={meta.surveyorName || cur.surveyor || ''} placeholder="שם שמאי בדוח" />
+                        <input className="fi" id="surv_meta_date" type="date" defaultValue={meta.reportDate || ''} />
+                        <input className="fi" id="surv_meta_num" defaultValue={meta.reportNumber || ''} placeholder="מספר דוח" />
+                        <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, report.id, 'surveyor_report', {
+                          surveyorName: val(null, 'surv_meta_name'),
+                          reportDate: val(null, 'surv_meta_date'),
+                          reportNumber: val(null, 'surv_meta_num'),
+                        })}>שמור פרטי דוח</button>
+                      </div>
+                    ) : null}
+                    {pack.photos.length ? (
+                      <>
+                        <div className="sdiv"><div className="sdiv-t">תמונות הדוח ({pack.photos.length})</div><div className="sdiv-l" /></div>
+                        <div className="gal-grid">
+                          {pack.photos.map((f) => (
+                            <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
+                              {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
+                    {pack.attachments.length ? (
+                      <>
+                        <div className="sdiv"><div className="sdiv-t">קבצים שהגיעו עם הדוח</div><div className="sdiv-l" /></div>
+                        {pack.attachments.map((f) => (
+                          <div key={f.id} className="gal-box" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{f.original_name}</div>
+                              <div style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtBytes(Number(f.byte_size || 0))}</div>
+                            </div>
+                            <button className="btn btn-g btn-sm" onClick={() => void openInCard(cur.id, f)}>פתח בתיק</button>
+                          </div>
+                        ))}
+                      </>
+                    ) : null}
+                    <label className="btn btn-p btn-sm" style={{ marginTop: 10 }}>העלאת דוח שמאי
+                      <input type="file" hidden accept="application/pdf,image/*" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        const up = await apiRef.current.staffUpload(cur.id, '', file, { doc_kind: (file.type || '').startsWith('image/') ? 'surveyor_photo' : 'surveyor_report' });
+                        if (!up.success) { toast(up.error || 'העלאה נכשלה', 'err'); return; }
+                        await loadCardData(cur.id);
+                        toast('דוח שמאי הועלה');
+                      }} />
+                    </label>
+                  </div>
+                );
+              })()}
+              {cardTab === 'invoice' && (() => {
+                const list = invoiceFiles(docs.files);
+                return (
+                  <div>
+                    <div className="sdiv"><div className="sdiv-t">חשבונית מוסך</div><div className="sdiv-l" /></div>
+                    <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>קיצור דרך לאותו קובץ שמופיע גם במסמכים. אין שכפול קובץ.</div>
+                    {list.length === 0 ? (
+                      <div className="spec-empty">לא נמצאה חשבונית מוסך בתיק</div>
+                    ) : list.map((f) => {
+                      const meta = fileMeta(f);
+                      return (
+                        <div key={f.id} className="gal-box">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+                            <div>
+                              <div style={{ fontWeight: 800 }}>{f.original_name} <span className="kind-pill invoice">חשבונית מוסך</span></div>
+                              <div style={{ fontSize: 11, color: 'var(--t3)' }}>{f.source === 'gmail' ? 'Gmail' : f.source === 'customer' ? 'לקוח' : 'עובד'} · {fmtBytes(Number(f.byte_size || 0))}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button className="btn btn-p btn-sm" onClick={() => void openInCard(cur.id, f)}>צפייה בתיק</button>
+                              <button className="btn btn-g btn-sm" onClick={async () => {
+                                const r = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: f.id });
+                                if (r.url) window.open(String(r.url), '_blank');
+                              }}>הורדה</button>
+                            </div>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginTop: 10 }}>
+                            {[['תאריך חשבונית', meta.invoiceDate || '—'], ['סכום', meta.invoiceAmount || '—'], ['שם המוסך', meta.garageName || '—']].map((row) => (
+                              <div key={row[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{row[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{row[1]}</div></div>
+                            ))}
+                          </div>
+                          <div key={`meta-${f.id}-${meta.invoiceDate}-${meta.invoiceAmount}-${meta.garageName}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 8, marginTop: 10 }}>
+                            <input className="fi" id={`inv_date_${f.id}`} type="date" defaultValue={meta.invoiceDate || ''} />
+                            <input className="fi" id={`inv_amt_${f.id}`} defaultValue={meta.invoiceAmount || ''} placeholder="סכום" />
+                            <input className="fi" id={`inv_gar_${f.id}`} defaultValue={meta.garageName || ''} placeholder="שם המוסך" />
+                            <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'garage_invoice', {
+                              invoiceDate: val(null, `inv_date_${f.id}`),
+                              invoiceAmount: val(null, `inv_amt_${f.id}`),
+                              garageName: val(null, `inv_gar_${f.id}`),
+                            })}>שמור פרטי חשבונית</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+                    <label className="btn btn-p btn-sm" style={{ marginTop: 10 }}>העלאת חשבונית מוסך
+                      <input type="file" hidden accept="application/pdf,image/*" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        const up = await apiRef.current.staffUpload(cur.id, '', file, { doc_kind: 'garage_invoice' });
+                        if (!up.success) { toast(up.error || 'העלאה נכשלה', 'err'); return; }
+                        await loadCardData(cur.id);
+                        toast('חשבונית מוסך הועלתה');
+                      }} />
+                    </label>
+                  </div>
+                );
+              })()}
               {cardTab === 'docs' && (
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>בחר אילו מסמכים לבקש מהלקוח — לא אותה רשימה לכל תיק.</div>
@@ -875,7 +1247,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       return (
                         <button key={p.key} className={`btn btn-sm ${on ? 'btn-p' : 'btn-g'}`} onClick={async () => {
                           const next = on ? docs.requests.filter((d) => d.label !== p.label) : [...docs.requests, { id: '', label: p.label, status: 'requested' }];
-                          await apiRef.current.invokeDocs('save_doc_requests', { claim_id: cur.id, items: next.map((d) => ({ label: d.label })) });
+                          await apiRef.current.invokeDocs('save_doc_requests', {
+                            claim_id: cur.id,
+                            items: next.map((d) => {
+                              const preset = DOC_PRESETS.find((x) => x.label === d.label);
+                              return { label: d.label, doc_key: preset?.key || 'custom' };
+                            }),
+                          });
                           await loadCardData(cur.id);
                         }}>{on ? '✓ ' : ''}{p.label}</button>
                       );
@@ -908,29 +1286,71 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       </label>
                     </div>
                   ))}
-                  <div className="sdiv"><div className="sdiv-t">קבצים שהתקבלו</div><div className="sdiv-l" /></div>
+                  <div className="sdiv"><div className="sdiv-t">קבצים שהתקבלו ({docs.files.length})</div><div className="sdiv-l" /></div>
                   {docs.files.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין קבצים עדיין</div>
-                    : Object.entries(docs.files.reduce((acc: Record<string, typeof docs.files>, f) => {
+                    : Object.entries(docs.files.reduce((acc: Record<string, ClaimFile[]>, f) => {
                       const k = f.source === 'gmail' && f.gmail_message_id ? `gmail:${f.gmail_message_id}` : `one:${f.id}`;
                       (acc[k] = acc[k] || []).push(f);
                       return acc;
-                    }, {})).map(([k, group]) => (
-                      <div key={k} style={{ background: 'var(--bg3)', border: '1px solid var(--br)', borderRadius: 8, padding: 10, marginBottom: 8 }}>
-                        {k.startsWith('gmail:') ? <div style={{ fontWeight: 700, marginBottom: 6 }}>גלריה ממייל ({group.length} קבצים)</div> : null}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                          {group.map((f) => (
-                            <div key={f.id} style={{ minWidth: 140, flex: '1 1 140px' }}>
-                              <div style={{ fontWeight: 600, fontSize: 12 }}>{f.original_name}</div>
-                              <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.source === 'gmail' ? 'Gmail' : f.source === 'customer' ? 'לקוח' : 'עובד'}</div>
-                              <button className="btn btn-g btn-sm" onClick={async () => {
-                                const r = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: f.id });
-                                if (r.url) window.open(String(r.url), '_blank');
-                              }}>צפייה</button>
+                    }, {})).map(([k, group]) => {
+                      const isGal = k.startsWith('gmail:');
+                      const mid = isGal ? k.slice(6) : '';
+                      const imp = gmailImports.find((im) => String(im.gmail_message_id) === mid);
+                      const photos = group.filter((f) => classifyDoc(f) === 'photos');
+                      const rest = group.filter((f) => classifyDoc(f) !== 'photos');
+                      return (
+                        <div key={k} className="gal-box">
+                          {isGal ? (
+                            <div>
+                              <div style={{ fontWeight: 800, marginBottom: 4 }}>גלריה ממייל · {group.length} קבצים</div>
+                              {imp ? <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{String(imp.subject || '')} · {String(imp.from_addr || '')}</div> : null}
+                              {imp && String(imp.body_text || '').trim().length > 2 ? (
+                                <pre className="mail-body">{String(imp.body_text)}</pre>
+                              ) : <div style={{ color: 'var(--yn2)', fontSize: 12 }}>המייל התקבל ללא טקסט בגוף — רק מצורפים.</div>}
+                              <button className="btn btn-g btn-sm" style={{ marginBottom: 8 }} onClick={async () => {
+                                setOpenGal((p) => ({ ...p, [k]: !p[k] }));
+                                if (!openGal[k] && cur) await loadGalleryThumbs(cur.id, photos);
+                              }}>{openGal[k] ? 'הסתר גלריה' : `הצג גלריה (${photos.length} תמונות)`}</button>
                             </div>
-                          ))}
+                          ) : null}
+                          {isGal && openGal[k] ? (
+                            <div className="gal-grid">
+                              {photos.map((f) => (
+                                <button key={f.id} className="gal-item" title={f.original_name} onClick={async () => {
+                                  const r = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: f.id });
+                                  if (r.url) window.open(String(r.url), '_blank');
+                                }}>
+                                  {galleryUrls[f.id]
+                                    ? <img src={galleryUrls[f.id]} alt={f.original_name} />
+                                    : <span>{f.original_name}</span>}
+                                </button>
+                              ))}
+                            </div>
+                          ) : null}
+                          {(isGal ? rest : group).map((f) => {
+                            const knd = effectiveKind(f);
+                            return (
+                            <div key={f.id} style={{ minWidth: 140, display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: 12 }}>
+                                  {f.original_name}
+                                  {kindHe(knd) ? <span className={`kind-pill ${knd === 'garage_invoice' ? 'invoice' : 'surveyor'}`}>{kindHe(knd)}</span> : null}
+                                </div>
+                                <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.source === 'gmail' ? 'Gmail' : f.source === 'customer' ? 'לקוח' : 'עובד'} · {fmtBytes(Number(f.byte_size || 0))}</div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                {knd !== 'surveyor_report' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'surveyor_report')}>סמן כדוח שמאי</button> : null}
+                                {knd !== 'garage_invoice' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'garage_invoice')}>סמן כחשבונית מוסך</button> : null}
+                                {f.doc_kind && f.doc_kind !== 'general' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'general')}>בטל סימון</button> : null}
+                                <button className="btn btn-g btn-sm" onClick={() => void openInCard(cur.id, f)}>צפייה</button>
+                              </div>
+                            </div>
+                            );
+                          })}
+                          {!isGal ? null : photos.length && !openGal[k] ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>{photos.length} תמונות מקובצות — לחץ להצגת גלריה</div> : null}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button className="btn btn-p btn-sm" onClick={async () => {
                       const r = await apiRef.current.invokeDocs('create_link', { claim_id: cur.id });
@@ -945,11 +1365,71 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <button className="btn btn-g btn-sm" onClick={async () => { await apiRef.current.invokeDocs('revoke_link', { claim_id: cur.id }); setLinkUrl(''); toast('הקישור בוטל'); }}>בטל קישור</button>
                   </div>
                   {linkUrl ? <div style={{ marginTop: 8, fontSize: 11, wordBreak: 'break-all', color: 'var(--ac3)' }}>{linkUrl}</div> : null}
+                  <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
                 </div>
               )}
               {cardTab === 'gin' && (
                 <div>
-                  <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 8 }}>ייבוא בפעולה אחת: המייל + כל המצורפים. אין שליחה חיה. אין שינוי מיילים קיימים בתיבה.</div>
+                  <div className="sdiv"><div className="sdiv-t">התכתבויות ({gmailImports.length})</div><div className="sdiv-l" /></div>
+                  <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>מסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אין ייבוא נוסף מכאן אלא אם תבחר מייל חדש למטה.</div>
+                  {gmailImports.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין מיילים יובאים בתיק</div>
+                    : correspondenceThreads(gmailImports).map((group) => (
+                      <div key={group.thread} className="thread-box">
+                        <div className="thread-h">Thread · {group.thread} · {group.mails.length} מיילים</div>
+                        {group.mails.map((im) => {
+                          const mid = String(im.gmail_message_id || '');
+                          const attached = docs.files.filter((f) => f.gmail_message_id && f.gmail_message_id === mid);
+                          const photos = attached.filter((f) => isImageFile(f));
+                          const rest = attached.filter((f) => !isImageFile(f));
+                          return (
+                            <div key={String(im.id)} className="gmail-card">
+                              <div style={{ fontWeight: 800, marginBottom: 6 }}>{String(im.subject || '(ללא נושא)')}</div>
+                              <div className="mail-meta">
+                                <div><b>תאריך</b>{fmtWhen(String(im.sent_at || ''))}</div>
+                                <div><b>From</b>{String(im.from_addr || '—')}</div>
+                                <div><b>To</b>{String(im.to_addr || '—')}</div>
+                                <div><b>CC</b>{String(im.cc_addr || '—')}</div>
+                                <div><b>Thread</b>{String(im.gmail_thread_id || '—')}</div>
+                                <div><b>Message</b>{mid || '—'}</div>
+                              </div>
+                              {String(im.body_text || '').trim().length > 2
+                                ? <pre className="mail-body">{String(im.body_text)}</pre>
+                                : <div style={{ color: 'var(--yn2)', fontSize: 12, margin: '6px 0' }}>גוף המייל ריק</div>}
+                              {attached.length ? (
+                                <div>
+                                  <div style={{ fontSize: 11, fontWeight: 700, margin: '8px 0 4px' }}>קבצים מצורפים ({attached.length})</div>
+                                  {rest.map((f) => (
+                                    <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                                      <span style={{ fontSize: 12 }}>{f.original_name}</span>
+                                      <button className="btn btn-g btn-sm" onClick={() => void openInCard(cur.id, f)}>צפייה</button>
+                                    </div>
+                                  ))}
+                                  {photos.length ? (
+                                    <button className="btn btn-g btn-sm" style={{ marginBottom: 6 }} onClick={async () => {
+                                      const gk = `mail:${mid}`;
+                                      setOpenGal((p) => ({ ...p, [gk]: !p[gk] }));
+                                      if (!openGal[gk]) await loadGalleryThumbs(cur.id, photos);
+                                    }}>{openGal[`mail:${mid}`] ? 'הסתר תמונות' : `הצג תמונות (${photos.length})`}</button>
+                                  ) : null}
+                                  {openGal[`mail:${mid}`] ? (
+                                    <div className="gal-grid">
+                                      {photos.map((f) => (
+                                        <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
+                                          {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : <div style={{ fontSize: 11, color: 'var(--t3)' }}>אין קבצים מצורפים שמורים למייל זה</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+                  <div className="sdiv"><div className="sdiv-t">ייבוא Gmail — מייל חדש בלבד</div><div className="sdiv-l" /></div>
+                  <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 8 }}>אין לשלוח מייל. אין לייבא שוב מייל שכבר בתיק. הקבצים הקיימים לא יועתקו.</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
                     <button className="btn btn-p btn-sm" onClick={async () => {
                       setGmailBusy('טוען מיילים…');
@@ -970,20 +1450,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         const r = await apiRef.current.importGmailMessage(cur.id, String(m.id));
                         setGmailBusy('');
                         if (!r.success) { toast(String(r.error || 'ייבוא נכשל'), 'err'); return; }
-                        toast(`יובא · ${String(r.total || 0)} קבצים · לא נשלח מייל`);
+                        const found = Number(r.found || r.total || 0);
+                        const imported = Number(r.imported || 0);
+                        const failed = Number(r.failed || 0);
+                        const fails = Array.isArray(r.failures) ? r.failures as Array<{ filename?: string; reason?: string }> : [];
+                        toast(`Found: ${found} · Imported: ${imported} · Failed: ${failed}${fails.length ? ` · ${fails.map((x) => `${x.filename}: ${x.reason}`).join(' | ')}` : ''}`, failed ? 'err' : 'ok');
                         await loadAll();
                         await loadCardData(cur.id);
                       }}>ייבא את המייל וכל המצורפים</button>
                     </div>
                   ))}
-                  <div className="sdiv"><div className="sdiv-t">מיילים שכבר יובאו לתיק</div><div className="sdiv-l" /></div>
-                  {gmailImports.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין ייבוא עדיין</div>
-                    : gmailImports.map((im) => (
-                      <div key={String(im.id)} style={{ marginBottom: 8, fontSize: 12 }}>
-                        <b>{String(im.subject || '')}</b>
-                        <div style={{ color: 'var(--t3)' }}>message {String(im.gmail_message_id || '')} · thread {String(im.gmail_thread_id || '')} · {String(im.attachment_count || 0)} קבצים</div>
-                      </div>
-                    ))}
                 </div>
               )}
               {cardTab === 'tasks' && (
@@ -1050,7 +1526,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             <div><b>נושא:</b> {(prev?.subject as string) || fu.mail_subject || '—'}</div>
                             <pre>{String((prev?.body as string) || fu.mail_body || '')}</pre>
                             <div><b>מסמכים לצירוף:</b> {fu.attach_mode === 'received' ? (atts.length ? atts.map((a) => a.name).filter(Boolean).join(', ') : 'מסמכים שהתקבלו בתיק (אם יש)') : 'ללא מצורפים'}</div>
-                            {last ? <div style={{ marginTop: 6, fontSize: 11 }}><b>סטטוס שליחה:</b> {fuStatusHe(last.status)}{last.fail_reason ? ` · ${last.fail_reason}` : ''} · realEmailSend={String(prev?.realEmailSend ?? false)}</div> : null}
+                            {last ? <div style={{ marginTop: 6, fontSize: 11 }}><b>סטטוס שליחה:</b> {fuStatusHe(last.status)}{last.fail_reason ? ` · ${last.fail_reason}` : ''}{last.retry_count ? ` · retry ${last.retry_count}` : ''} · realEmailSend={String(prev?.realEmailSend ?? false)}</div> : null}
                           </div>
                           {fu.status === 'scheduled' && (
                             <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
@@ -1061,6 +1537,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                 toast('המעקב נעצר. ההיסטוריה נשמרה.');
                                 if (cur) await loadCardData(cur.id);
                               }}>עצור מעקב</button>
+                            </div>
+                          )}
+                          {fu.status === 'failed' && (
+                            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                              <button className="btn btn-p btn-sm" onClick={async () => {
+                                const r = await apiRef.current.retryMailFollowup(fu.id);
+                                if (!r.success) { toast(String(r.error || 'לא ניתן Retry'), 'err'); return; }
+                                toast('Retry הוגדר — Dry Run בלבד, לא נשלח מייל אמיתי');
+                                if (cur) await loadCardData(cur.id);
+                              }}>Retry (Dry Run)</button>
                             </div>
                           )}
                         </div>
@@ -1195,29 +1681,119 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
       <div className={`ov ${modal === 'moMail' ? 'open' : ''}`}>
         <div className="modal modal-md">
-          <div className="mh"><div className="mh-t">📧 שליחת מייל</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mh"><div className="mh-t">{mailKind === 'insurer' ? '🏢 Preview לחברת ביטוח' : mailKind === 'legal' ? '⚖️ Preview לטיפול משפטי' : '📝 טיוטת Gmail'} — לא נשלח</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
           <div className="mb">
-            <div className="fg"><label className="fl">אימייל</label><input className="fi" id="mail_to" /></div>
+            <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>שליחה חיה כבויה. אפשר ליצור טיוטת TEST ב-yoni122222@gmail.com בלבד.</div>
+            <div className="fg"><label className="fl">למי *</label><input className="fi" id="mail_to" /></div>
+            <div className="fg"><label className="fl">CC</label><input className="fi" id="mail_cc" placeholder="כתובת נוספת, אופציונלי" /></div>
             <div className="fg"><label className="fl">נושא</label><input className="fi" id="mail_subj" /></div>
-            <div className="fg"><label className="fl">תוכן</label><textarea className="fta" id="mail_body" /></div>
-            <div style={{ fontSize: 11, color: 'var(--yn2)', marginTop: 8 }}>שליחה חיה כבויה. אפשר לתעד בתיק או ליצור טיוטת Gmail שלא נשלחת.</div>
+            {(mailKind === 'insurer' || mailKind === 'legal') && (
+              <div className="fg">
+                <label className="fl">סיכום חיצוני (ניתן לעריכה — בלי הערות פנימיות)</label>
+                <textarea className="fta" style={{ minHeight: 140 }} value={extSummary} onChange={(e) => { setExtSummary(e.target.value); setVal('mail_body', e.target.value); }} />
+                <div style={{ fontSize: 10, color: 'var(--t3)' }}>היסטוריית עובדים, הערות פנימיות והערות משפטיות לא נכללות.</div>
+              </div>
+            )}
+            {mailKind === 'draft' ? (
+              <div className="fg"><label className="fl">תוכן</label><textarea className="fta" id="mail_body" style={{ minHeight: 100 }} /></div>
+            ) : <input type="hidden" id="mail_body" value={extSummary} readOnly />}
+            <div className="sdiv"><div className="sdiv-t">בחירת מסמכים לשליחה</div><div className="sdiv-l" /></div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+              <button className="btn btn-g btn-sm" onClick={() => setSendGroup(docs.files.map((f) => f.id), true)}>הכול</button>
+              <button className="btn btn-g btn-sm" onClick={() => setSendGroup(docs.files.map((f) => f.id), false)}>נקה</button>
+              <button className="btn btn-g btn-sm" onClick={() => setSendGroup(docs.files.filter((f) => classifyDoc(f) === 'photos').map((f) => f.id), true)}>כל התמונות</button>
+            </div>
+            {DOC_CATS.map((cat) => {
+              const group = docs.files.filter((f) => classifyDoc(f) === cat.key);
+              if (!group.length) return null;
+              const allOn = group.every((f) => sendIds.includes(f.id));
+              return (
+                <div key={cat.key} className="pick-cat">
+                  <label className="pick-cat-h">
+                    <input type="checkbox" checked={allOn} onChange={(e) => setSendGroup(group.map((f) => f.id), e.target.checked)} />
+                    {cat.label} ({group.length})
+                  </label>
+                  <div className="pick-list">
+                    {group.map((f) => (
+                      <label key={f.id} className="pick-row">
+                        <input type="checkbox" checked={sendIds.includes(f.id)} onChange={() => toggleSendId(f.id)} />
+                        <span>{f.original_name}</span>
+                        <span className="pick-sz">{fmtBytes(Number(f.byte_size || 0))}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            <div className={`pkg-bar ${pkgInfo?.overLimit ? 'over' : ''}`}>
+              גודל החבילה: {fmtBytes(pkgInfo?.packageBytes || sendIds.reduce((s, id) => s + Number(docs.files.find((f) => f.id === id)?.byte_size || 0), 0))}
+              {' / '}{fmtBytes(PACKAGE_LIMIT)}
+              {' · '}{sendIds.length} קבצים
+              {pkgInfo?.overLimit ? <div className="pkg-warn">החבילה גדולה מדי למייל אחד. לא יושמטו קבצים בשקט. {pkgInfo.suggestion}</div> : null}
+            </div>
+            {mailPreviewOn && (
+              <div className="fu-prev" style={{ marginTop: 12 }}>
+                <div style={{ fontWeight: 800, marginBottom: 6 }}>Preview מלא — לא נשלח</div>
+                <div><b>למי:</b> {val(null, 'mail_to') || '—'}</div>
+                <div><b>CC:</b> {val(null, 'mail_cc') || '—'}</div>
+                <div><b>נושא:</b> {val(null, 'mail_subj') || '—'}</div>
+                <div><b>תוכן:</b></div>
+                <pre>{mailKind === 'draft' ? val(null, 'mail_body') : extSummary}</pre>
+                <div><b>מצורפים שנבחרו:</b> {sendIds.length ? docs.files.filter((f) => sendIds.includes(f.id)).map((f) => f.original_name).join(', ') : 'אין'}</div>
+              </div>
+            )}
           </div>
-          <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
+          <div className="mf">
+            <button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
+            <button className="btn btn-g" onClick={() => setMailPreviewOn(true)}>👁 Preview</button>
             <button className="btn btn-p" onClick={async () => {
-              const to = val(null, 'mail_to'); if (!to) { toast('נא להזין אימייל', 'err'); return; }
-              await apiRef.current.sendEmailFromClaim({ claimId: curId || '', to, subject: val(null, 'mail_subj'), body: val(null, 'mail_body') });
+              await apiRef.current.sendEmailFromClaim({ claimId: curId || '', to: val(null, 'mail_to'), subject: val(null, 'mail_subj'), body: mailKind === 'draft' ? val(null, 'mail_body') : extSummary });
               toast('מייל תועד בתיק (לא נשלח)');
               if (curId) await openCard(curId);
-            }}>📧 תעד בתיק</button>
+            }}>תעד בתיק</button>
             <button className="btn btn-p" onClick={async () => {
               const to = val(null, 'mail_to'); if (!to) { toast('נא להזין אימייל', 'err'); return; }
+              if (pkgInfo?.overLimit) { toast('החבילה גדולה מדי — לא נוצרה טיוטה חלקית', 'err'); return; }
+              setMailPreviewOn(true);
               const r = await apiRef.current.invokeGmail('create_draft', {
-                claim_id: curId, to, subject: val(null, 'mail_subj'), body: val(null, 'mail_body'),
+                claim_id: curId,
+                to,
+                cc: val(null, 'mail_cc'),
+                subject: val(null, 'mail_subj'),
+                body: mailKind === 'draft' ? val(null, 'mail_body') : extSummary,
+                file_ids: sendIds,
               });
-              if (!r.success) { toast(String(r.error || 'טיוטה נכשלה'), 'err'); return; }
-              toast('נוצרה טיוטה ב-Gmail — לא נשלח');
+              if (!r.success) {
+                if (r.error === 'package_too_large') toast(`החבילה גדולה מדי (${fmtBytes(Number(r.packageBytes || 0))}). ${String(r.suggestion || '')}`, 'err');
+                else toast(String(r.error || 'טיוטה נכשלה'), 'err');
+                return;
+              }
+              toast(`נוצרה טיוטת TEST · ${String(r.attached ? (r.attached as unknown[]).length : sendIds.length)} מצורפים · לא נשלח`);
               if (curId) await openCard(curId);
-            }}>📝 צור טיוטה</button>
+            }}>📝 צור טיוטת TEST</button>
+            {isSuperAdmin && (
+              <button className="btn btn-rd" onClick={async () => {
+                const to = val(null, 'mail_to');
+                const cc = val(null, 'mail_cc');
+                if (to.toLowerCase() !== 'yoni122222@gmail.com') { toast('שליחת TEST חיה רק אל yoni122222@gmail.com', 'err'); return; }
+                if (cc && cc.toLowerCase() !== 'yoni122222@gmail.com') { toast('CC ב-TEST חי רק אל yoni122222@gmail.com', 'err'); return; }
+                if (sendIds.length < 1 || sendIds.length > 3) { toast('TEST חי: 1–3 קבצים בלבד', 'err'); return; }
+                if (pkgInfo?.overLimit) { toast('החבילה גדולה מדי', 'err'); return; }
+                setMailPreviewOn(true);
+                if (!window.confirm('שליחת TEST אמיתית אחת אל yoni122222@gmail.com בלבד. לא לחברת ביטוח / שמאי / עו"ד / לקוח. להמשיך?')) return;
+                const r = await apiRef.current.invokeGmail('send_self_test', {
+                  claim_id: curId,
+                  to,
+                  cc,
+                  subject: val(null, 'mail_subj'),
+                  body: mailKind === 'draft' ? val(null, 'mail_body') : extSummary,
+                  file_ids: sendIds,
+                });
+                if (!r.success) { toast(String(r.error || 'שליחה נחסמה'), 'err'); return; }
+                toast('נשלח TEST אחד לעצמי — שליחה כללית נשארת כבויה');
+                if (curId) await openCard(curId);
+              }}>🚀 שלח TEST לעצמי (חד-פעמי)</button>
+            )}
           </div>
         </div>
       </div>
@@ -1345,7 +1921,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
       <div className={`ov ${modal === 'moSum' || modal === 'moExport' ? 'open' : ''}`}>
         <div className="modal modal-md">
-          <div className="mh"><div className="mh-t">{modal === 'moExport' ? '📄 ייצוא תיק מלא' : '📄 סיכום תיק'}</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mh"><div className="mh-t">{modal === 'moExport' ? '📄 סיכום חיצוני — מותר להעברה (ניתן להעתיק ולערוך לפני צירוף)' : '📄 היסטוריה פנימית — לא לשלוח החוצה'}</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
           <div className="mb"><pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'Heebo,sans-serif', fontSize: 12, lineHeight: 1.8, color: 'var(--t2)' }}>{modal === 'moExport' ? exportText : sumText}</pre></div>
           <div className="mf">
             <button className="btn btn-g" onClick={() => navigator.clipboard.writeText(modal === 'moExport' ? exportText : sumText).then(() => toast('הועתק'))}>📋 העתק</button>

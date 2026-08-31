@@ -33,6 +33,8 @@ export const DOC_PRESETS: { key: string; label: string }[] = [
   { key: 'damage_photos', label: 'תמונות נזק / אירוע' },
   { key: 'insurance_history', label: 'עבר ביטוחי' },
   { key: 'third_party', label: 'מסמכי צד ג׳' },
+  { key: 'surveyor_report', label: 'דוח שמאי' },
+  { key: 'garage_invoice', label: 'חשבונית מוסך' },
 ];
 
 export const TEMPLATES: Record<string, { name: string; subject?: string; body: string }> = {

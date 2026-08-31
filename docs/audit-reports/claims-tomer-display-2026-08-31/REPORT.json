@@ -1,0 +1,19 @@
+{
+  "at": "2026-08-31T19:28:00Z",
+  "restoreHead": "d07fdf9ad915a91a5b69292823e42fa9f9c7642f",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "dbChange": "ALTER claims_gmail_imports ADD to_addr, cc_addr; UPDATE 30 existing DAL-2026-0004 rows from Gmail metadata",
+  "insertedImports": 0,
+  "insertedDocuments": 0,
+  "imports": 30,
+  "documents": 182,
+  "surveyorPhotos": 151,
+  "withTo": 30,
+  "withCc": 0,
+  "vehicles": 437,
+  "accidents": 11,
+  "otherClaimsUntouched": true,
+  "functionsDeployed": ["claims-docs", "claims-gmail"],
+  "noGmailImport": true,
+  "productionUntouched": true
+}
