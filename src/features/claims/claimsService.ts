@@ -129,7 +129,7 @@ export function createClaimsApi(actor: ClaimsActor) {
 
   async function getAllClaims(): Promise<ClaimRecord[]> {
     const { data, error } = await tbl('claims_records')
-      .select('id, vehicle_id, plate, client_name, status, company_name, row_data, created_by, created_by_name, updated_by_name, assigned_to, assigned_to_name, assigned_at, created_at, updated_at, last_activity_at')
+      .select('id, vehicle_id, plate, client_name, status, company_name, row_data, created_by, created_by_name, updated_by_name, assigned_to, assigned_to_name, assigned_at, created_at, updated_at, last_activity_at, gmail_message_id, gmail_thread_id')
       .order('updated_at', { ascending: false });
     if (error) return [];
     return ((data || []) as Array<Record<string, unknown>>).map((r) => {
@@ -145,6 +145,8 @@ export function createClaimsApi(actor: ClaimsActor) {
       row.assigned_to = asText(r.assigned_to);
       row.assigned_to_name = asText(r.assigned_to_name);
       row.assigned_at = asText(r.assigned_at);
+      row.gmail_message_id = asText(r.gmail_message_id);
+      row.gmail_thread_id = asText(r.gmail_thread_id);
       if (!row.createdAt && r.created_at) row.createdAt = new Date(asText(r.created_at)).toLocaleString('he-IL');
       if (!row.updatedAt && r.updated_at) row.updatedAt = new Date(asText(r.updated_at)).toLocaleString('he-IL');
       if (!row.lastActivityAt && r.last_activity_at) {
@@ -617,6 +619,26 @@ export function createClaimsApi(actor: ClaimsActor) {
       const { data, error } = await supabase.functions.invoke('claims-docs', { body: { action, ...body } });
       if (error) return { success: false, error: error.message, data };
       return (data || { success: false }) as Record<string, unknown> & { success?: boolean; error?: string };
+    },
+
+    async invokeGmail(action: string, body: Record<string, unknown> = {}) {
+      const { data, error } = await supabase.functions.invoke('claims-gmail', { body: { action, ...body } });
+      const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+      if (error) return { success: false, error: error.message, realEmailSend: false, ...payload };
+      return { realEmailSend: false, ...payload, success: payload.success !== false };
+    },
+
+    async importGmailMessage(claimId: string, messageId: string) {
+      let start = 0;
+      let last: Record<string, unknown> = {};
+      for (let i = 0; i < 10; i++) {
+        const r = await this.invokeGmail('import_message', { claim_id: claimId, message_id: messageId, start });
+        last = r;
+        if (!r.success) return r;
+        if (r.done) return r;
+        start = Number(r.start || 0);
+      }
+      return last;
     },
 
     async staffUpload(claimId: string, docRequestId: string, file: File) {

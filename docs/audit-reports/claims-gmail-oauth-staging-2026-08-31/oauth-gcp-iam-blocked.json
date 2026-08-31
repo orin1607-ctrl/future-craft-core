@@ -1,0 +1,16 @@
+{
+  "at": "2026-08-31T13:35:00.000Z",
+  "ok": false,
+  "blocked": true,
+  "reason": "gcp_iam_missing_on_signed_in_account",
+  "project": "project001aimarketing",
+  "missingPermissions": [
+    "oauthconfig.testusers.get",
+    "oauthconfig.verification.get",
+    "resourcemanager.projects.get"
+  ],
+  "publishingStatusLeftAs": "Testing",
+  "testUserAdded": false,
+  "realEmailSend": false,
+  "note": "Cursor browser reached Cloud Console Audience page but the signed-in Google account has no project IAM. Test user yoni122222@gmail.com was not added. Do not publish the app."
+}

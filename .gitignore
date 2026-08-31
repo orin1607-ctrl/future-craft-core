@@ -27,7 +27,11 @@ integrations/project-001/gcp.json
 # Google OAuth (never commit)
 integrations/google/credentials.oauth.json
 integrations/google/credentials.oauth.paste.json
+integrations/google/credentials.claims-oauth.json
+integrations/google/credentials.claims-oauth.paste.json
 integrations/google/token.json
+integrations/google/token.gmail-yonia.json
+integrations/google/token*.json
 integrations/google/config.json
 integrations/google/archive/
 integrations/google/apps-script/.clasp.json

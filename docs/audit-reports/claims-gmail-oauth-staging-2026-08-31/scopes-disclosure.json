@@ -1,0 +1,30 @@
+{
+  "at": "2026-08-31T13:02:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "realEmailSend": false,
+  "accountRequired": "yoni122222@gmail.com",
+  "scopes": [
+    {
+      "scope": "openid",
+      "why": "Identify the Google account. No mailbox content."
+    },
+    {
+      "scope": "https://www.googleapis.com/auth/userinfo.email",
+      "why": "Enforce exactly yoni122222@gmail.com. Wrong account is rejected and token revoked."
+    },
+    {
+      "scope": "https://www.googleapis.com/auth/gmail.readonly",
+      "why": "List and read messages plus attachments for claim import. Does not delete, move, or mark read."
+    },
+    {
+      "scope": "https://www.googleapis.com/auth/gmail.compose",
+      "why": "Create drafts only. Google compose also permits send; app hard-blocks messages.send and drafts.send until a later owner PASS."
+    }
+  ],
+  "tokenStorage": "public.claims_gmail_connection.refresh_token on Staging. RLS on. REVOKE ALL from anon/authenticated. Edge service_role only. Never returned to frontend. No Gmail password stored.",
+  "revoke": "Claims Gmail view → בטל חיבור Gmail (super_admin), and Google Account → Third-party access.",
+  "workerIsolation": "Workers never receive the Google token and do not open Gmail.com. list_messages, import_message, and create_draft require claims_can_work_claim.",
+  "notUsed": ["ANYONE_ANONYMOUS", "GAS web app", "token.gmail-yonia.json", "GOOGLE_REFRESH_TOKEN overwrite"]
+}

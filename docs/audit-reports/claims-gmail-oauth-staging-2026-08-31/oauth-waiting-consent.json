@@ -1,0 +1,23 @@
+{
+  "at": "2026-08-31T14:33:00.000Z",
+  "status": "WAITING_FOR_OWNER_GOOGLE_CONSENT",
+  "projectId": "oren-car-claims",
+  "clientIdPrefix": "581830577307",
+  "appName": "Oren Car Claims",
+  "accountOnConsentScreen": "yoni122222@gmail.com",
+  "publishingStatus": "Testing",
+  "testUserAdded": "yoni122222@gmail.com",
+  "gmailApiEnabled": true,
+  "redirectUri": "http://127.0.0.1:4521/oauth2callback",
+  "localScopesPage": "http://127.0.0.1:4521/",
+  "agentClickedAllow": false,
+  "realEmailSend": false,
+  "followUpLive": false,
+  "productionTouched": false,
+  "blockedProjectsNotUsed": [
+    "project001aimarketing",
+    "Default Gemini Project",
+    "dalia-fleetos",
+    "burnished-craft-466809-v1"
+  ]
+}

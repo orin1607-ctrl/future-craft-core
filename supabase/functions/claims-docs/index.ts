@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
       const claimId = String(body.claim_id || url.searchParams.get("claim_id") || "");
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       const { data: reqs } = await sb.from("claims_doc_requests").select("id, label, doc_key, status, received_at, created_at").eq("claim_id", claimId).order("created_at");
-      const { data: files } = await sb.from("claims_documents").select("id, doc_request_id, original_name, mime_type, byte_size, source, uploaded_by_name, created_at").eq("claim_id", claimId).order("created_at", { ascending: false });
+      const { data: files } = await sb.from("claims_documents").select("id, doc_request_id, original_name, mime_type, byte_size, source, uploaded_by_name, created_at, gmail_message_id, gmail_thread_id").eq("claim_id", claimId).order("created_at", { ascending: false });
       return jsonResponse({ success: true, requests: reqs || [], files: files || [] });
     }
 

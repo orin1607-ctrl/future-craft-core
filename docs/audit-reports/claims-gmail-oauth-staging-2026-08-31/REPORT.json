@@ -1,0 +1,276 @@
+{
+  "verdict": "PASS",
+  "at": "2026-08-31T15:13:35.950Z",
+  "pass": true,
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "realEmailSend": false,
+  "followUpLive": false,
+  "mailbox": "yoni122222@gmail.com",
+  "gcpProject": "oren-car-claims",
+  "qaClaim": "DAL-QA-GMAIL-001",
+  "protectedClaim": "DAL-2026-0001",
+  "gmail_message_id": "1a0568f53e7b629a",
+  "gmail_thread_id": "1a0568f53e7b629a",
+  "attachmentsImported": 80,
+  "attachmentsOnMessage": 158,
+  "attachmentCap": 80,
+  "limitation": "Gmail message had 158 files; one-action import stored 80 (current MAX_ATTACH). Worker loop completed until done. No live send.",
+  "draftId": "r4200962205561746216",
+  "tests": [
+    {
+      "id": "secrets-set-claims-google",
+      "ok": true,
+      "detail": "CLAIMS_GOOGLE_CLIENT_ID/SECRET on staging"
+    },
+    {
+      "id": "deploy-claims-gmail",
+      "ok": true,
+      "detail": "staging only"
+    },
+    {
+      "id": "staging-only",
+      "ok": true,
+      "detail": "usfeoerkpcafxxlyuldl"
+    },
+    {
+      "id": "send-disabled",
+      "ok": true,
+      "detail": "false"
+    },
+    {
+      "id": "dry-run",
+      "ok": true,
+      "detail": "dry_run"
+    },
+    {
+      "id": "allowed-account",
+      "ok": true,
+      "detail": "yoni122222@gmail.com"
+    },
+    {
+      "id": "token-not-granted-to-auth",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "id": "connected-email",
+      "ok": true,
+      "detail": {
+        "email": "yoni122222@gmail.com",
+        "has_token": true,
+        "revoked": null
+      }
+    },
+    {
+      "id": "protected-claim-untouched-start",
+      "ok": true,
+      "detail": "DAL-2026-0001"
+    },
+    {
+      "id": "status-connected",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "email": "yoni122222@gmail.com",
+        "connected": true,
+        "sendEnabled": false
+      }
+    },
+    {
+      "id": "status-no-token-in-payload",
+      "ok": true,
+      "detail": [
+        "success",
+        "connected",
+        "email",
+        "accountExpected",
+        "sendEnabled",
+        "realEmailSend",
+        "scopes",
+        "canConnect"
+      ]
+    },
+    {
+      "id": "live-send-blocked",
+      "ok": true,
+      "detail": {
+        "status": 403,
+        "reason": "live_send_not_approved"
+      }
+    },
+    {
+      "id": "list-messages",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "error": null,
+        "count": 20
+      }
+    },
+    {
+      "id": "read-message",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "id": "1a0568f53e7b629a",
+        "threadId": "1a0568f53e7b629a",
+        "attachments": 158,
+        "error": null
+      }
+    },
+    {
+      "id": "import-one-action",
+      "ok": true,
+      "detail": {
+        "batches": [
+          {
+            "status": 200,
+            "uploaded": 12,
+            "start": 12,
+            "done": false,
+            "total": 80
+          },
+          {
+            "status": 200,
+            "uploaded": 12,
+            "start": 24,
+            "done": false,
+            "total": 80
+          },
+          {
+            "status": 200,
+            "uploaded": 12,
+            "start": 36,
+            "done": false,
+            "total": 80
+          },
+          {
+            "status": 200,
+            "uploaded": 12,
+            "start": 48,
+            "done": false,
+            "total": 80
+          },
+          {
+            "status": 200,
+            "uploaded": 12,
+            "start": 60,
+            "done": false,
+            "total": 80
+          },
+          {
+            "status": 200,
+            "uploaded": 12,
+            "start": 72,
+            "done": false,
+            "total": 80
+          },
+          {
+            "status": 200,
+            "uploaded": 8,
+            "start": 80,
+            "done": true,
+            "total": 80
+          }
+        ],
+        "gmail_message_id": "1a0568f53e7b629a",
+        "gmail_thread_id": "1a0568f53e7b629a",
+        "total": 80
+      }
+    },
+    {
+      "id": "message-id-saved",
+      "ok": true,
+      "detail": "1a0568f53e7b629a"
+    },
+    {
+      "id": "thread-id-saved",
+      "ok": true,
+      "detail": "1a0568f53e7b629a"
+    },
+    {
+      "id": "attachments-imported",
+      "ok": true,
+      "detail": {
+        "docs": 80,
+        "imports": 1,
+        "expectedTotal": 80
+      }
+    },
+    {
+      "id": "protected-claim-ids-unchanged",
+      "ok": true,
+      "detail": {
+        "protected_msg": null
+      }
+    },
+    {
+      "id": "create-draft",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "draftId": "r4200962205561746216",
+        "sent": false,
+        "error": null
+      }
+    },
+    {
+      "id": "worker-denied-without-claim-access",
+      "ok": true,
+      "detail": {
+        "status": 403,
+        "error": "forbidden_claim",
+        "workerId": "a21fcf08-7a6e-4152-95bb-dde106023c6d",
+        "ephemeralUser": false
+      }
+    },
+    {
+      "id": "worker-cannot-import",
+      "ok": true,
+      "detail": {
+        "status": 403,
+        "error": "forbidden_claim"
+      }
+    },
+    {
+      "id": "vehicles-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 437,
+        "after": 437
+      }
+    },
+    {
+      "id": "accidents-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 11,
+        "after": 11
+      }
+    },
+    {
+      "id": "document-requests-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 12,
+        "after": 12
+      }
+    },
+    {
+      "id": "protected-claim-still-exists",
+      "ok": true,
+      "detail": "DAL-2026-0001"
+    },
+    {
+      "id": "no-real-email-send",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "id": "no-token-in-frontend-payloads",
+      "ok": true,
+      "detail": "status/list/read/import/draft responses omit refresh_token"
+    }
+  ]
+}

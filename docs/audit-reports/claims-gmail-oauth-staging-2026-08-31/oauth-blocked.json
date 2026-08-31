@@ -1,0 +1,12 @@
+{
+  "at": "2026-08-31T13:22:00.000Z",
+  "ok": false,
+  "blocked": true,
+  "reason": "google_oauth_testing_access_denied",
+  "accountAttempted": "yoni122222@gmail.com",
+  "googleMessage": "The developer hasn't given you access to this app. It's currently being tested and it hasn't been verified by Google. Contact the developer (orin1607@gmail.com).",
+  "requiredOwnerAction": "Add yoni122222@gmail.com as an OAuth test user on GCP project project001aimarketing (OAuth consent screen / Audience). Do not publish the app. Do not change Production.",
+  "retryUrl": "http://127.0.0.1:4521/",
+  "realEmailSend": false,
+  "productionTouched": false
+}

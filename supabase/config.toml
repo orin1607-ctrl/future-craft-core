@@ -92,6 +92,10 @@ verify_jwt = false
 [functions.claims-mail-dispatch]
 verify_jwt = true
 
+# Claims Gmail (JWT inside except unused GET). Tokens never returned to client.
+[functions.claims-gmail]
+verify_jwt = false
+
 [functions.notify-telemarketing-followup]
 verify_jwt = true
 

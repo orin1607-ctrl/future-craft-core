@@ -1,0 +1,10 @@
+{
+  "at": "2026-08-31T15:11:35.122Z",
+  "ok": true,
+  "email": "yoni122222@gmail.com",
+  "scopes": "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.compose openid",
+  "hasRefresh": true,
+  "tokenReturnedToClient": false,
+  "realEmailSend": false,
+  "staging": "usfeoerkpcafxxlyuldl"
+}

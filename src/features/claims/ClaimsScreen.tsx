@@ -102,7 +102,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [mailFollowups, setMailFollowups] = useState<MailFollowupRow[]>([]);
   const [fuEditId, setFuEditId] = useState<string | null>(null);
   const [assignees, setAssignees] = useState<Array<{ id: string; full_name: string; company_name: string }>>([]);
-  const [docs, setDocs] = useState<{ requests: Array<{ id: string; label: string; status: string; received_at?: string }>; files: Array<{ id: string; doc_request_id: string | null; original_name: string; source: string; created_at: string; uploaded_by_name?: string }> }>({ requests: [], files: [] });
+  const [docs, setDocs] = useState<{ requests: Array<{ id: string; label: string; status: string; received_at?: string }>; files: Array<{ id: string; doc_request_id: string | null; original_name: string; source: string; created_at: string; uploaded_by_name?: string; mime_type?: string; gmail_message_id?: string | null }> }>({ requests: [], files: [] });
+  const [gmailStatus, setGmailStatus] = useState<{ connected?: boolean; email?: string | null; canConnect?: boolean }>({});
+  const [gmailList, setGmailList] = useState<Array<Record<string, unknown>>>([]);
+  const [gmailImports, setGmailImports] = useState<Array<Record<string, unknown>>>([]);
+  const [gmailBusy, setGmailBusy] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [customDoc, setCustomDoc] = useState('');
   const [mineOnly, setMineOnly] = useState(actor.role !== 'super_admin');
@@ -168,6 +172,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (name === 'tasks') {
       apiRef.current.getTasks(null).then((r) => setAllTasks((r.data || []).filter((t) => t.done !== 'true')));
     }
+    if (name === 'gmail') {
+      apiRef.current.invokeGmail('status').then((r) => setGmailStatus({
+        connected: r.connected === true,
+        email: typeof r.email === 'string' ? r.email : null,
+        canConnect: r.canConnect === true,
+      }));
+    }
     if (name === 'reports') {
       apiRef.current.getReportData().then((r) => {
         if (!r.success) return;
@@ -191,19 +202,21 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const loadCardData = async (id: string) => {
-    const [c, h, t, rem, d, fu] = await Promise.all([
+    const [c, h, t, rem, d, fu, gi] = await Promise.all([
       apiRef.current.getCommLog(id),
       apiRef.current.getHistory(id),
       apiRef.current.getTasks(id),
       apiRef.current.getReminders(id),
       apiRef.current.invokeDocs('list_docs', { claim_id: id }),
       apiRef.current.listMailFollowups(id),
+      apiRef.current.invokeGmail('list_imports', { claim_id: id }),
     ]);
     setComm(c.data || []);
     setHist(h.data || []);
     setTasks((t.data || []).filter((x) => x.done !== 'true'));
     setReminders(rem.data || []);
     setMailFollowups(fu.data || []);
+    setGmailImports((gi.data as Array<Record<string, unknown>>) || []);
     setDocs({
       requests: (d.requests as typeof docs.requests) || [],
       files: (d.files as typeof docs.files) || [],
@@ -585,16 +598,29 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
             {view === 'gmail' && (
               <>
-                <div className="ph"><div><div className="ph-t">📧 Gmail – ניהול מיילים<div className="ph-bar" /></div></div></div>
+                <div className="ph"><div><div className="ph-t">📧 Gmail – חיבור תיבת דליה<div className="ph-bar" /></div></div></div>
                 <div className="gmail-card">
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>שלב Google — בהמתנה לאישור OAuth</div>
-                  <div style={{ fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}>
-                    אין חיבור לתיבת Gmail בשלב זה. לא נשלח מייל אמיתי.
-                    <br /><br />
-                    <b>מה יחובר אחרי אישור:</b> תביעה → ייבוא מ-Gmail → בחירת מייל → «ייבא את המייל וכל המצורפים» — המייל, דוח השמאי וכל התמונות (גם 60–70) נכנסים לתביעה בפעולה אחת, ומוצגים כגלריה תחת אותו מייל.
-                    <br />
-                    בנוסף: שליחת תיק לחברת ביטוח, העברה לטיפול משפטי, בחירת מסמכים לצירוף, צירוף סיכום והיסטוריה, שמירת Gmail Message/Thread, Follow-up מתוזמן, ובהמשך שיוך תשובות נכנסות.
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                    {gmailStatus.connected ? `מחובר: ${gmailStatus.email || 'yoni122222@gmail.com'}` : 'לא מחובר עדיין'}
                   </div>
+                  <div style={{ fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}>
+                    העובד לא נכנס לתיבת Gmail. ייבוא וטיוטה רק מתוך תיק מורשה. שליחה חיה כבויה.
+                    <br />Scopes: openid, userinfo.email, gmail.readonly, gmail.compose (טיוטה בלבד — send חסום בקוד).
+                    <br />Token נשמר בשרת בלבד. ביטול: super_admin כאן, וגם בהרשאות Google.
+                  </div>
+                  {isSuperAdmin && gmailStatus.connected && (
+                    <button className="btn btn-sm" style={{ marginTop: 10, background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={async () => {
+                      const r = await apiRef.current.invokeGmail('revoke');
+                      if (!r.success) { toast(String(r.error || 'שגיאה'), 'err'); return; }
+                      setGmailStatus({ connected: false, email: null, canConnect: true });
+                      toast('החיבור בוטל');
+                    }}>בטל חיבור Gmail</button>
+                  )}
+                  {!gmailStatus.connected && (
+                    <div style={{ marginTop: 10, fontSize: 12, color: 'var(--yn2)' }}>
+                      חיבור OAuth מתבצע במסך האישור המקומי של הבעלים (לא מפה). אחרי האישור רענן דף זה.
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -773,6 +799,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <button className="ab-btn ab-task" onClick={() => setModal('moTask')}>✅ משימה</button>
               <button className="ab-btn ab-rem" onClick={() => setModal('moRem')}>🔔 תזכורת</button>
               <button className="ab-btn ab-mail" onClick={() => openMailFollowupModal(null)}>📬 מעקב מייל</button>
+              <button className="ab-btn ab-mail" onClick={async () => {
+                setCardTab('gin');
+                setGmailBusy('טוען מיילים…');
+                const r = await apiRef.current.invokeGmail('list_messages', { claim_id: cur.id });
+                setGmailBusy('');
+                if (!r.success) { toast(String(r.error || 'Gmail לא מחובר'), 'err'); return; }
+                setGmailList((r.messages as Array<Record<string, unknown>>) || []);
+              }}>📥 ייבוא מ-Gmail</button>
               <div className="ab-sep" />
               <button className="ab-btn ab-status" onClick={() => { setVal('sf_st', cur.status); setVal('sf_note', ''); setModal('moStatus'); }}>🔄 סטטוס</button>
               <button className="ab-btn ab-sum" onClick={async () => { const r = await apiRef.current.exportClaimSummary(cur.id); setSumText(r.text || ''); setModal('moSum'); }}>📄 סיכום</button>
@@ -781,7 +815,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             </div>
             <div style={{ padding: '0 18px 18px' }}>
               <div className="tabs">
-                {[['claim', '📋 תביעה'], ['client', '👤 לקוח'], ['vehicle', '🚗 רכב'], ['treat', '🛠 טיפול'], ['docs', '📄 מסמכים'], ['tasks', '✅ משימות'], ['rems', '🔔 תזכורות'], ['mailfu', '📬 מעקב מייל'], ['timeline', '⏱ היסטוריה']].map(([k, l]) => (
+                {[['claim', '📋 תביעה'], ['client', '👤 לקוח'], ['vehicle', '🚗 רכב'], ['treat', '🛠 טיפול'], ['docs', '📄 מסמכים'], ['gin', '📥 ייבוא Gmail'], ['tasks', '✅ משימות'], ['rems', '🔔 תזכורות'], ['mailfu', '📬 מעקב מייל'], ['timeline', '⏱ היסטוריה']].map(([k, l]) => (
                   <button key={k} className={`tab ${cardTab === k ? 'act' : ''}`} onClick={() => setCardTab(k)}>{l}</button>
                 ))}
               </div>
@@ -790,7 +824,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   {[['מספר תיק', cur.id], ['סוג', cur.claimKind || '—'], ['תאריך אירוע', cur.eventDate || '—'], ['תאריך פתיחה', cur.createdAt || '—'],
                     ['סטטוס', cur.status], ['מטפל', cur.assigned_to_name || '—'], ['חברת ביטוח', cur.insCompany || '—'],
                     ['מספר פוליסה', cur.policyNum || '—'], ["מס' תביעה", cur.claimNum || '—'], ['שמאי', cur.surveyor || '—'],
-                    ['פעולה הבאה', cur.nextAction || '—'], ['עודכן ע״י', cur.updatedByName || '—']].map((f) => (
+                    ['פעולה הבאה', cur.nextAction || '—'], ['עודכן ע״י', cur.updatedByName || '—'],
+                    ['Gmail Message', cur.gmail_message_id || '—'], ['Gmail Thread', cur.gmail_thread_id || '—']].map((f) => (
                       <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
                     ))}
                 </div>
@@ -875,16 +910,25 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   ))}
                   <div className="sdiv"><div className="sdiv-t">קבצים שהתקבלו</div><div className="sdiv-l" /></div>
                   {docs.files.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין קבצים עדיין</div>
-                    : docs.files.map((f) => (
-                      <div key={f.id} style={{ padding: '8px 0', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{f.original_name}</div>
-                          <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.source === 'customer' ? 'לקוח' : 'עובד'} · {f.uploaded_by_name || ''} · {new Date(f.created_at).toLocaleString('he-IL')}</div>
+                    : Object.entries(docs.files.reduce((acc: Record<string, typeof docs.files>, f) => {
+                      const k = f.source === 'gmail' && f.gmail_message_id ? `gmail:${f.gmail_message_id}` : `one:${f.id}`;
+                      (acc[k] = acc[k] || []).push(f);
+                      return acc;
+                    }, {})).map(([k, group]) => (
+                      <div key={k} style={{ background: 'var(--bg3)', border: '1px solid var(--br)', borderRadius: 8, padding: 10, marginBottom: 8 }}>
+                        {k.startsWith('gmail:') ? <div style={{ fontWeight: 700, marginBottom: 6 }}>גלריה ממייל ({group.length} קבצים)</div> : null}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {group.map((f) => (
+                            <div key={f.id} style={{ minWidth: 140, flex: '1 1 140px' }}>
+                              <div style={{ fontWeight: 600, fontSize: 12 }}>{f.original_name}</div>
+                              <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.source === 'gmail' ? 'Gmail' : f.source === 'customer' ? 'לקוח' : 'עובד'}</div>
+                              <button className="btn btn-g btn-sm" onClick={async () => {
+                                const r = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: f.id });
+                                if (r.url) window.open(String(r.url), '_blank');
+                              }}>צפייה</button>
+                            </div>
+                          ))}
                         </div>
-                        <button className="btn btn-g btn-sm" onClick={async () => {
-                          const r = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: f.id });
-                          if (r.url) window.open(String(r.url), '_blank');
-                        }}>צפייה</button>
                       </div>
                     ))}
                   <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -901,6 +945,45 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <button className="btn btn-g btn-sm" onClick={async () => { await apiRef.current.invokeDocs('revoke_link', { claim_id: cur.id }); setLinkUrl(''); toast('הקישור בוטל'); }}>בטל קישור</button>
                   </div>
                   {linkUrl ? <div style={{ marginTop: 8, fontSize: 11, wordBreak: 'break-all', color: 'var(--ac3)' }}>{linkUrl}</div> : null}
+                </div>
+              )}
+              {cardTab === 'gin' && (
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 8 }}>ייבוא בפעולה אחת: המייל + כל המצורפים. אין שליחה חיה. אין שינוי מיילים קיימים בתיבה.</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                    <button className="btn btn-p btn-sm" onClick={async () => {
+                      setGmailBusy('טוען מיילים…');
+                      const r = await apiRef.current.invokeGmail('list_messages', { claim_id: cur.id });
+                      setGmailBusy('');
+                      if (!r.success) { toast(String(r.error || 'שגיאה'), 'err'); return; }
+                      setGmailList((r.messages as Array<Record<string, unknown>>) || []);
+                    }}>בחירת מייל</button>
+                  </div>
+                  {gmailBusy ? <div style={{ fontSize: 12 }}>{gmailBusy}</div> : null}
+                  {gmailList.map((m) => (
+                    <div key={String(m.id)} className="gmail-card">
+                      <div style={{ fontWeight: 700 }}>{String(m.subject || '(ללא נושא)')}</div>
+                      <div style={{ fontSize: 11, color: 'var(--t3)' }}>{String(m.from || '')} · {String(m.date || '')}</div>
+                      <div style={{ fontSize: 12, margin: '6px 0' }}>{String(m.snippet || '')}</div>
+                      <button className="btn btn-p btn-sm" onClick={async () => {
+                        setGmailBusy('מייבא את המייל וכל המצורפים…');
+                        const r = await apiRef.current.importGmailMessage(cur.id, String(m.id));
+                        setGmailBusy('');
+                        if (!r.success) { toast(String(r.error || 'ייבוא נכשל'), 'err'); return; }
+                        toast(`יובא · ${String(r.total || 0)} קבצים · לא נשלח מייל`);
+                        await loadAll();
+                        await loadCardData(cur.id);
+                      }}>ייבא את המייל וכל המצורפים</button>
+                    </div>
+                  ))}
+                  <div className="sdiv"><div className="sdiv-t">מיילים שכבר יובאו לתיק</div><div className="sdiv-l" /></div>
+                  {gmailImports.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין ייבוא עדיין</div>
+                    : gmailImports.map((im) => (
+                      <div key={String(im.id)} style={{ marginBottom: 8, fontSize: 12 }}>
+                        <b>{String(im.subject || '')}</b>
+                        <div style={{ color: 'var(--t3)' }}>message {String(im.gmail_message_id || '')} · thread {String(im.gmail_thread_id || '')} · {String(im.attachment_count || 0)} קבצים</div>
+                      </div>
+                    ))}
                 </div>
               )}
               {cardTab === 'tasks' && (
@@ -1117,15 +1200,24 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="fg"><label className="fl">אימייל</label><input className="fi" id="mail_to" /></div>
             <div className="fg"><label className="fl">נושא</label><input className="fi" id="mail_subj" /></div>
             <div className="fg"><label className="fl">תוכן</label><textarea className="fta" id="mail_body" /></div>
-            <div style={{ fontSize: 11, color: 'var(--yn2)', marginTop: 8 }}>שליחה דרך Gmail תחובר בשלב הבא. כרגע המייל מתועד בתיק.</div>
+            <div style={{ fontSize: 11, color: 'var(--yn2)', marginTop: 8 }}>שליחה חיה כבויה. אפשר לתעד בתיק או ליצור טיוטת Gmail שלא נשלחת.</div>
           </div>
           <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
             <button className="btn btn-p" onClick={async () => {
               const to = val(null, 'mail_to'); if (!to) { toast('נא להזין אימייל', 'err'); return; }
               await apiRef.current.sendEmailFromClaim({ claimId: curId || '', to, subject: val(null, 'mail_subj'), body: val(null, 'mail_body') });
-              toast('מייל תועד בתיק (שליחת Gmail בשלב הבא)');
+              toast('מייל תועד בתיק (לא נשלח)');
               if (curId) await openCard(curId);
             }}>📧 תעד בתיק</button>
+            <button className="btn btn-p" onClick={async () => {
+              const to = val(null, 'mail_to'); if (!to) { toast('נא להזין אימייל', 'err'); return; }
+              const r = await apiRef.current.invokeGmail('create_draft', {
+                claim_id: curId, to, subject: val(null, 'mail_subj'), body: val(null, 'mail_body'),
+              });
+              if (!r.success) { toast(String(r.error || 'טיוטה נכשלה'), 'err'); return; }
+              toast('נוצרה טיוטה ב-Gmail — לא נשלח');
+              if (curId) await openCard(curId);
+            }}>📝 צור טיוטה</button>
           </div>
         </div>
       </div>
