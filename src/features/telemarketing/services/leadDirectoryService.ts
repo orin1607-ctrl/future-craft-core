@@ -12,6 +12,7 @@ import type {
 } from '@/features/telemarketing/lib/leadImport/types';
 import { getTelemarketingAgents } from '@/features/telemarketing/services/teamChatService';
 import { lookupLeadNumber } from '@/features/telemarketing/lib/leadLabel';
+import { chunkLeadIds } from '@/features/telemarketing/lib/leadAssign/assignChunks';
 
 let directoryCache: { at: number; rows: LeadDirectoryRecord[] } | null = null;
 
@@ -165,26 +166,49 @@ export async function listAssignableAgents(): Promise<{ id: string; displayName:
 }
 
 export async function assignLeadsToAgent(leadIds: string[], agentId: string): Promise<LeadAssignResult> {
-  const { data, error } = await supabase.rpc('telemarketing_assign_leads' as never, {
-    p_lead_ids: leadIds,
-    p_agent_id: agentId,
-  } as never);
-  if (error) throw new Error(error.message);
-  const result = (data || {}) as Record<string, unknown>;
-  const skippedRaw = Array.isArray(result.skipped) ? result.skipped : [];
-  return {
-    assignedCount: Number(result.assignedCount ?? result.assignedcount ?? 0),
-    skippedCount: Number(result.skippedCount ?? result.skippedcount ?? 0),
-    skipped: skippedRaw.map((item) => {
+  const chunks = chunkLeadIds(leadIds);
+  if (chunks.length === 0) throw new Error('לא נבחרו לידים');
+  let assignedCount = 0;
+  let skippedCount = 0;
+  const skipped: LeadAssignResult['skipped'] = [];
+  let agentName = '';
+  let agentIdOut = agentId;
+  for (const chunk of chunks) {
+    const { data, error } = await supabase.rpc('telemarketing_assign_leads' as never, {
+      p_lead_ids: chunk,
+      p_agent_id: agentId,
+    } as never);
+    if (error) {
+      const message = error.message || 'שגיאה בשיוך לידים';
+      if (assignedCount > 0) {
+        skipped.push({ leadNumber: '', companyName: '', reason: `${message} — שיוך חלקי. המנות שכבר הצליחו לא בוטלו.` });
+        skippedCount += 1;
+        break;
+      }
+      throw new Error(message);
+    }
+    const result = (data || {}) as Record<string, unknown>;
+    assignedCount += Number(result.assignedCount ?? result.assignedcount ?? 0);
+    skippedCount += Number(result.skippedCount ?? result.skippedcount ?? 0);
+    const skippedRaw = Array.isArray(result.skipped) ? result.skipped : [];
+    for (const item of skippedRaw) {
       const row = (item || {}) as Record<string, unknown>;
-      return {
+      skipped.push({
         leadNumber: String(row.leadNumber ?? row.leadnumber ?? ''),
         companyName: String(row.companyName ?? row.companyname ?? ''),
         reason: String(row.reason || ''),
-      };
-    }),
-    agentName: String(result.agentName ?? result.agentname ?? ''),
-    agentId: String(result.agentId ?? result.agentid ?? agentId),
+      });
+    }
+    agentName = String(result.agentName ?? result.agentname ?? agentName);
+    agentIdOut = String(result.agentId ?? result.agentid ?? agentIdOut);
+  }
+  invalidateLeadDirectoryCache();
+  return {
+    assignedCount,
+    skippedCount,
+    skipped,
+    agentName,
+    agentId: agentIdOut,
   };
 }
 

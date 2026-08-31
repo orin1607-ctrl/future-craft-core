@@ -1,0 +1,14 @@
+{
+  "at": "2026-08-31T03:55:27.386Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "branch": "feat/incident-alerts-staging",
+  "codeCommit": "ee301a35d5ce478aaa64fed81dcbf7c7f5ac2e34",
+  "directory": 2344,
+  "old": 314,
+  "neu": 2030,
+  "tairAssigned": 0,
+  "unassignedNew": 2030,
+  "followups": 24,
+  "tairHistSeconds": 5400
+}

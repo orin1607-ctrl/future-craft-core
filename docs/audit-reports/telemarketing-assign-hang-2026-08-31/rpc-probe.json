@@ -1,0 +1,74 @@
+{
+  "restore": {
+    "at": "2026-08-31T03:55:27.386Z",
+    "stagingRef": "usfeoerkpcafxxlyuldl",
+    "productionTouched": false,
+    "branch": "feat/incident-alerts-staging",
+    "codeCommit": "ee301a35d5ce478aaa64fed81dcbf7c7f5ac2e34",
+    "directory": 2344,
+    "old": 314,
+    "neu": 2030,
+    "tairAssigned": 0,
+    "unassignedNew": 2030,
+    "followups": 24,
+    "tairHistSeconds": 5400
+  },
+  "probe": {
+    "id": "75739d21-94e3-41d0-bc9d-092d79782b0f",
+    "lead_number": "315",
+    "company": "שומרי משקל בעמ"
+  },
+  "results": [
+    {
+      "name": "assign-1",
+      "ms": 203,
+      "ok": true,
+      "data": {
+        "agentId": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "skipped": [],
+        "agentName": "תאיר",
+        "skippedCount": 0,
+        "assignedCount": 1
+      }
+    },
+    {
+      "name": "unassign-1",
+      "ms": 185,
+      "ok": true,
+      "data": {
+        "skipped": [],
+        "skippedCount": 0,
+        "unassignedCount": 1
+      }
+    },
+    {
+      "name": "assign-80",
+      "ms": 231,
+      "ok": true,
+      "data": {
+        "agentId": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "skipped": [],
+        "agentName": "תאיר",
+        "skippedCount": 0,
+        "assignedCount": 80
+      }
+    },
+    {
+      "name": "unassign-80",
+      "ms": 199,
+      "ok": true,
+      "data": {
+        "skipped": [],
+        "skippedCount": 0,
+        "unassignedCount": 80
+      }
+    },
+    {
+      "name": "assign-2030-expect-limit",
+      "ms": 360,
+      "ok": false,
+      "error": "[object Object]"
+    }
+  ],
+  "afterTair": 0
+}

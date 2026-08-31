@@ -466,11 +466,15 @@ export function LeadDirectoryBoard({
               <button type="button" className="min-h-12 rounded-xl border border-border px-4 font-bold" onClick={() => setAssignOpen(false)}>ביטול</button>
             </div>
           )}
+          {error && <p className="text-sm font-semibold text-destructive" data-testid="lead-assign-error">{error}</p>}
           {assignPreview && chosenAgent && (
             <div className="space-y-2" data-testid="lead-assign-confirm-box">
               <p className="font-bold">
                 אתה עומד לשייך {selected.size} לידים ל{chosenAgent.displayName}. להמשיך?
               </p>
+              {selected.size > 80 && (
+                <p className="text-xs text-muted-foreground">השיוך יבוצע במנות קטנות באותו מנגנון קיים, כדי לא להיתקע.</p>
+              )}
               {selectedRows.some((row) => row.assignedTo && row.assignedTo !== assignAgentId) && (
                 <p className="text-sm font-semibold text-amber-800">
                   חלק מהלידים כבר משויכים לעובד אחר — לאחר אישור הם יועברו, אלא אם הם בשיחה/טיפול פעיל.
