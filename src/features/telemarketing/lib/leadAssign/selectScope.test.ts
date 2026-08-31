@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   filterDirectoryRows,
   isDirectoryFilterActive,
+  isWorkPriorityExhausted,
   parseFleetSize,
   selectAllLabel,
   sortDirectoryRows,
   summarizeAgentLeadWorkload,
+  summarizeWorkPriority,
 } from './selectScope';
 import type { LeadDirectoryRecord } from '@/features/telemarketing/lib/leadImport/types';
 
@@ -188,5 +190,36 @@ describe('lead assign select scope', () => {
       row({ id: 'c', workPriorityAt: '2026-08-31T08:00:00Z' }),
     ];
     expect(sortDirectoryRows(mixed, 'priority_first').map((r) => r.id)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('counts remaining vs treated with the same activity keys as workload', () => {
+    const mixed = [
+      row({ id: '1', workPriorityAt: '2026-08-31T08:00:00Z', phone: '03-111', companyName: 'אלפא' }),
+      row({ id: '2', workPriorityAt: '2026-08-31T08:01:00Z', phone: '03-222', companyName: 'בטא' }),
+      row({ id: '3', workPriorityAt: null, phone: '03-333', companyName: 'גמא' }),
+    ];
+    const empty = summarizeWorkPriority(mixed, { callKeys: [], stateKeys: [], openFollowupKeys: [] });
+    expect(empty).toEqual({ total: 2, remaining: 2, treated: 0 });
+    expect(isWorkPriorityExhausted(empty)).toBe(false);
+
+    const afterOne = summarizeWorkPriority(mixed, {
+      callKeys: ['p:03111'],
+      stateKeys: [],
+      openFollowupKeys: [],
+    });
+    expect(afterOne).toEqual({ total: 2, remaining: 1, treated: 1 });
+    expect(isWorkPriorityExhausted(afterOne)).toBe(false);
+
+    const afterAll = summarizeWorkPriority(mixed, {
+      callKeys: ['p:03111'],
+      stateKeys: [{ key: 'p:03222', color: 'red' }],
+      openFollowupKeys: [],
+    });
+    expect(afterAll).toEqual({ total: 2, remaining: 0, treated: 2 });
+    expect(isWorkPriorityExhausted(afterAll)).toBe(true);
+  });
+
+  it('does not show exhausted when there is no priority group', () => {
+    expect(isWorkPriorityExhausted({ total: 0, remaining: 0 })).toBe(false);
   });
 });

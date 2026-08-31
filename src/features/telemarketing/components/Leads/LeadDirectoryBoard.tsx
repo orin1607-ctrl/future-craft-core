@@ -20,6 +20,7 @@ import {
   EMPTY_DIRECTORY_EXTRA,
   filterDirectoryRows,
   isDirectoryFilterActive,
+  isWorkPriorityExhausted,
   selectAllLabel,
   sortDirectoryRows,
   summarizeAgentLeadWorkload,
@@ -141,7 +142,7 @@ export function LeadDirectoryBoard({
     [isAdmin, rows, agents, activityHints],
   );
   const priorityStats = useMemo(
-    () => (isAdmin ? summarizeWorkPriority(rows, activityHints) : { total: 0, untreated: 0, inProgress: 0, completed: 0 }),
+    () => (isAdmin ? summarizeWorkPriority(rows, activityHints) : { total: 0, remaining: 0, treated: 0 }),
     [isAdmin, rows, activityHints],
   );
   const industries = useMemo(() => {
@@ -294,10 +295,14 @@ export function LeadDirectoryBoard({
             {filterActive ? `${filtered.length} תוצאות מסוננות מתוך ${rows.length} לידים` : `${rows.length} לידים במאגר`}
           </p>
           {isAdmin && (
-            <p className="text-sm font-black" data-testid="lead-work-priority-count">
-              ⭐ עדיפות לעבודה: {priorityStats.total} לידים
-              {priorityStats.total > 0 ? ` · טרם טופלו ${priorityStats.untreated} · בטיפול ${priorityStats.inProgress} · בוצעה פעילות ${priorityStats.completed}` : ''}
-            </p>
+            <div className="space-y-0.5" data-testid="lead-work-priority-count">
+              <p className="text-sm font-black">⭐ סה״כ לידים בעדיפות: {priorityStats.total}</p>
+              <p className="text-sm font-black">📞 נשארו לעבודה: {priorityStats.remaining}</p>
+              <p className="text-sm font-black">✅ כבר טופלו: {priorityStats.treated}</p>
+              {isWorkPriorityExhausted(priorityStats) && (
+                <p className="text-sm font-black text-emerald-800" data-testid="lead-work-priority-exhausted">✅ נגמרו הלידים בעדיפות</p>
+              )}
+            </div>
           )}
         </div>
         <div className="flex flex-wrap gap-2">
@@ -504,7 +509,20 @@ export function LeadDirectoryBoard({
           </div>
           <p className="text-xs text-muted-foreground">
             סינון לא משנה כלום לתאיר. רק אישור מפורש מוסיף או מסיר עדיפות. השיוך נשאר כמו שהוא.
+            פעילות = שיחה/ניסיון או רמזור קיים, כמו במצב לידים לפי עובד.
           </p>
+          <div className="rounded-xl border border-amber-500/40 bg-background p-3" data-testid="lead-work-priority-status">
+            <p className="text-sm font-black">⭐ סה״כ לידים בעדיפות: {priorityStats.total}</p>
+            <p className="text-sm font-black">📞 נשארו לעבודה: {priorityStats.remaining}</p>
+            <p className="text-sm font-black">✅ כבר טופלו: {priorityStats.treated}</p>
+            {isWorkPriorityExhausted(priorityStats) ? (
+              <p className="mt-1 text-sm font-black text-emerald-800" data-testid="lead-work-priority-exhausted-panel">✅ נגמרו הלידים בעדיפות</p>
+            ) : priorityStats.total === 0 ? (
+              <p className="mt-1 text-xs text-muted-foreground">אין כרגע קבוצת עדיפות.</p>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">נשארו {priorityStats.remaining} לידים בקבוצת העדיפות.</p>
+            )}
+          </div>
           <div>
             <p className="mb-1 text-xs font-black">📍 אזור</p>
             <div className="flex flex-wrap gap-2">

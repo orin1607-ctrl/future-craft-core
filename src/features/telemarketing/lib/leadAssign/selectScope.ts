@@ -194,36 +194,37 @@ function asKeySet(values: Iterable<string>): Set<string> {
   return out;
 }
 
+export type WorkPriorityStats = {
+  total: number;
+  remaining: number;
+  treated: number;
+};
+
+/** Same activity source as agent workload: a call/attempt or existing traffic-light. */
 export function summarizeWorkPriority(
   rows: LeadDirectoryRecord[],
   hints: LeadActivityHints,
-): { total: number; untreated: number; inProgress: number; completed: number } {
+): WorkPriorityStats {
   const activityKeys = asKeySet(hints.callKeys);
   for (const state of hints.stateKeys) {
     if (isUsableLeadKey(state.key)) activityKeys.add(state.key);
   }
-  const openKeys = asKeySet(hints.openFollowupKeys);
-  for (const state of hints.stateKeys) {
-    if (state.color === 'yellow' && isUsableLeadKey(state.key)) openKeys.add(state.key);
-  }
-  const twoHours = 2 * 60 * 60 * 1000;
-  const now = Date.now();
   let total = 0;
-  let untreated = 0;
-  let inProgress = 0;
-  let completed = 0;
+  let remaining = 0;
+  let treated = 0;
   for (const row of rows) {
     if (!row.workPriorityAt || row.archivedAt) continue;
     total += 1;
     const key = leadKey(row.phone, row.companyName);
     const hadActivity = isUsableLeadKey(key) && activityKeys.has(key);
-    const claimedFresh = Boolean(row.claimedBy && row.claimedAt && now - Date.parse(row.claimedAt) < twoHours);
-    const open = isUsableLeadKey(key) && openKeys.has(key);
-    if (hadActivity) completed += 1;
-    if (claimedFresh || open) inProgress += 1;
-    if (!hadActivity && !claimedFresh && !open) untreated += 1;
+    if (hadActivity) treated += 1;
+    else remaining += 1;
   }
-  return { total, untreated, inProgress, completed };
+  return { total, remaining, treated };
+}
+
+export function isWorkPriorityExhausted(stats: Pick<WorkPriorityStats, 'total' | 'remaining'>): boolean {
+  return stats.total > 0 && stats.remaining === 0;
 }
 
 /** Per-agent counts from directory + existing call/state/follow-up keys. Unique by directory row. */
