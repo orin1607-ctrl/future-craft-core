@@ -1,0 +1,82 @@
+{
+  "at": "2026-08-31T09:57:26.072Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "telemarketingTouched": false,
+  "accidentsTouched": false,
+  "sampleVehicleReadOnly": {
+    "id": "0595813c-8aea-49ac-baf5-468461c5aa6a",
+    "license_plate": "09395",
+    "company_name": "קיבוץ בארי"
+  },
+  "before": {
+    "vehicles": 437,
+    "accidents": 11,
+    "profiles": 179,
+    "app_role": [
+      "driver",
+      "fleet_manager",
+      "super_admin",
+      "private_customer",
+      "business_customer",
+      "telemarketing_agent"
+    ],
+    "telemarketing": 13
+  },
+  "after": {
+    "accidents": 11,
+    "claim": {
+      "id": "DAL-QA-STAGING-001",
+      "plate": "09395",
+      "status": "חדש",
+      "vehicle_id": "0595813c-8aea-49ac-baf5-468461c5aa6a"
+    },
+    "comm": 1,
+    "history": 1,
+    "profiles": 179,
+    "reminders": 1,
+    "rls": true,
+    "tasks": 1,
+    "vehicles": 437
+  },
+  "tests": [
+    {
+      "id": "vehicles-unchanged",
+      "ok": true
+    },
+    {
+      "id": "accidents-unchanged",
+      "ok": true
+    },
+    {
+      "id": "profiles-unchanged",
+      "ok": true
+    },
+    {
+      "id": "claim-linked-to-existing-vehicle",
+      "ok": true
+    },
+    {
+      "id": "task",
+      "ok": true
+    },
+    {
+      "id": "reminder",
+      "ok": true
+    },
+    {
+      "id": "note",
+      "ok": true
+    },
+    {
+      "id": "history",
+      "ok": true
+    },
+    {
+      "id": "rls-on",
+      "ok": true
+    }
+  ],
+  "passed": true
+}

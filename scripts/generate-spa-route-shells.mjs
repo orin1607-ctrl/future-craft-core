@@ -107,6 +107,7 @@ const ROUTES = [
   'dev/project-001/dashboard',
   'telemarketing',
   'telemarketing/admin',
+  'claims',
 ];
 
 let n = 0;
