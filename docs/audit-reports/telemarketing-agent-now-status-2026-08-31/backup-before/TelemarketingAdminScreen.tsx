@@ -4,7 +4,6 @@ import { SummaryCards } from '@/features/telemarketing/components/AdminDashboard
 import { CallsTable } from '@/features/telemarketing/components/AdminDashboard/CallsTable';
 import { EmployeeCards } from '@/features/telemarketing/components/AdminDashboard/EmployeeCards';
 import { AgentNowStatusPanel } from '@/features/telemarketing/components/AdminDashboard/AgentNowStatusPanel';
-import { StuckActionResetPanel } from '@/features/telemarketing/components/AdminDashboard/StuckActionResetPanel';
 import { FollowUpBoard } from '@/features/telemarketing/components/FollowUp/FollowUpBoard';
 import { LeadsBoard } from '@/features/telemarketing/components/Leads/LeadsBoard';
 import { LeadDirectoryBoard } from '@/features/telemarketing/components/Leads/LeadDirectoryBoard';
@@ -130,8 +129,6 @@ export function TelemarketingAdminScreen({
       {inspect && (
         <InspectBanner variant="admin" onTurnOffAdmin={onTurnOffInspect} />
       )}
-
-      <AgentNowStatusPanel reloadToken={leadReload} />
 
       {!inspect && <StuckActionResetPanel selectedAgentName={selectedAgent} inspect={inspect} />}
 

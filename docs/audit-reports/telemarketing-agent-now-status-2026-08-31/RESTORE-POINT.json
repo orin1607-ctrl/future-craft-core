@@ -1,0 +1,101 @@
+{
+  "at": "2026-08-31T07:22:50.353Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mutated": false,
+  "tairLoginUsed": false,
+  "branch": "feat/incident-alerts-staging",
+  "assignments": {
+    "directory": 2344,
+    "new": 2030,
+    "old": 314,
+    "tairTotal": 2030,
+    "tairNew": 2030,
+    "tairOld": 0
+  },
+  "live": {
+    "nowKind": "on_claimed_lead",
+    "openCalls": [],
+    "openWork": [],
+    "claimedLeads": [
+      {
+        "lead_number": "315",
+        "company_name": "שומרי משקל בעמ",
+        "claimed_at": "2026-08-31T07:07:35.835063+00:00",
+        "lead_wave": "new"
+      },
+      {
+        "lead_number": "316",
+        "company_name": "שפיר הנדסה אזרחית וימית בע\"מ",
+        "claimed_at": "2026-08-31T07:10:10.323933+00:00",
+        "lead_wave": "new"
+      }
+    ]
+  },
+  "geo": {
+    "newLeadsWithRegion": 2030,
+    "newLeadsTotal": 2030,
+    "topRegions": [
+      [
+        "תל אביב יפו",
+        330
+      ],
+      [
+        "פתח תקווה",
+        135
+      ],
+      [
+        "ירושלים",
+        113
+      ],
+      [
+        "הרצליה",
+        69
+      ],
+      [
+        "חיפה",
+        62
+      ],
+      [
+        "נתניה",
+        56
+      ],
+      [
+        "ראשון לציון",
+        55
+      ],
+      [
+        "רמת גן",
+        55
+      ],
+      [
+        "חולון",
+        51
+      ],
+      [
+        "בני ברק",
+        43
+      ],
+      [
+        "רעננה",
+        34
+      ],
+      [
+        "קריית שדה התעופה",
+        31
+      ],
+      [
+        "באר שבע",
+        30
+      ],
+      [
+        "ראש העין",
+        28
+      ],
+      [
+        "אור יהודה",
+        28
+      ]
+    ]
+  }
+}
