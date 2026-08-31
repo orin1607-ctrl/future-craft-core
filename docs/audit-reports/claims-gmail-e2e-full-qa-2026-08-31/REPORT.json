@@ -1,0 +1,60 @@
+{
+  "at": "2026-08-31T15:40:00.000Z",
+  "verdict": "MIXED — not ready for live send",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "mailbox": "yoni122222@gmail.com",
+  "gcpProject": "oren-car-claims",
+  "qaClaims": ["DAL-QA-GMAIL-001", "DAL-QA-GMAIL-E2E-001"],
+  "protectedClaim": "DAL-2026-0001",
+  "codeChanged": false,
+  "productionTouched": false,
+  "realEmailSend": false,
+  "followUpLive": false,
+  "gmailMailboxMutatedExceptDraft": false,
+  "cron": {
+    "jobname": "claims-mail-dispatch-staging",
+    "schedule": "*/5 * * * *",
+    "unassistedFire": true,
+    "waitedMs": 29742
+  },
+  "items": [
+    { "n": 1, "name": "OAuth", "verdict": "PASS", "why": "yoni122222@gmail.com connected on oren-car-claims. Token in claims_gmail_connection, no GRANT to anon/authenticated. Status payload has no refresh_token/secret. Revoke is super_admin only." },
+    { "n": 2, "name": "קריאת Gmail", "verdict": "PASS", "why": "list_messages + read_message against the live mailbox. format=metadata for list. mailboxMutated=false. From/subject/date/ids returned." },
+    { "n": 3, "name": "ייבוא מייל", "verdict": "FAIL", "why": "Sender, subject, sent_at, message/thread IDs saved. Body stored as CRLF only (body_len=2, snippet empty). HTML body was not imported." },
+    { "n": 4, "name": "ייבוא כל המצורפים בפעולה אחת", "verdict": "FAIL", "why": "One-action loop works (batches of 12 until done) but MAX_ATTACH=80 silently dropped 78 of 158 files with no user warning." },
+    { "n": 5, "name": "הרבה תמונות / קבצים", "verdict": "PASS", "why": "80 JPEG files (4.8MB) imported in one worker action into DAL-QA-GMAIL-001." },
+    { "n": 6, "name": "גלריית תמונות", "verdict": "FAIL", "why": "DB grouping is correct (1 gmail_message_id → 80 files). Live /claims UI in this session showed 0 claims so the gallery screen was not exercised visually." },
+    { "n": 7, "name": "שיוך לתביעה", "verdict": "PASS", "why": "All 80 docs on DAL-QA-GMAIL-001 only. Cross-claim count for that message id = 0. imported_by_name + created_at recorded. Worker without assignment cannot import." },
+    { "n": 8, "name": "Message ID", "verdict": "PASS", "why": "Saved on claims_records, claims_gmail_imports, claims_documents, claims_history." },
+    { "n": 9, "name": "Thread ID", "verdict": "PASS", "why": "Saved on the same rows as Message ID." },
+    { "n": 10, "name": "מסמכים", "verdict": "PASS", "why": "list_docs returned 80 files. signed_url issued (120s). Public object URL returned 400. Bucket is private. Per-file send picker is a separate FAIL (item 11)." },
+    { "n": 11, "name": "בחירת מצורפים", "verdict": "FAIL", "why": "No UI/API to pick one file, many files, photos, or surveyor PDF. Follow-up is only none|received (all files). Draft has no attachments." },
+    { "n": 12, "name": "סיכום והיסטוריה", "verdict": "FAIL", "why": "exportClaimSummary dumps claims_history (internal worker actions) into the text intended for external use. No allowlist that strips internal notes." },
+    { "n": 13, "name": "טיוטה", "verdict": "FAIL", "why": "Draft WAS created in the connected Gmail (draftId returned, sent=false). Missing CC, missing attachments, missing claim-file picker. Incomplete vs the requested draft QA." },
+    { "n": 14, "name": "חברת ביטוח", "verdict": "FAIL", "why": "Mail modal prefills claim fields and can log/draft. No attachment picker, no send-type for insurer vs other, no size check. Live send blocked (correct)." },
+    { "n": 15, "name": "טיפול משפטי", "verdict": "FAIL", "why": "Legal tab + legal_transfer template exist and were filled. No preview that lets the user select summary/history/surveyor/photos/insurance/third-party docs. Not sent." },
+    { "n": 16, "name": "Follow-up חד-פעמי", "verdict": "PASS", "why": "Upsert, edit-before-due, Dry Run dispatch, status completed/dry_run_sent, preview to/subject/body, comm_log + history. realEmailSend=false." },
+    { "n": 17, "name": "Follow-up חוזר", "verdict": "PASS", "why": "email_repeat created next pending job ~7 days later; reminder stayed scheduled." },
+    { "n": 18, "name": "scheduler אמיתי ב-Dry Run", "verdict": "PASS", "why": "pg_cron job claims-mail-dispatch-staging (*/5). Unassisted fire after 29742ms. Preview realEmailSend=false, gmailTouched=false. One job processed." },
+    { "n": 19, "name": "ביטול", "verdict": "PASS", "why": "claims_cancel_mail_followup → reminder cancelled, pending jobs cancelled, not dispatched." },
+    { "n": 20, "name": "עצור מעקב", "verdict": "PASS", "why": "UI עצור מעקב = cancel. Also stop_at on a 1-day repeat completed with no further pending job." },
+    { "n": 21, "name": "כפילות", "verdict": "PASS", "why": "UNIQUE (reminder_id, planned_at) blocked a second pending job. inserted=0." },
+    { "n": 22, "name": "Retry", "verdict": "FAIL", "why": "No retry RPC/UI. Failed jobs stay failed. Re-dispatch does not pick them (so no double send), but the owner cannot retry." },
+    { "n": 23, "name": "תיק סגור", "verdict": "PASS", "why": "Upsert rejected closed_claim. Dispatch of a pending job on a closed claim failed with fail_reason=closed_claim. No mail sent." },
+    { "n": 24, "name": "כתובת שגויה", "verdict": "PASS", "why": "Upsert rejected invalid_to. Dispatch fail_reason=invalid_to on a planted bad-to job." },
+    { "n": 25, "name": "קבצים גדולים", "verdict": "FAIL", "why": "No outgoing size preview. Import silently skips oversize / over-cap files. 158→80 with no warning. Cannot choose a subset." },
+    { "n": 26, "name": "הרשאות עובד", "verdict": "PASS", "why": "Non-admin with claims_access, not assigned: list_messages 403 forbidden_claim, follow-up RPC forbidden, cannot see the QA claim, cannot revoke OAuth, no token in payloads." },
+    { "n": 27, "name": "RLS/API direct access", "verdict": "PASS", "why": "anon and worker cannot SELECT claims_gmail_connection (permission denied). anon cannot read claims. Edge with anon JWT → 403 user session required." },
+    { "n": 28, "name": "תיעוד History/Comm Log", "verdict": "PASS", "why": "Used existing claims_history and claims_comm_log only. Import, draft, follow-up upsert/edit/cancel, dry-run send, closed/invalid failures recorded." },
+    { "n": 29, "name": "לא נשלח מייל חיצוני אמיתי", "verdict": "PASS", "why": "send action 403 live_send_not_approved. Drafts only. Follow-up Dry Run. MAIL_DISPATCH_MODE restored to dry_run after a live-block probe. No insurer/lawyer/customer live send." }
+  ],
+  "pendingLiveSendQa": [
+    "Follow-up does not call Gmail API in dry_run (gmailTouched=false). Architecture to live Gmail send is not tested. Do not flip MAIL_DISPATCH_MODE to live without owner approval and an approved test mailbox."
+  ],
+  "stop": true,
+  "nextRequiresOwner": [
+    "Approved test recipient before any live send",
+    "Fix silent 80-file cap / HTML body import / attachment picker / summary leak / retry if those are required before live"
+  ]
+}

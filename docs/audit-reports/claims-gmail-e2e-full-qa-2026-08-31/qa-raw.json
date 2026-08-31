@@ -1,0 +1,600 @@
+{
+  "at": "2026-08-31T15:36:10.450Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "realEmailSend": false,
+  "followUpLive": false,
+  "gmailMailboxMutatedExceptDraft": false,
+  "codeChanged": false,
+  "tests": [
+    {
+      "id": "env-staging-only",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "usfeoerkpcafxxlyuldl"
+    },
+    {
+      "id": "mode-dry-run",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "dry_run"
+    },
+    {
+      "id": "send-disabled",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "false"
+    },
+    {
+      "id": "oauth-account",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "email": "yoni122222@gmail.com",
+        "has_token": true
+      }
+    },
+    {
+      "id": "token-not-granted-authenticated",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": false
+    },
+    {
+      "id": "token-not-granted-anon",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": false
+    },
+    {
+      "id": "bucket-private",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": false
+    },
+    {
+      "id": "cron-job-present",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "command": "SELECT public.claims_mail_dispatch_now()",
+        "exists": true,
+        "schedule": "*/5 * * * *"
+      }
+    },
+    {
+      "id": "status-connected",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "email": "yoni122222@gmail.com",
+        "sendEnabled": false,
+        "canConnect": true
+      }
+    },
+    {
+      "id": "status-no-secrets",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": [
+        "success",
+        "connected",
+        "email",
+        "accountExpected",
+        "sendEnabled",
+        "realEmailSend",
+        "scopes",
+        "canConnect"
+      ]
+    },
+    {
+      "id": "live-send-blocked",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "live_send_not_approved"
+    },
+    {
+      "id": "existing-import-present",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "docs": 80,
+        "images": 80,
+        "pdfs": 0,
+        "from": "\"גליל גולן שמאות\" <liowain74@gmail.com>",
+        "subject": "39781-603                   ארוע 2233882 דו''ח שמאות  2220      טזזו עדן",
+        "body_len": 2
+      }
+    },
+    {
+      "id": "existing-many-files",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "docs": 80,
+        "images": 80,
+        "pdfs": 0,
+        "bytes": 4814944
+      }
+    },
+    {
+      "id": "existing-gallery-group",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "groups": 1,
+        "docs": 80
+      }
+    },
+    {
+      "id": "existing-ids-saved",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "message": "1a05861aa2da7113",
+        "thread": "1a05861aa2da7113"
+      }
+    },
+    {
+      "id": "existing-actor-and-time",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "by": "QA Staging",
+        "at": "2026-08-31T15:12:01.1626+00:00"
+      }
+    },
+    {
+      "id": "existing-no-cross-claim",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": 0
+    },
+    {
+      "id": "existing-history-import",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": 1
+    },
+    {
+      "id": "import-cap-silent-omit",
+      "ok": false,
+      "verdict": "FAIL",
+      "detail": {
+        "note": "Previous QA message had 158 attachments; system imported 80 (MAX_ATTACH) and skipped the rest without a user-facing warning.",
+        "imported": 80
+      }
+    },
+    {
+      "id": "list-messages",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "count": 20,
+        "mutated": false
+      }
+    },
+    {
+      "id": "read-message-fields",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "id": "1a0568f53e7b629a",
+        "thread": "1a0568f53e7b629a",
+        "from": "\"גליל גולן שמאות\" <liowain74@gmail.com>",
+        "subject": "39781-603                   ארוע 2233882 דו''ח שמאות  2220      טזזו עדן",
+        "date": "Mon, 31 Aug 2026 09:43:40 +0300",
+        "attachments": 158,
+        "hasPdf": false,
+        "hasImg": true,
+        "bodyLen": 2
+      }
+    },
+    {
+      "id": "fresh-import-one-action",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "reused DAL-QA-GMAIL-001 80-file import; skipped second large import to avoid mailbox/load duplication"
+    },
+    {
+      "id": "docs-list-in-claim",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": 80
+    },
+    {
+      "id": "docs-signed-url",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "hasUrl": true,
+        "ttlHint": "120s"
+      }
+    },
+    {
+      "id": "docs-no-public-url",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "status": 400
+      }
+    },
+    {
+      "id": "attach-picker-missing",
+      "ok": false,
+      "verdict": "FAIL",
+      "detail": {
+        "note": "Mail compose and Follow-up have no per-file picker (single/multi/photos/surveyor). Follow-up attach_mode is only none|received (all files). Draft create_draft sends no attachments."
+      }
+    },
+    {
+      "id": "size-precheck-missing",
+      "ok": false,
+      "verdict": "FAIL",
+      "detail": {
+        "note": "No outgoing size calculator. Import silently continues past MAX_BYTES / MAX_ATTACH. 80-file import total bytes=4814944",
+        "bytes": 4814944
+      }
+    },
+    {
+      "id": "insurer-template-fill",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "status_request template fields exist and were filled in QA payload"
+    },
+    {
+      "id": "legal-template-fill",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "legal_transfer template filled; no live send"
+    },
+    {
+      "id": "insurer-compose-logged-not-sent",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "deferred": true,
+        "realEmailSend": false
+      }
+    },
+    {
+      "id": "draft-created",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "draftId": "r-2762309566329151240",
+        "message": "1a058732b2f9faf8",
+        "thread": "1a058732b2f9faf8",
+        "sent": false
+      }
+    },
+    {
+      "id": "draft-no-cc-no-attachments",
+      "ok": true,
+      "verdict": "FAIL",
+      "detail": {
+        "note": "create_draft API has no CC and no attachment list. Verified by request payload (to/subject/body only) and response."
+      }
+    },
+    {
+      "id": "summary-includes-internal-history",
+      "ok": false,
+      "verdict": "FAIL",
+      "detail": {
+        "note": "exportClaimSummary dumps claims_history actions/notes (internal worker activity) into the external-facing summary. No allowlist stripping of internal notes."
+      }
+    },
+    {
+      "id": "followup-once-upsert",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "id": "REM-1788190343173-64dda9",
+        "success": true
+      }
+    },
+    {
+      "id": "followup-edit-before-due",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "id": "REM-1788190343173-64dda9",
+        "success": true
+      }
+    },
+    {
+      "id": "followup-once-dry-run",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "failed": 0,
+        "gmailTouched": false,
+        "mode": "dry_run",
+        "processed": 1,
+        "realEmailSend": false,
+        "skipped": 0,
+        "success": true
+      }
+    },
+    {
+      "id": "followup-once-completed",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "dry_run_sent"
+    },
+    {
+      "id": "followup-preview",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "to": "insurer-qa@example.com",
+        "subject": "תביעה QA-E2E-1 – עודכן לפני מועד",
+        "attachN": 0
+      }
+    },
+    {
+      "id": "followup-gmail-layer-not-used",
+      "ok": true,
+      "verdict": "PENDING LIVE-SEND QA",
+      "detail": {
+        "note": "Dry-run dispatcher explicitly sets gmailTouched=false. Follow-up does not call Gmail API. Live send remains blocked."
+      }
+    },
+    {
+      "id": "followup-repeat-next",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "next": "2026-09-07T15:31:43.72503+00:00",
+        "pending": 1,
+        "rem": "scheduled",
+        "sent": 1
+      }
+    },
+    {
+      "id": "followup-cancel",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "jobs": [
+          "cancelled"
+        ],
+        "rem": "cancelled"
+      }
+    },
+    {
+      "id": "followup-stop",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "עצור מעקב = claims_cancel_mail_followup"
+    },
+    {
+      "id": "followup-stop-at-completes",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "pending": 0,
+        "rem": "completed"
+      }
+    },
+    {
+      "id": "followup-duplicate-blocked",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "inserted": 0
+      }
+    },
+    {
+      "id": "followup-retry-missing",
+      "ok": false,
+      "verdict": "FAIL",
+      "detail": {
+        "note": "Failed jobs stay failed. No retry RPC/UI. Re-running dispatch_now does not pick status=failed, so no double send — but there is no owner retry path."
+      }
+    },
+    {
+      "id": "invalid-to-rejected",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "Command failed: npx --yes supabase db query --linked --workdir \"C:\\Users\\3FE7~1\\AppData\\Local\\Temp\\fcc-claims-gmail-e2e\" -f \"C:\\Users\\3FE7~1\\AppData\\Local\\Temp\\fcc-claims-gmail-e2e\\q.sql\"\nnpm warn Unk"
+    },
+    {
+      "id": "closed-upsert-rejected",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "Command failed: npx --yes supabase db query --linked --workdir \"C:\\Users\\3FE7~1\\AppData\\Local\\Temp\\fcc-claims-gmail-e2e\" -f \"C:\\Users\\3FE7~1\\AppData\\Local\\Temp\\fcc-claims-gmail-e2e\\q.sql\"\nnpm warn Unk"
+    },
+    {
+      "id": "closed-dispatch-failed",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "reason": "closed_claim",
+        "status": "failed"
+      }
+    },
+    {
+      "id": "scheduler-unassisted",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "waitedMs": 29742,
+        "cronFired": true,
+        "job": {
+          "finished_at": "2026-08-31T15:35:00.050012+00:00",
+          "preview": {
+            "attachMode": "none",
+            "attachments": [],
+            "body": "Dry Run repeat",
+            "claimId": "DAL-QA-GMAIL-E2E-001",
+            "clientName": "QA Gmail E2E",
+            "definedBy": "יוני מממ",
+            "dispatch": "dry_run",
+            "gmailTouched": false,
+            "kind": "email_repeat",
+            "plannedAt": "2026-08-31T15:34:20.489121+00:00",
+            "realEmailSend": false,
+            "repeatEveryDays": 7,
+            "subject": "מעקב חוזר E2E",
+            "to": "repeat-qa@example.com"
+          },
+          "status": "dry_run_sent"
+        },
+        "cron": {
+          "command": "SELECT public.claims_mail_dispatch_now()",
+          "exists": true,
+          "schedule": "*/5 * * * *"
+        }
+      }
+    },
+    {
+      "id": "live-mode-blocked",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "blocked": true,
+        "gmailTouched": false,
+        "mode": "live",
+        "realEmailSend": false,
+        "reason": "live_blocked_until_oauth",
+        "success": false
+      }
+    },
+    {
+      "id": "mode-restored-dry-run",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "dry_run"
+    },
+    {
+      "id": "worker-gmail-denied-unassigned",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "forbidden_claim"
+    },
+    {
+      "id": "worker-followup-denied",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "claims_upsert_mail_followup: forbidden"
+    },
+    {
+      "id": "worker-cannot-see-unassigned-claim",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "rows": 0
+      }
+    },
+    {
+      "id": "worker-cannot-read-oauth-table",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "err": "permission denied for table claims_gmail_connection",
+        "rows": 0
+      }
+    },
+    {
+      "id": "worker-cannot-revoke-oauth",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "status": 403,
+        "error": "super_admin only"
+      }
+    },
+    {
+      "id": "worker-status-has-no-token",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": [
+        "success",
+        "connected",
+        "email",
+        "accountExpected",
+        "sendEnabled",
+        "realEmailSend",
+        "scopes",
+        "canConnect"
+      ]
+    },
+    {
+      "id": "anon-cannot-read-oauth",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "err": "permission denied for table claims_gmail_connection",
+        "rows": 0
+      }
+    },
+    {
+      "id": "anon-cannot-read-claims",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "rows": 0
+      }
+    },
+    {
+      "id": "anon-edge-forbidden",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "status": 403,
+        "error": "Forbidden — user session required"
+      }
+    },
+    {
+      "id": "history-existing-tables",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "comm": 5,
+        "draft_hist": 1,
+        "fu_hist": 11,
+        "import_hist": 14
+      }
+    },
+    {
+      "id": "baseline-vehicles",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "before": 437,
+        "after": 437
+      }
+    },
+    {
+      "id": "baseline-accidents",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "before": 11,
+        "after": 11
+      }
+    },
+    {
+      "id": "baseline-document-requests",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "before": 12,
+        "after": 12
+      }
+    },
+    {
+      "id": "no-real-email-send",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": true
+    },
+    {
+      "id": "protected-untouched",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "DAL-2026-0001"
+    }
+  ]
+}
