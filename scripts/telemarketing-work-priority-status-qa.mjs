@@ -142,6 +142,8 @@ try {
   check('tair-idle', tairCard.includes('🟢 פנויה'), tairCard);
   await page.getByTestId('lead-directory-toggle').click();
   await page.getByTestId('lead-directory-list').waitFor({ timeout: 20000 });
+  await page.getByTestId('lead-directory-count').filter({ hasText: '2344' }).waitFor({ timeout: 40000 });
+  await page.getByTestId('lead-work-priority-count').filter({ hasText: `סה״כ לידים בעדיפות: ${expected.total}` }).waitFor({ timeout: 20000 });
   const countText = await page.getByTestId('lead-work-priority-count').innerText();
   check('ui-total', countText.includes(`⭐ סה״כ לידים בעדיפות: ${expected.total}`), { countText, expected });
   check('ui-remaining', countText.includes(`📞 נשארו לעבודה: ${expected.remaining}`), countText);

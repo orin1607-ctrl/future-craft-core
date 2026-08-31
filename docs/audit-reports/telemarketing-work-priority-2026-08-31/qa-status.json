@@ -1,0 +1,181 @@
+{
+  "at": "2026-08-31T08:33:39.296Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "deploy-sha",
+      "ok": true,
+      "detail": "deployed_ref=4bfd522 feat/incident-alerts-staging"
+    },
+    {
+      "id": "bundle-remaining",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-treated",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-exhausted",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-now-status",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "before-tair-new",
+      "ok": true,
+      "detail": {
+        "directory": 2344,
+        "tairNew": 2030,
+        "tairOld": 9,
+        "tairClaims": 0,
+        "priority": 64,
+        "followups": 24,
+        "completed": 38,
+        "openCalls": 0,
+        "openWork": 0,
+        "histSeconds": 5400
+      }
+    },
+    {
+      "id": "before-no-open-call",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "before-no-open-work",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "before-hist",
+      "ok": true,
+      "detail": 5400
+    },
+    {
+      "id": "math-remaining-plus-treated",
+      "ok": true,
+      "detail": {
+        "total": 64,
+        "remaining": 64,
+        "treated": 0,
+        "exhausted": false
+      }
+    },
+    {
+      "id": "tair-idle",
+      "ok": true,
+      "detail": "תאיר\n\n🟢 פנויה"
+    },
+    {
+      "id": "ui-total",
+      "ok": true,
+      "detail": {
+        "countText": "⭐ סה״כ לידים בעדיפות: 64\n\n📞 נשארו לעבודה: 64\n\n✅ כבר טופלו: 0",
+        "expected": {
+          "total": 64,
+          "remaining": 64,
+          "treated": 0,
+          "exhausted": false
+        }
+      }
+    },
+    {
+      "id": "ui-remaining",
+      "ok": true,
+      "detail": "⭐ סה״כ לידים בעדיפות: 64\n\n📞 נשארו לעבודה: 64\n\n✅ כבר טופלו: 0"
+    },
+    {
+      "id": "ui-treated",
+      "ok": true,
+      "detail": "⭐ סה״כ לידים בעדיפות: 64\n\n📞 נשארו לעבודה: 64\n\n✅ כבר טופלו: 0"
+    },
+    {
+      "id": "ui-not-exhausted",
+      "ok": true,
+      "detail": {
+        "exhaustedCount": 0,
+        "panelExhausted": 0,
+        "remaining": 64
+      }
+    },
+    {
+      "id": "after-tair-new",
+      "ok": true,
+      "detail": {
+        "tairNew": 2030,
+        "tairOld": 9,
+        "tairClaims": 0,
+        "priority": 64
+      }
+    },
+    {
+      "id": "after-tair-old-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 9,
+        "after": 9
+      }
+    },
+    {
+      "id": "after-priority-unchanged",
+      "ok": true,
+      "detail": 64
+    },
+    {
+      "id": "after-claims-unchanged",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-followups",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-calls",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-hist",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "productionTouched": false,
+  "mutated": false,
+  "expected": "4bfd522",
+  "deployed_ref": "deployed_ref=4bfd522 feat/incident-alerts-staging",
+  "liveBundle": "assets/index-Dzx5tcoJ.js",
+  "expectedCounts": {
+    "total": 64,
+    "remaining": 64,
+    "treated": 0,
+    "exhausted": false
+  },
+  "before": {
+    "directory": 2344,
+    "tairNew": 2030,
+    "tairOld": 9,
+    "tairClaims": 0,
+    "priority": 64,
+    "followups": 24,
+    "completed": 38,
+    "openCalls": 0,
+    "openWork": 0,
+    "histSeconds": 5400
+  },
+  "after": {
+    "tairNew": 2030,
+    "tairOld": 9,
+    "tairClaims": 0,
+    "priority": 64
+  }
+}
