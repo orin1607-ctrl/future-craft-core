@@ -1,0 +1,29 @@
+{
+  "at": "2026-08-31T09:35:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "telemarketingTouched": false,
+  "accidentsTouched": false,
+  "gitBranch": "feat/incident-alerts-staging",
+  "gitHeadBefore": "a5653326237cff1ebfb5d2c4ad52c72b23345191",
+  "backupBefore": "docs/audit-reports/claims-module-staging-2026-08-31/backup-before",
+  "rollback": [
+    "DROP TABLE IF EXISTS public.claims_notifications CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_history CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_reminders CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_tasks CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_comm_log CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_records CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_config CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_access CASCADE;",
+    "DROP FUNCTION IF EXISTS public.has_claims_access(uuid);",
+    "DROP FUNCTION IF EXISTS public.claims_can_access();",
+    "DROP FUNCTION IF EXISTS public.claims_set_access(uuid, boolean);",
+    "DROP FUNCTION IF EXISTS public.claims_search_vehicles(text);",
+    "NOTE: Does not drop or alter vehicles, profiles, user_roles, accidents, telemarketing_*, or Production."
+  ],
+  "note": "Rollback drops only new claims_* objects. Does not touch existing Oren Car data or Production."
+}

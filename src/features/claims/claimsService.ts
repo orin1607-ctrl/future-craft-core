@@ -1,0 +1,495 @@
+import { supabase } from '@/integrations/supabase/client';
+import { CLOSE_REASONS, TEMPLATES, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
+
+function tbl(name: string) {
+  return supabase.from(name as never);
+}
+
+function asText(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  return String(v);
+}
+
+function rowFromData(data: Record<string, unknown> | null | undefined): ClaimRecord {
+  const src = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+  const out: Record<string, string> = {};
+  Object.keys(src).forEach((k) => {
+    out[k] = asText(src[k]);
+  });
+  return out as ClaimRecord;
+}
+
+function nowHe(): string {
+  return new Date().toLocaleString('he-IL');
+}
+
+function generateId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+async function bumpClaimId(): Promise<string> {
+  const { data } = await tbl('claims_config').select('key, value').eq('key', 'CLAIM_COUNTER').maybeSingle();
+  const n = parseInt(asText((data as { value?: string } | null)?.value) || '0', 10) + 1;
+  await tbl('claims_config').upsert({
+    key: 'CLAIM_COUNTER',
+    value: String(n),
+    updated_at: new Date().toISOString(),
+  } as never);
+  return `DAL-${new Date().getFullYear()}-${String(n).padStart(4, '0')}`;
+}
+
+async function loadChild(table: string, claimId?: string | null): Promise<ClaimRecord[]> {
+  let q = tbl(table).select('id, claim_id, row_data').order('created_at', { ascending: false });
+  if (claimId) q = q.eq('claim_id', claimId);
+  const { data, error } = await q;
+  if (error) return [];
+  return ((data || []) as Array<{ id: string; row_data: Record<string, unknown> }>).map((r) => {
+    const row = rowFromData(r.row_data);
+    row.id = row.id || r.id;
+    return row;
+  });
+}
+
+export function createClaimsApi(actor: ClaimsActor) {
+  const actorName = actor.full_name || actor.email || actor.id;
+  const actorEmail = actor.email || actorName;
+
+  async function appendHistory(claimId: string, action: string, note: string, type: string, before = '', after = '') {
+    const id = generateId('HIS');
+    const entry = {
+      id,
+      claimId,
+      action,
+      note: note || '',
+      type: type || '',
+      valueBefore: before,
+      valueAfter: after,
+      by: actorEmail,
+      at: nowHe(),
+    };
+    await tbl('claims_history').insert({
+      id,
+      claim_id: claimId || null,
+      row_data: entry,
+    } as never);
+    if (claimId) {
+      await tbl('claims_records').update({
+        last_activity_at: new Date().toISOString(),
+        updated_by: actor.id,
+        updated_by_name: actorName,
+      } as never).eq('id', claimId);
+    }
+  }
+
+  async function createNotification(claimId: string, type: string, message: string) {
+    const id = generateId('NTF');
+    await tbl('claims_notifications').insert({
+      id,
+      claim_id: claimId || null,
+      row_data: {
+        id,
+        claimId: claimId || '',
+        type,
+        message,
+        read: 'false',
+        createdAt: nowHe(),
+      },
+    } as never);
+  }
+
+  async function getAllClaims(): Promise<ClaimRecord[]> {
+    const { data, error } = await tbl('claims_records')
+      .select('id, vehicle_id, plate, client_name, status, company_name, row_data, created_by_name, updated_by_name, created_at, updated_at, last_activity_at')
+      .order('updated_at', { ascending: false });
+    if (error) return [];
+    return ((data || []) as Array<Record<string, unknown>>).map((r) => {
+      const row = rowFromData(r.row_data as Record<string, unknown>);
+      row.id = asText(r.id);
+      row.vehicle_id = asText(r.vehicle_id);
+      row.plate = row.plate || asText(r.plate);
+      row.clientName = row.clientName || asText(r.client_name);
+      row.status = row.status || asText(r.status);
+      row.company_name = row.company_name || asText(r.company_name);
+      row.createdByName = asText(r.created_by_name);
+      row.updatedByName = asText(r.updated_by_name);
+      if (!row.createdAt && r.created_at) row.createdAt = new Date(asText(r.created_at)).toLocaleString('he-IL');
+      if (!row.updatedAt && r.updated_at) row.updatedAt = new Date(asText(r.updated_at)).toLocaleString('he-IL');
+      if (!row.lastActivityAt && r.last_activity_at) {
+        row.lastActivityAt = new Date(asText(r.last_activity_at)).toLocaleString('he-IL');
+      }
+      return row;
+    });
+  }
+
+  async function getClaimById(id: string): Promise<ClaimRecord | null> {
+    const all = await getAllClaims();
+    return all.find((c) => c.id === id) || null;
+  }
+
+  return {
+    async getSystemStatus() {
+      return {
+        initialized: true,
+        version: '4.0-oren-car',
+        initDate: 'Oren Car Staging',
+        spreadsheetId: 'supabase:claims_records',
+        spreadsheetUrl: '—',
+        rootFolderId: '—',
+        gmailRootLabel: 'דליה תביעות (ייחובר בשלב Google)',
+        sheets: {
+          Claims: 'Supabase',
+          Gmail: 'ממתין לאישור OAuth',
+        },
+      };
+    },
+
+    async initSystem() {
+      return { success: true };
+    },
+
+    async getClaims() {
+      return { success: true, data: await getAllClaims() };
+    },
+
+    async saveClaim(data: Record<string, string>) {
+      const incoming = { ...(data || {}) };
+      const isNew = !incoming.id;
+      if (isNew) incoming.id = await bumpClaimId();
+      incoming.updatedAt = nowHe();
+      incoming.lastActivityAt = nowHe();
+      incoming.finBalance = String((Number(incoming.finApproved) || 0) - (Number(incoming.finPaid) || 0));
+      if (isNew) incoming.createdAt = nowHe();
+      incoming.updatedByName = actorName;
+      if (isNew) incoming.createdByName = actorName;
+
+      const payload = {
+        id: incoming.id,
+        vehicle_id: incoming.vehicle_id || null,
+        plate: incoming.plate || null,
+        client_name: incoming.clientName || null,
+        status: incoming.status || 'חדש',
+        company_name: incoming.company_name || incoming.insCompany || null,
+        row_data: incoming,
+        updated_by: actor.id,
+        updated_by_name: actorName,
+        last_activity_at: new Date().toISOString(),
+      };
+
+      const existing = await getClaimById(incoming.id);
+      if (existing) {
+        const { error } = await tbl('claims_records').update(payload as never).eq('id', incoming.id);
+        if (error) return { success: false, error: error.message };
+        if (existing.status !== incoming.status) {
+          await appendHistory(incoming.id, 'שינוי סטטוס', incoming.status, 'status', existing.status, incoming.status);
+          await createNotification(incoming.id, 'status', `סטטוס שונה ל: ${incoming.status}`);
+        } else {
+          await appendHistory(incoming.id, 'עדכון פרטי תיק', '', 'update', '', '');
+        }
+      } else {
+        const { error } = await tbl('claims_records').insert({
+          ...payload,
+          created_by: actor.id,
+          created_by_name: actorName,
+        } as never);
+        if (error) return { success: false, error: error.message };
+        await appendHistory(incoming.id, 'פתיחת תיק', '', 'new', '', '');
+        await createNotification(incoming.id, 'new', `תיק חדש נפתח: ${incoming.clientName || incoming.id}`);
+      }
+      return { success: true, id: incoming.id, data: incoming };
+    },
+
+    async getEmailsForClaim() {
+      return { success: true, data: [] };
+    },
+
+    async getUnlinkedEmails() {
+      return { success: true, data: [] };
+    },
+
+    async linkEmailManually() {
+      return { success: false, error: 'שיוך מייל Gmail יחובר בשלב הבא לאחר אישור OAuth' };
+    },
+
+    async manualScanEmails() {
+      return { scanned: 0, matched: 0, unlinked: 0, note: 'סריקת Gmail תחובר בשלב הבא' };
+    },
+
+    async sendEmailFromClaim(params: { claimId?: string; to?: string; subject?: string; body?: string }) {
+      if (params?.claimId) {
+        const id = generateId('COM');
+        const entry = {
+          id,
+          claimId: params.claimId,
+          type: 'mail',
+          subject: params.subject || '',
+          body: params.body || '',
+          email: params.to || '',
+          direction: 'out',
+          at: nowHe(),
+          by: actorEmail,
+          note: 'נשמר במערכת — שליחת Gmail תחובר בשלב הבא',
+        };
+        await tbl('claims_comm_log').insert({ id, claim_id: params.claimId, row_data: entry } as never);
+        await appendHistory(params.claimId, 'מייל תועד (שליחה תחובר בהמשך)', params.subject || '', 'mail', '', `to:${params.to || ''}`);
+      }
+      return { success: true, deferred: true };
+    },
+
+    async saveTask(task: Record<string, string>) {
+      const row = { ...task };
+      row.id = row.id || generateId('TSK');
+      row.createdAt = row.createdAt || nowHe();
+      const { data: existing } = await tbl('claims_tasks').select('id').eq('id', row.id).maybeSingle();
+      if (existing) {
+        await tbl('claims_tasks').update({ row_data: row } as never).eq('id', row.id);
+      } else {
+        await tbl('claims_tasks').insert({ id: row.id, claim_id: row.claimId, row_data: row } as never);
+      }
+      await appendHistory(row.claimId, `${row.done === 'true' ? 'משימה הושלמה' : 'משימה נוספה'}: ${row.action}`, '', 'task', '', '');
+      if (row.done !== 'true') await createNotification(row.claimId, 'task', `משימה: ${row.action}`);
+      return { success: true, id: row.id };
+    },
+
+    async getTasks(claimId: string | null) {
+      return { success: true, data: await loadChild('claims_tasks', claimId) };
+    },
+
+    async saveReminder(rem: Record<string, string>) {
+      const row = { ...rem };
+      row.id = row.id || generateId('REM');
+      row.createdAt = nowHe();
+      await tbl('claims_reminders').insert({ id: row.id, claim_id: row.claimId, row_data: row } as never);
+      await appendHistory(row.claimId, `תזכורת נוספה: ${row.date}`, '', 'reminder', '', '');
+      return { success: true, id: row.id };
+    },
+
+    async getReminders(claimId: string | null) {
+      return { success: true, data: await loadChild('claims_reminders', claimId) };
+    },
+
+    async saveCommEntry(entry: Record<string, string>) {
+      const row = { ...entry };
+      row.id = row.id || generateId('COM');
+      row.at = row.at || nowHe();
+      row.by = row.by || actorEmail;
+      await tbl('claims_comm_log').insert({ id: row.id, claim_id: row.claimId, row_data: row } as never);
+      const labels: Record<string, string> = { call: 'שיחת טלפון', wa: 'WhatsApp', mail: 'מייל', note: 'הערה' };
+      await appendHistory(row.claimId, labels[row.type] || row.type, row.body || row.note || '', row.type, '', '');
+      return { success: true, id: row.id };
+    },
+
+    async getCommLog(claimId: string) {
+      return { success: true, data: await loadChild('claims_comm_log', claimId) };
+    },
+
+    async getNotifications() {
+      const { data } = await tbl('claims_notifications').select('id, row_data').order('created_at', { ascending: false });
+      const rows = ((data || []) as Array<{ id: string; row_data: Record<string, unknown> }>).map((r) => {
+        const row = rowFromData(r.row_data);
+        row.id = row.id || r.id;
+        return row;
+      });
+      return { success: true, data: rows.filter((n) => n.read !== 'true') };
+    },
+
+    async markNotificationRead(id: string) {
+      const { data } = await tbl('claims_notifications').select('row_data').eq('id', id).maybeSingle();
+      const row = rowFromData((data as { row_data?: Record<string, unknown> } | null)?.row_data);
+      row.id = id;
+      row.read = 'true';
+      await tbl('claims_notifications').update({ row_data: row } as never).eq('id', id);
+      return { success: true };
+    },
+
+    async markAllNotificationsRead() {
+      const { data } = await tbl('claims_notifications').select('id, row_data');
+      const rows = (data || []) as Array<{ id: string; row_data: Record<string, unknown> }>;
+      await Promise.all(rows.map((r) => {
+        const row = rowFromData(r.row_data);
+        row.id = r.id;
+        row.read = 'true';
+        return tbl('claims_notifications').update({ row_data: row } as never).eq('id', r.id);
+      }));
+      return { success: true };
+    },
+
+    async getHistory(claimId: string) {
+      return { success: true, data: await loadChild('claims_history', claimId) };
+    },
+
+    async getReportData() {
+      const claims = await getAllClaims();
+      const tasks = await loadChild('claims_tasks');
+      const byCo: Record<string, { count: number; amt: number; paid: number; legal: number }> = {};
+      const bySurv: Record<string, { count: number; paid: number }> = {};
+      claims.forEach((c) => {
+        const co = c.insCompany || 'לא ידוע';
+        const surv = c.surveyor || 'לא ידוע';
+        if (!byCo[co]) byCo[co] = { count: 0, amt: 0, paid: 0, legal: 0 };
+        if (!bySurv[surv]) bySurv[surv] = { count: 0, paid: 0 };
+        byCo[co].count += 1;
+        byCo[co].amt += Number(c.finAmount) || 0;
+        byCo[co].paid += Number(c.finPaid) || 0;
+        if (c.status === 'בטיפול משפטי' || c.status === 'הועבר לטיפול משפטי') byCo[co].legal += 1;
+        bySurv[surv].count += 1;
+        bySurv[surv].paid += Number(c.expSurveyor) || 0;
+      });
+      const totalAmt = claims.reduce((s, c) => s + (Number(c.finAmount) || 0), 0);
+      const totalPaid = claims.reduce((s, c) => s + (Number(c.finPaid) || 0), 0);
+      const totalAppr = claims.reduce((s, c) => s + (Number(c.finApproved) || 0), 0);
+      const byStatus: Record<string, number> = {};
+      claims.forEach((c) => {
+        const k = c.status || 'לא ידוע';
+        byStatus[k] = (byStatus[k] || 0) + 1;
+      });
+      return {
+        success: true,
+        summary: {
+          total: claims.length,
+          open: claims.filter((c) => c.status !== 'הסתיים' && c.status !== 'שולם').length,
+          legal: claims.filter((c) => c.status === 'בטיפול משפטי').length,
+          totalAmt,
+          totalAppr,
+          totalPaid,
+          balance: totalAppr - totalPaid,
+        },
+        byStatus,
+        byCompany: byCo,
+        bySurveyor: bySurv,
+        unlinkedEmails: 0,
+        openTasks: tasks.filter((t) => t.done !== 'true').length,
+      };
+    },
+
+    async globalSearch(query: string) {
+      if (!query || query.trim().length < 2) return { success: true, data: [] };
+      const q = query.trim().toLowerCase();
+      const qDigits = q.replace(/[-\s]/g, '');
+      const claims = await getAllClaims();
+      const data = claims.filter((c) =>
+        (c.clientName || '').toLowerCase().includes(q)
+        || (c.clientPhone || '').replace(/[-\s]/g, '').includes(qDigits)
+        || (c.plate || '').replace(/[-\s]/g, '').toLowerCase().includes(qDigits)
+        || (c.claimNum || '').toLowerCase().includes(q)
+        || (c.insCompany || '').toLowerCase().includes(q)
+        || (c.id || '').toLowerCase().includes(q)
+        || (c.surveyor || '').toLowerCase().includes(q)
+        || (c.company_name || '').toLowerCase().includes(q),
+      );
+      return { success: true, data, query };
+    },
+
+    async getInactiveClaims(days: number) {
+      const d = days || 14;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - d);
+      const claims = await getAllClaims();
+      const inactive = claims.filter((c) => {
+        if (c.status === 'הסתיים' || c.status === 'שולם' || c.status === 'נסגר') return false;
+        const lastAct = c.lastActivityAt || c.updatedAt || c.createdAt;
+        if (!lastAct) return true;
+        try {
+          const parts = lastAct.split(',')[0].trim().split('/');
+          const dt = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+          return dt < cutoff;
+        } catch {
+          return true;
+        }
+      });
+      return { success: true, data: inactive, days: d, count: inactive.length };
+    },
+
+    async getTemplates() {
+      return { success: true, data: TEMPLATES };
+    },
+
+    async fillTemplate(templateKey: string, claimData: Record<string, string>) {
+      const tpl = TEMPLATES[templateKey];
+      if (!tpl) return { success: false, error: 'תבנית לא נמצאה' };
+      const fill = (s: string) => s.replace(/\{\{(\w+)\}\}/g, (_, k) => claimData[k] || '');
+      return {
+        success: true,
+        subject: tpl.subject ? fill(tpl.subject) : '',
+        body: fill(tpl.body),
+        name: tpl.name,
+      };
+    },
+
+    async getCloseReasons() {
+      return { success: true, data: CLOSE_REASONS };
+    },
+
+    async closeClaim(claimId: string, closeReason: string, closeNote: string, finalStatus: string) {
+      const c = await getClaimById(claimId);
+      if (!c) return { success: false, error: 'תיק לא נמצא' };
+      const status = finalStatus || 'הסתיים';
+      await appendHistory(claimId, `תיק נסגר: ${closeReason}`, closeNote || '', 'close', c.status, status);
+      await createNotification(claimId, 'close', `תיק נסגר: ${closeReason}`);
+      return this.saveClaim({ ...c, status, closeReason, closeNote: closeNote || '' });
+    },
+
+    async exportClaimSummary(claimId: string) {
+      const c = await getClaimById(claimId);
+      if (!c) return { success: false, error: 'תיק לא נמצא' };
+      const hist = (await loadChild('claims_history', claimId));
+      const comm = (await loadChild('claims_comm_log', claimId));
+      const tasks = (await loadChild('claims_tasks', claimId));
+      const lines = [
+        '══════════════════════════════════════════════',
+        '  דליה – ניהול תביעות | סיכום תיק מלא',
+        '══════════════════════════════════════════════',
+        `מספר תיק:      ${c.id}`,
+        `נפתח:          ${c.createdAt || '—'}`,
+        `עדכון אחרון:   ${c.updatedAt || '—'}`,
+        `טופל ע״י:      ${c.updatedByName || c.createdByName || '—'}`,
+        '',
+        '── פרטי לקוח / רכב ─────────────────────',
+        `שם:            ${c.clientName || '—'}`,
+        `טלפון:         ${c.clientPhone || '—'}`,
+        `מספר רכב:      ${c.plate || '—'}`,
+        `דגם:           ${c.carModel || '—'}`,
+        `חברה:          ${c.company_name || '—'}`,
+        `vehicle_id:    ${c.vehicle_id || '—'}`,
+        '',
+        '── חברת ביטוח ─────────────────────────',
+        `חברה:          ${c.insCompany || '—'}`,
+        `מספר תביעה:   ${c.claimNum || '—'}`,
+        '',
+        '── כספי ────────────────────────────────',
+        `סכום תביעה:   ${c.finAmount || '—'}₪`,
+        `סכום אושר:    ${c.finApproved || '—'}₪`,
+        `סכום שולם:    ${c.finPaid || '—'}₪`,
+        `יתרה:          ${c.finBalance || '—'}₪`,
+        '',
+        `סטטוס:         ${c.status}`,
+        c.closeReason ? `סיבת סגירה:    ${c.closeReason}` : '',
+        '',
+      ].filter((l) => l !== undefined);
+      if (tasks.length) {
+        lines.push(`── משימות (${tasks.length}) ──`);
+        tasks.forEach((t) => lines.push(`${t.done === 'true' ? '✅' : '⬜'} ${t.action}`));
+        lines.push('');
+      }
+      if (comm.length) {
+        lines.push(`── יומן תקשורת (${comm.length}) ──`);
+        comm.forEach((e) => lines.push(`${e.at} | ${e.type} | ${(e.body || e.note || '').slice(0, 120)}`));
+        lines.push('');
+      }
+      if (hist.length) {
+        lines.push(`── היסטוריה (${hist.length}) ──`);
+        hist.slice(0, 30).forEach((h) => lines.push(`${h.at} | ${h.action}${h.note ? ` – ${h.note}` : ''} · ${h.by || ''}`));
+      }
+      lines.push('');
+      lines.push(`הופק: ${nowHe()} · ${actorName}`);
+      return { success: true, text: lines.join('\n'), claimId };
+    },
+
+    async searchVehicles(query: string): Promise<{ success: boolean; data: ClaimsVehicleHit[] }> {
+      const { data, error } = await supabase.rpc('claims_search_vehicles' as never, { p_q: query || '' } as never);
+      if (error) return { success: false, data: [] };
+      return { success: true, data: (data || []) as ClaimsVehicleHit[] };
+    },
+  };
+}
+
+export type ClaimsApi = ReturnType<typeof createClaimsApi>;

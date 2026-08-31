@@ -1,0 +1,26 @@
+{
+  "at": "2026-08-31T09:48:29.474Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "telemarketingTouched": false,
+  "accidentsTouched": false,
+  "tests": [
+    {
+      "id": "anon-cannot-read-claims",
+      "ok": true,
+      "detail": "rows=0"
+    },
+    {
+      "id": "anon-cannot-read-access",
+      "ok": true,
+      "detail": "rows=0"
+    },
+    {
+      "id": "anon-rpc-false",
+      "ok": true,
+      "detail": "rpc=false err="
+    }
+  ],
+  "passed": true
+}

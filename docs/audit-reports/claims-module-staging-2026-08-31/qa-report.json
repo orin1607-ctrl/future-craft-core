@@ -1,0 +1,25 @@
+{
+  "at": "2026-08-31T09:50:00.000Z",
+  "environment": "oren-car-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "telemarketingTouched": false,
+  "accidentsTouched": false,
+  "vehiclesCountUnchanged": 437,
+  "accidentsCountUnchanged": 11,
+  "appRoleUnchanged": ["driver", "fleet_manager", "super_admin", "private_customer", "business_customer", "telemarketing_agent"],
+  "restorePoint": "docs/audit-reports/claims-module-staging-2026-08-31/RESTORE-POINT.json",
+  "gitHeadBefore": "a5653326237cff1ebfb5d2c4ad52c72b23345191",
+  "localUrl": "http://localhost:8080/claims",
+  "stagingPagesUrl": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "tests": [
+    { "id": "anon-cannot-read-claims", "ok": true },
+    { "id": "anon-cannot-read-access", "ok": true },
+    { "id": "anon-rpc-claims-can-access-false", "ok": true },
+    { "id": "routeAccess-unit", "ok": true, "detail": "10 passed" },
+    { "id": "unauthenticated-claims-redirect-login", "ok": true, "detail": "http://localhost:8080/claims → /login" },
+    { "id": "rls-enabled-on-new-tables", "ok": true },
+    { "id": "no-gmail-oauth", "ok": true }
+  ]
+}

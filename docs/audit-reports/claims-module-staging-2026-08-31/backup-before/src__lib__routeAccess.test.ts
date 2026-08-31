@@ -52,14 +52,4 @@ describe('routeAccess', () => {
   it('fleet_manager cannot access telemarketing admin', () => {
     expect(canAccessRoute('/telemarketing/admin', 'fleet_manager')).toBe(false);
   });
-
-  it('claims route requires grant, not role', () => {
-    expect(canAccessRoute('/claims', 'super_admin')).toBe(true);
-    expect(canAccessRoute('/claims', 'fleet_manager')).toBe(false);
-    expect(canAccessRoute('/claims', 'fleet_manager', { hasClaimsAccess: true })).toBe(true);
-    expect(canAccessRoute('/claims', 'driver')).toBe(false);
-    expect(canAccessRoute('/claims', 'driver', { hasClaimsAccess: true })).toBe(true);
-    expect(canAccessRoute('/claims', 'telemarketing_agent')).toBe(false);
-    expect(canAccessRoute('/claims', 'telemarketing_agent', { hasClaimsAccess: true })).toBe(true);
-  });
 });

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Scale } from 'lucide-react';
+import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -29,7 +29,6 @@ const managerNavItems: NavItem[] = [
   { path: '/reports', label: 'דוחות', icon: BarChart3 },
   { path: '/fleet-managers', label: 'מנהלי צי', icon: Building2 },
   { path: '/customers', label: 'לקוחות', icon: Users },
-  { path: '/claims', label: 'ניהול תביעות', icon: Scale },
   { path: '/telemarketing/admin', label: 'טלמיטינג', icon: Phone },
   { path: '/alerts', label: 'התראות', icon: Bell },
   { path: '/emergency', label: 'חירום', icon: Phone },
@@ -115,7 +114,6 @@ export function DesktopSidebar() {
   const isSuperAdmin = user?.role === 'super_admin';
   const isTelemarketingAgent = user?.role === 'telemarketing_agent';
   const canFleetOS = isSuperAdmin || user?.role === 'fleet_manager';
-  const canClaims = isSuperAdmin || !!user?.hasClaimsAccess;
 
   const isNavItemVisible = (path: string) => {
     if (hiddenButtons.includes(path)) return false;
@@ -126,7 +124,6 @@ export function DesktopSidebar() {
     if (path === '/fleetos-ai') return canFleetOS;
     if (path === '/ai-marketing') return isSuperAdmin;
     if (path === '/telemarketing/admin') return isSuperAdmin;
-    if (path === '/claims') return canClaims;
     if (path === '/security-center') return isSuperAdmin;
     return true;
   };
@@ -146,12 +143,10 @@ export function DesktopSidebar() {
     { path: '/work-orders', label: 'סידור עבודה', icon: ClipboardList },
     { path: '/history', label: 'היסטוריה טיפולים', icon: History },
     { path: '/emergency', label: 'שירותי חירום 24/7', icon: Phone },
-    ...(canClaims ? [{ path: '/claims', label: 'ניהול תביעות', icon: Scale } as NavItem] : []),
   ];
 
   const telemarketingSidebarItems: NavItem[] = [
     { path: '/telemarketing', label: 'טלמיטינג', icon: Phone },
-    ...(canClaims ? [{ path: '/claims', label: 'ניהול תביעות', icon: Scale } as NavItem] : []),
   ];
 
   return (

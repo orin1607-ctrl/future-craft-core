@@ -50,19 +50,12 @@ const SUPER_ADMIN_ONLY = [
 
 const FLEET_MANAGER_ROUTES = ['/fleetos-ai'];
 
-export function canAccessRoute(
-  pathname: string,
-  role: AppRole | undefined,
-  extras?: { hasClaimsAccess?: boolean },
-): boolean {
+export function canAccessRoute(pathname: string, role: AppRole | undefined): boolean {
   if (!role) return false;
 
-  const path = pathname.split('?')[0];
-  if (path === '/claims' || path.startsWith('/claims/')) {
-    return role === 'super_admin' || !!extras?.hasClaimsAccess;
-  }
-
   if (role === 'super_admin') return true;
+
+  const path = pathname.split('?')[0];
 
   if (SUPER_ADMIN_ONLY.some((p) => path === p || path.startsWith(`${p}/`))) {
     return false;

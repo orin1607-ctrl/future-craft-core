@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Scale } from 'lucide-react';
+import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +15,6 @@ export default function HomeDashboard() {
   const { selectedCompany } = useCompanyScope();
   const isSuperAdmin = user?.role === 'super_admin';
   const canFleetOS = user?.role === 'super_admin' || user?.role === 'fleet_manager';
-  const canClaims = isSuperAdmin || !!user?.hasClaimsAccess;
   const companyFilter = isSuperAdmin ? selectedCompany : user?.company_name || null;
   const { prefs, setPrefs } = useHomeAlertPrefs(user?.id);
 
@@ -175,16 +174,6 @@ export default function HomeDashboard() {
             icon={Megaphone}
             title="ניהול שיווק"
             subtitle="שיווק · Google · AI — מערכת אחת"
-            accent="primary"
-          />
-        )}
-        {canClaims && (
-          <DashboardCardGate
-            path="/claims"
-            to="/claims"
-            icon={Scale}
-            title="ניהול תביעות"
-            subtitle="תיקי תביעה · סטטוס · שיוך לרכב"
             accent="primary"
           />
         )}

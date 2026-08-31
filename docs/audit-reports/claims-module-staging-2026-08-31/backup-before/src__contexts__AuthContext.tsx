@@ -17,7 +17,6 @@ export interface UserProfile {
   is_active: boolean;
   role: AppRole;
   user_number?: string | null;
-  hasClaimsAccess?: boolean;
 }
 
 interface AuthContextType {
@@ -66,17 +65,6 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       .eq('user_id', userId)
       .single();
 
-    const role = (roleData?.role as AppRole) || 'driver';
-    let hasClaimsAccess = role === 'super_admin';
-    if (!hasClaimsAccess) {
-      try {
-        const { data: can } = await supabase.rpc('claims_can_access' as never);
-        hasClaimsAccess = !!can;
-      } catch {
-        hasClaimsAccess = false;
-      }
-    }
-
     return {
       id: userId,
       email,
@@ -84,9 +72,8 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       phone: profile.phone || '',
       company_name: profile.company_name || '',
       is_active: profile.is_active ?? true,
-      role,
+      role: (roleData?.role as AppRole) || 'driver',
       user_number: profile.user_number || null,
-      hasClaimsAccess,
     };
   }
   return null;

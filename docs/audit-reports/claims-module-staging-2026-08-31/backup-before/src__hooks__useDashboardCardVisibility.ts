@@ -16,9 +16,5 @@ export function useDashboardCardVisible(path: string): boolean {
     return transportEnabled;
   }
 
-  if (path === '/claims') {
-    return user.role === 'super_admin' || !!user.hasClaimsAccess;
-  }
-
   return true;
 }

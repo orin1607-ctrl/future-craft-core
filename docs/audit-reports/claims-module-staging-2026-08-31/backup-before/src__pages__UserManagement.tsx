@@ -31,7 +31,6 @@ interface ManagedUser {
   two_factor_approved_at: string | null;
   two_factor_approved_by: string | null;
   two_factor_approved_by_name: string | null;
-  hasClaimsAccess: boolean;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -85,12 +84,11 @@ export default function UserManagement() {
     setLoading(true);
     
     // Fetch profiles and roles
-    const [profilesRes, rolesRes, emailsRes, approversRes, claimsAccessRes] = await Promise.all([
+    const [profilesRes, rolesRes, emailsRes, approversRes] = await Promise.all([
       supabase.from('profiles').select('id, full_name, phone, company_name, is_active, approval_status, two_factor_approved, two_factor_approved_at, two_factor_approved_by'),
       supabase.from('user_roles').select('user_id, role'),
       supabase.functions.invoke('create-admin-user', { body: { action: 'list-users' } }),
       supabase.from('profiles').select('id, full_name'),
-      supabase.from('claims_access' as never).select('user_id'),
     ]);
 
     if (profilesRes.error) {
@@ -102,9 +100,6 @@ export default function UserManagement() {
     const roleMap = new Map((rolesRes.data || []).map((r: any) => [r.user_id, r.role]));
     const emailMap: Record<string, string> = emailsRes.data?.emails || {};
     const approverMap = new Map((approversRes.data || []).map((p: any) => [p.id, p.full_name]));
-    const claimsAccessIds = new Set(
-      ((claimsAccessRes.data || []) as Array<{ user_id: string }>).map((r) => r.user_id),
-    );
 
     const mapped: ManagedUser[] = (profilesRes.data || []).map((p: any) => ({
       id: p.id,
@@ -121,7 +116,6 @@ export default function UserManagement() {
       two_factor_approved_by_name: p.two_factor_approved_by
         ? approverMap.get(p.two_factor_approved_by) || null
         : null,
-      hasClaimsAccess: (roleMap.get(p.id) || '') === 'super_admin' || claimsAccessIds.has(p.id),
     }));
 
     setUsers(mapped);
@@ -248,20 +242,6 @@ export default function UserManagement() {
     toast({ title: newActive ? '✅ חשבון הופעל' : '⛔ חשבון הושבת', description: `המשתמש ${newActive ? 'הופעל' : 'הושבת'} בהצלחה` });
   };
 
-  const handleToggleClaims = async (u: ManagedUser, enabled: boolean) => {
-    if (u.role === 'super_admin') return;
-    const { error } = await supabase.rpc('claims_set_access' as never, {
-      p_user_id: u.id,
-      p_enabled: enabled,
-    } as never);
-    if (error) {
-      toast({ title: 'שגיאה', description: error.message || 'לא ניתן לעדכן הרשאת תביעות', variant: 'destructive' });
-      return;
-    }
-    setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, hasClaimsAccess: enabled } : x)));
-    toast({ title: enabled ? '✅ גישה לניהול תביעות ניתנה' : 'הרשאה הוסרה', description: u.full_name });
-  };
-
   const handleImpersonate = (u: ManagedUser) => {
     impersonate({
       id: u.id,
@@ -271,7 +251,6 @@ export default function UserManagement() {
       company_name: u.company_name,
       is_active: u.is_active,
       role: u.role as any,
-      hasClaimsAccess: u.hasClaimsAccess,
     });
     navigate('/dashboard');
   };
@@ -366,7 +345,6 @@ export default function UserManagement() {
                 <TableHead className="text-right">חברה</TableHead>
                 <TableHead className="text-right">טלפון</TableHead>
                 <TableHead className="text-right">תפקיד</TableHead>
-                <TableHead className="text-right">ניהול תביעות</TableHead>
                 <TableHead className="text-right">אישור</TableHead>
                 <TableHead className="text-right">2FA</TableHead>
                 <TableHead className="text-right">פעיל</TableHead>
@@ -376,7 +354,7 @@ export default function UserManagement() {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     לא נמצאו משתמשים
                   </TableCell>
                 </TableRow>
@@ -408,16 +386,6 @@ export default function UserManagement() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </TableCell>
-                    <TableCell>
-                      {u.role === 'super_admin' ? (
-                        <span className="text-xs text-muted-foreground">מלא</span>
-                      ) : (
-                        <Switch
-                          checked={u.hasClaimsAccess}
-                          onCheckedChange={(checked) => handleToggleClaims(u, checked)}
-                        />
-                      )}
                     </TableCell>
                     <TableCell>
                       <Badge
