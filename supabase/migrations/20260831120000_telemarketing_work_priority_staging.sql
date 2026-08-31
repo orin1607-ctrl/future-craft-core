@@ -90,3 +90,5 @@ REVOKE ALL ON FUNCTION public.telemarketing_set_work_priority(uuid[], boolean) F
 GRANT EXECUTE ON FUNCTION public.telemarketing_set_work_priority(uuid[], boolean) TO authenticated;
 REVOKE ALL ON FUNCTION public.telemarketing_claim_next_lead() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.telemarketing_claim_next_lead() TO authenticated;
+
+NOTIFY pgrst, 'reload schema';

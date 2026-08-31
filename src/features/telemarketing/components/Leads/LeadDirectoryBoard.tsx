@@ -206,10 +206,10 @@ export function LeadDirectoryBoard({
     setPriorityResult('');
     try {
       const updated = await setLeadsWorkPriority(Array.from(selected), priority);
-      setPriorityPreview(null);
-      setPriorityResult(priority ? `נוספו לעדיפות לעבודה: ${updated}` : `הוסרו מעדיפות לעבודה: ${updated}`);
       clearSelection();
       await load();
+      setPriorityPreview(null);
+      setPriorityResult(priority ? `נוספו לעדיפות לעבודה: ${updated}` : `הוסרו מעדיפות לעבודה: ${updated}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'שגיאה בעדיפות לעבודה');
     } finally {

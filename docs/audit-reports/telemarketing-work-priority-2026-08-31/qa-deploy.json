@@ -1,0 +1,282 @@
+{
+  "at": "2026-08-31T08:06:42.301Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "deploy-sha",
+      "ok": true,
+      "detail": "deployed_ref=616384b feat/incident-alerts-staging"
+    },
+    {
+      "id": "bundle-priority-ui",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-add",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-remove",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-no-km",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "bundle-now-status",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "before-tair-new",
+      "ok": true,
+      "detail": {
+        "directory": 2344,
+        "tairNew": 2030,
+        "tairOld": 0,
+        "tairClaims": 0,
+        "priority": 0,
+        "followups": 24,
+        "completed": 38,
+        "openCalls": 0,
+        "openWork": 0,
+        "histSeconds": 5400,
+        "rishonNew": 55,
+        "rishonMobile": 22,
+        "unknownFleetNew": 2030
+      }
+    },
+    {
+      "id": "before-tair-old",
+      "ok": true,
+      "detail": {
+        "directory": 2344,
+        "tairNew": 2030,
+        "tairOld": 0,
+        "tairClaims": 0,
+        "priority": 0,
+        "followups": 24,
+        "completed": 38,
+        "openCalls": 0,
+        "openWork": 0,
+        "histSeconds": 5400,
+        "rishonNew": 55,
+        "rishonMobile": 22,
+        "unknownFleetNew": 2030
+      }
+    },
+    {
+      "id": "before-priority-zero",
+      "ok": true,
+      "detail": 0
+    },
+    {
+      "id": "before-no-open-call",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "before-no-open-work",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "before-hist",
+      "ok": true,
+      "detail": 5400
+    },
+    {
+      "id": "sample-lead",
+      "ok": true,
+      "detail": {
+        "n": "2344",
+        "city": "חיפה"
+      }
+    },
+    {
+      "id": "now-status-visible",
+      "ok": true,
+      "detail": "מצב עכשיו\n\nצפייה בלבד מנתוני שיחה / דיווח / נעילת ליד קיימים. לא משנה את העובדת.\n\nרענון מצב"
+    },
+    {
+      "id": "tair-not-interrupted",
+      "ok": true,
+      "detail": "תאיר\n\n🟢 פנויה"
+    },
+    {
+      "id": "city-rishon",
+      "ok": true,
+      "detail": {
+        "rishonCount": "55 תוצאות מסוננות מתוך 2344 לידים",
+        "expected": 55
+      }
+    },
+    {
+      "id": "contact-mobile-combo",
+      "ok": true,
+      "detail": {
+        "mobileCount": "22 תוצאות מסוננות מתוך 2344 לידים",
+        "expected": 22
+      }
+    },
+    {
+      "id": "select-all-filtered-only",
+      "ok": true,
+      "detail": "בחר הכול בתוצאות המסוננות (22) — לא את כל המאגר (2344)"
+    },
+    {
+      "id": "preview-count",
+      "ok": true,
+      "detail": "לידים שנבחרו: 22"
+    },
+    {
+      "id": "fleet-unknown-new",
+      "ok": true,
+      "detail": {
+        "unknownCount": "2030 תוצאות מסוננות מתוך 2344 לידים",
+        "expected": 2030
+      }
+    },
+    {
+      "id": "preview-one",
+      "ok": true,
+      "detail": "לידים שנבחרו: 1"
+    },
+    {
+      "id": "add-priority",
+      "ok": true,
+      "detail": {
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "lead_wave": "new",
+        "work_priority_at": "2026-08-31T08:06:58.919372+00:00",
+        "claimed_by": null
+      }
+    },
+    {
+      "id": "assigned-unchanged-after-add",
+      "ok": true,
+      "detail": {
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "lead_wave": "new",
+        "work_priority_at": "2026-08-31T08:06:58.919372+00:00",
+        "claimed_by": null
+      }
+    },
+    {
+      "id": "priority-count-after-add",
+      "ok": true,
+      "detail": "⭐ עדיפות לעבודה: 1 לידים · טרם טופלו 1 · בטיפול 0 · בוצעה פעילות 0"
+    },
+    {
+      "id": "remove-priority",
+      "ok": true,
+      "detail": {
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "work_priority_at": null,
+        "claimed_by": null
+      }
+    },
+    {
+      "id": "assigned-unchanged-after-remove",
+      "ok": true,
+      "detail": {
+        "assigned_to": "cfadfd61-476b-4b19-83c8-19b62b7bb99e",
+        "work_priority_at": null,
+        "claimed_by": null
+      }
+    },
+    {
+      "id": "after-tair-new",
+      "ok": true,
+      "detail": {
+        "directory": 2344,
+        "tairNew": 2030,
+        "tairOld": 0,
+        "tairClaims": 0,
+        "priority": 0,
+        "followups": 24,
+        "completed": 38,
+        "openCalls": 0,
+        "openWork": 0,
+        "histSeconds": 5400,
+        "rishonNew": 55,
+        "rishonMobile": 22,
+        "unknownFleetNew": 2030
+      }
+    },
+    {
+      "id": "after-tair-old",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-priority-zero",
+      "ok": true,
+      "detail": 0
+    },
+    {
+      "id": "after-claims-unchanged",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-followups",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-calls",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-hist",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "after-still-no-open-call",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "productionTouched": false,
+  "expected": "616384b",
+  "deployed_ref": "deployed_ref=616384b feat/incident-alerts-staging",
+  "liveBundle": "assets/index-_I9rOjSw.js",
+  "before": {
+    "directory": 2344,
+    "tairNew": 2030,
+    "tairOld": 0,
+    "tairClaims": 0,
+    "priority": 0,
+    "followups": 24,
+    "completed": 38,
+    "openCalls": 0,
+    "openWork": 0,
+    "histSeconds": 5400,
+    "rishonNew": 55,
+    "rishonMobile": 22,
+    "unknownFleetNew": 2030
+  },
+  "after": {
+    "directory": 2344,
+    "tairNew": 2030,
+    "tairOld": 0,
+    "tairClaims": 0,
+    "priority": 0,
+    "followups": 24,
+    "completed": 38,
+    "openCalls": 0,
+    "openWork": 0,
+    "histSeconds": 5400,
+    "rishonNew": 55,
+    "rishonMobile": 22,
+    "unknownFleetNew": 2030
+  }
+}

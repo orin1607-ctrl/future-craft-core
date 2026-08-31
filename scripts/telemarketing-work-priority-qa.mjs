@@ -15,7 +15,7 @@ const BASE = 'https://orin1607-ctrl.github.io/future-craft-core';
 const TAIR = 'cfadfd61-476b-4b19-83c8-19b62b7bb99e';
 const ADMIN = 'orin1607@gmail.com';
 const OUT = join(process.cwd(), 'docs/audit-reports/telemarketing-work-priority-2026-08-31');
-const EXPECTED = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+const EXPECTED = execSync('git rev-parse --short=7 HEAD', { encoding: 'utf8' }).trim();
 mkdirSync(OUT, { recursive: true });
 if (STAGING_REF === PROD_REF) throw new Error('refused: production');
 
@@ -174,8 +174,12 @@ try {
   check('add-priority', Boolean(marked?.work_priority_at), marked);
   check('assigned-unchanged-after-add', marked?.assigned_to === TAIR && marked?.lead_wave === 'new', marked);
 
+  await page.getByTestId('lead-work-priority-count').filter({ hasText: '1 לידים' }).waitFor({ timeout: 15000 });
   await page.getByTestId('lead-priority-view-priority').click();
-  await page.getByTestId('lead-clear-selection').click();
+  const priorityCount = await page.getByTestId('lead-work-priority-count').innerText();
+  check('priority-count-after-add', priorityCount.includes('1 לידים'), priorityCount);
+  const clearBtn = page.getByTestId('lead-clear-selection');
+  if (await clearBtn.isEnabled()) await clearBtn.click();
   await page.getByTestId(`lead-row-checkbox-${sample.lead_number}`).check();
   await page.getByTestId('lead-priority-remove').click();
   await page.getByTestId('lead-priority-confirm').click();
