@@ -13,6 +13,14 @@ const ST_CSS: Record<string, string> = {
   'בטיפול משפטי': 's-leg', 'הסתיים': 's-done',
 };
 
+function claimInsCompany(c: ClaimRecord): string {
+  return String(c.insCompany || '').trim();
+}
+
+function claimInsCompanyLabel(c: ClaimRecord): string {
+  return claimInsCompany(c) || '—';
+}
+
 const FC_MAP: Record<string, string> = {
   fc_name: 'clientName', fc_phone: 'clientPhone', fc_email: 'clientEmail',
   fc_plate: 'plate', fc_model: 'carModel', fc_co: 'insCompany', fc_coEmail: 'insEmail',
@@ -411,6 +419,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [stFil, setStFil] = useState('');
+  const [insCoFil, setInsCoFil] = useState('');
+  const [handlerFil, setHandlerFil] = useState('');
   const [curId, setCurId] = useState<string | null>(null);
   const [cardTab, setCardTab] = useState('comm');
   const [sbOpen, setSbOpen] = useState(false);
@@ -1037,18 +1047,60 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }
   };
 
+  const insCompanies = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of claims) {
+      const co = claimInsCompany(c);
+      if (co) set.add(co);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'he'));
+  }, [claims]);
+
+  const handlerOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of claims) {
+      if (c.assigned_to) map.set(c.assigned_to, c.assigned_to_name || c.assigned_to);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1], 'he'));
+  }, [claims]);
+
+  const matchesRowFilters = (c: ClaimRecord) => {
+    if (mineOnly && c.assigned_to !== actor.id) return false;
+    if (search && JSON.stringify(c).toLowerCase().indexOf(search.toLowerCase()) === -1) return false;
+    if (stFil && c.status !== stFil) return false;
+    if (filter && c.status !== filter) return false;
+    if (insCoFil && claimInsCompany(c) !== insCoFil) return false;
+    if (handlerFil && c.assigned_to !== handlerFil) return false;
+    return true;
+  };
+
   const list = useMemo(() => {
     const pool = listMode === 'archive' ? archiveClaims : activeClaims;
-    return pool.filter((c) => {
-      if (mineOnly && c.assigned_to !== actor.id) return false;
-      if (search && JSON.stringify(c).toLowerCase().indexOf(search.toLowerCase()) === -1) return false;
-      if (stFil && c.status !== stFil) return false;
-      if (filter && c.status !== filter) return false;
-      return true;
-    });
-  }, [activeClaims, archiveClaims, listMode, search, stFil, filter, mineOnly, actor.id]);
+    return pool.filter(matchesRowFilters);
+  }, [activeClaims, archiveClaims, listMode, search, stFil, filter, insCoFil, handlerFil, mineOnly, actor.id]);
 
-  const openDash = workset.filter((x) => x.status !== 'הסתיים' && x.status !== 'שולם').slice(0, 10);
+  const dashRows = useMemo(
+    () => activeClaims.filter(matchesRowFilters),
+    [activeClaims, search, stFil, filter, insCoFil, handlerFil, mineOnly, actor.id],
+  );
+
+  const renderListFilterControls = () => (
+    <>
+      <input className="fi" placeholder="🔎 חיפוש..." style={{ width: 180 }} value={search} onChange={(e) => setSearch(e.target.value)} data-testid="claims-search" />
+      <select className="fse" value={stFil} onChange={(e) => setStFil(e.target.value)} style={{ fontSize: 11.5 }} data-testid="claims-status-filter">
+        <option value="">כל הסטטוסים</option>
+        {STATUSES.map((s) => <option key={s}>{s}</option>)}
+      </select>
+      <select className="fse" value={insCoFil} onChange={(e) => setInsCoFil(e.target.value)} style={{ fontSize: 11.5 }} data-testid="claims-ins-filter">
+        <option value="">כל חברות הביטוח</option>
+        {insCompanies.map((co) => <option key={co} value={co}>{co}</option>)}
+      </select>
+      <select className="fse" value={handlerFil} onChange={(e) => setHandlerFil(e.target.value)} style={{ fontSize: 11.5 }} data-testid="claims-handler-filter">
+        <option value="">כל העובדים המטפלים</option>
+        {handlerOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+      </select>
+    </>
+  );
   const myTasks = dashTasks.filter((t) => !mineOnly || workset.some((c) => c.id === t.claimId)).slice(0, 8);
   const myRems = dashRems.filter((r) => !mineOnly || workset.some((c) => c.id === r.claimId)).slice(0, 8);
 
@@ -1218,6 +1270,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     )}
+                    {renderListFilterControls()}
                     <button className="btn btn-g btn-sm" data-testid="claims-scan-inbox" onClick={() => { void runInboxScan(false); showView('gmail'); }}>📬 סרוק מיילים</button>
                   </div>
                 </div>
@@ -1245,17 +1298,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <div className="dc-bar y" /><div className="dc-n y">{gmailPending.filter((p) => !p.imported_at && String(p.decision) !== 'auto').length}</div><div className="dc-l">דורשים בדיקת שיוך</div>
                   </button>
                 </div>
-                <div className="sdiv"><div className="sdiv-t">תיקים פתוחים – דורשים טיפול</div><div className="sdiv-l" /></div>
-                <div className="tw"><table><thead><tr><th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>סטטוס</th><th>מטפל</th><th>חסר / ממתין</th><th>תאריך טיפול אחרון</th><th>תאריך טיפול הבא</th></tr></thead>
+                <div className="sdiv"><div className="sdiv-t">{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</div><div className="sdiv-l" /></div>
+                <div className="tw" data-testid="claims-dash-table"><table><thead><tr><th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>חברת ביטוח</th><th>סטטוס</th><th>עובד מטפל</th><th>תאריך טיפול אחרון</th><th>תאריך טיפול הבא</th></tr></thead>
                   <tbody>
-                    {openDash.length === 0 ? <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--t3)', padding: 24 }}>אין תיקים פתוחים</td></tr>
-                      : openDash.map((x) => (
+                    {dashRows.length === 0 ? <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--t3)', padding: 24 }}>אין תיקים</td></tr>
+                      : dashRows.map((x) => (
                         <tr key={x.id} onClick={() => openCard(x.id)}>
                           <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{x.id}</td>
                           <td>{x.clientName}</td><td>{x.plate || '—'}</td>
+                          <td>{claimInsCompanyLabel(x)}</td>
                           <td>{stBadge(x.status)}</td>
                           <td style={{ fontSize: 11 }}>{x.assigned_to_name || '—'}</td>
-                          <td style={{ fontSize: 11, color: x.status === 'ממתין למסמכים' ? 'var(--rd2)' : 'var(--t3)' }}>{x.status === 'ממתין למסמכים' ? 'מסמכים' : '—'}</td>
                           <td style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDay(x.lastTreatmentAt || x.lastActivityAt || '')}</td>
                           <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(x.nextDate || '')}</td>
                         </tr>
@@ -1296,15 +1349,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'שלי' : 'הכול'}</button>
                     )}
-                    <input className="fi" placeholder="🔎 חיפוש..." style={{ width: 180 }} value={search} onChange={(e) => setSearch(e.target.value)} />
-                    <select className="fse" value={stFil} onChange={(e) => setStFil(e.target.value)} style={{ fontSize: 11.5 }}>
-                      <option value="">כל הסטטוסים</option>
-                      {STATUSES.map((s) => <option key={s}>{s}</option>)}
-                    </select>
+                    {renderListFilterControls()}
                   </div>
                 </div>
                 <div className="tw" data-testid="claims-list-table"><table><thead><tr>
-                  <th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>ביטוח</th><th>מס' תביעה</th><th>סטטוס</th><th>מטפל</th><th>תאריך טיפול אחרון</th><th>תאריך טיפול הבא</th><th></th>
+                  <th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>חברת ביטוח</th><th>מס' תביעה</th><th>סטטוס</th><th>עובד מטפל</th><th>תאריך טיפול אחרון</th><th>תאריך טיפול הבא</th><th></th>
                 </tr></thead>
                   <tbody>
                     {list.length === 0 ? <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }}>לא נמצאו תיקים</td></tr>
@@ -1317,7 +1366,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             {c.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
                             {c.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
                           </td>
-                          <td>{c.plate || '—'}</td><td>{c.insCompany || '—'}</td>
+                          <td>{c.plate || '—'}</td><td>{claimInsCompanyLabel(c)}</td>
                           <td style={{ color: 'var(--t3)', fontSize: 11 }}>{c.claimNum || '—'}</td>
                           <td>{stBadge(c.status)}</td>
                           <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
