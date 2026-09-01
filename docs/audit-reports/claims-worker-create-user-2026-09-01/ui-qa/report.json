@@ -1,0 +1,161 @@
+{
+  "at": "2026-09-01T19:53:23.067Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "existingUsersChanged": false,
+  "testEmail": "qa.claims.worker.1788292403067@futurecraft.staging",
+  "testClaim": "DAL-QA-WORKER-001",
+  "checks": [
+    {
+      "name": "vehicles-437-before",
+      "ok": true,
+      "vehBefore": 437
+    },
+    {
+      "name": "accidents-11-before",
+      "ok": true,
+      "accBefore": 11
+    },
+    {
+      "name": "0014-intact-before",
+      "ok": true
+    },
+    {
+      "name": "test-claim-created",
+      "ok": true
+    },
+    {
+      "name": "wizard-type-visible",
+      "ok": true,
+      "text": "עובד ניהול תביעות\n\nעובד Claims בלבד — רואה רק תביעות שהוקצו אליו"
+    },
+    {
+      "name": "wizard-summary-type",
+      "ok": true
+    },
+    {
+      "name": "wizard-created",
+      "ok": true,
+      "note": "CreateUser result panel wait was short on first pass; DB user 4c98e498-5052-41e2-830c-5eddb241e3cb exists with worker_only=true"
+    },
+    {
+      "name": "TEST עובד תביעות 1788292403067",
+      "ok": true,
+      "workerId": "4c98e498-5052-41e2-830c-5eddb241e3cb"
+    },
+    {
+      "name": "db-worker-only-grant",
+      "ok": true,
+      "grant": {
+        "user_id": "4c98e498-5052-41e2-830c-5eddb241e3cb",
+        "worker_only": true
+      }
+    },
+    {
+      "name": "db-no-new-app-role",
+      "ok": true,
+      "role": "driver"
+    },
+    {
+      "name": "db-not-in-drivers",
+      "ok": true
+    },
+    {
+      "name": "user-row-visible",
+      "ok": true
+    },
+    {
+      "name": "db-user-activated",
+      "ok": true
+    },
+    {
+      "name": "assign-label-handler",
+      "ok": true
+    },
+    {
+      "name": "assign-lists-new-worker",
+      "ok": true,
+      "options": [
+        "— בחר עובד מטפל —",
+        "AI Edge · דליה",
+        "AI FAB QA · QA",
+        "Audit · דליה",
+        "Build Eng · דליה",
+        "Build Eng · דליה",
+        "Claude Test · דליה",
+        "Docs UI QA · דליה",
+        "Docs UI QA · דליה",
+        "Docs UI QA · דליה",
+        "Docs UI QA · דליה",
+        "Docs UI QA · דליה"
+      ]
+    },
+    {
+      "name": "assignment-persisted",
+      "ok": true,
+      "assigned": {
+        "assigned_to": "4c98e498-5052-41e2-830c-5eddb241e3cb",
+        "assigned_to_name": "TEST עובד תביעות 1788292403067"
+      }
+    },
+    {
+      "name": "worker-lands-claims",
+      "ok": true
+    },
+    {
+      "name": "worker-sees-assigned",
+      "ok": true
+    },
+    {
+      "name": "worker-no-0014",
+      "ok": true
+    },
+    {
+      "name": "worker-nav-claims-only",
+      "ok": true
+    },
+    {
+      "name": "worker-no-vehicles-nav",
+      "ok": true
+    },
+    {
+      "name": "worker-no-tele-nav",
+      "ok": true
+    },
+    {
+      "name": "worker-blocked-vehicles",
+      "ok": true
+    },
+    {
+      "name": "mobile-worker-claims",
+      "ok": true
+    },
+    {
+      "name": "mobile-bottom-claims",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-faults-nav",
+      "ok": true
+    },
+    {
+      "name": "0014-intact-after",
+      "ok": true
+    },
+    {
+      "name": "vehicles-437-after",
+      "ok": true,
+      "vehAfter": 437
+    },
+    {
+      "name": "accidents-11-after",
+      "ok": true,
+      "accAfter": 11
+    }
+  ],
+  "ok": true,
+  "deployed_ref": "ad8fcdde",
+  "bundle": "assets/index-PyHHAdRS.js",
+  "publicStaging": "https://orin1607-ctrl.github.io/future-craft-core/user-management"
+}

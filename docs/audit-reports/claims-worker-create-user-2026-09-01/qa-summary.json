@@ -1,0 +1,24 @@
+{
+  "at": "2026-09-01T20:00:00.000Z",
+  "deployed_ref": "ad8fcdde",
+  "bundle": "assets/index-PyHHAdRS.js",
+  "publicStaging": "https://orin1607-ctrl.github.io/future-craft-core/user-management",
+  "stagingSupabase": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "appRoleChanged": false,
+  "testUser": {
+    "id": "4c98e498-5052-41e2-830c-5eddb241e3cb",
+    "name": "TEST עובד תביעות 1788292403067",
+    "email": "qa.claims.worker.1788292403067@futurecraft.staging"
+  },
+  "testClaim": "DAL-QA-WORKER-001",
+  "qa": {
+    "wizardTypeVisible": true,
+    "userCreated": true,
+    "listedInAssignHandler": true,
+    "assignmentPersisted": true,
+    "workerClaimsOnly": true,
+    "desktop": "PASS",
+    "mobile": "PASS"
+  }
+}
