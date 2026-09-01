@@ -1,0 +1,88 @@
+{
+  "at": "2026-09-01T18:58:25.736Z",
+  "productionTouched": false,
+  "checks": [
+    {
+      "name": "db-0018-soft-deleted",
+      "ok": true
+    },
+    {
+      "name": "db-0019-soft-deleted",
+      "ok": true
+    },
+    {
+      "name": "db-0014-intact",
+      "ok": true
+    },
+    {
+      "name": "db-rows-still-18",
+      "ok": true
+    },
+    {
+      "name": "db-docs-kept",
+      "ok": true
+    },
+    {
+      "name": "vehicles-437",
+      "ok": true
+    },
+    {
+      "name": "accidents-11",
+      "ok": true
+    },
+    {
+      "name": "ui-0018-hidden",
+      "ok": true
+    },
+    {
+      "name": "ui-0019-hidden",
+      "ok": true
+    },
+    {
+      "name": "ui-0014-visible",
+      "ok": true
+    },
+    {
+      "name": "assign-btn",
+      "ok": true
+    },
+    {
+      "name": "assign-has-workers",
+      "ok": true,
+      "optCount": 58
+    },
+    {
+      "name": "assign-modal-label",
+      "ok": true
+    },
+    {
+      "name": "assign-cancelled-no-persist",
+      "ok": true
+    },
+    {
+      "name": "users-col-claims-worker",
+      "ok": true
+    },
+    {
+      "name": "users-filter",
+      "ok": true
+    },
+    {
+      "name": "mobile-0018-hidden",
+      "ok": true
+    },
+    {
+      "name": "mobile-0014-visible",
+      "ok": true
+    },
+    {
+      "name": "0014-still-intact-after-qa",
+      "ok": true
+    },
+    {
+      "name": "0011-assignment-unchanged",
+      "ok": true
+    }
+  ],
+  "ok": true
+}

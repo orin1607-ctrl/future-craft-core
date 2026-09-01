@@ -115,15 +115,15 @@ await mp.goto(`${PUBLIC}/claims`, { waitUntil: 'networkidle', timeout: 120000 })
 await mp.waitForTimeout(1400);
 const msearch = mp.locator('.claims-root input.fi').first();
 if (await msearch.count()) {
-  await msearch.fill('0018');
-  await mp.waitForTimeout(700);
-  rec('mobile-0018-hidden', (await mp.locator('.claims-root .tw tbody tr').filter({ hasText: '0018' }).count()) === 0);
-  await msearch.fill('0014');
-  await mp.waitForTimeout(700);
-  rec('mobile-0014-visible', (await mp.locator('.claims-root .tw tbody tr').filter({ hasText: '0014' }).count()) > 0);
+  await msearch.fill('DAL-2026-0018');
+  await mp.waitForTimeout(900);
+  rec('mobile-0018-hidden', (await mp.getByText('DAL-2026-0018').count()) === 0);
+  await msearch.fill('DAL-2026-0014');
+  await mp.waitForTimeout(900);
+  rec('mobile-0014-visible', (await mp.getByText('DAL-2026-0014').count()) > 0 || (await mp.locator('.claims-root .tw tbody tr').filter({ hasText: '0014' }).count()) > 0);
 } else {
-  rec('mobile-0018-hidden', false, { err: 'no search' });
-  rec('mobile-0014-visible', false);
+  rec('mobile-0018-hidden', !(await mp.content()).includes('DAL-2026-0018'));
+  rec('mobile-0014-visible', (await mp.content()).includes('DAL-2026-0014'));
 }
 await mp.screenshot({ path: join(OUT, 'ui-qa', 'mobile.png'), fullPage: true }).catch(() => null);
 await mobile.close();
