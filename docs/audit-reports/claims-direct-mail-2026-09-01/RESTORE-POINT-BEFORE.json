@@ -1,0 +1,16 @@
+{
+  "at": "2026-09-01T12:17:27.006Z",
+  "purpose": "restore-before-claims-direct-mail-pack",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "gitHead": "94bcbdbeb3fef18d582f4a99e2b6336cf5cbb8c6",
+  "gitShort": "94bcbdb",
+  "vehicles": 437,
+  "accidents": 11,
+  "claims": 18,
+  "docs": 1781,
+  "imports": 171,
+  "pending": 9,
+  "bucketPublic": false,
+  "deployed_ref": "94bcbdb feat/incident-alerts-staging"
+}

@@ -1,0 +1,190 @@
+[
+  {
+    "id": "GIM-DAL-2026-0014-1a05cb16e0a328f5",
+    "claim_id": "DAL-2026-0014",
+    "gmail_message_id": "1a05cb16e0a328f5",
+    "gmail_thread_id": "1a05cb16e0a328f5",
+    "from_addr": "\"דבורה בן שימול - ביטוח ישיר\" <debi.ben.shimol@5555555.co.il>",
+    "subject": "בקשה להשלמת מסמכים [מס' פניה - P-P-414588912]",
+    "attachment_count": 2,
+    "found_count": 2,
+    "imported_count": 1,
+    "failed_count": 1,
+    "failures": [
+      {
+        "reason": "upload_error:mime type application/octet-stream is not supported",
+        "filename": "עדכון מצב מסמכים צג.pdf"
+      }
+    ],
+    "sent_at": "2026-09-01T11:18:45+00:00",
+    "created_at": "2026-09-01T11:29:32.551919+00:00",
+    "docsOnMessage": 1,
+    "files": [
+      {
+        "id": "CDM-1788262174286-TFQHAR",
+        "name": "שרות-מכתב ללקוח.pdf",
+        "mime": "application/pdf",
+        "bytes": 74905,
+        "sha": "11cf69095e3d53f2400b57a9a24c70bd72542a8ac4cc9014c4f98fc720f84333",
+        "att": "ANGjdJ9zXFMvogviKeqocPz1NRopYO6ettf_Q6N8jG-b91G2XrH7hBtZpEE5magQuIAxksfe6aOUX5Lc8Hg4LTLPoAbN5O7sRTB8_NuadvmF5TGSVD_Yi4WhBlVfNqxS_069_JCgRa0tksfM9rMNIOrdHO22PZwzod6YR8S053dK96YynoyZDrOvSJHOzYeeMhKHr7o8jMRNUBPdMug19f4MLT9uW0vSmR_GBWenpZTCArOWbB5dmycIMPFxIK6RBo92Bpqx0dmK9vghXiNzZB9VoTIMfisULqtlZjtvezuxILXpanQ6ZzgWJRnq9KN1xsFWhZI47WjJ_C_AIu8WrJvjrTP-jGNKEBxwhPM3mmkIgP62asgXze6JdtmgmUhADwdv10mCW4cwf1k02r3-qejZLzHaSIrNdyceyBN4Vg",
+        "kind": "general",
+        "path": "DAL-2026-0014/gmail/1a05cb16e0a328f5/F-1788262173709-PP1823-_-_.pdf"
+      }
+    ]
+  },
+  {
+    "id": "GIM-DAL-2026-0007-19f31a3734617480",
+    "claim_id": "DAL-2026-0007",
+    "gmail_message_id": "19f31a3734617480",
+    "gmail_thread_id": "19f319f05b493e0a",
+    "from_addr": "yoni atias <yoni122222@gmail.com>",
+    "subject": "השלמת מסמכים – תביעה מס' 263210000124 – צירוף חשבונית שכר טרחת שמאי",
+    "attachment_count": 1,
+    "found_count": 1,
+    "imported_count": 1,
+    "failed_count": 0,
+    "failures": [],
+    "sent_at": "2026-07-05T09:37:02+00:00",
+    "created_at": "2026-08-31T21:08:47.15068+00:00",
+    "docsOnMessage": 2,
+    "files": [
+      {
+        "id": "CDM-1788210530754-RE3VR5",
+        "name": "CamScanner 05.07.2026 12.24.pdf",
+        "mime": "application/pdf",
+        "bytes": 353947,
+        "sha": "4f004526519382e03b7e03a5c006110b2b3ed6685eebdaacf456c83c01fafcb5",
+        "att": "ANGjdJ8lUicj-5U7zB-u0OoXEHC2n0tfMQztVaRAAU52gv0_9i7Bs_LsNgVW-WcajWuuNWX2b4EOPcw9xWidAOv977zYMsG2sMIQA-txAPF0-9ATyIuYPXGrZ9E-HKU9u5rTxfW3k9Ndzw4POWGvKJHkDtP-MUSgvmIatbELyRDDgE5KrpqFHQ81Cm1AjkoIrir_Rfanb7XfQryt-qAU4U2KMjLkRe_DfI8ub8i1gtq2dXxtHmh-sqmGcWk_wrE9ym2RCJvSn8vaIiSo0gbr-jyA4IIasAzeJdx9K4BYLyU3OFnTxbUveB00wTXQA40",
+        "kind": "general",
+        "path": "DAL-2026-0007/gmail/19f31a3734617480/F-1788210529761-H4Z6HM-CamScanner_05.07.2026_12.24.pdf"
+      },
+      {
+        "id": "CDM-1788210528810-D3VRVV",
+        "name": "CamScanner 05.07.2026 12.24.pdf",
+        "mime": "application/pdf",
+        "bytes": 353947,
+        "sha": "4f004526519382e03b7e03a5c006110b2b3ed6685eebdaacf456c83c01fafcb5",
+        "att": "ANGjdJ8z8XD6FAc7ZcZN_Ped6mnbwzFoWQ0MiX3f6qQFMHuRy19IrMRKyQXYU6qyxd_00pYToUjonvnCk2Ps66shL9MRUaYfdWLViTfCW9VXoDCL2y2-Q61VchfgMNlOtMqyjs2wqum7FZu3xmpkDCTAxqbmUKqEF7hSAL7b4d5uu-Lc1SFbOOIsc9nNY3DmYQ6KNE3KVcHxyETFhJmf3uxEd_VD4yE3QTG8zQoDc4_fyFXEsN0IxT_UCoHZDHG3KdIb8KzilPfPF-6Zr2YWYzYNaY5oJ3ulvc4xDuOiwzIqd7ff5MO9lzMuUUdpQWQ",
+        "kind": "general",
+        "path": "DAL-2026-0007/gmail/19f31a3734617480/F-1788210527970-N479RQ-CamScanner_05.07.2026_12.24.pdf"
+      }
+    ]
+  },
+  {
+    "id": "GIM-DAL-2026-0007-19f5f2ea6453a532",
+    "claim_id": "DAL-2026-0007",
+    "gmail_message_id": "19f5f2ea6453a532",
+    "gmail_thread_id": "19f319f05b493e0a",
+    "from_addr": "yoni atias <yoni122222@gmail.com>",
+    "subject": "Re: השלמת מסמכים – תביעה מס' 263210000124 – צירוף חשבונית שכר טרחת שמאי",
+    "attachment_count": 1,
+    "found_count": 1,
+    "imported_count": 0,
+    "failed_count": 0,
+    "failures": [],
+    "sent_at": "2026-07-14T05:51:59+00:00",
+    "created_at": "2026-08-31T21:08:40.728105+00:00",
+    "docsOnMessage": 0,
+    "files": []
+  },
+  {
+    "id": "GIM-DAL-2026-0007-19f5f3398fac9a11",
+    "claim_id": "DAL-2026-0007",
+    "gmail_message_id": "19f5f3398fac9a11",
+    "gmail_thread_id": "19f319f05b493e0a",
+    "from_addr": "yoni atias <yoni122222@gmail.com>",
+    "subject": "Fwd: השלמת מסמכים – תביעה מס' 263210000124 – צירוף חשבונית שכר טרחת שמאי",
+    "attachment_count": 1,
+    "found_count": 1,
+    "imported_count": 1,
+    "failed_count": 0,
+    "failures": [],
+    "sent_at": "2026-07-14T05:57:23+00:00",
+    "created_at": "2026-08-31T21:08:33.538831+00:00",
+    "docsOnMessage": 2,
+    "files": [
+      {
+        "id": "CDM-1788210515985-2O5153",
+        "name": "Untitled document-1.pdf",
+        "mime": "application/pdf",
+        "bytes": 39135,
+        "sha": "cc4412432c45ce8d3ec08aec956bdfbfa4b6cc6185e2b320c6d328a84eeb370f",
+        "att": "ANGjdJ9oOsNpAPCvOVyGNPNSoSQPVwFfZ1qwGxoZJM9ymDC93yqr2_CbfXN6e2drOWv-On8dmVy0nUxwB-IVn8FPVQny8Vq23c_o56NFiBgDTXlj6P4gI1Rr5ORIJLI3tD0P03fv7aZNLSM9z2V3uipULeT-0iS_J3TjjQrbKaWjOfolPZie0Kuu0lBv4qFL92d6Sn7EZye2R4UaeIm5BY3CSTgVQQJtNpakp6rVJWx9fs1zDFtuOQ2nrASlt4n28zq5C7Hw-sDH3LMNM9wNiqauX5coY7ai1tFrtwpgmtjR8TE-i4CqyeBYAm8S-KI",
+        "kind": "general",
+        "path": "DAL-2026-0007/gmail/19f5f3398fac9a11/F-1788210515732-9T5CGK-Untitled_document-1.pdf"
+      },
+      {
+        "id": "CDM-1788210514470-ZV6VAU",
+        "name": "Untitled document-1.pdf",
+        "mime": "application/pdf",
+        "bytes": 39135,
+        "sha": "cc4412432c45ce8d3ec08aec956bdfbfa4b6cc6185e2b320c6d328a84eeb370f",
+        "att": "ANGjdJ_zaWZTvidRlOhGp21MQegVOOt3J9MuKGLpAbb3nKmh0zwmfMYFpb5ho79wWPTWoKzAzihnwO4LFtmCYnemJbxJZ9hf-8BB3wBe5c-7UZ3N2tBfhTl__esbXizqIKqEYjilnAhrTjVmZle10bxIanQ5jeZpTGP1FXHqsZIrSfP8-mkd3tiSudN9y0famxJv95rNkjFYrv-8ELuZj9XdzfSpSorKQgg6ftlj0u_yK8qVUc67GM1fYyPCJVZBbvpMLB72xGlBfXD3TbEhuJ42AWEdKEqjbYXlMMDWMfcOTpn0jNR7XmqU2Dtn0Uc",
+        "kind": "general",
+        "path": "DAL-2026-0007/gmail/19f5f3398fac9a11/F-1788210514250-2NQNSJ-Untitled_document-1.pdf"
+      }
+    ]
+  },
+  {
+    "id": "GIM-DAL-2026-0014-19feb0feb83fab4a",
+    "claim_id": "DAL-2026-0014",
+    "gmail_message_id": "19feb0feb83fab4a",
+    "gmail_thread_id": "19feb0feb83fab4a",
+    "from_addr": "\"שריאל אהרונוביץ - ביטוח ישיר\" <sariel.aharonovich@5555555.co.il>",
+    "subject": "בקשה ליצירת קשר [מס' פניה - P-P-411916270]",
+    "attachment_count": 1,
+    "found_count": 1,
+    "imported_count": 1,
+    "failed_count": 0,
+    "failures": [],
+    "sent_at": "2026-08-10T09:45:14+00:00",
+    "created_at": "2026-08-31T20:19:47.380654+00:00",
+    "docsOnMessage": 1,
+    "files": [
+      {
+        "id": "CDM-1788207588631-P5470M",
+        "name": "שרות-מכתב ללקוח.pdf",
+        "mime": "application/pdf",
+        "bytes": 74905,
+        "sha": "7f66e5d2c292f3c2825b6b00bd953a9029a2c22b608be642db4e30c4889632bc",
+        "att": "ANGjdJ975faSfl2gXiocNRiYuntKxFpiKxHDwFmUk9IoZ0UE0oBCcInZFPz34CspjjTnTqM9Du9Xv6qqyQEPTmwsIUWKBQEkr8Bp4gx4Z6iasaiDv31Lx_EpepwhYCFeaA4tJq4BS7_mpiLSCkJ7FZPHmHFiSxOWaRtBJNd-RvhuVg-_FTrrH7LxYvFoulBAX6mxX_MEiAEKpdygRzB2xi__od1UFBdvY4-nVTjQtP4nqAKZRjV63q00GuSQimon5QznM5ibPuqh22YMutQfR_mu-Q2Un7mkg91bINUDvEcPbluCUriDZVmGyCYTJ2WbmCrre_O2Ozv6vvBBLFrqR-ACFd27UBejFgtehPx5sxmS_g4yuwEK8c7-2rO2yGEJQWhUdGMwA2HExRKwGoCpL0djYQnhG0AZ1-Jy3qsXjg",
+        "kind": "general",
+        "path": "DAL-2026-0014/gmail/19feb0feb83fab4a/F-1788207588021-D1X5K6-_-_.pdf"
+      }
+    ]
+  },
+  {
+    "id": "GIM-DAL-2026-0012-195d6747903e740d",
+    "claim_id": "DAL-2026-0012",
+    "gmail_message_id": "195d6747903e740d",
+    "gmail_thread_id": "195d6747903e740d",
+    "from_addr": "\"עדן קלקידן טקלה - ביטוח ישיר\" <eden.takele@5555555.co.il>",
+    "subject": "FW: בהמשך לפנייתך [מס' פניה - P-P-348927951]",
+    "attachment_count": 0,
+    "found_count": 0,
+    "imported_count": 0,
+    "failed_count": 0,
+    "failures": [],
+    "sent_at": "2025-03-27T07:15:09+00:00",
+    "created_at": "2026-08-31T20:17:38.954985+00:00",
+    "docsOnMessage": 0,
+    "files": []
+  },
+  {
+    "id": "GIM-DAL-2026-0004-19e3b3f7d1f400b5",
+    "claim_id": "DAL-2026-0004",
+    "gmail_message_id": "19e3b3f7d1f400b5",
+    "gmail_thread_id": "19e3b3d6e215dbe8",
+    "from_addr": "yoni atias <yoni122222@gmail.com>",
+    "subject": "השלמת מסמכים חסרים מספר רישוי 18391803",
+    "attachment_count": 0,
+    "found_count": 0,
+    "imported_count": 0,
+    "failed_count": 0,
+    "failures": [],
+    "sent_at": "2026-05-18T13:21:17+00:00",
+    "created_at": "2026-08-31T18:24:41.49782+00:00",
+    "docsOnMessage": 0,
+    "files": []
+  }
+]

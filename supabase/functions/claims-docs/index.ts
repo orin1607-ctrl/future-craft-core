@@ -65,6 +65,26 @@ function sanitizeFileName(name: string) {
   return ext ? `${safeBase}.${ext}` : safeBase;
 }
 
+function resolveStoredMime(filename: string, declared: string, bytes?: Uint8Array) {
+  const name = String(filename || "").toLowerCase();
+  const d = String(declared || "").toLowerCase().split(";")[0].trim();
+  if (d === "application/pdf" || /^image\/(jpeg|jpg|png|webp|heic|heif)$/.test(d)) {
+    return d === "image/jpg" ? "image/jpeg" : d;
+  }
+  if (bytes && bytes.length >= 4) {
+    if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
+    if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+    if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return "image/webp";
+  }
+  if (name.endsWith(".pdf")) return "application/pdf";
+  if (/\.jpe?g$/.test(name)) return "image/jpeg";
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".webp")) return "image/webp";
+  if (/\.heic$/.test(name)) return "image/heic";
+  return d || "";
+}
+
 async function hasClaimsAccess(sb: ReturnType<typeof admin>, uid: string, role: string) {
   if (role === "super_admin") return true;
   const { data } = await sb.from("claims_access").select("user_id").eq("user_id", uid).maybeSingle();
@@ -146,15 +166,16 @@ Deno.serve(async (req) => {
       const file = form?.get("file");
       if (!(file instanceof File)) return jsonResponse({ success: false, error: "file_required" }, 400);
       if (file.size > MAX_BYTES) return jsonResponse({ success: false, error: "file_too_large" }, 400);
-      if (file.type && !ALLOWED.has(file.type)) return jsonResponse({ success: false, error: "mime_not_allowed" }, 400);
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const storedMime = resolveStoredMime(file.name, file.type, buf);
+      if (!ALLOWED.has(storedMime)) return jsonResponse({ success: false, error: "mime_not_allowed" }, 400);
       const resolved = await resolveLink(sb, token);
       if ("error" in resolved) return jsonResponse({ success: false, error: resolved.error }, 404);
       const claimId = resolved.data.claim_id;
       const { data: reqRow } = await sb.from("claims_doc_requests").select("id, claim_id, label, doc_key").eq("id", docRequestId).eq("claim_id", claimId).maybeSingle();
       if (!reqRow) return jsonResponse({ success: false, error: "doc_not_in_claim" }, 400);
       const path = `${claimId}/${docRequestId}/${nid("F")}-${sanitizeFileName(file.name)}`;
-      const buf = new Uint8Array(await file.arrayBuffer());
-      const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: file.type || "application/octet-stream", upsert: false });
+      const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: storedMime, upsert: false });
       if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
       await sb.from("claims_documents").insert({
         id: nid("CDM"),
@@ -162,11 +183,11 @@ Deno.serve(async (req) => {
         doc_request_id: docRequestId,
         storage_path: path,
         original_name: file.name,
-        mime_type: file.type || "",
+        mime_type: storedMime,
         byte_size: file.size,
         source: "customer",
         uploaded_by_name: "לקוח",
-        doc_kind: kindFromUpload(String(reqRow.doc_key || ""), file.type || "", ""),
+        doc_kind: kindFromUpload(String(reqRow.doc_key || ""), storedMime, ""),
       });
       await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId);
       await history(sb, claimId, "מסמך התקבל מהלקוח", reqRow.label, "לקוח");
@@ -312,6 +333,16 @@ Deno.serve(async (req) => {
         if (!STATUSES.has(s)) return jsonResponse({ success: false, error: "invalid_doc_status" }, 400);
         next.doc_status = s;
       }
+      if (body.related_file_id !== undefined) {
+        const rel = String(body.related_file_id || "").trim();
+        if (rel) {
+          const { data: other } = await sb.from("claims_documents").select("id").eq("id", rel).eq("claim_id", claimId).maybeSingle();
+          if (!other || other.id === fileId) return jsonResponse({ success: false, error: "invalid_related_file" }, 400);
+          next.related_file_id = rel;
+        } else {
+          next.related_file_id = "";
+        }
+      }
       const { error: upErr } = await sb.from("claims_documents").update({ doc_meta: next }).eq("id", fileId).eq("claim_id", claimId);
       if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
       await history(sb, claimId, "עודכנו פרטי מסמך", `${file.original_name} · סוג ${next.staff_type || "לא סווג"} · סטטוס ${next.doc_status || "—"} · חשוב ${next.important === "true" ? "כן" : "לא"}`, actorName);
@@ -354,15 +385,16 @@ Deno.serve(async (req) => {
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       if (!(file instanceof File)) return jsonResponse({ success: false, error: "file_required" }, 400);
       if (file.size > MAX_BYTES) return jsonResponse({ success: false, error: "file_too_large" }, 400);
-      if (file.type && !ALLOWED.has(file.type)) return jsonResponse({ success: false, error: "mime_not_allowed" }, 400);
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const storedMime = resolveStoredMime(file.name, file.type, buf);
+      if (!ALLOWED.has(storedMime)) return jsonResponse({ success: false, error: "mime_not_allowed" }, 400);
       let reqKey = "";
       if (docRequestId) {
         const { data: reqRow } = await sb.from("claims_doc_requests").select("doc_key").eq("id", docRequestId).eq("claim_id", claimId).maybeSingle();
         reqKey = String(reqRow?.doc_key || "");
       }
       const path = `${claimId}/staff/${nid("F")}-${sanitizeFileName(file.name)}`;
-      const buf = new Uint8Array(await file.arrayBuffer());
-      const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: file.type || "application/octet-stream", upsert: false });
+      const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: storedMime, upsert: false });
       if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
       await sb.from("claims_documents").insert({
         id: nid("CDM"),
@@ -370,12 +402,12 @@ Deno.serve(async (req) => {
         doc_request_id: docRequestId,
         storage_path: path,
         original_name: file.name,
-        mime_type: file.type || "",
+        mime_type: storedMime,
         byte_size: file.size,
         source: "staff",
         uploaded_by: user.id,
         uploaded_by_name: actorName,
-        doc_kind: kindFromUpload(reqKey, file.type || "", explicitKind),
+        doc_kind: kindFromUpload(reqKey, storedMime, explicitKind),
       });
       if (docRequestId) {
         await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId).eq("claim_id", claimId);

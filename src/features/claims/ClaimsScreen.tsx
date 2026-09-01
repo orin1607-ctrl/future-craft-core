@@ -89,6 +89,44 @@ function mailAddrsOk(raw: string, required: boolean) {
   if (!parts.length) return !required;
   return parts.every((p) => EMAIL_RE.test(p));
 }
+function emailsFromHeader(raw: string) {
+  return (String(raw || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []).map((e) => e.toLowerCase());
+}
+function sourceHe(src: string) {
+  if (src === 'gmail') return 'התקבל במייל';
+  if (src === 'customer') return 'הועלה על ידי הלקוח';
+  if (src === 'staff') return 'הועלה על ידינו';
+  return src || '—';
+}
+const WORK_STATUS: Array<{ key: string; label: string }> = [
+  { key: 'open', label: 'פתוח' },
+  { key: 'waiting_doc', label: 'ממתין למסמך' },
+  { key: 'doc_received', label: 'מסמך התקבל' },
+  { key: 'ready_to_send', label: 'מוכן לשליחה' },
+  { key: 'sent', label: 'נשלח' },
+  { key: 'waiting_reply', label: 'ממתין לתשובה' },
+  { key: 'done', label: 'הושלם' },
+];
+function workStatusHe(k: string) {
+  return WORK_STATUS.find((x) => x.key === k)?.label || k || 'פתוח';
+}
+function docStateHe(k: string) {
+  if (k === 'ready') return 'המסמך קיים – מוכן לשליחה';
+  if (k === 'missing') return 'חסר מסמך';
+  if (k === 'awaiting_signature') return 'ממתין לגרסה חתומה';
+  if (k === 'needs_review') return 'דורש בדיקת עובד';
+  return k || '';
+}
+const OWN_MAILBOX = 'yoni122222@gmail.com';
+function quotedOriginal(im: Record<string, unknown>) {
+  return `\n\n---------- הודעה מקורית ----------\nFrom: ${im.from_addr || ''}\nTo: ${im.to_addr || ''}\nDate: ${im.sent_at || ''}\nSubject: ${im.subject || ''}\n\n${im.body_text || ''}`;
+}
+function withMailPrefix(subj: string, prefix: string) {
+  const s = String(subj || '').trim();
+  if (!s) return prefix.trim();
+  if (s.toLowerCase().startsWith(prefix.toLowerCase())) return s;
+  return `${prefix}${s}`;
+}
 const DOC_CATS: Array<{ key: string; label: string }> = [
   { key: 'surveyor', label: 'דוח שמאי' },
   { key: 'license', label: 'רישיון רכב' },
@@ -198,7 +236,7 @@ function suggestedStaffType(f: ClaimFile) {
   return '';
 }
 
-function DocStaffFields({ file, onSave }: { file: ClaimFile; onSave: (patch: Record<string, string | boolean>) => void }) {
+function DocStaffFields({ file, allFiles, onSave }: { file: ClaimFile; allFiles: ClaimFile[]; onSave: (patch: Record<string, string | boolean>) => void }) {
   const m = fileMeta(file);
   const sid = `dst_${file.id}`;
   return (
@@ -214,19 +252,28 @@ function DocStaffFields({ file, onSave }: { file: ClaimFile; onSave: (patch: Rec
           {DOC_FILE_STATUSES.map((s) => <option key={s.key || 'none'} value={s.key}>{s.label}</option>)}
         </select>
       </div>
+      <div className="fg"><label className="fl">קשור למסמך (ידני)</label>
+        <select className="fse" id={`${sid}_rel`} defaultValue={m.related_file_id || ''}>
+          <option value="">— ללא קישור —</option>
+          {allFiles.filter((x) => x.id !== file.id).slice(0, 80).map((x) => (
+            <option key={x.id} value={x.id}>{fileLabel(x)}</option>
+          ))}
+        </select>
+      </div>
       <div className="fg"><label className="fl">הערה פנימית</label><textarea className="fta" id={`${sid}_note`} defaultValue={m.staff_note || ''} style={{ minHeight: 56 }} /></div>
       <label className="pick-row" style={{ margin: '6px 0' }}>
         <input type="checkbox" id={`${sid}_imp`} defaultChecked={m.important === 'true'} />
         <span>מסמך חשוב / מזוהה בתיק</span>
       </label>
-      <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 6 }}>הערה פנימית לא נשלחת ללקוח או לחברת הביטוח.</div>
+      <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 6 }}>הערה פנימית לא נשלחת ללקוח או לחברת הביטוח. קישור לגרסה חתומה הוא ידני בלבד — אין ניחוש.</div>
       <button type="button" className="btn btn-p btn-sm" onClick={() => {
         const title = (document.getElementById(`${sid}_title`) as HTMLInputElement | null)?.value || '';
         const staff_type = (document.getElementById(`${sid}_type`) as HTMLSelectElement | null)?.value || '';
         const doc_status = (document.getElementById(`${sid}_st`) as HTMLSelectElement | null)?.value || '';
         const staff_note = (document.getElementById(`${sid}_note`) as HTMLTextAreaElement | null)?.value || '';
+        const related_file_id = (document.getElementById(`${sid}_rel`) as HTMLSelectElement | null)?.value || '';
         const important = (document.getElementById(`${sid}_imp`) as HTMLInputElement | null)?.checked === true;
-        onSave({ staff_title: title, staff_type, doc_status, staff_note, important });
+        onSave({ staff_title: title, staff_type, doc_status, staff_note, important, related_file_id });
       }}>שמור פרטי מסמך</button>
     </div>
   );
@@ -565,7 +612,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const openSendModal = async (kind: 'draft' | 'insurer' | 'legal', seed?: {
-    to?: string; subject?: string; body?: string; file_ids?: string[]; thread_id?: string; missing?: string[];
+    to?: string; cc?: string; subject?: string; body?: string; file_ids?: string[]; thread_id?: string; missing?: string[];
   }) => {
     if (!cur) return;
     setMailKind(kind);
@@ -607,10 +654,38 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       setVal('mail_body', body);
     }
     if (seed?.to) { setMailTo(seed.to); setVal('mail_to', seed.to); }
+    if (seed?.cc !== undefined) { setMailCc(seed.cc); setVal('mail_cc', seed.cc); }
     if (seed?.subject) { setMailSubj(seed.subject); setVal('mail_subj', seed.subject); }
     if (seed?.body) { setMailBodyDraft(seed.body); setVal('mail_body', seed.body); }
     if (seed?.file_ids?.length && cur.id) void refreshPackage(cur.id, seed.file_ids);
     setModal('moMail');
+  };
+
+  const openMailCompose = (im: Record<string, unknown>, mode: 'reply' | 'replyAll' | 'forward') => {
+    const from = emailsFromHeader(String(im.from_addr || ''))[0] || '';
+    const toAddrs = emailsFromHeader(String(im.to_addr || ''));
+    const ccAddrs = emailsFromHeader(String(im.cc_addr || ''));
+    const quoted = quotedOriginal(im);
+    if (mode === 'forward') {
+      void openSendModal('draft', {
+        to: '',
+        cc: '',
+        subject: withMailPrefix(String(im.subject || ''), 'Fwd: '),
+        body: `שלום,\n\n${quoted}`,
+        file_ids: [],
+        thread_id: '',
+      });
+      return;
+    }
+    const others = [...toAddrs, ...ccAddrs].filter((e) => e !== OWN_MAILBOX && e !== from);
+    void openSendModal('draft', {
+      to: from,
+      cc: mode === 'replyAll' ? [...new Set(others)].join(', ') : '',
+      subject: withMailPrefix(String(im.subject || ''), 'Re: '),
+      body: `שלום,\n\n${quoted}`,
+      file_ids: [],
+      thread_id: String(im.gmail_thread_id || ''),
+    });
   };
 
   useEffect(() => {
@@ -667,7 +742,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       const preview = docs.files.filter((f) => isImageFile(f)).slice(0, 80);
       if (preview.length) void loadGalleryThumbs(curId, preview);
     }
-  }, [cardTab, curId, docs.files]);
+    if (cardTab === 'tasks') {
+      const ready = docs.files.filter((f) => isImageFile(f) && tasks.some((t) => t.readyFileId === f.id));
+      if (ready.length) void loadGalleryThumbs(curId, ready);
+    }
+  }, [cardTab, curId, docs.files, tasks]);
 
   const openMailFollowupModal = async (edit?: MailFollowupRow | null) => {
     setFuEditId(edit?.id || null);
@@ -1425,7 +1504,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       <div key={f.id} className="gal-box" style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
                         <div>
                           <div style={{ fontWeight: 800 }}>{f.original_name} <span className="kind-pill surveyor">דוח שמאי</span></div>
-                          <div style={{ fontSize: 11, color: 'var(--t3)' }}>{f.source === 'gmail' ? 'Gmail' : f.source === 'customer' ? 'לקוח' : 'עובד'} · {fmtBytes(Number(f.byte_size || 0))}</div>
+                          <div style={{ fontSize: 11, color: 'var(--t3)' }}>{sourceHe(f.source)} · {fmtBytes(Number(f.byte_size || 0))}</div>
                         </div>
                         <button className="btn btn-p btn-sm" onClick={() => void openInCard(cur.id, f)}>פתח בתיק</button>
                       </div>
@@ -1510,7 +1589,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
                             <div>
                               <div style={{ fontWeight: 800 }}>{f.original_name} <span className="kind-pill invoice">חשבונית מוסך</span></div>
-                              <div style={{ fontSize: 11, color: 'var(--t3)' }}>{f.source === 'gmail' ? 'Gmail' : f.source === 'customer' ? 'לקוח' : 'עובד'} · {fmtBytes(Number(f.byte_size || 0))}</div>
+                              <div style={{ fontSize: 11, color: 'var(--t3)' }}>{sourceHe(f.source)} · {fmtBytes(Number(f.byte_size || 0))}</div>
                             </div>
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button className="btn btn-p btn-sm" onClick={() => void openInCard(cur.id, f)}>צפייה בתיק</button>
@@ -1632,10 +1711,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           {isGal && photos.length ? (
                             <div className="gal-grid">
                               {preview.map((f) => (
-                                <button key={f.id} className="gal-item" title={f.original_name} onClick={async () => {
-                                  const r = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: f.id });
-                                  if (r.url) window.open(String(r.url), '_blank');
-                                }}>
+                                <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
                                   {galleryUrls[f.id]
                                     ? <img src={galleryUrls[f.id]} alt={f.original_name} />
                                     : <span>{f.original_name}</span>}
@@ -1645,10 +1721,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           ) : null}
                           {(isGal ? rest : group).map((f) => {
                             const knd = effectiveKind(f);
+                            const img = isImageFile(f);
                             return (
                             <div key={f.id} style={{ marginTop: 6 }}>
                               <div style={{ minWidth: 140, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                              <div>
+                              <div style={{ display: 'flex', gap: 8, minWidth: 0 }}>
+                                {img ? (
+                                  <button type="button" className="pick-thumb" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
+                                    {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>📷</span>}
+                                  </button>
+                                ) : null}
+                                <div>
                                 <div style={{ fontWeight: 600, fontSize: 12 }}>
                                   {fileLabel(f)}
                                   {kindHe(knd) ? <span className={`kind-pill ${knd === 'garage_invoice' ? 'invoice' : 'surveyor'}`}>{kindHe(knd)}</span> : null}
@@ -1656,8 +1739,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                   {fileMeta(f).important === 'true' ? <span className="kind-pill surveyor">חשוב</span> : null}
                                   {fileMeta(f).doc_status ? <span className="kind-pill">{statusLabel(fileMeta(f).doc_status)}</span> : null}
                                 </div>
-                                <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.source === 'gmail' ? 'Gmail' : f.source === 'customer' ? 'לקוח' : 'עובד'} · {fmtBytes(Number(f.byte_size || 0))} · {f.original_name}</div>
+                                <div style={{ fontSize: 10, color: 'var(--t3)' }}>{sourceHe(f.source)} · {fmtBytes(Number(f.byte_size || 0))} · {f.original_name}</div>
+                                {fileMeta(f).related_file_id ? (() => {
+                                  const rel = docs.files.find((x) => x.id === fileMeta(f).related_file_id);
+                                  return rel ? <div style={{ fontSize: 11, color: 'var(--t2)' }}>קשור למסמך: {fileLabel(rel)}</div> : null;
+                                })() : null}
                                 {fileMeta(f).staff_note ? <div style={{ fontSize: 11, color: 'var(--t2)' }}>הערה: {fileMeta(f).staff_note}</div> : null}
+                                </div>
                               </div>
                               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                 {knd !== 'surveyor_report' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'surveyor_report')}>סמן כדוח שמאי</button> : null}
@@ -1667,7 +1755,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                 <button className="btn btn-g btn-sm" data-testid={`doc-edit-${f.id}`} onClick={() => setDocEditId(docEditId === f.id ? null : f.id)}>שם / סוג</button>
                               </div>
                               </div>
-                              {docEditId === f.id ? <DocStaffFields file={f} onSave={async (patch) => { await saveDocStaff(f, patch); toast('פרטי המסמך נשמרו'); }} /> : null}
+                              {docEditId === f.id ? <DocStaffFields file={f} allFiles={docs.files} onSave={async (patch) => { await saveDocStaff(f, patch); toast('פרטי המסמך נשמרו'); }} /> : null}
                             </div>
                             );
                           })}
@@ -1747,7 +1835,30 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                     missing: sug.missing || [],
                                   });
                                 }}>תגובה מוצעת</button>
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                                  <button type="button" className="btn btn-p btn-sm" data-testid={`mail-reply-${im.id}`} onClick={() => openMailCompose(im, 'reply')}>השב</button>
+                                  {(() => {
+                                    const from = emailsFromHeader(String(im.from_addr || ''))[0] || '';
+                                    const others = [...emailsFromHeader(String(im.to_addr || '')), ...emailsFromHeader(String(im.cc_addr || ''))]
+                                      .filter((e) => e !== OWN_MAILBOX && e !== from);
+                                    return others.length ? (
+                                      <button type="button" className="btn btn-g btn-sm" data-testid={`mail-reply-all-${im.id}`} onClick={() => openMailCompose(im, 'replyAll')}>השב לכולם</button>
+                                    ) : null;
+                                  })()}
+                                  <button type="button" className="btn btn-g btn-sm" data-testid={`mail-forward-${im.id}`} onClick={() => openMailCompose(im, 'forward')}>העבר</button>
+                                </div>
                               </div>
+                              {tasks.filter((t) => t.gmailMessageId === mid).length ? (
+                                <div data-testid={`mail-tasks-${im.id}`} style={{ fontSize: 12, margin: '8px 0', background: 'var(--bg2)', border: '1px dashed var(--br2)', borderRadius: 7, padding: 8 }}>
+                                  <div style={{ fontWeight: 700, marginBottom: 4 }}>משימות שנוצרו מהמייל</div>
+                                  {tasks.filter((t) => t.gmailMessageId === mid).map((t) => (
+                                    <div key={t.id} style={{ marginBottom: 4 }}>
+                                      {t.action} · {workStatusHe(t.workStatus || 'open')} · {docStateHe(t.docState)}
+                                      <button type="button" className="btn btn-g btn-sm" style={{ marginInlineStart: 6 }} onClick={() => setCardTab('tasks')}>למשימה</button>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
                               {attached.length ? (
                                 <div>
                                   <div style={{ fontSize: 11, fontWeight: 700, margin: '8px 0 4px' }}>קבצים מצורפים ({attached.length})</div>
@@ -1850,13 +1961,61 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <>
                   <button className="btn btn-p btn-sm" style={{ marginBottom: 10 }} onClick={() => setModal('moTask')}>＋ הוסף משימה</button>
                   {tasks.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין משימות פתוחות</div>
-                    : tasks.map((t) => (
-                      <div key={t.id} style={{ background: 'var(--bg3)', border: '1px solid var(--br)', borderRadius: 7, padding: '10px 12px', marginBottom: 7 }}>
-                        <div style={{ fontWeight: 600 }}>{t.action}</div>
-                        {t.dueDate ? <div style={{ fontSize: 11, color: 'var(--yn2)' }}>📅 {t.dueDate}</div> : null}
-                        {t.owner ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>👤 {t.owner}</div> : null}
-                      </div>
-                    ))}
+                    : tasks.map((t) => {
+                      const ready = docs.files.find((f) => f.id === t.readyFileId);
+                      const mailImp = gmailImports.find((im) => String(im.gmail_message_id) === t.gmailMessageId);
+                      return (
+                        <div key={t.id} data-testid={`task-card-${t.id}`} style={{ background: 'var(--bg3)', border: '1px solid var(--br)', borderRadius: 7, padding: '10px 12px', marginBottom: 7 }}>
+                          <div style={{ fontWeight: 600 }}>{t.action}</div>
+                          {t.source ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>מקור: {t.source}</div> : null}
+                          {t.createdAt ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>תאריך: {t.createdAt}</div> : null}
+                          {t.dueDate ? <div style={{ fontSize: 11, color: 'var(--yn2)' }}>📅 {t.dueDate}</div> : null}
+                          {t.owner ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>👤 {t.owner}</div> : null}
+                          {t.docState ? <div data-testid={`task-docstate-${t.id}`} style={{ fontSize: 12, fontWeight: 700, margin: '6px 0', color: t.docState === 'ready' ? 'var(--gn2)' : t.docState === 'missing' ? 'var(--rd2)' : 'var(--yn2)' }}>{docStateHe(t.docState)}</div> : null}
+                          {t.replyReceived === 'true' ? <div style={{ fontSize: 11, color: 'var(--ac3)' }}>התקבלה תשובה באותו Thread — המשימה לא נסגרה אוטומטית</div> : null}
+                          {ready ? (
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0' }}>
+                              {isImageFile(ready) ? (
+                                <button type="button" className="pick-thumb" onClick={() => void openInCard(cur.id, ready)}>
+                                  {galleryUrls[ready.id] ? <img src={galleryUrls[ready.id]} alt="" /> : <span>📷</span>}
+                                </button>
+                              ) : null}
+                              <span style={{ fontSize: 12 }}>{fileLabel(ready)} · {sourceHe(ready.source)}</span>
+                              <button type="button" className="btn btn-p btn-sm" onClick={() => void openSendModal('draft', { file_ids: [ready.id], thread_id: t.gmailThreadId || '' })}>בחר לשליחה</button>
+                            </div>
+                          ) : null}
+                          {t.docState === 'missing' || t.docState === 'awaiting_signature' ? (
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '6px 0' }}>
+                              <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('docs')}>בקש מהלקוח</button>
+                            </div>
+                          ) : null}
+                          {mailImp ? (
+                            <button type="button" className="btn btn-g btn-sm" data-testid={`task-goto-mail-${t.id}`} onClick={() => setCardTab('gin')}>למייל המקורי</button>
+                          ) : null}
+                          <div className="fg" style={{ marginTop: 8 }}>
+                            <label className="fl">סטטוס טיפול</label>
+                            <select className="fse" defaultValue={t.workStatus || 'open'} id={`tws_${t.id}`} onChange={async (e) => {
+                              await apiRef.current.saveTask({ ...t, workStatus: e.target.value, done: e.target.value === 'done' ? 'true' : 'false' });
+                              toast('סטטוס עודכן');
+                              await loadCardData(cur.id);
+                            }}>
+                              {WORK_STATUS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                            </select>
+                          </div>
+                          <div className="fg">
+                            <label className="fl">הערה פנימית למשימה</label>
+                            <textarea className="fta" id={`tnote_${t.id}`} defaultValue={t.note || ''} style={{ minHeight: 48 }} />
+                            <div style={{ fontSize: 10, color: 'var(--t3)', margin: '4px 0' }}>פנימית בלבד — לא נשלחת החוצה.</div>
+                            <button type="button" className="btn btn-g btn-sm" onClick={async () => {
+                              const note = (document.getElementById(`tnote_${t.id}`) as HTMLTextAreaElement | null)?.value || '';
+                              await apiRef.current.saveTask({ ...t, note });
+                              toast('הערה פנימית נשמרה');
+                              await loadCardData(cur.id);
+                            }}>שמור הערה</button>
+                          </div>
+                        </div>
+                      );
+                    })}
                 </>
               )}
               {cardTab === 'rems' && (
@@ -2148,7 +2307,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         ) : (
                           <span className="pick-thumb" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'default' }}>PDF</span>
                         )}
-                        <span>{fileLabel(f)}{fileMeta(f).staff_type ? ` · ${staffTypeLabel(fileMeta(f).staff_type)}` : ''}</span>
+                        <span>{fileLabel(f)}{fileMeta(f).staff_type ? ` · ${staffTypeLabel(fileMeta(f).staff_type)}` : ''} · {sourceHe(f.source)}</span>
                         <span className="pick-sz">{fmtBytes(Number(f.byte_size || 0))}</span>
                         <button type="button" className="btn btn-g btn-sm" data-testid={`mail-file-preview-${f.id}`} onClick={() => { if (curId) void openInCard(curId, f); }}>תצוגה</button>
                       </div>
@@ -2309,6 +2468,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     return;
                   }
                   toast(`נשלח · שליחה #${String(r.send_no || '')} · msgid ${String(r.gmail_message_id || '')} · thread ${String(r.gmail_thread_id || '')}`);
+                  if (curId && (r.gmail_thread_id || mailThreadId)) {
+                    const thread = String(r.gmail_thread_id || mailThreadId || '');
+                    for (const t of tasks) {
+                      if (t.gmailThreadId === thread && t.done !== 'true') {
+                        await apiRef.current.saveTask({ ...t, workStatus: 'waiting_reply', done: 'false' });
+                      }
+                    }
+                  }
                   if (curId && trackDue) {
                     await apiRef.current.saveReminder({
                       claimId: curId,

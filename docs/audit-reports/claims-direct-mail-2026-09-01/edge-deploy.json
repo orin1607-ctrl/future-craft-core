@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-01T12:30:50.663Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "edge": {
+    "ok": true,
+    "parts": [
+      {
+        "fn": "claims-docs",
+        "output": "Deployed Functions on project usfeoerkpcafxxlyuldl: claims-docs\nYou can inspect your deployment in the Dashboard: https://supabase.com/dashboard/project/usfeoerkpcafxxlyuldl/functions\n"
+      },
+      {
+        "fn": "claims-gmail",
+        "output": "Deployed Functions on project usfeoerkpcafxxlyuldl: claims-gmail\nYou can inspect your deployment in the Dashboard: https://supabase.com/dashboard/project/usfeoerkpcafxxlyuldl/functions\n"
+      }
+    ]
+  },
+  "verify": null
+}

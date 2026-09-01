@@ -1,0 +1,69 @@
+{
+  "at": "2026-09-01T12:45:23.179Z",
+  "claim": "DAL-2026-0014",
+  "messageId": "1a05cb16e0a328f5",
+  "realEmailSend": false,
+  "autoSend": false,
+  "docs": [
+    {
+      "id": "CDM-1788262174286-TFQHAR",
+      "original_name": "שרות-מכתב ללקוח.pdf",
+      "source": "gmail",
+      "mime_type": "application/pdf",
+      "byte_size": 74905
+    },
+    {
+      "id": "CDM-1788265889932-OW2DTM",
+      "original_name": "עדכון מצב מסמכים צג.pdf",
+      "source": "gmail",
+      "mime_type": "application/pdf",
+      "byte_size": 165496
+    }
+  ],
+  "mailTasks": [
+    {
+      "id": "TSK-1788265891942-1AMJTN",
+      "action": "פוליסה",
+      "done": "true",
+      "workStatus": "done",
+      "docState": "missing",
+      "mailIdem": "mail:1a05cb16e0a328f5:policy"
+    },
+    {
+      "id": "TSK-1788266008837-8GR36Q",
+      "action": "השלמת מסמכים לפי הבקשה במייל",
+      "done": "false",
+      "workStatus": "open",
+      "docState": "needs_review",
+      "mailIdem": "mail:1a05cb16e0a328f5:docs_generic"
+    }
+  ],
+  "suggestion": {
+    "ok": false,
+    "reason": "דורש בדיקת עובד — רשימת החוסרים במסמך המצורף. אין Guess.",
+    "requested": [
+      "השלמת מסמכים לפי הבקשה במייל"
+    ],
+    "attachments": [],
+    "missing": []
+  },
+  "detected": [
+    {
+      "type": "docs_generic",
+      "label": "השלמת מסמכים לפי הבקשה במייל",
+      "kind": "generic"
+    }
+  ],
+  "draft": {
+    "to": "debi.ben.shimol@5555555.co.il",
+    "subject": "Re: בקשה להשלמת מסמכים [מס' פניה - P-P-414588912]",
+    "body": "שלום,\n\nקיבלנו את בקשתכם להשלמת מסמכים.\nרשימת החוסרים מופיעה במסמך שצורף למייל.\nנבדוק את התיק ונשיב עם המסמכים הנדרשים.\n\nבברכה,\nדליה ניהול תביעות",
+    "file_ids": [],
+    "thread_id": "1a05cb16e0a328f5",
+    "in_reply_to_message_id": "1a05cb16e0a328f5"
+  },
+  "staffOnClaim": [],
+  "vehicles": 437,
+  "accidents": 11,
+  "bucketPublic": false
+}

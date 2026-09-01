@@ -1,0 +1,221 @@
+[
+  {
+    "claim_id": "DAL-2026-0014",
+    "subject": "בקשה להשלמת מסמכים [מס' פניה - P-P-414588912]",
+    "import": {
+      "found": 2,
+      "imported": 1,
+      "failed": 1,
+      "failures": [
+        {
+          "reason": "upload_error:mime type application/octet-stream is not supported",
+          "filename": "עדכון מצב מסמכים צג.pdf"
+        }
+      ],
+      "docsOnMessage": 1
+    },
+    "gmail": {
+      "from": "\"דבורה בן שימול - ביטוח ישיר\" <debi.ben.shimol@5555555.co.il>",
+      "to": "yoni122222@gmail.com",
+      "id": "1a05cb16e0a328f5",
+      "threadId": "1a05cb16e0a328f5",
+      "date": "Tue, 01 Sep 2026 14:18:45 +0300",
+      "attachments": [
+        {
+          "filename": "עדכון מצב מסמכים צג.pdf",
+          "mime": "application/octet-stream",
+          "size": 165496,
+          "attachmentId": "ANGjdJ_w2pFyuc_Zg_uxEjdz_hUCq8CQe3pvUdvrdXxGIjJHY5LebJe20sb5p1T6HuFD5XtWh9dF2xLGQPO2yIzN6NGJfX1fhdSxSslym4sWeazqfPoPSrNQ-2B3wBAwfQknfxwqKbVTazuUeHRMKvURs4tNcAQ2hCurSMrLBP6pEHvZ2W4ZR3t_I7i9DX5MA9srIzZ6n7Pl4k9p-Q04GgcGOj4rWEDjnqbCptYbRLvT7fKA0CfU_4Tk_vzJsmFxixFx4_9Y6PFmR33ydtdda35_My1Iqz9xXW45xkChRsl8qDqcayLXHN94E3nOXw8xFD8L7MoA4YnOsLzAdd2mbfP6i2kEaA4TaF-7p6GItnLP4q0qr-2omA-KSzvv3QqgKZslkFK2EWzC6BXWzyj59Yeh_JcsnLYxYeyrZfYQzw"
+        },
+        {
+          "filename": "שרות-מכתב ללקוח.pdf",
+          "mime": "application/pdf",
+          "size": 74905,
+          "attachmentId": "ANGjdJ96ZXz0lAVQSZygXpoq5kqkfGMItL0lakp7McyJ095lPWTSiKFUv-YYPfck8V1u9g34tHlKZnOxF6ZnOvNxzHFB0pKMurgQkOGjPbIwIQBwNdHAFmNIBVN3QcXSeqwpNiZxorTmz_nAHpOc2HemvkCTHEKsJY5mXMOeebRWG-SVNtqClXH1Xbapeen3ByM_cTpYZH16WdZP7X9p-nS4LCAPFZSK4TaAJmACgIWh_67pYU_uowH01Vmu8_xAU7i7Gk06et3Yz9zIxzRIAX3Wj4neoVNOo0-UkYPK4pTKR6camVeBm1Zcw-wAJoTRzfNpDambBhgDUhdZU-CLiSV8Zkq5KG5ATt0XizDPlaT6dC84vqG-BSTbqf2P3pWuNUlaX9ENyux6b8MDJZn6evkkpNw9Re8ubqrDklc9jQ"
+        }
+      ],
+      "partsMeta": [
+        {
+          "mime": "application/octet-stream",
+          "filename": "עדכון מצב מסמכים צג.pdf",
+          "size": 165496,
+          "hasData": false
+        },
+        {
+          "mime": "application/pdf",
+          "filename": "שרות-מכתב ללקוח.pdf",
+          "size": 74905,
+          "hasData": false
+        }
+      ],
+      "bodyPreview": "מנחם  מור שלום,\nהנדון  -   תיק תביעה מספר : 2259619,    תאריך אירוע : 20/05/2026 , מספר רכב : 14113901,  פוליסה : 1724648002\n\nצהריים   טובים,\nעל מנת לקדם את התיק אודה להשלמת מסמכים חסרים\n*מצורף חוסרים\nאודה תשובתך בהקדם.\n*אנו מבצעים בדיקה במאגר התביעות.\n\nבברכה,\nדבי בן שימול\nאגף תביעות ופרויקטים\n\n\t\t\t\t\t\t\t\t\twww.555.co.il\n\n\t\t\t\t\t\t\t\t\t052-9431458\n\n\t\tכמפורט בתקנון החברה באתר, תכתובת בין החברה לבינך באמצעות הדוא\"ל משמעה הסכמה מצידך כי משלוח מידע ע\"י החברה באמצעי זה מהווה מסירה שלו  לידך לכל \tדבר  ועניין וכן הסכמה להתכתבות כזו גם בנושאים רגישים (לשינוי בחירתך לגבי תכני התכתבות בדוא\"ל נא להיכנס לאזור האישי שלך באתר החברה); כי החברה אינה אחראית אם המידע לא התקבל\nו/או לא נקרא על ידך מכל סיבה שהיא שאינה תלויה בחברה ו/או בכל מקרה שהמידע נחשף ו/או שונה ו/או שנעשה בו שימוש לרעה על ידי צד שלישי; כי סוג המידע והשירותים שניתן יהיה לקבל\nבאמצעות דוא\"ל ייקבעו על-ידי החברה מעת לעת ועל פי שיקול דעתה הבלעדי; כי תוכן הדוא\"ל כפי שנשמר במשרדי החברה הוא המחייב; כל בקשה שתועבר על ידך באמצעות הדוא\"ל, לרכישת מוצרי\nביטוח של החברה או לשינוי תנאים במוצרים קיימים, כפופה להסכמה ואישור של החברה בהתאם לתנאי החיתום והתנאים המפורטים בפוליסה והתחייבויות החברה והמבוטח זה כלפי זה יוכרעו לפי\nתנאי הפוליסה המלאים בלבד; אם תכתובת זו הגיעה אליך בטעות, הנך מתבקש ליידע אותנו בהקדם במייל חוזר ולמחוק את ההודעה וכל העתק שלה ואין להעביר אותה לכל אדם אחר, להפיצה או\nלשכפלה; כל גילוי, פרסום, הפצה, העברה, העתקה או כל שימוש אחר במידע אסורים בהחלט; (ט.ל.ח).\n\nPERSONAL_MAIL_NR:738253763***PERSONAL_SEQ_NR:1***"
+    },
+    "error": null
+  },
+  {
+    "claim_id": "DAL-2026-0007",
+    "subject": "השלמת מסמכים – תביעה מס' 263210000124 – צירוף חשבונית שכר טרחת שמאי",
+    "import": {
+      "found": 1,
+      "imported": 1,
+      "failed": 0,
+      "failures": [],
+      "docsOnMessage": 2
+    },
+    "gmail": {
+      "from": "yoni atias <yoni122222@gmail.com>",
+      "to": "fax8109@harel-ins.co.il, \"גליל גולן שמאות\" <liowain74@gmail.com>",
+      "id": "19f31a3734617480",
+      "threadId": "19f319f05b493e0a",
+      "date": "Sun, 5 Jul 2026 12:37:02 +0300",
+      "attachments": [
+        {
+          "filename": "CamScanner 05.07.2026 12.24.pdf",
+          "mime": "application/pdf",
+          "size": 353947,
+          "attachmentId": "ANGjdJ_LAih_VCk9SCpXWIEB79okCtoAt0eawn-NMeKrp4De7rbNReBwXtpWjW9Glb9uiHhyiz90x1IProDwH7frUv5VrGrNss-uOGngIGlXg-G5P4rBxrTnQVJOtmGCO5CUE8kKQazG1vbp0Zinip8yrlCf64gCznayi8TT6vDW9J0rMe-zjE9dheQNiOFysMlR4yTYtY09TAAc6jVTyGqT48da1mZ8NLto1EPuy2lc27QKgOY0kOgKlvmc7x9ZPHp0qe8XxubR_ghxPAt-NMszBMXVcA3xHc0iGn68ahHZSG5GI3Wjmavib6kJxQA"
+        }
+      ],
+      "partsMeta": [
+        {
+          "mime": "application/pdf",
+          "filename": "CamScanner 05.07.2026 12.24.pdf",
+          "size": 353947,
+          "hasData": false
+        }
+      ],
+      "bodyPreview": "שלום רב,\r\n\r\nבהמשך לטיפול בתביעה מס' 263210000124, מצורפת בזאת חשבונית שכר טרחת השמאי,\r\nאשר התבקשה לצורך השלמת הטיפול בתביעה.\r\n\r\nפרטי זיהוי התביעה:\r\nמספר תביעה: 263210000124\r\nתאריך אירוע: 22/02/2026\r\nמספר פוליסה: 832101384825\r\nשם המבוטח: לב שיווק בע\"מ\r\nשם התובע: בנעורי אילן\r\nאשמח לאישור קבלת המסמכים ועדכון בדבר המשך הטיפול.\r\n\r\nבברכה, יוני אטיאס"
+    },
+    "error": null
+  },
+  {
+    "claim_id": "DAL-2026-0007",
+    "subject": "Re: השלמת מסמכים – תביעה מס' 263210000124 – צירוף חשבונית שכר טרחת שמאי",
+    "import": {
+      "found": 1,
+      "imported": 0,
+      "failed": 0,
+      "failures": [],
+      "docsOnMessage": 0
+    },
+    "gmail": {
+      "from": "yoni atias <yoni122222@gmail.com>",
+      "to": "fax8109@harel-ins.co.il, \"גליל גולן שמאות\" <liowain74@gmail.com>",
+      "id": "19f5f2ea6453a532",
+      "threadId": "19f319f05b493e0a",
+      "date": "Tue, 14 Jul 2026 08:51:59 +0300",
+      "attachments": [
+        {
+          "filename": "Untitled document-1.pdf",
+          "mime": "application/pdf",
+          "size": 39135,
+          "attachmentId": "ANGjdJ81Of1MPsARAIlHcGvVEp35OAxHv4edllONeOR8xgDuFG4LKHOxGFH510pCRclotT7uBb0Uxuyr9MOfmY1RL0bOW1pwSlLtcvloWO69q4lq86AYhGdFuzzvfHkyEF3DRhpei8vaf_UaUpBYdgRQlwHvypE7QVv24LmmtZK6Ij_CtnLlvJAdZHa2HLrLFXHAdSTeBlXDpfTtaIK-obPHHp2kkxHhaq9Mghu6lcGeNC95BSonf6OujHzU_PFd0vBo9ulWyUpUicxzmNTXXS19ew4zgSzZmt709EEdzDemChznRoVd2cSdgmYGV6s"
+        }
+      ],
+      "partsMeta": [
+        {
+          "mime": "application/pdf",
+          "filename": "Untitled document-1.pdf",
+          "size": 39135,
+          "hasData": false
+        }
+      ],
+      "bodyPreview": "שלום רב,\r\n\r\nבהמשך להתנהלות בינינו ובהמשך לפניותיי הקודמות, מצורף למייל זה המסמך בקובץ\r\nהמלא הכולל את פירוט שכר טרחת השמאי, פירוט העבודה המקצועית שבוצעה, הבסיס\r\nהמקצועי לחישוב שכר הטרחה, וכן האסמכתאות והנימוקים התומכים בדרישתנו להשלמת\r\nהתשלום.\r\n\r\nאבקש את אישור קבלת המסמכים ואת בחינתם באופן ענייני ומקצועי, וכן את השלמת\r\nיתרת התשלום בהתאם לדרישתנו.\r\n\r\nאשמח לקבל את התייחסותכם בהקדם האפשרי.\r\n\r\nבברכה,\r\n\r\nיוני אטיאס\r\n\r\nבתאריך יום א׳, 5 ביולי 2026, 12:37, מאת yoni atias ‏<yoni122222@gmail.com>:\r\n\r\n> שלום רב,\r\n>\r\n> בהמשך לטיפול בתביעה מס' 263210000124, מצורפת בזאת חשבונית שכר טרחת השמאי,\r\n> אשר התבקשה לצורך השלמת הטיפול בתביעה.\r\n>\r\n> פרטי זיהוי התביעה:\r\n> מספר תביעה: 263210000124\r\n> תאריך אירוע: 22/02/2026\r\n> מספר פוליסה: 832101384825\r\n> שם המבוטח: לב שיווק בע\"מ\r\n> שם התובע: בנעורי אילן\r\n> אשמח לאישור קבלת המסמכים ועדכון בדבר המשך הטיפול.\r\n>\r\n> בברכה, יוני אטיאס\r\n>"
+    },
+    "error": null
+  },
+  {
+    "claim_id": "DAL-2026-0007",
+    "subject": "Fwd: השלמת מסמכים – תביעה מס' 263210000124 – צירוף חשבונית שכר טרחת שמאי",
+    "import": {
+      "found": 1,
+      "imported": 1,
+      "failed": 0,
+      "failures": [],
+      "docsOnMessage": 2
+    },
+    "gmail": {
+      "from": "yoni atias <yoni122222@gmail.com>",
+      "to": "fax8109@harel-ins.co.il, harelcare@harel-ins.co.il",
+      "id": "19f5f3398fac9a11",
+      "threadId": "19f319f05b493e0a",
+      "date": "Tue, 14 Jul 2026 08:57:23 +0300",
+      "attachments": [
+        {
+          "filename": "Untitled document-1.pdf",
+          "mime": "application/pdf",
+          "size": 39135,
+          "attachmentId": "ANGjdJ_aizuyu3ftUGpa69ZD8DGeyWpFr3G2hdOqOM_J3C2tkyH1IoeJ3anKb-9mlSBfqPgXlvYTGLTcHIZWfdAhWDxQ64ZAWJZC70NYfupAPPJ8J5C-v26Xd_ZZI6OzSVrd8HHA1mGFpQ1avxIOmtE8PN-L8wSfzoLiGmMQR6TJ7wYdv494-AGqlCXOfcMbhXN07pYRu6XxJoQ78av-8C_au4mjt__C-HkNo2RgDWFDJHhg0WWarKFqKRt9_ghw0gUAovxA_eD5pG0ku3bx7aho5BtR6CIRnnpva1Wj65cmEUoMotr31Ue5pcXRWvs"
+        }
+      ],
+      "partsMeta": [
+        {
+          "mime": "application/pdf",
+          "filename": "Untitled document-1.pdf",
+          "size": 39135,
+          "hasData": false
+        }
+      ],
+      "bodyPreview": "שלום רב,\r\n\r\nבהמשך להתנהלות בינינו ובהמשך לפניותיי הקודמות, מצורף למייל זה המסמך המלא\r\nהכולל את פירוט שכר טרחת השמאי, פירוט העבודה המקצועית שבוצעה, הבסיס המקצועי\r\nלחישוב שכר הטרחה, וכן האסמכתאות והנימוקים התומכים בדרישתנו להשלמת התשלום.\r\n\r\nאבקש את אישור קבלת המסמכים ואת בחינתם באופן ענייני ומקצועי, וכן את השלמת\r\nיתרת התשלום בהתאם לדרישתנו.\r\n\r\nאשמח לקבל את התייחסותכם בהקדם האפשרי.\r\n\r\nבברכה,\r\nיוני אטיאס\r\n---------- Forwarded message ---------\r\nמאת: yoni atias <yoni122222@gmail.com>\r\n‪Date: יום ג׳, 14 ביולי 2026, 08:51‬\r\n‪Subject: Re: השלמת מסמכים – תביעה מס' 263210000124 – צירוף חשבונית שכר\r\nטרחת שמאי‬\r\n‪To: <fax8109@harel-ins.co.il>, גליל גולן שמאות <liowain74@gmail.com>‬\r\n\r\n\r\nשלום רב,\r\n\r\nבהמשך להתנהלות בינינו ובהמשך לפניותיי הקודמות, מצורף למייל זה המסמך בקובץ\r\nהמלא הכולל את פירוט שכר טרחת השמאי, פירוט העבודה המקצועית שבוצעה, הבסיס\r\nהמקצועי לחישוב שכר הטרחה, וכן האסמכתאות והנימוקים התומכים בדרישתנו להשלמת\r\nהתשלום.\r\n\r\nאבקש את אישור קבלת המסמכים ואת בחינתם באופן ענייני ומקצועי, וכן את השלמת\r\nיתרת התשלום בהתאם לדרישתנו.\r\n\r\nאשמח לקבל את התייחסותכם בהקדם האפשרי.\r\n\r\nבברכה,\r\n\r\nיוני אטיאס\r\n\r\nבתאריך יום א׳, 5 ביולי 2026, 12:37, מאת yoni atias ‏<yoni122222@gmail.com>:\r\n\r\n> שלום רב,\r\n>\r\n> בהמשך לטיפול בתביעה מס' 263210000124, מצורפת בזאת חשבונית שכר טרחת השמאי,\r\n> אשר התבקשה לצורך השלמת הטיפול בתביעה.\r\n>\r\n> פרטי זיהוי התביעה:\r\n> מספר תביעה: 263210000124\r\n> תאריך אירוע: 22/02/2026\r\n> מספר פוליסה: 832101384825\r\n> שם המבוטח: לב שיווק בע\"מ\r\n> שם התובע: בנעורי אילן\r\n> אשמח לאישור קבלת המסמכים"
+    },
+    "error": null
+  },
+  {
+    "claim_id": "DAL-2026-0014",
+    "subject": "בקשה ליצירת קשר [מס' פניה - P-P-411916270]",
+    "import": {
+      "found": 1,
+      "imported": 1,
+      "failed": 0,
+      "failures": [],
+      "docsOnMessage": 1
+    },
+    "gmail": {
+      "from": "\"שריאל אהרונוביץ - ביטוח ישיר\" <sariel.aharonovich@5555555.co.il>",
+      "to": "yoni122222@gmail.com",
+      "id": "19feb0feb83fab4a",
+      "threadId": "19feb0feb83fab4a",
+      "date": "Mon, 10 Aug 2026 12:45:14 +0300",
+      "attachments": [
+        {
+          "filename": "שרות-מכתב ללקוח.pdf",
+          "mime": "application/pdf",
+          "size": 74905,
+          "attachmentId": "ANGjdJ8bXm716wUqViYsjM1f6pr-SG55G3ehhDVHu-uJtfygmvArZ6P6Kq8U2wmZDiHJXnFwjmk2ngTcWJplo3pZdtaBdFWR-lsNIaF1-EwdWLb4AAxvlM-rR58vphXnNRIVtxmLdDYoy_TMlV-ZVAEm7voVER441rDQqhXy7j-Lswmm3KTYW9elGdgP9ynL_ay8hQtPqIT_J9w3WdtQoPb6io603rLMK9hHTAQZUoVtClVMVPoDzJGd-vdrNsnUt0TSk1QREX3-_UPOsi03hz7ylUmCpg_DsRx96WFGQhqoj-nrNytbxS8NCNoEEJemU_ahaaiBBEWXhdcvc4N_6q2qnY5C2SeRjuXDL7zR7-v-5euk-5WDpuczhoIPBwSH1-YcfCI4iAaFZq0wHhMdxMds-K6I8IY-t7ojbEYwhA"
+        }
+      ],
+      "partsMeta": [
+        {
+          "mime": "application/pdf",
+          "filename": "שרות-מכתב ללקוח.pdf",
+          "size": 74905,
+          "hasData": false
+        }
+      ],
+      "bodyPreview": "מנחם  מור שלום,\nהנדון  -   תיק תביעה מספר : 2259619,    תאריך אירוע : 20/05/2026 , מספר רכב : 14113901,  פוליסה : 1724648002\nחסר\nאישור ניהול חשבון\nיפוי כוח\nאישור אי הגשת תביעה\nקבלת מכתב דרישה\nצילום רישיון רכב\nתמונות תאונה\nטופס הסכמה למסירת מידע (מצ\"ב)\n\nבברכה,\nשריאל אהרונוביץ\nאגף תביעות ופרויקטים\n\n\t\t\t\t\t\t\t\t\twww.555.co.il\n\n\t\t\t\t\t\t\t\t\t052-9431458\n\n\t\tכמפורט בתקנון החברה באתר, תכתובת בין החברה לבינך באמצעות הדוא\"ל משמעה הסכמה מצידך כי משלוח מידע ע\"י החברה באמצעי זה מהווה מסירה שלו  לידך לכל \tדבר  ועניין וכן הסכמה להתכתבות כזו גם בנושאים רגישים (לשינוי בחירתך לגבי תכני התכתבות בדוא\"ל נא להיכנס לאזור האישי שלך באתר החברה); כי החברה אינה אחראית אם המידע לא התקבל\nו/או לא נקרא על ידך מכל סיבה שהיא שאינה תלויה בחברה ו/או בכל מקרה שהמידע נחשף ו/או שונה ו/או שנעשה בו שימוש לרעה על ידי צד שלישי; כי סוג המידע והשירותים שניתן יהיה לקבל\nבאמצעות דוא\"ל ייקבעו על-ידי החברה מעת לעת ועל פי שיקול דעתה הבלעדי; כי תוכן הדוא\"ל כפי שנשמר במשרדי החברה הוא המחייב; כל בקשה שתועבר על ידך באמצעות הדוא\"ל, לרכישת מוצרי\nביטוח של החברה או לשינוי תנאים במוצרים קיימים, כפופה להסכמה ואישור של החברה בהתאם לתנאי החיתום והתנאים המפורטים בפוליסה והתחייבויות החברה והמבוטח זה כלפי זה יוכרעו לפי\nתנאי הפוליסה המלאים בלבד; אם תכתובת זו הגיעה אליך בטעות, הנך מתבקש ליידע אותנו בהקדם במייל חוזר ולמחוק את ההודעה וכל העתק שלה ואין להעביר אותה לכל אדם אחר, להפיצה או\nלשכפלה; כל גילוי, פרסום, הפצה, העברה, העתקה או כל שימוש אחר במידע אסורים בהחלט; (ט.ל.ח).\n\nPERSONAL_MAIL_NR:732153788***PERSONAL_SEQ_NR:1***"
+    },
+    "error": null
+  },
+  {
+    "claim_id": "DAL-2026-0004",
+    "subject": "השלמת מסמכים חסרים מספר רישוי 18391803",
+    "import": {
+      "found": 0,
+      "imported": 0,
+      "failed": 0,
+      "failures": [],
+      "docsOnMessage": 0
+    },
+    "gmail": {
+      "from": "yoni atias <yoni122222@gmail.com>",
+      "to": "faxttviot@shlomo.co.il",
+      "id": "19e3b3f7d1f400b5",
+      "threadId": "19e3b3d6e215dbe8",
+      "date": "Mon, 18 May 2026 16:21:17 +0300",
+      "attachments": [],
+      "partsMeta": [],
+      "bodyPreview": "שלום \r\nעפ\"י דרישתכם, מצורפים המסמכים החסרים לתביעה עבור רכב 18391803\r\nאבקש לזרז את הטיפול בתביעה התאונה הייתה באוגוסט \r\n\r\nתודה רבה"
+    },
+    "error": null
+  }
+]

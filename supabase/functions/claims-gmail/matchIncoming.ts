@@ -152,15 +152,21 @@ const REQUEST_TYPES: Array<{ re: RegExp; type: string; label: string }> = [
   { re: /רישיון נהיגה/, type: "driver_license", label: "רישיון נהיגה" },
   { re: /רישיון רכב/, type: "vehicle_license", label: "רישיון רכב" },
   { re: /הודעה על תאונה|טופס אירוע/, type: "accident_notice", label: "טופס הודעה על תאונה" },
-  { re: /פוליסה/, type: "policy", label: "פוליסה" },
+  { re: /עותק.{0,12}פוליסה|פוליסת הביטוח|(?:נא |חסר.{0,12}|העביר.{0,18}|צרף.{0,18}|השלמ.{0,18})פוליסה/, type: "policy", label: "פוליסה" },
   { re: /אישור משטרה/, type: "police", label: "אישור משטרה" },
   { re: /דוח שמאי|שמאות/, type: "surveyor_report", label: "דוח שמאי" },
   { re: /חשבונית מוסך|חשבונית/, type: "garage_invoice", label: "חשבונית מוסך" },
   { re: /תמונ(?:ות|ה) נזק/, type: "damage_photos", label: "תמונות נזק" },
 ];
 
+function requestHay(text: string) {
+  return String(text || "")
+    .split(/כמפורט בתקנון החברה|PERSONAL_MAIL_NR/)[0]
+    .slice(0, 2500);
+}
+
 export function suggestReply(text: string, files: SuggestFile[]) {
-  const hay = String(text || "");
+  const hay = requestHay(text);
   const found = REQUEST_TYPES.filter((x) => x.re.test(hay));
   if (!found.length) {
     return { ok: false as const, reason: "לא זוהתה בקשת מסמך ברורה", requested: [], attachments: [] as SuggestFile[], missing: [] as string[] };
@@ -185,4 +191,22 @@ export function suggestReply(text: string, files: SuggestFile[]) {
     attachments,
     missing,
   };
+}
+
+export type DetectedRequest = { type: string; label: string; kind: "doc" | "sign" | "generic" };
+
+export function detectMailRequests(text: string): DetectedRequest[] {
+  const hay = requestHay(text);
+  const out: DetectedRequest[] = [];
+  const sign = /לחתום|חתום על|ולהחזיר|החזרה חתומ/;
+  for (const req of REQUEST_TYPES) {
+    if (req.re.test(hay)) out.push({ type: req.type, label: req.label, kind: sign.test(hay) ? "sign" : "doc" });
+  }
+  if (!out.length && sign.test(hay)) {
+    out.push({ type: "sign_return", label: "לחתום ולהחזיר את המסמך המצורף", kind: "sign" });
+  }
+  if (!out.length && /השלמת מסמכים|מסמכים חסרים|נא להעביר|נא לצרף|אודה להשלמת|חוסרים/.test(hay)) {
+    out.push({ type: "docs_generic", label: "השלמת מסמכים לפי הבקשה במייל", kind: "generic" });
+  }
+  return out;
 }

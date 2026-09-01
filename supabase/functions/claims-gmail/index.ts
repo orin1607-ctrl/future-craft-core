@@ -5,7 +5,7 @@
  */
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { matchIncomingMail, suggestReply, type MatchClaim } from "./matchIncoming.ts";
+import { matchIncomingMail, suggestReply, detectMailRequests, type MatchClaim } from "./matchIncoming.ts";
 
 const ALLOWED_ACCOUNT = "yoni122222@gmail.com";
 const SCOPES = [
@@ -277,6 +277,26 @@ function sanitizeName(name: string) {
   return ext ? `${safe}.${ext}` : safe;
 }
 
+function resolveStoredMime(filename: string, declared: string, bytes?: Uint8Array) {
+  const name = String(filename || "").toLowerCase();
+  const d = String(declared || "").toLowerCase().split(";")[0].trim();
+  if (d === "application/pdf" || /^image\/(jpeg|jpg|png|webp|heic|heif)$/.test(d)) {
+    return d === "image/jpg" ? "image/jpeg" : d;
+  }
+  if (bytes && bytes.length >= 4) {
+    if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
+    if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+    if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return "image/webp";
+  }
+  if (name.endsWith(".pdf")) return "application/pdf";
+  if (/\.jpe?g$/.test(name)) return "image/jpeg";
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".webp")) return "image/webp";
+  if (/\.heic$/.test(name)) return "image/heic";
+  return d || "application/octet-stream";
+}
+
 function rfc2047(s: string) {
   if (!s) return "";
   if (/^[\x20-\x7E]+$/.test(s)) return s;
@@ -437,6 +457,108 @@ async function encodeMixedMessage(
   };
 }
 
+async function ensureMailTasks(
+  sb: ReturnType<typeof admin>,
+  opts: {
+    claimId: string;
+    importId: string;
+    messageId: string;
+    threadId: string;
+    from: string;
+    subject: string;
+    body: string;
+    sentAt?: string | null;
+  },
+) {
+  const requests = detectMailRequests(`${opts.subject}\n${opts.body}`);
+  if (!requests.length) {
+    return { created: 0, existing: 0, autoSend: false, requests: [], review: true as const, reason: "דורש בדיקת עובד" };
+  }
+  const { data: files } = await sb.from("claims_documents").select("id, original_name, doc_kind, doc_meta, source, gmail_message_id").eq("claim_id", opts.claimId);
+  const { data: existingTasks } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", opts.claimId);
+  let created = 0;
+  let existing = 0;
+  const out: Array<Record<string, unknown>> = [];
+  for (const req of requests) {
+    const mailIdem = `mail:${opts.messageId}:${req.type}`;
+    const found = (existingTasks || []).find((t) => {
+      const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
+      return rd.mailIdem === mailIdem;
+    });
+    if (found) {
+      existing += 1;
+      out.push({ id: found.id, created: false, request: req });
+      continue;
+    }
+    const mapped = (files || []).map((f) => {
+      const meta = (f.doc_meta && typeof f.doc_meta === "object") ? f.doc_meta as Record<string, string> : {};
+      return { id: String(f.id), staff_type: meta.staff_type || "", doc_kind: String(f.doc_kind || ""), source: String(f.source || ""), related: meta.related_file_id || "" };
+    });
+    let docState = "missing";
+    let readyFileId = "";
+    let workStatus = "open";
+    if (req.kind === "generic") {
+      docState = "needs_review";
+      workStatus = "open";
+    } else {
+      const hits = mapped.filter((f) =>
+        f.staff_type === req.type
+        || (req.type === "surveyor_report" && (f.doc_kind === "surveyor_report" || f.doc_kind === "surveyor_attachment"))
+        || (req.type === "garage_invoice" && f.doc_kind === "garage_invoice")
+        || (req.type === "damage_photos" && f.doc_kind === "surveyor_photo")
+      );
+      if (req.kind === "sign") {
+        const signed = hits.filter((f) => f.source === "staff");
+        if (signed.length === 1) {
+          docState = "ready";
+          readyFileId = signed[0].id;
+          workStatus = "ready_to_send";
+        } else if (hits.length > 0) {
+          docState = "awaiting_signature";
+          workStatus = "waiting_doc";
+        } else {
+          docState = "missing";
+          workStatus = "waiting_doc";
+        }
+      } else if (hits.length === 1) {
+        docState = "ready";
+        readyFileId = hits[0].id;
+        workStatus = "ready_to_send";
+      } else if (hits.length === 0) {
+        docState = "missing";
+        workStatus = "waiting_doc";
+      } else {
+        docState = "needs_review";
+        workStatus = "open";
+      }
+    }
+    const id = nid("TSK");
+    const row = {
+      id,
+      claimId: opts.claimId,
+      action: req.label,
+      source: `מייל מ${opts.from}`,
+      gmailMessageId: opts.messageId,
+      gmailThreadId: opts.threadId,
+      importId: opts.importId,
+      mailIdem,
+      requestType: req.type,
+      requestKind: req.kind,
+      workStatus,
+      docState,
+      readyFileId,
+      done: "false",
+      createdAt: opts.sentAt || new Date().toISOString(),
+      note: "",
+    };
+    const { error } = await sb.from("claims_tasks").insert({ id, claim_id: opts.claimId, row_data: row });
+    if (error) continue;
+    created += 1;
+    out.push({ id, created: true, request: req, docState, workStatus, readyFileId });
+  }
+  return { created, existing, autoSend: false, requests, tasks: out, review: requests.some((r) => r.kind === "generic") };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
   const url = new URL(req.url);
@@ -571,15 +693,24 @@ Deno.serve(async (req) => {
       return { id: String(f.id), original_name: String(f.original_name || ""), doc_kind: String(f.doc_kind || ""), staff_type: meta.staff_type || "", staff_title: meta.staff_title || "" };
     });
     const suggestion = suggestReply(`${im.subject || ""}\n${im.body_text || ""}`, mapped);
+    const detected = detectMailRequests(`${im.subject || ""}\n${im.body_text || ""}`);
+    const toAddr = String(im.from_addr || "").match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "";
+    const generic = detected.find((d) => d.kind === "generic");
+    const reason = generic
+      ? "דורש בדיקת עובד — רשימת החוסרים במסמך המצורף. אין Guess."
+      : suggestion.reason;
     const bodyText = suggestion.ok
       ? `שלום,\n\nבהמשך לפנייתכם בנושא ${im.subject || `תביעה ${claimId}`},\nמצורפים המסמכים המבוקשים.\n\nבברכה,\nדליה ניהול תביעות`
+      : generic
+      ? `שלום,\n\nקיבלנו את בקשתכם להשלמת מסמכים.\nרשימת החוסרים מופיעה במסמך שצורף למייל.\nנבדוק את התיק ונשיב עם המסמכים הנדרשים.\n\nבברכה,\nדליה ניהול תביעות`
       : `שלום,\n\nקיבלנו את פנייתכם. ${suggestion.reason}.\n\nבברכה,\nדליה ניהול תביעות`;
     return jsonResponse({
       success: true,
       autoSend: false,
-      suggestion,
+      suggestion: generic ? { ...suggestion, ok: false, reason, requested: detected.map((d) => d.label) } : suggestion,
+      detected,
       draft: {
-        to: im.from_addr || "",
+        to: toAddr,
         subject: String(im.subject || "").startsWith("Re:") ? im.subject : `Re: ${im.subject || claimId}`,
         body: bodyText,
         file_ids: suggestion.attachments.map((a) => a.id),
@@ -589,6 +720,27 @@ Deno.serve(async (req) => {
       mailboxMutated: false,
       realEmailSend: false,
     });
+  }
+
+  if (action === "ensure_mail_tasks") {
+    const claimId = String(body.claim_id || "");
+    const importId = String(body.import_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const { data: im } = await sb.from("claims_gmail_imports").select("id, subject, body_text, from_addr, gmail_thread_id, gmail_message_id, sent_at").eq("id", importId).eq("claim_id", claimId).maybeSingle();
+    if (!im) return jsonResponse({ success: false, error: "not_found" }, 404);
+    const tasks = await ensureMailTasks(sb, {
+      claimId,
+      importId: im.id,
+      messageId: String(im.gmail_message_id || ""),
+      threadId: String(im.gmail_thread_id || ""),
+      from: String(im.from_addr || ""),
+      subject: String(im.subject || ""),
+      body: String(im.body_text || ""),
+      sentAt: im.sent_at ? String(im.sent_at) : null,
+    });
+    return jsonResponse({ success: true, autoSend: false, realEmailSend: false, mailboxMutated: false, ...tasks });
   }
 
   if (action === "update_send_track") {
@@ -1072,7 +1224,7 @@ Deno.serve(async (req) => {
       }).eq("id", importId).eq("claim_id", claimId);
     }
 
-    const { data: existingRows } = await sb.from("claims_documents").select("id, original_name, byte_size, gmail_attachment_id, gmail_message_id, content_sha256").eq("claim_id", claimId);
+    const { data: existingRows } = await sb.from("claims_documents").select("id, original_name, byte_size, gmail_attachment_id, gmail_message_id, content_sha256, storage_path, mime_type").eq("claim_id", claimId);
     const haveAtt = new Set((existingRows || []).map((r) => String(r.gmail_attachment_id || "")).filter(Boolean));
     const haveHash = new Set((existingRows || []).map((r) => String(r.content_sha256 || "")).filter(Boolean));
     const haveMsgAtt = new Set((existingRows || []).filter((r) => r.gmail_attachment_id).map((r) => `${r.gmail_message_id || ""}:${r.gmail_attachment_id}`));
@@ -1107,18 +1259,53 @@ Deno.serve(async (req) => {
         failures.push({ filename, reason: `too_large:${bytes.byteLength}` });
         continue;
       }
-      if (mime && !ALLOWED_MIME.test(mime) && !/\.(jpg|jpeg|png|gif|webp|pdf|heic)$/i.test(filename)) {
-        failures.push({ filename, reason: `mime_not_allowed:${mime || "unknown"}` });
+      const storedMime = resolveStoredMime(filename, mime, bytes);
+      if (storedMime && !ALLOWED_MIME.test(storedMime) && !/\.(jpg|jpeg|png|gif|webp|pdf|heic)$/i.test(filename)) {
+        failures.push({ filename, reason: `mime_not_allowed:${storedMime}` });
         continue;
       }
       const digest = await sha256HexBytes(bytes);
-      if (haveHash.has(digest)) {
+      const prior = (existingRows || []).find((r) => String(r.content_sha256 || "") === digest);
+      if (prior && String(prior.gmail_message_id || "") === String(full.id) && (
+        (f.attachmentId && String(prior.gmail_attachment_id || "") === f.attachmentId) || !f.attachmentId
+      )) {
+        skippedExisting += 1;
+        continue;
+      }
+      if (prior?.storage_path && String(prior.gmail_message_id || "") !== String(full.id)) {
+        const { error: linkErr } = await sb.from("claims_documents").insert({
+          id: nid("CDM"),
+          claim_id: claimId,
+          storage_path: prior.storage_path,
+          original_name: filename,
+          mime_type: storedMime || prior.mime_type,
+          byte_size: bytes.byteLength,
+          source: "gmail",
+          gmail_message_id: String(full.id),
+          gmail_thread_id: threadId,
+          gmail_attachment_id: f.attachmentId || null,
+          content_sha256: digest,
+          doc_kind: guessDocKind(filename, storedMime, subject),
+          uploaded_by: user.id,
+          uploaded_by_name: actorName,
+          doc_meta: { storage_reused: "true", related_file_id: String(prior.id) },
+        });
+        if (linkErr) {
+          failures.push({ filename, reason: `db_error:${linkErr.message}` });
+          continue;
+        }
+        uploaded += 1;
+        if (f.attachmentId) haveAtt.add(f.attachmentId);
+        haveHash.add(digest);
+        continue;
+      }
+      if (haveHash.has(digest) && prior && String(prior.gmail_message_id || "") === String(full.id)) {
         skippedExisting += 1;
         continue;
       }
       const path = `${claimId}/gmail/${full.id}/${nid("F")}-${sanitizeName(filename)}`;
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, bytes, {
-        contentType: mime || "application/octet-stream",
+        contentType: storedMime,
         upsert: false,
       });
       if (upErr) {
@@ -1130,14 +1317,14 @@ Deno.serve(async (req) => {
         claim_id: claimId,
         storage_path: path,
         original_name: filename,
-        mime_type: mime,
+        mime_type: storedMime,
         byte_size: bytes.byteLength,
         source: "gmail",
         gmail_message_id: String(full.id),
         gmail_thread_id: threadId,
         gmail_attachment_id: f.attachmentId || null,
         content_sha256: digest,
-        doc_kind: guessDocKind(filename, mime, subject),
+        doc_kind: guessDocKind(filename, storedMime, subject),
         uploaded_by: user.id,
         uploaded_by_name: actorName,
       });
@@ -1160,8 +1347,10 @@ Deno.serve(async (req) => {
     const importedCount = new Set((afterRows || []).map((r) => String(r.original_name || "").toLowerCase())).size;
 
     const { data: prevImp } = await sb.from("claims_gmail_imports").select("failures").eq("id", importId).maybeSingle();
-    const prevFail = Array.isArray(prevImp?.failures) ? prevImp.failures as Failure[] : [];
-    const allFail = [...prevFail, ...failures];
+    const prevFail = start === 0 ? [] : (Array.isArray(prevImp?.failures) ? prevImp.failures as Failure[] : []);
+    const succeededNames = new Set(slice.filter((f) => !failures.some((x) => x.filename === f.filename)).map((f) => f.filename));
+    const keptPrev = prevFail.filter((f) => !succeededNames.has(f.filename));
+    const allFail = [...keptPrev, ...failures];
     await sb.from("claims_gmail_imports").update({
       found_count: files.length,
       imported_count: importedCount,
@@ -1196,7 +1385,26 @@ Deno.serve(async (req) => {
           .eq("kind", "claim_send")
           .eq("gmail_thread_id", threadId)
           .in("track_status", ["waiting_reply", "sent"]);
+        const { data: taskRows } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
+        for (const t of taskRows || []) {
+          const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
+          if (rd.gmailThreadId === threadId && rd.done !== "true") {
+            await sb.from("claims_tasks").update({
+              row_data: { ...rd, replyReceived: "true" },
+            }).eq("id", t.id).eq("claim_id", claimId);
+          }
+        }
       }
+      await ensureMailTasks(sb, {
+        claimId,
+        importId,
+        messageId: String(full.id),
+        threadId,
+        from: header(headers, "From"),
+        subject: subject || "",
+        body: extracted.bodyText || "",
+        sentAt: full.internalDate ? new Date(Number(full.internalDate)).toISOString() : null,
+      });
     }
     return jsonResponse({
       success: true,
