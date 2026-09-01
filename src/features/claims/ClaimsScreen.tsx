@@ -262,6 +262,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [mailSending, setMailSending] = useState(false);
   const [mailTo, setMailTo] = useState('');
   const [mailCc, setMailCc] = useState('');
+  const [mailSubj, setMailSubj] = useState('');
+  const [mailBodyDraft, setMailBodyDraft] = useState('');
   const [toHint, setToHint] = useState('');
   const mailIdemp = useRef('');
   const bumpMailDraft = () => {
@@ -441,14 +443,22 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setMailCc('');
     setToHint(kind === 'legal' ? (cur.legalEmail || '') : (kind === 'insurer' ? (cur.insEmail || '') : (cur.insEmail || cur.clientEmail || '')));
     if (kind === 'insurer') {
+      setMailSubj(`תביעה ${cur.claimNum || cur.id} – ${cur.clientName}`);
+      setMailBodyDraft(ext.text || '');
       setVal('mail_subj', `תביעה ${cur.claimNum || cur.id} – ${cur.clientName}`);
       setVal('mail_body', ext.text || '');
     } else if (kind === 'legal') {
+      setMailSubj(`העברה לטיפול משפטי – ${cur.id} – ${cur.clientName}`);
+      setMailBodyDraft(ext.text || '');
       setVal('mail_subj', `העברה לטיפול משפטי – ${cur.id} – ${cur.clientName}`);
       setVal('mail_body', ext.text || '');
     } else {
-      setVal('mail_subj', `תביעה ${cur.id} – ${cur.clientName}`);
-      setVal('mail_body', `שלום,\n\nבהמשך לתביעה מספר ${cur.claimNum || cur.id}\nלקוח: ${cur.clientName}\nרכב: ${cur.plate || '—'}\n\nבברכה,\nדליה ניהול תביעות`);
+      const subj = `תביעה ${cur.id} – ${cur.clientName}`;
+      const body = `שלום,\n\nבהמשך לתביעה מספר ${cur.claimNum || cur.id}\nלקוח: ${cur.clientName}\nרכב: ${cur.plate || '—'}\n\nבברכה,\nדליה ניהול תביעות`;
+      setMailSubj(subj);
+      setMailBodyDraft(body);
+      setVal('mail_subj', subj);
+      setVal('mail_body', body);
     }
     setModal('moMail');
   };
@@ -1745,7 +1755,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="fg"><label className="fl">From</label><input className="fi" data-testid="mail-from" value={gmailStatus.email || 'yoni122222@gmail.com'} readOnly /></div>
             <div className="fg">
               <label className="fl">To *</label>
-              <input className="fi" id="mail_to" data-testid="mail-to" dir="ltr" inputMode="email" autoComplete="email" disabled={mailSending} value={mailTo} onChange={(e) => { bumpMailDraft(); setMailTo(e.target.value); setVal('mail_to', e.target.value); }} placeholder="name@example.com" style={{ textAlign: 'left', unicodeBidi: 'isolate' }} />
+              <input className="fi" id="mail_to" data-testid="mail-to" dir="ltr" inputMode="email" autoComplete="email" disabled={mailSending} value={mailTo} onChange={(e) => { bumpMailDraft(); setMailTo(e.target.value); setVal('mail_to', e.target.value); }} onBlur={() => { const n = normalizeMailAddr(mailTo); if (n !== mailTo) { setMailTo(n); setVal('mail_to', n); } }} placeholder="name@example.com" style={{ textAlign: 'left', unicodeBidi: 'isolate' }} />
               {toHint ? (
                 <button type="button" className="btn btn-g btn-sm" style={{ marginTop: 6 }} disabled={mailSending} onClick={() => { bumpMailDraft(); setMailTo(toHint); setVal('mail_to', toHint); }}>העתק כתובת ששמורה בתיק ({toHint})</button>
               ) : <div style={{ fontSize: 10, color: 'var(--t3)' }}>אין כתובת שמורה בתיק — חובה להקליד.</div>}
@@ -1753,8 +1763,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div style={{ fontSize: 11, color: 'var(--rd2)', marginTop: 6 }}>הכתובת לא נקראת כאימייל תקין. הקלידו באנגלית משמאל לימין, בלי רווחים.</div>
               ) : null}
             </div>
-            <div className="fg"><label className="fl">CC</label><input className="fi" id="mail_cc" data-testid="mail-cc" dir="ltr" inputMode="email" autoComplete="email" disabled={mailSending} value={mailCc} onChange={(e) => { bumpMailDraft(); setMailCc(e.target.value); setVal('mail_cc', e.target.value); }} placeholder="אופציונלי" style={{ textAlign: 'left' }} /></div>
-            <div className="fg"><label className="fl">Subject</label><input className="fi" id="mail_subj" data-testid="mail-subj" disabled={mailSending} onInput={() => bumpMailDraft()} /></div>
+            <div className="fg"><label className="fl">CC</label><input className="fi" id="mail_cc" data-testid="mail-cc" dir="ltr" inputMode="email" autoComplete="email" disabled={mailSending} value={mailCc} onChange={(e) => { bumpMailDraft(); setMailCc(e.target.value); setVal('mail_cc', e.target.value); }} onBlur={() => { const n = normalizeMailAddr(mailCc); if (n !== mailCc) setMailCc(n); }} placeholder="אופציונלי" style={{ textAlign: 'left', unicodeBidi: 'isolate' }} /></div>
+            <div className="fg"><label className="fl">Subject</label><input className="fi" id="mail_subj" data-testid="mail-subj" disabled={mailSending} value={mailSubj} onChange={(e) => { bumpMailDraft(); setMailSubj(e.target.value); setVal('mail_subj', e.target.value); }} /></div>
             {(mailKind === 'insurer' || mailKind === 'legal') && (
               <div className="fg">
                 <label className="fl">Body — סיכום חיצוני בלבד</label>
@@ -1763,7 +1773,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               </div>
             )}
             {mailKind === 'draft' ? (
-              <div className="fg"><label className="fl">Body</label><textarea className="fta" id="mail_body" data-testid="mail-body" disabled={mailSending} style={{ minHeight: 100 }} onInput={() => bumpMailDraft()} /></div>
+              <div className="fg"><label className="fl">Body</label><textarea className="fta" id="mail_body" data-testid="mail-body" disabled={mailSending} style={{ minHeight: 100 }} value={mailBodyDraft} onChange={(e) => { bumpMailDraft(); setMailBodyDraft(e.target.value); setVal('mail_body', e.target.value); }} /></div>
             ) : <input type="hidden" id="mail_body" value={extSummary} readOnly />}
             <div className="sdiv"><div className="sdiv-t">בחירת מסמכים לצירוף</div><div className="sdiv-l" /></div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -1817,9 +1827,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div><b>From:</b> {gmailStatus.email || 'yoni122222@gmail.com'}</div>
                 <div><b>To:</b> {mailTo || '—'}</div>
                 <div><b>CC:</b> {mailCc || '—'}</div>
-                <div><b>Subject:</b> {val(null, 'mail_subj') || '—'}</div>
+                <div><b>Subject:</b> {mailSubj || '—'}</div>
                 <div><b>Body:</b></div>
-                <pre className="mail-body">{mailKind === 'draft' ? val(null, 'mail_body') : extSummary}</pre>
+                <pre className="mail-body">{mailKind === 'draft' ? mailBodyDraft : extSummary}</pre>
                 <div style={{ fontWeight: 800, margin: '8px 0 4px' }}>קבצים ({sendIds.length})</div>
                 {sendIds.length === 0 ? <div>אין קבצים נבחרים</div> : (
                   <ul style={{ margin: 0, paddingInlineStart: 18 }}>
@@ -1836,7 +1846,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div style={{ fontWeight: 800, marginBottom: 8 }}>אישור שליחה — פעולה זו שולחת מייל אמיתי מתיבת דליה</div>
                 <div><b>To:</b> {mailTo}</div>
                 <div><b>CC:</b> {mailCc || '—'}</div>
-                <div><b>Subject:</b> {val(null, 'mail_subj')}</div>
+                <div><b>Subject:</b> {mailSubj}</div>
                 <div><b>קבצים:</b> {sendIds.length} · {fmtBytes(pkgInfo?.packageBytes || 0)}</div>
                 <label className="pick-row" style={{ marginTop: 10 }}>
                   <input type="checkbox" data-testid="mail-ack" checked={mailAck} onChange={(e) => setMailAck(e.target.checked)} />
@@ -1849,29 +1859,32 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <button className="btn btn-g" disabled={mailSending} onClick={() => { setMailConfirmOn(false); setMailAck(false); setModal('moCard'); }}>ביטול</button>
             <button className="btn btn-g" data-testid="mail-preview-btn" disabled={mailSending} onClick={async () => {
               if (curId) await refreshPackage(curId, sendIds);
-              setMailPreviewOn(true);
               setMailConfirmOn(false);
               setMailAck(false);
               const to = normalizeMailAddr(mailTo);
               const cc = normalizeMailAddr(mailCc);
-              const bodyText = mailKind === 'draft' ? val(null, 'mail_body') : extSummary;
-              if (!mailAddrsOk(to, true)) { toast('כתובת To לא תקינה — SEND חסום', 'err'); return; }
-              if (cc && !mailAddrsOk(cc, false)) { toast('כתובת CC לא תקינה — SEND חסום', 'err'); return; }
+              if (to !== mailTo) setMailTo(to);
+              const bodyText = mailKind === 'draft' ? mailBodyDraft : extSummary;
+              if (!mailAddrsOk(to, true)) { setMailPreviewOn(false); toast('כתובת To לא תקינה — SEND חסום', 'err'); return; }
+              if (cc && !mailAddrsOk(cc, false)) { setMailPreviewOn(false); toast('כתובת CC לא תקינה — SEND חסום', 'err'); return; }
+              if (!mailSubj.trim()) { setMailPreviewOn(false); toast('חסר Subject', 'err'); return; }
+              if (!bodyText.trim()) { setMailPreviewOn(false); toast('חסר Body', 'err'); return; }
               const r = await apiRef.current.invokeGmail('validate_claim_send', {
                 claim_id: curId,
                 to,
                 cc,
-                subject: val(null, 'mail_subj'),
+                subject: mailSubj,
                 body: bodyText,
                 file_ids: sendIds,
               });
-              if (r.error === 'internal_content_blocked') toast('התוכן כולל חומר פנימי — לא לשלוח', 'err');
-              else if (r.error === 'package_too_large') toast('הקבצים גדולים מדי לשליחה במייל — SEND חסום. לא יושמטו קבצים.', 'err');
-              else if (r.error === 'cc_invalid' || r.error === 'to_required') toast('כתובת To/CC לא תקינה — SEND חסום', 'err');
-              else if (r.success === false && r.error) toast(String(r.error), 'err');
+              if (r.error === 'internal_content_blocked') { setMailPreviewOn(false); toast('התוכן כולל חומר פנימי — לא לשלוח', 'err'); return; }
+              if (r.error === 'package_too_large') { setMailPreviewOn(false); toast('הקבצים גדולים מדי לשליחה במייל — SEND חסום. לא יושמטו קבצים.', 'err'); return; }
+              if (r.error === 'cc_invalid' || r.error === 'to_required') { setMailPreviewOn(false); toast('כתובת To/CC לא תקינה — SEND חסום', 'err'); return; }
+              if (r.success === false && r.error) { setMailPreviewOn(false); toast(String(r.error), 'err'); return; }
+              setMailPreviewOn(true);
             }}>👁 Preview</button>
             {!mailConfirmOn ? (
-              <button className="btn btn-p" data-testid="mail-send-btn" disabled={mailSending || !mailPreviewOn || pkgInfo?.overLimit === true || !mailAddrsOk(mailTo, true) || !mailAddrsOk(mailCc, false)} onClick={() => {
+              <button className="btn btn-p" data-testid="mail-send-btn" disabled={mailSending || !mailPreviewOn || pkgInfo?.overLimit === true || !mailAddrsOk(mailTo, true) || !mailAddrsOk(mailCc, false)} title={!mailAddrsOk(mailTo, true) ? 'כתובת To לא תקינה' : !mailPreviewOn ? 'קודם Preview' : pkgInfo?.overLimit ? 'קבצים גדולים מדי' : ''} onClick={() => {
                 if (!mailPreviewOn) { toast('קודם Preview', 'err'); return; }
                 if (pkgInfo?.overLimit) { toast('הקבצים גדולים מדי לשליחה במייל', 'err'); return; }
                 if (!mailAddrsOk(mailTo, true)) { toast('כתובת To לא תקינה', 'err'); return; }
@@ -1885,10 +1898,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 if (pkgInfo?.overLimit) { toast('הקבצים גדולים מדי לשליחה במייל', 'err'); return; }
                 const to = normalizeMailAddr(mailTo);
                 const cc = normalizeMailAddr(mailCc);
-                const bodyText = mailKind === 'draft' ? val(null, 'mail_body') : extSummary;
+                const bodyText = mailKind === 'draft' ? mailBodyDraft : extSummary;
                 if (!mailAddrsOk(to, true)) { toast('כתובת To לא תקינה', 'err'); return; }
                 if (!mailAddrsOk(cc, false)) { toast('כתובת CC לא תקינה', 'err'); return; }
-                if (!bodyText) { toast('חסר Body', 'err'); return; }
+                if (!mailSubj.trim()) { toast('חסר Subject', 'err'); return; }
+                if (!bodyText.trim()) { toast('חסר Body', 'err'); return; }
                 setMailSending(true);
                 try {
                   const r = await apiRef.current.invokeGmail('send_claim', {
@@ -1896,18 +1910,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     claim_id: curId,
                     to,
                     cc,
-                    subject: val(null, 'mail_subj'),
+                    subject: mailSubj,
                     body: bodyText,
                     file_ids: sendIds,
                     idempotency_key: mailIdemp.current,
                   });
-                  if (!r.success) {
+                  if (!r.success || r.realEmailSend !== true || !r.gmail_message_id) {
                     if (r.error === 'already_sent') toast('המייל כבר נשלח — אין שליחה כפולה', 'err');
                     else if (r.error === 'send_in_progress') toast('שליחה כבר בתהליך', 'err');
                     else if (r.error === 'package_too_large') toast('הקבצים גדולים מדי לשליחה במייל — לא נשלח ולא הושמטו קבצים', 'err');
                     else if (r.error === 'confirm_required') toast('נדרש אישור מפורש', 'err');
                     else if (r.error === 'internal_content_blocked') toast('התוכן כולל חומר פנימי — לא נשלח', 'err');
-                    else toast(String(r.error || 'שליחה נכשלה'), 'err');
+                    else toast(String(r.error || 'שליחה נכשלה — Gmail לא החזיר Message ID'), 'err');
                     return;
                   }
                   toast(`נשלח · msgid ${String(r.gmail_message_id || '')} · thread ${String(r.gmail_thread_id || '')}`);
