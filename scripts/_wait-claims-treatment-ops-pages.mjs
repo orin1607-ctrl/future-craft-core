@@ -2,7 +2,7 @@
  * Wait until Public Staging has treatment-ops markers.
  */
 const PUBLIC = 'https://orin1607-ctrl.github.io/future-craft-core';
-const needles = ['claims-nav-archive', 'treat-save', 'עדכון טיפול', 'תאריך טיפול הבא'];
+const needles = ['claims-nav-archive', 'treat-save', 'treat-ops-v2', 'עדכון טיפול', 'claim-by-id'];
 const started = Date.now();
 let last = '';
 while (Date.now() - started < 8 * 60 * 1000) {

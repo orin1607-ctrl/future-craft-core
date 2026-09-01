@@ -58,6 +58,30 @@ function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
+function mapClaimRow(r: Record<string, unknown>): ClaimRecord | null {
+  const row = rowFromData(r.row_data as Record<string, unknown>);
+  row.id = asText(r.id);
+  row.vehicle_id = asText(r.vehicle_id);
+  row.plate = row.plate || asText(r.plate);
+  row.clientName = row.clientName || asText(r.client_name);
+  row.status = row.status || asText(r.status);
+  row.company_name = row.company_name || asText(r.company_name);
+  row.createdByName = asText(r.created_by_name);
+  row.updatedByName = asText(r.updated_by_name);
+  row.assigned_to = asText(r.assigned_to);
+  row.assigned_to_name = asText(r.assigned_to_name);
+  row.assigned_at = asText(r.assigned_at);
+  row.gmail_message_id = asText(r.gmail_message_id);
+  row.gmail_thread_id = asText(r.gmail_thread_id);
+  if (!row.createdAt && r.created_at) row.createdAt = new Date(asText(r.created_at)).toLocaleString('he-IL');
+  if (!row.updatedAt && r.updated_at) row.updatedAt = new Date(asText(r.updated_at)).toLocaleString('he-IL');
+  if (!row.lastActivityAt && r.last_activity_at) {
+    row.lastActivityAt = new Date(asText(r.last_activity_at)).toLocaleString('he-IL');
+  }
+  if (row.deletedAt) return null;
+  return row;
+}
+
 async function bumpClaimId(): Promise<string> {
   const { data } = await tbl('claims_config').select('key, value').eq('key', 'CLAIM_COUNTER').maybeSingle();
   const n = parseInt(asText((data as { value?: string } | null)?.value) || '0', 10) + 1;
@@ -194,34 +218,16 @@ export function createClaimsApi(actor: ClaimsActor) {
       .select('id, vehicle_id, plate, client_name, status, company_name, row_data, created_by, created_by_name, updated_by_name, assigned_to, assigned_to_name, assigned_at, created_at, updated_at, last_activity_at, gmail_message_id, gmail_thread_id')
       .order('updated_at', { ascending: false });
     if (error) throw new Error(error.message);
-    return ((data || []) as Array<Record<string, unknown>>).map((r) => {
-      const row = rowFromData(r.row_data as Record<string, unknown>);
-      row.id = asText(r.id);
-      row.vehicle_id = asText(r.vehicle_id);
-      row.plate = row.plate || asText(r.plate);
-      row.clientName = row.clientName || asText(r.client_name);
-      row.status = row.status || asText(r.status);
-      row.company_name = row.company_name || asText(r.company_name);
-      row.createdByName = asText(r.created_by_name);
-      row.updatedByName = asText(r.updated_by_name);
-      row.assigned_to = asText(r.assigned_to);
-      row.assigned_to_name = asText(r.assigned_to_name);
-      row.assigned_at = asText(r.assigned_at);
-      row.gmail_message_id = asText(r.gmail_message_id);
-      row.gmail_thread_id = asText(r.gmail_thread_id);
-      if (!row.createdAt && r.created_at) row.createdAt = new Date(asText(r.created_at)).toLocaleString('he-IL');
-      if (!row.updatedAt && r.updated_at) row.updatedAt = new Date(asText(r.updated_at)).toLocaleString('he-IL');
-      if (!row.lastActivityAt && r.last_activity_at) {
-        row.lastActivityAt = new Date(asText(r.last_activity_at)).toLocaleString('he-IL');
-      }
-      if (row.deletedAt) return null;
-      return row;
-    }).filter((r): r is ClaimRecord => !!r);
+    return ((data || []) as Array<Record<string, unknown>>).map(mapClaimRow).filter((r): r is ClaimRecord => !!r);
   }
 
   async function getClaimById(id: string): Promise<ClaimRecord | null> {
-    const all = await getAllClaims();
-    return all.find((c) => c.id === id) || null;
+    const { data, error } = await tbl('claims_records')
+      .select('id, vehicle_id, plate, client_name, status, company_name, row_data, created_by, created_by_name, updated_by_name, assigned_to, assigned_to_name, assigned_at, created_at, updated_at, last_activity_at, gmail_message_id, gmail_thread_id')
+      .eq('id', id)
+      .maybeSingle();
+    if (error || !data) return null;
+    return mapClaimRow(data as Record<string, unknown>);
   }
 
   return {
@@ -411,7 +417,6 @@ export function createClaimsApi(actor: ClaimsActor) {
       }
       const closed = isClosedStatus(nextStatus, c.archived);
       if (!closed && !payload.nextDate) return { success: false, error: 'חובה להגדיר תאריך טיפול הבא' };
-      const lastIso = new Date().toISOString();
       const patch: Record<string, string> = {
         treatmentPending: '',
         treatmentPendingAction: '',
@@ -427,20 +432,16 @@ export function createClaimsApi(actor: ClaimsActor) {
       }
       const saved = await patchClaimData(payload.claimId, patch, { status: nextStatus, bumpActivity: true });
       if (!saved.success) return saved;
-    try {
-      await upsertNextTreatmentReminder(payload.claimId, closed ? '' : payload.nextDate, closed);
-    } catch {
-      /* reminder must not block treatment save */
-    }
-    const histNote = [
+      const histNote = [
         `פעולה: ${payload.action}`,
         `סטטוס: ${prevStatus} → ${nextStatus}`,
         `טיפול אחרון: ${patch.lastTreatmentAt}`,
         closed ? 'תיק סגור — ללא תאריך טיפול הבא' : `טיפול הבא: ${payload.nextDate}`,
         historyNote ? `הערה: ${historyNote}` : '',
       ].filter(Boolean).join(' · ');
-      await appendHistory(payload.claimId, 'עדכון טיפול', histNote, 'treatment', prevStatus, nextStatus);
-      return { success: true, lastTreatmentAt: patch.lastTreatmentAt, nextDate: patch.nextDate, status: nextStatus };
+      void upsertNextTreatmentReminder(payload.claimId, closed ? '' : payload.nextDate, closed).catch(() => undefined);
+      void appendHistory(payload.claimId, 'עדכון טיפול', histNote, 'treatment', prevStatus, nextStatus).catch(() => undefined);
+      return { success: true, lastTreatmentAt: patch.lastTreatmentAt, nextDate: patch.nextDate, status: nextStatus, fetch: 'claim-by-id' };
     },
 
     async archiveClaim(claimId: string) {

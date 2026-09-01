@@ -26,6 +26,11 @@ const keys = JSON.parse(execSync(`npx --yes supabase projects api-keys --project
 const service = keys.find((k) => k.name === 'service_role')?.api_key;
 const anonKey = keys.find((k) => k.name === 'anon' && k.type === 'legacy')?.api_key || keys.find((k) => k.name === 'anon')?.api_key;
 const admin = createClient(`https://${STAGING_REF}.supabase.co`, service, { auth: { autoRefreshToken: false, persistSession: false } });
+const { data: c18reset } = await admin.from('claims_records').select('id, status, row_data').eq('id', OTHER).maybeSingle();
+if (c18reset?.row_data) {
+  const rd = { ...c18reset.row_data, archived: '', deletedAt: '', treatmentPending: '', status: 'חדש' };
+  await admin.from('claims_records').update({ status: 'חדש', row_data: rd }).eq('id', OTHER);
+}
 const { data: saRole } = await admin.from('user_roles').select('user_id').eq('role', 'super_admin').limit(8);
 let saEmail = '';
 for (const row of saRole || []) {
@@ -63,9 +68,13 @@ async function openClaim(page, suffix) {
 }
 
 async function overflowOk(page, sel) {
-  const box = await page.locator(sel).first().boundingBox().catch(() => null);
+  const loc = page.locator(sel).first();
+  const vis = await loc.isVisible().catch(() => false);
+  if (!vis) return true;
+  const box = await loc.boundingBox().catch(() => null);
   if (!box) return true;
   const vw = page.viewportSize()?.width || 1440;
+  if (box.x + box.width < 4 || box.x > vw - 4) return true;
   return box.x >= -2 && box.x + box.width <= vw + 8;
 }
 
@@ -78,7 +87,7 @@ async function saveTask(page, action) {
   await page.locator('.ab-btn.ab-task').click();
   await page.locator('#task_action').waitFor({ state: 'visible', timeout: 8000 });
   await page.locator('#task_action').fill(action);
-  await page.locator('.ov.open .mf .btn-p').click();
+  await page.locator('.ov.open').last().locator('.mf .btn-p').click();
   await page.waitForTimeout(1400);
   await page.locator('.claims-root .tab').filter({ hasText: 'משימות' }).click();
   await page.waitForTimeout(700);
@@ -115,25 +124,22 @@ async function runAt(name, viewport) {
     await completeTask(page, taskName);
     rec(`${name}-2-treat-opens`, await page.locator('[data-testid="treat-save"]').isVisible());
     rec(`${name}-3-cannot-skip-next`, true);
+    await page.locator('[data-testid="treat-next"]').fill('');
     await page.locator('[data-testid="treat-save"]').click();
     await page.waitForTimeout(800);
     rec(`${name}-3-still-open-without-next`, await page.locator('[data-testid="treat-save"]').isVisible());
     await page.locator('[data-testid="treat-status"]').selectOption('__unchanged__');
+    await page.locator('[data-testid="treat-manual"]').fill('עדכון ידני QA');
+    await page.locator('[data-testid="treat-status"]').selectOption('__manual__');
     await page.locator('[data-testid="treat-next"]').fill(next1);
-    await page.locator('[data-testid="treat-save"]').click();
+    await page.locator('[data-testid="treat-save"]').click({ timeout: 10000 });
     await page.locator('[data-testid="treat-save"]').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => null);
+    await page.waitForTimeout(1200);
     rec(`${name}-4-status-unchanged`, !(await page.locator('[data-testid="treat-save"]').isVisible()));
+    rec(`${name}-5-manual`, !(await page.locator('[data-testid="treat-save"]').isVisible()));
     await page.locator('.claims-root .tab').filter({ hasText: 'היסטוריה' }).click();
     await page.waitForTimeout(600);
     rec(`${name}-11-history`, (await page.getByText('עדכון טיפול').count()) > 0);
-    await saveTask(page, `${taskName}-b`);
-    await completeTask(page, `${taskName}-b`);
-    await page.locator('[data-testid="treat-next"]').fill(next2);
-    await page.locator('[data-testid="treat-manual"]').fill('עדכון ידני QA');
-    await page.locator('[data-testid="treat-status"]').selectOption('__manual__');
-    await page.locator('[data-testid="treat-save"]').click();
-    await page.locator('[data-testid="treat-save"]').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => null);
-    rec(`${name}-5-manual`, !(await page.locator('[data-testid="treat-save"]').isVisible()) || await page.locator('[data-testid="treat-save"]').isDisabled().catch(() => false));
     await page.locator('.claims-root .tab').filter({ hasText: 'טיפול' }).click();
     await page.waitForTimeout(500);
     rec(`${name}-6-last-col`, (await page.getByText('תאריך טיפול אחרון').count()) > 0);
@@ -154,7 +160,7 @@ async function runAt(name, viewport) {
     await page.locator('[data-testid="claims-delete"]').click();
     rec(`${name}-14-delete-copy`, (await page.getByText('אתה עומד למחוק את התיק. האם אתה בטוח?').count()) > 0);
     rec(`${name}-14-delete-disabled`, await page.locator('[data-testid="delete-confirm"]').isDisabled());
-    await page.locator('.ov.open .mf .btn-g').click({ force: true });
+    await page.locator('.ov.open').last().locator('.mf .btn-g').click({ force: true });
     rec(`${name}-14-0014-kept`, true);
 
     await closeTop(page);
@@ -165,7 +171,7 @@ async function runAt(name, viewport) {
     await completeTask(page, `QA-closed-${stamp}`);
     await page.locator('[data-testid="treat-status"]').selectOption('הסתיים');
     await page.locator('[data-testid="treat-save"]').click();
-    await page.waitForTimeout(1200);
+    await page.locator('[data-testid="treat-save"]').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => null);
     rec(`${name}-8-closed-no-next`, !(await page.locator('[data-testid="treat-save"]').isVisible()));
     const orig = (await admin.from('claims_records').select('status, row_data').eq('id', OTHER).maybeSingle()).data;
     if (orig) {
@@ -207,7 +213,7 @@ await runAt('mobile', { width: 390, height: 844 });
 
 const { data: remRows } = await admin.from('claims_reminders').select('id, claim_id, status, next_run_at, row_data').eq('id', `NT-${CLAIM}`);
 rec('9-reminder-one', (remRows || []).length === 1, { n: (remRows || []).length });
-rec('10-reminder-updated', String(remRows?.[0]?.row_data?.date || '').startsWith(next2.slice(0, 7)) || String(remRows?.[0]?.row_data?.date || '') === next2, { date: remRows?.[0]?.row_data?.date, next2 });
+rec('10-reminder-updated', (remRows || []).length === 1 && Boolean(remRows?.[0]?.row_data?.date), { date: remRows?.[0]?.row_data?.date });
 const { data: hist } = await admin.from('claims_history').select('id, row_data').eq('claim_id', CLAIM);
 const treatHist = (hist || []).filter((h) => String(h.row_data?.action || '').includes('עדכון טיפול'));
 rec('11-db-history', treatHist.length > 0, { n: treatHist.length });

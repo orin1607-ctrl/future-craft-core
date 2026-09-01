@@ -996,16 +996,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const afterSignificant = async (claimId: string, action: string, opts?: { sendOk?: boolean }) => {
-    await apiRef.current.markTreatmentPending(claimId, action);
-    await loadAll();
-    setTreatAction(action);
-    setTreatSendOk(!!opts?.sendOk);
-    setVal('tr_status', STATUS_UNCHANGED);
-    setVal('tr_manual', '');
-    setVal('tr_note', '');
-    const c = (await apiRef.current.getClaims()).data?.find((x) => x.id === claimId);
-    setVal('tr_next', c?.nextDate || '');
-    setModal('moTreat');
+    openTreat(action, opts);
+    void apiRef.current.markTreatmentPending(claimId, action)
+      .then(() => loadAll())
+      .catch(() => undefined);
   };
 
   const submitTreat = async () => {
@@ -1032,8 +1026,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       toast('עדכון טיפול נשמר');
       setModal('moCard');
       setTreatBusy(false);
-      await loadAll();
-      await loadCardData(curId);
+      void loadAll().then(() => { if (curId) return loadCardData(curId); });
     } catch (e) {
       toast(`שמירת עדכון טיפול נכשלה: ${String((e as Error).message || e)}`, 'err');
     } finally {
@@ -2670,16 +2663,20 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     return;
                   }
                   toast(`נשלח · שליחה #${String(r.send_no || '')} · msgid ${String(r.gmail_message_id || '')} · thread ${String(r.gmail_thread_id || '')}`);
+                  setMailSending(false);
+                  setMailConfirmOn(false);
+                  setMailAck(false);
+                  if (curId) void afterSignificant(curId, 'נשלח מייל עם מסמכים', { sendOk: true });
                   if (curId && (r.gmail_thread_id || mailThreadId)) {
                     const thread = String(r.gmail_thread_id || mailThreadId || '');
                     for (const t of tasks) {
                       if (t.gmailThreadId === thread && t.done !== 'true') {
-                        await apiRef.current.saveTask({ ...t, workStatus: 'waiting_reply', done: 'false' });
+                        void apiRef.current.saveTask({ ...t, workStatus: 'waiting_reply', done: 'false' });
                       }
                     }
                   }
                   if (curId && trackDue) {
-                    await apiRef.current.saveReminder({
+                    void apiRef.current.saveReminder({
                       claimId: curId,
                       date: trackDue,
                       note: `אם אין תשובה לשליחה #${String(r.send_no || '')} עד ${trackDue} — להזכיר`,
@@ -2687,9 +2684,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       sent: 'false',
                     });
                   }
-                  setMailConfirmOn(false);
-                  setMailAck(false);
-                  if (curId) await afterSignificant(curId, 'נשלח מייל עם מסמכים', { sendOk: true });
                 } finally {
                   setMailSending(false);
                 }
@@ -2798,7 +2792,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
       </div>
 
-      <div className={`ov ${modal === 'moTreat' ? 'open' : ''}`}>
+      <div className={`ov ${modal === 'moTreat' ? 'open' : ''}`} data-testid="treat-ops-v2">
         <div className="modal modal-sm">
           <div className="mh"><div className="mh-t">עדכון טיפול</div>
             <button className="mcl" data-testid="treat-back" onClick={() => setModal('moCard')}>✕</button>
