@@ -1,0 +1,91 @@
+{
+  "at": "2026-09-01T11:37:17.509Z",
+  "productionTouched": false,
+  "realEmailSend": false,
+  "checks": [
+    {
+      "name": "desktop-dash-new-mail",
+      "ok": true
+    },
+    {
+      "name": "desktop-dash-needs-review",
+      "ok": true
+    },
+    {
+      "name": "desktop-needs-review-opens-gmail",
+      "ok": true
+    },
+    {
+      "name": "desktop-new-mail-click-navigates",
+      "ok": true
+    },
+    {
+      "name": "desktop-journal",
+      "ok": true
+    },
+    {
+      "name": "desktop-suggest-opens-mail",
+      "ok": true
+    },
+    {
+      "name": "desktop-followup-checkbox",
+      "ok": true
+    },
+    {
+      "name": "desktop-staff-title",
+      "ok": true
+    },
+    {
+      "name": "desktop-identified",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-real-send",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "mobile-dash-new-mail",
+      "ok": true
+    },
+    {
+      "name": "mobile-dash-needs-review",
+      "ok": true
+    },
+    {
+      "name": "mobile-needs-review-opens-gmail",
+      "ok": true
+    },
+    {
+      "name": "mobile-new-mail-click-navigates",
+      "ok": true
+    },
+    {
+      "name": "mobile-journal",
+      "ok": true
+    },
+    {
+      "name": "mobile-suggest-opens-mail",
+      "ok": true
+    },
+    {
+      "name": "mobile-followup-checkbox",
+      "ok": true
+    },
+    {
+      "name": "mobile-staff-title",
+      "ok": true
+    },
+    {
+      "name": "mobile-identified",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-real-send",
+      "ok": true,
+      "n": 0
+    }
+  ],
+  "ok": true,
+  "base": "https://orin1607-ctrl.github.io/future-craft-core"
+}

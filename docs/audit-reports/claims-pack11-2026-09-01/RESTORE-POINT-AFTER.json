@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-01T11:38:43.732Z",
+  "purpose": "restore-after-claims-pack11",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "gitHead": "8702bbd2af8e66a4b61f3d3b0bda95b015e089f1",
+  "gitShort": "8702bbd",
+  "vehicles": 437,
+  "accidents": 11,
+  "claims": 18,
+  "docs": 1781,
+  "imports": 171,
+  "pending": 9,
+  "bucketPublic": false,
+  "mode": "dry_run",
+  "deployed_ref": "8702bbd feat/incident-alerts-staging"
+}
