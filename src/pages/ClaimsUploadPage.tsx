@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 const FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`;
@@ -36,6 +36,13 @@ export default function ClaimsUploadPage() {
 
   useEffect(() => {
     document.title = 'העלאת מסמכים';
+    document.documentElement.lang = 'he';
+    document.documentElement.dir = 'rtl';
+    document.body.classList.add('claims-public-page');
+    return () => document.body.classList.remove('claims-public-page');
+  }, []);
+
+  useEffect(() => {
     void load();
   }, [token]);
 
@@ -58,26 +65,53 @@ export default function ClaimsUploadPage() {
     await load();
   };
 
+  const btnStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    width: '100%',
+    background: '#1d4ed8',
+    padding: '12px 16px',
+    borderRadius: 10,
+    cursor: 'pointer',
+    fontSize: 16,
+    fontWeight: 800,
+    textAlign: 'center',
+  };
+
   return (
-    <div dir="rtl" style={{ minHeight: '100dvh', background: '#04091a', color: '#fff', fontFamily: 'Heebo, sans-serif', padding: 24 }}>
-      <div style={{ maxWidth: 520, margin: '0 auto' }}>
+    <div className="claims-upload-page" dir="rtl" style={{ minHeight: '100dvh', background: '#04091a', color: '#fff', fontFamily: 'Heebo, sans-serif', padding: 20, overflowX: 'hidden' }}>
+      <style>{`.claims-public-page [aria-label="סגור"], .claims-public-page [aria-label="מצב כהה"], .claims-public-page [aria-label="מצב בהיר"] { display: none !important; }`}</style>
+      <div style={{ maxWidth: 520, margin: '0 auto', width: '100%' }}>
         <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>דליה · העלאת מסמכים</div>
         {loading ? <div>טוען...</div> : error ? <div style={{ color: '#ef4444' }}>{error}</div> : (
           <>
-            <div style={{ color: 'rgba(255,255,255,.65)', marginBottom: 18 }}>שלום {clientName}{plate ? ` · רכב ${plate}` : ''}. אנא העלו את המסמכים המבוקשים.</div>
-            {msg ? <div style={{ color: '#22c55e', marginBottom: 12 }}>{msg}</div> : null}
+            <div style={{ color: 'rgba(255,255,255,.65)', marginBottom: 18, lineHeight: 1.5 }}>שלום {clientName}{plate ? ` · רכב ${plate}` : ''}. אנא העלו את המסמכים המבוקשים.</div>
+            {msg ? <div style={{ color: '#22c55e', marginBottom: 12, fontWeight: 700 }}>{msg}</div> : null}
             {docs.length === 0 ? <div>אין מסמכים מבוקשים כרגע.</div> : docs.map((d) => (
               <div key={d.id} style={{ background: '#071022', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: 14, marginBottom: 10 }}>
-                <div style={{ fontWeight: 700 }}>{d.label}</div>
-                <div style={{ fontSize: 12, color: d.status === 'received' ? '#22c55e' : '#f59e0b', margin: '4px 0 8px' }}>{d.status === 'received' ? 'התקבל' : 'ממתין להעלאה'}</div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>{d.label}</div>
+                <div style={{ fontSize: 13, color: d.status === 'received' ? '#22c55e' : '#f59e0b', margin: '6px 0 10px' }}>{d.status === 'received' ? 'התקבל' : busy === d.id ? 'מעלה את הקובץ…' : 'ממתין להעלאה'}</div>
                 {d.status !== 'received' && (
-                  <label style={{ display: 'inline-block', background: '#1d4ed8', padding: '8px 12px', borderRadius: 8, cursor: 'pointer' }}>
-                    {busy === d.id ? 'מעלה...' : 'בחירת קובץ'}
-                    <input type="file" hidden accept="application/pdf,image/*" disabled={busy === d.id} onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) void upload(d.id, f);
-                    }} />
-                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <label style={btnStyle}>
+                      {busy === d.id ? 'מעלה...' : 'בחירת קובץ / תמונה'}
+                      <input type="file" hidden accept="application/pdf,image/*" disabled={busy === d.id} onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = '';
+                        if (f) void upload(d.id, f);
+                      }} />
+                    </label>
+                    <label style={{ ...btnStyle, background: '#0f766e' }}>
+                      {busy === d.id ? 'מעלה...' : 'צילום מהמצלמה'}
+                      <input type="file" hidden accept="image/*" capture="environment" disabled={busy === d.id} onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = '';
+                        if (f) void upload(d.id, f);
+                      }} />
+                    </label>
+                  </div>
                 )}
               </div>
             ))}

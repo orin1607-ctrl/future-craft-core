@@ -331,7 +331,8 @@ function AppRoutes() {
 
 function ThemeToggleGate() {
   const loc = useLocation();
-  if (loc.pathname === '/claims-upload' || loc.pathname === '/claims-intake') return null;
+  const path = `${loc.pathname || ''} ${typeof window !== 'undefined' ? window.location.pathname : ''}`;
+  if (/claims-upload|claims-intake/.test(path)) return null;
   return <ThemeToggle />;
 }
 
