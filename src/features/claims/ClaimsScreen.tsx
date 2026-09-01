@@ -505,6 +505,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       setVal('mail_body', body);
     }
     setModal('moMail');
+    const images = docs.files.filter((f) => isImageFile(f));
+    if (images.length) void loadGalleryThumbs(cur.id, images);
   };
 
   const loadGalleryThumbs = async (claimId: string, files: ClaimFile[]) => {
@@ -1895,6 +1897,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <div className="fg"><label className="fl">Body</label><textarea className="fta" id="mail_body" data-testid="mail-body" disabled={mailSending} style={{ minHeight: 100 }} value={mailBodyDraft} onChange={(e) => { bumpMailDraft(); setMailBodyDraft(e.target.value); setVal('mail_body', e.target.value); }} /></div>
             ) : <input type="hidden" id="mail_body" value={extSummary} readOnly />}
             <div className="sdiv"><div className="sdiv-t">בחירת מסמכים לצירוף</div><div className="sdiv-l" /></div>
+            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>רק מה שמסומן ייכנס ל-Preview ויישלח. תצוגה גדולה לא מסמנת לשליחה.</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
               <button className="btn btn-g btn-sm" data-testid="mail-clear-files" onClick={() => setSendGroup(docs.files.map((f) => f.id), false)}>נקה בחירה</button>
             </div>
@@ -1908,18 +1911,42 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <input type="checkbox" checked={allOn} onChange={(e) => setSendGroup(group.map((f) => f.id), e.target.checked)} />
                     {cat.label} ({group.length})
                   </label>
-                  <div className="pick-list">
+                  <div className="pick-list pick-list-mail">
                     {group.map((f) => (
-                      <label key={f.id} className="pick-row">
+                      <div key={f.id} className="pick-row" data-testid={`mail-file-row-${f.id}`}>
                         <input type="checkbox" data-testid={`mail-file-${f.id}`} disabled={mailSending} checked={sendIds.includes(f.id)} onChange={() => toggleSendId(f.id)} />
+                        {isImageFile(f) ? (
+                          <button type="button" className="pick-thumb" data-testid={`mail-file-thumb-${f.id}`} title="תצוגה — לא מסמן לשליחה" onClick={() => { if (curId) void openInCard(curId, f); }}>
+                            {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>📷</span>}
+                          </button>
+                        ) : (
+                          <span className="pick-thumb" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'default' }}>PDF</span>
+                        )}
                         <span>{f.original_name}</span>
                         <span className="pick-sz">{fmtBytes(Number(f.byte_size || 0))}</span>
-                      </label>
+                        <button type="button" className="btn btn-g btn-sm" data-testid={`mail-file-preview-${f.id}`} onClick={() => { if (curId) void openInCard(curId, f); }}>תצוגה</button>
+                      </div>
                     ))}
                   </div>
                 </div>
               );
             })}
+            <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+            <div className="sdiv"><div className="sdiv-t">נבחרו לשליחה ({sendIds.length})</div><div className="sdiv-l" /></div>
+            <div data-testid="mail-selected-list" style={{ fontSize: 12, marginBottom: 8 }}>
+              {sendIds.length === 0 ? <div style={{ color: 'var(--t3)' }}>לא נבחר אף קובץ</div> : (
+                <div>
+                  {docs.files.filter((f) => sendIds.includes(f.id)).map((f) => (
+                    <div key={f.id} className="pick-row" data-testid={`mail-selected-${f.id}`}>
+                      {isImageFile(f) && galleryUrls[f.id] ? <img className="pick-thumb" src={galleryUrls[f.id]} alt="" /> : null}
+                      <span>{f.original_name}</span>
+                      <span className="pick-sz">{fmtBytes(Number(f.byte_size || 0))}</span>
+                      <button type="button" className="btn btn-g btn-sm" onClick={() => toggleSendId(f.id)}>בטל</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className={`pkg-bar ${pkgInfo?.overLimit ? 'over' : ''}`} data-testid="mail-pkg">
               גודל כולל: {fmtBytes(pkgInfo?.packageBytes || sendIds.reduce((s, id) => s + Number(docs.files.find((f) => f.id === id)?.byte_size || 0), 0))}
               {' / '}{fmtBytes(PACKAGE_LIMIT)}
@@ -1949,9 +1976,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div><b>Subject:</b> {mailSubj || '—'}</div>
                 <div><b>Body:</b></div>
                 <pre className="mail-body">{mailKind === 'draft' ? mailBodyDraft : extSummary}</pre>
-                <div style={{ fontWeight: 800, margin: '8px 0 4px' }}>קבצים ({sendIds.length})</div>
+                <div style={{ fontWeight: 800, margin: '8px 0 4px' }}>Attachments שנבחרו ({sendIds.length})</div>
                 {sendIds.length === 0 ? <div>אין קבצים נבחרים</div> : (
-                  <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+                  <ul style={{ margin: 0, paddingInlineStart: 18 }} data-testid="mail-preview-files">
                     {docs.files.filter((f) => sendIds.includes(f.id)).map((f) => (
                       <li key={f.id}>{f.original_name} · {fmtBytes(Number(f.byte_size || 0))}</li>
                     ))}
@@ -1966,7 +1993,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div><b>To:</b> {mailTo}</div>
                 <div><b>CC:</b> {mailCc || '—'}</div>
                 <div><b>Subject:</b> {mailSubj}</div>
-                <div><b>קבצים:</b> {sendIds.length} · {fmtBytes(pkgInfo?.packageBytes || 0)}</div>
+                <div><b>קבצים שנשלחים:</b></div>
+                {sendIds.length === 0 ? <div>אין קבצים</div> : (
+                  <ul style={{ margin: '4px 0 8px', paddingInlineStart: 18 }} data-testid="mail-confirm-files">
+                    {docs.files.filter((f) => sendIds.includes(f.id)).map((f) => (
+                      <li key={f.id}>{f.original_name} · {fmtBytes(Number(f.byte_size || 0))}</li>
+                    ))}
+                  </ul>
+                )}
+                <div><b>גודל:</b> {fmtBytes(pkgInfo?.packageBytes || 0)}</div>
                 <label className="pick-row" style={{ marginTop: 10 }}>
                   <input type="checkbox" data-testid="mail-ack" checked={mailAck} onChange={(e) => setMailAck(e.target.checked)} />
                   <span>אני מאשר לשלוח את המייל הזה מתוך התיק, לנמענים ולקבצים שמופיעים ב-Preview.</span>
