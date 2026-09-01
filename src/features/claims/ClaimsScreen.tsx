@@ -465,16 +465,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const loadGalleryThumbs = async (claimId: string, files: ClaimFile[]) => {
     const images = files.filter((f) => isImageFile(f));
-    const missing = images.filter((f) => !galleryUrls[f.id]).map((f) => f.id);
-    if (!missing.length) return;
-    const next: Record<string, string> = { ...galleryUrls };
-    for (let i = 0; i < missing.length; i += 80) {
-      const slice = missing.slice(i, i + 80);
+    const ids = images.map((f) => f.id);
+    if (!ids.length) return;
+    for (let i = 0; i < ids.length; i += 80) {
+      const slice = ids.slice(i, i + 80);
       const r = await apiRef.current.invokeDocs('signed_urls', { claim_id: claimId, file_ids: slice });
       const urls = (r.urls && typeof r.urls === 'object') ? r.urls as Record<string, string> : {};
-      Object.entries(urls).forEach(([id, url]) => { if (url) next[id] = url; });
+      setGalleryUrls((prev) => {
+        const next = { ...prev };
+        Object.entries(urls).forEach(([id, url]) => { if (url) next[id] = url; });
+        return next;
+      });
     }
-    setGalleryUrls(next);
   };
 
   const openInCard = async (claimId: string, f: ClaimFile) => {

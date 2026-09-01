@@ -55,10 +55,18 @@ async function run(claimId, viewport, label) {
       if (post.includes('list_docs')) docsRes.push({ status: res.status(), files: Array.isArray(json.files) ? json.files.length : 0, error: json.error || null, success: json.success });
     }
   });
+  try {
   await page.goto(`${PUBLIC}/claims`, { waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForTimeout(1500);
-  await page.locator('.tbn', { hasText: 'תיקים' }).click();
-  await page.waitForTimeout(400);
+  if (viewport.width < 700) {
+    await page.getByTestId('claims-sb-open').click();
+    await page.waitForTimeout(300);
+    await page.getByTestId('claims-nav-all').click();
+    await page.waitForTimeout(400);
+  } else {
+    await page.locator('.tbn', { hasText: 'תיקים' }).click();
+    await page.waitForTimeout(400);
+  }
   await page.locator('input[placeholder="🔎 חיפוש..."]').fill(claimId);
   await page.waitForTimeout(400);
   await page.locator('td', { hasText: claimId }).first().click({ timeout: 10000 });
@@ -85,16 +93,29 @@ async function run(claimId, viewport, label) {
   await page.screenshot({ path: join(OUT, `${label}-${claimId}-docs-gal.png`) });
 
   await page.locator('.ov.open .tab', { hasText: 'דוח שמאי' }).click();
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(800);
   const surv = await page.locator('.ov.open .mb').innerText();
   const photos = Number((/תמונות הדוח \((\d+)\)/.exec(surv) || [])[1] || 0);
   const untagged = Number((/תמונות בתיק \((\d+)\)/.exec(surv) || [])[1] || 0);
   const emptyMarked = /אין דוח שמאי מסומן בתיק/.test(surv);
   const noPdf = /אין קובץ דוח PDF מסומן/.test(surv);
+  if (photos > 0 || untagged > 0) {
+    await page.locator('.ov.open .gal-item img').first().waitFor({ timeout: 25000 });
+  }
   const survImgs = await page.locator('.ov.open .gal-item img').count();
   rec(`${label}-${claimId}-surveyor-visible`, photos > 0 || untagged > 0 || /דוח שמאי/.test(surv) || /תמונות בתיק/.test(surv));
   rec(`${label}-${claimId}-surveyor-not-blank-if-photos`, (photos === 0 && untagged === 0) || survImgs > 0, { photos, untagged, survImgs, emptyMarked, noPdf, surv: surv.slice(0, 350) });
   await page.screenshot({ path: join(OUT, `${label}-${claimId}-surveyor.png`) });
+
+  if (survImgs > 0) {
+    const [popup] = await Promise.all([
+      page.waitForEvent('popup', { timeout: 8000 }).catch(() => null),
+      page.locator('.ov.open .gal-item').first().click(),
+    ]);
+    await page.waitForTimeout(800);
+    const preview = await page.locator('.ov.open .doc-preview-wrap img, .ov.open .doc-preview-wrap iframe, .ov.open .doc-preview-wrap embed').count();
+    rec(`${label}-${claimId}-open-file`, preview > 0 || Boolean(popup), { preview, popup: Boolean(popup) });
+  }
 
   await page.locator('.ov.open .tab', { hasText: 'התכתבויות' }).click();
   await page.waitForTimeout(600);
@@ -104,13 +125,19 @@ async function run(claimId, viewport, label) {
 
   rec(`${label}-${claimId}-no-console`, errors.filter((e) => !/ResizeObserver/.test(e)).length === 0, { errors: errors.slice(0, 6) });
   report.claims[`${label}:${claimId}`] = { n, apiFiles: listHit?.files, photos, untagged, survImgs, ginN, emptyMarked, noPdf, errors };
-  await browser.close();
+  } catch (e) {
+    rec(`${label}-${claimId}-run`, false, { error: String(e?.message || e).slice(0, 500) });
+  } finally {
+    await browser.close();
+  }
 }
 
 await run('DAL-2026-0004', { width: 1400, height: 900 }, 'desktop');
+await run('DAL-2026-0005', { width: 1400, height: 900 }, 'desktop');
 await run('DAL-2026-0008', { width: 1400, height: 900 }, 'desktop');
 await run('DAL-2026-0017', { width: 1400, height: 900 }, 'desktop');
 await run('DAL-2026-0004', { width: 390, height: 844 }, 'mobile');
+await run('DAL-2026-0005', { width: 390, height: 844 }, 'mobile');
 
 report.ok = report.checks.every((c) => c.ok);
 writeFileSync(join(OUT, 'ui-audit.json'), JSON.stringify(report, null, 2), 'utf8');
