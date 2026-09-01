@@ -1,0 +1,89 @@
+{
+  "at": "2026-09-01T11:15:21.244Z",
+  "productionTouched": false,
+  "tests": [
+    {
+      "id": "has-test-file",
+      "ok": true,
+      "detail": "signature.png"
+    },
+    {
+      "id": "update-meta",
+      "ok": true,
+      "detail": {
+        "success": true,
+        "copied": false,
+        "doc_kind": "general",
+        "doc_meta": {
+          "staff_title": "טופס אי-הגשת תביעה TEST",
+          "staff_type": "no_claim_form",
+          "staff_note": "הערה פנימית TEST — לא לשלוח",
+          "important": "true",
+          "doc_status": "ok"
+        }
+      }
+    },
+    {
+      "id": "no-file-copy",
+      "ok": true,
+      "detail": "general"
+    },
+    {
+      "id": "title-saved",
+      "ok": true,
+      "detail": {
+        "important": "true",
+        "doc_status": "ok",
+        "staff_note": "הערה פנימית TEST — לא לשלוח",
+        "staff_type": "no_claim_form",
+        "staff_title": "טופס אי-הגשת תביעה TEST"
+      }
+    },
+    {
+      "id": "type-saved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "note-saved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "important-saved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "status-saved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mail-note",
+      "ok": true,
+      "detail": {
+        "skipped": "no import on TEST claims"
+      }
+    },
+    {
+      "id": "docs-count-unchanged",
+      "ok": true,
+      "detail": {
+        "before": 1780,
+        "after": 1780
+      }
+    },
+    {
+      "id": "vehicles-437",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "accidents-11",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "ok": true
+}

@@ -289,6 +289,35 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, copied: false });
     }
 
+    if (action === "update_doc_meta") {
+      const claimId = String(body.claim_id || "");
+      const fileId = String(body.file_id || "");
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const STAFF_TYPES = new Set(["", "vehicle_license", "driver_license", "no_claim_form", "accident_notice", "policy", "police", "surveyor_report", "garage_invoice", "damage_photos", "other"]);
+      const STATUSES = new Set(["", "received", "missing", "pending", "ok", "sent", "needs_update"]);
+      const { data: file } = await sb.from("claims_documents").select("id, original_name, doc_kind, doc_meta").eq("id", fileId).eq("claim_id", claimId).maybeSingle();
+      if (!file) return jsonResponse({ success: false, error: "not_found" }, 404);
+      const prev = (file.doc_meta && typeof file.doc_meta === "object") ? file.doc_meta as Record<string, string> : {};
+      const next = { ...prev };
+      if (body.staff_title !== undefined) next.staff_title = String(body.staff_title || "").trim().slice(0, 120);
+      if (body.staff_type !== undefined) {
+        const t = String(body.staff_type || "");
+        if (!STAFF_TYPES.has(t)) return jsonResponse({ success: false, error: "invalid_staff_type" }, 400);
+        next.staff_type = t;
+      }
+      if (body.staff_note !== undefined) next.staff_note = String(body.staff_note || "").trim().slice(0, 500);
+      if (body.important !== undefined) next.important = body.important === true || body.important === "true" ? "true" : "";
+      if (body.doc_status !== undefined) {
+        const s = String(body.doc_status || "");
+        if (!STATUSES.has(s)) return jsonResponse({ success: false, error: "invalid_doc_status" }, 400);
+        next.doc_status = s;
+      }
+      const { error: upErr } = await sb.from("claims_documents").update({ doc_meta: next }).eq("id", fileId).eq("claim_id", claimId);
+      if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
+      await history(sb, claimId, "עודכנו פרטי מסמך", `${file.original_name} · סוג ${next.staff_type || "לא סווג"} · סטטוס ${next.doc_status || "—"} · חשוב ${next.important === "true" ? "כן" : "לא"}`, actorName);
+      return jsonResponse({ success: true, copied: false, doc_kind: file.doc_kind, doc_meta: next });
+    }
+
     if (action === "signed_url") {
       const claimId = String(body.claim_id || "");
       const fileId = String(body.file_id || "");

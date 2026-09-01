@@ -138,6 +138,29 @@ function effectiveKind(f: ClaimFile) {
   return 'general';
 }
 
+const STAFF_DOC_TYPES: Array<{ key: string; label: string }> = [
+  { key: '', label: 'לא סווג / מסמך כללי' },
+  { key: 'vehicle_license', label: 'רישיון רכב' },
+  { key: 'driver_license', label: 'רישיון נהיגה' },
+  { key: 'no_claim_form', label: 'טופס אי-הגשת תביעה' },
+  { key: 'accident_notice', label: 'טופס הודעה על תאונה' },
+  { key: 'policy', label: 'פוליסה' },
+  { key: 'police', label: 'אישור משטרה' },
+  { key: 'surveyor_report', label: 'דוח שמאי' },
+  { key: 'garage_invoice', label: 'חשבונית מוסך' },
+  { key: 'damage_photos', label: 'תמונות נזק' },
+  { key: 'other', label: 'מסמך אחר' },
+];
+const DOC_FILE_STATUSES: Array<{ key: string; label: string }> = [
+  { key: '', label: '—' },
+  { key: 'received', label: 'התקבל' },
+  { key: 'missing', label: 'חסר' },
+  { key: 'pending', label: 'ממתין' },
+  { key: 'ok', label: 'תקין' },
+  { key: 'sent', label: 'נשלח' },
+  { key: 'needs_update', label: 'נדרש עדכון' },
+];
+
 function kindHe(k: string) {
   const map: Record<string, string> = {
     surveyor_report: 'דוח שמאי',
@@ -146,6 +169,57 @@ function kindHe(k: string) {
     garage_invoice: 'חשבונית מוסך',
   };
   return map[k] || '';
+}
+
+function fileLabel(f: ClaimFile) {
+  const t = fileMeta(f).staff_title;
+  return t || f.original_name;
+}
+function staffTypeLabel(key: string) {
+  return STAFF_DOC_TYPES.find((x) => x.key === key)?.label || 'לא סווג / מסמך כללי';
+}
+function statusLabel(key: string) {
+  return DOC_FILE_STATUSES.find((x) => x.key === key)?.label || '—';
+}
+function suggestedStaffType(f: ClaimFile) {
+  if (f.doc_kind === 'surveyor_report' || f.doc_kind === 'surveyor_attachment') return 'surveyor_report';
+  if (f.doc_kind === 'garage_invoice') return 'garage_invoice';
+  if (f.doc_kind === 'surveyor_photo') return 'damage_photos';
+  return '';
+}
+
+function DocStaffFields({ file, onSave }: { file: ClaimFile; onSave: (patch: Record<string, string | boolean>) => void }) {
+  const m = fileMeta(file);
+  const sid = `dst_${file.id}`;
+  return (
+    <div data-testid={`doc-staff-${file.id}`} style={{ background: 'var(--bg2)', border: '1px dashed var(--br2)', borderRadius: 7, padding: 8, marginTop: 6 }}>
+      <div className="fg"><label className="fl">שם לתצוגה</label><input className="fi" id={`${sid}_title`} defaultValue={m.staff_title || ''} placeholder={file.original_name} /></div>
+      <div className="fg"><label className="fl">סוג</label>
+        <select className="fse" id={`${sid}_type`} defaultValue={m.staff_type || ''}>
+          {STAFF_DOC_TYPES.map((t) => <option key={t.key || 'none'} value={t.key}>{t.label}{!t.key && suggestedStaffType(file) ? ` · הצעה: ${staffTypeLabel(suggestedStaffType(file))}` : ''}</option>)}
+        </select>
+      </div>
+      <div className="fg"><label className="fl">סטטוס מסמך</label>
+        <select className="fse" id={`${sid}_st`} defaultValue={m.doc_status || ''}>
+          {DOC_FILE_STATUSES.map((s) => <option key={s.key || 'none'} value={s.key}>{s.label}</option>)}
+        </select>
+      </div>
+      <div className="fg"><label className="fl">הערה פנימית</label><textarea className="fta" id={`${sid}_note`} defaultValue={m.staff_note || ''} style={{ minHeight: 56 }} /></div>
+      <label className="pick-row" style={{ margin: '6px 0' }}>
+        <input type="checkbox" id={`${sid}_imp`} defaultChecked={m.important === 'true'} />
+        <span>מסמך חשוב / מזוהה בתיק</span>
+      </label>
+      <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 6 }}>הערה פנימית לא נשלחת ללקוח או לחברת הביטוח.</div>
+      <button type="button" className="btn btn-p btn-sm" onClick={() => {
+        const title = (document.getElementById(`${sid}_title`) as HTMLInputElement | null)?.value || '';
+        const staff_type = (document.getElementById(`${sid}_type`) as HTMLSelectElement | null)?.value || '';
+        const doc_status = (document.getElementById(`${sid}_st`) as HTMLSelectElement | null)?.value || '';
+        const staff_note = (document.getElementById(`${sid}_note`) as HTMLTextAreaElement | null)?.value || '';
+        const important = (document.getElementById(`${sid}_imp`) as HTMLInputElement | null)?.checked === true;
+        onSave({ staff_title: title, staff_type, doc_status, staff_note, important });
+      }}>שמור פרטי מסמך</button>
+    </div>
+  );
 }
 
 function surveyorBundle(files: ClaimFile[]) {
@@ -252,6 +326,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [gmailList, setGmailList] = useState<Array<Record<string, unknown>>>([]);
   const [gmailImports, setGmailImports] = useState<Array<Record<string, unknown>>>([]);
   const [gmailBusy, setGmailBusy] = useState('');
+  const [docEditId, setDocEditId] = useState<string | null>(null);
   const [gmailPending, setGmailPending] = useState<Array<Record<string, unknown>>>([]);
   const [pendingPick, setPendingPick] = useState<Record<string, string>>({});
   const inboxScanAt = useRef(0);
@@ -540,6 +615,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (!r.success) { toast(String(r.error || 'סיווג נכשל'), 'err'); return; }
     await loadCardData(claimId);
     toast(kind === 'general' ? 'הוסר הסימון' : `סומן כ${kindHe(kind) || kind}`);
+  };
+
+  const saveDocStaff = async (file: ClaimFile, patch: Record<string, string | boolean>) => {
+    if (!curId) return;
+    const r = await apiRef.current.invokeDocs('update_doc_meta', { claim_id: curId, file_id: file.id, ...patch });
+    if (!r.success) { toast(String(r.error || 'שמירה נכשלה'), 'err'); return; }
+    await loadCardData(curId);
   };
 
   useEffect(() => {
@@ -1523,20 +1605,28 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           {(isGal ? rest : group).map((f) => {
                             const knd = effectiveKind(f);
                             return (
-                            <div key={f.id} style={{ minWidth: 140, display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
+                            <div key={f.id} style={{ marginTop: 6 }}>
+                              <div style={{ minWidth: 140, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                               <div>
                                 <div style={{ fontWeight: 600, fontSize: 12 }}>
-                                  {f.original_name}
+                                  {fileLabel(f)}
                                   {kindHe(knd) ? <span className={`kind-pill ${knd === 'garage_invoice' ? 'invoice' : 'surveyor'}`}>{kindHe(knd)}</span> : null}
+                                  {fileMeta(f).staff_type ? <span className="kind-pill">{staffTypeLabel(fileMeta(f).staff_type)}</span> : <span className="kind-pill">לא סווג</span>}
+                                  {fileMeta(f).important === 'true' ? <span className="kind-pill surveyor">חשוב</span> : null}
+                                  {fileMeta(f).doc_status ? <span className="kind-pill">{statusLabel(fileMeta(f).doc_status)}</span> : null}
                                 </div>
-                                <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.source === 'gmail' ? 'Gmail' : f.source === 'customer' ? 'לקוח' : 'עובד'} · {fmtBytes(Number(f.byte_size || 0))}</div>
+                                <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.source === 'gmail' ? 'Gmail' : f.source === 'customer' ? 'לקוח' : 'עובד'} · {fmtBytes(Number(f.byte_size || 0))} · {f.original_name}</div>
+                                {fileMeta(f).staff_note ? <div style={{ fontSize: 11, color: 'var(--t2)' }}>הערה: {fileMeta(f).staff_note}</div> : null}
                               </div>
                               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                 {knd !== 'surveyor_report' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'surveyor_report')}>סמן כדוח שמאי</button> : null}
                                 {knd !== 'garage_invoice' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'garage_invoice')}>סמן כחשבונית מוסך</button> : null}
                                 {f.doc_kind && f.doc_kind !== 'general' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'general')}>בטל סימון</button> : null}
                                 <button className="btn btn-g btn-sm" onClick={() => void openInCard(cur.id, f)}>צפייה</button>
+                                <button className="btn btn-g btn-sm" data-testid={`doc-edit-${f.id}`} onClick={() => setDocEditId(docEditId === f.id ? null : f.id)}>שם / סוג</button>
                               </div>
+                              </div>
+                              {docEditId === f.id ? <DocStaffFields file={f} onSave={async (patch) => { await saveDocStaff(f, patch); toast('פרטי המסמך נשמרו'); }} /> : null}
                             </div>
                             );
                           })}
@@ -1588,6 +1678,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               {String(im.body_text || '').trim().length > 2
                                 ? <pre className="mail-body">{String(im.body_text)}</pre>
                                 : <div style={{ color: 'var(--yn2)', fontSize: 12, margin: '6px 0' }}>גוף המייל ריק</div>}
+                              <div className="fg" style={{ marginTop: 8 }}>
+                                <label className="fl">הערה פנימית למייל זה</label>
+                                <textarea className="fta" data-testid={`mail-note-${im.id}`} defaultValue={String(im.staff_note || '')} id={`imnote_${im.id}`} style={{ minHeight: 48 }} />
+                                <div style={{ fontSize: 10, color: 'var(--t3)', margin: '4px 0' }}>פנימית בלבד — לא נשלחת החוצה.</div>
+                                <button type="button" className="btn btn-g btn-sm" onClick={async () => {
+                                  const note = (document.getElementById(`imnote_${im.id}`) as HTMLTextAreaElement | null)?.value || '';
+                                  const r = await apiRef.current.invokeGmail('update_import_note', { claim_id: cur.id, import_id: im.id, staff_note: note });
+                                  if (!r.success) { toast(String(r.error || 'שמירה נכשלה'), 'err'); return; }
+                                  toast('הערה פנימית נשמרה');
+                                  await loadCardData(cur.id);
+                                }}>שמור הערה</button>
+                              </div>
                               {attached.length ? (
                                 <div>
                                   <div style={{ fontSize: 11, fontWeight: 700, margin: '8px 0 4px' }}>קבצים מצורפים ({attached.length})</div>
@@ -1905,6 +2007,24 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
               <button className="btn btn-g btn-sm" data-testid="mail-clear-files" onClick={() => setSendGroup(docs.files.map((f) => f.id), false)}>נקה בחירה</button>
             </div>
+            {(() => {
+              const identified = docs.files.filter((f) => fileMeta(f).important === 'true');
+              if (!identified.length) return null;
+              return (
+                <div className="pick-cat" data-testid="mail-identified">
+                  <div className="pick-cat-h">מסמכים מזוהים ({identified.length})</div>
+                  <div className="pick-list pick-list-mail">
+                    {identified.map((f) => (
+                      <div key={`id-${f.id}`} className="pick-row">
+                        <input type="checkbox" disabled={mailSending} checked={sendIds.includes(f.id)} onChange={() => toggleSendId(f.id)} />
+                        <span>{fileLabel(f)} · {staffTypeLabel(fileMeta(f).staff_type || '')}</span>
+                        <span className="pick-sz">{fmtBytes(Number(f.byte_size || 0))}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             {DOC_CATS.map((cat) => {
               const group = docs.files.filter((f) => classifyDoc(f) === cat.key);
               if (!group.length) return null;
@@ -1926,7 +2046,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         ) : (
                           <span className="pick-thumb" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'default' }}>PDF</span>
                         )}
-                        <span>{f.original_name}</span>
+                        <span>{fileLabel(f)}{fileMeta(f).staff_type ? ` · ${staffTypeLabel(fileMeta(f).staff_type)}` : ''}</span>
                         <span className="pick-sz">{fmtBytes(Number(f.byte_size || 0))}</span>
                         <button type="button" className="btn btn-g btn-sm" data-testid={`mail-file-preview-${f.id}`} onClick={() => { if (curId) void openInCard(curId, f); }}>תצוגה</button>
                       </div>
@@ -1943,7 +2063,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   {docs.files.filter((f) => sendIds.includes(f.id)).map((f) => (
                     <div key={f.id} className="pick-row" data-testid={`mail-selected-${f.id}`}>
                       {isImageFile(f) && galleryUrls[f.id] ? <img className="pick-thumb" src={galleryUrls[f.id]} alt="" /> : null}
-                      <span>{f.original_name}</span>
+                      <span>{fileLabel(f)}</span>
                       <span className="pick-sz">{fmtBytes(Number(f.byte_size || 0))}</span>
                       <button type="button" className="btn btn-g btn-sm" onClick={() => toggleSendId(f.id)}>בטל</button>
                     </div>

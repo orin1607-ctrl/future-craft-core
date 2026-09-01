@@ -527,10 +527,21 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
     }
     const { data } = await sb.from("claims_gmail_imports")
-      .select("id, gmail_message_id, gmail_thread_id, from_addr, to_addr, cc_addr, subject, snippet, body_text, sent_at, attachment_count, found_count, imported_count, failed_count, failures, imported_by_name, created_at")
+      .select("id, gmail_message_id, gmail_thread_id, from_addr, to_addr, cc_addr, subject, snippet, body_text, sent_at, attachment_count, found_count, imported_count, failed_count, failures, imported_by_name, created_at, staff_note")
       .eq("claim_id", claimId)
       .order("sent_at", { ascending: true });
     return jsonResponse({ success: true, data: data || [] });
+  }
+
+  if (action === "update_import_note") {
+    const claimId = String(body.claim_id || "");
+    const importId = String(body.import_id || "");
+    const note = String(body.staff_note || "").trim().slice(0, 500);
+    if (!claimId || !importId) return jsonResponse({ success: false, error: "claim_id and import_id required" }, 400);
+    if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    const { error } = await sb.from("claims_gmail_imports").update({ staff_note: note || null }).eq("id", importId).eq("claim_id", claimId);
+    if (error) return jsonResponse({ success: false, error: error.message }, 400);
+    return jsonResponse({ success: true, mailboxMutated: false, realEmailSend: false });
   }
 
   if (action === "package_preview") {
