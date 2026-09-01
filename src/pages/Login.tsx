@@ -14,7 +14,16 @@ import {
 
 type LoginStep = 'credentials' | 'otp';
 
-function goAfterLogin(role: string | undefined, navigate: (path: string) => void) {
+function goAfterLogin(
+  role: string | undefined,
+  navigate: (path: string) => void,
+  claimsWorkerOnly?: boolean,
+) {
+  if (claimsWorkerOnly) {
+    consumePostLoginRedirect('/claims');
+    navigate('/claims');
+    return;
+  }
   if (role === 'telemarketing_agent') {
     consumePostLoginRedirect('/telemarketing');
     replaceToAgentWorkHome();
@@ -80,9 +89,9 @@ export default function Login() {
     }
 
     if (result.session) {
-      const { error: sessionError, role } = await completeLoginSession(result.session);
+      const { error: sessionError, role, claimsWorkerOnly } = await completeLoginSession(result.session);
       if (sessionError) setError(sessionError);
-      else goAfterLogin(role, navigate);
+      else goAfterLogin(role, navigate, claimsWorkerOnly);
       return;
     }
 
@@ -106,9 +115,9 @@ export default function Login() {
       return;
     }
 
-    const { error: sessionError, role } = await completeLoginSession(result.session);
+    const { error: sessionError, role, claimsWorkerOnly } = await completeLoginSession(result.session);
     if (sessionError) setError(sessionError);
-    else goAfterLogin(role, navigate);
+    else goAfterLogin(role, navigate, claimsWorkerOnly);
   };
 
   const handleOtpResend = async () => {

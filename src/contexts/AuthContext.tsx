@@ -18,6 +18,7 @@ export interface UserProfile {
   role: AppRole;
   user_number?: string | null;
   hasClaimsAccess?: boolean;
+  claimsWorkerOnly?: boolean;
 }
 
 interface AuthContextType {
@@ -28,7 +29,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signup: (email: string, password: string, metadata: { full_name: string; phone: string; company_name: string; role?: AppRole }) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
-  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null; role?: AppRole }>;
+  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null; role?: AppRole; claimsWorkerOnly?: boolean }>;
   isAuthenticated: boolean;
   isImpersonating: boolean;
   impersonate: (targetUser: UserProfile) => void;
@@ -68,6 +69,7 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
 
     const role = (roleData?.role as AppRole) || 'driver';
     let hasClaimsAccess = role === 'super_admin';
+    let claimsWorkerOnly = false;
     if (!hasClaimsAccess) {
       try {
         const { data: can } = await supabase.rpc('claims_can_access' as never);
@@ -75,6 +77,16 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       } catch {
         hasClaimsAccess = false;
       }
+    }
+    try {
+      const { data: accessRow } = await supabase
+        .from('claims_access' as never)
+        .select('worker_only')
+        .eq('user_id', userId)
+        .maybeSingle();
+      claimsWorkerOnly = role !== 'super_admin' && !!(accessRow as { worker_only?: boolean } | null)?.worker_only;
+    } catch {
+      claimsWorkerOnly = false;
     }
 
     return {
@@ -87,6 +99,7 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       role,
       user_number: profile.user_number || null,
       hasClaimsAccess,
+      claimsWorkerOnly,
     };
   }
   return null;
@@ -200,7 +213,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRealUser(profile);
       const { data: { session: s } } = await supabase.auth.getSession();
       setSession(s);
-      return { error: null, role: profile?.role };
+      return { error: null, role: profile?.role, claimsWorkerOnly: profile?.claimsWorkerOnly };
     }
     return { error: null };
   };

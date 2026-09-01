@@ -18,6 +18,10 @@ export default function Dashboard() {
 
   if (!user) return null;
 
+  if (user.claimsWorkerOnly) {
+    return <Navigate to="/claims" replace />;
+  }
+
   if (driverLocked && driverId && isManager) {
     if (hideDriverDashForFm) {
       return <Navigate to={`/drivers?driverId=${encodeURIComponent(driverId)}`} replace />;

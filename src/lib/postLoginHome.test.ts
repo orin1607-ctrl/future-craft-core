@@ -10,6 +10,10 @@ describe('homePathForRole', () => {
     expect(homePathForRole('super_admin')).toBe('/dashboard');
     expect(homePathForRole('driver')).toBe('/dashboard');
   });
+
+  it('sends claims workers to Claims', () => {
+    expect(homePathForRole('driver', { claimsWorkerOnly: true })).toBe('/claims');
+  });
 });
 
 describe('postLoginPathForRole', () => {

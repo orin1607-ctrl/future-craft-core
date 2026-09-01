@@ -5,6 +5,7 @@ import {
   Car,
   Users,
   Phone,
+  Scale,
   ChevronLeft,
   Loader2,
   CheckCircle2,
@@ -49,6 +50,7 @@ const TYPE_ICONS: Record<UserCreationType, typeof User> = {
   fleet_manager: Users,
   driver: Car,
   telemarketing_agent: Phone,
+  claims_worker: Scale,
 };
 
 const STEPS = ['סוג משתמש', 'פרטים', 'קוד גישה', 'סיכום'] as const;
@@ -167,7 +169,7 @@ export default function CreateUserWizardDialog({
     const company =
       userType === 'private_customer'
         ? ''
-        : form.company_assigned || form.company_name || '';
+        : form.company_assigned || form.company_name || (userType === 'claims_worker' ? 'ניהול תביעות' : '');
     const fullName =
       userType === 'business_customer'
         ? form.contact_person || form.company_name || ''
@@ -196,6 +198,7 @@ export default function CreateUserWizardDialog({
       service_type: userType === 'business_customer' ? (form.service_type || 'marketing_only') : undefined,
       license_number: form.license_number || undefined,
       assigned_vehicle_id: form.assigned_vehicle_id || undefined,
+      skip_driver_row: userType === 'claims_worker',
     };
   };
 
@@ -222,6 +225,21 @@ export default function CreateUserWizardDialog({
     }
 
     const userId = data?.user_id as string | undefined;
+    if (userId && userType === 'claims_worker') {
+      const { error: grantErr } = await supabase.rpc('claims_set_access' as never, {
+        p_user_id: userId,
+        p_enabled: true,
+        p_worker_only: true,
+      } as never);
+      if (grantErr) {
+        toast({
+          title: 'המשתמש נוצר — שגיאה בהרשאת Claims',
+          description: grantErr.message,
+          variant: 'destructive',
+        });
+      }
+      await supabase.from('drivers').delete().eq('id', userId);
+    }
     const hadAccessCode = !!accessCode.code;
 
     let report: CreateUserResultReport = {
@@ -365,6 +383,7 @@ export default function CreateUserWizardDialog({
                 <button
                   key={type}
                   type="button"
+                  data-testid={`create-user-type-${type}`}
                   onClick={() => selectType(type)}
                   className="card-elevated text-right p-4 hover:border-primary/40 transition-colors min-h-[100px]"
                 >
@@ -391,6 +410,11 @@ export default function CreateUserWizardDialog({
             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm">
               כל משתמש חדש נוצר <strong>לא פעיל</strong> — ממתין לאישור מנהל מערכת לפני גישה.
             </div>
+            {userType === 'claims_worker' && (
+              <div className="p-3 rounded-xl bg-primary/10 border border-primary/30 text-sm">
+                עובד ניהול תביעות רואה רק את אזור Claims ואת התביעות שיוקצו אליו.
+              </div>
+            )}
 
             {userType === 'driver' && (
               <div className="flex items-center gap-3 p-3 rounded-xl border">
@@ -474,6 +498,7 @@ export default function CreateUserWizardDialog({
                 placeholder: fd.placeholder || fd.label,
                 dir: fd.dir,
                 className: cn(fd.dir === 'ltr' && 'text-right'),
+                'data-testid': `create-user-field-${fd.key}`,
               };
               return (
                 <div key={fd.key}>

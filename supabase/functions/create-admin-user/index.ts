@@ -169,6 +169,7 @@ Deno.serve(async (req) => {
       approval_status,
       two_factor_approved,
       service_type,
+      skip_driver_row,
     } = body;
 
     // Actions that require super_admin only
@@ -545,11 +546,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (role !== 'driver') {
+    if (role !== 'driver' || skip_driver_row === true) {
       await supabaseAdmin.from('drivers').delete().eq('id', newUserId);
     }
 
-    if (role === 'driver') {
+    if (role === 'driver' && skip_driver_row !== true) {
       const driverEmail = contact_email || email;
       const { error: driverErr } = await supabaseAdmin.from('drivers').upsert(
         {

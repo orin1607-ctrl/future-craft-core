@@ -53,11 +53,18 @@ const FLEET_MANAGER_ROUTES = ['/fleetos-ai'];
 export function canAccessRoute(
   pathname: string,
   role: AppRole | undefined,
-  extras?: { hasClaimsAccess?: boolean },
+  extras?: { hasClaimsAccess?: boolean; claimsWorkerOnly?: boolean },
 ): boolean {
   if (!role) return false;
 
   const path = pathname.split('?')[0];
+  if (extras?.claimsWorkerOnly) {
+    if (path === '/claims' || path.startsWith('/claims/')) {
+      return role === 'super_admin' || !!extras.hasClaimsAccess;
+    }
+    return path === '/dashboard' || path === '/settings' || path.startsWith('/settings/');
+  }
+
   if (path === '/claims' || path.startsWith('/claims/')) {
     return role === 'super_admin' || !!extras?.hasClaimsAccess;
   }

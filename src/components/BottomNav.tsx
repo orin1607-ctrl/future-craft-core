@@ -66,17 +66,24 @@ const telemarketingMobileNav: NavItem[] = [
   { path: '/telemarketing', label: 'טלמיטינג', icon: Phone },
 ];
 
+const claimsWorkerMobileNav: NavItem[] = [
+  { path: '/claims', label: 'תביעות', icon: Scale },
+];
+
 export default function BottomNav() {
   const { user } = useAuth();
   const unreadCount = useUnreadNotifications();
 
   const isDriver = user?.role === 'driver';
   const isTelemarketingAgent = user?.role === 'telemarketing_agent';
-  const mobileNav = isTelemarketingAgent
-    ? telemarketingMobileNav
-    : isDriver
-      ? driverMobileNav
-      : managerMobileNav;
+  const isClaimsWorker = !!user?.claimsWorkerOnly;
+  const mobileNav = isClaimsWorker
+    ? claimsWorkerMobileNav
+    : isTelemarketingAgent
+      ? telemarketingMobileNav
+      : isDriver
+        ? driverMobileNav
+        : managerMobileNav;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t-2 border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] md:hidden">
@@ -111,6 +118,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
   const isDriver = user?.role === 'driver';
   const isSuperAdmin = user?.role === 'super_admin';
   const isTelemarketingAgent = user?.role === 'telemarketing_agent';
+  const isClaimsWorker = !!user?.claimsWorkerOnly;
   const canFleetOS = isSuperAdmin || user?.role === 'fleet_manager';
   const canClaims = isSuperAdmin || !!user?.hasClaimsAccess;
 
@@ -151,6 +159,10 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
     ...(canClaims ? [{ path: '/claims', label: 'ניהול תביעות', icon: Scale } as NavItem] : []),
   ];
 
+  const claimsWorkerSidebarItems: NavItem[] = [
+    { path: '/claims', label: 'ניהול תביעות', icon: Scale },
+  ];
+
   return (
     <>
       {mobileOpen ? (
@@ -183,7 +195,15 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
           <p className="text-sm font-bold">{user?.full_name}</p>
           <p className="text-xs opacity-60">{user?.company_name}</p>
           <span className="mt-1 inline-block text-xs bg-primary-foreground/15 px-3 py-0.5 rounded-full">
-            {user?.role === 'super_admin' ? 'מנהל על' : user?.role === 'fleet_manager' ? 'מנהל צי' : user?.role === 'telemarketing_agent' ? 'נציג/ת טלמיטינג' : 'נהג'}
+            {user?.claimsWorkerOnly
+              ? 'עובד ניהול תביעות'
+              : user?.role === 'super_admin'
+                ? 'מנהל על'
+                : user?.role === 'fleet_manager'
+                  ? 'מנהל צי'
+                  : user?.role === 'telemarketing_agent'
+                    ? 'נציג/ת טלמיטינג'
+                    : 'נהג'}
           </span>
         </div>
       </div>
@@ -234,7 +254,14 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
           if (t?.closest('a')) onMobileClose();
         }}
       >
-        {isTelemarketingAgent ? (
+        {isClaimsWorker ? (
+          claimsWorkerSidebarItems.map(item => (
+            <NavLink key={item.path} to={item.path}
+              className={({ isActive }) => `flex items-center gap-3 px-6 py-3.5 text-[15px] font-medium transition-colors relative ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
+              <item.icon size={20} /><span>{item.label}</span>
+            </NavLink>
+          ))
+        ) : isTelemarketingAgent ? (
           telemarketingSidebarItems.map(item => (
             <NavLink key={item.path} to={item.path}
               className={({ isActive }) => `flex items-center gap-3 px-6 py-3.5 text-[15px] font-medium transition-colors relative ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>

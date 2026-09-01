@@ -1,0 +1,2 @@
+Deployed Functions on project usfeoerkpcafxxlyuldl: create-admin-user
+You can inspect your deployment in the Dashboard: https://supabase.com/dashboard/project/usfeoerkpcafxxlyuldl/functions

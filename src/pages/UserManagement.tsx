@@ -32,6 +32,7 @@ interface ManagedUser {
   two_factor_approved_by: string | null;
   two_factor_approved_by_name: string | null;
   hasClaimsAccess: boolean;
+  claimsWorkerOnly: boolean;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -91,7 +92,7 @@ export default function UserManagement() {
       supabase.from('user_roles').select('user_id, role'),
       supabase.functions.invoke('create-admin-user', { body: { action: 'list-users' } }),
       supabase.from('profiles').select('id, full_name'),
-      supabase.from('claims_access' as never).select('user_id'),
+      supabase.from('claims_access' as never).select('user_id, worker_only'),
     ]);
 
     if (profilesRes.error) {
@@ -105,6 +106,11 @@ export default function UserManagement() {
     const approverMap = new Map((approversRes.data || []).map((p: any) => [p.id, p.full_name]));
     const claimsAccessIds = new Set(
       ((claimsAccessRes.data || []) as Array<{ user_id: string }>).map((r) => r.user_id),
+    );
+    const claimsWorkerOnlyIds = new Set(
+      ((claimsAccessRes.data || []) as Array<{ user_id: string; worker_only?: boolean }>)
+        .filter((r) => r.worker_only)
+        .map((r) => r.user_id),
     );
 
     const mapped: ManagedUser[] = (profilesRes.data || []).map((p: any) => ({
@@ -123,6 +129,7 @@ export default function UserManagement() {
         ? approverMap.get(p.two_factor_approved_by) || null
         : null,
       hasClaimsAccess: (roleMap.get(p.id) || '') === 'super_admin' || claimsAccessIds.has(p.id),
+      claimsWorkerOnly: claimsWorkerOnlyIds.has(p.id),
     }));
 
     setUsers(mapped);
@@ -263,7 +270,7 @@ export default function UserManagement() {
       toast({ title: 'שגיאה', description: error.message || 'לא ניתן לעדכן הרשאת תביעות', variant: 'destructive' });
       return;
     }
-    setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, hasClaimsAccess: enabled } : x)));
+    setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, hasClaimsAccess: enabled, claimsWorkerOnly: enabled ? x.claimsWorkerOnly : false } : x)));
     toast({ title: enabled ? '✅ סומן כעובד תביעות' : 'הוסרה הרשאת עובד תביעות', description: u.full_name });
   };
 
@@ -277,8 +284,9 @@ export default function UserManagement() {
       is_active: u.is_active,
       role: u.role as any,
       hasClaimsAccess: u.hasClaimsAccess,
+      claimsWorkerOnly: u.claimsWorkerOnly,
     });
-    navigate('/dashboard');
+    navigate(u.claimsWorkerOnly ? '/claims' : '/dashboard');
   };
 
   const copyToClipboard = (text: string) => {
@@ -413,20 +421,28 @@ export default function UserManagement() {
                     <TableCell>{u.company_name || '—'}</TableCell>
                     <TableCell dir="ltr" className="text-right">{u.phone || '—'}</TableCell>
                     <TableCell>
-                      <Select value={u.role} onValueChange={(val) => handleRoleChange(u.id, val)}>
-                        <SelectTrigger className="h-8 w-[120px] text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                            <SelectItem key={k} value={k}>{v}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {u.claimsWorkerOnly ? (
+                        <Badge variant="outline" className="text-xs border-primary/40 text-primary" data-testid={`claims-worker-type-badge-${u.id}`}>
+                          עובד ניהול תביעות
+                        </Badge>
+                      ) : (
+                        <Select value={u.role} onValueChange={(val) => handleRoleChange(u.id, val)}>
+                          <SelectTrigger className="h-8 w-[120px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                              <SelectItem key={k} value={k}>{v}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </TableCell>
                     <TableCell>
                       {u.role === 'super_admin' ? (
                         <span className="text-xs text-muted-foreground">מנהל על</span>
+                      ) : u.claimsWorkerOnly ? (
+                        <Badge variant="outline" className="text-xs border-primary/40 text-primary">Claims בלבד</Badge>
                       ) : (
                         <div className="flex items-center gap-2">
                           <Switch

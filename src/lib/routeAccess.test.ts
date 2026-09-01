@@ -62,4 +62,15 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/claims', 'telemarketing_agent')).toBe(false);
     expect(canAccessRoute('/claims', 'telemarketing_agent', { hasClaimsAccess: true })).toBe(true);
   });
+
+  it('claims worker is limited to Claims (not driver modules)', () => {
+    const extras = { hasClaimsAccess: true, claimsWorkerOnly: true };
+    expect(canAccessRoute('/claims', 'driver', extras)).toBe(true);
+    expect(canAccessRoute('/dashboard', 'driver', extras)).toBe(true);
+    expect(canAccessRoute('/settings', 'driver', extras)).toBe(true);
+    expect(canAccessRoute('/faults', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/vehicles', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/accidents', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/telemarketing', 'driver', extras)).toBe(false);
+  });
 });
