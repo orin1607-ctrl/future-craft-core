@@ -1,0 +1,67 @@
+{
+  "at": "2026-09-01T18:51:59.753Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "productionSupabaseTouched": false,
+  "hardDelete": false,
+  "deleted": [
+    {
+      "id": "DAL-2026-0018",
+      "client": "TEST-INTAKE לקוח",
+      "status": "חדש",
+      "deletedAt": "2026-09-01T18:51:56.351Z"
+    },
+    {
+      "id": "DAL-2026-0019",
+      "client": "TEST-INTAKE כפילות",
+      "status": "הסתיים",
+      "deletedAt": "2026-09-01T18:51:56.351Z"
+    }
+  ],
+  "protected0014": {
+    "id": "DAL-2026-0014",
+    "client": "מנחם מור שלום",
+    "status": "חדש",
+    "deletedAt": "",
+    "intact": true
+  },
+  "visibleCount": 16,
+  "hiddenIds": [
+    "DAL-2026-0018",
+    "DAL-2026-0019"
+  ],
+  "visibleIds": [
+    "DAL-2026-0002",
+    "DAL-2026-0003",
+    "DAL-2026-0004",
+    "DAL-2026-0005",
+    "DAL-2026-0006",
+    "DAL-2026-0007",
+    "DAL-2026-0008",
+    "DAL-2026-0009",
+    "DAL-2026-0010",
+    "DAL-2026-0011",
+    "DAL-2026-0012",
+    "DAL-2026-0013",
+    "DAL-2026-0014",
+    "DAL-2026-0015",
+    "DAL-2026-0016",
+    "DAL-2026-0017"
+  ],
+  "demoStillVisible": [],
+  "before": {
+    "claims": 18,
+    "docs": 1836,
+    "history": 378,
+    "vehicles": 437,
+    "accidents": 11
+  },
+  "after": {
+    "claims": 18,
+    "docs": 1836,
+    "history": 380,
+    "vehicles": 437,
+    "accidents": 11
+  }
+}

@@ -60,6 +60,7 @@ export default function UserManagement() {
   const [search, setSearch] = useState('');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [claimsFilter, setClaimsFilter] = useState('all');
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
@@ -143,9 +144,13 @@ export default function UserManagement() {
         u.phone.includes(search);
       const matchCompany = companyFilter === 'all' || u.company_name === companyFilter;
       const matchRole = roleFilter === 'all' || u.role === roleFilter;
-      return matchSearch && matchCompany && matchRole;
+      const matchClaims =
+        claimsFilter === 'all'
+        || (claimsFilter === 'workers' && u.hasClaimsAccess)
+        || (claimsFilter === 'none' && !u.hasClaimsAccess);
+      return matchSearch && matchCompany && matchRole && matchClaims;
     });
-  }, [users, search, companyFilter, roleFilter]);
+  }, [users, search, companyFilter, roleFilter, claimsFilter]);
 
   const openEditDialog = (u: ManagedUser) => {
     setSelectedUser(u);
@@ -259,7 +264,7 @@ export default function UserManagement() {
       return;
     }
     setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, hasClaimsAccess: enabled } : x)));
-    toast({ title: enabled ? '✅ גישה לניהול תביעות ניתנה' : 'הרשאה הוסרה', description: u.full_name });
+    toast({ title: enabled ? '✅ סומן כעובד תביעות' : 'הוסרה הרשאת עובד תביעות', description: u.full_name });
   };
 
   const handleImpersonate = (u: ManagedUser) => {
@@ -348,6 +353,16 @@ export default function UserManagement() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={claimsFilter} onValueChange={setClaimsFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]" data-testid="users-claims-filter">
+            <SelectValue placeholder="עובדי תביעות" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">כל המשתמשים</SelectItem>
+            <SelectItem value="workers">עובדי תביעות</SelectItem>
+            <SelectItem value="none">ללא הרשאת תביעות</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
@@ -366,7 +381,7 @@ export default function UserManagement() {
                 <TableHead className="text-right">חברה</TableHead>
                 <TableHead className="text-right">טלפון</TableHead>
                 <TableHead className="text-right">תפקיד</TableHead>
-                <TableHead className="text-right">ניהול תביעות</TableHead>
+                <TableHead className="text-right">עובד תביעות</TableHead>
                 <TableHead className="text-right">אישור</TableHead>
                 <TableHead className="text-right">2FA</TableHead>
                 <TableHead className="text-right">פעיל</TableHead>
@@ -411,12 +426,18 @@ export default function UserManagement() {
                     </TableCell>
                     <TableCell>
                       {u.role === 'super_admin' ? (
-                        <span className="text-xs text-muted-foreground">מלא</span>
+                        <span className="text-xs text-muted-foreground">מנהל על</span>
                       ) : (
-                        <Switch
-                          checked={u.hasClaimsAccess}
-                          onCheckedChange={(checked) => handleToggleClaims(u, checked)}
-                        />
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={u.hasClaimsAccess}
+                            data-testid={`claims-worker-toggle-${u.id}`}
+                            onCheckedChange={(checked) => handleToggleClaims(u, checked)}
+                          />
+                          {u.hasClaimsAccess ? (
+                            <Badge variant="outline" className="text-xs border-primary/40 text-primary" data-testid={`claims-worker-badge-${u.id}`}>עובד תביעות</Badge>
+                          ) : null}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>

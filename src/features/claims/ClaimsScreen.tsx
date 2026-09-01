@@ -1555,7 +1555,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
                 <button className="btn btn-g btn-sm" onClick={() => startEdit(cur.id)}>✏️ ערוך</button>
-                {isSuperAdmin && <button className="btn btn-p btn-sm" onClick={() => setModal('moAssign')}>👤 הקצה לעובד</button>}
+                {isSuperAdmin && <button className="btn btn-p btn-sm" data-testid="claims-assign-btn" onClick={() => setModal('moAssign')}>👤 הקצה לעובד תביעות</button>}
                 <button className="mcl" onClick={() => setModal(null)}>✕</button>
               </div>
             </div>
@@ -2304,18 +2304,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       {/* ASSIGN */}
       <div className={`ov ${modal === 'moAssign' ? 'open' : ''}`}>
         <div className="modal modal-sm">
-          <div className="mh"><div className="mh-t">👤 הקצה לעובד</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mh"><div className="mh-t">👤 הקצה לעובד תביעות</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
           <div className="mb">
             <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>מטפל נוכחי: {cur?.assigned_to_name || 'לא הוקצה'}</div>
-            <div className="fg"><label className="fl">עובד מורשה</label>
-              <select className="fse fi" id="as_user">
-                <option value="">— בחר —</option>
+            <div className="fg"><label className="fl">עובד תביעות</label>
+              <select className="fse fi" id="as_user" data-testid="claims-assign-user">
+                <option value="">— בחר עובד תביעות —</option>
                 {assignees.map((a) => <option key={a.id} value={a.id}>{a.full_name}{a.company_name ? ` · ${a.company_name}` : ''}</option>)}
               </select>
             </div>
           </div>
           <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
-            <button className="btn btn-p" onClick={async () => {
+            <button className="btn btn-p" data-testid="claims-assign-save" onClick={async () => {
               const uid = val(null, 'as_user');
               if (!uid || !cur) { toast('בחר עובד', 'err'); return; }
               const r = await apiRef.current.assignClaim(cur.id, uid);
