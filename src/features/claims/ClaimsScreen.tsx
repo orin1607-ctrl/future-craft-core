@@ -491,9 +491,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   useEffect(() => {
-    if (!curId || (cardTab !== 'surveyor' && cardTab !== 'invoice')) return;
-    const pack = cardTab === 'surveyor' ? surveyorBundle(docs.files).photos : invoiceFiles(docs.files).filter(isImageFile);
-    if (pack.length) void loadGalleryThumbs(curId, pack);
+    if (!curId) return;
+    if (cardTab === 'surveyor' || cardTab === 'invoice') {
+      const tagged = cardTab === 'surveyor' ? surveyorBundle(docs.files).photos : invoiceFiles(docs.files).filter(isImageFile);
+      const show = tagged.length ? tagged : (cardTab === 'surveyor' ? docs.files.filter(isImageFile) : tagged);
+      if (show.length) void loadGalleryThumbs(curId, show);
+      return;
+    }
+    if (cardTab === 'docs') {
+      const preview = docs.files.filter((f) => isImageFile(f)).slice(0, 80);
+      if (preview.length) void loadGalleryThumbs(curId, preview);
+    }
   }, [cardTab, curId, docs.files]);
 
   const openMailFollowupModal = async (edit?: MailFollowupRow | null) => {
@@ -1114,7 +1122,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 setModal('moExport');
               }}>📄 סיכום חיצוני</button>
             </div>
-            <div style={{ padding: '0 18px 18px' }}>
+            <div className="mb">
               <div className="tabs">
                 {[['claim', '📋 תביעה'], ['client', '👤 לקוח'], ['vehicle', '🚗 רכב'], ['treat', '🛠 טיפול'], ['surveyor', '🔎 דוח שמאי'], ['invoice', '🧾 חשבונית מוסך'], ['docs', '📄 מסמכים'], ['gin', '✉ התכתבויות'], ['tasks', '✅ משימות'], ['rems', '🔔 תזכורות'], ['mailfu', '📬 מעקב מייל'], ['timeline', '⏱ היסטוריה']].map(([k, l]) => (
                   <button key={k} className={`tab ${cardTab === k ? 'act' : ''}`} onClick={() => setCardTab(k)}>{l}</button>
@@ -1171,17 +1179,21 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 const pack = surveyorBundle(docs.files);
                 const report = pack.reports[0];
                 const meta = report ? fileMeta(report) : {};
+                const untaggedPhotos = pack.photos.length === 0 ? docs.files.filter(isImageFile) : [];
                 return (
                   <div>
-                    <div className="sdiv"><div className="sdiv-t">דוח שמאי</div><div className="sdiv-l" /></div>
+                    <div className="sdiv"><div className="sdiv-t">דוח שמאי · {docs.files.length} קבצים בתיק</div><div className="sdiv-l" /></div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 12 }}>
                       {[['מספר רכב', cur.plate || '—'], ["מס' תביעה", cur.claimNum || '—'], ['תאריך אירוע', cur.eventDate || '—'],
                         ['שם שמאי', meta.surveyorName || cur.surveyor || '—'], ['תאריך הדוח', meta.reportDate || '—'], ['מספר דוח', meta.reportNumber || '—']].map((f) => (
                         <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
                       ))}
                     </div>
-                    {pack.reports.length === 0 && pack.photos.length === 0 && pack.attachments.length === 0 ? (
+                    {pack.reports.length === 0 && pack.photos.length === 0 && pack.attachments.length === 0 && untaggedPhotos.length === 0 ? (
                       <div className="spec-empty">אין דוח שמאי מסומן בתיק. העלה את הדוח כאן, או סמן מסמך קיים כלשונית «מסמכים» כדוח שמאי. הקובץ נשמר פעם אחת בלבד.</div>
+                    ) : null}
+                    {pack.reports.length === 0 && pack.photos.length === 0 && untaggedPhotos.length > 0 ? (
+                      <div className="spec-empty">אין קובץ שסומן כדוח שמאי. מוצגות {untaggedPhotos.length} תמונות שכבר שמורות בתיק (לשונית מסמכים) — בלי שינוי סיווג ובלי עותק חדש.</div>
                     ) : null}
                     {pack.reports.length === 0 && pack.photos.length > 0 ? (
                       <div className="spec-empty">אין קובץ דוח PDF מסומן. מוצגות {pack.photos.length} תמונות שמאי שכבר יובאו לתיק — בלי עותק חדש.</div>
@@ -1213,6 +1225,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div className="sdiv"><div className="sdiv-t">תמונות הדוח ({pack.photos.length})</div><div className="sdiv-l" /></div>
                         <div className="gal-grid">
                           {pack.photos.map((f) => (
+                            <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
+                              {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
+                    {untaggedPhotos.length ? (
+                      <>
+                        <div className="sdiv"><div className="sdiv-t">תמונות בתיק ({untaggedPhotos.length})</div><div className="sdiv-l" /></div>
+                        <div className="gal-grid">
+                          {untaggedPhotos.map((f) => (
                             <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
                               {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
                             </button>
@@ -1366,6 +1390,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       const imp = gmailImports.find((im) => String(im.gmail_message_id) === mid);
                       const photos = group.filter((f) => classifyDoc(f) === 'photos');
                       const rest = group.filter((f) => classifyDoc(f) !== 'photos');
+                      const preview = openGal[k] ? photos : photos.slice(0, 8);
                       return (
                         <div key={k} className="gal-box">
                           {isGal ? (
@@ -1381,9 +1406,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               }}>{openGal[k] ? 'הסתר גלריה' : `הצג גלריה (${photos.length} תמונות)`}</button>
                             </div>
                           ) : null}
-                          {isGal && openGal[k] ? (
+                          {isGal && photos.length ? (
                             <div className="gal-grid">
-                              {photos.map((f) => (
+                              {preview.map((f) => (
                                 <button key={f.id} className="gal-item" title={f.original_name} onClick={async () => {
                                   const r = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: f.id });
                                   if (r.url) window.open(String(r.url), '_blank');

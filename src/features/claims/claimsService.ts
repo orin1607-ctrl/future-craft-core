@@ -660,8 +660,12 @@ export function createClaimsApi(actor: ClaimsActor) {
 
     async invokeDocs(action: string, body: Record<string, unknown> = {}) {
       const { data, error } = await supabase.functions.invoke('claims-docs', { body: { action, ...body } });
-      if (error) return { success: false, error: error.message, data };
-      return (data || { success: false }) as Record<string, unknown> & { success?: boolean; error?: string };
+      const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+      if (error) {
+        const serverErr = typeof payload.error === 'string' && payload.error ? payload.error : error.message;
+        return { ...payload, success: false, error: serverErr };
+      }
+      return { ...(payload || { success: false }), success: payload.success !== false } as Record<string, unknown> & { success?: boolean; error?: string };
     },
 
     async invokeIntake(action: string, body: Record<string, unknown> = {}) {
