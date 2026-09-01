@@ -1,0 +1,132 @@
+{
+  "at": "2026-09-01T06:45:58.841Z",
+  "realEmailSend": false,
+  "productionTouched": false,
+  "checks": [
+    {
+      "name": "api-create-link",
+      "ok": true
+    },
+    {
+      "name": "staff-intake-button",
+      "ok": true
+    },
+    {
+      "name": "staff-copy-link",
+      "ok": true,
+      "url": "http://localhost:8080/claims-intake?t=dfb6dde13f373e0948c3d758a632343179e36d8cfcd96db83aba"
+    },
+    {
+      "name": "list-shows-test-intake",
+      "ok": true,
+      "hasCustomer": true,
+      "hasDup": true
+    },
+    {
+      "name": "staff-no-gmail-send",
+      "ok": true
+    },
+    {
+      "name": "mobile-rtl",
+      "ok": true
+    },
+    {
+      "name": "mobile-open",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-upload",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-internal",
+      "ok": true
+    },
+    {
+      "name": "mobile-finger-signature",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-horizontal",
+      "ok": true
+    },
+    {
+      "name": "tablet-rtl",
+      "ok": true
+    },
+    {
+      "name": "tablet-open",
+      "ok": true
+    },
+    {
+      "name": "tablet-no-upload",
+      "ok": true
+    },
+    {
+      "name": "tablet-no-internal",
+      "ok": true
+    },
+    {
+      "name": "tablet-no-horizontal",
+      "ok": true
+    },
+    {
+      "name": "desktop-rtl",
+      "ok": true
+    },
+    {
+      "name": "desktop-open",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-upload",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-internal",
+      "ok": true
+    },
+    {
+      "name": "desktop-progress",
+      "ok": true
+    },
+    {
+      "name": "desktop-refresh-keeps-name",
+      "ok": true
+    },
+    {
+      "name": "desktop-whatsapp-return",
+      "ok": true
+    },
+    {
+      "name": "desktop-refresh-keeps-date",
+      "ok": true
+    },
+    {
+      "name": "desktop-mouse-signature",
+      "ok": true
+    },
+    {
+      "name": "desktop-review",
+      "ok": true
+    },
+    {
+      "name": "desktop-review-date",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-gmail",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-horizontal",
+      "ok": true
+    },
+    {
+      "name": "bad-token-ui",
+      "ok": true
+    }
+  ],
+  "base": "http://localhost:8080",
+  "ok": true
+}

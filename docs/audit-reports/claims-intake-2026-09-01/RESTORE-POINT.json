@@ -1,0 +1,16 @@
+{
+  "at": "2026-09-01T06:30:00.000Z",
+  "purpose": "Before customer accident intake. Staging only. Do not touch Production.",
+  "gitHead": "d13fa95447a17fbbebc8d01e7f67917dc8df6ea3",
+  "branch": "feat/incident-alerts-staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "fullMerge": false,
+  "gmailSendUntouched": true,
+  "vehiclesMustStay": 437,
+  "accidentsMustStay": 11,
+  "existingClaimsMustStay": 16,
+  "notes": "Do not UPDATE/DELETE existing DAL-2026-0001..0016. New TEST claims only."
+}

@@ -201,6 +201,7 @@ export function createClaimsApi(actor: ClaimsActor) {
       if (isNew) incoming.createdAt = nowHe();
       incoming.updatedByName = actorName;
       if (isNew) incoming.createdByName = actorName;
+      if (isNew && !incoming.source) incoming.source = 'Staff';
 
       const payload = {
         id: incoming.id,
@@ -661,6 +662,13 @@ export function createClaimsApi(actor: ClaimsActor) {
       const { data, error } = await supabase.functions.invoke('claims-docs', { body: { action, ...body } });
       if (error) return { success: false, error: error.message, data };
       return (data || { success: false }) as Record<string, unknown> & { success?: boolean; error?: string };
+    },
+
+    async invokeIntake(action: string, body: Record<string, unknown> = {}) {
+      const { data, error } = await supabase.functions.invoke('claims-intake', { body: { action, ...body } });
+      const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+      if (error) return { success: false, error: error.message, ...payload };
+      return { ...payload, success: payload.success !== false };
     },
 
     async invokeGmail(action: string, body: Record<string, unknown> = {}) {

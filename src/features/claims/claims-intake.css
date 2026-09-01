@@ -1,0 +1,49 @@
+.intake-page {
+  min-height: 100dvh;
+  background: #f4f7fb;
+  color: #0f172a;
+  font-family: Heebo, sans-serif;
+  padding: 16px 16px 28px;
+  max-width: 720px;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+.intake-page h1 { font-size: 22px; font-weight: 900; margin: 8px 0 12px; }
+.intake-progress {
+  background: #1d4ed8;
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.intake-nav {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  position: sticky;
+  bottom: 8px;
+}
+.intake-nav .btn {
+  flex: 1;
+  min-height: 48px;
+  font-size: 16px;
+  font-weight: 800;
+}
+.intake-err { color: #b91c1c; font-weight: 700; margin: 10px 0; }
+.intake-form .fi, .intake-form .fse, .intake-form .fta {
+  min-height: 44px;
+  font-size: 16px;
+}
+.intake-form .fta { min-height: 96px; }
+.intake-form .fg2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 860px) {
+  .intake-page { max-width: 880px; padding: 28px; }
+  .intake-form .fg2 { grid-template-columns: 1fr 1fr; }
+  .intake-form .fg.full, .intake-form .sdiv { grid-column: 1 / -1; }
+}

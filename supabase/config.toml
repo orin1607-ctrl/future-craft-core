@@ -88,6 +88,10 @@ verify_jwt = false
 [functions.claims-docs]
 verify_jwt = false
 
+# Customer accident intake (public token + staff JWT inside)
+[functions.claims-intake]
+verify_jwt = false
+
 # Staff-triggered dry-run tick (JWT inside). Never sends Gmail.
 [functions.claims-mail-dispatch]
 verify_jwt = true

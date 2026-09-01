@@ -1,0 +1,281 @@
+{
+  "at": "2026-09-01T06:41:31.210Z",
+  "realEmailSend": false,
+  "productionTouched": false,
+  "tests": [
+    {
+      "id": "staging-only",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "usfeoerkpcafxxlyuldl"
+    },
+    {
+      "id": "vehicles-before",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": 437
+    },
+    {
+      "id": "accidents-before",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": 11
+    },
+    {
+      "id": "existing16-before",
+      "ok": false,
+      "verdict": "FAIL",
+      "detail": [
+        "DAL-2026-0002",
+        "DAL-2026-0003",
+        "DAL-2026-0004",
+        "DAL-2026-0005",
+        "DAL-2026-0006",
+        "DAL-2026-0007",
+        "DAL-2026-0008",
+        "DAL-2026-0009",
+        "DAL-2026-0010",
+        "DAL-2026-0011",
+        "DAL-2026-0012",
+        "DAL-2026-0013",
+        "DAL-2026-0014",
+        "DAL-2026-0015",
+        "DAL-2026-0016"
+      ]
+    },
+    {
+      "id": "create-link",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "hasToken": true
+      }
+    },
+    {
+      "id": "create-no-claim-id",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "success": true,
+        "token": "46dbb376032e564b89f0311831f5fc164af6025bc733f22743eb4933d2c2e7c9",
+        "expiresAt": "2026-09-15T06:41:01.364Z"
+      }
+    },
+    {
+      "id": "bad-token",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "invalid_token"
+    },
+    {
+      "id": "public-get",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": [
+        "success",
+        "submitted",
+        "expiresAt",
+        "draft"
+      ]
+    },
+    {
+      "id": "public-no-internal",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": true
+    },
+    {
+      "id": "save-draft",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "success": true,
+        "saved": true
+      }
+    },
+    {
+      "id": "draft-roundtrip",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "TEST-INTAKE לקוח"
+    },
+    {
+      "id": "submit",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "keys": [
+          "success",
+          "submitted",
+          "duplicateSuspect",
+          "message"
+        ]
+      }
+    },
+    {
+      "id": "double-submit",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "success": true,
+        "submitted": true,
+        "already": true
+      }
+    },
+    {
+      "id": "used-link",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "success": true,
+        "submitted": true,
+        "message": "הדיווח התקבל בהצלחה"
+      }
+    },
+    {
+      "id": "dal-created",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "DAL-2026-0018"
+    },
+    {
+      "id": "source",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "Customer Accident Intake"
+    },
+    {
+      "id": "history",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "תיק נפתח מטופס דיווח לקוח"
+    },
+    {
+      "id": "signature-saved",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": 1
+    },
+    {
+      "id": "existing-docs-link",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "ok": true
+      }
+    },
+    {
+      "id": "docs-public-no-gmail",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": [
+        "success",
+        "clientName",
+        "plate",
+        "expiresAt",
+        "docs"
+      ]
+    },
+    {
+      "id": "mutated-token",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "invalid_token"
+    },
+    {
+      "id": "no-enum-hint",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "success": false,
+        "error": "invalid_token"
+      }
+    },
+    {
+      "id": "duplicate-suspect-flag",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "success": true,
+        "submitted": true,
+        "duplicateSuspect": true,
+        "message": "הדיווח התקבל בהצלחה"
+      }
+    },
+    {
+      "id": "no-overwrite-0004",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "still": 1
+      }
+    },
+    {
+      "id": "one-dal-per-token",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "dupCreated": 1,
+        "dupFlag": "true",
+        "oneCustomer": 1
+      }
+    },
+    {
+      "id": "dup-is-new-dal",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "dupCreated": 1,
+        "dupFlag": "true",
+        "oneCustomer": 1
+      }
+    },
+    {
+      "id": "vehicles-same",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "before": 437,
+        "after": 437
+      }
+    },
+    {
+      "id": "accidents-same",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "before": 11,
+        "after": 11
+      }
+    },
+    {
+      "id": "existing16-same",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": [
+        "DAL-2026-0002",
+        "DAL-2026-0003",
+        "DAL-2026-0004",
+        "DAL-2026-0005",
+        "DAL-2026-0006",
+        "DAL-2026-0007",
+        "DAL-2026-0008",
+        "DAL-2026-0009",
+        "DAL-2026-0010",
+        "DAL-2026-0011",
+        "DAL-2026-0012",
+        "DAL-2026-0013",
+        "DAL-2026-0014",
+        "DAL-2026-0015",
+        "DAL-2026-0016"
+      ]
+    },
+    {
+      "id": "no-anon-select",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": false
+    }
+  ],
+  "failCount": 1
+}

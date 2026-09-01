@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_KINDS, CLOSE_REASONS, DOC_PRESETS, MANDATORY_STATUSES, STATUSES, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
+import ClaimAccidentForm from './ClaimAccidentForm';
+import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -255,13 +257,20 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [mailCc, setMailCc] = useState('');
   const [toHint, setToHint] = useState('');
   const mailIdemp = useRef('');
+  const bumpMailDraft = () => {
+    setMailPreviewOn(false);
+    setMailConfirmOn(false);
+    setMailAck(false);
+    mailIdemp.current = `send-${curId || 'x'}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  };
   const [extSummary, setExtSummary] = useState('');
   const [pkgInfo, setPkgInfo] = useState<{ packageBytes: number; overLimit: boolean; suggestion: string; split?: Array<{ index: number; bytes: number; tooLargeSingle?: boolean; file_ids: string[]; names: string[] }> } | null>(null);
   const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
   const [openGal, setOpenGal] = useState<Record<string, boolean>>({});
   const [previewFile, setPreviewFile] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
   const [mineOnly, setMineOnly] = useState(actor.role !== 'super_admin');
-  const [formKind, setFormKind] = useState<string>(CLAIM_KINDS[0]);
+  const [intakeDraft, setIntakeDraft] = useState<IntakeDraft>({ ...EMPTY_INTAKE });
+  const [intakeLinkMsg, setIntakeLinkMsg] = useState('');
   const [dashTasks, setDashTasks] = useState<ClaimRecord[]>([]);
   const [dashRems, setDashRems] = useState<ClaimRecord[]>([]);
   const toastN = useRef(0);
@@ -388,6 +397,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const toggleSendId = (id: string) => {
+    bumpMailDraft();
     setSendIds((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
       if (curId) void refreshPackage(curId, next);
@@ -396,6 +406,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const setSendGroup = (ids: string[], on: boolean) => {
+    bumpMailDraft();
     setSendIds((prev) => {
       const set = new Set(prev);
       ids.forEach((id) => { if (on) set.add(id); else set.delete(id); });
@@ -415,8 +426,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setMailAck(false);
     setMailSending(false);
     mailIdemp.current = `send-${cur.id}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    const mailBody = gmailImports.map((im) => String(im.body_text || '')).filter((t) => t.trim().length > 2).join('\n\n');
-    const ext = await apiRef.current.exportExternalSummary(cur.id, { mailBody });
+    const ext = await apiRef.current.exportExternalSummary(cur.id);
     setExtSummary(ext.text || '');
     setVal('mail_cc', '');
     setVal('mail_to', '');
@@ -531,6 +541,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setVal('fc_status', 'חדש');
     setVal('fc_kind', CLAIM_KINDS[0]);
     setFormKind(CLAIM_KINDS[0]);
+    setIntakeDraft({ ...EMPTY_INTAKE });
     setVehId('');
     setCompanyName('');
     setVehHits([]);
@@ -544,13 +555,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setVal('fc_id', c.id);
     setVal('fc_status', c.status || 'חדש');
     setFormKind(c.claimKind || CLAIM_KINDS[0]);
+    setIntakeDraft(intakeFromClaim(c));
     setVehId(c.vehicle_id || '');
     setCompanyName(c.company_name || '');
     setModal('moClaim');
   };
 
   const doSaveClaim = async () => {
-    const data = collectClaimForm();
+    const data = mergeIntakeToClaim(collectClaimForm(), intakeDraft);
     if (!data.clientName) { toast('נא להזין שם לקוח', 'err'); return; }
     setSync('pend');
     const r = await apiRef.current.saveClaim(data);
@@ -572,9 +584,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const pickVehicle = (v: ClaimsVehicleHit) => {
     setVehId(v.id);
     setCompanyName(v.company_name || '');
-    setVal('fc_plate', v.license_plate || '');
-    const model = [v.manufacturer, v.model].filter(Boolean).join(' ');
-    if (model) setVal('fc_model', model);
+    setIntakeDraft((d) => ({ ...d, plate: v.license_plate || d.plate, carMake: v.manufacturer || d.carMake, carModel: v.model || d.carModel }));
     setVehHits([]);
   };
 
@@ -699,8 +709,19 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <span>{sync === 'pend' ? 'מסנכרן...' : sync === 'err' ? 'שגיאה' : 'מסונכרן'}</span>
             </button>
             <button className="btn btn-p btn-sm" onClick={openNew}>＋ תיק חדש</button>
+            <button className="btn btn-g btn-sm" data-testid="claims-intake-link" onClick={async () => {
+              const r = await apiRef.current.invokeIntake('create_link');
+              if (!r.success || !r.token) { toast(String(r.error || 'יצירת קישור נכשלה'), 'err'); return; }
+              const origin = window.location.origin;
+              const base = import.meta.env.BASE_URL || '/';
+              const url = `${origin}${base && base !== '/' ? base.replace(/\/$/, '') : ''}/claims-intake?t=${r.token}`;
+              try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
+              setIntakeLinkMsg(url);
+              toast('הקישור הועתק — אפשר להדביק ב-WhatsApp');
+            }}>שלח טופס דיווח ללקוח</button>
           </div>
         </div>
+        {intakeLinkMsg ? <div style={{ fontSize: 11, padding: '6px 12px', wordBreak: 'break-all' }} data-testid="claims-intake-url">{intakeLinkMsg}</div> : null}
 
         <div className="body">
           <div className={`sb-ov ${sbOpen ? 'open' : ''}`} data-testid="claims-sb-overlay" onClick={() => setSbOpen(false)} />
@@ -846,7 +867,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       : list.map((c) => (
                         <tr key={c.id} onClick={() => openCard(c.id)}>
                           <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{c.id}</td>
-                          <td><div style={{ fontWeight: 600 }}>{c.clientName}</div>{c.clientPhone ? <div style={{ fontSize: 10, color: 'var(--t3)' }}>{c.clientPhone}</div> : null}</td>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{c.clientName}</div>
+                            {c.clientPhone ? <div style={{ fontSize: 10, color: 'var(--t3)' }}>{c.clientPhone}</div> : null}
+                            {c.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
+                            {c.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
+                          </td>
                           <td>{c.plate || '—'}</td><td>{c.insCompany || '—'}</td>
                           <td style={{ color: 'var(--t3)', fontSize: 11 }}>{c.claimNum || '—'}</td>
                           <td>{stBadge(c.status)}</td>
@@ -949,86 +975,73 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="modal">
           <div className="mh"><div className="mh-t" id="mClaimT">{val(null, 'fc_id') ? 'עריכת תיק' : 'פתיחת תיק חדש'}</div><button className="mcl" onClick={() => setModal(null)}>✕</button></div>
           <div className="mb">
-            <div className="sdiv" style={{ marginTop: 0 }}><div className="sdiv-t">לקוח ורכב</div><div className="sdiv-l" /></div>
-            <div className="fg2">
-              <div className="fg"><label className="fl">שם לקוח *</label><input className="fi" id="fc_name" /></div>
-              <div className="fg"><label className="fl">טלפון</label><input className="fi" id="fc_phone" /></div>
-              <div className="fg"><label className="fl">אימייל</label><input className="fi" id="fc_email" type="email" /></div>
-              <div className="fg full">
-                <label className="fl">שיוך לרכב ב-Oren Car (חיפוש לפי מספר רישוי)</label>
-                <input className="fi" placeholder="הקלד מספר רישוי, דגם או חברה..." onChange={(e) => searchVehicles(e.target.value)} />
-                {vehId && <div className="lbl-pill" style={{ marginTop: 6 }}>משויך לרכב ✓ · {companyName || '—'}</div>}
-                {vehHits.length > 0 && (
-                  <div className="veh-drop" style={{ marginTop: 6 }}>
-                    {vehHits.map((v) => (
-                      <div key={v.id} className="veh-item" onClick={() => pickVehicle(v)}>
-                        <b>{v.license_plate}</b> · {[v.manufacturer, v.model].filter(Boolean).join(' ')} · {v.company_name || '—'}
-                        {v.internal_number ? ` · פנימי ${v.internal_number}` : ''}
-                      </div>
-                    ))}
+            <ClaimAccidentForm
+              mode="staff"
+              value={intakeDraft}
+              onChange={(d) => { setIntakeDraft(d); setFormKind(d.claimKind || CLAIM_KINDS[0]); setVal('fc_kind', d.claimKind || CLAIM_KINDS[0]); }}
+              stepKey="all"
+              staffSlot={(
+                <>
+                  <div className="sdiv"><div className="sdiv-t">פנימי לעובד</div><div className="sdiv-l" /></div>
+                  <div className="fg2">
+                    <div className="fg full">
+                      <label className="fl">שיוך לרכב ב-Oren Car (חיפוש בלבד — לא יוצר רכב)</label>
+                      <input className="fi" placeholder="הקלד מספר רישוי, דגם או חברה..." onChange={(e) => searchVehicles(e.target.value)} />
+                      {vehId && <div className="lbl-pill" style={{ marginTop: 6 }}>משויך לרכב ✓ · {companyName || '—'}</div>}
+                      {vehHits.length > 0 && (
+                        <div className="veh-drop" style={{ marginTop: 6 }}>
+                          {vehHits.map((v) => (
+                            <div key={v.id} className="veh-item" onClick={() => pickVehicle(v)}>
+                              <b>{v.license_plate}</b> · {[v.manufacturer, v.model].filter(Boolean).join(' ')} · {v.company_name || '—'}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="fg"><label className="fl">סטטוס</label>
+                      <select className="fse fi" id="fc_status">{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
+                    </div>
+                    <div className="fg"><label className="fl">אימייל ביטוח</label><input className="fi" id="fc_coEmail" type="email" /></div>
+                    <div className="fg"><label className="fl">נציג – שם</label><input className="fi" id="fc_insRepName" /></div>
+                    <div className="fg"><label className="fl">נציג – טלפון</label><input className="fi" id="fc_insRepPhone" /></div>
+                    <div className="fg"><label className="fl">נציג – אימייל</label><input className="fi" id="fc_insRepEmail" type="email" /></div>
+                    <div className="fg"><label className="fl">אימייל צד ג׳</label><input className="fi" id="fc_thirdEmail" type="email" /></div>
                   </div>
-                )}
-              </div>
-              <div className="fg"><label className="fl">מספר רכב *</label><input className="fi" id="fc_plate" /></div>
-              <div className="fg"><label className="fl">דגם רכב</label><input className="fi" id="fc_model" /></div>
-              <div className="fg"><label className="fl">סטטוס</label>
-                <select className="fse fi" id="fc_status">{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
-              </div>
-              <div className="fg"><label className="fl">סוג התביעה</label>
-                <select className="fse fi" id="fc_kind" value={formKind} onChange={(e) => { setFormKind(e.target.value); setVal('fc_kind', e.target.value); }}>{CLAIM_KINDS.map((s) => <option key={s}>{s}</option>)}</select>
-              </div>
-              <div className="fg"><label className="fl">תאריך אירוע</label><input className="fi" id="fc_eventDate" type="date" /></div>
-              <div className="fg"><label className="fl">מספר פוליסה</label><input className="fi" id="fc_policyNum" /></div>
-            </div>
-            <div className="sdiv"><div className="sdiv-t">חברת ביטוח</div><div className="sdiv-l" /></div>
-            <div className="fg2">
-              <div className="fg"><label className="fl">חברת ביטוח</label><input className="fi" id="fc_co" list="dlCo" /><datalist id="dlCo"><option>מגדל</option><option>הפניקס</option><option>מנורה מבטחים</option><option>הראל</option><option>כלל ביטוח</option><option>איילון</option><option>שירביט</option><option>ביטוח ישיר</option></datalist></div>
-              <div className="fg"><label className="fl">מספר תביעה</label><input className="fi" id="fc_claimNum" /></div>
-              <div className="fg"><label className="fl">אימייל ביטוח</label><input className="fi" id="fc_coEmail" type="email" /></div>
-              <div className="fg"><label className="fl">נציג – שם</label><input className="fi" id="fc_insRepName" /></div>
-              <div className="fg"><label className="fl">נציג – טלפון</label><input className="fi" id="fc_insRepPhone" /></div>
-              <div className="fg"><label className="fl">נציג – אימייל</label><input className="fi" id="fc_insRepEmail" type="email" /></div>
-            </div>
-            <div style={{ display: formKind === 'תביעת צד ג׳' ? 'block' : 'none' }}>
-              <div className="sdiv"><div className="sdiv-t">צד ג׳</div><div className="sdiv-l" /></div>
-              <div className="fg2">
-                <div className="fg"><label className="fl">שם צד ג׳</label><input className="fi" id="fc_thirdParty" /></div>
-                <div className="fg"><label className="fl">מספר רכב צד ג׳</label><input className="fi" id="fc_thirdPlate" /></div>
-                <div className="fg"><label className="fl">טלפון צד ג׳</label><input className="fi" id="fc_thirdPhone" /></div>
-                <div className="fg"><label className="fl">אימייל צד ג׳</label><input className="fi" id="fc_thirdEmail" type="email" /></div>
-              </div>
-            </div>
-            <div className="sdiv"><div className="sdiv-t">שמאי</div><div className="sdiv-l" /></div>
-            <div className="fg2">
-              <div className="fg"><label className="fl">שם שמאי</label><input className="fi" id="fc_surv" /></div>
-              <div className="fg"><label className="fl">טלפון שמאי</label><input className="fi" id="fc_survPhone" /></div>
-              <div className="fg"><label className="fl">אימייל שמאי</label><input className="fi" id="fc_survEmail" type="email" /></div>
-            </div>
-            <div className="sdiv"><div className="sdiv-t">כספי</div><div className="sdiv-l" /></div>
-            <div className="fg3">
-              <div className="fg"><label className="fl">סכום תביעה (₪)</label><input className="fi" id="fc_amount" type="number" /></div>
-              <div className="fg"><label className="fl">סכום אושר (₪)</label><input className="fi" id="fc_approved" type="number" /></div>
-              <div className="fg"><label className="fl">סכום שולם (₪)</label><input className="fi" id="fc_paid" type="number" /></div>
-              <div className="fg"><label className="fl">תאריך תשלום</label><input className="fi" id="fc_payDate" type="date" /></div>
-              <div className="fg"><label className="fl">אסמכתא</label><input className="fi" id="fc_ref" /></div>
-            </div>
-            <div className="sdiv"><div className="sdiv-t">פעולה הבאה</div><div className="sdiv-l" /></div>
-            <div className="fg2">
-              <div className="fg"><label className="fl">פעולה</label><input className="fi" id="fc_nextAction" /></div>
-              <div className="fg"><label className="fl">תאריך יעד</label><input className="fi" id="fc_nextDate" type="date" /></div>
-              <div className="fg full"><label className="fl">הערות</label><textarea className="fta" id="fc_notes" /></div>
-            </div>
-            <div className="sdiv"><div className="sdiv-t">⚖️ טיפול משפטי</div><div className="sdiv-l" /></div>
-            <div className="fg2">
-              <div className="fg"><label className="fl">סיבת העברה</label><select className="fse fi" id="fc_legalReason"><option>דחיית תביעה</option><option>תשלום חלקי</option><option>אי תגובה</option><option>מחלוקת כספית</option><option>מחלוקת אחריות</option><option>עיכוב חריג</option><option>אחר</option></select></div>
-              <div className="fg"><label className="fl">שם עורך דין</label><input className="fi" id="fc_legalLawyer" /></div>
-              <div className="fg"><label className="fl">משרד</label><input className="fi" id="fc_legalFirm" /></div>
-              <div className="fg"><label className="fl">טלפון</label><input className="fi" id="fc_legalPhone" /></div>
-              <div className="fg"><label className="fl">אימייל</label><input className="fi" id="fc_legalEmail" type="email" /></div>
-              <div className="fg"><label className="fl">תאריך העברה</label><input className="fi" id="fc_legalDate" type="date" /></div>
-              <div className="fg full"><label className="fl">הערות משפטיות</label><textarea className="fta" id="fc_legalNotes" /></div>
-            </div>
+                  <div className="sdiv"><div className="sdiv-t">שמאי</div><div className="sdiv-l" /></div>
+                  <div className="fg2">
+                    <div className="fg"><label className="fl">שם שמאי</label><input className="fi" id="fc_surv" /></div>
+                    <div className="fg"><label className="fl">טלפון שמאי</label><input className="fi" id="fc_survPhone" /></div>
+                    <div className="fg"><label className="fl">אימייל שמאי</label><input className="fi" id="fc_survEmail" type="email" /></div>
+                  </div>
+                  <div className="sdiv"><div className="sdiv-t">כספי</div><div className="sdiv-l" /></div>
+                  <div className="fg3">
+                    <div className="fg"><label className="fl">סכום תביעה (₪)</label><input className="fi" id="fc_amount" type="number" /></div>
+                    <div className="fg"><label className="fl">סכום אושר (₪)</label><input className="fi" id="fc_approved" type="number" /></div>
+                    <div className="fg"><label className="fl">סכום שולם (₪)</label><input className="fi" id="fc_paid" type="number" /></div>
+                    <div className="fg"><label className="fl">תאריך תשלום</label><input className="fi" id="fc_payDate" type="date" /></div>
+                    <div className="fg"><label className="fl">אסמכתא</label><input className="fi" id="fc_ref" /></div>
+                  </div>
+                  <div className="sdiv"><div className="sdiv-t">פעולה הבאה</div><div className="sdiv-l" /></div>
+                  <div className="fg2">
+                    <div className="fg"><label className="fl">פעולה</label><input className="fi" id="fc_nextAction" /></div>
+                    <div className="fg"><label className="fl">תאריך יעד</label><input className="fi" id="fc_nextDate" type="date" /></div>
+                    <div className="fg full"><label className="fl">הערות פנימיות</label><textarea className="fta" id="fc_notes" /></div>
+                  </div>
+                  <div className="sdiv"><div className="sdiv-t">⚖️ טיפול משפטי</div><div className="sdiv-l" /></div>
+                  <div className="fg2">
+                    <div className="fg"><label className="fl">סיבת העברה</label><select className="fse fi" id="fc_legalReason"><option>דחיית תביעה</option><option>תשלום חלקי</option><option>אי תגובה</option><option>מחלוקת כספית</option><option>מחלוקת אחריות</option><option>עיכוב חריג</option><option>אחר</option></select></div>
+                    <div className="fg"><label className="fl">שם עורך דין</label><input className="fi" id="fc_legalLawyer" /></div>
+                    <div className="fg"><label className="fl">משרד</label><input className="fi" id="fc_legalFirm" /></div>
+                    <div className="fg"><label className="fl">טלפון</label><input className="fi" id="fc_legalPhone" /></div>
+                    <div className="fg"><label className="fl">אימייל</label><input className="fi" id="fc_legalEmail" type="email" /></div>
+                    <div className="fg"><label className="fl">תאריך העברה</label><input className="fi" id="fc_legalDate" type="date" /></div>
+                    <div className="fg full"><label className="fl">הערות משפטיות</label><textarea className="fta" id="fc_legalNotes" /></div>
+                  </div>
+                </>
+              )}
+            />
             <input type="hidden" id="fc_id" />
+            <input type="hidden" id="fc_kind" />
           </div>
           <div className="mf"><button className="btn btn-g" onClick={() => setModal(null)}>ביטול</button><button className="btn btn-p" onClick={doSaveClaim}>💾 שמור</button></div>
         </div>
@@ -1049,6 +1062,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   {cur.vehicle_id ? <div className="lbl-pill">רכב משויך</div> : null}
                   {cur.assigned_to_name ? <div className="lbl-pill">מטפל: {cur.assigned_to_name}</div> : <div className="lbl-pill">ללא מטפל</div>}
                   {cur.claimKind ? <div className="lbl-pill">{cur.claimKind}</div> : null}
+                  {cur.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
+                  {cur.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
@@ -1726,22 +1741,22 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="fg"><label className="fl">From</label><input className="fi" data-testid="mail-from" value={gmailStatus.email || 'yoni122222@gmail.com'} readOnly /></div>
             <div className="fg">
               <label className="fl">To *</label>
-              <input className="fi" id="mail_to" data-testid="mail-to" value={mailTo} onChange={(e) => { setMailTo(e.target.value); setVal('mail_to', e.target.value); }} placeholder="הקלד כתובת ידנית — לא נבחרת אוטומטית" />
+              <input className="fi" id="mail_to" data-testid="mail-to" disabled={mailSending} value={mailTo} onChange={(e) => { bumpMailDraft(); setMailTo(e.target.value); setVal('mail_to', e.target.value); }} placeholder="הקלד כתובת ידנית — לא נבחרת אוטומטית" />
               {toHint ? (
-                <button type="button" className="btn btn-g btn-sm" style={{ marginTop: 6 }} onClick={() => { setMailTo(toHint); setVal('mail_to', toHint); }}>העתק כתובת ששמורה בתיק ({toHint})</button>
+                <button type="button" className="btn btn-g btn-sm" style={{ marginTop: 6 }} disabled={mailSending} onClick={() => { bumpMailDraft(); setMailTo(toHint); setVal('mail_to', toHint); }}>העתק כתובת ששמורה בתיק ({toHint})</button>
               ) : <div style={{ fontSize: 10, color: 'var(--t3)' }}>אין כתובת שמורה בתיק — חובה להקליד.</div>}
             </div>
-            <div className="fg"><label className="fl">CC</label><input className="fi" id="mail_cc" data-testid="mail-cc" value={mailCc} onChange={(e) => { setMailCc(e.target.value); setVal('mail_cc', e.target.value); }} placeholder="אופציונלי" /></div>
-            <div className="fg"><label className="fl">Subject</label><input className="fi" id="mail_subj" data-testid="mail-subj" /></div>
+            <div className="fg"><label className="fl">CC</label><input className="fi" id="mail_cc" data-testid="mail-cc" disabled={mailSending} value={mailCc} onChange={(e) => { bumpMailDraft(); setMailCc(e.target.value); setVal('mail_cc', e.target.value); }} placeholder="אופציונלי" /></div>
+            <div className="fg"><label className="fl">Subject</label><input className="fi" id="mail_subj" data-testid="mail-subj" disabled={mailSending} onInput={() => bumpMailDraft()} /></div>
             {(mailKind === 'insurer' || mailKind === 'legal') && (
               <div className="fg">
                 <label className="fl">Body — סיכום חיצוני בלבד</label>
-                <textarea className="fta" data-testid="mail-body" style={{ minHeight: 140 }} value={extSummary} onChange={(e) => { setExtSummary(e.target.value); setVal('mail_body', e.target.value); }} />
+                <textarea className="fta" data-testid="mail-body" disabled={mailSending} style={{ minHeight: 140 }} value={extSummary} onChange={(e) => { bumpMailDraft(); setExtSummary(e.target.value); setVal('mail_body', e.target.value); }} />
                 <div style={{ fontSize: 10, color: 'var(--t3)' }}>היסטוריית עובדים, הערות פנימיות ומשימות לא נכללות.</div>
               </div>
             )}
             {mailKind === 'draft' ? (
-              <div className="fg"><label className="fl">Body</label><textarea className="fta" id="mail_body" data-testid="mail-body" style={{ minHeight: 100 }} /></div>
+              <div className="fg"><label className="fl">Body</label><textarea className="fta" id="mail_body" data-testid="mail-body" disabled={mailSending} style={{ minHeight: 100 }} onInput={() => bumpMailDraft()} /></div>
             ) : <input type="hidden" id="mail_body" value={extSummary} readOnly />}
             <div className="sdiv"><div className="sdiv-t">בחירת מסמכים לצירוף</div><div className="sdiv-l" /></div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -1760,7 +1775,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   <div className="pick-list">
                     {group.map((f) => (
                       <label key={f.id} className="pick-row">
-                        <input type="checkbox" data-testid={`mail-file-${f.id}`} checked={sendIds.includes(f.id)} onChange={() => toggleSendId(f.id)} />
+                        <input type="checkbox" data-testid={`mail-file-${f.id}`} disabled={mailSending} checked={sendIds.includes(f.id)} onChange={() => toggleSendId(f.id)} />
                         <span>{f.original_name}</span>
                         <span className="pick-sz">{fmtBytes(Number(f.byte_size || 0))}</span>
                       </label>
@@ -1868,34 +1883,34 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 if (!mailAddrsOk(cc, false)) { toast('כתובת CC לא תקינה', 'err'); return; }
                 if (!bodyText) { toast('חסר Body', 'err'); return; }
                 setMailSending(true);
-                const r = await apiRef.current.invokeGmail('send_claim', {
-                  confirm: true,
-                  claim_id: curId,
-                  to,
-                  cc,
-                  subject: val(null, 'mail_subj'),
-                  body: bodyText,
-                  file_ids: sendIds,
-                  idempotency_key: mailIdemp.current,
-                });
-                setMailSending(false);
-                if (!r.success) {
-                  if (r.error === 'already_sent') toast('המייל כבר נשלח — אין שליחה כפולה', 'err');
-                  else if (r.error === 'send_in_progress') toast('שליחה כבר בתהליך', 'err');
-                  else if (r.error === 'package_too_large') toast('הקבצים גדולים מדי לשליחה במייל — לא נשלח ולא הושמטו קבצים', 'err');
-                  else if (r.error === 'confirm_required') toast('נדרש אישור מפורש', 'err');
-                  else if (r.error === 'internal_content_blocked') toast('התוכן כולל חומר פנימי — לא נשלח', 'err');
-                  else toast(String(r.error || 'שליחה נכשלה'), 'err');
-                  if (r.error !== 'already_sent' && r.error !== 'send_in_progress') {
-                    mailIdemp.current = `send-${curId || 'x'}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+                try {
+                  const r = await apiRef.current.invokeGmail('send_claim', {
+                    confirm: true,
+                    claim_id: curId,
+                    to,
+                    cc,
+                    subject: val(null, 'mail_subj'),
+                    body: bodyText,
+                    file_ids: sendIds,
+                    idempotency_key: mailIdemp.current,
+                  });
+                  if (!r.success) {
+                    if (r.error === 'already_sent') toast('המייל כבר נשלח — אין שליחה כפולה', 'err');
+                    else if (r.error === 'send_in_progress') toast('שליחה כבר בתהליך', 'err');
+                    else if (r.error === 'package_too_large') toast('הקבצים גדולים מדי לשליחה במייל — לא נשלח ולא הושמטו קבצים', 'err');
+                    else if (r.error === 'confirm_required') toast('נדרש אישור מפורש', 'err');
+                    else if (r.error === 'internal_content_blocked') toast('התוכן כולל חומר פנימי — לא נשלח', 'err');
+                    else toast(String(r.error || 'שליחה נכשלה'), 'err');
+                    return;
                   }
-                  return;
+                  toast(`נשלח · msgid ${String(r.gmail_message_id || '')} · thread ${String(r.gmail_thread_id || '')}`);
+                  setMailConfirmOn(false);
+                  setMailAck(false);
+                  setModal('moCard');
+                  if (curId) await openCard(curId);
+                } finally {
+                  setMailSending(false);
                 }
-                toast(`נשלח · msgid ${String(r.gmail_message_id || '')}`);
-                setMailConfirmOn(false);
-                setMailAck(false);
-                setModal('moCard');
-                if (curId) await openCard(curId);
               }}>{mailSending ? 'שולח…' : 'אשר ושלח'}</button>
             )}
           </div>

@@ -132,6 +132,7 @@ import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
 import TransportHubPage from "@/pages/TransportHubPage";
 import ClaimsPage from "@/pages/ClaimsPage";
 import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
+import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
 
 const queryClient = new QueryClient();
 
@@ -193,6 +194,7 @@ function AppRoutes() {
         <Route path="/take-exam" element={<TakeDrivingExam />} />
         <Route path="/upload-request" element={<UploadDocumentRequest />} />
         <Route path="/claims-upload" element={<ClaimsUploadPage />} />
+        <Route path="/claims-intake" element={<ClaimsIntakePage />} />
         {/* Protected deep links → login (not marketing About / fake 404) */}
         <Route path="*" element={<LoginRedirect />} />
       </Routes>
@@ -230,6 +232,7 @@ function AppRoutes() {
       />
       <Route path="/dalia-crm" element={<LegacyMarketingRedirect />} />
       <Route path="/claims-upload" element={<ClaimsUploadPage />} />
+      <Route path="/claims-intake" element={<ClaimsIntakePage />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
@@ -328,7 +331,7 @@ function AppRoutes() {
 
 function ThemeToggleGate() {
   const loc = useLocation();
-  if (loc.pathname === '/claims-upload') return null;
+  if (loc.pathname === '/claims-upload' || loc.pathname === '/claims-intake') return null;
   return <ThemeToggle />;
 }
 
