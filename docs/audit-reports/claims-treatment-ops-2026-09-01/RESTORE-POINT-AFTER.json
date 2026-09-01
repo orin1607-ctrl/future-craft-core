@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-01T18:35:25.656Z",
+  "purpose": "restore-after-claims-treatment-ops",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "gitHead": "234844adf12b4aff1c14dca4b514b0a06d9a1510",
+  "gitShort": "234844a",
+  "vehicles": 437,
+  "accidents": 11,
+  "claims": 18,
+  "docs": 1836,
+  "history": 378,
+  "reminders": 1,
+  "tasks": 9,
+  "bucketPublic": false,
+  "deployed_ref": "234844a feat/incident-alerts-staging"
+}

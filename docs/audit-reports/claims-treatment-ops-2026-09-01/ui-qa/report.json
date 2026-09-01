@@ -1,0 +1,167 @@
+{
+  "at": "2026-09-01T18:33:02.781Z",
+  "productionTouched": false,
+  "realEmailSend": false,
+  "checks": [
+    {
+      "name": "desktop-1-view-no-treat",
+      "ok": true
+    },
+    {
+      "name": "desktop-reply-forward-visible",
+      "ok": true
+    },
+    {
+      "name": "desktop-2-task-added",
+      "ok": true,
+      "via": "call"
+    },
+    {
+      "name": "desktop-2-treat-opens",
+      "ok": true
+    },
+    {
+      "name": "desktop-3-cannot-skip-next",
+      "ok": true
+    },
+    {
+      "name": "desktop-3-still-open-without-next",
+      "ok": true
+    },
+    {
+      "name": "desktop-4-status-unchanged",
+      "ok": true
+    },
+    {
+      "name": "desktop-5-manual",
+      "ok": true
+    },
+    {
+      "name": "desktop-11-history",
+      "ok": true
+    },
+    {
+      "name": "desktop-6-last-col",
+      "ok": true
+    },
+    {
+      "name": "desktop-7-next-col",
+      "ok": true
+    },
+    {
+      "name": "desktop-18-upload-btn",
+      "ok": true
+    },
+    {
+      "name": "desktop-18-upload-listed",
+      "ok": true
+    },
+    {
+      "name": "desktop-14-delete-copy",
+      "ok": true
+    },
+    {
+      "name": "desktop-14-delete-disabled",
+      "ok": true
+    },
+    {
+      "name": "desktop-14-0014-kept",
+      "ok": true
+    },
+    {
+      "name": "desktop-15-no-cross-pdf",
+      "ok": true
+    },
+    {
+      "name": "desktop-8-closed-no-next",
+      "ok": true
+    },
+    {
+      "name": "desktop-12-in-archive",
+      "ok": true
+    },
+    {
+      "name": "desktop-13-restore-btn",
+      "ok": true
+    },
+    {
+      "name": "desktop-13-restored",
+      "ok": true
+    },
+    {
+      "name": "desktop-19-reply-exists",
+      "ok": true
+    },
+    {
+      "name": "desktop-16-overflow-archive-nav",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-real-send",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "mobile-1-view-no-treat",
+      "ok": true
+    },
+    {
+      "name": "mobile-reply-forward-visible",
+      "ok": true
+    },
+    {
+      "name": "mobile-add-archive-nav",
+      "ok": true
+    },
+    {
+      "name": "mobile-16-overflow-archive-nav",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-real-send",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "9-reminder-one",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "10-reminder-updated",
+      "ok": true,
+      "date": "2026-09-04"
+    },
+    {
+      "name": "11-db-history",
+      "ok": true,
+      "n": 6
+    },
+    {
+      "name": "6-last-treatment-saved",
+      "ok": true
+    },
+    {
+      "name": "7-next-date-saved",
+      "ok": true
+    },
+    {
+      "name": "12-0018-not-deleted",
+      "ok": true
+    },
+    {
+      "name": "15-gmail-docs-kept",
+      "ok": true,
+      "n": 2
+    },
+    {
+      "name": "vehicles-437",
+      "ok": true
+    },
+    {
+      "name": "accidents-11",
+      "ok": true
+    }
+  ],
+  "ok": true
+}

@@ -1,0 +1,91 @@
+{
+  "c14": {
+    "status": "חדש",
+    "client": "מנחם מור שלום",
+    "archived": "",
+    "deletedAt": "",
+    "lastTreatmentAt": "1.9.2026, 21:33:22",
+    "nextDate": "2026-09-04"
+  },
+  "c18": {
+    "status": "חדש",
+    "client": "TEST-INTAKE לקוח",
+    "archived": "",
+    "deletedAt": ""
+  },
+  "reminder": [
+    {
+      "id": "NT-DAL-2026-0014",
+      "claim_id": "DAL-2026-0014",
+      "status": "scheduled",
+      "next_run_at": "2026-09-04T06:00:00+00:00",
+      "row_data": {
+        "id": "NT-DAL-2026-0014",
+        "date": "2026-09-04",
+        "note": "טיפול הבא",
+        "owner": "יוני מממ",
+        "claimId": "DAL-2026-0014",
+        "purpose": "next_treatment",
+        "cancelled": "false",
+        "createdAt": "1.9.2026, 21:33:23"
+      }
+    }
+  ],
+  "taskNames": [
+    {
+      "id": "TSK-1788266008837-8GR36Q",
+      "claim": "DAL-2026-0014",
+      "action": "השלמת מסמכים לפי הבקשה במייל",
+      "done": "false"
+    },
+    {
+      "id": "TSK-1788286035810-HBYU",
+      "claim": "DAL-2026-0014",
+      "action": "QA-טיפול-1788286014131",
+      "done": "true"
+    },
+    {
+      "id": "TSK-1788286047943-ARY8",
+      "claim": "DAL-2026-0014",
+      "action": "QA-טיפול-1788286014131-b",
+      "done": "true"
+    },
+    {
+      "id": "TSK-1788286678413-G6RB",
+      "claim": "DAL-2026-0014",
+      "action": "QA-טיפול-1788286658851",
+      "done": "false"
+    },
+    {
+      "id": "TSK-1788286280479-JSC2",
+      "claim": "DAL-2026-0014",
+      "action": "QA-טיפול-1788286262077",
+      "done": "true"
+    },
+    {
+      "id": "TSK-1788287247198-Y2JZ",
+      "claim": "DAL-2026-0014",
+      "action": "QA-טיפול-1788287228169",
+      "done": "false"
+    },
+    {
+      "id": "TSK-1788286532265-XC3C",
+      "claim": "DAL-2026-0014",
+      "action": "QA-טיפול-1788286510912",
+      "done": "true"
+    },
+    {
+      "id": "TSK-1788287301063-ONED",
+      "claim": "DAL-2026-0018",
+      "action": "QA-closed-1788287228169",
+      "done": "true"
+    },
+    {
+      "id": "TSK-1788265891942-1AMJTN",
+      "claim": "DAL-2026-0014",
+      "action": "פוליסה",
+      "done": "false"
+    }
+  ],
+  "gmailDocs0014": 2
+}
