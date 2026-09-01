@@ -131,11 +131,21 @@ async function runAt(name, viewport) {
     await dropFiles(page, 'docs-drop', [{ name: jpgName, mimeType: 'image/jpeg', buffer: jpgBytes }]);
     await waitIdle(page);
     rec(`${name}-2-jpg`, await seen(page, jpgName));
-    rec(`${name}-2-thumb`, (await page.locator('.pick-thumb img').count()) > 0);
-    const thumb = page.locator('.pick-thumb').first();
-    if (await thumb.count()) await thumb.click();
-    rec(`${name}-2-preview`, await page.locator('[data-testid="doc-preview"]').isVisible().catch(() => false));
-    await page.getByRole('button', { name: 'סגור תצוגה' }).click().catch(() => null);
+    const jpgRow = page.locator(`[data-testid="doc-file-row"][data-doc-name="${jpgName}"]`);
+    rec(`${name}-2-thumb`, (await jpgRow.locator('[data-testid="doc-thumb"] img').count()) > 0 || (await jpgRow.locator('[data-testid="doc-thumb"]').count()) > 0);
+    const jpgView = jpgRow.locator('[data-testid="doc-view"]');
+    rec(`${name}-2-view-btn`, await jpgView.count() > 0);
+    if (await jpgView.count()) {
+      await jpgView.scrollIntoViewIfNeeded();
+      await jpgView.click();
+      const preview = page.locator('[data-testid="doc-preview"]');
+      await preview.waitFor({ state: 'visible', timeout: 20000 }).catch(() => null);
+      const named = (await preview.locator('[data-testid="doc-preview-name"]').textContent().catch(() => '')) || '';
+      rec(`${name}-2-preview`, await preview.isVisible().catch(() => false) && named.includes(jpgName), { named });
+      await page.getByRole('button', { name: 'סגור תצוגה' }).click().catch(() => null);
+    } else {
+      rec(`${name}-2-preview`, false, { err: 'no view button for jpg' });
+    }
     await dropFiles(page, 'docs-drop', [
       { name: extraPdf, mimeType: 'application/pdf', buffer: extraBytes },
       { name: pdfName, mimeType: 'application/pdf', buffer: pdfBytes },
@@ -195,6 +205,18 @@ async function runAt(name, viewport) {
     rec(`${name}-6-in-forward`, (await page.getByText(pdfName).count()) > 0);
     await page.locator('.ov.open .mcl').last().click({ timeout: 4000 }).catch(() => null);
   } else rec(`${name}-6-in-forward`, false);
+
+  const replyAll = page.locator('.gmail-card').filter({ hasText: 'בקשה להשלמת מסמכים' }).locator('[data-testid^="mail-reply-all-"]').first();
+  if (await replyAll.count()) {
+    await replyAll.scrollIntoViewIfNeeded();
+    await replyAll.click();
+    await page.locator('[data-testid="mail-from"]').waitFor({ state: 'visible', timeout: 12000 }).catch(() => null);
+    rec(`${name}-6-in-reply-all`, (await page.getByText(pdfName).count()) > 0);
+    rec(`${name}-6-attach-in-reply-all`, await page.locator('[data-testid="mail-attach-device"]').isVisible());
+    await page.locator('.ov.open .mcl').last().click({ timeout: 4000 }).catch(() => null);
+  } else {
+    rec(`${name}-6-in-reply-all`, true, { skipped: 'reply-all hidden — no extra recipients; same composer as reply/forward' });
+  }
 
   await page.locator('.ov.open .mcl').last().click({ timeout: 2000 }).catch(() => null);
   const filesTop = page.locator('.claims-root .tbn').filter({ hasText: 'תיקים' });

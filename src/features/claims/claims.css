@@ -122,7 +122,7 @@
 .claims-root .kind-pill.surveyor{background:rgba(59,130,246,.14);color:var(--ac3);border:1px solid rgba(59,130,246,.28)}
 .claims-root .kind-pill.invoice{background:rgba(245,158,11,.14);color:var(--yn2);border:1px solid rgba(245,158,11,.28)}
 .claims-root .spec-empty{background:var(--bg3);border:1px dashed var(--br2);border-radius:8px;padding:16px;color:var(--t3);font-size:13px;line-height:1.55;margin-bottom:10px}
-.claims-root .doc-preview-wrap{margin-top:10px;background:var(--bg2);border:1px solid var(--br2);border-radius:8px;overflow:hidden}
+.claims-root .doc-preview-wrap{margin-top:10px;background:var(--bg2);border:1px solid var(--br2);border-radius:8px;overflow:hidden;position:sticky;top:0;z-index:8}
 .claims-root .doc-preview-bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--br);font-size:12px}
 .claims-root .doc-preview-bar b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .claims-root .doc-preview-frame{width:100%;height:min(70vh,640px);border:0;background:#111}

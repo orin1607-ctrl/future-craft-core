@@ -370,12 +370,16 @@ function correspondenceThreads(imports: Array<Record<string, unknown>>) {
 }
 
 function InCardPreview({ file, onClose }: { file: { url: string; name: string; mime: string } | null; onClose: () => void }) {
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    wrapRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [file?.url]);
   if (!file) return null;
   const img = (file.mime || '').startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(file.name);
   return (
-    <div className="doc-preview-wrap" data-testid="doc-preview">
+    <div ref={wrapRef} className="doc-preview-wrap" data-testid="doc-preview">
       <div className="doc-preview-bar">
-        <b>{file.name}</b>
+        <b data-testid="doc-preview-name">{file.name}</b>
         <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
         <button className="btn btn-g btn-sm" onClick={onClose}>סגור תצוגה</button>
       </div>
@@ -1764,6 +1768,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     busy={docsUploading}
                     onFiles={(files) => { if (cur) void uploadStaffFiles(cur.id, files); }}
                   />
+                  <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
                   <div className="sdiv"><div className="sdiv-t">קבצים שהתקבלו ({docs.files.length})</div><div className="sdiv-l" /></div>
                   {docs.files.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין קבצים עדיין</div>
                     : Object.entries(docs.files.reduce((acc: Record<string, ClaimFile[]>, f) => {
@@ -1807,11 +1812,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             const knd = effectiveKind(f);
                             const img = isImageFile(f);
                             return (
-                            <div key={f.id} style={{ marginTop: 6 }}>
+                            <div key={f.id} style={{ marginTop: 6 }} data-testid="doc-file-row" data-doc-name={f.original_name}>
                               <div style={{ minWidth: 140, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                               <div style={{ display: 'flex', gap: 8, minWidth: 0 }}>
                                 {img ? (
-                                  <button type="button" className="pick-thumb" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
+                                  <button type="button" className="pick-thumb" data-testid="doc-thumb" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
                                     {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>📷</span>}
                                   </button>
                                 ) : null}
@@ -1835,7 +1840,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                 {knd !== 'surveyor_report' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'surveyor_report')}>סמן כדוח שמאי</button> : null}
                                 {knd !== 'garage_invoice' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'garage_invoice')}>סמן כחשבונית מוסך</button> : null}
                                 {f.doc_kind && f.doc_kind !== 'general' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'general')}>בטל סימון</button> : null}
-                                <button className="btn btn-g btn-sm" onClick={() => void openInCard(cur.id, f)}>צפייה</button>
+                                <button className="btn btn-g btn-sm" data-testid="doc-view" onClick={() => void openInCard(cur.id, f)}>צפייה</button>
                                 <button className="btn btn-g btn-sm" data-testid={`doc-edit-${f.id}`} onClick={() => setDocEditId(docEditId === f.id ? null : f.id)}>שם / סוג</button>
                               </div>
                               </div>
@@ -1861,7 +1866,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <button className="btn btn-g btn-sm" onClick={async () => { await apiRef.current.invokeDocs('revoke_link', { claim_id: cur.id }); setLinkUrl(''); toast('הקישור בוטל'); }}>בטל קישור</button>
                   </div>
                   {linkUrl ? <div style={{ marginTop: 8, fontSize: 11, wordBreak: 'break-all', color: 'var(--ac3)' }}>{linkUrl}</div> : null}
-                  <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
                 </div>
               )}
               {cardTab === 'gin' && (
