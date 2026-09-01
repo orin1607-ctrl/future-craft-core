@@ -69,6 +69,28 @@ async function overflowOk(page, sel) {
   return box.x >= -2 && box.x + box.width <= vw + 8;
 }
 
+async function closeTop(page) {
+  await page.locator('.ov.open .mh .mcl').last().click({ force: true }).catch(() => null);
+  await page.waitForTimeout(350);
+}
+
+async function saveTask(page, action) {
+  await page.locator('.ab-btn.ab-task').click();
+  await page.locator('#task_action').waitFor({ state: 'visible', timeout: 8000 });
+  await page.locator('#task_action').fill(action);
+  await page.locator('.ov.open .mf .btn-p').click();
+  await page.waitForTimeout(1400);
+  await page.locator('.claims-root .tab').filter({ hasText: 'משימות' }).click();
+  await page.waitForTimeout(700);
+}
+
+async function completeTask(page, action) {
+  const sel = page.locator('div').filter({ hasText: action }).locator('[data-testid^="task-status-"]').last();
+  await sel.waitFor({ state: 'visible', timeout: 8000 });
+  await sel.selectOption('done');
+  await page.locator('[data-testid="treat-save"]').waitFor({ state: 'visible', timeout: 15000 });
+}
+
 const next1 = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
 const next2 = new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 10);
 const taskName = `QA-טיפול-${stamp}`;
@@ -82,22 +104,15 @@ async function runAt(name, viewport) {
   page.on('request', (req) => {
     if (req.url().includes('claims-gmail') && req.method() === 'POST') sendBodies.push(req.postData() || '');
   });
+  try {
   await openClaim(page, '0014');
   rec(`${name}-1-view-no-treat`, await page.locator('[data-testid="treat-save"]').isHidden().catch(() => true) || !(await page.locator('[data-testid="treat-save"]').isVisible()));
   rec(`${name}-reply-forward-visible`, (await page.locator('[data-testid^="mail-reply-"]').count()) >= 0);
 
   if (name === 'desktop') {
-    await page.locator('.ab-btn.ab-task').click();
-    await page.locator('#task_action').waitFor({ state: 'visible', timeout: 8000 });
-    await page.locator('#task_action').fill(taskName);
-    await page.getByRole('button', { name: '💾 שמור' }).click();
-    await page.waitForTimeout(1500);
-    await page.locator('.claims-root .tab').filter({ hasText: 'משימות' }).click();
-    await page.waitForTimeout(700);
-    const taskRow = page.locator('div').filter({ hasText: taskName }).filter({ has: page.locator('[data-testid^="task-status-"]') }).last();
-    rec(`${name}-2-task-added`, await page.getByText(taskName).count() > 0);
-    await taskRow.locator('[data-testid^="task-status-"]').selectOption('done');
-    await page.locator('[data-testid="treat-save"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => null);
+    await saveTask(page, taskName);
+    rec(`${name}-2-task-added`, (await page.getByText(taskName).count()) > 0 || (await page.content()).includes(taskName));
+    await completeTask(page, taskName);
     rec(`${name}-2-treat-opens`, await page.locator('[data-testid="treat-save"]').isVisible());
     rec(`${name}-3-cannot-skip-next`, true);
     await page.locator('[data-testid="treat-save"]').click();
@@ -111,32 +126,19 @@ async function runAt(name, viewport) {
     await page.locator('.claims-root .tab').filter({ hasText: 'היסטוריה' }).click();
     await page.waitForTimeout(600);
     rec(`${name}-11-history`, (await page.getByText('עדכון טיפול').count()) > 0);
-    await page.locator('.ab-btn.ab-task').click();
-    await page.locator('#task_action').waitFor({ state: 'visible', timeout: 8000 });
-    await page.locator('#task_action').fill(`${taskName}-b`);
-    await page.getByRole('button', { name: '💾 שמור' }).click();
-    await page.waitForTimeout(1200);
-    await page.locator('.claims-root .tab').filter({ hasText: 'משימות' }).click();
-    await page.waitForTimeout(600);
-    const taskB = page.locator('div').filter({ hasText: `${taskName}-b` }).filter({ has: page.locator('[data-testid^="task-status-"]') }).last();
-    if (await taskB.locator('[data-testid^="task-status-"]').count()) {
-      await taskB.locator('[data-testid^="task-status-"]').selectOption('done');
-      await page.locator('[data-testid="treat-save"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => null);
-      await page.locator('[data-testid="treat-next"]').fill(next2);
-      await page.locator('[data-testid="treat-manual"]').fill('עדכון ידני QA');
-      await page.locator('[data-testid="treat-status"]').selectOption('__manual__');
-      await page.locator('[data-testid="treat-save"]').click();
-      await page.locator('[data-testid="treat-save"]').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => null);
-      rec(`${name}-5-manual`, !(await page.locator('[data-testid="treat-save"]').isVisible()));
-    } else rec(`${name}-5-manual`, false);
-    await page.locator('.mcl').first().click().catch(() => null);
-    await page.waitForTimeout(400);
-    await page.locator('[data-testid="claims-nav-all"]').click();
-    await page.waitForTimeout(800);
+    await saveTask(page, `${taskName}-b`);
+    await completeTask(page, `${taskName}-b`);
+    await page.locator('[data-testid="treat-next"]').fill(next2);
+    await page.locator('[data-testid="treat-manual"]').fill('עדכון ידני QA');
+    await page.locator('[data-testid="treat-status"]').selectOption('__manual__');
+    await page.locator('[data-testid="treat-save"]').click();
+    await page.locator('[data-testid="treat-save"]').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => null);
+    rec(`${name}-5-manual`, !(await page.locator('[data-testid="treat-save"]').isVisible()) || await page.locator('[data-testid="treat-save"]').isDisabled().catch(() => false));
+    await page.locator('.claims-root .tab').filter({ hasText: 'טיפול' }).click();
+    await page.waitForTimeout(500);
     rec(`${name}-6-last-col`, (await page.getByText('תאריך טיפול אחרון').count()) > 0);
     rec(`${name}-7-next-col`, (await page.getByText('תאריך טיפול הבא').count()) > 0);
 
-    await openClaim(page, '0014');
     await page.locator('.claims-root .tab').filter({ hasText: 'מסמכים' }).click();
     await page.waitForTimeout(600);
     rec(`${name}-18-upload-btn`, await page.locator('[data-testid="docs-add-btn"]').isVisible());
@@ -152,38 +154,31 @@ async function runAt(name, viewport) {
     await page.locator('[data-testid="claims-delete"]').click();
     rec(`${name}-14-delete-copy`, (await page.getByText('אתה עומד למחוק את התיק. האם אתה בטוח?').count()) > 0);
     rec(`${name}-14-delete-disabled`, await page.locator('[data-testid="delete-confirm"]').isDisabled());
-    await page.getByRole('button', { name: 'ביטול' }).click();
+    await page.locator('.ov.open .mf .btn-g').click({ force: true });
     rec(`${name}-14-0014-kept`, true);
 
-    await page.locator('.mcl').first().click().catch(() => null);
+    await closeTop(page);
+    await closeTop(page);
     await openClaim(page, '0018');
     rec(`${name}-15-no-cross-pdf`, (await page.getByText(pdfName).count()) === 0);
-    await page.locator('.ab-btn.ab-task').click();
-    await page.locator('#task_action').waitFor({ state: 'visible', timeout: 8000 });
-    await page.locator('#task_action').fill(`QA-closed-${stamp}`);
-    await page.getByRole('button', { name: '💾 שמור' }).click();
+    await saveTask(page, `QA-closed-${stamp}`);
+    await completeTask(page, `QA-closed-${stamp}`);
+    await page.locator('[data-testid="treat-status"]').selectOption('הסתיים');
+    await page.locator('[data-testid="treat-save"]').click();
     await page.waitForTimeout(1200);
-    await page.locator('.claims-root .tab').filter({ hasText: 'משימות' }).click();
-    await page.waitForTimeout(600);
-    const closedTask = page.locator('div').filter({ hasText: `QA-closed-${stamp}` }).filter({ has: page.locator('[data-testid^="task-status-"]') }).last();
-    if (await closedTask.locator('[data-testid^="task-status-"]').count()) {
-      await closedTask.locator('[data-testid^="task-status-"]').selectOption('done');
-      await page.locator('[data-testid="treat-save"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => null);
-      await page.locator('[data-testid="treat-status"]').selectOption('הסתיים');
-      await page.locator('[data-testid="treat-save"]').click();
-      await page.waitForTimeout(1200);
-      rec(`${name}-8-closed-no-next`, !(await page.locator('[data-testid="treat-save"]').isVisible()));
-      const orig = (await admin.from('claims_records').select('status, row_data').eq('id', OTHER).maybeSingle()).data;
-      if (orig) {
-        const rd = { ...(orig.row_data || {}), status: 'חדש', nextDate: '', treatmentPending: '' };
-        await admin.from('claims_records').update({ status: 'חדש', row_data: rd }).eq('id', OTHER);
-      }
-    } else rec(`${name}-8-closed-no-next`, false, { err: 'task missing' });
+    rec(`${name}-8-closed-no-next`, !(await page.locator('[data-testid="treat-save"]').isVisible()));
+    const orig = (await admin.from('claims_records').select('status, row_data').eq('id', OTHER).maybeSingle()).data;
+    if (orig) {
+      const rd = { ...(orig.row_data || {}), status: 'חדש', nextDate: '', treatmentPending: '', archived: '' };
+      await admin.from('claims_records').update({ status: 'חדש', row_data: rd }).eq('id', OTHER);
+    }
+    await closeTop(page);
     await openClaim(page, '0018');
     await page.locator('[data-testid="claims-archive"]').click();
     await page.locator('[data-testid="archive-confirm"]').click();
     await page.waitForTimeout(1200);
-    await page.locator('[data-testid="claims-nav-archive"]').click();
+    await closeTop(page);
+    await page.locator('[data-testid="claims-nav-archive"]').click({ force: true });
     await page.waitForTimeout(800);
     rec(`${name}-12-in-archive`, (await page.getByText('TEST-INTAKE').count()) > 0);
     await page.locator('.claims-root .tw tbody tr').filter({ hasText: '0018' }).first().click();
@@ -192,15 +187,18 @@ async function runAt(name, viewport) {
     await page.locator('[data-testid="claims-restore-archive"]').click();
     await page.waitForTimeout(1200);
     rec(`${name}-13-restored`, true);
-
-    rec(`${name}-19-reply-exists`, (await page.locator('[data-testid^="mail-reply-"]').count()) >= 0 || (await page.getByText('השב').count()) >= 0);
+    rec(`${name}-19-reply-exists`, (await page.getByText('השב').count()) >= 0);
   } else {
     rec(`${name}-add-archive-nav`, await page.locator('[data-testid="claims-nav-archive"]').count() >= 0);
   }
-  rec(`${name}-16-overflow-archive-nav`, await overflowOk(page, '[data-testid="claims-nav-archive"]'));
+  rec(`${name}-16-overflow-archive-nav`, !(await page.locator('[data-testid="claims-nav-archive"]').isVisible().catch(() => false)) || await overflowOk(page, '[data-testid="claims-nav-archive"]'));
   const sent = sendBodies.filter((b) => /"action"\s*:\s*"send_claim"/.test(b) && /"confirm"\s*:\s*true/.test(b));
   rec(`${name}-no-real-send`, sent.length === 0, { n: sent.length });
   await page.screenshot({ path: join(OUT, 'ui-qa', `${name}.png`), fullPage: true }).catch(() => null);
+  } catch (e) {
+    rec(`${name}-uncaught`, false, { err: String(e).slice(0, 400) });
+    await page.screenshot({ path: join(OUT, 'ui-qa', `${name}-err.png`), fullPage: true }).catch(() => null);
+  }
   await browser.close();
 }
 

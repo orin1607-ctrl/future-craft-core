@@ -572,10 +572,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   useEffect(() => {
     if (modal !== 'moTreat') return;
     const t = window.setTimeout(() => {
-      setVal('tr_status', STATUS_UNCHANGED);
-      setVal('tr_manual', '');
-      setVal('tr_note', '');
-      setVal('tr_next', cur?.nextDate || '');
+      const statusEl = document.getElementById('tr_status') as HTMLSelectElement | null;
+      if (statusEl && !statusEl.value) setVal('tr_status', STATUS_UNCHANGED);
+      if (!val(null, 'tr_next')) setVal('tr_next', cur?.nextDate || '');
     }, 50);
     return () => window.clearTimeout(t);
   }, [modal, treatAction, curId]);
@@ -1031,9 +1030,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       });
       if (!r.success) { toast(String(r.error || 'שמירת עדכון טיפול נכשלה'), 'err'); return; }
       toast('עדכון טיפול נשמר');
-      await loadAll();
       setModal('moCard');
+      setTreatBusy(false);
+      await loadAll();
       await loadCardData(curId);
+    } catch (e) {
+      toast(`שמירת עדכון טיפול נכשלה: ${String((e as Error).message || e)}`, 'err');
     } finally {
       setTreatBusy(false);
     }

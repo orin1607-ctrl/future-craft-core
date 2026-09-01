@@ -427,8 +427,12 @@ export function createClaimsApi(actor: ClaimsActor) {
       }
       const saved = await patchClaimData(payload.claimId, patch, { status: nextStatus, bumpActivity: true });
       if (!saved.success) return saved;
+    try {
       await upsertNextTreatmentReminder(payload.claimId, closed ? '' : payload.nextDate, closed);
-      const histNote = [
+    } catch {
+      /* reminder must not block treatment save */
+    }
+    const histNote = [
         `פעולה: ${payload.action}`,
         `סטטוס: ${prevStatus} → ${nextStatus}`,
         `טיפול אחרון: ${patch.lastTreatmentAt}`,
