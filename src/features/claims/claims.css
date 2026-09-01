@@ -28,6 +28,7 @@
 .claims-root .app{display:flex;flex-direction:column;height:100%}
 .claims-root .tb{height:52px;flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 16px;gap:11px;z-index:300}
 .claims-root .tb-logo{font-size:15px;font-weight:900;display:flex;gap:6px;align-items:center;white-space:nowrap}
+.claims-root .tb-new{flex-shrink:0}
 .claims-root .tba{color:var(--ac3)}.claims-root .tbb{color:var(--t2);font-weight:400}
 .claims-root .tb-sep{width:1px;height:20px;background:var(--br2);flex-shrink:0}
 .claims-root .tb-nav{display:flex;gap:1px}
@@ -164,6 +165,8 @@
 .claims-root .sb-mhead{display:none}
 @media(max-width:700px){
   .claims-root .tb{height:auto;min-height:52px;flex-wrap:wrap;padding:8px 10px;gap:8px}
+  .claims-root .tb-logo{flex:1;min-width:0}
+  .claims-root .tb-new{flex-shrink:0}
   .claims-root .tb-sep{display:none}
   .claims-root .tb-nav{display:none}
   .claims-root .sb-open-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--r2);border:1px solid var(--br2);background:var(--ac);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}

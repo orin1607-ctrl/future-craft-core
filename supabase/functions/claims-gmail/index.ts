@@ -294,20 +294,28 @@ async function isSendEnabled(sb: ReturnType<typeof admin>) {
   return String(data?.value || "") === "true";
 }
 
+function stripMailNoise(raw: string) {
+  return String(raw || "")
+    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\u00ad\u200b-\u200d\ufeff]/g, "")
+    .replace(/\uFF20/g, "@")
+    .replace(/[\uFF0E\uFF61]/g, ".")
+    .trim();
+}
+
 function parseEmailListStrict(raw: string, required: boolean) {
-  const parts = String(raw || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  const parts = stripMailNoise(raw).split(/[,;]/).map((s) => s.trim()).filter(Boolean);
   if (!parts.length) {
     return required
       ? { ok: false as const, emails: [] as string[], error: "to_required" }
       : { ok: true as const, emails: [] as string[] };
   }
   const emails: string[] = [];
+  const re = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
   for (const p of parts) {
-    const m = p.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
-    if (!m) {
+    if (!re.test(p)) {
       return { ok: false as const, emails: [] as string[], error: required ? "to_required" : "cc_invalid" };
     }
-    emails.push(m[0].toLowerCase());
+    emails.push(p.toLowerCase());
   }
   return { ok: true as const, emails };
 }
@@ -1386,9 +1394,22 @@ Deno.serve(async (req) => {
     if (!sent.ok) {
       await sb.from("claims_gmail_outbox").update({ status: "failed" }).eq("id", outId);
       const errMsg = String(sent.json?.error?.message || "gmail_send_failed");
+      const safeErr = errMsg.includes("Bearer") || /ya29\.|1\/\/|refresh_token|GOCSPX-/i.test(errMsg) ? "gmail_send_failed" : errMsg.slice(0, 240);
+      await sb.from("claims_history").insert({
+        id: nid("HIS"),
+        claim_id: claimId,
+        row_data: {
+          action: "שליחת מייל נכשלה",
+          type: "gmail_claim_send_failed",
+          note: `To ${to} · ${subject} · ${safeErr}`,
+          error: safeErr,
+          sent: false,
+          at: new Date().toLocaleString("he-IL"),
+        },
+      });
       return jsonResponse({
         success: false,
-        error: errMsg.includes("Bearer") || /ya29\.|1\/\/|refresh_token/i.test(errMsg) ? "gmail_send_failed" : errMsg,
+        error: safeErr,
         status: sent.status,
         realEmailSend: false,
       }, 400);

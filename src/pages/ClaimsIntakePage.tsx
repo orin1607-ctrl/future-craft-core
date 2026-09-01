@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ClaimAccidentForm from '@/features/claims/ClaimAccidentForm';
 import { EMPTY_INTAKE, customerSteps, type IntakeDraft } from '@/features/claims/claimIntakeModel';
-import '@/features/claims/claims.css';
 import '@/features/claims/claims-intake.css';
 
 const FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-intake`;
@@ -84,21 +83,50 @@ export default function ClaimsIntakePage() {
   };
 
   if (loading) return <div className="intake-page" dir="rtl">טוען…</div>;
-  if (error) return <div className="intake-page" dir="rtl"><h1>דליה · הודעה על תאונה</h1><p className="intake-err">{error}</p></div>;
-  if (done) return <div className="intake-page" dir="rtl" data-testid="intake-success"><h1>הדיווח התקבל בהצלחה</h1><p>תודה. הצוות ימשיך את הטיפול בתיק.</p></div>;
+  if (error) return (
+    <div className="intake-page" dir="rtl">
+      <div className="intake-brand"><div className="intake-mark">ד</div><div><div className="intake-brand-t">דליה</div><div className="intake-brand-s">ניהול תביעות</div></div></div>
+      <h1>הודעה על תאונת רכב</h1>
+      <p className="intake-err">{error}</p>
+    </div>
+  );
+  if (done) return (
+    <div className="intake-page" dir="rtl" data-testid="intake-success">
+      <div className="intake-brand"><div className="intake-mark">ד</div><div><div className="intake-brand-t">דליה</div><div className="intake-brand-s">ניהול תביעות</div></div></div>
+      <div className="intake-card">
+        <h1 className="intake-ok">הדיווח התקבל בהצלחה</h1>
+        <p className="intake-lead">תודה. הצוות ימשיך את הטיפול בתיק.</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="intake-page" dir="rtl">
-      <h1>דליה · הודעה על תאונת רכב</h1>
-      <div className="intake-progress" data-testid="intake-progress">שלב {step + 1} מתוך {steps.length} · {steps[step]?.label}</div>
-      <ClaimAccidentForm
-        mode="customer"
-        value={draft}
-        onChange={persist}
-        stepKey={stepKey}
-        onSignature={setSig}
-        signatureSet={!!sig}
-      />
+      <div className="intake-brand">
+        <div className="intake-mark">ד</div>
+        <div>
+          <div className="intake-brand-t">דליה</div>
+          <div className="intake-brand-s">ניהול תביעות</div>
+        </div>
+      </div>
+      <h1>הודעה על תאונת רכב</h1>
+      <p className="intake-lead">מלאו את הפרטים בשלבים קצרים. אפשר לחזור אחורה בכל שלב.</p>
+      <div className="intake-progress" data-testid="intake-progress">
+        <div className="intake-dots">
+          {steps.map((s, i) => <span key={s.key} className={`intake-dot ${i <= step ? 'on' : ''}`} />)}
+        </div>
+        <div>שלב {step + 1} מתוך {steps.length} · {steps[step]?.label}</div>
+      </div>
+      <div className="intake-card">
+        <ClaimAccidentForm
+          mode="customer"
+          value={draft}
+          onChange={persist}
+          stepKey={stepKey}
+          onSignature={setSig}
+          signatureSet={!!sig}
+        />
+      </div>
       {msg ? <div className="intake-err">{msg}</div> : null}
       <div className="intake-nav">
         <button type="button" className="btn btn-g" data-testid="intake-back" disabled={step === 0 || busy} onClick={() => setStep((s) => Math.max(0, s - 1))}>חזור</button>

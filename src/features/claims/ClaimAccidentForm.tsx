@@ -39,11 +39,15 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
   const keys = stepKey === 'all'
     ? ['client', ...(value.driverDifferent === 'true' ? ['driver'] : []), 'event', ...(value.claimKind === 'תביעת צד ג׳' ? ['third'] : []), ...(mode === 'customer' ? ['sign', 'review'] : [])]
     : [stepKey];
+  const hideStepTitle = mode === 'customer' && stepKey !== 'all';
+  const stepTitle = (text: string) => hideStepTitle ? null : (
+    <div className="sdiv" style={{ marginTop: 0 }}><div className="sdiv-t">{text}</div><div className="sdiv-l" /></div>
+  );
   return (
     <div className="intake-form" dir="rtl">
       {keys.includes('client') && (
         <div className="fg2">
-          <div className="sdiv" style={{ marginTop: 0 }}><div className="sdiv-t">הלקוח שלנו / פרטי המבוטח</div><div className="sdiv-l" /></div>
+          {stepTitle('הלקוח שלנו / פרטי המבוטח')}
           <Field id="in_kind" label="סוג התביעה *">
             <select className="fse fi" id="in_kind" data-testid="intake-kind" value={value.claimKind} onChange={(e) => set('claimKind', e.target.value)}>
               {CLAIM_KINDS.map((k) => <option key={k}>{k}</option>)}
@@ -52,7 +56,7 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
           <Field id="in_name" label="שם מלא *"><input className="fi" id="in_name" data-testid="intake-name" value={value.clientName} onChange={(e) => set('clientName', e.target.value)} autoComplete="name" /></Field>
           <Field id="in_id" label="ת״ז / ח.פ."><input className="fi" id="in_id" inputMode="numeric" value={value.clientId} onChange={(e) => set('clientId', e.target.value)} /></Field>
           <Field id="in_phone" label="טלפון *"><input className="fi" id="in_phone" data-testid="intake-phone" type="tel" inputMode="tel" value={value.clientPhone} onChange={(e) => set('clientPhone', e.target.value)} /></Field>
-          <Field id="in_email" label="דואר אלקטרוני"><input className="fi" id="in_email" type="email" inputMode="email" value={value.clientEmail} onChange={(e) => set('clientEmail', e.target.value)} /></Field>
+          <Field id="in_email" label="דואר אלקטרוני"><input className="fi" id="in_email" type="email" inputMode="email" dir="ltr" value={value.clientEmail} onChange={(e) => set('clientEmail', e.target.value)} /></Field>
           <Field id="in_addr" label="כתובת"><input className="fi" id="in_addr" value={value.clientAddress} onChange={(e) => set('clientAddress', e.target.value)} /></Field>
           <Field id="in_zip" label="מיקוד"><input className="fi" id="in_zip" inputMode="numeric" value={value.clientZip} onChange={(e) => set('clientZip', e.target.value)} /></Field>
           <Field id="in_plate" label="מספר רכב *"><input className="fi" id="in_plate" data-testid="intake-plate" value={value.plate} onChange={(e) => set('plate', e.target.value)} /></Field>
@@ -83,7 +87,7 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
 
       {keys.includes('driver') && (
         <div className="fg2">
-          <div className="sdiv" style={{ marginTop: 0 }}><div className="sdiv-t">פרטי הנהג</div><div className="sdiv-l" /></div>
+          {stepTitle('פרטי הנהג')}
           <Field id="in_dname" label="שם מלא"><input className="fi" id="in_dname" value={value.driverName} onChange={(e) => set('driverName', e.target.value)} /></Field>
           <Field id="in_did" label="ת״ז"><input className="fi" id="in_did" inputMode="numeric" value={value.driverId} onChange={(e) => set('driverId', e.target.value)} /></Field>
           <Field id="in_dphone" label="טלפון"><input className="fi" id="in_dphone" type="tel" inputMode="tel" value={value.driverPhone} onChange={(e) => set('driverPhone', e.target.value)} /></Field>
@@ -103,7 +107,7 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
 
       {keys.includes('event') && (
         <div className="fg2">
-          <div className="sdiv" style={{ marginTop: 0 }}><div className="sdiv-t">פרטי האירוע</div><div className="sdiv-l" /></div>
+          {stepTitle('פרטי האירוע')}
           <Field id="in_edate" label="תאריך התאונה *"><input className="fi" id="in_edate" data-testid="intake-event-date" type="date" value={value.eventDate} onChange={(e) => set('eventDate', e.target.value)} /></Field>
           <Field id="in_etime" label="שעת התאונה"><input className="fi" id="in_etime" type="time" value={value.eventTime} onChange={(e) => set('eventTime', e.target.value)} /></Field>
           <Field id="in_eplace" label="מקום / כתובת"><input className="fi" id="in_eplace" value={value.eventPlace} onChange={(e) => set('eventPlace', e.target.value)} /></Field>
@@ -134,7 +138,7 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
 
       {keys.includes('third') && (
         <div className="fg2">
-          <div className="sdiv" style={{ marginTop: 0 }}><div className="sdiv-t">פרטי צד ג׳</div><div className="sdiv-l" /></div>
+          {stepTitle('פרטי צד ג׳')}
           <Field id="in_tdrv" label="שם נהג צד ג׳"><input className="fi" id="in_tdrv" value={value.thirdDriver} onChange={(e) => set('thirdDriver', e.target.value)} /></Field>
           <Field id="in_town" label="שם בעל הרכב"><input className="fi" id="in_town" value={value.thirdOwner} onChange={(e) => set('thirdOwner', e.target.value)} /></Field>
           <Field id="in_tid" label="ת״ז אם ידועה"><input className="fi" id="in_tid" inputMode="numeric" value={value.thirdId} onChange={(e) => set('thirdId', e.target.value)} /></Field>
@@ -151,7 +155,7 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
 
       {keys.includes('sign') && (
         <div>
-          <div className="sdiv" style={{ marginTop: 0 }}><div className="sdiv-t">הצהרה וחתימה</div><div className="sdiv-l" /></div>
+          {stepTitle('הצהרה וחתימה')}
           <pre className="mail-body" style={{ whiteSpace: 'pre-wrap' }}>{DECLARATION_TEXT}</pre>
           <label className="pick-row" style={{ margin: '12px 0' }}>
             <input type="checkbox" data-testid="intake-ack" checked={value.declarationAck === 'true'} onChange={(e) => set('declarationAck', e.target.checked ? 'true' : 'false')} />
@@ -173,7 +177,7 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
 
       {keys.includes('review') && (
         <div data-testid="intake-review">
-          <div className="sdiv" style={{ marginTop: 0 }}><div className="sdiv-t">בדיקה לפני שליחה</div><div className="sdiv-l" /></div>
+          {stepTitle('בדיקה לפני שליחה')}
           <div><b>לקוח:</b> {value.clientName || '—'} · {value.clientPhone || '—'}</div>
           <div><b>רכב:</b> {value.plate || '—'} · {[value.carMake, value.carModel].filter(Boolean).join(' ') || '—'}</div>
           <div><b>סוג:</b> {value.claimKind}</div>

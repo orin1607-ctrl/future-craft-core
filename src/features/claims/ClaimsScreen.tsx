@@ -76,9 +76,16 @@ function fmtBytes(n: number) {
 }
 
 const PACKAGE_LIMIT = 18 * 1024 * 1024;
-const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+const EMAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+function normalizeMailAddr(raw: string) {
+  return String(raw || '')
+    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\u00ad\u200b-\u200d\ufeff]/g, '')
+    .replace(/\uFF20/g, '@')
+    .replace(/[\uFF0E\uFF61]/g, '.')
+    .trim();
+}
 function mailAddrsOk(raw: string, required: boolean) {
-  const parts = String(raw || '').split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  const parts = normalizeMailAddr(raw).split(/[,;]/).map((s) => s.trim()).filter(Boolean);
   if (!parts.length) return !required;
   return parts.every((p) => EMAIL_RE.test(p));
 }
@@ -655,6 +662,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="tb">
           <button type="button" className="sb-open-btn" data-testid="claims-sb-open" aria-label="פתח תפריט תביעות" onClick={() => setSbOpen(true)}>☰ תפריט</button>
           <div className="tb-logo"><span className="tba">דליה</span><span className="tbb">ניהול תביעות</span></div>
+          <button className="btn btn-p btn-sm tb-new" data-testid="claims-open-new" onClick={openNew}>＋ תיק חדש</button>
           <div className="tb-sep" />
           <div className="tb-nav">
             {[
@@ -706,7 +714,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <div className={`sdot ${sync === 'pend' ? 'pend' : sync === 'err' ? 'err' : ''}`} />
               <span>{sync === 'pend' ? 'מסנכרן...' : sync === 'err' ? 'שגיאה' : 'מסונכרן'}</span>
             </button>
-            <button className="btn btn-p btn-sm" data-testid="claims-open-new" onClick={openNew}>＋ תיק חדש</button>
             <button className="btn btn-g btn-sm" data-testid="claims-intake-link" onClick={async () => {
               const r = await apiRef.current.invokeIntake('create_link');
               if (!r.success || !r.token) { toast(String(r.error || 'יצירת קישור נכשלה'), 'err'); return; }
@@ -780,7 +787,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     )}
-                    <button className="btn btn-p btn-sm" data-testid="claims-open-new-dash" onClick={openNew}>＋ תיק חדש</button>
                     <button className="btn btn-g btn-sm" onClick={() => { toast('סריקת Gmail תחובר בשלב הבא', 'inf'); showView('gmail'); }}>📬 סרוק מיילים</button>
                   </div>
                 </div>
@@ -854,7 +860,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       <option value="">כל הסטטוסים</option>
                       {STATUSES.map((s) => <option key={s}>{s}</option>)}
                     </select>
-                    <button className="btn btn-p btn-sm" data-testid="claims-open-new-list" onClick={openNew}>＋ תיק חדש</button>
                   </div>
                 </div>
                 <div className="tw"><table><thead><tr>
@@ -1740,12 +1745,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="fg"><label className="fl">From</label><input className="fi" data-testid="mail-from" value={gmailStatus.email || 'yoni122222@gmail.com'} readOnly /></div>
             <div className="fg">
               <label className="fl">To *</label>
-              <input className="fi" id="mail_to" data-testid="mail-to" disabled={mailSending} value={mailTo} onChange={(e) => { bumpMailDraft(); setMailTo(e.target.value); setVal('mail_to', e.target.value); }} placeholder="הקלד כתובת ידנית — לא נבחרת אוטומטית" />
+              <input className="fi" id="mail_to" data-testid="mail-to" dir="ltr" inputMode="email" autoComplete="email" disabled={mailSending} value={mailTo} onChange={(e) => { bumpMailDraft(); setMailTo(e.target.value); setVal('mail_to', e.target.value); }} placeholder="name@example.com" style={{ textAlign: 'left', unicodeBidi: 'isolate' }} />
               {toHint ? (
                 <button type="button" className="btn btn-g btn-sm" style={{ marginTop: 6 }} disabled={mailSending} onClick={() => { bumpMailDraft(); setMailTo(toHint); setVal('mail_to', toHint); }}>העתק כתובת ששמורה בתיק ({toHint})</button>
               ) : <div style={{ fontSize: 10, color: 'var(--t3)' }}>אין כתובת שמורה בתיק — חובה להקליד.</div>}
+              {mailTo && !mailAddrsOk(mailTo, true) ? (
+                <div style={{ fontSize: 11, color: 'var(--rd2)', marginTop: 6 }}>הכתובת לא נקראת כאימייל תקין. הקלידו באנגלית משמאל לימין, בלי רווחים.</div>
+              ) : null}
             </div>
-            <div className="fg"><label className="fl">CC</label><input className="fi" id="mail_cc" data-testid="mail-cc" disabled={mailSending} value={mailCc} onChange={(e) => { bumpMailDraft(); setMailCc(e.target.value); setVal('mail_cc', e.target.value); }} placeholder="אופציונלי" /></div>
+            <div className="fg"><label className="fl">CC</label><input className="fi" id="mail_cc" data-testid="mail-cc" dir="ltr" inputMode="email" autoComplete="email" disabled={mailSending} value={mailCc} onChange={(e) => { bumpMailDraft(); setMailCc(e.target.value); setVal('mail_cc', e.target.value); }} placeholder="אופציונלי" style={{ textAlign: 'left' }} /></div>
             <div className="fg"><label className="fl">Subject</label><input className="fi" id="mail_subj" data-testid="mail-subj" disabled={mailSending} onInput={() => bumpMailDraft()} /></div>
             {(mailKind === 'insurer' || mailKind === 'legal') && (
               <div className="fg">
@@ -1844,8 +1852,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               setMailPreviewOn(true);
               setMailConfirmOn(false);
               setMailAck(false);
-              const to = mailTo.trim();
-              const cc = mailCc.trim();
+              const to = normalizeMailAddr(mailTo);
+              const cc = normalizeMailAddr(mailCc);
               const bodyText = mailKind === 'draft' ? val(null, 'mail_body') : extSummary;
               if (!mailAddrsOk(to, true)) { toast('כתובת To לא תקינה — SEND חסום', 'err'); return; }
               if (cc && !mailAddrsOk(cc, false)) { toast('כתובת CC לא תקינה — SEND חסום', 'err'); return; }
@@ -1875,8 +1883,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 if (mailSending) return;
                 if (!mailAck) { toast('יש לאשר במפורש לפני שליחה', 'err'); return; }
                 if (pkgInfo?.overLimit) { toast('הקבצים גדולים מדי לשליחה במייל', 'err'); return; }
-                const to = mailTo;
-                const cc = mailCc;
+                const to = normalizeMailAddr(mailTo);
+                const cc = normalizeMailAddr(mailCc);
                 const bodyText = mailKind === 'draft' ? val(null, 'mail_body') : extSummary;
                 if (!mailAddrsOk(to, true)) { toast('כתובת To לא תקינה', 'err'); return; }
                 if (!mailAddrsOk(cc, false)) { toast('כתובת CC לא תקינה', 'err'); return; }
