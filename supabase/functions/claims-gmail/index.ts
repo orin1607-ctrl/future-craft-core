@@ -5,6 +5,7 @@
  */
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { matchIncomingMail, type MatchClaim } from "./matchIncoming.ts";
 
 const ALLOWED_ACCOUNT = "yoni122222@gmail.com";
 const SCOPES = [
@@ -78,6 +79,31 @@ async function googleAccessToken(refreshToken: string) {
   const json = await res.json();
   if (!res.ok || !json.access_token) throw new Error(json.error_description || json.error || "token_refresh_failed");
   return String(json.access_token);
+}
+
+async function loadMatchClaims(sb: ReturnType<typeof admin>): Promise<MatchClaim[]> {
+  const { data: recs } = await sb.from("claims_records").select("id, plate, client_name, row_data, gmail_thread_id");
+  const { data: imps } = await sb.from("claims_gmail_imports").select("claim_id, gmail_thread_id");
+  const threads: Record<string, string[]> = {};
+  for (const i of imps || []) {
+    const cid = String(i.claim_id || "");
+    if (!cid || !i.gmail_thread_id) continue;
+    (threads[cid] ||= []).push(String(i.gmail_thread_id));
+  }
+  return (recs || []).map((r) => {
+    const rd = (r.row_data && typeof r.row_data === "object") ? r.row_data as Record<string, string> : {};
+    return {
+      id: String(r.id),
+      claimNum: String(rd.claimNum || r.id || ""),
+      plate: String(r.plate || rd.plate || ""),
+      eventDate: String(rd.eventDate || ""),
+      clientName: String(r.client_name || rd.clientName || ""),
+      insCompany: String(rd.insCompany || ""),
+      policyNum: String(rd.policyNum || ""),
+      surveyor: String(rd.surveyor || ""),
+      threads: [...new Set([String(r.gmail_thread_id || ""), ...(threads[String(r.id)] || [])].filter(Boolean))],
+    };
+  });
 }
 
 async function gmailGet(access: string, path: string) {
@@ -614,6 +640,50 @@ Deno.serve(async (req) => {
     }, overLimit ? 413 : 200);
   }
 
+  if (action === "match_dry_run") {
+    const mail = (body.mail && typeof body.mail === "object") ? body.mail as Record<string, unknown> : {};
+    const claimsIn = Array.isArray(body.claims) && body.claims.length
+      ? body.claims as MatchClaim[]
+      : await loadMatchClaims(sb);
+    const result = matchIncomingMail({
+      messageId: String(mail.messageId || "dry"),
+      threadId: String(mail.threadId || ""),
+      subject: String(mail.subject || ""),
+      body: String(mail.body || ""),
+      from: String(mail.from || ""),
+      filenames: Array.isArray(mail.filenames) ? mail.filenames.map((x) => String(x)) : [],
+    }, claimsIn);
+    return jsonResponse({ success: true, result, mailboxMutated: false, realEmailSend: false });
+  }
+
+  if (action === "list_pending") {
+    const { data } = await sb.from("claims_gmail_pending")
+      .select("id, gmail_message_id, gmail_thread_id, from_addr, subject, snippet, sent_at, decision, reason, via, candidates, assigned_claim_id, imported_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(80);
+    return jsonResponse({ success: true, data: data || [], mailboxMutated: false, realEmailSend: false });
+  }
+
+  if (action === "assign_pending") {
+    const pendingId = String(body.pending_id || "");
+    const claimId = String(body.claim_id || "");
+    if (!pendingId || !claimId) return jsonResponse({ success: false, error: "pending_id and claim_id required" }, 400);
+    if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    const { data: row } = await sb.from("claims_gmail_pending").select("id, gmail_message_id, assigned_claim_id, imported_at").eq("id", pendingId).maybeSingle();
+    if (!row) return jsonResponse({ success: false, error: "not_found" }, 404);
+    if (row.imported_at) {
+      return jsonResponse({ success: false, error: "already_imported", claim_id: row.assigned_claim_id, mailboxMutated: false, realEmailSend: false }, 409);
+    }
+    await sb.from("claims_gmail_pending").update({ assigned_claim_id: claimId, decision: "manual" }).eq("id", pendingId);
+    return jsonResponse({
+      success: true,
+      claim_id: claimId,
+      message_id: row.gmail_message_id,
+      mailboxMutated: false,
+      realEmailSend: false,
+    });
+  }
+
   const conn = await loadConnection(sb);
   if (!conn) return jsonResponse({ success: false, error: "gmail_not_connected" }, 409);
   if (conn.connected_email.toLowerCase() !== ALLOWED_ACCOUNT) {
@@ -626,6 +696,117 @@ Deno.serve(async (req) => {
     await sb.from("claims_gmail_connection").update({ last_ok_at: new Date().toISOString() }).eq("id", "staging");
   } catch (e) {
     return jsonResponse({ success: false, error: String((e as Error).message || e) }, 400);
+  }
+
+  if (action === "scan_inbox") {
+    const dry = body.dry === true;
+    const listed = await gmailGet(access, `messages?maxResults=15&q=${encodeURIComponent("in:inbox newer_than:2d")}`);
+    const ids = ((listed.messages || []) as Array<{ id?: string }>).map((m) => String(m.id || "")).filter(Boolean).slice(0, 15);
+    const { data: importedRows } = await sb.from("claims_gmail_imports").select("gmail_message_id");
+    const importedSet = new Set((importedRows || []).map((r) => String(r.gmail_message_id || "")).filter(Boolean));
+    const { data: pendingRows } = await sb.from("claims_gmail_pending").select("id, gmail_message_id, imported_at, decision");
+    const pendingByMsg = new Map((pendingRows || []).map((r) => [String(r.gmail_message_id), r]));
+    const claims = await loadMatchClaims(sb);
+    const auto: Array<Record<string, unknown>> = [];
+    const needsReview: Array<Record<string, unknown>> = [];
+    let skippedImported = 0;
+    let skippedPending = 0;
+    for (const messageId of ids) {
+      if (importedSet.has(messageId)) {
+        skippedImported += 1;
+        continue;
+      }
+      const existingPending = pendingByMsg.get(messageId);
+      if (existingPending?.imported_at) {
+        skippedImported += 1;
+        continue;
+      }
+      if (existingPending && !dry) {
+        skippedPending += 1;
+        continue;
+      }
+      const full = await gmailGet(access, `messages/${encodeURIComponent(messageId)}?format=full`);
+      const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      const parts: Array<Record<string, unknown>> = [];
+      if (full.payload) walkParts(full.payload as Record<string, unknown>, parts);
+      const files = collectFiles(parts);
+      const extracted = await extractMailBody(access, messageId, full.payload as Record<string, unknown>, parts, String(full.snippet || ""));
+      const fromAddr = header(headers, "From");
+      const subject = header(headers, "Subject");
+      const sentAt = full.internalDate ? new Date(Number(full.internalDate)).toISOString() : null;
+      const match = matchIncomingMail({
+        messageId,
+        threadId: String(full.threadId || ""),
+        subject,
+        body: extracted.bodyText,
+        from: fromAddr,
+        filenames: files.map((f) => f.filename),
+      }, claims);
+      const pendingId = `GIP-${messageId}`.slice(0, 80);
+      const row = {
+        id: pendingId,
+        gmail_message_id: messageId,
+        gmail_thread_id: String(full.threadId || ""),
+        from_addr: fromAddr,
+        subject,
+        snippet: String(full.snippet || extracted.bodyText.slice(0, 180)),
+        sent_at: sentAt,
+        decision: match.decision,
+        reason: match.reason,
+        via: match.via || null,
+        candidates: match.candidates,
+        assigned_claim_id: match.decision === "auto" ? (match.claimId || null) : null,
+      };
+      const item = {
+        pending_id: pendingId,
+        message_id: messageId,
+        thread_id: String(full.threadId || ""),
+        from: fromAddr,
+        subject,
+        sent_at: sentAt,
+        claim_id: match.claimId || null,
+        ...match,
+      };
+      if (match.decision === "auto" && match.claimId) auto.push(item);
+      else needsReview.push(item);
+      if (dry) continue;
+      await sb.from("claims_gmail_pending").upsert(row, { onConflict: "gmail_message_id" });
+      const ntfId = nid("NTF");
+      const claimLabel = match.claimId || "";
+      const whenHe = sentAt ? new Date(sentAt).toLocaleString("he-IL") : new Date().toLocaleString("he-IL");
+      const message = match.decision === "auto" && match.claimId
+        ? `מייל חדש התקבל בתביעה ${claimLabel}\nשולח: ${fromAddr}\nנושא: ${subject || "(ללא נושא)"}\nשעה: ${whenHe}`
+        : `מייל חדש דורש בדיקת שיוך\nשולח: ${fromAddr}\nנושא: ${subject || "(ללא נושא)"}\nשעה: ${whenHe}`;
+      await sb.from("claims_notifications").insert({
+        id: ntfId,
+        claim_id: match.claimId || null,
+        row_data: {
+          id: ntfId,
+          claimId: match.claimId || "",
+          type: match.decision === "auto" ? "gmail_auto" : "gmail_review",
+          message,
+          read: "false",
+          createdAt: new Date().toLocaleString("he-IL"),
+          from: fromAddr,
+          subject,
+          pendingId,
+          gmail_message_id: messageId,
+        },
+      });
+    }
+    return jsonResponse({
+      success: true,
+      dry,
+      scanned: ids.length,
+      auto,
+      needs_review: needsReview,
+      skippedImported,
+      skippedPending,
+      mailboxMutated: false,
+      realEmailSend: false,
+      scheduler: false,
+      oauthChanged: false,
+    });
   }
 
   if (action === "list_messages") {
@@ -757,6 +938,18 @@ Deno.serve(async (req) => {
     }
     const messageId = String(body.message_id || "");
     if (!messageId) return jsonResponse({ success: false, error: "message_id required" }, 400);
+    const { data: existingImp } = await sb.from("claims_gmail_imports").select("claim_id").eq("gmail_message_id", messageId).limit(5);
+    const otherClaim = (existingImp || []).find((r) => String(r.claim_id) !== claimId);
+    if (otherClaim) {
+      return jsonResponse({
+        success: false,
+        error: "already_imported_other_claim",
+        existing_claim_id: otherClaim.claim_id,
+        done: true,
+        mailboxMutated: false,
+        realEmailSend: false,
+      }, 409);
+    }
     const start = Number(body.start || 0) || 0;
     const { data: profile } = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
     const actorName = profile?.full_name || user.email || user.id;
@@ -922,6 +1115,10 @@ Deno.serve(async (req) => {
           gmail_thread_id: threadId,
         },
       });
+      await sb.from("claims_gmail_pending").update({
+        imported_at: new Date().toISOString(),
+        assigned_claim_id: claimId,
+      }).eq("gmail_message_id", String(full.id));
     }
     return jsonResponse({
       success: true,

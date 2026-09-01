@@ -218,7 +218,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [sync, setSync] = useState<'ok' | 'pend' | 'err'>('ok');
   const [claims, setClaims] = useState<ClaimRecord[]>([]);
   const [notifs, setNotifs] = useState<ClaimRecord[]>([]);
-  const [view, setView] = useState('dashboard');
+  const [view, setView] = useState('claims');
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [stFil, setStFil] = useState('');
@@ -252,6 +252,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [gmailList, setGmailList] = useState<Array<Record<string, unknown>>>([]);
   const [gmailImports, setGmailImports] = useState<Array<Record<string, unknown>>>([]);
   const [gmailBusy, setGmailBusy] = useState('');
+  const [gmailPending, setGmailPending] = useState<Array<Record<string, unknown>>>([]);
+  const [pendingPick, setPendingPick] = useState<Record<string, string>>({});
+  const inboxScanAt = useRef(0);
   const [linkUrl, setLinkUrl] = useState('');
   const [customDoc, setCustomDoc] = useState('');
   const [sendIds, setSendIds] = useState<string[]>([]);
@@ -315,6 +318,38 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }
   }, []);
 
+  const loadPending = async () => {
+    const r = await apiRef.current.invokeGmail('list_pending');
+    if (r.success) setGmailPending((r.data as Array<Record<string, unknown>>) || []);
+  };
+
+  const runInboxScan = async (silent = false) => {
+    const now = Date.now();
+    if (silent && inboxScanAt.current && now - inboxScanAt.current < 10 * 60 * 1000) return;
+    if (!silent) setGmailBusy('סורק תיבת Gmail…');
+    try {
+      const r = await apiRef.current.invokeGmail('scan_inbox');
+      if (!r.success) {
+        if (!silent) toast(String(r.error || 'סריקה נכשלה'), 'err');
+        return;
+      }
+      inboxScanAt.current = now;
+      const auto = Array.isArray(r.auto) ? r.auto as Array<{ claim_id?: string; message_id?: string }> : [];
+      let imported = 0;
+      for (const item of auto) {
+        if (!item.claim_id || !item.message_id) continue;
+        const ir = await apiRef.current.importGmailMessage(item.claim_id, item.message_id);
+        if (ir.success) imported += 1;
+      }
+      await loadAll();
+      await loadPending();
+      const reviewN = Array.isArray(r.needs_review) ? (r.needs_review as unknown[]).length : 0;
+      if (!silent) toast(`סריקה: ${imported} שויכו אוטומטית · ${reviewN} דורשים בדיקת שיוך`, reviewN && !imported ? 'inf' : 'ok');
+    } finally {
+      if (!silent) setGmailBusy('');
+    }
+  };
+
   useEffect(() => {
     apiRef.current = createClaimsApi(actor);
     if (!document.getElementById('claims-heebo')) {
@@ -330,6 +365,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     })();
   }, [actor.id, loadAll]);
 
+  useEffect(() => {
+    if (!ready) return;
+    void runInboxScan(true);
+  }, [ready]);
+
   const unread = notifs.filter((n) => n.read !== 'true').length;
   const cur = claims.find((c) => c.id === curId) || null;
   const workset = mineOnly ? claims.filter((c) => c.assigned_to === actor.id) : claims;
@@ -339,7 +379,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setSbOpen(false);
     setView(name);
     setFilter(f);
-    if (f) setStFil(f);
+    if (name === 'claims' && !f) setStFil('');
+    else if (f) setStFil(f);
     if (name === 'tasks') {
       apiRef.current.getTasks(null).then((r) => setAllTasks((r.data || []).filter((t) => t.done !== 'true')));
     }
@@ -349,6 +390,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         email: typeof r.email === 'string' ? r.email : null,
         canConnect: r.canConnect === true,
       }));
+      apiRef.current.invokeGmail('list_pending').then((r) => {
+        if (r.success) setGmailPending((r.data as Array<Record<string, unknown>>) || []);
+      });
     }
     if (name === 'reports') {
       apiRef.current.getReportData().then((r) => {
@@ -540,9 +584,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }, 0);
   };
 
-  const openCard = async (id: string) => {
+  const openCard = async (id: string, tab = 'claim') => {
     setCurId(id);
-    setCardTab('claim');
+    setCardTab(tab);
     setModal('moCard');
     setLinkUrl('');
     setPreviewFile(null);
@@ -670,8 +714,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           </div>
           {notifs.length === 0 ? <div style={{ padding: 16, textAlign: 'center', color: 'var(--t3)' }}>אין התראות</div>
             : notifs.map((n) => (
-              <div key={n.id} className={`notif-item ${n.read === 'true' ? '' : 'unread'}`} onClick={() => { apiRef.current.markNotificationRead(n.id); setNotifs((xs) => xs.map((x) => x.id === n.id ? { ...x, read: 'true' } : x)); if (n.claimId) openCard(n.claimId); }}>
-                <div>{n.message}</div>
+              <div key={n.id} className={`notif-item ${n.read === 'true' ? '' : 'unread'}`} onClick={() => {
+                apiRef.current.markNotificationRead(n.id);
+                setNotifs((xs) => xs.map((x) => x.id === n.id ? { ...x, read: 'true' } : x));
+                setNotifOpen(false);
+                if (n.type === 'gmail_review' || !n.claimId) showView('gmail');
+                else void openCard(n.claimId, n.type === 'gmail_auto' ? 'gin' : 'claim');
+              }}>
+                <div style={{ whiteSpace: 'pre-line' }}>{n.message}</div>
                 <div style={{ fontSize: 10, color: 'var(--t3)' }}>{n.createdAt}</div>
               </div>
             ))}
@@ -759,7 +809,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <div className="sb-lbl">ניווט</div>
               <button className={`sb-i ${view === 'dashboard' && !filter ? 'act' : ''}`} onClick={() => showView('dashboard')}><span className="ic">📊</span>דשבורד</button>
               <button className={`sb-i ${view === 'claims' && !filter ? 'act' : ''}`} data-testid="claims-nav-all" onClick={() => showView('claims')}><span className="ic">📋</span>{mineOnly ? 'התביעות שלי' : 'כל התיקים'}<span className="sb-bd b">{workset.length}</span></button>
-              <button className={`sb-i ${view === 'gmail' ? 'act' : ''}`} onClick={() => showView('gmail')}><span className="ic">📧</span>Gmail</button>
+              <button className={`sb-i ${view === 'gmail' ? 'act' : ''}`} onClick={() => showView('gmail')}><span className="ic">📧</span>Gmail{gmailPending.filter((p) => !p.imported_at && p.decision === 'needs_review').length ? <span className="sb-bd r">{gmailPending.filter((p) => !p.imported_at && p.decision === 'needs_review').length}</span> : null}</button>
               <button className={`sb-i ${view === 'tasks' ? 'act' : ''}`} onClick={() => showView('tasks')}><span className="ic">✅</span>משימות</button>
               <button className={`sb-i ${view === 'reports' ? 'act' : ''}`} onClick={() => showView('reports')}><span className="ic">📈</span>דוחות</button>
               <button className="sb-i" data-testid="claims-nav-templates" onClick={async () => {
@@ -807,7 +857,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     )}
-                    <button className="btn btn-g btn-sm" onClick={() => { toast('סריקת Gmail תחובר בשלב הבא', 'inf'); showView('gmail'); }}>📬 סרוק מיילים</button>
+                    <button className="btn btn-g btn-sm" data-testid="claims-scan-inbox" onClick={() => { void runInboxScan(false); showView('gmail'); }}>📬 סרוק מיילים</button>
                   </div>
                 </div>
                 <div className="dcg">
@@ -870,7 +920,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             {view === 'claims' && (
               <>
                 <div className="ph">
-                  <div><div className="ph-t">{filter || stFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים')}<div className="ph-bar" /></div></div>
+                  <div><div className="ph-t" data-testid="claims-list-heading">{filter || stFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים')}<div className="ph-bar" /></div></div>
                   <div className="ph-a">
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'שלי' : 'הכול'}</button>
@@ -882,7 +932,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     </select>
                   </div>
                 </div>
-                <div className="tw"><table><thead><tr>
+                <div className="tw" data-testid="claims-list-table"><table><thead><tr>
                   <th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>ביטוח</th><th>מס' תביעה</th><th>סטטוס</th><th>מטפל</th><th>רכב במערכת</th><th>עדכון</th><th></th>
                 </tr></thead>
                   <tbody>
@@ -912,7 +962,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
             {view === 'gmail' && (
               <>
-                <div className="ph"><div><div className="ph-t">📧 Gmail – חיבור תיבת דליה<div className="ph-bar" /></div></div></div>
+                <div className="ph">
+                  <div><div className="ph-t">📧 Gmail – חיבור תיבת דליה<div className="ph-bar" /></div></div>
+                  <div className="ph-a">
+                    <button className="btn btn-p btn-sm" data-testid="claims-scan-inbox-gmail" onClick={() => void runInboxScan(false)}>📬 סרוק מיילים נכנסים</button>
+                  </div>
+                </div>
                 <div className="gmail-card">
                   <div style={{ fontWeight: 700, marginBottom: 6 }}>
                     {gmailStatus.connected ? `מחובר: ${gmailStatus.email || 'yoni122222@gmail.com'}` : 'לא מחובר עדיין'}
@@ -921,8 +976,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     העובד לא נכנס לתיבת Gmail. ייבוא רק מתוך תיק מורשה.
                     <br />שליחה ידנית מתוך תיק: Preview → SEND → אשר ושלח שולחת מייל אמיתי מתיבת דליה. אין allowlist של TEST.
                     <br />מעקב מתוזמן נשאר Dry Run ואינו שולח לבד.
+                    <br />קליטת מיילים נכנסים: סריקה מתוך Claims בלבד. אין Scheduler חדש ואין שינוי OAuth.
                     <br />Token נשמר בשרת בלבד. ביטול: super_admin כאן, וגם בהרשאות Google.
                   </div>
+                  {gmailBusy ? <div style={{ marginTop: 8, fontSize: 12 }}>{gmailBusy}</div> : null}
                   {isSuperAdmin && gmailStatus.connected && (
                     <button className="btn btn-sm" style={{ marginTop: 10, background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={async () => {
                       const r = await apiRef.current.invokeGmail('revoke');
@@ -937,6 +994,41 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     </div>
                   )}
                 </div>
+                <div className="sdiv"><div className="sdiv-t">דורש בדיקת שיוך ({gmailPending.filter((p) => !p.imported_at && p.decision !== 'auto').length})</div><div className="sdiv-l" /></div>
+                {gmailPending.filter((p) => !p.imported_at && String(p.decision) !== 'auto').length === 0
+                  ? <div style={{ color: 'var(--t3)', fontSize: 12, marginBottom: 12 }}>אין מיילים שממתינים לשיוך ידני</div>
+                  : gmailPending.filter((p) => !p.imported_at && String(p.decision) !== 'auto').map((p) => {
+                    const pid = String(p.id || '');
+                    return (
+                      <div key={pid} className="gmail-card" data-testid="claims-pending-mail">
+                        <div style={{ fontWeight: 800, marginBottom: 4 }}>{String(p.subject || '(ללא נושא)')}</div>
+                        <div style={{ fontSize: 11, color: 'var(--t3)' }}>{String(p.from_addr || '')} · {String(p.sent_at || '')}</div>
+                        <div style={{ fontSize: 12, margin: '6px 0', color: 'var(--yn2)' }}>{String(p.reason || 'דורש בדיקת שיוך')}</div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <select className="fse" value={pendingPick[pid] || ''} onChange={(e) => setPendingPick((prev) => ({ ...prev, [pid]: e.target.value }))}>
+                            <option value="">בחירת תביעה…</option>
+                            {workset.map((c) => (
+                              <option key={c.id} value={c.id}>{c.id} · {c.clientName} · {c.plate || '—'}</option>
+                            ))}
+                          </select>
+                          <button className="btn btn-p btn-sm" onClick={async () => {
+                            const claimId = pendingPick[pid];
+                            if (!claimId) { toast('בחרו תביעה', 'err'); return; }
+                            setGmailBusy('משייך ומייבא…');
+                            const a = await apiRef.current.invokeGmail('assign_pending', { pending_id: pid, claim_id: claimId });
+                            if (!a.success) { setGmailBusy(''); toast(String(a.error || 'שיוך נכשל'), 'err'); return; }
+                            const ir = await apiRef.current.importGmailMessage(claimId, String(a.message_id || p.gmail_message_id));
+                            setGmailBusy('');
+                            if (!ir.success) { toast(String(ir.error || 'ייבוא נכשל'), 'err'); return; }
+                            toast('המייל שויך ידנית ונקלט בתיק');
+                            await loadPending();
+                            await loadAll();
+                            await openCard(claimId, 'gin');
+                          }}>שייך ידנית</button>
+                        </div>
+                      </div>
+                    );
+                  })}
               </>
             )}
 

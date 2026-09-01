@@ -1,0 +1,139 @@
+{
+  "at": "2026-09-01T10:28:41.230Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "mailboxMutated": false,
+  "realEmailSend": false,
+  "tests": [
+    {
+      "id": "staging-only",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": "usfeoerkpcafxxlyuldl"
+    },
+    {
+      "id": "vehicles-437",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": 437
+    },
+    {
+      "id": "accidents-11",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": 11
+    },
+    {
+      "id": "storage-private",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": false
+    },
+    {
+      "id": "pending-table",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": true
+    },
+    {
+      "id": "TEST-A",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018",
+        "via": "claim_number",
+        "reason": "מספר תביעה חד-משמעי"
+      }
+    },
+    {
+      "id": "TEST-B",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018",
+        "via": "thread",
+        "reason": "Gmail Thread ID קיים בתיק"
+      }
+    },
+    {
+      "id": "TEST-C",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018",
+        "via": "plate_date",
+        "reason": "רכב + תאריך אירוע מתאימים לתיק אחד"
+      }
+    },
+    {
+      "id": "TEST-D",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "decision": "needs_review",
+        "via": "plate_ambiguous",
+        "reason": "אותו רכב ביותר מתביעה אחת ואין מספר תביעה/תאריך מספיק"
+      }
+    },
+    {
+      "id": "TEST-E",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "decision": "needs_review",
+        "via": "claim_vs_plate",
+        "reason": "סתירה: מספר תביעה מתיק אחד + רכב מתיק אחר"
+      }
+    },
+    {
+      "id": "TEST-F-no-duplicate",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "status": 409,
+        "error": "already_imported_other_claim",
+        "existing": "DAL-2026-0016"
+      }
+    },
+    {
+      "id": "TEST-G-gmail-docs-exist",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": 1773
+    },
+    {
+      "id": "TEST-G-storage-private",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": false
+    },
+    {
+      "id": "scan-inbox-dry-no-send",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "status": 200,
+        "scanned": 12,
+        "auto": 1,
+        "review": 7,
+        "skippedImported": 4
+      }
+    },
+    {
+      "id": "bounds-after-unchanged",
+      "ok": true,
+      "verdict": "PASS",
+      "detail": {
+        "accidents": 11,
+        "docs": 1780,
+        "imports": 169,
+        "vehicles": 437
+      }
+    }
+  ],
+  "ok": true
+}

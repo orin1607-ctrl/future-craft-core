@@ -1,0 +1,133 @@
+{
+  "ok": true,
+  "rows": [
+    {
+      "id": "TEST-A-claim-number",
+      "ok": true,
+      "got": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018",
+        "reason": "מספר תביעה חד-משמעי",
+        "candidates": [
+          "DAL-2026-0018"
+        ],
+        "via": "claim_number"
+      },
+      "want": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018"
+      }
+    },
+    {
+      "id": "TEST-B-thread",
+      "ok": true,
+      "got": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018",
+        "reason": "Gmail Thread ID קיים בתיק",
+        "candidates": [
+          "DAL-2026-0018"
+        ],
+        "via": "thread"
+      },
+      "want": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018"
+      }
+    },
+    {
+      "id": "TEST-B-thread-contradiction",
+      "ok": true,
+      "got": {
+        "decision": "needs_review",
+        "reason": "סתירה: Thread מול מספר תביעה אחר",
+        "candidates": [
+          "DAL-2026-0018",
+          "DAL-2026-0019"
+        ],
+        "via": "thread_vs_claim"
+      },
+      "want": {
+        "decision": "needs_review"
+      }
+    },
+    {
+      "id": "TEST-C-plate-date",
+      "ok": true,
+      "got": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018",
+        "reason": "רכב + תאריך אירוע מתאימים לתיק אחד",
+        "candidates": [
+          "DAL-2026-0018"
+        ],
+        "via": "plate_date"
+      },
+      "want": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018"
+      }
+    },
+    {
+      "id": "TEST-C-unique-plate",
+      "ok": true,
+      "got": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018",
+        "reason": "מספר רכב מופיע בתיק אחד בלבד במערכת",
+        "candidates": [
+          "DAL-2026-0018"
+        ],
+        "via": "plate_unique"
+      },
+      "want": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0018"
+      }
+    },
+    {
+      "id": "TEST-D-plate-ambiguous",
+      "ok": true,
+      "got": {
+        "decision": "needs_review",
+        "reason": "אותו רכב ביותר מתביעה אחת ואין מספר תביעה/תאריך מספיק",
+        "candidates": [
+          "DAL-2026-0018",
+          "DAL-2026-0019"
+        ],
+        "via": "plate_ambiguous"
+      },
+      "want": {
+        "decision": "needs_review"
+      }
+    },
+    {
+      "id": "TEST-E-claim-vs-plate",
+      "ok": true,
+      "got": {
+        "decision": "needs_review",
+        "reason": "סתירה: מספר תביעה מתיק אחד + רכב מתיק אחר",
+        "candidates": [
+          "DAL-2026-0018",
+          "DAL-2026-0019"
+        ],
+        "via": "claim_vs_plate"
+      },
+      "want": {
+        "decision": "needs_review"
+      }
+    },
+    {
+      "id": "TEST-name-only-no-guess",
+      "ok": true,
+      "got": {
+        "decision": "needs_review",
+        "reason": "אין מזהה מספיק",
+        "candidates": []
+      },
+      "want": {
+        "decision": "needs_review"
+      }
+    }
+  ]
+}
