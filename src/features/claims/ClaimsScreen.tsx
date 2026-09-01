@@ -447,6 +447,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [gmailSends, setGmailSends] = useState<Array<Record<string, unknown>>>([]);
   const [pendingPick, setPendingPick] = useState<Record<string, string>>({});
   const inboxScanAt = useRef(0);
+  const cardLoadGen = useRef(0);
   const [linkUrl, setLinkUrl] = useState('');
   const [customDoc, setCustomDoc] = useState('');
   const [sendIds, setSendIds] = useState<string[]>([]);
@@ -633,6 +634,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const loadCardData = async (id: string) => {
+    const gen = ++cardLoadGen.current;
     const [c, h, t, rem, d, fu, gi, gs] = await Promise.all([
       apiRef.current.getCommLog(id),
       apiRef.current.getHistory(id),
@@ -643,6 +645,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       apiRef.current.invokeGmail('list_imports', { claim_id: id }),
       apiRef.current.invokeGmail('list_sends', { claim_id: id }),
     ]);
+    if (gen !== cardLoadGen.current) return;
     setComm(c.data || []);
     setHist(h.data || []);
     setTasks((t.data || []).filter((x) => x.done !== 'true'));
@@ -2792,7 +2795,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
       </div>
 
-      <div className={`ov ${modal === 'moTreat' ? 'open' : ''}`} data-testid="treat-ops-v2">
+      <div className={`ov ${modal === 'moTreat' ? 'open' : ''}`} data-testid="treat-ops-v3">
         <div className="modal modal-sm">
           <div className="mh"><div className="mh-t">עדכון טיפול</div>
             <button className="mcl" data-testid="treat-back" onClick={() => setModal('moCard')}>✕</button>

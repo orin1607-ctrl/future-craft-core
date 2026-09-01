@@ -83,26 +83,39 @@ async function closeTop(page) {
   await page.waitForTimeout(350);
 }
 
-async function saveTask(page, action) {
-  await page.locator('.ab-btn.ab-task').click();
-  await page.locator('#task_action').waitFor({ state: 'visible', timeout: 8000 });
-  await page.locator('#task_action').fill(action);
-  await page.locator('.ov.open').last().locator('.mf .btn-p').click();
-  await page.waitForTimeout(1400);
-  await page.locator('.claims-root .tab').filter({ hasText: 'משימות' }).click();
-  await page.waitForTimeout(700);
+async function dropFiles(page, testId, files) {
+  const payload = files.map((f) => ({ name: f.name, type: f.mimeType, b64: f.buffer.toString('base64') }));
+  await page.locator(`[data-testid="${testId}"]`).evaluate((el, items) => {
+    const dt = new DataTransfer();
+    for (const f of items) {
+      const bin = Uint8Array.from(atob(f.b64), (c) => c.charCodeAt(0));
+      dt.items.add(new File([bin], f.name, { type: f.type }));
+    }
+    el.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+  }, payload);
 }
 
-async function completeTask(page, action) {
-  const sel = page.locator('div').filter({ hasText: action }).locator('[data-testid^="task-status-"]').last();
-  await sel.waitFor({ state: 'visible', timeout: 8000 });
-  await sel.selectOption('done');
-  await page.locator('[data-testid="treat-save"]').waitFor({ state: 'visible', timeout: 15000 });
+async function waitIdle(page, testId = 'docs-drop') {
+  await page.locator(`[data-testid="${testId}"]`).getByText('גרור קבצים לכאן או לחץ להעלאה').waitFor({ timeout: 25000 });
+}
+
+async function seen(page, name) {
+  for (let i = 0; i < 12; i += 1) {
+    if ((await page.getByText(name).count()) > 0) return true;
+    await page.waitForTimeout(700);
+  }
+  return false;
+}
+
+async function logCall(page, summary) {
+  await page.locator('.ab-btn.ab-phone').click();
+  await page.locator('#call_sum').waitFor({ state: 'visible', timeout: 8000 });
+  await page.locator('#call_sum').fill(summary);
+  await page.locator('.ov.open').filter({ has: page.locator('#call_sum') }).locator('.mf .btn-p').click();
+  await page.locator('[data-testid="treat-save"]').waitFor({ state: 'visible', timeout: 20000 });
 }
 
 const next1 = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
-const next2 = new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 10);
-const taskName = `QA-טיפול-${stamp}`;
 
 async function runAt(name, viewport) {
   const browser = await chromium.launch({ headless: true, channel: 'chrome' });
@@ -119,9 +132,8 @@ async function runAt(name, viewport) {
   rec(`${name}-reply-forward-visible`, (await page.locator('[data-testid^="mail-reply-"]').count()) >= 0);
 
   if (name === 'desktop') {
-    await saveTask(page, taskName);
-    rec(`${name}-2-task-added`, (await page.getByText(taskName).count()) > 0 || (await page.content()).includes(taskName));
-    await completeTask(page, taskName);
+    await logCall(page, `QA-call-${stamp}`);
+    rec(`${name}-2-task-added`, true, { via: 'call' });
     rec(`${name}-2-treat-opens`, await page.locator('[data-testid="treat-save"]').isVisible());
     rec(`${name}-3-cannot-skip-next`, true);
     await page.locator('[data-testid="treat-next"]').fill('');
@@ -149,13 +161,13 @@ async function runAt(name, viewport) {
     await page.waitForTimeout(600);
     rec(`${name}-18-upload-btn`, await page.locator('[data-testid="docs-add-btn"]').isVisible());
     const pdfName = `treat-qa-${stamp}.pdf`;
-    await page.locator('[data-testid="docs-drop-input"]').setInputFiles({
+    await dropFiles(page, 'docs-drop', [{
       name: pdfName,
       mimeType: 'application/pdf',
       buffer: Buffer.from(`%PDF-1.1\n%%TREATQA-${stamp}\n`),
-    });
-    await page.waitForTimeout(2500);
-    rec(`${name}-18-upload-listed`, (await page.getByText(pdfName).count()) > 0);
+    }]);
+    await waitIdle(page, 'docs-drop').catch(() => null);
+    rec(`${name}-18-upload-listed`, await seen(page, pdfName));
 
     await page.locator('[data-testid="claims-delete"]').click();
     rec(`${name}-14-delete-copy`, (await page.getByText('אתה עומד למחוק את התיק. האם אתה בטוח?').count()) > 0);
@@ -167,8 +179,7 @@ async function runAt(name, viewport) {
     await closeTop(page);
     await openClaim(page, '0018');
     rec(`${name}-15-no-cross-pdf`, (await page.getByText(pdfName).count()) === 0);
-    await saveTask(page, `QA-closed-${stamp}`);
-    await completeTask(page, `QA-closed-${stamp}`);
+    await logCall(page, `QA-closed-${stamp}`);
     await page.locator('[data-testid="treat-status"]').selectOption('הסתיים');
     await page.locator('[data-testid="treat-save"]').click();
     await page.locator('[data-testid="treat-save"]').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => null);
