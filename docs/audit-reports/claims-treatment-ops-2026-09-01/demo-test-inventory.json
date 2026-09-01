@@ -1,0 +1,265 @@
+{
+  "at": "2026-09-01T17:58:26.199Z",
+  "deleted": false,
+  "note": "Inventory only. No rows deleted. Owner must approve before any DEMO/TEST removal.",
+  "proposedDeleteCount": 2,
+  "keepCount": 16,
+  "proposed": [
+    {
+      "id": "DAL-2026-0018",
+      "client": "TEST-INTAKE לקוח",
+      "plate": "12-345-67",
+      "status": "ממתין למסמכים",
+      "source": "Customer Accident Intake",
+      "created_at": "2026-09-01T06:41:05.840401+00:00",
+      "docs": 1,
+      "history": 34,
+      "proposedDelete": true,
+      "reasons": [
+        "client_name matches TEST/DEMO pattern: TEST-INTAKE לקוח",
+        "source=Customer Accident Intake"
+      ]
+    },
+    {
+      "id": "DAL-2026-0019",
+      "client": "TEST-INTAKE כפילות",
+      "plate": "12-345-67",
+      "status": "הסתיים",
+      "source": "Customer Accident Intake",
+      "created_at": "2026-09-01T06:41:18.000146+00:00",
+      "docs": 6,
+      "history": 43,
+      "proposedDelete": true,
+      "reasons": [
+        "client_name matches TEST/DEMO pattern: TEST-INTAKE כפילות",
+        "source=Customer Accident Intake"
+      ]
+    }
+  ],
+  "keep": [
+    {
+      "id": "DAL-2026-0002",
+      "client": "בלומה רייך",
+      "plate": "",
+      "status": "שולם",
+      "source": "",
+      "created_at": "2026-08-31T16:55:17.059596+00:00",
+      "docs": 0,
+      "history": 1,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0006",
+      "client": "עדן טזזו / פלורה כהן",
+      "plate": "",
+      "status": "חדש",
+      "source": "",
+      "created_at": "2026-08-31T16:55:18.805376+00:00",
+      "docs": 0,
+      "history": 1,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0007",
+      "client": "אילן עובד רינות",
+      "plate": "60294401",
+      "status": "שולם",
+      "source": "",
+      "created_at": "2026-08-31T16:55:19.211777+00:00",
+      "docs": 101,
+      "history": 11,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0008",
+      "client": "אלימלך דוד / פלורה כהן",
+      "plate": "11874503",
+      "status": "תשלום חלקי",
+      "source": "",
+      "created_at": "2026-08-31T16:55:19.60079+00:00",
+      "docs": 131,
+      "history": 19,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0016",
+      "client": "Ipraktikum / שירה בורידא",
+      "plate": "6563513",
+      "status": "בטיפול",
+      "source": "",
+      "created_at": "2026-08-31T16:55:22.748692+00:00",
+      "docs": 73,
+      "history": 13,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0015",
+      "client": "מור שטיינמן",
+      "plate": "64375201",
+      "status": "ממתין למסמכים",
+      "source": "",
+      "created_at": "2026-08-31T16:55:22.374074+00:00",
+      "docs": 85,
+      "history": 23,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0013",
+      "client": "אלכסנדר צוראני",
+      "plate": "77494202",
+      "status": "ממתין למסמכים",
+      "source": "",
+      "created_at": "2026-08-31T16:55:21.6092+00:00",
+      "docs": 69,
+      "history": 10,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0012",
+      "client": "אילנה אטיאס",
+      "plate": "6594185",
+      "status": "חדש",
+      "source": "",
+      "created_at": "2026-08-31T16:55:21.146865+00:00",
+      "docs": 110,
+      "history": 13,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0014",
+      "client": "מנחם מור שלום",
+      "plate": "14113901",
+      "status": "חדש",
+      "source": "",
+      "created_at": "2026-08-31T16:55:21.967063+00:00",
+      "docs": 181,
+      "history": 60,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0004",
+      "client": "תומר כהן",
+      "plate": "18391803",
+      "status": "ממתין למסמכים",
+      "source": "",
+      "created_at": "2026-08-31T16:55:17.977385+00:00",
+      "docs": 188,
+      "history": 40,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0005",
+      "client": "עמית / מיכאל בן רחמים",
+      "plate": "71167102",
+      "status": "בטיפול",
+      "source": "",
+      "created_at": "2026-08-31T16:55:18.400339+00:00",
+      "docs": 147,
+      "history": 29,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0003",
+      "client": "שרון / רוני אטיאס",
+      "plate": "73479002",
+      "status": "בטיפול",
+      "source": "",
+      "created_at": "2026-08-31T16:55:17.599928+00:00",
+      "docs": 178,
+      "history": 11,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0010",
+      "client": "ארז שקד",
+      "plate": "41984801",
+      "status": "נדחה",
+      "source": "",
+      "created_at": "2026-08-31T16:55:20.398117+00:00",
+      "docs": 89,
+      "history": 6,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0011",
+      "client": "קרין מאיר כהן",
+      "plate": "8573438",
+      "status": "חדש",
+      "source": "",
+      "created_at": "2026-08-31T16:55:20.754447+00:00",
+      "docs": 105,
+      "history": 9,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0017",
+      "client": "Ipraktikum / Leapmotor",
+      "plate": "49325004",
+      "status": "חדש",
+      "source": "",
+      "created_at": "2026-08-31T16:55:23.134119+00:00",
+      "docs": 143,
+      "history": 7,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    },
+    {
+      "id": "DAL-2026-0009",
+      "client": "יקי בביץ'",
+      "plate": "88610902",
+      "status": "ממתין למסמכים",
+      "source": "",
+      "created_at": "2026-08-31T16:55:19.992911+00:00",
+      "docs": 227,
+      "history": 19,
+      "proposedDelete": false,
+      "reasons": [
+        "not proposed — real or uncertain"
+      ]
+    }
+  ]
+}

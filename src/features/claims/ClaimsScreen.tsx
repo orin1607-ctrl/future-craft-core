@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CLAIM_KINDS, CLOSE_REASONS, DOC_PRESETS, MANDATORY_STATUSES, STATUSES, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
+import { CLAIM_KINDS, CLOSE_REASONS, DOC_PRESETS, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, isClosedStatus, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
@@ -39,6 +39,15 @@ function fmtWhen(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString('he-IL');
+}
+function fmtDay(s: string) {
+  if (!s) return '—';
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime()) && (s.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(s))) {
+    return d.toLocaleDateString('he-IL');
+  }
+  const m = String(s).match(/^(\d{1,2}[./]\d{1,2}[./]\d{2,4})/);
+  return m ? m[1] : s;
 }
 function fuStatusHe(s: string) {
   const map: Record<string, string> = {
@@ -457,6 +466,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [followupWanted, setFollowupWanted] = useState(false);
   const [followupDays, setFollowupDays] = useState(3);
   const mailIdemp = useRef('');
+  const [listMode, setListMode] = useState<'active' | 'archive'>('active');
+  const [treatAction, setTreatAction] = useState('');
+  const [treatSendOk, setTreatSendOk] = useState(false);
+  const [treatBusy, setTreatBusy] = useState(false);
+  const [deleteTyped, setDeleteTyped] = useState('');
   const bumpMailDraft = () => {
     setMailPreviewOn(false);
     setMailConfirmOn(false);
@@ -556,20 +570,33 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   }, [actor.id, loadAll]);
 
   useEffect(() => {
+    if (modal !== 'moTreat') return;
+    const t = window.setTimeout(() => {
+      setVal('tr_status', STATUS_UNCHANGED);
+      setVal('tr_manual', '');
+      setVal('tr_note', '');
+      setVal('tr_next', cur?.nextDate || '');
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [modal, treatAction, curId]);
+
+  useEffect(() => {
     if (!ready) return;
     void runInboxScan(true);
   }, [ready]);
 
   const unread = notifs.filter((n) => n.read !== 'true').length;
   const cur = claims.find((c) => c.id === curId) || null;
-  const workset = mineOnly ? claims.filter((c) => c.assigned_to === actor.id) : claims;
+  const activeClaims = useMemo(() => claims.filter((c) => c.archived !== 'true'), [claims]);
+  const archiveClaims = useMemo(() => claims.filter((c) => c.archived === 'true'), [claims]);
+  const workset = mineOnly ? activeClaims.filter((c) => c.assigned_to === actor.id) : activeClaims;
   const cnt = (f: (x: ClaimRecord) => boolean) => workset.filter(f).length;
 
   const showView = (name: string, f = '') => {
     setSbOpen(false);
     setView(name);
     setFilter(f);
-    if (name === 'claims' && !f) setStFil('');
+    if (name === 'claims' && !f) { setStFil(''); setListMode('active'); }
     else if (f) setStFil(f);
     if (name === 'tasks') {
       apiRef.current.getTasks(null).then((r) => setAllTasks((r.data || []).filter((t) => t.done !== 'true')));
@@ -959,13 +986,69 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const pendingStatus = useRef('');
 
-  const list = useMemo(() => claims.filter((c) => {
-    if (mineOnly && c.assigned_to !== actor.id) return false;
-    if (search && JSON.stringify(c).toLowerCase().indexOf(search.toLowerCase()) === -1) return false;
-    if (stFil && c.status !== stFil) return false;
-    if (filter && c.status !== filter) return false;
-    return true;
-  }), [claims, search, stFil, filter, mineOnly, actor.id]);
+  const openTreat = (action: string, opts?: { sendOk?: boolean }) => {
+    setTreatAction(action);
+    setTreatSendOk(!!opts?.sendOk);
+    setVal('tr_status', STATUS_UNCHANGED);
+    setVal('tr_manual', '');
+    setVal('tr_note', '');
+    setVal('tr_next', cur?.nextDate || '');
+    setModal('moTreat');
+  };
+
+  const afterSignificant = async (claimId: string, action: string, opts?: { sendOk?: boolean }) => {
+    await apiRef.current.markTreatmentPending(claimId, action);
+    await loadAll();
+    setTreatAction(action);
+    setTreatSendOk(!!opts?.sendOk);
+    setVal('tr_status', STATUS_UNCHANGED);
+    setVal('tr_manual', '');
+    setVal('tr_note', '');
+    const c = (await apiRef.current.getClaims()).data?.find((x) => x.id === claimId);
+    setVal('tr_next', c?.nextDate || '');
+    setModal('moTreat');
+  };
+
+  const submitTreat = async () => {
+    if (!curId) return;
+    const statusChoice = val(null, 'tr_status') || STATUS_UNCHANGED;
+    const nextDate = val(null, 'tr_next');
+    const manualNote = val(null, 'tr_manual');
+    const note = val(null, 'tr_note');
+    const chosenStatus = statusChoice === STATUS_UNCHANGED ? (cur?.status || '') : statusChoice === STATUS_MANUAL ? (cur?.status || '') : statusChoice;
+    const closed = isClosedStatus(chosenStatus, cur?.archived);
+    if (statusChoice === STATUS_MANUAL && !manualNote) { toast('נא לכתוב עדכון ידני', 'err'); return; }
+    if (!closed && !nextDate) { toast('חובה להגדיר תאריך טיפול הבא', 'err'); return; }
+    setTreatBusy(true);
+    try {
+      const r = await apiRef.current.saveTreatmentUpdate({
+        claimId: curId,
+        action: treatAction || cur?.treatmentPendingAction || 'עדכון טיפול',
+        statusChoice,
+        manualNote,
+        nextDate,
+        note,
+      });
+      if (!r.success) { toast(String(r.error || 'שמירת עדכון טיפול נכשלה'), 'err'); return; }
+      toast('עדכון טיפול נשמר');
+      await loadAll();
+      setModal('moCard');
+      await loadCardData(curId);
+    } finally {
+      setTreatBusy(false);
+    }
+  };
+
+  const list = useMemo(() => {
+    const pool = listMode === 'archive' ? archiveClaims : activeClaims;
+    return pool.filter((c) => {
+      if (mineOnly && c.assigned_to !== actor.id) return false;
+      if (search && JSON.stringify(c).toLowerCase().indexOf(search.toLowerCase()) === -1) return false;
+      if (stFil && c.status !== stFil) return false;
+      if (filter && c.status !== filter) return false;
+      return true;
+    });
+  }, [activeClaims, archiveClaims, listMode, search, stFil, filter, mineOnly, actor.id]);
 
   const openDash = workset.filter((x) => x.status !== 'הסתיים' && x.status !== 'שולם').slice(0, 10);
   const myTasks = dashTasks.filter((t) => !mineOnly || workset.some((c) => c.id === t.claimId)).slice(0, 8);
@@ -1087,7 +1170,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="sb-sec">
               <div className="sb-lbl">ניווט</div>
               <button className={`sb-i ${view === 'dashboard' && !filter ? 'act' : ''}`} onClick={() => showView('dashboard')}><span className="ic">📊</span>דשבורד</button>
-              <button className={`sb-i ${view === 'claims' && !filter ? 'act' : ''}`} data-testid="claims-nav-all" onClick={() => showView('claims')}><span className="ic">📋</span>{mineOnly ? 'התביעות שלי' : 'כל התיקים'}<span className="sb-bd b">{workset.length}</span></button>
+              <button className={`sb-i ${view === 'claims' && !filter && listMode === 'active' ? 'act' : ''}`} data-testid="claims-nav-all" onClick={() => showView('claims')}><span className="ic">📋</span>{mineOnly ? 'התביעות שלי' : 'כל התיקים'}<span className="sb-bd b">{workset.length}</span></button>
+              <button className={`sb-i ${view === 'claims' && listMode === 'archive' ? 'act' : ''}`} data-testid="claims-nav-archive" onClick={() => { setListMode('archive'); setView('claims'); setFilter(''); setStFil(''); setSbOpen(false); }}><span className="ic">📦</span>תיקים בארכיון<span className="sb-bd">{archiveClaims.length}</span></button>
               <button className={`sb-i ${view === 'gmail' ? 'act' : ''}`} onClick={() => showView('gmail')}><span className="ic">📧</span>Gmail{gmailPending.filter((p) => !p.imported_at && p.decision === 'needs_review').length ? <span className="sb-bd r">{gmailPending.filter((p) => !p.imported_at && p.decision === 'needs_review').length}</span> : null}</button>
               <button className={`sb-i ${view === 'tasks' ? 'act' : ''}`} onClick={() => showView('tasks')}><span className="ic">✅</span>משימות</button>
               <button className={`sb-i ${view === 'reports' ? 'act' : ''}`} onClick={() => showView('reports')}><span className="ic">📈</span>דוחות</button>
@@ -1164,7 +1248,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   </button>
                 </div>
                 <div className="sdiv"><div className="sdiv-t">תיקים פתוחים – דורשים טיפול</div><div className="sdiv-l" /></div>
-                <div className="tw"><table><thead><tr><th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>סטטוס</th><th>מטפל</th><th>חסר / ממתין</th><th>פעולה הבאה</th><th>עדכון</th></tr></thead>
+                <div className="tw"><table><thead><tr><th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>סטטוס</th><th>מטפל</th><th>חסר / ממתין</th><th>תאריך טיפול אחרון</th><th>תאריך טיפול הבא</th></tr></thead>
                   <tbody>
                     {openDash.length === 0 ? <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--t3)', padding: 24 }}>אין תיקים פתוחים</td></tr>
                       : openDash.map((x) => (
@@ -1174,8 +1258,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           <td>{stBadge(x.status)}</td>
                           <td style={{ fontSize: 11 }}>{x.assigned_to_name || '—'}</td>
                           <td style={{ fontSize: 11, color: x.status === 'ממתין למסמכים' ? 'var(--rd2)' : 'var(--t3)' }}>{x.status === 'ממתין למסמכים' ? 'מסמכים' : '—'}</td>
-                          <td style={{ fontSize: 11, color: 'var(--yn2)' }}>{x.nextAction || '—'}</td>
-                          <td style={{ fontSize: 10, color: 'var(--t3)' }}>{x.updatedAt || '—'}</td>
+                          <td style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDay(x.lastTreatmentAt || x.lastActivityAt || '')}</td>
+                          <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(x.nextDate || '')}</td>
                         </tr>
                       ))}
                   </tbody>
@@ -1209,7 +1293,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             {view === 'claims' && (
               <>
                 <div className="ph">
-                  <div><div className="ph-t" data-testid="claims-list-heading">{filter || stFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים')}<div className="ph-bar" /></div></div>
+                  <div><div className="ph-t" data-testid="claims-list-heading">{listMode === 'archive' ? 'תיקים בארכיון' : (filter || stFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים'))}<div className="ph-bar" /></div></div>
                   <div className="ph-a">
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'שלי' : 'הכול'}</button>
@@ -1222,7 +1306,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   </div>
                 </div>
                 <div className="tw" data-testid="claims-list-table"><table><thead><tr>
-                  <th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>ביטוח</th><th>מס' תביעה</th><th>סטטוס</th><th>מטפל</th><th>רכב במערכת</th><th>עדכון</th><th></th>
+                  <th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>ביטוח</th><th>מס' תביעה</th><th>סטטוס</th><th>מטפל</th><th>תאריך טיפול אחרון</th><th>תאריך טיפול הבא</th><th></th>
                 </tr></thead>
                   <tbody>
                     {list.length === 0 ? <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }}>לא נמצאו תיקים</td></tr>
@@ -1239,8 +1323,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           <td style={{ color: 'var(--t3)', fontSize: 11 }}>{c.claimNum || '—'}</td>
                           <td>{stBadge(c.status)}</td>
                           <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
-                          <td><div className="lbl-pill">{c.vehicle_id ? '✓' : '—'}</div></td>
-                          <td style={{ fontSize: 10, color: 'var(--t3)' }}>{c.updatedAt || '—'}</td>
+                          <td style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDay(c.lastTreatmentAt || c.lastActivityAt || '')}</td>
+                          <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(c.nextDate || '')}</td>
                           <td onClick={(e) => e.stopPropagation()}><button className="btn btn-g btn-sm" onClick={() => startEdit(c.id)}>✏️</button></td>
                         </tr>
                       ))}
@@ -1498,6 +1582,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <button className="ab-btn ab-status" onClick={() => { setVal('sf_st', cur.status); setVal('sf_note', ''); setModal('moStatus'); }}>🔄 סטטוס</button>
               <button className="ab-btn ab-sum" onClick={async () => { const r = await apiRef.current.exportClaimSummary(cur.id); setSumText(r.text || ''); setModal('moSum'); }}>📄 סיכום פנימי</button>
               <button className="ab-btn" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => setModal('moClose')}>🔒 סגור תיק</button>
+              {cur.archived === 'true'
+                ? <button className="ab-btn ab-sum" data-testid="claims-restore-archive" onClick={async () => {
+                  const r = await apiRef.current.restoreClaim(cur.id);
+                  if (!r.success) { toast(String(r.error || 'שחזור נכשל'), 'err'); return; }
+                  await loadAll();
+                  toast('שוחזר מארכיון');
+                }}>↩ שחזר מארכיון</button>
+                : <button className="ab-btn ab-sum" data-testid="claims-archive" onClick={() => setModal('moArchive')}>📦 העבר לארכיון</button>}
+              <button className="ab-btn" data-testid="claims-delete" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { setDeleteTyped(''); setModal('moDelete'); }}>🗑 מחק תיק</button>
               <button className="ab-btn ab-sum" onClick={async () => {
                 const mailBody = gmailImports.map((im) => String(im.body_text || '')).filter((t) => t.trim().length > 2).join('\n\n');
                 const r = await apiRef.current.exportExternalSummary(cur.id, { mailBody, docNames: docs.files.map((f) => f.original_name) });
@@ -1506,6 +1599,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               }}>📄 סיכום חיצוני</button>
             </div>
             <div className="mb">
+              {cur.treatmentPending === 'true' ? (
+                <div data-testid="treatment-pending-banner" className="treat-pending" style={{ background: 'rgba(234,179,8,.12)', border: '1px solid var(--yn2)', borderRadius: 8, padding: 10, marginBottom: 10, fontSize: 12 }}>
+                  {treatSendOk ? <div style={{ fontWeight: 800, marginBottom: 4 }}>המייל נשלח בהצלחה — נדרש עדכון טיפול (לא נשלח שוב)</div> : null}
+                  נדרש עדכון טיפול: {cur.treatmentPendingAction || treatAction || 'פעולה משמעותית'}
+                  <button type="button" className="btn btn-p btn-sm" data-testid="treatment-pending-open" style={{ marginInlineStart: 8 }} onClick={() => openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk })}>השלם עדכון טיפול</button>
+                </div>
+              ) : null}
               <div className="tabs">
                 {[['claim', '📋 תביעה'], ['client', '👤 לקוח'], ['vehicle', '🚗 רכב'], ['treat', '🛠 טיפול'], ['surveyor', '🔎 דוח שמאי'], ['invoice', '🧾 חשבונית מוסך'], ['docs', '📄 מסמכים'], ['gin', '✉ התכתבויות'], ['tasks', '✅ משימות'], ['rems', '🔔 תזכורות'], ['mailfu', '📬 מעקב מייל'], ['timeline', '⏱ היסטוריה']].map(([k, l]) => (
                   <button key={k} className={`tab ${cardTab === k ? 'act' : ''}`} onClick={() => setCardTab(k)}>{l}</button>
@@ -1539,7 +1639,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               {cardTab === 'treat' && (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 12 }}>
-                    {([['פעולה הבאה', cur.nextAction || '—'], ['תאריך יעד', cur.nextDate || '—'], ['הערות טיפול', cur.notes || '—']] as Array<[string, string]>)
+                    {([['פעולה הבאה', cur.nextAction || '—'], ['תאריך טיפול אחרון', fmtDay(cur.lastTreatmentAt || cur.lastActivityAt || '')], ['תאריך טיפול הבא', fmtDay(cur.nextDate || '')], ['הערות טיפול', cur.notes || '—']] as Array<[string, string]>)
                       .concat(cur.claimKind === 'תביעת צד ג׳' ? [['צד ג׳', cur.thirdParty || '—'], ['רכב צד ג׳', cur.thirdPlate || '—']] : [])
                       .map((f) => (
                       <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
@@ -1862,6 +1962,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       setLinkUrl(url);
                       await navigator.clipboard.writeText(url).catch(() => undefined);
                       toast('הקישור הועתק');
+                      await afterSignificant(cur.id, 'נשלחה בקשת מסמכים ללקוח');
                     }}>קישור להעלאת מסמכים</button>
                     <button className="btn btn-g btn-sm" onClick={async () => { await apiRef.current.invokeDocs('revoke_link', { claim_id: cur.id }); setLinkUrl(''); toast('הקישור בוטל'); }}>בטל קישור</button>
                   </div>
@@ -2082,10 +2183,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           ) : null}
                           <div className="fg" style={{ marginTop: 8 }}>
                             <label className="fl">סטטוס טיפול</label>
-                            <select className="fse" defaultValue={t.workStatus || 'open'} id={`tws_${t.id}`} onChange={async (e) => {
-                              await apiRef.current.saveTask({ ...t, workStatus: e.target.value, done: e.target.value === 'done' ? 'true' : 'false' });
+                            <select className="fse" data-testid={`task-status-${t.id}`} defaultValue={t.workStatus || 'open'} id={`tws_${t.id}`} onChange={async (e) => {
+                              const next = e.target.value;
+                              await apiRef.current.saveTask({ ...t, workStatus: next, done: next === 'done' ? 'true' : 'false' });
                               toast('סטטוס עודכן');
                               await loadCardData(cur.id);
+                              if (next === 'done') await afterSignificant(cur.id, `הושלמה משימה: ${t.action}`);
                             }}>
                               {WORK_STATUS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
                             </select>
@@ -2282,7 +2385,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               const sum = val(null, 'call_sum'); if (!sum) { toast('נא להזין סיכום', 'err'); return; }
               await apiRef.current.saveCommEntry({ claimId: curId || '', type: 'call', contactName: cur?.clientName || '', phone: val(null, 'call_phone'), body: sum, note: val(null, 'call_next') });
               toast('שיחה תועדה');
-              if (curId) await openCard(curId);
+              if (curId) await afterSignificant(curId, 'תועדה שיחת טלפון');
             }}>💾 שמור שיחה</button>
           </div>
         </div>
@@ -2304,7 +2407,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, '_blank');
               await apiRef.current.saveCommEntry({ claimId: curId || '', type: 'wa', phone, body: msg, direction: 'out', contactName: cur?.clientName || '' });
               toast('WhatsApp נשלח ותועד');
-              if (curId) await openCard(curId);
+              if (curId) await afterSignificant(curId, 'תועד WhatsApp');
             }}>💬 שלח + תעד</button>
           </div>
         </div>
@@ -2584,8 +2687,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   }
                   setMailConfirmOn(false);
                   setMailAck(false);
-                  setModal('moCard');
-                  if (curId) await openCard(curId, 'gin');
+                  if (curId) await afterSignificant(curId, 'נשלח מייל עם מסמכים', { sendOk: true });
                 } finally {
                   setMailSending(false);
                 }
@@ -2690,6 +2792,77 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               setModal('moCard');
               if (curId) await loadCardData(curId);
             }}>💾 שמור מעקב</button>
+          </div>
+        </div>
+      </div>
+
+      <div className={`ov ${modal === 'moTreat' ? 'open' : ''}`}>
+        <div className="modal modal-sm">
+          <div className="mh"><div className="mh-t">עדכון טיפול</div>
+            <button className="mcl" data-testid="treat-back" onClick={() => setModal('moCard')}>✕</button>
+          </div>
+          <div className="mb">
+            {treatSendOk ? <div data-testid="treat-send-ok" style={{ background: 'rgba(34,197,94,.12)', border: '1px solid var(--gn2)', borderRadius: 7, padding: 8, marginBottom: 10, fontSize: 12 }}>המייל נשלח בהצלחה. עדכון הטיפול לא שולח שוב.</div> : null}
+            <div style={{ fontSize: 12, marginBottom: 8 }}><b>פעולה:</b> {treatAction || cur?.treatmentPendingAction || '—'}</div>
+            <div style={{ fontSize: 12, marginBottom: 10 }}><b>סטטוס נוכחי:</b> {cur?.status || '—'}</div>
+            <div className="fg"><label className="fl">עדכון סטטוס</label>
+              <select className="fse fi" id="tr_status" data-testid="treat-status" defaultValue={STATUS_UNCHANGED}>
+                <option value={STATUS_UNCHANGED}>הסטטוס ללא שינוי</option>
+                {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                <option value={STATUS_MANUAL}>אחר / עדכון ידני</option>
+              </select>
+            </div>
+            <div className="fg"><label className="fl">עדכון ידני</label><textarea className="fta" id="tr_manual" data-testid="treat-manual" placeholder="אם נבחר אחר" /></div>
+            <div className="fg"><label className="fl">הערה</label><input className="fi" id="tr_note" data-testid="treat-note" /></div>
+            <div className="fg"><label className="fl">תאריך טיפול הבא</label>
+              <input className="fi" id="tr_next" data-testid="treat-next" type="date" />
+              <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>חובה בתיק פעיל. לא נדרש אם הסטטוס הסתיים / שולם / נדחה או שהתיק בארכיון.</div>
+            </div>
+          </div>
+          <div className="mf">
+            <button className="btn btn-g" disabled={treatBusy} onClick={() => setModal('moCard')}>חזור לתיק</button>
+            <button className="btn btn-p" data-testid="treat-save" disabled={treatBusy} onClick={() => void submitTreat()}>{treatBusy ? 'שומר…' : 'שמור וסיים'}</button>
+          </div>
+        </div>
+      </div>
+
+      <div className={`ov ${modal === 'moArchive' ? 'open' : ''}`}>
+        <div className="modal modal-sm">
+          <div className="mh"><div className="mh-t">העבר לארכיון</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mb" style={{ fontSize: 13, lineHeight: 1.6 }}>התיק יצא מרשימת התיקים הפעילים. מסמכים, מיילים, היסטוריה ומשימות לא יימחקו.</div>
+          <div className="mf">
+            <button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
+            <button className="btn btn-p" data-testid="archive-confirm" onClick={async () => {
+              if (!curId) return;
+              const r = await apiRef.current.archiveClaim(curId);
+              if (!r.success) { toast(String(r.error || 'ארכיון נכשל'), 'err'); return; }
+              setModal(null);
+              await loadAll();
+              toast('התיק הועבר לארכיון');
+            }}>העבר לארכיון</button>
+          </div>
+        </div>
+      </div>
+
+      <div className={`ov ${modal === 'moDelete' ? 'open' : ''}`}>
+        <div className="modal modal-sm">
+          <div className="mh"><div className="mh-t">מחק תיק</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mb">
+            <div data-testid="delete-warning" style={{ color: 'var(--rd2)', fontWeight: 700, marginBottom: 8 }}>אתה עומד למחוק את התיק. האם אתה בטוח?</div>
+            <div style={{ fontSize: 12, marginBottom: 8 }}>מחיקה רכה בלבד — המסמכים, המיילים וההיסטוריה נשמרים. הקלד «מחק» לאישור.</div>
+            <input className="fi" data-testid="delete-typed" value={deleteTyped} onChange={(e) => setDeleteTyped(e.target.value)} placeholder="מחק" />
+          </div>
+          <div className="mf">
+            <button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
+            <button className="btn btn-rd" data-testid="delete-confirm" disabled={deleteTyped !== 'מחק'} onClick={async () => {
+              if (!curId || deleteTyped !== 'מחק') return;
+              const r = await apiRef.current.softDeleteClaim(curId, deleteTyped);
+              if (!r.success) { toast(String(r.error || 'מחיקה נכשלה'), 'err'); return; }
+              setModal(null);
+              setCurId('');
+              await loadAll();
+              toast('התיק הוסתר (soft delete)');
+            }}>מחק תיק</button>
           </div>
         </div>
       </div>

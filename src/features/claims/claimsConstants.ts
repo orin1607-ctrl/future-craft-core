@@ -19,6 +19,15 @@ export const CLOSE_REASONS = [
 
 export const MANDATORY_STATUSES = ['נדחה', 'תשלום חלקי', 'הועבר לטיפול משפטי', 'הסתיים'];
 
+export const CLOSED_STATUSES = ['הסתיים', 'שולם', 'נדחה'];
+
+export const STATUS_UNCHANGED = '__unchanged__';
+export const STATUS_MANUAL = '__manual__';
+
+export function isClosedStatus(status: string, archived?: string) {
+  return archived === 'true' || CLOSED_STATUSES.includes(status);
+}
+
 export const CLAIM_KINDS = [
   'תביעה במסגרת פוליסת הלקוח',
   'תביעת צד ג׳',

@@ -1,0 +1,17 @@
+{
+  "architectureMatch": true,
+  "stopForNewSystem": false,
+  "stagingOnly": true,
+  "findings": {
+    "status": "claims_records.status + STATUSES in claimsConstants. Existing moStatus modal.",
+    "history": "claims_history via appendHistory. Already writes last_activity_at.",
+    "last_activity_at": "column exists. Map lastActivityAt. Current table column עדכון shows updatedAt (any save), not last treatment.",
+    "nextDate": "already in claim row_data (fc_nextDate / treat tab תאריך יעד). Not shown on main list.",
+    "reminders": "claims_reminders action=note (staff reminders) and action=send_email (mail followup Dry Run). saveReminder currently INSERT-only.",
+    "alerts": "claims_notifications + dashboard תזכורות from note reminders.",
+    "close": "closeClaim + moClose exists. Sets הסתיים/שולם/נדחה. Not archive.",
+    "archive": "no archived flag yet. Will use row_data.archived — no new table.",
+    "delete": "RLS allows delete with ON DELETE CASCADE. No UI. Will soft-delete via row_data.deletedAt only — no Hard Delete.",
+    "notCreating": "no parallel status, reminder, history, or archive tables"
+  }
+}

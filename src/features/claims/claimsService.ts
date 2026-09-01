@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { CLOSE_REASONS, TEMPLATES, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
+import { CLOSE_REASONS, STATUS_MANUAL, STATUS_UNCHANGED, TEMPLATES, isClosedStatus, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 
 export type MailJobRow = {
   id: string;
@@ -112,6 +112,67 @@ export function createClaimsApi(actor: ClaimsActor) {
     }
   }
 
+  async function upsertNextTreatmentReminder(claimId: string, nextDate: string, cancel: boolean) {
+    const id = `NT-${claimId}`;
+    const { data: existing } = await tbl('claims_reminders').select('id, row_data').eq('id', id).maybeSingle();
+    if (cancel) {
+      if (!existing?.id) return;
+      const prev = rowFromData((existing as { row_data?: Record<string, unknown> }).row_data);
+      await tbl('claims_reminders').update({
+        status: 'cancelled',
+        next_run_at: null,
+        row_data: { ...prev, id, claimId, purpose: 'next_treatment', cancelled: 'true', date: '', note: prev.note || 'טיפול הבא' },
+      } as never).eq('id', id);
+      return;
+    }
+    if (!nextDate) return;
+    const run = new Date(`${nextDate}T09:00:00`);
+    const runIso = Number.isNaN(run.getTime()) ? new Date().toISOString() : run.toISOString();
+    const row = {
+      id,
+      claimId,
+      date: nextDate,
+      note: 'טיפול הבא',
+      purpose: 'next_treatment',
+      cancelled: 'false',
+      owner: actorName,
+      createdAt: nowHe(),
+    };
+    const payload = {
+      id,
+      claim_id: claimId,
+      action: 'note',
+      status: 'scheduled',
+      next_run_at: runIso,
+      row_data: row,
+    };
+    if (existing?.id) {
+      await tbl('claims_reminders').update({
+        status: 'scheduled',
+        next_run_at: runIso,
+        row_data: row,
+      } as never).eq('id', id);
+    } else {
+      await tbl('claims_reminders').insert(payload as never);
+    }
+  }
+
+  async function patchClaimData(claimId: string, patch: Record<string, string>, extra?: { status?: string; bumpActivity?: boolean }) {
+    const c = await getClaimById(claimId);
+    if (!c) return { success: false as const, error: 'תיק לא נמצא' };
+    const next = { ...c, ...patch };
+    const payload: Record<string, unknown> = {
+      row_data: next,
+      updated_by: actor.id,
+      updated_by_name: actorName,
+    };
+    if (extra?.status) payload.status = extra.status;
+    if (extra?.bumpActivity) payload.last_activity_at = new Date().toISOString();
+    const { error } = await tbl('claims_records').update(payload as never).eq('id', claimId);
+    if (error) return { success: false as const, error: error.message };
+    return { success: true as const, data: next };
+  }
+
   async function createNotification(claimId: string, type: string, message: string) {
     const id = generateId('NTF');
     await tbl('claims_notifications').insert({
@@ -153,8 +214,9 @@ export function createClaimsApi(actor: ClaimsActor) {
       if (!row.lastActivityAt && r.last_activity_at) {
         row.lastActivityAt = new Date(asText(r.last_activity_at)).toLocaleString('he-IL');
       }
+      if (row.deletedAt) return null;
       return row;
-    });
+    }).filter((r): r is ClaimRecord => !!r);
   }
 
   async function getClaimById(id: string): Promise<ClaimRecord | null> {
@@ -321,8 +383,90 @@ export function createClaimsApi(actor: ClaimsActor) {
         const row = rowFromData(r.row_data);
         row.id = row.id || r.id;
         return row;
-      });
+      }).filter((r) => r.cancelled !== 'true');
       return { success: true, data: rows };
+    },
+
+    async markTreatmentPending(claimId: string, action: string) {
+      return patchClaimData(claimId, { treatmentPending: 'true', treatmentPendingAction: action });
+    },
+
+    async saveTreatmentUpdate(payload: {
+      claimId: string;
+      action: string;
+      statusChoice: string;
+      manualNote?: string;
+      nextDate: string;
+      note?: string;
+    }) {
+      const c = await getClaimById(payload.claimId);
+      if (!c) return { success: false, error: 'תיק לא נמצא' };
+      const prevStatus = c.status || '';
+      let nextStatus = prevStatus;
+      let historyNote = payload.note || '';
+      if (payload.statusChoice === STATUS_MANUAL) {
+        historyNote = [historyNote, payload.manualNote || ''].filter(Boolean).join(' · ');
+      } else if (payload.statusChoice && payload.statusChoice !== STATUS_UNCHANGED) {
+        nextStatus = payload.statusChoice;
+      }
+      const closed = isClosedStatus(nextStatus, c.archived);
+      if (!closed && !payload.nextDate) return { success: false, error: 'חובה להגדיר תאריך טיפול הבא' };
+      const lastIso = new Date().toISOString();
+      const patch: Record<string, string> = {
+        treatmentPending: '',
+        treatmentPendingAction: '',
+        lastTreatmentAction: payload.action,
+        lastTreatmentAt: nowHe(),
+        lastActivityAt: nowHe(),
+        nextDate: closed ? '' : payload.nextDate,
+        nextAction: closed ? '' : (c.nextAction || payload.action),
+        status: nextStatus,
+      };
+      if (payload.statusChoice === STATUS_MANUAL && payload.manualNote) {
+        patch.notes = [c.notes, payload.manualNote].filter(Boolean).join('\n');
+      }
+      const saved = await patchClaimData(payload.claimId, patch, { status: nextStatus, bumpActivity: true });
+      if (!saved.success) return saved;
+      await upsertNextTreatmentReminder(payload.claimId, closed ? '' : payload.nextDate, closed);
+      const histNote = [
+        `פעולה: ${payload.action}`,
+        `סטטוס: ${prevStatus} → ${nextStatus}`,
+        `טיפול אחרון: ${patch.lastTreatmentAt}`,
+        closed ? 'תיק סגור — ללא תאריך טיפול הבא' : `טיפול הבא: ${payload.nextDate}`,
+        historyNote ? `הערה: ${historyNote}` : '',
+      ].filter(Boolean).join(' · ');
+      await appendHistory(payload.claimId, 'עדכון טיפול', histNote, 'treatment', prevStatus, nextStatus);
+      return { success: true, lastTreatmentAt: patch.lastTreatmentAt, nextDate: patch.nextDate, status: nextStatus };
+    },
+
+    async archiveClaim(claimId: string) {
+      const c = await getClaimById(claimId);
+      if (!c) return { success: false, error: 'תיק לא נמצא' };
+      const saved = await patchClaimData(claimId, { archived: 'true', treatmentPending: '', nextDate: '' }, { bumpActivity: true });
+      if (!saved.success) return saved;
+      await upsertNextTreatmentReminder(claimId, '', true);
+      await appendHistory(claimId, 'הועבר לארכיון', '', 'archive', c.status, c.status);
+      return { success: true };
+    },
+
+    async restoreClaim(claimId: string) {
+      const c = await getClaimById(claimId);
+      if (!c) return { success: false, error: 'תיק לא נמצא' };
+      const saved = await patchClaimData(claimId, { archived: '' }, { bumpActivity: false });
+      if (!saved.success) return saved;
+      await appendHistory(claimId, 'שוחזר מארכיון', '', 'archive', c.status, c.status);
+      return { success: true };
+    },
+
+    async softDeleteClaim(claimId: string, confirmText: string) {
+      if (confirmText !== 'מחק') return { success: false, error: 'נדרש אישור מפורש' };
+      const c = await getClaimById(claimId);
+      if (!c) return { success: false, error: 'תיק לא נמצא' };
+      const saved = await patchClaimData(claimId, { deletedAt: new Date().toISOString(), treatmentPending: '' }, { bumpActivity: true });
+      if (!saved.success) return saved;
+      await upsertNextTreatmentReminder(claimId, '', true);
+      await appendHistory(claimId, 'תיק נמחק (soft delete)', 'לא נמחקו מסמכים/מיילים/היסטוריה', 'delete', c.status, c.status);
+      return { success: true };
     },
 
     async upsertMailFollowup(payload: Record<string, unknown>) {
@@ -550,7 +694,8 @@ export function createClaimsApi(actor: ClaimsActor) {
       const status = finalStatus || 'הסתיים';
       await appendHistory(claimId, `תיק נסגר: ${closeReason}`, closeNote || '', 'close', c.status, status);
       await createNotification(claimId, 'close', `תיק נסגר: ${closeReason}`);
-      return this.saveClaim({ ...c, status, closeReason, closeNote: closeNote || '' });
+      await upsertNextTreatmentReminder(claimId, '', true);
+      return this.saveClaim({ ...c, status, closeReason, closeNote: closeNote || '', nextDate: '' });
     },
 
     async exportExternalSummary(claimId: string, extra?: { mailBody?: string; docNames?: string[] }) {
