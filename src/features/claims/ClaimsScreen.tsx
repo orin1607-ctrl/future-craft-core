@@ -74,6 +74,12 @@ function fmtBytes(n: number) {
 }
 
 const PACKAGE_LIMIT = 18 * 1024 * 1024;
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+function mailAddrsOk(raw: string, required: boolean) {
+  const parts = String(raw || '').split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  if (!parts.length) return !required;
+  return parts.every((p) => EMAIL_RE.test(p));
+}
 const DOC_CATS: Array<{ key: string; label: string }> = [
   { key: 'surveyor', label: 'דוח שמאי' },
   { key: 'license', label: 'רישיון רכב' },
@@ -242,8 +248,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [sendIds, setSendIds] = useState<string[]>([]);
   const [mailKind, setMailKind] = useState<'draft' | 'insurer' | 'legal'>('draft');
   const [mailPreviewOn, setMailPreviewOn] = useState(false);
+  const [mailConfirmOn, setMailConfirmOn] = useState(false);
+  const [mailAck, setMailAck] = useState(false);
+  const [mailSending, setMailSending] = useState(false);
+  const [mailTo, setMailTo] = useState('');
+  const [mailCc, setMailCc] = useState('');
+  const [toHint, setToHint] = useState('');
+  const mailIdemp = useRef('');
   const [extSummary, setExtSummary] = useState('');
-  const [pkgInfo, setPkgInfo] = useState<{ packageBytes: number; overLimit: boolean; suggestion: string } | null>(null);
+  const [pkgInfo, setPkgInfo] = useState<{ packageBytes: number; overLimit: boolean; suggestion: string; split?: Array<{ index: number; bytes: number; tooLargeSingle?: boolean; file_ids: string[]; names: string[] }> } | null>(null);
   const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
   const [openGal, setOpenGal] = useState<Record<string, boolean>>({});
   const [previewFile, setPreviewFile] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
@@ -369,6 +382,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       packageBytes: Number(r.packageBytes || 0),
       overLimit: r.overLimit === true,
       suggestion: String(r.suggestion || ''),
+      split: Array.isArray(r.split) ? r.split as Array<{ index: number; bytes: number; tooLargeSingle?: boolean; file_ids: string[]; names: string[] }> : [],
     });
     return r;
   };
@@ -395,22 +409,27 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (!cur) return;
     setMailKind(kind);
     setSendIds([]);
-    setPkgInfo({ packageBytes: 0, overLimit: false, suggestion: '' });
+    setPkgInfo({ packageBytes: 0, overLimit: false, suggestion: '', split: [] });
     setMailPreviewOn(false);
+    setMailConfirmOn(false);
+    setMailAck(false);
+    setMailSending(false);
+    mailIdemp.current = `send-${cur.id}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const mailBody = gmailImports.map((im) => String(im.body_text || '')).filter((t) => t.trim().length > 2).join('\n\n');
     const ext = await apiRef.current.exportExternalSummary(cur.id, { mailBody });
     setExtSummary(ext.text || '');
     setVal('mail_cc', '');
+    setVal('mail_to', '');
+    setMailTo('');
+    setMailCc('');
+    setToHint(kind === 'legal' ? (cur.legalEmail || '') : (kind === 'insurer' ? (cur.insEmail || '') : (cur.insEmail || cur.clientEmail || '')));
     if (kind === 'insurer') {
-      setVal('mail_to', cur.insEmail || '');
       setVal('mail_subj', `תביעה ${cur.claimNum || cur.id} – ${cur.clientName}`);
       setVal('mail_body', ext.text || '');
     } else if (kind === 'legal') {
-      setVal('mail_to', cur.legalEmail || '');
       setVal('mail_subj', `העברה לטיפול משפטי – ${cur.id} – ${cur.clientName}`);
       setVal('mail_body', ext.text || '');
     } else {
-      setVal('mail_to', cur.insEmail || cur.clientEmail || '');
       setVal('mail_subj', `תביעה ${cur.id} – ${cur.clientName}`);
       setVal('mail_body', `שלום,\n\nבהמשך לתביעה מספר ${cur.claimNum || cur.id}\nלקוח: ${cur.clientName}\nרכב: ${cur.plate || '—'}\n\nבברכה,\nדליה ניהול תביעות`);
     }
@@ -1041,7 +1060,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="ab">
               <button className="ab-btn ab-phone" onClick={() => setModal('moCall')}>📞 שיחה</button>
               <button className="ab-btn ab-wa" onClick={() => { setVal('wa_msg', `שלום, בהמשך לתביעה ${cur.claimNum || cur.id}`); setModal('moWA'); }}>💬 WhatsApp</button>
-              <button className="ab-btn ab-mail" onClick={() => { void openSendModal('draft'); }}>📧 מייל / טיוטה</button>
+              <button className="ab-btn ab-mail" data-testid="claims-send-mail" onClick={() => { void openSendModal('draft'); }}>📧 שליחת תיק במייל</button>
               <button className="ab-btn ab-mail" onClick={() => { void openSendModal('insurer'); }}>🏢 לחברת ביטוח</button>
               <button className="ab-btn ab-status" onClick={() => { void openSendModal('legal'); }}>⚖️ טיפול משפטי</button>
               <button className="ab-btn ab-task" onClick={() => setModal('moTask')}>✅ משימה</button>
@@ -1701,27 +1720,32 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
       <div className={`ov ${modal === 'moMail' ? 'open' : ''}`}>
         <div className="modal modal-md">
-          <div className="mh"><div className="mh-t">{mailKind === 'insurer' ? '🏢 Preview לחברת ביטוח' : mailKind === 'legal' ? '⚖️ Preview לטיפול משפטי' : '📝 טיוטת Gmail'} — לא נשלח</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mh"><div className="mh-t">{mailKind === 'insurer' ? '🏢 שליחה לחברת הביטוח' : mailKind === 'legal' ? '⚖️ שליחה לטיפול משפטי' : '📧 שליחת תיק במייל'}</div><button className="mcl" onClick={() => { if (!mailSending) setModal('moCard'); }}>✕</button></div>
           <div className="mb">
-            <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>שליחה חיה כבויה. אפשר ליצור טיוטת TEST ב-yoni122222@gmail.com בלבד.</div>
-            <div className="fg"><label className="fl">למי *</label><input className="fi" id="mail_to" /></div>
-            <div className="fg"><label className="fl">CC</label><input className="fi" id="mail_cc" placeholder="כתובת נוספת, אופציונלי" /></div>
-            <div className="fg"><label className="fl">נושא</label><input className="fi" id="mail_subj" /></div>
+            <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 10 }}>אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות.</div>
+            <div className="fg"><label className="fl">From</label><input className="fi" data-testid="mail-from" value={gmailStatus.email || 'yoni122222@gmail.com'} readOnly /></div>
+            <div className="fg">
+              <label className="fl">To *</label>
+              <input className="fi" id="mail_to" data-testid="mail-to" value={mailTo} onChange={(e) => { setMailTo(e.target.value); setVal('mail_to', e.target.value); }} placeholder="הקלד כתובת ידנית — לא נבחרת אוטומטית" />
+              {toHint ? (
+                <button type="button" className="btn btn-g btn-sm" style={{ marginTop: 6 }} onClick={() => { setMailTo(toHint); setVal('mail_to', toHint); }}>העתק כתובת ששמורה בתיק ({toHint})</button>
+              ) : <div style={{ fontSize: 10, color: 'var(--t3)' }}>אין כתובת שמורה בתיק — חובה להקליד.</div>}
+            </div>
+            <div className="fg"><label className="fl">CC</label><input className="fi" id="mail_cc" data-testid="mail-cc" value={mailCc} onChange={(e) => { setMailCc(e.target.value); setVal('mail_cc', e.target.value); }} placeholder="אופציונלי" /></div>
+            <div className="fg"><label className="fl">Subject</label><input className="fi" id="mail_subj" data-testid="mail-subj" /></div>
             {(mailKind === 'insurer' || mailKind === 'legal') && (
               <div className="fg">
-                <label className="fl">סיכום חיצוני (ניתן לעריכה — בלי הערות פנימיות)</label>
-                <textarea className="fta" style={{ minHeight: 140 }} value={extSummary} onChange={(e) => { setExtSummary(e.target.value); setVal('mail_body', e.target.value); }} />
-                <div style={{ fontSize: 10, color: 'var(--t3)' }}>היסטוריית עובדים, הערות פנימיות והערות משפטיות לא נכללות.</div>
+                <label className="fl">Body — סיכום חיצוני בלבד</label>
+                <textarea className="fta" data-testid="mail-body" style={{ minHeight: 140 }} value={extSummary} onChange={(e) => { setExtSummary(e.target.value); setVal('mail_body', e.target.value); }} />
+                <div style={{ fontSize: 10, color: 'var(--t3)' }}>היסטוריית עובדים, הערות פנימיות ומשימות לא נכללות.</div>
               </div>
             )}
             {mailKind === 'draft' ? (
-              <div className="fg"><label className="fl">תוכן</label><textarea className="fta" id="mail_body" style={{ minHeight: 100 }} /></div>
+              <div className="fg"><label className="fl">Body</label><textarea className="fta" id="mail_body" data-testid="mail-body" style={{ minHeight: 100 }} /></div>
             ) : <input type="hidden" id="mail_body" value={extSummary} readOnly />}
-            <div className="sdiv"><div className="sdiv-t">בחירת מסמכים לשליחה</div><div className="sdiv-l" /></div>
+            <div className="sdiv"><div className="sdiv-t">בחירת מסמכים לצירוף</div><div className="sdiv-l" /></div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-              <button className="btn btn-g btn-sm" onClick={() => setSendGroup(docs.files.map((f) => f.id), true)}>הכול</button>
-              <button className="btn btn-g btn-sm" onClick={() => setSendGroup(docs.files.map((f) => f.id), false)}>נקה</button>
-              <button className="btn btn-g btn-sm" onClick={() => setSendGroup(docs.files.filter((f) => classifyDoc(f) === 'photos').map((f) => f.id), true)}>כל התמונות</button>
+              <button className="btn btn-g btn-sm" data-testid="mail-clear-files" onClick={() => setSendGroup(docs.files.map((f) => f.id), false)}>נקה בחירה</button>
             </div>
             {DOC_CATS.map((cat) => {
               const group = docs.files.filter((f) => classifyDoc(f) === cat.key);
@@ -1736,7 +1760,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   <div className="pick-list">
                     {group.map((f) => (
                       <label key={f.id} className="pick-row">
-                        <input type="checkbox" checked={sendIds.includes(f.id)} onChange={() => toggleSendId(f.id)} />
+                        <input type="checkbox" data-testid={`mail-file-${f.id}`} checked={sendIds.includes(f.id)} onChange={() => toggleSendId(f.id)} />
                         <span>{f.original_name}</span>
                         <span className="pick-sz">{fmtBytes(Number(f.byte_size || 0))}</span>
                       </label>
@@ -1745,74 +1769,134 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 </div>
               );
             })}
-            <div className={`pkg-bar ${pkgInfo?.overLimit ? 'over' : ''}`}>
-              גודל החבילה: {fmtBytes(pkgInfo?.packageBytes || sendIds.reduce((s, id) => s + Number(docs.files.find((f) => f.id === id)?.byte_size || 0), 0))}
+            <div className={`pkg-bar ${pkgInfo?.overLimit ? 'over' : ''}`} data-testid="mail-pkg">
+              גודל כולל: {fmtBytes(pkgInfo?.packageBytes || sendIds.reduce((s, id) => s + Number(docs.files.find((f) => f.id === id)?.byte_size || 0), 0))}
               {' / '}{fmtBytes(PACKAGE_LIMIT)}
               {' · '}{sendIds.length} קבצים
-              {pkgInfo?.overLimit ? <div className="pkg-warn">החבילה גדולה מדי למייל אחד. לא יושמטו קבצים בשקט. {pkgInfo.suggestion}</div> : null}
+              {pkgInfo?.overLimit ? (
+                <div className="pkg-warn" data-testid="mail-oversize">
+                  הקבצים גדולים מדי לשליחה במייל. SEND חסום. לא יושמטו קבצים בשקט. אפשר לבחור פחות קבצים, לפצל למספר מיילים, או קישור מאובטח — לא אוטומטית.
+                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {(pkgInfo.split || []).map((g) => (
+                      <button key={g.index} className="btn btn-g btn-sm" type="button" disabled={g.tooLargeSingle} onClick={() => {
+                        setSendIds(g.file_ids);
+                        if (curId) void refreshPackage(curId, g.file_ids);
+                        setMailPreviewOn(false);
+                        setMailConfirmOn(false);
+                      }}>קבוצה {g.index} · {g.names.length} קבצים · {fmtBytes(g.bytes)}{g.tooLargeSingle ? ' — קובץ בודד גדול מדי' : ''}</button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
             {mailPreviewOn && (
-              <div className="fu-prev" style={{ marginTop: 12 }}>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>Preview מלא — לא נשלח</div>
-                <div><b>למי:</b> {val(null, 'mail_to') || '—'}</div>
-                <div><b>CC:</b> {val(null, 'mail_cc') || '—'}</div>
-                <div><b>נושא:</b> {val(null, 'mail_subj') || '—'}</div>
-                <div><b>תוכן:</b></div>
-                <pre>{mailKind === 'draft' ? val(null, 'mail_body') : extSummary}</pre>
-                <div><b>מצורפים שנבחרו:</b> {sendIds.length ? docs.files.filter((f) => sendIds.includes(f.id)).map((f) => f.original_name).join(', ') : 'אין'}</div>
+              <div className="fu-prev" style={{ marginTop: 12 }} data-testid="mail-preview">
+                <div style={{ fontWeight: 800, marginBottom: 6 }}>Preview לפני שליחה</div>
+                <div><b>From:</b> {gmailStatus.email || 'yoni122222@gmail.com'}</div>
+                <div><b>To:</b> {mailTo || '—'}</div>
+                <div><b>CC:</b> {mailCc || '—'}</div>
+                <div><b>Subject:</b> {val(null, 'mail_subj') || '—'}</div>
+                <div><b>Body:</b></div>
+                <pre className="mail-body">{mailKind === 'draft' ? val(null, 'mail_body') : extSummary}</pre>
+                <div style={{ fontWeight: 800, margin: '8px 0 4px' }}>קבצים ({sendIds.length})</div>
+                {sendIds.length === 0 ? <div>אין קבצים נבחרים</div> : (
+                  <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+                    {docs.files.filter((f) => sendIds.includes(f.id)).map((f) => (
+                      <li key={f.id}>{f.original_name} · {fmtBytes(Number(f.byte_size || 0))}</li>
+                    ))}
+                  </ul>
+                )}
+                <div style={{ marginTop: 8 }}><b>גודל כולל:</b> {fmtBytes(pkgInfo?.packageBytes || sendIds.reduce((s, id) => s + Number(docs.files.find((f) => f.id === id)?.byte_size || 0), 0))}</div>
+              </div>
+            )}
+            {mailConfirmOn && (
+              <div className="fu-prev" style={{ marginTop: 12, borderColor: 'var(--yn2)' }} data-testid="mail-confirm">
+                <div style={{ fontWeight: 800, marginBottom: 8 }}>אישור שליחה — פעולה זו שולחת מייל אמיתי מתיבת דליה</div>
+                <div><b>To:</b> {mailTo}</div>
+                <div><b>CC:</b> {mailCc || '—'}</div>
+                <div><b>Subject:</b> {val(null, 'mail_subj')}</div>
+                <div><b>קבצים:</b> {sendIds.length} · {fmtBytes(pkgInfo?.packageBytes || 0)}</div>
+                <label className="pick-row" style={{ marginTop: 10 }}>
+                  <input type="checkbox" data-testid="mail-ack" checked={mailAck} onChange={(e) => setMailAck(e.target.checked)} />
+                  <span>אני מאשר לשלוח את המייל הזה מתוך התיק, לנמענים ולקבצים שמופיעים ב-Preview.</span>
+                </label>
               </div>
             )}
           </div>
           <div className="mf">
-            <button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
-            <button className="btn btn-g" onClick={() => setMailPreviewOn(true)}>👁 Preview</button>
-            <button className="btn btn-p" onClick={async () => {
-              await apiRef.current.sendEmailFromClaim({ claimId: curId || '', to: val(null, 'mail_to'), subject: val(null, 'mail_subj'), body: mailKind === 'draft' ? val(null, 'mail_body') : extSummary });
-              toast('מייל תועד בתיק (לא נשלח)');
-              if (curId) await openCard(curId);
-            }}>תעד בתיק</button>
-            <button className="btn btn-p" onClick={async () => {
-              const to = val(null, 'mail_to'); if (!to) { toast('נא להזין אימייל', 'err'); return; }
-              if (pkgInfo?.overLimit) { toast('החבילה גדולה מדי — לא נוצרה טיוטה חלקית', 'err'); return; }
+            <button className="btn btn-g" disabled={mailSending} onClick={() => { setMailConfirmOn(false); setMailAck(false); setModal('moCard'); }}>ביטול</button>
+            <button className="btn btn-g" data-testid="mail-preview-btn" disabled={mailSending} onClick={async () => {
+              if (curId) await refreshPackage(curId, sendIds);
               setMailPreviewOn(true);
-              const r = await apiRef.current.invokeGmail('create_draft', {
+              setMailConfirmOn(false);
+              setMailAck(false);
+              const to = mailTo.trim();
+              const cc = mailCc.trim();
+              const bodyText = mailKind === 'draft' ? val(null, 'mail_body') : extSummary;
+              if (!mailAddrsOk(to, true)) { toast('כתובת To לא תקינה — SEND חסום', 'err'); return; }
+              if (cc && !mailAddrsOk(cc, false)) { toast('כתובת CC לא תקינה — SEND חסום', 'err'); return; }
+              const r = await apiRef.current.invokeGmail('validate_claim_send', {
                 claim_id: curId,
                 to,
-                cc: val(null, 'mail_cc'),
+                cc,
                 subject: val(null, 'mail_subj'),
-                body: mailKind === 'draft' ? val(null, 'mail_body') : extSummary,
+                body: bodyText,
                 file_ids: sendIds,
               });
-              if (!r.success) {
-                if (r.error === 'package_too_large') toast(`החבילה גדולה מדי (${fmtBytes(Number(r.packageBytes || 0))}). ${String(r.suggestion || '')}`, 'err');
-                else toast(String(r.error || 'טיוטה נכשלה'), 'err');
-                return;
-              }
-              toast(`נוצרה טיוטת TEST · ${String(r.attached ? (r.attached as unknown[]).length : sendIds.length)} מצורפים · לא נשלח`);
-              if (curId) await openCard(curId);
-            }}>📝 צור טיוטת TEST</button>
-            {isSuperAdmin && (
-              <button className="btn btn-rd" onClick={async () => {
-                const to = val(null, 'mail_to');
-                const cc = val(null, 'mail_cc');
-                if (to.toLowerCase() !== 'yoni122222@gmail.com') { toast('שליחת TEST חיה רק אל yoni122222@gmail.com', 'err'); return; }
-                if (cc && cc.toLowerCase() !== 'yoni122222@gmail.com') { toast('CC ב-TEST חי רק אל yoni122222@gmail.com', 'err'); return; }
-                if (sendIds.length < 1 || sendIds.length > 3) { toast('TEST חי: 1–3 קבצים בלבד', 'err'); return; }
-                if (pkgInfo?.overLimit) { toast('החבילה גדולה מדי', 'err'); return; }
-                setMailPreviewOn(true);
-                if (!window.confirm('שליחת TEST אמיתית אחת אל yoni122222@gmail.com בלבד. לא לחברת ביטוח / שמאי / עו"ד / לקוח. להמשיך?')) return;
-                const r = await apiRef.current.invokeGmail('send_self_test', {
+              if (r.error === 'internal_content_blocked') toast('התוכן כולל חומר פנימי — לא לשלוח', 'err');
+              else if (r.error === 'package_too_large') toast('הקבצים גדולים מדי לשליחה במייל — SEND חסום. לא יושמטו קבצים.', 'err');
+              else if (r.error === 'cc_invalid' || r.error === 'to_required') toast('כתובת To/CC לא תקינה — SEND חסום', 'err');
+              else if (r.success === false && r.error) toast(String(r.error), 'err');
+            }}>👁 Preview</button>
+            {!mailConfirmOn ? (
+              <button className="btn btn-p" data-testid="mail-send-btn" disabled={mailSending || !mailPreviewOn || pkgInfo?.overLimit === true || !mailAddrsOk(mailTo, true) || !mailAddrsOk(mailCc, false)} onClick={() => {
+                if (!mailPreviewOn) { toast('קודם Preview', 'err'); return; }
+                if (pkgInfo?.overLimit) { toast('הקבצים גדולים מדי לשליחה במייל', 'err'); return; }
+                if (!mailAddrsOk(mailTo, true)) { toast('כתובת To לא תקינה', 'err'); return; }
+                if (!mailAddrsOk(mailCc, false)) { toast('כתובת CC לא תקינה', 'err'); return; }
+                setMailConfirmOn(true);
+              }}>SEND</button>
+            ) : (
+              <button className="btn btn-rd" data-testid="mail-confirm-send" disabled={mailSending || !mailAck || pkgInfo?.overLimit === true} onClick={async () => {
+                if (mailSending) return;
+                if (!mailAck) { toast('יש לאשר במפורש לפני שליחה', 'err'); return; }
+                if (pkgInfo?.overLimit) { toast('הקבצים גדולים מדי לשליחה במייל', 'err'); return; }
+                const to = mailTo;
+                const cc = mailCc;
+                const bodyText = mailKind === 'draft' ? val(null, 'mail_body') : extSummary;
+                if (!mailAddrsOk(to, true)) { toast('כתובת To לא תקינה', 'err'); return; }
+                if (!mailAddrsOk(cc, false)) { toast('כתובת CC לא תקינה', 'err'); return; }
+                if (!bodyText) { toast('חסר Body', 'err'); return; }
+                setMailSending(true);
+                const r = await apiRef.current.invokeGmail('send_claim', {
+                  confirm: true,
                   claim_id: curId,
                   to,
                   cc,
                   subject: val(null, 'mail_subj'),
-                  body: mailKind === 'draft' ? val(null, 'mail_body') : extSummary,
+                  body: bodyText,
                   file_ids: sendIds,
+                  idempotency_key: mailIdemp.current,
                 });
-                if (!r.success) { toast(String(r.error || 'שליחה נחסמה'), 'err'); return; }
-                toast('נשלח TEST אחד לעצמי — שליחה כללית נשארת כבויה');
+                setMailSending(false);
+                if (!r.success) {
+                  if (r.error === 'already_sent') toast('המייל כבר נשלח — אין שליחה כפולה', 'err');
+                  else if (r.error === 'send_in_progress') toast('שליחה כבר בתהליך', 'err');
+                  else if (r.error === 'package_too_large') toast('הקבצים גדולים מדי לשליחה במייל — לא נשלח ולא הושמטו קבצים', 'err');
+                  else if (r.error === 'confirm_required') toast('נדרש אישור מפורש', 'err');
+                  else if (r.error === 'internal_content_blocked') toast('התוכן כולל חומר פנימי — לא נשלח', 'err');
+                  else toast(String(r.error || 'שליחה נכשלה'), 'err');
+                  if (r.error !== 'already_sent' && r.error !== 'send_in_progress') {
+                    mailIdemp.current = `send-${curId || 'x'}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+                  }
+                  return;
+                }
+                toast(`נשלח · msgid ${String(r.gmail_message_id || '')}`);
+                setMailConfirmOn(false);
+                setMailAck(false);
+                setModal('moCard');
                 if (curId) await openCard(curId);
-              }}>🚀 שלח TEST לעצמי (חד-פעמי)</button>
+              }}>{mailSending ? 'שולח…' : 'אשר ושלח'}</button>
             )}
           </div>
         </div>

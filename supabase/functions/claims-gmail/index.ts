@@ -1,6 +1,7 @@
 /**
  * Claims Gmail — Staging only.
- * OAuth tokens stay on the server. No live send. No mailbox mutation of existing mail.
+ * OAuth tokens stay on the server. Manual claim send only after Preview + explicit SEND.
+ * No automatic / scheduled send. No mailbox mutation of existing mail.
  */
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -258,7 +259,61 @@ function rfc2047(s: string) {
 
 function packageSuggestion(bytes: number) {
   if (bytes <= PACKAGE_LIMIT) return "";
-  return "החבילה גדולה מדי למייל אחד. בחר פחות תמונות, פצל לכמה טיוטות, או שלח קודם את המסמכים (PDF) ואחר כך את התמונות בקבוצות.";
+  return "הקבצים גדולים מדי לשליחה במייל. בחר פחות קבצים, פצל למספר מיילים, או שלח קישור מאובטח — לא אוטומטית.";
+}
+
+function splitPlan(files: Array<{ id: string; name: string; bytes: number }>, limit = PACKAGE_LIMIT) {
+  const groups: Array<{ bytes: number; files: Array<{ id: string; name: string; bytes: number }>; tooLargeSingle?: boolean }> = [];
+  let cur: Array<{ id: string; name: string; bytes: number }> = [];
+  let bytes = 0;
+  for (const f of files) {
+    const b = Number(f.bytes || 0);
+    if (b > limit) {
+      if (cur.length) {
+        groups.push({ files: cur, bytes });
+        cur = [];
+        bytes = 0;
+      }
+      groups.push({ files: [f], bytes: b, tooLargeSingle: true });
+      continue;
+    }
+    if (cur.length && bytes + b > limit) {
+      groups.push({ files: cur, bytes });
+      cur = [];
+      bytes = 0;
+    }
+    cur.push(f);
+    bytes += b;
+  }
+  if (cur.length) groups.push({ files: cur, bytes });
+  return groups;
+}
+
+async function isSendEnabled(sb: ReturnType<typeof admin>) {
+  const { data } = await sb.from("claims_config").select("value").eq("key", "GMAIL_SEND_ENABLED").maybeSingle();
+  return String(data?.value || "") === "true";
+}
+
+function parseEmailListStrict(raw: string, required: boolean) {
+  const parts = String(raw || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  if (!parts.length) {
+    return required
+      ? { ok: false as const, emails: [] as string[], error: "to_required" }
+      : { ok: true as const, emails: [] as string[] };
+  }
+  const emails: string[] = [];
+  for (const p of parts) {
+    const m = p.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+    if (!m) {
+      return { ok: false as const, emails: [] as string[], error: required ? "to_required" : "cc_invalid" };
+    }
+    emails.push(m[0].toLowerCase());
+  }
+  return { ok: true as const, emails };
+}
+
+function hasInternalLeak(text: string) {
+  return /היסטוריה פנימית — לא לשלוח לחברת ביטוח|היסטוריה פנימית — לא לשלוח/i.test(String(text || ""));
 }
 
 function parseEmails(raw: string): string[] {
@@ -400,16 +455,18 @@ Deno.serve(async (req) => {
   if (action === "status") {
     const conn = await loadConnection(sb);
     const { count: selfTestCount } = await sb.from("claims_gmail_outbox").select("id", { count: "exact", head: true }).eq("kind", "self_test");
+    const sendEnabled = await isSendEnabled(sb);
     return jsonResponse({
       success: true,
       connected: !!conn,
       email: conn?.connected_email || null,
       accountExpected: ALLOWED_ACCOUNT,
-      sendEnabled: false,
+      sendEnabled,
       realEmailSend: false,
       selfTestSendUsed: Number(selfTestCount || 0) > 0,
       scopes: SCOPES,
       canConnect: role === "super_admin",
+      autoDispatch: false,
     });
   }
 
@@ -464,18 +521,89 @@ Deno.serve(async (req) => {
       .eq("claim_id", claimId)
       .in("id", ids);
     const rows = files || [];
-    const packageBytes = rows.reduce((s, f) => s + Number(f.byte_size || 0), 0);
+    const listed = rows.map((f) => ({ id: f.id, name: f.original_name, bytes: Number(f.byte_size || 0), mime: f.mime_type }));
+    const packageBytes = listed.reduce((s, f) => s + f.bytes, 0);
     const overLimit = packageBytes > PACKAGE_LIMIT;
+    const split = splitPlan(listed);
     return jsonResponse({
       success: true,
       packageBytes,
       limitBytes: PACKAGE_LIMIT,
       overLimit,
-      files: rows.map((f) => ({ id: f.id, name: f.original_name, bytes: Number(f.byte_size || 0), mime: f.mime_type })),
+      files: listed,
       missing: ids.filter((id) => !rows.some((f) => f.id === id)),
       suggestion: packageSuggestion(packageBytes),
+      split: split.map((g, i) => ({
+        index: i + 1,
+        bytes: g.bytes,
+        tooLargeSingle: g.tooLargeSingle === true,
+        file_ids: g.files.map((f) => f.id),
+        names: g.files.map((f) => f.name),
+      })),
+      omitted: false,
       realEmailSend: false,
     });
+  }
+
+  if (action === "validate_claim_send") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
+    }
+    const toCheck = parseEmailListStrict(String(body.to || ""), true);
+    const ccCheck = parseEmailListStrict(String(body.cc || ""), false);
+    if (!toCheck.ok) return jsonResponse({ success: false, error: toCheck.error, realEmailSend: false }, 400);
+    if (!ccCheck.ok) return jsonResponse({ success: false, error: ccCheck.error, realEmailSend: false }, 400);
+    const to = toCheck.emails.join(", ");
+    const cc = ccCheck.emails.join(", ");
+    const subject = String(body.subject || "").trim();
+    const text = String(body.body || "").trim();
+    const ids = Array.isArray(body.file_ids) ? body.file_ids.map((x) => String(x)).filter(Boolean) : [];
+    if (!subject) return jsonResponse({ success: false, error: "subject_required", realEmailSend: false }, 400);
+    if (!text) return jsonResponse({ success: false, error: "body_required", realEmailSend: false }, 400);
+    if (hasInternalLeak(text)) {
+      return jsonResponse({ success: false, error: "internal_content_blocked", realEmailSend: false }, 400);
+    }
+    const { data: fileRows } = ids.length
+      ? await sb.from("claims_documents")
+        .select("id, original_name, mime_type, byte_size")
+        .eq("claim_id", claimId)
+        .in("id", ids)
+      : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number }> };
+    const rows = fileRows || [];
+    const missing = ids.filter((id) => !rows.some((f) => f.id === id));
+    if (missing.length) {
+      return jsonResponse({ success: false, error: "files_not_on_claim", missing, omitted: false, realEmailSend: false }, 400);
+    }
+    const files = rows.map((f) => ({ id: f.id, name: f.original_name, bytes: Number(f.byte_size || 0) }));
+    const packageBytes = files.reduce((s, f) => s + f.bytes, 0);
+    const overLimit = packageBytes > PACKAGE_LIMIT;
+    return jsonResponse({
+      success: !overLimit,
+      error: overLimit ? "package_too_large" : undefined,
+      preview: {
+        from: ALLOWED_ACCOUNT,
+        to,
+        cc: cc || null,
+        subject,
+        body: text,
+        files,
+        fileCount: files.length,
+        packageBytes,
+      },
+      overLimit,
+      omitted: false,
+      suggestion: packageSuggestion(packageBytes),
+      split: splitPlan(files).map((g, i) => ({
+        index: i + 1,
+        bytes: g.bytes,
+        tooLargeSingle: g.tooLargeSingle === true,
+        file_ids: g.files.map((f) => f.id),
+        names: g.files.map((f) => f.name),
+      })),
+      sendEnabled: await isSendEnabled(sb),
+      realEmailSend: false,
+    }, overLimit ? 413 : 200);
   }
 
   const conn = await loadConnection(sb);
@@ -1134,6 +1262,223 @@ Deno.serve(async (req) => {
     });
   }
 
+  if (action === "send_claim") {
+    if (body.confirm !== true) {
+      return jsonResponse({
+        success: false,
+        error: "confirm_required",
+        realEmailSend: false,
+        hint: "שליחה רק אחרי Preview ואישור מפורש בתוך התיק",
+      }, 400);
+    }
+    if (!(await isSendEnabled(sb))) {
+      return jsonResponse({ success: false, error: "send_disabled", realEmailSend: false }, 403);
+    }
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
+    }
+    const toCheck = parseEmailListStrict(String(body.to || ""), true);
+    const ccCheck = parseEmailListStrict(String(body.cc || ""), false);
+    if (!toCheck.ok) return jsonResponse({ success: false, error: toCheck.error, realEmailSend: false }, 400);
+    if (!ccCheck.ok) return jsonResponse({ success: false, error: ccCheck.error, realEmailSend: false }, 400);
+    const to = toCheck.emails.join(", ");
+    const cc = ccCheck.emails.join(", ");
+    const subject = String(body.subject || "").trim();
+    const text = String(body.body || "").trim();
+    const ids = Array.isArray(body.file_ids) ? [...new Set(body.file_ids.map((x) => String(x)).filter(Boolean))] : [];
+    const idempotencyKey = String(body.idempotency_key || "").trim();
+    if (!subject) return jsonResponse({ success: false, error: "subject_required", realEmailSend: false }, 400);
+    if (!text) return jsonResponse({ success: false, error: "body_required", realEmailSend: false }, 400);
+    if (hasInternalLeak(text)) {
+      return jsonResponse({ success: false, error: "internal_content_blocked", realEmailSend: false }, 400);
+    }
+    if (!idempotencyKey || idempotencyKey.length < 8) {
+      return jsonResponse({ success: false, error: "idempotency_required", realEmailSend: false }, 400);
+    }
+
+    const { data: existing } = await sb.from("claims_gmail_outbox").select("*").eq("idempotency_key", idempotencyKey).maybeSingle();
+    if (existing?.status === "sent" && existing.gmail_message_id) {
+      return jsonResponse({
+        success: false,
+        error: "already_sent",
+        gmail_message_id: existing.gmail_message_id,
+        gmail_thread_id: existing.gmail_thread_id,
+        realEmailSend: false,
+      }, 409);
+    }
+    if (existing?.status === "pending") {
+      const ageMs = Date.now() - new Date(String(existing.created_at || 0)).getTime();
+      if (Number.isFinite(ageMs) && ageMs < 5 * 60 * 1000) {
+        return jsonResponse({ success: false, error: "send_in_progress", realEmailSend: false }, 409);
+      }
+      await sb.from("claims_gmail_outbox").update({ status: "failed" }).eq("id", existing.id);
+    }
+    if (existing?.status === "failed") {
+      await sb.from("claims_gmail_outbox").delete().eq("id", existing.id);
+    }
+
+    const { data: fileRows } = ids.length
+      ? await sb.from("claims_documents")
+        .select("id, original_name, mime_type, byte_size, storage_path, claim_id")
+        .eq("claim_id", claimId)
+        .in("id", ids)
+      : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string; claim_id: string }> };
+    const rows = fileRows || [];
+    if (ids.length !== rows.length) {
+      return jsonResponse({ success: false, error: "files_not_on_claim", omitted: false, realEmailSend: false }, 400);
+    }
+    const ordered = ids.map((id) => rows.find((f) => f.id === id)!).filter(Boolean);
+    const encodedMsg = await encodeMixedMessage(sb, {
+      to,
+      cc,
+      subject,
+      text,
+      files: ordered,
+    });
+    if ("error" in encodedMsg && encodedMsg.error) {
+      return jsonResponse({
+        success: false,
+        ...encodedMsg,
+        omitted: false,
+        suggestion: encodedMsg.error === "package_too_large" ? packageSuggestion(Number(encodedMsg.packageBytes || 0)) : undefined,
+        realEmailSend: false,
+      }, encodedMsg.error === "package_too_large" ? 413 : 400);
+    }
+
+    const outId = nid("GOS");
+    const attached = (encodedMsg as { attached: Array<{ id: string; name: string; bytes: number }> }).attached || [];
+    const packageBytes = Number((encodedMsg as { packageBytes?: number }).packageBytes || 0);
+    const { error: lockErr } = await sb.from("claims_gmail_outbox").insert({
+      id: outId,
+      claim_id: claimId,
+      kind: "claim_send",
+      idempotency_key: idempotencyKey,
+      status: "pending",
+      to_addr: to,
+      cc_addr: cc || null,
+      subject,
+      sender: ALLOWED_ACCOUNT,
+      from_addr: ALLOWED_ACCOUNT,
+      body_excerpt: text.slice(0, 500),
+      file_ids: ids,
+      file_names: attached.map((a) => a.name),
+      package_bytes: packageBytes,
+      created_by: user.id,
+    });
+    if (lockErr) {
+      const { data: raced } = await sb.from("claims_gmail_outbox").select("*").eq("idempotency_key", idempotencyKey).maybeSingle();
+      if (raced?.status === "sent" && raced.gmail_message_id) {
+        return jsonResponse({
+          success: false,
+          error: "already_sent",
+          gmail_message_id: raced.gmail_message_id,
+          gmail_thread_id: raced.gmail_thread_id,
+          realEmailSend: false,
+        }, 409);
+      }
+      return jsonResponse({ success: false, error: "send_in_progress", db: lockErr.message, realEmailSend: false }, 409);
+    }
+
+    const sent = await gmailPost(access, "messages/send", {
+      raw: (encodedMsg as { encoded: string }).encoded,
+    });
+    if (!sent.ok) {
+      await sb.from("claims_gmail_outbox").update({ status: "failed" }).eq("id", outId);
+      const errMsg = String(sent.json?.error?.message || "gmail_send_failed");
+      return jsonResponse({
+        success: false,
+        error: errMsg.includes("Bearer") || /ya29\.|1\/\/|refresh_token/i.test(errMsg) ? "gmail_send_failed" : errMsg,
+        status: sent.status,
+        realEmailSend: false,
+      }, 400);
+    }
+
+    const gmailMessageId = String(sent.json.id || "");
+    const gmailThreadId = String(sent.json.threadId || "");
+    let rfcMessageId = "";
+    try {
+      const got = await gmailGet(access, `messages/${encodeURIComponent(gmailMessageId)}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=From`);
+      const hd = got.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      rfcMessageId = header(hd, "Message-ID") || header(hd, "Message-Id");
+    } catch {
+      rfcMessageId = "";
+    }
+    const sentAt = new Date().toISOString();
+    const { data: profile } = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+    const actorName = profile?.full_name || user.email || user.id;
+    await sb.from("claims_gmail_outbox").update({
+      status: "sent",
+      gmail_message_id: gmailMessageId,
+      gmail_thread_id: gmailThreadId,
+      rfc_message_id: rfcMessageId || null,
+      sent_at: sentAt,
+    }).eq("id", outId);
+
+    const fileList = attached.map((a) => `${a.name} (${a.bytes} bytes)`).join(", ");
+    await sb.from("claims_history").insert({
+      id: nid("HIS"),
+      claim_id: claimId,
+      row_data: {
+        action: "נשלח מייל מתיק התביעה",
+        note: `From ${ALLOWED_ACCOUNT} · To ${to}${cc ? ` · CC ${cc}` : ""} · ${subject} · ${attached.length} קבצים · ${fileList} · msgid ${gmailMessageId} · thread ${gmailThreadId}`,
+        type: "gmail_claim_send",
+        by: actorName,
+        at: new Date().toLocaleString("he-IL"),
+        from: ALLOWED_ACCOUNT,
+        to,
+        cc,
+        subject,
+        files: attached.map((a) => ({ id: a.id, name: a.name, bytes: a.bytes })),
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        sent_at: sentAt,
+      },
+    });
+    await sb.from("claims_comm_log").insert({
+      id: nid("COM"),
+      claim_id: claimId,
+      row_data: {
+        id: nid("COM"),
+        claimId,
+        type: "mail",
+        direction: "out",
+        email: to,
+        cc,
+        subject,
+        body: text,
+        at: new Date().toLocaleString("he-IL"),
+        by: actorName,
+        note: "נשלח מ-Gmail מתוך התיק",
+        from: ALLOWED_ACCOUNT,
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        sender: ALLOWED_ACCOUNT,
+        sent_at: sentAt,
+        attachments: attached.map((a) => a.name),
+        files: attached,
+      },
+    });
+    await sb.from("claims_records").update({ last_activity_at: sentAt }).eq("id", claimId);
+
+    return jsonResponse({
+      success: true,
+      sent: true,
+      realEmailSend: true,
+      from: ALLOWED_ACCOUNT,
+      to,
+      cc: cc || null,
+      subject,
+      fileCount: attached.length,
+      files: attached,
+      packageBytes,
+      gmail_message_id: gmailMessageId,
+      gmail_thread_id: gmailThreadId,
+      rfc_message_id: rfcMessageId || null,
+      sent_at: sentAt,
+    });
+  }
+
   return jsonResponse({ success: false, error: "unknown_action" }, 400);
 });
 
@@ -1141,6 +1486,6 @@ function whyScope(s: string) {
   if (s === "openid") return "זיהוי חשבון Google בלי לגשת לתוכן.";
   if (s.includes("userinfo.email")) return "לוודא שהחשבון הוא בדיוק yoni122222@gmail.com.";
   if (s.includes("gmail.readonly")) return "קריאת מיילים ומצורפים לייבוא לתביעה. לא מוחק, לא מסמן כנקרא, לא מעביר.";
-  if (s.includes("gmail.compose")) return "יצירת טיוטה, וגם שליחת TEST חד-פעמית לעצמי (yoni122222@gmail.com) בלבד. שליחה כללית / לחברת ביטוח / Follow-up חי עדיין חסומים בקוד.";
+  if (s.includes("gmail.compose")) return "יצירת טיוטה, ושליחת מייל מתוך תיק תביעה רק אחרי Preview ואישור SEND מפורש. אין גישה כללית לתיבה. שליחה אוטומטית כבויה.";
   return s;
 }
