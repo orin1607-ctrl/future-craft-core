@@ -1,0 +1,406 @@
+{
+  "at": "2026-09-01T09:34:57.132Z",
+  "productionTouched": false,
+  "mutated": false,
+  "checks": [
+    {
+      "name": "desktop-DAL-2026-0004-list-docs-net",
+      "ok": true,
+      "status": 200,
+      "files": 188,
+      "error": null,
+      "success": true
+    },
+    {
+      "name": "desktop-DAL-2026-0004-docs-header",
+      "ok": true,
+      "n": 188,
+      "api": 188
+    },
+    {
+      "name": "desktop-DAL-2026-0004-docs-not-empty",
+      "ok": true
+    },
+    {
+      "name": "desktop-DAL-2026-0004-docs-gallery-imgs",
+      "ok": true,
+      "galCount": 10,
+      "imgCount": 16
+    },
+    {
+      "name": "desktop-DAL-2026-0004-surveyor-visible",
+      "ok": true
+    },
+    {
+      "name": "desktop-DAL-2026-0004-surveyor-not-blank-if-photos",
+      "ok": true,
+      "photos": 151,
+      "untagged": 0,
+      "survImgs": 72,
+      "emptyMarked": false,
+      "noPdf": true,
+      "surv": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nדוח שמאי · 188 קבצים בתיק\nמספר רכב\n18391803\nמס' תביעה\n81039408\nתאריך אירוע\n2025-08-22\nשם שמאי\n—\nתאריך הדוח\n—\nמספר דוח\n—\nאין קובץ דוח PDF מסומן. מוצגות 151 תמונות שמאי שכבר יובאו לתיק — בלי עותק חדש.\nתמונות הדוח (151)\nRCV007"
+    },
+    {
+      "name": "desktop-DAL-2026-0004-open-file",
+      "ok": true,
+      "preview": 1,
+      "popup": false
+    },
+    {
+      "name": "desktop-DAL-2026-0004-imports",
+      "ok": true,
+      "ginN": 32,
+      "snippet": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nהתכתבויות (32)\nמסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אי"
+    },
+    {
+      "name": "desktop-DAL-2026-0004-no-console",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "name": "desktop-DAL-2026-0005-list-docs-net",
+      "ok": true,
+      "status": 200,
+      "files": 147,
+      "error": null,
+      "success": true
+    },
+    {
+      "name": "desktop-DAL-2026-0005-docs-header",
+      "ok": true,
+      "n": 147,
+      "api": 147
+    },
+    {
+      "name": "desktop-DAL-2026-0005-docs-not-empty",
+      "ok": true
+    },
+    {
+      "name": "desktop-DAL-2026-0005-docs-gallery-imgs",
+      "ok": true,
+      "galCount": 11,
+      "imgCount": 108
+    },
+    {
+      "name": "desktop-DAL-2026-0005-surveyor-visible",
+      "ok": true
+    },
+    {
+      "name": "desktop-DAL-2026-0005-surveyor-not-blank-if-photos",
+      "ok": true,
+      "photos": 0,
+      "untagged": 146,
+      "survImgs": 108,
+      "emptyMarked": false,
+      "noPdf": false,
+      "surv": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nדוח שמאי · 147 קבצים בתיק\nמספר רכב\n71167102\nמס' תביעה\n81037504\nתאריך אירוע\n2025-07-12\nשם שמאי\n—\nתאריך הדוח\n—\nמספר דוח\n—\nאין קובץ שסומן כדוח שמאי. מוצגות 146 תמונות שכבר שמורות בתיק (לשונית מסמכים) — בלי שינוי סיווג ובלי עות"
+    },
+    {
+      "name": "desktop-DAL-2026-0005-open-file",
+      "ok": true,
+      "preview": 1,
+      "popup": false
+    },
+    {
+      "name": "desktop-DAL-2026-0005-imports",
+      "ok": true,
+      "ginN": 28,
+      "snippet": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nהתכתבויות (28)\nמסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אי"
+    },
+    {
+      "name": "desktop-DAL-2026-0005-no-console",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "name": "desktop-DAL-2026-0008-list-docs-net",
+      "ok": true,
+      "status": 200,
+      "files": 131,
+      "error": null,
+      "success": true
+    },
+    {
+      "name": "desktop-DAL-2026-0008-docs-header",
+      "ok": true,
+      "n": 131,
+      "api": 131
+    },
+    {
+      "name": "desktop-DAL-2026-0008-docs-not-empty",
+      "ok": true
+    },
+    {
+      "name": "desktop-DAL-2026-0008-docs-gallery-imgs",
+      "ok": true,
+      "galCount": 9,
+      "imgCount": 23
+    },
+    {
+      "name": "desktop-DAL-2026-0008-surveyor-visible",
+      "ok": true
+    },
+    {
+      "name": "desktop-DAL-2026-0008-surveyor-not-blank-if-photos",
+      "ok": true,
+      "photos": 113,
+      "untagged": 0,
+      "survImgs": 78,
+      "emptyMarked": false,
+      "noPdf": false,
+      "surv": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nדוח שמאי · 131 קבצים בתיק\nמספר רכב\n11874503\nמס' תביעה\n00099371000100AI\nתאריך אירוע\n2026-01-22\nשם שמאי\n—\nתאריך הדוח\n—\nמספר דוח\n—\nשמאות נגדית מבוטח לתביעה 00099371000100 רכב מספר 11874503 בתאריך נזק 22012026_sanitized.pdf דוח"
+    },
+    {
+      "name": "desktop-DAL-2026-0008-open-file",
+      "ok": true,
+      "preview": 1,
+      "popup": false
+    },
+    {
+      "name": "desktop-DAL-2026-0008-imports",
+      "ok": true,
+      "ginN": 18,
+      "snippet": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nהתכתבויות (18)\nמסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אי"
+    },
+    {
+      "name": "desktop-DAL-2026-0008-no-console",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "name": "desktop-DAL-2026-0017-list-docs-net",
+      "ok": true,
+      "status": 200,
+      "files": 143,
+      "error": null,
+      "success": true
+    },
+    {
+      "name": "desktop-DAL-2026-0017-docs-header",
+      "ok": true,
+      "n": 143,
+      "api": 143
+    },
+    {
+      "name": "desktop-DAL-2026-0017-docs-not-empty",
+      "ok": true
+    },
+    {
+      "name": "desktop-DAL-2026-0017-docs-gallery-imgs",
+      "ok": true,
+      "galCount": 3,
+      "imgCount": 10
+    },
+    {
+      "name": "desktop-DAL-2026-0017-surveyor-visible",
+      "ok": true
+    },
+    {
+      "name": "desktop-DAL-2026-0017-surveyor-not-blank-if-photos",
+      "ok": true,
+      "photos": 141,
+      "untagged": 0,
+      "survImgs": 80,
+      "emptyMarked": false,
+      "noPdf": true,
+      "surv": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nדוח שמאי · 143 קבצים בתיק\nמספר רכב\n49325004\nמס' תביעה\n2006402605242\nתאריך אירוע\n—\nשם שמאי\n—\nתאריך הדוח\n—\nמספר דוח\n—\nאין קובץ דוח PDF מסומן. מוצגות 141 תמונות שמאי שכבר יובאו לתיק — בלי עותק חדש.\nתמונות הדוח (141)\nRCV0060.JP"
+    },
+    {
+      "name": "desktop-DAL-2026-0017-open-file",
+      "ok": true,
+      "preview": 1,
+      "popup": false
+    },
+    {
+      "name": "desktop-DAL-2026-0017-imports",
+      "ok": true,
+      "ginN": 6,
+      "snippet": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nהתכתבויות (6)\nמסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אין"
+    },
+    {
+      "name": "desktop-DAL-2026-0017-no-console",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "name": "mobile-DAL-2026-0004-list-docs-net",
+      "ok": true,
+      "status": 200,
+      "files": 188,
+      "error": null,
+      "success": true
+    },
+    {
+      "name": "mobile-DAL-2026-0004-docs-header",
+      "ok": true,
+      "n": 188,
+      "api": 188
+    },
+    {
+      "name": "mobile-DAL-2026-0004-docs-not-empty",
+      "ok": true
+    },
+    {
+      "name": "mobile-DAL-2026-0004-docs-gallery-imgs",
+      "ok": true,
+      "galCount": 10,
+      "imgCount": 16
+    },
+    {
+      "name": "mobile-DAL-2026-0004-surveyor-visible",
+      "ok": true
+    },
+    {
+      "name": "mobile-DAL-2026-0004-surveyor-not-blank-if-photos",
+      "ok": true,
+      "photos": 151,
+      "untagged": 0,
+      "survImgs": 72,
+      "emptyMarked": false,
+      "noPdf": true,
+      "surv": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nדוח שמאי · 188 קבצים בתיק\nמספר רכב\n18391803\nמס' תביעה\n81039408\nתאריך אירוע\n2025-08-22\nשם שמאי\n—\nתאריך הדוח\n—\nמספר דוח\n—\nאין קובץ דוח PDF מסומן. מוצגות 151 תמונות שמאי שכבר יובאו לתיק — בלי עותק חדש.\nתמונות הדוח (151)\nRCV007"
+    },
+    {
+      "name": "mobile-DAL-2026-0004-open-file",
+      "ok": true,
+      "preview": 1,
+      "popup": false
+    },
+    {
+      "name": "mobile-DAL-2026-0004-imports",
+      "ok": true,
+      "ginN": 32,
+      "snippet": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nהתכתבויות (32)\nמסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אי"
+    },
+    {
+      "name": "mobile-DAL-2026-0004-no-console",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "name": "mobile-DAL-2026-0005-list-docs-net",
+      "ok": true,
+      "status": 200,
+      "files": 147,
+      "error": null,
+      "success": true
+    },
+    {
+      "name": "mobile-DAL-2026-0005-docs-header",
+      "ok": true,
+      "n": 147,
+      "api": 147
+    },
+    {
+      "name": "mobile-DAL-2026-0005-docs-not-empty",
+      "ok": true
+    },
+    {
+      "name": "mobile-DAL-2026-0005-docs-gallery-imgs",
+      "ok": true,
+      "galCount": 11,
+      "imgCount": 80
+    },
+    {
+      "name": "mobile-DAL-2026-0005-surveyor-visible",
+      "ok": true
+    },
+    {
+      "name": "mobile-DAL-2026-0005-surveyor-not-blank-if-photos",
+      "ok": true,
+      "photos": 0,
+      "untagged": 146,
+      "survImgs": 108,
+      "emptyMarked": false,
+      "noPdf": false,
+      "surv": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nדוח שמאי · 147 קבצים בתיק\nמספר רכב\n71167102\nמס' תביעה\n81037504\nתאריך אירוע\n2025-07-12\nשם שמאי\n—\nתאריך הדוח\n—\nמספר דוח\n—\nאין קובץ שסומן כדוח שמאי. מוצגות 146 תמונות שכבר שמורות בתיק (לשונית מסמכים) — בלי שינוי סיווג ובלי עות"
+    },
+    {
+      "name": "mobile-DAL-2026-0005-open-file",
+      "ok": true,
+      "preview": 1,
+      "popup": false
+    },
+    {
+      "name": "mobile-DAL-2026-0005-imports",
+      "ok": true,
+      "ginN": 28,
+      "snippet": "📋 תביעה\n👤 לקוח\n🚗 רכב\n🛠 טיפול\n🔎 דוח שמאי\n🧾 חשבונית מוסך\n📄 מסמכים\n✉ התכתבויות\n✅ משימות\n🔔 תזכורות\n📬 מעקב מייל\n⏱ היסטוריה\nהתכתבויות (28)\nמסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אי"
+    },
+    {
+      "name": "mobile-DAL-2026-0005-no-console",
+      "ok": true,
+      "errors": []
+    }
+  ],
+  "claims": {
+    "desktop:DAL-2026-0004": {
+      "n": 188,
+      "apiFiles": 188,
+      "photos": 151,
+      "untagged": 0,
+      "survImgs": 72,
+      "ginN": 32,
+      "emptyMarked": false,
+      "noPdf": true,
+      "errors": []
+    },
+    "desktop:DAL-2026-0005": {
+      "n": 147,
+      "apiFiles": 147,
+      "photos": 0,
+      "untagged": 146,
+      "survImgs": 108,
+      "ginN": 28,
+      "emptyMarked": false,
+      "noPdf": false,
+      "errors": []
+    },
+    "desktop:DAL-2026-0008": {
+      "n": 131,
+      "apiFiles": 131,
+      "photos": 113,
+      "untagged": 0,
+      "survImgs": 78,
+      "ginN": 18,
+      "emptyMarked": false,
+      "noPdf": false,
+      "errors": []
+    },
+    "desktop:DAL-2026-0017": {
+      "n": 143,
+      "apiFiles": 143,
+      "photos": 141,
+      "untagged": 0,
+      "survImgs": 80,
+      "ginN": 6,
+      "emptyMarked": false,
+      "noPdf": true,
+      "errors": []
+    },
+    "mobile:DAL-2026-0004": {
+      "n": 188,
+      "apiFiles": 188,
+      "photos": 151,
+      "untagged": 0,
+      "survImgs": 72,
+      "ginN": 32,
+      "emptyMarked": false,
+      "noPdf": true,
+      "errors": []
+    },
+    "mobile:DAL-2026-0005": {
+      "n": 147,
+      "apiFiles": 147,
+      "photos": 0,
+      "untagged": 146,
+      "survImgs": 108,
+      "ginN": 28,
+      "emptyMarked": false,
+      "noPdf": false,
+      "errors": []
+    }
+  },
+  "ok": true
+}
