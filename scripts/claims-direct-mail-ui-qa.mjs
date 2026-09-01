@@ -74,7 +74,7 @@ async function runAt(name, viewport) {
   });
   await open0014(page);
 
-  await page.getByRole('button', { name: 'מסמכים' }).click();
+  await page.locator('.claims-root .tab').filter({ hasText: 'מסמכים' }).click();
   await page.waitForTimeout(900);
   rec(`${name}-source-gmail-he`, (await page.getByText('התקבל במייל').count()) > 0);
   rec(`${name}-file-shortage-pdf`, (await page.getByText('עדכון מצב מסמכים צג.pdf').count()) > 0);
@@ -84,13 +84,14 @@ async function runAt(name, viewport) {
   await page.waitForTimeout(400);
   rec(`${name}-related-manual`, (await page.getByText('קשור למסמך (ידני)').count()) > 0);
 
-  await page.getByRole('button', { name: 'התכתבויות' }).click();
+  await page.locator('.claims-root .tab').filter({ hasText: 'התכתבויות' }).click();
   await page.waitForTimeout(900);
   rec(`${name}-direct-subject`, (await page.getByText('בקשה להשלמת מסמכים').count()) > 0);
   rec(`${name}-reply-btn`, (await page.locator('[data-testid^="mail-reply-"]').count()) > 0);
   rec(`${name}-forward-btn`, (await page.locator('[data-testid^="mail-forward-"]').count()) > 0);
 
-  const reply = page.locator('[data-testid^="mail-reply-"]').first();
+  const directCard = page.locator('.gmail-card').filter({ hasText: 'בקשה להשלמת מסמכים' }).first();
+  const reply = directCard.locator('[data-testid^="mail-reply-"]').first();
   await reply.scrollIntoViewIfNeeded();
   await reply.click();
   await page.locator('[data-testid="mail-from"]').waitFor({ state: 'visible', timeout: 12000 }).catch(() => null);
@@ -102,8 +103,8 @@ async function runAt(name, viewport) {
   await page.locator('.ov.open .mcl').last().click({ timeout: 4000 }).catch(() => null);
   await page.waitForTimeout(400);
 
-  await page.getByRole('button', { name: 'התכתבויות' }).click().catch(() => null);
-  const fwd = page.locator('[data-testid^="mail-forward-"]').first();
+  await page.locator('.claims-root .tab').filter({ hasText: 'התכתבויות' }).click().catch(() => null);
+  const fwd = directCard.locator('[data-testid^="mail-forward-"]').first();
   await fwd.scrollIntoViewIfNeeded();
   await fwd.click();
   await page.locator('[data-testid="mail-from"]').waitFor({ state: 'visible', timeout: 12000 }).catch(() => null);
@@ -116,7 +117,7 @@ async function runAt(name, viewport) {
   await page.locator('.ov.open .mcl').last().click({ timeout: 4000 }).catch(() => null);
   await page.waitForTimeout(400);
 
-  const suggest = page.locator('[data-testid^="suggest-reply-"]').first();
+  const suggest = directCard.locator('[data-testid^="suggest-reply-"]').first();
   if (await suggest.count()) {
     await suggest.scrollIntoViewIfNeeded();
     await suggest.click();
@@ -126,7 +127,7 @@ async function runAt(name, viewport) {
     await page.locator('.ov.open .mcl').last().click({ timeout: 4000 }).catch(() => null);
   } else rec(`${name}-suggest-opens`, false);
 
-  await page.getByRole('button', { name: 'משימות' }).click();
+  await page.locator('.claims-root .tab').filter({ hasText: 'משימות' }).click();
   await page.waitForTimeout(800);
   rec(`${name}-mail-task`, (await page.getByText('השלמת מסמכים לפי הבקשה במייל').count()) > 0);
   rec(`${name}-needs-review`, (await page.getByText('דורש בדיקת עובד').count()) > 0);
