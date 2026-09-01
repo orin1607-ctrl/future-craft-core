@@ -209,6 +209,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [stFil, setStFil] = useState('');
   const [curId, setCurId] = useState<string | null>(null);
   const [cardTab, setCardTab] = useState('comm');
+  const [sbOpen, setSbOpen] = useState(false);
   const [modal, setModal] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -304,6 +305,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const cnt = (f: (x: ClaimRecord) => boolean) => workset.filter(f).length;
 
   const showView = (name: string, f = '') => {
+    setSbOpen(false);
     setView(name);
     setFilter(f);
     if (f) setStFil(f);
@@ -624,6 +626,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
       <div className="app">
         <div className="tb">
+          <button type="button" className="sb-open-btn" data-testid="claims-sb-open" aria-label="פתח תפריט תביעות" onClick={() => setSbOpen(true)}>☰ תפריט</button>
           <div className="tb-logo"><span className="tba">דליה</span><span className="tbb">ניהול תביעות</span></div>
           <div className="tb-sep" />
           <div className="tb-nav">
@@ -681,14 +684,31 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
 
         <div className="body">
-          <div className="sb">
+          <div className={`sb-ov ${sbOpen ? 'open' : ''}`} data-testid="claims-sb-overlay" onClick={() => setSbOpen(false)} />
+          <div className={`sb ${sbOpen ? 'open' : ''}`} data-testid="claims-sb">
+            <div className="sb-mhead">
+              <span>תפריט תביעות</span>
+              <button type="button" className="mcl" data-testid="claims-sb-close" aria-label="סגור תפריט תביעות" onClick={() => setSbOpen(false)}>✕</button>
+            </div>
             <div className="sb-sec">
               <div className="sb-lbl">ניווט</div>
               <button className={`sb-i ${view === 'dashboard' && !filter ? 'act' : ''}`} onClick={() => showView('dashboard')}><span className="ic">📊</span>דשבורד</button>
-              <button className={`sb-i ${view === 'claims' && !filter ? 'act' : ''}`} onClick={() => showView('claims')}><span className="ic">📋</span>{mineOnly ? 'התביעות שלי' : 'כל התיקים'}<span className="sb-bd b">{workset.length}</span></button>
+              <button className={`sb-i ${view === 'claims' && !filter ? 'act' : ''}`} data-testid="claims-nav-all" onClick={() => showView('claims')}><span className="ic">📋</span>{mineOnly ? 'התביעות שלי' : 'כל התיקים'}<span className="sb-bd b">{workset.length}</span></button>
               <button className={`sb-i ${view === 'gmail' ? 'act' : ''}`} onClick={() => showView('gmail')}><span className="ic">📧</span>Gmail</button>
               <button className={`sb-i ${view === 'tasks' ? 'act' : ''}`} onClick={() => showView('tasks')}><span className="ic">✅</span>משימות</button>
               <button className={`sb-i ${view === 'reports' ? 'act' : ''}`} onClick={() => showView('reports')}><span className="ic">📈</span>דוחות</button>
+              <button className="sb-i" data-testid="claims-nav-templates" onClick={async () => {
+                setSbOpen(false);
+                const r = await apiRef.current.getTemplates();
+                setTpl(r.data || {});
+                const first = Object.keys(r.data || {})[0] || '';
+                setCurTpl(first);
+                if (first && r.data?.[first]) {
+                  setVal('tpl_subj', r.data[first].subject || '');
+                  setVal('tpl_body', r.data[first].body || '');
+                }
+                setModal('moTemplates');
+              }}><span className="ic">📝</span>תבניות</button>
             </div>
             <div className="sb-div" />
             <div className="sb-sec">
