@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-01T16:05:36.733Z",
+  "purpose": "restore-after-claims-docs-staff-upload",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "gitHead": "02cdd6637fa36e2c6281a0f7621f06cd19caa6bd",
+  "gitShort": "02cdd66",
+  "vehicles": 437,
+  "accidents": 11,
+  "claims": 18,
+  "docs": 1805,
+  "bucketPublic": false,
+  "deployed_ref": "02cdd66 feat/incident-alerts-staging"
+}

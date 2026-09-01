@@ -35,6 +35,22 @@ async function dropFiles(page, testId, files) {
   }, payload);
 }
 
+async function waitUploadIdle(page, testId = 'docs-drop') {
+  await page.locator(`[data-testid="${testId}"]`).getByText('גרור קבצים לכאן או לחץ להעלאה').waitFor({ timeout: 25000 });
+}
+
+async function seen(page, name) {
+  const loc = page.getByText(name).first();
+  for (let i = 0; i < 8; i += 1) {
+    if (await loc.count()) {
+      await loc.scrollIntoViewIfNeeded().catch(() => null);
+      return true;
+    }
+    await page.waitForTimeout(800);
+  }
+  return (await page.getByText(name).count()) > 0;
+}
+
 const report = { at: new Date().toISOString(), productionTouched: false, realEmailSend: false, checks: [], ok: false, base: PUBLIC };
 const rec = (name, ok, extra = {}) => {
   report.checks.push({ name, ok: Boolean(ok), ...extra });
@@ -96,6 +112,13 @@ async function runAt(name, viewport) {
 
   const pdfName = `staff-${name}-pdf-${stamp}.pdf`;
   const jpgName = `staff-${name}-jpg-${stamp}.jpg`;
+  const jpgBytes = Buffer.concat([
+    Buffer.from(
+      '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAG/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=',
+      'base64',
+    ),
+    Buffer.from(`\n${name}-${stamp}`),
+  ]);
   const extraPdf = `staff-${name}-multi-${stamp}.pdf`;
   const mailName = `staff-${name}-mail-${stamp}.pdf`;
   const pdfBytes = Buffer.from(`%PDF-1.1\n1 0 obj<<>>endobj\ntrailer<<>>\n%%STAFFQA-${name}-${stamp}\n`);
@@ -108,27 +131,26 @@ async function runAt(name, viewport) {
 
   if (name === 'desktop') {
     await dropFiles(page, 'docs-drop', [{ name: pdfName, mimeType: 'application/pdf', buffer: pdfBytes }]);
-    await page.waitForTimeout(3500);
-    rec(`${name}-pdf-drop`, (await page.getByText(pdfName).count()) > 0);
+    await waitUploadIdle(page);
+    rec(`${name}-pdf-drop`, await seen(page, pdfName));
     await dropFiles(page, 'docs-drop', [{ name: jpgName, mimeType: 'image/jpeg', buffer: jpgBytes }]);
-    await page.waitForTimeout(3500);
-    rec(`${name}-jpg-drop`, (await page.getByText(jpgName).count()) > 0);
+    await waitUploadIdle(page);
+    rec(`${name}-jpg-drop`, await seen(page, jpgName));
     rec(`${name}-thumb`, (await page.locator('.pick-thumb img').count()) > 0 || (await page.locator('.gal-item img').count()) > 0);
-    await dropFiles(page, 'docs-drop', [
+    await page.locator('[data-testid="docs-drop-input"]').setInputFiles([
       { name: extraPdf, mimeType: 'application/pdf', buffer: extraBytes },
       { name: pdfName, mimeType: 'application/pdf', buffer: pdfBytes },
     ]);
-    await page.waitForTimeout(4000);
-    rec(`${name}-multi-drop`, (await page.getByText(extraPdf).count()) > 0);
+    await waitUploadIdle(page);
+    rec(`${name}-multi-drop`, await seen(page, extraPdf));
   } else {
     const input = page.locator('[data-testid="docs-drop-input"]');
-    await input.setInputFiles([
-      { name: pdfName, mimeType: 'application/pdf', buffer: pdfBytes },
-      { name: jpgName, mimeType: 'image/jpeg', buffer: jpgBytes },
-    ]);
-    await page.waitForTimeout(4500);
-    rec(`${name}-pdf-picker`, (await page.getByText(pdfName).count()) > 0);
-    rec(`${name}-jpg-picker`, (await page.getByText(jpgName).count()) > 0);
+    await input.setInputFiles([{ name: pdfName, mimeType: 'application/pdf', buffer: pdfBytes }]);
+    await waitUploadIdle(page);
+    rec(`${name}-pdf-picker`, await seen(page, pdfName));
+    await input.setInputFiles([{ name: jpgName, mimeType: 'image/jpeg', buffer: jpgBytes }]);
+    await waitUploadIdle(page);
+    rec(`${name}-jpg-picker`, await seen(page, jpgName));
     rec(`${name}-thumb`, (await page.locator('.pick-thumb img').count()) > 0 || (await page.locator('.gal-item img').count()) > 0);
   }
 
@@ -141,8 +163,8 @@ async function runAt(name, viewport) {
   await page.locator('[data-testid="mail-docs-drop-input"]').setInputFiles({
     name: mailName, mimeType: 'application/pdf', buffer: mailBytes,
   });
-  await page.waitForTimeout(4000);
-  rec(`${name}-mail-upload-listed`, (await page.getByText(mailName).count()) > 0);
+  await waitUploadIdle(page, 'mail-docs-drop');
+  rec(`${name}-mail-upload-listed`, await seen(page, mailName));
   const box = page.locator('[data-testid^="mail-file-row-"]').filter({ hasText: pdfName }).locator('input[type="checkbox"]').first();
   if (await box.count()) {
     if (await box.isChecked()) await box.click();

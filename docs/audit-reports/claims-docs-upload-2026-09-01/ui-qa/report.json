@@ -1,0 +1,166 @@
+{
+  "at": "2026-09-01T16:03:18.077Z",
+  "productionTouched": false,
+  "realEmailSend": false,
+  "checks": [
+    {
+      "name": "desktop-add-btn",
+      "ok": true
+    },
+    {
+      "name": "desktop-drop-zone",
+      "ok": true
+    },
+    {
+      "name": "desktop-drop-copy",
+      "ok": true
+    },
+    {
+      "name": "desktop-pdf-drop",
+      "ok": true
+    },
+    {
+      "name": "desktop-jpg-drop",
+      "ok": true
+    },
+    {
+      "name": "desktop-thumb",
+      "ok": true
+    },
+    {
+      "name": "desktop-multi-drop",
+      "ok": true
+    },
+    {
+      "name": "desktop-source-staff",
+      "ok": true
+    },
+    {
+      "name": "desktop-in-mail-pdf",
+      "ok": true
+    },
+    {
+      "name": "desktop-mail-drop",
+      "ok": true
+    },
+    {
+      "name": "desktop-mail-upload-listed",
+      "ok": true
+    },
+    {
+      "name": "desktop-uncheck-ok",
+      "ok": true
+    },
+    {
+      "name": "desktop-still-in-docs-after-uncheck",
+      "ok": true
+    },
+    {
+      "name": "desktop-mail-upload-in-docs",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-real-send",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "mobile-add-btn",
+      "ok": true
+    },
+    {
+      "name": "mobile-drop-zone",
+      "ok": true
+    },
+    {
+      "name": "mobile-drop-copy",
+      "ok": true
+    },
+    {
+      "name": "mobile-pdf-picker",
+      "ok": true
+    },
+    {
+      "name": "mobile-jpg-picker",
+      "ok": true
+    },
+    {
+      "name": "mobile-thumb",
+      "ok": true
+    },
+    {
+      "name": "mobile-source-staff",
+      "ok": true
+    },
+    {
+      "name": "mobile-in-mail-pdf",
+      "ok": true
+    },
+    {
+      "name": "mobile-mail-drop",
+      "ok": true
+    },
+    {
+      "name": "mobile-mail-upload-listed",
+      "ok": true
+    },
+    {
+      "name": "mobile-uncheck-ok",
+      "ok": true
+    },
+    {
+      "name": "mobile-still-in-docs-after-uncheck",
+      "ok": true
+    },
+    {
+      "name": "mobile-mail-upload-in-docs",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-real-send",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "db-on-0014",
+      "ok": true,
+      "n": 7
+    },
+    {
+      "name": "db-source-staff",
+      "ok": true,
+      "n": 7
+    },
+    {
+      "name": "no-duplicate-same-upload",
+      "ok": true,
+      "counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "no-leak",
+      "ok": true
+    },
+    {
+      "name": "bucket-private",
+      "ok": true
+    },
+    {
+      "name": "vehicles-437",
+      "ok": true
+    },
+    {
+      "name": "accidents-11",
+      "ok": true
+    }
+  ],
+  "ok": true,
+  "base": "https://orin1607-ctrl.github.io/future-craft-core"
+}
