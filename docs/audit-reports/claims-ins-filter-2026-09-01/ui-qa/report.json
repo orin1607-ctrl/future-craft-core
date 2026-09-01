@@ -1,0 +1,151 @@
+{
+  "at": "2026-09-01T20:45:48.273Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "claimsDataMutated": false,
+  "checks": [
+    {
+      "name": "vehicles-437",
+      "ok": true,
+      "vehBefore": 437
+    },
+    {
+      "name": "accidents-11",
+      "ok": true,
+      "accBefore": 11
+    },
+    {
+      "name": "desktop-list-ins-col",
+      "ok": true
+    },
+    {
+      "name": "desktop-ins-filter",
+      "ok": true
+    },
+    {
+      "name": "desktop-all-ins-option",
+      "ok": true
+    },
+    {
+      "name": "desktop-ins-options-from-data",
+      "ok": true,
+      "options": [
+        "כל חברות הביטוח",
+        "איילון",
+        "ביטוח ישיר",
+        "הכשרה",
+        "הפניקס",
+        "הראל",
+        "כלל",
+        "מגדל",
+        "שלמה SIXT",
+        "WeSure"
+      ]
+    },
+    {
+      "name": "desktop-all-rows",
+      "ok": true,
+      "allCount": 16
+    },
+    {
+      "name": "desktop-filter-works",
+      "ok": true,
+      "company": "איילון",
+      "filtered": 1,
+      "cells": [
+        "איילון"
+      ]
+    },
+    {
+      "name": "desktop-all-ins-restores",
+      "ok": true,
+      "back": 16,
+      "allCount": 16
+    },
+    {
+      "name": "desktop-dash-all-claims",
+      "ok": true
+    },
+    {
+      "name": "desktop-dash-ins-col",
+      "ok": true
+    },
+    {
+      "name": "desktop-dash-ins-filter",
+      "ok": true
+    },
+    {
+      "name": "mobile-list-ins-col",
+      "ok": true
+    },
+    {
+      "name": "mobile-ins-filter",
+      "ok": true
+    },
+    {
+      "name": "mobile-all-ins-option",
+      "ok": true
+    },
+    {
+      "name": "mobile-ins-options-from-data",
+      "ok": true,
+      "options": [
+        "כל חברות הביטוח",
+        "איילון",
+        "ביטוח ישיר",
+        "הכשרה",
+        "הפניקס",
+        "הראל",
+        "כלל",
+        "מגדל",
+        "שלמה SIXT",
+        "WeSure"
+      ]
+    },
+    {
+      "name": "mobile-all-rows",
+      "ok": true,
+      "allCount": 16
+    },
+    {
+      "name": "mobile-filter-works",
+      "ok": true,
+      "company": "איילון",
+      "filtered": 1,
+      "cells": [
+        "איילון"
+      ]
+    },
+    {
+      "name": "mobile-all-ins-restores",
+      "ok": true,
+      "back": 16,
+      "allCount": 16
+    },
+    {
+      "name": "mobile-dash-all-claims",
+      "ok": true
+    },
+    {
+      "name": "mobile-dash-ins-col",
+      "ok": true
+    },
+    {
+      "name": "mobile-dash-ins-filter",
+      "ok": true
+    },
+    {
+      "name": "claims-data-unchanged",
+      "ok": true
+    },
+    {
+      "name": "vehicles-437-after",
+      "ok": true
+    },
+    {
+      "name": "accidents-11-after",
+      "ok": true
+    }
+  ],
+  "ok": true
+}

@@ -93,9 +93,13 @@ async function runOnPage(page, prefix) {
     rec(`${prefix}-all-ins-restores`, true);
   }
 
-  await page.locator('[data-testid="claims-sb"]').getByText('דשבורד', { exact: true }).click().catch(async () => {
-    await page.getByRole('button', { name: 'דשבורד' }).first().click();
-  });
+  const dashNav = page.locator('[data-testid="claims-sb"] .sb-i').filter({ hasText: 'דשבורד' }).first();
+  const vp = page.viewportSize();
+  if ((vp?.width || 1440) < 800) {
+    await page.locator('[data-testid="claims-sb-open"]').click().catch(() => null);
+    await page.waitForTimeout(500);
+  }
+  await dashNav.evaluate((el) => el.click());
   await page.waitForTimeout(700);
   rec(`${prefix}-dash-all-claims`, (await page.getByText('כל התביעות').count()) > 0);
   rec(`${prefix}-dash-ins-col`, (await page.locator('[data-testid="claims-dash-table"] th', { hasText: 'חברת ביטוח' }).count()) > 0);
