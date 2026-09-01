@@ -62,21 +62,16 @@ async function runAt(name, viewport) {
   await page.waitForTimeout(1600);
   const search = page.locator('.claims-root input.fi').first();
   if (await search.count()) {
-    await search.fill('0018');
-    await page.waitForTimeout(600);
+    await search.fill('0004');
+    await page.waitForTimeout(700);
   }
-  let row = page.locator('.claims-root .tw tbody tr').filter({ hasText: '0018' }).first();
-  if (!(await row.count())) {
-    if (await search.count()) {
-      await search.fill('0004');
-      await page.waitForTimeout(600);
-    }
-    row = page.locator('.claims-root .tw tbody tr').filter({ hasText: '0004' }).first();
-  }
+  const row = page.locator('.claims-root .tw tbody tr').filter({ hasText: '0004' }).first();
   await row.click();
   await page.waitForTimeout(1000);
   await page.locator('[data-testid="claims-send-mail"]').click();
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(800);
+  await page.locator('[data-testid^="mail-file-thumb-"] img').first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => null);
+  await page.waitForTimeout(400);
 
   rec(`${name}-modal-open`, await page.locator('[data-testid="mail-to"]').isVisible());
   const thumbs = page.locator('[data-testid^="mail-file-thumb-"]');
@@ -87,13 +82,13 @@ async function runAt(name, viewport) {
   const firstBox = page.locator('[data-testid^="mail-file-"]').filter({ hasNot: page.locator('[data-testid^="mail-file-thumb-"], [data-testid^="mail-file-preview-"], [data-testid^="mail-file-row-"]') }).first();
   const fileCbs = page.locator('input[data-testid^="mail-file-"]');
   const nFiles = await fileCbs.count();
-  rec(`${name}-files-present`, nFiles > 1, { nFiles });
+  rec(`${name}-files-present`, nFiles >= 2, { nFiles });
 
   if (thumbN) {
     const before = await fileCbs.first().isChecked();
     await page.locator('[data-testid^="mail-file-preview-"]').first().click();
-    await page.waitForTimeout(600);
-    const previewOpen = await page.locator('.doc-preview-img, .doc-preview-frame').count() > 0;
+    await page.waitForTimeout(400);
+    const previewOpen = await page.locator('.doc-preview-img, .doc-preview-frame').waitFor({ state: 'visible', timeout: 12000 }).then(() => true).catch(() => false);
     rec(`${name}-large-preview`, previewOpen);
     const afterPreview = await fileCbs.first().isChecked();
     rec(`${name}-preview-does-not-select`, afterPreview === before);

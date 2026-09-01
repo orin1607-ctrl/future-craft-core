@@ -505,9 +505,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       setVal('mail_body', body);
     }
     setModal('moMail');
-    const images = docs.files.filter((f) => isImageFile(f));
-    if (images.length) void loadGalleryThumbs(cur.id, images);
   };
+
+  useEffect(() => {
+    if (modal !== 'moMail' || !curId) return;
+    const images = docs.files.filter((f) => isImageFile(f));
+    if (images.length) void loadGalleryThumbs(curId, images);
+  }, [modal, curId, docs.files]);
 
   const loadGalleryThumbs = async (claimId: string, files: ClaimFile[]) => {
     const images = files.filter((f) => isImageFile(f));
