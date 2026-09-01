@@ -279,6 +279,52 @@ function DocStaffFields({ file, allFiles, onSave }: { file: ClaimFile; allFiles:
   );
 }
 
+function StaffUploadZone({ testId, inputId, busy, compact, onFiles }: {
+  testId: string; inputId: string; busy: boolean; compact?: boolean; onFiles: (files: File[]) => void;
+}) {
+  const [over, setOver] = useState(false);
+  return (
+    <div className="docs-up" data-testid={`${testId}-wrap`}>
+      {!compact ? (
+        <button type="button" className="btn btn-p btn-sm" data-testid="docs-add-btn" disabled={busy} onClick={() => document.getElementById(inputId)?.click()}>＋ הוסף מסמך</button>
+      ) : null}
+      <label
+        className={`docs-drop ${over ? 'over' : ''} ${compact ? 'compact' : ''}`}
+        data-testid={testId}
+        onDragOver={(e) => { e.preventDefault(); if (!busy) setOver(true); }}
+        onDragEnter={(e) => { e.preventDefault(); if (!busy) setOver(true); }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setOver(false);
+          if (busy) return;
+          onFiles(Array.from(e.dataTransfer.files || []));
+        }}
+      >
+        <input
+          id={inputId}
+          data-testid={`${testId}-input`}
+          type="file"
+          hidden
+          multiple
+          accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,.pdf,.jpg,.jpeg,.png,.webp,.heic"
+          disabled={busy}
+          onChange={(e) => {
+            onFiles(Array.from(e.target.files || []));
+            e.target.value = '';
+          }}
+        />
+        {busy ? 'מעלה…' : 'גרור קבצים לכאן או לחץ להעלאה'}
+      </label>
+      <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>
+        {compact
+          ? 'נשמר במסמכי התביעה כ«הועלה על ידינו». ביטול סימון לשליחה לא מוחק את הקובץ.'
+          : 'PDF או תמונה. נשמר פרטית בתיק זה בלבד. מקור: הועלה על ידינו. לא דורס מסמך קיים.'}
+      </div>
+    </div>
+  );
+}
+
 function surveyorBundle(files: ClaimFile[]) {
   const photos = files.filter((f) => f.doc_kind === 'surveyor_photo');
   const reports = files.filter((f) => f.doc_kind === 'surveyor_report');
@@ -384,6 +430,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [gmailImports, setGmailImports] = useState<Array<Record<string, unknown>>>([]);
   const [gmailBusy, setGmailBusy] = useState('');
   const [docEditId, setDocEditId] = useState<string | null>(null);
+  const [docsUploading, setDocsUploading] = useState(false);
   const [gmailPending, setGmailPending] = useState<Array<Record<string, unknown>>>([]);
   const [gmailSends, setGmailSends] = useState<Array<Record<string, unknown>>>([]);
   const [pendingPick, setPendingPick] = useState<Record<string, string>>({});
@@ -728,6 +775,37 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const r = await apiRef.current.invokeDocs('update_doc_meta', { claim_id: curId, file_id: file.id, ...patch });
     if (!r.success) { toast(String(r.error || 'שמירה נכשלה'), 'err'); return; }
     await loadCardData(curId);
+  };
+
+  const uploadStaffFiles = async (claimId: string, files: File[], selectForSend = false) => {
+    if (!files.length) return [];
+    setDocsUploading(true);
+    const ids: string[] = [];
+    const fails: string[] = [];
+    let reused = 0;
+    try {
+      for (const file of files) {
+        const up = await apiRef.current.staffUpload(claimId, '', file);
+        if (!up.success) { fails.push(`${file.name}: ${up.error || 'שגיאה'}`); continue; }
+        if (up.reused) reused += 1;
+        if (up.file_id) ids.push(up.file_id);
+      }
+      await loadCardData(claimId);
+      if (selectForSend && ids.length) {
+        setSendIds((prev) => {
+          const next = [...new Set([...prev, ...ids])];
+          void refreshPackage(claimId, next);
+          return next;
+        });
+      }
+      if (ids.length) setDocEditId(ids[ids.length - 1]);
+      if (fails.length) toast(`הועלו ${ids.length} · נכשלו ${fails.length} · ${fails[0]}`, 'err');
+      else if (reused && reused === ids.length) toast('הקובץ כבר קיים בתיק — לא נוצר עותק');
+      else toast(`הועלו ${ids.length} מסמכים · הועלה על ידינו`);
+    } finally {
+      setDocsUploading(false);
+    }
+    return ids;
   };
 
   useEffect(() => {
@@ -1680,6 +1758,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       </label>
                     </div>
                   ))}
+                  <div className="sdiv"><div className="sdiv-t">מאגר מסמכי התביעה</div><div className="sdiv-l" /></div>
+                  <StaffUploadZone
+                    testId="docs-drop"
+                    inputId="docs_staff_files"
+                    busy={docsUploading}
+                    onFiles={(files) => { if (cur) void uploadStaffFiles(cur.id, files); }}
+                  />
                   <div className="sdiv"><div className="sdiv-t">קבצים שהתקבלו ({docs.files.length})</div><div className="sdiv-l" /></div>
                   {docs.files.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין קבצים עדיין</div>
                     : Object.entries(docs.files.reduce((acc: Record<string, ClaimFile[]>, f) => {
@@ -2264,7 +2349,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             </label>
             <div style={{ fontSize: 10, color: 'var(--yn2)', marginBottom: 8 }}>Follow-up אוטומטי חי דורש Scheduler / יציאה מ-Dry Run. האישור נשמר ביומן בלבד. אין שליחה מתוזמנת בלי אישור נוסף.</div>
             <div className="sdiv"><div className="sdiv-t">בחירת מסמכים לצירוף</div><div className="sdiv-l" /></div>
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>רק מה שמסומן ייכנס ל-Preview ויישלח. תצוגה גדולה לא מסמנת לשליחה.</div>
+            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>רק מה שמסומן ייכנס ל-Preview ויישלח. תצוגה גדולה לא מסמנת לשליחה. הסרה מהרשימה לא מוחקת ממסמכי התביעה.</div>
+            {curId ? (
+              <StaffUploadZone
+                testId="mail-docs-drop"
+                inputId="mail_staff_files"
+                busy={docsUploading || mailSending}
+                compact
+                onFiles={(files) => { void uploadStaffFiles(curId, files, true); }}
+              />
+            ) : null}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
               <button className="btn btn-g btn-sm" data-testid="mail-clear-files" onClick={() => setSendGroup(docs.files.map((f) => f.id), false)}>נקה בחירה</button>
             </div>

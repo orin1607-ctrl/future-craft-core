@@ -135,7 +135,10 @@
 .claims-root .pick-row > span:not(.pick-sz):not(.pick-thumb){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .claims-root .pick-thumb{width:56px;height:42px;border:1px solid var(--br);border-radius:5px;overflow:hidden;padding:0;background:var(--bg3);flex-shrink:0;cursor:pointer;color:var(--t3);font-size:9px;font-weight:700}
 .claims-root .pick-thumb img, .claims-root img.pick-thumb{width:56px;height:42px;object-fit:cover;display:block}
-.claims-root .pick-sz{color:var(--t3);font-size:10px}
+.claims-root .docs-up{margin:8px 0 12px}
+.claims-root .docs-drop{display:block;border:1.5px dashed var(--br2);border-radius:8px;padding:16px 12px;text-align:center;font-size:13px;font-weight:700;color:var(--t2);background:var(--bg2);cursor:pointer;margin-top:8px}
+.claims-root .docs-drop.compact{padding:10px 10px;font-size:12px;margin-top:0;margin-bottom:10px}
+.claims-root .docs-drop.over{border-color:var(--ac2);color:var(--ac3);background:rgba(59,130,246,.08)}
 .claims-root .pkg-bar{margin-top:10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:8px}
 .claims-root .pkg-bar.over{border-color:#ef4444;color:#fecaca}
 .claims-root .pkg-warn{margin-top:4px;font-weight:700}

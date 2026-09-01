@@ -715,9 +715,9 @@ export function createClaimsApi(actor: ClaimsActor) {
         },
         body: form,
       });
-      const json = await res.json().catch(() => ({})) as { success?: boolean; error?: string };
+      const json = await res.json().catch(() => ({})) as { success?: boolean; error?: string; file_id?: string; reused?: boolean };
       if (!res.ok || json.success === false) return { success: false, error: json.error || `HTTP ${res.status}` };
-      return { success: true };
+      return { success: true, file_id: json.file_id || '', reused: json.reused === true };
     },
   };
 }

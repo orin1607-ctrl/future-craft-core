@@ -22,6 +22,11 @@ async function sha256Hex(input: string) {
   return bytesToHex(new Uint8Array(hash));
 }
 
+async function sha256HexBytes(bytes: Uint8Array) {
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return bytesToHex(new Uint8Array(hash));
+}
+
 function randomToken() {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
@@ -388,16 +393,22 @@ Deno.serve(async (req) => {
       const buf = new Uint8Array(await file.arrayBuffer());
       const storedMime = resolveStoredMime(file.name, file.type, buf);
       if (!ALLOWED.has(storedMime)) return jsonResponse({ success: false, error: "mime_not_allowed" }, 400);
+      const digest = await sha256HexBytes(buf);
+      const { data: existing } = await sb.from("claims_documents").select("id, source").eq("claim_id", claimId).eq("content_sha256", digest).maybeSingle();
+      if (existing?.id) {
+        return jsonResponse({ success: true, file_id: existing.id, reused: true, source: existing.source, copied: false });
+      }
       let reqKey = "";
       if (docRequestId) {
         const { data: reqRow } = await sb.from("claims_doc_requests").select("doc_key").eq("id", docRequestId).eq("claim_id", claimId).maybeSingle();
         reqKey = String(reqRow?.doc_key || "");
       }
+      const fileId = nid("CDM");
       const path = `${claimId}/staff/${nid("F")}-${sanitizeFileName(file.name)}`;
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: storedMime, upsert: false });
       if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
-      await sb.from("claims_documents").insert({
-        id: nid("CDM"),
+      const { error: insErr } = await sb.from("claims_documents").insert({
+        id: fileId,
         claim_id: claimId,
         doc_request_id: docRequestId,
         storage_path: path,
@@ -408,12 +419,14 @@ Deno.serve(async (req) => {
         uploaded_by: user.id,
         uploaded_by_name: actorName,
         doc_kind: kindFromUpload(reqKey, storedMime, explicitKind),
+        content_sha256: digest,
       });
+      if (insErr) return jsonResponse({ success: false, error: insErr.message }, 400);
       if (docRequestId) {
         await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId).eq("claim_id", claimId);
       }
       await history(sb, claimId, "מסמך הועלה ע״י העובד", file.name, actorName);
-      return jsonResponse({ success: true });
+      return jsonResponse({ success: true, file_id: fileId, reused: false, source: "staff" });
     }
 
     return jsonResponse({ success: false, error: "unknown_action" }, 400);
