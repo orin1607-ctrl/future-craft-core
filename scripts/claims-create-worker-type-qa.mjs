@@ -111,7 +111,9 @@ try {
   await page.waitForTimeout(800);
   const typeBtn = page.locator('[data-testid="create-user-type-claims_worker"]');
   rec('wizard-type-visible', await typeBtn.isVisible(), { text: await typeBtn.innerText().catch(() => '') });
-  await page.screenshot({ path: join(OUT, 'ui-qa', '01-wizard-types.png'), fullPage: true }).catch(() => null);
+  const dialog = page.locator('[role="dialog"]').last();
+  await page.screenshot({ path: join(OUT, 'ui-qa', '01-wizard-types.png'), fullPage: false }).catch(() => null);
+  await dialog.screenshot({ path: join(OUT, 'ui-qa', '01b-wizard-types-dialog.png') }).catch(() => null);
   await typeBtn.click();
   await page.waitForTimeout(600);
   await page.locator('[data-testid="create-user-field-full_name"]').fill(TEST_NAME);
@@ -125,8 +127,8 @@ try {
   rec('wizard-summary-type', (await page.getByText('עובד ניהול תביעות').count()) > 0);
   await page.screenshot({ path: join(OUT, 'ui-qa', '02-wizard-summary.png'), fullPage: true }).catch(() => null);
   await page.getByRole('button', { name: /צור משתמש/ }).click();
-  await page.waitForTimeout(4000);
-  rec('wizard-created', (await page.getByText('המשתמש נוצר').count()) > 0 || (await page.getByText('תוצאה').count()) > 0);
+  const createdUi = page.getByText(/המשתמש נוצר/).first();
+  rec('wizard-created', await createdUi.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false));
   await page.screenshot({ path: join(OUT, 'ui-qa', '03-wizard-result.png'), fullPage: true }).catch(() => null);
   await page.getByRole('button', { name: 'סגור' }).click().catch(() => null);
   await page.waitForTimeout(1200);

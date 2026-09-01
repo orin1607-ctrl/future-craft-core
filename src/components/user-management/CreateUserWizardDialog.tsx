@@ -376,19 +376,19 @@ export default function CreateUserWizardDialog({
         </DialogHeader>
 
         {step === 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 py-2">
             {(Object.keys(USER_TYPE_LABELS) as UserCreationType[]).map((type) => {
               const Icon = TYPE_ICONS[type];
               return (
                 <button
                   key={type}
                   type="button"
-                  data-testid={`create-user-type-${type}`}
+                  data-testid={type === 'claims_worker' ? 'create-user-type-claims_worker' : `create-user-type-${type}`}
                   onClick={() => selectType(type)}
-                  className="card-elevated text-right p-4 hover:border-primary/40 transition-colors min-h-[100px]"
+                  className="card-elevated text-right p-3 hover:border-primary/40 transition-colors min-h-[84px]"
                 >
-                  <Icon size={28} className="text-primary mb-2" />
-                  <p className="font-bold">{USER_TYPE_LABELS[type]}</p>
+                  <Icon size={22} className="text-primary mb-1" />
+                  <p className="font-bold text-sm">{USER_TYPE_LABELS[type]}</p>
                   <p className="text-xs text-muted-foreground mt-1">{USER_TYPE_DESCRIPTIONS[type]}</p>
                 </button>
               );
