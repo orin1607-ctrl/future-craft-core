@@ -674,8 +674,8 @@ export function createClaimsApi(actor: ClaimsActor) {
     async invokeGmail(action: string, body: Record<string, unknown> = {}) {
       const { data, error } = await supabase.functions.invoke('claims-gmail', { body: { action, ...body } });
       const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
-      if (error) return { success: false, error: error.message, realEmailSend: false, ...payload };
-      return { realEmailSend: false, ...payload, success: payload.success !== false };
+      if (error) return { ...payload, success: false, error: error.message, realEmailSend: payload.realEmailSend === true };
+      return { ...payload, success: payload.success !== false, realEmailSend: payload.realEmailSend === true };
     },
 
     async importGmailMessage(claimId: string, messageId: string) {

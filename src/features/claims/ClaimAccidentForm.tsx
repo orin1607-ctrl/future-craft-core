@@ -25,7 +25,7 @@ function Field({ id, label, children }: { id: string; label: string; children: R
 export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSignature, signatureSet, staffSlot }: Props) {
   const set = (k: string, v: string) => onChange({ ...value, [k]: v });
   const toggleZone = (z: string) => {
-    const cur = value.damageLocation.split(',').map((s) => s.trim()).filter(Boolean);
+    const cur = String(value.damageLocation || '').split(',').map((s) => s.trim()).filter(Boolean);
     const next = cur.includes(z) ? cur.filter((x) => x !== z) : [...cur, z];
     set('damageLocation', next.join(','));
   };
@@ -115,7 +115,7 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
             <label className="fl">מיקום הנזק ברכב</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {DAMAGE_ZONES.map((z) => (
-                <label key={z} className="pick-row"><input type="checkbox" checked={value.damageLocation.split(',').includes(z)} onChange={() => toggleZone(z)} /><span>{z}</span></label>
+                <label key={z} className="pick-row"><input type="checkbox" checked={String(value.damageLocation || '').split(',').includes(z)} onChange={() => toggleZone(z)} /><span>{z}</span></label>
               ))}
             </div>
           </div>

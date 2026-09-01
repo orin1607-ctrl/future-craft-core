@@ -1,0 +1,254 @@
+{
+  "errors": [
+    "CON Failed to load resource: the server responded with a status of 404 ()",
+    "PAGE ReferenceError: setFormKind is not defined\n    at c2 (https://orin1607-ctrl.github.io/future-craft-core/assets/index-CzwT05OI.js:2196:2303)\n    at Object.cde (https://orin1607-ctrl.github.io/future-craft-core/assets/index-CzwT05OI.js:37:9873)\n    at ude (https://orin1607-ctrl.github.io/future-craft-core/assets/index-CzwT05OI.js:37:10030)\n    at mde (https://orin1607-ctrl.github.io/future-craft-core/assets/index-CzwT05OI.js:37:10090)\n    at C4 (https://orin1607-ctrl.github.io/future-craft-core/assets/index-CzwT05OI.js:37:31563)\n    at CV (https://orin1607-ctrl.github.io/future-craft-core/assets/index-CzwT05OI.js:37:31981)\n    at https://orin1607-ctrl.github.io/future-craft-core/assets/index-CzwT05OI.js:37:36914\n    at ED (https://orin1607-ctrl.github.io/future-craft-core/assets/index-CzwT05OI.js:40:36984)\n    at XW (https://orin1607-ctrl.github.io/future-craft-core/assets/index-CzwT05OI.js:37:9007)\n    at k2 (https://orin1607-ctrl.github.io/future-craft-core/assets/index-CzwT05OI.js:37:33271)"
+  ],
+  "infoBefore": {
+    "ov": [
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      }
+    ],
+    "buttons": [
+      {
+        "text": "＋ תיק חדש",
+        "w": 72.234375,
+        "h": 44,
+        "x": -38.65625,
+        "y": 3.5,
+        "vis": true
+      },
+      {
+        "text": "＋ תיק חדש",
+        "w": 72.234375,
+        "h": 44,
+        "x": 116.546875,
+        "y": 79.5,
+        "vis": true
+      }
+    ]
+  },
+  "infoAfter": {
+    "ov": [
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      },
+      {
+        "className": "ov ",
+        "display": "none",
+        "w": 0,
+        "h": 0
+      }
+    ],
+    "titleVis": [
+      {
+        "t": "פתיחת תיק חדש",
+        "vis": "none"
+      },
+      {
+        "t": "👤 הקצה לעובד",
+        "vis": "none"
+      },
+      {
+        "t": "🔄 עדכון סטטוס",
+        "vis": "none"
+      },
+      {
+        "t": "נדרשת הערה",
+        "vis": "none"
+      },
+      {
+        "t": "📞 רישום שיחת טלפון",
+        "vis": "none"
+      },
+      {
+        "t": "💬 שליחת WhatsApp",
+        "vis": "none"
+      },
+      {
+        "t": "📧 שליחת תיק במייל",
+        "vis": "none"
+      },
+      {
+        "t": "✅ הוספת משימה",
+        "vis": "none"
+      },
+      {
+        "t": "🔔 תזכורת",
+        "vis": "none"
+      },
+      {
+        "t": "📬 מעקב מייל / Follow-up",
+        "vis": "none"
+      },
+      {
+        "t": "🔒 סגירת תיק",
+        "vis": "none"
+      },
+      {
+        "t": "📄 היסטוריה פנימית — לא לשלוח החוצה",
+        "vis": "none"
+      },
+      {
+        "t": "📝 תבניות הודעות",
+        "vis": "none"
+      }
+    ]
+  }
+}

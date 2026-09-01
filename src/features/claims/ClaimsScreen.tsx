@@ -540,7 +540,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setVal('fc_id', '');
     setVal('fc_status', 'חדש');
     setVal('fc_kind', CLAIM_KINDS[0]);
-    setFormKind(CLAIM_KINDS[0]);
     setIntakeDraft({ ...EMPTY_INTAKE });
     setVehId('');
     setCompanyName('');
@@ -554,7 +553,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     Object.entries(FC_MAP).forEach(([fid, key]) => setVal(fid, c[key] || ''));
     setVal('fc_id', c.id);
     setVal('fc_status', c.status || 'חדש');
-    setFormKind(c.claimKind || CLAIM_KINDS[0]);
     setIntakeDraft(intakeFromClaim(c));
     setVehId(c.vehicle_id || '');
     setCompanyName(c.company_name || '');
@@ -708,7 +706,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <div className={`sdot ${sync === 'pend' ? 'pend' : sync === 'err' ? 'err' : ''}`} />
               <span>{sync === 'pend' ? 'מסנכרן...' : sync === 'err' ? 'שגיאה' : 'מסונכרן'}</span>
             </button>
-            <button className="btn btn-p btn-sm" onClick={openNew}>＋ תיק חדש</button>
+            <button className="btn btn-p btn-sm" data-testid="claims-open-new" onClick={openNew}>＋ תיק חדש</button>
             <button className="btn btn-g btn-sm" data-testid="claims-intake-link" onClick={async () => {
               const r = await apiRef.current.invokeIntake('create_link');
               if (!r.success || !r.token) { toast(String(r.error || 'יצירת קישור נכשלה'), 'err'); return; }
@@ -782,7 +780,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     )}
-                    <button className="btn btn-p btn-sm" onClick={openNew}>＋ תיק חדש</button>
+                    <button className="btn btn-p btn-sm" data-testid="claims-open-new-dash" onClick={openNew}>＋ תיק חדש</button>
                     <button className="btn btn-g btn-sm" onClick={() => { toast('סריקת Gmail תחובר בשלב הבא', 'inf'); showView('gmail'); }}>📬 סרוק מיילים</button>
                   </div>
                 </div>
@@ -856,7 +854,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       <option value="">כל הסטטוסים</option>
                       {STATUSES.map((s) => <option key={s}>{s}</option>)}
                     </select>
-                    <button className="btn btn-p btn-sm" onClick={openNew}>＋ תיק חדש</button>
+                    <button className="btn btn-p btn-sm" data-testid="claims-open-new-list" onClick={openNew}>＋ תיק חדש</button>
                   </div>
                 </div>
                 <div className="tw"><table><thead><tr>
@@ -895,8 +893,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     {gmailStatus.connected ? `מחובר: ${gmailStatus.email || 'yoni122222@gmail.com'}` : 'לא מחובר עדיין'}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}>
-                    העובד לא נכנס לתיבת Gmail. ייבוא וטיוטה רק מתוך תיק מורשה. שליחה חיה כבויה.
-                    <br />Scopes: openid, userinfo.email, gmail.readonly, gmail.compose (טיוטה בלבד — send חסום בקוד).
+                    העובד לא נכנס לתיבת Gmail. ייבוא רק מתוך תיק מורשה.
+                    <br />שליחה ידנית מתוך תיק: Preview → SEND → אשר ושלח שולחת מייל אמיתי מתיבת דליה. אין allowlist של TEST.
+                    <br />מעקב מתוזמן נשאר Dry Run ואינו שולח לבד.
                     <br />Token נשמר בשרת בלבד. ביטול: super_admin כאן, וגם בהרשאות Google.
                   </div>
                   {isSuperAdmin && gmailStatus.connected && (
@@ -971,14 +970,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       </div>
 
       {/* NEW/EDIT */}
-      <div className={`ov ${modal === 'moClaim' ? 'open' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
+      <div className={`ov ${modal === 'moClaim' ? 'open' : ''}`} data-testid="claims-new-modal" onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
         <div className="modal">
           <div className="mh"><div className="mh-t" id="mClaimT">{val(null, 'fc_id') ? 'עריכת תיק' : 'פתיחת תיק חדש'}</div><button className="mcl" onClick={() => setModal(null)}>✕</button></div>
           <div className="mb">
             <ClaimAccidentForm
               mode="staff"
               value={intakeDraft}
-              onChange={(d) => { setIntakeDraft(d); setFormKind(d.claimKind || CLAIM_KINDS[0]); setVal('fc_kind', d.claimKind || CLAIM_KINDS[0]); }}
+              onChange={(d) => { setIntakeDraft(d); setVal('fc_kind', d.claimKind || CLAIM_KINDS[0]); }}
               stepKey="all"
               staffSlot={(
                 <>
@@ -1737,7 +1736,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="modal modal-md">
           <div className="mh"><div className="mh-t">{mailKind === 'insurer' ? '🏢 שליחה לחברת הביטוח' : mailKind === 'legal' ? '⚖️ שליחה לטיפול משפטי' : '📧 שליחת תיק במייל'}</div><button className="mcl" onClick={() => { if (!mailSending) setModal('moCard'); }}>✕</button></div>
           <div className="mb">
-            <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 10 }}>אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות.</div>
+            <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 10 }}>שליחה ידנית אמיתית מתיבת דליה. אין allowlist של TEST. אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות. מעקב מתוזמן נשאר Dry Run.</div>
             <div className="fg"><label className="fl">From</label><input className="fi" data-testid="mail-from" value={gmailStatus.email || 'yoni122222@gmail.com'} readOnly /></div>
             <div className="fg">
               <label className="fl">To *</label>

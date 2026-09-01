@@ -84,7 +84,7 @@
 .claims-root .s-def{background:rgba(99,102,241,.14);color:#a5b4fc}
 .claims-root .btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--r2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border:none;white-space:nowrap}
 .claims-root .btn-p{background:var(--ac);color:#fff}.claims-root .btn-g{background:transparent;color:var(--t2);border:1px solid var(--br2)}.claims-root .btn-gn{background:var(--gn);color:#fff}.claims-root .btn-rd{background:var(--rd);color:#fff}.claims-root .btn-sm{padding:4px 8px;font-size:11px}
-.claims-root .ov{position:absolute;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:14px;overflow-y:auto}
+.claims-root .ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:5000;display:none;align-items:flex-start;justify-content:center;padding:14px;overflow-y:auto}
 .claims-root .ov.open{display:flex}
 .claims-root .modal{background:var(--bg2);border:1px solid var(--br2);border-radius:12px;width:100%;max-width:820px;box-shadow:var(--sh);margin:auto}
 .claims-root .modal-sm{max-width:500px}.claims-root .modal-md{max-width:640px}
