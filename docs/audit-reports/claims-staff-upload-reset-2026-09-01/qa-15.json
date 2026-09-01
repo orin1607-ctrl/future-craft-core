@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "publicStaging": "https://orin1607-ctrl.github.io/future-craft-core/",
+  "featureCommits": ["fcc3cb20", "bd0cbac1"],
+  "deployed_ref": "bd0cbac feat/incident-alerts-staging",
+  "realEmailSend": false,
+  "items": {
+    "1": { "ok": true, "note": "Desktop + הוסף מסמך + PDF drop → desktop-1-pdf" },
+    "2": { "ok": true, "note": "Desktop JPG thumbnail + large preview → desktop-2-jpg/thumb/preview" },
+    "3": { "ok": true, "note": "Desktop single-file drag & drop → desktop-1-pdf" },
+    "4": { "ok": true, "note": "Desktop multi-file drag & drop → desktop-4-multi" },
+    "5": { "ok": true, "note": "Mobile file picker PDF+JPG → mobile-5-picker-pdf/jpg" },
+    "6": { "ok": true, "note": "Docs file appears in Send/Reply/Forward. Reply All hidden on this mail (no extra recipients); same composer." },
+    "7": { "ok": true, "note": "Composer upload listed then kept in Documents → desktop/mobile-7 + 10" },
+    "8": { "ok": true, "note": "Source label הועלה על ידינו + DB source=staff" },
+    "9": { "ok": true, "note": "Deselect attachment does not delete document" },
+    "10": { "ok": true, "note": "Close composer keeps document in claim" },
+    "11": { "ok": true, "note": "One upload one claims_documents row (hash reuse)" },
+    "12": { "ok": true, "note": "DAL-2026-0018 cannot see 0014 QA files; DB leak=0" },
+    "13": { "ok": true, "note": "claims-docs bucket public=false" },
+    "14": { "ok": true, "note": "Gmail PDFs of message 1a05cb16e0a328f5 still present (>=2)" },
+    "15": { "ok": true, "note": "No horizontal overflow; add/attach buttons in viewport desktop+mobile" }
+  }
+}

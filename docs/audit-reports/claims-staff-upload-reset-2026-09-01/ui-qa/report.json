@@ -1,0 +1,249 @@
+{
+  "at": "2026-09-01T17:38:02.417Z",
+  "productionTouched": false,
+  "realEmailSend": false,
+  "checks": [
+    {
+      "name": "desktop-existing-gmail-docs",
+      "ok": true
+    },
+    {
+      "name": "desktop-add-btn",
+      "ok": true
+    },
+    {
+      "name": "desktop-drop-zone",
+      "ok": true
+    },
+    {
+      "name": "desktop-overflow-docs",
+      "ok": true
+    },
+    {
+      "name": "desktop-1-pdf",
+      "ok": true
+    },
+    {
+      "name": "desktop-2-jpg",
+      "ok": true
+    },
+    {
+      "name": "desktop-2-thumb",
+      "ok": true
+    },
+    {
+      "name": "desktop-2-view-btn",
+      "ok": true
+    },
+    {
+      "name": "desktop-2-preview",
+      "ok": true,
+      "named": "reset-desktop-jpg-1788284282417.jpg"
+    },
+    {
+      "name": "desktop-4-multi",
+      "ok": true
+    },
+    {
+      "name": "desktop-8-source",
+      "ok": true
+    },
+    {
+      "name": "desktop-6-in-send",
+      "ok": true
+    },
+    {
+      "name": "desktop-mail-attach-btn",
+      "ok": true
+    },
+    {
+      "name": "desktop-overflow-mail",
+      "ok": true
+    },
+    {
+      "name": "desktop-7-composer-listed",
+      "ok": true
+    },
+    {
+      "name": "desktop-9-deselect",
+      "ok": true
+    },
+    {
+      "name": "desktop-10-close-keeps",
+      "ok": true
+    },
+    {
+      "name": "desktop-9-still-after-deselect",
+      "ok": true
+    },
+    {
+      "name": "desktop-6-reply-btn",
+      "ok": true
+    },
+    {
+      "name": "desktop-6-in-reply",
+      "ok": true
+    },
+    {
+      "name": "desktop-6-reply-thread",
+      "ok": true
+    },
+    {
+      "name": "desktop-6-attach-in-reply",
+      "ok": true
+    },
+    {
+      "name": "desktop-6-in-forward",
+      "ok": true
+    },
+    {
+      "name": "desktop-6-in-reply-all",
+      "ok": true,
+      "skipped": "reply-all hidden — no extra recipients; same composer as reply/forward"
+    },
+    {
+      "name": "desktop-12-no-cross",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-real-send",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "mobile-existing-gmail-docs",
+      "ok": true
+    },
+    {
+      "name": "mobile-add-btn",
+      "ok": true
+    },
+    {
+      "name": "mobile-drop-zone",
+      "ok": true
+    },
+    {
+      "name": "mobile-overflow-docs",
+      "ok": true
+    },
+    {
+      "name": "mobile-5-picker-pdf",
+      "ok": true
+    },
+    {
+      "name": "mobile-5-picker-jpg",
+      "ok": true
+    },
+    {
+      "name": "mobile-2-thumb",
+      "ok": true
+    },
+    {
+      "name": "mobile-8-source",
+      "ok": true
+    },
+    {
+      "name": "mobile-6-in-send",
+      "ok": true
+    },
+    {
+      "name": "mobile-mail-attach-btn",
+      "ok": true
+    },
+    {
+      "name": "mobile-overflow-mail",
+      "ok": true
+    },
+    {
+      "name": "mobile-7-composer-listed",
+      "ok": true
+    },
+    {
+      "name": "mobile-9-deselect",
+      "ok": true
+    },
+    {
+      "name": "mobile-10-close-keeps",
+      "ok": true
+    },
+    {
+      "name": "mobile-9-still-after-deselect",
+      "ok": true
+    },
+    {
+      "name": "mobile-6-reply-btn",
+      "ok": true
+    },
+    {
+      "name": "mobile-6-in-reply",
+      "ok": true
+    },
+    {
+      "name": "mobile-6-reply-thread",
+      "ok": true
+    },
+    {
+      "name": "mobile-6-attach-in-reply",
+      "ok": true
+    },
+    {
+      "name": "mobile-6-in-forward",
+      "ok": true
+    },
+    {
+      "name": "mobile-6-in-reply-all",
+      "ok": true,
+      "skipped": "reply-all hidden — no extra recipients; same composer as reply/forward"
+    },
+    {
+      "name": "mobile-12-no-cross",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-real-send",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "11-no-duplicate",
+      "ok": true,
+      "counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "n": 7
+    },
+    {
+      "name": "12-db-no-leak",
+      "ok": true
+    },
+    {
+      "name": "13-bucket-private",
+      "ok": true
+    },
+    {
+      "name": "14-gmail-docs-kept",
+      "ok": true,
+      "n": 2
+    },
+    {
+      "name": "vehicles-437",
+      "ok": true
+    },
+    {
+      "name": "accidents-11",
+      "ok": true
+    },
+    {
+      "name": "all-staff-source",
+      "ok": true
+    }
+  ],
+  "ok": true,
+  "base": "https://orin1607-ctrl.github.io/future-craft-core"
+}

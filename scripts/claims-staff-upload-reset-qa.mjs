@@ -137,12 +137,12 @@ async function runAt(name, viewport) {
     rec(`${name}-2-view-btn`, await jpgView.count() > 0);
     if (await jpgView.count()) {
       await jpgView.scrollIntoViewIfNeeded();
-      await jpgView.click();
-      const preview = page.locator('[data-testid="doc-preview"]');
+      await jpgView.click({ force: true });
+      const preview = page.locator('[data-testid="doc-preview"]').locator('visible=true');
       await preview.waitFor({ state: 'visible', timeout: 20000 }).catch(() => null);
       const named = (await preview.locator('[data-testid="doc-preview-name"]').textContent().catch(() => '')) || '';
       rec(`${name}-2-preview`, await preview.isVisible().catch(() => false) && named.includes(jpgName), { named });
-      await page.getByRole('button', { name: 'סגור תצוגה' }).click().catch(() => null);
+      await preview.getByRole('button', { name: 'סגור תצוגה' }).click().catch(() => null);
     } else {
       rec(`${name}-2-preview`, false, { err: 'no view button for jpg' });
     }

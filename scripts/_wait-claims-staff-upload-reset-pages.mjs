@@ -2,7 +2,7 @@
  * Wait until Public Staging JS has staff-upload reset markers.
  */
 const PUBLIC = 'https://orin1607-ctrl.github.io/future-craft-core';
-const needles = ['＋ צרף קובץ מהמכשיר', 'mail-attach-device', 'doc-preview'];
+const needles = ['＋ צרף קובץ מהמכשיר', 'mail-attach-device', 'doc-preview-name', 'doc-file-row'];
 const started = Date.now();
 let last = '';
 while (Date.now() - started < 8 * 60 * 1000) {
