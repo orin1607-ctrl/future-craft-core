@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-01T17:20:00.000Z",
+  "stagingOnly": true,
+  "architectureMatch": true,
+  "stopForNewSystem": false,
+  "findings": {
+    "staff_upload": "supabase/functions/claims-docs/index.ts action staff_upload — private claims-docs, claim_id scoped, source=staff, content_sha256 reuse",
+    "claims_documents": "single table for gmail/staff/customer. No parallel mail-file store.",
+    "documents_tab": "StaffUploadZone + existing DocStaffFields metadata. loadCardData after upload.",
+    "mail_composer": "openSendModal is shared by Send / Reply / Reply All / Forward. sendIds is selection only; uncheck does not delete.",
+    "customer_upload": "untouched public_upload path",
+    "gap_fixed_this_reset": "mail compact zone now shows + צרף קובץ מהמכשיר; preview testid; docs-up wrap for mobile overflow"
+  }
+}

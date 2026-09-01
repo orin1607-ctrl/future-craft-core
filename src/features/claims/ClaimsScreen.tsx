@@ -279,15 +279,14 @@ function DocStaffFields({ file, allFiles, onSave }: { file: ClaimFile; allFiles:
   );
 }
 
-function StaffUploadZone({ testId, inputId, busy, compact, onFiles }: {
-  testId: string; inputId: string; busy: boolean; compact?: boolean; onFiles: (files: File[]) => void;
+function StaffUploadZone({ testId, inputId, busy, compact, addLabel, onFiles }: {
+  testId: string; inputId: string; busy: boolean; compact?: boolean; addLabel?: string; onFiles: (files: File[]) => void;
 }) {
   const [over, setOver] = useState(false);
+  const label = addLabel || (compact ? '＋ צרף קובץ מהמכשיר' : '＋ הוסף מסמך');
   return (
     <div className="docs-up" data-testid={`${testId}-wrap`}>
-      {!compact ? (
-        <button type="button" className="btn btn-p btn-sm" data-testid="docs-add-btn" disabled={busy} onClick={() => document.getElementById(inputId)?.click()}>＋ הוסף מסמך</button>
-      ) : null}
+      <button type="button" className="btn btn-p btn-sm" data-testid={compact ? 'mail-attach-device' : 'docs-add-btn'} disabled={busy} onClick={() => document.getElementById(inputId)?.click()}>{label}</button>
       <label
         className={`docs-drop ${over ? 'over' : ''} ${compact ? 'compact' : ''}`}
         data-testid={testId}
@@ -374,7 +373,7 @@ function InCardPreview({ file, onClose }: { file: { url: string; name: string; m
   if (!file) return null;
   const img = (file.mime || '').startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(file.name);
   return (
-    <div className="doc-preview-wrap">
+    <div className="doc-preview-wrap" data-testid="doc-preview">
       <div className="doc-preview-bar">
         <b>{file.name}</b>
         <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
