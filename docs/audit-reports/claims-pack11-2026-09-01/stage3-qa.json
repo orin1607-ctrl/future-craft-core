@@ -1,0 +1,68 @@
+{
+  "at": "2026-09-01T11:25:42.647Z",
+  "productionTouched": false,
+  "tests": [
+    {
+      "id": "dispatch-dry-run",
+      "ok": true,
+      "detail": "dry_run"
+    },
+    {
+      "id": "list-sends",
+      "ok": true,
+      "detail": {
+        "n": 3
+      }
+    },
+    {
+      "id": "suggest-no-autosend",
+      "ok": true,
+      "detail": {
+        "reason": "חסר מסמך: טופס אי-הגשת תביעה, רישיון רכב, דוח שמאי"
+      }
+    },
+    {
+      "id": "suggest-has-draft",
+      "ok": true,
+      "detail": "Re: RE: נושא: הודעה על תאונת רכב – סיטרואן C3 | רכב מס' 6563513 | בורזיד שירה"
+    },
+    {
+      "id": "track-update",
+      "ok": true,
+      "detail": {
+        "success": true,
+        "mailboxMutated": false,
+        "realEmailSend": false
+      }
+    },
+    {
+      "id": "send-numbers-backfilled",
+      "ok": true,
+      "detail": 4
+    },
+    {
+      "id": "docs-unchanged",
+      "ok": true,
+      "detail": {
+        "docsBefore": 1780,
+        "docsAfter": 1780
+      }
+    },
+    {
+      "id": "vehicles-437",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "accidents-11",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "no-real-send-in-qa",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "ok": true
+}

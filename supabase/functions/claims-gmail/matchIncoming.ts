@@ -138,3 +138,51 @@ export function matchIncomingMail(mail: MatchMail, claims: MatchClaim[]): MatchR
 
   return empty;
 }
+
+export type SuggestFile = {
+  id: string;
+  staff_type?: string;
+  doc_kind?: string;
+  staff_title?: string;
+  original_name?: string;
+};
+
+const REQUEST_TYPES: Array<{ re: RegExp; type: string; label: string }> = [
+  { re: /אי[\s-]?הגשת|אי הגשת תביעה/, type: "no_claim_form", label: "טופס אי-הגשת תביעה" },
+  { re: /רישיון נהיגה/, type: "driver_license", label: "רישיון נהיגה" },
+  { re: /רישיון רכב/, type: "vehicle_license", label: "רישיון רכב" },
+  { re: /הודעה על תאונה|טופס אירוע/, type: "accident_notice", label: "טופס הודעה על תאונה" },
+  { re: /פוליסה/, type: "policy", label: "פוליסה" },
+  { re: /אישור משטרה/, type: "police", label: "אישור משטרה" },
+  { re: /דוח שמאי|שמאות/, type: "surveyor_report", label: "דוח שמאי" },
+  { re: /חשבונית מוסך|חשבונית/, type: "garage_invoice", label: "חשבונית מוסך" },
+  { re: /תמונ(?:ות|ה) נזק/, type: "damage_photos", label: "תמונות נזק" },
+];
+
+export function suggestReply(text: string, files: SuggestFile[]) {
+  const hay = String(text || "");
+  const found = REQUEST_TYPES.filter((x) => x.re.test(hay));
+  if (!found.length) {
+    return { ok: false as const, reason: "לא זוהתה בקשת מסמך ברורה", requested: [], attachments: [] as SuggestFile[], missing: [] as string[] };
+  }
+  const attachments: SuggestFile[] = [];
+  const missing: string[] = [];
+  for (const req of found) {
+    const hits = files.filter((f) =>
+      f.staff_type === req.type
+      || (req.type === "surveyor_report" && (f.doc_kind === "surveyor_report" || f.doc_kind === "surveyor_attachment"))
+      || (req.type === "garage_invoice" && f.doc_kind === "garage_invoice")
+      || (req.type === "damage_photos" && f.doc_kind === "surveyor_photo")
+    );
+    if (hits.length === 1) attachments.push(hits[0]);
+    else if (hits.length === 0) missing.push(req.label);
+    else missing.push(`${req.label} (נמצאו ${hits.length} — בחירה ידנית)`);
+  }
+  return {
+    ok: missing.length === 0 && attachments.length > 0,
+    reason: missing.length ? `חסר מסמך: ${missing.join(", ")}` : "מסמך מזוהה בתיק",
+    requested: found.map((x) => x.label),
+    attachments,
+    missing,
+  };
+}

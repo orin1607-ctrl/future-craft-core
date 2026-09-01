@@ -5,7 +5,7 @@
  */
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { matchIncomingMail, type MatchClaim } from "./matchIncoming.ts";
+import { matchIncomingMail, suggestReply, type MatchClaim } from "./matchIncoming.ts";
 
 const ALLOWED_ACCOUNT = "yoni122222@gmail.com";
 const SCOPES = [
@@ -540,6 +540,65 @@ Deno.serve(async (req) => {
     if (!claimId || !importId) return jsonResponse({ success: false, error: "claim_id and import_id required" }, 400);
     if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
     const { error } = await sb.from("claims_gmail_imports").update({ staff_note: note || null }).eq("id", importId).eq("claim_id", claimId);
+    if (error) return jsonResponse({ success: false, error: error.message }, 400);
+    return jsonResponse({ success: true, mailboxMutated: false, realEmailSend: false });
+  }
+
+  if (action === "list_sends") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const { data } = await sb.from("claims_gmail_outbox")
+      .select("id, send_no, claim_id, to_addr, cc_addr, subject, from_addr, status, gmail_message_id, gmail_thread_id, sent_at, file_ids, file_names, package_bytes, created_by, track_status, track_due, followup_approved, followup_days, followup_count, followup_max")
+      .eq("claim_id", claimId)
+      .eq("kind", "claim_send")
+      .order("send_no", { ascending: false, nullsFirst: false });
+    return jsonResponse({ success: true, data: data || [], mailboxMutated: false, realEmailSend: false });
+  }
+
+  if (action === "suggest_reply") {
+    const claimId = String(body.claim_id || "");
+    const importId = String(body.import_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const { data: im } = await sb.from("claims_gmail_imports").select("id, subject, body_text, from_addr, gmail_thread_id, gmail_message_id, claim_id").eq("id", importId).eq("claim_id", claimId).maybeSingle();
+    if (!im) return jsonResponse({ success: false, error: "not_found" }, 404);
+    const { data: files } = await sb.from("claims_documents").select("id, original_name, doc_kind, doc_meta").eq("claim_id", claimId);
+    const mapped = (files || []).map((f) => {
+      const meta = (f.doc_meta && typeof f.doc_meta === "object") ? f.doc_meta as Record<string, string> : {};
+      return { id: String(f.id), original_name: String(f.original_name || ""), doc_kind: String(f.doc_kind || ""), staff_type: meta.staff_type || "", staff_title: meta.staff_title || "" };
+    });
+    const suggestion = suggestReply(`${im.subject || ""}\n${im.body_text || ""}`, mapped);
+    const bodyText = suggestion.ok
+      ? `שלום,\n\nבהמשך לפנייתכם בנושא ${im.subject || `תביעה ${claimId}`},\nמצורפים המסמכים המבוקשים.\n\nבברכה,\nדליה ניהול תביעות`
+      : `שלום,\n\nקיבלנו את פנייתכם. ${suggestion.reason}.\n\nבברכה,\nדליה ניהול תביעות`;
+    return jsonResponse({
+      success: true,
+      autoSend: false,
+      suggestion,
+      draft: {
+        to: im.from_addr || "",
+        subject: String(im.subject || "").startsWith("Re:") ? im.subject : `Re: ${im.subject || claimId}`,
+        body: bodyText,
+        file_ids: suggestion.attachments.map((a) => a.id),
+        thread_id: im.gmail_thread_id || "",
+        in_reply_to_message_id: im.gmail_message_id || "",
+      },
+      mailboxMutated: false,
+      realEmailSend: false,
+    });
+  }
+
+  if (action === "update_send_track") {
+    const claimId = String(body.claim_id || "");
+    const sendId = String(body.send_id || "");
+    const trackStatus = String(body.track_status || "");
+    const allowed = new Set(["sent", "waiting_reply", "reply_received", "needs_action", "done"]);
+    if (!allowed.has(trackStatus)) return jsonResponse({ success: false, error: "invalid_track_status" }, 400);
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    const { error } = await sb.from("claims_gmail_outbox").update({ track_status: trackStatus }).eq("id", sendId).eq("claim_id", claimId);
     if (error) return jsonResponse({ success: false, error: error.message }, 400);
     return jsonResponse({ success: true, mailboxMutated: false, realEmailSend: false });
   }
@@ -1130,6 +1189,14 @@ Deno.serve(async (req) => {
         imported_at: new Date().toISOString(),
         assigned_claim_id: claimId,
       }).eq("gmail_message_id", String(full.id));
+      const fromAddr = header(headers, "From").toLowerCase();
+      if (threadId && !fromAddr.includes(ALLOWED_ACCOUNT)) {
+        await sb.from("claims_gmail_outbox").update({ track_status: "reply_received" })
+          .eq("claim_id", claimId)
+          .eq("kind", "claim_send")
+          .eq("gmail_thread_id", threadId)
+          .in("track_status", ["waiting_reply", "sent"]);
+      }
     }
     return jsonResponse({
       success: true,
@@ -1545,6 +1612,23 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, error: "files_not_on_claim", omitted: false, realEmailSend: false }, 400);
     }
     const ordered = ids.map((id) => rows.find((f) => f.id === id)!).filter(Boolean);
+    const requestedThread = String(body.thread_id || "").trim();
+    let sendThreadId = "";
+    if (requestedThread) {
+      const { count: nImp } = await sb.from("claims_gmail_imports").select("id", { count: "exact", head: true }).eq("claim_id", claimId).eq("gmail_thread_id", requestedThread);
+      const { count: nOut } = await sb.from("claims_gmail_outbox").select("id", { count: "exact", head: true }).eq("claim_id", claimId).eq("gmail_thread_id", requestedThread);
+      if (!nImp && !nOut) {
+        return jsonResponse({ success: false, error: "thread_not_on_claim", realEmailSend: false }, 400);
+      }
+      sendThreadId = requestedThread;
+    }
+    const followupApproved = body.followup_approved === true;
+    const followupDays = Math.min(30, Math.max(0, Number(body.followup_days) || 0));
+    const trackDue = String(body.track_due || "").trim() || null;
+    const trackStatus = (trackDue || followupApproved) ? "waiting_reply" : "sent";
+    const { data: maxRow } = await sb.from("claims_gmail_outbox").select("send_no").not("send_no", "is", null).order("send_no", { ascending: false }).limit(1).maybeSingle();
+    const sendNo = Number(maxRow?.send_no || 0) + 1;
+
     const encodedMsg = await encodeMixedMessage(sb, {
       to,
       cc,
@@ -1571,6 +1655,7 @@ Deno.serve(async (req) => {
       kind: "claim_send",
       idempotency_key: idempotencyKey,
       status: "pending",
+      send_no: sendNo,
       to_addr: to,
       cc_addr: cc || null,
       subject,
@@ -1581,6 +1666,12 @@ Deno.serve(async (req) => {
       file_names: attached.map((a) => a.name),
       package_bytes: packageBytes,
       created_by: user.id,
+      track_status: trackStatus,
+      track_due: trackDue,
+      followup_approved: followupApproved,
+      followup_days: followupApproved ? (followupDays || 3) : null,
+      followup_max: 1,
+      followup_count: 0,
     });
     if (lockErr) {
       const { data: raced } = await sb.from("claims_gmail_outbox").select("*").eq("idempotency_key", idempotencyKey).maybeSingle();
@@ -1596,9 +1687,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, error: "send_in_progress", db: lockErr.message, realEmailSend: false }, 409);
     }
 
-    const sent = await gmailPost(access, "messages/send", {
-      raw: (encodedMsg as { encoded: string }).encoded,
-    });
+    const sentPayload: Record<string, unknown> = { raw: (encodedMsg as { encoded: string }).encoded };
+    if (sendThreadId) sentPayload.threadId = sendThreadId;
+    const sent = await gmailPost(access, "messages/send", sentPayload);
     if (!sent.ok) {
       await sb.from("claims_gmail_outbox").update({ status: "failed" }).eq("id", outId);
       const errMsg = String(sent.json?.error?.message || "gmail_send_failed");
@@ -1649,8 +1740,8 @@ Deno.serve(async (req) => {
       id: nid("HIS"),
       claim_id: claimId,
       row_data: {
-        action: "נשלח מייל מתיק התביעה",
-        note: `From ${ALLOWED_ACCOUNT} · To ${to}${cc ? ` · CC ${cc}` : ""} · ${subject} · ${attached.length} קבצים · ${fileList} · msgid ${gmailMessageId} · thread ${gmailThreadId}`,
+        action: `נשלח מייל מתיק התביעה · שליחה #${sendNo}`,
+        note: `שליחה #${sendNo} · From ${ALLOWED_ACCOUNT} · To ${to}${cc ? ` · CC ${cc}` : ""} · ${subject} · ${attached.length} קבצים · ${fileList} · msgid ${gmailMessageId} · thread ${gmailThreadId}`,
         type: "gmail_claim_send",
         by: actorName,
         at: new Date().toLocaleString("he-IL"),
@@ -1701,6 +1792,7 @@ Deno.serve(async (req) => {
       fileCount: attached.length,
       files: attached,
       packageBytes,
+      send_no: sendNo,
       gmail_message_id: gmailMessageId,
       gmail_thread_id: gmailThreadId,
       rfc_message_id: rfcMessageId || null,

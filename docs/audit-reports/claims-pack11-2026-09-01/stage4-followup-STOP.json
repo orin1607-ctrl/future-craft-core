@@ -1,0 +1,25 @@
+{
+  "at": "2026-09-01T11:24:00Z",
+  "task": 10,
+  "title": "Follow-up אוטומטי — Audit ואז STOP לפני הפעלה חיה",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "existingMechanism": {
+    "MAIL_DISPATCH_MODE": "dry_run",
+    "rpc": "claims_upsert_mail_followup",
+    "jobsTable": "claims_mail_jobs",
+    "edge": "claims-mail-dispatch",
+    "uiTab": "mailfu",
+    "liveSend": false
+  },
+  "decision": "STOP_BEFORE_LIVE",
+  "whatWasStored": "Worker can check follow-up approval on send. Outbox stores followup_approved, followup_days, followup_max=1, followup_count=0. No scheduler was enabled. No MAIL_DISPATCH_MODE change. No claims-mail-dispatch live send.",
+  "whyStop": "Real automatic Gmail follow-up requires leaving MAIL_DISPATCH_MODE=dry_run and/or a live scheduled dispatcher. Owner forbade that without extra approval.",
+  "replyCancels": "Incoming import on the same Gmail thread sets outbox.track_status=reply_received so a future dispatcher can skip. Live follow-up is not fired today.",
+  "idempotency": "Existing send_claim idempotency_key remains. Follow-up live send not activated so duplicate live follow-up cannot occur.",
+  "needsOwnerApprovalFor": [
+    "Set MAIL_DISPATCH_MODE to live",
+    "Wire approved outbox rows to claims-mail-dispatch / claims_upsert_mail_followup for real Gmail",
+    "Any new cron/scheduler"
+  ]
+}

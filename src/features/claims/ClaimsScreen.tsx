@@ -178,6 +178,16 @@ function fileLabel(f: ClaimFile) {
 function staffTypeLabel(key: string) {
   return STAFF_DOC_TYPES.find((x) => x.key === key)?.label || 'לא סווג / מסמך כללי';
 }
+const TRACK_STATUSES: Array<{ key: string; label: string }> = [
+  { key: 'sent', label: 'נשלח' },
+  { key: 'waiting_reply', label: 'ממתין לתשובה' },
+  { key: 'reply_received', label: 'התקבלה תשובה' },
+  { key: 'needs_action', label: 'דורש טיפול נוסף' },
+  { key: 'done', label: 'הושלם' },
+];
+function trackLabel(k: string) {
+  return TRACK_STATUSES.find((x) => x.key === k)?.label || k || '—';
+}
 function statusLabel(key: string) {
   return DOC_FILE_STATUSES.find((x) => x.key === key)?.label || '—';
 }
@@ -328,6 +338,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [gmailBusy, setGmailBusy] = useState('');
   const [docEditId, setDocEditId] = useState<string | null>(null);
   const [gmailPending, setGmailPending] = useState<Array<Record<string, unknown>>>([]);
+  const [gmailSends, setGmailSends] = useState<Array<Record<string, unknown>>>([]);
   const [pendingPick, setPendingPick] = useState<Record<string, string>>({});
   const inboxScanAt = useRef(0);
   const [linkUrl, setLinkUrl] = useState('');
@@ -343,6 +354,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [mailSubj, setMailSubj] = useState('');
   const [mailBodyDraft, setMailBodyDraft] = useState('');
   const [toHint, setToHint] = useState('');
+  const [mailThreadId, setMailThreadId] = useState('');
+  const [suggestMissing, setSuggestMissing] = useState<string[]>([]);
+  const [trackDue, setTrackDue] = useState('');
+  const [followupWanted, setFollowupWanted] = useState(false);
+  const [followupDays, setFollowupDays] = useState(3);
   const mailIdemp = useRef('');
   const bumpMailDraft = () => {
     setMailPreviewOn(false);
@@ -372,16 +388,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const loadAll = useCallback(async () => {
     setSync('pend');
     try {
-      const [cr, nr, tr, rr] = await Promise.all([
+      const [cr, nr, tr, rr, pr] = await Promise.all([
         apiRef.current.getClaims(),
         apiRef.current.getNotifications(),
         apiRef.current.getTasks(null),
         apiRef.current.getReminders(null),
+        apiRef.current.invokeGmail('list_pending'),
       ]);
       setClaims(cr.data || []);
       setNotifs(nr.data || []);
       setDashTasks((tr.data || []).filter((t) => t.done !== 'true'));
       setDashRems(rr.data || []);
+      if (pr.success) setGmailPending((pr.data as Array<Record<string, unknown>>) || []);
       if (!cr.success && cr.error) toast(`טעינת תביעות נכשלה: ${cr.error}`, 'err');
       if (actor.role === 'super_admin') {
         const a = await apiRef.current.listAssignees();
@@ -492,7 +510,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const loadCardData = async (id: string) => {
-    const [c, h, t, rem, d, fu, gi] = await Promise.all([
+    const [c, h, t, rem, d, fu, gi, gs] = await Promise.all([
       apiRef.current.getCommLog(id),
       apiRef.current.getHistory(id),
       apiRef.current.getTasks(id),
@@ -500,6 +518,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       apiRef.current.invokeDocs('list_docs', { claim_id: id }),
       apiRef.current.listMailFollowups(id),
       apiRef.current.invokeGmail('list_imports', { claim_id: id }),
+      apiRef.current.invokeGmail('list_sends', { claim_id: id }),
     ]);
     setComm(c.data || []);
     setHist(h.data || []);
@@ -507,6 +526,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setReminders(rem.data || []);
     setMailFollowups(fu.data || []);
     setGmailImports((gi.data as Array<Record<string, unknown>>) || []);
+    setGmailSends((gs.data as Array<Record<string, unknown>>) || []);
     setDocs({
       requests: (d.requests as typeof docs.requests) || [],
       files: (d.files as ClaimFile[]) || [],
@@ -544,15 +564,22 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     });
   };
 
-  const openSendModal = async (kind: 'draft' | 'insurer' | 'legal') => {
+  const openSendModal = async (kind: 'draft' | 'insurer' | 'legal', seed?: {
+    to?: string; subject?: string; body?: string; file_ids?: string[]; thread_id?: string; missing?: string[];
+  }) => {
     if (!cur) return;
     setMailKind(kind);
-    setSendIds([]);
+    setSendIds(seed?.file_ids || []);
     setPkgInfo({ packageBytes: 0, overLimit: false, suggestion: '', split: [] });
     setMailPreviewOn(false);
     setMailConfirmOn(false);
     setMailAck(false);
     setMailSending(false);
+    setMailThreadId(seed?.thread_id || '');
+    setSuggestMissing(seed?.missing || []);
+    setTrackDue('');
+    setFollowupWanted(false);
+    setFollowupDays(3);
     mailIdemp.current = `send-${cur.id}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const ext = await apiRef.current.exportExternalSummary(cur.id);
     setExtSummary(ext.text || '');
@@ -579,6 +606,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       setVal('mail_subj', subj);
       setVal('mail_body', body);
     }
+    if (seed?.to) { setMailTo(seed.to); setVal('mail_to', seed.to); }
+    if (seed?.subject) { setMailSubj(seed.subject); setVal('mail_subj', seed.subject); }
+    if (seed?.body) { setMailBodyDraft(seed.body); setVal('mail_body', seed.body); }
+    if (seed?.file_ids?.length && cur.id) void refreshPackage(cur.id, seed.file_ids);
     setModal('moMail');
   };
 
@@ -961,6 +992,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   ].map((x) => (
                     <div key={String(x[2])} className="dc"><div className={`dc-bar ${x[0]}`} /><div className={`dc-n ${x[0]}`}>{x[1]}</div><div className="dc-l">{x[2]}</div></div>
                   ))}
+                  <button type="button" className="dc" data-testid="dash-new-mail" style={{ cursor: 'pointer', textAlign: 'right', border: '1px solid var(--br)', background: 'var(--bg2)' }} onClick={() => {
+                    const n = notifs.find((x) => x.type === 'gmail_auto' && x.read !== 'true' && x.claimId);
+                    if (n?.claimId) void openCard(n.claimId, 'gin');
+                    else showView('gmail');
+                  }}>
+                    <div className="dc-bar p" /><div className="dc-n p">{notifs.filter((x) => x.type === 'gmail_auto' && x.read !== 'true').length}</div><div className="dc-l">📩 מיילים חדשים</div>
+                  </button>
+                  <button type="button" className="dc" data-testid="dash-needs-review" style={{ cursor: 'pointer', textAlign: 'right', border: '1px solid var(--br)', background: 'var(--bg2)' }} onClick={() => showView('gmail')}>
+                    <div className="dc-bar y" /><div className="dc-n y">{gmailPending.filter((p) => !p.imported_at && String(p.decision) !== 'auto').length}</div><div className="dc-l">דורשים בדיקת שיוך</div>
+                  </button>
                 </div>
                 <div className="sdiv"><div className="sdiv-t">תיקים פתוחים – דורשים טיפול</div><div className="sdiv-l" /></div>
                 <div className="tw"><table><thead><tr><th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>סטטוס</th><th>מטפל</th><th>חסר / ממתין</th><th>פעולה הבאה</th><th>עדכון</th></tr></thead>
@@ -1689,6 +1730,23 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                   toast('הערה פנימית נשמרה');
                                   await loadCardData(cur.id);
                                 }}>שמור הערה</button>
+                                <button type="button" className="btn btn-p btn-sm" data-testid={`suggest-reply-${im.id}`} style={{ marginInlineStart: 6 }} onClick={async () => {
+                                  const r = await apiRef.current.invokeGmail('suggest_reply', { claim_id: cur.id, import_id: im.id });
+                                  if (!r.success) { toast(String(r.error || 'לא ניתן להכין תגובה'), 'err'); return; }
+                                  const sug = (r.suggestion && typeof r.suggestion === 'object') ? r.suggestion as { ok?: boolean; reason?: string; missing?: string[]; attachments?: Array<{ id: string; original_name?: string }> } : {};
+                                  const draft = (r.draft && typeof r.draft === 'object') ? r.draft as { to?: string; subject?: string; body?: string; file_ids?: string[]; thread_id?: string } : {};
+                                  if (r.autoSend === true) { toast('שליחה אוטומטית חסומה', 'err'); return; }
+                                  if (sug.missing?.length) toast(`חסר מסמך: ${sug.missing.join(', ')}`, 'err');
+                                  else toast(String(sug.reason || 'תגובה מוצעת — לא נשלח'));
+                                  await openSendModal('draft', {
+                                    to: String(draft.to || ''),
+                                    subject: String(draft.subject || ''),
+                                    body: String(draft.body || ''),
+                                    file_ids: Array.isArray(draft.file_ids) ? draft.file_ids : [],
+                                    thread_id: String(draft.thread_id || ''),
+                                    missing: sug.missing || [],
+                                  });
+                                }}>תגובה מוצעת</button>
                               </div>
                               {attached.length ? (
                                 <div>
@@ -1722,6 +1780,37 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         })}
                       </div>
                     ))}
+                  <div className="sdiv"><div className="sdiv-t">יומן שליחות ({gmailSends.length})</div><div className="sdiv-l" /></div>
+                  <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>מספרי שליחה לפי References לקבצים — אין עותק נוסף של הקבצים. הערות פנימיות לא מופיעות כאן כחלק מהמייל.</div>
+                  {gmailSends.length === 0 ? <div style={{ color: 'var(--t3)', marginBottom: 12 }}>אין שליחות מתועדות בתיק</div>
+                    : gmailSends.map((s) => {
+                      const names = Array.isArray(s.file_names) ? s.file_names as string[] : [];
+                      return (
+                        <div key={String(s.id)} className="gmail-card" data-testid={`send-journal-${s.id}`}>
+                          <div style={{ fontWeight: 800, marginBottom: 4 }}>שליחה #{String(s.send_no || '—')} · {trackLabel(String(s.track_status || s.status || ''))}</div>
+                          <div className="mail-meta">
+                            <div><b>תיק</b>{String(s.claim_id || cur.id)}</div>
+                            <div><b>תאריך</b>{fmtWhen(String(s.sent_at || ''))}</div>
+                            <div><b>שולח</b>{String(s.from_addr || '—')}</div>
+                            <div><b>נמען</b>{String(s.to_addr || '—')}</div>
+                            <div><b>Subject</b>{String(s.subject || '—')}</div>
+                            <div><b>Message ID</b>{String(s.gmail_message_id || '—')}</div>
+                            <div><b>Thread</b>{String(s.gmail_thread_id || '—')}</div>
+                            <div><b>סטטוס</b>{String(s.status || '—')}</div>
+                          </div>
+                          <div style={{ fontSize: 12, margin: '6px 0' }}><b>מסמכים שנשלחו:</b> {names.length ? names.join(', ') : 'ללא מצורפים'}</div>
+                          {s.track_due ? <div style={{ fontSize: 11, color: 'var(--yn2)' }}>תזכורת אם אין תשובה עד {fmtWhen(String(s.track_due))}</div> : null}
+                          <select className="fse" value={String(s.track_status || 'sent')} onChange={async (e) => {
+                            const r = await apiRef.current.invokeGmail('update_send_track', { claim_id: cur.id, send_id: s.id, track_status: e.target.value });
+                            if (!r.success) { toast(String(r.error || 'עדכון נכשל'), 'err'); return; }
+                            toast('סטטוס מעקב עודכן');
+                            await loadCardData(cur.id);
+                          }}>
+                            {TRACK_STATUSES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                          </select>
+                        </div>
+                      );
+                    })}
                   <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
                   <div className="sdiv"><div className="sdiv-t">ייבוא Gmail — מייל חדש בלבד</div><div className="sdiv-l" /></div>
                   <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 8 }}>אין לשלוח מייל. אין לייבא שוב מייל שכבר בתיק. הקבצים הקיימים לא יועתקו.</div>
@@ -1978,7 +2067,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="modal modal-md">
           <div className="mh"><div className="mh-t">{mailKind === 'insurer' ? '🏢 שליחה לחברת הביטוח' : mailKind === 'legal' ? '⚖️ שליחה לטיפול משפטי' : '📧 שליחת תיק במייל'}</div><button className="mcl" onClick={() => { if (!mailSending) setModal('moCard'); }}>✕</button></div>
           <div className="mb">
-            <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 10 }}>שליחה ידנית אמיתית מתיבת דליה. אין allowlist של TEST. אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות. מעקב מתוזמן נשאר Dry Run.</div>
+            <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 10 }}>שליחה ידנית אמיתית מתיבת דליה. אין allowlist של TEST. אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות. Follow-up אוטומטי חי כבוי — נשמר אישור בלבד.</div>
+            {suggestMissing.length ? (
+              <div data-testid="suggest-missing" style={{ background: 'rgba(239,68,68,.08)', border: '1px solid var(--rd2)', borderRadius: 7, padding: 10, marginBottom: 10, fontSize: 12 }}>
+                חסר מסמך: {suggestMissing.join(', ')}. לא צוּרף מסמך דומה בניחוש.
+                <button type="button" className="btn btn-g btn-sm" style={{ marginInlineStart: 8 }} onClick={() => { setModal('moCard'); setCardTab('docs'); }}>לבקשת מסמכים מהלקוח</button>
+              </div>
+            ) : null}
+            {mailThreadId ? <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>תגובה לאותו Thread: {mailThreadId}</div> : null}
             <div className="fg"><label className="fl">From</label><input className="fi" data-testid="mail-from" value={gmailStatus.email || 'yoni122222@gmail.com'} readOnly /></div>
             <div className="fg">
               <label className="fl">To *</label>
@@ -2002,6 +2098,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             {mailKind === 'draft' ? (
               <div className="fg"><label className="fl">Body</label><textarea className="fta" id="mail_body" data-testid="mail-body" disabled={mailSending} style={{ minHeight: 100 }} value={mailBodyDraft} onChange={(e) => { bumpMailDraft(); setMailBodyDraft(e.target.value); setVal('mail_body', e.target.value); }} /></div>
             ) : <input type="hidden" id="mail_body" value={extSummary} readOnly />}
+            <div className="fg"><label className="fl">אם אין תשובה עד</label><input className="fi" data-testid="mail-track-due" type="date" disabled={mailSending} value={trackDue} onChange={(e) => setTrackDue(e.target.value)} /></div>
+            <label className="pick-row" style={{ margin: '6px 0' }}>
+              <input type="checkbox" data-testid="mail-followup" disabled={mailSending} checked={followupWanted} onChange={(e) => setFollowupWanted(e.target.checked)} />
+              <span>אם אין תשובה בתוך <input type="number" min={1} max={30} value={followupDays} onChange={(e) => setFollowupDays(Math.max(1, Number(e.target.value) || 3))} style={{ width: 56 }} /> ימים — אשר Follow-up אוטומטי מראש (לא נשלח חי כרגע)</span>
+            </label>
+            <div style={{ fontSize: 10, color: 'var(--yn2)', marginBottom: 8 }}>Follow-up אוטומטי חי דורש Scheduler / יציאה מ-Dry Run. האישור נשמר ביומן בלבד. אין שליחה מתוזמנת בלי אישור נוסף.</div>
             <div className="sdiv"><div className="sdiv-t">בחירת מסמכים לצירוף</div><div className="sdiv-l" /></div>
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>רק מה שמסומן ייכנס ל-Preview ויישלח. תצוגה גדולה לא מסמנת לשליחה.</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -2104,7 +2206,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 {sendIds.length === 0 ? <div>אין קבצים נבחרים</div> : (
                   <ul style={{ margin: 0, paddingInlineStart: 18 }} data-testid="mail-preview-files">
                     {docs.files.filter((f) => sendIds.includes(f.id)).map((f) => (
-                      <li key={f.id}>{f.original_name} · {fmtBytes(Number(f.byte_size || 0))}</li>
+                      <li key={f.id}>{fileLabel(f)} · {fmtBytes(Number(f.byte_size || 0))}</li>
                     ))}
                   </ul>
                 )}
@@ -2121,7 +2223,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 {sendIds.length === 0 ? <div>אין קבצים</div> : (
                   <ul style={{ margin: '4px 0 8px', paddingInlineStart: 18 }} data-testid="mail-confirm-files">
                     {docs.files.filter((f) => sendIds.includes(f.id)).map((f) => (
-                      <li key={f.id}>{f.original_name} · {fmtBytes(Number(f.byte_size || 0))}</li>
+                      <li key={f.id}>{fileLabel(f)} · {fmtBytes(Number(f.byte_size || 0))}</li>
                     ))}
                   </ul>
                 )}
@@ -2192,6 +2294,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     body: bodyText,
                     file_ids: sendIds,
                     idempotency_key: mailIdemp.current,
+                    thread_id: mailThreadId || undefined,
+                    track_due: trackDue || undefined,
+                    followup_approved: followupWanted,
+                    followup_days: followupWanted ? followupDays : undefined,
                   });
                   if (!r.success || r.realEmailSend !== true || !r.gmail_message_id) {
                     if (r.error === 'already_sent') toast('המייל כבר נשלח — אין שליחה כפולה', 'err');
@@ -2202,11 +2308,20 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     else toast(String(r.error || 'שליחה נכשלה — Gmail לא החזיר Message ID'), 'err');
                     return;
                   }
-                  toast(`נשלח · msgid ${String(r.gmail_message_id || '')} · thread ${String(r.gmail_thread_id || '')}`);
+                  toast(`נשלח · שליחה #${String(r.send_no || '')} · msgid ${String(r.gmail_message_id || '')} · thread ${String(r.gmail_thread_id || '')}`);
+                  if (curId && trackDue) {
+                    await apiRef.current.saveReminder({
+                      claimId: curId,
+                      date: trackDue,
+                      note: `אם אין תשובה לשליחה #${String(r.send_no || '')} עד ${trackDue} — להזכיר`,
+                      owner: actor.full_name,
+                      sent: 'false',
+                    });
+                  }
                   setMailConfirmOn(false);
                   setMailAck(false);
                   setModal('moCard');
-                  if (curId) await openCard(curId);
+                  if (curId) await openCard(curId, 'gin');
                 } finally {
                   setMailSending(false);
                 }

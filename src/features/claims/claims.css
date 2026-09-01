@@ -65,6 +65,7 @@
 .claims-root .dc-n{font-size:28px;font-weight:900;line-height:1;margin-bottom:3px}
 .claims-root .dc-n.b{color:var(--ac3)}.claims-root .dc-n.g{color:var(--gn2)}.claims-root .dc-n.y{color:var(--yn2)}.claims-root .dc-n.r{color:var(--rd2)}.claims-root .dc-n.p{color:var(--pu2)}
 .claims-root .dc-l{font-size:10px;color:var(--t2);font-weight:500}
+.claims-root button.dc{font:inherit;color:inherit;width:100%}
 .claims-root .tw{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;overflow-x:auto}
 .claims-root table{width:100%;border-collapse:collapse;min-width:600px}
 .claims-root thead tr{background:var(--bg3);border-bottom:1px solid var(--br)}
