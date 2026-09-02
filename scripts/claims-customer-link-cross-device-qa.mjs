@@ -183,6 +183,7 @@ const { data: roleRows } = await admin.from('user_roles').select('user_id, role'
 for (const row of roleRows || []) {
   if (row.role === 'super_admin') continue;
   if (allowed.has(row.user_id)) continue;
+  if (accessSet.has(row.user_id)) continue;
   const u = await admin.auth.admin.getUserById(row.user_id);
   const email = u?.data?.user?.email;
   if (!email) continue;
