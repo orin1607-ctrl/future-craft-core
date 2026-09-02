@@ -46,36 +46,6 @@ export const DOC_PRESETS: { key: string; label: string }[] = [
   { key: 'garage_invoice', label: 'חשבונית מוסך' },
 ];
 
-/** Claim-card document checklist. Keys reuse existing doc_key / staff_type. No doc_kind expansion. */
-export type ClaimDocType = {
-  key: string;
-  label: string;
-  group: boolean;
-  formLater: boolean;
-  staffType: string;
-  docKind: string | null;
-  extraDocKinds?: string[];
-  aliases: string[];
-};
-
-export const CLAIM_DOC_TYPES: ClaimDocType[] = [
-  { key: 'notice_a', label: 'טופס הודאה א׳', group: false, formLater: true, staffType: 'notice_a', docKind: null, aliases: [] },
-  { key: 'notice_ayin', label: 'טופס הודעה ע׳', group: false, formLater: true, staffType: 'notice_ayin', docKind: null, aliases: [] },
-  { key: 'no_claim_form', label: 'אישור אי-הגשת תביעה', group: false, formLater: true, staffType: 'no_claim_form', docKind: null, aliases: ['טופס אי-הגשת תביעה'] },
-  { key: 'insurance_history', label: 'אישור עבר ביטוחי', group: false, formLater: false, staffType: 'insurance_history', docKind: null, aliases: ['עבר ביטוחי'] },
-  { key: 'consent_form', label: 'טופס הסכמה', group: false, formLater: true, staffType: 'consent_form', docKind: null, aliases: [] },
-  { key: 'check_photo', label: 'צילום צ׳ק', group: false, formLater: false, staffType: 'check_photo', docKind: null, aliases: [] },
-  { key: 'garage_invoice', label: 'חשבונית תיקון', group: false, formLater: false, staffType: 'garage_invoice', docKind: 'garage_invoice', aliases: ['חשבונית מוסך'] },
-  { key: 'surveyor_report', label: 'דוח שמאי', group: false, formLater: false, staffType: 'surveyor_report', docKind: 'surveyor_report', extraDocKinds: ['surveyor_attachment'], aliases: [] },
-  { key: 'surveyor_photos', label: 'תמונות שמאי', group: true, formLater: false, staffType: '', docKind: 'surveyor_photo', aliases: [] },
-  { key: 'damage_photos', label: 'תמונות אירוע', group: true, formLater: false, staffType: 'damage_photos', docKind: null, aliases: ['תמונות נזק / אירוע', 'תמונות נזק'] },
-  { key: 'license_driver', label: 'צילום רישיון נהיגה', group: false, formLater: false, staffType: 'driver_license', docKind: null, aliases: ['רישיון נהיגה – שני הצדדים', 'רישיון נהיגה'] },
-  { key: 'license_vehicle', label: 'צילום רישיון רכב', group: false, formLater: false, staffType: 'vehicle_license', docKind: null, aliases: ['רישיון רכב'] },
-  { key: 'power_of_attorney', label: 'ייפוי כוח', group: false, formLater: true, staffType: 'power_of_attorney', docKind: null, aliases: [] },
-  { key: 'rejection_letter', label: 'מכתב דחייה', group: false, formLater: false, staffType: 'rejection_letter', docKind: null, aliases: [] },
-  { key: 'demand_form', label: 'טופס דרישה', group: false, formLater: true, staffType: 'demand_form', docKind: null, aliases: [] },
-];
-
 export const TEMPLATES: Record<string, { name: string; subject?: string; body: string }> = {
   request_docs: {
     name: 'בקשת מסמכים',

@@ -1,0 +1,32 @@
+{
+  "mission": "claims-docs-phase2-precheck",
+  "scope": "OREN CAR / CLAIMS / Staging only",
+  "at": "2026-09-02T17:10:00+03:00",
+  "codeChanged": false,
+  "migration": false,
+  "productionTouched": false,
+  "MAIL_DISPATCH_MODE": "dry_run",
+  "staging": {
+    "ref": "usfeoerkpcafxxlyuldl",
+    "claims_records": 19,
+    "claims_documents": 1837,
+    "claims_doc_requests": 21,
+    "claims_upload_links": 9,
+    "bucket": { "id": "claims-docs", "public": false },
+    "doc_kind": {
+      "surveyor_photo": 1471,
+      "general": 364,
+      "surveyor_report": 1,
+      "garage_invoice": 1,
+      "surveyor_attachment": 0
+    },
+    "source": { "gmail": 1775, "staff": 55, "customer": 7 },
+    "staff_type_in_use": { "no_claim_form": 1 }
+  },
+  "stop": true,
+  "stopReasons": [
+    "Owner names similar but not identical to existing labels — do not guess",
+    "No fixed PDF template store exists — architecture needed before building one",
+    "Adding the 15 types as claims_documents.doc_kind would require ALTER CHECK = Migration — not proposed"
+  ]
+}

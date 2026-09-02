@@ -88,7 +88,6 @@ export default function ClaimsUploadPage() {
         {loading ? <div>טוען...</div> : error ? <div style={{ color: '#ef4444' }}>{error}</div> : (
           <>
             <div style={{ color: 'rgba(255,255,255,.65)', marginBottom: 18, lineHeight: 1.5 }}>שלום {clientName}{plate ? ` · רכב ${plate}` : ''}. אנא העלו את המסמכים המבוקשים.</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.45)', marginBottom: 12 }}>טפסים להורדה יתווספו בהמשך. כרגע מוצגים רק המסמכים שביקשו מכם.</div>
             {msg ? <div style={{ color: '#22c55e', marginBottom: 12, fontWeight: 700 }}>{msg}</div> : null}
             {docs.length === 0 ? <div>אין מסמכים מבוקשים כרגע.</div> : docs.map((d) => (
               <div key={d.id} style={{ background: '#071022', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: 14, marginBottom: 10 }}>

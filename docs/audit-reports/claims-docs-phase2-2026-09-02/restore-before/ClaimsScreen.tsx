@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
+import { CLAIM_KINDS, CLOSE_REASONS, DOC_PRESETS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
@@ -133,52 +133,6 @@ function mailAddrsOk(raw: string, required: boolean) {
   if (!parts.length) return !required;
   return parts.every((p) => EMAIL_RE.test(p));
 }
-function mailAddrParts(raw: string) {
-  return normalizeMailAddr(raw).split(/[,;]/).map((s) => s.trim()).filter(Boolean);
-}
-function MailAddrChips({ id, testId, value, disabled, placeholder, onChange }: {
-  id: string; testId: string; value: string; disabled?: boolean; placeholder?: string; onChange: (v: string) => void;
-}) {
-  const [draft, setDraft] = useState('');
-  const parts = mailAddrParts(value);
-  const commit = (raw: string) => {
-    const add = mailAddrParts(raw);
-    if (!add.length) return;
-    const next = [...parts];
-    for (const a of add) {
-      if (!next.some((x) => x.toLowerCase() === a.toLowerCase())) next.push(a);
-    }
-    onChange(next.join(', '));
-    setDraft('');
-  };
-  return (
-    <div className="mail-chips" data-testid={`${testId}-wrap`}>
-      {parts.map((p) => (
-        <span key={p} className="mail-chip">
-          <span dir="ltr">{p}</span>
-          <button type="button" disabled={disabled} aria-label={`הסר ${p}`} onClick={() => onChange(parts.filter((x) => x !== p).join(', '))}>×</button>
-        </span>
-      ))}
-      <input
-        id={id}
-        data-testid={testId}
-        className="mail-chip-input"
-        dir="ltr"
-        inputMode="email"
-        autoComplete="email"
-        disabled={disabled}
-        value={draft}
-        placeholder={parts.length ? 'הוסף כתובת' : (placeholder || '')}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ',' || e.key === ';') { e.preventDefault(); commit(draft); }
-          if (e.key === 'Backspace' && !draft && parts.length) onChange(parts.slice(0, -1).join(', '));
-        }}
-        onBlur={() => { if (draft.trim()) commit(draft); }}
-      />
-    </div>
-  );
-}
 function emailsFromHeader(raw: string) {
   return (String(raw || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []).map((e) => e.toLowerCase());
 }
@@ -240,49 +194,6 @@ type ClaimFile = {
   doc_meta?: Record<string, string> | null;
 };
 
-type DocRequest = { id: string; label: string; status: string; received_at?: string; doc_key?: string };
-
-function typeMatchesRequest(t: ClaimDocType, r: DocRequest) {
-  const key = String(r.doc_key || '');
-  if (key && (key === t.key || (t.staffType && key === t.staffType))) return true;
-  const names = [t.label, t.key, ...t.aliases];
-  return names.includes(r.label);
-}
-
-function filesForDocType(t: ClaimDocType, files: ClaimFile[], requests: DocRequest[]) {
-  const ids = new Set(requests.filter((r) => typeMatchesRequest(t, r)).map((r) => r.id));
-  return files.filter((f) => {
-    if (t.docKind && f.doc_kind === t.docKind) return true;
-    if ((t.extraDocKinds || []).includes(String(f.doc_kind || ''))) return true;
-    const st = fileMeta(f).staff_type;
-    if (t.staffType && st === t.staffType) return true;
-    if (st && st === t.key) return true;
-    if (f.doc_request_id && ids.has(f.doc_request_id)) return true;
-    return false;
-  });
-}
-
-function docTypeStatus(t: ClaimDocType, files: ClaimFile[], requests: DocRequest[], hasLink: boolean) {
-  const matched = filesForDocType(t, files, requests);
-  const reqs = requests.filter((r) => typeMatchesRequest(t, r));
-  const requested = reqs.some((r) => r.status === 'requested');
-  const received = reqs.some((r) => r.status === 'received');
-  const fromCustomer = matched.some((f) => f.source === 'customer');
-  if (fromCustomer || received) return { key: 'received', label: 'התקבל' };
-  if (matched.length) return { key: 'exists', label: 'קיים' };
-  if (requested && hasLink) return { key: 'waiting', label: 'ממתין ללקוח' };
-  if (requested) return { key: 'needed', label: 'נדרש מהלקוח' };
-  return { key: 'missing', label: 'חסר' };
-}
-
-function extraDocRequests(requests: DocRequest[]) {
-  return requests.filter((r) => !CLAIM_DOC_TYPES.some((t) => typeMatchesRequest(t, r)));
-}
-
-function catalogInRequests(requests: DocRequest[], t: ClaimDocType) {
-  return requests.some((r) => typeMatchesRequest(t, r) && r.status === 'requested');
-}
-
 function classifyDoc(f: ClaimFile) {
   const n = `${f.original_name || ''}`.toLowerCase();
   const mime = `${f.mime_type || ''}`.toLowerCase();
@@ -309,26 +220,19 @@ function effectiveKind(f: ClaimFile) {
   return 'general';
 }
 
-const STAFF_DOC_TYPES: Array<{ key: string; label: string }> = (() => {
-  const rows: Array<{ key: string; label: string }> = [{ key: '', label: 'לא סווג / מסמך כללי' }];
-  const seen = new Set(['']);
-  for (const t of CLAIM_DOC_TYPES) {
-    if (!t.staffType || seen.has(t.staffType)) continue;
-    seen.add(t.staffType);
-    rows.push({ key: t.staffType, label: t.label });
-  }
-  for (const extra of [
-    { key: 'accident_notice', label: 'טופס הודעה על תאונה' },
-    { key: 'policy', label: 'פוליסה' },
-    { key: 'police', label: 'אישור משטרה' },
-    { key: 'other', label: 'מסמך אחר' },
-  ]) {
-    if (seen.has(extra.key)) continue;
-    seen.add(extra.key);
-    rows.push(extra);
-  }
-  return rows;
-})();
+const STAFF_DOC_TYPES: Array<{ key: string; label: string }> = [
+  { key: '', label: 'לא סווג / מסמך כללי' },
+  { key: 'vehicle_license', label: 'רישיון רכב' },
+  { key: 'driver_license', label: 'רישיון נהיגה' },
+  { key: 'no_claim_form', label: 'טופס אי-הגשת תביעה' },
+  { key: 'accident_notice', label: 'טופס הודעה על תאונה' },
+  { key: 'policy', label: 'פוליסה' },
+  { key: 'police', label: 'אישור משטרה' },
+  { key: 'surveyor_report', label: 'דוח שמאי' },
+  { key: 'garage_invoice', label: 'חשבונית מוסך' },
+  { key: 'damage_photos', label: 'תמונות נזק' },
+  { key: 'other', label: 'מסמך אחר' },
+];
 const DOC_FILE_STATUSES: Array<{ key: string; label: string }> = [
   { key: '', label: '—' },
   { key: 'received', label: 'התקבל' },
@@ -514,7 +418,7 @@ const CARD_TAB_GROUPS: Array<{ key: string; label: string; tabs: Array<{ key: st
   { key: 'docs', label: 'מסמכים', tabs: [{ key: 'docs', label: 'כל המסמכים' }, { key: 'surveyor', label: 'דוח שמאי' }, { key: 'invoice', label: 'חשבונית מוסך' }] },
   { key: 'mail', label: 'דואר ותקשורת', tabs: [{ key: 'gin', label: 'התכתבויות' }, { key: 'mailfu', label: 'מעקב מייל' }] },
   { key: 'work', label: 'טיפול ומעקב', tabs: [{ key: 'treat', label: 'טיפול' }, { key: 'tasks', label: 'משימות' }, { key: 'rems', label: 'תזכורות' }] },
-  { key: 'hist', label: 'היסטוריה', tabs: [{ key: 'timeline', label: 'היסטוריה' }] },
+  { key: 'hist', label: 'History', tabs: [{ key: 'timeline', label: 'היסטוריה' }] },
 ];
 
 function cardGroupOf(tab: string) {
@@ -582,8 +486,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [mailFollowups, setMailFollowups] = useState<MailFollowupRow[]>([]);
   const [fuEditId, setFuEditId] = useState<string | null>(null);
   const [assignees, setAssignees] = useState<Array<{ id: string; full_name: string; company_name: string }>>([]);
-  const [docs, setDocs] = useState<{ requests: DocRequest[]; files: ClaimFile[] }>({ requests: [], files: [] });
-  const [hasUploadLink, setHasUploadLink] = useState(false);
+  const [docs, setDocs] = useState<{ requests: Array<{ id: string; label: string; status: string; received_at?: string }>; files: ClaimFile[] }>({ requests: [], files: [] });
   const [gmailStatus, setGmailStatus] = useState<{ connected?: boolean; email?: string | null; canConnect?: boolean }>({});
   const [gmailList, setGmailList] = useState<Array<Record<string, unknown>>>([]);
   const [gmailImports, setGmailImports] = useState<Array<Record<string, unknown>>>([]);
@@ -753,7 +656,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   ));
   const snapOpenTask = Boolean(cur && tasks.length > 0);
   const snapRem = Boolean(cur && reminders.length > 0);
-  const snapFollow = Boolean(cur && mailFollowups.length > 0);
   const activeClaims = useMemo(() => claims.filter((c) => c.archived !== 'true'), [claims]);
   const archiveClaims = useMemo(() => claims.filter((c) => c.archived === 'true'), [claims]);
   const workset = mineOnly ? activeClaims.filter((c) => c.assigned_to === actor.id) : activeClaims;
@@ -804,7 +706,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const loadCardData = async (id: string) => {
     const gen = ++cardLoadGen.current;
-    const [c, h, t, rem, d, fu, gi, gs, lk] = await Promise.all([
+    const [c, h, t, rem, d, fu, gi, gs] = await Promise.all([
       apiRef.current.getCommLog(id),
       apiRef.current.getHistory(id),
       apiRef.current.getTasks(id),
@@ -813,7 +715,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       apiRef.current.listMailFollowups(id),
       apiRef.current.invokeGmail('list_imports', { claim_id: id }),
       apiRef.current.invokeGmail('list_sends', { claim_id: id }),
-      apiRef.current.invokeDocs('get_link', { claim_id: id }),
     ]);
     if (gen !== cardLoadGen.current) return;
     setComm(c.data || []);
@@ -824,11 +725,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setGmailImports((gi.data as Array<Record<string, unknown>>) || []);
     setGmailSends((gs.data as Array<Record<string, unknown>>) || []);
     setDocs({
-      requests: (d.requests as DocRequest[]) || [],
+      requests: (d.requests as typeof docs.requests) || [],
       files: (d.files as ClaimFile[]) || [],
     });
-    const link = lk?.link as { expires_at?: string; revoked_at?: string | null } | undefined;
-    setHasUploadLink(Boolean(link && !link.revoked_at && link.expires_at && new Date(link.expires_at).getTime() > Date.now()));
   };
 
   const refreshPackage = async (claimId: string, ids: string[]) => {
@@ -982,7 +881,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     await loadCardData(curId);
   };
 
-  const uploadStaffFiles = async (claimId: string, files: File[], selectForSend = false, extra?: { doc_kind?: string; staff_type?: string }) => {
+  const uploadStaffFiles = async (claimId: string, files: File[], selectForSend = false, extra?: { doc_kind?: string }) => {
     if (!files.length) return [];
     setDocsUploading(true);
     const ids: string[] = [];
@@ -1926,7 +1825,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 {snapMissingDoc ? <div className="lbl-pill flag-warn" data-testid="snap-missing-doc">מסמך חסר</div> : null}
                 {snapOpenTask ? <div className="lbl-pill flag-on" data-testid="snap-open-task">משימה פתוחה</div> : null}
                 {snapRem ? <div className="lbl-pill flag-on" data-testid="snap-reminder">תזכורת</div> : null}
-                {snapFollow ? <div className="lbl-pill flag-on" data-testid="snap-followup">מעקב מייל</div> : null}
               </div>
             </div>
             <div className="ab ab-regroup">
@@ -2022,12 +1920,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               )}
               {cardTab === 'treat' && (
                 <>
-                  <div className="work-entry-bar" data-testid="work-entry-bar">
-                    <button type="button" className="btn btn-p btn-sm" onClick={() => openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk })}>עדכון טיפול</button>
-                    <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('tasks')}>משימות ({tasks.length})</button>
-                    <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('rems')}>תזכורות ({reminders.length})</button>
-                    <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('mailfu')}>מעקב מייל ({mailFollowups.length})</button>
-                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 12 }}>
                     {([['סטטוס טיפול', cur.status], ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || '')], ['טיפול הבא', fmtDay(cur.nextDate || '')], ['נדרשת פעולה', returnNeededLabel(cur)], ['הערות טיפול', cur.notes || '—']] as Array<[string, string]>)
                       .concat(cur.claimKind === 'תביעת צד ג׳' ? [['צד ג׳', cur.thirdParty || '—'], ['רכב צד ג׳', cur.thirdPlate || '—']] : [])
@@ -2217,120 +2109,35 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               })()}
               {cardTab === 'docs' && (
                 <div>
-                  {(() => {
-                    const statuses = CLAIM_DOC_TYPES.map((t) => ({ t, st: docTypeStatus(t, docs.files, docs.requests, hasUploadLink), files: filesForDocType(t, docs.files, docs.requests) }));
-                    const present = statuses.filter((x) => x.st.key === 'exists' || x.st.key === 'received').length;
-                    const missing = statuses.filter((x) => x.st.key === 'missing').length;
-                    const waiting = statuses.filter((x) => x.st.key === 'waiting' || x.st.key === 'needed').length;
-                    return (
-                      <div className="doc-sum" data-testid="docs-summary">
-                        <b>{present} מתוך {CLAIM_DOC_TYPES.length} קיימים</b>
-                        <span>{missing} חסרים</span>
-                        <span>{waiting} ממתינים ללקוח</span>
-                        <span className="doc-sum-hold" data-testid="docs-mandatory-hold">מסמכי חובה: לא הוגדרו (ממתין לאישור ארכיטקטורה)</span>
-                      </div>
-                    );
-                  })()}
-                  <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>סמנו מה לבקש מהלקוח. העלאה נשמרת במאגר התביעה בלבד. לא מנחשים סוג לפי שם קובץ.</div>
-                  <div className="doc-type-list" data-testid="claim-doc-types">
-                    {CLAIM_DOC_TYPES.map((t) => {
-                      const matched = filesForDocType(t, docs.files, docs.requests);
-                      const st = docTypeStatus(t, docs.files, docs.requests, hasUploadLink);
-                      const requested = catalogInRequests(docs.requests, t);
-                      const extra = t.key === 'surveyor_photos'
-                        ? { doc_kind: 'surveyor_photo' as const }
-                        : (t.docKind ? { doc_kind: t.docKind, staff_type: t.staffType || undefined } : { staff_type: t.staffType || undefined });
+                  <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>בחר אילו מסמכים לבקש מהלקוח — לא אותה רשימה לכל תיק.</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {DOC_PRESETS.map((p) => {
+                      const on = docs.requests.some((d) => d.label === p.label);
                       return (
-                        <div key={t.key} className="doc-type-row" data-testid={`claim-doc-type-${t.key}`}>
-                          <label className="doc-type-ask">
-                            <input
-                              type="checkbox"
-                              data-testid={`claim-doc-ask-${t.key}`}
-                              checked={requested}
-                              onChange={async (e) => {
-                                const want = e.target.checked;
-                                const extras = extraDocRequests(docs.requests).map((r) => ({ label: r.label, doc_key: r.doc_key || 'custom' }));
-                                const current = CLAIM_DOC_TYPES.filter((x) => catalogInRequests(docs.requests, x)).map((x) => x.key);
-                                const keys = want ? [...new Set([...current, t.key])] : current.filter((k) => k !== t.key);
-                                await apiRef.current.invokeDocs('save_doc_requests', {
-                                  claim_id: cur.id,
-                                  items: [
-                                    ...CLAIM_DOC_TYPES.filter((x) => keys.includes(x.key)).map((x) => ({ label: x.label, doc_key: x.key })),
-                                    ...extras,
-                                  ],
-                                });
-                                await loadCardData(cur.id);
-                              }}
-                            />
-                            <span>בקש מהלקוח</span>
-                          </label>
-                          <div className="doc-type-main">
-                            <div className="doc-type-name">
-                              {st.key === 'exists' || st.key === 'received' ? '✓ ' : st.key === 'waiting' || st.key === 'needed' ? '⏳ ' : '○ '}
-                              {t.label}
-                              {t.group ? ` — ${matched.length} קבצים` : null}
-                            </div>
-                            <div className={`doc-type-st st-${st.key}`} data-testid={`claim-doc-status-${t.key}`}>{st.label}</div>
-                          </div>
-                          <div className="doc-type-acts">
-                            <label className="btn btn-g btn-sm">העלה מסמך
-                              <input
-                                type="file"
-                                hidden
-                                multiple={t.group}
-                                accept="application/pdf,image/*"
-                                data-testid={`claim-doc-upload-${t.key}`}
-                                onChange={async (e) => {
-                                  const list = Array.from(e.target.files || []);
-                                  e.target.value = '';
-                                  if (!list.length) return;
-                                  await uploadStaffFiles(cur.id, list, false, extra);
-                                }}
-                              />
-                            </label>
-                            {matched.length ? (
-                              <button type="button" className="btn btn-p btn-sm" onClick={() => {
-                                const first = matched[0];
-                                if (t.group) {
-                                  setOpenGal((p) => ({ ...p, [`type:${t.key}`]: !p[`type:${t.key}`] }));
-                                  void loadGalleryThumbs(cur.id, matched.filter(isImageFile));
-                                } else void openInCard(cur.id, first);
-                              }}>{t.group ? (openGal[`type:${t.key}`] ? 'הסתר גלריה' : 'פתח גלריה') : 'צפייה'}</button>
-                            ) : null}
-                            <button type="button" className="btn btn-g btn-sm" disabled title="שמירת טופס קבוע דורשת אישור ארכיטקטורה — אין טבלה/Bucket חדשים">העלה טופס קבוע</button>
-                          </div>
-                          {t.group && openGal[`type:${t.key}`] && matched.length ? (
-                            <div className="gal-grid" data-testid={`claim-doc-gal-${t.key}`}>
-                              {matched.filter(isImageFile).map((f) => (
-                                <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
-                                  {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
+                        <button key={p.key} className={`btn btn-sm ${on ? 'btn-p' : 'btn-g'}`} onClick={async () => {
+                          const next = on ? docs.requests.filter((d) => d.label !== p.label) : [...docs.requests, { id: '', label: p.label, status: 'requested' }];
+                          await apiRef.current.invokeDocs('save_doc_requests', {
+                            claim_id: cur.id,
+                            items: next.map((d) => {
+                              const preset = DOC_PRESETS.find((x) => x.label === d.label);
+                              return { label: d.label, doc_key: preset?.key || 'custom' };
+                            }),
+                          });
+                          await loadCardData(cur.id);
+                        }}>{on ? '✓ ' : ''}{p.label}</button>
                       );
                     })}
                   </div>
-                  <div style={{ display: 'flex', gap: 6, margin: '12px 0' }}>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
                     <input className="fi" placeholder="מסמך נוסף..." value={customDoc} onChange={(e) => setCustomDoc(e.target.value)} />
                     <button className="btn btn-p btn-sm" onClick={async () => {
                       if (!customDoc.trim()) return;
-                      const extras = extraDocRequests(docs.requests).map((r) => ({ label: r.label, doc_key: r.doc_key || 'custom' }));
-                      const keys = CLAIM_DOC_TYPES.filter((x) => catalogInRequests(docs.requests, x)).map((x) => x.key);
-                      await apiRef.current.invokeDocs('save_doc_requests', {
-                        claim_id: cur.id,
-                        items: [
-                          ...CLAIM_DOC_TYPES.filter((x) => keys.includes(x.key)).map((x) => ({ label: x.label, doc_key: x.key })),
-                          ...extras,
-                          { label: customDoc.trim(), doc_key: 'custom' },
-                        ],
-                      });
+                      await apiRef.current.invokeDocs('save_doc_requests', { claim_id: cur.id, items: [...docs.requests, { label: customDoc.trim(), doc_key: 'custom' }] });
                       setCustomDoc('');
                       await loadCardData(cur.id);
                     }}>הוסף</button>
                   </div>
-                  {extraDocRequests(docs.requests).map((d) => (
+                  {docs.requests.map((d) => (
                     <div key={d.id} style={{ background: 'var(--bg3)', border: '1px solid var(--br)', borderRadius: 7, padding: '10px 12px', marginBottom: 7, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                       <div>
                         <div style={{ fontWeight: 600 }}>{d.label}</div>
@@ -2449,10 +2256,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       setLinkUrl(url);
                       await navigator.clipboard.writeText(url).catch(() => undefined);
                       toast('הקישור הועתק');
-                      await loadCardData(cur.id);
                       await afterSignificant(cur.id, 'נשלחה בקשת מסמכים ללקוח');
                     }}>קישור להעלאת מסמכים</button>
-                    <button className="btn btn-g btn-sm" onClick={async () => { await apiRef.current.invokeDocs('revoke_link', { claim_id: cur.id }); setLinkUrl(''); await loadCardData(cur.id); toast('הקישור בוטל'); }}>בטל קישור</button>
+                    <button className="btn btn-g btn-sm" onClick={async () => { await apiRef.current.invokeDocs('revoke_link', { claim_id: cur.id }); setLinkUrl(''); toast('הקישור בוטל'); }}>בטל קישור</button>
                   </div>
                   {linkUrl ? <div style={{ marginTop: 8, fontSize: 11, wordBreak: 'break-all', color: 'var(--ac3)' }}>{linkUrl}</div> : null}
                 </div>
@@ -2465,8 +2271,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <button type="button" className="btn btn-g btn-sm" onClick={() => { void openSendModal('legal'); }}>טיפול משפטי</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => { void startGmailImport(); }}>ייבוא Gmail</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => openMailFollowupModal(null)}>מעקב מייל</button>
-                    <button type="button" className="btn btn-g btn-sm" onClick={() => setModal('moCall')}>שיחה</button>
-                    <button type="button" className="btn btn-g btn-sm" onClick={() => { setVal('wa_msg', `שלום, בהמשך לתביעה ${displayClaimNum(cur)}`); setModal('moWA'); }}>WhatsApp</button>
                   </div>
                   <div className="sdiv"><div className="sdiv-t">התכתבויות ({gmailImports.length})</div><div className="sdiv-l" /></div>
                   <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>מסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אין ייבוא נוסף מכאן אלא אם תבחר מייל חדש למטה.</div>
@@ -2997,32 +2801,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="fg"><label className="fl">From</label><input className="fi" data-testid="mail-from" value={gmailStatus.email || 'yoni122222@gmail.com'} readOnly /></div>
             <div className="fg">
               <label className="fl">To *</label>
-              <MailAddrChips
-                id="mail_to"
-                testId="mail-to"
-                value={mailTo}
-                disabled={mailSending}
-                placeholder="name@example.com"
-                onChange={(v) => { bumpMailDraft(); setMailTo(v); setVal('mail_to', v); }}
-              />
+              <input className="fi" id="mail_to" data-testid="mail-to" dir="ltr" inputMode="email" autoComplete="email" disabled={mailSending} value={mailTo} onChange={(e) => { bumpMailDraft(); setMailTo(e.target.value); setVal('mail_to', e.target.value); }} onBlur={() => { const n = normalizeMailAddr(mailTo); if (n !== mailTo) { setMailTo(n); setVal('mail_to', n); } }} placeholder="name@example.com" style={{ textAlign: 'left', unicodeBidi: 'isolate' }} />
               {toHint ? (
-                <button type="button" className="btn btn-g btn-sm" style={{ marginTop: 6 }} disabled={mailSending} onClick={() => { bumpMailDraft(); const next = mailAddrParts(mailTo).includes(toHint) ? mailTo : [...mailAddrParts(mailTo), toHint].join(', '); setMailTo(next); setVal('mail_to', next); }}>העתק כתובת ששמורה בתיק ({toHint})</button>
+                <button type="button" className="btn btn-g btn-sm" style={{ marginTop: 6 }} disabled={mailSending} onClick={() => { bumpMailDraft(); setMailTo(toHint); setVal('mail_to', toHint); }}>העתק כתובת ששמורה בתיק ({toHint})</button>
               ) : <div style={{ fontSize: 10, color: 'var(--t3)' }}>אין כתובת שמורה בתיק — חובה להקליד.</div>}
               {mailTo && !mailAddrsOk(mailTo, true) ? (
                 <div style={{ fontSize: 11, color: 'var(--rd2)', marginTop: 6 }}>הכתובת לא נקראת כאימייל תקין. הקלידו באנגלית משמאל לימין, בלי רווחים.</div>
               ) : null}
             </div>
-            <div className="fg">
-              <label className="fl">CC</label>
-              <MailAddrChips
-                id="mail_cc"
-                testId="mail-cc"
-                value={mailCc}
-                disabled={mailSending}
-                placeholder="אופציונלי"
-                onChange={(v) => { bumpMailDraft(); setMailCc(v); setVal('mail_cc', v); }}
-              />
-            </div>
+            <div className="fg"><label className="fl">CC</label><input className="fi" id="mail_cc" data-testid="mail-cc" dir="ltr" inputMode="email" autoComplete="email" disabled={mailSending} value={mailCc} onChange={(e) => { bumpMailDraft(); setMailCc(e.target.value); setVal('mail_cc', e.target.value); }} onBlur={() => { const n = normalizeMailAddr(mailCc); if (n !== mailCc) setMailCc(n); }} placeholder="אופציונלי" style={{ textAlign: 'left', unicodeBidi: 'isolate' }} /></div>
             <div className="fg"><label className="fl">Subject</label><input className="fi" id="mail_subj" data-testid="mail-subj" disabled={mailSending} value={mailSubj} onChange={(e) => { bumpMailDraft(); setMailSubj(e.target.value); setVal('mail_subj', e.target.value); }} /></div>
             {(mailKind === 'insurer' || mailKind === 'legal') && (
               <div className="fg">
@@ -3040,8 +2827,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <span>אם אין תשובה בתוך <input type="number" min={1} max={30} value={followupDays} onChange={(e) => setFollowupDays(Math.max(1, Number(e.target.value) || 3))} style={{ width: 56 }} /> ימים — אשר Follow-up אוטומטי מראש (לא נשלח חי כרגע)</span>
             </label>
             <div style={{ fontSize: 10, color: 'var(--yn2)', marginBottom: 8 }}>Follow-up אוטומטי חי דורש Scheduler / יציאה מ-Dry Run. האישור נשמר ביומן בלבד. אין שליחה מתוזמנת בלי אישור נוסף.</div>
-            <div className="sdiv"><div className="sdiv-t">מסמכי התביעה לצירוף</div><div className="sdiv-l" /></div>
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>מקור אחד: מסמכי התביעה. אין מאגר נפרד למייל. רק מה שמסומן יישלח. אין צירוף אוטומטי.</div>
+            <div className="sdiv"><div className="sdiv-t">בחירת מסמכים לצירוף</div><div className="sdiv-l" /></div>
+            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>רק מה שמסומן ייכנס ל-Preview ויישלח. תצוגה גדולה לא מסמנת לשליחה. הסרה מהרשימה לא מוחקת ממסמכי התביעה.</div>
             {curId ? (
               <StaffUploadZone
                 testId="mail-docs-drop"
@@ -3053,11 +2840,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             ) : null}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
               <button className="btn btn-g btn-sm" data-testid="mail-clear-files" onClick={() => setSendGroup(docs.files.map((f) => f.id), false)}>נקה בחירה</button>
-              <button className="btn btn-g btn-sm" data-testid="mail-pick-surveyor-photos" onClick={() => setSendGroup(docs.files.filter((f) => f.doc_kind === 'surveyor_photo').map((f) => f.id), true)}>כל תמונות השמאי</button>
-              <button className="btn btn-g btn-sm" data-testid="mail-pick-surveyor-reports" onClick={() => setSendGroup(docs.files.filter((f) => f.doc_kind === 'surveyor_report' || f.doc_kind === 'surveyor_attachment').map((f) => f.id), true)}>כל דוחות השמאי</button>
-              <button className="btn btn-g btn-sm" data-testid="mail-pick-garage" onClick={() => setSendGroup(docs.files.filter((f) => f.doc_kind === 'garage_invoice' || fileMeta(f).staff_type === 'garage_invoice').map((f) => f.id), true)}>כל מסמכי המוסך</button>
-              <button className="btn btn-g btn-sm" data-testid="mail-pick-images" onClick={() => setSendGroup(docs.files.filter((f) => isImageFile(f)).map((f) => f.id), true)}>כל התמונות</button>
-              <button className="btn btn-g btn-sm" data-testid="mail-pick-identified" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).important === 'true').map((f) => f.id), true)}>מסמכים מזוהים</button>
             </div>
             {(() => {
               const identified = docs.files.filter((f) => fileMeta(f).important === 'true');

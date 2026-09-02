@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-02T14:18:56.986Z",
+  "purpose": "restore-before-claims-docs-phase2-ui",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "gitHead": "13b7bffa746352674703f5536874b3cc6f792b5a",
+  "gitShort": "13b7bff",
+  "branch": "feat/incident-alerts-staging",
+  "claims": 19,
+  "documents": 1837,
+  "requests": 21,
+  "links": 9,
+  "bucket": {
+    "id": "claims-docs",
+    "public": false
+  },
+  "MAIL_DISPATCH_MODE": "dry_run",
+  "backup": "docs/audit-reports/claims-docs-phase2-2026-09-02/restore-before/"
+}

@@ -45,31 +45,9 @@ const DOC_KINDS = new Set([
   "garage_invoice",
 ]);
 
-const STAFF_TYPES = new Set([
-  "",
-  "vehicle_license",
-  "driver_license",
-  "no_claim_form",
-  "accident_notice",
-  "policy",
-  "police",
-  "surveyor_report",
-  "garage_invoice",
-  "damage_photos",
-  "other",
-  "notice_a",
-  "notice_ayin",
-  "insurance_history",
-  "consent_form",
-  "check_photo",
-  "power_of_attorney",
-  "rejection_letter",
-  "demand_form",
-]);
-
 function kindFromUpload(docKey: string, mime: string, explicit: string) {
   if (explicit && DOC_KINDS.has(explicit)) return explicit;
-  if (docKey === "surveyor_report" || docKey === "surveyor_photos") return mime.startsWith("image/") ? "surveyor_photo" : "surveyor_report";
+  if (docKey === "surveyor_report") return mime.startsWith("image/") ? "surveyor_photo" : "surveyor_report";
   if (docKey === "garage_invoice") return "garage_invoice";
   return "general";
 }
@@ -341,6 +319,7 @@ Deno.serve(async (req) => {
       const claimId = String(body.claim_id || "");
       const fileId = String(body.file_id || "");
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const STAFF_TYPES = new Set(["", "vehicle_license", "driver_license", "no_claim_form", "accident_notice", "policy", "police", "surveyor_report", "garage_invoice", "damage_photos", "other"]);
       const STATUSES = new Set(["", "received", "missing", "pending", "ok", "sent", "needs_update"]);
       const { data: file } = await sb.from("claims_documents").select("id, original_name, doc_kind, doc_meta").eq("id", fileId).eq("claim_id", claimId).maybeSingle();
       if (!file) return jsonResponse({ success: false, error: "not_found" }, 404);
@@ -407,8 +386,6 @@ Deno.serve(async (req) => {
       const claimId = String(form?.get("claim_id") || "");
       const docRequestId = String(form?.get("doc_request_id") || "") || null;
       const explicitKind = String(form?.get("doc_kind") || "");
-      const staffType = String(form?.get("staff_type") || "");
-      if (staffType && !STAFF_TYPES.has(staffType)) return jsonResponse({ success: false, error: "invalid_staff_type" }, 400);
       const file = form?.get("file");
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       if (!(file instanceof File)) return jsonResponse({ success: false, error: "file_required" }, 400);
@@ -442,7 +419,6 @@ Deno.serve(async (req) => {
         uploaded_by: user.id,
         uploaded_by_name: actorName,
         doc_kind: kindFromUpload(reqKey, storedMime, explicitKind),
-        doc_meta: staffType ? { staff_type: staffType } : {},
         content_sha256: digest,
       });
       if (insErr) return jsonResponse({ success: false, error: insErr.message }, 400);
