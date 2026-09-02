@@ -1,0 +1,186 @@
+{
+  "at": "2026-09-02T19:22:29.904Z",
+  "public": "https://orin1607-ctrl.github.io/future-craft-core",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "liveMailSent": false,
+  "testClaims": [
+    "DAL-QA-WORKER-001",
+    "DAL-2026-0018"
+  ],
+  "counts": {
+    "before": {
+      "claims": 19,
+      "documents": 1848,
+      "requests": 25,
+      "links": 16
+    },
+    "after": {
+      "claims": 19,
+      "documents": 1849,
+      "requests": 25,
+      "links": 18
+    }
+  },
+  "checks": [
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "test-claims",
+      "ok": true,
+      "claimA": "DAL-QA-WORKER-001",
+      "claimB": "DAL-2026-0018"
+    },
+    {
+      "name": "open-test-claim",
+      "ok": true
+    },
+    {
+      "name": "desktop-ask-button",
+      "ok": true
+    },
+    {
+      "name": "desktop-ask-list",
+      "ok": true
+    },
+    {
+      "name": "link-card",
+      "ok": true
+    },
+    {
+      "name": "link-url-shown",
+      "ok": true,
+      "urlText": "https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=2a5c6a84d814c0"
+    },
+    {
+      "name": "copy-enabled",
+      "ok": true
+    },
+    {
+      "name": "copy-link",
+      "ok": true,
+      "copied": "https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=2a5c6a84d814c0"
+    },
+    {
+      "name": "open-link-btn",
+      "ok": true
+    },
+    {
+      "name": "no-send-mail-clicked",
+      "ok": true
+    },
+    {
+      "name": "token-present",
+      "ok": true
+    },
+    {
+      "name": "customer-sees-requested",
+      "ok": true
+    },
+    {
+      "name": "customer-no-internal",
+      "ok": true
+    },
+    {
+      "name": "customer-form-hold",
+      "ok": true
+    },
+    {
+      "name": "customer-upload-inputs",
+      "ok": true
+    },
+    {
+      "name": "customer-pdf-in-claim",
+      "ok": true,
+      "files": [
+        {
+          "id": "CDM-1788376988980-DCUGEJ",
+          "claim_id": "DAL-QA-WORKER-001",
+          "original_name": "cust-qa-1788376957717.pdf",
+          "source": "customer",
+          "doc_request_id": "DCR-1788376423453-FGJKX1",
+          "doc_meta": {
+            "staff_type": "damage_photos"
+          },
+          "doc_kind": "general"
+        }
+      ]
+    },
+    {
+      "name": "customer-img-in-claim",
+      "ok": true
+    },
+    {
+      "name": "customer-claim-id",
+      "ok": true
+    },
+    {
+      "name": "no-leak",
+      "ok": true
+    },
+    {
+      "name": "status-received",
+      "ok": true,
+      "reqs": [
+        {
+          "id": "DCR-1788360334726-HDCXEG",
+          "label": "צילום רישיון נהיגה",
+          "status": "received",
+          "doc_key": "license_driver"
+        },
+        {
+          "id": "DCR-1788376423058-VL8LWD",
+          "label": "צילום צ׳ק",
+          "status": "received",
+          "doc_key": "check_photo"
+        },
+        {
+          "id": "DCR-1788376423453-FGJKX1",
+          "label": "תמונות אירוע",
+          "status": "received",
+          "doc_key": "damage_photos"
+        }
+      ]
+    },
+    {
+      "name": "customer-sees-received",
+      "ok": true
+    },
+    {
+      "name": "revoke-blocks",
+      "ok": true
+    },
+    {
+      "name": "expired-blocks",
+      "ok": true
+    },
+    {
+      "name": "open-test-claim",
+      "ok": true
+    },
+    {
+      "name": "mobile-ask-button",
+      "ok": true
+    },
+    {
+      "name": "mobile-link-or-empty",
+      "ok": true
+    },
+    {
+      "name": "claims-unchanged",
+      "ok": true
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    },
+    {
+      "name": "no-real-email",
+      "ok": true
+    }
+  ],
+  "ok": true
+}

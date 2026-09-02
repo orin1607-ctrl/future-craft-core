@@ -1,0 +1,21 @@
+{
+  "mission": "claims-customer-link-flow",
+  "scope": "OREN CAR / CLAIMS / Staging only",
+  "qa": "PASS",
+  "desktop": "PASS",
+  "mobile": "PASS",
+  "migration": false,
+  "schemaChange": false,
+  "productionTouched": false,
+  "MAIL_DISPATCH_MODE": "dry_run",
+  "liveMailSent": false,
+  "testClaims": { "write": "DAL-QA-WORKER-001", "isolation": "DAL-2026-0018" },
+  "commits": ["d6a97397", "10c4bc3a"],
+  "deployed_ref": "10c4bc3a",
+  "publicStaging": "https://orin1607-ctrl.github.io/future-craft-core",
+  "expiryDays": 14,
+  "tokenStoredAs": "sha256 hash only — plaintext kept in this-browser localStorage after create",
+  "fixedPdfTemplates": "UI placeholder only — no template store",
+  "pdfEditor": "not built",
+  "multiPhoto": "DB allows many files per request; customer UI keeps upload open for group types"
+}

@@ -116,7 +116,7 @@ const img = Buffer.concat([jpg, Buffer.from(String(stamp))]);
 const browser = await chromium.launch({ headless: true });
 const desk = await browser.newContext({ viewport: { width: 1400, height: 900 }, locale: 'he-IL' });
 await desk.grantPermissions(['clipboard-read', 'clipboard-write']);
-await inject(desk);
+const deskToken = await inject(desk);
 const page = await desk.newPage();
 page.on('dialog', (d) => d.accept());
 
@@ -147,7 +147,7 @@ const urlText = ((await page.locator('[data-testid="cust-link-url"]').innerText(
 rec('link-url-shown', /claims-upload\?t=/.test(urlText), { urlText: urlText.slice(0, 80) });
 const copyBtn = page.locator('[data-testid="cust-link-copy"]');
 rec('copy-enabled', (await copyBtn.count()) > 0);
-await copyBtn.evaluate((el) => (el as HTMLButtonElement).click()).catch(() => copyBtn.click({ force: true }));
+await copyBtn.evaluate((el) => el.click()).catch(() => copyBtn.click({ force: true }));
 await page.waitForTimeout(400);
 let copied = '';
 try { copied = await page.evaluate(() => navigator.clipboard.readText()); } catch { copied = ''; }
@@ -195,22 +195,32 @@ await page.bringToFront();
 await dismissTreat(page);
 await page.locator('[data-testid="claims-tab-group-docs"]').click();
 await page.waitForTimeout(500);
-await page.locator('[data-testid="cust-link-revoke"]').evaluate((el) => (el as HTMLButtonElement).click()).catch(() => page.locator('[data-testid="cust-link-revoke"]').click({ force: true }));
+await page.locator('[data-testid="cust-link-revoke"]').evaluate((el) => el.click()).catch(() => page.locator('[data-testid="cust-link-revoke"]').click({ force: true }));
 await page.waitForTimeout(1200);
 await dismissTreat(page);
 await cust.reload({ waitUntil: 'networkidle' });
 await cust.waitForTimeout(800);
 rec('revoke-blocks', ((await cust.locator('[data-testid="cust-upload-error"]').innerText().catch(() => '')) || '').includes('בוטל'));
 
-await page.locator('[data-testid="cust-ask-open"]').click().catch(() => undefined);
-await page.waitForTimeout(300);
-await page.locator('[data-testid="cust-ask-create"]').click();
-await page.waitForTimeout(2500);
-await dismissTreat(page);
-const url2 = ((await page.locator('[data-testid="cust-link-url"]').innerText().catch(() => '')) || '').trim();
-const token2 = (url2.match(/t=([^&\s]+)/) || [])[1] || '';
+await page.locator('[data-testid="cust-ask-open"]').click({ force: true }).catch(() => undefined);
+await page.waitForTimeout(400);
+if (await page.locator('[data-testid="cust-ask-create"]').count()) {
+  await page.locator('[data-testid="cust-ask-create"]').evaluate((el) => el.click()).catch(() => undefined);
+  await page.waitForTimeout(2000);
+}
+let url2 = ((await page.locator('[data-testid="cust-link-url"]').innerText().catch(() => '')) || '').trim();
+let token2 = (url2.match(/t=([^&\s]+)/) || [])[1] || '';
+if (!token2) {
+  const cr = await fetch(`https://${STAGING_REF}.supabase.co/functions/v1/claims-docs`, {
+    method: 'POST',
+    headers: { apikey: anonKey, Authorization: `Bearer ${deskToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'create_link', claim_id: claimA }),
+  });
+  const crj = await cr.json();
+  token2 = crj.token || '';
+}
 if (token2) {
-  const { data: linkRow } = await admin.from('claims_upload_links').select('id, token_hash, expires_at').eq('claim_id', claimA).is('revoked_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const { data: linkRow } = await admin.from('claims_upload_links').select('id').eq('claim_id', claimA).is('revoked_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (linkRow?.id) {
     await admin.from('claims_upload_links').update({ expires_at: new Date(Date.now() - 60_000).toISOString() }).eq('id', linkRow.id);
     const expiredPage = await desk.newPage();
@@ -219,7 +229,7 @@ if (token2) {
     rec('expired-blocks', ((await expiredPage.locator('[data-testid="cust-upload-error"]').innerText().catch(() => '')) || (await expiredPage.locator('body').innerText())).includes('פג תוקף'));
     await expiredPage.close();
   } else rec('expired-blocks', false, { err: 'no active link row' });
-} else rec('expired-blocks', false, { err: 'no token after recreate' });
+} else rec('expired-blocks', false, { err: 'no token for expiry' });
 
 await page.screenshot({ path: join(OUT, 'screenshots', 'desktop-after.png') });
 await desk.close();
