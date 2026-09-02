@@ -442,7 +442,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [sync, setSync] = useState<'ok' | 'pend' | 'err'>('ok');
   const [claims, setClaims] = useState<ClaimRecord[]>([]);
   const [notifs, setNotifs] = useState<ClaimRecord[]>([]);
-  const [view, setView] = useState('claims');
+  const [view, setView] = useState('dashboard');
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [stFil, setStFil] = useState('');
