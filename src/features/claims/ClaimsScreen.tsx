@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CLAIM_KINDS, CLOSE_REASONS, DOC_PRESETS, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, isClosedStatus, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
+import { CLAIM_KINDS, CLOSE_REASONS, DOC_PRESETS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
@@ -19,6 +19,33 @@ function claimInsCompany(c: ClaimRecord): string {
 
 function claimInsCompanyLabel(c: ClaimRecord): string {
   return claimInsCompany(c) || '—';
+}
+
+function parseDay(s: string): Date | null {
+  if (!s) return null;
+  const iso = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]), 12);
+  const he = String(s).match(/^(\d{1,2})[./](\d{1,2})[./](\d{2,4})/);
+  if (he) {
+    const y = he[3].length === 2 ? 2000 + Number(he[3]) : Number(he[3]);
+    return new Date(y, Number(he[2]) - 1, Number(he[1]), 12);
+  }
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function daysFromToday(s: string): number | null {
+  const d = parseDay(s);
+  if (!d) return null;
+  const t = new Date();
+  t.setHours(12, 0, 0, 0);
+  d.setHours(12, 0, 0, 0);
+  return Math.round((d.getTime() - t.getTime()) / 86400000);
+}
+
+function returnNeededLabel(c: ClaimRecord): string {
+  if (isClosedStatus(c.status, c.archived)) return 'אין צורך בחזרה';
+  return claimNeedsReturn(c) ? 'כן' : '—';
 }
 
 const FC_MAP: Record<string, string> = {
@@ -478,6 +505,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [followupDays, setFollowupDays] = useState(3);
   const mailIdemp = useRef('');
   const [listMode, setListMode] = useState<'active' | 'archive'>('active');
+  const [workFil, setWorkFil] = useState('');
+  const [docsOrderFil, setDocsOrderFil] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkModal, setBulkModal] = useState<null | 'assign' | 'archive' | 'delete'>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [treatAction, setTreatAction] = useState('');
   const [treatSendOk, setTreatSendOk] = useState(false);
   const [treatBusy, setTreatBusy] = useState(false);
@@ -554,7 +586,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       for (const item of auto) {
         if (!item.claim_id || !item.message_id) continue;
         const ir = await apiRef.current.importGmailMessage(item.claim_id, item.message_id);
-        if (ir.success) imported += 1;
+        if (ir.success) {
+          imported += 1;
+          await apiRef.current.cancelScheduledMailFollowups(item.claim_id);
+        }
       }
       await loadAll();
       await loadPending();
@@ -606,6 +641,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setSbOpen(false);
     setView(name);
     setFilter(f);
+    setWorkFil('');
+    setSelectedIds([]);
     if (name === 'claims' && !f) { setStFil(''); setListMode('active'); }
     else if (f) setStFil(f);
     if (name === 'tasks') {
@@ -725,18 +762,19 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setMailCc('');
     setToHint(kind === 'legal' ? (cur.legalEmail || '') : (kind === 'insurer' ? (cur.insEmail || '') : (cur.insEmail || cur.clientEmail || '')));
     if (kind === 'insurer') {
-      setMailSubj(`תביעה ${cur.claimNum || cur.id} – ${cur.clientName}`);
+      setMailSubj(mailClaimLabel(cur));
       setMailBodyDraft(ext.text || '');
-      setVal('mail_subj', `תביעה ${cur.claimNum || cur.id} – ${cur.clientName}`);
+      setVal('mail_subj', mailClaimLabel(cur));
       setVal('mail_body', ext.text || '');
     } else if (kind === 'legal') {
-      setMailSubj(`העברה לטיפול משפטי – ${cur.id} – ${cur.clientName}`);
+      setMailSubj(`העברה לטיפול משפטי – ${displayClaimNum(cur)} – ${cur.clientName}`);
       setMailBodyDraft(ext.text || '');
-      setVal('mail_subj', `העברה לטיפול משפטי – ${cur.id} – ${cur.clientName}`);
+      setVal('mail_subj', `העברה לטיפול משפטי – ${displayClaimNum(cur)} – ${cur.clientName}`);
       setVal('mail_body', ext.text || '');
     } else {
-      const subj = `תביעה ${cur.id} – ${cur.clientName}`;
-      const body = `שלום,\n\nבהמשך לתביעה מספר ${cur.claimNum || cur.id}\nלקוח: ${cur.clientName}\nרכב: ${cur.plate || '—'}\n\nבברכה,\nדליה ניהול תביעות`;
+      const num = displayClaimNum(cur);
+      const subj = mailClaimLabel(cur);
+      const body = `שלום,\n\nבהמשך לתביעה ${num === 'טרם התקבל' ? '' : `מספר ${num}`}\nלקוח: ${cur.clientName}\nרכב: ${cur.plate || '—'}\n\nבברכה,\nדליה ניהול תביעות`;
       setMailSubj(subj);
       setMailBodyDraft(body);
       setVal('mail_subj', subj);
@@ -819,7 +857,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     await loadCardData(curId);
   };
 
-  const uploadStaffFiles = async (claimId: string, files: File[], selectForSend = false) => {
+  const uploadStaffFiles = async (claimId: string, files: File[], selectForSend = false, extra?: { doc_kind?: string }) => {
     if (!files.length) return [];
     setDocsUploading(true);
     const ids: string[] = [];
@@ -827,7 +865,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     let reused = 0;
     try {
       for (const file of files) {
-        const up = await apiRef.current.staffUpload(claimId, '', file);
+        const up = await apiRef.current.staffUpload(claimId, '', file, extra);
         if (!up.success) { fails.push(`${file.name}: ${up.error || 'שגיאה'}`); continue; }
         if (up.reused) reused += 1;
         if (up.file_id) ids.push(up.file_id);
@@ -874,7 +912,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const c = cur;
     const filled = c ? await apiRef.current.fillTemplate('status_request', {
       ...c,
-      claimNum: c.claimNum || c.id,
+      claimNum: workClaimNum(c),
       clientName: c.clientName || '',
       plate: c.plate || '',
       eventDate: c.eventDate || '',
@@ -1071,18 +1109,90 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (filter && c.status !== filter) return false;
     if (insCoFil && claimInsCompany(c) !== insCoFil) return false;
     if (handlerFil && c.assigned_to !== handlerFil) return false;
+    if (docsOrderFil && docsOrderOf(c) !== docsOrderFil) return false;
+    const delta = daysFromToday(c.nextDate || '');
+    if (workFil === 'today') return delta === 0;
+    if (workFil === 'overdue') return isClosedStatus(c.status, c.archived) ? false : (delta !== null && delta < 0);
+    if (workFil === 'later') return delta !== null && delta > 0;
+    if (workFil === 'waiting_reply') return c.status === 'ממתין לחברת ביטוח';
+    if (workFil === 'waiting_docs') return c.status === 'ממתין למסמכים';
+    if (workFil === 'unassigned') return !c.assigned_to;
+    if (workFil === 'no_next') return !claimHasNextAction(c);
+    if (workFil === 'docs_needs_sort') return docsOrderOf(c) === 'needs_sort';
+    if (workFil === 'open_tasks') return dashTasks.some((t) => t.claimId === c.id && t.done !== 'true');
+    if (workFil === 'reminders') return dashRems.some((r) => r.claimId === c.id);
     return true;
   };
 
   const list = useMemo(() => {
     const pool = listMode === 'archive' ? archiveClaims : activeClaims;
     return pool.filter(matchesRowFilters);
-  }, [activeClaims, archiveClaims, listMode, search, stFil, filter, insCoFil, handlerFil, mineOnly, actor.id]);
+  }, [activeClaims, archiveClaims, listMode, search, stFil, filter, insCoFil, handlerFil, docsOrderFil, workFil, mineOnly, actor.id, dashTasks, dashRems]);
 
   const dashRows = useMemo(
     () => activeClaims.filter(matchesRowFilters),
-    [activeClaims, search, stFil, filter, insCoFil, handlerFil, mineOnly, actor.id],
+    [activeClaims, search, stFil, filter, insCoFil, handlerFil, docsOrderFil, workFil, mineOnly, actor.id, dashTasks, dashRems],
   );
+
+  const visibleRows = view === 'dashboard' ? dashRows : list;
+  const visibleIds = visibleRows.map((c) => c.id);
+  const selectedVisible = selectedIds.filter((id) => visibleIds.includes(id));
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+
+  const toggleSelect = (id: string, on?: boolean) => {
+    setSelectedIds((prev) => {
+      const has = prev.includes(id);
+      const nextOn = on === undefined ? !has : on;
+      if (nextOn) return has ? prev : [...prev, id];
+      return prev.filter((x) => x !== id);
+    });
+  };
+  const toggleSelectAllVisible = (on: boolean) => {
+    setSelectedIds((prev) => {
+      if (on) return [...new Set([...prev, ...visibleIds])];
+      return prev.filter((id) => !visibleIds.includes(id));
+    });
+  };
+
+  const applyDashFilter = (key: string, ins?: string) => {
+    setSbOpen(false);
+    setView('dashboard');
+    setListMode('active');
+    setFilter('');
+    setStFil('');
+    setWorkFil(key);
+    setSelectedIds([]);
+    if (ins !== undefined) setInsCoFil(ins);
+    else if (key === '') setInsCoFil('');
+    if (key !== 'docs_needs_sort') setDocsOrderFil('');
+  };
+
+  const insCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of workset) {
+      const co = claimInsCompany(c);
+      if (co) m.set(co, (m.get(co) || 0) + 1);
+    }
+    return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], 'he'));
+  }, [workset]);
+
+  const dashCounts = useMemo(() => {
+    return {
+      all: workset.length,
+      today: workset.filter((c) => daysFromToday(c.nextDate || '') === 0).length,
+      overdue: workset.filter((c) => { const d = daysFromToday(c.nextDate || ''); return !isClosedStatus(c.status, c.archived) && d !== null && d < 0; }).length,
+      later: workset.filter((c) => { const d = daysFromToday(c.nextDate || ''); return d !== null && d > 0; }).length,
+      openTasks: dashTasks.filter((t) => t.done !== 'true' && (!mineOnly || workset.some((c) => c.id === t.claimId))).length,
+      reminders: dashRems.filter((r) => !mineOnly || workset.some((c) => c.id === r.claimId)).length,
+      newMail: notifs.filter((x) => x.type === 'gmail_auto' && x.read !== 'true').length,
+      review: gmailPending.filter((p) => !p.imported_at && String(p.decision) !== 'auto').length,
+      waitingReply: workset.filter((c) => c.status === 'ממתין לחברת ביטוח').length,
+      waitingDocs: workset.filter((c) => c.status === 'ממתין למסמכים').length,
+      unassigned: workset.filter((c) => !c.assigned_to).length,
+      noNext: workset.filter((c) => !claimHasNextAction(c)).length,
+      docsNeedsSort: workset.filter((c) => docsOrderOf(c) === 'needs_sort').length,
+    };
+  }, [workset, dashTasks, dashRems, notifs, gmailPending, mineOnly]);
 
   const renderListFilterControls = () => (
     <>
@@ -1099,7 +1209,64 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <option value="">כל העובדים המטפלים</option>
         {handlerOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
       </select>
+      <select className="fse" value={docsOrderFil} onChange={(e) => { setDocsOrderFil(e.target.value); setSelectedIds([]); }} style={{ fontSize: 11.5 }} data-testid="claims-docs-order-filter">
+        <option value="">כל מצב המסמכים</option>
+        {DOCS_ORDER.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+      </select>
     </>
+  );
+
+  const renderBulkBar = () => (
+    <div className="bulk-bar" data-testid="claims-bulk-bar">
+      <label className="bulk-all">
+        <input type="checkbox" data-testid="claims-select-all" checked={allVisibleSelected} onChange={(e) => toggleSelectAllVisible(e.target.checked)} />
+        סמן הכל בתוצאות המוצגות ({visibleIds.length})
+      </label>
+      {selectedVisible.length > 0 && (
+        <div className="bulk-acts">
+          <span data-testid="claims-selected-count">{selectedVisible.length} נבחרו</span>
+          {isSuperAdmin ? <button className="btn btn-p btn-sm" data-testid="claims-bulk-assign" onClick={() => setBulkModal('assign')}>שייך לעובד תביעות</button> : null}
+          <button className="btn btn-g btn-sm" data-testid="claims-bulk-archive" onClick={() => setBulkModal('archive')}>העבר לארכיון</button>
+          <button className="btn btn-sm" data-testid="claims-bulk-delete" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { setDeleteTyped(''); setBulkModal('delete'); }}>מחיקה (soft)</button>
+          <button className="btn btn-g btn-sm" onClick={() => setSelectedIds([])}>בטל בחירה</button>
+        </div>
+      )}
+    </div>
+  );
+
+  const claimTableHead = (
+    <thead><tr>
+      <th></th>
+      <th>מספר תביעה</th><th>לקוח</th><th>רכב</th><th>חברת ביטוח</th>
+      <th>סטטוס טיפול</th><th>עובד מטפל</th>
+      <th>טיפול אחרון</th><th>טיפול הבא</th><th>נדרשת פעולה</th><th>מצב מסמכים</th>
+      {view === 'claims' ? <th></th> : null}
+    </tr></thead>
+  );
+
+  const renderClaimRow = (c: ClaimRecord, extra?: boolean) => (
+    <tr key={c.id} onClick={() => openCard(c.id)} data-testid={`claim-row-${c.id}`}>
+      <td onClick={(e) => e.stopPropagation()}>
+        <input type="checkbox" data-testid={`claim-check-${c.id}`} checked={selectedIds.includes(c.id)} onChange={(e) => toggleSelect(c.id, e.target.checked)} />
+      </td>
+      <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{displayClaimNum(c)}</td>
+      <td>
+        <div style={{ fontWeight: 600 }}>{c.clientName}</div>
+        {c.clientPhone && extra ? <div style={{ fontSize: 10, color: 'var(--t3)' }}>{c.clientPhone}</div> : null}
+        {c.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
+        {docsOrderOf(c) === 'needs_sort' ? <div className="lbl-pill legacy">תיק ישן / דורש סידור</div> : null}
+        {c.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
+      </td>
+      <td>{c.plate || '—'}</td>
+      <td>{claimInsCompanyLabel(c)}</td>
+      <td>{stBadge(c.status)}</td>
+      <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
+      <td style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDay(c.lastTreatmentAt || '')}</td>
+      <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(c.nextDate || '')}</td>
+      <td style={{ fontSize: 11, fontWeight: 700 }}>{returnNeededLabel(c)}</td>
+      <td style={{ fontSize: 10 }}>{docsOrderLabel(docsOrderOf(c)) || '—'}</td>
+      {extra ? <td onClick={(e) => e.stopPropagation()}><button className="btn btn-g btn-sm" onClick={() => startEdit(c.id)}>✏️</button></td> : null}
+    </tr>
   );
   const myTasks = dashTasks.filter((t) => !mineOnly || workset.some((c) => c.id === t.claimId)).slice(0, 8);
   const myRems = dashRems.filter((r) => !mineOnly || workset.some((c) => c.id === r.claimId)).slice(0, 8);
@@ -1185,7 +1352,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   {gHits.map((c) => (
                     <div key={c.id} className="veh-item" onClick={() => { setGOpen(false); openCard(c.id); }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}><b>{c.clientName}</b>{stBadge(c.status)}</div>
-                      <div style={{ fontSize: 10.5, color: 'var(--t3)' }}>{c.id} · {c.plate} · {c.insCompany}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--t3)' }}>{displayClaimNum(c)} · {c.plate} · {c.insCompany}</div>
                     </div>
                   ))}
                 </div>
@@ -1275,67 +1442,77 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   </div>
                 </div>
                 <div className="dcg">
-                  {[
-                    ['b', claims.length, 'סה"כ תיקים'],
-                    ['b', cnt((x) => x.status !== 'הסתיים' && x.status !== 'שולם'), 'פתוחים'],
-                    ['y', cnt((x) => x.status === 'ממתין לחברת ביטוח'), 'חברת ביטוח'],
-                    ['y', cnt((x) => x.status === 'ממתין לשמאי'), 'שמאי'],
-                    ['r', cnt((x) => x.status === 'ממתין למסמכים'), 'חסרים מסמכים'],
-                    ['y', cnt((x) => x.status === 'ממתין לתשלום'), 'לתשלום'],
-                    ['p', cnt((x) => x.status === 'בטיפול משפטי'), 'משפטי'],
-                    ['g', cnt((x) => x.status === 'הסתיים' || x.status === 'שולם'), 'הסתיים'],
-                  ].map((x) => (
-                    <div key={String(x[2])} className="dc"><div className={`dc-bar ${x[0]}`} /><div className={`dc-n ${x[0]}`}>{x[1]}</div><div className="dc-l">{x[2]}</div></div>
+                  {([
+                    ['b', dashCounts.all, 'כל התביעות', 'dash-all', () => applyDashFilter('')],
+                    ['y', dashCounts.today, 'דורשות טיפול היום', 'dash-today', () => applyDashFilter('today')],
+                    ['r', dashCounts.overdue, 'טיפול באיחור', 'dash-overdue', () => applyDashFilter('overdue')],
+                    ['b', dashCounts.later, 'טיפול בהמשך', 'dash-later', () => applyDashFilter('later')],
+                    ['p', dashCounts.openTasks, 'משימות פתוחות', 'dash-open-tasks', () => { applyDashFilter('open_tasks'); showView('tasks'); }],
+                    ['y', dashCounts.reminders, 'תזכורות', 'dash-reminders', () => applyDashFilter('reminders')],
+                    ['p', dashCounts.newMail, 'מיילים חדשים', 'dash-new-mail', () => {
+                      const n = notifs.find((x) => x.type === 'gmail_auto' && x.read !== 'true' && x.claimId);
+                      if (n?.claimId) void openCard(n.claimId, 'gin');
+                      else showView('gmail');
+                    }],
+                    ['y', dashCounts.review, 'דורשים בדיקת שיוך', 'dash-needs-review', () => showView('gmail')],
+                    ['y', dashCounts.waitingReply, 'ממתינים לתשובה', 'dash-waiting-reply', () => applyDashFilter('waiting_reply')],
+                    ['r', dashCounts.waitingDocs, 'ממתינים למסמכים', 'dash-waiting-docs', () => applyDashFilter('waiting_docs')],
+                    ['r', dashCounts.unassigned, 'ללא עובד מטפל', 'dash-unassigned', () => applyDashFilter('unassigned')],
+                    ['y', dashCounts.noNext, 'ללא פעולה הבאה', 'dash-no-next', () => applyDashFilter('no_next')],
+                    ['y', dashCounts.docsNeedsSort, 'דורשים סידור מסמכים', 'dash-docs-sort', () => { setDocsOrderFil('needs_sort'); applyDashFilter('docs_needs_sort'); }],
+                  ] as Array<[string, number, string, string, () => void]>).map(([color, n, label, tid, onClick]) => (
+                    <button type="button" key={tid} className="dc" data-testid={tid} style={{ cursor: 'pointer', textAlign: 'right' }} onClick={onClick}>
+                      <div className={`dc-bar ${color}`} /><div className={`dc-n ${color}`}>{n}</div><div className="dc-l">{label}</div>
+                    </button>
                   ))}
-                  <button type="button" className="dc" data-testid="dash-new-mail" style={{ cursor: 'pointer', textAlign: 'right', border: '1px solid var(--br)', background: 'var(--bg2)' }} onClick={() => {
-                    const n = notifs.find((x) => x.type === 'gmail_auto' && x.read !== 'true' && x.claimId);
-                    if (n?.claimId) void openCard(n.claimId, 'gin');
-                    else showView('gmail');
-                  }}>
-                    <div className="dc-bar p" /><div className="dc-n p">{notifs.filter((x) => x.type === 'gmail_auto' && x.read !== 'true').length}</div><div className="dc-l">📩 מיילים חדשים</div>
-                  </button>
-                  <button type="button" className="dc" data-testid="dash-needs-review" style={{ cursor: 'pointer', textAlign: 'right', border: '1px solid var(--br)', background: 'var(--bg2)' }} onClick={() => showView('gmail')}>
-                    <div className="dc-bar y" /><div className="dc-n y">{gmailPending.filter((p) => !p.imported_at && String(p.decision) !== 'auto').length}</div><div className="dc-l">דורשים בדיקת שיוך</div>
-                  </button>
                 </div>
-                <div className="sdiv"><div className="sdiv-t">{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</div><div className="sdiv-l" /></div>
-                <div className="tw" data-testid="claims-dash-table"><table><thead><tr><th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>חברת ביטוח</th><th>סטטוס</th><th>עובד מטפל</th><th>תאריך טיפול אחרון</th><th>תאריך טיפול הבא</th></tr></thead>
+                <div className="sdiv"><div className="sdiv-t">חברות ביטוח</div><div className="sdiv-l" /></div>
+                <div className="dcg" data-testid="dash-ins-companies">
+                  {insCounts.length === 0 ? <div style={{ color: 'var(--t3)', fontSize: 12 }}>אין חברות ביטוח בתיקים</div>
+                    : insCounts.map(([co, n]) => (
+                      <button type="button" key={co} className="dc" data-testid={`dash-ins-${co}`} style={{ cursor: 'pointer', textAlign: 'right' }} onClick={() => applyDashFilter('', co)}>
+                        <div className="dc-bar b" /><div className="dc-n b">{n}</div><div className="dc-l">{co}</div>
+                      </button>
+                    ))}
+                </div>
+                <div className="sdiv"><div className="sdiv-t">{workFil || insCoFil || docsOrderFil ? 'תוצאות מסוננות' : (mineOnly ? 'התביעות שלי' : 'כל התביעות')}</div><div className="sdiv-l" /></div>
+                {renderBulkBar()}
+                <div className="tw" data-testid="claims-dash-table"><table>
+                  {claimTableHead}
                   <tbody>
-                    {dashRows.length === 0 ? <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--t3)', padding: 24 }}>אין תיקים</td></tr>
-                      : dashRows.map((x) => (
-                        <tr key={x.id} onClick={() => openCard(x.id)}>
-                          <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{x.id}</td>
-                          <td>{x.clientName}</td><td>{x.plate || '—'}</td>
-                          <td>{claimInsCompanyLabel(x)}</td>
-                          <td>{stBadge(x.status)}</td>
-                          <td style={{ fontSize: 11 }}>{x.assigned_to_name || '—'}</td>
-                          <td style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDay(x.lastTreatmentAt || x.lastActivityAt || '')}</td>
-                          <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(x.nextDate || '')}</td>
-                        </tr>
-                      ))}
+                    {dashRows.length === 0 ? <tr><td colSpan={11} style={{ textAlign: 'center', color: 'var(--t3)', padding: 24 }}>אין תיקים</td></tr>
+                      : dashRows.map((x) => renderClaimRow(x))}
                   </tbody>
                 </table></div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginTop: 16 }}>
                   <div>
                     <div className="sdiv"><div className="sdiv-t">משימות לביצוע</div><div className="sdiv-l" /></div>
                     {myTasks.length === 0 ? <div style={{ color: 'var(--t3)', fontSize: 12 }}>אין משימות פתוחות</div>
-                      : myTasks.map((t) => (
+                      : myTasks.map((t) => {
+                        const c = claims.find((x) => x.id === t.claimId);
+                        return (
                         <div key={t.id} style={{ background: 'var(--bg2)', border: '1px solid var(--br)', borderRadius: 7, padding: '10px 12px', marginBottom: 7, cursor: 'pointer' }} onClick={() => t.claimId && openCard(t.claimId)}>
-                          <div style={{ fontSize: 10, color: 'var(--ac3)' }}>{t.claimId}</div>
+                          <div style={{ fontWeight: 800 }}>{c?.clientName || 'ללא שם לקוח'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--t3)' }}>{c ? displayClaimNum(c) : ''}{c?.insCompany ? ` · ${c.insCompany}` : ''}{c?.assigned_to_name ? ` · ${c.assigned_to_name}` : ''}</div>
                           <div style={{ fontWeight: 600 }}>{t.action}</div>
-                          {t.dueDate ? <div style={{ fontSize: 11, color: 'var(--yn2)' }}>📅 {t.dueDate}</div> : null}
+                          <div style={{ fontSize: 11, color: 'var(--yn2)' }}>{t.dueDate ? `📅 ${t.dueDate}` : ''}{t.workStatus ? ` · ${workStatusHe(t.workStatus)}` : ''}</div>
                         </div>
-                      ))}
+                        );
+                      })}
                   </div>
                   <div>
                     <div className="sdiv"><div className="sdiv-t">תזכורות</div><div className="sdiv-l" /></div>
                     {myRems.length === 0 ? <div style={{ color: 'var(--t3)', fontSize: 12 }}>אין תזכורות</div>
-                      : myRems.map((r) => (
+                      : myRems.map((r) => {
+                        const c = claims.find((x) => x.id === r.claimId);
+                        return (
                         <div key={r.id} style={{ background: 'var(--bg2)', border: '1px solid var(--br)', borderRadius: 7, padding: '10px 12px', marginBottom: 7, cursor: 'pointer' }} onClick={() => r.claimId && openCard(r.claimId)}>
+                          <div style={{ fontWeight: 800 }}>{c?.clientName || r.note || r.claimId}</div>
                           <div style={{ fontWeight: 600 }}>{r.date} {r.time || ''}</div>
-                          <div style={{ fontSize: 12, color: 'var(--t2)' }}>{r.note || r.claimId}</div>
+                          <div style={{ fontSize: 12, color: 'var(--t2)' }}>{r.note || ''}{c ? ` · ${displayClaimNum(c)}` : ''}</div>
                         </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </div>
               </>
@@ -1344,7 +1521,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             {view === 'claims' && (
               <>
                 <div className="ph">
-                  <div><div className="ph-t" data-testid="claims-list-heading">{listMode === 'archive' ? 'תיקים בארכיון' : (filter || stFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים'))}<div className="ph-bar" /></div></div>
+                  <div><div className="ph-t" data-testid="claims-list-heading">{listMode === 'archive' ? 'תיקים בארכיון' : (filter || stFil || workFil || insCoFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים'))}<div className="ph-bar" /></div></div>
                   <div className="ph-a">
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'שלי' : 'הכול'}</button>
@@ -1352,29 +1529,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     {renderListFilterControls()}
                   </div>
                 </div>
-                <div className="tw" data-testid="claims-list-table"><table><thead><tr>
-                  <th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>חברת ביטוח</th><th>מס' תביעה</th><th>סטטוס</th><th>עובד מטפל</th><th>תאריך טיפול אחרון</th><th>תאריך טיפול הבא</th><th></th>
-                </tr></thead>
+                {renderBulkBar()}
+                <div className="tw" data-testid="claims-list-table"><table>
+                  {claimTableHead}
                   <tbody>
-                    {list.length === 0 ? <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }}>לא נמצאו תיקים</td></tr>
-                      : list.map((c) => (
-                        <tr key={c.id} onClick={() => openCard(c.id)}>
-                          <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{c.id}</td>
-                          <td>
-                            <div style={{ fontWeight: 600 }}>{c.clientName}</div>
-                            {c.clientPhone ? <div style={{ fontSize: 10, color: 'var(--t3)' }}>{c.clientPhone}</div> : null}
-                            {c.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
-                            {c.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
-                          </td>
-                          <td>{c.plate || '—'}</td><td>{claimInsCompanyLabel(c)}</td>
-                          <td style={{ color: 'var(--t3)', fontSize: 11 }}>{c.claimNum || '—'}</td>
-                          <td>{stBadge(c.status)}</td>
-                          <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
-                          <td style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDay(c.lastTreatmentAt || c.lastActivityAt || '')}</td>
-                          <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(c.nextDate || '')}</td>
-                          <td onClick={(e) => e.stopPropagation()}><button className="btn btn-g btn-sm" onClick={() => startEdit(c.id)}>✏️</button></td>
-                        </tr>
-                      ))}
+                    {list.length === 0 ? <tr><td colSpan={12} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }}>לא נמצאו תיקים</td></tr>
+                      : list.map((c) => renderClaimRow(c, true))}
                   </tbody>
                 </table></div>
               </>
@@ -1428,7 +1588,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           <select className="fse" value={pendingPick[pid] || ''} onChange={(e) => setPendingPick((prev) => ({ ...prev, [pid]: e.target.value }))}>
                             <option value="">בחירת תביעה…</option>
                             {workset.map((c) => (
-                              <option key={c.id} value={c.id}>{c.id} · {c.clientName} · {c.plate || '—'}</option>
+                              <option key={c.id} value={c.id}>{displayClaimNum(c)} · {c.clientName} · {c.plate || '—'}</option>
                             ))}
                           </select>
                           <button className="btn btn-p btn-sm" onClick={async () => {
@@ -1440,6 +1600,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             const ir = await apiRef.current.importGmailMessage(claimId, String(a.message_id || p.gmail_message_id));
                             setGmailBusy('');
                             if (!ir.success) { toast(String(ir.error || 'ייבוא נכשל'), 'err'); return; }
+                            await apiRef.current.cancelScheduledMailFollowups(claimId);
                             toast('המייל שויך ידנית ונקלט בתיק');
                             await loadPending();
                             await loadAll();
@@ -1460,9 +1621,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     const c = claims.find((x) => x.id === t.claimId);
                     return (
                       <div key={t.id} style={{ background: 'var(--bg2)', border: '1px solid var(--br)', borderRadius: 7, padding: '11px 13px', marginBottom: 7, cursor: 'pointer' }} onClick={() => openCard(t.claimId)}>
-                        <div style={{ fontSize: 10, color: 'var(--ac3)' }}>{t.claimId}{c ? ` – ${c.clientName}` : ''}</div>
+                        <div style={{ fontWeight: 800, fontSize: 15 }}>{c?.clientName || 'ללא שם לקוח'}</div>
+                        <div style={{ fontSize: 11, color: 'var(--t3)' }}>
+                          מספר תביעה: {c ? displayClaimNum(c) : '—'}
+                          {c?.insCompany ? ` · ${c.insCompany}` : ''}
+                          {c?.assigned_to_name ? ` · מטפל: ${c.assigned_to_name}` : ''}
+                        </div>
                         <div style={{ fontSize: 13, fontWeight: 600 }}>{t.action}</div>
-                        {t.dueDate ? <div style={{ fontSize: 11, color: 'var(--yn2)' }}>📅 {t.dueDate}</div> : null}
+                        <div style={{ fontSize: 11, color: 'var(--yn2)' }}>{t.dueDate ? `📅 ${t.dueDate}` : ''}{t.workStatus ? ` · ${workStatusHe(t.workStatus)}` : ''}</div>
                       </div>
                     );
                   })}
@@ -1484,12 +1650,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 {inactive && (
                   <div style={{ marginBottom: 16 }}>
                     <div className="sdiv"><div className="sdiv-t">תיקים ללא פעילות – {inactive.days} ימים ({inactive.rows.length})</div><div className="sdiv-l" /></div>
-                    <div className="tw"><table><thead><tr><th>מס' תיק</th><th>לקוח</th><th>רכב</th><th>סטטוס</th><th>פעילות אחרונה</th></tr></thead>
+                    <div className="tw"><table><thead><tr><th>מספר תביעה</th><th>לקוח</th><th>רכב</th><th>סטטוס</th><th>פעילות אחרונה</th></tr></thead>
                       <tbody>
                         {inactive.rows.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--t3)', padding: 20 }}>אין תיקים ללא פעילות</td></tr>
                           : inactive.rows.map((c) => (
                             <tr key={c.id} onClick={() => openCard(c.id)}>
-                              <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{c.id}</td>
+                              <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{displayClaimNum(c)}</td>
                               <td>{c.clientName}</td><td>{c.plate || '—'}</td>
                               <td>{stBadge(c.status)}</td>
                               <td style={{ fontSize: 11, color: 'var(--rd2)' }}>{c.lastActivityAt || c.updatedAt || '—'}</td>
@@ -1589,7 +1755,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           <div className="modal" style={{ maxWidth: 940 }}>
             <div className="mh">
               <div>
-                <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{cur.id}</div>
+                <div style={{ fontSize: 11, color: 'var(--ac3)', fontWeight: 800 }}>מספר תביעה: {displayClaimNum(cur)}</div>
                 <div style={{ fontSize: 19, fontWeight: 900, marginBottom: 4 }}>{cur.clientName}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   {stBadge(cur.status)}
@@ -1598,6 +1764,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   {cur.vehicle_id ? <div className="lbl-pill">רכב משויך</div> : null}
                   {cur.assigned_to_name ? <div className="lbl-pill">מטפל: {cur.assigned_to_name}</div> : <div className="lbl-pill">ללא מטפל</div>}
                   {cur.claimKind ? <div className="lbl-pill">{cur.claimKind}</div> : null}
+                  {docsOrderOf(cur) === 'needs_sort' ? <div className="lbl-pill legacy">תיק ישן / דורש סידור מסמכים</div> : null}
+                  {docsOrderOf(cur) === 'organized' ? <div className="lbl-pill" style={{ color: '#22c55e', borderColor: 'rgba(34,197,94,.35)', background: 'rgba(34,197,94,.1)' }}>תיק מסודר</div> : null}
                   {cur.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
                   {cur.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
                 </div>
@@ -1610,7 +1778,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             </div>
             <div className="ab">
               <button className="ab-btn ab-phone" onClick={() => setModal('moCall')}>📞 שיחה</button>
-              <button className="ab-btn ab-wa" onClick={() => { setVal('wa_msg', `שלום, בהמשך לתביעה ${cur.claimNum || cur.id}`); setModal('moWA'); }}>💬 WhatsApp</button>
+              <button className="ab-btn ab-wa" onClick={() => { setVal('wa_msg', `שלום, בהמשך לתביעה ${displayClaimNum(cur)}`); setModal('moWA'); }}>💬 WhatsApp</button>
               <button className="ab-btn ab-mail" data-testid="claims-send-mail" onClick={() => { void openSendModal('draft'); }}>📧 שליחת תיק במייל</button>
               <button className="ab-btn ab-mail" onClick={() => { void openSendModal('insurer'); }}>🏢 לחברת ביטוח</button>
               <button className="ab-btn ab-status" onClick={() => { void openSendModal('legal'); }}>⚖️ טיפול משפטי</button>
@@ -1660,11 +1828,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               </div>
               {cardTab === 'claim' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11 }}>
-                  {[['מספר תיק', cur.id], ['סוג', cur.claimKind || '—'], ['תאריך אירוע', cur.eventDate || '—'], ['תאריך פתיחה', cur.createdAt || '—'],
-                    ['סטטוס', cur.status], ['מטפל', cur.assigned_to_name || '—'], ['חברת ביטוח', cur.insCompany || '—'],
-                    ['מספר פוליסה', cur.policyNum || '—'], ["מס' תביעה", cur.claimNum || '—'], ['שמאי', cur.surveyor || '—'],
-                    ['פעולה הבאה', cur.nextAction || '—'], ['עודכן ע״י', cur.updatedByName || '—'],
-                    ['Gmail Message', cur.gmail_message_id || '—'], ['Gmail Thread', cur.gmail_thread_id || '—']].map((f) => (
+                  {[['מספר תביעה', displayClaimNum(cur)], ['סוג', cur.claimKind || '—'], ['תאריך אירוע', cur.eventDate || '—'], ['תאריך פתיחה', cur.createdAt || '—'],
+                    ['סטטוס טיפול', cur.status], ['מטפל', cur.assigned_to_name || '—'], ['חברת ביטוח', cur.insCompany || '—'],
+                    ['מספר פוליסה', cur.policyNum || '—'], ['שמאי', cur.surveyor || '—'],
+                    ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || '')], ['טיפול הבא', fmtDay(cur.nextDate || '')],
+                    ['נדרשת פעולה', returnNeededLabel(cur)],
+                    ['מצב מסמכים', docsOrderLabel(docsOrderOf(cur)) || '—'],
+                    ['פעולה הבאה', cur.nextAction || '—'], ['עודכן ע״י', cur.updatedByName || '—']].map((f) => (
                       <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
                     ))}
                 </div>
@@ -1686,11 +1856,26 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               {cardTab === 'treat' && (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 12 }}>
-                    {([['פעולה הבאה', cur.nextAction || '—'], ['תאריך טיפול אחרון', fmtDay(cur.lastTreatmentAt || cur.lastActivityAt || '')], ['תאריך טיפול הבא', fmtDay(cur.nextDate || '')], ['הערות טיפול', cur.notes || '—']] as Array<[string, string]>)
+                    {([['סטטוס טיפול', cur.status], ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || '')], ['טיפול הבא', fmtDay(cur.nextDate || '')], ['נדרשת פעולה', returnNeededLabel(cur)], ['הערות טיפול', cur.notes || '—']] as Array<[string, string]>)
                       .concat(cur.claimKind === 'תביעת צד ג׳' ? [['צד ג׳', cur.thirdParty || '—'], ['רכב צד ג׳', cur.thirdPlate || '—']] : [])
                       .map((f) => (
                       <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
                     ))}
+                  </div>
+                  <div className="fg" style={{ marginBottom: 12 }}>
+                    <label className="fl">מצב סדר מסמכים</label>
+                    <select className="fse fi" data-testid="docs-order-select" value={docsOrderOf(cur) || ''} onChange={async (e) => {
+                      const v = e.target.value;
+                      if (!v) return;
+                      const r = await apiRef.current.setDocsOrderStatus(cur.id, v);
+                      if (!r.success) { toast(String(r.error || 'שמירה נכשלה'), 'err'); return; }
+                      await loadAll();
+                      await loadCardData(cur.id);
+                      toast('מצב המסמכים עודכן');
+                    }}>
+                      <option value="">— לא סומן —</option>
+                      {DOCS_ORDER.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+                    </select>
                   </div>
                   <div className="sdiv"><div className="sdiv-t">תקשורת והערות</div><div className="sdiv-l" /></div>
                   {comm.length === 0 ? <div className="empty">אין תקשורת מתועדת</div>
@@ -1714,7 +1899,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   <div>
                     <div className="sdiv"><div className="sdiv-t">דוח שמאי · {docs.files.length} קבצים בתיק</div><div className="sdiv-l" /></div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 12 }}>
-                      {[['מספר רכב', cur.plate || '—'], ["מס' תביעה", cur.claimNum || '—'], ['תאריך אירוע', cur.eventDate || '—'],
+                      {[['מספר רכב', cur.plate || '—'], ['מספר תביעה', displayClaimNum(cur)], ['תאריך אירוע', cur.eventDate || '—'],
                         ['שם שמאי', meta.surveyorName || cur.surveyor || '—'], ['תאריך הדוח', meta.reportDate || '—'], ['מספר דוח', meta.reportNumber || '—']].map((f) => (
                         <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
                       ))}
@@ -1846,17 +2031,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       );
                     })}
                     <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
-                    <label className="btn btn-p btn-sm" style={{ marginTop: 10 }}>העלאת חשבונית מוסך
-                      <input type="file" hidden accept="application/pdf,image/*" onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        e.target.value = '';
-                        if (!file) return;
-                        const up = await apiRef.current.staffUpload(cur.id, '', file, { doc_kind: 'garage_invoice' });
-                        if (!up.success) { toast(up.error || 'העלאה נכשלה', 'err'); return; }
-                        await loadCardData(cur.id);
-                        toast('חשבונית מוסך הועלתה');
-                      }} />
-                    </label>
+                    {cur.plate ? <div style={{ fontSize: 12, color: 'var(--t3)', margin: '8px 0' }}>רכב בתיק: {cur.plate}{cur.carModel ? ` · ${cur.carModel}` : ''} — המסמך נשמר בתיק התביעה בלבד, לא במודול Vehicles.</div> : null}
+                    <StaffUploadZone
+                      testId="invoice-drop"
+                      inputId="invoice_staff_files"
+                      addLabel="＋ הוסף חשבונית"
+                      busy={docsUploading}
+                      onFiles={(files) => { void uploadStaffFiles(cur.id, files, false, { doc_kind: 'garage_invoice' }); }}
+                    />
                   </div>
                 );
               })()}
@@ -2181,6 +2363,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         const r = await apiRef.current.importGmailMessage(cur.id, String(m.id));
                         setGmailBusy('');
                         if (!r.success) { toast(String(r.error || 'ייבוא נכשל'), 'err'); return; }
+                        await apiRef.current.cancelScheduledMailFollowups(cur.id);
                         const found = Number(r.found || r.total || 0);
                         const imported = Number(r.imported || 0);
                         const failed = Number(r.failed || 0);
@@ -2374,6 +2557,77 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               await loadCardData(cur.id);
               toast('התביעה הוקצתה');
             }}>הקצה</button>
+          </div>
+        </div>
+      </div>
+
+      <div className={`ov ${bulkModal ? 'open' : ''}`}>
+        <div className="modal modal-sm">
+          <div className="mh">
+            <div className="mh-t">{bulkModal === 'assign' ? 'שיוך מרובה לעובד תביעות' : bulkModal === 'archive' ? 'העברה לארכיון' : 'מחיקה רכה'}</div>
+            <button className="mcl" onClick={() => !bulkBusy && setBulkModal(null)}>✕</button>
+          </div>
+          <div className="mb">
+            <div style={{ fontWeight: 700, marginBottom: 8 }} data-testid="bulk-count">נבחרו {selectedVisible.length} תיקים</div>
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>הפעולה תתבצע רק על התיקים המסומנים בתוצאות המוצגות. לא נוצרים תיקים חדשים.</div>
+            {bulkModal === 'assign' && (
+              <div className="fg"><label className="fl">עובד תביעות</label>
+                <select className="fse fi" id="bulk_as_user" data-testid="claims-bulk-assign-user">
+                  <option value="">— בחר עובד —</option>
+                  {assignees.map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+                </select>
+              </div>
+            )}
+            {bulkModal === 'archive' && <div>התיקים יועברו לארכיון הקיים. אפשר לשחזר אחר כך.</div>}
+            {bulkModal === 'delete' && (
+              <div>
+                <div style={{ color: 'var(--rd2)', fontWeight: 700, marginBottom: 8 }}>אין Hard Delete. זו מחיקה רכה בלבד.</div>
+                <div className="fg"><label className="fl">הקלידו «מחק» לאישור</label>
+                  <input className="fi" data-testid="bulk-delete-confirm" value={deleteTyped} onChange={(e) => setDeleteTyped(e.target.value)} />
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="mf">
+            <button className="btn btn-g" disabled={bulkBusy} onClick={() => setBulkModal(null)}>ביטול</button>
+            <button className="btn btn-p" data-testid="claims-bulk-confirm" disabled={bulkBusy || selectedVisible.length === 0} onClick={async () => {
+              const ids = [...selectedVisible];
+              if (!ids.length) { toast('לא נבחרו תיקים', 'err'); return; }
+              setBulkBusy(true);
+              try {
+                if (bulkModal === 'assign') {
+                  const uid = val(null, 'bulk_as_user');
+                  if (!uid) { toast('בחר עובד', 'err'); return; }
+                  let ok = 0;
+                  for (const id of ids) {
+                    const r = await apiRef.current.assignClaim(id, uid);
+                    if (r.success) ok += 1;
+                  }
+                  toast(`שויכו ${ok} מתוך ${ids.length} תיקים`);
+                } else if (bulkModal === 'archive') {
+                  let ok = 0;
+                  for (const id of ids) {
+                    const r = await apiRef.current.archiveClaim(id);
+                    if (r.success) ok += 1;
+                  }
+                  toast(`הועברו לארכיון ${ok} מתוך ${ids.length}`);
+                } else if (bulkModal === 'delete') {
+                  if (deleteTyped !== 'מחק') { toast('נדרש להקליד «מחק»', 'err'); return; }
+                  let ok = 0;
+                  for (const id of ids) {
+                    const r = await apiRef.current.softDeleteClaim(id, 'מחק');
+                    if (r.success) ok += 1;
+                  }
+                  toast(`נמחקו (soft) ${ok} מתוך ${ids.length}`);
+                }
+                setBulkModal(null);
+                setSelectedIds([]);
+                setDeleteTyped('');
+                await loadAll();
+              } finally {
+                setBulkBusy(false);
+              }
+            }}>{bulkBusy ? 'מבצע…' : 'אישור'}</button>
           </div>
         </div>
       </div>
@@ -2736,6 +2990,20 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       sent: 'false',
                     });
                   }
+                  if (curId && followupWanted) {
+                    const whenIso = new Date(Date.now() + followupDays * 86400000).toISOString();
+                    const fu = await apiRef.current.upsertMailFollowup({
+                      claim_id: curId,
+                      mail_kind: 'email_once',
+                      mail_to: to,
+                      mail_subject: mailSubj,
+                      mail_body: bodyText,
+                      attach_mode: 'none',
+                      next_run_at: whenIso,
+                    });
+                    if (!fu.success) toast(`המייל נשלח, אך שמירת המעקב נכשלה: ${String(fu.error || '')}`, 'err');
+                    else toast('מעקב נשמר בתיק (Dry Run — לא יישלח מייל אוטומטי אמיתי עד אישור)');
+                  }
                 } finally {
                   setMailSending(false);
                 }
@@ -2959,7 +3227,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   const claimId = val(null, 'tpl_claim');
                   const c = claimId ? claims.find((x) => x.id === claimId) : null;
                   if (c) {
-                    const r = await apiRef.current.fillTemplate(k, c);
+                    const r = await apiRef.current.fillTemplate(k, { ...c, claimNum: workClaimNum(c) });
                     setVal('tpl_subj', r.subject || '');
                     setVal('tpl_body', r.body || '');
                   } else {
@@ -2972,7 +3240,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="fg"><label className="fl">תיק לשיוך</label>
               <select className="fse fi" id="tpl_claim" onChange={async () => { if (curTpl) {
                 const c = claims.find((x) => x.id === val(null, 'tpl_claim'));
-                if (c) { const r = await apiRef.current.fillTemplate(curTpl, c); setVal('tpl_subj', r.subject || ''); setVal('tpl_body', r.body || ''); }
+                if (c) { const r = await apiRef.current.fillTemplate(curTpl, { ...c, claimNum: workClaimNum(c) }); setVal('tpl_subj', r.subject || ''); setVal('tpl_body', r.body || ''); }
               } }}>
                 <option value="">— ללא תיק ספציפי —</option>
                 {claims.map((c) => <option key={c.id} value={c.id}>{c.id} – {c.clientName} – {c.plate || ''}</option>)}

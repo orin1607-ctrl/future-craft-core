@@ -96,6 +96,48 @@ export type ClaimsActor = {
 
 export type ClaimRecord = Record<string, string> & { id: string };
 
+export const DOCS_ORDER: Array<{ key: string; label: string }> = [
+  { key: 'needs_sort', label: 'תיק ישן / דורש סידור מסמכים' },
+  { key: 'in_progress', label: 'בטיפול' },
+  { key: 'organized', label: 'תיק מסודר' },
+];
+
+export function workClaimNum(c: { claimNum?: string } | null | undefined): string {
+  return String(c?.claimNum || '').trim();
+}
+
+export function displayClaimNum(c: { claimNum?: string } | null | undefined): string {
+  return workClaimNum(c) || 'טרם התקבל';
+}
+
+export function mailClaimLabel(c: { claimNum?: string; clientName?: string } | null | undefined): string {
+  const num = workClaimNum(c);
+  const name = String(c?.clientName || '').trim();
+  if (num && name) return `תביעה ${num} – ${name}`;
+  if (num) return `תביעה ${num}`;
+  if (name) return `תביעה – ${name}`;
+  return 'תביעה';
+}
+
+export function docsOrderOf(c: { docsOrderStatus?: string } | null | undefined): string {
+  return String(c?.docsOrderStatus || '').trim();
+}
+
+export function docsOrderLabel(key: string): string {
+  return DOCS_ORDER.find((x) => x.key === key)?.label || '';
+}
+
+export function claimNeedsReturn(c: ClaimRecord): boolean {
+  if (isClosedStatus(c.status, c.archived)) return false;
+  return Boolean(String(c.nextDate || '').trim());
+}
+
+export function claimHasNextAction(c: ClaimRecord): boolean {
+  if (c.archived === 'true') return true;
+  if (isClosedStatus(c.status, c.archived)) return true;
+  return Boolean(String(c.nextDate || '').trim());
+}
+
 export type ClaimsVehicleHit = {
   id: string;
   license_plate: string;

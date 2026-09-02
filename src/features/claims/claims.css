@@ -168,7 +168,11 @@
 .claims-root .veh-drop{background:var(--bg2);border:1px solid var(--br2);border-radius:var(--r2);max-height:180px;overflow-y:auto}
 .claims-root .veh-item{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--br);font-size:12px}
 .claims-root .veh-item:hover{background:var(--bg3)}
-.claims-root .lbl-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);color:#fbbf24;font-size:10px;font-weight:700;padding:2px 7px;border-radius:14px}
+.claims-root .lbl-pill.legacy{color:#fbbf24;border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.12)}
+.claims-root .bulk-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:var(--r)}
+.claims-root .bulk-all{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700}
+.claims-root .bulk-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-right:auto;font-size:12px}
+.claims-root tbody tr td input[type=checkbox]{width:16px;height:16px;accent-color:var(--ac2)}
 .claims-root .sb-open-btn{display:none}
 .claims-root .sb-ov{display:none}
 .claims-root .sb-mhead{display:none}

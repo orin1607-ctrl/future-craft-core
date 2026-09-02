@@ -270,6 +270,7 @@ export function createClaimsApi(actor: ClaimsActor) {
       incoming.updatedByName = actorName;
       if (isNew) incoming.createdByName = actorName;
       if (isNew && !incoming.source) incoming.source = 'Staff';
+      if (isNew && !incoming.docsOrderStatus) incoming.docsOrderStatus = 'organized';
 
       const payload = {
         id: incoming.id,
@@ -711,7 +712,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         '  סיכום חיצוני לתביעה — מותר להעברה',
         '  (ללא הערות פנימיות / היסטוריית עובדים)',
         '══════════════════════════════════════════════',
-        `מספר תיק:      ${c.id}`,
+        `מספר תביעה:    ${c.claimNum || 'טרם התקבל'}`,
         `לקוח:          ${c.clientName || '—'}`,
         `רכב:           ${c.plate || '—'} ${c.carModel || ''}`.trim(),
         `תאריך אירוע:   ${c.eventDate || '—'}`,
@@ -806,6 +807,27 @@ export function createClaimsApi(actor: ClaimsActor) {
       const { error } = await supabase.rpc('claims_assign' as never, { p_claim_id: claimId, p_user_id: userId } as never);
       if (error) return { success: false, error: error.message };
       return { success: true };
+    },
+
+    async setDocsOrderStatus(claimId: string, status: string) {
+      const allowed = new Set(['needs_sort', 'in_progress', 'organized']);
+      if (!allowed.has(status)) return { success: false, error: 'מצב מסמכים לא תקין' };
+      const c = await getClaimById(claimId);
+      if (!c) return { success: false, error: 'תיק לא נמצא' };
+      const prev = c.docsOrderStatus || '';
+      const saved = await patchClaimData(claimId, { docsOrderStatus: status });
+      if (!saved.success) return saved;
+      await appendHistory(claimId, 'מצב סדר מסמכים', status, 'docs_order', prev, status);
+      return { success: true };
+    },
+
+    async cancelScheduledMailFollowups(claimId: string) {
+      const listed = await this.listMailFollowups(claimId);
+      const due = (listed.data || []).filter((fu) => fu.status === 'scheduled');
+      for (const fu of due) {
+        await this.cancelMailFollowup(fu.id);
+      }
+      return { success: true, cancelled: due.length };
     },
 
     async invokeDocs(action: string, body: Record<string, unknown> = {}) {
